@@ -397,6 +397,14 @@ select, .constraint-value, .interp-input, .antagonist-input,
   border: 1px solid var(--border); border-radius: var(--radius-s);
   padding: 6px 9px; max-width: 100%;
 }
+/* The browser paints the select's popup from the OS color scheme, while
+   the option text inherits the app theme's ink; when the two disagree
+   (in-app theme toggle) that pairing is unreadable. Opaque explicit
+   colors keep the popup legible in every OS/app combination. */
+select option {
+  background-color: var(--surface);
+  color: var(--ink);
+}
 .constraint-value {
   width: 84px; font-variant-numeric: tabular-nums;
 }
