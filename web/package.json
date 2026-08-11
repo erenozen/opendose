@@ -1,0 +1,33 @@
+{
+  "name": "web",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "sync-py": "node scripts/sync-py.mjs",
+    "predev": "npm run sync-py",
+    "dev": "vite",
+    "prebuild": "npm run sync-py",
+    "build": "tsc -b && vite build",
+    "lint": "oxlint",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@fontsource-variable/inter": "^5.3.0",
+    "plotly.js-dist-min": "^3.7.0",
+    "pyodide": "^314.0.3",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.3",
+    "@types/plotly.js": "^3.0.13",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.4",
+    "oxlint": "^1.75.0",
+    "playwright": "^1.62.1",
+    "typescript": "~6.0.2",
+    "vite": "^8.2.0"
+  }
+}

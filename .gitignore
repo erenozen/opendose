@@ -1,0 +1,12 @@
+.venv/
+node_modules/
+dist/
+__pycache__/
+*.pyc
+.pytest_cache/
+web/public/py/
+web/scripts/app.png
+*Zone.Identifier
+RealTestFiles/
+examples/
+*.egg-info/

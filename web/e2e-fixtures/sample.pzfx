@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GraphPadPrismFile xmlns="http://graphpad.com/prism/Prism.htm"
+                   PrismXMLVersion="5.00">
+<Created><OriginalVersion CreatedByProgram="GraphPad Prism"/></Created>
+<TableSequence><Ref ID="Table0" Selected="1"/><Ref ID="Table1"/></TableSequence>
+<Table ID="Table0" XFormat="numbers" YFormat="replicates" Replicates="2"
+       TableType="XY" EVFormat="AsteriskAfterNumber">
+<Title>Dose response</Title>
+<XColumn Width="81" Subcolumns="1" Decimals="2">
+<Title>log[Dose]</Title>
+<Subcolumn><d>-9</d><d>-8</d><d>-7</d><d>-6</d></Subcolumn>
+</XColumn>
+<YColumn Width="122" Decimals="1" Subcolumns="2">
+<Title>Control</Title>
+<Subcolumn><d>98.1</d><d>75.2</d><d>30.4</d><d>5.5</d></Subcolumn>
+<Subcolumn><d>101.3</d><d Excluded="1">120.9</d><d>28.8</d><d/></Subcolumn>
+</YColumn>
+<YColumn Width="122" Decimals="1" Subcolumns="2">
+<Title>Treated</Title>
+<Subcolumn><d>99.0</d><d>90.1</d><d>60.3</d><d>20.2</d></Subcolumn>
+<Subcolumn><d>97.5</d><d>88.8</d><d>58.7</d><d>21.6</d></Subcolumn>
+</YColumn>
+</Table>
+<Table ID="Table1" XFormat="none" YFormat="replicates" Replicates="1"
+       TableType="OneWay">
+<Title>Groups</Title>
+<YColumn Width="81" Subcolumns="1">
+<Title>Placebo</Title>
+<Subcolumn><d>3.1</d><d>4.2</d><d>2.9</d></Subcolumn>
+</YColumn>
+<YColumn Width="81" Subcolumns="1">
+<Title>Drug</Title>
+<Subcolumn><d>6.5</d><d>7.1</d></Subcolumn>
+</YColumn>
+</Table>
+</GraphPadPrismFile>
