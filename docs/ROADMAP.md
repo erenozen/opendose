@@ -117,8 +117,9 @@ note in the README): [user guide](https://www.graphpad.com/guides/prism/latest/u
 
 ## Next up
 
-1. Publish the site (repo is on GitHub, private; Pages workflow is in
-   place; flips live when the repo goes public or on a paid plan)
+1. ~~Publish the site~~ LIVE (2026-08-11): https://erenozen.dev/opendose/
+   (public repo, MIT license, deployed via GitHub Actions + Pages; full
+   e2e suite verified against the production URL)
 2. Further screenshot validations against the user's Prism install
    (survival, ANOVA sheets, competitive binding)
 3. Mixed-effects models for RM designs with missing values
