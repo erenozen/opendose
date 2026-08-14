@@ -88,6 +88,8 @@ note in the README): [user guide](https://www.graphpad.com/guides/prism/latest/u
       whiskers, violin
 - [x] Export controls: PNG/SVG/JPEG/WebP at exact width × height × scale
       for every graph
+- [x] TIFF export at a chosen DPI (8-bit RGB, Deflate, resolution tags
+      written into the file) for journals that require it
 
 ### UI/UX pass (2026-08-11)
 - [x] Visual identity: Apple system palette (grouped-gray page, flat

@@ -486,6 +486,10 @@ input[type="checkbox"] { accent-color: var(--accent); width: 15px; height: 15px;
   padding: 4px 8px; border: 1px solid var(--border); border-radius: 6px;
   background: var(--surface); color: inherit; cursor: pointer; font-size: 12.5px;
 }
+.export-hint {
+  color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums;
+}
+.export-err { color: var(--danger); font-size: 12px; }
 
 /* ============================ results ============================ */
 

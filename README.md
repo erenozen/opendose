@@ -72,7 +72,8 @@ from the jsDelivr CDN, ~30 MB, then cached).
   ratio. Contingency mode: Fisher/chi-square/OR/RR.
 - App: project save/load (JSON), Prism .pzfx file import, auto-generated
   methods text, plate import (SRB/MTT), column graphs (scatter / bar /
-  box / violin), graph export at exact size (PNG/SVG/JPEG/WebP).
+  box / violin), graph export at exact size (PNG/SVG/JPEG/WebP, plus
+  TIFF at a chosen DPI for journal submission).
 
 ## Roadmap
 

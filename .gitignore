@@ -6,6 +6,7 @@ __pycache__/
 .pytest_cache/
 web/public/py/
 web/scripts/app.png
+web/scripts/tiff-export.png
 *Zone.Identifier
 RealTestFiles/
 examples/
