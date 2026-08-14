@@ -10,7 +10,13 @@ const XLSX = join(here, "..", "..", "engine", "tests", "fixtures",
   "synthetic_srb_plate.xlsx");
 
 const url = process.argv[2] ?? "http://localhost:5173/";
-const browser = await chromium.launch();
+// HOST_RESOLVER="MAP example.com 1.2.3.4" points the browser straight at a
+// host, so a site can be checked before local DNS has caught up.
+const browser = await chromium.launch({
+  args: process.env.HOST_RESOLVER
+    ? [`--host-resolver-rules=${process.env.HOST_RESOLVER}`]
+    : [],
+});
 const page = await browser.newPage({ viewport: { width: 1500, height: 1100 } });
 const errors = [];
 page.on("pageerror", (e) => errors.push(`pageerror: ${e.message}`));

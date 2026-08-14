@@ -18,7 +18,13 @@ const EXPECT_H = Math.floor(HEIGHT * DPI / 96);
 // encoder's uncompressed fallback for browsers that lack it.
 const deflateOff = process.argv.includes("--no-deflate");
 
-const browser = await chromium.launch();
+// HOST_RESOLVER="MAP example.com 1.2.3.4" points the browser straight at a
+// host, so a site can be checked before local DNS has caught up.
+const browser = await chromium.launch({
+  args: process.env.HOST_RESOLVER
+    ? [`--host-resolver-rules=${process.env.HOST_RESOLVER}`]
+    : [],
+});
 const page = await browser.newPage({ viewport: { width: 1500, height: 1000 } });
 if (deflateOff) {
   await page.addInitScript(() => {
