@@ -5,7 +5,7 @@ sends."""
 import numpy as np
 import pytest
 
-from prism_engine.api import analyze
+from opendose.api import analyze
 
 
 def test_michaelis_menten_through_api():

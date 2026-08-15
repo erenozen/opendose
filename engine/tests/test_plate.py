@@ -11,8 +11,8 @@ from pathlib import Path
 
 import pytest
 
-from prism_engine.plate import blank_mean, parse_well, quantify_plate
-from prism_engine.plate_io import find_plate_grid, parse_text, parse_xlsx
+from opendose.plate import blank_mean, parse_well, quantify_plate
+from opendose.plate_io import find_plate_grid, parse_text, parse_xlsx
 
 SYNTH_XLSX = Path(__file__).parent / "fixtures" / "synthetic_srb_plate.xlsx"
 

@@ -1,5 +1,5 @@
 // Pyodide bridge: loads the real CPython + scipy in the browser and runs
-// the same prism_engine package that the native test suite validates.
+// the same opendose package that the native test suite validates.
 import { loadPyodide, version as pyodideVersion } from "pyodide";
 
 export interface EngineBridge {
@@ -52,20 +52,20 @@ async function init(onStatus: (msg: string) => void): Promise<EngineBridge> {
   await micropip.install("openpyxl");
 
   onStatus("Installing analysis engine…");
-  py.FS.mkdirTree("/app/prism_engine");
+  py.FS.mkdirTree("/app/opendose");
   const pyFiles: string[] = JSON.parse(await fetchAsset(
-    `${import.meta.env.BASE_URL}py/prism_engine/manifest.json`,
+    `${import.meta.env.BASE_URL}py/opendose/manifest.json`,
     "manifest.json",
   ));
   await Promise.all(
     pyFiles.map(async (name) => {
       const text = await fetchAsset(
-        `${import.meta.env.BASE_URL}py/prism_engine/${name}`, name);
-      py.FS.writeFile(`/app/prism_engine/${name}`, text);
+        `${import.meta.env.BASE_URL}py/opendose/${name}`, name);
+      py.FS.writeFile(`/app/opendose/${name}`, text);
     }),
   );
   py.runPython(
-    'import sys\nsys.path.insert(0, "/app")\nfrom prism_engine.api import analyze_json',
+    'import sys\nsys.path.insert(0, "/app")\nfrom opendose.api import analyze_json',
   );
   const analyzeJson = py.globals.get("analyze_json");
 

@@ -13,8 +13,8 @@ import numpy as np
 import pytest
 from scipy import stats
 
-from prism_engine import api, pzfx, repeated, schild, twoway
-from prism_engine.nlfit import MODELS, fit_model
+from opendose import api, pzfx, repeated, schild, twoway
+from opendose.nlfit import MODELS, fit_model
 
 
 # ---------------------------------------------------------- competitive binding

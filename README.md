@@ -16,7 +16,7 @@ produced by commercial software (see `docs/prism-validation.md`).
 
 ## Layout
 
-- `engine/prism_engine/`: the analysis engine (pure Python). Single source
+- `engine/opendose/`: the analysis engine (pure Python). Single source
   of truth for all math. Every module cites the GraphPad doc pages it
   implements. Runs natively for tests and in the browser via Pyodide.
 - `engine/tests/`: validation suite (`pytest`). Includes the reference

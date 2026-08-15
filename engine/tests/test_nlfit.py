@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 from scipy import stats as sps
 
-from prism_engine.nlfit import (MODELS, aicc, compare_fits_aicc,
+from opendose.nlfit import (MODELS, aicc, compare_fits_aicc,
                                 compare_fits_f_test, fit_model,
                                 robust_fit, rout_outliers)
 
@@ -197,7 +197,7 @@ class TestSpanVsPrism:
     96.83 to 101.7; our Span (full-covariance SE) must reproduce it."""
 
     def test_span_matches_prism_screenshot(self):
-        from prism_engine.normalize import normalize_dataset
+        from opendose.normalize import normalize_dataset
         x_log = [-9, -8.5, -8, -7.5, -7, -6.5, -6, -5.5, -5]
         ref_y = [[98.2, 101.5, 99.1], [97.0, 95.8, 99.9], [93.4, 90.1, 92.7],
                  [78.9, 82.3, 80.0], [51.2, 48.7, 50.9], [22.1, 25.6, 24.0],

@@ -10,15 +10,15 @@ import numpy as np
 import pytest
 from scipy import stats as sps
 
-from prism_engine.api import analyze
-from prism_engine.diagnostics import fit_diagnostics
-from prism_engine.globalfit import fit_global
-from prism_engine.interpolate import absolute_ic50, bands, interpolate_x
-from prism_engine.linregress import linear_bands, linear_regression, runs_test
-from prism_engine.methodcomp import bland_altman, roc_curve, rout_column
-from prism_engine.nlfit import fit_model
-from prism_engine.repeated import friedman, rm_one_way_anova
-from prism_engine.survival import compare_survival, km_curve
+from opendose.api import analyze
+from opendose.diagnostics import fit_diagnostics
+from opendose.globalfit import fit_global
+from opendose.interpolate import absolute_ic50, bands, interpolate_x
+from opendose.linregress import linear_bands, linear_regression, runs_test
+from opendose.methodcomp import bland_altman, roc_curve, rout_column
+from opendose.nlfit import fit_model
+from opendose.repeated import friedman, rm_one_way_anova
+from opendose.survival import compare_survival, km_curve
 
 
 class TestInterpolation:
@@ -412,7 +412,7 @@ class TestSurvivalVsStatsmodels:
     def test_logrank_variance_form_matches_statsmodels(self):
         # Prism reports the Peto (O-E)^2/E form; the variance-based form
         # (which statsmodels uses) must match our covariance machinery.
-        from prism_engine.survival import (_quadratic_form_chi2,
+        from opendose.survival import (_quadratic_form_chi2,
                                            _weighted_logrank)
         O, E, V, k = _weighted_logrank(
             [(self.T1, self.E1), (self.T2, self.E2)], lambda N: 1.0)

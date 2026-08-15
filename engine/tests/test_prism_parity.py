@@ -14,7 +14,7 @@ import math
 
 import pytest
 
-from prism_engine.nlfit import fit_model
+from opendose.nlfit import fit_model
 
 # Concentrations exactly as typed into both tools (3.162e-9, not 10^-8.5).
 CONC = [1e-9, 3.162e-9, 1e-8, 3.162e-8, 1e-7, 3.162e-7, 1e-6, 3.162e-6, 1e-5]

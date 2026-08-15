@@ -7,8 +7,8 @@ import json
 
 import pytest
 
-from prism_engine.api import analyze, analyze_json
-from prism_engine.doseresponse import model_curve
+from opendose.api import analyze, analyze_json
+from opendose.doseresponse import model_curve
 
 # Reference dataset: inhibitor dose-response, triplicates, generated from
 # Top=100, Bottom=0, LogIC50=-7, HillSlope=-1 with fixed "noise" so it can

@@ -12,12 +12,12 @@ import numpy as np
 import pytest
 from scipy import stats as sps
 
-from prism_engine.anova import (kruskal_wallis, multiple_comparisons,
+from opendose.anova import (kruskal_wallis, multiple_comparisons,
                                 one_way_anova)
-from prism_engine.columnstats import (column_statistics, describe,
+from opendose.columnstats import (column_statistics, describe,
                                       normality_tests, one_sample_t)
-from prism_engine.outliers import grubbs, grubbs_critical
-from prism_engine.ttests import (mann_whitney, paired_t, unpaired_t,
+from opendose.outliers import grubbs, grubbs_critical
+from opendose.ttests import (mann_whitney, paired_t, unpaired_t,
                                  wilcoxon_matched_pairs)
 
 # Classic small datasets

@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from prism_engine.doseresponse import fit_dose_response, model_curve
+from opendose.doseresponse import fit_dose_response, model_curve
 
 
 def make_4pl(x, top, bottom, log_ic50, hill):

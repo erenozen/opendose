@@ -1,4 +1,4 @@
-"""prism_engine: curve-fitting and biostatistics engine.
+"""opendose: curve-fitting and biostatistics engine.
 
 Runs natively (CPython, for the validation test suite) and in the browser
 via Pyodide. All equations and option semantics follow the official

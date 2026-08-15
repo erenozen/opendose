@@ -4,9 +4,9 @@ import numpy as np
 import pytest
 from scipy import stats
 
-from prism_engine.descriptive import error_bars, row_stats
-from prism_engine.normalize import normalize_dataset
-from prism_engine.transform import transform_grid, transform_list
+from opendose.descriptive import error_bars, row_stats
+from opendose.normalize import normalize_dataset
+from opendose.transform import transform_grid, transform_list
 
 
 class TestNormalize:

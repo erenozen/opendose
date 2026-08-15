@@ -7,9 +7,9 @@ import numpy as np
 import pytest
 from scipy import stats as sps
 
-from prism_engine.contingency import contingency
-from prism_engine.correlation import correlate
-from prism_engine.twoway import two_way_anova
+from opendose.contingency import contingency
+from opendose.correlation import correlate
+from opendose.twoway import two_way_anova
 
 X = [1.0, 2, 3, 4, 5, 6, 7, 8]
 Y = [2.1, 3.9, 6.2, 8.1, 9.8, 12.3, 13.9, 16.2]

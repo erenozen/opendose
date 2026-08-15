@@ -1,4 +1,4 @@
-// Copy the Python engine (single source of truth: ../engine/prism_engine)
+// Copy the Python engine (single source of truth: ../engine/opendose)
 // into public/ so the browser can fetch it into Pyodide's filesystem.
 //
 // Writes are skipped when content is unchanged: every write here emits a
@@ -13,8 +13,8 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const src = join(here, "..", "..", "engine", "prism_engine");
-const dest = join(here, "..", "public", "py", "prism_engine");
+const src = join(here, "..", "..", "engine", "opendose");
+const dest = join(here, "..", "public", "py", "opendose");
 
 mkdirSync(dest, { recursive: true });
 const files = readdirSync(src).filter((f) => f.endsWith(".py")).sort();
