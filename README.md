@@ -70,7 +70,8 @@ from the jsDelivr CDN, ~30 MB, then cached).
   shift with pA2.
 - Survival mode: Kaplan-Meier, log-rank, Gehan-Breslow-Wilcoxon, hazard
   ratio. Contingency mode: Fisher/chi-square/OR/RR.
-- App: project save/load (JSON), Prism .pzfx file import, auto-generated
+- App: project save/load (JSON), Prism file import (.prism and .pzfx),
+  auto-generated
   methods text, plate import (SRB/MTT), column graphs (scatter / bar /
   box / violin), graph export at exact size (PNG/SVG/JPEG/WebP, plus
   TIFF at a chosen DPI for journal submission).

@@ -82,8 +82,13 @@ note in the README): [user guide](https://www.graphpad.com/guides/prism/latest/u
 - [x] Two-way repeated-measures ANOVA: mixed design (groups × repeated
       rows; matches pingouin.mixed_anova to machine precision, GG epsilon
       included) and fully-repeated design (matches statsmodels AnovaRM)
-- [x] Prism-file (.pzfx) import: XY / Column / Grouped / Survival tables,
-      excluded-value handling, multi-table chooser in the app (Open button)
+- [x] Prism-file import, both formats: .pzfx XML and the .prism archive
+      Prism 10/11 writes (zipped JSON sheets with the numbers in CSV).
+      XY / Column / Grouped / Survival tables, dataset titles, replicate
+      layout, excluded-value handling, multi-table chooser in the app
+      (Open button). Which format a file is comes from its bytes, not its
+      name. Analysis output inside a project (transforms, results tables,
+      the 999-point drawn curves) is skipped: OpenDose recomputes it.
 - [x] Graph types for column data: bar (mean ± SD + points), box &
       whiskers, violin
 - [x] Export controls: PNG/SVG/JPEG/WebP at exact width × height × scale

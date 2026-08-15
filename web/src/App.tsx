@@ -511,11 +511,12 @@ export default function App() {
         name: ds.name || "Dataset",
         rows: ds.ys.map((row) => row.map(toCell)),
       })));
-      // X with zero/negative values can't be linear concentrations, so
-      // it is already log10 (the usual way Prism XY tables are set up)
+      // A negative X cannot be a concentration, so the column is already
+      // log10. A zero is not evidence either way and must not count: a
+      // vehicle-control row at dose 0 is ordinary in a raw dose table.
       setOptions((o) => ({
         ...o,
-        xIsLog: t.x!.some((v) => v != null && v <= 0),
+        xIsLog: t.x!.some((v) => v != null && v < 0),
       }));
       setMode("xy");
     } else {
@@ -530,11 +531,18 @@ export default function App() {
     setPzfxTables(null);
   };
 
-  const loadPzfx = async (file: File) => {
+  const loadPrismFile = async (file: File) => {
     const engine = await getEngine();
+    // Sent as bytes for both formats: a .prism file is a zip archive, and
+    // reading one as text would corrupt it. The engine tells them apart.
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    let binary = "";
+    for (let i = 0; i < bytes.length; i += 0x8000) {
+      binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+    }
     const res = engine.analyze({
       analysis: "pzfx_import",
-      data: { text: await file.text() },
+      data: { pzfx_b64: btoa(binary) },
       options: {},
     }) as { error?: string; tables?: PzfxTable[] };
     if (res.error || !res.tables) {
@@ -546,8 +554,8 @@ export default function App() {
 
   const loadProject = async (file: File) => {
     try {
-      if (/\.pzfx$/i.test(file.name)) {
-        await loadPzfx(file);
+      if (/\.(pzfx|prism|prism\.zip|zip)$/i.test(file.name)) {
+        await loadPrismFile(file);
         return;
       }
       const p = JSON.parse(await file.text());
@@ -781,8 +789,8 @@ export default function App() {
           <button onClick={saveProject}>Save project</button>
           <label className="load-btn">
             Open
-            <input type="file" accept=".json,.pzfx" hidden
-              aria-label="Open a project or Prism .pzfx file"
+            <input type="file" accept=".json,.pzfx,.prism,.zip" hidden
+              aria-label="Open an OpenDose project or a Prism file"
               onChange={(e) => {
                 const f = e.target.files?.[0];
                 if (f) loadProject(f);
@@ -945,8 +953,8 @@ function WelcomePanel({ status, error, onRetry }: {
       <ul>
         <li>Paste data straight from Excel; tab-separated blocks expand
           automatically.</li>
-        <li>Open a Prism .pzfx file or an OpenDose project with the Open
-          button above.</li>
+        <li>Open a Prism file (.prism or .pzfx) or an OpenDose project with
+          the Open button above.</li>
         <li>Import an SRB/MTT plate reading to go from raw absorbance to
           IC50 in one step.</li>
       </ul>

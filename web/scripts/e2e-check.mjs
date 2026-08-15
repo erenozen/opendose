@@ -111,6 +111,27 @@ const pzfxRow = await page
   .innerText();
 console.log("pzfx-imported fit midpoint row:", pzfxRow.replace(/\s+/g, " "));
 
+// --- .prism import (the zipped format Prism 10/11 writes) ---
+// The fixture holds one data sheet plus an analysis sheet; only the data
+// sheet should arrive, so this loads without showing the table chooser.
+const PRISM = join(here, "..", "..", "engine", "tests", "fixtures",
+  "synthetic_project.prism");
+await page.setInputFiles('.load-btn input[type="file"]', PRISM);
+await page.waitForFunction(
+  () => document.querySelectorAll(".dataset-card, .result-card").length > 0,
+  { timeout: 30000 },
+);
+await page.waitForTimeout(1500);
+const names = await page.locator(".dataset-name, .result-card h3").allInnerTexts();
+console.log("prism-imported dataset names:", names.slice(0, 2).join(" | "));
+// X ran 0..30 with a zero-dose control; a zero must not be mistaken for
+// an already-log10 column, so the fit reports IC50 near 3 and 12.
+for (const card of await page.locator(".result-card:has(.derived)").all()) {
+  const name = await card.locator("h3").innerText();
+  const ic50 = await card.locator(".derived").first().innerText();
+  console.log(`  ${name.trim()}: ${ic50.replace(/\s+/g, " ")}`);
+}
+
 await page.screenshot({
   path: join(here, "app.png"),
   fullPage: true,

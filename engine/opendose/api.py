@@ -14,13 +14,15 @@ analyze(payload) -> result dict. payload:
 
 from __future__ import annotations
 
+import base64
 import json
 import traceback
 
 from . import (anova, columnstats, contingency, correlation, descriptive,
                diagnostics, doseresponse, globalfit, interpolate, linregress,
                methodcomp, nlfit, normalize, outliers, plate, plate_io,
-               pzfx, repeated, schild, survival, transform, ttests, twoway)
+               prism_project, pzfx, repeated, schild, survival, transform,
+               ttests, twoway)
 
 
 def _expand(x_col, replicate_rows):
@@ -474,8 +476,17 @@ def _ec50_shift(data, options):
 
 
 def _pzfx_import(data, options):
+    """Import a Prism file, either format: .pzfx XML or a .prism archive.
+
+    Which one it is comes from the bytes, not the file name, so a project
+    renamed on the way out of Prism still opens.
+    """
     if data.get("pzfx_b64"):
-        result = pzfx.parse_pzfx_b64(data["pzfx_b64"])
+        raw = base64.b64decode(data["pzfx_b64"])
+        if prism_project.looks_like_prism_project(raw):
+            result = prism_project.parse_prism(raw)
+        else:
+            result = pzfx.parse_pzfx(raw)
     else:
         result = pzfx.parse_pzfx(data["text"])
     return {"analysis": "pzfx_import", **result}
