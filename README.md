@@ -73,8 +73,9 @@ from the jsDelivr CDN, ~30 MB, then cached).
 - App: project save/load (JSON), Prism file import (.prism and .pzfx),
   auto-generated
   methods text, plate import (SRB/MTT), column graphs (scatter / bar /
-  box / violin), graph export at exact size (PNG/SVG/JPEG/WebP, plus
-  TIFF at a chosen DPI for journal submission).
+  box / violin), graph color schemes (default, colorblind safe, black and
+  white for print, sequential), graph export at exact size
+  (PNG/SVG/JPEG/WebP, plus TIFF at a chosen DPI for journal submission).
 
 ## Roadmap
 

@@ -3,18 +3,21 @@ import Plotly from "plotly.js-dist-min";
 import type { ColumnGraphType, DatasetState } from "../types";
 import { parseCell } from "../types";
 import {
-  CHROME_DARK, CHROME_LIGHT, isDarkMode, onThemeChange, seriesColor, PLOT_FONT,
+  CHROME_DARK, CHROME_LIGHT, DEFAULT_SCHEME, isDarkMode, onThemeChange,
+  seriesStyle, PLOT_FONT, type SchemeId,
 } from "../lib/palette";
 
 interface Props {
   datasets: DatasetState[];
   yTitle?: string;
   graphType?: ColumnGraphType;
+  scheme?: SchemeId;
 }
 
 // Prism-style column graphs: scatter (points + mean ± SD), bar, box, violin.
 export default function ColumnPlot({
   datasets, yTitle = "Value", graphType = "scatter",
+  scheme = DEFAULT_SCHEME,
 }: Props) {
   const el = useRef<HTMLDivElement>(null);
   const [dark, setDark] = useState(isDarkMode());
@@ -48,7 +51,7 @@ export default function ColumnPlot({
       const values = ds.rows.flat().map(parseCell)
         .filter((v): v is number => v !== null);
       if (!values.length) return;
-      const color = seriesColor(i, dark);
+      const { color, symbol } = seriesStyle(i, dark, scheme);
       const name = ds.name || `Dataset ${i + 1}`;
       const mean = values.reduce((a, b) => a + b, 0) / values.length;
       const sd = values.length > 1
@@ -105,7 +108,7 @@ export default function ColumnPlot({
         traces.push({
           x: xs, y: values,
           mode: "markers",
-          marker: { color, size: 7,
+          marker: { color, symbol, size: 7,
                     line: { color: chrome.surface, width: 1.5 } },
           showlegend: false,
           hovertemplate: `${name}: %{y:.4g}<extra></extra>`,
@@ -119,7 +122,10 @@ export default function ColumnPlot({
       traces.push({
         x: xs, y: values,
         mode: "markers",
-        marker: { color, size: 8, line: { color: chrome.surface, width: 1.5 } },
+        marker: {
+          color, symbol, size: 8,
+          line: { color: chrome.surface, width: 1.5 },
+        },
         name,
         hovertemplate: `${name}: %{y:.4g}<extra></extra>`,
         showlegend: false,
@@ -168,7 +174,7 @@ export default function ColumnPlot({
       responsive: true, scrollZoom: true, displaylogo: false,
       toImageButtonOptions: { format: "svg", filename: "column-graph" },
     });
-  }, [datasets, dark, yTitle, graphType]);
+  }, [datasets, dark, yTitle, graphType, scheme]);
 
   return <div className="plot" ref={el} />;
 }

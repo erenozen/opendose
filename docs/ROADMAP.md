@@ -95,6 +95,13 @@ note in the README): [user guide](https://www.graphpad.com/guides/prism/latest/u
       for every graph
 - [x] TIFF export at a chosen DPI (8-bit RGB, Deflate, resolution tags
       written into the file) for journals that require it
+- [x] Graph color schemes: default, colorblind safe, black and white for
+      print, sequential for ordered series. Every palette is checked with
+      a validator (lightness band, chroma floor, CVD separation over every
+      pair, normal-vision floor, surface contrast) rather than picked by
+      eye, and each scheme also varies the marker symbol so series
+      identity never rests on color alone. Slot counts are what the
+      checks allow: 6 hues in light mode, 4 in dark.
 
 ### UI/UX pass (2026-08-11)
 - [x] Visual identity: Apple system palette (grouped-gray page, flat

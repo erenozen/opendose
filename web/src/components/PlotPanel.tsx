@@ -2,16 +2,20 @@ import { useEffect, useRef, useState } from "react";
 import Plotly from "plotly.js-dist-min";
 import type { AnalysisResult } from "../types";
 import {
-  CHROME_DARK, CHROME_LIGHT, isDarkMode, onThemeChange, seriesColor, PLOT_FONT,
+  CHROME_DARK, CHROME_LIGHT, DEFAULT_SCHEME, isDarkMode, onThemeChange,
+  seriesStyle, PLOT_FONT, type SchemeId,
 } from "../lib/palette";
 
 interface Props {
   result: AnalysisResult | null;
   xTitle: string;
   yTitle: string;
+  scheme?: SchemeId;
 }
 
-export default function PlotPanel({ result, xTitle, yTitle }: Props) {
+export default function PlotPanel({
+  result, xTitle, yTitle, scheme = DEFAULT_SCHEME,
+}: Props) {
   const el = useRef<HTMLDivElement>(null);
   const [dark, setDark] = useState(isDarkMode());
 
@@ -41,7 +45,7 @@ export default function PlotPanel({ result, xTitle, yTitle }: Props) {
     const traces: Plotly.Data[] = [];
 
     result.datasets.forEach((ds, i) => {
-      const color = seriesColor(i, dark);
+      const { color, symbol, dash } = seriesStyle(i, dark, scheme);
       const bars = ds.points.bars;
       const xs: number[] = [];
       const ys: number[] = [];
@@ -75,11 +79,11 @@ export default function PlotPanel({ result, xTitle, yTitle }: Props) {
           x: ds.fit.curve.x,
           y: ds.fit.curve.y,
           mode: "lines",
-          line: { color, width: 2 },
+          line: { color, width: 2, dash },
           name: ds.name,
           legendgroup: ds.name,
           hoverinfo: "skip",
-        });
+        } as Plotly.Data);
       }
       if (ds.rout && ds.rout.outliers.length > 0) {
         traces.push({
@@ -98,7 +102,10 @@ export default function PlotPanel({ result, xTitle, yTitle }: Props) {
         x: xs,
         y: ys,
         mode: "markers",
-        marker: { color, size: 9, line: { color: chrome.surface, width: 2 } },
+        marker: {
+          color, symbol, size: 9,
+          line: { color: chrome.surface, width: 2 },
+        },
         name: ds.name,
         legendgroup: ds.name,
         showlegend: !ds.fit,
@@ -156,7 +163,7 @@ export default function PlotPanel({ result, xTitle, yTitle }: Props) {
       displaylogo: false,
       toImageButtonOptions: { format: "svg", filename: "dose-response" },
     });
-  }, [result, dark, xTitle, yTitle]);
+  }, [result, dark, xTitle, yTitle, scheme]);
 
   return <div className="plot" ref={el} />;
 }

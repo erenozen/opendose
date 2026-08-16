@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import Plotly from "plotly.js-dist-min";
 import { formatSig } from "../types";
 import {
-  CHROME_DARK, CHROME_LIGHT, isDarkMode, onThemeChange, seriesColor, PLOT_FONT,
+  CHROME_DARK, CHROME_LIGHT, DEFAULT_SCHEME, isDarkMode, onThemeChange,
+  seriesStyle, PLOT_FONT, type SchemeId,
 } from "../lib/palette";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -10,6 +11,7 @@ import {
 interface Props {
   result: Record<string, any> | null;
   exportSlot?: React.ReactNode;
+  scheme?: SchemeId;
 }
 
 function fmtP(p: any): string {
@@ -17,7 +19,9 @@ function fmtP(p: any): string {
   return p < 0.0001 ? "< 0.0001" : formatSig(p, 4);
 }
 
-export default function SurvivalView({ result, exportSlot }: Props) {
+export default function SurvivalView({
+  result, exportSlot, scheme = DEFAULT_SCHEME,
+}: Props) {
   const el = useRef<HTMLDivElement>(null);
   const [dark, setDark] = useState(isDarkMode());
 
@@ -46,13 +50,13 @@ export default function SurvivalView({ result, exportSlot }: Props) {
     const chrome = dark ? CHROME_DARK : CHROME_LIGHT;
     const traces: Plotly.Data[] = [];
     Object.entries(result.curves).forEach(([name, curve]: [string, any], i) => {
-      const color = seriesColor(i, dark);
+      const { color, dash } = seriesStyle(i, dark, scheme);
       const xs = curve.points.map((p: any) => p.time);
       const ys = curve.points.map((p: any) => p.survival * 100);
       traces.push({
         x: xs, y: ys,
         mode: "lines",
-        line: { color, width: 2, shape: "hv" },
+        line: { color, width: 2, shape: "hv", dash },
         name,
         hovertemplate: `${name}<br>t=%{x}: %{y:.1f}%<extra></extra>`,
       } as Plotly.Data);
@@ -81,7 +85,7 @@ export default function SurvivalView({ result, exportSlot }: Props) {
       uirevision: "keep",
     }, { responsive: true, scrollZoom: true, displaylogo: false,
          toImageButtonOptions: { format: "svg", filename: "survival" } });
-  }, [result, dark]);
+  }, [result, dark, scheme]);
 
   if (!result) return null;
   if (result.error) {

@@ -12,10 +12,14 @@ import ColumnPlot from "./components/ColumnPlot";
 import ContingencyPanel from "./components/ContingencyPanel";
 import HSplitter from "./components/HSplitter";
 import ExportPanel from "./components/ExportPanel";
+import SchemePicker from "./components/SchemePicker";
 import MethodsText from "./components/MethodsText";
 import StatsResults from "./components/StatsResults";
 import SurvivalView from "./components/SurvivalView";
 import { getEngine } from "./lib/engine";
+import {
+  DEFAULT_SCHEME, isSchemeId, type SchemeId,
+} from "./lib/palette";
 import type {
   AnalysisResult, ColumnOptionsState, DatasetState, OptionsState, TableMode,
 } from "./types";
@@ -110,6 +114,16 @@ export default function App() {
   const [columnOptions, setColumnOptions] =
     useState<ColumnOptionsState>(DEFAULT_COLUMN_OPTIONS);
   const [xUnit, setXUnit] = useState("M");
+  // Chosen once and applied to every graph type, so a project keeps one
+  // look across its XY, column and survival views.
+  const [scheme, setScheme] = useState<SchemeId>(() => {
+    const saved = localStorage.getItem("opendose-scheme");
+    return isSchemeId(saved) ? saved : DEFAULT_SCHEME;
+  });
+  const chooseScheme = (id: SchemeId) => {
+    setScheme(id);
+    localStorage.setItem("opendose-scheme", id);
+  };
   const [status, setStatus] = useState("Starting Python runtime…");
   const [engineReady, setEngineReady] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
@@ -463,7 +477,7 @@ export default function App() {
   const saveProject = () => {
     const blob = new Blob([JSON.stringify({
       opendose_project: 1,
-      mode, x, datasets, options, columnOptions, xUnit,
+      mode, x, datasets, options, columnOptions, xUnit, scheme,
     }, null, 2)], { type: "application/json" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
@@ -568,6 +582,7 @@ export default function App() {
       setOptions({ ...DEFAULT_OPTIONS, ...p.options });
       setColumnOptions({ ...DEFAULT_COLUMN_OPTIONS, ...p.columnOptions });
       setXUnit(p.xUnit ?? "M");
+      if (isSchemeId(p.scheme)) chooseScheme(p.scheme);
       setMode(p.mode ?? "xy");
     } catch (e) {
       setStatus(`Could not load file: ${e instanceof Error ? e.message : e}`);
@@ -874,7 +889,8 @@ export default function App() {
                       <div className={`pane pane-plot${reveal ? " reveal" : ""}`}>
                         <div className="plot-card">
                           <PlotPanel result={result} xTitle={xTitle}
-                            yTitle={yTitle} />
+                            yTitle={yTitle} scheme={scheme} />
+                          <SchemePicker value={scheme} onChange={chooseScheme} />
                           <ExportPanel filename="dose-response" />
                         </div>
                       </div>
@@ -894,7 +910,9 @@ export default function App() {
                       <div className="pane pane-plot">
                         <div className="plot-card">
                           <ColumnPlot datasets={datasets}
-                            graphType={columnOptions.graphType} />
+                            graphType={columnOptions.graphType}
+                            scheme={scheme} />
+                          <SchemePicker value={scheme} onChange={chooseScheme} />
                           <ExportPanel filename="column-graph" />
                         </div>
                       </div>
@@ -906,8 +924,11 @@ export default function App() {
                   )}
                   {mode === "survival" && (
                     <div className="pane pane-plot">
-                      <SurvivalView result={statsResult}
-                        exportSlot={<ExportPanel filename="survival" />} />
+                      <SurvivalView result={statsResult} scheme={scheme}
+                        exportSlot={<>
+                          <SchemePicker value={scheme} onChange={chooseScheme} />
+                          <ExportPanel filename="survival" />
+                        </>} />
                     </div>
                   )}
                 </>
