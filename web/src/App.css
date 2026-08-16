@@ -491,34 +491,66 @@ input[type="checkbox"] { accent-color: var(--accent); width: 15px; height: 15px;
 }
 .export-err { color: var(--danger); font-size: 12px; }
 
-/* Sits directly above the export strip in the plot card and matches it, so
-   the two read as one row of graph settings rather than two panels. */
-.plot-card .graph-settings {
-  flex: none;
-  border-top: 1px solid var(--border-soft);
-  background: var(--inset);
+/* Graph settings live behind one button in the export strip. The button is
+   the popover's anchor, so the panel scales out of it rather than the
+   middle of the card. */
+.graph-settings { position: relative; display: flex; align-items: center; }
+.settings-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px; border: 1px solid var(--border); border-radius: 6px;
+  background: var(--surface); color: inherit; cursor: pointer;
+  font: inherit; font-size: 12.5px;
+  transition: transform 160ms var(--ease-out), border-color 160ms ease;
 }
-.graph-settings {
-  display: flex; flex-wrap: wrap; align-items: center;
-  column-gap: 16px; row-gap: 4px; padding: 6px 14px 8px;
+.settings-btn:active { transform: scale(0.97); }
+.settings-btn[aria-expanded="true"] { border-color: var(--accent); }
+/* Which titles are overridden, kept legible while the panel is shut. */
+.settings-badge {
+  padding: 0 5px; border-radius: 4px; background: var(--accent);
+  color: #fff; font-size: 10.5px; font-weight: 600; line-height: 15px;
+}
+
+/* Opens upward: the strip sits at the bottom of a card that clips its own
+   overflow, so the plot area is the only room available. */
+.settings-pop {
+  position: absolute; bottom: calc(100% + 8px); left: 0; z-index: 1200;
+  width: min(340px, calc(100vw - 40px));
+  max-height: 60vh; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.14);
+  padding: 14px 16px;
+  text-align: left; cursor: default;
+  transform-origin: bottom left;
+  transition: opacity 160ms var(--ease-out), transform 160ms var(--ease-out);
+  opacity: 1; transform: scale(1);
+  @starting-style { opacity: 0; transform: scale(0.97); }
 }
 .scheme-picker, .axis-titles {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
-  padding: 2px 0; font-size: 12.5px; color: var(--ink-2);
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  font-size: 12.5px; color: var(--ink-2);
 }
-.axis-titles-label { font-weight: 600; color: var(--ink-2); }
+.axis-titles-label, .scheme-picker > label:first-child {
+  font-weight: 600; color: var(--ink-2);
+}
+.axis-titles { border-top: 1px solid var(--border-soft); padding-top: 12px; }
 .axis-titles label { display: flex; align-items: center; gap: 5px; }
 .axis-titles input {
-  width: 150px; padding: 4px 8px; border: 1px solid var(--border);
-  border-radius: 6px; background: var(--surface); color: inherit;
-  font: inherit; font-size: 12.5px;
+  width: 100%; min-width: 0; padding: 5px 8px;
+  border: 1px solid var(--border); border-radius: 6px;
+  background: var(--surface); color: inherit; font: inherit; font-size: 12.5px;
 }
+.axis-titles label { flex: 1 1 100%; }
 .axis-titles input:focus-visible {
   outline: 2px solid var(--accent); outline-offset: 1px;
   border-color: transparent;
 }
+.axis-titles-hint { flex: 1 1 100%; color: var(--muted); font-size: 11.5px; }
 @media (max-width: 700px) {
-  .axis-titles input { width: 110px; min-height: 34px; }
+  .settings-btn { min-height: 34px; }
+  .axis-titles input { min-height: 34px; }
 }
 .scheme-picker label { display: flex; align-items: center; gap: 5px; }
 .scheme-picker select {
@@ -526,12 +558,12 @@ input[type="checkbox"] { accent-color: var(--accent); width: 15px; height: 15px;
   background: var(--surface); color: inherit; cursor: pointer;
   font-size: 12.5px;
 }
+.scheme-picker select { flex: 1 1 auto; min-width: 0; }
 .scheme-swatches { display: block; flex: none; }
-.scheme-note { color: var(--muted); font-size: 12px; }
+/* Inside the panel the note has room on its own line, so it stays on
+   narrow screens where the old inline strip had to drop it. */
+.scheme-note { flex: 1 1 100%; color: var(--muted); font-size: 11.5px; }
 @media (max-width: 700px) {
-  /* The note is the first thing to go: the swatches already show the
-     scheme, and horizontal room is scarce. */
-  .scheme-note { display: none; }
   .scheme-picker select { min-height: 34px; }
 }
 

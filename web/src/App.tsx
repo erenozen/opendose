@@ -901,12 +901,13 @@ export default function App() {
                           <PlotPanel result={result} scheme={scheme}
                             xTitle={pick(titlesFor("xy").x, xTitle)}
                             yTitle={pick(titlesFor("xy").y, yTitle)} />
-                          <GraphSettings
-                            scheme={scheme} onSchemeChange={chooseScheme}
-                            titles={titlesFor("xy")}
-                            onTitlesChange={setTitlesFor("xy")}
-                            autoX={xTitle} autoY={yTitle} />
-                          <ExportPanel filename="dose-response" />
+                          <ExportPanel filename="dose-response" leading={
+                            <GraphSettings
+                              scheme={scheme} onSchemeChange={chooseScheme}
+                              titles={titlesFor("xy")}
+                              onTitlesChange={setTitlesFor("xy")}
+                              autoX={xTitle} autoY={yTitle} />
+                          } />
                         </div>
                       </div>
                       <HSplitter />
@@ -928,12 +929,13 @@ export default function App() {
                             graphType={columnOptions.graphType}
                             scheme={scheme}
                             yTitle={pick(titlesFor("column").y, "Value")} />
-                          <GraphSettings
-                            scheme={scheme} onSchemeChange={chooseScheme}
-                            titles={titlesFor("column")}
-                            onTitlesChange={setTitlesFor("column")}
-                            autoX="" autoY="Value" showX={false} />
-                          <ExportPanel filename="column-graph" />
+                          <ExportPanel filename="column-graph" leading={
+                            <GraphSettings
+                              scheme={scheme} onSchemeChange={chooseScheme}
+                              titles={titlesFor("column")}
+                              onTitlesChange={setTitlesFor("column")}
+                              autoX="" autoY="Value" showX={false} />
+                          } />
                         </div>
                       </div>
                       <HSplitter />
@@ -947,14 +949,15 @@ export default function App() {
                       <SurvivalView result={statsResult} scheme={scheme}
                         xTitle={pick(titlesFor("survival").x, "Time")}
                         yTitle={pick(titlesFor("survival").y, "Percent survival")}
-                        exportSlot={<>
-                          <GraphSettings
-                            scheme={scheme} onSchemeChange={chooseScheme}
-                            titles={titlesFor("survival")}
-                            onTitlesChange={setTitlesFor("survival")}
-                            autoX="Time" autoY="Percent survival" />
-                          <ExportPanel filename="survival" />
-                        </>} />
+                        exportSlot={
+                          <ExportPanel filename="survival" leading={
+                            <GraphSettings
+                              scheme={scheme} onSchemeChange={chooseScheme}
+                              titles={titlesFor("survival")}
+                              onTitlesChange={setTitlesFor("survival")}
+                              autoX="Time" autoY="Percent survival" />
+                          } />
+                        } />
                     </div>
                   )}
                 </>

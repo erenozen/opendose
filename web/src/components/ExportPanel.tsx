@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { ReactNode } from "react";
 import Plotly from "plotly.js-dist-min";
 import { encodeTiff } from "../lib/tiff";
 
@@ -15,8 +16,12 @@ const MAX_SIDE = 16000;
 // Export the current graph at an exact size, like Prism's "Export graph"
 // dialog equivalent. Grabs the first rendered Plotly div on the page
 // (each app mode shows a single graph).
-export default function ExportPanel({ filename = "opendose-graph" }: {
+export default function ExportPanel({
+  filename = "opendose-graph", leading,
+}: {
   filename?: string;
+  /** Rendered at the start of the strip, so graph controls share one row. */
+  leading?: ReactNode;
 }) {
   const [format, setFormat] = useState<Format>("png");
   const [width, setWidth] = useState("800");
@@ -99,6 +104,7 @@ export default function ExportPanel({ filename = "opendose-graph" }: {
 
   return (
     <div className="export-panel">
+      {leading}
       <span className="export-title">Export graph</span>
       <label>
         <select value={format}
