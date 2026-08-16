@@ -12,6 +12,8 @@ interface Props {
   result: Record<string, any> | null;
   exportSlot?: React.ReactNode;
   scheme?: SchemeId;
+  xTitle?: string;
+  yTitle?: string;
 }
 
 function fmtP(p: any): string {
@@ -21,6 +23,7 @@ function fmtP(p: any): string {
 
 export default function SurvivalView({
   result, exportSlot, scheme = DEFAULT_SCHEME,
+  xTitle = "Time", yTitle = "Percent survival",
 }: Props) {
   const el = useRef<HTMLDivElement>(null);
   const [dark, setDark] = useState(isDarkMode());
@@ -70,12 +73,12 @@ export default function SurvivalView({
       },
       margin: { l: 60, r: 16, t: 8, b: 48 },
       xaxis: {
-        title: { text: "Time", font: { color: chrome.inkSecondary } },
+        title: { text: xTitle, font: { color: chrome.inkSecondary } },
         gridcolor: chrome.grid, zeroline: false,
         linecolor: chrome.axis, tickfont: { color: chrome.muted },
       },
       yaxis: {
-        title: { text: "Percent survival", font: { color: chrome.inkSecondary } },
+        title: { text: yTitle, font: { color: chrome.inkSecondary } },
         range: [0, 105], gridcolor: chrome.grid, zeroline: false,
         linecolor: chrome.axis, tickfont: { color: chrome.muted },
       },
@@ -85,7 +88,7 @@ export default function SurvivalView({
       uirevision: "keep",
     }, { responsive: true, scrollZoom: true, displaylogo: false,
          toImageButtonOptions: { format: "svg", filename: "survival" } });
-  }, [result, dark, scheme]);
+  }, [result, dark, scheme, xTitle, yTitle]);
 
   if (!result) return null;
   if (result.error) {

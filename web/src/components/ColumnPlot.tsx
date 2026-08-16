@@ -9,6 +9,7 @@ import {
 
 interface Props {
   datasets: DatasetState[];
+  xTitle?: string;
   yTitle?: string;
   graphType?: ColumnGraphType;
   scheme?: SchemeId;
@@ -16,7 +17,7 @@ interface Props {
 
 // Prism-style column graphs: scatter (points + mean ± SD), bar, box, violin.
 export default function ColumnPlot({
-  datasets, yTitle = "Value", graphType = "scatter",
+  datasets, xTitle = "", yTitle = "Value", graphType = "scatter",
   scheme = DEFAULT_SCHEME,
 }: Props) {
   const el = useRef<HTMLDivElement>(null);
@@ -153,6 +154,9 @@ export default function ColumnPlot({
       },
       margin: { l: 60, r: 16, t: 12, b: 48 },
       xaxis: {
+        title: xTitle
+          ? { text: xTitle, font: { color: chrome.inkSecondary } }
+          : undefined,
         tickvals: datasets.map((_, i) => i),
         ticktext: datasets.map((d, i) => d.name || `Dataset ${i + 1}`),
         zeroline: false, showgrid: false,
@@ -174,7 +178,7 @@ export default function ColumnPlot({
       responsive: true, scrollZoom: true, displaylogo: false,
       toImageButtonOptions: { format: "svg", filename: "column-graph" },
     });
-  }, [datasets, dark, yTitle, graphType, scheme]);
+  }, [datasets, dark, xTitle, yTitle, graphType, scheme]);
 
   return <div className="plot" ref={el} />;
 }

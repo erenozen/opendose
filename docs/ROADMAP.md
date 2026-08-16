@@ -95,6 +95,9 @@ note in the README): [user guide](https://www.graphpad.com/guides/prism/latest/u
       for every graph
 - [x] TIFF export at a chosen DPI (8-bit RGB, Deflate, resolution tags
       written into the file) for journals that require it
+- [x] Editable axis titles on every graph, kept per graph type and saved
+      with the project. Empty means "use the automatic title", so clearing
+      a field undoes an edit; the placeholder shows what that restores.
 - [x] Graph color schemes: default, colorblind safe, black and white for
       print, sequential for ordered series. Every palette is checked with
       a validator (lightness band, chroma floor, CVD separation over every

@@ -12,7 +12,8 @@ import ColumnPlot from "./components/ColumnPlot";
 import ContingencyPanel from "./components/ContingencyPanel";
 import HSplitter from "./components/HSplitter";
 import ExportPanel from "./components/ExportPanel";
-import SchemePicker from "./components/SchemePicker";
+import GraphSettings from "./components/GraphSettings";
+import type { AxisTitles } from "./components/GraphSettings";
 import MethodsText from "./components/MethodsText";
 import StatsResults from "./components/StatsResults";
 import SurvivalView from "./components/SurvivalView";
@@ -124,6 +125,14 @@ export default function App() {
     setScheme(id);
     localStorage.setItem("opendose-scheme", id);
   };
+  // Axis-title overrides, kept per graph type: an empty string means "use
+  // the automatic title", which is what makes clearing a field an undo.
+  const [titles, setTitles] = useState<Record<string, AxisTitles>>({});
+  const titlesFor = (m: TableMode): AxisTitles =>
+    titles[m] ?? { x: "", y: "" };
+  const setTitlesFor = (m: TableMode) => (t: AxisTitles) =>
+    setTitles((prev) => ({ ...prev, [m]: t }));
+  const pick = (override: string, auto: string) => override.trim() || auto;
   const [status, setStatus] = useState("Starting Python runtime…");
   const [engineReady, setEngineReady] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
@@ -477,7 +486,7 @@ export default function App() {
   const saveProject = () => {
     const blob = new Blob([JSON.stringify({
       opendose_project: 1,
-      mode, x, datasets, options, columnOptions, xUnit, scheme,
+      mode, x, datasets, options, columnOptions, xUnit, scheme, titles,
     }, null, 2)], { type: "application/json" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
@@ -583,6 +592,7 @@ export default function App() {
       setColumnOptions({ ...DEFAULT_COLUMN_OPTIONS, ...p.columnOptions });
       setXUnit(p.xUnit ?? "M");
       if (isSchemeId(p.scheme)) chooseScheme(p.scheme);
+      setTitles(p.titles && typeof p.titles === "object" ? p.titles : {});
       setMode(p.mode ?? "xy");
     } catch (e) {
       setStatus(`Could not load file: ${e instanceof Error ? e.message : e}`);
@@ -888,9 +898,14 @@ export default function App() {
                     <>
                       <div className={`pane pane-plot${reveal ? " reveal" : ""}`}>
                         <div className="plot-card">
-                          <PlotPanel result={result} xTitle={xTitle}
-                            yTitle={yTitle} scheme={scheme} />
-                          <SchemePicker value={scheme} onChange={chooseScheme} />
+                          <PlotPanel result={result} scheme={scheme}
+                            xTitle={pick(titlesFor("xy").x, xTitle)}
+                            yTitle={pick(titlesFor("xy").y, yTitle)} />
+                          <GraphSettings
+                            scheme={scheme} onSchemeChange={chooseScheme}
+                            titles={titlesFor("xy")}
+                            onTitlesChange={setTitlesFor("xy")}
+                            autoX={xTitle} autoY={yTitle} />
                           <ExportPanel filename="dose-response" />
                         </div>
                       </div>
@@ -911,8 +926,13 @@ export default function App() {
                         <div className="plot-card">
                           <ColumnPlot datasets={datasets}
                             graphType={columnOptions.graphType}
-                            scheme={scheme} />
-                          <SchemePicker value={scheme} onChange={chooseScheme} />
+                            scheme={scheme}
+                            yTitle={pick(titlesFor("column").y, "Value")} />
+                          <GraphSettings
+                            scheme={scheme} onSchemeChange={chooseScheme}
+                            titles={titlesFor("column")}
+                            onTitlesChange={setTitlesFor("column")}
+                            autoX="" autoY="Value" showX={false} />
                           <ExportPanel filename="column-graph" />
                         </div>
                       </div>
@@ -925,8 +945,14 @@ export default function App() {
                   {mode === "survival" && (
                     <div className="pane pane-plot">
                       <SurvivalView result={statsResult} scheme={scheme}
+                        xTitle={pick(titlesFor("survival").x, "Time")}
+                        yTitle={pick(titlesFor("survival").y, "Percent survival")}
                         exportSlot={<>
-                          <SchemePicker value={scheme} onChange={chooseScheme} />
+                          <GraphSettings
+                            scheme={scheme} onSchemeChange={chooseScheme}
+                            titles={titlesFor("survival")}
+                            onTitlesChange={setTitlesFor("survival")}
+                            autoX="Time" autoY="Percent survival" />
                           <ExportPanel filename="survival" />
                         </>} />
                     </div>
