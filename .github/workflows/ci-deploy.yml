@@ -58,3 +58,43 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+
+  # The app is served from a second site as well, busrakaraziyan.com/opendose,
+  # which builds from this repository. Tell it to rebuild now so both sites
+  # carry the same commit instead of the mirror waiting for its next poll.
+  notify-mirror:
+    needs: deploy
+    if: ${{ !github.event.repository.private }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ask busrakaraziyan.com to rebuild
+        env:
+          # A fine-grained PAT limited to erenozen/busrakaraziyan-site with
+          # Contents: read and write. GITHUB_TOKEN cannot reach another
+          # repository, so this is the one credential the hop needs.
+          TOKEN: ${{ secrets.SITE_DISPATCH_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ]; then
+            echo "SITE_DISPATCH_TOKEN is not set, so the mirror was not"
+            echo "signalled. It polls hourly, so the update still lands"
+            echo "there within the hour. Add the secret to make it instant."
+            exit 0
+          fi
+          code=$(curl -sS -o /tmp/resp -w '%{http_code}' -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            https://api.github.com/repos/erenozen/busrakaraziyan-site/dispatches \
+            -d '{"event_type":"opendose-updated",
+                 "client_payload":{"sha":"${{ github.sha }}"}}')
+          if [ "$code" = "204" ]; then
+            echo "mirror rebuild requested for ${{ github.sha }}"
+          else
+            cat /tmp/resp
+            # Not a failure: the mirror polls hourly, so the update still
+            # lands. Surfaced as a warning so an expired token is visible
+            # rather than quietly costing an hour on every push.
+            echo "::warning::Mirror dispatch failed (HTTP $code)." \
+              "busrakaraziyan.com will catch up on its hourly poll." \
+              "Check that SITE_DISPATCH_TOKEN is valid."
+          fi
