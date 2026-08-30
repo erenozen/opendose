@@ -1,4 +1,4 @@
-import type { AnalysisResult, ParamEntry } from "../types";
+import type { AnalysisResult, FitResult, ParamEntry } from "../types";
 import { MODELS_META, WEIGHTING_LABELS, formatSig } from "../types";
 
 interface Props {
@@ -16,6 +16,24 @@ function ci(entry: ParamEntry | undefined): string {
 
 // Concentration-like derived parameters get the X unit appended.
 const UNIT_PARAMS = new Set(["IC50", "EC50", "Km", "Kd", "AbsoluteIC50"]);
+
+// Every model that can report this fits against log10(dose), so the stored
+// x values are logs and read back as concentrations.
+function extrapolationNote(
+  e: NonNullable<FitResult["extrapolation"]>,
+): string {
+  const at = formatSig(10 ** e.value);
+  const lo = formatSig(10 ** e.x_min);
+  const hi = formatSig(10 ** e.x_max);
+  const edge = e.direction === "above" ? hi : lo;
+  const fold = formatSig(10 ** e.distance, 2);
+  const name = e.param.replace("Log", "");
+  return `The fitted ${name} (${at}) falls ${e.direction} every dose tested `
+    + `(${lo} to ${hi}) — about ${fold}x past ${edge}. The curve does not `
+    + `reach its midpoint inside your data, so this value is read off the `
+    + `model's tail rather than measured, which is why its confidence `
+    + `interval is wide. Doses beyond ${edge} are what would pin it down.`;
+}
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 function Diagnostics({ diag }: { diag: any }) {
@@ -75,6 +93,12 @@ export default function ResultsPanel({ result, xUnit = "M" }: Props) {
                 <span className="badge-ambiguous"
                   title="Some parameters are not defined by the data (dependency > 0.9999), so the fit is ambiguous. Consider constraining parameters.">
                   Ambiguous
+                </span>
+              )}
+              {fit.extrapolation && (
+                <span className="badge-extrapolated"
+                  title={extrapolationNote(fit.extrapolation)}>
+                  Extrapolated
                 </span>
               )}
             </h3>

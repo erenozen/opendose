@@ -95,6 +95,12 @@ note in the README): [user guide](https://www.graphpad.com/guides/prism/latest/u
       for every graph
 - [x] TIFF export at a chosen DPI (8-bit RGB, Deflate, resolution tags
       written into the file) for journals that require it
+- [x] Extrapolation flag: a fitted IC50/EC50 that falls outside the doses
+      actually tested is badged "Extrapolated", with the fold-distance
+      past the nearest dose. Separate from the ambiguity flag, which
+      measures parameter dependency and stays silent when both plateaus
+      are constrained — the case where a dose-response curve most often
+      reports a midpoint it never reached.
 - [x] Editable axis titles on every graph, kept per graph type and saved
       with the project. Empty means "use the automatic title", so clearing
       a field undoes an edit; the placeholder shows what that restores.

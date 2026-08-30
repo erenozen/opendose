@@ -179,6 +179,16 @@ export interface FitResult {
   equation: string;
   status: "converged" | "ambiguous";
   dependency: Record<string, number>;
+  // Present when the fitted midpoint falls outside the x actually tested,
+  // i.e. the curve never reaches half-maximal within the doses used.
+  extrapolation?: {
+    param: string;
+    value: number;
+    x_min: number;
+    x_max: number;
+    direction: "above" | "below";
+    distance: number;
+  } | null;
   weighting?: WeightingKind;
   ci_method?: CIMethod;
   param_order?: string[];

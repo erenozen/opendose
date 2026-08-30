@@ -223,3 +223,68 @@ class TestSpanVsPrism:
         span = fit["params"]["Span"]
         assert span["value"] == pytest.approx(fit["params"]["Top"]["value"])
         assert span["se"] == pytest.approx(fit["params"]["Top"]["se"])
+
+
+class TestExtrapolationFlag:
+    """A midpoint outside the doses tested is reported as extrapolated.
+
+    This is separate from the ambiguity flag: with both plateaus held
+    constant the free parameters can be well determined relative to each
+    other and the IC50 still land far past the highest dose, which is the
+    case that reads as a measurement when it is not one.
+    """
+
+    @staticmethod
+    def _curve(doses, ic50, hill=-1.0, top=100.0, bottom=0.0):
+        xs, ys = [], []
+        for d in doses:
+            x = math.log10(d)
+            xs.append(x)
+            ys.append(bottom + (top - bottom)
+                      / (1.0 + 10.0 ** ((math.log10(ic50) - x) * hill)))
+        return xs, ys
+
+    def test_flags_a_midpoint_past_the_highest_dose(self):
+        # Doses stop at 10; the curve's midpoint is at 300.
+        doses = [0.1, 0.3, 1, 3, 10]
+        xs, ys = self._curve(doses, ic50=300.0)
+        fit = fit_model(xs, ys, "log_inhibitor_vs_response_4pl",
+                              constraints={"Top": 100.0, "Bottom": 0.0})
+        e = fit["extrapolation"]
+        assert e is not None
+        assert e["direction"] == "above"
+        assert e["param"] == "LogIC50"
+        assert 10 ** e["x_max"] == pytest.approx(10.0, rel=1e-6)
+        assert 10 ** e["value"] == pytest.approx(300.0, rel=0.05)
+
+    def test_flags_a_midpoint_below_the_lowest_dose(self):
+        doses = [1, 3, 10, 30, 100]
+        xs, ys = self._curve(doses, ic50=0.01)
+        fit = fit_model(xs, ys, "log_inhibitor_vs_response_4pl",
+                              constraints={"Top": 100.0, "Bottom": 0.0})
+        e = fit["extrapolation"]
+        assert e is not None
+        assert e["direction"] == "below"
+        assert 10 ** e["x_min"] == pytest.approx(1.0, rel=1e-6)
+
+    def test_silent_when_the_midpoint_sits_inside_the_data(self):
+        doses = [0.1, 0.3, 1, 3, 10, 30, 100]
+        xs, ys = self._curve(doses, ic50=3.0)
+        fit = fit_model(xs, ys, "log_inhibitor_vs_response_4pl",
+                              constraints={"Top": 100.0, "Bottom": 0.0})
+        assert fit["extrapolation"] is None
+
+    def test_distance_is_the_fold_gap_past_the_edge(self):
+        doses = [0.1, 1, 10]
+        xs, ys = self._curve(doses, ic50=1000.0)
+        fit = fit_model(xs, ys, "log_inhibitor_vs_response_4pl",
+                              constraints={"Top": 100.0, "Bottom": 0.0})
+        e = fit["extrapolation"]
+        # 1000 is 100x past the top dose of 10
+        assert 10 ** e["distance"] == pytest.approx(100.0, rel=0.1)
+
+    def test_models_without_a_midpoint_never_report_it(self):
+        xs = [1.0, 2.0, 3.0, 4.0, 5.0]
+        ys = [2.1, 4.0, 6.2, 7.9, 10.1]
+        fit = fit_model(xs, ys, "straight_line")
+        assert fit["extrapolation"] is None

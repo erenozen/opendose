@@ -617,7 +617,10 @@ input[type="checkbox"] { accent-color: var(--accent); width: 15px; height: 15px;
   @starting-style { opacity: 0; filter: blur(2px); }
 }
 
-.badge-ambiguous {
+/* Both badges qualify the number beside them, so they share a shape and
+   differ only in hue: ambiguity is about the parameters, extrapolation is
+   about the dose range. A fit can carry either, or both. */
+.badge-ambiguous, .badge-extrapolated {
   margin-left: 8px; vertical-align: middle;
   font-size: 11px; font-weight: 600; letter-spacing: 0.03em;
   color: var(--warn-ink);
@@ -625,6 +628,13 @@ input[type="checkbox"] { accent-color: var(--accent); width: 15px; height: 15px;
   border: 1px solid color-mix(in srgb, var(--warn-hue) 45%, transparent);
   border-radius: 999px; padding: 2px 9px;
 }
+.badge-extrapolated {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  cursor: help;
+}
+.badge-ambiguous { cursor: help; }
 
 .results-error {
   color: var(--danger);

@@ -607,6 +607,31 @@ def fit_model(x_values, y_values, model: str, *,
         except np.linalg.LinAlgError:
             status = "ambiguous"
 
+    # A midpoint fitted outside the x actually tested is an extrapolation:
+    # the data never reaches half-maximal, so the value is read off the
+    # model's tail rather than measured. This is separate from ambiguity —
+    # with Top and Bottom held constant the remaining parameters can be
+    # perfectly well determined relative to each other and still place the
+    # midpoint far beyond the highest dose, which is where a dose-response
+    # curve most often misleads.
+    extrapolation = None
+    if "LogXmid" in spec.params and n_points:
+        mid = fitted["LogXmid"]
+        lo, hi = float(np.min(x)), float(np.max(x))
+        if mid < lo or mid > hi:
+            beyond = "below" if mid < lo else "above"
+            edge = lo if mid < lo else hi
+            extrapolation = {
+                "param": "LogIC50" if "IC50" in spec.equation else "LogEC50",
+                "value": float(mid),
+                "x_min": lo,
+                "x_max": hi,
+                "direction": beyond,
+                # How far past the edge, in x units (log dose for these
+                # models), so a caller can phrase it as a fold-difference.
+                "distance": float(abs(mid - edge)),
+            }
+
     params_out = {}
     for name in spec.params:
         display = ("LogIC50" if (name == "LogXmid" and "IC50" in spec.equation)
@@ -651,6 +676,7 @@ def fit_model(x_values, y_values, model: str, *,
         "equation": spec.equation,
         "status": status,
         "dependency": dependency,
+        "extrapolation": extrapolation,
         "weighting": weighting,
         "weight_source": weight_source,
         "ci_method": ci_method,
