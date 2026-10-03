@@ -116,7 +116,10 @@ class TestNestedAnovaGuideExample:
 
     def test_main_results(self):
         res = nested.nested_one_way_anova(HERDS, names=self.NAMES)
-        assert r4(res["F"]) == 43.21
+        # Prism prints 43.21; the exact value is 43.2050, which sits on the
+        # 4-digit rounding boundary and lands on either side depending on
+        # the BLAS build, so compare within half a display unit instead.
+        assert abs(res["F"] - 43.21) <= 0.0051
         assert (res["df_num"], res["df_den"]) == (2, 6)
         assert round(res["p"], 4) == 0.0003
         re = res["random_effects"]
