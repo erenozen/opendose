@@ -479,13 +479,13 @@ const waitLogIC50 = (v) => page.waitForFunction((want) => [...document
   .querySelectorAll(".results-table tbody tr")]
   .some((tr) => tr.innerText.includes("LogIC50") && tr.innerText.includes(want)),
 v, { timeout: 60000 }).then(() => true, () => false);
-const cellValue = (label) => page.locator(`.data-table input[aria-label='${label}']`).inputValue();
+const teCellValue = (label) => page.locator(`.data-table input[aria-label='${label}']`).inputValue();
 
 await page.getByRole("button", { name: "New data table" }).click();
-const newDlg = page.locator(".new-table-dialog");
-await newDlg.locator('input[name="table-type"][value="xy"]').check();
-await newDlg.getByLabel("Table name").fill("Imported CSV");
-await newDlg.getByRole("button", { name: "Create table" }).click();
+const teDlg = page.locator(".new-table-dialog");
+await teDlg.locator('input[name="table-type"][value="xy"]').check();
+await teDlg.getByLabel("Table name").fill("Imported CSV");
+await teDlg.getByRole("button", { name: "Create table" }).click();
 await page.waitForSelector(".grid-toolbar");
 
 // xlsx through the Import dialog's file source (read by the Python runtime)
@@ -507,7 +507,7 @@ await imp.getByLabel("Text to import").fill(csv);
 await imp.getByLabel("Lines to skip at the top").fill("1");
 await imp.getByLabel(/holds column titles/).check();
 await imp.getByRole("button", { name: "Import", exact: true }).click();
-const imported = [await cellValue("X, row 2"), await cellValue("Drug A, Y2, row 1"),
+const imported = [await teCellValue("X, row 2"), await teCellValue("Drug A, Y2, row 1"),
   await page.locator(".data-table input[aria-label='Dataset 1 title']").inputValue(),
   await page.locator(".data-table input[aria-label='X column title']").inputValue()];
 expect("CSV import: X, names, decimal commas", imported.join("|") === "3.162e-9|101.5|Drug A|Dose",
@@ -519,11 +519,11 @@ await page.getByRole("button", { name: "Sort…" }).click();
 await page.getByLabel("Sort by").selectOption({ label: "X values" });
 await page.getByLabel(/Descending/).check();
 await page.getByRole("button", { name: "Sort", exact: true }).click();
-const sortedTop = `${await cellValue("X, row 1")} ${await cellValue("Drug A, Y3, row 1")}`;
+const sortedTop = `${await teCellValue("X, row 1")} ${await teCellValue("Drug A, Y3, row 1")}`;
 expect("sort rows by X descending keeps rows together", sortedTop === "1e-5 2.1", sortedTop);
 await page.getByRole("button", { name: "Sort…" }).click();
 await page.getByRole("button", { name: "Sort", exact: true }).click();
-expect("sort ascending restores the order", await cellValue("X, row 1") === "1e-9");
+expect("sort ascending restores the order", await teCellValue("X, row 1") === "1e-9");
 
 // Data Inspector and block exclusion
 await page.locator(".data-table input[aria-label='Drug A, Y1, row 1']").click();
@@ -567,7 +567,7 @@ await page.getByLabel("New table holds").selectOption("mean_sd_n");
 await page.getByRole("button", { name: "Create table" }).click();
 await page.waitForFunction(() => document.querySelector(
   ".data-table input[aria-label='Drug A, Mean, row 1']"), null, { timeout: 30000 });
-expect("converted table holds the mean", await cellValue("Drug A, Mean, row 1") === "99.6");
+expect("converted table holds the mean", await teCellValue("Drug A, Mean, row 1") === "99.6");
 expect("fit of the converted Mean/SD/N table: LogIC50 -6.983", await waitLogIC50("-6.983"));
 
 // switch the imported table itself to Mean, SD, N and type the summaries
@@ -587,9 +587,9 @@ expect("Mean/SD/N entry fits like the replicates: LogIC50 -6.983", await waitLog
 
 // insert series into a new table's X, then show X as dates
 await page.getByRole("button", { name: "New data table" }).click();
-await newDlg.locator('input[name="table-type"][value="xy"]').check();
-await newDlg.getByLabel("Table name").fill("Series test");
-await newDlg.getByRole("button", { name: "Create table" }).click();
+await teDlg.locator('input[name="table-type"][value="xy"]').check();
+await teDlg.getByLabel("Table name").fill("Series test");
+await teDlg.getByRole("button", { name: "Create table" }).click();
 await page.locator(".data-table input[aria-label='X, row 1']").click();
 await page.getByRole("button", { name: "Insert series…" }).click();
 await page.getByLabel("First value").fill("0");
@@ -597,14 +597,14 @@ await page.getByRole("textbox", { name: "Increment" }).fill("0.5");
 await page.getByLabel("Number of values").fill("12");
 await page.getByRole("button", { name: "Insert series", exact: true }).click();
 expect("insert series fills X and adds rows",
-  await cellValue("X, row 5") === "2" && await cellValue("X, row 12") === "5.5");
+  await teCellValue("X, row 5") === "2" && await teCellValue("X, row 12") === "5.5");
 await page.getByRole("button", { name: "Format…" }).click();
 await page.getByRole("combobox", { name: "X values are" }).selectOption("dates");
 await page.getByRole("button", { name: "Apply" }).click();
 await page.locator(".data-table input[aria-label='X, row 1']").fill("5 Mar 2024");
 await page.locator(".data-table input[aria-label='Dataset A, Y1, row 1']").click();
 expect("dates in X display in a standard form",
-  await cellValue("X, row 1") === "2024-03-05");
+  await teCellValue("X, row 1") === "2024-03-05");
 
 await page.screenshot({
   path: join(here, "app.png"),
