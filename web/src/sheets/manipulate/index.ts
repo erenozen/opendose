@@ -4,26 +4,36 @@
 // type's analyses via `extraAnalyses` / `extraGraphs`.
 import type { ComponentType } from "react";
 import type { DataTableModel, TableType } from "../../project/types";
+import { lazyPart } from "../lazy";
 import { defineAnalysis, defineGraph, type AnalysisDef, type GraphKindDef } from "../types";
 import {
   baselineMethods, concMethods, fractionMethods, normalizeMethods, pruneMethods,
   transformMethods, transposeMethods,
 } from "./methods";
-import HistogramPlot from "./MonteCarloHistogram";
-import {
-  MonteCarloControls, MonteCarloMethods, MonteCarloResults,
-} from "./MonteCarloPanels";
 import { DEFAULT_HIT, type McOutput, type MonteCarloOptions } from "./montecarlo";
 import { makeManipResults, makeMethods } from "./factories";
-import {
-  BaselineControls, ConcControls, FractionControls, FractionExtra,
-  NormalizeControls, PruneControls, TransformControls, TransposeControls,
-} from "./panels";
 import {
   DEFAULT_BASELINE, DEFAULT_CONC, DEFAULT_FRACTION, DEFAULT_NORMALIZE, DEFAULT_PRUNE,
   DEFAULT_TRANSFORM, DEFAULT_TRANSPOSE, resultToTable, runBaseline, runConc, runFraction,
   runNormalize, runPrune, runTransform, runTranspose, type ManipResult,
 } from "./run";
+
+// Panels load on first use (sheets/lazy.ts).
+const monteCarloPanelsModule = () => import("./MonteCarloPanels");
+const MonteCarloControls = lazyPart(monteCarloPanelsModule, "MonteCarloControls");
+const MonteCarloMethods = lazyPart(monteCarloPanelsModule, "MonteCarloMethods");
+const MonteCarloResults = lazyPart(monteCarloPanelsModule, "MonteCarloResults");
+const panelsModule = () => import("./panels");
+const BaselineControls = lazyPart(panelsModule, "BaselineControls");
+const ConcControls = lazyPart(panelsModule, "ConcControls");
+const FractionControls = lazyPart(panelsModule, "FractionControls");
+const FractionExtra = lazyPart(panelsModule, "FractionExtra");
+const NormalizeControls = lazyPart(panelsModule, "NormalizeControls");
+const PruneControls = lazyPart(panelsModule, "PruneControls");
+const TransformControls = lazyPart(panelsModule, "TransformControls");
+const TransposeControls = lazyPart(panelsModule, "TransposeControls");
+const monteCarloHistogramModule = () => import("./MonteCarloHistogram");
+const HistogramPlot = lazyPart(monteCarloHistogramModule, "default");
 
 // Ids are stored in project files: never rename.
 export const ANALYSIS_TRANSFORM = "transform";

@@ -50,6 +50,9 @@ const graphSettings = async () => {
   return page.getByRole("dialog", { name: "Graph settings" });
 };
 const closeGraphSettings = () => page.keyboard.press("Escape");
+// Panels load on first use (sheets/lazy.ts): wait for a control to appear.
+const appears = (locator, timeout = 15000) => locator.first().waitFor({ timeout })
+  .then(() => true, () => false);
 const plotLayoutOf = () => page.evaluate(() => {
   const l = document.querySelector(".plot-card .plot")?.layout ?? {};
   return {
@@ -166,7 +169,7 @@ expect("pie chart draws three slices",
 {
   const pop = await graphSettings();
   expect("pie: graph options live in the Settings panel",
-    await pop.getByRole("group", { name: "Graph options" }).getByLabel("Slice labels").count() === 1
+    await appears(pop.getByRole("group", { name: "Graph options" }).getByLabel("Slice labels"))
     && await page.locator(".graph-opts, .graph-options, .mv-graph-options").count() === 0);
   expect("pie: no Format axes (no axes to format)",
     await pop.getByRole("button", { name: "Format axes…" }).count() === 0);
@@ -218,6 +221,7 @@ expect("nested scatter draws every value",
   await page.locator(".plot .scatterlayer .point").count() >= 36);
 {
   const pop = await graphSettings();
+  await appears(pop.getByLabel("Plot subcolumn means only"));
   await pop.getByLabel("Plot subcolumn means only").check();
   await page.waitForTimeout(400);
   expect("nested: graph option in the Settings panel plots subcolumn means",
@@ -315,7 +319,7 @@ await page.waitForTimeout(800);
 {
   const pop = await graphSettings();
   expect("grouped: error bars are a graph option in the Settings panel",
-    await pop.getByRole("group", { name: "Graph options" }).getByLabel("Error bars").count() === 1);
+    await appears(pop.getByRole("group", { name: "Graph options" }).getByLabel("Error bars")));
   await pop.getByRole("button", { name: "Pairwise comparisons…" }).click();
   const cd = page.locator("dialog.fmt-dialog");
   await cd.getByLabel("Show comparison brackets on the graph").check();
@@ -540,7 +544,7 @@ expect("MV example: 30 observations with row titles",
 {
   const pop = await graphSettings();
   expect("MV graph of the data draws, its options in the Settings panel",
-    await pop.getByRole("group", { name: "Graph options" }).getByLabel("Color by").count() === 1
+    await appears(pop.getByRole("group", { name: "Graph options" }).getByLabel("Color by"))
     && await page.locator(".plot.js-plotly-plot").count() >= 1);
   await pop.getByRole("button", { name: "Format graph…" }).click();
   const fg = page.locator("dialog.fmt-dialog");

@@ -1,10 +1,7 @@
 import { emptyTable } from "../../project/table";
 import DataGrid from "../common/DataGrid";
+import { lazyPart } from "../lazy";
 import { defineAnalysis, defineGraph, type TableTypeDef } from "../types";
-import {
-  CorrelationControls, DescriptiveControls, LogisticControls, PcaControls,
-  RearrangeControls, RegressionControls,
-} from "./controls";
 import "./mv.css";
 import {
   defaultCorrelation, defaultDescriptive, defaultLogistic, defaultPca,
@@ -13,24 +10,54 @@ import {
   type PcaOptions, type RearrangeOptions, type RegressionOptions,
 } from "./model";
 import {
-  BiplotOptions, BiplotPlot, CorrHeatOptions, CorrHeatmap, ForestOptions, LoadingsOptions,
-  LoadingsPlot, LogitCurvePlot, LogitOddsPlot, LogitRocPlot, MvCatOptions, MvCategoricalPlot,
-  MvXYOptions, MvXYPlot, RegActualPlot, RegForestPlot, RegResidualPlot, ScreePlot,
-} from "./plots";
-import {
   biplotFormatDatasets, mvCatFormatDatasets, mvXYFormatDatasets,
 } from "./graphSettings";
-import {
-  CorrelationMethods, CorrelationResults, DescriptiveMethods, DescriptiveResults,
-  LogisticMethods, LogisticResults, PcaMethods, PcaResults, RearrangeResults,
-  RegressionMethods, RegressionResults,
-} from "./results";
 import {
   runCorrelation, runDescriptive, runLogistic, runPca, runRearrange,
   runRegression, type CorrelationResult, type DescriptiveResult,
   type LogisticResult, type PcaResult, type RearrangeResult, type RegressionResult,
 } from "./run";
 import { multivariableSample } from "./sample";
+
+// Panels load on first use (sheets/lazy.ts).
+const controlsModule = () => import("./controls");
+const CorrelationControls = lazyPart(controlsModule, "CorrelationControls");
+const DescriptiveControls = lazyPart(controlsModule, "DescriptiveControls");
+const LogisticControls = lazyPart(controlsModule, "LogisticControls");
+const PcaControls = lazyPart(controlsModule, "PcaControls");
+const RearrangeControls = lazyPart(controlsModule, "RearrangeControls");
+const RegressionControls = lazyPart(controlsModule, "RegressionControls");
+const plotsModule = () => import("./plots");
+const BiplotOptions = lazyPart(plotsModule, "BiplotOptions");
+const BiplotPlot = lazyPart(plotsModule, "BiplotPlot");
+const CorrHeatOptions = lazyPart(plotsModule, "CorrHeatOptions");
+const CorrHeatmap = lazyPart(plotsModule, "CorrHeatmap");
+const ForestOptions = lazyPart(plotsModule, "ForestOptions");
+const LoadingsOptions = lazyPart(plotsModule, "LoadingsOptions");
+const LoadingsPlot = lazyPart(plotsModule, "LoadingsPlot");
+const LogitCurvePlot = lazyPart(plotsModule, "LogitCurvePlot");
+const LogitOddsPlot = lazyPart(plotsModule, "LogitOddsPlot");
+const LogitRocPlot = lazyPart(plotsModule, "LogitRocPlot");
+const MvCatOptions = lazyPart(plotsModule, "MvCatOptions");
+const MvCategoricalPlot = lazyPart(plotsModule, "MvCategoricalPlot");
+const MvXYOptions = lazyPart(plotsModule, "MvXYOptions");
+const MvXYPlot = lazyPart(plotsModule, "MvXYPlot");
+const RegActualPlot = lazyPart(plotsModule, "RegActualPlot");
+const RegForestPlot = lazyPart(plotsModule, "RegForestPlot");
+const RegResidualPlot = lazyPart(plotsModule, "RegResidualPlot");
+const ScreePlot = lazyPart(plotsModule, "ScreePlot");
+const resultsModule = () => import("./results");
+const CorrelationMethods = lazyPart(resultsModule, "CorrelationMethods");
+const CorrelationResults = lazyPart(resultsModule, "CorrelationResults");
+const DescriptiveMethods = lazyPart(resultsModule, "DescriptiveMethods");
+const DescriptiveResults = lazyPart(resultsModule, "DescriptiveResults");
+const LogisticMethods = lazyPart(resultsModule, "LogisticMethods");
+const LogisticResults = lazyPart(resultsModule, "LogisticResults");
+const PcaMethods = lazyPart(resultsModule, "PcaMethods");
+const PcaResults = lazyPart(resultsModule, "PcaResults");
+const RearrangeResults = lazyPart(resultsModule, "RearrangeResults");
+const RegressionMethods = lazyPart(resultsModule, "RegressionMethods");
+const RegressionResults = lazyPart(resultsModule, "RegressionResults");
 
 // Ids are stored in project files: never rename them.
 export const ANALYSIS_MV_DESCRIPTIVE = "mv_descriptive";

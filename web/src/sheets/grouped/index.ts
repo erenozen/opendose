@@ -8,19 +8,10 @@ import { emptyTable } from "../../project/table";
 import type { DataTableModel } from "../../project/types";
 import DataGrid from "../common/DataGrid";
 import type { FormatFeatures } from "../../graph/format";
+import { lazyPart } from "../lazy";
 import { defineAnalysis, defineGraph, type TableTypeDef } from "../types";
-import {
-  ColumnStatsControls, MultiTControls, RowMeansControls, ThreeWayControls, TwoWayControls,
-} from "./controls";
 import { groupedComparisons } from "./comparisons";
-import {
-  GroupedOptions, GroupedPlot, HeatMapPlot, HeatOptions, VolcanoOptions, VolcanoPlot,
-  XYGroupedPlot,
-} from "./graphs";
 import { groupedFormatDatasets, xyGroupedFormatDatasets } from "./graphData";
-import {
-  ColumnStatsMethods, MultiTMethods, RowMeansMethods, ThreeWayMethods, TwoWayMethods,
-} from "./methods";
 import {
   A_COLUMN_STATS, A_MULTI_T, A_ROW_MEANS, A_THREE_WAY, A_TWO_WAY,
   DEFAULT_COLUMN_STATS, DEFAULT_MULTI_T, DEFAULT_ROW_MEANS, DEFAULT_TWO_WAY,
@@ -30,12 +21,37 @@ import {
   type ColumnStatsOptions, type MultiTOptions, type RowMeansOptions,
   type ThreeWayOptions, type TwoWayOptions,
 } from "./options";
-import {
-  ColumnStatsResults, MultiTResults, RowMeansResults, ThreeWayResults, TwoWayResults,
-} from "./results";
 import { runColumnStats, runMultiT, runRowMeans, runThreeWay, runTwoWay } from "./run";
 import { rowMeansTable } from "./tables";
 import { groupedSample } from "./sample";
+
+// Panels load on first use (sheets/lazy.ts).
+const controlsModule = () => import("./controls");
+const ColumnStatsControls = lazyPart(controlsModule, "ColumnStatsControls");
+const MultiTControls = lazyPart(controlsModule, "MultiTControls");
+const RowMeansControls = lazyPart(controlsModule, "RowMeansControls");
+const ThreeWayControls = lazyPart(controlsModule, "ThreeWayControls");
+const TwoWayControls = lazyPart(controlsModule, "TwoWayControls");
+const graphsModule = () => import("./graphs");
+const GroupedOptions = lazyPart(graphsModule, "GroupedOptions");
+const GroupedPlot = lazyPart(graphsModule, "GroupedPlot");
+const HeatMapPlot = lazyPart(graphsModule, "HeatMapPlot");
+const HeatOptions = lazyPart(graphsModule, "HeatOptions");
+const VolcanoOptions = lazyPart(graphsModule, "VolcanoOptions");
+const VolcanoPlot = lazyPart(graphsModule, "VolcanoPlot");
+const XYGroupedPlot = lazyPart(graphsModule, "XYGroupedPlot");
+const methodsModule = () => import("./methods");
+const ColumnStatsMethods = lazyPart(methodsModule, "ColumnStatsMethods");
+const MultiTMethods = lazyPart(methodsModule, "MultiTMethods");
+const RowMeansMethods = lazyPart(methodsModule, "RowMeansMethods");
+const ThreeWayMethods = lazyPart(methodsModule, "ThreeWayMethods");
+const TwoWayMethods = lazyPart(methodsModule, "TwoWayMethods");
+const resultsModule = () => import("./results");
+const ColumnStatsResults = lazyPart(resultsModule, "ColumnStatsResults");
+const MultiTResults = lazyPart(resultsModule, "MultiTResults");
+const RowMeansResults = lazyPart(resultsModule, "RowMeansResults");
+const ThreeWayResults = lazyPart(resultsModule, "ThreeWayResults");
+const TwoWayResults = lazyPart(resultsModule, "TwoWayResults");
 
 type Result = Record<string, unknown>;
 

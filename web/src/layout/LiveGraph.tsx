@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { Suspense, useMemo } from "react";
 import { useProject } from "../app/context";
 import { useAnalysisResult } from "../app/useAnalysisResult";
 import { findSheet } from "../project/ops";
@@ -38,6 +38,10 @@ export default function LiveGraph({ graph }: { graph: GraphSheet }) {
     y: graph.settings.titles.y.trim() || auto.y,
   };
   if (!Plot) return <div className="plot empty-hint">No plot for this graph type.</div>;
-  return <Plot graph={graph} table={table} options={options} result={result}
-    titles={titles} scheme={graph.settings.scheme} format={format} />;
+  return (
+    <Suspense fallback={<div className="plot-pending" aria-busy="true" />}>
+      <Plot graph={graph} table={table} options={options} result={result}
+        titles={titles} scheme={graph.settings.scheme} format={format} />
+    </Suspense>
+  );
 }

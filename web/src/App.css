@@ -472,6 +472,9 @@ input[type="checkbox"] { accent-color: var(--accent); width: 15px; height: 15px;
 }
 .plot-card .export-panel { flex: none; }
 .plot { flex: 1 1 420px; min-height: 220px; padding: 8px; }
+/* Holds the plot's place while its code loads (sheets/lazy.ts). */
+.plot-pending { flex: 1 1 420px; min-height: 220px; }
+.pane-pending { margin: 12px 16px; }
 .plot-card .export-panel {
   border-top: 1px solid var(--border-soft);
   background: var(--inset);

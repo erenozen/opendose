@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef } from "react";
+import { Suspense, useCallback, useMemo, useRef } from "react";
 import { resolveOptions } from "../app/analysis";
 import { useCommands } from "../app/commands";
 import { useProject } from "../app/context";
@@ -116,10 +116,12 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
                       onUnfreeze={() => cmd.toggleFreeze(resSheet.id)} />
                   )}
                   <div className="controls-wrap" inert={!!resSheet.frozen}>
-                    <Controls sheet={resSheet} table={data.table} options={options}
-                      readOnly={!!resSheet.frozen}
-                      onChange={(o) => apply((p) => updateResultsOptions(p, resSheet.id, () => o),
-                        `options:${resSheet.id}`)} />
+                    <Suspense fallback={<Pending />}>
+                      <Controls sheet={resSheet} table={data.table} options={options}
+                        readOnly={!!resSheet.frozen}
+                        onChange={(o) => apply((p) => updateResultsOptions(p, resSheet.id, () => o),
+                          `options:${resSheet.id}`)} />
+                    </Suspense>
                   </div>
                 </>
               ) : (
@@ -159,7 +161,9 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
             {resSheet && Results && (
               <div className={`pane pane-results${reveal}`}>
                 <ResultsExport name={resSheet.name}>
-                  <Results sheet={resSheet} table={data.table} options={options} result={result} />
+                  <Suspense fallback={<Pending />}>
+                    <Results sheet={resSheet} table={data.table} options={options} result={result} />
+                  </Suspense>
                 </ResultsExport>
               </div>
             )}
@@ -167,7 +171,9 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
               <>
                 <HSplitter />
                 <div className="pane pane-methods">
-                  <Methods sheet={resSheet} table={data.table} options={options} result={result} />
+                  <Suspense fallback={null}>
+                    <Methods sheet={resSheet} table={data.table} options={options} result={result} />
+                  </Suspense>
                 </div>
               </>
             )}
@@ -187,6 +193,11 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
       </div>
     </main>
   );
+}
+
+/** Shown while a panel's code loads (sheets/lazy.ts): usually a moment. */
+function Pending() {
+  return <p className="empty-hint pane-pending" aria-busy="true">Loading…</p>;
 }
 
 function FrozenNote({ what, onUnfreeze }: { what: string; onUnfreeze: () => void }) {
@@ -277,9 +288,11 @@ function GraphCard({ graph, data, result, options }: {
         )}
       </div>
       {Plot ? (
-        <Plot graph={graph} table={table} options={opts} result={res}
-          titles={resolved} scheme={graph.settings.scheme} format={format}
-          onFormatChange={graph.frozen ? undefined : dragFormat} />
+        <Suspense fallback={<div className="plot-pending" aria-busy="true" />}>
+          <Plot graph={graph} table={table} options={opts} result={res}
+            titles={resolved} scheme={graph.settings.scheme} format={format}
+            onFormatChange={graph.frozen ? undefined : dragFormat} />
+        </Suspense>
       ) : <div className="plot empty-hint">No plot available for this graph type.</div>}
       <ExportPanel filename={fileStem(graph.name, kind?.exportName ?? "graph")}
         scheme={graph.settings.scheme} leading={graph.frozen ? undefined : (
@@ -293,8 +306,11 @@ function GraphCard({ graph, data, result, options }: {
             "titles")}
           autoX={auto.x} autoY={auto.y} showX={kind?.showXTitle !== false}
           actions={dialogs.actions} formatted={!isDefaultFormat(format)}
-          options={Options ? <Options graph={graph} table={table} options={opts} result={res} />
-            : undefined} />
+          options={Options ? (
+            <Suspense fallback={null}>
+              <Options graph={graph} table={table} options={opts} result={res} />
+            </Suspense>
+          ) : undefined} />
       )} />
       {dialogs.element}
     </div>
