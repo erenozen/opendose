@@ -219,14 +219,18 @@ function GraphCard({ graph, data, result, options }: {
   // settings.format, validated on read.
   const format = useMemo(() => readFormat(graph.settings), [graph.settings]);
   const graphId = graph.id;
-  const setFormat = useCallback((f: GraphFormat, t?: { x: string; y: string }) =>
+  const setFormat = useCallback((f: GraphFormat, t?: { x: string; y: string },
+    key = "format") =>
     apply((p) => updateSheet<Sheet>(p, graphId, (s) => {
       if (s.kind !== "graph") return s;
       const { format: _old, ...rest } = s.settings;
       void _old;
       return { ...s, settings: { ...rest, ...(t ? { titles: t } : {}),
         ...(isDefaultFormat(f) ? {} : { format: f }) } };
-    }), `graph:${graphId}:format`), [apply, graphId]);
+    }), `graph:${graphId}:${key}`), [apply, graphId]);
+  // Drags on the graph are their own undo steps, apart from dialog edits.
+  const dragFormat = useCallback((f: GraphFormat) => setFormat(f, undefined, "drag"),
+    [setFormat]);
   const datasetNames = useMemo(() => table.datasets.map((d) => d.name), [table.datasets]);
   const dialogs = useFormatDialogs({
     format, features: kind?.formatFeatures, datasets: datasetNames,
@@ -255,7 +259,7 @@ function GraphCard({ graph, data, result, options }: {
       {Plot ? (
         <Plot graph={graph} table={table} options={opts} result={res}
           titles={resolved} scheme={graph.settings.scheme} format={format}
-          onFormatChange={graph.frozen ? undefined : setFormat} />
+          onFormatChange={graph.frozen ? undefined : dragFormat} />
       ) : <div className="plot empty-hint">No plot available for this graph type.</div>}
       <ExportPanel filename={kind?.exportName ?? "graph"} leading={graph.frozen ? undefined : (
         <GraphSettings

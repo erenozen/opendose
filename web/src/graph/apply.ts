@@ -463,7 +463,8 @@ function styleTrace(t: Trace, tag: TraceTag, f: DatasetFormat, orig: string, bas
       out.push({
         x: [...bx, ...[...bx].reverse()],
         y: [...idx.map((i) => t.y[i] + up[i]), ...[...idx].reverse().map((i) => t.y[i] - dn[i])],
-        fill: "toself", fillcolor: rgba(base, isNum(alpha) ? Math.min(alpha, 0.35) : 0.18),
+        mode: "lines", fill: "toself",
+        fillcolor: rgba(base, isNum(alpha) ? Math.min(alpha, 0.35) : 0.18),
         line: { width: 0 }, hoverinfo: "skip", showlegend: false,
         ...(t.yaxis ? { yaxis: t.yaxis } : {}),
         meta: { odTag: { ds: tag.ds, role: "band" } },
@@ -941,7 +942,10 @@ function addAnnotation(layout: Layout, a: Annotation, maps: { x: AxisMap; y: Axi
   const data = a.ref === "data";
   const X = (v: number) => (data ? maps.x.to(v) ?? v : v);
   const Y = (v: number) => (data ? maps.y.to(v) ?? v : v);
-  const xref = data ? "x" : "x domain", yref = data ? "y" : "y domain";
+  // Plot-area coordinates: "paper" (0-1 across the plotting area). An
+  // arrow's tail needs an axis-based reference, so arrows use the axis
+  // domain, which is the same area unless the axes are offset or split.
+  const xref = data ? "x" : "paper", yref = data ? "y" : "paper";
   const color = a.color ?? chrome.ink;
   const name = `user:${a.id}`;
   if (a.kind === "text" || a.kind === "results") {
@@ -962,7 +966,8 @@ function addAnnotation(layout: Layout, a: Annotation, maps: { x: AxisMap; y: Axi
   }
   const line = { color, width: a.width ?? 1.5, dash: a.dash ?? "solid" };
   if (a.kind === "arrow") {
-    layout.annotations.push({ name, xref, yref, axref: xref, ayref: yref,
+    const ax = data ? "x" : "x domain", ay = data ? "y" : "y domain";
+    layout.annotations.push({ name, xref: ax, yref: ay, axref: ax, ayref: ay,
       x: X(a.x1), y: Y(a.y1), ax: X(a.x0), ay: Y(a.y0), text: "", showarrow: true,
       arrowhead: 2, arrowsize: 1, arrowwidth: line.width, arrowcolor: color });
     return;

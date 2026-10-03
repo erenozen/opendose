@@ -326,7 +326,7 @@ test("user annotations: text with arrow, data coordinates, results block", () =>
   assert.equal(a1.text, "peak<br>here");
   assert.equal(a1.showarrow, true);
   assert.equal(out.layout.shapes[0].editable, true);
-  assert.equal(out.layout.shapes[0].xref, "x domain");
+  assert.equal(out.layout.shapes[0].xref, "paper");
   assert.equal(out.layout.annotations.find((a: Trace) => a.name === "user:a3").text, "P = 0.01");
   assert.equal(out.layout.editrevision, "3");
 });

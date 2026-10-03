@@ -178,10 +178,10 @@ function AxisEditor({ which, value: a, onChange, categorical, title, titlePlaceh
           <legend>Additional ticks and grid lines</legend>
           {extra.map((t, i) => (
             <div className="fmt-row" key={i}>
-              <NumField label="At" value={t.value} placeholder="value"
+              <NumField label="Tick at" value={t.value} placeholder="value"
                 onChange={(v) => set({ extraTicks: extra.map((e, j) =>
                   (j === i ? { ...e, value: v ?? 0 } : e)) })} />
-              <TextField label="Label" value={t.label} placeholder="Value"
+              <TextField label="Tick label" value={t.label} placeholder="The value"
                 onChange={(v) => set({ extraTicks: extra.map((e, j) =>
                   (j === i ? { ...e, label: v ?? "" } : e)) })} />
               <CheckField label="Grid line" checked={!!t.grid}
