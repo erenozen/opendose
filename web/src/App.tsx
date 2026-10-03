@@ -6,6 +6,7 @@ import { useUi } from "./app/ui";
 import { UiProvider } from "./app/UiProvider";
 import { useAutosave } from "./app/useAutosave";
 import { useFileOpen } from "./app/useFileOpen";
+import { useDerivedSync } from "./app/useDerivedSync";
 import { useShortcuts } from "./app/useShortcuts";
 import FamilyWorkspace from "./components/FamilyWorkspace";
 import Header from "./components/Header";
@@ -14,6 +15,7 @@ import LayoutSheetView from "./components/LayoutSheetView";
 import Navigator from "./components/Navigator";
 import { newId } from "./project/ids";
 import { familyRootId, findSheet } from "./project/ops";
+import { SimulateHost } from "./sheets/manipulate/SimulateDialog";
 
 export default function App() {
   return (
@@ -31,6 +33,7 @@ function Shell() {
   const files = useFileOpen();
   const autosave = useAutosave();
   useShortcuts();
+  useDerivedSync();
 
   const newProject = async () => {
     const ok = await ui.confirm({
@@ -99,6 +102,7 @@ function Shell() {
         <Navigator />
         {view}
       </div>
+      <SimulateHost />
     </div>
   );
 }

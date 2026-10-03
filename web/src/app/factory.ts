@@ -5,7 +5,8 @@ import {
   addSheets, findSheet, makeDataSheet, makeGraphSheet, makeInfoSheet,
   makeProject, makeResultsSheet, nextNumberedName, uniqueName,
 } from "../project/ops";
-import { normalizeTable } from "../project/table";
+import { makeDerivedSheet } from "../project/derived";
+import { clearValues, normalizeTable } from "../project/table";
 import type {
   DataSheet, DataTableModel, Project, ProjectPrefs, Sheet,
 } from "../project/types";
@@ -42,6 +43,12 @@ export function analysisSheets(p: Project, dataId: string, analysisId: string,
     a.defaultOptions({ table: data.table, prefs: p.prefs }),
     uniqueName(p, a.sheetName(data.name)));
   const out: Sheet[] = [results];
+  if (a.derivedTable) {
+    // Output table of a chain: filled in by the derived-table sync.
+    out.push(makeDerivedSheet(ids(), uniqueName(addSheets(p, [results]),
+      a.derivedName?.(data.name) ?? `${a.short} of ${data.name}`),
+    clearValues(data.table), { sourceId: dataId, resultsId: rid }));
+  }
   if (a.defaultGraph) {
     const withResults = addSheets(p, [results]);
     out.push(makeGraphSheet(ids(), dataId, rid, a.defaultGraph,

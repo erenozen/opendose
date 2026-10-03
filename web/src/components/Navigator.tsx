@@ -8,6 +8,8 @@ import {
 import {
   SECTION_LABELS, SECTION_ORDER, type Sheet, type SheetKind,
 } from "../project/types";
+import { derivedFrom } from "../project/derived";
+import { LinkIcon } from "../sheets/manipulate/LinkIcon";
 import { REGISTRY } from "../sheets/registry";
 import SheetIcon, { SnowflakeIcon } from "./SheetIcon";
 import SheetMenu, { type MenuAction } from "./SheetMenu";
@@ -72,8 +74,11 @@ export default function Navigator() {
       if (!expanded) continue;
       for (const s of visible) {
         const key = `${section}:${s.id}`;
+        // A family lists its results and graphs, then the tables derived
+        // from it (chains of analyses), which also have their own row.
         const kids = section === "data"
-          ? familyChildren(project, s.id).filter((k) => !q || matches(k) || matches(s)) : [];
+          ? [...familyChildren(project, s.id), ...derivedFrom(project, s.id)]
+            .filter((k) => !q || matches(k) || matches(s)) : [];
         const fexp = !!q || !collapsedFamilies.has(s.id);
         out.push({
           key, level: 2, section, sheet: s, parentKey: skey,
@@ -270,7 +275,8 @@ export default function Navigator() {
           aria-level={n.level}
           aria-expanded={n.expandable ? n.expanded : undefined}
           aria-selected={s ? selected : undefined}
-          aria-label={s ? `${s.name}${s.frozen ? " (frozen)" : ""}` : SECTION_LABELS[n.section]}
+          aria-label={s ? `${s.name}${s.frozen ? " (frozen)" : ""}${
+            s.kind === "data" && s.derived ? " (linked)" : ""}` : SECTION_LABELS[n.section]}
           tabIndex={n.key === tabKey ? 0 : -1}
           className={`nav-item level-${n.level}${selected ? " selected" : ""}${
             s && family.has(s.id) && !selected ? " in-family" : ""}`}
@@ -289,6 +295,11 @@ export default function Navigator() {
                 onClick={(e) => { e.stopPropagation(); toggle(n); }} />
             ) : <span className="twisty-space" aria-hidden="true" />}
             {s ? <SheetIcon kind={s.kind} /> : null}
+            {s?.kind === "data" && s.derived && (
+              <span className="nav-link" title="Linked: computed from another table">
+                <LinkIcon /><span className="sr-only">linked</span>
+              </span>
+            )}
             {s && renaming?.key === n.key ? (
               <RenameInput initial={s.name}
                 onDone={(name) => {
