@@ -83,8 +83,19 @@ from the jsDelivr CDN, ~30 MB, then cached).
   (notes and named constants) and layout sheets, in a navigator with
   rename, duplicate (sheet, or whole family with or without data),
   delete, reorder, freeze, highlight colors and search. Grouped, Parts of
-  whole, Multiple variables and Nested tables have their final editor;
-  their analyses and graphs come next.
+  whole and Nested tables have their final editor; their analyses and
+  graphs come next.
+- Multiple-variables tables (one row per observation, continuous or
+  categorical variables, row titles as IDs): descriptive statistics,
+  correlation matrix with a heat map, multiple linear regression
+  (categorical predictors, interactions, term tests, residual normality;
+  actual-vs-predicted, residual and coefficient forest plots), simple and
+  multiple logistic regression (odds ratios, likelihood ratio test, pseudo
+  R², Hosmer-Lemeshow, classification table, fitted curve and ROC), PCA
+  (parallel analysis, scree, loadings and biplot), extract & rearrange /
+  select & transform into a new table, and graphs of the data (bubble
+  graphs colored and sized by variables, data ellipses, convex hulls,
+  categorical strip / bar / box / violin).
 - Editing: project-wide undo/redo (Ctrl/Cmd+Z, Shift+Ctrl/Cmd+Z),
   keyboard navigation in the grid, excluded values (Ctrl/Cmd+E: kept
   visible, struck through, skipped by analyses and graphs), subcolumn and

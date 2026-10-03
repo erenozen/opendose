@@ -168,11 +168,15 @@ save/load; methods text; theme; accessibility pass.
       scatter; two-way ANOVA and RM two-way move here from Column mode
 - [ ] Parts-of-whole tables: pie, donut, stacked-bar graphs; chi-square
       goodness of fit against expected fractions; fraction of total
-- [ ] Multiple-variables tables: one row per observation, one column per
+- [x] Multiple-variables tables: one row per observation, one column per
       variable (continuous / categorical); descriptive stats, correlation
       matrix (with heat map), multiple linear regression, simple and
       multiple logistic regression (odds ratios, ROC of the fit), PCA
       (scree, loadings, biplot), extract & rearrange, select & transform
+      (2026-10-03: plus XY/bubble graphs of the data with color and size
+      legends, labels, connecting lines, data ellipses, convex hulls and
+      mean ± SD per group, and categorical strip/bar/box/violin graphs;
+      row titles as observation IDs)
 - [ ] Nested tables: nested t test and nested one-way ANOVA (mixed model
       with random subgroup effect); nested scatter graph
 - [ ] Entering error values computed elsewhere: Mean/SD/N, Mean/SEM/N,
