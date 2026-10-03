@@ -1,6 +1,7 @@
 // Preferences: stored per browser (localStorage, every access guarded so
 // private windows and blocked storage just fall back to defaults).
 import { DEFAULT_SCHEME, isSchemeId } from "../lib/palette.ts";
+import { sanitizeExport } from "../export/settings.ts";
 import { isTableType, type Prefs, type ProjectPrefs } from "./types.ts";
 
 export const DEFAULT_PREFS: Prefs = {
@@ -27,6 +28,8 @@ export function sanitizePrefs(raw: unknown, base: Prefs = DEFAULT_PREFS): Prefs 
     theme: r.theme === "light" || r.theme === "dark" || r.theme === "auto" ? r.theme : base.theme,
     digits: typeof r.digits === "number" && r.digits >= 2 && r.digits <= 8
       ? Math.round(r.digits) : base.digits,
+    ...(r.export !== undefined ? { export: sanitizeExport(r.export) }
+      : base.export ? { export: base.export } : {}),
   };
 }
 

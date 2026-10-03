@@ -38,6 +38,17 @@ export class ProjectStore {
     return this.h.present;
   };
 
+  /** Change something that travels with the project but is not an edit
+   *  (e.g. the last export settings). Applied to every snapshot, so undo
+   *  and redo neither record nor revert it. */
+  patchAll = (fn: (p: Project) => Project): void => {
+    const next = fn(this.h.present);
+    if (next === this.h.present) return;
+    this.set({
+      ...this.h, past: this.h.past.map(fn), present: next, future: this.h.future.map(fn),
+    });
+  };
+
   undo = () => this.set(undo(this.h));
   redo = () => this.set(redo(this.h));
   /** Replace the project and forget history (open file, new project). */
