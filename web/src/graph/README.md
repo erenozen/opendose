@@ -24,6 +24,9 @@ graph/
   results.ts      comparisons / text blocks / risk sets from results (pure)
   edits.ts        annotation drags -> format; Plotly config (pure)
   usePlotEdits.ts React glue for dragging
+  FormattedPlot.tsx  a Plotly div that does all of the above for panels
+                  that build traces / layout declaratively (useMemo)
+  useDarkMode.ts  the colour theme as React state
   *Dialog.tsx     the dialogs; useFormatDialogs.tsx wires them to a card
   __tests__/      node --test unit tests (npm run test:unit)
 ```
@@ -47,6 +50,31 @@ annotations; skip them and annotations still draw, just not draggable).
 Declare which dataset controls the dialog shows with
 `formatFeatures` on the graph kind (`GraphKindDef`), e.g.
 `{ categorical: true, points: true, bars: true, errorBars: true }`.
+Every graph kind sets it. Besides the dataset controls there are:
+
+| feature      | effect |
+|--------------|--------|
+| `color`      | a Colour / fill opacity section without symbols or bars (pie slices, ROC and scree lines) |
+| `noAxes`     | no Format axes, nudging, right axis or reference lines; annotations in plot-area units (pie, donut, heat maps) |
+| `noDatasets` | Format graph shows only its whole-graph part (heat maps, forest and volcano plots, loadings) |
+| `categoryX`  | X is a category axis though data set i is not at x = i (grouped, nested, stacked parts): no numeric X settings |
+
+Most panels now render `FormattedPlot` instead of driving Plotly:
+
+```tsx
+const fig = useMemo(() => ({ traces, layout }), [...]);           // tagged traces
+const ctx = useMemo(() => ({ dark, scheme, datasets: names }), [...]);
+return <FormattedPlot traces={fig.traces} layout={fig.layout} format={format}
+  onFormatChange={onFormatChange} ctx={ctx} filename="nested" />;
+```
+
+When Format graph's "data sets" are not the table's data sets (the parts
+of a pie, the levels of a colour-by variable, the rows of a grouped graph
+clustered by data set), the graph kind's `formatDatasets(table, graph,
+options)` returns them, in the same order as the plot's `ds` tags. A
+graph kind whose comparisons are not one group per data set provides
+`comparisons(result, table, options)` (grouped and nested graphs); the
+dialog lists them and the plot places them with `groupX`.
 
 ## Tagging traces
 
@@ -92,7 +120,13 @@ columns, brackets and letters for free when `categorical` is set and
 dataset i sits at x = i. Grouped graphs (several groups per category)
 should pass `groupX` so brackets and letters land on the right bar;
 comparisons with a `family` (two-way, within one row) are only drawn
-when `groupX` places them.
+when `groupX` places them. `groupX` may return `{ x, xref }` for a bar
+on another X axis (the second panel of the three-way graph, `"x2"`):
+each axis stacks its own brackets, and a pair across two axes is not
+drawn. `groupHalf` (default 0.45) is how far either side of a group the
+data a bracket must clear reaches (half a bar on grouped graphs).
+
+Colours are replaced in per-point colour arrays too (grouped bars).
 
 ## Coordinates
 
@@ -110,10 +144,15 @@ converted on the way in and out.
 - Discontinuous axis: left Y axis only, drawn as two stacked subplots
   sharing X, with break marks and one rotated title. Not combined with
   the right Y axis or offset frames.
-- Date numbering sets Plotly's date axis and format; tables keep dates as
-  text until the date-parsing work lands, so it applies once X values
-  arrive as dates. Elapsed-time numbering works on numeric X (in s, min
+- Date numbering sets Plotly's date axis and format. Tables with dates as
+  X are read as numbers (days since the earliest date, project/xformat.ts)
+  and the XY graph labels its own ticks with the dates, so this numbering
+  only applies to X values that already are calendar dates; it has no
+  such source yet. Elapsed-time numbering works on numeric X (in s, min
   or h).
+- Pie and donut charts: per-part colour, fill opacity, legend
+  text, show / hide and order are read by the pie itself (one trace per
+  chart); stacked parts use the bar tags.
 - Horizontal (X) error bars take the SD from another dataset of the same
   table (that dataset is hidden from the graph). The table model has no X
   error subcolumns.

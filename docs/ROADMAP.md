@@ -169,8 +169,11 @@ save/load; methods text; theme; accessibility pass.
       (ordinary, RM by rows or both factors, mixed-effects model when
       repeated values are missing), three-way ANOVA, multiple t tests per
       row with FDR / family-wise correction and a volcano plot, row
-      means/totals (copy as a new table), column statistics; Prism
-      grouped tables import as grouped (Column mode keeps two-way ANOVA)
+      means/totals (as a linked table), column statistics; Prism
+      grouped tables import as grouped (Column mode keeps two-way ANOVA).
+      2026-10-04: brackets from the two-way, three-way (per panel) and
+      multiple t tests comparisons on the grouped bar graphs; the grouped
+      graph kinds are offered on XY tables too (X rows as groups)
 - [x] Parts-of-whole tables: pie, donut, stacked-bar graphs; chi-square
       goodness of fit against expected fractions; fraction of total
 - [x] Multiple-variables tables: one row per observation, one column per
@@ -178,6 +181,7 @@ save/load; methods text; theme; accessibility pass.
       matrix (with heat map), multiple linear regression, simple and
       multiple logistic regression (odds ratios, ROC of the fit), PCA
       (scree, loadings, biplot), extract & rearrange, select & transform
+      (into a linked table since 2026-10-04)
       (2026-10-03: plus XY/bubble graphs of the data with color and size
       legends, labels, connecting lines, data ellipses, convex hulls and
       mean ± SD per group, and categorical strip/bar/box/violin graphs;
@@ -190,7 +194,8 @@ save/load; methods text; theme; accessibility pass.
       and Grouped tables; curve fits account for SD and N or fit means
       only; unpaired / Welch / one-sample t, one- and two-way ANOVA;
       entered error bars on graphs; replicates -> summary converter.
-      Grouped-table analyses pick this up when they land)
+      Grouped tables: two-way ANOVA from mean/SD/N and the grouped graphs
+      with entered error bars)
 - [x] Side-by-side vs stacked replicates (XY / Grouped side by side,
       Column / Nested stacked); subcolumn titles; row titles on Column
       tables (editable; using them as point labels is a graph item)
@@ -201,7 +206,9 @@ save/load; methods text; theme; accessibility pass.
       decimal-place display, dates / elapsed times as X (parsed, analyzed
       in a chosen unit, graphed with date / h:mm:ss ticks), insert /
       delete / move rows and columns, block select / copy / cut / clear
-- [ ] Rounding as a transform; data-table limits documented
+- [x] Rounding as a transform (Transform: "Y rounded to K decimals", and
+      ROUND() in user formulas)
+- [ ] Data-table limits documented (rows, data sets, subcolumns)
 - [x] Undo / redo for every table edit (project-level history, Ctrl/Cmd+Z,
       Shift+Ctrl/Cmd+Z, coalesced typing, 100 steps)
 
@@ -239,8 +246,8 @@ save/load; methods text; theme; accessibility pass.
       for zero), Remove baseline (subtract a column, a row, a value,
       first/last row; divide, as fraction), Transpose, Prune rows
       (average or remove every k rows, by X range), Fraction of total.
-      DONE (2026-10-03) on XY and Column tables (Grouped picks them up
-      once its analyses ship), each with a methods sentence
+      DONE (2026-10-03) on XY, Column and Grouped tables, each with a
+      methods sentence
 - [x] Chains of analyses: results sheets that feed another analysis
       (Transform → Normalize → Fit is the canonical case) with the chain
       visible in the navigator. DONE (2026-10-03): a manipulation's output
@@ -271,11 +278,20 @@ save/load; methods text; theme; accessibility pass.
       (before-after) plots, line of identity, grand mean/median line,
       horizontal error bars (X SD taken from another data set), error
       envelopes, error-bar direction / caps / thickness, row-title labels
-- [ ] Forest plots
+- [ ] Forest plots as a graph type of the data (estimate and CI per row);
+      the regression and logistic-regression results have coefficient /
+      odds-ratio forest plots already
 - [x] Heat maps: grouped tables (single hue / diverging / grayscale from
       the scheme, min / max / center, reverse, cell labels, gaps, legend,
       blank-cell color) and correlation matrices (multiple-variables)
 - [x] Plotting order; dataset spacing (gap between columns)
+- [x] The format layer on every graph kind (2026-10-04): XY, column,
+      survival, parts of whole (pie / donut: per-part colour, legend
+      text, order, show / hide; title, legend, fonts, annotations),
+      nested, grouped (with heat map and volcano), every multiple-
+      variables graph, Monte Carlo histogram, summary-data column graphs;
+      each graph's own options in the same Settings panel; layouts and
+      batch export draw graphs as formatted
 - [x] Three-way grouped graphs; row-vs-column titles under bars
       (grouped tables; also grand mean/median line and before-after
       lines there)
@@ -295,7 +311,10 @@ save/load; methods text; theme; accessibility pass.
 - [x] Frame styles (plain axes, box, offset axes, none) and origin
       (zero lines); major and minor grid lines
 - [x] Elapsed-time axis numbering (h:mm, h:mm:ss)
-- [ ] Date axes (numbering is in place; needs dates parsed in the table)
+- [x] Dates and elapsed times as X: parsed in the table, analyzed as
+      numbers, graphed with date or h:mm:ss tick labels
+- [ ] Format axes "Date" numbering on such tables (X reaches the graph as
+      days since the first date, not as calendar dates)
 
 **Annotations on graphs**
 - [x] Text boxes (with arrow to a point), lines, arrows, rectangles,
@@ -304,7 +323,11 @@ save/load; methods text; theme; accessibility pass.
 - [x] Pairwise-comparison brackets with significance stars or exact P,
       taken from the comparisons table (one-way post tests, Dunn's,
       two-way main-effect comparisons, t tests, Mann-Whitney), with
-      automatic stacking
+      automatic stacking; since 2026-10-04 also two-way comparisons
+      within rows or data sets, three-way cell comparisons (each panel),
+      multiple t tests (one bracket per row) on grouped graphs, and the
+      nested ANOVA's comparisons on the nested scatter graph. Asterisks
+      follow P ≤ 0.05 / 0.01 / 0.001 / 0.0001 in results and on graphs
 - [x] Compact letter display for multiple comparisons (engine
       `compact_letters` handler when present, in-browser fallback)
 - [x] Number-at-risk table under survival curves
@@ -346,7 +369,8 @@ save/load; methods text; theme; accessibility pass.
       (2026-10-03: info popover and methods text; version and build
       from the build, SciPy/NumPy/Python/Pyodide versions from the
       running engine; plain and BibTeX citations; a generic methods
-      sentence for analyses without their own)
+      sentence for analyses without their own; version 0.2.0 from
+      2026-10-04)
 
 ### Order of work
 1. Engine first, in parallel: multiple-variables analyses, parts of whole,
@@ -365,6 +389,33 @@ save/load; methods text; theme; accessibility pass.
    Graph / Format Axes / annotations; layouts and export.
 4. e2e coverage for each new workflow; methods text extended to every
    new analysis.
+
+### Open items (2026-10-04)
+What the integration pass of 2026-10-04 leaves open, from the list above
+and the notes the feature work left in the code and READMEs:
+- Forest plots as a graph type of the data (estimate and CI per row).
+- Scale bars instead of axes.
+- Align / distribute tools for annotations.
+- Date axes: tables keep dates as day numbers (since the earliest date),
+  so Format axes' "Date" numbering has no calendar dates to show; the XY
+  graph labels its own date ticks.
+- Kruskal-Wallis exact P for small samples without ties (the chi-square
+  approximation is used now).
+- Calculated variables (in-table formulas) on multiple-variables tables.
+- Excluding points from one analysis without excluding them from the table.
+- Data-table limits documented.
+- Sheet groups, floating notes, templates and "apply to another table"
+  (in progress separately).
+- Grouped graphs: brackets between the two panels of the three-way graph,
+  compact letters, and Format graph colours on separated bars (those are
+  coloured by group).
+- Contingency tables have no graphs of their own (only the Monte Carlo
+  histogram).
+- Text import: by-rows / by-columns reflow, filter criteria on a column,
+  Info & Notes import. Info-sheet constants as analysis inputs.
+- Graph-format limits (`web/src/graph/README.md`): axes crossing at a
+  value, separate legends, crossing ticks, X error subcolumns in the
+  table model, a discontinuous right Y axis.
 
 ## Next up
 
