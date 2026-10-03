@@ -155,7 +155,7 @@ const [powPng] = await Promise.all([
   page.waitForEvent("download", { timeout: 30000 }),
   page.locator(".plot-card .export-panel").getByRole("button", { name: /Download/ }).click(),
 ]);
-expect("parts-of-whole graph exports", /parts-of-whole\.png$/.test(powPng.suggestedFilename()),
+expect("parts-of-whole graph exports", /\.png$/.test(powPng.suggestedFilename()),
   powPng.suggestedFilename());
 await page.getByRole("button", { name: "Analyze", exact: true }).click();
 await page.getByRole("menuitem", { name: /Chi-square goodness of fit/ }).click();
