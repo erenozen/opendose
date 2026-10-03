@@ -222,6 +222,9 @@ expect("nested scatter draws every value",
 {
   const pop = await graphSettings();
   await appears(pop.getByLabel("Plot subcolumn means only"));
+  const box = await pop.getByLabel("Plot subcolumn means only").boundingBox();
+  expect("graph-option checkboxes keep their size in the Settings panel",
+    !!box && box.width < 20, String(box?.width));
   await pop.getByLabel("Plot subcolumn means only").check();
   await page.waitForTimeout(400);
   expect("nested: graph option in the Settings panel plots subcolumn means",
@@ -320,6 +323,11 @@ await page.waitForTimeout(800);
   const pop = await graphSettings();
   expect("grouped: error bars are a graph option in the Settings panel",
     await appears(pop.getByRole("group", { name: "Graph options" }).getByLabel("Error bars")));
+  const [popTop, headBottom] = await page.evaluate(() => [
+    document.querySelector(".settings-pop").getBoundingClientRect().top,
+    document.querySelector("header").getBoundingClientRect().bottom]);
+  expect("the Settings panel stays below the header (its top is reachable)",
+    popTop >= headBottom, `${popTop} vs ${headBottom}`);
   await pop.getByRole("button", { name: "Pairwise comparisons…" }).click();
   const cd = page.locator("dialog.fmt-dialog");
   await cd.getByLabel("Show comparison brackets on the graph").check();

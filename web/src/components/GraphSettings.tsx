@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import SchemePicker from "./SchemePicker";
 import type { SchemeId } from "../lib/palette";
 import type { FormatAction } from "../graph/useFormatDialogs";
@@ -35,8 +35,24 @@ export default function GraphSettings({
   actions, formatted, options,
 }: Props) {
   const [open, setOpen] = useState(false);
+  const [maxHeight, setMaxHeight] = useState<number | undefined>(undefined);
   const wrap = useRef<HTMLDivElement>(null);
   const button = useRef<HTMLButtonElement>(null);
+
+  // The panel opens upward; keep it below the sticky header so its top
+  // (the graph options) is never out of reach. It scrolls inside.
+  useLayoutEffect(() => {
+    if (!open || !button.current) return;
+    const measure = () => {
+      const top = button.current!.getBoundingClientRect().top;
+      const header = document.querySelector("header")?.getBoundingClientRect().bottom ?? 0;
+      setMaxHeight(Math.max(180, Math.floor(Math.min(top - Math.max(header, 0) - 16,
+        window.innerHeight * 0.7))));
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -78,7 +94,7 @@ export default function GraphSettings({
       </button>
       {open && (
         <div className={`settings-pop${options ? " has-options" : ""}`} role="dialog"
-          aria-label="Graph settings">
+          aria-label="Graph settings" style={maxHeight ? { maxHeight } : undefined}>
           {options && (
             <div className="graph-opts-section" role="group" aria-labelledby="graph-opts-h">
               <span className="axis-titles-label" id="graph-opts-h">Graph options</span>
@@ -94,7 +110,7 @@ export default function GraphSettings({
                 <input
                   type="text"
                   value={titles.x}
-                  placeholder={autoX}
+                  placeholder={autoX || "Automatic"}
                   aria-label="X axis title"
                   onChange={(e) =>
                     onTitlesChange({ ...titles, x: e.target.value })}
@@ -106,7 +122,7 @@ export default function GraphSettings({
               <input
                 type="text"
                 value={titles.y}
-                placeholder={autoY}
+                placeholder={autoY || "Automatic"}
                 aria-label="Y axis title"
                 onChange={(e) =>
                   onTitlesChange({ ...titles, y: e.target.value })}

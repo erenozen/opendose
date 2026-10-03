@@ -211,7 +211,7 @@ export const xyGroupedGraphs = ([
   [G_LINES, "Grouped: connected lines across rows", "grouped-lines"],
 ] as const).map(([id, label, exportName]) => defineGraph({
   id, label, group: "xy", analysis: null,
-  autoTitles: (t: DataTableModel) => ({ x: "", y: t.yTitle || "Value" }),
+  autoTitles: (t: DataTableModel) => ({ x: "", y: t.yTitle || "Response" }),
   showXTitle: false,
   exportName,
   PlotPanel: XYGroupedPlot,

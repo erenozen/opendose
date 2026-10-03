@@ -164,11 +164,13 @@ export default function FormatGraphDialog({
             <Section title="Colour">
               <ColorField label="Colour" value={cur.color} auto={auto.color}
                 surface={chrome.surface} onChange={(v) => set({ color: v })} />
-              <NumField label="Fill opacity (%)"
-                value={cur.fillAlpha != null ? Math.round(cur.fillAlpha * 100) : undefined}
-                note="100 = solid"
-                onChange={(v) => set({ fillAlpha: v == null ? undefined
-                  : Math.min(1, Math.max(0, v / 100)) })} />
+              {!features.lines && (
+                <NumField label="Fill opacity (%)"
+                  value={cur.fillAlpha != null ? Math.round(cur.fillAlpha * 100) : undefined}
+                  note="100 = solid"
+                  onChange={(v) => set({ fillAlpha: v == null ? undefined
+                    : Math.min(1, Math.max(0, v / 100)) })} />
+              )}
             </Section>
           )}
 
