@@ -221,35 +221,50 @@ save/load; methods text; theme; accessibility pass.
       Monte Carlo: repeat an analysis N times over simulated data and
       tabulate a chosen result (CI coverage, power)
 
-**Graphs: Format Graph**
-- [ ] Per-dataset symbol shape / size / fill / border, line style and
-      width, bar fill and pattern, front-to-back order, nudging
-- [ ] Point-to-point lines, spaghetti plots, line of identity, grand
-      mean/median line, forest plots, horizontal error bars (X error),
-      error envelopes
+**Graphs: Format Graph** (graph-format layer: `web/src/graph/README.md`)
+- [x] Per-dataset symbol shape / size / fill / border, line style and
+      width, bar fill and pattern, front-to-back order, nudging; apply to
+      one, selected or all data sets
+- [x] Point-to-point lines (straight, spline, staircase), spaghetti
+      (before-after) plots, line of identity, grand mean/median line,
+      horizontal error bars (X SD taken from another data set), error
+      envelopes, error-bar direction / caps / thickness, row-title labels
+- [ ] Forest plots
 - [ ] Heat maps (grouped tables, correlation matrices) with color
       mapping, labels, gaps
-- [ ] Three-way grouped graphs; row-vs-column titles under bars;
-      plotting order; dataset spacing
-- [ ] Legends: show/hide, position, combined vs separate, text edits
-- [ ] Fonts and sizes for titles, axis numbering, legends
-- [ ] Semitransparent fills
+- [x] Plotting order; dataset spacing (gap between columns)
+- [ ] Three-way grouped graphs; row-vs-column titles under bars
+- [x] Legends: show/hide, position (corners, above, outside right,
+      below), layout, per-dataset text (one legend per graph; separate
+      legends not offered)
+- [x] Fonts and sizes for graph title, axis titles, axis numbering, legend
+- [x] Semitransparent fills (with a contrast warning for user colours)
 
 **Graphs: Format Axes**
-- [ ] Axis range, major/minor ticks, tick direction, numbering format
-      (decimal, scientific, power-of-ten, antilog), discontinuous axes,
-      additional ticks and grid lines, hide axis / scale bars
-- [ ] Right Y axis with datasets assigned to it
-- [ ] Frame styles and origin; grid lines
-- [ ] Dates and elapsed-time axis formats
+- [x] Axis range, major/minor ticks, tick direction, numbering format
+      (decimal, scientific, power-of-ten, antilog), discontinuous left Y
+      axis, additional ticks and grid lines, hide axis; log10, log2, ln
+      and probability scales
+- [ ] Scale bars instead of axes
+- [x] Right Y axis with datasets assigned to it
+- [x] Frame styles (plain axes, box, offset axes, none) and origin
+      (zero lines); major and minor grid lines
+- [x] Elapsed-time axis numbering (h:mm, h:mm:ss)
+- [ ] Date axes (numbering is in place; needs dates parsed in the table)
 
 **Annotations on graphs**
-- [ ] Text boxes, lines, arrows, rectangles, ellipses, aligned/nudged
-- [ ] Pairwise-comparison brackets with significance stars or exact P,
-      taken from the comparisons table (one-way, two-way, t tests)
-- [ ] Compact letter display for multiple comparisons
-- [ ] Number-at-risk table under survival curves
-- [ ] Embedding results (parameter table, equation) on the graph
+- [x] Text boxes (with arrow to a point), lines, arrows, rectangles,
+      ellipses; draggable on the graph, saved with it
+- [ ] Align / distribute tools for annotations
+- [x] Pairwise-comparison brackets with significance stars or exact P,
+      taken from the comparisons table (one-way post tests, Dunn's,
+      two-way main-effect comparisons, t tests, Mann-Whitney), with
+      automatic stacking
+- [x] Compact letter display for multiple comparisons (engine
+      `compact_letters` handler when present, in-browser fallback)
+- [x] Number-at-risk table under survival curves
+- [x] Embedding results (best-fit values, equation, P value) on the graph
+      as live text blocks
 
 **Page layouts**
 - [ ] Layout sheets: place several graphs on a page grid, resize,

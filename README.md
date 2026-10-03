@@ -98,6 +98,15 @@ from the jsDelivr CDN, ~30 MB, then cached).
   schemes (default, colorblind safe, black and white for print,
   sequential), graph export at exact size (PNG/SVG/JPEG/WebP, plus TIFF
   at a chosen DPI for journal submission).
+- Graph formatting (Settings → Format graph / Format axes / Annotations /
+  Pairwise comparisons): per-dataset symbols, colours, transparency,
+  lines, bar patterns, error bars and envelopes, X error, order and
+  nudging; axis ranges, log10/log2/ln/probability scales, numbering
+  formats, ticks, grids, extra ticks, gaps, right Y axis, frames;
+  legends, fonts and titles; text, arrows and shapes you can drag on the
+  graph; live results blocks; significance brackets and compact letters
+  from the comparisons table; number-at-risk tables under survival
+  curves. `web/src/graph/README.md` describes how a plot adopts it.
 
 ## Roadmap
 
