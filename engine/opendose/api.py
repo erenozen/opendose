@@ -27,6 +27,7 @@ from . import multivar, partsofwhole
 from . import formulas, manipulate, simulate
 from . import summary
 from . import mixedmodel, nested
+from . import fdr, letters, rowtests, threeway
 
 
 def _expand(x_col, replicate_rows):
@@ -1112,6 +1113,232 @@ def _mixed_rm_twoway(data, options):
         row_names=row_names, col_names=names, **kwargs)
 
 
+def _q_fraction(options, default=0.05):
+    """FDR level Q as a fraction: options.q_percent (as entered in the
+    guide's dialogs, 5 = 5%) or options.q (a fraction; values above 1
+    are read as percentages)."""
+    if options.get("q_percent") is not None:
+        return float(options["q_percent"]) / 100.0
+    q = float(options.get("q", default))
+    return q / 100.0 if q > 1 else q
+
+
+def _grouped_rows(data):
+    """Grouped-table rows: (row titles, names, [ds["ys"] per data set])."""
+    dsets = data["datasets"]
+    n_rows = max((len(ds.get("ys") or []) for ds in dsets), default=0)
+    titles = list(data.get("row_titles") or [])
+    titles = [t if t not in (None, "") else f"Row {i + 1}"
+              for i, t in enumerate(titles[:n_rows])]
+    titles += [f"Row {i + 1}" for i in range(len(titles), n_rows)]
+    names = [ds.get("name")
+             or (chr(65 + d) if d < 26 else f"Data set {d + 1}")
+             for d, ds in enumerate(dsets)]
+    ys = [[(ds.get("ys") or [])[i] if i < len(ds.get("ys") or []) else []
+           for i in range(n_rows)] for ds in dsets]
+    return titles, names, ys
+
+
+def _multiple_row_tests(data, options):
+    """Multiple t tests (and nonparametric tests), one per row.
+
+    data: grouped table {"row_titles"?: [str], "datasets": [{"name",
+    "ys": [[replicates] per row]}]} (null = missing; paired tests match
+    subcolumn k of A with subcolumn k of B). options: dataset_a (0),
+    dataset_b (1), test ("welch" | "unpaired" | "pooled" |
+    "lognormal_welch" | "lognormal_unpaired" | "lognormal_pooled" |
+    "paired" | "ratio_paired" | "mann_whitney" | "kolmogorov_smirnov" |
+    "wilcoxon"; default "welch"), method ("bky" default | "bh" | "by" |
+    "holm_sidak" | "sidak" | "bonferroni" | "none"), alpha (0.05), q /
+    q_percent (FDR level, default 5%), swap (false: difference = A - B).
+
+    Result: {"analysis", "test", "names", "direction", "method",
+    "approach": "fdr"|"significance", "flag_label", "alpha", "q",
+    "n_tests", "n_omitted", "n_flagged", "n_true_null_estimate" (BKY),
+    "pooled": {variance, sd, df, scale} | null, "rows": [{row, index,
+    n_a, n_b, mean_a/mean_b | geometric_mean_a/b + ratio +
+    log10_difference | median_a/b (+ hodges_lehmann), difference,
+    se_difference?, statistic_name ("t"|"U"|"W"|"D"), statistic, df, p,
+    p_adjusted (adjusted P or q value; null for "none"), significant,
+    neg_log10_p, s_value, omitted? (reason, row left out)}],
+    "flagged_rows": [row indices sorted by P]}."""
+    titles, names, ys = _grouped_rows(data)
+    ia, ib = options.get("dataset_a", 0), options.get("dataset_b", 1)
+    return {"analysis": "multiple_row_tests",
+            **rowtests.multiple_t_tests(
+                ys[ia], ys[ib], row_titles=titles,
+                names=[names[ia], names[ib]],
+                test=options.get("test", "welch"),
+                method=options.get("method", "bky"),
+                alpha=options.get("alpha", 0.05), q=_q_fraction(options),
+                swap=bool(options.get("swap", False)))}
+
+
+def _row_means(data, options):
+    """Row means and totals of a grouped (or column/XY) table.
+
+    data: {"row_titles"?, "datasets": [{"name", "ys"}]}. options:
+    calculate ("mean" | "total" | "median" | "geometric_mean"), error
+    (mean: "none"|"sd"|"sem"|"cv"|"ci"; median: "none"|"quartiles"|
+    "minmax"|"percentiles"; geometric_mean: "none"|"geometric_sd"|"ci";
+    total: "none"), scope ("row": each data set's summary first, then
+    across data sets (default) | "all_values": all replicates pooled |
+    "dataset": one result per data set), ci_level (0.95), percentile
+    (10 -> 10th and 90th).
+
+    Result: {"analysis", "calculate", "error_type", "scope", "row_titles",
+    "rows": [{row, value, n, sd?|sem?|cv_percent?|ci?|geometric_sd?,
+    lower?, upper?}]} or, for scope "dataset", "datasets": [{name,
+    rows: [...]}] (lower/upper are the error-bar ends)."""
+    titles, names, ys = _grouped_rows(data)
+    return {"analysis": "row_means",
+            **rowtests.row_means(
+                ys, row_titles=titles, names=names,
+                calculate=options.get("calculate", "mean"),
+                error=options.get("error", "sd"),
+                scope=options.get("scope", "row"),
+                ci_level=options.get("ci_level", 0.95),
+                percentile=options.get("percentile", 10.0))}
+
+
+def _three_way_anova(data, options):
+    """Three-way ANOVA (ordinary, Type III).
+
+    data: grouped table {"row_titles"?, "datasets": [{"name", "ys"}]}
+    with the guide's layout (data sets A&B vs. C&D = factor B, A&C vs.
+    B&D = factor C, only A-D used), or options.column_levels = [[b, c]
+    | null per data set] (0-based levels); or data = {"row_titles"?,
+    "blocks": [{"name", "datasets": [...]}]}: each block is one level of
+    factor C and its k-th data set is level k of factor B.
+    options: factor_names ([rows, B, C]), b_level_names, c_level_names,
+    comparisons (method: "tukey" | "dunnett" | "sidak" | "bonferroni" |
+    "holm_sidak" | "none" (Fisher LSD) | "bky" | "bh" | "by"; omit for
+    no comparisons), goal ("all_cells" | "control" | "one_factor" |
+    "row1_below" | "row_means" | "row_means_control" |
+    "factor_b_means" | "factor_c_means"), factor ("a"|"b"|"c" for
+    one_factor), control ([row, b, c], default [0, 0, 0]), control_row,
+    alpha (0.05), q / q_percent.
+
+    Result: {"analysis", "n", "levels": [a, b, c], "factor_names",
+    "type", "sources": {label: {term, ss, df, ms, F, p,
+    percent_of_total}} (3 main effects, 3 two-way, 1 three-way,
+    "residual"), "ss_total", "cell_means"[i][j][k], "cell_n",
+    "row_titles", "b_level_names", "c_level_names", "cell_labels",
+    "multiple_comparisons"?: {method, goal, n_comparisons, n_means,
+    ms_error, df_error, alpha, q, means: [{label, mean, cell?}],
+    comparisons: [{pair, mean_1, mean_2, difference, se, statistic, p,
+    p_adjusted, ci, significant}], discoveries?}}."""
+    if data.get("blocks"):
+        datasets, levels, ds_names = [], [], []
+        for c_lv, block in enumerate(data["blocks"]):
+            for b_lv, ds in enumerate(block["datasets"]):
+                datasets.append(ds)
+                levels.append([b_lv, c_lv])
+                ds_names.append(f"{block.get('name') or f'C{c_lv + 1}'}:"
+                                f"{ds.get('name') or f'B{b_lv + 1}'}")
+        table = {"row_titles": data.get("row_titles"), "datasets": datasets}
+        c_default = [b.get("name") or f"C{k + 1}"
+                     for k, b in enumerate(data["blocks"])]
+        b_default = [ds.get("name") or f"B{j + 1}" for j, ds in
+                     enumerate(data["blocks"][0]["datasets"])]
+    else:
+        table = data
+        levels = options.get("column_levels")
+        b_default = c_default = None
+        ds_names = None
+    titles, names, ys = _grouped_rows(table)
+    ds_names = ds_names or names
+    cells, owner = threeway.cells_from_datasets(ys, levels)
+    nb, nc = len(cells[0]), len(cells[0][0])
+    if b_default is None:
+        b_default = ["/".join(ds_names[owner[(j, k)]] for k in range(nc)
+                              if (j, k) in owner) for j in range(nb)]
+        c_default = ["/".join(ds_names[owner[(j, k)]] for j in range(nb)
+                              if (j, k) in owner) for k in range(nc)]
+    b_names = options.get("b_level_names") or b_default
+    c_names = options.get("c_level_names") or c_default
+    labels = [[[f"{titles[i]}:{ds_names[owner[(j, k)]]}"
+                if (j, k) in owner else f"{titles[i]}:{b_names[j]}:{c_names[k]}"
+                for k in range(nc)] for j in range(nb)]
+              for i in range(len(cells))]
+    fnames = options.get("factor_names") or ["Rows", "Factor B", "Factor C"]
+    result = threeway.three_way_anova(cells, factor_names=tuple(fnames))
+    out = {"analysis": "three_way_anova", **result, "row_titles": titles,
+           "b_level_names": b_names, "c_level_names": c_names,
+           "cell_labels": labels}
+    method = options.get("comparisons")
+    if method:
+        out["multiple_comparisons"] = threeway.three_way_comparisons(
+            cells, goal=options.get("goal", "all_cells"), method=method,
+            alpha=options.get("alpha", 0.05), q=_q_fraction(options),
+            control=options.get("control") or (0, 0, 0),
+            control_row=options.get("control_row", 0),
+            factor=options.get("factor"), row_names=titles,
+            b_names=b_names, c_names=c_names, cell_labels=labels,
+            anova=result)
+    return out
+
+
+def _compact_letters(data, options):
+    """Compact letter display from all pairwise comparisons.
+
+    data: {"groups": [name, ...], "means"?: [number per group],
+    "comparisons": [{"a", "b"} | {"pair": "X vs. Y"}, plus
+    "significant" (bool) or "p_adjusted"/"p"]} (the comparisons list of
+    an ANOVA multiple-comparisons result can be passed as is). options:
+    alpha (0.05), order ("descending" (default; highest mean gets the
+    first letter) | "ascending" | "given"), labels ("upper" | "lower" |
+    "numbers").
+
+    Result: {"analysis", "alpha", "labels", "order": [names in display
+    order], "groups": [{name, mean, letters}] (input order), "letters":
+    [{letter, groups: [...]}]}."""
+    return {"analysis": "compact_letters",
+            **letters.compact_letters(
+                data["groups"], data.get("comparisons") or [],
+                means=data.get("means"), alpha=options.get("alpha", 0.05),
+                order=options.get("order", "descending"),
+                labels=options.get("labels", "upper"))}
+
+
+def _fdr_adjust(data, options):
+    """Analyze a stack of P values: FDR or family-wise correction.
+
+    data: {"p_values": [p | null], "labels"?: [str]} or a column table
+    {"datasets": [{"ys": [[p], ...]}], "row_titles"?} (first data set,
+    first subcolumn). options: method ("bky" default | "bh" | "by" |
+    "holm_sidak" | "sidak" | "bonferroni" | "none"), alpha (0.05), q /
+    q_percent (default 5%).
+
+    Result: {"analysis", "method", "approach", "n", "n_omitted",
+    "alpha", "q", "adjusted", "significant", "discoveries",
+    "thresholds" (per rank, ascending P), "n_true_null_estimate",
+    "rows": [{label, p, rank, adjusted, significant, threshold}]}."""
+    if "p_values" in data:
+        pvals = list(data["p_values"])
+        labels = list(data.get("labels") or [])
+    else:
+        ds = data["datasets"][0]
+        pvals = [(row[0] if row else None) for row in ds["ys"]]
+        labels = list(data.get("row_titles") or [])
+    labels += [f"Row {i + 1}" for i in range(len(labels), len(pvals))]
+    res = fdr.adjust(pvals, options.get("method", "bky"),
+                     alpha=options.get("alpha", 0.05), q=_q_fraction(options))
+    valid = sorted((i for i, p in enumerate(pvals) if res["significant"][i]
+                    is not None), key=lambda i: float(pvals[i]))
+    rank = {i: r for r, i in enumerate(valid)}
+    rows = []
+    for i, p in enumerate(pvals):
+        r = rank.get(i)
+        rows.append({"label": labels[i],
+                     "p": None if r is None else float(p),
+                     "rank": None if r is None else r + 1,
+                     "adjusted": res["adjusted"][i],
+                     "significant": res["significant"][i],
+                     "threshold": None if r is None else res["thresholds"][r]})
+    return {"analysis": "fdr_adjust", **res, "rows": rows}
+
+
 _HANDLERS = {
     "dose_response": _dose_response,
     "global_fit": _global_fit,
@@ -1162,6 +1389,11 @@ _HANDLERS = {
     "nested_anova": _nested_anova,
     "mixed_rm_oneway": _mixed_rm_oneway,
     "mixed_rm_twoway": _mixed_rm_twoway,
+    "multiple_row_tests": _multiple_row_tests,
+    "three_way_anova": _three_way_anova,
+    "row_means": _row_means,
+    "compact_letters": _compact_letters,
+    "fdr_adjust": _fdr_adjust,
 }
 
 
