@@ -7,12 +7,19 @@ import {
   familyChildren, findSheet, makeInfoSheet, makeLayoutSheet, moveSheet,
   nextNumberedName, renameSheet, setFrozen, setHighlight,
 } from "../project/ops";
+import {
+  addGroup, deleteGroup, moveGroup, moveSheetBefore, moveToGroup, nextGroupName,
+  renameGroup, setGroupCollapsed,
+} from "../project/groups";
+import { addNote, deleteNote, updateNote } from "../project/notes";
 import { serializeProject } from "../project/persist";
+import { consistentTargets, makeGraphsConsistent } from "../project/wand";
 import { withExclusionsBlanked } from "../project/table";
 import type {
-  DataSheet, HighlightColor, Project, ResultsSheet,
+  DataSheet, FloatingNote, GraphSheet, GroupSection, HighlightColor, Project,
+  ResultsSheet,
 } from "../project/types";
-import { analysisDef } from "../sheets/registry";
+import { analysisDef, graphDef } from "../sheets/registry";
 import { resolveOptions } from "./analysis";
 import { useProject } from "./context";
 import { analysisSheets } from "./factory";
@@ -113,11 +120,93 @@ export function useCommands() {
       setTimeout(() => URL.revokeObjectURL(a.href), 1000);
     };
 
+    // ---- groups (navigator folders inside a section)
+    const newGroup = (section: GroupSection, sheetIds: string[] = []): string => {
+      let id = "";
+      apply((p) => {
+        const r = addGroup(p, section, nextGroupName(p, section), newId, sheetIds);
+        id = r.groupId;
+        return r.project;
+      });
+      return id;
+    };
+    const renameGroupCmd = (id: string, name: string) => apply((p) => renameGroup(p, id, name));
+    const deleteGroupCmd = (id: string) => apply((p) => deleteGroup(p, id));
+    const moveGroupCmd = (id: string, dir: -1 | 1) => apply((p) => moveGroup(p, id, dir));
+    /** Folding is view state saved with the project: no undo step. */
+    const setGroupFolded = (id: string, folded: boolean) =>
+      store.patchAll((p) => setGroupCollapsed(p, id, folded));
+    const toGroup = (sheetId: string, groupId: string | null) =>
+      apply((p) => moveToGroup(p, sheetId, groupId));
+    const dropBefore = (sheetId: string, beforeId: string | null) =>
+      apply((p) => moveSheetBefore(p, sheetId, beforeId));
+
+    // ---- floating notes
+    const addNoteTo = (sheetId: string): string | null => {
+      let id: string | null = null;
+      apply((p) => {
+        const r = addNote(p, sheetId, newId);
+        id = r.noteId;
+        return r.project;
+      });
+      return id;
+    };
+    const editNote = (sheetId: string, noteId: string,
+      patch: Partial<Omit<FloatingNote, "id">>, key: string | null = null) =>
+      apply((p) => updateNote(p, sheetId, noteId, patch), key);
+    /** Folding a note is view state: saved, but not an undo step. */
+    const foldNote = (sheetId: string, noteId: string, collapsed: boolean) =>
+      store.patchAll((p) => updateNote(p, sheetId, noteId, { collapsed }));
+    const removeNote = (sheetId: string, noteId: string) =>
+      apply((p) => deleteNote(p, sheetId, noteId));
+
+    // ---- make graphs consistent ("like this one")
+    const makeConsistent = async (sheetId: string) => {
+      const p = store.project;
+      const s = findSheet(p, sheetId);
+      if (!s) return;
+      const sources = s.kind === "graph" ? [s]
+        : s.kind === "data" ? familyChildren(p, s.id).filter((c): c is GraphSheet => c.kind === "graph")
+          : [];
+      const targets = new Set(sources.flatMap((g) => consistentTargets(p, g.id).map((t) => t.id)));
+      for (const g of sources) targets.delete(g.id);
+      if (!sources.length) return;
+      if (!targets.size) {
+        ui.notify("No other graph of the same kind to restyle.");
+        return;
+      }
+      const kinds = [...new Set(sources.map((g) => {
+        const d = findSheet(p, g.parentId) as DataSheet | undefined;
+        return (d ? graphDef(d.table.type, g.graphType)?.label : undefined) ?? g.graphType;
+      }))].join(", ");
+      const ok = await ui.confirm({
+        title: "Make graphs consistent?",
+        body: `Gives ${targets.size} other graph${targets.size === 1 ? "" : "s"} (${kinds}) `
+          + "the same formatting and colour scheme as "
+          + (s.kind === "graph" ? `“${s.name}”` : `the graphs of “${s.name}”`)
+          + ". Their titles and data stay. You can undo it.",
+        confirmLabel: "Apply format",
+      });
+      if (!ok) return;
+      let n = 0;
+      apply((q) => {
+        const r = makeGraphsConsistent(q, sources.map((g) => g.id));
+        n = r.changed;
+        return r.project;
+      });
+      ui.notify(`Restyled ${n} graph${n === 1 ? "" : "s"}.`);
+    };
+
     return {
       rename, remove, duplicate,
       openDuplicateFamily: ui.openDuplicateFamily, move, highlight,
       toggleFreeze, addAnalysis, addInfo, addLayout, save,
       newTable: ui.openNewTable,
+      newGroup, renameGroup: renameGroupCmd, deleteGroup: deleteGroupCmd,
+      moveGroup: moveGroupCmd, setGroupFolded, toGroup, dropBefore,
+      addNote: addNoteTo, editNote, foldNote, removeNote, makeConsistent,
+      saveTemplate: ui.openSaveTemplate, wand: ui.openWand,
+      moveToGroup: ui.openMoveToGroup, goTo: ui.openGoTo,
     };
   }, [api, ui]);
 }

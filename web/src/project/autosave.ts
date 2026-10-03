@@ -103,3 +103,35 @@ export async function rotateOnBoot(): Promise<AutosaveRecord | null> {
   }
   return readSlot("previous");
 }
+
+// ------------------------------------------------------------ other keys
+// Other per-browser data kept next to the autosave slots (saved
+// templates): same database and store, same localStorage fallback, every
+// call guarded.
+const lsOther = (key: string) => `opendose-${key}`;
+
+export async function readValue(key: string): Promise<unknown> {
+  try {
+    const v = await idb<unknown>("readonly", (s) => s.get(key));
+    if (v !== undefined) return v;
+  } catch { /* fall through to localStorage */ }
+  try {
+    return JSON.parse(localStorage.getItem(lsOther(key)) ?? "null");
+  } catch {
+    return null;
+  }
+}
+
+export async function writeValue(key: string, value: unknown): Promise<boolean> {
+  try {
+    await idb("readwrite", (s) => s.put(value, key));
+    try { localStorage.removeItem(lsOther(key)); } catch { /* ignore */ }
+    return true;
+  } catch { /* fall through */ }
+  try {
+    localStorage.setItem(lsOther(key), JSON.stringify(value));
+    return true;
+  } catch {
+    return false;
+  }
+}

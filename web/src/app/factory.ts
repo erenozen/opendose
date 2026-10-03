@@ -58,6 +58,26 @@ export function analysisSheets(p: Project, dataId: string, analysisId: string,
   return out;
 }
 
+/** After results sheets were copied in (template, "analyze like"): give
+ *  each table-producing analysis among them its output table, right after
+ *  the results sheet, as adding the analysis by hand would. */
+export function addDerivedOutputs(p: Project, created: Sheet[], ids: IdFactory): Project {
+  let next = p;
+  for (const s of created) {
+    if (s.kind !== "results") continue;
+    const data = findSheet(next, s.parentId) as DataSheet | undefined;
+    if (!data || data.kind !== "data") continue;
+    const a = analysisDef(data.table.type, s.analysis);
+    if (!a?.derivedTable) continue;
+    const out = makeDerivedSheet(ids(), uniqueName(next,
+      a.derivedName?.(data.name) ?? `${a.short} of ${data.name}`),
+    clearValues(data.table), { sourceId: data.id, resultsId: s.id });
+    const after = [...created].reverse().find((c) => next.sheets.some((x) => x.id === c.id))?.id;
+    next = addSheets(next, [out], after);
+  }
+  return next;
+}
+
 export function addFamily(p: Project, table: DataTableModel, name: string,
   ids: IdFactory, opts?: { analysis?: string | null }): { project: Project; dataId: string } {
   const sheets = familySheets(p, table, name, ids, opts);

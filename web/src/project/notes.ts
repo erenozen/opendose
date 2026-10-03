@@ -59,7 +59,7 @@ export function addNote(p: Project, sheetId: string, ids: IdFactory | string,
     text: init.text ?? "",
     color: init.color ?? NOTE_COLORS[n % NOTE_COLORS.length],
     x: init.x ?? 24 + (n % 8) * 24,
-    y: init.y ?? 16 + (n % 8) * 24,
+    y: init.y ?? 56 + (n % 8) * 24,   // below the chip row
     ...(init.collapsed ? { collapsed: true } : {}),
   };
   return { project: setNotes(p, sheetId, (cur) => [...cur, note]), noteId: id };

@@ -4,6 +4,7 @@ import {
 } from "react";
 import { getEngine } from "../lib/engine";
 import { newId } from "../project/ids";
+import { syncInfoLinks } from "../project/infoLinks";
 import { familyChildren, familyRootId, findSheet } from "../project/ops";
 import { loadPrefs, projectPrefs, savePrefs } from "../project/prefs";
 import { ProjectStore } from "../project/store";
@@ -80,6 +81,11 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       ?? kids.find((k) => !k.resultsId) ?? (res ? null : kids[0] ?? null);
   }, [project, activeGr, activeResults]);
 
+  // Every edit also refreshes analysis constants hooked to info-sheet
+  // constants (project/infoLinks.ts), in the same undo step.
+  const apply = useCallback((fn: (p: Project) => Project, key: string | null = null) =>
+    store.apply((p) => syncInfoLinks(fn(p)), key), [store]);
+
   const replace = useCallback((p: Project, sel?: string | null) => {
     results.clear();
     results.prime(p.sheets.filter((s): s is ResultsSheet => s.kind === "results"));
@@ -134,12 +140,12 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
 
   const api = useMemo<ProjectApi>(() => ({
     store, history, project,
-    apply: store.apply, undo: store.undo, redo: store.redo, replace,
+    apply, undo: store.undo, redo: store.redo, replace,
     selectedId, select, activeResults, activeGraph, switchedRef,
     prefs, setPrefs,
     engineReady, engineError, status, setStatus, bootEngine,
     results,
-  }), [store, history, project, replace, selectedId, select, activeResults,
+  }), [store, history, project, apply, replace, selectedId, select, activeResults,
     activeGraph, prefs, setPrefs, engineReady, engineError, status, bootEngine,
     results]);
 

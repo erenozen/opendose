@@ -305,8 +305,8 @@ function ConstantsList({ constants }: { constants: { sheet: string; name: string
       <summary>Info constants ({constants.length})</summary>
       <section>
         <p className="hint-block">
-          From the project&apos;s info sheets, read-only here. Using them as
-          analysis inputs comes in a later release.
+          From the project&apos;s info sheets. A user-formula Transform can
+          use one as a constant (“Use an info constant…”) and follows its value.
         </p>
         <table className="results-table">
           <tbody>

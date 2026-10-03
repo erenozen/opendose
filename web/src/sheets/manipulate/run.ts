@@ -145,7 +145,9 @@ export const PHARM_FUNCS: { id: string; label: string; x: string; y: string; k?:
     note: "X becomes log(X); Y becomes log(Y/(Ymax − Y)). Enter Ymax as K." },
 ];
 
-export interface NamedValue { name: string; value: string }
+/** `info`: hooked to the info-sheet constant of that name; its value is
+ *  kept in sync by the shell (project/infoLinks.ts). */
+export interface NamedValue { name: string; value: string; info?: string }
 
 export interface TransformOptions {
   mode: "standard" | "pharm" | "user";

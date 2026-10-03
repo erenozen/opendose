@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useProject } from "../app/context";
+import TemplatePicker, { type TemplatePick } from "./TemplatePicker";
 import { allowsSummaryFormat, defaultInit, type NewTableInit } from "../project/table";
 import {
   SUBCOLUMN_FORMAT_HAS_N, SUBCOLUMN_FORMAT_LABELS, SUBCOLUMN_FORMATS, type SubcolumnFormat,
@@ -32,12 +34,17 @@ const clampInt = (v: string, lo: number, hi: number, d: number) => {
   return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : d;
 };
 
-export default function NewTableDialog({ defaultType, defaultName, onCancel, onCreate }: {
+export default function NewTableDialog({ defaultType, defaultName, onCancel, onCreate,
+  onCreateFromTemplate }: {
   defaultType: TableType;
   defaultName: string;
   onCancel: () => void;
   onCreate: (r: NewTableRequest) => void;
+  onCreateFromTemplate?: (t: TemplatePick["template"], name: string, withData: boolean) => void;
 }) {
+  const { project } = useProject();
+  const [mode, setMode] = useState<"format" | "template">("format");
+  const [pick, setPick] = useState<TemplatePick | null>(null);
   const [type, setType] = useState<TableType>(defaultType);
   const [name, setName] = useState(defaultName);
   const [shape, setShape] = useState(() => {
@@ -61,6 +68,12 @@ export default function NewTableDialog({ defaultType, defaultName, onCancel, onC
   };
 
   const submit = () => {
+    if (mode === "template") {
+      if (pick && onCreateFromTemplate) {
+        onCreateFromTemplate(pick.template, pick.name.trim() || pick.template.tableName, pick.withData);
+      }
+      return;
+    }
     const d = defaultInit(type);
     onCreate({
       type,
@@ -93,9 +106,30 @@ export default function NewTableDialog({ defaultType, defaultName, onCancel, onC
             title="Make an XY, Column or Contingency table of simulated data"
             onClick={() => { onCancel(); openSimulate(); }}>Simulate data…</button>
           <button type="button" onClick={onCancel}>Cancel</button>
-          <button type="submit" className="btn-primary">Create table</button>
+          {mode === "format" ? (
+            <button type="submit" className="btn-primary">Create table</button>
+          ) : (
+            <button type="submit" className="btn-primary" disabled={!pick}>
+              Create from template
+            </button>
+          )}
         </>
       }>
+      {onCreateFromTemplate && (
+        <div className="new-mode" role="radiogroup" aria-label="Start from">
+          <label className={mode === "format" ? "checked" : ""}>
+            <input type="radio" name="new-mode" value="format" checked={mode === "format"}
+              onChange={() => setMode("format")} /> A table format
+          </label>
+          <label className={mode === "template" ? "checked" : ""}>
+            <input type="radio" name="new-mode" value="template" checked={mode === "template"}
+              onChange={() => setMode("template")} /> From a template
+          </label>
+        </div>
+      )}
+      {mode === "template" ? (
+        <TemplatePicker prefs={project.prefs} defaultName={defaultName} onChange={setPick} />
+      ) : (
       <div className="new-table-grid">
         <fieldset className="type-list">
           <legend>Table format</legend>
@@ -190,6 +224,7 @@ export default function NewTableDialog({ defaultType, defaultName, onCancel, onC
           )}
         </div>
       </div>
+      )}
     </Modal>
   );
 }
