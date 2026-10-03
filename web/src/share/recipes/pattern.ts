@@ -79,7 +79,7 @@ export function applyPattern(st: Staging, pat: NamePattern | null): Staging {
 
 /** Text columns worth splitting: text with a delimiter in most names. */
 export function splittableColumns(st: Staging): number[] {
-  return st.columns.map((c, i) => i).filter((i) => !st.columns[i].numeric
+  return st.columns.map((_, i) => i).filter((i) => !st.columns[i].numeric
     && st.rows.some((r) => /[_\-. /]/.test(r[i] ?? "")));
 }
 

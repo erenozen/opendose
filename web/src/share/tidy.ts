@@ -148,7 +148,7 @@ export function isNumericColumn(values: string[]): boolean {
  *  Excluded observations stay excluded. */
 export function longToMultivariable(l: LongTable, opts: { dropRowColumn?: boolean } = {}):
   DataTableModel {
-  const keep = l.headers.map((h, i) => i).filter((i) => !(opts.dropRowColumn && l.headers[i] === "Row"
+  const keep = l.headers.map((_, i) => i).filter((i) => !(opts.dropRowColumn && l.headers[i] === "Row"
     && i === 0));
   const n = Math.max(1, l.rows.length);
   const datasets: DataColumn[] = keep.map((c) => {

@@ -105,7 +105,7 @@ export function numText(v: number): string {
  *  column with more distinct values (in context of its group) is lower
  *  in the hierarchy. */
 export function hierarchy(st: Staging): number[] {
-  const cols = st.columns.map((c, i) => i)
+  const cols = st.columns.map((_, i) => i)
     .filter((i) => st.columns[i].role === "subject" || st.columns[i].role === "level");
   const g = all(st, "group");
   const count = (c: number) => new Set(st.rows.map((r) => [...g.map((k) => r[k]), r[c]].join("\u0001"))).size;
@@ -206,7 +206,7 @@ export function pivot(st: Staging, type: OutputType, opts: PivotOptions = {}): P
   };
 
   if (type === "multivariable") {
-    const cols = st.columns.map((c, i) => i).filter((i) => st.columns[i].role !== "skip");
+    const cols = st.columns.map((_, i) => i).filter((i) => st.columns[i].role !== "skip");
     const n = Math.max(1, rows.length);
     return finish({
       type: "multivariable",

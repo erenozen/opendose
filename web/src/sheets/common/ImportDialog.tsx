@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { lazy, Suspense, useMemo, useState } from "react";
 import Modal from "../../components/Modal";
 import { readXlsx, type XlsxSheet } from "../../lib/engine";
 import {
@@ -16,10 +16,15 @@ export interface ImportRequest {
   col?: number;                         // flat grid column
 }
 
-type Tab = "source" | "view" | "filter" | "placement";
+type Tab = "source" | "view" | "filter" | "placement" | "recipes";
 const TABS: [Tab, string][] = [
   ["source", "Source"], ["view", "View"], ["filter", "Filter"], ["placement", "Placement"],
+  ["recipes", "Recipes"],
 ];
+
+// Instrument-export recipes (src/share): a new table from a FlowJo,
+// CellProfiler, QuPath, plate-reader, qPCR or long-format file.
+const RecipeDialog = lazy(() => import("../../share/RecipeDialog"));
 
 const ENCODINGS: [string, string][] = [
   ["utf-8", "UTF-8 (most files)"],
@@ -119,6 +124,15 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
       setError("The browser did not allow reading the clipboard; paste into the box instead (Ctrl/Cmd+V).");
     }
   };
+
+  if (tab === "recipes") {
+    return (
+      <Suspense fallback={null}>
+        <RecipeDialog initialText={srcKind === "paste" ? pasted : undefined}
+          onBack={() => setTab("source")} onClose={onClose} />
+      </Suspense>
+    );
+  }
 
   const submit = () => {
     if (empty) { setError("Nothing to import with these settings."); return; }

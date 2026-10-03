@@ -292,7 +292,7 @@ const tidy: Recipe = {
     });
     const st = makeStaging(headers, body(m, 0), roles);
     if (!st.columns.some((c) => c.role === "value")) {
-      const last = st.columns.map((c, i) => i).reverse()
+      const last = st.columns.map((_, i) => i).reverse()
         .find((i) => st.columns[i].numeric && st.columns[i].role === "meta");
       if (last !== undefined) st.columns[last].role = "value";
     }
