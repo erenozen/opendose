@@ -435,8 +435,6 @@ and the notes the feature work left in the code and READMEs:
 - Calculated variables (in-table formulas) on multiple-variables tables.
 - Excluding points from one analysis without excluding them from the table.
 - Data-table limits documented.
-- Sheet groups, floating notes, templates and "apply to another table"
-  (in progress separately).
 - Grouped graphs: brackets between the two panels of the three-way graph,
   compact letters, and Format graph colours on separated bars (those are
   coloured by group).
@@ -454,7 +452,8 @@ and the notes the feature work left in the code and READMEs:
    (public repo, MIT license, deployed via GitHub Actions + Pages; full
    e2e suite verified against the production URL)
 2. Further screenshot validations against the user's Prism install
-   (survival, ANOVA sheets, competitive binding)
+   (survival, ANOVA sheets, competitive binding, nested and mixed
+   models, the new equation library, multiple t tests with FDR)
 3. Mixed-effects models for RM designs with missing values (scheduled in
    the user-guide review above, nested-models work package)
 
