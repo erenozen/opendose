@@ -159,7 +159,7 @@ function panelTraces(inp: BuildInput, clusters: Cluster[], series: string[],
       traces.push({
         ...common, type: "scatter", mode: "markers", x: ptX, y: ptY, name,
         marker: {
-          color: kind === G_SCATTER ? ptC : ptC, symbol: style.symbol,
+          color: ptC, symbol: style.symbol,
           size: kind === G_SCATTER ? 8 : 6,
           line: { color: chrome.surface, width: 1.2 },
         },
@@ -247,9 +247,10 @@ function buildThreeWay(inp: BuildInput): { traces: Plotly.Data[]; layout: Partia
   layout.shapes = grand.shapes;
   layout.annotations = [...annotations, ...grand.annotations];
   layout.showlegend = settings.legend;
-  layout.legend = { ...legendLayout(chrome), y: -0.18, yanchor: "top",
-    title: { text: `${fNames[1]}:` } };
-  layout.margin = { l: 64, r: 16, t: 34, b: 90 };
+  // Legend in the top margin, above the panel titles.
+  layout.legend = { ...legendLayout(chrome), yref: "container", y: 0.99, yanchor: "top",
+    title: { text: `${fNames[1]}:` } } as Partial<Plotly.Legend>;
+  layout.margin = { l: 64, r: 16, t: settings.legend ? 64 : 34, b: 52 };
   return { traces, layout };
 }
 

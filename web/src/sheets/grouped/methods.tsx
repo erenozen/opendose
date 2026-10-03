@@ -14,6 +14,20 @@ type R = Record<string, any>;
 
 const TOOL = "OpenDose (open-source, built on SciPy)";
 
+const ROW_TEST_METHOD: Record<string, string> = {
+  welch: "Welch's unpaired t test (SDs not assumed equal)",
+  unpaired: "an unpaired t test (equal SDs within each row)",
+  pooled: "an unpaired t test using one SD pooled across all rows",
+  lognormal_welch: "Welch's t test on the logarithms (lognormal data)",
+  lognormal_unpaired: "an unpaired t test on the logarithms (lognormal data)",
+  lognormal_pooled: "a t test on the logarithms with the SD pooled across rows",
+  paired: "a paired t test",
+  ratio_paired: "a ratio paired t test",
+  wilcoxon: "the Wilcoxon matched-pairs signed rank test",
+  mann_whitney: "the Mann-Whitney test",
+  kolmogorov_smirnov: "the Kolmogorov-Smirnov test",
+};
+
 function MethodsCard({ text }: { text: string | null }) {
   const [copied, setCopied] = useState(false);
   if (!text) return null;
@@ -117,7 +131,7 @@ export function ThreeWayMethods({ result, options: o }: ResultsProps<ThreeWayOpt
 export function MultiTMethods({ result, options: o }: ResultsProps<MultiTOptions, R>) {
   if (!ok(result)) return <MethodsCard text={null} />;
   const fdr = result.approach === "fdr";
-  const test = ROW_TEST_LABEL[o.test].replace(/^./, (c) => c.toLowerCase());
+  const test = ROW_TEST_METHOD[o.test] ?? ROW_TEST_LABEL[o.test];
   const corr = result.method === "none"
     ? `without correction for multiple comparisons (alpha = ${formatSig(result.alpha)})`
     : fdr
@@ -126,7 +140,7 @@ export function MultiTMethods({ result, options: o }: ResultsProps<MultiTOptions
       : `correcting for multiple comparisons with the ${CORRECTION_LABEL[o.method]} method `
         + `(alpha = ${formatSig(result.alpha)})`;
   const text = `${result.names[0]} and ${result.names[1]} were compared in each of `
-    + `${result.n_tests} rows with a ${test}, ${corr}, using ${TOOL}. `
+    + `${result.n_tests} rows with ${test}, ${corr}, using ${TOOL}. `
     + `${result.n_flagged} row(s) were ${fdr ? "discoveries" : "statistically significant"}.`;
   return <MethodsCard text={text} />;
 }

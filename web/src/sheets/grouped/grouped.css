@@ -100,6 +100,7 @@
 }
 .flag-no { color: var(--muted); }
 .results-table tr.row-flagged th { font-weight: 600; color: var(--ink); }
+.multi-t-table th, .multi-t-table td:last-child { white-space: nowrap; }
 .summary-line { margin: 0 0 10px; color: var(--ink-2); font-size: 13px; }
 .summary-line strong { color: var(--ink); }
 .omitted-note { color: var(--muted); font-style: italic; }

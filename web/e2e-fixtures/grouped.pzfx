@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GraphPadPrismFile xmlns="http://graphpad.com/prism/Prism.htm"
+                   PrismXMLVersion="5.00">
+<Created><OriginalVersion CreatedByProgram="GraphPad Prism"/></Created>
+<TableSequence><Ref ID="Table0" Selected="1"/></TableSequence>
+<Table ID="Table0" XFormat="none" YFormat="replicates" Replicates="3"
+       TableType="TwoWay" EVFormat="AsteriskAfterNumber">
+<Title>Two factors</Title>
+<RowTitlesColumn Width="81"><Subcolumn><d>Male</d><d>Female</d></Subcolumn></RowTitlesColumn>
+<YColumn Width="81" Subcolumns="3">
+<Title>Placebo</Title>
+<Subcolumn><d>10</d><d>9</d></Subcolumn>
+<Subcolumn><d>12</d><d>11</d></Subcolumn>
+<Subcolumn><d>11</d><d>10</d></Subcolumn>
+</YColumn>
+<YColumn Width="81" Subcolumns="3">
+<Title>Drug</Title>
+<Subcolumn><d>20</d><d>18</d></Subcolumn>
+<Subcolumn><d>22</d><d>19</d></Subcolumn>
+<Subcolumn><d>21</d><d>20</d></Subcolumn>
+</YColumn>
+</Table>
+</GraphPadPrismFile>
