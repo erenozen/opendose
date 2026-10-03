@@ -28,6 +28,8 @@ from . import formulas, manipulate, simulate
 from . import summary
 from . import mixedmodel, nested
 from . import fdr, letters, rowtests, threeway
+from . import deming, moretests, proportions, trend
+from . import equations, userequation
 
 
 def _expand(x_col, replicate_rows):
@@ -62,6 +64,8 @@ def _dose_response(data, options):
     """Nonlinear regression for any registered model. For models whose X
     is log10(concentration), x_is_log=False means the engine applies
     X = log10(X) first (Prism's 'transform concentrations to logs')."""
+    if options.get("user_equation"):
+        return _user_equation_dose_response(data, options)
     model = options.get("model", "log_inhibitor_vs_response_4pl")
     spec = nlfit.MODELS.get(model)
     if spec is None:
@@ -230,7 +234,14 @@ def _column_statistics(data, options):
             {"name": name,
              **columnstats.column_statistics(
                  col, hypothetical=options.get("hypothetical"),
-                 ci_level=options.get("ci_level", 0.95))}
+                 ci_level=options.get("ci_level", 0.95),
+                 normality=options.get("normality_tests"),
+                 zero_method=options.get("zero_method", "wilcox"),
+                 ratio_t=options.get("ratio_t", False),
+                 extras=options.get("extras", False),
+                 percentile_method=options.get("percentile_method",
+                                               "linear"),
+                 trim_k=options.get("trim_k"))}
             for name, col in zip(names, cols)
         ],
     }
@@ -248,9 +259,18 @@ def _ttest(data, options):
         result = ttests.paired_t(cols[ia], cols[ib],
                                  ci_level=options.get("ci_level", 0.95))
     elif kind == "mann_whitney":
-        result = ttests.mann_whitney(cols[ia], cols[ib])
+        result = ttests.mann_whitney(cols[ia], cols[ib],
+                                     ci_level=options.get("ci_level", 0.95))
     elif kind == "wilcoxon":
-        result = ttests.wilcoxon_matched_pairs(cols[ia], cols[ib])
+        result = ttests.wilcoxon_matched_pairs(
+            cols[ia], cols[ib],
+            zero_method=options.get("zero_method", "wilcox"),
+            ci_level=options.get("ci_level", 0.95))
+    elif kind == "ratio_paired":
+        result = ttests.ratio_paired_t(cols[ia], cols[ib],
+                                       ci_level=options.get("ci_level", 0.95))
+    elif kind == "kolmogorov_smirnov":
+        result = moretests.ks_two_sample(cols[ia], cols[ib])
     else:
         raise ValueError(f"unknown t test kind: {kind}")
     result["names"] = [names[ia], names[ib]]
@@ -262,14 +282,17 @@ def _anova(data, options):
     kind = options.get("kind", "parametric")
     if kind == "nonparametric":
         return {"analysis": "anova", "kind": kind,
-                **anova.kruskal_wallis(cols, names)}
+                **anova.kruskal_wallis(
+                    cols, names,
+                    dunn_corrected=options.get("dunn_corrected", True))}
     result = anova.one_way_anova(cols, names)
     method = options.get("comparisons")
     if method:
         result["multiple_comparisons"] = anova.multiple_comparisons(
             cols, method, names=names,
             control_index=options.get("control_index", 0),
-            ci_level=options.get("ci_level", 0.95))
+            ci_level=options.get("ci_level", 0.95),
+            family=options.get("family", "all"))
     return {"analysis": "anova", "kind": "parametric", **result}
 
 
@@ -329,9 +352,25 @@ def _correlation(data, options):
 
 
 def _contingency(data, options):
-    return {"analysis": "contingency",
-            **contingency.contingency(data["table"],
-                                      yates=options.get("yates", True))}
+    result = {"analysis": "contingency",
+              **contingency.contingency(data["table"],
+                                        yates=options.get("yates", True))}
+    if options.get("effect_sizes"):
+        if result["rows"] == 2 and result["cols"] == 2:
+            result["effect_sizes"] = proportions.two_by_two_effects(
+                data["table"], rr_method=options.get("rr_ci", "koopman"),
+                diff_method=options.get("diff_ci", "newcombe_cc"),
+                or_method=options.get("or_ci", "baptista_pike"),
+                prop_ci_method=options.get("proportion_ci", "wilson_brown"),
+                ci_level=options.get("ci_level", 0.95),
+                diagnostic_layout=options.get("diagnostic_layout",
+                                              "rows_condition"))
+        else:
+            result["cramers_v"] = proportions.cramers_v(data["table"])
+    if options.get("trend"):
+        result["trend"] = trend.chi_square_trend(
+            data["table"], scores=options.get("scores"))
+    return result
 
 
 def _two_way_anova(data, options):
@@ -459,7 +498,8 @@ def _rm_anova(data, options):
     kind = options.get("kind", "parametric")
     if kind == "nonparametric":
         return {"analysis": "friedman",
-                **repeated.friedman(aligned, names)}
+                **repeated.friedman(aligned, names,
+                                    exact=options.get("exact", False))}
     return {"analysis": "rm_one_way_anova",
             **repeated.rm_one_way_anova(aligned, names)}
 
@@ -1339,6 +1379,169 @@ def _fdr_adjust(data, options):
     return {"analysis": "fdr_adjust", **res, "rows": rows}
 
 
+def _ks_test(data, options):
+    """Two-sample Kolmogorov-Smirnov test (moretests.ks_two_sample).
+
+    data: column table ({"datasets": [...]}); options: dataset_a (0),
+    dataset_b (1), method ("auto" = the guide's exact/approximate rule |
+    "exact" | "asymptotic"). Result: {"analysis", "test", "D", "p",
+    "p_method", "n_a", "n_b", "median_a", "median_b", "ties", "names"}."""
+    cols, names = _flatten_columns(data)
+    ia, ib = options.get("dataset_a", 0), options.get("dataset_b", 1)
+    result = moretests.ks_two_sample(cols[ia], cols[ib],
+                                     method=options.get("method", "auto"))
+    result["names"] = [names[ia], names[ib]]
+    return {"analysis": "ks_test", **result}
+
+
+def _anova_unequal_var(data, options):
+    """One-way ANOVA without assuming equal SDs: Welch and Brown-Forsythe.
+
+    data: column table. options: comparisons ("games_howell" |
+    "dunnett_t3" | "tamhane_t2" | "welch_uncorrected", optional), family
+    ("all" | "control"), control_index (0), ci_level (0.95).
+    Result: {"analysis", "welch": {W, dfn, dfd, p, weighted_mean},
+    "brown_forsythe": {F, dfn, dfd, p}, "group_summaries": [{name, n,
+    mean, sd}], "multiple_comparisons"?: {method, family, n_comparisons,
+    ci_level, comparisons: [{pair, difference, se, t, df, statistic, ci,
+    p_adjusted, significant_05, significant}]}}."""
+    cols, names = _flatten_columns(data)
+    return {"analysis": "anova_unequal_var",
+            **moretests.anova_unequal_variances(
+                cols, names, comparisons=options.get("comparisons"),
+                control_index=options.get("control_index", 0),
+                family=options.get("family", "all"),
+                ci_level=options.get("ci_level", 0.95))}
+
+
+def _median_test(data, options):
+    """Mood's median test. data: column table. Result: {"analysis",
+    "grand_median", "table": {above, not_above}, "group_summaries",
+    "chi_square": {chi2, df, p}, "chi_square_yates"? and "fisher_exact"?
+    (two groups), "warning"?}."""
+    cols, names = _flatten_columns(data)
+    return {"analysis": "median_test", **moretests.median_test(cols, names)}
+
+
+def _trend_test(data, options):
+    """Chi-square test for trend (Cochran-Armitage). data: {"table":
+    k rows x 2 columns (or 2 x k)}; options: scores (default 1..k).
+    Result: {"analysis", "chi2", "df", "p", "z", "slope", "scores",
+    "proportions", "orientation", "overall_chi_square",
+    "departure_from_trend"?}."""
+    return {"analysis": "trend_test",
+            **trend.chi_square_trend(data["table"],
+                                     scores=options.get("scores"))}
+
+
+def _mcnemar(data, options):
+    """McNemar's test (2 x 2 table of pairs) or Bowker's test (k x k).
+    data: {"table"}; options: ci_level. Result (2 x 2): {"analysis",
+    "discordant", "n_pairs", "odds_ratio": {value, ci, ci_method},
+    "binomial": {p_two_tailed, p_one_tailed, ...}, "chi_square",
+    "chi_square_yates", "recommended_p"}; (k x k): {"test": "bowker",
+    "chi2", "df", "p"}."""
+    return {"analysis": "mcnemar",
+            **trend.mcnemar(data["table"],
+                            ci_level=options.get("ci_level", 0.95))}
+
+
+def _cmh(data, options):
+    """Cochran-Mantel-Haenszel. data: {"tables": [[[a, b], [c, d]], ...],
+    "strata_names"?}; options: correction (false), ci_level. Result:
+    {"analysis", "n_strata", "odds_ratio", "relative_risk", "cmh_test",
+    "breslow_day"?, "strata"}."""
+    return {"analysis": "cmh",
+            **trend.cmh(data["tables"],
+                        ci_level=options.get("ci_level", 0.95),
+                        correction=options.get("correction", False),
+                        names=data.get("strata_names"))}
+
+
+def _kappa(data, options):
+    """Cohen's kappa. data: {"table": k x k}; options: weights (null |
+    "linear" | "quadratic" | k x k matrix), ci_level. Result: {"analysis",
+    "kappa", "se", "ci", "se_null", "z", "p", "observed_agreement",
+    "expected_agreement", "n", "weights", "strength"}."""
+    return {"analysis": "kappa",
+            **trend.kappa(data["table"], weights=options.get("weights"),
+                          ci_level=options.get("ci_level", 0.95))}
+
+
+def _proportion_test(data, options):
+    """One proportion (CI, binomial test vs options.p0) or two proportions
+    compared (Fisher, z test, difference/RR/OR with CIs, NNT).
+
+    data: {"successes", "trials"} | {"groups": [{"name"?, "successes",
+    "trials"}, ...] (1 or 2)} | {"table": [[k1, n1 - k1], [k2, n2 - k2]]}.
+    options: p0, ci_method ("wilson_brown" | "wilson" |
+    "clopper_pearson"), diff_ci ("newcombe_cc" | "newcombe" |
+    "asymptotic_cc"), rr_ci ("koopman" | "katz"), or_ci ("baptista_pike"
+    | "baptista_pike_midp" | "woolf"), ci_level."""
+    ci_level = options.get("ci_level", 0.95)
+    ci_method = options.get("ci_method", "wilson_brown")
+    if "table" in data:
+        groups = [{"successes": row[0], "trials": row[0] + row[1]}
+                  for row in data["table"]]
+    elif "groups" in data:
+        groups = list(data["groups"])
+    else:
+        groups = [{"successes": data["successes"], "trials": data["trials"]}]
+    names = [g.get("name", f"Group {i + 1}") for i, g in enumerate(groups)]
+    if len(groups) == 1:
+        return {"analysis": "proportion_test", "names": names,
+                **proportions.one_proportion(
+                    groups[0]["successes"], groups[0]["trials"],
+                    p0=options.get("p0"), ci_method=ci_method,
+                    ci_level=ci_level)}
+    if len(groups) != 2:
+        raise ValueError("enter one or two proportions")
+    return {"analysis": "proportion_test", "names": names,
+            **proportions.compare_two_proportions(
+                groups[0]["successes"], groups[0]["trials"],
+                groups[1]["successes"], groups[1]["trials"],
+                ci_level=ci_level, ci_method=ci_method,
+                diff_method=options.get("diff_ci", "newcombe_cc"),
+                rr_method=options.get("rr_ci", "koopman"),
+                or_method=options.get("or_ci", "baptista_pike"))}
+
+
+def _deming(data, options):
+    """Deming (Model II) regression, one fit per data set.
+
+    data: XY table {"x", "datasets": [{"name", "ys"}]}. options:
+    equal_errors (default true when no SDs/lambda) | sd_x + sd_y |
+    lambda ((SD_X/SD_Y)^2), se_method ("prism" | "jackknife"), x0 (Y at
+    this X, default 0), compare_identity (false), ci_level. Result:
+    {"analysis", "datasets": [{"name", "fit": {slope, y_intercept,
+    x_intercept, y_at_x0, slope_test, lambda, n, df, ..., "curve"}} |
+    {"name", "error"}]}."""
+    x_col = data["x"]
+    results = []
+    for ds in data["datasets"]:
+        entry = {"name": ds.get("name", "")}
+        try:
+            xs, ys = _expand(x_col, ds["ys"])
+            fit = deming.deming(
+                xs, ys, sd_x=options.get("sd_x"), sd_y=options.get("sd_y"),
+                lam=options.get("lambda"),
+                ci_level=options.get("ci_level", 0.95),
+                x0=options.get("x0", 0.0),
+                se_method=options.get("se_method", "prism"),
+                compare_identity=options.get("compare_identity", False))
+            lo, hi = min(xs), max(xs)
+            grid = [lo + i * (hi - lo) / 199 for i in range(200)]
+            fit["curve"] = {"x": grid,
+                            "y": [fit["slope"]["value"] * v
+                                  + fit["y_intercept"]["value"]
+                                  for v in grid]}
+            entry["fit"] = fit
+        except Exception as exc:
+            entry["error"] = str(exc)
+        results.append(entry)
+    return {"analysis": "deming", "datasets": results}
+
+
 _HANDLERS = {
     "dose_response": _dose_response,
     "global_fit": _global_fit,
@@ -1394,7 +1597,220 @@ _HANDLERS = {
     "row_means": _row_means,
     "compact_letters": _compact_letters,
     "fdr_adjust": _fdr_adjust,
+    "ks_test": _ks_test,
+    "anova_unequal_var": _anova_unequal_var,
+    "median_test": _median_test,
+    "trend_test": _trend_test,
+    "mcnemar": _mcnemar,
+    "cmh": _cmh,
+    "kappa": _kappa,
+    "proportion_test": _proportion_test,
+    "deming": _deming,
 }
+
+
+# ------------------------------------------- equation library / user equations
+# Curve-fitting guide: "Models (equations) built-in to Prism" (opendose.
+# equations) and "Entering a user-defined model into Prism" (opendose.
+# userequation). Payload shapes are documented on each handler.
+
+def _column_constant_values(data, options, names):
+    """Per-data-set values of column constants: options.column_constants
+    {name: [one value per data set]} or, failing that, each data set's
+    numeric "column_title" (Prism reads the number in the column title)."""
+    given = options.get("column_constants") or {}
+    out = {}
+    for name in names:
+        vals = given.get(name)
+        if vals is None:
+            vals = []
+            for ds in data["datasets"]:
+                raw = ds.get("column_title", ds.get("constant"))
+                try:
+                    vals.append(None if raw in (None, "") else float(raw))
+                except (TypeError, ValueError):
+                    vals.append(None)
+        vals = list(vals)
+        if len(vals) != len(data["datasets"]) or any(v is None for v in vals):
+            raise ValueError(
+                f"the column constant {name} needs a numeric value for every "
+                "data set (options.column_constants or each data set's "
+                "column_title)")
+        out[name] = [float(v) for v in vals]
+    return out
+
+
+def _user_equation_dose_response(data, options):
+    """Fit a user-defined equation to each data set separately.
+
+    options.user_equation = {"text": "Y = ...", "rules": {param: rule},
+    "constraints": {param: default constraint}, "transforms": [{"name",
+    "expr", "ci"}], "x_is_log": bool, "name": str}; every other option is
+    the dose_response one (constraints, weighting, ci_method, rout_q,
+    bands, interpolate_y, ...). Lines prefixed <A>, <~B>, ... apply by the
+    data set's position. Equations that share parameters between data
+    sets are fit with analysis "global_model_fit"."""
+    eq = userequation.from_options(options["user_equation"])
+    if eq.shared or options.get("shared"):
+        raise ValueError("this equation shares parameters between data sets; "
+                         "fit it with analysis 'global_model_fit'")
+    cols = _column_constant_values(data, options, eq.column_constants)
+    if cols and not eq.column_titles:
+        eq.column_titles = cols[eq.column_constants[0]]
+    sub_options = {k: v for k, v in options.items() if k != "user_equation"}
+    results, flags = [], {}
+    for i, ds in enumerate(data["datasets"]):
+        constraints = dict(options.get("constraints") or {})
+        for name, vals in cols.items():
+            constraints.setdefault(name, vals[i])
+        sub = _dose_response(dict(data, datasets=[ds]),
+                             dict(sub_options, model=eq.register(i),
+                                  constraints=constraints))
+        flags = {k: v for k, v in sub.items() if k not in ("datasets",)}
+        results.append(sub["datasets"][0])
+    out = dict(flags)
+    out.update({"analysis": "dose_response", "datasets": results,
+                "user_equation": eq.describe()})
+    return out
+
+
+def _global_model_fit(data, options):
+    """Global fit of a built-in model (options.model) or a user equation
+    (options.user_equation) to all data sets at once.
+
+    data: {"x": [...], "datasets": [{"name", "ys", "column_title"?}]};
+    options: shared (default: the model's documented shared parameters),
+    constraints {param: value}, column_constants {name: [per data set]}
+    (else each data set's column_title), weighting, x_is_log,
+    summary_format/replicates as for global_fit, error_bars."""
+    if options.get("user_equation"):
+        eq = userequation.from_options(options["user_equation"])
+        model = eq.register(0)
+    else:
+        model = options.get("model")
+        eq = None
+    spec = nlfit.MODELS.get(model)
+    if spec is None:
+        raise ValueError(f"unknown model: {model}")
+    x_col = data["x"]
+    if spec.x_is_log and not options.get("x_is_log", True):
+        x_col = transform.transform_list(x_col, "log10")
+    cols = _column_constant_values(data, options, spec.dataset_constants)
+    if eq is not None and cols and not eq.column_titles:
+        eq.column_titles = cols[spec.dataset_constants[0]]
+    summary_fmt = options.get("summary_format")
+    if summary_fmt == "replicates":
+        summary_fmt = None
+    gdatasets = []
+    for i, ds in enumerate(data["datasets"]):
+        if summary_fmt and options.get("replicates") == "means_only":
+            xs, ys, _ = summary.fit_inputs(x_col, ds, summary_fmt)
+        elif summary_fmt:
+            xs, ys = summary.replicate_view(x_col, ds, summary_fmt)
+        else:
+            xs, ys = _expand(x_col, ds["ys"])
+        gdatasets.append({"name": ds.get("name", ""), "x": xs, "y": ys,
+                          "constants": {k: v[i] for k, v in cols.items()}})
+    result = equations.fit_global_model(
+        gdatasets, model, shared=options.get("shared"),
+        constraints=options.get("constraints") or {},
+        weighting=options.get("weighting", "none"))
+    result.pop("_cov", None)
+    finite_x = [v for v in x_col if v is not None]
+    pad = 0.5 if spec.x_is_log else 0.0
+    lo, hi = min(finite_x) - pad, max(finite_x) + pad
+    grid = [lo + k * (hi - lo) / 199 for k in range(200)]
+    error_bar_kind = options.get("error_bars", "sd")
+    for i, (entry, ds) in enumerate(zip(result["datasets"], data["datasets"])):
+        entry["curve"] = {"x": grid,
+                          "y": equations.global_curve(model, entry, i, grid)}
+        entry["points"] = {
+            "x": x_col,
+            "bars": (summary.dataset_error_bars(ds, summary_fmt,
+                                                error_bar_kind)
+                     if summary_fmt else
+                     descriptive.error_bars(ds["ys"], error_bar_kind)),
+        }
+    out = {"analysis": "global_model_fit", **result}
+    if eq is not None:
+        out["user_equation"] = eq.describe()
+    return out
+
+
+def _validate_equation(data, options):
+    """Check a user-defined equation without fitting. options (or data):
+    {"text", "rules", "constraints", "transforms", "x_is_log", "name"}.
+    Returns {"ok", "errors": [{message, line, column, where, item, text}],
+    "warnings", "parameters", "intermediates", "dataset_specific",
+    "functions", "rules", "constraints", "transforms"}."""
+    src = options if (options.get("text") or options.get("equation")) \
+        else (data or {})
+    res = userequation.validate_equation(
+        src.get("text", src.get("equation")), rules=src.get("rules"),
+        constraints=src.get("constraints"), transforms=src.get("transforms"),
+        x_is_log=src.get("x_is_log", False), name=src.get("name"))
+    return {"analysis": "validate_equation", **res}
+
+
+def _model_derived_names(spec):
+    names = []
+    if spec.derived:
+        try:
+            names += list(spec.derived({p: 1.0 for p in spec.params}, {}))
+        except Exception:  # metadata only; never fail the listing
+            pass
+    names += [t.name for t in spec.transforms or []]
+    if "Top" in spec.params and "Bottom" in spec.params:
+        names.append("Span")
+    return names
+
+
+def _list_models(data, options):
+    """The equation registry for the UI: one entry per built-in model
+    (user-defined equations compiled during the session are excluded)."""
+    models, families = [], []
+    for name, spec in nlfit.MODELS.items():
+        if spec.user:
+            continue
+        display = {"LogXmid": ("LogIC50" if "IC50" in spec.equation
+                               else "LogEC50")}
+        params = [display.get(p, p) for p in spec.params]
+        fixed_by_default = {}
+        if name == "log_inhibitor_vs_response_3pl":
+            fixed_by_default["HillSlope"] = -1.0
+        if name == "log_agonist_vs_response_3pl":
+            fixed_by_default["HillSlope"] = 1.0
+        constants = set(spec.required_constants) | set(spec.dataset_constants)
+        family = equations.model_family(spec)
+        if family not in families:
+            families.append(family)
+        models.append({
+            "id": name, "label": spec.label, "family": family,
+            "equation": spec.equation, "parameters": params,
+            "has_log_x": spec.x_is_log, "x_label": spec.x_label,
+            "y_label": spec.y_label, "derived": _model_derived_names(spec),
+            "required_constants": [display.get(p, p)
+                                   for p in spec.required_constants
+                                   if p not in spec.dataset_constants],
+            "dataset_constants": list(spec.dataset_constants),
+            "shared": list(spec.shared),
+            "param_scope": dict(spec.param_scope or {}),
+            "global_only": spec.global_only,
+            "fixed_by_default": fixed_by_default,
+            "bounds": {k: list(v) for k, v in (spec.bounds or {}).items()},
+            "constrainable": [display.get(p, p) for p in spec.params
+                              if p not in constants
+                              and p not in fixed_by_default
+                              and p not in (spec.data_constants or {})],
+        })
+    return {"analysis": "list_models", "models": models, "families": families}
+
+
+_HANDLERS.update({
+    "global_model_fit": _global_model_fit,
+    "validate_equation": _validate_equation,
+    "list_models": _list_models,
+})
 
 
 def analyze(payload: dict) -> dict:
