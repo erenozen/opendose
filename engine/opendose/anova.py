@@ -13,6 +13,17 @@ Prism statistics guide, "One-way ANOVA (and nonparametric)":
   * Bonferroni / Sidak: pairwise t with alpha correction.
   * Holm-Sidak: step-down Sidak.
 - Nonparametric: Kruskal-Wallis (tie-corrected H) with Dunn's post test.
+  Dunn's z uses the tie-corrected SE the guide gives ("How the Dunn
+  method for nonparametric comparisons works"): sqrt([N(N+1) -
+  sum(T^3 - T)/(N - 1)] / 12 * (1/n_i + 1/n_j)); corrected (x number of
+  comparisons, capped at 1) or uncorrected P.
+- Also offered (statistics guide, "Options tab: Multiple comparisons:
+  One-way ANOVA"): Fisher's LSD ("Don't correct for multiple
+  comparisons": unprotected t tests with the pooled SD and residual df;
+  "Prism does not perform a protected Fisher's LSD test") and
+  Newman-Keuls (significance only, opendose.moretests). Without equal
+  SDs: Games-Howell, Dunnett T3, Tamhane T2 and uncorrected Welch t
+  tests (opendose.moretests.unequal_variance_comparisons).
 """
 
 from __future__ import annotations
@@ -99,8 +110,15 @@ def _pairs_vs_control(k, control):
 
 def multiple_comparisons(datasets, method: str, *, names=None,
                          control_index: int = 0,
-                         ci_level: float = 0.95) -> dict:
+                         ci_level: float = 0.95,
+                         family: str = "all") -> dict:
     """Post-ANOVA pairwise comparisons using pooled residual variance."""
+    from . import moretests  # local import: moretests is a leaf module
+
+    if method in moretests.UNEQUAL_VARIANCE_METHODS:
+        return moretests.unequal_variance_comparisons(
+            datasets, method, names=names, control_index=control_index,
+            family=family, ci_level=ci_level)
     groups = _groups(datasets)
     if any(g.size < 2 for g in groups):
         raise ValueError("every group needs at least 2 values")
@@ -221,10 +239,35 @@ def _comparisons_from_stats(means, ns, ms_res, df_res, method: str, *,
             })
         return {"method": method, "df": df_res, "comparisons": comparisons}
 
+    if method == "fisher_lsd":
+        # Unprotected Fisher's LSD: t tests with the pooled residual SD
+        # and df, no correction for multiple comparisons.
+        tcrit = float(stats.t.ppf(1 - alpha / 2, df_res))
+        for i, j in _pairs_vs_all(k):
+            diff = means[i] - means[j]
+            se = math.sqrt(ms_res * (1 / ns[i] + 1 / ns[j]))
+            t = abs(diff) / se if se > 0 else (math.inf if diff else math.nan)
+            p = 2 * float(stats.t.sf(t, df_res)) if t == t else math.nan
+            comparisons.append({
+                "pair": f"{names[i]} vs. {names[j]}",
+                "difference": diff,
+                "ci": [diff - tcrit * se, diff + tcrit * se],
+                "statistic": t,
+                "p_adjusted": p,  # individual P (no correction)
+                "significant_05": bool(p < 0.05),
+            })
+        return {"method": method, "df": df_res, "comparisons": comparisons}
+
+    if method == "newman_keuls":
+        from . import moretests
+        return moretests.newman_keuls_from_stats(
+            means, ns, ms_res, df_res, names=names, alpha=alpha)
+
     raise ValueError(f"unknown multiple-comparisons method: {method}")
 
 
-def kruskal_wallis(datasets, names=None, *, dunns: bool = True) -> dict:
+def kruskal_wallis(datasets, names=None, *, dunns: bool = True,
+                   dunn_corrected: bool = True) -> dict:
     groups = _groups(datasets)
     if len(groups) < 2:
         raise ValueError("Kruskal-Wallis needs at least 2 groups")
@@ -238,11 +281,11 @@ def kruskal_wallis(datasets, names=None, *, dunns: bool = True) -> dict:
         ],
     }
     if dunns:
-        out["dunns"] = _dunns(groups, names)
+        out["dunns"] = _dunns(groups, names, corrected=dunn_corrected)
     return out
 
 
-def _dunns(groups, names) -> dict:
+def _dunns(groups, names, corrected: bool = True) -> dict:
     """Dunn's post test with tie correction; multiplicity-adjusted P via
     Bonferroni (Prism reports multiplicity-adjusted P values)."""
     all_values = np.concatenate(groups)
@@ -264,7 +307,8 @@ def _dunns(groups, names) -> dict:
         se = math.sqrt((n_total * (n_total + 1) / 12 - tie_term)
                        * (1 / groups[i].size + 1 / groups[j].size))
         z = abs(mean_ranks[i] - mean_ranks[j]) / se
-        p_adj = min(2 * float(stats.norm.sf(z)) * m, 1.0)
+        p_adj = min(2 * float(stats.norm.sf(z)) * (m if corrected else 1),
+                    1.0)
         comparisons.append({
             "pair": f"{names[i]} vs. {names[j]}",
             "mean_rank_difference": mean_ranks[i] - mean_ranks[j],
@@ -272,4 +316,7 @@ def _dunns(groups, names) -> dict:
             "p_adjusted": p_adj,
             "significant_05": bool(p_adj < 0.05),
         })
+    if not corrected:
+        return {"method": "dunns", "corrected": False,
+                "comparisons": comparisons}
     return {"method": "dunns", "comparisons": comparisons}

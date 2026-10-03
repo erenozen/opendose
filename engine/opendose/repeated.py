@@ -8,7 +8,11 @@ Prism statistics guide:
   multiplies both df before computing P.
 - "Friedman test": nonparametric RM alternative (rank within each
   subject); Prism reports the Friedman statistic and Dunn's post test
-  with multiplicity-adjusted P values.
+  with multiplicity-adjusted P values. "Interpreting results: Friedman
+  test": the P value is exact (ties allowed; values permuted within each
+  row) unless (T!)^S exceeds 10^9 for T treatments and S subjects.
+  friedman(..., exact=True) applies that rule (opendose.exactdist) and
+  labels p_method; the default keeps the chi-square approximation.
 """
 
 from __future__ import annotations
@@ -283,10 +287,18 @@ def rm_two_way_both(cells, *, row_names=None, col_names=None) -> dict:
     }
 
 
-def friedman(datasets, names=None, *, dunns: bool = True) -> dict:
+def friedman(datasets, names=None, *, dunns: bool = True,
+             exact: bool = False) -> dict:
     M = _complete_matrix(datasets)
     n, k = M.shape
     stat, p = stats.friedmanchisquare(*[M[:, j] for j in range(k)])
+    p_method = None
+    if exact:
+        from . import exactdist
+        if exactdist.friedman_exact_feasible(n, k):
+            p, p_method = exactdist.friedman_exact_p(M), "exact"
+        else:
+            p_method = "approximate"
     names = names or [f"Treatment {i}" for i in range(k)]
     ranks = np.apply_along_axis(stats.rankdata, 1, M)
     rank_sums = ranks.sum(axis=0)
@@ -297,6 +309,8 @@ def friedman(datasets, names=None, *, dunns: bool = True) -> dict:
         "rank_sums": [float(v) for v in rank_sums],
         "names": names,
     }
+    if p_method is not None:
+        out["p_method"] = p_method
     if dunns:
         # Dunn's for Friedman: z = |R_i - R_j| / sqrt(k(k+1)/(6n)),
         # comparing mean ranks; Bonferroni-adjusted P (Prism reports
