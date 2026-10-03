@@ -766,7 +766,7 @@ const plotLayout = () => page.evaluate(() => {
 });
 
 // Format Axes: manual Y range on a log10 scale, power-of-ten numbering
-await page.locator(".plot-card .settings-btn").click();
+await page.locator(".plot-card").getByRole("button", { name: "Settings" }).click();
 await page.getByRole("button", { name: "Format axes…" }).click();
 await fmt.getByLabel("Minimum").fill("10");
 await fmt.getByLabel("Maximum").fill("100");
@@ -780,7 +780,7 @@ expect("Format Axes: manual log10 Y range with power-of-ten numbering",
   && Math.abs(axes.range[1] - 2) < 1e-9 && axes.ef === "power", JSON.stringify(axes));
 
 // Pairwise comparison brackets from the ANOVA's Tukey table
-await page.locator(".plot-card .settings-btn").click();
+await page.locator(".plot-card").getByRole("button", { name: "Settings" }).click();
 await page.getByRole("button", { name: "Pairwise comparisons…" }).click();
 await fmt.getByLabel("Show comparison brackets on the graph").check();
 await fmt.getByRole("button", { name: "OK" }).click();
