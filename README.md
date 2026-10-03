@@ -85,14 +85,19 @@ from the jsDelivr CDN, ~30 MB, then cached).
 - Nested: nested t test and nested one-way ANOVA as a mixed model (random
   subcolumn effect, variance components, subcolumn LR test, multiple
   comparisons, hierarchical ANOVA table); nested scatter graph.
+- Grouped tables (rows × datasets × replicates): two-way ANOVA (ordinary,
+  repeated measures, mixed-effects model when values are missing, or from
+  mean/SD/N), three-way ANOVA, multiple t tests one per row with FDR or
+  Holm-Šídák/Šídák/Bonferroni correction and a volcano plot, row
+  means/totals, column statistics; interleaved/stacked/separated bars,
+  grouped scatter, box plots, connected lines, three-way graphs and heat
+  maps with color mapping. Prism grouped tables import as grouped tables.
 - Projects: any number of data tables of eight formats (XY, Column,
   Grouped, Contingency, Survival, Parts of whole, Multiple variables,
   Nested), each with its results and graphs as a family, plus info sheets
   (notes and named constants) and layout sheets, in a navigator with
   rename, duplicate (sheet, or whole family with or without data),
-  delete, reorder, freeze, highlight colors and search. Grouped, Parts of
-  whole and Nested tables have their final editor; their analyses and
-  graphs come next.
+  delete, reorder, freeze, highlight colors and search.
 - Multiple-variables tables (one row per observation, continuous or
   categorical variables, row titles as IDs): descriptive statistics,
   correlation matrix with a heat map, multiple linear regression

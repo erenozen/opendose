@@ -8,7 +8,7 @@ import {
 import { makeDerivedSheet } from "../project/derived";
 import { clearValues, normalizeTable } from "../project/table";
 import type {
-  DataSheet, DataTableModel, Project, ProjectPrefs, Sheet,
+  DataSheet, DataTableModel, Project, ProjectPrefs, Sheet, SubcolumnFormat,
 } from "../project/types";
 import { analysisDef, tableDef } from "../sheets/registry";
 
@@ -99,9 +99,24 @@ export interface PrismTable {
   x_title: string;
   n_rows: number;
   datasets: { name: string; ys: (number | null)[][] }[];
+  y_format?: string;
+  row_titles?: string[];
 }
 
 const toCell = (v: number | null | undefined) => (v == null ? "" : String(v));
+
+/** Prism's grouped-table formats: "TwoWay" in .pzfx, "Grouped" in .prism. */
+export function isGroupedPrismTable(t: PrismTable): boolean {
+  const type = t.table_type.toLowerCase();
+  return (type === "twoway" || type === "grouped") && t.datasets.length > 0;
+}
+
+/** Prism Y formats with mean / error / N subcolumns -> our formats. */
+const PRISM_SUMMARY_FORMATS: Record<string, SubcolumnFormat> = {
+  sdn: "mean_sd_n", sen: "mean_sem_n", cvn: "mean_cv_n",
+  sd: "mean_sd", se: "mean_sem",
+  mean_sd_n: "mean_sd_n", mean_sem_n: "mean_sem_n", mean_cv_n: "mean_cv_n",
+};
 
 /** Map one table from a .pzfx/.prism file onto our table types. */
 export function prismTableToFamily(p: Project, t: PrismTable, ids: IdFactory):
@@ -143,6 +158,22 @@ export function prismTableToFamily(p: Project, t: PrismTable, ids: IdFactory):
         ? { ...s, options: { ...(s.options as object), xIsLog } } : s)),
     };
     return { project, dataId: res.dataId };
+  }
+  if (isGroupedPrismTable(t)) {
+    // Rows × datasets × replicates: a grouped table, analyzed by two-way
+    // ANOVA first (as it would be in Prism).
+    const fmt = PRISM_SUMMARY_FORMATS[String(t.y_format ?? "").toLowerCase()] ?? "replicates";
+    const table = normalizeTable({
+      type: "grouped",
+      x: Array(t.n_rows).fill(""),
+      rowTitles: t.row_titles ?? [],
+      subcolumnFormat: fmt,
+      datasets: t.datasets.map((ds, i) => ({
+        name: ds.name || `Dataset ${i + 1}`,
+        rows: ds.ys.map((row) => row.map(toCell)),
+      })),
+    });
+    return addFamily(p, table, name, ids);
   }
   const table = normalizeTable({
     type: "column",

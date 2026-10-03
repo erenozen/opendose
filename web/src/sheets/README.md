@@ -17,9 +17,8 @@ src/
     registry.ts     TableType -> TableTypeDef
     types.ts        the plugin contract (below)
     common/         DataGrid (generic editor), PlaceholderPanel
-    xy/ column/ contingency/ survival/ partsofwhole/ multivariable/
-    nested/         ready
-    grouped/        editor only (analyses in progress)
+    xy/ column/ grouped/ contingency/ survival/ partsofwhole/
+    multivariable/ nested/   ready (all eight table types)
     manipulate/     cross-type: Transform, Normalize, … (derived tables),
                     user formulas, Simulate data dialog, Monte Carlo
   components/       shell UI: Navigator, Header, FamilyWorkspace, dialogs,

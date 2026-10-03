@@ -163,9 +163,14 @@ save/load; methods text; theme; accessibility pass.
 ### To implement — grouped by guide section
 
 **Data tables (the eight kinds)**
-- [ ] Grouped tables: two grouping variables with replicate
-      subcolumns; interleaved / stacked / separated bar graphs, grouped
-      scatter; two-way ANOVA and RM two-way move here from Column mode
+- [x] Grouped tables: two grouping variables with replicate
+      subcolumns (or mean/SD/N); interleaved / stacked / separated bar
+      graphs, grouped scatter, box plots, connected lines; two-way ANOVA
+      (ordinary, RM by rows or both factors, mixed-effects model when
+      repeated values are missing), three-way ANOVA, multiple t tests per
+      row with FDR / family-wise correction and a volcano plot, row
+      means/totals (copy as a new table), column statistics; Prism
+      grouped tables import as grouped (Column mode keeps two-way ANOVA)
 - [x] Parts-of-whole tables: pie, donut, stacked-bar graphs; chi-square
       goodness of fit against expected fractions; fraction of total
 - [x] Multiple-variables tables: one row per observation, one column per
@@ -267,10 +272,13 @@ save/load; methods text; theme; accessibility pass.
       horizontal error bars (X SD taken from another data set), error
       envelopes, error-bar direction / caps / thickness, row-title labels
 - [ ] Forest plots
-- [ ] Heat maps (grouped tables, correlation matrices) with color
-      mapping, labels, gaps
+- [x] Heat maps: grouped tables (single hue / diverging / grayscale from
+      the scheme, min / max / center, reverse, cell labels, gaps, legend,
+      blank-cell color) and correlation matrices (multiple-variables)
 - [x] Plotting order; dataset spacing (gap between columns)
-- [ ] Three-way grouped graphs; row-vs-column titles under bars
+- [x] Three-way grouped graphs; row-vs-column titles under bars
+      (grouped tables; also grand mean/median line and before-after
+      lines there)
 - [x] Legends: show/hide, position (corners, above, outside right,
       below), layout, per-dataset text (one legend per graph; separate
       legends not offered)

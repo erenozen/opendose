@@ -1,0 +1,114 @@
+/* Grouped table: graph options strip, layout table, flags. Tokens only. */
+
+.graph-options {
+  flex: none;
+  margin: 6px 14px 0;
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+.graph-options > summary {
+  cursor: pointer;
+  width: fit-content;
+  padding: 3px 2px;
+  font-weight: 600;
+  color: var(--ink-2);
+  border-radius: 4px;
+}
+.graph-options > summary:focus-visible,
+.graph-options :is(select, input, button):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .graph-options > summary:hover { color: var(--accent); }
+}
+.go-grid {
+  display: flex; flex-wrap: wrap; align-items: center;
+  gap: 8px 16px;
+  padding: 8px 0 6px;
+  border-bottom: 1px solid var(--border-soft);
+}
+.graph-options[open] > .go-grid { animation: go-disclose 180ms var(--ease-out); }
+@keyframes go-disclose { from { opacity: 0; transform: translateY(-3px); } }
+@media (prefers-reduced-motion: reduce) {
+  .graph-options[open] > .go-grid { animation: none; }
+}
+.go-field, .go-check {
+  display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap;
+}
+.go-field > span, .go-slider > label { color: var(--muted); }
+.go-field select, .go-field input {
+  font: inherit; font-size: 12.5px; color: var(--ink);
+  background: var(--inset); border: 1px solid var(--border);
+  border-radius: var(--radius-s); padding: 3px 6px; max-width: 100%;
+}
+.go-field input[type="range"] { padding: 0; border: none; background: none; width: 110px; accent-color: var(--accent); }
+.go-field input[type="color"] { width: 36px; height: 24px; padding: 1px 2px; }
+.go-num { width: 70px; font-variant-numeric: tabular-nums; }
+.go-text { width: 140px; }
+.go-slider output {
+  min-width: 7ch; color: var(--ink-2); font-variant-numeric: tabular-nums;
+}
+.go-note { margin: 0; color: var(--muted); font-size: 12px; flex-basis: 100%; }
+
+/* Three-way layout editor */
+.tw-layout { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.tw-layout th, .tw-layout td {
+  text-align: left; padding: 4px 6px 4px 0;
+  border-bottom: 1px solid var(--grid);
+}
+.tw-layout thead th { color: var(--muted); font-weight: 500; font-size: 12px; }
+.tw-layout select { padding: 3px 6px; }
+.factor-names { display: grid; grid-template-columns: auto 1fr 1fr; gap: 6px 8px; align-items: center; }
+.factor-names > span { color: var(--muted); font-size: 12px; }
+.factor-names input {
+  font: inherit; color: var(--ink); background: var(--inset);
+  border: 1px solid var(--border); border-radius: var(--radius-s);
+  padding: 5px 8px; min-width: 0; width: 100%;
+}
+.factor-names input:focus-visible, .text-option:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 1px; border-color: transparent;
+}
+.text-option {
+  font: inherit; color: var(--ink); background: var(--inset);
+  border: 1px solid var(--border); border-radius: var(--radius-s);
+  padding: 5px 8px; min-width: 0; flex: 1 1 140px;
+}
+.grouped-btn {
+  align-self: flex-start;
+  font: inherit; font-size: 12.5px; padding: 5px 10px;
+  border: 1px solid var(--border); border-radius: var(--radius-s);
+  background: var(--surface); color: var(--ink-2); cursor: pointer;
+  transition: transform 160ms var(--ease-out), border-color 160ms ease;
+}
+.grouped-btn:active { transform: scale(0.97); }
+.grouped-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+@media (hover: hover) and (pointer: fine) {
+  .grouped-btn:hover { border-color: var(--accent); color: var(--accent); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .grouped-btn { transition: none; }
+}
+
+/* Results */
+.results-scroll { overflow-x: auto; max-width: 100%; }
+.flag-yes {
+  display: inline-block; padding: 0 7px; border-radius: 999px;
+  font-size: 11.5px; font-weight: 650; line-height: 18px;
+  color: var(--accent); background: var(--accent-soft);
+  border: 1px solid var(--accent-border);
+}
+.flag-no { color: var(--muted); }
+.results-table tr.row-flagged th { font-weight: 600; color: var(--ink); }
+.multi-t-table th, .multi-t-table td:last-child { white-space: nowrap; }
+.summary-line { margin: 0 0 10px; color: var(--ink-2); font-size: 13px; }
+.summary-line strong { color: var(--ink); }
+.omitted-note { color: var(--muted); font-style: italic; }
+.copy-table-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 4px; }
+.copy-table-row .hint-block { margin: 0; }
+
+@media (max-width: 700px) {
+  .graph-options { margin: 6px 10px 0; }
+  .go-field select, .go-field input, .grouped-btn { min-height: 34px; }
+  .factor-names { grid-template-columns: 1fr; }
+}
