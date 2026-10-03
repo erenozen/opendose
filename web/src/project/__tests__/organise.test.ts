@@ -36,7 +36,7 @@ function sample(): Project {
     makeDataSheet("d1", "October", t),
     makeResultsSheet("r1", "d1", "nonlin", { model: "m", xIsLog: true }, "Nonlin fit of October"),
     makeGraphSheet("g1", "d1", "r1", "xy", {
-      ...settings, format: { frame: { width: 2 } } as never,
+      ...settings, format: { frame: "box", spacing: 0.2 },
     }, "Graph of October"),
     makeDataSheet("d2", "November", emptyTable("xy")),
     makeDataSheet("d3", "Counts", emptyTable("column")),
@@ -184,7 +184,7 @@ test("templates: a family round-trips through a template file", () => {
   assert.deepEqual(res.options, { model: "m", xIsLog: true });
   assert.equal(res.parentId, dataId);
   assert.equal(g.resultsId, res.id);
-  assert.equal((g.settings.format as { frame: { width: number } }).frame.width, 2);
+  assert.equal(g.settings.format?.frame, "box");
   assert.equal(info.parentId, dataId);
   assert.equal(new Set(project.sheets.map((s) => s.id)).size, project.sheets.length);
 });
@@ -234,7 +234,7 @@ test("wand: copies analyses and graphs with fresh ids and the new name", () => {
   assert.notEqual(r.options, (findSheet(p, "r1") as ResultsSheet).options, "options are copied");
   assert.equal(g.resultsId, r.id);
   assert.equal(g.graphType, "xy");
-  assert.deepEqual(g.settings.format, { frame: { width: 2 } });
+  assert.deepEqual(g.settings.format, { frame: "box", spacing: 0.2 });
   assert.equal(new Set(project.sheets.map((s) => s.id)).size, project.sheets.length);
   // lands right after the target table
   const i = project.sheets.findIndex((s) => s.id === "d2");
@@ -247,16 +247,15 @@ test("make graphs consistent: copies format and scheme to the same kind only", (
   let p = wandCopy(sample(), "d2", "d1", sequentialIds("w")).project;
   const copy = p.sheets.find((s): s is GraphSheet => s.kind === "graph" && s.parentId === "d2")!;
   // restyle the copy, then make the original look like it
-  p = addSheets(p, []);
   p = { ...p, sheets: p.sheets.map((s) => (s.id === copy.id && s.kind === "graph"
     ? { ...s, settings: { ...s.settings, scheme: "colorblind" as never,
-      titles: { x: "Mine", y: "" }, format: { frame: { width: 4 } } as never } } : s)) };
+      titles: { x: "Mine", y: "" }, format: { frame: "offset" } } } : s)) };
   assert.deepEqual(consistentTargets(p, copy.id).map((g) => g.id), ["g1"]);
   const { project, changed } = makeGraphsConsistent(p, [copy.id]);
   assert.equal(changed, 1);
   const g1 = findSheet(project, "g1") as GraphSheet;
   assert.equal(g1.settings.scheme, "colorblind");
-  assert.deepEqual(g1.settings.format, { frame: { width: 4 } });
+  assert.deepEqual(g1.settings.format, { frame: "offset" });
   assert.deepEqual(g1.settings.titles, { x: "", y: "" }, "titles stay");
   assert.equal((findSheet(project, "g3") as GraphSheet).settings.scheme, "default",
     "another kind is left alone");
