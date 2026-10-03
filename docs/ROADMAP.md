@@ -446,6 +446,167 @@ and the notes the feature work left in the code and READMEs:
   value, separate legends, crossing ticks, X error subcolumns in the
   table model, a discontinuous right Y axis.
 
+## User research (2026-10-04)
+
+Four research reports in `docs/research/` (forums and Q&A sites with
+GraphPad's own 1,539-title FAQ index; review sites and alternative tools;
+bench workflows and journal rules; usability, teaching and trust) were
+read against what the app already does. Reddit blocks automated access
+and is absent. The themes below are ordered by how often and how
+intensely they recur across all four reports, with the evidence file in
+brackets. Each theme lists what is already covered and what is now
+scheduled.
+
+### Theme 1. "Which test, and what does the result mean?"
+The single most frequent need (forums #1, #2, #6; reviews #4; UX #9):
+design-first test choice, multiple comparisons after two-way ANOVA,
+plain-language fit diagnostics ("ambiguous", "hit constraint", omnibus
+significant but no pairwise), SD vs SEM, what n is. Prism's guidance is
+its most praised feature; users want more of it.
+- Covered: ambiguity and extrapolation badges, diagnostics checkbox,
+  analysis checklists in results for fits.
+- [ ] "Which test?" wizard: a design-first dialog (how many groups /
+      factors, paired or matched, replicate structure, outcome type,
+      normality and variance checks run on the data) that recommends a
+      test with a one-paragraph reason and opens it pre-configured
+- [ ] Assumption checklist chips on every results sheet (normality,
+      equal SDs, sphericity, n per group, zero-variance control) with
+      advice rather than gatekeeping
+- [ ] Plain-language banners: ambiguous / hit constraint / did not
+      converge with concrete fixes; omnibus-vs-post-hoc disagreement
+      explained next to the table; "control normalised to 1 has SD 0,
+      use a one-sample or ratio paired t test"; "n is the number of
+      cells: see replicates"
+- [ ] Explainers in place: SD vs SEM vs CI, relative vs absolute IC50,
+      which post hoc for which question, log-rank vs Gehan, R² is not
+      curve quality
+- [ ] "Why your number may differ from Prism / R / SPSS" notes per
+      analysis stating tails, ties, correction, quantile definition and
+      CI method (forums #4)
+- [ ] Start screen with picture cards for the eight table types (mini
+      table, mini graph, allowed analyses), "paste data and suggest a
+      type", and a five-minute guided example tour (UX (b))
+
+### Theme 2. Replicates, n and SuperPlots
+Technical vs biological replicates, pooling experiments, n = cells
+(forums #3, reviews #12, workflows §9–10; JCB endorses SuperPlots).
+- Covered: nested t test and ANOVA, mixed models, paired lines.
+- [ ] SuperPlot mode on column and grouped graphs: a replicate column
+      colours the points, overlays replicate means, and the statistics
+      run on the replicate means (paired when linked by experiment)
+- [ ] Hierarchical aggregation dialog for long-format exports (cell →
+      image → animal/replicate by mean or median) that keeps the
+      cell-level points for display
+- [ ] Biological vs technical replicate prompt when a table looks like
+      pooled cells; n with its unit on the graph and in the legend
+
+### Theme 3. Assay modules that start from the instrument export
+IC50 from plate readers, ELISA standard curves with QC, qPCR ΔΔCt,
+Western blot densitometry, tumour growth, flow summary statistics
+(reviews #5, #19; workflows §1–7; forums #5, #10, #8).
+- Covered: SRB/MTT plate import, dose-response fitting, interpolation,
+  ratio paired t test, mixed models, Kaplan–Meier.
+- [ ] Plate-reader module: plate-map editor, blank and control wells,
+      % of control, Z′ and replicate-CV QC, straight into a fit
+- [ ] Standard-curve module: standards plus unknowns layout, 4PL/5PL
+      with weighting, back-calculated recovery per level, %CV, LLOQ and
+      ULOQ by precision profile, dilution factors, "<LLOQ" flags, a
+      concentrations table and graph
+- [ ] qPCR module: technical-replicate averaging with Ct flags, ΔCt and
+      ΔΔCt with efficiency correction and geometric mean of reference
+      genes, statistics on ΔCt, fold change with asymmetric CI on a log2
+      axis (MIQE 2.0 wording)
+- [ ] Densitometry module: background, loading-control or total-protein
+      normalisation, fold change within blot, ratio paired t test
+- [ ] Tumour-growth module: long format in, mixed model on log volume,
+      AUC per animal with group comparison, time-to-endpoint survival
+- [ ] Synergy: Bliss, HSA, Loewe, ZIP and Chou–Talalay from a
+      combination matrix, with landscapes
+- [ ] AUC analysis as in the statistics guide, with SE from replicates
+      and comparison between datasets
+
+### Theme 4. Reporting that satisfies reviewers
+Exact P, effect sizes with CIs, named tests with sidedness, n with its
+unit, methods paragraphs; Prism 11 sells effect sizes as a Pro feature
+(forums #17, reviews #13–15, workflows journal section).
+- Covered: methods text with software versions, exact P in tables,
+  compact letters, number-at-risk tables.
+- [ ] Effect sizes with CIs on every comparison: Cohen's d, Hedges' g,
+      Glass's Δ, η², partial η², ω², Cramér's V and φ, r, Cliff's δ
+- [ ] Estimation plots (Gardner–Altman and Cumming) with bootstrap CIs
+      next to every two-group and multi-group comparison
+- [ ] Results sentence in APA, NEJM or GraphPad style; figure-legend
+      generator (n and unit, test, sidedness, post hoc, centre and
+      dispersion, error-bar meaning, star scale)
+- [ ] Journal checklists (Nature reporting summary, eLife, Cell STAR,
+      ARRIVE Essential 10) auto-ticked from the project
+- [ ] Provenance panel: every analysis step with its parameters and
+      defaults, replayable; export bundle (tidy CSV with headers,
+      settings and results JSON, SVG and PDF figures, results tables,
+      methods text, README)
+- [ ] Equivalent R and Python snippets per analysis for cross-checking
+
+### Theme 5. Sharing, interoperability, trust
+Licence expiry locking people out of their own files, version lock-in,
+unnamed CSVs inside .prism, mixed R/Prism labs, privacy of web tools
+(UX §3–4, reviews #10, #25, forums #14, #23).
+- Covered: free, no account, all computation in the browser, .pzfx and
+  .prism import, project JSON, templates.
+- [ ] Share by link: the project compressed into the URL fragment (no
+      server), opening read-only with "make a copy"
+- [ ] .pzfx export so collaborators with Prism can open OpenDose work
+- [ ] Import recipes for FlowJo, CellProfiler, QuPath and plate-reader
+      exports: metadata parsing from sample names, long-to-wide pivot
+- [ ] A validation page in the app listing the pinned cross-checks
+      (Prism screenshots, NIST, statsmodels, R) with numbers
+- [ ] A privacy statement in the info popover: data never leaves the
+      browser
+
+### Theme 6. Figures as journals now expect them
+Show every point, SD or CI rather than SEM, colour-vision safety,
+exact P on brackets, consistent styles, Prism-recognisable look
+(reviews #11, #24; UX (c); workflows (c)).
+- Covered: column graphs default to points with mean ± SD, validated
+  colour-blind-safe schemes, brackets, Magic-style format copying,
+  journal size presets, vector export.
+- [ ] Error-bar meaning written into the legend automatically; n per
+      group label; a warning when a bar graph hides n < 10
+- [ ] Colour-vision-deficiency simulation and contrast check in the
+      graph settings (Datawrapper-style)
+- [ ] A "Classic" theme preset: white background, bold labels, offset
+      axes ending at the last tick, minor ticks, hidden legend title
+- [ ] Volcano plot from an imported fold-change / P table (thresholds,
+      colours, top-N labels); clustered heat map with dendrogram
+      (linkage, distance, row z-score), k-means
+
+### Theme 7. Statistics still missing
+Power and sample size (Prism has none), Cox regression, comparing ROC
+curves, CI on Bland–Altman limits, quantal (probit/logit) dose-response
+with n per dose, growth curves with lag (workflows §7–8, §12–13;
+forums #18, #25).
+- [ ] Power and sample size for t tests, ANOVA, proportions,
+      correlation and survival, plus a randomisation list generator
+- [ ] Cox proportional hazards with hazard ratios and CIs
+- [ ] ROC: compare two curves (DeLong, paired and unpaired), Youden and
+      cost-weighted optimal cut-offs
+- [ ] Bland–Altman: CIs on the limits of agreement, proportional bias,
+      repeated measures per subject
+- [ ] Quantal dose-response: probit and logit with n per dose, LD50 /
+      ECx with Fieller CIs
+- [ ] Growth: Zwietering lag-phase parameterisations of logistic and
+      Gompertz; doubling time with CI
+
+### Order of work
+1. Engine, in parallel: effect sizes, estimation statistics and power;
+   Cox, ROC comparison, Bland–Altman extras, quantal fits, AUC, .pzfx
+   writing; assay engines (standard-curve QC, qPCR, densitometry, plate
+   QC, synergy, clustering, SuperPlot aggregation).
+2. App, in parallel and engine-independent: guidance and onboarding
+   (Theme 1); sharing and import recipes (Theme 5); figure conventions
+   and SuperPlots (Themes 2, 6).
+3. App, as engines land: reporting (Theme 4); assay modules (Theme 3);
+   clinical statistics and power (Theme 7).
+
 ## Next up
 
 1. ~~Publish the site~~ LIVE (2026-08-11): https://erenozen.dev/opendose/
