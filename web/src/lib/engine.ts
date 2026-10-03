@@ -1,6 +1,7 @@
 // Pyodide bridge: loads the real CPython + scipy in the browser and runs
 // the same opendose package that the native test suite validates.
 import { loadPyodide, version as pyodideVersion } from "pyodide";
+import { applyModelList } from "./modelLibrary.ts";
 
 export interface EngineBridge {
   analyze: (payload: unknown) => unknown;
@@ -94,6 +95,12 @@ async function init(onStatus: (msg: string) => void): Promise<EngineBridge> {
     };
   } catch { /* versions are informational only */ }
   pyRuntime = py;
+  // The curve-fitting model library comes from the engine's registry, once.
+  try {
+    applyModelList(JSON.parse(analyzeJson(JSON.stringify({
+      analysis: "list_models", data: {}, options: {},
+    })) as string));
+  } catch { /* keep the built-in fallback list */ }
 
   return {
     analyze(payload: unknown) {

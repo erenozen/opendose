@@ -5,7 +5,10 @@ import { findSheet } from "../project/ops";
 import { analysisDef } from "../sheets/registry";
 import type { ResultsProps } from "../sheets/types";
 import type { AnalysisResult, OptionsState } from "../types";
-import { MODELS_META, formatSig } from "../types";
+import { formatSig } from "../types";
+import { modelMeta, USER_MODEL_ID } from "../lib/modelLibrary";
+import { sharedParameters } from "../lib/userEquation";
+import { constraintState } from "../sheets/xy/fitOptions";
 import CiteBlock, { CopyButton } from "./CiteBlock";
 
 interface Props {
@@ -19,21 +22,38 @@ export default function MethodsText({ result, options, xUnit }: Props) {
   if (!result || result.error || !result.datasets.some((d) => d.fit)) {
     return null;
   }
-  const meta = MODELS_META[options.model];
+  const isUser = options.model === USER_MODEL_ID;
+  const meta = modelMeta(options.model);
   const constraints: string[] = [];
-  if (options.top.enabled) constraints.push(`Top = ${options.top.value}`);
-  if (options.bottom.enabled) constraints.push(`Bottom = ${options.bottom.value}`);
-  if (options.hillSlope.enabled) {
-    constraints.push(`HillSlope = ${options.hillSlope.value}`);
+  const params = isUser ? Object.keys(options.userEquation?.rules ?? {}) : meta.constrainable;
+  for (const p of params) {
+    const st = constraintState(options, p);
+    if (st.enabled && st.value.trim() !== "") constraints.push(`${p} = ${st.value}`);
   }
 
   const parts: string[] = [];
-  parts.push(
-    `Data were fitted by nonlinear regression to the "${meta.label}" model` +
-    (constraints.length ? ` (constraining ${constraints.join(", ")})` : ""));
-  if (options.sharedParams.length) {
-    parts.push(`with ${options.sharedParams.join(", ")} shared across ` +
-      `datasets (global fit)`);
+  if (isUser) {
+    const eq = options.userEquation;
+    const name = eq?.name.trim() || "a user-defined equation";
+    const text = (eq?.text ?? "").split(/\r?\n/).map((l) => l.split(";")[0].trim())
+      .filter(Boolean).join("; ");
+    parts.push(`Data were fitted by nonlinear regression to ${eq?.name.trim()
+      ? `the user-defined equation “${name}”` : name} (${text})`
+      + (constraints.length ? `, constraining ${constraints.join(", ")}` : ""));
+    const shared = eq ? sharedParameters(eq, params) : [];
+    if (shared.length) {
+      parts.push(`with ${shared.join(", ")} shared across datasets (global fit)`);
+    }
+  } else {
+    parts.push(
+      `Data were fitted by nonlinear regression to the "${meta.label}" model` +
+      (constraints.length ? ` (constraining ${constraints.join(", ")})` : ""));
+    const shared = meta.globalOnly && !options.sharedParams.length
+      ? meta.shared ?? [] : options.sharedParams;
+    if (shared.length) {
+      parts.push(`with ${shared.join(", ")} shared across ` +
+        `datasets (global fit)`);
+    }
   }
   if (options.weighting !== "none") {
     parts.push(`using ${options.weighting} weighting`);

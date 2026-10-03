@@ -5,7 +5,12 @@ import type { EngineBridge } from "../../lib/engine";
 import { numericData, parseCell } from "../../project/table";
 import { SUBCOLUMN_FORMAT_ENGINE, type DataTableModel } from "../../project/types";
 import type { AnalysisResult, OptionsState } from "../../types";
-import { MODELS_META } from "../../types";
+import { modelMeta, USER_MODEL_ID } from "../../lib/modelLibrary";
+import { userEquationPayload } from "../../lib/userEquation";
+import {
+  builtinConstraints, datasetConstantValues, effectiveShared, globalModelToResult,
+  routeFor, userColumnConstants, userFitConstraints,
+} from "./fitOptions";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -50,27 +55,18 @@ export function runNonlin(engine: EngineBridge, table: DataTableModel,
     data = { x: data.x, datasets: normalized.datasets };
   }
 
-  const meta = MODELS_META[options.model] ?? MODELS_META.log_inhibitor_vs_response_4pl;
-  const constraints: Record<string, number> = {};
-  if (options.top.enabled && meta.constrainable.includes("Top")) {
-    constraints.Top = parseCell(options.top.value) ?? 0;
+  if (options.model === USER_MODEL_ID) {
+    return runUserEquation(engine, table, options, data, summaryOptions);
   }
-  if (options.bottom.enabled && meta.constrainable.includes("Bottom")) {
-    constraints.Bottom = parseCell(options.bottom.value) ?? 0;
-  }
-  if (options.hillSlope.enabled && meta.constrainable.includes("HillSlope")) {
-    constraints.HillSlope = parseCell(options.hillSlope.value) ?? -1;
-  }
-  for (const c of meta.constants ?? []) {
-    const v = parseCell(options.modelConstants[c] ?? "");
-    if (v !== null) constraints[c] = v;
-  }
+  const meta = modelMeta(options.model);
+  const constraints = builtinConstraints(meta, options);
+  const route = routeFor(options);
 
   const interpY = options.interpolateY
     .split(/[\n,;\s]+/).map(parseCell)
     .filter((v): v is number => v !== null);
 
-  if (options.model === "ec50_shift") {
+  if (route === "classic_shift") {
     if (options.schildSlopeUnity) constraints.SchildSlope = 1.0;
     const antagonist = options.antagonist
       .split(/[\n,;\s]+/).map(parseCell)
@@ -122,7 +118,30 @@ export function runNonlin(engine: EngineBridge, table: DataTableModel,
     };
   }
 
-  if (options.sharedParams.length > 0) {
+  if (route === "global_model_fit") {
+    const cc = datasetConstantValues(meta.datasetConstants ?? [], options,
+      data.datasets.map((d) => d.name));
+    if (cc.error) return { analysis: "dose_response", datasets: [], error: cc.error };
+    const shared = effectiveShared(meta, options);
+    const g = engine.analyze({
+      analysis: "global_model_fit",
+      data,
+      options: {
+        model: meta.engineId,
+        x_is_log: options.xIsLog,
+        error_bars: options.errorBars,
+        constraints,
+        ...(shared.length || !meta.globalOnly ? { shared } : {}),
+        column_constants: cc.values,
+        weighting: options.weighting,
+        ...summaryOptions,
+      },
+    }) as Record<string, any>;
+    if (g.error) return { analysis: "dose_response", datasets: [], error: g.error };
+    return globalModelToResult(g);
+  }
+
+  if (route === "global_fit") {
     const g = engine.analyze({
       analysis: "global_fit",
       data,
@@ -131,7 +150,7 @@ export function runNonlin(engine: EngineBridge, table: DataTableModel,
         x_is_log: options.xIsLog,
         error_bars: options.errorBars,
         constraints,
-        shared: options.sharedParams,
+        shared: effectiveShared(meta, options),
         weighting: options.weighting,
         ...summaryOptions,
       },
@@ -167,7 +186,7 @@ export function runNonlin(engine: EngineBridge, table: DataTableModel,
     analysis: "dose_response",
     data,
     options: {
-      model: options.model,
+      model: meta.engineId,
       x_is_log: options.xIsLog,
       error_bars: options.errorBars,
       constraints,
@@ -183,15 +202,69 @@ export function runNonlin(engine: EngineBridge, table: DataTableModel,
   }) as AnalysisResult;
 }
 
+function interpolateValues(options: OptionsState): number[] {
+  return options.interpolateY
+    .split(/[\n,;\s]+/).map(parseCell)
+    .filter((v): v is number => v !== null);
+}
+
+/** A user-defined equation: each data set on its own (dose_response), or
+ *  all at once when the equation shares parameters (global_model_fit). */
+function runUserEquation(engine: EngineBridge, _table: DataTableModel,
+  options: OptionsState, data: ReturnType<typeof numericData>,
+  summaryOptions: Record<string, unknown>): AnalysisResult {
+  const def = options.userEquation;
+  if (!def || !def.text.trim()) {
+    return { analysis: "dose_response", datasets: [],
+      error: "Enter an equation: choose “Enter your own equation…” in the model list" };
+  }
+  const fixed = userFitConstraints(def, options);
+  if (fixed.error) return { analysis: "dose_response", datasets: [], error: fixed.error };
+  const cc = datasetConstantValues(userColumnConstants(def), options,
+    data.datasets.map((d) => d.name));
+  if (cc.error) return { analysis: "dose_response", datasets: [], error: cc.error };
+  const common = {
+    user_equation: userEquationPayload(def),
+    x_is_log: options.xIsLog,
+    error_bars: options.errorBars,
+    constraints: fixed.constraints,
+    weighting: options.weighting,
+    ...(Object.keys(cc.values).length ? { column_constants: cc.values } : {}),
+    ...summaryOptions,
+  };
+  if (routeFor(options) === "global_model_fit") {
+    const g = engine.analyze({ analysis: "global_model_fit", data, options: common }) as
+      Record<string, any>;
+    if (g.error) return { analysis: "dose_response", datasets: [], error: g.error };
+    return { ...globalModelToResult(g), user_equation: g.user_equation } as AnalysisResult;
+  }
+  const interpY = interpolateValues(options);
+  return engine.analyze({
+    analysis: "dose_response",
+    data,
+    options: {
+      ...common,
+      ci_method: options.ciMethod,
+      rout_q: options.routEnabled
+        ? (parseCell(options.routQ) ?? 1) / 100 : null,
+      bands: options.bands === "none" ? null : options.bands,
+      diagnostics: options.diagnostics,
+      interpolate_y: interpY.length ? interpY : null,
+    },
+  }) as AnalysisResult;
+}
+
 /** Automatic axis titles for the XY graph. */
 export function xyAutoTitles(table: DataTableModel, options: OptionsState | null):
   { x: string; y: string } {
-  const meta = MODELS_META[options?.model ?? "log_inhibitor_vs_response_4pl"]
-    ?? MODELS_META.log_inhibitor_vs_response_4pl;
+  const user = options?.model === USER_MODEL_ID;
+  const meta = modelMeta(options?.model);
+  const logX = user ? !!options?.userEquation?.xIsLog : meta.needsLogX;
+  const stem = user ? (logX ? "log[Concentration]" : "X") : meta.xLabel;
   const x = table.xFormat !== "numbers"
     ? (table.xTitle && table.xTitle !== "X" ? table.xTitle
       : table.xFormat === "dates" ? "Date" : "Elapsed time")
-    : meta.needsLogX ? `${meta.xLabel}, ${table.xUnit || "M"}` : meta.xLabel;
+    : logX ? `${stem}, ${table.xUnit || "M"}` : stem;
   const y = table.yTitle || (options?.normalize.enabled
     ? (options.normalize.asPercent ? "Normalized response (%)" : "Normalized response")
     : "Response");

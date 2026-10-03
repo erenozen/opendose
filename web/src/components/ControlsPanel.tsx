@@ -1,14 +1,27 @@
+import { useState, useSyncExternalStore } from "react";
 import type {
-  CIMethod, ConstraintState, ErrorBarKind, ModelId, OptionsState,
+  CIMethod, ConstraintState, ErrorBarKind, OptionsState,
   WeightingKind,
 } from "../types";
+import { ERROR_BAR_LABELS, WEIGHTING_LABELS } from "../types";
 import {
-  ERROR_BAR_LABELS, MODEL_FAMILIES, MODELS_META, WEIGHTING_LABELS,
-} from "../types";
+  CONSTANT_LABELS, modelLibraryVersion, modelMeta, shareableParams,
+  subscribeModelLibrary, USER_MODEL_ID,
+} from "../lib/modelLibrary";
+import {
+  columnConstants, freeParameters, newEquation, requiredConstants, sharedParameters,
+  type UserEquationDef,
+} from "../lib/userEquation";
+import { constraintState, numberInTitle, withConstraint } from "../sheets/xy/fitOptions";
+import EquationEditor from "./EquationEditor";
+import ModelPicker from "./ModelPicker";
 
 interface Props {
   options: OptionsState;
   onChange: (o: OptionsState) => void;
+  /** Data set names (for data-set constants such as [antagonist]). */
+  datasetNames?: string[];
+  readOnly?: boolean;
 }
 
 function ConstraintRow({ label, state, onChange }: {
@@ -27,6 +40,7 @@ function ConstraintRow({ label, state, onChange }: {
       <input
         className="constraint-value"
         inputMode="decimal"
+        aria-label={`${label} constant value`}
         disabled={!state.enabled}
         value={state.value}
         onChange={(e) => onChange({ ...state, value: e.target.value })}
@@ -35,33 +49,58 @@ function ConstraintRow({ label, state, onChange }: {
   );
 }
 
-export default function ControlsPanel({ options, onChange }: Props) {
+/** Parameters of a user equation, from its rules (every parameter gets a
+ *  rule when the editor applies it). */
+function userParams(def: UserEquationDef | null | undefined): string[] {
+  return def ? Object.keys(def.rules) : [];
+}
+
+export default function ControlsPanel({ options, onChange, datasetNames = [], readOnly }: Props) {
+  useSyncExternalStore(subscribeModelLibrary, modelLibraryVersion);
+  const [editing, setEditing] = useState<UserEquationDef | null>(null);
   const set = (patch: Partial<OptionsState>) => onChange({ ...options, ...patch });
-  const meta = MODELS_META[options.model];
+  const isUser = options.model === USER_MODEL_ID;
+  const ueq = isUser ? options.userEquation ?? null : null;
+  const meta = modelMeta(options.model);
   const norm = options.normalize;
   const setNorm = (patch: Partial<typeof norm>) =>
     set({ normalize: { ...norm, ...patch } });
+
+  const pickModel = (id: string) => {
+    const m = modelMeta(id);
+    const ok = new Set(shareableParams(m));
+    set({
+      model: id,
+      sharedParams: m.globalOnly ? [...(m.shared ?? [])]
+        : options.sharedParams.filter((p) => ok.has(p)),
+    });
+  };
+  const applyEquation = (def: UserEquationDef) => {
+    set({ model: USER_MODEL_ID, userEquation: def, sharedParams: [] });
+    setEditing(null);
+  };
+
+  // What this model / equation needs from the user.
+  const needsLogX = isUser ? !!ueq?.xIsLog : meta.needsLogX;
+  const ps = userParams(ueq);
+  const constrainable = isUser && ueq ? freeParameters(ueq, ps)
+    .filter((p) => !sharedParameters(ueq, ps).includes(p)) : meta.constrainable;
+  const fixedDefaults = isUser ? {} : meta.fixedByDefault ?? {};
+  const constants = isUser && ueq ? requiredConstants(ueq, ps) : meta.constants ?? [];
+  const perDataset = isUser && ueq ? columnConstants(ueq, ps) : meta.datasetConstants ?? [];
+  const shareable = isUser ? [] : shareableParams(meta);
+  const classic = meta.special === "gaddum_schild_classic" && !isUser;
 
   return (
     <div className="controls">
       <section>
         <h3>Model</h3>
-        <select
-          aria-label="Model"
-          value={options.model}
-          onChange={(e) => set({ model: e.target.value as ModelId })}
-        >
-          {MODEL_FAMILIES.map((family) => (
-            <optgroup key={family} label={family}>
-              {(Object.keys(MODELS_META) as ModelId[])
-                .filter((m) => MODELS_META[m].family === family)
-                .map((m) => (
-                  <option key={m} value={m}>{MODELS_META[m].label}</option>
-                ))}
-            </optgroup>
-          ))}
-        </select>
-        {meta.needsLogX && (
+        <ModelPicker value={options.model} userEquation={ueq} readOnly={readOnly}
+          onPickModel={pickModel}
+          onPickEquation={(def) => applyEquation(def)}
+          onNewEquation={() => setEditing(newEquation())}
+          onEditEquation={() => setEditing(ueq ?? newEquation())} />
+        {needsLogX && (
           <label className="check-row">
             <input
               type="checkbox"
@@ -71,32 +110,51 @@ export default function ControlsPanel({ options, onChange }: Props) {
             <span>X values are already log10(concentration)</span>
           </label>
         )}
+        {isUser && ueq && sharedParameters(ueq, ps).length > 0 && (
+          <p className="hint-block">
+            Shared by all data sets (global fit): {sharedParameters(ueq, ps).join(", ")}.
+          </p>
+        )}
+        {!isUser && meta.globalOnly && (
+          <p className="hint-block">
+            This model is fitted to all data sets at once; choose what they
+            share under Advanced → Global fit.
+          </p>
+        )}
       </section>
 
-      {meta.constrainable.includes("Top") && (
+      {constrainable.length > 0 && !classic && (
         <section>
           <h3>Constrain (hold constant)</h3>
-          <ConstraintRow label="Top" state={options.top}
-            onChange={(top) => set({ top })} />
-          <ConstraintRow label="Bottom" state={options.bottom}
-            onChange={(bottom) => set({ bottom })} />
-          {meta.constrainable.includes("HillSlope") && (
-            <ConstraintRow label="HillSlope" state={options.hillSlope}
-              onChange={(hillSlope) => set({ hillSlope })} />
-          )}
+          {constrainable.map((p) => (
+            <ConstraintRow key={p} label={p} state={constraintState(options, p)}
+              onChange={(c) => onChange(withConstraint(options, p, c))} />
+          ))}
+          {Object.entries(fixedDefaults).map(([p, v]) => (
+            <p key={p} className="hint-block">{p} is fixed at {v} by this model.</p>
+          ))}
+        </section>
+      )}
+      {classic && (
+        <section>
+          <h3>Constrain (hold constant)</h3>
+          {(["Top", "Bottom", "HillSlope"] as const).map((p) => (
+            <ConstraintRow key={p} label={p} state={constraintState(options, p)}
+              onChange={(c) => onChange(withConstraint(options, p, c))} />
+          ))}
         </section>
       )}
 
-      {meta.constants && (
+      {constants.length > 0 && (
         <section>
           <h3>Experimental constants</h3>
-          {meta.constants.map((c) => (
+          {constants.map((c) => (
             <label key={c} className="check-row">
-              <span>{c === "HotNM" ? "Hot ligand (nM)"
-                : c === "HotKdNM" ? "Hot ligand Kd (nM)" : c}</span>
+              <span>{CONSTANT_LABELS[c] ?? c}</span>
               <input className="constraint-value" inputMode="decimal"
                 value={options.modelConstants[c] ?? ""}
                 placeholder="required"
+                aria-label={CONSTANT_LABELS[c] ?? c}
                 onChange={(e) => set({
                   modelConstants: {
                     ...options.modelConstants, [c]: e.target.value },
@@ -106,7 +164,34 @@ export default function ControlsPanel({ options, onChange }: Props) {
         </section>
       )}
 
-      {options.model === "ec50_shift" && (
+      {perDataset.length > 0 && (
+        <section>
+          <h3>Data set constants</h3>
+          <p className="hint-block">
+            One value per data set. Blank cells use the number in the data
+            set&apos;s title.
+          </p>
+          {perDataset.map((p) => datasetNames.map((name, i) => {
+            const typed = options.datasetConstants?.[p]?.[i] ?? "";
+            const fromTitle = numberInTitle(name);
+            return (
+              <label key={`${p}-${i}`} className="check-row">
+                <span>{p} for {name || `data set ${i + 1}`}</span>
+                <input className="constraint-value" inputMode="decimal" value={typed}
+                  aria-label={`${p} for ${name || `data set ${i + 1}`}`}
+                  placeholder={fromTitle !== null ? String(fromTitle) : "required"}
+                  onChange={(e) => {
+                    const row = datasetNames.map((_, j) => options.datasetConstants?.[p]?.[j] ?? "");
+                    row[i] = e.target.value;
+                    set({ datasetConstants: { ...(options.datasetConstants ?? {}), [p]: row } });
+                  }} />
+              </label>
+            );
+          }))}
+        </section>
+      )}
+
+      {classic && (
         <section>
           <h3>Antagonist concentrations</h3>
           <p className="hint-block">
@@ -123,6 +208,11 @@ export default function ControlsPanel({ options, onChange }: Props) {
             <span>Constrain SchildSlope = 1.0 (competitive antagonist)</span>
           </label>
         </section>
+      )}
+
+      {editing && (
+        <EquationEditor initial={editing} onClose={() => setEditing(null)}
+          onApply={applyEquation} />
       )}
 
       <section>
@@ -188,11 +278,11 @@ export default function ControlsPanel({ options, onChange }: Props) {
         </label>
       </section>
 
-      {options.model !== "ec50_shift" && (
+      {shareable.length > 0 && !classic && (
       <section>
         <h3>Global fit (share across datasets)</h3>
         <div className="shared-params">
-          {meta.constrainable.map((p) => (
+          {shareable.map((p) => (
             <label key={p} className="check-row">
               <input type="checkbox"
                 checked={options.sharedParams.includes(p)}

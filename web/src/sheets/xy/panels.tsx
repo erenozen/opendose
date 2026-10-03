@@ -13,7 +13,7 @@ import type { AnalysisResult, OptionsState } from "../../types";
 import type { AsideProps, ControlsProps, PlotProps, ResultsProps } from "../types";
 import { ANALYSIS_NONLIN } from "../../project/builtin";
 
-export function NonlinControls({ table, options, onChange }: ControlsProps<OptionsState>) {
+export function NonlinControls({ table, options, onChange, readOnly }: ControlsProps<OptionsState>) {
   const fmt = table.subcolumnFormat;
   return (
     <>
@@ -46,7 +46,8 @@ export function NonlinControls({ table, options, onChange }: ControlsProps<Optio
           </section>
         </div>
       )}
-      <ControlsPanel options={options} onChange={onChange} />
+      <ControlsPanel options={options} onChange={onChange} readOnly={readOnly}
+        datasetNames={table.datasets.map((d) => d.name)} />
     </>
   );
 }

@@ -5,104 +5,17 @@ export interface DatasetState {
   rows: Cell[][]; // rows x replicate subcolumns
 }
 
-export interface ModelMeta {
-  label: string;
-  family: string;
-  xLabel: string;     // axis title stem
-  needsLogX: boolean; // engine expects X as log10(concentration)
-  constrainable: string[];
-  constants?: string[]; // experimental constants the user must supply
-}
+// The model library (engine `list_models`, filled at engine boot) lives in
+// lib/modelLibrary.ts; these re-exports keep the older import sites.
+export {
+  MODELS_META, MODEL_FAMILIES, USER_MODEL_ID, type ModelMeta,
+} from "./lib/modelLibrary.ts";
+import type { UserEquationDef } from "./lib/userEquation.ts";
+export type { UserEquationDef } from "./lib/userEquation.ts";
 
-// Mirrors the engine's nlfit registry (keep in sync).
-export const MODELS_META: Record<string, ModelMeta> = {
-  log_inhibitor_vs_response_4pl: {
-    label: "log(inhibitor) vs. response - Variable slope (four parameters)",
-    family: "Dose-response: Inhibition", xLabel: "log[Inhibitor]",
-    needsLogX: true, constrainable: ["Top", "Bottom", "HillSlope"],
-  },
-  log_inhibitor_vs_response_3pl: {
-    label: "log(inhibitor) vs. response (three parameters)",
-    family: "Dose-response: Inhibition", xLabel: "log[Inhibitor]",
-    needsLogX: true, constrainable: ["Top", "Bottom"],
-  },
-  log_agonist_vs_response_4pl: {
-    label: "log(agonist) vs. response - Variable slope (four parameters)",
-    family: "Dose-response: Stimulation", xLabel: "log[Agonist]",
-    needsLogX: true, constrainable: ["Top", "Bottom", "HillSlope"],
-  },
-  log_agonist_vs_response_3pl: {
-    label: "log(agonist) vs. response (three parameters)",
-    family: "Dose-response: Stimulation", xLabel: "log[Agonist]",
-    needsLogX: true, constrainable: ["Top", "Bottom"],
-  },
-  michaelis_menten: {
-    label: "Michaelis-Menten", family: "Enzyme kinetics",
-    xLabel: "[Substrate]", needsLogX: false, constrainable: ["Vmax", "Km"],
-  },
-  saturation_binding: {
-    label: "One site - Specific binding", family: "Binding: Saturation",
-    xLabel: "[Ligand]", needsLogX: false, constrainable: ["Bmax", "Kd"],
-  },
-  one_site_competition: {
-    label: "One site - Fit logIC50", family: "Binding: Competitive",
-    xLabel: "log[Competitor]", needsLogX: true,
-    constrainable: ["Top", "Bottom"],
-  },
-  one_site_fit_ki: {
-    label: "One site - Fit Ki", family: "Binding: Competitive",
-    xLabel: "log[Competitor]", needsLogX: true,
-    constrainable: ["Top", "Bottom"],
-    constants: ["HotNM", "HotKdNM"],
-  },
-  two_site_competition: {
-    label: "Two sites - Fit logIC50", family: "Binding: Competitive",
-    xLabel: "log[Competitor]", needsLogX: true,
-    constrainable: ["Top", "Bottom"],
-  },
-  ec50_shift: {
-    label: "EC50 shift (Gaddum/Schild), global fit",
-    family: "Binding: Competitive",
-    xLabel: "log[Agonist]", needsLogX: true,
-    constrainable: ["Top", "Bottom", "HillSlope"],
-  },
-  one_phase_decay: {
-    label: "One phase decay", family: "Exponential",
-    xLabel: "Time", needsLogX: false,
-    constrainable: ["Y0", "Plateau", "K"],
-  },
-  one_phase_association: {
-    label: "One phase association", family: "Exponential",
-    xLabel: "Time", needsLogX: false,
-    constrainable: ["Y0", "Plateau", "K"],
-  },
-  exponential_growth: {
-    label: "Exponential growth", family: "Exponential",
-    xLabel: "Time", needsLogX: false, constrainable: ["Y0", "K"],
-  },
-  two_phase_decay: {
-    label: "Two phase decay", family: "Exponential",
-    xLabel: "Time", needsLogX: false, constrainable: ["Y0", "Plateau"],
-  },
-  straight_line: {
-    label: "Straight line", family: "Lines",
-    xLabel: "X", needsLogX: false, constrainable: ["Slope", "Yintercept"],
-  },
-  polynomial_second: {
-    label: "Second order polynomial", family: "Lines",
-    xLabel: "X", needsLogX: false, constrainable: [],
-  },
-  polynomial_third: {
-    label: "Third order polynomial", family: "Lines",
-    xLabel: "X", needsLogX: false, constrainable: [],
-  },
-};
-
-export type ModelId = keyof typeof MODELS_META & string;
-
-export const MODEL_FAMILIES: string[] = [...new Set(
-  Object.values(MODELS_META).map((m) => m.family),
-)];
+/** A model id: a library id, "ec50_shift" (classic Gaddum/Schild path) or
+ *  "user" (the equation in OptionsState.userEquation). */
+export type ModelId = string;
 
 export type WeightingKind = "none" | "1/Y" | "1/Y2" | "1/X" | "1/X2";
 
@@ -163,6 +76,16 @@ export interface OptionsState {
   /** Tables of mean / SD / N: fit accounting for SD and N (same fit as
    *  the raw replicates) or the means only. Ignored for replicates. */
   summaryReplicates?: "account" | "means_only";
+  /** Constants for parameters other than Top / Bottom / HillSlope (which
+   *  keep their own fields above), keyed by parameter name. */
+  paramConstraints?: Record<string, ConstraintState>;
+  /** Data-set constants (e.g. the antagonist concentration B): parameter
+   *  -> one value per data set; "" reads the number in the data set's
+   *  title. */
+  datasetConstants?: Record<string, string[]>;
+  /** model === "user": the user-defined equation, stored with the
+   *  results so a project file is self-contained. */
+  userEquation?: UserEquationDef | null;
 }
 
 export const DEFAULT_XY_OPTIONS: OptionsState = {
@@ -269,6 +192,8 @@ export interface AnalysisResult {
   analysis: string;
   datasets: DatasetResult[];
   error?: string;
+  /** User-defined equation fits: the engine's reading of the equation. */
+  user_equation?: Record<string, unknown>;
 }
 
 // --- column-table statistics ---
