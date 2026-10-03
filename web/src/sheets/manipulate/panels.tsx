@@ -6,11 +6,12 @@ import { addSheets, findSheet, uniqueName } from "../../project/ops";
 import { derivedOutputs, makeDerivedSheet } from "../../project/derived";
 import { clearValues, datasetLetter } from "../../project/table";
 import type { DataTableModel } from "../../project/types";
+import { formatSig } from "../../types";
 import type { ControlsProps, ResultsProps } from "../types";
 import { FormulaEditor } from "./FormulaEditor";
 import { LinkIcon } from "./LinkIcon";
 import {
-  BUILTIN_FUNCS, EXTRA_Y_FUNCS, fmtCell, PHARM_FUNCS,
+  BUILTIN_FUNCS, EXTRA_Y_FUNCS, PHARM_FUNCS,
   type BaselineOptions, type ConcOptions, type FractionOptions, type ManipResult,
   type NormalizeOptions, type PruneOptions, type TransformOptions, type TransposeOptions,
 } from "./run";
@@ -437,6 +438,10 @@ export function FractionControls({ sheet, options: o, onChange, readOnly }:
 
 const PREVIEW_ROWS = 8;
 
+/** A number as results tables show it (project precision); blank stays blank. */
+const show = (v: number | null | undefined) =>
+  (v === null || v === undefined || !Number.isFinite(v) ? "" : formatSig(v));
+
 /** Results of any manipulation: what came out, remarks, a preview, and
  *  the link to the derived table (or a way to recreate it). */
 export function ManipResultsView({ sheet, table, result, outputName, extra }:
@@ -522,11 +527,11 @@ function ResultPreview({ result, table }: { result: ManipResult; table: DataTabl
           {Array.from({ length: rows }, (_, r) => (
             <tr key={r}>
               {titles && <th scope="row">{titles[r] ?? ""}</th>}
-              {showX && <td>{fmtCell(result.x[r])}</td>}
+              {showX && <td>{show(result.x[r])}</td>}
               {result.datasets.map((d, i) => {
                 const w = Math.max(1, ...d.ys.map((rr) => rr.length));
                 return Array.from({ length: w }, (_, s) => (
-                  <td key={`${i}-${s}`}>{fmtCell(d.ys[r]?.[s])}</td>
+                  <td key={`${i}-${s}`}>{show(d.ys[r]?.[s])}</td>
                 ));
               })}
             </tr>
@@ -547,9 +552,9 @@ export function FractionExtra({ result: r }: { result: ManipResult }) {
       <table className="results-table goodness">
         <tbody>
           {r.datasets.map((d, i) => (
-            <tr key={i}><th scope="row">Total of {d.name}</th><td>{fmtCell(e.columnTotals?.[i] ?? null)}</td></tr>
+            <tr key={i}><th scope="row">Total of {d.name}</th><td>{show(e.columnTotals?.[i] ?? null)}</td></tr>
           ))}
-          <tr><th scope="row">Grand total</th><td>{fmtCell(e.grandTotal ?? null)}</td></tr>
+          <tr><th scope="row">Grand total</th><td>{show(e.grandTotal ?? null)}</td></tr>
         </tbody>
       </table>
       {e.ci && (
@@ -566,9 +571,9 @@ export function FractionExtra({ result: r }: { result: ManipResult }) {
                     <th scope="row">{row + 1}</th>
                     {r.datasets.map((d, i) => (
                       <td key={i}>
-                        {fmtCell(d.ys[row]?.[0])}
+                        {show(d.ys[row]?.[0])}
                         {e.ci?.[i]?.lower[row] != null && (
-                          <span className="ci-range"> ({fmtCell(e.ci[i].lower[row])} to {fmtCell(e.ci[i].upper[row])})</span>
+                          <span className="ci-range"> ({show(e.ci[i].lower[row])} to {show(e.ci[i].upper[row])})</span>
                         )}
                       </td>
                     ))}

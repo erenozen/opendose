@@ -155,6 +155,9 @@ const WORDS: Record<string, string> = {
   p: "P", p_two_tailed: "P (two-tailed)", df: "df", sd: "SD", sem: "SEM", se: "SE",
   r_squared: "R²", sy_x: "Sy.x", ss_res: "SS (residual)", n_points: "points",
   F: "F", t: "t", chi2: "chi²", n: "n",
+  fisher_exact: "Fisher's exact", chi_square: "Chi-square", chi_square_yates: "Chi-square (Yates)",
+  odds_ratio: "Odds ratio", relative_risk: "Relative risk", brown_forsythe: "Brown-Forsythe",
+  shapiro_wilk: "Shapiro-Wilk", f_test_variances: "F test of variances",
 };
 
 /** "datasets.0.fit.params.LogIC50.ci95.0" -> "LogIC50, CI lower". */
@@ -178,7 +181,9 @@ export function pathLabel(path: string): string {
     }
     out.push(WORDS[p] ?? p.replace(/_/g, " "));
   }
-  const text = out.join(", ") || path;
+  // "Fisher's exact P", "Chi-square chi²" read better without a comma.
+  const text = out.reduce((acc, w, i) => (i === 0 ? w
+    : `${acc}${/^(P|P \(two-tailed\)|F|df|chi²)$/.test(w) ? " " : ", "}${w}`), "") || path;
   return dataset && dataset !== "1" ? `${text} (data set ${dataset})` : text;
 }
 
