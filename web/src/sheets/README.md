@@ -17,8 +17,8 @@ src/
     registry.ts     TableType -> TableTypeDef
     types.ts        the plugin contract (below)
     common/         DataGrid (generic editor), PlaceholderPanel
-    xy/ column/ contingency/ survival/     ready
-    grouped/ partsofwhole/ multivariable/ nested/   editor only
+    xy/ column/ contingency/ survival/ multivariable/   ready
+    grouped/ partsofwhole/ nested/   editor only
   components/       shell UI: Navigator, Header, FamilyWorkspace, dialogs,
                     plus the existing panels the sheets wrap
 ```
@@ -98,6 +98,13 @@ Props the shell passes (see `types.ts` for the full shapes):
   shell draws the card, the graph-type switcher and the Settings/Export
   strip around it. `table` already has excluded values blanked.
 
+Graph settings that belong to one graph kind (which variable goes on
+X, color-by, ...) can live on the graph sheet under `settings.<key>`;
+`multivariable/chart.ts` has a `useGraphSettings` hook that reads and
+writes them from inside a PlotPanel. An analysis whose output is a new
+data table (extract & rearrange) adds it with `useAddDerivedTable` from
+`app/derivedTable.ts`.
+
 Rules the shell enforces so plugins do not have to: frozen sheets are
 read-only and show their stored result/snapshot; results recompute
 (debounced) when the table or options change; results live outside undo
@@ -105,9 +112,9 @@ history; option objects from old files are normalized before use.
 
 ## Adding a table type's analyses (the follow-up work packages)
 
-The four entry-only types (`grouped`, `partsofwhole`, `multivariable`,
-`nested`) already have their folder, final editor and registry entry. To
-ship one:
+The entry-only types (`grouped`, `partsofwhole`, `nested`) already have
+their folder, final editor and registry entry. To ship one (see
+`multivariable/` for a complete example):
 
 1. In `src/sheets/<type>/`, write `run.ts` (build the engine payload from
    the table with `numericData()` or by reading `table.datasets` /

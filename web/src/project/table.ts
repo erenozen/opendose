@@ -70,7 +70,7 @@ export function tableShape(type: TableType): TableShape {
     case "contingency": return { hasX: false, hasRowTitles: true, hasSubcolumns: false, datasetNoun: "Outcome" };
     case "survival": return { hasX: false, hasRowTitles: false, hasSubcolumns: false, datasetNoun: "Group" };
     case "partsofwhole": return { hasX: false, hasRowTitles: true, hasSubcolumns: false, datasetNoun: "Column" };
-    case "multivariable": return { hasX: false, hasRowTitles: false, hasSubcolumns: false, datasetNoun: "Variable" };
+    case "multivariable": return { hasX: false, hasRowTitles: true, hasSubcolumns: false, datasetNoun: "Variable" };
     case "nested": return { hasX: false, hasRowTitles: false, hasSubcolumns: true, datasetNoun: "Group" };
   }
 }
