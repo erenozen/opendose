@@ -47,6 +47,12 @@ remap exclusions when rows move: `sortRows`, `pickRows`, `deleteRows`,
 `toggleBlockExcluded`, `setSubcolumnFormat`, ...). Text import lives in
 `project/importText.ts`, CSV / TSV export in `project/exportTable.ts`,
 the Data Inspector's numbers in `project/inspector.ts`; all unit-tested.
+Project organisation is pure too: navigator groups (`project/groups.ts`,
+`project.groups` + each sheet's `groupId`), floating notes
+(`project/notes.ts`, `sheet.floatingNotes`), templates
+(`project/templates.ts`), "Analyze and graph like…" and consistent graph
+formats (`project/wand.ts`), and info constants hooked into an analysis'
+`options.constants[i].info` (`project/infoLinks.ts`, synced on every edit).
 
 `common/DataGrid` is the editor of every table type: toolbar (Import,
 Export, Sort, Insert series, Rows, Columns, Format, Convert), block

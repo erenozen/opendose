@@ -336,9 +336,20 @@ save/load; methods text; theme; accessibility pass.
       navigator tree; rename, duplicate (with or without data), delete,
       sort, freeze
 - [x] Highlight sheets; search sheets
-- [ ] User-defined sheet groups; floating notes
-- [ ] Templates: save a table-plus-settings as a reusable template;
+- [x] User-defined sheet groups; floating notes (2026-10-04: groups inside
+      the Data tables / Results / Graphs sections, drag or "Move to
+      group…", fold, rename, delete keeping the sheets; coloured notes on
+      any sheet, folded into chips above it, listed under Info, searched by
+      the navigator, never printed or exported; both saved in the project)
+- [x] Templates: save a table-plus-settings as a reusable template;
       "apply this table's analyses and graph to another table" (Wand)
+      (2026-10-04: templates with or without Y values, kept in the browser
+      and as .odtemplate.json files, built-in lab starters; "Analyze and
+      graph like…"; apply one graph's format to every graph of its kind)
+- [x] Info sheets nested under their linked table; info constants usable
+      in user-formula transforms (hooked by name, values follow the info
+      sheet); collapse / expand all; Ctrl/Cmd+K go to sheet; complete
+      keyboard shortcuts list
 - [x] Preferences: default table type, error bar, CI method, scheme,
       theme, decimal places; keyboard shortcuts list
 - [x] Autosave to the browser with recovery of the last session
