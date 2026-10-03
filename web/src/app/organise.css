@@ -213,6 +213,7 @@
   .notes-layer { display: flex; flex-direction: column; gap: 8px; }
   /* No free placement on small screens: notes stack under their chips. */
   .floating-note { position: static; width: auto; margin: 0 14px; }
+  .workbench > main { align-items: stretch; }
   .note-grip { display: none; }
   .nav-icon-btn { width: 40px; height: 40px; }
   .goto-option { min-height: 40px; }
