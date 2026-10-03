@@ -17,7 +17,9 @@ export function rowMeansTable(result: R, name: string): DataTableModel {
     : result.calculate === "mean" && err === "sem" ? "mean_sem_n"
       : result.calculate === "mean" && err === "cv" ? "mean_cv_n" : "replicates";
   const cell = (r: R): string[] => {
-    const v = (x: unknown) => (typeof x === "number" && Number.isFinite(x) ? String(x) : "");
+    // Ten significant digits: exact enough to re-analyze, short enough to read.
+    const v = (x: unknown) => (typeof x === "number" && Number.isFinite(x)
+      ? String(Number(x.toPrecision(10))) : "");
     if (fmt === "mean_sd_n") return [v(r.value), v(r.sd), v(r.n)];
     if (fmt === "mean_sem_n") return [v(r.value), v(r.sem), v(r.n)];
     if (fmt === "mean_cv_n") return [v(r.value), v(r.cv_percent), v(r.n)];

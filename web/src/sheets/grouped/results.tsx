@@ -198,6 +198,21 @@ export function TwoWayResults({ result, options, table }: ResultsProps<TwoWayOpt
     const order = ["interaction", "row_factor", "column_factor", "subjects", "residual"];
     const rows = order.filter((k) => result.sources?.[k])
       .map((k) => [label[k], result.sources[k]] as [string, R]);
+    // Both factors repeated: each effect is tested against its own
+    // effect × subjects error term.
+    for (const k of ["interaction", "row_factor", "column_factor"]) {
+      const s = result.sources?.[k];
+      if (s?.error_df != null) {
+        rows.push([`Error: ${label[k].replace(" (repeated)", "")} × subjects`, {
+          ss: s.error_ss, df: s.error_df, ms: s.error_ss / s.error_df,
+        }]);
+      }
+    }
+    const total = rows.reduce((a, [, s]) => a + (typeof s.ss === "number" ? s.ss : 0), 0);
+    for (const [, s] of rows) {
+      if (s.percent_of_total == null && total > 0) s.percent_of_total = 100 * s.ss / total;
+    }
+    const gg = rows.some(([, s]) => s.p_geisser_greenhouse != null);
     return (
       <div className="result-card">
         <h3>Two-way repeated-measures ANOVA</h3>
@@ -206,7 +221,7 @@ export function TwoWayResults({ result, options, table }: ResultsProps<TwoWayOpt
           {result.gg_epsilon != null
             ? `; Geisser-Greenhouse ε = ${formatSig(result.gg_epsilon)}` : ""}
         </p>
-        <SourcesTable rows={rows} gg />
+        <SourcesTable rows={rows} gg={gg} />
         {result.cell_means && <CellMeans means={result.cell_means} rows={rowNames} cols={colNames} />}
         {result.multiple_comparisons && (
           <TwoWayComparisons mc={result.multiple_comparisons}

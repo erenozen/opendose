@@ -78,9 +78,12 @@ export function TwoWayMethods({ result, options: o }: ResultsProps<TwoWayOptions
       + parts.join("; ") + ".";
   } else if (String(result.analysis).startsWith("rm_two_way")) {
     const src = result.sources ?? {};
-    const df = (k: string) => src[k] && src.residual
-      ? `F(${src[k].df}, ${k === "column_factor" && src.subjects ? src.subjects.df
-        : src.residual.df}) = ${formatSig(src[k].F)}, P = ${fmtP(src[k].p)}` : "";
+    // Each effect's denominator: its own error term (both factors
+    // repeated), subjects (the between-subject factor) or the residual.
+    const dfd = (k: string) => src[k]?.error_df
+      ?? (k === "column_factor" && src.subjects ? src.subjects.df : src.residual?.df);
+    const df = (k: string) => (src[k] && dfd(k) != null
+      ? `F(${src[k].df}, ${dfd(k)}) = ${formatSig(src[k].F)}, P = ${fmtP(src[k].p)}` : "");
     text = `Data were analyzed by two-way repeated-measures ANOVA (${result.design}; `
       + `${result.n_subjects} subjects) with ${fA} and ${fB} as factors`
       + `${result.gg_epsilon != null
