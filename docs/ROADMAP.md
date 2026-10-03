@@ -138,6 +138,152 @@ note in the README): [user guide](https://www.graphpad.com/guides/prism/latest/u
       detection + retry), idempotent sync-py so live dev servers stay
       coherent
 
+## User-guide review (2026-10-03)
+
+A topic-by-topic pass over the 448 pages of the Prism 11 user guide
+(fetched from its table of contents) sorted every section into one of
+three buckets. Analyses live in the two other guides and are tracked
+above; this pass covers the *application*: tables, data handling,
+graphs, layouts, export, project management.
+
+### Out of scope (not meaningful for a browser tool)
+Windows/Mac differences, installation, firewalls, SSO, command-line
+switches, LabArchives, Prism Cloud, scripts (replaced by project files
++ URL-free static hosting), printing beyond the browser's own print,
+Word/PowerPoint one-click send, EPS/EMF/CMYK output, "Prism Labs".
+
+### Already covered
+XY / Column / Contingency / Survival tables; Excel paste; .pzfx and
+.prism import; Normalize and fixed Transforms; replicates with SD /
+SEM / CI / range error bars; XY, column (scatter/bar/box/violin) and
+survival graphs; confidence/prediction bands; log axes; axis titles;
+color schemes; PNG/SVG/JPEG/WebP/TIFF export at exact size; project
+save/load; methods text; theme; accessibility pass.
+
+### To implement — grouped by guide section
+
+**Data tables (the eight kinds)**
+- [ ] Grouped tables: two grouping variables with replicate
+      subcolumns; interleaved / stacked / separated bar graphs, grouped
+      scatter; two-way ANOVA and RM two-way move here from Column mode
+- [ ] Parts-of-whole tables: pie, donut, stacked-bar graphs; chi-square
+      goodness of fit against expected fractions; fraction of total
+- [ ] Multiple-variables tables: one row per observation, one column per
+      variable (continuous / categorical); descriptive stats, correlation
+      matrix (with heat map), multiple linear regression, simple and
+      multiple logistic regression (odds ratios, ROC of the fit), PCA
+      (scree, loadings, biplot), extract & rearrange, select & transform
+- [ ] Nested tables: nested t test and nested one-way ANOVA (mixed model
+      with random subgroup effect); nested scatter graph
+- [ ] Entering error values computed elsewhere: Mean/SD/N, Mean/SEM/N,
+      Mean/%CV/N, Mean/CI/N, upper/lower limit subcolumn formats; every
+      analysis that can run from summary data does
+- [ ] Side-by-side vs stacked replicates; subcolumn titles; row titles
+      on Column tables (used as point labels)
+- [ ] Excluding values Prism-style (value stays visible, struck through,
+      skipped by analyses and graphs), with keyboard shortcut
+- [ ] Sort rows, insert series (start/step), decimal-place display,
+      rounding, data-table limits documented, dates / elapsed times as X
+- [ ] Undo / redo for every table edit
+
+**Importing and exporting data**
+- [ ] Text / CSV / TSV import with the Source · View · Filter · Placement
+      choices (skip rows, pick columns, transpose, insert at column,
+      decimal-separator handling)
+- [ ] Export any data or results table as CSV / TSV; copy results sheet
+      as tab-separated text
+
+**Data Inspector and calculated variables**
+- [ ] User-defined transforms Y = f(X, Y) and X = f(X) with the full
+      function table from the guide (abs, sqrt, ln, log, exp, trig,
+      hyperbolic, floor/ceil, sgn, Gaussian / t / F / chi-square / binomial
+      distribution functions, if/and/or, min/max/mean of subcolumns,
+      row/column references, constants pi and e)
+- [ ] Calculated variables (in-table formulas) on multiple-variables
+      tables; a Data Inspector card (n, mean, SD, min, max, missing) for
+      the selected block of cells
+
+**Analyzing data: manipulations**
+- [ ] Transforming concentrations (X = log(X) with a chosen replacement
+      for zero), Remove baseline (subtract a column, a row, a value,
+      first/last row; divide, as fraction), Transpose, Prune rows
+      (average or remove every k rows, by X range), Fraction of total
+- [ ] Chains of analyses: results sheets that feed another analysis
+      (Transform → Normalize → Fit is the canonical case) with the chain
+      visible in the navigator
+- [ ] Excluding points from one analysis without excluding them from
+      the table
+
+**Simulations**
+- [ ] Simulate XY / Column / Contingency tables from a model with
+      Gaussian (absolute or relative SD) or Poisson scatter, seedable;
+      Monte Carlo: repeat an analysis N times over simulated data and
+      tabulate a chosen result (CI coverage, power)
+
+**Graphs: Format Graph**
+- [ ] Per-dataset symbol shape / size / fill / border, line style and
+      width, bar fill and pattern, front-to-back order, nudging
+- [ ] Point-to-point lines, spaghetti plots, line of identity, grand
+      mean/median line, forest plots, horizontal error bars (X error),
+      error envelopes
+- [ ] Heat maps (grouped tables, correlation matrices) with color
+      mapping, labels, gaps
+- [ ] Three-way grouped graphs; row-vs-column titles under bars;
+      plotting order; dataset spacing
+- [ ] Legends: show/hide, position, combined vs separate, text edits
+- [ ] Fonts and sizes for titles, axis numbering, legends
+- [ ] Semitransparent fills
+
+**Graphs: Format Axes**
+- [ ] Axis range, major/minor ticks, tick direction, numbering format
+      (decimal, scientific, power-of-ten, antilog), discontinuous axes,
+      additional ticks and grid lines, hide axis / scale bars
+- [ ] Right Y axis with datasets assigned to it
+- [ ] Frame styles and origin; grid lines
+- [ ] Dates and elapsed-time axis formats
+
+**Annotations on graphs**
+- [ ] Text boxes, lines, arrows, rectangles, ellipses, aligned/nudged
+- [ ] Pairwise-comparison brackets with significance stars or exact P,
+      taken from the comparisons table (one-way, two-way, t tests)
+- [ ] Compact letter display for multiple comparisons
+- [ ] Number-at-risk table under survival curves
+- [ ] Embedding results (parameter table, equation) on the graph
+
+**Page layouts**
+- [ ] Layout sheets: place several graphs on a page grid, resize,
+      master legend, export the whole layout at once
+
+**Exporting images**
+- [ ] PDF export (vector), transparent background, export all graphs as
+      a zip, copy image to clipboard, journal presets (width in mm, DPI,
+      font floor)
+
+**Project organisation (navigator)**
+- [ ] Multi-sheet projects: any number of data tables of any type, each
+      with its results and graphs, plus Info/notes sheets, in a
+      navigator tree; rename, duplicate (with or without data), delete,
+      sort, freeze
+- [ ] Highlight and group sheets; search sheets; floating notes
+- [ ] Templates: save a table-plus-settings as a reusable template;
+      "apply this table's analyses and graph to another table" (Wand)
+- [ ] Preferences: default table type, error bar, CI method, scheme,
+      theme, decimal places; keyboard shortcuts list
+- [ ] Autosave to the browser with recovery of the last session
+- [ ] "How to cite" text and version stamp in the exported methods
+
+### Order of work
+1. Engine first, in parallel: multiple-variables analyses, parts of whole,
+   nested models and mixed-effects RM (the open item 3 below), summary-
+   data entry, formula evaluator and manipulations, simulations.
+2. App backbone: multi-sheet project model with navigator, undo/redo,
+   project JSON v2 with migration from v1.
+3. App features on top of the backbone, in parallel per area: new table
+   types and their graphs; table editing and import/export; Format
+   Graph / Format Axes / annotations; layouts and export.
+4. e2e coverage for each new workflow; methods text extended to every
+   new analysis.
+
 ## Next up
 
 1. ~~Publish the site~~ LIVE (2026-08-11): https://erenozen.dev/opendose/
@@ -145,7 +291,8 @@ note in the README): [user guide](https://www.graphpad.com/guides/prism/latest/u
    e2e suite verified against the production URL)
 2. Further screenshot validations against the user's Prism install
    (survival, ANOVA sheets, competitive binding)
-3. Mixed-effects models for RM designs with missing values
+3. Mixed-effects models for RM designs with missing values (scheduled in
+   the user-guide review above, nested-models work package)
 
 ## Validation protocol
 
