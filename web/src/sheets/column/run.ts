@@ -1,13 +1,15 @@
 // Column analyses (t tests, ANOVA, nonparametric, correlation, ROC,
 // Bland-Altman, outliers). They read each dataset's values; X is ignored,
 // so they also run on the Y columns of an XY table.
-import type { EngineBridge } from "../../lib/engine";
-import { numericData, parseCell } from "../../project/table";
+/** The engine bridge (lib/engine.ts), structurally: keeps this module
+ *  free of the browser runtime for node --test. */
+type EngineBridge = { analyze: (payload: unknown) => unknown };
+import { numericData, parseCell } from "../../project/table.ts";
 import {
   SUBCOLUMN_FORMAT_ENGINE, SUBCOLUMN_FORMAT_LABELS, type DataTableModel,
-} from "../../project/types";
-import type { ColumnOptionsState } from "../../types";
-import { COLUMN_ANALYSIS_LABELS, DEFAULT_NORMALITY_TESTS } from "../../types";
+} from "../../project/types.ts";
+import type { ColumnOptionsState } from "../../types.ts";
+import { COLUMN_ANALYSIS_LABELS, DEFAULT_NORMALITY_TESTS } from "../../types.ts";
 
 export function runColumn(engine: EngineBridge, table: DataTableModel,
   o: ColumnOptionsState): Record<string, unknown> {
