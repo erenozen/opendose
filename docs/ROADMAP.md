@@ -195,31 +195,50 @@ save/load; methods text; theme; accessibility pass.
       as tab-separated text
 
 **Data Inspector and calculated variables**
-- [ ] User-defined transforms Y = f(X, Y) and X = f(X) with the full
+- [x] User-defined transforms Y = f(X, Y) and X = f(X) with the full
       function table from the guide (abs, sqrt, ln, log, exp, trig,
       hyperbolic, floor/ceil, sgn, Gaussian / t / F / chi-square / binomial
       distribution functions, if/and/or, min/max/mean of subcolumns,
-      row/column references, constants pi and e)
+      row/column references, constants pi and e). DONE (2026-10-03):
+      Transform → "User-defined formulas": X and Y formula fields,
+      multi-line programs with <B> / <~A> data-set lines, constants
+      (shared or per data set), live validation with the error position,
+      searchable function reference built from the engine's own list,
+      examples; plus the pharmacology plots (Eadie-Hofstee, Hanes-Woolf,
+      Lineweaver-Burk, log-log, Scatchard, Hill) and extra standard Y
+      functions (Y^K, |Y|, z score, logit, probit, trig, Y·X, …)
 - [ ] Calculated variables (in-table formulas) on multiple-variables
       tables; a Data Inspector card (n, mean, SD, min, max, missing) for
       the selected block of cells
 
 **Analyzing data: manipulations**
-- [ ] Transforming concentrations (X = log(X) with a chosen replacement
+- [x] Transforming concentrations (X = log(X) with a chosen replacement
       for zero), Remove baseline (subtract a column, a row, a value,
       first/last row; divide, as fraction), Transpose, Prune rows
-      (average or remove every k rows, by X range), Fraction of total
-- [ ] Chains of analyses: results sheets that feed another analysis
+      (average or remove every k rows, by X range), Fraction of total.
+      DONE (2026-10-03) on XY and Column tables (Grouped picks them up
+      once its analyses ship), each with a methods sentence
+- [x] Chains of analyses: results sheets that feed another analysis
       (Transform → Normalize → Fit is the canonical case) with the chain
-      visible in the navigator
+      visible in the navigator. DONE (2026-10-03): a manipulation's output
+      is a linked, read-only data table (`project/derived.ts`) kept in
+      sync from its source and settings (`app/useDerivedSync.ts`), shown
+      under its source with a link icon and breadcrumbs; Unlink turns it
+      into ordinary data
 - [ ] Excluding points from one analysis without excluding them from
       the table
 
 **Simulations**
-- [ ] Simulate XY / Column / Contingency tables from a model with
+- [x] Simulate XY / Column / Contingency tables from a model with
       Gaussian (absolute or relative SD) or Poisson scatter, seedable;
       Monte Carlo: repeat an analysis N times over simulated data and
-      tabulate a chosen result (CI coverage, power)
+      tabulate a chosen result (CI coverage, power). DONE (2026-10-03):
+      "Simulate data…" in the New data table dialog; simulated tables
+      keep their settings ("Simulate again", "Settings…", methods
+      sentence). Monte Carlo analysis on XY (curve fit, optionally with
+      a results sheet's settings), Column (t test, ANOVA, descriptive)
+      and Contingency tables: result-value picker, hit conditions,
+      chunked cancellable runs with progress, summary table, histogram
 
 **Graphs: Format Graph**
 - [ ] Per-dataset symbol shape / size / fill / border, line style and
