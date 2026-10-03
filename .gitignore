@@ -12,3 +12,4 @@ web/scripts/layout.png
 RealTestFiles/
 examples/
 *.egg-info/
+.claude/worktrees/
