@@ -8,7 +8,8 @@ Prism statistics guide, "One-way ANOVA (and nonparametric)":
   * Tukey(-Kramer): studentized range q; adjusted P and simultaneous CIs.
     Prism reports q = |mean_i - mean_j| / SE where SE = sqrt(MS_res/2 *
     (1/n_i + 1/n_j)), dividing the range statistic's scale by sqrt(2).
-  * Dunnett: every group vs a control (multivariate t distribution).
+  * Dunnett: every group vs a control (multivariate t distribution,
+    evaluated exactly and deterministically by opendose.dunnett).
   * Bonferroni / Sidak: pairwise t with alpha correction.
   * Holm-Sidak: step-down Sidak.
 - Nonparametric: Kruskal-Wallis (tie-corrected H) with Dunn's post test.
@@ -21,6 +22,8 @@ from itertools import combinations
 
 import numpy as np
 from scipy import stats
+
+from . import dunnett
 
 
 def _groups(datasets) -> list[np.ndarray]:
@@ -108,7 +111,7 @@ def multiple_comparisons(datasets, method: str, *, names=None,
     ms_res = sum(((g - g.mean()) ** 2).sum() for g in groups) / df_res
     return _comparisons_from_stats(means, ns, ms_res, df_res, method,
                                    names=names, control_index=control_index,
-                                   ci_level=ci_level, dunnett_samples=groups)
+                                   ci_level=ci_level)
 
 
 def _comparisons_from_stats(means, ns, ms_res, df_res, method: str, *,
@@ -117,33 +120,41 @@ def _comparisons_from_stats(means, ns, ms_res, df_res, method: str, *,
                             dunnett_samples=None) -> dict:
     """Multiple comparisons from group means, n and the pooled residual
     MS/df: every test here depends on the data only through these.
-    Dunnett's P values come from scipy's multivariate-t integration,
-    which takes samples; dunnett_samples supplies them (the raw groups,
-    or synthetic groups with the same mean, SD and n when the data were
-    entered as summaries; see opendose.summary)."""
+    Dunnett's P values and simultaneous CIs come from the exact
+    (deterministic) Dunnett distribution of opendose.dunnett, which also
+    depends only on these. dunnett_samples is accepted for backward
+    compatibility and ignored."""
     k = len(means)
     names = names or [f"Group {i}" for i in range(k)]
     alpha = 1 - ci_level
-    groups = dunnett_samples
-
     comparisons = []
 
     if method == "dunnett":
-        if groups is None:
-            raise ValueError("Dunnett's test needs dunnett_samples")
-        others = [i for i in range(k) if i != control_index]
-        res = stats.dunnett(*[groups[i] for i in others],
-                            control=groups[control_index])
-        ci = res.confidence_interval(ci_level)
-        for j, i in enumerate(others):
-            diff = means[i] - means[control_index]
+        # Each group minus the control: t = diff / SE with the pooled
+        # residual MS; the k-1 statistics are jointly multivariate t with
+        # correlation lambda_i lambda_j, lambda_i = sqrt(n_i/(n_i+n_0)).
+        # P = P(max |T| > |t|); CI = diff +/- c * SE with c the two-sided
+        # simultaneous critical value (root of the exact integral).
+        c0 = control_index
+        others = [i for i in range(k) if i != c0]
+        lam = dunnett.control_lambdas(ns, c0)
+        ccrit = dunnett.critical_value_one_factor(ci_level, lam, df_res)
+        for i in others:
+            diff = means[i] - means[c0]
+            se = math.sqrt(ms_res * (1 / ns[i] + 1 / ns[c0]))
+            if se > 0:
+                t = abs(diff) / se
+                p_adj = dunnett.sf_one_factor(t, lam, df_res)
+            else:  # no residual scatter
+                t = math.inf if diff != 0 else math.nan
+                p_adj = 0.0 if diff != 0 else math.nan
             comparisons.append({
-                "pair": f"{names[i]} vs. {names[control_index]}",
+                "pair": f"{names[i]} vs. {names[c0]}",
                 "difference": diff,
-                "ci": [float(ci.low[j]), float(ci.high[j])],
-                "statistic": float(abs(res.statistic[j])),
-                "p_adjusted": float(res.pvalue[j]),
-                "significant_05": bool(res.pvalue[j] < 0.05),
+                "ci": [diff - ccrit * se, diff + ccrit * se],
+                "statistic": t,
+                "p_adjusted": p_adj,
+                "significant_05": bool(p_adj < 0.05),
             })
         return {"method": method, "df": df_res, "comparisons": comparisons}
 

@@ -171,6 +171,31 @@ class TestNestedAnovaGuideExample:
             assert o["p_adjusted"] == pytest.approx(r["p_adjusted"], rel=1e-6)
 
 
+    @pytest.mark.parametrize("control", [0, 2])
+    def test_balanced_dunnett_equals_anova_of_means(self, control):
+        # Both paths now evaluate the same exact Dunnett integral
+        # (opendose.dunnett): nested via the model covariance (one-factor
+        # correlation 0.5), anova via n per group, so they agree to
+        # rounding (~1e-13 here), not just to quasi-Monte Carlo noise.
+        # Sign convention differs: mixed-model comparisons are
+        # control - group (Prism's nested table), anova's group - control.
+        means = [[float(np.mean(s)) for s in g] for g in HERDS]
+        ref = anova.multiple_comparisons(means, "dunnett",
+                                         control_index=control)
+        res = nested.nested_one_way_anova(HERDS, comparisons="dunnett",
+                                          control_index=control)
+        for o, r in zip(res["multiple_comparisons"]["comparisons"],
+                        ref["comparisons"]):
+            assert o["difference"] == pytest.approx(-r["difference"],
+                                                    rel=1e-9)
+            assert o["statistic"] == pytest.approx(r["statistic"], rel=1e-9)
+            assert o["p_adjusted"] == pytest.approx(r["p_adjusted"],
+                                                    rel=1e-10)
+            half_o = (o["ci"][1] - o["ci"][0]) / 2
+            half_r = (r["ci"][1] - r["ci"][0]) / 2
+            assert half_o == pytest.approx(half_r, rel=1e-10)
+
+
 class TestNestedEquivalencesAndStatsmodels:
     @pytest.mark.parametrize("seed", [0, 1, 2])
     def test_balanced_equals_t_test_of_subcolumn_means(self, seed):

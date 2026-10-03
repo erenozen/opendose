@@ -256,23 +256,28 @@ class TestOneWay:
               rel=1e-12)
 
     def test_dunnett(self):
-        # Dunnett's P values and CIs come from randomized multivariate-t
-        # integration (scipy, unseeded in anova.py), so even two raw-data
-        # runs differ: P by ~1e-4 here and the CI limits by up to ~0.2
-        # (scipy warns its CI root-finding did not converge). Statistics
-        # and differences are deterministic and exact; P and CI to the
-        # integration noise.
-        raw = anova.multiple_comparisons(self.GROUPS, "dunnett")
+        # Tightened: Dunnett's P values and CIs used to come from scipy's
+        # randomized multivariate-t integration (unseeded; P wobbled by
+        # ~1e-4 and CI limits by up to ~0.2 between runs, so this test
+        # allowed abs=1e-3 on P and rel=0.1 on the CI half-width). They
+        # now come from the exact deterministic integral in
+        # opendose.dunnett, which depends only on means, n and the pooled
+        # SD, so summary data reproduce the raw-data results to rounding.
+        raw = anova.multiple_comparisons(self.GROUPS, "dunnett",
+                                         names=self.NAMES)
         got = S.multiple_comparisons_summary(
-            [msn(g) for g in self.GROUPS], "dunnett")
+            [msn(g) for g in self.GROUPS], "dunnett", names=self.NAMES)
+        close(raw, got, rel=1e-10)
         for r, g in zip(raw["comparisons"], got["comparisons"]):
-            assert g["statistic"] == pytest.approx(r["statistic"], rel=1e-12)
-            assert g["difference"] == pytest.approx(r["difference"], rel=1e-12)
-            assert g["p_adjusted"] == pytest.approx(r["p_adjusted"], abs=1e-3)
-            half_r = (r["ci"][1] - r["ci"][0]) / 2
-            half_g = (g["ci"][1] - g["ci"][0]) / 2
-            assert half_g == pytest.approx(half_r, rel=0.1)
             assert g["ci"][0] < g["difference"] < g["ci"][1]
+
+    def test_dunnett_one_way_summary_path(self):
+        raw = anova.multiple_comparisons(self.GROUPS, "dunnett",
+                                         names=self.NAMES, control_index=1)
+        got = S.one_way_anova_summary(
+            [msn(g) for g in self.GROUPS], self.NAMES,
+            comparisons="dunnett", control_index=1)["multiple_comparisons"]
+        close(raw, got, rel=1e-10)
 
 
 class TestTwoWay:

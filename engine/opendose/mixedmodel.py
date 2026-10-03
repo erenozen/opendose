@@ -55,7 +55,9 @@ import math
 from itertools import combinations, product
 
 import numpy as np
-from scipy import integrate, optimize, special, stats
+from scipy import optimize, stats
+
+from . import dunnett
 
 _LN2PI = math.log(2.0 * math.pi)
 
@@ -526,84 +528,6 @@ def _p_summary(p):
     return bool(p is not None and p < 0.05)
 
 
-_Z_GRID = np.linspace(-9.0, 9.0, 1801)
-_Z_W = np.full(_Z_GRID.size, 2.0)
-_Z_W[1::2] = 4.0
-_Z_W[0] = _Z_W[-1] = 1.0
-_Z_W *= (_Z_GRID[1] - _Z_GRID[0]) / 3.0 * stats.norm.pdf(_Z_GRID)
-
-
-def _product_lambdas(R):
-    """lambda with R_ij = lambda_i lambda_j (i != j) when the correlation
-    has that one-factor form (always for comparisons with a common
-    control when the means are independent or compound symmetric);
-    None otherwise."""
-    m = R.shape[0]
-    if m == 2:
-        r = float(R[0, 1])
-        lam = math.sqrt(abs(r))
-        return np.array([lam, math.copysign(lam, r)])
-    lam = np.zeros(m)
-    for i in range(m):
-        j, k = [x for x in range(m) if x != i][:2]
-        if abs(R[j, k]) < 1e-12:
-            return None
-        v = R[i, j] * R[i, k] / R[j, k]
-        if v < 0:
-            return None
-        lam[i] = math.copysign(math.sqrt(v), R[i, j] if i else 1.0)
-    # fix signs relative to the first entry and verify the fit
-    for i in range(1, m):
-        lam[i] = math.copysign(abs(lam[i]), R[0, i] * lam[0])
-    approx = np.outer(lam, lam)
-    off = ~np.eye(m, dtype=bool)
-    if np.max(np.abs(approx[off] - R[off])) > 1e-9 or np.any(np.abs(lam) >= 1):
-        return None
-    return lam
-
-
-def _box_prob_product(c, lam, df):
-    """P(max_j |T_j| <= c) for a multivariate t whose correlation is
-    lambda_i lambda_j: a deterministic 2-D integral (normal mixing
-    variable z by Simpson's rule, chi scale by adaptive quadrature)."""
-    b = np.sqrt(1.0 - lam ** 2)
-
-    zl = np.outer(_Z_GRID, lam / b)
-    cb = c / b
-
-    def inner(s):
-        return float(_Z_W @ np.prod(special.ndtr(cb * s + zl)
-                                    - special.ndtr(-cb * s + zl), axis=1))
-
-    if not math.isfinite(df):
-        return inner(1.0)
-    # density of s = sqrt(chi2_df / df)
-    log_norm = (df / 2.0) * math.log(df / 2.0) + math.log(2.0) \
-        - special.gammaln(df / 2.0)
-
-    def dens(s):
-        return math.exp(log_norm + (df - 1) * math.log(s) - df * s * s / 2.0) \
-            if s > 0 else 0.0
-
-    val, _ = integrate.quad(lambda s: inner(s) * dens(s), 0.0, np.inf,
-                            epsabs=1e-13, epsrel=1e-11, limit=200)
-    return min(max(val, 0.0), 1.0)
-
-
-def _dunnett_cdf(c, R, df, seed=12345):
-    """P(max_j |T_j| <= c), T multivariate t with correlation R (exact
-    integral for one-factor correlation, else quasi-Monte Carlo)."""
-    m = R.shape[0]
-    if m == 1:
-        return float(stats.t.cdf(c, df) - stats.t.cdf(-c, df))
-    lam = _product_lambdas(R)
-    if lam is not None:
-        return _box_prob_product(c, lam, df)
-    dist = stats.multivariate_t(shape=R, df=df, allow_singular=True)
-    return float(dist.cdf(np.full(m, c), lower_limit=np.full(m, -c),
-                          maxpts=50000 * m, random_state=seed))
-
-
 def compare_estimates(est, cov, df, method: str, *, names=None,
                       pairs=None, control_index: int = 0,
                       ci_level: float = 0.95, n_family_total=None,
@@ -661,18 +585,13 @@ def compare_estimates(est, cov, df, method: str, *, names=None,
         Cc = Lc @ cov @ Lc.T
         d = np.sqrt(np.diag(Cc))
         R = Cc / np.outer(d, d)
+        # exact one-factor integral (opendose.dunnett) whenever the
+        # correlation has that form, else fixed-seed quasi-Monte Carlo
         for r in rows:
             r["stat"] = r["t"]
-            r["p_adj"] = (min(max(1.0 - _dunnett_cdf(r["t"], R, df), 0.0), 1.0)
+            r["p_adj"] = (dunnett.sf(r["t"], R, df)
                           if math.isfinite(r["t"]) else 0.0)
-        tlo = float(stats.t.ppf(1 - alpha / 2, df))
-        thi = float(stats.t.ppf(1 - alpha / (2 * m), df)) + 0.5
-        try:
-            ccrit = optimize.brentq(
-                lambda c: _dunnett_cdf(c, R, df) - ci_level, tlo, thi,
-                xtol=1e-7)
-        except ValueError:
-            ccrit = float(stats.t.ppf(1 - alpha / (2 * m), df))
+        ccrit = dunnett.critical_value(ci_level, R, df)
         for r in rows:
             r["half"] = ccrit * r["se"]
     elif method in ("bonferroni", "sidak", "holm_sidak", "fisher"):

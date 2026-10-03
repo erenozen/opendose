@@ -198,8 +198,8 @@ def synthetic_replicates(mean, sd, n) -> list[float]:
 
     Every least-squares quantity depends on replicates only through each
     row's mean, SD and n, so these stand in for the raw values wherever
-    an existing routine wants samples (Dunnett's P values, global
-    fitting, the replicates test). They are NOT the data: never show
+    an existing routine wants samples (global fitting, the replicates
+    test). They are NOT the data: never show
     them, and never feed them to rank or median-based methods.
     """
     n = int(n)
@@ -589,14 +589,9 @@ def multiple_comparisons_summary(groups, method: str, *, names=None,
     means = [g["mean"] for g in gs]
     df_res = sum(ns) - len(gs)
     ms_res = sum((g["n"] - 1) * g["sd"] ** 2 for g in gs) / df_res
-    samples = None
-    if method == "dunnett":
-        samples = [np.array(synthetic_replicates(g["mean"], g["sd"], g["n"]))
-                   for g in gs]
     return anova._comparisons_from_stats(
         means, ns, ms_res, df_res, method, names=names,
-        control_index=control_index, ci_level=ci_level,
-        dunnett_samples=samples)
+        control_index=control_index, ci_level=ci_level)
 
 
 def _cells(cells, fmt):

@@ -15,6 +15,15 @@ X = [1.0, 2, 3, 4, 5, 6, 7, 8]
 Y = [2.1, 3.9, 6.2, 8.1, 9.8, 12.3, 13.9, 16.2]
 
 
+def _rank_r(x, yy, axis=-1):
+    """Pearson r of the (mid)ranks, vectorised over yy."""
+    rx = sps.rankdata(x)
+    cx = rx - rx.mean()
+    ry = sps.rankdata(yy, axis=axis)
+    ry = ry - ry.mean(axis=axis, keepdims=True)
+    return (ry @ cx) / np.sqrt((ry ** 2).sum(axis=axis) * (cx @ cx))
+
+
 class TestCorrelation:
     def test_pearson_matches_scipy_with_fisher_ci(self):
         r = correlate(X, Y)
@@ -28,10 +37,22 @@ class TestCorrelation:
         assert r["ci_r"][1] == pytest.approx(math.tanh(z + half))
 
     def test_spearman(self):
-        r = correlate(X, [3, 1, 4, 1, 5, 9, 2, 6.5], method="spearman")
-        rs, p = sps.spearmanr(X, [3, 1, 4, 1, 5, 9, 2, 6.5])
+        y = [3, 1, 4, 1, 5, 9, 2, 6.5]
+        r = correlate(X, y, method="spearman")
+        rs, p_t = sps.spearmanr(X, y)
         assert r["r"] == pytest.approx(rs)
-        assert r["p_two_tailed"] == pytest.approx(p)
+        # Changed from the t approximation (scipy's P): with 17 or fewer
+        # pairs the guide computes P exactly from all permutations, ties
+        # included ("Interpreting results: Correlation"; GraphPad FAQ
+        # 1982), so the reference is the full-enumeration permutation P.
+        ref = sps.permutation_test(
+            (np.asarray(y, dtype=float),),
+            lambda yy, axis=-1: _rank_r(X, yy, axis),
+            permutation_type="pairings", n_resamples=np.inf,
+            vectorized=True, alternative="two-sided")
+        assert r["p_type"] == "exact"
+        assert r["p_two_tailed"] == pytest.approx(ref.pvalue, rel=1e-12)
+        assert r["p_two_tailed"] != pytest.approx(p_t, rel=1e-3)
 
     def test_missing_pairs_dropped_then_too_few_raises(self):
         # blanks reduce to 2 complete pairs -> below the minimum of 3

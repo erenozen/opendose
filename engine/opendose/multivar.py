@@ -15,10 +15,10 @@ Methods follow the GraphPad Prism guides:
   omission (a row is skipped only for the pairs whose variables are
   blank on it); the alternative drops every row with any blank.
   The guide ("Interpreting results: Correlation") computes an exact
-  Spearman P from all permutations for 17 or fewer pairs. Enumerating
-  n! orderings is only affordable here up to n = 9, so exact P is
-  computed for n <= 9 and the t approximation is used above that (the
-  P-type matrix says which one each cell got).
+  Spearman P from all permutations for 17 or fewer pairs (ties
+  included) and the t approximation for 18 or more; the P-type matrix
+  says which one each cell got. The exact distribution is counted by
+  opendose.correlation (no enumeration of the n! orderings).
 - Curve fitting guide, "Multiple regression" pages
   (reg_parameter-values-from-multiple.htm, reg_goodness-of-fit-from-
   multiple-.htm, reg_multicollinearity.htm, reg_mult_reg_reference_
@@ -59,9 +59,7 @@ Methods follow the GraphPad Prism guides:
 
 from __future__ import annotations
 
-import itertools
 import math
-from functools import lru_cache
 
 import numpy as np
 from scipy import stats
@@ -175,30 +173,6 @@ def describe_variables(variables, ci_level: float = 0.95) -> dict:
 
 # --------------------------------------------------------- correlation matrix
 
-_SPEARMAN_EXACT_MAX_N = 9
-
-
-@lru_cache(maxsize=4)
-def _permutations(n: int) -> np.ndarray:
-    return np.array(list(itertools.permutations(range(n))), dtype=np.int8)
-
-
-def _spearman_exact_p(a: np.ndarray, b: np.ndarray, rs: float) -> float:
-    """Two-tailed exact permutation P of Spearman rs: the fraction of the
-    n! orderings of b's (mid)ranks whose |rs| reaches the observed one.
-    Ties are handled by permuting the observed midranks."""
-    ra = stats.rankdata(a)
-    rb = stats.rankdata(b)
-    ra_c = ra - ra.mean()
-    rb_c = rb - rb.mean()
-    denom = math.sqrt(float(ra_c @ ra_c) * float(rb_c @ rb_c))
-    if denom == 0:
-        return float("nan")
-    perms = _permutations(a.size)
-    r_all = (rb_c[perms] @ ra_c) / denom
-    return float(np.mean(np.abs(r_all) >= abs(rs) - 1e-12))
-
-
 def correlation_matrix(variables, *, method: str = "pearson",
                        missing: str = "pairwise", ci_level: float = 0.95,
                        tails: int = 2) -> dict:
@@ -240,11 +214,17 @@ def correlation_matrix(variables, *, method: str = "pearson",
                 continue  # a constant variable has no correlation
             res = correlation.correlate(a.tolist(), b.tolist(), method=method,
                                         ci_level=ci_level)
-            rv, pv, kind = res["r"], res["p_two_tailed"], "approximate"
-            if method == "spearman" and len(pairs) <= _SPEARMAN_EXACT_MAX_N:
-                pv, kind = _spearman_exact_p(a, b, rv), "exact"
+            rv, pv = res["r"], res["p_two_tailed"]
+            kind = res.get("p_type", "approximate")
             if tails == 1:
-                pv = pv / 2.0
+                if kind == "exact":
+                    # exact one-tailed P in the observed direction (with
+                    # ties the permutation distribution is asymmetric,
+                    # so it is not half the two-tailed P)
+                    pv = correlation.spearman_exact_p(
+                        a, b, alternative="greater" if rv >= 0 else "less")
+                else:
+                    pv = pv / 2.0
             r[i][j] = r[j][i] = float(rv)
             p[i][j] = p[j][i] = float(min(pv, 1.0))
             p_type[i][j] = p_type[j][i] = kind
