@@ -27,6 +27,8 @@
   background: color-mix(in srgb, var(--warn-hue) 12%, var(--surface));
   border: 1px solid color-mix(in srgb, var(--warn-hue) 40%, transparent);
 }
+.results-table.kv-wide { max-width: 560px; }
+.results-table.kv-wide th { font-weight: 400; color: var(--ink-2); }
 .results-table tr.total-row th, .results-table tr.total-row td {
   border-top: 2px solid var(--axis); font-weight: 600;
 }

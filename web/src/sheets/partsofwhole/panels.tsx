@@ -22,12 +22,12 @@ export function FractionControls({ options: o, onChange }: ControlsProps<Fractio
   return (
     <div className="controls">
       <fieldset className="field-radios">
-        <legend><h3>Divide each value by its</h3></legend>
+        <legend><h3>Divide each value by</h3></legend>
         {(Object.keys(DIVIDE_BY_LABELS) as DivideBy[]).map((k) => (
           <label key={k}>
             <input type="radio" name="pow-divide" value={k}
               checked={o.divideBy === k} onChange={() => set({ divideBy: k })} />
-            {DIVIDE_BY_LABELS[k].toLowerCase()}
+            {DIVIDE_BY_LABELS[k]}
           </label>
         ))}
       </fieldset>
@@ -183,7 +183,7 @@ export function GofControls({ table, options: o, onChange }: ControlsProps<GofOp
   const total = obs.reduce<number>((a, v) => a + (v ?? 0), 0);
   const target = o.expectedAs === "percent" ? 100 : o.expectedAs === "fraction" ? 1 : total;
   const off = o.expectedMode === "entered" && entered.length > 0
-    && Math.abs(sum - target) > 1e-6 * Math.max(1, target);
+    && Math.abs(sum - target) > 1e-3 * Math.max(1, target);
 
   return (
     <div className="controls">
@@ -330,13 +330,13 @@ export function GofResults({ options: o, result }:
           approximate.
         </p>
       )}
-      <table className="results-table goodness gof-tests">
+      <table className="results-table kv-wide gof-tests">
         <tbody>
-          <tr className={recBinomial ? "" : "recommended"}>
+          <tr>
             <th>Chi-square, df</th>
             <td>χ² = {formatSig(cs.chi2)}, df = {cs.df}</td>
           </tr>
-          <tr className={recBinomial ? "" : "recommended"}>
+          <tr>
             <th>P value (chi-square)</th>
             <td>{fmtP(cs.p)} {stars(cs.p)}</td>
           </tr>

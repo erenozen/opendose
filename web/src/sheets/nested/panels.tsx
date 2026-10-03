@@ -129,7 +129,7 @@ type Row = [string, ReactNode];
 
 function KV({ rows }: { rows: Row[] }) {
   return (
-    <table className="results-table goodness">
+    <table className="results-table kv-wide">
       <tbody>
         {rows.map(([k, v]) => <tr key={k}><th>{k}</th><td>{v}</td></tr>)}
       </tbody>
