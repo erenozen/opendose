@@ -3,7 +3,7 @@
 // Schild EC50-shift model. Moved verbatim from the single-table app.
 import type { EngineBridge } from "../../lib/engine";
 import { numericData, parseCell } from "../../project/table";
-import type { DataTableModel } from "../../project/types";
+import { SUBCOLUMN_FORMAT_ENGINE, type DataTableModel } from "../../project/types";
 import type { AnalysisResult, OptionsState } from "../../types";
 import { MODELS_META } from "../../types";
 
@@ -11,12 +11,23 @@ import { MODELS_META } from "../../types";
 
 export function runNonlin(engine: EngineBridge, table: DataTableModel,
   options: OptionsState): AnalysisResult {
-  if (table.subcolumnFormat !== "replicates") {
-    return {
-      analysis: "dose_response", datasets: [],
-      error: "Curve fitting from summary data (mean / SD / N) lands in the next "
-        + "release; enter replicate values to fit now",
-    };
+  // Summary tables (mean with SD / SEM / %CV / CI and N, or no N): the
+  // engine fits them as the raw replicates would be fitted (or the means
+  // only) and draws the entered error bars.
+  const summary = table.subcolumnFormat !== "replicates";
+  const summaryOptions = summary ? {
+    summary_format: SUBCOLUMN_FORMAT_ENGINE[table.subcolumnFormat],
+    replicates: options.summaryReplicates ?? "account",
+  } : {};
+  if (summary && options.normalize.enabled) {
+    return { analysis: "dose_response", datasets: [],
+      error: "Normalize needs replicate values, not means with errors: turn "
+        + "Normalize off, or enter the normalized means" };
+  }
+  if (summary && options.model === "ec50_shift") {
+    return { analysis: "dose_response", datasets: [],
+      error: "The EC50-shift (Gaddum/Schild) fit needs replicate values; it is "
+        + "not available for data entered as means with errors" };
   }
   let data = numericData(table);
   if (options.normalize.enabled) {
@@ -122,6 +133,7 @@ export function runNonlin(engine: EngineBridge, table: DataTableModel,
         constraints,
         shared: options.sharedParams,
         weighting: options.weighting,
+        ...summaryOptions,
       },
     }) as Record<string, any>;
     if (g.error) return { analysis: "dose_response", datasets: [], error: g.error };
@@ -166,6 +178,7 @@ export function runNonlin(engine: EngineBridge, table: DataTableModel,
       bands: options.bands === "none" ? null : options.bands,
       diagnostics: options.diagnostics,
       interpolate_y: interpY.length ? interpY : null,
+      ...summaryOptions,
     },
   }) as AnalysisResult;
 }
@@ -175,7 +188,10 @@ export function xyAutoTitles(table: DataTableModel, options: OptionsState | null
   { x: string; y: string } {
   const meta = MODELS_META[options?.model ?? "log_inhibitor_vs_response_4pl"]
     ?? MODELS_META.log_inhibitor_vs_response_4pl;
-  const x = meta.needsLogX ? `${meta.xLabel}, ${table.xUnit || "M"}` : meta.xLabel;
+  const x = table.xFormat !== "numbers"
+    ? (table.xTitle && table.xTitle !== "X" ? table.xTitle
+      : table.xFormat === "dates" ? "Date" : "Elapsed time")
+    : meta.needsLogX ? `${meta.xLabel}, ${table.xUnit || "M"}` : meta.xLabel;
   const y = table.yTitle || (options?.normalize.enabled
     ? (options.normalize.asPercent ? "Normalized response (%)" : "Normalized response")
     : "Response");

@@ -160,6 +160,9 @@ export interface OptionsState {
   modelConstants: Record<string, string>; // e.g. HotNM for "Fit Ki"
   antagonist: string;        // ec50_shift: comma-separated [B] per dataset
   schildSlopeUnity: boolean; // ec50_shift: constrain SchildSlope = 1
+  /** Tables of mean / SD / N: fit accounting for SD and N (same fit as
+   *  the raw replicates) or the means only. Ignored for replicates. */
+  summaryReplicates?: "account" | "means_only";
 }
 
 export const DEFAULT_XY_OPTIONS: OptionsState = {

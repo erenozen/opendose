@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { defaultInit, type NewTableInit } from "../project/table";
+import { allowsSummaryFormat, defaultInit, type NewTableInit } from "../project/table";
 import {
-  SUBCOLUMN_FORMAT_LABELS, type SubcolumnFormat, type TableType, type XFormat,
+  SUBCOLUMN_FORMAT_HAS_N, SUBCOLUMN_FORMAT_LABELS, SUBCOLUMN_FORMATS, type SubcolumnFormat,
+  type TableType, type XFormat,
 } from "../project/types";
 import { REGISTRY, TABLE_ORDER } from "../sheets/registry";
 import Modal from "./Modal";
@@ -48,7 +49,7 @@ export default function NewTableDialog({ defaultType, defaultName, onCancel, onC
 
   const def = REGISTRY[type];
   const labels = SHAPE_LABELS[type];
-  const allowsSummary = type === "xy" || type === "grouped";
+  const allowsSummary = allowsSummaryFormat(type);
 
   const choose = (t: TableType) => {
     setType(t);
@@ -137,16 +138,17 @@ export default function NewTableDialog({ defaultType, defaultName, onCancel, onC
           {allowsSummary && (
             <label className="field">
               <span>Y values entered as</span>
-              <select value={summary} disabled={sample}
+              <select value={summary} disabled={sample} aria-label="Y values entered as"
                 onChange={(e) => setSummary(e.target.value as SubcolumnFormat)}>
-                {(Object.keys(SUBCOLUMN_FORMAT_LABELS) as SubcolumnFormat[]).map((f) => (
+                {SUBCOLUMN_FORMATS.map((f) => (
                   <option key={f} value={f}>{SUBCOLUMN_FORMAT_LABELS[f]}</option>
                 ))}
               </select>
               {summary !== "replicates" && (
                 <span className="field-note">
-                  Summary values are stored with the table; analyzing them
-                  lands in the next release.
+                  {SUBCOLUMN_FORMAT_HAS_N[summary]
+                    ? "Mean and error computed elsewhere, with N: curve fits, t tests and ANOVA use them as they would the raw values."
+                    : "Without N the errors are drawn as entered, but analyses can use only the means."}
                 </span>
               )}
             </label>
@@ -162,8 +164,9 @@ export default function NewTableDialog({ defaultType, defaultName, onCancel, onC
               </select>
               {xFormat !== "numbers" && (
                 <span className="field-note">
-                  Entered as text for now; date and time axes come with the
-                  graph-formatting release.
+                  {xFormat === "dates"
+                    ? "Analyzed as days since the earliest date (other units under Format); graphs label X with dates."
+                    : "Type h:mm:ss, h:mm or hours; analyzed in seconds (other units under Format)."}
                 </span>
               )}
             </label>
