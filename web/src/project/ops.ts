@@ -3,6 +3,7 @@
 // new one (or the same object when nothing changed).
 import { pruneDerivedLinks } from "./derived.ts";
 import type { IdFactory } from "./ids.ts";
+import { forgetGraphs } from "./layout.ts";
 import { clearValues } from "./table.ts";
 import type {
   DataSheet, DataTableModel, GraphSheet, GraphSettings, HighlightColor,
@@ -195,9 +196,7 @@ export function deleteSheet(p: Project, id: string): Project {
       if (x.kind === "graph" && x.resultsId && doomed.has(x.resultsId)) {
         return { ...x, resultsId: null };
       }
-      if (x.kind === "layout" && x.graphIds.some((g) => doomed.has(g))) {
-        return { ...x, graphIds: x.graphIds.filter((g) => !doomed.has(g)) };
-      }
+      if (x.kind === "layout") return forgetGraphs(x, (g) => !doomed.has(g));
       if (x.kind === "info" && x.parentId && doomed.has(x.parentId)) {
         return { ...x, parentId: null };
       }
@@ -328,7 +327,7 @@ export function repairLinks(p: Project): Project {
       if (s.kind === "graph" && s.resultsId && !resultIds.has(s.resultsId)) {
         return { ...s, resultsId: null };
       }
-      if (s.kind === "layout") return { ...s, graphIds: s.graphIds.filter((g) => graphIds.has(g)) };
+      if (s.kind === "layout") return forgetGraphs(s, (g) => graphIds.has(g));
       if (s.kind === "info" && s.parentId && !ids.has(s.parentId)) return { ...s, parentId: null };
       return s;
     });

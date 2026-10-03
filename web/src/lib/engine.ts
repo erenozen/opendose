@@ -8,6 +8,21 @@ export interface EngineBridge {
 
 let enginePromise: Promise<EngineBridge> | null = null;
 
+/** Numerical library versions as loaded in this browser (for citations). */
+export interface RuntimeVersions {
+  python: string;
+  numpy: string;
+  scipy: string;
+  pyodide: string;
+}
+
+let runtimeVersions: RuntimeVersions | null = null;
+
+/** Null until the engine has booted. */
+export function getRuntimeVersions(): RuntimeVersions | null {
+  return runtimeVersions;
+}
+
 export function getEngine(
   onStatus: (msg: string) => void = () => {},
 ): Promise<EngineBridge> {
@@ -68,6 +83,15 @@ async function init(onStatus: (msg: string) => void): Promise<EngineBridge> {
     'import sys\nsys.path.insert(0, "/app")\nfrom opendose.api import analyze_json',
   );
   const analyzeJson = py.globals.get("analyze_json");
+  try {
+    runtimeVersions = {
+      ...JSON.parse(py.runPython(
+        'import json, sys, numpy, scipy\n'
+        + 'json.dumps({"python": sys.version.split()[0], '
+        + '"numpy": numpy.__version__, "scipy": scipy.__version__})') as string),
+      pyodide: pyodideVersion,
+    };
+  } catch { /* versions are informational only */ }
 
   return {
     analyze(payload: unknown) {

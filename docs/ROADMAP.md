@@ -275,13 +275,23 @@ save/load; methods text; theme; accessibility pass.
 - [ ] Embedding results (parameter table, equation) on the graph
 
 **Page layouts**
-- [ ] Layout sheets: place several graphs on a page grid, resize,
-      master legend, export the whole layout at once
+- [x] Layout sheets: place several graphs on a page grid, resize,
+      master legend, export the whole layout at once (2026-10-03: page
+      composer with A4/Letter/custom pages, grid presets and free
+      placement with snapping and keyboard nudging, live graphs bound
+      from a picker or filled in project order, panel letters, text
+      blocks, master legend, unlinked pictures, duplicate, page export
+      as PNG/TIFF/JPEG/WebP at a DPI or vector SVG/PDF, print at the
+      page's own size; `web/src/project/layout.ts`)
 
 **Exporting images**
-- [ ] PDF export (vector), transparent background, export all graphs as
+- [x] PDF export (vector), transparent background, export all graphs as
       a zip, copy image to clipboard, journal presets (width in mm, DPI,
-      font floor)
+      font floor) (2026-10-03: plus DPI written into PNGs, print
+      colours for dark theme, file names from sheet names, last
+      settings remembered per project; EPS stays out of scope)
+- [x] Printing: Ctrl/Cmd+P or Print in a sheet's menu prints the
+      selected sheet only (table, results, graph or layout page)
 
 **Project organisation (navigator)**
 - [x] Multi-sheet projects: any number of data tables of any type, each
@@ -295,7 +305,11 @@ save/load; methods text; theme; accessibility pass.
 - [x] Preferences: default table type, error bar, CI method, scheme,
       theme, decimal places; keyboard shortcuts list
 - [x] Autosave to the browser with recovery of the last session
-- [ ] "How to cite" text and version stamp in the exported methods
+- [x] "How to cite" text and version stamp in the exported methods
+      (2026-10-03: info popover and methods text; version and build
+      from the build, SciPy/NumPy/Python/Pyodide versions from the
+      running engine; plain and BibTeX citations; a generic methods
+      sentence for analyses without their own)
 
 ### Order of work
 1. Engine first, in parallel: multiple-variables analyses, parts of whole,

@@ -1,0 +1,139 @@
+/* Page-layout composer. Uses the design tokens from App.css. */
+
+main.layout-main {
+  display: flex; flex-direction: column; align-items: stretch; gap: 12px;
+  padding: 20px 24px; min-width: 0;
+}
+.layout-section .check-row { flex-wrap: nowrap; align-items: flex-start; }
+.layout-section .check-row input { flex: none; margin-top: 2px; }
+.layout-toolbar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px;
+  background: var(--surface); border: 1px solid var(--border-soft);
+  border-radius: var(--radius); box-shadow: var(--shadow); padding: 10px 14px;
+}
+.layout-title { margin: 0 4px 0 0; font-size: 15px; font-weight: 650; color: var(--ink); }
+.layout-group { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.layout-group button { padding: 5px 11px; font-size: 12.5px; }
+.layout-group button:disabled, .layout-section button:disabled { opacity: 0.45; cursor: default; }
+.grid-preset { display: inline-flex; padding: 5px 7px; color: var(--ink-2); }
+.grid-preset[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); }
+.mini-field {
+  display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; color: var(--ink-2);
+}
+.mini-field input {
+  width: 46px; padding: 4px 6px; border: 1px solid var(--border); border-radius: 6px;
+  background: var(--surface); color: var(--ink); font: inherit; font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+.mini-field select, .layout-export select { padding: 4px 8px; font-size: 12.5px; }
+.layout-export .mini-field input { width: 60px; }
+.layout-export { margin-left: auto; }
+.layout-notes { display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 0 4px; }
+
+.layout-body {
+  display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; align-items: start;
+}
+.layout-scroll {
+  overflow: auto; min-width: 0; max-height: calc(100vh - 190px);
+  background: var(--inset); border-radius: var(--radius); padding: 16px;
+}
+.layout-stage { position: relative; margin: 0 auto; }
+.layout-page {
+  position: absolute; left: 0; top: 0; transform-origin: 0 0;
+  box-shadow: 0 2px 14px rgba(0, 0, 0, 0.16); outline: 1px solid var(--border-soft);
+  overflow: hidden; touch-action: none;
+}
+/* Checkerboard: the page has no background */
+.layout-page.is-transparent {
+  background-color: var(--surface);
+  background-image:
+    linear-gradient(45deg, var(--grid) 25%, transparent 25%, transparent 75%, var(--grid) 75%),
+    linear-gradient(45deg, var(--grid) 25%, transparent 25%, transparent 75%, var(--grid) 75%);
+  background-size: 16px 16px; background-position: 0 0, 8px 8px;
+}
+.layout-margin {
+  position: absolute; border: 1px dashed var(--accent-border); pointer-events: none;
+  opacity: 0.6;
+}
+.layout-item { position: absolute; cursor: move; outline: none; user-select: none; }
+.layout-item::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  border: 1px dashed transparent; transition: border-color 150ms ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .layout-item:hover::after { border-color: var(--axis); }
+}
+.layout-item.selected::after { border: 2px solid var(--accent); }
+.layout-item:focus-visible::after {
+  border: 2px solid var(--accent); box-shadow: 0 0 0 3px var(--accent-soft);
+}
+/* The live plot is a picture here: pointer input moves the item. */
+.layout-graph {
+  position: absolute; inset: 0; display: flex; flex-direction: column; pointer-events: none;
+}
+.layout-graph .plot { flex: 1 1 auto; min-height: 0; padding: 0; }
+.layout-graph .empty-hint { margin: auto; padding: 8px; font-size: 12px; text-align: center; }
+.layout-item.no-legend .legend { display: none; }
+.layout-empty {
+  position: absolute; inset: 0; display: flex; flex-direction: column; gap: 8px;
+  align-items: center; justify-content: center; text-align: center;
+  border: 1.5px dashed var(--axis); border-radius: 6px; color: var(--muted); font-size: 13px;
+  background: color-mix(in srgb, var(--inset) 50%, transparent);
+}
+.layout-empty button { font-size: 12.5px; padding: 5px 12px; }
+.layout-picture {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain;
+  pointer-events: none;
+}
+.layout-svg, .layout-letters { position: absolute; left: 0; top: 0; pointer-events: none; }
+.layout-handle {
+  position: absolute; right: -7px; bottom: -7px; width: 14px; height: 14px;
+  border-radius: 3px; background: var(--accent); border: 2px solid var(--surface);
+  cursor: nwse-resize; touch-action: none;
+}
+
+.layout-inspector {
+  background: var(--surface); border: 1px solid var(--border-soft);
+  border-radius: var(--radius); box-shadow: var(--shadow);
+  max-height: calc(100vh - 190px); overflow-y: auto;
+}
+.layout-fieldset { border: none; margin: 0; padding: 0; min-width: 0; }
+.layout-section {
+  display: flex; flex-direction: column; gap: 8px; padding: 14px 16px;
+  border-bottom: 1px solid var(--border-soft);
+}
+.layout-section:last-child { border-bottom: none; }
+.layout-section h3 { margin: 0; font-size: 13px; font-weight: 650; color: var(--ink); }
+.layout-section > button { align-self: flex-start; font-size: 12.5px; padding: 5px 12px; }
+.layout-section textarea {
+  width: 100%; resize: vertical; font: inherit; color: var(--ink); background: var(--inset);
+  border: 1px solid var(--border); border-radius: var(--radius-s); padding: 6px 8px;
+}
+.layout-row { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: flex-end; }
+.layout-row .field-num input { width: 72px; }
+.layout-geom .field-num input { width: 58px; }
+.field-unit { font-weight: 400; color: var(--muted); }
+.field-color input[type="color"] {
+  width: 44px; height: 30px; padding: 2px; border: 1px solid var(--border);
+  border-radius: 6px; background: var(--surface);
+}
+.layout-seg { display: flex; flex-wrap: wrap; gap: 4px; }
+.layout-seg button { padding: 4px 10px; font-size: 12.5px; }
+.layout-seg button[aria-checked="true"] {
+  background: var(--accent-soft); color: var(--accent); font-weight: 600;
+}
+.btn-danger-ghost { color: var(--danger); background: transparent; border: 1px solid var(--border); }
+
+@media (max-width: 1100px) {
+  .layout-body { grid-template-columns: minmax(0, 1fr); }
+  .layout-inspector, .layout-scroll { max-height: none; }
+  .layout-export { margin-left: 0; }
+}
+@media (max-width: 760px) {
+  main.layout-main { padding: 14px; }
+  .layout-group button, .mini-field select, .layout-seg button { min-height: 36px; }
+  .mini-field input { min-height: 34px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .layout-item::after { transition: none; }
+}

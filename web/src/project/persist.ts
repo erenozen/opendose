@@ -9,6 +9,7 @@ import {
 } from "./builtin.ts";
 import { parseDerivedLink } from "./derived.ts";
 import type { IdFactory } from "./ids.ts";
+import { sanitizeLayoutFields } from "./layout.ts";
 import {
   makeDataSheet, makeGraphSheet, makeProject, makeResultsSheet, repairLinks,
 } from "./ops.ts";
@@ -194,6 +195,7 @@ function normalizeV2(r: Record<string, unknown>, ctx: LoadContext): Project {
           ...common, kind: "layout",
           graphIds: Array.isArray(s.graphIds) ? s.graphIds.filter((x) => typeof x === "string") : [],
           grid: { rows: int(g.rows, 1), cols: int(g.cols, 2) },
+          ...sanitizeLayoutFields(s),
         });
         break;
       }
