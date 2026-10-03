@@ -1,6 +1,7 @@
 import "./App.css";
 import "./export/export.css";
 import "./layout/layout.css";
+import "./app/organise.css";
 import "./app/print.css";
 import { useProject } from "./app/context";
 import { blankProject } from "./app/factory";
@@ -13,6 +14,7 @@ import { useDerivedSync } from "./app/useDerivedSync";
 import { usePrintSetup } from "./app/usePrint";
 import { useShortcuts } from "./app/useShortcuts";
 import FamilyWorkspace from "./components/FamilyWorkspace";
+import FloatingNotes from "./components/FloatingNotes";
 import Header from "./components/Header";
 import InfoSheetView from "./components/InfoSheetView";
 import LayoutSheetView from "./components/LayoutSheetView";
@@ -105,7 +107,10 @@ function Shell() {
           <div className="nav-scrim" aria-hidden="true" onClick={() => ui.setDrawerOpen(false)} />
         )}
         <Navigator />
-        {view}
+        <div className="workbench">
+          {sheet && <FloatingNotes sheet={sheet} />}
+          {view}
+        </div>
       </div>
       <SimulateHost />
     </div>

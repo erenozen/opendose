@@ -55,3 +55,27 @@ export function SnowflakeIcon() {
     </svg>
   );
 }
+
+/** A user-defined group of sheets in the navigator. */
+export function FolderIcon({ open = false }: { open?: boolean }) {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor"
+      strokeWidth="1.3" strokeLinejoin="round" aria-hidden="true" className="sheet-icon">
+      {open
+        ? <path d="M1.5 11.5V3.2c0-.4.3-.7.7-.7h2.9l1.3 1.4h4.4c.4 0 .7.3.7.7v1.2M1.5 11.5l1.6-5h9.4l-1.6 5H1.5Z" />
+        : <path d="M1.5 11.5V3.2c0-.4.3-.7.7-.7h2.9l1.3 1.4h5.4c.4 0 .7.3.7.7v6.2c0 .4-.3.7-.7.7H1.5Z" />}
+    </svg>
+  );
+}
+
+/** A floating note. */
+export function NoteIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor"
+      strokeWidth="1.3" strokeLinejoin="round" aria-hidden="true" className="sheet-icon">
+      <path d="M2 2.5h10v6.2L8.7 12H2V2.5Z" />
+      <path d="M12 8.7H8.7V12" />
+      <path d="M4.3 5.3h5.4M4.3 7.6h3" strokeLinecap="round" />
+    </svg>
+  );
+}

@@ -5,7 +5,8 @@ import type { InfoConstant, InfoSheet, Sheet } from "../project/types";
 /**
  * Info sheet: a table of named constants on the left (experiment date,
  * notebook reference, concentrations used...) and free-text notes on the
- * right. Constants are listed read-only next to analyses for now.
+ * right. A user-formula Transform can hook a constant by name and follows
+ * its value (project/infoLinks.ts).
  */
 export default function InfoSheetView({ sheet }: { sheet: InfoSheet }) {
   const { project, apply } = useProject();

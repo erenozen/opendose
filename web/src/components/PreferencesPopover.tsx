@@ -5,16 +5,48 @@ import type { Prefs, TableType } from "../project/types";
 import { REGISTRY, TABLE_ORDER } from "../sheets/registry";
 import { ERROR_BAR_LABELS, type ErrorBarKind } from "../types";
 
-const SHORTCUTS: [string, string][] = [
-  ["Ctrl/⌘ Z", "Undo"],
-  ["Ctrl/⌘ Shift Z, Ctrl Y", "Redo"],
-  ["Arrows, Enter, Shift+Enter", "Move between table cells"],
-  ["Ctrl/⌘ E", "Exclude / include the value in a cell"],
-  ["Ctrl/⌘ Shift Enter", "Insert a row below"],
-  ["F2", "Rename the focused sheet (navigator)"],
-  ["Delete", "Delete the focused sheet (navigator)"],
-  ["Alt ↑ / ↓", "Move the focused sheet (navigator)"],
-  ["Shift F10", "Sheet menu (navigator)"],
+/** Every keyboard binding in the app, by where it works. Keep in sync
+ *  with useShortcuts, the navigator, the data grid, the layout canvas,
+ *  floating notes and the dialogs. */
+const SHORTCUTS: { area: string; keys: [string, string][] }[] = [
+  { area: "Anywhere", keys: [
+    ["Ctrl/⌘ Z", "Undo"],
+    ["Ctrl/⌘ Shift Z, Ctrl Y", "Redo"],
+    ["Ctrl/⌘ K", "Go to sheet: type part of a name or note, ↑ ↓, Enter"],
+    ["Ctrl/⌘ P", "Print the selected sheet"],
+    ["Esc", "Close a dialog, menu, popover or the navigator drawer"],
+  ] },
+  { area: "Navigator", keys: [
+    ["↑ ↓, Home, End", "Move between rows"],
+    ["→ / ←", "Expand / collapse (or go to the parent row)"],
+    ["Enter, Space", "Open the sheet or note; fold or unfold a section or group"],
+    ["F2, double-click", "Rename the sheet or group"],
+    ["Delete", "Delete the sheet, note, or group (a group's sheets stay)"],
+    ["Alt ↑ / ↓", "Move the sheet or group up / down"],
+    ["Shift F10, ⋯", "Menu: groups, templates, analyze like, notes, formats"],
+    ["* / −", "Expand all / collapse all"],
+    ["Drag a sheet", "Onto a group to move it in, a section title to take it out, another sheet to reorder"],
+  ] },
+  { area: "Data table", keys: [
+    ["Arrows, Enter, Shift Enter", "Move between cells"],
+    ["Shift arrows", "Select a block of cells"],
+    ["Ctrl/⌘ C, X, V", "Copy, cut, paste (tab-separated)"],
+    ["Delete", "Clear the selected block"],
+    ["Ctrl/⌘ E", "Exclude / include the value(s)"],
+    ["Ctrl/⌘ Shift Enter", "Insert a row below"],
+  ] },
+  { area: "Workbench", keys: [
+    ["← / → on the analysis tabs", "Switch analysis"],
+    ["Arrows on a splitter", "Resize the panes"],
+    ["Arrows on a note's grip", "Move a floating note (Shift: further)"],
+    ["Esc in a note", "Fold it into its chip"],
+  ] },
+  { area: "Layout page", keys: [
+    ["Arrows", "Move the selected item (Shift: 10 mm)"],
+    ["Alt arrows", "Resize it"],
+    ["Delete", "Remove it from the page"],
+    ["Esc", "Deselect"],
+  ] },
 ];
 
 /** Preferences: kept in this browser and copied into the open project. */
@@ -109,13 +141,16 @@ export default function PreferencesPopover() {
           <details className="advanced shortcuts">
             <summary>Keyboard shortcuts</summary>
             <section>
-              <table className="results-table">
-                <tbody>
-                  {SHORTCUTS.map(([k, v]) => (
-                    <tr key={k}><th><kbd>{k}</kbd></th><td>{v}</td></tr>
-                  ))}
-                </tbody>
-              </table>
+              {SHORTCUTS.map((g) => (
+                <table key={g.area} className="results-table shortcuts-table">
+                  <caption>{g.area}</caption>
+                  <tbody>
+                    {g.keys.map(([k, v]) => (
+                      <tr key={k}><th scope="row"><kbd>{k}</kbd></th><td>{v}</td></tr>
+                    ))}
+                  </tbody>
+                </table>
+              ))}
             </section>
           </details>
         </div>

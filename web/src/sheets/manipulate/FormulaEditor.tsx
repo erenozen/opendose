@@ -2,7 +2,10 @@
 // (engine formula_transform, mode "validate"), constants, examples and a
 // searchable function reference built from the engine's own list.
 import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useProject } from "../../app/context";
 import { getEngine } from "../../lib/engine";
+import { identifierFor, projectConstants } from "../../project/infoLinks";
+import { familyRootId } from "../../project/ops";
 import { datasetLetter } from "../../project/table";
 import type { DataTableModel } from "../../project/types";
 import {
@@ -111,6 +114,20 @@ export function FormulaEditor({ table, options, set, readOnly }: {
     return names;
   }, [table.datasets, options.constants]);
 
+  // Info-sheet constants this formula can hook (the table's own first).
+  const { project, selectedId } = useProject();
+  const infoConsts = useMemo(() => projectConstants(project,
+    selectedId ? familyRootId(project, selectedId) : null), [project, selectedId]);
+  const hookInfo = (idx: number) => {
+    const c = infoConsts[idx];
+    if (!c) return;
+    const name = identifierFor(c.name);
+    const at = options.constants.findIndex((x) => x.name.trim().toUpperCase() === name.toUpperCase());
+    const row: NamedValue = { name, value: c.value, info: c.name };
+    set({ constants: at >= 0 ? options.constants.map((x, j) => (j === at ? row : x))
+      : [...options.constants, row] });
+  };
+
   const setConst = (i: number, patch: Partial<NamedValue>) => set({
     constants: options.constants.map((c, j) => (j === i ? { ...c, ...patch } : c)),
   });
@@ -182,8 +199,16 @@ export function FormulaEditor({ table, options, set, readOnly }: {
                 </td>
                 <td>
                   <input value={c.value} inputMode="decimal" aria-label={`${c.name || `Constant ${i + 1}`} value`}
-                    readOnly={readOnly} className="const-value"
+                    readOnly={readOnly || !!c.info} className="const-value"
+                    title={c.info ? `From the info constant “${c.info}”` : undefined}
                     onChange={(e) => setConst(i, { value: e.target.value })} />
+                  {c.info && (
+                    <button type="button" className="chip-btn const-hook" disabled={readOnly}
+                      title={`Follows the info constant “${c.info}”. Click to type a value instead.`}
+                      aria-label={`Unhook ${c.name} from the info constant ${c.info}`}
+                      onClick={() => set({ constants: options.constants.map((x, j) => (j === i
+                        ? { name: x.name, value: x.value } : x)) })}>info</button>
+                  )}
                 </td>
                 <td>
                   <button type="button" className="icon-btn" disabled={readOnly}
@@ -202,6 +227,18 @@ export function FormulaEditor({ table, options, set, readOnly }: {
             { name: nextConstName(options.constants), value: "1" }] })}>
           + Add a constant
         </button>
+        {infoConsts.length > 0 && (
+          <select className="const-info-pick" value="" disabled={readOnly}
+            aria-label="Use a constant from an info sheet"
+            onChange={(e) => { if (e.target.value !== "") hookInfo(Number(e.target.value)); }}>
+            <option value="">Use an info constant…</option>
+            {infoConsts.map((c, i) => (
+              <option key={`${c.sheetId}:${c.name}`} value={i}>
+                {c.name} = {c.value} ({c.sheet})
+              </option>
+            ))}
+          </select>
+        )}
         {options.constants.length > 0 && table.datasets.length > 1 && (
           <label className="check-row">
             <input type="checkbox" checked={options.constantsPerDataset} disabled={readOnly}

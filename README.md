@@ -98,6 +98,15 @@ from the jsDelivr CDN, ~30 MB, then cached).
   (notes and named constants) and layout sheets, in a navigator with
   rename, duplicate (sheet, or whole family with or without data),
   delete, reorder, freeze, highlight colors and search.
+- Organising projects: templates (save a table with its analyses, graph
+  settings and formatting, with or without its data; kept in the browser
+  and as downloadable .odtemplate.json files; built-in starters such as a
+  96-well SRB IC50 plate, a two-group t test, one-way ANOVA with Tukey and
+  a Kaplan-Meier comparison), "Analyze and graph like…" another table,
+  one graph's format applied to every graph of its kind, user-defined
+  sheet groups (drag sheets in, fold, rename), floating notes on any
+  sheet, info sheets nested under their table with constants usable in
+  user formulas, collapse / expand all and Ctrl/Cmd+K to go to any sheet.
 - Multiple-variables tables (one row per observation, continuous or
   categorical variables, row titles as IDs): descriptive statistics,
   correlation matrix with a heat map, multiple linear regression

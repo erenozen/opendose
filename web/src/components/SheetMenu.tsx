@@ -12,13 +12,15 @@ export interface MenuAction {
 /**
  * Popup menu for one sheet: actions plus a highlight-color row. Opens at a
  * point (right click) or under its anchor; arrow keys move, Escape closes
- * and gives focus back to whatever opened it.
+ * and gives focus back to whatever opened it. Without a sheet (section,
+ * group and note rows) it is a plain action menu named by `label`.
  */
-export default function SheetMenu({ sheet, at, actions, onHighlight, onClose }: {
-  sheet: Sheet;
+export default function SheetMenu({ sheet, label, at, actions, onHighlight, onClose }: {
+  sheet?: Sheet;
+  label?: string;
   at: { x: number; y: number };
   actions: (MenuAction | "sep")[];
-  onHighlight: (c: HighlightColor | null) => void;
+  onHighlight?: (c: HighlightColor | null) => void;
   onClose: (refocus: boolean) => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -71,7 +73,7 @@ export default function SheetMenu({ sheet, at, actions, onHighlight, onClose }: 
 
   return (
     <div ref={ref} className="sheet-menu" role="menu"
-      aria-label={`Actions for ${sheet.name}`}
+      aria-label={`Actions for ${sheet?.name ?? label ?? "item"}`}
       style={{ left: pos.x, top: pos.y }} onKeyDown={onKeyDown}>
       {actions.map((a, i) => a === "sep" ? (
         <div key={`sep${i}`} className="menu-sep" role="separator" />
@@ -88,6 +90,7 @@ export default function SheetMenu({ sheet, at, actions, onHighlight, onClose }: 
           {a.shortcut && <kbd>{a.shortcut}</kbd>}
         </button>
       ))}
+      {sheet && onHighlight && <>
       <div className="menu-sep" role="separator" />
       <div className="menu-colors" role="group" aria-label="Highlight color">
         <button type="button" role="menuitemradio" tabIndex={-1}
@@ -101,6 +104,7 @@ export default function SheetMenu({ sheet, at, actions, onHighlight, onClose }: 
             onClick={() => { onHighlight(c); onClose(true); }} />
         ))}
       </div>
+      </>}
     </div>
   );
 }

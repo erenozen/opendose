@@ -8,8 +8,10 @@ import {
   GRAPH_SURVIVAL, GRAPH_XY,
 } from "./builtin.ts";
 import { parseDerivedLink } from "./derived.ts";
+import { repairGroups } from "./groups.ts";
 import type { IdFactory } from "./ids.ts";
 import { sanitizeLayoutFields } from "./layout.ts";
+import { parseNotes } from "./notes.ts";
 import {
   makeDataSheet, makeGraphSheet, makeProject, makeResultsSheet, repairLinks,
 } from "./ops.ts";
@@ -37,6 +39,7 @@ export function serializeProject(p: Project,
     version: 2,
     title: p.title,
     prefs: p.prefs,
+    ...(p.groups?.length ? { groups: p.groups } : {}),
     sheets,
   }, null, 2);
 }
@@ -68,6 +71,18 @@ const obj = (v: unknown): Record<string, unknown> =>
 function titlesOf(v: unknown): { x: string; y: string } {
   const o = obj(v);
   return { x: str(o.x), y: str(o.y) };
+}
+
+/** Graph settings from a file (or a template): titles and scheme are
+ *  checked; kind-specific keys and `format` pass through (the format is
+ *  validated when it is read, see src/graph). */
+export function parseGraphSettings(v: unknown, fallbackScheme: GraphSettings["scheme"]): GraphSettings {
+  const st = obj(v);
+  return {
+    ...st,
+    titles: titlesOf(st.titles),
+    scheme: isSchemeId(st.scheme) ? st.scheme : fallbackScheme,
+  };
 }
 
 /** v1: {opendose_project: 1, mode, x, datasets, options, columnOptions,
@@ -126,18 +141,22 @@ function normalizeV2(r: Record<string, unknown>, ctx: LoadContext): Project {
     { ...ctx.prefs, theme: "auto" });
   void _t;
   const seen = new Set<string>();
+  const noteIds = new Set<string>();
   const sheets: Sheet[] = [];
   for (const item of r.sheets as unknown[]) {
     const s = obj(item);
     let id = str(s.id);
     if (!id || seen.has(id)) id = ctx.ids();
     seen.add(id);
+    const floatingNotes = parseNotes(s.floatingNotes, ctx.ids, noteIds);
     const common = {
       id,
       name: str(s.name) || "Untitled",
       frozen: s.frozen === true ? true : undefined,
       highlight: HIGHLIGHT_COLORS.includes(s.highlight as HighlightColor)
         ? s.highlight as HighlightColor : undefined,
+      ...(str(s.groupId) ? { groupId: str(s.groupId) } : {}),
+      ...(floatingNotes ? { floatingNotes } : {}),
     };
     switch (s.kind) {
       case "data": {
@@ -159,16 +178,11 @@ function normalizeV2(r: Record<string, unknown>, ctx: LoadContext): Project {
         break;
       case "graph": {
         if (!str(s.parentId) || !str(s.graphType)) break;
-        const st = obj(s.settings);
         const snap = obj(s.snapshot);
         sheets.push({
           ...common, kind: "graph", parentId: str(s.parentId),
           resultsId: str(s.resultsId) || null, graphType: str(s.graphType),
-          settings: {
-            ...st,
-            titles: titlesOf(st.titles),
-            scheme: isSchemeId(st.scheme) ? st.scheme : prefs.scheme,
-          },
+          settings: parseGraphSettings(s.settings, prefs.scheme),
           ...(s.snapshot && common.frozen ? {
             snapshot: {
               table: normalizeTable(snap.table), result: snap.result ?? null,
@@ -206,7 +220,8 @@ function normalizeV2(r: Record<string, unknown>, ctx: LoadContext): Project {
     if (s.frozen === undefined) delete s.frozen;
     if (s.highlight === undefined) delete s.highlight;
   }
-  return repairLinks(makeProject(prefs, sheets, str(r.title) || "Untitled project"));
+  return repairGroups(repairLinks(makeProject(prefs, sheets, str(r.title) || "Untitled project")),
+    r.groups);
 }
 
 function parseSimulationSpec(v: unknown): SimulationSpec | undefined {
