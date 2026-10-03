@@ -13,8 +13,10 @@ export interface ProjectApi {
   apply: (fn: (p: Project) => Project, key?: string | null) => Project;
   undo: () => void;
   redo: () => void;
-  /** Replace the whole project (open, restore, new). Forgets history. */
-  replace: (p: Project, select?: string | null) => void;
+  /** Replace the whole project (open, restore, new). Forgets history.
+   *  `readOnly` opens it as a shared project (edits refused until copied);
+   *  any other replace ends read-only mode. */
+  replace: (p: Project, select?: string | null, opts?: { readOnly?: boolean }) => void;
 
   selectedId: string | null;
   select: (id: string | null) => void;
@@ -34,6 +36,10 @@ export interface ProjectApi {
   bootEngine: () => void;
 
   results: ResultsCache;
+
+  /** A shared project opened from a link: viewable, not editable, until
+   *  the user makes a copy (src/share). */
+  readOnly: boolean;
 }
 
 export const Ctx = createContext<ProjectApi | null>(null);
