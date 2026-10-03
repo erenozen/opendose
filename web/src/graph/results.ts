@@ -56,14 +56,25 @@ export function extractComparisons(result: unknown, names: string[]): Comparison
   }
   if (r.dunns) return fromTable(r.dunns, names, "multiple comparisons");
   if (Array.isArray(r.comparisons)) return fromTable(r, names, "multiple comparisons");
-  if (r.analysis === "ttest" && Array.isArray(r.names) && typeof r.p === "number") {
+  const p2 = twoGroupP(r);
+  if (r.analysis === "ttest" && Array.isArray(r.names) && p2 !== null) {
     const [a, b] = r.names as string[];
     if (!names.includes(a) || !names.includes(b)) return null;
-    const label = r.U !== undefined || r.mann_whitney_u !== undefined ? "Mann-Whitney test"
-      : r.W !== undefined || r.wilcoxon_w !== undefined ? "Wilcoxon test" : "Two-group test";
-    return { label, comparisons: [{ a, b, p: r.p }], unmatched: 0 };
+    return { label: TEST_LABELS[String(r.test)] ?? "Two-group test",
+      comparisons: [{ a, b, p: p2 }], unmatched: 0 };
   }
   return null;
+}
+
+const TEST_LABELS: Record<string, string> = {
+  unpaired_t: "Unpaired t test", welch_t: "Welch's t test", paired_t: "Paired t test",
+  mann_whitney: "Mann-Whitney test", wilcoxon_matched_pairs: "Wilcoxon matched-pairs test",
+};
+
+/** Two-tailed P of a two-group test (engine key `p_two_tailed`). */
+function twoGroupP(r: Any): number | null {
+  const p = r?.p_two_tailed ?? r?.p;
+  return typeof p === "number" && Number.isFinite(p) ? p : null;
 }
 
 const fmt = (v: unknown) => (typeof v === "number" && Number.isFinite(v)
@@ -75,7 +86,9 @@ function esc(s: string): string {
 
 /** Overall P value line(s) of a result, or "" when it has none. */
 function pvalueBlock(r: Any): string {
-  if (r.analysis === "ttest" && typeof r.p === "number") return formatP(r.p);
+  if (r.analysis === "ttest" && twoGroupP(r) !== null) {
+    return `${TEST_LABELS[String(r.test)] ?? "Two-group test"}: ${formatP(twoGroupP(r)!)}`;
+  }
   if (r.analysis === "anova") {
     if (r.kind === "nonparametric") return `Kruskal-Wallis ${formatP(r.p)}`;
     if (r.table?.p != null) return `One-way ANOVA ${formatP(r.table.p)}`;

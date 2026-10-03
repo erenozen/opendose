@@ -288,8 +288,10 @@ test("comparisons from engine results draw brackets with stars", () => {
   const l = applyFormat(columnTraces(), columnLayout(), { letters: { show: true } },
     { ...ctx, categorical: true, comparisons: set.comparisons });
   assert.deepEqual(l.layout.annotations.map((a: Trace) => a.text), ["a", "b", "b"]);
-  const tt = extractComparisons({ analysis: "ttest", p: 0.03, names: ["B", "C"] }, ["A", "B", "C"]);
+  const tt = extractComparisons({ analysis: "ttest", test: "mann_whitney", p_two_tailed: 0.03,
+    names: ["B", "C"] }, ["A", "B", "C"]);
   assert.deepEqual(tt?.comparisons, [{ a: "B", b: "C", p: 0.03 }]);
+  assert.equal(tt?.label, "Mann-Whitney test");
   const blocks = resultBlocks(anova);
   assert.equal(blocks.pvalue, "One-way ANOVA P = 0.0001");
 });
