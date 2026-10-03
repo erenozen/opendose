@@ -235,6 +235,11 @@ export function MvXYPlot({ graph, table, titles, scheme }: PlotProps) {
     const layout = baseLayout(chrome, titles.x || s.x, titles.y || s.y, {
       showlegend: legend || (!!sizeVar && smax > smin),
     });
+    if (continuousColor) {
+      // the color bar takes the right edge; the size legend goes below
+      layout.legend = { ...layout.legend, orientation: "h", x: 0, y: -0.18, yanchor: "top" };
+      layout.margin = { l: 64, r: 16, t: 12, b: 90 };
+    }
     return { traces, layout };
   }, [dark, col, s, colorVar, sizeVar, table, titles, scheme]);
 
@@ -676,6 +681,7 @@ export function ScreePlot({ result, titles, scheme }: PlotProps<unknown, PcaResu
         legend: { x: 1, xanchor: "right", y: 1, font: { color: chrome.ink, size: 12 }, bgcolor: "rgba(0,0,0,0)" },
       });
     layout.xaxis = { ...layout.xaxis, tickvals: pcs, ticktext: pcs.map((p) => `PC${p}`), showgrid: false };
+    layout.yaxis = { ...layout.yaxis, rangemode: "tozero" };
     if (result.selection === "kaiser" && result.standardized) {
       layout.shapes = [{ type: "line", xref: "paper", yref: "y", x0: 0, x1: 1, y0: 1, y1: 1,
         line: { color: chrome.muted, width: 1.5, dash: "dot" } }];

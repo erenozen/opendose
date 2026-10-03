@@ -1,9 +1,10 @@
 // End-to-end smoke test: boots the app in headless Chromium, waits for
 // Pyodide + SciPy, checks the default fit, then exercises the plate-import
 // workflow with the synthetic SRB fixture and checks both cell-line fits,
-// the other built-in table types, Prism imports, and the multi-sheet
+// the other built-in table types, Prism imports, the multi-sheet
 // project workflow (new table, rename, undo/redo, delete, save/open,
-// v1 migration, restore from autosave).
+// v1 migration, restore from autosave), and the multiple-variables
+// analyses (regression, PCA, logistic, correlation, extract & rearrange).
 import { chromium } from "playwright";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -226,6 +227,90 @@ await page.locator(".restore-banner").getByRole("button", { name: "Restore" }).c
 expect("restore from autosave", await navRow("Two-factor data").count() === 1);
 await page.waitForSelector(".results-table", { timeout: 180000 });
 await page.waitForTimeout(800);
+
+// --- multiple-variables table: example data, regression, PCA, logistic,
+// correlation, extract & rearrange. Expected numbers come from the engine
+// run natively on the same 30 rows (web/src/sheets/multivariable/sample.ts):
+// Response ~ Dose + Weight + Sex gives b(Dose) = 2.674371, R2 = 0.915816,
+// F(3, 26) = 94.2819; standardized PCA of the four continuous variables
+// gives eigenvalue(PC1) = 2.218848 (55.47% of variance), and parallel
+// analysis (1000 sets, seed 0, 95th percentile 1.6729 / 1.2588) keeps one
+// PC; Responder ~ Dose gives OR = 1.319196 and Dose at 50% = 5.193526;
+// Pearson r(Dose, Response) = 0.920204. Shown with 4 significant digits.
+await page.getByRole("button", { name: "New data table" }).click();
+const mvDialog = page.locator(".new-table-dialog");
+await mvDialog.locator('input[name="table-type"][value="multivariable"]').check();
+await mvDialog.getByText("Example data").click();
+await mvDialog.locator('input[aria-label="Table name"]').fill("Dose study");
+await mvDialog.getByRole("button", { name: "Create table" }).click();
+await page.waitForSelector(".mv-results h3:has-text('Descriptive statistics')", { timeout: 60000 });
+const mvCard = () => page.locator(".result-card.mv-results").first();
+const rowText = async (label) => (await mvCard()
+  .locator("tr", { has: page.locator("th", { hasText: label }) }).first().innerText())
+  .replace(/\s+/g, " ");
+expect("MV example: 30 observations with row titles",
+  (await rowText("Number of values")).includes("30")
+  && await page.locator(".data-table .row-label input[value='S30']").count() === 1);
+expect("MV graph of the data draws with its options",
+  await page.locator(".mv-graph-options").count() === 1
+  && await page.locator(".plot.js-plotly-plot").count() >= 1);
+
+const mvAnalyze = async (label, heading) => {
+  await page.getByRole("button", { name: "Analyze", exact: true }).click();
+  await page.getByRole("menuitem", { name: label }).click();
+  await page.waitForSelector(`.mv-results h3:has-text('${heading}')`, { timeout: 60000 });
+  await page.waitForTimeout(400);
+};
+
+await mvAnalyze(/Multiple linear regression/, "Multiple linear regression of Response");
+const doseRow = await rowText("β1: Dose");
+const r2Row = await rowText("R squared");
+const fRow = await rowText(/^F$/);
+console.log("MV regression:", doseRow, "|", r2Row, "|", fRow);
+expect("multiple regression: Dose coefficient 2.674", doseRow.includes("2.674"));
+expect("multiple regression: R squared 0.9158", r2Row.includes("0.9158"));
+expect("multiple regression: F (3, 26) = 94.28", fRow.includes("F (3, 26) = 94.28"));
+await page.locator(".graph-select").selectOption("mv_reg_forest");
+await page.waitForTimeout(500);
+expect("forest plot of coefficients renders",
+  await page.locator(".plot.js-plotly-plot").count() === 1);
+
+await mvAnalyze(/Principal component/, "Principal component analysis");
+await page.waitForFunction(() => document.querySelector(".mv-results")?.textContent
+  ?.includes("selected by parallel analysis"), { timeout: 60000 });
+const pc1 = (await mvCard().locator("tr", { hasText: /^PC1/ }).first().innerText())
+  .replace(/\s+/g, " ");
+console.log("MV PCA:", pc1);
+expect("PCA: PC1 eigenvalue 2.219 (55.5%)", pc1.includes("2.219") && pc1.includes("55.5%"));
+expect("PCA: parallel analysis keeps 1 component",
+  (await mvCard().innerText()).includes("1 component selected by parallel analysis"));
+await page.locator(".graph-select").selectOption("mv_pca_biplot");
+await page.waitForTimeout(500);
+expect("PCA biplot renders", await page.locator(".plot.js-plotly-plot").count() === 1);
+
+await mvAnalyze(/Logistic regression/, "Logistic regression of Responder");
+const orRow = await rowText("β1: Dose");
+const x50 = await rowText("Dose at 50% probability");
+console.log("MV logistic:", orRow, "|", x50);
+expect("logistic: odds ratio of Dose 1.319", orRow.includes("1.319"));
+expect("logistic: Dose at 50% = 5.194", x50.includes("5.194"));
+
+await mvAnalyze(/Correlation matrix/, "Correlation matrix");
+const corrRow = (await mvCard().locator("tbody tr", { hasText: /^Dose/ }).first().innerText())
+  .replace(/\s+/g, " ");
+expect("correlation matrix: r(Dose, Response) = 0.9202", corrRow.includes("0.9202"), corrRow);
+
+await mvAnalyze(/Extract/, "Extract and rearrange");
+await page.getByRole("button", { name: "+ Condition" }).click();
+await page.getByLabel("Condition 1: variable").selectOption("Sex");
+await page.getByLabel("Condition 1: value").selectOption("F");
+await page.waitForFunction(() => document.querySelector(".mv-results")?.textContent
+  ?.includes("15 of 30 rows"), { timeout: 30000 });
+await page.getByRole("button", { name: /Create data table/ }).click();
+await page.waitForSelector(".mv-results h3:has-text('Descriptive statistics')", { timeout: 60000 });
+expect("extract & rearrange creates a new 15-row table",
+  await navRow("Dose study (rearranged)").count() === 1
+  && (await mvCard().innerText()).includes("15 rows"));
 
 await page.screenshot({
   path: join(here, "app.png"),

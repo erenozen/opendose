@@ -380,6 +380,7 @@ export function PcaControls({ table, options, onChange }: ControlsProps<PcaOptio
 /* ------------------------------------------------------------ extract & rearrange */
 
 const NO_VALUE: FilterOp[] = ["is_missing", "not_missing"];
+const TEXT_OPS: FilterOp[] = ["==", "!=", "in", "not_in", "is_missing", "not_missing"];
 
 export function RearrangeControls({ table, options, onChange }: ControlsProps<RearrangeOptions>) {
   const info = variableInfo(table);
@@ -449,11 +450,19 @@ export function RearrangeControls({ table, options, onChange }: ControlsProps<Re
           {options.filters.map((f, i) => {
             const v = allVars.find((x) => x.name === f.variable);
             const ops = (Object.keys(FILTER_OP_LABELS) as FilterOp[]).filter((op) =>
-              v?.kind !== "categorical" || ["==", "!=", "in", "not_in", "is_missing", "not_missing"].includes(op));
+              v?.kind !== "categorical" || TEXT_OPS.includes(op));
             return (
               <li key={i} className="mv-rule">
                 <select aria-label={`Condition ${i + 1}: variable`} value={f.variable}
-                  onChange={(e) => editFilter(i, { variable: e.target.value })}>
+                  onChange={(e) => {
+                    const next = allVars.find((x) => x.name === e.target.value);
+                    const text = next?.kind === "categorical";
+                    editFilter(i, {
+                      variable: e.target.value,
+                      value: "",
+                      op: text && !TEXT_OPS.includes(f.op) ? "==" : f.op,
+                    });
+                  }}>
                   {allVars.map((x) => <option key={x.name} value={x.name}>{x.name}</option>)}
                 </select>
                 <select aria-label={`Condition ${i + 1}: test`} value={f.op}

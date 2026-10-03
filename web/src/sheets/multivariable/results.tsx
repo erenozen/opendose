@@ -43,14 +43,14 @@ function Card({ title, children }: { title: string; children: ReactNode }) {
 
 function KV({ title, rows }: { title?: string; rows: [string, ReactNode][] }) {
   return (
-    <>
+    <div className="mv-kv">
       {title && <h4>{title}</h4>}
       <table className="results-table goodness">
         <tbody>
           {rows.map(([k, v]) => <tr key={k}><th scope="row">{k}</th><td>{v}</td></tr>)}
         </tbody>
       </table>
-    </>
+    </div>
   );
 }
 

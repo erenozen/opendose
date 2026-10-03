@@ -104,7 +104,9 @@ export function inkOn(rgb: [number, number, number]): string {
     const l2 = lum(hexRgb(c));
     return (Math.max(l, l2) + 0.05) / (Math.min(l, l2) + 0.05);
   };
-  const dark = CHROME_LIGHT.ink;
+  // Pure black and white: whichever wins always reaches 4.5:1 on any
+  // fill (the worst case, where both tie, is about 4.6:1).
+  const dark = "#000000";
   const light = "#ffffff";
   return contrast(light) >= contrast(dark) ? light : dark;
 }
