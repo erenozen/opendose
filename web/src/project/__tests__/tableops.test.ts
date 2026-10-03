@@ -270,6 +270,20 @@ test("prepareImport: skip lines, titles, decimal comma, filters", () => {
   assert.deepEqual(tr.rows, [["b", "2"], ["c", "3"]]);
 });
 
+test("prepareImport unstacks indexed data into one column per group", () => {
+  const text = "id,value,group\n1,123,5\n2,142,6\n3,152,5\n4,116,6\n5,125,6\n6,134,5";
+  const p = prepareImport(text, { ...DEFAULT_SOURCE, titlesRow: true },
+    { ...DEFAULT_FILTER, unstack: { dataCol: 2, groupCol: 3 } });
+  assert.deepEqual(p.titles, ["5", "6"]);
+  assert.deepEqual(p.rows, [["123", "142"], ["152", "116"], ["134", "125"]]);
+  const t = emptyTable("column");
+  const out = applyImport(t, p, defaultRoles(t, p),
+    { mode: "replace", row: 0, col: 0, perDataset: 1, useTitles: true },
+    { skipBlankX: false, asteriskExcluded: true });
+  assert.deepEqual(out.datasets.map((d) => d.name), ["5", "6"]);
+  assert.deepEqual(out.datasets[1].rows.map((r) => r[0]), ["142", "116", "125"]);
+});
+
 test("applyImport replace: X, replicates per dataset, titles, exclusions, skip blank X", () => {
   const t = emptyTable("xy", { datasets: 1, subcolumns: 3, rows: 9 });
   const p = prepareImport(CSV, { ...DEFAULT_SOURCE, skipLines: 1, titlesRow: true },

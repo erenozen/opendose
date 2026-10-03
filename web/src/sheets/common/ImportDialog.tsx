@@ -314,6 +314,22 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
               onChange={(e) => setFilter({ ...filter, asteriskExcluded: e.target.checked })} />
             A value followed by * (12.5*) is imported as excluded
           </label>
+          <label className="field-check">
+            <input type="checkbox" checked={!!filter.unstack}
+              onChange={(e) => {
+                setFilter({ ...filter, unstack: e.target.checked ? { dataCol: 2, groupCol: 1 } : null });
+                setRoleOverride({});
+              }} />
+            Unstack indexed data (one row per value, with a column of group ids)
+          </label>
+          {filter.unstack && (
+            <div className="field-row">
+              {num("Values in column", filter.unstack.dataCol,
+                (v) => setFilter({ ...filter, unstack: { ...filter.unstack!, dataCol: v ?? 1 } }), { min: 1 })}
+              {num("Group ids in column", filter.unstack.groupCol,
+                (v) => setFilter({ ...filter, unstack: { ...filter.unstack!, groupCol: v ?? 1 } }), { min: 1 })}
+            </div>
+          )}
         </div>
       )}
 

@@ -156,6 +156,9 @@ export interface FilterOptions {
   missingCode: string;       // e.g. "99" or "NA": read as blank
   skipBlankX: boolean;       // drop rows whose X is blank
   asteriskExcluded: boolean; // 12.5* -> value 12.5, excluded
+  /** Indexed ("stacked") data: values in one source column, group ids in
+   *  another; each group becomes a column (1-based source columns). */
+  unstack: { dataCol: number; groupCol: number } | null;
 }
 
 export const DEFAULT_SOURCE: SourceOptions = {
@@ -164,7 +167,7 @@ export const DEFAULT_SOURCE: SourceOptions = {
 
 export const DEFAULT_FILTER: FilterOptions = {
   rowFrom: 1, rowTo: null, everyK: 1, colFrom: 1, colTo: null,
-  missingCode: "", skipBlankX: false, asteriskExcluded: true,
+  missingCode: "", skipBlankX: false, asteriskExcluded: true, unstack: null,
 };
 
 /** What the source holds after the Source and Filter steps. */
@@ -210,18 +213,44 @@ export function prepareImport(source: string | string[][], s: SourceOptions,
   const r1 = Math.min(m.length, f.rowTo ?? m.length);
   const k = Math.max(1, Math.floor(f.everyK || 1));
   const code = f.missingCode.trim();
+  const cellAt = (src: string[], c: number) => {
+    const raw = (src[c - 1] ?? "").trim();
+    if (code && raw === code) return "";
+    const star = raw.endsWith("*");
+    const body = star ? raw.slice(0, -1) : raw;
+    const v = normalizeNumber(body, decimal);
+    return star ? `${v}*` : v;
+  };
   const rows: string[][] = [];
+  const keptRows: string[][] = [];
   for (let r = r0; r <= r1; r++) {
     if ((r - r0) % k !== 0) continue;
     const src = m[r - 1];
-    rows.push(columns.map((c) => {
-      const raw = (src[c - 1] ?? "").trim();
-      if (code && raw === code) return "";
-      const star = raw.endsWith("*");
-      const body = star ? raw.slice(0, -1) : raw;
-      const v = normalizeNumber(body, decimal);
-      return star ? `${v}*` : v;
-    }));
+    keptRows.push(src);
+    rows.push(columns.map((c) => cellAt(src, c)));
+  }
+  if (f.unstack && f.unstack.dataCol >= 1 && f.unstack.groupCol >= 1) {
+    // one column per group id: numeric ids in ascending order, text ids
+    // in order of appearance; values keep their order within a group
+    const by = new Map<string, string[]>();
+    for (const src of keptRows) {
+      const id = cellAt(src, f.unstack.groupCol).replace(/\*$/, "");
+      if (!id) continue;
+      if (!by.has(id)) by.set(id, []);
+      by.get(id)!.push(cellAt(src, f.unstack.dataCol));
+    }
+    const ids = [...by.keys()];
+    if (ids.every((id) => Number.isFinite(Number(id)))) ids.sort((a, b) => Number(a) - Number(b));
+    const height = Math.max(0, ...ids.map((id) => by.get(id)!.length));
+    return {
+      delimiter, decimal,
+      titles: ids,
+      // synthetic column numbers past the source's own, so role choices
+      // made for the unstacked view do not collide with source columns
+      columns: ids.map((_, i) => width + 1 + i),
+      rows: Array.from({ length: height }, (_, r) => ids.map((id) => by.get(id)![r] ?? "")),
+      totalRows: m.length, totalColumns: width,
+    };
   }
   return {
     delimiter, decimal,
