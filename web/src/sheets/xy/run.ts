@@ -60,6 +60,11 @@ export function runNonlin(engine: EngineBridge, table: DataTableModel,
   }
   const meta = modelMeta(options.model);
   const constraints = builtinConstraints(meta, options);
+  const missing = (meta.constants ?? []).filter((c) => !(c in constraints));
+  if (missing.length) {
+    return { analysis: "dose_response", datasets: [],
+      error: `Enter ${missing.join(", ")} under Experimental constants` };
+  }
   const route = routeFor(options);
 
   const interpY = options.interpolateY
