@@ -1,10 +1,10 @@
 import type { ColumnOptionsState } from "../types";
 import {
-  COLUMN_ANALYSIS_LABELS, COLUMN_GRAPH_LABELS, COMPARISONS_LABELS,
+  COLUMN_ANALYSIS_LABELS, COMPARISONS_LABELS,
   TTEST_LABELS, TWO_WAY_DIRECTION_LABELS,
 } from "../types";
 import type {
-  ColumnAnalysisKind, ColumnGraphType, ComparisonsMethod, TTestKind,
+  ColumnAnalysisKind, ComparisonsMethod, TTestKind,
   TwoWayComparisons, TwoWayDirection,
 } from "../types";
 
@@ -43,20 +43,6 @@ export default function ColumnControls({ options, datasetNames, onChange }: Prop
         >
           {(Object.keys(COLUMN_ANALYSIS_LABELS) as ColumnAnalysisKind[]).map((k) => (
             <option key={k} value={k}>{COLUMN_ANALYSIS_LABELS[k]}</option>
-          ))}
-        </select>
-      </section>
-
-      <section>
-        <h3>Graph</h3>
-        <select
-          className="graph-select"
-          aria-label="Graph type"
-          value={options.graphType}
-          onChange={(e) => set({ graphType: e.target.value as ColumnGraphType })}
-        >
-          {(Object.keys(COLUMN_GRAPH_LABELS) as ColumnGraphType[]).map((k) => (
-            <option key={k} value={k}>{COLUMN_GRAPH_LABELS[k]}</option>
           ))}
         </select>
       </section>

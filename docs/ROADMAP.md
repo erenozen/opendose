@@ -184,7 +184,8 @@ save/load; methods text; theme; accessibility pass.
       skipped by analyses and graphs), with keyboard shortcut
 - [ ] Sort rows, insert series (start/step), decimal-place display,
       rounding, data-table limits documented, dates / elapsed times as X
-- [ ] Undo / redo for every table edit
+- [x] Undo / redo for every table edit (project-level history, Ctrl/Cmd+Z,
+      Shift+Ctrl/Cmd+Z, coalesced typing, 100 steps)
 
 **Importing and exporting data**
 - [ ] Text / CSV / TSV import with the Source · View · Filter · Placement
@@ -260,24 +261,31 @@ save/load; methods text; theme; accessibility pass.
       font floor)
 
 **Project organisation (navigator)**
-- [ ] Multi-sheet projects: any number of data tables of any type, each
+- [x] Multi-sheet projects: any number of data tables of any type, each
       with its results and graphs, plus Info/notes sheets, in a
       navigator tree; rename, duplicate (with or without data), delete,
       sort, freeze
-- [ ] Highlight and group sheets; search sheets; floating notes
+- [x] Highlight sheets; search sheets
+- [ ] User-defined sheet groups; floating notes
 - [ ] Templates: save a table-plus-settings as a reusable template;
       "apply this table's analyses and graph to another table" (Wand)
-- [ ] Preferences: default table type, error bar, CI method, scheme,
+- [x] Preferences: default table type, error bar, CI method, scheme,
       theme, decimal places; keyboard shortcuts list
-- [ ] Autosave to the browser with recovery of the last session
+- [x] Autosave to the browser with recovery of the last session
 - [ ] "How to cite" text and version stamp in the exported methods
 
 ### Order of work
 1. Engine first, in parallel: multiple-variables analyses, parts of whole,
    nested models and mixed-effects RM (the open item 3 below), summary-
    data entry, formula evaluator and manipulations, simulations.
-2. App backbone: multi-sheet project model with navigator, undo/redo,
-   project JSON v2 with migration from v1.
+2. ~~App backbone: multi-sheet project model with navigator, undo/redo,
+   project JSON v2 with migration from v1.~~ DONE (2026-10-03): see
+   `web/src/sheets/README.md` for the table-type plugin contract. The
+   Grouped / Parts of whole / Multiple variables / Nested editors are
+   final; each needs only its analyses and graphs registered. Also landed
+   with it: excluded values in the grid (Ctrl/Cmd+E, struck through,
+   skipped by analyses and graphs), subcolumn titles, summary subcolumn
+   formats stored (not yet analyzed), info-sheet constants (read-only).
 3. App features on top of the backbone, in parallel per area: new table
    types and their graphs; table editing and import/export; Format
    Graph / Format Axes / annotations; layouts and export.

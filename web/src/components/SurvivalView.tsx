@@ -8,9 +8,8 @@ import {
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-interface Props {
+interface PlotProps {
   result: Record<string, any> | null;
-  exportSlot?: React.ReactNode;
   scheme?: SchemeId;
   xTitle?: string;
   yTitle?: string;
@@ -21,10 +20,11 @@ function fmtP(p: any): string {
   return p < 0.0001 ? "< 0.0001" : formatSig(p, 4);
 }
 
-export default function SurvivalView({
-  result, exportSlot, scheme = DEFAULT_SCHEME,
+/** Kaplan-Meier curves (the graph). */
+export function SurvivalPlot({
+  result, scheme = DEFAULT_SCHEME,
   xTitle = "Time", yTitle = "Percent survival",
-}: Props) {
+}: PlotProps) {
   const el = useRef<HTMLDivElement>(null);
   const [dark, setDark] = useState(isDarkMode());
 
@@ -90,6 +90,11 @@ export default function SurvivalView({
          toImageButtonOptions: { format: "svg", filename: "survival" } });
   }, [result, dark, scheme, xTitle, yTitle]);
 
+  return <div className="plot" ref={el} />;
+}
+
+/** Kaplan-Meier table and curve comparison tests (the results sheet). */
+export function SurvivalResults({ result }: { result: Record<string, any> | null }) {
   if (!result) return null;
   if (result.error) {
     return <div className="results-error">
@@ -99,12 +104,7 @@ export default function SurvivalView({
   }
 
   return (
-    <>
-      <div className="plot-card">
-        <div className="plot" ref={el} />
-        {exportSlot}
-      </div>
-      <div className="result-card">
+    <div className="result-card">
         <h3>Kaplan-Meier survival analysis</h3>
         <table className="results-table">
           <thead>
@@ -148,7 +148,6 @@ export default function SurvivalView({
             </tbody>
           </table>
         )}
-      </div>
-    </>
+    </div>
   );
 }

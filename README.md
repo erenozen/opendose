@@ -21,8 +21,11 @@ produced by commercial software (see `docs/prism-validation.md`).
   implements. Runs natively for tests and in the browser via Pyodide.
 - `engine/tests/`: validation suite (`pytest`). Includes the reference
   dataset used for number-level cross-validation (docs/prism-validation.md).
-- `web/`: Vite + React + TypeScript SPA. Grouped data table with Excel
-  paste, analysis controls, Plotly graphs, publication-style results sheets.
+- `web/`: Vite + React + TypeScript SPA. Multi-sheet projects (data
+  tables, info sheets, results, graphs, layouts) in a navigator, a data
+  grid with Excel paste, analysis controls, Plotly graphs,
+  publication-style results sheets. `web/src/sheets/README.md` describes
+  how table types plug in.
 - `docs/prism-validation.md`: the numeric validation protocol and records.
 
 ## Develop
@@ -33,6 +36,10 @@ produced by commercial software (see `docs/prism-validation.md`).
 
 # web app (syncs the Python engine into public/ first)
 cd web && npm run dev
+
+# web unit tests (project model) and end-to-end checks (dev server running)
+cd web && npm run test:unit
+cd web && node scripts/e2e-check.mjs && node scripts/e2e-tiff.mjs
 ```
 
 The dev server needs internet access on first load (Pyodide + SciPy come
@@ -70,7 +77,22 @@ from the jsDelivr CDN, ~30 MB, then cached).
   shift with pA2.
 - Survival mode: Kaplan-Meier, log-rank, Gehan-Breslow-Wilcoxon, hazard
   ratio. Contingency mode: Fisher/chi-square/OR/RR.
-- App: project save/load (JSON), Prism file import (.prism and .pzfx),
+- Projects: any number of data tables of eight formats (XY, Column,
+  Grouped, Contingency, Survival, Parts of whole, Multiple variables,
+  Nested), each with its results and graphs as a family, plus info sheets
+  (notes and named constants) and layout sheets, in a navigator with
+  rename, duplicate (sheet, or whole family with or without data),
+  delete, reorder, freeze, highlight colors and search. Grouped, Parts of
+  whole, Multiple variables and Nested tables have their final editor;
+  their analyses and graphs come next.
+- Editing: project-wide undo/redo (Ctrl/Cmd+Z, Shift+Ctrl/Cmd+Z),
+  keyboard navigation in the grid, excluded values (Ctrl/Cmd+E: kept
+  visible, struck through, skipped by analyses and graphs), subcolumn and
+  row titles, summary-data formats stored with the table.
+- App: project save/load (JSON v2; v1 files open and migrate), autosave
+  to the browser with "Restore last session?", preferences (default table
+  type, error bars, CI method, color scheme, theme, results precision),
+  Prism file import (.prism and .pzfx, one or all tables),
   auto-generated methods text, plate import (SRB/MTT), column graphs
   (scatter / bar / box / violin), editable axis titles, graph color
   schemes (default, colorblind safe, black and white for print,

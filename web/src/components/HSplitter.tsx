@@ -2,7 +2,7 @@ import { useRef } from "react";
 
 // Draggable horizontal gutter between stacked islands: dragging resizes
 // the island above it (content below reflows). The sibling above may be
-// a .pane wrapper (App columns) or the island itself (ContingencyPanel).
+// a .pane wrapper (workbench columns) or the island itself.
 export default function HSplitter() {
   const drag = useRef<{ el: HTMLElement; h0: number; y0: number } | null>(
     null);

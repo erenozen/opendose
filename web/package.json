@@ -10,6 +10,7 @@
     "prebuild": "npm run sync-py",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
+    "test:unit": "node --test 'src/**/__tests__/*.test.ts'",
     "preview": "vite preview"
   },
   "dependencies": {

@@ -162,6 +162,33 @@ export interface OptionsState {
   schildSlopeUnity: boolean; // ec50_shift: constrain SchildSlope = 1
 }
 
+export const DEFAULT_XY_OPTIONS: OptionsState = {
+  model: "log_inhibitor_vs_response_4pl",
+  xIsLog: false,
+  errorBars: "sd",
+  top: { enabled: false, value: "100" },
+  bottom: { enabled: false, value: "0" },
+  hillSlope: { enabled: false, value: "-1" },
+  normalize: {
+    enabled: false,
+    zeroMode: "smallest", zeroValue: "0",
+    hundredMode: "largest", hundredValue: "100",
+    asPercent: true,
+    subcolumns: "mean",
+  },
+  weighting: "none",
+  ciMethod: "asymptotic",
+  routEnabled: false,
+  routQ: "1",
+  bands: "none",
+  diagnostics: false,
+  interpolateY: "",
+  sharedParams: [],
+  modelConstants: {},
+  antagonist: "",
+  schildSlopeUnity: true,
+};
+
 // --- engine result shapes ---
 
 export interface ParamEntry {
@@ -242,8 +269,6 @@ export interface AnalysisResult {
 }
 
 // --- column-table statistics ---
-
-export type TableMode = "xy" | "column" | "contingency" | "survival";
 
 export type ColumnAnalysisKind =
   | "column_statistics"
@@ -331,8 +356,26 @@ export interface ColumnOptionsState {
   twoWayComparisons: TwoWayComparisons;
   twoWayDirection: TwoWayDirection;
   rmTwoDesign: "mixed" | "both";
-  graphType: ColumnGraphType;
 }
+
+export const DEFAULT_COLUMN_OPTIONS: ColumnOptionsState = {
+  analysis: "column_statistics",
+  hypothetical: "",
+  ttestKind: "unpaired",
+  datasetA: 0,
+  datasetB: 1,
+  anovaKind: "parametric",
+  comparisons: "tukey",
+  controlIndex: 0,
+  grubbsAlpha: "0.05",
+  corrMethod: "pearson",
+  rmKind: "parametric",
+  outlierMethod: "grubbs",
+  routQ: "1",
+  twoWayComparisons: "none",
+  twoWayDirection: "columns_within_rows",
+  rmTwoDesign: "mixed",
+};
 
 export function parseCell(v: Cell): number | null {
   const t = v.trim();
@@ -341,7 +384,15 @@ export function parseCell(v: Cell): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-export function formatSig(v: number | null | undefined, sig = 4): string {
+// Significant digits used by results tables; set from Preferences.
+let displayDigits = 4;
+export function setDisplayDigits(n: number) {
+  if (Number.isFinite(n)) displayDigits = Math.min(8, Math.max(2, Math.round(n)));
+}
+
+export function formatSig(
+  v: number | null | undefined, sig = displayDigits,
+): string {
   if (v === null || v === undefined || !Number.isFinite(v)) return "n/a";
   if (v === 0) return "0";
   const abs = Math.abs(v);
