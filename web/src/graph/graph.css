@@ -1,0 +1,125 @@
+/* Graph-format dialogs (Format graph, Format axes, Annotations, Pairwise
+   comparisons). Built on the shared .modal / .field styles and tokens. */
+
+.fmt-dialog { overflow-y: auto; overscroll-behavior: contain; }
+.fmt-dialog .modal-body { gap: 12px; }
+/* Keep Cancel / Apply / OK reachable in long dialogs. */
+.fmt-dialog .modal-actions {
+  position: sticky; bottom: 0; z-index: 1;
+  margin: 4px -22px -18px; padding: 10px 22px 14px;
+  background: var(--surface); border-top: 1px solid var(--border-soft);
+}
+.fmt-dialog .modal-actions button:disabled { opacity: 0.45; cursor: default; }
+
+/* Tabs: the segmented-control look of the header switch, as real tabs. */
+.fmt-tabs {
+  display: inline-flex; align-self: flex-start; flex-wrap: wrap; gap: 2px;
+  background: var(--seg-track); border-radius: 9px; padding: 2px;
+}
+.fmt-tabs button {
+  border: none; background: transparent; border-radius: 7px;
+  padding: 5px 12px; font-size: 13px; font-weight: 500; color: var(--ink-2);
+}
+.fmt-tabs button.active {
+  background: var(--seg-thumb); color: var(--ink); font-weight: 600;
+  box-shadow: var(--seg-shadow);
+}
+.fmt-panel { display: flex; flex-direction: column; gap: 12px; }
+
+.fmt-section {
+  border: 1px solid var(--border-soft); border-radius: var(--radius-s);
+  margin: 0; padding: 8px 12px 12px; min-width: 0;
+}
+.fmt-section > legend {
+  font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.07em;
+  color: var(--muted); font-weight: 650; padding: 0 4px;
+}
+.fmt-grid {
+  display: grid; gap: 10px 14px; align-items: start;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+}
+.fmt-grid .field input:not([type="checkbox"]):not([type="radio"]):not([type="color"]),
+.fmt-grid .field select, .fmt-grid .field textarea { width: 100%; min-width: 0; }
+.fmt-section .field textarea, .fmt-text textarea {
+  font: inherit; color: var(--ink); background: var(--inset); resize: vertical;
+  border: 1px solid var(--border); border-radius: var(--radius-s); padding: 6px 9px;
+}
+.fmt-dialog .field > label:first-child { font-weight: 500; }
+.fmt-num input { font-variant-numeric: tabular-nums; }
+.fmt-check { font-size: 13px; }
+.fmt-grid > .fmt-check { align-self: end; min-height: 34px; }
+.fmt-span { grid-column: 1 / -1; margin: 0; }
+
+.fmt-color-row { display: flex; align-items: center; gap: 8px; }
+.fmt-color input[type="color"] {
+  width: 44px; height: 30px; padding: 2px; cursor: pointer;
+  border: 1px solid var(--border); border-radius: 6px; background: var(--surface);
+}
+.fmt-auto { color: var(--muted); font-size: 12px; }
+.fmt-warn { color: var(--warn-ink); font-size: 12px; }
+
+button.fmt-mini {
+  padding: 3px 9px; font-size: 12px; border-radius: 6px;
+  border: 1px solid var(--border); background: var(--surface);
+}
+button.fmt-mini:disabled { opacity: 0.4; cursor: default; }
+button.fmt-add { padding: 5px 12px; font-size: 12.5px; }
+.fmt-add-row { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.fmt-target {
+  display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: flex-start;
+}
+.fmt-target > .field { min-width: 200px; }
+.fmt-apply-to { flex-direction: row; flex-wrap: wrap; gap: 4px 14px; }
+.fmt-apply-to legend { flex-basis: 100%; }
+.fmt-picks {
+  border: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 2px 14px;
+  flex-basis: 100%;
+}
+
+.fmt-order { margin: 0; padding: 0 0 0 20px; display: flex; flex-direction: column; gap: 4px;
+  grid-column: 1 / -1; }
+.fmt-order li { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.fmt-order li span { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+
+.fmt-row {
+  display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px 12px; margin-bottom: 8px;
+}
+.fmt-row .fmt-num input { width: 100px; }
+
+.fmt-ann-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.fmt-ann-head {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.fmt-pairs {
+  display: flex; flex-direction: column; gap: 2px; max-height: 240px; overflow-y: auto;
+}
+.fmt-pair { font-size: 13px; }
+.fmt-pair > span:nth-of-type(1) { flex: 1 1 auto; min-width: 0; }
+.fmt-pval { color: var(--muted); font-variant-numeric: tabular-nums; }
+.fmt-pval b { color: var(--ink); }
+.fmt-pair-tools { display: flex; gap: 6px; margin-top: 8px; }
+.fmt-letters { max-width: 320px; }
+
+/* Settings panel: the "Format" buttons. */
+.format-actions {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  border-top: 1px solid var(--border-soft); padding-top: 12px;
+  font-size: 12.5px;
+}
+.format-actions .axis-titles-label { flex-basis: 100%; }
+button.format-action { padding: 4px 11px; font-size: 12.5px; }
+
+@media (max-width: 700px) {
+  .fmt-grid { grid-template-columns: 1fr 1fr; }
+  button.fmt-mini, button.fmt-add, button.format-action { min-height: 34px; }
+  .fmt-dialog .field input, .fmt-dialog .field select { min-height: 34px; }
+}
+@media (max-width: 420px) {
+  .fmt-grid { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fmt-tabs button { transition: none; }
+}

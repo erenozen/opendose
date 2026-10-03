@@ -26,6 +26,7 @@ export const survivalGraph = defineGraph({
   autoTitles: () => ({ x: "Time", y: "Percent survival" }),
   exportName: "survival",
   PlotPanel: SurvivalGraph,
+  formatFeatures: { lines: true, survival: true },
 });
 
 function survivalSample() {

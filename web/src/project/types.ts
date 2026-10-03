@@ -5,6 +5,7 @@
 // Everything in this folder is plain data + pure functions (no React, no
 // DOM), so it can be unit-tested with `node --test` and reused by any UI.
 import type { SchemeId } from "../lib/palette.ts";
+import type { GraphFormat } from "../graph/format.ts";
 import type { CIMethod, ErrorBarKind } from "../types.ts";
 
 export type Cell = string; // raw user input; "" = blank
@@ -132,7 +133,10 @@ export interface ResultsSheet extends SheetBase {
 export interface GraphSettings {
   titles: { x: string; y: string };  // "" = automatic title
   scheme: SchemeId;
-  [key: string]: unknown;            // room for Format Graph / Format Axes
+  /** Format Graph / Format Axes / annotations (sparse; absent = as drawn).
+   *  Validate with readFormat() from src/graph before use. */
+  format?: GraphFormat;
+  [key: string]: unknown;
 }
 
 export interface GraphSheet extends SheetBase {

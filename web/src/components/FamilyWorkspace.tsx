@@ -1,4 +1,4 @@
-import { useMemo, useRef } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { resolveOptions } from "../app/analysis";
 import { useCommands } from "../app/commands";
 import { useProject } from "../app/context";
@@ -14,6 +14,8 @@ import { analysisDef, graphDef, tableDef } from "../sheets/registry";
 import PlaceholderPanel from "../sheets/common/PlaceholderPanel";
 import type { AsideProps, TableEdit } from "../sheets/types";
 import type { SchemeId } from "../lib/palette";
+import { isDefaultFormat, readFormat, type GraphFormat } from "../graph";
+import { useFormatDialogs } from "../graph/useFormatDialogs";
 import ColumnSplitter from "./ColumnSplitter";
 import ExportPanel from "./ExportPanel";
 import GraphSettings from "./GraphSettings";
@@ -194,7 +196,7 @@ function GraphCard({ graph, data, result, options }: {
   result: unknown;
   options: unknown;
 }) {
-  const { apply } = useProject();
+  const { apply, engineReady } = useProject();
   const kind = graphDef(data.table.type, graph.graphType);
   const def = tableDef(data.table.type);
   const Plot = kind?.PlotPanel ?? def.PlotPanel;
@@ -213,6 +215,25 @@ function GraphCard({ graph, data, result, options }: {
   const edit = (fn: (g: GraphSheet) => GraphSheet, key: string) =>
     apply((p) => updateSheet<Sheet>(p, graph.id, (s) => (s.kind === "graph" ? fn(s) : s)),
       `graph:${graph.id}:${key}`);
+  // Format Graph / Format Axes / annotations (src/graph): stored sparsely in
+  // settings.format, validated on read.
+  const format = useMemo(() => readFormat(graph.settings), [graph.settings]);
+  const graphId = graph.id;
+  const setFormat = useCallback((f: GraphFormat, t?: { x: string; y: string }) =>
+    apply((p) => updateSheet<Sheet>(p, graphId, (s) => {
+      if (s.kind !== "graph") return s;
+      const { format: _old, ...rest } = s.settings;
+      void _old;
+      return { ...s, settings: { ...rest, ...(t ? { titles: t } : {}),
+        ...(isDefaultFormat(f) ? {} : { format: f }) } };
+    }), `graph:${graphId}:format`), [apply, graphId]);
+  const datasetNames = useMemo(() => table.datasets.map((d) => d.name), [table.datasets]);
+  const dialogs = useFormatDialogs({
+    format, features: kind?.formatFeatures, datasets: datasetNames,
+    hasRowTitles: table.rowTitles.some((r) => r.trim()), result: res,
+    scheme: graph.settings.scheme, titles, autoTitles: auto, engineReady,
+    onFormat: setFormat,
+  });
 
   return (
     <div className="plot-card">
@@ -233,7 +254,8 @@ function GraphCard({ graph, data, result, options }: {
       </div>
       {Plot ? (
         <Plot graph={graph} table={table} options={opts} result={res}
-          titles={resolved} scheme={graph.settings.scheme} />
+          titles={resolved} scheme={graph.settings.scheme} format={format}
+          onFormatChange={graph.frozen ? undefined : setFormat} />
       ) : <div className="plot empty-hint">No plot available for this graph type.</div>}
       <ExportPanel filename={kind?.exportName ?? "graph"} leading={graph.frozen ? undefined : (
         <GraphSettings
@@ -244,8 +266,10 @@ function GraphCard({ graph, data, result, options }: {
           titles={titles}
           onTitlesChange={(t) => edit((g) => ({ ...g, settings: { ...g.settings, titles: t } }),
             "titles")}
-          autoX={auto.x} autoY={auto.y} showX={kind?.showXTitle !== false} />
+          autoX={auto.x} autoY={auto.y} showX={kind?.showXTitle !== false}
+          actions={dialogs.actions} formatted={!isDefaultFormat(format)} />
       )} />
+      {dialogs.element}
     </div>
   );
 }

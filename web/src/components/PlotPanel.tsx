@@ -5,19 +5,30 @@ import {
   CHROME_DARK, CHROME_LIGHT, DEFAULT_SCHEME, isDarkMode, onThemeChange,
   seriesStyle, PLOT_FONT, type SchemeId,
 } from "../lib/palette";
+import {
+  applyFormat, EMPTY_FORMAT, plotConfig, resultBlocks, tagTrace, usePlotEdits,
+  type GraphFormat,
+} from "../graph";
 
 interface Props {
   result: AnalysisResult | null;
   xTitle: string;
   yTitle: string;
   scheme?: SchemeId;
+  /** Format Graph / Format Axes settings (graph/README.md). */
+  format?: GraphFormat;
+  onFormatChange?: (f: GraphFormat) => void;
+  /** Row titles of the table, for point labels. */
+  rowTitles?: string[];
 }
 
 export default function PlotPanel({
-  result, xTitle, yTitle, scheme = DEFAULT_SCHEME,
+  result, xTitle, yTitle, scheme = DEFAULT_SCHEME, format = EMPTY_FORMAT,
+  onFormatChange, rowTitles,
 }: Props) {
   const el = useRef<HTMLDivElement>(null);
   const [dark, setDark] = useState(isDarkMode());
+  const { rev, attach } = usePlotEdits(format, onFormatChange);
 
   useEffect(() => onThemeChange(() => setDark(isDarkMode())), []);
 
@@ -49,6 +60,7 @@ export default function PlotPanel({
       const bars = ds.points.bars;
       const xs: number[] = [];
       const ys: number[] = [];
+      const rows: number[] = [];
       const plus: number[] = [];
       const minus: number[] = [];
       ds.points.x.forEach((xv, r) => {
@@ -56,13 +68,14 @@ export default function PlotPanel({
         if (xv === null || b?.mean == null) return;
         xs.push(xv);
         ys.push(b.mean);
+        rows.push(r);
         plus.push(b.hi != null ? b.hi - b.mean : 0);
         minus.push(b.lo != null ? b.mean - b.lo : 0);
       });
       const hasBars = plus.some((v) => v > 0) || minus.some((v) => v > 0);
 
       if (ds.bands) {
-        traces.push({
+        traces.push(tagTrace({
           x: [...ds.bands.x, ...[...ds.bands.x].reverse()],
           y: [...ds.bands.upper, ...[...ds.bands.lower].reverse()],
           fill: "toself",
@@ -72,10 +85,10 @@ export default function PlotPanel({
           legendgroup: ds.name,
           showlegend: false,
           hoverinfo: "skip",
-        } as Plotly.Data);
+        }, { ds: i, role: "band" }) as Plotly.Data);
       }
       if (ds.fit) {
-        traces.push({
+        traces.push(tagTrace({
           x: ds.fit.curve.x,
           y: ds.fit.curve.y,
           mode: "lines",
@@ -83,10 +96,10 @@ export default function PlotPanel({
           name: ds.name,
           legendgroup: ds.name,
           hoverinfo: "skip",
-        } as Plotly.Data);
+        }, { ds: i, role: "fit" }) as Plotly.Data);
       }
       if (ds.rout && ds.rout.outliers.length > 0) {
-        traces.push({
+        traces.push(tagTrace({
           x: ds.rout.outliers.map((o) => o.x),
           y: ds.rout.outliers.map((o) => o.y),
           mode: "markers",
@@ -96,9 +109,9 @@ export default function PlotPanel({
           legendgroup: ds.name,
           showlegend: false,
           hovertemplate: "eliminated by ROUT<extra></extra>",
-        } as Plotly.Data);
+        }, { ds: i, role: "outliers" }) as Plotly.Data);
       }
-      traces.push({
+      traces.push(tagTrace({
         x: xs,
         y: ys,
         mode: "markers",
@@ -117,7 +130,7 @@ export default function PlotPanel({
           : undefined,
         hovertemplate:
           `${ds.name}<br>log[C] = %{x:.3g}<br>response = %{y:.4g}<extra></extra>`,
-      } as Plotly.Data);
+      }, { ds: i, role: "points", rows }) as Plotly.Data);
     });
 
     const layout: Partial<Plotly.Layout> = {
@@ -157,13 +170,18 @@ export default function PlotPanel({
       uirevision: "keep",
     };
 
-    Plotly.react(el.current, traces, layout, {
+    const out = applyFormat(traces as never, layout, format, {
+      dark, scheme, datasets: result.datasets.map((d) => d.name), rowTitles,
+      results: resultBlocks(result), editRevision: rev,
+    });
+    const div = el.current;
+    Plotly.react(div, out.traces as Plotly.Data[], out.layout, plotConfig({
       responsive: true,
       scrollZoom: true,
       displaylogo: false,
       toImageButtonOptions: { format: "svg", filename: "dose-response" },
-    });
-  }, [result, dark, xTitle, yTitle, scheme]);
+    }, format, !!onFormatChange)).then(() => attach(div));
+  }, [result, dark, xTitle, yTitle, scheme, format, rev, rowTitles, onFormatChange, attach]);
 
   return <div className="plot" ref={el} />;
 }

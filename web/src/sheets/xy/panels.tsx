@@ -22,9 +22,10 @@ export function NonlinMethods({ table, result, options }:
   return <MethodsText result={result} options={options} xUnit={table.xUnit || "M"} />;
 }
 
-export function XYPlot({ result, titles, scheme }:
+export function XYPlot({ result, titles, scheme, table, format, onFormatChange }:
   PlotProps<OptionsState, AnalysisResult>) {
-  return <PlotPanel result={result} scheme={scheme} xTitle={titles.x} yTitle={titles.y} />;
+  return <PlotPanel result={result} scheme={scheme} xTitle={titles.x} yTitle={titles.y}
+    format={format} onFormatChange={onFormatChange} rowTitles={table.rowTitles} />;
 }
 
 /** SRB / MTT plate import: replaces the table and sets the fit up the way
