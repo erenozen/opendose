@@ -179,3 +179,16 @@ sheets can also carry `simulation: { kind, seed, form }`, written by the
 Simulate data dialog so a table can be re-simulated. Brand-new table types need a `TableType` member in
 `project/types.ts`, a `tableShape` entry in `project/table.ts`, and a
 registry entry.
+
+## Notes on specific analyses
+
+- Curve-fit models come from the engine's `list_models` at boot
+  (`lib/modelLibrary.ts`, which also keeps a static fallback for the
+  boot sequence and for model ids older projects store). A results
+  sheet with `model: "user"` carries its user-defined equation in
+  `options.userEquation` (`lib/userEquation.ts`), so project files stay
+  self-contained; the browser's "My equations" list is only a library.
+- Stratified 2×2 tables (Cochran-Mantel-Haenszel) use the ordinary
+  contingency table: two outcome columns and two consecutive rows per
+  stratum. A stratum is named by the text its two row titles share
+  before a separator ("Site A: exposed" / "Site A: not exposed").

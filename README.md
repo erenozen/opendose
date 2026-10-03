@@ -77,7 +77,26 @@ from the jsDelivr CDN, ~30 MB, then cached).
   competitive binding (one/two site, Fit Ki) and Gaddum/Schild EC50
   shift with pA2.
 - Survival mode: Kaplan-Meier, log-rank, Gehan-Breslow-Wilcoxon, hazard
-  ratio. Contingency mode: Fisher/chi-square/OR/RR.
+  ratio. Contingency mode: Fisher/chi-square/OR/RR, effect sizes with a
+  choice of CI methods (Koopman, Newcombe, Baptista-Pike, NNT, likelihood
+  ratios, Cramér's V), chi-square test for trend, McNemar / Bowker for
+  paired data, Cochran-Mantel-Haenszel for stratified 2×2 tables, Cohen's
+  kappa, one and two proportions.
+- Equation library: every model the engine registers (dose-response
+  variants including five-parameter asymmetric, biphasic and bell-shaped
+  curves, operational and EC50-shift models, binding kinetics, enzyme
+  inhibition, exponentials, polynomials, Gaussian, sine waves, growth and
+  more) in a searchable picker grouped by family, with experimental and
+  per-data-set constants and global fits. User-defined equations: a
+  multi-line editor with live validation, initial-value rules, default
+  constraints and values to report, saved in the browser and exchanged
+  as JSON. Deming (Model II) regression for method comparison.
+- More column tests: Kolmogorov-Smirnov, ratio paired t, Welch and
+  Brown-Forsythe ANOVA with Games-Howell / Dunnett T3 / Tamhane T2,
+  Newman-Keuls, Fisher's LSD, uncorrected Dunn's, Mood's median test,
+  exact Friedman, KS normality test, percentile methods and extra
+  descriptive statistics (median CI, geometric SD factor, harmonic and
+  quadratic means, mode, trimmed means).
 - Parts of whole: fraction of total (column/row/grand, with Wilson/Brown,
   Wilson or Clopper-Pearson CIs), chi-square goodness of fit against
   expected counts/percentages/fractions with the binomial test for two
