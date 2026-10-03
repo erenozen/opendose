@@ -9,6 +9,11 @@ import {
   NonlinControls, NonlinMethods, NonlinResults, PlateAside, XYPlot,
 } from "./panels";
 import { runNonlin, xyAutoTitles } from "./run";
+import {
+  ANALYSIS_DEMING, DEFAULT_DEMING, demingPayload, demingResult, GRAPH_DEMING,
+  normalizeDeming, type DemingOptions,
+} from "./deming";
+import { DemingControls, DemingMethods, DemingResults } from "./demingPanels";
 import { xySample } from "./sample";
 
 export const nonlinAnalysis = defineAnalysis<OptionsState, AnalysisResult>({
@@ -45,6 +50,40 @@ export const xyGraph = defineGraph<OptionsState, AnalysisResult>({
   PlotPanel: XYPlot,
 });
 
+export const demingAnalysis = defineAnalysis<DemingOptions, Record<string, unknown>>({
+  id: ANALYSIS_DEMING,
+  label: "Deming regression (errors in X and Y)",
+  short: "Deming",
+  description: "Model II straight line when X and Y are both measured with error "
+    + "(method comparison).",
+  sheetName: (t) => `Deming fit of ${t}`,
+  defaultOptions: () => ({ ...DEFAULT_DEMING }),
+  normalizeOptions: (raw) => normalizeDeming(raw),
+  run: (engine, table, options) => {
+    const p = demingPayload(table, options);
+    if ("error" in p) return p;
+    return demingResult(engine.analyze(p), table);
+  },
+  defaultGraph: GRAPH_DEMING,
+  ControlsPanel: DemingControls,
+  ResultsPanel: DemingResults,
+  MethodsPanel: DemingMethods,
+});
+
+// The XY graph draws the Deming line exactly as it draws a fitted curve.
+export const demingGraph = defineGraph<DemingOptions, AnalysisResult>({
+  id: GRAPH_DEMING,
+  label: "XY: points and Deming regression line",
+  group: "deming",
+  analysis: ANALYSIS_DEMING,
+  autoTitles: (table) => ({
+    x: table.xTitle && table.xTitle !== "X" ? table.xTitle : "X",
+    y: table.yTitle || "Y",
+  }),
+  exportName: "deming",
+  PlotPanel: XYPlot as never,
+});
+
 export const xyTable: TableTypeDef = {
   type: "xy",
   label: "XY",
@@ -58,6 +97,6 @@ export const xyTable: TableTypeDef = {
   sampleName: "Dose response",
   Editor: DataGrid,
   EditorAside: PlateAside,
-  analyses: [nonlinAnalysis, columnAnalysis],
-  graphs: [xyGraph, ...columnGraphs],
+  analyses: [nonlinAnalysis, demingAnalysis, columnAnalysis],
+  graphs: [xyGraph, demingGraph, ...columnGraphs],
 };
