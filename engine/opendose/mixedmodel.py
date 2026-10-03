@@ -479,19 +479,38 @@ def estimate(fit, L) -> tuple[np.ndarray, np.ndarray]:
 
 # ---------------------------------------------------- sphericity / epsilon
 
-def pairwise_cov(M: np.ndarray) -> np.ndarray:
+def pairwise_cov(M: np.ndarray, groups=None) -> np.ndarray:
     """Sample covariance of the columns of M (subjects x levels) using,
     for each pair of columns, the subjects with both values (NaN =
-    missing). Equals np.cov(M.T) when nothing is missing."""
+    missing). Equals np.cov(M.T) when nothing is missing.
+
+    With `groups` (one label per subject) each subject is centred on its
+    own group's mean, and the divisor is n - (groups present): the pooled
+    within-group covariance a mixed design needs, so that differences
+    between group means do not count as non-sphericity."""
     k = M.shape[1]
     S = np.full((k, k), np.nan)
+    g = None if groups is None else np.asarray(groups)
     for i in range(k):
         for j in range(i, k):
             ok = ~np.isnan(M[:, i]) & ~np.isnan(M[:, j])
-            if ok.sum() >= 2:
-                a, b = M[ok, i], M[ok, j]
+            if ok.sum() < 2:
+                continue
+            a, b = M[ok, i], M[ok, j]
+            if g is None:
                 S[i, j] = S[j, i] = float(((a - a.mean()) * (b - b.mean())).sum()
                                           / (ok.sum() - 1))
+                continue
+            gg = g[ok]
+            labels = np.unique(gg)
+            if ok.sum() - len(labels) < 1:
+                continue
+            total = 0.0
+            for lab in labels:
+                sel = gg == lab
+                total += float(((a[sel] - a[sel].mean())
+                                * (b[sel] - b[sel].mean())).sum())
+            S[i, j] = S[j, i] = total / (ok.sum() - len(labels))
     return S
 
 
@@ -868,9 +887,11 @@ def mixed_rm_two_way(cells, *, design: str = "mixed", row_names=None,
     n_subj = len(keys)
     if design == "mixed":
         M = np.full((n_subj, a), np.nan)
-        for v, r, s in zip(y, ri, si):
+        subj_group = np.full(n_subj, -1)
+        for v, r, c, s in zip(y, ri, ci, si):
             M[s, r] = v
-        S = pairwise_cov(M)
+            subj_group[s] = c
+        S = pairwise_cov(M, groups=subj_group)
         eps_row = gg_epsilon(S, orthonormal_contrasts(a))
         eps = {"row_factor": eps_row, "interaction": eps_row,
                "column_factor": None}

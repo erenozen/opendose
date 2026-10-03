@@ -167,10 +167,19 @@ def rm_two_way_mixed(cells, *, row_names=None, col_names=None) -> dict:
                 "percent_of_total": float(100 * ss / ss_total)
                 if ss_total else None}
 
-    # GG epsilon from the covariance of the subjects' row-vectors
-    # (all subjects stacked, the definition pingouin/most texts use)
-    stacked = np.concatenate([m.T for m in subjects], axis=0)  # subj x rows
-    eps = _gg_epsilon_from_cov(np.cov(stacked.T, ddof=1)) if a > 1 else 1.0
+    # GG epsilon from the pooled within-group covariance of the subjects'
+    # row-vectors: each subject centred on its own group's mean profile,
+    # divided by N - groups. Group differences in the means are the
+    # between-subjects effect, not a departure from sphericity, so they
+    # must not enter the covariance (the error SSCP matrix that SPSS, SAS
+    # and pingouin >= 0.7 use).
+    if a > 1:
+        centred = np.concatenate(
+            [(m - m.mean(axis=1, keepdims=True)).T for m in subjects], axis=0)
+        s_pooled = centred.T @ centred / (n_subj - b)
+        eps = _gg_epsilon_from_cov(s_pooled)
+    else:
+        eps = 1.0
 
     row_src = source(ss_row, df_row, ms["row"], ms["error"], df_error)
     inter_src = source(ss_inter, df_inter, ms["inter"], ms["error"], df_error)
