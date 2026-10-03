@@ -29,14 +29,28 @@ A project is `{version: 2, title, sheets, prefs}`. A *data* sheet holds a
 `DataTableModel`: an X column (`x`, whose length is the row count), row
 titles, and `datasets` (Y columns) each with `rows[row][subcolumn]` raw
 strings, optional `subTitles`, `excluded` cell keys (`"row:sub"`) and, for
-multiple-variables tables, `varType`. `subcolumnFormat` (replicates or a
-summary format such as Mean/SD/N) and `replicateLayout` are stored for the
-summary-data work package. A *results* sheet binds an analysis id and its
+multiple-variables tables, `varType`. `subcolumnFormat` is replicates or
+a summary format such as Mean/SD/N (`SUBCOLUMN_FORMAT_ENGINE` maps it to
+the engine's `summary_format` id; analyses that can use summaries pass
+it, the rest return an error saying they need raw values). `xFormat`
+dates / elapsed times are read into numbers by `project/xformat.ts`
+(`numericData()` already does this); `decimals` is display only. A
+*results* sheet binds an analysis id and its
 options to a data sheet (`parentId`); a *graph* sheet binds a graph kind
 and its settings to a data sheet and optionally a results sheet. A data
 sheet plus its results and graphs is a *family*. Edit tables only through
 the pure functions in `project/table.ts` (they keep every invariant and
-remap exclusions when rows move).
+remap exclusions when rows move: `sortRows`, `pickRows`, `deleteRows`,
+`insertDataset`, `moveDataset`, `insertSeries`, block `clearBlock` /
+`toggleBlockExcluded`, `setSubcolumnFormat`, ...). Text import lives in
+`project/importText.ts`, CSV / TSV export in `project/exportTable.ts`,
+the Data Inspector's numbers in `project/inspector.ts`; all unit-tested.
+
+`common/DataGrid` is the editor of every table type: toolbar (Import,
+Export, Sort, Insert series, Rows, Columns, Format, Convert), block
+selection, Data Inspector, and the dialogs in `common/`. A table type gets
+all of it by using `DataGrid` as its `Editor`. Results sheets get Copy /
+CSV / TSV of their rendered tables from the shell (`common/ResultsExport`).
 
 ## The contract
 

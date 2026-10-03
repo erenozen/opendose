@@ -3,7 +3,10 @@
 // workflow with the synthetic SRB fixture and checks both cell-line fits,
 // the other built-in table types, Prism imports, and the multi-sheet
 // project workflow (new table, rename, undo/redo, delete, save/open,
-// v1 migration, restore from autosave).
+// v1 migration, restore from autosave), and table editing (Import dialog
+// with .xlsx and decimal-comma CSV, sort, block exclusion, Data
+// Inspector, CSV export of data and results, Mean/SD/N conversion and
+// entry, insert series, dates as X).
 import { chromium } from "playwright";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";

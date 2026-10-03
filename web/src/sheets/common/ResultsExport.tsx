@@ -15,7 +15,7 @@ export default function ResultsExport({ name, children }: { name: string; childr
   };
   return (
     <div className="results-export-wrap">
-      <div className="results-export" role="toolbar" aria-label="Export these results">
+      <div className="results-export" role="group" aria-label="Export these results">
         <span className="hint" role="status">{note}</span>
         <button type="button" title="Copy the results as tab-separated text"
           onClick={async () => {

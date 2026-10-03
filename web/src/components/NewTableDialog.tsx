@@ -139,7 +139,14 @@ export default function NewTableDialog({ defaultType, defaultName, onCancel, onC
             <label className="field">
               <span>Y values entered as</span>
               <select value={summary} disabled={sample} aria-label="Y values entered as"
-                onChange={(e) => setSummary(e.target.value as SubcolumnFormat)}>
+                onChange={(e) => {
+                  const f = e.target.value as SubcolumnFormat;
+                  setSummary(f);
+                  // summaries of a column table: one row (one mean per group)
+                  if (type === "column") {
+                    setShape({ ...shape, rows: f === "replicates" ? String(defaultInit(type).rows) : "1" });
+                  }
+                }}>
                 {SUBCOLUMN_FORMATS.map((f) => (
                   <option key={f} value={f}>{SUBCOLUMN_FORMAT_LABELS[f]}</option>
                 ))}

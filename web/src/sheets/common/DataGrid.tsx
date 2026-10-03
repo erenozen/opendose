@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useProject } from "../../app/context";
+// factory -> registry -> this grid is a module cycle; addFamily is only
+// called from an event handler, never while modules evaluate.
+import { addFamily } from "../../app/factory";
 import { toDelimited } from "../../project/exportTable";
 import { newId } from "../../project/ids";
 import { pasteNeedsImport } from "../../project/importText";
@@ -84,7 +87,10 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
 
   // Selection: (r0, c0) is the anchor, the cell holding keyboard focus;
   // (r1, c1) is the far corner moved by Shift+arrows / dragging.
-  const [selRaw, setSel] = useState<CellRect | null>(null);
+  // (kept per sheet: switching tables starts without a selection)
+  const [selState, setSelState] = useState<{ id: string; rect: CellRect } | null>(null);
+  const selRaw = selState?.id === sheet.id ? selState.rect : null;
+  const setSel = (rect: CellRect | null) => setSelState(rect ? { id: sheet.id, rect } : null);
   const sel = selRaw && {
     r0: Math.min(selRaw.r0, nRows - 1), r1: Math.min(selRaw.r1, nRows - 1),
     c0: Math.min(selRaw.c0, flat - 1), c1: Math.min(selRaw.c1, flat - 1),
@@ -289,9 +295,7 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
       : shape.hasX ? { kind: "x" } : shape.hasRowTitles ? { kind: "rowTitle" }
         : { kind: "dataset", dataset: 0 };
 
-  const createTable = async (nt: DataTableModel, name: string) => {
-    // loaded lazily: the factory imports the sheet registry, which imports this grid
-    const { addFamily } = await import("../../app/factory");
+  const createTable = (nt: DataTableModel, name: string) => {
     let dataId = "";
     api.apply((p) => {
       const res = addFamily(p, nt, name, newId);
@@ -315,7 +319,7 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
 
   return (
     <div className="grid-editor">
-      <div className="grid-toolbar" role="toolbar" aria-label="Data table tools">
+      <div className="grid-toolbar" role="group" aria-label="Data table tools">
         {!readOnly && (
           <button type="button" onClick={() => setDialog({ kind: "import" })}
             title="Import a CSV, text or .xlsx file, or pasted text">Import…</button>
@@ -575,7 +579,7 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
       )}
       {dialog?.kind === "convert" && (
         <ConvertDialog table={t} name={sheet.name} onClose={() => setDialog(null)}
-          onCreate={(nt, name) => { void createTable(nt, name); }} />
+          onCreate={createTable} />
       )}
     </div>
   );
