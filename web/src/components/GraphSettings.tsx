@@ -24,6 +24,8 @@ interface Props {
   formatted?: boolean;
   /** The graph kind's own options (GraphKindDef.OptionsPanel). */
   options?: ReactNode;
+  /** Figure style and checks (theme, colour-vision check). */
+  figure?: ReactNode;
 }
 
 // Colors and titles are set once and then left alone, so they do not earn
@@ -32,7 +34,7 @@ interface Props {
 // is the only place with room.
 export default function GraphSettings({
   scheme, onSchemeChange, titles, onTitlesChange, autoX, autoY, showX = true,
-  actions, formatted, options,
+  actions, formatted, options, figure,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [maxHeight, setMaxHeight] = useState<number | undefined>(undefined);
@@ -102,6 +104,7 @@ export default function GraphSettings({
             </div>
           )}
           <SchemePicker value={scheme} onChange={onSchemeChange} />
+          {figure}
           <div className="axis-titles">
             <span className="axis-titles-label">Axis titles</span>
             {showX && (

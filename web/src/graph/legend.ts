@@ -220,14 +220,17 @@ function groupedSpec(graph: Pick<GraphSheet, "graphType" | "settings">, table: D
 /**
  * The legend sentence for a graph sheet: "Mean ± SD (bars), with
  * individual values. n = 6 per group. ns, P > 0.05; * P ≤ 0.05; …".
- * Column and grouped graphs only (other kinds return ""). `table` is the
+ * Column graphs (also of XY tables) and grouped graphs; other kinds
+ * return "". `table` is the
  * table the graph plots (exclusions blanked); `result` the bound results,
  * if any (a statistics-on-replicate-means result turns SuperPlot mode on
  * unless the graph turned it off).
  */
 export function legendSentence(graph: Pick<GraphSheet, "graphType" | "settings">,
   table: DataTableModel, result?: unknown): string {
-  const spec = table.type === "column" ? columnSpec(graph, table, result)
+  const columnKind = ["scatter", "bar", "box", "violin"].includes(graph.graphType);
+  const spec = table.type === "column" || (table.type === "xy" && columnKind)
+    ? columnSpec(graph, table, result)
     : table.type === "grouped" ? groupedSpec(graph, table, result) : null;
   return spec && spec.groups.length ? composeLegend(spec) : "";
 }

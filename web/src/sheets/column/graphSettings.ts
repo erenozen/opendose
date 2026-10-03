@@ -7,6 +7,8 @@ import {
   normalizeSuperPlot, type SuperPlotSettings,
 } from "../common/superplot.ts";
 import { tQuantile } from "../grouped/stats.ts";
+import { parseCell } from "../../project/table.ts";
+import type { DataTableModel } from "../../project/types.ts";
 
 /** Centre and error bars of scatter and bar graphs. */
 export type ColumnSummary = "mean_sd" | "mean_sem" | "mean_ci" | "median_iqr" | "none";
@@ -100,3 +102,10 @@ const fmt = (v: number) => v.toPrecision(4);
 
 /** Two-sided 95% critical t value. */
 const tCrit = (df: number) => tQuantile(0.975, df);
+
+/** Smallest number of values in a group (column tables; 0 = no data). */
+export function smallestN(table: DataTableModel): number {
+  const ns = table.datasets.map((d) => d.rows.reduce((n, row) =>
+    n + row.filter((c) => parseCell(c) !== null).length, 0)).filter((n) => n > 0);
+  return ns.length ? Math.min(...ns) : 0;
+}

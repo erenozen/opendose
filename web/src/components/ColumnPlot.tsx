@@ -10,6 +10,9 @@ import {
   applyFormat, EMPTY_FORMAT, plotConfig, tagTrace, usePlotEdits, type Comparison,
   type GraphFormat, type ResultsBlock,
 } from "../graph";
+import { laneJitter, spreadOffsets, type PointSpread } from "../graph/swarm";
+import { areaScale, estimateArea, usePlotArea } from "../graph/usePlotArea";
+import { summaryOf, type ColumnSummary } from "../sheets/column/graphSettings";
 
 interface Props {
   datasets: DatasetState[];
@@ -24,17 +27,28 @@ interface Props {
   /** Pairwise comparisons of the bound results, for brackets / letters. */
   comparisons?: Comparison[];
   results?: Partial<Record<ResultsBlock, string>>;
+  /** Centre and error bars (scatter, bar); default mean ± SD. */
+  summary?: ColumnSummary;
+  /** How points spread sideways; default the fixed-lane jitter. */
+  spread?: PointSpread;
+  /** Bar graphs: draw the individual values (default true). */
+  points?: boolean;
+  /** Caption drawn inside the figure (legend sentence), if any. */
+  caption?: string;
 }
 
 // Prism-style column graphs: scatter (points + mean ± SD), bar, box, violin.
 export default function ColumnPlot({
   datasets, xTitle = "", yTitle = "Value", graphType = "scatter",
   scheme = DEFAULT_SCHEME, format = EMPTY_FORMAT, onFormatChange, rowTitles,
-  comparisons, results,
+  comparisons, results, summary = "mean_sd", spread = "jitter", points = true, caption,
 }: Props) {
   const el = useRef<HTMLDivElement>(null);
   const [dark, setDark] = useState(isDarkMode());
   const { rev, attach } = usePlotEdits(format, onFormatChange);
+  const [area, measure] = usePlotArea();
+  const spreadRef = useRef(spread);
+  useEffect(() => { spreadRef.current = spread; }, [spread]);
 
   useEffect(() => onThemeChange(() => setDark(isDarkMode())), []);
 
@@ -50,18 +64,32 @@ export default function ColumnPlot({
         // Not while hidden (a Suspense fallback shows): Plotly refuses.
         if ((div as unknown as { _fullLayout?: unknown })._fullLayout
           && div.getClientRects().length) {
-          Plotly.Plots.resize(div);
+          void Promise.resolve(Plotly.Plots.resize(div)).then(() => {
+            if (spreadRef.current !== "jitter") measure(div);
+          });
         }
       });
     });
     ro.observe(div);
     return () => { ro.disconnect(); cancelAnimationFrame(raf); };
-  }, []);
+  }, [measure]);
 
   useEffect(() => {
     if (!el.current) return;
     const chrome = dark ? CHROME_DARK : CHROME_LIGHT;
     const traces: Plotly.Data[] = [];
+    // Pixel scale for beeswarm / symmetric spreading: the drawn plot area,
+    // or an estimate from the container before the first draw.
+    let scale = null;
+    if (spread !== "jitter") {
+      const all = datasets.flatMap((d) => d.rows.flatMap((r) => r.map(parseCell)))
+        .filter((v): v is number => v !== null);
+      const est = area ?? estimateArea(el.current, Math.min(...all), Math.max(...all),
+        [-0.6, datasets.length - 0.4]);
+      scale = areaScale(est, graphType === "bar" ? 8.5 : 9.5, 0.36);
+    }
+    const offsets = (values: number[]) => (spread === "jitter"
+      ? laneJitter(values.length) : spreadOffsets(values, spread, scale));
 
     datasets.forEach((ds, i) => {
       // Values in row-major order, remembering where each came from (row
@@ -78,10 +106,16 @@ export default function ColumnPlot({
       const pts = { ds: i, role: "points" as const, rows, keys };
       const { color, symbol } = seriesStyle(i, dark, scheme);
       const name = ds.name || `Dataset ${i + 1}`;
-      const mean = values.reduce((a, b) => a + b, 0) / values.length;
-      const sd = values.length > 1
-        ? Math.sqrt(values.reduce((a, b) => a + (b - mean) ** 2, 0) / (values.length - 1))
-        : 0;
+      const st = summaryOf(values, summary)!;
+      const mean = st.center;
+      // Same object as before for symmetric bars (mean ± SD/SEM/CI).
+      const errorY = st.hi > 0 || st.lo > 0
+        ? (st.lo === st.hi
+          ? { type: "data" as const, array: [st.hi], color: chrome.ink,
+              thickness: 1.5, width: 8, visible: true }
+          : { type: "data" as const, array: [st.hi], arrayminus: [st.lo], symmetric: false,
+              color: chrome.ink, thickness: 1.5, width: 8, visible: true })
+        : undefined;
 
       if (graphType === "box") {
         traces.push(tagTrace({
@@ -119,17 +153,14 @@ export default function ColumnPlot({
           width: 0.6,
           marker: { color: color + "55",
                     line: { color, width: 2 } },
-          error_y: sd > 0
-            ? { type: "data", array: [sd], color: chrome.ink,
-                thickness: 1.5, width: 8, visible: true }
-            : undefined,
+          error_y: errorY,
           name,
           showlegend: false,
-          hovertemplate:
-            `${name}: mean ${mean.toPrecision(4)} ± SD ${sd.toPrecision(4)}<extra></extra>`,
+          hovertemplate: `${name}: ${st.label}<extra></extra>`,
         }, { ds: i, role: "bar" }) as Plotly.Data);
-        const xs = values.map((_, j) =>
-          i + (values.length > 1 ? ((j % 5) - 2) * 0.045 : 0));
+        if (!points) return;
+        const off = offsets(values);
+        const xs = values.map((_, j) => i + off[j]);
         traces.push(tagTrace({
           x: xs, y: values,
           mode: "markers",
@@ -142,8 +173,8 @@ export default function ColumnPlot({
       }
 
       // scatter (default): individual points with mean ± SD whiskers
-      const xs = values.map((_, j) =>
-        i + (values.length > 1 ? ((j % 5) - 2) * 0.045 : 0));
+      const off = offsets(values);
+      const xs = values.map((_, j) => i + off[j]);
       traces.push(tagTrace({
         x: xs, y: values,
         mode: "markers",
@@ -160,11 +191,8 @@ export default function ColumnPlot({
         mode: "markers",
         marker: { color: chrome.ink, symbol: "line-ew", size: 26,
                   line: { color: chrome.ink, width: 2.5 } },
-        error_y: sd > 0
-          ? { type: "data", array: [sd], color: chrome.ink,
-              thickness: 1.5, width: 8, visible: true }
-          : undefined,
-        hovertemplate: `mean ${mean.toPrecision(4)} ± SD ${sd.toPrecision(4)}<extra></extra>`,
+        error_y: errorY,
+        hovertemplate: `${st.label}<extra></extra>`,
         showlegend: false,
       }, { ds: i, role: "summary" }) as Plotly.Data);
     });
@@ -200,15 +228,19 @@ export default function ColumnPlot({
     layout.uirevision = "keep";
     const out = applyFormat(traces as never, layout, format, {
       dark, scheme, categorical: true, datasets: datasets.map((d) => d.name),
-      rowTitles, comparisons, results, editRevision: rev,
+      rowTitles, comparisons, results, editRevision: rev, caption,
     });
     const div = el.current;
     Plotly.react(div, out.traces as Plotly.Data[], out.layout, plotConfig({
       responsive: true, scrollZoom: true, displaylogo: false,
       toImageButtonOptions: { format: "svg", filename: "column-graph" },
-    }, format, !!onFormatChange)).then(() => attach(div));
+    }, format, !!onFormatChange)).then(() => {
+      attach(div);
+      if (spread !== "jitter") measure(div);
+    });
   }, [datasets, dark, xTitle, yTitle, graphType, scheme, format, rev, rowTitles,
-    comparisons, results, onFormatChange, attach]);
+    comparisons, results, onFormatChange, attach, summary, spread, points, caption, area,
+    measure]);
 
   return <div className="plot" ref={el} />;
 }

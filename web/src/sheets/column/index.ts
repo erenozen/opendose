@@ -7,6 +7,14 @@ import { defineAnalysis, defineGraph, type TableTypeDef } from "../types";
 import { ColumnMethods } from "./methods";
 import { ColumnAnalysisControls, ColumnAnalysisResults, ColumnGraph } from "./panels";
 import { runColumn } from "./run";
+import { ColumnGraphOptions } from "./graphOptions";
+import {
+  ReplicateMeansControls, ReplicateMeansMethods, ReplicateMeansResults,
+} from "./superplotPanels";
+import {
+  ANALYSIS_REPLICATE_MEANS, defaultRepMeans, normalizeRepMeans, runReplicateMeans,
+  type RepMeansOptions,
+} from "./superplotStats";
 
 export const columnAnalysis = defineAnalysis<ColumnOptionsState, Record<string, unknown>>({
   id: ANALYSIS_COLUMN,
@@ -28,6 +36,23 @@ export const columnAnalysis = defineAnalysis<ColumnOptionsState, Record<string, 
   MethodsPanel: ColumnMethods,
 });
 
+export const replicateMeansAnalysis = defineAnalysis<RepMeansOptions, Record<string, unknown>>({
+  id: ANALYSIS_REPLICATE_MEANS,
+  label: "Statistics on replicate means (SuperPlot)",
+  short: "Replicate means",
+  description: "Average each experiment's values first, then compare groups with a "
+    + "t test, Wilcoxon, one-way or repeated-measures ANOVA on the experiment means "
+    + "(n = number of experiments).",
+  sheetName: (t) => `Stats on replicate means of ${t}`,
+  defaultOptions: ({ table }) => defaultRepMeans(table),
+  normalizeOptions: (raw, { table }) => normalizeRepMeans(raw, table),
+  run: runReplicateMeans,
+  defaultGraph: "scatter",
+  ControlsPanel: ReplicateMeansControls,
+  ResultsPanel: ReplicateMeansResults,
+  MethodsPanel: ReplicateMeansMethods,
+});
+
 export const columnGraphs = (Object.keys(COLUMN_GRAPH_LABELS) as ColumnGraphType[])
   .map((id) => defineGraph({
     id,
@@ -38,6 +63,7 @@ export const columnGraphs = (Object.keys(COLUMN_GRAPH_LABELS) as ColumnGraphType
     showXTitle: false,
     exportName: "column-graph",
     PlotPanel: ColumnGraph,
+    OptionsPanel: ColumnGraphOptions,
     formatFeatures: {
       categorical: true, points: true,
       errorBars: id === "scatter" || id === "bar",
@@ -67,6 +93,6 @@ export const columnTable: TableTypeDef = {
   sampleTable: columnSample,
   sampleName: "Group comparison",
   Editor: DataGrid,
-  analyses: [columnAnalysis],
+  analyses: [columnAnalysis, replicateMeansAnalysis],
   graphs: columnGraphs,
 };

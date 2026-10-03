@@ -19,6 +19,7 @@ import type { SchemeId } from "../lib/palette";
 import { fileStem } from "../export/settings";
 import { isDefaultFormat, readFormat, type GraphFormat } from "../graph";
 import { useFormatDialogs } from "../graph/useFormatDialogs";
+import FigurePanel from "../graph/FigurePanel";
 import ColumnSplitter from "./ColumnSplitter";
 import ExportPanel from "./ExportPanel";
 import GraphSettings from "./GraphSettings";
@@ -306,6 +307,8 @@ function GraphCard({ graph, data, result, options }: {
             "titles")}
           autoX={auto.x} autoY={auto.y} showX={kind?.showXTitle !== false}
           actions={dialogs.actions} formatted={!isDefaultFormat(format)}
+          figure={<FigurePanel format={format} scheme={graph.settings.scheme}
+            onFormat={(f) => setFormat(f, undefined, "figure")} />}
           options={Options ? (
             <Suspense fallback={null}>
               <Options graph={graph} table={table} options={opts} result={res} />
