@@ -1,0 +1,89 @@
+/* Multiple-variables sheets. Uses the app's tokens only (App.css). */
+
+/* ---- graph options strip above a plot */
+.mv-graph-options {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px;
+  padding: 8px 14px; border-bottom: 1px solid var(--border-soft);
+  font-size: 12.5px; color: var(--ink-2);
+}
+.mv-opt { display: inline-flex; align-items: center; gap: 6px; }
+.mv-opt > span { white-space: nowrap; }
+.mv-opt select { font-size: 12.5px; padding: 4px 7px; max-width: 16ch; }
+.mv-opt-check { gap: 5px; cursor: pointer; }
+.mv-opt-note { color: var(--muted); font-size: 12px; }
+.mv-plot-message { display: flex; align-items: center; justify-content: center; }
+.mv-plot-message .empty-hint { max-width: 46ch; text-align: center; }
+
+/* ---- controls */
+.mv-varlist {
+  border: none; margin: 0; padding: 0;
+  display: flex; flex-direction: column; gap: 0;
+}
+.mv-varlist > legend {
+  padding: 0; margin-bottom: 8px; font-size: 11.5px; text-transform: uppercase;
+  letter-spacing: 0.07em; color: var(--muted); font-weight: 650;
+}
+.mv-kind {
+  font-size: 11px; color: var(--muted); border: 1px solid var(--border);
+  border-radius: var(--radius-pill); padding: 0 7px;
+}
+.mv-pred { display: flex; flex-direction: column; }
+.mv-ref { padding-left: 24px; font-size: 12.5px; }
+.mv-ref select { font-size: 12.5px; padding: 3px 7px; }
+.mv-field > span:first-child { min-width: 12ch; }
+.mv-field .field-note { flex-basis: 100%; }
+.mv-wide { width: 100%; }
+.mv-rule-list {
+  list-style: none; margin: 0 0 8px; padding: 0;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.mv-rule-list > li {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  color: var(--ink-2);
+}
+.mv-rule select { max-width: 14ch; }
+.mv-name-input { width: 12ch; }
+.mv-rule-add { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.mv-rule-add select { max-width: 14ch; }
+button.mv-remove {
+  font-size: 12px; padding: 4px 10px; color: var(--muted); background: transparent;
+  border: 1px solid var(--border);
+}
+@media (hover: hover) and (pointer: fine) {
+  button.mv-remove:hover { color: var(--danger); background: transparent; }
+}
+.controls button:disabled { opacity: 0.45; cursor: default; }
+
+/* ---- results */
+.mv-scroll { overflow-x: auto; max-width: 100%; }
+.mv-grid th, .mv-grid td { white-space: nowrap; padding-right: 14px; }
+.mv-grid tbody th { font-weight: 500; }
+.mv-equation { font-variant-numeric: tabular-nums; }
+.mv-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 4px; }
+.mv-actions .btn-primary:disabled { opacity: 0.5; cursor: default; }
+
+.mv-seg {
+  display: inline-flex; flex-wrap: wrap; gap: 0; margin: 8px 0 10px;
+  background: var(--seg-track); border-radius: 9px; padding: 2px;
+}
+.mv-seg button {
+  border: none; background: transparent; border-radius: 7px;
+  padding: 5px 12px; font-size: 12.5px; color: var(--ink-2);
+  transition: background-color 160ms ease, color 160ms ease;
+}
+.mv-seg button.active {
+  background: var(--seg-thumb); color: var(--ink); font-weight: 600;
+  box-shadow: var(--seg-shadow);
+}
+@media (hover: hover) and (pointer: fine) {
+  .mv-seg button:hover { background: transparent; color: var(--ink); }
+  .mv-seg button.active:hover { background: var(--seg-thumb); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mv-seg button { transition: none; }
+}
+
+@media (max-width: 640px) {
+  .mv-graph-options { padding: 8px 10px; }
+  .mv-opt select { max-width: 12ch; }
+}
