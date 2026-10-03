@@ -7,6 +7,7 @@ export interface EngineBridge {
 }
 
 let enginePromise: Promise<EngineBridge> | null = null;
+let pyRuntime: Awaited<ReturnType<typeof loadPyodide>> | null = null;
 
 /** Numerical library versions as loaded in this browser (for citations). */
 export interface RuntimeVersions {
@@ -92,10 +93,74 @@ async function init(onStatus: (msg: string) => void): Promise<EngineBridge> {
       pyodide: pyodideVersion,
     };
   } catch { /* versions are informational only */ }
+  pyRuntime = py;
 
   return {
     analyze(payload: unknown) {
       return JSON.parse(analyzeJson(JSON.stringify(payload)) as string);
     },
   };
+}
+
+// ------------------------------------------------------------ xlsx reading
+
+/** One worksheet as rows of cell text (numbers in full precision, dates
+ *  as ISO text, blanks as ""). */
+export interface XlsxSheet { name: string; rows: string[][] }
+
+// Uses openpyxl, which the runtime already installs for plate import.
+const READ_XLSX_PY = `
+import base64, datetime, io, json
+def _opendose_read_xlsx(b64):
+    import openpyxl
+    wb = openpyxl.load_workbook(io.BytesIO(base64.b64decode(b64)),
+                                data_only=True, read_only=True)
+    out = []
+    for ws in wb.worksheets:
+        rows = []
+        for row in ws.iter_rows(values_only=True):
+            cells = []
+            for v in row:
+                if v is None:
+                    cells.append("")
+                elif isinstance(v, bool):
+                    cells.append("TRUE" if v else "FALSE")
+                elif isinstance(v, datetime.datetime):
+                    cells.append(v.date().isoformat() if v.time() == datetime.time(0)
+                                 else v.isoformat(sep=" ", timespec="minutes"))
+                elif isinstance(v, (datetime.date, datetime.time)):
+                    cells.append(v.isoformat())
+                elif isinstance(v, float):
+                    cells.append(str(int(v)) if v.is_integer() and abs(v) < 1e15
+                                 else repr(v))
+                else:
+                    cells.append(str(v))
+            while cells and cells[-1] == "":
+                cells.pop()
+            rows.append(cells)
+        while rows and not rows[-1]:
+            rows.pop()
+        out.append({"name": ws.title, "rows": rows})
+    wb.close()
+    return json.dumps(out)
+`;
+let xlsxReady = false;
+
+/** Read every worksheet of an .xlsx file (in the browser, via the Python
+ *  runtime; waits for it to load). */
+export async function readXlsx(bytes: Uint8Array): Promise<XlsxSheet[]> {
+  await getEngine();
+  const py = pyRuntime;
+  if (!py) throw new Error("the Python runtime is not available");
+  if (!xlsxReady) { py.runPython(READ_XLSX_PY); xlsxReady = true; }
+  let bin = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) {
+    bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  }
+  const fn = py.globals.get("_opendose_read_xlsx");
+  try {
+    return JSON.parse(fn(btoa(bin)) as string) as XlsxSheet[];
+  } finally {
+    fn.destroy?.();
+  }
 }

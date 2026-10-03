@@ -179,23 +179,36 @@ save/load; methods text; theme; accessibility pass.
       row titles as observation IDs)
 - [x] Nested tables: nested t test and nested one-way ANOVA (mixed model
       with random subgroup effect); nested scatter graph
-- [ ] Entering error values computed elsewhere: Mean/SD/N, Mean/SEM/N,
+- [x] Entering error values computed elsewhere: Mean/SD/N, Mean/SEM/N,
       Mean/%CV/N, Mean/CI/N, upper/lower limit subcolumn formats; every
-      analysis that can run from summary data does
-- [ ] Side-by-side vs stacked replicates; subcolumn titles; row titles
-      on Column tables (used as point labels)
-- [ ] Excluding values Prism-style (value stays visible, struck through,
-      skipped by analyses and graphs), with keyboard shortcut
-- [ ] Sort rows, insert series (start/step), decimal-place display,
-      rounding, data-table limits documented, dates / elapsed times as X
+      analysis that can run from summary data does (2026-10-03: XY, Column
+      and Grouped tables; curve fits account for SD and N or fit means
+      only; unpaired / Welch / one-sample t, one- and two-way ANOVA;
+      entered error bars on graphs; replicates -> summary converter.
+      Grouped-table analyses pick this up when they land)
+- [x] Side-by-side vs stacked replicates (XY / Grouped side by side,
+      Column / Nested stacked); subcolumn titles; row titles on Column
+      tables (editable; using them as point labels is a graph item)
+- [x] Excluding values Prism-style (value stays visible, struck through,
+      skipped by analyses and graphs), with keyboard shortcut (also on a
+      selected block)
+- [x] Sort rows, insert series (start/step, arithmetic or geometric),
+      decimal-place display, dates / elapsed times as X (parsed, analyzed
+      in a chosen unit, graphed with date / h:mm:ss ticks), insert /
+      delete / move rows and columns, block select / copy / cut / clear
+- [ ] Rounding as a transform; data-table limits documented
 - [x] Undo / redo for every table edit (project-level history, Ctrl/Cmd+Z,
       Shift+Ctrl/Cmd+Z, coalesced typing, 100 steps)
 
 **Importing and exporting data**
-- [ ] Text / CSV / TSV import with the Source · View · Filter · Placement
+- [x] Text / CSV / TSV import with the Source · View · Filter · Placement
       choices (skip rows, pick columns, transpose, insert at column,
-      decimal-separator handling)
-- [ ] Export any data or results table as CSV / TSV; copy results sheet
+      decimal-separator handling), .xlsx worksheets, encodings, every
+      k-th row, missing-value code, trailing * = excluded, unstacking
+      indexed data; offered for large or comma-separated pastes (not yet:
+      by-rows / by-columns reflow, filter criteria on a column, Info &
+      Notes import)
+- [x] Export any data or results table as CSV / TSV; copy results sheet
       as tab-separated text
 
 **Data Inspector and calculated variables**
@@ -212,8 +225,9 @@ save/load; methods text; theme; accessibility pass.
       Lineweaver-Burk, log-log, Scatchard, Hill) and extra standard Y
       functions (Y^K, |Y|, z score, logit, probit, trig, Y·X, …)
 - [ ] Calculated variables (in-table formulas) on multiple-variables
-      tables; a Data Inspector card (n, mean, SD, min, max, missing) for
-      the selected block of cells
+      tables
+- [x] A Data Inspector card (n, mean, SD, SEM, min, max, missing,
+      excluded) for the selected block of cells, or the current column
 
 **Analyzing data: manipulations**
 - [x] Transforming concentrations (X = log(X) with a chosen replacement

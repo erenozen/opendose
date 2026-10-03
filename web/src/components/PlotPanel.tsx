@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import Plotly from "plotly.js-dist-min";
 import type { AnalysisResult } from "../types";
+import { niceTicks } from "../project/xformat";
 import {
   CHROME_DARK, CHROME_LIGHT, DEFAULT_SCHEME, isDarkMode, onThemeChange,
   seriesStyle, PLOT_FONT, type SchemeId,
@@ -11,10 +12,12 @@ interface Props {
   xTitle: string;
   yTitle: string;
   scheme?: SchemeId;
+  /** X tick labels for date / elapsed-time X columns (data table format). */
+  xTickFormat?: (v: number) => string;
 }
 
 export default function PlotPanel({
-  result, xTitle, yTitle, scheme = DEFAULT_SCHEME,
+  result, xTitle, yTitle, scheme = DEFAULT_SCHEME, xTickFormat,
 }: Props) {
   const el = useRef<HTMLDivElement>(null);
   const [dark, setDark] = useState(isDarkMode());
@@ -157,13 +160,23 @@ export default function PlotPanel({
       uirevision: "keep",
     };
 
+    if (xTickFormat && layout.xaxis) {
+      const xs = traces.flatMap((tr) => ((tr as { x?: unknown[] }).x ?? []))
+        .filter((v): v is number => typeof v === "number" && Number.isFinite(v));
+      if (xs.length) {
+        const vals = niceTicks(Math.min(...xs), Math.max(...xs), 6);
+        layout.xaxis.tickvals = vals;
+        layout.xaxis.ticktext = vals.map(xTickFormat);
+      }
+    }
+
     Plotly.react(el.current, traces, layout, {
       responsive: true,
       scrollZoom: true,
       displaylogo: false,
       toImageButtonOptions: { format: "svg", filename: "dose-response" },
     });
-  }, [result, dark, xTitle, yTitle, scheme]);
+  }, [result, dark, xTitle, yTitle, scheme, xTickFormat]);
 
   return <div className="plot" ref={el} />;
 }

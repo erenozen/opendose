@@ -5,10 +5,13 @@
 // example tables), Prism imports, the multi-sheet
 // project workflow (new table, rename, undo/redo, delete, save/open,
 // v1 migration, restore from autosave), the multiple-variables analyses
-// (regression, PCA, logistic, correlation, extract & rearrange), then
-// chains of analyses (Transform with X = log(X) and a user formula,
-// Normalize of the result, a source edit flowing down the chain), a
-// simulated XY table and a Monte Carlo run.
+// (regression, PCA, logistic, correlation, extract & rearrange), chains of
+// analyses (Transform with X = log(X) and a user formula, Normalize of the
+// result, a source edit flowing down the chain), a simulated XY table and
+// a Monte Carlo run, and table editing (Import dialog with .xlsx and
+// decimal-comma CSV, sort, block exclusion, Data Inspector, CSV export of
+// data and results, Mean/SD/N conversion and entry, insert series, dates
+// as X).
 import { chromium } from "playwright";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -465,6 +468,143 @@ console.log("Monte Carlo:", hitsLine.split("\n").find((l) => l.startsWith("A hit
 expect("Monte Carlo results show 20 repeats", mcN.trim() === "20", mcN);
 expect("Monte Carlo histogram is drawn",
   await page.locator(".plot .bars path, .plot .barlayer path").count() > 0);
+// --- table editing, import / export, summary formats, Data Inspector ---
+const REF_X = ["1e-9", "3.162e-9", "1e-8", "3.162e-8", "1e-7", "3.162e-7",
+  "1e-6", "3.162e-6", "1e-5"];
+const REF_ROWS = [[98.2, 101.5, 99.1], [97.0, 95.8, 99.9], [93.4, 90.1, 92.7],
+  [78.9, 82.3, 80.0], [51.2, 48.7, 50.9], [22.1, 25.6, 24.0], [8.9, 10.2, 7.5],
+  [3.1, 4.4, 2.2], [1.0, 0.5, 2.1]];
+const eu = (v) => String(v).replace(".", ",");
+const waitLogIC50 = (v) => page.waitForFunction((want) => [...document
+  .querySelectorAll(".results-table tbody tr")]
+  .some((tr) => tr.innerText.includes("LogIC50") && tr.innerText.includes(want)),
+v, { timeout: 60000 }).then(() => true, () => false);
+const cellValue = (label) => page.locator(`.data-table input[aria-label='${label}']`).inputValue();
+
+await page.getByRole("button", { name: "New data table" }).click();
+const newDlg = page.locator(".new-table-dialog");
+await newDlg.locator('input[name="table-type"][value="xy"]').check();
+await newDlg.getByLabel("Table name").fill("Imported CSV");
+await newDlg.getByRole("button", { name: "Create table" }).click();
+await page.waitForSelector(".grid-toolbar");
+
+// xlsx through the Import dialog's file source (read by the Python runtime)
+await page.getByRole("button", { name: "Import…", exact: true }).click();
+const imp = page.locator(".import-dialog");
+await imp.getByLabel("File to import").setInputFiles(XLSX);
+await page.waitForFunction(() =>
+  document.querySelectorAll(".import-preview tbody tr").length > 0, null, { timeout: 60000 });
+const xlsxSummary = await imp.locator(".import-summary").innerText();
+expect("import dialog reads an .xlsx worksheet",
+  xlsxSummary.startsWith("9 of 9 rows, 12 Y columns"), xlsxSummary);
+
+// European CSV (semicolons, decimal commas) pasted as text: one line to
+// skip, a titles row, X + three replicates
+const csv = ["Exported by plate reader v2", "Dose;Drug A;Drug A;Drug A",
+  ...REF_X.map((x, r) => [eu(x), ...REF_ROWS[r].map(eu)].join(";"))].join("\n");
+await imp.getByLabel("Pasted text").check();
+await imp.getByLabel("Text to import").fill(csv);
+await imp.getByLabel("Lines to skip at the top").fill("1");
+await imp.getByLabel(/holds column titles/).check();
+await imp.getByRole("button", { name: "Import", exact: true }).click();
+const imported = [await cellValue("X, row 2"), await cellValue("Drug A, Y2, row 1"),
+  await page.locator(".data-table input[aria-label='Dataset 1 title']").inputValue(),
+  await page.locator(".data-table input[aria-label='X column title']").inputValue()];
+expect("CSV import: X, names, decimal commas", imported.join("|") === "3.162e-9|101.5|Drug A|Dose",
+  imported.join("|"));
+expect("fit of the imported table: LogIC50 -6.983", await waitLogIC50("-6.983"));
+
+// sort by X, descending then ascending
+await page.getByRole("button", { name: "Sort…" }).click();
+await page.getByLabel("Sort by").selectOption({ label: "X values" });
+await page.getByLabel(/Descending/).check();
+await page.getByRole("button", { name: "Sort", exact: true }).click();
+const sortedTop = `${await cellValue("X, row 1")} ${await cellValue("Drug A, Y3, row 1")}`;
+expect("sort rows by X descending keeps rows together", sortedTop === "1e-5 2.1", sortedTop);
+await page.getByRole("button", { name: "Sort…" }).click();
+await page.getByRole("button", { name: "Sort", exact: true }).click();
+expect("sort ascending restores the order", await cellValue("X, row 1") === "1e-9");
+
+// Data Inspector and block exclusion
+await page.locator(".data-table input[aria-label='Drug A, Y1, row 1']").click();
+expect("data inspector summarizes the column",
+  (await page.locator(".data-inspector [data-stat='N']").innerText()) === "9");
+await page.keyboard.press("Shift+ArrowRight");
+await page.keyboard.press("Shift+ArrowRight");
+await page.keyboard.press("Control+e");
+expect("Ctrl+E excludes a selected block",
+  (await page.locator(".data-inspector [data-stat='Excluded']").innerText()) === "3"
+  && await page.locator(".data-table td.excluded").count() === 3);
+await page.keyboard.press("Control+e");
+expect("Ctrl+E again includes it", await page.locator(".data-table td.excluded").count() === 0);
+
+// export the data table as CSV
+await page.getByRole("button", { name: "Export…" }).click();
+const [csvDl] = await Promise.all([
+  page.waitForEvent("download", { timeout: 30000 }),
+  page.getByRole("button", { name: "Download CSV" }).click(),
+]);
+const csvPath = join(tmp, csvDl.suggestedFilename());
+await csvDl.saveAs(csvPath);
+const csvLines = readFileSync(csvPath, "utf8").replace(/^﻿/, "").split(/\r?\n/);
+expect("exported CSV has titles and every value",
+  csvLines[0] === "Dose,Drug A,Drug A,Drug A" && csvLines[1] === "1e-9,98.2,101.5,99.1"
+  && csvLines[9] === "1e-5,1,0.5,2.1", [0, 1, 9].map((i) => csvLines[i]).join(" | "));
+
+// results export: the rendered fit table as CSV
+const [resDl] = await Promise.all([
+  page.waitForEvent("download", { timeout: 30000 }),
+  page.locator(".results-export").getByRole("button", { name: "CSV" }).click(),
+]);
+const resPath = join(tmp, resDl.suggestedFilename());
+await resDl.saveAs(resPath);
+expect("results CSV holds the rendered LogIC50 row",
+  readFileSync(resPath, "utf8").split(/\r?\n/).some((l) => l.startsWith("LogIC50,-6.983")));
+
+// replicates -> Mean, SD, N as a new table (engine summary_convert)
+await page.getByRole("button", { name: "Convert…" }).click();
+await page.getByLabel("New table holds").selectOption("mean_sd_n");
+await page.getByRole("button", { name: "Create table" }).click();
+await page.waitForFunction(() => document.querySelector(
+  ".data-table input[aria-label='Drug A, Mean, row 1']"), null, { timeout: 30000 });
+expect("converted table holds the mean", await cellValue("Drug A, Mean, row 1") === "99.6");
+expect("fit of the converted Mean/SD/N table: LogIC50 -6.983", await waitLogIC50("-6.983"));
+
+// switch the imported table itself to Mean, SD, N and type the summaries
+await navRow("Imported CSV").click();
+await page.getByRole("button", { name: "Format…" }).click();
+await page.getByRole("combobox", { name: "Y values entered as" }).selectOption("mean_sd_n");
+await page.getByRole("button", { name: "Apply" }).click();
+for (let r = 0; r < REF_ROWS.length; r++) {
+  const v = REF_ROWS[r];
+  const m = v.reduce((a, b) => a + b, 0) / v.length;
+  const sd = Math.sqrt(v.reduce((a, b) => a + (b - m) ** 2, 0) / (v.length - 1));
+  await page.locator(`.data-table input[aria-label='Drug A, Mean, row ${r + 1}']`).fill(m.toPrecision(10));
+  await page.locator(`.data-table input[aria-label='Drug A, SD, row ${r + 1}']`).fill(sd.toPrecision(10));
+  await page.locator(`.data-table input[aria-label='Drug A, N, row ${r + 1}']`).fill("3");
+}
+expect("Mean/SD/N entry fits like the replicates: LogIC50 -6.983", await waitLogIC50("-6.983"));
+
+// insert series into a new table's X, then show X as dates
+await page.getByRole("button", { name: "New data table" }).click();
+await newDlg.locator('input[name="table-type"][value="xy"]').check();
+await newDlg.getByLabel("Table name").fill("Series test");
+await newDlg.getByRole("button", { name: "Create table" }).click();
+await page.locator(".data-table input[aria-label='X, row 1']").click();
+await page.getByRole("button", { name: "Insert series…" }).click();
+await page.getByLabel("First value").fill("0");
+await page.getByRole("textbox", { name: "Increment" }).fill("0.5");
+await page.getByLabel("Number of values").fill("12");
+await page.getByRole("button", { name: "Insert series", exact: true }).click();
+expect("insert series fills X and adds rows",
+  await cellValue("X, row 5") === "2" && await cellValue("X, row 12") === "5.5");
+await page.getByRole("button", { name: "Format…" }).click();
+await page.getByRole("combobox", { name: "X values are" }).selectOption("dates");
+await page.getByRole("button", { name: "Apply" }).click();
+await page.locator(".data-table input[aria-label='X, row 1']").fill("5 Mar 2024");
+await page.locator(".data-table input[aria-label='Dataset A, Y1, row 1']").click();
+expect("dates in X display in a standard form",
+  await cellValue("X, row 1") === "2024-03-05");
 
 await page.screenshot({
   path: join(here, "app.png"),

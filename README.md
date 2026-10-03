@@ -107,7 +107,33 @@ from the jsDelivr CDN, ~30 MB, then cached).
 - Editing: project-wide undo/redo (Ctrl/Cmd+Z, Shift+Ctrl/Cmd+Z),
   keyboard navigation in the grid, excluded values (Ctrl/Cmd+E: kept
   visible, struck through, skipped by analyses and graphs), subcolumn and
-  row titles, summary-data formats stored with the table.
+  row titles (Column tables included). A toolbar over every table: sort
+  rows (by X, row title or a dataset; rows and exclusions move
+  together), insert arithmetic or geometric series, insert / delete /
+  move rows and columns, decimal places shown, block selection (drag,
+  Shift+click, Shift+arrows) to clear, copy, cut or exclude, and a Data
+  Inspector card (n, mean, SD, SEM, min, max, missing, excluded) for the
+  selection.
+- Import and export of data: CSV / TSV / semicolon / space-separated
+  text or .xlsx worksheets through an Import dialog (Source: delimiter,
+  decimal comma, encoding, lines to skip, titles row; View: what each
+  column becomes; Filter: row / column ranges, every k-th row, missing
+  code, blank-X rows, trailing * = excluded; Placement: replace, append
+  or write at a cell, transpose, replicates per dataset), offered
+  automatically for large or comma-separated pastes. Any data table
+  exports as CSV / TSV (excluded values marked, blank or kept; point or
+  comma decimals) or copies as tab-separated text; results sheets export
+  what they show.
+- Summary data: XY, Column and Grouped tables can hold Mean with SD /
+  SEM / %CV / 95% CI limits (with or without N), mean ± errors or
+  upper / lower limits. Curve fits use SD and N exactly as the raw
+  replicates would be fitted (or fit the means only); unpaired / Welch /
+  one-sample t tests and ordinary one- and two-way ANOVA run from the
+  summaries; graphs draw the entered error bars; a converter turns
+  replicates into any summary format as a new table.
+- Dates and elapsed times as X: typed in common formats, analyzed as
+  days (or weeks / years / hours) since the earliest date or as seconds
+  (or minutes / hours / days), shown and graphed as dates or h:mm:ss.
 - Chains of analyses: Transform (standard functions, pharmacology plots
   and user-defined formulas with live validation and a function
   reference), Transform concentrations, Remove baseline, Normalize,

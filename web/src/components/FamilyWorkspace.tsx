@@ -13,6 +13,7 @@ import type {
 import { analysisDef, graphDef, tableDef } from "../sheets/registry";
 import PlaceholderPanel from "../sheets/common/PlaceholderPanel";
 import OriginNote from "../sheets/manipulate/OriginNote";
+import ResultsExport from "../sheets/common/ResultsExport";
 import type { AsideProps, TableEdit } from "../sheets/types";
 import type { SchemeId } from "../lib/palette";
 import { fileStem } from "../export/settings";
@@ -155,7 +156,9 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
             )}
             {resSheet && Results && (
               <div className={`pane pane-results${reveal}`}>
-                <Results sheet={resSheet} table={data.table} options={options} result={result} />
+                <ResultsExport name={resSheet.name}>
+                  <Results sheet={resSheet} table={data.table} options={options} result={result} />
+                </ResultsExport>
               </div>
             )}
             {resSheet && Methods && (

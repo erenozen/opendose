@@ -1,15 +1,54 @@
+import { useMemo } from "react";
 import ControlsPanel from "../../components/ControlsPanel";
 import MethodsText from "../../components/MethodsText";
 import PlateImportPanel from "../../components/PlateImportPanel";
 import PlotPanel from "../../components/PlotPanel";
 import ResultsPanel from "../../components/ResultsPanel";
 import { normalizeTable } from "../../project/table";
+import {
+  SUBCOLUMN_FORMAT_HAS_N, SUBCOLUMN_FORMAT_LABELS,
+} from "../../project/types";
+import { xTickFormatter } from "../../project/xformat";
 import type { AnalysisResult, OptionsState } from "../../types";
 import type { AsideProps, ControlsProps, PlotProps, ResultsProps } from "../types";
 import { ANALYSIS_NONLIN } from "../../project/builtin";
 
-export function NonlinControls({ options, onChange }: ControlsProps<OptionsState>) {
-  return <ControlsPanel options={options} onChange={onChange} />;
+export function NonlinControls({ table, options, onChange }: ControlsProps<OptionsState>) {
+  const fmt = table.subcolumnFormat;
+  return (
+    <>
+      {fmt !== "replicates" && (
+        <div className="controls summary-fit">
+          <section>
+            <h3>Data entered as {SUBCOLUMN_FORMAT_LABELS[fmt]}</h3>
+            {SUBCOLUMN_FORMAT_HAS_N[fmt] ? (
+              <fieldset className="field-radios">
+                <legend className="sr-only">How to fit summary data</legend>
+                <label>
+                  <input type="radio" name={`summary-fit-${table.datasets.length}`}
+                    checked={(options.summaryReplicates ?? "account") === "account"}
+                    onChange={() => onChange({ ...options, summaryReplicates: "account" })} />
+                  Account for the error and N (same fit as the raw replicates)
+                </label>
+                <label>
+                  <input type="radio" name={`summary-fit-${table.datasets.length}`}
+                    checked={options.summaryReplicates === "means_only"}
+                    onChange={() => onChange({ ...options, summaryReplicates: "means_only" })} />
+                  Fit the means only (one point per row)
+                </label>
+              </fieldset>
+            ) : (
+              <p className="hint-block">
+                Without N the error values cannot be used: the fit uses the
+                means, one point per row. Error bars show what was entered.
+              </p>
+            )}
+          </section>
+        </div>
+      )}
+      <ControlsPanel options={options} onChange={onChange} />
+    </>
+  );
 }
 
 export function NonlinResults({ table, result }:
@@ -22,9 +61,14 @@ export function NonlinMethods({ table, result, options }:
   return <MethodsText result={result} options={options} xUnit={table.xUnit || "M"} />;
 }
 
-export function XYPlot({ result, titles, scheme }:
+export function XYPlot({ table, result, titles, scheme }:
   PlotProps<OptionsState, AnalysisResult>) {
-  return <PlotPanel result={result} scheme={scheme} xTitle={titles.x} yTitle={titles.y} />;
+  // Dates / elapsed times: X ticks read as dates or h:mm:ss.
+  const xTickFormat = useMemo(() => xTickFormatter(table) ?? undefined, [table]);
+  return (
+    <PlotPanel result={result} scheme={scheme} xTitle={titles.x} yTitle={titles.y}
+      xTickFormat={xTickFormat} />
+  );
 }
 
 /** SRB / MTT plate import: replaces the table and sets the fit up the way

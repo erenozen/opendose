@@ -23,22 +23,31 @@ export function isTableType(v: unknown): v is TableType {
   return typeof v === "string" && (TABLE_TYPES as string[]).includes(v);
 }
 
-/** How Y subcolumns are entered. Only "replicates" is analyzed today; the
- *  summary formats are stored so tables survive a round trip, and the
- *  follow-up work package wires them into the analyses. */
+/** How Y subcolumns are entered: raw replicate values, or summary values
+ *  computed elsewhere (mean with SD / SEM / %CV / CI limits / errors /
+ *  limits, with or without N), analyzed through the engine's summary-data
+ *  handlers. */
 export type SubcolumnFormat =
   | "replicates"
   | "mean_sd_n" | "mean_sem_n" | "mean_cv_n" | "mean_ci_n"
-  | "mean_sd" | "mean_sem" | "upper_lower";
+  | "mean_sd" | "mean_sem" | "mean_cv" | "mean_pm" | "upper_lower";
+
+/** Menu order of the subcolumn formats. */
+export const SUBCOLUMN_FORMATS: SubcolumnFormat[] = [
+  "replicates", "mean_sd_n", "mean_sem_n", "mean_cv_n", "mean_ci_n",
+  "mean_sd", "mean_sem", "mean_cv", "mean_pm", "upper_lower",
+];
 
 export const SUBCOLUMN_FORMAT_LABELS: Record<SubcolumnFormat, string> = {
   replicates: "Replicate values",
   mean_sd_n: "Mean, SD, N",
   mean_sem_n: "Mean, SEM, N",
   mean_cv_n: "Mean, %CV, N",
-  mean_ci_n: "Mean, 95% CI half-width, N",
+  mean_ci_n: "Mean, 95% CI limits, N",
   mean_sd: "Mean, SD",
   mean_sem: "Mean, SEM",
+  mean_cv: "Mean, %CV",
+  mean_pm: "Mean, + error, − error",
   upper_lower: "Mean, upper limit, lower limit",
 };
 
@@ -48,18 +57,41 @@ export const SUBCOLUMN_FORMAT_TITLES: Record<SubcolumnFormat, string[]> = {
   mean_sd_n: ["Mean", "SD", "N"],
   mean_sem_n: ["Mean", "SEM", "N"],
   mean_cv_n: ["Mean", "%CV", "N"],
-  mean_ci_n: ["Mean", "CI", "N"],
+  mean_ci_n: ["Mean", "Lower CI", "Upper CI", "N"],
   mean_sd: ["Mean", "SD"],
   mean_sem: ["Mean", "SEM"],
+  mean_cv: ["Mean", "%CV"],
+  mean_pm: ["Mean", "+Error", "−Error"],
   upper_lower: ["Mean", "Upper", "Lower"],
+};
+
+/** The engine's id for each format (engine/opendose/summary.py FORMATS). */
+export const SUBCOLUMN_FORMAT_ENGINE: Record<SubcolumnFormat, string> = {
+  replicates: "replicates",
+  mean_sd_n: "mean_sd_n", mean_sem_n: "mean_sem_n", mean_cv_n: "mean_cv_n",
+  mean_ci_n: "mean_ci_n", mean_sd: "mean_sd", mean_sem: "mean_sem",
+  mean_cv: "mean_cv", mean_pm: "mean_pm", upper_lower: "mean_limits",
+};
+
+/** Formats that carry N: only these support tests and full curve fits. */
+export const SUBCOLUMN_FORMAT_HAS_N: Record<SubcolumnFormat, boolean> = {
+  replicates: true, mean_sd_n: true, mean_sem_n: true, mean_cv_n: true,
+  mean_ci_n: true, mean_sd: false, mean_sem: false, mean_cv: false,
+  mean_pm: false, upper_lower: false,
 };
 
 /** Replicates entered side by side in subcolumns, or stacked down rows. */
 export type ReplicateLayout = "side_by_side" | "stacked";
 
-/** What the X column holds. Dates / elapsed times are stored as typed;
- *  parsing them into numbers lands with the date-axis work package. */
+/** What the X column holds. Dates / elapsed times are stored as typed and
+ *  converted to numbers for analyses and graphs (project/xformat.ts). */
 export type XFormat = "numbers" | "dates" | "elapsed";
+
+/** Unit dates / elapsed times are converted to for analyses and graphs. */
+export type XTimeUnit = "seconds" | "minutes" | "hours" | "days" | "weeks" | "years";
+
+/** How an ambiguous date such as 1/2/2024 is read. */
+export type DateOrder = "dmy" | "mdy";
 
 /** Multiple-variables tables: each column is one variable. */
 export type VarType = "continuous" | "categorical";
@@ -86,6 +118,15 @@ export interface DataTableModel {
   datasets: DataColumn[];
   subcolumnFormat: SubcolumnFormat;
   replicateLayout: ReplicateLayout;
+  /** Decimal places shown in the grid (undefined = as typed). Display only:
+   *  analyses and exports use every stored digit. */
+  decimals?: number;
+  /** Dates / elapsed X: unit of the numbers analyses and graphs see. */
+  xTimeUnit?: XTimeUnit;
+  /** Dates X: reading of ambiguous dates such as 1/2/2024. */
+  xDateOrder?: DateOrder;
+  /** Elapsed X: whether a two-part time such as 12:30 is h:mm or m:ss. */
+  xElapsedTwoPart?: "hm" | "ms";
 }
 
 export type HighlightColor =

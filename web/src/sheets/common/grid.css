@@ -1,0 +1,147 @@
+/* Data grid tools: toolbar, block selection, Data Inspector, and the
+   import / export / table dialogs. Uses the design tokens of App.css. */
+
+.grid-editor { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+
+/* ---- toolbar */
+.grid-toolbar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px;
+  padding: 2px 2px 0;
+}
+.grid-toolbar > button, .grid-toolbar .menu-wrap > button {
+  padding: 5px 11px; font-size: 12.5px;
+}
+.grid-toolbar .tb-sep {
+  width: 1px; align-self: stretch; margin: 3px 2px; background: var(--border);
+}
+.grid-toolbar button:disabled { opacity: 0.45; cursor: default; }
+.grid-toolbar button:disabled:active { transform: none; }
+.menu-wrap { position: relative; display: inline-flex; }
+.grid-menu { position: absolute; top: calc(100% + 4px); left: 0; }
+.grid-menu.align-right { left: auto; right: 0; }
+.caret { font-size: 10px; margin-left: 4px; color: var(--muted); }
+
+/* ---- block selection */
+.data-table td.sel, .data-table th.row-label.sel {
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent-border);
+}
+.data-table td.sel.excluded input { color: var(--muted); }
+.data-table.selecting, .data-table.selecting input { user-select: none; cursor: cell; }
+.data-table td.x-invalid input {
+  color: var(--warn-ink); text-decoration: underline wavy var(--warn-hue);
+  text-underline-offset: 3px;
+}
+.format-tag {
+  display: block; font-size: 10.5px; font-weight: 500; color: var(--muted);
+  letter-spacing: 0.01em;
+}
+
+/* ---- notices under the grid */
+.grid-note {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 7px 12px; border-radius: var(--radius-s);
+  border: 1px solid var(--accent-border); background: var(--accent-soft);
+  color: var(--ink-2); font-size: 12.5px;
+}
+.grid-note button { padding: 3px 10px; font-size: 12.5px; margin-left: auto; }
+
+/* ---- Data Inspector */
+.data-inspector {
+  background: var(--surface); border: 1px solid var(--border-soft);
+  border-radius: var(--radius); box-shadow: var(--shadow);
+  padding: 10px 14px 12px;
+}
+.data-inspector h3 {
+  margin: 0 0 6px; font-size: 11.5px; text-transform: uppercase;
+  letter-spacing: 0.07em; color: var(--muted); font-weight: 650;
+  display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap;
+}
+.data-inspector h3 .inspector-scope {
+  text-transform: none; letter-spacing: 0; font-weight: 500; color: var(--ink-2);
+  font-size: 12px;
+}
+.inspector-stats {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+  gap: 6px 14px; margin: 0;
+}
+.inspector-stats div { display: flex; flex-direction: column; min-width: 0; }
+.inspector-stats dt { font-size: 11.5px; color: var(--muted); }
+.inspector-stats dd {
+  margin: 0; font-size: 13px; color: var(--ink); font-weight: 550;
+  font-variant-numeric: tabular-nums; overflow-wrap: anywhere;
+}
+
+/* ---- dialogs */
+.dialog-tabs {
+  display: inline-flex; gap: 2px; padding: 2px; align-self: flex-start;
+  background: var(--seg-track); border-radius: 9px; flex-wrap: wrap;
+}
+.dialog-tabs button {
+  background: transparent; border-radius: 7px; padding: 5px 14px;
+  font-size: 13px; color: var(--ink-2);
+}
+.dialog-tabs button[aria-selected="true"] {
+  background: var(--seg-thumb); color: var(--ink); box-shadow: var(--seg-shadow);
+  font-weight: 600;
+}
+.dialog-panel { display: flex; flex-direction: column; gap: 12px; }
+.field-row { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: flex-end; }
+.field-check {
+  display: flex; gap: 8px; align-items: baseline; font-size: 13px; color: var(--ink-2);
+}
+.field-check input { accent-color: var(--accent); }
+.field textarea {
+  font: inherit; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12.5px; color: var(--ink); background: var(--inset);
+  border: 1px solid var(--border); border-radius: var(--radius-s);
+  padding: 7px 9px; resize: vertical; min-height: 96px; max-width: 100%;
+}
+.field input[type="file"] { background: transparent; border: none; padding: 2px 0; }
+.import-preview {
+  max-height: 300px; overflow: auto; border: 1px solid var(--grid);
+  border-radius: var(--radius-s);
+}
+.import-preview table { border-collapse: collapse; font-size: 12.5px; width: max-content; min-width: 100%; }
+.import-preview th, .import-preview td {
+  border: 1px solid var(--grid); padding: 3px 7px; text-align: right;
+  font-variant-numeric: tabular-nums; white-space: nowrap; max-width: 18ch;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.import-preview thead th {
+  position: sticky; top: 0; background: var(--surface); z-index: 1;
+  text-align: center; font-weight: 600; color: var(--ink-2);
+}
+.import-preview thead tr + tr th { top: 30px; }
+.import-preview select { font: inherit; font-size: 12px; padding: 2px 4px; border-radius: 5px; }
+.import-preview td.role-ignore { color: var(--faint); }
+.import-preview td.role-x { background: var(--inset); }
+.import-preview .rn { color: var(--muted); text-align: center; background: transparent; }
+.import-summary { margin: 0; font-size: 12.5px; color: var(--ink-2); }
+.import-error { color: var(--danger); font-size: 12.5px; margin: 0; }
+.modal-actions .spacer { margin-right: auto; }
+
+/* Results export strip */
+.results-export-wrap { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.results-export {
+  display: flex; gap: 6px; justify-content: flex-end; flex-wrap: wrap;
+  align-items: center;
+}
+.results-export button { padding: 4px 11px; font-size: 12.5px; }
+.results-export .hint { color: var(--muted); font-size: 12px; margin-right: auto; }
+
+/* inline text button inside notes */
+button.linkish {
+  background: none; border: none; padding: 0; border-radius: 3px;
+  color: var(--accent); font: inherit; font-size: inherit; cursor: pointer;
+  text-decoration: underline; text-underline-offset: 2px;
+}
+button.linkish:active { transform: none; }
+@media (hover: hover) and (pointer: fine) {
+  button.linkish:hover { background: none; color: var(--accent); text-decoration-thickness: 2px; }
+}
+
+@media (max-width: 640px) {
+  .grid-toolbar > button, .grid-toolbar .menu-wrap > button { min-height: 36px; }
+  .dialog-tabs button { padding: 7px 12px; }
+}
