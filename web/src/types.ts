@@ -202,6 +202,7 @@ export type ColumnAnalysisKind =
   | "column_statistics"
   | "ttest"
   | "anova"
+  | "median_test"
   | "rm_anova"
   | "two_way_anova"
   | "rm_two_way"
@@ -214,6 +215,7 @@ export const COLUMN_ANALYSIS_LABELS: Record<ColumnAnalysisKind, string> = {
   column_statistics: "Column statistics (descriptive + normality)",
   ttest: "t test / nonparametric (two groups)",
   anova: "One-way ANOVA (and nonparametric)",
+  median_test: "Median test (Mood's, two or more groups)",
   rm_anova: "Repeated-measures ANOVA / Friedman (rows = subjects)",
   two_way_anova: "Two-way ANOVA (rows × datasets)",
   rm_two_way: "Two-way ANOVA, repeated measures",
@@ -245,18 +247,23 @@ export const COLUMN_GRAPH_LABELS: Record<ColumnGraphType, string> = {
   violin: "Violin",
 };
 
-export type TTestKind = "unpaired" | "welch" | "paired" | "mann_whitney" | "wilcoxon";
+export type TTestKind =
+  | "unpaired" | "welch" | "paired" | "ratio_paired"
+  | "mann_whitney" | "kolmogorov_smirnov" | "wilcoxon";
 
 export const TTEST_LABELS: Record<TTestKind, string> = {
   unpaired: "Unpaired t test",
   welch: "Unpaired t with Welch's correction",
   paired: "Paired t test",
+  ratio_paired: "Ratio paired t test (paired ratios, lognormal)",
   mann_whitney: "Mann-Whitney (unpaired, nonparametric)",
+  kolmogorov_smirnov: "Kolmogorov-Smirnov (unpaired, compares distributions)",
   wilcoxon: "Wilcoxon matched pairs (nonparametric)",
 };
 
 export type ComparisonsMethod =
-  | "none" | "tukey" | "dunnett" | "bonferroni" | "sidak" | "holm_sidak";
+  | "none" | "tukey" | "dunnett" | "bonferroni" | "sidak" | "holm_sidak"
+  | "newman_keuls" | "fisher_lsd";
 
 export const COMPARISONS_LABELS: Record<ComparisonsMethod, string> = {
   none: "No multiple comparisons",
@@ -265,7 +272,29 @@ export const COMPARISONS_LABELS: Record<ComparisonsMethod, string> = {
   bonferroni: "Bonferroni (every pair)",
   sidak: "Šídák (every pair)",
   holm_sidak: "Holm-Šídák (every pair)",
+  newman_keuls: "Newman-Keuls (every pair)",
+  fisher_lsd: "Fisher's LSD (every pair, no correction)",
 };
+
+/** Comparisons after Welch / Brown-Forsythe ANOVA (SDs not assumed equal). */
+export type UnequalComparisons =
+  | "none" | "games_howell" | "dunnett_t3" | "tamhane_t2" | "welch_uncorrected";
+
+export const UNEQUAL_COMPARISONS_LABELS: Record<UnequalComparisons, string> = {
+  none: "No multiple comparisons",
+  games_howell: "Games-Howell (every pair)",
+  dunnett_t3: "Dunnett T3",
+  tamhane_t2: "Tamhane T2",
+  welch_uncorrected: "Unpaired t with Welch's correction, no correction for multiple comparisons",
+};
+
+export const NORMALITY_TEST_LABELS: Record<string, string> = {
+  shapiro_wilk: "Shapiro-Wilk",
+  dagostino_pearson: "D'Agostino-Pearson omnibus",
+  anderson_darling: "Anderson-Darling",
+  kolmogorov_smirnov: "Kolmogorov-Smirnov (Lilliefors P)",
+};
+export const DEFAULT_NORMALITY_TESTS = ["shapiro_wilk", "dagostino_pearson", "anderson_darling"];
 
 export interface ColumnOptionsState {
   analysis: ColumnAnalysisKind;
@@ -284,6 +313,25 @@ export interface ColumnOptionsState {
   twoWayComparisons: TwoWayComparisons;
   twoWayDirection: TwoWayDirection;
   rmTwoDesign: "mixed" | "both";
+  /** One-way ANOVA: assume equal SDs (ordinary) or not (Welch and
+   *  Brown-Forsythe, engine anova_unequal_var). */
+  anovaSd?: "equal" | "unequal";
+  unequalComparisons?: UnequalComparisons;
+  /** Unequal-SD comparisons: every pair, or each group vs. the control. */
+  unequalFamily?: "all" | "control";
+  /** Kruskal-Wallis: Dunn's multiplicity correction (false = uncorrected). */
+  dunnCorrected?: boolean;
+  /** Wilcoxon tests: values equal to the hypothetical / zero differences
+   *  dropped (Wilcoxon) or ranked and ignored (Pratt). */
+  zeroMethod?: "wilcox" | "pratt";
+  /** Column statistics extras. */
+  normalityTests?: string[];
+  percentileMethod?: "linear" | "prism";
+  descriptiveExtras?: boolean;
+  trimK?: string;
+  ratioT?: boolean;
+  /** Friedman: exact P (small designs). */
+  rmExact?: boolean;
 }
 
 export const DEFAULT_COLUMN_OPTIONS: ColumnOptionsState = {
@@ -303,6 +351,17 @@ export const DEFAULT_COLUMN_OPTIONS: ColumnOptionsState = {
   twoWayComparisons: "none",
   twoWayDirection: "columns_within_rows",
   rmTwoDesign: "mixed",
+  anovaSd: "equal",
+  unequalComparisons: "games_howell",
+  unequalFamily: "all",
+  dunnCorrected: true,
+  zeroMethod: "wilcox",
+  normalityTests: [...DEFAULT_NORMALITY_TESTS],
+  percentileMethod: "linear",
+  descriptiveExtras: false,
+  trimK: "",
+  ratioT: false,
+  rmExact: false,
 };
 
 export function parseCell(v: Cell): number | null {

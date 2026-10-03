@@ -4,6 +4,7 @@ import type { ColumnGraphType, ColumnOptionsState } from "../../types";
 import { COLUMN_GRAPH_LABELS, DEFAULT_COLUMN_OPTIONS } from "../../types";
 import DataGrid from "../common/DataGrid";
 import { defineAnalysis, defineGraph, type TableTypeDef } from "../types";
+import { ColumnMethods } from "./methods";
 import { ColumnAnalysisControls, ColumnAnalysisResults, ColumnGraph } from "./panels";
 import { runColumn } from "./run";
 
@@ -12,7 +13,8 @@ export const columnAnalysis = defineAnalysis<ColumnOptionsState, Record<string, 
   label: "Column analyses (t tests, ANOVA, nonparametric, …)",
   short: "Column stats",
   description: "Descriptive statistics and normality, t tests, one- and two-way "
-    + "ANOVA, nonparametric tests, correlation, ROC, Bland-Altman, outliers.",
+    + "ANOVA (Welch and Brown-Forsythe too), nonparametric tests, median test, "
+    + "correlation, ROC, Bland-Altman, outliers.",
   sheetName: (t) => `Column stats of ${t}`,
   defaultOptions: () => ({ ...DEFAULT_COLUMN_OPTIONS }),
   normalizeOptions: (raw) => ({
@@ -23,6 +25,7 @@ export const columnAnalysis = defineAnalysis<ColumnOptionsState, Record<string, 
   defaultGraph: "scatter",
   ControlsPanel: ColumnAnalysisControls,
   ResultsPanel: ColumnAnalysisResults,
+  MethodsPanel: ColumnMethods,
 });
 
 export const columnGraphs = (Object.keys(COLUMN_GRAPH_LABELS) as ColumnGraphType[])
