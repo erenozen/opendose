@@ -42,6 +42,8 @@ export class ProjectStore {
   amend = (fn: (p: Project) => Project): Project => {
     this.set(amend(this.h, fn(this.h.present)));
     return this.h.present;
+  };
+
   /** Change something that travels with the project but is not an edit
    *  (e.g. the last export settings). Applied to every snapshot, so undo
    *  and redo neither record nor revert it. */
