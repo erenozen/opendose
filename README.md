@@ -41,6 +41,7 @@ cd web && npm run dev
 cd web && npm run test:unit
 cd web && node scripts/e2e-check.mjs && node scripts/e2e-tiff.mjs
 cd web && node scripts/e2e-export.mjs   # page layouts, PDF/PNG/zip export
+cd web && node scripts/e2e-share.mjs    # share links, export bundle, import recipes
 ```
 
 The dev server needs internet access on first load (Pyodide + SciPy come
@@ -212,6 +213,33 @@ from the jsDelivr CDN, ~30 MB, then cached).
   graph; live results blocks; significance brackets and compact letters
   from the comparisons table; number-at-risk tables under survival
   curves. `web/src/graph/README.md` describes how a plot adopts it.
+- Sharing (`web/src/share/`): Save menu → "Copy share link" puts the
+  whole project (or, from a sheet's menu, one family) into the URL
+  fragment, compressed, with no server: `#p=` followed by base64url of
+  the raw-DEFLATE project JSON, without preferences or autosave. The
+  link opens read-only with "Make a copy"; links over 64 kB are refused
+  in favour of the project file.
+- Export bundle (Save menu): one zip with the project file, every data
+  table as wide and long (tidy) CSV, every results sheet as CSV, every
+  graph as SVG and PNG, methods text, citation and a README naming the
+  software versions.
+- Import recipes (Import → Recipes): FlowJo tables, CellProfiler
+  per-object CSVs, QuPath measurements, plate-reader grids, qPCR Cq
+  exports and long-format CSVs become typed long records; group, animal
+  and time can be read from sample names; values are aggregated up the
+  hierarchy (cell → image → animal) by mean, median, sum or count before
+  pivoting to a column, grouped, XY, multiple-variables, survival or
+  nested table. Reshape (data-table toolbar) turns any table long, or a
+  long table wide.
+- Trust: the info popover links to "How OpenDose is validated", a page
+  listing every pinned cross-check (Prism screenshots, NIST Longley,
+  guide examples, Dunnett and Spearman tables, statsmodels, pingouin)
+  with our value, the reference and its source, and states the privacy
+  model: computation in the browser, nothing sent anywhere, autosave in
+  the browser's own storage, share links carry the data themselves.
+- File format: project files carry a version, and every release opens
+  every earlier version (v1 files migrate on open; the migration is
+  unit-tested). A file never needs the newest build.
 
 ## Roadmap
 
