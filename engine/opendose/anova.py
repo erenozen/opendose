@@ -44,12 +44,6 @@ def one_way_anova(datasets, names=None) -> dict:
 
     ss_between = sum(n * (g.mean() - grand_mean) ** 2 for n, g in zip(ns, groups))
     ss_within = sum(((g - g.mean()) ** 2).sum() for g in groups)
-    ss_total = ss_between + ss_within
-    df_between, df_within = k - 1, n_total - k
-    ms_between = ss_between / df_between
-    ms_within = ss_within / df_within
-    f = ms_between / ms_within
-    p = float(stats.f.sf(f, df_between, df_within))
 
     bf_stat, bf_p = stats.levene(*groups, center="median")  # Brown-Forsythe
     try:
@@ -58,15 +52,7 @@ def one_way_anova(datasets, names=None) -> dict:
         bart_stat = bart_p = float("nan")
 
     return {
-        "table": {
-            "ss_between": float(ss_between), "df_between": df_between,
-            "ms_between": float(ms_between),
-            "ss_within": float(ss_within), "df_within": df_within,
-            "ms_within": float(ms_within),
-            "ss_total": float(ss_total),
-            "F": float(f), "p": p,
-            "r_squared": float(ss_between / ss_total) if ss_total > 0 else None,
-        },
+        "table": _anova_table(ss_between, ss_within, k, n_total),
         "group_summaries": [
             {"name": (names[i] if names else f"Group {i}"),
              "n": int(g.size), "mean": float(g.mean()),
@@ -75,6 +61,28 @@ def one_way_anova(datasets, names=None) -> dict:
         ],
         "brown_forsythe": {"F": float(bf_stat), "p": float(bf_p)},
         "bartlett": {"statistic": float(bart_stat), "p": float(bart_p)},
+    }
+
+
+def _anova_table(ss_between, ss_within, k, n_total) -> dict:
+    """ANOVA table from the between/within sums of squares. Shared by
+    one_way_anova (raw values) and opendose.summary, which computes the
+    same sums of squares from entered mean, SD and n (statistics guide,
+    "Entering data for one-way ANOVA and related tests")."""
+    ss_total = ss_between + ss_within
+    df_between, df_within = k - 1, n_total - k
+    ms_between = ss_between / df_between
+    ms_within = ss_within / df_within
+    f = ms_between / ms_within
+    p = float(stats.f.sf(f, df_between, df_within))
+    return {
+        "ss_between": float(ss_between), "df_between": df_between,
+        "ms_between": float(ms_between),
+        "ss_within": float(ss_within), "df_within": df_within,
+        "ms_within": float(ms_within),
+        "ss_total": float(ss_total),
+        "F": float(f), "p": p,
+        "r_squared": float(ss_between / ss_total) if ss_total > 0 else None,
     }
 
 
@@ -98,12 +106,31 @@ def multiple_comparisons(datasets, method: str, *, names=None,
     means = [float(g.mean()) for g in groups]
     df_res = sum(ns) - k
     ms_res = sum(((g - g.mean()) ** 2).sum() for g in groups) / df_res
+    return _comparisons_from_stats(means, ns, ms_res, df_res, method,
+                                   names=names, control_index=control_index,
+                                   ci_level=ci_level, dunnett_samples=groups)
+
+
+def _comparisons_from_stats(means, ns, ms_res, df_res, method: str, *,
+                            names=None, control_index: int = 0,
+                            ci_level: float = 0.95,
+                            dunnett_samples=None) -> dict:
+    """Multiple comparisons from group means, n and the pooled residual
+    MS/df: every test here depends on the data only through these.
+    Dunnett's P values come from scipy's multivariate-t integration,
+    which takes samples; dunnett_samples supplies them (the raw groups,
+    or synthetic groups with the same mean, SD and n when the data were
+    entered as summaries; see opendose.summary)."""
+    k = len(means)
     names = names or [f"Group {i}" for i in range(k)]
     alpha = 1 - ci_level
+    groups = dunnett_samples
 
     comparisons = []
 
     if method == "dunnett":
+        if groups is None:
+            raise ValueError("Dunnett's test needs dunnett_samples")
         others = [i for i in range(k) if i != control_index]
         res = stats.dunnett(*[groups[i] for i in others],
                             control=groups[control_index])

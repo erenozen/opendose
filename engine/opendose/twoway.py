@@ -51,6 +51,24 @@ def two_way_anova(cells, *, row_factor: str = "Rows",
                   col_factor: str = "Columns") -> dict:
     y, ri, ci = _design(cells)
     n = y.size
+    ss_total = float(((y - y.mean()) ** 2).sum()) if n else 0.0
+    out = _type3_table(y, ri, ci, n, ss_total, _ss_resid,
+                       row_factor=row_factor, col_factor=col_factor)
+
+    cell_means = [[(float(np.mean([v for v in cell if v is not None]))
+                    if any(v is not None for v in cell) else None)
+                   for cell in row] for row in cells]
+    out["cell_means"] = cell_means
+    return out
+
+
+def _type3_table(y, ri, ci, n, ss_total, ss_resid_fn, *,
+                 row_factor: str = "Rows", col_factor: str = "Columns") -> dict:
+    """Type III ANOVA table. Each element of y is one observation (raw
+    data, ss_resid_fn = _ss_resid) or one cell mean whose residual SS
+    ss_resid_fn expands to the n-weighted cell SS plus the within-cell SS
+    (opendose.summary, data entered as mean, SD and n). n is the number
+    of observations either way."""
     a = int(ri.max()) + 1  # rows (factor A levels)
     b = int(ci.max()) + 1  # columns (factor B levels)
     if a < 2 or b < 2:
@@ -60,19 +78,18 @@ def two_way_anova(cells, *, row_factor: str = "Rows",
     B = _effect_columns(ci, b)
     AB = np.column_stack([A[:, i] * B[:, j]
                           for i in range(a - 1) for j in range(b - 1)])
-    intercept = np.ones((n, 1))
+    intercept = np.ones((y.size, 1))
 
     X_full = np.column_stack([intercept, A, B, AB])
     df_resid = n - X_full.shape[1]
     if df_resid < 1:
         raise ValueError("not enough replicates for interaction model")
-    ss_resid = _ss_resid(X_full, y)
+    ss_resid = ss_resid_fn(X_full, y)
     ms_resid = ss_resid / df_resid
-    ss_total = float(((y - y.mean()) ** 2).sum())
 
     def term_ss(drop_cols):
         X_red = np.column_stack([c for c in drop_cols])
-        return _ss_resid(X_red, y) - ss_resid
+        return ss_resid_fn(X_red, y) - ss_resid
 
     sources = {}
     for label, ss, df in [
@@ -93,15 +110,11 @@ def two_way_anova(cells, *, row_factor: str = "Rows",
                            "percent_of_total": float(100.0 * ss_resid / ss_total)
                            if ss_total else None}
 
-    cell_means = [[(float(np.mean([v for v in cell if v is not None]))
-                    if any(v is not None for v in cell) else None)
-                   for cell in row] for row in cells]
-
     return {
         "n": int(n), "rows": a, "cols": b,
         "type": "III (general linear model, effect coding)",
         "sources": sources,
-        "cell_means": cell_means,
+        "cell_means": None,
         "ss_total": ss_total,
     }
 
@@ -141,9 +154,29 @@ def two_way_comparisons(cells, *, direction: str = "columns_within_rows",
     "How Prism computes multiple comparisons after two-way ANOVA").
     """
     base = two_way_anova(cells)
+    means, ns = _cell_stats(cells)
+
+    def column_marginal(j):
+        col_vals = [v for row in cells for v in row[j] if v is not None]
+        return float(np.mean(col_vals)), len(col_vals)
+
+    def row_marginal(i):
+        row_vals = [v for cell in cells[i] for v in cell if v is not None]
+        return float(np.mean(row_vals)), len(row_vals)
+
+    return _comparisons_core(base, means, ns, column_marginal, row_marginal,
+                             direction=direction, method=method,
+                             row_names=row_names, col_names=col_names)
+
+
+def _comparisons_core(base, means, ns, column_marginal, row_marginal, *,
+                      direction, method, row_names, col_names) -> dict:
+    """Follow-up tests from cell means/n and the ANOVA's pooled residual.
+    column_marginal(j) / row_marginal(i) return (mean, n) of all values in
+    that column / row. Shared by two_way_comparisons (raw replicates) and
+    opendose.summary (cells entered as mean, SD and n)."""
     ms_resid = base["sources"]["residual"]["ms"]
     df_resid = base["sources"]["residual"]["df"]
-    means, ns = _cell_stats(cells)
     a, b = base["rows"], base["cols"]
     row_names = row_names or [f"Row {i + 1}" for i in range(a)]
     col_names = col_names or [f"Column {j + 1}" for j in range(b)]
@@ -158,17 +191,11 @@ def two_way_comparisons(cells, *, direction: str = "columns_within_rows",
                      [(row_names[i], means[i][j], ns[i][j]) for i in range(a)])
                     for j in range(b)]
     elif direction == "column_means":
-        col_vals = [[v for row in cells for v in row[j] if v is not None]
-                    for j in range(b)]
         families = [("Column main effect",
-                     [(col_names[j], float(np.mean(col_vals[j])),
-                       len(col_vals[j])) for j in range(b)])]
+                     [(col_names[j], *column_marginal(j)) for j in range(b)])]
     elif direction == "row_means":
-        row_vals = [[v for cell in cells[i] for v in cell if v is not None]
-                    for i in range(a)]
         families = [("Row main effect",
-                     [(row_names[i], float(np.mean(row_vals[i])),
-                       len(row_vals[i])) for i in range(a)])]
+                     [(row_names[i], *row_marginal(i)) for i in range(a)])]
     else:
         raise ValueError(f"unknown direction: {direction}")
 

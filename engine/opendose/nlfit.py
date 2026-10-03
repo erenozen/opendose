@@ -14,6 +14,15 @@ Prism curve-fitting guide references:
   BMC Bioinformatics 7:123): robust merit based on the Lorentzian,
   RSDR = P68 of |residuals| * N/(N-K); outliers flagged by a
   false-discovery-rate test on t = residual/RSDR with threshold Q.
+- Data entered as mean, SD (or SEM) and n (curve-fitting guide, "Method
+  tab" > Replicates; "Nonlinear regression with unequal weights"; FAQ
+  2038 "Nonlinear regression when you entered error values directly"):
+  accounting for SD and n gives exactly the least-squares results of the
+  raw replicates, via SS = sum W_i [n_i (mean_i - Ycurve_i)^2 +
+  (n_i - 1) SD_i^2] with sum n_i points, for every weighting scheme
+  (weights are equal within a row). "Fit means only" sees one point per
+  row. Weight by 1/SD^2 uses the SD of each row (entered, or computed
+  from the replicates). Robust fitting and ROUT detection see the means.
 """
 
 from __future__ import annotations
@@ -396,8 +405,9 @@ register(ModelSpec(
 
 # ---------------------------------------------------------------- fitting
 
-WEIGHTINGS = ("none", "1/Y", "1/Y2", "1/X", "1/X2")
+WEIGHTINGS = ("none", "1/Y", "1/Y2", "1/X", "1/X2", "1/SD2")
 WEIGHT_SOURCES = ("predicted", "observed_mean")
+REPLICATE_MODES = ("account", "means_only")
 
 
 def _replicate_mean_y(x, y):
@@ -430,8 +440,87 @@ def _clean_xy(x_values, y_values):
     return (np.array([p[0] for p in pairs]), np.array([p[1] for p in pairs]))
 
 
+def _summary_inputs(x_values, y_values, sd_values, n_values, replicates,
+                    weighting):
+    """Rows of (X, mean, SD, n) -> (x, y, summary) for the mean/SD/n fit.
+
+    y_values are the row means. With sd_values and n_values both None
+    (only reachable with weighting '1/SD2') the inputs are raw
+    replicates, collapsed here to mean/SD/n per distinct X; the fit is
+    then the replicate fit with each replicate weighted by 1/SD^2 of its
+    row, as Prism does when it computes the SD from replicates.
+
+    summary keys: counts (points each row stands for), within ((n-1)SD^2
+    per row, zero when fitting means only), sd_w (1/SD^2 or 1),
+    mean_y (count-weighted observed mean at each X), n_obs, mode, sd, n.
+    """
+    if replicates not in REPLICATE_MODES:
+        raise ValueError(f"unknown replicates mode: {replicates}")
+
+    def num(v):
+        if v is None:
+            return None
+        v = float(v)
+        return v if math.isfinite(v) else None
+
+    if sd_values is None and n_values is None:
+        xr, yr = _clean_xy(x_values, y_values)
+        rows = []
+        for xv in np.unique(xr):
+            grp = yr[xr == xv]
+            sd = float(grp.std(ddof=1)) if grp.size > 1 else None
+            rows.append((float(xv), float(grp.mean()), sd, float(grp.size)))
+    else:
+        m = len(y_values)
+        sd_list = list(sd_values) if sd_values is not None else [None] * m
+        n_list = list(n_values) if n_values is not None else [None] * m
+        rows = []
+        for xv, yv, sv, nv in zip(x_values, y_values, sd_list, n_list):
+            xv, yv, sv, nv = num(xv), num(yv), num(sv), num(nv)
+            if xv is None or yv is None:
+                continue
+            if n_values is not None:
+                if nv is None or nv <= 0:
+                    continue  # a row with no sample size holds no data
+                if nv != round(nv):
+                    raise ValueError(f"n must be a whole number (got {nv})")
+            rows.append((xv, yv, sv, nv))
+
+    has_n = n_values is not None or (sd_values is None and n_values is None)
+    mode = "account" if (has_n and replicates == "account") else "means_only"
+    x = np.array([r[0] for r in rows], dtype=float)
+    y = np.array([r[1] for r in rows], dtype=float)
+    sd = [r[2] for r in rows]
+    nn = [r[3] for r in rows]
+    if mode == "account":
+        counts = np.array(nn, dtype=float)
+        for s_i, n_i in zip(sd, nn):
+            if n_i > 1 and (s_i is None or s_i < 0):
+                raise ValueError("every row with n > 1 needs an SD")
+        within = np.array([(n_i - 1.0) * s_i * s_i if n_i > 1 else 0.0
+                           for s_i, n_i in zip(sd, nn)])
+    else:
+        counts = np.ones_like(y)
+        within = np.zeros_like(y)
+    if weighting == "1/SD2":
+        if any(s_i is None or not s_i > 0 for s_i in sd):
+            raise ValueError("weighting by 1/SD^2 needs a nonzero SD on "
+                             "every row (and >= 2 replicates per X)")
+        sd_w = np.array([1.0 / (s_i * s_i) for s_i in sd])
+    else:
+        sd_w = np.ones_like(y)
+    mean_y = np.empty_like(y)
+    for xv in np.unique(x):
+        sel = x == xv
+        mean_y[sel] = np.sum(counts[sel] * y[sel]) / np.sum(counts[sel])
+    summary = {"counts": counts, "within": within, "sd_w": sd_w,
+               "mean_y": mean_y, "n_obs": int(round(float(counts.sum()))),
+               "mode": mode, "sd": sd, "n": nn}
+    return x, y, summary
+
+
 def _ols_fit(spec, x, y, free_names, fixed, p0_map, weighting,
-             weight_source="predicted"):
+             weight_source="predicted", summary=None):
     """(Weighted) least squares from one start; returns (popt, pcov, wss).
 
     Y-based weighting follows Prism's documented algorithm ("Math theory
@@ -446,6 +535,11 @@ def _ols_fit(spec, x, y, free_names, fixed, p0_map, weighting,
     - "predicted": Prism's IRLS scheme (default; validated session 3).
     - "observed_mean": weights fixed from the mean observed Y of the
       replicates at each X (a close, non-iterative approximation).
+
+    summary (from _summary_inputs; None for raw points): y holds row
+    means; each row's weight is multiplied by its n (counts) and, for
+    '1/SD2', by 1/SD^2, and the within-row SS is added back to wss, so
+    wss and the covariance equal those of the raw replicates.
     """
 
     def make_params(free_vals):
@@ -463,6 +557,10 @@ def _ols_fit(spec, x, y, free_names, fixed, p0_map, weighting,
 
     p0 = [p0_map[n] for n in free_names]
     y_weighted = weighting in ("1/Y", "1/Y2")
+    if summary is not None:
+        return _ols_fit_summary(spec, x, y, free_names, solve, p0,
+                                make_params, weighting, weight_source,
+                                summary)
 
     if not y_weighted:
         w = _weights(x, x, weighting)  # 'none' or X-based: fixed weights
@@ -492,12 +590,64 @@ def _ols_fit(spec, x, y, free_names, fixed, p0_map, weighting,
     return res.x, cov, wss
 
 
+def _replicate_weights(x, ybase, weighting, summary):
+    """Weight of each replicate in a row (the n multiplier excluded)."""
+    if weighting == "1/SD2":
+        return summary["sd_w"]
+    return _weights(x, ybase, weighting) * summary["sd_w"]
+
+
+def _ols_fit_summary(spec, x, y, free_names, solve, p0, make_params,
+                     weighting, weight_source, summary):
+    """_ols_fit for rows of mean/SD/n; same iteration scheme as the raw
+    path, with row weights W_i * n_i and the within-row SS added back."""
+    counts, within = summary["counts"], summary["within"]
+    y_weighted = weighting in ("1/Y", "1/Y2")
+
+    if not y_weighted:
+        w = _replicate_weights(x, x, weighting, summary)
+        res = solve(np.sqrt(w * counts), p0)
+    elif weight_source == "observed_mean":
+        w = _replicate_weights(x, summary["mean_y"], weighting, summary)
+        res = solve(np.sqrt(w * counts), p0)
+    else:
+        res = solve(np.sqrt(counts * summary["sd_w"]), p0)
+        prev = res.x
+        for _ in range(60):
+            w = _replicate_weights(x, spec.func(x, make_params(prev)),
+                                   weighting, summary)
+            res = solve(np.sqrt(w * counts), prev)
+            if np.allclose(res.x, prev, rtol=1e-10, atol=1e-12):
+                break
+            prev = res.x
+
+    J = res.jac
+    wss = float(2 * res.cost) + float(np.sum(w * within))
+    dof = summary["n_obs"] - len(free_names)
+    s2 = wss / dof
+    try:
+        cov = np.linalg.inv(J.T @ J) * s2
+    except np.linalg.LinAlgError:
+        cov = np.full((len(free_names), len(free_names)), np.nan)
+    return res.x, cov, wss
+
+
 def fit_model(x_values, y_values, model: str, *,
               constraints: dict | None = None,
               weighting: str = "none",
               weight_source: str = "predicted",
-              ci_method: str = "asymptotic") -> dict:
-    """Fit a registered model. Returns Prism-style results dict."""
+              ci_method: str = "asymptotic",
+              sd=None, n=None, replicates: str = "account") -> dict:
+    """Fit a registered model. Returns Prism-style results dict.
+
+    Data entered as mean/SD/n: pass the row means as y_values with sd
+    (per-row SD; convert SEM or %CV first, see opendose.summary) and n.
+    replicates="account" (default, Prism's "fit all the data"): results
+    equal the raw-replicate fit; df = sum(n) - K. replicates="means_only":
+    one point per row; df = rows - K. Without n, only the means are fit
+    (the SD is used only by weighting="1/SD2"). The result then carries a
+    "replicates" entry describing what was fit.
+    """
     if model not in MODELS:
         raise ValueError(f"unknown model: {model}")
     if weighting not in WEIGHTINGS:
@@ -505,8 +655,14 @@ def fit_model(x_values, y_values, model: str, *,
     if weight_source not in WEIGHT_SOURCES:
         raise ValueError(f"unknown weight_source: {weight_source}")
     spec = MODELS[model]
-    x, y = _clean_xy(x_values, y_values)
-    n_points = int(x.size)
+    summary = None
+    if sd is not None or n is not None or weighting == "1/SD2":
+        x, y, summary = _summary_inputs(x_values, y_values, sd, n,
+                                        replicates, weighting)
+        n_points = summary["n_obs"]
+    else:
+        x, y = _clean_xy(x_values, y_values)
+        n_points = int(x.size)
 
     constraints = dict(constraints or {})
     # 3PL dose-response models = 4PL with HillSlope fixed at the standard value
@@ -546,7 +702,7 @@ def fit_model(x_values, y_values, model: str, *,
     for p0_map in starts:
         try:
             popt, pcov, wss = _ols_fit(spec, x, y, free_names, fixed, p0_map,
-                                       weighting, weight_source)
+                                       weighting, weight_source, summary)
         except (RuntimeError, ValueError):
             continue
         if not np.all(np.isfinite(popt)):
@@ -561,23 +717,30 @@ def fit_model(x_values, y_values, model: str, *,
     fitted.update({n: float(v) for n, v in zip(free_names, popt)})
 
     yhat = spec.func(x, fitted)
-    residuals = y - yhat
-    ss_res = float(np.sum(residuals ** 2))          # unweighted
-    ss_tot = float(np.sum((y - y.mean()) ** 2))
-    r_squared = 1.0 - ss_res / ss_tot if ss_tot > 0 else None
-    sy_x = math.sqrt(wss / df)
+    if summary is not None:
+        ss_res, ss_tot, r_squared_weighted = _summary_goodness(
+            x, y, yhat, wss, weighting, weight_source, summary)
+        r_squared = 1.0 - ss_res / ss_tot if ss_tot > 0 else None
+        sy_x = math.sqrt(wss / df)
+    else:
+        residuals = y - yhat
+        ss_res = float(np.sum(residuals ** 2))          # unweighted
+        ss_tot = float(np.sum((y - y.mean()) ** 2))
+        r_squared = 1.0 - ss_res / ss_tot if ss_tot > 0 else None
+        sy_x = math.sqrt(wss / df)
 
-    # Prism's "R squared (weighted)": 1 - wSS / wSS_tot, where wSS_tot is
-    # taken around the weighted mean with the same weights as the fit.
-    r_squared_weighted = None
-    if weighting != "none":
-        ybase = (_replicate_mean_y(x, y)
-                 if weight_source == "observed_mean" else yhat)
-        w = _weights(x, ybase, weighting)
-        ybar_w = float(np.sum(w * y) / np.sum(w))
-        wss_tot = float(np.sum(w * (y - ybar_w) ** 2))
-        if wss_tot > 0:
-            r_squared_weighted = 1.0 - wss / wss_tot
+        # Prism's "R squared (weighted)": 1 - wSS / wSS_tot, where wSS_tot
+        # is taken around the weighted mean with the same weights as the
+        # fit.
+        r_squared_weighted = None
+        if weighting != "none":
+            ybase = (_replicate_mean_y(x, y)
+                     if weight_source == "observed_mean" else yhat)
+            w = _weights(x, ybase, weighting)
+            ybar_w = float(np.sum(w * y) / np.sum(w))
+            wss_tot = float(np.sum(w * (y - ybar_w) ** 2))
+            if wss_tot > 0:
+                r_squared_weighted = 1.0 - wss / wss_tot
     tcrit = float(stats.t.ppf(0.975, df))
 
     se = dict.fromkeys(spec.params)
@@ -592,7 +755,7 @@ def fit_model(x_values, y_values, model: str, *,
         for name in free_names:
             ci_map[name] = _profile_ci(spec, x, y, free_names, fixed, fitted,
                                        wss, df, name, weighting, weight_source,
-                                       fallback=ci_map[name])
+                                       fallback=ci_map[name], summary=summary)
 
     dependency = {}
     status = "converged"
@@ -670,7 +833,7 @@ def fit_model(x_values, y_values, model: str, *,
         derived_out["Span"] = {"value": span, "se": span_se, "ci95": span_ci,
                                "constrained": False, "derived": True}
 
-    return {
+    out = {
         "model": model,
         "label": spec.label,
         "equation": spec.equation,
@@ -694,10 +857,36 @@ def fit_model(x_values, y_values, model: str, *,
         "x_is_log": spec.x_is_log,
         "_cov": {"free_names": free_names, "matrix": pcov.tolist()},
     }
+    if summary is not None:
+        out["replicates"] = {
+            "mode": summary["mode"],          # "account" | "means_only"
+            "n_rows": int(x.size),            # X rows (means) fit
+            "n_points": n_points,             # points df is counted from
+        }
+    return out
+
+
+def _summary_goodness(x, y, yhat, wss, weighting, weight_source, summary):
+    """(ss_res, ss_tot, r_squared_weighted) of the replicates a mean/SD/n
+    table stands for: every sum of squares splits into n_i times the
+    squared deviation of the row mean plus the within-row SS."""
+    counts, within = summary["counts"], summary["within"]
+    ss_res = float(np.sum(counts * (y - yhat) ** 2) + np.sum(within))
+    grand = float(np.sum(counts * y) / np.sum(counts))
+    ss_tot = float(np.sum(counts * (y - grand) ** 2) + np.sum(within))
+    r_squared_weighted = None
+    if weighting != "none":
+        ybase = summary["mean_y"] if weight_source == "observed_mean" else yhat
+        w = _replicate_weights(x, ybase, weighting, summary)
+        ybar_w = float(np.sum(w * counts * y) / np.sum(w * counts))
+        wss_tot = float(np.sum(w * (counts * (y - ybar_w) ** 2 + within)))
+        if wss_tot > 0:
+            r_squared_weighted = 1.0 - wss / wss_tot
+    return ss_res, ss_tot, r_squared_weighted
 
 
 def _profile_ci(spec, x, y, free_names, fixed, fitted, wss_min, df, target,
-                weighting, weight_source, fallback):
+                weighting, weight_source, fallback, summary=None):
     """Profile-likelihood CI: SS threshold = WSS_min*(1 + F(.95;1,df)/df)."""
     threshold = wss_min * (1.0 + stats.f.ppf(0.95, 1, df) / df)
     others = [n for n in free_names if n != target]
@@ -707,7 +896,7 @@ def _profile_ci(spec, x, y, free_names, fixed, fitted, wss_min, df, target,
         p0 = {n: fitted[n] for n in others}
         try:
             _, _, wss = _ols_fit(spec, x, y, others, fixed2, p0, weighting,
-                                 weight_source)
+                                 weight_source, summary)
         except (RuntimeError, ValueError):
             return math.inf
         return wss
@@ -773,9 +962,31 @@ def robust_fit(x_values, y_values, model: str, *,
 
 
 def rout_outliers(x_values, y_values, model: str, *, q: float = 0.01,
-                  constraints: dict | None = None) -> dict:
+                  constraints: dict | None = None,
+                  sd=None, n=None, replicates: str = "account") -> dict:
     """ROUT: robust fit, then FDR-based outlier detection at rate Q,
-    then ordinary fit on the cleaned data (Motulsky & Brown 2006)."""
+    then ordinary fit on the cleaned data (Motulsky & Brown 2006).
+
+    With sd/n (rows entered as mean/SD/n) the robust fit and the outlier
+    test see only the row means (robust regression cannot use SD and n;
+    "Nonlinear regression with unequal weights"); an outlier removes the
+    whole row, and the cleaned rows are then fit accounting for SD and n.
+    """
+    if sd is not None or n is not None:
+        xs, ys, summ = _summary_inputs(x_values, y_values, sd, n,
+                                       replicates, "none")
+        out = rout_outliers(xs.tolist(), ys.tolist(), model, q=q,
+                            constraints=constraints)
+        flagged = {(o["x"], o["y"]) for o in out["outliers"]}
+        keep = [i for i in range(xs.size)
+                if (float(xs[i]), float(ys[i])) not in flagged]
+        out["fit"] = fit_model(
+            [float(xs[i]) for i in keep], [float(ys[i]) for i in keep],
+            model, constraints=constraints,
+            sd=[summ["sd"][i] for i in keep] if sd is not None else None,
+            n=[summ["n"][i] for i in keep] if n is not None else None,
+            replicates=replicates)
+        return out
     x, y = _clean_xy(x_values, y_values)
     rob = robust_fit(x_values, y_values, model, constraints=constraints)
     resid = np.array(rob["residuals"])

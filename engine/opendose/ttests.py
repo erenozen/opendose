@@ -44,6 +44,19 @@ def unpaired_t(values_a, values_b, *, welch: bool = False,
         raise ValueError("each group needs at least 2 values")
     mean_a, mean_b = float(a.mean()), float(b.mean())
     var_a, var_b = float(a.var(ddof=1)), float(b.var(ddof=1))
+    return _unpaired_from_stats(mean_a, var_a, na, mean_b, var_b, nb,
+                                welch=welch, ci_level=ci_level)
+
+
+def _unpaired_from_stats(mean_a, var_a, na, mean_b, var_b, nb, *,
+                         welch: bool = False, ci_level: float = 0.95) -> dict:
+    """Unpaired / Welch t test from each group's mean, variance and n.
+
+    These are sufficient statistics for the test, which is why the
+    statistics guide ("Entering data for a t test") lets an unpaired t
+    test run from data entered as mean, SD (or SEM) and n. Shared by
+    unpaired_t (raw values) and opendose.summary (entered summaries).
+    """
     diff = mean_a - mean_b
 
     if welch:
