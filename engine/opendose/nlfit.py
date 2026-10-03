@@ -23,6 +23,18 @@ Prism curve-fitting guide references:
   (weights are equal within a row). "Fit means only" sees one point per
   row. Weight by 1/SD^2 uses the SD of each row (entered, or computed
   from the replicates). Robust fitting and ROUT detection see the means.
+- "Choosing transforms of parameters to report" (Transform,
+  transform_entries): one-parameter transforms carry that parameter's CI
+  through the transform (asymmetrical) or use value +/- t*SE (delta
+  method, symmetrical); several parameters: delta-method SE with the full
+  covariance and a symmetrical CI, none with profile-likelihood CIs;
+  Y[...] interpolations use the confidence band, X[...] the band's
+  crossings. "Entering default constraints": range constraints (bounds)
+  switch the solver to a bounded trust-region method; data-set constants
+  computed from the data (centered polynomials' XMean).
+- The extended equation library (equations.py) and user-defined
+  equations (userequation.py) register further ModelSpec entries; the
+  entries defined in this file are unchanged by them.
 """
 
 from __future__ import annotations
@@ -53,6 +65,54 @@ class ModelSpec:
     y_label: str = "Y"
     required_constants: tuple = ()   # params the user MUST constrain
                                      # (Prism: "constants you must enter")
+    # ---- optional metadata for the extended library (equations.py) and
+    # user-defined equations (userequation.py); the defaults leave the
+    # behaviour of the entries above unchanged.
+    family: str = ""                 # Prism's equation panel
+    transforms: list | None = None   # [Transform]: "transforms to report"
+    multistart_mode: str | None = None  # "x": seed the multistart param
+                                     # at each X; None: legacy rule
+    data_constants: dict | None = None  # name -> fn(x, y): constant set
+                                     # from the data (centered XMean)
+    bounds: dict | None = None       # name -> (lo, hi) range constraints
+    dataset_constants: tuple = ()    # column constants (global fits)
+    shared: tuple = ()               # parameters shared by default
+    param_scope: dict | None = None  # name -> "first" | "rest" (<A>/<~A>)
+    global_only: bool = False        # meaningful only as a global fit
+    global_initials: Callable | None = None  # fn(datasets) -> [dict]
+    user: bool = False               # compiled user-defined equation
+    initials_fixed: bool = False     # initials(x, y, fixed): rules that
+                                     # need the experimental constants
+
+
+@dataclass
+class Transform:
+    """One of Prism's "transforms to report" (curve-fitting guide,
+    "Choosing transforms of parameters to report").
+
+    kind:
+    - "params": a function of the parameters only. One free parameter:
+      the CI is that parameter's CI pushed through the transform
+      ("asymmetrical", monotonic transforms only) or value +/- t*SE
+      ("symmetrical", asymptotic CIs). Several free parameters: delta
+      method SE and symmetrical CI, none with profile-likelihood CIs.
+    - "y_interp": uses Y[...] interpolations; delta-method SE over every
+      free parameter, i.e. the confidence band of the curve.
+    - "x_interp": X[level] with a level depending on at most one
+      parameter and nothing outside: root of the curve, CI where the
+      confidence band crosses the level (asymmetrical). x_level(p) gives
+      the level, outer(root) the reported value.
+    - "x_interp_complex": value only (Prism reports no CI).
+    """
+    name: str
+    fn: Callable                     # fn(p) -> float
+    params: tuple = ()               # parameters referenced
+    ci: str = "asymmetrical"         # "asymmetrical" | "symmetrical" | "none"
+    kind: str = "params"
+    x_level: Callable | None = None
+    outer: Callable | None = None
+    uses_x: bool = False             # fn(p, x) / x_level(p, x): needs the
+                                     # fitted X values (interpolation range)
 
 
 MODELS: dict[str, ModelSpec] = {}
@@ -547,10 +607,16 @@ def _ols_fit(spec, x, y, free_names, fixed, p0_map, weighting,
         p.update(dict(zip(free_names, free_vals)))
         return p
 
+    box = _free_bounds(spec, free_names)
+
     def solve(weights_sqrt, p0):
         def wresid(free_vals):
             return (y - spec.func(x, make_params(free_vals))) * weights_sqrt
-        res = least_squares(wresid, p0, method="lm", max_nfev=20000)
+        if box is None:
+            res = least_squares(wresid, p0, method="lm", max_nfev=20000)
+        else:  # range constraints (Prism's "between"/"greater than")
+            res = least_squares(wresid, _inside(p0, box), method="trf",
+                                bounds=box, x_scale="jac", max_nfev=20000)
         if not res.success and res.status <= 0:
             raise RuntimeError("did not converge")
         return res
@@ -588,6 +654,31 @@ def _ols_fit(spec, x, y, free_names, fixed, p0_map, weighting,
     except np.linalg.LinAlgError:
         cov = np.full((len(free_names), len(free_names)), np.nan)
     return res.x, cov, wss
+
+
+def _free_bounds(spec, free_names):
+    """(lo, hi) arrays for least_squares when any free parameter has a
+    range constraint (spec.bounds), else None (unbounded LM, as before)."""
+    bounds = getattr(spec, "bounds", None) or {}
+    if not any(n in bounds for n in free_names):
+        return None
+    lo = np.array([bounds.get(n, (None, None))[0] for n in free_names],
+                  dtype=float)
+    hi = np.array([bounds.get(n, (None, None))[1] for n in free_names],
+                  dtype=float)
+    lo = np.where(np.isnan(lo), -np.inf, lo)
+    hi = np.where(np.isnan(hi), np.inf, hi)
+    return lo, hi
+
+
+def _inside(p0, box):
+    """Move a start strictly inside the box (trf needs a feasible x0)."""
+    lo, hi = box
+    p = np.array(p0, dtype=float)
+    width = np.where(np.isfinite(hi - lo), hi - lo, np.inf)
+    pad = np.where(np.isfinite(width), width * 1e-6,
+                   np.maximum(np.abs(p) * 1e-6, 1e-10))
+    return np.clip(p, lo + pad, hi - pad)
 
 
 def _replicate_weights(x, ybase, weighting, summary):
@@ -665,6 +756,8 @@ def fit_model(x_values, y_values, model: str, *,
         n_points = int(x.size)
 
     constraints = dict(constraints or {})
+    for _cname, _rule in (spec.data_constants or {}).items():
+        constraints.setdefault(_cname, float(_rule(x, y)))
     # 3PL dose-response models = 4PL with HillSlope fixed at the standard value
     if model == "log_inhibitor_vs_response_3pl":
         constraints.setdefault("HillSlope", -1.0)
@@ -688,14 +781,18 @@ def fit_model(x_values, y_values, model: str, *,
         raise ValueError(
             f"not enough data points ({n_points}) to fit {len(free_names)} parameters")
 
-    init = spec.initials(x, y)
+    init = (spec.initials(x, y, fixed) if spec.initials_fixed
+            else spec.initials(x, y))
     init.update(fixed)
 
     # multi-start on the designated parameter across the x range
     starts = [init]
     if spec.multistart and spec.multistart in free_names:
         for v in np.unique(x):
-            seed = v if spec.multistart == "LogXmid" else abs(3.0 / max(abs(v), 1e-9))
+            if spec.multistart_mode == "x":
+                seed = v
+            else:
+                seed = v if spec.multistart == "LogXmid" else abs(3.0 / max(abs(v), 1e-9))
             starts.append(dict(init, **{spec.multistart: float(seed)}))
 
     best = None
@@ -814,6 +911,10 @@ def fit_model(x_values, y_values, model: str, *,
                                   "ci95": entry["ci95"], "constrained": False,
                                   "derived": True}
 
+    if spec.transforms:
+        derived_out.update(_apply_transforms(
+            spec, x, fitted, free_names, pcov, ci_map, tcrit, ci_method))
+
     # Span = Top - Bottom (Prism reports it for plateau models). SE uses
     # the full covariance: var(T-B) = var(T) + var(B) - 2*cov(T,B).
     if "Top" in spec.params and "Bottom" in spec.params:
@@ -924,6 +1025,149 @@ def _profile_ci(spec, x, y, free_names, fixed, fitted, wss_min, df, target,
             hi if hi is not None else math.inf)
 
 
+# ---------------------------------------------------------------- transforms
+
+def _apply_transforms(spec, x, fitted, free_names, pcov, ci_map, tcrit,
+                      ci_method):
+    """Derived rows for spec.transforms (see Transform)."""
+    return transform_entries(spec.transforms, fitted, free_names, pcov,
+                             ci_map, tcrit, ci_method,
+                             curve=spec.func, x=x)
+
+
+def _num_grad(fn, base, names):
+    """Central-difference gradient of fn(p) w.r.t. names."""
+    g = np.zeros(len(names))
+    for j, n in enumerate(names):
+        h = max(abs(base[n]) * 1e-6, 1e-8)
+        up, dn = dict(base), dict(base)
+        up[n] += h
+        dn[n] -= h
+        g[j] = (fn(up) - fn(dn)) / (2 * h)
+    return g
+
+
+def _safe_value(fn, p):
+    try:
+        with np.errstate(all="ignore"):
+            v = float(fn(p))
+    except (ArithmeticError, ValueError, TypeError, KeyError):
+        return math.nan
+    return v
+
+
+def _first_root(f, level, lo, hi, n=512):
+    """Smallest X in [lo, hi] where f(X) = level (None if none)."""
+    xs = np.linspace(lo, hi, n)
+    with np.errstate(all="ignore"):
+        ys = np.array([f(v) for v in xs], dtype=float) - level
+    for i in range(n - 1):
+        if ys[i] == 0.0:
+            return float(xs[i])
+        if np.isfinite(ys[i]) and np.isfinite(ys[i + 1]) \
+                and ys[i] * ys[i + 1] < 0:
+            return float(brentq(lambda v: f(v) - level, xs[i], xs[i + 1],
+                                maxiter=200))
+    return None
+
+
+def _monotone_between(fn, base, name, lo, hi):
+    """True when fn changes monotonically as `name` runs from lo to hi."""
+    if not (math.isfinite(lo) and math.isfinite(hi)):
+        return True  # unbounded CI: transform the limits that exist
+    vals = []
+    for v in np.linspace(lo, hi, 9):
+        vals.append(_safe_value(fn, dict(base, **{name: float(v)})))
+    d = np.diff(np.array(vals))
+    d = d[np.isfinite(d)]
+    return bool(np.all(d >= 0) or np.all(d <= 0))
+
+
+def transform_entries(transforms, fitted, free_names, cov, ci_map, tcrit,
+                      ci_method="asymptotic", curve=None, x=None,
+                      cov_index=None):
+    """Value / SE / CI of each Transform at the fitted parameters.
+
+    cov is the covariance of free_names (cov_index maps a free name to
+    its row when cov is larger, as in global fits). curve(xs, p) is the
+    model, needed by interpolation transforms; x the fitted X values
+    (interpolation range = data range +/- half of it, as Prism searches
+    the plotted range extended by half that range each way)."""
+    out = {}
+    cov = np.asarray(cov, dtype=float)
+    idx = cov_index or {n: i for i, n in enumerate(free_names)}
+    for tr in transforms or []:
+        if tr.uses_x:  # bind the data so fn(p) / x_level(p) apply below
+            xs = np.asarray(x if x is not None else [], dtype=float)
+            tr = Transform(tr.name, (lambda f: lambda q: f(q, xs))(tr.fn),
+                           tr.params, tr.ci, tr.kind,
+                           None if tr.x_level is None else
+                           (lambda f: lambda q: f(q, xs))(tr.x_level),
+                           tr.outer)
+        value = _safe_value(tr.fn, fitted)
+        entry = {"value": value if math.isfinite(value) else None,
+                 "se": None, "ci95": None, "constrained": False,
+                 "derived": True}
+        out[tr.name] = entry
+        if not math.isfinite(value) or tr.ci == "none" and tr.kind != "params":
+            continue
+        if tr.kind == "x_interp":
+            if curve is None or x is None or not len(x):
+                continue
+            lo_x, hi_x = float(np.min(x)), float(np.max(x))
+            pad = (hi_x - lo_x) / 2
+            lo_x, hi_x = lo_x - pad, hi_x + pad
+            level = _safe_value(tr.x_level, fitted)
+            names = [n for n in free_names if n in idx]
+            C = cov[np.ix_([idx[n] for n in names], [idx[n] for n in names])]
+
+            def band(v, sign):
+                yc = float(curve(np.array([v]), fitted)[0])
+                g = _num_grad(lambda q: float(curve(np.array([v]), q)[0]),
+                              fitted, names)
+                return yc + sign * tcrit * math.sqrt(max(float(g @ C @ g),
+                                                         0.0))
+            if tr.ci == "none" or not names:
+                continue
+            e1 = _first_root(lambda v: band(v, +1), level, lo_x, hi_x, 128)
+            e2 = _first_root(lambda v: band(v, -1), level, lo_x, hi_x, 128)
+            if e1 is not None and e2 is not None:
+                outer = tr.outer or (lambda v: v)
+                entry["ci95"] = sorted([float(outer(e1)), float(outer(e2))])
+            continue
+        if tr.kind == "x_interp_complex":
+            continue
+        if tr.kind == "y_interp":
+            names = [n for n in free_names if n in idx]
+        else:
+            names = [n for n in tr.params if n in free_names and n in idx]
+        if not names:
+            continue  # depends on constants only
+        g = _num_grad(lambda q: _safe_value(tr.fn, q), fitted, names)
+        ii = [idx[n] for n in names]
+        var = float(g @ cov[np.ix_(ii, ii)] @ g)
+        se = math.sqrt(var) if var >= 0 and math.isfinite(var) else None
+        entry["se"] = se
+        if tr.ci == "none":
+            continue
+        single = tr.kind == "params" and len(names) == 1
+        if single and (tr.ci == "asymmetrical" or ci_method == "profile"):
+            name = names[0]
+            if name in ci_map:
+                lo, hi = ci_map[name]
+                if _monotone_between(tr.fn, fitted, name, lo, hi):
+                    a = _safe_value(tr.fn, dict(fitted, **{name: lo}))
+                    b = _safe_value(tr.fn, dict(fitted, **{name: hi}))
+                    if not (math.isnan(a) or math.isnan(b)):
+                        entry["ci95"] = sorted([a, b])
+            continue
+        if tr.kind == "params" and ci_method == "profile":
+            continue  # Prism: no CI for multi-parameter transforms
+        if se is not None:
+            entry["ci95"] = [value - tcrit * se, value + tcrit * se]
+    return out
+
+
 # ---------------------------------------------------------------- robust / ROUT
 
 def robust_fit(x_values, y_values, model: str, *,
@@ -935,6 +1179,8 @@ def robust_fit(x_values, y_values, model: str, *,
     base = fit_model(x_values, y_values, model, constraints=constraints)
     fitted = dict(base["fitted_values"])
     fixed = {k: v for k, v in (constraints or {}).items()}
+    for name in spec.data_constants or {}:
+        fixed.setdefault(name, fitted[name])
     free_names = [p for p in spec.params if p not in fixed]
     n, k = x.size, len(free_names)
 
@@ -1050,3 +1296,8 @@ def compare_fits_aicc(ss1: float, k1: int, ss2: float, k2: int, n: int) -> dict:
     return {"aicc_1": a1, "aicc_2": a2, "delta": float(delta),
             "probability_1": prob1, "probability_2": 1 - prob1,
             "prefer": 1 if a1 < a2 else 2}
+
+
+# The extended equation library registers itself into MODELS (it needs
+# the definitions above, hence the import at the end of the module).
+from . import equations as _equations  # noqa: E402,F401
