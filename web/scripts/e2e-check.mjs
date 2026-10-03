@@ -1,7 +1,8 @@
 // End-to-end smoke test: boots the app in headless Chromium, waits for
 // Pyodide + SciPy, checks the default fit, then exercises the plate-import
 // workflow with the synthetic SRB fixture and checks both cell-line fits,
-// the other built-in table types, Prism imports, and the multi-sheet
+// the other built-in table types (parts of whole and nested from their
+// example tables), Prism imports, and the multi-sheet
 // project workflow (new table, rename, undo/redo, delete, save/open,
 // v1 migration, restore from autosave).
 import { chromium } from "playwright";
@@ -114,6 +115,70 @@ const logrankLine = kmText.split("\n").find((l) => l.includes("Log-rank"));
 console.log("survival:", logrankLine
   ? logrankLine.replace(/\t/g, " ").slice(0, 70)
   : `NO LOGRANK LINE — card was: ${kmText.replace(/\s+/g, " ").slice(0, 120)}`);
+
+// --- parts of whole: example table from the New data table dialog ---
+// Expected numbers come from the native engine on the same counts
+// (Control G1/S/G2-M = 412/188/100): 412/700 = 58.86%, Wilson/Brown 95% CI
+// 55.17% to 62.44%; chi-square vs. equal expected = 221.8, df 2.
+const newExampleTable = async (type) => {
+  await page.getByRole("button", { name: "New data table" }).click();
+  const dlg = page.locator(".new-table-dialog");
+  await dlg.locator(`input[name="table-type"][value="${type}"]`).check();
+  await dlg.getByLabel("Example data").check();
+  await dlg.getByRole("button", { name: "Create table" }).click();
+};
+await newExampleTable("partsofwhole");
+await page.waitForSelector(".result-card h3:has-text('Fraction of total')", { timeout: 30000 });
+await page.waitForTimeout(600);
+const g1Row = await page.locator(".fraction-table tbody tr", { hasText: "G1" }).first().innerText();
+expect("fraction of total: Control G1 = 58.86%", g1Row.includes("58.86%"), g1Row.replace(/\s+/g, " "));
+await page.getByLabel("Compute a confidence interval for each fraction").check();
+await page.waitForFunction(
+  () => document.querySelector(".fraction-table")?.textContent?.includes("55.17% to 62.44%"),
+  null, { timeout: 30000 },
+).then(() => expect("fraction of total: Wilson/Brown CI 55.17% to 62.44%", true),
+  () => expect("fraction of total: Wilson/Brown CI 55.17% to 62.44%", false));
+expect("pie chart draws three slices",
+  await page.locator(".plot .slice").count() === 3);
+await page.locator(".graph-select").selectOption("pow_donut");
+await page.waitForTimeout(400);
+await page.locator(".plot .slice path").first().click({ force: true });
+await page.locator(".graph-select").selectOption("pow_stacked100");
+await page.waitForTimeout(400);
+expect("stacked bars: one bar per data set and part",
+  await page.locator(".plot .bars .point").count() === 6);
+const [powPng] = await Promise.all([
+  page.waitForEvent("download", { timeout: 30000 }),
+  page.locator(".plot-card .export-panel").getByRole("button", { name: /Download/ }).click(),
+]);
+expect("parts-of-whole graph exports", /parts-of-whole\.png$/.test(powPng.suggestedFilename()),
+  powPng.suggestedFilename());
+await page.getByRole("button", { name: "Analyze", exact: true }).click();
+await page.getByRole("menuitem", { name: /Chi-square goodness of fit/ }).click();
+await page.waitForSelector(".result-card h3:has-text('Chi-square goodness of fit')", { timeout: 30000 });
+await page.waitForTimeout(600);
+const chiLine = await page.locator(".gof-tests tr", { hasText: "Chi-square, df" }).innerText();
+expect("goodness of fit: chi-square 221.8, df 2",
+  chiLine.includes("221.8") && chiLine.includes("df = 2"), chiLine.replace(/\s+/g, " "));
+
+// --- nested: example (3 treatments x 3 herds x 4 values) ---
+// Native engine: nested one-way ANOVA F(2, 6) = 11.24, P = 0.009359;
+// nested t test Control vs. Diet A t = 2.771, df 4, P = 0.05026.
+await newExampleTable("nested");
+await page.waitForSelector(".result-card h3:has-text('Nested one-way ANOVA')", { timeout: 30000 });
+await page.waitForTimeout(600);
+const nestedText = await page.locator(".nested-results").innerText();
+expect("nested ANOVA: F(2, 6) = 11.24, P = 0.009359",
+  nestedText.includes("F(2, 6) = 11.24") && nestedText.includes("0.009359"));
+expect("nested scatter draws every value",
+  await page.locator(".plot .scatterlayer .point").count() >= 36);
+await page.getByRole("button", { name: "Analyze", exact: true }).click();
+await page.getByRole("menuitem", { name: /Nested t test/ }).click();
+await page.waitForSelector(".result-card h3:has-text('Nested t test')", { timeout: 30000 });
+await page.waitForTimeout(600);
+const nestedT = await page.locator(".nested-results").innerText();
+expect("nested t test: t = 2.771, df = 4, P = 0.05026",
+  nestedT.includes("t = 2.771, df = 4") && nestedT.includes("0.05026"));
 
 // --- .pzfx import via the header Open button ---
 const PZFX = join(here, "..", "e2e-fixtures", "sample.pzfx");

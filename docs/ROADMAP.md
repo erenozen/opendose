@@ -166,14 +166,14 @@ save/load; methods text; theme; accessibility pass.
 - [ ] Grouped tables: two grouping variables with replicate
       subcolumns; interleaved / stacked / separated bar graphs, grouped
       scatter; two-way ANOVA and RM two-way move here from Column mode
-- [ ] Parts-of-whole tables: pie, donut, stacked-bar graphs; chi-square
+- [x] Parts-of-whole tables: pie, donut, stacked-bar graphs; chi-square
       goodness of fit against expected fractions; fraction of total
 - [ ] Multiple-variables tables: one row per observation, one column per
       variable (continuous / categorical); descriptive stats, correlation
       matrix (with heat map), multiple linear regression, simple and
       multiple logistic regression (odds ratios, ROC of the fit), PCA
       (scree, loadings, biplot), extract & rearrange, select & transform
-- [ ] Nested tables: nested t test and nested one-way ANOVA (mixed model
+- [x] Nested tables: nested t test and nested one-way ANOVA (mixed model
       with random subgroup effect); nested scatter graph
 - [ ] Entering error values computed elsewhere: Mean/SD/N, Mean/SEM/N,
       Mean/%CV/N, Mean/CI/N, upper/lower limit subcolumn formats; every

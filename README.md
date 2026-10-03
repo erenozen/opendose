@@ -77,6 +77,13 @@ from the jsDelivr CDN, ~30 MB, then cached).
   shift with pA2.
 - Survival mode: Kaplan-Meier, log-rank, Gehan-Breslow-Wilcoxon, hazard
   ratio. Contingency mode: Fisher/chi-square/OR/RR.
+- Parts of whole: fraction of total (column/row/grand, with Wilson/Brown,
+  Wilson or Clopper-Pearson CIs), chi-square goodness of fit against
+  expected counts/percentages/fractions with the binomial test for two
+  categories; pie, donut and stacked-bar (absolute or 100%) graphs.
+- Nested: nested t test and nested one-way ANOVA as a mixed model (random
+  subcolumn effect, variance components, subcolumn LR test, multiple
+  comparisons, hierarchical ANOVA table); nested scatter graph.
 - Projects: any number of data tables of eight formats (XY, Column,
   Grouped, Contingency, Survival, Parts of whole, Multiple variables,
   Nested), each with its results and graphs as a family, plus info sheets
