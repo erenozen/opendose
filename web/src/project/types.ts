@@ -145,6 +145,45 @@ interface SheetBase {
   name: string;
   frozen?: boolean;
   highlight?: HighlightColor | null;
+  /** User-defined navigator group (a SheetGroup of this sheet's section). */
+  groupId?: string;
+  /** Sticky notes shown over this sheet (never printed or exported). */
+  floatingNotes?: FloatingNote[];
+}
+
+/** Navigator sections that can hold user-defined groups. */
+export type GroupSection = "data" | "results" | "graph";
+
+export const GROUP_SECTIONS: GroupSection[] = ["data", "results", "graph"];
+
+export function isGroupSection(v: unknown): v is GroupSection {
+  return typeof v === "string" && (GROUP_SECTIONS as string[]).includes(v);
+}
+
+/** A user-defined group of sheets inside one navigator section. Sheets
+ *  join it through their `groupId`; deleting a group keeps its sheets. */
+export interface SheetGroup {
+  id: string;
+  section: GroupSection;
+  name: string;
+  /** Folded in the navigator (saved with the project, outside undo). */
+  collapsed?: boolean;
+}
+
+export type NoteColor = "yellow" | "blue" | "green" | "pink" | "purple";
+
+export const NOTE_COLORS: NoteColor[] = ["yellow", "blue", "green", "pink", "purple"];
+
+/** A floating note on a sheet: on-screen annotation only. */
+export interface FloatingNote {
+  id: string;
+  text: string;
+  color: NoteColor;
+  /** Top-left corner inside the workbench, in CSS px. */
+  x: number;
+  y: number;
+  /** Folded into its chip above the sheet. */
+  collapsed?: boolean;
 }
 
 export interface DataSheet extends SheetBase {
@@ -300,6 +339,9 @@ export interface Project {
   title: string;
   sheets: Sheet[];
   prefs: ProjectPrefs;
+  /** User-defined navigator groups, in display order (optional: absent in
+   *  older files; repaired on load, see groups.ts). */
+  groups?: SheetGroup[];
 }
 
 export const SECTION_ORDER: SheetKind[] =
