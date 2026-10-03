@@ -18,9 +18,10 @@ import {
 } from "./format.ts";
 import { atRisk, censoredBy, type RiskSet } from "./results.ts";
 import {
-  compactLetters, formatP, lettersInputKey, pairKey, pStars, stackBrackets,
+  compactLetters, formatPStyle, isNs, lettersInputKey, pairKey, stackBrackets, starsFor,
   type Comparison,
 } from "./significance.ts";
+import { applyClassic } from "./theme.ts";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export type Trace = Record<string, any>;
@@ -35,6 +36,7 @@ export type TraceRole =
   | "bar" | "box" | "violin"
   | "line"      // a data line (e.g. a survival curve)
   | "outliers"
+  | "replicate" // SuperPlot marks coloured by replicate: data, but no per-dataset styling
   | "decor";    // anything else the layer should not restyle
 
 export interface TraceTag {
@@ -83,6 +85,9 @@ export interface FormatContext {
   groupHalf?: number;
   /** Bumped by the drag handler to snap generated items back. */
   editRevision?: number;
+  /** A caption line drawn under the plot inside the figure (exports carry
+   *  it), e.g. the legend sentence (legend.ts). Empty = none. */
+  caption?: string;
 }
 
 /** Where a group sits: an X value on the main X axis, or on another one. */
@@ -132,7 +137,7 @@ export function axisMaps(f: GraphFormat): { x: AxisMap; y: AxisMap; y2: AxisMap 
 
 export function applyFormat(tracesIn: Trace[], layoutIn: Layout, format: GraphFormat,
   ctx: FormatContext): Formatted {
-  if (isDefaultFormat(format)) return { traces: tracesIn, layout: layoutIn };
+  if (isDefaultFormat(format) && !ctx.caption) return { traces: tracesIn, layout: layoutIn };
   let traces: Trace[] = structuredClone(tracesIn);
   const layout: Layout = structuredClone(layoutIn);
   const chrome = ctx.dark ? CHROME_DARK : CHROME_LIGHT;
@@ -159,6 +164,7 @@ export function applyFormat(tracesIn: Trace[], layoutIn: Layout, format: GraphFo
   for (const t of traces) {
     const tag = traceTag(t);
     if (!tag) { out.push(t); continue; }
+    if (tag.role === "replicate") { out.push(t); continue; }
     const f = datasetFmt(format, tag.ds);
     const orig = seriesStyle(tag.ds, ctx.dark, ctx.scheme).color;
     const base = f.color ?? orig;
@@ -319,6 +325,9 @@ export function applyFormat(tracesIn: Trace[], layoutIn: Layout, format: GraphFo
     }
   }
 
+  // ---- theme (after everything placed in data units, before fonts)
+  if (format.theme === "classic") applyClassic(layout, traces, format, ctx.dark);
+
   // ---- fonts, legend, title
   fonts(layout, format);
   legend(layout, traces, format, ctx, chrome);
@@ -329,6 +338,8 @@ export function applyFormat(tracesIn: Trace[], layoutIn: Layout, format: GraphFo
       font: { size, color: chrome.ink } };
     layout.margin = { ...(layout.margin ?? {}), t: Math.max(layout.margin?.t ?? 8, size + 26) };
   }
+
+  if (ctx.caption) drawCaption(layout, ctx.caption, format, chrome);
 
   if (layout.shapes.length === 0 && shapesBefore === 0 && !("shapes" in layoutIn)) delete layout.shapes;
   if (layout.annotations.length === 0 && annBefore === 0 && !("annotations" in layoutIn)) {
@@ -820,16 +831,19 @@ function drawBrackets(layout: Layout, format: GraphFormat, comparisons: Comparis
   groupX: (name: string, family?: string) => GroupPos,
   top: (lo: number, hi: number, xref?: string) => number, span: number, chrome: Chrome) {
   const c = format.comparisons!;
+  const style = format.pStyle ?? "graphpad";
   const hidden = new Set(c.hidden ?? []);
   const items = comparisons
     .filter((cmp) => !hidden.has(pairKey(cmp)))
     .filter((cmp) => !isNum(c.threshold) || cmp.p < c.threshold)
+    .filter((cmp) => !c.hideNs || !isNs(cmp.p, style))
     .map((cmp) => ({ cmp, p0: toPos(groupX(cmp.a, cmp.family)),
       p1: toPos(groupX(cmp.b, cmp.family)) }))
     .filter((e) => e.p0 && e.p1 && e.p0.xref === e.p1.xref && e.p0.x !== e.p1.x)
     .map((e) => ({
       key: pairKey(e.cmp), x0: e.p0!.x, x1: e.p1!.x, xref: e.p0!.xref,
-      label: c.display === "p" ? formatP(e.cmp.p, c.prefix ?? "P = ") : pStars(e.cmp.p),
+      label: c.display === "p" ? formatPStyle(e.cmp.p, style, c.prefix ?? (style === "apa" ? "p = " : "P = "))
+        : starsFor(e.cmp.p, style),
     }));
   if (!items.length) return;
   // One tier must clear a label (~16 px) on a plot a few hundred px tall.
@@ -893,6 +907,37 @@ export function lettersFor(groups: string[], comparisons: Comparison[], alpha: n
     if (i !== undefined && j !== undefined && c.p < alpha) sig.push([i, j]);
   }
   return compactLetters(groups.length, sig, style);
+}
+
+// ============================================================ caption
+
+/** Break a sentence into lines of at most ~`width` characters. */
+export function wrapText(text: string, width = 90): string[] {
+  const out: string[] = [];
+  let line = "";
+  for (const w of text.split(/\s+/).filter(Boolean)) {
+    if (line && line.length + 1 + w.length > width) { out.push(line); line = w; }
+    else line = line ? `${line} ${w}` : w;
+  }
+  if (line) out.push(line);
+  return out;
+}
+
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function drawCaption(layout: Layout, text: string, format: GraphFormat, chrome: Chrome) {
+  const lines = wrapText(text);
+  if (!lines.length) return;
+  const size = Math.max(8, (format.font?.size ?? 13) - 2);
+  const b = layout.margin?.b ?? 48;
+  const h = Math.ceil(lines.length * size * 1.3) + 8;
+  layout.margin = { ...(layout.margin ?? {}), b: b + h };
+  const ink = format.theme === "classic" && layout.font?.color ? layout.font.color : chrome.inkSecondary;
+  layout.annotations.push({ xref: "paper", yref: "paper", x: 0, y: 0, xanchor: "left",
+    yanchor: "top", yshift: -b, align: "left", showarrow: false, name: "caption",
+    text: lines.map(escapeHtml).join("<br>"), font: { size, color: ink, weight: "normal" } });
 }
 
 // ============================================================ at risk

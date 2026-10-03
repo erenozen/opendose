@@ -217,6 +217,19 @@ export function normalizeTable(raw: unknown, fallbackType: TableType = "xy"):
   if (r.xElapsedTwoPart === "hm" || r.xElapsedTwoPart === "ms") {
     table.xElapsedTwoPart = r.xElapsedTwoPart;
   }
+  const rep = r.replicates as Record<string, unknown> | undefined;
+  if (rep && typeof rep === "object" && (rep.by === "subcolumns" || rep.by === "column")) {
+    const ints = (v: unknown) => (Array.isArray(v)
+      ? v.map((n) => (Number.isInteger(n) && (n as number) >= 0 && (n as number) < 1000
+        ? n as number : 0)) : undefined);
+    table.replicates = { by: rep.by };
+    const of = ints(rep.of);
+    if (of) table.replicates.of = of;
+    if (Number.isInteger(rep.column) && (rep.column as number) >= 0) {
+      table.replicates.column = rep.column as number;
+    }
+    if (Array.isArray(rep.names)) table.replicates.names = rep.names.map(str).slice(0, 1000);
+  }
   return table;
 }
 

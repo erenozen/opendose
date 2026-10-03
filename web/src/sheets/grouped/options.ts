@@ -2,6 +2,8 @@
 // and normalizers for options read from older files. Pure (no React).
 import type { TwoWayComparisons, TwoWayDirection } from "../../types.ts";
 import type { ErrorKind, HeatPalette } from "./stats.ts";
+import { isPointSpread, type PointSpread } from "../../graph/swarm.ts";
+import { normalizeSuperPlot, type SuperPlotSettings } from "../common/superplot.ts";
 
 // Analysis ids, stored in results sheets: never rename.
 export const A_TWO_WAY = "grouped_two_way";
@@ -316,12 +318,25 @@ export interface GroupedGraphSettings {
   clustersReverse: boolean;
   lineMode: "means" | "subjects";
   legend: boolean;
+  /** How the points of a cell are spread sideways. */
+  spread: PointSpread;
+  /** Legend sentence (error-bar meaning and n): under the graph, in the
+   *  figure, or off (sheets/column/graphSettings.ts CaptionMode). */
+  caption: "off" | "below" | "figure";
+  superplot: SuperPlotSettings;
 }
 
 export const DEFAULT_GRAPH: GroupedGraphSettings = {
   error: "sd", errorDir: "both", points: true, grand: "none", clusterBy: null,
   clusterGap: 0.3, barGap: 0.08, seriesReverse: false, clustersReverse: false,
-  lineMode: "means", legend: true,
+  lineMode: "means", legend: true, spread: "jitter", caption: "off",
+  superplot: normalizeSuperPlot(undefined),
+};
+
+/** What a grouped graph created from now on starts with; saved graphs
+ *  without these keys keep the old look. */
+export const NEW_GROUPED_GRAPH: Partial<GroupedGraphSettings> = {
+  spread: "symmetric", caption: "below",
 };
 
 export function normalizeGraph(raw: unknown): GroupedGraphSettings {
@@ -339,6 +354,9 @@ export function normalizeGraph(raw: unknown): GroupedGraphSettings {
     clustersReverse: bool(o.clustersReverse, d.clustersReverse),
     lineMode: pick(o.lineMode, ["means", "subjects"] as const, d.lineMode),
     legend: bool(o.legend, d.legend),
+    spread: isPointSpread(o.spread) ? o.spread : d.spread,
+    caption: pick(o.caption, ["off", "below", "figure"] as const, d.caption),
+    superplot: normalizeSuperPlot(o.superplot),
   };
 }
 
@@ -365,12 +383,19 @@ export interface HeatSettings {
   crossMissing: boolean;
   transpose: boolean;
   xTop: boolean;    // column labels above the map
+  /** Standardise before colouring: each row (or column) to mean 0, SD 1. */
+  zscore: "none" | "rows" | "columns";
+  /** Reorder rows / columns by hierarchical clustering (engine handler
+   *  `cluster_heatmap`, see buildHeat.ts; off until the engine has it). */
+  clusterRows: boolean;
+  clusterCols: boolean;
 }
 
 export const DEFAULT_HEAT: HeatSettings = {
   value: "mean", palette: "sequential", reverse: false, min: "", max: "",
   center: "", labels: true, digits: 3, gap: 2, legend: true, legendTitle: "",
   missing: "#d1d1d6", crossMissing: true, transpose: false, xTop: false,
+  zscore: "none", clusterRows: false, clusterCols: false,
 };
 
 export function normalizeHeat(raw: unknown): HeatSettings {
@@ -393,5 +418,8 @@ export function normalizeHeat(raw: unknown): HeatSettings {
     crossMissing: bool(o.crossMissing, d.crossMissing),
     transpose: bool(o.transpose, d.transpose),
     xTop: bool(o.xTop, d.xTop),
+    zscore: pick(o.zscore, ["none", "rows", "columns"] as const, d.zscore),
+    clusterRows: bool(o.clusterRows, d.clusterRows),
+    clusterCols: bool(o.clusterCols, d.clusterCols),
   };
 }

@@ -189,6 +189,8 @@ export interface ComparisonsFormat {
   /** Only draw pairs with P below this (null/absent = all, ns included). */
   threshold?: number | null;
   style?: "bracket" | "line" | "tall";
+  /** Leave out pairs that are not significant ("ns"). */
+  hideNs?: boolean;
   lineWidth?: number;
   color?: string;
   textSize?: number;
@@ -214,7 +216,16 @@ export interface AtRiskFormat {
   size?: number;
 }
 
+/** Whole-graph look. "classic": white background, black axes and bold
+ *  sans-serif text, no grid, offset axes that end at the last tick, minor
+ *  ticks, no legend title (theme.ts). Absent = the app's default look. */
+export type GraphTheme = "default" | "classic";
+
 export interface GraphFormat {
+  theme?: GraphTheme;
+  /** How P values and asterisks are written on brackets and in the legend
+   *  sentence (significance.ts PStyle); absent = "graphpad". */
+  pStyle?: "graphpad" | "apa" | "nejm";
   /** Keyed by dataset index ("0", "1", ...). */
   datasets?: Record<string, DatasetFormat>;
   /** Plotting order of dataset indices: first = left / drawn first (back). */
@@ -375,6 +386,7 @@ export function normalizeFormat(raw: unknown): GraphFormat {
     prefix: oneOf(c.prefix, ["P = ", "p = ", ""] as const),
     threshold: c.threshold === null ? null : num(c.threshold, 0, 1),
     style: oneOf(c.style, ["bracket", "line", "tall"] as const),
+    hideNs: bool(c.hideNs),
     lineWidth: num(c.lineWidth, 0.25, 8),
     color: color(c.color),
     textSize: num(c.textSize, 4, 48),
@@ -415,7 +427,10 @@ export function normalizeFormat(raw: unknown): GraphFormat {
     tickSize: num(ft.tickSize, 4, 72),
     legendSize: num(ft.legendSize, 4, 72),
   }) : undefined;
+  const theme = oneOf(raw.theme, ["default", "classic"] as const);
   return compact({
+    theme: theme === "classic" ? theme : undefined,
+    pStyle: oneOf(raw.pStyle, ["apa", "nejm"] as const),
     datasets: Object.keys(ds).length ? ds : undefined,
     order: Array.isArray(raw.order)
       ? raw.order.filter((v): v is number => Number.isInteger(v) && (v as number) >= 0)
