@@ -145,10 +145,53 @@ export interface GraphSheet extends SheetBase {
   snapshot?: { table: DataTableModel; result: unknown; options: unknown };
 }
 
+/** Page size of a layout. All layout lengths are millimetres measured
+ *  from the page's top-left corner (see project/layout.ts). */
+export type PageSize = "a4" | "letter" | "custom";
+
+export interface LayoutPage {
+  size: PageSize;
+  orientation: "portrait" | "landscape";
+  width: number;            // mm, used when size is "custom"
+  height: number;
+  margin: number;           // mm, all four sides
+  background: string;       // CSS hex colour, or "transparent"
+}
+
+export interface LayoutRect { x: number; y: number; w: number; h: number }
+
+/** One thing placed on a layout page. */
+export type LayoutItem = LayoutRect & { id: string } & (
+  /** A placeholder bound to a graph sheet (null = empty placeholder). */
+  | { kind: "graph"; graphId: string | null; hideLegend?: boolean }
+  /** An unlinked picture: a static SVG snapshot of a graph. */
+  | { kind: "picture"; name: string; svg: string }
+  | { kind: "text"; text: string; fontSize: number; bold: boolean;
+      align: "left" | "center" | "right" }
+  /** One legend for every graph on the page (de-duplicated). */
+  | { kind: "legend"; fontSize: number; columns: number }
+);
+
+export interface PanelLetters {
+  show: boolean;
+  style: "upper" | "lower";
+  format: "plain" | "paren" | "period";   // A, (A), A.
+  fontSize: number;          // pt
+  bold: boolean;
+  font: "sans" | "serif";
+  position: "inside" | "outside";          // top-left inside or above the panel
+}
+
 export interface LayoutSheet extends SheetBase {
   kind: "layout";
+  /** Graphs placed on the page (kept in sync with `items`). */
   graphIds: string[];
   grid: { rows: number; cols: number };
+  /** Absent in files from before the page composer: defaults apply and
+   *  the items are built from graphIds + grid. */
+  page?: LayoutPage;
+  items?: LayoutItem[];
+  letters?: PanelLetters;
 }
 
 export type Sheet = DataSheet | InfoSheet | ResultsSheet | GraphSheet | LayoutSheet;
@@ -163,6 +206,24 @@ export interface Prefs {
   theme: "auto" | "light" | "dark";
   /** Significant digits shown in results tables. */
   digits: number;
+  /** Last image-export settings (see export/settings.ts); travel with
+   *  the project, outside undo history. */
+  export?: ExportPrefs;
+}
+
+export type ExportFormat = "png" | "svg" | "pdf" | "tiff" | "jpeg" | "webp";
+
+export interface ExportPrefs {
+  format: ExportFormat;
+  width: number;            // CSS px = 1/96 in (the graph's laid-out size)
+  height: number;
+  dpi: number;              // raster formats
+  unit: "px" | "mm" | "in"; // how W and H are shown
+  transparent: boolean;     // no background (PNG, WebP, SVG, PDF)
+  paper: boolean;           // dark theme: export in light, print colours
+  /** Scale the graph as drawn on screen to the export size (text shrinks
+   *  or grows with it) instead of laying it out again at that size. */
+  scaleText: boolean;
 }
 
 export type ProjectPrefs = Omit<Prefs, "theme">;
