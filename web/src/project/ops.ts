@@ -1,6 +1,7 @@
 // Pure project-level operations: sheet lookup, families, add / rename /
 // duplicate / delete / reorder / freeze. Each takes a Project and returns a
 // new one (or the same object when nothing changed).
+import { pruneDerivedLinks } from "./derived.ts";
 import type { IdFactory } from "./ids.ts";
 import { clearValues } from "./table.ts";
 import type {
@@ -122,11 +123,12 @@ export function updateSheet<S extends Sheet>(p: Project, id: string,
   return changed ? { ...p, sheets } : p;
 }
 
-/** Edit a data table. Frozen tables refuse every change. */
+/** Edit a data table. Frozen tables refuse every change, and so do
+ *  derived tables (they are recomputed from their source; see derived.ts). */
 export function updateTable(p: Project, id: string,
   fn: (t: DataTableModel) => DataTableModel): Project {
   return updateSheet<Sheet>(p, id, (s) => {
-    if (s.kind !== "data" || s.frozen) return s;
+    if (s.kind !== "data" || s.frozen || s.derived) return s;
     const table = fn(s.table);
     return table === s.table ? s : { ...s, table };
   });
@@ -201,7 +203,8 @@ export function deleteSheet(p: Project, id: string): Project {
       }
       return x;
     });
-  return { ...p, sheets };
+  // Derived tables whose producer went with it keep their values, unlinked.
+  return pruneDerivedLinks({ ...p, sheets });
 }
 
 /** Sheets a delete would remove (for the confirmation message). */
@@ -256,6 +259,7 @@ export function duplicateSheet(p: Project, id: string, ids: IdFactory): Project 
   copy.frozen = false;
   if (copy.kind === "graph") delete copy.snapshot;
   if (copy.kind === "results") delete copy.cached;
+  if (copy.kind === "data") delete copy.derived; // a copy is plain data
   return addSheets(p, [copy], lastFamilyMemberId(p, s));
 }
 
@@ -282,6 +286,7 @@ export function duplicateFamily(p: Project, id: string,
   const dataCopy: DataSheet = {
     ...cloneJson(root), id: ids(), name: newName, frozen: false,
   };
+  delete dataCopy.derived; // a copy is plain data
   if (!opts.withData) dataCopy.table = clearValues(dataCopy.table);
   const idMap = new Map<string, string>([[root.id, dataCopy.id]]);
   const children = familyChildren(p, root.id);
@@ -327,5 +332,5 @@ export function repairLinks(p: Project): Project {
       if (s.kind === "info" && s.parentId && !ids.has(s.parentId)) return { ...s, parentId: null };
       return s;
     });
-  return { ...p, sheets };
+  return pruneDerivedLinks({ ...p, sheets });
 }

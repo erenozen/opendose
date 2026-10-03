@@ -3,7 +3,7 @@
 // select a sheet it just created) and React subscribes through
 // useSyncExternalStore. No React import here.
 import {
-  canRedo, canUndo, commit, initHistory, redo, undo, type History,
+  amend, canRedo, canUndo, commit, initHistory, redo, undo, type History,
 } from "./history.ts";
 import type { Project } from "./types.ts";
 
@@ -35,6 +35,12 @@ export class ProjectStore {
   /** Apply a pure edit. Same `key` within the coalesce window = one undo step. */
   apply = (fn: (p: Project) => Project, key: string | null = null): Project => {
     this.set(commit(this.h, fn(this.h.present), key));
+    return this.h.present;
+  };
+
+  /** Apply a pure edit outside undo history (see history.amend). */
+  amend = (fn: (p: Project) => Project): Project => {
+    this.set(amend(this.h, fn(this.h.present)));
     return this.h.present;
   };
 

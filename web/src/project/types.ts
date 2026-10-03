@@ -108,6 +108,28 @@ interface SheetBase {
 export interface DataSheet extends SheetBase {
   kind: "data";
   table: DataTableModel;
+  /** Set when this table is the output of a table-producing analysis (a
+   *  "chain"): it is recomputed from its source and read-only until
+   *  unlinked. See derived.ts. */
+  derived?: DerivedLink;
+  /** Set when this table was simulated: what to re-run for "Simulate
+   *  again". The table itself is ordinary, editable data. */
+  simulation?: SimulationSpec;
+}
+
+/** A derived table's provenance: the data sheet it is computed from and
+ *  the results sheet (on that data sheet) whose analysis produces it. */
+export interface DerivedLink {
+  sourceId: string;
+  resultsId: string;
+}
+
+/** How a simulated table was made. `form` is the simulation dialog's
+ *  state (owned by sheets/manipulate); `seed` the seed of the last run. */
+export interface SimulationSpec {
+  kind: "xy" | "column" | "contingency";
+  seed: number;
+  form: unknown;
 }
 
 export interface InfoConstant { name: string; value: string }

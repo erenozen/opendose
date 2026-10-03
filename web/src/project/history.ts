@@ -34,6 +34,13 @@ export function commit(
   return { past, present: next, future: [], lastKey: key, lastAt: now };
 }
 
+/** Replace the present without creating an undo step: for state that is
+ *  a pure function of other project state (derived tables), so undoing
+ *  the edit that caused it also brings back the matching older value. */
+export function amend(h: History, next: Project): History {
+  return next === h.present ? h : { ...h, present: next };
+}
+
 export function undo(h: History): History {
   if (!h.past.length) return h;
   const past = h.past.slice(0, -1);
