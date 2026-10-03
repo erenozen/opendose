@@ -12,10 +12,12 @@
 // a Monte Carlo run, and table editing (Import dialog with .xlsx and
 // decimal-comma CSV, sort, block exclusion, Data Inspector, CSV export of
 // data and results, Mean/SD/N conversion and entry, insert series, dates
-// as X), and project organisation (save a template and create a table from
+// as X), project organisation (save a template and create a table from
 // it, analyze and graph like another table, make graph formats consistent,
 // sheet groups and floating notes surviving save / reopen / page reload,
-// go to sheet).
+// go to sheet), a model from the engine's equation library and a
+// user-defined equation, Welch ANOVA with Games-Howell, the chi-square
+// test for trend and Deming regression.
 import { chromium } from "playwright";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -948,6 +950,97 @@ await page.getByRole("combobox", { name: "Sheet name" }).fill("org targ");
 await page.keyboard.press("Enter");
 expect("go to sheet opens the match",
   await page.locator(".nav-item.selected[aria-label='Org target']").count() >= 1);
+
+// --- equation library: a built-in model listed by the engine -------------
+// Native engine on the reference data (engine/tests/test_api.py REF_Y):
+// asymmetric_5pl_log gives S = 0.7551 (LogEC50 -6.979).
+await newExampleTable("xy");
+expect("example XY table fits the reference 4PL: LogIC50 -6.983", await waitLogIC50("-6.983"));
+const paramRow = (name) => page.waitForFunction((n) => [...document
+  .querySelectorAll(".results-table tbody tr")]
+  .find((tr) => tr.querySelector("th")?.textContent.trim() === n)?.innerText ?? false,
+name, { timeout: 60000 }).then((h) => h.jsonValue(), () => "");
+await page.getByRole("button", { name: /^Model:/ }).click();
+await page.getByRole("combobox", { name: "Search models" }).fill("asymmetrical five log");
+await page.getByRole("option", { name: /Asymmetrical \(five parameter\), X is log/ }).click();
+const sRow = await paramRow("S");
+expect("library model asymmetric_5pl_log fits: S = 0.7551", sRow.includes("0.7551"),
+  sRow.replace(/\s+/g, " "));
+
+// --- user-defined equation: the 4PL typed in reproduces the built-in fit --
+await page.getByRole("button", { name: /^Model:/ }).click();
+await page.getByRole("combobox", { name: "Search models" }).fill("own equation");
+await page.getByRole("option", { name: /Enter your own equation/ }).click();
+const eqDlg = page.getByRole("dialog", { name: "User-defined equation" });
+await eqDlg.getByLabel("Name").fill("My 4PL");
+await eqDlg.getByLabel("Equation", { exact: true })
+  .fill("Y=Bottom + (Top-Bottom)/(1+10^((LogIC50-X)*HillSlope))");
+await eqDlg.getByLabel(/X in this equation is log/).check();
+await eqDlg.getByText("Equation is valid").waitFor({ timeout: 30000 });
+await eqDlg.getByRole("button", { name: "Use this equation" }).click();
+expect("user-defined 4PL: LogIC50 -6.983 (same as the built-in fit)",
+  await waitLogIC50("-6.983"));
+expect("methods text names the user-defined equation",
+  (await page.locator(".methods-text p").first().innerText()).includes("“My 4PL”"));
+
+// --- Welch / Brown-Forsythe ANOVA with Games-Howell (column example) ---
+// Native: W(2, 9.931) = 80.71; Games-Howell Control vs. Treated A
+// adjusted P = 0.0006337 (q = 7.914, Welch df 9.881).
+await newExampleTable("column");
+await page.waitForSelector(".stat-cols", { timeout: 30000 });
+await page.locator(".analysis-select").selectOption("anova");
+await page.getByLabel("Standard deviations").selectOption("unequal");
+await page.waitForSelector(".result-card h3:has-text('SDs not assumed equal')", { timeout: 30000 });
+const welchText = await page.locator(".pane-results .result-card").first().innerText();
+expect("Welch ANOVA: W(2, 9.931) = 80.71", welchText.includes("W(2, 9.931) = 80.71"));
+const ghRow = await page.locator(".results-table tr", { hasText: "Control vs. Treated A" }).first().innerText();
+expect("Games-Howell Control vs. Treated A: adjusted P 6.337e-4", ghRow.includes("6.337e-4"),
+  ghRow.replace(/\s+/g, " "));
+
+// --- chi-square test for trend on a 6 x 2 table ---
+// Altman (1991) shoe size vs. Caesarean section, as in
+// engine/tests/test_contingency_extras.py: chi-square for trend 8.024.
+await page.getByRole("button", { name: "New data table" }).click();
+const ctDlg = page.locator(".new-table-dialog");
+await ctDlg.locator('input[name="table-type"][value="contingency"]').check();
+await ctDlg.getByLabel("Table name").fill("Shoe size");
+await ctDlg.getByLabel("Outcomes (columns)").fill("2");
+await ctDlg.getByLabel("Groups (rows)").fill("6");
+await ctDlg.getByRole("button", { name: "Create table" }).click();
+await page.waitForSelector(".grid-toolbar");
+const shoes = [[5, 17], [7, 28], [6, 36], [7, 41], [8, 46], [10, 140]];
+for (let r = 0; r < shoes.length; r++) {
+  for (let c = 0; c < 2; c++) {
+    await page.locator(`.data-table input[aria-label="Outcome ${c + 1}, row ${r + 1}"]`)
+      .fill(String(shoes[r][c]));
+  }
+}
+await page.getByLabel(/Chi-square test for trend/).check();
+await page.waitForSelector(".result-card h4:has-text('test for trend')", { timeout: 30000 });
+const trendRow = await page.locator(".results-table tr", { hasText: "Chi-square for trend" }).innerText();
+expect("chi-square for trend 8.024, df 1", trendRow.includes("8.024, 1"), trendRow.replace(/\s+/g, " "));
+
+// --- Deming regression on a small XY table ---
+// Native (and the closed form for lambda = 1): slope 1.991, Y intercept 0.067.
+await page.getByRole("button", { name: "New data table" }).click();
+const dmDlg = page.locator(".new-table-dialog");
+await dmDlg.locator('input[name="table-type"][value="xy"]').check();
+await dmDlg.getByLabel("Table name").fill("Method comparison");
+await dmDlg.getByLabel("Replicates per X").fill("1");
+await dmDlg.getByLabel("Rows (X values)").fill("8");
+await dmDlg.getByRole("button", { name: "Create table" }).click();
+await page.waitForSelector(".grid-toolbar");
+const DX = [1, 2, 3, 4, 5, 6, 7, 8], DY = [2.1, 3.9, 6.2, 7.8, 10.3, 11.9, 14.2, 15.8];
+for (let r = 0; r < DX.length; r++) {
+  await page.locator(`.data-table input[aria-label="X, row ${r + 1}"]`).fill(String(DX[r]));
+  await page.locator(`.data-table input[aria-label="Dataset A, row ${r + 1}"]`).fill(String(DY[r]));
+}
+await page.getByRole("button", { name: "Analyze", exact: true }).click();
+await page.getByRole("menuitem", { name: /^Deming regression/ }).click();
+const slopeRow = await paramRow("Slope");
+expect("Deming regression: slope 1.991", slopeRow.includes("1.991"), slopeRow.replace(/\s+/g, " "));
+expect("Deming graph draws the points and the line",
+  await page.locator(".plot .scatterlayer .trace").count() === 2);
 
 await page.screenshot({
   path: join(here, "app.png"),

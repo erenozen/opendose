@@ -16,6 +16,9 @@ function ci(entry: ParamEntry | undefined): string {
 
 // Concentration-like derived parameters get the X unit appended.
 const UNIT_PARAMS = new Set(["IC50", "EC50", "Km", "Kd", "AbsoluteIC50"]);
+// ... and the library's other concentrations (ECanything, Ki, KA, KB, A2).
+const UNIT_PATTERN = /^(IC|EC)\d+(_\w+)?$|^EC50(Control|_\w+)$|^IC50_\w+$|^(Ki|KA|KB|Kb|A2)$/;
+const hasUnit = (name: string) => UNIT_PARAMS.has(name) || UNIT_PATTERN.test(name);
 
 // Every model that can report this fits against log10(dose), so the stored
 // x values are logs and read back as concentrations.
@@ -141,9 +144,11 @@ export default function ResultsPanel({ result, xUnit = "M" }: Props) {
                 {order.map((name) => {
                   const e = fit.params[name];
                   if (!e) return null;
-                  const base = UNIT_PARAMS.has(name)
+                  const base = hasUnit(name)
                     ? `${name} (${xUnit})` : name;
-                  const label = e.shared ? `${base} (shared)` : base;
+                  const label = e.shared ? `${base} (shared)`
+                    : (e as { dataset_constant?: boolean }).dataset_constant
+                      ? `${base} (data set constant)` : base;
                   return (
                     <tr key={name} className={e.derived ? "derived" : ""}>
                       <th>{label}</th>

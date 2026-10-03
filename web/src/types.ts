@@ -5,104 +5,17 @@ export interface DatasetState {
   rows: Cell[][]; // rows x replicate subcolumns
 }
 
-export interface ModelMeta {
-  label: string;
-  family: string;
-  xLabel: string;     // axis title stem
-  needsLogX: boolean; // engine expects X as log10(concentration)
-  constrainable: string[];
-  constants?: string[]; // experimental constants the user must supply
-}
+// The model library (engine `list_models`, filled at engine boot) lives in
+// lib/modelLibrary.ts; these re-exports keep the older import sites.
+export {
+  MODELS_META, MODEL_FAMILIES, USER_MODEL_ID, type ModelMeta,
+} from "./lib/modelLibrary.ts";
+import type { UserEquationDef } from "./lib/userEquation.ts";
+export type { UserEquationDef } from "./lib/userEquation.ts";
 
-// Mirrors the engine's nlfit registry (keep in sync).
-export const MODELS_META: Record<string, ModelMeta> = {
-  log_inhibitor_vs_response_4pl: {
-    label: "log(inhibitor) vs. response - Variable slope (four parameters)",
-    family: "Dose-response: Inhibition", xLabel: "log[Inhibitor]",
-    needsLogX: true, constrainable: ["Top", "Bottom", "HillSlope"],
-  },
-  log_inhibitor_vs_response_3pl: {
-    label: "log(inhibitor) vs. response (three parameters)",
-    family: "Dose-response: Inhibition", xLabel: "log[Inhibitor]",
-    needsLogX: true, constrainable: ["Top", "Bottom"],
-  },
-  log_agonist_vs_response_4pl: {
-    label: "log(agonist) vs. response - Variable slope (four parameters)",
-    family: "Dose-response: Stimulation", xLabel: "log[Agonist]",
-    needsLogX: true, constrainable: ["Top", "Bottom", "HillSlope"],
-  },
-  log_agonist_vs_response_3pl: {
-    label: "log(agonist) vs. response (three parameters)",
-    family: "Dose-response: Stimulation", xLabel: "log[Agonist]",
-    needsLogX: true, constrainable: ["Top", "Bottom"],
-  },
-  michaelis_menten: {
-    label: "Michaelis-Menten", family: "Enzyme kinetics",
-    xLabel: "[Substrate]", needsLogX: false, constrainable: ["Vmax", "Km"],
-  },
-  saturation_binding: {
-    label: "One site - Specific binding", family: "Binding: Saturation",
-    xLabel: "[Ligand]", needsLogX: false, constrainable: ["Bmax", "Kd"],
-  },
-  one_site_competition: {
-    label: "One site - Fit logIC50", family: "Binding: Competitive",
-    xLabel: "log[Competitor]", needsLogX: true,
-    constrainable: ["Top", "Bottom"],
-  },
-  one_site_fit_ki: {
-    label: "One site - Fit Ki", family: "Binding: Competitive",
-    xLabel: "log[Competitor]", needsLogX: true,
-    constrainable: ["Top", "Bottom"],
-    constants: ["HotNM", "HotKdNM"],
-  },
-  two_site_competition: {
-    label: "Two sites - Fit logIC50", family: "Binding: Competitive",
-    xLabel: "log[Competitor]", needsLogX: true,
-    constrainable: ["Top", "Bottom"],
-  },
-  ec50_shift: {
-    label: "EC50 shift (Gaddum/Schild), global fit",
-    family: "Binding: Competitive",
-    xLabel: "log[Agonist]", needsLogX: true,
-    constrainable: ["Top", "Bottom", "HillSlope"],
-  },
-  one_phase_decay: {
-    label: "One phase decay", family: "Exponential",
-    xLabel: "Time", needsLogX: false,
-    constrainable: ["Y0", "Plateau", "K"],
-  },
-  one_phase_association: {
-    label: "One phase association", family: "Exponential",
-    xLabel: "Time", needsLogX: false,
-    constrainable: ["Y0", "Plateau", "K"],
-  },
-  exponential_growth: {
-    label: "Exponential growth", family: "Exponential",
-    xLabel: "Time", needsLogX: false, constrainable: ["Y0", "K"],
-  },
-  two_phase_decay: {
-    label: "Two phase decay", family: "Exponential",
-    xLabel: "Time", needsLogX: false, constrainable: ["Y0", "Plateau"],
-  },
-  straight_line: {
-    label: "Straight line", family: "Lines",
-    xLabel: "X", needsLogX: false, constrainable: ["Slope", "Yintercept"],
-  },
-  polynomial_second: {
-    label: "Second order polynomial", family: "Lines",
-    xLabel: "X", needsLogX: false, constrainable: [],
-  },
-  polynomial_third: {
-    label: "Third order polynomial", family: "Lines",
-    xLabel: "X", needsLogX: false, constrainable: [],
-  },
-};
-
-export type ModelId = keyof typeof MODELS_META & string;
-
-export const MODEL_FAMILIES: string[] = [...new Set(
-  Object.values(MODELS_META).map((m) => m.family),
-)];
+/** A model id: a library id, "ec50_shift" (classic Gaddum/Schild path) or
+ *  "user" (the equation in OptionsState.userEquation). */
+export type ModelId = string;
 
 export type WeightingKind = "none" | "1/Y" | "1/Y2" | "1/X" | "1/X2";
 
@@ -163,6 +76,16 @@ export interface OptionsState {
   /** Tables of mean / SD / N: fit accounting for SD and N (same fit as
    *  the raw replicates) or the means only. Ignored for replicates. */
   summaryReplicates?: "account" | "means_only";
+  /** Constants for parameters other than Top / Bottom / HillSlope (which
+   *  keep their own fields above), keyed by parameter name. */
+  paramConstraints?: Record<string, ConstraintState>;
+  /** Data-set constants (e.g. the antagonist concentration B): parameter
+   *  -> one value per data set; "" reads the number in the data set's
+   *  title. */
+  datasetConstants?: Record<string, string[]>;
+  /** model === "user": the user-defined equation, stored with the
+   *  results so a project file is self-contained. */
+  userEquation?: UserEquationDef | null;
 }
 
 export const DEFAULT_XY_OPTIONS: OptionsState = {
@@ -269,6 +192,8 @@ export interface AnalysisResult {
   analysis: string;
   datasets: DatasetResult[];
   error?: string;
+  /** User-defined equation fits: the engine's reading of the equation. */
+  user_equation?: Record<string, unknown>;
 }
 
 // --- column-table statistics ---
@@ -277,6 +202,7 @@ export type ColumnAnalysisKind =
   | "column_statistics"
   | "ttest"
   | "anova"
+  | "median_test"
   | "rm_anova"
   | "two_way_anova"
   | "rm_two_way"
@@ -289,6 +215,7 @@ export const COLUMN_ANALYSIS_LABELS: Record<ColumnAnalysisKind, string> = {
   column_statistics: "Column statistics (descriptive + normality)",
   ttest: "t test / nonparametric (two groups)",
   anova: "One-way ANOVA (and nonparametric)",
+  median_test: "Median test (Mood's, two or more groups)",
   rm_anova: "Repeated-measures ANOVA / Friedman (rows = subjects)",
   two_way_anova: "Two-way ANOVA (rows × datasets)",
   rm_two_way: "Two-way ANOVA, repeated measures",
@@ -320,18 +247,23 @@ export const COLUMN_GRAPH_LABELS: Record<ColumnGraphType, string> = {
   violin: "Violin",
 };
 
-export type TTestKind = "unpaired" | "welch" | "paired" | "mann_whitney" | "wilcoxon";
+export type TTestKind =
+  | "unpaired" | "welch" | "paired" | "ratio_paired"
+  | "mann_whitney" | "kolmogorov_smirnov" | "wilcoxon";
 
 export const TTEST_LABELS: Record<TTestKind, string> = {
   unpaired: "Unpaired t test",
   welch: "Unpaired t with Welch's correction",
   paired: "Paired t test",
+  ratio_paired: "Ratio paired t test (paired ratios, lognormal)",
   mann_whitney: "Mann-Whitney (unpaired, nonparametric)",
+  kolmogorov_smirnov: "Kolmogorov-Smirnov (unpaired, compares distributions)",
   wilcoxon: "Wilcoxon matched pairs (nonparametric)",
 };
 
 export type ComparisonsMethod =
-  | "none" | "tukey" | "dunnett" | "bonferroni" | "sidak" | "holm_sidak";
+  | "none" | "tukey" | "dunnett" | "bonferroni" | "sidak" | "holm_sidak"
+  | "newman_keuls" | "fisher_lsd";
 
 export const COMPARISONS_LABELS: Record<ComparisonsMethod, string> = {
   none: "No multiple comparisons",
@@ -340,7 +272,29 @@ export const COMPARISONS_LABELS: Record<ComparisonsMethod, string> = {
   bonferroni: "Bonferroni (every pair)",
   sidak: "Šídák (every pair)",
   holm_sidak: "Holm-Šídák (every pair)",
+  newman_keuls: "Newman-Keuls (every pair)",
+  fisher_lsd: "Fisher's LSD (every pair, no correction)",
 };
+
+/** Comparisons after Welch / Brown-Forsythe ANOVA (SDs not assumed equal). */
+export type UnequalComparisons =
+  | "none" | "games_howell" | "dunnett_t3" | "tamhane_t2" | "welch_uncorrected";
+
+export const UNEQUAL_COMPARISONS_LABELS: Record<UnequalComparisons, string> = {
+  none: "No multiple comparisons",
+  games_howell: "Games-Howell (every pair)",
+  dunnett_t3: "Dunnett T3",
+  tamhane_t2: "Tamhane T2",
+  welch_uncorrected: "Unpaired t with Welch's correction, no correction for multiple comparisons",
+};
+
+export const NORMALITY_TEST_LABELS: Record<string, string> = {
+  shapiro_wilk: "Shapiro-Wilk",
+  dagostino_pearson: "D'Agostino-Pearson omnibus",
+  anderson_darling: "Anderson-Darling",
+  kolmogorov_smirnov: "Kolmogorov-Smirnov (Lilliefors P)",
+};
+export const DEFAULT_NORMALITY_TESTS = ["shapiro_wilk", "dagostino_pearson", "anderson_darling"];
 
 export interface ColumnOptionsState {
   analysis: ColumnAnalysisKind;
@@ -359,6 +313,25 @@ export interface ColumnOptionsState {
   twoWayComparisons: TwoWayComparisons;
   twoWayDirection: TwoWayDirection;
   rmTwoDesign: "mixed" | "both";
+  /** One-way ANOVA: assume equal SDs (ordinary) or not (Welch and
+   *  Brown-Forsythe, engine anova_unequal_var). */
+  anovaSd?: "equal" | "unequal";
+  unequalComparisons?: UnequalComparisons;
+  /** Unequal-SD comparisons: every pair, or each group vs. the control. */
+  unequalFamily?: "all" | "control";
+  /** Kruskal-Wallis: Dunn's multiplicity correction (false = uncorrected). */
+  dunnCorrected?: boolean;
+  /** Wilcoxon tests: values equal to the hypothetical / zero differences
+   *  dropped (Wilcoxon) or ranked and ignored (Pratt). */
+  zeroMethod?: "wilcox" | "pratt";
+  /** Column statistics extras. */
+  normalityTests?: string[];
+  percentileMethod?: "linear" | "prism";
+  descriptiveExtras?: boolean;
+  trimK?: string;
+  ratioT?: boolean;
+  /** Friedman: exact P (small designs). */
+  rmExact?: boolean;
 }
 
 export const DEFAULT_COLUMN_OPTIONS: ColumnOptionsState = {
@@ -378,6 +351,17 @@ export const DEFAULT_COLUMN_OPTIONS: ColumnOptionsState = {
   twoWayComparisons: "none",
   twoWayDirection: "columns_within_rows",
   rmTwoDesign: "mixed",
+  anovaSd: "equal",
+  unequalComparisons: "games_howell",
+  unequalFamily: "all",
+  dunnCorrected: true,
+  zeroMethod: "wilcox",
+  normalityTests: [...DEFAULT_NORMALITY_TESTS],
+  percentileMethod: "linear",
+  descriptiveExtras: false,
+  trimK: "",
+  ratioT: false,
+  rmExact: false,
 };
 
 export function parseCell(v: Cell): number | null {

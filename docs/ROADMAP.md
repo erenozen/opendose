@@ -29,6 +29,14 @@ note in the README): [user guide](https://www.graphpad.com/guides/prism/latest/u
 - [x] Profile-likelihood ("asymmetrical") CIs, the Prism 8+ default method
 - [x] Robust regression + ROUT outlier elimination (Motulsky-Brown, FDR Q)
 - [x] Compare fits: extra sum-of-squares F test + AICc probabilities
+- [x] Analyses added 2026-10-04: the engine's equation library (every
+      built-in model, listed by the engine at start-up) in a searchable,
+      family-grouped picker with experimental and per-data-set constants,
+      sharing and global-only models; user-defined equations (editor with
+      live validation, initial-value rules, default constraints, values to
+      report; saved in the browser, JSON import/export, global fits when a
+      parameter is shared); Deming (Model II) regression with its line on
+      the XY graph
 
 ### Statistics (column data)
 - [x] Column statistics: full descriptive set + geometric mean/CI, CV,
@@ -45,6 +53,18 @@ note in the README): [user guide](https://www.graphpad.com/guides/prism/latest/u
       unbalanced), % of total variation
 - [x] Contingency: chi-square (±Yates), Fisher exact, odds ratio (Woolf),
       relative risk, sensitivity/specificity (Wilson CIs), R×C tables
+- [x] Analyses added 2026-10-04: Kolmogorov-Smirnov and ratio paired
+      t tests; Welch and Brown-Forsythe ANOVA ("do not assume equal SDs")
+      with Games-Howell, Dunnett T3, Tamhane T2 or uncorrected Welch
+      comparisons; Newman-Keuls and Fisher's LSD; uncorrected Dunn's;
+      Mood's median test; exact Friedman; Pratt zero handling and exact /
+      approximate P labels for the rank tests; KS normality test,
+      percentile methods and more descriptive statistics. Contingency:
+      effect sizes (Koopman RR, Newcombe difference, Baptista-Pike OR, NNT,
+      likelihood ratios, phi / Cramér's V), chi-square test for trend,
+      McNemar (Bowker for k×k), Cochran-Mantel-Haenszel for stratified
+      2×2 tables (two rows per stratum), Cohen's kappa with weights, one
+      and two proportions with CI method choices. Methods text for each
 
 ### App
 - [x] XY + Column table modes, Excel paste, plate import UI, Plotly graphs

@@ -26,6 +26,17 @@ function fmtCI(ci: unknown): string {
   return `${formatSig(ci[0] as number)} to ${formatSig(ci[1] as number)}`;
 }
 
+/** "exact" / "approximate" (the engine's p_method), for P value labels. */
+function pKind(method: unknown): string {
+  return method === "exact" || method === "approximate" ? `, ${method}` : "";
+}
+
+/** A CI whose confidence level is set by the data (rank-based CIs). */
+function fmtAchievedCI(ci: unknown, level: unknown): string {
+  const lvl = typeof level === "number" ? ` (actual confidence ${formatSig(100 * level, 4)}%)` : "";
+  return `${fmtCI(ci)}${lvl}`;
+}
+
 function KV({ title, rows }: { title?: string; rows: Row[] }) {
   return (
     <table className="results-table goodness">
@@ -49,9 +60,11 @@ function ColumnStats({ result }: { result: any }) {
         const rows: Row[] = [
           ["n", String(d.n)],
           ["Minimum", formatSig(d.minimum)],
-          ["25% percentile", formatSig(d.percentile25)],
+          [`25% percentile${d.percentile_method === "prism" ? " (rank (n + 1)p)" : ""}`,
+            formatSig(d.percentile25)],
           ["Median", formatSig(d.median)],
-          ["75% percentile", formatSig(d.percentile75)],
+          [`75% percentile${d.percentile_method === "prism" ? " (rank (n + 1)p)" : ""}`,
+            formatSig(d.percentile75)],
           ["Maximum", formatSig(d.maximum)],
           ["Mean", formatSig(d.mean)],
           ["SD", formatSig(d.sd)],
@@ -69,9 +82,15 @@ function ColumnStats({ result }: { result: any }) {
               shapiro_wilk: "Shapiro-Wilk",
               dagostino_pearson: "D'Agostino-Pearson",
               anderson_darling: "Anderson-Darling",
+              kolmogorov_smirnov: "Kolmogorov-Smirnov",
             }[key] ?? key;
+            if (v?.error) return [label, String(v.error)];
+            const pText = v.p == null && v.p_summary ? v.p_summary.replace("P>", "P > ")
+              : `P = ${fmtP(v.p)}`;
+            const stat = key === "kolmogorov_smirnov" && v.KS != null
+              ? `KS distance = ${formatSig(v.KS)}, ` : "";
             return [label,
-              `P = ${fmtP(v.p)}, ${v.passed_alpha_05 ? "passed" : "failed"} (α=0.05)`];
+              `${stat}${pText}, ${v.passed_alpha_05 ? "passed" : "failed"} (α=0.05)`];
           });
         const extra: Row[] = [];
         if (ds.one_sample_t) {
@@ -83,8 +102,50 @@ function ColumnStats({ result }: { result: any }) {
              `${formatSig(t.discrepancy)} (${fmtCI(t.ci_discrepancy)})`],
           );
           if (ds.wilcoxon) {
+            const w = ds.wilcoxon;
             extra.push(["Wilcoxon signed rank",
-              `W=${formatSig(ds.wilcoxon.W)}, P=${fmtP(ds.wilcoxon.p_two_tailed)}`]);
+              `W=${formatSig(w.W)}, P=${fmtP(w.p_two_tailed)}${w.p_method ? ` (${w.p_method})` : ""}`]);
+            if (w.sum_positive_ranks !== undefined) {
+              extra.push(["Sum of positive, negative ranks",
+                `${formatSig(w.sum_positive_ranks)}, ${formatSig(w.sum_negative_ranks)}`]);
+            }
+            if (w.hodges_lehmann_median !== undefined) {
+              extra.push(["Hodges-Lehmann median", formatSig(w.hodges_lehmann_median)],
+                ["CI of the median", fmtAchievedCI(w.ci_median, w.ci_actual_level)]);
+            }
+            if (w.n_zero_differences) {
+              extra.push(["Values equal to the hypothetical",
+                `${w.n_zero_differences} (${w.zero_method === "pratt" ? "Pratt" : "ignored"})`]);
+            }
+          }
+          const rt = ds.one_sample_ratio_t;
+          if (rt?.error) extra.push(["Ratio t test", String(rt.error)]);
+          else if (rt) {
+            extra.push(["Ratio t test (geometric mean / hypothetical)",
+              `${formatSig(rt.ratio)} (95% CI ${fmtCI(rt.ci_ratio)}), t=${formatSig(rt.t)}, df=${rt.df}, P=${fmtP(rt.p_two_tailed)}`]);
+          }
+        }
+        const x = ds.extras;
+        const more: Row[] = [];
+        if (x) {
+          for (const [pct, v] of Object.entries(x.percentiles ?? {})) {
+            more.push([`${pct}% percentile`, formatSig(v as number)]);
+          }
+          more.push(["Interquartile range", formatSig(x.interquartile_range)]);
+          if (x.median_ci) {
+            more.push(["CI of the median",
+              x.median_ci.ci ? fmtAchievedCI(x.median_ci.ci, x.median_ci.actual_level)
+                : x.median_ci.note ?? "n/a"]);
+          }
+          more.push(
+            ["Geometric SD factor", formatSig(x.geometric_sd_factor)],
+            ["Harmonic mean", `${formatSig(x.harmonic_mean)}${x.ci_harmonic_mean ? ` (95% CI ${fmtCI(x.ci_harmonic_mean)})` : ""}`],
+            ["Quadratic mean", `${formatSig(x.quadratic_mean)}${x.ci_quadratic_mean ? ` (95% CI ${fmtCI(x.ci_quadratic_mean)})` : ""}`],
+            ["Mode", x.mode != null ? `${formatSig(x.mode)} (${x.mode_count} times${x.n_modes > 1 ? `, ${x.n_modes} modes` : ""})` : "none (no value repeats)"],
+          );
+          if (x.trim_k !== undefined) {
+            more.push([`Trimmed mean (K = ${x.trim_k})`, formatSig(x.trimmed_mean)],
+              [`Winsorized mean (K = ${x.trim_k})`, formatSig(x.winsorized_mean)]);
           }
         }
         return (
@@ -95,6 +156,7 @@ function ColumnStats({ result }: { result: any }) {
               <div>
                 <KV title="Normality" rows={norm} />
                 {extra.length > 0 && <KV title="One-sample tests" rows={extra} />}
+                {more.length > 0 && <KV title={`More descriptive statistics${x?.percentile_method === "prism" ? " (percentiles: rank (n + 1)p)" : ""}`} rows={more} />}
               </div>
             </div>
           </div>
@@ -106,13 +168,28 @@ function ColumnStats({ result }: { result: any }) {
 
 function TTest({ result }: { result: any }) {
   const [nameA, nameB] = result.names ?? ["A", "B"];
+  if (result.test === "kolmogorov_smirnov") return <KSTest result={result} />;
+  if (result.test === "ratio_paired_t") return <RatioPaired result={result} />;
   const rows: Row[] = [];
-  rows.push(["P value (two-tailed)", `${fmtP(result.p_two_tailed)} ${stars(result.p_two_tailed)}`]);
+  rows.push([`P value (two-tailed${pKind(result.p_method)})`,
+    `${fmtP(result.p_two_tailed)} ${stars(result.p_two_tailed)}`]);
   if (result.t !== undefined) {
     rows.push(["t, df", `t=${formatSig(result.t)}, df=${formatSig(result.df)}`]);
   }
   if (result.U !== undefined) rows.push(["Mann-Whitney U", formatSig(result.U)]);
+  if (result.sum_ranks_a !== undefined) {
+    rows.push([`Sum of ranks in ${nameA}, ${nameB}`,
+      `${formatSig(result.sum_ranks_a)}, ${formatSig(result.sum_ranks_b)}`]);
+  }
   if (result.W !== undefined) rows.push(["Sum of signed ranks W", formatSig(result.W)]);
+  if (result.sum_positive_ranks !== undefined) {
+    rows.push(["Sum of positive, negative ranks",
+      `${formatSig(result.sum_positive_ranks)}, ${formatSig(result.sum_negative_ranks)}`]);
+  }
+  if (result.n_zero_differences) {
+    rows.push(["Pairs with zero difference",
+      `${result.n_zero_differences} (${result.zero_method === "pratt" ? "ranked, then ignored (Pratt)" : "ignored (Wilcoxon)"})`]);
+  }
   if (result.difference !== undefined) {
     rows.push(
       [`Mean of ${nameA}`, `${formatSig(result.mean_a)} ± ${formatSig(result.sem_a)} (n=${result.n_a})`],
@@ -134,9 +211,17 @@ function TTest({ result }: { result: any }) {
       [`Median of ${nameB}`, formatSig(result.median_b)],
       ["Hodges-Lehmann difference", formatSig(result.hodges_lehmann_difference)],
     );
+    if (result.ci_hodges_lehmann !== undefined) {
+      rows.push(["CI of the difference",
+        fmtAchievedCI(result.ci_hodges_lehmann, result.ci_actual_level)]);
+    }
   }
   if (result.median_difference !== undefined) {
     rows.push(["Median of differences", formatSig(result.median_difference)]);
+    if (result.hodges_lehmann !== undefined) {
+      rows.push(["Hodges-Lehmann median of differences", formatSig(result.hodges_lehmann)],
+        ["CI of the median difference", fmtAchievedCI(result.ci_median, result.ci_actual_level)]);
+    }
   }
   if (result.r_squared !== undefined) {
     rows.push(["R squared (eta squared)", formatSig(result.r_squared)]);
@@ -160,6 +245,27 @@ function TTest({ result }: { result: any }) {
 }
 
 function ComparisonsTable({ mc }: { mc: any }) {
+  if (mc.method === "newman_keuls") {
+    return (
+      <table className="results-table">
+        <thead>
+          <tr><th>Comparison</th><th>Difference</th><th>q</th><th>Steps</th>
+            <th>Significant (P &lt; 0.05)?</th></tr>
+        </thead>
+        <tbody>
+          {mc.comparisons.map((c: any, i: number) => (
+            <tr key={i}>
+              <th>{c.pair}</th>
+              <td>{formatSig(c.difference)}</td>
+              <td>{formatSig(c.statistic)}</td>
+              <td>{c.steps}</td>
+              <td>{c.significant ? "Yes" : c.tested === false ? "No (within a non-significant range)" : "No"}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    );
+  }
   return (
     <table className="results-table">
       <thead>
@@ -194,7 +300,9 @@ function Anova({ result }: { result: any }) {
         ]} />
         {result.dunns && (
           <>
-            <h4>Dunn's multiple comparisons</h4>
+            <h4>{result.dunns.corrected === false
+              ? "Uncorrected Dunn's test (P not adjusted for multiple comparisons)"
+              : "Dunn's multiple comparisons"}</h4>
             <ComparisonsTable mc={result.dunns} />
           </>
         )}
@@ -219,8 +327,10 @@ function Anova({ result }: { result: any }) {
       {result.multiple_comparisons && (
         <>
           <h4>
-            {String(result.multiple_comparisons.method).replace("_", "-")} multiple
+            {METHOD_NAMES[String(result.multiple_comparisons.method)]
+              ?? String(result.multiple_comparisons.method).replace("_", "-")} multiple
             comparisons (df={result.multiple_comparisons.df})
+            {result.multiple_comparisons.method === "fisher_lsd" && ", P not adjusted"}
           </h4>
           <ComparisonsTable mc={result.multiple_comparisons} />
         </>
@@ -404,8 +514,11 @@ function Friedman({ result }: { result: any }) {
       <h3>Friedman test</h3>
       <KV rows={[
         ["Friedman statistic", formatSig(result.statistic)],
-        ["P value", `${fmtP(result.p)} ${stars(result.p)}`],
+        [`P value${pKind(result.p_method)}`, `${fmtP(result.p)} ${stars(result.p)}`],
         ["n subjects", String(result.n_subjects)],
+        ...(Array.isArray(result.rank_sums) ? [["Sum of ranks",
+          result.rank_sums.map((v: number, i: number) =>
+            `${result.names?.[i] ?? i + 1}: ${formatSig(v)}`).join(", ")] as Row] : []),
       ]} />
       {result.dunns && (
         <>
@@ -469,6 +582,134 @@ function RoutColumn({ result }: { result: any }) {
   );
 }
 
+const METHOD_NAMES: Record<string, string> = {
+  tukey: "Tukey", dunnett: "Dunnett", bonferroni: "Bonferroni", sidak: "Šídák",
+  holm_sidak: "Holm-Šídák", newman_keuls: "Newman-Keuls", fisher_lsd: "Fisher's LSD",
+  games_howell: "Games-Howell", dunnett_t3: "Dunnett T3", tamhane_t2: "Tamhane T2",
+  welch_uncorrected: "Welch t (uncorrected)",
+};
+
+function KSTest({ result }: { result: any }) {
+  const [a, b] = result.names ?? ["A", "B"];
+  return (
+    <div className="result-card">
+      <h3>Kolmogorov-Smirnov test: {a} vs. {b}</h3>
+      <KV rows={[
+        [`P value (two-tailed${pKind(result.p_method)})`, `${fmtP(result.p)} ${stars(result.p)}`],
+        ["Kolmogorov-Smirnov D", formatSig(result.D)],
+        [`Median of ${a}`, `${formatSig(result.median_a)} (n=${result.n_a})`],
+        [`Median of ${b}`, `${formatSig(result.median_b)} (n=${result.n_b})`],
+        ...(result.ties ? [["Ties", "yes (P computed with the ties)"] as Row] : []),
+      ]} />
+    </div>
+  );
+}
+
+function RatioPaired({ result }: { result: any }) {
+  const [a, b] = result.names ?? ["A", "B"];
+  return (
+    <div className="result-card">
+      <h3>Ratio paired t test: {a} / {b}</h3>
+      <KV rows={[
+        ["P value (two-tailed)", `${fmtP(result.p_two_tailed)} ${stars(result.p_two_tailed)}`],
+        ["t, df", `t=${formatSig(result.t)}, df=${result.df}`],
+        ["Geometric mean of the ratios", formatSig(result.geometric_mean_ratio)],
+        ["95% CI of the ratio", fmtCI(result.ci_ratio)],
+        ["Mean of log10(ratio)", `${formatSig(result.mean_log10_ratio)} ± ${formatSig(result.se_log10_ratio)}`],
+        [`Geometric mean of ${a}, ${b}`,
+          `${formatSig(result.geometric_mean_a)}, ${formatSig(result.geometric_mean_b)}`],
+        ["Number of pairs", String(result.n_pairs)],
+        ["R squared", formatSig(result.r_squared)],
+      ]} />
+    </div>
+  );
+}
+
+function AnovaUnequal({ result }: { result: any }) {
+  const w = result.welch, bf = result.brown_forsythe;
+  const mc = result.multiple_comparisons;
+  const statName = mc?.method === "games_howell" ? "q" : "t";
+  return (
+    <div className="result-card">
+      <h3>One-way ANOVA, SDs not assumed equal</h3>
+      <KV rows={[
+        ["Welch's ANOVA W (DFn, DFd)", `W(${w.dfn}, ${formatSig(w.dfd)}) = ${formatSig(w.W)}`],
+        ["Welch's P value", `${fmtP(w.p)} ${stars(w.p)}`],
+        ["Brown-Forsythe ANOVA F* (DFn, DFd)", `F*(${bf.dfn}, ${formatSig(bf.dfd)}) = ${formatSig(bf.F)}`],
+        ["Brown-Forsythe P value", `${fmtP(bf.p)} ${stars(bf.p)}`],
+      ]} />
+      <h4>Groups</h4>
+      <table className="results-table">
+        <thead><tr><th>Group</th><th>n</th><th>Mean</th><th>SD</th></tr></thead>
+        <tbody>
+          {result.group_summaries.map((g: any) => (
+            <tr key={g.name}><th>{g.name}</th><td>{g.n}</td>
+              <td>{formatSig(g.mean)}</td><td>{formatSig(g.sd)}</td></tr>
+          ))}
+        </tbody>
+      </table>
+      {mc && (
+        <>
+          <h4>{METHOD_NAMES[mc.method] ?? mc.method} multiple comparisons
+            ({mc.family === "control" ? "each group vs. control" : "every pair"})</h4>
+          <table className="results-table">
+            <thead>
+              <tr><th>Comparison</th><th>Difference</th><th>SE</th><th>{statName}</th>
+                <th>df</th><th>{Math.round(100 * (mc.ci_level ?? 0.95))}% CI</th>
+                <th>{mc.method === "welch_uncorrected" ? "P" : "Adjusted P"}</th><th>Summary</th></tr>
+            </thead>
+            <tbody>
+              {mc.comparisons.map((c: any, i: number) => (
+                <tr key={i}>
+                  <th>{c.pair}</th>
+                  <td>{formatSig(c.difference)}</td>
+                  <td>{formatSig(c.se)}</td>
+                  <td>{formatSig(c.statistic)}</td>
+                  <td>{formatSig(c.df)}</td>
+                  <td>{fmtCI(c.ci)}</td>
+                  <td>{fmtP(c.p_adjusted)}</td>
+                  <td>{stars(c.p_adjusted)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      )}
+    </div>
+  );
+}
+
+function MedianTest({ result }: { result: any }) {
+  const rows: Row[] = [["Grand median", formatSig(result.grand_median)]];
+  if (result.chi_square) {
+    rows.push(["Chi-square, df", `${formatSig(result.chi_square.chi2)}, ${result.chi_square.df}`],
+      ["P value", `${fmtP(result.chi_square.p)} ${stars(result.chi_square.p)}`]);
+  }
+  if (result.chi_square_yates) {
+    rows.push(["Chi-square with Yates' correction",
+      `${formatSig(result.chi_square_yates.chi2)}, P = ${fmtP(result.chi_square_yates.p)}`]);
+  }
+  if (result.fisher_exact) rows.push(["Fisher's exact test", `P = ${fmtP(result.fisher_exact.p)}`]);
+  if (result.note) rows.push(["Note", String(result.note)]);
+  return (
+    <div className="result-card">
+      <h3>Median test</h3>
+      <KV rows={rows} />
+      {result.warning && <p className="model-line">{String(result.warning)}</p>}
+      <h4>Values above and not above the grand median</h4>
+      <table className="results-table">
+        <thead><tr><th>Group</th><th>n</th><th>Median</th><th>Above</th><th>Not above</th></tr></thead>
+        <tbody>
+          {result.group_summaries.map((g: any) => (
+            <tr key={g.name}><th>{g.name}</th><td>{g.n}</td><td>{formatSig(g.median)}</td>
+              <td>{g.above}</td><td>{g.not_above}</td></tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export default function StatsResults({ result }: Props) {
   if (!result) return null;
   if (result.error) {
@@ -478,6 +719,9 @@ export default function StatsResults({ result }: Props) {
     case "column_statistics": return <ColumnStats result={result} />;
     case "ttest": return <TTest result={result} />;
     case "anova": return <Anova result={result} />;
+    case "anova_unequal_var": return <AnovaUnequal result={result} />;
+    case "median_test": return <MedianTest result={result} />;
+    case "ks_test": return <KSTest result={result} />;
     case "rm_one_way_anova": return <RMAnova result={result} />;
     case "friedman": return <Friedman result={result} />;
     case "two_way_anova": return <TwoWayAnova result={result} />;

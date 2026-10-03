@@ -1,68 +1,110 @@
 // Column analyses (t tests, ANOVA, nonparametric, correlation, ROC,
 // Bland-Altman, outliers). They read each dataset's values; X is ignored,
 // so they also run on the Y columns of an XY table.
-import type { EngineBridge } from "../../lib/engine";
-import { numericData, parseCell } from "../../project/table";
+/** The engine bridge (lib/engine.ts), structurally: keeps this module
+ *  free of the browser runtime for node --test. */
+type EngineBridge = { analyze: (payload: unknown) => unknown };
+import { numericData, parseCell } from "../../project/table.ts";
 import {
   SUBCOLUMN_FORMAT_ENGINE, SUBCOLUMN_FORMAT_LABELS, type DataTableModel,
-} from "../../project/types";
-import type { ColumnOptionsState } from "../../types";
-import { COLUMN_ANALYSIS_LABELS } from "../../types";
+} from "../../project/types.ts";
+import type { ColumnOptionsState } from "../../types.ts";
+import { COLUMN_ANALYSIS_LABELS, DEFAULT_NORMALITY_TESTS } from "../../types.ts";
 
 export function runColumn(engine: EngineBridge, table: DataTableModel,
   o: ColumnOptionsState): Record<string, unknown> {
   if (table.subcolumnFormat !== "replicates") return runColumnSummary(engine, table, o);
+  return engine.analyze(columnPayload(table, o)) as Record<string, unknown>;
+}
+
+const sameList = (a: string[], b: string[]) =>
+  a.length === b.length && a.every((v) => b.includes(v));
+
+/** Engine payload of a column analysis. Options left at their defaults add
+ *  nothing, so the original analyses send exactly what they always did. */
+export function columnPayload(table: DataTableModel, o: ColumnOptionsState):
+  Record<string, unknown> {
   const base = { data: numericData(table) };
-  let payload: Record<string, unknown>;
+  const pratt = o.zeroMethod === "pratt" ? { zero_method: "pratt" } : {};
   if (o.analysis === "column_statistics") {
-    payload = { analysis: "column_statistics", ...base,
-      options: { hypothetical: parseCell(o.hypothetical) } };
-  } else if (o.analysis === "ttest") {
-    payload = { analysis: "ttest", ...base,
+    const tests = o.normalityTests ?? DEFAULT_NORMALITY_TESTS;
+    const trim = parseCell(o.trimK ?? "");
+    return { analysis: "column_statistics", ...base,
+      options: {
+        hypothetical: parseCell(o.hypothetical),
+        ...(sameList(tests, DEFAULT_NORMALITY_TESTS) ? {} : { normality_tests: tests }),
+        ...(o.percentileMethod === "prism" ? { percentile_method: "prism" } : {}),
+        ...(o.descriptiveExtras ? { extras: true, ...(trim !== null ? { trim_k: trim } : {}) } : {}),
+        ...(o.ratioT ? { ratio_t: true } : {}),
+        ...pratt,
+      } };
+  }
+  if (o.analysis === "ttest") {
+    return { analysis: "ttest", ...base,
       options: {
         kind: o.ttestKind === "welch" ? "unpaired" : o.ttestKind,
         welch: o.ttestKind === "welch",
         dataset_a: o.datasetA, dataset_b: o.datasetB,
+        ...(o.ttestKind === "wilcoxon" ? pratt : {}),
       } };
-  } else if (o.analysis === "anova") {
-    payload = { analysis: "anova", ...base,
+  }
+  if (o.analysis === "anova") {
+    if (o.anovaKind === "parametric" && o.anovaSd === "unequal") {
+      const cmp = o.unequalComparisons ?? "games_howell";
+      const family = cmp === "games_howell" ? "all" : o.unequalFamily ?? "all";
+      return { analysis: "anova_unequal_var", ...base,
+        options: {
+          comparisons: cmp === "none" ? null : cmp,
+          family, control_index: o.controlIndex,
+        } };
+    }
+    return { analysis: "anova", ...base,
       options: {
         kind: o.anovaKind,
         comparisons: o.comparisons === "none" ? null : o.comparisons,
         control_index: o.controlIndex,
+        ...(o.anovaKind === "nonparametric" && o.dunnCorrected === false
+          ? { dunn_corrected: false } : {}),
       } };
-  } else if (o.analysis === "correlation") {
-    payload = { analysis: "correlation", ...base,
+  }
+  if (o.analysis === "median_test") return { analysis: "median_test", ...base, options: {} };
+  if (o.analysis === "correlation") {
+    return { analysis: "correlation", ...base,
       options: { method: o.corrMethod,
                  dataset_a: o.datasetA, dataset_b: o.datasetB } };
-  } else if (o.analysis === "two_way_anova") {
-    payload = { analysis: "two_way_anova", ...base,
+  }
+  if (o.analysis === "two_way_anova") {
+    return { analysis: "two_way_anova", ...base,
       options: {
         row_factor: "Rows", col_factor: "Datasets",
         comparisons: o.twoWayComparisons === "none"
           ? null : o.twoWayComparisons,
         direction: o.twoWayDirection,
       } };
-  } else if (o.analysis === "rm_two_way") {
-    payload = { analysis: "rm_two_way", ...base,
-      options: { design: o.rmTwoDesign } };
-  } else if (o.analysis === "rm_anova") {
-    payload = { analysis: "rm_anova", ...base,
-      options: { kind: o.rmKind } };
-  } else if (o.analysis === "roc") {
-    payload = { analysis: "roc", ...base,
-      options: { patients: o.datasetA, controls: o.datasetB } };
-  } else if (o.analysis === "bland_altman") {
-    payload = { analysis: "bland_altman", ...base,
-      options: { dataset_a: o.datasetA, dataset_b: o.datasetB } };
-  } else if (o.outlierMethod === "rout") {
-    payload = { analysis: "rout_column", ...base,
-      options: { q: (parseCell(o.routQ) ?? 1) / 100 } };
-  } else {
-    payload = { analysis: "outliers", ...base,
-      options: { alpha: parseCell(o.grubbsAlpha) ?? 0.05 } };
   }
-  return engine.analyze(payload) as Record<string, unknown>;
+  if (o.analysis === "rm_two_way") {
+    return { analysis: "rm_two_way", ...base,
+      options: { design: o.rmTwoDesign } };
+  }
+  if (o.analysis === "rm_anova") {
+    return { analysis: "rm_anova", ...base,
+      options: { kind: o.rmKind,
+        ...(o.rmKind === "nonparametric" && o.rmExact ? { exact: true } : {}) } };
+  }
+  if (o.analysis === "roc") {
+    return { analysis: "roc", ...base,
+      options: { patients: o.datasetA, controls: o.datasetB } };
+  }
+  if (o.analysis === "bland_altman") {
+    return { analysis: "bland_altman", ...base,
+      options: { dataset_a: o.datasetA, dataset_b: o.datasetB } };
+  }
+  if (o.outlierMethod === "rout") {
+    return { analysis: "rout_column", ...base,
+      options: { q: (parseCell(o.routQ) ?? 1) / 100 } };
+  }
+  return { analysis: "outliers", ...base,
+    options: { alpha: parseCell(o.grubbsAlpha) ?? 0.05 } };
 }
 
 type Result = Record<string, unknown>;
@@ -116,6 +158,10 @@ export function runColumnSummary(engine: EngineBridge, table: DataTableModel,
         dataset_a: o.datasetA, dataset_b: o.datasetB,
       }, "ttest");
     case "anova":
+      if (o.anovaKind === "parametric" && o.anovaSd === "unequal") {
+        return { error: "The Welch and Brown-Forsythe ANOVA need the raw values; "
+          + `they are not available from data entered as ${fmtLabel}.` };
+      }
       return call("anova_summary", {
         kind: o.anovaKind,
         comparisons: o.comparisons === "none" ? null : o.comparisons,

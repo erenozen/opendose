@@ -1,11 +1,12 @@
 import type { ColumnOptionsState } from "../types";
 import {
-  COLUMN_ANALYSIS_LABELS, COMPARISONS_LABELS,
-  TTEST_LABELS, TWO_WAY_DIRECTION_LABELS,
+  COLUMN_ANALYSIS_LABELS, COMPARISONS_LABELS, DEFAULT_NORMALITY_TESTS,
+  NORMALITY_TEST_LABELS, TTEST_LABELS, TWO_WAY_DIRECTION_LABELS,
+  UNEQUAL_COMPARISONS_LABELS,
 } from "../types";
 import type {
   ColumnAnalysisKind, ComparisonsMethod, TTestKind,
-  TwoWayComparisons, TwoWayDirection,
+  TwoWayComparisons, TwoWayDirection, UnequalComparisons,
 } from "../types";
 
 interface Props {
@@ -60,6 +61,66 @@ export default function ColumnControls({ options, datasetNames, onChange }: Prop
               onChange={(e) => set({ hypothetical: e.target.value })}
             />
           </label>
+          {options.hypothetical.trim() !== "" && (
+            <>
+              <ZeroMethod value={options.zeroMethod ?? "wilcox"}
+                onChange={(zeroMethod) => set({ zeroMethod })}
+                what="values equal to the hypothetical median" />
+              <label className="check-row">
+                <input type="checkbox" checked={!!options.ratioT}
+                  onChange={(e) => set({ ratioT: e.target.checked })} />
+                <span>Also a one-sample ratio t test (lognormal data)</span>
+              </label>
+            </>
+          )}
+        </section>
+      )}
+
+      {options.analysis === "column_statistics" && (
+        <section>
+          <h3>Normality tests</h3>
+          <div className="shared-params">
+            {Object.entries(NORMALITY_TEST_LABELS).map(([k, label]) => {
+              const tests = options.normalityTests ?? DEFAULT_NORMALITY_TESTS;
+              return (
+                <label key={k} className="check-row">
+                  <input type="checkbox" checked={tests.includes(k)}
+                    onChange={(e) => set({ normalityTests: e.target.checked
+                      ? [...tests, k] : tests.filter((t) => t !== k) })} />
+                  <span>{label}</span>
+                </label>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {options.analysis === "column_statistics" && (
+        <section>
+          <h3>Descriptive statistics</h3>
+          <label className="check-row">
+            <span>Quartiles and percentiles</span>
+            <select value={options.percentileMethod ?? "linear"}
+              aria-label="Percentile method"
+              onChange={(e) => set({ percentileMethod: e.target.value as "linear" | "prism" })}>
+              <option value="linear">Interpolate between ranks (n − 1)p + 1</option>
+              <option value="prism">Rank (n + 1)p, the statistics guide&apos;s method</option>
+            </select>
+          </label>
+          <label className="check-row">
+            <input type="checkbox" checked={!!options.descriptiveExtras}
+              onChange={(e) => set({ descriptiveExtras: e.target.checked })} />
+            <span>More: 10th/90th percentiles, CI of the median, geometric SD factor,
+              harmonic and quadratic means, mode</span>
+          </label>
+          {options.descriptiveExtras && (
+            <label className="check-row">
+              <span>Trimmed and winsorized means, K =</span>
+              <input className="constraint-value" inputMode="numeric" placeholder="off"
+                aria-label="Values trimmed from each end (K)"
+                value={options.trimK ?? ""} onChange={(e) => set({ trimK: e.target.value })} />
+            </label>
+          )}
         </section>
       )}
 
@@ -76,6 +137,18 @@ export default function ColumnControls({ options, datasetNames, onChange }: Prop
           </select>
           {pickDataset("Group A", options.datasetA, "datasetA")}
           {pickDataset("Group B", options.datasetB, "datasetB")}
+          {options.ttestKind === "wilcoxon" && (
+            <ZeroMethod value={options.zeroMethod ?? "wilcox"}
+              onChange={(zeroMethod) => set({ zeroMethod })}
+              what="pairs with a difference of zero" />
+          )}
+          {(options.ttestKind === "mann_whitney" || options.ttestKind === "wilcoxon"
+            || options.ttestKind === "kolmogorov_smirnov") && (
+            <p className="hint-block">
+              The P value is exact for small samples (with ties too) and
+              approximate for large ones; the results say which.
+            </p>
+          )}
         </section>
       )}
 
@@ -94,6 +167,57 @@ export default function ColumnControls({ options, datasetNames, onChange }: Prop
             </select>
           </label>
           {options.anovaKind === "parametric" && (
+            <label className="check-row">
+              <span>Standard deviations</span>
+              <select value={options.anovaSd ?? "equal"} aria-label="Standard deviations"
+                onChange={(e) => set({ anovaSd: e.target.value as "equal" | "unequal" })}>
+                <option value="equal">Assume equal SDs (ordinary ANOVA)</option>
+                <option value="unequal">Do not assume equal SDs (Welch and Brown-Forsythe ANOVA)</option>
+              </select>
+            </label>
+          )}
+          {options.anovaKind === "parametric" && options.anovaSd === "unequal" && (
+            <>
+              <label className="check-row">
+                <span>Multiple comparisons</span>
+                <select value={options.unequalComparisons ?? "games_howell"}
+                  aria-label="Multiple comparisons"
+                  onChange={(e) => set({
+                    unequalComparisons: e.target.value as UnequalComparisons })}>
+                  {(Object.keys(UNEQUAL_COMPARISONS_LABELS) as UnequalComparisons[]).map((k) => (
+                    <option key={k} value={k}>{UNEQUAL_COMPARISONS_LABELS[k]}</option>
+                  ))}
+                </select>
+              </label>
+              {options.unequalComparisons !== "none"
+                && options.unequalComparisons !== "games_howell" && (
+                <label className="check-row">
+                  <span>Compare</span>
+                  <select value={options.unequalFamily ?? "all"} aria-label="Comparison family"
+                    onChange={(e) => set({ unequalFamily: e.target.value as "all" | "control" })}>
+                    <option value="all">Every pair of means</option>
+                    <option value="control">Each mean with a control</option>
+                  </select>
+                </label>
+              )}
+              {options.unequalComparisons !== "none" && options.unequalComparisons !== "games_howell"
+                && options.unequalFamily === "control"
+                && pickDataset("Control group", options.controlIndex, "controlIndex")}
+              <p className="hint-block">
+                Welch&apos;s and the Brown-Forsythe ANOVA compare means without
+                assuming the groups have the same SD; the comparisons use only
+                each pair&apos;s own SDs.
+              </p>
+            </>
+          )}
+          {options.anovaKind === "nonparametric" && (
+            <label className="check-row">
+              <input type="checkbox" checked={options.dunnCorrected === false}
+                onChange={(e) => set({ dunnCorrected: !e.target.checked })} />
+              <span>Uncorrected Dunn&apos;s test (no correction for multiple comparisons)</span>
+            </label>
+          )}
+          {options.anovaKind === "parametric" && options.anovaSd !== "unequal" && (
             <>
               <label className="check-row">
                 <span>Multiple comparisons</span>
@@ -111,6 +235,17 @@ export default function ColumnControls({ options, datasetNames, onChange }: Prop
                 pickDataset("Control group", options.controlIndex, "controlIndex")}
             </>
           )}
+        </section>
+      )}
+
+      {options.analysis === "median_test" && (
+        <section>
+          <h3>About this test</h3>
+          <p className="hint-block">
+            Counts, in each group, the values above and not above the median
+            of all values pooled, and tests the counts with chi-square
+            (and Fisher&apos;s exact test when there are two groups).
+          </p>
         </section>
       )}
 
@@ -204,6 +339,13 @@ export default function ColumnControls({ options, datasetNames, onChange }: Prop
               <option value="nonparametric">Friedman test (+ Dunn's)</option>
             </select>
           </label>
+          {options.rmKind === "nonparametric" && (
+            <label className="check-row">
+              <input type="checkbox" checked={!!options.rmExact}
+                onChange={(e) => set({ rmExact: e.target.checked })} />
+              <span>Exact P value (small designs; approximate when too large)</span>
+            </label>
+          )}
           <p className="hint-block">
             Rows are matched subjects; each dataset is one treatment.
             First subcolumn of each dataset is used.
@@ -262,5 +404,22 @@ export default function ColumnControls({ options, datasetNames, onChange }: Prop
         </section>
       )}
     </div>
+  );
+}
+
+function ZeroMethod({ value, onChange, what }: {
+  value: "wilcox" | "pratt";
+  onChange: (v: "wilcox" | "pratt") => void;
+  what: string;
+}) {
+  return (
+    <label className="check-row">
+      <span>Handle {what}</span>
+      <select value={value} aria-label="Zero handling"
+        onChange={(e) => onChange(e.target.value as "wilcox" | "pratt")}>
+        <option value="wilcox">Ignore them (Wilcoxon)</option>
+        <option value="pratt">Rank them, then ignore their ranks (Pratt)</option>
+      </select>
+    </label>
   );
 }
