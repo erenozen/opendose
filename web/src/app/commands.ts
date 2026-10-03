@@ -1,5 +1,6 @@
 // Commands shared by the navigator, the header and keyboard shortcuts.
 import { useMemo } from "react";
+import { derivedFrom } from "../project/derived";
 import { newId } from "../project/ids";
 import {
   addSheets, deleteSheet, deletionCount, duplicateSheet,
@@ -122,8 +123,11 @@ export function useCommands() {
 }
 
 function lastOfFamily(p: Project, dataId: string): string {
-  const kids = familyChildren(p, dataId);
-  return kids.length ? kids[kids.length - 1].id : dataId;
+  // Tables derived from this one (chains) count as the family's tail, so
+  // a new output table lands after the earlier ones.
+  const ids = new Set([...familyChildren(p, dataId), ...derivedFrom(p, dataId)].map((s) => s.id));
+  const last = p.sheets.findLast((s) => ids.has(s.id));
+  return last ? last.id : dataId;
 }
 
 export type Commands = ReturnType<typeof useCommands>;

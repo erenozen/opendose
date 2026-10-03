@@ -4,8 +4,11 @@
 // the other built-in table types (parts of whole and nested from their
 // example tables), Prism imports, the multi-sheet
 // project workflow (new table, rename, undo/redo, delete, save/open,
-// v1 migration, restore from autosave), and the multiple-variables
-// analyses (regression, PCA, logistic, correlation, extract & rearrange).
+// v1 migration, restore from autosave), the multiple-variables analyses
+// (regression, PCA, logistic, correlation, extract & rearrange), then
+// chains of analyses (Transform with X = log(X) and a user formula,
+// Normalize of the result, a source edit flowing down the chain), a
+// simulated XY table and a Monte Carlo run.
 import { chromium } from "playwright";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -376,6 +379,92 @@ await page.waitForSelector(".mv-results h3:has-text('Descriptive statistics')", 
 expect("extract & rearrange creates a new 15-row table",
   await navRow("Dose study (rearranged)").count() === 1
   && (await mvCard().innerText()).includes("15 rows"));
+
+// --- chains of analyses: Transform produces a linked, derived table ---
+// The XY example data is the reference table (X from 1e-9 M).
+await page.getByRole("button", { name: "New data table" }).click();
+const newDlg = page.locator(".new-table-dialog");
+await newDlg.locator('input[name="table-type"][value="xy"]').check();
+await newDlg.getByLabel("Table name").fill("Reference");
+await newDlg.getByText("Example data").click();
+await newDlg.getByRole("button", { name: "Create table" }).click();
+await page.waitForSelector(".results-table", { timeout: 60000 });
+await page.getByRole("button", { name: "Analyze", exact: true }).click();
+await page.getByRole("menuitem", { name: /^Transform \(standard/ }).click();
+await page.waitForSelector(".manip-controls", { timeout: 10000 });
+await page.getByLabel("Transform X values").selectOption("log10");
+await page.getByLabel("Transform Y values").selectOption("none");
+const cellValue = (label) => page.locator(`.data-table input[aria-label="${label}"]`).inputValue();
+const waitCell = (label, want) => page.waitForFunction(([l, w]) =>
+  document.querySelector(`.data-table input[aria-label="${l}"]`)?.value === w,
+[label, want], { timeout: 15000 }).then(() => true, () => false);
+await page.locator(".manip-open").first().click();
+await waitCell("X, row 1", "-9");
+expect("Transform X = log(X): derived table's first X is -9",
+  await cellValue("X, row 1") === "-9", await cellValue("X, row 1"));
+expect("derived table is read-only and linked",
+  await page.locator(".origin-note").count() === 1
+  && await page.locator('.data-table input[aria-label="X, row 1"]').getAttribute("readonly") !== null
+  && await page.locator(".nav-item[aria-label='Transformed Reference (linked)']").count() >= 1);
+
+// user-defined formula; the linked table follows the new settings
+await page.locator(".origin-note").getByRole("button", { name: "Settings" }).click();
+await page.getByLabel("User-defined formulas").check();
+await page.getByLabel("Y formula").fill("Y = Y*2 +");
+await page.waitForSelector(".formula-error", { timeout: 10000 });
+expect("formula validation reports the error position",
+  /column 10/.test(await page.locator(".formula-error").first().innerText()));
+await page.getByLabel("Y formula").fill("Y = Y*2");
+await page.waitForSelector(".formula-ok", { timeout: 10000 });
+await page.locator(".manip-open").first().click();
+await waitCell("Drug A, Y1, row 1", "196.4");
+expect("user formula Y = Y*2 doubles the first value (98.2 -> 196.4)",
+  await cellValue("Drug A, Y1, row 1") === "196.4", await cellValue("Drug A, Y1, row 1"));
+
+// chain: normalize the transformed table, then edit the raw table
+await page.getByRole("button", { name: "Analyze", exact: true }).click();
+await page.getByRole("menuitem", { name: /^Normalize/ }).click();
+await page.locator(".manip-open").first().click();
+await page.waitForSelector(".chain-crumbs", { timeout: 10000 });
+expect("a chain of three tables shows its breadcrumbs",
+  (await page.locator(".chain-crumbs").innerText()).includes("Reference"));
+await navRow("Reference").click();
+await page.locator('.data-table input[aria-label="Drug A, Y1, row 1"]').fill("100");
+await navRow("Transformed Reference (linked)").click();
+expect("editing the source re-runs the chain (100 -> 200)",
+  await waitCell("Drug A, Y1, row 1", "200"));
+
+// --- simulate an XY table ---
+await page.getByRole("button", { name: "New data table" }).click();
+await page.getByRole("button", { name: "Simulate data…" }).click();
+const simDlg = page.locator(".simulate-dialog");
+await simDlg.getByLabel("Table name").fill("Simulated curve");
+await simDlg.getByLabel("Random seed").fill("7");
+await simDlg.getByRole("button", { name: "Create table" }).click();
+await page.waitForSelector(".origin-note", { timeout: 15000 });
+// -9 to -5 by 0.5 -> 9 rows
+expect("simulated XY table has 9 rows",
+  await page.locator(".data-table tbody tr").count() === 9,
+  String(await page.locator(".data-table tbody tr").count()));
+const before = await cellValue("Data Set A, Y1, row 1");
+await page.getByRole("button", { name: "Simulate again" }).click();
+await page.waitForTimeout(500);
+expect("simulate again draws new values", await cellValue("Data Set A, Y1, row 1") !== before);
+
+// --- Monte Carlo on the simulated table: 20 repeats ---
+await page.getByRole("button", { name: "Analyze", exact: true }).click();
+await page.getByRole("menuitem", { name: /^Monte Carlo/ }).click();
+await page.waitForSelector(".mc-tabs li", { timeout: 30000 });
+await page.getByLabel(/^Repeats/).fill("20");
+await page.getByLabel("Random seed").fill("11");
+await page.locator(".mc-run-btn").click();
+await page.waitForSelector(".mc-n", { timeout: 180000 });
+const mcN = await page.locator(".mc-n").innerText();
+const hitsLine = await page.locator(".mc-results").innerText();
+console.log("Monte Carlo:", hitsLine.split("\n").find((l) => l.startsWith("A hit")));
+expect("Monte Carlo results show 20 repeats", mcN.trim() === "20", mcN);
+expect("Monte Carlo histogram is drawn",
+  await page.locator(".plot .bars path, .plot .barlayer path").count() > 0);
 
 await page.screenshot({
   path: join(here, "app.png"),

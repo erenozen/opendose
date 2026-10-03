@@ -12,6 +12,7 @@ import type {
 } from "../project/types";
 import { analysisDef, graphDef, tableDef } from "../sheets/registry";
 import PlaceholderPanel from "../sheets/common/PlaceholderPanel";
+import OriginNote from "../sheets/manipulate/OriginNote";
 import type { AsideProps, TableEdit } from "../sheets/types";
 import type { SchemeId } from "../lib/palette";
 import ColumnSplitter from "./ColumnSplitter";
@@ -63,7 +64,8 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
     return next;
   });
 
-  const readOnly = !!data.frozen;
+  // Derived tables (chains) are recomputed from their source: read-only.
+  const readOnly = !!data.frozen || !!data.derived;
   // Table types whose editor is final but whose analyses are not out yet.
   const entryOnly = def.status === "entry-only" || !def.analyses.length;
   const Editor = def.Editor;
@@ -90,9 +92,10 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
           </>
         )}
         <div className="pane pane-table">
-          {readOnly && (
+          {data.frozen && (
             <FrozenNote what="data table" onUnfreeze={() => cmd.toggleFreeze(data.id)} />
           )}
+          <OriginNote data={data} />
           <Editor sheet={data} table={data.table} readOnly={readOnly}
             onChange={onTableChange} />
         </div>

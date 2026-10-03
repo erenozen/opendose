@@ -107,6 +107,17 @@ from the jsDelivr CDN, ~30 MB, then cached).
   keyboard navigation in the grid, excluded values (Ctrl/Cmd+E: kept
   visible, struck through, skipped by analyses and graphs), subcolumn and
   row titles, summary-data formats stored with the table.
+- Chains of analyses: Transform (standard functions, pharmacology plots
+  and user-defined formulas with live validation and a function
+  reference), Transform concentrations, Remove baseline, Normalize,
+  Transpose, Prune rows and Fraction of total each produce a linked
+  table that updates when its source or settings change, so Transform →
+  Normalize → Fit stays live end to end.
+- Simulations: XY tables from any curve model, Column and Contingency
+  tables, with Gaussian, relative, t or Poisson scatter and a seed
+  ("Simulate again" re-rolls). Monte Carlo repeats a simulation and an
+  analysis up to 10,000 times, tabulating chosen results (summary,
+  histogram) and counting hits such as CI coverage or P < 0.05.
 - App: project save/load (JSON v2; v1 files open and migrate), autosave
   to the browser with "Restore last session?", preferences (default table
   type, error bars, CI method, color scheme, theme, results precision),

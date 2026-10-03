@@ -4,6 +4,7 @@ import {
   SUBCOLUMN_FORMAT_LABELS, type SubcolumnFormat, type TableType, type XFormat,
 } from "../project/types";
 import { REGISTRY, TABLE_ORDER } from "../sheets/registry";
+import { openSimulate } from "../sheets/manipulate/simulateApi";
 import Modal from "./Modal";
 
 export interface NewTableRequest {
@@ -87,6 +88,9 @@ export default function NewTableDialog({ defaultType, defaultName, onCancel, onC
       onClose={onCancel} onSubmit={submit}
       actions={
         <>
+          <button type="button" className="simulate-entry"
+            title="Make an XY, Column or Contingency table of simulated data"
+            onClick={() => { onCancel(); openSimulate(); }}>Simulate data…</button>
           <button type="button" onClick={onCancel}>Cancel</button>
           <button type="submit" className="btn-primary">Create table</button>
         </>

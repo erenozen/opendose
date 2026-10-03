@@ -6,6 +6,7 @@ import type { TableType } from "../project/types";
 import { columnTable } from "./column";
 import { contingencyTable } from "./contingency";
 import { groupedTable } from "./grouped";
+import { extraAnalyses, extraGraphs } from "./manipulate";
 import { multivariableTable } from "./multivariable";
 import { nestedTable } from "./nested";
 import { partsOfWholeTable } from "./partsofwhole";
@@ -23,6 +24,21 @@ export const REGISTRY: Record<TableType, TableTypeDef> = {
   multivariable: multivariableTable,
   nested: nestedTable,
 };
+
+// Data manipulations (chains of analyses) and Monte Carlo apply across
+// table types (sheets/manipulate); they follow each ready type's own
+// analyses, so a type's first analysis stays the one new tables start with.
+for (const type of Object.keys(REGISTRY) as TableType[]) {
+  const def = REGISTRY[type];
+  if (def.status !== "ready") continue;
+  const more = extraAnalyses(type).filter((a) => !def.analyses.some((x) => x.id === a.id));
+  const graphs = extraGraphs(type).filter((g) => !def.graphs.some((x) => x.id === g.id));
+  if (more.length || graphs.length) {
+    REGISTRY[type] = {
+      ...def, analyses: [...def.analyses, ...more], graphs: [...def.graphs, ...graphs],
+    };
+  }
+}
 
 /** Display order in the "New data table" dialog. */
 export const TABLE_ORDER: TableType[] = [

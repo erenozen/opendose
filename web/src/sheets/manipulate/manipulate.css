@@ -1,0 +1,136 @@
+/* Data manipulations, chains, formulas, simulations, Monte Carlo.
+   Uses the app's tokens only; kept in its own file so the shared
+   stylesheet stays easy to merge. */
+
+.manip-controls .field select { max-width: 100%; }
+.manip-controls section > * + * { margin-top: 8px; }
+.manip-controls .field-radios { margin-top: 4px; }
+
+.field-pair, .field-row {
+  display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: flex-end;
+}
+.field-pair > .field:first-child { flex: 1 1 200px; min-width: 0; }
+.field-row > .field { min-width: 0; }
+.field-wide input { width: 140px; }
+.k-grid { display: flex; flex-wrap: wrap; gap: 8px 14px; }
+.formula-preview { font-size: 13px; line-height: 1.6; }
+
+.manip-controls code, .function-ref code, .mc-path {
+  font-family: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+  font-size: 0.92em;
+}
+
+/* ---- formulas */
+.formula-field { display: flex; flex-direction: column; gap: 4px; margin-top: 10px; }
+.formula-field > label { font-size: 13px; font-weight: 500; color: var(--ink-2); }
+.formula-input {
+  font-family: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+  font-size: 13px; line-height: 1.45; color: var(--ink); background: var(--inset);
+  border: 1px solid var(--border); border-radius: var(--radius-s);
+  padding: 7px 9px; resize: vertical; width: 100%; box-sizing: border-box;
+}
+.formula-input[aria-invalid="true"] { border-color: var(--danger); }
+.formula-status { min-height: 18px; font-size: 12.5px; }
+.formula-ok { color: var(--accent); }
+.formula-ok::before { content: "✓ "; }
+.formula-error { color: var(--danger); }
+.formula-caret {
+  margin: 3px 0 0; padding: 4px 8px; border-radius: var(--radius-s);
+  background: var(--inset); color: var(--ink-2); font-size: 12px; overflow-x: auto;
+}
+.formula-examples { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 10px; }
+.chip-btn { padding: 4px 10px; font-size: 12.5px; }
+.icon-btn {
+  padding: 2px 8px; font-size: 12px; background: transparent; color: var(--muted);
+  min-width: 24px; min-height: 24px;
+}
+.const-table { border-collapse: collapse; font-size: 13px; }
+.const-table th, .const-table td { padding: 3px 8px 3px 0; text-align: left; font-weight: 500; }
+.const-table thead th { color: var(--muted); font-size: 12px; }
+.const-table input {
+  font: inherit; color: var(--ink); background: var(--inset);
+  border: 1px solid var(--border); border-radius: var(--radius-s); padding: 4px 7px;
+  width: 110px; max-width: 100%;
+}
+.const-table .const-value { width: 80px; font-variant-numeric: tabular-nums; }
+.const-table .const-name { width: 70px; }
+.const-grid-wrap, .sim-grid-wrap { overflow-x: auto; max-width: 100%; }
+.seed-field { margin-top: 10px; }
+
+.function-ref dl { margin: 0 0 10px; display: grid; gap: 4px; }
+.function-ref dl > div { display: grid; grid-template-columns: minmax(90px, 140px) 1fr; gap: 8px; font-size: 12.5px; }
+.function-ref dd { margin: 0; color: var(--ink-2); }
+.fn-search {
+  font: inherit; width: 100%; box-sizing: border-box; color: var(--ink); background: var(--inset);
+  border: 1px solid var(--border); border-radius: var(--radius-s); padding: 6px 9px; margin-bottom: 8px;
+}
+.fn-group h4 { margin: 10px 0 4px; font-size: 12px; color: var(--muted); font-weight: 600; }
+.fn-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.fn-list li { display: grid; grid-template-columns: minmax(150px, 220px) 1fr; gap: 2px 10px; align-items: baseline; font-size: 12.5px; }
+.fn-insert { justify-self: start; text-align: left; padding: 1px 6px; background: transparent; color: var(--accent); font-size: 12.5px; }
+.fn-desc { color: var(--ink-2); }
+
+/* ---- results */
+.manip-summary, .mc-summary { margin: 0 0 6px; color: var(--ink-2); }
+.manip-preview { overflow-x: auto; max-width: 100%; margin-top: 8px; }
+.manip-preview:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.manip-preview .results-table { width: auto; min-width: 60%; }
+.manip-preview .results-table th, .manip-preview .results-table td { white-space: nowrap; padding-right: 14px; }
+.manip-output { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; }
+.manip-open { display: inline-flex; align-items: center; gap: 6px; }
+.ci-range { color: var(--muted); }
+.link-icon { flex: none; }
+
+/* ---- origin note above a derived or simulated table */
+.origin-note {
+  display: flex; align-items: flex-start; gap: 10px; flex-wrap: wrap;
+  margin-bottom: 10px; padding: 8px 12px;
+  border: 1px solid var(--accent-border); border-radius: var(--radius-s);
+  background: var(--accent-soft); color: var(--ink-2); font-size: 12.5px;
+}
+.origin-note > svg { color: var(--accent); margin-top: 2px; }
+.origin-text { flex: 1 1 220px; min-width: 0; }
+.origin-text p { margin: 0; }
+.origin-text p + p, .origin-text nav { margin-top: 4px; }
+.origin-methods { color: var(--ink); }
+.origin-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.origin-actions button { padding: 3px 10px; font-size: 12.5px; }
+.chain-crumbs { display: flex; flex-wrap: wrap; align-items: center; }
+.crumb {
+  padding: 0 4px; background: transparent; color: var(--accent); font-size: 12.5px;
+  text-decoration: underline; text-underline-offset: 2px;
+}
+.crumb-sep { color: var(--muted); }
+.nav-link { flex: none; display: inline-flex; color: var(--accent); margin-left: -2px; }
+
+/* ---- simulate dialog */
+.simulate-body { display: flex; flex-direction: column; gap: 12px; }
+.sim-group {
+  border: 1px solid var(--border-soft); border-radius: var(--radius-s);
+  padding: 10px 12px 12px; margin: 0; display: flex; flex-direction: column; gap: 8px; min-width: 0;
+}
+.sim-group legend { font-size: 13px; font-weight: 600; color: var(--ink-2); padding: 0 4px; }
+.sim-kind { flex-direction: row; gap: 14px; }
+.sim-kind label { display: inline-flex; }
+.sim-status { min-height: 18px; margin: 0; font-size: 12.5px; color: var(--danger); }
+.contingency-sim input { width: 100px; }
+.simulate-entry { margin-right: auto; }
+
+/* ---- Monte Carlo */
+.mc-tabs { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.mc-tabs li { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.mc-tabs input {
+  font: inherit; color: var(--ink); background: var(--inset); border: 1px solid var(--border);
+  border-radius: var(--radius-s); padding: 4px 8px; width: 170px; max-width: 100%;
+}
+.mc-path { color: var(--muted); font-size: 11.5px; overflow-wrap: anywhere; flex: 1 1 120px; }
+.mc-run { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+.mc-run progress { flex: 1 1 160px; height: 8px; accent-color: var(--accent); }
+.mc-count { font-variant-numeric: tabular-nums; font-size: 12.5px; color: var(--ink-2); }
+.mc-table td, .mc-table th { font-variant-numeric: tabular-nums; }
+
+@media (max-width: 640px) {
+  .function-ref dl > div, .fn-list li { grid-template-columns: 1fr; gap: 0; }
+  .simulate-entry { margin-right: 0; }
+  .const-table input { width: 72px; }
+}

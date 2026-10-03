@@ -17,8 +17,11 @@ src/
     registry.ts     TableType -> TableTypeDef
     types.ts        the plugin contract (below)
     common/         DataGrid (generic editor), PlaceholderPanel
-    xy/ column/ contingency/ survival/ multivariable/   ready
-    grouped/ partsofwhole/ nested/   editor only
+    xy/ column/ contingency/ survival/ partsofwhole/ multivariable/
+    nested/         ready
+    grouped/        editor only (analyses in progress)
+    manipulate/     cross-type: Transform, Normalize, … (derived tables),
+                    user formulas, Simulate data dialog, Monte Carlo
   components/       shell UI: Navigator, Header, FamilyWorkspace, dialogs,
                     plus the existing panels the sheets wrap
 ```
@@ -130,6 +133,36 @@ their folder, final editor and registry entry. To ship one (see
 
 An analysis that applies to several table types (like column analyses,
 which XY tables offer too) is defined once and listed in each type's
-`analyses`. Brand-new table types need a `TableType` member in
+`analyses`. The data manipulations and Monte Carlo in `manipulate/` are
+appended to every *ready* type's list by `registry.ts`
+(`extraAnalyses` / `extraGraphs`), after the type's own analyses.
+
+## Analyses that produce a table (chains)
+
+Set `derivedTable(result, source, options)` (and optionally
+`derivedName(tableName)`) on an `AnalysisDef` and it becomes a
+table-producing analysis:
+
+- adding it creates the results sheet *and* a data sheet flagged
+  `derived: { sourceId, resultsId }` (`project/derived.ts`);
+- `app/useDerivedSync.ts` (mounted once in `App.tsx`) re-runs every
+  producer whose source table or options changed, upstream first, and
+  writes the returned table into its derived sheet with `store.amend`
+  (no undo step: undoing the source edit restores the matching derived
+  table). It fills the results cache under the same key
+  `useAnalysisResult` uses, so the producer's results sheet does not
+  run twice;
+- analyses of the derived table re-run because their table changed, so
+  chains of any length stay live;
+- derived tables are read-only (`updateTable` refuses them; the
+  workbench passes `readOnly`); "Unlink" (`unlinkDerived`) keeps the
+  values as ordinary data. Deleting the producer or the source family
+  unlinks rather than deletes; copies of a derived table are plain data;
+- the navigator lists derived tables under their source's family (with
+  a link icon) as well as in their own row.
+
+`manipulate/` is the reference user (Transform, Normalize, …). Data
+sheets can also carry `simulation: { kind, seed, form }`, written by the
+Simulate data dialog so a table can be re-simulated. Brand-new table types need a `TableType` member in
 `project/types.ts`, a `tableShape` entry in `project/table.ts`, and a
 registry entry.

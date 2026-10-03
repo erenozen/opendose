@@ -80,6 +80,14 @@ export interface AnalysisDef<O = unknown, R = unknown> {
   ControlsPanel?: ComponentType<ControlsProps<O>>;
   ResultsPanel?: ComponentType<ResultsProps<O, R>>;
   MethodsPanel?: ComponentType<ResultsProps<O, R>>;
+  /** Table-producing analyses (manipulations, "chains of analyses"):
+   *  the data table this result stands for. When set, adding the
+   *  analysis also creates a derived data sheet linked to the source,
+   *  which the shell keeps equal to this output (null = leave it as is,
+   *  e.g. while the result is an error). See project/derived.ts. */
+  derivedTable?: (result: R, source: DataTableModel, options: O) => DataTableModel | null;
+  /** Name of that derived table for a source called `tableName`. */
+  derivedName?: (tableName: string) => string;
 }
 
 export interface GraphKindDef<O = unknown, R = unknown> {

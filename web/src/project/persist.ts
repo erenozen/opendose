@@ -7,6 +7,7 @@ import {
   ANALYSIS_COLUMN, ANALYSIS_NONLIN, ANALYSIS_SURVIVAL, COLUMN_GRAPHS,
   GRAPH_SURVIVAL, GRAPH_XY,
 } from "./builtin.ts";
+import { parseDerivedLink } from "./derived.ts";
 import type { IdFactory } from "./ids.ts";
 import {
   makeDataSheet, makeGraphSheet, makeProject, makeResultsSheet, repairLinks,
@@ -15,7 +16,7 @@ import { sanitizePrefs } from "./prefs.ts";
 import { normalizeTable } from "./table.ts";
 import {
   HIGHLIGHT_COLORS, type GraphSettings, type HighlightColor, type Project,
-  type ProjectPrefs, type Sheet,
+  type ProjectPrefs, type Sheet, type SimulationSpec,
 } from "./types.ts";
 
 export const FILE_MARKER = "opendose_project";
@@ -138,9 +139,15 @@ function normalizeV2(r: Record<string, unknown>, ctx: LoadContext): Project {
         ? s.highlight as HighlightColor : undefined,
     };
     switch (s.kind) {
-      case "data":
-        sheets.push({ ...common, kind: "data", table: normalizeTable(s.table) });
+      case "data": {
+        const derived = parseDerivedLink(s.derived);
+        const simulation = parseSimulationSpec(s.simulation);
+        sheets.push({
+          ...common, kind: "data", table: normalizeTable(s.table),
+          ...(derived ? { derived } : {}), ...(simulation ? { simulation } : {}),
+        });
         break;
+      }
       case "results":
         if (!str(s.parentId) || !str(s.analysis)) break;
         sheets.push({
@@ -198,4 +205,11 @@ function normalizeV2(r: Record<string, unknown>, ctx: LoadContext): Project {
     if (s.highlight === undefined) delete s.highlight;
   }
   return repairLinks(makeProject(prefs, sheets, str(r.title) || "Untitled project"));
+}
+
+function parseSimulationSpec(v: unknown): SimulationSpec | undefined {
+  const o = obj(v);
+  if (o.kind !== "xy" && o.kind !== "column" && o.kind !== "contingency") return undefined;
+  const seed = typeof o.seed === "number" && Number.isFinite(o.seed) ? Math.round(o.seed) : 1;
+  return { kind: o.kind, seed, form: o.form ?? null };
 }
