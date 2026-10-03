@@ -200,9 +200,10 @@ save/load; methods text; theme; accessibility pass.
 - [x] Text / CSV / TSV import with the Source · View · Filter · Placement
       choices (skip rows, pick columns, transpose, insert at column,
       decimal-separator handling), .xlsx worksheets, encodings, every
-      k-th row, missing-value code, trailing * = excluded; offered for
-      large or comma-separated pastes (unstacking indexed data and
-      by-rows / by-columns reflow not yet)
+      k-th row, missing-value code, trailing * = excluded, unstacking
+      indexed data; offered for large or comma-separated pastes (not yet:
+      by-rows / by-columns reflow, filter criteria on a column, Info &
+      Notes import)
 - [x] Export any data or results table as CSV / TSV; copy results sheet
       as tab-separated text
 
