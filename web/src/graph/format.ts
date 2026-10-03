@@ -503,6 +503,19 @@ export interface FormatFeatures {
   boxes?: boolean;
   /** Number-at-risk table. */
   survival?: boolean;
+  /** Colour and fill opacity per data set even without points, bars or
+   *  boxes (pie and donut slices, where a "data set" is one part). */
+  color?: boolean;
+  /** No numeric X/Y axes (pie and donut charts, heat maps): no Format
+   *  axes, no nudging, right axis or reference lines; annotations are
+   *  placed in plot-area coordinates. */
+  noAxes?: boolean;
+  /** Nothing per data set applies (heat maps, forest plots, volcano
+   *  plots): the Format graph dialog shows only its whole-graph part. */
+  noDatasets?: boolean;
+  /** X is a category axis although data sets do not sit at x = i
+   *  (grouped graphs): Format axes hides the numeric X settings. */
+  categoryX?: boolean;
 }
 
 export const DEFAULT_FEATURES: FormatFeatures = {

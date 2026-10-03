@@ -28,6 +28,23 @@ export default defineConfig(({ command }) => ({
     __BUILD_COMMIT__: JSON.stringify(commit()),
     __BUILD_DATE__: JSON.stringify(new Date().toISOString().slice(0, 10)),
   },
+  build: {
+    rolldownOptions: {
+      output: {
+        // Vendor code in chunks of its own, so a release that only changes
+        // the app does not make browsers download Plotly (~4.8 MB) again.
+        codeSplitting: {
+          groups: [
+            { name: 'plotly', test: /node_modules[\\/]plotly\.js-dist-min[\\/]/ },
+            { name: 'react', test: /node_modules[\\/](react|react-dom|scheduler)[\\/]/ },
+          ],
+        },
+      },
+    },
+    // Plotly's prebuilt bundle is one module and cannot be split further;
+    // warn about anything bigger than it.
+    chunkSizeWarningLimit: 5000,
+  },
   optimizeDeps: {
     // pyodide loads its own assets from the CDN at runtime; pre-bundling breaks it
     exclude: ['pyodide'],

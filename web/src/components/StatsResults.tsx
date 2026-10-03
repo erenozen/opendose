@@ -1,4 +1,5 @@
 import { formatSig } from "../types";
+import { pStars } from "../graph/significance";
 
 interface Props {
   result: Record<string, unknown> | null;
@@ -13,12 +14,8 @@ function fmtP(p: unknown): string {
 }
 
 function stars(p: unknown): string {
-  if (typeof p !== "number") return "";
-  if (p < 0.0001) return "****";
-  if (p < 0.001) return "***";
-  if (p < 0.01) return "**";
-  if (p < 0.05) return "*";
-  return "ns";
+  // P ≤ 0.05 *, ≤ 0.01 **, ≤ 0.001 ***, ≤ 0.0001 ****, as on graph brackets.
+  return typeof p === "number" && Number.isFinite(p) ? pStars(p) : "";
 }
 
 function fmtCI(ci: unknown): string {

@@ -2,7 +2,7 @@
 // project, Prism-file import. Pure (ids come from an injected factory).
 import type { IdFactory } from "../project/ids";
 import {
-  addSheets, findSheet, makeDataSheet, makeGraphSheet, makeInfoSheet,
+  addSheets, familyChildren, findSheet, makeDataSheet, makeGraphSheet, makeInfoSheet,
   makeProject, makeResultsSheet, nextNumberedName, uniqueName,
 } from "../project/ops";
 import { makeDerivedSheet } from "../project/derived";
@@ -10,7 +10,7 @@ import { clearValues, normalizeTable } from "../project/table";
 import type {
   DataSheet, DataTableModel, Project, ProjectPrefs, Sheet, SubcolumnFormat,
 } from "../project/types";
-import { analysisDef, tableDef } from "../sheets/registry";
+import { analysisDef, graphDef, tableDef } from "../sheets/registry";
 
 /** Data sheet + (optionally) one results sheet + its default graph. */
 export function familySheets(p: Project, table: DataTableModel, name: string,
@@ -43,7 +43,7 @@ export function analysisSheets(p: Project, dataId: string, analysisId: string,
     a.defaultOptions({ table: data.table, prefs: p.prefs }),
     uniqueName(p, a.sheetName(data.name)));
   const out: Sheet[] = [results];
-  if (a.derivedTable) {
+  if (a.derivedTable && !a.derivedOnDemand) {
     // Output table of a chain: filled in by the derived-table sync.
     out.push(makeDerivedSheet(ids(), uniqueName(addSheets(p, [results]),
       a.derivedName?.(data.name) ?? `${a.short} of ${data.name}`),
@@ -51,9 +51,10 @@ export function analysisSheets(p: Project, dataId: string, analysisId: string,
   }
   if (a.defaultGraph) {
     const withResults = addSheets(p, [results]);
+    const kind = graphDef(data.table.type, a.defaultGraph);
     out.push(makeGraphSheet(ids(), dataId, rid, a.defaultGraph,
       { titles: { x: "", y: "" }, scheme: p.prefs.scheme },
-      uniqueName(withResults, `Graph of ${data.name}`)));
+      uniqueName(withResults, kind?.sheetName?.(data.name) ?? `Graph of ${data.name}`)));
   }
   return out;
 }
@@ -76,6 +77,26 @@ export function addDerivedOutputs(p: Project, created: Sheet[], ids: IdFactory):
     next = addSheets(next, [out], after);
   }
   return next;
+}
+
+/** The output of a table-producing analysis made on request (an
+ *  `derivedOnDemand` analysis such as Extract & rearrange or Row means):
+ *  a linked, read-only data sheet fed by the results sheet `resultsId`
+ *  (kept in sync by app/useDerivedSync.ts until the user unlinks it),
+ *  placed after its source's family and starting with its own type's
+ *  default analysis. */
+export function addLinkedTable(p: Project, resultsId: string, table: DataTableModel,
+  name: string, ids: IdFactory): { project: Project; dataId: string } | null {
+  const res = findSheet(p, resultsId);
+  if (!res || res.kind !== "results") return null;
+  const kids = familyChildren(p, res.parentId);
+  const after = kids.length ? kids[kids.length - 1].id : res.parentId;
+  const dataId = ids();
+  let acc = addSheets(p, [makeDerivedSheet(dataId, uniqueName(p, name), table,
+    { sourceId: res.parentId, resultsId })], after);
+  const first = tableDef(table.type).analyses[0];
+  if (first) acc = addSheets(acc, analysisSheets(acc, dataId, first.id, ids), dataId);
+  return { project: acc, dataId };
 }
 
 export function addFamily(p: Project, table: DataTableModel, name: string,

@@ -1,10 +1,11 @@
-import { useMemo } from "react";
+import { Suspense, useMemo } from "react";
 import { useProject } from "../app/context";
 import { useAnalysisResult } from "../app/useAnalysisResult";
 import { findSheet } from "../project/ops";
 import { withExclusionsBlanked } from "../project/table";
 import type { DataSheet, DataTableModel, GraphSheet, ResultsSheet } from "../project/types";
 import { graphDef, tableDef } from "../sheets/registry";
+import { readFormat } from "../graph";
 
 /**
  * A graph sheet drawn by its own plot panel (looked up in the sheets
@@ -20,6 +21,8 @@ export default function LiveGraph({ graph }: { graph: GraphSheet }) {
     !graph.frozen && res?.kind === "results" ? res : null,
     data?.kind === "data" ? data.table : null);
   const snap = graph.frozen ? graph.snapshot : undefined;
+  // Layouts and batch export draw the graph as formatted (read-only).
+  const format = useMemo(() => readFormat(graph.settings), [graph.settings]);
   const table: DataTableModel | null = useMemo(() => (snap?.table
     ?? (data?.kind === "data" ? withExclusionsBlanked(data.table) : null)), [snap, data]);
   if (!data || data.kind !== "data" || !table) {
@@ -35,6 +38,10 @@ export default function LiveGraph({ graph }: { graph: GraphSheet }) {
     y: graph.settings.titles.y.trim() || auto.y,
   };
   if (!Plot) return <div className="plot empty-hint">No plot for this graph type.</div>;
-  return <Plot graph={graph} table={table} options={options} result={result}
-    titles={titles} scheme={graph.settings.scheme} />;
+  return (
+    <Suspense fallback={<div className="plot-pending" aria-busy="true" />}>
+      <Plot graph={graph} table={table} options={options} result={result}
+        titles={titles} scheme={graph.settings.scheme} format={format} />
+    </Suspense>
+  );
 }

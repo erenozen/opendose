@@ -108,9 +108,12 @@ from the jsDelivr CDN, ~30 MB, then cached).
   repeated measures, mixed-effects model when values are missing, or from
   mean/SD/N), three-way ANOVA, multiple t tests one per row with FDR or
   Holm-Šídák/Šídák/Bonferroni correction and a volcano plot, row
-  means/totals, column statistics; interleaved/stacked/separated bars,
-  grouped scatter, box plots, connected lines, three-way graphs and heat
-  maps with color mapping. Prism grouped tables import as grouped tables.
+  means/totals (also as a linked table), column statistics;
+  interleaved/stacked/separated bars, grouped scatter, box plots,
+  connected lines, three-way graphs and heat maps with color mapping,
+  with comparison brackets from the two-way, three-way or multiple
+  t tests results. XY tables offer the same grouped graphs (X rows as
+  groups). Prism grouped tables import as grouped tables.
 - Projects: any number of data tables of eight formats (XY, Column,
   Grouped, Contingency, Survival, Parts of whole, Multiple variables,
   Nested), each with its results and graphs as a family, plus info sheets
@@ -134,7 +137,7 @@ from the jsDelivr CDN, ~30 MB, then cached).
   multiple logistic regression (odds ratios, likelihood ratio test, pseudo
   R², Hosmer-Lemeshow, classification table, fitted curve and ROC), PCA
   (parallel analysis, scree, loadings and biplot), extract & rearrange /
-  select & transform into a new table, and graphs of the data (bubble
+  select & transform into a new linked table, and graphs of the data (bubble
   graphs colored and sized by variables, data ellipses, convex hulls,
   categorical strip / bar / box / violin).
 - Editing: project-wide undo/redo (Ctrl/Cmd+Z, Shift+Ctrl/Cmd+Z),
@@ -198,7 +201,10 @@ from the jsDelivr CDN, ~30 MB, then cached).
   and under the methods text, stamped with the app version and the
   SciPy/NumPy versions the analysis actually ran on.
 - Graph formatting (Settings → Format graph / Format axes / Annotations /
-  Pairwise comparisons): per-dataset symbols, colours, transparency,
+  Pairwise comparisons), on every graph kind from XY fits to pie charts,
+  heat maps and PCA biplots, with each graph's own options (variables,
+  error bars, slice labels, ...) in the same Settings panel: per-dataset
+  symbols, colours, transparency,
   lines, bar patterns, error bars and envelopes, X error, order and
   nudging; axis ranges, log10/log2/ln/probability scales, numbering
   formats, ticks, grids, extra ticks, gaps, right Y axis, frames;

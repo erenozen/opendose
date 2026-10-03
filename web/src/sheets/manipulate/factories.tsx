@@ -3,8 +3,13 @@
 import type { ComponentType } from "react";
 import type { DataTableModel } from "../../project/types";
 import type { ResultsProps } from "../types";
-import { ManipResultsView, MethodsCard } from "./panels";
+import { lazyPart } from "../lazy";
 import type { ManipResult } from "./run";
+
+// The views load with the manipulations' panels (sheets/lazy.ts).
+const panels = () => import("./panels");
+const ManipResultsView = lazyPart(panels, "ManipResultsView");
+const MethodsCard = lazyPart(panels, "MethodsCard");
 
 export function makeManipResults(outputName: (table: string) => string,
   Extra?: ComponentType<{ result: ManipResult }>) {

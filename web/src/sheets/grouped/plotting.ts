@@ -1,55 +1,11 @@
-// Shared plumbing for the grouped graphs: a Plotly div that follows the
-// theme and its container's size, the common layout chrome, and the
+// Shared plumbing for the grouped graphs: the common layout chrome and the
 // per-graph settings stored on the graph sheet.
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Plotly from "plotly.js-dist-min";
+import { useCallback, useMemo } from "react";
+import type Plotly from "plotly.js-dist-min";
 import { useProject } from "../../app/context";
-import {
-  CHROME_DARK, CHROME_LIGHT, PLOT_FONT, isDarkMode, onThemeChange, type Chrome,
-} from "../../lib/palette";
+import { PLOT_FONT, type Chrome } from "../../lib/palette";
 import { updateSheet } from "../../project/ops";
 import type { GraphSheet, Sheet } from "../../project/types";
-
-/** A Plotly host element plus the current dark-mode flag. The caller
- *  draws with `draw(traces, layout)` from an effect. */
-export function usePlot(exportName: string) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [dark, setDark] = useState(isDarkMode());
-  useEffect(() => onThemeChange(() => setDark(isDarkMode())), []);
-
-  // Redraw when the card or column is resized (splitter drag, the card's
-  // resize handle); Plotly's own listener only covers the window.
-  useEffect(() => {
-    const div = ref.current;
-    if (!div) return;
-    let raf = 0;
-    const ro = new ResizeObserver(() => {
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(() => {
-        if ((div as unknown as { _fullLayout?: unknown })._fullLayout) {
-          Plotly.Plots.resize(div);
-        }
-      });
-    });
-    ro.observe(div);
-    return () => { ro.disconnect(); cancelAnimationFrame(raf); };
-  }, []);
-
-  useEffect(() => {
-    const div = ref.current;
-    return () => { if (div) Plotly.purge(div); };
-  }, []);
-
-  const draw = useCallback((traces: Plotly.Data[], layout: Partial<Plotly.Layout>) => {
-    if (!ref.current) return;
-    Plotly.react(ref.current, traces, { dragmode: "pan", uirevision: "keep", ...layout }, {
-      responsive: true, scrollZoom: true, displaylogo: false,
-      toImageButtonOptions: { format: "svg", filename: exportName },
-    });
-  }, [exportName]);
-
-  return { ref, dark, chrome: (dark ? CHROME_DARK : CHROME_LIGHT) as Chrome, draw };
-}
 
 /** Layout chrome shared by every grouped graph. */
 export function baseLayout(chrome: Chrome): Partial<Plotly.Layout> {

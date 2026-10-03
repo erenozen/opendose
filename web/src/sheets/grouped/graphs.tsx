@@ -1,69 +1,113 @@
 // Plot panels of the grouped table: the raw-table graphs (bars, scatter,
 // box, lines, three-way, heat map) and the volcano plot of multiple
-// t tests. Each renders a compact "Graph options" disclosure above the
-// plot; its choices are stored on the graph sheet.
-import { useEffect, useId, useMemo, type ReactNode } from "react";
+// t tests. They draw through the graph-format layer (FormattedPlot); their
+// own options (error bars, clustering, gaps, heat-map colours, ...) are
+// stored on the graph sheet and edited in the graph's Settings panel
+// (GroupedOptions, HeatOptions, VolcanoOptions). Comparisons of the bound
+// two-way, three-way or multiple t test results feed the brackets.
+import { useMemo } from "react";
 import type Plotly from "plotly.js-dist-min";
-import { seriesStyle } from "../../lib/palette";
+import {
+  OptCheck, OptInput, OptNote, OptSelect, OptSlider,
+} from "../../components/GraphOptionControls";
+import { tagTrace, type GroupPos } from "../../graph";
+import FormattedPlot from "../../graph/FormattedPlot";
+import { useDarkMode } from "../../graph/useDarkMode";
+import { CHROME_DARK, CHROME_LIGHT, seriesStyle, type Chrome } from "../../lib/palette";
 import { formatSig } from "../../types";
-import type { PlotProps } from "../types";
+import type { GraphOptionsProps, PlotProps } from "../types";
 import { buildGrouped, clusterByFor } from "./buildGrouped";
+import { groupedFormatDatasets, isThreeWayOptions, rowsFromX } from "./graphData";
 import { buildHeat } from "./buildHeat";
+import {
+  groupedComparisons, groupedDatasetLabels, groupedRowLabels, threeWayCells,
+} from "./comparisons";
 import {
   G_BOX, G_LINES, G_SCATTER, G_SEPARATED, G_STACKED, G_THREE_WAY,
   HEAT_VALUE_LABEL, normalizeGraph, normalizeHeat,
   type GroupedGraphSettings, type HeatSettings, type HeatValue,
-  LOG_TESTS, type MultiTOptions, type ThreeWayOptions,
+  LOG_TESTS, type MultiTOptions,
 } from "./options";
-import { baseLayout, useGraphSetting, usePlot, valueAxis } from "./plotting";
+import { baseLayout, useGraphSetting, valueAxis } from "./plotting";
 import { cellStats, ERROR_LABELS, type ErrorKind } from "./stats";
 import "./grouped.css";
 
-// ------------------------------------------------------------ controls
+const chromeOf = (dark: boolean): Chrome => (dark ? CHROME_DARK : CHROME_LIGHT);
 
-function Field({ label, children }: { label: string; children: ReactNode }) {
-  return <label className="go-field"><span>{label}</span>{children}</label>;
-}
+// ------------------------------------------------------------ raw-table graphs
 
-function Check({ label, checked, onChange }: {
-  label: string; checked: boolean; onChange: (v: boolean) => void;
-}) {
+export function GroupedPlot({ graph, table, options, result, titles, scheme, format,
+  onFormatChange }: PlotProps) {
+  const dark = useDarkMode();
+  const raw = graph.settings.grouped;
+  const settings = useMemo(() => normalizeGraph(raw), [raw]);
+  const cells = useMemo(() => cellStats(table), [table]);
+  const threeWay = isThreeWayOptions(options) ? options : null;
+  const kind = graph.graphType;
+  const built = useMemo(() => buildGrouped({
+    kind, table, cells, settings, scheme, dark, chrome: chromeOf(dark),
+    yTitle: titles.y, threeWay,
+  }), [kind, table, cells, settings, scheme, dark, titles.y, threeWay]);
+  const cmp = useMemo(() => groupedComparisons(result, table), [result, table]);
+  const names = useMemo(() => groupedFormatDatasets(table, graph, options),
+    [table, graph, options]);
+
+  const ctx = useMemo(() => {
+    const place = built.place;
+    const rows = groupedRowLabels(table);
+    const dss = groupedDatasetLabels(table);
+    const rIdx = (n: string) => rows.indexOf(n);
+    const dIdx = (n: string) => {
+      const i = dss.indexOf(n);
+      return i >= 0 ? i : table.datasets.findIndex((d) => d.name === n);
+    };
+    const cellsByLabel = kind === G_THREE_WAY ? threeWayCells(result) : null;
+    const groupX = (name: string, family?: string): GroupPos => {
+      if (!place) return null;
+      if (cellsByLabel) {
+        const c = cellsByLabel.get(name);
+        return c ? place.cell(c[0], c[1], c[2]) : null;
+      }
+      if (!family) {
+        // Column (data set) main effect: the cluster of that data set.
+        const d = dIdx(name);
+        return d >= 0 && !place.byRows ? place.cluster(d) : null;
+      }
+      if (family === "Row main effect") {
+        const r = rIdx(name);
+        return r >= 0 && place.byRows ? place.cluster(r) : null;
+      }
+      // Within one row (groups are data sets) or within one data set.
+      let r = rIdx(family), d = dIdx(name);
+      if (r < 0 || d < 0) { r = rIdx(name); d = dIdx(family); }
+      return r >= 0 && d >= 0 ? place.cell(r, d) : null;
+    };
+    return {
+      dark, scheme, datasets: names, rowTitles: table.rowTitles,
+      comparisons: cmp?.comparisons, groupX, groupHalf: place?.half ?? 0.2,
+    };
+  }, [built.place, table, kind, result, dark, scheme, names, cmp]);
+
   return (
-    <label className="go-check">
-      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
-      <span>{label}</span>
-    </label>
+    <FormattedPlot traces={built.traces} layout={built.layout} format={format}
+      onFormatChange={onFormatChange} ctx={ctx} filename="grouped-graph" />
   );
 }
 
-function Slider({ label, value, min, max, step, onChange, format }: {
-  label: string; value: number; min: number; max: number; step: number;
-  onChange: (v: number) => void; format: (v: number) => string;
-}) {
-  const id = useId();
-  return (
-    <div className="go-field go-slider">
-      <label htmlFor={id}>{label}</label>
-      <input id={id} type="range" min={min} max={max} step={step} value={value}
-        aria-valuetext={format(value)}
-        onChange={(e) => onChange(Number(e.target.value))} />
-      <output htmlFor={id}>{format(value)}</output>
-    </div>
-  );
+// ------------------------------------------------------------ on XY tables
+
+/** Grouped graphs of an XY table (no grouped analysis behind them, so no
+ *  brackets). */
+export function XYGroupedPlot(props: PlotProps) {
+  const table = useMemo(() => rowsFromX(props.table), [props.table]);
+  return <GroupedPlot {...props} table={table} options={null} result={null} />;
 }
 
-function OptionsShell({ children }: { children: ReactNode }) {
-  return (
-    <details className="graph-options">
-      <summary>Graph options</summary>
-      <div className="go-grid">{children}</div>
-    </details>
-  );
-}
-
-function GroupedOptions({ kind, s, set }: {
-  kind: string; s: GroupedGraphSettings; set: (s: GroupedGraphSettings) => void;
-}) {
+/** Settings panel: error bars, clustering, gaps, order, legend. */
+export function GroupedOptions({ graph }: GraphOptionsProps) {
+  const [s, set] = useGraphSetting(graph, "grouped", normalizeGraph);
+  if (!set) return null;
+  const kind = graph.graphType;
   const up = (patch: Partial<GroupedGraphSettings>) => set({ ...s, ...patch });
   const bars = kind !== G_SCATTER && kind !== G_BOX && kind !== G_LINES;
   const lines = kind === G_LINES;
@@ -71,193 +115,124 @@ function GroupedOptions({ kind, s, set }: {
   const clusterBy = clusterByFor(kind, s);
   const pct = (v: number) => `${Math.round(v * 100)}%`;
   return (
-    <OptionsShell>
+    <>
       {kind !== G_BOX && (
-        <Field label="Error bars">
-          <select value={s.error} onChange={(e) => up({ error: e.target.value as ErrorKind })}>
-            {(Object.keys(ERROR_LABELS) as ErrorKind[]).map((k) => (
-              <option key={k} value={k}>{ERROR_LABELS[k]}</option>
-            ))}
-          </select>
-        </Field>
+        <OptSelect label="Error bars" value={s.error}
+          options={(Object.keys(ERROR_LABELS) as ErrorKind[]).map((k) => [k, ERROR_LABELS[k]] as const)}
+          onChange={(error) => up({ error })} />
       )}
       {kind !== G_BOX && kind !== G_STACKED && s.error !== "none" && (
-        <Field label="Direction">
-          <select value={s.errorDir}
-            onChange={(e) => up({ errorDir: e.target.value as "both" | "above" })}>
-            <option value="both">Above and below</option>
-            <option value="above">Above only</option>
-          </select>
-        </Field>
+        <OptSelect label="Direction" value={s.errorDir}
+          options={[["both", "Above and below"], ["above", "Above only"]]}
+          onChange={(errorDir) => up({ errorDir })} />
       )}
       {!threeWay && (
-        <Field label={lines ? "X axis shows" : "Group bars by"}>
-          <select value={clusterBy}
-            onChange={(e) => up({ clusterBy: e.target.value as "rows" | "datasets" })}>
-            <option value="rows">{lines ? "Rows (one line per dataset)"
-              : "Rows: row titles under groups"}</option>
-            <option value="datasets">{lines ? "Datasets (one line per row)"
-              : "Datasets: dataset titles under groups"}</option>
-          </select>
-        </Field>
+        <OptSelect label={lines ? "X axis shows" : "Group bars by"} value={clusterBy}
+          options={[["rows", lines ? "Rows (one line per dataset)"
+            : "Rows: row titles under groups"],
+          ["datasets", lines ? "Datasets (one line per row)"
+            : "Datasets: dataset titles under groups"]]}
+          onChange={(v) => up({ clusterBy: v })} />
       )}
-      <Field label="Grand line">
-        <select value={s.grand}
-          onChange={(e) => up({ grand: e.target.value as GroupedGraphSettings["grand"] })}>
-          <option value="none">None</option>
-          <option value="mean">Grand mean</option>
-          <option value="median">Grand median</option>
-        </select>
-      </Field>
+      <OptSelect label="Grand line" value={s.grand}
+        options={[["none", "None"], ["mean", "Grand mean"], ["median", "Grand median"]]}
+        onChange={(grand) => up({ grand })} />
       {lines && (
-        <Field label="Lines connect">
-          <select value={s.lineMode}
-            onChange={(e) => up({ lineMode: e.target.value as "means" | "subjects" })}>
-            <option value="means">Means</option>
-            <option value="subjects">Means and each subcolumn (before-after)</option>
-          </select>
-        </Field>
+        <OptSelect label="Lines connect" value={s.lineMode}
+          options={[["means", "Means"], ["subjects", "Means and each subcolumn (before-after)"]]}
+          onChange={(lineMode) => up({ lineMode })} />
+      )}
+      {!lines && (
+        <OptSlider label={kind === G_STACKED ? "Gap between stacks" : "Gap between groups"}
+          value={s.clusterGap} min={0} max={0.8} step={0.05} format={pct}
+          onChange={(v) => up({ clusterGap: v })} />
       )}
       {!lines && kind !== G_STACKED && (
-        <Slider label="Gap between groups" value={s.clusterGap} min={0} max={0.8}
-          step={0.05} format={pct} onChange={(v) => up({ clusterGap: v })} />
-      )}
-      {kind === G_STACKED && (
-        <Slider label="Gap between stacks" value={s.clusterGap} min={0} max={0.8}
-          step={0.05} format={pct} onChange={(v) => up({ clusterGap: v })} />
-      )}
-      {!lines && kind !== G_STACKED && (
-        <Slider label="Gap between bars" value={s.barGap} min={0} max={1}
+        <OptSlider label="Gap between bars" value={s.barGap} min={0} max={1}
           step={0.02} format={(v) => `${Math.round(v * 100)}% of a bar`}
           onChange={(v) => up({ barGap: v })} />
       )}
       {(bars || kind === G_BOX) && kind !== G_STACKED && (
-        <Check label="Show individual values" checked={s.points}
-          onChange={(v) => up({ points: v })} />
+        <OptCheck label="Show individual values" checked={s.points}
+          onChange={(points) => up({ points })} />
       )}
-      <Check label={lines || threeWay ? "Reverse order on the X axis" : "Reverse group order"}
+      <OptCheck label={lines || threeWay ? "Reverse order on the X axis" : "Reverse group order"}
         checked={s.clustersReverse} onChange={(v) => up({ clustersReverse: v })} />
-      <Check label={kind === G_SEPARATED ? "Reverse bar order within groups"
+      <OptCheck label={kind === G_SEPARATED ? "Reverse bar order within groups"
         : "Reverse dataset (series) order"}
       checked={s.seriesReverse} onChange={(v) => up({ seriesReverse: v })} />
       {kind !== G_SEPARATED && (
-        <Check label="Legend" checked={s.legend} onChange={(v) => up({ legend: v })} />
+        <OptCheck label="Legend" checked={s.legend} onChange={(legend) => up({ legend })} />
       )}
       {kind === G_STACKED && (
-        <p className="go-note">Stacked bars show error bars above each segment only.</p>
+        <OptNote>Stacked bars show error bars above each segment only.</OptNote>
       )}
-    </OptionsShell>
-  );
-}
-
-// ------------------------------------------------------------ raw-table graphs
-
-const isThreeWayOptions = (o: unknown): o is ThreeWayOptions =>
-  !!o && typeof o === "object" && Array.isArray((o as ThreeWayOptions).assign)
-  && Array.isArray((o as ThreeWayOptions).bLevels);
-
-export function GroupedPlot({ graph, table, options, titles, scheme }: PlotProps) {
-  const [settings, set] = useGraphSetting(graph, "grouped", normalizeGraph);
-  const { ref, dark, chrome, draw } = usePlot("grouped-graph");
-  const cells = useMemo(() => cellStats(table), [table]);
-  const threeWay = isThreeWayOptions(options) ? options : null;
-  useEffect(() => {
-    const { traces, layout } = buildGrouped({
-      kind: graph.graphType, table, cells, settings, scheme, dark, chrome,
-      yTitle: titles.y, threeWay,
-    });
-    draw(traces, layout);
-  }, [graph.graphType, table, cells, settings, scheme, dark, chrome, titles.y,
-    threeWay, draw]);
-  return (
-    <>
-      {set && <GroupedOptions kind={graph.graphType} s={settings} set={set} />}
-      <div className="plot" ref={ref} />
     </>
   );
 }
 
 // ------------------------------------------------------------ heat map
 
-function HeatOptions({ h, set }: { h: HeatSettings; set: (h: HeatSettings) => void }) {
-  const up = (patch: Partial<HeatSettings>) => set({ ...h, ...patch });
+export function HeatMapPlot({ graph, table, titles, scheme, format, onFormatChange }: PlotProps) {
+  const dark = useDarkMode();
+  const raw = graph.settings.heat;
+  const h = useMemo(() => normalizeHeat(raw), [raw]);
+  const cells = useMemo(() => cellStats(table), [table]);
+  const built = useMemo(() => buildHeat(table, cells, h, scheme, chromeOf(dark), dark, titles.y),
+    [table, cells, h, scheme, dark, titles.y]);
+  const ctx = useMemo(() => ({ dark, scheme, datasets: table.datasets.map((d) => d.name) }),
+    [dark, scheme, table.datasets]);
   return (
-    <OptionsShell>
-      <Field label="Each cell shows">
-        <select value={h.value} onChange={(e) => up({ value: e.target.value as HeatValue })}>
-          {(Object.keys(HEAT_VALUE_LABEL) as HeatValue[]).map((k) => (
-            <option key={k} value={k}>{HEAT_VALUE_LABEL[k]}</option>
-          ))}
-        </select>
-      </Field>
-      <Field label="Color map">
-        <select value={h.palette}
-          onChange={(e) => up({ palette: e.target.value as HeatSettings["palette"] })}>
-          <option value="sequential">Single hue (from the color scheme)</option>
-          <option value="diverging">Diverging (two hues around a center)</option>
-          <option value="grayscale">Grayscale</option>
-        </select>
-      </Field>
-      <Field label="Lowest value">
-        <input className="go-num" inputMode="decimal" placeholder="auto" value={h.min}
-          onChange={(e) => up({ min: e.target.value })} />
-      </Field>
-      <Field label="Highest value">
-        <input className="go-num" inputMode="decimal" placeholder="auto" value={h.max}
-          onChange={(e) => up({ max: e.target.value })} />
-      </Field>
-      {h.palette === "diverging" && (
-        <Field label="Center value">
-          <input className="go-num" inputMode="decimal" placeholder="halfway"
-            value={h.center} onChange={(e) => up({ center: e.target.value })} />
-        </Field>
-      )}
-      <Check label="Reverse colors" checked={h.reverse} onChange={(v) => up({ reverse: v })} />
-      <Check label="Show values in cells" checked={h.labels}
-        onChange={(v) => up({ labels: v })} />
-      {h.labels && (
-        <Field label="Significant digits">
-          <input className="go-num" type="number" min={1} max={8} value={h.digits}
-            onChange={(e) => up({ digits: Number(e.target.value) || 3 })} />
-        </Field>
-      )}
-      <Slider label="Gap between cells" value={h.gap} min={0} max={12} step={1}
-        format={(v) => `${v} px`} onChange={(v) => up({ gap: v })} />
-      <Field label="Blank cells">
-        <input type="color" value={h.missing} aria-label="Color of blank or excluded cells"
-          onChange={(e) => up({ missing: e.target.value })} />
-      </Field>
-      <Check label="Cross out blank cells" checked={h.crossMissing}
-        onChange={(v) => up({ crossMissing: v })} />
-      <Check label="Legend (color bar)" checked={h.legend}
-        onChange={(v) => up({ legend: v })} />
-      {h.legend && (
-        <Field label="Legend title">
-          <input className="go-text" value={h.legendTitle}
-            placeholder={HEAT_VALUE_LABEL[h.value]}
-            onChange={(e) => up({ legendTitle: e.target.value })} />
-        </Field>
-      )}
-      <Check label="Datasets as rows (transpose)" checked={h.transpose}
-        onChange={(v) => up({ transpose: v })} />
-      <Check label="Column labels on top" checked={h.xTop}
-        onChange={(v) => up({ xTop: v })} />
-    </OptionsShell>
+    <FormattedPlot traces={built.traces} layout={built.layout} format={format}
+      onFormatChange={onFormatChange} ctx={ctx} filename="heat-map" scrollZoom={false} />
   );
 }
 
-export function HeatMapPlot({ graph, table, titles, scheme }: PlotProps) {
+export function HeatOptions({ graph }: GraphOptionsProps) {
   const [h, set] = useGraphSetting(graph, "heat", normalizeHeat);
-  const { ref, dark, chrome, draw } = usePlot("heat-map");
-  const cells = useMemo(() => cellStats(table), [table]);
-  useEffect(() => {
-    const { traces, layout } = buildHeat(table, cells, h, scheme, chrome, dark, titles.y);
-    draw(traces, layout);
-  }, [table, cells, h, scheme, dark, chrome, titles.y, draw]);
+  if (!set) return null;
+  const up = (patch: Partial<HeatSettings>) => set({ ...h, ...patch });
   return (
     <>
-      {set && <HeatOptions h={h} set={set} />}
-      <div className="plot" ref={ref} />
+      <OptSelect label="Each cell shows" value={h.value}
+        options={(Object.keys(HEAT_VALUE_LABEL) as HeatValue[]).map((k) => [k, HEAT_VALUE_LABEL[k]] as const)}
+        onChange={(value) => up({ value })} />
+      <OptSelect label="Color map" value={h.palette}
+        options={[["sequential", "Single hue (from the color scheme)"],
+          ["diverging", "Diverging (two hues around a center)"], ["grayscale", "Grayscale"]]}
+        onChange={(palette) => up({ palette })} />
+      <OptInput label="Lowest value" inputMode="decimal" placeholder="auto" value={h.min}
+        onChange={(min) => up({ min })} />
+      <OptInput label="Highest value" inputMode="decimal" placeholder="auto" value={h.max}
+        onChange={(max) => up({ max })} />
+      {h.palette === "diverging" && (
+        <OptInput label="Center value" inputMode="decimal" placeholder="halfway"
+          value={h.center} onChange={(center) => up({ center })} />
+      )}
+      <OptCheck label="Reverse colors" checked={h.reverse} onChange={(reverse) => up({ reverse })} />
+      <OptCheck label="Show values in cells" checked={h.labels}
+        onChange={(labels) => up({ labels })} />
+      {h.labels && (
+        <OptInput label="Significant digits" type="number" min={1} max={8} value={h.digits}
+          onChange={(v) => up({ digits: Number(v) || 3 })} />
+      )}
+      <OptSlider label="Gap between cells" value={h.gap} min={0} max={12} step={1}
+        format={(v) => `${v} px`} onChange={(gap) => up({ gap })} />
+      <OptInput label="Blank cells" type="color" value={h.missing}
+        ariaLabel="Color of blank or excluded cells" onChange={(missing) => up({ missing })} />
+      <OptCheck label="Cross out blank cells" checked={h.crossMissing}
+        onChange={(crossMissing) => up({ crossMissing })} />
+      <OptCheck label="Legend (color bar)" checked={h.legend}
+        onChange={(legend) => up({ legend })} />
+      {h.legend && (
+        <OptInput label="Legend title" value={h.legendTitle}
+          placeholder={HEAT_VALUE_LABEL[h.value]}
+          onChange={(legendTitle) => up({ legendTitle })} />
+      )}
+      <OptCheck label="Datasets as rows (transpose)" checked={h.transpose}
+        onChange={(transpose) => up({ transpose })} />
+      <OptCheck label="Column labels on top" checked={h.xTop}
+        onChange={(xTop) => up({ xTop })} />
     </>
   );
 }
@@ -272,26 +247,28 @@ const normalizeVolcano = (raw: unknown): VolcanoSettings => {
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-export function VolcanoPlot({ graph, result, titles, scheme }: PlotProps<MultiTOptions, any>) {
-  const [vs, set] = useGraphSetting(graph, "volcano", normalizeVolcano);
-  const { ref, dark, chrome, draw } = usePlot("volcano-plot");
-  useEffect(() => {
+export function VolcanoPlot({ graph, result, titles, scheme, format, onFormatChange }:
+  PlotProps<MultiTOptions, any>) {
+  const dark = useDarkMode();
+  const vs = normalizeVolcano(graph.settings.volcano);
+  const fig = useMemo(() => {
+    const chrome = chromeOf(dark);
     const layout: Partial<Plotly.Layout> = { ...baseLayout(chrome) };
     if (!result || result.error || !Array.isArray(result.rows)) {
-      draw([], {
+      return { traces: [] as Plotly.Data[], layout: {
         ...layout, xaxis: { visible: false }, yaxis: { visible: false },
         annotations: [{ xref: "paper", yref: "paper", x: 0.5, y: 0.5, showarrow: false,
           text: result?.error ? "No volcano plot: the analysis did not run"
-            : "Waiting for the multiple t tests", font: { color: chrome.muted } }],
-      });
-      return;
+            : "The volcano plot draws the results of multiple t tests",
+          font: { color: chrome.muted } }],
+      } as Partial<Plotly.Layout> };
     }
     const ratio = LOG_TESTS.includes(result.test);
     const rows = (result.rows as any[]).filter((r) => !r.omitted && r.p != null
       && (ratio ? r.ratio > 0 : r.difference != null));
     const accent = seriesStyle(0, dark, scheme === "mono" ? "default" : scheme).color;
     const pick = (flag: boolean) => rows.filter((r) => !!r.significant === flag);
-    const trace = (rs: any[], flag: boolean): Plotly.Data => ({
+    const trace = (rs: any[], flag: boolean): Plotly.Data => tagTrace({
       type: "scatter",
       mode: (vs.labels === "all" || (vs.labels === "flagged" && flag))
         ? "text+markers" : "markers",
@@ -311,7 +288,7 @@ export function VolcanoPlot({ graph, result, titles, scheme }: PlotProps<MultiTO
         + "<br>P = %{customdata[0]:.4g}"
         + (result.method !== "none" ? "<br>adjusted %{customdata[1]:.4g}" : "")
         + "<extra></extra>",
-    } as Plotly.Data);
+    }, { ds: flag ? 1 : 0, role: "decor" }) as Plotly.Data;
     const shapes: Partial<Plotly.Shape>[] = [{
       type: "line", xref: "x", x0: ratio ? 1 : 0, x1: ratio ? 1 : 0, yref: "paper",
       y0: 0, y1: 1, line: { color: chrome.axis, width: 1 },
@@ -327,32 +304,34 @@ export function VolcanoPlot({ graph, result, titles, scheme }: PlotProps<MultiTO
         showarrow: false, font: { size: 11, color: chrome.muted },
         text: `largest flagged P = ${formatSig(10 ** -ymin)}` });
     }
-    draw([trace(pick(false), false), trace(flagged, true)], {
-      ...layout,
-      xaxis: { ...valueAxis(chrome, titles.x), type: ratio ? "log" : "linear" },
-      yaxis: { ...valueAxis(chrome, titles.y), rangemode: "tozero" },
-      shapes, annotations,
-      showlegend: true,
-      legend: { orientation: "h", x: 0, y: 1.02, yanchor: "bottom",
-        font: { color: chrome.ink, size: 12 } },
-      margin: { l: 64, r: 16, t: 36, b: 52 },
-    });
-  }, [result, vs.labels, dark, chrome, scheme, titles.x, titles.y, draw]);
+    return {
+      traces: [trace(pick(false), false), trace(flagged, true)],
+      layout: {
+        ...layout,
+        xaxis: { ...valueAxis(chrome, titles.x), type: ratio ? "log" : "linear" },
+        yaxis: { ...valueAxis(chrome, titles.y), rangemode: "tozero" },
+        shapes, annotations,
+        showlegend: true,
+        legend: { orientation: "h", x: 0, y: 1.02, yanchor: "bottom",
+          font: { color: chrome.ink, size: 12 } },
+        margin: { l: 64, r: 16, t: 36, b: 52 },
+      } as Partial<Plotly.Layout>,
+    };
+  }, [result, vs.labels, dark, scheme, titles.x, titles.y]);
+  const ctx = useMemo(() => ({ dark, scheme, datasets: ["Not flagged", "Flagged"] }),
+    [dark, scheme]);
   return (
-    <>
-      {set && (
-        <OptionsShell>
-          <Field label="Label points">
-            <select value={vs.labels}
-              onChange={(e) => set({ labels: e.target.value as VolcanoSettings["labels"] })}>
-              <option value="flagged">Flagged rows</option>
-              <option value="all">Every row</option>
-              <option value="none">None</option>
-            </select>
-          </Field>
-        </OptionsShell>
-      )}
-      <div className="plot" ref={ref} />
-    </>
+    <FormattedPlot traces={fig.traces} layout={fig.layout} format={format}
+      onFormatChange={onFormatChange} ctx={ctx} filename="volcano-plot" />
+  );
+}
+
+export function VolcanoOptions({ graph }: GraphOptionsProps) {
+  const [vs, set] = useGraphSetting(graph, "volcano", normalizeVolcano);
+  if (!set) return null;
+  return (
+    <OptSelect label="Label points" value={vs.labels}
+      options={[["flagged", "Flagged rows"], ["all", "Every row"], ["none", "None"]]}
+      onChange={(labels) => set({ labels })} />
   );
 }

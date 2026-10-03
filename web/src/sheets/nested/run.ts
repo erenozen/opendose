@@ -8,6 +8,7 @@
 // "nested_ttest" options: ci_level, swap, negative_variance.
 // "nested_anova" options: comparisons, control_index, ci_level,
 // negative_variance.
+import { extractComparisons, type ComparisonSet } from "../../graph/results.ts";
 import { parseCell, withExclusionsBlanked } from "../../project/table.ts";
 import type { DataTableModel } from "../../project/types.ts";
 
@@ -193,4 +194,10 @@ export function runNestedAnova(engine: Engine, t: DataTableModel, o: NestedAnova
 
 export function nestedAutoTitles(t: DataTableModel) {
   return { x: "", y: t.yTitle || "Value" };
+}
+
+/** Comparisons of the nested ANOVA between groups (data sets), for the
+ *  brackets on the nested scatter graph. */
+export function nestedComparisons(result: unknown, table: DataTableModel): ComparisonSet | null {
+  return extractComparisons(result, table.datasets.map((_, g) => groupName(table, g)));
 }

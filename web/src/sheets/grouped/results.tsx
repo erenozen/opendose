@@ -1,8 +1,9 @@
 // Results sheets of the grouped-table analyses.
 import { useProject } from "../../app/context";
+import { useLinkedTable } from "../../app/linkedTable";
 import StatsResults from "../../components/StatsResults";
-import { newId } from "../../project/ids";
-import { addSheets, findSheet, makeDataSheet, uniqueName } from "../../project/ops";
+import { findSheet } from "../../project/ops";
+import type { DataTableModel, ResultsSheet } from "../../project/types";
 import { formatSig } from "../../types";
 import type { ResultsProps } from "../types";
 import {
@@ -451,29 +452,32 @@ function RowTable({ rows, titles, result }: { rows: R[]; titles: string[]; resul
   );
 }
 
-function CopyAsTable({ result, sheetParent }: { result: R; sheetParent: string }) {
-  const { apply, select, project } = useProject();
-  const parent = findSheet(project, sheetParent);
-  const parentName = parent?.name ?? "table";
+function LinkedTableRow({ result, sheet, table }: { result: R; sheet: ResultsSheet;
+  table: DataTableModel }) {
+  const { project, select } = useProject();
+  const linked = useLinkedTable(sheet.id);
+  const parentName = findSheet(project, sheet.parentId)?.name ?? "table";
   return (
     <div className="copy-table-row">
-      <button type="button" className="grouped-btn" onClick={() => {
-        const id = newId();
-        apply((p) => addSheets(p, [makeDataSheet(id,
-          uniqueName(p, `${CALC_TITLE[result.calculate] ?? "Row values"} of ${parentName}`),
-          rowMeansTable(result, parentName))]));
-        select(id);
-      }}>
-        Copy as a new data table
+      {linked.outputs.map((d) => (
+        <button key={d.id} type="button" className="grouped-btn" onClick={() => select(d.id)}>
+          Open “{d.name}”
+        </button>
+      ))}
+      <button type="button" className="grouped-btn" onClick={() => linked.create(
+        rowMeansTable(result, table.yTitle.trim()),
+        `${CALC_TITLE[result.calculate] ?? "Row values"} of ${parentName}`)}>
+        Make a linked data table
       </button>
       <span className="hint-block">
-        Makes an independent grouped table you can graph or analyze further.
+        A grouped table of these values that follows the data and these
+        settings; unlink it to edit it as ordinary data.
       </span>
     </div>
   );
 }
 
-export function RowMeansResults({ result, sheet }: ResultsProps<RowMeansOptions, R>) {
+export function RowMeansResults({ result, sheet, table }: ResultsProps<RowMeansOptions, R>) {
   if (!result) return null;
   if (result.error) return <ErrorCard result={result} />;
   const titles = result.row_titles as string[];
@@ -493,7 +497,7 @@ export function RowMeansResults({ result, sheet }: ResultsProps<RowMeansOptions,
           </div>
         ))
         : <RowTable rows={result.rows} titles={titles} result={result} />}
-      <CopyAsTable result={result} sheetParent={sheet.parentId} />
+      <LinkedTableRow result={result} sheet={sheet} table={table} />
     </div>
   );
 }

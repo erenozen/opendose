@@ -1,7 +1,7 @@
 // Results sheets and methods text for the multiple-variables analyses.
 import { useState, type ReactNode } from "react";
 import { useProject } from "../../app/context";
-import { useAddDerivedTable } from "../../app/derivedTable";
+import { useLinkedTable } from "../../app/linkedTable";
 import { findSheet } from "../../project/ops";
 import { formatSig } from "../../types";
 import type { ResultsProps } from "../types";
@@ -13,6 +13,7 @@ import type {
   Coefficient, CorrelationResult, DescriptiveResult, LogisticResult, PcaResult,
   RearrangeResult, RegressionResult,
 } from "./run";
+import { pStars } from "../../graph/significance";
 
 /* ------------------------------------------------------------ formatting */
 
@@ -24,12 +25,8 @@ function fmtP(p: number | null | undefined): string {
 }
 
 function summaryStars(p: number | null | undefined): string {
-  if (typeof p !== "number") return "";
-  if (p < 0.0001) return "****";
-  if (p < 0.001) return "***";
-  if (p < 0.01) return "**";
-  if (p < 0.05) return "*";
-  return "ns";
+  // P ≤ 0.05 *, ≤ 0.01 **, ≤ 0.001 ***, ≤ 0.0001 ****, as on graph brackets.
+  return typeof p === "number" && Number.isFinite(p) ? pStars(p) : "";
 }
 
 const pct = (v: number | null | undefined) => (typeof v === "number" ? `${formatSig(v, 3)}%` : "n/a");
@@ -478,15 +475,15 @@ const PREVIEW = 12;
 
 export function RearrangeResults({ sheet, table, options, result }:
   ResultsProps<RearrangeOptions, RearrangeResult>) {
-  const { project } = useProject();
-  const addTable = useAddDerivedTable();
+  const { project, select } = useProject();
+  const linked = useLinkedTable(sheet.id);
   if (!result) return null;
   if (result.error) return <Problem result={result} />;
   const source = findSheet(project, sheet.parentId);
   const sourceName = source?.name ?? "data";
   const name = options.tableName.trim() || `${sourceName} (rearranged)`;
   const nOut = result.rows.length;
-  const make = () => addTable(sheet.parentId, tableFromRearranged(table, result), name);
+  const make = () => linked.create(tableFromRearranged(table, result), name);
   const cell = (v: unknown) => (v === null || v === undefined ? "" : typeof v === "number" ? f(v) : String(v));
   return (
     <Card title="Extract and rearrange">
@@ -495,14 +492,20 @@ export function RearrangeResults({ sheet, table, options, result }:
         {result.variables.length === 1 ? "" : "s"} go into the new table.
       </p>
       <div className="mv-actions">
-        <button type="button" className="btn-primary" disabled={!nOut || !result.variables.length}
-          onClick={make}>
+        {linked.outputs.map((d) => (
+          <button key={d.id} type="button" onClick={() => select(d.id)}>
+            Open “{d.name}”
+          </button>
+        ))}
+        <button type="button" className={linked.outputs.length ? undefined : "btn-primary"}
+          disabled={!nOut || !result.variables.length} onClick={make}>
           Create data table “{name}”
         </button>
       </div>
       <p className="hint-block">
-        The new table is a copy: later edits here do not change it. Create it
-        again after editing to get an updated copy.
+        The new table is linked: it follows edits to this table and to these
+        settings. Unlink it (from its note) to keep its values as ordinary,
+        editable data.
       </p>
       {nOut > 0 && (
         <>

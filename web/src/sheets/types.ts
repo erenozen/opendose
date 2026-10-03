@@ -3,6 +3,7 @@
 import type { ComponentType } from "react";
 import type { EngineBridge } from "../lib/engine";
 import type { FormatFeatures, GraphFormat } from "../graph/format";
+import type { ComparisonSet } from "../graph/results";
 import type { SchemeId } from "../lib/palette";
 import type { NewTableInit } from "../project/table";
 import type {
@@ -62,6 +63,17 @@ export interface PlotProps<O = unknown, R = unknown> {
   onFormatChange?: (f: GraphFormat) => void;
 }
 
+/** A graph kind's own options (which variable on X, slice labels, error
+ *  bars, ...), shown in the graph's Settings panel under "Graph options".
+ *  They live on the graph sheet (`graph.settings.<key>`); frozen graphs do
+ *  not show the panel. */
+export interface GraphOptionsProps<O = unknown, R = unknown> {
+  graph: GraphSheet;
+  table: DataTableModel;     // exclusions already blanked
+  options: O | null;
+  result: R | null;
+}
+
 export interface AnalysisContext {
   table: DataTableModel;
   prefs: ProjectPrefs;
@@ -94,6 +106,10 @@ export interface AnalysisDef<O = unknown, R = unknown> {
   derivedTable?: (result: R, source: DataTableModel, options: O) => DataTableModel | null;
   /** Name of that derived table for a source called `tableName`. */
   derivedName?: (tableName: string) => string;
+  /** The derived table is made on request (a button in the results, e.g.
+   *  "Create data table") rather than whenever the analysis is added. It
+   *  is linked and kept in sync the same way once it exists. */
+  derivedOnDemand?: boolean;
 }
 
 export interface GraphKindDef<O = unknown, R = unknown> {
@@ -109,6 +125,21 @@ export interface GraphKindDef<O = unknown, R = unknown> {
   PlotPanel?: ComponentType<PlotProps<O, R>>;
   /** Which Format Graph controls apply (default: points, lines, error bars). */
   formatFeatures?: FormatFeatures;
+  /** Graph options of this kind, shown in the Settings panel. */
+  OptionsPanel?: ComponentType<GraphOptionsProps<O, R>>;
+  /** Pairwise comparisons this graph can draw as brackets, when they are
+   *  not one-group-per-data-set (grouped graphs). Default: read from the
+   *  result for `formatFeatures.categorical` graphs. */
+  comparisons?: (result: R | null, table: DataTableModel, options: O | null) =>
+    ComparisonSet | null;
+  /** What Format graph lists as "data sets" (index = key in
+   *  GraphFormat.datasets), when it is not the table's data sets: the
+   *  parts of a pie, the rows of a grouped graph clustered by data set,
+   *  the levels of a colour-by variable. Must match the plot's tags. */
+  formatDatasets?: (table: DataTableModel, graph: GraphSheet, options: O | null) => string[];
+  /** Name of a new graph sheet for a table called `tableName` (default
+   *  "Graph of …"). */
+  sheetName?: (tableName: string) => string;
 }
 
 export interface TableTypeDef {

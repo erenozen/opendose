@@ -48,6 +48,24 @@ const navRow = (name) => page
   .getByRole("treeitem", { name, exact: true }).first()
   .locator(":scope > .nav-row");
 const tmp = mkdtempSync(join(tmpdir(), "opendose-e2e-"));
+// The graph card's Settings panel (graph options, colours, titles, format
+// dialogs); opening it twice closes it.
+const graphSettings = async () => {
+  await page.locator(".plot-card").getByRole("button", { name: "Settings" }).click();
+  return page.getByRole("dialog", { name: "Graph settings" });
+};
+const closeGraphSettings = () => page.keyboard.press("Escape");
+// Panels load on first use (sheets/lazy.ts): wait for a control to appear.
+const appears = (locator, timeout = 15000) => locator.first().waitFor({ timeout })
+  .then(() => true, () => false);
+const plotLayoutOf = () => page.evaluate(() => {
+  const l = document.querySelector(".plot-card .plot")?.layout ?? {};
+  return {
+    title: l.title?.text ?? "",
+    brackets: (l.annotations ?? []).filter((a) => a.name === "bracket-label")
+      .map((a) => `${a.xref}:${a.text}`),
+  };
+});
 page.on("pageerror", (e) => errors.push(`pageerror: ${e.message}`));
 page.on("console", (m) => {
   if (m.type() === "error") errors.push(`console: ${m.text()}`);
@@ -153,6 +171,27 @@ await page.waitForFunction(
   () => expect("fraction of total: Wilson/Brown CI 55.17% to 62.44%", false));
 expect("pie chart draws three slices",
   await page.locator(".plot .slice").count() === 3);
+{
+  const pop = await graphSettings();
+  expect("pie: graph options live in the Settings panel",
+    await appears(pop.getByRole("group", { name: "Graph options" }).getByLabel("Slice labels"))
+    && await page.locator(".graph-opts, .graph-options, .mv-graph-options").count() === 0);
+  expect("pie: no Format axes (no axes to format)",
+    await pop.getByRole("button", { name: "Format axes…" }).count() === 0);
+  await pop.getByRole("button", { name: "Format graph…" }).click();
+  const fg = page.locator("dialog.fmt-dialog");
+  await fg.getByLabel("Data set to format").selectOption({ label: "S" });
+  await fg.getByLabel("Show on graph").uncheck();
+  await fg.getByRole("tab", { name: "Whole graph" }).click();
+  await fg.getByLabel("Graph title", { exact: true }).fill("Cell cycle");
+  await fg.getByRole("button", { name: "OK" }).click();
+  await page.waitForTimeout(400);
+  expect("pie: Format graph sets the title and hides a part",
+    (await plotLayoutOf()).title === "Cell cycle" && await page.locator(".plot .slice").count() === 2,
+    (await plotLayoutOf()).title);
+  await page.getByRole("button", { name: "Undo" }).click();
+  await page.waitForTimeout(300);
+}
 await page.locator(".graph-select").selectOption("pow_donut");
 await page.waitForTimeout(400);
 await page.locator(".plot .slice path").first().click({ force: true });
@@ -185,6 +224,19 @@ expect("nested ANOVA: F(2, 6) = 11.24, P = 0.009359",
   nestedText.includes("F(2, 6) = 11.24") && nestedText.includes("0.009359"));
 expect("nested scatter draws every value",
   await page.locator(".plot .scatterlayer .point").count() >= 36);
+{
+  const pop = await graphSettings();
+  await appears(pop.getByLabel("Plot subcolumn means only"));
+  const box = await pop.getByLabel("Plot subcolumn means only").boundingBox();
+  expect("graph-option checkboxes keep their size in the Settings panel",
+    !!box && box.width < 20, String(box?.width));
+  await pop.getByLabel("Plot subcolumn means only").check();
+  await page.waitForTimeout(400);
+  expect("nested: graph option in the Settings panel plots subcolumn means",
+    await page.locator(".plot .scatterlayer .point").count() < 36);
+  await pop.getByLabel("Plot subcolumn means only").uncheck();
+  await closeGraphSettings();
+}
 await page.getByRole("button", { name: "Analyze", exact: true }).click();
 await page.getByRole("menuitem", { name: /Nested t test/ }).click();
 await page.waitForSelector(".result-card h3:has-text('Nested t test')", { timeout: 30000 });
@@ -269,6 +321,27 @@ for (const kind of ["grouped_stacked", "grouped_separated", "grouped_box",
 }
 expect("heat map renders", await page.locator(".plot .heatmaplayer .hm").count() >= 1);
 await page.locator(".graph-select").selectOption("grouped_interleaved");
+// Šídák comparisons within each row become one bracket per row (day).
+await page.locator(".controls").getByRole("combobox", { name: /^Test/ }).selectOption("sidak");
+await page.waitForTimeout(800);
+{
+  const pop = await graphSettings();
+  expect("grouped: error bars are a graph option in the Settings panel",
+    await appears(pop.getByRole("group", { name: "Graph options" }).getByLabel("Error bars")));
+  const [popTop, headBottom] = await page.evaluate(() => [
+    document.querySelector(".settings-pop").getBoundingClientRect().top,
+    document.querySelector("header").getBoundingClientRect().bottom]);
+  expect("the Settings panel stays below the header (its top is reachable)",
+    popTop >= headBottom, `${popTop} vs ${headBottom}`);
+  await pop.getByRole("button", { name: "Pairwise comparisons…" }).click();
+  const cd = page.locator("dialog.fmt-dialog");
+  await cd.getByLabel("Show comparison brackets on the graph").check();
+  await cd.getByRole("button", { name: "OK" }).click();
+  await page.waitForTimeout(500);
+  const br = (await plotLayoutOf()).brackets;
+  expect("grouped bars: a bracket per row from the two-way comparisons",
+    br.length === 3 && br.every((b) => b.startsWith("x:")), br.join(" "));
+}
 
 // Multiple t tests, Welch + two-stage step-up (BKY), Q = 5%.
 // Welch P values per row (scipy.stats.ttest_ind(equal_var=False)):
@@ -364,6 +437,20 @@ expect(`three-way interaction F = ${nativeF3.toPrecision(4)} (native contrast)`,
 expect("three-way graph draws two panels",
   await page.locator(".plot .subplot.xy").count() >= 1
   && await page.locator(".plot .subplot.x2y").count() >= 1);
+await page.locator(".controls").getByRole("combobox", { name: /^Method/ }).selectOption("tukey");
+await page.locator(".controls").getByRole("combobox", { name: /^Compare/ }).selectOption("one_factor");
+await page.waitForTimeout(800);
+{
+  const pop = await graphSettings();
+  await pop.getByRole("button", { name: "Pairwise comparisons…" }).click();
+  const cd = page.locator("dialog.fmt-dialog");
+  await cd.getByLabel("Show comparison brackets on the graph").check();
+  await cd.getByRole("button", { name: "OK" }).click();
+  await page.waitForTimeout(500);
+  const br = (await plotLayoutOf()).brackets;
+  expect("three-way graph: brackets on both panels",
+    br.some((b) => b.startsWith("x:")) && br.some((b) => b.startsWith("x2:")), br.join(" "));
+}
 
 // --- v1 project file (single-table format) migrates into one family ---
 const V1 = join(tmp, "v1-project.json");
@@ -467,9 +554,21 @@ const rowText = async (label) => (await mvCard()
 expect("MV example: 30 observations with row titles",
   (await rowText("Number of values")).includes("30")
   && await page.locator(".data-table .row-label input[value='S30']").count() === 1);
-expect("MV graph of the data draws with its options",
-  await page.locator(".mv-graph-options").count() === 1
-  && await page.locator(".plot.js-plotly-plot").count() >= 1);
+{
+  const pop = await graphSettings();
+  expect("MV graph of the data draws, its options in the Settings panel",
+    await appears(pop.getByRole("group", { name: "Graph options" }).getByLabel("Color by"))
+    && await page.locator(".plot.js-plotly-plot").count() >= 1);
+  await pop.getByRole("button", { name: "Format graph…" }).click();
+  const fg = page.locator("dialog.fmt-dialog");
+  await fg.getByLabel("Data set to format").selectOption({ index: 0 });
+  await fg.getByLabel("Size (px)").fill("14");
+  await fg.getByRole("button", { name: "OK" }).click();
+  await page.waitForTimeout(400);
+  const size = await page.evaluate(() => document.querySelector(".plot-card .plot")
+    ?.data?.find((t) => t.meta?.odTag?.role === "points")?.marker?.size);
+  expect("MV XY graph: Format graph sets the symbol size", size === 14, String(size));
+}
 
 const mvAnalyze = async (label, heading) => {
   await page.getByRole("button", { name: "Analyze", exact: true }).click();
@@ -524,9 +623,12 @@ await page.waitForFunction(() => document.querySelector(".mv-results")?.textCont
   ?.includes("15 of 30 rows"), { timeout: 30000 });
 await page.getByRole("button", { name: /Create data table/ }).click();
 await page.waitForSelector(".mv-results h3:has-text('Descriptive statistics')", { timeout: 60000 });
-expect("extract & rearrange creates a new 15-row table",
-  await navRow("Dose study (rearranged)").count() === 1
-  && (await mvCard().innerText()).includes("15 rows"));
+expect("extract & rearrange creates a new, linked 15-row table",
+  await navRow("Dose study (rearranged) (linked)").count() === 1
+  && (await mvCard().innerText()).includes("15 rows")
+  && await page.locator(".origin-note").count() === 1);
+expect("a linked table says it is read-only instead of the paste hint",
+  (await page.locator(".table-actions .hint").innerText()).startsWith("Read-only: computed from"));
 
 // --- chains of analyses: Transform produces a linked, derived table ---
 // The XY example data is the reference table (X from 1e-9 M).
@@ -613,6 +715,8 @@ console.log("Monte Carlo:", hitsLine.split("\n").find((l) => l.startsWith("A hit
 expect("Monte Carlo results show 20 repeats", mcN.trim() === "20", mcN);
 expect("Monte Carlo histogram is drawn",
   await page.locator(".plot .bars path, .plot .barlayer path").count() > 0);
+expect("Monte Carlo graph sheet is named after the histogram",
+  await navRow("Monte Carlo histogram of Simulated curve").count() === 1);
 // --- table editing, import / export, summary formats, Data Inspector ---
 const REF_X = ["1e-9", "3.162e-9", "1e-8", "3.162e-8", "1e-7", "3.162e-7",
   "1e-6", "3.162e-6", "1e-5"];

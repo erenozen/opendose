@@ -1,16 +1,24 @@
 // Parts-of-whole graphs: pie, donut, stacked bars (absolute or 100%).
 // They plot the data table itself; options (which data set, slice labels,
-// legend, starting angle) live in the graph sheet's settings under "pow".
-import "../common/sheetKit.css";
-import { useEffect, useRef, useState } from "react";
-import Plotly from "plotly.js-dist-min";
+// legend, starting angle) live in the graph sheet's settings under "pow"
+// and are edited from the graph's Settings panel (PowOptions). Format
+// graph treats each part (row) as a "data set": colour, legend text,
+// show / hide and order per part; title, legend, fonts and annotations
+// for the whole graph.
+import { useMemo } from "react";
+import type Plotly from "plotly.js-dist-min";
+import { OptCheck, OptInput, OptSelect } from "../../components/GraphOptionControls";
 import {
-  CHROME_DARK, CHROME_LIGHT, PLOT_FONT, SCHEMES, isDarkMode, onThemeChange,
-  seriesColor, type SchemeId,
+  datasetFmt, EMPTY_FORMAT, plottedOrder, rgba, tagTrace, type GraphFormat,
+} from "../../graph";
+import FormattedPlot from "../../graph/FormattedPlot";
+import { useDarkMode } from "../../graph/useDarkMode";
+import {
+  CHROME_DARK, CHROME_LIGHT, PLOT_FONT, SCHEMES, seriesColor, type SchemeId,
 } from "../../lib/palette";
 import { formatSig } from "../../types";
 import { asRecord, useGraphOptions } from "../common/graphOptions";
-import type { PlotProps } from "../types";
+import type { GraphOptionsProps, PlotProps } from "../types";
 import {
   GRAPH_DONUT, GRAPH_PIE, GRAPH_STACKED100, columnValues, datasetName, partNames,
 } from "./run";
@@ -44,53 +52,40 @@ function sanitize(raw: unknown): PowGraphOptions {
 // first slice in black and white), so neighbouring slices never look alike.
 const PATTERNS = ["", "/", "\\", "x", ".", "-", "|", "+"];
 
-function partStyle(i: number, dark: boolean, scheme: SchemeId) {
+function partStyle(i: number, dark: boolean, scheme: SchemeId, format: GraphFormat) {
   const s = SCHEMES[scheme] ?? SCHEMES.default;
   const n = (dark ? s.dark : s.light).length;
-  const color = seriesColor(i, dark, scheme);
-  const shape = n === 1 ? PATTERNS[i % PATTERNS.length]
-    : PATTERNS[Math.floor(i / n) % PATTERNS.length];
+  const f = datasetFmt(format, i);
+  const base = f.color ?? seriesColor(i, dark, scheme);
+  const color = f.fillAlpha != null ? rgba(base, f.fillAlpha) : base;
+  const shape = f.pattern ?? (n === 1 ? PATTERNS[i % PATTERNS.length]
+    : PATTERNS[Math.floor(i / n) % PATTERNS.length]);
   return { color, shape };
 }
 
-export function PowPlot({ graph, table, titles, scheme }: PlotProps) {
-  const el = useRef<HTMLDivElement>(null);
-  const [dark, setDark] = useState(isDarkMode());
-  const [opts, setOpts] = useGraphOptions(graph, "pow", sanitize);
+export function PowPlot({ graph, table, titles, scheme, format, onFormatChange }: PlotProps) {
+  const dark = useDarkMode();
+  const opts = sanitize(graph.settings.pow);
   const kind = graph.graphType;
   const isPie = kind === GRAPH_PIE || kind === GRAPH_DONUT;
   const dataset = Math.min(opts.dataset, Math.max(0, table.datasets.length - 1));
+  const fmt = format ?? EMPTY_FORMAT;
+  // Format graph's legend choice wins over the quick option.
+  const legendOn = fmt.legend?.show === "hide" ? false
+    : fmt.legend?.show === "show" ? true : opts.legend;
 
-  useEffect(() => onThemeChange(() => setDark(isDarkMode())), []);
-
-  // Redraw when the island or column is resized (splitter drag, the card's
-  // resize handle); Plotly's own listener only covers the window.
-  useEffect(() => {
-    const div = el.current;
-    if (!div) return;
-    let raf = 0;
-    const ro = new ResizeObserver(() => {
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(() => {
-        if ((div as unknown as { _fullLayout?: unknown })._fullLayout) {
-          Plotly.Plots.resize(div);
-        }
-      });
-    });
-    ro.observe(div);
-    return () => { ro.disconnect(); cancelAnimationFrame(raf); };
-  }, []);
-
-  useEffect(() => {
-    if (!el.current) return;
+  const fig = useMemo(() => {
     const chrome = dark ? CHROME_DARK : CHROME_LIGHT;
     const names = partNames(table);
+    const label = (r: number) => datasetFmt(fmt, r).legend ?? names[r];
+    // Parts in plotting order, hidden ones left out.
+    const order = plottedOrder(fmt, names.length);
     const traces: Plotly.Data[] = [];
     const layout: Partial<Plotly.Layout> = {
       paper_bgcolor: chrome.surface,
       plot_bgcolor: chrome.surface,
       font: { family: PLOT_FONT, color: chrome.inkSecondary, size: 13 },
-      showlegend: opts.legend,
+      showlegend: legendOn,
       legend: { font: { color: chrome.ink }, bgcolor: "rgba(0,0,0,0)" },
       uirevision: "keep",
     };
@@ -98,20 +93,20 @@ export function PowPlot({ graph, table, titles, scheme }: PlotProps) {
 
     if (isPie) {
       const values = columnValues(table, dataset);
-      const idx = values.map((v, r) => (v !== null && v > 0 ? r : -1)).filter((r) => r >= 0);
+      const idx = order.filter((r) => { const v = values[r]; return v !== null && v > 0; });
       empty = idx.length === 0;
       const total = idx.reduce((a, r) => a + (values[r] as number), 0);
-      const styles = idx.map((r) => partStyle(r, dark, scheme));
+      const styles = idx.map((r) => partStyle(r, dark, scheme, fmt));
       const info: Record<SliceLabels, string> = {
         percent: "percent", value: "value", both: "value+percent", none: "none",
       };
       let textinfo = info[opts.labels];
-      if (!opts.legend && textinfo !== "none") textinfo = `label+${textinfo}`;
-      else if (!opts.legend) textinfo = "label";
+      if (!legendOn && textinfo !== "none") textinfo = `label+${textinfo}`;
+      else if (!legendOn) textinfo = "label";
       const title = titles.y.trim() || datasetName(table, dataset);
       traces.push({
         type: "pie",
-        labels: idx.map((r) => names[r]),
+        labels: idx.map(label),
         values: idx.map((r) => values[r] as number),
         hole: kind === GRAPH_DONUT ? 0.5 : 0,
         sort: false,
@@ -120,7 +115,8 @@ export function PowPlot({ graph, table, titles, scheme }: PlotProps) {
         textinfo,
         textposition: "outside",
         automargin: true,
-        outsidetextfont: { color: chrome.ink, family: PLOT_FONT, size: 13 },
+        // Family and size follow the layout font (Format graph > Fonts).
+        outsidetextfont: { color: chrome.ink },
         marker: {
           colors: styles.map((s) => s.color),
           line: { color: chrome.surface, width: 2 },
@@ -136,14 +132,14 @@ export function PowPlot({ graph, table, titles, scheme }: PlotProps) {
       } as unknown as Plotly.Data);
       layout.margin = { l: 24, r: 24, t: 44, b: 24 };
       layout.title = {
-        text: title, font: { color: chrome.ink, size: 15, family: PLOT_FONT },
+        text: title, font: { color: chrome.ink, size: fmt.font?.titleSize ?? 15 },
         x: 0.5, xanchor: "center", y: 0.98, yanchor: "top",
       } as Plotly.Layout["title"];
       layout.legend = { ...layout.legend, x: 1, xanchor: "left", y: 0.5, yanchor: "middle" };
       if (kind === GRAPH_DONUT && !empty) {
         layout.annotations = [{
           text: `Total<br><b>${formatSig(total)}</b>`, showarrow: false,
-          font: { color: chrome.ink, size: 14, family: PLOT_FONT },
+          font: { color: chrome.ink, size: 14 },
           x: 0.5, y: 0.5, xref: "paper", yref: "paper",
         }];
       }
@@ -165,8 +161,9 @@ export function PowPlot({ graph, table, titles, scheme }: PlotProps) {
             : opts.labels === "percent" ? p
               : opts.labels === "both" ? `${formatSig(v)} (${p})` : "";
         });
-        const st = partStyle(r, dark, scheme);
-        traces.push({
+        const st = partStyle(r, dark, scheme, fmt);
+        // Hidden parts, order, legend text, borders and patterns: applyFormat.
+        traces.push(tagTrace({
           type: "bar",
           name,
           x: xs,
@@ -181,7 +178,7 @@ export function PowPlot({ graph, table, titles, scheme }: PlotProps) {
             line: { color: chrome.surface, width: 1 },
             pattern: { shape: st.shape, fgcolor: chrome.surface, bgcolor: st.color, solidity: 0.35 },
           },
-        } as unknown as Plotly.Data);
+        }, { ds: r, role: "bar" }) as unknown as Plotly.Data);
       });
       layout.barmode = "stack";
       layout.bargap = 0.45;
@@ -209,56 +206,46 @@ export function PowPlot({ graph, table, titles, scheme }: PlotProps) {
         layout.yaxis = { ...layout.yaxis, visible: false };
       }
     }
-    Plotly.react(el.current, traces, layout, {
-      responsive: true, displaylogo: false,
-      toImageButtonOptions: { format: "svg", filename: "parts-of-whole" },
-    });
-  }, [table, dark, scheme, titles.y, opts.labels, opts.legend, opts.rotation,
-    dataset, kind, isPie]);
+    return { traces, layout, names };
+  }, [table, dark, scheme, titles.y, opts.labels, opts.rotation, legendOn, dataset, kind,
+    isPie, fmt]);
 
+  const ctx = useMemo(() => ({ dark, scheme, datasets: fig.names }), [dark, scheme, fig.names]);
+  return (
+    <FormattedPlot traces={fig.traces} layout={fig.layout} format={format}
+      onFormatChange={onFormatChange} ctx={ctx} filename="parts-of-whole"
+      scrollZoom={false} />
+  );
+}
+
+/** Graph options in the Settings panel: data set, labels, legend, angle. */
+export function PowOptions({ graph, table }: GraphOptionsProps) {
+  const [opts, setOpts] = useGraphOptions(graph, "pow", sanitize);
+  const isPie = graph.graphType === GRAPH_PIE || graph.graphType === GRAPH_DONUT;
+  const dataset = Math.min(opts.dataset, Math.max(0, table.datasets.length - 1));
   return (
     <>
-      {!graph.frozen && (
-        <div className="graph-opts" role="group" aria-label="Graph options">
-          {isPie && table.datasets.length > 1 && (
-            <label>
-              Data set
-              <select value={dataset} onChange={(e) => setOpts({ dataset: Number(e.target.value) })}>
-                {table.datasets.map((_, d) => (
-                  <option key={d} value={d}>{datasetName(table, d)}</option>
-                ))}
-              </select>
-            </label>
-          )}
-          <label>
-            {isPie ? "Slice labels" : "Labels"}
-            <select value={opts.labels}
-              onChange={(e) => setOpts({ labels: e.target.value as SliceLabels })}>
-              {(Object.keys(LABELS) as SliceLabels[]).map((k) => (
-                <option key={k} value={k}>{LABELS[k]}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            <input type="checkbox" checked={opts.legend}
-              onChange={(e) => setOpts({ legend: e.target.checked })} />
-            Legend
-          </label>
-          {isPie && (
-            <label>
-              Start angle
-              <input type="number" min={0} max={345} step={15} value={opts.rotation}
-                aria-label="Start angle in degrees, clockwise from 12 o'clock"
-                onChange={(e) => {
-                  const v = Number(e.target.value);
-                  if (Number.isFinite(v)) setOpts({ rotation: ((Math.round(v) % 360) + 360) % 360 });
-                }} />
-              °
-            </label>
-          )}
-        </div>
+      {isPie && table.datasets.length > 1 && (
+        <OptSelect label="Data set" value={String(dataset)}
+          options={table.datasets.map((_, d) => [String(d), datasetName(table, d)] as const)}
+          onChange={(v) => setOpts({ dataset: Number(v) })} />
       )}
-      <div className="plot" ref={el} />
+      <OptSelect label={isPie ? "Slice labels" : "Labels"} value={opts.labels}
+        options={(Object.keys(LABELS) as SliceLabels[]).map((k) => [k, LABELS[k]] as const)}
+        onChange={(labels) => setOpts({ labels })} />
+      {isPie && (
+        <OptInput label="Start angle" type="number" min={0} max={345} step={15}
+          value={opts.rotation} suffix="°"
+          ariaLabel="Start angle in degrees, clockwise from 12 o'clock"
+          onChange={(raw) => {
+            const v = Number(raw);
+            if (raw !== "" && Number.isFinite(v)) {
+              setOpts({ rotation: ((Math.round(v) % 360) + 360) % 360 });
+            }
+          }} />
+      )}
+      <OptCheck label="Legend" checked={opts.legend}
+        onChange={(legend) => setOpts({ legend })} />
     </>
   );
 }

@@ -4,12 +4,9 @@ import { defineAnalysis, defineGraph, type TableTypeDef } from "../types";
 import {
   NestedAnovaControls, NestedMethods, NestedResults, NestedTControls,
 } from "./panels";
-import { NestedPlot } from "./plot";
+import { NestedOptions, NestedPlot } from "./plot";
 import {
-  ANALYSIS_NESTED_ANOVA, ANALYSIS_NESTED_T, DEFAULT_NESTED_ANOVA,
-  DEFAULT_NESTED_T, GRAPH_NESTED, nestedAutoTitles, normalizeNestedAnova,
-  normalizeNestedT, runNestedAnova, runNestedT,
-  type NestedAnovaOptions, type NestedTOptions,
+  ANALYSIS_NESTED_ANOVA, ANALYSIS_NESTED_T, DEFAULT_NESTED_ANOVA, DEFAULT_NESTED_T, GRAPH_NESTED, type NestedAnovaOptions, nestedAutoTitles, nestedComparisons, type NestedTOptions, normalizeNestedAnova, normalizeNestedT, runNestedAnova, runNestedT,
 } from "./run";
 
 export const nestedAnovaAnalysis = defineAnalysis<NestedAnovaOptions, Record<string, unknown>>({
@@ -53,6 +50,9 @@ export const nestedGraph = defineGraph({
   showXTitle: false,
   exportName: "nested",
   PlotPanel: NestedPlot,
+  OptionsPanel: NestedOptions,
+  comparisons: nestedComparisons,
+  formatFeatures: { points: true, errorBars: true, categoryX: true },
 });
 
 // Synthetic weight-gain data: three treatments, three herds per treatment,

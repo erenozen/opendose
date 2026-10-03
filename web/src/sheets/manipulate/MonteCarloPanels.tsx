@@ -1,18 +1,14 @@
 // Monte Carlo analysis: settings with a chunked, cancellable run; the
-// tabulated summary; methods text; and a histogram graph.
+// tabulated summary and methods text. The graph is MonteCarloHistogram.
 import { useEffect, useMemo, useRef, useState } from "react";
-import Plotly from "plotly.js-dist-min";
 import { useProject } from "../../app/context";
 import { getEngine } from "../../lib/engine";
-import {
-  CHROME_DARK, CHROME_LIGHT, isDarkMode, onThemeChange, PLOT_FONT, seriesStyle,
-} from "../../lib/palette";
 import { ANALYSIS_NONLIN } from "../../project/builtin";
 import { findSheet, familyChildren } from "../../project/ops";
 import type { DataSheet, DataTableModel, ResultsSheet } from "../../project/types";
 import type { OptionsState } from "../../types";
 import { DEFAULT_XY_OPTIONS, formatSig } from "../../types";
-import type { ControlsProps, PlotProps, ResultsProps } from "../types";
+import type { ControlsProps, ResultsProps } from "../types";
 import { MethodsCard } from "./panels";
 import { SimFields } from "./SimulateForms";
 import {
@@ -401,58 +397,6 @@ export function MonteCarloMethods({ result }: ResultsProps<MonteCarloOptions, Mc
   const text = `${sim} The simulation and the ${r.analysisLabel.toLowerCase()} were repeated `
     + `${r.nRepeats} times (Monte Carlo, random seed ${r.seed}), tabulating ${r.labels.join(", ")}.${hits}`;
   return <MethodsCard text={text} />;
-}
-
-export function HistogramPlot({ result, options, titles, scheme }:
-  PlotProps<MonteCarloOptions, McOutput | null>) {
-  const el = useRef<HTMLDivElement>(null);
-  const [dark, setDark] = useState(isDarkMode());
-  useEffect(() => onThemeChange(() => setDark(isDarkMode())), []);
-  const label = result ? (options?.histogram && result.labels.includes(options.histogram)
-    ? options.histogram : result.labels[0]) : "";
-  useEffect(() => {
-    const div = el.current;
-    if (!div) return;
-    const chrome = dark ? CHROME_DARK : CHROME_LIGHT;
-    const vals = (result?.values[label] ?? []).filter((v): v is number => v !== null);
-    const { color } = seriesStyle(0, dark, scheme);
-    const truth = options?.hit.kind === "contains" ? Number(options.hit.truth) : NaN;
-    const shapes: Partial<Plotly.Shape>[] = [];
-    // The true value, on the histogram of the estimate (not of its limits).
-    if (options?.hit.kind === "contains" && Number.isFinite(truth)
-      && label !== options.hit.lower && label !== options.hit.upper) {
-      shapes.push({ type: "line", x0: truth, x1: truth, yref: "paper", y0: 0, y1: 1,
-        line: { color: chrome.ink, width: 1.5, dash: "dash" } });
-    }
-    Plotly.react(div, vals.length ? [{
-      x: vals, type: "histogram", marker: { color: color + "99", line: { color, width: 1 } },
-      hovertemplate: "%{x}: %{y} repeats<extra></extra>", name: label,
-    } as Plotly.Data] : [], {
-      paper_bgcolor: chrome.surface, plot_bgcolor: chrome.surface,
-      font: { family: PLOT_FONT, color: chrome.inkSecondary, size: 13 },
-      margin: { l: 60, r: 16, t: 12, b: 48 },
-      bargap: 0.04,
-      shapes,
-      xaxis: { title: { text: titles.x || label }, gridcolor: chrome.grid, zeroline: false,
-        linecolor: chrome.axis, tickcolor: chrome.axis, tickfont: { color: chrome.muted } },
-      yaxis: { title: { text: titles.y }, gridcolor: chrome.grid, zeroline: false,
-        linecolor: chrome.axis, tickcolor: chrome.axis, tickfont: { color: chrome.muted } },
-      annotations: vals.length ? [] : [{ text: "Run the simulations to see the distribution",
-        showarrow: false, xref: "paper", yref: "paper", x: 0.5, y: 0.5,
-        font: { color: chrome.muted } }],
-    }, { responsive: true, displaylogo: false,
-      toImageButtonOptions: { format: "svg", filename: "monte-carlo" } });
-  }, [result, label, dark, scheme, titles, options]);
-  useEffect(() => {
-    const div = el.current;
-    if (!div) return;
-    const ro = new ResizeObserver(() => {
-      if ((div as unknown as { _fullLayout?: unknown })._fullLayout) Plotly.Plots.resize(div);
-    });
-    ro.observe(div);
-    return () => ro.disconnect();
-  }, []);
-  return <div className="plot" ref={el} />;
 }
 
 export type { Tabulated };

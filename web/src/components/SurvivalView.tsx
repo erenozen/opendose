@@ -51,7 +51,9 @@ export function SurvivalPlot({
     const ro = new ResizeObserver(() => {
       cancelAnimationFrame(raf);
       raf = requestAnimationFrame(() => {
-        if ((div as unknown as { _fullLayout?: unknown })._fullLayout) {
+        // Not while hidden (a Suspense fallback shows): Plotly refuses.
+        if ((div as unknown as { _fullLayout?: unknown })._fullLayout
+          && div.getClientRects().length) {
           Plotly.Plots.resize(div);
         }
       });

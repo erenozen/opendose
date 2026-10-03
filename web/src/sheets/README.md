@@ -93,6 +93,7 @@ interface AnalysisDef<O, R> {
   ControlsPanel?: ComponentType<ControlsProps<O>>;
   ResultsPanel?: ComponentType<ResultsProps<O, R>>;
   MethodsPanel?: ComponentType<ResultsProps<O, R>>;
+  derivedTable?, derivedName?, derivedOnDemand?   // table-producing (below)
 }
 
 interface GraphKindDef<O, R> {
@@ -104,6 +105,12 @@ interface GraphKindDef<O, R> {
   showXTitle?: boolean;
   exportName: string;
   PlotPanel?: ComponentType<PlotProps<O, R>>;
+  formatFeatures?: FormatFeatures;     // which Format graph controls apply
+  OptionsPanel?: ComponentType<GraphOptionsProps<O, R>>;  // "Graph options"
+  formatDatasets?: (table, graph, options) => string[];   // what Format graph
+                                       // calls data sets, if not the table's
+  comparisons?: (result, table, options) => ComparisonSet | null;  // brackets
+  sheetName?: (tableName: string) => string;   // default "Graph of …"
 }
 ```
 
@@ -115,28 +122,37 @@ Props the shell passes (see `types.ts` for the full shapes):
 - `ControlsProps { sheet, table, options, onChange(options), readOnly }`
 - `ResultsProps { sheet, table, options, result }` (`result` is null until
   the first run finishes; keep showing nothing rather than a spinner)
-- `PlotProps { graph, table, options, result, titles, scheme }`: render
-  one `<div className="plot">` (Plotly) for the export panel to find; the
-  shell draws the card, the graph-type switcher and the Settings/Export
-  strip around it. `table` already has excluded values blanked.
+- `PlotProps { graph, table, options, result, titles, scheme, format,
+  onFormatChange }`: render one `<div className="plot">` (Plotly) for the
+  export panel to find; the shell draws the card, the graph-type switcher
+  and the Settings/Export strip around it. `table` already has excluded
+  values blanked. Draw through the graph-format layer (`src/graph`):
+  build traces and layout, tag the traces, and render
+  `graph/FormattedPlot` (or call `applyFormat` yourself); every graph kind
+  sets `formatFeatures`.
+- `GraphOptionsProps { graph, table, options, result }`: the graph kind's
+  own options (which variable goes on X, color-by, error bars, slice
+  labels, ...), rendered by the shell in the graph's Settings panel under
+  "Graph options" with the controls in `components/GraphOptionControls`.
+  They live on the graph sheet under `settings.<key>` (`useGraphOptions`
+  in `common/graphOptions.ts`, `useGraphSetting` in `grouped/plotting.ts`,
+  `useGraphSettings` in `multivariable/chart.ts`); the PlotPanel reads the
+  same key. Never rename a key: saved projects store them.
 
-Graph settings that belong to one graph kind (which variable goes on
-X, color-by, ...) can live on the graph sheet under `settings.<key>`;
-`multivariable/chart.ts` has a `useGraphSettings` hook that reads and
-writes them from inside a PlotPanel. An analysis whose output is a new
-data table (extract & rearrange) adds it with `useAddDerivedTable` from
-`app/derivedTable.ts`.
+The graph-type switcher offers the kinds of the graph's group that draw
+the raw table or the analysis the graph is bound to.
 
 Rules the shell enforces so plugins do not have to: frozen sheets are
 read-only and show their stored result/snapshot; results recompute
 (debounced) when the table or options change; results live outside undo
 history; option objects from old files are normalized before use.
 
-## Adding a table type's analyses (the follow-up work packages)
+## Adding analyses and graphs to a table type
 
-The entry-only types (`grouped`, `partsofwhole`, `nested`) already have
-their folder, final editor and registry entry. To ship one (see
-`multivariable/` for a complete example):
+All eight types are ready. A type registered with `status: "entry-only"`
+(editor final, analyses pending) gets a placeholder in the workbench; to
+give it analyses, or to add more to a ready type (see `multivariable/`
+for a complete example):
 
 1. In `src/sheets/<type>/`, write `run.ts` (build the engine payload from
    the table with `numericData()` or by reading `table.datasets` /
@@ -179,6 +195,12 @@ table-producing analysis:
   unlinks rather than deletes; copies of a derived table are plain data;
 - the navigator lists derived tables under their source's family (with
   a link icon) as well as in their own row.
+
+With `derivedOnDemand: true` the analysis is added without a table; its
+results panel creates the linked table on request (`useLinkedTable` in
+`app/linkedTable.ts`, `addLinkedTable` in `app/factory.ts`), and the
+sync keeps it equal to the output in the same way. Extract & rearrange
+(multiple variables) and Row means (grouped) work like this.
 
 `manipulate/` is the reference user (Transform, Normalize, …). Data
 sheets can also carry `simulation: { kind, seed, form }`, written by the

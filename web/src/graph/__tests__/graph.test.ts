@@ -296,6 +296,37 @@ test("comparisons from engine results draw brackets with stars", () => {
   assert.equal(blocks.pvalue, "One-way ANOVA P = 0.0001");
 });
 
+test("grouped graphs: brackets per X axis via groupX, colour arrays recoloured", () => {
+  // Two panels (x and x2), two bars each; per-point colour arrays.
+  const bar = (axis: string, ds: number, xs: number[], ys: number[]) => tagTrace({
+    type: "bar", xaxis: axis, x: xs, y: ys,
+    marker: { color: xs.map(() => (ds ? "#eb683455" : "#2a78d655")) },
+  }, { ds, role: "bar" });
+  const traces = [bar("x", 0, [-0.2, 0.8], [10, 12]), bar("x", 1, [0.2, 1.2], [11, 30]),
+    bar("x2", 0, [-0.2, 0.8], [50, 52]), bar("x2", 1, [0.2, 1.2], [51, 53])];
+  const pos: Record<string, { x: number; xref: string }> = {
+    "r1:A": { x: -0.2, xref: "x" }, "r1:B": { x: 0.2, xref: "x" },
+    "r2:A": { x: -0.2, xref: "x2" }, "r2:B": { x: 0.2, xref: "x2" },
+  };
+  const f: GraphFormat = { comparisons: { show: true }, datasets: { 0: { color: "#112233" } } };
+  const out = applyFormat(traces, {}, f, {
+    ...ctx, datasets: ["A", "B"],
+    comparisons: [{ a: "A", b: "B", p: 0.01, family: "r1" }, { a: "A", b: "B", p: 0.2, family: "r2" },
+      { a: "A", b: "B", p: 0.01, family: "nowhere" }],
+    groupX: (name, family) => pos[`${family}:${name}`] ?? null, groupHalf: 0.2,
+  });
+  const lines = out.layout.shapes.filter((x: Trace) => x.name === "bracket");
+  assert.deepEqual([...new Set(lines.map((x: Trace) => x.xref))].sort(), ["x", "x2"]);
+  const labels = out.layout.annotations.filter((a: Trace) => a.name === "bracket-label");
+  assert.deepEqual(labels.map((a: Trace) => `${a.xref}:${a.text}`).sort(), ["x2:ns", "x:**"]);
+  // each panel's bracket clears its own bars only (panel 2 bars ~ 50)
+  const y = (xref: string) => lines.find((x: Trace) => x.xref === xref && x.y0 === x.y1).y0;
+  assert.ok(y("x") < 30 && y("x2") > 51);
+  // the per-point colour array of data set 0 took the user colour
+  assert.deepEqual(out.traces[0].marker.color, ["#11223355", "#11223355"]);
+  assert.deepEqual(out.traces[1].marker.color, ["#eb683455", "#eb683455"]);
+});
+
 test("number at risk from the table, and from the result as a fallback", () => {
   const sets = riskSetsFromTable([{ name: "G", rows: [["5", "1"], ["10", "0"], ["15", "1"],
     ["", "1"], ["20", "1"]] }]);

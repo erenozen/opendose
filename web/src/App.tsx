@@ -17,11 +17,14 @@ import FamilyWorkspace from "./components/FamilyWorkspace";
 import FloatingNotes from "./components/FloatingNotes";
 import Header from "./components/Header";
 import InfoSheetView from "./components/InfoSheetView";
-import LayoutSheetView from "./components/LayoutSheetView";
 import Navigator from "./components/Navigator";
 import { newId } from "./project/ids";
 import { familyRootId, findSheet } from "./project/ops";
 import { SimulateHost } from "./sheets/manipulate/SimulateDialog";
+import { lazy, Suspense } from "react";
+
+// The page-layout composer is loaded the first time a layout sheet opens.
+const LayoutSheetView = lazy(() => import("./components/LayoutSheetView"));
 
 export default function App() {
   return (
@@ -60,7 +63,13 @@ function Shell() {
 
   let view: React.ReactNode;
   if (sheet?.kind === "info") view = <InfoSheetView sheet={sheet} />;
-  else if (sheet?.kind === "layout") view = <LayoutSheetView sheet={sheet} />;
+  else if (sheet?.kind === "layout") {
+    view = (
+      <Suspense fallback={<main className="info-main" aria-busy="true" />}>
+        <LayoutSheetView sheet={sheet} />
+      </Suspense>
+    );
+  }
   else if (root?.kind === "data") view = <FamilyWorkspace key={root.id} data={root} />;
   else {
     view = (
