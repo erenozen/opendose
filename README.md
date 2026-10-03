@@ -40,6 +40,7 @@ cd web && npm run dev
 # web unit tests (project model) and end-to-end checks (dev server running)
 cd web && npm run test:unit
 cd web && node scripts/e2e-check.mjs && node scripts/e2e-tiff.mjs
+cd web && node scripts/e2e-export.mjs   # page layouts, PDF/PNG/zip export
 ```
 
 The dev server needs internet access on first load (Pyodide + SciPy come
@@ -98,6 +99,16 @@ from the jsDelivr CDN, ~30 MB, then cached).
   schemes (default, colorblind safe, black and white for print,
   sequential), graph export at exact size (PNG/SVG/JPEG/WebP, plus TIFF
   at a chosen DPI for journal submission).
+- Figures: vector PDF export (text stays text), transparent backgrounds,
+  journal column widths at 300/600 dpi with a 6 pt font-floor warning,
+  copy to clipboard, every graph at once as a zip. Page layouts compose
+  several live graphs on an A4/Letter/custom page with panel letters,
+  text, a master legend and unlinked pictures, and export the page as
+  one PNG/TIFF/PDF/SVG. Printing (Ctrl/Cmd+P) prints just the selected
+  sheet.
+- Citing: "How to cite OpenDose" (plain and BibTeX) in the info popover
+  and under the methods text, stamped with the app version and the
+  SciPy/NumPy versions the analysis actually ran on.
 
 ## Roadmap
 

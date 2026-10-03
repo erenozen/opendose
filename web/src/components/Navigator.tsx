@@ -11,6 +11,10 @@ import {
 import { REGISTRY } from "../sheets/registry";
 import SheetIcon, { SnowflakeIcon } from "./SheetIcon";
 import SheetMenu, { type MenuAction } from "./SheetMenu";
+import { printSheet } from "../app/usePrint";
+
+const printKey = typeof navigator !== "undefined" && /Mac|iP(hone|ad)/.test(navigator.platform)
+  ? "⌘P" : "Ctrl+P";
 
 // One visible row of the tree, in display order.
 interface Node {
@@ -215,6 +219,7 @@ export default function Navigator() {
       { label: `Sort ${SECTION_LABELS[s.kind].toLowerCase()} by name`,
         run: () => apply((p) => sortSection(p, s.kind)) },
       { label: s.frozen ? "Unfreeze" : "Freeze", run: () => cmd.toggleFreeze(s.id) },
+      { label: "Print…", shortcut: printKey, run: () => printSheet(select, s.id) },
       "sep",
       { label: s.kind === "data" ? "Delete family…" : "Delete…", shortcut: "Del",
         danger: true, run: () => void cmd.remove(s.id) },

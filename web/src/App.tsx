@@ -1,4 +1,7 @@
 import "./App.css";
+import "./export/export.css";
+import "./layout/layout.css";
+import "./app/print.css";
 import { useProject } from "./app/context";
 import { blankProject } from "./app/factory";
 import { ProjectProvider } from "./app/ProjectContext";
@@ -6,6 +9,7 @@ import { useUi } from "./app/ui";
 import { UiProvider } from "./app/UiProvider";
 import { useAutosave } from "./app/useAutosave";
 import { useFileOpen } from "./app/useFileOpen";
+import { usePrintSetup } from "./app/usePrint";
 import { useShortcuts } from "./app/useShortcuts";
 import FamilyWorkspace from "./components/FamilyWorkspace";
 import Header from "./components/Header";
@@ -31,6 +35,7 @@ function Shell() {
   const files = useFileOpen();
   const autosave = useAutosave();
   useShortcuts();
+  usePrintSetup();
 
   const newProject = async () => {
     const ok = await ui.confirm({

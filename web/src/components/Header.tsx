@@ -5,6 +5,8 @@ import { useUi } from "../app/ui";
 import { familyChildren, familyRootId, findSheet } from "../project/ops";
 import type { ResultsSheet } from "../project/types";
 import { analysisDef, tableDef } from "../sheets/registry";
+import { versionLabel } from "../export/cite";
+import CiteBlock from "./CiteBlock";
 import PreferencesPopover from "./PreferencesPopover";
 import { Logo } from "./WelcomePanel";
 
@@ -215,7 +217,7 @@ export default function Header({ onOpenFile, onNewProject }: {
           onMouseEnter={() => { if (hoverCapable()) setInfoOpen(true); }}
           onMouseLeave={() => { if (hoverCapable()) setInfoOpen(false); }}>
           <button className="theme-btn info-btn"
-            aria-label="About OpenDose: privacy and non-affiliation"
+            aria-label="About OpenDose: privacy, non-affiliation and how to cite"
             aria-expanded={infoOpen}
             onClick={() => setInfoOpen(true)}>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none"
@@ -237,6 +239,8 @@ export default function Header({ onOpenFile, onNewProject }: {
                 sponsored by GraphPad Software; results are cross-validated
                 against independent implementations.
               </p>
+              <p className="info-version">Version {versionLabel()}</p>
+              <CiteBlock />
             </div>
           )}
         </span>

@@ -14,9 +14,11 @@ import { analysisDef, graphDef, tableDef } from "../sheets/registry";
 import PlaceholderPanel from "../sheets/common/PlaceholderPanel";
 import type { AsideProps, TableEdit } from "../sheets/types";
 import type { SchemeId } from "../lib/palette";
+import { fileStem } from "../export/settings";
 import ColumnSplitter from "./ColumnSplitter";
 import ExportPanel from "./ExportPanel";
 import GraphSettings from "./GraphSettings";
+import { GenericMethodsText } from "./MethodsText";
 import HSplitter from "./HSplitter";
 import { SnowflakeIcon } from "./SheetIcon";
 import WelcomePanel from "./WelcomePanel";
@@ -70,7 +72,8 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
   const Aside = def.EditorAside;
   const Controls = aDef?.ControlsPanel ?? def.ControlsPanel;
   const Results = aDef?.ResultsPanel ?? def.ResultsPanel;
-  const Methods = aDef?.MethodsPanel;
+  // Analyses without their own methods text get a generic, correct one.
+  const Methods = aDef?.MethodsPanel ?? (aDef ? GenericMethodsText : undefined);
 
   const constants = useMemo(() => projectConstants(project), [project]);
 
@@ -235,7 +238,8 @@ function GraphCard({ graph, data, result, options }: {
         <Plot graph={graph} table={table} options={opts} result={res}
           titles={resolved} scheme={graph.settings.scheme} />
       ) : <div className="plot empty-hint">No plot available for this graph type.</div>}
-      <ExportPanel filename={kind?.exportName ?? "graph"} leading={graph.frozen ? undefined : (
+      <ExportPanel filename={fileStem(graph.name, kind?.exportName ?? "graph")}
+        scheme={graph.settings.scheme} leading={graph.frozen ? undefined : (
         <GraphSettings
           scheme={graph.settings.scheme}
           onSchemeChange={(id: SchemeId) => edit((g) => ({

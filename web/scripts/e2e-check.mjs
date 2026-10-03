@@ -109,7 +109,7 @@ await page.waitForSelector(".result-card h3:has-text('Kaplan-Meier')", {
 });
 await page.waitForTimeout(800);
 const kmText = await page
-  .locator(".result-card", { hasText: "Kaplan-Meier" }).innerText();
+  .locator(".result-card:not(.methods-text)", { hasText: "Kaplan-Meier" }).innerText();
 const logrankLine = kmText.split("\n").find((l) => l.includes("Log-rank"));
 console.log("survival:", logrankLine
   ? logrankLine.replace(/\t/g, " ").slice(0, 70)

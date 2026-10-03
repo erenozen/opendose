@@ -1,6 +1,12 @@
-import { useState } from "react";
+import { useProject } from "../app/context";
+import { softwareSentence } from "../export/cite";
+import { getRuntimeVersions } from "../lib/engine";
+import { findSheet } from "../project/ops";
+import { analysisDef } from "../sheets/registry";
+import type { ResultsProps } from "../sheets/types";
 import type { AnalysisResult, OptionsState } from "../types";
 import { MODELS_META, formatSig } from "../types";
+import CiteBlock, { CopyButton } from "./CiteBlock";
 
 interface Props {
   result: AnalysisResult | null;
@@ -10,7 +16,6 @@ interface Props {
 
 // Auto-generated manuscript sentence, ready to paste into a paper.
 export default function MethodsText({ result, options, xUnit }: Props) {
-  const [copied, setCopied] = useState(false);
   if (!result || result.error || !result.datasets.some((d) => d.fit)) {
     return null;
   }
@@ -38,7 +43,7 @@ export default function MethodsText({ result, options, xUnit }: Props) {
   }
   parts.push(`with ${options.ciMethod === "profile"
     ? "asymmetrical (profile likelihood)" : "asymptotic"} 95% confidence ` +
-    `intervals, using OpenDose (open-source, built on SciPy)`);
+    `intervals`);
 
   const ic50s = result.datasets
     .filter((d) => d.fit?.params?.IC50 ?? d.fit?.params?.EC50)
@@ -51,22 +56,36 @@ export default function MethodsText({ result, options, xUnit }: Props) {
     });
 
   const text = parts.join(", ") + ". " +
-    (ic50s.length ? ic50s.join("; ") + "." : "");
+    softwareSentence(getRuntimeVersions()) +
+    (ic50s.length ? " " + ic50s.join("; ") + "." : "");
 
+  return <MethodsCard text={text} />;
+}
+
+function MethodsCard({ text }: { text: string }) {
   return (
     <div className="result-card methods-text">
       <h3>Methods text</h3>
       <p>{text}</p>
-      <button className="copy-btn" onClick={() => {
-        navigator.clipboard.writeText(text);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1500);
-      }}>
-        {/* Keyed remount lets @starting-style blur-crossfade the label */}
-        <span className="swap-label" key={copied ? "copied" : "copy"}>
-          {copied ? "Copied ✓" : "Copy"}
-        </span>
-      </button>
+      <CopyButton text={text} />
+      <CiteBlock />
     </div>
   );
+}
+
+/**
+ * Methods text for analyses that do not bring their own MethodsPanel: a
+ * plain statement of which analysis ran on which table, in which software.
+ * It says nothing it cannot know, so it stays correct for any analysis.
+ */
+export function GenericMethodsText({ sheet, table, result }: ResultsProps) {
+  const { project } = useProject();
+  if (!result || (typeof result === "object" && "error" in result
+    && (result as { error?: unknown }).error)) return null;
+  const def = analysisDef(table.type, sheet.analysis);
+  const label = def?.label ?? sheet.analysis;
+  const data = findSheet(project, sheet.parentId);
+  const text = `The analysis “${label}” was run on the data table `
+    + `“${data?.name ?? "data"}”. ${softwareSentence(getRuntimeVersions())}`;
+  return <MethodsCard text={text} />;
 }

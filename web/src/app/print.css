@@ -1,0 +1,52 @@
+/* Print stylesheet: Ctrl/Cmd+P (or Print in a sheet's menu) prints the
+   selected sheet only, on white paper, without the app's chrome.
+   `data-print-kind` on <html> is set by usePrintSetup. Loaded after
+   App.css, so its token overrides win over the dark-theme ones. */
+
+@media print {
+  :root, :root[data-theme] {
+    --page: #ffffff; --surface: #ffffff; --inset: #f2f2f7; --ink: #000000;
+    --ink-2: #1d1d1f; --muted: #424245; --grid: #d1d1d6; --axis: #8e8e93;
+    --border: rgba(0, 0, 0, 0.2); --border-soft: rgba(0, 0, 0, 0.12);
+  }
+  body { background: #ffffff; color: #000000; transition: none; }
+  header, .navigator, .nav-scrim, .restore-banner, .pzfx-chooser, .splitter,
+  .h-splitter, .export-panel, .graph-select, .frozen-note, .layout-toolbar,
+  .layout-notes, .layout-inspector, .layout-margin, .layout-handle, .copy-btn,
+  .cite-actions, .cite-bibtex, .table-actions, .welcome { display: none !important; }
+  .shell, .shell.nav-hidden { display: block; }
+  main, .shell > main { display: block; padding: 0; width: auto; }
+  .left, .right { display: block; }
+  .pane {
+    height: auto !important; max-height: none !important; overflow: visible !important;
+    margin-bottom: 12px;
+  }
+  .data-table, .controls, .result-card, .plot-card {
+    box-shadow: none; border: none; resize: none; overflow: visible; max-height: none;
+  }
+  .plot-card, .result-card { break-inside: avoid; }
+
+  /* Only the selected sheet of a family */
+  html[data-print-kind="data"] .right,
+  html[data-print-kind="data"] .pane-import,
+  html[data-print-kind="data"] .pane-controls { display: none !important; }
+  html[data-print-kind="results"] .left,
+  html[data-print-kind="results"] .pane-plot { display: none !important; }
+  html[data-print-kind="graph"] .left,
+  html[data-print-kind="graph"] .pane-results,
+  html[data-print-kind="graph"] .pane-methods { display: none !important; }
+
+  /* Layout: the page alone, at true size, on paper of its size (the
+     layout view sets @page). */
+  main.layout-main { padding: 0; display: block; }
+  .layout-body { display: block; }
+  .layout-scroll { padding: 0; background: none; overflow: visible; max-height: none; }
+  .layout-stage { width: auto !important; height: auto !important; margin: 0; }
+  .layout-page {
+    position: relative; transform: none !important; box-shadow: none; outline: none;
+    break-inside: avoid;
+  }
+  .layout-page.is-transparent { background: none; }
+  .layout-item::after { display: none; }
+  .layout-empty { display: none; }
+}
