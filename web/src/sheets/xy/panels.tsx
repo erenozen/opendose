@@ -61,13 +61,14 @@ export function NonlinMethods({ table, result, options }:
   return <MethodsText result={result} options={options} xUnit={table.xUnit || "M"} />;
 }
 
-export function XYPlot({ table, result, titles, scheme }:
+export function XYPlot({ table, result, titles, scheme, format, onFormatChange }:
   PlotProps<OptionsState, AnalysisResult>) {
   // Dates / elapsed times: X ticks read as dates or h:mm:ss.
   const xTickFormat = useMemo(() => xTickFormatter(table) ?? undefined, [table]);
   return (
     <PlotPanel result={result} scheme={scheme} xTitle={titles.x} yTitle={titles.y}
-      xTickFormat={xTickFormat} />
+      xTickFormat={xTickFormat} format={format} onFormatChange={onFormatChange}
+      rowTitles={table.rowTitles} />
   );
 }
 

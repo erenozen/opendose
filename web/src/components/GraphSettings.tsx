@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import SchemePicker from "./SchemePicker";
 import type { SchemeId } from "../lib/palette";
+import type { FormatAction } from "../graph/useFormatDialogs";
 
 export interface AxisTitles {
   x: string;
@@ -17,6 +18,10 @@ interface Props {
   autoY: string;
   /** Column graphs label their x axis with the dataset names instead. */
   showX?: boolean;
+  /** Format Graph / Format Axes / annotation dialogs to offer. */
+  actions?: FormatAction[];
+  /** Something beyond scheme and titles has been formatted. */
+  formatted?: boolean;
 }
 
 // Colors and titles are set once and then left alone, so they do not earn
@@ -25,6 +30,7 @@ interface Props {
 // is the only place with room.
 export default function GraphSettings({
   scheme, onSchemeChange, titles, onTitlesChange, autoX, autoY, showX = true,
+  actions, formatted,
 }: Props) {
   const [open, setOpen] = useState(false);
   const wrap = useRef<HTMLDivElement>(null);
@@ -52,8 +58,8 @@ export default function GraphSettings({
 
   // Say what has been changed from the automatic titles, so the button
   // still carries the information the open panel would.
-  const edited = [titles.x.trim() && "X", titles.y.trim() && "Y"]
-    .filter(Boolean).join(" + ");
+  const edited = [titles.x.trim() && "X", titles.y.trim() && "Y",
+    formatted && "Formatted"].filter(Boolean).join(" + ");
 
   return (
     <div className="graph-settings" ref={wrap}>
@@ -101,6 +107,15 @@ export default function GraphSettings({
               Leave empty to keep the automatic title.
             </span>
           </div>
+          {actions && actions.length > 0 && (
+            <div className="format-actions" role="group" aria-label="Format the graph">
+              <span className="axis-titles-label">Format</span>
+              {actions.map((a) => (
+                <button key={a.id} type="button" className="format-action"
+                  onClick={() => { setOpen(false); a.onClick(); }}>{a.label}</button>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

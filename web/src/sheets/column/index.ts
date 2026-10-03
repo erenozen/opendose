@@ -35,6 +35,11 @@ export const columnGraphs = (Object.keys(COLUMN_GRAPH_LABELS) as ColumnGraphType
     showXTitle: false,
     exportName: "column-graph",
     PlotPanel: ColumnGraph,
+    formatFeatures: {
+      categorical: true, points: true,
+      errorBars: id === "scatter" || id === "bar",
+      bars: id === "bar", boxes: id === "box" || id === "violin",
+    },
   }));
 
 function columnSample() {

@@ -606,6 +606,66 @@ await page.locator(".data-table input[aria-label='Dataset A, Y1, row 1']").click
 expect("dates in X display in a standard form",
   await teCellValue("X, row 1") === "2024-03-05");
 
+// --- graph formatting: Format Axes, pairwise brackets, undo, save ---
+await page.getByRole("button", { name: "New data table" }).click();
+const colDialog = page.locator(".new-table-dialog");
+await colDialog.locator('input[name="table-type"][value="column"]').check();
+await colDialog.getByLabel("Example data").check();
+await colDialog.getByRole("button", { name: "Create table" }).click();
+await page.waitForSelector(".stat-cols", { timeout: 30000 });
+await page.locator(".analysis-select").selectOption("anova");
+await page.waitForSelector(".result-card h3:has-text('ANOVA')", { timeout: 30000 });
+await page.waitForTimeout(400);
+const fmt = page.locator("dialog.fmt-dialog");
+const plotLayout = () => page.evaluate(() => {
+  const l = document.querySelector(".plot").layout;
+  return {
+    yaxis: { type: l.yaxis.type, range: l.yaxis.range, ef: l.yaxis.exponentformat },
+    brackets: (l.annotations ?? []).filter((a) => a.name === "bracket-label").map((a) => a.text),
+  };
+});
+
+// Format Axes: manual Y range on a log10 scale, power-of-ten numbering
+await page.locator(".plot-card .settings-btn").click();
+await page.getByRole("button", { name: "Format axes…" }).click();
+await fmt.getByLabel("Minimum").fill("10");
+await fmt.getByLabel("Maximum").fill("100");
+await fmt.getByLabel("Scale").selectOption("log10");
+await fmt.getByLabel("Format", { exact: true }).selectOption("power10");
+await fmt.getByRole("button", { name: "OK" }).click();
+await page.waitForTimeout(500);
+const axes = (await plotLayout()).yaxis;
+expect("Format Axes: manual log10 Y range with power-of-ten numbering",
+  axes.type === "log" && Math.abs(axes.range[0] - 1) < 1e-9
+  && Math.abs(axes.range[1] - 2) < 1e-9 && axes.ef === "power", JSON.stringify(axes));
+
+// Pairwise comparison brackets from the ANOVA's Tukey table
+await page.locator(".plot-card .settings-btn").click();
+await page.getByRole("button", { name: "Pairwise comparisons…" }).click();
+await fmt.getByLabel("Show comparison brackets on the graph").check();
+await fmt.getByRole("button", { name: "OK" }).click();
+await page.waitForTimeout(500);
+const brackets = (await plotLayout()).brackets;
+expect("comparison brackets drawn with asterisks",
+  brackets.length === 3 && brackets.some((t) => t.includes("**")), brackets.join(" "));
+await page.getByRole("button", { name: "Undo" }).click();
+await page.waitForTimeout(300);
+expect("undo removes the brackets", (await plotLayout()).brackets.length === 0);
+await page.getByRole("button", { name: "Redo" }).click();
+await page.waitForTimeout(300);
+expect("redo brings them back", (await plotLayout()).brackets.length === 3);
+
+const [fmtDownload] = await Promise.all([
+  page.waitForEvent("download", { timeout: 30000 }),
+  page.getByRole("button", { name: "Save project" }).click(),
+]);
+const FMT_SAVED = join(tmp, `formatted-${fmtDownload.suggestedFilename()}`);
+await fmtDownload.saveAs(FMT_SAVED);
+const fmtGraph = JSON.parse(readFileSync(FMT_SAVED, "utf8")).sheets
+  .find((s) => s.kind === "graph" && s.settings?.format?.comparisons?.show);
+expect("graph format is saved with the project",
+  fmtGraph?.settings.format.y?.scale === "log10", JSON.stringify(fmtGraph?.settings.format ?? null));
+
 await page.screenshot({
   path: join(here, "app.png"),
   fullPage: true,

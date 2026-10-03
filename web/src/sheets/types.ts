@@ -2,6 +2,7 @@
 // See ./README.md for how to add a table type, an analysis or a graph.
 import type { ComponentType } from "react";
 import type { EngineBridge } from "../lib/engine";
+import type { FormatFeatures, GraphFormat } from "../graph/format";
 import type { SchemeId } from "../lib/palette";
 import type { NewTableInit } from "../project/table";
 import type {
@@ -54,6 +55,11 @@ export interface PlotProps<O = unknown, R = unknown> {
   result: R | null;          // result of the bound results sheet, if any
   titles: { x: string; y: string };  // resolved: override or automatic
   scheme: SchemeId;
+  /** Format Graph / Format Axes settings of this graph (validated); pass
+   *  to applyFormat (see src/graph/README.md). */
+  format?: GraphFormat;
+  /** Persist a new format (annotation drags). Absent on frozen graphs. */
+  onFormatChange?: (f: GraphFormat) => void;
 }
 
 export interface AnalysisContext {
@@ -101,6 +107,8 @@ export interface GraphKindDef<O = unknown, R = unknown> {
   showXTitle?: boolean;      // false: categorical X labeled by dataset names
   exportName: string;        // default download file name
   PlotPanel?: ComponentType<PlotProps<O, R>>;
+  /** Which Format Graph controls apply (default: points, lines, error bars). */
+  formatFeatures?: FormatFeatures;
 }
 
 export interface TableTypeDef {

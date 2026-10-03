@@ -6,6 +6,10 @@ import {
   CHROME_DARK, CHROME_LIGHT, DEFAULT_SCHEME, isDarkMode, onThemeChange,
   seriesStyle, PLOT_FONT, type SchemeId,
 } from "../lib/palette";
+import {
+  applyFormat, EMPTY_FORMAT, plotConfig, tagTrace, usePlotEdits, type Comparison,
+  type GraphFormat, type ResultsBlock,
+} from "../graph";
 
 interface Props {
   datasets: DatasetState[];
@@ -13,15 +17,24 @@ interface Props {
   yTitle?: string;
   graphType?: ColumnGraphType;
   scheme?: SchemeId;
+  /** Format Graph / Format Axes settings (graph/README.md). */
+  format?: GraphFormat;
+  onFormatChange?: (f: GraphFormat) => void;
+  rowTitles?: string[];
+  /** Pairwise comparisons of the bound results, for brackets / letters. */
+  comparisons?: Comparison[];
+  results?: Partial<Record<ResultsBlock, string>>;
 }
 
 // Prism-style column graphs: scatter (points + mean ± SD), bar, box, violin.
 export default function ColumnPlot({
   datasets, xTitle = "", yTitle = "Value", graphType = "scatter",
-  scheme = DEFAULT_SCHEME,
+  scheme = DEFAULT_SCHEME, format = EMPTY_FORMAT, onFormatChange, rowTitles,
+  comparisons, results,
 }: Props) {
   const el = useRef<HTMLDivElement>(null);
   const [dark, setDark] = useState(isDarkMode());
+  const { rev, attach } = usePlotEdits(format, onFormatChange);
 
   useEffect(() => onThemeChange(() => setDark(isDarkMode())), []);
 
@@ -49,9 +62,18 @@ export default function ColumnPlot({
     const traces: Plotly.Data[] = [];
 
     datasets.forEach((ds, i) => {
-      const values = ds.rows.flat().map(parseCell)
-        .filter((v): v is number => v !== null);
+      // Values in row-major order, remembering where each came from (row
+      // titles label points; spaghetti lines join equal row:subcolumn keys).
+      const values: number[] = [];
+      const rows: number[] = [];
+      const keys: string[] = [];
+      ds.rows.forEach((row, r) => row.forEach((cell, sub) => {
+        const v = parseCell(cell);
+        if (v === null) return;
+        values.push(v); rows.push(r); keys.push(`${r}:${sub}`);
+      }));
       if (!values.length) return;
+      const pts = { ds: i, role: "points" as const, rows, keys };
       const { color, symbol } = seriesStyle(i, dark, scheme);
       const name = ds.name || `Dataset ${i + 1}`;
       const mean = values.reduce((a, b) => a + b, 0) / values.length;
@@ -60,7 +82,7 @@ export default function ColumnPlot({
         : 0;
 
       if (graphType === "box") {
-        traces.push({
+        traces.push(tagTrace({
           y: values, x: values.map(() => i),
           type: "box",
           name,
@@ -70,11 +92,11 @@ export default function ColumnPlot({
           boxpoints: "all", jitter: 0.35, pointpos: 0,
           showlegend: false,
           hovertemplate: `${name}: %{y:.4g}<extra></extra>`,
-        } as Plotly.Data);
+        }, { ds: i, role: "box", rows, keys }) as Plotly.Data);
         return;
       }
       if (graphType === "violin") {
-        traces.push({
+        traces.push(tagTrace({
           y: values, x: values.map(() => i),
           type: "violin",
           name,
@@ -85,11 +107,11 @@ export default function ColumnPlot({
           meanline: { visible: true },
           showlegend: false,
           hovertemplate: `${name}: %{y:.4g}<extra></extra>`,
-        } as Plotly.Data);
+        }, { ds: i, role: "violin", rows, keys }) as Plotly.Data);
         return;
       }
       if (graphType === "bar") {
-        traces.push({
+        traces.push(tagTrace({
           x: [i], y: [mean],
           type: "bar",
           width: 0.6,
@@ -103,24 +125,24 @@ export default function ColumnPlot({
           showlegend: false,
           hovertemplate:
             `${name}: mean ${mean.toPrecision(4)} ± SD ${sd.toPrecision(4)}<extra></extra>`,
-        } as Plotly.Data);
+        }, { ds: i, role: "bar" }) as Plotly.Data);
         const xs = values.map((_, j) =>
           i + (values.length > 1 ? ((j % 5) - 2) * 0.045 : 0));
-        traces.push({
+        traces.push(tagTrace({
           x: xs, y: values,
           mode: "markers",
           marker: { color, symbol, size: 7,
                     line: { color: chrome.surface, width: 1.5 } },
           showlegend: false,
           hovertemplate: `${name}: %{y:.4g}<extra></extra>`,
-        } as Plotly.Data);
+        }, pts) as Plotly.Data);
         return;
       }
 
       // scatter (default): individual points with mean ± SD whiskers
       const xs = values.map((_, j) =>
         i + (values.length > 1 ? ((j % 5) - 2) * 0.045 : 0));
-      traces.push({
+      traces.push(tagTrace({
         x: xs, y: values,
         mode: "markers",
         marker: {
@@ -130,8 +152,8 @@ export default function ColumnPlot({
         name,
         hovertemplate: `${name}: %{y:.4g}<extra></extra>`,
         showlegend: false,
-      } as Plotly.Data);
-      traces.push({
+      }, pts) as Plotly.Data);
+      traces.push(tagTrace({
         x: [i], y: [mean],
         mode: "markers",
         marker: { color: chrome.ink, symbol: "line-ew", size: 26,
@@ -142,7 +164,7 @@ export default function ColumnPlot({
           : undefined,
         hovertemplate: `mean ${mean.toPrecision(4)} ± SD ${sd.toPrecision(4)}<extra></extra>`,
         showlegend: false,
-      } as Plotly.Data);
+      }, { ds: i, role: "summary" }) as Plotly.Data);
     });
 
     const layout: Partial<Plotly.Layout> = {
@@ -174,11 +196,17 @@ export default function ColumnPlot({
 
     layout.dragmode = "pan";
     layout.uirevision = "keep";
-    Plotly.react(el.current, traces, layout, {
+    const out = applyFormat(traces as never, layout, format, {
+      dark, scheme, categorical: true, datasets: datasets.map((d) => d.name),
+      rowTitles, comparisons, results, editRevision: rev,
+    });
+    const div = el.current;
+    Plotly.react(div, out.traces as Plotly.Data[], out.layout, plotConfig({
       responsive: true, scrollZoom: true, displaylogo: false,
       toImageButtonOptions: { format: "svg", filename: "column-graph" },
-    });
-  }, [datasets, dark, xTitle, yTitle, graphType, scheme]);
+    }, format, !!onFormatChange)).then(() => attach(div));
+  }, [datasets, dark, xTitle, yTitle, graphType, scheme, format, rev, rowTitles,
+    comparisons, results, onFormatChange, attach]);
 
   return <div className="plot" ref={el} />;
 }

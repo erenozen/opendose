@@ -1,4 +1,6 @@
+import { useMemo } from "react";
 import { SurvivalPlot, SurvivalResults } from "../../components/SurvivalView";
+import { riskSetsFromTable } from "../../graph";
 import type { ControlsProps, PlotProps, ResultsProps } from "../types";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -22,7 +24,10 @@ export function SurvivalResultsPanel({ result }: ResultsProps<unknown, any>) {
   return <SurvivalResults result={result} />;
 }
 
-export function SurvivalGraph({ result, titles, scheme }: PlotProps<unknown, any>) {
+export function SurvivalGraph({ result, titles, scheme, table, format, onFormatChange }:
+  PlotProps<unknown, any>) {
+  const riskSets = useMemo(() => riskSetsFromTable(table.datasets), [table.datasets]);
   return <SurvivalPlot result={result} scheme={scheme}
-    xTitle={titles.x} yTitle={titles.y} />;
+    xTitle={titles.x} yTitle={titles.y} format={format} onFormatChange={onFormatChange}
+    riskSets={riskSets.length ? riskSets : undefined} />;
 }
