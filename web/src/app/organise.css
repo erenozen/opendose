@@ -99,6 +99,10 @@
 
 /* --------------------------------------------------------------- navigator */
 
+/* The navigator's menus open over the workbench (and its notes). */
+@media (min-width: 901px) {
+  .navigator { z-index: 40; }
+}
 .nav-search-row { display: flex; gap: 4px; align-items: center; }
 .nav-search-row .nav-search { flex: 1 1 auto; min-width: 0; }
 .nav-icon-btn {
@@ -135,7 +139,7 @@
   font-size: 13px; font-weight: 500; color: var(--ink-2); cursor: pointer;
 }
 .new-mode label.checked { background: var(--seg-thumb); color: var(--ink); box-shadow: var(--seg-shadow); }
-.new-mode input { position: absolute; opacity: 0; pointer-events: none; }
+.new-mode input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
 .new-mode label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 1px; }
 .template-heading {
   margin: 6px 0 0; font-size: 11.5px; font-weight: 600; color: var(--muted);
@@ -152,13 +156,15 @@
 .template-tools { justify-content: flex-start; }
 .template-import { align-self: flex-start; font-size: 13px; }
 .danger-text { color: var(--danger); }
+.template-check { flex-wrap: nowrap; align-items: flex-start; }
+.template-check input { flex: none; margin-top: 2px; }
 .field textarea, .field-textarea {
   font: inherit; color: var(--ink); background: var(--inset);
   border: 1px solid var(--border); border-radius: var(--radius-s);
   padding: 6px 9px; resize: vertical;
 }
 .wand-list { max-height: 40vh; overflow-y: auto; }
-.group-new { flex-wrap: wrap; }
+.group-new { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .group-new input:not([type="radio"]) {
   font: inherit; color: var(--ink); background: var(--inset);
   border: 1px solid var(--border); border-radius: var(--radius-s);

@@ -12,7 +12,10 @@
 // a Monte Carlo run, and table editing (Import dialog with .xlsx and
 // decimal-comma CSV, sort, block exclusion, Data Inspector, CSV export of
 // data and results, Mean/SD/N conversion and entry, insert series, dates
-// as X).
+// as X), and project organisation (save a template and create a table from
+// it, analyze and graph like another table, make graph formats consistent,
+// sheet groups and floating notes surviving save / reopen / page reload,
+// go to sheet).
 import { chromium } from "playwright";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -805,6 +808,146 @@ const fmtGraph = JSON.parse(readFileSync(FMT_SAVED, "utf8")).sheets
   .find((s) => s.kind === "graph" && s.settings?.format?.comparisons?.show);
 expect("graph format is saved with the project",
   fmtGraph?.settings.format.y?.scale === "log10", JSON.stringify(fmtGraph?.settings.format ?? null));
+
+// --- project organisation: templates, analyze-like, consistent graph
+// formats, sheet groups, floating notes; saved and reloaded ---------------
+const orgDlg = page.locator(".new-table-dialog");
+const orgNewXY = async (name) => {
+  await page.getByRole("button", { name: "New data table" }).click();
+  await orgDlg.locator('input[name="table-type"][value="xy"]').check();
+  await orgDlg.getByLabel("Table name").fill(name);
+  await orgDlg.getByText("Example data").click();
+  await orgDlg.getByRole("button", { name: "Create table" }).click();
+  await page.waitForSelector(".results-table", { timeout: 60000 });
+};
+const orgHasLogIC50 = (want) => page.waitForFunction((w) => [...document
+  .querySelectorAll(".results-table tr")].some((tr) => tr.textContent.includes("LogIC50")
+  && tr.textContent.includes(w)), want, { timeout: 30000 }).then(() => true, () => false);
+const orgSave = async (stem) => {
+  const [dl] = await Promise.all([
+    page.waitForEvent("download", { timeout: 30000 }),
+    page.getByRole("button", { name: "Save project" }).click(),
+  ]);
+  const path = join(tmp, `${stem}-${dl.suggestedFilename()}`);
+  await dl.saveAs(path);
+  return { path, json: JSON.parse(readFileSync(path, "utf8")) };
+};
+const orgSheet = (json, name) => json.sheets.find((s) => s.name === name);
+
+await orgNewXY("Org source");
+// give its graph a distinctive format: manual Y range
+await page.locator(".plot-card").getByRole("button", { name: "Settings" }).click();
+await page.getByRole("button", { name: "Format axes…" }).click();
+const orgFmt = page.locator("dialog.fmt-dialog");
+await orgFmt.getByLabel("Minimum").fill("-10");
+await orgFmt.getByLabel("Maximum").fill("120");
+await orgFmt.getByRole("button", { name: "OK" }).click();
+await page.waitForTimeout(300);
+
+// save it as a template (with its data), then create a table from it
+await navRow("Org source").click({ button: "right" });
+await page.getByRole("menuitem", { name: "Save family as template…" }).click();
+const tplDlg = page.locator(".save-template-dialog");
+await tplDlg.getByLabel("Template name").fill("Org IC50 template");
+await tplDlg.getByRole("radio", { name: /With all the data/ }).check();
+const [tplDl] = await Promise.all([
+  page.waitForEvent("download", { timeout: 30000 }),
+  tplDlg.getByRole("button", { name: "Download file" }).click(),
+]);
+const tplJson = JSON.parse(readFileSync(await tplDl.path(), "utf8"));
+expect("template file holds the table, its analysis and its graph format",
+  tplDl.suggestedFilename() === "org-ic50-template.odtemplate.json"
+  && tplJson.opendose_template === 1 && tplJson.template.results[0]?.analysis === "nonlin"
+  && tplJson.template.graphs[0]?.settings?.format?.y?.max === 120,
+  tplDl.suggestedFilename());
+await navRow("Org source").click({ button: "right" });
+await page.getByRole("menuitem", { name: "Save family as template…" }).click();
+await tplDlg.getByLabel("Template name").fill("Org IC50 template");
+await tplDlg.getByRole("radio", { name: /With all the data/ }).check();
+await tplDlg.getByRole("button", { name: "Save template" }).click();
+await page.getByRole("button", { name: "New data table" }).click();
+await orgDlg.getByRole("radio", { name: "From a template" }).check();
+await orgDlg.getByRole("radio", { name: /Org IC50 template/ }).check();
+await orgDlg.getByLabel("Table name").fill("Org from template");
+await orgDlg.getByRole("button", { name: "Create from template" }).click();
+expect("a table made from the template runs its analysis (LogIC50 -6.983)",
+  await navRow("Org from template").count() === 1 && await orgHasLogIC50("-6.983"));
+
+// analyze and graph like: a second table copies Org source's analyses and graphs
+await orgNewXY("Org target");
+await navRow("Org target").click({ button: "right" });
+await page.getByRole("menuitem", { name: "Analyze and graph like…" }).click();
+await page.locator(".wand-dialog").getByRole("radio", { name: /Org source/ }).check();
+await page.locator(".wand-dialog").getByRole("button", { name: "Analyze and graph" }).click();
+await page.waitForTimeout(500);
+expect("analyze-like adds a second fit to the table",
+  await page.locator(".mode-switch [role=tab]").count() === 2);
+
+// make the other XY graphs look like Org source's graph
+await navRow("Graph of Org source").click({ button: "right" });
+await page.getByRole("menuitem", { name: /Apply this format to graphs of this kind/ }).click();
+await page.getByRole("alertdialog").getByRole("button", { name: "Apply format" }).click();
+
+// group: Org target into a new group "Org batch"
+await navRow("Org target").click({ button: "right" });
+await page.getByRole("menuitem", { name: "Move to group…" }).click();
+await page.locator(".group-dialog").getByRole("radio", { name: "A new group:" }).check();
+await page.getByLabel("Name of the new group").fill("Org batch");
+await page.locator(".group-dialog").getByRole("button", { name: "Move", exact: true }).click();
+const orgInGroup = () => page.locator(
+  ".nav-item[aria-label='Org batch (group)'] .nav-item[aria-label='Org target']").count();
+expect("the table is listed inside its group", await orgInGroup() === 1);
+
+// floating note on Org source
+await navRow("Org source").click();
+await page.getByRole("button", { name: "Add a floating note to the selected sheet" }).click();
+await page.locator(".floating-note textarea").first().waitFor({ state: "visible" });
+await page.keyboard.type("Check the top plateau");
+expect("the note shows as a chip above the sheet",
+  (await page.locator(".note-chip").first().innerText()).includes("Check the top plateau"));
+
+const orgSaved = await orgSave("organised");
+const orgTarget = orgSheet(orgSaved.json, "Org target");
+const orgGroup = (orgSaved.json.groups ?? []).find((g) => g.name === "Org batch");
+const targetGraphs = orgSaved.json.sheets.filter((s) => s.kind === "graph"
+  && s.parentId === orgTarget?.id);
+expect("analyze-like copied the graph with its format; make-consistent restyled the rest",
+  targetGraphs.length === 2 && targetGraphs.every((g) => g.settings?.format?.y?.max === 120)
+  && new Set(orgSaved.json.sheets.map((s) => s.id)).size === orgSaved.json.sheets.length,
+  JSON.stringify(targetGraphs.map((g) => g.settings?.format?.y ?? null)));
+expect("the saved project holds the group and the note",
+  orgGroup?.section === "data" && orgTarget?.groupId === orgGroup.id
+  && orgSheet(orgSaved.json, "Org source")?.floatingNotes?.[0]?.text === "Check the top plateau");
+
+// reopen the saved file, then reload the page and restore the session
+await navRow("Org target").click({ button: "right" });
+await page.getByRole("menuitem", { name: "Remove from group" }).click();
+await page.setInputFiles('.load-btn input[type="file"]', orgSaved.path);
+await page.waitForTimeout(500);
+await navRow("Org source").click();
+expect("reopened file: group and note are back",
+  await orgInGroup() === 1
+  && (await page.locator(".note-chip").first().innerText()).includes("Check the top plateau"));
+await page.waitForTimeout(1500); // autosave debounce
+await page.reload({ waitUntil: "domcontentloaded" });
+await page.waitForSelector(".restore-banner", { timeout: 30000 });
+await page.locator(".restore-banner").getByRole("button", { name: "Restore" }).click();
+await page.waitForSelector(".results-table", { timeout: 180000 });
+await navRow("Org source").click();
+expect("after a page reload the restored session keeps the group and the note",
+  await orgInGroup() === 1
+  && (await page.locator(".note-chip").first().innerText()).includes("Check the top plateau"));
+await page.getByRole("button", { name: "New data table" }).click();
+await orgDlg.getByRole("radio", { name: "From a template" }).check();
+expect("saved templates outlive the page (kept in this browser)",
+  await orgDlg.getByRole("radio", { name: /Org IC50 template/ }).count() === 1);
+await orgDlg.getByRole("button", { name: "Cancel" }).click();
+// Ctrl/Cmd+K: go to a sheet by typing part of its name
+await page.keyboard.press("Control+k");
+await page.getByRole("combobox", { name: "Sheet name" }).fill("org targ");
+await page.keyboard.press("Enter");
+expect("go to sheet opens the match",
+  await page.locator(".nav-item.selected[aria-label='Org target']").count() >= 1);
 
 await page.screenshot({
   path: join(here, "app.png"),

@@ -16,23 +16,33 @@ export default function FloatingNotes({ sheet }: { sheet: Sheet }) {
   const notes = notesOf(sheet);
   const wrap = useRef<HTMLDivElement>(null);
 
+  // The note may not be rendered yet (just added, or folded): wait for
+  // React, unfold it if needed, then focus its text.
+  const sheetRef = useRef(sheet);
+  sheetRef.current = sheet;
+  const foldRef = useRef(cmd.foldNote);
+  foldRef.current = cmd.foldNote;
   useEffect(() => {
+    const frames = (n: number, fn: () => void) =>
+      (n <= 0 ? fn() : requestAnimationFrame(() => frames(n - 1, fn)));
     const onFocus = (e: Event) => {
       const id = (e as CustomEvent<string>).detail;
-      const n = notesOf(sheet).find((x) => x.id === id);
-      if (!n) return;
-      if (n.collapsed) cmd.foldNote(sheet.id, n.id, false);
-      // Two frames: the unfolded card has to render first.
-      requestAnimationFrame(() => requestAnimationFrame(() => {
-        const el = wrap.current?.querySelector<HTMLTextAreaElement>(
-          `[data-note="${CSS.escape(id)}"] textarea`);
-        el?.focus();
-        el?.scrollIntoView({ block: "nearest" });
-      }));
+      frames(2, () => {
+        const s = sheetRef.current;
+        const n = notesOf(s).find((x) => x.id === id);
+        if (!n) return;
+        if (n.collapsed) foldRef.current(s.id, n.id, false);
+        frames(n.collapsed ? 2 : 0, () => {
+          const el = wrap.current?.querySelector<HTMLTextAreaElement>(
+            `[data-note="${CSS.escape(id)}"] textarea`);
+          el?.focus();
+          el?.scrollIntoView({ block: "nearest" });
+        });
+      });
     };
     window.addEventListener(NOTE_FOCUS_EVENT, onFocus);
     return () => window.removeEventListener(NOTE_FOCUS_EVENT, onFocus);
-  }, [sheet, cmd]);
+  }, []);
 
   if (!notes.length) return null;
 

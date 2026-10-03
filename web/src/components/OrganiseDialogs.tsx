@@ -148,13 +148,13 @@ export function GroupDialog({ sheetName, sectionLabel, groups, current, defaultN
           <label key={g.id}><input type="radio" name="group-choice" checked={choice === g.id}
             onChange={() => setChoice(g.id)} /> {g.name}</label>
         ))}
-        <label className="group-new">
-          <input type="radio" name="group-choice" checked={choice === "__new"}
-            onChange={() => setChoice("__new")} /> A new group named
-          <input value={newName} aria-label="New group name"
+        <div className="group-new">
+          <label><input type="radio" name="group-choice" checked={choice === "__new"}
+            onChange={() => setChoice("__new")} /> A new group:</label>
+          <input value={newName} aria-label="Name of the new group"
             onFocus={() => setChoice("__new")}
             onChange={(e) => { setNewName(e.target.value); setChoice("__new"); }} />
-        </label>
+        </div>
       </fieldset>
     </Modal>
   );

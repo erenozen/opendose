@@ -104,7 +104,7 @@ export default function TemplatePicker({ prefs, defaultName, onChange }: {
               )}
             </div>
             {chosen.withData ? (
-              <label className="check-row">
+              <label className="check-row template-check">
                 <input type="checkbox" checked={withData}
                   onChange={(e) => setWithData(e.target.checked)} />
                 <span>Include the template’s data (otherwise X values and titles only)</span>

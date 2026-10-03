@@ -644,7 +644,7 @@ export default function Navigator() {
           }}>+ Note</button>
       </div>
       <div className="nav-search-row">
-        <input className="nav-search" type="search" placeholder="Search sheets and notes"
+        <input className="nav-search" type="search" placeholder="Search sheets"
           aria-label="Search sheets and notes" value={query}
           title={`${goKey} jumps to any sheet`}
           onChange={(e) => setQuery(e.target.value)} />
