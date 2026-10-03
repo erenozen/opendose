@@ -77,14 +77,21 @@ from the jsDelivr CDN, ~30 MB, then cached).
   shift with pA2.
 - Survival mode: Kaplan-Meier, log-rank, Gehan-Breslow-Wilcoxon, hazard
   ratio. Contingency mode: Fisher/chi-square/OR/RR.
+- Grouped tables (rows × datasets × replicates): two-way ANOVA (ordinary,
+  repeated measures, mixed-effects model when values are missing, or from
+  mean/SD/N), three-way ANOVA, multiple t tests one per row with FDR or
+  Holm-Šídák/Šídák/Bonferroni correction and a volcano plot, row
+  means/totals, column statistics; interleaved/stacked/separated bars,
+  grouped scatter, box plots, connected lines, three-way graphs and heat
+  maps with color mapping. Prism grouped tables import as grouped tables.
 - Projects: any number of data tables of eight formats (XY, Column,
   Grouped, Contingency, Survival, Parts of whole, Multiple variables,
   Nested), each with its results and graphs as a family, plus info sheets
   (notes and named constants) and layout sheets, in a navigator with
   rename, duplicate (sheet, or whole family with or without data),
-  delete, reorder, freeze, highlight colors and search. Grouped, Parts of
-  whole, Multiple variables and Nested tables have their final editor;
-  their analyses and graphs come next.
+  delete, reorder, freeze, highlight colors and search. Parts of whole,
+  Multiple variables and Nested tables have their final editor; their
+  analyses and graphs come next.
 - Editing: project-wide undo/redo (Ctrl/Cmd+Z, Shift+Ctrl/Cmd+Z),
   keyboard navigation in the grid, excluded values (Ctrl/Cmd+E: kept
   visible, struck through, skipped by analyses and graphs), subcolumn and

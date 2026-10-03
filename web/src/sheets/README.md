@@ -17,8 +17,8 @@ src/
     registry.ts     TableType -> TableTypeDef
     types.ts        the plugin contract (below)
     common/         DataGrid (generic editor), PlaceholderPanel
-    xy/ column/ contingency/ survival/     ready
-    grouped/ partsofwhole/ multivariable/ nested/   editor only
+    xy/ column/ contingency/ survival/ grouped/     ready
+    partsofwhole/ multivariable/ nested/   editor only
   components/       shell UI: Navigator, Header, FamilyWorkspace, dialogs,
                     plus the existing panels the sheets wrap
 ```

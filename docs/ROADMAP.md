@@ -163,9 +163,14 @@ save/load; methods text; theme; accessibility pass.
 ### To implement — grouped by guide section
 
 **Data tables (the eight kinds)**
-- [ ] Grouped tables: two grouping variables with replicate
-      subcolumns; interleaved / stacked / separated bar graphs, grouped
-      scatter; two-way ANOVA and RM two-way move here from Column mode
+- [x] Grouped tables: two grouping variables with replicate
+      subcolumns (or mean/SD/N); interleaved / stacked / separated bar
+      graphs, grouped scatter, box plots, connected lines; two-way ANOVA
+      (ordinary, RM by rows or both factors, mixed-effects model when
+      repeated values are missing), three-way ANOVA, multiple t tests per
+      row with FDR / family-wise correction and a volcano plot, row
+      means/totals (copy as a new table), column statistics; Prism
+      grouped tables import as grouped (Column mode keeps two-way ANOVA)
 - [ ] Parts-of-whole tables: pie, donut, stacked-bar graphs; chi-square
       goodness of fit against expected fractions; fraction of total
 - [ ] Multiple-variables tables: one row per observation, one column per
@@ -227,10 +232,13 @@ save/load; methods text; theme; accessibility pass.
 - [ ] Point-to-point lines, spaghetti plots, line of identity, grand
       mean/median line, forest plots, horizontal error bars (X error),
       error envelopes
-- [ ] Heat maps (grouped tables, correlation matrices) with color
-      mapping, labels, gaps
-- [ ] Three-way grouped graphs; row-vs-column titles under bars;
-      plotting order; dataset spacing
+- [x] Heat maps of grouped tables with color mapping (single hue /
+      diverging / grayscale from the scheme, min / max / center, reverse),
+      cell labels, gaps, legend, blank-cell color and cross; the
+      correlation-matrix heat map belongs to the multiple-variables work
+- [x] Three-way grouped graphs; row-vs-column titles under bars;
+      plotting order; dataset spacing (grouped tables; also grand
+      mean/median line and before-after lines there)
 - [ ] Legends: show/hide, position, combined vs separate, text edits
 - [ ] Fonts and sizes for titles, axis numbering, legends
 - [ ] Semitransparent fills
