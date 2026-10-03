@@ -487,8 +487,8 @@ export function numericData(t: DataTableModel): {
 } {
   const b = withExclusionsBlanked(t);
   return {
-    // dates count from the earliest date typed, excluded or not
-    x: xNumbers(t).map((v, r) => (t.xExcluded?.includes(r) ? null : v)),
+    // dates count from the earliest included date, as graphs label them
+    x: xNumbers(b),
     datasets: b.datasets.map((d) => ({
       name: d.name,
       ys: d.rows.map((row) => row.map(parseCell)),

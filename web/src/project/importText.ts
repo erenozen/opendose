@@ -123,9 +123,11 @@ export function detectDecimal(rows: string[][]): "." | "," {
 export function normalizeNumber(cell: string, decimal: "." | ","): string {
   const s = cell.trim();
   if (decimal === ",") {
-    if (/^[+-]?(\d{1,3}(\.\d{3})+|\d*)(,\d+)?([eE][+-]?\d+)?$/.test(s) && /\d/.test(s)) {
-      return s.replace(/\./g, "").replace(",", ".");
-    }
+    // 1,5  -1,5e-3  ,5 -> point decimal
+    if (/^[+-]?\d*,\d+([eE][+-]?\d+)?$/.test(s)) return s.replace(",", ".");
+    // 1.234,5 or 1.234 -> thousands points dropped (never with an
+    // exponent: 3.162e-9 is already a point-decimal number)
+    if (/^[+-]?\d{1,3}(\.\d{3})+(,\d+)?$/.test(s)) return s.replace(/\./g, "").replace(",", ".");
     return s;
   }
   if (/^[+-]?\d{1,3}(,\d{3})+(\.\d+)?([eE][+-]?\d+)?$/.test(s)) return s.replace(/,/g, "");

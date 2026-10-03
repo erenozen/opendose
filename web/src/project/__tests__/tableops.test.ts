@@ -233,6 +233,9 @@ test("delimiter and decimal separator detection", () => {
   assert.equal(normalizeNumber("1,5", ","), "1.5");
   assert.equal(normalizeNumber("1.234,5", ","), "1234.5");
   assert.equal(normalizeNumber("1,234.5", "."), "1234.5");
+  assert.equal(normalizeNumber("3.162e-9", ","), "3.162e-9");
+  assert.equal(normalizeNumber("-1,5e-3", ","), "-1.5e-3");
+  assert.equal(normalizeNumber("12.345", ","), "12345");
   assert.equal(normalizeNumber("Drug A", ","), "Drug A");
   assert.ok(pasteNeedsImport("a;b\n1;2\n3;4"));
   assert.ok(!pasteNeedsImport("1\t2\n3\t4"));
