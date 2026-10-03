@@ -532,7 +532,15 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
               </button>
             </>
           )}
-          {datasetHint && <span className="hint">{datasetHint}</span>}
+          {readOnly ? (
+            // Derived and frozen tables cannot take pasted values: say why
+            // instead of how to enter data.
+            <span className="hint">
+              {sheet.derived ? "Read-only: computed from its source table (see the note above). "
+                + "Unlink it to edit the values."
+                : sheet.frozen ? "Read-only: this table is frozen." : "Read-only."}
+            </span>
+          ) : datasetHint && <span className="hint">{datasetHint}</span>}
         </div>
       </div>
 

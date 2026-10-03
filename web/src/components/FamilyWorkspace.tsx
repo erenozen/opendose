@@ -205,7 +205,7 @@ function GraphCard({ graph, data, result, options }: {
   result: unknown;
   options: unknown;
 }) {
-  const { apply, engineReady } = useProject();
+  const { apply, engineReady, project } = useProject();
   const kind = graphDef(data.table.type, graph.graphType);
   const def = tableDef(data.table.type);
   const Plot = kind?.PlotPanel ?? def.PlotPanel;
@@ -220,7 +220,12 @@ function GraphCard({ graph, data, result, options }: {
     x: titles.x.trim() || auto.x,
     y: titles.y.trim() || auto.y,
   };
-  const siblings = kind ? def.graphs.filter((g) => g.group === kind.group) : [];
+  // Kinds this graph can switch to: same group, drawing the raw table or
+  // the analysis the graph is bound to.
+  const bound = graph.resultsId ? findSheet(project, graph.resultsId) : undefined;
+  const boundAnalysis = bound?.kind === "results" ? bound.analysis : null;
+  const siblings = kind ? def.graphs.filter((g) => g.group === kind.group
+    && (g.analysis === null || g.analysis === boundAnalysis || g.id === kind.id)) : [];
   const edit = (fn: (g: GraphSheet) => GraphSheet, key: string) =>
     apply((p) => updateSheet<Sheet>(p, graph.id, (s) => (s.kind === "graph" ? fn(s) : s)),
       `graph:${graph.id}:${key}`);
@@ -240,12 +245,18 @@ function GraphCard({ graph, data, result, options }: {
   // Drags on the graph are their own undo steps, apart from dialog edits.
   const dragFormat = useCallback((f: GraphFormat) => setFormat(f, undefined, "drag"),
     [setFormat]);
-  const datasetNames = useMemo(() => table.datasets.map((d) => d.name), [table.datasets]);
+  const ownDatasets = kind?.formatDatasets;
+  const datasetNames = useMemo(() => (ownDatasets ? ownDatasets(table, graph, opts)
+    : table.datasets.map((d) => d.name)), [ownDatasets, table, graph, opts]);
+  const ownComparisons = kind?.comparisons;
+  const comparisons = useMemo(() => (ownComparisons ? ownComparisons(res, table, opts) : undefined),
+    [ownComparisons, res, table, opts]);
+  const Options = kind?.OptionsPanel;
   const dialogs = useFormatDialogs({
     format, features: kind?.formatFeatures, datasets: datasetNames,
     hasRowTitles: table.rowTitles.some((r) => r.trim()), result: res,
     scheme: graph.settings.scheme, titles, autoTitles: auto, engineReady,
-    onFormat: setFormat,
+    onFormat: setFormat, comparisons,
   });
 
   return (
@@ -281,7 +292,9 @@ function GraphCard({ graph, data, result, options }: {
           onTitlesChange={(t) => edit((g) => ({ ...g, settings: { ...g.settings, titles: t } }),
             "titles")}
           autoX={auto.x} autoY={auto.y} showX={kind?.showXTitle !== false}
-          actions={dialogs.actions} formatted={!isDefaultFormat(format)} />
+          actions={dialogs.actions} formatted={!isDefaultFormat(format)}
+          options={Options ? <Options graph={graph} table={table} options={opts} result={res} />
+            : undefined} />
       )} />
       {dialogs.element}
     </div>

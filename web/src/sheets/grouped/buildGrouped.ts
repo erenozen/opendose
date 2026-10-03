@@ -2,6 +2,7 @@
 // stacked and separated bars, grouped scatter, interleaved box plots,
 // connected lines across rows, and the two-panel three-way graph.
 import type Plotly from "plotly.js-dist-min";
+import { tagTrace, type TraceRole } from "../../graph/apply";
 import { seriesStyle, type Chrome, type SchemeId } from "../../lib/palette";
 import type { DataTableModel } from "../../project/types";
 import { formatSig } from "../../types";
@@ -26,6 +27,21 @@ export interface BuildInput {
   /** Three-way layout from the bound three-way results sheet, if any. */
   threeWay: ThreeWayOptions | null;
 }
+
+/** Where the bars sit, for comparison brackets: the bar of row r and data
+ *  set d (three-way: row r, factor B level d, factor C level c = panel),
+ *  and the centre of each cluster. Null when the graph has no such bar. */
+export interface Placement {
+  byRows: boolean;
+  cell: (r: number, d: number, c?: number) => { x: number; xref: string } | null;
+  /** Centre of the cluster made by row r (byRows) or data set d. */
+  cluster: (i: number) => number | null;
+  /** Half the width of one bar (brackets clear the data within it). */
+  half: number;
+}
+
+const tag = <T extends object>(t: T, ds: number, role: TraceRole): T =>
+  tagTrace(t, { ds, role });
 
 export const rowLabels = (t: DataTableModel) =>
   t.rowTitles.map((r, i) => r.trim() || `Row ${i + 1}`);
@@ -53,7 +69,8 @@ interface Cluster { label: string; get: (s: number) => CellStat | null }
 function panelTraces(inp: BuildInput, clusters: Cluster[], series: string[],
   colorOf: (cluster: number, series: number) => number, xAxis: string,
   legend: boolean): { traces: Plotly.Data[]; tickvals: number[]; ticktext: string[];
-    centers: number[]; nSlots: number } {
+    centers: number[]; nSlots: number; at: (ci: number, si: number) => number | null;
+    clusterAt: (ci: number) => number | null; width: number } {
   const { kind, settings: s, dark, chrome, scheme } = inp;
   const cOrder = ordered(clusters.length, s.clustersReverse);
   const sOrder = ordered(series.length, s.seriesReverse);
@@ -121,7 +138,7 @@ function panelTraces(inp: BuildInput, clusters: Cluster[], series: string[],
 
     if (kind === G_BOX) {
       if (!box.x.length) return;
-      traces.push({
+      traces.push(tag({
         ...common, type: "box", name, x: box.x,
         q1: box.q1, median: box.med, q3: box.q3,
         lowerfence: box.lo, upperfence: box.hi,
@@ -131,32 +148,32 @@ function panelTraces(inp: BuildInput, clusters: Cluster[], series: string[],
         fillcolor: withAlpha(style.color, "33"),
         boxpoints: false, showlegend: showLegend,
         hoverinfo: "y",
-      } as unknown as Plotly.Data);
+      }, si, "box") as unknown as Plotly.Data);
     } else if (kind === G_SCATTER) {
-      traces.push({
+      traces.push(tag({
         ...common, type: "scatter", mode: "lines", x: meanLineX, y: meanLineY,
         line: { color: chrome.ink, width: 2.5 }, hoverinfo: "skip", showlegend: false,
-      } as Plotly.Data);
-      traces.push({
+      }, si, "decor") as Plotly.Data);
+      traces.push(tag({
         ...common, type: "scatter", mode: "markers", x: xs, y: ys,
         marker: { color: "rgba(0,0,0,0)", size: 1 },
         error_y: { type: "data", array: plus, arrayminus: minus, symmetric: false,
           visible: errVisible, color: chrome.ink, thickness: 1.5, width: 6 },
         text: hover, hovertemplate: "%{text}<extra></extra>", showlegend: false,
-      } as Plotly.Data);
+      }, si, "decor") as Plotly.Data);
     } else {
-      traces.push({
+      traces.push(tag({
         ...common, type: "bar", name, x: xs, y: ys, width,
         marker: { color: fills, line: { color: lines, width: 1.5 } },
         error_y: { type: "data", array: plus, arrayminus: minus, symmetric: false,
           visible: errVisible, color: chrome.ink, thickness: 1.5, width: 6 },
         text: hover, textposition: "none",
         hovertemplate: "%{text}<extra></extra>", showlegend: showLegend,
-      } as Plotly.Data);
+      }, si, "bar") as Plotly.Data);
     }
     const pointsShown = kind === G_SCATTER || (s.points && !stacked);
     if (pointsShown && ptX.length) {
-      traces.push({
+      traces.push(tag({
         ...common, type: "scatter", mode: "markers", x: ptX, y: ptY, name,
         marker: {
           color: ptC, symbol: style.symbol,
@@ -165,12 +182,21 @@ function panelTraces(inp: BuildInput, clusters: Cluster[], series: string[],
         },
         hovertemplate: `${name}: %{y:.4g}<extra></extra>`,
         showlegend: legend && kind === G_SCATTER && !separated,
-      } as Plotly.Data);
+      }, si, "points") as Plotly.Data);
     }
   });
 
   const centers = cOrder.map((_, i) => i);
-  return { traces, tickvals, ticktext, centers, nSlots: clusters.length };
+  const slotC = new Map(cOrder.map((ci, k) => [ci, k]));
+  const slotS = new Map(sOrder.map((si, k) => [si, k]));
+  const at = (ci: number, si: number) => {
+    const a = slotC.get(ci), b = slotS.get(si);
+    return a === undefined || b === undefined ? null : x[a]?.[b] ?? null;
+  };
+  return {
+    traces, tickvals, ticktext, centers, nSlots: clusters.length, at,
+    clusterAt: (ci) => slotC.get(ci) ?? null, width,
+  };
 }
 
 function grandShapes(inp: BuildInput, yref = "y"): {
@@ -202,7 +228,7 @@ function legendLayout(chrome: Chrome): Partial<Plotly.Legend> {
 
 /** The two-panel three-way graph: one panel per level of factor C;
  *  within each, rows are clusters and factor B levels are the bars. */
-function buildThreeWay(inp: BuildInput): { traces: Plotly.Data[]; layout: Partial<Plotly.Layout> } {
+function buildThreeWay(inp: BuildInput): Built {
   const { table, cells, chrome, settings } = inp;
   const tw = inp.threeWay;
   const assign = tw?.assign ?? defaultAssign(table.datasets.length);
@@ -216,6 +242,7 @@ function buildThreeWay(inp: BuildInput): { traces: Plotly.Data[]; layout: Partia
   const layout: Partial<Plotly.Layout> = { ...baseLayout(chrome) };
   const annotations: Partial<Plotly.Annotations>[] = [];
   const domains: [number, number][] = [[0, 0.47], [0.53, 1]];
+  const panels: ReturnType<typeof panelTraces>[] = [];
   [0, 1].forEach((c) => {
     const clusters: Cluster[] = rows.map((label, r) => ({
       label,
@@ -227,6 +254,7 @@ function buildThreeWay(inp: BuildInput): { traces: Plotly.Data[]; layout: Partia
     const axis = c === 0 ? "x" : "x2";
     const p = panelTraces({ ...inp, kind: "grouped_interleaved" }, clusters,
       bNames.map((n, i) => n.trim() || `B${i + 1}`), (_, b) => b, axis, c === 0 && settings.legend);
+    panels.push(p);
     traces.push(...p.traces);
     const cOrder = ordered(rows.length, settings.clustersReverse);
     const ax = categoryAxis(chrome, p.centers, cOrder.map((i) => rows[i]),
@@ -251,10 +279,26 @@ function buildThreeWay(inp: BuildInput): { traces: Plotly.Data[]; layout: Partia
   layout.legend = { ...legendLayout(chrome), yref: "container", y: 0.99, yanchor: "top",
     title: { text: `${fNames[1]}:` } } as Partial<Plotly.Legend>;
   layout.margin = { l: 64, r: 16, t: settings.legend ? 64 : 34, b: 52 };
-  return { traces, layout };
+  const place: Placement = {
+    byRows: true,
+    cell: (r, b, c = 0) => {
+      const x = panels[c]?.at(r, b);
+      return x === null || x === undefined ? null : { x, xref: c === 0 ? "x" : "x2" };
+    },
+    cluster: () => null,
+    half: (panels[0]?.width ?? 0.3) / 2,
+  };
+  return { traces, layout, place };
 }
 
-function buildLines(inp: BuildInput): { traces: Plotly.Data[]; layout: Partial<Plotly.Layout> } {
+export interface Built {
+  traces: Plotly.Data[];
+  layout: Partial<Plotly.Layout>;
+  /** Null when brackets have nowhere to go (lines, stacked bars, heat map). */
+  place: Placement | null;
+}
+
+function buildLines(inp: BuildInput): Built {
   const { table, cells, settings: s, chrome, dark, scheme } = inp;
   const byRows = clusterByFor(inp.kind, s) === "rows";
   const rows = rowLabels(table);
@@ -286,14 +330,14 @@ function buildLines(inp: BuildInput): { traces: Plotly.Data[]; layout: Partial<P
           ys.push(v !== null && Number.isFinite(v) ? v : null);
         });
         if (ys.every((v) => v === null)) continue;
-        traces.push({
+        traces.push(tag({
           type: "scatter", mode: "lines+markers", x: xs, y: ys, name,
           legendgroup: `l${li}`, showlegend: false, connectgaps: false,
           line: { color: st.color, width: 1, dash: st.dash },
           marker: { color: st.color, symbol: st.symbol, size: 5 },
           opacity: 0.55,
           hovertemplate: `${name}, subject ${k + 1}: %{y:.4g}<extra></extra>`,
-        } as Plotly.Data);
+        }, li, "decor") as Plotly.Data);
       }
     }
     const xs: number[] = [];
@@ -309,7 +353,7 @@ function buildLines(inp: BuildInput): { traces: Plotly.Data[]; layout: Partial<P
       minus.push(s.errorDir === "above" ? 0 : lo);
       hover.push(`${xLabels[xi]} · ${name}: ${errorText(c, s)}`);
     });
-    traces.push({
+    traces.push(tag({
       type: "scatter", mode: "lines+markers", x: xs, y: ys, name,
       legendgroup: `l${li}`, showlegend: s.legend,
       line: { color: st.color, width: 2.5, dash: st.dash },
@@ -318,10 +362,11 @@ function buildLines(inp: BuildInput): { traces: Plotly.Data[]; layout: Partial<P
       error_y: { type: "data", array: plus, arrayminus: minus, symmetric: false,
         visible: s.error !== "none", color: st.color, thickness: 1.5, width: 6 },
       text: hover, hovertemplate: "%{text}<extra></extra>",
-    } as Plotly.Data);
+    }, li, "points") as Plotly.Data);
   });
   const grand = grandShapes(inp);
   return {
+    place: null,
     traces,
     layout: {
       ...baseLayout(chrome),
@@ -336,9 +381,7 @@ function buildLines(inp: BuildInput): { traces: Plotly.Data[]; layout: Partial<P
   };
 }
 
-export function buildGrouped(inp: BuildInput): {
-  traces: Plotly.Data[]; layout: Partial<Plotly.Layout>;
-} {
+export function buildGrouped(inp: BuildInput): Built {
   if (inp.kind === G_THREE_WAY) return buildThreeWay(inp);
   if (inp.kind === G_LINES) return buildLines(inp);
   const { table, cells, settings: s, chrome } = inp;
@@ -379,7 +422,17 @@ export function buildGrouped(inp: BuildInput): {
       text: "Box plots need replicate values", font: { color: chrome.muted, size: 13 },
     });
   }
+  const place: Placement | null = inp.kind === G_STACKED ? null : {
+    byRows,
+    cell: (r, d) => {
+      const x = byRows ? p.at(r, d) : p.at(d, r);
+      return x === null ? null : { x, xref: "x" };
+    },
+    cluster: (i) => p.clusterAt(i),
+    half: p.width / 2,
+  };
   return {
+    place,
     traces: p.traces,
     layout: {
       ...baseLayout(chrome),

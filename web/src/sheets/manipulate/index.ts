@@ -9,8 +9,9 @@ import {
   baselineMethods, concMethods, fractionMethods, normalizeMethods, pruneMethods,
   transformMethods, transposeMethods,
 } from "./methods";
+import HistogramPlot from "./MonteCarloHistogram";
 import {
-  HistogramPlot, MonteCarloControls, MonteCarloMethods, MonteCarloResults,
+  MonteCarloControls, MonteCarloMethods, MonteCarloResults,
 } from "./MonteCarloPanels";
 import { DEFAULT_HIT, type McOutput, type MonteCarloOptions } from "./montecarlo";
 import { makeManipResults, makeMethods } from "./factories";
@@ -178,6 +179,9 @@ export const mcHistogramGraph = defineGraph<MonteCarloOptions, McOutput | null>(
   autoTitles: () => ({ x: "", y: "Number of repeats" }),
   exportName: "monte-carlo",
   PlotPanel: HistogramPlot,
+  formatFeatures: { bars: true },
+  formatDatasets: (_t, _g, o) => [o?.histogram || "Values"],
+  sheetName: (t) => `Monte Carlo histogram of ${t}`,
 });
 
 const MANIPULATIONS: Partial<Record<TableType, AnalysisDef[]>> = {

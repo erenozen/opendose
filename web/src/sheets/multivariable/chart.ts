@@ -113,10 +113,12 @@ export function inkOn(rgb: [number, number, number]): string {
 
 export function stars(p: number | null | undefined): string {
   if (typeof p !== "number") return "";
-  if (p < 0.0001) return "****";
-  if (p < 0.001) return "***";
-  if (p < 0.01) return "**";
-  if (p < 0.05) return "*";
+  // The usual thresholds, inclusive: P ≤ 0.05 *, ≤ 0.01 **, ≤ 0.001 ***,
+  // ≤ 0.0001 **** (as on graph brackets and in the results).
+  if (p <= 0.0001) return "****";
+  if (p <= 0.001) return "***";
+  if (p <= 0.01) return "**";
+  if (p <= 0.05) return "*";
   return "";
 }
 

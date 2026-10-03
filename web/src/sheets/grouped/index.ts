@@ -7,11 +7,17 @@
 import { emptyTable } from "../../project/table";
 import type { DataTableModel } from "../../project/types";
 import DataGrid from "../common/DataGrid";
+import type { FormatFeatures } from "../../graph/format";
 import { defineAnalysis, defineGraph, type TableTypeDef } from "../types";
 import {
   ColumnStatsControls, MultiTControls, RowMeansControls, ThreeWayControls, TwoWayControls,
 } from "./controls";
-import { GroupedPlot, HeatMapPlot, VolcanoPlot } from "./graphs";
+import { groupedComparisons } from "./comparisons";
+import {
+  GroupedOptions, GroupedPlot, HeatMapPlot, HeatOptions, VolcanoOptions, VolcanoPlot,
+  XYGroupedPlot,
+} from "./graphs";
+import { groupedFormatDatasets, xyGroupedFormatDatasets } from "./graphData";
 import {
   ColumnStatsMethods, MultiTMethods, RowMeansMethods, ThreeWayMethods, TwoWayMethods,
 } from "./methods";
@@ -28,6 +34,7 @@ import {
   ColumnStatsResults, MultiTResults, RowMeansResults, ThreeWayResults, TwoWayResults,
 } from "./results";
 import { runColumnStats, runMultiT, runRowMeans, runThreeWay, runTwoWay } from "./run";
+import { rowMeansTable } from "./tables";
 import { groupedSample } from "./sample";
 
 type Result = Record<string, unknown>;
@@ -94,6 +101,11 @@ export const rowMeansAnalysis = defineAnalysis<RowMeansOptions, Result>({
   ControlsPanel: RowMeansControls,
   ResultsPanel: RowMeansResults,
   MethodsPanel: RowMeansMethods,
+  // "Make a linked data table" in the results.
+  derivedOnDemand: true,
+  derivedTable: (result, source) => (result.error || !Array.isArray(result.row_titles)
+    ? null : rowMeansTable(result, source.yTitle.trim())),
+  derivedName: (t) => `Row means of ${t}`,
 });
 
 export const columnStatsAnalysis = defineAnalysis<ColumnStatsOptions, Result>({
@@ -114,13 +126,30 @@ export const columnStatsAnalysis = defineAnalysis<ColumnStatsOptions, Result>({
 
 const yAuto = (t: DataTableModel) => ({ x: "", y: t.yTitle || "Value" });
 
-const rawGraph = (id: string, label: string, exportName: string,
-  Plot = GroupedPlot) => defineGraph({
+/** Format graph controls per grouped graph kind. */
+function groupedFeatures(id: string): FormatFeatures {
+  switch (id) {
+    case G_HEATMAP: return { noDatasets: true, noAxes: true };
+    case G_SCATTER: return { points: true, errorBars: true, categoryX: true };
+    case G_BOX: return { boxes: true, categoryX: true };
+    case G_LINES: return { points: true, lines: true, errorBars: true, categoryX: true };
+    default: return { bars: true, points: true, errorBars: true, categoryX: true };
+  }
+}
+
+const rawGraph = (id: string, label: string, exportName: string) => defineGraph({
   id, label, group: "grouped", analysis: null,
   autoTitles: id === G_HEATMAP ? () => ({ x: "", y: "" }) : yAuto,
   showXTitle: false,
   exportName,
-  PlotPanel: Plot,
+  PlotPanel: id === G_HEATMAP ? HeatMapPlot : GroupedPlot,
+  OptionsPanel: id === G_HEATMAP ? HeatOptions : GroupedOptions,
+  formatFeatures: groupedFeatures(id),
+  ...(id === G_HEATMAP ? {} : {
+    // Comparisons within rows / data sets / three-way cells land on bars.
+    comparisons: groupedComparisons,
+    formatDatasets: groupedFormatDatasets,
+  }),
 });
 
 export const groupedGraphs = [
@@ -131,11 +160,14 @@ export const groupedGraphs = [
   rawGraph(G_BOX, "Interleaved box plots", "grouped-box"),
   rawGraph(G_LINES, "Connected lines across rows", "grouped-lines"),
   rawGraph(G_THREE_WAY, "Three-way: two panels by factor C", "three-way-graph"),
-  rawGraph(G_HEATMAP, "Heat map", "heat-map", HeatMapPlot),
+  rawGraph(G_HEATMAP, "Heat map", "heat-map"),
   defineGraph<MultiTOptions, Result>({
     id: G_VOLCANO,
     label: "Volcano plot",
-    group: "volcano",
+    // Same group as the bar graphs, so a multiple t tests graph can switch
+    // to bars (with a bracket per row); only offered on graphs of that
+    // analysis (the switcher lists kinds of the bound analysis).
+    group: "grouped",
     analysis: A_MULTI_T,
     autoTitles: (t, o) => {
       const names = t.datasets.map((d, i) => d.name || `Dataset ${i + 1}`);
@@ -147,8 +179,30 @@ export const groupedGraphs = [
     },
     exportName: "volcano-plot",
     PlotPanel: VolcanoPlot,
+    OptionsPanel: VolcanoOptions,
+    formatFeatures: { noDatasets: true },
   }),
 ];
+
+/** Grouped graphs offered on XY tables, X rows as the row factor. They
+ *  share the XY graph's group, so the XY graph can switch to them. */
+export const xyGroupedGraphs = ([
+  [G_INTERLEAVED, "Grouped: interleaved bars (X rows as groups)", "grouped-bars"],
+  [G_SEPARATED, "Grouped: separated bars", "separated-bars"],
+  [G_STACKED, "Grouped: stacked bars", "stacked-bars"],
+  [G_SCATTER, "Grouped: scatter (points with mean)", "grouped-scatter"],
+  [G_BOX, "Grouped: box plots", "grouped-box"],
+  [G_LINES, "Grouped: connected lines across rows", "grouped-lines"],
+] as const).map(([id, label, exportName]) => defineGraph({
+  id, label, group: "xy", analysis: null,
+  autoTitles: (t: DataTableModel) => ({ x: "", y: t.yTitle || "Value" }),
+  showXTitle: false,
+  exportName,
+  PlotPanel: XYGroupedPlot,
+  OptionsPanel: GroupedOptions,
+  formatFeatures: groupedFeatures(id),
+  formatDatasets: xyGroupedFormatDatasets,
+}));
 
 export const groupedTable: TableTypeDef = {
   type: "grouped",

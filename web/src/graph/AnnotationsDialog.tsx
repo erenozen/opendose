@@ -22,8 +22,11 @@ const BLOCK_LABELS: Record<ResultsBlock, string> = {
   params: "Best-fit values / summary", equation: "Equation", pvalue: "P value",
 };
 
-export default function AnnotationsDialog({ format, results, onApply, onClose }: {
+export default function AnnotationsDialog({ format, results, paperOnly, onApply, onClose }: {
   format: GraphFormat;
+  /** The graph has no X/Y axes (pie charts, heat maps): plot-area
+   *  coordinates only. */
+  paperOnly?: boolean;
   /** Results blocks available for this graph (empty strings omitted). */
   results: Partial<Record<ResultsBlock, string>>;
   onApply: (f: GraphFormat) => void;
@@ -66,8 +69,8 @@ export default function AnnotationsDialog({ format, results, onApply, onClose }:
       <p className="field-note">
         Drag text and arrows on the graph to move them; positions are saved
         with the graph. “Plot area” coordinates run from 0 to 1 across the
-        plot; “data” coordinates follow the axes. Results blocks update when
-        the analysis changes.
+        plot{paperOnly ? "" : "; “data” coordinates follow the axes"}. Results
+        blocks update when the analysis changes.
       </p>
       {list.length === 0 && <p className="empty-hint">No annotations on this graph.</p>}
       <ol className="fmt-ann-list">
@@ -84,9 +87,11 @@ export default function AnnotationsDialog({ format, results, onApply, onClose }:
                 <TextField label="Text" multiline value={a.text}
                   onChange={(v) => update(i, { text: v ?? "" })} />
               )}
-              <SelectField label="Coordinates" value={a.ref}
-                options={[["paper", "Plot area (0-1)"], ["data", "Data (axis units)"]]}
-                onChange={(v) => update(i, { ref: v })} />
+              {!paperOnly && (
+                <SelectField label="Coordinates" value={a.ref}
+                  options={[["paper", "Plot area (0-1)"], ["data", "Data (axis units)"]]}
+                  onChange={(v) => update(i, { ref: v })} />
+              )}
               {a.kind === "text" || a.kind === "results" ? (
                 <>
                   <NumField label="X" value={a.x} onChange={(v) => update(i, { x: v ?? 0 })} />

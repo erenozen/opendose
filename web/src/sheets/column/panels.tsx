@@ -29,7 +29,11 @@ export function ColumnGraph({ graph, table, titles, scheme, result, format,
     table.datasets.map((d) => d.name))?.comparisons, [result, table.datasets]);
   const results = useMemo(() => resultBlocks(result), [result]);
   if (table.subcolumnFormat !== "replicates") {
-    return <SummaryPlot table={table} graphType={graph.graphType} scheme={scheme} yTitle={titles.y} />;
+    return (
+      <SummaryPlot table={table} graphType={graph.graphType} scheme={scheme} yTitle={titles.y}
+        format={format} onFormatChange={onFormatChange} comparisons={comparisons}
+        results={results} />
+    );
   }
   return (
     <ColumnPlot datasets={table.datasets}

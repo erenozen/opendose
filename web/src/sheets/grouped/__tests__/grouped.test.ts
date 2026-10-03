@@ -12,6 +12,7 @@ import {
   hasMissingRM, heatStops, inkOn, summarize, summaryCell, tCdf, tQuantile,
 } from "../stats.ts";
 import { rowMeansTable } from "../tables.ts";
+import { groupedComparisons, threeWayCells } from "../comparisons.ts";
 
 const close = (a: number | null, b: number, tol = 1e-9) =>
   assert.ok(a !== null && Math.abs(a - b) <= tol * Math.max(1, Math.abs(b)),
@@ -119,4 +120,42 @@ test("row means copy into a grouped table with mean, SD and N", () => {
   assert.deepEqual(t.datasets[0].rows[1], ["269.3", "67.4", "2"]);
   const again = normalizeTable(t);
   assert.deepEqual(again.datasets[0].subTitles, ["Mean", "SD", "N"]);
+});
+
+test("grouped comparisons: two-way within rows, multiple t tests, three-way cells", () => {
+  const table = normalizeTable({
+    type: "grouped", x: ["", ""], rowTitles: ["Day 7", "Day 14"],
+    datasets: [{ name: "Control", rows: [["1"], ["2"]] }, { name: "Drug", rows: [["3"], ["4"]] }],
+  });
+  const twoWay = { multiple_comparisons: { method: "sidak", comparisons: [
+    { family: "Day 7", pair: "Control vs. Drug", p_adjusted: 0.02 },
+    { family: "Day 14", pair: "Control vs. Drug", p_adjusted: 0.0004 },
+    { family: "Column main effect", pair: "Control vs. Drug", p_adjusted: 0.01 },
+  ] } };
+  const tw = groupedComparisons(twoWay, table)!;
+  assert.equal(tw.comparisons.length, 3);
+  assert.deepEqual(tw.comparisons[0], { a: "Control", b: "Drug", p: 0.02, family: "Day 7" });
+  assert.equal(tw.comparisons[2].family, undefined);
+
+  const multiT = { names: ["Control", "Drug"], n_tests: 2, approach: "fdr", method: "bky",
+    rows: [{ row: "Day 7", p: 0.01, p_adjusted: 0.02 }, { row: "Day 14", p: null, omitted: "n < 2" }] };
+  const mt = groupedComparisons(multiT, table)!;
+  assert.deepEqual(mt.comparisons, [{ a: "Control", b: "Drug", p: 0.02, family: "Day 7" }]);
+  assert.equal(mt.unmatched, 1);
+  assert.match(mt.label, /q values/);
+
+  const threeWay = { multiple_comparisons: { method: "tukey",
+    means: [{ label: "Day 7:B1:C1", cell: [0, 0, 0] }, { label: "Day 7:B2:C1", cell: [0, 1, 0] }],
+    comparisons: [{ pair: "Day 7:B1:C1 vs. Day 7:B2:C1", p_adjusted: 0.03 }] } };
+  assert.deepEqual(threeWayCells(threeWay).get("Day 7:B2:C1"), [0, 1, 0]);
+  assert.deepEqual(groupedComparisons(threeWay, table)!.comparisons,
+    [{ a: "Day 7:B1:C1", b: "Day 7:B2:C1", p: 0.03 }]);
+  assert.equal(groupedComparisons({ error: "x" }, table), null);
+});
+
+test("row means table: Y title from what was averaged, or the statistic alone", () => {
+  const r = { calculate: "mean", error_type: "sd", scope: "row", row_titles: ["A"],
+    rows: [{ value: 1, sd: 0.5, n: 3 }] };
+  assert.equal(rowMeansTable(r, "Volume").yTitle, "Mean of Volume");
+  assert.equal(rowMeansTable(r, "").yTitle, "Mean");
 });

@@ -10,7 +10,8 @@ export const CALC_TITLE: Record<string, string> = {
 };
 
 /** The row-means result as a new grouped data table: mean with SD / SEM
- *  / %CV and N where those were computed, otherwise one value per cell. */
+ *  / %CV and N where those were computed, otherwise one value per cell.
+ *  `name` (what was averaged) goes into the Y title. */
 export function rowMeansTable(result: R, name: string): DataTableModel {
   const err = result.error_type as string;
   const fmt: SubcolumnFormat = result.calculate === "mean" && err === "sd" ? "mean_sd_n"
@@ -32,7 +33,8 @@ export function rowMeansTable(result: R, name: string): DataTableModel {
     type: "grouped",
     x: titles.map(() => ""),
     rowTitles: titles,
-    yTitle: `${CALC_TITLE[result.calculate] ?? "Value"} of ${name}`,
+    yTitle: name ? `${CALC_TITLE[result.calculate] ?? "Value"} of ${name}`
+      : CALC_TITLE[result.calculate] ?? "Value",
     subcolumnFormat: fmt,
     datasets: blocks.map((b) => ({
       name: b.name,

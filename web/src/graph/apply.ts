@@ -75,11 +75,23 @@ export interface FormatContext {
   /** Survival groups, for the number-at-risk table. */
   riskSets?: RiskSet[];
   /** Position of a group on the X axis, for plots whose groups are not
-   *  "dataset i at x = i" (grouped graphs). Return null to skip. */
-  groupX?: (name: string, family?: string) => number | null;
+   *  "dataset i at x = i" (grouped graphs). Return null to skip; return
+   *  `{x, xref}` for a group on another X axis (a second panel, "x2"). */
+  groupX?: (name: string, family?: string) => GroupPos;
+  /** Half the width a group occupies on X (brackets clear the data within
+   *  it); default 0.45 (a column graph's slot). */
+  groupHalf?: number;
   /** Bumped by the drag handler to snap generated items back. */
   editRevision?: number;
 }
+
+/** Where a group sits: an X value on the main X axis, or on another one. */
+export type GroupPos = number | { x: number; xref: string } | null;
+
+const toPos = (v: GroupPos | undefined): { x: number; xref: string } | null =>
+  v === null || v === undefined ? null
+    : typeof v === "number" ? (Number.isFinite(v) ? { x: v, xref: "x" } : null)
+      : Number.isFinite(v.x) ? v : null;
 
 export interface Formatted {
   traces: Trace[];
@@ -273,7 +285,9 @@ export function applyFormat(tracesIn: Trace[], layoutIn: Layout, format: GraphFo
   if (groupX && ctx.comparisons?.length) {
     const yr = axisRanges.y;
     const span = (yr ? yr[1] - yr[0] : 0) || spanOf(traces, maps.y) || 1;
-    const top = (lo: number, hi: number) => topBetween(traces, lo - 0.45, hi + 0.45, yr, maps.y);
+    const half = ctx.groupHalf ?? 0.45;
+    const top = (lo: number, hi: number, xref = "x") =>
+      topBetween(traces, lo - half, hi + half, yr, maps.y, xref);
     if (format.comparisons?.show) {
       drawBrackets(layout, format, ctx.comparisons, groupX, top, span, chrome);
     }
@@ -336,6 +350,8 @@ function pointValuesByRow(traces: Trace[], ds: number): Map<number, number> {
 }
 
 function recolor(v: unknown, orig: string, next: string): unknown {
+  // Per-point colour arrays (grouped bars) recolour element by element.
+  if (Array.isArray(v)) return v.map((c) => recolor(c, orig, next));
   if (typeof v !== "string" || orig === next) return v;
   return v.toLowerCase().startsWith(orig.toLowerCase()) ? next + v.slice(orig.length) : v;
 }
@@ -665,10 +681,11 @@ function needsRange(a: AxisFormat | undefined): boolean {
 
 /** Highest point (axis units, primary Y) between two X positions. */
 function topBetween(traces: Trace[], lo: number, hi: number,
-  range: [number, number] | undefined, m: AxisMap): number {
+  range: [number, number] | undefined, m: AxisMap, xref = "x"): number {
   let top = -Infinity;
   for (const t of traces) {
     if (yOf(t) !== "y") continue;
+    if ((t.xaxis ?? "x") !== xref) continue;
     const tag = traceTag(t);
     if (tag?.role === "decor" || tag?.role === "band") continue;
     const xs = arr(t.x), ys = arr(t.y);
@@ -800,37 +817,40 @@ function extraTick(layout: Layout, which: "x" | "y", v: number, label: string, g
 // ============================================================ comparisons
 
 function drawBrackets(layout: Layout, format: GraphFormat, comparisons: Comparison[],
-  groupX: (name: string, family?: string) => number | null,
-  top: (lo: number, hi: number) => number, span: number, chrome: Chrome) {
+  groupX: (name: string, family?: string) => GroupPos,
+  top: (lo: number, hi: number, xref?: string) => number, span: number, chrome: Chrome) {
   const c = format.comparisons!;
   const hidden = new Set(c.hidden ?? []);
   const items = comparisons
     .filter((cmp) => !hidden.has(pairKey(cmp)))
     .filter((cmp) => !isNum(c.threshold) || cmp.p < c.threshold)
-    .map((cmp) => ({ cmp, x0: groupX(cmp.a, cmp.family), x1: groupX(cmp.b, cmp.family) }))
-    .filter((e): e is { cmp: Comparison; x0: number; x1: number } =>
-      isNum(e.x0) && isNum(e.x1) && e.x0 !== e.x1)
+    .map((cmp) => ({ cmp, p0: toPos(groupX(cmp.a, cmp.family)),
+      p1: toPos(groupX(cmp.b, cmp.family)) }))
+    .filter((e) => e.p0 && e.p1 && e.p0.xref === e.p1.xref && e.p0.x !== e.p1.x)
     .map((e) => ({
-      key: pairKey(e.cmp), x0: e.x0, x1: e.x1,
+      key: pairKey(e.cmp), x0: e.p0!.x, x1: e.p1!.x, xref: e.p0!.xref,
       label: c.display === "p" ? formatP(e.cmp.p, c.prefix ?? "P = ") : pStars(e.cmp.p),
     }));
   if (!items.length) return;
   // One tier must clear a label (~16 px) on a plot a few hundred px tall.
   const step = span * 0.1;
-  const placed = stackBrackets(items, top, step);
+  // Each X axis (panel) stacks its own brackets.
+  const placed = [...new Set(items.map((i) => i.xref))].flatMap((xref) =>
+    stackBrackets(items.filter((i) => i.xref === xref),
+      (lo, hi) => top(lo, hi, xref), step).map((b) => ({ ...b, xref })));
   const color = c.color ?? chrome.ink;
   const line = { color, width: c.lineWidth ?? 1.2 };
   const tick = c.style === "tall" ? step * 0.6 : step * 0.22;
   for (const b of placed) {
-    layout.shapes.push({ type: "line", xref: "x", yref: "y", x0: b.lo, x1: b.hi,
+    layout.shapes.push({ type: "line", xref: b.xref, yref: "y", x0: b.lo, x1: b.hi,
       y0: b.y, y1: b.y, line, name: "bracket" });
     if (c.style !== "line") {
       for (const x of [b.lo, b.hi]) {
-        layout.shapes.push({ type: "line", xref: "x", yref: "y", x0: x, x1: x,
+        layout.shapes.push({ type: "line", xref: b.xref, yref: "y", x0: x, x1: x,
           y0: b.y, y1: b.y - tick, line, name: "bracket" });
       }
     }
-    layout.annotations.push({ xref: "x", yref: "y", x: (b.lo + b.hi) / 2, y: b.y,
+    layout.annotations.push({ xref: b.xref, yref: "y", x: (b.lo + b.hi) / 2, y: b.y,
       yanchor: "bottom", yshift: c.display === "p" ? 2 : -1, showarrow: false,
       text: b.label, name: "bracket-label",
       font: { size: c.textSize ?? (c.display === "p" ? 11 : 14), color } });
@@ -838,17 +858,19 @@ function drawBrackets(layout: Layout, format: GraphFormat, comparisons: Comparis
 }
 
 function drawLetters(layout: Layout, format: GraphFormat, ctx: FormatContext,
-  groupX: (name: string, family?: string) => number | null,
-  top: (lo: number, hi: number) => number, span: number, ordered: number[], chrome: Chrome) {
+  groupX: (name: string, family?: string) => GroupPos,
+  top: (lo: number, hi: number, xref?: string) => number, span: number, ordered: number[],
+  chrome: Chrome) {
   const l = format.letters!;
   const alpha = l.alpha ?? 0.05;
   const groups = ordered.map((i) => ctx.datasets[i]);
   const cmps = (ctx.comparisons ?? []).filter((c) => !c.family);
   const letters = lettersFor(groups, cmps, alpha, l.style ?? "lower", l.engine);
   groups.forEach((name, k) => {
-    const x = groupX(name);
-    if (!isNum(x) || !letters[k]) return;
-    layout.annotations.push({ xref: "x", yref: "y", x, y: top(x, x) + span * 0.03,
+    const p = toPos(groupX(name));
+    if (!p || !letters[k]) return;
+    const { x, xref } = p;
+    layout.annotations.push({ xref, yref: "y", x, y: top(x, x, xref) + span * 0.03,
       yanchor: "bottom", showarrow: false, text: letters[k], name: "letters",
       font: { size: l.size ?? 14, color: l.color ?? chrome.ink } });
   });

@@ -1,18 +1,27 @@
 // Graphs for multiple-variables tables: graphs of the data (XY / bubble
 // with color, size, labels, connecting lines, data ellipses, convex hulls
 // and summary symbols; categorical strip / bar / box / violin) and the
-// graphs of each analysis' results.
+// graphs of each analysis' results. Each draws through the graph-format
+// layer; their own options (which variable on X, color by, ...) are kept
+// in graph.settings.mv and edited in the graph's Settings panel (the
+// *Options components below).
 import { useMemo, type ReactNode } from "react";
 import type Plotly from "plotly.js-dist-min";
 import ColumnPlot from "../../components/ColumnPlot";
+import { OptCheck, OptNote, OptSelect } from "../../components/GraphOptionControls";
+import { tagTrace } from "../../graph";
 import { seriesStyle } from "../../lib/palette";
 import type { DataTableModel } from "../../project/types";
 import { COLUMN_GRAPH_LABELS, formatSig, type ColumnGraphType } from "../../types";
-import type { PlotProps } from "../types";
+import type { GraphOptionsProps, PlotProps } from "../types";
 import {
   convexHull, dataEllipse, meanSd, mvVariables, num, pcaScores, rowLabel,
   variableInfo, type MvValue, type VarInfo,
 } from "./model";
+import {
+  biplotDefaults, biplotGroups, catDefaults, ROW_TITLE, xyDefaults, xyGroups,
+  type CatSettings, type PcSettings, type XYSettings,
+} from "./graphSettings";
 import {
   axis, baseLayout, chromeFor, divergingScale, inkOn, scaleColor,
   sequentialScale, stars, useDark, useGraphSettings,
@@ -34,35 +43,17 @@ function useVars(table: DataTableModel) {
   }, [table]);
 }
 
-function Options({ children }: { children: ReactNode }) {
-  return <div className="mv-graph-options" role="group" aria-label="Graph options">{children}</div>;
-}
-
 function Pick({ label, value, onChange, options, none }: {
   label: string; value: string; onChange: (v: string) => void;
   options: { value: string; label: string }[]; none?: string;
 }) {
   return (
-    <label className="mv-opt">
-      <span>{label}</span>
-      <select value={value} onChange={(e) => onChange(e.target.value)}>
-        {none !== undefined && <option value="">{none}</option>}
-        {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-      </select>
-    </label>
+    <OptSelect label={label} value={value} none={none} onChange={onChange}
+      options={options.map((o) => [o.value, o.label] as const)} />
   );
 }
 
-function Check({ label, checked, onChange }: {
-  label: string; checked: boolean; onChange: (v: boolean) => void;
-}) {
-  return (
-    <label className="mv-opt mv-opt-check">
-      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
-      <span>{label}</span>
-    </label>
-  );
-}
+const Check = OptCheck;
 
 const names = (info: VarInfo[], pred: (v: VarInfo) => boolean) =>
   info.filter(pred).map((v) => ({ value: v.name, label: v.name }));
@@ -82,33 +73,10 @@ function pending(result: { error?: string } | null): ReactNode | null {
 
 /* ------------------------------------------------------------ XY / bubble */
 
-export interface XYSettings {
-  x: string; y: string; colorBy: string; sizeBy: string; labelBy: string;
-  connect: boolean; ellipse: boolean; ellipseLevel: string; hull: boolean;
-  summary: boolean;
-}
-
-export const ROW_TITLE = "__row_title__";
-
-function xyDefaults(info: VarInfo[]): XYSettings {
-  const cont = info.filter((v) => v.kind === "continuous");
-  const many = cont.filter((v) => !v.binary);
-  const x = (many[0] ?? cont[0])?.name ?? "";
-  const y = ([...many].reverse().find((v) => v.name !== x)
-    ?? cont.find((v) => v.name !== x))?.name ?? "";
-  return {
-    x, y,
-    colorBy: info.find((v) => v.kind === "categorical")?.name ?? "",
-    sizeBy: "", labelBy: "", connect: false, ellipse: false,
-    ellipseLevel: "95", hull: false, summary: false,
-  };
-}
-
-export function MvXYPlot({ graph, table, titles, scheme }: PlotProps) {
+export function MvXYPlot({ graph, table, titles, scheme, format, onFormatChange }: PlotProps) {
   const dark = useDark();
   const { info, col } = useVars(table);
-  const [s, set, editable] = useGraphSettings<XYSettings>(graph, xyDefaults(info));
-  const known = (n: string) => info.some((v) => v.name === n);
+  const [s] = useGraphSettings<XYSettings>(graph, xyDefaults(info));
   const colorVar = info.find((v) => v.name === s.colorBy);
   const sizeVar = info.find((v) => v.name === s.sizeBy && v.kind === "continuous");
 
@@ -131,19 +99,22 @@ export function MvXYPlot({ graph, table, titles, scheme }: PlotProps) {
     const sizeOf = (v: MvValue | undefined) => (sizeVar && isNum(v) && smax > smin
       ? 7 + 23 * Math.sqrt((v - smin) / (smax - smin)) : sizeVar ? 7 : 9);
 
-    const groups: { name: string; rows: number[]; color: string; symbol: string }[] = [];
+    const groups: { name: string; rows: number[]; color: string; symbol: string; ds: number }[] = [];
     let continuousColor: MvValue[] | null = null;
     if (colorVar?.kind === "categorical") {
       const cv = col(colorVar.name);
       colorVar.levels.forEach((lev, i) => {
         const st = seriesStyle(i, dark, scheme);
-        groups.push({ name: lev, rows: rows.filter((r) => cv[r] === lev), ...st });
+        groups.push({ name: lev, rows: rows.filter((r) => cv[r] === lev), ...st, ds: i });
       });
       const rest = rows.filter((r) => cv[r] === null);
-      if (rest.length) groups.push({ name: "(blank)", rows: rest, color: chrome.muted, symbol: "circle-open" });
+      if (rest.length) {
+        groups.push({ name: "(blank)", rows: rest, color: chrome.muted, symbol: "circle-open",
+          ds: colorVar.levels.length });
+      }
     } else {
       const st = seriesStyle(0, dark, scheme);
-      groups.push({ name: s.y, rows, ...st });
+      groups.push({ name: s.y, rows, ...st, ds: 0 });
       if (colorVar?.kind === "continuous") continuousColor = col(colorVar.name);
     }
     const legend = groups.length > 1;
@@ -158,26 +129,26 @@ export function MvXYPlot({ graph, table, titles, scheme }: PlotProps) {
       const gy = g.rows.map((r) => ys[r] as number);
       if (s.hull && g.rows.length >= 3) {
         const h = convexHull(g.rows.map((_, k) => [gx[k], gy[k]]));
-        traces.push({
+        traces.push(tagTrace({
           x: h.map((p) => p[0]), y: h.map((p) => p[1]), mode: "lines",
           line: { color: g.color, width: 1.5 }, fill: "toself",
           fillcolor: withAlpha(g.color, "14"), hoverinfo: "skip",
           showlegend: false, legendgroup: g.name,
-        } as Plotly.Data);
+        }, { ds: g.ds, role: "decor" }) as Plotly.Data);
       }
       if (s.ellipse) {
         const e = dataEllipse(gx, gy, Math.min(0.999, Math.max(0.5, num(s.ellipseLevel, 95) / 100)));
         if (e) {
-          traces.push({
+          traces.push(tagTrace({
             x: e.x, y: e.y, mode: "lines",
             line: { color: g.color, width: 1.5, dash: "dot" }, fill: "toself",
             fillcolor: withAlpha(g.color, "10"), hoverinfo: "skip",
             showlegend: false, legendgroup: g.name,
-          } as Plotly.Data);
+          }, { ds: g.ds, role: "decor" }) as Plotly.Data);
         }
       }
       const cvals = continuousColor ? g.rows.map((r) => continuousColor![r]) : null;
-      traces.push({
+      traces.push(tagTrace({
         x: gx, y: gy,
         mode: `markers${s.connect ? "+lines" : ""}${labels ? "+text" : ""}`,
         text: labels ? g.rows.map((r) => labelOf.get(r) ?? "") : undefined,
@@ -203,11 +174,11 @@ export function MvXYPlot({ graph, table, titles, scheme }: PlotProps) {
         },
         hovertext: g.rows.map(hover),
         hoverinfo: "text",
-      } as Plotly.Data);
+      }, { ds: g.ds, role: "points", rows: g.rows }) as Plotly.Data);
       if (s.summary) {
         const mx = meanSd(gx);
         const my = meanSd(gy);
-        traces.push({
+        traces.push(tagTrace({
           x: [mx.mean], y: [my.mean], mode: "markers",
           marker: { color: g.color, symbol: g.symbol, size: 15,
             line: { color: chrome.ink, width: 2 } },
@@ -216,7 +187,7 @@ export function MvXYPlot({ graph, table, titles, scheme }: PlotProps) {
           showlegend: false, legendgroup: g.name,
           hovertemplate: `${g.name}: mean ${formatSig(mx.mean)}, ${formatSig(my.mean)}`
             + ` (SD ${formatSig(mx.sd)}, ${formatSig(my.sd)}; n = ${mx.n})<extra></extra>`,
-        } as Plotly.Data);
+        }, { ds: g.ds, role: "summary" }) as Plotly.Data);
       }
     }
     // size legend: three reference bubbles
@@ -240,47 +211,53 @@ export function MvXYPlot({ graph, table, titles, scheme }: PlotProps) {
       layout.legend = { ...layout.legend, orientation: "h", x: 0, y: -0.18, yanchor: "top" };
       layout.margin = { l: 64, r: 16, t: 12, b: 90 };
     }
-    return { traces, layout };
-  }, [dark, col, s, colorVar, sizeVar, table, titles, scheme]);
+    return { traces, layout, names: xyGroups(info, s) };
+  }, [dark, col, s, colorVar, sizeVar, table, titles, scheme, info]);
 
+  return fig ? (
+    <PlotlyChart data={fig.traces} layout={fig.layout} filename="multiple-variables"
+      label={`Scatter graph of ${s.y} against ${s.x}`} format={format}
+      onFormatChange={onFormatChange} dark={dark} scheme={scheme} names={fig.names}
+      rowTitles={table.rowTitles} />
+  ) : (
+    <PlotMessage>
+      Choose two continuous variables with values on the same rows to plot
+      one against the other (Settings, Graph options).
+    </PlotMessage>
+  );
+}
+
+export function MvXYOptions({ graph, table }: GraphOptionsProps) {
+  const { info } = useVars(table);
+  const [s, set] = useGraphSettings<XYSettings>(graph, xyDefaults(info));
+  const known = (n: string) => info.some((v) => v.name === n);
+  const colorVar = info.find((v) => v.name === s.colorBy);
+  const sizeVar = info.find((v) => v.name === s.sizeBy && v.kind === "continuous");
   return (
     <>
-      {editable && (
-        <Options>
-          <Pick label="X axis" value={known(s.x) ? s.x : ""} none="Choose…"
-            options={names(info, (v) => v.kind === "continuous")}
-            onChange={(x) => set({ x })} />
-          <Pick label="Y axis" value={known(s.y) ? s.y : ""} none="Choose…"
-            options={names(info, (v) => v.kind === "continuous")}
-            onChange={(y) => set({ y })} />
-          <Pick label="Color by" value={colorVar ? s.colorBy : ""} none="None"
-            options={names(info, (v) => v.name !== s.x && v.name !== s.y)}
-            onChange={(colorBy) => set({ colorBy })} />
-          <Pick label="Size by" value={sizeVar ? s.sizeBy : ""} none="None"
-            options={names(info, (v) => v.kind === "continuous")}
-            onChange={(sizeBy) => set({ sizeBy })} />
-          <Pick label="Labels" value={s.labelBy} none="None"
-            options={[{ value: ROW_TITLE, label: "Row titles" }, ...names(info, () => true)]}
-            onChange={(labelBy) => set({ labelBy })} />
-          <Check label="Connect points" checked={s.connect} onChange={(connect) => set({ connect })} />
-          <Check label="Mean ± SD per group" checked={s.summary} onChange={(summary) => set({ summary })} />
-          <Check label="Convex hull" checked={s.hull} onChange={(hull) => set({ hull })} />
-          <Check label="Data ellipse" checked={s.ellipse} onChange={(ellipse) => set({ ellipse })} />
-          {s.ellipse && (
-            <Pick label="covering" value={s.ellipseLevel}
-              options={["90", "95", "99"].map((v) => ({ value: v, label: `${v}%` }))}
-              onChange={(ellipseLevel) => set({ ellipseLevel })} />
-          )}
-        </Options>
-      )}
-      {fig ? (
-        <PlotlyChart data={fig.traces} layout={fig.layout} filename="multiple-variables"
-          label={`Scatter graph of ${s.y} against ${s.x}`} />
-      ) : (
-        <PlotMessage>
-          Choose two continuous variables with values on the same rows to plot
-          one against the other.
-        </PlotMessage>
+      <Pick label="X axis" value={known(s.x) ? s.x : ""} none="Choose…"
+        options={names(info, (v) => v.kind === "continuous")}
+        onChange={(x) => set({ x })} />
+      <Pick label="Y axis" value={known(s.y) ? s.y : ""} none="Choose…"
+        options={names(info, (v) => v.kind === "continuous")}
+        onChange={(y) => set({ y })} />
+      <Pick label="Color by" value={colorVar ? s.colorBy : ""} none="None"
+        options={names(info, (v) => v.name !== s.x && v.name !== s.y)}
+        onChange={(colorBy) => set({ colorBy })} />
+      <Pick label="Size by" value={sizeVar ? s.sizeBy : ""} none="None"
+        options={names(info, (v) => v.kind === "continuous")}
+        onChange={(sizeBy) => set({ sizeBy })} />
+      <Pick label="Labels" value={s.labelBy} none="None"
+        options={[{ value: ROW_TITLE, label: "Row titles" }, ...names(info, () => true)]}
+        onChange={(labelBy) => set({ labelBy })} />
+      <Check label="Connect points" checked={s.connect} onChange={(connect) => set({ connect })} />
+      <Check label="Mean ± SD per group" checked={s.summary} onChange={(summary) => set({ summary })} />
+      <Check label="Convex hull" checked={s.hull} onChange={(hull) => set({ hull })} />
+      <Check label="Data ellipse" checked={s.ellipse} onChange={(ellipse) => set({ ellipse })} />
+      {s.ellipse && (
+        <Pick label="Ellipse covers" value={s.ellipseLevel}
+          options={["90", "95", "99"].map((v) => ({ value: v, label: `${v}%` }))}
+          onChange={(ellipseLevel) => set({ ellipseLevel })} />
       )}
     </>
   );
@@ -288,17 +265,10 @@ export function MvXYPlot({ graph, table, titles, scheme }: PlotProps) {
 
 /* ------------------------------------------------------------ categorical */
 
-interface CatSettings { cat: string; y: string; style: ColumnGraphType }
-
-export function MvCategoricalPlot({ graph, table, titles, scheme }: PlotProps) {
+export function MvCategoricalPlot({ graph, table, titles, scheme, format, onFormatChange }:
+  PlotProps) {
   const { info, col } = useVars(table);
-  const defaults: CatSettings = {
-    cat: info.find((v) => v.kind === "categorical")?.name ?? "",
-    y: [...info].reverse().find((v) => v.kind === "continuous" && !v.binary)?.name
-      ?? info.find((v) => v.kind === "continuous")?.name ?? "",
-    style: "scatter",
-  };
-  const [s, set, editable] = useGraphSettings<CatSettings>(graph, defaults);
+  const [s] = useGraphSettings<CatSettings>(graph, catDefaults(info));
   const catVar = info.find((v) => v.name === s.cat && v.kind === "categorical");
   const yVar = info.find((v) => v.name === s.y && v.kind === "continuous");
   const datasets = useMemo(() => {
@@ -311,32 +281,36 @@ export function MvCategoricalPlot({ graph, table, titles, scheme }: PlotProps) {
     }));
   }, [catVar, yVar, col]);
 
+  return datasets ? (
+    <ColumnPlot datasets={datasets} graphType={s.style} scheme={scheme}
+      xTitle={titles.x || catVar!.name} yTitle={titles.y || yVar!.name}
+      format={format} onFormatChange={onFormatChange} />
+  ) : (
+    <PlotMessage>
+      A categorical graph needs one categorical variable (the groups)
+      and one continuous variable (the values). Set a column&apos;s type
+      to categorical in the table header.
+    </PlotMessage>
+  );
+}
+
+export function MvCatOptions({ graph, table }: GraphOptionsProps) {
+  const { info } = useVars(table);
+  const [s, set] = useGraphSettings<CatSettings>(graph, catDefaults(info));
+  const catVar = info.find((v) => v.name === s.cat && v.kind === "categorical");
+  const yVar = info.find((v) => v.name === s.y && v.kind === "continuous");
   return (
     <>
-      {editable && (
-        <Options>
-          <Pick label="Groups (X)" value={catVar ? s.cat : ""} none="Choose…"
-            options={names(info, (v) => v.kind === "categorical")}
-            onChange={(cat) => set({ cat })} />
-          <Pick label="Values (Y)" value={yVar ? s.y : ""} none="Choose…"
-            options={names(info, (v) => v.kind === "continuous")}
-            onChange={(y) => set({ y })} />
-          <Pick label="Show" value={s.style}
-            options={(Object.keys(COLUMN_GRAPH_LABELS) as ColumnGraphType[])
-              .map((k) => ({ value: k, label: COLUMN_GRAPH_LABELS[k] }))}
-            onChange={(style) => set({ style: style as ColumnGraphType })} />
-        </Options>
-      )}
-      {datasets ? (
-        <ColumnPlot datasets={datasets} graphType={s.style} scheme={scheme}
-          xTitle={titles.x || catVar!.name} yTitle={titles.y || yVar!.name} />
-      ) : (
-        <PlotMessage>
-          A categorical graph needs one categorical variable (the groups)
-          and one continuous variable (the values). Set a column&apos;s type
-          to categorical in the table header.
-        </PlotMessage>
-      )}
+      <Pick label="Groups (X)" value={catVar ? s.cat : ""} none="Choose…"
+        options={names(info, (v) => v.kind === "categorical")}
+        onChange={(cat) => set({ cat })} />
+      <Pick label="Values (Y)" value={yVar ? s.y : ""} none="Choose…"
+        options={names(info, (v) => v.kind === "continuous")}
+        onChange={(y) => set({ y })} />
+      <Pick label="Show" value={s.style}
+        options={(Object.keys(COLUMN_GRAPH_LABELS) as ColumnGraphType[])
+          .map((k) => ({ value: k, label: COLUMN_GRAPH_LABELS[k] }))}
+        onChange={(style) => set({ style: style as ColumnGraphType })} />
     </>
   );
 }
@@ -345,10 +319,12 @@ export function MvCategoricalPlot({ graph, table, titles, scheme }: PlotProps) {
 
 interface HeatSettings { values: boolean; marks: boolean; lower: boolean }
 
-export function CorrHeatmap({ graph, result }: PlotProps<unknown, CorrelationResult>) {
+const HEAT_DEFAULTS: HeatSettings = { values: true, marks: true, lower: false };
+
+export function CorrHeatmap({ graph, result, scheme, format, onFormatChange }:
+  PlotProps<unknown, CorrelationResult>) {
   const dark = useDark();
-  const [s, set, editable] = useGraphSettings<HeatSettings>(graph,
-    { values: true, marks: true, lower: false });
+  const [s] = useGraphSettings<HeatSettings>(graph, HEAT_DEFAULTS);
   const fig = useMemo(() => {
     if (!result || result.error || !result.names) return null;
     const chrome = chromeFor(dark);
@@ -398,28 +374,32 @@ export function CorrHeatmap({ graph, result }: PlotProps<unknown, CorrelationRes
     return { traces, layout };
   }, [result, dark, s]);
 
-  const wait = pending(result);
+  return pending(result) ?? (fig && (
+    <PlotlyChart data={fig.traces} layout={fig.layout} filename="correlation-matrix"
+      label="Heat map of the correlation matrix" format={format}
+      onFormatChange={onFormatChange} dark={dark} scheme={scheme} />
+  ));
+}
+
+export function CorrHeatOptions({ graph }: GraphOptionsProps) {
+  const [s, set] = useGraphSettings<HeatSettings>(graph, HEAT_DEFAULTS);
   return (
     <>
-      {editable && (
-        <Options>
-          <Check label="Show r values" checked={s.values} onChange={(values) => set({ values })} />
-          <Check label="Significance marks" checked={s.marks} onChange={(marks) => set({ marks })} />
-          <Check label="Lower triangle only" checked={s.lower} onChange={(lower) => set({ lower })} />
-          {s.marks && <span className="mv-opt-note">* P &lt; 0.05, ** &lt; 0.01, *** &lt; 0.001, **** &lt; 0.0001</span>}
-        </Options>
+      <Check label="Show r values" checked={s.values} onChange={(values) => set({ values })} />
+      <Check label="Significance marks" checked={s.marks} onChange={(marks) => set({ marks })} />
+      <Check label="Lower triangle only" checked={s.lower} onChange={(lower) => set({ lower })} />
+      {s.marks && (
+        <OptNote>* P ≤ 0.05, ** ≤ 0.01, *** ≤ 0.001, **** ≤ 0.0001</OptNote>
       )}
-      {wait ?? (fig && (
-        <PlotlyChart data={fig.traces} layout={fig.layout} filename="correlation-matrix"
-          label="Heat map of the correlation matrix" />
-      ))}
     </>
   );
 }
 
 /* ------------------------------------------------------------ regression */
 
-export function RegActualPlot({ table, result, titles, scheme }:
+const ONE_SERIES = ["Observations"];
+
+export function RegActualPlot({ table, result, titles, scheme, format, onFormatChange }:
   PlotProps<unknown, RegressionResult>) {
   const dark = useDark();
   const fig = useMemo(() => {
@@ -435,19 +415,21 @@ export function RegActualPlot({ table, result, titles, scheme }:
     const traces: Plotly.Data[] = [
       { x: [lo, hi], y: [lo, hi], mode: "lines", name: "Line of identity",
         line: { color: chrome.muted, width: 1.5, dash: "dash" }, hoverinfo: "skip" } as Plotly.Data,
-      { x: px, y: ay, mode: "markers", name: result.outcome,
+      tagTrace({ x: px, y: ay, mode: "markers", name: result.outcome,
         marker: { color: st.color, symbol: st.symbol, size: 9, line: { color: chrome.surface, width: 1.5 } },
         hovertext: rows.map((r, k) => `${rowLabel(table, r)}<br>predicted ${formatSig(px[k])}<br>actual ${formatSig(ay[k])}`),
-        hoverinfo: "text" } as Plotly.Data,
+        hoverinfo: "text" }, { ds: 0, role: "points", rows }) as Plotly.Data,
     ];
     return { traces, layout: baseLayout(chrome, titles.x || `Predicted ${result.outcome}`,
       titles.y || `Actual ${result.outcome}`, { showlegend: false }) };
   }, [result, dark, scheme, table, titles]);
   return pending(result) ?? (fig && <PlotlyChart data={fig.traces} layout={fig.layout}
-    filename="actual-vs-predicted" label="Actual against predicted values" />);
+    filename="actual-vs-predicted" label="Actual against predicted values" format={format}
+    onFormatChange={onFormatChange} dark={dark} scheme={scheme} names={ONE_SERIES}
+    rowTitles={table.rowTitles} />);
 }
 
-export function RegResidualPlot({ table, result, titles, scheme }:
+export function RegResidualPlot({ table, result, titles, scheme, format, onFormatChange }:
   PlotProps<unknown, RegressionResult>) {
   const dark = useDark();
   const fig = useMemo(() => {
@@ -458,33 +440,41 @@ export function RegResidualPlot({ table, result, titles, scheme }:
       .filter((i) => result.predicted[i] !== null && result.residuals[i] !== null);
     const px = rows.map((i) => result.predicted[i] as number);
     const res = rows.map((i) => result.residuals[i] as number);
-    const traces: Plotly.Data[] = [{
+    const traces: Plotly.Data[] = [tagTrace({
       x: px, y: res, mode: "markers", name: "Residuals",
       marker: { color: st.color, symbol: st.symbol, size: 9, line: { color: chrome.surface, width: 1.5 } },
       hovertext: rows.map((r, k) => `${rowLabel(table, r)}<br>predicted ${formatSig(px[k])}<br>residual ${formatSig(res[k])}`),
       hoverinfo: "text",
-    } as Plotly.Data];
+    }, { ds: 0, role: "points", rows }) as Plotly.Data];
     const layout = baseLayout(chrome, titles.x || `Predicted ${result.outcome}`,
       titles.y || "Residual", { showlegend: false });
     layout.yaxis = { ...layout.yaxis, zeroline: true, zerolinecolor: chrome.muted, zerolinewidth: 1.5 };
     return { traces, layout };
   }, [result, dark, scheme, table, titles]);
   return pending(result) ?? (fig && <PlotlyChart data={fig.traces} layout={fig.layout}
-    filename="residuals" label="Residuals against predicted values" />);
+    filename="residuals" label="Residuals against predicted values" format={format}
+    onFormatChange={onFormatChange} dark={dark} scheme={scheme} names={ONE_SERIES}
+    rowTitles={table.rowTitles} />);
 }
 
 interface ForestSettings { intercept: boolean }
 
-function Forest({ graph, coefs, ratio, level, titles, filename }: {
+const FOREST_DEFAULTS: ForestSettings = { intercept: false };
+
+function Forest({ graph, coefs, ratio, level, titles, filename, scheme, format,
+  onFormatChange }: {
   graph: PlotProps["graph"];
   coefs: { name: string; value: number; lo: number | null; hi: number | null; p: number }[];
   ratio: boolean;
   level: number;
   titles: { x: string; y: string };
   filename: string;
+  scheme: PlotProps["scheme"];
+  format: PlotProps["format"];
+  onFormatChange: PlotProps["onFormatChange"];
 }) {
   const dark = useDark();
-  const [s, set, editable] = useGraphSettings<ForestSettings>(graph, { intercept: false });
+  const [s] = useGraphSettings<ForestSettings>(graph, FOREST_DEFAULTS);
   const fig = useMemo(() => {
     const chrome = chromeFor(dark);
     const shown = coefs.filter((c) => s.intercept || c.name !== "Intercept");
@@ -515,42 +505,46 @@ function Forest({ graph, coefs, ratio, level, titles, filename }: {
       tickfont: { color: chrome.ink } };
     return { traces, layout };
   }, [coefs, s, ratio, level, dark, titles]);
+  return fig ? <PlotlyChart data={fig.traces} layout={fig.layout} filename={filename}
+    label={ratio ? "Odds ratios with confidence intervals" : "Coefficients with confidence intervals"}
+    format={format} onFormatChange={onFormatChange} dark={dark} scheme={scheme} />
+    : <PlotMessage>No coefficients to show.</PlotMessage>;
+}
+
+/** Settings panel of both forest plots. */
+export function ForestOptions({ graph }: GraphOptionsProps) {
+  const [s, set] = useGraphSettings<ForestSettings>(graph, FOREST_DEFAULTS);
   return (
-    <>
-      {editable && (
-        <Options>
-          <Check label="Include the intercept" checked={s.intercept}
-            onChange={(intercept) => set({ intercept })} />
-        </Options>
-      )}
-      {fig ? <PlotlyChart data={fig.traces} layout={fig.layout} filename={filename}
-        label={ratio ? "Odds ratios with confidence intervals" : "Coefficients with confidence intervals"} />
-        : <PlotMessage>No coefficients to show.</PlotMessage>}
-    </>
+    <Check label="Include the intercept" checked={s.intercept}
+      onChange={(intercept) => set({ intercept })} />
   );
 }
 
-export function RegForestPlot({ graph, result, titles }: PlotProps<unknown, RegressionResult>) {
+export function RegForestPlot({ graph, result, titles, scheme, format, onFormatChange }:
+  PlotProps<unknown, RegressionResult>) {
   const wait = pending(result);
   if (wait || !result) return wait;
   return <Forest graph={graph} titles={titles} ratio={false} level={result.ci_level}
-    filename="coefficients"
+    filename="coefficients" scheme={scheme} format={format} onFormatChange={onFormatChange}
     coefs={result.coefficients.map((c) => ({ name: c.name, value: c.estimate,
       lo: c.ci[0], hi: c.ci[1], p: c.p }))} />;
 }
 
 /* ------------------------------------------------------------ logistic */
 
-export function LogitOddsPlot({ graph, result, titles }: PlotProps<unknown, LogisticResult>) {
+export function LogitOddsPlot({ graph, result, titles, scheme, format, onFormatChange }:
+  PlotProps<unknown, LogisticResult>) {
   const wait = pending(result);
   if (wait || !result) return wait;
   return <Forest graph={graph} titles={titles} ratio level={result.ci_level}
-    filename="odds-ratios"
+    filename="odds-ratios" scheme={scheme} format={format} onFormatChange={onFormatChange}
     coefs={result.coefficients.map((c) => ({ name: c.name, value: c.odds_ratio ?? Math.exp(c.estimate),
       lo: c.odds_ratio_ci?.[0] ?? null, hi: c.odds_ratio_ci?.[1] ?? null, p: c.p }))} />;
 }
 
-export function LogitCurvePlot({ table, result, titles, scheme }:
+const LOGIT_SERIES = ["Fit and observations"];
+
+export function LogitCurvePlot({ table, result, titles, scheme, format, onFormatChange }:
   PlotProps<unknown, LogisticResult>) {
   const dark = useDark();
   const { col } = useVars(table);
@@ -572,16 +566,17 @@ export function LogitCurvePlot({ table, result, titles, scheme }:
     const grid = Array.from({ length: 121 }, (_, k) => lo - pad + ((hi - lo + 2 * pad) * k) / 120);
     const x50 = result.x_at_50_percent;
     const traces: Plotly.Data[] = [
-      { x: grid, y: grid.map((x) => 1 / (1 + Math.exp(-(b0 + b1 * x)))), mode: "lines",
+      tagTrace({ x: grid, y: grid.map((x) => 1 / (1 + Math.exp(-(b0 + b1 * x)))), mode: "lines",
         name: "Fitted probability", line: { color: st.color, width: 2 },
-        hovertemplate: `${name} = %{x:.4g}<br>P(${result.outcome} = 1) = %{y:.3f}<extra></extra>` } as Plotly.Data,
-      { x: px, y: rows.map((i) => result.observed[i] as number), mode: "markers",
+        hovertemplate: `${name} = %{x:.4g}<br>P(${result.outcome} = 1) = %{y:.3f}<extra></extra>` },
+      { ds: 0, role: "fit" }) as Plotly.Data,
+      tagTrace({ x: px, y: rows.map((i) => result.observed[i] as number), mode: "markers",
         name: "Observed (0 or 1)",
         marker: { color: withAlpha(st.color, "99"), symbol: st.symbol, size: 9,
           line: { color: chrome.surface, width: 1.5 } },
         hovertext: rows.map((r, k) => `${rowLabel(table, r)}<br>${name} = ${formatSig(px[k])}<br>`
           + `observed ${result.observed[r]}, predicted ${formatSig(result.predicted_probability[r] ?? null)}`),
-        hoverinfo: "text" } as Plotly.Data,
+        hoverinfo: "text" }, { ds: 0, role: "points", rows }) as Plotly.Data,
     ];
     const layout = baseLayout(chrome, titles.x || name,
       titles.y || `Probability ${result.outcome} = 1`, { showlegend: false });
@@ -607,10 +602,15 @@ export function LogitCurvePlot({ table, result, titles, scheme }:
     );
   }
   return <PlotlyChart data={fig.traces} layout={fig.layout} filename="logistic-fit"
-    label="Fitted logistic curve with the observed outcomes" />;
+    label="Fitted logistic curve with the observed outcomes" format={format}
+    onFormatChange={onFormatChange} dark={dark} scheme={scheme} names={LOGIT_SERIES}
+    rowTitles={table.rowTitles} />;
 }
 
-export function LogitRocPlot({ result, titles, scheme }: PlotProps<unknown, LogisticResult>) {
+const ROC_SERIES = ["ROC curve"];
+
+export function LogitRocPlot({ result, titles, scheme, format, onFormatChange }:
+  PlotProps<unknown, LogisticResult>) {
   const dark = useDark();
   const fig = useMemo(() => {
     if (!result || result.error || !result.roc) return null;
@@ -620,12 +620,12 @@ export function LogitRocPlot({ result, titles, scheme }: PlotProps<unknown, Logi
     const traces: Plotly.Data[] = [
       { x: [0, 100], y: [0, 100], mode: "lines", line: { color: chrome.muted, width: 1.5, dash: "dash" },
         hoverinfo: "skip" } as Plotly.Data,
-      { x: pts.map((p) => 100 * (1 - p.specificity)), y: pts.map((p) => 100 * p.sensitivity),
+      tagTrace({ x: pts.map((p) => 100 * (1 - p.specificity)), y: pts.map((p) => 100 * p.sensitivity),
         mode: "lines+markers", line: { color: st.color, width: 2, shape: "linear" },
         marker: { color: st.color, size: 6 },
         hovertext: pts.map((p) => `cutoff ${formatSig(p.cutoff)}<br>sensitivity ${formatSig(100 * p.sensitivity, 3)}%`
           + `<br>specificity ${formatSig(100 * p.specificity, 3)}%`),
-        hoverinfo: "text" } as Plotly.Data,
+        hoverinfo: "text" }, { ds: 0, role: "line" }) as Plotly.Data,
     ];
     const auc = result.roc.auc;
     const layout = baseLayout(chrome, titles.x || "100% − specificity%",
@@ -640,7 +640,8 @@ export function LogitRocPlot({ result, titles, scheme }: PlotProps<unknown, Logi
     return { traces, layout };
   }, [result, dark, scheme, titles]);
   return pending(result) ?? (fig && <PlotlyChart data={fig.traces} layout={fig.layout}
-    filename="roc-curve" label="ROC curve of the logistic model" />);
+    filename="roc-curve" label="ROC curve of the logistic model" format={format}
+    onFormatChange={onFormatChange} dark={dark} scheme={scheme} names={ROC_SERIES} />);
 }
 
 /* ------------------------------------------------------------ PCA */
@@ -648,7 +649,10 @@ export function LogitRocPlot({ result, titles, scheme }: PlotProps<unknown, Logi
 const pctOf = (r: PcaResult, i: number) =>
   `${formatSig(100 * (r.proportion_of_variance[i] ?? 0), 3)}%`;
 
-export function ScreePlot({ result, titles, scheme }: PlotProps<unknown, PcaResult>) {
+const SCREE_SERIES = ["Eigenvalues"];
+
+export function ScreePlot({ result, titles, scheme, format, onFormatChange }:
+  PlotProps<unknown, PcaResult>) {
   const dark = useDark();
   const fig = useMemo(() => {
     if (!result || result.error || !result.eigenvalues) return null;
@@ -656,7 +660,7 @@ export function ScreePlot({ result, titles, scheme }: PlotProps<unknown, PcaResu
     const st = seriesStyle(0, dark, scheme);
     const pcs = result.eigenvalues.map((_, i) => i + 1);
     const sel = result.n_selected;
-    const traces: Plotly.Data[] = [{
+    const traces: Plotly.Data[] = [tagTrace({
       x: pcs, y: result.eigenvalues, mode: "lines+markers", name: "Eigenvalue",
       line: { color: st.color, width: 2 },
       marker: {
@@ -666,7 +670,7 @@ export function ScreePlot({ result, titles, scheme }: PlotProps<unknown, PcaResu
       hovertext: pcs.map((p, i) => `PC${p}: eigenvalue ${formatSig(result.eigenvalues[i])}, `
         + `${pctOf(result, i)} of variance${p <= sel ? " (selected)" : ""}`),
       hoverinfo: "text",
-    } as Plotly.Data];
+    }, { ds: 0, role: "line" }) as Plotly.Data];
     const pa = result.parallel_analysis;
     if (pa) {
       traces.push({
@@ -689,18 +693,20 @@ export function ScreePlot({ result, titles, scheme }: PlotProps<unknown, PcaResu
     return { traces, layout };
   }, [result, dark, scheme, titles]);
   return pending(result) ?? (fig && <PlotlyChart data={fig.traces} layout={fig.layout}
-    filename="scree-plot" label="Scree plot of eigenvalues" />);
+    filename="scree-plot" label="Scree plot of eigenvalues" format={format}
+    onFormatChange={onFormatChange} dark={dark} scheme={scheme} names={SCREE_SERIES} />);
 }
 
-interface PcSettings { pcX: number; pcY: number; colorBy: string }
-
 function PcPickers({ result, s, set, info, color }: {
-  result: PcaResult; s: PcSettings; set: (p: Partial<PcSettings>) => void;
+  result: PcaResult | null; s: PcSettings; set: (p: Partial<PcSettings>) => void;
   info?: VarInfo[]; color?: boolean;
 }) {
+  if (!result || result.error || !result.components) {
+    return <OptNote>Choices appear once the analysis has run.</OptNote>;
+  }
   const opts = result.components.map((c, i) => ({ value: String(i), label: `${c} (${pctOf(result, i)})` }));
   return (
-    <Options>
+    <>
       <Pick label="X axis" value={String(s.pcX)} options={opts} onChange={(v) => set({ pcX: Number(v) })} />
       <Pick label="Y axis" value={String(s.pcY)} options={opts} onChange={(v) => set({ pcY: Number(v) })} />
       {color && info && (
@@ -708,7 +714,7 @@ function PcPickers({ result, s, set, info, color }: {
           none="None" options={names(info, (v) => v.kind === "categorical")}
           onChange={(colorBy) => set({ colorBy })} />
       )}
-    </Options>
+    </>
   );
 }
 
@@ -719,9 +725,12 @@ function arrows(xs: number[], ys: number[], color: string): Partial<Plotly.Annot
   }));
 }
 
-export function LoadingsPlot({ graph, result, titles }: PlotProps<unknown, PcaResult>) {
+const PC_DEFAULTS: PcSettings = { pcX: 0, pcY: 1, colorBy: "" };
+
+export function LoadingsPlot({ graph, result, titles, scheme, format, onFormatChange }:
+  PlotProps<unknown, PcaResult>) {
   const dark = useDark();
-  const [s, set, editable] = useGraphSettings<PcSettings>(graph, { pcX: 0, pcY: 1, colorBy: "" });
+  const [s] = useGraphSettings<PcSettings>(graph, PC_DEFAULTS);
   const fig = useMemo(() => {
     if (!result || result.error || !result.loadings) return null;
     const chrome = chromeFor(dark);
@@ -755,21 +764,21 @@ export function LoadingsPlot({ graph, result, titles }: PlotProps<unknown, PcaRe
   }, [result, s, dark, titles]);
   const wait = pending(result);
   if (wait || !result) return wait;
-  return (
-    <>
-      {editable && <PcPickers result={result} s={s} set={set} />}
-      {fig && <PlotlyChart data={fig.traces} layout={fig.layout} filename="pca-loadings"
-        label="Loadings of each variable on two principal components" />}
-    </>
-  );
+  return fig && <PlotlyChart data={fig.traces} layout={fig.layout} filename="pca-loadings"
+    label="Loadings of each variable on two principal components" format={format}
+    onFormatChange={onFormatChange} dark={dark} scheme={scheme} />;
 }
 
-export function BiplotPlot({ graph, table, result, titles, scheme }: PlotProps<unknown, PcaResult>) {
+export function LoadingsOptions({ graph, result }: GraphOptionsProps<unknown, PcaResult>) {
+  const [s, set] = useGraphSettings<PcSettings>(graph, PC_DEFAULTS);
+  return <PcPickers result={result} s={s} set={set} />;
+}
+
+export function BiplotPlot({ graph, table, result, titles, scheme, format, onFormatChange }:
+  PlotProps<unknown, PcaResult>) {
   const dark = useDark();
   const { info, col } = useVars(table);
-  const [s, set, editable] = useGraphSettings<PcSettings>(graph, {
-    pcX: 0, pcY: 1, colorBy: info.find((v) => v.kind === "categorical")?.name ?? "",
-  });
+  const [s] = useGraphSettings<PcSettings>(graph, biplotDefaults(info));
   const fig = useMemo(() => {
     if (!result || result.error || !result.eigenvectors) return null;
     const chrome = chromeFor(dark);
@@ -786,14 +795,14 @@ export function BiplotPlot({ graph, table, result, titles, scheme }: PlotProps<u
       const st = seriesStyle(li, dark, scheme);
       const g = cv ? rows.filter((r) => cvals[r] === lev) : rows;
       if (!g.length) return;
-      traces.push({
+      traces.push(tagTrace({
         x: g.map((r) => scores[r]![px]), y: g.map((r) => scores[r]![py]), mode: "markers",
         name: cv ? lev : "Scores", showlegend: !!cv,
         marker: { color: st.color, symbol: st.symbol, size: 9, line: { color: chrome.surface, width: 1.5 } },
         hovertext: g.map((r) => `${rowLabel(table, r)}${cv ? ` (${lev})` : ""}<br>`
           + `${result.components[px]} ${formatSig(scores[r]![px])}, ${result.components[py]} ${formatSig(scores[r]![py])}`),
         hoverinfo: "text",
-      } as Plotly.Data);
+      }, { ds: li, role: "points", rows: g }) as Plotly.Data);
     });
     // loading vectors scaled to the score cloud
     const sx = rows.map((r) => Math.abs(scores[r]![px]));
@@ -816,15 +825,18 @@ export function BiplotPlot({ graph, table, result, titles, scheme }: PlotProps<u
       });
     layout.xaxis = { ...layout.xaxis, zeroline: true, zerolinecolor: chrome.axis };
     layout.yaxis = { ...layout.yaxis, zeroline: true, zerolinecolor: chrome.axis };
-    return { traces, layout };
+    return { traces, layout, names: biplotGroups(info, s) };
   }, [result, s, dark, scheme, table, info, col, titles]);
   const wait = pending(result);
   if (wait || !result) return wait;
-  return (
-    <>
-      {editable && <PcPickers result={result} s={s} set={set} info={info} color />}
-      {fig && <PlotlyChart data={fig.traces} layout={fig.layout} filename="pca-biplot"
-        label="Biplot of principal component scores with loading vectors" />}
-    </>
-  );
+  return fig && <PlotlyChart data={fig.traces} layout={fig.layout} filename="pca-biplot"
+    label="Biplot of principal component scores with loading vectors" format={format}
+    onFormatChange={onFormatChange} dark={dark} scheme={scheme} names={fig.names}
+    rowTitles={table.rowTitles} />;
+}
+
+export function BiplotOptions({ graph, table, result }: GraphOptionsProps<unknown, PcaResult>) {
+  const { info } = useVars(table);
+  const [s, set] = useGraphSettings<PcSettings>(graph, biplotDefaults(info));
+  return <PcPickers result={result} s={s} set={set} info={info} color />;
 }

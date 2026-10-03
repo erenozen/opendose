@@ -5,11 +5,11 @@ import {
   FractionControls, FractionMethods, FractionResults, GofControls, GofMethods,
   GofResults,
 } from "./panels";
-import { PowPlot } from "./plot";
+import { PowOptions, PowPlot } from "./plot";
 import {
   ANALYSIS_FRACTION, ANALYSIS_GOF, DEFAULT_FRACTION, DEFAULT_GOF,
   GRAPH_DONUT, GRAPH_PIE, GRAPH_STACKED, GRAPH_STACKED100,
-  normalizeFraction, normalizeGof, powAutoTitles, runFraction, runGof,
+  normalizeFraction, normalizeGof, partNames, powAutoTitles, runFraction, runGof,
   type FractionOptions, type GofOptions,
 } from "./run";
 
@@ -54,6 +54,13 @@ const graph = (id: string, label: string) => defineGraph({
   showXTitle: false,
   exportName: "parts-of-whole",
   PlotPanel: PowPlot,
+  OptionsPanel: PowOptions,
+  // Format graph's "data sets" are the parts (rows): colour, legend text,
+  // show / hide and order per part.
+  formatDatasets: (table) => partNames(table),
+  formatFeatures: id === GRAPH_PIE || id === GRAPH_DONUT
+    ? { color: true, noAxes: true }
+    : { bars: true, categoryX: true },
 });
 
 export const powGraphs = [

@@ -1,21 +1,5 @@
-/* Shared by the parts-of-whole and nested sheets: the per-graph options
-   bar above a plot, notes in results sheets, and the small editable
-   column used for expected values. Tokens only (index.css / App.css). */
-
-.graph-opts {
-  flex: none; display: flex; flex-wrap: wrap; align-items: center;
-  gap: 6px 16px; padding: 8px 14px 0; font-size: 12.5px; color: var(--ink-2);
-}
-.graph-opts label { display: inline-flex; align-items: center; gap: 6px; }
-.graph-opts select { padding: 3px 8px; font-size: 12.5px; }
-.graph-opts input[type="number"] {
-  width: 68px; font: inherit; color: var(--ink); background: var(--inset);
-  border: 1px solid var(--border); border-radius: var(--radius-s);
-  padding: 3px 6px; font-variant-numeric: tabular-nums;
-}
-@media (max-width: 760px) {
-  .graph-opts select, .graph-opts input[type="number"] { min-height: 34px; }
-}
+/* Shared by the parts-of-whole and nested sheets: notes in results
+   sheets and the small editable column used for expected values. Tokens only (index.css / App.css). */
 
 .result-note {
   margin: 8px 0 10px; padding: 8px 12px; font-size: 13px;

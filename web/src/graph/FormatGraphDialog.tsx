@@ -40,7 +40,9 @@ export default function FormatGraphDialog({
 }) {
   const [draft, setDraft] = useState(format);
   const [applied, setApplied] = useState(format);
-  const [tab, setTab] = useState<"datasets" | "graph">("datasets");
+  const [tabState, setTab] = useState<"datasets" | "graph">("datasets");
+  // Heat maps, forest and volcano plots have nothing to set per data set.
+  const tab = features.noDatasets ? "graph" : tabState;
   const [sel, setSel] = useState(0);
   const [target, setTarget] = useState<Target>("this");
   const [selected, setSelected] = useState<Set<number>>(() => new Set([0]));
@@ -79,8 +81,10 @@ export default function FormatGraphDialog({
     <Modal title="Format graph" className="modal-wide fmt-dialog" onClose={onClose}
       onSubmit={() => { if (dirty) onApply(draft); onClose(); }}
       actions={<DialogActions onCancel={onClose} onApply={apply} dirty={dirty} />}>
-      <Tabs label="Format graph sections" value={tab} onChange={setTab}
-        tabs={[["datasets", "Data sets"], ["graph", "Whole graph"]]} />
+      {!features.noDatasets && (
+        <Tabs label="Format graph sections" value={tab} onChange={setTab}
+          tabs={[["datasets", "Data sets"], ["graph", "Whole graph"]]} />
+      )}
       {tab === "datasets" ? (
         <div role="tabpanel" className="fmt-panel">
           <div className="fmt-target">
@@ -156,6 +160,18 @@ export default function FormatGraphDialog({
             </Section>
           )}
 
+          {features.color && !(features.points || features.bars || features.boxes) && (
+            <Section title="Colour">
+              <ColorField label="Colour" value={cur.color} auto={auto.color}
+                surface={chrome.surface} onChange={(v) => set({ color: v })} />
+              <NumField label="Fill opacity (%)"
+                value={cur.fillAlpha != null ? Math.round(cur.fillAlpha * 100) : undefined}
+                note="100 = solid"
+                onChange={(v) => set({ fillAlpha: v == null ? undefined
+                  : Math.min(1, Math.max(0, v / 100)) })} />
+            </Section>
+          )}
+
           {(features.lines || features.connect) && (
             <Section title="Lines">
               {features.connect && (
@@ -194,10 +210,13 @@ export default function FormatGraphDialog({
             </Section>
           )}
 
+          {!features.noAxes && (!features.categoryX || features.points) && (
           <Section title="Position and labels">
-            <NumField label={features.categorical ? "Nudge along X (columns)" : "Nudge along X"}
-              value={cur.nudge} placeholder="0" onChange={(v) => set({ nudge: v })} />
-            {!features.categorical && (
+            {!features.categoryX && (
+              <NumField label={features.categorical ? "Nudge along X (columns)" : "Nudge along X"}
+                value={cur.nudge} placeholder="0" onChange={(v) => set({ nudge: v })} />
+            )}
+            {!features.categorical && !features.categoryX && (
               <CheckField label="Plot on the right Y axis" checked={!!cur.rightAxis}
                 onChange={(v) => set({ rightAxis: v || undefined })} />
             )}
@@ -207,6 +226,7 @@ export default function FormatGraphDialog({
                 onChange={(v) => set({ labelPoints: v || undefined })} />
             )}
           </Section>
+          )}
           <p className="field-note">
             Changes go to {target === "this" ? names[sel] : target === "all"
               ? "every data set" : `${selected.size} selected data set${selected.size === 1 ? "" : "s"}`}.
@@ -215,9 +235,9 @@ export default function FormatGraphDialog({
         </div>
       ) : (
         <div role="tabpanel" className="fmt-panel">
-          {datasets.length > 1 && (
+          {datasets.length > 1 && !features.noDatasets && (
             <Section title={features.categorical ? "Plotting order (left to right)"
-              : "Plotting order (back to front)"} wide>
+              : features.noAxes ? "Order of the parts" : "Plotting order (back to front)"} wide>
               <ol className="fmt-order">
                 {order.map((ds, k) => (
                   <li key={ds}>
@@ -231,6 +251,7 @@ export default function FormatGraphDialog({
               </ol>
             </Section>
           )}
+          {!features.noAxes && (
           <Section title="Lines across the graph">
             {features.categorical && (
               <SelectField label="Join columns" value={draft.connect ?? "none"}
@@ -252,6 +273,7 @@ export default function FormatGraphDialog({
                   : Math.min(0.9, Math.max(0, v / 100)))} />
             )}
           </Section>
+          )}
           <Section title="Title and legend">
             <TextField label="Graph title" value={draft.title} placeholder="None"
               onChange={(v) => setG("title", v)} />

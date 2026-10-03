@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import SchemePicker from "./SchemePicker";
 import type { SchemeId } from "../lib/palette";
 import type { FormatAction } from "../graph/useFormatDialogs";
@@ -22,6 +22,8 @@ interface Props {
   actions?: FormatAction[];
   /** Something beyond scheme and titles has been formatted. */
   formatted?: boolean;
+  /** The graph kind's own options (GraphKindDef.OptionsPanel). */
+  options?: ReactNode;
 }
 
 // Colors and titles are set once and then left alone, so they do not earn
@@ -30,7 +32,7 @@ interface Props {
 // is the only place with room.
 export default function GraphSettings({
   scheme, onSchemeChange, titles, onTitlesChange, autoX, autoY, showX = true,
-  actions, formatted,
+  actions, formatted, options,
 }: Props) {
   const [open, setOpen] = useState(false);
   const wrap = useRef<HTMLDivElement>(null);
@@ -75,7 +77,14 @@ export default function GraphSettings({
         {edited && <span className="settings-badge">{edited}</span>}
       </button>
       {open && (
-        <div className="settings-pop" role="dialog" aria-label="Graph settings">
+        <div className={`settings-pop${options ? " has-options" : ""}`} role="dialog"
+          aria-label="Graph settings">
+          {options && (
+            <div className="graph-opts-section" role="group" aria-labelledby="graph-opts-h">
+              <span className="axis-titles-label" id="graph-opts-h">Graph options</span>
+              {options}
+            </div>
+          )}
           <SchemePicker value={scheme} onChange={onSchemeChange} />
           <div className="axis-titles">
             <span className="axis-titles-label">Axis titles</span>

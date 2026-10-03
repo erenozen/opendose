@@ -3,6 +3,7 @@ import { emptyTable } from "../../project/table";
 import type { AnalysisResult, OptionsState } from "../../types";
 import { DEFAULT_XY_OPTIONS } from "../../types";
 import { columnAnalysis, columnGraphs } from "../column";
+import { xyGroupedGraphs } from "../grouped";
 import DataGrid from "../common/DataGrid";
 import { defineAnalysis, defineGraph, type TableTypeDef } from "../types";
 import {
@@ -43,6 +44,7 @@ export const xyGraph = defineGraph<OptionsState, AnalysisResult>({
   autoTitles: xyAutoTitles,
   exportName: "dose-response",
   PlotPanel: XYPlot,
+  formatFeatures: { points: true, lines: true, connect: true, errorBars: true, xError: true },
 });
 
 export const xyTable: TableTypeDef = {
@@ -59,5 +61,5 @@ export const xyTable: TableTypeDef = {
   Editor: DataGrid,
   EditorAside: PlateAside,
   analyses: [nonlinAnalysis, columnAnalysis],
-  graphs: [xyGraph, ...columnGraphs],
+  graphs: [xyGraph, ...xyGroupedGraphs, ...columnGraphs],
 };
