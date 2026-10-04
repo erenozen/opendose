@@ -522,17 +522,17 @@ Western blot densitometry, tumour growth, flow summary statistics
 (reviews #5, #19; workflows §1–7; forums #5, #10, #8).
 - Covered: SRB/MTT plate import, dose-response fitting, interpolation,
   ratio paired t test, mixed models, Kaplan–Meier.
-- [ ] Plate-reader module: plate-map editor, blank and control wells,
+- [x] Plate-reader module: plate-map editor, blank and control wells,
       % of control, Z′ and replicate-CV QC, straight into a fit
-- [ ] Standard-curve module: standards plus unknowns layout, 4PL/5PL
+- [x] Standard-curve module: standards plus unknowns layout, 4PL/5PL
       with weighting, back-calculated recovery per level, %CV, LLOQ and
       ULOQ by precision profile, dilution factors, "<LLOQ" flags, a
       concentrations table and graph
-- [ ] qPCR module: technical-replicate averaging with Ct flags, ΔCt and
+- [x] qPCR module: technical-replicate averaging with Ct flags, ΔCt and
       ΔΔCt with efficiency correction and geometric mean of reference
       genes, statistics on ΔCt, fold change with asymmetric CI on a log2
       axis (MIQE 2.0 wording)
-- [ ] Densitometry module: background, loading-control or total-protein
+- [x] Densitometry module: background, loading-control or total-protein
       normalisation, fold change within blot, ratio paired t test
 - [ ] Tumour-growth module: long format in, mixed model on log volume,
       AUC per animal with group comparison, time-to-endpoint survival

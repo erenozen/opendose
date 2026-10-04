@@ -43,6 +43,7 @@ cd web && node scripts/e2e-check.mjs && node scripts/e2e-tiff.mjs
 cd web && node scripts/e2e-export.mjs   # page layouts, PDF/PNG/zip export
 cd web && node scripts/e2e-share.mjs    # share links, export bundle, import recipes
 cd web && node scripts/e2e-figures.mjs  # SuperPlots, legend sentence, classic theme, CVD check, volcano
+cd web && node scripts/e2e-assays.mjs   # assay modules (plate, ELISA, qPCR, blots)
 ```
 
 The dev server needs internet access on first load (Pyodide + SciPy come
@@ -298,6 +299,31 @@ from the jsDelivr CDN, ~30 MB, then cached).
   Mean/SEM/N, Mean/%CV/N) as a GraphPad Prism data file; a single table
   from its sheet menu; the export bundle includes it. Prism summary
   tables import as summary tables.
+- Assay modules (New data table › Start from an assay, or Analyze on a
+  table of the right type): each is a wizard that starts from the
+  instrument export and produces linked sheets that follow the data.
+  Plate reader → dose-response: paste or import 96/384-well plates
+  (several at once), a click-and-drag plate-map editor with templates
+  (rows as compounds, duplicate blocks, concentrations down the rows, the
+  SRB/MTT layout, 384 wells; layouts can be saved), Z′ and robust Z′
+  (Zhang et al. 1999), signal window, control and replicate CVs and an
+  edge-effect check with pass/fail reasons, then normalised XY tables
+  (pooled, per compound and plate, or per plate) with the 4PL fit set up.
+  Standard curve / ELISA: standards, blanks and unknowns with dilution
+  factors (or an XY table), 4PL/5PL/linear/log-log with weighting,
+  back-calculated recovery per level with ICH M10 acceptance and reasons,
+  LLOQ/ULOQ shaded on the curve, refitting without a rejected standard,
+  <LLOQ / >ULOQ / extrapolated / CV flags, parallelism of a dilution
+  series, and a linked concentrations table per group. qPCR: Cq exports
+  via the import recipe, technical-replicate QC, several reference genes,
+  assumed, entered or dilution-series efficiencies, statistics on ΔCq,
+  fold changes with asymmetric CIs on a log2 axis (MIQE 2.0) and a linked
+  ΔCq table. Western blot densitometry: ImageJ / Image Lab exports with a
+  column picker, background and loading-control normalisation, fold
+  change within blot, the ratio paired t test (or RM ANOVA on logs) with
+  blot as the pair, saturation and normalised-control warnings, and a
+  linked matched table. The SRB/MTT importer on XY tables stays as the
+  one-plate shortcut.
 - Trust: the info popover links to "How OpenDose is validated", a page
   listing every pinned cross-check (Prism screenshots, NIST Longley,
   guide examples, Dunnett and Spearman tables, statsmodels, pingouin)

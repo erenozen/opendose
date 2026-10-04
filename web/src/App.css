@@ -1021,7 +1021,11 @@ input[type="checkbox"] { accent-color: var(--accent); width: 15px; height: 15px;
   @starting-style { opacity: 0; transform: scale(0.97); }
 }
 .analyze-wrap { position: relative; display: inline-flex; }
-.analyze-menu { position: absolute; top: calc(100% + 6px); left: 0; }
+.analyze-menu {
+  position: absolute; top: calc(100% + 6px); left: 0;
+  /* long lists (assay modules at the end) scroll instead of leaving the screen */
+  max-height: calc(100vh - 72px); overflow-y: auto; overscroll-behavior: contain;
+}
 .menu-item {
   display: flex; align-items: center; justify-content: space-between; gap: 16px;
   width: 100%; text-align: left; border-radius: 6px; padding: 5px 9px;
