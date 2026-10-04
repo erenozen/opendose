@@ -325,13 +325,17 @@ export function deleteRow(t: DataTableModel, r: number): DataTableModel {
 export function addDataset(t: DataTableModel, name?: string): DataTableModel {
   const shape = tableShape(t.type);
   const template = t.datasets[t.datasets.length - 1];
+  // survival: Time, Event and any covariate subcolumns (Cox regression)
   const width = shape.hasSubcolumns && template ? subCount(template)
-    : t.type === "survival" ? 2 : 1;
+    : t.type === "survival" ? Math.max(2, template ? subCount(template) : 2) : 1;
   const col: DataColumn = {
     name: name ?? defaultDatasetName(t.type, t.datasets.length),
     rows: t.x.map(() => blankRow(width)),
   };
-  if (t.type === "survival") col.subTitles = [...SURVIVAL_SUBTITLES];
+  if (t.type === "survival") {
+    col.subTitles = width > 2 && template?.subTitles
+      ? [...SURVIVAL_SUBTITLES, ...template.subTitles.slice(2, width)] : [...SURVIVAL_SUBTITLES];
+  }
   else if (t.subcolumnFormat !== "replicates" && template?.subTitles) {
     col.subTitles = [...template.subTitles];
   }

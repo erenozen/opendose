@@ -1,0 +1,49 @@
+/* Clinical-statistics panels (Cox, ROC, Bland-Altman, quantal) and the
+   power tool. Tokens only (index.css / App.css). */
+
+.clin-field > span:first-child { min-width: 12ch; }
+.clin-field .field-note { flex-basis: 100%; }
+.clin-field select { max-width: 100%; }
+.clin-scroll { overflow-x: auto; max-width: 100%; }
+.clin-grid th, .clin-grid td { white-space: nowrap; padding-right: 14px; }
+.clin-grid tbody th { font-weight: 500; }
+.clin-kv h4, .clin-results h4 { margin: 14px 0 6px; font-size: 13px; color: var(--ink-2); }
+.clin-results .stat-cols { margin-top: 4px; }
+.clin-sub { padding-left: 24px; font-size: 12.5px; }
+.clin-sub select, .clin-sub input { font-size: 12.5px; }
+.clin-varlist { border: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.clin-varlist > legend {
+  padding: 0; margin-bottom: 8px; font-size: 11.5px; text-transform: uppercase;
+  letter-spacing: 0.07em; color: var(--muted); font-weight: 650;
+}
+.clin-tag {
+  font-size: 11px; color: var(--muted); border: 1px solid var(--border);
+  border-radius: var(--radius-pill); padding: 0 7px; margin-left: 4px;
+}
+.clin-reading { margin: 8px 0 4px; font-size: 13px; color: var(--ink-2); max-width: 72ch; }
+.clin-good { color: var(--ink-2); }
+.clin-bad { color: var(--warn-ink); }
+
+/* Survival table: covariate columns above the grid */
+.cov-aside {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px;
+  margin: 0 0 10px; font-size: 13px; color: var(--ink-2);
+}
+.cov-aside .cov-label { font-weight: 600; color: var(--ink); }
+.cov-aside .cov-chip {
+  display: inline-flex; align-items: center; gap: 4px; padding: 2px 4px 2px 6px;
+  border: 1px solid var(--border); border-radius: var(--radius-pill); background: var(--surface);
+}
+.cov-aside .cov-chip input {
+  width: 11ch; font: inherit; border: none; background: transparent; color: var(--ink);
+  padding: 2px 0;
+}
+.cov-aside .cov-chip button {
+  border: none; background: transparent; color: var(--muted); padding: 0 6px;
+  font-size: 13px; line-height: 1.4; border-radius: var(--radius-pill);
+}
+@media (hover: hover) and (pointer: fine) {
+  .cov-aside .cov-chip button:hover { color: var(--danger); background: transparent; }
+}
+.cov-aside .cov-add { font-size: 12.5px; padding: 4px 12px; }
+.cov-aside .field-note { flex-basis: 100%; }
