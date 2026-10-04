@@ -558,7 +558,7 @@ unnamed CSVs inside .prism, mixed R/Prism labs, privacy of web tools
   .prism import, project JSON, templates.
 - [x] Share by link: the project compressed into the URL fragment (no
       server), opening read-only with "make a copy"
-- [ ] .pzfx export so collaborators with Prism can open OpenDose work,
+- [x] .pzfx export so collaborators with Prism can open OpenDose work,
       including replicate subcolumns and mean/SD/N summary tables
 - [x] Import recipes for FlowJo, CellProfiler, QuPath and plate-reader
       exports: metadata parsing from sample names, long-to-wide pivot
@@ -603,14 +603,14 @@ Power and sample size (Prism has none), Cox regression, comparing ROC
 curves, CI on Bland–Altman limits, quantal (probit/logit) dose-response
 with n per dose, growth curves with lag (workflows §7–8, §12–13;
 forums #18, #25).
-- [ ] Power and sample size for t tests, ANOVA, proportions,
+- [x] Power and sample size for t tests, ANOVA, proportions,
       correlation and survival, plus a randomisation list generator
-- [ ] Cox proportional hazards with hazard ratios and CIs
-- [ ] ROC: compare two curves (DeLong, paired and unpaired), Youden and
+- [x] Cox proportional hazards with hazard ratios and CIs
+- [x] ROC: compare two curves (DeLong, paired and unpaired), Youden and
       cost-weighted optimal cut-offs
-- [ ] Bland–Altman: CIs on the limits of agreement, proportional bias,
+- [x] Bland–Altman: CIs on the limits of agreement, proportional bias,
       repeated measures per subject
-- [ ] Quantal dose-response: probit and logit with n per dose, LD50 /
+- [x] Quantal dose-response: probit and logit with n per dose, LD50 /
       ECx with Fieller CIs
 - [ ] Growth: Zwietering lag-phase parameterisations of logistic and
       Gompertz; doubling time with CI

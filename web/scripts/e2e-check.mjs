@@ -17,7 +17,9 @@
 // sheet groups and floating notes surviving save / reopen / page reload,
 // go to sheet), a model from the engine's equation library and a
 // user-defined equation, Welch ANOVA with Games-Howell, the chi-square
-// test for trend and Deming regression.
+// test for trend and Deming regression, .pzfx export and re-import, Cox
+// regression, ROC comparison, Bland-Altman, quantal dose-response and the
+// power and sample size tool.
 import { chromium } from "playwright";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";

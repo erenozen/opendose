@@ -220,3 +220,21 @@ registry entry.
   contingency table: two outcome columns and two consecutive rows per
   stratum. A stratum is named by the text its two row titles share
   before a separator ("Site A: exposed" / "Site A: not exposed").
+- Survival tables may carry covariate columns for Cox regression: a
+  data set's subcolumns are Time, Event and then one subcolumn per
+  covariate, named by its subcolumn title (the same position in every
+  group; `survival/covariates.ts` adds, renames and removes them in all
+  groups, and the editor aside above the grid calls those). Kaplan-Meier,
+  log-rank and the risk tables read only the first two subcolumns; the
+  .pzfx writer leaves the covariates out. Cox regression on a
+  multiple-variables table names its time and event variables instead
+  (`survival/cox.ts`, shared by both table types).
+- ROC curves and Bland-Altman are their own analyses on column (and XY)
+  tables (`column/roc.ts`, `column/blandAltman.ts`); the old entries in
+  the column analysis' dropdown stay only for results sheets that already
+  use them. Bland-Altman pairs values row by row.
+- Quantal dose-response (`xy/quantal.ts`) reads responders and N from
+  each data set's first two subcolumns, or from pairs of data sets.
+- The power and sample size tool (`src/power/`) is a dialog, not a sheet
+  kind; "Save to project" writes an info sheet whose constant "Sample
+  size justification" holds the sentence (`findSampleSizeJustification`).
