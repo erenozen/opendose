@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { relayoutToFormat } from "./edits";
 import type { GraphFormat } from "./format";
+import { pStyleKey } from "./significance";
 
 type PlotDiv = HTMLElement & {
   on?: (ev: string, fn: (e: Record<string, unknown>) => void) => void;
@@ -16,6 +17,15 @@ export function usePlotEdits(format: GraphFormat,
   const fmt = useRef(format);
   const cb = useRef(onChange);
   useEffect(() => { fmt.current = format; cb.current = onChange; }, [format, onChange]);
+  // The project's P style and "hide ns" (Preferences → Reporting) are read
+  // while the graph is drawn: a change redraws through a new revision.
+  const pKey = pStyleKey();
+  const lastKey = useRef(pKey);
+  useEffect(() => {
+    if (lastKey.current === pKey) return;
+    lastKey.current = pKey;
+    setRev((r) => r + 1);
+  }, [pKey]);
 
   const attach = useCallback((el: HTMLElement | null) => {
     const div = el as PlotDiv | null;

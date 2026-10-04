@@ -142,12 +142,15 @@ export interface DataTableModel {
  *  an experiment. "column": the data set at index `column` holds each
  *  row's experiment label (long format; column tables only) and is not a
  *  group. `names` label the replicates (default: subcolumn titles, the
- *  labels found in the column, or "Experiment n"). */
+ *  labels found in the column, or "Experiment n"). `unit` says what one
+ *  value is ("cells", "wells", "fields"), so the figure legend can write
+ *  "n = 18 cells from 3 independent experiments" (src/report). */
 export interface ReplicateMap {
   by: "subcolumns" | "column";
   of?: number[];
   column?: number;
   names?: string[];
+  unit?: string;
 }
 
 export type HighlightColor =

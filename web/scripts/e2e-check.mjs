@@ -1377,10 +1377,27 @@ expect("ambiguous fit banner with concrete fixes for a flat dataset",
   // the engine boots first (it blocks the page), then the autosave debounce
   await p2.waitForSelector(".results-table", { timeout: 180000 });
   await p2.waitForTimeout(1500);
+  // With a session saved, the next visit reopens it directly (default
+  // start mode): no start screen, no restore banner.
+  await p2.reload({ waitUntil: "domcontentloaded" });
+  await p2.locator(".data-table").waitFor({ timeout: 60000 });
+  expect("a later visit reopens the last session directly",
+    await p2.getByRole("treeitem", { name: "Pasted data", exact: true }).count() === 1
+    && await p2.locator(".start-screen").count() === 0
+    && await p2.locator(".restore-banner").count() === 0);
+  // "Show this screen when OpenDose opens" ticked: the start screen every
+  // time, with the restore banner offering the last session.
+  await p2.keyboard.press("Control+/");
+  await p2.getByRole("complementary", { name: "Help" }).getByRole("button", { name: "Start screen" }).click();
+  await p2.locator(".start-screen").waitFor({ timeout: 30000 });
+  expect("the start-screen preference is unticked by default",
+    !(await p2.getByLabel("Show this screen when OpenDose opens").isChecked()));
+  await p2.getByLabel("Show this screen when OpenDose opens").check();
   await p2.reload({ waitUntil: "domcontentloaded" });
   await p2.locator(".start-screen").waitFor({ timeout: 60000 });
-  expect("the restore banner still shows on the start screen",
+  expect("ticked, the start screen shows with the restore banner",
     await p2.locator(".restore-banner").waitFor({ timeout: 30000 }).then(() => true, () => false));
+  await p2.getByLabel("Show this screen when OpenDose opens").uncheck();
   await p2.getByRole("button", { name: "Open the example project" }).click();
   expect("the tour starts with the example project",
     await p2.locator(".tour-card").waitFor({ timeout: 10000 }).then(() => true, () => false)
@@ -1390,8 +1407,16 @@ expect("ambiguous fit banner with concrete fixes for a flat dataset",
     (await p2.locator(".tour-count").innerText()) === "Step 2 of 5");
   await p2.getByRole("button", { name: "Skip tour" }).click();
   expect("Skip closes the tour", await p2.locator(".tour-card").count() === 0);
+  // The example session is autosaved; a reload reopens it directly, and
+  // the tour does not come back.
+  await p2.waitForTimeout(1500);
   await p2.reload({ waitUntil: "domcontentloaded" });
-  await p2.locator(".start-screen").waitFor({ timeout: 60000 });
+  await p2.locator(".data-table").waitFor({ timeout: 60000 });
+  expect("the example session reopens directly",
+    await p2.locator(".start-screen").count() === 0 && await p2.locator(".tour-card").count() === 0);
+  await p2.keyboard.press("Control+/");
+  await p2.getByRole("complementary", { name: "Help" }).getByRole("button", { name: "Start screen" }).click();
+  await p2.locator(".start-screen").waitFor({ timeout: 30000 });
   await p2.getByRole("button", { name: "Open the example project" }).click();
   await p2.waitForTimeout(1500);
   expect("the tour does not come back after it was dismissed",
@@ -1407,6 +1432,62 @@ expect("ambiguous fit banner with concrete fixes for a flat dataset",
     await p2.locator(".tour-card").waitFor({ timeout: 10000 }).then(() => true, () => false));
   await p2.keyboard.press("Escape");
   await ctx2.close();
+}
+
+// --- phone width (390 px): the fixes of the 2026-10-04 smoke pass ---
+{
+  const ctx3 = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const p3 = await ctx3.newPage();
+  p3.on("pageerror", (e) => errors.push(`pageerror (phone): ${e.message}`));
+  await p3.goto(url, { waitUntil: "domcontentloaded" });
+  await p3.waitForSelector(".results-table", { timeout: 180000 });
+  const tops = await p3.evaluate(() => ["Undo", "Save project", "More actions"].map((n) =>
+    Math.round(document.querySelector(`header [aria-label="${n}"]`)?.getBoundingClientRect().top ?? -99))
+    .concat(Math.round(document.querySelector("header .load-btn").getBoundingClientRect().top)));
+  expect("phone header: undo, save, open and More on one row",
+    tops.every((t) => t >= 0 && Math.abs(t - tops[0]) <= 4), tops.join(", "));
+  expect("phone header: secondary actions folded away",
+    !(await p3.getByRole("button", { name: "Preferences" }).isVisible()));
+  await p3.getByRole("button", { name: "More actions" }).click();
+  await p3.getByRole("button", { name: "Preferences" }).click();
+  const prefsBox = await p3.getByRole("dialog", { name: "Preferences" }).boundingBox();
+  expect("phone: Preferences open from More and stay on screen",
+    !!prefsBox && prefsBox.x >= 0 && prefsBox.x + prefsBox.width <= 390, JSON.stringify(prefsBox));
+  await p3.keyboard.press("Escape");
+  await p3.mouse.click(200, 700);
+  // a table created from the navigator drawer closes the drawer
+  await p3.getByRole("button", { name: "Show or hide the sheet navigator" }).click();
+  await p3.getByRole("button", { name: "New data table" }).first().click();
+  const pdlg = p3.locator(".new-table-dialog");
+  await pdlg.locator('input[name="table-type"][value="grouped"]').check();
+  await pdlg.getByLabel("Example data").check();
+  await pdlg.getByRole("button", { name: "Create table" }).click();
+  await p3.waitForTimeout(800);
+  expect("phone: creating a table closes the navigator drawer", await p3.locator(".nav-scrim").count() === 0);
+  // grouped legend: n per cell (3), as the chip says
+  await p3.waitForSelector(".report-legend p", { timeout: 60000 });
+  const gLegend = await p3.locator(".report-legend p").innerText();
+  expect("grouped legend counts n per cell", gLegend.includes("n = 3 per group"), gLegend);
+  // the Analyze menu stays on screen
+  await p3.getByRole("button", { name: "Analyze", exact: true }).click();
+  const menuBox = await p3.locator(".analyze-menu").boundingBox();
+  expect("phone: the Analyze menu stays on screen",
+    !!menuBox && menuBox.x >= 0 && menuBox.x + menuBox.width <= 391, JSON.stringify(menuBox));
+  await p3.keyboard.press("Escape");
+  await ctx3.close();
+}
+{
+  // A long checkbox label wraps beside its box (column statistics extras).
+  await newExampleTable("column");
+  await page.waitForSelector(".stat-cols", { timeout: 30000 });
+  const align = await page.evaluate(() => {
+    const row = [...document.querySelectorAll(".check-row")].find((l) => l.textContent.includes("10th/90th"));
+    if (!row) return null;
+    const box = row.querySelector("input").getBoundingClientRect();
+    const text = row.querySelector("span").getBoundingClientRect();
+    return Math.abs(box.top - text.top);
+  });
+  expect("a checkbox stays on the first line of its wrapped label", align !== null && align < 12, String(align));
 }
 
 // --- reporting (src/report): effect size, results sentence, legend,

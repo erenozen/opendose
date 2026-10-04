@@ -13,7 +13,7 @@ import type {
   Coefficient, CorrelationResult, DescriptiveResult, LogisticResult, PcaResult,
   RearrangeResult, RegressionResult,
 } from "./run";
-import { tableP, tableStars } from "../../report/pformat";
+import { pLabel, tableP, tableStars } from "../../report/pformat";
 
 /* ------------------------------------------------------------ formatting */
 
@@ -295,14 +295,14 @@ export function RegressionMethods({ result }: ResultsProps<RegressionOptions, Re
   const preds = result.coefficients.slice(1).map((c) => c.name);
   const refs = Object.entries(result.reference_levels);
   const dose = result.coefficients.slice(1).map((c) =>
-    `${c.name}: ${f(c.estimate)} (${lvl(result.ci_level)} CI ${ci(c.ci)}; P ${c.p < 0.0001 ? "< 0.0001" : `= ${fmtP(c.p)}`})`);
+    `${c.name}: ${f(c.estimate)} (${lvl(result.ci_level)} CI ${ci(c.ci)}; ${pLabel(c.p)})`);
   return <Methods text={`${result.outcome} was modeled by multiple linear regression (least squares, `
     + `with an intercept) on ${list(result.predictors ?? preds)}`
     + (refs.length ? `, coding categorical predictors against reference levels ${refs.map(([k, v]) => `${k} = ${v}`).join(", ")}` : "")
     + `, using ${TOOL}; ${result.n_rows_analyzed} rows had complete data. `
     + `R² = ${f(result.goodness.r_squared)} (adjusted ${f(result.goodness.adjusted_r_squared)}); `
     + `F (${result.overall_test.dfn}, ${result.overall_test.dfd}) = ${f(result.overall_test.F)}, `
-    + `P ${result.overall_test.p < 0.0001 ? "< 0.0001" : `= ${fmtP(result.overall_test.p)}`}. `
+    + `${pLabel(result.overall_test.p)}. `
     + `Coefficients: ${dose.join("; ")}.`} />;
 }
 
@@ -395,7 +395,7 @@ export function LogisticMethods({ result }: ResultsProps<LogisticOptions, Logist
     + `${result.ci_method === "profile" ? "profile-likelihood" : "Wald"} confidence intervals, using ${TOOL} `
     + `(${result.n_rows_analyzed} rows; ${result.n_ones} events). Likelihood ratio test against the `
     + `intercept-only model: G = ${f(result.likelihood_ratio_test.G)}, df = ${result.likelihood_ratio_test.df}, `
-    + `P ${result.likelihood_ratio_test.p < 0.0001 ? "< 0.0001" : `= ${fmtP(result.likelihood_ratio_test.p)}`}; `
+    + `${pLabel(result.likelihood_ratio_test.p)}; `
     + `Tjur's R² = ${f(result.pseudo_r_squared.tjur)}; area under the ROC curve ${f(result.roc.auc.value)}. `
     + `${ors.join("; ")}.`} />;
 }

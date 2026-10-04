@@ -20,7 +20,7 @@ import { fileStem } from "../export/settings";
 import { isDefaultFormat, readFormat, type GraphFormat } from "../graph";
 import { useFormatDialogs } from "../graph/useFormatDialogs";
 import FigurePanel from "../graph/FigurePanel";
-import FigureLegendCard from "../graph/FigureLegendCard";
+
 import ColumnSplitter from "./ColumnSplitter";
 import ExportPanel from "./ExportPanel";
 import GraphSettings from "./GraphSettings";
@@ -177,7 +177,8 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
             {resSheet && Results && (
               <div className={`pane pane-results${reveal}`}>
                 <ResultsGuide analysisId={resSheet.analysis} tableType={data.table.type}
-                  table={data.table} options={options} result={result} />
+                  table={data.table} options={options} result={result}
+                  dataId={data.id} readOnly={readOnly} />
                 <ResultsExport name={resSheet.name}>
                   <Suspense fallback={<Pending />}>
                     <Results sheet={resSheet} table={data.table} options={options} result={result} />
@@ -197,8 +198,7 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
                   <Suspense fallback={null}>
                     <Methods sheet={resSheet} table={data.table} options={options} result={result} />
                   </Suspense>
-                  <FigureLegendCard graph={graph?.resultsId === resSheet.id ? graph : null}
-                    table={data.table} result={result} />
+
                   <StatsMethodsCard sheet={resSheet} result={result} />
                 </div>
               </>

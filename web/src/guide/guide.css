@@ -63,6 +63,8 @@
   border-radius: var(--radius-s); padding: 8px 12px;
 }
 .guide-chip-detail p { margin: 0 0 4px; }
+.guide-chip-detail .guide-chip-action { margin: 6px 0; }
+.guide-chip-action button { font-size: 12.5px; }
 
 .guide-differ {
   margin-top: 10px; font-size: 12.5px; color: var(--ink-2);
@@ -252,7 +254,7 @@ main.start-screen { display: block; padding: 20px 24px 32px; width: 100%; }
 .start-card-actions { display: flex; gap: 6px; margin-top: 4px; }
 .start-card-actions button { padding: 5px 12px; font-size: 12.5px; }
 .start-foot { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; font-size: 12.5px; }
-.start-status { color: var(--muted); flex: 1; }
+.start-status { color: var(--muted); flex: 1 1 16ch; }
 .start-skip { padding: 5px 12px; font-size: 12.5px; }
 @media (max-width: 860px) {
   .start-top { grid-template-columns: 1fr; }

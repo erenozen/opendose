@@ -2,6 +2,7 @@
 import { softwareSentence } from "../../export/cite";
 import { getRuntimeVersions } from "../../lib/engine";
 import { formatSig } from "../../types";
+import { formatPValue } from "../../report/pformat";
 import CopyableMethods from "../common/CopyableMethods";
 import type { ResultsProps } from "../types";
 import {
@@ -12,8 +13,8 @@ import {
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-const P = (p: unknown) => (typeof p !== "number" ? "n/a"
-  : p < 0.0001 ? "P < 0.0001" : `P = ${formatSig(p, 4)}`);
+/** "P = 0.0123" in the project's P-value style (report/pformat.ts). */
+const P = (p: unknown) => (typeof p !== "number" ? "n/a" : formatPValue(p));
 
 function Card({ result, sentence }: { result: any; sentence: () => string }) {
   if (!result || result.error) return null;

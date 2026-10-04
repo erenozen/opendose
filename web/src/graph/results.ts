@@ -3,6 +3,7 @@
 // "add results to graph") and survival risk sets (for the number-at-risk
 // table). Pure; tolerant of missing fields.
 import type { ResultsBlock } from "./format.ts";
+import { currentReportPrefs } from "../report/pformat.ts";
 import { formatPStyle, splitPair, type Comparison, type PStyle } from "./significance.ts";
 import { shortNumber } from "./axes.ts";
 
@@ -85,7 +86,7 @@ function esc(s: string): string {
 }
 
 /** Overall P value line(s) of a result, or "" when it has none. */
-function pvalueBlock(r: Any, style: PStyle = "graphpad"): string {
+function pvalueBlock(r: Any, style: PStyle): string {
   const formatP = (p: number) => formatPStyle(p, style, style === "apa" ? "p = " : "P = ");
   if (r.analysis === "ttest" && twoGroupP(r) !== null) {
     return `${TEST_LABELS[String(r.test)] ?? "Two-group test"}: ${formatP(twoGroupP(r)!)}`;
@@ -142,7 +143,7 @@ function equationBlock(r: Any): string {
 
 /** The text blocks "Add results to graph" can embed; empty strings when a
  *  result has no such block. Plotly label markup (<b>, <br>) is used. */
-export function resultBlocks(result: unknown, style: PStyle = "graphpad"):
+export function resultBlocks(result: unknown, style: PStyle = currentReportPrefs().pStyle):
   Partial<Record<ResultsBlock, string>> {
   const r = result as Any;
   if (!r || typeof r !== "object" || r.error) return {};

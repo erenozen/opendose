@@ -18,8 +18,8 @@ import {
 } from "./format.ts";
 import { atRisk, censoredBy, type RiskSet } from "./results.ts";
 import {
-  compactLetters, formatPStyle, isNs, lettersInputKey, pairKey, stackBrackets, starsFor,
-  type Comparison,
+  compactLetters, formatPStyle, graphHideNs, graphPStyle, isNs, lettersInputKey, pairKey,
+  stackBrackets, starsFor, type Comparison,
 } from "./significance.ts";
 import { applyClassic } from "./theme.ts";
 
@@ -831,12 +831,13 @@ function drawBrackets(layout: Layout, format: GraphFormat, comparisons: Comparis
   groupX: (name: string, family?: string) => GroupPos,
   top: (lo: number, hi: number, xref?: string) => number, span: number, chrome: Chrome) {
   const c = format.comparisons!;
-  const style = format.pStyle ?? "graphpad";
+  const style = graphPStyle(format);
+  const hideNs = graphHideNs(c);
   const hidden = new Set(c.hidden ?? []);
   const items = comparisons
     .filter((cmp) => !hidden.has(pairKey(cmp)))
     .filter((cmp) => !isNum(c.threshold) || cmp.p < c.threshold)
-    .filter((cmp) => !c.hideNs || !isNs(cmp.p, style))
+    .filter((cmp) => !hideNs || !isNs(cmp.p, style))
     .map((cmp) => ({ cmp, p0: toPos(groupX(cmp.a, cmp.family)),
       p1: toPos(groupX(cmp.b, cmp.family)) }))
     .filter((e) => e.p0 && e.p1 && e.p0.xref === e.p1.xref && e.p0.x !== e.p1.x)

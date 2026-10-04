@@ -2,6 +2,7 @@
 // the preferences, as every other results sheet).
 import type { GraphFormat } from "../../../graph/format.ts";
 import { formatSig } from "../../../types.ts";
+import { tableP } from "../../../report/pformat.ts";
 
 /** Number with the results precision; "" for missing. */
 export function num(v: unknown, digits?: number): string {
@@ -24,7 +25,7 @@ export const isNum = (v: unknown): v is number => typeof v === "number" && Numbe
 /** P value as results sheets show it. */
 export function pValue(p: unknown): string {
   if (!isNum(p)) return "n/a";
-  return p < 0.0001 ? "< 0.0001" : formatSig(p, 4);
+  return tableP(p);
 }
 
 const TEST_NAMES: Record<string, string> = {

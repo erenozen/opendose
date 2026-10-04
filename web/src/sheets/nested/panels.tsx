@@ -4,6 +4,7 @@ import "../common/sheetKit.css";
 import type { ReactNode } from "react";
 import CopyableMethods from "../common/CopyableMethods";
 import { fmtCI, fmtP, formatSig, levelPct, stars } from "../common/statFormat";
+import { pEquals } from "../../report/pformat";
 import type { ControlsProps, ResultsProps } from "../types";
 import {
   NESTED_COMPARISONS_LABELS, groupName,
@@ -348,9 +349,8 @@ export function NestedResults({ options, result: r }:
 
 // ------------------------------------------------------------ methods text
 
-function pText(p: number): string {
-  return p < 0.0001 ? "< 0.0001" : `= ${formatSig(p, 3)}`;
-}
+/** "= 0.0123" / "< 0.0001" after a written "P" (project's P style). */
+const pText = (p: number) => pEquals(p);
 
 export function NestedMethods({ options, result: r }:
   ResultsProps<NestedTOptions | NestedAnovaOptions, Record<string, any>>) {

@@ -6,7 +6,9 @@ import "./guide.css";
 import {
   lazy, Suspense, useCallback, useEffect, useMemo, useState, type ReactNode,
 } from "react";
-import { exampleRequested, shareLinkRequested, GuideCtx, setTourDone, startScreenEnabled, type GuideApi } from "./context";
+import {
+  exampleRequested, shareLinkRequested, GuideCtx, setTourDone, startScreenMode, type GuideApi,
+} from "./context";
 
 // The overlays load on first use.
 const HelpPanel = lazy(() => import("./HelpPanel"));
@@ -17,15 +19,26 @@ export function GuideProvider({ children }: { children: ReactNode }) {
   const [wizard, setWizard] = useState(false);
   const [help, setHelp] = useState<{ topic: string | null } | null>(null);
   const [tour, setTour] = useState(false);
-  const [startOpen, setStartOpen] = useState(
-    () => !exampleRequested() && !shareLinkRequested() && startScreenEnabled());
+  // `?example=1` and share links open their project directly. Otherwise
+  // the start mode decides; in the default mode the shell checks the
+  // autosave first (resolveStart).
+  const [boot] = useState(() => (exampleRequested() || shareLinkRequested() ? "never"
+    : startScreenMode()));
+  const [startOpen, setStartOpen] = useState(boot === "always");
+  const [startPending, setStartPending] = useState(boot === "auto");
+  const resolveStart = useCallback((hasSession: boolean) => {
+    setStartPending(false);
+    setStartOpen(!hasSession);
+  }, []);
 
   const openWizard = useCallback(() => { setHelp(null); setWizard(true); }, []);
   const openHelp = useCallback((id?: string) => setHelp({ topic: id ?? null }), []);
   const closeHelp = useCallback(() => setHelp(null), []);
   const startTour = useCallback(() => { setHelp(null); setStartOpen(false); setTour(true); }, []);
-  const showStart = useCallback(() => { setHelp(null); setTour(false); setStartOpen(true); }, []);
-  const hideStart = useCallback(() => setStartOpen(false), []);
+  const showStart = useCallback(() => {
+    setHelp(null); setTour(false); setStartPending(false); setStartOpen(true);
+  }, []);
+  const hideStart = useCallback(() => { setStartPending(false); setStartOpen(false); }, []);
 
   // Ctrl/Cmd+/ toggles the Help panel from anywhere (also inside fields:
   // the combination types nothing).
@@ -43,7 +56,9 @@ export function GuideProvider({ children }: { children: ReactNode }) {
 
   const api = useMemo<GuideApi>(() => ({
     openWizard, openHelp, closeHelp, helpOpen: !!help, startTour, startOpen, showStart, hideStart,
-  }), [openWizard, openHelp, closeHelp, help, startTour, startOpen, showStart, hideStart]);
+    startPending, resolveStart,
+  }), [openWizard, openHelp, closeHelp, help, startTour, startOpen, showStart, hideStart,
+    startPending, resolveStart]);
 
   return (
     <GuideCtx.Provider value={api}>

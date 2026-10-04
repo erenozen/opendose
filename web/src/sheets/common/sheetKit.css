@@ -41,3 +41,6 @@
 .inline-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 8px; }
 .inline-actions button { font-size: 12.5px; padding: 5px 12px; }
 .inline-actions .field-note { flex-basis: 100%; }
+
+/* "Assign replicates…" dialog (ReplicateAssign.tsx). */
+.replicate-assign { display: flex; flex-direction: column; gap: 10px; width: min(520px, 86vw); }

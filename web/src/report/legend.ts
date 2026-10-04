@@ -97,10 +97,11 @@ const UNIT_WORDS: Record<NonNullable<TestInfo["nUnit"]>, string> = {
  *  experiments", "n = 6 (Control), 5 (Treated)". */
 export function nStatement(groups: GroupN[], info: Pick<TestInfo, "nUnit">,
   unit: ReportUnit = {}): string | null {
-  const g = groups.filter((x) => Number.isFinite(x.n));
+  // Groups without values (e.g. a data set of experiment labels) say nothing.
+  const g = groups.filter((x) => Number.isFinite(x.n) && x.n > 0);
   if (!g.length) return null;
   const word = unit.unit?.trim() || (info.nUnit ? UNIT_WORDS[info.nUnit] : "");
-  const exp = unit.experiments && unit.experiments > 0
+  const exp = unit.experiments && unit.experiments > 0 && !/experiment/i.test(word)
     ? ` from ${unit.experiments} independent experiment${unit.experiments === 1 ? "" : "s"}` : "";
   const same = g.every((x) => x.n === g[0].n);
   if (info.nUnit === "pairs" && same) {
@@ -115,6 +116,12 @@ export function nStatement(groups: GroupN[], info: Pick<TestInfo, "nUnit">,
 export interface LegendInput {
   /** Graph kind id of the figure (null: legend for the results alone). */
   graphType: string | null;
+  /** What the graph draws, from the figure package's legend sentence
+   *  (graph/legend.ts plottedClause); replaces whatIsPlotted when set, so
+   *  the legend under a graph and its caption never disagree. */
+  plotted?: string;
+  /** Added in parentheses after the n statement ("54 cells in all"). */
+  nNote?: string;
   result: unknown;
   /** n per group from the table, used when the result has none. */
   groups?: GroupN[];
@@ -135,14 +142,14 @@ export interface LegendInput {
 export function legendParagraph(i: LegendInput): string {
   const info = describeResult(i.result);
   const parts: string[] = [];
-  const what = whatIsPlotted(i.graphType, {
+  const what = i.plotted?.trim() || whatIsPlotted(i.graphType, {
     errorBars: i.errorBars, points: i.points,
     estimation: (i.result as R | null)?.analysis === "estimation" ? i.result as R : null,
   });
   if (what) parts.push(what);
   const groups = info.groups.length ? info.groups : i.groups ?? [];
   const n = nStatement(groups, info, i.unit);
-  if (n) parts.push(`${n}.`);
+  if (n) parts.push(`${n}${i.nNote ? ` (${i.nNote})` : ""}.`);
   const est = (i.result as R | null)?.analysis === "estimation";
   if (est) {
     const many = info.multiplicity === "uncorrected";

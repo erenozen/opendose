@@ -127,7 +127,8 @@ export default function StartScreen({ onOpenFile, onClose, onTour }: {
         </section>
 
         <div className="start-foot">
-          <label className="check-row">
+          <label className="check-row"
+            title="Unticked, this screen shows on the first visit and whenever there is no last session to reopen">
             <input type="checkbox" checked={remember}
               onChange={(e) => { setRemember(e.target.checked); setStartScreenEnabled(e.target.checked); }} />
             <span>Show this screen when OpenDose opens</span>

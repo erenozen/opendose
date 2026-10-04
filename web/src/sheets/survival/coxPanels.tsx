@@ -13,7 +13,7 @@ import {
   Card, Check, Field, Grid, KV, Note, Problem, Section, Select, SOFTWARE, TextNum,
 } from "../common/clinicalKit";
 import CopyableMethods from "../common/CopyableMethods";
-import { fmtP, levelPct, stars } from "../common/statFormat";
+import { fmtP, levelPct, pLabel, stars } from "../common/statFormat";
 import { baseLayout, chromeFor, useDark } from "../multivariable/chart";
 import { PlotMessage, PlotlyChart } from "../multivariable/plotkit";
 import type { ControlsProps, GraphOptionsProps, PlotProps, ResultsProps } from "../types";
@@ -203,8 +203,7 @@ export function CoxResults({ result }: ResultsProps<CoxOptions, CoxResult>) {
       <div className="stat-cols">
         <KV title="Whole model (vs no covariates)" rows={[
           ...TEST_ROWS.map(([k, label]): [string, string] => [label,
-            `χ² = ${f(result.tests[k].chi2)}, df = ${result.tests[k].df}, P ${
-              result.tests[k].p < 0.0001 ? "< 0.0001" : `= ${fmtP(result.tests[k].p)}`}`]),
+            `χ² = ${f(result.tests[k].chi2)}, df = ${result.tests[k].df}, ${pLabel(result.tests[k].p)}`]),
           ["Log partial likelihood", `${f(result.loglik)} (null ${f(result.loglik_null)})`],
           ["AIC", f(result.aic)],
         ]} />
@@ -238,8 +237,7 @@ export function CoxMethods({ result }: ResultsProps<CoxOptions, CoxResult>) {
   const cats = result.terms.filter((t) => t.kind === "categorical");
   const hrs = result.coefficients.map((c) => `${coefficientLabel(c)}: HR ${f(c.hazard_ratio)} `
     + `(${levelPct(level)} CI ${ci(result.ci_method_used === "profile"
-      ? c.hazard_ratio_ci_profile ?? c.hazard_ratio_ci : c.hazard_ratio_ci)}), P ${
-      c.p < 0.0001 ? "< 0.0001" : `= ${fmtP(c.p)}`}`);
+      ? c.hazard_ratio_ci_profile ?? c.hazard_ratio_ci : c.hazard_ratio_ci)}), ${pLabel(c.p)}`);
   const g = result.ph_test.global;
   const text = `Survival was analysed by Cox proportional-hazards regression (maximum partial `
     + `likelihood, ${result.ties === "efron" ? "Efron's" : result.ties === "breslow" ? "Breslow's" : "the exact"} `
@@ -253,9 +251,9 @@ export function CoxMethods({ result }: ResultsProps<CoxOptions, CoxResult>) {
       ? "profile-likelihood" : "Wald"} confidence intervals. The proportional-hazards assumption `
     + `was checked with the Grambsch-Therneau test of scaled Schoenfeld residuals `
     + `(${PH_TRANSFORM_LABELS[result.ph_test.transform]?.replace(" (default)", "") ?? result.ph_test.transform} time scale; `
-    + `global χ² = ${f(g.chi2)}, df = ${g.df}, P = ${fmtP(g.p)}). Likelihood ratio test of the model: `
+    + `global χ² = ${f(g.chi2)}, df = ${g.df}, ${pLabel(g.p)}). Likelihood ratio test of the model: `
     + `χ² = ${f(result.tests.likelihood_ratio.chi2)}, df = ${result.tests.likelihood_ratio.df}, `
-    + `P ${result.tests.likelihood_ratio.p < 0.0001 ? "< 0.0001" : `= ${fmtP(result.tests.likelihood_ratio.p)}`}; `
+    + `${pLabel(result.tests.likelihood_ratio.p)}; `
     + `concordance C = ${f(result.concordance.c)}. ${hrs.join("; ")}.`;
   return <CopyableMethods text={text} />;
 }
@@ -355,7 +353,7 @@ export function CoxForestPlot({ result, titles, scheme, format, onFormatChange }
         arrayminus: rows.map((r) => (r.lo == null ? 0 : r.hr - r.lo)),
       },
       hovertext: rows.map((r) => `${r.name}: HR ${f(r.hr)} (${levelPct(level)} CI ${f(r.lo)} to ${
-        r.hi == null ? "−" : f(r.hi)}), P = ${fmtP(r.p)}`),
+        r.hi == null ? "−" : f(r.hi)}), ${pLabel(r.p)}`),
       hoverinfo: "text",
     } as Plotly.Data];
     const layout = baseLayout(chrome, titles.x || `Hazard ratio (${levelPct(level)} CI)`, titles.y, {
@@ -419,7 +417,7 @@ export function CoxSchoenfeldPlot({ graph, result, titles, scheme, format, onFor
         showlegend: false, shapes,
         annotations: termTest ? [{ x: 1, y: 1, xref: "paper", yref: "paper", xanchor: "right",
           yanchor: "top", showarrow: false, font: { color: chrome.inkSecondary, size: 12 },
-          text: `PH test ${termTest.term}: P = ${fmtP(termTest.p)}` }] : [],
+          text: `PH test ${termTest.term}: ${pLabel(termTest.p)}` }] : [],
       });
     if (logX) layout.xaxis = { ...layout.xaxis, type: "log" };
     return { traces, layout };

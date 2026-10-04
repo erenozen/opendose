@@ -7,6 +7,7 @@ import FormattedPlot from "../../graph/FormattedPlot";
 import { SCHEMES, seriesStyle } from "../../lib/palette";
 import { formatSig } from "../../types";
 import CopyableMethods from "../common/CopyableMethods";
+import { addDendrogram, parseDendrogram } from "../common/dendrogram";
 import type { ControlsProps, GraphOptionsProps, PlotProps, ResultsProps } from "../types";
 import type { ClusterResult } from "./cluster";
 import {
@@ -280,21 +281,17 @@ export function ClusterPlot({ graph, result, scheme, format, onFormatChange }:
         tickfont: { color: chrome.ink, size: nr > 40 ? 9 : 12 }, automargin: true },
     });
     const hidden = { showgrid: false, zeroline: false, showticklabels: false, ticks: "", showline: false } as const;
-    if (showColDen) {
-      const d = result.columns.dendrogram as { x: number[][]; y: number[][] };
-      const top = Math.max(...d.y.flat()) * 1.03 || 1;
-      d.x.forEach((xs, k) => traces.push({ type: "scatter", mode: "lines", x: xs, y: d.y[k],
-        xaxis: "x2", yaxis: "y2", line, hoverinfo: "skip", showlegend: false } as Plotly.Data));
-      layout.xaxis2 = { ...hidden, domain: hx, anchor: "y2", range: [-0.5, nc - 0.5] };
-      layout.yaxis2 = { ...hidden, domain: [1 - dt, 1], anchor: "x2", range: [0, top] };
+    // The same drawing as the grouped heat map's clustered toggles
+    // (sheets/common/dendrogram.ts).
+    const colDen = showColDen ? parseDendrogram(result.columns) : null;
+    if (colDen) {
+      addDendrogram(traces, layout, colDen, { side: "top", axis: 2, along: hx, across: [1 - dt, 1],
+        n: nc, line });
     }
-    if (showRowDen) {
-      const d = result.rows.dendrogram as { x: number[][]; y: number[][] };
-      const top = Math.max(...d.y.flat()) * 1.03 || 1;
-      d.x.forEach((pos, k) => traces.push({ type: "scatter", mode: "lines", x: d.y[k], y: pos,
-        xaxis: "x3", yaxis: "y3", line, hoverinfo: "skip", showlegend: false } as Plotly.Data));
-      layout.xaxis3 = { ...hidden, domain: [0, dl], anchor: "y3", range: [top, 0] };
-      layout.yaxis3 = { ...hidden, domain: hy, anchor: "x3", range: [nr - 0.5, -0.5] };
+    const rowDen = showRowDen ? parseDendrogram(result.rows) : null;
+    if (rowDen) {
+      addDendrogram(traces, layout, rowDen, { side: "left", axis: 3, along: hy, across: [0, dl],
+        n: nr, line });
     }
     const palette = (k: number) => Array.from({ length: k }, (_, i) =>
       seriesStyle(i, dark, scheme === "mono" || scheme === "sequential" ? "colorblind" : scheme).color);

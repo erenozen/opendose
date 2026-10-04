@@ -189,7 +189,8 @@ export interface ComparisonsFormat {
   /** Only draw pairs with P below this (null/absent = all, ns included). */
   threshold?: number | null;
   style?: "bracket" | "line" | "tall";
-  /** Leave out pairs that are not significant ("ns"). */
+  /** Leave out pairs that are not significant ("ns"); absent = the
+   *  project's "hide ns" (Preferences → Reporting). */
   hideNs?: boolean;
   lineWidth?: number;
   color?: string;
@@ -223,8 +224,8 @@ export type GraphTheme = "default" | "classic";
 
 export interface GraphFormat {
   theme?: GraphTheme;
-  /** How P values and asterisks are written on brackets and in the legend
-   *  sentence (significance.ts PStyle); absent = "graphpad". */
+  /** This graph's own P-value style, overriding the project's (Preferences
+   *  → Reporting, report/prefs.ts); absent = follow the project. */
   pStyle?: "graphpad" | "apa" | "nejm";
   /** Keyed by dataset index ("0", "1", ...). */
   datasets?: Record<string, DatasetFormat>;
@@ -430,7 +431,7 @@ export function normalizeFormat(raw: unknown): GraphFormat {
   const theme = oneOf(raw.theme, ["default", "classic"] as const);
   return compact({
     theme: theme === "classic" ? theme : undefined,
-    pStyle: oneOf(raw.pStyle, ["apa", "nejm"] as const),
+    pStyle: oneOf(raw.pStyle, ["graphpad", "apa", "nejm"] as const),
     datasets: Object.keys(ds).length ? ds : undefined,
     order: Array.isArray(raw.order)
       ? raw.order.filter((v): v is number => Number.isInteger(v) && (v as number) >= 0)

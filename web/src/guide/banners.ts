@@ -3,6 +3,7 @@
 // disagree, normalised controls with SD 0, what Normalize did to SD/SEM,
 // and the switch to a mixed model when repeated measures have gaps. Pure;
 // unit-tested.
+import { formatPValue } from "../report/pformat.ts";
 import { analysisKind, fitAmbiguous, wideParams, type ResultContext } from "./checks.ts";
 import { normalisedControl, missingInRows } from "./stats.ts";
 import { SRC, type Source } from "./sources.ts";
@@ -20,7 +21,7 @@ export interface Banner {
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type R = Record<string, any>;
 
-const fmtP = (p: number) => (p < 0.0001 ? "< 0.0001" : String(Number(p.toPrecision(2))));
+const fmtP = (p: number) => formatPValue(p);
 
 function fitBanners(ctx: ResultContext, r: R): Banner[] {
   const out: Banner[] = [];
@@ -182,7 +183,7 @@ function disagreementBanner(kind: string, r: R): Banner | null {
   const sigOmni = x.omni.filter((o) => o.p < 0.05);
   const two = kind === "grouped_two_way" || kind === "two_way_anova";
   if (sigOmni.length && !anyPair) {
-    const which = sigOmni.map((o) => `${o.label} P = ${fmtP(o.p)}`).join(", ");
+    const which = sigOmni.map((o) => `${o.label} ${fmtP(o.p)}`).join(", ");
     return { id: "omnibus-no-pairs", tone: "info",
       title: "Overall test significant, but no pairwise comparison is",
       body: `${which}, yet no multiplicity-adjusted comparison reaches P < 0.05. This is not `
@@ -204,7 +205,7 @@ function disagreementBanner(kind: string, r: R): Banner | null {
   if (!sigOmni.length && anyPair) {
     return { id: "pairs-no-omnibus", tone: "info",
       title: "A pairwise comparison is significant, but the overall test is not",
-      body: `${x.omni.map((o) => `${o.label} P = ${fmtP(o.p)}`).join(", ")}, while at least one `
+      body: `${x.omni.map((o) => `${o.label} ${fmtP(o.p)}`).join(", ")}, while at least one `
         + "adjusted comparison has P < 0.05. The tests ask different questions and are "
         + "calculated differently, so this can happen. Multiple comparisons tests are valid "
         + "without a significant overall test, but a single significant pair among many, with "

@@ -2,11 +2,15 @@
 // bars, points, brackets) from the sheet's settings and format, and the
 // test from the bound result. Pure.
 import { readFormat } from "../graph/format.ts";
+import { legendSpec, plottedClause } from "../graph/legend.ts";
+import { replicateInfo } from "../sheets/common/superplot.ts";
+import { cellStats } from "../sheets/grouped/stats.ts";
 import { numericData } from "../project/table.ts";
 import type { DataSheet, DataTableModel, GraphSheet } from "../project/types.ts";
 import type { GroupN } from "./describe.ts";
 import { legendParagraph, whatIsPlotted, type ErrorBars } from "./legend.ts";
 import type { ReportPrefs } from "./prefs.ts";
+import { metaWithReplicates, replicateFacts, withinNote } from "./replicates.ts";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -18,8 +22,24 @@ export function tableGroups(t: DataTableModel): GroupN[] {
   if (t.type === "survival") {
     return numericData(t).datasets.map((d) => ({ name: d.name, n: d.ys.filter((r) => r[0] !== null).length }));
   }
-  return numericData(t).datasets.map((d) => ({
-    name: d.name, n: d.ys.flat().filter((v) => v !== null).length,
+  // Grouped tables: n is per row × data set cell (as the graph's legend
+  // sentence counts it), not per data set across rows.
+  if (t.type === "grouped") {
+    const out: GroupN[] = [];
+    cellStats(t).forEach((row, r) => row.forEach((c, d) => {
+      if (c && c.n > 0) {
+        out.push({ name: `${t.rowTitles[r]?.trim() || `Row ${r + 1}`} · ${t.datasets[d]?.name.trim()
+          || `Data set ${d + 1}`}`, n: c.n });
+      }
+    }));
+    return out;
+  }
+  // A long-format replicate map keeps experiment labels in a data set of
+  // their own: it is not a group.
+  const idColumn = t.type === "column" && t.replicates?.by === "column"
+    ? replicateInfo(t).idColumn : null;
+  return numericData(t).datasets.map((d, i) => ({
+    name: d.name, n: i === idColumn ? 0 : d.ys.flat().filter((v) => v !== null).length,
   })).filter((g) => g.n > 0);
 }
 
@@ -75,15 +95,24 @@ export function legendFor(c: LegendContext): string {
   const groups = xy ? numericData(c.table).datasets.map((d) => ({
     name: d.name, n: Math.max(0, ...d.ys.map((r) => r.filter((v) => v !== null).length)),
   })).filter((g) => g.n > 0) : tableGroups(c.table);
-  const unit = c.data.report?.unit ?? (xy ? "replicates per X value" : undefined);
+  // Unit and experiments: typed in Reporting details, else from the
+  // table's replicate map (report/replicates.ts).
+  const superplot = !!c.graph && legendSpec(c.graph, c.table, c.result)?.display === "superplot";
+  const meta = metaWithReplicates(c.data.report, c.table, c.result, { superplot });
+  const unit = meta.unit ?? (xy ? "replicates per X value" : undefined);
+  // The graph's own P style / "hide ns" override the project's.
+  const fmt = c.graph ? readFormat(c.graph.settings) : null;
   return legendParagraph({
     graphType: c.graph?.graphType ?? null,
+    plotted: c.graph ? plottedClause(c.graph, c.table, c.result) : undefined,
     result: c.result,
     groups,
-    unit: { unit, experiments: c.data.report?.experiments ?? null },
+    unit: { unit, experiments: meta.experiments ?? null },
+    nNote: withinNote(replicateFacts(c.table, c.result, { superplot })) || undefined,
     errorBars: f.errorBars, points: f.points ?? undefined,
     starsShown: f.starsShown, pShown: f.pShown,
-    style: c.prefs.pStyle, hideNs: c.prefs.hideNs, software: c.software,
+    style: fmt?.pStyle ?? c.prefs.pStyle,
+    hideNs: fmt?.comparisons?.hideNs ?? c.prefs.hideNs, software: c.software,
   });
 }
 

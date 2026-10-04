@@ -99,9 +99,18 @@ await page.waitForTimeout(600);
   const p = await plot();
   expect("column graph draws before SuperPlot mode (no replicate overlay)",
     p.traces.every((t) => !t.means), `${p.traces.length} traces`);
-  const cap = await page.locator(".graph-caption > span").innerText().catch(() => "");
-  expect("legend sentence under the graph states mean ± SD and n",
-    cap.includes("Mean ± SD") && cap.includes("n = 18 per group"), cap);
+  // One legend card under the graph (report/GraphLegend.tsx), open in the
+  // "Under the graph" caption mode, opening with the figure package's
+  // legend-sentence clause.
+  expect("one figure-legend card under the graph",
+    await page.locator(".plot-card .figure-legend").count() === 1
+    && await page.locator(".plot-card .graph-caption").count() === 0);
+  const cap = await page.locator(".plot-card .figure-legend[open] .figure-legend-text").innerText()
+    .catch(() => "");
+  expect("legend under the graph states mean ± SD and n",
+    cap.startsWith("Mean ± SD, with individual values.") && cap.includes("n = 18 per group"), cap);
+  expect("no duplicate Figure legend card under the methods text",
+    await page.locator(".pane-methods .figure-legend-text").count() === 0);
 }
 
 // SuperPlot mode
@@ -137,9 +146,10 @@ await page.waitForTimeout(600);
   });
   expect("beeswarm: points do not overlap (min distance ≥ 6 px)", overlap >= 6 - 0.6,
     `${overlap.toFixed(2)} px`);
-  const cap = await page.locator(".graph-caption > span").innerText().catch(() => "");
-  expect("legend sentence counts experiments in SuperPlot mode",
-    cap.includes("n = 3 experiments per group"), cap);
+  const cap = await page.locator(".plot-card .figure-legend-text").innerText().catch(() => "");
+  expect("legend in SuperPlot mode: experiment means, values from 3 independent experiments",
+    cap.startsWith("Mean ± SD of the experiment means")
+    && cap.includes("n = 18 values per group from 3 independent experiments"), cap);
 }
 
 // Statistics on replicate means
@@ -170,6 +180,9 @@ await page.waitForTimeout(600);
   const methods = await page.locator(".methods-text p").first().innerText().catch(() => "");
   expect("methods text says statistics ran on the 3 experiment means",
     methods.includes("3 experiment means"), methods.slice(0, 120));
+  const leg = await page.locator(".plot-card .figure-legend-text").innerText().catch(() => "");
+  expect("legend on replicate means: n counts experiments, values in all",
+    leg.includes("n = 3 independent experiments per group (54 values in all)"), leg);
 }
 
 await shot("superplot");
@@ -194,6 +207,38 @@ await shot("superplot");
   const ns = p.brackets.filter((b) => Number(b.replace(/^p [=<] /, "")) >= 0.05).length;
   expect("hide ns drops the non-significant brackets", q.brackets.length === p.brackets.length - ns,
     `${p.brackets.length} → ${q.brackets.length}`);
+}
+
+// The project's P-value style (Preferences → Reporting) is the single
+// source: a graph without its own style follows it.
+{
+  const pop = await graphSettings();
+  await pop.getByRole("button", { name: "Pairwise comparisons…" }).click();
+  const cd = page.locator("dialog.fmt-dialog");
+  await cd.getByLabel("P value style").selectOption("");
+  await cd.getByRole("button", { name: "OK" }).click();
+  await page.waitForTimeout(400);
+  const before = await plot();
+  expect("without its own style the graph draws GraphPad P values (project default)",
+    before.brackets.length > 0 && before.brackets.every((b) => /^P [=<] 0\.\d+$/.test(b)),
+    before.brackets.join(" | "));
+  await closeSettings();
+  await page.getByRole("button", { name: "Preferences" }).click();
+  await page.getByLabel("P-value style (tables, sentences, legends)").selectOption("apa");
+  await page.keyboard.press("Escape");
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.layout?.annotations ?? [])
+    .filter((a) => a.name === "bracket-label").every((a) => /^p [=<] \.\d+$/.test(a.text)), null,
+  { timeout: 10000 }).catch(() => {});
+  const after = await plot();
+  expect("project P style APA redraws the brackets without a per-graph setting",
+    after.brackets.length > 0 && after.brackets.every((b) => /^p [=<] \.\d+$/.test(b)),
+    after.brackets.join(" | "));
+  const table = await page.locator(".pane-results .results-table tr", { hasText: /P value/ }).first()
+    .innerText().catch(() => "");
+  expect("results table follows the same project style", /(< \.001|\s\.\d{3})/.test(table) && !/0\.\d{4}/.test(table), table.replace(/\s+/g, " ").slice(0, 400));
+  await page.getByRole("button", { name: "Preferences" }).click();
+  await page.getByLabel("P-value style (tables, sentences, legends)").selectOption("graphpad");
+  await page.keyboard.press("Escape");
 }
 
 // Classic theme
@@ -331,12 +376,25 @@ await shot("classic");
   const info = await page.evaluate(() => {
     const gd = document.querySelector(".plot-card .plot");
     const z = gd.data.find((t) => t.type === "heatmap" && t.showscale !== false)?.z ?? [];
-    return { rows: gd.layout.yaxis?.ticktext ?? [], z };
+    return { rows: gd.layout.yaxis?.ticktext ?? [], z,
+      tree: gd.data.filter((t) => t.xaxis === "x3" && t.yaxis === "y3" && t.mode === "lines").length,
+      treeAxis: !!gd.layout.xaxis3 && gd.layout.xaxis3.domain?.[0] > gd.layout.xaxis.domain?.[1] - 1e-9 };
   });
   expect("heat map: rows z-scored (each row averages 0)", info.z.every((r) =>
     Math.abs(r.filter((v) => v !== null).reduce((a, b) => a + b, 0)) < 1e-9), JSON.stringify(info.z));
   expect("heat map: clustered rows are a reordering of the table's rows",
     [...info.rows].sort().join() === ["Day 14", "Day 21", "Day 7"].join(), info.rows.join(", "));
+  // Three rows: two links in the row dendrogram, drawn beside the map with
+  // the Clustered heat map assay's drawing.
+  expect("heat map: clustered rows draw their dendrogram beside the map",
+    info.tree === 2 && info.treeAxis, `${info.tree} links, axis beside: ${info.treeAxis}`);
+  const pop2 = await graphSettings();
+  await pop2.getByLabel("Dendrograms").uncheck();
+  await closeSettings();
+  await page.waitForTimeout(600);
+  const off = await page.evaluate(() => document.querySelector(".plot-card .plot").data
+    .filter((t) => t.xaxis === "x3").length);
+  expect("heat map: the Dendrograms option hides the tree", off === 0, String(off));
 }
 
 // --- a new survival graph marks censored subjects ---
@@ -360,6 +418,60 @@ await shot("classic");
   expect("survival: nudging separates the curves at 100%", new Set(starts).size === starts.length,
     starts.join(", "));
   await closeSettings();
+}
+
+// --- "n might be cells": Assign replicates… feeds the legend and details ---
+{
+  const cellsN = 60;
+  const val = (g, i) => String(+(10 + g * 2 + ((i * 7) % 11) * 0.3).toFixed(2));
+  const CELLS = join(tmp, "cells.json");
+  writeFileSync(CELLS, JSON.stringify({
+    version: 2, title: "Cells check",
+    prefs: { defaultTableType: "column", errorBars: "sd", ciMethod: "asymptotic",
+      scheme: "colorblind", digits: 4 },
+    sheets: [
+      { id: "c1", kind: "data", name: "Cell area", table: {
+        type: "column", x: Array(cellsN).fill(""), xTitle: "", xFormat: "numbers", xUnit: "",
+        yTitle: "Area", rowTitles: Array(cellsN).fill(""), subcolumnFormat: "replicates",
+        replicateLayout: "side_by_side",
+        datasets: [
+          { name: "Control", rows: Array.from({ length: cellsN }, (_, i) => [val(0, i)]) },
+          { name: "Knockdown", rows: Array.from({ length: cellsN }, (_, i) => [val(1, i)]) },
+          { name: "Experiment", rows: Array.from({ length: cellsN }, (_, i) => [`E${1 + (i % 3)}`]) },
+        ] } },
+      { id: "c2", kind: "results", parentId: "c1", name: "Column stats of Cell area",
+        analysis: "column", options: { analysis: "column_statistics" } },
+      { id: "c3", kind: "graph", parentId: "c1", resultsId: "c2", graphType: "scatter",
+        name: "Graph of Cell area",
+        settings: { titles: { x: "", y: "" }, scheme: "colorblind", column: { caption: "below" } } },
+    ],
+  }));
+  await page.setInputFiles('.load-btn input[type="file"]', CELLS);
+  await page.waitForSelector(".guide-chip", { timeout: 60000 });
+  const chip = page.locator(".guide-chip", { hasText: "n might be cells" });
+  expect("the n-might-be-cells chip fires on 60 values per group", await chip.count() === 1);
+  await chip.click();
+  await page.locator(".guide-chip-detail").getByRole("button", { name: "Assign replicates…" }).click();
+  const dlg = page.getByRole("dialog", { name: /Assign replicates/ });
+  await dlg.waitFor({ timeout: 10000 });
+  expect("the replicate dialog finds the experiment labels (3 experiments)",
+    (await dlg.innerText()).includes("3 experiments: E1, E2, E3"), (await dlg.innerText()).slice(0, 300));
+  await dlg.getByRole("button", { name: "Save" }).click();
+  await page.waitForFunction(() => document.querySelector(".plot-card .figure-legend-text")?.textContent
+    ?.includes("independent experiments"), null, { timeout: 15000 }).catch(() => {});
+  const leg = await page.locator(".plot-card .figure-legend-text").innerText().catch(() => "");
+  expect("legend: n = 60 cells per group from 3 independent experiments",
+    leg.includes("n = 60 cells per group from 3 independent experiments"), leg);
+  expect("the graph turned into a SuperPlot", (await plot()).traces.some((t) => t.means));
+  expect("the chip now reports the experiments",
+    await page.locator(".guide-chip", { hasText: "Cells from 3 experiments" }).count() === 1);
+  await page.getByRole("button", { name: "Reporting details…" }).click();
+  const det = page.getByRole("dialog", { name: /Reporting details/ });
+  await det.waitFor({ timeout: 10000 });
+  expect("Reporting details show the replicate map's unit and experiments",
+    (await det.locator(".details-from-map").innerText()).includes("3 independent")
+    && await det.getByLabel("Independent experiments (biological replicates)").getAttribute("placeholder") === "3");
+  await det.getByRole("button", { name: "Cancel" }).click();
 }
 
 console.log(errors.length ? errors.join("\n") : "no page errors");

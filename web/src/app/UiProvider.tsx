@@ -52,6 +52,11 @@ export function UiProvider({ children }: { children: ReactNode }) {
     else setNavOpen(!navOpen);
   }, [navOpen, setNavOpen]);
 
+  // Narrow screens: whatever selects another sheet (a new table, a new
+  // analysis, Go to sheet) closes the navigator drawer, so the drawer and
+  // its scrim never cover the sheet that just opened.
+  useEffect(() => { setDrawerOpen(false); }, [selectedId]);
+
   // Recently visited sheets, most recent first (for "Go to sheet").
   const [recent, setRecent] = useState<string[]>([]);
   useEffect(() => {

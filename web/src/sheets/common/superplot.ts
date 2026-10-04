@@ -118,6 +118,18 @@ export function replicateInfo(table: DataTableModel): ReplicateInfo {
   };
 }
 
+/** Common answers to "each value is one …". */
+export const UNIT_CHOICES = ["cells", "wells", "fields", "nuclei", "technical replicates",
+  "measurements"] as const;
+
+/** Index of the first data set whose filled cells are text (labels), or -1. */
+export function labelDataset(t: DataTableModel): number {
+  return t.datasets.findIndex((d) => {
+    const cells = d.rows.map((r) => (r[0] ?? "").trim()).filter(Boolean);
+    return cells.length > 0 && cells.some((c) => !Number.isFinite(Number(c)));
+  });
+}
+
 /** Whether a table has at least two replicates to compare. */
 export function hasReplicates(table: DataTableModel): boolean {
   return table.subcolumnFormat === "replicates" && replicateInfo(table).names.length >= 2;

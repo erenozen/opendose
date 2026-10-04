@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { formatSig } from "../../types";
 import type { ResultsProps } from "../types";
-import { fmtP } from "./format";
+import { pLabel } from "./format";
 import {
   CORRECTION_LABEL, FDR_METHODS, ROW_TEST_LABEL, type ColumnStatsOptions,
   type MultiTOptions, type RowMeansOptions, type ThreeWayOptions, type TwoWayOptions,
@@ -57,7 +57,7 @@ const cmpName: Record<string, string> = {
 };
 const effect = (name: string, s: R | undefined) => (s && s.F != null
   ? `${name}: F(${formatSig(s.df ?? s.df_num, 3)}, ${formatSig(s.df_den ?? s.dfd ?? NaN, 3)
-  }) = ${formatSig(s.F)}, P ${fmtP(s.p).startsWith("<") ? fmtP(s.p) : `= ${fmtP(s.p)}`}`
+  }) = ${formatSig(s.F)}, ${pLabel(s.p)}`
   : "");
 
 export function TwoWayMethods({ result, options: o }: ResultsProps<TwoWayOptions, R>) {
@@ -83,7 +83,7 @@ export function TwoWayMethods({ result, options: o }: ResultsProps<TwoWayOptions
     const dfd = (k: string) => src[k]?.error_df
       ?? (k === "column_factor" && src.subjects ? src.subjects.df : src.residual?.df);
     const df = (k: string) => (src[k] && dfd(k) != null
-      ? `F(${src[k].df}, ${dfd(k)}) = ${formatSig(src[k].F)}, P = ${fmtP(src[k].p)}` : "");
+      ? `F(${src[k].df}, ${dfd(k)}) = ${formatSig(src[k].F)}, ${pLabel(src[k].p)}` : "");
     text = `Data were analyzed by two-way repeated-measures ANOVA (${result.design}; `
       + `${result.n_subjects} subjects) with ${fA} and ${fB} as factors`
       + `${result.gg_epsilon != null
@@ -94,7 +94,7 @@ export function TwoWayMethods({ result, options: o }: ResultsProps<TwoWayOptions
     const src = result.sources ?? {};
     const res = src.residual;
     const line = (k: string, label: string) => (src[k] && res
-      ? `${label}: F(${src[k].df}, ${res.df}) = ${formatSig(src[k].F)}, P = ${fmtP(src[k].p)}`
+      ? `${label}: F(${src[k].df}, ${res.df}) = ${formatSig(src[k].F)}, ${pLabel(src[k].p)}`
       : "");
     const keys = Object.keys(src).filter((k) => k !== "residual" && k !== "interaction");
     text = `Data were analyzed by ordinary two-way ANOVA (type III sums of squares) `
@@ -120,7 +120,7 @@ export function ThreeWayMethods({ result, options: o }: ResultsProps<ThreeWayOpt
     + `with ${f[0]}, ${f[1]} and ${f[2]} as factors (n = ${result.n}), using ${TOOL}.`;
   if (three && res) {
     text += ` Three-way interaction: F(${three[1].df}, ${res.df}) = ${formatSig(three[1].F)}, `
-      + `P = ${fmtP(three[1].p)}.`;
+      + `${pLabel(three[1].p)}.`;
   }
   const mc = result.multiple_comparisons;
   if (mc) {

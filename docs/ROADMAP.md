@@ -395,13 +395,15 @@ save/load; methods text; theme; accessibility pass.
       keyboard shortcuts list
 - [x] Preferences: default table type, error bar, CI method, scheme,
       theme, decimal places; keyboard shortcuts list
-- [x] Autosave to the browser with recovery of the last session
+- [x] Autosave to the browser with recovery of the last session (since
+      0.3.0 the last session reopens directly; the start screen shows on
+      the first visit, when nothing was saved, or every time if ticked)
 - [x] "How to cite" text and version stamp in the exported methods
       (2026-10-03: info popover and methods text; version and build
       from the build, SciPy/NumPy/Python/Pyodide versions from the
       running engine; plain and BibTeX citations; a generic methods
       sentence for analyses without their own; version 0.2.0 from
-      2026-10-04)
+      2026-10-04, 0.3.0 after that day's integration pass)
 
 ### Order of work
 1. Engine first, in parallel: multiple-variables analyses, parts of whole,
@@ -422,26 +424,33 @@ save/load; methods text; theme; accessibility pass.
    new analysis.
 
 ### Open items (2026-10-04)
-What the integration pass of 2026-10-04 leaves open, from the list above
-and the notes the feature work left in the code and READMEs:
-- Forest plots as a graph type of the data (estimate and CI per row).
+What the integration and polish pass of 2026-10-04 (0.3.0) leaves open,
+from the list above and the notes the feature work left in the code and
+READMEs:
+- Forest plots as a graph type of the data (estimate and CI per row);
+  only the regression, logistic and Cox results draw forest plots.
 - Scale bars instead of axes.
 - Align / distribute tools for annotations.
-- Date axes: tables keep dates as day numbers (since the earliest date),
-  so Format axes' "Date" numbering has no calendar dates to show; the XY
-  graph labels its own date ticks.
+- Dates are stored as the typed text and reach analyses and graphs as day
+  numbers since the earliest date, so Format axes has no calendar "Date"
+  numbering (the XY graph labels its own date ticks).
 - Kruskal-Wallis exact P for small samples without ties (the chi-square
-  approximation is used now).
+  approximation is used now; engine).
 - Calculated variables (in-table formulas) on multiple-variables tables.
 - Excluding points from one analysis without excluding them from the table.
-- Data-table limits documented.
+- Data-table limits documented (rows, data sets, subcolumns).
 - Grouped graphs: brackets between the two panels of the three-way graph,
   compact letters, and Format graph colours on separated bars (those are
   coloured by group).
+- Heat maps: only the grouped heat map clusters (with dendrograms); the
+  multiple-variables correlation-matrix heat map keeps the variable order.
 - Contingency tables have no graphs of their own (only the Monte Carlo
   histogram).
+- Simulations and Monte Carlo draw from the built-in equation library;
+  user-defined equations cannot be simulated yet.
 - Text import: by-rows / by-columns reflow, filter criteria on a column,
-  Info & Notes import. Info-sheet constants as analysis inputs.
+  Info & Notes import. Info-sheet constants as analysis inputs beyond user
+  formulas.
 - Graph-format limits (`web/src/graph/README.md`): axes crossing at a
   value, separate legends, crossing ticks, X error subcolumns in the
   table model, a discontinuous right Y axis.
@@ -512,9 +521,14 @@ Technical vs biological replicates, pooling experiments, n = cells
       image → animal/replicate by mean or median) that keeps the
       cell-level points for display (the import recipes' Aggregate step;
       the lower level is kept as a nested table)
-- [ ] Biological vs technical replicate prompt when a table looks like
+- [x] Biological vs technical replicate prompt when a table looks like
       pooled cells; n with its unit on the graph and in the legend
-      (n with its unit is in the legend sentence; the prompt is open)
+      (2026-10-04: the "n might be cells" chip offers "Assign
+      replicates…", the SuperPlot replicate fields in a dialog that can
+      add an Experiment label data set; the legend, the statistical-
+      analysis paragraph, the checklists and Reporting details take the
+      unit and the experiments from the replicate map: "n = 18 cells from
+      3 independent experiments")
 
 ### Theme 3. Assay modules that start from the instrument export
 IC50 from plate readers, ELISA standard curves with QC, qPCR ΔΔCt,
@@ -568,8 +582,10 @@ unit, methods paragraphs; Prism 11 sells effect sizes as a Pro feature
       methods text, README). Not yet: replaying a provenance file onto
       new data, PDF figures in the bundle
 - [x] Equivalent R and Python snippets per analysis for cross-checking
-- [ ] Graph brackets follow the P-value style preset (needs the
-      figure-conventions package to read `currentReportPrefs()`)
+- [x] Graph brackets follow the P-value style preset (2026-10-04: the
+      project preference is the single source; a graph's style and "hide
+      ns" are overrides; one legend card per place, opening with the
+      figure package's legend-sentence clause)
 
 ### Theme 5. Sharing, interoperability, trust
 Licence expiry locking people out of their own files, version lock-in,
@@ -610,16 +626,15 @@ exact P on brackets, consistent styles, Prism-recognisable look
 - [x] Volcano plot from an imported fold-change / P table (thresholds,
       colours, top-N labels)
 - [x] Clustered heat map with dendrogram (linkage, distance, row
-      z-score), k-means (the clustered heat map assay; the grouped and
-      multiple-variables heat maps also cluster rows / columns through the
-      engine's `cluster_heatmap` with the same average-linkage, Euclidean
-      defaults)
-- [ ] P-value style presets for brackets, tables and sentences (APA
+      z-score), k-means (the clustered heat map assay; the grouped heat
+      map also clusters rows / columns through the engine's
+      `cluster_heatmap` with the same average-linkage, Euclidean defaults
+      and draws the dendrograms with the assay's drawing)
+- [x] P-value style presets for brackets, tables and sentences (APA
       ".012 / <.001", NEJM "P<0.001", GraphPad "0.0123 / <0.0001" with
       ****), "hide ns", and the star-threshold scale written into the
-      legend (done for brackets, results blocks and the legend sentence
-      via `GraphFormat.pStyle`; results tables and methods sentences
-      still use the house style)
+      legend (2026-10-04: every results sheet, methods sentence and
+      guidance chip formats P through `report/pformat.ts`)
 - [x] Prism-style symmetric point placement (points at the same value
       spread symmetrically about the centre) as the default scatter
       layout, alongside jitter and beeswarm (default for new graphs)
@@ -640,8 +655,8 @@ forums #18, #25).
       repeated measures per subject
 - [x] Quantal dose-response: probit and logit with n per dose, LD50 /
       ECx with Fieller CIs
-- [ ] Growth: Zwietering lag-phase parameterisations of logistic and
-      Gompertz; doubling time with CI
+- [x] Growth: Zwietering lag-phase parameterisations of logistic and
+      Gompertz; doubling time with CI (the growth-curve assay module)
 
 ### Order of work
 1. Engine, in parallel: effect sizes, estimation statistics and power;
@@ -653,6 +668,35 @@ forums #18, #25).
    and SuperPlots (Themes 2, 6).
 3. App, as engines land: reporting (Theme 4); assay modules (Theme 3);
    clinical statistics and power (Theme 7).
+
+### Open items (2026-10-04, user research)
+What the themes above still leave undone after the integration pass,
+from the theme lists and the package notes in the code:
+- Theme 1: a one-click stacked / side-by-side converter from the New
+  table dialog (it points to Import › Unstack indexed data); Šídák
+  correction restricted to planned pairs and Dunn's test against a
+  control only; pairwise comparisons after repeated-measures one-way
+  ANOVA.
+- Theme 2: replicate assignment exists for column and grouped tables
+  only; the "n might be cells" chip also fires on XY tables, where it
+  advises without the one-click fix, and does not look at grouped cells.
+  The "values in all" count behind a replicate-means legend is computed
+  for column tables only.
+- Theme 3: one plate map serves every plate of a plate-reader table (no
+  per-plate maps); 384-well plates have no end-to-end check; flow
+  cytometry has the FlowJo import recipe but no summary-statistics module
+  of its own.
+- Theme 4: replaying a provenance file onto new data; PDF figures in the
+  export bundle; ω² (partial) for repeated-measures and mixed designs
+  (η² and generalized η² are reported there; engine); the DABEST
+  delta-delta and mini-meta estimation plots.
+- Theme 5: the validation page lists pinned checks, but the Bland-Altman
+  Zou (2013) MOVER intervals for replicated data are checked by simulated
+  coverage only, not pinned to published numbers (engine tests).
+- Theme 6: separated grouped bars take colours by group rather than from
+  Format graph; brackets between the panels of the three-way graph.
+- Theme 7: Monte Carlo power for user-defined models and designs the
+  closed-form power tool does not cover.
 
 ## Next up
 

@@ -52,12 +52,17 @@ export function pNumber(p: number, style: PStyle, mode: "text" | "table" = "text
   if (style === "apa") {
     if (p < 0.001) return "< .001";
     if (p > 0.999) return "> .999";
-    return p.toFixed(3).replace(/^0/, "");
+    // 0.0496 would round to .050 although it is significant: one digit more.
+    const t = p.toFixed(3);
+    return (t === "0.050" && p < 0.05 ? p.toFixed(4) : t).replace(/^0/, "");
   }
   if (style === "nejm") {
     if (p < 0.001) return "<0.001";
     if (p > 0.99) return ">0.99";
-    return p < 0.01 ? p.toFixed(3) : p.toFixed(2);
+    if (p < 0.01) return p.toFixed(3);
+    const t = p.toFixed(2);
+    if (t === "0.05" && p < 0.05) return p.toFixed(3) === "0.050" ? p.toFixed(4) : p.toFixed(3);
+    return t;
   }
   if (p < 0.0001) return "< 0.0001";
   if (mode === "table") return formatSig(p, 4);
@@ -67,9 +72,9 @@ export function pNumber(p: number, style: PStyle, mode: "text" | "table" = "text
 
 /** "P = 0.0321" / "p = .032" / "P=0.03", or the floor ("P < 0.0001"). */
 export function formatPValue(p: unknown, style: PStyle = current.pStyle,
-  label = "P"): string {
+  label = "P", mode: "text" | "table" = "text"): string {
   if (!isNum(p)) return `${style === "apa" ? "p" : label} = n/a`;
-  const n = pNumber(p, style, "text");
+  const n = pNumber(p, style, mode);
   const name = style === "apa" ? label.replace(/\bP\b/, "p") : label;
   if (style === "nejm") return n.startsWith("<") || n.startsWith(">") ? `${name}${n}` : `${name}=${n}`;
   return n.startsWith("<") || n.startsWith(">") ? `${name} ${n}` : `${name} = ${n}`;
@@ -110,6 +115,22 @@ export function currentReportPrefs(): ReportPrefs { return current; }
 /** P in a results-table cell, in the project's style ("n/a" if missing). */
 export function tableP(p: unknown): string {
   return isNum(p) ? pNumber(p, current.pStyle, "table") : "n/a";
+}
+
+/** "P = 0.01234" / "p = .012" / "P=0.01" / "P < 0.0001": a labelled P in
+ *  a results sheet, in the project's style (results precision above the
+ *  floor in the GraphPad style, as tableP). */
+export function pLabel(p: unknown, label = "P"): string {
+  return formatPValue(p, current.pStyle, label, "table");
+}
+
+/** "= 0.0123" / "= .012" / "< 0.0001": P after a written "P", in the
+ *  project's style, for sentences that say "P {pEquals(p)}". */
+export function pEquals(p: unknown, style: PStyle = current.pStyle): string {
+  if (!isNum(p)) return "= n/a";
+  const n = pNumber(p, style, "text");
+  if (n.startsWith("<") || n.startsWith(">")) return `${n[0]} ${n.slice(1).trim()}`;
+  return `= ${n}`;
 }
 
 /** Significance summary in a results-table cell, in the project's style. */

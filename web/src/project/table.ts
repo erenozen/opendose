@@ -229,6 +229,9 @@ export function normalizeTable(raw: unknown, fallbackType: TableType = "xy"):
       table.replicates.column = rep.column as number;
     }
     if (Array.isArray(rep.names)) table.replicates.names = rep.names.map(str).slice(0, 1000);
+    if (typeof rep.unit === "string" && rep.unit.trim()) {
+      table.replicates.unit = rep.unit.trim().slice(0, 60);
+    }
   }
   return table;
 }

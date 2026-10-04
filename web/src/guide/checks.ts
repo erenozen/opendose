@@ -4,6 +4,8 @@
 // already on screen plus cheap client-side summaries; advice, never a
 // gate. Pure; unit-tested.
 import type { DataTableModel, TableType } from "../project/types.ts";
+import { formatPValue } from "../report/pformat.ts";
+import { replicateFacts } from "../report/replicates.ts";
 import type { GroupCheck } from "./recommend.ts";
 import { cellChecks, looksLikeCells, missingInRows, normalisedControl } from "./stats.ts";
 
@@ -16,6 +18,8 @@ export interface Chip {
   /** One or two sentences of advice, shown when the chip is expanded. */
   detail: string;
   explainer?: string;
+  /** A one-click fix offered under the detail. */
+  action?: "assign-replicates";
 }
 
 export interface ResultContext {
@@ -33,7 +37,7 @@ type R = Record<string, any>;
 
 const fmt = (v: number, d = 2) => (Math.abs(v) >= 0.001 || v === 0
   ? String(Number(v.toPrecision(d + 1))) : v.toExponential(1));
-const pText = (p: number) => (p < 0.0001 ? "P < 0.0001" : `P = ${fmt(p, 2)}`);
+const pText = (p: number) => formatPValue(p);
 
 /** Which analysis the sheet runs, as one key: "ttest:welch", "anova", ... */
 export function analysisKind(ctx: ResultContext): string {
@@ -251,12 +255,28 @@ function outlierChip(ctx: ResultContext, kind: string): Chip | null {
 function cellsChip(ctx: ResultContext, groups: GroupCheck[]): Chip | null {
   if (!(ctx.tableType === "column" || ctx.tableType === "xy") || !looksLikeCells(groups)) return null;
   const max = Math.max(...groups.map((g) => g.n));
+  // Replicates already assigned (SuperPlot / "Assign replicates…"): the
+  // legend states n with its unit and the experiments; say what is left.
+  const rep = replicateFacts(ctx.table, ctx.result);
+  if (rep) {
+    return { id: "cells", label: `${rep.unit === "values" ? "Values" : cap(rep.unit)} from ${rep.experiments} experiments`,
+      state: rep.onMeans ? "ok" : "info",
+      detail: rep.onMeans
+        ? `The test ran on one value per experiment (n = ${rep.experiments}).`
+        : `The legend reports n with its unit and the ${rep.experiments} independent experiments. `
+          + "This test still counts every value as independent: for a P value on the experiments, "
+          + "use Statistics on replicate means (graph settings → SuperPlot).",
+      explainer: "replicates" };
+  }
   return { id: "cells", label: "n might be cells, not replicates", state: "warn",
     detail: `Up to ${max} values in ${groups.length} group${groups.length === 1 ? "" : "s"}: if `
       + "these are cells or wells from a few animals or experiments, they are not independent "
       + "and the P value will be far too small. Average per biological replicate (or use a "
-      + "Nested table) so n is the number of animals or experiments.", explainer: "replicates" };
+      + "Nested table) so n is the number of animals or experiments.", explainer: "replicates",
+    ...(ctx.tableType === "column" ? { action: "assign-replicates" as const } : {}) };
 }
+
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 function fitChips(r: R): Chip[] {
   const sets = ((r.datasets ?? []) as R[]);

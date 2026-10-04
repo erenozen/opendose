@@ -17,7 +17,7 @@ import { CHROME_DARK, CHROME_LIGHT, seriesStyle, type Chrome } from "../../lib/p
 import { formatSig } from "../../types";
 import type { GraphOptionsProps, PlotProps } from "../types";
 import { buildGrouped, clusterByFor } from "./buildGrouped";
-import GraphCaption from "../../graph/GraphCaption";
+
 import { legendSentence } from "../../graph/legend";
 import { POINT_SPREADS } from "../../graph/swarm";
 import { areaScale, estimateArea, usePlotArea } from "../../graph/usePlotArea";
@@ -103,7 +103,9 @@ export function GroupedPlot({ graph, table, options, result, titles, scheme, for
       margin: { ...(built0.layout.margin ?? {}), t: 36 } } as Partial<Plotly.Layout>;
     return { ...built0, traces, layout };
   }, [built0, superOn, table, base.superplot, base.spread, scale, scheme, dark, kind]);
-  const sentence = useMemo(() => (settings.caption === "off" ? ""
+  // "Under the graph" is the graph card's figure-legend card
+  // (report/GraphLegend.tsx); only "In the figure" draws the sentence here.
+  const sentence = useMemo(() => (settings.caption !== "figure" ? ""
     : legendSentence(graph, table, result)), [settings.caption, graph, table, result]);
   const cmp = useMemo(() => groupedComparisons(result, table), [result, table]);
   const names = useMemo(() => groupedFormatDatasets(table, graph, options),
@@ -151,7 +153,6 @@ export function GroupedPlot({ graph, table, options, result, titles, scheme, for
       <FormattedPlot traces={built.traces} layout={built.layout} format={format}
         onFormatChange={onFormatChange} ctx={ctx} filename="grouped-graph"
         onDrawn={wantScale ? measure : undefined} />
-      {settings.caption === "below" && sentence && <GraphCaption text={sentence} />}
     </>
   );
 }
@@ -312,6 +313,10 @@ export function HeatOptions({ graph }: GraphOptionsProps) {
         disabled={!canCluster} onChange={(clusterRows) => up({ clusterRows })} />
       <OptCheck label="Cluster columns" checked={h.clusterCols && !!canCluster}
         disabled={!canCluster} onChange={(clusterCols) => up({ clusterCols })} />
+      {canCluster && (h.clusterRows || h.clusterCols) && (
+        <OptCheck label="Dendrograms" checked={h.dendrograms}
+          onChange={(dendrograms) => up({ dendrograms })} />
+      )}
       {canCluster === false && (
         <OptNote>This engine build has no clustering handler, so rows and columns keep
           the table&apos;s order.</OptNote>
@@ -340,7 +345,7 @@ export function HeatOptions({ graph }: GraphOptionsProps) {
         onChange={(transpose) => up({ transpose })} />
       <OptCheck label="Column labels on top" checked={h.xTop}
         onChange={(xTop) => up({ xTop })} />
-      <OptNote>For dendrograms, other linkages and distances, or k-means, add Analyze →
+      <OptNote>For other linkages and distances, cluster strips or k-means, add Analyze →
         Assay: Clustered heat map.</OptNote>
     </>
   );

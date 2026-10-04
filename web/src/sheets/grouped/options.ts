@@ -409,13 +409,15 @@ export interface HeatSettings {
    *  `cluster_heatmap`, see buildHeat.ts; off until the engine has it). */
   clusterRows: boolean;
   clusterCols: boolean;
+  /** Draw the clustered axes' dendrograms beside the map. */
+  dendrograms: boolean;
 }
 
 export const DEFAULT_HEAT: HeatSettings = {
   value: "mean", palette: "sequential", reverse: false, min: "", max: "",
   center: "", labels: true, digits: 3, gap: 2, legend: true, legendTitle: "",
   missing: "#d1d1d6", crossMissing: true, transpose: false, xTop: false,
-  zscore: "none", clusterRows: false, clusterCols: false,
+  zscore: "none", clusterRows: false, clusterCols: false, dendrograms: true,
 };
 
 export function normalizeHeat(raw: unknown): HeatSettings {
@@ -441,5 +443,6 @@ export function normalizeHeat(raw: unknown): HeatSettings {
     zscore: pick(o.zscore, ["none", "rows", "columns"] as const, d.zscore),
     clusterRows: bool(o.clusterRows, d.clusterRows),
     clusterCols: bool(o.clusterCols, d.clusterCols),
+    dendrograms: bool(o.dendrograms, d.dendrograms),
   };
 }

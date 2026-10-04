@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import ColumnControls from "../../components/ColumnControls";
 import { extractComparisons, resultBlocks } from "../../graph";
+import { graphPStyle } from "../../graph/significance";
 import ColumnPlot from "../../components/ColumnPlot";
 import StatsResults from "../../components/StatsResults";
 import type { ColumnGraphType, ColumnOptionsState } from "../../types";
@@ -9,7 +10,7 @@ import SummaryPlot from "./SummaryPlot";
 import SuperPlotView from "./SuperPlotView";
 import { normalizeColumnGraph } from "./graphSettings";
 import { legendSentence } from "../../graph/legend";
-import GraphCaption from "../../graph/GraphCaption";
+
 import { superPlotOn } from "../common/superplot";
 
 export function ColumnAnalysisControls({ table, options, onChange }:
@@ -34,10 +35,14 @@ export function ColumnGraph({ graph, table, titles, scheme, result, format,
   // the pairwise brackets and the compact letter display.
   const comparisons = useMemo(() => extractComparisons(result,
     table.datasets.map((d) => d.name))?.comparisons, [result, table.datasets]);
-  const results = useMemo(() => resultBlocks(result, format?.pStyle), [result, format?.pStyle]);
-  const sentence = useMemo(() => (cs.caption === "off" ? ""
-    : legendSentence(graph, table, result)), [cs.caption, graph, table, result]);
-  const inFigure = cs.caption === "figure" ? sentence : undefined;
+  const pStyle = graphPStyle(format);
+  const results = useMemo(() => resultBlocks(result, pStyle), [result, pStyle]);
+  // "Under the graph" is the figure-legend card of the graph card
+  // (report/GraphLegend.tsx, open in that mode); "In the figure" draws the
+  // short legend sentence into the figure itself.
+  const inFigure = useMemo(() => (cs.caption === "figure"
+    ? legendSentence(graph, table, result) || undefined : undefined),
+  [cs.caption, graph, table, result]);
   const superOn = table.subcolumnFormat === "replicates" && superPlotOn(cs.superplot, result);
   let plot;
   if (superOn) {
@@ -61,10 +66,5 @@ export function ColumnGraph({ graph, table, titles, scheme, result, format,
         summary={cs.summary} spread={cs.spread} points={cs.points} caption={inFigure} />
     );
   }
-  return (
-    <>
-      {plot}
-      {cs.caption === "below" && sentence && <GraphCaption text={sentence} />}
-    </>
-  );
+  return plot;
 }

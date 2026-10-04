@@ -3,6 +3,7 @@
 import "../common/sheetKit.css";
 import CopyableMethods from "../common/CopyableMethods";
 import { fmtP, formatSig, levelPct, stars } from "../common/statFormat";
+import { pEquals } from "../../report/pformat";
 import type { ControlsProps, ResultsProps } from "../types";
 import {
   CI_METHOD_LABELS, DIVIDE_BY_LABELS, EXPECTED_AS_LABELS, columnValues,
@@ -404,6 +405,5 @@ export function GofMethods({ options: o, result }:
   return <CopyableMethods text={text} />;
 }
 
-function pText(p: number): string {
-  return p < 0.0001 ? "< 0.0001" : `= ${formatSig(p, 3)}`;
-}
+/** "= 0.0123" / "< 0.0001" after a written "P" (project's P style). */
+const pText = (p: number) => pEquals(p);

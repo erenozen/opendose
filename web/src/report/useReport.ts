@@ -23,7 +23,8 @@ export const REPORT_EVENT = "opendose-report";
 export type ReportRequest =
   | { kind: "checklist"; dataId?: string }
   | { kind: "history"; dataId?: string }
-  | { kind: "details"; dataId: string };
+  | { kind: "details"; dataId: string }
+  | { kind: "replicates"; dataId: string };
 
 export function requestReport(req: ReportRequest): void {
   window.dispatchEvent(new CustomEvent<ReportRequest>(REPORT_EVENT, { detail: req }));
@@ -32,3 +33,5 @@ export function requestReport(req: ReportRequest): void {
 export const openChecklist = (dataId?: string) => requestReport({ kind: "checklist", dataId });
 export const openHistory = (dataId?: string) => requestReport({ kind: "history", dataId });
 export const openReportingDetails = (dataId: string) => requestReport({ kind: "details", dataId });
+/** Opens the replicate assignment (sheets/common/ReplicateAssign.tsx). */
+export const openAssignReplicates = (dataId: string) => requestReport({ kind: "replicates", dataId });

@@ -10,7 +10,7 @@ import {
   Card, Check, Field, Grid, KV, Note, Problem, Section, Select, SOFTWARE, TextNum,
 } from "../common/clinicalKit";
 import CopyableMethods from "../common/CopyableMethods";
-import { fmtP, levelPct } from "../common/statFormat";
+import { fmtP, levelPct, pLabel } from "../common/statFormat";
 import { baseLayout, chromeFor, useDark } from "../multivariable/chart";
 import { PlotMessage, PlotlyChart } from "../multivariable/plotkit";
 import type { ControlsProps, PlotProps, ResultsProps } from "../types";
@@ -116,8 +116,8 @@ function FitCard({ fit, level }: { fit: QuantalFit; level: number }) {
           f(v.value), f(v.se), v.ci ? `${f(v.ci[0])} to ${f(v.ci[1])}` : ""])} />
       <div className="stat-cols">
         <KV title="Goodness of fit" rows={[
-          ["Pearson χ²", `${f(gof.pearson_chi2)} (df ${gof.df}), P = ${fmtP(gof.p_pearson)}`],
-          ["Deviance", `${f(gof.deviance)}${gof.p_deviance != null ? `, P = ${fmtP(gof.p_deviance)}` : ""}`],
+          ["Pearson χ²", `${f(gof.pearson_chi2)} (df ${gof.df}), ${pLabel(gof.p_pearson)}`],
+          ["Deviance", `${f(gof.deviance)}${gof.p_deviance != null ? `, ${pLabel(gof.p_deviance)}` : ""}`],
           ["Heterogeneity factor", het.applied ? `${f(het.factor)} (applied: SEs and CIs inflated, ${het.distribution === "t" ? "t" : "normal"} quantile ${f(het.critical_value)})` : "1 (not applied)"],
         ]} />
         {fit.slope_test && (
@@ -144,8 +144,8 @@ export function QuantalResults({ result }: ResultsProps<QuantalOptions, QuantalR
           <KV className="kv-wide" rows={[
             ["Common slope", `${f(r.slope.value)} (SE ${f(r.slope.se)}; ${levelPct(level)} CI ${f(r.slope.ci[0])} to ${f(r.slope.ci[1])})`],
             ["Separate slopes", r.separate_slopes.map((s) => f(s)).join(", ")],
-            ["Parallelism (likelihood ratio)", `χ² = ${f(r.parallelism.chi2)}, df = ${r.parallelism.df}, P = ${fmtP(r.parallelism.p)}`],
-            ["Goodness of fit", `Pearson χ² = ${f(r.goodness_of_fit.pearson_chi2)}, df = ${r.goodness_of_fit.df}, P = ${fmtP(r.goodness_of_fit.p_pearson)}`],
+            ["Parallelism (likelihood ratio)", `χ² = ${f(r.parallelism.chi2)}, df = ${r.parallelism.df}, ${pLabel(r.parallelism.p)}`],
+            ["Goodness of fit", `Pearson χ² = ${f(r.goodness_of_fit.pearson_chi2)}, df = ${r.goodness_of_fit.df}, ${pLabel(r.goodness_of_fit.p_pearson)}`],
             ["Heterogeneity factor", r.heterogeneity.applied ? `${f(r.heterogeneity.factor)} (applied)` : "1 (not applied)"],
           ]} />
           <p className={`clin-reading ${r.parallelism.p < 0.05 ? "clin-bad" : ""}`}>
@@ -207,7 +207,7 @@ export function QuantalMethods({ result }: ResultsProps<QuantalOptions, QuantalR
   if (result.parallel) {
     const r = result.parallel;
     text += ` The data sets were fitted with a common slope (parallel-line assay; parallelism likelihood-ratio χ² = `
-      + `${f(r.parallelism.chi2)}, df = ${r.parallelism.df}, P = ${fmtP(r.parallelism.p)}); relative potencies are given with `
+      + `${f(r.parallelism.chi2)}, df = ${r.parallelism.df}, ${pLabel(r.parallelism.p)}); relative potencies are given with `
       + `Fieller confidence limits. ` + r.groups.map((g) => {
       const e = g.ec.find((x) => x.level === 50) ?? g.ec[0];
       return `${g.name}: ${ecName(e.level)} ${f(e.dose)} (${level} CI ${ciTxt(e.dose_ci_fieller)})`;
@@ -216,7 +216,7 @@ export function QuantalMethods({ result }: ResultsProps<QuantalOptions, QuantalR
     text += " " + result.fits.filter((x) => !x.error).map((fit) => {
       const e = fit.ec.find((x) => x.level === 50) ?? fit.ec[0];
       return `${fit.name}: slope ${f(fit.parameters.slope?.value)}, ${ecName(e.level)} ${f(e.dose)} (${level} CI ${ciTxt(e.dose_ci_fieller)}); `
-        + `Pearson χ² = ${f(fit.goodness_of_fit.pearson_chi2)}, df = ${fit.goodness_of_fit.df}, P = ${fmtP(fit.goodness_of_fit.p_pearson)}`;
+        + `Pearson χ² = ${f(fit.goodness_of_fit.pearson_chi2)}, df = ${fit.goodness_of_fit.df}, ${pLabel(fit.goodness_of_fit.p_pearson)}`;
     }).join(". ") + ".";
   }
   return <CopyableMethods text={text} />;

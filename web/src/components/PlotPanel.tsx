@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import Plotly from "plotly.js-dist-min";
+import { graphPStyle } from "../graph/significance";
 import type { AnalysisResult } from "../types";
 import { niceTicks } from "../project/xformat";
 import {
@@ -187,7 +188,7 @@ export default function PlotPanel({
 
     const out = applyFormat(traces as never, layout, format, {
       dark, scheme, datasets: result.datasets.map((d) => d.name), rowTitles,
-      results: resultBlocks(result, format.pStyle), editRevision: rev,
+      results: resultBlocks(result, graphPStyle(format)), editRevision: rev,
     });
     const div = el.current;
     Plotly.react(div, out.traces as Plotly.Data[], out.layout, plotConfig({

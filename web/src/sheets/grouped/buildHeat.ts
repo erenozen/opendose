@@ -9,6 +9,7 @@ import { datasetLabels, rowLabels } from "./buildGrouped";
 import { DEFAULT_HEAT, HEAT_VALUE_LABEL, type HeatSettings } from "./options";
 import { baseLayout } from "./plotting";
 import { colorAt, heatStops, inkOn, zscoreMatrix, type CellStat } from "./stats";
+import { addDendrogram, type Dendrogram } from "../common/dendrogram";
 
 export function heatValue(c: CellStat | null, v: HeatSettings["value"]): number | null {
   if (!c) return null;
@@ -51,7 +52,8 @@ export function heatMatrix(table: DataTableModel, cells: (CellStat | null)[][], 
 
 export function buildHeat(table: DataTableModel, cells: (CellStat | null)[][],
   h: HeatSettings, scheme: SchemeId, chrome: Chrome, dark: boolean,
-  yTitle: string, order?: { rows: number[]; cols: number[] } | null):
+  yTitle: string, order?: { rows: number[]; cols: number[]; rowTree?: Dendrogram | null;
+    colTree?: Dendrogram | null } | null):
   { traces: Plotly.Data[]; layout: Partial<Plotly.Layout> } {
   let { z, yLabels, xLabels } = heatMatrix(table, cells, h);
   if (order && order.rows.length === yLabels.length && order.cols.length === xLabels.length) {
@@ -122,17 +124,32 @@ export function buildHeat(table: DataTableModel, cells: (CellStat | null)[][],
     showgrid: false, zeroline: false, showline: false, ticks: "",
     tickfont: { color: chrome.ink }, automargin: true,
   });
-  return {
-    traces,
-    layout: {
-      ...baseLayout(chrome),
-      xaxis: { ...axis(xLabels), side: h.xTop ? "top" : "bottom",
-        range: [-0.5, xLabels.length - 0.5] },
-      yaxis: { ...axis(yLabels), autorange: "reversed",
-        title: yTitle ? { text: yTitle, font: { color: chrome.inkSecondary } } : undefined },
-      annotations,
-      margin: { l: 64, r: 16, t: h.xTop ? 44 : 16, b: h.xTop ? 16 : 52 },
-      dragmode: false,
-    } as Partial<Plotly.Layout>,
+  // Dendrograms of the clustered axes (the assay's drawing): the row tree
+  // on the right (labels are on the left), the column tree on the side
+  // away from the column labels.
+  const fits = !!order && order.rows.length === yLabels.length && order.cols.length === xLabels.length;
+  const rowTree = h.dendrograms && fits ? order?.rowTree ?? null : null;
+  const colTree = h.dendrograms && fits ? order?.colTree ?? null : null;
+  const xDom: [number, number] = [0, rowTree ? 0.86 : 1];
+  const yDom: [number, number] = colTree ? (h.xTop ? [0.16, 1] : [0, 0.84]) : [0, 1];
+  const layout: Record<string, unknown> = {
+    ...baseLayout(chrome),
+    xaxis: { ...axis(xLabels), side: h.xTop ? "top" : "bottom",
+      range: [-0.5, xLabels.length - 0.5], domain: xDom },
+    yaxis: { ...axis(yLabels), autorange: "reversed", domain: yDom,
+      title: yTitle ? { text: yTitle, font: { color: chrome.inkSecondary } } : undefined },
+    annotations,
+    margin: { l: 64, r: 16, t: h.xTop ? 44 : 16, b: h.xTop ? 16 : 52 },
+    dragmode: false,
   };
+  const line = { color: chrome.inkSecondary, width: 1.2 };
+  if (rowTree) {
+    addDendrogram(traces, layout, rowTree, { side: "right", axis: 3, along: yDom,
+      across: [0.88, 1], n: yLabels.length, line });
+  }
+  if (colTree) {
+    addDendrogram(traces, layout, colTree, { side: h.xTop ? "bottom" : "top", axis: 2,
+      along: xDom, across: h.xTop ? [0, 0.14] : [0.86, 1], n: xLabels.length, line });
+  }
+  return { traces, layout: layout as Partial<Plotly.Layout> };
 }

@@ -1,5 +1,5 @@
 import { formatSig } from "../../types";
-import { tableP } from "../../report/pformat";
+import { pLabel, tableP } from "../../report/pformat";
 import type { ControlsProps, ResultsProps } from "../types";
 import {
   DIFF_CI_LABELS, OR_CI_LABELS, PROP_CI_LABELS, RR_CI_LABELS, readCounts, strataOf,
@@ -22,11 +22,8 @@ function fmtCI(ci: any): string {
   return `${f(ci[0])} to ${f(ci[1])}`;
 }
 
-/** "P = 0.012" or "P < 0.0001". */
-const Pv = (p: any) => {
-  const f = fmtP(p);
-  return f.startsWith("<") ? `P ${f}` : `P = ${f}`;
-};
+/** "P = 0.012" or "P < 0.0001", in the project's style. */
+const Pv = (p: any) => pLabel(p);
 
 /** NNT CI in increasing order (the engine gives 1/upper, 1/lower). */
 const nntCI = (nnt: any) => (Array.isArray(nnt?.ci) && !nnt.ci_includes_infinity
@@ -224,7 +221,7 @@ export function ContingencyResults({ table, result }: ResultsProps<ContingencyOp
           {is2x2 && result.fisher_exact && (
             <tr>
               <th>Fisher's exact test (recommended for 2×2)</th>
-              <td>P = {fmtP(result.fisher_exact.p)}</td>
+              <td>{pLabel(result.fisher_exact.p)}</td>
             </tr>
           )}
           {result.chi_square && (
@@ -232,7 +229,7 @@ export function ContingencyResults({ table, result }: ResultsProps<ContingencyOp
               <th>Chi-square, df</th>
               <td>
                 {formatSig(result.chi_square.chi2)}, {result.chi_square.df}
-                {", "}P = {fmtP(result.chi_square.p)}
+                {", "}{pLabel(result.chi_square.p)}
               </td>
             </tr>
           )}

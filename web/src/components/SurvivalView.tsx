@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import Plotly from "plotly.js-dist-min";
+import { graphPStyle } from "../graph/significance";
 import { formatSig } from "../types";
-import { tableP } from "../report/pformat";
+import { pLabel } from "../report/pformat";
 import {
   CHROME_DARK, CHROME_LIGHT, DEFAULT_SCHEME, isDarkMode, onThemeChange,
   seriesStyle, PLOT_FONT, type SchemeId,
@@ -32,10 +33,6 @@ interface PlotProps {
   nudge?: number;
 }
 
-/** P in the project's P-value style (src/report/pformat.ts). */
-function fmtP(p: any): string {
-  return tableP(p);
-}
 
 /** Kaplan-Meier curves (the graph). */
 export function SurvivalPlot({
@@ -138,7 +135,7 @@ export function SurvivalPlot({
     const out = applyFormat(traces as never, layout, format, {
       dark, scheme, datasets: Object.keys(result.curves),
       riskSets: riskSets ?? riskSetsFromResult(result),
-      results: resultBlocks(result, format.pStyle), editRevision: rev,
+      results: resultBlocks(result, graphPStyle(format)), editRevision: rev,
     });
     const div = el.current;
     Plotly.react(div, out.traces as Plotly.Data[], out.layout, plotConfig(
@@ -188,12 +185,12 @@ export function SurvivalResults({ result }: { result: Record<string, any> | null
               <tr>
                 <th>Log-rank (Mantel-Cox)</th>
                 <td>χ² = {formatSig(result.logrank.chi2)},
-                  df {result.logrank.df}, P = {fmtP(result.logrank.p)}</td>
+                  df {result.logrank.df}, {pLabel(result.logrank.p)}</td>
               </tr>
               <tr>
                 <th>Gehan-Breslow-Wilcoxon</th>
                 <td>χ² = {formatSig(result.gehan_breslow_wilcoxon.chi2)},
-                  P = {fmtP(result.gehan_breslow_wilcoxon.p)}</td>
+                  {pLabel(result.gehan_breslow_wilcoxon.p)}</td>
               </tr>
               {result.hazard_ratio && (
                 <tr>
