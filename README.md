@@ -43,7 +43,7 @@ cd web && node scripts/e2e-check.mjs && node scripts/e2e-tiff.mjs
 cd web && node scripts/e2e-export.mjs   # page layouts, PDF/PNG/zip export
 cd web && node scripts/e2e-share.mjs    # share links, export bundle, import recipes
 cd web && node scripts/e2e-figures.mjs  # SuperPlots, legend sentence, classic theme, CVD check, volcano
-cd web && node scripts/e2e-assays.mjs   # assay modules (plate, ELISA, qPCR, blots)
+cd web && node scripts/e2e-assays.mjs   # assay wizards (plate, ELISA, qPCR, blots)
 ```
 
 The dev server needs internet access on first load (Pyodide + SciPy come
@@ -300,8 +300,8 @@ from the jsDelivr CDN, ~30 MB, then cached).
   from its sheet menu; the export bundle includes it. Prism summary
   tables import as summary tables.
 - Assay modules (New data table › Start from an assay, or Analyze on a
-  table of the right type): each is a wizard that starts from the
-  instrument export and produces linked sheets that follow the data.
+  table of the right type): each starts from the instrument or lab export
+  and produces linked sheets that follow the data. Four are wizards.
   Plate reader → dose-response: paste or import 96/384-well plates
   (several at once), a click-and-drag plate-map editor with templates
   (rows as compounds, duplicate blocks, concentrations down the rows, the
@@ -323,7 +323,22 @@ from the jsDelivr CDN, ~30 MB, then cached).
   change within blot, the ratio paired t test (or RM ANOVA on logs) with
   blot as the pair, saturation and normalised-control warnings, and a
   linked matched table. The SRB/MTT importer on XY tables stays as the
-  one-plate shortcut.
+  one-plate shortcut. The others start from their example or an empty
+  layout without a wizard (and each example is also a template under New
+  data table › From a template): growth curves on XY tables
+  (blank and log preprocessing, logistic / Gompertz / Zwietering lag
+  models, doubling time with CI; Growthcurver's example well); tumour
+  growth and other per-subject time courses from long records or
+  subjects-as-subcolumns (mixed model of log volume with per-time
+  comparisons as one family, AUC per animal as a linked column table,
+  time to an endpoint volume as a linked survival table, mean ± SEM or
+  spaghetti graphs); area under the curve for XY tables (baselines,
+  peaks, SE from replicates, comparisons, shaded graph); drug-combination
+  synergy from a dose matrix (HSA, Bliss, Loewe, ZIP landscapes and
+  scores with replicate SD, Chou–Talalay CI and DRI, Fa–CI plot); a
+  volcano plot from an imported fold-change / P table (FDR, thresholds,
+  top-N labels, linked hits table); clustered heat maps with dendrograms,
+  tree cuts, k-means and the elbow / silhouette / gap table.
 - Trust: the info popover links to "How OpenDose is validated", a page
   listing every pinned cross-check (Prism screenshots, NIST Longley,
   guide examples, Dunnett and Spearman tables, statsmodels, pingouin)

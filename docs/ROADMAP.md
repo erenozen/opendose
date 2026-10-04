@@ -534,11 +534,13 @@ Western blot densitometry, tumour growth, flow summary statistics
       axis (MIQE 2.0 wording)
 - [x] Densitometry module: background, loading-control or total-protein
       normalisation, fold change within blot, ratio paired t test
-- [ ] Tumour-growth module: long format in, mixed model on log volume,
+- [x] Tumour-growth module: long format in, mixed model on log volume,
       AUC per animal with group comparison, time-to-endpoint survival
-- [ ] Synergy: Bliss, HSA, Loewe, ZIP and Chou–Talalay from a
-      combination matrix, with landscapes
-- [ ] AUC analysis as in the statistics guide, with SE from replicates
+      (also subjects as subcolumns; mean ± SEM / spaghetti graphs)
+- [x] Synergy: Bliss, HSA, Loewe, ZIP and Chou–Talalay from a
+      combination matrix, with landscapes (and a growth-curve module:
+      blank / log preprocessing, lag models, doubling time with CI)
+- [x] AUC analysis as in the statistics guide, with SE from replicates
       and comparison between datasets
 
 ### Theme 4. Reporting that satisfies reviewers
@@ -607,10 +609,11 @@ exact P on brackets, consistent styles, Prism-recognisable look
       axes ending at the last tick, minor ticks, hidden legend title
 - [x] Volcano plot from an imported fold-change / P table (thresholds,
       colours, top-N labels)
-- [ ] Clustered heat map with dendrogram (linkage, distance), k-means
-      (row / column z-scores are in, and rows / columns cluster through
-      the engine's `cluster_heatmap` (average linkage, Euclidean); drawing
-      the dendrograms, linkage and distance choices and k-means are open)
+- [x] Clustered heat map with dendrogram (linkage, distance, row
+      z-score), k-means (the clustered heat map assay; the grouped and
+      multiple-variables heat maps also cluster rows / columns through the
+      engine's `cluster_heatmap` with the same average-linkage, Euclidean
+      defaults)
 - [ ] P-value style presets for brackets, tables and sentences (APA
       ".012 / <.001", NEJM "P<0.001", GraphPad "0.0123 / <0.0001" with
       ****), "hide ns", and the star-threshold scale written into the

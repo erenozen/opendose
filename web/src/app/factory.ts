@@ -71,7 +71,9 @@ export function addDerivedOutputs(p: Project, created: Sheet[], ids: IdFactory):
     const data = findSheet(next, s.parentId) as DataSheet | undefined;
     if (!data || data.kind !== "data") continue;
     const a = analysisDef(data.table.type, s.analysis);
-    if (!a?.derivedTable) continue;
+    // on-demand outputs (Row means, Extract & rearrange, ...) are made
+    // from the results sheet when asked for, not with the analysis
+    if (!a?.derivedTable || a.derivedOnDemand) continue;
     const out = makeDerivedSheet(ids(), uniqueName(next,
       a.derivedName?.(data.name) ?? `${a.short} of ${data.name}`),
     clearValues(data.table), { sourceId: data.id, resultsId: s.id });

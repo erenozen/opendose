@@ -60,6 +60,7 @@ export const qpcrAssay: AssayModule = {
   emptyTable: emptyQpcr,
   sampleTable: qpcrSample,
   mainAnalysis: ANALYSIS_ASSAY_QPCR,
+  wizard: true,
   analyses: [{ def: qpcrAnalysis, types: ["multivariable"] }],
   graphs: [{ def: qpcrGraph, types: ["multivariable"] }],
 };

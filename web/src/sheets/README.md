@@ -21,6 +21,8 @@ src/
     multivariable/ nested/   ready (all eight table types)
     manipulate/     cross-type: Transform, Normalize, … (derived tables),
                     user formulas, Simulate data dialog, Monte Carlo
+    assays/         cross-type assay modules (growth, tumour growth, AUC,
+                    synergy, volcano, clustering); see below
   components/       shell UI: Navigator, Header, FamilyWorkspace, dialogs,
                     plus the existing panels the sheets wrap
   guide/            guidance: "Which test?" recommender and wizard, results
@@ -216,22 +218,63 @@ registry entry.
 
 ## Assay modules (sheets/assays)
 
-An assay module is a wizard that starts from an instrument export and
-produces a small family of linked sheets (plate reader → dose-response,
-standard curve / ELISA, qPCR, Western blot densitometry). Contract in
-`assays/index.ts`: one folder per module exporting an `AssayModule`
-(input table type and layout, example, main analysis, analyses and
-graphs per table type) and one entry in `ASSAYS`. The registry appends
-module analyses (ids `assay_*`) and graphs to the listed types, so the
-Analyze menu offers them under an "Assays" divider; New data table ›
-Start from an assay creates the input table with the main analysis and
-opens its wizard (`kit/create.ts`). Outputs are ordinary derived tables:
-a module analysis is `derivedOnDemand`, each of its results sheets feeds
-one linked table chosen by `options.output`, and `kit/create.ts`
+An assay module is a workflow that starts from an instrument or lab
+export and produces a small family of linked sheets. Contract in
+`assays/index.ts`: each module exports one `AssayModule` (input table
+type and layout, example, main analysis, whether it has a setup wizard,
+analyses and graphs per table type, optional built-in templates) and has
+one entry in `ASSAYS`. The registry appends module analyses and graphs to
+the listed types after each type's own (and after the cross-type
+manipulations), so the Analyze menu offers them under an "Assays" divider
+(`isAssayAnalysis`: ids `assay_*` plus every module's analysis ids); New
+data table › Start from an assay lists every module and creates the input
+table with the main analysis, opening the wizard of the modules that have
+one (`kit/create.ts`); `app/templates.ts` adds each module's `templates`
+to the built-in templates. Outputs are ordinary derived tables: a module
+analysis is `derivedOnDemand` (`addDerivedOutputs` skips those, they are
+made from the results sheet when asked for), each of its results sheets
+feeds one linked table chosen by `options.output`, and `kit/create.ts`
 (`ensureOutputs`, `setFamilySettings`) adds a producer per extra output
 (one XY table per plate) and keeps the settings equal on all of them.
-`kit/` also has the column-role resolver for long tables, the wizard
-shell, QC chips and the log2 fold-change graph.
+`kit/` also has the column-role resolver for long tables, the empty
+layout of an example (`emptyLayout`), the wizard shell, QC chips and the
+log2 fold-change graph.
+
+Wizard modules, one folder each (ids `assay_*`):
+
+- `plate`: plate reader → dose-response (plate map, Z′, CVs, normalised
+  XY tables with the fit set up).
+- `stdcurve`: standard curve / ELISA, `qpcr`: ΔCq / ΔΔCq, `densitometry`:
+  Western blot densitometry.
+
+One-file modules (pure parts `*Model.ts`, `*Sample.ts` unit-tested in
+`assays/__tests__/`; panels load lazily):
+
+- `growth`: XY growth curves → `growth_transform`, then `dose_response`
+  with a growth model; doubling time ln 2 / K (or ln 2 / MuMax); the
+  preprocessed curves as a linked table.
+- `tumour`: long records (multiple-variables table: subject, group, time,
+  value) or subjects as subcolumns of a grouped / XY table. Three
+  analyses share one controls panel with a "which analysis?" guide: the
+  mixed model (the grouped layout fed to the grouped sheet's
+  `runTwoWay`, rendered by its `TwoWayResults`), AUC per subject (`auc`
+  long mode → linked column table with its t test / ANOVA set up), time
+  to endpoint (→ linked survival table).
+- `synergy`: a grouped table as a combination matrix (row titles = drug 1
+  concentrations, data-set titles = drug 2, subcolumns = replicate
+  matrices) or long records; landscapes, monotherapy and Fa–CI graphs.
+- `auc`: the XY area-under-the-curve analysis (example: a glucose
+  tolerance test, one subcolumn per mouse).
+- `volcano`: multiple-variables fold-change / P tables (`fdr_adjust`).
+- `cluster`: grouped (cell means) and multiple-variables matrices →
+  `cluster_heatmap`; dendrograms are Plotly line traces on extra axes
+  aligned to the heat-map cells.
+
+The grouped / multiple-variables heat map's "Cluster rows / columns"
+toggles (`grouped/heatCluster.ts`) call the same engine handler with the
+cluster assay's default linkage and distance (`DEFAULT_CLUSTER`: average,
+Euclidean) on the matrix the map colours; the assay adds dendrograms,
+other linkages and distances, tree cuts and k-means.
 
 ## Notes on specific analyses
 

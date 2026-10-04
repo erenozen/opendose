@@ -61,6 +61,7 @@ export const densitometryAssay: AssayModule = {
   emptyTable: emptyDensitometry,
   sampleTable: densitometrySample,
   mainAnalysis: ANALYSIS_ASSAY_DENSITOMETRY,
+  wizard: true,
   analyses: [{ def: densitometryAnalysis, types: ["multivariable"] }],
   graphs: [{ def: densitometryGraph, types: ["multivariable"] }],
 };

@@ -8,17 +8,28 @@
 // Engine contract:
 //   payload  { analysis: "cluster_heatmap",
 //              data: { values: number[][], row_names, column_names },
-//              options: { method: "average", metric: "euclidean", scale: "none",
+//              options: { method, metric, scale: "none",
 //                         cluster_rows: bool, cluster_columns: bool } }
+//   method / metric: the Clustered heat map assay's defaults (average
+//   linkage, Euclidean; sheets/assays/clusterModel.ts DEFAULT_CLUSTER), so
+//   the toggles and the assay order a matrix the same way.
 //   answer   { row_order: number[], column_order: number[], rows?, columns?
 //              (linkage, leaf order and dendrogram; not drawn yet), ... }
 // The matrix is the one the map colours (already z-scored when chosen);
 // blank cells are filled with their column's mean for the ordering only.
 import { getEngine } from "../../lib/engine";
+import { DEFAULT_CLUSTER, LINKAGE_LABEL, METRIC_LABEL } from "../assays/clusterModel";
 
 export const CLUSTER_HANDLER = "cluster_heatmap";
 
 export interface ClusterOrder { rows: number[]; cols: number[] }
+
+/** Linkage and distance of the toggles (the assay's defaults), and how
+ *  the toggle label names them: "average linkage, Euclidean". */
+export const HEAT_CLUSTER_METHOD = DEFAULT_CLUSTER.method;
+export const HEAT_CLUSTER_METRIC = DEFAULT_CLUSTER.metric;
+export const HEAT_CLUSTER_SETTINGS = `${LINKAGE_LABEL[HEAT_CLUSTER_METHOD].split(" (")[0].toLowerCase()} `
+  + `linkage, ${METRIC_LABEL[HEAT_CLUSTER_METRIC].split(" (")[0]}`;
 
 /** Blank cells filled with their column's mean (0 when the column is
  *  empty): hierarchical clustering needs a complete matrix. */
@@ -38,7 +49,7 @@ export function clusterPayload(z: (number | null)[][], rowNames: string[], colNa
   return {
     analysis: CLUSTER_HANDLER,
     data: { values: filledMatrix(z), row_names: rowNames, column_names: colNames },
-    options: { method: "average", metric: "euclidean", scale: "none",
+    options: { method: HEAT_CLUSTER_METHOD, metric: HEAT_CLUSTER_METRIC, scale: "none",
       cluster_rows: which.rows, cluster_columns: which.cols },
   };
 }

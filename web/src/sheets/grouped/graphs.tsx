@@ -32,7 +32,7 @@ import SuperPlotOptions from "../common/SuperPlotOptions";
 import { A_REPLICATE_MEANS } from "./options";
 import { groupedFormatDatasets, isThreeWayOptions, rowsFromX } from "./graphData";
 import { buildHeat, heatMatrix } from "./buildHeat";
-import { clusterAvailable, clusterOrder, type ClusterOrder } from "./heatCluster";
+import { HEAT_CLUSTER_SETTINGS, clusterAvailable, clusterOrder, type ClusterOrder } from "./heatCluster";
 import {
   groupedComparisons, groupedDatasetLabels, groupedRowLabels, threeWayCells,
 } from "./comparisons";
@@ -308,7 +308,7 @@ export function HeatOptions({ graph }: GraphOptionsProps) {
         options={[["none", "No"], ["rows", "Each row"], ["columns", "Each column"]]}
         onChange={(zscore) => up({ zscore, ...(zscore !== "none" && h.palette !== "diverging"
           ? { palette: "diverging" as const } : {}) })} />
-      <OptCheck label="Cluster rows (average linkage, Euclidean)" checked={h.clusterRows && !!canCluster}
+      <OptCheck label={`Cluster rows (${HEAT_CLUSTER_SETTINGS})`} checked={h.clusterRows && !!canCluster}
         disabled={!canCluster} onChange={(clusterRows) => up({ clusterRows })} />
       <OptCheck label="Cluster columns" checked={h.clusterCols && !!canCluster}
         disabled={!canCluster} onChange={(clusterCols) => up({ clusterCols })} />
@@ -340,6 +340,8 @@ export function HeatOptions({ graph }: GraphOptionsProps) {
         onChange={(transpose) => up({ transpose })} />
       <OptCheck label="Column labels on top" checked={h.xTop}
         onChange={(xTop) => up({ xTop })} />
+      <OptNote>For dendrograms, other linkages and distances, or k-means, add Analyze →
+        Assay: Clustered heat map.</OptNote>
     </>
   );
 }
