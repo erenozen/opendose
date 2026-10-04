@@ -17,7 +17,9 @@
 // sheet groups and floating notes surviving save / reopen / page reload,
 // go to sheet), a model from the engine's equation library and a
 // user-defined equation, Welch ANOVA with Games-Howell, the chi-square
-// test for trend and Deming regression.
+// test for trend and Deming regression, and the guidance: the "Which test?"
+// wizard, results chips, an ambiguous-fit banner, the start screen with
+// paste-and-suggest, and the guided tour (shown once).
 import { chromium } from "playwright";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -28,7 +30,13 @@ const here = dirname(fileURLToPath(import.meta.url));
 const XLSX = join(here, "..", "..", "engine", "tests", "fixtures",
   "synthetic_srb_plate.xlsx");
 
-const url = process.argv[2] ?? "http://localhost:5173/";
+const baseUrl = process.argv[2] ?? "http://localhost:5173/";
+// ?example=1 opens the example project directly (no start screen, no tour).
+const url = (() => {
+  const u = new URL(baseUrl);
+  u.searchParams.set("example", "1");
+  return u.toString();
+})();
 // HOST_RESOLVER="MAP example.com 1.2.3.4" points the browser straight at a
 // host, so a site can be checked before local DNS has caught up.
 const browser = await chromium.launch({
@@ -1145,6 +1153,116 @@ const slopeRow = await paramRow("Slope");
 expect("Deming regression: slope 1.991", slopeRow.includes("1.991"), slopeRow.replace(/\s+/g, " "));
 expect("Deming graph draws the points and the line",
   await page.locator(".plot .scatterlayer .trace").count() === 2);
+
+// --- guidance: "Which test?" wizard, results chips, fit banner -----------
+// The column example (3 groups of 6) answered "each vs a control" is an
+// ordinary one-way ANOVA with Dunnett's comparisons, opened on the table.
+await newExampleTable("column");
+await page.waitForSelector(".stat-cols", { timeout: 30000 });
+expect("results chips render on a results sheet (n per group, normality)",
+  await page.waitForFunction(() => {
+    const t = document.querySelector(".guide-chips")?.textContent ?? "";
+    return t.includes("n = 6 per group") && t.includes("Normality");
+  }, null, { timeout: 30000 }).then(() => true, () => false));
+await page.locator(".guide-chip", { hasText: "n = 6 per group" }).click();
+expect("a chip expands to advice with a Learn more link",
+  await page.locator(".guide-chip-detail").getByRole("button", { name: /Learn more/ }).count() === 1);
+const tabsBefore = await page.locator(".mode-switch [role=tab]").count();
+await page.getByRole("button", { name: "Analyze", exact: true }).click();
+await page.getByRole("menuitem", { name: /Which test/ }).click();
+const wt = page.locator("dialog.which-test");
+await wt.waitFor({ timeout: 10000 });
+expect("wizard reads the table: three groups preselected",
+  await wt.getByRole("radio", { name: "Three or more" }).isChecked());
+await wt.getByText("Each vs a control", { exact: true }).click();
+expect("wizard recommends an ordinary one-way ANOVA with Dunnett",
+  (await wt.locator(".wt-test").innerText()) === "Ordinary one-way ANOVA"
+  && (await wt.locator(".wt-result").innerText()).includes("Dunnett"),
+  await wt.locator(".wt-test").innerText());
+expect("wizard ran the data checks (n per group 6, 6, 6)",
+  (await wt.locator(".wt-checks").innerText()).includes("6, 6, 6"));
+await wt.getByRole("button", { name: /^Open on/ }).click();
+await page.waitForSelector(".result-card h3:has-text('Ordinary one-way ANOVA')", { timeout: 30000 });
+{
+  const tabsAfter = await page.locator(".mode-switch [role=tab]").count();
+  const mcTitle = await page.locator(".pane-results .result-card h4").first().innerText();
+  expect("wizard created the analysis sheet, pre-configured (Dunnett)",
+    tabsAfter === tabsBefore + 1 && /dunnett/i.test(mcTitle),
+    `${tabsBefore} -> ${tabsAfter} tabs; ${mcTitle}`);
+}
+expect("why-your-number-may-differ note under the results",
+  (await page.locator(".guide-differ summary").innerText()).includes("Why your number may differ"));
+
+// A flat response defines no curve: the fit banner says so in plain words.
+await page.getByRole("button", { name: "New data table" }).click();
+const flatDlg = page.locator(".new-table-dialog");
+await flatDlg.locator('input[name="table-type"][value="xy"]').check();
+await flatDlg.getByLabel("Table name").fill("Flat response");
+await flatDlg.getByLabel("Replicates per X").fill("1");
+await flatDlg.getByLabel("Rows (X values)").fill("6");
+await flatDlg.getByRole("button", { name: "Create table" }).click();
+await page.waitForSelector(".grid-toolbar");
+const FX = ["1e-9", "1e-8", "1e-7", "1e-6", "1e-5", "1e-4"];
+const FY = [50.2, 49.8, 50.5, 49.6, 50.1, 50.3];
+for (let r = 0; r < FX.length; r++) {
+  await page.locator(`.data-table input[aria-label="X, row ${r + 1}"]`).fill(FX[r]);
+  await page.locator(`.data-table input[aria-label="Dataset A, row ${r + 1}"]`).fill(String(FY[r]));
+}
+expect("ambiguous fit banner with concrete fixes for a flat dataset",
+  await page.waitForSelector("[data-banner='fit-ambiguous']", { timeout: 60000 })
+    .then(async (b) => (await b.innerText()).includes("Constrain the plateau"), () => false));
+
+// --- start screen, paste-and-suggest, guided tour (fresh browser state) ---
+{
+  const ctx2 = await browser.newContext({ viewport: { width: 1400, height: 1000 } });
+  const p2 = await ctx2.newPage();
+  p2.on("pageerror", (e) => errors.push(`pageerror (start): ${e.message}`));
+  await p2.goto(baseUrl, { waitUntil: "domcontentloaded" });
+  expect("first visit opens the start screen with eight table cards",
+    await p2.locator(".start-screen").waitFor({ timeout: 60000 }).then(() => true, () => false)
+    && await p2.locator(".start-card").count() === 8);
+  await p2.getByRole("textbox", { name: "Paste data and get a table type" }).fill(
+    "Conc\tRep 1\tRep 2\n0.001\t98\t101\n0.01\t95\t97\n0.1\t70\t66\n1\t30\t35\n10\t5\t8");
+  expect("pasted dose series is suggested as an XY table, with a reason",
+    (await p2.locator(".start-suggest").innerText()).includes("Suggested: XY table"));
+  await p2.getByRole("button", { name: "Create XY table" }).click();
+  await p2.locator(".data-table").waitFor({ timeout: 60000 });
+  expect("the pasted XY table is created",
+    await p2.getByRole("treeitem", { name: "Pasted data", exact: true }).count() === 1
+    && await p2.locator('.data-table input[aria-label="X, row 3"]').inputValue() === "0.1");
+  // the engine boots first (it blocks the page), then the autosave debounce
+  await p2.waitForSelector(".results-table", { timeout: 180000 });
+  await p2.waitForTimeout(1500);
+  await p2.reload({ waitUntil: "domcontentloaded" });
+  await p2.locator(".start-screen").waitFor({ timeout: 60000 });
+  expect("the restore banner still shows on the start screen",
+    await p2.locator(".restore-banner").waitFor({ timeout: 30000 }).then(() => true, () => false));
+  await p2.getByRole("button", { name: "Open the example project" }).click();
+  expect("the tour starts with the example project",
+    await p2.locator(".tour-card").waitFor({ timeout: 10000 }).then(() => true, () => false)
+    && (await p2.locator(".tour-count").innerText()) === "Step 1 of 5");
+  await p2.locator(".tour-next").click();
+  expect("tour Next moves to step 2 (Analyze)",
+    (await p2.locator(".tour-count").innerText()) === "Step 2 of 5");
+  await p2.getByRole("button", { name: "Skip tour" }).click();
+  expect("Skip closes the tour", await p2.locator(".tour-card").count() === 0);
+  await p2.reload({ waitUntil: "domcontentloaded" });
+  await p2.locator(".start-screen").waitFor({ timeout: 60000 });
+  await p2.getByRole("button", { name: "Open the example project" }).click();
+  await p2.waitForTimeout(1500);
+  expect("the tour does not come back after it was dismissed",
+    await p2.locator(".tour-card").count() === 0 && await p2.locator(".data-table").count() === 1);
+  await p2.keyboard.press("Control+/");
+  const help = p2.getByRole("complementary", { name: "Help" });
+  await help.getByRole("searchbox", { name: "Search help" }).fill("hazard");
+  expect("Help (Ctrl+/) searches the explainers",
+    (await help.locator(".help-topics li").first().innerText()).includes("Log-rank"));
+  await help.getByRole("searchbox", { name: "Search help" }).fill("");
+  await help.getByRole("button", { name: "Take the tour" }).click();
+  expect("Help replays the tour", await p2.locator(".tour-card").count() === 1);
+  await p2.keyboard.press("Escape");
+  await ctx2.close();
+}
 
 await page.screenshot({
   path: join(here, "app.png"),

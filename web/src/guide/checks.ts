@@ -270,7 +270,7 @@ function fitChips(r: R): Chip[] {
         + "See the banner above for fixes.", explainer: "ambiguous" }
     : { id: "converged", label: "Fit converged", state: "ok",
       detail: "Every data set's fit converged to a best-fit curve." });
-  const amb = fits.filter((f) => f.fit.status === "ambiguous");
+  const amb = fits.filter((f) => fitAmbiguous(f.fit));
   if (fits.length) {
     out.push(amb.length
       ? { id: "ambiguous", label: `Ambiguous: ${amb.map((f) => f.name).join(", ")}`, state: "warn",
@@ -308,6 +308,22 @@ function fitChips(r: R): Chip[] {
       explainer: "r2" });
   }
   return out;
+}
+
+/** Is the fit ambiguous? The engine flags dependency > 0.9999; a fit whose
+ *  dependencies or standard errors could not be computed at all (e.g. a
+ *  flat response, where the covariance matrix is singular) is treated the
+ *  same way: the data do not define the parameters. */
+export function fitAmbiguous(fit: R | null | undefined): boolean {
+  if (!fit) return false;
+  if (fit.status === "ambiguous") return true;
+  const dep = Object.values((fit.dependency ?? {}) as Record<string, unknown>);
+  if (dep.some((v) => v === null || (typeof v === "number" && (!Number.isFinite(v) || v > 0.9999)))) {
+    return true;
+  }
+  const free = Object.values((fit.params ?? {}) as Record<string, R>)
+    .filter((e) => !e.constrained && !e.derived);
+  return free.length > 0 && free.every((e) => e.se === null || e.se === undefined);
 }
 
 /** Parameters whose 95% CI is open (a limit the data cannot bound) or,

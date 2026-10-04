@@ -23,6 +23,12 @@ src/
                     user formulas, Simulate data dialog, Monte Carlo
   components/       shell UI: Navigator, Header, FamilyWorkspace, dialogs,
                     plus the existing panels the sheets wrap
+  guide/            guidance: "Which test?" recommender and wizard, results
+                    chips / banners / "why your number may differ" (fed by
+                    the analysis id, options and result: no plugin work
+                    needed), explainers + Help panel, start screen, tour.
+                    Pure rules (recommend, paste, checks, banners, differ,
+                    entry) are unit-tested in guide/__tests__
 ```
 
 ## Data model in one paragraph

@@ -20,7 +20,7 @@ export const EXPLAINERS: Explainer[] = [
   {
     id: "sd-sem-ci",
     title: "SD, SEM or 95% CI?",
-    summary: "SD shows the scatter of the data; a CI shows how precisely the mean is known; SEM is neither, readably.",
+    summary: "SD shows the scatter of the data, a 95% CI how precisely the mean is known; SEM bars are harder to read than either.",
     body: [
       "The standard deviation (SD) describes how much the individual values vary. It does "
         + "not shrink as you collect more data. Use it, or better the points themselves, to "

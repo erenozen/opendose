@@ -12,7 +12,13 @@ import { inflateSync } from "node:zlib";
 import { unzipSync } from "fflate";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const url = process.argv[2] ?? "http://localhost:5173/";
+const baseUrl = process.argv[2] ?? "http://localhost:5173/";
+// ?example=1 opens the example project directly (no start screen, no tour).
+const url = (() => {
+  const u = new URL(baseUrl);
+  u.searchParams.set("example", "1");
+  return u.toString();
+})();
 const tmp = mkdtempSync(join(tmpdir(), "opendose-export-"));
 
 const browser = await chromium.launch({

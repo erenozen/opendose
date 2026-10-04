@@ -21,16 +21,22 @@ import Navigator from "./components/Navigator";
 import { newId } from "./project/ids";
 import { familyRootId, findSheet } from "./project/ops";
 import { SimulateHost } from "./sheets/manipulate/SimulateDialog";
+import { useGuide } from "./guide/context";
+import { GuideProvider } from "./guide/GuideProvider";
 import { lazy, Suspense } from "react";
 
 // The page-layout composer is loaded the first time a layout sheet opens.
 const LayoutSheetView = lazy(() => import("./components/LayoutSheetView"));
+// The start screen is a chunk of its own too.
+const StartScreen = lazy(() => import("./guide/StartScreen"));
 
 export default function App() {
   return (
     <ProjectProvider>
       <UiProvider>
-        <Shell />
+        <GuideProvider>
+          <Shell />
+        </GuideProvider>
       </UiProvider>
     </ProjectProvider>
   );
@@ -39,6 +45,7 @@ export default function App() {
 function Shell() {
   const { project, selectedId, replace, store } = useProject();
   const ui = useUi();
+  const guide = useGuide();
   const files = useFileOpen();
   const autosave = useAutosave();
   useShortcuts();
@@ -56,7 +63,9 @@ function Shell() {
     autosave.markClean(p);
     autosave.forgetCurrent();
     replace(p);
+    guide.hideStart();
   };
+  const openFile = (f: File) => { guide.hideStart(); files.open(f); };
 
   const sheet = findSheet(project, selectedId);
   const root = sheet ? findSheet(project, familyRootId(project, sheet.id)) : undefined;
@@ -85,8 +94,8 @@ function Shell() {
   }
 
   return (
-    <div className="app">
-      <Header onOpenFile={files.open} onNewProject={newProject} />
+    <div className={`app${guide.startOpen ? " start-open" : ""}`}>
+      <Header onOpenFile={openFile} onNewProject={newProject} />
       {autosave.offer && (
         <div className="restore-banner" role="region" aria-label="Restore last session">
           <span>
@@ -94,7 +103,8 @@ function Shell() {
             sheet{autosave.offer.sheets === 1 ? "" : "s"}, saved{" "}
             {new Date(autosave.offer.savedAt).toLocaleString()}.
           </span>
-          <button className="btn-primary" onClick={autosave.restore}>Restore</button>
+          <button className="btn-primary"
+            onClick={() => { autosave.restore(); guide.hideStart(); }}>Restore</button>
           <button className="dismiss" onClick={autosave.dismiss}>Dismiss</button>
         </div>
       )}
@@ -111,6 +121,11 @@ function Shell() {
           <button className="dismiss" onClick={files.dismissPrism}>Cancel</button>
         </div>
       )}
+      {guide.startOpen ? (
+        <Suspense fallback={<main className="info-main" aria-busy="true" />}>
+          <StartScreen onOpenFile={files.open} onClose={guide.hideStart} onTour={guide.startTour} />
+        </Suspense>
+      ) : (
       <div className={`shell${ui.navOpen ? "" : " nav-hidden"}`}>
         {ui.drawerOpen && (
           <div className="nav-scrim" aria-hidden="true" onClick={() => ui.setDrawerOpen(false)} />
@@ -121,6 +136,7 @@ function Shell() {
           {view}
         </div>
       </div>
+      )}
       <SimulateHost />
     </div>
   );

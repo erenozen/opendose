@@ -80,6 +80,15 @@ test("banners: ambiguous fit, did not converge, extrapolated", () => {
   assert.match(b[0].title, /did not converge/);
 });
 
+test("a fit whose uncertainty cannot be computed counts as ambiguous", () => {
+  const t = normalizeTable({ type: "xy", x: ["1"], datasets: [{ name: "A", rows: [["1"]] }] });
+  const flat = { status: "converged", dependency: { Top: null, Bottom: null },
+    params: { Top: { value: 50, se: null, ci95: [null, null], constrained: false } }, goodness: { df: 2 } };
+  const b = resultBanners(ctx(t, "nonlin", {}, { analysis: "dose_response",
+    datasets: [{ name: "Flat", fit: flat }] }));
+  assert.deepEqual(b.map((x) => x.id), ["fit-ambiguous"]);
+});
+
 test("banners: hit constraint on a user-equation range", () => {
   const t = normalizeTable({ type: "xy", x: ["1"], datasets: [{ name: "A", rows: [["1"]] }] });
   const b = resultBanners(ctx(t, "nonlin", { userEquation: { constraints: {

@@ -3,7 +3,7 @@
 // disagree, normalised controls with SD 0, what Normalize did to SD/SEM,
 // and the switch to a mixed model when repeated measures have gaps. Pure;
 // unit-tested.
-import { analysisKind, wideParams, type ResultContext } from "./checks.ts";
+import { analysisKind, fitAmbiguous, wideParams, type ResultContext } from "./checks.ts";
 import { normalisedControl, missingInRows } from "./stats.ts";
 import { SRC, type Source } from "./sources.ts";
 
@@ -44,7 +44,7 @@ function fitBanners(ctx: ResultContext, r: R): Banner[] {
       ],
       explainer: "ambiguous", sources: [SRC.gpNotConverged] });
   }
-  const amb = sets.filter((d) => d.fit?.status === "ambiguous");
+  const amb = sets.filter((d) => fitAmbiguous(d.fit));
   if (amb.length) {
     out.push({ id: "fit-ambiguous", tone: "warn",
       title: `Ambiguous fit: ${amb.map((d) => d.name).join(", ")}`,
@@ -76,7 +76,7 @@ function fitBanners(ctx: ResultContext, r: R): Banner[] {
       ],
       explainer: "relative-absolute-ic50", sources: [SRC.gpRelAbsIc50, SRC.gpWideCi] });
   }
-  const wide = sets.filter((d) => d.fit && d.fit.status !== "ambiguous" && wideParams(d.fit).length);
+  const wide = sets.filter((d) => d.fit && !fitAmbiguous(d.fit) && wideParams(d.fit).length);
   if (wide.length) {
     out.push({ id: "fit-wide-ci", tone: "warn", title: "Very wide confidence intervals",
       body: `${wide.map((d) => `${d.name}: ${wideParams(d.fit).join(", ")}`).join("; ")}. If a `

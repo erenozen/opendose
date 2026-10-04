@@ -9,6 +9,7 @@ import {
 import { REGISTRY, TABLE_ORDER } from "../sheets/registry";
 import { openSimulate } from "../sheets/manipulate/simulateApi";
 import Modal from "./Modal";
+import { ExplainerDetails } from "../guide/LearnMore";
 
 export interface NewTableRequest {
   type: TableType;
@@ -215,6 +216,18 @@ export default function NewTableDialog({ defaultType, defaultName, onCancel, onC
                 </span>
               )}
             </label>
+          )}
+          {(type === "column" || type === "xy" || type === "grouped") && (
+            <div className="new-table-guide">
+              <p className="field-note">
+                {type === "column"
+                  ? "Replicates are stacked: each group's values run down its own column."
+                  : "Replicates sit side by side in subcolumns of the same row."}{" "}
+                Data in one long column with a column of group labels? Create the table,
+                then use Import › Unstack indexed data.
+              </p>
+              <ExplainerDetails id="stacked" />
+            </div>
           )}
           {def.status === "entry-only" && (
             <p className="field-note">
