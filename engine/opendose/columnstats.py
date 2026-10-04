@@ -4,7 +4,9 @@ Prism statistics guide, "Descriptive statistics": n, minimum, 25th
 percentile, median, 75th percentile, maximum, mean, SD, SEM, 95% CI of
 mean, CV, geometric mean (+ CI), skewness, kurtosis, sum. Normality:
 Shapiro-Wilk, D'Agostino-Pearson omnibus K2, Anderson-Darling (A2* with
-Stephens' correction). One-sample tests vs a hypothetical value:
+Stephens' correction). describe() also reports the lag-1 autocorrelation
+of the values in entry order ("lag1_autocorrelation", NIST StRD's
+univariate statistic; not a Prism column statistic). One-sample tests vs a hypothetical value:
 one-sample t test and Wilcoxon signed rank.
 
 Percentiles: describe() keeps its original linear interpolation (R-7,
@@ -59,6 +61,28 @@ def _clean(values) -> np.ndarray:
     return np.array([float(v) for v in values if v is not None], dtype=float)
 
 
+def lag1_autocorrelation(values):
+    """Lag-1 autocorrelation in entry order (NIST StRD univariate
+    summary statistics; Box & Jenkins' r1):
+
+        r(1) = sum_{i<n} (y_i - ybar)(y_{i+1} - ybar) / sum_i (y_i - ybar)^2.
+
+    The mean is refined once (ybar + mean(y - ybar)) so that data far
+    from zero relative to their spread (NIST NumAcc4: 1e7 + 0.2, SD 0.1)
+    keep every digit. Blank cells are skipped, so neighbours are the
+    values as entered. None with fewer than two values or no spread."""
+    arr = _clean(values)
+    if arr.size < 2:
+        return None
+    m = float(arr.mean())
+    m += float((arr - m).mean())
+    d = arr - m
+    den = float(d @ d)
+    if not den > 0:
+        return None
+    return float(d[:-1] @ d[1:]) / den
+
+
 def describe(values, ci_level: float = 0.95, *,
              percentile_method: str = "linear") -> dict:
     arr = _clean(values)
@@ -97,6 +121,8 @@ def describe(values, ci_level: float = 0.95, *,
         else:
             out["geometric_mean"] = None
             out["ci_geometric_mean"] = None
+    if n >= 2:
+        out["lag1_autocorrelation"] = lag1_autocorrelation(arr)
     if n >= 3:
         out["skewness"] = float(stats.skew(arr, bias=False))
     if n >= 4:

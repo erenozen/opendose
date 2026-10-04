@@ -57,7 +57,7 @@ from itertools import combinations, product
 import numpy as np
 from scipy import optimize, stats
 
-from . import dunnett
+from . import dunnett, studentized
 
 _LN2PI = math.log(2.0 * math.pi)
 
@@ -589,11 +589,13 @@ def compare_estimates(est, cov, df, method: str, *, names=None,
     m_total = n_family_total or m
 
     if method == "tukey":
-        qcrit = float(stats.studentized_range.ppf(ci_level, k, df))
-        for r in rows:
+        qcrit = studentized.ppf(ci_level, k, df)
+        p_all = studentized.sf(np.array([r["t"] * math.sqrt(2.0)
+                                         for r in rows]), k, df)
+        for r, p_adj in zip(rows, p_all):
             q = r["t"] * math.sqrt(2.0)
             r["stat"] = q
-            r["p_adj"] = min(float(stats.studentized_range.sf(q, k, df)), 1.0)
+            r["p_adj"] = min(float(p_adj), 1.0)
             r["half"] = qcrit * r["se"] / math.sqrt(2.0)
     elif method == "dunnett":
         # correlation of the contrasts from the model covariance

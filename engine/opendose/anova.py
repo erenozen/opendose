@@ -43,7 +43,7 @@ from itertools import combinations
 import numpy as np
 from scipy import stats
 
-from . import dunnett, effectsize
+from . import dunnett, effectsize, studentized
 
 
 def _groups(datasets) -> list[np.ndarray]:
@@ -215,12 +215,18 @@ def _comparisons_from_stats(means, ns, ms_res, df_res, method: str, *,
         return {"method": method, "df": df_res, "comparisons": comparisons}
 
     if method == "tukey":
-        for i, j in _pairs_vs_all(k):
-            diff = means[i] - means[j]
-            se = math.sqrt(ms_res / 2 * (1 / ns[i] + 1 / ns[j]))
-            q = abs(diff) / se
-            p_adj = float(stats.studentized_range.sf(q, k, df_res))
-            q_crit = float(stats.studentized_range.ppf(ci_level, k, df_res))
+        # studentized range: opendose.studentized (deterministic and
+        # vectorised; scipy's took ~0.3 s per quantile and 25 ms per P)
+        pairs = _pairs_vs_all(k)
+        diffs = [means[i] - means[j] for i, j in pairs]
+        ses = [math.sqrt(ms_res / 2 * (1 / ns[i] + 1 / ns[j]))
+               for i, j in pairs]
+        with np.errstate(divide="ignore", invalid="ignore"):
+            qs = np.abs(np.array(diffs, dtype=float)) / np.array(ses, dtype=float)
+        p_all = studentized.sf(qs, k, df_res) if len(pairs) else []
+        q_crit = studentized.ppf(ci_level, k, df_res)
+        for (i, j), diff, se, q, p_adj in zip(pairs, diffs, ses, qs, p_all):
+            q, p_adj = float(q), float(p_adj)
             comparisons.append({
                 "pair": f"{names[i]} vs. {names[j]}",
                 "difference": diff,

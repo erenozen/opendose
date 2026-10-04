@@ -319,3 +319,66 @@ def test_singular_covariance_is_ambiguous_not_converged():
                                                           rel=1e-8)
     fit = fit_([5.0, 5.1, 4.9, 5.05, 4.95, 5.0], {"b1": 1.0, "b2": 1.0})
     assert fit["status"] == "ambiguous"
+
+
+# --- NIST StRD Filip through the built-in 10th-order polynomial -----------
+
+FILIP_B = [-1467.48961422980, -2772.17959193342, -2316.37108160893,
+           -1127.97394098372, -354.478233703349, -75.1242017393757,
+           -10.8753180355343, -1.06221498588947, -0.670191154593408e-1,
+           -0.246781078275479e-2, -0.402962525080404e-4]
+FILIP_SE = [298.084530995537, 559.779865474950, 466.477572127796,
+            227.204274477751, 71.6478660875927, 15.2897178747400,
+            2.23691159816033, 0.221624321934227, 0.142363763154724e-1,
+            0.535617408889821e-3, 0.896632837373868e-5]
+
+
+def _filip():
+    import csv
+    from pathlib import Path
+    path = (Path(__file__).resolve().parents[2] / "docs" / "validation"
+            / "datasets" / "nist-filip.csv")
+    with open(path) as fh:
+        rows = list(csv.DictReader(fh))
+    return [float(r["x"]) for r in rows], [float(r["y"]) for r in rows]
+
+
+def test_filip_tenth_order_polynomial_reaches_certified_values():
+    """NIST's hardest linear problem (cond(X'X) ~ 1e15 in raw powers),
+    from the registry's own start: estimates, SEs (analytic Jacobian,
+    QR covariance), residual SD and R^2 to the certified values; NIST
+    calls ~7 correct digits a pass, the corpus tolerance is 1e-6."""
+    x, y = _filip()
+    fit = fit_model(x, y, "polynomial_tenth")
+    for i in range(11):
+        p = fit["params"][f"B{i}"]
+        assert p["value"] == pytest.approx(FILIP_B[i], rel=1e-6), f"B{i}"
+        assert p["se"] == pytest.approx(FILIP_SE[i], rel=1e-6), f"SE B{i}"
+    g = fit["goodness"]
+    assert g["sy_x"] == pytest.approx(0.334801051324544e-2, rel=1e-7)
+    assert g["r_squared"] == pytest.approx(0.996727416185620, rel=1e-9)
+    assert g["ss_res"] == pytest.approx(0.795851382172941e-3, rel=1e-7)
+    assert g["df"] == 71
+    # the raw-power coefficients of a 10th-order polynomial are not
+    # individually determined: flagged, not hidden
+    assert fit["status"] == "ambiguous"
+
+
+def test_filip_centered_polynomial_same_curve():
+    x, y = _filip()
+    raw = fit_model(x, y, "polynomial_tenth")
+    cen = fit_model(x, y, "centered_polynomial_tenth")
+    assert cen["goodness"]["ss_res"] == pytest.approx(
+        0.795851382172941e-3, rel=1e-12)
+    xs = np.linspace(min(x), max(x), 7)
+    np.testing.assert_allclose(MODELS["polynomial_tenth"].func(xs, raw["fitted_values"]),
+                               MODELS["centered_polynomial_tenth"].func(xs, cen["fitted_values"]),
+                               rtol=1e-7)
+
+
+def test_polynomials_up_to_tenth_order_in_the_picker():
+    from opendose import equations
+    for order in ("seventh", "eighth", "ninth", "tenth"):
+        for name in (f"polynomial_{order}", f"centered_polynomial_{order}"):
+            assert name in MODELS
+            assert equations.model_family(MODELS[name]) == "Polynomial"

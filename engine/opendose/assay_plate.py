@@ -30,7 +30,8 @@ Method sources:
 
 Roles: blank, negative (vehicle), positive (kill / full effect),
 sample (compound, concentration, replicate), empty. Wells are named A1
-to P24 (96-well 8 x 12, 384-well 16 x 24; plate.parse_well). The
+to P24 (96-well 8 x 12, 384-well 16 x 24) or AF48 (1536-well 32 x 48;
+plate.parse_well). The
 per-compound output is the canonical {x, datasets} table that the
 "dose_response" analysis takes (X = concentration; pass x_is_log false
 so it is log-transformed there).
@@ -43,21 +44,23 @@ import re
 import numpy as np
 
 from . import anova, ttests
-from .plate import ROW_LETTERS, parse_well
+from .plate import parse_well, row_label
 
 ROLES = ("blank", "negative", "positive", "sample", "empty")
 NORMALIZATIONS = ("none", "percent_of_control", "percent_activity",
                   "percent_inhibition", "inhibition_vs_blank")
-FORMATS = {96: (8, 12), 384: (16, 24), 48: (6, 8), 24: (4, 6)}
+FORMATS = {96: (8, 12), 384: (16, 24), 48: (6, 8), 24: (4, 6),
+           6: (2, 3), 12: (3, 4), 1536: (32, 48)}
 _ROLE_ALIASES = {"vehicle": "negative", "neg": "negative", "high": "negative",
                  "max": "negative", "pos": "positive", "kill": "positive",
                  "low": "positive", "min": "positive", "unknown": "sample",
                  "compound": "sample", "none": "empty"}
-_RANGE_RE = re.compile(r"^\s*([A-Pa-p]\d{1,2})\s*[:\-]\s*([A-Pa-p]\d{1,2})\s*$")
+_RANGE_RE = re.compile(
+    r"^\s*([A-Za-z]{1,2}\d{1,2})\s*[:\-]\s*([A-Za-z]{1,2}\d{1,2})\s*$")
 
 
 def well_name(r: int, c: int) -> str:
-    return f"{ROW_LETTERS[r]}{c + 1}"
+    return f"{row_label(r)}{c + 1}"
 
 
 def expand_wells(spec) -> list[str]:
@@ -190,7 +193,7 @@ def _edge_check(grid, wells, n_rows, n_cols):
             g = [v for (r, c), v in vals.items() if (r if axis == 0 else c) == i]
             if len(g) >= 2:
                 groups.append(g)
-                names.append(ROW_LETTERS[i] if axis == 0 else str(i + 1))
+                names.append(row_label(i) if axis == 0 else str(i + 1))
         means = [{"name": nm, "mean": float(np.mean(g)), "n": len(g)}
                  for nm, g in zip(names, groups)]
         if len(groups) < 2:
