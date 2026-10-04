@@ -102,24 +102,54 @@ test("cancelling the running job retires the worker; a warm spare takes over", a
   assert.equal(h.stats.spareSwaps, 1);
 });
 
-test("without a spare, cancelling restarts a fresh worker and the queue waits for it", async () => {
+test("without a ready spare, the worker drains the cancelled job; the spare takes over when up", async () => {
   const { h } = host();
   void h.boot();
-  FakeWorker.all[0].ready();
+  const primary = FakeWorker.all[0];
+  primary.ready();
   const ctl = new AbortController();
   const job = h.submit({ type: "analyze", payload: "x" }, { signal: ctl.signal });
   const after = h.submit({ type: "analyze", payload: "y" });
   await tick();
   ctl.abort();
   await assert.rejects(job, (e) => isCancelled(e));
-  assert.equal(h.state.phase, "restarting");
-  const fresh = FakeWorker.all[1];
-  assert.equal(fresh.jobs.length, 0);
-  fresh.ready();
+  assert.equal(h.draining, true, "the caller is answered at once; the worker drains");
+  assert.equal(FakeWorker.all.length, 2, "a spare starts at the cancel");
+  assert.equal(primary.jobs.length, 1, "nothing new is sent to the draining worker");
+  const spare = FakeWorker.all[1];
+  spare.ready();
   await tick();
-  assert.equal(h.state.phase, "ready");
-  fresh.answer("y!");
+  assert.equal(primary.terminated, true, "retired once the spare is up");
+  assert.equal(h.draining, false);
+  assert.equal(spare.jobs[0].payload, "y");
+  spare.answer("y!");
   assert.equal(await after, "y!");
+  assert.equal(h.stats.restarts, 1);
+});
+
+test("a cancelled job that ends before the spare is up costs no restart", async () => {
+  const { h } = host();
+  void h.boot();
+  const primary = FakeWorker.all[0];
+  primary.ready();
+  const ctl = new AbortController();
+  const job = h.submit({ type: "analyze", payload: "short" }, { signal: ctl.signal });
+  const after = h.submit({ type: "analyze", payload: "next" });
+  await tick();
+  ctl.abort();
+  await assert.rejects(job, (e) => isCancelled(e));
+  primary.answer("ignored");
+  await tick();
+  assert.equal(h.draining, false);
+  assert.equal(primary.terminated, false);
+  assert.equal(primary.jobs[0].payload, "next", "the queue carries on on the same worker");
+  primary.answer("n");
+  assert.equal(await after, "n");
+  assert.equal(h.stats.restarts, 0);
+  // the spare started at the cancel stays as the spare
+  FakeWorker.all[1].ready();
+  await tick();
+  assert.equal(primary.terminated, false);
 });
 
 test("a visible job preempts a long background job when a spare is ready", async () => {

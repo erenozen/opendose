@@ -4,12 +4,17 @@
 // - submit() queues a job (by priority, then arrival) and resolves with
 //   the engine's JSON text.
 // - Cancelling a queued job removes it from the queue.
-// - Cancelling the running job terminates the worker, because Python
-//   cannot be interrupted mid-call. The next worker takes over: a warm
-//   spare if one is ready (instant), otherwise a fresh one (a restart
-//   costs a few seconds even from the browser cache). A spare is started
-//   once a job has run long enough that a cancel is plausible, and after
-//   every restart, so a second cancel is instant too.
+// - Cancelling the running job answers its caller at once. Python cannot
+//   be interrupted mid-call, so the worker is retired and a warm spare
+//   takes over: at once if the spare is ready; otherwise the worker goes
+//   on with the cancelled job ("draining", nothing new is sent to it)
+//   until either the spare is up (then it is retired) or the job ends by
+//   itself (then it simply carries on), whichever comes first. A fresh
+//   start costs about as long as warming the spare (seconds, even from
+//   the cache), so this is never slower than restarting at once, and a
+//   short cancelled job costs nothing. A spare is started once a job has
+//   run long enough that a cancel is plausible, at every cancel, and after
+//   every restart, so the next cancel is instant.
 //
 // No React and no DOM here, apart from the Worker constructor, which is
 // injected so the queue logic can be unit-tested with a fake worker.
@@ -48,8 +53,9 @@ export interface ReadyInfo {
 
 /** What the loading screen and the busy indicators show. */
 export interface EngineState {
-  /** "booting": first start; "ready"; "restarting": after a cancel with
-   *  no warm spare; "failed": boot error (retry with boot()). */
+  /** "booting": first start; "ready"; "restarting": a worker replaced
+   *  before its successor was up (a crash); "failed": boot error (retry
+   *  with boot()). */
   phase: "idle" | "booting" | "ready" | "restarting" | "failed";
   progress: BootProgress | null;
   error: string | null;
@@ -101,6 +107,8 @@ export class EngineHost {
   private spare: Slot | null = null;
   private queue: Job[] = [];
   private running: Job | null = null;
+  /** A cancelled job the current worker is still computing. */
+  private orphan: Job | null = null;
   private nextId = 1;
   private seq = 0;
   private spareTimer: ReturnType<typeof setTimeout> | null = null;
@@ -182,6 +190,9 @@ export class EngineHost {
     if (this.running) this.cancel(this.running);
   }
 
+  /** The worker is still finishing a cancelled job (diagnostics). */
+  get draining(): boolean { return this.orphan !== null; }
+
   private cancel(job: Job) {
     const i = this.queue.indexOf(job);
     if (i >= 0) {
@@ -191,9 +202,23 @@ export class EngineHost {
       return;
     }
     if (this.running !== job) return;
-    // Python cannot be interrupted: retire this worker, promote the spare.
     this.running = null;
     this.finish(job, null, new EngineCancelled());
+    // Python cannot be interrupted: hand over to a warm spare at once, or
+    // let this worker drain the job until a spare is up (see the header).
+    if (this.spare?.isReady) {
+      this.restart();
+    } else {
+      this.orphan = job;
+      this.warmSpare();
+    }
+    this.pump();
+  }
+
+  /** The spare is up while the worker still drains a cancelled job. */
+  private retireOrphan() {
+    if (!this.orphan) return;
+    this.orphan = null;
     this.restart();
     this.pump();
   }
@@ -245,6 +270,7 @@ export class EngineHost {
           this.ready ??= info;
           settle.resolve(info);
           if (slot === this.slot) this.set({ phase: "ready", progress: null, error: null });
+          if (slot === this.spare && this.orphan) this.retireOrphan();
           this.pump();
           break;
         }
@@ -273,6 +299,7 @@ export class EngineHost {
     if (slot === this.spare) { this.spare = null; return; }
     if (slot !== this.slot) return;
     const crashed = slot.isReady;
+    if (this.orphan?.slot === slot) this.orphan = null;
     if (this.running?.slot === slot) {
       const job = this.running;
       this.running = null;
@@ -294,6 +321,12 @@ export class EngineHost {
   }
 
   private onResult(slot: Slot, m: Extract<WorkerResponse, { type: "result" }>) {
+    if (this.orphan && this.orphan.id === m.id && this.orphan.slot === slot) {
+      // the cancelled job ended before a spare was up: carry on here
+      this.orphan = null;
+      this.pump();
+      return;
+    }
     const job = this.running;
     if (!job || job.id !== m.id || job.slot !== slot) return;
     this.running = null;
@@ -316,7 +349,7 @@ export class EngineHost {
   }
 
   private pump() {
-    if (this.running) return;
+    if (this.running || this.orphan) return;
     const slot = this.slot;
     if (!slot || slot.dead || !slot.isReady || !this.queue.length) return;
     let best = 0;
@@ -345,7 +378,7 @@ export class EngineHost {
   /** Jobs queued or running. Diagnostics only: the engine state that
    *  components subscribe to changes with the phase and boot progress,
    *  not with every request, so nothing re-renders per job. */
-  get busy(): number { return this.queue.length + (this.running ? 1 : 0); }
+  get busy(): number { return this.queue.length + (this.running || this.orphan ? 1 : 0); }
 
   private changed() { /* the queue is not observable state */ }
 

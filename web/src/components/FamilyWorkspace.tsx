@@ -102,8 +102,9 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
   const editor = useMemo(() => (
     <Editor sheet={data} table={data.table} readOnly={readOnly} onChange={onTableChange} />
   ), [Editor, data, readOnly, onTableChange]);
-  // A large table's graph follows edits once typing pauses: redrawing
-  // thousands of points on every keystroke would hold up the grid.
+  // The graph follows edits once they pause (a moment for small tables,
+  // half a second for large ones): redrawing on every keystroke or undo
+  // step would hold up the grid, and only the last state is seen anyway.
   const settledTable = useSettledTable(data.table);
   // A large table scrolls inside its card: the browser then lays out and
   // composites only the rows in view instead of thousands on every edit.
@@ -258,9 +259,10 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
   );
 }
 
-/** Cells beyond which the graph waits for a pause in typing. */
+/** Cells beyond which a table counts as large (graph settles slower,
+ *  the grid scrolls inside its card). */
 const LARGE_TABLE_CELLS = 4000;
-const SETTLE_MS = 500;
+const SETTLE_MS = { small: 120, large: 500 };
 
 function cellCount(t: DataTableModel): number {
   let n = t.x.length;
@@ -268,17 +270,16 @@ function cellCount(t: DataTableModel): number {
   return n;
 }
 
-/** The table itself for small tables; for large ones, the table as it
- *  was when edits last paused for SETTLE_MS. */
+/** The table as it was when edits last paused (SETTLE_MS). */
 function useSettledTable(table: DataTableModel): DataTableModel {
   const large = cellCount(table) > LARGE_TABLE_CELLS;
   const [settled, setSettled] = useState(table);
   useEffect(() => {
-    if (!large || settled === table) return;
-    const t = setTimeout(() => setSettled(table), SETTLE_MS);
+    if (settled === table) return;
+    const t = setTimeout(() => setSettled(table), large ? SETTLE_MS.large : SETTLE_MS.small);
     return () => clearTimeout(t);
   }, [large, table, settled]);
-  return large ? settled : table;
+  return settled;
 }
 
 /** Shown while a panel's code loads (sheets/lazy.ts): usually a moment. */
