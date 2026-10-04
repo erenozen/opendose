@@ -11,7 +11,7 @@ import {
   Card, Check, Field, Grid, KV, Note, Problem, Section, Select, SOFTWARE, TextNum,
 } from "../common/clinicalKit";
 import CopyableMethods from "../common/CopyableMethods";
-import { fmtP, levelPct, stars } from "../common/statFormat";
+import { fmtP, levelPct, pLabel, stars } from "../common/statFormat";
 import { baseLayout, chromeFor, useDark } from "../multivariable/chart";
 import { PlotMessage, PlotlyChart } from "../multivariable/plotkit";
 import type { ControlsProps, PlotProps, ResultsProps } from "../types";
@@ -188,8 +188,8 @@ export function RocResults({ result }: ResultsProps<RocOptions, RocResult>) {
               ]} />
               <p className="clin-reading">
                 {cmp.p < 0.05
-                  ? `The areas differ (P ${cmp.p < 0.0001 ? "< 0.0001" : `= ${fmtP(cmp.p)}`}): ${cmp.difference > 0 ? result.curves[0].name : result.curves[1].name} discriminates better.`
-                  : `No evidence that the areas differ (P = ${fmtP(cmp.p)}); the CI of the difference shows how large a difference the data allow.`}
+                  ? `The areas differ (${pLabel(cmp.p)}): ${cmp.difference > 0 ? result.curves[0].name : result.curves[1].name} discriminates better.`
+                  : `No evidence that the areas differ (${pLabel(cmp.p)}); the CI of the difference shows how large a difference the data allow.`}
               </p>
             </>
           )}
@@ -242,7 +242,7 @@ export function RocMethods({ result }: ResultsProps<RocOptions, RocResult>) {
     const cmp = result.compare;
     text += ` The AUCs were compared by DeLong's test for ${cmp.method === "delong_paired" ? "paired" : "unpaired"} `
       + `ROC curves: difference ${f(cmp.difference)} (${levelPct(level)} CI ${ciTxt(cmp.ci)}), `
-      + `${cmp.statistic_name} = ${f(cmp.statistic)}${cmp.df ? `, df = ${f(cmp.df)}` : ""}, P = ${fmtP(cmp.p)}.`;
+      + `${cmp.statistic_name} = ${f(cmp.statistic)}${cmp.df ? `, df = ${f(cmp.df)}` : ""}, ${pLabel(cmp.p)}.`;
   }
   if (cut) {
     const crit = cut.method === "closest_topleft" ? "the point closest to the top-left corner"

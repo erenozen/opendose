@@ -17,8 +17,9 @@ import { analysisDef } from "../registry";
 import {
   isReplicateMeansResult, normalizeSuperPlot, replicateInfo, type SuperPlotSettings,
 } from "./superplot";
+import { ReplicateMapFields } from "./ReplicateAssign";
 
-const letter = (k: number) => String.fromCharCode(65 + (k % 26)) + (k >= 26 ? String(Math.floor(k / 26)) : "");
+
 
 export default function SuperPlotOptions({ graph, table, result, s, on, onChange,
   analysis, settingsKey }: {
@@ -37,8 +38,6 @@ export default function SuperPlotOptions({ graph, table, result, s, on, onChange
   const set = (patch: Partial<SuperPlotSettings>) => onChange({ ...s, ...patch });
   const info = replicateInfo(table);
   const map: ReplicateMap = table.replicates ?? { by: "subcolumns" };
-  const idColumn = table.type === "column" && table.datasets.length > 1;
-  const nSub = Math.max(1, ...table.datasets.map((d) => d.rows[0]?.length ?? 1));
   const editMap = (next: ReplicateMap | undefined) => apply((p) => updateTable(p, graph.parentId,
     (t) => {
       const out = { ...t };
@@ -80,35 +79,7 @@ export default function SuperPlotOptions({ graph, table, result, s, on, onChange
         title="Lord et al. 2020, J Cell Biol: show each biological replicate and test on replicate means" />
       {on && (
         <>
-          {idColumn && <OptSelect label="Experiments are" value={map.by === "column"
-            ? "column" : "subcolumns"}
-            options={[["subcolumns", "Subcolumns of each group"],
-              ["column", "Labels in a data set (long format)"]]}
-            onChange={(by) => editMap(by === "subcolumns" ? undefined
-              : { by: "column", column: table.datasets.length - 1 })} />}
-          {map.by === "column" && idColumn ? (
-            <OptSelect label="Experiment labels in" value={String(info.idColumn ?? table.datasets.length - 1)}
-              options={table.datasets.map((d, i) => [String(i), d.name || `Data set ${i + 1}`] as const)}
-              onChange={(v) => editMap({ by: "column", column: Number(v) })} />
-          ) : nSub > 1 ? (
-            Array.from({ length: nSub }, (_, k) => (
-              <OptSelect key={k} label={`Subcolumn ${letter(k)} is`}
-                value={String(map.of?.[k] ?? k)}
-                options={Array.from({ length: nSub }, (_, r) =>
-                  [String(r), map.names?.[r]?.trim() || `Experiment ${r + 1}`] as const)}
-                onChange={(v) => {
-                  const of = Array.from({ length: nSub }, (_, i) => map.of?.[i] ?? i);
-                  of[k] = Number(v);
-                  editMap({ ...map, by: "subcolumns", of });
-                }} />
-            ))
-          ) : (
-            <OptNote>Enter each experiment&apos;s values in its own subcolumn (Change → number
-              of subcolumns), or put experiment labels in a data set of their own.</OptNote>
-          )}
-          <OptNote>
-            {info.names.length} experiment{info.names.length === 1 ? "" : "s"}: {info.names.join(", ")}.
-          </OptNote>
+          <ReplicateMapFields table={table} map={map} onMap={editMap} />
           <OptSelect label="Each experiment's symbol" value={s.center}
             options={[["mean", "Mean"], ["median", "Median"]]}
             onChange={(center) => set({ center })} />

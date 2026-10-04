@@ -10,7 +10,7 @@ import {
   Card, Check, Field, KV, Note, Problem, Section, Select, SOFTWARE, TextNum,
 } from "../common/clinicalKit";
 import CopyableMethods from "../common/CopyableMethods";
-import { fmtP, levelPct } from "../common/statFormat";
+import { fmtP, levelPct, pLabel } from "../common/statFormat";
 import { baseLayout, chromeFor, useDark } from "../multivariable/chart";
 import { PlotMessage, PlotlyChart } from "../multivariable/plotkit";
 import type { ControlsProps, PlotProps, ResultsProps } from "../types";
@@ -126,7 +126,7 @@ export function BaResults({ result }: ResultsProps<BaOptions, BaResult>) {
   const norm = result.normality ?? {};
   const normRows: [string, string][] = Object.entries(norm).map(([k, v]) => [
     k === "shapiro_wilk" ? "Shapiro-Wilk" : k === "dagostino_pearson" ? "D'Agostino-Pearson" : k,
-    `${v.W != null ? `W = ${f(v.W)}, ` : v.K2 != null ? `K² = ${f(v.K2)}, ` : ""}P = ${fmtP(v.p)} (${v.passed_alpha_05 ? "passes" : "fails"} at 0.05)`]);
+    `${v.W != null ? `W = ${f(v.W)}, ` : v.K2 != null ? `K² = ${f(v.K2)}, ` : ""}${pLabel(v.p)} (${v.passed_alpha_05 ? "passes" : "fails"} at 0.05)`]);
   const methodLabel = LIMITS_CI_LABELS[result.options.limitsCi === "none" ? "exact" : result.options.limitsCi];
   return (
     <Card title={`Bland-Altman: ${a} vs ${b}`}>
@@ -157,7 +157,7 @@ export function BaResults({ result }: ResultsProps<BaOptions, BaResult>) {
         {normRows.length > 0 && <KV title="Normality of the differences" rows={normRows} />}
       </div>
       {pb && pb.slope_p < 0.05 && !result.options.regression && result.options.variant === "difference" && (
-        <Note warn>The differences grow or shrink with the magnitude (P = {fmtP(pb.slope_p)}). Tick “Proportional bias” to draw regression-based limits, or plot ratios or percent differences.</Note>
+        <Note warn>The differences grow or shrink with the magnitude ({pLabel(pb.slope_p)}). Tick “Proportional bias” to draw regression-based limits, or plot ratios or percent differences.</Note>
       )}
       {result.options.regression && pb && result.options.variant === "difference" && (
         <p className="hint-block">
@@ -201,9 +201,9 @@ export function BaMethods({ result }: ResultsProps<BaOptions, BaResult>) {
         ? `, with ${lvl} confidence intervals by ${cite} (lower limit ${ciTxt(lci.lower)}, upper limit ${ciTxt(lci.upper)})` : "")
       + ".";
     const sw = result.normality?.shapiro_wilk;
-    if (sw) text += ` Normality of the differences: Shapiro-Wilk P = ${fmtP(sw.p)}.`;
+    if (sw) text += ` Normality of the differences: Shapiro-Wilk ${pLabel(sw.p)}.`;
     if (pb) {
-      text += ` Proportional bias was examined by regressing the differences on the averages (slope ${f(pb.slope)}, P = ${fmtP(pb.slope_p)})`
+      text += ` Proportional bias was examined by regressing the differences on the averages (slope ${f(pb.slope)}, ${pLabel(pb.slope_p)})`
         + (result.options.regression ? "; regression-based limits of agreement were derived from the absolute residuals (Bland & Altman 1999)." : ".");
     }
   }

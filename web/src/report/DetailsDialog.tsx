@@ -8,6 +8,8 @@ import Modal from "../components/Modal";
 import { updateSheet } from "../project/ops";
 import type { DataSheet, Sheet } from "../project/types";
 import { parseReportMeta } from "./meta";
+import { replicateFacts } from "./replicates";
+import { openAssignReplicates } from "./useReport";
 import "./report.css";
 
 export default function DetailsDialog({ dataId, onClose }: { dataId: string; onClose: () => void }) {
@@ -19,6 +21,10 @@ export default function DetailsDialog({ dataId, onClose }: { dataId: string; onC
   const [exclusions, setExclusions] = useState(m.exclusions ?? "");
   const [sampleSize, setSampleSize] = useState(m.sampleSize ?? "");
   if (!data) return null;
+  // The table's replicate map supplies the unit and the experiments when
+  // these fields are left blank (replicates.ts).
+  const rep = replicateFacts(data.table);
+  const canAssign = !readOnly && (data.table.type === "column" || data.table.type === "grouped");
   const save = () => {
     const report = parseReportMeta({
       unit, experiments: experiments.trim() ? Number(experiments) : undefined, exclusions, sampleSize,
@@ -44,15 +50,30 @@ export default function DetailsDialog({ dataId, onClose }: { dataId: string; onC
           Used in the figure legend (“n = 6 mice per group from 3 independent experiments”),
           the statistical-analysis paragraph and the journal checklists.
         </p>
+        {rep && (
+          <p className="hint-block details-from-map" role="note">
+            From the table&apos;s replicate assignment: each value is one {rep.unit === "values"
+              ? "value" : rep.unit.replace(/s$/, "")}, from {rep.experiments} independent
+            experiments. Leave the two fields below blank to use these, or type to override.
+          </p>
+        )}
         <label>
           What one n is (plural noun)
-          <input value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="mice, wells, patients, cells" maxLength={60} />
+          <input value={unit} onChange={(e) => setUnit(e.target.value)}
+            placeholder={rep ? rep.unit : "mice, wells, patients, cells"} maxLength={60} />
         </label>
         <label>
           Independent experiments (biological replicates)
           <input type="number" min={1} step={1} value={experiments}
-            onChange={(e) => setExperiments(e.target.value)} placeholder="e.g. 3" />
+            onChange={(e) => setExperiments(e.target.value)}
+            placeholder={rep ? String(rep.experiments) : "e.g. 3"} />
         </label>
+        {canAssign && (
+          <p className="details-assign">
+            <button type="button" onClick={() => { onClose(); openAssignReplicates(data.id); }}>
+              {rep ? "Change replicate assignment…" : "Assign replicates…"}</button>
+          </p>
+        )}
         <label>
           Exclusions and their criteria
           <textarea value={exclusions} onChange={(e) => setExclusions(e.target.value)}

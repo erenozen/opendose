@@ -10,6 +10,7 @@ import { describeResult } from "./describe";
 import { effectGroups } from "./effects";
 import { graphDescribed, graphFacts, tableGroups } from "./legendFor";
 import { reportPrefsOf } from "./prefs";
+import { metaWithReplicates } from "./replicates";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -75,7 +76,8 @@ export function familyFacts(p: Project, data: DataSheet, cache: ResultsCache): F
   const excludedCount = data.table.datasets.reduce((a, d) => a + (d.excluded?.length ?? 0), 0)
     + (data.table.xExcluded?.length ?? 0);
   return {
-    dataId: data.id, dataName: data.name, results, graphs, meta: data.report ?? {},
+    dataId: data.id, dataName: data.name, results, graphs,
+    meta: metaWithReplicates(data.report, data.table),
     excludedCount, minN, powerJustification: powerJustification(p, cache),
     software: `OpenDose ${APP_VERSION} with ${librariesPhrase(getRuntimeVersions())}`,
     normalityChecked,

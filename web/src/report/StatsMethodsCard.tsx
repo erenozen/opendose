@@ -6,6 +6,7 @@ import { CopyButton } from "../components/CiteBlock";
 import type { DataSheet, ResultsSheet } from "../project/types";
 import { powerJustification } from "./facts";
 import { statsMethodsParagraph } from "./methods";
+import { metaWithReplicates } from "./replicates";
 import { useReportPrefs } from "./useReport";
 import "./report.css";
 
@@ -14,7 +15,10 @@ export default function StatsMethodsCard({ sheet, result }: { sheet: ResultsShee
   const prefs = useReportPrefs();
   const data = project.sheets.find((s) => s.id === sheet.parentId) as DataSheet | undefined;
   if (!result || (typeof result === "object" && (result as { error?: unknown }).error)) return null;
-  const text = statsMethodsParagraph(result, prefs, data?.report,
+  // Unit of n and experiments: typed in Reporting details, else from the
+  // table's replicate map (replicates.ts).
+  const meta = data ? metaWithReplicates(data.report, data.table, result) : undefined;
+  const text = statsMethodsParagraph(result, prefs, meta,
     { powerJustification: powerJustification(project, results) });
   if (!text) return null;
   return (

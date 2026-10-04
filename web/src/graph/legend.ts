@@ -23,7 +23,7 @@ import {
 } from "../sheets/grouped/options.ts";
 import { cellStats, type ErrorKind } from "../sheets/grouped/stats.ts";
 import { readFormat } from "./format.ts";
-import { starScale, type PStyle } from "./significance.ts";
+import { graphHideNs, graphPStyle, starScale, type PStyle } from "./significance.ts";
 
 /** Centre and error of the summary marks. */
 export type LegendSummary = ColumnSummary | "mean_range" | "mean" | "as_entered";
@@ -47,6 +47,8 @@ export interface LegendSpec {
     bars?: boolean };
   /** Asterisks are drawn on the graph in this style: state the scale. */
   stars?: PStyle | null;
+  /** Non-significant pairs are left out (the scale says so). */
+  hideNs?: boolean;
 }
 
 const PHRASE: Record<LegendSummary, string> = {
@@ -109,7 +111,7 @@ export function composeLegend(spec: LegendSpec): string {
     parts.push(spec.display === "superplot" && spec.superplot?.values
       ? `${n} (${spec.superplot.values} values in all)` : n);
   }
-  if (spec.stars) parts.push(starScale(spec.stars));
+  if (spec.stars) parts.push(starScale(spec.stars, spec.hideNs ?? false));
   return parts.join(". ") + ".";
 }
 
@@ -122,7 +124,12 @@ const countValues = (rows: string[][]) =>
 function starsOf(graph: Pick<GraphSheet, "settings">): PStyle | null {
   const f = readFormat(graph.settings);
   const c = f.comparisons;
-  return c?.show && c.display !== "p" ? f.pStyle ?? "graphpad" : null;
+  return c?.show && c.display !== "p" ? graphPStyle(f) : null;
+}
+
+/** Non-significant pairs left out on this graph. */
+function hideNsOf(graph: Pick<GraphSheet, "settings">): boolean {
+  return graphHideNs(readFormat(graph.settings).comparisons);
 }
 
 /** Summary of entered mean / error data, as the legend states it. */
@@ -233,9 +240,27 @@ function groupedSpec(graph: Pick<GraphSheet, "graphType" | "settings">, table: D
  */
 export function legendSentence(graph: Pick<GraphSheet, "graphType" | "settings">,
   table: DataTableModel, result?: unknown): string {
+  const spec = legendSpec(graph, table, result);
+  return spec && spec.groups.length ? composeLegend(spec) : "";
+}
+
+/** The plain description of what a graph draws (null for kinds the
+ *  legend sentence does not describe). */
+export function legendSpec(graph: Pick<GraphSheet, "graphType" | "settings">,
+  table: DataTableModel, result?: unknown): LegendSpec | null {
   const columnKind = ["scatter", "bar", "box", "violin"].includes(graph.graphType);
   const spec = table.type === "column" || (table.type === "xy" && columnKind)
     ? columnSpec(graph, table, result)
     : table.type === "grouped" ? groupedSpec(graph, table, result) : null;
-  return spec && spec.groups.length ? composeLegend(spec) : "";
+  return spec ? { ...spec, hideNs: hideNsOf(graph) } : null;
+}
+
+/** The first clause of the legend sentence alone: what the centre, the
+ *  error bars and the points are ("Mean ± SD (bars), with individual
+ *  values."). The reporting legend (report/legend.ts) opens with it. */
+export function plottedClause(graph: Pick<GraphSheet, "graphType" | "settings">,
+  table: DataTableModel, result?: unknown): string {
+  const spec = legendSpec(graph, table, result);
+  if (!spec) return "";
+  return composeLegend({ ...spec, groups: [], stars: null });
 }

@@ -1,15 +1,14 @@
 import { softwareSentence } from "../../export/cite";
 import { getRuntimeVersions } from "../../lib/engine";
 import { formatSig } from "../../types";
-import { tableP } from "../../report/pformat";
+import { pLabel } from "../../report/pformat";
 import CopyableMethods from "../common/CopyableMethods";
 import type { ControlsProps, ResultsProps } from "../types";
 import type { DemingOptions } from "./deming";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-const fmtP = (p: any) => tableP(p);
-const Pv = (p: any) => (fmtP(p).startsWith("<") ? `P ${fmtP(p)}` : `P = ${fmtP(p)}`);
+const Pv = (p: any) => pLabel(p);
 const fmtCI = (ci: any) => (Array.isArray(ci) ? `${formatSig(ci[0])} to ${formatSig(ci[1])}` : "n/a");
 
 export function DemingControls({ options, onChange }: ControlsProps<DemingOptions>) {

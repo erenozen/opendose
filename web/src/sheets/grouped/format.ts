@@ -2,6 +2,8 @@
 import { formatSig } from "../../types";
 import { tableP, tableStars } from "../../report/pformat";
 
+export { pLabel } from "../../report/pformat";
+
 /** P and asterisks in the project's P-value style (src/report/pformat.ts). */
 export function fmtP(p: unknown): string {
   return tableP(p);

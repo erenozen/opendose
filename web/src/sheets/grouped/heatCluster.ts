@@ -14,15 +14,24 @@
 //   linkage, Euclidean; sheets/assays/clusterModel.ts DEFAULT_CLUSTER), so
 //   the toggles and the assay order a matrix the same way.
 //   answer   { row_order: number[], column_order: number[], rows?, columns?
-//              (linkage, leaf order and dendrogram; not drawn yet), ... }
+//              (linkage, leaf order and dendrogram), ... }; the dendrograms
+//              are drawn beside the map (sheets/common/dendrogram.ts, the
+//              Clustered heat map assay's drawing).
 // The matrix is the one the map colours (already z-scored when chosen);
 // blank cells are filled with their column's mean for the ordering only.
 import { getEngine } from "../../lib/engine";
 import { DEFAULT_CLUSTER, LINKAGE_LABEL, METRIC_LABEL } from "../assays/clusterModel";
+import { parseDendrogram, type Dendrogram } from "../common/dendrogram";
 
 export const CLUSTER_HANDLER = "cluster_heatmap";
 
-export interface ClusterOrder { rows: number[]; cols: number[] }
+export interface ClusterOrder {
+  rows: number[];
+  cols: number[];
+  /** Dendrograms of the clustered axes (leaves in the new order). */
+  rowTree?: Dendrogram | null;
+  colTree?: Dendrogram | null;
+}
 
 /** Linkage and distance of the toggles (the assay's defaults), and how
  *  the toggle label names them: "average linkage, Euclidean". */
@@ -62,9 +71,13 @@ export function parseClusterOrder(res: unknown, nRows: number, nCols: number): C
   if (!res || typeof res !== "object" || (res as { error?: unknown }).error) return null;
   const r = res as Record<string, unknown>;
   const id = (n: number) => Array.from({ length: n }, (_, i) => i);
-  const rows = isPerm(r.row_order, nRows) ? r.row_order : id(nRows);
-  const cols = isPerm(r.column_order, nCols) ? r.column_order : id(nCols);
-  return { rows, cols };
+  const rowsOk = isPerm(r.row_order, nRows);
+  const colsOk = isPerm(r.column_order, nCols);
+  const rows = rowsOk ? r.row_order as number[] : id(nRows);
+  const cols = colsOk ? r.column_order as number[] : id(nCols);
+  const rowTree = rowsOk ? parseDendrogram(r.rows) : null;
+  const colTree = colsOk ? parseDendrogram(r.columns) : null;
+  return { rows, cols, rowTree, colTree };
 }
 
 let probe: Promise<boolean> | null = null;

@@ -9,6 +9,7 @@ import {
   type Chrome,
 } from "../../lib/palette";
 import { updateSheet } from "../../project/ops";
+import { currentReportPrefs, pSummary } from "../../report/pformat";
 import type { GraphSheet, Sheet } from "../../project/types";
 
 export function useDark(): boolean {
@@ -113,13 +114,9 @@ export function inkOn(rgb: [number, number, number]): string {
 
 export function stars(p: number | null | undefined): string {
   if (typeof p !== "number") return "";
-  // The usual thresholds, inclusive: P ≤ 0.05 *, ≤ 0.01 **, ≤ 0.001 ***,
-  // ≤ 0.0001 **** (as on graph brackets and in the results).
-  if (p <= 0.0001) return "****";
-  if (p <= 0.001) return "***";
-  if (p <= 0.01) return "**";
-  if (p <= 0.05) return "*";
-  return "";
+  // The project's asterisk scale (report/pformat.ts), as on graph brackets
+  // and in the results; non-significant cells stay blank.
+  return pSummary(p, currentReportPrefs().pStyle, true);
 }
 
 // ------------------------------------------------------------ settings

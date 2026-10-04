@@ -2,13 +2,14 @@
 // the result (which test, which post test, how P values were computed).
 // Pure; methods.tsx adds the software sentence and the Copy card.
 import type { ColumnOptionsState } from "../../types";
+import { formatPValue } from "../../report/pformat";
 import { DEFAULT_NORMALITY_TESTS, NORMALITY_TEST_LABELS, formatSig } from "../../types";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type R = Record<string, any>;
 
-const P = (p: unknown) => (typeof p !== "number" ? "n/a"
-  : p < 0.0001 ? "P < 0.0001" : `P = ${formatSig(p, 4)}`);
+/** "P = 0.0123" in the project's P-value style (report/pformat.ts). */
+const P = (p: unknown) => (typeof p !== "number" ? "n/a" : formatPValue(p));
 
 const POST: Record<string, string> = {
   tukey: "Tukey's multiple comparisons test",

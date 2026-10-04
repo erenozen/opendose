@@ -10,6 +10,7 @@ import FormatGraphDialog from "./FormatGraphDialog";
 import { plottedOrder } from "./apply";
 import { DEFAULT_FEATURES, type FormatFeatures, type GraphFormat } from "./format";
 import { extractComparisons, resultBlocks, type ComparisonSet } from "./results";
+import { graphPStyle } from "./significance";
 
 export interface FormatAction {
   id: string;
@@ -47,7 +48,8 @@ export function useFormatDialogs({
   const cmpSet = useMemo(() => (comparisons !== undefined ? comparisons
     : features.categorical ? extractComparisons(result, datasets) : null),
   [comparisons, features.categorical, result, datasets]);
-  const blocks = useMemo(() => resultBlocks(result, format.pStyle), [result, format.pStyle]);
+  const pStyle = graphPStyle(format);
+  const blocks = useMemo(() => resultBlocks(result, pStyle), [result, pStyle]);
   const hasY2 = Object.values(format.datasets ?? {}).some((d) => d.rightAxis) || !!format.y2;
 
   const actions: FormatAction[] = [

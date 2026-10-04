@@ -7,11 +7,13 @@ import { applyFormat, tagTrace, type Trace } from "../apply.ts";
 import {
   blend, cvdReport, deltaE2000, deltaE76, MACHADO, parseHex, simulate, simulateHex, toLab,
 } from "../cvd.ts";
-import { composeLegend, legendSentence, nPhrase } from "../legend.ts";
+import { composeLegend, legendSentence, legendSpec, nPhrase, plottedClause } from "../legend.ts";
 import { normalizeFormat } from "../format.ts";
 import {
-  formatPStyle, isNs, starScale, starsFor,
+  formatPStyle, graphHideNs, graphPStyle, isNs, pStyleOptions, starScale, starsFor,
 } from "../significance.ts";
+import { pSummary, setReportPrefs, starScale as pStarScale } from "../../report/pformat.ts";
+import { DEFAULT_REPORT } from "../../report/prefs.ts";
 import { beeswarm, laneJitter, spreadOffsets, symmetricSpread } from "../swarm.ts";
 import { snapToTicks } from "../theme.ts";
 import { normalizeTable } from "../../project/table.ts";
@@ -23,6 +25,24 @@ import { zscoreMatrix } from "../../sheets/grouped/stats.ts";
 import { survivalAt, normalizeSurvivalGraph } from "../../sheets/survival/graphSettings.ts";
 import { topPoints, volcanoDefaults, volcanoPoints } from "../../sheets/multivariable/volcanoModel.ts";
 import { columnOptionsFor, DEFAULT_REP_MEANS } from "../../sheets/column/superplotStats.ts";
+import { addDendrogram, parseDendrogram } from "../../sheets/common/dendrogram.ts";
+
+
+// ------------------------------------------------------------ dendrograms
+
+test("heat map clustering: the engine's dendrograms are kept and drawn beside the map", () => {
+  const tree = { x: [[0, 0, 1, 1], [0.5, 0.5, 2, 2]], y: [[0, 1, 1, 0], [1, 2, 2, 0]] };
+  assert.deepEqual(parseDendrogram({ dendrogram: tree, leaves: [2, 0, 1] }), tree);
+  assert.equal(parseDendrogram(undefined), null);
+  assert.equal(parseDendrogram({ dendrogram: { x: [[0]], y: [] } }), null);
+  const traces: unknown[] = [];
+  const layout: Record<string, unknown> = {};
+  addDendrogram(traces as never, layout, tree, { side: "right", axis: 3, along: [0, 1],
+    across: [0.88, 1], n: 3, line: { color: "#000", width: 1 } });
+  assert.equal(traces.length, 2);
+  assert.deepEqual((layout.xaxis3 as { domain: number[] }).domain, [0.88, 1]);
+  assert.deepEqual((layout.yaxis3 as { range: number[] }).range, [2.5, -0.5]);
+});
 
 // ------------------------------------------------------------ swarm
 
@@ -131,11 +151,42 @@ test("P styles: GraphPad, APA and NEJM", () => {
   assert.equal(formatPStyle(0.0001, "nejm"), "P < 0.001");
   assert.equal(starsFor(0.00005, "graphpad"), "****");
   assert.equal(starsFor(0.00005, "apa"), "***");
+  // One rule set for brackets, tables, sentences and legends (pformat):
+  // P ≤ 0.05 is "*" in every style.
   assert.equal(starsFor(0.05, "graphpad"), "*");
-  assert.equal(starsFor(0.05, "nejm"), "ns");
+  assert.equal(starsFor(0.05, "nejm"), "*");
+  assert.equal(starsFor(0.0501, "apa"), "ns");
+  assert.equal(starsFor(0.03, "apa"), pSummary(0.03, "apa", false));
   assert.ok(isNs(0.2) && !isNs(0.01));
   assert.match(starScale("graphpad"), /\*\*\*\* P ≤ 0\.0001/);
-  assert.match(starScale("apa"), /\*\*\*p < \.001/);
+  assert.equal(starScale("apa"), pStarScale("apa", false));
+  assert.match(starScale("apa", true), /pairs without a symbol/);
+});
+
+test("P style: a graph follows the project unless it overrides it", () => {
+  setReportPrefs({ ...DEFAULT_REPORT, pStyle: "apa", hideNs: true });
+  try {
+    assert.equal(graphPStyle({}), "apa");
+    assert.equal(graphPStyle({ pStyle: "nejm" }), "nejm");
+    assert.equal(graphHideNs(undefined), true);
+    assert.equal(graphHideNs({ hideNs: false }), false);
+    assert.equal(starsFor(0.00001), "***");
+    assert.equal(pStyleOptions()[0][0], "");
+    assert.match(pStyleOptions()[0][1], /As in Preferences \(APA\)/);
+    // brackets drawn with the project style and its "hide ns"
+    const traces = [tagTrace({ type: "scatter", x: [0, 0, 1, 1, 2, 2], y: [1, 2, 3, 4, 5, 6] } as Trace, { ds: 0, role: "points" })];
+    const out = applyFormat(traces, { xaxis: {}, yaxis: {} } as never,
+      normalizeFormat({ comparisons: { show: true } }), {
+        dark: false, scheme: "default", datasets: ["A", "B", "C"], categorical: true,
+        comparisons: [{ a: "A", b: "B", p: 0.00001 }, { a: "A", b: "C", p: 0.4 }],
+        groupX: (n: string) => ["A", "B", "C"].indexOf(n),
+      } as never);
+    const labels = (out.layout.annotations ?? []).filter((a: unknown) => (a as { name?: string }).name === "bracket-label")
+      .map((a: unknown) => (a as { text?: string }).text);
+    assert.deepEqual(labels, ["***"]);
+  } finally {
+    setReportPrefs({ ...DEFAULT_REPORT });
+  }
 });
 
 test("format: theme, P style and hide ns survive normalizing; defaults stay absent", () => {
@@ -144,7 +195,17 @@ test("format: theme, P style and hide ns survive normalizing; defaults stay abse
   assert.equal(f.theme, "classic");
   assert.equal(f.pStyle, "apa");
   assert.equal(f.comparisons?.hideNs, true);
-  assert.deepEqual(normalizeFormat({ theme: "default", pStyle: "graphpad" }), {});
+  // An explicit GraphPad style is an override of the project's style now.
+  assert.deepEqual(normalizeFormat({ theme: "default", pStyle: "graphpad" }), { pStyle: "graphpad" });
+  assert.deepEqual(normalizeFormat({ theme: "default" }), {});
+});
+
+test("legend: the plotted clause is the legend sentence's first clause", () => {
+  const g = { graphType: "bar", settings: { titles: { x: "", y: "" }, scheme: "default" as const,
+    column: { summary: "mean_sem", points: true } } };
+  assert.equal(plottedClause(g, columnTable()), "Mean ± SEM (bars), with individual values.");
+  assert.ok(legendSentence(g, columnTable()).startsWith(plottedClause(g, columnTable()).slice(0, -1)));
+  assert.equal(legendSpec({ ...g, graphType: "xy" }, { ...columnTable(), type: "survival" }), null);
 });
 
 // ------------------------------------------------------------ classic theme
@@ -201,7 +262,7 @@ test("composeLegend: bars with points and the star scale", () => {
   assert.equal(composeLegend({ display: "bar", summary: "mean_sem", points: true,
     groups: [{ name: "A", n: 4 }, { name: "B", n: 4 }], stars: "graphpad" }),
   "Mean ± SEM (bars), with individual values. n = 4 per group. "
-    + "ns, P > 0.05; * P ≤ 0.05; ** P ≤ 0.01; *** P ≤ 0.001; **** P ≤ 0.0001.");
+    + "* P ≤ 0.05, ** P ≤ 0.01, *** P ≤ 0.001, **** P ≤ 0.0001; ns, not significant: P > 0.05.");
   assert.equal(composeLegend({ display: "scatter", summary: "median_iqr", points: true,
     groups: [{ name: "A", n: 9 }] }), "Median with IQR, with individual values. n = 9 per group.");
 });

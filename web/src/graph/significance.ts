@@ -1,5 +1,8 @@
 // Pairwise comparisons on graphs: P-value summaries, bracket stacking and
 // the compact letter display. Pure functions, unit-tested.
+import {
+  currentReportPrefs, pNumber, pSummary, starScale as pStarScale, type PStyle as ReportPStyle,
+} from "../report/pformat.ts";
 
 /** One pairwise comparison, as drawn on a graph. `a` and `b` are group
  *  (dataset) names; `family` separates comparisons made within different
@@ -37,14 +40,15 @@ export function formatP(p: number, prefix = "P = "): string {
 }
 
 // ------------------------------------------------------------ P styles
+// One P-value style for the whole project: the reporting preference
+// (Preferences → Reporting, report/prefs.ts) is the single source, and the
+// rules live in report/pformat.ts. A graph may override the style
+// (GraphFormat.pStyle) and "hide ns" (ComparisonsFormat.hideNs); absent,
+// both follow the project. The functions below are the graph-side names
+// of the pformat rules, so brackets, results tables, sentences and legends
+// never disagree.
 
-/** How P values and asterisks are written. "graphpad" is the house style
- *  of the app and of GraphPad Prism (four decimals, "< 0.0001", up to four
- *  asterisks); "apa" follows the APA manual (three decimals with no leading
- *  zero, "< .001", up to three asterisks); "nejm" follows the NEJM author
- *  guidelines (two decimals, three below 0.01, "< 0.001", up to three
- *  asterisks). Stored in GraphFormat.pStyle (absent = graphpad). */
-export type PStyle = "graphpad" | "apa" | "nejm";
+export type PStyle = ReportPStyle;
 
 export const P_STYLES: readonly (readonly [PStyle, string])[] = [
   ["graphpad", "GraphPad (0.0123, < 0.0001, ****)"],
@@ -52,66 +56,64 @@ export const P_STYLES: readonly (readonly [PStyle, string])[] = [
   ["nejm", "NEJM (0.01, < 0.001, ***)"],
 ];
 
+/** Options of a graph's P-value style select: "" follows the project. */
+export function pStyleOptions(): readonly (readonly [PStyle | "", string])[] {
+  const proj = currentReportPrefs().pStyle;
+  const name = P_STYLES.find(([v]) => v === proj)?.[1].replace(/ \(.*$/, "") ?? proj;
+  return [["", `As in Preferences (${name})`], ...P_STYLES];
+}
+
 export function isPStyle(v: unknown): v is PStyle {
   return v === "graphpad" || v === "apa" || v === "nejm";
 }
 
-/** Asterisks for P in a style. GraphPad: ≤ 0.05 / 0.01 / 0.001 / 0.0001;
- *  APA and NEJM: < 0.05 / 0.01 / 0.001 (three at most). */
-export function starsFor(p: number, style: PStyle = "graphpad"): string {
-  if (style === "graphpad") return pStars(p);
-  if (!Number.isFinite(p)) return "";
-  if (p < 0.001) return "***";
-  if (p < 0.01) return "**";
-  if (p < 0.05) return "*";
-  return "ns";
+/** The P style a graph draws in: its own override, else the project's. */
+export function graphPStyle(format: { pStyle?: PStyle } | null | undefined): PStyle {
+  return format?.pStyle ?? currentReportPrefs().pStyle;
 }
 
-/** The number part of an exact P in a style ("0.0123", ".012", "0.01"),
- *  with `lt` for values below the style's floor. */
-function pNumber(p: number, style: PStyle): { lt: boolean; text: string } {
-  if (style === "apa") {
-    if (p < 0.001) return { lt: true, text: ".001" };
-    const t = p.toFixed(3);
-    // 0.0496 rounds to .050 but is significant: keep a digit more.
-    const s = t === "0.050" && p < 0.05 ? p.toFixed(4) : t;
-    return { lt: false, text: s === "1.000" ? "1.00" : s.replace(/^0(?=\.)/, "") };
-  }
-  if (style === "nejm") {
-    if (p < 0.001) return { lt: true, text: "0.001" };
-    if (p < 0.01) return { lt: false, text: p.toFixed(3) };
-    let t = p.toFixed(2);
-    if (t === "0.05" && p < 0.05) t = p.toFixed(3);
-    return { lt: false, text: t };
-  }
-  if (p < 0.0001) return { lt: true, text: "0.0001" };
-  const s = p >= 0.001 ? p.toFixed(4).replace(/0+$/, "").replace(/\.$/, "")
-    : Number(p.toPrecision(2)).toString();
-  return { lt: false, text: s };
+/** Whether a graph leaves non-significant pairs out: its own override,
+ *  else the project's "hide ns". */
+export function graphHideNs(c: { hideNs?: boolean } | null | undefined): boolean {
+  return c?.hideNs ?? currentReportPrefs().hideNs;
+}
+
+/** Changes whenever the project's P style or "hide ns" does: graph
+ *  effects list it as a dependency so brackets redraw. */
+export function pStyleKey(): string {
+  const r = currentReportPrefs();
+  return `${r.pStyle}|${r.hideNs ? 1 : 0}`;
+}
+
+/** Asterisks for P in a style (report/pformat.ts pSummary): ≤ 0.05 / 0.01
+ *  / 0.001, and ≤ 0.0001 in the GraphPad style; "ns" above 0.05. */
+export function starsFor(p: number, style: PStyle = currentReportPrefs().pStyle): string {
+  if (!Number.isFinite(p)) return "";
+  return pSummary(p, style, false);
 }
 
 /** Exact P in a style. `prefix` is "P = ", "p = " or "" (below the floor
- *  the "=" turns into "<"). The GraphPad style is formatP exactly. */
-export function formatPStyle(p: number, style: PStyle = "graphpad", prefix = "P = "): string {
+ *  the "=" turns into "<"). The GraphPad style is formatP exactly; APA and
+ *  NEJM use the pformat rules. */
+export function formatPStyle(p: number, style: PStyle = currentReportPrefs().pStyle,
+  prefix = "P = "): string {
   if (style === "graphpad") return formatP(p, prefix);
   if (!Number.isFinite(p)) return "";
-  const { lt, text } = pNumber(p, style);
-  if (!prefix) return lt ? `< ${text}` : text;
-  return lt ? `${prefix.replace("=", "<")}${text}` : `${prefix}${text}`;
+  const n = pNumber(p, style, "text");
+  const bound = n.startsWith("<") || n.startsWith(">");
+  const num = bound ? n.slice(1).trim() : n;
+  if (!prefix) return bound ? `${n[0]} ${num}` : num;
+  return bound ? `${prefix.replace("=", n[0])}${num}` : `${prefix}${num}`;
 }
 
-/** The asterisk scale in words, for a figure legend. */
-export function starScale(style: PStyle = "graphpad"): string {
-  if (style === "graphpad") {
-    return "ns, P > 0.05; * P ≤ 0.05; ** P ≤ 0.01; *** P ≤ 0.001; **** P ≤ 0.0001";
-  }
-  if (style === "apa") return "ns, p ≥ .05; *p < .05; **p < .01; ***p < .001";
-  return "ns, P ≥ 0.05; * P < 0.05; ** P < 0.01; *** P < 0.001";
+/** The asterisk scale in words, for a figure legend (pformat starScale). */
+export function starScale(style: PStyle = currentReportPrefs().pStyle,
+  hideNs = false): string {
+  return pStarScale(style, hideNs);
 }
 
-/** Not significant at 0.05 in the style's convention (what "hide ns"
- *  hides). */
-export function isNs(p: number, style: PStyle = "graphpad"): boolean {
+/** Not significant at 0.05 (what "hide ns" hides). */
+export function isNs(p: number, style: PStyle = currentReportPrefs().pStyle): boolean {
   return starsFor(p, style) === "ns";
 }
 

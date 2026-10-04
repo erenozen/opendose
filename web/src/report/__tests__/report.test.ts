@@ -12,7 +12,11 @@ import { effectGroups, primaryEffect, relabel } from "../effects.ts";
 import { legendParagraph, nStatement, whatIsPlotted } from "../legend.ts";
 import { parseReportMeta } from "../meta.ts";
 import { statsMethodsParagraph } from "../methods.ts";
-import { formatPValue, pNumber, pSummary, starScale } from "../pformat.ts";
+import { formatPValue, pEquals, pLabel, pNumber, pSummary, setReportPrefs, starScale } from "../pformat.ts";
+import { tableGroups } from "../legendFor.ts";
+import { metaWithReplicates, replicateFacts, withinNote } from "../replicates.ts";
+import { promoteGraphPStyle } from "../../project/persist.ts";
+import { DEFAULT_PREFS, projectPrefs } from "../../project/prefs.ts";
 import { DEFAULT_REPORT, sanitizeReport } from "../prefs.ts";
 import { fnv1a64, optionEntries, projectProvenance, tableFingerprint } from "../provenance.ts";
 import { resultSentence, resultSentences } from "../sentences.ts";
@@ -28,6 +32,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const FX: Record<string, { options: unknown; result: Record<string, unknown> }> =
   JSON.parse(readFileSync(join(here, "fixtures.json"), "utf8"));
 const R = (k: string) => FX[k].result;
+const DEFAULT_PROJECT_PREFS = projectPrefs(DEFAULT_PREFS);
 
 // ------------------------------------------------------------ P values
 
@@ -160,6 +165,73 @@ test("figure legend: what is plotted, n, test with sidedness, correction, stars,
   assert.match(t, /An unpaired t test \(two-tailed\) was used\./);
   assert.ok(whatIsPlotted("estimation", { estimation: R("estimation_two") })?.includes("BCa"));
   assert.equal(whatIsPlotted("mystery"), null);
+});
+
+test("figure legend: the graph's plotted clause replaces the generic one", () => {
+  const t = legendParagraph({ graphType: "scatter", plotted: "Mean ± SEM, with individual values.",
+    result: null, groups: [{ name: "A", n: 18 }], unit: { unit: "cells", experiments: 3 },
+    style: "graphpad", software: "OpenDose" });
+  assert.match(t, /^Mean ± SEM, with individual values\. n = 18 cells from 3 independent experiments\./);
+  const m = legendParagraph({ graphType: "scatter", result: null, groups: [{ name: "A", n: 3 }, { name: "B", n: 3 }],
+    unit: { unit: "independent experiments", experiments: 3 }, nNote: "36 cells in all",
+    style: "graphpad", software: "OpenDose" });
+  assert.match(m, /n = 3 independent experiments per group \(36 cells in all\)\./);
+});
+
+test("replicate map: unit of n and experiments for the legend and details", () => {
+  const t = normalizeTable({
+    type: "column",
+    datasets: [
+      { name: "Control", rows: [["1"], ["2"], ["3"], ["4"], ["5"], ["6"]] },
+      { name: "Drug", rows: [["2"], ["3"], ["4"], ["5"], ["6"], ["7"]] },
+      { name: "Experiment", rows: [["E1"], ["E1"], ["E2"], ["E2"], ["E3"], ["E3"]] },
+    ],
+    replicates: { by: "column", column: 2, unit: "cells" },
+  });
+  assert.equal(t.replicates?.unit, "cells");
+  const f = replicateFacts(t);
+  assert.equal(f?.experiments, 3);
+  assert.equal(f?.unit, "cells");
+  assert.deepEqual(metaWithReplicates(undefined, t), { unit: "cells", experiments: 3 });
+  // typed details win
+  assert.deepEqual(metaWithReplicates({ unit: "neurons" }, t), { unit: "neurons", experiments: 3 });
+  // on replicate means one n is an experiment
+  const onMeans = { superplot: { n: 3, replicates: ["E1", "E2", "E3"] } };
+  assert.equal(metaWithReplicates(undefined, t, onMeans).unit, "independent experiments");
+  assert.equal(withinNote(replicateFacts(t, onMeans)), "12 cells in all");
+  // the label column is not a group
+  assert.deepEqual(tableGroups(t).map((g) => g.name), ["Control", "Drug"]);
+  // no map, no SuperPlot: nothing to say
+  assert.equal(replicateFacts({ ...t, replicates: undefined }), null);
+  assert.equal(nStatement([{ name: "Control", n: 6 }], { nUnit: "values" },
+    metaWithReplicates(undefined, t)), "n = 6 cells from 3 independent experiments");
+});
+
+test("migration: graphs that agree on a P style promote it to the project", () => {
+  const graph = (id: string, format: unknown) => ({ id, kind: "graph", name: id, parentId: "d",
+    resultsId: null, graphType: "scatter", settings: { titles: { x: "", y: "" }, scheme: "default", format } });
+  const sheets = [graph("g1", { pStyle: "apa", comparisons: { show: true } }), graph("g2", { pStyle: "apa" })];
+  const prefs = promoteGraphPStyle({ ...DEFAULT_PROJECT_PREFS }, sheets as never);
+  assert.equal(prefs.report?.pStyle, "apa");
+  assert.ok(sheets.every((s) => !("pStyle" in (s.settings.format as object))));
+  // disagreement (or brackets drawn in the old default) keeps the overrides
+  const mixed = [graph("g1", { pStyle: "apa" }), graph("g2", { comparisons: { show: true } })];
+  assert.equal(promoteGraphPStyle({ ...DEFAULT_PROJECT_PREFS }, mixed as never).report, undefined);
+  assert.equal((mixed[0].settings.format as { pStyle?: string }).pStyle, "apa");
+});
+
+test("P labels follow the project style", () => {
+  setReportPrefs({ ...DEFAULT_REPORT, pStyle: "apa" });
+  try {
+    assert.equal(pLabel(0.01234), "p = .012");
+    assert.equal(pLabel(0.00001), "p < .001");
+    assert.equal(pEquals(0.00001), "< .001");
+    assert.equal(pNumber(0.0496, "apa"), ".0496");
+  } finally {
+    setReportPrefs({ ...DEFAULT_REPORT });
+  }
+  assert.equal(pLabel(0.00001), "P < 0.0001");
+  assert.equal(pEquals(0.0123), "= 0.0123");
 });
 
 test("statistical-analysis paragraph", () => {

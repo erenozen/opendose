@@ -63,6 +63,8 @@
   border-radius: var(--radius-s); padding: 8px 12px;
 }
 .guide-chip-detail p { margin: 0 0 4px; }
+.guide-chip-detail .guide-chip-action { margin: 6px 0; }
+.guide-chip-action button { font-size: 12.5px; }
 
 .guide-differ {
   margin-top: 10px; font-size: 12.5px; color: var(--ink-2);

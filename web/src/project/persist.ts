@@ -9,6 +9,7 @@ import {
 } from "./builtin.ts";
 import { parseDerivedLink } from "./derived.ts";
 import { parseReportMeta } from "../report/meta.ts";
+import { reportPrefsOf } from "../report/prefs.ts";
 import { repairGroups } from "./groups.ts";
 import type { IdFactory } from "./ids.ts";
 import { sanitizeLayoutFields } from "./layout.ts";
@@ -223,8 +224,43 @@ function normalizeV2(r: Record<string, unknown>, ctx: LoadContext): Project {
     if (s.frozen === undefined) delete s.frozen;
     if (s.highlight === undefined) delete s.highlight;
   }
-  return repairGroups(repairLinks(makeProject(prefs, sheets, str(r.title) || "Untitled project")),
+  const migrated = obj(r.prefs).report === undefined ? promoteGraphPStyle(prefs, sheets) : prefs;
+  return repairGroups(repairLinks(makeProject(migrated, sheets, str(r.title) || "Untitled project")),
     r.groups);
+}
+
+/**
+ * Files from before the project-wide P-value style (0.2.x) kept a P style
+ * on each graph (`settings.format.pStyle`, absent = GraphPad) and had no
+ * reporting preferences. Since 0.3.0 the project's style (Preferences →
+ * Reporting) is the single source and a graph's style only overrides it.
+ * When such a file's graphs agree on one style (every graph that draws
+ * brackets names it), that style becomes the project's and the graphs
+ * follow it, so tables, sentences, legends and brackets read one way;
+ * otherwise the graphs keep their own styles as overrides. Mutates the
+ * graph sheets' settings in place (they were just built by the loader).
+ */
+export function promoteGraphPStyle(prefs: ProjectPrefs, sheets: Sheet[]): ProjectPrefs {
+  const styles = new Set<string>();
+  let unnamedBrackets = false;
+  for (const s of sheets) {
+    if (s.kind !== "graph") continue;
+    const f = obj(s.settings.format);
+    if (typeof f.pStyle === "string") styles.add(f.pStyle);
+    else if (obj(f.comparisons).show === true) unnamedBrackets = true;
+  }
+  if (styles.size !== 1 || unnamedBrackets) return prefs;
+  const style = [...styles][0];
+  if (style !== "apa" && style !== "nejm" && style !== "graphpad") return prefs;
+  for (const s of sheets) {
+    if (s.kind !== "graph") continue;
+    const f = obj(s.settings.format);
+    if (!("pStyle" in f)) continue;
+    const { pStyle: _p, ...rest } = f;
+    void _p;
+    s.settings = { ...s.settings, format: rest };
+  }
+  return { ...prefs, report: { ...reportPrefsOf(prefs), pStyle: style } };
 }
 
 function parseSimulationSpec(v: unknown): SimulationSpec | undefined {

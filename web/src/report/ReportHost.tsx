@@ -7,6 +7,7 @@ import { REPORT_EVENT, type ReportRequest } from "./useReport";
 const ChecklistPanel = lazy(() => import("./ChecklistPanel"));
 const HistoryPanel = lazy(() => import("./HistoryPanel"));
 const DetailsDialog = lazy(() => import("./DetailsDialog"));
+const AssignReplicatesDialog = lazy(() => import("../sheets/common/ReplicateAssign"));
 
 export default function ReportHost() {
   const [req, setReq] = useState<ReportRequest | null>(null);
@@ -22,6 +23,7 @@ export default function ReportHost() {
       {req.kind === "checklist" && <ChecklistPanel key={req.dataId ?? ""} dataId={req.dataId} onClose={close} />}
       {req.kind === "history" && <HistoryPanel key={req.dataId ?? ""} dataId={req.dataId} onClose={close} />}
       {req.kind === "details" && <DetailsDialog key={req.dataId} dataId={req.dataId} onClose={close} />}
+      {req.kind === "replicates" && <AssignReplicatesDialog key={req.dataId} dataId={req.dataId} onClose={close} />}
     </Suspense>
   );
 }

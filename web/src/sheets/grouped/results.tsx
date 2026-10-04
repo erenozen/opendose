@@ -10,7 +10,7 @@ import {
   CORRECTION_LABEL, LOG_TESTS, ROW_TEST_LABEL, type ColumnStatsOptions, type MultiTOptions,
   type RowMeansOptions, type ThreeWayOptions, type TwoWayOptions,
 } from "./options";
-import { fmtCI, fmtP, stars } from "./format";
+import { fmtCI, fmtP, pLabel, stars } from "./format";
 import { rowMeansTable, CALC_TITLE } from "./tables";
 import "./grouped.css";
 
@@ -159,7 +159,7 @@ function MixedTwoWay({ result, factors }: { result: R; factors: [string, string]
       {result.matching && (
         <p className="model-line">
           Was the matching effective? χ² = {formatSig(result.matching.chi_square)},
-          df {result.matching.df}, P = {fmtP(result.matching.p)}
+          df {result.matching.df}, {pLabel(result.matching.p)}
         </p>
       )}
       {result.goodness_of_fit && (

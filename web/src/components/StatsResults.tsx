@@ -1,5 +1,5 @@
 import { formatSig } from "../types";
-import { tableP, tableStars } from "../report/pformat";
+import { pLabel, tableP, tableStars } from "../report/pformat";
 
 interface Props {
   result: Record<string, unknown> | null;
@@ -77,7 +77,7 @@ function ColumnStats({ result }: { result: any }) {
             }[key] ?? key;
             if (v?.error) return [label, String(v.error)];
             const pText = v.p == null && v.p_summary ? v.p_summary.replace("P>", "P > ")
-              : `P = ${fmtP(v.p)}`;
+              : `${pLabel(v.p)}`;
             const stat = key === "kolmogorov_smirnov" && v.KS != null
               ? `KS distance = ${formatSig(v.KS)}, ` : "";
             return [label,
@@ -678,9 +678,9 @@ function MedianTest({ result }: { result: any }) {
   }
   if (result.chi_square_yates) {
     rows.push(["Chi-square with Yates' correction",
-      `${formatSig(result.chi_square_yates.chi2)}, P = ${fmtP(result.chi_square_yates.p)}`]);
+      `${formatSig(result.chi_square_yates.chi2)}, ${pLabel(result.chi_square_yates.p)}`]);
   }
-  if (result.fisher_exact) rows.push(["Fisher's exact test", `P = ${fmtP(result.fisher_exact.p)}`]);
+  if (result.fisher_exact) rows.push(["Fisher's exact test", `${pLabel(result.fisher_exact.p)}`]);
   if (result.note) rows.push(["Note", String(result.note)]);
   return (
     <div className="result-card">

@@ -7,6 +7,7 @@ import { resultBanners, type Banner } from "./banners";
 import { resultChips, type Chip, type ResultContext } from "./checks";
 import { differNotes } from "./differ";
 import LearnMore from "./LearnMore";
+import { openAssignReplicates } from "../report/useReport";
 import { useGroupChecks } from "./useGroupChecks";
 
 interface Props {
@@ -15,6 +16,9 @@ interface Props {
   table: DataTableModel;
   options: unknown;
   result: unknown;
+  /** The data sheet, for one-click fixes (absent or read-only: none). */
+  dataId?: string;
+  readOnly?: boolean;
 }
 
 function useContextFor(p: Props): ResultContext | null {
@@ -29,7 +33,7 @@ function useContextFor(p: Props): ResultContext | null {
 
 const ICON: Record<Chip["state"], string> = { ok: "✓", warn: "!", bad: "×", info: "i" };
 
-function Chips({ chips }: { chips: Chip[] }) {
+function Chips({ chips, dataId }: { chips: Chip[]; dataId?: string }) {
   const [open, setOpen] = useState<string | null>(null);
   const detailId = useId();
   const cur = chips.find((c) => c.id === open);
@@ -53,6 +57,12 @@ function Chips({ chips }: { chips: Chip[] }) {
         <div id={detailId} className={`guide-chip-detail chip-${cur.state}`} role="region"
           aria-label={cur.label}>
           <p>{cur.detail}</p>
+          {cur.action === "assign-replicates" && dataId && (
+            <p className="guide-chip-action">
+              <button type="button" onClick={() => openAssignReplicates(dataId)}>
+                Assign replicates…</button>
+            </p>
+          )}
           {cur.explainer && <LearnMore id={cur.explainer} />}
         </div>
       )}
@@ -91,7 +101,7 @@ export function ResultsGuide(p: Props) {
   return (
     <div className="results-guide">
       {banners.map((b) => <BannerView key={b.id} b={b} />)}
-      {chips.length > 0 && <Chips chips={chips} />}
+      {chips.length > 0 && <Chips chips={chips} dataId={p.readOnly ? undefined : p.dataId} />}
     </div>
   );
 }
