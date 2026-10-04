@@ -7,6 +7,7 @@ import { defineAnalysis, defineGraph, type TableTypeDef } from "../types";
 import { ColumnMethods } from "./methods";
 import { ColumnAnalysisControls, ColumnAnalysisResults, ColumnGraph } from "./panels";
 import { runColumn } from "./run";
+import { estimationAnalysis, estimationGraph } from "../../report/estimation";
 
 export const columnAnalysis = defineAnalysis<ColumnOptionsState, Record<string, unknown>>({
   id: ANALYSIS_COLUMN,
@@ -67,6 +68,6 @@ export const columnTable: TableTypeDef = {
   sampleTable: columnSample,
   sampleName: "Group comparison",
   Editor: DataGrid,
-  analyses: [columnAnalysis],
-  graphs: columnGraphs,
+  analyses: [columnAnalysis, estimationAnalysis],
+  graphs: [...columnGraphs, estimationGraph],
 };
