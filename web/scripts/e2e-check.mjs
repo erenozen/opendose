@@ -1208,8 +1208,12 @@ expect("synergy: four landscapes on one diverging scale (one colour bar)",
 expect("synergy: Chou-Talalay table with combination indices",
   (await resultsText()).includes("Combination index per dose pair") || (await page.locator(".results-table", { hasText: "Interpretation" }).count()) === 1);
 await page.locator(".graph-select").selectOption("synergy_fa_ci");
-expect("synergy: Fa-CI plot draws the combinations",
-  await appears(page.locator(".plot .scatterlayer .trace")));
+// Since the engine computes combination indices only where both
+// median-effect fits are valid (here Ispinesib's slope is negative), the
+// plot may instead say why there are none; either is correct.
+expect("synergy: Fa-CI plot draws the combinations, or says why there are none",
+  await appears(page.locator(".plot .scatterlayer .trace"))
+  || /No combination index/.test(await page.locator(".plot-card").first().innerText()));
 
 // AUC by trapezoid on a tiny XY table
 await page.getByRole("button", { name: "New data table" }).click();
@@ -1708,7 +1712,9 @@ const pwOk = await page.waitForFunction(() => {
 }, null, { timeout: 60000 }).then(() => true, () => false);
 expect("power (G*Power example): 88 per group, 176 in total, 98 allocated with 10% attrition", pwOk,
   await pw.locator(".power-summary").innerText().catch(() => ""));
-expect("power curves drawn", await pw.locator(".power-curve .plot").count() === 2);
+// the curves are computed after the answer (many engine requests): wait
+expect("power curves drawn", await pw.locator(".power-curve .plot").nth(1).waitFor({ timeout: 60000 })
+  .then(async () => await pw.locator(".power-curve .plot").count() === 2, () => false));
 await pw.getByRole("button", { name: "Save to project" }).click();
 await page.waitForTimeout(400);
 await pw.getByRole("tab", { name: "Randomisation list" }).click();
@@ -1760,39 +1766,93 @@ expect("the sample-size justification is saved as an info sheet",
   await page.waitForFunction(() => document.querySelectorAll(".data-table tbody tr").length >= 2001,
     null, { timeout: 60000 });
   await page.waitForTimeout(1500);
-  await page.locator(".analysis-select").first().selectOption("anova");
-  // Type into the grid while the ANOVA computes: every keystroke lands at
-  // once (the page's main thread is free).
-  const g1 = page.locator('.data-table input[aria-label="G1, row 1"]');
-  await page.waitForTimeout(300);
-  await g1.click();
-  const t0 = Date.now();
-  await page.keyboard.press("Control+a");
-  await page.keyboard.type("1000000.5");
-  const typedMs = Date.now() - t0;
-  const typed = await g1.inputValue();
-  expect("the grid takes typing while the ANOVA computes (9 keys in < 1.5 s)",
-    typed === "1000000.5" && typedMs < 1500, `${typedMs} ms, "${typed}"`);
+  // Typing 9 characters costs what it costs the grid to re-render (a
+  // 18,000-cell grid is not free, least of all in a dev build); the
+  // engine must add nothing to it. Baseline first (column statistics,
+  // quick), then the same typing while the ANOVA computes.
+  const typeInto = async (label, text) => {
+    const cell = page.locator(`.data-table input[aria-label="${label}"]`);
+    await cell.click({ timeout: 120000 });
+    const t0 = Date.now();
+    await page.keyboard.press("Control+a");
+    await page.keyboard.type(text);
+    const ms = Date.now() - t0;
+    return { ms, ok: (await cell.inputValue()) === text };
+  };
+  const base = await typeInto("G2, row 1", "1000000.6");
   await page.keyboard.press("Enter");
+  await page.waitForTimeout(3000);
+  await page.locator(".analysis-select").first().selectOption("anova");
+  await page.waitForTimeout(300);
+  const during = await typeInto("G1, row 1", "1000000.5");
+  expect("the grid takes typing while the ANOVA computes, as fast as without it",
+    during.ok && during.ms <= 1.5 * base.ms + 1000,
+    `9 keys: ${during.ms} ms during the ANOVA, ${base.ms} ms without`);
+  await page.keyboard.press("Enter");
+  expect("the ANOVA result arrives (live)", await page.waitForFunction(() =>
+    /Source of variation|F \(/.test(document.querySelector(".pane-results")?.textContent ?? "")
+    && !!document.querySelector('.pane-results[data-live="true"]'), null, { timeout: 180000 })
+    .then(() => true, () => false));
+}
+
+// --- a long job: busy line, typing meanwhile, Cancel. Twelve straight
+// lines over a wide range fitted with the automatic sigmoid: every
+// multi-start runs to its time budget, several seconds in all.
+{
+  await page.getByRole("button", { name: "New data table" }).first().click();
+  const dlg = page.locator(".new-table-dialog");
+  await dlg.locator('input[name="table-type"][value="xy"]').check();
+  await dlg.getByLabel("Table name").fill("Twelve lines");
+  await dlg.getByLabel("Y datasets", { exact: true }).fill("12");
+  await dlg.getByLabel("Replicates per X", { exact: true }).fill("1");
+  await dlg.getByLabel("Rows (X values)", { exact: true }).fill("10");
+  await dlg.getByRole("button", { name: "Create table" }).click();
+  await page.waitForSelector(".grid-toolbar");
+  const xs = Array.from({ length: 10 }, (_, i) => 2 ** i);
+  const csv = [["X", ...Array.from({ length: 12 }, (_, k) => `L${k + 1}`)].join(","),
+    ...xs.map((x, i) => [x, ...Array.from({ length: 12 }, (_, k) => (3 + k + 0.5 * x + (i % 3) * 0.01).toFixed(3))].join(","))]
+    .join("\n");
+  await page.getByRole("button", { name: "Import…", exact: true }).click();
+  const impL = page.locator(".import-dialog");
+  await impL.getByLabel("Pasted text").check();
+  await impL.getByLabel("Text to import").fill(csv);
+  const titlesL = impL.getByLabel(/holds column titles/);
+  if (!(await titlesL.isChecked())) await titlesL.check();
+  await impL.getByRole("tab", { name: "Placement" }).click();
+  await impL.getByLabel(/In place of the table/).check();
+  await impL.getByRole("button", { name: "Import", exact: true }).click();
+  await impL.waitFor({ state: "detached", timeout: 60000 });
   const busy = page.locator(".pane-results .analysis-busy");
-  const shown = await busy.waitFor({ timeout: 8000 }).then(() => true, () => false);
+  const shown = await busy.waitFor({ timeout: 20000 }).then(() => true, () => false);
+  const line = shown ? await busy.innerText() : "";
+  expect("a long fit shows the busy line: Computing… with seconds and Cancel",
+    shown && /Computing…/.test(line) && /\d+\.\d s/.test(line)
+    && await busy.getByRole("button", { name: "Cancel" }).count() === 1, line.replace(/\s+/g, " "));
+  // the grid takes typing meanwhile (a newer input replaces the job)
+  const cell = page.locator('.data-table input[aria-label="L1, row 1"]');
+  await cell.click();
+  const k0 = Date.now();
+  await page.keyboard.press("Control+a");
+  await page.keyboard.type("3.25");
+  const typedMs = Date.now() - k0;
+  await page.keyboard.press("Enter");
+  expect("typing during the fit is immediate (4 keys in < 1.5 s)",
+    typedMs < 1500 && await cell.inputValue() === "3.25", `${typedMs} ms`);
   if (shown) {
-    const line = await busy.innerText();
-    expect("the busy line says Computing… with seconds and Cancel",
-      /Computing…|Waiting for the analysis engine/.test(line) && /\d+\.\d s/.test(line)
-      && await busy.getByRole("button", { name: "Cancel" }).count() === 1, line.replace(/\s+/g, " "));
+    // the newer input's job, once it runs (typing retired the old worker)
+    await page.waitForFunction(() => /Computing…/.test(
+      document.querySelector(".pane-results .analysis-busy")?.textContent ?? ""), null, { timeout: 60000 });
     const restarts = await page.evaluate(() => globalThis.__opendoseEngine.stats.restarts);
-    await busy.getByRole("button", { name: "Cancel" }).click();
+    await busy.getByRole("button", { name: "Cancel" }).click({ timeout: 20000 });
     const cancelled = await page.locator(".pane-results .analysis-busy.cancelled")
       .waitFor({ timeout: 5000 }).then(() => true, () => false);
     expect("Cancel stops the computation and says the results are out of date", cancelled
       && /cancelled/i.test(await page.locator(".pane-results .analysis-busy").innerText()));
-    expect("the running job's worker was replaced",
+    expect("the running job's worker was replaced (Python cannot be interrupted)",
       await page.evaluate(() => globalThis.__opendoseEngine.stats.restarts) === restarts + 1);
-  } else {
-    console.log("note: the ANOVA finished in under a second; nothing to cancel");
   }
-  // the engine works after the cancel: column statistics on the same table
+  // the engine computes again after the cancel: a straight-line fit
+  await navRow("Nine groups").click();
   await page.locator(".analysis-select").first().selectOption("column_statistics");
   const back = await page.waitForSelector('.pane-results[data-live="true"] .stat-cols', { timeout: 120000 })
     .then(() => true, () => false);
