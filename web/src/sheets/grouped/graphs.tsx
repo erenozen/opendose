@@ -102,7 +102,7 @@ export function GroupedPlot({ graph, table, options, result, titles, scheme, for
     const layout = { ...built0.layout, showlegend: true,
       margin: { ...(built0.layout.margin ?? {}), t: 36 } } as Partial<Plotly.Layout>;
     return { ...built0, traces, layout };
-  }, [built0, superOn, table, base.superplot, base.spread, scale, scheme, dark]);
+  }, [built0, superOn, table, base.superplot, base.spread, scale, scheme, dark, kind]);
   const sentence = useMemo(() => (settings.caption === "off" ? ""
     : legendSentence(graph, table, result)), [settings.caption, graph, table, result]);
   const cmp = useMemo(() => groupedComparisons(result, table), [result, table]);
