@@ -76,8 +76,24 @@ test("asterisks: GraphPad to ****, APA and NEJM stop at ***, ns can be hidden", 
 test("reporting preferences are validated", () => {
   assert.deepEqual(sanitizeReport(undefined), DEFAULT_REPORT);
   assert.deepEqual(sanitizeReport({ pStyle: "apa", hideNs: true, smd: "g", variance: "omega2" }),
-    { pStyle: "apa", hideNs: true, smd: "g", variance: "omega2" });
+    { pStyle: "apa", hideNs: true, smd: "g", variance: "omega2", pFloor: "1e-4" });
   assert.equal(sanitizeReport({ pStyle: "chicago" }).pStyle, "graphpad");
+  assert.equal(sanitizeReport({ pFloor: "1e-6" }).pFloor, "1e-6");
+  assert.equal(sanitizeReport({ pFloor: 0.001 }).pFloor, "1e-4");
+});
+
+test("the GraphPad floor is a preference: 0.0001, 1e-6, 1e-10 or exact", () => {
+  const p = 3.21e-7;
+  assert.equal(pNumber(p, "graphpad", "table", "1e-4"), "< 0.0001");
+  assert.equal(pNumber(p, "graphpad", "table", "1e-6"), "< 0.000001");
+  assert.equal(pNumber(p, "graphpad", "table", "1e-10"), "3.210e-7");
+  assert.equal(pNumber(p, "graphpad", "text", "1e-10"), "3.2e-7");
+  assert.equal(pNumber(1e-12, "graphpad", "table", "1e-10"), "< 1e-10");
+  assert.equal(pNumber(1e-12, "graphpad", "table", "exact"), "1.000e-12");
+  assert.equal(pNumber(0, "graphpad", "table", "exact"), "< 1e-300");
+  // the journal styles keep their own floors
+  assert.equal(pNumber(p, "apa", "table", "exact"), "< .001");
+  assert.equal(pNumber(p, "nejm", "text", "exact"), "<0.001");
 });
 
 // ------------------------------------------------------------ effect sizes

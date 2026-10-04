@@ -2,13 +2,14 @@ import type { ColumnOptionsState } from "../types";
 import LearnMore from "../guide/LearnMore";
 import {
   COLUMN_ANALYSIS_LABELS, COMPARISONS_LABELS, DEFAULT_NORMALITY_TESTS,
-  NORMALITY_TEST_LABELS, TTEST_LABELS, TWO_WAY_DIRECTION_LABELS,
+  NORMALITY_TEST_LABELS, TTEST_LABELS, TWO_WAY_DIRECTION_LABELS, TWO_WAY_MODEL_LABELS,
   UNEQUAL_COMPARISONS_LABELS,
 } from "../types";
 import type {
   ColumnAnalysisKind, ComparisonsMethod, TTestKind,
-  TwoWayComparisons, TwoWayDirection, UnequalComparisons,
+  TwoWayComparisons, TwoWayDirection, TwoWayModel, UnequalComparisons,
 } from "../types";
+import { TWO_WAY_ADDITIVE_NOTE as ADDITIVE_NOTE } from "../types";
 
 interface Props {
   options: ColumnOptionsState;
@@ -265,11 +266,35 @@ export default function ColumnControls({ options, datasetNames, onChange }: Prop
             <span>Method</span>
             <select value={options.corrMethod}
               onChange={(e) =>
-                set({ corrMethod: e.target.value as "pearson" | "spearman" })}>
+                set({ corrMethod: e.target.value as "pearson" | "spearman" | "kendall" })}>
               <option value="pearson">Pearson (parametric)</option>
               <option value="spearman">Spearman (nonparametric)</option>
+              <option value="kendall">Kendall&apos;s tau-b (nonparametric)</option>
             </select>
           </label>
+          <label className="check-row">
+            <span>P value</span>
+            <select value={options.corrTails ?? "two"}
+              onChange={(e) => set({ corrTails: e.target.value as "two" | "greater" | "less" })}>
+              <option value="two">Two-tailed</option>
+              <option value="greater">Also one-tailed: positive correlation expected</option>
+              <option value="less">Also one-tailed: negative correlation expected</option>
+            </select>
+          </label>
+          {options.corrMethod === "kendall" && (
+            <p className="hint-block">
+              Kendall&apos;s tau-b counts concordant and discordant pairs. With no
+              ties and fewer than 50 pairs the P value is exact; otherwise it uses
+              the normal approximation with the tie-corrected variance (as R&apos;s
+              cor.test).
+            </p>
+          )}
+          {(options.corrTails ?? "two") !== "two" && (
+            <p className="hint-block">
+              Choose the direction before looking at the data; a one-tailed P is
+              half the two-tailed P only when the result goes the expected way.
+            </p>
+          )}
           {pickDataset("Dataset A", options.datasetA, "datasetA")}
           {pickDataset("Dataset B", options.datasetB, "datasetB")}
         </section>
@@ -282,6 +307,18 @@ export default function ColumnControls({ options, datasetNames, onChange }: Prop
             Factor A = table rows, Factor B = datasets, replicates in
             subcolumns. Every row × dataset cell needs values.
           </p>
+          <label className="check-row">
+            <span>Model</span>
+            <select value={options.twoWayModel ?? "full"}
+              onChange={(e) => set({ twoWayModel: e.target.value as TwoWayModel })}>
+              {(Object.keys(TWO_WAY_MODEL_LABELS) as TwoWayModel[]).map((k) => (
+                <option key={k} value={k}>{TWO_WAY_MODEL_LABELS[k]}</option>
+              ))}
+            </select>
+          </label>
+          {options.twoWayModel === "additive" && (
+            <p className="hint-block">{ADDITIVE_NOTE}</p>
+          )}
           <label className="check-row">
             <span>Multiple comparisons</span>
             <select value={options.twoWayComparisons}
@@ -300,6 +337,8 @@ export default function ColumnControls({ options, datasetNames, onChange }: Prop
                 onChange={(e) => set({
                   twoWayDirection: e.target.value as TwoWayDirection })}>
                 {(Object.keys(TWO_WAY_DIRECTION_LABELS) as TwoWayDirection[])
+                  .filter((k) => k !== "all_cells" || options.twoWayModel !== "additive"
+                    || options.twoWayDirection === k)
                   .map((k) => (
                     <option key={k} value={k}>
                       {TWO_WAY_DIRECTION_LABELS[k]}

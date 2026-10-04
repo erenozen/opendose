@@ -3,6 +3,8 @@ import { pLabel, tableP, tableStars } from "../report/pformat";
 
 interface Props {
   result: Record<string, unknown> | null;
+  /** The column analysis' options (which one-sided P to show, ...). */
+  options?: { corrTails?: "two" | "greater" | "less" };
 }
 
 type Row = [string, string];
@@ -165,7 +167,13 @@ function TTest({ result }: { result: any }) {
   rows.push([`P value (two-tailed${pKind(result.p_method)})`,
     `${fmtP(result.p_two_tailed)} ${stars(result.p_two_tailed)}`]);
   if (result.t !== undefined) {
-    rows.push(["t, df", `t=${formatSig(result.t)}, df=${formatSig(result.df)}`]);
+    // The engine reports |t|; t carries the sign of the difference shown
+    // below (A − B, or the mean of the paired differences A − B).
+    const diff = result.difference ?? result.mean_difference;
+    const t = typeof result.t === "number" && typeof diff === "number" && diff < 0
+      ? -Math.abs(result.t) : result.t;
+    rows.push(["t, df", `t=${formatSig(t)}, df=${formatSig(result.df)}`
+      + (typeof diff === "number" ? ` (direction: ${nameA} − ${nameB})` : "")]);
   }
   if (result.U !== undefined) rows.push(["Mann-Whitney U", formatSig(result.U)]);
   if (result.sum_ranks_a !== undefined) {
@@ -185,14 +193,14 @@ function TTest({ result }: { result: any }) {
     rows.push(
       [`Mean of ${nameA}`, `${formatSig(result.mean_a)} ± ${formatSig(result.sem_a)} (n=${result.n_a})`],
       [`Mean of ${nameB}`, `${formatSig(result.mean_b)} ± ${formatSig(result.sem_b)} (n=${result.n_b})`],
-      ["Difference between means",
+      [`Difference between means (${nameA} − ${nameB})`,
        `${formatSig(result.difference)} ± ${formatSig(result.se_difference)}`],
       ["95% CI of difference", fmtCI(result.ci_difference)],
     );
   }
   if (result.mean_difference !== undefined) {
     rows.push(
-      ["Mean of differences", formatSig(result.mean_difference)],
+      [`Mean of differences (${nameA} − ${nameB})`, formatSig(result.mean_difference)],
       ["95% CI of difference", fmtCI(result.ci_difference)],
     );
   }
@@ -287,6 +295,9 @@ function Anova({ result }: { result: any }) {
         <h3>Kruskal-Wallis test</h3>
         <KV rows={[
           ["Kruskal-Wallis H", formatSig(result.H)],
+          ...(Array.isArray(result.group_summaries) && result.group_summaries.length > 1
+            ? [["df (chi-square approximation)", String(result.group_summaries.length - 1)] as Row]
+            : []),
           ["P value", `${fmtP(result.p)} ${stars(result.p)}`],
         ]} />
         {result.dunns && (
@@ -301,19 +312,63 @@ function Anova({ result }: { result: any }) {
     );
   }
   const t = result.table;
+  const num = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
+  const msWithin = num(t.ms_within) ? t.ms_within
+    : num(t.ss_within) && num(t.df_within) && t.df_within > 0 ? t.ss_within / t.df_within : null;
+  const msBetween = num(t.ms_between) ? t.ms_between
+    : num(t.ss_between) && num(t.df_between) && t.df_between > 0 ? t.ss_between / t.df_between : null;
+  const ssTotal = num(t.ss_total) ? t.ss_total
+    : num(t.ss_between) && num(t.ss_within) ? t.ss_between + t.ss_within : null;
+  const variance: Row[] = [];
+  const bf = result.brown_forsythe, bt = result.bartlett, fk = result.fligner_killeen;
+  if (bf && num(bf.F)) variance.push(["Brown-Forsythe", `F=${formatSig(bf.F)}, P=${fmtP(bf.p)}`]);
+  if (bt && num(bt.statistic)) {
+    variance.push(["Bartlett's", `${formatSig(bt.statistic)}, P=${fmtP(bt.p)}`]);
+  }
+  if (fk && num(fk.statistic)) {
+    variance.push(["Fligner-Killeen (median-centred)",
+      `χ²=${formatSig(fk.statistic)}, df=${fk.df}, P=${fmtP(fk.p)}`]);
+  }
   return (
     <div className="result-card">
       <h3>Ordinary one-way ANOVA</h3>
+      <table className="results-table anova-table">
+        <caption className="sr-only">ANOVA table</caption>
+        <thead>
+          <tr><th scope="col">Source of variation</th><th scope="col">SS</th>
+            <th scope="col">DF</th><th scope="col">MS</th><th scope="col">F (DFn, DFd)</th>
+            <th scope="col">P value</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">Treatment (between columns)</th>
+            <td>{formatSig(t.ss_between)}</td><td>{t.df_between}</td><td>{formatSig(msBetween)}</td>
+            <td>{`F(${t.df_between}, ${t.df_within}) = ${formatSig(t.F)}`}</td>
+            <td>{`${fmtP(t.p)} ${stars(t.p)}`}</td>
+          </tr>
+          <tr>
+            <th scope="row">Residual (within columns)</th>
+            <td>{formatSig(t.ss_within)}</td><td>{t.df_within}</td><td>{formatSig(msWithin)}</td>
+            <td /><td />
+          </tr>
+          <tr>
+            <th scope="row">Total</th>
+            <td>{formatSig(ssTotal)}</td>
+            <td>{num(t.df_between) && num(t.df_within) ? t.df_between + t.df_within : "n/a"}</td>
+            <td /><td /><td />
+          </tr>
+        </tbody>
+      </table>
       <KV rows={[
         ["F (DFn, DFd)", `F(${t.df_between}, ${t.df_within}) = ${formatSig(t.F)}`],
         ["P value", `${fmtP(t.p)} ${stars(t.p)}`],
         ["R squared", formatSig(t.r_squared)],
         ["SS (treatment / residual)",
          `${formatSig(t.ss_between)} / ${formatSig(t.ss_within)}`],
-        ["Brown-Forsythe",
-         `F=${formatSig(result.brown_forsythe.F)}, P=${fmtP(result.brown_forsythe.p)}`],
-        ["Bartlett's",
-         `${formatSig(result.bartlett.statistic)}, P=${fmtP(result.bartlett.p)}`],
+        ["MS (treatment / residual)", `${formatSig(msBetween)} / ${formatSig(msWithin)}`],
+        ["Residual SD (pooled, √MS residual)",
+         msWithin !== null ? formatSig(Math.sqrt(msWithin)) : "n/a"],
+        ...variance,
       ]} />
       {result.multiple_comparisons && (
         <>
@@ -350,16 +405,33 @@ function Outliers({ result }: { result: any }) {
   );
 }
 
-function Correlation({ result }: { result: any }) {
+function Correlation({ result, tails }: { result: any; tails?: "two" | "greater" | "less" }) {
   const [a, b] = result.names ?? ["A", "B"];
+  const kendall = result.method === "kendall";
+  const name = result.method === "pearson" ? "Pearson r"
+    : kendall ? "Kendall's tau-b" : "Spearman r";
+  const pType = result.p_type === "exact" || result.p_method === "exact" ? ", exact"
+    : result.p_type === "normal" || result.p_type === "approximate" ? ", approximate" : "";
   const rows: Row[] = [
-    [result.method === "pearson" ? "Pearson r" : "Spearman r", formatSig(result.r)],
+    [name, formatSig(kendall ? result.tau ?? result.r : result.r)],
     ["95% CI of r", fmtCI(result.ci_r)],
-    ["P value (two-tailed)", `${fmtP(result.p_two_tailed)} ${stars(result.p_two_tailed)}`],
+    [`P value (two-tailed${pType})`, `${fmtP(result.p_two_tailed)} ${stars(result.p_two_tailed)}`],
     ["n (XY pairs)", String(result.n)],
   ];
   if (result.r_squared !== undefined) {
     rows.splice(2, 0, ["R squared", formatSig(result.r_squared)]);
+  }
+  if (kendall) {
+    rows.splice(1, 0, ["S (concordant − discordant pairs)",
+      `${formatSig(result.S)} (${result.concordant} concordant, ${result.discordant} discordant)`]);
+    rows[2] = ["95% CI of tau (Fisher z, approximate)", fmtCI(result.ci_r)];
+  }
+  if (tails === "greater" || tails === "less") {
+    const p = tails === "greater" ? result.p_greater : result.p_less;
+    const ci = tails === "greater" ? result.ci_r_greater : result.ci_r_less;
+    const dir = tails === "greater" ? "positive (r > 0)" : "negative (r < 0)";
+    rows.push([`P value (one-tailed, alternative: ${dir})`, `${fmtP(p)} ${stars(p)}`]);
+    if (Array.isArray(ci)) rows.push([`One-sided 95% confidence bound`, fmtCI(ci)]);
   }
   return (
     <div className="result-card">
@@ -374,6 +446,13 @@ function TwoWayAnova({ result }: { result: any }) {
   return (
     <div className="result-card">
       <h3>Two-way ANOVA ({result.type})</h3>
+      {result.model && (
+        <p className="model-line">
+          Model: {String(result.model)}. Without the interaction term its sum of
+          squares is pooled into the residual, and the row and column effects are
+          each tested against that residual (R&apos;s aov(y ~ A + B)).
+        </p>
+      )}
       <table className="results-table">
         <thead>
           <tr>
@@ -403,7 +482,9 @@ function TwoWayAnova({ result }: { result: any }) {
               ? "Tukey" : String(result.multiple_comparisons.method)
                 .replace(/^./, (ch: string) => ch.toUpperCase())}{" "}
             multiple comparisons
-            (MS<sub>residual</sub> = {formatSig(result.multiple_comparisons.ms_residual)},
+            {result.multiple_comparisons.direction === "all_cells"
+              ? " of every cell mean with every other" : ""}
+            {" "}(MS<sub>residual</sub> = {formatSig(result.multiple_comparisons.ms_residual)},
             df = {result.multiple_comparisons.df_residual})
           </h4>
           <table className="results-table">
@@ -575,7 +656,8 @@ function RoutColumn({ result }: { result: any }) {
 
 const METHOD_NAMES: Record<string, string> = {
   tukey: "Tukey", dunnett: "Dunnett", bonferroni: "Bonferroni", sidak: "Šídák",
-  holm_sidak: "Holm-Šídák", newman_keuls: "Newman-Keuls", fisher_lsd: "Fisher's LSD",
+  holm_sidak: "Holm-Šídák", holm: "Holm (Bonferroni step-down)",
+  newman_keuls: "Newman-Keuls", fisher_lsd: "Fisher's LSD",
   games_howell: "Games-Howell", dunnett_t3: "Dunnett T3", tamhane_t2: "Tamhane T2",
   welch_uncorrected: "Welch t (uncorrected)",
 };
@@ -701,7 +783,7 @@ function MedianTest({ result }: { result: any }) {
   );
 }
 
-export default function StatsResults({ result }: Props) {
+export default function StatsResults({ result, options }: Props) {
   if (!result) return null;
   if (result.error) {
     return <div className="results-error">Analysis failed: {String(result.error)}</div>;
@@ -718,7 +800,7 @@ export default function StatsResults({ result }: Props) {
     case "two_way_anova": return <TwoWayAnova result={result} />;
     case "rm_two_way_mixed":
     case "rm_two_way_both": return <RMTwoWay result={result} />;
-    case "correlation": return <Correlation result={result} />;
+    case "correlation": return <Correlation result={result} tails={options?.corrTails} />;
     case "roc": return <Roc result={result} />;
     case "bland_altman": return <BlandAltman result={result} />;
     case "outliers": return <Outliers result={result} />;

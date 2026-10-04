@@ -134,6 +134,11 @@ export interface DataTableModel {
    *  grouped table, for SuperPlots and statistics on replicate means
    *  (sheets/common/superplot.ts). Absent = each Y subcolumn is one. */
   replicates?: ReplicateMap;
+  /** Names of the factors the rows and the data sets stand for, when the
+   *  table came from a file that named them (the header above the row
+   *  titles; a long file's factor columns). Two-way analyses use them
+   *  until the user names the factors. */
+  factorNames?: { rows?: string; datasets?: string };
 }
 
 /** Which values belong to which biological replicate (experiment).
