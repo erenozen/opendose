@@ -169,6 +169,124 @@ export function scoreReading(score: number | null | undefined): string {
   return "likely additive";
 }
 
+// ------------------------------------------------------------ matrices
+
+/** One dose × dose matrix of a synergy result: the observed response,
+ *  each model's expected (reference) response, the ZIP-fitted response,
+ *  or a model's synergy (observed − expected; ZIP: fitted − expected). */
+export type MatrixView =
+  | "observed" | "hsa_expected" | "bliss_expected" | "loewe_expected" | "zip_expected" | "zip_fitted"
+  | "hsa_synergy" | "bliss_synergy" | "loewe_synergy" | "zip_synergy";
+
+export interface MatrixViewDef {
+  key: MatrixView;
+  label: string;
+  /** "response": % inhibition (sequential scale); "synergy": a difference
+   *  around 0 (diverging scale). */
+  kind: "response" | "synergy";
+  model: SynergyModel | null;
+}
+
+export const MATRIX_VIEWS: MatrixViewDef[] = [
+  { key: "observed", label: "Observed response (% inhibition)", kind: "response", model: null },
+  { key: "hsa_expected", label: "HSA expected response", kind: "response", model: "hsa" },
+  { key: "bliss_expected", label: "Bliss expected response", kind: "response", model: "bliss" },
+  { key: "loewe_expected", label: "Loewe expected response", kind: "response", model: "loewe" },
+  { key: "zip_expected", label: "ZIP expected response (from the monotherapy fits)", kind: "response", model: "zip" },
+  { key: "zip_fitted", label: "ZIP fitted response (dose-response slices)", kind: "response", model: "zip" },
+  { key: "hsa_synergy", label: "HSA synergy", kind: "synergy", model: "hsa" },
+  { key: "bliss_synergy", label: "Bliss synergy", kind: "synergy", model: "bliss" },
+  { key: "loewe_synergy", label: "Loewe synergy", kind: "synergy", model: "loewe" },
+  { key: "zip_synergy", label: "ZIP synergy", kind: "synergy", model: "zip" },
+];
+
+export function isMatrixView(v: unknown): v is MatrixView {
+  return MATRIX_VIEWS.some((d) => d.key === v);
+}
+
+type Mat = (number | null)[][];
+/* eslint-disable @typescript-eslint/no-explicit-any */
+type Res = Record<string, any>;
+
+/** The matrix of a view from the engine's synergy result (null when the
+ *  result does not carry it). */
+export function viewMatrix(result: Res | null | undefined, view: MatrixView): Mat | null {
+  if (!result || result.error) return null;
+  const ok = (m: unknown): Mat | null => (Array.isArray(m) && m.every(Array.isArray) ? m as Mat : null);
+  if (view === "observed") return ok(result.response);
+  const [model, what] = view.split("_") as [SynergyModel, string];
+  const e = result.models?.[model];
+  if (!e) return null;
+  if (what === "expected") return ok(e.reference);
+  if (what === "fitted") return ok(e.fitted);
+  return ok(e.synergy);
+}
+
+/** Matrices listed by the results table's "Show" choice: the observed
+ *  response with the synergy of each shown model (the default), every
+ *  matrix, or one. */
+export type MatrixTableChoice = "default" | "all" | MatrixView;
+
+export function matricesFor(choice: MatrixTableChoice, shown: SynergyModel[]): MatrixViewDef[] {
+  const inShown = (d: MatrixViewDef) => d.model === null || shown.includes(d.model);
+  if (choice === "default") {
+    return MATRIX_VIEWS.filter((d) => d.key === "observed" || (d.kind === "synergy" && inShown(d)));
+  }
+  if (choice === "all") return MATRIX_VIEWS.filter(inShown);
+  return MATRIX_VIEWS.filter((d) => d.key === choice);
+}
+
+// ------------------------------------------------------------ checks
+
+/** Why the Chou-Talalay combination indices may not be trusted: a
+ *  monotherapy curve that could not be fitted or fits poorly, or a
+ *  median-effect line that is missing, slopes the wrong way (r < 0: the
+ *  effect falls as the dose rises) or is poor (|r| < 0.9, Chou 2010). */
+export function monotherapyIssues(result: Res | null | undefined): string[] {
+  if (!result || result.error) return [];
+  const out: string[] = [];
+  const name = (k: "drug1" | "drug2") => String(result[k] ?? (k === "drug1" ? "Drug 1" : "Drug 2"));
+  for (const k of ["drug1", "drug2"] as const) {
+    const mono = result.monotherapy?.[k];
+    if (mono && mono.fitted === false) out.push(`the four-parameter fit of ${name(k)} alone failed`);
+    else if (mono && typeof mono.r_squared === "number" && mono.r_squared < 0.8) {
+      out.push(`the four-parameter fit of ${name(k)} alone is poor (R² = ${fmt(mono.r_squared)})`);
+    }
+    const me = result.chou_talalay?.[k];
+    if (!me) out.push(`${name(k)} has no median-effect line (fewer than two doses with Fa between 0 and 1)`);
+    else if (typeof me.r === "number" && me.r < 0) {
+      out.push(`the median-effect line of ${name(k)} slopes the wrong way (r = ${fmt(me.r)}: the effect falls as the dose rises)`);
+    } else if (typeof me.r === "number" && Math.abs(me.r) < 0.9) {
+      out.push(`the median-effect line of ${name(k)} fits poorly (r = ${fmt(me.r)})`);
+    }
+  }
+  return out;
+}
+
+const fmt = (v: number) => String(Number(v.toPrecision(3)));
+
+/** A sentence when the summary scores and the combination indices point
+ *  opposite ways (scores above 10 with a median CI above 1, or below −10
+ *  with a median CI below 1), else null. */
+export function scoresVsCi(result: Res | null | undefined, shown: SynergyModel[]): string | null {
+  if (!result || result.error) return null;
+  const scores = shown.map((m) => result.models?.[m]?.score).filter((v): v is number => typeof v === "number");
+  const cis = ((result.chou_talalay?.combinations ?? []) as Res[]).map((c) => c.ci)
+    .filter((v): v is number => typeof v === "number" && Number.isFinite(v)).sort((a, b) => a - b);
+  if (!scores.length || !cis.length) return null;
+  const syn = scores.filter((s) => s > 10).length;
+  const ant = scores.filter((s) => s < -10).length;
+  const mid = cis.length % 2 ? cis[(cis.length - 1) / 2] : (cis[cis.length / 2 - 1] + cis[cis.length / 2]) / 2;
+  const reading = syn > scores.length / 2 ? "synergistic" : ant > scores.length / 2 ? "antagonistic" : null;
+  if (reading === "synergistic" && mid > 1) {
+    return `The synergy scores read “likely synergistic” but the median combination index is ${fmt(mid)} (antagonism).`;
+  }
+  if (reading === "antagonistic" && mid < 1) {
+    return `The synergy scores read “likely antagonistic” but the median combination index is ${fmt(mid)} (synergism).`;
+  }
+  return null;
+}
+
 /** A pasted matrix: the first row holds drug 2 concentrations (its first
  *  cell is a label or blank), the first column drug 1 concentrations;
  *  replicate matrices follow, separated by blank lines. */

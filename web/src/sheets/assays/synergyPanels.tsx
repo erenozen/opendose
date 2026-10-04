@@ -6,9 +6,11 @@ import { updateTable } from "../../project/ops";
 import { formatSig } from "../../types";
 import CopyableMethods from "../common/CopyableMethods";
 import type { ControlsProps, ResultsProps } from "../types";
+import { Chip } from "./kit/ui";
 import {
-  MODEL_LABEL, MODEL_LONG, SYNERGY_MODELS, parseMatrixBlocks, scoreReading, synergyTable,
-  type SynergyColumns, type SynergyModel, type SynergyOptions,
+  MATRIX_VIEWS, MODEL_LABEL, MODEL_LONG, SYNERGY_MODELS, matricesFor, monotherapyIssues, parseMatrixBlocks,
+  scoreReading, scoresVsCi, synergyTable, viewMatrix,
+  type MatrixTableChoice, type SynergyColumns, type SynergyModel, type SynergyOptions,
 } from "./synergyModel";
 import { Card, Check, Grid, Note, Problem, Row, Select, TextIn, Warnings } from "./ui";
 
@@ -120,6 +122,7 @@ function Matrix({ title, m, c1, c2, sig = 3 }: { title: string; m: (number | nul
 }
 
 export function SynergyResults({ options, result }: ResultsProps<SynergyOptions, R>) {
+  const [view, setView] = useState<MatrixTableChoice>("default");
   if (!result) return null;
   if (result.error) return <Problem result={result} />;
   const shown = SYNERGY_MODELS.filter((m) => options.models[m]);
@@ -131,6 +134,8 @@ export function SynergyResults({ options, result }: ResultsProps<SynergyOptions,
   const reps = result.n_replicates as number;
   const mono = result.monotherapy as R;
   const ct = result.chou_talalay as R;
+  const issues = monotherapyIssues(result);
+  const contradiction = scoresVsCi(result, shown);
   return (
     <>
       <Card title="Synergy scores">
@@ -156,22 +161,39 @@ export function SynergyResults({ options, result }: ResultsProps<SynergyOptions,
               : ["not fitted", "", "", "", ""])])} />
       </Card>
       <Card title="Synergy at each dose pair">
-        <p className="hint-block">Observed minus expected % inhibition; rows are {d1}, columns {d2}{unit}.
-          Positive values mean more effect than the model expects.</p>
-        <Matrix title="Observed response (% inhibition)" m={result.response} c1={c1} c2={c2} />
-        {shown.map((m) => (
-          <Matrix key={m} title={`${MODEL_LABEL[m]} synergy`} m={result.models[m].synergy} c1={c1} c2={c2} />
-        ))}
+        <Row label="Show">
+          <select aria-label="Show matrices" value={view}
+            onChange={(e) => setView(e.target.value as MatrixTableChoice)}>
+            <option value="default">Observed response and synergy</option>
+            <option value="all">Every matrix (observed, expected, fitted, synergy)</option>
+            {MATRIX_VIEWS.filter((d) => d.model === null || shown.includes(d.model)).map((d) => (
+              <option key={d.key} value={d.key}>{d.label}</option>
+            ))}
+          </select>
+        </Row>
+        <p className="hint-block">Rows are {d1}, columns {d2}{unit}; responses in % inhibition. Synergy is
+          observed minus expected % inhibition (ZIP: the fitted response minus the expected); positive
+          values mean more effect than the model expects. Copy results or CSV above exports the
+          matrices shown.</p>
+        {matricesFor(view, shown).map((d) => {
+          const m = viewMatrix(result, d.key);
+          return m ? <Matrix key={d.key} title={d.label} m={m} c1={c1} c2={c2} /> : null;
+        })}
       </Card>
-      <Card title="Chou-Talalay combination index">
+      <Card title={<>Chou-Talalay combination index{issues.length > 0 && (
+        <> <Chip tone="warn" title={issues.join("; ")}>Monotherapy fit poor: CIs unreliable</Chip></>
+      )}</>}>
         <Grid caption="Median-effect fits" head={["Drug", "m (slope)", `Dm${unit}`, "r"]}
           rows={[["drug1", d1], ["drug2", d2]].map(([k, n]) => {
             const e = ct?.[k] as R | null;
             return [n, e ? f(e.m) : "n/a", e ? f(e.Dm) : "n/a", e ? f(e.r) : "n/a"];
           })} />
-        {[ct?.drug1, ct?.drug2].some((e: R | null) => !e || Math.abs(e.r) < 0.9) && (
-          <Note warn>A median-effect fit with |r| below 0.9 (or none) means that drug’s dose-effect
-            line is poor; the combination indices that use it are unreliable (Chou 2010).</Note>
+        {(issues.length > 0 || contradiction) && (
+          <Note warn>
+            {contradiction ? `${contradiction} ` : ""}
+            {issues.length > 0 && `The combination indices below are unreliable: ${issues.join("; ")} (Chou 2010). `}
+            {contradiction && issues.length > 0 && "Read the synergy scores and landscapes, which use the four-parameter fits, rather than these indices."}
+          </Note>
         )}
         <Grid caption="Combination index per dose pair" head={[`${d1}${unit}`, `${d2}${unit}`, "Fa", "CI",
           `DRI ${d1}`, `DRI ${d2}`, "Interpretation"]}
