@@ -79,8 +79,41 @@ export async function runPerf({ newSession, appUrl, browser, friction }) {
       const res = performance; void res;
       const bytes = await s.page.evaluate(() => performance.getEntriesByType("resource")
         .reduce((a, r) => a + (r.transferSize || 0), 0));
+      const marks = await s.page.evaluate(() => globalThis.__opendoseEngine?.stats?.boots?.[0] ?? null);
       add(`cold load to first results, run ${i}`, s.loadMs,
-        `DOMContentLoaded ${Math.round(nav?.dcl ?? 0)} ms; ${(bytes / 1e6).toFixed(1)} MB transferred (fresh profile, no cache)`);
+        `DOMContentLoaded ${Math.round(nav?.dcl ?? 0)} ms; ${(bytes / 1e6).toFixed(1)} MB transferred (fresh profile, no cache)`
+        + (s.firstMs !== undefined && s.firstMs < s.loadMs - 50 ? `; first numbers (saved example results) at ${s.firstMs} ms, live engine results at ${s.loadMs} ms` : "")
+        + (marks ? `; engine boot ${marks.ms} ms` : ""),
+        { first_ms: s.firstMs, boot: marks });
+      if (i < 3) { await s.ctx.close(); return; }
+      // The same browser again: warm HTTP cache (and, in a production
+      // build, the offline cache once its service worker has installed).
+      const reload = async (label, extra = "") => {
+        const t0 = Date.now();
+        await s.page.reload({ waitUntil: "domcontentloaded" });
+        await s.page.waitForSelector(".results-table", { timeout: 240000 });
+        const first = Date.now() - t0;
+        const marked = await s.page.locator(".pane-results[data-live]").count();
+        if (marked) await s.page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 240000 });
+        const live = Date.now() - t0;
+        const sw = await s.page.evaluate(() => !!navigator.serviceWorker?.controller);
+        add(label, first, `live engine results at ${live} ms${sw ? "; served by the offline cache" : ""}${extra}`,
+          { live_ms: live, service_worker: sw });
+        return sw;
+      };
+      await guard("warm reload to first results", () => reload("warm reload to first results"));
+      // give a service worker time to install and copy the files
+      await s.page.waitForFunction(() => navigator.serviceWorker?.controller
+        || !("serviceWorker" in navigator), null, { timeout: 60000 }).catch(() => {});
+      await wait(s.page, 3000);
+      const sw = await s.page.evaluate(() => !!navigator.serviceWorker?.controller);
+      if (sw) {
+        await guard("second warm reload (offline cache)", () => reload("second warm reload (offline cache)"));
+        await guard("offline reload", async () => {
+          await s.ctx.setOffline(true);
+          try { await reload("offline reload", "; network switched off"); } finally { await s.ctx.setOffline(false); }
+        });
+      }
       await s.ctx.close();
     });
   }
@@ -111,6 +144,47 @@ export async function runPerf({ newSession, appUrl, browser, friction }) {
     await page.locator('.data-table input[aria-label="Control, row 1"]').fill("99");
     await until(page, async () => (await resultsText(page)) !== before);
     add("edit one cell of the 2,000-row table → t test updated", Date.now() - t1, "");
+  });
+
+  // 2b. a long analysis must not freeze the page ----------------------------
+  // One-way ANOVA on 9 groups × 2,001 values (NIST SmLs09's size): how long
+  // until its result, how long the page's main thread was blocked
+  // meanwhile, and how long typing 9 characters into the grid took.
+  await guard("one-way ANOVA, 9 × 2,001 values: page stays responsive", async () => {
+    await newProject(page);
+    await newTable(page, "column", "Nine groups", { "Groups (columns)": 9, "Rows (values per group)": 2001 });
+    let seed = 5;
+    const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+    const lines = [Array.from({ length: 9 }, (_, g) => `G${g + 1}`).join(","),
+      ...Array.from({ length: 2001 }, () => Array.from({ length: 9 },
+        (_, g) => (1000000.4 + g * 0.01 + 0.1 * rnd()).toFixed(4)).join(","))];
+    await pasteCsv(page, lines.join("\n"), "Group A, row 1");
+    await until(page, async () => (await page.locator(".data-table tbody tr").count()) >= 2001);
+    await wait(page, 2000);
+    await longTasks(page);
+    const t0 = Date.now();
+    await page.locator(".analysis-select").first().selectOption("anova");
+    await wait(page, 500);
+    // typing while it computes (a newer input replaces the running job)
+    const cellIn = page.locator('.data-table input[aria-label="G9, row 2001"]');
+    await cellIn.click();
+    const k0 = Date.now();
+    await page.keyboard.type("1000000.5");
+    const typing = Date.now() - k0;
+    await page.keyboard.press("Enter");
+    const busySeen = await page.locator(".pane-results .analysis-busy").waitFor({ timeout: 5000 })
+      .then(() => true, () => false);
+    const ms = await until(page, async () => /Source of variation|F \(/.test(await resultsText(page))
+      && (await page.locator('.pane-results[data-live="true"]').count()) > 0, 240000).catch(() => null);
+    const lt = await page.evaluate(() => { const a = window.__lt ?? []; window.__lt = []; return a; });
+    const blocked = Math.round(lt.reduce((x, y) => x + y, 0));
+    const worst = Math.round(Math.max(0, ...lt));
+    add("one-way ANOVA, 9 × 2,001 values: page stays responsive", ms === null ? null : Date.now() - t0,
+      `result ${ms === null ? "not shown within 4 min" : "shown"}; typing 9 characters meanwhile took ${typing} ms; `
+      + `main thread blocked ${blocked} ms in total, longest task ${worst} ms`
+      + `${busySeen ? "; busy line with Cancel shown" : ""}`,
+      { typing_ms: typing, blocked_ms: blocked, longest_task_ms: worst, busy_line: busySeen });
+    rows.at(-1).slow = worst > 1000;
   });
 
   // 3. 500-point XY fit ----------------------------------------------------
@@ -207,6 +281,28 @@ export async function runPerf({ newSession, appUrl, browser, friction }) {
       { redo_steps: rp, restored: ok });
     rows.at(-1).slow = (Date.now() - r0) / Math.max(1, rp) > 1000;
     if (!ok) friction("wrong", `Undo/redo after 200 edits did not restore the table (${back} of ${nFilled} values back after ${rp} redo steps).`);
+    // The app's own cost per step, without Playwright's round trips per
+    // click: every undo, then every redo, through the store, each step
+    // followed by a rendered frame (builds that expose the store only).
+    const appSide = await page.evaluate(async () => {
+      const app = globalThis.__opendose;
+      if (!app) return null;
+      const frame = () => new Promise((r) => requestAnimationFrame(() => setTimeout(r, 0)));
+      let n = 0;
+      const t0 = performance.now();
+      while (app.store.canUndo && n < 1100) { app.store.undo(); n++; await frame(); }
+      const tu = performance.now() - t0;
+      let m = 0;
+      const t1 = performance.now();
+      while (app.store.canRedo && m < 1100) { app.store.redo(); m++; await frame(); }
+      return { undo: Math.round(tu), redo: Math.round(performance.now() - t1), n, m };
+    });
+    if (appSide) {
+      add("undo all + redo all, app side (one rendered frame per step)", appSide.undo + appSide.redo,
+        `${appSide.n} undo steps ${appSide.undo} ms (${(appSide.undo / Math.max(1, appSide.n)).toFixed(1)} ms each), `
+        + `${appSide.m} redo steps ${appSide.redo} ms`, { aggregate: true });
+      rows.at(-1).slow = (appSide.undo + appSide.redo) / Math.max(1, appSide.n + appSide.m) > 100;
+    }
   });
 
   // 6. reload and restore a 30-sheet project -------------------------------

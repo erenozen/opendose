@@ -143,8 +143,14 @@ async function newSession({ example = true } = {}) {
   page.on("console", (m) => { if (m.type() === "error") log.errors.push(`console: ${m.text().slice(0, 300)}`); });
   const t0 = Date.now();
   await page.goto(example ? appUrl({ example: "1" }) : appUrl(), { waitUntil: "domcontentloaded" });
+  // First numbers on screen (builds that show saved or bundled results
+  // before the engine is up), then the live engine's results; sites
+  // without the data-live marker show results only when they are live.
   await page.waitForSelector(".results-table", { timeout: 240000 });
-  return { ctx, page, log, loadMs: Date.now() - t0 };
+  const firstMs = Date.now() - t0;
+  const marked = await page.locator(".pane-results[data-live]").count();
+  if (marked) await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 240000 });
+  return { ctx, page, log, loadMs: Date.now() - t0, firstMs };
 }
 
 const frictions = new Map();   // text -> { kind, text, datasets: Set }
