@@ -43,3 +43,9 @@
 .fit-guard-note h4 { margin: 0 0 6px; font-size: 13.5px; color: var(--ink); }
 .fit-guard-note p { margin: 0 0 10px; }
 .pane-results[data-live="false"] .fit-guard-note { opacity: 1; }
+
+/* Large tables scroll inside their card (FamilyWorkspace): with
+   thousands of inputs, a card as tall as its table made every keystroke
+   re-composite all of them (tens of seconds); scrolling inside keeps
+   the work to the rows in view. */
+.pane-table.large-table .data-table { max-height: max(420px, 85vh); }

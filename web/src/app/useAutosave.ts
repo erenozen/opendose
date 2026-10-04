@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   deleteSlot, rotateOnBoot, writeSlot, type AutosaveRecord,
 } from "../project/autosave";
@@ -35,25 +35,31 @@ export function useAutosave() {
 
   // Computed results go into the autosave too (with the fingerprint of
   // their input), so a reload shows them at once and recomputes only what
-  // changed; and so does the sheet on screen, reopened next time.
-  const [resultsVersion, bumpResults] = useReducer((x: number) => x + 1, 0);
-  useEffect(() => results.subscribeAll(bumpResults), [results]);
-
-  // Nothing is written until the session actually changes something, so
-  // merely opening the app never overwrites the session on offer. A
-  // shared project is never written (it is in the link already).
-  useEffect(() => {
-    if (readOnly || history.present === boot.current) return;
-    const p = history.present;
-    const t = setTimeout(() => {
+  // changed; and so does the sheet on screen, reopened next time. Writes
+  // are scheduled outside React: results arriving never re-render the app.
+  const selectedRef = useRef(selectedId);
+  selectedRef.current = selectedId;
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const schedule = useRef(() => {});
+  schedule.current = () => {
+    // Nothing is written until the session actually changes something,
+    // so merely opening the app never overwrites the session on offer. A
+    // shared project is never written (it is in the link already).
+    if (readOnly || store.project === boot.current) return;
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => {
+      timer.current = null;
+      const p = store.project;
       void writeSlot("current", {
         savedAt: Date.now(), title: p.title, sheets: p.sheets.length,
         json: serializeProject(p, results.snapshot(),
-          { keys: results.fingerprints(), selected: selectedId, compact: true }),
+          { keys: results.fingerprints(), selected: selectedRef.current, compact: true }),
       });
     }, DELAY_MS);
-    return () => clearTimeout(t);
-  }, [history.present, readOnly, results, resultsVersion, selectedId]);
+  };
+  useEffect(() => results.subscribeAll(() => schedule.current()), [results]);
+  useEffect(() => { schedule.current(); }, [history.present, selectedId, readOnly]);
+  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
 
   /** Reopen the last session. `auto`: opened directly at startup (the
    *  default start mode), said in the status line. */

@@ -21,22 +21,26 @@ import type { AssayModule } from "../index";
 
 // ------------------------------------------------------------ wizard requests
 
-const pending = new Set<string>();
+const pending = new Map<string, number>();
+const REQUEST_MS = 30_000;
 
 /** Ask the assay controls of results sheet `id` to open their wizard the
  *  next time they mount (after "Start from an assay"). Not saved. */
-export function requestWizard(id: string): void { pending.add(id); }
+export function requestWizard(id: string): void { pending.set(id, Date.now() + REQUEST_MS); }
 
-/** True once for a requested sheet. */
+/** Whether a wizard was requested for this sheet. It is read from a state
+ *  initializer, which React may run more than once or throw away, so a
+ *  read does not use the request up: the wizard showing does
+ *  (wizardShown), or the request expires. */
 export function takeWizardRequest(id: string): boolean {
-  const had = pending.has(id);
-  // Read from a state initializer, which React may run more than once or
-  // throw away (StrictMode, a lazy panel suspending while results arrive):
-  // the request stays readable for a moment instead of vanishing on the
-  // first read.
-  if (had) setTimeout(() => pending.delete(id), 3000);
-  return had;
+  const until = pending.get(id);
+  if (until === undefined) return false;
+  if (Date.now() > until) { pending.delete(id); return false; }
+  return true;
 }
+
+/** A wizard is on screen: the request that opened it is answered. */
+export function wizardShown(): void { pending.clear(); }
 
 // ------------------------------------------------------------ new family
 

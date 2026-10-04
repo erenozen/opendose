@@ -1,8 +1,9 @@
 // The step-by-step dialog every assay module opens: numbered steps along
 // the top (any step can be revisited), the current step's form, and
 // Back / Next / Finish. Presentational: the module owns the draft state.
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import Modal from "../../../components/Modal";
+import { wizardShown } from "./create";
 import "./assays.css";
 
 export interface WizardStep {
@@ -23,6 +24,7 @@ export default function Wizard({ title, steps, start = 0, finishLabel = "Finish"
   onFinish: () => void;
 }) {
   const [at, setAt] = useState(Math.min(Math.max(0, start), steps.length - 1));
+  useEffect(() => { wizardShown(); }, []);
   const step = steps[at];
   const last = at === steps.length - 1;
   const blocked = !!step.blocker;

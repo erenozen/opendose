@@ -1,4 +1,4 @@
-import { Suspense, useCallback, useMemo, useRef } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { resolveOptions } from "../app/analysis";
 import { useCommands } from "../app/commands";
 import { useProject } from "../app/context";
@@ -65,8 +65,9 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
   // The engine-ready reveal animates once per session.
   const reveal = engineReady && !api.switchedRef.current ? " reveal" : "";
 
-  const onTableChange: TableEdit = (fn, key) =>
-    apply((p) => updateTable(p, data.id, fn), key ? `table:${key}` : null);
+  const dataId = data.id;
+  const onTableChange: TableEdit = useCallback((fn, key) =>
+    apply((p) => updateTable(p, dataId, fn), key ? `table:${key}` : null), [apply, dataId]);
 
   const editFamily: AsideProps["editFamily"] = (edit) => apply((p) => {
     let next = edit.table ? updateTable(p, data.id, edit.table) : p;
@@ -96,6 +97,19 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
   const Methods = aDef?.MethodsPanel ?? (aDef ? GenericMethodsText : undefined);
 
   const constants = useMemo(() => projectConstants(project), [project]);
+  // The grid re-renders only when its own inputs change, not each time a
+  // computation starts or a result arrives (a large grid is costly).
+  const editor = useMemo(() => (
+    <Editor sheet={data} table={data.table} readOnly={readOnly} onChange={onTableChange} />
+  ), [Editor, data, readOnly, onTableChange]);
+  // A large table's graph follows edits once typing pauses: redrawing
+  // thousands of points on every keystroke would hold up the grid.
+  const settledTable = useSettledTable(data.table);
+  // A large table scrolls inside its card: the browser then lays out and
+  // composites only the rows in view instead of thousands on every edit.
+  const largeTable = useMemo(() => cellCount(data.table) > LARGE_TABLE_CELLS, [data.table]);
+  const graphData = useMemo(() => (settledTable === data.table ? data
+    : { ...data, table: settledTable }), [data, settledTable]);
 
   return (
     <main ref={mainRef}>
@@ -111,14 +125,13 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
             <HSplitter />
           </>
         )}
-        <div className="pane pane-table">
+        <div className={`pane pane-table${largeTable ? " large-table" : ""}`}>
           {data.frozen && (
             <FrozenNote what="data table" onUnfreeze={() => cmd.toggleFreeze(data.id)} />
           )}
           <OriginNote data={data} />
           {!readOnly && <EntryGuide data={data} />}
-          <Editor sheet={data} table={data.table} readOnly={readOnly}
-            onChange={onTableChange} />
+          {editor}
         </div>
         {!entryOnly && (
           <>
@@ -177,7 +190,7 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
             {graph && (
               <>
                 <div className={`pane pane-plot${reveal}`}>
-                  <GraphCard graph={graph} data={data}
+                  <GraphCard graph={graph} data={graphData}
                     result={graph.resultsId === resSheet?.id ? result : other.result}
                     options={graph.resultsId === resSheet?.id ? options : other.options} />
                 </div>
@@ -243,6 +256,29 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
       </div>
     </main>
   );
+}
+
+/** Cells beyond which the graph waits for a pause in typing. */
+const LARGE_TABLE_CELLS = 4000;
+const SETTLE_MS = 500;
+
+function cellCount(t: DataTableModel): number {
+  let n = t.x.length;
+  for (const d of t.datasets) n += d.rows.length * (d.rows[0]?.length ?? 1);
+  return n;
+}
+
+/** The table itself for small tables; for large ones, the table as it
+ *  was when edits last paused for SETTLE_MS. */
+function useSettledTable(table: DataTableModel): DataTableModel {
+  const large = cellCount(table) > LARGE_TABLE_CELLS;
+  const [settled, setSettled] = useState(table);
+  useEffect(() => {
+    if (!large || settled === table) return;
+    const t = setTimeout(() => setSettled(table), SETTLE_MS);
+    return () => clearTimeout(t);
+  }, [large, table, settled]);
+  return large ? settled : table;
 }
 
 /** Shown while a panel's code loads (sheets/lazy.ts): usually a moment. */

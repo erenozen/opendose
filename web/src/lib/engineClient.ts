@@ -53,8 +53,6 @@ export interface EngineState {
   phase: "idle" | "booting" | "ready" | "restarting" | "failed";
   progress: BootProgress | null;
   error: string | null;
-  /** Jobs queued or running. */
-  busy: number;
 }
 
 export interface EngineStats {
@@ -108,7 +106,7 @@ export class EngineHost {
   private spareTimer: ReturnType<typeof setTimeout> | null = null;
   private listeners = new Set<(s: EngineState) => void>();
   private ready: ReadyInfo | null = null;
-  state: EngineState = { phase: "idle", progress: null, error: null, busy: 0 };
+  state: EngineState = { phase: "idle", progress: null, error: null };
   readonly stats: EngineStats = { boots: [], restarts: 0, spareSwaps: 0, preemptions: 0, jobs: 0 };
 
   private readonly spawn: () => WorkerLike;
@@ -344,9 +342,12 @@ export class EngineHost {
     this.changed();
   }
 
-  private changed() {
-    this.set({ busy: this.queue.length + (this.running ? 1 : 0) });
-  }
+  /** Jobs queued or running. Diagnostics only: the engine state that
+   *  components subscribe to changes with the phase and boot progress,
+   *  not with every request, so nothing re-renders per job. */
+  get busy(): number { return this.queue.length + (this.running ? 1 : 0); }
+
+  private changed() { /* the queue is not observable state */ }
 
   private set(patch: Partial<EngineState>) {
     this.state = { ...this.state, ...patch };
