@@ -9,7 +9,13 @@ import { readFileSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const url = process.argv[2] ?? "http://localhost:5173/";
+const baseUrl = process.argv[2] ?? "http://localhost:5173/";
+// ?example=1 opens the example project directly (no start screen, no tour).
+const url = (() => {
+  const u = new URL(baseUrl);
+  u.searchParams.set("example", "1");
+  return u.toString();
+})();
 const WIDTH = 400, HEIGHT = 300, DPI = 150;
 const EXPECT_W = Math.floor(WIDTH * DPI / 96);
 const EXPECT_H = Math.floor(HEIGHT * DPI / 96);

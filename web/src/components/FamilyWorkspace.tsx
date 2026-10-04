@@ -28,6 +28,9 @@ import { GenericMethodsText } from "./MethodsText";
 import HSplitter from "./HSplitter";
 import { SnowflakeIcon } from "./SheetIcon";
 import WelcomePanel from "./WelcomePanel";
+import { useGuideOptional } from "../guide/context";
+import EntryGuide from "../guide/EntryGuide";
+import { DifferNote, ResultsGuide } from "../guide/ResultsGuide";
 
 /**
  * The workbench for one family: the data table (left) with the active
@@ -39,6 +42,7 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
   const api = useProject();
   const { project, apply, engineReady, status, engineError, bootEngine } = api;
   const cmd = useCommands();
+  const guide = useGuideOptional();
   const mainRef = useRef<HTMLElement>(null);
   const def = tableDef(data.table.type);
   const resSheet = api.activeResults(data.id);
@@ -106,6 +110,7 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
             <FrozenNote what="data table" onUnfreeze={() => cmd.toggleFreeze(data.id)} />
           )}
           <OriginNote data={data} />
+          {!readOnly && <EntryGuide data={data} />}
           <Editor sheet={data} table={data.table} readOnly={readOnly}
             onChange={onTableChange} />
         </div>
@@ -136,6 +141,9 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
                       Use Analyze in the toolbar to add one; its results and graph
                       appear next to this table.
                     </p>
+                    {guide && (
+                      <button type="button" onClick={guide.openWizard}>Which test?…</button>
+                    )}
                   </section>
                 </div>
               )}
@@ -164,11 +172,15 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
             )}
             {resSheet && Results && (
               <div className={`pane pane-results${reveal}`}>
+                <ResultsGuide analysisId={resSheet.analysis} tableType={data.table.type}
+                  table={data.table} options={options} result={result} />
                 <ResultsExport name={resSheet.name}>
                   <Suspense fallback={<Pending />}>
                     <Results sheet={resSheet} table={data.table} options={options} result={result} />
                   </Suspense>
                 </ResultsExport>
+                <DifferNote analysisId={resSheet.analysis} tableType={data.table.type}
+                  table={data.table} options={options} result={result} />
               </div>
             )}
             {resSheet && Methods && (
@@ -189,9 +201,15 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
               </div>
             ) : !graph && !resSheet && (
               <div className="pane pane-results">
-                <p className="empty-hint result-card">
+                <div className="empty-hint result-card">
                   No results or graphs for this table yet.
-                </p>
+                  {guide && (
+                    <div className="results-empty-actions">
+                      <button type="button" className="btn-primary" onClick={guide.openWizard}>
+                        Which test?…</button>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </>

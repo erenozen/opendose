@@ -1,4 +1,5 @@
 import type { ColumnOptionsState } from "../types";
+import LearnMore from "../guide/LearnMore";
 import {
   COLUMN_ANALYSIS_LABELS, COMPARISONS_LABELS, DEFAULT_NORMALITY_TESTS,
   NORMALITY_TEST_LABELS, TTEST_LABELS, TWO_WAY_DIRECTION_LABELS,
@@ -78,7 +79,7 @@ export default function ColumnControls({ options, datasetNames, onChange }: Prop
 
       {options.analysis === "column_statistics" && (
         <section>
-          <h3>Normality tests</h3>
+          <h3>Normality tests <LearnMore id="normality" /></h3>
           <div className="shared-params">
             {Object.entries(NORMALITY_TEST_LABELS).map(([k, label]) => {
               const tests = options.normalityTests ?? DEFAULT_NORMALITY_TESTS;
@@ -126,7 +127,7 @@ export default function ColumnControls({ options, datasetNames, onChange }: Prop
 
       {options.analysis === "ttest" && (
         <section>
-          <h3>Test</h3>
+          <h3>Test <LearnMore id="equal-sds" label="Welch or not?" /></h3>
           <select
             value={options.ttestKind}
             onChange={(e) => set({ ttestKind: e.target.value as TTestKind })}
@@ -235,6 +236,10 @@ export default function ColumnControls({ options, datasetNames, onChange }: Prop
                 pickDataset("Control group", options.controlIndex, "controlIndex")}
             </>
           )}
+          <p className="guide-control-links">
+            <LearnMore id="posthoc" label="Which comparisons test?" />
+            <LearnMore id="equal-sds" label="Equal SDs?" />
+          </p>
         </section>
       )}
 

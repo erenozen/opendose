@@ -46,6 +46,18 @@ from __future__ import annotations
 
 import math
 
+
+def _safe_exp(x):
+    """exp that saturates instead of raising when a coefficient runs off
+    to ±infinity (monotone likelihood)."""
+    if x != x:
+        return math.nan
+    if x > 709.0:
+        return math.inf
+    if x < -745.0:
+        return 0.0
+    return math.exp(x)
+
 import numpy as np
 from scipy import stats
 
@@ -607,16 +619,16 @@ def cox_regression(time, event, covariates: dict, *, categorical=None,
                  "z": float(z), "p": float(2 * stats.norm.sf(abs(z))),
                  "ci": [float(beta[j] - zcrit * se[j]),
                         float(beta[j] + zcrit * se[j])],
-                 "hazard_ratio": float(math.exp(beta[j])),
-                 "hazard_ratio_ci": [float(math.exp(beta[j] - zcrit * se[j])),
-                                     float(math.exp(beta[j] + zcrit * se[j]))]}
+                 "hazard_ratio": float(_safe_exp(beta[j])),
+                 "hazard_ratio_ci": [float(_safe_exp(beta[j] - zcrit * se[j])),
+                                     float(_safe_exp(beta[j] + zcrit * se[j]))]}
         if profile is not None:
             lo, hi = profile[j]
             entry["ci_profile"] = [None if lo is None else float(lo),
                                    None if hi is None else float(hi)]
             entry["hazard_ratio_ci_profile"] = [
-                None if lo is None else float(math.exp(lo)),
-                None if hi is None else float(math.exp(hi))]
+                None if lo is None else float(_safe_exp(lo)),
+                None if hi is None else float(_safe_exp(hi))]
         if term["kind"] == "categorical":
             entry["level"] = labels[j][len(term["name"]) + 1:-1]
             entry["reference"] = term["reference"]
@@ -756,7 +768,7 @@ def cox_regression(time, event, covariates: dict, *, categorical=None,
 
     def _curve(x0c, label, values):
         out = []
-        risk = math.exp(float(x0c @ beta))
+        risk = _safe_exp(float(x0c @ beta))
         for g, _, hz in pieces:
             K = g["event_times"].size
             if K == 0:

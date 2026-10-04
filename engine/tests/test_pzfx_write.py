@@ -19,9 +19,11 @@ from opendose.api import analyze
 from opendose.pzfx import parse_pzfx, write_pzfx
 
 ROOT = Path(__file__).parents[2]
-FIXTURES = [ROOT / "web" / "e2e-fixtures" / "grouped.pzfx",
-            ROOT / "web" / "e2e-fixtures" / "sample.pzfx",
-            ROOT / "RealTestFiles" / "mcf7resvsbyl_20.08.26.pzfx"]
+# RealTestFiles is private and gitignored, so that fixture only runs locally.
+FIXTURES = [p for p in [ROOT / "web" / "e2e-fixtures" / "grouped.pzfx",
+                        ROOT / "web" / "e2e-fixtures" / "sample.pzfx",
+                        ROOT / "RealTestFiles" / "mcf7resvsbyl_20.08.26.pzfx"]
+            if p.exists()]
 NS = "{http://graphpad.com/prism/Prism.htm}"
 
 _FROM_YFORMAT = {"replicates": "replicates", "SDN": "mean_sd_n",
