@@ -76,18 +76,25 @@ export function SurvivalPlot({
     entries.forEach(([name, curve]: [string, any], i) => {
       const { color, dash } = seriesStyle(i, dark, scheme);
       const off = nudge ? ((entries.length - 1) / 2 - i) * nudge : 0;
-      const xs = curve.points.map((p: any) => p.time);
-      const ys = curve.points.map((p: any) => p.survival * 100 + off);
+      const set = censorMarks ? riskSets?.find((r) => r.name === name) : undefined;
+      // With censor ticks, the curve runs on to the last subject followed
+      // (a tick after the last event then sits on the line).
+      let pts: any[] = curve.points;
+      const last = pts[pts.length - 1];
+      const lastCensor = set ? Math.max(-Infinity,
+        ...set.times.filter((_, k) => set.events[k] === 0)) : -Infinity;
+      if (last && lastCensor > last.time) pts = [...pts, { ...last, time: lastCensor }];
+      const xs = pts.map((p: any) => p.time);
+      const ys = pts.map((p: any) => p.survival * 100 + off);
       traces.push(tagTrace({
         x: xs, y: ys,
         mode: "lines",
         line: { color, width: 2, shape: "hv", dash },
         name,
-        ...(off ? { customdata: curve.points.map((p: any) => p.survival * 100),
+        ...(off ? { customdata: pts.map((p: any) => p.survival * 100),
           hovertemplate: `${name}<br>t=%{x}: %{customdata:.1f}%<extra></extra>` }
           : { hovertemplate: `${name}<br>t=%{x}: %{y:.1f}%<extra></extra>` }),
       }, { ds: i, role: "line" }) as Plotly.Data);
-      const set = censorMarks ? riskSets?.find((r) => r.name === name) : undefined;
       if (set) {
         const cx: number[] = [], cy: number[] = [];
         set.times.forEach((t, k) => {

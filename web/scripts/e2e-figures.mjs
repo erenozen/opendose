@@ -179,6 +179,15 @@ await shot("superplot");
   const p = await plot();
   expect("APA style P values on the brackets (no leading zero)",
     p.brackets.length > 0 && p.brackets.every((b) => /^p [=<] \.\d+$/.test(b)), p.brackets.join(" | "));
+  const pop2 = await graphSettings();
+  await pop2.getByRole("button", { name: "Pairwise comparisons…" }).click();
+  await cd.getByLabel("Hide non-significant (ns) pairs").check();
+  await cd.getByRole("button", { name: "OK" }).click();
+  await page.waitForTimeout(500);
+  const q = await plot();
+  const ns = p.brackets.filter((b) => Number(b.replace(/^p [=<] /, "")) >= 0.05).length;
+  expect("hide ns drops the non-significant brackets", q.brackets.length === p.brackets.length - ns,
+    `${p.brackets.length} → ${q.brackets.length}`);
 }
 
 // Classic theme
