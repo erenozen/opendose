@@ -13,24 +13,21 @@ import {
   cellOf, distinctValues, longTable, numberColumn, resolveColumns, textColumn,
   type ColumnChoice, type ColumnIndex, type RoleSpec,
 } from "../kit/columns.ts";
+import { aliasPatterns, resolveCqHeaders, type CqRole } from "./headers.ts";
 
 export type QRole = "sample" | "group" | "target" | "cq" | "well" | "pair" | "quantity";
 
+// Header aliases (case, separators and instrument spellings) are shared
+// with the Cq-export import: ./headers.ts.
 export const QPCR_ROLES: RoleSpec<QRole>[] = [
-  { key: "sample", label: "Sample (biological replicate)", required: true,
-    patterns: [/^(sample|sample name|samplename|name|sample id|biological replicate)$/i] },
-  { key: "group", label: "Group / condition", required: true,
-    patterns: [/^(group|condition|treatment|biological group|biogroup)$/i] },
-  { key: "target", label: "Target (gene)", required: true,
-    patterns: [/^(target|target name|targetname|gene|detector|detector name|assay)$/i] },
-  { key: "cq", label: "Cq / Ct", required: true,
-    patterns: [/^(cq|ct|cт|c[tq] mean|crt|cp|cq value|ct value)$/i] },
-  { key: "well", label: "Well", required: false, patterns: [/^(well|well position|pos|position)$/i] },
-  { key: "pair", label: "Pair (subject / experiment)", required: false,
-    patterns: [/^(pair|subject|experiment|donor|animal|run|block)$/i],
+  { key: "sample", label: "Sample (biological replicate)", required: true, patterns: aliasPatterns("sample") },
+  { key: "group", label: "Group / condition", required: true, patterns: aliasPatterns("group") },
+  { key: "target", label: "Target (gene)", required: true, patterns: aliasPatterns("target") },
+  { key: "cq", label: "Cq / Ct", required: true, patterns: aliasPatterns("cq") },
+  { key: "well", label: "Well", required: false, patterns: aliasPatterns("well") },
+  { key: "pair", label: "Pair (subject / experiment)", required: false, patterns: aliasPatterns("pair"),
     hint: "Samples sharing a pair are compared paired (repeated measures)." },
-  { key: "quantity", label: "Quantity (dilution series)", required: false,
-    patterns: [/^(quantity|starting quantity|sq|copies|dilution|conc|concentration)$/i],
+  { key: "quantity", label: "Quantity (dilution series)", required: false, patterns: aliasPatterns("quantity"),
     hint: "Rows with a quantity form a standard curve of their target." },
 ];
 
@@ -248,17 +245,12 @@ export function dcqSettings(prev: unknown, table: DataTableModel | null): unknow
 /** Cq export staged by the qPCR recipe (columns: role per header) into
  *  the module's layout. The group is taken from the sample name with its
  *  trailing replicate number removed ("Ctrl 2" -> "Ctrl", "LPS-3" ->
- *  "LPS") unless the export has a group column. */
-export function tableFromStaging(headers: string[], rows: string[][], groupFromName: boolean): DataTableModel {
-  const find = (res: RegExp[]) => {
-    for (const re of res) {
-      const i = headers.findIndex((h) => re.test(h.trim()));
-      if (i >= 0) return i;
-    }
-    return -1;
-  };
-  const roleIdx = Object.fromEntries(QPCR_ROLES.map((r) => [r.key, find(r.patterns)])) as Record<QRole, number>;
-  const get = (row: string[], k: QRole) => (roleIdx[k] >= 0 ? (row[roleIdx[k]] ?? "").trim() : "");
+ *  "LPS") unless the export has a group column. `columns` (role -> column
+ *  index, from the import's mapping step) overrides the header match. */
+export function tableFromStaging(headers: string[], rows: string[][], groupFromName: boolean,
+  columns?: Partial<Record<CqRole, number>>): DataTableModel {
+  const roleIdx: Record<CqRole, number> = { ...resolveCqHeaders(headers), ...(columns ?? {}) };
+  const get = (row: string[], k: CqRole) => (roleIdx[k] >= 0 ? (row[roleIdx[k]] ?? "").trim() : "");
   const sample = rows.map((r) => get(r, "sample"));
   const group = rows.map((r, i) => get(r, "group")
     || (groupFromName ? sample[i].replace(/[\s_.-]*\(?\d+\)?$/, "").trim() || sample[i] : ""));

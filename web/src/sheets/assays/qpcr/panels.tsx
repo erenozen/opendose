@@ -5,7 +5,7 @@
 import { useState } from "react";
 import { readXlsx } from "../../../lib/engine";
 import type { DataTableModel } from "../../../project/types";
-import { parseSource, recipeById } from "../../../share/recipes/presets";
+import { parseSource } from "../../../share/recipes/presets";
 import CopyableMethods from "../../common/CopyableMethods";
 import type { ControlsProps, ResultsProps } from "../../types";
 import { takeWizardRequest } from "../kit/create";
@@ -13,6 +13,7 @@ import { interval, num, pValue, testSummary } from "../kit/format";
 import { Chip, ColumnPicker, KV, LinkedOutputs, Note, Warnings } from "../kit/ui";
 import { useAssay, type SpecsFor } from "../kit/useAssay";
 import Wizard from "../kit/Wizard";
+import { findCqHeader, guessCqMapping, isUndeterminedCq, resolveCqHeaders, type CqRole } from "./headers";
 import {
   calibratorOf, dcqSettings, dcqTable, QPCR_ROLES, readQpcr, referenceGenes, runQpcr,
   tableFromStaging, TEST_LABELS, type PostTest, type QpcrOptions, type QpcrResult, type QTest,
@@ -254,26 +255,60 @@ function QpcrWizard({ start, table, options, hasOutputs, onClose, onFinish }: {
   );
 }
 
+/** Roles chosen in the import's mapping step (column index, -1 = none). */
+type CqMap = Record<CqRole, number>;
+
+const MAP_ROLES: { key: CqRole; label: string; required: boolean }[] = [
+  { key: "sample", label: "Sample column", required: true },
+  { key: "target", label: "Target (gene) column", required: true },
+  { key: "cq", label: "Cq / Ct column", required: true },
+  { key: "group", label: "Group column", required: false },
+  { key: "well", label: "Well column", required: false },
+];
+
 function CqImport({ onTable }: { onTable: (t: DataTableModel) => void }) {
   const [text, setText] = useState("");
   const [fromName, setFromName] = useState(true);
   const [msg, setMsg] = useState("");
+  // The export when its headers do not name all of sample, target and Cq:
+  // the user maps the columns instead of the export being refused.
+  const [src, setSrc] = useState<{ headers: string[]; rows: string[][] } | null>(null);
+  const [map, setMap] = useState<CqMap | null>(null);
+  const build = (headers: string[], rows: string[][], columns?: CqMap) => {
+    const { cq, sample } = columns ?? resolveCqHeaders(headers);
+    const used = rows.filter((x) => (x[sample] ?? "").trim() !== "" || (x[cq] ?? "").trim() !== "");
+    const undetermined = used.filter((x) => isUndeterminedCq(x[cq] ?? "")).length;
+    onTable(tableFromStaging(headers, used, fromName, columns));
+    setMsg(`Read ${used.length} wells.${undetermined ? ` ${undetermined} without a Cq (undetermined) are kept as missing.` : ""}`);
+  };
   const take = (m: string[][]) => {
-    const recipe = recipeById("qpcr");
-    if (recipe.detect(m) <= 0) {
-      setMsg("No Cq table found: the export needs a header row with Sample, Target and Cq (or Ct) columns.");
+    const found = findCqHeader(m);
+    if (found?.complete) {
+      setSrc(null); setMap(null);
+      build(found.headers, bodyRows(m, found.row));
       return;
     }
-    const st = recipe.stage(m).staging;
-    const t = tableFromStaging(st.columns.map((c) => c.name), st.rows, fromName);
-    onTable(t);
-    setMsg(`Read ${st.rows.length} wells.`);
+    const at = found?.row ?? m.findIndex((r) => r.some((c) => String(c ?? "").trim()));
+    if (at < 0) { setMsg("Nothing to read: the export is empty."); return; }
+    const headers = m[at].map((h, i) => String(h ?? "").trim() || `Column ${i + 1}`);
+    const rows = bodyRows(m, at);
+    if (!rows.length) { setMsg("Need a header row and at least one well below it."); return; }
+    setSrc({ headers, rows });
+    setMap(guessCqMapping(headers, rows));
+    const missing = MAP_ROLES.filter((r) => r.required && (found?.idx[r.key] ?? -1) < 0)
+      .map((r) => (r.key === "cq" ? "Cq" : r.key));
+    const list = missing.length > 1 ? `${missing.slice(0, -1).join(", ")} and ${missing[missing.length - 1]}` : missing[0];
+    setMsg(`${rows.length} rows read; the headers do not say which column holds the ${list}: `
+      + "check the columns below, then use them.");
   };
+  const ready = map && MAP_ROLES.every((r) => !r.required || map[r.key] >= 0);
   return (
     <>
       <p className="hint-block">
         Paste or open an instrument export (Bio-Rad CFX, QuantStudio, LightCycler …) or type
         the records into the table: one row per well with sample, group, target and Cq.
+        Common column names (Sample Name, Well Name, Target Name, Gene, Detector, CT, Cq Mean …)
+        are recognised; otherwise you choose the columns. Undetermined wells are kept as missing.
       </p>
       <div className="wizard-row">
         <label className="field">
@@ -307,8 +342,40 @@ function CqImport({ onTable }: { onTable: (t: DataTableModel) => void }) {
         <button type="button" disabled={!text.trim()} onClick={() => take(parseSource(text))}>Read pasted export</button>
         {msg && <span className="hint-block" role="status">{msg}</span>}
       </div>
+      {src && map && (
+        <div className="cq-mapping">
+          <h4>Which column is which?</h4>
+          <div className="column-picker">
+            {MAP_ROLES.map((r) => (
+              <label key={r.key} className="field">
+                <span>{r.label}{r.required ? "" : " (optional)"}</span>
+                <select value={map[r.key]} aria-invalid={r.required && map[r.key] < 0 ? true : undefined}
+                  onChange={(e) => setMap({ ...map, [r.key]: Number(e.target.value) })}>
+                  <option value={-1}>{r.required ? "Choose a column" : "None"}</option>
+                  {src.headers.map((h, i) => <option key={i} value={i}>{h}</option>)}
+                </select>
+              </label>
+            ))}
+          </div>
+          <div className="assay-setup">
+            <button type="button" className="btn-primary" disabled={!ready}
+              onClick={() => {
+                if (!map) return;
+                build(src.headers, src.rows, map);
+                setSrc(null); setMap(null);
+              }}>Use these columns</button>
+            {!ready && <span className="hint-block">Choose the sample, target and Cq columns.</span>}
+          </div>
+        </div>
+      )}
     </>
   );
+}
+
+/** Non-empty rows below a header row. */
+function bodyRows(m: string[][], header: number): string[][] {
+  return m.slice(header + 1).map((r) => r.map((c) => String(c ?? "")))
+    .filter((r) => r.some((c) => c.trim() !== ""));
 }
 
 // ------------------------------------------------------------ results
