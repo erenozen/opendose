@@ -38,11 +38,6 @@
 @media (prefers-reduced-motion: reduce) {
   .pane-results[data-live="false"] .result-card { transition: none; }
 }
-/* The automatic curve fit held back (FitGuardNote.tsx). */
-.fit-guard-note { padding: 12px 16px; font-size: 13px; color: var(--ink-2); }
-.fit-guard-note h4 { margin: 0 0 6px; font-size: 13.5px; color: var(--ink); }
-.fit-guard-note p { margin: 0 0 10px; }
-.pane-results[data-live="false"] .fit-guard-note { opacity: 1; }
 
 /* Large tables scroll inside their card (FamilyWorkspace): with
    thousands of inputs, a card as tall as its table made every keystroke

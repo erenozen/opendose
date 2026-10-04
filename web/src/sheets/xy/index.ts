@@ -16,7 +16,17 @@ import { defineAnalysis, defineGraph, type TableTypeDef } from "../types";
 import {
   NonlinControls, NonlinMethods, NonlinResults, PlateAside, XYPlot,
 } from "./panels";
-import { runNonlin, xyAutoTitles } from "./run";
+import { runNonlinGated, xyAutoTitles } from "./run";
+import {
+  ANALYSIS_LINREG, DEFAULT_LINREG, GRAPH_LINREG, normalizeLinreg, runLinreg, type LinregOptions,
+} from "./linreg";
+import { LinregControls, LinregMethods, LinregResults } from "./linregPanels";
+import {
+  ANALYSIS_COMPARE, DEFAULT_COMPARE, GRAPH_COMPARE, normalizeCompare, runCompare,
+  type CompareOptions,
+} from "./compareFits";
+import { CompareControls, CompareMethods, CompareResults } from "./compareFitsPanels";
+import { modelMeta } from "../../lib/modelLibrary";
 import {
   ANALYSIS_DEMING, DEFAULT_DEMING, demingPayload, demingResult, GRAPH_DEMING,
   normalizeDeming, type DemingOptions,
@@ -30,18 +40,26 @@ export const nonlinAnalysis = defineAnalysis<OptionsState, AnalysisResult>({
   short: "Curve fit",
   description: "Dose-response, kinetics, binding, exponential and polynomial models.",
   sheetName: (t) => `Nonlin fit of ${t}`,
+  // A new results sheet fits by itself only when the data look like a
+  // dose-response (sheets/xy/autofit.ts); options saved without the field
+  // (older projects, templates) fit as they always did.
   defaultOptions: ({ prefs }) => ({
     ...DEFAULT_XY_OPTIONS,
     errorBars: prefs.errorBars,
     ciMethod: prefs.ciMethod,
+    autoFit: "auto",
   }),
-  normalizeOptions: (raw, { prefs }) => ({
-    ...DEFAULT_XY_OPTIONS,
-    errorBars: prefs.errorBars,
-    ciMethod: prefs.ciMethod,
-    ...(raw && typeof raw === "object" ? raw as Partial<OptionsState> : {}),
-  }),
-  run: runNonlin,
+  normalizeOptions: (raw, { prefs }) => {
+    const r = raw && typeof raw === "object" ? raw as Partial<OptionsState> : {};
+    return {
+      ...DEFAULT_XY_OPTIONS,
+      errorBars: prefs.errorBars,
+      ciMethod: prefs.ciMethod,
+      ...r,
+      autoFit: r.autoFit === "auto" ? "auto" : "requested",
+    };
+  },
+  run: runNonlinGated,
   defaultGraph: GRAPH_XY,
   ControlsPanel: NonlinControls,
   ResultsPanel: NonlinResults,
@@ -91,6 +109,70 @@ export const demingGraph = defineGraph<DemingOptions, AnalysisResult>({
   }),
   exportName: "deming",
   PlotPanel: XYPlot as never,
+});
+
+export const linregAnalysis = defineAnalysis<LinregOptions, Record<string, unknown>>({
+  id: ANALYSIS_LINREG,
+  label: "Linear regression",
+  short: "Linear regression",
+  description: "Straight line by least squares: slope and intercept with CIs, R², the "
+    + "regression ANOVA, runs test; optionally through the origin.",
+  sheetName: (t) => `Linear regression of ${t}`,
+  defaultOptions: () => ({ ...DEFAULT_LINREG }),
+  normalizeOptions: (raw) => normalizeLinreg(raw),
+  run: runLinreg,
+  defaultGraph: GRAPH_LINREG,
+  ControlsPanel: LinregControls,
+  ResultsPanel: LinregResults,
+  MethodsPanel: LinregMethods,
+});
+
+const tableTitles = (table: { xTitle: string; yTitle: string }) => ({
+  x: table.xTitle && table.xTitle !== "X" ? table.xTitle : "X",
+  y: table.yTitle || "Y",
+});
+
+export const linregGraph = defineGraph<LinregOptions, AnalysisResult>({
+  id: GRAPH_LINREG,
+  label: "XY: points and regression line",
+  group: "linreg",
+  analysis: ANALYSIS_LINREG,
+  autoTitles: (table) => tableTitles(table),
+  exportName: "linear-regression",
+  PlotPanel: XYPlot as never,
+  formatFeatures: { points: true, lines: true, connect: true, errorBars: true, xError: true },
+});
+
+export const compareAnalysis = defineAnalysis<CompareOptions, Record<string, unknown>>({
+  id: ANALYSIS_COMPARE,
+  label: "Compare fits (F test, AICc)",
+  short: "Compare fits",
+  description: "Two models on each data set, or one curve for all data sets against a "
+    + "separate curve for each: extra-sum-of-squares F test and AICc.",
+  sheetName: (t) => `Comparison of fits of ${t}`,
+  defaultOptions: () => ({ ...DEFAULT_COMPARE }),
+  normalizeOptions: (raw) => normalizeCompare(raw),
+  run: runCompare,
+  defaultGraph: GRAPH_COMPARE,
+  ControlsPanel: CompareControls,
+  ResultsPanel: CompareResults,
+  MethodsPanel: CompareMethods,
+});
+
+export const compareGraph = defineGraph<CompareOptions, AnalysisResult>({
+  id: GRAPH_COMPARE,
+  label: "XY: points and the compared fits",
+  group: "compare_fits",
+  analysis: ANALYSIS_COMPARE,
+  autoTitles: (table, options) => {
+    const o = options ? normalizeCompare(options) : DEFAULT_COMPARE;
+    const meta = modelMeta(o.model1);
+    if (table.xFormat !== "numbers" || !meta.needsLogX) return tableTitles(table);
+    return { x: `${meta.xLabel}, ${table.xUnit || "M"}`, y: table.yTitle || "Response" };
+  },
+  exportName: "compare-fits",
+  PlotPanel: XYPlot as never,
+  formatFeatures: { points: true, lines: true, connect: true, errorBars: true, xError: true },
 });
 
 // Quantal dose-response panels load on first use (sheets/lazy.ts).
@@ -143,8 +225,8 @@ export const xyTable: TableTypeDef = {
   sampleName: "Dose response",
   Editor: DataGrid,
   EditorAside: PlateAside,
-  analyses: [nonlinAnalysis, demingAnalysis, quantalAnalysis, columnAnalysis, rocAnalysis,
-    blandAltmanAnalysis],
-  graphs: [xyGraph, demingGraph, quantalGraph, ...xyGroupedGraphs, ...columnGraphs, rocGraph,
-    blandAltmanGraph],
+  analyses: [nonlinAnalysis, linregAnalysis, compareAnalysis, demingAnalysis, quantalAnalysis,
+    columnAnalysis, rocAnalysis, blandAltmanAnalysis],
+  graphs: [xyGraph, linregGraph, compareGraph, demingGraph, quantalGraph, ...xyGroupedGraphs,
+    ...columnGraphs, rocGraph, blandAltmanGraph],
 };

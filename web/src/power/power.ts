@@ -3,6 +3,7 @@
 // randomisation lists and the sample-size justification kept in the
 // project. Pure (no React), unit-tested in __tests__/power.test.ts.
 import type { InfoSheet, Project } from "../project/types.ts";
+import { formatSig } from "../types.ts";
 
 export type PowerKind =
   | "t_two_sample" | "t_paired" | "t_one_sample" | "anova_oneway"
@@ -62,6 +63,13 @@ export interface PowerForm {
   accrual: string; followup: string; lrMethod: "schoenfeld" | "freedman";
   w: string; df: string;
   unit: string; attrition: string; effectSource: string;
+  /** Detectable effect in raw units: where the SD comes from (two-group t
+   *  test: one common SD or the two group SDs, pooled), the group SDs and
+   *  the unit of the measurement ("mmol/L"). The common SD is `sd`; the
+   *  ANOVA's within-group SD is `groupSd`. */
+  sdSource: "common" | "groups";
+  sd1: string; sd2: string;
+  measureUnit: string;
 }
 
 export function defaultForm(): PowerForm {
@@ -78,6 +86,7 @@ export function defaultForm(): PowerForm {
     lrMethod: "schoenfeld",
     w: "0.3", df: "1",
     unit: "animals", attrition: "", effectSource: "",
+    sdSource: "common", sd1: "", sd2: "", measureUnit: "",
   };
 }
 
@@ -279,6 +288,8 @@ export interface PowerResult {
   n1_exact?: number;
   n_total_exact?: number;
   k?: number;
+  ratio?: number;
+  equal_n?: boolean;
   effect: { name: string; value: number; [k: string]: unknown };
   ncp?: number;
   df?: number;
@@ -304,6 +315,98 @@ export function nForCurve(r: PowerResult): number {
   if (r.kind === "anova_oneway") return r.n_per_group?.[0] ?? Math.round(r.n_total / (r.k ?? 1));
   if (r.kind === "logrank" && !r.n_total) return Math.ceil(r.events ?? 2);
   return r.n ?? r.n_total;
+}
+
+/** The unrounded (real-valued) sample size of an a priori calculation,
+ *  each row saying whether it counts one group or everyone: t tests and
+ *  proportions report n1, the ANOVA the total N, the log-rank test the
+ *  total subjects; the per-group and total rows are derived from the
+ *  allocation ratio (or k). Empty for discrete searches without one
+ *  (exact binomial, McNemar, correlation, Fisher's exact). */
+export function unroundedN(r: PowerResult): [string, number][] {
+  if (r.solve !== "n") return [];
+  const ok = (v: number | null | undefined): v is number => typeof v === "number" && Number.isFinite(v);
+  const twoGroups = (n1: number, ratio: number): [string, number][] => (Math.abs(ratio - 1) < 1e-12
+    ? [["Unrounded n per group", n1], ["Unrounded total N", 2 * n1]]
+    : [["Unrounded n, group 1", n1], ["Unrounded n, group 2", n1 * ratio],
+      ["Unrounded total N", n1 * (1 + ratio)]]);
+  switch (r.kind) {
+    case "t_two_sample": case "two_proportions":
+      return ok(r.n1_exact) ? twoGroups(r.n1_exact, r.ratio ?? 1) : [];
+    case "anova_oneway": {
+      const N = r.n_total_exact;
+      if (!ok(N)) return [];
+      return r.equal_n === false ? [["Unrounded total N", N]]
+        : [["Unrounded n per group", N / (r.k ?? 1)], ["Unrounded total N", N]];
+    }
+    case "logrank": {
+      if (!ok(r.n_exact)) return [];
+      const ratio = r.ratio ?? 1;
+      return twoGroups(r.n_exact / (1 + ratio), ratio);
+    }
+    case "t_paired":
+      return ok(r.n_exact) ? [["Unrounded number of pairs", r.n_exact]] : [];
+    case "t_one_sample":
+      return ok(r.n_exact) ? [["Unrounded n (one group)", r.n_exact]] : [];
+    case "chi_square":
+      return ok(r.n_exact) ? [["Unrounded total N", r.n_exact]] : [];
+    default:
+      return [];
+  }
+}
+
+/** Pooled SD of two groups: √(((n1 − 1)s1² + (n2 − 1)s2²) / (n1 + n2 − 2)). */
+export function pooledSd(s1: number, s2: number, n1: number, n2: number): number | null {
+  if (!(s1 > 0 && s2 > 0 && n1 >= 1 && n2 >= 1 && n1 + n2 > 2)) return null;
+  return Math.sqrt(((n1 - 1) * s1 * s1 + (n2 - 1) * s2 * s2) / (n1 + n2 - 2));
+}
+
+/** One line of a detectable effect in the measurement's own units. */
+export interface RawEffect { label: string; value: number; text: string }
+
+/** A detectable (sensitivity) effect size in raw units, from the SD the
+ *  user gave: d × SD for t tests (two groups: the common SD, or the pooled
+ *  SD of the two group SDs at the result's n1 and n2; paired: d_z × the SD
+ *  of the differences); for the one-way ANOVA f × σ (the SD of the group
+ *  means) and f × σ × √(2k) (the range of the means when one group is
+ *  high, one low and the rest in the middle: Cohen's minimum-variability
+ *  pattern). Empty without an SD or for kinds without a raw scale. */
+export function rawDetectable(f: PowerForm, r: PowerResult): RawEffect[] {
+  if (r.solve !== "effect" || !Number.isFinite(r.effect?.value)) return [];
+  const u = f.measureUnit.trim() ? ` ${f.measureUnit.trim()}` : "";
+  const fmt = (v: number) => formatSig(v, 3);
+  const e = r.effect.value;
+  if (r.kind === "t_two_sample" || r.kind === "t_one_sample" || r.kind === "t_paired") {
+    let sd: number | null;
+    let sdName: string;
+    if (r.kind === "t_two_sample" && f.sdSource === "groups") {
+      sd = pooledSd(num(f.sd1) ?? NaN, num(f.sd2) ?? NaN, r.n1 ?? NaN, r.n2 ?? NaN);
+      sdName = "pooled SD";
+    } else {
+      const v = num(f.sd);
+      sd = v !== null && v > 0 ? v : null;
+      sdName = r.kind === "t_paired" ? "SD of the differences" : "SD";
+    }
+    if (sd === null) return [];
+    const value = e * sd;
+    const label = r.kind === "t_paired" ? "Detectable mean difference"
+      : r.kind === "t_one_sample" ? "Detectable difference from the reference" : "Detectable difference";
+    return [{ label, value,
+      text: `${fmt(value)}${u} (${r.kind === "t_paired" ? "d_z" : "d"} = ${fmt(e)} × ${sdName} ${fmt(sd)})` }];
+  }
+  if (r.kind === "anova_oneway") {
+    const sd = num(f.groupSd);
+    if (sd === null || !(sd > 0)) return [];
+    const spread = e * sd;
+    const range = spread * Math.sqrt(2 * (r.k ?? 2));
+    return [
+      { label: "Detectable SD of the group means", value: spread,
+        text: `${fmt(spread)}${u} (f = ${fmt(e)} × SD within groups ${fmt(sd)})` },
+      { label: "Detectable range of the means", value: range,
+        text: `${fmt(range)}${u} (one group high, one low, the rest in between: f × SD × √(2k))` },
+    ];
+  }
+  return [];
 }
 
 /** Sample sizes for the power-vs-n curve: about 24 points from 2 to

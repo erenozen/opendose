@@ -147,7 +147,9 @@ function TestBlock({ r }: { r: any }) {
         ["Comparison", minus(String(r.comparison))],
         ["P value (two-tailed)", `${fmtP(r.p)} ${stars(r.p)}`],
         ["Significantly different (P < 0.05)?", r.p < 0.05 ? "Yes" : "No"],
-        ["t, df", `t = ${formatSig(r.t)}, df = ${r.df}`],
+        // the engine reports |t|; t takes the sign of the difference above
+        ["t, df", `t = ${formatSig(typeof r.difference === "number" && r.difference < 0
+          ? -Math.abs(r.t) : r.t)}, df = ${r.df}`],
         ["F (DFn, DFd)", `F(${r.df_num}, ${r.df_den}) = ${formatSig(r.F)}`],
         ["Difference between means ± SEM",
           `${formatSig(r.difference)} ± ${formatSig(r.se_difference)}`],

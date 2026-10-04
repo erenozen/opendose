@@ -2,10 +2,13 @@
 import type { ReactNode } from "react";
 import { datasetLetter } from "../../project/table";
 import type { DataTableModel } from "../../project/types";
-import { TWO_WAY_DIRECTION_LABELS, type TwoWayDirection } from "../../types";
+import {
+  TWO_WAY_ADDITIVE_NOTE, TWO_WAY_DIRECTION_LABELS, TWO_WAY_MODEL_LABELS,
+  type TwoWayDirection, type TwoWayModel,
+} from "../../types";
 import type { ControlsProps } from "../types";
 import {
-  CORRECTION_LABEL, defaultAssign, FDR_METHODS, ROW_ERRORS, ROW_TEST_GROUPS,
+  CORRECTION_LABEL, DEFAULT_TWO_WAY, defaultAssign, FDR_METHODS, ROW_ERRORS, ROW_TEST_GROUPS,
   type ColumnStatsOptions, type Correction, type MultiTOptions, type RowCalc,
   type RowMeansOptions, type RowScope, type RowTest, type ThreeWayGoal,
   type ThreeWayMethod, type ThreeWayOptions, type TwoWayDesign, type TwoWayOptions,
@@ -51,6 +54,11 @@ export function TwoWayControls({ table, options: o, onChange }: ControlsProps<Tw
   const summary = table.subcolumnFormat !== "replicates";
   const missing = o.design !== "none" && !summary
     && hasMissingRM(groupedPayload(table).datasets.map((d) => d.ys), o.design === "rm_both");
+  // Untouched factor names show the ones the table brought from its file.
+  const shownRow = o.rowFactor === DEFAULT_TWO_WAY.rowFactor
+    ? table.factorNames?.rows || o.rowFactor : o.rowFactor;
+  const shownCol = o.colFactor === DEFAULT_TWO_WAY.colFactor
+    ? table.factorNames?.datasets || o.colFactor : o.colFactor;
   return (
     <div className="controls">
       <section>
@@ -69,6 +77,19 @@ export function TwoWayControls({ table, options: o, onChange }: ControlsProps<Tw
             This table holds means with SD / SEM and N, so the ANOVA is computed
             from those summaries (ordinary design only).
           </p>
+        )}
+        {o.design === "none" && (
+          <>
+            <Row label="Model">
+              <select value={o.model}
+                onChange={(e) => set({ model: e.target.value as TwoWayModel })}>
+                {(Object.keys(TWO_WAY_MODEL_LABELS) as TwoWayModel[]).map((k) => (
+                  <option key={k} value={k}>{TWO_WAY_MODEL_LABELS[k]}</option>
+                ))}
+              </select>
+            </Row>
+            {o.model === "additive" && <p className="hint-block">{TWO_WAY_ADDITIVE_NOTE}</p>}
+          </>
         )}
         {o.design !== "none" && (
           <>
@@ -92,14 +113,17 @@ export function TwoWayControls({ table, options: o, onChange }: ControlsProps<Tw
         <h3>Factor names</h3>
         <div className="factor-names">
           <span>Rows</span>
-          <input aria-label="Name of the row factor" value={o.rowFactor}
+          <input aria-label="Name of the row factor" value={shownRow}
             onChange={(e) => set({ rowFactor: e.target.value })} />
           <span />
           <span>Datasets</span>
-          <input aria-label="Name of the column factor" value={o.colFactor}
+          <input aria-label="Name of the column factor" value={shownCol}
             onChange={(e) => set({ colFactor: e.target.value })} />
           <span />
         </div>
+        {(table.factorNames?.rows || table.factorNames?.datasets) && (
+          <p className="hint-block">Factor names read from the imported file; type to change them.</p>
+        )}
       </section>
       <section>
         <h3>Multiple comparisons</h3>
@@ -116,9 +140,12 @@ export function TwoWayControls({ table, options: o, onChange }: ControlsProps<Tw
           <Row label="Compare">
             <select value={o.direction}
               onChange={(e) => set({ direction: e.target.value as TwoWayDirection })}>
-              {(Object.keys(TWO_WAY_DIRECTION_LABELS) as TwoWayDirection[]).map((k) => (
-                <option key={k} value={k}>{TWO_WAY_DIRECTION_LABELS[k]}</option>
-              ))}
+              {(Object.keys(TWO_WAY_DIRECTION_LABELS) as TwoWayDirection[])
+                .filter((k) => k !== "all_cells" || o.direction === k
+                  || (o.design === "none" && o.model !== "additive"))
+                .map((k) => (
+                  <option key={k} value={k}>{TWO_WAY_DIRECTION_LABELS[k]}</option>
+                ))}
             </select>
           </Row>
         )}
@@ -370,7 +397,7 @@ export function MultiTControls({ table, options: o, onChange }: ControlsProps<Mu
               {FDR_METHODS.map((k) => <option key={k} value={k}>{CORRECTION_LABEL[k]}</option>)}
             </optgroup>
             <optgroup label="Statistical significance">
-              {(["holm_sidak", "sidak", "bonferroni", "none"] as Correction[]).map((k) => (
+              {(["holm_sidak", "holm", "sidak", "bonferroni", "none"] as Correction[]).map((k) => (
                 <option key={k} value={k}>{CORRECTION_LABEL[k]}</option>
               ))}
             </optgroup>

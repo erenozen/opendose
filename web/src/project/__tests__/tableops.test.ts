@@ -297,7 +297,8 @@ test("applyImport replace: X, replicates per dataset, titles, exclusions, skip b
   assert.deepEqual(out.x, ["0.001", "0.01", "0.1", "1"]);
   assert.equal(out.xTitle, "Dose");
   assert.equal(out.datasets.length, 1);
-  assert.equal(out.datasets[0].name, "Rep 1");
+  // replicate titles "Rep 1", "Rep 2": the data set takes their stem
+  assert.equal(out.datasets[0].name, "Rep");
   assert.deepEqual(out.datasets[0].rows[0], ["98.5", "99"]);
   assert.ok(isExcluded(out, { kind: "y", dataset: 0, row: 0, sub: 1 }));
   assert.deepEqual(out.datasets[0].rows[3], ["10", "NA"]);

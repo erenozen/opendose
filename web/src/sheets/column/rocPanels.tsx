@@ -11,6 +11,7 @@ import {
   Card, Check, Field, Grid, KV, Note, Problem, Section, Select, SOFTWARE, TextNum,
 } from "../common/clinicalKit";
 import CopyableMethods from "../common/CopyableMethods";
+import LongTableButton from "../common/LongTableButton";
 import { fmtP, levelPct, pLabel, stars } from "../common/statFormat";
 import { baseLayout, chromeFor, useDark } from "../multivariable/chart";
 import { PlotMessage, PlotlyChart } from "../multivariable/plotkit";
@@ -41,7 +42,7 @@ function DatasetPick({ label, value, table, onChange }: {
 
 /* ------------------------------------------------------------ controls */
 
-export function RocControls({ table, options, onChange }: ControlsProps<RocOptions>) {
+export function RocControls({ sheet, table, options, onChange, readOnly }: ControlsProps<RocOptions>) {
   const set = (p: Partial<RocOptions>) => onChange({ ...options, ...p });
   const direction = (key: "higherAbnormal" | "higherAbnormal2") => (
     <Select label="The condition is indicated by" value={options[key] ? "high" : "low"}
@@ -56,6 +57,7 @@ export function RocControls({ table, options, onChange }: ControlsProps<RocOptio
         <DatasetPick label="Controls (condition absent)" value={options.controls} table={table}
           onChange={(controls) => set({ controls })} />
         {direction("higherAbnormal")}
+        {!readOnly && <LongTableButton target="roc" sheet={sheet} />}
       </Section>
       <Section title="Compare with a second marker">
         <Check label="Compare two ROC curves (DeLong)" checked={options.compare}

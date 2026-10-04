@@ -86,6 +86,16 @@ export interface OptionsState {
   /** model === "user": the user-defined equation, stored with the
    *  results so a project file is self-contained. */
   userEquation?: UserEquationDef | null;
+  /** A new XY table's fit starts by itself only when the data look like
+   *  a dose-response ("auto", set by a new results sheet) or once the
+   *  fit was asked for ("requested": a model picked, "Fit a curve", ...).
+   *  Absent (older files) = "requested". See sheets/xy/autofit.ts. */
+  autoFit?: "auto" | "requested";
+  /** Y-based weighting: weights from the fitted curve held fixed within
+   *  each iteration (the iteratively reweighted fixed point, "predicted",
+   *  the default) or the weighted SS minimised directly with the weights
+   *  moving with the parameters ("objective", as R's nls with weights). */
+  weightSource?: "predicted" | "objective";
 }
 
 export const DEFAULT_XY_OPTIONS: OptionsState = {
@@ -150,6 +160,9 @@ export interface FitResult {
     df: number;
     n_points: number;
     r_squared: number | null;
+    /** Lines through the origin: R² about Y = 0 (NIST, R's lm without
+     *  an intercept). */
+    r_squared_uncentered?: number | null;
     ss_res: number;
     sy_x: number;
   };
@@ -229,14 +242,31 @@ export type TwoWayComparisons = "none" | "tukey" | "sidak" | "bonferroni";
 
 export type TwoWayDirection =
   | "columns_within_rows" | "rows_within_columns"
-  | "column_means" | "row_means";
+  | "column_means" | "row_means" | "all_cells";
 
 export const TWO_WAY_DIRECTION_LABELS: Record<TwoWayDirection, string> = {
   columns_within_rows: "Within each row, compare datasets",
   rows_within_columns: "Within each dataset, compare rows",
   column_means: "Compare dataset main-effect means",
   row_means: "Compare row main-effect means",
+  all_cells: "Compare every cell mean with every other cell mean",
 };
+
+/** Two-way ANOVA model: with the interaction term (full) or main effects
+ *  only (additive, R's aov(y ~ A + B)). */
+export type TwoWayModel = "full" | "additive";
+
+export const TWO_WAY_MODEL_LABELS: Record<TwoWayModel, string> = {
+  full: "Full model: row factor, column factor and their interaction",
+  additive: "Main effects only (additive, no interaction term)",
+};
+
+/** Shown when the main-effects-only two-way model is chosen. */
+export const TWO_WAY_ADDITIVE_NOTE = "The additive model leaves out the interaction: it "
+  + "assumes the effect of one factor is the same at every level of the other. "
+  + "The interaction's sum of squares and df join the residual, so use it only "
+  + "when an interaction is implausible, or with one value per cell (where the "
+  + "full model has no residual). Comparing every cell mean needs the full model.";
 
 export type ColumnGraphType = "scatter" | "bar" | "box" | "violin";
 
@@ -263,7 +293,7 @@ export const TTEST_LABELS: Record<TTestKind, string> = {
 
 export type ComparisonsMethod =
   | "none" | "tukey" | "dunnett" | "bonferroni" | "sidak" | "holm_sidak"
-  | "newman_keuls" | "fisher_lsd";
+  | "newman_keuls" | "fisher_lsd" | "holm";
 
 export const COMPARISONS_LABELS: Record<ComparisonsMethod, string> = {
   none: "No multiple comparisons",
@@ -272,6 +302,7 @@ export const COMPARISONS_LABELS: Record<ComparisonsMethod, string> = {
   bonferroni: "Bonferroni (every pair)",
   sidak: "Šídák (every pair)",
   holm_sidak: "Holm-Šídák (every pair)",
+  holm: "Holm (Bonferroni step-down, every pair)",
   newman_keuls: "Newman-Keuls (every pair)",
   fisher_lsd: "Fisher's LSD (every pair, no correction)",
 };
@@ -306,7 +337,7 @@ export interface ColumnOptionsState {
   comparisons: ComparisonsMethod;
   controlIndex: number;
   grubbsAlpha: string;
-  corrMethod: "pearson" | "spearman";
+  corrMethod: "pearson" | "spearman" | "kendall";
   rmKind: "parametric" | "nonparametric";
   outlierMethod: "grubbs" | "rout";
   routQ: string;
@@ -332,6 +363,11 @@ export interface ColumnOptionsState {
   ratioT?: boolean;
   /** Friedman: exact P (small designs). */
   rmExact?: boolean;
+  /** Correlation: also report a one-sided P (and bound) in the stated
+   *  direction (R's cor.test alternative = "greater" / "less"). */
+  corrTails?: "two" | "greater" | "less";
+  /** Two-way ANOVA (rows × datasets): full or main-effects-only model. */
+  twoWayModel?: TwoWayModel;
 }
 
 export const DEFAULT_COLUMN_OPTIONS: ColumnOptionsState = {
@@ -362,6 +398,8 @@ export const DEFAULT_COLUMN_OPTIONS: ColumnOptionsState = {
   trimK: "",
   ratioT: false,
   rmExact: false,
+  corrTails: "two",
+  twoWayModel: "full",
 };
 
 export function parseCell(v: Cell): number | null {
@@ -374,7 +412,12 @@ export function parseCell(v: Cell): number | null {
 // Significant digits used by results tables; set from Preferences.
 let displayDigits = 4;
 export function setDisplayDigits(n: number) {
-  if (Number.isFinite(n)) displayDigits = Math.min(8, Math.max(2, Math.round(n)));
+  if (Number.isFinite(n)) displayDigits = Math.min(10, Math.max(2, Math.round(n)));
+}
+
+/** The results precision (significant digits) set from Preferences. */
+export function getDisplayDigits(): number {
+  return displayDigits;
 }
 
 export function formatSig(
@@ -383,6 +426,8 @@ export function formatSig(
   if (v === null || v === undefined || !Number.isFinite(v)) return "n/a";
   if (v === 0) return "0";
   const abs = Math.abs(v);
-  if (abs >= 1e5 || abs < 1e-3) return v.toExponential(sig - 1);
+  // Large numbers stay in plain notation while every digit is shown
+  // (more than 5 significant digits lift the 1e5 limit to 10^digits).
+  if (abs >= Math.max(1e5, 10 ** sig) || abs < 1e-3) return v.toExponential(sig - 1);
   return Number(v.toPrecision(sig)).toString();
 }

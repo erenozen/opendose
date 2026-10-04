@@ -61,7 +61,7 @@ export function useAnalysisResult(sheet: ResultsSheet | null,
     const prev = results.get(sheet.id);
     const delay = prev && prev.key !== "" && prev.live !== false ? 400 : 30;
     const timer = setTimeout(() => {
-      results.run(sheet.id, key, sheetRunner(def, sheet, table, options, prefs), priority);
+      results.run(sheet.id, key, sheetRunner(def, table, options), priority);
     }, delay);
     return () => clearTimeout(timer);
   // `cancelled` and `current` re-arm the effect after Retry / a newer run.

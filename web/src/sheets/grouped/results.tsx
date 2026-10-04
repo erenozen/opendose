@@ -82,9 +82,17 @@ function TwoWayComparisons({ mc, note }: { mc: R; note?: string }) {
     : method.charAt(0).toUpperCase() + method.slice(1);
   return (
     <>
-      <h4>{name} multiple comparisons{mc.ms_residual != null
+      <h4>{name} multiple comparisons{mc.direction === "all_cells"
+        ? " of every cell mean with every other" : ""}{mc.ms_residual != null
         ? ` (MS residual ${formatSig(mc.ms_residual)}, df ${mc.df_residual})` : ""}</h4>
       {note && <p className="hint-block">{note}</p>}
+      {mc.direction === "all_cells" && (
+        <p className="hint-block">
+          Every row × data set cell is compared with every other, using the
+          residual of the full two-way model{method === "tukey"
+            ? " (Tukey: the family is all the cell means)" : " (corrected for every pair of cells)"}.
+        </p>
+      )}
       <div className="results-scroll">
         <table className="results-table">
           <thead>
@@ -247,8 +255,18 @@ export function TwoWayResults({ result, options, table }: ResultsProps<TwoWayOpt
         Ordinary, {result.type ?? "type III"}
         {result.analysis === "two_way_anova_summary" ? "; computed from mean, SD and N" : ""}
         {result.n != null ? `; ${result.n} values` : ""}
+        {result.model ? `; ${String(result.model)}` : ""}
       </p>
+      {result.model && (
+        <p className="hint-block">
+          No interaction term: its sum of squares is part of the residual, and
+          each factor is tested against that residual (R&apos;s aov(y ~ A + B)).
+        </p>
+      )}
       <SourcesTable rows={rows} />
+      {result.comparisons_error && (
+        <p className="results-error">Comparisons failed: {String(result.comparisons_error)}</p>
+      )}
       {result.cell_means && <CellMeans means={result.cell_means} rows={rowNames} cols={colNames} />}
       {result.multiple_comparisons && <TwoWayComparisons mc={result.multiple_comparisons} />}
     </div>
@@ -402,7 +420,8 @@ export function MultiTResults({ result, options }: ResultsProps<MultiTOptions, R
                 <td>{val(r, "a")}</td><td>{val(r, "b")}</td>
                 <td>{formatSig(log ? r.ratio : (r.hodges_lehmann ?? r.difference))}</td>
                 {!nonpar && <td>{formatSig(r.se_difference)}</td>}
-                <td>{formatSig(r.statistic)}</td>
+                <td>{formatSig(r.statistic_name === "t"
+                  && (log ? r.ratio < 1 : r.difference < 0) ? -Math.abs(r.statistic) : r.statistic)}</td>
                 {!nonpar && <td>{formatSig(r.df, 4)}</td>}
                 <td>{r.n_pairs != null ? `${r.n_pairs} pairs` : `${r.n_a}, ${r.n_b}`}</td>
               </tr>

@@ -5,8 +5,8 @@ import type { Prefs, TableType } from "../project/types";
 import { REGISTRY, TABLE_ORDER } from "../sheets/registry";
 import { ERROR_BAR_LABELS, type ErrorBarKind } from "../types";
 import {
-  P_STYLE_LABELS, SMD_LABELS, VARIANCE_LABELS, reportPrefsOf,
-  type PStyle, type ReportPrefs, type SmdPref, type VariancePref,
+  P_FLOOR_LABELS, P_STYLE_LABELS, SMD_LABELS, VARIANCE_LABELS, reportPrefsOf,
+  type PFloor, type PStyle, type ReportPrefs, type SmdPref, type VariancePref,
 } from "../report/prefs";
 
 /** Every keyboard binding in the app, by where it works. Keep in sync
@@ -142,7 +142,7 @@ export default function PreferencesPopover() {
             <span>Significant digits in results</span>
             <select value={prefs.digits}
               onChange={(e) => set("digits", Number(e.target.value))}>
-              {[3, 4, 5, 6].map((d) => <option key={d} value={d}>{d}</option>)}
+              {[3, 4, 5, 6, 7, 8, 9, 10].map((d) => <option key={d} value={d}>{d}</option>)}
             </select>
           </label>
           <h3 className="prefs-subtitle">Reporting</h3>
@@ -152,6 +152,16 @@ export default function PreferencesPopover() {
               onChange={(e) => setReport({ pStyle: e.target.value as PStyle })}>
               {(Object.keys(P_STYLE_LABELS) as PStyle[]).map((k) => (
                 <option key={k} value={k}>{P_STYLE_LABELS[k]}</option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            <span>Smallest P written exactly{report.pStyle !== "graphpad"
+              ? " (GraphPad style only; APA and NEJM keep their own floor)" : ""}</span>
+            <select value={report.pFloor} disabled={report.pStyle !== "graphpad"}
+              onChange={(e) => setReport({ pFloor: e.target.value as PFloor })}>
+              {(Object.keys(P_FLOOR_LABELS) as PFloor[]).map((k) => (
+                <option key={k} value={k}>{P_FLOOR_LABELS[k]}</option>
               ))}
             </select>
           </label>

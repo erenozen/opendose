@@ -33,6 +33,12 @@ export function pStars(p: number): string {
 /** Exact P for a graph label: four significant digits, "< 0.0001" below. */
 export function formatP(p: number, prefix = "P = "): string {
   if (!Number.isFinite(p)) return "";
+  if (p < 0.0001 && currentReportPrefs().pFloor !== "1e-4") {
+    // a lower floor (Preferences → Reporting): pformat's rule
+    const n = pNumber(p, "graphpad", "text");
+    if (n.startsWith("<")) return prefix ? `${prefix.replace("=", "<")}${n.slice(1).trim()}` : n;
+    return `${prefix}${n}`;
+  }
   if (p < 0.0001) return prefix ? `${prefix.replace("=", "<")}0.0001` : "< 0.0001";
   const s = p >= 0.001 ? p.toFixed(4).replace(/0+$/, "").replace(/\.$/, "")
     : Number(p.toPrecision(2)).toString();

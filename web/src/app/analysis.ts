@@ -5,7 +5,6 @@ import { ENGINE_HASH } from "../lib/buildInfo";
 import { isCancelled, runEngine, type EngineBridge, type Priority } from "../lib/engine";
 import type { ResultsSheet, DataTableModel, ProjectPrefs } from "../project/types";
 import type { AnalysisDef } from "../sheets/types";
-import { doseResponseScreen, isAutomaticFit } from "./fitGuard";
 
 export function resolveOptions(def: AnalysisDef | undefined, raw: unknown,
   table: DataTableModel, prefs: ProjectPrefs): unknown {
@@ -17,18 +16,11 @@ export function resolveOptions(def: AnalysisDef | undefined, raw: unknown,
     ? { ...base, ...raw } : base;
 }
 
-/** The computation behind a results sheet, for runEngine: the analysis's
- *  own run, except that the untouched automatic curve fit is not started
- *  on data that is clearly not a dose-response (app/fitGuard.ts). */
-export function sheetRunner(def: AnalysisDef, sheet: ResultsSheet, table: DataTableModel,
-  options: unknown, prefs: ProjectPrefs): (engine: EngineBridge) => unknown {
-  if (isAutomaticFit(sheet.analysis, sheet.options, def.defaultOptions({ table, prefs }))) {
-    const xIsLog = !!(options as { xIsLog?: boolean } | null)?.xIsLog;
-    const verdict = doseResponseScreen(table, xIsLog);
-    if (verdict) {
-      return () => ({ analysis: "dose_response", datasets: [], error: verdict.reason, notFitted: true });
-    }
-  }
+/** The computation behind a results sheet, for runEngine. (Whether the
+ *  automatic first curve fit runs at all is the XY sheet's own decision:
+ *  sheets/xy/autofit.ts.) */
+export function sheetRunner(def: AnalysisDef, table: DataTableModel,
+  options: unknown): (engine: EngineBridge) => unknown {
   return (engine) => def.run(engine, table, options);
 }
 

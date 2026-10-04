@@ -233,11 +233,12 @@ export function describeResult(result: unknown): TestInfo {
       return info;
     }
     case "correlation":
-      info.test = r.method === "spearman" ? "Spearman correlation" : "Pearson correlation";
+      info.test = r.method === "spearman" ? "Spearman correlation"
+        : r.method === "kendall" ? "Kendall rank correlation (tau-b)" : "Pearson correlation";
       info.sided = "two-sided";
       info.exactP = true;
       info.multiplicity = "single";
-      info.statisticWithDf = r.method !== "spearman";
+      info.statisticWithDf = r.method === "pearson" || r.method === undefined;
       if (num(r.n)) info.groups = [{ name: names.join(" and ") || "pairs", n: r.n }];
       info.nUnit = "pairs";
       return info;

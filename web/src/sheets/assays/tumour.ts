@@ -87,7 +87,7 @@ export function runTumourMixed(engine: EngineBridge, table: DataTableModel, o: T
   }
   const tw: TwoWayOptions = {
     design: "rm_rows", rmFit: "mixed", rowFactor: time, colFactor: "Group",
-    comparisons: o.comparisons, direction: o.direction,
+    comparisons: o.comparisons, direction: o.direction, model: "full",
   };
   if (grouped.rowTitles.length < 2) {
     return { error: "The mixed model needs at least two time points at which every group has values" };

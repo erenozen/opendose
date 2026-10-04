@@ -26,6 +26,30 @@ import {
 } from "./superplotStats";
 import { estimationAnalysis, estimationGraph } from "../../report/estimation";
 
+/** Short name of the test a column-analysis results sheet shows: its tab
+ *  label and the stem of its automatic sheet name. */
+export function columnTestLabel(raw: unknown): string {
+  const o = { ...DEFAULT_COLUMN_OPTIONS, ...(raw && typeof raw === "object" ? raw : {}) } as
+    ColumnOptionsState;
+  switch (o.analysis) {
+    case "ttest":
+      return ({ mann_whitney: "Mann-Whitney", wilcoxon: "Wilcoxon",
+        kolmogorov_smirnov: "K-S test" } as Record<string, string>)[o.ttestKind] ?? "t test";
+    case "anova":
+      return o.anovaKind === "nonparametric" ? "Kruskal-Wallis"
+        : o.anovaSd === "unequal" ? "Welch ANOVA" : "One-way ANOVA";
+    case "median_test": return "Median test";
+    case "rm_anova": return o.rmKind === "nonparametric" ? "Friedman" : "RM ANOVA";
+    case "two_way_anova": return "Two-way ANOVA";
+    case "rm_two_way": return "RM two-way ANOVA";
+    case "correlation": return "Correlation";
+    case "roc": return "ROC";
+    case "bland_altman": return "Bland-Altman";
+    case "outliers": return "Outliers";
+    default: return "Column stats";
+  }
+}
+
 export const columnAnalysis = defineAnalysis<ColumnOptionsState, Record<string, unknown>>({
   id: ANALYSIS_COLUMN,
   label: "Column analyses (t tests, ANOVA, nonparametric, …)",
@@ -34,6 +58,8 @@ export const columnAnalysis = defineAnalysis<ColumnOptionsState, Record<string, 
     + "ANOVA (Welch and Brown-Forsythe too), nonparametric tests, median test, "
     + "correlation, ROC, Bland-Altman, outliers.",
   sheetName: (t) => `Column stats of ${t}`,
+  sheetNameFor: (t, o) => `${columnTestLabel(o)} of ${t}`,
+  tabLabel: (o) => columnTestLabel(o),
   defaultOptions: () => ({ ...DEFAULT_COLUMN_OPTIONS }),
   normalizeOptions: (raw) => ({
     ...DEFAULT_COLUMN_OPTIONS,

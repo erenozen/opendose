@@ -6,7 +6,7 @@
 // job gives way to the visible one when a warm spare worker is ready).
 // Opening any sheet then shows its numbers at once.
 import { useEffect } from "react";
-import type { DataSheet, ResultsSheet } from "../project/types";
+import type { DataSheet } from "../project/types";
 import { analysisDef } from "../sheets/registry";
 import { resolveOptions, resultKey, sheetRunner } from "./analysis";
 import { useProject } from "./context";
@@ -28,8 +28,7 @@ export function useBackgroundRefresh() {
         const options = resolveOptions(def, s.options, data.table, project.prefs);
         const key = resultKey(s.analysis, options, data.table);
         if (results.isCurrent(s.id, key) || results.isCancelled(s.id, key)) continue;
-        results.run(s.id, key,
-          sheetRunner(def, s as ResultsSheet, data.table, options, project.prefs), "background");
+        results.run(s.id, key, sheetRunner(def, data.table, options), "background");
       }
     }, IDLE_MS);
     return () => clearTimeout(timer);

@@ -40,9 +40,12 @@ export default function Header({ onOpenFile, onNewProject }: {
   const active = data ? api.activeResults(data.id) : null;
   const tdef = data ? tableDef(data.table.type) : undefined;
   const labelFor = (s: ResultsSheet) => {
-    const a = analysisDef(data!.table.type, s.analysis);
-    const base = a?.short ?? s.analysis;
-    const same = tabs.filter((t) => t.analysis === s.analysis);
+    const baseOf = (r: ResultsSheet) => {
+      const a = analysisDef(data!.table.type, r.analysis);
+      return a?.tabLabel?.(r.options) ?? a?.short ?? r.analysis;
+    };
+    const base = baseOf(s);
+    const same = tabs.filter((t) => baseOf(t) === base);
     return same.length > 1 ? `${base} ${same.indexOf(s) + 1}` : base;
   };
 

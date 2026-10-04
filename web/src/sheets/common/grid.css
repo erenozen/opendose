@@ -145,3 +145,10 @@ button.linkish:active { transform: none; }
   .grid-toolbar > button, .grid-toolbar .menu-wrap > button { min-height: 36px; }
   .dialog-tabs button { padding: 7px 12px; }
 }
+
+/* "From long table…" entry in analysis controls, per-table Copy / CSV */
+.long-table-entry { margin: 6px 0 2px; }
+.long-table-entry button { padding: 4px 11px; font-size: 12.5px; }
+.table-copy { margin: 2px 0 4px; }
+.long-table-dialog .field-row > .field { min-width: 12ch; }
+.long-table-error { color: var(--danger); }

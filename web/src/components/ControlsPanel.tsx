@@ -1,4 +1,4 @@
-import { useState, useSyncExternalStore } from "react";
+import { useState, useSyncExternalStore, type ReactNode } from "react";
 import LearnMore from "../guide/LearnMore";
 import type {
   CIMethod, ConstraintState, ErrorBarKind, OptionsState,
@@ -23,6 +23,10 @@ interface Props {
   /** Data set names (for data-set constants such as [antagonist]). */
   datasetNames?: string[];
   readOnly?: boolean;
+  /** Data entered as means with errors (no "minimise directly"). */
+  summaryData?: boolean;
+  /** Shown under the model picker (e.g. "the fit waits for a model"). */
+  notice?: ReactNode;
 }
 
 function ConstraintRow({ label, state, onChange }: {
@@ -56,7 +60,9 @@ function userParams(def: UserEquationDef | null | undefined): string[] {
   return def ? Object.keys(def.rules) : [];
 }
 
-export default function ControlsPanel({ options, onChange, datasetNames = [], readOnly }: Props) {
+export default function ControlsPanel({
+  options, onChange, datasetNames = [], readOnly, summaryData, notice,
+}: Props) {
   useSyncExternalStore(subscribeModelLibrary, modelLibraryVersion);
   const [editing, setEditing] = useState<UserEquationDef | null>(null);
   const set = (patch: Partial<OptionsState>) => onChange({ ...options, ...patch });
@@ -70,14 +76,16 @@ export default function ControlsPanel({ options, onChange, datasetNames = [], re
   const pickModel = (id: string) => {
     const m = modelMeta(id);
     const ok = new Set(shareableParams(m));
+    // choosing a model is asking for the fit (sheets/xy/autofit.ts)
     set({
       model: id,
       sharedParams: m.globalOnly ? [...(m.shared ?? [])]
         : options.sharedParams.filter((p) => ok.has(p)),
+      autoFit: "requested",
     });
   };
   const applyEquation = (def: UserEquationDef) => {
-    set({ model: USER_MODEL_ID, userEquation: def, sharedParams: [] });
+    set({ model: USER_MODEL_ID, userEquation: def, sharedParams: [], autoFit: "requested" });
     setEditing(null);
   };
 
@@ -101,6 +109,7 @@ export default function ControlsPanel({ options, onChange, datasetNames = [], re
           onPickEquation={(def) => applyEquation(def)}
           onNewEquation={() => setEditing(newEquation())}
           onEditEquation={() => setEditing(ueq ?? newEquation())} />
+        {notice}
         {needsLogX && (
           <label className="check-row">
             <input
@@ -244,6 +253,36 @@ export default function ControlsPanel({ options, onChange, datasetNames = [], re
             ))}
           </select>
         </label>
+        {options.weighting !== "none" && (
+          <>
+            <label className="check-row">
+              <span>Weights</span>
+              <select value={summaryData ? "predicted" : options.weightSource ?? "predicted"}
+                disabled={summaryData}
+                onChange={(e) => set({
+                  weightSource: e.target.value as NonNullable<OptionsState["weightSource"]> })}>
+                <option value="predicted">Reweight from the fitted curve (default)</option>
+                <option value="objective">Minimise the weighted SS directly (R&apos;s nls weights)</option>
+              </select>
+            </label>
+            <p className="hint-block">
+              {options.weighting === "1/X" || options.weighting === "1/X2" ? (
+                <>These weights do not depend on the curve, so both choices give the same fit.</>
+              ) : (
+                <>
+                  By default the weights come from the fitted curve, are held fixed
+                  within each iteration and are then recomputed, as the Prism guide
+                  describes. Minimising directly treats Σ w(Ŷ)·(Y − Ŷ)² as the
+                  objective, the weights moving with the parameters, as R&apos;s nls
+                  with weights = 1/fitted does. The estimates differ slightly
+                  (Puromycin, treated: Vmax 207.78 vs 206.83).
+                </>
+              )}
+              {summaryData ? " Minimising directly needs the replicate values, not means with errors."
+                : " Global fits (shared parameters) always reweight from the curve."}
+            </p>
+          </>
+        )}
         <label className="check-row">
           <span>Confidence intervals</span>
           <select value={options.ciMethod}

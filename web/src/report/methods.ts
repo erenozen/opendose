@@ -27,7 +27,12 @@ export function statsMethodsParagraph(result: unknown, prefs: ReportPrefs,
   else if (info.posthoc && info.multiplicity === "uncorrected") t += `, followed by ${info.posthoc} without correction for multiple comparisons`;
   parts.push(`${t}.`);
   if (info.assumptions) parts.push(`Assumptions: ${info.assumptions}.`);
-  if (info.sided) parts.push(`P values are reported as exact values down to ${FLOOR_TEXT[prefs.pStyle]} (${P_STYLES[prefs.pStyle].label} style), and P < 0.05 was taken as the threshold for statistical significance.`);
+  if (info.sided) {
+    const gpFloor = prefs.pFloor && prefs.pFloor !== "1e-4" && prefs.pStyle === "graphpad";
+    const floor = !gpFloor ? `down to ${FLOOR_TEXT[prefs.pStyle]}`
+      : prefs.pFloor === "exact" ? "without a floor" : `down to P < ${prefs.pFloor === "1e-6" ? "0.000001" : "1e-10"}`;
+    parts.push(`P values are reported as exact values ${floor} (${P_STYLES[prefs.pStyle].label} style), and P < 0.05 was taken as the threshold for statistical significance.`);
+  }
   const eff = primaryEffect(effectGroups(result, prefs));
   if (eff) {
     parts.push(`Effect sizes are reported as ${eff.measure}${eff.ci ? ` with ${Math.round(eff.ciLevel * 100)}% confidence intervals${eff.ciMethod ? ` (${eff.ciMethod})` : ""}` : ""}.`);

@@ -10,11 +10,32 @@ import {
 } from "../../project/types.ts";
 import type { ColumnOptionsState } from "../../types.ts";
 import { COLUMN_ANALYSIS_LABELS, DEFAULT_NORMALITY_TESTS } from "../../types.ts";
+import { allCellsComparisons } from "../common/allCells.ts";
 
 export function runColumn(engine: EngineBridge, table: DataTableModel,
   o: ColumnOptionsState): Record<string, unknown> {
   if (table.subcolumnFormat !== "replicates") return runColumnSummary(engine, table, o);
-  return engine.analyze(columnPayload(table, o)) as Record<string, unknown>;
+  const r = engine.analyze(columnPayload(table, o)) as Record<string, unknown>;
+  if (o.analysis === "two_way_anova" && o.twoWayDirection === "all_cells"
+    && o.twoWayComparisons !== "none" && r && !r.error) {
+    return { ...r, multiple_comparisons: twoWayAllCells(engine, table, o) };
+  }
+  return r;
+}
+
+/** Every cell mean against every other: needs the interaction model. */
+function twoWayAllCells(engine: EngineBridge, table: DataTableModel,
+  o: ColumnOptionsState): Record<string, unknown> | null {
+  if (o.twoWayModel === "additive") return null;
+  const d = numericData(table).datasets;
+  const nRows = Math.max(0, ...d.map((ds) => ds.ys.length));
+  const rowNames = Array.from({ length: nRows }, (_, i) =>
+    table.rowTitles[i]?.trim() || `Row ${i + 1}`);
+  const mc = allCellsComparisons(engine, {
+    rowNames, colNames: d.map((ds, j) => ds.name || `Dataset ${j + 1}`),
+    cells: rowNames.map((_, i) => d.map((ds) => ds.ys[i] ?? [])),
+  }, o.twoWayComparisons);
+  return mc.error ? null : mc;
 }
 
 const sameList = (a: string[], b: string[]) =>
@@ -69,17 +90,22 @@ export function columnPayload(table: DataTableModel, o: ColumnOptionsState):
   }
   if (o.analysis === "median_test") return { analysis: "median_test", ...base, options: {} };
   if (o.analysis === "correlation") {
+    // One-sided P values come with every result; corrTails only picks
+    // which one the results show.
     return { analysis: "correlation", ...base,
       options: { method: o.corrMethod,
                  dataset_a: o.datasetA, dataset_b: o.datasetB } };
   }
   if (o.analysis === "two_way_anova") {
+    // "All cell means" are compared by runColumn (one-way on the cells).
+    const allCells = o.twoWayDirection === "all_cells";
     return { analysis: "two_way_anova", ...base,
       options: {
         row_factor: "Rows", col_factor: "Datasets",
-        comparisons: o.twoWayComparisons === "none"
+        comparisons: o.twoWayComparisons === "none" || allCells
           ? null : o.twoWayComparisons,
-        direction: o.twoWayDirection,
+        direction: allCells ? "columns_within_rows" : o.twoWayDirection,
+        ...(o.twoWayModel === "additive" ? { model: "additive" } : {}),
       } };
   }
   if (o.analysis === "rm_two_way") {
@@ -185,15 +211,37 @@ export function runColumnSummary(engine: EngineBridge, table: DataTableModel,
         name: d.name,
         rows: d.ys.slice(0, last + 1).map((row) => (row[0] == null ? null : row)),
       })) };
+      const allCells = o.twoWayDirection === "all_cells";
+      const rowNames = table.rowTitles.slice(0, last + 1).map((t, i) => t.trim() || `Row ${i + 1}`);
       const r = engine.analyze({ analysis: "two_way_anova_summary", data: twoData,
         options: {
           row_factor: "Rows", col_factor: "Datasets",
-          comparisons: o.twoWayComparisons === "none" ? null : o.twoWayComparisons,
-          direction: o.twoWayDirection,
-          row_names: table.rowTitles.slice(0, last + 1).map((t, i) => t.trim() || `Row ${i + 1}`),
+          comparisons: o.twoWayComparisons === "none" || allCells ? null : o.twoWayComparisons,
+          direction: allCells ? "columns_within_rows" : o.twoWayDirection,
+          row_names: rowNames,
+          ...(o.twoWayModel === "additive" ? { model: "additive" } : {}),
         } }) as Result;
       if (r.error) return { error: `not possible from ${fmtLabel} data: ${String(r.error)}` };
-      return { ...r, analysis: "two_way_anova", from_summary: true };
+      let mc: Result | null = null;
+      if (allCells && o.twoWayComparisons !== "none" && o.twoWayModel !== "additive") {
+        // one group per cell, from that cell's mean / SD / N
+        const cells = rowNames.flatMap((rn, i) => sets
+          .filter((d) => d.ys[i]?.[0] != null)
+          .map((d) => ({ name: `${rn}:${d.name}`, rows: [d.ys[i]] })));
+        const c = engine.analyze({ analysis: "anova_summary", data: { format, datasets: cells },
+          options: { kind: "parametric", comparisons: o.twoWayComparisons } }) as Result;
+        const m = c.multiple_comparisons as Result | undefined;
+        if (!c.error && m) {
+          const comps = (m.comparisons as Result[]).map((x) => ({
+            family: "All cells", pair: x.pair, difference: x.difference, ci95: x.ci ?? null,
+            statistic: x.statistic, p_adjusted: x.p_adjusted, significant_05: x.significant_05 }));
+          mc = { method: o.twoWayComparisons, direction: "all_cells",
+            ms_residual: (c.table as Result)?.ms_within, df_residual: (c.table as Result)?.df_within,
+            n_comparisons: comps.length, comparisons: comps };
+        }
+      }
+      return { ...r, analysis: "two_way_anova", from_summary: true,
+        ...(mc ? { multiple_comparisons: mc } : {}) };
     }
     default:
       return {

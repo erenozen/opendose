@@ -5,6 +5,7 @@
 import {
   detectDecimal, detectDelimiter, normalizeNumber, splitDelimited,
 } from "../../project/importText.ts";
+import { findCqHeader, isUndeterminedCq } from "../../sheets/assays/qpcr/headers.ts";
 import { guessDelimiter, guessParts, type NamePattern } from "./pattern.ts";
 import { findPlateGrid, ROW_LABELS } from "./plate.ts";
 import {
@@ -61,8 +62,6 @@ function headerRow(m: string[][], needles: RegExp[], maxScan = 80): number {
   }
   return -1;
 }
-
-const col = (headers: string[], re: RegExp) => headers.findIndex((h) => re.test(norm(h)));
 
 function body(m: string[][], header: number): string[][] {
   return m.slice(header + 1).filter((r) => r.some((c) => c.trim() !== ""));
@@ -236,27 +235,25 @@ const plate: Recipe = {
 
 // ------------------------------------------------------------ qPCR
 
-const CQ_RE = /^(cq|ct|cт|c[tq] \(dRn\)|crt|cp)$/i;
-const SAMPLE_RE = /^(sample|sample name|samplename|name|sample id)$/;
-const TARGET_RE = /^(target|target name|targetname|detector|detector name|gene|assay)$/;
-
+// Header variants (Sample Name, Well Name, Target Name, Gene, Detector,
+// CT, Cт, Cq Mean ...) are matched case-insensitively by the qPCR
+// module's resolver, so the recipe and the qPCR wizard agree.
 const qpcr: Recipe = {
   id: "qpcr",
   label: "qPCR Cq / Ct export",
   description: "Rows of Well, Sample, Target and Cq (Bio-Rad CFX, QuantStudio, LightCycler …). "
     + "Technical replicate wells are averaged per sample and target.",
-  detect: (m) => (headerRow(m, [CQ_RE, SAMPLE_RE, TARGET_RE]) >= 0 ? 0.95 : 0),
+  detect: (m) => (findCqHeader(m)?.complete ? 0.95 : 0),
   stage: (m) => {
-    const r = headerRow(m, [CQ_RE, SAMPLE_RE, TARGET_RE]);
-    const headers = m[r];
-    const cq = col(headers, CQ_RE);
-    const sample = col(headers, SAMPLE_RE);
-    const target = col(headers, TARGET_RE);
+    const h = findCqHeader(m);
+    if (!h?.complete) throw new Error("No Cq table found: no header row names a sample, a target and a Cq (or Ct) column.");
+    const { row: r, headers, idx } = h;
+    const { cq, sample, target } = idx;
     const roles: Role[] = headers.map((_, i) => (i === cq ? "value" : i === sample ? "group"
       : i === target ? "time" : "meta"));
     const rows = body(m, r).filter((x) => (x[sample] ?? "").trim() !== "" || (x[cq] ?? "").trim() !== "");
     const st = makeStaging(headers, rows, roles);
-    const undetermined = rows.filter((x) => /undet|no ct|n\/a/i.test(x[cq] ?? "")).length;
+    const undetermined = rows.filter((x) => isUndeterminedCq(x[cq] ?? "")).length;
     return {
       recipe: "qpcr", staging: st, pattern: null,
       aggregate: [{ level: "", fn: "mean" }],

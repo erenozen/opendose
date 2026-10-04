@@ -69,8 +69,6 @@ function Diagnostics({ diag }: { diag: any }) {
 
 export default function ResultsPanel({ result, xUnit = "M" }: Props) {
   if (!result) return null;
-  // The automatic fit was held back; the note above the results says why.
-  if ((result as { notFitted?: boolean }).notFitted) return null;
   if (result.error) {
     return <div className="results-error">Analysis failed: {result.error}</div>;
   }
@@ -168,6 +166,10 @@ export default function ResultsPanel({ result, xUnit = "M" }: Props) {
               <tbody>
                 <tr><th>Degrees of freedom</th><td>{fit.goodness.df}</td></tr>
                 <tr><th>R squared</th><td>{formatSig(fit.goodness.r_squared)}</td></tr>
+                {typeof fit.goodness.r_squared_uncentered === "number" && (
+                  <tr><th>R squared about Y = 0 (uncentred, line through the origin)</th>
+                    <td>{formatSig(fit.goodness.r_squared_uncentered)}</td></tr>
+                )}
                 <tr><th>Sum of squares</th><td>{formatSig(fit.goodness.ss_res)}</td></tr>
                 <tr><th>Sy.x</th><td>{formatSig(fit.goodness.sy_x)}</td></tr>
                 <tr><th># of points analyzed</th><td>{fit.goodness.n_points}</td></tr>

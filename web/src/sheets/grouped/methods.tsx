@@ -62,8 +62,9 @@ const effect = (name: string, s: R | undefined) => (s && s.F != null
 
 export function TwoWayMethods({ result, options: o }: ResultsProps<TwoWayOptions, R>) {
   if (!ok(result)) return <MethodsCard text={null} />;
-  const fA = o.rowFactor || "the row factor";
-  const fB = o.colFactor || "the column factor";
+  const names = Array.isArray(result.factor_names) ? result.factor_names as string[] : [];
+  const fA = names[0] || o.rowFactor || "the row factor";
+  const fB = names[1] || o.colFactor || "the column factor";
   let text: string;
   if (result.analysis === "mixed_rm_two_way") {
     const fe = result.fixed_effects ?? {};
@@ -98,14 +99,16 @@ export function TwoWayMethods({ result, options: o }: ResultsProps<TwoWayOptions
       : "");
     const keys = Object.keys(src).filter((k) => k !== "residual" && k !== "interaction");
     text = `Data were analyzed by ordinary two-way ANOVA (type III sums of squares) `
-      + `with ${fA} and ${fB} as factors${result.analysis === "two_way_anova_summary"
+      + `with ${fA} and ${fB} as factors${result.model
+        ? " (main effects only, without the interaction term)" : ""}${result.analysis === "two_way_anova_summary"
         ? ", computed from the entered means, SD and n" : ""}, using ${TOOL}. `
       + [line("interaction", "Interaction"), ...keys.map((k) => line(k, k))]
         .filter(Boolean).join("; ") + ".";
   }
   if (result.multiple_comparisons) {
     text += ` Multiple comparisons used ${cmpName[result.multiple_comparisons.method]
-      ?? result.multiple_comparisons.method} test.`;
+      ?? result.multiple_comparisons.method} test${result.multiple_comparisons.direction === "all_cells"
+      ? ", comparing every cell mean with every other" : ""}.`;
   }
   return <MethodsCard text={text} />;
 }

@@ -3,6 +3,7 @@ import { resolveOptions } from "../app/analysis";
 import { useCommands } from "../app/commands";
 import { useProject } from "../app/context";
 import { useAnalysisResult } from "../app/useAnalysisResult";
+import { renameForOptions } from "../app/resultsName";
 import {
   findSheet, updateResultsOptions, updateSheet, updateTable,
 } from "../project/ops";
@@ -29,8 +30,6 @@ import HSplitter from "./HSplitter";
 import { SnowflakeIcon } from "./SheetIcon";
 import WelcomePanel from "./WelcomePanel";
 import { AnalysisBusy, EngineBootNote } from "./EngineStatus";
-import FitGuardNote from "./FitGuardNote";
-import { notFittedReason } from "../app/fitGuard";
 import { useGuideOptional } from "../guide/context";
 import EntryGuide from "../guide/EntryGuide";
 import { DifferNote, ResultsGuide } from "../guide/ResultsGuide";
@@ -148,8 +147,12 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
                     <Suspense fallback={<Pending />}>
                       <Controls sheet={resSheet} table={data.table} options={options}
                         readOnly={!!resSheet.frozen || shared}
-                        onChange={(o) => apply((p) => updateResultsOptions(p, resSheet.id, () => o),
-                          `options:${resSheet.id}`)} />
+                        onChange={(o) => apply((p) => {
+                          const prev = findSheet(p, resSheet.id);
+                          const before = prev?.kind === "results" ? prev.options : undefined;
+                          return renameForOptions(updateResultsOptions(p, resSheet.id, () => o),
+                            resSheet.id, before, analysisDef);
+                        }, `options:${resSheet.id}`)} />
                     </Suspense>
                   </div>
                 </>
@@ -203,11 +206,6 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
                 data-live={resStatus.live ? "true" : "false"}
                 aria-busy={resStatus.pending ? true : undefined}>
                 {engineReady && <AnalysisBusy status={resStatus} engine={engine} />}
-                {notFittedReason(result) && (
-                  <FitGuardNote reason={notFittedReason(result)!} readOnly={readOnly}
-                    onFit={(patch) => apply((p) => updateResultsOptions(p, resSheet.id,
-                      (o) => ({ ...(o as object), ...patch })))} />
-                )}
                 <ResultsGuide analysisId={resSheet.analysis} tableType={data.table.type}
                   table={data.table} options={options} result={result}
                   dataId={data.id} readOnly={readOnly} />

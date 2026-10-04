@@ -310,6 +310,11 @@ export function pivot(st: Staging, type: OutputType, opts: PivotOptions = {}): P
     xUnit: "",
     rowTitles: isXY ? [] : keys,
     datasets,
+    // the long file's factor columns name the two-way factors
+    ...(isXY ? {} : { factorNames: {
+      rows: st.columns[t].name,
+      datasets: all(st, "group").map((c) => st.columns[c].name).join(" × "),
+    } }),
   });
 }
 

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type Plotly from "plotly.js-dist-min";
 import { loadPlotly, plotlyNow } from "../lib/plotly";
 import { graphPStyle } from "../graph/significance";
@@ -13,6 +13,9 @@ import {
   usePlotEdits, type GraphFormat, type RiskSet,
 } from "../graph";
 import { survivalAt } from "../sheets/survival/graphSettings";
+import { kmRowsFromEngine, kmTable, survivalGroups, type KmRow } from "../sheets/survival/kmTable";
+import TableCopy from "../sheets/common/TableCopy";
+import type { DataTableModel } from "../project/types";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -149,8 +152,63 @@ export function SurvivalPlot({
   return <div className="plot" ref={el} />;
 }
 
+const fmt = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? formatSig(v) : "n/a");
+const raw = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? String(v) : "");
+
+/** "13 to not reached": a median's confidence interval. */
+function medianCi(ci: any): string {
+  if (!ci) return "n/a";
+  const lo = typeof ci.lower === "number" ? formatSig(ci.lower) : "n/a";
+  const hi = typeof ci.upper === "number" ? formatSig(ci.upper) : "not reached";
+  return `${lo} to ${hi}`;
+}
+
+const KM_HEAD = ["Time", "At risk", "Events", "Censored", "Survival", "SE (Greenwood)",
+  "Lower 95% CI (log-log)", "Upper 95% CI (log-log)"];
+const KM_HEAD_LOG = ["Lower 95% CI (log)", "Upper 95% CI (log)"];
+
+/** The Kaplan-Meier table of one group, with its own Copy / CSV. Rows
+ *  with the log-band limits (the engine's table) get those columns too. */
+function KmGroupTable({ name, rows }: { name: string; rows: KmRow[] }) {
+  const withLog = rows.some((r) => r.lowerLog !== undefined);
+  const head = withLog ? [...KM_HEAD, ...KM_HEAD_LOG] : KM_HEAD;
+  const matrix = () => [head, ...rows.map((r) => [raw(r.time), String(r.atRisk), String(r.events),
+    String(r.censored), raw(r.survival), raw(r.se), raw(r.lower), raw(r.upper),
+    ...(withLog ? [raw(r.lowerLog), raw(r.upperLog)] : [])])];
+  return (
+    <div className="km-table">
+      <h4>Kaplan-Meier table: {name}</h4>
+      <TableCopy name={`Kaplan-Meier table ${name}`} matrix={matrix} />
+      <table className="results-table">
+        <thead><tr>{head.map((h) => <th key={h}>{h}</th>)}</tr></thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.time}>
+              <th>{formatSig(r.time)}</th>
+              <td>{r.atRisk}</td>
+              <td>{r.events}</td>
+              <td>{r.censored}</td>
+              <td>{fmt(r.survival)}</td>
+              <td>{fmt(r.se)}</td>
+              <td>{fmt(r.lower)}</td>
+              <td>{fmt(r.upper)}</td>
+              {withLog && <td>{fmt(r.lowerLog)}</td>}
+              {withLog && <td>{fmt(r.upperLog)}</td>}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 /** Kaplan-Meier table and curve comparison tests (the results sheet). */
-export function SurvivalResults({ result }: { result: Record<string, any> | null }) {
+export function SurvivalResults({ result, table }: {
+  result: Record<string, any> | null;
+  /** The data, for the counts of the Kaplan-Meier tables. */
+  table?: DataTableModel;
+}) {
+  const groups = useMemo(() => (table ? survivalGroups(table) : []), [table]);
   if (!result) return null;
   if (result.error) {
     return <div className="results-error">
@@ -158,17 +216,21 @@ export function SurvivalResults({ result }: { result: Record<string, any> | null
       two subcolumns: time (Y1) and event code (Y2: 1 = event, 0 = censored).
     </div>;
   }
+  const curves = Object.entries(result.curves ?? {}) as [string, any][];
+  const lr = result.logrank;
+  const level = (c: any) => `${Math.round(100 * (c?.median_ci?.level ?? 0.95))}%`;
 
   return (
-    <div className="result-card">
+      <div className="result-card">
         <h3>Kaplan-Meier survival analysis</h3>
         <table className="results-table">
           <thead>
             <tr><th>Group</th><th>n</th><th>Events</th><th>Censored</th>
-              <th>Median survival</th></tr>
+              <th>Median survival</th><th>{level(curves[0]?.[1])} CI of the median (log-log)</th>
+              <th>{level(curves[0]?.[1])} CI of the median (log, as R&apos;s survfit)</th></tr>
           </thead>
           <tbody>
-            {Object.entries(result.curves ?? {}).map(([name, c]: [string, any]) => (
+            {curves.map(([name, c]) => (
               <tr key={name}>
                 <th>{name}</th>
                 <td>{c.n}</td>
@@ -176,23 +238,34 @@ export function SurvivalResults({ result }: { result: Record<string, any> | null
                 <td>{c.n_censored}</td>
                 <td>{c.median_survival != null
                   ? formatSig(c.median_survival) : "not reached"}</td>
+                <td>{c.median_survival != null ? medianCi(c.median_ci) : "n/a"}</td>
+                <td>{c.median_survival != null ? medianCi(c.median_ci_log) : "n/a"}</td>
               </tr>
             ))}
           </tbody>
         </table>
-        {result.logrank && (
+        {lr && (
           <table className="results-table goodness">
             <tbody>
               <tr>
-                <th>Log-rank (Mantel-Cox)</th>
-                <td>χ² = {formatSig(result.logrank.chi2)},
-                  df {result.logrank.df}, {pLabel(result.logrank.p)}</td>
+                <th>Log-rank (Mantel-Cox), Peto form Σ(O−E)²/E</th>
+                <td>χ² = {formatSig(lr.chi2_peto ?? lr.chi2)},
+                  df {lr.df}, {pLabel(lr.p_peto ?? lr.p)}</td>
               </tr>
-              <tr>
-                <th>Gehan-Breslow-Wilcoxon</th>
-                <td>χ² = {formatSig(result.gehan_breslow_wilcoxon.chi2)},
-                  {pLabel(result.gehan_breslow_wilcoxon.p)}</td>
-              </tr>
+              {typeof lr.chi2_variance === "number" && (
+                <tr>
+                  <th>Log-rank, variance (Mantel-Haenszel) form, as R&apos;s survdiff</th>
+                  <td>χ² = {formatSig(lr.chi2_variance)},
+                    df {lr.df}, {pLabel(lr.p_variance)}</td>
+                </tr>
+              )}
+              {result.gehan_breslow_wilcoxon && (
+                <tr>
+                  <th>Gehan-Breslow-Wilcoxon</th>
+                  <td>χ² = {formatSig(result.gehan_breslow_wilcoxon.chi2)},{" "}
+                    {pLabel(result.gehan_breslow_wilcoxon.p)}</td>
+                </tr>
+              )}
               {result.hazard_ratio && (
                 <tr>
                   <th>Hazard ratio (Mantel-Haenszel)</th>
@@ -204,6 +277,56 @@ export function SurvivalResults({ result }: { result: Record<string, any> | null
             </tbody>
           </table>
         )}
-    </div>
+        {lr && Array.isArray(lr.observed) && Array.isArray(lr.expected) && (
+          <>
+            <h4>Observed and expected events (log-rank)</h4>
+            <table className="results-table">
+              <thead><tr><th>Group</th><th>Observed (O)</th><th>Expected (E)</th><th>O / E</th></tr></thead>
+              <tbody>
+                {(Array.isArray(lr.group_names) ? lr.group_names as string[]
+                  : curves.map(([name]) => name)).map((name, i) => (
+                  <tr key={name}>
+                    <th>{name}</th>
+                    <td>{fmt(lr.observed[i])}</td>
+                    <td>{fmt(lr.expected[i])}</td>
+                    <td>{lr.expected[i] > 0 ? fmt(lr.observed[i] / lr.expected[i]) : "n/a"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p className="hint-block">
+              Both log-rank statistics compare O with E. The Peto form adds up (O − E)² / E over
+              the groups, a slightly conservative approximation; the variance form divides by the
+              exact (hypergeometric) variance of O − E, as R&apos;s survdiff and the score test
+              of a Cox model do. With well-balanced groups the two agree closely.
+            </p>
+          </>
+        )}
+        {curves.map(([name, c]) => {
+          // the engine's table (event times, as R's summary.survfit), else
+          // one built from the curve and the data (older engines)
+          if (Array.isArray(c.table)) {
+            return <KmGroupTable key={name} name={name} rows={kmRowsFromEngine(c.table)} />;
+          }
+          const g = groups.find((x) => x.name === name);
+          if (!g || !Array.isArray(c.points)) return null;
+          return <KmGroupTable key={name} name={name} rows={kmTable(g.times, g.events, c.points)} />;
+        })}
+        {curves.some(([, c]) => Array.isArray(c.table)) ? (
+          <p className="hint-block">
+            One row per event time: at risk counts the subjects followed up to that time or
+            longer (just before it), censored those censored at it. Survival and its SE
+            (Greenwood) change only at event times. The confidence limits use the log-log
+            transform and, in the last two columns, the log transform of R&apos;s survfit.
+          </p>
+        ) : groups.length > 0 && (
+          <p className="hint-block">
+            Survival and its SE (Greenwood) change only at event times; at a time with
+            censoring only, the estimate of the previous event time carries over. The
+            confidence limits use the log-log transform; at risk counts the subjects followed
+            up to that time or longer.
+          </p>
+        )}
+      </div>
   );
 }
