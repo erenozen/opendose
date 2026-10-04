@@ -1357,6 +1357,11 @@ for (let r = 0; r < FX.length; r++) {
   await page.locator(`.data-table input[aria-label="X, row ${r + 1}"]`).fill(FX[r]);
   await page.locator(`.data-table input[aria-label="Dataset A, row ${r + 1}"]`).fill(String(FY[r]));
 }
+// No trend: a new table waits for a model; "Fit a curve" asks for the fit.
+expect("a flat response waits for a model (Choose a model)",
+  await appears(page.locator(".choose-model")));
+await page.locator(".choose-model").getByRole("button", { name: "Fit a curve" }).click();
+await page.keyboard.press("Escape");
 expect("ambiguous fit banner with concrete fixes for a flat dataset",
   await page.waitForSelector("[data-banner='fit-ambiguous']", { timeout: 60000 })
     .then(async (b) => (await b.innerText()).includes("Constrain the plateau"), () => false));
@@ -1719,6 +1724,83 @@ expect("randomisation list: 24 units in balanced blocks, seed in the file name",
 await pw.getByRole("button", { name: "Done" }).click();
 expect("the sample-size justification is saved as an info sheet",
   await navRow("Sample size justification").count() === 1);
+
+// --- XY analyses (site validation follow-ups) ---
+// R cars (speed -> dist, 50 rows): lm gives slope 3.932409, intercept
+// -17.579095, F = 89.57 on 1 and 48 df, R² 0.6511, Sy.x 15.38. A new XY
+// table of non-dose data waits for "Choose a model" instead of fitting a
+// 4PL; compare fits reports the F test and AICc.
+const xyNew = async (name) => {
+  await page.getByRole("button", { name: "New data table" }).click();
+  const d = page.locator(".new-table-dialog");
+  await d.locator('input[name="table-type"][value="xy"]').check();
+  await d.getByLabel("Table name").fill(name);
+  await d.getByLabel("Replicates per X").fill("1");
+  await d.getByRole("button", { name: "Create table" }).click();
+  await page.waitForSelector(".grid-toolbar");
+};
+const xyPaste = async (text) => {
+  await page.getByRole("button", { name: "Import…", exact: true }).click();
+  const dlg = page.locator(".import-dialog");
+  await dlg.getByLabel("Pasted text").check();
+  await dlg.getByLabel("Text to import").fill(text);
+  await dlg.getByLabel(/holds column titles/).check();
+  await dlg.getByRole("button", { name: "Import", exact: true }).click();
+};
+const resultsHas = (re, timeout = 60000) => page.waitForFunction((src) =>
+  new RegExp(src).test(document.querySelector(".pane-results")?.innerText ?? ""),
+re.source, { timeout }).then(() => true, () => false);
+const CARS = readFileSync(join(here, "..", "..", "docs", "validation", "datasets", "r-cars.csv"), "utf8");
+await xyNew("Cars");
+await xyPaste(CARS);
+expect("a new XY table of non-dose data asks to choose a model instead of fitting",
+  await appears(page.locator(".choose-model")) && (await page.locator(".choose-model").innerText())
+    .includes("Choose a model") && await page.locator(".pane-results .results-table").count() === 0);
+await page.getByRole("button", { name: "Analyze", exact: true }).click();
+await page.getByRole("menuitem", { name: /^Linear regression/ }).click();
+expect("linear regression (R cars): regression ANOVA F = 89.57 on 1 and 48 df",
+  await resultsHas(/F \(1, 48\) = 89\.5[67]/)
+  && /Regression\s+21(19|18)\d/.test(await page.locator(".anova-table").innerText()),
+  (await page.locator(".anova-table").innerText().catch(() => "")).replace(/\s+/g, " "));
+const carsText = await page.locator(".pane-results").innerText();
+expect("linear regression (R cars): slope 3.932, intercept -17.58, R² 0.6511, Sy.x 15.38",
+  /Slope\s+3\.932/.test(carsText) && /Y intercept\s+-17\.58/.test(carsText)
+  && /R squared\s+0\.6511/.test(carsText) && /Sy\.x\s+15\.38/.test(carsText),
+  carsText.split("\n").slice(0, 12).join(" | "));
+expect("linear regression graph draws the points and the line",
+  await page.locator(".plot .scatterlayer .trace").count() === 2);
+await page.getByLabel(/Force the line through the origin/).check();
+expect("through the origin: uncentred R² and the ANOVA about Y = 0",
+  await resultsHas(/R squared \(about Y = 0\)/) && await resultsHas(/Total \(uncorrected\)/));
+
+// straight-line data: "Choose a model" → Linear regression switches the sheet
+await xyNew("Straight line");
+await xyPaste("X,Y\n1,2.1\n2,3.9\n3,6.2\n4,7.8\n5,10.3\n6,11.9");
+expect("straight-line data shows Choose a model, not a curve fit",
+  await appears(page.locator(".choose-model")));
+await page.locator(".choose-model").getByRole("button", { name: "Linear regression" }).click();
+expect("Choose a model → Linear regression: the results sheet becomes a linear regression (slope 1.994)",
+  await resultsHas(/Slope\s+1\.994/) && await navRow("Linear regression of Straight line").count() === 1
+  && (await page.locator(".mode-switch [role=tab]").allInnerTexts()).join("|") === "Linear regression");
+
+// compare fits: one curve for both data sets vs a separate curve for each
+const cfX = ["1e-9", "3.162e-9", "1e-8", "3.162e-8", "1e-7", "3.162e-7", "1e-6", "3.162e-6", "1e-5"];
+const cfA = [99.6, 97.6, 92.1, 80.4, 50.3, 23.9, 8.9, 3.2, 1.2];
+const cfB = [100.8, 99.1, 97.3, 91.0, 79.2, 52.4, 24.8, 9.6, 2.9];
+await xyNew("Two curves");
+await xyPaste(["Dose,Control,Treated", ...cfX.map((x, i) => `${x},${cfA[i]},${cfB[i]}`)].join("\n"));
+await page.getByRole("button", { name: "Analyze", exact: true }).click();
+await page.getByRole("menuitem", { name: /^Compare fits/ }).click();
+expect("compare fits (3PL vs 4PL on each data set): an F test and a P value per data set",
+  await resultsHas(/F \(1, 5\) = [\d.]+[\s\S]*P value[\s\S]*F \(1, 5\) = /)
+  && await page.locator(".compare-table").count() === 2);
+await page.getByLabel(/One curve for all data sets vs/).check();
+expect("compare fits (one curve vs separate curves): F (3, 12), P, AICc and the preferred model",
+  await resultsHas(/F \(3, 12\) = [\d.]+/) && await resultsHas(/P value\s+(< ?)?[\d.e-]+/)
+  && await resultsHas(/separate curve for each data set\) is preferred/)
+  && await resultsHas(/Probability correct/));
+expect("compare fits graph draws the separate curves and the shared curve",
+  await page.locator(".plot .scatterlayer .trace").count() === 5);
 
 await page.screenshot({
   path: join(here, "app.png"),
