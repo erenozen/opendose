@@ -17,6 +17,7 @@ const POST: Record<string, string> = {
   bonferroni: "Bonferroni's multiple comparisons test",
   sidak: "Šídák's multiple comparisons test",
   holm_sidak: "the Holm-Šídák multiple comparisons test",
+  holm: "t tests with Holm's step-down (Bonferroni) correction",
   newman_keuls: "the Newman-Keuls multiple comparisons test",
   fisher_lsd: "Fisher's LSD test (without correction for multiple comparisons)",
   games_howell: "the Games-Howell multiple comparisons test",
@@ -92,9 +93,22 @@ export function columnMethodsSentence(o: ColumnOptionsState, r: R): string {
       return o.rmKind === "nonparametric"
         ? `Matched values were compared with the Friedman test${o.rmExact ? (r.p_method === "exact" ? " (exact P value)" : " (approximate P value; the design is too large for the exact one)") : ""} (${P(r.p)}), followed by Dunn's multiple comparisons test.`
         : "Matched values were compared by repeated-measures one-way ANOVA with the Geisser-Greenhouse correction.";
-    case "two_way_anova": return "Data were analyzed by two-way ANOVA (rows × data sets).";
+    case "two_way_anova": {
+      const mc = r.multiple_comparisons;
+      return `Data were analyzed by two-way ANOVA (rows × data sets${o.twoWayModel === "additive"
+        ? "; main effects only, without the interaction term" : ""})`
+        + (mc ? `, followed by ${POST[mc.method] ?? mc.method}${mc.direction === "all_cells"
+          ? " comparing every cell mean with every other" : ""}` : "") + ".";
+    }
     case "rm_two_way": return "Data were analyzed by two-way repeated-measures ANOVA.";
-    case "correlation": return `Correlation was computed as the ${o.corrMethod === "pearson" ? "Pearson" : "Spearman"} correlation coefficient with a two-tailed P value.`;
+    case "correlation": {
+      const name = o.corrMethod === "pearson" ? "Pearson correlation coefficient"
+        : o.corrMethod === "kendall" ? "Kendall rank correlation coefficient (tau-b)"
+          : "Spearman correlation coefficient";
+      const tails = o.corrTails === "greater" ? " and a one-tailed P value (alternative: positive correlation)"
+        : o.corrTails === "less" ? " and a one-tailed P value (alternative: negative correlation)" : "";
+      return `Correlation was computed as the ${name} with a two-tailed P value${tails}.`;
+    }
     case "roc": return "The area under the ROC curve was computed with its SE and confidence interval (DeLong).";
     case "bland_altman": return "Agreement between the two methods was assessed by the Bland-Altman method (bias and 95% limits of agreement).";
     case "outliers": return o.outlierMethod === "rout"
