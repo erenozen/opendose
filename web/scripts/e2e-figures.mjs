@@ -301,6 +301,38 @@ await shot("classic");
   await closeSettings();
 }
 
+// --- heat map: z-scores and clustering through the engine ---
+{
+  await page.getByRole("button", { name: "New data table" }).click();
+  const dlg = page.locator(".new-table-dialog");
+  await dlg.locator('input[name="table-type"][value="grouped"]').check();
+  await dlg.getByText("Example data").click();
+  await dlg.getByRole("button", { name: "Create table" }).click();
+  await page.waitForSelector(".plot-card .graph-select", { timeout: 60000 });
+  await page.locator(".graph-select").selectOption("grouped_heatmap");
+  await page.waitForTimeout(600);
+  const pop = await graphSettings();
+  await pop.getByLabel("Standardise (z-score)").selectOption("rows");
+  const box = pop.getByLabel(/^Cluster rows/);
+  await page.waitForFunction(() => !document.querySelector(
+    "[role=dialog][aria-label='Graph settings'] input[type=checkbox]:disabled"), { timeout: 30000 })
+    .catch(() => {});
+  const enabled = await box.isEnabled();
+  expect("heat map: cluster toggles enabled by the engine's cluster_heatmap", enabled);
+  if (enabled) await box.check();
+  await closeSettings();
+  await page.waitForTimeout(1200);
+  const info = await page.evaluate(() => {
+    const gd = document.querySelector(".plot-card .plot");
+    const z = gd.data.find((t) => t.type === "heatmap" && t.showscale !== false)?.z ?? [];
+    return { rows: gd.layout.yaxis?.ticktext ?? [], z };
+  });
+  expect("heat map: rows z-scored (each row averages 0)", info.z.every((r) =>
+    Math.abs(r.filter((v) => v !== null).reduce((a, b) => a + b, 0)) < 1e-9), JSON.stringify(info.z));
+  expect("heat map: clustered rows are a reordering of the table's rows",
+    [...info.rows].sort().join() === ["Day 14", "Day 21", "Day 7"].join(), info.rows.join(", "));
+}
+
 // --- a new survival graph marks censored subjects ---
 {
   await page.getByRole("button", { name: "New data table" }).click();

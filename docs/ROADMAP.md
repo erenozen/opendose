@@ -592,8 +592,9 @@ exact P on brackets, consistent styles, Prism-recognisable look
 - [x] Volcano plot from an imported fold-change / P table (thresholds,
       colours, top-N labels)
 - [ ] Clustered heat map with dendrogram (linkage, distance), k-means
-      (row / column z-scores are in; the cluster toggles are wired to the
-      engine's `cluster_heatmap` handler and enable when it lands)
+      (row / column z-scores are in, and rows / columns cluster through
+      the engine's `cluster_heatmap` (average linkage, Euclidean); drawing
+      the dendrograms, linkage and distance choices and k-means are open)
 - [ ] P-value style presets for brackets, tables and sentences (APA
       ".012 / <.001", NEJM "P<0.001", GraphPad "0.0123 / <0.0001" with
       ****), "hide ns", and the star-threshold scale written into the

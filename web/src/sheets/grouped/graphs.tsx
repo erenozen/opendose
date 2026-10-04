@@ -308,14 +308,13 @@ export function HeatOptions({ graph }: GraphOptionsProps) {
         options={[["none", "No"], ["rows", "Each row"], ["columns", "Each column"]]}
         onChange={(zscore) => up({ zscore, ...(zscore !== "none" && h.palette !== "diverging"
           ? { palette: "diverging" as const } : {}) })} />
-      <OptCheck label="Cluster rows" checked={h.clusterRows && !!canCluster}
+      <OptCheck label="Cluster rows (average linkage, Euclidean)" checked={h.clusterRows && !!canCluster}
         disabled={!canCluster} onChange={(clusterRows) => up({ clusterRows })} />
       <OptCheck label="Cluster columns" checked={h.clusterCols && !!canCluster}
         disabled={!canCluster} onChange={(clusterCols) => up({ clusterCols })} />
       {canCluster === false && (
-        <OptNote>Hierarchical clustering (with dendrograms, linkage and distance choices)
-          arrives with the next engine update; until then rows and columns keep the
-          table&apos;s order.</OptNote>
+        <OptNote>This engine build has no clustering handler, so rows and columns keep
+          the table&apos;s order.</OptNote>
       )}
       <OptCheck label="Reverse colors" checked={h.reverse} onChange={(reverse) => up({ reverse })} />
       <OptCheck label="Show values in cells" checked={h.labels}

@@ -1,28 +1,45 @@
-// Clustered heat maps: row / column order from the engine's hierarchical
-// clustering handler `cluster_heatmap` (being written separately). The
-// options exist now and stay disabled, with a note, until the running
-// engine answers the handler; wiring is this one call:
+// Clustered heat maps: row and column order from the engine's hierarchical
+// clustering handler `cluster_heatmap` (engine/opendose/assay_clustering.py).
+// The toggles stay disabled, with a note, while the running engine does
+// not answer the handler (older engine builds); the wiring is one call:
 //
-//   clusterOrder(z, rowNames, colNames, { rows, cols }) -> { rows, cols } | null
+//   clusterOrder(z, rowNames, colNames, { rows, cols }) -> { rows, cols } or null
 //
-// Contract expected from the engine:
+// Engine contract:
 //   payload  { analysis: "cluster_heatmap",
-//              data: { matrix: (number|null)[][], row_names: string[], col_names: string[] },
-//              options: { rows: bool, cols: bool, linkage: "average", distance: "euclidean" } }
-//   answer   { row_order: number[], col_order: number[], ... } (permutations of
-//            0..n-1; a dendrogram may come along and is not drawn yet)
+//              data: { values: number[][], row_names, column_names },
+//              options: { method: "average", metric: "euclidean", scale: "none",
+//                         cluster_rows: bool, cluster_columns: bool } }
+//   answer   { row_order: number[], column_order: number[], rows?, columns?
+//              (linkage, leaf order and dendrogram; not drawn yet), ... }
+// The matrix is the one the map colours (already z-scored when chosen);
+// blank cells are filled with their column's mean for the ordering only.
 import { getEngine } from "../../lib/engine";
 
 export const CLUSTER_HANDLER = "cluster_heatmap";
 
 export interface ClusterOrder { rows: number[]; cols: number[] }
 
+/** Blank cells filled with their column's mean (0 when the column is
+ *  empty): hierarchical clustering needs a complete matrix. */
+export function filledMatrix(z: (number | null)[][]): number[][] {
+  const nc = Math.max(0, ...z.map((r) => r.length));
+  const ok = (x: number | null | undefined): x is number =>
+    x !== null && x !== undefined && Number.isFinite(x);
+  const means = Array.from({ length: nc }, (_, j) => {
+    const v = z.map((r) => r[j]).filter(ok);
+    return v.length ? v.reduce((a, b) => a + b, 0) / v.length : 0;
+  });
+  return z.map((r) => means.map((m, j) => (ok(r[j]) ? r[j] as number : m)));
+}
+
 export function clusterPayload(z: (number | null)[][], rowNames: string[], colNames: string[],
   which: { rows: boolean; cols: boolean }) {
   return {
     analysis: CLUSTER_HANDLER,
-    data: { matrix: z, row_names: rowNames, col_names: colNames },
-    options: { rows: which.rows, cols: which.cols, linkage: "average", distance: "euclidean" },
+    data: { values: filledMatrix(z), row_names: rowNames, column_names: colNames },
+    options: { method: "average", metric: "euclidean", scale: "none",
+      cluster_rows: which.rows, cluster_columns: which.cols },
   };
 }
 
@@ -35,7 +52,7 @@ export function parseClusterOrder(res: unknown, nRows: number, nCols: number): C
   const r = res as Record<string, unknown>;
   const id = (n: number) => Array.from({ length: n }, (_, i) => i);
   const rows = isPerm(r.row_order, nRows) ? r.row_order : id(nRows);
-  const cols = isPerm(r.col_order, nCols) ? r.col_order : id(nCols);
+  const cols = isPerm(r.column_order, nCols) ? r.column_order : id(nCols);
   return { rows, cols };
 }
 
@@ -44,8 +61,8 @@ let probe: Promise<boolean> | null = null;
 /** Whether the running engine has the clustering handler (asked once). */
 export function clusterAvailable(): Promise<boolean> {
   probe ??= getEngine().then((eng) => {
-    const res = eng.analyze(clusterPayload([[0, 1], [1, 0]], ["a", "b"], ["c", "d"],
-      { rows: true, cols: true })) as { error?: string };
+    const res = eng.analyze(clusterPayload([[0, 1, 2], [1, 0, 2], [2, 2, 0]],
+      ["a", "b", "c"], ["d", "e", "f"], { rows: true, cols: true })) as { error?: string };
     return !(typeof res?.error === "string" && /unknown analysis/i.test(res.error));
   }).catch(() => false);
   return probe;
@@ -56,6 +73,7 @@ export function clusterAvailable(): Promise<boolean> {
 export async function clusterOrder(z: (number | null)[][], rowNames: string[],
   colNames: string[], which: { rows: boolean; cols: boolean }): Promise<ClusterOrder | null> {
   if (!which.rows && !which.cols) return null;
+  if (rowNames.length < 2 && colNames.length < 2) return null;
   if (!(await clusterAvailable())) return null;
   const eng = await getEngine();
   return parseClusterOrder(eng.analyze(clusterPayload(z, rowNames, colNames, which)),
