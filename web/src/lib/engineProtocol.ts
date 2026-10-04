@@ -35,7 +35,7 @@ export type WorkerRequest =
   /** Install what a later request will need (the xlsx reader), when idle. */
   | { type: "prepare"; id: number; what: "xlsx" };
 
-export type BootPhase = "download" | "start" | "packages" | "engine";
+export type BootPhase = "download" | "packages" | "engine";
 
 export interface BootProgress {
   phase: BootPhase;
