@@ -1,6 +1,6 @@
 // Plate reader → dose-response: controls (with the setup wizard), the QC
 // results sheet and the methods text.
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { getEngine, readXlsx } from "../../../lib/engine";
 import { parseSource } from "../../../share/recipes/presets";
 import CopyableMethods from "../../common/CopyableMethods";
@@ -381,7 +381,6 @@ function QcPreview({ table, options }: {
   table: DataTableModel; options: PlateOptions;
 }) {
   const [run, setRun] = useState<PlateRun | null>(null);
-  const key = useMemo(() => JSON.stringify([options, table]), [options, table]);
   useEffect(() => {
     let live = true;
     const timer = setTimeout(async () => {
@@ -390,7 +389,7 @@ function QcPreview({ table, options }: {
       if (live) setRun(r);
     }, 150);
     return () => { live = false; clearTimeout(timer); };
-  }, [key]);
+  }, [table, options]);
   if (!run) return <p className="hint-block">Computing…</p>;
   if (run.error) return <div className="results-error">{run.error}</div>;
   return (

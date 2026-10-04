@@ -1,7 +1,7 @@
 // Standard curve / ELISA: controls with the setup wizard, the QC results
 // sheet (ICH M10 acceptance, back-calculated standards, LLOQ / ULOQ,
 // unknowns with flags, parallelism) and the methods text.
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { getEngine } from "../../../lib/engine";
 import type { DataTableModel } from "../../../project/types";
 import CopyableMethods from "../../common/CopyableMethods";
@@ -292,7 +292,6 @@ function StdWizard({ start, table, options, tableName, hasOutputs, onClose, onFi
 
 function AcceptancePreview({ table, options }: { table: DataTableModel; options: StdOptions }) {
   const [run, setRun] = useState<StdRun | null>(null);
-  const key = useMemo(() => JSON.stringify([options, table]), [options, table]);
   useEffect(() => {
     let live = true;
     const timer = setTimeout(async () => {
@@ -301,7 +300,7 @@ function AcceptancePreview({ table, options }: { table: DataTableModel; options:
       if (live) setRun(r);
     }, 150);
     return () => { live = false; clearTimeout(timer); };
-  }, [key]);
+  }, [table, options]);
   if (!run) return <p className="hint-block">Computing…</p>;
   if (run.error) return <div className="results-error">{run.error}</div>;
   return (
@@ -439,7 +438,7 @@ function StdPlate({ res, o, onExclude }: {
                   <td>
                     {onExclude && (
                       <label className="check-row">
-                        <input type="checkbox" checked={!userOut}
+                        <input type="checkbox" checked={!o.excludeLevels.includes(lv.concentration)}
                           aria-label={`Use the ${lv.concentration} standard in the fit`}
                           onChange={(e) => onExclude(lv.concentration, !e.target.checked)} /> use
                       </label>

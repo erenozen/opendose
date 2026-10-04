@@ -208,6 +208,25 @@ Simulate data dialog so a table can be re-simulated. Brand-new table types need 
 `project/types.ts`, a `tableShape` entry in `project/table.ts`, and a
 registry entry.
 
+## Assay modules (sheets/assays)
+
+An assay module is a wizard that starts from an instrument export and
+produces a small family of linked sheets (plate reader → dose-response,
+standard curve / ELISA, qPCR, Western blot densitometry). Contract in
+`assays/index.ts`: one folder per module exporting an `AssayModule`
+(input table type and layout, example, main analysis, analyses and
+graphs per table type) and one entry in `ASSAYS`. The registry appends
+module analyses (ids `assay_*`) and graphs to the listed types, so the
+Analyze menu offers them under an "Assays" divider; New data table ›
+Start from an assay creates the input table with the main analysis and
+opens its wizard (`kit/create.ts`). Outputs are ordinary derived tables:
+a module analysis is `derivedOnDemand`, each of its results sheets feeds
+one linked table chosen by `options.output`, and `kit/create.ts`
+(`ensureOutputs`, `setFamilySettings`) adds a producer per extra output
+(one XY table per plate) and keeps the settings equal on all of them.
+`kit/` also has the column-role resolver for long tables, the wizard
+shell, QC chips and the log2 fold-change graph.
+
 ## Notes on specific analyses
 
 - Curve-fit models come from the engine's `list_models` at boot

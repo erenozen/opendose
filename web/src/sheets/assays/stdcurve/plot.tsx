@@ -80,7 +80,8 @@ export function StdCurvePlot({ graph, options, result, titles, scheme, format, o
       if (fx.length) {
         traces.push(tagTrace({
           type: "scatter", mode: "markers", name: "Failing or left-out standards", x: fx, y: fy,
-          marker: { color: "rgba(0,0,0,0)", symbol: "circle-open", size: 10, line: { color: dark ? "#ff6961" : "#d70015", width: 2 } },
+          // open symbols take their colour from marker.color
+          marker: { color: dark ? "#ff6961" : "#d70015", symbol: "circle-open", size: 11, line: { width: 2 } },
           hovertemplate: "%{x} " + unit + ": %{y}<extra>failing / left out</extra>",
         }, { ds: 0, role: "outliers" }) as Plotly.Data);
       }
@@ -95,7 +96,7 @@ export function StdCurvePlot({ graph, options, result, titles, scheme, format, o
           traces.push(tagTrace({
             type: "scatter", mode: "markers", name: "Unknowns", x: ux, y: uy, text: ut,
             hovertemplate: "%{text}<extra>unknown</extra>",
-            marker: { color: "rgba(0,0,0,0)", symbol: "diamond-open", size: 9, line: { color: s1.color, width: 2 } },
+            marker: { color: s1.color, symbol: "diamond-open", size: 10, line: { width: 2 } },
           }, { ds: 1, role: "points" }) as Plotly.Data);
         }
       }

@@ -1,10 +1,11 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useCommands } from "../app/commands";
 import { useProject } from "../app/context";
 import { useUi } from "../app/ui";
 import { familyChildren, familyRootId, findSheet } from "../project/ops";
 import type { ResultsSheet } from "../project/types";
 import { analysisDef, tableDef } from "../sheets/registry";
+import { isAssayAnalysis } from "../sheets/assays";
 import { versionLabel } from "../export/cite";
 import CiteBlock from "./CiteBlock";
 import SaveMenu from "../share/SaveMenu";
@@ -184,13 +185,19 @@ export default function Header({ onOpenFile, onNewProject }: {
                     items[(i + (e.key === "ArrowDown" ? 1 : items.length - 1)) % items.length]?.focus();
                   }
                 }}>
-                {tdef.analyses.map((a) => (
-                  <button key={a.id} type="button" role="menuitem" tabIndex={-1}
-                    className="menu-item menu-item-2line"
-                    onClick={() => { setAnalyzeOpen(false); cmd.addAnalysis(data.id, a.id); }}>
-                    <span>{a.label}</span>
-                    {a.description && <span className="menu-desc">{a.description}</span>}
-                  </button>
+                {tdef.analyses.map((a, i) => (
+                  <Fragment key={a.id}>
+                    {/* assay modules (sheets/assays) under their own heading */}
+                    {isAssayAnalysis(a.id) && !tdef.analyses.slice(0, i).some((x) => isAssayAnalysis(x.id)) && (
+                      <div className="menu-sep" role="separator" aria-label="Assays" />
+                    )}
+                    <button type="button" role="menuitem" tabIndex={-1}
+                      className="menu-item menu-item-2line"
+                      onClick={() => { setAnalyzeOpen(false); cmd.addAnalysis(data.id, a.id); }}>
+                      <span>{isAssayAnalysis(a.id) ? `Assay: ${a.label}` : a.label}</span>
+                      {a.description && <span className="menu-desc">{a.description}</span>}
+                    </button>
+                  </Fragment>
                 ))}
               </div>
             )}

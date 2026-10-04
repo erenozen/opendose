@@ -198,6 +198,11 @@ export default function PlateImportPanel({ onImport }: Props) {
             {busy ? "Importing…" : "Import → data table"}
           </button>
           {error && <div className="results-error">{error}</div>}
+          <p className="hint-block">
+            This is the quick path for one SRB / MTT plate. For a drawn plate map, Z′ and CV
+            QC, 384 wells or several plates, use New data table › Start from an assay › Plate
+            reader; its “SRB / MTT viability” template is this layout.
+          </p>
         </div>
       )}
     </div>

@@ -172,7 +172,8 @@ export function matchedTable(res: DensResult): DataTableModel | null {
 export function matchedSettings(prev: unknown, table: DataTableModel | null): unknown {
   const p = (prev && typeof prev === "object" ? prev : {}) as Record<string, unknown>;
   const k = table?.datasets.length ?? 0;
-  if (k === 2) return { ...p, analysis: "ttest", ttestKind: "ratio_paired", datasetA: 0, datasetB: 1 };
+  // treated / control, as the module reports it
+  if (k === 2) return { ...p, analysis: "ttest", ttestKind: "ratio_paired", datasetA: 1, datasetB: 0 };
   if (k > 2) return { ...p, analysis: "rm_anova", rmKind: "parametric", comparisons: "dunnett", controlIndex: 0 };
   return p;
 }

@@ -28,15 +28,15 @@ export const REGISTRY: Record<TableType, TableTypeDef> = {
 
 // Data manipulations (chains of analyses) and Monte Carlo apply across
 // table types (sheets/manipulate), and so do the assay modules
-// (sheets/assays) on the types they list; they follow each ready type's
-// own analyses, so a type's first analysis stays the one new tables
-// start with.
+// (sheets/assays, last, under their own divider in the Analyze menu) on
+// the types they list; they follow each ready type's own analyses, so a
+// type's first analysis stays the one new tables start with.
 for (const type of Object.keys(REGISTRY) as TableType[]) {
   const def = REGISTRY[type];
   if (def.status !== "ready") continue;
-  const more = [...assayAnalyses(type), ...extraAnalyses(type)]
+  const more = [...extraAnalyses(type), ...assayAnalyses(type)]
     .filter((a) => !def.analyses.some((x) => x.id === a.id));
-  const graphs = [...assayGraphs(type), ...extraGraphs(type)]
+  const graphs = [...extraGraphs(type), ...assayGraphs(type)]
     .filter((g) => !def.graphs.some((x) => x.id === g.id));
   if (more.length || graphs.length) {
     REGISTRY[type] = {
