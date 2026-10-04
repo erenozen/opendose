@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import Plotly from "plotly.js-dist-min";
+import type Plotly from "plotly.js-dist-min";
+import { loadPlotly, plotlyNow } from "../lib/plotly";
 import type { ColumnGraphType, DatasetState } from "../types";
 import { parseCell } from "../types";
 import {
@@ -64,7 +65,7 @@ export default function ColumnPlot({
         // Not while hidden (a Suspense fallback shows): Plotly refuses.
         if ((div as unknown as { _fullLayout?: unknown })._fullLayout
           && div.getClientRects().length) {
-          void Promise.resolve(Plotly.Plots.resize(div)).then(() => {
+          void Promise.resolve(plotlyNow()?.Plots.resize(div)).then(() => {
             if (spreadRef.current !== "jitter") measure(div);
           });
         }
@@ -231,10 +232,10 @@ export default function ColumnPlot({
       rowTitles, comparisons, results, editRevision: rev, caption,
     });
     const div = el.current;
-    Plotly.react(div, out.traces as Plotly.Data[], out.layout, plotConfig({
+    void loadPlotly().then((P) => P.react(div, out.traces as Plotly.Data[], out.layout, plotConfig({
       responsive: true, scrollZoom: true, displaylogo: false,
       toImageButtonOptions: { format: "svg", filename: "column-graph" },
-    }, format, !!onFormatChange)).then(() => {
+    }, format, !!onFormatChange))).then(() => {
       attach(div);
       if (spread !== "jitter") measure(div);
     });

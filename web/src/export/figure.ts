@@ -6,7 +6,8 @@
 // a figure exported at night still prints black on white. Plotly then
 // lays the figure out again at the requested size, so text keeps its
 // size and the plot area grows or shrinks around it.
-import Plotly from "plotly.js-dist-min";
+import type Plotly from "plotly.js-dist-min";
+import { loadPlotly } from "../lib/plotly";
 import {
   CHROME_DARK, CHROME_LIGHT, isDarkMode, SCHEMES, type SchemeId,
 } from "../lib/palette";
@@ -126,7 +127,8 @@ export function figureFontSizes(gd: PlotDiv): number[] {
 
 /** SVG markup of the figure at a size (CSS px). */
 export async function figureToSvg(fig: Figure, width: number, height: number): Promise<string> {
-  const url = await Plotly.toImage(fig as unknown as Plotly.RootOrData, {
+  const P = await loadPlotly();
+  const url = await P.toImage(fig as unknown as Plotly.RootOrData, {
     format: "svg", width, height,
   } as Parameters<typeof Plotly.toImage>[1]);
   return decodeDataUrl(url);
@@ -139,7 +141,8 @@ export async function figureToRaster(fig: Figure, format: "png" | "jpeg" | "webp
   const f = format === "jpeg" && fig.layout.paper_bgcolor === TRANSPARENT
     ? { ...fig, layout: { ...fig.layout, paper_bgcolor: "#ffffff", plot_bgcolor: "#ffffff" } }
     : fig;
-  return Plotly.toImage(f as unknown as Plotly.RootOrData, {
+  const P = await loadPlotly();
+  return P.toImage(f as unknown as Plotly.RootOrData, {
     format, width, height, scale,
   } as Parameters<typeof Plotly.toImage>[1]);
 }
