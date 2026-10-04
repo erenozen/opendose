@@ -212,6 +212,18 @@ from the jsDelivr CDN, ~30 MB, then cached).
   graph; live results blocks; significance brackets and compact letters
   from the comparisons table; number-at-risk tables under survival
   curves. `web/src/graph/README.md` describes how a plot adopts it.
+- Guidance (`web/src/guide/`): a start screen with picture cards for the
+  eight table types, "paste data and get a table type", the example
+  project and a five-step guided tour (shown once, replayable from Help);
+  a "Which test?" wizard (Analyze menu) that asks about the design, runs
+  the data checks it can (n, normality, SD ratio, zero-variance and
+  normalised controls) and opens the recommended analysis pre-configured;
+  assumption chips and plain-language banners on results (ambiguous or
+  extrapolated fits, omnibus vs pairwise disagreement, normalised
+  controls, the mixed-model switch); a "Why your number may differ" note
+  per analysis; data-entry prompts; sourced explainers in a searchable
+  Help panel (Ctrl/Cmd+/) with the keyboard shortcuts. `?example=1` opens
+  the example project directly, without the start screen or the tour.
 
 ## Roadmap
 

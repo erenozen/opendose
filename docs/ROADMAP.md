@@ -464,28 +464,37 @@ plain-language fit diagnostics ("ambiguous", "hit constraint", omnibus
 significant but no pairwise), SD vs SEM, what n is. Prism's guidance is
 its most praised feature; users want more of it.
 - Covered: ambiguity and extrapolation badges, diagnostics checkbox,
-  analysis checklists in results for fits.
-- [ ] "Which test?" wizard: a design-first dialog (how many groups /
+  analysis checklists in results for fits. Guidance package
+  (`web/src/guide/`, 2026-10-04): everything ticked below, plus
+  data-entry prompts (numeric row titles in a Grouped table, hundreds of
+  rows in a Column table, normalised controls) and a stacked vs
+  side-by-side note in the New table dialog.
+- [x] "Which test?" wizard: a design-first dialog (how many groups /
       factors, paired or matched, replicate structure, outcome type,
       normality and variance checks run on the data) that recommends a
       test with a one-paragraph reason and opens it pre-configured
-- [ ] Assumption checklist chips on every results sheet (normality,
+- [x] Assumption checklist chips on every results sheet (normality,
       equal SDs, sphericity, n per group, zero-variance control) with
       advice rather than gatekeeping
-- [ ] Plain-language banners: ambiguous / hit constraint / did not
+- [x] Plain-language banners: ambiguous / hit constraint / did not
       converge with concrete fixes; omnibus-vs-post-hoc disagreement
       explained next to the table; "control normalised to 1 has SD 0,
       use a one-sample or ratio paired t test"; "n is the number of
       cells: see replicates"
-- [ ] Explainers in place: SD vs SEM vs CI, relative vs absolute IC50,
+- [x] Explainers in place: SD vs SEM vs CI, relative vs absolute IC50,
       which post hoc for which question, log-rank vs Gehan, R² is not
       curve quality
-- [ ] "Why your number may differ from Prism / R / SPSS" notes per
+- [x] "Why your number may differ from Prism / R / SPSS" notes per
       analysis stating tails, ties, correction, quantile definition and
       CI method (forums #4)
-- [ ] Start screen with picture cards for the eight table types (mini
+- [x] Start screen with picture cards for the eight table types (mini
       table, mini graph, allowed analyses), "paste data and suggest a
       type", and a five-minute guided example tour (UX (b))
+- [ ] Follow-ups: a one-click stacked/side-by-side converter from the New
+      table dialog (today it points to Import › Unstack indexed data);
+      Šídák correction restricted to the planned pairs ("selected pairs"
+      family) and Dunn's test vs a control only; pairwise comparisons
+      after repeated-measures one-way ANOVA
 
 ### Theme 2. Replicates, n and SuperPlots
 Technical vs biological replicates, pooling experiments, n = cells
