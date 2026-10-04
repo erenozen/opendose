@@ -10,7 +10,13 @@ import { join } from "node:path";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 
-const url = process.argv[2] ?? "http://localhost:5173/";
+const baseUrl = process.argv[2] ?? "http://localhost:5173/";
+// ?example=1 opens the example project directly (no start screen, no tour).
+const url = (() => {
+  const u = new URL(baseUrl);
+  u.searchParams.set("example", "1");
+  return u.toString();
+})();
 const browser = await chromium.launch({
   args: process.env.HOST_RESOLVER ? [`--host-resolver-rules=${process.env.HOST_RESOLVER}`] : [],
 });
