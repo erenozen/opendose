@@ -477,3 +477,55 @@ Each step is timed from the user action to the result on screen (slow = over 5 s
   SmLs07–09 one-way ANOVA a further two digits worse (F 21.040 for SmLs07, now 21.0008).
 - One-way ANOVA blocks the page far longer than its size suggests: 9.5 s of main-thread work for 9 groups × 21 values (NIST SmLs01, measured on its own after the paste), 18 s for 9 × 201 and 47 s for 9 × 2001. Pasting and column statistics on the same table take 0.2 s.
 - `nist-rat43`: the corpus lists df = 9, but Rat43 has 15 observations and 4 parameters (df = 11; the certified residual SD 28.262 = √(8786.4/11)). The page and the engine both show 11: a manifest error, not a page error.
+
+## After the fixes (local build)
+
+Written by hand, not regenerated. Measured on 2026-10-04 on the development machine (WSL2, headless Chromium, the jsDelivr CDN over the network) with `web/scripts/validate-site-perf.mjs` (run as `node scripts/validate-site.mjs <url> --no-data`), against the production build served under `/opendose/` by `web/scripts/serve-dist.mjs` (gzip, as GitHub Pages) and against the dev server (`npm run dev`). "Before" is commit 76bb1ff, the build the live run above measured, on the same machine; "after" is branch `worktree-agent-adcdac88649dad9b5` with main's engine commit 2dd82d1 merged (multistart budget, fast Tukey, 384-well reader). The live column repeats the table above.
+
+| probe | live site | before, build | after, build | before, dev | after, dev |
+|---|---:|---:|---:|---:|---:|
+| cold load to first numbers on screen | 14.65 s | 16.62–17.96 s | **0.45–0.48 s** | 16.89–20.08 s | 1.08–1.19 s |
+| cold load to live engine results | 14.65 s | 16.62–17.96 s | 11.78–12.31 s | 16.89–20.08 s | 12.54–13.21 s |
+| warm reload: first numbers / live results | — | — | **0.18 s** / 10.70 s | — | 0.86 s / 11.54 s |
+| reload from the offline cache, network off | (no offline cache) | (no offline cache) | **0.18 s** / 10.60 s | (none in dev) | — |
+| 2,000-row paste | 1.09 s | 1.22 s | 0.86 s | 1.55 s | 1.39 s |
+| t test on 2 × 2,000 (main-thread long tasks) | 1.03 s (0.40 s) | 0.82 s (0.46 s) | 1.50 s (0.55 s, rendering) | 1.41 s (1.02 s) | 1.31 s (0.90 s) |
+| edit one cell → t test updated | 0.50 s | 0.55 s | 0.25 s | 0.80 s | 0.75 s |
+| one-way ANOVA 9 × 2,001, typing meanwhile: longest main-thread task | 47 s (frozen) | — | **0.50 s** | — | 1.66 s |
+| 500-point 4PL fit (main-thread long tasks) | 2.84 s (2.2 s) | 3.27 s (2.6 s) | 2.12 s (**0 s**) | 3.78 s (3.2 s) | 2.12 s (0 s) |
+| 50-dataset grouped: paste + two-way ANOVA | 1.48 s | 1.53 s | 1.28 s | 2.50 s | 1.95 s |
+| 200 cell edits (Playwright typing) | 32.13 s | 35.52 s | 18.77 s | 54.34 s | 36.67 s |
+| undo with the Undo button | 8.98 s, 100 steps, **100 values left** | 9.30 s, 100 steps, 100 left | 13.42 s, **200 steps, 0 left** | 12.66 s, 100 left | 17.19 s, 0 left |
+| redo with the Redo button | 8.91 s | 9.21 s | 13.35 s (200 steps) | 12.08 s | 15.52 s |
+| undo all + redo all, app side, one rendered frame per step | — | — | 6.69 s (16.7 ms per step) | — | 7.88 s |
+| reload and restore a 33-sheet project | 12.71 s | 13.25 s | **0.40 s** | 13.71 s | 1.48 s |
+| share link round trip (33 sheets) | 15.69 s | 16.69 s | **0.64–2.14 s** | 17.32 s | 1.50 s |
+| 384-well labelled grid read as | 96 wells | 96 wells | **384 wells** | 96 wells | 384 wells |
+| 384-well QC preview | 0.39 s | 0.44 s | 5.92 s (engine still starting; 0.40 s once up) | 0.42 s | 5.93 s |
+
+What the numbers say:
+
+- **The engine no longer runs on the page.** Pyodide and the engine live in a Web Worker (`web/src/lib/engine.worker.ts`); the page's main thread is free while an analysis runs. The 500-point fit and the two-way ANOVA leave no long task at all; during the 9 × 2,001 ANOVA the longest main-thread task is the grid's own re-render after a keystroke (0.5 s in the build for 18,000 inputs), not the engine. A results sheet shows "Computing… 3.2 s" with Cancel after a second ("This is taking unusually long." after 60 s). Cancel answers at once; the worker, which cannot interrupt Python, is retired as soon as a warm spare is up (55 ms when the spare was ready) or keeps going until the job ends if that comes first. A fresh worker takes 9.8–11.9 s even from the cache (Python start, NumPy/SciPy, engine import), which is why a spare is warmed once a job has run 1.5 s and at every cancel.
+- **Cold load: the first numbers appear in under half a second.** The example project's results ship with the app and show at first paint, marked as not live (`data-live="false"`, a note and a download progress bar), and are replaced by the live engine's. A reopened project, a restored session or a share link shows its saved results at once for the same reason (they carry the fingerprint of their input). The live engine itself still needs 11.5–12 s cold, 10.6–10.7 s warm; its floor is the engine's own start: Python up at 3.4–3.6 s, NumPy and SciPy loaded at 5.7–6.0 s, and importing the opendose package 5.5–5.8 s more (it imports `scipy.stats`, about 800 modules; PYTHONPROFILEIMPORTTIME puts 4–5.6 s of it under `opendose.anova` → `scipy.stats._stats_py`). Only lazier imports in the engine can shorten that last step.
+- **Offline**: the production build registers a service worker that keeps the app, the engine bundle and the Pyodide files; a reload with the network switched off opens the app and computes as usual.
+- **Undo** keeps 1,000 steps (and at most about 50 MB of history); 200 edits are undone to the empty table and redone exactly. One undo step costs about one frame in the app; the button probe's 67 ms per step is mostly Playwright's own round trips per click.
+- **Restore and share links** are 30× faster because nothing is recomputed whose input did not change: results, their fingerprints and the sheet on screen are saved in files, the autosave and links; whatever did change is recomputed in the background, the visible sheet first. A session reopens on the sheet that was last viewed.
+- **384-well plates**: the reader follows the engine's rule (labelled extent first, then the largest consistent bare block, padding to a format with a warning, never truncating); the wizard shows the reader's warnings at the QC step.
+- The QC-preview step now comes while the engine is still starting after the restore probe's reload (the restore no longer waits for it); with the engine up it takes 0.4 s as before.
+
+What the 25 MB of a first visit are (measured on the live build, fresh profile):
+
+| what | transferred | in memory |
+|---|---:|---:|
+| SciPy wheel (jsDelivr, already compressed) | 13.9 MB | 14.0 MB |
+| Pyodide runtime `pyodide.asm.wasm` (brotli) | 3.4 MB | 9.6 MB |
+| NumPy wheel | 2.9 MB | 2.9 MB |
+| Python standard library `python_stdlib.zip` | 2.5 MB | 2.6 MB |
+| Plotly (our bundle, gzip) | 1.4 MB | 4.6 MB |
+| the app's own JavaScript and CSS | 0.4 MB | 1.3 MB |
+| `pyodide.asm.mjs`, lock file | 0.3 MB | 1.4 MB |
+| openpyxl and et_xmlfile from PyPI, micropip | 0.4 MB | — |
+| the engine's 61 Python files (gzip) | 0.4 MB | 1.4 MB |
+| Inter font | 0.05 MB | — |
+
+GitHub Pages serves the app, the JSON and the `.py` files gzip-compressed; jsDelivr serves the `.wasm` and `.zip` files compressed (brotli, gzip) and with a one-year cache lifetime; the wheels are zip archives already. The critical path before: page script, Plotly parsed (1.6 s) → Pyodide downloaded and started (5.4 s) → only then NumPy and SciPy downloaded (7.2 s) and loaded (9.8 s) → micropip and openpyxl from PyPI (10.2 s) → 61 engine files (10.5 s) → engine import → first result (14.7 s). After: a 14 kB boot script starts the worker first; the worker fetches the lock file, the wheels and the engine (one gzip'd `bundle.json`, versioned by a hash of its content) in parallel with the runtime, so all downloads end by about 4.3 s; openpyxl installs in the background after the start; Plotly loads when the first graph is drawn; Python runs with `-OO` (SciPy then skips building its distribution docstrings, about 1 s; the engine's test suite passes under `-OO`). The probe's "MB transferred" counts the page's own resources only (1.9 MB in the build): the worker's downloads do not appear in the page's resource timing.
