@@ -16,22 +16,57 @@ src/
   sheets/
     registry.ts     TableType -> TableTypeDef
     types.ts        the plugin contract (below)
-    common/         DataGrid (generic editor), PlaceholderPanel
+    common/         DataGrid (generic editor), PlaceholderPanel, P / CI
+                    formatting (statFormat.ts), SuperPlots and replicate
+                    maps (superplot.ts, SuperPlotOptions, ReplicateMapFields,
+                    the "Assign replicates…" dialog), heat-map dendrograms
+                    (dendrogram.ts)
     xy/ column/ grouped/ contingency/ survival/ partsofwhole/
     multivariable/ nested/   ready (all eight table types)
     manipulate/     cross-type: Transform, Normalize, … (derived tables),
                     user formulas, Simulate data dialog, Monte Carlo
-    assays/         cross-type assay modules (growth, tumour growth, AUC,
-                    synergy, volcano, clustering); see below
+    assays/         assay modules (plate reader, standard curve, qPCR,
+                    densitometry, growth, tumour growth, AUC, synergy,
+                    volcano, clustering); see below
   components/       shell UI: Navigator, Header, FamilyWorkspace, dialogs,
                     plus the existing panels the sheets wrap
+  graph/            graph-format layer (Format graph / axes, annotations,
+                    brackets, themes, legend sentence); see its README
+  report/           reporting: P-value styles (pformat.ts), effect sizes,
+                    results sentences, figure legends, methods paragraph,
+                    checklists, provenance, R / Python snippets
   guide/            guidance: "Which test?" recommender and wizard, results
                     chips / banners / "why your number may differ" (fed by
                     the analysis id, options and result: no plugin work
                     needed), explainers + Help panel, start screen, tour.
                     Pure rules (recommend, paste, checks, banners, differ,
                     entry) are unit-tested in guide/__tests__
+  share/            share links, export bundle, .pzfx, import recipes,
+                    validation page
+  power/            power and sample size, randomisation lists
 ```
+
+## Writing P values, legends and n
+
+- Results panels never write P by hand: `report/pformat.ts` (re-exported
+  by `common/statFormat.ts` and `grouped/format.ts`) has `tableP` (a
+  table cell), `pLabel` ("P = 0.0123" / "p = .012" / "P=0.01"), `pEquals`
+  (after a written "P") and `formatPValue` (sentences), plus `tableStars`
+  / `pSummary` and `starScale`. They follow the project's P-value style
+  (Preferences → Reporting); graphs read it through
+  `graph/significance.ts` (`graphPStyle`, `graphHideNs`), where a graph's
+  own `format.pStyle` / `comparisons.hideNs` only override it.
+- The figure legend under a graph and in the Report card is
+  `report/legendFor.ts`; its "what is plotted" clause is the graph
+  package's `legendSentence` clause (`graph/legend.ts plottedClause`) for
+  column and grouped graphs, so the two never disagree. A graph kind that
+  wants a better clause extends `legendSpec` / `whatIsPlotted`.
+- n with its unit: Reporting details (`DataSheet.report`) first, then the
+  table's replicate map (`report/replicates.ts`: `ReplicateMap.unit` and
+  the number of experiments), so a SuperPlot table reports "n = 18 cells
+  from 3 independent experiments" (or, on replicate means, "n = 3
+  independent experiments per group (54 cells in all)"). Grouped tables
+  count n per row × data set cell.
 
 ## Data model in one paragraph
 
@@ -268,13 +303,17 @@ One-file modules (pure parts `*Model.ts`, `*Sample.ts` unit-tested in
 - `volcano`: multiple-variables fold-change / P tables (`fdr_adjust`).
 - `cluster`: grouped (cell means) and multiple-variables matrices →
   `cluster_heatmap`; dendrograms are Plotly line traces on extra axes
-  aligned to the heat-map cells.
+  aligned to the heat-map cells (`common/dendrogram.ts addDendrogram`,
+  from the engine's coordinates).
 
-The grouped / multiple-variables heat map's "Cluster rows / columns"
-toggles (`grouped/heatCluster.ts`) call the same engine handler with the
-cluster assay's default linkage and distance (`DEFAULT_CLUSTER`: average,
-Euclidean) on the matrix the map colours; the assay adds dendrograms,
-other linkages and distances, tree cuts and k-means.
+The grouped heat map's "Cluster rows / columns" toggles
+(`grouped/heatCluster.ts`) call the same engine handler with the cluster
+assay's default linkage and distance (`DEFAULT_CLUSTER`: average,
+Euclidean) on the matrix the map colours, and draw the returned
+dendrograms with the same `addDendrogram` (row tree on the right, column
+tree on the side away from the column labels; "Dendrograms" option). The
+assay adds other linkages and distances, cluster strips, tree cuts and
+k-means.
 
 ## Notes on specific analyses
 

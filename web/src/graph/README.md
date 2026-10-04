@@ -30,10 +30,11 @@ graph/
   theme.ts        GraphFormat.theme "classic" (pure)
   swarm.ts        point placement: jitter, beeswarm, symmetric (pure)
   cvd.ts          colour-vision simulation, CIEDE2000 / CIE76 (pure)
-  legend.ts       legendSentence: error-bar meaning, n, star scale (pure)
+  legend.ts       legendSentence / legendSpec / plottedClause: error-bar
+                  meaning, n, star scale (pure)
   usePlotArea.ts  the drawn plot area in px (for beeswarm / symmetric)
   FigurePanel.tsx Settings → Figure style: theme, P style, CVD check
-  GraphCaption.tsx, FigureLegendCard.tsx  the legend sentence on screen
+
   *Dialog.tsx     the dialogs; useFormatDialogs.tsx wires them to a card
   __tests__/      node --test unit tests (npm run test:unit)
 ```
@@ -187,8 +188,8 @@ legendSentence(graph: Pick<GraphSheet, "graphType" | "settings">,
 ```
 
 The figure-legend sentence of a graph sheet, e.g. "Mean ± SD (bars), with
-individual values. n = 6 (Control), 5 (Drug). ns, P > 0.05; * P ≤ 0.05;
-** P ≤ 0.01; *** P ≤ 0.001; **** P ≤ 0.0001." Contract:
+individual values. n = 6 (Control), 5 (Drug). * P ≤ 0.05, ** P ≤ 0.01,
+*** P ≤ 0.001, **** P ≤ 0.0001; ns, not significant: P > 0.05." Contract:
 
 - `table` is what the graph plots (exclusions blanked; a frozen graph's
   snapshot table); `result` is the bound results, if any.
@@ -205,15 +206,18 @@ individual values. n = 6 (Control), 5 (Drug). ns, P > 0.05; * P ≤ 0.05;
   experiment means …", n counts experiments ("n = 3 experiments per
   group (54 values in all)").
 - When the graph draws asterisks (format.comparisons shown as stars) the
-  scale of `format.pStyle` is appended (significance.ts `starScale`).
+  scale of the graph's P style is appended (significance.ts `starScale`,
+  i.e. report/pformat.ts), saying so when ns pairs are hidden.
 - Deterministic and pure; `composeLegend(spec)` builds the words from a
   plain `LegendSpec` for callers that describe a graph themselves.
 
-Where it shows: the column and grouped graphs' "Legend sentence" option
-(`settings.column.caption` / `settings.grouped.caption`: "below" = an
-on-screen line with Copy, not in exports; "figure" = drawn in the figure
-through `FormatContext.caption`; "off"), and the Figure legend card under
-the methods text of the results sheet the graph is bound to.
+Where it shows: "figure" in the column and grouped graphs' "Legend
+sentence" option (`settings.column.caption` / `settings.grouped.caption`)
+draws it in the figure through `FormatContext.caption`. On screen, the
+legend is the reporting package's (report/GraphLegend.tsx under the
+graph, open in the "below" mode and folded otherwise; the Report card
+under the results), whose first clause is `plottedClause` of this
+sentence, so the figure and the legend text never disagree.
 
 ### Theme, P style, hide ns
 
@@ -224,10 +228,16 @@ the methods text of the results sheet the graph is bound to.
   automatic linear axes snapped to 1-2-5 tick bounds (brackets kept in
   range) so each axis ends on its last tick. In the dark app theme the
   graph keeps dark paper on screen. Exports carry it (they read the div).
-- `GraphFormat.pStyle: "apa" | "nejm"` (absent = GraphPad style, i.e.
-  the old formatting): `formatPStyle`, `starsFor`, `starScale` in
-  significance.ts; brackets, results blocks and the legend sentence use
-  it. `ComparisonsFormat.hideNs` leaves out "ns" pairs.
+- P style: the project's (Preferences → Reporting, report/prefs.ts) is
+  the single source. `GraphFormat.pStyle: "graphpad" | "apa" | "nejm"`
+  and `ComparisonsFormat.hideNs` are per-graph overrides; absent, the
+  graph follows the project (`graphPStyle`, `graphHideNs` in
+  significance.ts). `formatPStyle`, `starsFor` and `starScale` apply the
+  rules of report/pformat.ts (GraphPad exact P keeps `formatP`). Graphs
+  redraw when the project style changes (usePlotEdits bumps the edit
+  revision on `pStyleKey()`). Files from before 0.3.0 whose graphs agreed
+  on one style have it promoted to the project on open
+  (project/persist.ts `promoteGraphPStyle`).
 
 ### Point layouts (swarm.ts)
 
