@@ -219,3 +219,29 @@ class TestColumnStatisticsBundle:
         assert "shapiro_wilk" in r["normality"]
         assert r["one_sample_t"]["hypothetical"] == 25.0
         assert r["wilcoxon"] is not None
+
+
+def test_one_way_anova_far_from_zero_nist_smls04():
+    """NIST StRD SmLs04 (values 1000000.x; certified SS between 1.68,
+    F 21.0, 15 digits). The between-group SS used to lose ~1.5 digits
+    (rel error 1.9e-9); computing it on shifted data reaches the float64
+    input limit."""
+    import csv
+    from pathlib import Path
+    path = (Path(__file__).resolve().parents[2] / "docs" / "validation"
+            / "datasets" / "nist-smls04.csv")
+    if not path.exists():
+        pytest.skip("reference corpus not present")
+    with open(path, newline="") as fh:
+        rows = list(csv.DictReader(fh))
+    cols = list(rows[0])
+    groups = [[float(r[c]) for r in rows if r[c].strip()] for c in cols]
+    from opendose.anova import one_way_anova
+    t = one_way_anova(groups)["table"]
+    assert t["ss_between"] == pytest.approx(1.68, rel=1e-9)
+    assert t["F"] == pytest.approx(21.0, rel=1e-9)
+    assert t["ss_within"] == pytest.approx(1.8, rel=1e-9)
+    # shift invariance: the same data moved to near zero
+    small = one_way_anova([[v - 1000000.0 for v in g] for g in groups])
+    assert small["table"]["ss_between"] == pytest.approx(t["ss_between"],
+                                                         rel=1e-9)

@@ -288,3 +288,32 @@ class TestExtrapolationFlag:
         ys = [2.1, 4.0, 6.2, 7.9, 10.1]
         fit = fit_model(xs, ys, "straight_line")
         assert fit["extrapolation"] is None
+
+
+def test_singular_covariance_is_ambiguous_not_converged():
+    """NIST StRD BoxBOD from Start 1 (b1 = 1, b2 = 1): the fit runs to
+    b2 -> large where exp(-b2*X) underflows, J'J is singular and the SEs
+    are NaN. That must not be reported as 'converged'."""
+    from opendose.api import analyze
+    x = [1, 2, 3, 5, 7, 10]
+    y = [109, 149, 149, 191, 213, 224]
+    r = analyze({"analysis": "dose_response",
+                 "data": {"x": x, "datasets": [{"name": "y",
+                                                "ys": [[v] for v in y]}]},
+                 "options": {"user_equation": {
+                     "text": "Y = b1*(1-exp(-b2*x))",
+                     "rules": {"b1": 1.0, "b2": 1.0}}}})
+    fit = r["datasets"][0]["fit"]
+    assert not math.isfinite(fit["params"]["b1"]["se"])
+    assert fit["status"] == "ambiguous"
+    # from NIST Start 2 the certified solution is found and is converged
+    r = analyze({"analysis": "dose_response",
+                 "data": {"x": x, "datasets": [{"name": "y",
+                                                "ys": [[v] for v in y]}]},
+                 "options": {"user_equation": {
+                     "text": "Y = b1*(1-exp(-b2*x))",
+                     "rules": {"b1": 100.0, "b2": 0.75}}}})
+    fit = r["datasets"][0]["fit"]
+    assert fit["status"] == "converged"
+    assert fit["params"]["b1"]["value"] == pytest.approx(213.80940889,
+                                                         rel=1e-5)

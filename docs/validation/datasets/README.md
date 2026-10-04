@@ -283,7 +283,7 @@ from the raw text of the sources listed in each entry's `citation` and
 
 ## Entries kept out of the repository
 
-Fifteen datasets whose source is a copyrighted publication without an open
+Fourteen datasets whose source is a copyrighted publication without an open
 licence (GraphPad's Prism 4 book and statistics guide examples, the Livak &
 Schmittgen 2001 table, the Bland & Altman 1986 PEFR table) are kept locally
 under `docs/validation/private/` (gitignored) and are not redistributed

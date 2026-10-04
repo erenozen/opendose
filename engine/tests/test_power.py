@@ -407,3 +407,30 @@ class TestJustification:
         rz = analyze({"analysis": "randomize", "data": {},
                       "options": {"n": 12, "seed": 7}})
         assert rz["counts"] == {"A": 6, "B": 6}
+
+
+class TestFarTailNaN:
+    """scipy's nct.cdf returns NaN deep in the far rejection tail for large
+    noncentrality (found by the reference corpus: StatMate's detectable
+    difference for n = 18 / 17 failed with 'function value is NaN')."""
+
+    def test_power_finite_at_large_ncp(self):
+        for ncp, df in ((31.0, 33), (33.5, 33), (27.0, 19), (38.0, 33)):
+            p = P.t_power(ncp, df, 0.05, 2)
+            assert math.isfinite(p) and p == pytest.approx(1.0, abs=1e-12)
+
+    def test_solve_effect_two_sample(self):
+        for target in (0.5, 0.9):
+            r = P.t_test_two("effect", n1=18, n2=17, power=target)
+            d = r["effect"]["value"]
+            assert r["power"] == pytest.approx(target, abs=1e-9)
+            ref = smp.TTestIndPower().solve_power(
+                effect_size=None, nobs1=18, ratio=17 / 18, alpha=0.05,
+                power=target, alternative="two-sided")
+            assert d == pytest.approx(ref, rel=1e-6)
+
+    def test_solve_effect_one_sample(self):
+        r = P.t_test_one("effect", n=20, power=0.8)
+        ref = smp.TTestPower().solve_power(effect_size=None, nobs=20,
+                                           alpha=0.05, power=0.8)
+        assert r["effect"]["value"] == pytest.approx(ref, rel=1e-6)

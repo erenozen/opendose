@@ -96,9 +96,25 @@ def t_power(ncp, df, alpha=0.05, tails=2) -> float:
     ncp = abs(ncp)
     if tails == 2:
         tc = stats.t.isf(alpha / 2, df)
-        return float(stats.nct.sf(tc, df, ncp) + stats.nct.cdf(-tc, df, ncp))
+        return float(stats.nct.sf(tc, df, ncp) + _far_tail(tc, df, ncp))
     tc = stats.t.isf(alpha, df)
     return float(stats.nct.sf(tc, df, ncp))
+
+
+def _far_tail(tc, df, ncp) -> float:
+    """P(T' < -tc) for T' ~ noncentral t(df, ncp >= 0) and tc > 0: the
+    rejection region on the far side of the effect. scipy's nct.cdf
+    returns NaN deep in this tail for large ncp (e.g. ncp 25-40 at df
+    19-33), which used to turn the power into NaN and break solving for
+    the effect size. The term is bounded by P(T' < 0) = Phi(-ncp)
+    (T' < 0 exactly when Z < -ncp), so where that bound is below 1e-15
+    the term is 0 to double precision."""
+    v = float(stats.nct.cdf(-tc, df, ncp))
+    if math.isfinite(v):
+        return v
+    if float(stats.norm.cdf(-ncp)) < 1e-15:
+        return 0.0
+    raise ValueError("noncentral t tail probability could not be computed")
 
 
 def f_power(lam, df1, df2, alpha=0.05) -> float:

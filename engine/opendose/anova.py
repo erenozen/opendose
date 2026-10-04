@@ -57,9 +57,16 @@ def one_way_anova(datasets, names=None) -> dict:
     k = len(groups)
     ns = [g.size for g in groups]
     n_total = sum(ns)
-    grand_mean = float(np.concatenate(groups).mean())
+    # The sums of squares are shift-invariant. Subtracting one data value
+    # first keeps the group means accurate when the data sit far from zero
+    # (x - x0 is exact for nearby x by Sterbenz's lemma): without it the
+    # between-group SS lost ~1.5 digits on NIST StRD SmLs04 / AtmWtAg.
+    shift = groups[0][0]
+    shifted = [g - shift for g in groups]
+    grand_mean = float(np.concatenate(shifted).mean())
 
-    ss_between = sum(n * (g.mean() - grand_mean) ** 2 for n, g in zip(ns, groups))
+    ss_between = sum(n * (g.mean() - grand_mean) ** 2
+                     for n, g in zip(ns, shifted))
     ss_within = sum(((g - g.mean()) ** 2).sum() for g in groups)
 
     bf_stat, bf_p = stats.levene(*groups, center="median")  # Brown-Forsythe

@@ -866,6 +866,12 @@ def fit_model(x_values, y_values, model: str, *,
                 status = "ambiguous"
         except np.linalg.LinAlgError:
             status = "ambiguous"
+    # A covariance that cannot be computed (singular J'J -> NaN SEs) means
+    # the parameters are not determined at this point, whatever the
+    # optimizer reported: e.g. NIST BoxBOD from Start 1, where Y = b1 and
+    # exp(-b2*X) underflows, used to be labelled "converged".
+    if not np.all(np.isfinite(pcov)):
+        status = "ambiguous"
 
     # A midpoint fitted outside the x actually tested is an extrapolation:
     # the data never reaches half-maximal, so the value is read off the
