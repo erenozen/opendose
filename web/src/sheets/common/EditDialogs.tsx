@@ -3,7 +3,7 @@
 // convert replicates to summary values.
 import { useState } from "react";
 import Modal from "../../components/Modal";
-import { getEngine } from "../../lib/engine";
+import { runEngine } from "../../lib/engine";
 import {
   DEFAULT_EXPORT, fileSlug, tableMatrix, toDelimited, type ExportOptions,
 } from "../../project/exportTable";
@@ -392,8 +392,7 @@ export function ConvertDialog({ table, name, onCreate, onClose }: {
     setBusy(true);
     setError("");
     try {
-      const engine = await getEngine();
-      const t = convertTable(engine, table, target);
+      const t = await runEngine((engine) => convertTable(engine, table, target), { priority: "user" });
       onCreate(t, `${name} (${SUBCOLUMN_FORMAT_LABELS[target]})`);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));

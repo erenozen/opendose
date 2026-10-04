@@ -5,7 +5,7 @@ import {
 } from "../../graph";
 import FormattedPlot from "../../graph/FormattedPlot";
 import { useDarkMode } from "../../graph/useDarkMode";
-import { getEngine } from "../../lib/engine";
+import { analyzeAsync } from "../../lib/engine";
 import {
   CHROME_DARK, CHROME_LIGHT, PLOT_FONT, seriesStyle, type SchemeId,
 } from "../../lib/palette";
@@ -39,19 +39,19 @@ export default function SummaryPlot({ table, graphType, scheme, yTitle, format,
 
   useEffect(() => {
     let live = true;
-    void getEngine().then((engine) => {
-      const sets = numericData(table).datasets;
-      const r = engine.analyze({
-        analysis: "summary_convert",
-        data: { format: SUBCOLUMN_FORMAT_ENGINE[table.subcolumnFormat],
-          datasets: sets.map((d) => ({ name: d.name, rows: d.ys })) },
-        options: { error_bars: "entered" },
-      }) as { error?: string; datasets?: { name: string; bars: Bar[] }[] };
+    const sets = numericData(table).datasets;
+    void analyzeAsync({
+      analysis: "summary_convert",
+      data: { format: SUBCOLUMN_FORMAT_ENGINE[table.subcolumnFormat],
+        datasets: sets.map((d) => ({ name: d.name, rows: d.ys })) },
+      options: { error_bars: "entered" },
+    }).then((res) => {
+      const r = res as { error?: string; datasets?: { name: string; bars: Bar[] }[] };
       if (!live) return;
       setBars((r.datasets ?? []).map((d) => ({
         name: d.name, bar: d.bars.find((b) => b.mean !== null) ?? null,
       })));
-    });
+    }, () => { /* no bars until the engine answers */ });
     return () => { live = false; };
   }, [table]);
 

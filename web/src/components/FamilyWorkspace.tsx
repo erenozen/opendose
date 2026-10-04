@@ -28,6 +28,9 @@ import { GenericMethodsText } from "./MethodsText";
 import HSplitter from "./HSplitter";
 import { SnowflakeIcon } from "./SheetIcon";
 import WelcomePanel from "./WelcomePanel";
+import { AnalysisBusy, EngineBootNote } from "./EngineStatus";
+import FitGuardNote from "./FitGuardNote";
+import { notFittedReason } from "../app/fitGuard";
 import { useGuideOptional } from "../guide/context";
 import EntryGuide from "../guide/EntryGuide";
 import { DifferNote, ResultsGuide } from "../guide/ResultsGuide";
@@ -44,7 +47,7 @@ import StatsMethodsCard from "../report/StatsMethodsCard";
  */
 export default function FamilyWorkspace({ data }: { data: DataSheet }) {
   const api = useProject();
-  const { project, apply, engineReady, status, engineError, bootEngine } = api;
+  const { project, apply, engineReady, status, engineError, bootEngine, engine } = api;
   const cmd = useCommands();
   const guide = useGuideOptional();
   const mainRef = useRef<HTMLElement>(null);
@@ -53,7 +56,7 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
   const graph = api.activeGraph(data.id);
   const aDef = resSheet ? analysisDef(data.table.type, resSheet.analysis) : undefined;
 
-  const { result, options } = useAnalysisResult(resSheet, data.table);
+  const { result, options, status: resStatus } = useAnalysisResult(resSheet, data.table);
   // A graph may draw from a results sheet other than the active one.
   const graphRes = graph?.resultsId && graph.resultsId !== resSheet?.id
     ? findSheet(project, graph.resultsId) as ResultsSheet | undefined : undefined;
@@ -96,10 +99,9 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
 
   return (
     <main ref={mainRef}>
-      {/* Until the engine is up, the editor column is inert: typing into a
-          table that cannot analyze yet only causes confusion (and competes
-          with the runtime for the main thread). */}
-      <div className="left" inert={!engineReady}>
+      {/* The engine runs in a worker: the editor works while it loads and
+          while it computes; analyses queue until it is ready. */}
+      <div className="left">
         {Aside && !readOnly && (
           <>
             <div className="pane pane-import">
@@ -158,12 +160,20 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
       </div>
       <ColumnSplitter mainRef={mainRef} />
       <div className="right">
-        {!engineReady ? (
+        {!engineReady && (engineError || result == null) ? (
           <div className="pane pane-plot">
-            <WelcomePanel status={status} error={engineError} onRetry={bootEngine} />
+            <WelcomePanel status={status} error={engineError} onRetry={bootEngine}
+              engine={engine} />
           </div>
         ) : (
           <>
+            {/* Saved (or bundled example) results show at once; the live
+                engine replaces them when it is up. */}
+            {!engineReady && (
+              <div className="pane pane-boot">
+                <EngineBootNote engine={engine} live={resStatus.live} />
+              </div>
+            )}
             {graph && (
               <>
                 <div className={`pane pane-plot${reveal}`}>
@@ -175,7 +185,15 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
               </>
             )}
             {resSheet && Results && (
-              <div className={`pane pane-results${reveal}`}>
+              <div className={`pane pane-results${reveal}`}
+                data-live={resStatus.live ? "true" : "false"}
+                aria-busy={resStatus.pending ? true : undefined}>
+                {engineReady && <AnalysisBusy status={resStatus} engine={engine} />}
+                {notFittedReason(result) && (
+                  <FitGuardNote reason={notFittedReason(result)!} readOnly={readOnly}
+                    onFit={(patch) => apply((p) => updateResultsOptions(p, resSheet.id,
+                      (o) => ({ ...(o as object), ...patch })))} />
+                )}
                 <ResultsGuide analysisId={resSheet.analysis} tableType={data.table.type}
                   table={data.table} options={options} result={result}
                   dataId={data.id} readOnly={readOnly} />

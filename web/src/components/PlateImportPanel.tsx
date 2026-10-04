@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { getEngine } from "../lib/engine";
+import { analyzeAsync } from "../lib/engine";
 import type { DatasetState } from "../types";
 
 interface Props {
@@ -101,8 +101,7 @@ export default function PlateImportPanel({ onImport }: Props) {
         throw new Error("choose an .xlsx file or paste the plate grid");
       }
 
-      const engine = await getEngine();
-      const res = engine.analyze({
+      const res = await analyzeAsync({
         analysis: "plate_quantify",
         data,
         options: {
@@ -112,7 +111,7 @@ export default function PlateImportPanel({ onImport }: Props) {
           control_dose: 0,
           output,
         },
-      }) as {
+      }, { priority: "user" }) as {
         error?: string;
         blank: number | null;
         x: number[];

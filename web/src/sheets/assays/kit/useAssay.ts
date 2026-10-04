@@ -3,7 +3,7 @@
 // wizard run (replace the input table, save, make the linked outputs).
 import { useCallback } from "react";
 import { useProject } from "../../../app/context";
-import { getEngine, type EngineBridge } from "../../../lib/engine";
+import { runEngine, type EngineBridge } from "../../../lib/engine";
 import { newId } from "../../../project/ids";
 import { findSheet, updateTable } from "../../../project/ops";
 import type { DataSheet, DataTableModel, ResultsSheet } from "../../../project/types";
@@ -27,13 +27,12 @@ export function useAssay<O extends object>(sheet: ResultsSheet) {
    *  the id of the first linked table (or null). */
   const commit = useCallback(async (o: O, table: DataTableModel | null,
     specsFor: SpecsFor<O> | null): Promise<string | null> => {
-    const engine = await getEngine();
     const cur = findSheet(store.project, dataId) as DataSheet | undefined;
     if (!cur || cur.kind !== "data") return null;
     const t = table ?? cur.table;
     let specs: OutputSpec[] = [];
     try {
-      specs = specsFor ? specsFor(engine, t, o) : [];
+      specs = specsFor ? await runEngine((engine) => specsFor(engine, t, o), { priority: "user" }) : [];
     } catch {
       specs = [];
     }

@@ -1,5 +1,7 @@
 // Copy the Python engine (single source of truth: ../engine/opendose)
-// into public/ so the browser can fetch it into Pyodide's filesystem.
+// into public/ so the browser can fetch it into Pyodide's filesystem
+// (bundle.json; the single files and manifest.json stay for scripts and
+// for anyone reading the deployed source).
 //
 // Writes are skipped when content is unchanged: every write here emits a
 // filesystem event that any live Vite dev server must catch to keep its
@@ -35,6 +37,19 @@ const manifestPath = join(dest, "manifest.json");
 if (!existsSync(manifestPath) ||
     readFileSync(manifestPath, "utf8") !== manifest) {
   writeFileSync(manifestPath, manifest);
+  updated++;
+}
+
+// The same files as one JSON document: the engine worker fetches this
+// single file (one request instead of one per module) in parallel with
+// the Python runtime. Its URL carries a hash of the content
+// (vite.config.ts), so caches never mix engine versions.
+const bundle = JSON.stringify({
+  files: Object.fromEntries(files.map((f) => [f, readFileSync(join(src, f), "utf8")])),
+});
+const bundlePath = join(dest, "bundle.json");
+if (!existsSync(bundlePath) || readFileSync(bundlePath, "utf8") !== bundle) {
+  writeFileSync(bundlePath, bundle);
   updated++;
 }
 

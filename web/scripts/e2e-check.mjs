@@ -87,7 +87,7 @@ page.on("console", (m) => {
 });
 
 await page.goto(url, { waitUntil: "domcontentloaded" });
-await page.waitForSelector(".results-table", { timeout: 180000 });
+await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 180000 });
 const logRow = await page
   .locator(".results-table tbody tr", { hasText: "LogIC50" })
   .first()
@@ -539,11 +539,15 @@ expect("saved project reopens with the grouped table",
 
 // --- autosave: reload, then restore the last session ---
 await page.waitForTimeout(1500); // autosave debounce
+const viewedBefore = await page.locator('[role=treeitem][aria-selected="true"]').first().getAttribute("aria-label");
 await page.reload({ waitUntil: "domcontentloaded" });
 await page.waitForSelector(".restore-banner", { timeout: 30000 });
 await page.locator(".restore-banner").getByRole("button", { name: "Restore" }).click();
 expect("restore from autosave", await navRow("Two-factor data").count() === 1);
-await page.waitForSelector(".results-table", { timeout: 180000 });
+const viewedAfter = await page.locator('[role=treeitem][aria-selected="true"]').first().getAttribute("aria-label");
+expect("restore reopens the sheet last viewed", !!viewedBefore && viewedAfter === viewedBefore,
+  `${viewedBefore} → ${viewedAfter}`);
+await page.waitForFunction(() => globalThis.__opendoseEngine?.state.phase === "ready", null, { timeout: 180000 });
 await page.waitForTimeout(800);
 
 // --- multiple-variables table: example data, regression, PCA, logistic,
@@ -756,8 +760,12 @@ await page.waitForSelector(".grid-toolbar");
 await page.getByRole("button", { name: "Import…", exact: true }).click();
 const imp = page.locator(".import-dialog");
 await imp.getByLabel("File to import").setInputFiles(XLSX);
+// the workbook is read in the engine worker: wait for its preview (not a
+// preview of whatever the dialog showed before)
 await page.waitForFunction(() =>
-  document.querySelectorAll(".import-preview tbody tr").length > 0, null, { timeout: 60000 });
+  document.querySelectorAll(".import-preview tbody tr").length > 0
+  && /^9 of 9 rows/.test(document.querySelector(".import-dialog .import-summary")?.textContent ?? ""),
+null, { timeout: 60000 }).catch(() => {});
 const xlsxSummary = await imp.locator(".import-summary").innerText();
 expect("import dialog reads an .xlsx worksheet",
   xlsxSummary.startsWith("9 of 9 rows, 12 Y columns"), xlsxSummary);
@@ -1053,7 +1061,7 @@ await page.waitForTimeout(1500); // autosave debounce
 await page.reload({ waitUntil: "domcontentloaded" });
 await page.waitForSelector(".restore-banner", { timeout: 30000 });
 await page.locator(".restore-banner").getByRole("button", { name: "Restore" }).click();
-await page.waitForSelector(".results-table", { timeout: 180000 });
+await page.waitForFunction(() => globalThis.__opendoseEngine?.state.phase === "ready", null, { timeout: 180000 });
 await navRow("Org source").click();
 expect("after a page reload the restored session keeps the group and the note",
   await orgInGroup() === 1
@@ -1379,8 +1387,8 @@ expect("ambiguous fit banner with concrete fixes for a flat dataset",
   expect("the pasted XY table is created",
     await p2.getByRole("treeitem", { name: "Pasted data", exact: true }).count() === 1
     && await p2.locator('.data-table input[aria-label="X, row 3"]').inputValue() === "0.1");
-  // the engine boots first (it blocks the page), then the autosave debounce
-  await p2.waitForSelector(".results-table", { timeout: 180000 });
+  // live results first (the engine has booted), then the autosave debounce
+  await p2.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 180000 });
   await p2.waitForTimeout(1500);
   // With a session saved, the next visit reopens it directly (default
   // start mode): no start screen, no restore banner.
@@ -1445,7 +1453,7 @@ expect("ambiguous fit banner with concrete fixes for a flat dataset",
   const p3 = await ctx3.newPage();
   p3.on("pageerror", (e) => errors.push(`pageerror (phone): ${e.message}`));
   await p3.goto(url, { waitUntil: "domcontentloaded" });
-  await p3.waitForSelector(".results-table", { timeout: 180000 });
+  await p3.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 180000 });
   const tops = await p3.evaluate(() => ["Undo", "Save project", "More actions"].map((n) =>
     Math.round(document.querySelector(`header [aria-label="${n}"]`)?.getBoundingClientRect().top ?? -99))
     .concat(Math.round(document.querySelector("header .load-btn").getBoundingClientRect().top)));
@@ -1719,6 +1727,77 @@ expect("randomisation list: 24 units in balanced blocks, seed in the file name",
 await pw.getByRole("button", { name: "Done" }).click();
 expect("the sample-size justification is saved as an info sheet",
   await navRow("Sample size justification").count() === 1);
+
+// --- responsiveness: the engine runs in a worker. A one-way ANOVA on 9
+// groups × 2,001 values (the size of NIST SmLs09) leaves the grid
+// editable while it computes, the results show "Computing… s" with
+// Cancel, Cancel stops it (the worker is replaced) and the engine goes
+// on working afterwards.
+{
+  await page.getByRole("button", { name: "New data table" }).first().click();
+  const dlg = page.locator(".new-table-dialog");
+  await dlg.locator('input[name="table-type"][value="column"]').check();
+  await dlg.getByLabel("Table name").fill("Nine groups");
+  await dlg.getByLabel("Groups (columns)", { exact: true }).fill("9");
+  await dlg.getByLabel("Rows (values per group)", { exact: true }).fill("2001");
+  await dlg.getByRole("button", { name: "Create table" }).click();
+  await page.waitForSelector(".grid-toolbar");
+  let seed = 3;
+  const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+  const csv = [Array.from({ length: 9 }, (_, g) => `G${g + 1}`).join(","),
+    ...Array.from({ length: 2001 }, () => Array.from({ length: 9 },
+      (_, g) => (1000000.4 + g * 0.01 + 0.1 * rnd()).toFixed(4)).join(","))].join("\n");
+  await page.getByRole("button", { name: "Import…", exact: true }).click();
+  const imp9 = page.locator(".import-dialog");
+  await imp9.getByLabel("Pasted text").check();
+  await imp9.getByLabel("Text to import").fill(csv);
+  const titles = imp9.getByLabel(/holds column titles/);
+  if (!(await titles.isChecked())) await titles.check();
+  await imp9.getByRole("tab", { name: "Placement" }).click();
+  await imp9.getByLabel(/In place of the table/).check();
+  await imp9.getByRole("button", { name: "Import", exact: true }).click();
+  await imp9.waitFor({ state: "detached", timeout: 60000 });
+  await page.waitForFunction(() => document.querySelectorAll(".data-table tbody tr").length >= 2001,
+    null, { timeout: 60000 });
+  await page.waitForTimeout(1500);
+  await page.locator(".analysis-select").first().selectOption("anova");
+  // Type into the grid while the ANOVA computes: every keystroke lands at
+  // once (the page's main thread is free).
+  const g1 = page.locator('.data-table input[aria-label="G1, row 1"]');
+  await page.waitForTimeout(300);
+  await g1.click();
+  const t0 = Date.now();
+  await page.keyboard.press("Control+a");
+  await page.keyboard.type("1000000.5");
+  const typedMs = Date.now() - t0;
+  const typed = await g1.inputValue();
+  expect("the grid takes typing while the ANOVA computes (9 keys in < 1.5 s)",
+    typed === "1000000.5" && typedMs < 1500, `${typedMs} ms, "${typed}"`);
+  await page.keyboard.press("Enter");
+  const busy = page.locator(".pane-results .analysis-busy");
+  const shown = await busy.waitFor({ timeout: 8000 }).then(() => true, () => false);
+  if (shown) {
+    const line = await busy.innerText();
+    expect("the busy line says Computing… with seconds and Cancel",
+      /Computing…|Waiting for the analysis engine/.test(line) && /\d+\.\d s/.test(line)
+      && await busy.getByRole("button", { name: "Cancel" }).count() === 1, line.replace(/\s+/g, " "));
+    const restarts = await page.evaluate(() => globalThis.__opendoseEngine.stats.restarts);
+    await busy.getByRole("button", { name: "Cancel" }).click();
+    const cancelled = await page.locator(".pane-results .analysis-busy.cancelled")
+      .waitFor({ timeout: 5000 }).then(() => true, () => false);
+    expect("Cancel stops the computation and says the results are out of date", cancelled
+      && /cancelled/i.test(await page.locator(".pane-results .analysis-busy").innerText()));
+    expect("the running job's worker was replaced",
+      await page.evaluate(() => globalThis.__opendoseEngine.stats.restarts) === restarts + 1);
+  } else {
+    console.log("note: the ANOVA finished in under a second; nothing to cancel");
+  }
+  // the engine works after the cancel: column statistics on the same table
+  await page.locator(".analysis-select").first().selectOption("column_statistics");
+  const back = await page.waitForSelector('.pane-results[data-live="true"] .stat-cols', { timeout: 120000 })
+    .then(() => true, () => false);
+  expect("after a cancel the engine computes again (column statistics)", back);
+}
 
 await page.screenshot({
   path: join(here, "app.png"),

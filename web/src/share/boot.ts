@@ -7,6 +7,8 @@ import { readFragment, sharePayload } from "./link.ts";
 
 export interface ShareBoot {
   project: Project | null;
+  /** The sheet the sender had on screen, if the link says. */
+  selected?: string | null;
   /** Why a share link in the address could not be opened ("" = fine). */
   error: string;
 }
@@ -23,7 +25,12 @@ export function hasShareLink(hash = locationHash()): boolean {
 export function readShareBoot(prefs: ProjectPrefs, ids: IdFactory, hash = locationHash()): ShareBoot {
   if (!hasShareLink(hash)) return { project: null, error: "" };
   try {
-    return { project: projectFromJson(readFragment(hash), { prefs, ids }), error: "" };
+    const raw = readFragment(hash);
+    const sel = (raw as { selected?: unknown } | null)?.selected;
+    return {
+      project: projectFromJson(raw, { prefs, ids }), error: "",
+      selected: typeof sel === "string" ? sel : null,
+    };
   } catch (e) {
     return { project: null, error: e instanceof Error ? e.message : String(e) };
   }

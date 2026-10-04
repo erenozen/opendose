@@ -12,7 +12,7 @@
 // browser's preferences, so a link opens in any build that opens files.
 // Nothing else goes in: no autosave, no preferences, no export settings.
 import { deflateSync, inflateSync, strFromU8, strToU8 } from "fflate";
-import { serializeProject } from "../project/persist.ts";
+import { serializeProject, type SerializeOptions } from "../project/persist.ts";
 import { familyChildren, findSheet } from "../project/ops.ts";
 import type { Project, Sheet } from "../project/types.ts";
 
@@ -41,8 +41,9 @@ export function fromBase64Url(text: string): Uint8Array {
 
 /** The project JSON a link carries: the file format without preferences,
  *  written compactly. `results` adds cached results (see persist.ts). */
-export function shareJson(p: Project, results?: ReadonlyMap<string, unknown>): string {
-  const obj = JSON.parse(serializeProject(p, results)) as Record<string, unknown>;
+export function shareJson(p: Project, results?: ReadonlyMap<string, unknown>,
+  opts: SerializeOptions = {}): string {
+  const obj = JSON.parse(serializeProject(p, results, opts)) as Record<string, unknown>;
   delete obj.prefs;
   return JSON.stringify(obj);
 }
@@ -70,9 +71,9 @@ export type ShareOutcome =
  *  they fit (the receiver then sees numbers at once, before the engine
  *  has booted); a project too large with them is tried without them. */
 export function makeFragment(p: Project, results?: ReadonlyMap<string, unknown>,
-  limit = SHARE_LIMIT): ShareOutcome {
+  limit = SHARE_LIMIT, opts: SerializeOptions = {}): ShareOutcome {
   const attempt = (r?: ReadonlyMap<string, unknown>) =>
-    `#${SHARE_KEY}=${encodePayload(shareJson(p, r))}`;
+    `#${SHARE_KEY}=${encodePayload(shareJson(p, r, r ? opts : { selected: opts.selected }))}`;
   if (results?.size) {
     const full = attempt(results);
     if (full.length <= limit) return { ok: true, fragment: full, withResults: true, length: full.length };

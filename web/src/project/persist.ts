@@ -26,24 +26,50 @@ import {
 
 export const FILE_MARKER = "opendose_project";
 
+export interface SerializeOptions {
+  /** Sheet id -> fingerprint of the input each result was computed from
+   *  (written as `cachedKey`: a reopened project reuses a result while
+   *  its input is unchanged instead of recomputing it). */
+  keys?: ReadonlyMap<string, string>;
+  /** The sheet on screen, reopened next time. */
+  selected?: string | null;
+  /** Compact JSON (autosave) instead of indented (files). */
+  compact?: boolean;
+}
+
 /** JSON text of a project. `results` (sheet id -> last computed result)
  *  is written into each results sheet's `cached` field so a reopened file
  *  can show numbers before the engine has recomputed them. */
 export function serializeProject(p: Project,
-  results?: ReadonlyMap<string, unknown>): string {
+  results?: ReadonlyMap<string, unknown>, opts: SerializeOptions = {}): string {
   const sheets = p.sheets.map((s) => {
     if (s.kind !== "results" || s.frozen) return s;
     const r = results?.get(s.id);
-    return r === undefined ? s : { ...s, cached: r };
+    if (r === undefined) return s;
+    const key = opts.keys?.get(s.id);
+    const out = { ...s, cached: r };
+    if (key) out.cachedKey = key; else delete out.cachedKey;
+    return out;
   });
+  const selected = opts.selected && p.sheets.some((s) => s.id === opts.selected)
+    ? opts.selected : null;
   return JSON.stringify({
     [FILE_MARKER]: 2,
     version: 2,
     title: p.title,
     prefs: p.prefs,
     ...(p.groups?.length ? { groups: p.groups } : {}),
+    ...(selected ? { selected } : {}),
     sheets,
-  }, null, 2);
+  }, null, opts.compact ? undefined : 2);
+}
+
+/** The sheet that was on screen when the project was saved, if recorded. */
+export function savedSelection(text: string): string | null {
+  try {
+    const v = (JSON.parse(text) as { selected?: unknown }).selected;
+    return typeof v === "string" && v ? v : null;
+  } catch { return null; }
 }
 
 interface LoadContext { prefs: ProjectPrefs; ids: IdFactory }
@@ -178,6 +204,7 @@ function normalizeV2(r: Record<string, unknown>, ctx: LoadContext): Project {
           ...common, kind: "results", parentId: str(s.parentId),
           analysis: str(s.analysis), options: s.options ?? {},
           ...(s.cached !== undefined ? { cached: s.cached } : {}),
+          ...(s.cached !== undefined && str(s.cachedKey) ? { cachedKey: str(s.cachedKey) } : {}),
         });
         break;
       case "graph": {

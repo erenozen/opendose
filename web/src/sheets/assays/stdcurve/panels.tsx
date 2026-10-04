@@ -2,7 +2,7 @@
 // sheet (ICH M10 acceptance, back-calculated standards, LLOQ / ULOQ,
 // unknowns with flags, parallelism) and the methods text.
 import { useEffect, useState, type ReactNode } from "react";
-import { getEngine } from "../../../lib/engine";
+import { runEngine } from "../../../lib/engine";
 import type { DataTableModel } from "../../../project/types";
 import CopyableMethods from "../../common/CopyableMethods";
 import type { ControlsProps, ResultsProps } from "../../types";
@@ -295,8 +295,8 @@ function AcceptancePreview({ table, options }: { table: DataTableModel; options:
   useEffect(() => {
     let live = true;
     const timer = setTimeout(async () => {
-      const engine = await getEngine();
-      const r = runStdCurve((p) => engine.analyze(p), table, options);
+      const r = await runEngine((engine) => runStdCurve((p) => engine.analyze(p), table, options),
+        { priority: "user" }).catch((e) => ({ error: e instanceof Error ? e.message : String(e) }));
       if (live) setRun(r);
     }, 150);
     return () => { live = false; clearTimeout(timer); };

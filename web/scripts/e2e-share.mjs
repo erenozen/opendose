@@ -40,7 +40,7 @@ const ctx1 = await browser.newContext({ viewport: { width: 1500, height: 1000 },
 const page = await ctx1.newPage();
 watch(page, "main");
 await page.goto(exampleUrl, { waitUntil: "domcontentloaded" });
-await page.waitForSelector(".results-table", { timeout: 180000 });
+await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 180000 });
 await page.locator(".results-table tbody tr", { hasText: "LogIC50" }).first().waitFor({ timeout: 60000 });
 const original = await logIC50(page);
 console.log("example LogIC50 row:", original);

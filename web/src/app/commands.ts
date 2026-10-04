@@ -107,7 +107,8 @@ export function useCommands() {
 
     const save = () => {
       const p = store.project;
-      const blob = new Blob([serializeProject(p, results.snapshot())],
+      const blob = new Blob([serializeProject(p, results.snapshot(),
+        { keys: results.fingerprints(), selected: api.selectedId })],
         { type: "application/json" });
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);

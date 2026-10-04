@@ -2,7 +2,7 @@
 // chain it belongs to (derived tables) or the simulation that made it.
 import { useState } from "react";
 import { useProject } from "../../app/context";
-import { getEngine } from "../../lib/engine";
+import { runEngine } from "../../lib/engine";
 import { chainOf, unlinkDerived } from "../../project/derived";
 import { updateSheet } from "../../project/ops";
 import type { DataSheet, Sheet } from "../../project/types";
@@ -64,9 +64,9 @@ function SimulatedNote({ data }: { data: DataSheet }) {
   const again = async () => {
     setError(null);
     try {
-      const engine = await getEngine();
       const seed = randomSeed();
-      const table = simulateTable(engine, spec.kind, spec.form as SimForm, seed);
+      const table = await runEngine((engine) => simulateTable(engine, spec.kind, spec.form as SimForm, seed),
+        { priority: "user" });
       apply((p) => withSimulation(updateSheet<Sheet>(p, data.id,
         (s) => (s.kind === "data" && !s.frozen ? { ...s, table } : s)), data.id, spec.kind,
       spec.form as SimForm, seed, false));

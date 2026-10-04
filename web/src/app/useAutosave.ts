@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 import {
   deleteSlot, rotateOnBoot, writeSlot, type AutosaveRecord,
 } from "../project/autosave";
 import { newId } from "../project/ids";
-import { parseProjectFile, serializeProject } from "../project/persist";
+import { parseProjectFile, savedSelection, serializeProject } from "../project/persist";
 import type { Project } from "../project/types";
 import { useProject } from "./context";
 
@@ -14,7 +14,7 @@ const DELAY_MS = 800;
  * and offer the previous session back on startup.
  */
 export function useAutosave() {
-  const { store, history, replace, setStatus, readOnly } = useProject();
+  const { store, history, replace, setStatus, readOnly, results, selectedId } = useProject();
   const [offer, setOffer] = useState<AutosaveRecord | null>(null);
   // The last session has been looked for (whether or not one exists).
   const [checked, setChecked] = useState(readOnly);
@@ -33,6 +33,12 @@ export function useAutosave() {
     return () => { live = false; };
   }, [readOnly, sharedBoot]);
 
+  // Computed results go into the autosave too (with the fingerprint of
+  // their input), so a reload shows them at once and recomputes only what
+  // changed; and so does the sheet on screen, reopened next time.
+  const [resultsVersion, bumpResults] = useReducer((x: number) => x + 1, 0);
+  useEffect(() => results.subscribeAll(bumpResults), [results]);
+
   // Nothing is written until the session actually changes something, so
   // merely opening the app never overwrites the session on offer. A
   // shared project is never written (it is in the link already).
@@ -42,11 +48,12 @@ export function useAutosave() {
     const t = setTimeout(() => {
       void writeSlot("current", {
         savedAt: Date.now(), title: p.title, sheets: p.sheets.length,
-        json: serializeProject(p),
+        json: serializeProject(p, results.snapshot(),
+          { keys: results.fingerprints(), selected: selectedId, compact: true }),
       });
     }, DELAY_MS);
     return () => clearTimeout(t);
-  }, [history.present, readOnly]);
+  }, [history.present, readOnly, results, resultsVersion, selectedId]);
 
   /** Reopen the last session. `auto`: opened directly at startup (the
    *  default start mode), said in the status line. */
@@ -54,7 +61,7 @@ export function useAutosave() {
     if (!offer) return;
     try {
       const p = parseProjectFile(offer.json, { prefs: store.project.prefs, ids: newId });
-      replace(p);
+      replace(p, savedSelection(offer.json));
       if (opts.auto) setStatus(`Reopened your last session, “${offer.title}”.`);
     } catch (e) {
       setStatus(`Could not restore: ${e instanceof Error ? e.message : e}`);

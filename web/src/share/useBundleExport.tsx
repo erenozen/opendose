@@ -8,7 +8,7 @@ import { waitForPlot } from "../export/figure";
 import { graphPngBlob, graphSvg } from "../export/graph";
 import { DEFAULT_EXPORT } from "../export/settings";
 import LiveGraph from "../layout/LiveGraph";
-import { getEngine, getRuntimeVersions } from "../lib/engine";
+import { getRuntimeVersions, runEngine } from "../lib/engine";
 import { exportPzfx, pzfxSelection } from "./pzfx";
 import { findSheet } from "../project/ops";
 import { serializeProject } from "../project/persist";
@@ -58,7 +58,8 @@ export function useBundleExport() {
     const v = getRuntimeVersions();
     const input: BundleInput = {
       title: p.title,
-      projectJson: serializeProject(p, api.results.snapshot()),
+      projectJson: serializeProject(p, api.results.snapshot(),
+        { keys: api.results.fingerprints(), selected: api.selectedId }),
       tables: p.sheets.filter((s): s is DataSheet => s.kind === "data")
         .map((s) => ({ name: s.name, table: s.table })),
       results: [], graphs: [], methods: [],
@@ -74,7 +75,7 @@ export function useBundleExport() {
     try {
       const sel = pzfxSelection(p);
       if (sel.tables.length) {
-        const px = exportPzfx(await getEngine(), sel);
+        const px = await runEngine((engine) => exportPzfx(engine, sel), { priority: "user" });
         if ("xml" in px) input.pzfx = px.xml;
       }
     } catch { /* the bundle goes ahead without it */ }

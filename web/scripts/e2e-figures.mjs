@@ -61,7 +61,7 @@ const plot = () => page.evaluate(() => {
 });
 
 await page.goto(url, { waitUntil: "domcontentloaded" });
-await page.waitForSelector(".results-table", { timeout: 180000 });
+await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 180000 });
 
 // --- a column table: three groups, three experiments (subcolumns) each,
 // six cells per experiment; experiment 3 runs high in every group ---

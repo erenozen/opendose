@@ -69,6 +69,8 @@ function Diagnostics({ diag }: { diag: any }) {
 
 export default function ResultsPanel({ result, xUnit = "M" }: Props) {
   if (!result) return null;
+  // The automatic fit was held back; the note above the results says why.
+  if ((result as { notFitted?: boolean }).notFitted) return null;
   if (result.error) {
     return <div className="results-error">Analysis failed: {result.error}</div>;
   }

@@ -30,7 +30,11 @@ export function requestWizard(id: string): void { pending.add(id); }
 /** True once for a requested sheet. */
 export function takeWizardRequest(id: string): boolean {
   const had = pending.has(id);
-  pending.delete(id);
+  // Read from a state initializer, which React may run more than once or
+  // throw away (StrictMode, a lazy panel suspending while results arrive):
+  // the request stays readable for a moment instead of vanishing on the
+  // first read.
+  if (had) setTimeout(() => pending.delete(id), 3000);
   return had;
 }
 

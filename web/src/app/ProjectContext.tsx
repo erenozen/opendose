@@ -2,7 +2,9 @@ import {
   useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore,
   type ReactNode,
 } from "react";
-import { getEngine } from "../lib/engine";
+import {
+  engineState, startEngine, subscribeEngine, type EngineState,
+} from "../lib/engine";
 import { newId } from "../project/ids";
 import { syncInfoLinks } from "../project/infoLinks";
 import { familyChildren, familyRootId, findSheet } from "../project/ops";
@@ -17,6 +19,7 @@ import { reportPrefsOf } from "../report/prefs";
 import { clearShareLink, readShareBoot } from "../share/boot";
 import { ResultsCache } from "./analysis";
 import { sampleProject } from "./factory";
+import { primeSampleResults } from "./sampleResults";
 import { Ctx, type ProjectApi } from "./context";
 
 function firstSheetId(p: Project): string | null {
@@ -29,6 +32,9 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   const [shareBoot] = useState(() => readShareBoot(projectPrefs(loadPrefs()), newId));
   const [store] = useState(() => new ProjectStore(
     shareBoot.project ?? sampleProject(projectPrefs(loadPrefs()), newId)));
+  // The example's results as computed when this build was made: shown at
+  // first paint, replaced by the live engine's as soon as it is up.
+  const [isSample] = useState(() => !shareBoot.project);
   const [readOnly, setReadOnly] = useState(!!shareBoot.project);
   const readOnlyRef = useRef(readOnly);
   const [status, setStatus] = useState("Starting Python runtime…");
@@ -39,21 +45,24 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     // A link may carry cached results: show them before the engine runs.
     if (shareBoot.project) {
       cache.prime(shareBoot.project.sheets.filter((s): s is ResultsSheet => s.kind === "results"));
+    } else if (isSample) {
+      primeSampleResults(store.project, cache);
     }
     return cache;
   });
 
   const [selectedId, setSelectedId] = useState<string | null>(
-    () => firstSheetId(store.project));
+    () => (shareBoot.selected && findSheet(store.project, shareBoot.selected)
+      ? shareBoot.selected : firstSheetId(store.project)));
   const switchedRef = useRef(false);
   // Per family (data sheet id): which results / graph the workbench shows.
   const [activeRes, setActiveRes] = useState<Record<string, string>>({});
   const [activeGr, setActiveGr] = useState<Record<string, string>>({});
 
-  const select = useCallback((id: string | null) => {
-    const p = store.project;
+  /** Show sheet `id` of project `p`: select it and, for a results sheet or
+   *  a graph, make it the one its family's workbench shows. */
+  const focus = useCallback((p: Project, id: string | null) => {
     const s = findSheet(p, id);
-    if (id !== selectedId) switchedRef.current = true;
     setSelectedId(s ? s.id : null);
     if (!s) return;
     const root = familyRootId(p, s.id);
@@ -70,7 +79,17 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         setActiveRes((m) => ({ ...m, [root]: rid }));
       }
     }
-  }, [store, selectedId]);
+  }, []);
+
+  const select = useCallback((id: string | null) => {
+    if (id !== selectedId) switchedRef.current = true;
+    focus(store.project, id);
+  }, [store, selectedId, focus]);
+
+  // A share link's saved selection: its results / graph tab too.
+  useEffect(() => {
+    if (shareBoot.selected) focus(store.project, shareBoot.selected);
+  }, [shareBoot, store, focus]);
 
   // Selection must always point at an existing sheet (undo can remove it).
   useEffect(() => {
@@ -118,8 +137,8 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     switchedRef.current = true;
     setActiveRes({});
     setActiveGr({});
-    setSelectedId(sel !== undefined && findSheet(p, sel) ? sel : firstSheetId(p));
-  }, [store, results]);
+    focus(p, sel !== undefined && findSheet(p, sel) ? sel : firstSheetId(p));
+  }, [store, results, focus]);
 
   // ---- prefs: local per browser, project-level copy travels with files
   const setPrefs = useCallback((next: Prefs) => {
@@ -143,36 +162,39 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     window.dispatchEvent(new Event("opendose-theme"));
   }, [prefs.theme]);
 
-  // ---- engine
+  // ---- engine (a worker started by boot.ts before React rendered)
   const [shareError] = useState(shareBoot.error);
-  const [engineReady, setEngineReady] = useState(false);
-  const [engineError, setEngineError] = useState<string | null>(null);
+  const engine: EngineState = useSyncExternalStore(subscribeEngine, engineState);
+  const [engineReady, setEngineReady] = useState(engine.phase === "ready");
+  const engineError = engine.phase === "failed" ? engine.error : null;
   const bootEngine = useCallback(() => {
-    setEngineError(null);
-    setStatus("Starting Python runtime…");
-    getEngine(setStatus)
+    startEngine()
       .then(() => {
         setEngineReady(true);
         setStatus(shareError ? `Could not open the share link: ${shareError}` : "");
       })
-      .catch((err) => {
-        // getEngine resets its cached promise on failure, so Retry can
-        // simply call this again.
-        setEngineError(err instanceof Error ? err.message : String(err));
-        setStatus("");
-      });
+      .catch(() => { setStatus(""); });
   }, [shareError]);
   useEffect(() => { bootEngine(); }, [bootEngine]);
+  // Loading messages while the engine boots.
+  const bootMessage = engine.progress?.message;
+  useEffect(() => {
+    if (!engineReady && bootMessage) setStatus(bootMessage);
+  }, [engineReady, bootMessage]);
+  // For the e2e and performance scripts.
+  useEffect(() => {
+    (globalThis as { __opendose?: unknown }).__opendose = { store, results };
+  }, [store, results]);
 
   const api = useMemo<ProjectApi>(() => ({
     store, history, project,
     apply, undo: store.undo, redo: store.redo, replace,
     selectedId, select, activeResults, activeGraph, switchedRef,
     prefs, setPrefs,
-    engineReady, engineError, status, setStatus, bootEngine,
+    engineReady, engineError, status, setStatus, bootEngine, engine,
     results, readOnly,
   }), [store, history, project, apply, replace, selectedId, select, activeResults,
-    activeGraph, prefs, setPrefs, engineReady, engineError, status, bootEngine,
+    activeGraph, prefs, setPrefs, engineReady, engineError, status, bootEngine, engine,
     results, readOnly]);
 
   return <Ctx.Provider value={api}>{children}</Ctx.Provider>;

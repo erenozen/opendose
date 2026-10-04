@@ -11,6 +11,7 @@ import { UiProvider } from "./app/UiProvider";
 import { useAutosave } from "./app/useAutosave";
 import { useFileOpen } from "./app/useFileOpen";
 import { useDerivedSync } from "./app/useDerivedSync";
+import { useBackgroundRefresh } from "./app/useBackgroundRefresh";
 import { usePrintSetup } from "./app/usePrint";
 import { useShortcuts } from "./app/useShortcuts";
 import FamilyWorkspace from "./components/FamilyWorkspace";
@@ -53,6 +54,7 @@ function Shell() {
   const autosave = useAutosave();
   useShortcuts();
   useDerivedSync();
+  useBackgroundRefresh();
   usePrintSetup();
 
   // Default start mode: once the autosave has been looked at, a last

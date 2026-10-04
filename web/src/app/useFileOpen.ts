@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
-import { getEngine } from "../lib/engine";
+import { analyzeAsync } from "../lib/engine";
 import { newId } from "../project/ids";
-import { parseProjectFile } from "../project/persist";
+import { parseProjectFile, savedSelection } from "../project/persist";
 import { useProject } from "./context";
 import { prismTableToFamily, type PrismTable } from "./factory";
 
@@ -30,7 +30,6 @@ export function useFileOpen() {
   }, [apply, select]);
 
   const openPrism = useCallback(async (file: File) => {
-    const engine = await getEngine();
     // Sent as bytes for both formats: a .prism file is a zip archive, and
     // reading one as text would corrupt it. The engine tells them apart.
     const bytes = new Uint8Array(await file.arrayBuffer());
@@ -38,11 +37,11 @@ export function useFileOpen() {
     for (let i = 0; i < bytes.length; i += 0x8000) {
       binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
     }
-    const res = engine.analyze({
+    const res = await analyzeAsync({
       analysis: "pzfx_import",
       data: { pzfx_b64: btoa(binary) },
       options: {},
-    }) as { error?: string; tables?: PrismTable[] };
+    }, { priority: "user" }) as { error?: string; tables?: PrismTable[] };
     if (res.error || !res.tables?.length) {
       throw new Error(res.error ?? "no tables found");
     }
@@ -56,9 +55,9 @@ export function useFileOpen() {
         await openPrism(file);
         return;
       }
-      const project = parseProjectFile(await file.text(),
-        { prefs: store.project.prefs, ids: newId });
-      replace(project);
+      const text = await file.text();
+      const project = parseProjectFile(text, { prefs: store.project.prefs, ids: newId });
+      replace(project, savedSelection(text));
       setStatus("");
     } catch (e) {
       setStatus(`Could not load file: ${e instanceof Error ? e.message : e}`);

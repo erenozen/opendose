@@ -257,7 +257,7 @@ export function duplicateSheet(p: Project, id: string, ids: IdFactory): Project 
   copy.name = uniqueName(p, `${s.name} copy`);
   copy.frozen = false;
   if (copy.kind === "graph") delete copy.snapshot;
-  if (copy.kind === "results") delete copy.cached;
+  if (copy.kind === "results") { delete copy.cached; delete copy.cachedKey; }
   if (copy.kind === "data") delete copy.derived; // a copy is plain data
   return addSheets(p, [copy], lastFamilyMemberId(p, s));
 }
@@ -296,7 +296,7 @@ export function duplicateFamily(p: Project, id: string,
     k.parentId = dataCopy.id;
     k.name = rename(c.name);
     k.frozen = false;
-    if (k.kind === "results") delete k.cached;
+    if (k.kind === "results") { delete k.cached; delete k.cachedKey; }
     if (k.kind === "graph") {
       delete k.snapshot;
       k.resultsId = k.resultsId ? idMap.get(k.resultsId) ?? null : null;

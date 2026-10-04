@@ -2,7 +2,7 @@
 // tabulated summary and methods text. The graph is MonteCarloHistogram.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useProject } from "../../app/context";
-import { getEngine } from "../../lib/engine";
+import { analyzeAsync, runEngine } from "../../lib/engine";
 import { ANALYSIS_NONLIN } from "../../project/builtin";
 import { findSheet, familyChildren } from "../../project/ops";
 import type { DataSheet, DataTableModel, ResultsSheet } from "../../project/types";
@@ -62,8 +62,7 @@ export function MonteCarloControls({ sheet, table, options: o, onChange, readOnl
     let live = true;
     const timer = setTimeout(async () => {
       try {
-        const engine = await getEngine();
-        const res = probe(engine, sim.kind, sim.form, template, 12345);
+        const res = await runEngine((engine) => probe(engine, sim.kind, sim.form, template, 12345));
         if (!live) return;
         const found = numericPaths(res);
         setPaths(found);
@@ -96,7 +95,7 @@ export function MonteCarloControls({ sheet, table, options: o, onChange, readOnl
     const label = MC_ANALYSES[sim.kind].find((a) => a.id === o.analysis)?.label ?? o.analysis;
     setProgress({ done: 0, total: n });
     try {
-      const engine = await getEngine();
+      const engine = { analyze: (p: unknown) => analyzeAsync(p, { priority: "user" }) };
       const output = await runMonteCarlo(engine, {
         kind: sim.kind, form: sim.form, template, tabulate: o.tabulate, hit: o.hit,
         n, seed, analysisLabel: label,

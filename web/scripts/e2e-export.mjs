@@ -71,7 +71,7 @@ function parsePng(buf) {
 }
 
 await page.goto(url, { waitUntil: "domcontentloaded" });
-await page.waitForSelector(".results-table", { timeout: 180000 });
+await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 180000 });
 await page.waitForSelector(".plot-card .plot.js-plotly-plot", { timeout: 30000 });
 const panel = page.locator(".plot-card .export-panel");
 

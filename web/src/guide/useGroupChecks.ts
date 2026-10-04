@@ -4,7 +4,7 @@
 // object, and never blocks: until it returns, normality is unknown.
 import { useEffect, useMemo, useState } from "react";
 import { useProject } from "../app/context";
-import { getEngine } from "../lib/engine";
+import { analyzeAsync } from "../lib/engine";
 import { numericData } from "../project/table";
 import type { DataTableModel } from "../project/types";
 import type { GroupCheck } from "./recommend";
@@ -17,11 +17,10 @@ const COLUMN_LIKE = new Set(["column", "xy", "nested"]);
 export async function normalityPs(table: DataTableModel): Promise<(number | null)[]> {
   const hit = cache.get(table);
   if (hit) return hit;
-  const engine = await getEngine();
   let ps: (number | null)[] = table.datasets.map(() => null);
   try {
-    const r = engine.analyze({ analysis: "column_statistics", data: numericData(table),
-      options: { normality_tests: ["shapiro_wilk"] } }) as {
+    const r = await analyzeAsync({ analysis: "column_statistics", data: numericData(table),
+      options: { normality_tests: ["shapiro_wilk"] } }, { priority: "background" }) as {
       datasets?: { normality?: { shapiro_wilk?: { p?: number | null } } }[] };
     ps = (r.datasets ?? []).map((d) => {
       const p = d.normality?.shapiro_wilk?.p;
