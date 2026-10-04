@@ -12,6 +12,8 @@ import type {
   GraphSheet, Prefs, Project, ResultsSheet,
 } from "../project/types";
 import { setDisplayDigits } from "../types";
+import { setReportPrefs } from "../report/pformat";
+import { reportPrefsOf } from "../report/prefs";
 import { clearShareLink, readShareBoot } from "../share/boot";
 import { ResultsCache } from "./analysis";
 import { sampleProject } from "./factory";
@@ -128,8 +130,9 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       ? p : { ...p, prefs: pp }), "prefs");
   }, [store]);
 
-  // Results precision follows the open project.
+  // Results precision and the P-value style follow the open project.
   setDisplayDigits(project.prefs.digits);
+  setReportPrefs(reportPrefsOf(project.prefs));
 
   // Theme: "auto" follows the OS; light/dark force it. The data-theme
   // attribute drives the CSS tokens, and the event tells the Plotly

@@ -25,6 +25,7 @@ import {
 import { runColumnStats, runMultiT, runRowMeans, runThreeWay, runTwoWay } from "./run";
 import { runReplicateTwoWay } from "./replicateMeans";
 import { rowMeansTable } from "./tables";
+import { estimationAnalysis, estimationGraph } from "../../report/estimation";
 import { groupedSample } from "./sample";
 
 // Panels load on first use (sheets/lazy.ts).
@@ -259,6 +260,6 @@ export const groupedTable: TableTypeDef = {
     + "column is a level of the second factor. Replicates go side by side "
     + "in subcolumns.",
   analyses: [twoWayAnalysis, multiTAnalysis, threeWayAnalysis, rowMeansAnalysis,
-    columnStatsAnalysis, repTwoWayAnalysis],
-  graphs: groupedGraphs,
+    columnStatsAnalysis, repTwoWayAnalysis, estimationAnalysis],
+  graphs: [...groupedGraphs, estimationGraph],
 };

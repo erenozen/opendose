@@ -13,20 +13,20 @@ import type {
   Coefficient, CorrelationResult, DescriptiveResult, LogisticResult, PcaResult,
   RearrangeResult, RegressionResult,
 } from "./run";
-import { pStars } from "../../graph/significance";
+import { tableP, tableStars } from "../../report/pformat";
 
 /* ------------------------------------------------------------ formatting */
 
 const f = (v: number | null | undefined, sig?: number) => formatSig(v ?? null, sig);
 
+/** P and asterisks in the project's P-value style (src/report/pformat.ts). */
 function fmtP(p: number | null | undefined): string {
-  if (typeof p !== "number") return "n/a";
-  return p < 0.0001 ? "< 0.0001" : formatSig(p, 4);
+  return tableP(p);
 }
 
 function summaryStars(p: number | null | undefined): string {
   // P ≤ 0.05 *, ≤ 0.01 **, ≤ 0.001 ***, ≤ 0.0001 ****, as on graph brackets.
-  return typeof p === "number" && Number.isFinite(p) ? pStars(p) : "";
+  return tableStars(p);
 }
 
 const pct = (v: number | null | undefined) => (typeof v === "number" ? `${formatSig(v, 3)}%` : "n/a");

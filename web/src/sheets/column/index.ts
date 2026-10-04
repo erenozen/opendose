@@ -15,6 +15,7 @@ import {
   ANALYSIS_REPLICATE_MEANS, defaultRepMeans, normalizeRepMeans, runReplicateMeans,
   type RepMeansOptions,
 } from "./superplotStats";
+import { estimationAnalysis, estimationGraph } from "../../report/estimation";
 
 export const columnAnalysis = defineAnalysis<ColumnOptionsState, Record<string, unknown>>({
   id: ANALYSIS_COLUMN,
@@ -93,6 +94,6 @@ export const columnTable: TableTypeDef = {
   sampleTable: columnSample,
   sampleName: "Group comparison",
   Editor: DataGrid,
-  analyses: [columnAnalysis, replicateMeansAnalysis],
-  graphs: columnGraphs,
+  analyses: [columnAnalysis, replicateMeansAnalysis, estimationAnalysis],
+  graphs: [...columnGraphs, estimationGraph],
 };

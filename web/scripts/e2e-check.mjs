@@ -17,9 +17,11 @@
 // sheet groups and floating notes surviving save / reopen / page reload,
 // go to sheet), a model from the engine's equation library and a
 // user-defined equation, Welch ANOVA with Games-Howell, the chi-square
-// test for trend and Deming regression, and the guidance: the "Which test?"
+// test for trend and Deming regression, the guidance (the "Which test?"
 // wizard, results chips, an ambiguous-fit banner, the start screen with
-// paste-and-suggest, and the guided tour (shown once).
+// paste-and-suggest, the guided tour shown once), and the reporting package
+// (effect sizes, results sentence and legend, estimation plots, journal
+// checklists, history, P-value style).
 import { chromium } from "playwright";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -1264,6 +1266,77 @@ expect("ambiguous fit banner with concrete fixes for a flat dataset",
   await p2.keyboard.press("Escape");
   await ctx2.close();
 }
+
+// --- reporting (src/report): effect size, results sentence, legend,
+// estimation plot, journal checklists, history, P-value style ---
+// Native engine on the column example (engine/opendose, seed 12345):
+// unpaired t test Control vs. Treated A: Cohen's d = -3.231, 95% CI
+// -4.996 to -1.403 (noncentral t); estimation (shared control, 5000 BCa
+// resamples): Treated A - Control 5.2 [3.533, 6.917], Treated B -
+// Control 11.53 [9.967, 13.13].
+await newExampleTable("column");
+await page.waitForSelector(".stat-cols", { timeout: 30000 });
+await page.locator(".analysis-select").selectOption("ttest");
+await page.waitForSelector(".effect-card", { timeout: 30000 });
+const dRow = (await page.locator(".effect-card .es-preferred").first().innerText()).replace(/\s+/g, " ");
+expect("effect size: Cohen's d -3.231, 95% CI -4.996 to -1.403 (native)",
+  dRow.includes("Cohen's d (pooled SD)") && dRow.includes("-3.231") && dRow.includes("-4.996 to -1.403"), dRow);
+const sentence = await page.locator(".report-sentence p").innerText();
+expect("results sentence names the test, df and exact P", sentence.includes("unpaired t test, two-tailed")
+  && sentence.includes("t = 5.596, df = 10") && sentence.includes("P = 0.0002"), sentence);
+const legendText = await page.locator(".report-legend p").innerText();
+expect("figure legend states n and the test", legendText.includes("n = 6 per group")
+  && legendText.includes("unpaired t test"), legendText);
+await page.getByRole("button", { name: "Journal checklists" }).click();
+const ck = page.getByRole("dialog", { name: "Journal checklists" });
+await ck.waitFor({ timeout: 15000 });
+const met = await ck.locator(".checklist li.met").count();
+const unmet = await ck.locator(".checklist li.unmet").count();
+const unmetReason = await ck.locator(".checklist li.unmet .ck-reason").first().innerText();
+expect("checklist shows ticked and unticked items with reasons", met >= 1 && unmet >= 1 && unmetReason.length > 10,
+  `${met} met, ${unmet} not met; "${unmetReason}"`);
+await ck.getByRole("tab", { name: /ARRIVE/ }).click();
+expect("ARRIVE Essential 10 items listed", (await ck.locator(".checklist li").count()) === 5);
+await ck.getByRole("button", { name: "Close" }).click();
+await page.getByRole("button", { name: "History" }).click();
+const hist = page.getByRole("dialog", { name: "History" });
+await hist.waitFor({ timeout: 15000 });
+const histText = await hist.innerText();
+expect("history lists options with defaults and the table fingerprint",
+  histText.includes("ttestKind") && histText.includes("default") && /fnv1a64:[0-9a-f]{16}/.test(histText));
+await hist.getByRole("button", { name: "Close" }).click();
+// estimation plot from the Analyze menu (Cumming: shared control)
+await page.getByRole("button", { name: "Analyze", exact: true }).click();
+await page.getByRole("menuitem", { name: /Estimation plot/ }).click();
+await page.waitForSelector(".estimation-results", { timeout: 60000 });
+const estRows = (await page.locator(".estimation-results tbody tr").allInnerTexts()).map((t) => t.replace(/\s+/g, " "));
+expect("estimation: Treated A - Control 95% BCa CI 3.533 to 6.917 (native, seed 12345)",
+  estRows.some((t) => t.includes("Treated A minus Control") && t.includes("3.533 to 6.917")), estRows.join(" | "));
+expect("estimation: Treated B - Control 95% BCa CI 9.967 to 13.13 (native)",
+  estRows.some((t) => t.includes("Treated B minus Control") && t.includes("9.967 to 13.13")));
+await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+  .filter((t) => t.fill === "toself").length === 2, null, { timeout: 30000 });
+expect("Cumming plot draws two bootstrap half-violins", true);
+await page.getByLabel("Design").selectOption("two_group");
+await page.waitForFunction(() => document.querySelector(".plot-card .plot")?.layout?.yaxis2?.overlaying === "y",
+  null, { timeout: 30000 });
+expect("Gardner-Altman plot: difference axis overlays the data axis", true);
+const gaRows = (await page.locator(".estimation-results tbody tr").allInnerTexts()).join(" ");
+expect("Gardner-Altman CI matches the native run", gaRows.includes("3.533 to 6.917"), gaRows.replace(/\s+/g, " "));
+// P-value style: APA everywhere (tables and sentences), then back
+await page.getByRole("button", { name: "Preferences" }).click();
+await page.getByLabel("P-value style (tables, sentences, legends)").selectOption("apa");
+await page.keyboard.press("Escape");
+await page.getByRole("tab", { name: "Column stats" }).click();
+await page.waitForSelector(".report-sentence p", { timeout: 15000 });
+const apa = await page.locator(".report-sentence p").innerText();
+const pRow = await page.locator(".results-table tr", { hasText: "P value (two-tailed)" }).first().innerText();
+expect("APA style: sentence and results table follow the preference",
+  apa.includes("t(10) = 5.60, p < .001") && apa.includes("d = 3.23, 95% CI [1.40, 5.00]") && pRow.includes("< .001"),
+  `${apa.slice(0, 120)} | ${pRow.replace(/\s+/g, " ")}`);
+await page.getByRole("button", { name: "Preferences" }).click();
+await page.getByLabel("P-value style (tables, sentences, legends)").selectOption("graphpad");
+await page.keyboard.press("Escape");
 
 await page.screenshot({
   path: join(here, "app.png"),

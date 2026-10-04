@@ -1,4 +1,5 @@
 import { formatSig } from "../../types";
+import { tableP } from "../../report/pformat";
 import type { ControlsProps, ResultsProps } from "../types";
 import {
   DIFF_CI_LABELS, OR_CI_LABELS, PROP_CI_LABELS, RR_CI_LABELS, readCounts, strataOf,
@@ -9,9 +10,9 @@ import {
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+/** P in the project's P-value style (src/report/pformat.ts). */
 function fmtP(p: any): string {
-  if (typeof p !== "number") return "n/a";
-  return p < 0.0001 ? "< 0.0001" : formatSig(p, 4);
+  return tableP(p);
 }
 
 function fmtCI(ci: any): string {

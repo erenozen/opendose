@@ -1,0 +1,3404 @@
+{
+ "ttest_unpaired": {
+  "options": {
+   "kind": "unpaired",
+   "welch": false,
+   "dataset_a": 0,
+   "dataset_b": 1
+  },
+  "result": {
+   "analysis": "ttest",
+   "test": "unpaired_t",
+   "mean_a": 23.966666666666665,
+   "mean_b": 29.166666666666668,
+   "sem_a": 0.6921785254622616,
+   "sem_b": 0.6200358412579424,
+   "n_a": 6,
+   "n_b": 6,
+   "difference": -5.200000000000003,
+   "se_difference": 0.9292768992908168,
+   "ci_difference": [
+    -7.270557963563208,
+    -3.129442036436798
+   ],
+   "t": 5.59574869876612,
+   "df": 10.0,
+   "p_two_tailed": 0.00022903682035512642,
+   "r_squared": 0.7579419459324782,
+   "f_test_variances": {
+    "F": 1.2462427745664733,
+    "dfn": 5,
+    "dfd": 5,
+    "p": 0.8150122535048064
+   },
+   "effect_size": {
+    "measure": "cohens_d",
+    "standardizer": "pooled",
+    "d": -3.2307070175501176,
+    "hedges_g": -2.9811207113506586,
+    "ci_d": [
+     -4.996334770223879,
+     -1.4034947744291542
+    ],
+    "ci_g": [
+     -4.6103459655870145,
+     -1.2950686390299602
+    ],
+    "ci_method": "noncentral t (exact)",
+    "ci_level": 0.95,
+    "hedges_j": 0.922745608053087,
+    "df_correction": 10,
+    "standardizer_sd": 1.6095548038717615,
+    "n_a": 6,
+    "n_b": 6,
+    "interpretation": {
+     "label": "large",
+     "scale": "d",
+     "thresholds": [
+      0.2,
+      0.5,
+      0.8
+     ],
+     "source": "Cohen (1988) sec. 2.2.3: d = 0.2 small, 0.5 medium, 0.8 large"
+    },
+    "cles_parametric": 0.011172406876540645
+   },
+   "names": [
+    "Control",
+    "Treated A"
+   ]
+  }
+ },
+ "ttest_welch": {
+  "options": {
+   "kind": "unpaired",
+   "welch": true,
+   "dataset_a": 0,
+   "dataset_b": 1
+  },
+  "result": {
+   "analysis": "ttest",
+   "test": "welch_t",
+   "mean_a": 23.966666666666665,
+   "mean_b": 29.166666666666668,
+   "sem_a": 0.6921785254622616,
+   "sem_b": 0.6200358412579424,
+   "n_a": 6,
+   "n_b": 6,
+   "difference": -5.200000000000003,
+   "se_difference": 0.9292768992908168,
+   "ci_difference": [
+    -7.273935764389284,
+    -3.126064235610722
+   ],
+   "t": 5.59574869876612,
+   "df": 9.88125219532547,
+   "p_two_tailed": 0.00023926978564840632,
+   "r_squared": 0.7601268440832145,
+   "f_test_variances": {
+    "F": 1.2462427745664733,
+    "dfn": 5,
+    "dfd": 5,
+    "p": 0.8150122535048064
+   },
+   "effect_size": {
+    "measure": "cohens_d_av",
+    "standardizer": "average",
+    "d": -3.2307070175501176,
+    "hedges_g": -2.9811207113506586,
+    "ci_d": [
+     -5.0025202424687025,
+     -1.39712103506783
+    ],
+    "ci_g": [
+     -4.61605358293466,
+     -1.2891872990274231
+    ],
+    "ci_method": "noncentral t on the Welch t and df, standardizer held fixed (approximate; Algina & Keselman 2003)",
+    "ci_level": 0.95,
+    "hedges_j": 0.922745608053087,
+    "df_correction": 10,
+    "standardizer_sd": 1.6095548038717615,
+    "n_a": 6,
+    "n_b": 6,
+    "interpretation": {
+     "label": "large",
+     "scale": "d",
+     "thresholds": [
+      0.2,
+      0.5,
+      0.8
+     ],
+     "source": "Cohen (1988) sec. 2.2.3: d = 0.2 small, 0.5 medium, 0.8 large"
+    },
+    "cles_parametric": 0.011172406876540645
+   },
+   "names": [
+    "Control",
+    "Treated A"
+   ]
+  }
+ },
+ "ttest_paired": {
+  "options": {
+   "kind": "paired",
+   "dataset_a": 0,
+   "dataset_b": 1
+  },
+  "result": {
+   "analysis": "ttest",
+   "test": "paired_t",
+   "n_pairs": 6,
+   "mean_difference": -5.2,
+   "se_difference": 0.557972520231358,
+   "ci_difference": [
+    -6.634314025290945,
+    -3.765685974709055
+   ],
+   "t": 9.319455370031251,
+   "df": 5,
+   "p_two_tailed": 0.0002394498803317658,
+   "r_squared": 0.9455647511364961,
+   "pairing_correlation": {
+    "r": 0.6433524624664456,
+    "p": 0.16811386752329155
+   },
+   "effect_size": {
+    "measure": "paired_d",
+    "n_pairs": 6,
+    "d_z": -3.804651722869526,
+    "hedges_g_z": -3.1987559232205407,
+    "ci_d_z": [
+     -6.213602983121108,
+     -1.3878768931425032
+    ],
+    "ci_g_z": [
+     -5.224078521386666,
+     -1.1668556693258065
+    ],
+    "ci_method_z": "noncentral t (exact)",
+    "d_av": -3.230707017550116,
+    "hedges_g_av": -2.981120711350657,
+    "ci_d_av": [
+     -5.276259753599558,
+     -1.1785109241981733
+    ],
+    "ci_g_av": [
+     -4.868645514581256,
+     -1.087465779346449
+    ],
+    "ci_method_av": "noncentral t of the paired t, standardizer held fixed (approximate; Algina & Keselman 2003)",
+    "ci_level": 0.95,
+    "correlation": 0.6433524624664457,
+    "cles_paired": 7.100192502726681e-05,
+    "interpretation_z": {
+     "label": "large",
+     "scale": "d",
+     "thresholds": [
+      0.2,
+      0.5,
+      0.8
+     ],
+     "source": "Cohen (1988) sec. 2.2.3: d = 0.2 small, 0.5 medium, 0.8 large"
+    },
+    "interpretation_av": {
+     "label": "large",
+     "scale": "d",
+     "thresholds": [
+      0.2,
+      0.5,
+      0.8
+     ],
+     "source": "Cohen (1988) sec. 2.2.3: d = 0.2 small, 0.5 medium, 0.8 large"
+    }
+   },
+   "names": [
+    "Control",
+    "Treated A"
+   ]
+  }
+ },
+ "ttest_ratio_paired": {
+  "options": {
+   "kind": "ratio_paired",
+   "dataset_a": 0,
+   "dataset_b": 1
+  },
+  "result": {
+   "analysis": "ttest",
+   "test": "ratio_paired_t",
+   "n_pairs": 6,
+   "geometric_mean_ratio": 0.8209145473650514,
+   "ci_ratio": [
+    0.776183438985224,
+    0.8682234897418317
+   ],
+   "mean_log10_ratio": -0.08570204816595646,
+   "se_log10_ratio": 0.00946617583035211,
+   "ci_log10_ratio": [
+    -0.1100356278083991,
+    -0.06136846852351382
+   ],
+   "t": 9.05350267118043,
+   "df": 5,
+   "p_two_tailed": 0.00027482956963782295,
+   "r_squared": 0.9425062077252772,
+   "geometric_mean_a": 23.916477778713116,
+   "geometric_mean_b": 29.133943180175766,
+   "effect_size": {
+    "measure": "paired_d",
+    "n_pairs": 6,
+    "d_z": -3.6960769882194286,
+    "hedges_g_z": -3.107471858115061,
+    "ci_d_z": [
+     -6.043004689957744,
+     -1.3392187025330888
+    ],
+    "ci_g_z": [
+     -5.080648231179696,
+     -1.125946359680069
+    ],
+    "ci_method_z": "noncentral t (exact)",
+    "d_av": -3.174113963113386,
+    "hedges_g_av": -2.9288997189228554,
+    "ci_d_av": [
+     -5.189606609031978,
+     -1.1500931384604878
+    ],
+    "ci_g_av": [
+     -4.788686706007532,
+     -1.061243392366406
+    ],
+    "ci_method_av": "noncentral t of the paired t, standardizer held fixed (approximate; Algina & Keselman 2003)",
+    "ci_level": 0.95,
+    "correlation": 0.6628348411248179,
+    "cles_paired": 0.00010947830003912561,
+    "interpretation_z": {
+     "label": "large",
+     "scale": "d",
+     "thresholds": [
+      0.2,
+      0.5,
+      0.8
+     ],
+     "source": "Cohen (1988) sec. 2.2.3: d = 0.2 small, 0.5 medium, 0.8 large"
+    },
+    "interpretation_av": {
+     "label": "large",
+     "scale": "d",
+     "thresholds": [
+      0.2,
+      0.5,
+      0.8
+     ],
+     "source": "Cohen (1988) sec. 2.2.3: d = 0.2 small, 0.5 medium, 0.8 large"
+    },
+    "scale": "log10"
+   },
+   "names": [
+    "Control",
+    "Treated A"
+   ]
+  }
+ },
+ "mann_whitney": {
+  "options": {
+   "kind": "mann_whitney",
+   "dataset_a": 0,
+   "dataset_b": 1
+  },
+  "result": {
+   "analysis": "ttest",
+   "test": "mann_whitney",
+   "U": 0.0,
+   "p_two_tailed": 0.0021645021645021645,
+   "median_a": 24.0,
+   "median_b": 28.9,
+   "hodges_lehmann_difference": -5.300000000000001,
+   "n_a": 6,
+   "n_b": 6,
+   "p_method": "exact",
+   "U_smaller": 0.0,
+   "sum_ranks_a": 21.0,
+   "sum_ranks_b": 57.0,
+   "mean_rank_a": 3.5,
+   "mean_rank_b": 9.5,
+   "ci_hodges_lehmann": [
+    -7.199999999999999,
+    -3.0
+   ],
+   "ci_actual_level": 0.9588744588744589,
+   "effect_size": {
+    "cliffs_delta": -1.0,
+    "ci_cliffs_delta": [
+     -1.0,
+     -0.7549745934496261
+    ],
+    "se_cliffs_delta": 0.0,
+    "rank_biserial": -1.0,
+    "cles": 0.0,
+    "ci_cles": [
+     0.0,
+     0.12251270327518693
+    ],
+    "p_a_greater": 0.0,
+    "p_a_less": 1.0,
+    "p_tie": 0.0,
+    "ci_level": 0.95,
+    "ci_method": "Cliff (1996) asymmetric interval, unbiased variance of Cliff (1993)",
+    "n_a": 6,
+    "n_b": 6,
+    "interpretation": {
+     "label": "large",
+     "scale": "cliffs_delta",
+     "thresholds": [
+      0.147,
+      0.33,
+      0.474
+     ],
+     "source": "Romano, Kromrey, Coraggio & Skowronek (2006): |delta| = 0.147 small, 0.33 medium, 0.474 large"
+    },
+    "interpretation_cles": {
+     "label": "large",
+     "scale": "cles",
+     "thresholds": [
+      0.06,
+      0.14,
+      0.21
+     ],
+     "source": "Vargha & Delaney (2000): A = 0.56 small, 0.64 medium, 0.71 large (|A - 0.5| = 0.06, 0.14, 0.21)"
+    }
+   },
+   "names": [
+    "Control",
+    "Treated A"
+   ]
+  }
+ },
+ "wilcoxon": {
+  "options": {
+   "kind": "wilcoxon",
+   "dataset_a": 0,
+   "dataset_b": 1
+  },
+  "result": {
+   "analysis": "ttest",
+   "test": "wilcoxon_matched_pairs",
+   "n_pairs": 6,
+   "W": -21.0,
+   "p_two_tailed": 0.03125,
+   "median_difference": -5.299999999999999,
+   "p_method": "exact",
+   "zero_method": "wilcox",
+   "sum_positive_ranks": 0.0,
+   "sum_negative_ranks": -21.0,
+   "n_zero_differences": 0,
+   "hodges_lehmann": -5.299999999999999,
+   "ci_median": [
+    -6.600000000000001,
+    -2.8000000000000007
+   ],
+   "ci_actual_level": 0.96875,
+   "effect_size": {
+    "rank_biserial": -1.0,
+    "ci_rank_biserial": null,
+    "n_ranked": 6,
+    "ci_method": "Fisher z, null SE of the signed-rank statistic",
+    "ci_level": 0.95,
+    "interpretation": {
+     "label": "large",
+     "scale": "r",
+     "thresholds": [
+      0.1,
+      0.3,
+      0.5
+     ],
+     "source": "Cohen (1988) sec. 3.2.1: r = 0.1 small, 0.3 medium, 0.5 large"
+    }
+   },
+   "names": [
+    "Control",
+    "Treated A"
+   ]
+  }
+ },
+ "ks": {
+  "options": {
+   "kind": "kolmogorov_smirnov",
+   "dataset_a": 0,
+   "dataset_b": 1
+  },
+  "result": {
+   "analysis": "ttest",
+   "test": "kolmogorov_smirnov",
+   "D": 1.0,
+   "p": 0.0021645021645021467,
+   "p_method": "exact",
+   "n_a": 6,
+   "n_b": 6,
+   "median_a": 24.0,
+   "median_b": 28.9,
+   "ties": false,
+   "names": [
+    "Control",
+    "Treated A"
+   ]
+  }
+ },
+ "anova_tukey": {
+  "options": {
+   "kind": "parametric",
+   "comparisons": "tukey",
+   "control_index": 0
+  },
+  "result": {
+   "analysis": "anova",
+   "kind": "parametric",
+   "table": {
+    "ss_between": 400.3377777777779,
+    "df_between": 2,
+    "ms_between": 200.16888888888894,
+    "ss_within": 35.42666666666664,
+    "df_within": 15,
+    "ms_within": 2.361777777777776,
+    "ss_total": 435.7644444444445,
+    "F": 84.75348136996621,
+    "p": 6.692505620552529e-09,
+    "r_squared": 0.9187022550409498
+   },
+   "group_summaries": [
+    {
+     "name": "Control",
+     "n": 6,
+     "mean": 23.966666666666665,
+     "sd": 1.6954841982945945
+    },
+    {
+     "name": "Treated A",
+     "n": 6,
+     "mean": 29.166666666666668,
+     "sd": 1.5187714333192686
+    },
+    {
+     "name": "Treated B",
+     "n": 6,
+     "mean": 35.5,
+     "sd": 1.3798550648528267
+    }
+   ],
+   "brown_forsythe": {
+    "F": 0.4999999999999983,
+    "p": 0.6162892225369895
+   },
+   "bartlett": {
+    "statistic": 0.19536773204711508,
+    "p": 0.9069355715874354
+   },
+   "effect_size": {
+    "eta_squared": 0.9187022550409498,
+    "ci_eta_squared": [
+     0.7768642601889603,
+     0.947181579776899
+    ],
+    "omega_squared": 0.9029686016409275,
+    "epsilon_squared": 0.9078625557130765,
+    "cohens_f": 3.361616305092263,
+    "ci_cohens_f": [
+     1.8658984438122819,
+     4.234712374862545
+    ],
+    "ci_level": 0.95,
+    "ci_method": "noncentral F, eta_p^2 = lambda / (lambda + df1 + df2 + 1) (Steiger 2004); covers the population value that eta^2, omega^2 and epsilon^2 estimate",
+    "interpretation": {
+     "label": "large",
+     "scale": "eta2",
+     "thresholds": [
+      0.01,
+      0.06,
+      0.14
+     ],
+     "source": "Cohen (1988) sec. 8.2.3 (eta^2 from f = 0.10, 0.25, 0.40): 0.01 small, 0.06 medium, 0.14 large"
+    }
+   },
+   "multiple_comparisons": {
+    "method": "tukey",
+    "df": 15,
+    "comparisons": [
+     {
+      "pair": "Control vs. Treated A",
+      "difference": -5.200000000000003,
+      "ci": [
+       -7.504673834074838,
+       -2.895326165925168
+      ],
+      "statistic": 8.288185314488425,
+      "p_adjusted": 8.778765392836174e-05,
+      "significant_05": true
+     },
+     {
+      "pair": "Control vs. Treated B",
+      "difference": -11.533333333333335,
+      "ci": [
+       -13.83800716740817,
+       -9.2286594992585
+      ],
+      "statistic": 18.382769992390987,
+      "p_adjusted": 4.140964682264325e-09,
+      "significant_05": true
+     },
+     {
+      "pair": "Treated A vs. Treated B",
+      "difference": -6.333333333333332,
+      "ci": [
+       -8.638007167408167,
+       -4.028659499258497
+      ],
+      "statistic": 10.094584677902562,
+      "p_adjusted": 9.643390671665308e-06,
+      "significant_05": true
+     }
+    ]
+   }
+  }
+ },
+ "anova_dunnett": {
+  "options": {
+   "kind": "parametric",
+   "comparisons": "dunnett",
+   "control_index": 0
+  },
+  "result": {
+   "analysis": "anova",
+   "kind": "parametric",
+   "table": {
+    "ss_between": 400.3377777777779,
+    "df_between": 2,
+    "ms_between": 200.16888888888894,
+    "ss_within": 35.42666666666664,
+    "df_within": 15,
+    "ms_within": 2.361777777777776,
+    "ss_total": 435.7644444444445,
+    "F": 84.75348136996621,
+    "p": 6.692505620552529e-09,
+    "r_squared": 0.9187022550409498
+   },
+   "group_summaries": [
+    {
+     "name": "Control",
+     "n": 6,
+     "mean": 23.966666666666665,
+     "sd": 1.6954841982945945
+    },
+    {
+     "name": "Treated A",
+     "n": 6,
+     "mean": 29.166666666666668,
+     "sd": 1.5187714333192686
+    },
+    {
+     "name": "Treated B",
+     "n": 6,
+     "mean": 35.5,
+     "sd": 1.3798550648528267
+    }
+   ],
+   "brown_forsythe": {
+    "F": 0.4999999999999983,
+    "p": 0.6162892225369895
+   },
+   "bartlett": {
+    "statistic": 0.19536773204711508,
+    "p": 0.9069355715874354
+   },
+   "effect_size": {
+    "eta_squared": 0.9187022550409498,
+    "ci_eta_squared": [
+     0.7768642601889603,
+     0.947181579776899
+    ],
+    "omega_squared": 0.9029686016409275,
+    "epsilon_squared": 0.9078625557130765,
+    "cohens_f": 3.361616305092263,
+    "ci_cohens_f": [
+     1.8658984438122819,
+     4.234712374862545
+    ],
+    "ci_level": 0.95,
+    "ci_method": "noncentral F, eta_p^2 = lambda / (lambda + df1 + df2 + 1) (Steiger 2004); covers the population value that eta^2, omega^2 and epsilon^2 estimate",
+    "interpretation": {
+     "label": "large",
+     "scale": "eta2",
+     "thresholds": [
+      0.01,
+      0.06,
+      0.14
+     ],
+     "source": "Cohen (1988) sec. 8.2.3 (eta^2 from f = 0.10, 0.25, 0.40): 0.01 small, 0.06 medium, 0.14 large"
+    }
+   },
+   "multiple_comparisons": {
+    "method": "dunnett",
+    "df": 15,
+    "comparisons": [
+     {
+      "pair": "Treated A vs. Control",
+      "difference": 5.200000000000003,
+      "ci": [
+       3.035764395438299,
+       7.364235604561706
+      ],
+      "statistic": 5.860632039605523,
+      "p_adjusted": 6.0593964323698646e-05,
+      "significant_05": true
+     },
+     {
+      "pair": "Treated B vs. Control",
+      "difference": 11.533333333333335,
+      "ci": [
+       9.369097728771631,
+       13.697568937895038
+      ],
+      "statistic": 12.998581318612246,
+      "p_adjusted": 2.8194183353581716e-09,
+      "significant_05": true
+     }
+    ]
+   }
+  }
+ },
+ "anova_lsd": {
+  "options": {
+   "kind": "parametric",
+   "comparisons": "fisher_lsd",
+   "control_index": 0
+  },
+  "result": {
+   "analysis": "anova",
+   "kind": "parametric",
+   "table": {
+    "ss_between": 400.3377777777779,
+    "df_between": 2,
+    "ms_between": 200.16888888888894,
+    "ss_within": 35.42666666666664,
+    "df_within": 15,
+    "ms_within": 2.361777777777776,
+    "ss_total": 435.7644444444445,
+    "F": 84.75348136996621,
+    "p": 6.692505620552529e-09,
+    "r_squared": 0.9187022550409498
+   },
+   "group_summaries": [
+    {
+     "name": "Control",
+     "n": 6,
+     "mean": 23.966666666666665,
+     "sd": 1.6954841982945945
+    },
+    {
+     "name": "Treated A",
+     "n": 6,
+     "mean": 29.166666666666668,
+     "sd": 1.5187714333192686
+    },
+    {
+     "name": "Treated B",
+     "n": 6,
+     "mean": 35.5,
+     "sd": 1.3798550648528267
+    }
+   ],
+   "brown_forsythe": {
+    "F": 0.4999999999999983,
+    "p": 0.6162892225369895
+   },
+   "bartlett": {
+    "statistic": 0.19536773204711508,
+    "p": 0.9069355715874354
+   },
+   "effect_size": {
+    "eta_squared": 0.9187022550409498,
+    "ci_eta_squared": [
+     0.7768642601889603,
+     0.947181579776899
+    ],
+    "omega_squared": 0.9029686016409275,
+    "epsilon_squared": 0.9078625557130765,
+    "cohens_f": 3.361616305092263,
+    "ci_cohens_f": [
+     1.8658984438122819,
+     4.234712374862545
+    ],
+    "ci_level": 0.95,
+    "ci_method": "noncentral F, eta_p^2 = lambda / (lambda + df1 + df2 + 1) (Steiger 2004); covers the population value that eta^2, omega^2 and epsilon^2 estimate",
+    "interpretation": {
+     "label": "large",
+     "scale": "eta2",
+     "thresholds": [
+      0.01,
+      0.06,
+      0.14
+     ],
+     "source": "Cohen (1988) sec. 8.2.3 (eta^2 from f = 0.10, 0.25, 0.40): 0.01 small, 0.06 medium, 0.14 large"
+    }
+   },
+   "multiple_comparisons": {
+    "method": "fisher_lsd",
+    "df": 15,
+    "comparisons": [
+     {
+      "pair": "Control vs. Treated A",
+      "difference": -5.200000000000003,
+      "ci": [
+       -7.091184698511952,
+       -3.3088153014880537
+      ],
+      "statistic": 5.860632039605523,
+      "p_adjusted": 3.133210281674984e-05,
+      "significant_05": true
+     },
+     {
+      "pair": "Control vs. Treated B",
+      "difference": -11.533333333333335,
+      "ci": [
+       -13.424518031845285,
+       -9.642148634821385
+      ],
+      "statistic": 12.998581318612246,
+      "p_adjusted": 1.4391037551055813e-09,
+      "significant_05": true
+     },
+     {
+      "pair": "Treated A vs. Treated B",
+      "difference": -6.333333333333332,
+      "ci": [
+       -8.224518031845282,
+       -4.442148634821383
+      ],
+      "statistic": 7.137949279006722,
+      "p_adjusted": 3.4040814238063938e-06,
+      "significant_05": true
+     }
+    ]
+   }
+  }
+ },
+ "kruskal": {
+  "options": {
+   "kind": "nonparametric",
+   "comparisons": "dunn",
+   "control_index": 0
+  },
+  "result": {
+   "analysis": "anova",
+   "kind": "nonparametric",
+   "H": 15.157894736842096,
+   "p": 0.0005110989388394336,
+   "group_summaries": [
+    {
+     "name": "Control",
+     "n": 6,
+     "median": 24.0
+    },
+    {
+     "name": "Treated A",
+     "n": 6,
+     "median": 28.9
+    },
+    {
+     "name": "Treated B",
+     "n": 6,
+     "median": 35.5
+    }
+   ],
+   "dunns": {
+    "method": "dunns",
+    "comparisons": [
+     {
+      "pair": "Control vs. Treated A",
+      "mean_rank_difference": -6.0,
+      "statistic": 1.9466570535691505,
+      "p_adjusted": 0.154727590862631,
+      "significant_05": false
+     },
+     {
+      "pair": "Control vs. Treated B",
+      "mean_rank_difference": -12.0,
+      "statistic": 3.893314107138301,
+      "p_adjusted": 0.0002966519452384177,
+      "significant_05": true
+     },
+     {
+      "pair": "Treated A vs. Treated B",
+      "mean_rank_difference": -6.0,
+      "statistic": 1.9466570535691505,
+      "p_adjusted": 0.154727590862631,
+      "significant_05": false
+     }
+    ]
+   },
+   "effect_size": {
+    "epsilon_squared": 0.8916408668730645,
+    "eta_squared_h": 0.8771929824561397,
+    "interpretation": {
+     "label": "large",
+     "scale": "eta2",
+     "thresholds": [
+      0.01,
+      0.06,
+      0.14
+     ],
+     "source": "Cohen (1988) sec. 8.2.3 (eta^2 from f = 0.10, 0.25, 0.40): 0.01 small, 0.06 medium, 0.14 large"
+    }
+   }
+  }
+ },
+ "welch_anova": {
+  "options": {
+   "comparisons": "games_howell",
+   "family": "all"
+  },
+  "result": {
+   "analysis": "anova_unequal_var",
+   "welch": {
+    "W": 80.71427151547422,
+    "dfn": 2,
+    "dfd": 9.93136406166149,
+    "p": 7.210183687982591e-07,
+    "weighted_mean": 30.32801844319183
+   },
+   "brown_forsythe": {
+    "F": 84.7534813699662,
+    "dfn": 2,
+    "dfd": 14.58541881447293,
+    "p": 9.329843056359395e-09
+   },
+   "group_summaries": [
+    {
+     "name": "Control",
+     "n": 6,
+     "mean": 23.966666666666665,
+     "sd": 1.6954841982945945
+    },
+    {
+     "name": "Treated A",
+     "n": 6,
+     "mean": 29.166666666666668,
+     "sd": 1.5187714333192686
+    },
+    {
+     "name": "Treated B",
+     "n": 6,
+     "mean": 35.5,
+     "sd": 1.3798550648528267
+    }
+   ],
+   "multiple_comparisons": {
+    "method": "games_howell",
+    "family": "all",
+    "n_comparisons": 3,
+    "ci_level": 0.95,
+    "comparisons": [
+     {
+      "pair": "Control vs. Treated A",
+      "difference": -5.200000000000003,
+      "se": 0.9292768992908168,
+      "t": 5.59574869876612,
+      "df": 9.88125219532547,
+      "statistic": 7.913583701426647,
+      "ci": [
+       -7.752455079172769,
+       -2.647544920827237
+      ],
+      "p_adjusted": 0.0006337354542241824,
+      "significant_05": true,
+      "significant": true
+     },
+     {
+      "pair": "Control vs. Treated B",
+      "difference": -11.533333333333335,
+      "se": 0.8924373616363469,
+      "t": 12.923409338428138,
+      "df": 9.60375146541618,
+      "statistic": 18.276460758504182,
+      "ci": [
+       -13.996423687701109,
+       -9.070242978965561
+      ],
+      "p_adjusted": 5.903414572738797e-07,
+      "significant_05": true,
+      "significant": true
+     },
+     {
+      "pair": "Treated A vs. Treated B",
+      "difference": -6.333333333333332,
+      "se": 0.8377217782639874,
+      "t": 7.560187042597737,
+      "df": 9.909377506416824,
+      "statistic": 10.69171904971906,
+      "ci": [
+       -8.63322728465656,
+       -4.033439382010106
+      ],
+      "p_adjusted": 5.461283531682515e-05,
+      "significant_05": true,
+      "significant": true
+     }
+    ]
+   }
+  }
+ },
+ "rm_anova": {
+  "options": {
+   "kind": "parametric"
+  },
+  "result": {
+   "analysis": "rm_one_way_anova",
+   "n_subjects": 6,
+   "n_treatments": 3,
+   "table": {
+    "ss_treatment": 400.3377777777779,
+    "df_treatment": 2,
+    "ms_treatment": 200.16888888888894,
+    "ss_subject": 5.824444444444421,
+    "df_subject": 5,
+    "ss_error": 29.602222222222085,
+    "df_error": 10,
+    "ms_error": 2.9602222222222085,
+    "F": 67.61954808197616,
+    "p_assuming_sphericity": 1.5473277418620315e-06,
+    "gg_epsilon": 0.6804375769884574,
+    "p_geisser_greenhouse": 5.5789999562187405e-05
+   },
+   "r_squared": 0.9311480154853652,
+   "treatment_means": [
+    23.966666666666665,
+    29.166666666666668,
+    35.5
+   ],
+   "names": [
+    "Control",
+    "Treated A",
+    "Treated B"
+   ],
+   "effect_size": {
+    "partial_eta_squared": 0.9311480154853652,
+    "ci_partial_eta_squared": [
+     0.7433499265324134,
+     0.9567071529165493
+    ],
+    "cohens_f": 3.677486861485059,
+    "ci_cohens_f": [
+     1.701868323618967,
+     4.700904590043764
+    ],
+    "generalized_eta_squared": 0.9187022550409502,
+    "ci_level": 0.95,
+    "ci_method": "noncentral F, eta_p^2 = lambda / (lambda + df1 + df2 + 1) (Steiger 2004); covers the population value that eta^2, omega^2 and epsilon^2 estimate; uncorrected df (assumes sphericity)",
+    "interpretation": {
+     "label": "large",
+     "scale": "eta2",
+     "thresholds": [
+      0.01,
+      0.06,
+      0.14
+     ],
+     "source": "Cohen (1988) sec. 8.2.3 (eta^2 from f = 0.10, 0.25, 0.40): 0.01 small, 0.06 medium, 0.14 large"
+    },
+    "interpretation_generalized": {
+     "label": "large",
+     "scale": "eta2",
+     "thresholds": [
+      0.01,
+      0.06,
+      0.14
+     ],
+     "source": "Cohen (1988) sec. 8.2.3 (eta^2 from f = 0.10, 0.25, 0.40): 0.01 small, 0.06 medium, 0.14 large"
+    }
+   }
+  }
+ },
+ "friedman": {
+  "options": {
+   "kind": "nonparametric"
+  },
+  "result": {
+   "analysis": "friedman",
+   "statistic": 12.0,
+   "p": 0.002478752176666357,
+   "n_subjects": 6,
+   "rank_sums": [
+    6.0,
+    12.0,
+    18.0
+   ],
+   "names": [
+    "Control",
+    "Treated A",
+    "Treated B"
+   ],
+   "effect_size": {
+    "kendalls_w": 1.0,
+    "interpretation": {
+     "label": "large",
+     "scale": "kendalls_w",
+     "thresholds": [
+      0.1,
+      0.3,
+      0.5
+     ],
+     "source": "Cohen's (1988) r benchmarks as applied to Kendall's W (Tomczak & Tomczak 2014): 0.1 small, 0.3 medium, 0.5 large"
+    }
+   },
+   "dunns": {
+    "method": "dunns",
+    "comparisons": [
+     {
+      "pair": "Control vs. Treated A",
+      "mean_rank_difference": -1.0,
+      "statistic": 1.7320508075688774,
+      "p_adjusted": 0.24979354999065123,
+      "significant_05": false
+     },
+     {
+      "pair": "Control vs. Treated B",
+      "mean_rank_difference": -2.0,
+      "statistic": 3.464101615137755,
+      "p_adjusted": 0.0015960165154177476,
+      "significant_05": true
+     },
+     {
+      "pair": "Treated A vs. Treated B",
+      "mean_rank_difference": -1.0,
+      "statistic": 1.7320508075688774,
+      "p_adjusted": 0.24979354999065123,
+      "significant_05": false
+     }
+    ]
+   }
+  }
+ },
+ "correlation": {
+  "options": {
+   "method": "pearson",
+   "dataset_a": 0,
+   "dataset_b": 1
+  },
+  "result": {
+   "analysis": "correlation",
+   "method": "pearson",
+   "n": 6,
+   "r": 0.6433524624664456,
+   "ci_r": [
+    -0.3519896153370508,
+    0.9558469711080451
+   ],
+   "r_squared": 0.41390239096163933,
+   "p_two_tailed": 0.16811386752329155,
+   "effect_size": {
+    "r_squared": 0.41390239096163933,
+    "ci_r_squared": [
+     0.0,
+     0.913643432176424
+    ],
+    "interpretation": {
+     "label": "large",
+     "scale": "r",
+     "thresholds": [
+      0.1,
+      0.3,
+      0.5
+     ],
+     "source": "Cohen (1988) sec. 3.2.1: r = 0.1 small, 0.3 medium, 0.5 large"
+    }
+   },
+   "names": [
+    "Control",
+    "Treated A"
+   ]
+  }
+ },
+ "spearman": {
+  "options": {
+   "method": "spearman",
+   "dataset_a": 0,
+   "dataset_b": 1
+  },
+  "result": {
+   "analysis": "correlation",
+   "method": "spearman",
+   "n": 6,
+   "r": 0.48571428571428577,
+   "ci_r": [
+    -0.5612134853495423,
+    0.934840975043405
+   ],
+   "p_two_tailed": 0.35555555555555557,
+   "p_type": "exact",
+   "effect_size": {
+    "r_squared": 0.23591836734693883,
+    "ci_r_squared": [
+     0.0,
+     0.8739276486201042
+    ],
+    "interpretation": {
+     "label": "medium",
+     "scale": "r",
+     "thresholds": [
+      0.1,
+      0.3,
+      0.5
+     ],
+     "source": "Cohen (1988) sec. 3.2.1: r = 0.1 small, 0.3 medium, 0.5 large"
+    }
+   },
+   "names": [
+    "Control",
+    "Treated A"
+   ]
+  }
+ },
+ "column_statistics": {
+  "options": {
+   "hypothetical": 20
+  },
+  "result": {
+   "analysis": "column_statistics",
+   "datasets": [
+    {
+     "name": "Control",
+     "descriptive": {
+      "n": 6,
+      "sum": 143.79999999999998,
+      "minimum": 21.8,
+      "maximum": 26.0,
+      "mean": 23.966666666666665,
+      "median": 24.0,
+      "percentile25": 22.725,
+      "percentile75": 25.275,
+      "sd": 1.6954841982945945,
+      "sem": 0.6921785254622616,
+      "variance": 2.874666666666664,
+      "ci_mean": [
+       22.187365122095848,
+       25.745968211237482
+      ],
+      "cv_percent": 7.074342969240311,
+      "geometric_mean": 23.916477778713116,
+      "ci_geometric_mean": [
+       22.19872347514281,
+       25.767153232039544
+      ],
+      "skewness": -0.07450490692887239,
+      "kurtosis": -2.1701556212803874
+     },
+     "normality": {
+      "shapiro_wilk": {
+       "W": 0.9245190405690445,
+       "p": 0.5384876265276326,
+       "passed_alpha_05": true
+      },
+      "anderson_darling": {
+       "A2": 0.2800401819842948,
+       "p": 0.510666244525275,
+       "passed_alpha_05": true
+      }
+     },
+     "one_sample_t": {
+      "hypothetical": 20,
+      "mean": 23.966666666666665,
+      "discrepancy": 3.966666666666665,
+      "t": 5.730698830937558,
+      "df": 5,
+      "p_two_tailed": 0.0022650692908251424,
+      "ci_discrepancy": [
+       2.187365122095847,
+       5.745968211237483
+      ],
+      "r_squared": 0.8678678678678678,
+      "effect_size": {
+       "measure": "one_sample_d",
+       "d": 2.3395480008935166,
+       "hedges_g": 1.9669718993024239,
+       "ci_d": [
+        0.7046430149231977,
+        3.93493786663251
+       ],
+       "ci_g": [
+        0.5924276864011017,
+        3.3082938269320232
+       ],
+       "ci_method": "noncentral t (exact)",
+       "ci_level": 0.95,
+       "hedges_j": 0.8407486824596893,
+       "n": 6,
+       "mu": 20,
+       "interpretation": {
+        "label": "large",
+        "scale": "d",
+        "thresholds": [
+         0.2,
+         0.5,
+         0.8
+        ],
+        "source": "Cohen (1988) sec. 2.2.3: d = 0.2 small, 0.5 medium, 0.8 large"
+       }
+      }
+     },
+     "wilcoxon": {
+      "hypothetical": 20,
+      "median": 24.0,
+      "sum_signed_ranks": 21.0,
+      "W": 0.0,
+      "p_two_tailed": 0.03125,
+      "n": 6,
+      "p_method": "exact",
+      "zero_method": "wilcox",
+      "sum_positive_ranks": 21.0,
+      "sum_negative_ranks": -0.0,
+      "n_zero_differences": 0,
+      "hodges_lehmann_median": 24.0,
+      "ci_median": [
+       21.8,
+       26.0
+      ],
+      "ci_actual_level": 0.96875,
+      "effect_size": {
+       "rank_biserial": 1.0,
+       "ci_rank_biserial": null,
+       "n_ranked": 6,
+       "ci_method": "Fisher z, null SE of the signed-rank statistic",
+       "ci_level": 0.95,
+       "interpretation": {
+        "label": "large",
+        "scale": "r",
+        "thresholds": [
+         0.1,
+         0.3,
+         0.5
+        ],
+        "source": "Cohen (1988) sec. 3.2.1: r = 0.1 small, 0.3 medium, 0.5 large"
+       }
+      }
+     }
+    },
+    {
+     "name": "Treated A",
+     "descriptive": {
+      "n": 6,
+      "sum": 175.0,
+      "minimum": 27.1,
+      "maximum": 31.5,
+      "mean": 29.166666666666668,
+      "median": 28.9,
+      "percentile25": 28.5,
+      "percentile75": 29.9,
+      "sd": 1.5187714333192686,
+      "sem": 0.6200358412579424,
+      "variance": 2.3066666666666653,
+      "ci_mean": [
+       27.57281379568552,
+       30.760519537647816
+      ],
+      "cv_percent": 5.20721634280892,
+      "geometric_mean": 29.133943180175766,
+      "ci_geometric_mean": [
+       27.59163962961693,
+       30.762457636429133
+      ],
+      "skewness": 0.38325775168377557,
+      "kurtosis": 0.2476636372748815
+     },
+     "normality": {
+      "shapiro_wilk": {
+       "W": 0.9742150377310312,
+       "p": 0.9194567777343501,
+       "passed_alpha_05": true
+      },
+      "anderson_darling": {
+       "A2": 0.2017388502042996,
+       "p": 0.7780943465079595,
+       "passed_alpha_05": true
+      }
+     },
+     "one_sample_t": {
+      "hypothetical": 20,
+      "mean": 29.166666666666668,
+      "discrepancy": 9.166666666666668,
+      "t": 14.784091590687938,
+      "df": 5,
+      "p_two_tailed": 2.5601993305392532e-05,
+      "ci_discrepancy": [
+       7.572813795685519,
+       10.760519537647816
+      ],
+      "r_squared": 0.9776355762394157,
+      "effect_size": {
+       "measure": "one_sample_d",
+       "d": 6.035580117959525,
+       "hedges_g": 5.074406032054367,
+       "ci_d": [
+        2.3552901491520806,
+        9.744709834158781
+       ],
+       "ci_g": [
+        1.9802070897098967,
+        8.192851954020972
+       ],
+       "ci_method": "noncentral t (exact)",
+       "ci_level": 0.95,
+       "hedges_j": 0.8407486824596893,
+       "n": 6,
+       "mu": 20,
+       "interpretation": {
+        "label": "large",
+        "scale": "d",
+        "thresholds": [
+         0.2,
+         0.5,
+         0.8
+        ],
+        "source": "Cohen (1988) sec. 2.2.3: d = 0.2 small, 0.5 medium, 0.8 large"
+       }
+      }
+     },
+     "wilcoxon": {
+      "hypothetical": 20,
+      "median": 28.9,
+      "sum_signed_ranks": 21.0,
+      "W": 0.0,
+      "p_two_tailed": 0.03125,
+      "n": 6,
+      "p_method": "exact",
+      "zero_method": "wilcox",
+      "sum_positive_ranks": 21.0,
+      "sum_negative_ranks": -0.0,
+      "n_zero_differences": 0,
+      "hodges_lehmann_median": 29.0,
+      "ci_median": [
+       27.1,
+       31.5
+      ],
+      "ci_actual_level": 0.96875,
+      "effect_size": {
+       "rank_biserial": 1.0,
+       "ci_rank_biserial": null,
+       "n_ranked": 6,
+       "ci_method": "Fisher z, null SE of the signed-rank statistic",
+       "ci_level": 0.95,
+       "interpretation": {
+        "label": "large",
+        "scale": "r",
+        "thresholds": [
+         0.1,
+         0.3,
+         0.5
+        ],
+        "source": "Cohen (1988) sec. 3.2.1: r = 0.1 small, 0.3 medium, 0.5 large"
+       }
+      }
+     }
+    },
+    {
+     "name": "Treated B",
+     "descriptive": {
+      "n": 6,
+      "sum": 213.0,
+      "minimum": 33.9,
+      "maximum": 37.4,
+      "mean": 35.5,
+      "median": 35.5,
+      "percentile25": 34.375,
+      "percentile75": 36.4,
+      "sd": 1.3798550648528267,
+      "sem": 0.5633234713140693,
+      "variance": 1.9039999999999986,
+      "ci_mean": [
+       34.05193091705246,
+       36.94806908294754
+      ],
+      "cv_percent": 3.8869156756417658,
+      "geometric_mean": 35.47769609151416,
+      "ci_geometric_mean": [
+       34.061338492002456,
+       36.95294946372621
+      ],
+      "skewness": 0.15415393214235795,
+      "kurtosis": -1.4405431290163104
+     },
+     "normality": {
+      "shapiro_wilk": {
+       "W": 0.9486153707188191,
+       "p": 0.7290552704240957,
+       "passed_alpha_05": true
+      },
+      "anderson_darling": {
+       "A2": 0.1977334078140407,
+       "p": 0.7927480566472551,
+       "passed_alpha_05": true
+      }
+     },
+     "one_sample_t": {
+      "hypothetical": 20,
+      "mean": 35.5,
+      "discrepancy": 15.5,
+      "t": 27.515274596748153,
+      "df": 5,
+      "p_two_tailed": 1.186610174878407e-06,
+      "ci_discrepancy": [
+       14.05193091705246,
+       16.94806908294754
+      ],
+      "r_squared": 0.993439098013811,
+      "effect_size": {
+       "measure": "one_sample_d",
+       "d": 11.233063815766192,
+       "hedges_g": 9.444183603091036,
+       "ci_d": [
+        4.5226468067140075,
+        18.03651419449237
+       ],
+       "ci_g": [
+        3.802409343975323,
+        15.164175545184943
+       ],
+       "ci_method": "noncentral t (exact)",
+       "ci_level": 0.95,
+       "hedges_j": 0.8407486824596893,
+       "n": 6,
+       "mu": 20,
+       "interpretation": {
+        "label": "large",
+        "scale": "d",
+        "thresholds": [
+         0.2,
+         0.5,
+         0.8
+        ],
+        "source": "Cohen (1988) sec. 2.2.3: d = 0.2 small, 0.5 medium, 0.8 large"
+       }
+      }
+     },
+     "wilcoxon": {
+      "hypothetical": 20,
+      "median": 35.5,
+      "sum_signed_ranks": 21.0,
+      "W": 0.0,
+      "p_two_tailed": 0.03125,
+      "n": 6,
+      "p_method": "exact",
+      "zero_method": "wilcox",
+      "sum_positive_ranks": 21.0,
+      "sum_negative_ranks": -0.0,
+      "n_zero_differences": 0,
+      "hodges_lehmann_median": 35.5,
+      "ci_median": [
+       33.9,
+       37.4
+      ],
+      "ci_actual_level": 0.96875,
+      "effect_size": {
+       "rank_biserial": 1.0,
+       "ci_rank_biserial": null,
+       "n_ranked": 6,
+       "ci_method": "Fisher z, null SE of the signed-rank statistic",
+       "ci_level": 0.95,
+       "interpretation": {
+        "label": "large",
+        "scale": "r",
+        "thresholds": [
+         0.1,
+         0.3,
+         0.5
+        ],
+        "source": "Cohen (1988) sec. 3.2.1: r = 0.1 small, 0.3 medium, 0.5 large"
+       }
+      }
+     }
+    }
+   ]
+  }
+ },
+ "two_way": {
+  "options": {
+   "row_factor": "Day",
+   "col_factor": "Treatment",
+   "row_names": [
+    "Day 7",
+    "Day 14",
+    "Day 21"
+   ],
+   "comparisons": "sidak",
+   "direction": "columns_within_rows"
+  },
+  "result": {
+   "analysis": "two_way_anova",
+   "dataset_names": [
+    "Vehicle",
+    "Drug"
+   ],
+   "n": 18,
+   "rows": 3,
+   "cols": 2,
+   "type": "III (general linear model, effect coding)",
+   "sources": {
+    "interaction": {
+     "ss": 44712.11111111112,
+     "df": 2,
+     "ms": 22356.05555555556,
+     "F": 41.5411376071023,
+     "p": 4.04101147859553e-06,
+     "percent_of_total": 13.179631178366634
+    },
+    "Day": {
+     "ss": 228108.11111111107,
+     "df": 2,
+     "ms": 114054.05555555553,
+     "F": 211.9307319087436,
+     "p": 4.3550850210738263e-10,
+     "percent_of_total": 67.23862279209679
+    },
+    "Treatment": {
+     "ss": 59973.38888888889,
+     "df": 1,
+     "ms": 59973.38888888889,
+     "F": 111.44017755755135,
+     "p": 1.9887507387194798e-07,
+     "percent_of_total": 17.678144163402813
+    },
+    "residual": {
+     "ss": 6458.000000000001,
+     "df": 12,
+     "ms": 538.1666666666667,
+     "F": null,
+     "p": null,
+     "percent_of_total": 1.9036018661337732
+    }
+   },
+   "cell_means": [
+    [
+     153.66666666666666,
+     149.0
+    ],
+    [
+     317.0,
+     221.66666666666666
+    ],
+    [
+     549.3333333333334,
+     303.0
+    ]
+   ],
+   "ss_total": 339251.61111111107,
+   "effect_size": {
+    "interaction": {
+     "partial_eta_squared": 0.8737935122717038,
+     "ci_partial_eta_squared": [
+      0.6136236153155675,
+      0.9199812391985068
+     ],
+     "partial_omega_squared": 0.8183327950323501,
+     "partial_epsilon_squared": 0.852759097650321,
+     "cohens_f": 2.6312588117699582,
+     "ci_cohens_f": [
+      1.260218193972622,
+      3.390732857664015
+     ],
+     "ci_level": 0.95,
+     "ci_method": "noncentral F, eta_p^2 = lambda / (lambda + df1 + df2 + 1) (Steiger 2004); covers the population value that eta^2, omega^2 and epsilon^2 estimate",
+     "interpretation": {
+      "label": "large",
+      "scale": "eta2",
+      "thresholds": [
+       0.01,
+       0.06,
+       0.14
+      ],
+      "source": "Cohen (1988) sec. 8.2.3 (eta^2 from f = 0.10, 0.25, 0.40): 0.01 small, 0.06 medium, 0.14 large"
+     },
+     "eta_squared": 0.13179631178366633,
+     "omega_squared": 0.1284199249993787,
+     "epsilon_squared": 0.1286236420067767
+    },
+    "Day": {
+     "partial_eta_squared": 0.9724683162055711,
+     "ci_partial_eta_squared": [
+      0.9080666286740583,
+      0.9823640225314978
+     ],
+     "partial_omega_squared": 0.9590780246039722,
+     "partial_epsilon_squared": 0.9678797022398329,
+     "cohens_f": 5.943213663621501,
+     "ci_cohens_f": [
+      3.142839946677277,
+      7.4633955065615165
+     ],
+     "ci_level": 0.95,
+     "ci_method": "noncentral F, eta_p^2 = lambda / (lambda + df1 + df2 + 1) (Steiger 2004); covers the population value that eta^2, omega^2 and epsilon^2 estimate",
+     "interpretation": {
+      "label": "large",
+      "scale": "eta2",
+      "thresholds": [
+       0.01,
+       0.06,
+       0.14
+      ],
+      "source": "Cohen (1988) sec. 8.2.3 (eta^2 from f = 0.10, 0.25, 0.40): 0.01 small, 0.06 medium, 0.14 large"
+     },
+     "eta_squared": 0.6723862279209678,
+     "omega_squared": 0.668153642709806,
+     "epsilon_squared": 0.6692135581440781
+    },
+    "Treatment": {
+     "partial_eta_squared": 0.9027869188343863,
+     "ci_partial_eta_squared": [
+      0.7140560869717251,
+      0.9423252884759649
+     ],
+     "partial_omega_squared": 0.8598569361838934,
+     "partial_epsilon_squared": 0.8946858287372519,
+     "cohens_f": 3.047405693886076,
+     "ci_cohens_f": [
+      1.5802497664392476,
+      4.042106086839168
+     ],
+     "ci_level": 0.95,
+     "ci_method": "noncentral F, eta_p^2 = lambda / (lambda + df1 + df2 + 1) (Steiger 2004); covers the population value that eta^2, omega^2 and epsilon^2 estimate",
+     "interpretation": {
+      "label": "large",
+      "scale": "eta2",
+      "thresholds": [
+       0.01,
+       0.06,
+       0.14
+      ],
+      "source": "Cohen (1988) sec. 8.2.3 (eta^2 from f = 0.10, 0.25, 0.40): 0.01 small, 0.06 medium, 0.14 large"
+     },
+     "eta_squared": 0.17678144163402812,
+     "omega_squared": 0.1749176288084005,
+     "epsilon_squared": 0.17519510674558333
+    }
+   },
+   "multiple_comparisons": {
+    "method": "sidak",
+    "direction": "columns_within_rows",
+    "ms_residual": 538.1666666666667,
+    "df_residual": 12,
+    "n_comparisons": 3,
+    "comparisons": [
+     {
+      "family": "Day 7",
+      "pair": "Vehicle vs. Drug",
+      "difference": 4.666666666666657,
+      "se": 18.941430193567165,
+      "ci95": [
+       -47.80680489862836,
+       57.14013823196167
+      ],
+      "statistic": 0.24637351134401336,
+      "p_adjusted": 0.9930929185976901,
+      "significant_05": false
+     },
+     {
+      "family": "Day 14",
+      "pair": "Vehicle vs. Drug",
+      "difference": 95.33333333333334,
+      "se": 18.941430193567165,
+      "ci95": [
+       42.85986176803833,
+       147.80680489862834
+      ],
+      "statistic": 5.033058874599141,
+      "p_adjusted": 0.0008777723304812524,
+      "significant_05": true
+     },
+     {
+      "family": "Day 21",
+      "pair": "Vehicle vs. Drug",
+      "difference": 246.33333333333337,
+      "se": 18.941430193567165,
+      "ci95": [
+       193.85986176803834,
+       298.8068048986284
+      ],
+      "statistic": 13.005001777373305,
+      "p_adjusted": 5.892295873444198e-08,
+      "significant_05": true
+     }
+    ]
+   }
+  }
+ },
+ "rm_two_way": {
+  "options": {
+   "design": "mixed",
+   "row_names": [
+    "Day 7",
+    "Day 14",
+    "Day 21"
+   ]
+  },
+  "result": {
+   "analysis": "rm_two_way_mixed",
+   "design": "columns are groups, rows are repeated measures",
+   "n_subjects": 6,
+   "rows": 3,
+   "cols": 2,
+   "group_sizes": [
+    3,
+    3
+   ],
+   "gg_epsilon": 0.5049801755707484,
+   "sources": {
+    "interaction": {
+     "ss": 44712.111111111124,
+     "df": 2,
+     "ms": 22356.055555555562,
+     "F": 139.3865604433686,
+     "p": 6.056283229022721e-07,
+     "percent_of_total": 13.179631178366632,
+     "p_geisser_greenhouse": 0.00027675661935119844
+    },
+    "row_factor": {
+     "ss": 228108.11111111115,
+     "df": 2,
+     "ms": 114054.05555555558,
+     "F": 711.1094561828979,
+     "p": 9.78926040993609e-10,
+     "percent_of_total": 67.23862279209679,
+     "p_geisser_greenhouse": 1.0695906572167136e-05
+    },
+    "column_factor": {
+     "ss": 59973.388888888905,
+     "df": 1,
+     "ms": 59973.388888888905,
+     "F": 46.3572379439174,
+     "p": 0.002431673324822323,
+     "percent_of_total": 17.678144163402816
+    },
+    "subjects": {
+     "ss": 5174.888888888869,
+     "df": 4,
+     "ms": 1293.7222222222172,
+     "F": null,
+     "p": null,
+     "percent_of_total": 1.5253837327227897
+    },
+    "residual": {
+     "ss": 1283.111111111095,
+     "df": 8,
+     "ms": 160.38888888888687,
+     "F": null,
+     "p": null,
+     "percent_of_total": 0.3782181334109722
+    }
+   },
+   "cell_means": [
+    [
+     153.66666666666666,
+     149.0
+    ],
+    [
+     317.0,
+     221.66666666666666
+    ],
+    [
+     549.3333333333334,
+     303.0
+    ]
+   ],
+   "row_names": [
+    "Day 7",
+    "Day 14",
+    "Day 21"
+   ],
+   "col_names": [
+    "Vehicle",
+    "Drug"
+   ],
+   "effect_size": {
+    "interaction": {
+     "partial_eta_squared": 0.9721033827184953,
+     "ci_partial_eta_squared": [
+      0.8647490979419176,
+      0.9825806134655481
+     ],
+     "cohens_f": 5.9031042774833455,
+     "ci_cohens_f": [
+      2.528569957397872,
+      7.510479541998575
+     ],
+     "generalized_eta_squared": 0.8737935122717044,
+     "ci_level": 0.95,
+     "ci_method": "noncentral F, eta_p^2 = lambda / (lambda + df1 + df2 + 1) (Steiger 2004); covers the population value that eta^2, omega^2 and epsilon^2 estimate; uncorrected df (assumes sphericity)",
+     "interpretation": {
+      "label": "large",
+      "scale": "eta2",
+      "thresholds": [
+       0.01,
+       0.06,
+       0.14
+      ],
+      "source": "Cohen (1988) sec. 8.2.3 (eta^2 from f = 0.10, 0.25, 0.40): 0.01 small, 0.06 medium, 0.14 large"
+     },
+     "interpretation_generalized": {
+      "label": "large",
+      "scale": "eta2",
+      "thresholds": [
+       0.01,
+       0.06,
+       0.14
+      ],
+      "source": "Cohen (1988) sec. 8.2.3 (eta^2 from f = 0.10, 0.25, 0.40): 0.01 small, 0.06 medium, 0.14 large"
+     }
+    },
+    "row_factor": {
+     "partial_eta_squared": 0.9944064506972805,
+     "ci_partial_eta_squared": [
+      0.9719906274529744,
+      0.9964943202110925
+     ],
+     "cohens_f": 13.333317818372368,
+     "ci_cohens_f": [
+      5.890868775931632,
+      16.85975624609581
+     ],
+     "generalized_eta_squared": 0.9724683162055712,
+     "ci_level": 0.95,
+     "ci_method": "noncentral F, eta_p^2 = lambda / (lambda + df1 + df2 + 1) (Steiger 2004); covers the population value that eta^2, omega^2 and epsilon^2 estimate; uncorrected df (assumes sphericity)",
+     "interpretation": {
+      "label": "large",
+      "scale": "eta2",
+      "thresholds": [
+       0.01,
+       0.06,
+       0.14
+      ],
+      "source": "Cohen (1988) sec. 8.2.3 (eta^2 from f = 0.10, 0.25, 0.40): 0.01 small, 0.06 medium, 0.14 large"
+     },
+     "interpretation_generalized": {
+      "label": "large",
+      "scale": "eta2",
+      "thresholds": [
+       0.01,
+       0.06,
+       0.14
+      ],
+      "source": "Cohen (1988) sec. 8.2.3 (eta^2 from f = 0.10, 0.25, 0.40): 0.01 small, 0.06 medium, 0.14 large"
+     }
+    },
+    "column_factor": {
+     "partial_eta_squared": 0.9205675258747357,
+     "ci_partial_eta_squared": [
+      0.36801407429124383,
+      0.9580959596760977
+     ],
+     "cohens_f": 3.4043074899279233,
+     "ci_cohens_f": [
+      0.7630948291437945,
+      4.781636465858798
+     ],
+     "generalized_eta_squared": 0.9027869188343868,
+     "ci_level": 0.95,
+     "ci_method": "noncentral F, eta_p^2 = lambda / (lambda + df1 + df2 + 1) (Steiger 2004); covers the population value that eta^2, omega^2 and epsilon^2 estimate; uncorrected df (assumes sphericity)",
+     "interpretation": {
+      "label": "large",
+      "scale": "eta2",
+      "thresholds": [
+       0.01,
+       0.06,
+       0.14
+      ],
+      "source": "Cohen (1988) sec. 8.2.3 (eta^2 from f = 0.10, 0.25, 0.40): 0.01 small, 0.06 medium, 0.14 large"
+     },
+     "interpretation_generalized": {
+      "label": "large",
+      "scale": "eta2",
+      "thresholds": [
+       0.01,
+       0.06,
+       0.14
+      ],
+      "source": "Cohen (1988) sec. 8.2.3 (eta^2 from f = 0.10, 0.25, 0.40): 0.01 small, 0.06 medium, 0.14 large"
+     }
+    }
+   }
+  }
+ },
+ "multi_t": {
+  "options": {
+   "dataset_a": 0,
+   "dataset_b": 1,
+   "test": "welch",
+   "method": "holm_sidak",
+   "alpha": 0.05
+  },
+  "result": {
+   "analysis": "multiple_row_tests",
+   "test": "welch",
+   "names": [
+    "Vehicle",
+    "Drug"
+   ],
+   "direction": "Vehicle - Drug",
+   "method": "holm_sidak",
+   "approach": "significance",
+   "flag_label": "Below threshold?",
+   "alpha": 0.05,
+   "q": null,
+   "n_tests": 3,
+   "n_omitted": 0,
+   "n_flagged": 2,
+   "n_true_null_estimate": null,
+   "pooled": null,
+   "rows": [
+    {
+     "row": "Day 7",
+     "index": 0,
+     "n_a": 3,
+     "n_b": 3,
+     "difference": 4.666666666666657,
+     "se_difference": 9.92191737742481,
+     "statistic_name": "t",
+     "statistic": 0.47033919847837613,
+     "df": 3.7676974691503196,
+     "p": 0.6640378056425279,
+     "mean_a": 153.66666666666666,
+     "mean_b": 149.0,
+     "effect_size": {
+      "measure": "cohens_d_av",
+      "value": 0.3840303474338812,
+      "hedges_g": 0.3064118850972541
+     },
+     "p_adjusted": 0.6640378056425279,
+     "significant": false,
+     "neg_log10_p": 0.177807194254662,
+     "s_value": 0.5906627140676565
+    },
+    {
+     "row": "Day 14",
+     "index": 1,
+     "n_a": 3,
+     "n_b": 3,
+     "difference": 95.33333333333334,
+     "se_difference": 16.02428712229589,
+     "statistic_name": "t",
+     "statistic": 5.94930261831669,
+     "df": 3.7668102069596885,
+     "p": 0.004835442527178256,
+     "mean_a": 317.0,
+     "mean_b": 221.66666666666666,
+     "effect_size": {
+      "measure": "cohens_d_av",
+      "value": 4.857585246759946,
+      "hedges_g": 3.8757922711735375
+     },
+     "p_adjusted": 0.009647503549922868,
+     "significant": true,
+     "neg_log10_p": 2.315563774255828,
+     "s_value": 7.692136357203854
+    },
+    {
+     "row": "Day 21",
+     "index": 2,
+     "n_a": 3,
+     "n_b": 3,
+     "difference": 246.33333333333337,
+     "se_difference": 26.853512081497108,
+     "statistic_name": "t",
+     "statistic": 9.173225929842696,
+     "df": 3.669413464119329,
+     "p": 0.0011650144032969985,
+     "mean_a": 549.3333333333334,
+     "mean_b": 303.0,
+     "effect_size": {
+      "measure": "cohens_d_av",
+      "value": 7.489907607794121,
+      "hedges_g": 5.976081642098852
+     },
+     "p_adjusted": 0.0034909730154370983,
+     "significant": true,
+     "neg_log10_p": 2.9336687053386146,
+     "s_value": 9.745436493356179
+    }
+   ],
+   "flagged_rows": [
+    2,
+    1
+   ]
+  }
+ },
+ "contingency_2x2": {
+  "options": {},
+  "result": {
+   "analysis": "contingency",
+   "rows": 2,
+   "cols": 2,
+   "total": 60.0,
+   "chi_square": {
+    "chi2": 15.428571428571429,
+    "df": 1,
+    "p": 8.56829801091046e-05
+   },
+   "chi_square_yates": {
+    "chi2": 13.44,
+    "p": 0.0002463156216738152
+   },
+   "fisher_exact": {
+    "p": 0.0001810000624445966
+   },
+   "odds_ratio": {
+    "value": 0.1,
+    "ci": [
+     0.029405245298639165,
+     0.3400753810566847
+    ]
+   },
+   "proportions": {
+    "p1": 0.3333333333333333,
+    "p2": 0.8333333333333334,
+    "difference": -0.5
+   },
+   "relative_risk": {
+    "value": 0.39999999999999997,
+    "ci": [
+     0.2352629420636111,
+     0.6800901093753163
+    ]
+   },
+   "sensitivity": {
+    "value": 0.3333333333333333,
+    "ci": [
+     0.19230498083676134,
+     0.5121994835545616
+    ]
+   },
+   "specificity": {
+    "value": 0.16666666666666666,
+    "ci": [
+     0.0733654237184855,
+     0.3356435050641603
+    ]
+   },
+   "effect_size": {
+    "phi": -0.50709255283711,
+    "cramers_v": 0.50709255283711,
+    "cramers_v_corrected": 0.494302514023,
+    "ci_cramers_v": [
+     0.2540622863446026,
+     0.7601228152134423
+    ],
+    "ci_method": "noncentral chi-square, V = sqrt(lambda / (N (min(r, c) - 1))) (Smithson 2003)",
+    "ci_level": 0.95,
+    "chi2": 15.428571428571429,
+    "df": 1,
+    "n": 60.0,
+    "min_dim_minus_1": 1,
+    "cohens_w": 0.50709255283711,
+    "interpretation": {
+     "label": "large",
+     "scale": "w",
+     "thresholds": [
+      0.1,
+      0.3,
+      0.5
+     ],
+     "source": "Cohen (1988) sec. 7.2.3: w = 0.1 small, 0.3 medium, 0.5 large (Cramer's V compared as w = V sqrt(min(r, c) - 1))"
+    },
+    "odds_ratio_interpretation": {
+     "label": "large",
+     "scale": "odds_ratio",
+     "thresholds": [
+      1.68,
+      3.47,
+      6.71
+     ],
+     "source": "Chen, Cohen & Chen (2010): OR = 1.68 small, 3.47 medium, 6.71 large (or their reciprocals)"
+    }
+   }
+  }
+ },
+ "contingency_2x3": {
+  "options": {},
+  "result": {
+   "analysis": "contingency",
+   "rows": 2,
+   "cols": 3,
+   "total": 74.0,
+   "chi_square": {
+    "chi2": 16.403139717425432,
+    "df": 2,
+    "p": 0.00027422274093118475
+   },
+   "effect_size": {
+    "phi": 0.47081211776618365,
+    "cramers_v": 0.47081211776618365,
+    "cramers_v_corrected": 0.44380732285765934,
+    "ci_cramers_v": [
+     0.22213951244787605,
+     0.6867531108964501
+    ],
+    "ci_method": "noncentral chi-square, V = sqrt(lambda / (N (min(r, c) - 1))) (Smithson 2003)",
+    "ci_level": 0.95,
+    "chi2": 16.403139717425432,
+    "df": 2,
+    "n": 74.0,
+    "min_dim_minus_1": 1,
+    "cohens_w": 0.47081211776618365,
+    "interpretation": {
+     "label": "medium",
+     "scale": "w",
+     "thresholds": [
+      0.1,
+      0.3,
+      0.5
+     ],
+     "source": "Cohen (1988) sec. 7.2.3: w = 0.1 small, 0.3 medium, 0.5 large (Cramer's V compared as w = V sqrt(min(r, c) - 1))"
+    }
+   }
+  }
+ },
+ "survival": {
+  "options": {},
+  "result": {
+   "analysis": "survival",
+   "curves": {
+    "Control": {
+     "points": [
+      {
+       "time": 0.0,
+       "survival": 1.0,
+       "lower": 1.0,
+       "upper": 1.0,
+       "at_risk": 10
+      },
+      {
+       "time": 6.0,
+       "survival": 0.9,
+       "lower": 0.47300927136205034,
+       "upper": 0.9852813933673431,
+       "at_risk": 9
+      },
+      {
+       "time": 13.0,
+       "survival": 0.7999999999999999,
+       "lower": 0.4086907816334043,
+       "upper": 0.9458726458389117,
+       "at_risk": 8
+      },
+      {
+       "time": 21.0,
+       "survival": 0.7,
+       "lower": 0.3287165932797347,
+       "upper": 0.8919490412248442,
+       "at_risk": 7
+      },
+      {
+       "time": 30.0,
+       "survival": 0.6,
+       "lower": 0.2526688970038936,
+       "upper": 0.8272209670285117,
+       "at_risk": 6
+      },
+      {
+       "time": 37.0,
+       "survival": 0.48,
+       "lower": 0.1608546691176385,
+       "upper": 0.7446657267578024,
+       "at_risk": 4
+      },
+      {
+       "time": 38.0,
+       "survival": 0.36,
+       "lower": 0.08987150510824649,
+       "upper": 0.6484226372706023,
+       "at_risk": 3
+      },
+      {
+       "time": 49.0,
+       "survival": 0.18,
+       "lower": 0.011540489394926197,
+       "upper": 0.5173515433718755,
+       "at_risk": 1
+      },
+      {
+       "time": 50.0,
+       "survival": 0.0,
+       "lower": 0.0,
+       "upper": 0.0,
+       "at_risk": 0
+      }
+     ],
+     "n": 10,
+     "n_events": 8,
+     "n_censored": 2,
+     "median_survival": 37.0
+    },
+    "Treated": {
+     "points": [
+      {
+       "time": 0.0,
+       "survival": 1.0,
+       "lower": 1.0,
+       "upper": 1.0,
+       "at_risk": 10
+      },
+      {
+       "time": 10.0,
+       "survival": 0.9,
+       "lower": 0.47300927136205034,
+       "upper": 0.9852813933673431,
+       "at_risk": 9
+      },
+      {
+       "time": 21.0,
+       "survival": 0.7999999999999999,
+       "lower": 0.4086907816334043,
+       "upper": 0.9458726458389117,
+       "at_risk": 8
+      },
+      {
+       "time": 33.0,
+       "survival": 0.7,
+       "lower": 0.3287165932797347,
+       "upper": 0.8919490412248442,
+       "at_risk": 7
+      },
+      {
+       "time": 45.0,
+       "survival": 0.5833333333333334,
+       "lower": 0.22978651892398366,
+       "upper": 0.8207394971721561,
+       "at_risk": 5
+      },
+      {
+       "time": 46.0,
+       "survival": 0.46666666666666673,
+       "lower": 0.1495518180897322,
+       "upper": 0.7366102366780404,
+       "at_risk": 4
+      },
+      {
+       "time": 50.0,
+       "survival": 0.35000000000000003,
+       "lower": 0.08479908759841402,
+       "upper": 0.6397598030089279,
+       "at_risk": 3
+      },
+      {
+       "time": 53.0,
+       "survival": 0.17500000000000002,
+       "lower": 0.011173475048192525,
+       "upper": 0.5086640118811321,
+       "at_risk": 1
+      }
+     ],
+     "n": 10,
+     "n_events": 7,
+     "n_censored": 3,
+     "median_survival": 46.0
+    }
+   },
+   "logrank": {
+    "chi2": 1.8130172861644387,
+    "df": 1,
+    "p": 0.17814670151365078,
+    "observed": [
+     8.0,
+     7.0
+    ],
+    "expected": [
+     5.488112429366299,
+     9.511887570633702
+    ]
+   },
+   "gehan_breslow_wilcoxon": {
+    "chi2": 1.3741830065359477,
+    "df": 1,
+    "p": 0.2410944834804856
+   },
+   "hazard_ratio": {
+    "value": 2.2513253867290954,
+    "ci": [
+     0.7389595259042092,
+     6.8589223350615995
+    ],
+    "method": "mantel_haenszel"
+   }
+  }
+ },
+ "nested_t": {
+  "options": {},
+  "result": {
+   "analysis": "nested_t_test",
+   "comparison": "Diet A - Control",
+   "t": 2.7714129262873572,
+   "df": 4,
+   "F": 7.680729607992653,
+   "df_num": 1,
+   "df_den": 4,
+   "p": 0.05025822421254876,
+   "significant_05": false,
+   "tails": "two",
+   "difference": 6.916666666666771,
+   "se_difference": 2.495718556069695,
+   "ci": [
+    -0.012558902284237838,
+    13.845892235617779
+   ],
+   "ci_level": 0.95,
+   "group_means": [
+    {
+     "name": "Control",
+     "mean": 43.48333333333326,
+     "se": 1.7647395149299794,
+     "ci": [
+      38.58363094515679,
+      48.383035721509735
+     ],
+     "n_subcolumns": 3,
+     "n_values": 12
+    },
+    {
+     "name": "Diet A",
+     "mean": 50.400000000000034,
+     "se": 1.7647395149299807,
+     "ci": [
+      45.50029761182356,
+      55.299702388176506
+     ],
+     "n_subcolumns": 3,
+     "n_values": 12
+    }
+   ],
+   "random_effects": {
+    "within_subcolumns": {
+     "sd": 1.3247641299492807,
+     "variance": 1.7550000000002746,
+     "percent_of_total": 16.46470174341677
+    },
+    "among_subcolumns": {
+     "sd": 2.9839850312402434,
+     "variance": 8.904166666665837,
+     "percent_of_total": 83.53529825658323
+    }
+   },
+   "subcolumns_differ": {
+    "chi_square": 21.765226550586164,
+    "df": 1,
+    "p": 3.081345845303123e-06,
+    "significant_05": true,
+    "test": "likelihood ratio (REML fit with vs. without the random subcolumn effect)"
+   },
+   "goodness_of_fit": {
+    "df": 20,
+    "reml_criterion": 46.698746956227225,
+    "minus_2_log_restricted_likelihood": 93.39749391245445,
+    "aic": 97.39749391245445,
+    "bic": 99.57957881917108,
+    "converged": true
+   },
+   "nested_anova_table": {
+    "groups": {
+     "ss": 287.0416666666671,
+     "df": 1,
+     "ms": 287.0416666666671,
+     "F": 7.680729607991803,
+     "p": 0.05025822421255664
+    },
+    "subgroups_within_groups": {
+     "ss": 149.4866666666667,
+     "df": 4,
+     "ms": 37.37166666666668,
+     "F": 21.294396961063633,
+     "p": 1.2618455511041771e-06
+    },
+    "within_subgroups": {
+     "ss": 31.590000000000003,
+     "df": 18,
+     "ms": 1.7550000000000001
+    },
+    "total": {
+     "ss": 468.1183333333333,
+     "df": 23
+    },
+    "note": "Hierarchical (Type I) sums of squares. The F for groups against subgroups is exact only for equal subcolumn sizes; the mixed model result is the primary test."
+   },
+   "subgroup_summaries": [
+    {
+     "group": "Control",
+     "subgroup": "Herd 1",
+     "n": 4,
+     "mean": 42.675,
+     "sd": 1.5456929406148774,
+     "sem": 0.7728464703074387
+    },
+    {
+     "group": "Control",
+     "subgroup": "Herd 2",
+     "n": 4,
+     "mean": 46.9,
+     "sd": 1.5253414918196717,
+     "sem": 0.7626707459098359
+    },
+    {
+     "group": "Control",
+     "subgroup": "Herd 3",
+     "n": 4,
+     "mean": 40.875,
+     "sd": 1.3450526631573454,
+     "sem": 0.6725263315786727
+    },
+    {
+     "group": "Diet A",
+     "subgroup": "Herd 1",
+     "n": 4,
+     "mean": 51.0,
+     "sd": 1.080123449734646,
+     "sem": 0.540061724867323
+    },
+    {
+     "group": "Diet A",
+     "subgroup": "Herd 2",
+     "n": 4,
+     "mean": 47.125,
+     "sd": 1.2553220038433688,
+     "sem": 0.6276610019216844
+    },
+    {
+     "group": "Diet A",
+     "subgroup": "Herd 3",
+     "n": 4,
+     "mean": 53.075,
+     "sd": 1.123610252712213,
+     "sem": 0.5618051263561065
+    }
+   ],
+   "data_analyzed": {
+    "n_treatments": 2,
+    "n_subcolumns": 6,
+    "n_values": 24
+   },
+   "df_method": "containment (subcolumns - columns)",
+   "names": [
+    "Control",
+    "Diet A"
+   ]
+  }
+ },
+ "nested_anova": {
+  "options": {
+   "comparisons": "tukey"
+  },
+  "result": {
+   "analysis": "nested_one_way_anova",
+   "F": 11.235858561292092,
+   "df_num": 2,
+   "df_den": 6,
+   "p": 0.009358640629429057,
+   "significant_05": true,
+   "group_means": [
+    {
+     "name": "Control",
+     "mean": 43.48333333333324,
+     "se": 1.8252409785094863,
+     "ci": [
+      39.017129551822926,
+      47.94953711484356
+     ],
+     "n_subcolumns": 3,
+     "n_values": 12
+    },
+    {
+     "name": "Diet A",
+     "mean": 50.39999999999981,
+     "se": 1.8252409785094863,
+     "ci": [
+      45.93379621848949,
+      54.86620378151012
+     ],
+     "n_subcolumns": 3,
+     "n_values": 12
+    },
+    {
+     "name": "Diet B",
+     "mean": 55.68333333333338,
+     "se": 1.8252409785094872,
+     "ci": [
+      51.21712955182306,
+      60.1495371148437
+     ],
+     "n_subcolumns": 3,
+     "n_values": 12
+    }
+   ],
+   "random_effects": {
+    "within_subcolumns": {
+     "sd": 1.3004984799284878,
+     "variance": 1.6912962962963072,
+     "percent_of_total": 15.016411097475528
+    },
+    "among_subcolumns": {
+     "sd": 3.093814767373241,
+     "variance": 9.571689814816741,
+     "percent_of_total": 84.98358890252446
+    }
+   },
+   "subcolumns_differ": {
+    "chi_square": 34.89073354001263,
+    "df": 1,
+    "p": 3.4873666799849588e-09,
+    "significant_05": true,
+    "test": "likelihood ratio (REML fit with vs. without the random subcolumn effect)"
+   },
+   "goodness_of_fit": {
+    "df": 31,
+    "reml_criterion": 69.81012213736777,
+    "minus_2_log_restricted_likelihood": 139.62024427473554,
+    "aic": 143.62024427473554,
+    "bic": 146.61325939766851,
+    "converged": true
+   },
+   "nested_anova_table": {
+    "groups": {
+     "ss": 898.375555555557,
+     "df": 2,
+     "ms": 449.1877777777785,
+     "F": 11.235858561294055,
+     "p": 0.009358640629425185
+    },
+    "subgroups_within_groups": {
+     "ss": 239.86833333333345,
+     "df": 6,
+     "ms": 39.97805555555558,
+     "F": 23.63752326727254,
+     "p": 1.4578234600416117e-09
+    },
+    "within_subgroups": {
+     "ss": 45.665,
+     "df": 27,
+     "ms": 1.6912962962962963
+    },
+    "total": {
+     "ss": 1183.908888888889,
+     "df": 35
+    },
+    "note": "Hierarchical (Type I) sums of squares. The F for groups against subgroups is exact only for equal subcolumn sizes; the mixed model result is the primary test."
+   },
+   "subgroup_summaries": [
+    {
+     "group": "Control",
+     "subgroup": "Herd 1",
+     "n": 4,
+     "mean": 42.675,
+     "sd": 1.5456929406148774,
+     "sem": 0.7728464703074387
+    },
+    {
+     "group": "Control",
+     "subgroup": "Herd 2",
+     "n": 4,
+     "mean": 46.9,
+     "sd": 1.5253414918196717,
+     "sem": 0.7626707459098359
+    },
+    {
+     "group": "Control",
+     "subgroup": "Herd 3",
+     "n": 4,
+     "mean": 40.875,
+     "sd": 1.3450526631573454,
+     "sem": 0.6725263315786727
+    },
+    {
+     "group": "Diet A",
+     "subgroup": "Herd 1",
+     "n": 4,
+     "mean": 51.0,
+     "sd": 1.080123449734646,
+     "sem": 0.540061724867323
+    },
+    {
+     "group": "Diet A",
+     "subgroup": "Herd 2",
+     "n": 4,
+     "mean": 47.125,
+     "sd": 1.2553220038433688,
+     "sem": 0.6276610019216844
+    },
+    {
+     "group": "Diet A",
+     "subgroup": "Herd 3",
+     "n": 4,
+     "mean": 53.075,
+     "sd": 1.123610252712213,
+     "sem": 0.5618051263561065
+    },
+    {
+     "group": "Diet B",
+     "subgroup": "Herd 1",
+     "n": 4,
+     "mean": 56.0,
+     "sd": 1.3038404810405282,
+     "sem": 0.6519202405202641
+    },
+    {
+     "group": "Diet B",
+     "subgroup": "Herd 2",
+     "n": 4,
+     "mean": 52.175,
+     "sd": 1.3225606476327152,
+     "sem": 0.6612803238163576
+    },
+    {
+     "group": "Diet B",
+     "subgroup": "Herd 3",
+     "n": 4,
+     "mean": 58.875,
+     "sd": 1.1146748404803988,
+     "sem": 0.5573374202401994
+    }
+   ],
+   "data_analyzed": {
+    "n_treatments": 3,
+    "n_subcolumns": 9,
+    "n_values": 36
+   },
+   "df_method": "containment (subcolumns - columns)",
+   "names": [
+    "Control",
+    "Diet A",
+    "Diet B"
+   ],
+   "multiple_comparisons": {
+    "method": "tukey",
+    "df": 6,
+    "n_comparisons_per_family": 3,
+    "comparisons": [
+     {
+      "pair": "Control vs. Diet A",
+      "mean_1": 43.48333333333324,
+      "mean_2": 50.39999999999981,
+      "difference": -6.916666666666565,
+      "se": 2.5812805464072555,
+      "ci": [
+       -14.836744064174376,
+       1.0034107308412459
+      ],
+      "statistic": 3.789453966957719,
+      "df": 6.0,
+      "p_unadjusted": 0.03655814453760758,
+      "p_adjusted": 0.0812656068419424,
+      "significant_05": false
+     },
+     {
+      "pair": "Control vs. Diet B",
+      "mean_1": 43.48333333333324,
+      "mean_2": 55.68333333333338,
+      "difference": -12.200000000000138,
+      "se": 2.5812805464072555,
+      "ci": [
+       -20.12007739750795,
+       -4.279922602492327
+      ],
+      "statistic": 6.684048924850899,
+      "df": 6.0,
+      "p_unadjusted": 0.0032367481623876435,
+      "p_adjusted": 0.007724501116095239,
+      "significant_05": true
+     },
+     {
+      "pair": "Diet A vs. Diet B",
+      "mean_1": 50.39999999999981,
+      "mean_2": 55.68333333333338,
+      "difference": -5.283333333333573,
+      "se": 2.5812805464072555,
+      "ci": [
+       -13.203410730841384,
+       2.6367440641742377
+      ],
+      "statistic": 2.894594957893179,
+      "df": 6.0,
+      "p_unadjusted": 0.08662642219885074,
+      "p_adjusted": 0.18187103002625915,
+      "significant_05": false
+     }
+    ]
+   }
+  }
+ },
+ "dose_response": {
+  "options": {
+   "model": "log_inhibitor_vs_response_4pl",
+   "x_is_log": true
+  },
+  "result": {
+   "analysis": "dose_response",
+   "x_is_log_output": true,
+   "datasets": [
+    {
+     "name": "Drug A",
+     "fit": {
+      "model": "log_inhibitor_vs_response_4pl",
+      "label": "log(inhibitor) vs. response -- Variable slope (four parameters)",
+      "equation": "Y=Bottom + (Top-Bottom)/(1+10^((LogIC50-X)*HillSlope))",
+      "status": "converged",
+      "dependency": {
+       "Top": 0.5696075702508443,
+       "Bottom": 0.5771795481157833,
+       "LogXmid": 0.5183128544219966,
+       "HillSlope": 0.5740477164223854
+      },
+      "extrapolation": null,
+      "weighting": "none",
+      "weight_source": "predicted",
+      "ci_method": "asymptotic",
+      "params": {
+       "Top": {
+        "value": 99.8562328984606,
+        "se": 0.7314273915890807,
+        "ci95": [
+         98.3431600583809,
+         101.3693057385403
+        ],
+        "constrained": false
+       },
+       "Bottom": {
+        "value": 0.9801661834743963,
+        "se": 0.7446758140286751,
+        "ci95": [
+         -0.5603131065110226,
+         2.5206454734598154
+        ],
+        "constrained": false
+       },
+       "LogIC50": {
+        "value": -6.98302527869922,
+        "se": 0.014714731486703169,
+        "ci95": [
+         -7.013465019974461,
+         -6.952585537423978
+        ],
+        "constrained": false
+       },
+       "HillSlope": {
+        "value": -1.1034647121526746,
+        "se": 0.03869146261742444,
+        "ci95": [
+         -1.1835041007544538,
+         -1.0234253235508954
+        ],
+        "constrained": false
+       },
+       "IC50": {
+        "value": 1.0398596376272621e-07,
+        "se": null,
+        "ci95": [
+         9.694713517267532e-08,
+         1.1153584518411526e-07
+        ],
+        "constrained": false,
+        "derived": true
+       },
+       "Span": {
+        "value": 98.87606671498621,
+        "se": 1.175552744509241,
+        "ci95": [
+         96.44425058360817,
+         101.30788284636425
+        ],
+        "constrained": false,
+        "derived": true
+       }
+      },
+      "param_order": [
+       "Top",
+       "Bottom",
+       "LogIC50",
+       "HillSlope",
+       "IC50",
+       "Span"
+      ],
+      "goodness": {
+       "df": 23,
+       "n_points": 27,
+       "r_squared": 0.9986172202884258,
+       "r_squared_weighted": null,
+       "ss_res": 59.60082924715007,
+       "ss_res_weighted": null,
+       "sy_x": 1.609764082730759
+      },
+      "fitted_values": {
+       "Top": 99.8562328984606,
+       "Bottom": 0.9801661834743963,
+       "LogXmid": -6.98302527869922,
+       "HillSlope": -1.1034647121526746
+      },
+      "x_is_log": true
+     },
+     "points": {
+      "x": [
+       -9,
+       -8.5,
+       -8,
+       -7.5,
+       -7,
+       -6.5,
+       -6,
+       -5.5,
+       -5
+      ],
+      "bars": [
+       {
+        "mean": 99.59999999999998,
+        "lo": 97.89412778907678,
+        "hi": 101.30587221092318,
+        "n": 3
+       },
+       {
+        "mean": 97.56666666666668,
+        "lo": 95.45874509949836,
+        "hi": 99.674588233835,
+        "n": 3
+       },
+       {
+        "mean": 92.06666666666666,
+        "lo": 90.32789315256733,
+        "hi": 93.805440180766,
+        "n": 3
+       },
+       {
+        "mean": 80.39999999999999,
+        "lo": 78.66506484271025,
+        "hi": 82.13493515728973,
+        "n": 3
+       },
+       {
+        "mean": 50.26666666666667,
+        "lo": 48.90162698470379,
+        "hi": 51.63170634862956,
+        "n": 3
+       },
+       {
+        "mean": 23.900000000000002,
+        "lo": 22.147858453206478,
+        "hi": 25.652141546793526,
+        "n": 3
+       },
+       {
+        "mean": 8.866666666666667,
+        "lo": 7.516358059964728,
+        "hi": 10.216975273368606,
+        "n": 3
+       },
+       {
+        "mean": 3.233333333333333,
+        "lo": 2.127289331797529,
+        "hi": 4.339377334869137,
+        "n": 3
+       },
+       {
+        "mean": 1.2,
+        "lo": 0.3814647228127549,
+        "hi": 2.018535277187245,
+        "n": 3
+       }
+      ]
+     }
+    }
+   ]
+  }
+ },
+ "mcnemar": {
+  "options": {},
+  "result": {
+   "analysis": "mcnemar",
+   "test": "mcnemar",
+   "discordant": [
+    20.0,
+    5.0
+   ],
+   "n_pairs": 60.0,
+   "odds_ratio": {
+    "value": 4.0,
+    "ci": [
+     1.4567765043175493,
+     13.638831336088021
+    ],
+    "ci_method": "exact (Clopper-Pearson on the discordant pairs)"
+   },
+   "chi_square": {
+    "chi2": 9.0,
+    "df": 1,
+    "p": 0.0026997960632601883
+   },
+   "chi_square_yates": {
+    "chi2": 7.84,
+    "df": 1,
+    "p": 0.005110260660855866
+   },
+   "binomial": {
+    "successes": 20,
+    "trials": 25,
+    "expected_fraction": 0.5,
+    "p_two_tailed": 0.004077315330505371,
+    "p_one_tailed": 0.0020386576652526855
+   },
+   "recommended_p": 0.004077315330505371
+  }
+ },
+ "kappa": {
+  "options": {},
+  "result": {
+   "analysis": "kappa",
+   "test": "kappa",
+   "weights": "unweighted",
+   "kappa": 0.7093023255813954,
+   "se": 0.12060869805086741,
+   "ci": [
+    0.47291362117942903,
+    0.9456910299833617
+   ],
+   "se_null": 0.15784642809416882,
+   "z": 4.493622910226617,
+   "p": 7.002157591890178e-06,
+   "observed_agreement": 0.875,
+   "expected_agreement": 0.57,
+   "n": 40.0,
+   "strength": "good"
+  }
+ },
+ "proportions": {
+  "options": {},
+  "result": {
+   "analysis": "proportion_test",
+   "names": [
+    "Group 1",
+    "Group 2"
+   ],
+   "groups": [
+    {
+     "successes": 10,
+     "trials": 30,
+     "proportion": 0.3333333333333333,
+     "ci": [
+      0.19230498083676134,
+      0.5121994835545616
+     ],
+     "ci_method": "wilson_brown"
+    },
+    {
+     "successes": 20,
+     "trials": 30,
+     "proportion": 0.6666666666666666,
+     "ci": [
+      0.4878005164454384,
+      0.8076950191632386
+     ],
+     "ci_method": "wilson_brown"
+    }
+   ],
+   "difference": -0.3333333333333333,
+   "fisher_exact": {
+    "p": 0.01938318826178997
+   },
+   "z_test": {
+    "z": -2.581988897471611,
+    "p": 0.009823274507519249,
+    "chi2": 6.666666666666666
+   },
+   "z_test_yates": {
+    "z": -2.32379000772445,
+    "p": 0.02013675155034634,
+    "chi2": 5.4
+   },
+   "difference_ci": {
+    "value": -0.3333333333333333,
+    "ci": [
+     -0.5510621314870641,
+     -0.057147873905767366
+    ],
+    "ci_method": "newcombe_cc"
+   },
+   "nnt": {
+    "value": -3.0,
+    "ci": [
+     -1.814677407248904,
+     -17.49846375123117
+    ],
+    "ci_includes_infinity": false
+   },
+   "relative_risk": {
+    "value": 0.5,
+    "ci": [
+     0.2761161867114879,
+     0.8512869467203676
+    ],
+    "ci_method": "koopman",
+    "reciprocal": 2.0,
+    "reciprocal_ci": [
+     1.1746920399197451,
+     3.6216638072178426
+    ]
+   },
+   "odds_ratio": {
+    "value": 0.25,
+    "ci": [
+     0.07843339696085207,
+     0.7677106919209354
+    ],
+    "ci_method": "baptista_pike",
+    "reciprocal": 4.0
+   }
+  }
+ },
+ "deming": {
+  "options": {},
+  "result": {
+   "analysis": "deming",
+   "datasets": [
+    {
+     "name": "Method B",
+     "fit": {
+      "test": "deming",
+      "n": 8,
+      "df": 6,
+      "lambda": 1.0,
+      "error_model": "equal",
+      "se_method": "prism",
+      "ci_level": 0.95,
+      "slope": {
+       "value": 1.9906674331475092,
+       "se": 0.03271717768412103,
+       "ci": [
+        1.9106113833362173,
+        2.070723482958801
+       ]
+      },
+      "y_intercept": {
+       "value": 0.06699655083621003,
+       "se": 0.16521364879502495,
+       "ci": [
+        -0.33726668437124085,
+        0.4712597860436609
+       ]
+      },
+      "x_intercept": -0.03365532068321407,
+      "y_at_x0": {
+       "x0": 0.0,
+       "value": 0.06699655083621003,
+       "se": 0.16521364879502495,
+       "ci": [
+        -0.33726668437124085,
+        0.4712597860436609
+       ]
+      },
+      "slope_test": {
+       "t": 60.844717486547154,
+       "df": 6,
+       "p": 1.3247084604788487e-09
+      },
+      "equation": "Y = 1.99067*X + 0.0669966"
+     }
+    }
+   ]
+  }
+ },
+ "estimation_two": {
+  "options": {},
+  "result": {
+   "analysis": "estimation",
+   "design": "two_group",
+   "paired": false,
+   "groups": [
+    {
+     "name": "Control",
+     "n": 6,
+     "mean": 23.966666666666665,
+     "sd": 1.6954841982945945,
+     "median": 24.0,
+     "q1": 22.725,
+     "q3": 25.275,
+     "values": [
+      23.1,
+      25.4,
+      21.8,
+      24.9,
+      22.6,
+      26.0
+     ]
+    },
+    {
+     "name": "Treated A",
+     "n": 6,
+     "mean": 29.166666666666668,
+     "sd": 1.5187714333192686,
+     "median": 28.9,
+     "q1": 28.5,
+     "q3": 29.9,
+     "values": [
+      28.4,
+      30.2,
+      27.1,
+      31.5,
+      29.0,
+      28.8
+     ]
+    }
+   ],
+   "comparisons": [
+    {
+     "control": "Control",
+     "test": "Treated A",
+     "paired": false,
+     "n_control": 6,
+     "n_test": 6,
+     "effects": [
+      {
+       "effect": "mean_diff",
+       "label": "Mean difference",
+       "paired": false,
+       "difference": 5.200000000000003,
+       "ci": [
+        3.533333333333335,
+        6.916666666666671
+       ],
+       "ci_type": "bca",
+       "ci_level": 0.95,
+       "bca_ci": [
+        3.533333333333335,
+        6.916666666666671
+       ],
+       "percentile_ci": [
+        3.4995833333333284,
+        6.866666666666664
+       ],
+       "bias_correction": 0.018299407668827677,
+       "acceleration": 0.00718684534270528,
+       "note": null,
+       "bootstrap": {
+        "n_resamples": 5000,
+        "n_undefined": 0,
+        "mean": 5.1916633333333335,
+        "sd": 0.8480275461455141
+       },
+       "permutation": {
+        "p": 0.0021645021645021645,
+        "n_permutations": 924,
+        "exact": true,
+        "method": "all arrangements enumerated"
+       },
+       "control": "Control",
+       "test": "Treated A"
+      }
+     ]
+    }
+   ],
+   "effects": [
+    "mean_diff"
+   ],
+   "ci_level": 0.95,
+   "ci_type": "bca",
+   "n_resamples": 5000,
+   "n_permutations": 5000,
+   "seed": 12345,
+   "plot": {
+    "kind": "gardner_altman",
+    "order": [
+     "Control",
+     "Treated A"
+    ],
+    "pairs": [
+     [
+      "Control",
+      "Treated A"
+     ]
+    ],
+    "paired_lines": false,
+    "reference_mean": 23.966666666666665,
+    "reference_median": 24.0
+   }
+  }
+ },
+ "estimation_shared": {
+  "options": {},
+  "result": {
+   "analysis": "estimation",
+   "design": "shared_control",
+   "paired": false,
+   "groups": [
+    {
+     "name": "Control",
+     "n": 6,
+     "mean": 23.966666666666665,
+     "sd": 1.6954841982945945,
+     "median": 24.0,
+     "q1": 22.725,
+     "q3": 25.275,
+     "values": [
+      23.1,
+      25.4,
+      21.8,
+      24.9,
+      22.6,
+      26.0
+     ]
+    },
+    {
+     "name": "Treated A",
+     "n": 6,
+     "mean": 29.166666666666668,
+     "sd": 1.5187714333192686,
+     "median": 28.9,
+     "q1": 28.5,
+     "q3": 29.9,
+     "values": [
+      28.4,
+      30.2,
+      27.1,
+      31.5,
+      29.0,
+      28.8
+     ]
+    },
+    {
+     "name": "Treated B",
+     "n": 6,
+     "mean": 35.5,
+     "sd": 1.3798550648528267,
+     "median": 35.5,
+     "q1": 34.375,
+     "q3": 36.4,
+     "values": [
+      35.2,
+      33.9,
+      37.4,
+      34.1,
+      36.6,
+      35.8
+     ]
+    }
+   ],
+   "comparisons": [
+    {
+     "control": "Control",
+     "test": "Treated A",
+     "paired": false,
+     "n_control": 6,
+     "n_test": 6,
+     "effects": [
+      {
+       "effect": "mean_diff",
+       "label": "Mean difference",
+       "paired": false,
+       "difference": 5.200000000000003,
+       "ci": [
+        3.533333333333335,
+        6.916666666666671
+       ],
+       "ci_type": "bca",
+       "ci_level": 0.95,
+       "bca_ci": [
+        3.533333333333335,
+        6.916666666666671
+       ],
+       "percentile_ci": [
+        3.4995833333333284,
+        6.866666666666664
+       ],
+       "bias_correction": 0.018299407668827677,
+       "acceleration": 0.00718684534270528,
+       "note": null,
+       "bootstrap": {
+        "n_resamples": 5000,
+        "n_undefined": 0,
+        "mean": 5.1916633333333335,
+        "sd": 0.8480275461455141
+       },
+       "permutation": {
+        "p": 0.0021645021645021645,
+        "n_permutations": 924,
+        "exact": true,
+        "method": "all arrangements enumerated"
+       },
+       "control": "Control",
+       "test": "Treated A"
+      }
+     ]
+    },
+    {
+     "control": "Control",
+     "test": "Treated B",
+     "paired": false,
+     "n_control": 6,
+     "n_test": 6,
+     "effects": [
+      {
+       "effect": "mean_diff",
+       "label": "Mean difference",
+       "paired": false,
+       "difference": 11.533333333333335,
+       "ci": [
+        9.966666666666676,
+        13.13333333333333
+       ],
+       "ci_type": "bca",
+       "ci_level": 0.95,
+       "bca_ci": [
+        9.966666666666676,
+        13.13333333333333
+       ],
+       "percentile_ci": [
+        9.96625,
+        13.116666666666664
+       ],
+       "bias_correction": 0.0012533144654324165,
+       "acceleration": 0.003653835523767964,
+       "note": null,
+       "bootstrap": {
+        "n_resamples": 5000,
+        "n_undefined": 0,
+        "mean": 11.532096666666668,
+        "sd": 0.8199500600295183
+       },
+       "permutation": {
+        "p": 0.0021645021645021645,
+        "n_permutations": 924,
+        "exact": true,
+        "method": "all arrangements enumerated"
+       },
+       "control": "Control",
+       "test": "Treated B"
+      }
+     ]
+    }
+   ],
+   "effects": [
+    "mean_diff"
+   ],
+   "ci_level": 0.95,
+   "ci_type": "bca",
+   "n_resamples": 5000,
+   "n_permutations": 5000,
+   "seed": 12345,
+   "plot": {
+    "kind": "cumming",
+    "order": [
+     "Control",
+     "Treated A",
+     "Treated B"
+    ],
+    "pairs": [
+     [
+      "Control",
+      "Treated A"
+     ],
+     [
+      "Control",
+      "Treated B"
+     ]
+    ],
+    "paired_lines": false
+   }
+  }
+ }
+}

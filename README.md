@@ -239,8 +239,31 @@ from the jsDelivr CDN, ~30 MB, then cached).
   in favour of the project file.
 - Export bundle (Save menu): one zip with the project file, every data
   table as wide and long (tidy) CSV, every results sheet as CSV, every
-  graph as SVG and PNG, methods text, citation and a README naming the
-  software versions.
+  graph as SVG and PNG, methods text, figure legends and results
+  sentences (legends.txt), provenance of every analysis
+  (provenance.json), citation and a README naming the software versions.
+- Reporting (`web/src/report/`): every comparison shows its effect size
+  with a 95% CI and a labelled interpretation (Cohen's d / Hedges' g,
+  Glass's Δ, d_z, η², partial and generalized η², ω², Cramér's V, φ, r,
+  Cliff's δ, rank-biserial r, Kendall's W), the default family chosen in
+  Preferences → Reporting. Under each results sheet: a results sentence
+  in APA 7, NEJM or GraphPad style (one P-value style for tables,
+  sentences and legends; "ns" can be hidden), the figure legend (what is
+  plotted, n with its unit and independent experiments, test and
+  sidedness, post hoc and correction, star scale, software version; also
+  under each graph), equivalent R and Python code with caveats where
+  defaults differ, and a "Statistical analysis" paragraph in the methods
+  text. Journal checklists (Nature reporting summary, eLife, Cell STAR
+  Methods, SAMPL, ARRIVE 2.0 items 1-3, 7, 10) are ticked from the
+  project with a reason and a fix for each item; History lists every
+  analysis with its full options (defaults marked), table fingerprints
+  and software versions, copyable as JSON. Reporting details of a table
+  (unit of n, experiments, exclusions, sample-size reasoning) feed all of
+  these.
+- Estimation plots (column and grouped tables): Gardner-Altman (two
+  groups) and Cumming (shared control, multiple two-group, paired
+  baseline or sequential) plots with BCa or percentile bootstrap CIs, a
+  fixed seed and permutation P values (DABEST method, Ho et al. 2019).
 - Import recipes (Import → Recipes): FlowJo tables, CellProfiler
   per-object CSVs, QuPath measurements, plate-reader grids, qPCR Cq
   exports and long-format CSVs become typed long records; group, animal

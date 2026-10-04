@@ -24,6 +24,7 @@ import { SimulateHost } from "./sheets/manipulate/SimulateDialog";
 import ShareHost from "./share/ShareHost";
 import { useGuide } from "./guide/context";
 import { GuideProvider } from "./guide/GuideProvider";
+import ReportHost from "./report/ReportHost";
 import { lazy, Suspense } from "react";
 
 // The page-layout composer is loaded the first time a layout sheet opens.
@@ -98,6 +99,7 @@ function Shell() {
     <div className={`app${guide.startOpen ? " start-open" : ""}`}>
       <Header onOpenFile={openFile} onNewProject={newProject} />
       <ShareHost />
+      <ReportHost />
       {autosave.offer && (
         <div className="restore-banner" role="region" aria-label="Restore last session">
           <span>

@@ -2,17 +2,16 @@
 // summaries, confidence intervals. formatSig follows the results-precision
 // preference.
 import { formatSig } from "../../types";
-import { pStars } from "../../graph/significance";
+import { tableP, tableStars } from "../../report/pformat";
 
+/** P in the project's P-value style (src/report/pformat.ts). */
 export function fmtP(p: unknown): string {
-  if (typeof p !== "number" || !Number.isFinite(p)) return "n/a";
-  return p < 0.0001 ? "< 0.0001" : formatSig(p, 4);
+  return tableP(p);
 }
 
-/** Significance summary in the usual asterisk notation. */
+/** Significance summary in the project's asterisk scale. */
 export function stars(p: unknown): string {
-  // P ≤ 0.05 *, ≤ 0.01 **, ≤ 0.001 ***, ≤ 0.0001 ****, as on graph brackets.
-  return typeof p === "number" && Number.isFinite(p) ? pStars(p) : "";
+  return tableStars(p);
 }
 
 export function fmtCI(ci: unknown): string {

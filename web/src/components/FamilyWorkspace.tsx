@@ -31,6 +31,10 @@ import WelcomePanel from "./WelcomePanel";
 import { useGuideOptional } from "../guide/context";
 import EntryGuide from "../guide/EntryGuide";
 import { DifferNote, ResultsGuide } from "../guide/ResultsGuide";
+import EffectSizeCard from "../report/EffectSizeCard";
+import GraphLegend from "../report/GraphLegend";
+import ReportCard from "../report/ReportCard";
+import StatsMethodsCard from "../report/StatsMethodsCard";
 
 /**
  * The workbench for one family: the data table (left) with the active
@@ -178,9 +182,12 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
                   <Suspense fallback={<Pending />}>
                     <Results sheet={resSheet} table={data.table} options={options} result={result} />
                   </Suspense>
+                  {/* Effect sizes of every comparison (src/report). */}
+                  <EffectSizeCard result={result} />
                 </ResultsExport>
                 <DifferNote analysisId={resSheet.analysis} tableType={data.table.type}
                   table={data.table} options={options} result={result} />
+                <ReportCard sheet={resSheet} table={data.table} options={options} result={result} />
               </div>
             )}
             {resSheet && Methods && (
@@ -192,6 +199,7 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
                   </Suspense>
                   <FigureLegendCard graph={graph?.resultsId === resSheet.id ? graph : null}
                     table={data.table} result={result} />
+                  <StatsMethodsCard sheet={resSheet} result={result} />
                 </div>
               </>
             )}
@@ -338,6 +346,7 @@ function GraphCard({ graph, data, result, options }: {
             </Suspense>
           ) : undefined} />
       )} />
+      <GraphLegend graph={graph} data={data} table={table} result={res} options={opts} />
       {dialogs.element}
     </div>
   );

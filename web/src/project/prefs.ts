@@ -2,6 +2,7 @@
 // private windows and blocked storage just fall back to defaults).
 import { DEFAULT_SCHEME, isSchemeId } from "../lib/palette.ts";
 import { sanitizeExport } from "../export/settings.ts";
+import { sanitizeReport } from "../report/prefs.ts";
 import { isTableType, type Prefs, type ProjectPrefs } from "./types.ts";
 
 export const DEFAULT_PREFS: Prefs = {
@@ -30,6 +31,8 @@ export function sanitizePrefs(raw: unknown, base: Prefs = DEFAULT_PREFS): Prefs 
       ? Math.round(r.digits) : base.digits,
     ...(r.export !== undefined ? { export: sanitizeExport(r.export) }
       : base.export ? { export: base.export } : {}),
+    ...(r.report !== undefined ? { report: sanitizeReport(r.report) }
+      : base.report ? { report: base.report } : {}),
   };
 }
 

@@ -8,6 +8,7 @@ import {
   GRAPH_SURVIVAL, GRAPH_XY,
 } from "./builtin.ts";
 import { parseDerivedLink } from "./derived.ts";
+import { parseReportMeta } from "../report/meta.ts";
 import { repairGroups } from "./groups.ts";
 import type { IdFactory } from "./ids.ts";
 import { sanitizeLayoutFields } from "./layout.ts";
@@ -162,9 +163,11 @@ function normalizeV2(r: Record<string, unknown>, ctx: LoadContext): Project {
       case "data": {
         const derived = parseDerivedLink(s.derived);
         const simulation = parseSimulationSpec(s.simulation);
+        const report = parseReportMeta(s.report);
         sheets.push({
           ...common, kind: "data", table: normalizeTable(s.table),
           ...(derived ? { derived } : {}), ...(simulation ? { simulation } : {}),
+          ...(report ? { report } : {}),
         });
         break;
       }

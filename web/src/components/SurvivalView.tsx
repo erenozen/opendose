@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import Plotly from "plotly.js-dist-min";
 import { formatSig } from "../types";
+import { tableP } from "../report/pformat";
 import {
   CHROME_DARK, CHROME_LIGHT, DEFAULT_SCHEME, isDarkMode, onThemeChange,
   seriesStyle, PLOT_FONT, type SchemeId,
@@ -31,9 +32,9 @@ interface PlotProps {
   nudge?: number;
 }
 
+/** P in the project's P-value style (src/report/pformat.ts). */
 function fmtP(p: any): string {
-  if (typeof p !== "number") return "n/a";
-  return p < 0.0001 ? "< 0.0001" : formatSig(p, 4);
+  return tableP(p);
 }
 
 /** Kaplan-Meier curves (the graph). */

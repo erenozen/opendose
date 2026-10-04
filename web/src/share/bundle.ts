@@ -24,6 +24,11 @@ export interface BundleInput {
   date: string;
   /** Parts that could not be produced (named in the README). */
   skipped: string[];
+  /** Figure legends (graphs) and results sentences (results sheets),
+   *  written to legends.txt (src/report). */
+  legends?: { name: string; kind: "graph" | "results"; text: string }[];
+  /** Provenance of every analysis (src/report/provenance.ts), as JSON. */
+  provenance?: string;
 }
 
 export interface BundleFile { name: string; data: Uint8Array }
@@ -85,6 +90,10 @@ export function bundleFiles(b: BundleInput): BundleFile[] {
     ? b.methods.map((m) => `${m.name}\n${"-".repeat(Math.min(72, m.name.length))}\n${m.text}\n`).join("\n")
     : "No analysis in this project produced methods text.\n";
   files.push({ name: "methods.txt", text: methods, about: "Methods text for each results sheet." });
+  if (b.legends) files.push({ name: "legends.txt", text: legendsText(b.legends),
+    about: "Figure legend of each graph and the results sentence of each results sheet." });
+  if (b.provenance) files.push({ name: "provenance.json", text: b.provenance,
+    about: "Every analysis with its full options (defaults marked), input table fingerprints and software versions." });
   files.push({ name: "CITATION.txt", text: `${b.citation.plain}\n\nBibTeX:\n\n${b.citation.bibtex}\n`,
     about: "How to cite OpenDose (plain reference and BibTeX)." });
 
@@ -92,6 +101,18 @@ export function bundleFiles(b: BundleInput): BundleFile[] {
   const out: BundleFile[] = [{ name: "README.txt", data: strToU8(readme) }];
   for (const f of files) out.push({ name: f.name, data: f.bytes ?? strToU8(f.text ?? "") });
   return out;
+}
+
+/** legends.txt: figure legends first, then results sentences. */
+export function legendsText(items: { name: string; kind: "graph" | "results"; text: string }[]): string {
+  const block = (title: string, kind: "graph" | "results") => {
+    const xs = items.filter((i) => i.kind === kind && i.text.trim());
+    if (!xs.length) return "";
+    return `${title}\n${"=".repeat(title.length)}\n\n`
+      + xs.map((i) => `${i.name}\n${"-".repeat(Math.min(72, i.name.length))}\n${i.text.trim()}\n`).join("\n");
+  };
+  const out = [block("Figure legends", "graph"), block("Results sentences", "results")].filter(Boolean);
+  return out.length ? `${out.join("\n")}` : "No graph or results sheet produced a legend or results sentence.\n";
 }
 
 export function readmeText(b: BundleInput, list: { name: string; about: string }[]): string {
