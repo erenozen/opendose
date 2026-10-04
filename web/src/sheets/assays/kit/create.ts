@@ -30,7 +30,10 @@ export function requestWizard(id: string): void { pending.add(id); }
 /** True once for a requested sheet. */
 export function takeWizardRequest(id: string): boolean {
   const had = pending.has(id);
-  pending.delete(id);
+  // Forgotten a moment later rather than at once: a panel that mounts
+  // twice right after creation (StrictMode, a lazy chunk resolving under
+  // Suspense) must still see the request.
+  if (had) setTimeout(() => pending.delete(id), 3000);
   return had;
 }
 

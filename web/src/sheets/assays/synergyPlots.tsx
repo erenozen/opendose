@@ -267,9 +267,13 @@ export function FaCiPlot({ options, result, titles, scheme, format, onFormatChan
     const chrome = chromeOf(dark);
     const combos = ((result?.chou_talalay?.combinations ?? []) as R[]).filter((c) => c.ci != null);
     if (!result || result.error || !combos.length) {
+      const ct = result?.chou_talalay;
+      const why = ["drug1", "drug2"].map((k) => ct?.[k]).filter((d) => d?.valid === false)
+        .map((d) => String(d.reason ?? "")).filter(Boolean);
       return { traces: [] as Plotly.Data[], layout: messageLayout(chrome, result?.error
         ? "No graph: the analysis did not run"
-        : "No combination index: Fa must lie between 0 and 1 and both median-effect fits must exist") };
+        : why.length ? `Combination indices withheld: ${why.join("; ")}`
+          : "No combination index: Fa must lie between 0 and 1 and both median-effect fits must be valid") };
     }
     const { color, symbol } = seriesStyle(0, dark, scheme);
     const traces: Plotly.Data[] = [tagTrace({

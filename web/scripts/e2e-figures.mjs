@@ -233,7 +233,7 @@ await shot("superplot");
   expect("project P style APA redraws the brackets without a per-graph setting",
     after.brackets.length > 0 && after.brackets.every((b) => /^p [=<] \.\d+$/.test(b)),
     after.brackets.join(" | "));
-  const table = await page.locator(".pane-results .results-table tr", { hasText: /P value/ }).first()
+  const table = await page.locator(".pane-results .results-table tbody tr", { hasText: /P value/ }).first()
     .innerText().catch(() => "");
   expect("results table follows the same project style", /(< \.001|\s\.\d{3})/.test(table) && !/0\.\d{4}/.test(table), table.replace(/\s+/g, " ").slice(0, 400));
   await page.getByRole("button", { name: "Preferences" }).click();

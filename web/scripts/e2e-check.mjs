@@ -1204,8 +1204,12 @@ expect("synergy: four landscapes on one diverging scale (one colour bar)",
 expect("synergy: Chou-Talalay table with combination indices",
   (await resultsText()).includes("Combination index per dose pair") || (await page.locator(".results-table", { hasText: "Interpretation" }).count()) === 1);
 await page.locator(".graph-select").selectOption("synergy_fa_ci");
-expect("synergy: Fa-CI plot draws the combinations",
-  await appears(page.locator(".plot .scatterlayer .trace")));
+// The example's drug-1 median-effect line slopes the wrong way (r < 0),
+// so the engine withholds every combination index and the plot says why.
+expect("synergy: Fa-CI plot draws the combinations or says why they are withheld",
+  await appears(page.locator(".plot .scatterlayer .trace"), 8000)
+  || await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.layout?.annotations ?? [])
+    .some((a) => /withheld/.test(a.text ?? "")), null, { timeout: 15000 }).then(() => true, () => false));
 
 // AUC by trapezoid on a tiny XY table
 await page.getByRole("button", { name: "New data table" }).click();
