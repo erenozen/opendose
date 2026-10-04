@@ -6,7 +6,7 @@ import "./guide.css";
 import {
   lazy, Suspense, useCallback, useEffect, useMemo, useState, type ReactNode,
 } from "react";
-import { exampleRequested, GuideCtx, setTourDone, startScreenEnabled, type GuideApi } from "./context";
+import { exampleRequested, shareLinkRequested, GuideCtx, setTourDone, startScreenEnabled, type GuideApi } from "./context";
 
 // The overlays load on first use.
 const HelpPanel = lazy(() => import("./HelpPanel"));
@@ -17,7 +17,8 @@ export function GuideProvider({ children }: { children: ReactNode }) {
   const [wizard, setWizard] = useState(false);
   const [help, setHelp] = useState<{ topic: string | null } | null>(null);
   const [tour, setTour] = useState(false);
-  const [startOpen, setStartOpen] = useState(() => !exampleRequested() && startScreenEnabled());
+  const [startOpen, setStartOpen] = useState(
+    () => !exampleRequested() && !shareLinkRequested() && startScreenEnabled());
 
   const openWizard = useCallback(() => { setHelp(null); setWizard(true); }, []);
   const openHelp = useCallback((id?: string) => setHelp({ topic: id ?? null }), []);
