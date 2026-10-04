@@ -494,15 +494,18 @@ its most praised feature; users want more of it.
 Technical vs biological replicates, pooling experiments, n = cells
 (forums #3, reviews #12, workflows §9–10; JCB endorses SuperPlots).
 - Covered: nested t test and ANOVA, mixed models, paired lines.
-- [ ] SuperPlot mode on column and grouped graphs: a replicate column
+- [x] SuperPlot mode on column and grouped graphs: a replicate column
       colours the points, overlays replicate means, and the statistics
       run on the replicate means (paired when linked by experiment)
+      (table-level replicate map: subcolumns or a label column;
+      "Statistics on replicate means" for column and grouped tables)
 - [x] Hierarchical aggregation dialog for long-format exports (cell →
       image → animal/replicate by mean or median) that keeps the
       cell-level points for display (the import recipes' Aggregate step;
       the lower level is kept as a nested table)
 - [ ] Biological vs technical replicate prompt when a table looks like
       pooled cells; n with its unit on the graph and in the legend
+      (n with its unit is in the legend sentence; the prompt is open)
 
 ### Theme 3. Assay modules that start from the instrument export
 IC50 from plate readers, ELISA standard curves with QC, qPCR ΔΔCt,
@@ -579,23 +582,28 @@ exact P on brackets, consistent styles, Prism-recognisable look
 - Covered: column graphs default to points with mean ± SD, validated
   colour-blind-safe schemes, brackets, Magic-style format copying,
   journal size presets, vector export.
-- [ ] Error-bar meaning written into the legend automatically; n per
+- [x] Error-bar meaning written into the legend automatically; n per
       group label; a warning when a bar graph hides n < 10
-- [ ] Colour-vision-deficiency simulation and contrast check in the
+      (`legendSentence` in web/src/graph/legend.ts)
+- [x] Colour-vision-deficiency simulation and contrast check in the
       graph settings (Datawrapper-style)
-- [ ] A "Classic" theme preset: white background, bold labels, offset
+- [x] A "Classic" theme preset: white background, bold labels, offset
       axes ending at the last tick, minor ticks, hidden legend title
-- [ ] Volcano plot from an imported fold-change / P table (thresholds,
-      colours, top-N labels); clustered heat map with dendrogram
-      (linkage, distance, row z-score), k-means
+- [x] Volcano plot from an imported fold-change / P table (thresholds,
+      colours, top-N labels)
+- [ ] Clustered heat map with dendrogram (linkage, distance), k-means
+      (row / column z-scores are in; the cluster toggles are wired to the
+      engine's `cluster_heatmap` handler and enable when it lands)
 - [ ] P-value style presets for brackets, tables and sentences (APA
       ".012 / <.001", NEJM "P<0.001", GraphPad "0.0123 / <0.0001" with
       ****), "hide ns", and the star-threshold scale written into the
-      legend
-- [ ] Prism-style symmetric point placement (points at the same value
+      legend (done for brackets, results blocks and the legend sentence
+      via `GraphFormat.pStyle`; results tables and methods sentences
+      still use the house style)
+- [x] Prism-style symmetric point placement (points at the same value
       spread symmetrically about the centre) as the default scatter
-      layout, alongside jitter and beeswarm
-- [ ] Survival curves: nudge overlapping curves apart at 100%, censor
+      layout, alongside jitter and beeswarm (default for new graphs)
+- [x] Survival curves: nudge overlapping curves apart at 100%, censor
       marks, P in the chosen journal style
 
 ### Theme 7. Statistics still missing

@@ -34,7 +34,7 @@ export function ColumnGraph({ graph, table, titles, scheme, result, format,
   // the pairwise brackets and the compact letter display.
   const comparisons = useMemo(() => extractComparisons(result,
     table.datasets.map((d) => d.name))?.comparisons, [result, table.datasets]);
-  const results = useMemo(() => resultBlocks(result), [result]);
+  const results = useMemo(() => resultBlocks(result, format?.pStyle), [result, format?.pStyle]);
   const sentence = useMemo(() => (cs.caption === "off" ? ""
     : legendSentence(graph, table, result)), [cs.caption, graph, table, result]);
   const inFigure = cs.caption === "figure" ? sentence : undefined;

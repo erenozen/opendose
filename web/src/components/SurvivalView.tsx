@@ -130,7 +130,7 @@ export function SurvivalPlot({
     const out = applyFormat(traces as never, layout, format, {
       dark, scheme, datasets: Object.keys(result.curves),
       riskSets: riskSets ?? riskSetsFromResult(result),
-      results: resultBlocks(result), editRevision: rev,
+      results: resultBlocks(result, format.pStyle), editRevision: rev,
     });
     const div = el.current;
     Plotly.react(div, out.traces as Plotly.Data[], out.layout, plotConfig(

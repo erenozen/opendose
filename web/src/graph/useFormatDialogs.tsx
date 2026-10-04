@@ -47,7 +47,7 @@ export function useFormatDialogs({
   const cmpSet = useMemo(() => (comparisons !== undefined ? comparisons
     : features.categorical ? extractComparisons(result, datasets) : null),
   [comparisons, features.categorical, result, datasets]);
-  const blocks = useMemo(() => resultBlocks(result), [result]);
+  const blocks = useMemo(() => resultBlocks(result, format.pStyle), [result, format.pStyle]);
   const hasY2 = Object.values(format.datasets ?? {}).some((d) => d.rightAxis) || !!format.y2;
 
   const actions: FormatAction[] = [

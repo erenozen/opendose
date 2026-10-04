@@ -9,6 +9,7 @@ import { CVD_LABELS, cvdReport, type CvdRow } from "./cvd";
 import { drawnColors, type Drawn } from "./drawnColors";
 import { withField, type GraphFormat, type GraphTheme } from "./format";
 import { THEMES } from "./theme";
+import { P_STYLES, type PStyle } from "./significance";
 import "./figure.css";
 
 interface Props {
@@ -29,6 +30,14 @@ export default function FigurePanel({ format, onFormat, scheme }: Props) {
           onChange={(e) => onFormat(withField(format, "theme",
             e.target.value === "classic" ? "classic" : undefined))}>
           {THEMES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+        </select>
+      </label>
+      <label className="figure-row">
+        P values
+        <select value={format.pStyle ?? "graphpad"} aria-label="P value style"
+          onChange={(e) => onFormat(withField(format, "pStyle",
+            e.target.value === "graphpad" ? undefined : e.target.value as PStyle))}>
+          {P_STYLES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
         </select>
       </label>
       <CvdCheck scheme={scheme} />
