@@ -26,7 +26,7 @@ import { useGuide } from "./guide/context";
 import { GuideProvider } from "./guide/GuideProvider";
 import ReportHost from "./report/ReportHost";
 import PowerHost from "./power/PowerHost";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 
 // The page-layout composer is loaded the first time a layout sheet opens.
 const LayoutSheetView = lazy(() => import("./components/LayoutSheetView"));
@@ -54,6 +54,17 @@ function Shell() {
   useShortcuts();
   useDerivedSync();
   usePrintSetup();
+
+  // Default start mode: once the autosave has been looked at, a last
+  // session opens directly; with none (first visit, or after "New
+  // project") the start screen shows.
+  const { startPending, resolveStart } = guide;
+  const { checked: autosaveChecked, offer, restore } = autosave;
+  useEffect(() => {
+    if (!startPending || !autosaveChecked) return;
+    if (offer) restore({ auto: true });
+    resolveStart(!!offer);
+  }, [startPending, autosaveChecked, offer, restore, resolveStart]);
 
   const newProject = async () => {
     const ok = await ui.confirm({
@@ -101,7 +112,7 @@ function Shell() {
       <Header onOpenFile={openFile} onNewProject={newProject} />
       <ShareHost />
       <ReportHost />
-      {autosave.offer && (
+      {autosave.offer && !guide.startPending && (
         <div className="restore-banner" role="region" aria-label="Restore last session">
           <span>
             Restore your last session? “{autosave.offer.title}”, {autosave.offer.sheets}{" "}
@@ -126,7 +137,9 @@ function Shell() {
           <button className="dismiss" onClick={files.dismissPrism}>Cancel</button>
         </div>
       )}
-      {guide.startOpen ? (
+      {guide.startPending ? (
+        <main className="info-main" aria-busy="true" aria-label="Opening OpenDose" />
+      ) : guide.startOpen ? (
         <Suspense fallback={<main className="info-main" aria-busy="true" />}>
           <StartScreen onOpenFile={files.open} onClose={guide.hideStart} onTour={guide.startTour} />
         </Suspense>

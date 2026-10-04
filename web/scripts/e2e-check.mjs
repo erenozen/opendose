@@ -1377,10 +1377,27 @@ expect("ambiguous fit banner with concrete fixes for a flat dataset",
   // the engine boots first (it blocks the page), then the autosave debounce
   await p2.waitForSelector(".results-table", { timeout: 180000 });
   await p2.waitForTimeout(1500);
+  // With a session saved, the next visit reopens it directly (default
+  // start mode): no start screen, no restore banner.
+  await p2.reload({ waitUntil: "domcontentloaded" });
+  await p2.locator(".data-table").waitFor({ timeout: 60000 });
+  expect("a later visit reopens the last session directly",
+    await p2.getByRole("treeitem", { name: "Pasted data", exact: true }).count() === 1
+    && await p2.locator(".start-screen").count() === 0
+    && await p2.locator(".restore-banner").count() === 0);
+  // "Show this screen when OpenDose opens" ticked: the start screen every
+  // time, with the restore banner offering the last session.
+  await p2.keyboard.press("Control+/");
+  await p2.getByRole("complementary", { name: "Help" }).getByRole("button", { name: "Start screen" }).click();
+  await p2.locator(".start-screen").waitFor({ timeout: 30000 });
+  expect("the start-screen preference is unticked by default",
+    !(await p2.getByLabel("Show this screen when OpenDose opens").isChecked()));
+  await p2.getByLabel("Show this screen when OpenDose opens").check();
   await p2.reload({ waitUntil: "domcontentloaded" });
   await p2.locator(".start-screen").waitFor({ timeout: 60000 });
-  expect("the restore banner still shows on the start screen",
+  expect("ticked, the start screen shows with the restore banner",
     await p2.locator(".restore-banner").waitFor({ timeout: 30000 }).then(() => true, () => false));
+  await p2.getByLabel("Show this screen when OpenDose opens").uncheck();
   await p2.getByRole("button", { name: "Open the example project" }).click();
   expect("the tour starts with the example project",
     await p2.locator(".tour-card").waitFor({ timeout: 10000 }).then(() => true, () => false)
@@ -1390,8 +1407,16 @@ expect("ambiguous fit banner with concrete fixes for a flat dataset",
     (await p2.locator(".tour-count").innerText()) === "Step 2 of 5");
   await p2.getByRole("button", { name: "Skip tour" }).click();
   expect("Skip closes the tour", await p2.locator(".tour-card").count() === 0);
+  // The example session is autosaved; a reload reopens it directly, and
+  // the tour does not come back.
+  await p2.waitForTimeout(1500);
   await p2.reload({ waitUntil: "domcontentloaded" });
-  await p2.locator(".start-screen").waitFor({ timeout: 60000 });
+  await p2.locator(".data-table").waitFor({ timeout: 60000 });
+  expect("the example session reopens directly",
+    await p2.locator(".start-screen").count() === 0 && await p2.locator(".tour-card").count() === 0);
+  await p2.keyboard.press("Control+/");
+  await p2.getByRole("complementary", { name: "Help" }).getByRole("button", { name: "Start screen" }).click();
+  await p2.locator(".start-screen").waitFor({ timeout: 30000 });
   await p2.getByRole("button", { name: "Open the example project" }).click();
   await p2.waitForTimeout(1500);
   expect("the tour does not come back after it was dismissed",

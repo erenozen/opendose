@@ -16,6 +16,8 @@ const DELAY_MS = 800;
 export function useAutosave() {
   const { store, history, replace, setStatus, readOnly } = useProject();
   const [offer, setOffer] = useState<AutosaveRecord | null>(null);
+  // The last session has been looked for (whether or not one exists).
+  const [checked, setChecked] = useState(readOnly);
   const boot = useRef(history.present);
   // Opened from a share link: the user's own autosave is left alone while
   // the shared project is viewed. After "Make a copy" the last session is
@@ -26,7 +28,8 @@ export function useAutosave() {
     if (readOnly) return;
     let live = true;
     rotateOnBoot().then((rec) => { if (live && rec && !sharedBoot) setOffer(rec); })
-      .catch(() => { /* storage unavailable */ });
+      .catch(() => { /* storage unavailable */ })
+      .finally(() => { if (live) setChecked(true); });
     return () => { live = false; };
   }, [readOnly, sharedBoot]);
 
@@ -45,11 +48,14 @@ export function useAutosave() {
     return () => clearTimeout(t);
   }, [history.present, readOnly]);
 
-  const restore = () => {
+  /** Reopen the last session. `auto`: opened directly at startup (the
+   *  default start mode), said in the status line. */
+  const restore = (opts: { auto?: boolean } = {}) => {
     if (!offer) return;
     try {
       const p = parseProjectFile(offer.json, { prefs: store.project.prefs, ids: newId });
       replace(p);
+      if (opts.auto) setStatus(`Reopened your last session, “${offer.title}”.`);
     } catch (e) {
       setStatus(`Could not restore: ${e instanceof Error ? e.message : e}`);
     }
@@ -68,5 +74,5 @@ export function useAutosave() {
   /** Treat `p` as the untouched starting point (no autosave until edited). */
   const markClean = (p: Project) => { boot.current = p; };
 
-  return { offer, restore, dismiss, forgetCurrent, markClean };
+  return { offer, checked, restore, dismiss, forgetCurrent, markClean };
 }
