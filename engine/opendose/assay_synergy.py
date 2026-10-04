@@ -377,7 +377,25 @@ def _scores(R, c1, c2):
     return out
 
 
+#: Minimum r^2 of a monotherapy median-effect regression for its
+#: combination indices to be computed: r >= 0.90, Chou's (2006,
+#: Pharmacol Rev 58:621, "Conformity of data to the mass-action law")
+#: lower limit for animal data (he asks r > 0.95 in vitro). Below it the
+#: median-effect line does not describe the drug and Dx = Dm (fa/fu)^(1/m)
+#: is meaningless (a flat or noisy monotherapy gives m near 0 and
+#: indices of 1e+28).
+MEDIAN_EFFECT_MIN_R2 = 0.81
+#: Fewest monotherapy doses with 0 < fa < 1: the r of a line through two
+#: points is +/-1 by construction.
+MEDIAN_EFFECT_MIN_POINTS = 3
+
+
 def _median_effect(doses, fa):
+    """Median-effect regression log(fa/fu) = m log D - m log Dm of one
+    drug, with "valid" (False and a "reason" when its indices must not be
+    computed: fewer than MEDIAN_EFFECT_MIN_POINTS doses with 0 < fa < 1,
+    m <= 0, or r^2 below MEDIAN_EFFECT_MIN_R2). None when no line can be
+    drawn at all."""
     pts = [(d, f) for d, f in zip(doses, fa)
            if d > 0 and f is not None and math.isfinite(f) and 0 < f < 1]
     if len(pts) < 2:
@@ -399,15 +417,38 @@ def _median_effect(doses, fa):
         r2 = reg["r_squared"] or 0.0
         r = math.copysign(math.sqrt(max(r2, 0.0)), m)
         n = reg["n"]
-    return {"m": m, "Dm": 10.0 ** (-b / m), "r": r, "n": n,
-            "intercept": b}
+    reason = None
+    if n < MEDIAN_EFFECT_MIN_POINTS:
+        reason = (f"only {n} monotherapy doses with 0 < fa < 1 (at least "
+                  f"{MEDIAN_EFFECT_MIN_POINTS} are needed)")
+    elif m <= 0:
+        reason = (f"median-effect slope m = {m:.3g} is not positive "
+                  f"(r = {r:.3f}; the effect does not rise with the dose)")
+    elif r * r < MEDIAN_EFFECT_MIN_R2:
+        reason = (f"median-effect fit r = {r:.3f} (r^2 = {r * r:.3f}) is "
+                  f"below the r^2 >= {MEDIAN_EFFECT_MIN_R2} threshold")
+    return {"m": m, "Dm": 10.0 ** (-b / m), "r": r, "r_squared": r * r,
+            "n": n, "intercept": b, "valid": reason is None,
+            "reason": reason}
 
 
-def chou_talalay(R, c1, c2) -> dict:
-    """Median-effect fits and the combination index of each cell."""
+def chou_talalay(R, c1, c2, names=("Drug 1", "Drug 2")) -> dict:
+    """Median-effect fits and the combination index of each cell.
+
+    A cell gets a CI only when its observed fraction affected is strictly
+    inside (0, 1) and both monotherapy median-effect fits are valid
+    (_median_effect); otherwise ci is None and "reason" says why. Nothing
+    is capped: a CI that is not a finite number is not reported."""
     fa = R / 100.0
     d1 = _median_effect(c1, list(fa[:, 0]))
     d2 = _median_effect(c2, list(fa[0, :]))
+    fit_reason = []
+    for name, d in zip(names, (d1, d2)):
+        if d is None:
+            fit_reason.append(f"{name}: no median-effect line (fewer than "
+                              "two doses with 0 < fa < 1)")
+        elif not d["valid"]:
+            fit_reason.append(f"{name}: {d['reason']}")
     combos = []
     for i in range(1, len(c1)):
         for j in range(1, len(c2)):
@@ -415,19 +456,45 @@ def chou_talalay(R, c1, c2) -> dict:
             row = {"conc1": c1[i], "conc2": c2[j],
                    "fa": float(f) if math.isfinite(f) else None,
                    "ci": None, "dri1": None, "dri2": None,
-                   "interpretation": None}
-            if d1 and d2 and math.isfinite(f) and 0 < f < 1:
+                   "interpretation": None, "reason": None}
+            if fit_reason:
+                row["reason"] = "; ".join(fit_reason)
+            elif not math.isfinite(f):
+                row["reason"] = "no combination response"
+            elif not 0 < f < 1:
+                row["reason"] = (f"fa = {f:.3g} is not strictly between 0 "
+                                 "and 1 (no median-effect dose exists)")
+            else:
                 odds = f / (1 - f)
-                dx1 = d1["Dm"] * odds ** (1.0 / d1["m"])
-                dx2 = d2["Dm"] * odds ** (1.0 / d2["m"])
-                ci = c1[i] / dx1 + c2[j] / dx2
-                row.update(ci=ci, dx1=dx1, dx2=dx2, dri1=dx1 / c1[i],
-                           dri2=dx2 / c2[j],
-                           interpretation=ci_interpretation(ci))
+                with np.errstate(all="ignore"):
+                    dx1 = d1["Dm"] * odds ** (1.0 / d1["m"])
+                    dx2 = d2["Dm"] * odds ** (1.0 / d2["m"])
+                    ci = c1[i] / dx1 + c2[j] / dx2
+                if all(math.isfinite(v) and v > 0 for v in (dx1, dx2)) \
+                        and math.isfinite(ci):
+                    row.update(ci=ci, dx1=dx1, dx2=dx2, dri1=dx1 / c1[i],
+                               dri2=dx2 / c2[j],
+                               interpretation=ci_interpretation(ci))
+                else:
+                    row["reason"] = ("the equivalent single-drug doses "
+                                     "overflow (Dx is not a finite number)")
             combos.append(row)
     return {"drug1": d1, "drug2": d2, "combinations": combos,
             "fa_ci": [{"fa": c["fa"], "ci": c["ci"]} for c in combos
-                      if c["ci"] is not None]}
+                      if c["ci"] is not None],
+            "min_r_squared": MEDIAN_EFFECT_MIN_R2,
+            "min_points": MEDIAN_EFFECT_MIN_POINTS,
+            "n_computed": sum(1 for c in combos if c["ci"] is not None),
+            "note": ("Combination indices are computed only where the "
+                     "observed fa is strictly inside (0, 1) and both "
+                     "monotherapy median-effect fits are valid (m > 0, "
+                     f"r^2 >= {MEDIAN_EFFECT_MIN_R2}, at least "
+                     f"{MEDIAN_EFFECT_MIN_POINTS} doses). Chou-Talalay "
+                     "refers to Loewe additivity of median-effect "
+                     "(Hill-type) curves, Bliss and HSA to other "
+                     "reference models, so a cell can legitimately be "
+                     "synergistic under one and not another; they agree "
+                     "in sign on clear synergy.")}
 
 
 def _jsonable(M):
@@ -506,6 +573,15 @@ def synergy(records=None, *, conc1=None, conc2=None, responses=None,
                                  if len(scores) > 1 else None)
         models[name] = entry
 
+    ct = chou_talalay(R, c1, c2, names=(drug1, drug2))
+    bad = [d for d in (ct["drug1"], ct["drug2"]) if d is None or
+           not d["valid"]]
+    if bad:
+        reasons = sorted({c["reason"] for c in ct["combinations"]
+                          if c["reason"]})
+        warnings.append("Chou-Talalay combination indices were not "
+                        "computed: " + "; ".join(reasons) + ".")
+
     def mono(f, x, fitted, name):
         if f is None:
             return {"drug": name, "fitted": False}
@@ -534,6 +610,6 @@ def synergy(records=None, *, conc1=None, conc2=None, responses=None,
         "models": models,
         "scores": {k: v["score"] for k, v in models.items()},
         "landscapes": {k: v["synergy"] for k, v in models.items()},
-        "chou_talalay": chou_talalay(R, c1, c2),
+        "chou_talalay": ct,
         "warnings": warnings,
     }

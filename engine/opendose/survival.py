@@ -9,7 +9,10 @@ Survival CIs use Greenwood's variance with the log-log transformation
 (Prism 5+ default).
 
 Also reported: the Greenwood standard error of S(t) at each event time
-("se", as R's summary.survfit "std.err"); the confidence interval of the
+("se", as R's summary.survfit "std.err"); the Kaplan-Meier table of each
+curve ("table": time, at_risk before the time, events, censored,
+survival, se, lower/upper (log-log) and lower_log/upper_log (log band),
+R's summary.survfit rows); the confidence interval of the
 median survival by Brookmeyer and Crowley's inversion (the median's CI is
 where the pointwise survival CI crosses 0.5: lower limit from the lower
 band, upper limit from the upper band; a band flat at exactly 0.5 gives
@@ -43,6 +46,7 @@ def km_curve(times, events, ci_level: float = 0.95) -> dict:
     # log-transform band (R survfit's default conf.type = "log") for the
     # median's CI: S exp(+-z sqrt(Greenwood)), the upper limit capped at 1
     log_band = [(0.0, 1.0, 1.0)]
+    table = []  # R's summary.survfit rows (event times only)
     s = 1.0
     greenwood = 0.0
     median = None
@@ -73,6 +77,10 @@ def km_curve(times, events, ci_level: float = 0.95) -> dict:
             points.append({"time": t, "survival": s,
                            "lower": lower, "upper": upper,
                            "se": se_s, "at_risk": at_risk - m})
+            table.append({"time": t, "at_risk": at_risk, "events": d,
+                          "censored": c, "survival": s, "se": se_s,
+                          "lower": lower, "upper": upper,
+                          "lower_log": lo_l, "upper_log": hi_l})
             if median is None and s <= 0.5:
                 median = t
         at_risk -= m
@@ -96,7 +104,22 @@ def km_curve(times, events, ci_level: float = 0.95) -> dict:
         "level": ci_level, "transform": "log",
         "method": "Brookmeyer-Crowley (inverted pointwise CI), R "
                   "survfit's default log band"}
-    return {"points": points, "n": n, "n_events": n_events,
+    return {"points": points, "table": table,
+            "table_columns": {
+                "time": "event time",
+                "at_risk": "number at risk just before the time (R's "
+                           "n.risk)",
+                "events": "events at the time (n.event)",
+                "censored": "censored at the time",
+                "survival": "Kaplan-Meier S(t)",
+                "se": "Greenwood SE of S(t) (std.err)",
+                "lower": f"{ci_level:.0%} CI, log-log transform (Prism)",
+                "upper": f"{ci_level:.0%} CI, log-log transform (Prism)",
+                "lower_log": f"{ci_level:.0%} CI, log transform (R "
+                             "survfit's default; null where S = 0)",
+                "upper_log": f"{ci_level:.0%} CI, log transform (R "
+                             "survfit's default; capped at 1)"},
+            "n": n, "n_events": n_events,
             "n_censored": n - n_events, "median_survival": median,
             "median_ci": median_ci, "median_ci_log": median_ci_log}
 
@@ -190,15 +213,21 @@ def compare_survival(groups, names=None, *, ci_level: float = 0.95) -> dict:
     p = float(stats.chi2.sf(chi2, k - 1))
     # the variance (Mantel-Haenszel) form U'V^-1U, R's survdiff
     chi2_v = _quadratic_form_chi2(O, E, V, k)
+    p_v = float(stats.chi2.sf(chi2_v, k - 1))
     out["logrank"] = {
         "chi2": chi2, "df": k - 1, "p": p,
-        "chi2_variance": chi2_v,
-        "p_variance": float(stats.chi2.sf(chi2_v, k - 1)),
+        "chi2_peto": chi2, "p_peto": p,
+        "chi2_variance": chi2_v, "p_variance": p_v,
         "observed": O.tolist(), "expected": E.tolist(),
-        "method": ("chi2 / p: Peto form sum((O-E)^2/E), as Prism reports; "
-                   "chi2_variance / p_variance: Mantel-Haenszel variance "
-                   "form U'V^-1U (hypergeometric variance), as R's "
-                   "survdiff reports; df = groups - 1 for both")}
+        "group_names": list(names),
+        "method": ("chi2 / p (= chi2_peto / p_peto): Peto form "
+                   "sum((O-E)^2/E), the approximation the engine reports "
+                   "for Prism parity; chi2_variance / p_variance: Mantel-Haenszel "
+                   "variance form U'V^-1U (hypergeometric variance), the "
+                   "exact log-rank statistic R's survdiff and SAS LIFETEST "
+                   "report and the Cox score test equals for two groups; "
+                   "df = groups - 1 for both. The Peto form is never "
+                   "larger, so its P is never smaller.")}
 
     # Gehan-Breslow-Wilcoxon: weights = n at risk; the valid statistic is
     # the quadratic form on the weighted (O-E) with its covariance.

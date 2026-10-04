@@ -343,6 +343,44 @@ def test_logrank_both_forms():
     assert "Peto" in lr["method"] and "survdiff" in lr["method"]
 
 
+def test_logrank_self_describing_keys():
+    lr = survival.compare_survival(_aml(), ["M", "N"])["logrank"]
+    assert lr["chi2_peto"] == lr["chi2"] and lr["p_peto"] == lr["p"]
+    assert lr["p_variance"] == pytest.approx(0.06533932204, rel=1e-9)
+    assert lr["group_names"] == ["M", "N"]
+    assert lr["chi2_variance"] >= lr["chi2_peto"]
+
+
+def test_kaplan_meier_table_matches_r_summary_survfit():
+    # R: summary(survfit(Surv(time, status) ~ x, data = aml)), Maintained
+    # time n.risk n.event survival std.err lower 95% CI upper 95% CI
+    ref = [(9, 11, 1, 0.909, 0.0867, 0.7541, 1.000),
+           (13, 10, 1, 0.818, 0.1163, 0.6192, 1.000),
+           (18, 8, 1, 0.716, 0.1397, 0.4884, 1.000),
+           (23, 7, 1, 0.614, 0.1526, 0.3769, 0.999),
+           (31, 5, 1, 0.491, 0.1642, 0.2549, 0.946),
+           (34, 4, 1, 0.368, 0.1627, 0.1549, 0.875),
+           (48, 2, 1, 0.184, 0.1535, 0.0359, 0.944)]
+    c = survival.km_curve(*_aml()[0])
+    tab = c["table"]
+    assert [r["time"] for r in tab] == [r[0] for r in ref]
+    for row, (t, n_risk, n_event, s, se, lo, hi) in zip(tab, ref):
+        assert row["at_risk"] == n_risk and row["events"] == n_event
+        assert row["survival"] == pytest.approx(s, abs=5e-4)
+        assert row["se"] == pytest.approx(se, abs=5e-5)
+        assert row["lower_log"] == pytest.approx(lo, abs=5e-5)
+        assert row["upper_log"] == pytest.approx(hi, abs=5e-4)
+        assert row["lower"] <= row["survival"] <= row["upper"]  # log-log
+    assert tab[1]["censored"] == 1          # the censored 13
+    assert set(c["table_columns"]) >= set(tab[0])
+    # through the API, per group, with the median CI
+    res = api.analyze({"analysis": "survival", "data": {"x": [], "datasets": [
+        {"name": g, "ys": [[t, e] for t, e in zip(*grp)]}
+        for g, grp in zip(("Maintained", "Nonmaintained"), _aml())]}})
+    assert res["curves"]["Maintained"]["table"][0]["at_risk"] == 11
+    assert res["curves"]["Nonmaintained"]["median_ci_log"]["lower"] == 8
+
+
 # ------------------------------------------------------ two-way ANOVA
 
 def test_one_value_per_cell_fits_the_additive_model():
@@ -500,3 +538,62 @@ def test_weighted_ss_minimised_directly_puromycin():
         fit_model([1, 2, 3, 4], [1, 2, 3, 3.5], "michaelis_menten",
                   weighting="1/Y", weight_source="objective",
                   sd=[0.1] * 4, n=[3] * 4)
+
+
+# ------------------------------------- NIST univariate: lag-1 autocorrelation
+
+NIST_LAG1 = {  # NIST StRD certified r(1)
+    "nist-pidigits.csv": -0.00355099287237972,
+    "nist-lottery.csv": -0.120948622967393,
+    "nist-lew.csv": -0.307304800605679,
+    "nist-mavro.csv": 0.937989183438248,
+    "nist-michelso.csv": 0.535199668621283,
+    "nist-numacc1.csv": -0.5,
+    "nist-numacc2.csv": -0.999,
+    "nist-numacc3.csv": -0.999,
+    "nist-numacc4.csv": -0.999,
+}
+
+
+@pytest.mark.parametrize("fname", sorted(NIST_LAG1))
+def test_lag1_autocorrelation_nist_certified(fname):
+    rows = _rows(fname)
+    col = list(rows[0])[0]
+    vals = [float(r[col]) for r in rows]
+    res = api.analyze({"analysis": "column_statistics", "data": {
+        "x": [], "datasets": [{"name": "Y", "ys": [[v] for v in vals]}]}})
+    got = res["datasets"][0]["descriptive"]["lag1_autocorrelation"]
+    assert got == pytest.approx(NIST_LAG1[fname], rel=1e-12)
+
+
+def test_lag1_autocorrelation_edge_cases():
+    from opendose.columnstats import lag1_autocorrelation
+    assert lag1_autocorrelation([1.0]) is None
+    assert lag1_autocorrelation([2.0, 2.0, 2.0]) is None
+    assert lag1_autocorrelation([1.0, None, 2.0]) == pytest.approx(-0.5)
+
+
+# ------------------------------------- NIST NoInt1: uncentred R^2
+
+def test_line_through_origin_uncentred_r_squared_noint1():
+    rows = _rows("nist-noint1.csv")
+    x = [float(r["x"]) for r in rows]
+    y = [float(r["y"]) for r in rows]
+    from opendose.nlfit import fit_model
+    fit = fit_model(x, y, "line_through_origin")
+    g = fit["goodness"]
+    assert fit["params"]["Slope"]["value"] == pytest.approx(
+        2.07438016528926, rel=1e-12)
+    assert fit["params"]["Slope"]["se"] == pytest.approx(
+        0.0165289256198347, rel=1e-10)
+    assert g["sy_x"] == pytest.approx(3.56753034006338, rel=1e-12)
+    assert g["r_squared_uncentered"] == pytest.approx(
+        0.999365492298663, rel=1e-12)   # NIST certified
+    assert g["r_squared"] < 0           # Prism's, about the mean
+    # the same for a straight line with its intercept fixed at 0; absent
+    # when the intercept is free
+    fixed = fit_model(x, y, "straight_line", constraints={"Yintercept": 0})
+    assert fixed["goodness"]["r_squared_uncentered"] == pytest.approx(
+        0.999365492298663, rel=1e-12)
+    assert "r_squared_uncentered" not in fit_model(
+        x, y, "straight_line")["goodness"]

@@ -62,6 +62,7 @@ from __future__ import annotations
 
 import math
 import re
+import time
 
 import numpy as np
 from scipy.optimize import least_squares
@@ -278,24 +279,99 @@ def covariance_jacobian(fun, p, floor, box=None, adaptive=True):
 
 
 def covariance(J, s2):
-    """(J'J)^-1 * s2, NaN-filled when J'J is singular or not finite."""
+    """(J'J)^-1 * s2, NaN-filled when J'J is singular or not finite.
+
+    Computed from the QR factorisation of the column-scaled Jacobian,
+    J D^-1 = Q R (D = column norms): (J'J)^-1 = D^-1 R^-1 R^-T D^-1.
+    Forming J'J squares the condition number; for an ill-conditioned
+    but well-determined fit (a 10th-order polynomial in raw powers,
+    NIST Filip, where cond(J'J) ~ 1e15 before scaling) the explicit
+    inverse loses every digit while the QR route keeps the certified
+    standard errors to 1e-7. Rank deficiency (a zero column, or R with
+    a pivot below k * eps of the largest) gives NaN, as the singular
+    inverse did."""
     k = J.shape[1]
     if not np.all(np.isfinite(J)):
         return np.full((k, k), np.nan)
+    norms = np.linalg.norm(J, axis=0)
+    if k == 0:
+        return np.zeros((0, 0))
+    if np.any(norms == 0):
+        return np.full((k, k), np.nan)
     try:
-        return np.linalg.inv(J.T @ J) * s2
+        r = np.linalg.qr(J / norms, mode="r")
+        d = np.abs(np.diag(r))
+        if not np.all(np.isfinite(d)) or d.min() <= max(J.shape) * EPS * d.max():
+            return np.full((k, k), np.nan)
+        rinv = np.linalg.solve(r, np.eye(k))
+        cov = (rinv @ rinv.T) / np.outer(norms, norms)
     except np.linalg.LinAlgError:
         return np.full((k, k), np.nan)
+    return cov * s2
 
 
 # ------------------------------------------------------------ solver
 
-def solve(fun, p0, floor, *, box=None, max_nfev=20000, **kw):
+class BudgetExhausted(Exception):
+    """Raised from inside a residual evaluation when the fit's Budget is
+    spent; the start being solved is abandoned (it has not converged)."""
+
+
+class Budget:
+    """Evaluation and wall-clock budget shared by the starts of one fit.
+
+    Every residual evaluation (the optimiser's own and each column of its
+    forward-difference Jacobian) is charged. ``soft`` limits are checked
+    between starts (the caller stops starting new ones once it has a
+    converged fit); ``hard`` limits interrupt the start being solved
+    (BudgetExhausted). The evaluation counts make the cut deterministic
+    on any machine; the seconds are a safety net for a slow machine and
+    only bind on fits that cannot converge (e.g. a sigmoid fitted to a
+    straight line), so they do not change ordinary results.
+    """
+
+    def __init__(self, soft_evals=None, hard_evals=None, soft_seconds=None,
+                 hard_seconds=None):
+        self.soft_evals, self.hard_evals = soft_evals, hard_evals
+        self.soft_seconds, self.hard_seconds = soft_seconds, hard_seconds
+        self.evals = 0
+        self.t0 = time.perf_counter()
+
+    def elapsed(self) -> float:
+        return time.perf_counter() - self.t0
+
+    def soft_exceeded(self) -> bool:
+        return ((self.soft_evals is not None and self.evals >= self.soft_evals)
+                or (self.soft_seconds is not None
+                    and self.elapsed() >= self.soft_seconds)
+                or self.hard_exceeded())
+
+    def hard_exceeded(self) -> bool:
+        return ((self.hard_evals is not None and self.evals >= self.hard_evals)
+                or (self.hard_seconds is not None
+                    and self.elapsed() >= self.hard_seconds))
+
+    def charge(self, n: int = 1) -> None:
+        self.evals += n
+        if self.hard_exceeded():
+            raise BudgetExhausted
+
+
+def solve(fun, p0, floor, *, box=None, max_nfev=20000, budget=None,
+          jac_fun=None, **kw):
     """least_squares with the shared tolerances and the scale-aware
     forward-difference Jacobian; Levenberg-Marquardt, or the bounded
-    trust-region method when box = (lo, hi) is given."""
+    trust-region method when box = (lo, hi) is given. With a Budget,
+    every evaluation is charged to it and BudgetExhausted propagates
+    when its hard limit is reached."""
     p0 = np.asarray(p0, dtype=float)
     last = {}
+    if budget is not None:
+        raw = fun
+
+        def fun(p):
+            budget.charge()
+            return raw(p)
 
     def cached(p):
         f = np.asarray(fun(p), dtype=float)
@@ -303,6 +379,8 @@ def solve(fun, p0, floor, *, box=None, max_nfev=20000, **kw):
         return f
 
     def jac(p):
+        if jac_fun is not None:  # analytic
+            return np.asarray(jac_fun(p), dtype=float)
         f0 = last["f"] if "x" in last and np.array_equal(last["x"], p) \
             else None
         return forward_jacobian(fun, p, floor, f0=f0, box=box)
@@ -317,7 +395,7 @@ def solve(fun, p0, floor, *, box=None, max_nfev=20000, **kw):
                          **opts)
 
 
-def polish(fun, p, floor, box=None, max_iter=40):
+def polish(fun, p, floor, box=None, max_iter=40, jac=None):
     """Gauss-Newton refinement from a converged solution with the
     adaptive central-difference Jacobian (least-squares solve, not the
     normal equations), accepting only steps that do not raise the SS. Returns
@@ -326,7 +404,12 @@ def polish(fun, p, floor, box=None, max_iter=40):
     bias a forward-difference Jacobian leaves in the stationarity
     condition J'f = 0 and the last digits an SS-based stopping rule
     leaves on the table. The returned J is the adaptive covariance
-    Jacobian."""
+    Jacobian, or jac(p) when an analytic Jacobian is given."""
+    def jacobian(q):
+        if jac is not None:
+            return np.asarray(jac(q), dtype=float)
+        return covariance_jacobian(fun, q, floor, box=box)
+
     p = np.asarray(p, dtype=float).copy()
     with np.errstate(all="ignore"):
         f = np.asarray(fun(p), dtype=float)
@@ -334,7 +417,7 @@ def polish(fun, p, floor, box=None, max_iter=40):
     # the Jacobian is rebuilt after every step larger than 1e-10 (scaled);
     # smaller steps reuse it (chord iteration), and it is rebuilt at the
     # final point for the covariance
-    J = covariance_jacobian(fun, p, floor, box=box)
+    J = jacobian(p)
     if not (np.isfinite(ss) and np.all(np.isfinite(J))):
         return p, J
     p_start = p.copy()
@@ -366,11 +449,11 @@ def polish(fun, p, floor, box=None, max_iter=40):
         if size <= 2 * EPS:
             break
         if size > 1e-10:  # a real move: the Jacobian has changed
-            J = covariance_jacobian(fun, p, floor, box=box)
+            J = jacobian(p)
             p_start = p.copy()
     if np.array_equal(p, p_start):
         return p, J
-    return p, covariance_jacobian(fun, p, floor, box=box)
+    return p, jacobian(p)
 
 
 def same_point(new, old, floor, rtol=1e-10) -> bool:

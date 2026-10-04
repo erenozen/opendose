@@ -1132,11 +1132,12 @@
     },
     {
      "quantity": "df",
-     "value": 9,
+     "value": 11,
      "tolerance": {
       "abs": 0
      },
-     "source": "NIST certified"
+     "source": "NIST certified",
+     "note": "NIST: 'Degrees of Freedom: 11' (15 observations, 4 parameters; certified residual SD 28.262 = sqrt(8786.40 / 11)); was transcribed as 9"
     }
    ],
    "difficulty": "Higher Level of Difficulty",
@@ -1921,7 +1922,7 @@
     "handler": "dose_response",
     "model_hint": "10th-degree polynomial y = B0 + B1*x + ... + B10*x^10",
     "options": {
-     "model": "polynomial_tenth (not in the built-in list: needs a user-defined equation or multiple regression on powers of x)"
+     "model": "polynomial_tenth"
     }
    },
    "reference": [

@@ -99,6 +99,11 @@ class ModelSpec:
     param_roles: dict | None = None  # name -> "x" | "y" | "slope" | ...:
                                      # finite-difference scale role
                                      # (lsq.role_of guesses from the name)
+    jac: Callable | None = None      # jac(x, p) -> (n, len(params)) array
+                                     # of df/dparam: an analytic Jacobian
+                                     # replaces the finite differences
+                                     # (polynomials: the covariance of an
+                                     # ill-conditioned basis needs it)
 
 
 @dataclass
@@ -447,6 +452,14 @@ def _poly_func(order):
     return f
 
 
+def _poly_jac(order):
+    """df/dB_i = X^i (exact; a finite-difference Jacobian of a high-order
+    polynomial in raw powers is too inaccurate for its covariance)."""
+    def jac(x, p):
+        return np.vander(np.asarray(x, float), order + 1, increasing=True)
+    return jac
+
+
 def _poly_initials(order):
     def initials(x, y):
         coefs = np.polyfit(np.asarray(x, float), np.asarray(y, float), order)
@@ -464,6 +477,7 @@ for _order, _name in ((2, "polynomial_second"), (3, "polynomial_third")):
         params=[f"B{i}" for i in range(_order + 1)],
         func=_poly_func(_order),
         initials=_poly_initials(_order),
+        jac=_poly_jac(_order),
     ))
 
 
@@ -483,6 +497,22 @@ register(ModelSpec(
 
 WEIGHTINGS = ("none", "1/Y", "1/Y2", "1/X", "1/X2", "1/SD2")
 WEIGHT_SOURCES = ("predicted", "observed_mean", "objective")
+
+# Multistart budget (fit_model). Solver evaluations per start of a
+# multistart (scipy's nfev; the winning start of every multistart in the
+# test suite used at most ~300), and the evaluation / wall-clock budget
+# shared by the starts of one fit. Evaluations count every residual
+# call, Jacobian columns included.
+# The soft limit is an evaluation count only, so whether a later start
+# is tried never depends on the machine's speed; the wall-clock limit is
+# hard only (it abandons the running start and keeps the best so far).
+# Natively the winning start of every multistart in the test suite is
+# reached within 0.25 s, well inside it even at WebAssembly speed.
+MULTISTART_NFEV = 2000
+MULTISTART_SOFT_EVALS = 40_000
+MULTISTART_HARD_EVALS = 80_000
+MULTISTART_SOFT_SECONDS = None
+MULTISTART_HARD_SECONDS = 1.5
 REPLICATE_MODES = ("account", "means_only")
 
 
@@ -597,7 +627,7 @@ def _summary_inputs(x_values, y_values, sd_values, n_values, replicates,
 
 def _ols_fit(spec, x, y, free_names, fixed, p0_map, weighting,
              weight_source="predicted", summary=None, with_cov=True,
-             diagnostics=None):
+             diagnostics=None, max_nfev=20000, budget=None):
     """(Weighted) least squares from one start; returns (popt, pcov, wss).
 
     Y-based weighting follows Prism's documented algorithm ("Math theory
@@ -635,7 +665,11 @@ def _ols_fit(spec, x, y, free_names, fixed, p0_map, weighting,
     floor = lsq.scale_floor(free_names, p0, x, y,
                             getattr(spec, "param_roles", None))
 
+    jac_idx = ([spec.params.index(n) for n in free_names]
+               if spec.jac is not None else None)
+
     def solve(weights_sqrt, p0):
+        wjac = None
         if callable(weights_sqrt):  # weights from the curve being fitted
             def wresid(free_vals):
                 f = spec.func(x, make_params(free_vals))
@@ -644,14 +678,23 @@ def _ols_fit(spec, x, y, free_names, fixed, p0_map, weighting,
             def wresid(free_vals):
                 return (y - spec.func(x, make_params(free_vals))) \
                     * weights_sqrt
+            if jac_idx is not None:
+                wcol = np.broadcast_to(np.asarray(weights_sqrt, float),
+                                       y.shape)[:, None]
+
+                def wjac(free_vals):
+                    J = np.asarray(spec.jac(x, make_params(free_vals)), float)
+                    return -J[:, jac_idx] * wcol
         # range constraints (Prism's "between"/"greater than") switch to
         # the bounded trust-region method
         start = p0 if box is None else _inside(p0, box)
         with np.errstate(all="ignore"):
-            res = lsq.solve(wresid, start, floor, box=box, max_nfev=20000)
+            res = lsq.solve(wresid, start, floor, box=box, max_nfev=max_nfev,
+                            budget=budget, jac_fun=wjac)
         if not res.success and res.status <= 0:
             raise RuntimeError("did not converge")
         res.wresid = wresid
+        res.wjac = wjac
         res.floor = floor
         return res
 
@@ -694,7 +737,8 @@ def _ols_fit(spec, x, y, free_names, fixed, p0_map, weighting,
         Jacobian, final iteration's frozen weights) and build the
         covariance (J'J)^-1 * s2 from that scale-aware Jacobian."""
         with np.errstate(all="ignore"):
-            p, J = lsq.polish(res.wresid, res.x, floor, box=box)
+            p, J = lsq.polish(res.wresid, res.x, floor, box=box,
+                              jac=res.wjac)
             f = res.wresid(p)
         wss = float(f @ f) + extra_ss
         return p, lsq.covariance(J, wss / dof), wss, J
@@ -844,23 +888,49 @@ def fit_model(x_values, y_values, model: str, *,
                 seed = v if spec.multistart == "LogXmid" else abs(3.0 / max(abs(v), 1e-9))
             starts.append(dict(init, **{spec.multistart: float(seed)}))
 
-    def best_of(start_maps):
-        best = None
+    # Multistart budget (MULTISTART_* constants): each start of a
+    # multistart is capped at MULTISTART_NFEV solver evaluations. The
+    # first start runs to its cap; the other starts (and the restarts of
+    # a degenerate fit) share one Budget whose clock starts after it.
+    # Past its soft limit no new start is begun once a converged fit is
+    # in hand; its hard limit interrupts the start being solved. Ordinary
+    # fits never reach the soft limit, so their results do not depend on
+    # it; a fit that cannot converge (a sigmoid fitted to a straight line
+    # runs its parameters to infinity from every start) gives up after
+    # about MULTISTART_HARD_SECONDS of restarts instead of minutes. A
+    # single-start fit (user equations, NIST problems) is not budgeted.
+    def make_budget():
+        return lsq.Budget(soft_evals=MULTISTART_SOFT_EVALS,
+                          hard_evals=MULTISTART_HARD_EVALS,
+                          soft_seconds=MULTISTART_SOFT_SECONDS,
+                          hard_seconds=MULTISTART_HARD_SECONDS)
+    per_start_nfev = MULTISTART_NFEV if len(starts) > 1 else 20000
+
+    def best_of(start_maps, nfev, budget=None, best=None):
         for p0_map in start_maps:
+            if best is not None and budget is not None \
+                    and budget.soft_exceeded():
+                break
             diag_ = {}
             try:
                 popt, _, wss = _ols_fit(spec, x, y, free_names, fixed, p0_map,
                                         weighting, weight_source, summary,
-                                        with_cov=False, diagnostics=diag_)
+                                        with_cov=False, diagnostics=diag_,
+                                        max_nfev=nfev, budget=budget)
             except (RuntimeError, ValueError):
                 continue
+            except lsq.BudgetExhausted:
+                break
             if not np.all(np.isfinite(popt)):
                 continue
             if best is None or wss < best[2] - 1e-12:
                 best = (popt, diag_["finish"], wss)
         return best
 
-    best = best_of(starts)
+    best = best_of(starts[:1], per_start_nfev)
+    budget = make_budget()
+    if len(starts) > 1:
+        best = best_of(starts[1:], per_start_nfev, budget, best)
     if best is None:
         raise ValueError("fit did not converge from any starting value")
     # polish the best start and build its covariance (scale-aware
@@ -882,8 +952,11 @@ def fit_model(x_values, y_values, model: str, *,
 
     degenerate_fit = degenerate(wss, jac)
     if degenerate_fit:
-        alt = best_of(_restart_starts(init, free_names, x, y,
-                                      getattr(spec, "param_roles", None)))
+        alt = None
+        if not budget.soft_exceeded():
+            alt = best_of(_restart_starts(init, free_names, x, y,
+                                          getattr(spec, "param_roles", None)),
+                          MULTISTART_NFEV, budget)
         if alt is not None and alt[2] < wss * (1.0 - 1e-9):
             p2, c2, w2, j2 = alt[1]()
             if w2 < wss * (1.0 - 1e-9):
@@ -918,6 +991,24 @@ def fit_model(x_values, y_values, model: str, *,
             wss_tot = float(np.sum(w * (y - ybar_w) ** 2))
             if wss_tot > 0:
                 r_squared_weighted = 1.0 - wss / wss_tot
+    # Uncentred R^2 for a curve forced through the origin (the line
+    # through the origin, or a line / polynomial with its intercept fixed
+    # at 0): 1 - SS/sum(Y^2), the R^2 of NIST StRD (NoInt1, NoInt2) and
+    # R's summary.lm for a model without intercept. Prism's r_squared
+    # (about the mean) is kept; it can be negative for such fits.
+    r_squared_uncentered = None
+    through_origin = model == "line_through_origin" or any(
+        fixed.get(nm) == 0.0 for nm in ("Yintercept", "B0", "Intercept"))
+    if through_origin and summary is None:
+        if weighting == "none":
+            ss_0 = float(np.sum(y ** 2))
+            r_squared_uncentered = 1.0 - wss / ss_0 if ss_0 > 0 else None
+        else:
+            w0 = _weights(x, (_replicate_mean_y(x, y)
+                              if weight_source == "observed_mean" else yhat),
+                          weighting)
+            ss_0 = float(np.sum(w0 * y ** 2))
+            r_squared_uncentered = 1.0 - wss / ss_0 if ss_0 > 0 else None
     tcrit = float(stats.t.ppf(0.975, df))
 
     se = dict.fromkeys(spec.params)
@@ -938,10 +1029,16 @@ def fit_model(x_values, y_values, model: str, *,
     status = "converged"
     if len(free_names) > 1:
         try:
-            cov_inv = np.linalg.inv(pcov)
+            # dependency_i = 1 - 1 / (cov_ii (cov^-1)_ii), with
+            # cov^-1 = J'J / s^2, i.e. 1 - 1 / ([(J'J)^-1]_ii ||J_i||^2):
+            # from the Jacobian, not by inverting the covariance (which
+            # loses every digit for an ill-conditioned basis such as a
+            # 10th-order polynomial in raw powers)
+            if not np.any(pcov):  # perfect fit: s = 0, singular as before
+                raise np.linalg.LinAlgError
+            ratio = np.diag(lsq.covariance(jac, 1.0)) * np.sum(jac ** 2, axis=0)
             for i, name in enumerate(free_names):
-                dependency[name] = float(
-                    1.0 - 1.0 / max(pcov[i, i] * cov_inv[i, i], 1.0))
+                dependency[name] = float(1.0 - 1.0 / max(ratio[i], 1.0))
             if max(dependency.values()) > 0.9999:
                 status = "ambiguous"
         except np.linalg.LinAlgError:
@@ -1044,6 +1141,8 @@ def fit_model(x_values, y_values, model: str, *,
             "df": df, "n_points": n_points,
             "r_squared": r_squared,
             "r_squared_weighted": r_squared_weighted,
+            **({"r_squared_uncentered": r_squared_uncentered}
+               if through_origin else {}),
             "ss_res": ss_res,
             "ss_res_weighted": wss if weighting != "none" else None,
             "sy_x": sy_x,

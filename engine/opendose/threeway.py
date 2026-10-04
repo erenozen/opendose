@@ -55,7 +55,7 @@ from itertools import combinations
 import numpy as np
 from scipy import optimize, stats
 
-from . import effectsize, fdr
+from . import effectsize, fdr, studentized
 from .twoway import _effect_columns, _ss_resid
 
 PRISM_LAYOUT = [(0, 0), (0, 1), (1, 0), (1, 1)]  # data sets A, B, C, D
@@ -263,12 +263,13 @@ def compare_means(entries, pairs, ms_error, df_error, method: str, *,
         return out
 
     if method == "tukey":
-        qcrit = float(stats.studentized_range.ppf(1 - alpha, M, df_error))
-        for r in rows:
+        qcrit = studentized.ppf(1 - alpha, M, df_error)
+        p_all = studentized.sf(np.array([r["t"] * math.sqrt(2.0)
+                                         for r in rows]), M, df_error)
+        for r, p_adj in zip(rows, p_all):
             qs = r["t"] * math.sqrt(2.0)
             r["statistic"] = qs
-            r["p_adjusted"] = min(float(stats.studentized_range.sf(
-                qs, M, df_error)), 1.0)
+            r["p_adjusted"] = min(float(p_adj), 1.0)
             half = qcrit * r["se"] / math.sqrt(2.0)
             r["ci"] = [r["difference"] - half, r["difference"] + half]
             r["significant"] = bool(r["p_adjusted"] < alpha)

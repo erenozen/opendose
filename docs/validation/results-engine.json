@@ -14,25 +14,25 @@
   "d": "known reference problem"
  },
  "totals": {
-  "pass": 1068,
-  "fail": 108,
-  "unmapped": 88,
+  "pass": 1078,
+  "fail": 107,
+  "unmapped": 79,
   "error": 0,
   "quantities": 1264,
   "datasets": 85,
   "failures_by_category": {
-   "d": 29,
    "b": 66,
+   "d": 28,
    "a": 13
   },
-  "seconds": 12.97
+  "seconds": 13.64
  },
  "datasets": [
   {
    "id": "nist-misra1a",
    "workflow": "nonlinear_regression",
    "private": false,
-   "seconds": 0.024,
+   "seconds": 0.072,
    "notes": [],
    "pass": 7,
    "fail": 0,
@@ -44,7 +44,7 @@
    "id": "nist-chwirut2",
    "workflow": "nonlinear_regression",
    "private": false,
-   "seconds": 0.039,
+   "seconds": 0.132,
    "notes": [],
    "pass": 9,
    "fail": 0,
@@ -56,7 +56,7 @@
    "id": "nist-thurber",
    "workflow": "nonlinear_regression",
    "private": false,
-   "seconds": 0.904,
+   "seconds": 1.551,
    "notes": [
     "start1: status ambiguous",
     "start2: status ambiguous"
@@ -71,7 +71,7 @@
    "id": "nist-mgh09",
    "workflow": "nonlinear_regression",
    "private": false,
-   "seconds": 0.354,
+   "seconds": 0.583,
    "notes": [],
    "pass": 11,
    "fail": 0,
@@ -83,7 +83,7 @@
    "id": "nist-lanczos3",
    "workflow": "nonlinear_regression",
    "private": false,
-   "seconds": 0.208,
+   "seconds": 0.382,
    "notes": [
     "start1: status ambiguous",
     "start2: status ambiguous"
@@ -98,7 +98,7 @@
    "id": "nist-boxbod",
    "workflow": "nonlinear_regression",
    "private": false,
-   "seconds": 0.06,
+   "seconds": 0.112,
    "notes": [],
    "pass": 7,
    "fail": 0,
@@ -110,7 +110,7 @@
    "id": "nist-rat42",
    "workflow": "nonlinear_regression",
    "private": false,
-   "seconds": 0.034,
+   "seconds": 0.063,
    "notes": [],
    "pass": 9,
    "fail": 0,
@@ -122,10 +122,10 @@
    "id": "nist-rat43",
    "workflow": "nonlinear_regression",
    "private": false,
-   "seconds": 0.09,
+   "seconds": 0.154,
    "notes": [],
-   "pass": 10,
-   "fail": 1,
+   "pass": 11,
+   "fail": 0,
    "unmapped": 0,
    "error": 0,
    "reference_status": null
@@ -134,7 +134,7 @@
    "id": "nist-eckerle4",
    "workflow": "nonlinear_regression",
    "private": false,
-   "seconds": 0.04,
+   "seconds": 0.066,
    "notes": [],
    "pass": 9,
    "fail": 0,
@@ -146,7 +146,7 @@
    "id": "nist-hahn1",
    "workflow": "nonlinear_regression",
    "private": false,
-   "seconds": 0.186,
+   "seconds": 0.33,
    "notes": [
     "start1: status ambiguous",
     "start2: status ambiguous"
@@ -161,7 +161,7 @@
    "id": "nist-norris",
    "workflow": "linear_regression",
    "private": false,
-   "seconds": 0.001,
+   "seconds": 0.002,
    "notes": [],
    "pass": 13,
    "fail": 0,
@@ -173,7 +173,7 @@
    "id": "nist-pontius",
    "workflow": "polynomial_regression",
    "private": false,
-   "seconds": 0.008,
+   "seconds": 0.009,
    "notes": [],
    "pass": 15,
    "fail": 0,
@@ -185,7 +185,7 @@
    "id": "nist-noint1",
    "workflow": "linear_regression",
    "private": false,
-   "seconds": 0.002,
+   "seconds": 0.004,
    "notes": [],
    "pass": 11,
    "fail": 0,
@@ -197,7 +197,7 @@
    "id": "nist-filip",
    "workflow": "polynomial_regression",
    "private": false,
-   "seconds": 0.005,
+   "seconds": 0.019,
    "notes": [],
    "pass": 31,
    "fail": 0,
@@ -209,7 +209,7 @@
    "id": "nist-longley",
    "workflow": "multiple_regression",
    "private": false,
-   "seconds": 0.003,
+   "seconds": 0.009,
    "notes": [],
    "pass": 23,
    "fail": 0,
@@ -221,7 +221,7 @@
    "id": "nist-sirstv",
    "workflow": "one_way_anova",
    "private": false,
-   "seconds": 0.004,
+   "seconds": 0.008,
    "notes": [],
    "pass": 9,
    "fail": 0,
@@ -233,7 +233,7 @@
    "id": "nist-smls01",
    "workflow": "one_way_anova",
    "private": false,
-   "seconds": 0.005,
+   "seconds": 0.01,
    "notes": [],
    "pass": 9,
    "fail": 0,
@@ -245,7 +245,7 @@
    "id": "nist-smls02",
    "workflow": "one_way_anova",
    "private": false,
-   "seconds": 0.006,
+   "seconds": 0.007,
    "notes": [],
    "pass": 9,
    "fail": 0,
@@ -257,7 +257,7 @@
    "id": "nist-smls03",
    "workflow": "one_way_anova",
    "private": false,
-   "seconds": 0.017,
+   "seconds": 0.03,
    "notes": [],
    "pass": 9,
    "fail": 0,
@@ -269,7 +269,7 @@
    "id": "nist-smls04",
    "workflow": "one_way_anova",
    "private": false,
-   "seconds": 0.005,
+   "seconds": 0.01,
    "notes": [],
    "pass": 9,
    "fail": 0,
@@ -281,7 +281,7 @@
    "id": "nist-smls05",
    "workflow": "one_way_anova",
    "private": false,
-   "seconds": 0.006,
+   "seconds": 0.01,
    "notes": [],
    "pass": 9,
    "fail": 0,
@@ -293,7 +293,7 @@
    "id": "nist-smls06",
    "workflow": "one_way_anova",
    "private": false,
-   "seconds": 0.016,
+   "seconds": 0.036,
    "notes": [],
    "pass": 9,
    "fail": 0,
@@ -305,7 +305,7 @@
    "id": "nist-smls07",
    "workflow": "one_way_anova",
    "private": false,
-   "seconds": 0.005,
+   "seconds": 0.01,
    "notes": [],
    "pass": 2,
    "fail": 7,
@@ -317,7 +317,7 @@
    "id": "nist-smls08",
    "workflow": "one_way_anova",
    "private": false,
-   "seconds": 0.006,
+   "seconds": 0.014,
    "notes": [],
    "pass": 2,
    "fail": 7,
@@ -329,7 +329,7 @@
    "id": "nist-smls09",
    "workflow": "one_way_anova",
    "private": false,
-   "seconds": 0.025,
+   "seconds": 0.041,
    "notes": [],
    "pass": 2,
    "fail": 7,
@@ -341,7 +341,7 @@
    "id": "nist-atmwtag",
    "workflow": "one_way_anova",
    "private": false,
-   "seconds": 0.004,
+   "seconds": 0.008,
    "notes": [],
    "pass": 9,
    "fail": 0,
@@ -353,11 +353,11 @@
    "id": "nist-pidigits",
    "workflow": "descriptive_statistics",
    "private": false,
-   "seconds": 0.011,
+   "seconds": 0.018,
    "notes": [],
-   "pass": 3,
+   "pass": 4,
    "fail": 0,
-   "unmapped": 1,
+   "unmapped": 0,
    "error": 0,
    "reference_status": null
   },
@@ -365,11 +365,11 @@
    "id": "nist-lottery",
    "workflow": "descriptive_statistics",
    "private": false,
-   "seconds": 0.003,
+   "seconds": 0.005,
    "notes": [],
-   "pass": 3,
+   "pass": 4,
    "fail": 0,
-   "unmapped": 1,
+   "unmapped": 0,
    "error": 0,
    "reference_status": null
   },
@@ -377,11 +377,11 @@
    "id": "nist-lew",
    "workflow": "descriptive_statistics",
    "private": false,
-   "seconds": 0.004,
+   "seconds": 0.006,
    "notes": [],
-   "pass": 3,
+   "pass": 4,
    "fail": 0,
-   "unmapped": 1,
+   "unmapped": 0,
    "error": 0,
    "reference_status": null
   },
@@ -389,11 +389,11 @@
    "id": "nist-mavro",
    "workflow": "descriptive_statistics",
    "private": false,
-   "seconds": 0.003,
+   "seconds": 0.004,
    "notes": [],
-   "pass": 3,
+   "pass": 4,
    "fail": 0,
-   "unmapped": 1,
+   "unmapped": 0,
    "error": 0,
    "reference_status": null
   },
@@ -401,11 +401,11 @@
    "id": "nist-michelso",
    "workflow": "descriptive_statistics",
    "private": false,
-   "seconds": 0.003,
+   "seconds": 0.004,
    "notes": [],
-   "pass": 3,
+   "pass": 4,
    "fail": 0,
-   "unmapped": 1,
+   "unmapped": 0,
    "error": 0,
    "reference_status": null
   },
@@ -413,11 +413,11 @@
    "id": "nist-numacc1",
    "workflow": "descriptive_statistics",
    "private": false,
-   "seconds": 0.001,
+   "seconds": 0.002,
    "notes": [],
-   "pass": 3,
+   "pass": 4,
    "fail": 0,
-   "unmapped": 1,
+   "unmapped": 0,
    "error": 0,
    "reference_status": null
   },
@@ -425,11 +425,11 @@
    "id": "nist-numacc2",
    "workflow": "descriptive_statistics",
    "private": false,
-   "seconds": 0.004,
+   "seconds": 0.009,
    "notes": [],
-   "pass": 3,
+   "pass": 4,
    "fail": 0,
-   "unmapped": 1,
+   "unmapped": 0,
    "error": 0,
    "reference_status": null
   },
@@ -437,11 +437,11 @@
    "id": "nist-numacc3",
    "workflow": "descriptive_statistics",
    "private": false,
-   "seconds": 0.006,
+   "seconds": 0.008,
    "notes": [],
-   "pass": 3,
+   "pass": 4,
    "fail": 0,
-   "unmapped": 1,
+   "unmapped": 0,
    "error": 0,
    "reference_status": null
   },
@@ -449,11 +449,11 @@
    "id": "nist-numacc4",
    "workflow": "descriptive_statistics",
    "private": false,
-   "seconds": 0.005,
+   "seconds": 0.009,
    "notes": [],
-   "pass": 2,
+   "pass": 3,
    "fail": 1,
-   "unmapped": 1,
+   "unmapped": 0,
    "error": 0,
    "reference_status": null
   },
@@ -461,7 +461,7 @@
    "id": "r-plantgrowth",
    "workflow": "one_way_anova",
    "private": false,
-   "seconds": 0.004,
+   "seconds": 0.01,
    "notes": [],
    "pass": 8,
    "fail": 0,
@@ -473,7 +473,7 @@
    "id": "r-insectsprays",
    "workflow": "one_way_anova",
    "private": false,
-   "seconds": 3.799,
+   "seconds": 0.104,
    "notes": [],
    "pass": 67,
    "fail": 0,
@@ -485,7 +485,7 @@
    "id": "r-chickwts",
    "workflow": "one_way_anova",
    "private": false,
-   "seconds": 0.005,
+   "seconds": 0.008,
    "notes": [],
    "pass": 8,
    "fail": 0,
@@ -497,7 +497,7 @@
    "id": "r-sleep",
    "workflow": "t_test",
    "private": false,
-   "seconds": 0.013,
+   "seconds": 0.021,
    "notes": [],
    "pass": 20,
    "fail": 0,
@@ -509,7 +509,7 @@
    "id": "r-welch-examples",
    "workflow": "t_test",
    "private": false,
-   "seconds": 0.004,
+   "seconds": 0.007,
    "notes": [],
    "pass": 11,
    "fail": 0,
@@ -521,7 +521,7 @@
    "id": "r-mtcars-mpg-by-am",
    "workflow": "t_test",
    "private": false,
-   "seconds": 0.002,
+   "seconds": 0.003,
    "notes": [],
    "pass": 7,
    "fail": 0,
@@ -533,7 +533,7 @@
    "id": "r-hw-depression",
    "workflow": "nonparametric",
    "private": false,
-   "seconds": 0.002,
+   "seconds": 0.003,
    "notes": [],
    "pass": 3,
    "fail": 0,
@@ -557,7 +557,7 @@
    "id": "r-hw-mucociliary",
    "workflow": "nonparametric",
    "private": false,
-   "seconds": 0.001,
+   "seconds": 0.002,
    "notes": [],
    "pass": 3,
    "fail": 0,
@@ -569,7 +569,7 @@
    "id": "r-airquality-ozone",
    "workflow": "nonparametric",
    "private": false,
-   "seconds": 0.011,
+   "seconds": 0.019,
    "notes": [],
    "pass": 23,
    "fail": 0,
@@ -581,7 +581,7 @@
    "id": "r-friedman-roundingtimes",
    "workflow": "nonparametric",
    "private": false,
-   "seconds": 0.002,
+   "seconds": 0.003,
    "notes": [],
    "pass": 3,
    "fail": 0,
@@ -593,7 +593,7 @@
    "id": "r-hw-tuna-correlation",
    "workflow": "correlation",
    "private": false,
-   "seconds": 0.007,
+   "seconds": 0.009,
    "notes": [],
    "pass": 13,
    "fail": 0,
@@ -605,7 +605,7 @@
    "id": "r-warpbreaks",
    "workflow": "two_way_anova",
    "private": false,
-   "seconds": 0.737,
+   "seconds": 0.077,
    "notes": [],
    "pass": 36,
    "fail": 0,
@@ -617,7 +617,7 @@
    "id": "r-toothgrowth",
    "workflow": "two_way_anova",
    "private": false,
-   "seconds": 0.652,
+   "seconds": 0.074,
    "notes": [],
    "pass": 31,
    "fail": 1,
@@ -629,7 +629,7 @@
    "id": "r-morley",
    "workflow": "two_way_anova",
    "private": false,
-   "seconds": 0.005,
+   "seconds": 0.009,
    "notes": [
     "two_way_anova: Only one value per cell, so the interaction cannot be separated from random variation: fitted the main-effects (additive) model, with no interaction term; the residual includes any interaction."
    ],
@@ -643,7 +643,7 @@
    "id": "r-fisher-teatasting",
    "workflow": "contingency",
    "private": false,
-   "seconds": 0.006,
+   "seconds": 0.011,
    "notes": [],
    "pass": 1,
    "fail": 2,
@@ -655,7 +655,7 @@
    "id": "r-fisher-convictions",
    "workflow": "contingency",
    "private": false,
-   "seconds": 0.013,
+   "seconds": 0.027,
    "notes": [],
    "pass": 2,
    "fail": 5,
@@ -667,7 +667,7 @@
    "id": "r-fisher-job",
    "workflow": "contingency",
    "private": false,
-   "seconds": 1.358,
+   "seconds": 2.01,
    "notes": [],
    "pass": 1,
    "fail": 0,
@@ -679,7 +679,7 @@
    "id": "r-fisher-mp6",
    "workflow": "contingency",
    "private": false,
-   "seconds": 1.03,
+   "seconds": 1.86,
    "notes": [],
    "pass": 1,
    "fail": 0,
@@ -691,7 +691,7 @@
    "id": "r-chisq-party-gender",
    "workflow": "contingency",
    "private": false,
-   "seconds": 0.197,
+   "seconds": 0.327,
    "notes": [],
    "pass": 15,
    "fail": 0,
@@ -703,7 +703,7 @@
    "id": "r-chisq-2x2-yates",
    "workflow": "contingency",
    "private": false,
-   "seconds": 0.006,
+   "seconds": 0.012,
    "notes": [],
    "pass": 1,
    "fail": 0,
@@ -727,7 +727,7 @@
    "id": "r-binom-mendel",
    "workflow": "proportion",
    "private": false,
-   "seconds": 0.002,
+   "seconds": 0.003,
    "notes": [],
    "pass": 4,
    "fail": 0,
@@ -751,7 +751,7 @@
    "id": "r-cmh-rabbits",
    "workflow": "contingency",
    "private": false,
-   "seconds": 0.001,
+   "seconds": 0.002,
    "notes": [],
    "pass": 6,
    "fail": 0,
@@ -763,7 +763,7 @@
    "id": "r-cmh-ucbadmissions",
    "workflow": "contingency",
    "private": false,
-   "seconds": 0.001,
+   "seconds": 0.002,
    "notes": [],
    "pass": 11,
    "fail": 0,
@@ -787,7 +787,7 @@
    "id": "r-anscombe",
    "workflow": "linear_regression",
    "private": false,
-   "seconds": 0.002,
+   "seconds": 0.003,
    "notes": [],
    "pass": 48,
    "fail": 0,
@@ -799,7 +799,7 @@
    "id": "r-cars",
    "workflow": "linear_regression",
    "private": false,
-   "seconds": 0.023,
+   "seconds": 0.018,
    "notes": [],
    "pass": 14,
    "fail": 0,
@@ -811,7 +811,7 @@
    "id": "r-puromycin",
    "workflow": "nonlinear_regression",
    "private": false,
-   "seconds": 0.013,
+   "seconds": 0.031,
    "notes": [],
    "pass": 17,
    "fail": 0,
@@ -823,7 +823,7 @@
    "id": "r-dnase-run1",
    "workflow": "standard_curve",
    "private": false,
-   "seconds": 0.12,
+   "seconds": 0.272,
    "notes": [],
    "pass": 30,
    "fail": 0,
@@ -835,7 +835,7 @@
    "id": "r-loblolly-329",
    "workflow": "growth_curve",
    "private": false,
-   "seconds": 0.017,
+   "seconds": 0.026,
    "notes": [],
    "pass": 10,
    "fail": 1,
@@ -847,7 +847,7 @@
    "id": "r-indometh-1",
    "workflow": "nonlinear_regression",
    "private": false,
-   "seconds": 0.034,
+   "seconds": 0.058,
    "notes": [],
    "pass": 10,
    "fail": 4,
@@ -859,7 +859,7 @@
    "id": "r-chickweight-chick1",
    "workflow": "growth_curve",
    "private": false,
-   "seconds": 0.033,
+   "seconds": 0.074,
    "notes": [],
    "pass": 14,
    "fail": 0,
@@ -871,7 +871,7 @@
    "id": "r-infert",
    "workflow": "logistic_regression",
    "private": false,
-   "seconds": 0.033,
+   "seconds": 0.048,
    "notes": [],
    "pass": 26,
    "fail": 4,
@@ -883,7 +883,7 @@
    "id": "r-usarrests",
    "workflow": "pca",
    "private": false,
-   "seconds": 0.001,
+   "seconds": 0.003,
    "notes": [],
    "pass": 27,
    "fail": 0,
@@ -895,7 +895,7 @@
    "id": "r-iris",
    "workflow": "pca",
    "private": false,
-   "seconds": 0.001,
+   "seconds": 0.003,
    "notes": [],
    "pass": 2,
    "fail": 0,
@@ -907,7 +907,7 @@
    "id": "growthcurver-a1",
    "workflow": "growth_curve",
    "private": false,
-   "seconds": 0.538,
+   "seconds": 1.002,
    "notes": [],
    "pass": 12,
    "fail": 0,
@@ -919,7 +919,7 @@
    "id": "surv-aml",
    "workflow": "survival",
    "private": false,
-   "seconds": 0.013,
+   "seconds": 0.016,
    "notes": [],
    "pass": 53,
    "fail": 0,
@@ -931,7 +931,7 @@
    "id": "surv-ovarian",
    "workflow": "survival",
    "private": false,
-   "seconds": 0.028,
+   "seconds": 0.037,
    "notes": [],
    "pass": 42,
    "fail": 0,
@@ -943,7 +943,7 @@
    "id": "surv-lung",
    "workflow": "survival",
    "private": false,
-   "seconds": 0.053,
+   "seconds": 0.074,
    "notes": [],
    "pass": 58,
    "fail": 0,
@@ -955,7 +955,7 @@
    "id": "roc-asah",
    "workflow": "roc",
    "private": false,
-   "seconds": 0.015,
+   "seconds": 0.04,
    "notes": [],
    "pass": 15,
    "fail": 3,
@@ -967,7 +967,7 @@
    "id": "drc-ryegrass",
    "workflow": "dose_response",
    "private": false,
-   "seconds": 0.065,
+   "seconds": 0.118,
    "notes": [],
    "pass": 5,
    "fail": 11,
@@ -979,7 +979,7 @@
    "id": "drc-s-alba",
    "workflow": "global_fit",
    "private": false,
-   "seconds": 0.094,
+   "seconds": 0.194,
    "notes": [
     "global_model_fit keys: analysis, covariance, datasets, equation, goodness, label, model, shared, weighting, x_is_log"
    ],
@@ -993,7 +993,7 @@
    "id": "drc-earthworms",
    "workflow": "quantal_dose_response",
    "private": false,
-   "seconds": 0.004,
+   "seconds": 0.008,
    "notes": [],
    "pass": 0,
    "fail": 10,
@@ -1005,7 +1005,7 @@
    "id": "drc-selenium",
    "workflow": "quantal_dose_response",
    "private": false,
-   "seconds": 0.006,
+   "seconds": 0.012,
    "notes": [],
    "pass": 4,
    "fail": 12,
@@ -1017,7 +1017,7 @@
    "id": "deming-arsenate",
    "workflow": "deming",
    "private": false,
-   "seconds": 0.001,
+   "seconds": 0.002,
    "notes": [],
    "pass": 4,
    "fail": 0,
@@ -1029,7 +1029,7 @@
    "id": "synergy-mathews-block1",
    "workflow": "synergy",
    "private": false,
-   "seconds": 0.972,
+   "seconds": 1.834,
    "notes": [],
    "pass": 25,
    "fail": 21,
@@ -1041,7 +1041,7 @@
    "id": "power-r-examples",
    "workflow": "power",
    "private": false,
-   "seconds": 0.014,
+   "seconds": 0.022,
    "notes": [],
    "pass": 5,
    "fail": 5,
@@ -1053,7 +1053,7 @@
    "id": "power-gpower-examples",
    "workflow": "power",
    "private": false,
-   "seconds": 0.437,
+   "seconds": 0.628,
    "notes": [],
    "pass": 20,
    "fail": 0,
@@ -1090,14 +1090,14 @@
    },
    "printed": "2.7070075241E+00",
    "source": "NIST certified standard deviation of estimate",
-   "ours": 2.707007524141696,
+   "ours": 2.7070075241416847,
    "path": "dose_response(user_equation)[start1]:datasets[0].fit.params.b1.se",
    "extra": {
-    "start2": 2.707007524137659
+    "start2": 2.7070075241379445
    },
    "status": "pass",
-   "abs_diff": 4.169642409124208e-11,
-   "rel_diff": 1.5403143035261755e-11
+   "abs_diff": 4.168487777178598e-11,
+   "rel_diff": 1.5398877690835002e-11
   },
   {
    "dataset": "nist-misra1a",
@@ -1126,14 +1126,14 @@
    },
    "printed": "7.2668688436E-06",
    "source": "NIST certified standard deviation of estimate",
-   "ours": 7.2668688436322775e-06,
+   "ours": 7.266868843632245e-06,
    "path": "dose_response(user_equation)[start1]:datasets[0].fit.params.b2.se",
    "extra": {
-    "start2": 7.266868843611586e-06
+    "start2": 7.266868843612353e-06
    },
    "status": "pass",
-   "abs_diff": 3.227788452101962e-17,
-   "rel_diff": 4.441787132218172e-12
+   "abs_diff": 3.224569726902396e-17,
+   "rel_diff": 4.4373578171048255e-12
   },
   {
    "dataset": "nist-misra1a",
@@ -1216,14 +1216,14 @@
    },
    "printed": "3.8303286810E-02",
    "source": "NIST certified standard deviation of estimate",
-   "ours": 0.03830328681026931,
+   "ours": 0.038303286810269246,
    "path": "dose_response(user_equation)[start1]:datasets[0].fit.params.b1.se",
    "extra": {
-    "start2": 0.03830328681035963
+    "start2": 0.038303286810359806
    },
    "status": "pass",
-   "abs_diff": 2.6930541130454344e-13,
-   "rel_diff": 7.030869508416043e-12
+   "abs_diff": 2.692429612594083e-13,
+   "rel_diff": 7.029239098852369e-12
   },
   {
    "dataset": "nist-chwirut2",
@@ -1252,14 +1252,14 @@
    },
    "printed": "6.6621605126E-04",
    "source": "NIST certified standard deviation of estimate",
-   "ours": 0.0006662160512647035,
+   "ours": 0.0006662160512647011,
    "path": "dose_response(user_equation)[start1]:datasets[0].fit.params.b2.se",
    "extra": {
-    "start2": 0.0006662160512643783
+    "start2": 0.0006662160512643816
    },
    "status": "pass",
-   "abs_diff": 4.703485864676615e-15,
-   "rel_diff": 7.060000814722212e-12
+   "abs_diff": 4.701100619897147e-15,
+   "rel_diff": 7.056420527554173e-12
   },
   {
    "dataset": "nist-chwirut2",
@@ -1288,14 +1288,14 @@
    },
    "printed": "1.5304234767E-03",
    "source": "NIST certified standard deviation of estimate",
-   "ours": 0.0015304234766842111,
+   "ours": 0.0015304234766842057,
    "path": "dose_response(user_equation)[start1]:datasets[0].fit.params.b3.se",
    "extra": {
-    "start2": 0.0015304234766856655
+    "start2": 0.0015304234766856737
    },
    "status": "pass",
-   "abs_diff": 1.5788802557037407e-14,
-   "rel_diff": 1.03166233381902e-11
+   "abs_diff": 1.5794223567899834e-14,
+   "rel_diff": 1.0320165502136952e-11
   },
   {
    "dataset": "nist-chwirut2",
@@ -1378,14 +1378,14 @@
    },
    "printed": "4.6647963344E+00",
    "source": "NIST certified standard deviation of estimate",
-   "ours": 4.664796334357675,
+   "ours": 4.6647963343572325,
    "path": "dose_response(user_equation)[start1]:datasets[0].fit.params.b1.se",
    "extra": {
-    "start2": 4.664796334363256
+    "start2": 4.6647963343635865
    },
    "status": "pass",
-   "abs_diff": 4.232525441238977e-11,
-   "rel_diff": 9.073333834591466e-12
+   "abs_diff": 4.276756726540043e-11,
+   "rel_diff": 9.168153162446979e-12
   },
   {
    "dataset": "nist-thurber",
@@ -1414,14 +1414,14 @@
    },
    "printed": "3.9571156086E+01",
    "source": "NIST certified standard deviation of estimate",
-   "ours": 39.57115609287754,
+   "ours": 39.5711560924181,
    "path": "dose_response(user_equation)[start1]:datasets[0].fit.params.b2.se",
    "extra": {
-    "start2": 39.57115609093029
+    "start2": 39.57115609136721
    },
    "status": "pass",
-   "abs_diff": 6.877534985960665e-09,
-   "rel_diff": 1.7380171989450389e-10
+   "abs_diff": 6.418098053018184e-09,
+   "rel_diff": 1.6219132034125388e-10
   },
   {
    "dataset": "nist-thurber",
@@ -1450,14 +1450,14 @@
    },
    "printed": "2.8698696102E+01",
    "source": "NIST certified standard deviation of estimate",
-   "ours": 28.698696106612275,
+   "ours": 28.69869610627558,
    "path": "dose_response(user_equation)[start1]:datasets[0].fit.params.b3.se",
    "extra": {
-    "start2": 28.698696105187835
+    "start2": 28.6986961055073
    },
    "status": "pass",
-   "abs_diff": 4.612275006365962e-09,
-   "rel_diff": 1.607137477595902e-10
+   "abs_diff": 4.27558077831236e-09,
+   "rel_diff": 1.489817085457899e-10
   },
   {
    "dataset": "nist-thurber",
@@ -1486,14 +1486,14 @@
    },
    "printed": "5.5675370270E+00",
    "source": "NIST certified standard deviation of estimate",
-   "ours": 5.567537028029504,
+   "ours": 5.567537027964504,
    "path": "dose_response(user_equation)[start1]:datasets[0].fit.params.b4.se",
    "extra": {
-    "start2": 5.567537027747357
+    "start2": 5.567537027809116
    },
    "status": "pass",
-   "abs_diff": 1.0295035934859698e-09,
-   "rel_diff": 1.8491185392990646e-10
+   "abs_diff": 9.645040321970555e-10,
+   "rel_diff": 1.7323711140485523e-10
   },
   {
    "dataset": "nist-thurber",
@@ -1522,14 +1522,14 @@
    },
    "printed": "3.1333340687E-02",
    "source": "NIST certified standard deviation of estimate",
-   "ours": 0.03133334069188694,
+   "ours": 0.03133334069153619,
    "path": "dose_response(user_equation)[start1]:datasets[0].fit.params.b5.se",
    "extra": {
-    "start2": 0.03133334069043487
+    "start2": 0.031333340690764815
    },
    "status": "pass",
-   "abs_diff": 4.886938076431591e-12,
-   "rel_diff": 1.5596607221837502e-10
+   "abs_diff": 4.536190867376888e-12,
+   "rel_diff": 1.4477201498207703e-10
   },
   {
    "dataset": "nist-thurber",
@@ -1558,14 +1558,14 @@
    },
    "printed": "1.4984928198E-02",
    "source": "NIST certified standard deviation of estimate",
-   "ours": 0.014984928200049144,
+   "ours": 0.014984928199887075,
    "path": "dose_response(user_equation)[start1]:datasets[0].fit.params.b6.se",
    "extra": {
-    "start2": 0.014984928199327294
+    "start2": 0.01498492819948114
    },
    "status": "pass",
-   "abs_diff": 2.0491438407210794e-12,
-   "rel_diff": 1.3674699095285445e-10
+   "abs_diff": 1.88707556525447e-12,
+   "rel_diff": 1.2593157206494544e-10
   },
   {
    "dataset": "nist-thurber",
@@ -1594,14 +1594,14 @@
    },
    "printed": "6.5842344623E-03",
    "source": "NIST certified standard deviation of estimate",
-   "ours": 0.006584234463502635,
+   "ours": 0.00658423446344986,
    "path": "dose_response(user_equation)[start1]:datasets[0].fit.params.b7.se",
    "extra": {
-    "start2": 0.006584234463230859
+    "start2": 0.006584234463282827
    },
    "status": "pass",
-   "abs_diff": 1.202635213637393e-12,
-   "rel_diff": 1.8265376491730966e-10
+   "abs_diff": 1.1498597213277506e-12,
+   "rel_diff": 1.7463833159520908e-10
   },
   {
    "dataset": "nist-thurber",
@@ -1684,14 +1684,14 @@
    },
    "printed": "1.1435312227E-02",
    "source": "NIST certified standard deviation of estimate",
-   "ours": 0.011435312246703489,
+   "ours": 0.01143531224670347,
    "path": "dose_response(user_equation)[start1]:datasets[0].fit.params.b1.se",
    "extra": {
-    "start2": 0.011435312226761212
+    "start2": 0.011435312226761172
    },
    "status": "pass",
-   "abs_diff": 1.9703488840505656e-11,
-   "rel_diff": 1.7230389909235363e-09
+   "abs_diff": 1.970346975854742e-11,
+   "rel_diff": 1.7230373222364155e-09
   },
   {
    "dataset": "nist-mgh09",
@@ -1720,14 +1720,14 @@
    },
    "printed": "1.9633220911E-01",
    "source": "NIST certified standard deviation of estimate",
-   "ours": 0.19633221021177308,
+   "ours": 0.196332210211771,
    "path": "dose_response(user_equation)[start1]:datasets[0].fit.params.b2.se",
    "extra": {
-    "start2": 0.19633220912064386
+    "start2": 0.19633220912064367
    },
    "status": "pass",
-   "abs_diff": 1.1017730894291589e-09,
-   "rel_diff": 5.611779617942684e-09
+   "abs_diff": 1.1017710077609877e-09,
+   "rel_diff": 5.61176901515784e-09
   },
   {
    "dataset": "nist-mgh09",
@@ -1756,14 +1756,14 @@
    },
    "printed": "8.0842031232E-02",
    "source": "NIST certified standard deviation of estimate",
-   "ours": 0.08084203155993656,
+   "ours": 0.08084203155993615,
    "path": "dose_response(user_equation)[start1]:datasets[0].fit.params.b3.se",
    "extra": {
-    "start2": 0.0808420312346015
+    "start2": 0.08084203123460178
    },
    "status": "pass",
-   "abs_diff": 3.279365667907541e-10,
-   "rel_diff": 4.056510725833244e-09
+   "abs_diff": 3.279361504571199e-10,
+   "rel_diff": 4.056505575868209e-09
   },
   {
    "dataset": "nist-mgh09",
@@ -1792,14 +1792,14 @@
    },
    "printed": "9.0025542308E-02",
    "source": "NIST certified standard deviation of estimate",
-   "ours": 0.09002554272576424,
+   "ours": 0.09002554272576332,
    "path": "dose_response(user_equation)[start1]:datasets[0].fit.params.b4.se",
    "extra": {
-    "start2": 0.09002554231226315
+    "start2": 0.090025542312263
    },
    "status": "pass",
-   "abs_diff": 4.1776423986839006e-10,
-   "rel_diff": 4.640507895404991e-09
+   "abs_diff": 4.1776332393439475e-10,
+   "rel_diff": 4.640497721248059e-09
   },
   {
    "dataset": "nist-mgh09",
@@ -1882,14 +1882,14 @@
    },
    "printed": "1.7197908859E-02",
    "source": "NIST certified standard deviation of estimate",
-   "ours": 0.017197908842070377,
+   "ours": 0.01719790886186753,
    "path": "dose_response(user_equation)[start1]:datasets[0].fit.params.b1.se",
    "extra": {
-    "start2": 0.017197908904130536
+    "start2": 0.017197908871758816
    },
    "status": "pass",
-   "abs_diff": 1.6929624369055318e-11,
-   "rel_diff": 9.84400167942262e-10
+   "abs_diff": 2.8675291308122297e-12,
+   "rel_diff": 1.6673708148602008e-10
   },
   {
    "dataset": "nist-lanczos3",
@@ -1918,14 +1918,14 @@
    },
    "printed": "9.7041624475E-02",
    "source": "NIST certified standard deviation of estimate",
-   "ours": 0.09704162444937615,
+   "ours": 0.09704162455998187,
    "path": "dose_response(user_equation)[start1]:datasets[0].fit.params.b2.se",
    "extra": {
-    "start2": 0.09704162466564942
+    "start2": 0.09704162448430416
    },
    "status": "pass",
-   "abs_diff": 2.5623850263833958e-11,
-   "rel_diff": 2.640500960537322e-10
+   "abs_diff": 8.498186876426672e-11,
+   "rel_diff": 8.757259498078566e-10
   },
   {
    "dataset": "nist-lanczos3",
@@ -1954,14 +1954,14 @@
    },
    "printed": "4.1488663282E-02",
    "source": "NIST certified standard deviation of estimate",
-   "ours": 0.04148866322482516,
+   "ours": 0.04148866327326806,
    "path": "dose_response(user_equation)[start1]:datasets[0].fit.params.b3.se",
    "extra": {
-    "start2": 0.04148866340586572
+    "start2": 0.04148866332826506
    },
    "status": "pass",
-   "abs_diff": 5.7174841250340336e-11,
-   "rel_diff": 1.3780834745559479e-09
+   "abs_diff": 8.731938783146376e-12,
+   "rel_diff": 2.1046565717953024e-10
   },
   {
    "dataset": "nist-lanczos3",
@@ -1990,14 +1990,14 @@
    },
    "printed": "1.0766312506E-01",
    "source": "NIST certified standard deviation of estimate",
-   "ours": 0.10766312495860776,
+   "ours": 0.10766312508480155,
    "path": "dose_response(user_equation)[start1]:datasets[0].fit.params.b4.se",
    "extra": {
-    "start2": 0.10766312534164962
+    "start2": 0.10766312513699536
    },
    "status": "pass",
-   "abs_diff": 1.0139224182470485e-10,
-   "rel_diff": 9.417545865234692e-10
+   "abs_diff": 2.4801549702857528e-11,
+   "rel_diff": 2.303625283869085e-10
   },
   {
    "dataset": "nist-lanczos3",
@@ -2026,14 +2026,14 @@
    },
    "printed": "5.8371576281E-02",
    "source": "NIST certified standard deviation of estimate",
-   "ours": 0.05837157620608501,
+   "ours": 0.05837157627466351,
    "path": "dose_response(user_equation)[start1]:datasets[0].fit.params.b5.se",
    "extra": {
-    "start2": 0.05837157645005164
+    "start2": 0.058371576339497036
    },
    "status": "pass",
-   "abs_diff": 7.491499087741715e-11,
-   "rel_diff": 1.2834155876959253e-09
+   "abs_diff": 6.336493829639522e-12,
+   "rel_diff": 1.0855444093432947e-10
   },
   {
    "dataset": "nist-lanczos3",
@@ -2062,14 +2062,14 @@
    },
    "printed": "3.4436403035E-02",
    "source": "NIST certified standard deviation of estimate",
-   "ours": 0.03443640299210553,
+   "ours": 0.034436403032410995,
    "path": "dose_response(user_equation)[start1]:datasets[0].fit.params.b6.se",
    "extra": {
-    "start2": 0.03443640313346929
+    "start2": 0.03443640306877361
    },
    "status": "pass",
-   "abs_diff": 4.289447269600899e-11,
-   "rel_diff": 1.2456142022850787e-09
+   "abs_diff": 2.5890053989563455e-12,
+   "rel_diff": 7.518222493577415e-11
   },
   {
    "dataset": "nist-lanczos3",
@@ -2155,7 +2155,7 @@
    "ours": 12.354515176553608,
    "path": "dose_response(user_equation)[start1]:datasets[0].fit.params.b1.se",
    "extra": {
-    "start2": 12.354515176723437
+    "start2": 12.354515176723439
    },
    "status": "pass",
    "abs_diff": 5.536087144264457e-10,
@@ -2188,14 +2188,14 @@
    },
    "printed": "1.0455993237E-01",
    "source": "NIST certified standard deviation of estimate",
-   "ours": 0.10455993236880703,
+   "ours": 0.10455993236880698,
    "path": "dose_response(user_equation)[start1]:datasets[0].fit.params.b2.se",
    "extra": {
-    "start2": 0.10455993236628999
+    "start2": 0.10455993236628995
    },
    "status": "pass",
-   "abs_diff": 1.1929623955353463e-12,
-   "rel_diff": 1.1409364643751695e-11
+   "abs_diff": 1.1930179066865776e-12,
+   "rel_diff": 1.1409895546459577e-11
   },
   {
    "dataset": "nist-boxbod",
@@ -2281,7 +2281,7 @@
    "ours": 1.734028340055687,
    "path": "dose_response(user_equation)[start1]:datasets[0].fit.params.b1.se",
    "extra": {
-    "start2": 1.7340283400624767
+    "start2": 1.7340283400624796
    },
    "status": "pass",
    "abs_diff": 4.431299771567865e-11,
@@ -2314,14 +2314,14 @@
    },
    "printed": "8.8295217536E-02",
    "source": "NIST certified standard deviation of estimate",
-   "ours": 0.0882952175363521,
+   "ours": 0.08829521753635208,
    "path": "dose_response(user_equation)[start1]:datasets[0].fit.params.b2.se",
    "extra": {
-    "start2": 0.08829521753630534
+    "start2": 0.08829521753630537
    },
    "status": "pass",
-   "abs_diff": 3.520933544720606e-13,
-   "rel_diff": 3.987683187127366e-12
+   "abs_diff": 3.5207947668425277e-13,
+   "rel_diff": 3.9875260122746945e-12
   },
   {
    "dataset": "nist-rat42",
@@ -2350,14 +2350,14 @@
    },
    "printed": "3.4465663377E-03",
    "source": "NIST certified standard deviation of estimate",
-   "ours": 0.003446566337674369,
+   "ours": 0.0034465663376743692,
    "path": "dose_response(user_equation)[start1]:datasets[0].fit.params.b3.se",
    "extra": {
-    "start2": 0.0034465663376821074
+    "start2": 0.003446566337682112
    },
    "status": "pass",
-   "abs_diff": 2.5631406719295313e-14,
-   "rel_diff": 7.436794829372105e-12
+   "abs_diff": 2.563097303842632e-14,
+   "rel_diff": 7.436668999538438e-12
   },
   {
    "dataset": "nist-rat42",
@@ -2440,14 +2440,14 @@
    },
    "printed": "1.6302297817E+01",
    "source": "NIST certified standard deviation of estimate",
-   "ours": 16.302297816852967,
+   "ours": 16.302297816852768,
    "path": "dose_response(user_equation)[start1]:datasets[0].fit.params.b1.se",
    "extra": {
-    "start2": 16.302297816562945
+    "start2": 16.30229781656309
    },
    "status": "pass",
-   "abs_diff": 1.4703260831083753e-10,
-   "rel_diff": 9.019133987204691e-12
+   "abs_diff": 1.4723156027685036e-10,
+   "rel_diff": 9.031337908900034e-12
   },
   {
    "dataset": "nist-rat43",
@@ -2476,14 +2476,14 @@
    },
    "printed": "2.0828735829E+00",
    "source": "NIST certified standard deviation of estimate",
-   "ours": 2.0828735829620406,
+   "ours": 2.082873582961993,
    "path": "dose_response(user_equation)[start1]:datasets[0].fit.params.b2.se",
    "extra": {
-    "start2": 2.082873582953455
+    "start2": 2.0828735829534892
    },
    "status": "pass",
-   "abs_diff": 6.20405948836833e-11,
-   "rel_diff": 2.9786058737805745e-11
+   "abs_diff": 6.199307733822934e-11,
+   "rel_diff": 2.9763245281509565e-11
   },
   {
    "dataset": "nist-rat43",
@@ -2512,14 +2512,14 @@
    },
    "printed": "1.9566123451E-01",
    "source": "NIST certified standard deviation of estimate",
-   "ours": 0.1956612345100639,
+   "ours": 0.19566123451005915,
    "path": "dose_response(user_equation)[start1]:datasets[0].fit.params.b3.se",
    "extra": {
-    "start2": 0.19566123451073825
+    "start2": 0.19566123451074133
    },
    "status": "pass",
-   "abs_diff": 6.389333506717776e-14,
-   "rel_diff": 3.2655081231183915e-13
+   "abs_diff": 5.914713163690521e-14,
+   "rel_diff": 3.022935625701691e-13
   },
   {
    "dataset": "nist-rat43",
@@ -2548,14 +2548,14 @@
    },
    "printed": "6.8761936385E-01",
    "source": "NIST certified standard deviation of estimate",
-   "ours": 0.6876193638541259,
+   "ours": 0.6876193638541119,
    "path": "dose_response(user_equation)[start1]:datasets[0].fit.params.b4.se",
    "extra": {
-    "start2": 0.6876193638564781
+    "start2": 0.6876193638564903
    },
    "status": "pass",
-   "abs_diff": 4.125921826414469e-12,
-   "rel_diff": 6.0002990656245015e-12
+   "abs_diff": 4.111933016304192e-12,
+   "rel_diff": 5.9799552375624864e-12
   },
   {
    "dataset": "nist-rat43",
@@ -2596,7 +2596,7 @@
   {
    "dataset": "nist-rat43",
    "quantity": "df",
-   "reference": 9,
+   "reference": 11,
    "tolerance": {
     "abs": 0
    },
@@ -2607,11 +2607,9 @@
    "extra": {
     "start2": 11
    },
-   "status": "fail",
-   "abs_diff": 2.0,
-   "rel_diff": 0.2222222222222222,
-   "category": "d",
-   "category_reason": "manifest transcription error (new): 15 observations - 4 parameters = 11, and NIST's own RSS / sigma^2 = 8786.4049 / 28.2624^2 = 11.0; the manifest says 9"
+   "status": "pass",
+   "abs_diff": 0.0,
+   "rel_diff": 0.0
   },
   {
    "dataset": "nist-eckerle4",
@@ -2640,14 +2638,14 @@
    },
    "printed": "1.5408051163E-02",
    "source": "NIST certified standard deviation of estimate",
-   "ours": 0.015408051163497027,
+   "ours": 0.015408051163497026,
    "path": "dose_response(user_equation)[start1]:datasets[0].fit.params.b1.se",
    "extra": {
-    "start2": 0.015408051163507637
+    "start2": 0.015408051163507642
    },
    "status": "pass",
-   "abs_diff": 4.970277661664468e-13,
-   "rel_diff": 3.225766587276011e-11
+   "abs_diff": 4.970260314429709e-13,
+   "rel_diff": 3.225755328723858e-11
   },
   {
    "dataset": "nist-eckerle4",
@@ -2676,14 +2674,14 @@
    },
    "printed": "4.6803020753E-02",
    "source": "NIST certified standard deviation of estimate",
-   "ours": 0.04680302075332901,
+   "ours": 0.046803020753329004,
    "path": "dose_response(user_equation)[start1]:datasets[0].fit.params.b2.se",
    "extra": {
     "start2": 0.0468030207533926
    },
    "status": "pass",
-   "abs_diff": 3.2900765445376123e-13,
-   "rel_diff": 7.029624352455335e-12
+   "abs_diff": 3.2900071555985733e-13,
+   "rel_diff": 7.0294760950609985e-12
   },
   {
    "dataset": "nist-eckerle4",
@@ -2802,14 +2800,14 @@
    },
    "printed": "1.7070154742E-01",
    "source": "NIST certified standard deviation of estimate",
-   "ours": 0.1707015474185428,
+   "ours": 0.17070154742103413,
    "path": "dose_response(user_equation)[start1]:datasets[0].fit.params.b1.se",
    "extra": {
-    "start2": 0.17070154741919105
+    "start2": 0.170701547419227
    },
    "status": "pass",
-   "abs_diff": 1.4571954753961336e-12,
-   "rel_diff": 8.536510051726711e-12
+   "abs_diff": 1.0341449918627177e-12,
+   "rel_diff": 6.058205139278976e-12
   },
   {
    "dataset": "nist-hahn1",
@@ -2838,14 +2836,14 @@
    },
    "printed": "1.2000289189E-02",
    "source": "NIST certified standard deviation of estimate",
-   "ours": 0.012000289189190697,
+   "ours": 0.012000289189389751,
    "path": "dose_response(user_equation)[start1]:datasets[0].fit.params.b2.se",
    "extra": {
-    "start2": 0.01200028918924477
+    "start2": 0.012000289189238945
    },
    "status": "pass",
-   "abs_diff": 1.9069641699065443e-13,
-   "rel_diff": 1.5890985124379775e-11
+   "abs_diff": 3.897507316885651e-13,
+   "rel_diff": 3.247844493996261e-11
   },
   {
    "dataset": "nist-hahn1",
@@ -2874,14 +2872,14 @@
    },
    "printed": "2.2508314937E-04",
    "source": "NIST certified standard deviation of estimate",
-   "ours": 0.00022508314936268352,
+   "ours": 0.00022508314936645337,
    "path": "dose_response(user_equation)[start1]:datasets[0].fit.params.b3.se",
    "extra": {
-    "start2": 0.00022508314936389243
+    "start2": 0.00022508314936349295
    },
    "status": "pass",
-   "abs_diff": 7.316494415529617e-15,
-   "rel_diff": 3.250574037198357e-11
+   "abs_diff": 3.546642146634582e-15,
+   "rel_diff": 1.575703093084272e-11
   },
   {
    "dataset": "nist-hahn1",
@@ -2910,14 +2908,14 @@
    },
    "printed": "2.7578037666E-07",
    "source": "NIST certified standard deviation of estimate",
-   "ours": 2.757803766568618e-07,
+   "ours": 2.7578037665988953e-07,
    "path": "dose_response(user_equation)[start1]:datasets[0].fit.params.b4.se",
    "extra": {
-    "start2": 2.757803766570751e-07
+    "start2": 2.757803766551546e-07
    },
    "status": "pass",
-   "abs_diff": 3.1382041300179794e-18,
-   "rel_diff": 1.1379359793561243e-11
+   "abs_diff": 1.104848600574828e-19,
+   "rel_diff": 4.006262570077483e-13
   },
   {
    "dataset": "nist-hahn1",
@@ -2946,14 +2944,14 @@
    },
    "printed": "2.4712888219E-04",
    "source": "NIST certified standard deviation of estimate",
-   "ours": 0.00024712888218967645,
+   "ours": 0.0002471288821897158,
    "path": "dose_response(user_equation)[start1]:datasets[0].fit.params.b5.se",
    "extra": {
-    "start2": 0.00024712888218986196
+    "start2": 0.0002471288821896418
    },
    "status": "pass",
-   "abs_diff": 3.235259282696745e-16,
-   "rel_diff": 1.309138476258466e-12
+   "abs_diff": 2.841693894084507e-16,
+   "rel_diff": 1.1498833600112063e-12
   },
   {
    "dataset": "nist-hahn1",
@@ -2982,14 +2980,14 @@
    },
    "printed": "1.0449373768E-05",
    "source": "NIST certified standard deviation of estimate",
-   "ours": 1.0449373767470099e-05,
+   "ours": 1.044937376764843e-05,
    "path": "dose_response(user_equation)[start1]:datasets[0].fit.params.b6.se",
    "extra": {
-    "start2": 1.0449373767535905e-05
+    "start2": 1.0449373767532129e-05
    },
    "status": "pass",
-   "abs_diff": 5.299021177363958e-16,
-   "rel_diff": 5.071137558110513e-11
+   "abs_diff": 3.515711891532644e-16,
+   "rel_diff": 3.36451922343816e-11
   },
   {
    "dataset": "nist-hahn1",
@@ -3018,14 +3016,14 @@
    },
    "printed": "1.3027335327E-08",
    "source": "NIST certified standard deviation of estimate",
-   "ours": 1.3027335326945838e-08,
+   "ours": 1.3027335327107394e-08,
    "path": "dose_response(user_equation)[start1]:datasets[0].fit.params.b7.se",
    "extra": {
-    "start2": 1.3027335326962024e-08
+    "start2": 1.3027335326878836e-08
    },
    "status": "pass",
-   "abs_diff": 5.4162132148747146e-20,
-   "rel_diff": 4.157575650677587e-12
+   "abs_diff": 1.0739451328898469e-19,
+   "rel_diff": 8.243782062353349e-12
   },
   {
    "dataset": "nist-hahn1",
@@ -3285,14 +3283,14 @@
    },
    "printed": "0.673565789473684E-03",
    "source": "NIST certified (15 significant digits)",
-   "ours": 0.0006735657894737591,
+   "ours": 0.0006735657894736632,
    "path": "dose_response(polynomial_second):datasets[0].fit.params.B0.value",
    "extra": {
     "alt": 0.000673565789473992
    },
    "status": "pass",
-   "abs_diff": 7.513521055324546e-17,
-   "rel_diff": 1.1154843628854011e-13
+   "abs_diff": 2.0816681711721685e-17,
+   "rel_diff": 3.0905194469552236e-14
   },
   {
    "dataset": "nist-pontius",
@@ -3303,14 +3301,14 @@
    },
    "printed": "0.107938612033077E-03",
    "source": "NIST certified standard deviation of estimate",
-   "ours": 0.00010793861203308443,
+   "ours": 0.00010793861203307454,
    "path": "dose_response(polynomial_second):datasets[0].fit.params.B0.se",
    "extra": {
     "alt": 0.00010793861203309784
    },
    "status": "pass",
-   "abs_diff": 7.426784881525705e-18,
-   "rel_diff": 6.880563629306092e-14
+   "abs_diff": 2.4665599424045226e-18,
+   "rel_diff": 2.285150694404578e-14
   },
   {
    "dataset": "nist-pontius",
@@ -3321,14 +3319,14 @@
    },
    "printed": "0.732059160401003E-06",
    "source": "NIST certified (15 significant digits)",
-   "ours": 7.320591604010024e-07,
+   "ours": 7.320591604010025e-07,
    "path": "dose_response(polynomial_second):datasets[0].fit.params.B1.value",
    "extra": {
     "alt": 7.320591604010024e-07
    },
    "status": "pass",
-   "abs_diff": 6.352747104407253e-22,
-   "rel_diff": 8.677914911859559e-16
+   "abs_diff": 5.293955920339377e-22,
+   "rel_diff": 7.231595759882966e-16
   },
   {
    "dataset": "nist-pontius",
@@ -3339,14 +3337,14 @@
    },
    "printed": "0.157817399981659E-09",
    "source": "NIST certified standard deviation of estimate",
-   "ours": 1.5781739998165e-10,
+   "ours": 1.5781739998165515e-10,
    "path": "dose_response(polynomial_second):datasets[0].fit.params.B1.se",
    "extra": {
     "alt": 1.5781739998168917e-10
    },
    "status": "pass",
-   "abs_diff": 8.995589161514176e-24,
-   "rel_diff": 5.699998328802535e-14
+   "abs_diff": 3.851559727200035e-24,
+   "rel_diff": 2.4405165258378673e-14
   },
   {
    "dataset": "nist-pontius",
@@ -3357,14 +3355,14 @@
    },
    "printed": "-0.316081871345029E-14",
    "source": "NIST certified (15 significant digits)",
-   "ours": -3.1608187134502494e-15,
+   "ours": -3.1608187134503007e-15,
    "path": "dose_response(polynomial_second):datasets[0].fit.params.B2.value",
    "extra": {
     "alt": -3.1608187134503062e-15
    },
    "status": "pass",
-   "abs_diff": 4.062633661888211e-29,
-   "rel_diff": 1.2853105572301287e-14
+   "abs_diff": 1.064962222048366e-29,
+   "rel_diff": 3.369260684001308e-15
   },
   {
    "dataset": "nist-pontius",
@@ -3375,14 +3373,14 @@
    },
    "printed": "0.486652849992036E-16",
    "source": "NIST certified standard deviation of estimate",
-   "ours": 4.866528499919255e-17,
+   "ours": 4.8665284999202507e-17,
    "path": "dose_response(polynomial_second):datasets[0].fit.params.B2.se",
    "extra": {
     "alt": 4.8665284999213015e-17
    },
    "status": "pass",
-   "abs_diff": 1.1050215648916204e-29,
-   "rel_diff": 2.2706567215412465e-13
+   "abs_diff": 1.0908467205009304e-30,
+   "rel_diff": 2.2415295020234278e-14
   },
   {
    "dataset": "nist-pontius",
@@ -3393,14 +3391,14 @@
    },
    "printed": "0.205177424076185E-03",
    "source": "NIST certified residual standard deviation",
-   "ours": 0.00020517742407619703,
+   "ours": 0.00020517742407617998,
    "path": "dose_response(polynomial_second):datasets[0].fit.goodness.sy_x",
    "extra": {
     "alt": 0.00020517742407622438
    },
    "status": "pass",
-   "abs_diff": 1.2034644114589099e-17,
-   "rel_diff": 5.86548162829088e-14
+   "abs_diff": 5.014435047745458e-18,
+   "rel_diff": 2.4439506784545333e-14
   },
   {
    "dataset": "nist-pontius",
@@ -3480,14 +3478,14 @@
    },
    "printed": "185330865.995752",
    "source": "NIST certified",
-   "ours": 185330865.99572927,
+   "ours": 185330865.99575996,
    "path": "derived: ms_regression / ms_residual",
    "extra": {
     "alt": 185330865.99567977
    },
    "status": "pass",
-   "abs_diff": 2.2739171981811523e-05,
-   "rel_diff": 1.2269500743784756e-13
+   "abs_diff": 7.957220077514648e-06,
+   "rel_diff": 4.293521230131756e-14
   },
   {
    "dataset": "nist-pontius",
@@ -3513,14 +3511,14 @@
    },
    "printed": "0.155761768796992E-05",
    "source": "NIST certified",
-   "ours": 1.5576176879701124e-06,
+   "ours": 1.5576176879698542e-06,
    "path": "dose_response(polynomial_second):datasets[0].fit.goodness.ss_res",
    "extra": {
     "alt": 1.5576176879705283e-06
    },
    "status": "pass",
-   "abs_diff": 1.9227647902672618e-19,
-   "rel_diff": 1.2344266536760034e-13
+   "abs_diff": 6.585681164902185e-20,
+   "rel_diff": 4.228047238912303e-14
   },
   {
    "dataset": "nist-pontius",
@@ -3531,14 +3529,14 @@
    },
    "printed": "0.420977753505385E-07",
    "source": "NIST certified",
-   "ours": 4.2097775350543575e-08,
+   "ours": 4.20977753505366e-08,
    "path": "derived: ss_res / df",
    "extra": {
     "alt": 4.209777535055482e-08
    },
    "status": "pass",
-   "abs_diff": 5.075580238625378e-21,
-   "rel_diff": 1.2056647165704573e-13
+   "abs_diff": 1.8992066864217515e-21,
+   "rel_diff": 4.511418170218008e-14
   },
   {
    "dataset": "nist-noint1",
@@ -3595,7 +3593,7 @@
    "printed": "0.999365492298663",
    "source": "NIST certified",
    "ours": 0.9993654922986628,
-   "path": "derived: 1 - ss_res / sum(Y^2) (NIST's uncentred R^2; the engine's goodness.r_squared = -0.157025 is Prism's centred R^2, which can be negative for a line through the origin)",
+   "path": "dose_response(line_through_origin):datasets[0].fit.goodness.r_squared_uncentered (NIST's uncentred R^2; goodness.r_squared = -0.157025 is Prism's centred R^2, which can be negative for a line through the origin)",
    "status": "pass",
    "abs_diff": 2.220446049250313e-16,
    "rel_diff": 2.2218558338881754e-16
@@ -3714,11 +3712,14 @@
    },
    "printed": "-1467.48961422980",
    "source": "NIST certified (15 significant digits)",
-   "ours": -1467.4896022601156,
-   "path": "multiple_regression(X..X^10):coefficients[name=Intercept].estimate",
+   "ours": -1467.489632865418,
+   "path": "dose_response(polynomial_tenth):datasets[0].fit.params.B0.value",
+   "extra": {
+    "alt": -1467.4896022601156
+   },
    "status": "pass",
-   "abs_diff": 1.1969684464929742e-05,
-   "rel_diff": 8.156571841370021e-09
+   "abs_diff": 1.863561783466139e-05,
+   "rel_diff": 1.269897766495754e-08
   },
   {
    "dataset": "nist-filip",
@@ -3729,11 +3730,14 @@
    },
    "printed": "298.084530995537",
    "source": "NIST certified standard deviation of estimate",
-   "ours": 298.0845285211518,
-   "path": "multiple_regression(X..X^10):coefficients[name=Intercept].se",
+   "ours": 298.08451761871277,
+   "path": "dose_response(polynomial_tenth):datasets[0].fit.params.B0.se",
+   "extra": {
+    "alt": 298.0845285211518
+   },
    "status": "pass",
-   "abs_diff": 2.4743852122810495e-06,
-   "rel_diff": 8.300951424809415e-09
+   "abs_diff": 1.3376824256283726e-05,
+   "rel_diff": 4.4875942443601695e-08
   },
   {
    "dataset": "nist-filip",
@@ -3744,11 +3748,14 @@
    },
    "printed": "-2772.17959193342",
    "source": "NIST certified (15 significant digits)",
-   "ours": -2772.1795699559207,
-   "path": "multiple_regression(X..X^10):coefficients[name=X1].estimate",
+   "ours": -2772.179627987806,
+   "path": "dose_response(polynomial_tenth):datasets[0].fit.params.B1.value",
+   "extra": {
+    "alt": -2772.1795699559207
+   },
    "status": "pass",
-   "abs_diff": 2.1977499272907153e-05,
-   "rel_diff": 7.927877160937916e-09
+   "abs_diff": 3.6054385873285355e-05,
+   "rel_diff": 1.3005790093180688e-08
   },
   {
    "dataset": "nist-filip",
@@ -3759,11 +3766,14 @@
    },
    "printed": "559.779865474950",
    "source": "NIST certified standard deviation of estimate",
-   "ours": 559.7798608887275,
-   "path": "multiple_regression(X..X^10):coefficients[name=X1].se",
+   "ours": 559.7798402315083,
+   "path": "dose_response(polynomial_tenth):datasets[0].fit.params.B1.se",
+   "extra": {
+    "alt": 559.7798608887275
+   },
    "status": "pass",
-   "abs_diff": 4.586222530633677e-06,
-   "rel_diff": 8.192903699282676e-09
+   "abs_diff": 2.524344176890736e-05,
+   "rel_diff": 4.5095301431553534e-08
   },
   {
    "dataset": "nist-filip",
@@ -3774,11 +3784,14 @@
    },
    "printed": "-2316.37108160893",
    "source": "NIST certified (15 significant digits)",
-   "ours": -2316.3710638726134,
-   "path": "multiple_regression(X..X^10):coefficients[name=X2].estimate",
+   "ours": -2316.371112545349,
+   "path": "dose_response(polynomial_tenth):datasets[0].fit.params.B2.value",
+   "extra": {
+    "alt": -2316.3710638726134
+   },
    "status": "pass",
-   "abs_diff": 1.773631674950593e-05,
-   "rel_diff": 7.656941018788082e-09
+   "abs_diff": 3.093641907980782e-05,
+   "rel_diff": 1.335555400662301e-08
   },
   {
    "dataset": "nist-filip",
@@ -3789,11 +3802,14 @@
    },
    "printed": "466.477572127796",
    "source": "NIST certified standard deviation of estimate",
-   "ours": 466.47756840009185,
-   "path": "multiple_regression(X..X^10):coefficients[name=X2].se",
+   "ours": 466.47755104596837,
+   "path": "dose_response(polynomial_tenth):datasets[0].fit.params.B2.se",
+   "extra": {
+    "alt": 466.47756840009185
+   },
    "status": "pass",
-   "abs_diff": 3.7277041542438383e-06,
-   "rel_diff": 7.991175518343245e-09
+   "abs_diff": 2.1081827640045958e-05,
+   "rel_diff": 4.519365752973519e-08
   },
   {
    "dataset": "nist-filip",
@@ -3804,11 +3820,14 @@
    },
    "printed": "-1127.97394098372",
    "source": "NIST certified (15 significant digits)",
-   "ours": -1127.9739327050931,
-   "path": "multiple_regression(X..X^10):coefficients[name=X3].estimate",
+   "ours": -1127.9739564869642,
+   "path": "dose_response(polynomial_tenth):datasets[0].fit.params.B3.value",
+   "extra": {
+    "alt": -1127.9739327050931
+   },
    "status": "pass",
-   "abs_diff": 8.278626864921534e-06,
-   "rel_diff": 7.339377767629668e-09
+   "abs_diff": 1.5503244185310905e-05,
+   "rel_diff": 1.3744328323569545e-08
   },
   {
    "dataset": "nist-filip",
@@ -3819,11 +3838,14 @@
    },
    "printed": "227.204274477751",
    "source": "NIST certified standard deviation of estimate",
-   "ours": 227.20427272938332,
-   "path": "multiple_regression(X..X^10):coefficients[name=X3].se",
+   "ours": 227.20426421404483,
+   "path": "dose_response(polynomial_tenth):datasets[0].fit.params.B3.se",
+   "extra": {
+    "alt": 227.20427272938332
+   },
    "status": "pass",
-   "abs_diff": 1.7483676799656678e-06,
-   "rel_diff": 7.695135507395028e-09
+   "abs_diff": 1.0263706172963794e-05,
+   "rel_diff": 4.517391319576106e-08
   },
   {
    "dataset": "nist-filip",
@@ -3834,11 +3856,14 @@
    },
    "printed": "-354.478233703349",
    "source": "NIST certified (15 significant digits)",
-   "ours": -354.47823123030673,
-   "path": "multiple_regression(X..X^10):coefficients[name=X4].estimate",
+   "ours": -354.4782387285855,
+   "path": "dose_response(polynomial_tenth):datasets[0].fit.params.B4.value",
+   "extra": {
+    "alt": -354.47823123030673
+   },
    "status": "pass",
-   "abs_diff": 2.473042286510463e-06,
-   "rel_diff": 6.976570213278791e-09
+   "abs_diff": 5.025236475830752e-06,
+   "rel_diff": 1.4176431718614928e-08
   },
   {
    "dataset": "nist-filip",
@@ -3849,11 +3874,14 @@
    },
    "printed": "71.6478660875927",
    "source": "NIST certified standard deviation of estimate",
-   "ours": 71.64786556404597,
-   "path": "multiple_regression(X..X^10):coefficients[name=X4].se",
+   "ours": 71.6478628603384,
+   "path": "dose_response(polynomial_tenth):datasets[0].fit.params.B4.se",
+   "extra": {
+    "alt": 71.64786556404597
+   },
    "status": "pass",
-   "abs_diff": 5.235467313013942e-07,
-   "rel_diff": 7.30722015728054e-09
+   "abs_diff": 3.2272542966893525e-06,
+   "rel_diff": 4.5043271669024876e-08
   },
   {
    "dataset": "nist-filip",
@@ -3864,11 +3892,14 @@
    },
    "printed": "-75.1242017393757",
    "source": "NIST certified (15 significant digits)",
-   "ours": -75.12420124579539,
-   "path": "multiple_regression(X..X^10):coefficients[name=X5].estimate",
+   "ours": -75.12420284040678,
+   "path": "dose_response(polynomial_tenth):datasets[0].fit.params.B5.value",
+   "extra": {
+    "alt": -75.12420124579539
+   },
    "status": "pass",
-   "abs_diff": 4.935803161743024e-07,
-   "rel_diff": 6.570190494491424e-09
+   "abs_diff": 1.1010310743131413e-06,
+   "rel_diff": 1.4656143410786424e-08
   },
   {
    "dataset": "nist-filip",
@@ -3879,11 +3910,14 @@
    },
    "printed": "15.2897178747400",
    "source": "NIST certified standard deviation of estimate",
-   "ours": 15.28971777026835,
-   "path": "multiple_regression(X..X^10):coefficients[name=X5].se",
+   "ours": 15.289717189561276,
+   "path": "dose_response(polynomial_tenth):datasets[0].fit.params.B5.se",
+   "extra": {
+    "alt": 15.28971777026835
+   },
    "status": "pass",
-   "abs_diff": 1.0447165088578458e-07,
-   "rel_diff": 6.832804355296916e-09
+   "abs_diff": 6.851787244244179e-07,
+   "rel_diff": 4.4813039065710634e-08
   },
   {
    "dataset": "nist-filip",
@@ -3894,11 +3928,14 @@
    },
    "printed": "-10.8753180355343",
    "source": "NIST certified (15 significant digits)",
-   "ours": -10.875317968959658,
-   "path": "multiple_regression(X..X^10):coefficients[name=X6].estimate",
+   "ours": -10.875318200701917,
+   "path": "dose_response(polynomial_tenth):datasets[0].fit.params.B6.value",
+   "extra": {
+    "alt": -10.875317968959658
+   },
    "status": "pass",
-   "abs_diff": 6.657464268755575e-08,
-   "rel_diff": 6.121627199317575e-09
+   "abs_diff": 1.651676164726723e-07,
+   "rel_diff": 1.5187382652442832e-08
   },
   {
    "dataset": "nist-filip",
@@ -3909,11 +3946,14 @@
    },
    "printed": "2.23691159816033",
    "source": "NIST certified standard deviation of estimate",
-   "ours": 2.236911584113308,
-   "path": "multiple_regression(X..X^10):coefficients[name=X6].se",
+   "ours": 2.2369114986240177,
+   "path": "dose_response(polynomial_tenth):datasets[0].fit.params.B6.se",
+   "extra": {
+    "alt": 2.236911584113308
+   },
    "status": "pass",
-   "abs_diff": 1.4047021767993328e-08,
-   "rel_diff": 6.279649933214086e-09
+   "abs_diff": 9.953631208148295e-08,
+   "rel_diff": 4.449720416459154e-08
   },
   {
    "dataset": "nist-filip",
@@ -3924,11 +3964,14 @@
    },
    "printed": "-1.06221498588947",
    "source": "NIST certified (15 significant digits)",
-   "ours": -1.062214979907494,
-   "path": "multiple_regression(X..X^10):coefficients[name=X7].estimate",
+   "ours": -1.0622150026442723,
+   "path": "dose_response(polynomial_tenth):datasets[0].fit.params.B7.value",
+   "extra": {
+    "alt": -1.062214979907494
+   },
    "status": "pass",
-   "abs_diff": 5.9819760256374366e-09,
-   "rel_diff": 5.631605753168971e-09
+   "abs_diff": 1.6754802212304298e-08,
+   "rel_diff": 1.5773456818888956e-08
   },
   {
    "dataset": "nist-filip",
@@ -3939,11 +3982,14 @@
    },
    "printed": "0.221624321934227",
    "source": "NIST certified standard deviation of estimate",
-   "ours": 0.22162432068044793,
-   "path": "multiple_regression(X..X^10):coefficients[name=X7].se",
+   "ours": 0.2216243121581691,
+   "path": "dose_response(polynomial_tenth):datasets[0].fit.params.B7.se",
+   "extra": {
+    "alt": 0.22162432068044793
+   },
    "status": "pass",
-   "abs_diff": 1.2537790528011072e-09,
-   "rel_diff": 5.657226796493934e-09
+   "abs_diff": 9.776057879884448e-09,
+   "rel_diff": 4.4110943214913734e-08
   },
   {
    "dataset": "nist-filip",
@@ -3954,11 +4000,14 @@
    },
    "printed": "-0.670191154593408E-01",
    "source": "NIST certified (15 significant digits)",
-   "ours": -0.06701911511753868,
-   "path": "multiple_regression(X..X^10):coefficients[name=X8].estimate",
+   "ours": -0.06701911655958358,
+   "path": "dose_response(polynomial_tenth):datasets[0].fit.params.B8.value",
+   "extra": {
+    "alt": -0.06701911511753868
+   },
    "status": "pass",
-   "abs_diff": 3.418021282675099e-10,
-   "rel_diff": 5.100069225396963e-09
+   "abs_diff": 1.1002427718898034e-09,
+   "rel_diff": 1.6416850093422962e-08
   },
   {
    "dataset": "nist-filip",
@@ -3969,11 +4018,14 @@
    },
    "printed": "0.142363763154724E-01",
    "source": "NIST certified standard deviation of estimate",
-   "ours": 0.014236376244631447,
-   "path": "multiple_regression(X..X^10):coefficients[name=X8].se",
+   "ours": 0.014236375693778232,
+   "path": "dose_response(polynomial_tenth):datasets[0].fit.params.B8.se",
+   "extra": {
+    "alt": 0.014236376244631447
+   },
    "status": "pass",
-   "abs_diff": 7.084095289544567e-11,
-   "rel_diff": 4.97605228505053e-09
+   "abs_diff": 6.216941683678812e-10,
+   "rel_diff": 4.366941099275457e-08
   },
   {
    "dataset": "nist-filip",
@@ -3984,11 +4036,14 @@
    },
    "printed": "-0.246781078275479E-02",
    "source": "NIST certified (15 significant digits)",
-   "ours": -0.0024678107715850124,
-   "path": "multiple_regression(X..X^10):coefficients[name=X9].estimate",
+   "ours": -0.002467810825001733,
+   "path": "dose_response(polynomial_tenth):datasets[0].fit.params.B9.value",
+   "extra": {
+    "alt": -0.0024678107715850124
+   },
    "status": "pass",
-   "abs_diff": 1.1169777776320888e-11,
-   "rel_diff": 4.526188901667812e-09
+   "abs_diff": 4.224694292315201e-11,
+   "rel_diff": 1.711919861051592e-08
   },
   {
    "dataset": "nist-filip",
@@ -3999,11 +4054,14 @@
    },
    "printed": "0.535617408889821E-03",
    "source": "NIST certified standard deviation of estimate",
-   "ours": 0.0005356174066150064,
-   "path": "multiple_regression(X..X^10):coefficients[name=X9].se",
+   "ours": 0.0005356173857581838,
+   "path": "dose_response(polynomial_tenth):datasets[0].fit.params.B9.se",
+   "extra": {
+    "alt": 0.0005356174066150064
+   },
    "status": "pass",
-   "abs_diff": 2.2748146682322057e-12,
-   "rel_diff": 4.2470887437121106e-09
+   "abs_diff": 2.313163723066669e-11,
+   "rel_diff": 4.318686593591467e-08
   },
   {
    "dataset": "nist-filip",
@@ -4014,11 +4072,14 @@
    },
    "printed": "-0.402962525080404E-04",
    "source": "NIST certified (15 significant digits)",
-   "ours": -4.029625235054318e-05,
-   "path": "multiple_regression(X..X^10):coefficients[name=X10].estimate",
+   "ours": -4.029625322859266e-05,
+   "path": "dose_response(polynomial_tenth):datasets[0].fit.params.B10.value",
+   "extra": {
+    "alt": -4.029625235054318e-05
+   },
    "status": "pass",
-   "abs_diff": 1.574972181210381e-13,
-   "rel_diff": 3.908483005699161e-09
+   "abs_diff": 7.205522596230758e-13,
+   "rel_diff": 1.788137146200636e-08
   },
   {
    "dataset": "nist-filip",
@@ -4029,11 +4090,14 @@
    },
    "printed": "0.896632837373868E-05",
    "source": "NIST certified standard deviation of estimate",
-   "ours": 8.966328342524609e-06,
-   "path": "multiple_regression(X..X^10):coefficients[name=X10].se",
+   "ours": 8.966327991090417e-06,
+   "path": "dose_response(polynomial_tenth):datasets[0].fit.params.B10.se",
+   "extra": {
+    "alt": 8.966328342524609e-06
+   },
    "status": "pass",
-   "abs_diff": 3.1214072125640424e-14,
-   "rel_diff": 3.4812546255904216e-09
+   "abs_diff": 3.826482638640818e-13,
+   "rel_diff": 4.267613764680017e-08
   },
   {
    "dataset": "nist-filip",
@@ -4044,11 +4108,14 @@
    },
    "printed": "0.334801051324544E-02",
    "source": "NIST certified residual standard deviation",
-   "ours": 0.0033480105444740975,
-   "path": "multiple_regression(X..X^10):goodness.sy_x",
+   "ours": 0.0033480104961391244,
+   "path": "dose_response(polynomial_tenth):datasets[0].fit.goodness.sy_x",
+   "extra": {
+    "alt": 0.0033480105444740975
+   },
    "status": "pass",
-   "abs_diff": 3.122865768062644e-11,
-   "rel_diff": 9.327526767636852e-09
+   "abs_diff": 1.7106315496062674e-11,
+   "rel_diff": 5.109397186295103e-09
   },
   {
    "dataset": "nist-filip",
@@ -4059,11 +4126,14 @@
    },
    "printed": "0.996727416185620",
    "source": "NIST certified",
-   "ours": 0.9967274161245699,
-   "path": "multiple_regression(X..X^10):goodness.r_squared",
+   "ours": 0.996727416219062,
+   "path": "dose_response(polynomial_tenth):datasets[0].fit.goodness.r_squared",
+   "extra": {
+    "alt": 0.9967274161245699
+   },
    "status": "pass",
-   "abs_diff": 6.105005390111273e-11,
-   "rel_diff": 6.125050130029073e-11
+   "abs_diff": 3.34420269254565e-11,
+   "rel_diff": 3.3551828095023134e-11
   },
   {
    "dataset": "nist-filip",
@@ -4075,7 +4145,7 @@
    "printed": null,
    "source": "NIST certified",
    "ours": 10.0,
-   "path": "multiple_regression(X..X^10):anova[0].df",
+   "path": "derived: n_points - 1 - df",
    "status": "pass",
    "abs_diff": 0.0,
    "rel_diff": 0.0
@@ -4089,11 +4159,14 @@
    },
    "printed": "0.242391619837339",
    "source": "NIST certified",
-   "ours": 0.2423916198224926,
-   "path": "multiple_regression(X..X^10):anova[0].ss",
+   "ours": 0.24239161984547195,
+   "path": "derived: r_squared * SS total (SS total from the data)",
+   "extra": {
+    "alt": 0.2423916198224926
+   },
    "status": "pass",
-   "abs_diff": 1.4846401885648675e-11,
-   "rel_diff": 6.12496500316785e-11
+   "abs_diff": 8.132938766891584e-12,
+   "rel_diff": 3.355288756413827e-11
   },
   {
    "dataset": "nist-filip",
@@ -4104,11 +4177,14 @@
    },
    "printed": "0.242391619837339E-01",
    "source": "NIST certified",
-   "ours": 0.02423916198224926,
-   "path": "multiple_regression(X..X^10):anova[0].ms",
+   "ours": 0.024239161984547196,
+   "path": "derived: ss_regression / 10",
+   "extra": {
+    "alt": 0.02423916198224926
+   },
    "status": "pass",
-   "abs_diff": 1.4846388007860867e-12,
-   "rel_diff": 6.124959277809929e-11
+   "abs_diff": 8.132973461361104e-13,
+   "rel_diff": 3.355303069808632e-11
   },
   {
    "dataset": "nist-filip",
@@ -4119,11 +4195,14 @@
    },
    "printed": "2162.43954511489",
    "source": "NIST certified",
-   "ours": 2162.4395046420095,
-   "path": "multiple_regression(X..X^10):anova[0].F",
+   "ours": 2162.439567284965,
+   "path": "derived: ms_regression / ms_residual",
+   "extra": {
+    "alt": 2162.4395046420095
+   },
    "status": "pass",
-   "abs_diff": 4.047288030051277e-05,
-   "rel_diff": 1.8716306031280267e-08
+   "abs_diff": 2.2170075226313202e-05,
+   "rel_diff": 1.0252344522831648e-08
   },
   {
    "dataset": "nist-filip",
@@ -4135,7 +4214,7 @@
    "printed": null,
    "source": "NIST certified",
    "ours": 71.0,
-   "path": "multiple_regression(X..X^10):anova[1].df",
+   "path": "dose_response(polynomial_tenth):datasets[0].fit.goodness.df",
    "status": "pass",
    "abs_diff": 0.0,
    "rel_diff": 0.0
@@ -4149,11 +4228,14 @@
    },
    "printed": "0.795851382172941E-03",
    "source": "NIST certified",
-   "ours": 0.0007958513970195918,
-   "path": "multiple_regression(X..X^10):anova[1].ss",
+   "ours": 0.0007958513740402999,
+   "path": "dose_response(polynomial_tenth):datasets[0].fit.goodness.ss_res",
+   "extra": {
+    "alt": 0.0007958513970195918
+   },
    "status": "pass",
-   "abs_diff": 1.4846650818467477e-11,
-   "rel_diff": 1.865505438707808e-08
+   "abs_diff": 8.13264104497502e-12,
+   "rel_diff": 1.0218793643067106e-08
   },
   {
    "dataset": "nist-filip",
@@ -4164,11 +4246,14 @@
    },
    "printed": "0.112091743968020E-04",
    "source": "NIST certified",
-   "ours": 1.1209174605909743e-05,
-   "path": "multiple_regression(X..X^10):anova[1].ms",
+   "ours": 1.1209174282257744e-05,
+   "path": "derived: ss_res / df",
+   "extra": {
+    "alt": 1.1209174605909743e-05
+   },
    "status": "pass",
-   "abs_diff": 2.091077436666743e-13,
-   "rel_diff": 1.865505310777689e-08
+   "abs_diff": 1.1454425529280367e-13,
+   "rel_diff": 1.0218795001127235e-08
   },
   {
    "dataset": "nist-longley",
@@ -6081,10 +6166,11 @@
    },
    "printed": "-0.00355099287237972",
    "source": "NIST certified",
-   "status": "unmapped",
-   "ours": null,
-   "path": null,
-   "reason": "no engine output: the lag-1 autocorrelation of a column is not a column statistic in OpenDose"
+   "ours": -0.0035509928723797424,
+   "path": "column_statistics:datasets[0].descriptive.lag1_autocorrelation",
+   "status": "pass",
+   "abs_diff": 2.2551405187698492e-17,
+   "rel_diff": 6.35073231577216e-15
   },
   {
    "dataset": "nist-pidigits",
@@ -6140,10 +6226,11 @@
    },
    "printed": "-0.120948622967393",
    "source": "NIST certified",
-   "status": "unmapped",
-   "ours": null,
-   "path": null,
-   "reason": "no engine output: the lag-1 autocorrelation of a column is not a column statistic in OpenDose"
+   "ours": -0.12094862296739281,
+   "path": "column_statistics:datasets[0].descriptive.lag1_autocorrelation",
+   "status": "pass",
+   "abs_diff": 1.942890293094024e-16,
+   "rel_diff": 1.606376530320494e-15
   },
   {
    "dataset": "nist-lottery",
@@ -6199,10 +6286,11 @@
    },
    "printed": "-0.307304800605679",
    "source": "NIST certified",
-   "status": "unmapped",
-   "ours": null,
-   "path": null,
-   "reason": "no engine output: the lag-1 autocorrelation of a column is not a column statistic in OpenDose"
+   "ours": -0.30730480060567944,
+   "path": "column_statistics:datasets[0].descriptive.lag1_autocorrelation",
+   "status": "pass",
+   "abs_diff": 4.440892098500626e-16,
+   "rel_diff": 1.4451099005768537e-15
   },
   {
    "dataset": "nist-lew",
@@ -6258,10 +6346,11 @@
    },
    "printed": "0.937989183438248",
    "source": "NIST certified",
-   "status": "unmapped",
-   "ours": null,
-   "path": null,
-   "reason": "no engine output: the lag-1 autocorrelation of a column is not a column statistic in OpenDose"
+   "ours": 0.9379891834382648,
+   "path": "column_statistics:datasets[0].descriptive.lag1_autocorrelation",
+   "status": "pass",
+   "abs_diff": 1.6764367671839864e-14,
+   "rel_diff": 1.7872666303452674e-14
   },
   {
    "dataset": "nist-mavro",
@@ -6317,10 +6406,11 @@
    },
    "printed": "0.535199668621283",
    "source": "NIST certified",
-   "status": "unmapped",
-   "ours": null,
-   "path": null,
-   "reason": "no engine output: the lag-1 autocorrelation of a column is not a column statistic in OpenDose"
+   "ours": 0.5351996686212634,
+   "path": "column_statistics:datasets[0].descriptive.lag1_autocorrelation",
+   "status": "pass",
+   "abs_diff": 1.9539925233402755e-14,
+   "rel_diff": 3.650959890117115e-14
   },
   {
    "dataset": "nist-michelso",
@@ -6376,10 +6466,11 @@
    },
    "printed": "-0.5",
    "source": "NIST certified",
-   "status": "unmapped",
-   "ours": null,
-   "path": null,
-   "reason": "no engine output: the lag-1 autocorrelation of a column is not a column statistic in OpenDose"
+   "ours": -0.5,
+   "path": "column_statistics:datasets[0].descriptive.lag1_autocorrelation",
+   "status": "pass",
+   "abs_diff": 0.0,
+   "rel_diff": 0.0
   },
   {
    "dataset": "nist-numacc1",
@@ -6435,10 +6526,11 @@
    },
    "printed": "-0.999",
    "source": "NIST certified",
-   "status": "unmapped",
-   "ours": null,
-   "path": null,
-   "reason": "no engine output: the lag-1 autocorrelation of a column is not a column statistic in OpenDose"
+   "ours": -0.9990000000000011,
+   "path": "column_statistics:datasets[0].descriptive.lag1_autocorrelation",
+   "status": "pass",
+   "abs_diff": 1.1102230246251565e-15,
+   "rel_diff": 1.1113343589841407e-15
   },
   {
    "dataset": "nist-numacc2",
@@ -6494,10 +6586,11 @@
    },
    "printed": "-0.999",
    "source": "NIST certified",
-   "status": "unmapped",
-   "ours": null,
-   "path": null,
-   "reason": "no engine output: the lag-1 autocorrelation of a column is not a column statistic in OpenDose"
+   "ours": -0.9989999999999991,
+   "path": "column_statistics:datasets[0].descriptive.lag1_autocorrelation",
+   "status": "pass",
+   "abs_diff": 8.881784197001252e-16,
+   "rel_diff": 8.890674871873126e-16
   },
   {
    "dataset": "nist-numacc3",
@@ -6555,10 +6648,11 @@
    },
    "printed": "-0.999",
    "source": "NIST certified",
-   "status": "unmapped",
-   "ours": null,
-   "path": null,
-   "reason": "no engine output: the lag-1 autocorrelation of a column is not a column statistic in OpenDose"
+   "ours": -0.9990000000000016,
+   "path": "column_statistics:datasets[0].descriptive.lag1_autocorrelation",
+   "status": "pass",
+   "abs_diff": 1.5543122344752192e-15,
+   "rel_diff": 1.555868102577797e-15
   },
   {
    "dataset": "nist-numacc4",
@@ -6839,11 +6933,11 @@
    },
    "printed": "-3.866075",
    "source": "TukeyHSD",
-   "ours": -3.8660751787675887,
+   "ours": -3.866075178767268,
    "path": "anova:multiple_comparisons.comparisons[pair=A vs. B].ci[1] * -1",
    "status": "pass",
-   "abs_diff": 1.787675887321427e-07,
-   "rel_diff": 4.624007261425159e-08
+   "abs_diff": 1.787672680997332e-07,
+   "rel_diff": 4.623998967938625e-08
   },
   {
    "dataset": "r-insectsprays",
@@ -6854,11 +6948,11 @@
    },
    "printed": "5.532742",
    "source": "TukeyHSD",
-   "ours": 5.5327418454342565,
+   "ours": 5.532741845433936,
    "path": "anova:multiple_comparisons.comparisons[pair=A vs. B].ci[0] * -1",
    "status": "pass",
-   "abs_diff": 1.5456574331551565e-07,
-   "rel_diff": 2.7936553577867112e-08
+   "abs_diff": 1.5456606394792516e-07,
+   "rel_diff": 2.7936611529676455e-08
   },
   {
    "dataset": "r-insectsprays",
@@ -6869,11 +6963,11 @@
    },
    "printed": "0.9951810",
    "source": "TukeyHSD",
-   "ours": 0.9951810313679177,
+   "ours": 0.995181031367922,
    "path": "anova:multiple_comparisons.comparisons[pair=A vs. B].p_adjusted",
    "status": "pass",
-   "abs_diff": 3.1367917707747495e-08,
-   "rel_diff": 3.151981168023455e-08
+   "abs_diff": 3.136792203761729e-08,
+   "rel_diff": 3.151981603107102e-08
   },
   {
    "dataset": "r-insectsprays",
@@ -6899,11 +6993,11 @@
    },
    "printed": "-17.116075",
    "source": "TukeyHSD",
-   "ours": -17.116075178767588,
+   "ours": -17.116075178767268,
    "path": "anova:multiple_comparisons.comparisons[pair=A vs. C].ci[1] * -1",
    "status": "pass",
-   "abs_diff": 1.7876758917623192e-07,
-   "rel_diff": 1.0444426609268302e-08
+   "abs_diff": 1.7876726943200083e-07,
+   "rel_diff": 1.0444407928336424e-08
   },
   {
    "dataset": "r-insectsprays",
@@ -6914,11 +7008,11 @@
    },
    "printed": "-7.717258",
    "source": "TukeyHSD",
-   "ours": -7.7172581545657435,
+   "ours": -7.717258154566064,
    "path": "anova:multiple_comparisons.comparisons[pair=A vs. C].ci[0] * -1",
    "status": "pass",
-   "abs_diff": 1.5456574331551565e-07,
-   "rel_diff": 2.0028583120522296e-08
+   "abs_diff": 1.5456606394792516e-07,
+   "rel_diff": 2.0028624667974708e-08
   },
   {
    "dataset": "r-insectsprays",
@@ -6929,10 +7023,10 @@
    },
    "printed": "0.0000000",
    "source": "TukeyHSD",
-   "ours": 1.0837321040568781e-09,
+   "ours": 1.0837055307750588e-09,
    "path": "anova:multiple_comparisons.comparisons[pair=A vs. C].p_adjusted",
    "status": "pass",
-   "abs_diff": 1.0837321040568781e-09,
+   "abs_diff": 1.0837055307750588e-09,
    "rel_diff": null
   },
   {
@@ -6959,11 +7053,11 @@
    },
    "printed": "-14.282742",
    "source": "TukeyHSD",
-   "ours": -14.282741845434256,
+   "ours": -14.282741845433934,
    "path": "anova:multiple_comparisons.comparisons[pair=A vs. D].ci[1] * -1",
    "status": "pass",
-   "abs_diff": 1.5456574509187249e-07,
-   "rel_diff": 1.0821853751322574e-08
+   "abs_diff": 1.5456606661246042e-07,
+   "rel_diff": 1.0821876262447394e-08
   },
   {
    "dataset": "r-insectsprays",
@@ -6974,11 +7068,11 @@
    },
    "printed": "-4.883925",
    "source": "TukeyHSD",
-   "ours": -4.88392482123241,
+   "ours": -4.88392482123273,
    "path": "anova:multiple_comparisons.comparisons[pair=A vs. D].ci[0] * -1",
    "status": "pass",
-   "abs_diff": 1.7876759006441034e-07,
-   "rel_diff": 3.66032627578045e-08
+   "abs_diff": 1.7876726943200083e-07,
+   "rel_diff": 3.660319710724486e-08
   },
   {
    "dataset": "r-insectsprays",
@@ -6989,11 +7083,11 @@
    },
    "printed": "0.0000014",
    "source": "TukeyHSD",
-   "ours": 1.442021660302828e-06,
+   "ours": 1.4420216337307916e-06,
    "path": "anova:multiple_comparisons.comparisons[pair=A vs. D].p_adjusted",
    "status": "pass",
-   "abs_diff": 4.202166030282803e-08,
-   "rel_diff": 0.030015471644877167
+   "abs_diff": 4.202163373079165e-08,
+   "rel_diff": 0.03001545266485118
   },
   {
    "dataset": "r-insectsprays",
@@ -7019,11 +7113,11 @@
    },
    "printed": "-15.699409",
    "source": "TukeyHSD",
-   "ours": -15.699408512100923,
+   "ours": -15.699408512100602,
    "path": "anova:multiple_comparisons.comparisons[pair=A vs. E].ci[1] * -1",
    "status": "pass",
-   "abs_diff": 4.878990758072632e-07,
-   "rel_diff": 3.107754411693225e-08
+   "abs_diff": 4.878993973278511e-07,
+   "rel_diff": 3.107756459672152e-08
   },
   {
    "dataset": "r-insectsprays",
@@ -7034,11 +7128,11 @@
    },
    "printed": "-6.300591",
    "source": "TukeyHSD",
-   "ours": -6.300591487899077,
+   "ours": -6.300591487899398,
    "path": "anova:multiple_comparisons.comparisons[pair=A vs. E].ci[0] * -1",
    "status": "pass",
-   "abs_diff": 4.878990775836201e-07,
-   "rel_diff": 7.743703369788962e-08
+   "abs_diff": 4.878993982160296e-07,
+   "rel_diff": 7.743708458714898e-08
   },
   {
    "dataset": "r-insectsprays",
@@ -7049,10 +7143,10 @@
    },
    "printed": "0.0000000",
    "source": "TukeyHSD",
-   "ours": 4.087107630112996e-08,
+   "ours": 4.087104961786222e-08,
    "path": "anova:multiple_comparisons.comparisons[pair=A vs. E].p_adjusted",
    "status": "pass",
-   "abs_diff": 4.087107630112996e-08,
+   "abs_diff": 4.087104961786222e-08,
    "rel_diff": null
   },
   {
@@ -7079,11 +7173,11 @@
    },
    "printed": "-2.532742",
    "source": "TukeyHSD",
-   "ours": -2.5327418454342547,
+   "ours": -2.532741845433934,
    "path": "anova:multiple_comparisons.comparisons[pair=A vs. F].ci[1] * -1",
    "status": "pass",
-   "abs_diff": 1.5456574509187249e-07,
-   "rel_diff": 6.102703911092109e-08
+   "abs_diff": 1.54566065724282e-07,
+   "rel_diff": 6.102716570589583e-08
   },
   {
    "dataset": "r-insectsprays",
@@ -7094,11 +7188,11 @@
    },
    "printed": "6.866075",
    "source": "TukeyHSD",
-   "ours": 6.86607517876759,
+   "ours": 6.86607517876727,
    "path": "anova:multiple_comparisons.comparisons[pair=A vs. F].ci[0] * -1",
    "status": "pass",
-   "abs_diff": 1.7876759006441034e-07,
-   "rel_diff": 2.6036358482016338e-08
+   "abs_diff": 1.7876726943200083e-07,
+   "rel_diff": 2.6036311783952378e-08
   },
   {
    "dataset": "r-insectsprays",
@@ -7109,11 +7203,11 @@
    },
    "printed": "0.7542147",
    "source": "TukeyHSD",
-   "ours": 0.7542147276331619,
+   "ours": 0.7542147276331529,
    "path": "anova:multiple_comparisons.comparisons[pair=A vs. F].p_adjusted",
    "status": "pass",
-   "abs_diff": 2.763316186982223e-08,
-   "rel_diff": 3.66383231059037e-08
+   "abs_diff": 2.7633152877015732e-08,
+   "rel_diff": 3.6638311182499797e-08
   },
   {
    "dataset": "r-insectsprays",
@@ -7139,11 +7233,11 @@
    },
    "printed": "-17.949409",
    "source": "TukeyHSD",
-   "ours": -17.949408512100923,
+   "ours": -17.949408512100604,
    "path": "anova:multiple_comparisons.comparisons[pair=B vs. C].ci[1] * -1",
    "status": "pass",
-   "abs_diff": 4.878990758072632e-07,
-   "rel_diff": 2.7181901967204783e-08
+   "abs_diff": 4.878993955514943e-07,
+   "rel_diff": 2.718191978084038e-08
   },
   {
    "dataset": "r-insectsprays",
@@ -7154,11 +7248,11 @@
    },
    "printed": "-8.550591",
    "source": "TukeyHSD",
-   "ours": -8.550591487899077,
+   "ours": -8.550591487899398,
    "path": "anova:multiple_comparisons.comparisons[pair=B vs. C].ci[0] * -1",
    "status": "pass",
-   "abs_diff": 4.878990758072632e-07,
-   "rel_diff": 5.706027522626953e-08
+   "abs_diff": 4.878993973278511e-07,
+   "rel_diff": 5.706031282841749e-08
   },
   {
    "dataset": "r-insectsprays",
@@ -7169,10 +7263,10 @@
    },
    "printed": "0.0000000",
    "source": "TukeyHSD",
-   "ours": 1.271357463750178e-10,
+   "ours": 1.271091812001541e-10,
    "path": "anova:multiple_comparisons.comparisons[pair=B vs. C].p_adjusted",
    "status": "pass",
-   "abs_diff": 1.271357463750178e-10,
+   "abs_diff": 1.271091812001541e-10,
    "rel_diff": null
   },
   {
@@ -7199,11 +7293,11 @@
    },
    "printed": "-15.116075",
    "source": "TukeyHSD",
-   "ours": -15.116075178767591,
+   "ours": -15.11607517876727,
    "path": "anova:multiple_comparisons.comparisons[pair=B vs. D].ci[1] * -1",
    "status": "pass",
-   "abs_diff": 1.7876759095258876e-07,
-   "rel_diff": 1.1826323364536678e-08
+   "abs_diff": 1.7876726943200083e-07,
+   "rel_diff": 1.1826302094426022e-08
   },
   {
    "dataset": "r-insectsprays",
@@ -7214,11 +7308,11 @@
    },
    "printed": "-5.717258",
    "source": "TukeyHSD",
-   "ours": -5.717258154565745,
+   "ours": -5.717258154566066,
    "path": "anova:multiple_comparisons.comparisons[pair=B vs. D].ci[0] * -1",
    "status": "pass",
-   "abs_diff": 1.5456574509187249e-07,
-   "rel_diff": 2.7034943165390206e-08
+   "abs_diff": 1.54566065724282e-07,
+   "rel_diff": 2.703499924689108e-08
   },
   {
    "dataset": "r-insectsprays",
@@ -7229,11 +7323,11 @@
    },
    "printed": "0.0000002",
    "source": "TukeyHSD",
-   "ours": 1.7939979890524427e-07,
+   "ours": 1.7939977221874255e-07,
    "path": "anova:multiple_comparisons.comparisons[pair=B vs. D].p_adjusted",
    "status": "pass",
-   "abs_diff": 2.0600201094755723e-08,
-   "rel_diff": 0.10300100547377862
+   "abs_diff": 2.060022778125744e-08,
+   "rel_diff": 0.1030011389062872
   },
   {
    "dataset": "r-insectsprays",
@@ -7259,11 +7353,11 @@
    },
    "printed": "-16.532742",
    "source": "TukeyHSD",
-   "ours": -16.532741845434256,
+   "ours": -16.532741845433936,
    "path": "anova:multiple_comparisons.comparisons[pair=B vs. E].ci[1] * -1",
    "status": "pass",
-   "abs_diff": 1.5456574331551565e-07,
-   "rel_diff": 9.349068854731759e-09
+   "abs_diff": 1.5456606305974674e-07,
+   "rel_diff": 9.349088194792294e-09
   },
   {
    "dataset": "r-insectsprays",
@@ -7274,11 +7368,11 @@
    },
    "printed": "-7.133925",
    "source": "TukeyHSD",
-   "ours": -7.133924821232411,
+   "ours": -7.133924821232732,
    "path": "anova:multiple_comparisons.comparisons[pair=B vs. E].ci[0] * -1",
    "status": "pass",
-   "abs_diff": 1.787675882880535e-07,
-   "rel_diff": 2.5058798387711324e-08
+   "abs_diff": 1.78767267655644e-07,
+   "rel_diff": 2.5058753442970594e-08
   },
   {
    "dataset": "r-insectsprays",
@@ -7289,10 +7383,10 @@
    },
    "printed": "0.0000000",
    "source": "TukeyHSD",
-   "ours": 4.850963852831569e-09,
+   "ours": 4.850937325108793e-09,
    "path": "anova:multiple_comparisons.comparisons[pair=B vs. E].p_adjusted",
    "status": "pass",
-   "abs_diff": 4.850963852831569e-09,
+   "abs_diff": 4.850937325108793e-09,
    "rel_diff": null
   },
   {
@@ -7319,11 +7413,11 @@
    },
    "printed": "-3.366075",
    "source": "TukeyHSD",
-   "ours": -3.3660751787675887,
+   "ours": -3.366075178767268,
    "path": "anova:multiple_comparisons.comparisons[pair=B vs. F].ci[1] * -1",
    "status": "pass",
-   "abs_diff": 1.787675887321427e-07,
-   "rel_diff": 5.310861722693128e-08
+   "abs_diff": 1.787672680997332e-07,
+   "rel_diff": 5.3108521972841724e-08
   },
   {
    "dataset": "r-insectsprays",
@@ -7334,11 +7428,11 @@
    },
    "printed": "6.032742",
    "source": "TukeyHSD",
-   "ours": 6.0327418454342565,
+   "ours": 6.032741845433936,
    "path": "anova:multiple_comparisons.comparisons[pair=B vs. F].ci[0] * -1",
    "status": "pass",
-   "abs_diff": 1.5456574331551565e-07,
-   "rel_diff": 2.5621142643845146e-08
+   "abs_diff": 1.5456606394792516e-07,
+   "rel_diff": 2.5621195792547594e-08
   },
   {
    "dataset": "r-insectsprays",
@@ -7349,11 +7443,11 @@
    },
    "printed": "0.9603075",
    "source": "TukeyHSD",
-   "ours": 0.9603075000338465,
+   "ours": 0.9603075000338449,
    "path": "anova:multiple_comparisons.comparisons[pair=B vs. F].p_adjusted",
    "status": "pass",
-   "abs_diff": 3.384648117332745e-11,
-   "rel_diff": 3.524546166027803e-11
+   "abs_diff": 3.384492686109297e-11,
+   "rel_diff": 3.524384310347776e-11
   },
   {
    "dataset": "r-insectsprays",
@@ -7379,11 +7473,11 @@
    },
    "printed": "-1.866075",
    "source": "TukeyHSD",
-   "ours": -1.866075178767589,
+   "ours": -1.8660751787672685,
    "path": "anova:multiple_comparisons.comparisons[pair=C vs. D].ci[1] * -1",
    "status": "pass",
-   "abs_diff": 1.7876758917623192e-07,
-   "rel_diff": 9.579871611603602e-08
+   "abs_diff": 1.787672685438224e-07,
+   "rel_diff": 9.57985442942124e-08
   },
   {
    "dataset": "r-insectsprays",
@@ -7394,11 +7488,11 @@
    },
    "printed": "7.532742",
    "source": "TukeyHSD",
-   "ours": 7.532741845434256,
+   "ours": 7.532741845433936,
    "path": "anova:multiple_comparisons.comparisons[pair=C vs. D].ci[0] * -1",
    "status": "pass",
-   "abs_diff": 1.5456574420369407e-07,
-   "rel_diff": 2.051918732961969e-08
+   "abs_diff": 1.5456606394792516e-07,
+   "rel_diff": 2.051922977687609e-08
   },
   {
    "dataset": "r-insectsprays",
@@ -7409,11 +7503,11 @@
    },
    "printed": "0.4920707",
    "source": "TukeyHSD",
-   "ours": 0.49207074459809463,
+   "ours": 0.4920707445980828,
    "path": "anova:multiple_comparisons.comparisons[pair=C vs. D].p_adjusted",
    "status": "pass",
-   "abs_diff": 4.459809460621855e-08,
-   "rel_diff": 9.063350979080557e-08
+   "abs_diff": 4.459808278234334e-08,
+   "rel_diff": 9.063348576199179e-08
   },
   {
    "dataset": "r-insectsprays",
@@ -7439,11 +7533,11 @@
    },
    "printed": "-3.282742",
    "source": "TukeyHSD",
-   "ours": -3.282741845434256,
+   "ours": -3.2827418454339354,
    "path": "anova:multiple_comparisons.comparisons[pair=C vs. E].ci[1] * -1",
    "status": "pass",
-   "abs_diff": 1.5456574375960486e-07,
-   "rel_diff": 4.7084341005051525e-08
+   "abs_diff": 1.5456606439201437e-07,
+   "rel_diff": 4.708443867718339e-08
   },
   {
    "dataset": "r-insectsprays",
@@ -7454,11 +7548,11 @@
    },
    "printed": "6.116075",
    "source": "TukeyHSD",
-   "ours": 6.1160751787675895,
+   "ours": 6.116075178767268,
    "path": "anova:multiple_comparisons.comparisons[pair=C vs. E].ci[0] * -1",
    "status": "pass",
-   "abs_diff": 1.7876758917623192e-07,
-   "rel_diff": 2.9229136198662036e-08
+   "abs_diff": 1.78767267655644e-07,
+   "rel_diff": 2.9229083628903173e-08
   },
   {
    "dataset": "r-insectsprays",
@@ -7469,11 +7563,11 @@
    },
    "printed": "0.9488669",
    "source": "TukeyHSD",
-   "ours": 0.9488669095446967,
+   "ours": 0.948866909544697,
    "path": "anova:multiple_comparisons.comparisons[pair=C vs. E].p_adjusted",
    "status": "pass",
-   "abs_diff": 9.544696699670396e-09,
-   "rel_diff": 1.0059046953445628e-08
+   "abs_diff": 9.544697032737304e-09,
+   "rel_diff": 1.005904730446104e-08
   },
   {
    "dataset": "r-insectsprays",
@@ -7499,11 +7593,11 @@
    },
    "printed": "9.883925",
    "source": "TukeyHSD",
-   "ours": 9.883924821232412,
+   "ours": 9.883924821232732,
    "path": "anova:multiple_comparisons.comparisons[pair=C vs. F].ci[1] * -1",
    "status": "pass",
-   "abs_diff": 1.7876758739987508e-07,
-   "rel_diff": 1.808670011153212e-08
+   "abs_diff": 1.78767267655644e-07,
+   "rel_diff": 1.8086667761607257e-08
   },
   {
    "dataset": "r-insectsprays",
@@ -7514,11 +7608,11 @@
    },
    "printed": "19.282742",
    "source": "TukeyHSD",
-   "ours": 19.282741845434256,
+   "ours": 19.282741845433936,
    "path": "anova:multiple_comparisons.comparisons[pair=C vs. F].ci[0] * -1",
    "status": "pass",
-   "abs_diff": 1.5456574331551565e-07,
-   "rel_diff": 8.015755400114552e-09
+   "abs_diff": 1.5456606305974674e-07,
+   "rel_diff": 8.015771982000628e-09
   },
   {
    "dataset": "r-insectsprays",
@@ -7529,10 +7623,10 @@
    },
    "printed": "0.0000000",
    "source": "TukeyHSD",
-   "ours": 4.207079129514568e-12,
+   "ours": 4.180432784967369e-12,
    "path": "anova:multiple_comparisons.comparisons[pair=C vs. F].p_adjusted",
    "status": "pass",
-   "abs_diff": 4.207079129514568e-12,
+   "abs_diff": 4.180432784967369e-12,
    "rel_diff": null
   },
   {
@@ -7559,11 +7653,11 @@
    },
    "printed": "-6.116075",
    "source": "TukeyHSD",
-   "ours": -6.1160751787675895,
+   "ours": -6.116075178767269,
    "path": "anova:multiple_comparisons.comparisons[pair=D vs. E].ci[1] * -1",
    "status": "pass",
-   "abs_diff": 1.7876758917623192e-07,
-   "rel_diff": 2.9229136198662036e-08
+   "abs_diff": 1.787672685438224e-07,
+   "rel_diff": 2.92290837741235e-08
   },
   {
    "dataset": "r-insectsprays",
@@ -7574,11 +7668,11 @@
    },
    "printed": "3.282742",
    "source": "TukeyHSD",
-   "ours": 3.2827418454342556,
+   "ours": 3.282741845433935,
    "path": "anova:multiple_comparisons.comparisons[pair=D vs. E].ci[0] * -1",
    "status": "pass",
-   "abs_diff": 1.5456574420369407e-07,
-   "rel_diff": 4.708434114033149e-08
+   "abs_diff": 1.5456606483610358e-07,
+   "rel_diff": 4.7084438812463356e-08
   },
   {
    "dataset": "r-insectsprays",
@@ -7589,11 +7683,11 @@
    },
    "printed": "0.9488669",
    "source": "TukeyHSD",
-   "ours": 0.9488669095446967,
+   "ours": 0.948866909544697,
    "path": "anova:multiple_comparisons.comparisons[pair=D vs. E].p_adjusted",
    "status": "pass",
-   "abs_diff": 9.544696699670396e-09,
-   "rel_diff": 1.0059046953445628e-08
+   "abs_diff": 9.544697032737304e-09,
+   "rel_diff": 1.005904730446104e-08
   },
   {
    "dataset": "r-insectsprays",
@@ -9507,11 +9601,11 @@
    },
    "printed": "-4.6311985",
    "source": "stats-Ex: TukeyHSD(fm1, \"tension\", ordered = TRUE) on the additive model",
-   "ours": -4.631198504051824,
+   "ours": -4.631198504051747,
    "path": "two_way_anova(model=additive, tukey, row_means):multiple_comparisons.comparisons[pair=M vs. H].ci95[0]",
    "status": "pass",
-   "abs_diff": 4.051823765394147e-09,
-   "rel_diff": 8.748974515763353e-10
+   "abs_diff": 4.051747382050053e-09,
+   "rel_diff": 8.748809583631651e-10
   },
   {
    "dataset": "r-warpbreaks",
@@ -9522,11 +9616,11 @@
    },
    "printed": "14.07564",
    "source": "stats-Ex: TukeyHSD(fm1, \"tension\", ordered = TRUE) on the additive model",
-   "ours": 14.075642948496267,
+   "ours": 14.07564294849619,
    "path": "two_way_anova(model=additive, tukey, row_means):multiple_comparisons.comparisons[pair=M vs. H].ci95[1]",
    "status": "pass",
-   "abs_diff": 2.9484962666970205e-06,
-   "rel_diff": 2.0947511208705397e-07
+   "abs_diff": 2.9484961903136764e-06,
+   "rel_diff": 2.0947510666042016e-07
   },
   {
    "dataset": "r-warpbreaks",
@@ -9537,11 +9631,11 @@
    },
    "printed": "0.4474210",
    "source": "stats-Ex: TukeyHSD(fm1, \"tension\", ordered = TRUE) on the additive model",
-   "ours": 0.4474210214319899,
+   "ours": 0.4474210214319895,
    "path": "two_way_anova(model=additive, tukey, row_means):multiple_comparisons.comparisons[pair=M vs. H].p_adjusted",
    "status": "pass",
-   "abs_diff": 2.1431989905007498e-08,
-   "rel_diff": 4.790117116766423e-08
+   "abs_diff": 2.1431989460918288e-08,
+   "rel_diff": 4.790117017511089e-08
   },
   {
    "dataset": "r-warpbreaks",
@@ -9567,11 +9661,11 @@
    },
    "printed": "5.3688015",
    "source": "stats-Ex: TukeyHSD(fm1, \"tension\", ordered = TRUE) on the additive model",
-   "ours": 5.368801495948173,
+   "ours": 5.368801495948249,
    "path": "two_way_anova(model=additive, tukey, row_means):multiple_comparisons.comparisons[pair=L vs. H].ci95[0]",
    "status": "pass",
-   "abs_diff": 4.051827318107826e-09,
-   "rel_diff": 7.546986637721334e-10
+   "abs_diff": 4.0517509347637315e-09,
+   "rel_diff": 7.546844365104076e-10
   },
   {
    "dataset": "r-warpbreaks",
@@ -9582,11 +9676,11 @@
    },
    "printed": "24.07564",
    "source": "stats-Ex: TukeyHSD(fm1, \"tension\", ordered = TRUE) on the additive model",
-   "ours": 24.075642948496263,
+   "ours": 24.07564294849619,
    "path": "two_way_anova(model=additive, tukey, row_means):multiple_comparisons.comparisons[pair=L vs. H].ci95[1]",
    "status": "pass",
-   "abs_diff": 2.948496263144307e-06,
-   "rel_diff": 1.2246803254843098e-07
+   "abs_diff": 2.9484961885373195e-06,
+   "rel_diff": 1.2246802944957307e-07
   },
   {
    "dataset": "r-warpbreaks",
@@ -9597,11 +9691,11 @@
    },
    "printed": "0.0011218",
    "source": "stats-Ex: TukeyHSD(fm1, \"tension\", ordered = TRUE) on the additive model",
-   "ours": 0.0011217877222949868,
+   "ours": 0.0011217877222924634,
    "path": "two_way_anova(model=additive, tukey, row_means):multiple_comparisons.comparisons[pair=L vs. H].p_adjusted",
    "status": "pass",
-   "abs_diff": 1.2277705013254148e-08,
-   "rel_diff": 1.0944647007714519e-05
+   "abs_diff": 1.2277707536626284e-08,
+   "rel_diff": 1.0944649257110254e-05
   },
   {
    "dataset": "r-warpbreaks",
@@ -9627,11 +9721,11 @@
    },
    "printed": "0.6465793",
    "source": "stats-Ex: TukeyHSD(fm1, \"tension\", ordered = TRUE) on the additive model",
-   "ours": 0.6465792737259513,
+   "ours": 0.6465792737260276,
    "path": "two_way_anova(model=additive, tukey, row_means):multiple_comparisons.comparisons[pair=L vs. M].ci95[0]",
    "status": "pass",
-   "abs_diff": 2.62740487144697e-08,
-   "rel_diff": 4.0635462215492674e-08
+   "abs_diff": 2.6273972331125606e-08,
+   "rel_diff": 4.063534408095899e-08
   },
   {
    "dataset": "r-warpbreaks",
@@ -9642,11 +9736,11 @@
    },
    "printed": "19.35342",
    "source": "stats-Ex: TukeyHSD(fm1, \"tension\", ordered = TRUE) on the additive model",
-   "ours": 19.35342072627404,
+   "ours": 19.353420726273967,
    "path": "two_way_anova(model=additive, tukey, row_means):multiple_comparisons.comparisons[pair=L vs. M].ci95[1]",
    "status": "pass",
-   "abs_diff": 7.262740417957048e-07,
-   "rel_diff": 3.752690954858132e-08
+   "abs_diff": 7.262739671887175e-07,
+   "rel_diff": 3.752690569360441e-08
   },
   {
    "dataset": "r-warpbreaks",
@@ -9657,11 +9751,11 @@
    },
    "printed": "0.0336262",
    "source": "stats-Ex: TukeyHSD(fm1, \"tension\", ordered = TRUE) on the additive model",
-   "ours": 0.033626218916023354,
+   "ours": 0.033626218916020835,
    "path": "two_way_anova(model=additive, tukey, row_means):multiple_comparisons.comparisons[pair=L vs. M].p_adjusted",
    "status": "pass",
-   "abs_diff": 1.8916023351855937e-08,
-   "rel_diff": 5.625382395827045e-07
+   "abs_diff": 1.891602083303745e-08,
+   "rel_diff": 5.625381646762777e-07
   },
   {
    "dataset": "r-toothgrowth",
@@ -10874,11 +10968,11 @@
    },
    "printed": "6.362488",
    "source": "RPubs",
-   "ours": 6.362487524864626,
+   "ours": 6.362487524864546,
    "path": "two_way_anova(tukey, row_means):multiple_comparisons.comparisons[pair=D0.5 vs. D1].ci95[1] * -1",
    "status": "pass",
-   "abs_diff": 4.751353737120212e-07,
-   "rel_diff": 7.467760626220768e-08
+   "abs_diff": 4.7513545364807896e-07,
+   "rel_diff": 7.467761882585538e-08
   },
   {
    "dataset": "r-toothgrowth",
@@ -10889,11 +10983,11 @@
    },
    "printed": "11.897512",
    "source": "RPubs",
-   "ours": 11.897512475135382,
+   "ours": 11.897512475135462,
    "path": "two_way_anova(tukey, row_means):multiple_comparisons.comparisons[pair=D0.5 vs. D1].ci95[0] * -1",
    "status": "pass",
-   "abs_diff": 4.7513538170562697e-07,
-   "rel_diff": 3.9935692580568686e-08
+   "abs_diff": 4.7513546164168474e-07,
+   "rel_diff": 3.9935699299289187e-08
   },
   {
    "dataset": "r-toothgrowth",
@@ -10919,11 +11013,11 @@
    },
    "printed": "12.727488",
    "source": "RPubs",
-   "ours": 12.727487524864625,
+   "ours": 12.727487524864545,
    "path": "two_way_anova(tukey, row_means):multiple_comparisons.comparisons[pair=D0.5 vs. D2].ci95[1] * -1",
    "status": "pass",
-   "abs_diff": 4.751353746001996e-07,
-   "rel_diff": 3.7331433712622604e-08
+   "abs_diff": 4.751354545362574e-07,
+   "rel_diff": 3.7331439993206624e-08
   },
   {
    "dataset": "r-toothgrowth",
@@ -10934,11 +11028,11 @@
    },
    "printed": "18.262512",
    "source": "RPubs",
-   "ours": 18.26251247513538,
+   "ours": 18.26251247513546,
    "path": "two_way_anova(tukey, row_means):multiple_comparisons.comparisons[pair=D0.5 vs. D2].ci95[0] * -1",
    "status": "pass",
-   "abs_diff": 4.7513537992927013e-07,
-   "rel_diff": 2.6016978383328106e-08
+   "abs_diff": 4.7513545808897106e-07,
+   "rel_diff": 2.6016982663117267e-08
   },
   {
    "dataset": "r-toothgrowth",
@@ -10964,11 +11058,11 @@
    },
    "printed": "3.597488",
    "source": "RPubs",
-   "ours": 3.59748752486462,
+   "ours": 3.5974875248645404,
    "path": "two_way_anova(tukey, row_means):multiple_comparisons.comparisons[pair=D1 vs. D2].ci95[1] * -1",
    "status": "pass",
-   "abs_diff": 4.7513537992927013e-07,
-   "rel_diff": 1.3207420842801147e-07
+   "abs_diff": 4.751354594212387e-07,
+   "rel_diff": 1.320742305245323e-07
   },
   {
    "dataset": "r-toothgrowth",
@@ -10979,11 +11073,11 @@
    },
    "printed": "9.132512",
    "source": "RPubs",
-   "ours": 9.132512475135377,
+   "ours": 9.132512475135456,
    "path": "two_way_anova(tukey, row_means):multiple_comparisons.comparisons[pair=D1 vs. D2].ci95[0] * -1",
    "status": "pass",
-   "abs_diff": 4.7513537637655645e-07,
-   "rel_diff": 5.202680011551657e-08
+   "abs_diff": 4.751354563126142e-07,
+   "rel_diff": 5.202680886842681e-08
   },
   {
    "dataset": "r-morley",
@@ -13046,11 +13140,11 @@
    },
    "printed": "11354",
    "source": "datasets-Ex: anova(cars.1, cars.2, cars.3, cars.4) with lm(dist ~ poly(speed, degree))",
-   "ours": 11353.521051094891,
+   "ours": 11353.52105109489,
    "path": "dose_response(polynomial_first):datasets[0].fit.goodness.ss_res",
    "status": "pass",
-   "abs_diff": 0.47894890510906407,
-   "rel_diff": 4.218327506685433e-05
+   "abs_diff": 0.47894890511088306,
+   "rel_diff": 4.2183275067014534e-05
   },
   {
    "dataset": "r-cars",
@@ -13061,11 +13155,11 @@
    },
    "printed": "10825",
    "source": "datasets-Ex: anova(cars.1, cars.2, cars.3, cars.4) with lm(dist ~ poly(speed, degree))",
-   "ours": 10824.715907669997,
+   "ours": 10824.715907669999,
    "path": "dose_response(polynomial_second):datasets[0].fit.goodness.ss_res",
    "status": "pass",
-   "abs_diff": 0.2840923300027498,
-   "rel_diff": 2.6244095150369498e-05
+   "abs_diff": 0.2840923300009308,
+   "rel_diff": 2.624409515020146e-05
   },
   {
    "dataset": "r-cars",
@@ -13076,11 +13170,11 @@
    },
    "printed": "10634",
    "source": "datasets-Ex: anova(cars.1, cars.2, cars.3, cars.4) with lm(dist ~ poly(speed, degree))",
-   "ours": 10634.361904609934,
+   "ours": 10634.361904609936,
    "path": "dose_response(polynomial_third):datasets[0].fit.goodness.ss_res",
    "status": "pass",
-   "abs_diff": 0.36190460993384477,
-   "rel_diff": 3.40327825779429e-05
+   "abs_diff": 0.36190460993566376,
+   "rel_diff": 3.4032782578113954e-05
   },
   {
    "dataset": "r-cars",
@@ -13091,11 +13185,11 @@
    },
    "printed": "10298",
    "source": "datasets-Ex: anova(cars.1, cars.2, cars.3, cars.4) with lm(dist ~ poly(speed, degree))",
-   "ours": 10297.81589569141,
+   "ours": 10297.815895691336,
    "path": "dose_response(polynomial_fourth):datasets[0].fit.goodness.ss_res",
    "status": "pass",
-   "abs_diff": 0.1841043085896672,
-   "rel_diff": 1.7877676110863004e-05
+   "abs_diff": 0.18410430866424576,
+   "rel_diff": 1.7877676118105047e-05
   },
   {
    "dataset": "r-cars",
@@ -13239,11 +13333,11 @@
    },
    "printed": "6.480e+00",
    "source": "datasets-Ex: summary(nls(rate ~ Vm*conc/(K+conc), subset = state == \"untreated\"))",
-   "ours": 6.48024550489395,
+   "ours": 6.480245504893948,
    "path": "dose_response(michaelis_menten, untreated):fit.params.Vmax.se",
    "status": "pass",
-   "abs_diff": 0.0002455048939493665,
-   "rel_diff": 3.788655770823557e-05
+   "abs_diff": 0.0002455048939475901,
+   "rel_diff": 3.788655770796143e-05
   },
   {
    "dataset": "r-puromycin",
@@ -13269,11 +13363,11 @@
    },
    "printed": "7.782e-03",
    "source": "datasets-Ex: summary(nls(rate ~ Vm*conc/(K+conc), subset = state == \"untreated\"))",
-   "ours": 0.007781875242178813,
+   "ours": 0.0077818752421788115,
    "path": "dose_response(michaelis_menten, untreated):fit.params.Km.se",
    "status": "pass",
-   "abs_diff": 1.2475782118666345e-07,
-   "rel_diff": 1.6031588433135886e-05
+   "abs_diff": 1.2475782118839818e-07,
+   "rel_diff": 1.60315884333588e-05
   },
   {
    "dataset": "r-puromycin",
@@ -13344,11 +13438,11 @@
    },
    "printed": "9.22",
    "source": "stats-Ex nls(): weighted Michaelis-Menten, residuals (resp - pred)/sqrt(pred), i.e. weights 1/Yhat",
-   "ours": 9.2249692530699,
+   "ours": 9.224969253069897,
    "path": "dose_response(michaelis_menten, treated, weighting 1/Y, weight_source objective):fit.params.Vmax.se",
    "status": "pass",
-   "abs_diff": 0.004969253069900148,
-   "rel_diff": 0.0005389645412039206
+   "abs_diff": 0.004969253069896595,
+   "rel_diff": 0.0005389645412035353
   },
   {
    "dataset": "r-puromycin",
@@ -13404,11 +13498,11 @@
    },
    "printed": "0.078154",
    "source": "stats-Ex nls(): summary(nls(density ~ SSlogis(log(conc), Asym, xmid, scal), DNase1)) and coef(summary())",
-   "ours": 0.07815384189923971,
+   "ours": 0.07815384189923959,
    "path": "dose_response(boltzmann_sigmoid on ln X, Bottom=0):fit.params.Top.se",
    "status": "pass",
-   "abs_diff": 1.581007602891038e-07,
-   "rel_diff": 2.022938816811728e-06
+   "abs_diff": 1.581007604140039e-07,
+   "rel_diff": 2.022938818409856e-06
   },
   {
    "dataset": "r-dnase-run1",
@@ -13434,11 +13528,11 @@
    },
    "printed": "0.081353",
    "source": "stats-Ex nls(): summary(nls(density ~ SSlogis(log(conc), Asym, xmid, scal), DNase1)) and coef(summary())",
-   "ours": 0.08135312620793168,
+   "ours": 0.08135312620793154,
    "path": "dose_response(boltzmann_sigmoid on ln X, Bottom=0):fit.params.V50.se",
    "status": "pass",
-   "abs_diff": 1.262079316888265e-07,
-   "rel_diff": 1.5513617406712291e-06
+   "abs_diff": 1.262079315500486e-07,
+   "rel_diff": 1.5513617389653562e-06
   },
   {
    "dataset": "r-dnase-run1",
@@ -13464,11 +13558,11 @@
    },
    "printed": "0.032271",
    "source": "stats-Ex nls(): summary(nls(density ~ SSlogis(log(conc), Asym, xmid, scal), DNase1)) and coef(summary())",
-   "ours": 0.032270786997975656,
+   "ours": 0.03227078699797561,
    "path": "dose_response(boltzmann_sigmoid on ln X, Bottom=0):fit.params.Slope.se",
    "status": "pass",
-   "abs_diff": 2.1300202434487714e-07,
-   "rel_diff": 6.600415987880051e-06
+   "abs_diff": 2.130020243934494e-07,
+   "rel_diff": 6.600415989385187e-06
   },
   {
    "dataset": "r-dnase-run1",
@@ -13539,11 +13633,11 @@
    },
    "printed": "0.017200",
    "source": "datasets-Ex DNase: summary(nls(density ~ SSfpl(log(conc), A, B, xmid, scal), subset = Run == 1)); anova(fm1, fm2)",
-   "ours": 0.01719970587276854,
+   "ours": 0.01719970587276842,
    "path": "dose_response(boltzmann_sigmoid on ln X):fit.params.Bottom.se",
    "status": "pass",
-   "abs_diff": 2.941272314593846e-07,
-   "rel_diff": 1.710042043368515e-05
+   "abs_diff": 2.941272315808152e-07,
+   "rel_diff": 1.710042044074507e-05
   },
   {
    "dataset": "r-dnase-run1",
@@ -13569,11 +13663,11 @@
    },
    "printed": "0.109516",
    "source": "datasets-Ex DNase: summary(nls(density ~ SSfpl(log(conc), A, B, xmid, scal), subset = Run == 1)); anova(fm1, fm2)",
-   "ours": 0.10951632134920374,
+   "ours": 0.10951632134920168,
    "path": "dose_response(boltzmann_sigmoid on ln X):fit.params.Top.se",
    "status": "pass",
-   "abs_diff": 3.2134920373294573e-07,
-   "rel_diff": 2.9342671731340237e-06
+   "abs_diff": 3.2134920167903314e-07,
+   "rel_diff": 2.9342671543795712e-06
   },
   {
    "dataset": "r-dnase-run1",
@@ -13599,11 +13693,11 @@
    },
    "printed": "0.102080",
    "source": "datasets-Ex DNase: summary(nls(density ~ SSfpl(log(conc), A, B, xmid, scal), subset = Run == 1)); anova(fm1, fm2)",
-   "ours": 0.10207983146981642,
+   "ours": 0.10207983146981452,
    "path": "dose_response(boltzmann_sigmoid on ln X):fit.params.V50.se",
    "status": "pass",
-   "abs_diff": 1.685301835863129e-07,
-   "rel_diff": 1.6509618298032217e-06
+   "abs_diff": 1.6853018548756982e-07,
+   "rel_diff": 1.6509618484283876e-06
   },
   {
    "dataset": "r-dnase-run1",
@@ -13629,11 +13723,11 @@
    },
    "printed": "0.056996",
    "source": "datasets-Ex DNase: summary(nls(density ~ SSfpl(log(conc), A, B, xmid, scal), subset = Run == 1)); anova(fm1, fm2)",
-   "ours": 0.05699604936545403,
+   "ours": 0.05699604936545312,
    "path": "dose_response(boltzmann_sigmoid on ln X):fit.params.Slope.se",
    "status": "pass",
-   "abs_diff": 4.936545403011472e-08,
-   "rel_diff": 8.66121377467098e-07
+   "abs_diff": 4.936545312111962e-08,
+   "rel_diff": 8.661213615186964e-07
   },
   {
    "dataset": "r-dnase-run1",
@@ -13734,11 +13828,11 @@
    },
    "printed": "0.65321",
    "source": "stats-Ex SSgompertz: summary(nls(density ~ SSgompertz(log(conc), Asym, b2, b3), DNase.1))",
-   "ours": 0.6532075912030412,
+   "ours": 0.6532075912030523,
    "path": "dose_response(user 'Y = Asym*exp(-b2*b3^X)' on ln X):fit.params.Asym.se",
    "status": "pass",
-   "abs_diff": 2.4087969587860414e-06,
-   "rel_diff": 3.6876302548736877e-06
+   "abs_diff": 2.408796947683811e-06,
+   "rel_diff": 3.6876302378772694e-06
   },
   {
    "dataset": "r-dnase-run1",
@@ -13764,11 +13858,11 @@
    },
    "printed": "0.14373",
    "source": "stats-Ex SSgompertz: summary(nls(density ~ SSgompertz(log(conc), Asym, b2, b3), DNase.1))",
-   "ours": 0.14372649958954176,
+   "ours": 0.14372649958954425,
    "path": "dose_response(user 'Y = Asym*exp(-b2*b3^X)' on ln X):fit.params.b2.se",
    "status": "pass",
-   "abs_diff": 3.500410458240344e-06,
-   "rel_diff": 2.4354069840954178e-05
+   "abs_diff": 3.500410455742342e-06,
+   "rel_diff": 2.4354069823574356e-05
   },
   {
    "dataset": "r-dnase-run1",
@@ -13794,11 +13888,11 @@
    },
    "printed": "0.02206",
    "source": "stats-Ex SSgompertz: summary(nls(density ~ SSgompertz(log(conc), Asym, b2, b3), DNase.1))",
-   "ours": 0.02206195855292567,
+   "ours": 0.02206195855292602,
    "path": "dose_response(user 'Y = Asym*exp(-b2*b3^X)' on ln X):fit.params.b3.se",
    "status": "pass",
-   "abs_diff": 1.9585529256703482e-06,
-   "rel_diff": 8.878299753718714e-05
+   "abs_diff": 1.9585529260207624e-06,
+   "rel_diff": 8.878299755307173e-05
   },
   {
    "dataset": "r-dnase-run1",
@@ -13854,11 +13948,11 @@
    },
    "printed": "8.4030",
    "source": "stats-Ex SSasymp: summary(nls(height ~ SSasymp(age, Asym, resp0, lrc), data = Lob.329))",
-   "ours": 8.403019144748598,
+   "ours": 8.403019144748509,
    "path": "dose_response(exponential_plateau):fit.params.YM.se",
    "status": "pass",
-   "abs_diff": 1.9144748597099692e-05,
-   "rel_diff": 2.278323050946054e-06
+   "abs_diff": 1.914474850828185e-05,
+   "rel_diff": 2.278323040376276e-06
   },
   {
    "dataset": "r-loblolly-329",
@@ -13884,11 +13978,11 @@
    },
    "printed": "1.2261",
    "source": "stats-Ex SSasymp: summary(nls(height ~ SSasymp(age, Asym, resp0, lrc), data = Lob.329))",
-   "ours": 1.2261079463285136,
+   "ours": 1.2261079463285054,
    "path": "dose_response(exponential_plateau):fit.params.Y0.se",
    "status": "pass",
-   "abs_diff": 7.946328513641632e-06,
-   "rel_diff": 6.480979131915531e-06
+   "abs_diff": 7.946328505425981e-06,
+   "rel_diff": 6.480979125214894e-06
   },
   {
    "dataset": "r-loblolly-329",
@@ -13914,11 +14008,11 @@
    },
    "printed": "0.1386",
    "source": "stats-Ex SSasymp: summary(nls(height ~ SSasymp(age, Asym, resp0, lrc), data = Lob.329))",
-   "ours": 0.13858367782257652,
+   "ours": 0.138583677822575,
    "path": "derived: dose_response(exponential_plateau): K.se / K.value",
    "status": "pass",
-   "abs_diff": 1.6322177423477857e-05,
-   "rel_diff": 0.00011776462787502062
+   "abs_diff": 1.6322177425004414e-05,
+   "rel_diff": 0.00011776462788603473
   },
   {
    "dataset": "r-loblolly-329",
@@ -14021,11 +14115,11 @@
    },
    "printed": "0.1099",
    "source": "stats-Ex SSbiexp: summary(nls(conc ~ SSbiexp(time, A1, lrc1, A2, lrc2), data = Indo.1))",
-   "ours": 0.10990284003647426,
+   "ours": 0.10990284003647428,
    "path": "dose_response(user SSbiexp):fit.params.A1.se",
    "status": "pass",
-   "abs_diff": 2.840036474258123e-06,
-   "rel_diff": 2.5842006135196752e-05
+   "abs_diff": 2.8400364742858786e-06,
+   "rel_diff": 2.5842006135449304e-05
   },
   {
    "dataset": "r-indometh-1",
@@ -14051,11 +14145,11 @@
    },
    "printed": "0.1247",
    "source": "stats-Ex SSbiexp: summary(nls(conc ~ SSbiexp(time, A1, lrc1, A2, lrc2), data = Indo.1))",
-   "ours": 0.1246533844894771,
+   "ours": 0.12465338448947663,
    "path": "dose_response(user SSbiexp):fit.params.lrc1.se",
    "status": "pass",
-   "abs_diff": 4.661551052290158e-05,
-   "rel_diff": 0.0003738212551956823
+   "abs_diff": 4.661551052337343e-05,
+   "rel_diff": 0.00037382125519946614
   },
   {
    "dataset": "r-indometh-1",
@@ -14081,11 +14175,11 @@
    },
    "printed": "0.1106",
    "source": "stats-Ex SSbiexp: summary(nls(conc ~ SSbiexp(time, A1, lrc1, A2, lrc2), data = Indo.1))",
-   "ours": 0.11062645857730245,
+   "ours": 0.11062645857730204,
    "path": "dose_response(user SSbiexp):fit.params.A2.se",
    "status": "pass",
-   "abs_diff": 2.6458577302448938e-05,
-   "rel_diff": 0.00023922764287928516
+   "abs_diff": 2.6458577302032604e-05,
+   "rel_diff": 0.00023922764287552083
   },
   {
    "dataset": "r-indometh-1",
@@ -14111,11 +14205,11 @@
    },
    "printed": "0.7871",
    "source": "stats-Ex SSbiexp: summary(nls(conc ~ SSbiexp(time, A1, lrc1, A2, lrc2), data = Indo.1))",
-   "ours": 0.787125354892689,
+   "ours": 0.7871253548926864,
    "path": "dose_response(user SSbiexp):fit.params.lrc2.se",
    "status": "pass",
-   "abs_diff": 2.5354892688955744e-05,
-   "rel_diff": 3.221305131362691e-05
+   "abs_diff": 2.535489268640223e-05,
+   "rel_diff": 3.2213051310382705e-05
   },
   {
    "dataset": "r-indometh-1",
@@ -14239,11 +14333,11 @@
    },
    "printed": "6.601",
    "source": "stats-Ex SSfpl: summary(nls(weight ~ SSfpl(Time, A, B, xmid, scal), data = Chick.1))",
-   "ours": 6.600714487046736,
+   "ours": 6.600714487047369,
    "path": "dose_response(boltzmann_sigmoid):fit.params.Bottom.se",
    "status": "pass",
-   "abs_diff": 0.0002855129532637335,
-   "rel_diff": 4.325298489073375e-05
+   "abs_diff": 0.00028551295263135046,
+   "rel_diff": 4.325298479493265e-05
   },
   {
    "dataset": "r-chickweight-chick1",
@@ -14269,11 +14363,11 @@
    },
    "printed": "57.899",
    "source": "stats-Ex SSfpl: summary(nls(weight ~ SSfpl(Time, A, B, xmid, scal), data = Chick.1))",
-   "ours": 57.898781958725394,
+   "ours": 57.898781958733395,
    "path": "dose_response(boltzmann_sigmoid):fit.params.Top.se",
    "status": "pass",
-   "abs_diff": 0.00021804127460711697,
-   "rel_diff": 3.765890164029033e-06
+   "abs_diff": 0.00021804126660640577,
+   "rel_diff": 3.7658900258451055e-06
   },
   {
    "dataset": "r-chickweight-chick1",
@@ -14299,11 +14393,11 @@
    },
    "printed": "2.194",
    "source": "stats-Ex SSfpl: summary(nls(weight ~ SSfpl(Time, A, B, xmid, scal), data = Chick.1))",
-   "ours": 2.194427266794006,
+   "ours": 2.19442726679431,
    "path": "dose_response(boltzmann_sigmoid):fit.params.V50.se",
    "status": "pass",
-   "abs_diff": 0.00042726679400617584,
-   "rel_diff": 0.0001947432971769261
+   "abs_diff": 0.00042726679430993286,
+   "rel_diff": 0.00019474329731537505
   },
   {
    "dataset": "r-chickweight-chick1",
@@ -14329,11 +14423,11 @@
    },
    "printed": "1.002",
    "source": "stats-Ex SSfpl: summary(nls(weight ~ SSfpl(Time, A, B, xmid, scal), data = Chick.1))",
-   "ours": 1.0015503096012774,
+   "ours": 1.0015503096014042,
    "path": "dose_response(boltzmann_sigmoid):fit.params.Slope.se",
    "status": "pass",
-   "abs_diff": 0.00044969039872255756,
-   "rel_diff": 0.0004487928130963648
+   "abs_diff": 0.0004496903985957701,
+   "rel_diff": 0.00044879281296983045
   },
   {
    "dataset": "r-chickweight-chick1",
@@ -15342,11 +15436,11 @@
    },
    "printed": "0.000552",
    "source": "Growthcurver vignette: SummarizeGrowth(d$time, d$A1) (background correction 'min')",
-   "ours": 0.0005515693868178434,
+   "ours": 0.0005515693868178411,
    "path": "dose_response(logistic_growth, min-subtracted OD):fit.params.YM.se",
    "status": "pass",
-   "abs_diff": 4.306131821565744e-07,
-   "rel_diff": 0.0007800963444865478
+   "abs_diff": 4.306131821588512e-07,
+   "rel_diff": 0.0007800963444906725
   },
   {
    "dataset": "growthcurver-a1",
@@ -15372,11 +15466,11 @@
    },
    "printed": "2.42e-06",
    "source": "Growthcurver vignette: SummarizeGrowth(d$time, d$A1) (background correction 'min')",
-   "ours": 2.4237967698258635e-06,
+   "ours": 2.4237967698257432e-06,
    "path": "dose_response(logistic_growth, min-subtracted OD):fit.params.Y0.se",
    "status": "pass",
-   "abs_diff": 3.7967698258633704e-09,
-   "rel_diff": 0.0015689131511832108
+   "abs_diff": 3.796769825743092e-09,
+   "rel_diff": 0.0015689131511335088
   },
   {
    "dataset": "growthcurver-a1",
@@ -15402,11 +15496,11 @@
    },
    "printed": "0.0151",
    "source": "Growthcurver vignette: SummarizeGrowth(d$time, d$A1) (background correction 'min')",
-   "ours": 0.015149535198253355,
+   "ours": 0.015149535198252599,
    "path": "dose_response(logistic_growth, min-subtracted OD):fit.params.K.se",
    "status": "pass",
-   "abs_diff": 4.953519825335456e-05,
-   "rel_diff": 0.0032804767055201697
+   "abs_diff": 4.953519825259822e-05,
+   "rel_diff": 0.003280476705470081
   },
   {
    "dataset": "growthcurver-a1",
@@ -18095,11 +18189,11 @@
    },
    "printed": "0.34168",
    "source": "Ritz et al. 2015 S1 Example 2: summary(drm(rootl ~ conc, data = ryegrass, fct = LL.3()))",
-   "ours": 0.31873598897302025,
+   "ours": 0.31873598897302013,
    "path": "dose_response(inhibitor_vs_response_variable, Bottom=0):fit.params.HillSlope.se",
    "status": "fail",
-   "abs_diff": 0.022944011026979738,
-   "rel_diff": 0.06715058249525796,
+   "abs_diff": 0.02294401102697985,
+   "rel_diff": 0.06715058249525828,
    "category": "a",
    "category_reason": "definition: drc's SEs are observed-information SEs (inverse numerical Hessian of the RSS from optim); the engine, like Prism and R's nls, uses J'J. Verified: the observed-Hessian SE at the least-squares optimum reproduces drc's printed values (0.34168 / 0.20438 / 0.19641); J'J gives the engine's"
   },
@@ -18127,11 +18221,11 @@
    },
    "printed": "0.20438",
    "source": "Ritz et al. 2015 S1 Example 2: summary(drm(rootl ~ conc, data = ryegrass, fct = LL.3()))",
-   "ours": 0.20798431086651423,
+   "ours": 0.20798431086651412,
    "path": "dose_response(inhibitor_vs_response_variable, Bottom=0):fit.params.Top.se",
    "status": "fail",
-   "abs_diff": 0.003604310866514221,
-   "rel_diff": 0.017635340378286627,
+   "abs_diff": 0.00360431086651411,
+   "rel_diff": 0.017635340378286082,
    "category": "a",
    "category_reason": "definition: drc's SEs are observed-information SEs (inverse numerical Hessian of the RSS from optim); the engine, like Prism and R's nls, uses J'J. Verified: the observed-Hessian SE at the least-squares optimum reproduces drc's printed values (0.34168 / 0.20438 / 0.19641); J'J gives the engine's"
   },
@@ -18159,11 +18253,11 @@
    },
    "printed": "0.19641",
    "source": "Ritz et al. 2015 S1 Example 2: summary(drm(rootl ~ conc, data = ryegrass, fct = LL.3()))",
-   "ours": 0.20219924403281833,
+   "ours": 0.2021992440328183,
    "path": "dose_response(inhibitor_vs_response_variable, Bottom=0):fit.params.IC50.se",
    "status": "fail",
-   "abs_diff": 0.00578924403281833,
-   "rel_diff": 0.029475301831975612,
+   "abs_diff": 0.005789244032818303,
+   "rel_diff": 0.029475301831975474,
    "category": "a",
    "category_reason": "definition: drc's SEs are observed-information SEs (inverse numerical Hessian of the RSS from optim); the engine, like Prism and R's nls, uses J'J. Verified: the observed-Hessian SE at the least-squares optimum reproduces drc's printed values (0.34168 / 0.20438 / 0.19641); J'J gives the engine's"
   },
@@ -18223,11 +18317,11 @@
    },
    "printed": "0.17808",
    "source": "S1 Example 2: ED(ryegrass.LL.4, c(5, 10, 50), interval = 'delta')",
-   "ours": 0.1762735293256949,
+   "ours": 0.17627352932569496,
    "path": "dose_response(agonist_vs_response_ecanything, Bottom=0, F=95):fit.params.ECF.se",
    "status": "fail",
-   "abs_diff": 0.0018064706743050885,
-   "rel_diff": 0.010144152483743759,
+   "abs_diff": 0.001806470674305033,
+   "rel_diff": 0.010144152483743446,
    "category": "a",
    "category_reason": "definition: drc's SEs are observed-information SEs (inverse numerical Hessian of the RSS from optim); the engine, like Prism and R's nls, uses J'J. Verified: the observed-Hessian SE at the least-squares optimum reproduces drc's printed values (0.34168 / 0.20438 / 0.19641); J'J gives the engine's"
   },
@@ -18255,11 +18349,11 @@
    },
    "printed": "0.18904",
    "source": "S1 Example 2: ED(ryegrass.LL.4, c(5, 10, 50), interval = 'delta')",
-   "ours": 0.19015386992271077,
+   "ours": 0.19015386992271105,
    "path": "dose_response(agonist_vs_response_ecanything, Bottom=0, F=90):fit.params.ECF.se",
    "status": "fail",
-   "abs_diff": 0.0011138699227107585,
-   "rel_diff": 0.0058922446186561485,
+   "abs_diff": 0.001113869922711036,
+   "rel_diff": 0.005892244618657617,
    "category": "a",
    "category_reason": "definition: drc's SEs are observed-information SEs (inverse numerical Hessian of the RSS from optim); the engine, like Prism and R's nls, uses J'J. Verified: the observed-Hessian SE at the least-squares optimum reproduces drc's printed values (0.34168 / 0.20438 / 0.19641); J'J gives the engine's"
   },
@@ -18306,11 +18400,11 @@
    },
    "printed": "0.94773",
    "source": "S1 Example 2: ED(ryegrass.LL.4, c(5, 10, 50), interval = 'delta')",
-   "ours": 0.9454093446002537,
+   "ours": 0.9454093446002532,
    "path": "dose_response(agonist_vs_response_ecanything, Bottom=0, F=90):fit.params.ECF.ci95[0]",
    "status": "fail",
-   "abs_diff": 0.002320655399746241,
-   "rel_diff": 0.002448646133124667,
+   "abs_diff": 0.002320655399746796,
+   "rel_diff": 0.002448646133125253,
    "category": "a",
    "category_reason": "definition: drc's SEs are observed-information SEs (inverse numerical Hessian of the RSS from optim); the engine, like Prism and R's nls, uses J'J. Verified: the observed-Hessian SE at the least-squares optimum reproduces drc's printed values (0.34168 / 0.20438 / 0.19641); J'J gives the engine's; the intervals are estimate +/- t(21) * that SE"
   },
@@ -18323,11 +18417,11 @@
    },
    "printed": "1.7340",
    "source": "S1 Example 2: ED(ryegrass.LL.4, c(5, 10, 50), interval = 'delta')",
-   "ours": 1.7363025856398848,
+   "ours": 1.7363025856398855,
    "path": "dose_response(agonist_vs_response_ecanything, Bottom=0, F=90):fit.params.ECF.ci95[1]",
    "status": "fail",
-   "abs_diff": 0.0023025856398848354,
-   "rel_diff": 0.0013279040599105164,
+   "abs_diff": 0.0023025856398855016,
+   "rel_diff": 0.0013279040599109007,
    "category": "a",
    "category_reason": "definition: drc's SEs are observed-information SEs (inverse numerical Hessian of the RSS from optim); the engine, like Prism and R's nls, uses J'J. Verified: the observed-Hessian SE at the least-squares optimum reproduces drc's printed values (0.34168 / 0.20438 / 0.19641); J'J gives the engine's; the intervals are estimate +/- t(21) * that SE"
   },
@@ -18385,11 +18479,11 @@
    },
    "printed": "1.040135",
    "source": "Ritz et al. 2015 S1 Example 3: drm(DryMatter ~ Dose, Herbicide, fct = LL.4(), pmodels = list(~Herbicide-1, ~1, ~1, ~Herbicide-1))",
-   "ours": 1.0163653908735333,
+   "ours": 1.0163653908735328,
    "path": "global_model_fit(inhibitor_vs_response_variable, shared Bottom, Top):datasets[name=Bentazone].params.HillSlope.se",
    "status": "fail",
-   "abs_diff": 0.02376960912646675,
-   "rel_diff": 0.022852426970024806,
+   "abs_diff": 0.023769609126467195,
+   "rel_diff": 0.022852426970025232,
    "category": "a",
    "category_reason": "definition: drc's SEs are observed-information SEs (inverse numerical Hessian of the RSS from optim); the engine, like Prism and R's nls, uses J'J. Verified: the observed-Hessian SE at the least-squares optimum reproduces drc's printed values (0.34168 / 0.20438 / 0.19641); J'J gives the engine's; drc's estimates are also short of the optimum (README)"
   },
@@ -18417,11 +18511,11 @@
    },
    "printed": "0.495959",
    "source": "Ritz et al. 2015 S1 Example 3: drm(DryMatter ~ Dose, Herbicide, fct = LL.4(), pmodels = list(~Herbicide-1, ~1, ~1, ~Herbicide-1))",
-   "ours": 0.4371080590956442,
+   "ours": 0.43710805909564415,
    "path": "global_model_fit(inhibitor_vs_response_variable, shared Bottom, Top):datasets[name=Glyphosate].params.HillSlope.se",
    "status": "fail",
-   "abs_diff": 0.058850940904355775,
-   "rel_diff": 0.11866089919601373,
+   "abs_diff": 0.05885094090435583,
+   "rel_diff": 0.11866089919601384,
    "category": "a",
    "category_reason": "definition: drc's SEs are observed-information SEs (inverse numerical Hessian of the RSS from optim); the engine, like Prism and R's nls, uses J'J. Verified: the observed-Hessian SE at the least-squares optimum reproduces drc's printed values (0.34168 / 0.20438 / 0.19641); J'J gives the engine's; drc's estimates are also short of the optimum (README)"
   },
@@ -18481,11 +18575,11 @@
    },
    "printed": "0.076255",
    "source": "Ritz et al. 2015 S1 Example 3: drm(DryMatter ~ Dose, Herbicide, fct = LL.4(), pmodels = list(~Herbicide-1, ~1, ~1, ~Herbicide-1))",
-   "ours": 0.0760082285107505,
+   "ours": 0.07600822851075048,
    "path": "global_model_fit(inhibitor_vs_response_variable, shared Bottom, Top):datasets[0].params.Top.se",
    "status": "pass",
-   "abs_diff": 0.00024677148924950876,
-   "rel_diff": 0.003236135194407039
+   "abs_diff": 0.00024677148924952264,
+   "rel_diff": 0.003236135194407221
   },
   {
    "dataset": "drc-s-alba",
@@ -18541,11 +18635,11 @@
    },
    "printed": "5.968819",
    "source": "Ritz et al. 2015 S1 Example 3: drm(DryMatter ~ Dose, Herbicide, fct = LL.4(), pmodels = list(~Herbicide-1, ~1, ~1, ~Herbicide-1))",
-   "ours": 5.990356278270018,
+   "ours": 5.990356278270019,
    "path": "global_model_fit(inhibitor_vs_response_variable, shared Bottom, Top):datasets[name=Glyphosate].params.IC50.se",
    "status": "pass",
-   "abs_diff": 0.021537278270018057,
-   "rel_diff": 0.003608298102190409
+   "abs_diff": 0.021537278270018945,
+   "rel_diff": 0.0036082981021905583
   },
   {
    "dataset": "drc-s-alba",
@@ -18678,11 +18772,11 @@
    },
    "printed": "1.0689",
    "source": "compParm",
-   "ours": 1.0421711940814755,
+   "ours": 1.0421711940814753,
    "path": "derived: sqrt(var + var - 2 cov) of the two HillSlopes from global_model_fit(inhibitor_vs_response_variable, shared Bottom, Top):covariance",
    "status": "fail",
-   "abs_diff": 0.026728805918524445,
-   "rel_diff": 0.025005899446650246,
+   "abs_diff": 0.026728805918524667,
+   "rel_diff": 0.02500589944665045,
    "category": "a",
    "category_reason": "definition: drc's SEs are observed-information SEs (inverse numerical Hessian of the RSS from optim); the engine, like Prism and R's nls, uses J'J. Verified: the observed-Hessian SE at the least-squares optimum reproduces drc's printed values (0.34168 / 0.20438 / 0.19641); J'J gives the engine's; the SE of the difference uses the J'J covariance of the global fit (exposed as 'covariance')"
   },

@@ -27,7 +27,7 @@ from itertools import combinations
 import numpy as np
 from scipy import stats
 
-from . import effectsize
+from . import effectsize, studentized
 
 
 def _design(cells):
@@ -250,6 +250,7 @@ def _comparisons_core(base, means, ns, column_marginal, row_marginal, *,
         for _, fam in families)
 
     comparisons = []
+    qcrit_k = {}  # Tukey critical q per family size (one quantile each)
     for fam_label, fam in families:
         entries = [e for e in fam if e[1] is not None and e[2] > 0]
         k = len(entries)
@@ -258,8 +259,10 @@ def _comparisons_core(base, means, ns, column_marginal, row_marginal, *,
             se = math.sqrt(ms_resid * (1.0 / c1 + 1.0 / c2))
             if method == "tukey":
                 q = abs(diff) / (se / math.sqrt(2.0))
-                p_adj = float(stats.studentized_range.sf(q, k, df_resid))
-                qcrit = float(stats.studentized_range.ppf(0.95, k, df_resid))
+                p_adj = studentized.sf(q, k, df_resid)
+                if qcrit_k.get(k) is None:
+                    qcrit_k[k] = studentized.ppf(0.95, k, df_resid)
+                qcrit = qcrit_k[k]
                 half = qcrit * se / math.sqrt(2.0)
                 statistic = q
             else:
