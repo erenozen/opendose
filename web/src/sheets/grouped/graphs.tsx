@@ -5,7 +5,7 @@
 // stored on the graph sheet and edited in the graph's Settings panel
 // (GroupedOptions, HeatOptions, VolcanoOptions). Comparisons of the bound
 // two-way, three-way or multiple t test results feed the brackets.
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type Plotly from "plotly.js-dist-min";
 import {
   OptCheck, OptInput, OptNote, OptSelect, OptSlider,
@@ -17,13 +17,27 @@ import { CHROME_DARK, CHROME_LIGHT, seriesStyle, type Chrome } from "../../lib/p
 import { formatSig } from "../../types";
 import type { GraphOptionsProps, PlotProps } from "../types";
 import { buildGrouped, clusterByFor } from "./buildGrouped";
+import GraphCaption from "../../graph/GraphCaption";
+import { legendSentence } from "../../graph/legend";
+import { POINT_SPREADS } from "../../graph/swarm";
+import { areaScale, estimateArea, usePlotArea } from "../../graph/usePlotArea";
+import { parseCell } from "../../project/table";
+import {
+  groupedCellReplicates, groupedReplicateMeanTable, superPlotOn,
+} from "../common/superplot";
+import { superTraces } from "../common/superplotTraces";
+import { CAPTION_LABELS } from "../column/graphSettings";
+import { SmallNAdvice } from "../column/graphOptions";
+import SuperPlotOptions from "../common/SuperPlotOptions";
+import { A_REPLICATE_MEANS } from "./options";
 import { groupedFormatDatasets, isThreeWayOptions, rowsFromX } from "./graphData";
-import { buildHeat } from "./buildHeat";
+import { buildHeat, heatMatrix } from "./buildHeat";
+import { clusterAvailable, clusterOrder, type ClusterOrder } from "./heatCluster";
 import {
   groupedComparisons, groupedDatasetLabels, groupedRowLabels, threeWayCells,
 } from "./comparisons";
 import {
-  G_BOX, G_LINES, G_SCATTER, G_SEPARATED, G_STACKED, G_THREE_WAY,
+  G_BOX, G_INTERLEAVED, G_LINES, G_SCATTER, G_SEPARATED, G_STACKED, G_THREE_WAY,
   HEAT_VALUE_LABEL, normalizeGraph, normalizeHeat,
   type GroupedGraphSettings, type HeatSettings, type HeatValue,
   LOG_TESTS, type MultiTOptions,
@@ -36,18 +50,61 @@ const chromeOf = (dark: boolean): Chrome => (dark ? CHROME_DARK : CHROME_LIGHT);
 
 // ------------------------------------------------------------ raw-table graphs
 
+/** Grouped graph kinds that can be drawn as a SuperPlot. */
+const SUPER_KINDS = [G_INTERLEAVED, G_SEPARATED, G_SCATTER];
+
 export function GroupedPlot({ graph, table, options, result, titles, scheme, format,
   onFormatChange }: PlotProps) {
   const dark = useDarkMode();
   const raw = graph.settings.grouped;
-  const settings = useMemo(() => normalizeGraph(raw), [raw]);
-  const cells = useMemo(() => cellStats(table), [table]);
-  const threeWay = isThreeWayOptions(options) ? options : null;
+  const base = useMemo(() => normalizeGraph(raw), [raw]);
   const kind = graph.graphType;
-  const built = useMemo(() => buildGrouped({
+  const superOn = table.subcolumnFormat === "replicates" && SUPER_KINDS.includes(kind)
+    && superPlotOn(base.superplot, result);
+  // SuperPlot: bars, means and error bars summarise the experiment means;
+  // the values are drawn by the overlay, coloured by experiment.
+  const settings = useMemo(() => (superOn
+    ? { ...base, points: false, error: base.superplot.error } : base), [superOn, base]);
+  const cells = useMemo(() => cellStats(superOn
+    ? groupedReplicateMeanTable(table, base.superplot.center) : table),
+  [table, superOn, base.superplot.center]);
+  const threeWay = isThreeWayOptions(options) ? options : null;
+  const [area, measure] = usePlotArea();
+  const wantScale = settings.spread !== "jitter" || superOn;
+  const scale = useMemo(() => {
+    if (!wantScale) return null;
+    const all = table.datasets.flatMap((d) => d.rows.flatMap((r) => r.map(parseCell)))
+      .filter((v): v is number => v !== null);
+    const n = clusterByFor(kind, settings) === "rows" ? table.rowTitles.length : table.datasets.length;
+    return areaScale(area ?? estimateArea(null, Math.min(0, ...all), Math.max(...all),
+      [-0.5, n - 0.5], { l: 64, r: 16, t: 36, b: 52 }), 7.5);
+  }, [wantScale, area, table, kind, settings]);
+  const built0 = useMemo(() => buildGrouped({
     kind, table, cells, settings, scheme, dark, chrome: chromeOf(dark),
-    yTitle: titles.y, threeWay,
-  }), [kind, table, cells, settings, scheme, dark, titles.y, threeWay]);
+    yTitle: titles.y, threeWay, scale,
+  }), [kind, table, cells, settings, scheme, dark, titles.y, threeWay, scale]);
+  const built = useMemo(() => {
+    if (!superOn || !built0.place) return built0;
+    const place = built0.place;
+    const { info, cells: reps } = groupedCellReplicates(table, base.superplot.center);
+    const slots = reps.flatMap((row, r) => row.map((g, d) => {
+      const pos = place.cell(r, d);
+      return pos && g.points.length ? { group: g, x: pos.x, xaxis: pos.xref, half: place.half * 0.9,
+        ds: place.byRows ? d : r } : null;
+    })).filter((x): x is NonNullable<typeof x> => x !== null);
+    const overlay = superTraces({ slots, names: info.names, settings: base.superplot,
+      spread: base.spread, scale, scheme, dark, chrome: chromeOf(dark), grand: false,
+      legend: true,
+      colorOffset: kind === G_SCATTER ? 0 : (place.byRows ? table.datasets.length : table.rowTitles.length) });
+    const traces = [...built0.traces.filter((t) =>
+      (t as { meta?: { odTag?: { role?: string } } }).meta?.odTag?.role !== "points"),
+    ...overlay] as Plotly.Data[];
+    const layout = { ...built0.layout, showlegend: true,
+      margin: { ...(built0.layout.margin ?? {}), t: 36 } } as Partial<Plotly.Layout>;
+    return { ...built0, traces, layout };
+  }, [built0, superOn, table, base.superplot, base.spread, scale, scheme, dark, kind]);
+  const sentence = useMemo(() => (settings.caption === "off" ? ""
+    : legendSentence(graph, table, result)), [settings.caption, graph, table, result]);
   const cmp = useMemo(() => groupedComparisons(result, table), [result, table]);
   const names = useMemo(() => groupedFormatDatasets(table, graph, options),
     [table, graph, options]);
@@ -85,12 +142,17 @@ export function GroupedPlot({ graph, table, options, result, titles, scheme, for
     return {
       dark, scheme, datasets: names, rowTitles: table.rowTitles,
       comparisons: cmp?.comparisons, groupX, groupHalf: place?.half ?? 0.2,
+      caption: settings.caption === "figure" ? sentence : undefined,
     };
-  }, [built.place, table, kind, result, dark, scheme, names, cmp]);
+  }, [built.place, table, kind, result, dark, scheme, names, cmp, settings.caption, sentence]);
 
   return (
-    <FormattedPlot traces={built.traces} layout={built.layout} format={format}
-      onFormatChange={onFormatChange} ctx={ctx} filename="grouped-graph" />
+    <>
+      <FormattedPlot traces={built.traces} layout={built.layout} format={format}
+        onFormatChange={onFormatChange} ctx={ctx} filename="grouped-graph"
+        onDrawn={wantScale ? measure : undefined} />
+      {settings.caption === "below" && sentence && <GraphCaption text={sentence} />}
+    </>
   );
 }
 
@@ -104,10 +166,14 @@ export function XYGroupedPlot(props: PlotProps) {
 }
 
 /** Settings panel: error bars, clustering, gaps, order, legend. */
-export function GroupedOptions({ graph }: GraphOptionsProps) {
+export function GroupedOptions({ graph, table, result }: GraphOptionsProps) {
   const [s, set] = useGraphSetting(graph, "grouped", normalizeGraph);
   if (!set) return null;
   const kind = graph.graphType;
+  const raw = table.subcolumnFormat === "replicates";
+  const superOn = raw && SUPER_KINDS.includes(kind) && superPlotOn(s.superplot, result);
+  const smallN = Math.min(...cellStats(table).flat().filter((c) => c && c.n > 0)
+    .map((c) => c!.n), Infinity);
   const up = (patch: Partial<GroupedGraphSettings>) => set({ ...s, ...patch });
   const bars = kind !== G_SCATTER && kind !== G_BOX && kind !== G_LINES;
   const lines = kind === G_LINES;
@@ -116,7 +182,7 @@ export function GroupedOptions({ graph }: GraphOptionsProps) {
   const pct = (v: number) => `${Math.round(v * 100)}%`;
   return (
     <>
-      {kind !== G_BOX && (
+      {kind !== G_BOX && !superOn && (
         <OptSelect label="Error bars" value={s.error}
           options={(Object.keys(ERROR_LABELS) as ErrorKind[]).map((k) => [k, ERROR_LABELS[k]] as const)}
           onChange={(error) => up({ error })} />
@@ -152,10 +218,20 @@ export function GroupedOptions({ graph }: GraphOptionsProps) {
           step={0.02} format={(v) => `${Math.round(v * 100)}% of a bar`}
           onChange={(v) => up({ barGap: v })} />
       )}
-      {(bars || kind === G_BOX) && kind !== G_STACKED && (
+      {(bars || kind === G_BOX) && kind !== G_STACKED && !superOn && (
         <OptCheck label="Show individual values" checked={s.points}
           onChange={(points) => up({ points })} />
       )}
+      {bars && kind !== G_STACKED && !s.points && !superOn && smallN > 0 && smallN < 10 && (
+        <SmallNAdvice n={smallN} onShow={() => up({ points: true })} />
+      )}
+      {raw && (kind === G_SCATTER || ((bars || kind === G_BOX) && s.points) || superOn)
+        && kind !== G_STACKED && (
+        <OptSelect label="Point layout" value={s.spread} options={POINT_SPREADS}
+          onChange={(spread) => up({ spread })} />
+      )}
+      <OptSelect label="Legend sentence" value={s.caption} options={CAPTION_LABELS}
+        onChange={(caption) => up({ caption })} />
       <OptCheck label={lines || threeWay ? "Reverse order on the X axis" : "Reverse group order"}
         checked={s.clustersReverse} onChange={(v) => up({ clustersReverse: v })} />
       <OptCheck label={kind === G_SEPARATED ? "Reverse bar order within groups"
@@ -166,6 +242,11 @@ export function GroupedOptions({ graph }: GraphOptionsProps) {
       )}
       {kind === G_STACKED && (
         <OptNote>Stacked bars show error bars above each segment only.</OptNote>
+      )}
+      {raw && SUPER_KINDS.includes(kind) && table.type === "grouped" && (
+        <SuperPlotOptions graph={graph} table={table} result={result} s={s.superplot}
+          on={superOn} onChange={(superplot) => up({ superplot })}
+          analysis={A_REPLICATE_MEANS} settingsKey="grouped" />
       )}
     </>
   );
@@ -178,8 +259,20 @@ export function HeatMapPlot({ graph, table, titles, scheme, format, onFormatChan
   const raw = graph.settings.heat;
   const h = useMemo(() => normalizeHeat(raw), [raw]);
   const cells = useMemo(() => cellStats(table), [table]);
-  const built = useMemo(() => buildHeat(table, cells, h, scheme, chromeOf(dark), dark, titles.y),
-    [table, cells, h, scheme, dark, titles.y]);
+  // Clustered order from the engine (heatCluster.ts), when asked for and
+  // the engine has the handler; null = table order.
+  const [order, setOrder] = useState<ClusterOrder | null>(null);
+  const wantCluster = h.clusterRows || h.clusterCols;
+  useEffect(() => {
+    if (!wantCluster) return;
+    let live = true;
+    const m = heatMatrix(table, cells, h);
+    void clusterOrder(m.z, m.yLabels, m.xLabels, { rows: h.clusterRows, cols: h.clusterCols })
+      .then((o) => { if (live) setOrder(o); });
+    return () => { live = false; };
+  }, [wantCluster, table, cells, h]);
+  const built = useMemo(() => buildHeat(table, cells, h, scheme, chromeOf(dark), dark, titles.y,
+    wantCluster ? order : null), [table, cells, h, scheme, dark, titles.y, wantCluster, order]);
   const ctx = useMemo(() => ({ dark, scheme, datasets: table.datasets.map((d) => d.name) }),
     [dark, scheme, table.datasets]);
   return (
@@ -190,6 +283,8 @@ export function HeatMapPlot({ graph, table, titles, scheme, format, onFormatChan
 
 export function HeatOptions({ graph }: GraphOptionsProps) {
   const [h, set] = useGraphSetting(graph, "heat", normalizeHeat);
+  const [canCluster, setCanCluster] = useState<boolean | null>(null);
+  useEffect(() => { void clusterAvailable().then(setCanCluster); }, []);
   if (!set) return null;
   const up = (patch: Partial<HeatSettings>) => set({ ...h, ...patch });
   return (
@@ -208,6 +303,18 @@ export function HeatOptions({ graph }: GraphOptionsProps) {
       {h.palette === "diverging" && (
         <OptInput label="Center value" inputMode="decimal" placeholder="halfway"
           value={h.center} onChange={(center) => up({ center })} />
+      )}
+      <OptSelect label="Standardise (z-score)" value={h.zscore}
+        options={[["none", "No"], ["rows", "Each row"], ["columns", "Each column"]]}
+        onChange={(zscore) => up({ zscore, ...(zscore !== "none" && h.palette !== "diverging"
+          ? { palette: "diverging" as const } : {}) })} />
+      <OptCheck label="Cluster rows (average linkage, Euclidean)" checked={h.clusterRows && !!canCluster}
+        disabled={!canCluster} onChange={(clusterRows) => up({ clusterRows })} />
+      <OptCheck label="Cluster columns" checked={h.clusterCols && !!canCluster}
+        disabled={!canCluster} onChange={(clusterCols) => up({ clusterCols })} />
+      {canCluster === false && (
+        <OptNote>This engine build has no clustering handler, so rows and columns keep
+          the table&apos;s order.</OptNote>
       )}
       <OptCheck label="Reverse colors" checked={h.reverse} onChange={(reverse) => up({ reverse })} />
       <OptCheck label="Show values in cells" checked={h.labels}

@@ -11,6 +11,7 @@ import type {
   DataSheet, DataTableModel, Project, ProjectPrefs, Sheet, SubcolumnFormat,
 } from "../project/types";
 import { analysisDef, graphDef, tableDef } from "../sheets/registry";
+import { newGraphSettings } from "../sheets/common/figureDefaults";
 
 /** Data sheet + (optionally) one results sheet + its default graph. */
 export function familySheets(p: Project, table: DataTableModel, name: string,
@@ -53,7 +54,7 @@ export function analysisSheets(p: Project, dataId: string, analysisId: string,
     const withResults = addSheets(p, [results]);
     const kind = graphDef(data.table.type, a.defaultGraph);
     out.push(makeGraphSheet(ids(), dataId, rid, a.defaultGraph,
-      { titles: { x: "", y: "" }, scheme: p.prefs.scheme },
+      { titles: { x: "", y: "" }, scheme: p.prefs.scheme, ...newGraphSettings(data.table.type) },
       uniqueName(withResults, kind?.sheetName?.(data.name) ?? `Graph of ${data.name}`)));
   }
   return out;

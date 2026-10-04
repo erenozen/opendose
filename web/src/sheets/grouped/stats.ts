@@ -372,3 +372,22 @@ export function hasMissingRM(ys: (number | null)[][][], both: boolean): boolean 
   }
   return false;
 }
+
+// ------------------------------------------------------------ heat map z-scores
+
+/** Standardise each row (or column) of a matrix to mean 0 and SD 1
+ *  (blanks stay blank; a row with no spread becomes 0). */
+export function zscoreMatrix(z: (number | null)[][], by: "rows" | "columns"):
+  (number | null)[][] {
+  const t = (m: (number | null)[][]) => (m[0] ?? []).map((_, j) => m.map((r) => r[j] ?? null));
+  const rows = by === "rows" ? z : t(z);
+  const out = rows.map((r) => {
+    const v = r.filter((x): x is number => x !== null && Number.isFinite(x));
+    if (!v.length) return r.map(() => null);
+    const mean = v.reduce((a, b) => a + b, 0) / v.length;
+    const sd = v.length > 1 ? Math.sqrt(v.reduce((a, b) => a + (b - mean) ** 2, 0) / (v.length - 1)) : 0;
+    return r.map((x) => (x === null || !Number.isFinite(x) ? null : sd > 0 ? (x - mean) / sd : 0));
+  });
+  return by === "rows" ? out : t(out);
+}
+

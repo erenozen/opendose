@@ -1,0 +1,84 @@
+/* Figure section of the graph Settings panel (theme, colour-vision check)
+   and the legend sentence under graphs. Built on the app tokens. */
+
+.figure-section {
+  display: flex; flex-direction: column; gap: 8px;
+  border-top: 1px solid var(--border-soft); padding-top: 12px;
+  font-size: 12.5px; color: var(--ink-2);
+}
+.figure-row { display: flex; align-items: center; gap: 8px; }
+.figure-row select {
+  flex: 1 1 auto; min-width: 0; padding: 4px 8px;
+  border: 1px solid var(--border); border-radius: 6px;
+  background: var(--surface); color: inherit; font: inherit; font-size: 12.5px;
+}
+.figure-row select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.cvd-check > summary {
+  cursor: pointer;
+  color: var(--ink-2); font-weight: 500; list-style-position: inside;
+}
+.cvd-chip {
+  margin-left: 8px; font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 999px;
+  background: var(--seg-track); color: var(--ink-2);
+}
+.cvd-chip.warn { background: color-mix(in srgb, var(--warn-ink) 14%, transparent); color: var(--warn-ink); }
+.cvd-body { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.cvd-table { width: 100%; border-collapse: collapse; }
+.cvd-table th {
+  text-align: left; font-weight: 500; color: var(--ink-2); vertical-align: top;
+  padding: 4px 8px 4px 0; width: 38%; font-size: 12px;
+}
+.cvd-table td { padding: 4px 0; display: flex; flex-direction: column; gap: 3px; }
+.cvd-table tr + tr th, .cvd-table tr + tr td { border-top: 1px solid var(--border-soft); }
+.cvd-swatches {
+  display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 3px; border-radius: 6px;
+  align-self: flex-start;
+}
+.cvd-swatch {
+  width: 16px; height: 16px; border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+}
+.cvd-flag { color: var(--warn-ink); font-size: 11.5px; }
+.cvd-similar { color: var(--muted); font-size: 11.5px; }
+.cvd-warn {
+  margin: 0; color: var(--warn-ink); font-size: 11.5px;
+  border-left: 3px solid var(--warn-ink); padding-left: 8px;
+}
+.cvd-note { margin: 0; color: var(--muted); font-size: 11.5px; }
+.link-btn {
+  border: none; background: none; padding: 0; color: var(--accent); cursor: pointer;
+  font: inherit; text-decoration: underline;
+}
+
+/* The legend sentence under a graph (caption "under the graph"). */
+.graph-caption {
+  flex: none; margin: 4px 12px 0; color: var(--ink-2); font-size: 12px; line-height: 1.45;
+  display: flex; gap: 8px; align-items: baseline;
+}
+.graph-caption > span { flex: 1 1 auto; min-width: 0; }
+.graph-caption button {
+  flex: none; border: 1px solid var(--border); background: var(--surface); color: var(--ink-2);
+  border-radius: 6px; font-size: 11.5px; padding: 1px 8px; cursor: pointer;
+}
+
+/* One-line advice in a graph's options (small n on bars). */
+.gopt-advice {
+  grid-column: 1 / -1; margin: 0; font-size: 11.5px; color: var(--warn-ink);
+  display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline;
+}
+.gopt-advice a { color: var(--accent); }
+.gopt-advice button {
+  border: 1px solid var(--border); background: var(--surface); color: var(--ink);
+  border-radius: 6px; font-size: 11.5px; padding: 1px 8px; cursor: pointer;
+}
+.gopt-sub {
+  grid-column: 1 / -1; margin: 6px 0 0; font-weight: 600; color: var(--ink-2);
+  border-top: 1px solid var(--border-soft); padding-top: 8px;
+}
+.gopt-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; }
+.gopt-actions button {
+  border: 1px solid var(--border); background: var(--surface); color: var(--ink);
+  border-radius: 6px; font-size: 12px; padding: 3px 10px; cursor: pointer;
+}
+.gopt-actions button:disabled { opacity: 0.5; cursor: default; }

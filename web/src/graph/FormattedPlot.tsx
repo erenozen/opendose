@@ -25,13 +25,17 @@ export interface FormattedPlotProps {
   label?: string;
   /** Wheel zoom (off for pie charts and heat maps). */
   scrollZoom?: boolean;
+  /** Called after every draw and resize (e.g. to measure the plot area). */
+  onDrawn?: (div: HTMLDivElement) => void;
 }
 
 export default function FormattedPlot({
   traces, layout, format = EMPTY_FORMAT, onFormatChange, ctx, filename, label,
-  scrollZoom = true,
+  scrollZoom = true, onDrawn,
 }: FormattedPlotProps) {
   const el = useRef<HTMLDivElement>(null);
+  const drawnRef = useRef(onDrawn);
+  useEffect(() => { drawnRef.current = onDrawn; }, [onDrawn]);
   const { rev, attach } = usePlotEdits(format, onFormatChange);
 
   // Redraw when the card or column is resized (splitter drag, the card's
@@ -46,7 +50,7 @@ export default function FormattedPlot({
         // Not while hidden (a Suspense fallback shows): Plotly refuses.
         if ((div as unknown as { _fullLayout?: unknown })._fullLayout
           && div.getClientRects().length) {
-          Plotly.Plots.resize(div);
+          void Promise.resolve(Plotly.Plots.resize(div)).then(() => drawnRef.current?.(div));
         }
       });
     });
@@ -66,7 +70,10 @@ export default function FormattedPlot({
     void Plotly.react(div, out.traces as Plotly.Data[], out.layout, plotConfig({
       responsive: true, scrollZoom, displaylogo: false,
       toImageButtonOptions: { format: "svg", filename },
-    }, format, !!onFormatChange)).then(() => attach(div));
+    }, format, !!onFormatChange)).then(() => {
+      attach(div);
+      drawnRef.current?.(div);
+    });
   }, [traces, layout, format, ctx, rev, filename, scrollZoom, onFormatChange, attach]);
 
   return <div className="plot" ref={el} role={label ? "img" : undefined} aria-label={label} />;

@@ -128,6 +128,24 @@ export interface DataTableModel {
   xDateOrder?: DateOrder;
   /** Elapsed X: whether a two-part time such as 12:30 is h:mm or m:ss. */
   xElapsedTwoPart?: "hm" | "ms";
+  /** Biological replicates (independent experiments) of a column or
+   *  grouped table, for SuperPlots and statistics on replicate means
+   *  (sheets/common/superplot.ts). Absent = each Y subcolumn is one. */
+  replicates?: ReplicateMap;
+}
+
+/** Which values belong to which biological replicate (experiment).
+ *  "subcolumns": Y subcolumn k of every data set belongs to replicate
+ *  `of[k]` (missing entries: replicate k), so technical repeats can share
+ *  an experiment. "column": the data set at index `column` holds each
+ *  row's experiment label (long format; column tables only) and is not a
+ *  group. `names` label the replicates (default: subcolumn titles, the
+ *  labels found in the column, or "Experiment n"). */
+export interface ReplicateMap {
+  by: "subcolumns" | "column";
+  of?: number[];
+  column?: number;
+  names?: string[];
 }
 
 export type HighlightColor =

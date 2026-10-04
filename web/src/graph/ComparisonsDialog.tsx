@@ -7,7 +7,8 @@ import { CHROME_DARK, CHROME_LIGHT, isDarkMode } from "../lib/palette";
 import { withField, type ComparisonsFormat, type GraphFormat, type LettersFormat } from "./format";
 import type { ComparisonSet } from "./results";
 import {
-  formatP, lettersInputKey, lettersPayload, pairKey, parseEngineLetters, pStars,
+  formatPStyle, lettersInputKey, lettersPayload, P_STYLES, pairKey, parseEngineLetters,
+  starScale, starsFor, type PStyle,
 } from "./significance";
 import { lettersFor } from "./apply";
 import {
@@ -39,6 +40,7 @@ export default function ComparisonsDialog({
   const setL = (p: Partial<LettersFormat>) =>
     setDraft((d) => withField(d, "letters", { ...l, ...p }));
   const hidden = new Set(c.hidden ?? []);
+  const pStyle: PStyle = draft.pStyle ?? "graphpad";
   const plain = set.comparisons.filter((x) => !x.family);
   const alpha = l.alpha ?? 0.05;
 
@@ -100,7 +102,8 @@ export default function ComparisonsDialog({
                       setC({ hidden: h.size ? [...h] : undefined });
                     }} />
                     <span>{x.family ? `${x.family}: ` : ""}{x.a} vs. {x.b}</span>
-                    <span className="fmt-pval">{formatP(x.p)} <b>{pStars(x.p)}</b></span>
+                    <span className="fmt-pval">{formatPStyle(x.p, pStyle, pStyle === "apa" ? "p = " : "P = ")}
+                      {" "}<b>{starsFor(x.p, pStyle)}</b></span>
                   </label>
                 );
               })}
@@ -118,8 +121,12 @@ export default function ComparisonsDialog({
             )}
           </fieldset>
           <div className="fmt-grid">
+            <SelectField label="P value style" value={pStyle}
+              options={P_STYLES.map(([v, l]) => [v, l] as [PStyle, string])}
+              onChange={(v) => setDraft((d) => withField(d, "pStyle", v === "graphpad" ? undefined : v))} />
             <SelectField label="Label" value={c.display ?? "stars"}
-              options={[["stars", "Asterisks (ns, *, **, ***, ****)"], ["p", "Exact P value"]]}
+              options={[["stars", pStyle === "graphpad" ? "Asterisks (ns, *, **, ***, ****)"
+                : "Asterisks (ns, *, **, ***)"], ["p", "Exact P value"]]}
               onChange={(v) => setC({ display: v === "stars" ? undefined : v })} />
             {c.display === "p" && (
               <SelectField label="P value prefix" value={c.prefix ?? "P = "}
@@ -130,6 +137,8 @@ export default function ComparisonsDialog({
               options={[["all", "All ticked comparisons"], ["0.05", "Only P < 0.05"],
                 ["0.01", "Only P < 0.01"], ["0.001", "Only P < 0.001"]]}
               onChange={(v) => setC({ threshold: v === "all" ? undefined : Number(v) })} />
+            <CheckField label="Hide non-significant (ns) pairs" checked={!!c.hideNs}
+              onChange={(v) => setC({ hideNs: v || undefined })} />
             <SelectField label="Bracket style" value={c.style ?? "bracket"}
               options={[["bracket", "Bracket with short ends"], ["tall", "Bracket with long ends"],
                 ["line", "Line only"]]}
@@ -139,8 +148,8 @@ export default function ComparisonsDialog({
             <ColorField label="Colour" value={c.color} auto={chrome.ink} surface={chrome.surface}
               onChange={(v) => setC({ color: v })} />
           </div>
-          <p className="field-note">Asterisks: ns P &gt; 0.05, * P ≤ 0.05, ** P ≤ 0.01,
-            *** P ≤ 0.001, **** P ≤ 0.0001 (multiplicity-adjusted where the test adjusts).</p>
+          <p className="field-note">Asterisks: {starScale(pStyle)} (multiplicity-adjusted
+            where the test adjusts). The legend sentence under the graph states this scale.</p>
         </div>
       ) : (
         <div role="tabpanel" className="fmt-panel">

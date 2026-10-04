@@ -42,6 +42,7 @@ cd web && npm run test:unit
 cd web && node scripts/e2e-check.mjs && node scripts/e2e-tiff.mjs
 cd web && node scripts/e2e-export.mjs   # page layouts, PDF/PNG/zip export
 cd web && node scripts/e2e-share.mjs    # share links, export bundle, import recipes
+cd web && node scripts/e2e-figures.mjs  # SuperPlots, legend sentence, classic theme, CVD check, volcano
 ```
 
 The dev server needs internet access on first load (Pyodide + SciPy come
@@ -213,6 +214,23 @@ from the jsDelivr CDN, ~30 MB, then cached).
   graph; live results blocks; significance brackets and compact letters
   from the comparisons table; number-at-risk tables under survival
   curves. `web/src/graph/README.md` describes how a plot adopts it.
+- Figure conventions journals ask for: SuperPlot mode on column and
+  grouped graphs (every value coloured by experiment, experiment means as
+  large symbols, the grand mean ± SD or 95% CI of the experiment means)
+  with "Statistics on replicate means" (t tests, Wilcoxon, one-way or
+  repeated-measures ANOVA, two-way ANOVA; n = number of experiments) whose
+  brackets land on the graph; beeswarm and symmetric point layouts; a
+  legend sentence ("Mean ± SD … n = 6 per group", the asterisk scale when
+  stars are drawn) under the graph, in the figure or in the Figure legend
+  card; centre and error bars per column graph (SD, SEM, 95% CI, median
+  with IQR); a note when a bar graph hides the points of a group with
+  n < 10; a colour-vision check (protanopia, deuteranopia, tritanopia,
+  achromatopsia, grayscale; CIEDE2000 differences and contrast against the
+  background; a warning for transparency with the colour-blind scheme); a
+  "Classic" theme (white, black, bold Arial, offset axes ending on a tick,
+  minor ticks); APA, NEJM or GraphPad-style P values with "hide ns"; a
+  volcano plot from a fold-change / P table; heat-map z-scores; censor
+  ticks and nudging on survival curves.
 - Sharing (`web/src/share/`): Save menu → "Copy share link" puts the
   whole project (or, from a sheet's menu, one family) into the URL
   fragment, compressed, with no server: `#p=` followed by base64url of

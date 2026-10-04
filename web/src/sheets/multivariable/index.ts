@@ -18,6 +18,7 @@ import {
   type LogisticResult, type PcaResult, type RearrangeResult, type RegressionResult,
 } from "./run";
 import { multivariableSample } from "./sample";
+import { VOLCANO_GROUPS } from "./volcanoModel";
 
 // Panels load on first use (sheets/lazy.ts).
 const controlsModule = () => import("./controls");
@@ -27,6 +28,9 @@ const LogisticControls = lazyPart(controlsModule, "LogisticControls");
 const PcaControls = lazyPart(controlsModule, "PcaControls");
 const RearrangeControls = lazyPart(controlsModule, "RearrangeControls");
 const RegressionControls = lazyPart(controlsModule, "RegressionControls");
+const volcanoModule = () => import("./volcano");
+const MvVolcanoPlot = lazyPart(volcanoModule, "MvVolcanoPlot");
+const MvVolcanoOptions = lazyPart(volcanoModule, "MvVolcanoOptions");
 const plotsModule = () => import("./plots");
 const BiplotOptions = lazyPart(plotsModule, "BiplotOptions");
 const BiplotPlot = lazyPart(plotsModule, "BiplotPlot");
@@ -188,6 +192,13 @@ export const mvGraphs = [
     PlotPanel: MvCategoricalPlot, OptionsPanel: MvCatOptions,
     formatDatasets: mvCatFormatDatasets,
     formatFeatures: { categorical: true, points: true, errorBars: true, bars: true, boxes: true },
+  }),
+  defineGraph({
+    id: "mv_volcano", label: "Volcano plot (fold change against P, from a results table)",
+    group: "mv_data", analysis: null, autoTitles: none, exportName: "volcano-plot",
+    PlotPanel: MvVolcanoPlot, OptionsPanel: MvVolcanoOptions,
+    formatDatasets: () => VOLCANO_GROUPS,
+    formatFeatures: { points: true },
   }),
   defineGraph<CorrelationOptions, CorrelationResult>({
     id: "mv_corr_heatmap", label: "Heat map of r", group: "mv_corr",

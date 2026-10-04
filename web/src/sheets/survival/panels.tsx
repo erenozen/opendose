@@ -1,7 +1,10 @@
 import { useMemo } from "react";
 import { SurvivalPlot, SurvivalResults } from "../../components/SurvivalView";
 import { riskSetsFromTable } from "../../graph";
-import type { ControlsProps, PlotProps, ResultsProps } from "../types";
+import type { ControlsProps, GraphOptionsProps, PlotProps, ResultsProps } from "../types";
+import { OptCheck, OptNote, OptSlider } from "../../components/GraphOptionControls";
+import { useGraphSetting } from "../grouped/plotting";
+import { normalizeSurvivalGraph } from "./graphSettings";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -24,10 +27,30 @@ export function SurvivalResultsPanel({ result }: ResultsProps<unknown, any>) {
   return <SurvivalResults result={result} />;
 }
 
-export function SurvivalGraph({ result, titles, scheme, table, format, onFormatChange }:
+export function SurvivalGraph({ graph, result, titles, scheme, table, format, onFormatChange }:
   PlotProps<unknown, any>) {
   const riskSets = useMemo(() => riskSetsFromTable(table.datasets), [table.datasets]);
+  const raw = graph.settings.survival;
+  const s = useMemo(() => normalizeSurvivalGraph(raw), [raw]);
   return <SurvivalPlot result={result} scheme={scheme}
     xTitle={titles.x} yTitle={titles.y} format={format} onFormatChange={onFormatChange}
-    riskSets={riskSets.length ? riskSets : undefined} />;
+    riskSets={riskSets.length ? riskSets : undefined} censorMarks={s.censorMarks}
+    nudge={s.nudge} />;
+}
+
+/** Survival graph options: censor ticks and nudging overlapping curves. */
+export function SurvivalOptions({ graph }: GraphOptionsProps) {
+  const [s, set] = useGraphSetting(graph, "survival", normalizeSurvivalGraph);
+  if (!set) return null;
+  return (
+    <>
+      <OptCheck label="Mark censored subjects (ticks)" checked={s.censorMarks}
+        onChange={(censorMarks) => set({ ...s, censorMarks })} />
+      <OptSlider label="Nudge curves apart" value={s.nudge} min={0} max={3} step={0.25}
+        format={(v) => (v ? `${v} percentage points` : "Off")}
+        onChange={(nudge) => set({ ...s, nudge })} />
+      <OptNote>Nudging moves each curve up or down a little so curves that overlap (all
+        start at 100%) stay visible; hover shows the true values.</OptNote>
+    </>
+  );
 }
