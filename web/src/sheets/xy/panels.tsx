@@ -1,9 +1,11 @@
 import { useMemo } from "react";
+import { useProject } from "../../app/context";
 import ControlsPanel from "../../components/ControlsPanel";
 import MethodsText from "../../components/MethodsText";
 import PlateImportPanel from "../../components/PlateImportPanel";
 import PlotPanel from "../../components/PlotPanel";
 import ResultsPanel from "../../components/ResultsPanel";
+import { updateResultsOptions } from "../../project/ops";
 import { normalizeTable } from "../../project/table";
 import {
   SUBCOLUMN_FORMAT_HAS_N, SUBCOLUMN_FORMAT_LABELS,
@@ -11,10 +13,27 @@ import {
 import { xTickFormatter } from "../../project/xformat";
 import type { AnalysisResult, OptionsState } from "../../types";
 import type { AsideProps, ControlsProps, PlotProps, ResultsProps } from "../types";
-import { ANALYSIS_NONLIN } from "../../project/builtin";
+import { ANALYSIS_NONLIN, GRAPH_XY } from "../../project/builtin";
+import { autoFitGate, chooseReasonText } from "./autofit";
+import { ANALYSIS_LINREG, DEFAULT_LINREG, GRAPH_LINREG } from "./linreg";
+import { chooseModelOf } from "./run";
+import { switchResultsAnalysis } from "./switchAnalysis";
+import "./xy.css";
+
+/** Open the model picker of the controls pane (after "Fit a curve"). */
+function openModelPicker() {
+  requestAnimationFrame(() => {
+    const btn = document.querySelector<HTMLButtonElement>(".pane-controls .mp-button");
+    if (!btn) return;
+    btn.scrollIntoView({ block: "nearest" });
+    if (btn.getAttribute("aria-expanded") !== "true") btn.click();
+    else btn.focus();
+  });
+}
 
 export function NonlinControls({ table, options, onChange, readOnly }: ControlsProps<OptionsState>) {
   const fmt = table.subcolumnFormat;
+  const waiting = !autoFitGate(table, options).fit;
   return (
     <>
       {fmt !== "replicates" && (
@@ -47,13 +66,74 @@ export function NonlinControls({ table, options, onChange, readOnly }: ControlsP
         </div>
       )}
       <ControlsPanel options={options} onChange={onChange} readOnly={readOnly}
-        datasetNames={table.datasets.map((d) => d.name)} />
+        datasetNames={table.datasets.map((d) => d.name)}
+        summaryData={fmt !== "replicates"}
+        notice={waiting && (
+          <div className="fit-waiting">
+            <p className="hint-block">
+              These data do not look like a dose-response, so the fit waits until you
+              choose a model or click Fit.
+            </p>
+            <button type="button" className="chip-btn" disabled={readOnly}
+              onClick={() => onChange({ ...options, autoFit: "requested" })}>
+              Fit
+            </button>
+          </div>
+        )} />
     </>
   );
 }
 
-export function NonlinResults({ table, result }:
+/** Shown instead of a fit when a new table's data do not look like a
+ *  dose-response: linear regression (this sheet becomes one) or a curve
+ *  fit (the model picker opens and the fit starts). */
+function ChooseModel({ sheet, reason }: { sheet: ResultsProps["sheet"]; reason: string }) {
+  const api = useProject();
+  const locked = !!sheet.frozen || api.readOnly;
+  const toLinreg = () => api.apply((p) => switchResultsAnalysis(p, sheet.id, {
+    analysis: ANALYSIS_LINREG,
+    options: { ...DEFAULT_LINREG },
+    sheetName: (t) => `Linear regression of ${t}`,
+    graphFrom: GRAPH_XY,
+    graphTo: GRAPH_LINREG,
+  }));
+  const fitCurve = () => {
+    api.apply((p) => updateResultsOptions(p, sheet.id,
+      (o) => ({ ...(o as OptionsState), autoFit: "requested" })));
+    openModelPicker();
+  };
+  return (
+    <div className="results">
+      <div className="result-card choose-model">
+        <h3>Choose a model</h3>
+        <p className="hint-block">{reason} How should these data be analysed?</p>
+        <div className="choose-model-options">
+          <div>
+            <button type="button" className="btn-primary" disabled={locked} onClick={toLinreg}>
+              Linear regression
+            </button>
+            <p className="hint-block">
+              A straight line: slope and intercept with CIs, R², the regression ANOVA
+              and a runs test.
+            </p>
+          </div>
+          <div>
+            <button type="button" disabled={locked} onClick={fitCurve}>Fit a curve</button>
+            <p className="hint-block">
+              Choose a model from the library (dose-response, kinetics, binding,
+              exponential, polynomial, …) and fit it by nonlinear regression.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function NonlinResults({ sheet, table, result }:
   ResultsProps<OptionsState, AnalysisResult>) {
+  const choose = chooseModelOf(result);
+  if (choose) return <ChooseModel sheet={sheet} reason={chooseReasonText(choose.reason)} />;
   return <ResultsPanel result={result} xUnit={table.xUnit || "M"} />;
 }
 
@@ -66,8 +146,13 @@ export function XYPlot({ table, result, titles, scheme, format, onFormatChange }
   PlotProps<OptionsState, AnalysisResult>) {
   // Dates / elapsed times: X ticks read as dates or h:mm:ss.
   const xTickFormat = useMemo(() => xTickFormatter(table) ?? undefined, [table]);
+  // Waiting for a model: draw the points alone.
+  const shown = useMemo(() => {
+    const choose = chooseModelOf(result);
+    return choose ? { ...(result as AnalysisResult), datasets: choose.preview } : result;
+  }, [result]);
   return (
-    <PlotPanel result={result} scheme={scheme} xTitle={titles.x} yTitle={titles.y}
+    <PlotPanel result={shown} scheme={scheme} xTitle={titles.x} yTitle={titles.y}
       xTickFormat={xTickFormat} format={format} onFormatChange={onFormatChange}
       rowTitles={table.rowTitles} />
   );
@@ -98,6 +183,7 @@ export function PlateAside({ readOnly, editFamily }: AsideProps) {
             normalize: { ...prev.normalize, enabled: false },
             top: { enabled: true, value: "100" },
             bottom: { enabled: true, value: "0" },
+            autoFit: "requested",
             model: imported.output === "viability"
               ? "log_inhibitor_vs_response_4pl"
               : "log_agonist_vs_response_4pl",
