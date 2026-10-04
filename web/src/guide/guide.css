@@ -271,3 +271,5 @@ main.start-screen { display: block; padding: 20px 24px 32px; width: 100%; }
 .sk-dot { fill: var(--ink-2); }
 .sk-bar { fill: var(--accent); opacity: 0.85; }
 .sk-bar2 { fill: var(--warn-hue); opacity: 0.85; }
+.guide-control-links { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 6px 0 0; }
+h3 .learn-more { margin-left: 8px; text-transform: none; letter-spacing: 0; font-weight: 500; }

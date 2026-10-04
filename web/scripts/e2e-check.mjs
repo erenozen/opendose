@@ -1259,7 +1259,8 @@ expect("ambiguous fit banner with concrete fixes for a flat dataset",
     (await help.locator(".help-topics li").first().innerText()).includes("Log-rank"));
   await help.getByRole("searchbox", { name: "Search help" }).fill("");
   await help.getByRole("button", { name: "Take the tour" }).click();
-  expect("Help replays the tour", await p2.locator(".tour-card").count() === 1);
+  expect("Help replays the tour",
+    await p2.locator(".tour-card").waitFor({ timeout: 10000 }).then(() => true, () => false));
   await p2.keyboard.press("Escape");
   await ctx2.close();
 }
