@@ -20,7 +20,8 @@ import { PlotlyChart } from "../sheets/multivariable/plotkit";
 import {
   defaultForm, defaultRandomForm, dFromMeans, effectGrid, FAMILIES, fFromMeans,
   hFromProportions, hrFromMedians, justificationSheetContent, KIND_LABELS, HAS_TAILS, nForCurve,
-  nGrid, nLabel, powerOptions, powerPayload, randomCsv, randomOptions, type PowerForm,
+  nGrid, nLabel, powerOptions, powerPayload, randomCsv, randomOptions, rawDetectable, unroundedN,
+  type PowerForm,
   type PowerKind, type PowerResult, type RandomForm, type RandomResult,
 } from "./power";
 import "./power.css";
@@ -226,6 +227,28 @@ function EffectInputs({ form, set, solvingEffect }: {
             </div>
           </details>
         )}
+        {solvingEffect && (
+          <div className="power-helper power-raw">
+            <p className="hint-block">To see the detectable effect in the measurement’s own units, give the SD:</p>
+            {k === "t_two_sample" && (
+              <Select label="SD from" value={form.sdSource}
+                options={[["common", "One common SD"], ["groups", "Two group SDs (pooled)"]]}
+                onChange={(sdSource) => set({ sdSource })} />
+            )}
+            {k === "t_two_sample" && form.sdSource === "groups" ? (
+              <>
+                <TextNum label="SD, group 1" value={form.sd1} placeholder="optional" onChange={(sd1) => set({ sd1 })} />
+                <TextNum label="SD, group 2" value={form.sd2} placeholder="optional" onChange={(sd2) => set({ sd2 })}
+                  note="Pooled at the n of each group: √(((n1 − 1)s1² + (n2 − 1)s2²) / (n1 + n2 − 2))." />
+              </>
+            ) : (
+              <TextNum label={k === "t_paired" ? "SD of the differences" : "SD (common)"} value={form.sd}
+                placeholder="optional" onChange={(sd) => set({ sd })} />
+            )}
+            <TextNum label="Measurement unit" value={form.measureUnit} placeholder="e.g. mmol/L"
+              onChange={(measureUnit) => set({ measureUnit })} />
+          </div>
+        )}
         <p className="hint-block">Conventions: 0.2 small, 0.5 medium, 0.8 large; prefer a difference that matters biologically.</p>
       </>
     );
@@ -252,6 +275,15 @@ function EffectInputs({ form, set, solvingEffect }: {
               </button>
             </div>
           </details>
+        )}
+        {solvingEffect && (
+          <div className="power-helper power-raw">
+            <p className="hint-block">To see the detectable spread of the group means in the measurement’s own units, give the SD:</p>
+            <TextNum label="SD within groups" value={form.groupSd} placeholder="optional"
+              onChange={(groupSd) => set({ groupSd })} />
+            <TextNum label="Measurement unit" value={form.measureUnit} placeholder="e.g. mmol/L"
+              onChange={(measureUnit) => set({ measureUnit })} />
+          </div>
         )}
         <p className="hint-block">Conventions: 0.1 small, 0.25 medium, 0.4 large.</p>
       </>
@@ -349,11 +381,11 @@ function PowerSummary({ r, form }: { r: PowerResult; form: PowerForm }) {
     rows.push([same ? "n per group" : "n per group", same && r.n_per_group.length > 2
       ? `${r.n_per_group[0]} × ${r.n_per_group.length}` : r.n_per_group.join(" and ")]);
   }
-  if (r.n_total) rows.push([r.n_per_group?.length ? "Total" : nLabel(form), String(r.n_total)]);
-  const exact = r.n1_exact ?? r.n_exact ?? r.n_total_exact;
-  if (r.solve === "n" && exact !== undefined) rows.push(["Unrounded n", f(exact)]);
+  if (r.n_total) rows.push([r.n_per_group?.length ? "Total N" : nLabel(form), String(r.n_total)]);
+  for (const [label, v] of unroundedN(r)) rows.push([label, f(v)]);
   if (r.justification?.allocate) rows.push(["To allocate (with attrition)", r.justification.allocate.join(" + ")]);
   rows.push(["Effect size", `${r.effect.name} = ${f(r.effect.value)}${r.solve === "effect" ? " (detectable)" : ""}`]);
+  for (const raw of rawDetectable(form, r)) rows.push([raw.label, raw.text]);
   if (typeof r.effect.cohens_h === "number") rows.push(["Cohen's h", f(Math.abs(r.effect.cohens_h as number))]);
   if (typeof r.effect.eta_squared === "number") rows.push(["η²", f(r.effect.eta_squared as number)]);
   if (r.ncp !== undefined) rows.push(["Noncentrality", f(r.ncp)]);

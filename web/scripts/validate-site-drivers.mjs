@@ -1325,10 +1325,9 @@ def("power-r-examples", async (u, R) => {
   r = await powerRun(u, pw, an({ solve: "power", fields: { "Groups (k)": 4, "n per group": 5, "Cohen's f": 0.5 } }));
   got["r_anova_power.power"] = { s: r.line(/^Power achieved/), pct: true, sig: 4, note: "f = √(between_var·(k−1)/k / within_var) = 0.5" };
   r = await powerRun(u, pw, an({ solve: "n", power: 0.8, fields: { "Groups (k)": 4, "Cohen's f": 0.5 } }));
-  got["r_anova_n.n_per_group"] = { s: r.line(/^Unrounded n/), conv: (v) => v / 4, note: "for one-way ANOVA the page's Unrounded n is the total (÷ k = 4)" };
-  u.friction("friction", "Power tool: \"Unrounded n\" is per group for t tests and proportions but the total N for one-way ANOVA (47.70 for 4 groups of 11.93), next to an \"n per group\" row; easy to misread.");
+  got["r_anova_n.n_per_group"] = r.line(/^Unrounded n per group/);
   r = await powerRun(u, pw, an({ solve: "n", power: 0.9, fields: { "Groups (k)": 4, "Cohen's f": Math.sqrt(125 / 500) } }));
-  got["r_anova_n_means.n_per_group"] = { s: r.line(/^Unrounded n/), conv: (v) => v / 4, note: "f from means 120-150 and within variance 500 = 0.5; Unrounded n is the total (÷ 4)" };
+  got["r_anova_n_means.n_per_group"] = { s: r.line(/^Unrounded n per group/), note: "f from means 120-150 and within variance 500 = 0.5" };
   await pw.getByRole("button", { name: "Done" }).click();
   return got;
 });
