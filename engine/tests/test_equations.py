@@ -28,7 +28,8 @@ T60 = np.linspace(0, 60, 13)
 
 def _poly(order, centered=False):
     x = np.linspace(-2, 6, 15)
-    truth = {f"B{i}": [1.5, -0.8, 0.6, -0.12, 0.02, -0.003, 0.0004][i]
+    truth = {f"B{i}": [1.5, -0.8, 0.6, -0.12, 0.02, -0.003, 0.0004, -3e-5,
+                       2e-6, -1e-7, 5e-9][i]
              for i in range(order + 1)}
     if centered:
         truth["XMean"] = float(np.mean(np.unique(x)))
@@ -151,12 +152,20 @@ SINGLE = [
     ("polynomial_fourth", *_poly(4), {}),
     ("polynomial_fifth", *_poly(5), {}),
     ("polynomial_sixth", *_poly(6), {}),
+    ("polynomial_seventh", *_poly(7), {}),
+    ("polynomial_eighth", *_poly(8), {}),
+    ("polynomial_ninth", *_poly(9), {}),
+    ("polynomial_tenth", *_poly(10), {}),
     ("centered_polynomial_first", *_poly(1, True), {}),
     ("centered_polynomial_second", *_poly(2, True), {}),
     ("centered_polynomial_third", *_poly(3, True), {}),
     ("centered_polynomial_fourth", *_poly(4, True), {}),
     ("centered_polynomial_fifth", *_poly(5, True), {}),
     ("centered_polynomial_sixth", *_poly(6, True), {}),
+    ("centered_polynomial_seventh", *_poly(7, True), {}),
+    ("centered_polynomial_eighth", *_poly(8, True), {}),
+    ("centered_polynomial_ninth", *_poly(9, True), {}),
+    ("centered_polynomial_tenth", *_poly(10, True), {}),
     ("gaussian", np.linspace(0, 20, 41),
      {"Amplitude": 50, "Mean": 9, "SD": 2.5}, {}),
     ("sum_two_gaussians", np.linspace(0, 30, 61),

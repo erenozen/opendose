@@ -47,7 +47,7 @@ from itertools import combinations
 import numpy as np
 from scipy import stats
 
-from . import exactdist
+from . import exactdist, studentized
 
 
 def _clean(values) -> np.ndarray:
@@ -228,9 +228,8 @@ def unequal_variance_comparisons(datasets, method: str, *, names=None,
             continue
         if method == "games_howell":
             q = t * math.sqrt(2.0)
-            p = float(stats.studentized_range.sf(q, k, df))
-            crit = float(stats.studentized_range.ppf(ci_level, k, df)) / \
-                math.sqrt(2.0)
+            p = studentized.sf(q, k, df)
+            crit = studentized.ppf(ci_level, k, df) / math.sqrt(2.0)
             entry["statistic"] = q
         elif method == "dunnett_t3":
             p = exactdist.smm_sf(t, m, df)
@@ -272,7 +271,7 @@ def newman_keuls_from_stats(means, ns, ms_res, df_res, *, names=None,
     results = {}
     nonsig_ranges = []  # (lo, hi) positions found not significant
     for span in range(k, 1, -1):
-        qcrit = float(stats.studentized_range.ppf(1 - alpha, span, df_res))
+        qcrit = studentized.ppf(1 - alpha, span, df_res)
         for lo in range(0, k - span + 1):
             hi = lo + span - 1
             gi, gj = order[lo], order[hi]

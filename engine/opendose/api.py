@@ -198,21 +198,37 @@ def _descriptive(data, options):
     return {"analysis": "descriptive", "x": data["x"], "datasets": out}
 
 
+def _read_plate_grid(data, plate_format=None):
+    """(grid, warnings) from {"grid"} | {"xlsx_b64"} | {"text"}; the
+    shape rule and its warnings are plate_io.locate_plate's."""
+    grid = data.get("grid")
+    if grid is not None:
+        return grid, []
+    found = None
+    if data.get("xlsx_b64"):
+        import base64
+        found = plate_io.read_xlsx(base64.b64decode(data["xlsx_b64"]),
+                                   plate_format)
+    elif data.get("text"):
+        found = plate_io.read_text(data["text"], plate_format)
+    if found is None:
+        return None, []
+    return found["grid"], list(found["warnings"])
+
+
 def _plate_quantify(data, options):
     """data: {"grid": rows x cols} | {"text": pasted block} | {"xlsx_b64":
     base64 xlsx bytes}. options: the plate.quantify_plate layout. Returns
     per-group dose tables shaped like the main data model (x = dose,
     datasets with replicate rows), ready for the grouped table / fit."""
-    grid = data.get("grid")
-    if grid is None and data.get("xlsx_b64"):
-        import base64
-        grid = plate_io.parse_xlsx(base64.b64decode(data["xlsx_b64"]))
+    grid, read_warnings = _read_plate_grid(data, options.get("plate_format"))
     if grid is None:
-        grid = plate_io.parse_text(data["text"])
+        raise ValueError("plate_quantify needs a plate grid")
     result = plate.quantify_plate(grid, options)
     doses = result["groups"][0]["doses"] if result["groups"] else []
     return {
         "analysis": "plate_quantify",
+        "warnings": read_warnings,
         "blank": result["blank"],
         "x": doses,
         "datasets": [
@@ -483,7 +499,16 @@ def _linear_regression(data, options):
 
 def _survival(data, options):
     """datasets: one per group; each row = one subject with subcolumns
-    [time, event(1=event, 0=censored)]."""
+    [time, event(1=event, 0=censored)]. Returns {"curves": {group:
+    {points (step curve, log-log CI), table (Kaplan-Meier table at each
+    event time: time, at_risk before it, events, censored, survival, se,
+    lower, upper (log-log), lower_log, upper_log), table_columns (what
+    each column is), n, n_events, n_censored, median_survival, median_ci
+    (log-log band), median_ci_log (R's log band)}}} and, for two or more
+    groups, "logrank": {chi2_peto, p_peto (= chi2, p: sum((O-E)^2/E)),
+    chi2_variance, p_variance (U'V^-1U, R's survdiff), df, observed,
+    expected, group_names, method}, "gehan_breslow_wilcoxon",
+    "hazard_ratio" (two groups)."""
     groups, names = [], []
     for ds in data["datasets"]:
         times, events = [], []
@@ -1935,20 +1960,18 @@ def _plate_qc(data, options):
     "passed", "replicate_cv", "edge_effect", "wells",
     "normalized_grid", "dose_response": [{compound, x, datasets}],
     "combined": {x, datasets} | null, "warnings"}."""
-    grid = data.get("grid")
-    if grid is None and data.get("xlsx_b64"):
-        grid = plate_io.parse_xlsx(base64.b64decode(data["xlsx_b64"]))
-    if grid is None and data.get("text"):
-        grid = plate_io.parse_text(data["text"])
+    grid, read_warnings = _read_plate_grid(data, options.get("plate_format"))
     if grid is None:
         raise ValueError("plate_qc needs a plate grid")
     plate_map = data.get("plate_map", options.get("plate_map"))
     if not plate_map:
         raise ValueError("plate_qc needs a plate map")
-    return assay_plate.plate_qc(
+    res = assay_plate.plate_qc(
         grid, plate_map,
         **_assay_kw(options, ("normalization", "plate_format", "cv_limit",
                               "z_prime_limit", "edge_role")))
+    res["warnings"] = read_warnings + res["warnings"]
+    return res
 
 
 def _synergy(data, options):
@@ -1961,8 +1984,12 @@ def _synergy(data, options):
     "response" (% inhibition matrix), "monotherapy", "models": {hsa,
     bliss, loewe, zip: {reference, synergy, score, synergy_sd?,
     score_sd?}}, "scores", "landscapes", "chou_talalay": {drug1: {m,
-    Dm, r}, drug2, combinations: [{conc1, conc2, fa, ci, dri1, dri2,
-    interpretation}], fa_ci}, "warnings"}."""
+    Dm, r, r_squared, n, valid, reason}, drug2, combinations: [{conc1,
+    conc2, fa, ci, dri1, dri2, interpretation, reason}], fa_ci,
+    min_r_squared, min_points, n_computed, note}, "warnings"}. A
+    combination's ci is null, with a reason, unless its fa is strictly
+    inside (0, 1) and both median-effect fits are valid (m > 0, r^2 >=
+    min_r_squared, at least min_points doses)."""
     return assay_synergy.synergy(
         data.get("records"), conc1=data.get("conc1"),
         conc2=data.get("conc2"), responses=data.get("responses"),

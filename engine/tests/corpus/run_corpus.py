@@ -326,21 +326,21 @@ def _powers_regression(x, y, order):
     return res
 
 
-@dataset("nist-pontius")
-def map_nist_pontius(entry, rows):
-    """Manifest hint: built-in 'polynomial_second' (nonlinear regression).
-    That is what is reported; the exact linear path (multiple regression on
-    X and X^2) is recorded in `alt` for comparison."""
+def _map_polynomial(rows, order, model):
+    """Built-in polynomial model (nonlinear regression path, the curve fit
+    a user picks) for B0..Bk, SEs, Sy.x, R^2 and the residual SS; the
+    regression ANOVA is derived from them. The exact linear path
+    (multiple regression on X..X^k) is recorded in `alt`."""
     m = Mapped()
     x, y = column(rows, "x"), column(rows, "y")
-    res = run("dose_response", xy_data(rows, "x", ["y"]),
-              {"model": "polynomial_second"})
+    res = run("dose_response", xy_data(rows, "x", ["y"]), {"model": model})
     fit = res["datasets"][0]["fit"]
-    p = "dose_response(polynomial_second):datasets[0].fit."
+    p = f"dose_response({model}):datasets[0].fit."
     alt = Mapped()
-    _map_multiple_regression(alt, _powers_regression(x, y, 2),
-                             ["Intercept", "X1", "X2"])
-    for j in range(3):
+    _map_multiple_regression(alt, _powers_regression(x, y, order),
+                             ["Intercept"] + [f"X{k}"
+                                              for k in range(1, order + 1)])
+    for j in range(order + 1):
         m.set(f"B{j}", fit["params"][f"B{j}"]["value"],
               p + f"params.B{j}.value",
               alt=alt.values[f"B{j}"]["value"])
@@ -364,37 +364,37 @@ def map_nist_pontius(entry, rows):
     m.set("ss_regression", ss_reg,
           "derived: r_squared * SS total (SS total from the data)",
           alt=alt.values["ss_regression"]["value"])
-    m.set("ms_regression", ss_reg / 2, "derived: ss_regression / 2",
+    m.set("ms_regression", ss_reg / order,
+          f"derived: ss_regression / {order}",
           alt=alt.values["ms_regression"]["value"])
-    m.set("F", (ss_reg / 2) / (g["ss_res"] / g["df"]),
+    m.set("F", (ss_reg / order) / (g["ss_res"] / g["df"]),
           "derived: ms_regression / ms_residual",
           alt=alt.values["F"]["value"])
     return m
 
 
+@dataset("nist-pontius")
+def map_nist_pontius(entry, rows):
+    """Manifest hint: built-in 'polynomial_second' (nonlinear regression).
+    That is what is reported; the exact linear path (multiple regression on
+    X and X^2) is recorded in `alt` for comparison."""
+    return _map_polynomial(rows, 2, "polynomial_second")
+
+
 @dataset("nist-filip")
 def map_nist_filip(entry, rows):
-    """No 10th-order built-in polynomial (built-ins stop at 6th); fitted by
-    multiple regression on X..X^10 (Householder QR on raw powers). A user
-    equation with 11 parameters through the LM path is recorded in the
-    notes."""
-    m = Mapped()
-    x, y = column(rows, "x"), column(rows, "y")
-    res = _powers_regression(x, y, 10)
-    _map_multiple_regression(m, res, ["Intercept"] + [f"X{k}"
-                                                      for k in range(1, 11)])
-    for q in list(m.values):
-        m.values[q]["path"] = m.values[q]["path"].replace(
-            "multiple_regression:", "multiple_regression(X..X^10):")
-    return m
+    """Built-in 'polynomial_tenth' (nonlinear regression path, analytic
+    Jacobian and QR covariance); multiple regression on X..X^10
+    (Householder QR on raw powers) in `alt`."""
+    return _map_polynomial(rows, 10, "polynomial_tenth")
 
 
 @dataset("nist-noint1")
 def map_nist_noint1(entry, rows):
     """linear_regression has no through-origin option; the built-in
     'line_through_origin' model (nonlinear regression path) is used. Its
-    R^2 is Prism's (1 - SSres/SStot about the mean), not the uncentred
-    R^2 NIST certifies for no-intercept models, so R^2 is derived."""
+    goodness carries both Prism's R^2 (about the mean) and the uncentred
+    R^2 NIST certifies for no-intercept models (r_squared_uncentered)."""
     m = Mapped()
     y = column(rows, "y")
     res = run("dose_response", xy_data(rows, "x", ["y"]),
@@ -405,9 +405,9 @@ def map_nist_noint1(entry, rows):
     m.set("B1", fit["params"]["Slope"]["value"], p + "params.Slope.value")
     m.set("se_B1", fit["params"]["Slope"]["se"], p + "params.Slope.se")
     m.set("sy_x", g["sy_x"], p + "goodness.sy_x")
-    m.set("r_squared", 1 - g["ss_res"] / sum(v * v for v in y),
-          "derived: 1 - ss_res / sum(Y^2) (NIST's uncentred R^2; the "
-          "engine's goodness.r_squared = "
+    m.set("r_squared", g["r_squared_uncentered"],
+          p + "goodness.r_squared_uncentered (NIST's uncentred R^2; "
+          "goodness.r_squared = "
           f"{g['r_squared']:.6g} is Prism's centred R^2, which can be "
           "negative for a line through the origin)")
     m.set("df_residual", g["df"], p + "goodness.df")
@@ -473,9 +473,8 @@ def map_nist_univariate(entry, rows):
     d = res["datasets"][0]["descriptive"]
     for k in ("mean", "sd", "n"):
         m.set(k, d[k], f"column_statistics:datasets[0].descriptive.{k}")
-    m.unmapped("lag1_autocorrelation",
-               "no engine output: the lag-1 autocorrelation of a column is "
-               "not a column statistic in OpenDose")
+    m.set("lag1_autocorrelation", d["lag1_autocorrelation"],
+          "column_statistics:datasets[0].descriptive.lag1_autocorrelation")
     return m
 
 
@@ -2491,10 +2490,6 @@ _R_UNIROOT = ("reference precision: R's fisher.test finds the conditional "
 
 KNOWN: dict[tuple[str, str], tuple[str, str]] = {
     # ---------------- NIST nonlinear
-    ("nist-rat43", "df"): ("d", "manifest transcription error (new): 15 "
-                           "observations - 4 parameters = 11, and NIST's "
-                           "own RSS / sigma^2 = 8786.4049 / 28.2624^2 = "
-                           "11.0; the manifest says 9"),
     # ---------------- NIST ANOVA / univariate stress tests
     ("nist-smls07", "*"): ("b", "unattainable in float64: inputs such as "
                            "1000000000000.4 are not representable (ulp 1.2e-4 "
@@ -2860,7 +2855,8 @@ weighted Deming with per-point SDs; RI / CSS synergy scores; robust
 (sandwich) SEs; Bland-Altman repeatability coefficient; Livak's propagated
 SD; joint confidence regions; uncorrected normal approximations for the
 rank tests; a 10th-order polynomial is fitted through multiple regression
-(no built-in beyond 6th order) - and it passes NIST Filip at 1e-6.
+(no built-in beyond 6th order) - and it passes NIST Filip at 1e-6 (built
+in since the second pass: `polynomial_seventh` .. `polynomial_tenth`).
 
 ### Datasets the engine cannot analyse at all
 
@@ -2871,8 +2867,9 @@ rank tests; a 10th-order polynomial is fitted through multiple regression
 
 ### Reference problems found in this pass (category d, not previously flagged)
 
-* `nist-rat43` df: the manifest says 9, NIST certifies 11 (15 points, 4
-  parameters; RSS / sigma^2 = 11.0).
+* `nist-rat43` df: the manifest said 9, NIST certifies 11 (15 points, 4
+  parameters; RSS / sigma^2 = 11.0). Corrected in the manifest in the
+  second pass.
 * `gp-book-twosite-ex2`: the printed "AICc" are AIC values (no
   small-sample term), and the evidence ratio follows them.
 * `gp-book-twosite-ex1` F: 30.48 printed, 30.47 from the book's own SS.
@@ -3094,6 +3091,47 @@ AFTER_FIXES_MD = """
 8. Also: the extra-SS F test and AICc no longer divide by zero when the
    more complex model fits exactly (now possible with the tighter
    solver), and the contingency analysis passes `ci_level` through.
+
+### Second pass (findings of the live-site run, results-site.md)
+
+1. **Multistart budget** (`nlfit.MULTISTART_*`, `lsq.Budget`): every
+   start of a multistart is capped at 2000 solver evaluations; after the
+   first start the others share an evaluation / wall-clock budget (soft
+   40,000 evaluations: no new start once a converged fit is in hand;
+   hard 80,000 evaluations or 1.5 s: the running start is abandoned).
+   Single-start fits (user equations, the NIST problems) are not
+   budgeted. The automatic 4PL fit of NIST NoInt1 (a straight line)
+   gives up in 1.7 s natively instead of 37-53 s; no result in the test
+   suite or the corpus changed.
+2. **Studentized range** (new `studentized.py`, used by Tukey, Games-
+   Howell, Newman-Keuls and the mixed / two- / three-way Tukey tests): a
+   deterministic, vectorised double integral (log-space, exact for k = 2
+   to 1e-13) in place of scipy's, which took ~0.3 s per quantile and was
+   called once per pair: one-way ANOVA with Tukey on NIST SmLs01 (9 x 21)
+   0.11 s instead of 10.9 s, SmLs09 (9 x 2001) 0.11 s instead of 13.7 s.
+3. **Polynomials to 10th order** (`polynomial_seventh` ..
+   `polynomial_tenth` and centered forms) with an analytic Jacobian;
+   covariances everywhere come from the QR factorisation of the
+   column-scaled Jacobian (not an explicit inverse of J'J) and parameter
+   dependencies from the Jacobian. NIST Filip through the built-in
+   `polynomial_tenth` from its own start: estimates 2e-8, SEs 5e-8,
+   Sy.x 5e-9 relative to the certified values.
+4. **Lag-1 autocorrelation** in column statistics
+   (`descriptive.lag1_autocorrelation`, the 9 NIST univariate datasets to
+   1e-14) and the **uncentred R^2** of fits through the origin
+   (`goodness.r_squared_uncentered`, NIST NoInt1 to 1e-15).
+5. **Survival**: the Kaplan-Meier table per group (`curves.<g>.table`:
+   time, at risk, events, censored, survival, SE, log-log and log CIs)
+   and self-describing log-rank keys (`chi2_peto` / `p_peto` beside
+   `chi2_variance` / `p_variance`).
+6. **Chou-Talalay**: combination indices only where 0 < fa < 1 and both
+   median-effect fits are valid (m > 0, r^2 >= 0.81, 3+ doses), otherwise
+   null with a reason (the Mathews block's 1e+28 indices are gone).
+7. **Plate reader grids**: the labelled extent decides the shape (a
+   labelled 384-well grid was read as its top-left 96 wells), 6- to
+   1536-well formats, warnings instead of silent truncation.
+8. Manifest: `nist-rat43` df corrected from 9 to 11 (transcription
+   error); `nist-filip` mapped through `polynomial_tenth`.
 
 ### Tests whose expected values changed
 

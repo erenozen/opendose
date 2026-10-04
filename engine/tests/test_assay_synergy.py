@@ -203,3 +203,80 @@ def test_api_synergy_matrix_payload():
     assert res["monotherapy"]["drug1"]["params"]["EC50"] == pytest.approx(
         1.0, rel=1e-6)
     assert math.isfinite(res["scores"]["hsa"])
+
+
+def test_chou_talalay_vignette_block_reports_no_meaningless_indices():
+    """Mathews block 1: ispinesib alone sits on its plateau (fa 0.54-0.61
+    over 9.8-2500 nM), so its median-effect line is flat (m = -0.028,
+    r = -0.55). Indices built on it reached 1e+28 and read "very strong
+    antagonism" next to positive Bliss and HSA scores. They are now
+    withheld, with the reason, and said so in the warnings; every
+    reported value is a finite number."""
+    res = _mathews()
+    ct = res["chou_talalay"]
+    assert ct["drug1"]["valid"] is False
+    assert ct["drug1"]["m"] < 0
+    assert ct["drug1"]["r"] == pytest.approx(-0.551, abs=1e-3)
+    assert ct["drug2"]["valid"] is True
+    assert ct["drug2"]["r_squared"] >= sy.MEDIAN_EFFECT_MIN_R2
+    for c in ct["combinations"]:
+        assert c["ci"] is None and c["interpretation"] is None
+        assert "ispinesib" in c["reason"] and "not positive" in c["reason"]
+    assert ct["n_computed"] == 0 and ct["fa_ci"] == []
+    assert any("Chou-Talalay" in w for w in res["warnings"])
+    # the synergy scores themselves are unchanged and positive
+    assert res["scores"]["bliss"] > 0 and res["scores"]["hsa"] > 0
+
+
+def _ct_synergistic_matrix(ci_true=0.5, m=1.2, dm1=2.0, dm2=5.0):
+    """Median-effect monotherapies and combinations built with a known
+    combination index: (d1/Dm1 + d2/Dm2) (fa/fu)^(-1/m) = CI."""
+    c1 = [0, 0.25, 0.5, 1, 2, 4]
+    c2 = [0, 0.6, 1.25, 2.5, 5, 10]
+    R = np.zeros((6, 6))
+    for i, a in enumerate(c1):
+        for j, b in enumerate(c2):
+            s = a / dm1 + b / dm2
+            if a == 0 or b == 0:
+                odds = s ** m          # single drug: CI = 1 by definition
+            else:
+                odds = (s / ci_true) ** m
+            R[i, j] = 100 * odds / (1 + odds) if s > 0 else 0.0
+    return c1, c2, R
+
+
+def test_chou_talalay_finite_and_agrees_with_bliss_hsa_on_clear_synergy():
+    c1, c2, R = _ct_synergistic_matrix()
+    res = sy.synergy(conc1=c1, conc2=c2, responses=R.tolist())
+    ct = res["chou_talalay"]
+    assert ct["drug1"]["valid"] and ct["drug2"]["valid"]
+    cis = [c["ci"] for c in ct["combinations"]]
+    assert all(v is not None and math.isfinite(v) for v in cis)
+    for v in cis:
+        assert v == pytest.approx(0.5, rel=1e-9)
+    # sign agreement with Bliss and HSA cell by cell (synergy > 0 <=>
+    # CI < 1) for the majority of cells; the reference models differ, so
+    # full agreement is not required
+    bliss = np.array(res["models"]["bliss"]["synergy"])
+    hsa = np.array(res["models"]["hsa"]["synergy"])
+    agree_b = agree_h = 0
+    for c in ct["combinations"]:
+        i, j = c1.index(c["conc1"]), c2.index(c["conc2"])
+        agree_b += (bliss[i][j] > 0) == (c["ci"] < 1)
+        agree_h += (hsa[i][j] > 0) == (c["ci"] < 1)
+        assert "synergism" in c["interpretation"]
+    n = len(ct["combinations"])
+    assert agree_b > n / 2 and agree_h > n / 2
+    assert res["scores"]["bliss"] > 0 and res["scores"]["hsa"] > 0
+
+
+def test_chou_talalay_withholds_cells_with_fa_at_the_bounds():
+    c1, c2, R = _ct_synergistic_matrix()
+    R[5, 5] = 100.0   # complete kill: fa = 1 has no median-effect dose
+    R[1, 1] = 0.0
+    ct = sy.synergy(conc1=c1, conc2=c2, responses=R.tolist())["chou_talalay"]
+    by = {(c["conc1"], c["conc2"]): c for c in ct["combinations"]}
+    for key in ((c1[5], c2[5]), (c1[1], c2[1])):
+        assert by[key]["ci"] is None
+        assert "strictly between 0 and 1" in by[key]["reason"]
+    assert ct["n_computed"] == len(ct["combinations"]) - 2

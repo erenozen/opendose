@@ -256,7 +256,7 @@ def _reg(name, label, family, equation, params, func, initials, *,
          multistart=None, multistart_mode=None, required=(),
          dataset_constants=(), shared=(), param_scope=None,
          global_only=False, global_initials=None, bounds=None,
-         data_constants=None, initials_fixed=False):
+         data_constants=None, initials_fixed=False, jac=None):
     register(ModelSpec(
         name=name, label=label, equation=equation, params=list(params),
         func=func, initials=initials, multistart=multistart,
@@ -268,7 +268,7 @@ def _reg(name, label, family, equation, params, func, initials, *,
         shared=tuple(p for p in shared if p in params),
         param_scope=param_scope,
         global_only=global_only, global_initials=global_initials,
-        initials_fixed=initials_fixed))
+        initials_fixed=initials_fixed, jac=jac))
 
 
 def _p10(v):
@@ -1975,7 +1975,7 @@ _reg("two_lines_crossing", "Two intersecting lines -- fit the crossing point",
 # ============================================ Polynomial
 FAM_POLY = "Polynomial"
 _ORDINALS = {1: "First", 2: "Second", 3: "Third", 4: "Fourth", 5: "Fifth",
-             6: "Sixth"}
+             6: "Sixth", 7: "Seventh", 8: "Eighth", 9: "Ninth", 10: "Tenth"}
 
 
 def _poly_eq(order, xv="X"):
@@ -1994,6 +1994,17 @@ def _centered(order):
     return f
 
 
+def _centered_jac(order):
+    """df/dB_i = XC^i, df/dXMean = -sum i B_i XC^(i-1) (XMean is normally
+    the fixed data constant)."""
+    def jac(x, p):
+        xc = _arr(x) - p["XMean"]
+        V = np.vander(xc, order + 1, increasing=True)
+        dmean = -sum(i * p[f"B{i}"] * V[:, i - 1] for i in range(1, order + 1))
+        return np.column_stack([V, np.broadcast_to(dmean, xc.shape)])
+    return jac
+
+
 def _centered_init(order):
     def initials(x, y):
         xm = _mean_unique_x(x, y)
@@ -2004,18 +2015,20 @@ def _centered_init(order):
     return initials
 
 
-for _order in range(1, 7):
+for _order in range(1, 11):
     if _order >= 4 or _order == 1:
         _reg(f"polynomial_{_ORDINALS[_order].lower()}",
              f"{_ORDINALS[_order]} order polynomial", FAM_POLY,
              _poly_eq(_order), [f"B{i}" for i in range(_order + 1)],
-             nlfit._poly_func(_order), nlfit._poly_initials(_order))
+             nlfit._poly_func(_order), nlfit._poly_initials(_order),
+             jac=nlfit._poly_jac(_order))
     _reg(f"centered_polynomial_{_ORDINALS[_order].lower()}",
          f"Centered {_ORDINALS[_order].lower()} order polynomial", FAM_POLY,
          "XC = X - Xmean; " + _poly_eq(_order, "XC"),
          [f"B{i}" for i in range(_order + 1)] + ["XMean"],
          _centered(_order), _centered_init(_order),
-         data_constants={"XMean": _mean_unique_x})
+         data_constants={"XMean": _mean_unique_x},
+         jac=_centered_jac(_order))
 
 
 # ============================================ Gaussian family

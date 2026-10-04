@@ -19,17 +19,30 @@ from __future__ import annotations
 
 import re
 
-ROW_LETTERS = "ABCDEFGHIJKLMNOP"  # up to 384-well
+ROW_LETTERS = "ABCDEFGHIJKLMNOP"  # single-letter rows (up to 384-well)
+# Row labels of every supported format: A..Z, then AA..AF for the 32 rows
+# of a 1536-well plate (the labelling plate readers print).
+ROW_LABELS = tuple("ABCDEFGHIJKLMNOPQRSTUVWXYZ") + tuple(
+    "A" + ch for ch in "ABCDEF")
 
-_WELL_RE = re.compile(r"^([A-Pa-p])(\d{1,2})$")
+_WELL_RE = re.compile(r"^([A-Za-z]{1,2})(\d{1,2})$")
+
+
+def row_label(r: int) -> str:
+    """0 -> 'A', 25 -> 'Z', 26 -> 'AA' (1536-well rows)."""
+    return ROW_LABELS[r]
 
 
 def parse_well(address: str) -> tuple[int, int]:
-    """'H3' -> (row_index, col_index), zero-based."""
+    """'H3' -> (row_index, col_index), zero-based. Rows A..Z and AA..AF
+    (1536-well), columns 1..48."""
     m = _WELL_RE.match(address.strip())
     if not m:
         raise ValueError(f"invalid well address: {address!r}")
-    row = ROW_LETTERS.index(m.group(1).upper())
+    label = m.group(1).upper()
+    if label not in ROW_LABELS:
+        raise ValueError(f"invalid well address: {address!r}")
+    row = ROW_LABELS.index(label)
     col = int(m.group(2)) - 1
     if col < 0:
         raise ValueError(f"invalid well address: {address!r}")
@@ -74,7 +87,7 @@ def quantify_plate(grid, layout: dict) -> dict:
 
     groups_out = []
     for group in layout["groups"]:
-        row_idx = [ROW_LETTERS.index(r.upper()) for r in group["rows"]]
+        row_idx = [ROW_LABELS.index(r.strip().upper()) for r in group["rows"]]
 
         def corrected(ri: int, col_1based: int) -> float | None:
             v = grid[ri][col_1based - 1] if col_1based - 1 < len(grid[ri]) else None
