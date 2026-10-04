@@ -53,3 +53,9 @@ export function exampleRequested(): boolean {
   const v = new URLSearchParams(location.search).get("example");
   return v !== null && v !== "0";
 }
+
+/** A share link ("#p=…") opens its project directly: no start screen. */
+export function shareLinkRequested(): boolean {
+  if (typeof location === "undefined") return false;
+  return location.hash.startsWith("#p=");
+}

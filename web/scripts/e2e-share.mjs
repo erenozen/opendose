@@ -16,6 +16,8 @@ import { unzipSync, strFromU8 } from "fflate";
 const here = dirname(fileURLToPath(import.meta.url));
 const FLOWJO = join(here, "..", "e2e-fixtures", "flowjo-table.csv");
 const url = process.argv[2] ?? "http://localhost:5173/";
+// The start screen is skipped the same way the other scripts do it.
+const exampleUrl = url + (url.includes("?") ? "&" : "?") + "example=1";
 const tmp = mkdtempSync(join(tmpdir(), "opendose-share-"));
 
 const browser = await chromium.launch({
@@ -37,7 +39,7 @@ const logIC50 = (page) => page.locator(".results-table tbody tr", { hasText: "Lo
 const ctx1 = await browser.newContext({ viewport: { width: 1500, height: 1000 }, acceptDownloads: true });
 const page = await ctx1.newPage();
 watch(page, "main");
-await page.goto(url, { waitUntil: "domcontentloaded" });
+await page.goto(exampleUrl, { waitUntil: "domcontentloaded" });
 await page.waitForSelector(".results-table", { timeout: 180000 });
 await page.locator(".results-table tbody tr", { hasText: "LogIC50" }).first().waitFor({ timeout: 60000 });
 const original = await logIC50(page);
