@@ -14,3 +14,4 @@ examples/
 *.egg-info/
 .claude/worktrees/
 docs/validation/private/
+docs/validation/site-screens/
