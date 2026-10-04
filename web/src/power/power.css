@@ -1,0 +1,27 @@
+/* Tools → Power and sample size / Randomisation list. Tokens only. */
+.power-dialog { width: min(1080px, calc(100vw - 32px)); }
+.power-dialog .modal-body { max-height: calc(100vh - 48px); overflow: auto; }
+.power-tabs { margin: 0; align-self: flex-start; }
+.power-grid {
+  display: grid; grid-template-columns: minmax(0, 340px) minmax(0, 1fr); gap: 18px;
+  align-items: start;
+}
+@media (max-width: 760px) { .power-grid { grid-template-columns: minmax(0, 1fr); } }
+.power-inputs { display: flex; flex-direction: column; gap: 10px; }
+.power-inputs section h3 { margin-top: 0; }
+.power-inputs input:not([type="checkbox"]), .power-inputs select, .power-inputs textarea {
+  max-width: 100%;
+}
+.power-inputs textarea { font: inherit; width: 100%; }
+.power-output { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.power-output .result-card { margin: 0; }
+.power-kv .results-table.goodness { max-width: 520px; }
+.power-sentence { margin: 0 0 6px; font-size: 14px; line-height: 1.5; color: var(--ink); max-width: 72ch; }
+.power-helper { margin: 2px 0 6px; font-size: 13px; }
+.power-helper summary { cursor: pointer; color: var(--accent); margin-bottom: 6px; }
+.power-curves { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.power-curve { height: 280px; border: 1px solid var(--border-soft); border-radius: var(--radius-s); overflow: hidden; }
+.power-curve .plot { width: 100%; height: 100%; }
+.power-list { max-height: 360px; overflow: auto; margin-top: 8px; }
+.power-inputs .power-wide { width: 100%; min-width: 0; box-sizing: border-box; }
+.power-inputs .clin-field:has(.power-wide) { flex-wrap: wrap; }
