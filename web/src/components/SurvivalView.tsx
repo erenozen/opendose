@@ -12,7 +12,7 @@ import {
   usePlotEdits, type GraphFormat, type RiskSet,
 } from "../graph";
 import { survivalAt } from "../sheets/survival/graphSettings";
-import { kmTable, survivalGroups, type KmRow } from "../sheets/survival/kmTable";
+import { kmRowsFromEngine, kmTable, survivalGroups, type KmRow } from "../sheets/survival/kmTable";
 import TableCopy from "../sheets/common/TableCopy";
 import type { DataTableModel } from "../project/types";
 
@@ -163,18 +163,23 @@ function medianCi(ci: any): string {
 }
 
 const KM_HEAD = ["Time", "At risk", "Events", "Censored", "Survival", "SE (Greenwood)",
-  "Lower 95% CI", "Upper 95% CI"];
+  "Lower 95% CI (log-log)", "Upper 95% CI (log-log)"];
+const KM_HEAD_LOG = ["Lower 95% CI (log)", "Upper 95% CI (log)"];
 
-/** The Kaplan-Meier table of one group, with its own Copy / CSV. */
+/** The Kaplan-Meier table of one group, with its own Copy / CSV. Rows
+ *  with the log-band limits (the engine's table) get those columns too. */
 function KmGroupTable({ name, rows }: { name: string; rows: KmRow[] }) {
-  const matrix = () => [KM_HEAD, ...rows.map((r) => [raw(r.time), String(r.atRisk), String(r.events),
-    String(r.censored), raw(r.survival), raw(r.se), raw(r.lower), raw(r.upper)])];
+  const withLog = rows.some((r) => r.lowerLog !== undefined);
+  const head = withLog ? [...KM_HEAD, ...KM_HEAD_LOG] : KM_HEAD;
+  const matrix = () => [head, ...rows.map((r) => [raw(r.time), String(r.atRisk), String(r.events),
+    String(r.censored), raw(r.survival), raw(r.se), raw(r.lower), raw(r.upper),
+    ...(withLog ? [raw(r.lowerLog), raw(r.upperLog)] : [])])];
   return (
     <div className="km-table">
       <h4>Kaplan-Meier table: {name}</h4>
       <TableCopy name={`Kaplan-Meier table ${name}`} matrix={matrix} />
       <table className="results-table">
-        <thead><tr>{KM_HEAD.map((h) => <th key={h}>{h}</th>)}</tr></thead>
+        <thead><tr>{head.map((h) => <th key={h}>{h}</th>)}</tr></thead>
         <tbody>
           {rows.map((r) => (
             <tr key={r.time}>
@@ -186,6 +191,8 @@ function KmGroupTable({ name, rows }: { name: string; rows: KmRow[] }) {
               <td>{fmt(r.se)}</td>
               <td>{fmt(r.lower)}</td>
               <td>{fmt(r.upper)}</td>
+              {withLog && <td>{fmt(r.lowerLog)}</td>}
+              {withLog && <td>{fmt(r.upperLog)}</td>}
             </tr>
           ))}
         </tbody>
@@ -241,8 +248,8 @@ export function SurvivalResults({ result, table }: {
             <tbody>
               <tr>
                 <th>Log-rank (Mantel-Cox), Peto form Σ(O−E)²/E</th>
-                <td>χ² = {formatSig(lr.chi2)},
-                  df {lr.df}, {pLabel(lr.p)}</td>
+                <td>χ² = {formatSig(lr.chi2_peto ?? lr.chi2)},
+                  df {lr.df}, {pLabel(lr.p_peto ?? lr.p)}</td>
               </tr>
               {typeof lr.chi2_variance === "number" && (
                 <tr>
@@ -275,7 +282,8 @@ export function SurvivalResults({ result, table }: {
             <table className="results-table">
               <thead><tr><th>Group</th><th>Observed (O)</th><th>Expected (E)</th><th>O / E</th></tr></thead>
               <tbody>
-                {curves.map(([name], i) => (
+                {(Array.isArray(lr.group_names) ? lr.group_names as string[]
+                  : curves.map(([name]) => name)).map((name, i) => (
                   <tr key={name}>
                     <th>{name}</th>
                     <td>{fmt(lr.observed[i])}</td>
@@ -294,11 +302,23 @@ export function SurvivalResults({ result, table }: {
           </>
         )}
         {curves.map(([name, c]) => {
+          // the engine's table (event times, as R's summary.survfit), else
+          // one built from the curve and the data (older engines)
+          if (Array.isArray(c.table)) {
+            return <KmGroupTable key={name} name={name} rows={kmRowsFromEngine(c.table)} />;
+          }
           const g = groups.find((x) => x.name === name);
           if (!g || !Array.isArray(c.points)) return null;
           return <KmGroupTable key={name} name={name} rows={kmTable(g.times, g.events, c.points)} />;
         })}
-        {groups.length > 0 && (
+        {curves.some(([, c]) => Array.isArray(c.table)) ? (
+          <p className="hint-block">
+            One row per event time: at risk counts the subjects followed up to that time or
+            longer (just before it), censored those censored at it. Survival and its SE
+            (Greenwood) change only at event times. The confidence limits use the log-log
+            transform and, in the last two columns, the log transform of R&apos;s survfit.
+          </p>
+        ) : groups.length > 0 && (
           <p className="hint-block">
             Survival and its SE (Greenwood) change only at event times; at a time with
             censoring only, the estimate of the previous event time carries over. The

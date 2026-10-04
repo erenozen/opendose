@@ -258,6 +258,8 @@ export function monotherapyIssues(result: Res | null | undefined): string[] {
       out.push(`the median-effect line of ${name(k)} slopes the wrong way (r = ${fmt(me.r)}: the effect falls as the dose rises)`);
     } else if (typeof me.r === "number" && Math.abs(me.r) < 0.9) {
       out.push(`the median-effect line of ${name(k)} fits poorly (r = ${fmt(me.r)})`);
+    } else if (me.valid === false) {
+      out.push(`the median-effect fit of ${name(k)} is withheld (${me.reason ?? "it does not meet the criteria"})`);
     }
   }
   return out;

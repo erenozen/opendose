@@ -131,7 +131,9 @@ export function linregBlock(raw: any, o: LinregOptions, sums?: { sumY2: number; 
     return {
       throughOrigin: true, n, df: g.df ?? n - 1, slope, intercept: null,
       xIntercept: 0, oneOverSlope: slope.value ? 1 / slope.value : null,
-      r2: a.r2, r2Centred: g.r_squared ?? null, syx: g.sy_x, ssRes: g.ss_res,
+      // the engine's uncentred R² when it reports one, else from ΣY²
+      r2: typeof g.r_squared_uncentered === "number" ? g.r_squared_uncentered : a.r2,
+      r2Centred: g.r_squared ?? null, syx: g.sy_x, ssRes: g.ss_res,
       anova: a,
       runs: o.runsTest && runs ? { n_runs: runs.n_runs, p: runs.p ?? null } : null,
       xAtY: ys.map((y) => ({ y, x: slope.value ? y / slope.value : null })),

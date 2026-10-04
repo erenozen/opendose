@@ -160,6 +160,9 @@ export interface FitResult {
     df: number;
     n_points: number;
     r_squared: number | null;
+    /** Lines through the origin: R² about Y = 0 (NIST, R's lm without
+     *  an intercept). */
+    r_squared_uncentered?: number | null;
     ss_res: number;
     sy_x: number;
   };

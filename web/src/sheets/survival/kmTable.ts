@@ -18,6 +18,20 @@ export interface KmRow {
   se: number | null;
   lower: number | null;
   upper: number | null;
+  /** Log-transform band (R survfit's default), when the engine gives it. */
+  lowerLog?: number | null;
+  upperLog?: number | null;
+}
+
+/** Rows of the engine's Kaplan-Meier table (survival.km_curve "table":
+ *  one per event time, as R's summary.survfit). */
+export function kmRowsFromEngine(rows: Record<string, unknown>[]): KmRow[] {
+  const n = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+  return rows.map((r) => ({
+    time: n(r.time) ?? 0, atRisk: n(r.at_risk) ?? 0, events: n(r.events) ?? 0,
+    censored: n(r.censored) ?? 0, survival: n(r.survival) ?? 1, se: n(r.se),
+    lower: n(r.lower), upper: n(r.upper), lowerLog: n(r.lower_log), upperLog: n(r.upper_log),
+  }));
 }
 
 /** Times and event codes (1 = event, 0 = censored) per group, as the

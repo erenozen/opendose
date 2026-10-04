@@ -183,11 +183,24 @@ export function SynergyResults({ options, result }: ResultsProps<SynergyOptions,
       <Card title={<>Chou-Talalay combination index{issues.length > 0 && (
         <> <Chip tone="warn" title={issues.join("; ")}>Monotherapy fit poor: CIs unreliable</Chip></>
       )}</>}>
-        <Grid caption="Median-effect fits" head={["Drug", "m (slope)", `Dm${unit}`, "r"]}
+        <Grid caption="Median-effect fits" head={["Drug", "m (slope)", `Dm${unit}`, "r", "r²",
+          "Used for the CIs?"]}
           rows={[["drug1", d1], ["drug2", d2]].map(([k, n]) => {
             const e = ct?.[k] as R | null;
-            return [n, e ? f(e.m) : "n/a", e ? f(e.Dm) : "n/a", e ? f(e.r) : "n/a"];
+            const used = !e ? "no (no median-effect line)" : e.valid === false
+              ? `withheld: ${e.reason ?? "the fit does not meet the criteria"}` : e.valid === true ? "yes" : "n/a";
+            return [n, e ? f(e.m) : "n/a", e ? f(e.Dm) : "n/a", e ? f(e.r) : "n/a",
+              e && typeof e.r_squared === "number" ? f(e.r_squared, 3) : "n/a", used];
           })} />
+        {typeof ct?.min_r_squared === "number" && (
+          <p className="hint-block">
+            A combination index is computed only when its Fa lies strictly between 0 and 1 and
+            both median-effect fits are valid (slope m &gt; 0, r² ≥ {f(ct.min_r_squared, 3)}
+            {typeof ct.min_points === "number" ? `, at least ${ct.min_points} doses` : ""});
+            otherwise the table says why it is withheld
+            {typeof ct.n_computed === "number" ? ` (${ct.n_computed} of ${(ct.combinations ?? []).length} computed)` : ""}.
+          </p>
+        )}
         {(issues.length > 0 || contradiction) && (
           <Note warn>
             {contradiction ? `${contradiction} ` : ""}
@@ -198,7 +211,10 @@ export function SynergyResults({ options, result }: ResultsProps<SynergyOptions,
         <Grid caption="Combination index per dose pair" head={[`${d1}${unit}`, `${d2}${unit}`, "Fa", "CI",
           `DRI ${d1}`, `DRI ${d2}`, "Interpretation"]}
         rows={((ct?.combinations ?? []) as R[]).map((c) => [formatSig(c.conc1), formatSig(c.conc2),
-          f(c.fa, 3), f(c.ci, 3), f(c.dri1, 3), f(c.dri2, 3), c.interpretation ?? "n/a (Fa outside 0–1)"])} />
+          f(c.fa, 3),
+          c.ci == null && c.reason ? `withheld: ${c.reason}` : f(c.ci, 3),
+          f(c.dri1, 3), f(c.dri2, 3),
+          c.interpretation ?? (c.reason ? "n/a" : "n/a (Fa outside 0–1)")])} />
         <p className="hint-block">CI &lt; 1 synergism, = 1 additive, &gt; 1 antagonism, with Chou’s
           descriptive ranges; DRI is how many fold the dose of each drug can be reduced in the
           combination for the same effect.</p>
