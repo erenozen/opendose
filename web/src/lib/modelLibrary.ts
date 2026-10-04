@@ -247,7 +247,33 @@ export function modelsByFamily(): { family: string; models: ModelMeta[] }[] {
     groups.get(m.family)!.push(m);
   }
   return [...groups].filter(([, ms]) => ms.length)
-    .map(([family, models]) => ({ family, models }));
+    .map(([family, models]) => ({ family, models: sortPolynomials(models) }));
+}
+
+const ORDER_WORDS = ["first", "second", "third", "fourth", "fifth", "sixth", "seventh",
+  "eighth", "ninth", "tenth", "eleventh", "twelfth"];
+
+/** Order of a polynomial model from its id ("polynomial_seventh",
+ *  "centered_polynomial_tenth", "polynomial_12"), or null. Centred
+ *  variants are flagged so they list after the plain ones. */
+export function polynomialOrder(id: string): { order: number; centered: boolean } | null {
+  const m = /^(centered_|centred_)?polynomial_(?:order_)?([a-z]+|\d+)$/.exec(id);
+  if (!m) return null;
+  const word = m[2];
+  const order = /^\d+$/.test(word) ? Number(word) : ORDER_WORDS.indexOf(word) + 1;
+  return order > 0 ? { order, centered: !!m[1] } : null;
+}
+
+/** Polynomials by order (plain first, then centred), however many the
+ *  engine lists; other models keep the engine's order, after them. */
+export function sortPolynomials(models: ModelMeta[]): ModelMeta[] {
+  if (!models.some((m) => polynomialOrder(m.id))) return models;
+  const key = (m: ModelMeta) => {
+    const p = polynomialOrder(m.id);
+    return p ? (p.centered ? 1000 : 0) + p.order : 10000;
+  };
+  return models.map((m, i) => ({ m, i }))
+    .sort((a, b) => key(a.m) - key(b.m) || a.i - b.i).map((x) => x.m);
 }
 
 /** Case-insensitive search over label, family, id, equation and
