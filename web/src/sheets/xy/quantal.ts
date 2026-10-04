@@ -26,13 +26,23 @@ export interface QuantalOptions {
   parallel: boolean;
   reference: number;
   ciLevel: string;
+  /** Upper asymptote (the plateau the response levels off at): 1 (100%),
+   *  a known proportion, or estimated (drc's binomial LL.3 d). */
+  upper: "one" | "fixed" | "estimate";
+  upperValue: string;
+  /** Dose 0 rows with a log dose transform: the control group (natural
+   *  response estimated from them unless set otherwise) or left out. */
+  zeroDose: "control" | "omit";
+  /** Standard errors from the expected (Fisher) or observed information
+   *  (as drc). */
+  information: "expected" | "observed";
 }
 
 export function defaultQuantalOptions(): QuantalOptions {
   return {
     layout: "subcolumns", link: "probit", doseTransform: "log10", natural: "none",
     naturalValue: "", ecLevels: "50", heterogeneity: "auto", parallel: false, reference: 0,
-    ciLevel: "95",
+    ciLevel: "95", upper: "one", upperValue: "", zeroDose: "control", information: "expected",
   };
 }
 
@@ -51,6 +61,9 @@ export function normalizeQuantalOptions(raw: unknown): QuantalOptions {
   o.doseTransform = one(o.doseTransform, ["log10", "ln", "none"] as const, d.doseTransform);
   o.natural = one(o.natural, ["none", "estimate", "fixed"] as const, d.natural);
   o.heterogeneity = one(o.heterogeneity, ["auto", "always", "never"] as const, d.heterogeneity);
+  o.upper = one(o.upper, ["one", "fixed", "estimate"] as const, d.upper);
+  o.zeroDose = one(o.zeroDose, ["control", "omit"] as const, d.zeroDose);
+  o.information = one(o.information, ["expected", "observed"] as const, d.information);
   return o;
 }
 
@@ -98,38 +111,84 @@ export function quantalGroups(table: DataTableModel, o: QuantalOptions): Quantal
   return groups.filter((g) => g.dose.length > 0);
 }
 
+export type QuantalPayload = { analysis: "quantal"; data: unknown; options: Record<string, unknown> };
+
+/** Rows of a group whose dose is above 0. */
+function positiveDoses(g: QuantalGroup): QuantalGroup {
+  const keep = g.dose.map((x) => x > 0);
+  return {
+    ...g,
+    dose: g.dose.filter((_, i) => keep[i]),
+    responders: g.responders.filter((_, i) => keep[i]),
+    n: g.n.filter((_, i) => keep[i]),
+  };
+}
+
 export function quantalPayload(table: DataTableModel, o: QuantalOptions):
-  { error: string } | { payload: { analysis: "quantal"; data: unknown; options: Record<string, unknown> }; groups: QuantalGroup[] } {
+  { error: string } | { payload: QuantalPayload; groups: QuantalGroup[]; notes: string[] } {
   if (table.subcolumnFormat !== "replicates") {
     return { error: "Quantal dose-response reads counts: enter responders and N as replicate subcolumns, not means with errors." };
   }
-  const groups = quantalGroups(table, o);
+  let groups = quantalGroups(table, o);
   if (!groups.length) {
     return { error: o.layout === "pairs"
       ? "Each line needs two data sets: responders, then the number of subjects (N), with the doses in X."
       : "Each data set needs two subcolumns: Y1 = responders, Y2 = number of subjects (N), with the doses in X." };
   }
+  const logDose = o.doseTransform !== "none";
+  const parallel = o.parallel && groups.length > 1;
   for (const g of groups) {
     const bad = g.responders.findIndex((r, i) => r < 0 || r > g.n[i] || g.n[i] <= 0);
     if (bad >= 0) return { error: `${g.name}: at dose ${g.dose[bad]}, responders must be between 0 and N (N > 0).` };
-    if (o.doseTransform !== "none" && g.dose.some((x) => x <= 0)) {
-      return { error: `${g.name}: a dose of 0 or less cannot be log-transformed. Remove the control row (use “Natural response” for the control rate) or choose no dose transform.` };
+    if (logDose && g.dose.some((x) => x < 0)) {
+      return { error: `${g.name}: a negative dose cannot be log-transformed. Correct the dose or choose no dose transform.` };
     }
   }
-  const natural = o.natural === "estimate" ? "estimate"
+  const notes: string[] = [];
+  let natural: null | "estimate" | number = o.natural === "estimate" ? "estimate"
     : o.natural === "fixed" ? Math.min(0.99, Math.max(0, fraction(o.naturalValue, 0))) : null;
-  const parallel = o.parallel && groups.length > 1;
+  const upper: null | "estimate" | number = parallel || o.upper === "one" ? null
+    : o.upper === "estimate" ? "estimate"
+      : Math.min(1, Math.max(0.01, fraction(o.upperValue, 1)));
+  const hasZero = logDose && groups.some((g) => g.dose.some((x) => x === 0));
+  if (hasZero) {
+    // Dose 0 has no log: the engine uses such rows as the control group
+    // when it models a natural response (they inform it alone) or an
+    // upper asymptote (they sit on the plateau the curve reaches at dose
+    // 0). Natural response 0 or a parallel-line fit cannot use them.
+    const omit = o.zeroDose === "omit" || parallel || natural === 0;
+    if (omit) {
+      groups = groups.map(positiveDoses).filter((g) => g.dose.length > 0);
+      notes.push(parallel && o.zeroDose !== "omit"
+        ? "Dose 0 rows are left out: the parallel-line fit has no natural response to estimate from them."
+        : "Dose 0 rows are left out of the fit (natural response 0).");
+      if (!groups.length) return { error: "No dose above 0 is left to fit." };
+    } else if (natural === null && upper === null) {
+      natural = "estimate";
+      notes.push("Dose 0 rows are used as the control: natural response estimated from them.");
+    } else if (natural === null) {
+      notes.push("Dose 0 rows are used as the control: they sit on the plateau the curve approaches as the dose goes to 0.");
+    } else {
+      notes.push(natural === "estimate"
+        ? "Dose 0 rows are used as the control: natural response estimated from them."
+        : "Dose 0 rows are used as the control, at the natural response entered.");
+    }
+  }
+  const options: Record<string, unknown> = {
+    link: o.link, dose_transform: o.doseTransform, natural_response: natural,
+    ec_levels: parseLevels(o.ecLevels), ci_level: Math.min(0.9999, Math.max(0.5, fraction(o.ciLevel, 95))),
+    heterogeneity: o.heterogeneity, parallel,
+    ...(parallel ? { reference: Math.min(Math.max(0, o.reference), groups.length - 1) } : {}),
+  };
+  if (upper !== null) options.upper_asymptote = upper;
+  if (o.information === "observed" && !parallel) options.information = "observed";
   return {
     groups,
+    notes,
     payload: {
       analysis: "quantal",
       data: { groups: groups.map((g) => ({ name: g.name, dose: g.dose, responders: g.responders, n: g.n })) },
-      options: {
-        link: o.link, dose_transform: o.doseTransform, natural_response: natural,
-        ec_levels: parseLevels(o.ecLevels), ci_level: Math.min(0.9999, Math.max(0.5, fraction(o.ciLevel, 95))),
-        heterogeneity: o.heterogeneity, parallel,
-        ...(parallel ? { reference: Math.min(Math.max(0, o.reference), groups.length - 1) } : {}),
-      },
+      options,
     },
   };
 }
@@ -150,6 +209,9 @@ export interface QuantalFit {
   natural_response_mode: null | "estimate" | number;
   natural_response_used: number;
   natural_response?: { value: number; se?: number };
+  upper_asymptote_mode?: null | "estimate" | number;
+  upper_asymptote_used?: number;
+  information?: "expected" | "observed";
   n_groups: number;
   n_total: number;
   parameters: Record<string, { value: number; se: number; ci: [number, number] }>;
@@ -185,6 +247,8 @@ export interface QuantalParallel {
 
 export interface QuantalResult {
   error?: string;
+  /** How dose 0 rows were used, and similar notes on the data. */
+  notes?: string[];
   /** one fit per line (always filled when not parallel) */
   fits?: QuantalFit[];
   parallel?: QuantalParallel;
@@ -200,7 +264,7 @@ export function runQuantal(engine: Engine, table: DataTableModel, o: QuantalOpti
   if ("error" in p) return { error: p.error } as QuantalResult;
   const r = engine.analyze(p.payload) as Record<string, unknown> & { error?: string };
   if (r.error) return { error: String(r.error) } as QuantalResult;
-  const base = { groups: p.groups, options: o, ci_level: p.payload.options.ci_level as number };
+  const base = { groups: p.groups, options: o, ci_level: p.payload.options.ci_level as number, notes: p.notes };
   if (r.analysis === "quantal_parallel") return { ...base, parallel: r as unknown as QuantalParallel };
   const fits = (r.datasets as QuantalFit[]) ?? [];
   if (fits.every((x) => x.error)) return { error: fits.map((x) => `${x.name}: ${x.error}`).join(" ") } as QuantalResult;

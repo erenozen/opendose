@@ -29,8 +29,10 @@ export function ContingencyMethods({ options, result }: ResultsProps<Contingency
     const r = result;
     const two = r.rows === 2 && r.cols === 2;
     let s = two
-      ? `The 2×2 contingency table was analyzed with Fisher's exact test (${P(r.fisher_exact?.p)})`
-      : `The contingency table was analyzed with the chi-square test (chi-square = ${formatSig(r.chi_square?.chi2)}, df = ${r.chi_square?.df}, ${P(r.chi_square?.p)})`;
+      ? `The 2×2 contingency table was analyzed with Fisher's exact test (two-sided, ${P(r.fisher_exact?.p)})`
+      : `The contingency table was analyzed with the chi-square test (chi-square = ${formatSig(r.chi_square?.chi2)}, df = ${r.chi_square?.df}, ${P(r.chi_square?.p)})`
+        + (typeof r.fisher_exact?.p === "number"
+          ? ` and the Freeman-Halton extension of Fisher's exact test (${P(r.fisher_exact.p)})` : "");
     if (r.effect_sizes) {
       const o = options;
       s += `; the relative risk was computed with the ${RR_CI_LABELS[o.rrCi as RRCI]} confidence interval, `
@@ -58,12 +60,20 @@ export function McNemarMethods({ result }: ResultsProps<unknown, any>) {
 }
 
 export function CmhMethods({ options, result }: ResultsProps<CmhOptions, any>) {
-  return <Card result={result} sentence={() => `${result.n_strata} stratified 2×2 tables were analyzed with the `
-    + `Cochran-Mantel-Haenszel test${options.correction ? " with continuity correction" : ""} `
-    + `(chi-square = ${formatSig(result.cmh_test?.chi2)}, df = 1, ${P(result.cmh_test?.p)}); the common odds ratio `
-    + `(Mantel-Haenszel, Robins-Breslow-Greenland 95% CI) was ${formatSig(result.odds_ratio?.value)}`
-    + (result.breslow_day ? `, and homogeneity of the odds ratios was tested with the Breslow-Day test (${P(result.breslow_day.p)})` : "")
-    + "."} />;
+  return <Card result={result} sentence={() => {
+    if (result.test === "generalized_cochran_mantel_haenszel") {
+      return `${result.n_strata} stratified ${result.rows}×${result.cols} tables were analyzed with the `
+        + `generalized Cochran-Mantel-Haenszel test of general association (chi-square = `
+        + `${formatSig(result.cmh_test?.chi2)}, df = ${result.cmh_test?.df}, ${P(result.cmh_test?.p)}).`;
+    }
+    return `${result.n_strata} stratified 2×2 tables were analyzed with the `
+      + `Cochran-Mantel-Haenszel test${options.correction ? " with continuity correction" : ""} `
+      + `(chi-square = ${formatSig(result.cmh_test?.chi2)}, df = 1, ${P(result.cmh_test?.p)}); the common odds ratio `
+      + `(Mantel-Haenszel, Robins-Breslow-Greenland 95% CI) was ${formatSig(result.odds_ratio?.value)}`
+      + (result.breslow_day ? `, and homogeneity of the odds ratios was tested with the Breslow-Day test (${P(result.breslow_day.p)})`
+        + (result.woolf ? ` and Woolf's test (${P(result.woolf.p)})` : "") : "")
+      + ".";
+  }} />;
 }
 
 export function KappaMethods({ options, result }: ResultsProps<KappaOptions, any>) {

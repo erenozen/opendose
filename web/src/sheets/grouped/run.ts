@@ -8,8 +8,9 @@ import type {
   ColumnStatsOptions, MultiTOptions, RowMeansOptions, ThreeWayOptions,
   TwoWayOptions,
 } from "./options.ts";
-import { FDR_METHODS } from "./options.ts";
+import { FDR_METHODS, twoWayFactorNames } from "./options.ts";
 import { groupedPayload, hasMissingRM } from "./stats.ts";
+import { allCellsComparisons } from "../common/allCells.ts";
 
 type Result = Record<string, unknown>;
 
@@ -42,28 +43,53 @@ export function runTwoWay(engine: EngineBridge, table: DataTableModel,
     return { error: "Two-way ANOVA needs at least two datasets (columns)" };
   }
   const rowNames = data.row_titles;
-  const factors = {
-    row_factor: o.rowFactor.trim() || "Row factor",
-    col_factor: o.colFactor.trim() || "Column factor",
-  };
-  const comparisons = o.comparisons === "none" ? null : o.comparisons;
+  const [rowFactor, colFactor] = twoWayFactorNames(o, table);
+  const factors = { row_factor: rowFactor, col_factor: colFactor };
+  // "All cell means" (ordinary full model): one-way comparisons of the
+  // cells, which share the two-way residual (common/allCells.ts).
+  const additive = o.design === "none" && o.model === "additive";
+  const allCells = o.direction === "all_cells" && o.design === "none";
+  const comparisons = o.comparisons === "none" || allCells ? null : o.comparisons;
+  const direction = o.direction === "all_cells" ? "columns_within_rows" : o.direction;
+  const model = additive ? { model: "additive" } : {};
+  const withNames = (r: Result) => ({ ...r, factor_names: [rowFactor, colFactor] });
 
   if (table.subcolumnFormat !== "replicates") {
     if (o.design !== "none") return { error: `Repeated measures ${RAW_ONLY}` };
-    return analyze(engine, {
+    const format = SUMMARY_FORMAT[table.subcolumnFormat];
+    const r = analyze(engine, {
       analysis: "two_way_anova_summary",
-      data: {
-        format: SUMMARY_FORMAT[table.subcolumnFormat],
-        datasets: data.datasets.map((d) => ({ name: d.name, rows: d.ys })),
-      },
-      options: { ...factors, comparisons, direction: o.direction, row_names: rowNames },
+      data: { format, datasets: data.datasets.map((d) => ({ name: d.name, rows: d.ys })) },
+      options: { ...factors, comparisons, direction, row_names: rowNames, ...model },
     });
+    if (r.error || !allCells || o.comparisons === "none" || additive) return withNames(r);
+    const cells = rowNames.flatMap((rn, i) => data.datasets
+      .filter((d) => d.ys[i]?.[0] != null)
+      .map((d) => ({ name: `${rn}:${d.name}`, rows: [d.ys[i]] })));
+    const c = analyze(engine, { analysis: "anova_summary", data: { format, datasets: cells },
+      options: { kind: "parametric", comparisons: o.comparisons } });
+    const m = c.multiple_comparisons as Result | undefined;
+    if (c.error || !m) return withNames({ ...r, comparisons_error: c.error ?? null });
+    const comps = (m.comparisons as Result[]).map((x) => ({
+      family: "All cells", pair: x.pair, difference: x.difference, ci95: x.ci ?? null,
+      statistic: x.statistic, p_adjusted: x.p_adjusted, significant_05: x.significant_05 }));
+    return withNames({ ...r, multiple_comparisons: {
+      method: o.comparisons, direction: "all_cells",
+      ms_residual: (c.table as Result)?.ms_within, df_residual: (c.table as Result)?.df_within,
+      n_comparisons: comps.length, comparisons: comps } });
   }
   if (o.design === "none") {
-    return analyze(engine, {
+    const r = analyze(engine, {
       analysis: "two_way_anova", data,
-      options: { ...factors, comparisons, direction: o.direction, row_names: rowNames },
+      options: { ...factors, comparisons, direction, row_names: rowNames, ...model },
     });
+    if (r.error || !allCells || o.comparisons === "none" || additive) return withNames(r);
+    const mc = allCellsComparisons(engine, {
+      rowNames, colNames: data.datasets.map((d) => d.name),
+      cells: rowNames.map((_, i) => data.datasets.map((d) => d.ys[i] ?? [])),
+    }, o.comparisons);
+    return withNames(mc.error ? { ...r, comparisons_error: mc.error }
+      : { ...r, multiple_comparisons: mc });
   }
 
   const both = o.design === "rm_both";
@@ -75,7 +101,7 @@ export function runTwoWay(engine: EngineBridge, table: DataTableModel,
       analysis: "mixed_rm_twoway", data,
       options: {
         design, row_names: rowNames, method: "mixed", comparisons,
-        direction: o.direction,
+        direction,
       },
     });
     return { ...r, factor_names: [factors.row_factor, factors.col_factor], missing };
@@ -92,7 +118,7 @@ export function runTwoWay(engine: EngineBridge, table: DataTableModel,
     analysis: "mixed_rm_twoway", data,
     options: {
       design, row_names: rowNames, method: "mixed", comparisons,
-      direction: o.direction,
+      direction,
     },
   });
   return {

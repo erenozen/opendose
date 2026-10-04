@@ -27,7 +27,7 @@ export function sanitizePrefs(raw: unknown, base: Prefs = DEFAULT_PREFS): Prefs 
     ciMethod: r.ciMethod === "profile" || r.ciMethod === "asymptotic" ? r.ciMethod : base.ciMethod,
     scheme: isSchemeId(r.scheme) ? r.scheme : base.scheme,
     theme: r.theme === "light" || r.theme === "dark" || r.theme === "auto" ? r.theme : base.theme,
-    digits: typeof r.digits === "number" && r.digits >= 2 && r.digits <= 8
+    digits: typeof r.digits === "number" && r.digits >= 2 && r.digits <= 10
       ? Math.round(r.digits) : base.digits,
     ...(r.export !== undefined ? { export: sanitizeExport(r.export) }
       : base.export ? { export: base.export } : {}),

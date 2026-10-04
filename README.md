@@ -75,7 +75,12 @@ from the jsDelivr CDN, ~30 MB, then cached).
 - Import: CSV / TSV / other delimiters and .xlsx worksheets through an
   Import dialog (delimiter, decimal comma, encoding, skipped lines,
   column roles, row / column filters, every k-th row, missing code,
-  trailing * = excluded, placement, transpose), offered for large pastes;
+  trailing * = excluded, placement, transpose), offered for large pastes
+  and for pasted blocks with a titles row (detected automatically;
+  replicate columns name their data set after their shared stem, and
+  groups the paste did not reach are dropped from an empty table);
+  "From long table…" fills CMH, ROC, quantal and multi-curve XY tables
+  from long records;
   import recipes for FlowJo, CellProfiler, QuPath, plate-reader grids,
   qPCR Cq exports and long CSVs (metadata from sample names, aggregation
   cell → image → animal, pivot to any table type); Reshape between long
@@ -99,7 +104,10 @@ from the jsDelivr CDN, ~30 MB, then cached).
 - Project files (JSON, versioned; every release opens every earlier
   version), autosave in the browser (the last session reopens on the
   next visit), preferences (default table type, error bars, CI method,
-  colour scheme, theme, results precision, P-value style, effect sizes).
+  colour scheme, theme, results precision up to 10 significant digits,
+  P-value style with a selectable floor for exact P (0.0001, 1e-6, 1e-10
+  or none), effect sizes). Every select in the analysis controls has an
+  accessible name, checked with axe-core (`scripts/a11y-audit.mjs`).
 
 ### Curve fitting
 
@@ -116,7 +124,15 @@ from the jsDelivr CDN, ~30 MB, then cached).
   interpolation from standard curves, Gaddum / Schild with pA2,
   ambiguous-fit detection and multi-start optimisation, diagnostics
   (replicates test, runs test, residual normality), ROUT outlier removal.
-- Linear regression with runs test, Deming (Model II) regression.
+  Weighted fits either reweight from the curve (the default) or minimise
+  the weighted SS directly (as R's nls with weights). Polynomials to
+  tenth order. A new XY table fits on its own only when the data look like
+  a dose-response; otherwise it offers linear regression or a curve fit.
+- Linear regression on XY tables (slope, intercept, X intercept, the
+  regression ANOVA table, runs test, bands, optionally through the
+  origin with R² about Y = 0); Deming (Model II) regression.
+- Compare fits: two models by the extra-sum-of-squares F test and AICc,
+  or one curve for all data sets against a separate curve for each.
 
 ### Statistics
 
@@ -124,23 +140,35 @@ from the jsDelivr CDN, ~30 MB, then cached).
   D'Agostino-Pearson, Anderson-Darling, Kolmogorov-Smirnov) and extras
   (median CI, geometric SD factor, trimmed means, percentile methods);
   one-sample t / Wilcoxon; unpaired, Welch, paired and ratio paired t;
-  Mann-Whitney, Kolmogorov-Smirnov, Wilcoxon matched pairs; one-way ANOVA
-  (ordinary, Welch, Brown-Forsythe) with Tukey, Dunnett, Bonferroni,
-  Šídák, Holm-Šídák, Newman-Keuls, Fisher's LSD, Games-Howell, Dunnett T3
-  or Tamhane T2; Kruskal-Wallis with Dunn's; repeated-measures ANOVA
-  (Geisser-Greenhouse) and Friedman (exact when small); Mood's median
-  test; correlation; Grubbs and ROUT outliers.
-- Grouped data: two-way ANOVA (ordinary, repeated measures by rows or
-  both factors, mixed-effects model when values are missing, or from
-  mean / SD / N) with multiple comparisons, three-way ANOVA, multiple t
+  Mann-Whitney, Kolmogorov-Smirnov, Wilcoxon matched pairs (t with its
+  sign and direction); one-way ANOVA (ordinary with its ANOVA table and
+  residual SD, Welch, Brown-Forsythe; Bartlett, Brown-Forsythe and
+  Fligner-Killeen tests of equal variances) with Tukey, Dunnett,
+  Bonferroni, Šídák, Holm-Šídák, Holm, Newman-Keuls, Fisher's LSD,
+  Games-Howell, Dunnett T3 or Tamhane T2; Kruskal-Wallis with Dunn's;
+  repeated-measures ANOVA (Geisser-Greenhouse) and Friedman (exact when
+  small); Mood's median test; Pearson, Spearman or Kendall correlation
+  with one-sided P; Grubbs and ROUT outliers. Results sheets are named
+  after the test they show.
+- Grouped data: two-way ANOVA (ordinary with or without the interaction
+  term, repeated measures by rows or both factors, mixed-effects model
+  when values are missing, or from mean / SD / N; factor names read from
+  imported files) with multiple comparisons, including every cell mean
+  against every other, three-way ANOVA, multiple t
   tests per row with FDR or family-wise correction, row means / totals,
   column statistics.
-- Contingency: Fisher and chi-square, relative risk and odds ratio with a
-  choice of CI methods, NNT, likelihood ratios, Cramér's V, chi-square
-  for trend, McNemar and Bowker, Cochran-Mantel-Haenszel with
-  Breslow-Day, Cohen's kappa, one and two proportions.
-- Survival: Kaplan-Meier, log-rank and Gehan-Breslow-Wilcoxon, hazard
-  ratios, median survival, number-at-risk tables.
+- Contingency: Fisher (r × c exact too, one-sided P for 2 × 2, the
+  conditional-MLE odds ratio next to the sample odds ratio) and
+  chi-square with expected counts and standardized residuals, relative
+  risk and odds ratio with a choice of CI methods, NNT, likelihood
+  ratios, Cramér's V, chi-square for trend, McNemar and Bowker,
+  Cochran-Mantel-Haenszel with Breslow-Day and Woolf (and the
+  generalized CMH test for r × c × k tables), Cohen's kappa, one and two
+  proportions.
+- Survival: Kaplan-Meier with per-group tables (at risk, events, SE, CI;
+  Copy / CSV), log-rank in the Peto and the variance (Mantel-Haenszel)
+  forms with observed and expected events, Gehan-Breslow-Wilcoxon,
+  hazard ratios, median survival with CIs, number-at-risk tables.
 - Parts of whole (fraction of total with Wilson / Clopper-Pearson CIs,
   chi-square goodness of fit with the binomial test); nested t test and
   nested one-way ANOVA as mixed models; multiple-variables tables
@@ -163,10 +191,13 @@ from the jsDelivr CDN, ~30 MB, then cached).
   approximate, exact or MOVER CIs on the limits, proportional bias,
   regression-based limits and repeated measurements; quantal
   dose-response (probit, logit, cloglog; LD50 / ECx with Fieller CIs,
-  parallel lines, relative potency). Templates on published data.
+  parallel lines, relative potency, an upper asymptote below 100%, dose-0
+  rows as the natural-response control). Templates on published data.
 - Power and sample size (Tools): a priori n, achieved power or detectable
   effect for t tests, one-way ANOVA, proportions, McNemar, chi-square,
-  correlation and log-rank, with power curves and an ARRIVE-style
+  correlation and log-rank (unrounded n per group and total N labelled
+  apart; the detectable effect also in raw units from the SDs), with
+  power curves and an ARRIVE-style
   justification sentence; a seeded randomisation list generator (simple,
   shuffled, permuted blocks, stratified) to CSV.
 
@@ -188,7 +219,8 @@ sheets that follow the data.
   concentrations table.
 - qPCR (wizard): technical-replicate QC, several reference genes,
   efficiencies, statistics on ΔCq, fold changes with asymmetric CIs on a
-  log2 axis (MIQE 2.0).
+  log2 axis (MIQE 2.0); exports are read whatever the instrument calls
+  its sample, target and Cq columns, with a mapping step when unsure.
 - Western blot densitometry (wizard): ImageJ / Image Lab exports,
   background and loading-control normalisation, fold change within blot,
   ratio paired t test with blot as the pair.
@@ -197,7 +229,9 @@ sheets that follow the data.
   time with CI); tumour growth and other per-subject time courses (mixed
   model on log volume, AUC per animal, time to endpoint as a survival
   table); area under the curve; drug-combination synergy (HSA, Bliss,
-  Loewe, ZIP, Chou–Talalay); volcano plots from a fold-change / P table;
+  Loewe, ZIP, Chou–Talalay; the expected and ZIP-fitted matrices as
+  selectable landscapes; combination indices withheld, with the reason,
+  when a median-effect fit is invalid); volcano plots from a fold-change / P table;
   clustered heat maps with dendrograms, tree cuts and k-means.
 
 ### Graphs and figures

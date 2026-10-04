@@ -698,6 +698,75 @@ from the theme lists and the package notes in the code:
 - Theme 7: Monte Carlo power for user-defined models and designs the
   closed-form power tool does not cover.
 
+### Site validation follow-ups (2026-10-04)
+The live-site run (`docs/validation/results-site.md`) counted 474
+published quantities the UI did not show and ten usability frictions.
+Exposed in the UI since (engine unchanged by this package):
+- [x] Survival: log-rank in both forms (Peto Σ(O−E)²/E and the variance
+      form of R's survdiff, each with P), observed and expected events,
+      the Kaplan-Meier table per group with Copy / CSV (the engine's
+      table: at risk, events, censored, survival, Greenwood SE, log-log
+      and log CIs), median CIs (log-log and log)
+- [x] One-way ANOVA table (SS, DF, MS, F) with the residual SD;
+      Kruskal-Wallis df; Fligner-Killeen next to Bartlett and
+      Brown-Forsythe; Holm in the post-test menus (one-way, multiple t)
+- [x] Linear regression on XY tables (regression ANOVA, X intercept,
+      runs test, bands, through the origin with R² about Y = 0)
+- [x] Compare fits: two models (extra-sum-of-squares F, AICc and
+      probabilities) and one curve vs separate curves for all data sets
+- [x] Two-way ANOVA: main-effects (additive) model; every cell mean
+      against every other (Tukey, Šídák, Bonferroni; matches R's
+      TukeyHSD on the interaction); factor names from imported files
+- [x] Contingency: Fisher r × c with the large-table note, one-sided P
+      and the conditional-MLE odds ratio next to Woolf's, expected
+      counts and standardized residuals as a toggle; generalized CMH
+      for r × c × k with Woolf's homogeneity test
+- [x] Correlation: Kendall's tau-b and one-sided P with its bound
+- [x] Quantal: upper asymptote (fixed or estimated), dose-0 rows as the
+      natural-response control, observed-information SEs
+- [x] Weighted curve fits: minimise the weighted SS directly (R's nls
+      weights) as an alternative to the reweighted default; polynomials
+      to tenth order; uncentred R² for lines through the origin
+- [x] Synergy: expected (HSA, Bliss, Loewe, ZIP) and ZIP-fitted matrices
+      as selectable landscapes; combination indices withheld with the
+      reason when a median-effect fit is invalid
+- [x] Precision: up to 10 significant digits; P floor 0.0001, 1e-6, 1e-10
+      or none (GraphPad style), through pformat.ts and graph labels;
+      t printed with its sign and the direction (A − B)
+- [x] Input: titles row detected in the Import dialog (and pasted blocks
+      with titles open it); replicate stems name data sets; an empty
+      table pasted with two columns keeps two groups; results sheets and
+      tabs named after the test, following test switches; qPCR column
+      name variants with a mapping step; "From long table…" for CMH,
+      ROC, quantal and multi-curve global fits; power tool's unrounded n
+      per group vs total and the detectable effect in raw units
+- [x] A new XY table fits on its own only for dose-response-like data,
+      otherwise offers linear regression or a curve fit
+- [x] Accessibility: every select in the controls panels has an
+      accessible name (axe-core: `scripts/a11y-audit.mjs` over every
+      analysis of every table type, 0 violations; an e2e step on the
+      column controls)
+
+Still open from the site run:
+- One-tailed P for t tests, Mann-Whitney and Wilcoxon (the engine
+  reports two-tailed only); correlation on XY tables; one value per
+  data set's own X (Anscombe-style layouts).
+- Autocorrelation in column statistics; the initial values a fit started
+  from; joint confidence regions; robust (sandwich) SEs; ECx for models
+  that take the zero-dose control; relative potency / slope comparison
+  for global nonlinear fits; a common-ED50 likelihood-ratio test and the
+  ED50 SE for quantal fits; delta-method ED50 CIs.
+- Logistic regression residual / null deviance df; Kb next to pA2;
+  SpanFast / SpanSlow of two-phase decay; multiple regression ANOVA
+  table; Friedman df.
+- Growthcurver AUC and t_mid (the growth handler does not return them);
+  SynergyFinder RI / CSS scores; Livak's propagated SD and the
+  2^−(ΔΔCq ± s) range; reference-gene Cq means; Bland-Altman SEs and
+  repeatability coefficients; Deming with per-point SDs; point-biserial
+  power; partial AUC as a (McClish) percentage.
+- Undo history beyond 100 steps; the engine Web Worker (the page still
+  freezes during long runs until it lands).
+
 ## Next up
 
 1. ~~Publish the site~~ LIVE (2026-08-11): https://erenozen.dev/opendose/

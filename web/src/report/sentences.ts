@@ -393,9 +393,11 @@ function multiTSentences(r: R, f: Fmt, prefs: Pick<ReportPrefs, "smd" | "varianc
 
 function correlationSentence(r: R, f: Fmt): string {
   const [a, b] = Array.isArray(r.names) ? r.names : ["X", "Y"];
-  const sym = r.method === "spearman" ? (f.style === "apa" ? "rs" : "Spearman r") : (f.style === "apa" ? "r" : "Pearson r");
+  const sym = r.method === "spearman" ? (f.style === "apa" ? "rs" : "Spearman r")
+    : r.method === "kendall" ? (f.style === "apa" ? "τb" : "Kendall's tau-b")
+      : (f.style === "apa" ? "r" : "Pearson r");
   const c = ci2(r.ci_r);
-  const df = num(r.n) ? r.n - 2 : null;
+  const df = num(r.n) && r.method !== "kendall" ? r.n - 2 : null;
   if (f.style === "nejm") {
     return `${cap(a)} and ${b} were correlated (${sym}, ${f.n(r.r, true)}${c ? `; ${f.ci(c, 0.95, true)}` : ""}; ${f.p(r.p_two_tailed)}, two-tailed; ${r.n} pairs).`;
   }

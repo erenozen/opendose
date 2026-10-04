@@ -6,6 +6,18 @@
 /** P-value style presets (pformat.ts has the rules and their sources). */
 export type PStyle = "graphpad" | "apa" | "nejm";
 
+/** The smallest P written exactly in the GraphPad style; below it the
+ *  results say "P < floor". "exact" writes every P to the results
+ *  precision. APA and NEJM keep their journals' own floors. */
+export type PFloor = "1e-4" | "1e-6" | "1e-10" | "exact";
+
+export const P_FLOOR_LABELS: Record<PFloor, string> = {
+  "1e-4": "0.0001 (smaller P shown as < 0.0001)",
+  "1e-6": "0.000001 (smaller P shown as < 0.000001)",
+  "1e-10": "1e-10 (smaller P shown as < 1e-10)",
+  exact: "None: every P exact to the results precision",
+};
+
 /** Standardized mean difference shown first: Cohen's d or Hedges' g. */
 export type SmdPref = "d" | "g";
 
@@ -19,10 +31,12 @@ export interface ReportPrefs {
   hideNs: boolean;
   smd: SmdPref;
   variance: VariancePref;
+  /** GraphPad style: the smallest P written exactly (default 0.0001). */
+  pFloor: PFloor;
 }
 
 export const DEFAULT_REPORT: ReportPrefs = {
-  pStyle: "graphpad", hideNs: false, smd: "d", variance: "eta2",
+  pStyle: "graphpad", hideNs: false, smd: "d", variance: "eta2", pFloor: "1e-4",
 };
 
 export const P_STYLE_LABELS: Record<PStyle, string> = {
@@ -51,6 +65,7 @@ export function sanitizeReport(raw: unknown): ReportPrefs {
     hideNs: r.hideNs === true,
     smd: oneOf(r.smd, ["d", "g"] as const, DEFAULT_REPORT.smd),
     variance: oneOf(r.variance, ["eta2", "omega2"] as const, DEFAULT_REPORT.variance),
+    pFloor: oneOf(r.pFloor, ["1e-4", "1e-6", "1e-10", "exact"] as const, DEFAULT_REPORT.pFloor),
   };
 }
 

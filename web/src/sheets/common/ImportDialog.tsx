@@ -2,7 +2,7 @@ import { lazy, Suspense, useMemo, useState } from "react";
 import Modal from "../../components/Modal";
 import { readXlsx, type XlsxSheet } from "../../lib/engine";
 import {
-  applyImport, DEFAULT_FILTER, DEFAULT_SOURCE, defaultRoles, DELIMITER_LABELS,
+  applyImport, DEFAULT_FILTER, DEFAULT_SOURCE, defaultRoles, DELIMITER_LABELS, detectTitlesRow,
   importWidth, prepareImport, type ColumnRole, type DecimalChoice,
   type DelimiterChoice, type FilterOptions, type PlacementOptions, type SourceOptions,
 } from "../../project/importText";
@@ -86,7 +86,13 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
 
   const source: string | string[][] = useMemo(() => (srcKind === "file" && sheets
     ? sheets[sheetIx]?.rows ?? [] : text), [srcKind, sheets, sheetIx, text]);
-  const preview = useMemo(() => prepareImport(source, src, filter), [source, src, filter]);
+  // "First row holds column titles" follows the data until the user
+  // ticks or unticks it: text above columns of numbers is a titles row.
+  const [titlesTouched, setTitlesTouched] = useState(false);
+  const detectedTitles = useMemo(() => detectTitlesRow(source, src), [source, src]);
+  const effSrc = useMemo(() => (titlesTouched ? src : { ...src, titlesRow: detectedTitles }),
+    [src, titlesTouched, detectedTitles]);
+  const preview = useMemo(() => prepareImport(source, effSrc, filter), [source, effSrc, filter]);
   const defaults = useMemo(() => defaultRoles(table, preview), [table, preview]);
   const roles: ColumnRole[] = preview.columns.map((c, i) => roleOverride[c] ?? defaults[i]);
   const empty = preview.rows.length === 0 || preview.columns.length === 0;
@@ -271,9 +277,12 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
             {num("Lines to skip at the top", src.skipLines,
               (v) => { setSrc({ ...src, skipLines: v ?? 0 }); setRoleOverride({}); })}
             <label className="field-check">
-              <input type="checkbox" checked={src.titlesRow}
-                onChange={(e) => setSrc({ ...src, titlesRow: e.target.checked })} />
+              <input type="checkbox" checked={effSrc.titlesRow}
+                onChange={(e) => { setTitlesTouched(true); setSrc({ ...src, titlesRow: e.target.checked }); }} />
               First row (after skipped lines) holds column titles
+              {!titlesTouched && detectedTitles && (
+                <span className="field-note titles-detected"> (detected: text above numbers)</span>
+              )}
             </label>
           </div>
           {!isXlsx && srcKind === "file" && (
@@ -378,7 +387,7 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
               onChange={(e) => { setSrc({ ...src, transpose: e.target.checked }); setRoleOverride({}); }} />
             Transpose (rows of the source become columns)
           </label>
-          {src.titlesRow && (
+          {effSrc.titlesRow && (
             <label className="field-check">
               <input type="checkbox" checked={place.useTitles}
                 onChange={(e) => setPlace({ ...place, useTitles: e.target.checked })} />

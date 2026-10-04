@@ -5,7 +5,8 @@ import assert from "node:assert/strict";
 import { normalizeTable } from "../../../project/table.ts";
 import {
   cmhPayload, contingencyPayload, DEFAULT_CONTINGENCY, DEFAULT_PROPORTIONS, kappaPayload,
-  mcnemarPayload, proportionPayload, readCounts, strataOf, stratumName, trendApplies,
+  mcnemarPayload, normalizeContingency, proportionPayload, readCounts, strataOf, stratumName,
+  stratumShape, trendApplies,
   type Counts,
 } from "../run.ts";
 
@@ -70,4 +71,31 @@ test("proportions: successes in column 1, failures in column 2", () => {
   const one = proportionPayload(c, { ...DEFAULT_PROPORTIONS, mode: "one", p0: "0.1" });
   assert.deepEqual("options" in one && one.options, { ci_method: "wilson_brown", p0: 0.1 });
   assert.ok("error" in proportionPayload(c, { ...DEFAULT_PROPORTIONS, mode: "one", p0: "2" }));
+});
+
+test("strata of any size are read from the row titles", () => {
+  const c = counts([[1, 2, 3], [4, 5, 6], [7, 8, 9], [2, 2, 2], [3, 3, 3], [4, 4, 4]],
+    ["Clinic A: low", "Clinic A: mid", "Clinic A: high", "Clinic B: low", "Clinic B: mid", "Clinic B: high"]);
+  const s = strataOf(c);
+  assert.ok(Array.isArray(s));
+  assert.deepEqual(s.map((x) => x.name), ["Clinic A", "Clinic B"]);
+  assert.equal(stratumShape(s), "3 × 3");
+  assert.deepEqual(s[1].table, [[2, 2, 2], [3, 3, 3], [4, 4, 4]]);
+  // unequal blocks fall back to pairs of rows (two columns) or an error
+  const uneven = counts([[1, 2], [3, 4], [5, 6], [7, 8]], ["A: x", "A: y", "A: z", "B: x"]);
+  const pairs = strataOf(uneven);
+  assert.ok(Array.isArray(pairs));
+  assert.deepEqual(pairs.map((x) => x.name), ["A", "Stratum 2"]);
+  assert.ok("error" in strataOf(counts([[1, 2, 3], [4, 5, 6], [7, 8, 9]], ["A: x", "A: y", "B: x"])));
+});
+
+test("Fisher's exact test for r x c tables: larger budget on request", () => {
+  const job = [[1, 3, 10, 6], [2, 3, 10, 7], [1, 6, 14, 12], [0, 1, 9, 11]];
+  assert.deepEqual((contingencyPayload(counts(job), DEFAULT_CONTINGENCY) as { options: unknown }).options, {});
+  assert.deepEqual((contingencyPayload(counts(job), { ...DEFAULT_CONTINGENCY, fisherRxc: "large" }) as
+    { options: unknown }).options, { fisher_rxc: true });
+  // 2 x 2 tables always get the exact test: nothing to send
+  assert.deepEqual((contingencyPayload(counts([[1, 2], [3, 4]]), { ...DEFAULT_CONTINGENCY, fisherRxc: "large" }) as
+    { options: unknown }).options, {});
+  assert.equal(normalizeContingency({ fisherRxc: "bogus" }).fisherRxc, "auto");
 });

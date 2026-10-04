@@ -22,9 +22,9 @@ export function ColumnAnalysisControls({ table, options, onChange }:
   );
 }
 
-export function ColumnAnalysisResults({ result }:
+export function ColumnAnalysisResults({ result, options }:
   ResultsProps<ColumnOptionsState, Record<string, unknown>>) {
-  return <StatsResults result={result} />;
+  return <StatsResults result={result} options={options} />;
 }
 
 export function ColumnGraph({ graph, table, titles, scheme, result, format,

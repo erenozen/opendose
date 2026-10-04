@@ -5,7 +5,7 @@ import { useProject } from "../../app/context";
 import { addFamily } from "../../app/factory";
 import { toDelimited } from "../../project/exportTable";
 import { newId } from "../../project/ids";
-import { pasteNeedsImport } from "../../project/importText";
+import { dropUnfilledDatasets, pasteNeedsImport } from "../../project/importText";
 import {
   addDataset, addRow, allowsSummaryFormat, blockValues, clearBlock, deleteDataset,
   deleteRow, deleteRows, flatColumns, insertDataset, insertRows, insertSeries,
@@ -207,7 +207,7 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
       return;
     }
     const block = parseClipboardGrid(text);
-    onChange((x) => pasteBlock(x, pr, pc, block));
+    onChange((x) => dropUnfilledDatasets(x, pasteBlock(x, pr, pc, block)));
   };
 
   const onCopy = (e: React.ClipboardEvent, cut: boolean) => {
@@ -569,7 +569,8 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
           onClose={() => setDialog(null)}
           onPasteAsIs={dialog.paste ? () => {
             const p = dialog.paste!;
-            onChange((x) => pasteBlock(x, p.r, p.c, parseClipboardGrid(p.text)));
+            onChange((x) => dropUnfilledDatasets(x, pasteBlock(x, p.r, p.c,
+              parseClipboardGrid(p.text))));
             setDialog(null);
           } : undefined}
           onImport={(fn) => { onChange(fn); setDialog(null); }} />

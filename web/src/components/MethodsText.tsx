@@ -56,7 +56,14 @@ export default function MethodsText({ result, options, xUnit }: Props) {
     }
   }
   if (options.weighting !== "none") {
-    parts.push(`using ${options.weighting} weighting`);
+    const yWeights = options.weighting === "1/Y" || options.weighting === "1/Y2";
+    // what the engine did (it reports weight_source with each fit)
+    const direct = result.datasets.some((d) =>
+      (d.fit as { weight_source?: string } | undefined)?.weight_source === "objective");
+    parts.push(`using ${options.weighting} weighting` + (!yWeights ? ""
+      : direct
+        ? " (the weighted sum of squares, with weights from the fitted curve, minimised directly)"
+        : " (weights from the fitted curve, iteratively reweighted)"));
   }
   if (options.routEnabled) {
     parts.push(`after ROUT outlier elimination (Q = ${options.routQ}%)`);

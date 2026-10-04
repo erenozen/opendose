@@ -1,6 +1,6 @@
 // Option objects of the grouped-table analyses and graphs, with defaults
 // and normalizers for options read from older files. Pure (no React).
-import type { TwoWayComparisons, TwoWayDirection } from "../../types.ts";
+import type { TwoWayComparisons, TwoWayDirection, TwoWayModel } from "../../types.ts";
 import type { ErrorKind, HeatPalette } from "./stats.ts";
 import { isPointSpread, type PointSpread } from "../../graph/swarm.ts";
 import { normalizeSuperPlot, type SuperPlotSettings } from "../common/superplot.ts";
@@ -49,6 +49,8 @@ export interface TwoWayOptions {
   colFactor: string;
   comparisons: TwoWayComparisons;
   direction: TwoWayDirection;
+  /** Ordinary design: full model (with interaction) or main effects only. */
+  model: TwoWayModel;
 }
 
 export const DEFAULT_TWO_WAY: TwoWayOptions = {
@@ -58,7 +60,21 @@ export const DEFAULT_TWO_WAY: TwoWayOptions = {
   colFactor: "Column factor",
   comparisons: "none",
   direction: "columns_within_rows",
+  model: "full",
 };
+
+/** Factor names for the results: what the user typed, else the names the
+ *  table carries from its file (row-title header, long-file factor
+ *  columns), else "Row factor" / "Column factor". */
+export function twoWayFactorNames(o: Pick<TwoWayOptions, "rowFactor" | "colFactor">,
+  table: { factorNames?: { rows?: string; datasets?: string } }): [string, string] {
+  const pick = (typed: string, def: string, fromTable?: string) => {
+    const t = typed.trim();
+    return t && t !== def ? t : fromTable?.trim() || t || def;
+  };
+  return [pick(o.rowFactor, DEFAULT_TWO_WAY.rowFactor, table.factorNames?.rows),
+    pick(o.colFactor, DEFAULT_TWO_WAY.colFactor, table.factorNames?.datasets)];
+}
 
 export function normalizeTwoWay(raw: unknown): TwoWayOptions {
   const o = obj(raw);
@@ -71,7 +87,8 @@ export function normalizeTwoWay(raw: unknown): TwoWayOptions {
     comparisons: pick(o.comparisons,
       ["none", "tukey", "sidak", "bonferroni"] as const, d.comparisons),
     direction: pick(o.direction, ["columns_within_rows", "rows_within_columns",
-      "column_means", "row_means"] as const, d.direction),
+      "column_means", "row_means", "all_cells"] as const, d.direction),
+    model: pick(o.model, ["full", "additive"] as const, d.model),
   };
 }
 
@@ -217,13 +234,14 @@ export const ROW_TEST_LABEL: Record<RowTest, string> = Object.fromEntries(
   ROW_TEST_GROUPS.flatMap((g) => g.tests)) as Record<RowTest, string>;
 
 export type Correction =
-  | "bky" | "bh" | "by" | "holm_sidak" | "sidak" | "bonferroni" | "none";
+  | "bky" | "bh" | "by" | "holm_sidak" | "holm" | "sidak" | "bonferroni" | "none";
 
 export const CORRECTION_LABEL: Record<Correction, string> = {
   bky: "Two-stage step-up (Benjamini, Krieger, Yekutieli)",
   bh: "Original FDR method (Benjamini-Hochberg)",
   by: "FDR under dependence (Benjamini-Yekutieli)",
   holm_sidak: "Holm-Šídák step-down",
+  holm: "Holm (Bonferroni step-down)",
   sidak: "Šídák-Bonferroni",
   bonferroni: "Bonferroni-Dunn",
   none: "None (each P value on its own)",

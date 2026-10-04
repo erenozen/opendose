@@ -67,10 +67,11 @@ export const mcnemarAnalysis = defineAnalysis<Record<string, never>, Result>({
 
 export const cmhAnalysis = defineAnalysis<CmhOptions, Result>({
   id: "cmh",
-  label: "Cochran-Mantel-Haenszel (stratified 2×2 tables)",
+  label: "Cochran-Mantel-Haenszel (stratified tables)",
   short: "CMH",
-  description: "Several 2×2 tables, two rows per stratum: common odds ratio and "
-    + "relative risk, CMH test, Breslow-Day test.",
+  description: "Several tables, one block of rows per stratum: for 2×2 strata the common "
+    + "odds ratio and relative risk, CMH test, Breslow-Day and Woolf tests; larger "
+    + "strata get the generalized CMH test.",
   sheetName: (t) => `CMH of ${t}`,
   defaultOptions: () => ({ ...DEFAULT_CMH }),
   normalizeOptions: merge(DEFAULT_CMH),

@@ -25,12 +25,16 @@
 // paste-and-suggest, the guided tour shown once), the reporting package
 // (effect sizes, results sentence and legend, estimation plots, journal
 // checklists, history, P-value style), .pzfx export and re-import, Cox
-// regression, ROC comparison, Bland-Altman, quantal dose-response and the
-// power and sample size tool.
+// regression, ROC comparison, Bland-Altman, quantal dose-response, the
+// power and sample size tool, and the site-validation follow-ups (both
+// log-rank forms and the Kaplan-Meier tables on R's aml, Fisher's exact
+// test on an r x c table, expected counts and residuals, "From long
+// table…" for CMH and quantal data, the quantal upper asymptote).
 import { chromium } from "playwright";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -1200,8 +1204,12 @@ expect("synergy: four landscapes on one diverging scale (one colour bar)",
 expect("synergy: Chou-Talalay table with combination indices",
   (await resultsText()).includes("Combination index per dose pair") || (await page.locator(".results-table", { hasText: "Interpretation" }).count()) === 1);
 await page.locator(".graph-select").selectOption("synergy_fa_ci");
-expect("synergy: Fa-CI plot draws the combinations",
-  await appears(page.locator(".plot .scatterlayer .trace")));
+// The example's drug-1 median-effect line slopes the wrong way (r < 0),
+// so the engine withholds every combination index and the plot says why.
+expect("synergy: Fa-CI plot draws the combinations or says why they are withheld",
+  await appears(page.locator(".plot .scatterlayer .trace"), 8000)
+  || await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.layout?.annotations ?? [])
+    .some((a) => /withheld/.test(a.text ?? "")), null, { timeout: 15000 }).then(() => true, () => false));
 
 // AUC by trapezoid on a tiny XY table
 await page.getByRole("button", { name: "New data table" }).click();
@@ -1357,6 +1365,11 @@ for (let r = 0; r < FX.length; r++) {
   await page.locator(`.data-table input[aria-label="X, row ${r + 1}"]`).fill(FX[r]);
   await page.locator(`.data-table input[aria-label="Dataset A, row ${r + 1}"]`).fill(String(FY[r]));
 }
+// No trend: a new table waits for a model; "Fit a curve" asks for the fit.
+expect("a flat response waits for a model (Choose a model)",
+  await appears(page.locator(".choose-model")));
+await page.locator(".choose-model").getByRole("button", { name: "Fit a curve" }).click();
+await page.keyboard.press("Escape");
 expect("ambiguous fit banner with concrete fixes for a flat dataset",
   await page.waitForSelector("[data-banner='fit-ambiguous']", { timeout: 60000 })
     .then(async (b) => (await b.innerText()).includes("Constrain the plateau"), () => false));
@@ -1555,7 +1568,8 @@ expect("Gardner-Altman CI matches the native run", gaRows.includes("3.533 to 6.9
 await page.getByRole("button", { name: "Preferences" }).click();
 await page.getByLabel("P-value style (tables, sentences, legends)").selectOption("apa");
 await page.keyboard.press("Escape");
-await page.getByRole("tab", { name: "Column stats" }).click();
+// The column analysis' tab is named after its test (here a t test).
+await page.getByRole("tab", { name: "t test" }).click();
 await page.waitForSelector(".report-sentence p", { timeout: 15000 });
 const apa = await page.locator(".report-sentence p").innerText();
 const pRow = await page.locator(".results-table tr", { hasText: "P value (two-tailed)" }).first().innerText();
@@ -1719,6 +1733,417 @@ expect("randomisation list: 24 units in balanced blocks, seed in the file name",
 await pw.getByRole("button", { name: "Done" }).click();
 expect("the sample-size justification is saved as an info sheet",
   await navRow("Sample size justification").count() === 1);
+
+// --- Site validation follow-ups: input, column results, accessibility ---
+// R's sleep data pasted with its titles row into a new three-group column
+// table: the Import dialog detects the titles, two groups remain, the
+// paired t test prints t with its sign and direction (R: t = -4.0621,
+// df = 9 for drug1 - drug2), and the column controls pass axe-core.
+{
+  await page.getByRole("button", { name: "New data table" }).click();
+  const nd = page.locator(".new-table-dialog");
+  await nd.locator('input[name="table-type"][value="column"]').check();
+  await nd.getByRole("button", { name: "Create table" }).click();
+  await page.waitForTimeout(500);
+  const groupsBefore = await page.locator(".data-table th.group-head").count();
+  const sleep = "drug1\tdrug2\n0.7\t1.9\n-1.6\t0.8\n-0.2\t1.1\n-1.2\t0.1\n-0.1\t-0.1\n"
+    + "3.4\t4.4\n3.7\t5.5\n0.8\t1.6\n0.0\t4.6\n2.0\t3.4\n";
+  await page.evaluate((text) => {
+    const el = document.querySelector(".data-table tbody input[data-r='0']:not([aria-label$='title'])");
+    const dt = new DataTransfer();
+    dt.setData("text/plain", text);
+    el.focus();
+    el.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }));
+  }, sleep);
+  const imp = page.locator(".import-dialog");
+  const impOpen = await appears(imp, 10000);
+  const titlesBox = imp.getByLabel(/holds column titles/);
+  expect("a pasted block with a titles row opens the Import dialog with the titles row detected",
+    impOpen && await titlesBox.isChecked() && await imp.locator(".titles-detected").count() === 1);
+  await imp.getByRole("button", { name: "Import", exact: true }).click();
+  await imp.waitFor({ state: "detached", timeout: 10000 }).catch(() => {});
+  await page.waitForTimeout(400);
+  const groupNames = await page.locator(".data-table th.group-head input.ds-name")
+    .evaluateAll((els) => els.map((e) => e.value));
+  expect("two pasted columns leave two groups named from the titles (the empty third is dropped)",
+    groupsBefore === 3 && groupNames.join(",") === "drug1,drug2", `${groupsBefore} → ${groupNames.join(",")}`);
+  // paired t test: the column analysis this table started with
+  await page.locator(".pane-controls select.analysis-select").selectOption("ttest");
+  await page.locator(".pane-controls").getByLabel("Test", { exact: true }).selectOption("paired");
+  const tRowOk = await page.waitForFunction(() => [...document.querySelectorAll(".results-table tr")]
+    .some((tr) => /^t, df/.test(tr.innerText) && tr.innerText.includes("t=-4.062")
+      && tr.innerText.includes("drug1 − drug2")), null, { timeout: 30000 }).then(() => true, () => false);
+  expect("paired t test prints t = -4.062 with its sign and the direction drug1 − drug2", tRowOk,
+    await page.locator(".results-table tr", { hasText: "t, df" }).first().innerText().catch(() => ""));
+  expect("the results tab is named after the test it shows",
+    await page.getByRole("tab", { name: "t test" }).count() >= 1);
+  // axe-core on the column controls, for each test of the analysis select
+  const require = createRequire(import.meta.url);
+  const axePath = require.resolve("axe-core/axe.min.js");
+  const violations = [];
+  for (const kind of ["column_statistics", "ttest", "anova", "correlation", "two_way_anova",
+    "rm_anova", "median_test", "outliers"]) {
+    await page.locator(".pane-controls select.analysis-select").selectOption(kind);
+    await page.waitForTimeout(500);
+    await page.addScriptTag({ path: axePath }).catch(() => {});
+    const v = await page.evaluate(async () => {
+      // eslint-disable-next-line no-undef
+      const r = await axe.run(document.querySelector(".pane-controls"),
+        { runOnly: { type: "rule", values: ["select-name", "label"] } });
+      return r.violations.flatMap((x) => x.nodes.map((n) => `${x.id}: ${n.html.slice(0, 80)}`));
+    });
+    violations.push(...v.map((s) => `${kind}: ${s}`));
+  }
+  expect("axe-core: no select-name / label violations on the column controls", violations.length === 0,
+    violations.join(" | "));
+  // one-way ANOVA table with MS and the residual SD
+  await page.locator(".pane-controls select.analysis-select").selectOption("anova");
+  const anovaOk = await page.waitForFunction(() => {
+    const t = document.querySelector(".anova-table")?.innerText ?? "";
+    return t.includes("Residual (within columns)") && t.includes("MS")
+      && [...document.querySelectorAll(".results-table tr")].some((tr) => /^Residual SD/.test(tr.innerText));
+  }, null, { timeout: 30000 }).then(() => true, () => false);
+  expect("one-way ANOVA prints its table (SS, DF, MS, F) and the residual SD", anovaOk);
+  expect("switching the test renames the results sheet (One-way ANOVA of …) and its tab",
+    await page.locator(".nav-name", { hasText: /^One-way ANOVA of / }).count() >= 1
+    && await page.getByRole("tab", { name: "One-way ANOVA" }).count() >= 1);
+}
+
+// --- Contingency, survival, quantal (site validation follow-ups) ---
+// Kaplan-Meier on R's aml (survival package): log-rank in both forms,
+// Peto sum((O-E)^2/E) 3.135 (P 0.0766) and the variance form of R's
+// survdiff 3.40 (P 0.0653); median of the maintained group 31 with the log
+// CI of survfit from 18 (upper limit not reached).
+{
+  const AML = {
+    Maintained: [[9, 1], [13, 1], [13, 0], [18, 1], [23, 1], [28, 0], [31, 1], [34, 1], [45, 0], [48, 1], [161, 0]],
+    Nonmaintained: [[5, 1], [5, 1], [8, 1], [8, 1], [12, 1], [16, 0], [23, 1], [27, 1], [30, 1], [33, 1], [43, 1], [45, 1]],
+  };
+  await page.getByRole("button", { name: "New data table" }).click();
+  const svDlg = page.locator(".new-table-dialog");
+  await svDlg.locator('input[name="table-type"][value="survival"]').check();
+  await svDlg.getByLabel("Table name").fill("AML");
+  await svDlg.getByLabel("Groups", { exact: true }).fill("2");
+  await svDlg.getByLabel("Rows (subjects)").fill("12");
+  await svDlg.getByRole("button", { name: "Create table" }).click();
+  await page.waitForSelector(".grid-toolbar");
+  const groups = Object.keys(AML);
+  for (let g = 0; g < groups.length; g++) {
+    await page.locator(`.data-table input[aria-label="Group ${g + 1} title"]`).fill(groups[g]);
+  }
+  for (const name of groups) {
+    for (let r = 0; r < AML[name].length; r++) {
+      await page.locator(`.data-table input[aria-label="${name}, Time, row ${r + 1}"]`).fill(String(AML[name][r][0]));
+      await page.locator(`.data-table input[aria-label="${name}, Event, row ${r + 1}"]`).fill(String(AML[name][r][1]));
+    }
+  }
+  const kmCard = page.locator(".result-card", { has: page.locator("h3:has-text('Kaplan-Meier survival analysis')") }).first();
+  await page.waitForFunction(() => [...document.querySelectorAll(".result-card")]
+    .some((c) => /Nonmaintained[^]*Peto form/.test(c.innerText) && /\b161\b/.test(c.innerText)),
+  null, { timeout: 60000 }).catch(() => {});
+  const peto = await kmCard.locator("tr", { hasText: "Peto form" }).first().innerText().catch(() => "");
+  const varForm = await kmCard.locator("tr", { hasText: "variance (Mantel-Haenszel) form" }).first().innerText().catch(() => "");
+  expect("log-rank, Peto form (aml): chi-square 3.135, P 0.0766", /3\.135/.test(peto) && /0\.0766/.test(peto),
+    peto.replace(/\s+/g, " "));
+  expect("log-rank, variance form as R's survdiff (aml): chi-square 3.40, P 0.0653",
+    /3\.39[0-9]|3\.40/.test(varForm) && /0\.065/.test(varForm), varForm.replace(/\s+/g, " "));
+  const maint = await kmCard.locator("table").first().locator("tr", { hasText: /^Maintained/ }).first()
+    .innerText().catch(() => "");
+  expect("aml: median of the maintained group 31, log CI from 18 (upper not reached)",
+    /\b31\b/.test(maint) && /18 to not reached/.test(maint), maint.replace(/\s+/g, " "));
+  const oe = await kmCard.locator("table", { has: page.locator("th", { hasText: "Observed (O)" }) })
+    .locator("tr", { hasText: "Nonmaintained" }).first().innerText().catch(() => "");
+  expect("aml: observed and expected events per group (Nonmaintained O 11, E 7.311)",
+    /7\.311/.test(oe), oe.replace(/\s+/g, " "));
+  const km9 = await kmCard.locator(".km-table", { hasText: "Kaplan-Meier table: Maintained" })
+    .locator("tbody tr").first().innerText().catch(() => "");
+  expect("aml: Kaplan-Meier table, maintained at t = 9: 11 at risk, S 0.9091, SE 0.08668",
+    /^9\s+11\s+1\s+0\s+0\.9091\s+0\.0866[78]/.test(km9), km9.replace(/\s+/g, " "));
+  expect("Kaplan-Meier tables have their own Copy / CSV",
+    await kmCard.getByRole("button", { name: /Copy Kaplan-Meier table Nonmaintained/ }).count() === 1);
+}
+
+// Fisher's exact test on an r x c table: R's fisher.test(Job), Agresti's
+// job satisfaction by income (4 x 4), P = 0.7827, computed on request
+// (beyond the quick budget); expected counts and residuals on a toggle.
+{
+  const JOB = [[1, 3, 10, 6], [2, 3, 10, 7], [1, 6, 14, 12], [0, 1, 9, 11]];
+  await page.getByRole("button", { name: "New data table" }).click();
+  const jbDlg = page.locator(".new-table-dialog");
+  await jbDlg.locator('input[name="table-type"][value="contingency"]').check();
+  await jbDlg.getByLabel("Table name").fill("Job satisfaction");
+  await jbDlg.getByLabel("Outcomes (columns)").fill("4");
+  await jbDlg.getByLabel("Groups (rows)").fill("4");
+  await jbDlg.getByRole("button", { name: "Create table" }).click();
+  await page.waitForSelector(".grid-toolbar");
+  for (let r = 0; r < 4; r++) {
+    for (let c = 0; c < 4; c++) {
+      await page.locator(`.data-table input[aria-label="Outcome ${c + 1}, row ${r + 1}"]`).fill(String(JOB[r][c]));
+    }
+  }
+  const askExact = page.getByRole("button", { name: /Compute the exact P/ });
+  expect("r x c table beyond the quick budget offers the exact P", await appears(askExact, 60000));
+  await askExact.click();
+  const fisherRxc = await page.waitForFunction(() => [...document.querySelectorAll(".results-table tr")]
+    .find((tr) => /Freeman-Halton/.test(tr.innerText))?.innerText ?? false, null, { timeout: 120000 })
+    .then((h) => h.jsonValue(), () => "");
+  expect("Fisher's exact test, 4 x 4 (R fisher.test(Job)): P = 0.7827", /0\.7827/.test(fisherRxc),
+    String(fisherRxc).replace(/\s+/g, " "));
+  await page.getByLabel("Show expected counts and residuals").check();
+  const expCard = page.locator(".expected-residuals");
+  expect("expected counts table appears", await appears(expCard.locator("h4", { hasText: "Expected counts" })));
+  const e11 = await expCard.locator("table").first().locator("tbody tr").first().innerText().catch(() => "");
+  expect("expected count of row 1, column 1: 20 x 4 / 96 = 0.8333", /0\.8333/.test(e11), e11.replace(/\s+/g, " "));
+  expect("adjusted standardized residuals listed",
+    await expCard.locator("h4", { hasText: "Adjusted standardized residuals" }).count() === 1);
+}
+
+// "From long table…": CMH strata from long records (stratum, row, column,
+// count) become blocks of rows titled "Stratum: level".
+{
+  await page.getByRole("button", { name: "New data table" }).click();
+  const lgDlg = page.locator(".new-table-dialog");
+  await lgDlg.locator('input[name="table-type"][value="contingency"]').check();
+  await lgDlg.getByLabel("Table name").fill("Long CMH");
+  await lgDlg.getByLabel("Outcomes (columns)").fill("2");
+  await lgDlg.getByLabel("Groups (rows)").fill("2");
+  await lgDlg.getByRole("button", { name: "Create table" }).click();
+  await page.waitForSelector(".grid-toolbar");
+  await page.getByRole("button", { name: "Analyze", exact: true }).click();
+  await page.getByRole("menuitem", { name: /Cochran-Mantel-Haenszel/ }).click();
+  await page.getByRole("button", { name: "From long table…" }).click();
+  const lt = page.getByRole("dialog", { name: "Stratified tables from a long table" });
+  await lt.getByLabel("Long table text").fill([
+    "centre,treatment,outcome,count",
+    "A,drug,cured,10", "A,drug,not cured,5", "A,placebo,cured,4", "A,placebo,not cured,11",
+    "B,drug,cured,8", "B,drug,not cured,2", "B,placebo,cured,3", "B,placebo,not cured,7",
+  ].join("\n"));
+  const ltSummary = await lt.locator(".import-summary").innerText().catch(() => "");
+  expect("long table dialog: roles guessed, 2 strata of 2 x 2", ltSummary === "2 strata of 2 × 2 tables", ltSummary);
+  await lt.getByRole("button", { name: "Fill the table" }).click();
+  const cmhStrata = await page.locator(".controls .hint-block", { hasText: "strata of" }).first().innerText()
+    .catch(() => "");
+  expect("CMH controls read the filled strata: A, B", /2 strata of 2 × 2 tables: A, B/.test(cmhStrata), cmhStrata);
+  const cmhRow = await page.waitForFunction(() => [...document.querySelectorAll(".results-table tr")]
+    .find((tr) => /^Cochran-Mantel-Haenszel chi-square/.test(tr.innerText))?.innerText ?? false,
+  null, { timeout: 60000 }).then((h) => h.jsonValue(), () => "");
+  expect("CMH runs on the filled table", /df/.test(String(cmhRow)) || /, 1/.test(String(cmhRow)),
+    String(cmhRow).replace(/\s+/g, " "));
+  await navRow("Long CMH").click();
+  await page.waitForSelector(".grid-toolbar");
+  const titles = [];
+  for (let r = 1; r <= 4; r++) titles.push(await page.locator(`.data-table input[aria-label="Row ${r} title"]`).inputValue());
+  const cured = await page.locator('.data-table input[aria-label="Dataset 1 title"], .data-table input[aria-label="Outcome 1 title"]')
+    .first().inputValue().catch(() => "");
+  expect("filled contingency layout: rows 'A: drug' … 'B: placebo', columns cured / not cured",
+    titles.join("|") === "A: drug|A: placebo|B: drug|B: placebo" && cured === "cured", `${titles.join("|")} / ${cured}`);
+}
+
+// "From long table…" on a quantal fit: drc's earthworms (dose, number,
+// total; five containers per dose, dose 0 included) with an estimated
+// upper asymptote, as drc's LL.3 binomial model (Ritz et al. 2015): d =
+// 0.6049 (SE 0.0858, observed information), ED50 0.2924.
+{
+  await page.getByRole("button", { name: "New data table" }).click();
+  const qDlg = page.locator(".new-table-dialog");
+  await qDlg.locator('input[name="table-type"][value="xy"]').check();
+  await qDlg.getByLabel("Table name").fill("Earthworms");
+  await qDlg.getByRole("button", { name: "Create table" }).click();
+  await page.waitForSelector(".grid-toolbar");
+  await page.getByRole("button", { name: "Analyze", exact: true }).click();
+  await page.getByRole("menuitem", { name: /^Quantal dose-response/ }).click();
+  await page.getByRole("button", { name: "From long table…" }).click();
+  const qlt = page.getByRole("dialog", { name: "Quantal dose-response data from a long table" });
+  await qlt.getByLabel("Long table text").fill(readFileSync(join(here, "..", "..", "docs", "validation",
+    "datasets", "drc-earthworms.csv"), "utf8"));
+  const qSummary = await qlt.locator(".import-summary").innerText().catch(() => "");
+  expect("quantal long table: one group, 35 dose rows", qSummary === "1 group, 35 rows (dose groups)", qSummary);
+  await qlt.getByRole("button", { name: "Fill the table" }).click();
+  const zeroNote = page.locator(".result-note", { hasText: "Dose 0 rows are used as the control: natural response estimated" });
+  expect("dose 0 rows used as the control (natural response estimated), not refused", await appears(zeroNote, 60000));
+  await page.getByLabel("Link", { exact: true }).selectOption("logit");
+  await page.getByLabel("Dose transform", { exact: true }).selectOption("ln");
+  await page.getByLabel("Upper asymptote", { exact: true }).selectOption("estimate");
+  await page.getByLabel("Standard errors from", { exact: true }).selectOption("observed");
+  const upRow = await page.waitForFunction(() => [...document.querySelectorAll("tr")]
+    .find((tr) => /^Upper asymptote/.test(tr.innerText) && /0\.60/.test(tr.innerText))?.innerText ?? false,
+  null, { timeout: 60000 }).then((h) => h.jsonValue(), () => "");
+  expect("quantal upper asymptote (earthworms, drc LL.3): d = 0.6049, SE 0.0858", /0\.6049/.test(upRow)
+    && /0\.0858/.test(upRow), String(upRow).replace(/\s+/g, " "));
+  const ed50 = await page.locator("tr", { hasText: "LD50 / ED50" }).first().innerText().catch(() => "");
+  expect("quantal ED50 with the plateau: 0.2924", /0\.2924/.test(ed50), ed50.replace(/\s+/g, " "));
+}
+
+// --- Power, qPCR, synergy (site validation follow-ups) ---
+// R: power.anova.test(groups = 4, between.var = 1, within.var = 3,
+// power = .80) -> n = 11.92613 per group (f = 0.5), 47.70 in total; the
+// detectable d for two groups of 20 (power 0.8, two-sided) is 0.9091,
+// and with SDs 1.2 and 1.4 the pooled SD is √1.7 = 1.304, so the
+// detectable difference is 1.185.
+await page.getByRole("button", { name: "Tools" }).click();
+await page.getByRole("menuitem", { name: /Power and sample size/ }).click();
+const pwv = page.locator("dialog.power-dialog");
+await pwv.getByLabel("Test", { exact: true }).selectOption("anova_oneway");
+await pwv.getByLabel("Groups (k)").fill("4");
+await pwv.getByLabel("Cohen's f").fill("0.5");
+const powerText = (re) => page.waitForFunction((src) => new RegExp(src)
+  .test(document.querySelector("dialog.power-dialog .power-summary")?.innerText ?? ""), re.source, { timeout: 30000 })
+  .then(() => true, () => false);
+expect("power (R power.anova.test): unrounded n per group 11.93 and total N 47.7, apart",
+  await powerText(/Unrounded n per group\s+11\.93\n.*Unrounded total N\s+47\.7/s)
+  && await powerText(/n per group\s+12 × 4/),
+  await pwv.locator(".power-summary").innerText().catch(() => ""));
+await pwv.getByLabel("Test", { exact: true }).selectOption("t_two_sample");
+await pwv.getByLabel("Solve for").selectOption("effect");
+await pwv.getByLabel("SD from").selectOption("groups");
+await pwv.getByLabel("SD, group 1").fill("1.2");
+await pwv.getByLabel("SD, group 2").fill("1.4");
+await pwv.getByLabel("Measurement unit").fill("mmol/L");
+expect("power: detectable difference in raw units, 1.19 mmol/L (d = 0.909 × pooled SD 1.3)",
+  await powerText(/Detectable difference\s+1\.19 mmol\/L \(d = 0\.909 × pooled SD 1\.3\)/),
+  await pwv.locator(".power-summary").innerText().catch(() => ""));
+await pwv.getByRole("button", { name: "Done" }).click();
+
+// qPCR: Livak & Schmittgen (2001) Table 1 as a QuantStudio-style export
+// (Sample Name, Target Name, CT) with one undetermined well added:
+// kidney vs brain ΔCq 4.365 (the undetermined c-myc well is left out).
+const livakCt = { Brain: { "c-myc": [30.72, 30.34, 30.58, 30.34, 30.50, 30.43], GAPDH: [23.70, 23.56, 23.47, 23.65, 23.69, 23.68] },
+  Kidney: { "c-myc": [27.06, 27.03, 27.03, 27.10, 26.99, 26.94], GAPDH: [22.76, 22.61, 22.62, 22.60, 22.61, 22.76] } };
+const qcsv = ["Sample Name,Target Name,CT"];
+for (const [tissue, genes] of Object.entries(livakCt)) {
+  for (const [gene, cts] of Object.entries(genes)) for (const c of cts) qcsv.push(`${tissue},${gene},${c}`);
+}
+qcsv.push("Kidney,c-myc,Undetermined");
+await page.getByRole("button", { name: "New data table" }).click();
+const qdlg = page.locator(".new-table-dialog");
+await qdlg.getByRole("radio", { name: "Start from an assay" }).check();
+await qdlg.getByRole("radio", { name: /^qPCR/ }).check();
+await qdlg.getByText("An empty layout").click();
+await qdlg.getByRole("button", { name: "Start assay" }).click();
+const qwz = page.locator("dialog.assay-wizard");
+await qwz.waitFor({ timeout: 30000 });
+await qwz.getByLabel("Paste Cq export").fill(qcsv.join("\n"));
+await qwz.getByRole("button", { name: "Read pasted export" }).click();
+expect("qPCR: Sample Name / Target Name / CT export read, the undetermined well kept as missing",
+  (await qwz.innerText()).includes("Read 25 wells. 1 well without a Cq (undetermined) is kept as missing."),
+  await qwz.locator(".assay-setup [role=status]").first().innerText().catch(() => ""));
+await qwz.locator("label", { hasText: /^GAPDH$/ }).locator("input").check().catch(() => {});
+for (let i = 0; i < 6; i++) {
+  const next = qwz.getByRole("button", { name: "Next", exact: true });
+  if (!(await next.count()) || await next.isDisabled()) break;
+  await next.click();
+  await page.waitForTimeout(250);
+}
+await qwz.locator(".modal-actions .btn-primary").click();
+await qwz.waitFor({ state: "detached", timeout: 10000 }).catch(() => {});
+await page.waitForSelector(".qpcr-results .qpcr-target", { timeout: 60000 }).catch(() => {});
+const qkid = (await page.locator(".qpcr-target tr", { hasText: /^Kidney/ }).first().innerText().catch(() => "")).replace(/\s+/g, " ");
+expect("qPCR from the variant headers: kidney ΔCq 4.365", qkid.includes("4.365"), qkid);
+
+// Synergy: the landscape and the matrix table show an expected matrix;
+// the monotherapy median-effect fit of Ispinesib slopes the wrong way
+// (r = −0.551), so the combination indices are flagged next to their table.
+await assayTemplate("Drug combination matrix", "Combination views");
+await page.locator(".results-table tr", { hasText: "Bliss (bliss independence)" }).first()
+  .waitFor({ timeout: 90000 }).catch(() => {});
+await page.waitForFunction(() => document.querySelectorAll(".plot .heatmaplayer .hm").length === 4,
+  null, { timeout: 30000 }).catch(() => {});
+const synGs = await graphSettings();
+await synGs.getByLabel("Show", { exact: true }).selectOption("bliss_expected");
+await closeGraphSettings();
+expect("synergy landscape: the Show select switches to the Bliss expected response (one map, % inhibition scale)",
+  await page.waitForFunction(() => {
+    const l = document.querySelector(".plot-card .plot")?.layout;
+    return document.querySelectorAll(".plot .heatmaplayer .hm").length === 1
+      && (l?.annotations ?? []).some((a) => /Bliss expected response/.test(a.text ?? ""));
+  }, null, { timeout: 15000 }).then(() => true, () => false));
+await page.getByLabel("Show matrices").selectOption("loewe_expected");
+const synRes = await resultsText();
+const synMats = await page.locator(".result-card", { hasText: "Synergy at each dose pair" }).first()
+  .locator("h4").allTextContents();
+expect("synergy results: the Show select prints the Loewe expected matrix alone",
+  synMats.length === 1 && synMats[0] === "Loewe expected response", JSON.stringify(synMats));
+expect("synergy results: a warning chip flags the poor monotherapy fit next to the CI table",
+  await page.locator(".result-card", { hasText: "Chou-Talalay combination index" }).locator(".qc-chip.qc-warn")
+    .filter({ hasText: "Monotherapy fit poor" }).count() === 1
+  && synRes.includes("slopes the wrong way (r = -0.551"));
+
+// --- XY analyses (site validation follow-ups) ---
+// R cars (speed -> dist, 50 rows): lm gives slope 3.932409, intercept
+// -17.579095, F = 89.57 on 1 and 48 df, R² 0.6511, Sy.x 15.38. A new XY
+// table of non-dose data waits for "Choose a model" instead of fitting a
+// 4PL; compare fits reports the F test and AICc.
+const xyNew = async (name) => {
+  await page.getByRole("button", { name: "New data table" }).click();
+  const d = page.locator(".new-table-dialog");
+  await d.locator('input[name="table-type"][value="xy"]').check();
+  await d.getByLabel("Table name").fill(name);
+  await d.getByLabel("Replicates per X").fill("1");
+  await d.getByRole("button", { name: "Create table" }).click();
+  await page.waitForSelector(".grid-toolbar");
+};
+const xyPaste = async (text) => {
+  await page.getByRole("button", { name: "Import…", exact: true }).click();
+  const dlg = page.locator(".import-dialog");
+  await dlg.getByLabel("Pasted text").check();
+  await dlg.getByLabel("Text to import").fill(text);
+  await dlg.getByLabel(/holds column titles/).check();
+  await dlg.getByRole("button", { name: "Import", exact: true }).click();
+};
+const resultsHas = (re, timeout = 60000) => page.waitForFunction((src) =>
+  new RegExp(src).test(document.querySelector(".pane-results")?.innerText ?? ""),
+re.source, { timeout }).then(() => true, () => false);
+const CARS = readFileSync(join(here, "..", "..", "docs", "validation", "datasets", "r-cars.csv"), "utf8");
+await xyNew("Cars");
+await xyPaste(CARS);
+expect("a new XY table of non-dose data asks to choose a model instead of fitting",
+  await appears(page.locator(".choose-model")) && (await page.locator(".choose-model").innerText())
+    .includes("Choose a model") && await page.locator(".pane-results .results-table").count() === 0);
+await page.getByRole("button", { name: "Analyze", exact: true }).click();
+await page.getByRole("menuitem", { name: /^Linear regression/ }).click();
+expect("linear regression (R cars): regression ANOVA F = 89.57 on 1 and 48 df",
+  await resultsHas(/F \(1, 48\) = 89\.5[67]/)
+  && /Regression\s+21(19|18)\d/.test(await page.locator(".anova-table").innerText()),
+  (await page.locator(".anova-table").innerText().catch(() => "")).replace(/\s+/g, " "));
+const carsText = await page.locator(".pane-results").innerText();
+expect("linear regression (R cars): slope 3.932, intercept -17.58, R² 0.6511, Sy.x 15.38",
+  /Slope\s+3\.932/.test(carsText) && /Y intercept\s+-17\.58/.test(carsText)
+  && /R squared\s+0\.6511/.test(carsText) && /Sy\.x\s+15\.38/.test(carsText),
+  carsText.split("\n").slice(0, 12).join(" | "));
+expect("linear regression graph draws the points and the line",
+  await page.locator(".plot .scatterlayer .trace").count() === 2);
+await page.getByLabel(/Force the line through the origin/).check();
+expect("through the origin: uncentred R² and the ANOVA about Y = 0",
+  await resultsHas(/R squared \(about Y = 0\)/) && await resultsHas(/Total \(uncorrected\)/));
+
+// straight-line data: "Choose a model" → Linear regression switches the sheet
+await xyNew("Straight line");
+await xyPaste("X,Y\n1,2.1\n2,3.9\n3,6.2\n4,7.8\n5,10.3\n6,11.9");
+expect("straight-line data shows Choose a model, not a curve fit",
+  await appears(page.locator(".choose-model")));
+await page.locator(".choose-model").getByRole("button", { name: "Linear regression" }).click();
+expect("Choose a model → Linear regression: the results sheet becomes a linear regression (slope 1.994)",
+  await resultsHas(/Slope\s+1\.994/) && await navRow("Linear regression of Straight line").count() === 1
+  && (await page.locator(".mode-switch [role=tab]").allInnerTexts()).join("|") === "Linear regression");
+
+// compare fits: one curve for both data sets vs a separate curve for each
+const cfX = ["1e-9", "3.162e-9", "1e-8", "3.162e-8", "1e-7", "3.162e-7", "1e-6", "3.162e-6", "1e-5"];
+const cfA = [99.6, 97.6, 92.1, 80.4, 50.3, 23.9, 8.9, 3.2, 1.2];
+const cfB = [100.8, 99.1, 97.3, 91.0, 79.2, 52.4, 24.8, 9.6, 2.9];
+await xyNew("Two curves");
+await xyPaste(["Dose,Control,Treated", ...cfX.map((x, i) => `${x},${cfA[i]},${cfB[i]}`)].join("\n"));
+await page.getByRole("button", { name: "Analyze", exact: true }).click();
+await page.getByRole("menuitem", { name: /^Compare fits/ }).click();
+expect("compare fits (3PL vs 4PL on each data set): an F test and a P value per data set",
+  await resultsHas(/F \(1, 5\) = [\d.]+[\s\S]*P value[\s\S]*F \(1, 5\) = /)
+  && await page.locator(".compare-table").count() === 2);
+await page.getByLabel(/One curve for all data sets vs/).check();
+expect("compare fits (one curve vs separate curves): F (3, 12), P, AICc and the preferred model",
+  await resultsHas(/F \(3, 12\) = [\d.]+/) && await resultsHas(/P value\s+(< ?)?[\d.e-]+/)
+  && await resultsHas(/separate curve for each data set\) is preferred/)
+  && await resultsHas(/Probability correct/));
+expect("compare fits graph draws the separate curves and the shared curve",
+  await page.locator(".plot .scatterlayer .trace").count() === 5);
 
 await page.screenshot({
   path: join(here, "app.png"),

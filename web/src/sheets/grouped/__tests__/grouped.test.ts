@@ -5,8 +5,9 @@ import assert from "node:assert/strict";
 import { emptyTable, normalizeTable, setCell } from "../../../project/table.ts";
 import {
   defaultAssign, normalizeGraph, normalizeHeat, normalizeMultiT, normalizeThreeWay,
-  normalizeTwoWay,
+  normalizeTwoWay, twoWayFactorNames,
 } from "../options.ts";
+import { allCellsPayload } from "../../common/allCells.ts";
 import {
   barPositions, cellStats, colorAt, errorExtent, grandValue, groupedPayload,
   hasMissingRM, heatStops, inkOn, summarize, summaryCell, tCdf, tQuantile,
@@ -158,4 +159,27 @@ test("row means table: Y title from what was averaged, or the statistic alone", 
     rows: [{ value: 1, sd: 0.5, n: 3 }] };
   assert.equal(rowMeansTable(r, "Volume").yTitle, "Mean of Volume");
   assert.equal(rowMeansTable(r, "").yTitle, "Mean");
+});
+
+test("two-way: additive model and all-cell comparisons are options; factor names come from the table", () => {
+  assert.equal(normalizeTwoWay({}).model, "full");
+  assert.equal(normalizeTwoWay({ model: "additive" }).model, "additive");
+  assert.equal(normalizeTwoWay({ direction: "all_cells" }).direction, "all_cells");
+  const t = { factorNames: { rows: "tension", datasets: "wool" } };
+  assert.deepEqual(twoWayFactorNames(normalizeTwoWay({}), t), ["tension", "wool"]);
+  assert.deepEqual(twoWayFactorNames(normalizeTwoWay({ rowFactor: "Load" }), t), ["Load", "wool"]);
+  assert.deepEqual(twoWayFactorNames(normalizeTwoWay({}), {}), ["Row factor", "Column factor"]);
+  const table = normalizeTable({ type: "grouped", factorNames: { rows: " dose ", datasets: "" },
+    datasets: [{ name: "A", rows: [["1"]] }] });
+  assert.deepEqual(table.factorNames, { rows: "dose" });
+});
+
+test("all cell means: one group per non-empty cell, named row:data set", () => {
+  const p = allCellsPayload({
+    rowNames: ["0.5", "1"], colNames: ["OJ", "VC"],
+    cells: [[[1, 2], [3, null]], [[], [5, 6]]],
+  }, "tukey") as { data: { datasets: { name: string; ys: number[][] }[] }; options: unknown };
+  assert.deepEqual(p.data.datasets.map((d) => d.name), ["0.5:OJ", "0.5:VC", "1:VC"]);
+  assert.deepEqual(p.data.datasets[1].ys, [[3]]);
+  assert.deepEqual(p.options, { comparisons: "tukey" });
 });

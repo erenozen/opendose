@@ -4,11 +4,13 @@
 // The table: rows are groups (row titles), each data set is one outcome
 // column, one count per cell (first subcolumn).
 //
-// Stratified 2 × 2 tables (Cochran-Mantel-Haenszel) need no new table
-// layout: the strata are consecutive pairs of rows of a two-column table
-// (rows 1-2 are stratum 1, rows 3-4 stratum 2, ...). A stratum is named by
-// what its two row titles share before a separator ("Site A: exposed" and
-// "Site A: unexposed" -> "Site A"), else "Stratum k".
+// Stratified tables (Cochran-Mantel-Haenszel) need no new table layout:
+// the strata are consecutive blocks of rows whose titles start with the
+// stratum ("Site A: exposed", "Site A: unexposed" -> "Site A"), the same
+// number of rows (two or more) and columns in every stratum; 2 × 2 strata
+// give the classic CMH test, larger ones the generalized CMH test. Without
+// such titles a two-column table is read as consecutive pairs of rows
+// (rows 1-2 are stratum 1, rows 3-4 stratum 2, ...), named "Stratum k".
 import { withExclusionsBlanked } from "../../project/table.ts";
 import type { DataTableModel } from "../../project/types.ts";
 
@@ -52,6 +54,10 @@ export interface ContingencyOptions {
   trend: boolean;
   /** Scores of the ordered groups, comma-separated ("" = 1, 2, 3, ...). */
   trendScores: string;
+  /** Fisher's exact test for tables larger than 2 × 2 (Freeman-Halton):
+   *  "auto" within the engine's quick work budget, "large" with the
+   *  larger budget (up to ~10 s). */
+  fisherRxc: "auto" | "large";
 }
 
 export const DEFAULT_CONTINGENCY: ContingencyOptions = {
@@ -59,10 +65,13 @@ export const DEFAULT_CONTINGENCY: ContingencyOptions = {
   rrCi: "koopman", diffCi: "newcombe_cc", orCi: "baptista_pike", propCi: "wilson_brown",
   diagnosticLayout: "rows_condition",
   trend: false, trendScores: "",
+  fisherRxc: "auto",
 };
 
 export function normalizeContingency(raw: unknown): ContingencyOptions {
-  return { ...DEFAULT_CONTINGENCY, ...(raw && typeof raw === "object" ? raw as Partial<ContingencyOptions> : {}) };
+  const o = { ...DEFAULT_CONTINGENCY, ...(raw && typeof raw === "object" ? raw as Partial<ContingencyOptions> : {}) };
+  if (o.fisherRxc !== "large") o.fisherRxc = "auto";
+  return o;
 }
 
 export interface Counts {
@@ -111,6 +120,8 @@ export function contingencyPayload(c: Counts, o: ContingencyOptions): Payload | 
       options.scores = scores;
     }
   }
+  const r = c.counts.length, k = c.counts[0]?.length ?? 0;
+  if (o.fisherRxc === "large" && (r > 2 || k > 2)) options.fisher_rxc = true;
   return { analysis: "contingency", data: { table: c.counts }, options };
 }
 
@@ -134,22 +145,59 @@ export function mcnemarPayload(c: Counts): Payload | { error: string } {
 
 // ------------------------------------------------------------ CMH
 
-export interface Stratum { name: string; table: number[][]; rows: [string, string] }
+export interface Stratum { name: string; table: number[][]; rows: string[] }
 
 const SEP = /\s*[:|/–—-]\s*|\s*,\s*/;
 
+/** Text before the first separator of a row title ("Site A: exposed" ->
+ *  "Site A"), or "" when there is none. */
+export function titlePrefix(title: string): string {
+  const t = title.trim();
+  const p = t.split(SEP)[0]?.trim() ?? "";
+  return p && p !== t ? p : "";
+}
+
 /** Name shared by the two row titles of a stratum. */
 export function stratumName(a: string, b: string, index: number): string {
-  const pa = a.split(SEP)[0]?.trim() ?? "";
-  const pb = b.split(SEP)[0]?.trim() ?? "";
-  if (pa && pa === pb && pa !== a.trim()) return pa;
+  const pa = titlePrefix(a);
+  if (pa && pa === titlePrefix(b)) return pa;
   return `Stratum ${index + 1}`;
 }
 
+/** Strata named by their row titles: every title starts with the stratum
+ *  and a separator ("Site A: exposed"), the rows of a stratum are
+ *  consecutive and every stratum has the same number of rows (two or
+ *  more). Null when the titles do not say so. */
+function strataByTitle(c: Counts): Stratum[] | null {
+  const prefixes = c.rowTitles.map(titlePrefix);
+  if (prefixes.some((p) => !p)) return null;
+  const blocks: { name: string; from: number; to: number }[] = [];
+  prefixes.forEach((p, i) => {
+    const last = blocks[blocks.length - 1];
+    if (last && last.name === p) last.to = i + 1;
+    else blocks.push({ name: p, from: i, to: i + 1 });
+  });
+  const size = blocks[0].to - blocks[0].from;
+  if (blocks.length < 2 || size < 2 || blocks.some((b) => b.to - b.from !== size)) return null;
+  if (new Set(blocks.map((b) => b.name)).size !== blocks.length) return null;
+  return blocks.map((b) => ({
+    name: b.name,
+    table: c.counts.slice(b.from, b.to),
+    rows: c.rowTitles.slice(b.from, b.to),
+  }));
+}
+
+/** The strata of a stratified table: consecutive blocks of rows named by
+ *  their titles ("Stratum: level", any number of rows and columns per
+ *  stratum, the same in every stratum), else consecutive pairs of rows
+ *  of a two-column table (rows 1-2 are stratum 1, ...). */
 export function strataOf(c: Counts): Stratum[] | { error: string } {
+  const named = strataByTitle(c);
+  if (named) return named;
   if ((c.counts[0]?.length ?? 0) !== 2 || c.counts.length < 4 || c.counts.length % 2) {
-    return { error: "Enter stratified 2 × 2 tables as a table with two columns (outcomes) "
-      + "and two rows per stratum: rows 1-2 are the first stratum, rows 3-4 the second, …" };
+    return { error: "Enter stratified tables as consecutive rows per stratum, each row title "
+      + "starting with its stratum and a colon (“Site A: exposed”, “Site A: not exposed”), "
+      + "or as a two-column table with two rows per stratum: rows 1-2 are the first stratum, rows 3-4 the second, …" };
   }
   const out: Stratum[] = [];
   for (let i = 0; i < c.counts.length; i += 2) {
@@ -160,6 +208,11 @@ export function strataOf(c: Counts): Stratum[] | { error: string } {
     });
   }
   return out;
+}
+
+/** Rows and columns of each stratum ("2 × 2", "3 × 4"). */
+export function stratumShape(s: Stratum[]): string {
+  return `${s[0]?.table.length ?? 0} × ${s[0]?.table[0]?.length ?? 0}`;
 }
 
 export interface CmhOptions { correction: boolean }

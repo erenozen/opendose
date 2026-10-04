@@ -166,6 +166,10 @@ export default function ResultsPanel({ result, xUnit = "M" }: Props) {
               <tbody>
                 <tr><th>Degrees of freedom</th><td>{fit.goodness.df}</td></tr>
                 <tr><th>R squared</th><td>{formatSig(fit.goodness.r_squared)}</td></tr>
+                {typeof fit.goodness.r_squared_uncentered === "number" && (
+                  <tr><th>R squared about Y = 0 (uncentred, line through the origin)</th>
+                    <td>{formatSig(fit.goodness.r_squared_uncentered)}</td></tr>
+                )}
                 <tr><th>Sum of squares</th><td>{formatSig(fit.goodness.ss_res)}</td></tr>
                 <tr><th>Sy.x</th><td>{formatSig(fit.goodness.sy_x)}</td></tr>
                 <tr><th># of points analyzed</th><td>{fit.goodness.n_points}</td></tr>

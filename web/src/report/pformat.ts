@@ -7,8 +7,11 @@
 // - GraphPad: exact P to four decimals, "P < 0.0001" below; asterisks
 //   ns / * / ** / *** / **** at 0.05 / 0.01 / 0.001 / 0.0001 (GraphPad
 //   Prism user guide, "P value format" and the asterisks FAQ). Results
-//   tables keep the results precision (significant digits) above 0.0001,
-//   as they always have: an exact value is never rounded away there.
+//   tables keep the results precision (significant digits, at least
+//   four) above the floor: an exact value is never rounded away there.
+//   The floor is a preference (Reporting → "Smallest exact P"): 0.0001
+//   by default, 1e-6, 1e-10, or none (every P exact, for checks against
+//   certified values).
 // - APA 7: exact p to three decimals without a leading zero (a p value
 //   cannot exceed 1), "p < .001" below (Publication Manual of the APA,
 //   7th ed., sec. 6.36 and 6.44); asterisks stop at *** (p < .001).
@@ -17,8 +20,8 @@
 //   for authors); asterisks stop at ***.
 // SAMPL (Lang & Altman 2013) asks for exact P as equalities with a floor
 // of P < 0.001 and no bare "NS": all three styles give exact values.
-import { formatSig } from "../types.ts";
-import { DEFAULT_REPORT, type PStyle, type ReportPrefs } from "./prefs.ts";
+import { formatSig, getDisplayDigits } from "../types.ts";
+import { DEFAULT_REPORT, type PFloor, type PStyle, type ReportPrefs } from "./prefs.ts";
 
 export type { PStyle } from "./prefs.ts";
 
@@ -48,7 +51,8 @@ export const P_STYLES: Record<PStyle, PStyleInfo> = {
 const isNum = (p: unknown): p is number => typeof p === "number" && Number.isFinite(p);
 
 /** P without its "P =" prefix, e.g. "0.0321", ".032", "< 0.0001". */
-export function pNumber(p: number, style: PStyle, mode: "text" | "table" = "text"): string {
+export function pNumber(p: number, style: PStyle, mode: "text" | "table" = "text",
+  floor: PFloor = current.pFloor): string {
   if (style === "apa") {
     if (p < 0.001) return "< .001";
     if (p > 0.999) return "> .999";
@@ -64,11 +68,21 @@ export function pNumber(p: number, style: PStyle, mode: "text" | "table" = "text
     if (t === "0.05" && p < 0.05) return p.toFixed(3) === "0.050" ? p.toFixed(4) : p.toFixed(3);
     return t;
   }
-  if (p < 0.0001) return "< 0.0001";
-  if (mode === "table") return formatSig(p, 4);
+  // GraphPad style: the floor is a preference (0.0001 by default; 1e-6,
+  // 1e-10, or none for certified-value checks).
+  if (floor !== "exact" && p < FLOOR_VALUE[floor]) return `< ${FLOOR_TEXT[floor]}`;
+  if (p === 0) return "< 1e-300";
+  // Tables keep the results precision (at least four digits).
+  if (mode === "table") return formatSig(p, Math.max(4, getDisplayDigits()));
   if (p > 0.9999) return "> 0.9999";
+  if (p < 0.0001) return formatSig(p, 2);
   return p.toFixed(4);
 }
+
+const FLOOR_VALUE: Record<PFloor, number> = { "1e-4": 1e-4, "1e-6": 1e-6, "1e-10": 1e-10, exact: 0 };
+const FLOOR_TEXT: Record<PFloor, string> = {
+  "1e-4": "0.0001", "1e-6": "0.000001", "1e-10": "1e-10", exact: "",
+};
 
 /** "P = 0.0321" / "p = .032" / "P=0.03", or the floor ("P < 0.0001"). */
 export function formatPValue(p: unknown, style: PStyle = current.pStyle,

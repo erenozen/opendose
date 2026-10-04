@@ -6,9 +6,11 @@ import { updateTable } from "../../project/ops";
 import { formatSig } from "../../types";
 import CopyableMethods from "../common/CopyableMethods";
 import type { ControlsProps, ResultsProps } from "../types";
+import { Chip } from "./kit/ui";
 import {
-  MODEL_LABEL, MODEL_LONG, SYNERGY_MODELS, parseMatrixBlocks, scoreReading, synergyTable,
-  type SynergyColumns, type SynergyModel, type SynergyOptions,
+  MATRIX_VIEWS, MODEL_LABEL, MODEL_LONG, SYNERGY_MODELS, matricesFor, monotherapyIssues, parseMatrixBlocks,
+  scoreReading, scoresVsCi, synergyTable, viewMatrix,
+  type MatrixTableChoice, type SynergyColumns, type SynergyModel, type SynergyOptions,
 } from "./synergyModel";
 import { Card, Check, Grid, Note, Problem, Row, Select, TextIn, Warnings } from "./ui";
 
@@ -120,6 +122,7 @@ function Matrix({ title, m, c1, c2, sig = 3 }: { title: string; m: (number | nul
 }
 
 export function SynergyResults({ options, result }: ResultsProps<SynergyOptions, R>) {
+  const [view, setView] = useState<MatrixTableChoice>("default");
   if (!result) return null;
   if (result.error) return <Problem result={result} />;
   const shown = SYNERGY_MODELS.filter((m) => options.models[m]);
@@ -131,6 +134,8 @@ export function SynergyResults({ options, result }: ResultsProps<SynergyOptions,
   const reps = result.n_replicates as number;
   const mono = result.monotherapy as R;
   const ct = result.chou_talalay as R;
+  const issues = monotherapyIssues(result);
+  const contradiction = scoresVsCi(result, shown);
   return (
     <>
       <Card title="Synergy scores">
@@ -156,27 +161,60 @@ export function SynergyResults({ options, result }: ResultsProps<SynergyOptions,
               : ["not fitted", "", "", "", ""])])} />
       </Card>
       <Card title="Synergy at each dose pair">
-        <p className="hint-block">Observed minus expected % inhibition; rows are {d1}, columns {d2}{unit}.
-          Positive values mean more effect than the model expects.</p>
-        <Matrix title="Observed response (% inhibition)" m={result.response} c1={c1} c2={c2} />
-        {shown.map((m) => (
-          <Matrix key={m} title={`${MODEL_LABEL[m]} synergy`} m={result.models[m].synergy} c1={c1} c2={c2} />
-        ))}
+        <Row label="Show">
+          <select aria-label="Show matrices" value={view}
+            onChange={(e) => setView(e.target.value as MatrixTableChoice)}>
+            <option value="default">Observed response and synergy</option>
+            <option value="all">Every matrix (observed, expected, fitted, synergy)</option>
+            {MATRIX_VIEWS.filter((d) => d.model === null || shown.includes(d.model)).map((d) => (
+              <option key={d.key} value={d.key}>{d.label}</option>
+            ))}
+          </select>
+        </Row>
+        <p className="hint-block">Rows are {d1}, columns {d2}{unit}; responses in % inhibition. Synergy is
+          observed minus expected % inhibition (ZIP: the fitted response minus the expected); positive
+          values mean more effect than the model expects. Copy results or CSV above exports the
+          matrices shown.</p>
+        {matricesFor(view, shown).map((d) => {
+          const m = viewMatrix(result, d.key);
+          return m ? <Matrix key={d.key} title={d.label} m={m} c1={c1} c2={c2} /> : null;
+        })}
       </Card>
-      <Card title="Chou-Talalay combination index">
-        <Grid caption="Median-effect fits" head={["Drug", "m (slope)", `Dm${unit}`, "r"]}
+      <Card title={<>Chou-Talalay combination index{issues.length > 0 && (
+        <> <Chip tone="warn" title={issues.join("; ")}>Monotherapy fit poor: CIs unreliable</Chip></>
+      )}</>}>
+        <Grid caption="Median-effect fits" head={["Drug", "m (slope)", `Dm${unit}`, "r", "r²",
+          "Used for the CIs?"]}
           rows={[["drug1", d1], ["drug2", d2]].map(([k, n]) => {
             const e = ct?.[k] as R | null;
-            return [n, e ? f(e.m) : "n/a", e ? f(e.Dm) : "n/a", e ? f(e.r) : "n/a"];
+            const used = !e ? "no (no median-effect line)" : e.valid === false
+              ? `withheld: ${e.reason ?? "the fit does not meet the criteria"}` : e.valid === true ? "yes" : "n/a";
+            return [n, e ? f(e.m) : "n/a", e ? f(e.Dm) : "n/a", e ? f(e.r) : "n/a",
+              e && typeof e.r_squared === "number" ? f(e.r_squared, 3) : "n/a", used];
           })} />
-        {[ct?.drug1, ct?.drug2].some((e: R | null) => !e || Math.abs(e.r) < 0.9) && (
-          <Note warn>A median-effect fit with |r| below 0.9 (or none) means that drug’s dose-effect
-            line is poor; the combination indices that use it are unreliable (Chou 2010).</Note>
+        {typeof ct?.min_r_squared === "number" && (
+          <p className="hint-block">
+            A combination index is computed only when its Fa lies strictly between 0 and 1 and
+            both median-effect fits are valid (slope m &gt; 0, r² ≥ {f(ct.min_r_squared, 3)}
+            {typeof ct.min_points === "number" ? `, at least ${ct.min_points} doses` : ""});
+            otherwise the table says why it is withheld
+            {typeof ct.n_computed === "number" ? ` (${ct.n_computed} of ${(ct.combinations ?? []).length} computed)` : ""}.
+          </p>
+        )}
+        {(issues.length > 0 || contradiction) && (
+          <Note warn>
+            {contradiction ? `${contradiction} ` : ""}
+            {issues.length > 0 && `The combination indices below are unreliable: ${issues.join("; ")} (Chou 2010). `}
+            {contradiction && issues.length > 0 && "Read the synergy scores and landscapes, which use the four-parameter fits, rather than these indices."}
+          </Note>
         )}
         <Grid caption="Combination index per dose pair" head={[`${d1}${unit}`, `${d2}${unit}`, "Fa", "CI",
           `DRI ${d1}`, `DRI ${d2}`, "Interpretation"]}
         rows={((ct?.combinations ?? []) as R[]).map((c) => [formatSig(c.conc1), formatSig(c.conc2),
-          f(c.fa, 3), f(c.ci, 3), f(c.dri1, 3), f(c.dri2, 3), c.interpretation ?? "n/a (Fa outside 0–1)"])} />
+          f(c.fa, 3),
+          c.ci == null && c.reason ? `withheld: ${c.reason}` : f(c.ci, 3),
+          f(c.dri1, 3), f(c.dri2, 3),
+          c.interpretation ?? (c.reason ? "n/a" : "n/a (Fa outside 0–1)")])} />
         <p className="hint-block">CI &lt; 1 synergism, = 1 additive, &gt; 1 antagonism, with Chou’s
           descriptive ranges; DRI is how many fold the dose of each drug can be reduced in the
           combination for the same effect.</p>
