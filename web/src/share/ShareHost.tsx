@@ -1,4 +1,6 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { getEngine } from "../lib/engine";
+import { exportPzfx, pzfxFileName, pzfxSelection } from "./pzfx";
 import { resolveOptions } from "../app/analysis";
 import { useProject } from "../app/context";
 import { useUi } from "../app/ui";
@@ -50,10 +52,27 @@ export default function ShareHost() {
   const bundle = useBundleExport();
   const runBundle = bundle.run;
 
+  // Data tables as a .pzfx file (all of them, or one table's).
+  const savePzfx = useCallback(async (dataId?: string) => {
+    if (!api.engineReady) {
+      ui.notify("The analysis engine is still starting; try again in a moment.");
+      return;
+    }
+    const p = api.store.project;
+    const sel = pzfxSelection(p, dataId);
+    const r = exportPzfx(await getEngine(), sel);
+    if ("error" in r) { ui.notify(r.error); return; }
+    const one = dataId ? findSheet(p, dataId)?.name : undefined;
+    saveBlob(new Blob([r.xml], { type: "application/xml" }), pzfxFileName(one ?? p.title));
+    ui.notify(`Saved ${sel.tables.length} table${sel.tables.length === 1 ? "" : "s"} as .pzfx`
+      + (r.messages.length ? `. ${r.messages.join(". ")}.` : "."));
+  }, [api, ui]);
+
   useEffect(() => {
     const onReq = (e: Event) => {
       const req = (e as CustomEvent<ShareRequest>).detail;
       if (req.kind === "bundle") void runBundle();
+      else if (req.kind === "pzfx") void savePzfx(req.dataId);
       else setDialog(req);
     };
     // A share link pasted into an open tab only changes the hash: reload
@@ -68,7 +87,7 @@ export default function ShareHost() {
       window.removeEventListener(SHARE_EVENT, onReq);
       window.removeEventListener("hashchange", onHash);
     };
-  }, [runBundle]);
+  }, [runBundle, savePzfx]);
 
   const closeValidation = () => {
     setDialog(null);

@@ -19,7 +19,8 @@ import { REGISTRY } from "../sheets/registry";
 import SheetIcon, { FolderIcon, NoteIcon, SnowflakeIcon } from "./SheetIcon";
 import SheetMenu, { type MenuAction } from "./SheetMenu";
 import { printSheet } from "../app/usePrint";
-import { openShareLink } from "../share/events";
+import { exportPzfxFile, openShareLink } from "../share/events";
+import { PZFX_TYPES } from "../share/pzfx";
 
 const mac = typeof navigator !== "undefined" && /Mac|iP(hone|ad)/.test(navigator.platform);
 const printKey = mac ? "⌘P" : "Ctrl+P";
@@ -343,6 +344,9 @@ export default function Navigator() {
     if (inFamily && data?.kind === "data") {
       list.push({ label: "Save family as template…", run: () => cmd.saveTemplate(s.id) });
       list.push({ label: "Share this family…", run: () => openShareLink(data.id) });
+      if (PZFX_TYPES.has(data.table.type)) {
+        list.push({ label: "Export this table as .pzfx", run: () => exportPzfxFile(data.id) });
+      }
     }
     if (s.kind === "data") {
       list.push({

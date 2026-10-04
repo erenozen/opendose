@@ -24,6 +24,8 @@ export interface BundleInput {
   date: string;
   /** Parts that could not be produced (named in the README). */
   skipped: string[];
+  /** The data tables as a .pzfx file (share/pzfx.ts), when any can be. */
+  pzfx?: string;
 }
 
 export interface BundleFile { name: string; data: Uint8Array }
@@ -59,6 +61,10 @@ export function bundleFiles(b: BundleInput): BundleFile[] {
   const files: { name: string; text?: string; bytes?: Uint8Array; about: string }[] = [];
   files.push({ name: "project.json", text: b.projectJson,
     about: "The project file: open it in OpenDose with Open (any later version opens it)." });
+  if (b.pzfx) {
+    files.push({ name: "data.pzfx", text: b.pzfx,
+      about: "The data tables as a GraphPad Prism data file (XY, column, grouped, contingency and survival tables)." });
+  }
 
   const tStems = uniq(b.tables.map((t) => stem(t.name, "table")));
   b.tables.forEach((t, i) => {

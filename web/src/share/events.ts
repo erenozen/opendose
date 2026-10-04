@@ -6,6 +6,7 @@ export const SHARE_EVENT = "opendose-share";
 export type ShareRequest =
   | { kind: "link"; dataId?: string }      // share the project, or one family
   | { kind: "bundle" }                     // download the export bundle
+  | { kind: "pzfx"; dataId?: string }      // data tables as a .pzfx file (all, or one)
   | { kind: "validation" };                // open the validation page
 
 export function requestShare(req: ShareRequest): void {
@@ -14,4 +15,5 @@ export function requestShare(req: ShareRequest): void {
 
 export const openShareLink = (dataId?: string) => requestShare({ kind: "link", dataId });
 export const exportBundle = () => requestShare({ kind: "bundle" });
+export const exportPzfxFile = (dataId?: string) => requestShare({ kind: "pzfx", dataId });
 export const openValidation = () => requestShare({ kind: "validation" });
