@@ -15,7 +15,12 @@ import { unzipSync, strFromU8 } from "fflate";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const FLOWJO = join(here, "..", "e2e-fixtures", "flowjo-table.csv");
-const url = process.argv[2] ?? "http://localhost:5173/";
+// ?example=1 opens the example project directly (no start screen).
+const url = (() => {
+  const u = new URL(process.argv[2] ?? "http://localhost:5173/");
+  u.searchParams.set("example", "1");
+  return u.toString();
+})();
 const tmp = mkdtempSync(join(tmpdir(), "opendose-share-"));
 
 const browser = await chromium.launch({
