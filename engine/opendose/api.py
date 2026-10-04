@@ -30,6 +30,11 @@ from . import mixedmodel, nested
 from . import fdr, letters, rowtests, threeway
 from . import deming, moretests, proportions, trend
 from . import equations, userequation
+from . import (assay_clustering, assay_densitometry, assay_growth,
+               assay_plate, assay_qpcr, assay_stdcurve, assay_superplot,
+               assay_synergy)
+from . import effectsize, estimation, power
+from . import auc, cox, quantal
 
 
 def _expand(x_col, replicate_rows):
@@ -1810,6 +1815,701 @@ _HANDLERS.update({
     "global_model_fit": _global_model_fit,
     "validate_equation": _validate_equation,
     "list_models": _list_models,
+})
+
+
+# ---------------------------------------------------------- assay engines
+# (assay_*.py: standard curves, qPCR, densitometry, plate QC, synergy,
+# clustered heat maps, SuperPlots, growth-curve preprocessing)
+
+def _assay_kw(options, keys):
+    return {k: options[k] for k in keys if k in options}
+
+
+def _stdcurve_qc(data, options):
+    """Standard-curve QC (assay_stdcurve). data: {"standards":
+    [{"concentration", "signals": [replicates], "anchor"?}], "unknowns":
+    [{"name", "signals": [replicates], "dilution"?}]}. options: model
+    ("4pl" | "5pl" | "linear" | "loglog"), weighting ("none" | "1/Y" |
+    "1/Y2"), log_x, blank (number | "zero_standard"), accuracy_limit
+    (20), accuracy_limit_ends (25), precision_limit (20),
+    precision_limit_ends (25), min_fraction (0.75), min_levels (6),
+    cv_limit (20), cv_basis ("concentration" | "signal"),
+    parallelism_cv_limit (30), ci_level (0.95), constraints ({param:
+    value} held constant, e.g. {"Bottom": 0}). Returns {"fit", "curve",
+    "standards": [{concentration, back_calculated, recovery_pct,
+    cv_back_calc_pct, replicate_pass, level_pass, role}], "acceptance",
+    "quantification_range": {lloq, uloq, dynamic_range_fold},
+    "unknowns": [{name, dilution, concentration, concentration_ci,
+    corrected, corrected_ci, status, flags, reportable}], "samples",
+    "parallelism", "warnings"}."""
+    return assay_stdcurve.standard_curve_qc(
+        data.get("standards") or [], data.get("unknowns") or [],
+        **_assay_kw(options, (
+            "model", "weighting", "log_x", "blank", "accuracy_limit",
+            "accuracy_limit_ends", "precision_limit", "precision_limit_ends",
+            "min_fraction", "min_levels", "cv_limit", "cv_basis",
+            "parallelism_cv_limit", "ci_level", "constraints")))
+
+
+def _qpcr(data, options):
+    """Relative qPCR quantification (assay_qpcr). data: {"records":
+    [{sample, group, target, cq, well?, pair?}], "standard_curves"?:
+    {target: [{quantity, cq}]}}. options: reference_genes (required),
+    calibrator (group), efficiencies ({target: factor or %}), max_cq
+    (35), max_spread (0.5), undetermined_value, exclude_high_cq, test
+    ("auto" | "unpaired" | "welch" | "paired" | "anova" | "rm_anova" |
+    "none"), comparisons (post test, default "dunnett" vs calibrator),
+    welch, ci_level, groups, targets. Returns {"efficiencies",
+    "replicates" (technical-replicate QC), "results" (per sample and
+    target: dcq, ddcq, relative_quantity, log2_fold_change),
+    "per_target": [{target, groups: [{group, n, mean_dcq, fold_change,
+    fold_change_ci}], statistics: {..., comparisons: [{pair,
+    fold_change, fold_change_ci, p_adjusted}]}, graph}], "warnings"}."""
+    kw = _assay_kw(options, (
+        "calibrator", "efficiencies", "standard_curves", "max_cq",
+        "max_spread", "undetermined_value", "exclude_high_cq", "test",
+        "comparisons", "welch", "ci_level", "groups", "targets"))
+    if data.get("standard_curves") and "standard_curves" not in kw:
+        kw["standard_curves"] = data["standard_curves"]
+    return assay_qpcr.qpcr_analysis(
+        data.get("records") or [],
+        reference_genes=options.get("reference_genes",
+                                    options.get("reference")), **kw)
+
+
+def _densitometry(data, options):
+    """Western blot densitometry (assay_densitometry). data: {"records":
+    [{blot, lane, sample?, group, target, reference, background?,
+    reference_background?}]}. options: control_group, control_lanes
+    ({blot: lane}), saturation_limit, test ("auto" | "ratio_paired" |
+    "one_sample" | "rm_anova" | "none"), comparisons, groups, ci_level.
+    Returns {"lanes" (corrected, normalized, fold_change, flags),
+    "per_blot", "matched_fold_change", "statistics", "group_summaries"
+    (geometric mean fold with CI), "graph" (points, paired lines per
+    blot, reference_line 1), "warnings"}."""
+    return assay_densitometry.densitometry(
+        data.get("records") or [],
+        **_assay_kw(options, ("control_group", "control_lanes",
+                              "saturation_limit", "test", "comparisons",
+                              "groups", "ci_level")))
+
+
+def _plate_qc(data, options):
+    """Plate QC and layout (assay_plate). data: {"grid": rows x cols} |
+    {"text"} | {"xlsx_b64"}, plus "plate_map" (or options.plate_map):
+    [{wells: "A1" | "A1:B3" | [...], role: "blank" | "negative" |
+    "positive" | "sample" | "empty", compound?, concentration? |
+    concentrations?: [per well], replicate?}] or {well: {...}}.
+    options: normalization ("percent_of_control" | "percent_activity" |
+    "percent_inhibition" | "inhibition_vs_blank" | "none"),
+    plate_format (96 | 384), cv_limit (15), z_prime_limit (0.5),
+    edge_role ("negative" | "positive" | "sample" | "all"). Returns
+    {"qc": {z_prime, robust_z_prime, category, signal_to_background,
+    signal_window, negative/positive {mean, sd, cv_pct}}, "qc_flags",
+    "passed", "replicate_cv", "edge_effect", "wells",
+    "normalized_grid", "dose_response": [{compound, x, datasets}],
+    "combined": {x, datasets} | null, "warnings"}."""
+    grid = data.get("grid")
+    if grid is None and data.get("xlsx_b64"):
+        grid = plate_io.parse_xlsx(base64.b64decode(data["xlsx_b64"]))
+    if grid is None and data.get("text"):
+        grid = plate_io.parse_text(data["text"])
+    if grid is None:
+        raise ValueError("plate_qc needs a plate grid")
+    plate_map = data.get("plate_map", options.get("plate_map"))
+    if not plate_map:
+        raise ValueError("plate_qc needs a plate map")
+    return assay_plate.plate_qc(
+        grid, plate_map,
+        **_assay_kw(options, ("normalization", "plate_format", "cv_limit",
+                              "z_prime_limit", "edge_role")))
+
+
+def _synergy(data, options):
+    """Drug-combination synergy (assay_synergy). data: {"records":
+    [{conc1, conc2, response, replicate?}]} or {"conc1": [...],
+    "conc2": [...], "responses": matrix (rows = conc1) | [replicate
+    matrices]}; the zero dose of each drug must be present. options:
+    response_kind ("inhibition" | "viability"), baseline_correction
+    ("none" | "part" | "all"), drug1, drug2. Returns {"conc1", "conc2",
+    "response" (% inhibition matrix), "monotherapy", "models": {hsa,
+    bliss, loewe, zip: {reference, synergy, score, synergy_sd?,
+    score_sd?}}, "scores", "landscapes", "chou_talalay": {drug1: {m,
+    Dm, r}, drug2, combinations: [{conc1, conc2, fa, ci, dri1, dri2,
+    interpretation}], fa_ci}, "warnings"}."""
+    return assay_synergy.synergy(
+        data.get("records"), conc1=data.get("conc1"),
+        conc2=data.get("conc2"), responses=data.get("responses"),
+        **_assay_kw(options, ("response_kind", "baseline_correction",
+                              "drug1", "drug2")))
+
+
+def _cluster_heatmap(data, options):
+    """Clustered heat map and k-means (assay_clustering). data:
+    {"values": rows x columns, "row_names"?, "column_names"?}. options:
+    method ("average" | "complete" | "single" | "ward" | "weighted" |
+    "centroid" | "median"), metric ("euclidean" | "manhattan" |
+    "correlation"), scale ("none" | "center" | "zscore"), scale_axis
+    ("rows" | "columns"), cluster_rows, cluster_columns, k_rows,
+    k_columns, kmeans: {k, axis: "rows" | "columns", seed, n_init},
+    choose_k: {k_max, axis, seed, n_init, n_reference}. Returns
+    {"matrix" (reordered), "row_order", "column_order", "rows" /
+    "columns": {linkage (scipy convention), leaf_order, dendrogram: {x,
+    y}, clusters?}, "kmeans"?, "choose_k"?, "warnings"}."""
+    return assay_clustering.cluster_heatmap(
+        data["values"], row_names=data.get("row_names"),
+        column_names=data.get("column_names"),
+        kmeans_options=options.get("kmeans"),
+        choose_k_options=options.get("choose_k"),
+        **_assay_kw(options, ("method", "metric", "scale", "scale_axis",
+                              "cluster_rows", "cluster_columns", "k_rows",
+                              "k_columns")))
+
+
+def _superplot(data, options):
+    """SuperPlot aggregation (assay_superplot). data: {"records":
+    [{group, replicate, value, pair?}]} (one per cell). options:
+    aggregate ("mean" | "median"), test ("auto" | "unpaired" | "welch" |
+    "paired" | "ratio_paired" | "mann_whitney" | "wilcoxon" | "anova" |
+    "kruskal_wallis" | "rm_anova" | "friedman" | "none"), stats_on
+    ("replicates" | "cells"), paired (default: when pair keys are
+    given), groups, control, comparisons, welch, ci_level. Returns
+    {"replicates", "replicate_table": {row_titles, datasets}, "test",
+    "group_summaries", "graph": {cells, replicate_means, colour_keys,
+    n_label}, "warnings"}."""
+    return assay_superplot.superplot(
+        data.get("records") or [],
+        **_assay_kw(options, ("aggregate", "test", "stats_on", "paired",
+                              "groups", "control", "comparisons", "welch",
+                              "ci_level")))
+
+
+def _growth_transform(data, options):
+    """OD / count growth curves before fitting the Zwietering models
+    (assay_growth). data: {x, datasets}. options: blank (number),
+    blank_dataset (index), log ("ln" | "log10" | "log2" | null),
+    relative_to_first (bool). Returns {x, datasets, blank,
+    n_nonpositive_dropped, ...}."""
+    return {"analysis": "growth_transform",
+            **assay_growth.prepare_growth_data(
+                data["x"], data["datasets"],
+                **_assay_kw(options, ("blank", "blank_dataset", "log",
+                                      "relative_to_first")))}
+
+
+_HANDLERS.update({
+    "stdcurve_qc": _stdcurve_qc,
+    "qpcr": _qpcr,
+    "densitometry": _densitometry,
+    "plate_qc": _plate_qc,
+    "synergy": _synergy,
+    "cluster_heatmap": _cluster_heatmap,
+    "superplot": _superplot,
+    "growth_transform": _growth_transform,
+})
+
+def _two_columns(data, options):
+    cols, names = _flatten_columns(data)
+    ia, ib = options.get("dataset_a", 0), options.get("dataset_b", 1)
+    return cols, names, ia, ib
+
+
+def _aligned_columns(data):
+    """Row-aligned view (first subcolumn per row; None = missing), for
+    paired and repeated designs."""
+    return [[row[0] if row else None for row in ds["ys"]]
+            for ds in data["datasets"]]
+
+
+def _effect_size(data, options):
+    """Standalone effect sizes (effectsize.py).
+
+    data: a column table {"datasets": [{"name", "ys"}]} (raw values), or
+    {"summary": [{"name"?, "mean", "sd", "n"}, x2]}, or {"table": counts
+    r x c}, or {"proportions": [{"successes", "trials"}, x2]}, or
+    {"statistic": {"t", "df"?, "n_a", "n_b"} | {"t", "n"} | {"F", "df1",
+    "df2"}}. options: measure ("two_group" (default for 2 data sets: d,
+    d_av, Glass, point-biserial r, Cliff's delta, CLES) | "cohens_d" |
+    "cohens_d_av" | "glass_delta" | "paired" | "one_sample" |
+    "cliffs_delta" | "point_biserial" | "rank_biserial" | "anova"
+    (default for 3+ data sets) | "kruskal" | "kendalls_w" |
+    "association" (default for a table) | "cohens_h"), dataset_a (0),
+    dataset_b (1; B is the control for Glass's delta), mu (one sample,
+    0), ci_level (0.95), ci_method ("nct" | "normal" | "bootstrap"),
+    n_boot (5000), seed (12345), zero_method ("wilcox" | "pratt"),
+    bias_correction (Cramer's V). Result: {"analysis": "effect_size",
+    "measure", "names"?, ...the measure's fields}, every estimate with its
+    CI, ci_method and interpretation {label, scale, thresholds,
+    source}."""
+    ci_level = options.get("ci_level", 0.95)
+    boot = dict(ci_method=options.get("ci_method", "nct"),
+                n_boot=int(options.get("n_boot", 5000)),
+                seed=options.get("seed", 12345))
+    out = {"analysis": "effect_size"}
+    if data.get("statistic"):
+        st = data["statistic"]
+        out["measure"] = "from_statistic"
+        out.update(effectsize.from_statistic(
+            t=st.get("t"), F=st.get("F"), df=st.get("df"),
+            df1=st.get("df1"), df2=st.get("df2"), n_a=st.get("n_a"),
+            n_b=st.get("n_b"), n=st.get("n"), ci_level=ci_level))
+        return out
+    if data.get("table") is not None:
+        out["measure"] = "association"
+        out.update(effectsize.phi_cramers_v(
+            data["table"], ci_level=ci_level,
+            bias_correction=bool(options.get("bias_correction", False)),
+            ci_method="bootstrap" if boot["ci_method"] == "bootstrap"
+            else "ncp", n_boot=boot["n_boot"], seed=boot["seed"]))
+        return out
+    if data.get("proportions"):
+        (g1, g2) = data["proportions"][:2]
+        out["measure"] = "cohens_h"
+        out.update(effectsize.cohens_h(
+            g1["successes"] / g1["trials"], g2["successes"] / g2["trials"],
+            g1["trials"], g2["trials"], ci_level=ci_level))
+        return out
+    if data.get("summary"):
+        a, b = data["summary"][:2]
+        std = {"cohens_d": "pooled", "two_group": "pooled",
+               "cohens_d_av": "average", "glass_delta": "control"}.get(
+            options.get("measure", "cohens_d"), "pooled")
+        out["names"] = [a.get("name", "A"), b.get("name", "B")]
+        out.update(effectsize.d_from_stats(
+                       float(a["mean"]), float(a["sd"]) ** 2, int(a["n"]),
+                       float(b["mean"]), float(b["sd"]) ** 2, int(b["n"]),
+                       standardizer=std, ci_level=ci_level,
+                       ci_method="normal" if boot["ci_method"] == "normal"
+                       else "nct"))
+        return out
+    cols, names, ia, ib = _two_columns(data, options)
+    measure = options.get("measure") or ("two_group" if len(cols) == 2
+                                         else "anova")
+    out["measure"] = measure
+    pair_names = [names[ia], names[ib]] if len(cols) > max(ia, ib) else None
+    if measure == "two_group":
+        out["names"] = pair_names
+        out.update(effectsize.two_group_summary(
+            cols[ia], cols[ib], ci_level=ci_level, **boot))
+    elif measure in ("cohens_d", "cohens_d_av", "glass_delta"):
+        out["names"] = pair_names
+        out.update(effectsize.cohens_d(
+            cols[ia], cols[ib], ci_level=ci_level,
+            standardizer={"cohens_d": "pooled", "cohens_d_av": "average",
+                          "glass_delta": "control"}[measure], **boot))
+    elif measure in ("paired", "rank_biserial"):
+        aligned = _aligned_columns(data)
+        if measure == "paired":
+            res = effectsize.paired_d(aligned[ia], aligned[ib],
+                                      ci_level=ci_level, **boot)
+        else:
+            res = effectsize.rank_biserial_paired(
+                aligned[ia], aligned[ib],
+                zero_method=options.get("zero_method", "wilcox"),
+                ci_level=ci_level)
+        out["names"] = pair_names
+        out.update(res)
+    elif measure == "one_sample":
+        out["datasets"] = [
+            {"name": n, **effectsize.one_sample_d(
+                c, float(options.get("mu", 0.0)), ci_level=ci_level)}
+            for n, c in zip(names, cols)]
+    elif measure == "cliffs_delta":
+        out["names"] = pair_names
+        out.update(effectsize.cliffs_delta(
+            cols[ia], cols[ib], ci_level=ci_level))
+    elif measure == "point_biserial":
+        out["names"] = pair_names
+        out.update(effectsize.point_biserial(
+            cols[ia], cols[ib], ci_level=ci_level))
+    elif measure == "anova":
+        res = anova.one_way_anova(cols, names)
+        t = res["table"]
+        out["names"] = names
+        out.update(effectsize.one_way(
+            t["ss_between"], t["df_between"], t["ss_within"],
+            t["df_within"], ci_level=ci_level))
+    elif measure == "kruskal":
+        res = anova.kruskal_wallis(cols, names, dunns=False)
+        out.update(names=names, H=res["H"])
+        out.update(res["effect_size"])
+    elif measure == "kendalls_w":
+        res = repeated.friedman(_aligned_columns(data), names, dunns=False)
+        out.update(names=names, statistic=res["statistic"])
+        out.update(res["effect_size"])
+    else:
+        raise ValueError(f"unknown effect size measure: {measure}")
+    return out
+
+
+def _estimation(data, options):
+    """Estimation statistics (estimation.py; DABEST method).
+
+    data: column table {"datasets": [{"name", "ys"}]}; unpaired designs
+    use every replicate, paired designs align rows (first subcolumn per
+    row). options: design ("two_group" | "shared_control" |
+    "multi_two_group" | "repeated_baseline" | "repeated_sequential";
+    default two_group for 2 data sets, else shared_control), paired
+    (false), control_index (0), pairs ([[control, test], ...] for
+    multi_two_group), effects (["mean_diff"]; any of "mean_diff",
+    "median_diff", "cohens_d", "hedges_g", "cliffs_delta"), ci_level
+    (0.95), n_boot (5000), n_permutations (5000), seed (12345), ci_type
+    ("bca" | "percentile"), permutation (true). Result: {"analysis",
+    "design", "paired", "groups": [{name, n, mean, sd, median, q1, q3,
+    values}], "comparisons": [{control, test, paired, n_control, n_test,
+    effects: [{effect, label, difference, ci, ci_type, ci_level, bca_ci,
+    percentile_ci, bias_correction, acceleration, bootstrap:
+    {n_resamples, mean, sd, percentiles, kde: {x, density, bandwidth}},
+    permutation: {p, n_permutations, exact, method}}]}], "plot": {kind:
+    "gardner_altman" | "cumming", order, pairs, paired_lines,
+    reference_mean?}}."""
+    names = [ds.get("name", f"Group {i + 1}")
+             for i, ds in enumerate(data["datasets"])]
+    design = options.get("design")
+    paired = bool(options.get("paired", False)) or design in (
+        "repeated_baseline", "repeated_sequential")
+    if paired:
+        groups = _aligned_columns(data)
+    else:
+        groups, _ = _flatten_columns(data)
+    n_boot = int(options.get("n_boot", 5000))
+    n_perm = int(options.get("n_permutations", 5000))
+    if n_boot > 100000 or n_perm > 100000:
+        raise ValueError("n_boot and n_permutations are limited to 100000")
+    return {"analysis": "estimation", **estimation.estimation(
+        groups, names, design=design, paired=paired,
+        control_index=options.get("control_index", 0),
+        pairs=options.get("pairs"),
+        effects=options.get("effects", ["mean_diff"]),
+        ci_level=options.get("ci_level", 0.95), n_boot=n_boot,
+        n_permutations=n_perm, seed=options.get("seed", 12345),
+        ci_type=options.get("ci_type", "bca"),
+        permutation=options.get("permutation", True))}
+
+
+def _power(data, options):
+    """Power and sample size (power.py). data is ignored ({}).
+
+    options: kind ("t_two_sample" | "t_one_sample" | "t_paired" |
+    "anova_oneway" | "f_test" | "two_proportions" | "one_proportion" |
+    "mcnemar" | "correlation" | "logrank" | "chi_square" | "generic"),
+    solve ("n" | "power" | "effect"), alpha (0.05), power (target, for
+    "n" and "effect"), tails (2), and the kind's parameters (see
+    power.py: d / delta + sd, n, n1, ratio, welch, sd1, sd2; f, eta2,
+    means, sd, k, equal_n, n_total; df1, groups; p1, p2, method; p0, p,
+    balance; p12, p21, odds_ratio, p_discordant; rho, rho0; hr, events,
+    method, p_event, median_control, hazard_control, accrual, followup;
+    w, df, p0, p1; distribution, ncp, df1, df2). justification (optional
+    {unit, effect_source, attrition}) adds the ARRIVE-style sentence.
+    Result: {"analysis": "power", "kind", "solve", "alpha", "tails",
+    "power" (achieved at the reported n), "target_power"?, "n_total",
+    "n_per_group"? | "n"?, "n_exact"?, "effect": {name, value, ...},
+    "ncp"?, "df"?, "critical_*"?, "justification"?: {text, allocate}}."""
+    params = {k: v for k, v in options.items()
+              if k not in ("kind", "solve", "justification")}
+    kind = options.get("kind", "t_two_sample")
+    res = power.power_analysis(kind, options.get("solve", "n"), **params)
+    out = {"analysis": "power", **res}
+    just = options.get("justification")
+    if just is not None and kind != "generic":
+        out["justification"] = power.justification(
+            res, unit=just.get("unit", "animals"),
+            effect_source=just.get("effect_source"),
+            attrition=just.get("attrition"))
+    return out
+
+
+def _randomize(data, options):
+    """Randomisation list (power.randomization_list). data is ignored.
+    options: n, groups (["A", "B"]), ratio ([1, 1]), method ("block" |
+    "simple" | "shuffled" | "stratified"), block_sizes ([2 x sum(ratio)]),
+    strata ([{"name", "n"}]), seed (drawn and reported when omitted),
+    id_prefix, start (1). Result: {"analysis": "randomize", "method",
+    "seed", "groups", "ratio", "n", "list": [{sequence, id, group,
+    block?, stratum?}], "counts", "block_sizes"?, "counts_by_stratum"?}."""
+    return {"analysis": "randomize", **power.randomization_list(
+        options.get("n"), options.get("groups", ["A", "B"]),
+        ratio=options.get("ratio"), method=options.get("method", "block"),
+        block_sizes=options.get("block_sizes"), strata=options.get("strata"),
+        seed=options.get("seed"), id_prefix=options.get("id_prefix", ""),
+        start=int(options.get("start", 1)))}
+
+
+_HANDLERS.update({
+    "effect_size": _effect_size,
+    "estimation": _estimation,
+    "power": _power,
+    "randomize": _randomize,
+})
+
+
+# ------------------------------------- clinical statistics, AUC, .pzfx export
+# Cox regression (cox), ROC comparison / cut-offs and Bland-Altman extras
+# (methodcomp), quantal dose-response (quantal), area under the curve
+# (auc) and .pzfx writing (pzfx.write_pzfx).
+
+def _aligned_first(ds):
+    """A data set's first subcolumn down the rows, blanks kept."""
+    return [row[0] if row else None for row in ds.get("ys", [])]
+
+
+def _cox(data, options):
+    """Cox proportional hazards. data: {"time", "event", "covariates":
+    {name: [values]}, "strata"?} or a multiple-variables table
+    {"variables": [{"name", "values", "kind"?}]} with options "time",
+    "event", "covariates" ([names]; default all others), "strata"? (name)
+    and "event_code" (the value meaning an event, default 1; anything else
+    non-blank is censored). options: ties ("efron" | "breslow" |
+    "exact"), ci_method ("wald" | "profile": adds profile-likelihood
+    CIs), ci_level, categorical ([names]), reference ({name: level}), levels
+    ({name: [ordered levels]}), ph_transform ("km" | "rank" | "identity" |
+    "log"), curves_at ([{name: value, "label"?}]), hazard_method
+    ("breslow" | "efron"). Result: {"analysis": "cox", "n", "n_events",
+    "coefficients": [{name, term, level?, reference?, coef, se, z, p, ci,
+    hazard_ratio, hazard_ratio_ci}], "term_tests", "tests":
+    {likelihood_ratio, wald, score: {chi2, df, p}}, "concordance": {c,
+    se, ...}, "baseline" and "curves": [{label, covariates, strata:
+    [{stratum, time, survival, lower, upper, cumulative_hazard, ...}]}],
+    "ph_test": {transform, terms, global}, "schoenfeld", "residuals":
+    {martingale, deviance}, "linear_predictor", "warnings", ...}."""
+    categorical = list(options.get("categorical") or [])
+    if "variables" in data:
+        cols = {v["name"]: v for v in data["variables"]}
+        tname, ename = options.get("time"), options.get("event")
+        if tname not in cols or ename not in cols:
+            raise ValueError("options.time and options.event must name "
+                             "variables")
+        code = options.get("event_code", 1)
+
+        def is_event(v):
+            if v is None or v == "":
+                return None
+            try:
+                return 1 if float(v) == float(code) else 0
+            except (TypeError, ValueError):
+                return 1 if str(v) == str(code) else 0
+        time = cols[tname]["values"]
+        event = [is_event(v) for v in cols[ename]["values"]]
+        sname = options.get("strata")
+        names = options.get("covariates") or [
+            n for n in cols if n not in (tname, ename, sname)]
+        covariates = {n: cols[n]["values"] for n in names}
+        categorical += [n for n in names
+                        if cols[n].get("kind") == "categorical"]
+        strata = cols[sname]["values"] if sname else None
+    else:
+        time, event = data["time"], data["event"]
+        covariates = data["covariates"]
+        strata = data.get("strata")
+    return cox.cox_regression(
+        time, event, covariates, categorical=categorical,
+        reference=options.get("reference"), levels=options.get("levels"),
+        strata=strata, ties=options.get("ties", "efron"),
+        ci_level=options.get("ci_level", 0.95),
+        ph_transform=options.get("ph_transform", "km"),
+        curves_at=options.get("curves_at"),
+        hazard_method=options.get("hazard_method"),
+        ci_method=options.get("ci_method", "wald"))
+
+
+def _roc_compare(data, options):
+    """Compare two ROC curves (DeLong). data: column table; options:
+    curves ([[patients, controls], [patients, controls]] data-set indices,
+    default [[0, 1], [2, 3]]), paired (true: same subjects, rows aligned
+    by subject), higher_is_abnormal (bool or [bool, bool]), ci_level,
+    alternative ("two_sided" | "greater" | "less"). Result: {"analysis":
+    "roc_compare", "method", "auc": [a1, a2], "se", "difference",
+    "se_difference", "ci", "statistic", "statistic_name" ("Z" | "D"),
+    "df"?, "p", "correlation"?, "names"}."""
+    (p1, c1), (p2, c2) = options.get("curves") or [[0, 1], [2, 3]]
+    ds = data["datasets"]
+    paired = options.get("paired", True)
+    get = _aligned_first if paired else (
+        lambda d: [v for row in d["ys"] for v in row if v is not None])
+    res = methodcomp.roc_compare(
+        get(ds[p1]), get(ds[c1]), get(ds[p2]), get(ds[c2]), paired=paired,
+        higher_is_abnormal=options.get("higher_is_abnormal", (True, True)),
+        ci_level=options.get("ci_level", 0.95),
+        alternative=options.get("alternative", "two_sided"))
+    res["names"] = [[ds[p1].get("name", ""), ds[c1].get("name", "")],
+                    [ds[p2].get("name", ""), ds[c2].get("name", "")]]
+    return res
+
+
+def _roc_cutoff(data, options):
+    """Optimal ROC cut-off, threshold table with likelihood ratios, and
+    optionally partial AUC and binormal smoothing. data: column table;
+    options: patients (0), controls (1), higher_is_abnormal, method
+    ("youden" | "closest_topleft"), cost_ratio (FN cost / FP cost),
+    prevalence, bootstrap (replicates, 0 = none), seed, ci_level,
+    partial_auc ({limits: [hi, lo], focus: "specificity" | "sensitivity",
+    correct: bool}), binormal (bool). Result: roc_cutoffs' {"optimal",
+    "ties", "thresholds", "bootstrap"?} plus "partial_auc"?, "binormal"?,
+    "names"."""
+    cols, names = _flatten_columns(data)
+    ia, ib = options.get("patients", 0), options.get("controls", 1)
+    hia = options.get("higher_is_abnormal", True)
+    res = methodcomp.roc_cutoffs(
+        cols[ia], cols[ib], higher_is_abnormal=hia,
+        method=options.get("method", "youden"),
+        cost_ratio=float(options.get("cost_ratio", 1.0)),
+        prevalence=options.get("prevalence"),
+        bootstrap=int(options.get("bootstrap", 0) or 0),
+        seed=options.get("seed"), ci_level=options.get("ci_level", 0.95))
+    pa = options.get("partial_auc")
+    if pa:
+        res["partial_auc"] = methodcomp.roc_partial_auc(
+            cols[ia], cols[ib], limits=pa.get("limits", (1.0, 0.9)),
+            focus=pa.get("focus", "specificity"),
+            correct=bool(pa.get("correct", False)), higher_is_abnormal=hia)
+    if options.get("binormal"):
+        res["binormal"] = methodcomp.roc_binormal(cols[ia], cols[ib],
+                                                  higher_is_abnormal=hia)
+    res["names"] = [names[ia], names[ib]]
+    return res
+
+
+def _bland_altman_extras(data, options):
+    """Bland-Altman extras (the "bland_altman" output is unchanged).
+    Paired single measurements: column table, options dataset_a (0),
+    dataset_b (1); rows pair up. Repeated measures: data {"subjects", "a",
+    "b"} with options.repeated "varies" (rows are pairs) or "constant"
+    (rows may hold only a or only b). options: agreement (0.95),
+    ci_level (0.95), z (override, e.g. 1.96), mover_mean ("t" | "z"),
+    variants (["difference", "ratio", "percent"]), regression (true).
+    Result: {"analysis": "bland_altman_extras", "difference" | "ratio" |
+    "percent": {n, bias, bias_ci, sd, loa_lower, loa_upper, loa_ci:
+    {approximate, exact, mover: {lower, upper}}, points}, "proportional_
+    bias", "normality"} or, repeated, {"analysis": "bland_altman_repeated",
+    "bias", "sd", "loa_lower", "loa_upper", "loa_ci", ...}."""
+    rep = options.get("repeated")
+    if rep:
+        return methodcomp.bland_altman_repeated(
+            data["subjects"], data["a"], data["b"], true_value=rep,
+            agreement=options.get("agreement", 0.95),
+            ci_level=options.get("ci_level", 0.95), z=options.get("z"))
+    ds = data["datasets"]
+    ia, ib = options.get("dataset_a", 0), options.get("dataset_b", 1)
+    res = methodcomp.bland_altman_extras(
+        _aligned_first(ds[ia]), _aligned_first(ds[ib]),
+        agreement=options.get("agreement", 0.95),
+        ci_level=options.get("ci_level", 0.95),
+        variants=tuple(options.get("variants",
+                                   ("difference", "ratio", "percent"))),
+        regression=options.get("regression", True), z=options.get("z"),
+        mover_mean=options.get("mover_mean", "t"))
+    res["names"] = [ds[ia].get("name", ""), ds[ib].get("name", "")]
+    return res
+
+
+def _quantal(data, options):
+    """Quantal (probit / logit / cloglog) dose-response. data: {"dose",
+    "n", "responders"} for one line; {"groups": [{"name", "dose", "n",
+    "responders"}]} for several; or an XY table {"x": doses, "datasets":
+    [{"name", "ys": [[responders, n] per row]}]}. options: link
+    ("probit" | "logit" | "cloglog"), dose_transform ("log10" | "ln" |
+    "none"), natural_response (null | proportion | "estimate"),
+    ec_levels ([50]), ci_level, heterogeneity ("auto" | "always" |
+    "never"), heterogeneity_alpha (0.05), parallel (common slope across
+    groups: parallelism test and relative potency), reference (group
+    index for potency). Result: one line -> quantal_fit's {"parameters",
+    "ec": [{level, x, se_x, dose, dose_ci_fieller, dose_ci_delta, g}],
+    "goodness_of_fit", "heterogeneity", "table", "curve", ...}; several
+    -> {"analysis": "quantal", "datasets": [{name, ...}]} or, parallel,
+    quantal_parallel's result."""
+    kw = dict(link=options.get("link", "probit"),
+              dose_transform=options.get("dose_transform", "log10"),
+              ec_levels=tuple(options.get("ec_levels", (50,))),
+              ci_level=options.get("ci_level", 0.95),
+              heterogeneity=options.get("heterogeneity", "auto"),
+              heterogeneity_alpha=options.get("heterogeneity_alpha", 0.05))
+    if "groups" in data:
+        groups = data["groups"]
+    elif "datasets" in data:
+        groups = [{"name": ds.get("name", ""), "dose": data["x"],
+                   "responders": [row[0] if row else None for row in ds["ys"]],
+                   "n": [row[1] if row and len(row) > 1 else None
+                         for row in ds["ys"]]} for ds in data["datasets"]]
+    else:
+        return quantal.quantal_fit(
+            data["dose"], data["n"], data["responders"],
+            natural_response=options.get("natural_response"),
+            curve_points=options.get("curve_points", 101), **kw)
+    if options.get("parallel"):
+        return quantal.quantal_parallel(
+            groups, reference=options.get("reference", 0), **kw)
+    out = []
+    for g in groups:
+        entry = {"name": g.get("name", "")}
+        try:
+            entry.update(quantal.quantal_fit(
+                g["dose"], g["n"], g["responders"],
+                natural_response=options.get("natural_response"),
+                curve_points=options.get("curve_points", 101), **kw))
+        except ValueError as exc:
+            entry["error"] = str(exc)
+        out.append(entry)
+    return {"analysis": "quantal", "datasets": out}
+
+
+def _auc(data, options):
+    """Area under the curve. XY table {"x", "datasets": [{"name", "ys"} |
+    {"name", "mean", "sd", "n"}]}; options: summary_format (rows hold
+    that format's subcolumns, e.g. "mean_sd_n"), baseline ("zero" | "value" |
+    "first" | "last" | "mean_first_last"), baseline_value,
+    peak_direction ("positive" | "negative" | "both"),
+    min_peak_height_pct (10), min_peak_points (0), replicates ("within":
+    Gagnon SE | "experiments": one AUC per subcolumn), equal_var, ci_level.
+    Result: {"analysis": "auc", "datasets": [{name, area, se, ci, df,
+    total_area, total_peak_area, net_peak_area, peaks: [...]} | {name,
+    per_replicate, mean, sd, sem, ci}], "comparison"?}. Long format (per
+    subject): data {"subject", "group"?, "time", "value"}; options
+    baseline ("zero" | "value" | "first"), per_time, equal_var -> {
+    "analysis": "subject_auc", "subjects", "table": {"datasets"},
+    "groups", "comparison"?}."""
+    if "subject" in data:
+        subj = data["subject"]
+        return auc.subject_auc(
+            subj, data.get("group") or [None] * len(subj), data["time"],
+            data["value"], baseline=options.get("baseline", "zero"),
+            baseline_value=options.get("baseline_value"),
+            per_time=bool(options.get("per_time", False)),
+            equal_var=options.get("equal_var", True),
+            ci_level=options.get("ci_level", 0.95))
+    datasets = data["datasets"]
+    fmt = options.get("summary_format")
+    if fmt and fmt != "replicates":
+        datasets = summary.expand_summary_table(data["x"], datasets,
+                                                fmt)["datasets"]
+    return auc.analyze_datasets(
+        data["x"], datasets,
+        replicates=options.get("replicates", "within"),
+        equal_var=options.get("equal_var", True),
+        ci_level=options.get("ci_level", 0.95),
+        baseline=options.get("baseline", "zero"),
+        baseline_value=options.get("baseline_value"),
+        peak_direction=options.get("peak_direction", "positive"),
+        min_peak_height_pct=options.get("min_peak_height_pct", 10.0),
+        min_peak_points=options.get("min_peak_points", 0))
+
+
+def _pzfx_export(data, options):
+    """Write data tables as a .pzfx file. data: {"tables": [{"title",
+    "table": DataTableModel}]} (XY, column, grouped, contingency,
+    survival). Result: {"analysis": "pzfx_export", "xml", "n_tables",
+    "warnings"}."""
+    return {"analysis": "pzfx_export", **pzfx.write_pzfx(data["tables"])}
+
+
+_HANDLERS.update({
+    "cox": _cox,
+    "roc_compare": _roc_compare,
+    "roc_cutoff": _roc_cutoff,
+    "bland_altman_extras": _bland_altman_extras,
+    "quantal": _quantal,
+    "auc": _auc,
+    "pzfx_export": _pzfx_export,
 })
 
 
