@@ -7,6 +7,10 @@ dataset columns, replicates in subcolumns. Prism reports, for each source
 linear model and reports Type III sums of squares, implemented here via
 effect-coded (sum-to-zero) regression, comparing the full model against
 the model with each term dropped.
+
+"effect_size" (opendose.effectsize): per term, partial eta^2 with its
+noncentral-F CI, partial omega^2, partial epsilon^2, Cohen's f and
+eta^2 = SS / SS_total.
 """
 
 from __future__ import annotations
@@ -16,6 +20,8 @@ from itertools import combinations
 
 import numpy as np
 from scipy import stats
+
+from . import effectsize
 
 
 def _design(cells):
@@ -59,6 +65,9 @@ def two_way_anova(cells, *, row_factor: str = "Rows",
                     if any(v is not None for v in cell) else None)
                    for cell in row] for row in cells]
     out["cell_means"] = cell_means
+    out["effect_size"] = effectsize.safe(
+        effectsize.factorial_terms, out["sources"], n_total=int(n),
+        ss_total=ss_total)
     return out
 
 

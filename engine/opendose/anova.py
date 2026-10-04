@@ -24,6 +24,9 @@ Prism statistics guide, "One-way ANOVA (and nonparametric)":
   Newman-Keuls (significance only, opendose.moretests). Without equal
   SDs: Games-Howell, Dunnett T3, Tamhane T2 and uncorrected Welch t
   tests (opendose.moretests.unequal_variance_comparisons).
+- Effect sizes (opendose.effectsize), under "effect_size": eta^2 with
+  its noncentral-F CI, omega^2, epsilon^2 and Cohen's f for the ANOVA;
+  epsilon^2_R and eta^2_H for Kruskal-Wallis.
 """
 
 from __future__ import annotations
@@ -34,7 +37,7 @@ from itertools import combinations
 import numpy as np
 from scipy import stats
 
-from . import dunnett
+from . import dunnett, effectsize
 
 
 def _groups(datasets) -> list[np.ndarray]:
@@ -75,6 +78,8 @@ def one_way_anova(datasets, names=None) -> dict:
         ],
         "brown_forsythe": {"F": float(bf_stat), "p": float(bf_p)},
         "bartlett": {"statistic": float(bart_stat), "p": float(bart_p)},
+        "effect_size": effectsize.safe(effectsize.one_way, ss_between,
+                                       k - 1, ss_within, n_total - k),
     }
 
 
@@ -282,6 +287,9 @@ def kruskal_wallis(datasets, names=None, *, dunns: bool = True,
     }
     if dunns:
         out["dunns"] = _dunns(groups, names, corrected=dunn_corrected)
+    out["effect_size"] = effectsize.safe(
+        effectsize.kruskal_wallis, float(h), int(sum(g.size for g in groups)),
+        len(groups))
     return out
 
 

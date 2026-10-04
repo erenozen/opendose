@@ -41,6 +41,10 @@ balanced). Tests: Tukey (q = |diff| / (SE / sqrt 2), studentized range
 with M = means in the family), Dunnett (control goals; multivariate t),
 Bonferroni, Sidak, Holm-Sidak, Fisher's LSD (no correction), or the
 FDR methods of opendose.fdr applied to Fisher LSD P values.
+
+"effect_size" (opendose.effectsize): per effect, partial eta^2 with its
+noncentral-F CI, partial omega^2, partial epsilon^2, Cohen's f and
+eta^2 = SS / SS_total.
 """
 
 from __future__ import annotations
@@ -51,7 +55,7 @@ from itertools import combinations
 import numpy as np
 from scipy import optimize, stats
 
-from . import fdr
+from . import effectsize, fdr
 from .twoway import _effect_columns, _ss_resid
 
 PRISM_LAYOUT = [(0, 0), (0, 1), (1, 0), (1, 1)]  # data sets A, B, C, D
@@ -187,6 +191,8 @@ def three_way_anova(cells, *, factor_names=("Rows", "Factor B",
         "type": "III (general linear model, effect coding)",
         "sources": sources, "ss_total": ss_total,
         "cell_means": cell_means, "cell_n": cell_n,
+        "effect_size": effectsize.safe(effectsize.factorial_terms, sources,
+                                       n_total=int(n), ss_total=ss_total),
     }
 
 

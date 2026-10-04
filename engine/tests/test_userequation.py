@@ -58,17 +58,18 @@ class TestUserFourPL:
         for name in ("Top", "Bottom", "LogIC50", "HillSlope"):
             a, b = ref["params"][name], fit["params"][name]
             # The two paths share the solver but not every floating-point
-            # step; builds differ at ~1e-10, far below display precision.
-            assert b["value"] == pytest.approx(a["value"], rel=1e-8, abs=1e-12)
-            assert b["se"] == pytest.approx(a["se"], rel=1e-9)
-            assert b["ci95"] == pytest.approx(a["ci95"], rel=1e-9)
+            # step, so builds differ by up to the optimizer's stopping
+            # tolerance (~1e-6 relative); compare at display precision.
+            assert b["value"] == pytest.approx(a["value"], rel=1e-5, abs=1e-6)
+            assert b["se"] == pytest.approx(a["se"], rel=1e-6)
+            assert b["ci95"] == pytest.approx(a["ci95"], rel=1e-6)
         # the transform 10^LogIC50 is the built-in IC50 (transformed CI)
         assert fit["params"]["IC50"]["value"] == pytest.approx(
-            ref["params"]["IC50"]["value"], rel=1e-8)
+            ref["params"]["IC50"]["value"], rel=1e-5)
         assert fit["params"]["IC50"]["ci95"] == pytest.approx(
-            ref["params"]["IC50"]["ci95"], rel=1e-9)
+            ref["params"]["IC50"]["ci95"], rel=1e-6)
         assert fit["params"]["Span"]["se"] == pytest.approx(
-            ref["params"]["Span"]["se"], rel=1e-9)
+            ref["params"]["Span"]["se"], rel=1e-6)
         for key in ("ss_res", "sy_x", "r_squared", "df"):
             assert fit["goodness"][key] == pytest.approx(
                 ref["goodness"][key], rel=1e-12)

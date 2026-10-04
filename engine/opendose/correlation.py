@@ -5,6 +5,9 @@ scatter) or nonparametric Spearman rs; two-tailed P; 95% CI of r via the
 Fisher z transformation; R squared reported for Pearson.
 Spearman CI uses the Fisher z approach with the Fieller-Hartley-Pearson
 variance sqrt(1.06/(n-3)), the standard approximation.
+"effect_size" adds r^2 (rs^2) with the interval of the squared limits
+(lower limit 0 when the r interval spans zero) and Cohen's (1988) label
+(opendose.effectsize).
 
 Spearman P value. The guide ("Interpreting results: Correlation") states
 that with 17 or fewer XY pairs the P value is exact, computed from all
@@ -36,6 +39,8 @@ from functools import lru_cache
 import numpy as np
 from scipy import stats
 
+from . import effectsize
+
 SPEARMAN_EXACT_MAX_N = 17
 
 
@@ -65,7 +70,8 @@ def correlate(values_a, values_b, *, method: str = "pearson",
               if n >= 4 else None)
         return {"method": "pearson", "n": n, "r": float(r),
                 "ci_r": ci, "r_squared": float(r * r),
-                "p_two_tailed": float(p)}
+                "p_two_tailed": float(p),
+                "effect_size": _r_effect(float(r), ci)}
     if method == "spearman":
         rs, p = stats.spearmanr(a, b)
         p_type = "approximate"
@@ -74,8 +80,15 @@ def correlate(values_a, values_b, *, method: str = "pearson",
         ci = (_fisher_ci(float(rs), n, math.sqrt(1.06 / (n - 3)), ci_level)
               if n >= 4 else None)
         return {"method": "spearman", "n": n, "r": float(rs),
-                "ci_r": ci, "p_two_tailed": float(p), "p_type": p_type}
+                "ci_r": ci, "p_two_tailed": float(p), "p_type": p_type,
+                "effect_size": _r_effect(float(rs), ci)}
     raise ValueError(f"unknown correlation method: {method}")
+
+
+def _r_effect(r, ci) -> dict:
+    return {"r_squared": r * r if math.isfinite(r) else None,
+            "ci_r_squared": effectsize.r_squared_interval(ci),
+            "interpretation": effectsize.interpret(r, "r")}
 
 
 # ------------------------------------------------- exact Spearman P value

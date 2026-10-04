@@ -32,6 +32,12 @@ Hodges-Lehmann difference (Mann-Whitney) and of the median difference
 (Wilcoxon) use the order statistics of the pairwise differences / Walsh
 averages (Sheskin; Klotz), at the closest confidence level not below the
 one requested, which is reported as ci_actual_level.
+
+Every result also carries "effect_size" (opendose.effectsize): Cohen's d
+and Hedges' g with noncentral-t CIs (pooled SD; Welch: the average-
+variance standardizer), d_z and d_av for paired data, Cliff's delta /
+rank-biserial r with the probability of superiority for Mann-Whitney,
+and the matched-pairs rank-biserial r for Wilcoxon. None when degenerate.
 """
 
 from __future__ import annotations
@@ -42,7 +48,7 @@ from itertools import product
 import numpy as np
 from scipy import stats
 
-from . import exactdist
+from . import effectsize, exactdist
 
 
 def _clean(values) -> np.ndarray:
@@ -96,7 +102,7 @@ def _unpaired_from_stats(mean_a, var_a, na, mean_b, var_b, nb, *,
     dfn, dfd = ((na - 1, nb - 1) if var_a >= var_b else (nb - 1, na - 1))
     p_f = 2 * float(stats.f.sf(f, dfn, dfd))
 
-    return {
+    out = {
         "test": "welch_t" if welch else "unpaired_t",
         "mean_a": mean_a, "mean_b": mean_b,
         "sem_a": math.sqrt(var_a / na), "sem_b": math.sqrt(var_b / nb),
@@ -108,9 +114,17 @@ def _unpaired_from_stats(mean_a, var_a, na, mean_b, var_b, nb, *,
         "f_test_variances": {"F": f, "dfn": dfn, "dfd": dfd,
                              "p": min(p_f, 1.0)},
     }
+    es = effectsize.safe(effectsize.d_from_stats, mean_a, var_a, na, mean_b,
+                         var_b, nb, standardizer="average" if welch
+                         else "pooled", ci_level=ci_level)
+    if es is not None:
+        es["cles_parametric"] = effectsize.cles_parametric(es["d"])
+    out["effect_size"] = es
+    return out
 
 
-def paired_t(values_a, values_b, *, ci_level: float = 0.95) -> dict:
+def paired_t(values_a, values_b, *, ci_level: float = 0.95,
+             effect_size: bool = True) -> dict:
     a, b = _pair(values_a, values_b)
     n = a.size
     if n < 2:
@@ -123,7 +137,7 @@ def paired_t(values_a, values_b, *, ci_level: float = 0.95) -> dict:
     p = 2 * float(stats.t.sf(abs(t_stat), df))
     tcrit = float(stats.t.ppf((1 + ci_level) / 2, df))
     r_pair, p_pair = (stats.pearsonr(a, b) if n >= 3 else (float("nan"), float("nan")))
-    return {
+    out = {
         "test": "paired_t",
         "n_pairs": int(n),
         "mean_difference": mean_d, "se_difference": se,
@@ -132,6 +146,10 @@ def paired_t(values_a, values_b, *, ci_level: float = 0.95) -> dict:
         "r_squared": t_stat ** 2 / (t_stat ** 2 + df) if math.isfinite(t_stat) else 1.0,
         "pairing_correlation": {"r": float(r_pair), "p": float(p_pair)},
     }
+    if effect_size:
+        out["effect_size"] = effectsize.safe(effectsize.paired_d, a, b,
+                                             ci_level=ci_level)
+    return out
 
 
 def _hodges_lehmann(a: np.ndarray, b: np.ndarray) -> float:
@@ -185,6 +203,8 @@ def mann_whitney(values_a, values_b, *, ci_level: float = 0.95) -> dict:
         "mean_rank_b": float(ranks[a.size:].mean()),
         "ci_hodges_lehmann": ci,
         "ci_actual_level": level,
+        "effect_size": effectsize.safe(effectsize.cliffs_delta, a, b,
+                                       ci_level=ci_level),
     }
 
 
@@ -210,6 +230,9 @@ def wilcoxon_matched_pairs(values_a, values_b, *,
         "p_method", "zero_method", "sum_positive_ranks",
         "sum_negative_ranks", "n_zero_differences")})
     out.update(walsh_ci(d, ci_level))
+    out["effect_size"] = effectsize.safe(
+        effectsize.rank_biserial_paired, d, zero_method=zero_method,
+        ci_level=ci_level)
     return out
 
 
@@ -303,4 +326,6 @@ def ratio_paired_t(values_a, values_b, *, ci_level: float = 0.95) -> dict:
         "r_squared": res["r_squared"],
         "geometric_mean_a": float(10.0 ** np.log10(a).mean()),
         "geometric_mean_b": float(10.0 ** np.log10(b).mean()),
+        "effect_size": (dict(res["effect_size"], scale="log10")
+                        if res.get("effect_size") else None),
     }

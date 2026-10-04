@@ -8,6 +8,11 @@ Prism statistics guide, "Contingency tables":
 - Larger tables: chi-square test for independence (+ df).
 Rows are outcomes/exposures with counts; layout [[a, b], [c, d]] for 2x2
 where row = group, column = outcome.
+
+"effect_size" (opendose.effectsize): phi (signed for 2 x 2), Cramer's V
+with a noncentral chi-square CI, the bias-corrected V (Bergsma 2013) and
+Cohen's w with its conventional label; for 2 x 2 tables also the odds
+ratio label of Chen, Cohen & Chen (2010).
 """
 
 from __future__ import annotations
@@ -16,6 +21,8 @@ import math
 
 import numpy as np
 from scipy import stats
+
+from . import effectsize
 
 
 def _wilson_ci(k: int, n: int, ci_level: float = 0.95) -> list:
@@ -84,4 +91,9 @@ def contingency(table, *, yates: bool = True, ci_level: float = 0.95) -> dict:
                                       "ci": _wilson_ci(int(a), int(a + b), ci_level)}
                 out["specificity"] = {"value": float(d / (c + d)),
                                       "ci": _wilson_ci(int(d), int(c + d), ci_level)}
+    es = effectsize.safe(effectsize.phi_cramers_v, grid, ci_level=ci_level)
+    if es is not None and out.get("odds_ratio"):
+        es["odds_ratio_interpretation"] = effectsize.odds_ratio_label(
+            out["odds_ratio"]["value"])
+    out["effect_size"] = es
     return out

@@ -52,6 +52,8 @@ import math
 import numpy as np
 from scipy import stats
 
+from . import effectsize
+
 
 def _clean(values) -> np.ndarray:
     return np.array([float(v) for v in values if v is not None], dtype=float)
@@ -176,6 +178,8 @@ def one_sample_t(values, hypothetical: float, ci_level: float = 0.95) -> dict:
         "p_two_tailed": float(p),
         "ci_discrepancy": [diff - tcrit * sem, diff + tcrit * sem],
         "r_squared": float(t_stat ** 2 / (t_stat ** 2 + (n - 1))),
+        "effect_size": effectsize.safe(effectsize.one_sample_d, arr,
+                                       hypothetical, ci_level=ci_level),
     }
 
 
@@ -208,6 +212,9 @@ def wilcoxon_signed_rank(values, hypothetical: float, *,
     out.update({"hodges_lehmann_median": ci["hodges_lehmann"],
                 "ci_median": ci["ci_median"],
                 "ci_actual_level": ci["ci_actual_level"]})
+    out["effect_size"] = effectsize.safe(
+        effectsize.rank_biserial_paired, diffs, zero_method=zero_method,
+        ci_level=ci_level)
     return out
 
 
