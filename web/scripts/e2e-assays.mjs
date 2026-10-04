@@ -19,6 +19,8 @@
 import { chromium } from "playwright";
 
 const url = process.argv[2] ?? "http://localhost:5173/";
+// Skip the start screen the way the other scripts do.
+const exampleUrl = url + (url.includes("?") ? "&" : "?") + "example=1";
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1500, height: 1100 } });
 const errors = [];
@@ -71,7 +73,7 @@ async function finishWizard() {
   await wizard().waitFor({ state: "detached", timeout: 10000 });
 }
 
-await page.goto(url, { waitUntil: "domcontentloaded" });
+await page.goto(exampleUrl, { waitUntil: "domcontentloaded" });
 await page.waitForSelector(".results-table", { timeout: 180000 });
 
 // --- the Analyze menu offers assays on existing tables ---
