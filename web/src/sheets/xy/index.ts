@@ -2,7 +2,14 @@ import { ANALYSIS_NONLIN, GRAPH_XY } from "../../project/builtin";
 import { emptyTable } from "../../project/table";
 import type { AnalysisResult, OptionsState } from "../../types";
 import { DEFAULT_XY_OPTIONS } from "../../types";
-import { columnAnalysis, columnGraphs } from "../column";
+import {
+  blandAltmanAnalysis, blandAltmanGraph, columnAnalysis, columnGraphs, rocAnalysis, rocGraph,
+} from "../column";
+import { lazyPart } from "../lazy";
+import {
+  ANALYSIS_QUANTAL, defaultQuantalOptions, normalizeQuantalOptions, runQuantal,
+  type QuantalOptions, type QuantalResult,
+} from "./quantal";
 import { xyGroupedGraphs } from "../grouped";
 import DataGrid from "../common/DataGrid";
 import { defineAnalysis, defineGraph, type TableTypeDef } from "../types";
@@ -86,6 +93,43 @@ export const demingGraph = defineGraph<DemingOptions, AnalysisResult>({
   PlotPanel: XYPlot as never,
 });
 
+// Quantal dose-response panels load on first use (sheets/lazy.ts).
+const quantalModule = () => import("./quantalPanels");
+
+export const quantalAnalysis = defineAnalysis<QuantalOptions, QuantalResult>({
+  id: ANALYSIS_QUANTAL,
+  label: "Quantal dose-response (probit / logit, LD50)",
+  short: "Quantal",
+  description: "Responders out of N at each dose: probit, logit or cloglog fit, LD50 and "
+    + "other effective doses with Fieller CIs, heterogeneity, parallel lines and relative potency.",
+  sheetName: (t) => `Quantal fit of ${t}`,
+  defaultOptions: () => defaultQuantalOptions(),
+  normalizeOptions: (raw) => normalizeQuantalOptions(raw),
+  run: runQuantal,
+  defaultGraph: "quantal",
+  ControlsPanel: lazyPart(quantalModule, "QuantalControls"),
+  ResultsPanel: lazyPart(quantalModule, "QuantalResults"),
+  MethodsPanel: lazyPart(quantalModule, "QuantalMethods"),
+});
+
+export const quantalGraph = defineGraph<QuantalOptions, QuantalResult>({
+  id: "quantal",
+  label: "Percent responding with the fitted curve",
+  group: "quantal",
+  analysis: ANALYSIS_QUANTAL,
+  autoTitles: (table) => ({ x: table.xTitle && table.xTitle !== "X" ? table.xTitle : "Dose", y: "Percent responding" }),
+  exportName: "quantal-dose-response",
+  PlotPanel: lazyPart(quantalModule, "QuantalPlot"),
+  formatDatasets: (table, _g, options) => {
+    const o = normalizeQuantalOptions(options);
+    if (o.layout === "pairs") {
+      return table.datasets.filter((_, i) => i % 2 === 0 && i + 1 < table.datasets.length).map((d) => d.name);
+    }
+    return table.datasets.map((d) => d.name);
+  },
+  formatFeatures: { points: true, lines: true, errorBars: true },
+});
+
 export const xyTable: TableTypeDef = {
   type: "xy",
   label: "XY",
@@ -99,6 +143,8 @@ export const xyTable: TableTypeDef = {
   sampleName: "Dose response",
   Editor: DataGrid,
   EditorAside: PlateAside,
-  analyses: [nonlinAnalysis, demingAnalysis, columnAnalysis],
-  graphs: [xyGraph, demingGraph, ...xyGroupedGraphs, ...columnGraphs],
+  analyses: [nonlinAnalysis, demingAnalysis, quantalAnalysis, columnAnalysis, rocAnalysis,
+    blandAltmanAnalysis],
+  graphs: [xyGraph, demingGraph, quantalGraph, ...xyGroupedGraphs, ...columnGraphs, rocGraph,
+    blandAltmanGraph],
 };
