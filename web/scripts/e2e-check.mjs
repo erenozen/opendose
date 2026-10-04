@@ -1402,8 +1402,12 @@ expect("Cox (lung, age + sex): HR female vs male 0.5986, 95% CI 0.4311 to 0.8311
   coxSex.includes("0.5986") && coxSex.includes("0.4311 to 0.8311"), coxSex);
 const coxGlobal = await cardRow("Cox proportional hazards", "Global");
 expect("Cox: proportional-hazards global test chi-square 2.771", coxGlobal.includes("2.771"), coxGlobal);
+// The format layer finishes the Plotly render after the results appear.
+await page.waitForFunction(
+  () => document.querySelectorAll(".plot-card .plot .scatterlayer .point").length === 2,
+  { timeout: 30000 }).catch(() => {});
 expect("Cox forest plot draws the hazard ratios",
-  await page.locator(".plot .scatterlayer .point").count() === 2);
+  await page.locator(".plot-card .plot .scatterlayer .point").count() === 2);
 await page.locator(".graph-select").selectOption("cox_curves");
 await page.waitForTimeout(600);
 expect("Cox adjusted curves: one per group", (await page.evaluate(() =>
