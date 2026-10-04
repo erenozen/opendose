@@ -197,6 +197,16 @@ All eight types are ready. A type registered with `status: "entry-only"`
 give it analyses, or to add more to a ready type (see `multivariable/`
 for a complete example):
 
+The engine (Pyodide) runs in a Web Worker, but `run` stays plain
+synchronous code: the app calls it through `runEngine()` (src/lib/engine.ts),
+where each `engine.analyze()` answers from a cache and the function is run
+again until every request is answered (src/lib/engineReplay.ts). So `run`
+must be deterministic (choose random seeds before it) and must not change
+anything outside its return value. A panel that asks the engine something
+itself uses `await analyzeAsync(payload)` or `await runEngine((engine) => …)`
+(`getEngine()` only waits for the engine to be up). Long jobs show a busy
+line with Cancel on their results sheet without any code in the sheet.
+
 1. In `src/sheets/<type>/`, write `run.ts` (build the engine payload from
    the table with `numericData()` or by reading `table.datasets` /
    `rowTitles` / `varType` directly, call `engine.analyze`) and

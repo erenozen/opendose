@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useProject } from "../../app/context";
 import { addFamily } from "../../app/factory";
 import Modal from "../../components/Modal";
-import { getEngine } from "../../lib/engine";
+import { runEngine } from "../../lib/engine";
 import { newId } from "../../project/ids";
 import { findSheet, nextNumberedName, updateSheet } from "../../project/ops";
 import type { DataSheet, Sheet } from "../../project/types";
@@ -54,8 +54,7 @@ function SimulateDialog({ req, onClose }: { req: Request; onClose: () => void })
     if (problem || !engineReady) return;
     const s = seed.trim() ? Number(seed.trim()) : randomSeed();
     try {
-      const engine = await getEngine();
-      const table = simulateTable(engine, kind, form, s);
+      const table = await runEngine((engine) => simulateTable(engine, kind, form, s), { priority: "user" });
       if (editing) {
         apply((p) => withSimulation(updateSheet<Sheet>(p, editing.id, (x) => (x.kind === "data"
           ? { ...x, table, name: name.trim() || x.name } : x)), editing.id, kind, form, s, false));

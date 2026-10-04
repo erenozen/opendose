@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
-import { getEngine } from "../lib/engine";
+import { runEngine } from "../lib/engine";
 import { exportPzfx, pzfxFileName, pzfxSelection } from "./pzfx";
 import { resolveOptions } from "../app/analysis";
 import { useProject } from "../app/context";
@@ -60,7 +60,7 @@ export default function ShareHost() {
     }
     const p = api.store.project;
     const sel = pzfxSelection(p, dataId);
-    const r = exportPzfx(await getEngine(), sel);
+    const r = await runEngine((engine) => exportPzfx(engine, sel), { priority: "user" });
     if ("error" in r) { ui.notify(r.error); return; }
     const one = dataId ? findSheet(p, dataId)?.name : undefined;
     saveBlob(new Blob([r.xml], { type: "application/xml" }), pzfxFileName(one ?? p.title));
@@ -146,7 +146,7 @@ export default function ShareHost() {
 }
 
 function ShareDialog({ dataId, onClose }: { dataId?: string; onClose: () => void }) {
-  const { store, results } = useProject();
+  const { store, results, selectedId } = useProject();
   // The link is a snapshot of the project as it is when the dialog opens.
   const [project] = useState(() => store.project);
   const family = useMemo(() => (dataId ? familyProject(project, dataId) : null), [project, dataId]);
@@ -154,7 +154,9 @@ function ShareDialog({ dataId, onClose }: { dataId?: string; onClose: () => void
   const [withResults, setWithResults] = useState(true);
   const [copied, setCopied] = useState<"" | "done" | "failed">("");
   const current = useMemo(() => makeFragment(withResolvedOptions(target),
-    withResults ? results.snapshot() : undefined), [target, withResults, results]);
+    withResults ? results.snapshot() : undefined, undefined,
+    { keys: results.fingerprints(), selected: selectedId }),
+  [target, withResults, results, selectedId]);
 
   const base = `${location.origin}${location.pathname}${location.search}`;
   const url = current.ok ? `${base}${current.fragment}` : "";
@@ -162,7 +164,8 @@ function ShareDialog({ dataId, onClose }: { dataId?: string; onClose: () => void
 
   const copy = async () => setCopied((await copyText(url)) ? "done" : "failed");
   const download = () => {
-    const blob = new Blob([serializeProject(target, results.snapshot())], { type: "application/json" });
+    const blob = new Blob([serializeProject(target, results.snapshot(),
+      { keys: results.fingerprints(), selected: selectedId })], { type: "application/json" });
     const slug = target.title.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-")
       .replace(/^-+|-+$/g, "") || "opendose-project";
     saveBlob(blob, `${slug}.json`);

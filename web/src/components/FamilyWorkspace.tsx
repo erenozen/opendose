@@ -1,4 +1,4 @@
-import { Suspense, useCallback, useMemo, useRef } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { resolveOptions } from "../app/analysis";
 import { useCommands } from "../app/commands";
 import { useProject } from "../app/context";
@@ -29,6 +29,7 @@ import { GenericMethodsText } from "./MethodsText";
 import HSplitter from "./HSplitter";
 import { SnowflakeIcon } from "./SheetIcon";
 import WelcomePanel from "./WelcomePanel";
+import { AnalysisBusy, EngineBootNote } from "./EngineStatus";
 import { useGuideOptional } from "../guide/context";
 import EntryGuide from "../guide/EntryGuide";
 import { DifferNote, ResultsGuide } from "../guide/ResultsGuide";
@@ -45,7 +46,7 @@ import StatsMethodsCard from "../report/StatsMethodsCard";
  */
 export default function FamilyWorkspace({ data }: { data: DataSheet }) {
   const api = useProject();
-  const { project, apply, engineReady, status, engineError, bootEngine } = api;
+  const { project, apply, engineReady, status, engineError, bootEngine, engine } = api;
   const cmd = useCommands();
   const guide = useGuideOptional();
   const mainRef = useRef<HTMLElement>(null);
@@ -54,7 +55,7 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
   const graph = api.activeGraph(data.id);
   const aDef = resSheet ? analysisDef(data.table.type, resSheet.analysis) : undefined;
 
-  const { result, options } = useAnalysisResult(resSheet, data.table);
+  const { result, options, status: resStatus } = useAnalysisResult(resSheet, data.table);
   // A graph may draw from a results sheet other than the active one.
   const graphRes = graph?.resultsId && graph.resultsId !== resSheet?.id
     ? findSheet(project, graph.resultsId) as ResultsSheet | undefined : undefined;
@@ -63,8 +64,9 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
   // The engine-ready reveal animates once per session.
   const reveal = engineReady && !api.switchedRef.current ? " reveal" : "";
 
-  const onTableChange: TableEdit = (fn, key) =>
-    apply((p) => updateTable(p, data.id, fn), key ? `table:${key}` : null);
+  const dataId = data.id;
+  const onTableChange: TableEdit = useCallback((fn, key) =>
+    apply((p) => updateTable(p, dataId, fn), key ? `table:${key}` : null), [apply, dataId]);
 
   const editFamily: AsideProps["editFamily"] = (edit) => apply((p) => {
     let next = edit.table ? updateTable(p, data.id, edit.table) : p;
@@ -94,13 +96,26 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
   const Methods = aDef?.MethodsPanel ?? (aDef ? GenericMethodsText : undefined);
 
   const constants = useMemo(() => projectConstants(project), [project]);
+  // The grid re-renders only when its own inputs change, not each time a
+  // computation starts or a result arrives (a large grid is costly).
+  const editor = useMemo(() => (
+    <Editor sheet={data} table={data.table} readOnly={readOnly} onChange={onTableChange} />
+  ), [Editor, data, readOnly, onTableChange]);
+  // The graph follows edits once they pause (a moment for small tables,
+  // half a second for large ones): redrawing on every keystroke or undo
+  // step would hold up the grid, and only the last state is seen anyway.
+  const settledTable = useSettledTable(data.table);
+  // A large table scrolls inside its card: the browser then lays out and
+  // composites only the rows in view instead of thousands on every edit.
+  const largeTable = useMemo(() => cellCount(data.table) > LARGE_TABLE_CELLS, [data.table]);
+  const graphData = useMemo(() => (settledTable === data.table ? data
+    : { ...data, table: settledTable }), [data, settledTable]);
 
   return (
     <main ref={mainRef}>
-      {/* Until the engine is up, the editor column is inert: typing into a
-          table that cannot analyze yet only causes confusion (and competes
-          with the runtime for the main thread). */}
-      <div className="left" inert={!engineReady}>
+      {/* The engine runs in a worker: the editor works while it loads and
+          while it computes; analyses queue until it is ready. */}
+      <div className="left">
         {Aside && !readOnly && (
           <>
             <div className="pane pane-import">
@@ -110,14 +125,13 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
             <HSplitter />
           </>
         )}
-        <div className="pane pane-table">
+        <div className={`pane pane-table${largeTable ? " large-table" : ""}`}>
           {data.frozen && (
             <FrozenNote what="data table" onUnfreeze={() => cmd.toggleFreeze(data.id)} />
           )}
           <OriginNote data={data} />
           {!readOnly && <EntryGuide data={data} />}
-          <Editor sheet={data} table={data.table} readOnly={readOnly}
-            onChange={onTableChange} />
+          {editor}
         </div>
         {!entryOnly && (
           <>
@@ -163,16 +177,24 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
       </div>
       <ColumnSplitter mainRef={mainRef} />
       <div className="right">
-        {!engineReady ? (
+        {!engineReady && (engineError || result == null) ? (
           <div className="pane pane-plot">
-            <WelcomePanel status={status} error={engineError} onRetry={bootEngine} />
+            <WelcomePanel status={status} error={engineError} onRetry={bootEngine}
+              engine={engine} />
           </div>
         ) : (
           <>
+            {/* Saved (or bundled example) results show at once; the live
+                engine replaces them when it is up. */}
+            {!engineReady && (
+              <div className="pane pane-boot">
+                <EngineBootNote engine={engine} live={resStatus.live} />
+              </div>
+            )}
             {graph && (
               <>
                 <div className={`pane pane-plot${reveal}`}>
-                  <GraphCard graph={graph} data={data}
+                  <GraphCard graph={graph} data={graphData}
                     result={graph.resultsId === resSheet?.id ? result : other.result}
                     options={graph.resultsId === resSheet?.id ? options : other.options} />
                 </div>
@@ -180,7 +202,10 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
               </>
             )}
             {resSheet && Results && (
-              <div className={`pane pane-results${reveal}`}>
+              <div className={`pane pane-results${reveal}`}
+                data-live={resStatus.live ? "true" : "false"}
+                aria-busy={resStatus.pending ? true : undefined}>
+                {engineReady && <AnalysisBusy status={resStatus} engine={engine} />}
                 <ResultsGuide analysisId={resSheet.analysis} tableType={data.table.type}
                   table={data.table} options={options} result={result}
                   dataId={data.id} readOnly={readOnly} />
@@ -230,6 +255,29 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
       </div>
     </main>
   );
+}
+
+/** Cells beyond which a table counts as large (graph settles slower,
+ *  the grid scrolls inside its card). */
+const LARGE_TABLE_CELLS = 4000;
+const SETTLE_MS = { small: 120, large: 500 };
+
+function cellCount(t: DataTableModel): number {
+  let n = t.x.length;
+  for (const d of t.datasets) n += d.rows.length * (d.rows[0]?.length ?? 1);
+  return n;
+}
+
+/** The table as it was when edits last paused (SETTLE_MS). */
+function useSettledTable(table: DataTableModel): DataTableModel {
+  const large = cellCount(table) > LARGE_TABLE_CELLS;
+  const [settled, setSettled] = useState(table);
+  useEffect(() => {
+    if (settled === table) return;
+    const t = setTimeout(() => setSettled(table), large ? SETTLE_MS.large : SETTLE_MS.small);
+    return () => clearTimeout(t);
+  }, [large, table, settled]);
+  return settled;
 }
 
 /** Shown while a panel's code loads (sheets/lazy.ts): usually a moment. */

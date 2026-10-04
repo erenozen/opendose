@@ -301,8 +301,9 @@ export interface RunPlan {
 
 /** Run a plan chunk by chunk, yielding to the page between chunks.
  *  `shouldStop` is checked between chunks; the pooled output so far is
- *  returned either way. */
-export async function runMonteCarlo(engine: EngineBridge, plan: RunPlan,
+ *  returned either way. The engine may answer asynchronously (the worker
+ *  engine: one chunk is one request). */
+export async function runMonteCarlo(engine: { analyze: (p: unknown) => unknown }, plan: RunPlan,
   onProgress: (done: number) => void, shouldStop: () => boolean): Promise<McOutput> {
   const labels = plan.tabulate.map((t) => t.label);
   const paths = Object.fromEntries(plan.tabulate.map((t) => [t.label, t.path]));
@@ -317,7 +318,7 @@ export async function runMonteCarlo(engine: EngineBridge, plan: RunPlan,
   for (let chunk = 0; done < plan.n; chunk++) {
     if (shouldStop()) { cancelled = true; break; }
     const size = Math.min(CHUNK, plan.n - done);
-    const r = engine.analyze({
+    const r = await engine.analyze({
       analysis: "monte_carlo", data: {},
       options: {
         simulation, analysis: plan.template, n_repeats: size, tabulate: paths,
@@ -342,7 +343,7 @@ export async function runMonteCarlo(engine: EngineBridge, plan: RunPlan,
     let ci: [number | null, number | null] = [null, null];
     if (decided.length) {
       // CI of the proportion by the engine's recommended method.
-      const c = engine.analyze({
+      const c = await engine.analyze({
         analysis: "fraction_of_total_table",
         data: { datasets: [{ name: "hits", ys: [[nHits], [decided.length - nHits]] }] },
         options: { divide_by: "column", ci: true, ci_method: "wilson_brown", ci_level: 0.95 },

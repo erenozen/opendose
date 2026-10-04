@@ -9,7 +9,7 @@ import { useProject } from "../app/context";
 import { useUi } from "../app/ui";
 import Modal from "../components/Modal";
 import { saveBlob } from "../export/download";
-import { getEngine } from "../lib/engine";
+import { analyzeAsync, isCancelled } from "../lib/engine";
 import { DEFAULT_SCHEME, seriesStyle } from "../lib/palette";
 import { newId } from "../project/ids";
 import { addSheets, makeInfoSheet, uniqueName } from "../project/ops";
@@ -71,39 +71,49 @@ function PowerTool() {
   const [curves, setCurves] = useState<{ n: Curve; e: Curve; nLabel: string } | null>(null);
   const set = (p: Partial<PowerForm>) => setForm((x) => ({ ...x, ...p }));
 
-  // Recalculate as the inputs change (debounced; the engine call blocks).
+  // Recalculate as the inputs change (debounced, in the engine worker; a
+  // newer input cancels what is still pending for the older one).
   useEffect(() => {
     let live = true;
+    const ctl = new AbortController();
     const t = setTimeout(async () => {
       const p = powerPayload(form);
       if ("error" in p) { setError(p.error); setResult(null); setCurves(null); return; }
-      const eng = await getEngine();
-      if (!live) return;
-      const r = eng.analyze(p.payload) as PowerResult;
-      if (r.error) { setError(String(r.error)); setResult(null); setCurves(null); return; }
-      setError(null);
-      setResult(r);
-      // Power curves: vs sample size at this effect, vs effect at this n.
-      const center = nForCurve(r);
-      const effect = r.effect.value;
-      const slow = form.kind === "two_proportions" && form.propMethod === "fisher_exact";
-      const run = (over: { n?: number; effect?: number }) => {
-        const o = powerOptions(form, { solve: "power", ...over, ...(over.effect === undefined ? { effect } : {}),
-          ...(over.n === undefined ? { n: center } : {}) });
-        if ("error" in o) return null;
-        const res = eng.analyze({ analysis: "power", data: {}, options: o.options }) as PowerResult;
-        return res.error ? null : res.power;
-      };
-      const ns = nGrid(center).filter((v) => !slow || v <= 400);
-      const nc: Curve = { x: [], y: [] };
-      for (const v of ns) { const pw = run({ n: v }); if (pw !== null) { nc.x.push(v); nc.y.push(pw); } }
-      const es = effectGrid(form.kind, effect, { p1: n(form.p1) ?? undefined, p0: n(form.p0) ?? undefined,
-        rho0: n(form.rho0) ?? undefined });
-      const ec: Curve = { x: [], y: [] };
-      if (!slow) for (const v of es) { const pw = run({ effect: v }); if (pw !== null) { ec.x.push(v); ec.y.push(pw); } }
-      if (live) setCurves({ n: nc, e: ec, nLabel: nLabel(form) });
+      try {
+        const r = await analyzeAsync(p.payload, { signal: ctl.signal, priority: "user" }) as PowerResult;
+        if (!live) return;
+        if (r.error) { setError(String(r.error)); setResult(null); setCurves(null); return; }
+        setError(null);
+        setResult(r);
+        // Power curves: vs sample size at this effect, vs effect at this n.
+        const center = nForCurve(r);
+        const effect = r.effect.value;
+        const slow = form.kind === "two_proportions" && form.propMethod === "fisher_exact";
+        const curve = async (xs: number[], over: (v: number) => { n?: number; effect?: number }) => {
+          const ys = await Promise.all(xs.map(async (v) => {
+            const ov = over(v);
+            const o = powerOptions(form, { solve: "power", ...ov, ...(ov.effect === undefined ? { effect } : {}),
+              ...(ov.n === undefined ? { n: center } : {}) });
+            if ("error" in o) return null;
+            const res = await analyzeAsync({ analysis: "power", data: {}, options: o.options },
+              { signal: ctl.signal }) as PowerResult;
+            return res.error ? null : res.power;
+          }));
+          const c: Curve = { x: [], y: [] };
+          xs.forEach((v, i) => { const pw = ys[i]; if (pw !== null && pw !== undefined) { c.x.push(v); c.y.push(pw); } });
+          return c;
+        };
+        const ns = nGrid(center).filter((v) => !slow || v <= 400);
+        const es = effectGrid(form.kind, effect, { p1: n(form.p1) ?? undefined, p0: n(form.p0) ?? undefined,
+          rho0: n(form.rho0) ?? undefined });
+        const [nc, ec] = await Promise.all([curve(ns, (v) => ({ n: v })),
+          slow ? Promise.resolve({ x: [], y: [] }) : curve(es, (v) => ({ effect: v }))]);
+        if (live) setCurves({ n: nc, e: ec, nLabel: nLabel(form) });
+      } catch (e) {
+        if (live && !isCancelled(e)) { setError(e instanceof Error ? e.message : String(e)); setCurves(null); }
+      }
     }, 250);
-    return () => { live = false; clearTimeout(t); };
+    return () => { live = false; ctl.abort(); clearTimeout(t); };
   }, [form]);
 
   const save = () => {
@@ -459,8 +469,8 @@ function RandomTool() {
   const generate = async () => {
     const o = randomOptions(form);
     if ("error" in o) { setError(o.error); return; }
-    const eng = await getEngine();
-    const r = eng.analyze({ analysis: "randomize", data: {}, options: o.options }) as RandomResult;
+    const r = await analyzeAsync({ analysis: "randomize", data: {}, options: o.options },
+      { priority: "user" }) as RandomResult;
     if (r.error) { setError(String(r.error)); setResult(null); return; }
     setError(null);
     setResult(r);

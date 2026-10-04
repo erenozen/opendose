@@ -2,7 +2,7 @@
 // values taken from the bound results, or a compact letter display.
 import { useEffect, useState } from "react";
 import Modal from "../components/Modal";
-import { getEngine } from "../lib/engine";
+import { analyzeAsync } from "../lib/engine";
 import { CHROME_DARK, CHROME_LIGHT, isDarkMode } from "../lib/palette";
 import { withField, type ComparisonsFormat, type GraphFormat, type LettersFormat } from "./format";
 import type { ComparisonSet } from "./results";
@@ -61,9 +61,8 @@ export default function ComparisonsDialog({
     setEngine("asking");
     // The key is the exact engine payload, so the request is rebuilt from it.
     const payload = JSON.parse(key) as ReturnType<typeof lettersPayload>;
-    getEngine().then((eng) => {
-      const res = eng.analyze({ analysis: "compact_letters", data: payload,
-        options: { alpha: payload.alpha } });
+    analyzeAsync({ analysis: "compact_letters", data: payload,
+      options: { alpha: payload.alpha } }, { priority: "user" }).then((res) => {
       const letters = parseEngineLetters(res, payload.groups);
       if (!live) return;
       setEngine(letters ? "engine" : "client");

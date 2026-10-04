@@ -1,7 +1,7 @@
 // Plate reader → dose-response: controls (with the setup wizard), the QC
 // results sheet and the methods text.
 import { useEffect, useState } from "react";
-import { getEngine, readXlsx } from "../../../lib/engine";
+import { readXlsx, runEngine } from "../../../lib/engine";
 import { parseSource } from "../../../share/recipes/presets";
 import CopyableMethods from "../../common/CopyableMethods";
 import type { DataTableModel } from "../../../project/types";
@@ -225,6 +225,8 @@ function PlateWizard({ start, table, options, tableName, hasOutputs, onClose, on
 }) {
   const [o, setO] = useState<PlateOptions>(options);
   const [newTable, setNewTable] = useState<typeof table | null>(null);
+  // What the reader could not read exactly as found (shown again at QC).
+  const [readWarnings, setReadWarnings] = useState<string[]>([]);
   const t = newTable ?? table;
   const set = (patch: Partial<PlateOptions>) => setO((prev) => ({ ...prev, ...patch }));
   const plates = platesOf(t, o.format);
@@ -242,8 +244,9 @@ function PlateWizard({ start, table, options, tableName, hasOutputs, onClose, on
           render: () => (
             <ImportStep table={t} format={o.format}
               onFormat={(format) => set({ format, wells: format === o.format ? o.wells : {} })}
-              onTable={(nt, format) => {
+              onTable={(nt, format, warnings) => {
                 setNewTable(nt);
+                setReadWarnings(warnings);
                 if (format !== o.format) set({ format, wells: {} });
               }} />
           ),
@@ -267,6 +270,12 @@ function PlateWizard({ start, table, options, tableName, hasOutputs, onClose, on
           render: () => (
             <>
               <NormalizationFields o={o} set={set} />
+              {readWarnings.length > 0 && (
+                <div className="plate-read-warnings" role="note">
+                  <h4>Reading the plate file</h4>
+                  <ul>{readWarnings.map((w) => <li key={w}>{w}</li>)}</ul>
+                </div>
+              )}
               <h4>Plate QC with these settings</h4>
               <QcPreview table={t} options={o} />
             </>
@@ -296,7 +305,7 @@ function ImportStep({ table, format, onFormat, onTable }: {
   table: DataTableModel;
   format: PlateFormat;
   onFormat: (f: PlateFormat) => void;
-  onTable: (t: DataTableModel, f: PlateFormat) => void;
+  onTable: (t: DataTableModel, f: PlateFormat, warnings: string[]) => void;
 }) {
   const [text, setText] = useState("");
   const [append, setAppend] = useState(false);
@@ -306,7 +315,7 @@ function ImportStep({ table, format, onFormat, onTable }: {
   const filled = current.filter((g) => g.some((r) => r.some((v) => v !== null))).length;
 
   const take = (matrices: string[][][]) => {
-    const found = findPlates(matrices);
+    const found = findPlates(matrices, format);
     if (!found.plates.length) {
       setMsg("No plate block was found: the export needs rows labelled A, B, C … with the "
         + "readings beside them, or a bare 8 × 12 (16 × 24) grid of numbers.");
@@ -314,9 +323,10 @@ function ImportStep({ table, format, onFormat, onTable }: {
     }
     const keep = append && found.format === format ? current.slice(0, filled) : [];
     const plates = [...keep, ...found.plates];
-    onTable(plateTable(plates, found.format), found.format);
+    onTable(plateTable(plates, found.format), found.format, found.warnings);
     setMsg(`Read ${found.plates.length} plate${found.plates.length === 1 ? "" : "s"} of `
-      + `${found.format} wells${keep.length ? `, after the ${keep.length} already in the table` : ""}.`);
+      + `${found.format} wells${keep.length ? `, after the ${keep.length} already in the table` : ""}.`
+      + (found.warnings.length ? ` ${found.warnings.join(" ")}` : ""));
   };
 
   return (
@@ -384,8 +394,8 @@ function QcPreview({ table, options }: {
   useEffect(() => {
     let live = true;
     const timer = setTimeout(async () => {
-      const engine = await getEngine();
-      const r = runPlateQc((p) => engine.analyze(p), table, options);
+      const r = await runEngine((engine) => runPlateQc((p) => engine.analyze(p), table, options),
+        { priority: "user" }).catch((e) => ({ error: e instanceof Error ? e.message : String(e) }));
       if (live) setRun(r);
     }, 150);
     return () => { live = false; clearTimeout(timer); };

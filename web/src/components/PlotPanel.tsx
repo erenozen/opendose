@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import Plotly from "plotly.js-dist-min";
+import type Plotly from "plotly.js-dist-min";
+import { loadPlotly, plotlyNow } from "../lib/plotly";
 import { graphPStyle } from "../graph/significance";
 import type { AnalysisResult } from "../types";
 import { niceTicks } from "../project/xformat";
@@ -56,7 +57,7 @@ export default function PlotPanel({
         // Not while hidden (a Suspense fallback shows): Plotly refuses.
         if ((div as unknown as { _fullLayout?: unknown })._fullLayout
           && div.getClientRects().length) {
-          Plotly.Plots.resize(div);
+          plotlyNow()?.Plots.resize(div);
         }
       });
     });
@@ -213,12 +214,12 @@ export default function PlotPanel({
       results: resultBlocks(result, graphPStyle(format)), editRevision: rev,
     });
     const div = el.current;
-    Plotly.react(div, out.traces as Plotly.Data[], out.layout, plotConfig({
+    void loadPlotly().then((P) => P.react(div, out.traces as Plotly.Data[], out.layout, plotConfig({
       responsive: true,
       scrollZoom: true,
       displaylogo: false,
       toImageButtonOptions: { format: "svg", filename: "dose-response" },
-    }, format, !!onFormatChange)).then(() => attach(div));
+    }, format, !!onFormatChange))).then(() => attach(div));
   }, [result, dark, xTitle, yTitle, scheme, xTickFormat, format, rev, rowTitles, onFormatChange, attach]);
 
   return <div className="plot" ref={el} />;

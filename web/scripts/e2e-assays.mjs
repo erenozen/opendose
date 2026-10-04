@@ -77,7 +77,7 @@ async function finishWizard() {
 }
 
 await page.goto(url, { waitUntil: "domcontentloaded" });
-await page.waitForSelector(".results-table", { timeout: 180000 });
+await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 180000 });
 
 // --- the Analyze menu offers assays on existing tables ---
 await page.getByRole("button", { name: "Analyze", exact: true }).click();
@@ -147,6 +147,27 @@ await waitText(".plate-results", "2 plates of 96 wells");
 const two = await textOf(".plate-results");
 expect("two-plate QC summary: Z′ 0.849 on both plates (Z′ is scale-free)",
   (two.match(/Plate \d 0\.849/g) ?? []).length === 2, two.slice(0, 220));
+
+// a labelled 384-well export (rows A–P, columns 1–24) is read whole, not
+// as its 96-well top-left corner; the same grid without labels too
+await page.getByRole("button", { name: "Open setup wizard…" }).click();
+await wizard().waitFor();
+const well384 = (r, c) => (0.05 + 1.1 / (1 + 10 ** ((12 - c) * 0.4)) + 0.002 * r).toFixed(4);
+const grid384 = Array.from({ length: 16 }, (_, r) => Array.from({ length: 24 }, (_, c) => well384(r, c)));
+const labelled384 = ["\t" + Array.from({ length: 24 }, (_, c) => c + 1).join("\t"),
+  ...grid384.map((row, r) => `${"ABCDEFGHIJKLMNOP"[r]}\t${row.join("\t")}`)].join("\n");
+await wizard().getByLabel("Plate format").selectOption("384");
+await wizard().getByLabel("Paste plate grid").fill(`Reader export\n${labelled384}`);
+await wizard().getByRole("button", { name: "Read pasted plates" }).click();
+const read384 = (await wizard().locator("[role=status]").allInnerTexts()).join(" ");
+expect("a labelled 16 × 24 grid is read as 384 wells", /Read 1 plate of 384 wells\./.test(read384)
+  && !/Not read/.test(read384), read384);
+await wizard().getByLabel("Paste plate grid").fill(grid384.map((r) => r.join("\t")).join("\n"));
+await wizard().getByRole("button", { name: "Read pasted plates" }).click();
+const bare384 = (await wizard().locator("[role=status]").allInnerTexts()).join(" ");
+expect("the same grid without labels: 384 wells", /Read 1 plate of 384 wells/.test(bare384), bare384);
+await wizard().getByRole("button", { name: "Cancel" }).click();
+await wizard().waitFor({ state: "detached", timeout: 10000 });
 
 // --- standard curve / ELISA ---
 await startAssay("Standard curve / ELISA");

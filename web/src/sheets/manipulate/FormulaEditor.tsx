@@ -3,7 +3,7 @@
 // searchable function reference built from the engine's own list.
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useProject } from "../../app/context";
-import { getEngine } from "../../lib/engine";
+import { analyzeAsync } from "../../lib/engine";
 import { identifierFor, projectConstants } from "../../project/infoLinks";
 import { familyRootId } from "../../project/ops";
 import { datasetLetter } from "../../project/table";
@@ -18,9 +18,9 @@ interface Problem { message: string; line: number | null; column: number | null 
 let functionNames: Promise<string[]> | null = null;
 function engineFunctions(): Promise<string[]> {
   if (!functionNames) {
-    functionNames = getEngine().then((e) => {
-      const r = e.analyze({ analysis: "formula_transform", data: {}, options: { mode: "functions" } }) as
-        { functions?: string[] };
+    functionNames = analyzeAsync({ analysis: "formula_transform", data: {},
+      options: { mode: "functions" } }).then((res) => {
+      const r = res as { functions?: string[] };
       return r.functions ?? Object.keys(FUNCTION_DOCS);
     }).catch(() => {
       functionNames = null;
@@ -38,11 +38,15 @@ function useValidation(formula: string, target: "X" | "Y", known: string[]): Pro
     if (!formula.trim()) { setProblems(null); return; }
     let live = true;
     const timer = setTimeout(async () => {
-      const engine = await getEngine();
-      const r = engine.analyze({
-        analysis: "formula_transform", data: {},
-        options: { mode: "validate", formula, target, known_names: knownKey.split(",") },
-      }) as { ok?: boolean; errors?: Problem[]; error?: string };
+      let r: { ok?: boolean; errors?: Problem[]; error?: string };
+      try {
+        r = await analyzeAsync({
+          analysis: "formula_transform", data: {},
+          options: { mode: "validate", formula, target, known_names: knownKey.split(",") },
+        }, { priority: "user" }) as typeof r;
+      } catch (e) {
+        r = { error: e instanceof Error ? e.message : String(e) };
+      }
       if (!live) return;
       if (r.error) setProblems([{ message: r.error, line: null, column: null }]);
       else setProblems(r.errors ?? []);

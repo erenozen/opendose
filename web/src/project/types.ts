@@ -262,6 +262,9 @@ export interface ResultsSheet extends SheetBase {
   /** Last computed result. Always present on frozen sheets (it is what they
    *  show); written for every results sheet when a project is saved. */
   cached?: unknown;
+  /** Fingerprint of the input `cached` was computed from (app/analysis.ts
+   *  resultKey); a reopened project reuses the result while it matches. */
+  cachedKey?: string;
 }
 
 export interface GraphSettings {

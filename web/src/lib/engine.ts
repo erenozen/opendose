@@ -1,112 +1,156 @@
-// Pyodide bridge: loads the real CPython + scipy in the browser and runs
-// the same opendose package that the native test suite validates.
-import { loadPyodide, version as pyodideVersion } from "pyodide";
-import { applyModelList } from "./modelLibrary.ts";
+// The analysis engine: real CPython + NumPy + SciPy (Pyodide) running the
+// same opendose package that the native test suite validates, in a Web
+// Worker (engine.worker.ts) so the page stays responsive while it works.
+//
+// Public API (callers do not see the worker):
+//   runEngine(fn, opts)   run synchronous analysis code `fn(engine)`;
+//                         resolves with its return value. Inside fn,
+//                         engine.analyze(payload) answers synchronously
+//                         (see engineReplay.ts for how).
+//   analyzeAsync(p, opts) one request, as a promise.
+//   getEngine()           resolves when the engine is ready, with a bridge
+//                         for code that hands it to runEngine-style calls.
+//   readXlsx(bytes)       every worksheet of an .xlsx file.
+//   getRuntimeVersions()  numpy/scipy/python versions (citations).
+//   engineState()/subscribeEngine()  boot progress and busy state.
+//
+// Options: `signal` cancels; `coalesce` names a slot ("results:<sheet id>")
+// so a newer run cancels the previous one still pending in that slot;
+// `priority` orders the queue ("user" > "visible" > "background").
+import { BASE_URL, ENGINE_HASH, PYODIDE_VERSION } from "./buildInfo";
+import {
+  EngineHost, isCancelled, type EngineState, type Priority,
+  type WorkerLike,
+} from "./engineClient";
+import type { RuntimeVersions } from "./engineProtocol";
+import {
+  AnswerCache, replay, type EngineBridge, type Outcome,
+} from "./engineReplay";
+import { applyModelList } from "./modelLibrary";
 
-export interface EngineBridge {
-  analyze: (payload: unknown) => unknown;
+export type { EngineBridge } from "./engineReplay";
+export type { RuntimeVersions } from "./engineProtocol";
+export type { EngineState, Priority } from "./engineClient";
+export { EngineCancelled, isCancelled } from "./engineClient";
+export { isEnginePending } from "./engineReplay";
+
+export const PYODIDE_INDEX_URL = `https://cdn.jsdelivr.net/pyodide/v${PYODIDE_VERSION}/full/`;
+
+const host = new EngineHost(
+  () => new Worker(new URL("./engine.worker.ts", import.meta.url),
+    { type: "module", name: "opendose-engine" }) as unknown as WorkerLike,
+  {
+    indexURL: PYODIDE_INDEX_URL,
+    engineURL: `${BASE_URL}py/opendose/bundle.json?v=${ENGINE_HASH}`,
+    packages: ["numpy", "scipy"],
+  },
+);
+// For the e2e and performance scripts (boot and restart timings).
+(globalThis as { __opendoseEngine?: EngineHost }).__opendoseEngine = host;
+
+const answers = new AnswerCache();
+let modelsApplied = false;
+
+function onReady() {
+  if (modelsApplied) return;
+  modelsApplied = true;
+  // The xlsx reader (openpyxl, from PyPI) installs once the engine has
+  // nothing else to do, so the first xlsx import does not wait for it.
+  setTimeout(() => {
+    host.submit({ type: "prepare", what: "xlsx" }, { priority: "background" }).catch(() => {});
+  }, 3000);
+  const models = host.info?.models;
+  if (!models) return;
+  try { applyModelList(JSON.parse(models)); } catch { /* keep the built-in list */ }
 }
 
-let enginePromise: Promise<EngineBridge> | null = null;
-let pyRuntime: Awaited<ReturnType<typeof loadPyodide>> | null = null;
-
-/** Numerical library versions as loaded in this browser (for citations). */
-export interface RuntimeVersions {
-  python: string;
-  numpy: string;
-  scipy: string;
-  pyodide: string;
+/** Start downloading and booting the engine now (idempotent). Called
+ *  before React renders, so the runtime loads while the page paints. */
+export function startEngine(): Promise<void> {
+  return host.boot().then(onReady);
 }
 
-let runtimeVersions: RuntimeVersions | null = null;
+export function engineState(): EngineState { return host.state; }
+
+export function subscribeEngine(fn: (s: EngineState) => void): () => void {
+  return host.subscribe(fn);
+}
 
 /** Null until the engine has booted. */
 export function getRuntimeVersions(): RuntimeVersions | null {
-  return runtimeVersions;
+  return host.info?.versions ?? null;
 }
 
-export function getEngine(
-  onStatus: (msg: string) => void = () => {},
-): Promise<EngineBridge> {
-  if (!enginePromise) {
-    enginePromise = init(onStatus).catch((err) => {
-      enginePromise = null; // allow retry after transient network failure
-      throw err;
-    });
+export interface RunOptions {
+  signal?: AbortSignal;
+  /** A newer run with the same key cancels this one. */
+  coalesce?: string;
+  priority?: Priority;
+}
+
+const slots = new Map<string, AbortController>();
+
+/** Run synchronous analysis code against the engine (see the header). */
+export async function runEngine<T>(fn: (engine: EngineBridge) => T,
+  opts: RunOptions = {}): Promise<T> {
+  const ctl = new AbortController();
+  const { signal: outer, coalesce, priority } = opts;
+  if (outer) {
+    if (outer.aborted) ctl.abort();
+    else outer.addEventListener("abort", () => ctl.abort(), { once: true });
   }
-  return enginePromise;
-}
-
-// Dev/SPA servers answer missing files with index.html and HTTP 200, so a
-// bad deploy or a fetch racing the sync-py copy would silently write HTML
-// into the Python filesystem and die later with a confusing SyntaxError.
-// Validate what came back and retry (bypassing caches) before giving up.
-async function fetchAsset(url: string, name: string): Promise<string> {
-  for (let attempt = 0; ; attempt++) {
-    const resp = await fetch(url, attempt ? { cache: "reload" } : undefined);
-    const text = resp.ok ? await resp.text() : "";
-    const looksHtml = /^\s*<(!doctype|html)/i.test(text);
-    if (resp.ok && text && !looksHtml) return text;
-    if (attempt >= 2) {
-      throw new Error(`could not load engine file "${name}"` +
-        (looksHtml
-          ? " (the server returned a web page instead of the file)"
-          : ` (HTTP ${resp.status})`));
-    }
-    await new Promise((r) => setTimeout(r, 700 * (attempt + 1)));
+  if (coalesce) {
+    slots.get(coalesce)?.abort();
+    slots.set(coalesce, ctl);
+  }
+  try {
+    await startEngine();
+    const ask = (payload: string): Promise<Outcome> =>
+      host.submit({ type: "analyze", payload }, { priority, signal: ctl.signal }).then(
+        (text) => ({ ok: true, text }),
+        (e) => {
+          if (isCancelled(e)) throw e;
+          return { ok: false, text: e instanceof Error ? e.message : String(e) };
+        },
+      );
+    return await replay(fn, ask, answers, { signal: ctl.signal });
+  } finally {
+    if (coalesce && slots.get(coalesce) === ctl) slots.delete(coalesce);
   }
 }
 
-async function init(onStatus: (msg: string) => void): Promise<EngineBridge> {
-  onStatus("Downloading Python runtime…");
-  const py = await loadPyodide({
-    indexURL: `https://cdn.jsdelivr.net/pyodide/v${pyodideVersion}/full/`,
-  });
-  onStatus("Loading NumPy + SciPy…");
-  await py.loadPackage(["numpy", "scipy", "micropip"]);
-  // openpyxl (xlsx plate import) is pure Python; not bundled with Pyodide
-  const micropip = py.pyimport("micropip");
-  await micropip.install("openpyxl");
+/** One engine request. */
+export function analyzeAsync(payload: unknown, opts: RunOptions = {}): Promise<unknown> {
+  return runEngine((e) => e.analyze(payload), opts);
+}
 
-  onStatus("Installing analysis engine…");
-  py.FS.mkdirTree("/app/opendose");
-  const pyFiles: string[] = JSON.parse(await fetchAsset(
-    `${import.meta.env.BASE_URL}py/opendose/manifest.json`,
-    "manifest.json",
-  ));
-  await Promise.all(
-    pyFiles.map(async (name) => {
-      const text = await fetchAsset(
-        `${import.meta.env.BASE_URL}py/opendose/${name}`, name);
-      py.FS.writeFile(`/app/opendose/${name}`, text);
-    }),
-  );
-  py.runPython(
-    'import sys\nsys.path.insert(0, "/app")\nfrom opendose.api import analyze_json',
-  );
-  const analyzeJson = py.globals.get("analyze_json");
-  try {
-    runtimeVersions = {
-      ...JSON.parse(py.runPython(
-        'import json, sys, numpy, scipy\n'
-        + 'json.dumps({"python": sys.version.split()[0], '
-        + '"numpy": numpy.__version__, "scipy": scipy.__version__})') as string),
-      pyodide: pyodideVersion,
-    };
-  } catch { /* versions are informational only */ }
-  pyRuntime = py;
-  // The curve-fitting model library comes from the engine's registry, once.
-  try {
-    applyModelList(JSON.parse(analyzeJson(JSON.stringify({
-      analysis: "list_models", data: {}, options: {},
-    })) as string));
-  } catch { /* keep the built-in fallback list */ }
+/** Cancel everything queued or running (a new project was opened). */
+export function cancelAllEngineJobs() {
+  for (const c of slots.values()) c.abort();
+  slots.clear();
+  host.cancelAll();
+}
 
-  return {
-    analyze(payload: unknown) {
-      return JSON.parse(analyzeJson(JSON.stringify(payload)) as string);
-    },
-  };
+/** Answers outside a runEngine() call come only from the shared cache;
+ *  anything else is a programming error, reported clearly. */
+const looseBridge: EngineBridge = {
+  analyze(payload: unknown) {
+    const hit = answers.get(JSON.stringify(payload) ?? "null");
+    if (hit?.ok) return JSON.parse(hit.text);
+    throw new Error("engine.analyze() must be called inside runEngine() "
+      + "(the engine runs in a worker; see src/lib/engine.ts)");
+  },
+};
+
+/** Resolves when the engine is ready. `onStatus` receives the loading
+ *  messages until then. Analysis code takes its EngineBridge from
+ *  runEngine(); the bridge given here only answers requests already made. */
+export function getEngine(onStatus: (msg: string) => void = () => {}): Promise<EngineBridge> {
+  const off = host.subscribe((s) => { if (s.progress) onStatus(s.progress.message); });
+  return startEngine().then(
+    () => { off(); return looseBridge; },
+    (e) => { off(); throw e; },
+  );
 }
 
 // ------------------------------------------------------------ xlsx reading
@@ -115,59 +159,11 @@ async function init(onStatus: (msg: string) => void): Promise<EngineBridge> {
  *  as ISO text, blanks as ""). */
 export interface XlsxSheet { name: string; rows: string[][] }
 
-// Uses openpyxl, which the runtime already installs for plate import.
-const READ_XLSX_PY = `
-import base64, datetime, io, json
-def _opendose_read_xlsx(b64):
-    import openpyxl
-    wb = openpyxl.load_workbook(io.BytesIO(base64.b64decode(b64)),
-                                data_only=True, read_only=True)
-    out = []
-    for ws in wb.worksheets:
-        rows = []
-        for row in ws.iter_rows(values_only=True):
-            cells = []
-            for v in row:
-                if v is None:
-                    cells.append("")
-                elif isinstance(v, bool):
-                    cells.append("TRUE" if v else "FALSE")
-                elif isinstance(v, datetime.datetime):
-                    cells.append(v.date().isoformat() if v.time() == datetime.time(0)
-                                 else v.isoformat(sep=" ", timespec="minutes"))
-                elif isinstance(v, (datetime.date, datetime.time)):
-                    cells.append(v.isoformat())
-                elif isinstance(v, float):
-                    cells.append(str(int(v)) if v.is_integer() and abs(v) < 1e15
-                                 else repr(v))
-                else:
-                    cells.append(str(v))
-            while cells and cells[-1] == "":
-                cells.pop()
-            rows.append(cells)
-        while rows and not rows[-1]:
-            rows.pop()
-        out.append({"name": ws.title, "rows": rows})
-    wb.close()
-    return json.dumps(out)
-`;
-let xlsxReady = false;
-
-/** Read every worksheet of an .xlsx file (in the browser, via the Python
- *  runtime; waits for it to load). */
+/** Read every worksheet of an .xlsx file (in the engine worker; waits for
+ *  it to load, and installs the xlsx reader on first use). */
 export async function readXlsx(bytes: Uint8Array): Promise<XlsxSheet[]> {
-  await getEngine();
-  const py = pyRuntime;
-  if (!py) throw new Error("the Python runtime is not available");
-  if (!xlsxReady) { py.runPython(READ_XLSX_PY); xlsxReady = true; }
-  let bin = "";
-  for (let i = 0; i < bytes.length; i += 0x8000) {
-    bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-  }
-  const fn = py.globals.get("_opendose_read_xlsx");
-  try {
-    return JSON.parse(fn(btoa(bin)) as string) as XlsxSheet[];
-  } finally {
-    fn.destroy?.();
-  }
+  await startEngine();
+  const text = await host.submit({ type: "readXlsx", bytes: bytes.slice() }, { priority: "user" });
+  return JSON.parse(text) as XlsxSheet[];
 }
+

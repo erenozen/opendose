@@ -396,22 +396,34 @@ export function plateTable(plates: (number | null)[][][], format: PlateFormat): 
 }
 
 /** Every plate block found in the given sheets (text or workbook), in
- *  order: plates stacked down a sheet, or one per worksheet. */
-export function findPlates(matrices: string[][][]): { format: PlateFormat; plates: (number | null)[][][] } {
+ *  order: plates stacked down a sheet, or one per worksheet. `requested`:
+ *  the plate format chosen in the wizard (share/recipes/plate.ts rule 4).
+ *  `warnings`: what was not read exactly as found (padding, unread
+ *  numbers, a different format), never dropped silently. */
+export function findPlates(matrices: string[][][], requested?: PlateFormat): {
+  format: PlateFormat; plates: (number | null)[][][]; warnings: string[];
+} {
   const plates: (number | null)[][][] = [];
+  const warnings = new Set<string>();
   let format: PlateFormat = 96;
   for (const m of matrices) {
     let rest = m;
     for (let guard = 0; guard < 64; guard++) {
-      const g = findPlateGrid(rest);
-      if (!g || (g.rows !== 8 && g.rows !== 16)) break;
-      if (g.rows === 16) format = 384;
+      const g = findPlateGrid(rest, requested);
+      if (!g) break;
+      if (g.format !== 96 && g.format !== 384) {
+        warnings.add(`A ${g.rows} x ${g.cols} grid was found; this wizard reads 96- and 384-well `
+          + "plates.");
+        break;
+      }
+      if (g.format === 384) format = 384;
       plates.push(g.values);
+      for (const w of g.warnings) warnings.add(w);
       if (g.left < 0) break;            // a bare grid is the whole sheet
-      rest = rest.slice(g.top + g.rows);
+      rest = rest.slice(g.top + g.blockRows);
     }
   }
-  return { format, plates: plates.filter((p) => p.length === dims(format)[0]) };
+  return { format, plates: plates.filter((p) => p.length === dims(format)[0]), warnings: [...warnings] };
 }
 
 // ------------------------------------------------------------ engine

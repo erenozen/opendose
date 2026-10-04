@@ -4,8 +4,13 @@ A free, open-source tool for the everyday analyses of a wet lab:
 dose-response curve fitting (IC50/EC50), enzyme kinetics, binding,
 survival analysis, and the standard biostatistics toolbox, built on
 battle-tested open-source numerics (NumPy/SciPy). All computation runs
-client-side via Pyodide; data never leaves the browser, and hosting is
-a static site.
+client-side via Pyodide, in a Web Worker: the page stays responsive while
+an analysis runs, a long one shows its progress ("Computing… 3.2 s") and
+can be cancelled, and the first start shows a real download progress
+bar. Data never leaves the browser, and hosting is a static site; after
+the first visit an offline cache (a service worker that only keeps the
+files the app already downloads) makes later starts read from disk and
+lets the app work without a network.
 
 Scientists moving from commercial packages should feel at home: the
 implemented methods follow the published, well-documented algorithms of
@@ -47,7 +52,19 @@ cd web && node scripts/e2e-assays.mjs   # assay wizards (plate, ELISA, qPCR, blo
 ```
 
 The dev server needs internet access on first load (Pyodide + SciPy come
-from the jsDelivr CDN, ~30 MB, then cached).
+from the jsDelivr CDN, ~30 MB, then cached). The offline cache exists only
+in production builds; to measure one locally the way GitHub Pages serves
+it (under `/opendose/`, gzip):
+
+```bash
+cd web && npm run build && node scripts/serve-dist.mjs 5300   # http://localhost:5300/opendose/
+node scripts/validate-site.mjs http://localhost:5300/opendose/ --no-data   # performance probe only
+```
+
+The example project's results ship with the app (shown, marked as not
+live, until the engine has started); after engine changes that move the
+example's numbers, regenerate them against a dev server with
+`node scripts/gen-sample-results.mjs http://localhost:5173/`.
 
 ## Features (v0.3.0)
 

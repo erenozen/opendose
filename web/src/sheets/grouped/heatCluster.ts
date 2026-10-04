@@ -19,7 +19,7 @@
 //              Clustered heat map assay's drawing).
 // The matrix is the one the map colours (already z-scored when chosen);
 // blank cells are filled with their column's mean for the ordering only.
-import { getEngine } from "../../lib/engine";
+import { analyzeAsync } from "../../lib/engine";
 import { DEFAULT_CLUSTER, LINKAGE_LABEL, METRIC_LABEL } from "../assays/clusterModel";
 import { parseDendrogram, type Dendrogram } from "../common/dendrogram";
 
@@ -84,9 +84,9 @@ let probe: Promise<boolean> | null = null;
 
 /** Whether the running engine has the clustering handler (asked once). */
 export function clusterAvailable(): Promise<boolean> {
-  probe ??= getEngine().then((eng) => {
-    const res = eng.analyze(clusterPayload([[0, 1, 2], [1, 0, 2], [2, 2, 0]],
-      ["a", "b", "c"], ["d", "e", "f"], { rows: true, cols: true })) as { error?: string };
+  probe ??= analyzeAsync(clusterPayload([[0, 1, 2], [1, 0, 2], [2, 2, 0]],
+    ["a", "b", "c"], ["d", "e", "f"], { rows: true, cols: true })).then((r) => {
+    const res = r as { error?: string };
     return !(typeof res?.error === "string" && /unknown analysis/i.test(res.error));
   }).catch(() => false);
   return probe;
@@ -99,7 +99,6 @@ export async function clusterOrder(z: (number | null)[][], rowNames: string[],
   if (!which.rows && !which.cols) return null;
   if (rowNames.length < 2 && colNames.length < 2) return null;
   if (!(await clusterAvailable())) return null;
-  const eng = await getEngine();
-  return parseClusterOrder(eng.analyze(clusterPayload(z, rowNames, colNames, which)),
+  return parseClusterOrder(await analyzeAsync(clusterPayload(z, rowNames, colNames, which)),
     rowNames.length, colNames.length);
 }

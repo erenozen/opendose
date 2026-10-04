@@ -3,6 +3,7 @@ import { createContext, useContext } from "react";
 import type { History } from "../project/history";
 import type { ProjectStore } from "../project/store";
 import type { GraphSheet, Prefs, Project, ResultsSheet } from "../project/types";
+import type { EngineState } from "../lib/engine";
 import type { ResultsCache } from "./analysis";
 
 export interface ProjectApi {
@@ -29,8 +30,11 @@ export interface ProjectApi {
   prefs: Prefs;
   setPrefs: (p: Prefs) => void;
 
+  /** The engine has booted (it may be restarting after a cancel). */
   engineReady: boolean;
   engineError: string | null;
+  /** Boot progress and busy state of the engine worker. */
+  engine: EngineState;
   status: string;
   setStatus: (s: string) => void;
   bootEngine: () => void;

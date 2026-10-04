@@ -96,8 +96,12 @@ export interface AnalysisDef<O = unknown, R = unknown> {
   /** Bring options read from a file up to date (default: shallow-merge
    *  over defaultOptions). */
   normalizeOptions?: (raw: unknown, ctx: AnalysisContext) => O;
-  /** Run the analysis. Synchronous: the engine call blocks; return the
-   *  result object (put `error` on it rather than throwing). */
+  /** Run the analysis: synchronous code, `engine.analyze()` answers at
+   *  once. The app runs it in the engine worker's terms with runEngine
+   *  (src/lib/engine.ts), which may call it several times until every
+   *  request is answered, so it must be deterministic and free of side
+   *  effects. Return the result object (put `error` on it rather than
+   *  throwing). */
   run: (engine: EngineBridge, table: DataTableModel, options: O) => R;
   /** Graph kind created together with a new results sheet (or null). */
   defaultGraph: string | null;

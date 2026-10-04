@@ -5,7 +5,7 @@
 // (validate_equation) with each error placed on its line and column, and
 // "Save to my equations" (this browser's library).
 import { useEffect, useId, useMemo, useState, useSyncExternalStore } from "react";
-import { getEngine } from "../lib/engine";
+import { analyzeAsync } from "../lib/engine";
 import {
   CONSTRAINT_LABELS, deleteEquation, FOUR_PL_TEXT, guessParameters, materialize, noConstraint,
   RULE_SOURCE_LABELS, RULE_SOURCES, saveEquation, savedEquations, subscribeEquations,
@@ -38,9 +38,8 @@ function useValidation(def: UserEquationDef, params: string[]): Validation | nul
     let live = true;
     const timer = setTimeout(async () => {
       try {
-        const engine = await getEngine();
-        const r = engine.analyze({ analysis: "validate_equation", data: {},
-          options: JSON.parse(key) }) as Validation & { error?: string };
+        const r = await analyzeAsync({ analysis: "validate_equation", data: {},
+          options: JSON.parse(key) }, { priority: "user" }) as Validation & { error?: string };
         if (!live) return;
         if (r.error) setV({ ok: false, errors: [{ message: r.error, line: null, column: null }], warnings: [] });
         else setV({ ...r, errors: r.errors ?? [], warnings: r.warnings ?? [] });

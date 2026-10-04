@@ -4,7 +4,8 @@
 // applies the graph's format (applyFormat), enables annotation dragging
 // (usePlotEdits) and purges Plotly on unmount.
 import { useEffect, useRef } from "react";
-import Plotly from "plotly.js-dist-min";
+import type Plotly from "plotly.js-dist-min";
+import { loadPlotly, plotlyNow } from "../lib/plotly";
 import { applyFormat, type FormatContext } from "./apply";
 import { plotConfig } from "./edits";
 import { EMPTY_FORMAT, type GraphFormat } from "./format";
@@ -50,7 +51,7 @@ export default function FormattedPlot({
         // Not while hidden (a Suspense fallback shows): Plotly refuses.
         if ((div as unknown as { _fullLayout?: unknown })._fullLayout
           && div.getClientRects().length) {
-          void Promise.resolve(Plotly.Plots.resize(div)).then(() => drawnRef.current?.(div));
+          void Promise.resolve(plotlyNow()?.Plots.resize(div)).then(() => drawnRef.current?.(div));
         }
       });
     });
@@ -60,17 +61,17 @@ export default function FormattedPlot({
 
   useEffect(() => {
     const div = el.current;
-    return () => { if (div) Plotly.purge(div); };
+    return () => { if (div) plotlyNow()?.purge(div); };
   }, []);
 
   useEffect(() => {
     const div = el.current;
     if (!div) return;
     const out = applyFormat(traces as never, layout, format, { ...ctx, editRevision: rev });
-    void Plotly.react(div, out.traces as Plotly.Data[], out.layout, plotConfig({
+    void loadPlotly().then((P) => P.react(div, out.traces as Plotly.Data[], out.layout, plotConfig({
       responsive: true, scrollZoom, displaylogo: false,
       toImageButtonOptions: { format: "svg", filename },
-    }, format, !!onFormatChange)).then(() => {
+    }, format, !!onFormatChange))).then(() => {
       attach(div);
       drawnRef.current?.(div);
     });
