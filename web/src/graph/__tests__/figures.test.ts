@@ -16,8 +16,13 @@ import { beeswarm, laneJitter, spreadOffsets, symmetricSpread } from "../swarm.t
 import { snapToTicks } from "../theme.ts";
 import { normalizeTable } from "../../project/table.ts";
 import {
-  replicateInfo, replicateMeanTable, replicateSummary,
+  groupedCellReplicates, groupedReplicateMeanTable, replicateInfo, replicateMeanTable,
+  replicateSummary,
 } from "../../sheets/common/superplot.ts";
+import { zscoreMatrix } from "../../sheets/grouped/stats.ts";
+import { survivalAt, normalizeSurvivalGraph } from "../../sheets/survival/graphSettings.ts";
+import { topPoints, volcanoDefaults, volcanoPoints } from "../../sheets/multivariable/volcanoModel.ts";
+import { columnOptionsFor, DEFAULT_REP_MEANS } from "../../sheets/column/superplotStats.ts";
 
 // ------------------------------------------------------------ swarm
 
@@ -264,4 +269,67 @@ test("replicates from an id column (long format)", () => {
   assert.deepEqual(info.groups, [0, 1]);
   const mt = replicateMeanTable(t);
   assert.deepEqual(mt.datasets.map((d) => d.rows.map((r) => r[0])), [["1.5", "3.5"], ["5.5", "8"]]);
+});
+
+test("grouped replicate means: subcolumns pooled per experiment, cell by cell", () => {
+  const t = normalizeTable({
+    type: "grouped", rowTitles: ["R1"],
+    datasets: [{ name: "A", rows: [["1", "3", "10", "12"]] }, { name: "B", rows: [["2", "", "5", "7"]] }],
+    replicates: { by: "subcolumns", of: [0, 0, 1, 1] },
+  });
+  const m = groupedReplicateMeanTable(t);
+  assert.deepEqual(m.datasets.map((d) => d.rows[0]), [["2", "11"], ["2", "6"]]);
+  const { info, cells } = groupedCellReplicates(t);
+  assert.equal(info.names.length, 2);
+  assert.deepEqual(cells[0][1].counts, [1, 2]);
+  const g = { graphType: "grouped_interleaved", settings: { titles: { x: "", y: "" },
+    scheme: "default" as const, grouped: { superplot: { on: true } } } };
+  assert.match(legendSentence(g, t), /^Mean ± SD of the experiment means \(bars and error bars\)/);
+  assert.match(legendSentence(g, t), /n = 2 experiments per group/);
+});
+
+test("replicate-mean tests map onto the column analyses", () => {
+  assert.equal(columnOptionsFor({ ...DEFAULT_REP_MEANS, test: "paired" }).ttestKind, "paired");
+  assert.equal(columnOptionsFor({ ...DEFAULT_REP_MEANS, test: "rm_anova" }).analysis, "rm_anova");
+  const k = columnOptionsFor({ ...DEFAULT_REP_MEANS, test: "kruskal" });
+  assert.equal(k.analysis, "anova");
+  assert.equal(k.anovaKind, "nonparametric");
+});
+
+test("heat map z-scores by row and by column", () => {
+  const z = zscoreMatrix([[1, 2, 3], [10, 10, null]], "rows");
+  assert.deepEqual(z[0], [-1, 0, 1]);
+  assert.deepEqual(z[1], [0, 0, null]);
+  const c = zscoreMatrix([[1, 5], [3, 5]], "columns");
+  assert.ok(Math.abs(c[0][0]! + 0.7071) < 1e-4 && c[0][1] === 0);
+});
+
+test("volcano: columns guessed by name, rows classified, top N by P", () => {
+  const info = [
+    { name: "gene", kind: "categorical" as const, n: 4, levels: [], binary: false },
+    { name: "log2FoldChange", kind: "continuous" as const, n: 4, levels: [], binary: false },
+    { name: "pvalue", kind: "continuous" as const, n: 4, levels: [], binary: false },
+    { name: "padj", kind: "continuous" as const, n: 4, levels: [], binary: false },
+  ];
+  const s = volcanoDefaults(info);
+  assert.equal(s.fc, "log2FoldChange");
+  assert.equal(s.p, "padj");
+  assert.equal(s.label, "gene");
+  assert.equal(s.fcLog2, true);
+  const { points } = volcanoPoints([2, -3, 0.5, 4], [0.001, 0.01, 0.0001, 0.2],
+    ["a", "b", "c", "d"], s);
+  assert.deepEqual(points.map((p) => p.cls), ["up", "down", "ns", "ns"]);
+  assert.deepEqual(topPoints(points, 1).map((p) => p.label), ["a"]);
+  const raw = volcanoPoints([4, 0.25, -1], [0.01, 0.01, 0.01], ["x", "y", "z"],
+    { ...s, fcLog2: false });
+  assert.deepEqual(raw.points.map((p) => p.x), [2, -2]);
+  assert.equal(raw.dropped, 1);
+});
+
+test("survival: step value at a time and the graph settings", () => {
+  const pts = [{ time: 0, survival: 1 }, { time: 5, survival: 0.8 }, { time: 9, survival: 0.5 }];
+  assert.equal(survivalAt(pts, 7), 0.8);
+  assert.equal(survivalAt(pts, 9), 0.5);
+  assert.deepEqual(normalizeSurvivalGraph(undefined), { censorMarks: false, nudge: 0 });
+  assert.deepEqual(normalizeSurvivalGraph({ censorMarks: true, nudge: 9 }), { censorMarks: true, nudge: 5 });
 });

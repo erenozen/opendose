@@ -13,7 +13,8 @@ import { defineAnalysis, defineGraph, type TableTypeDef } from "../types";
 import { groupedComparisons } from "./comparisons";
 import { groupedFormatDatasets, xyGroupedFormatDatasets } from "./graphData";
 import {
-  A_COLUMN_STATS, A_MULTI_T, A_ROW_MEANS, A_THREE_WAY, A_TWO_WAY,
+  A_COLUMN_STATS, A_MULTI_T, A_REPLICATE_MEANS, A_ROW_MEANS, A_THREE_WAY, A_TWO_WAY,
+  DEFAULT_REP_TWO_WAY, normalizeRepTwoWay, type RepTwoWayOptions,
   DEFAULT_COLUMN_STATS, DEFAULT_MULTI_T, DEFAULT_ROW_MEANS, DEFAULT_TWO_WAY,
   defaultThreeWay, G_BOX, G_HEATMAP, G_INTERLEAVED, G_LINES, G_SCATTER, G_SEPARATED,
   G_STACKED, G_THREE_WAY, G_VOLCANO, LOG_TESTS, normalizeColumnStats, normalizeMultiT,
@@ -22,6 +23,7 @@ import {
   type ThreeWayOptions, type TwoWayOptions,
 } from "./options";
 import { runColumnStats, runMultiT, runRowMeans, runThreeWay, runTwoWay } from "./run";
+import { runReplicateTwoWay } from "./replicateMeans";
 import { rowMeansTable } from "./tables";
 import { groupedSample } from "./sample";
 
@@ -46,6 +48,10 @@ const MultiTMethods = lazyPart(methodsModule, "MultiTMethods");
 const RowMeansMethods = lazyPart(methodsModule, "RowMeansMethods");
 const ThreeWayMethods = lazyPart(methodsModule, "ThreeWayMethods");
 const TwoWayMethods = lazyPart(methodsModule, "TwoWayMethods");
+const repModule = () => import("./replicateMeansPanels");
+const RepTwoWayControls = lazyPart(repModule, "RepTwoWayControls");
+const RepTwoWayResults = lazyPart(repModule, "RepTwoWayResults");
+const RepTwoWayMethods = lazyPart(repModule, "RepTwoWayMethods");
 const resultsModule = () => import("./results");
 const ColumnStatsResults = lazyPart(resultsModule, "ColumnStatsResults");
 const MultiTResults = lazyPart(resultsModule, "MultiTResults");
@@ -69,6 +75,23 @@ export const twoWayAnalysis = defineAnalysis<TwoWayOptions, Result>({
   ControlsPanel: TwoWayControls,
   ResultsPanel: TwoWayResults,
   MethodsPanel: TwoWayMethods,
+});
+
+export const repTwoWayAnalysis = defineAnalysis<RepTwoWayOptions, Result>({
+  id: A_REPLICATE_MEANS,
+  label: "Two-way ANOVA on replicate means (SuperPlot)",
+  short: "Replicate means",
+  description: "Summarise each experiment's subcolumns first, then run the two-way "
+    + "ANOVA on the experiment means (n = number of experiments), matched by "
+    + "experiment by default.",
+  sheetName: (t) => `Two-way ANOVA on replicate means of ${t}`,
+  defaultOptions: () => ({ ...DEFAULT_REP_TWO_WAY }),
+  normalizeOptions: (raw) => normalizeRepTwoWay(raw),
+  run: runReplicateTwoWay,
+  defaultGraph: G_INTERLEAVED,
+  ControlsPanel: RepTwoWayControls,
+  ResultsPanel: RepTwoWayResults,
+  MethodsPanel: RepTwoWayMethods,
 });
 
 export const threeWayAnalysis = defineAnalysis<ThreeWayOptions, Result>({
@@ -236,6 +259,6 @@ export const groupedTable: TableTypeDef = {
     + "column is a level of the second factor. Replicates go side by side "
     + "in subcolumns.",
   analyses: [twoWayAnalysis, multiTAnalysis, threeWayAnalysis, rowMeansAnalysis,
-    columnStatsAnalysis],
+    columnStatsAnalysis, repTwoWayAnalysis],
   graphs: groupedGraphs,
 };

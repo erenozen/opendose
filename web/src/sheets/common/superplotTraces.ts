@@ -69,13 +69,17 @@ export interface SuperTracesInput {
   grand: boolean;
   /** One legend entry per replicate. */
   legend: boolean;
+  /** Start replicate colours this many slots into the scheme, so they do
+   *  not repeat the colours of the graph's own series (grouped bars). */
+  colorOffset?: number;
 }
 
 /** The SuperPlot marks for a set of group slots. */
 export function superTraces(inp: SuperTracesInput): Trace[] {
   const { slots, names, settings: s, chrome, dark, scheme } = inp;
   const traces: Trace[] = [];
-  const styles = names.map((_, r) => replicateStyle(r, s, scheme, dark, chrome));
+  const styles = names.map((_, r) => replicateStyle(r + (inp.colorOffset ?? 0), s, scheme, dark,
+    chrome));
   const meanX = names.map(() => [] as (number | null)[]);
   const meanY = names.map(() => [] as (number | null)[]);
   const meanText = names.map(() => [] as string[]);

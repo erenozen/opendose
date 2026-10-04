@@ -11,6 +11,7 @@ export const A_THREE_WAY = "grouped_three_way";
 export const A_MULTI_T = "grouped_multiple_t";
 export const A_ROW_MEANS = "grouped_row_means";
 export const A_COLUMN_STATS = "grouped_column_stats";
+export const A_REPLICATE_MEANS = "grouped_replicate_means";
 
 // Graph kind ids, stored in graph sheets: never rename.
 export const G_INTERLEAVED = "grouped_interleaved";
@@ -71,6 +72,25 @@ export function normalizeTwoWay(raw: unknown): TwoWayOptions {
       ["none", "tukey", "sidak", "bonferroni"] as const, d.comparisons),
     direction: pick(o.direction, ["columns_within_rows", "rows_within_columns",
       "column_means", "row_means"] as const, d.direction),
+  };
+}
+
+/** Two-way ANOVA on replicate means (SuperPlots): the two-way options plus
+ *  how each experiment is summarised. Experiments run every condition, so
+ *  the default design matches them across rows and data sets. */
+export interface RepTwoWayOptions extends TwoWayOptions {
+  center: "mean" | "median";
+}
+
+export const DEFAULT_REP_TWO_WAY: RepTwoWayOptions = {
+  ...DEFAULT_TWO_WAY, design: "rm_both", center: "mean",
+};
+
+export function normalizeRepTwoWay(raw: unknown): RepTwoWayOptions {
+  const o = obj(raw);
+  return {
+    ...normalizeTwoWay({ design: DEFAULT_REP_TWO_WAY.design, ...o }),
+    center: o.center === "median" ? "median" : "mean",
   };
 }
 

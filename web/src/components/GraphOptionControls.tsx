@@ -28,15 +28,17 @@ export function OptSelect<T extends string>({ label, value, options, onChange, n
   );
 }
 
-export function OptCheck({ label, checked, onChange, title }: {
+export function OptCheck({ label, checked, onChange, title, disabled }: {
   label: ReactNode;
   checked: boolean;
   onChange: (v: boolean) => void;
   title?: string;
+  disabled?: boolean;
 }) {
   return (
-    <label className="gopt-check" title={title}>
-      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+    <label className="gopt-check" title={title} aria-disabled={disabled || undefined}>
+      <input type="checkbox" checked={checked} disabled={disabled}
+        onChange={(e) => onChange(e.target.checked)} />
       <span>{label}</span>
     </label>
   );

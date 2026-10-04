@@ -9,6 +9,7 @@ import {
   applyFormat, EMPTY_FORMAT, plotConfig, resultBlocks, riskSetsFromResult, tagTrace,
   usePlotEdits, type GraphFormat, type RiskSet,
 } from "../graph";
+import { survivalAt } from "../sheets/survival/graphSettings";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -23,6 +24,11 @@ interface PlotProps {
   /** Follow-up times per group, for the number-at-risk table (computed
    *  from the result's curves when absent). */
   riskSets?: RiskSet[];
+  /** Draw a tick where a subject was censored (needs `riskSets`). */
+  censorMarks?: boolean;
+  /** Vertical offset between curves in percentage points, so curves that
+   *  overlap (all start at 100%) stay visible; 0 = none. */
+  nudge?: number;
 }
 
 function fmtP(p: any): string {
@@ -34,7 +40,7 @@ function fmtP(p: any): string {
 export function SurvivalPlot({
   result, scheme = DEFAULT_SCHEME,
   xTitle = "Time", yTitle = "Percent survival", format = EMPTY_FORMAT,
-  onFormatChange, riskSets,
+  onFormatChange, riskSets, censorMarks = false, nudge = 0,
 }: PlotProps) {
   const el = useRef<HTMLDivElement>(null);
   const [dark, setDark] = useState(isDarkMode());
@@ -66,17 +72,37 @@ export function SurvivalPlot({
     if (!el.current || !result || result.error || !result.curves) return;
     const chrome = dark ? CHROME_DARK : CHROME_LIGHT;
     const traces: Plotly.Data[] = [];
-    Object.entries(result.curves).forEach(([name, curve]: [string, any], i) => {
+    const entries = Object.entries(result.curves);
+    entries.forEach(([name, curve]: [string, any], i) => {
       const { color, dash } = seriesStyle(i, dark, scheme);
+      const off = nudge ? ((entries.length - 1) / 2 - i) * nudge : 0;
       const xs = curve.points.map((p: any) => p.time);
-      const ys = curve.points.map((p: any) => p.survival * 100);
+      const ys = curve.points.map((p: any) => p.survival * 100 + off);
       traces.push(tagTrace({
         x: xs, y: ys,
         mode: "lines",
         line: { color, width: 2, shape: "hv", dash },
         name,
-        hovertemplate: `${name}<br>t=%{x}: %{y:.1f}%<extra></extra>`,
+        ...(off ? { customdata: curve.points.map((p: any) => p.survival * 100),
+          hovertemplate: `${name}<br>t=%{x}: %{customdata:.1f}%<extra></extra>` }
+          : { hovertemplate: `${name}<br>t=%{x}: %{y:.1f}%<extra></extra>` }),
       }, { ds: i, role: "line" }) as Plotly.Data);
+      const set = censorMarks ? riskSets?.find((r) => r.name === name) : undefined;
+      if (set) {
+        const cx: number[] = [], cy: number[] = [];
+        set.times.forEach((t, k) => {
+          if (set.events[k] !== 0) return;
+          const sv = survivalAt(curve.points, t);
+          if (sv !== null) { cx.push(t); cy.push(sv * 100 + off); }
+        });
+        if (cx.length) {
+          traces.push(tagTrace({
+            x: cx, y: cy, mode: "markers", name: `${name} (censored)`, showlegend: false,
+            marker: { color, symbol: "line-ns-open", size: 10, line: { color, width: 1.8 } },
+            hovertemplate: `${name}<br>censored at t=%{x}<extra></extra>`,
+          }, { ds: i, role: "outliers" }) as Plotly.Data);
+        }
+      }
     });
     const layout: Partial<Plotly.Layout> = {
       paper_bgcolor: chrome.surface,
@@ -111,7 +137,8 @@ export function SurvivalPlot({
       { responsive: true, scrollZoom: true, displaylogo: false,
         toImageButtonOptions: { format: "svg", filename: "survival" } },
       format, !!onFormatChange)).then(() => attach(div));
-  }, [result, dark, scheme, xTitle, yTitle, format, rev, riskSets, onFormatChange, attach]);
+  }, [result, dark, scheme, xTitle, yTitle, format, rev, riskSets, onFormatChange, attach,
+    censorMarks, nudge]);
 
   return <div className="plot" ref={el} />;
 }

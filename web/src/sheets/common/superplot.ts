@@ -225,6 +225,33 @@ export function groupedReplicateMeanTable(table: DataTableModel, how: SuperCente
   };
 }
 
+/** Grouped tables: points and replicate means of every row × data set
+ *  cell ([row][data set]); `grand` is left null (the bars show it). */
+export function groupedCellReplicates(table: DataTableModel, how: SuperCenter = "mean"):
+  { info: ReplicateInfo; cells: GroupReplicates[][] } {
+  const info = replicateInfo({ ...table, type: "grouped" });
+  const rows = table.rowTitles.length;
+  const cells = Array.from({ length: rows }, (_, r) => table.datasets.map((d, di) => {
+    const points: ReplicatePoint[] = [];
+    (d.rows[r] ?? []).forEach((cell, sub) => {
+      const v = parseCell(cell);
+      const rep = info.of(di, r, sub);
+      if (v !== null && rep >= 0) points.push({ value: v, row: r, sub, rep });
+    });
+    const byRep = info.names.map(() => [] as number[]);
+    for (const p of points) byRep[p.rep]?.push(p.value);
+    return {
+      ds: di,
+      name: `${table.rowTitles[r]?.trim() || `Row ${r + 1}`} · ${d.name || `Data set ${di + 1}`}`,
+      means: byRep.map((v) => center(v, how)),
+      counts: byRep.map((v) => v.length),
+      points,
+      grand: null,
+    };
+  }));
+  return { info, cells };
+}
+
 /** Number of experiments that contributed to each group (the n of
  *  statistics on replicate means). */
 export function replicateCounts(groups: GroupReplicates[]): number[] {

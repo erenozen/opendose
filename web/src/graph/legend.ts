@@ -18,7 +18,8 @@ import {
   replicateCounts, replicateInfo, replicateSummary, superPlotOn, type SuperCenter, type SuperError,
 } from "../sheets/common/superplot.ts";
 import {
-  G_BOX, G_HEATMAP, G_LINES, G_SCATTER, G_STACKED, G_VOLCANO, normalizeGraph,
+  G_BOX, G_HEATMAP, G_INTERLEAVED, G_LINES, G_SCATTER, G_SEPARATED, G_STACKED, G_VOLCANO,
+  normalizeGraph,
 } from "../sheets/grouped/options.ts";
 import { cellStats, type ErrorKind } from "../sheets/grouped/stats.ts";
 import { readFormat } from "./format.ts";
@@ -41,7 +42,9 @@ export interface LegendSpec {
   unit?: string;
   /** Box plots: whiskers to the extremes, or Tukey's 1.5 × IQR fences. */
   whiskers?: "minmax" | "tukey";
-  superplot?: { center: SuperCenter; error: SuperError; values: number };
+  superplot?: { center: SuperCenter; error: SuperError; values: number;
+    /** The summary is drawn as bars (grouped bar graphs), not a line. */
+    bars?: boolean };
   /** Asterisks are drawn on the graph in this style: state the scale. */
   stars?: PStyle | null;
 }
@@ -80,7 +83,8 @@ export function composeLegend(spec: LegendSpec): string {
     case "superplot": {
       const sp = spec.superplot ?? { center: "mean", error: "sd", values: 0 };
       const err = SUPER_PHRASE[sp.error];
-      parts.push(`Mean${err ? ` ${err}` : ""} of the experiment ${sp.center}s (line${err ? " and error bars" : ""})`
+      const mark = sp.bars ? "bars" : "line";
+      parts.push(`Mean${err ? ` ${err}` : ""} of the experiment ${sp.center}s (${mark}${err ? " and error bars" : ""})`
         + `; small symbols are individual values coloured by experiment, large symbols the ${sp.center} of each experiment`);
       break;
     }
@@ -183,7 +187,7 @@ function groupedSpec(graph: Pick<GraphSheet, "graphType" | "settings">, table: D
   const rowName = (r: number) => table.rowTitles[r]?.trim() || `Row ${r + 1}`;
   const dsName = (d: number) => table.datasets[d]?.name.trim() || `Data set ${d + 1}`;
   if (table.subcolumnFormat === "replicates" && superPlotOn(s.superplot, result)
-    && kind !== G_LINES && kind !== G_STACKED && kind !== G_BOX) {
+    && [G_INTERLEAVED, G_SEPARATED, G_SCATTER].includes(kind)) {
     const info = replicateInfo(table);
     const groups: LegendGroup[] = [];
     let values = 0;
@@ -200,7 +204,8 @@ function groupedSpec(graph: Pick<GraphSheet, "graphType" | "settings">, table: D
     }
     return {
       display: "superplot", summary: "mean", points: true, stars, groups,
-      superplot: { center: s.superplot.center, error: s.superplot.error, values },
+      superplot: { center: s.superplot.center, error: s.superplot.error, values,
+        bars: kind !== G_SCATTER },
     };
   }
   const cells = cellStats(table);

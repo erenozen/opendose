@@ -32,6 +32,13 @@ const graphSettings = async () => {
   return pop;
 };
 const closeSettings = () => page.keyboard.press("Escape");
+// SHOTS=<dir> saves screenshots of the graph card along the way.
+const shot = async (name) => {
+  if (!process.env.SHOTS) return;
+  await closeSettings();
+  await page.waitForTimeout(300);
+  await page.locator(".plot-card").screenshot({ path: join(process.env.SHOTS, `${name}.png`) });
+};
 const plot = () => page.evaluate(() => {
   const gd = document.querySelector(".plot-card .plot");
   const l = gd?.layout ?? {};
@@ -159,7 +166,7 @@ await page.waitForTimeout(600);
     methods.includes("3 experiment means"), methods.slice(0, 120));
 }
 
-if (process.env.SHOTS) await closeSettings(), await page.waitForTimeout(300), await page.locator(".plot-card").screenshot({ path: `${process.env.SHOTS}/superplot.png` });
+await shot("superplot");
 // P-value style and hide ns on the brackets
 {
   const pop = await graphSettings();
@@ -187,7 +194,7 @@ if (process.env.SHOTS) await closeSettings(), await page.waitForTimeout(300), aw
   expect("classic theme: Y axis ends on a tick", Array.isArray(p.yRange), JSON.stringify(p.yRange));
 }
 
-if (process.env.SHOTS) await closeSettings(), await page.waitForTimeout(300), await page.locator(".plot-card").screenshot({ path: `${process.env.SHOTS}/classic.png` });
+await shot("classic");
 // Colour-vision check
 {
   const pop = await graphSettings();
@@ -210,6 +217,101 @@ if (process.env.SHOTS) await closeSettings(), await page.waitForTimeout(300), aw
   await page.waitForTimeout(300);
   const n = await pop.locator(".gopt-advice").count();
   expect("no small-n advice while the points are shown", n === 0);
+  await closeSettings();
+}
+
+// --- grouped SuperPlot: 2 rows × 2 data sets, six subcolumns mapped in
+// pairs to three experiments (technical duplicates) ---
+{
+  const sub = 6;
+  const gds = ["Vehicle", "Drug"].map((name, d) => ({
+    name,
+    rows: [0, 1].map((r) => Array.from({ length: sub }, (_, k) =>
+      String(+(20 + d * 6 + r * 3 + Math.floor(k / 2) * 1.2 + (k % 2) * 0.4).toFixed(2)))),
+  }));
+  const GROUPED = join(tmp, "grouped-superplot.json");
+  writeFileSync(GROUPED, JSON.stringify({
+    version: 2, title: "Grouped SuperPlot",
+    prefs: { defaultTableType: "grouped", errorBars: "sd", ciMethod: "asymptotic",
+      scheme: "default", digits: 4 },
+    sheets: [
+      { id: "d2", kind: "data", name: "Two factors", table: {
+        type: "grouped", x: ["", ""], xTitle: "", xFormat: "numbers", xUnit: "", yTitle: "Signal",
+        rowTitles: ["Day 1", "Day 3"], datasets: gds, subcolumnFormat: "replicates",
+        replicateLayout: "side_by_side", replicates: { by: "subcolumns", of: [0, 0, 1, 1, 2, 2] } } },
+      { id: "r2", kind: "results", parentId: "d2", name: "Two-way ANOVA of Two factors",
+        analysis: "grouped_two_way", options: {} },
+      { id: "g2", kind: "graph", parentId: "d2", resultsId: "r2", graphType: "grouped_interleaved",
+        name: "Graph of Two factors",
+        settings: { titles: { x: "", y: "" }, scheme: "default",
+          grouped: { superplot: { on: true }, caption: "below" } } },
+    ],
+  }));
+  await page.setInputFiles('.load-btn input[type="file"]', GROUPED);
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+    .some((t) => t.meta?.superplotMeans), { timeout: 60000 });
+  await page.waitForTimeout(500);
+  const p = await plot();
+  const means = p.traces.filter((t) => t.means);
+  expect("grouped SuperPlot: one overlay trace per experiment (3, from 6 subcolumns)",
+    means.length === 3, String(means.length));
+  expect("grouped SuperPlot: a mean per cell in every overlay",
+    means.every((t) => t.y.filter((v) => v !== null).length === 4));
+  await shot("grouped-superplot");
+  const pop = await graphSettings();
+  await pop.getByRole("button", { name: "Statistics on replicate means" }).click();
+  await page.waitForFunction(() => /\(n = 3 experiments\)/.test(
+    document.querySelector(".replicate-means-head h3")?.textContent ?? ""), { timeout: 60000 })
+    .catch(() => {});
+  const head = await page.locator(".replicate-means-head h3").innerText().catch(() => "");
+  expect("grouped: two-way ANOVA on replicate means, n = 3 experiments",
+    head.includes("Two-way ANOVA on replicate means (n = 3 experiments)"), head);
+}
+
+// --- volcano plot on the multiple-variables example ---
+{
+  await page.getByRole("button", { name: "New data table" }).click();
+  const dlg = page.locator(".new-table-dialog");
+  await dlg.locator('input[name="table-type"][value="multivariable"]').check();
+  await dlg.getByText("Example data").click();
+  await dlg.getByRole("button", { name: "Create table" }).click();
+  await page.waitForSelector(".mv-results h3:has-text('Descriptive statistics')", { timeout: 60000 });
+  await page.locator(".graph-select").selectOption("mv_volcano");
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.layout?.shapes ?? [])
+    .some((s) => s.name === "volcano-threshold"), { timeout: 20000 }).catch(() => {});
+  const p = await plot();
+  const thr = p.shapes.filter((n) => n === "volcano-threshold").length;
+  expect("volcano plot renders with fold-change and P threshold lines", thr === 3, String(thr));
+  expect("volcano plot: up, down and not-significant traces",
+    p.traces.filter((t) => t.role === "points").length === 3);
+  const pop = await graphSettings();
+  await pop.getByLabel("Fold change", { exact: true }).waitFor({ timeout: 10000 }).catch(() => {});
+  expect("volcano options list the fold-change and P columns",
+    await pop.getByLabel("Fold change", { exact: true }).count() === 1
+    && await pop.getByLabel("P value (or adjusted P)").count() === 1);
+  await closeSettings();
+}
+
+// --- a new survival graph marks censored subjects ---
+{
+  await page.getByRole("button", { name: "New data table" }).click();
+  const dlg = page.locator(".new-table-dialog");
+  await dlg.locator('input[name="table-type"][value="survival"]').check();
+  await dlg.getByText("Example data").click();
+  await dlg.getByRole("button", { name: "Create table" }).click();
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+    .some((t) => /censored/.test(t.name ?? "")), { timeout: 60000 }).catch(() => {});
+  const p = await plot();
+  const ticks = p.traces.filter((t) => /\(censored\)/.test(t.name));
+  expect("survival: censor ticks on a new graph (both groups)", ticks.length === 2,
+    ticks.map((t) => `${t.name}:${t.n}`).join(" "));
+  const pop = await graphSettings();
+  await pop.getByLabel("Nudge curves apart").fill("1");
+  await page.waitForTimeout(400);
+  const q = await plot();
+  const starts = q.traces.filter((t) => t.role === "line").map((t) => t.y[0]);
+  expect("survival: nudging separates the curves at 100%", new Set(starts).size === starts.length,
+    starts.join(", "));
   await closeSettings();
 }
 

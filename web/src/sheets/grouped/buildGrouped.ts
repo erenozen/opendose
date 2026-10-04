@@ -3,6 +3,7 @@
 // connected lines across rows, and the two-panel three-way graph.
 import type Plotly from "plotly.js-dist-min";
 import { tagTrace, type TraceRole } from "../../graph/apply";
+import { spreadOffsets, type SpreadScale } from "../../graph/swarm";
 import { seriesStyle, type Chrome, type SchemeId } from "../../lib/palette";
 import type { DataTableModel } from "../../project/types";
 import { formatSig } from "../../types";
@@ -26,6 +27,8 @@ export interface BuildInput {
   yTitle: string;
   /** Three-way layout from the bound three-way results sheet, if any. */
   threeWay: ThreeWayOptions | null;
+  /** Pixel scale of the drawn plot, for beeswarm / symmetric points. */
+  scale?: SpreadScale | null;
 }
 
 /** Where the bars sit, for comparison brackets: the bar of row r and data
@@ -118,7 +121,10 @@ function panelTraces(inp: BuildInput, clusters: Cluster[], series: string[],
       hover.push(`${clusters[ci].label} · ${series[si]}: ${errorText(st, s)}`
         + (st.n ? ` (n = ${st.n})` : ""));
       if (st.values.length && !stacked) {
-        const jit = jitter(st.values.length, Math.min(width * 0.28, 0.12));
+        const half = Math.min(width * 0.28, 0.12);
+        const jit = s.spread === "jitter" || !inp.scale ? jitter(st.values.length, half)
+          : spreadOffsets(st.values, s.spread, { ...inp.scale,
+            marker: kind === G_SCATTER ? 9.5 : 7.5, maxHalf: width * 0.42 });
         st.values.forEach((v, j) => { ptX.push(xpos + jit[j]); ptY.push(v); ptC.push(color); });
       }
       if (kind === G_BOX && st.values.length && st.q1 !== null) {

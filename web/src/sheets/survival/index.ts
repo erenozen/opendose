@@ -2,7 +2,7 @@ import { ANALYSIS_SURVIVAL, GRAPH_SURVIVAL } from "../../project/builtin";
 import { emptyTable, normalizeTable, numericData } from "../../project/table";
 import DataGrid from "../common/DataGrid";
 import { defineAnalysis, defineGraph, type TableTypeDef } from "../types";
-import { SurvivalControls, SurvivalGraph, SurvivalResultsPanel } from "./panels";
+import { SurvivalControls, SurvivalGraph, SurvivalOptions, SurvivalResultsPanel } from "./panels";
 
 export const survivalAnalysis = defineAnalysis<unknown, Record<string, unknown>>({
   id: ANALYSIS_SURVIVAL,
@@ -26,6 +26,7 @@ export const survivalGraph = defineGraph({
   autoTitles: () => ({ x: "Time", y: "Percent survival" }),
   exportName: "survival",
   PlotPanel: SurvivalGraph,
+  OptionsPanel: SurvivalOptions,
   formatFeatures: { lines: true, color: true, survival: true },
 });
 
