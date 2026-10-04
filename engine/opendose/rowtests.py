@@ -30,6 +30,14 @@ guide: "How to: Multiple t tests", "Options for multiple t tests" and
 - Options tab: the direction of the difference (A - B, or B - A with
   swap) and the -log10(P) and -log2(P) ("S value") transforms used by
   the volcano plot.
+- Each row also reports "effect_size" {measure, value, hedges_g?}
+  (opendose.effectsize; point estimates, no CIs, so thousands of rows
+  stay fast): Cohen's d (pooled SD; Welch tests: the average-variance
+  standardizer; "pooled" tests: the SD pooled across rows) on the
+  analysed scale (log10 for the lognormal tests), d_z for paired tests,
+  Cliff's delta for Mann-Whitney, the matched-pairs rank-biserial r for
+  Wilcoxon; None for Kolmogorov-Smirnov. Its sign follows the reported
+  difference (swap included).
 
 Row means and totals. Statistics guide: "Row means and totals".
 - Totals, means (SD, SEM, %CV or CI, with N), medians (quartiles,
@@ -50,7 +58,7 @@ import math
 import numpy as np
 from scipy import stats
 
-from . import fdr, ttests
+from . import effectsize, fdr, ttests
 
 UNPAIRED_TESTS = ("welch", "unpaired", "pooled", "lognormal_welch",
                   "lognormal_unpaired", "lognormal_pooled",
@@ -130,6 +138,12 @@ def _row_test(a_raw, b_raw, test, pooled):
             se2 = ((na - 1) * va + (nb - 1) * vb) / df * (1 / na + 1 / nb)
         out.update(_t_fields(float(xa.mean()), float(xb.mean()),
                              math.sqrt(se2), df, lognormal))
+        sd = (math.sqrt((va + vb) / 2) if test.endswith("welch") else
+              math.sqrt(((na - 1) * va + (nb - 1) * vb) / (na + nb - 2)))
+        out["effect_size"] = _row_effect(
+            "cohens_d_av" if test.endswith("welch") else "cohens_d",
+            (float(xa.mean()) - float(xb.mean())) / sd if sd > 0 else None,
+            effectsize.hedges_j(na + nb - 2))
     elif test in ("pooled", "lognormal_pooled"):
         lognormal = test == "lognormal_pooled"
         if len(a) < 1 or len(b) < 1:
@@ -140,23 +154,33 @@ def _row_test(a_raw, b_raw, test, pooled):
         se = math.sqrt(ms * (1.0 / len(xa) + 1.0 / len(xb)))
         out.update(_t_fields(float(np.mean(xa)), float(np.mean(xb)), se, df,
                              lognormal))
+        out["effect_size"] = _row_effect(
+            "cohens_d", (float(np.mean(xa)) - float(np.mean(xb)))
+            / math.sqrt(ms) if ms > 0 else None, effectsize.hedges_j(df))
     elif test in ("paired", "ratio_paired"):
         lognormal = test == "ratio_paired"
         xa = _log10_all(a) if lognormal else a
         xb = _log10_all(b) if lognormal else b
-        r = ttests.paired_t(xa, xb)
+        r = ttests.paired_t(xa, xb, effect_size=False)
         if not r["se_difference"] > 0:
             raise ValueError("the SD of the paired differences is zero")
         out.update(_t_fields(float(np.mean(xa)), float(np.mean(xb)),
                              r["se_difference"], r["df"], lognormal))
         out["n_pairs"] = r["n_pairs"]
+        out["effect_size"] = _row_effect(
+            "cohens_d_z", r["mean_difference"]
+            / (r["se_difference"] * math.sqrt(r["n_pairs"])),
+            effectsize.hedges_j(r["n_pairs"] - 1))
     elif test == "mann_whitney":
         r = ttests.mann_whitney(a, b)
         out.update({"median_a": r["median_a"], "median_b": r["median_b"],
                     "difference": r["median_a"] - r["median_b"],
                     "hodges_lehmann": r["hodges_lehmann_difference"],
                     "statistic_name": "U", "statistic": r["U"],
-                    "df": None, "p": r["p_two_tailed"]})
+                    "df": None, "p": r["p_two_tailed"],
+                    "effect_size": _row_effect(
+                        "cliffs_delta",
+                        (r["effect_size"] or {}).get("cliffs_delta"))})
     elif test == "kolmogorov_smirnov":
         if len(a) < 1 or len(b) < 1:
             raise ValueError("each group needs at least 1 value")
@@ -165,18 +189,31 @@ def _row_test(a_raw, b_raw, test, pooled):
         out.update({"median_a": med_a, "median_b": med_b,
                     "difference": med_a - med_b,
                     "statistic_name": "D", "statistic": float(res.statistic),
-                    "df": None, "p": float(res.pvalue)})
+                    "df": None, "p": float(res.pvalue),
+                    "effect_size": None})
     elif test == "wilcoxon":
         r = ttests.wilcoxon_matched_pairs(a, b)
         out.update({"median_a": float(np.median(a)),
                     "median_b": float(np.median(b)),
                     "difference": r["median_difference"],
                     "statistic_name": "W", "statistic": r["W"],
-                    "df": None, "p": r["p_two_tailed"], "n_pairs": len(a)})
+                    "df": None, "p": r["p_two_tailed"], "n_pairs": len(a),
+                    "effect_size": _row_effect(
+                        "rank_biserial",
+                        (r["effect_size"] or {}).get("rank_biserial"))})
     else:
         raise ValueError(f"unknown test: {test}")
     if not (out["p"] == out["p"]):
         raise ValueError("P value could not be computed")
+    return out
+
+
+def _row_effect(measure, value, j=None):
+    if value is None or not math.isfinite(value):
+        return None
+    out = {"measure": measure, "value": float(value)}
+    if j is not None and math.isfinite(j):
+        out["hedges_g"] = float(j * value)
     return out
 
 
@@ -241,6 +278,10 @@ def multiple_t_tests(rows_a, rows_b, *, row_titles=None, names=None,
                 e["log10_difference"] = -e["log10_difference"]
             if "hodges_lehmann" in e:
                 e["hodges_lehmann"] = -e["hodges_lehmann"]
+            if e.get("effect_size"):
+                e["effect_size"] = {
+                    k: (-v if k in ("value", "hedges_g") else v)
+                    for k, v in e["effect_size"].items()}
 
     family = fdr.adjust([e.get("p") for e in rows], method,
                         alpha=alpha, q=q)

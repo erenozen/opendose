@@ -13,6 +13,9 @@ Prism statistics guide:
   row) unless (T!)^S exceeds 10^9 for T treatments and S subjects.
   friedman(..., exact=True) applies that rule (opendose.exactdist) and
   labels p_method; the default keeps the chi-square approximation.
+- "effect_size" (opendose.effectsize): partial eta^2 (with its
+  noncentral-F CI) and generalized eta^2 (Olejnik & Algina 2003) per
+  term of the RM ANOVAs; Kendall's W for the Friedman test.
 """
 
 from __future__ import annotations
@@ -22,6 +25,8 @@ from itertools import combinations
 
 import numpy as np
 from scipy import stats
+
+from . import effectsize
 
 
 def _complete_matrix(datasets):
@@ -94,6 +99,9 @@ def rm_one_way_anova(datasets, names=None) -> dict:
         if ss_treat + ss_error > 0 else None,
         "treatment_means": [float(v) for v in M.mean(axis=0)],
         "names": names or [f"Treatment {i}" for i in range(k)],
+        "effect_size": effectsize.safe(
+            effectsize.repeated_term, ss_treat, df_treat, ss_error,
+            df_error, [ss_subject, ss_error]),
     }
 
 
@@ -189,6 +197,16 @@ def rm_two_way_mixed(cells, *, row_names=None, col_names=None) -> dict:
         inter_src["p_geisser_greenhouse"] = float(
             stats.f.sf(inter_src["F"], df_inter * eps, df_error * eps))
 
+    resall = [ss_subj_within, ss_error]
+    effect_size = {
+        "interaction": effectsize.safe(effectsize.repeated_term, ss_inter,
+                                       df_inter, ss_error, df_error, resall),
+        "row_factor": effectsize.safe(effectsize.repeated_term, ss_row,
+                                      df_row, ss_error, df_error, resall),
+        "column_factor": effectsize.safe(effectsize.repeated_term, ss_group,
+                                         df_group, ss_subj_within, df_subj,
+                                         resall),
+    }
     return {
         "analysis": "rm_two_way_mixed",
         "design": "columns are groups, rows are repeated measures",
@@ -213,6 +231,7 @@ def rm_two_way_mixed(cells, *, row_names=None, col_names=None) -> dict:
         "cell_means": cell_means.tolist(),
         "row_names": row_names or [f"Row {i + 1}" for i in range(a)],
         "col_names": col_names or [f"Column {j + 1}" for j in range(b)],
+        "effect_size": effect_size,
     }
 
 
@@ -277,6 +296,15 @@ def rm_two_way_both(cells, *, row_names=None, col_names=None) -> dict:
                 "percent_of_total": float(100 * ss / ss_total)
                 if ss_total else None}
 
+    resall = [ss_subj, ss_as, ss_bs, ss_abs]
+    effect_size = {
+        "interaction": effectsize.safe(effectsize.repeated_term, ss_ab,
+                                       df_ab, ss_abs, df_abs, resall),
+        "row_factor": effectsize.safe(effectsize.repeated_term, ss_a, df_a,
+                                      ss_as, df_as, resall),
+        "column_factor": effectsize.safe(effectsize.repeated_term, ss_b,
+                                         df_b, ss_bs, df_bs, resall),
+    }
     return {
         "analysis": "rm_two_way_both",
         "design": "both factors repeated (every subject in every cell)",
@@ -293,6 +321,7 @@ def rm_two_way_both(cells, *, row_names=None, col_names=None) -> dict:
         "cell_means": m_ij.tolist(),
         "row_names": row_names or [f"Row {i + 1}" for i in range(a)],
         "col_names": col_names or [f"Column {j + 1}" for j in range(b)],
+        "effect_size": effect_size,
     }
 
 
@@ -320,6 +349,8 @@ def friedman(datasets, names=None, *, dunns: bool = True,
     }
     if p_method is not None:
         out["p_method"] = p_method
+    out["effect_size"] = effectsize.safe(effectsize.kendalls_w, float(stat),
+                                         int(n), int(k))
     if dunns:
         # Dunn's for Friedman: z = |R_i - R_j| / sqrt(k(k+1)/(6n)),
         # comparing mean ranks; Bonferroni-adjusted P (Prism reports
