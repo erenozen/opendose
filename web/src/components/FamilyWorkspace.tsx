@@ -26,6 +26,10 @@ import { GenericMethodsText } from "./MethodsText";
 import HSplitter from "./HSplitter";
 import { SnowflakeIcon } from "./SheetIcon";
 import WelcomePanel from "./WelcomePanel";
+import EffectSizeCard from "../report/EffectSizeCard";
+import GraphLegend from "../report/GraphLegend";
+import ReportCard from "../report/ReportCard";
+import StatsMethodsCard from "../report/StatsMethodsCard";
 
 /**
  * The workbench for one family: the data table (left) with the active
@@ -166,7 +170,10 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
                   <Suspense fallback={<Pending />}>
                     <Results sheet={resSheet} table={data.table} options={options} result={result} />
                   </Suspense>
+                  {/* Effect sizes of every comparison (src/report). */}
+                  <EffectSizeCard result={result} />
                 </ResultsExport>
+                <ReportCard sheet={resSheet} table={data.table} options={options} result={result} />
               </div>
             )}
             {resSheet && Methods && (
@@ -176,6 +183,7 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
                   <Suspense fallback={null}>
                     <Methods sheet={resSheet} table={data.table} options={options} result={result} />
                   </Suspense>
+                  <StatsMethodsCard sheet={resSheet} result={result} />
                 </div>
               </>
             )}
@@ -314,6 +322,7 @@ function GraphCard({ graph, data, result, options }: {
             </Suspense>
           ) : undefined} />
       )} />
+      <GraphLegend graph={graph} data={data} table={table} result={res} options={opts} />
       {dialogs.element}
     </div>
   );

@@ -2,7 +2,7 @@
 // a share link made from the example project opens in a fresh browser
 // read-only with the same LogIC50, and "Make a copy" makes it editable;
 // a single family can be shared; the export bundle holds the expected
-// files; the FlowJo import recipe aggregates samples by animal into a
+// files (with provenance.json and legends.txt); the FlowJo import recipe aggregates samples by animal into a
 // column table; Reshape turns a table long; the validation page and the
 // privacy statement are reachable from the info popover.
 // Run with the dev server up: node scripts/e2e-share.mjs http://localhost:5193/
@@ -128,6 +128,19 @@ const readme = strFromU8(entries["README.txt"]);
 expect("README names the software versions", /OpenDose \S+/.test(readme) && /SciPy \d/.test(readme));
 expect("README lists every file", names.filter((n) => n !== "README.txt").every((n) => readme.includes(n)));
 expect("project.json in the bundle reopens", JSON.parse(strFromU8(entries["project.json"])).opendose_project === 2);
+const prov = JSON.parse(strFromU8(entries["provenance.json"] ?? new Uint8Array()) || "{}");
+const steps = (prov.families ?? []).flatMap((f) => f.steps);
+const analysis = steps.find((s) => s.kind === "analysis");
+expect("provenance.json lists every analysis with options marked default or changed",
+  prov.opendose_provenance === 1 && steps.filter((s) => s.kind === "analysis").length === 3
+  && analysis && Object.values(analysis.options).every((o) => typeof o.default === "boolean")
+  && /^fnv1a64:[0-9a-f]{16}$/.test(analysis.input.fingerprint) && /OpenDose/.test(prov.app),
+  `${steps.length} steps`);
+const legends = strFromU8(entries["legends.txt"] ?? new Uint8Array());
+expect("legends.txt holds figure legends with n and the test, and results sentences",
+  legends.includes("Figure legends") && legends.includes("n = 10 subjects per group")
+  && legends.includes("log-rank (Mantel-Cox) test") && legends.includes("Results sentences"),
+  legends.slice(0, 200).replace(/\s+/g, " "));
 
 // --- FlowJo recipe: samples aggregated by animal into a column table
 await page.getByRole("treeitem", { name: "Dose response", exact: true }).first()

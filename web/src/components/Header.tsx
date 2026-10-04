@@ -9,6 +9,7 @@ import { versionLabel } from "../export/cite";
 import CiteBlock from "./CiteBlock";
 import SaveMenu from "../share/SaveMenu";
 import { openValidation } from "../share/events";
+import { openChecklist } from "../report/useReport";
 import PreferencesPopover from "./PreferencesPopover";
 import { Logo } from "./WelcomePanel";
 
@@ -253,6 +254,11 @@ export default function Header({ onOpenFile, onNewProject }: {
                 <button type="button" className="linkish"
                   onClick={() => { setInfoOpen(false); openValidation(); }}>
                   How OpenDose is validated
+                </button>
+                {" · "}
+                <button type="button" className="linkish"
+                  onClick={() => { setInfoOpen(false); openChecklist(data?.id); }}>
+                  Journal checklists
                 </button>
               </p>
               <CiteBlock />

@@ -7,6 +7,8 @@
 import type { SchemeId } from "../lib/palette.ts";
 import type { GraphFormat } from "../graph/format.ts";
 import type { CIMethod, ErrorBarKind } from "../types.ts";
+import type { ReportMeta } from "../report/meta.ts";
+import type { ReportPrefs } from "../report/prefs.ts";
 
 export type Cell = string; // raw user input; "" = blank
 
@@ -196,6 +198,10 @@ export interface DataSheet extends SheetBase {
   /** Set when this table was simulated: what to re-run for "Simulate
    *  again". The table itself is ordinary, editable data. */
   simulation?: SimulationSpec;
+  /** Reporting details (unit of n, independent experiments, exclusions,
+   *  sample-size reasoning) for legends, methods and journal checklists
+   *  (src/report). */
+  report?: ReportMeta;
 }
 
 /** A derived table's provenance: the data sheet it is computed from and
@@ -315,6 +321,9 @@ export interface Prefs {
   /** Last image-export settings (see export/settings.ts); travel with
    *  the project, outside undo history. */
   export?: ExportPrefs;
+  /** P-value style, "ns" display and default effect-size family
+   *  (src/report/prefs.ts); absent = defaults. */
+  report?: ReportPrefs;
 }
 
 export type ExportFormat = "png" | "svg" | "pdf" | "tiff" | "jpeg" | "webp";

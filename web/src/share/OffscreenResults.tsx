@@ -5,6 +5,9 @@ import { GenericMethodsText } from "../components/MethodsText";
 import { findSheet } from "../project/ops";
 import type { DataSheet, ResultsSheet } from "../project/types";
 import { analysisDef, tableDef } from "../sheets/registry";
+import EffectSizeCard from "../report/EffectSizeCard";
+import ReportCard from "../report/ReportCard";
+import StatsMethodsCard from "../report/StatsMethodsCard";
 
 /** A results sheet's panel and methods text, as the workbench draws them. */
 export default function OffscreenResults({ sheet }: { sheet: ResultsSheet }) {
@@ -26,6 +29,7 @@ export default function OffscreenResults({ sheet }: { sheet: ResultsSheet }) {
             <Results sheet={sheet} table={table} options={options} result={result} />
           </Suspense>
         )}
+        {ready && <EffectSizeCard result={result} />}
       </div>
       <div className="bundle-methods">
         {ready && Methods && (
@@ -33,6 +37,10 @@ export default function OffscreenResults({ sheet }: { sheet: ResultsSheet }) {
             <Methods sheet={sheet} table={table} options={options} result={result} />
           </Suspense>
         )}
+        {ready && <StatsMethodsCard sheet={sheet} result={result} />}
+      </div>
+      <div className="bundle-report">
+        {ready && <ReportCard sheet={sheet} table={table} options={options} result={result} />}
       </div>
     </>
   );

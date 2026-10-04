@@ -535,20 +535,27 @@ unit, methods paragraphs; Prism 11 sells effect sizes as a Pro feature
 (forums #17, reviews #13–15, workflows journal section).
 - Covered: methods text with software versions, exact P in tables,
   compact letters, number-at-risk tables.
-- [ ] Effect sizes with CIs on every comparison: Cohen's d, Hedges' g,
+- [x] Effect sizes with CIs on every comparison: Cohen's d, Hedges' g,
       Glass's Δ, η², partial η², ω², Cramér's V and φ, r, Cliff's δ
-- [ ] Estimation plots (Gardner–Altman and Cumming) with bootstrap CIs
-      next to every two-group and multi-group comparison
-- [ ] Results sentence in APA, NEJM or GraphPad style; figure-legend
+      (results sheets; default family in Preferences → Reporting)
+- [x] Estimation plots (Gardner–Altman and Cumming) with bootstrap CIs
+      next to every two-group and multi-group comparison (column and
+      grouped tables; Analyze → Estimation plot)
+- [x] Results sentence in APA, NEJM or GraphPad style; figure-legend
       generator (n and unit, test, sidedness, post hoc, centre and
-      dispersion, error-bar meaning, star scale)
-- [ ] Journal checklists (Nature reporting summary, eLife, Cell STAR,
-      ARRIVE Essential 10) auto-ticked from the project
-- [ ] Provenance panel: every analysis step with its parameters and
-      defaults, replayable; export bundle (tidy CSV with headers,
-      settings and results JSON, SVG and PDF figures, results tables,
-      methods text, README)
-- [ ] Equivalent R and Python snippets per analysis for cross-checking
+      dispersion, error-bar meaning, star scale); one P-value style for
+      tables, sentences and legends
+- [x] Journal checklists (Nature reporting summary, eLife, Cell STAR,
+      SAMPL, ARRIVE Essential 10 items 1-3, 7, 10) auto-ticked from the
+      project
+- [x] Provenance panel: every analysis step with its parameters and
+      defaults; provenance.json and legends.txt in the export bundle
+      (the bundle already had tidy CSV, results tables, SVG/PNG figures,
+      methods text, README). Not yet: replaying a provenance file onto
+      new data, PDF figures in the bundle
+- [x] Equivalent R and Python snippets per analysis for cross-checking
+- [ ] Graph brackets follow the P-value style preset (needs the
+      figure-conventions package to read `currentReportPrefs()`)
 
 ### Theme 5. Sharing, interoperability, trust
 Licence expiry locking people out of their own files, version lock-in,

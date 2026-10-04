@@ -15,6 +15,11 @@ import type { DataSheet, ExportPrefs, GraphSheet } from "../project/types";
 import { resultsMatrix } from "../sheets/common/download";
 import { analysisDef } from "../sheets/registry";
 import { bundleFiles, stem, zipBundle, type BundleInput } from "./bundle";
+import { legendFor } from "../report/legendFor";
+import { reportPrefsOf } from "../report/prefs";
+import { projectProvenance } from "../report/provenance";
+import { provenanceDeps, provenanceEnv } from "../report/provenanceDeps";
+import { softwareLabel } from "../report/useReport";
 import OffscreenResults from "./OffscreenResults";
 
 type Step = { kind: "results"; id: string } | { kind: "graph"; id: string };
@@ -61,6 +66,8 @@ export function useBundleExport() {
       libraries: librariesPhrase(v),
       date: new Date().toISOString(),
       skipped: [],
+      legends: [],
+      provenance: JSON.stringify(projectProvenance(p, provenanceDeps(api.results), provenanceEnv()), null, 2),
     };
     const steps: Step[] = [
       ...p.sheets.filter((s) => s.kind === "results").map((s) => ({ kind: "results" as const, id: s.id })),
@@ -99,6 +106,17 @@ export function useBundleExport() {
           const png = await graphPngBlob(gd, { ...job.settings, format: "png" }, sheet.settings.scheme);
           job.input.graphs.push({ name: sheet.name, svg, png: new Uint8Array(await png.arrayBuffer()) });
         } else job.input.skipped.push(sheet.name);
+        const data = findSheet(api.project, sheet.parentId) as DataSheet | undefined;
+        const bound = sheet.resultsId ? findSheet(api.project, sheet.resultsId) : undefined;
+        if (data?.kind === "data") {
+          const result = bound?.kind === "results"
+            ? (bound.frozen ? bound.cached : api.results.get(bound.id)?.result) ?? null : null;
+          job.input.legends!.push({ name: sheet.name, kind: "graph", text: legendFor({
+            data, table: data.table, graph: sheet as GraphSheet, result,
+            options: bound?.kind === "results" ? bound.options : null,
+            prefs: reportPrefsOf(api.project.prefs), software: softwareLabel(),
+          }) });
+        }
       } else if (sheet?.kind === "results" && host) {
         // Wait for the result, then for the panel's code and paint.
         const t0 = Date.now();
@@ -120,7 +138,10 @@ export function useBundleExport() {
           });
         } else job.input.skipped.push(sheet.name);
         const methods = host.querySelector(".bundle-methods .methods-text p")?.textContent?.trim();
-        if (methods) job.input.methods.push({ name: sheet.name, text: methods });
+        const stats = host.querySelector(".bundle-methods .stats-methods > p")?.textContent?.trim();
+        if (methods) job.input.methods.push({ name: sheet.name, text: stats && stats !== methods ? `${methods}\n\n${stats}` : methods });
+        const sentence = host.querySelector(".bundle-report .report-sentence p")?.textContent?.trim();
+        if (sentence) job.input.legends!.push({ name: sheet.name, kind: "results", text: sentence });
       }
       if (!live) return;
       if (index + 1 < job.steps.length) setIndex(index + 1);

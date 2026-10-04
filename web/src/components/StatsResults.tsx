@@ -1,5 +1,5 @@
 import { formatSig } from "../types";
-import { pStars } from "../graph/significance";
+import { tableP, tableStars } from "../report/pformat";
 
 interface Props {
   result: Record<string, unknown> | null;
@@ -7,16 +7,10 @@ interface Props {
 
 type Row = [string, string];
 
-function fmtP(p: unknown): string {
-  if (typeof p !== "number") return "n/a";
-  if (p < 0.0001) return "< 0.0001";
-  return formatSig(p, 4);
-}
-
-function stars(p: unknown): string {
-  // P ≤ 0.05 *, ≤ 0.01 **, ≤ 0.001 ***, ≤ 0.0001 ****, as on graph brackets.
-  return typeof p === "number" && Number.isFinite(p) ? pStars(p) : "";
-}
+// P values and asterisks follow the project's P-value style
+// (Preferences -> Reporting; src/report/pformat.ts).
+const fmtP = tableP;
+const stars = tableStars;
 
 function fmtCI(ci: unknown): string {
   if (!Array.isArray(ci) || ci.length !== 2) return "n/a";

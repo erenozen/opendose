@@ -4,6 +4,10 @@ import { SCHEME_LIST, type SchemeId } from "../lib/palette";
 import type { Prefs, TableType } from "../project/types";
 import { REGISTRY, TABLE_ORDER } from "../sheets/registry";
 import { ERROR_BAR_LABELS, type ErrorBarKind } from "../types";
+import {
+  P_STYLE_LABELS, SMD_LABELS, VARIANCE_LABELS, reportPrefsOf,
+  type PStyle, type ReportPrefs, type SmdPref, type VariancePref,
+} from "../report/prefs";
 
 /** Every keyboard binding in the app, by where it works. Keep in sync
  *  with useShortcuts, the navigator, the data grid, the layout canvas,
@@ -75,6 +79,9 @@ export default function PreferencesPopover() {
   }, [open]);
 
   const set = <K extends keyof Prefs>(k: K, v: Prefs[K]) => setPrefs({ ...prefs, [k]: v });
+  // Reporting (src/report): P-value style, "ns", default effect sizes.
+  const report = reportPrefsOf(prefs);
+  const setReport = (patch: Partial<ReportPrefs>) => set("report", { ...report, ...patch });
 
   return (
     <span className="info-wrap" ref={wrap}>
@@ -136,6 +143,39 @@ export default function PreferencesPopover() {
             <select value={prefs.digits}
               onChange={(e) => set("digits", Number(e.target.value))}>
               {[3, 4, 5, 6].map((d) => <option key={d} value={d}>{d}</option>)}
+            </select>
+          </label>
+          <h3 className="prefs-subtitle">Reporting</h3>
+          <label className="field">
+            <span>P-value style (tables, sentences, legends)</span>
+            <select value={report.pStyle}
+              onChange={(e) => setReport({ pStyle: e.target.value as PStyle })}>
+              {(Object.keys(P_STYLE_LABELS) as PStyle[]).map((k) => (
+                <option key={k} value={k}>{P_STYLE_LABELS[k]}</option>
+              ))}
+            </select>
+          </label>
+          <label className="field field-check">
+            <input type="checkbox" checked={report.hideNs}
+              onChange={(e) => setReport({ hideNs: e.target.checked })} />
+            <span>Hide “ns” for non-significant results</span>
+          </label>
+          <label className="field">
+            <span>Standardized mean difference shown first</span>
+            <select value={report.smd}
+              onChange={(e) => setReport({ smd: e.target.value as SmdPref })}>
+              {(Object.keys(SMD_LABELS) as SmdPref[]).map((k) => (
+                <option key={k} value={k}>{SMD_LABELS[k]}</option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            <span>Variance explained shown first</span>
+            <select value={report.variance}
+              onChange={(e) => setReport({ variance: e.target.value as VariancePref })}>
+              {(Object.keys(VARIANCE_LABELS) as VariancePref[]).map((k) => (
+                <option key={k} value={k}>{VARIANCE_LABELS[k]}</option>
+              ))}
             </select>
           </label>
           <details className="advanced shortcuts">

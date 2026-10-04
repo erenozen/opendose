@@ -70,11 +70,17 @@ export interface LegendContext {
 /** The figure legend of a graph (or of the results alone, without one). */
 export function legendFor(c: LegendContext): string {
   const f = graphFacts(c.graph, c.options);
+  // XY tables: n is the replicates at each X, not every value of a curve.
+  const xy = c.table.type === "xy";
+  const groups = xy ? numericData(c.table).datasets.map((d) => ({
+    name: d.name, n: Math.max(0, ...d.ys.map((r) => r.filter((v) => v !== null).length)),
+  })).filter((g) => g.n > 0) : tableGroups(c.table);
+  const unit = c.data.report?.unit ?? (xy ? "replicates per X value" : undefined);
   return legendParagraph({
     graphType: c.graph?.graphType ?? null,
     result: c.result,
-    groups: tableGroups(c.table),
-    unit: { unit: c.data.report?.unit, experiments: c.data.report?.experiments ?? null },
+    groups,
+    unit: { unit, experiments: c.data.report?.experiments ?? null },
     errorBars: f.errorBars, points: f.points ?? undefined,
     starsShown: f.starsShown, pShown: f.pShown,
     style: c.prefs.pStyle, hideNs: c.prefs.hideNs, software: c.software,
