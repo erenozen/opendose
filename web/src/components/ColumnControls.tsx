@@ -134,6 +134,7 @@ export default function ColumnControls({ options, datasetNames, onChange }: Prop
         <section>
           <h3>Test <LearnMore id="equal-sds" label="Welch or not?" /></h3>
           <select
+            aria-label="Test"
             value={options.ttestKind}
             onChange={(e) => set({ ttestKind: e.target.value as TTestKind })}
           >
@@ -429,7 +430,7 @@ export default function ColumnControls({ options, datasetNames, onChange }: Prop
         <section>
           <h3>Method</h3>
           <label className="check-row">
-            <select value={options.outlierMethod}
+            <select value={options.outlierMethod} aria-label="Outlier method"
               onChange={(e) => set({
                 outlierMethod: e.target.value as "grubbs" | "rout" })}>
               <option value="grubbs">Grubbs (iterative ESD)</option>

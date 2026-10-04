@@ -31,6 +31,7 @@ import { chromium } from "playwright";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -1720,6 +1721,81 @@ expect("randomisation list: 24 units in balanced blocks, seed in the file name",
 await pw.getByRole("button", { name: "Done" }).click();
 expect("the sample-size justification is saved as an info sheet",
   await navRow("Sample size justification").count() === 1);
+
+// --- Site validation follow-ups: input, column results, accessibility ---
+// R's sleep data pasted with its titles row into a new three-group column
+// table: the Import dialog detects the titles, two groups remain, the
+// paired t test prints t with its sign and direction (R: t = -4.0621,
+// df = 9 for drug1 - drug2), and the column controls pass axe-core.
+{
+  await page.getByRole("button", { name: "New data table" }).click();
+  const nd = page.locator(".new-table-dialog");
+  await nd.locator('input[name="table-type"][value="column"]').check();
+  await nd.getByRole("button", { name: "Create table" }).click();
+  await page.waitForTimeout(500);
+  const groupsBefore = await page.locator(".data-table th.group-head").count();
+  const sleep = "drug1\tdrug2\n0.7\t1.9\n-1.6\t0.8\n-0.2\t1.1\n-1.2\t0.1\n-0.1\t-0.1\n"
+    + "3.4\t4.4\n3.7\t5.5\n0.8\t1.6\n0.0\t4.6\n2.0\t3.4\n";
+  await page.evaluate((text) => {
+    const el = document.querySelector(".data-table tbody input[data-r='0']:not([aria-label$='title'])");
+    const dt = new DataTransfer();
+    dt.setData("text/plain", text);
+    el.focus();
+    el.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }));
+  }, sleep);
+  const imp = page.locator(".import-dialog");
+  const impOpen = await appears(imp, 10000);
+  const titlesBox = imp.getByLabel(/holds column titles/);
+  expect("a pasted block with a titles row opens the Import dialog with the titles row detected",
+    impOpen && await titlesBox.isChecked() && await imp.locator(".titles-detected").count() === 1);
+  await imp.getByRole("button", { name: "Import", exact: true }).click();
+  await imp.waitFor({ state: "detached", timeout: 10000 }).catch(() => {});
+  await page.waitForTimeout(400);
+  const groupNames = await page.locator(".data-table th.group-head input.ds-name")
+    .evaluateAll((els) => els.map((e) => e.value));
+  expect("two pasted columns leave two groups named from the titles (the empty third is dropped)",
+    groupsBefore === 3 && groupNames.join(",") === "drug1,drug2", `${groupsBefore} → ${groupNames.join(",")}`);
+  // paired t test: the column analysis this table started with
+  await page.locator(".pane-controls select.analysis-select").selectOption("ttest");
+  await page.locator(".pane-controls").getByLabel("Test", { exact: true }).selectOption("paired");
+  const tRowOk = await page.waitForFunction(() => [...document.querySelectorAll(".results-table tr")]
+    .some((tr) => /^t, df/.test(tr.innerText) && tr.innerText.includes("t=-4.062")
+      && tr.innerText.includes("drug1 − drug2")), null, { timeout: 30000 }).then(() => true, () => false);
+  expect("paired t test prints t = -4.062 with its sign and the direction drug1 − drug2", tRowOk,
+    await page.locator(".results-table tr", { hasText: "t, df" }).first().innerText().catch(() => ""));
+  expect("the results tab is named after the test it shows",
+    await page.getByRole("tab", { name: "t test" }).count() >= 1);
+  // axe-core on the column controls, for each test of the analysis select
+  const require = createRequire(import.meta.url);
+  const axePath = require.resolve("axe-core/axe.min.js");
+  const violations = [];
+  for (const kind of ["column_statistics", "ttest", "anova", "correlation", "two_way_anova",
+    "rm_anova", "median_test", "outliers"]) {
+    await page.locator(".pane-controls select.analysis-select").selectOption(kind);
+    await page.waitForTimeout(500);
+    await page.addScriptTag({ path: axePath }).catch(() => {});
+    const v = await page.evaluate(async () => {
+      // eslint-disable-next-line no-undef
+      const r = await axe.run(document.querySelector(".pane-controls"),
+        { runOnly: { type: "rule", values: ["select-name", "label"] } });
+      return r.violations.flatMap((x) => x.nodes.map((n) => `${x.id}: ${n.html.slice(0, 80)}`));
+    });
+    violations.push(...v.map((s) => `${kind}: ${s}`));
+  }
+  expect("axe-core: no select-name / label violations on the column controls", violations.length === 0,
+    violations.join(" | "));
+  // one-way ANOVA table with MS and the residual SD
+  await page.locator(".pane-controls select.analysis-select").selectOption("anova");
+  const anovaOk = await page.waitForFunction(() => {
+    const t = document.querySelector(".anova-table")?.innerText ?? "";
+    return t.includes("Residual (within columns)") && t.includes("MS")
+      && [...document.querySelectorAll(".results-table tr")].some((tr) => /^Residual SD/.test(tr.innerText));
+  }, null, { timeout: 30000 }).then(() => true, () => false);
+  expect("one-way ANOVA prints its table (SS, DF, MS, F) and the residual SD", anovaOk);
+  expect("switching the test renames the results sheet (One-way ANOVA of …) and its tab",
+    await page.locator(".nav-name", { hasText: /^One-way ANOVA of / }).count() >= 1
+    && await page.getByRole("tab", { name: "One-way ANOVA" }).count() >= 1);
+}
 
 await page.screenshot({
   path: join(here, "app.png"),
