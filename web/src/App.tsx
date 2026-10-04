@@ -21,6 +21,7 @@ import Navigator from "./components/Navigator";
 import { newId } from "./project/ids";
 import { familyRootId, findSheet } from "./project/ops";
 import { SimulateHost } from "./sheets/manipulate/SimulateDialog";
+import ShareHost from "./share/ShareHost";
 import { lazy, Suspense } from "react";
 
 // The page-layout composer is loaded the first time a layout sheet opens.
@@ -87,6 +88,7 @@ function Shell() {
   return (
     <div className="app">
       <Header onOpenFile={files.open} onNewProject={newProject} />
+      <ShareHost />
       {autosave.offer && (
         <div className="restore-banner" role="region" aria-label="Restore last session">
           <span>

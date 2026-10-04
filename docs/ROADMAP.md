@@ -448,11 +448,14 @@ and the notes the feature work left in the code and READMEs:
 
 ## User research (2026-10-04)
 
-Four research reports in `docs/research/` (forums and Q&A sites with
+Five research reports in `docs/research/` (forums and Q&A sites with
 GraphPad's own 1,539-title FAQ index; review sites and alternative tools;
-bench workflows and journal rules; usability, teaching and trust) were
-read against what the app already does. Reddit blocks automated access
-and is absent. The themes below are ordered by how often and how
+bench workflows and journal rules; usability, teaching and trust; Hacker
+News, GitHub trackers and the methods literature) were read against what
+the app already does. Reddit blocks automated access and is absent.
+Context worth knowing: BarelySig (WebR in the browser, launched
+2026-09-24) and BioRender Graphing now compete on the same ground;
+48.4% of preclinical papers report using Prism. The themes below are ordered by how often and how
 intensely they recur across all four reports, with the evidence file in
 brackets. Each theme lists what is already covered and what is now
 scheduled.
@@ -494,9 +497,10 @@ Technical vs biological replicates, pooling experiments, n = cells
 - [ ] SuperPlot mode on column and grouped graphs: a replicate column
       colours the points, overlays replicate means, and the statistics
       run on the replicate means (paired when linked by experiment)
-- [ ] Hierarchical aggregation dialog for long-format exports (cell →
+- [x] Hierarchical aggregation dialog for long-format exports (cell →
       image → animal/replicate by mean or median) that keeps the
-      cell-level points for display
+      cell-level points for display (the import recipes' Aggregate step;
+      the lower level is kept as a nested table)
 - [ ] Biological vs technical replicate prompt when a table looks like
       pooled cells; n with its unit on the graph and in the legend
 
@@ -552,15 +556,21 @@ unnamed CSVs inside .prism, mixed R/Prism labs, privacy of web tools
 (UX §3–4, reviews #10, #25, forums #14, #23).
 - Covered: free, no account, all computation in the browser, .pzfx and
   .prism import, project JSON, templates.
-- [ ] Share by link: the project compressed into the URL fragment (no
+- [x] Share by link: the project compressed into the URL fragment (no
       server), opening read-only with "make a copy"
-- [ ] .pzfx export so collaborators with Prism can open OpenDose work
-- [ ] Import recipes for FlowJo, CellProfiler, QuPath and plate-reader
+- [ ] .pzfx export so collaborators with Prism can open OpenDose work,
+      including replicate subcolumns and mean/SD/N summary tables
+- [x] Import recipes for FlowJo, CellProfiler, QuPath and plate-reader
       exports: metadata parsing from sample names, long-to-wide pivot
-- [ ] A validation page in the app listing the pinned cross-checks
+      (plus qPCR Cq and tidy CSV; Reshape on every table)
+- [x] A validation page in the app listing the pinned cross-checks
       (Prism screenshots, NIST, statsmodels, R) with numbers
-- [ ] A privacy statement in the info popover: data never leaves the
+- [x] A privacy statement in the info popover: data never leaves the
       browser
+- [x] Export bundle (tidy and wide CSV, results CSV, SVG and PNG graphs,
+      methods, citation, README) from the Save menu; file-format
+      promise (every release opens every earlier version) stated in the
+      info popover and README
 
 ### Theme 6. Figures as journals now expect them
 Show every point, SD or CI rather than SEM, colour-vision safety,
@@ -578,6 +588,15 @@ exact P on brackets, consistent styles, Prism-recognisable look
 - [ ] Volcano plot from an imported fold-change / P table (thresholds,
       colours, top-N labels); clustered heat map with dendrogram
       (linkage, distance, row z-score), k-means
+- [ ] P-value style presets for brackets, tables and sentences (APA
+      ".012 / <.001", NEJM "P<0.001", GraphPad "0.0123 / <0.0001" with
+      ****), "hide ns", and the star-threshold scale written into the
+      legend
+- [ ] Prism-style symmetric point placement (points at the same value
+      spread symmetrically about the centre) as the default scatter
+      layout, alongside jitter and beeswarm
+- [ ] Survival curves: nudge overlapping curves apart at 100%, censor
+      marks, P in the chosen journal style
 
 ### Theme 7. Statistics still missing
 Power and sample size (Prism has none), Cox regression, comparing ROC

@@ -1,0 +1,15 @@
+Image	Object ID	Name	Class	Parent	ROI	Centroid X µm	Centroid Y µm	Nucleus: Area µm^2	Nucleus: Hematoxylin OD mean	Cell: DAB OD mean
+Sham_R1_s1.svs	3f2a0001-0c1d-4e5f-9a7b-1c2d3e4f5a6b		Negative	Annotation (Tissue)	Polygon	1588.5	1994.6	35.1	0.386	0.246
+Sham_R1_s1.svs	3f2a0002-0c1d-4e5f-9a7b-1c2d3e4f5a6b		Negative	Annotation (Tissue)	Polygon	11.4	508.4	34.3	0.365	0.205
+Sham_R1_s2.svs	3f2a0003-0c1d-4e5f-9a7b-1c2d3e4f5a6b		Negative	Annotation (Tissue)	Polygon	1344	976.2	35.9	0.392	0.235
+Sham_R1_s2.svs	3f2a0004-0c1d-4e5f-9a7b-1c2d3e4f5a6b		Negative	Annotation (Tissue)	Polygon	260.8	1139.5	30.6	0.368	0.235
+Sham_R2_s1.svs	3f2a0005-0c1d-4e5f-9a7b-1c2d3e4f5a6b		Negative	Annotation (Tissue)	Polygon	641.5	1370.1	32.3	0.338	0.215
+Sham_R2_s1.svs	3f2a0006-0c1d-4e5f-9a7b-1c2d3e4f5a6b		Negative	Annotation (Tissue)	Polygon	662.5	237.5	34.5	0.397	0.2
+Sham_R2_s2.svs	3f2a0007-0c1d-4e5f-9a7b-1c2d3e4f5a6b		Negative	Annotation (Tissue)	Polygon	1036.2	1652.2	37.6	0.332	0.236
+Sham_R2_s2.svs	3f2a0008-0c1d-4e5f-9a7b-1c2d3e4f5a6b		Negative	Annotation (Tissue)	Polygon	957.3	271.7	38.6	0.334	0.218
+TBI_R3_s1.svs	3f2a0009-0c1d-4e5f-9a7b-1c2d3e4f5a6b		Positive	Annotation (Tissue)	Polygon	1217.4	780.2	29.2	0.313	0.421
+TBI_R3_s1.svs	3f2a000a-0c1d-4e5f-9a7b-1c2d3e4f5a6b		Positive	Annotation (Tissue)	Polygon	247	1539.9	36.5	0.37	0.43
+TBI_R3_s2.svs	3f2a000b-0c1d-4e5f-9a7b-1c2d3e4f5a6b		Positive	Annotation (Tissue)	Polygon	437.3	942	39.1	0.331	0.448
+TBI_R3_s2.svs	3f2a000c-0c1d-4e5f-9a7b-1c2d3e4f5a6b		Positive	Annotation (Tissue)	Polygon	1772.1	711.7	39.8	0.323	0.428
+TBI_R4_s1.svs	3f2a000d-0c1d-4e5f-9a7b-1c2d3e4f5a6b		Positive	Annotation (Tissue)	Polygon	1163.8	1948.1	31	0.373	0.44
+TBI_R4_s1.svs	3f2a000e-0c1d-4e5f-9a7b-1c2d3e4f5a6b		Positive	Annotation (Tissue)	Polygon	1637.9	574.8	34.3	0.373	0.444

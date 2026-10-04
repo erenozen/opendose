@@ -27,6 +27,10 @@ import {
 } from "./EditDialogs";
 import ImportDialog, { type ImportRequest } from "./ImportDialog";
 import MenuButton from "./MenuButton";
+import { lazy, Suspense } from "react";
+
+// Wide <-> long (src/share), loaded when first opened.
+const ReshapeDialog = lazy(() => import("../../share/ReshapeDialog"));
 import "./grid.css";
 
 // Default subcolumn header when the user has not titled it.
@@ -50,7 +54,7 @@ const HINTS: Partial<Record<TableType, string>> = {
 type Dialog =
   | { kind: "import"; req?: ImportRequest; paste?: { text: string; r: number; c: number } }
   | { kind: "export" } | { kind: "sort" } | { kind: "series" } | { kind: "format" }
-  | { kind: "convert" };
+  | { kind: "convert" } | { kind: "reshape" };
 
 const mac = typeof navigator !== "undefined" && /Mac|iP(hone|ad)/.test(navigator.platform);
 const MOD = mac ? "⌘" : "Ctrl+";
@@ -363,6 +367,9 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
               <button type="button" onClick={() => setDialog({ kind: "convert" })}
                 title="Create a new table of means and errors from this one">Convert…</button>
             )}
+            <button type="button" onClick={() => setDialog({ kind: "reshape" })}
+              title={t.type === "multivariable" ? "Make a wide table (groups as columns) from this long table"
+                : "Make a long table (one observation per row) from this one"}>Reshape…</button>
           </>
         )}
       </div>
@@ -538,7 +545,8 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
             <span className="hint">
               {sheet.derived ? "Read-only: computed from its source table (see the note above). "
                 + "Unlink it to edit the values."
-                : sheet.frozen ? "Read-only: this table is frozen." : "Read-only."}
+                : sheet.frozen ? "Read-only: this table is frozen."
+                  : api.readOnly ? "Read-only: a shared project. Make a copy to edit it." : "Read-only."}
             </span>
           ) : datasetHint && <span className="hint">{datasetHint}</span>}
         </div>
@@ -584,6 +592,11 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
         <TableFormatDialog table={t} onClose={() => setDialog(null)}
           onConvert={() => setDialog({ kind: "convert" })}
           onApply={(fn) => { edit(fn); setDialog(null); }} />
+      )}
+      {dialog?.kind === "reshape" && (
+        <Suspense fallback={null}>
+          <ReshapeDialog sheet={sheet} onClose={() => setDialog(null)} />
+        </Suspense>
       )}
       {dialog?.kind === "convert" && (
         <ConvertDialog table={t} name={sheet.name} onClose={() => setDialog(null)}

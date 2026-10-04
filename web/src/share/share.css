@@ -1,0 +1,139 @@
+/* Sharing, interoperability and trust (src/share) */
+
+/* Read-only banner of a project opened from a share link: the same
+   family as the restore banner, so it reads as app chrome. */
+.share-banner {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px;
+  margin: 16px 24px 0; padding: 10px 14px;
+  border: 1px solid var(--accent-border); border-radius: var(--radius-s);
+  background: var(--accent-soft); color: var(--ink-2);
+  font-size: 13px; max-width: 1632px;
+  transition: opacity 200ms var(--ease-out), transform 200ms var(--ease-out);
+  opacity: 1; transform: translateY(0);
+  @starting-style { opacity: 0; transform: translateY(-6px); }
+}
+.share-banner svg { color: var(--accent); flex: none; }
+.share-banner span { flex: 1 1 320px; min-width: 0; }
+.share-banner strong { color: var(--ink); font-weight: 650; }
+.share-banner button { padding: 4px 12px; background: var(--surface); }
+.share-banner .btn-primary { background: var(--accent-fill); color: var(--accent-ink); }
+.share-banner .dismiss { opacity: 0.8; }
+
+.share-dialog { width: min(560px, calc(100vw - 32px)); }
+.share-url {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px !important;
+}
+
+/* Bundle progress chip, bottom right */
+.share-progress {
+  position: fixed; right: 18px; bottom: 18px; z-index: 1400;
+  padding: 8px 14px; border-radius: var(--radius-pill);
+  background: var(--surface); color: var(--ink-2); font-size: 12.5px;
+  border: 1px solid var(--border-soft); box-shadow: 0 6px 24px rgba(0, 0, 0, 0.14);
+}
+
+/* Off-screen results panels for the bundle: visible (innerText of a
+   hidden element is empty), just far away. */
+.export-host.bundle-host { visibility: visible; width: 960px; }
+
+/* Header: Share / export menu next to Save project */
+.save-menu .menu-wrap > button { padding-inline: 8px; }
+.save-menu .grid-menu { min-width: 250px; z-index: 1300; }
+
+/* ---- Validation page */
+.validation-page { width: min(1080px, calc(100vw - 32px)); }
+.validation-page .modal-body { max-height: calc(100vh - 48px); overflow: auto; }
+.validation-intro { margin: 0; color: var(--ink-2); font-size: 13.5px; line-height: 1.6; max-width: 72ch; }
+.validation-summary {
+  display: flex; flex-wrap: wrap; gap: 6px 8px; margin: 0; padding: 0; list-style: none;
+}
+.validation-summary button {
+  padding: 3px 10px; font-size: 12px; border-radius: var(--radius-pill);
+  background: var(--inset); color: var(--ink-2);
+}
+.validation-summary button[aria-pressed="true"] {
+  background: var(--accent-fill); color: var(--accent-ink);
+}
+.validation-group { display: flex; flex-direction: column; gap: 6px; }
+.validation-group h3 { margin: 6px 0 0; font-size: 14px; font-weight: 650; color: var(--ink); }
+.validation-group > p { margin: 0; color: var(--muted); font-size: 12.5px; }
+.validation-table-wrap { overflow-x: auto; border: 1px solid var(--grid); border-radius: var(--radius-s); }
+.validation-table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+.validation-table th, .validation-table td {
+  padding: 5px 8px; border-bottom: 1px solid var(--grid); text-align: left; vertical-align: top;
+}
+.validation-table thead th {
+  position: sticky; top: 0; background: var(--surface); color: var(--ink-2); font-weight: 600;
+  white-space: nowrap;
+}
+.validation-table td.num { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; min-width: 9ch; }
+.validation-table td.src { color: var(--muted); min-width: 22ch; }
+.validation-table code { font-size: 11.5px; color: var(--muted); overflow-wrap: anywhere; }
+.validation-table tr:last-child td { border-bottom: none; }
+.validation-note { display: block; color: var(--muted); font-size: 11.5px; margin-top: 2px; }
+
+/* ---- Recipe and reshape dialogs */
+.recipe-dialog { width: min(1040px, calc(100vw - 32px)); }
+.recipe-dialog .modal-body { max-height: calc(100vh - 48px); overflow: auto; }
+.recipe-list {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 6px;
+  border: none; margin: 0; padding: 0;
+}
+.recipe-list legend {
+  font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.07em;
+  color: var(--muted); font-weight: 650; margin-bottom: 6px; padding: 0;
+}
+.recipe-option {
+  display: flex; gap: 8px; align-items: flex-start; cursor: pointer;
+  border: 1px solid var(--border); border-radius: 10px; padding: 7px 10px;
+  transition: border-color 140ms ease, background-color 140ms ease;
+}
+.recipe-option.checked { border-color: var(--accent); background: var(--accent-soft); }
+.recipe-option:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 1px; }
+.recipe-option input { margin-top: 3px; }
+.recipe-option b { font-size: 13px; font-weight: 600; color: var(--ink); display: block; }
+.recipe-option small { color: var(--muted); font-size: 11.5px; line-height: 1.35; display: block; }
+.recipe-detected { font-size: 10.5px; color: var(--accent); font-weight: 600; margin-left: 4px; }
+.recipe-roles { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px 12px; }
+.recipe-roles .field span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pattern-tokens { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; }
+.pattern-token {
+  display: flex; flex-direction: column; gap: 4px; padding: 6px 8px;
+  border: 1px solid var(--border); border-radius: var(--radius-s); background: var(--inset);
+  font-size: 12px; color: var(--ink-2); min-width: 110px;
+}
+.pattern-token code { font-size: 12.5px; color: var(--ink); font-weight: 600; }
+.pattern-token select, .pattern-token input {
+  font: inherit; font-size: 12px; padding: 2px 4px; border-radius: 5px;
+  border: 1px solid var(--border); background: var(--surface); color: var(--ink);
+}
+.role-chip {
+  display: inline-block; font-size: 10.5px; font-weight: 600; border-radius: 999px;
+  padding: 0 6px; margin-left: 4px; background: var(--inset); color: var(--muted);
+}
+.import-preview th.role-group, .role-chip.role-group { color: #0a7d32; }
+.import-preview th.role-subject, .role-chip.role-subject { color: #8a4b00; }
+.import-preview th.role-value, .role-chip.role-value { color: var(--accent); }
+.import-preview th.role-time, .role-chip.role-time { color: #7a3fb0; }
+:root[data-theme="dark"] .import-preview th.role-group, :root[data-theme="dark"] .role-chip.role-group { color: #4cd964; }
+:root[data-theme="dark"] .import-preview th.role-subject, :root[data-theme="dark"] .role-chip.role-subject { color: #ffb340; }
+:root[data-theme="dark"] .import-preview th.role-time, :root[data-theme="dark"] .role-chip.role-time { color: #c48cff; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .import-preview th.role-group,
+  :root:not([data-theme="light"]) .role-chip.role-group { color: #4cd964; }
+  :root:not([data-theme="light"]) .import-preview th.role-subject,
+  :root:not([data-theme="light"]) .role-chip.role-subject { color: #ffb340; }
+  :root:not([data-theme="light"]) .import-preview th.role-time,
+  :root:not([data-theme="light"]) .role-chip.role-time { color: #c48cff; }
+}
+.import-preview td.dim { color: var(--faint); }
+.agg-steps { display: flex; flex-direction: column; gap: 6px; }
+.agg-step { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; font-size: 13px; color: var(--ink-2); }
+.agg-step select { font: inherit; font-size: 12.5px; padding: 3px 6px; border-radius: 6px; }
+.recipe-counts { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.recipe-counts li {
+  font-size: 12px; padding: 2px 9px; border-radius: var(--radius-pill);
+  background: var(--inset); color: var(--ink-2); font-variant-numeric: tabular-nums;
+}
+.recipe-counts b { color: var(--ink); font-weight: 650; }

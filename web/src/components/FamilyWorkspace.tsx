@@ -72,7 +72,9 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
   });
 
   // Derived tables (chains) are recomputed from their source: read-only.
-  const readOnly = !!data.frozen || !!data.derived;
+  // So is everything in a project opened from a share link (src/share).
+  const shared = api.readOnly;
+  const readOnly = !!data.frozen || !!data.derived || shared;
   // Table types whose editor is final but whose analyses are not out yet.
   const entryOnly = def.status === "entry-only" || !def.analyses.length;
   const Editor = def.Editor;
@@ -117,10 +119,10 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
                     <FrozenNote what="results sheet"
                       onUnfreeze={() => cmd.toggleFreeze(resSheet.id)} />
                   )}
-                  <div className="controls-wrap" inert={!!resSheet.frozen}>
+                  <div className="controls-wrap" inert={!!resSheet.frozen || shared}>
                     <Suspense fallback={<Pending />}>
                       <Controls sheet={resSheet} table={data.table} options={options}
-                        readOnly={!!resSheet.frozen}
+                        readOnly={!!resSheet.frozen || shared}
                         onChange={(o) => apply((p) => updateResultsOptions(p, resSheet.id, () => o),
                           `options:${resSheet.id}`)} />
                     </Suspense>
@@ -220,7 +222,7 @@ function GraphCard({ graph, data, result, options }: {
   result: unknown;
   options: unknown;
 }) {
-  const { apply, engineReady, project } = useProject();
+  const { apply, engineReady, project, readOnly: shared } = useProject();
   const kind = graphDef(data.table.type, graph.graphType);
   const def = tableDef(data.table.type);
   const Plot = kind?.PlotPanel ?? def.PlotPanel;
@@ -283,7 +285,7 @@ function GraphCard({ graph, data, result, options }: {
             <SnowflakeIcon /> Frozen
           </span>
         )}
-        {siblings.length > 1 && !graph.frozen && (
+        {siblings.length > 1 && !graph.frozen && !shared && (
           <select className="graph-select" aria-label="Graph type"
             value={graph.graphType}
             onChange={(e) => edit((g) => ({ ...g, graphType: e.target.value }), "type")}>
@@ -295,11 +297,11 @@ function GraphCard({ graph, data, result, options }: {
         <Suspense fallback={<div className="plot-pending" aria-busy="true" />}>
           <Plot graph={graph} table={table} options={opts} result={res}
             titles={resolved} scheme={graph.settings.scheme} format={format}
-            onFormatChange={graph.frozen ? undefined : dragFormat} />
+            onFormatChange={graph.frozen || shared ? undefined : dragFormat} />
         </Suspense>
       ) : <div className="plot empty-hint">No plot available for this graph type.</div>}
       <ExportPanel filename={fileStem(graph.name, kind?.exportName ?? "graph")}
-        scheme={graph.settings.scheme} leading={graph.frozen ? undefined : (
+        scheme={graph.settings.scheme} leading={graph.frozen || shared ? undefined : (
         <GraphSettings
           scheme={graph.settings.scheme}
           onSchemeChange={(id: SchemeId) => edit((g) => ({

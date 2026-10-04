@@ -12,6 +12,7 @@ import type {
   GraphSheet, Prefs, Project, ResultsSheet,
 } from "../project/types";
 import { setDisplayDigits } from "../types";
+import { clearShareLink, readShareBoot } from "../share/boot";
 import { ResultsCache } from "./analysis";
 import { sampleProject } from "./factory";
 import { Ctx, type ProjectApi } from "./context";
@@ -22,11 +23,23 @@ function firstSheetId(p: Project): string | null {
 
 export function ProjectProvider({ children }: { children: ReactNode }) {
   const [prefs, setPrefsState] = useState<Prefs>(loadPrefs);
+  // A share link in the address ("#p=…") opens that project, read-only.
+  const [shareBoot] = useState(() => readShareBoot(projectPrefs(loadPrefs()), newId));
   const [store] = useState(() => new ProjectStore(
-    sampleProject(projectPrefs(loadPrefs()), newId)));
+    shareBoot.project ?? sampleProject(projectPrefs(loadPrefs()), newId)));
+  const [readOnly, setReadOnly] = useState(!!shareBoot.project);
+  const readOnlyRef = useRef(readOnly);
+  const [status, setStatus] = useState("Starting Python runtime…");
   const history = useSyncExternalStore(store.subscribe, store.getSnapshot);
   const project = history.present;
-  const [results] = useState(() => new ResultsCache());
+  const [results] = useState(() => {
+    const cache = new ResultsCache();
+    // A link may carry cached results: show them before the engine runs.
+    if (shareBoot.project) {
+      cache.prime(shareBoot.project.sheets.filter((s): s is ResultsSheet => s.kind === "results"));
+    }
+    return cache;
+  });
 
   const [selectedId, setSelectedId] = useState<string | null>(
     () => firstSheetId(store.project));
@@ -83,12 +96,22 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
 
   // Every edit also refreshes analysis constants hooked to info-sheet
   // constants (project/infoLinks.ts), in the same undo step.
-  const apply = useCallback((fn: (p: Project) => Project, key: string | null = null) =>
-    store.apply((p) => syncInfoLinks(fn(p)), key), [store]);
+  // A shared project is read-only until copied: edits are refused.
+  const apply = useCallback((fn: (p: Project) => Project, key: string | null = null) => {
+    if (readOnlyRef.current) {
+      setStatus("This shared project is read-only. Make a copy to edit it.");
+      return store.project;
+    }
+    return store.apply((p) => syncInfoLinks(fn(p)), key);
+  }, [store]);
 
-  const replace = useCallback((p: Project, sel?: string | null) => {
+  const replace = useCallback((p: Project, sel?: string | null,
+    opts: { readOnly?: boolean } = {}) => {
     results.clear();
     results.prime(p.sheets.filter((s): s is ResultsSheet => s.kind === "results"));
+    readOnlyRef.current = !!opts.readOnly;
+    setReadOnly(!!opts.readOnly);
+    if (!opts.readOnly) clearShareLink();
     store.reset(p);
     switchedRef.current = true;
     setActiveRes({});
@@ -118,7 +141,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   }, [prefs.theme]);
 
   // ---- engine
-  const [status, setStatus] = useState("Starting Python runtime…");
+  const [shareError] = useState(shareBoot.error);
   const [engineReady, setEngineReady] = useState(false);
   const [engineError, setEngineError] = useState<string | null>(null);
   const bootEngine = useCallback(() => {
@@ -127,7 +150,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     getEngine(setStatus)
       .then(() => {
         setEngineReady(true);
-        setStatus("");
+        setStatus(shareError ? `Could not open the share link: ${shareError}` : "");
       })
       .catch((err) => {
         // getEngine resets its cached promise on failure, so Retry can
@@ -135,7 +158,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         setEngineError(err instanceof Error ? err.message : String(err));
         setStatus("");
       });
-  }, []);
+  }, [shareError]);
   useEffect(() => { bootEngine(); }, [bootEngine]);
 
   const api = useMemo<ProjectApi>(() => ({
@@ -144,10 +167,10 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     selectedId, select, activeResults, activeGraph, switchedRef,
     prefs, setPrefs,
     engineReady, engineError, status, setStatus, bootEngine,
-    results,
+    results, readOnly,
   }), [store, history, project, apply, replace, selectedId, select, activeResults,
     activeGraph, prefs, setPrefs, engineReady, engineError, status, bootEngine,
-    results]);
+    results, readOnly]);
 
   return <Ctx.Provider value={api}>{children}</Ctx.Provider>;
 }
