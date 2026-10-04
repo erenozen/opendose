@@ -6,6 +6,7 @@ import { familyChildren, familyRootId, findSheet } from "../project/ops";
 import type { ResultsSheet } from "../project/types";
 import { analysisDef, tableDef } from "../sheets/registry";
 import { versionLabel } from "../export/cite";
+import { useGuideOptional } from "../guide/context";
 import CiteBlock from "./CiteBlock";
 import SaveMenu from "../share/SaveMenu";
 import { openValidation } from "../share/events";
@@ -24,6 +25,7 @@ export default function Header({ onOpenFile, onNewProject }: {
   const { project, selectedId, select, prefs, setPrefs, status, history } = api;
   const ui = useUi();
   const cmd = useCommands();
+  const guide = useGuideOptional();
 
   // ---- analysis tabs for the family of the selected sheet
   const root = selectedId ? familyRootId(project, selectedId) : null;
@@ -184,6 +186,15 @@ export default function Header({ onOpenFile, onNewProject }: {
                     items[(i + (e.key === "ArrowDown" ? 1 : items.length - 1)) % items.length]?.focus();
                   }
                 }}>
+                {guide && (
+                  <button type="button" role="menuitem" tabIndex={-1}
+                    className="menu-item menu-item-2line menu-item-guide"
+                    onClick={() => { setAnalyzeOpen(false); guide.openWizard(); }}>
+                    <span>Which test?…</span>
+                    <span className="menu-desc">Answer a few questions about your design; get a
+                      recommended test with its reason, set up on this table.</span>
+                  </button>
+                )}
                 {tdef.analyses.map((a) => (
                   <button key={a.id} type="button" role="menuitem" tabIndex={-1}
                     className="menu-item menu-item-2line"
@@ -284,6 +295,19 @@ export default function Header({ onOpenFile, onNewProject }: {
             </svg>
           )}
         </button>
+        {guide && (
+          <button className="theme-btn help-btn" onClick={() => (guide.helpOpen
+            ? guide.closeHelp() : guide.openHelp())}
+            aria-label="Help: explainers, tour and keyboard shortcuts"
+            aria-expanded={guide.helpOpen} title={`Help (${modKey}/)`}>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor"
+              strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+              <circle cx="8" cy="8" r="6.25" />
+              <path d="M6.2 6.3a1.9 1.9 0 0 1 3.7.5c0 1.3-1.9 1.6-1.9 2.8" />
+              <circle cx="8" cy="11.6" r="0.8" fill="currentColor" stroke="none" />
+            </svg>
+          </button>
+        )}
         <PreferencesPopover />
         <button onClick={onNewProject} aria-label="New project" title="New project">New</button>
         <button onClick={cmd.save} aria-label="Save project">

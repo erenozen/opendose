@@ -1,4 +1,5 @@
 import { useState, useSyncExternalStore } from "react";
+import LearnMore from "../guide/LearnMore";
 import type {
   CIMethod, ConstraintState, ErrorBarKind, OptionsState,
   WeightingKind,
@@ -125,7 +126,7 @@ export default function ControlsPanel({ options, onChange, datasetNames = [], re
 
       {constrainable.length > 0 && !classic && (
         <section>
-          <h3>Constrain (hold constant)</h3>
+          <h3>Constrain (hold constant) <LearnMore id="relative-absolute-ic50" label="When?" /></h3>
           {constrainable.map((p) => (
             <ConstraintRow key={p} label={p} state={constraintState(options, p)}
               onChange={(c) => onChange(withConstraint(options, p, c))} />
@@ -137,7 +138,7 @@ export default function ControlsPanel({ options, onChange, datasetNames = [], re
       )}
       {classic && (
         <section>
-          <h3>Constrain (hold constant)</h3>
+          <h3>Constrain (hold constant) <LearnMore id="relative-absolute-ic50" label="When?" /></h3>
           {(["Top", "Bottom", "HillSlope"] as const).map((p) => (
             <ConstraintRow key={p} label={p} state={constraintState(options, p)}
               onChange={(c) => onChange(withConstraint(options, p, c))} />
@@ -216,7 +217,7 @@ export default function ControlsPanel({ options, onChange, datasetNames = [], re
       )}
 
       <section>
-        <h3>Error bars</h3>
+        <h3>Error bars <LearnMore id="sd-sem-ci" label="SD, SEM or CI?" /></h3>
         <select
           aria-label="Error bar type"
           value={options.errorBars}
@@ -310,7 +311,7 @@ export default function ControlsPanel({ options, onChange, datasetNames = [], re
       </section>
 
       <section>
-        <h3>Normalize</h3>
+        <h3>Normalize <LearnMore id="normalize-sd" /></h3>
         <label className="check-row">
           <input
             type="checkbox"
