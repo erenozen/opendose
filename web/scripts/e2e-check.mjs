@@ -1555,7 +1555,8 @@ expect("Gardner-Altman CI matches the native run", gaRows.includes("3.533 to 6.9
 await page.getByRole("button", { name: "Preferences" }).click();
 await page.getByLabel("P-value style (tables, sentences, legends)").selectOption("apa");
 await page.keyboard.press("Escape");
-await page.getByRole("tab", { name: "Column stats" }).click();
+// The column analysis' tab is named after its test (here a t test).
+await page.getByRole("tab", { name: "t test" }).click();
 await page.waitForSelector(".report-sentence p", { timeout: 15000 });
 const apa = await page.locator(".report-sentence p").innerText();
 const pRow = await page.locator(".results-table tr", { hasText: "P value (two-tailed)" }).first().innerText();

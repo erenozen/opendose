@@ -13,7 +13,7 @@
 //             cell; transpose; take column titles from the first row
 // Everything here is pure and unit-tested; the dialog only holds state.
 import {
-  addDataset, allowsSummaryFormat, defaultDatasetName, flatColumns,
+  addDataset, allowsSummaryFormat, defaultDatasetName, flatColumns, hasAnyValue,
   insertRows, normalizeTable, setExcluded, tableShape, type CellRef,
 } from "./table.ts";
 import type { DataColumn, DataTableModel } from "./types.ts";
@@ -341,8 +341,8 @@ export function applyImport(t: DataTableModel, p: ImportPreview, roles: ColumnRo
     const fmtTitles = SUBCOLUMN_FORMAT_TITLES[t.subcolumnFormat] ?? [];
     const datasets: DataColumn[] = Array.from({ length: nDs }, (_, d) => {
       const col: DataColumn = {
-        name: title(yi[d * width] ?? -1) || t.datasets[d]?.name
-          || defaultDatasetName(t.type, d),
+        name: datasetTitle(yi.slice(d * width, d * width + width).map(title))
+          || t.datasets[d]?.name || defaultDatasetName(t.type, d),
         rows: Array.from({ length: Math.max(1, rows.length) },
           () => Array<string>(width).fill("")),
       };
@@ -417,15 +417,89 @@ export function applyImport(t: DataTableModel, p: ImportPreview, roles: ColumnRo
     });
   }
   if (pl.mode !== "replace" && pl.useTitles && p.titles) {
+    // each data set the import reaches is named from the titles of the
+    // source columns that land in it (their stem, for replicates)
+    const byDataset = new Map<number, string[]>();
     yi.forEach((src, j) => {
       const target = yFlat[yStart + j];
-      const name = title(src);
-      if (target && target.sub === 0 && name) datasets[target.dataset].name = name;
+      if (!target) return;
+      if (!byDataset.has(target.dataset)) byDataset.set(target.dataset, []);
+      byDataset.get(target.dataset)!.push(title(src));
     });
+    for (const [d, titles] of byDataset) {
+      const name = datasetTitle(titles);
+      if (name) datasets[d].name = name;
+    }
     if (xi >= 0 && title(xi)) next = { ...next, xTitle: title(xi) };
   }
   next = { ...next, x, rowTitles, datasets };
+  // the header above the row titles names the row factor (two-way ANOVA)
+  if (ti >= 0 && title(ti) && (t.type === "grouped" || t.type === "column")) {
+    next = { ...next, factorNames: { ...next.factorNames, rows: title(ti) } };
+  }
+  if (pl.mode !== "replace") next = dropUnfilledDatasets(t, next);
   return refs.length ? setExcluded(next, refs, true) : next;
+}
+
+/** Does the first row (after the skipped lines) hold column titles? Yes
+ *  when, in at least one column whose values below are numbers, the first
+ *  cell is text, and no such column starts with a number. Columns of text
+ *  (group labels) say nothing either way. */
+export function detectTitlesRow(source: string | string[][], s: SourceOptions): boolean {
+  const p = prepareImport(source, { ...s, titlesRow: false }, DEFAULT_FILTER);
+  if (p.rows.length < 2) return false;
+  const body = p.rows.slice(1, 201);
+  let textOverNumbers = 0;
+  for (let c = 0; c < p.columns.length; c++) {
+    const vals = body.map((r) => (r[c] ?? "").trim()).filter((v) => v !== "");
+    if (!vals.length) continue;
+    const numeric = vals.filter(isNumeric).length / vals.length >= 0.8;
+    if (!numeric) continue;
+    const head = (p.rows[0][c] ?? "").trim();
+    if (head === "") continue;
+    if (isNumeric(head)) return false;
+    textOverNumbers++;
+  }
+  return textOverNumbers > 0;
+}
+
+/** Name of a data set from the titles of its source columns: the title
+ *  itself, or for replicates the shared stem ("treated_1", "treated_2"
+ *  -> "treated"; "A1", "A2" -> "A"). */
+export function datasetTitle(titles: string[]): string {
+  const ts = titles.map((t) => t.trim()).filter(Boolean);
+  if (ts.length <= 1) return ts[0] ?? "";
+  let pre = ts[0];
+  for (const t of ts.slice(1)) {
+    let i = 0;
+    while (i < pre.length && i < t.length && pre[i] === t[i]) i++;
+    pre = pre.slice(0, i);
+  }
+  // a stem ends before the replicate number and its separator
+  const stem = pre.replace(/[\s_\-.:#(]*\d*$/, "").replace(/[\s_\-.:#(]+$/, "");
+  return stem || ts[0];
+}
+
+/** After pasting or importing into a table that held no values: drop the
+ *  trailing data sets the new values did not reach and that still have
+ *  their default names (a three-group column table pasted with two
+ *  columns keeps two groups). A paste that fills one data set keeps the
+ *  others, which are likely to be filled next. */
+export function dropUnfilledDatasets(before: DataTableModel, after: DataTableModel):
+  DataTableModel {
+  if (hasAnyValue(before) || after.type === "contingency") return after;
+  const filled = (d: DataColumn) => d.rows.some((r) => r.some((v) => v.trim() !== ""));
+  let keep = after.datasets.length;
+  while (keep > 1) {
+    const i = keep - 1;
+    const d = after.datasets[i];
+    if (filled(d) || d.name !== defaultDatasetName(after.type, i)) break;
+    keep--;
+  }
+  // a single pasted column is often the first of several: keep the rest
+  if (keep === after.datasets.length
+    || after.datasets.slice(0, keep).filter(filled).length < 2) return after;
+  return { ...after, datasets: after.datasets.slice(0, keep) };
 }
 
 /** Heuristic for the grid: a paste big or odd enough that the Import
@@ -435,7 +509,9 @@ export function pasteNeedsImport(text: string): boolean {
   if (lines.length < 2) return false;
   if (lines.length >= 60) return true;
   const hasTab = lines.some((l) => l.includes("\t"));
-  if (hasTab) return false;
+  // a spreadsheet block with a titles row: the dialog reads the titles as
+  // data set names instead of pasting them as values
+  if (hasTab) return detectTitlesRow(text, DEFAULT_SOURCE);
   // several lines but no tabs: comma / semicolon separated text
   return lines.filter((l) => /[;,]/.test(l)).length >= Math.ceil(lines.length / 2);
 }

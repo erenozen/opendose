@@ -3,6 +3,7 @@ import { resolveOptions } from "../app/analysis";
 import { useCommands } from "../app/commands";
 import { useProject } from "../app/context";
 import { useAnalysisResult } from "../app/useAnalysisResult";
+import { renameForOptions } from "../app/resultsName";
 import {
   findSheet, updateResultsOptions, updateSheet, updateTable,
 } from "../project/ops";
@@ -132,8 +133,12 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
                     <Suspense fallback={<Pending />}>
                       <Controls sheet={resSheet} table={data.table} options={options}
                         readOnly={!!resSheet.frozen || shared}
-                        onChange={(o) => apply((p) => updateResultsOptions(p, resSheet.id, () => o),
-                          `options:${resSheet.id}`)} />
+                        onChange={(o) => apply((p) => {
+                          const prev = findSheet(p, resSheet.id);
+                          const before = prev?.kind === "results" ? prev.options : undefined;
+                          return renameForOptions(updateResultsOptions(p, resSheet.id, () => o),
+                            resSheet.id, before, analysisDef);
+                        }, `options:${resSheet.id}`)} />
                     </Suspense>
                   </div>
                 </>

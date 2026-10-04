@@ -86,6 +86,12 @@ export interface AnalysisDef<O = unknown, R = unknown> {
   description?: string;
   /** Name of a new results sheet for a table called `tableName`. */
   sheetName: (tableName: string) => string;
+  /** Analyses that hold several tests behind one id (the column
+   *  analyses): the sheet name and the header tab label for the test the
+   *  options choose. When the options switch tests, a results sheet still
+   *  carrying its automatic name is renamed (app/resultsName.ts). */
+  sheetNameFor?: (tableName: string, options: unknown) => string;
+  tabLabel?: (options: unknown) => string;
   defaultOptions: (ctx: AnalysisContext) => O;
   /** Bring options read from a file up to date (default: shallow-merge
    *  over defaultOptions). */
