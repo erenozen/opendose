@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react'
 import { execSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { readdirSync, readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import type { Plugin } from 'vite'
 
 // Version stamp for "How to cite" and the methods text: the package
@@ -77,6 +78,28 @@ function serviceWorker(hash: string): Plugin {
   }
 }
 
+/** Put the boot entry's script first in the built page, so the engine
+ *  worker starts while the app's own (much larger) code downloads. In dev
+ *  main.tsx imports boot.ts as its first module. */
+function bootFirst(base: string): Plugin {
+  return {
+    name: 'opendose-boot-first',
+    apply: 'build',
+    transformIndexHtml: {
+      order: 'post',
+      handler(_html, ctx) {
+        const boot = Object.values(ctx.bundle ?? {}).find((c) =>
+          c.type === 'chunk' && c.isEntry && c.name === 'boot')
+        if (!boot) return []
+        return [{
+          tag: 'script', injectTo: 'head-prepend',
+          attrs: { type: 'module', crossorigin: true, src: `${base}${boot.fileName}` },
+        }]
+      },
+    },
+  }
+}
+
 const ENGINE_HASH = engineHash()
 
 // https://vite.dev/config/
@@ -84,7 +107,7 @@ export default defineConfig(({ command }) => ({
   // GitHub Pages serves the site at /opendose/; dev stays at the root.
   // Engine fetches already resolve via import.meta.env.BASE_URL.
   base: command === 'build' ? '/opendose/' : '/',
-  plugins: [react(), serviceWorker(ENGINE_HASH)],
+  plugins: [react(), serviceWorker(ENGINE_HASH), bootFirst('/opendose/')],
   define: {
     __ENGINE_HASH__: JSON.stringify(ENGINE_HASH),
     __PYODIDE_VERSION__: JSON.stringify(pyodideVersion),
@@ -94,6 +117,12 @@ export default defineConfig(({ command }) => ({
   },
   build: {
     rolldownOptions: {
+      // boot.ts is an entry of its own (see bootFirst): a few kB that
+      // start the engine worker without waiting for the app's code.
+      input: {
+        index: fileURLToPath(new URL('./index.html', import.meta.url)),
+        boot: fileURLToPath(new URL('./src/boot.ts', import.meta.url)),
+      },
       output: {
         // Vendor code in chunks of its own, so a release that only changes
         // the app does not make browsers download Plotly (~4.8 MB) again.
