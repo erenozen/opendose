@@ -1,0 +1,135 @@
+/* Assay modules: wizard, QC chips, column picker, linked outputs.
+   Tokens only (App.css), plus a pass green defined here in both themes
+   (#1f7a36 light, #30d158 dark: WCAG AA on their surfaces). */
+
+:root { --assay-pass: #1f7a36; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --assay-pass: #30d158; }
+}
+:root[data-theme="dark"] { --assay-pass: #30d158; }
+
+/* ---------------------------------------------------------- wizard */
+.assay-wizard { width: min(980px, calc(100vw - 32px)); }
+.assay-wizard .modal-body { gap: 12px; }
+.wizard-steps {
+  display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 4px; padding: 0;
+  list-style: none;
+}
+.wizard-steps button {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 5px 12px 5px 6px; border-radius: var(--radius-pill);
+  border: 1px solid var(--border); background: var(--surface);
+  color: var(--ink-2); font: inherit; font-size: 13px; cursor: pointer;
+}
+.wizard-steps button.current {
+  border-color: var(--accent-border); background: var(--accent-soft); color: var(--ink);
+  font-weight: 600;
+}
+.wizard-steps button:disabled { opacity: 0.5; cursor: default; }
+.wizard-step-n {
+  display: inline-grid; place-items: center; width: 20px; height: 20px;
+  border-radius: 50%; background: var(--inset); color: var(--ink-2);
+  font-size: 11.5px; font-weight: 650; font-variant-numeric: tabular-nums;
+}
+.wizard-steps button.current .wizard-step-n { background: var(--accent-fill); color: var(--accent-ink); }
+.wizard-steps button.done .wizard-step-n { background: var(--accent-soft); color: var(--accent); }
+.wizard-body {
+  display: flex; flex-direction: column; gap: 12px;
+  max-height: min(64vh, 680px); overflow: auto; padding: 2px 2px 4px;
+  transition: opacity 150ms var(--ease-out);
+  opacity: 1;
+  @starting-style { opacity: 0; }
+}
+.wizard-body h4 {
+  margin: 6px 0 0; font-size: 11.5px; text-transform: uppercase;
+  letter-spacing: 0.07em; color: var(--muted); font-weight: 650;
+}
+.wizard-body p { margin: 0; }
+.wizard-blocker { margin: 0; color: var(--warn-ink); font-size: 13px; }
+.wizard-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+.wizard-row .field { min-width: 150px; }
+.wizard-explain {
+  margin: 0; padding: 10px 12px; font-size: 13px; color: var(--ink-2);
+  background: var(--inset); border-radius: var(--radius-s);
+}
+.wizard-explain strong { color: var(--ink); }
+.wizard-paste { width: 100%; min-height: 110px; font: 12px/1.4 ui-monospace, monospace; }
+
+/* ---------------------------------------------------------- chips */
+.qc-chip {
+  display: inline-block; padding: 0 8px; border-radius: var(--radius-pill);
+  font-size: 11.5px; font-weight: 650; line-height: 19px; white-space: nowrap;
+  border: 1px solid transparent;
+}
+.qc-pass {
+  color: var(--assay-pass);
+  background: color-mix(in srgb, var(--assay-pass) 10%, var(--surface));
+  border-color: color-mix(in srgb, var(--assay-pass) 35%, transparent);
+}
+.qc-fail {
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 8%, var(--surface));
+  border-color: color-mix(in srgb, var(--danger) 35%, transparent);
+}
+.qc-warn {
+  color: var(--warn-ink);
+  background: color-mix(in srgb, var(--warn-hue) 12%, var(--surface));
+  border-color: color-mix(in srgb, var(--warn-hue) 40%, transparent);
+}
+.qc-info { color: var(--accent); background: var(--accent-soft); border-color: var(--accent-border); }
+.qc-na { color: var(--muted); }
+.results-table tr.qc-row-fail td, .results-table tr.qc-row-fail th {
+  background: color-mix(in srgb, var(--danger) 6%, var(--surface));
+}
+.results-table tr.qc-row-pass td.qc-cell, .results-table td.qc-cell-pass {
+  color: var(--assay-pass); font-weight: 600;
+}
+.results-table td.qc-cell-fail { color: var(--danger); font-weight: 600; }
+.results-table td.flags { white-space: normal; min-width: 120px; }
+.results-table td.flags .qc-chip { margin: 1px 3px 1px 0; }
+
+/* ---------------------------------------------------------- results */
+.assay-results h4 { margin-top: 18px; }
+.assay-results .results-table { margin-bottom: 4px; }
+.assay-summary {
+  display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: baseline;
+  margin: 6px 0 10px; font-size: 13px; color: var(--ink-2);
+}
+.assay-summary strong { color: var(--ink); font-size: 18px; font-variant-numeric: tabular-nums; }
+.assay-summary .assay-stat { display: flex; flex-direction: column; gap: 1px; }
+.assay-summary .assay-stat span { font-size: 11.5px; color: var(--muted); }
+.assay-warnings ul { margin: 0; padding-left: 18px; }
+.assay-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; }
+.assay-tabs button {
+  padding: 3px 11px; border-radius: var(--radius-pill); border: 1px solid var(--border);
+  background: var(--surface); color: var(--ink-2); font: inherit; font-size: 12.5px; cursor: pointer;
+}
+.assay-tabs button[aria-pressed="true"] {
+  border-color: var(--accent-border); background: var(--accent-soft); color: var(--ink); font-weight: 600;
+}
+.assay-cite { color: var(--muted); font-size: 12px; margin: 6px 0 0; }
+
+/* ---------------------------------------------------------- controls */
+.column-picker {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px 12px;
+}
+.column-picker select[aria-invalid="true"] { border-color: var(--danger); }
+.assay-outputs { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.assay-link-btn { font-size: 12.5px; padding: 5px 12px; }
+.assay-setup { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.assay-setup .btn-primary { font-size: 13px; }
+.assay-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.gene-picks { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.gene-picks label { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-2); }
+.eff-table input { width: 80px; }
+
+/* stat tiles (plate QC, standard-curve range) */
+.plate-qc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; margin: 8px 0; }
+.plate-qc-grid .assay-stat {
+  padding: 8px 10px; border-radius: var(--radius-s); background: var(--inset);
+  display: flex; flex-direction: column; gap: 2px;
+}
+.plate-qc-grid .assay-stat span { font-size: 11.5px; color: var(--muted); }
+.plate-qc-grid .assay-stat strong { font-size: 17px; font-variant-numeric: tabular-nums; }
+.assay-preview { margin: 0; padding-left: 18px; }
+.assay-preview li { margin: 3px 0; }

@@ -8,6 +8,10 @@ import {
 } from "../project/types";
 import { REGISTRY, TABLE_ORDER } from "../sheets/registry";
 import { openSimulate } from "../sheets/manipulate/simulateApi";
+import { ASSAYS } from "../sheets/assays";
+import AssayPicker, { type AssayPick } from "../sheets/assays/kit/AssayPicker";
+import { createAssayFamily, requestWizard } from "../sheets/assays/kit/create";
+import { newId } from "../project/ids";
 import Modal from "./Modal";
 
 export interface NewTableRequest {
@@ -42,8 +46,10 @@ export default function NewTableDialog({ defaultType, defaultName, onCancel, onC
   onCreate: (r: NewTableRequest) => void;
   onCreateFromTemplate?: (t: TemplatePick["template"], name: string, withData: boolean) => void;
 }) {
-  const { project } = useProject();
-  const [mode, setMode] = useState<"format" | "template">("format");
+  const { project, apply, select } = useProject();
+  const [mode, setMode] = useState<"format" | "template" | "assay">("format");
+  const [assay, setAssay] = useState<AssayPick | null>(() => (ASSAYS[0]
+    ? { module: ASSAYS[0], name: ASSAYS[0].tableName, sample: true } : null));
   const [pick, setPick] = useState<TemplatePick | null>(null);
   const [type, setType] = useState<TableType>(defaultType);
   const [name, setName] = useState(defaultName);
@@ -68,6 +74,21 @@ export default function NewTableDialog({ defaultType, defaultName, onCancel, onC
   };
 
   const submit = () => {
+    if (mode === "assay") {
+      // Start from an assay: the module's input table, analysis and graph,
+      // then its setup wizard (sheets/assays).
+      if (!assay) return;
+      let made = { dataId: "", resultsId: "" };
+      apply((p) => {
+        const r = createAssayFamily(p, assay.module, assay.name, assay.sample, newId);
+        made = r;
+        return r.project;
+      });
+      if (made.resultsId) requestWizard(made.resultsId);
+      onCancel();
+      if (made.dataId) select(made.dataId);
+      return;
+    }
     if (mode === "template") {
       if (pick && onCreateFromTemplate) {
         onCreateFromTemplate(pick.template, pick.name.trim() || pick.template.tableName, pick.withData);
@@ -108,6 +129,8 @@ export default function NewTableDialog({ defaultType, defaultName, onCancel, onC
           <button type="button" onClick={onCancel}>Cancel</button>
           {mode === "format" ? (
             <button type="submit" className="btn-primary">Create table</button>
+          ) : mode === "assay" ? (
+            <button type="submit" className="btn-primary" disabled={!assay}>Start assay</button>
           ) : (
             <button type="submit" className="btn-primary" disabled={!pick}>
               Create from template
@@ -125,9 +148,17 @@ export default function NewTableDialog({ defaultType, defaultName, onCancel, onC
             <input type="radio" name="new-mode" value="template" checked={mode === "template"}
               onChange={() => setMode("template")} /> From a template
           </label>
+          {ASSAYS.length > 0 && (
+            <label className={mode === "assay" ? "checked" : ""}>
+              <input type="radio" name="new-mode" value="assay" checked={mode === "assay"}
+                onChange={() => setMode("assay")} /> Start from an assay
+            </label>
+          )}
         </div>
       )}
-      {mode === "template" ? (
+      {mode === "assay" ? (
+        <AssayPicker onChange={setAssay} />
+      ) : mode === "template" ? (
         <TemplatePicker prefs={project.prefs} defaultName={defaultName} onChange={setPick} />
       ) : (
       <div className="new-table-grid">
