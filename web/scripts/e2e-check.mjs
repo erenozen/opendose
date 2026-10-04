@@ -1189,6 +1189,11 @@ const blissRow = await page.locator(".results-table tr", { hasText: "Bliss (blis
   .first().innerText({ timeout: 90000 }).catch(() => "");
 expect("synergy (SynergyFinder vignette block): Bliss summary score 10.86",
   blissRow.includes("10.86"), blissRow.replace(/\s+/g, " "));
+// The landscapes draw after the results sheet; wait for them.
+await page.waitForFunction(
+  () => document.querySelectorAll(".plot .heatmaplayer .hm").length === 4
+    && document.querySelectorAll(".plot .colorbar").length === 1,
+  { timeout: 30000 }).catch(() => {});
 expect("synergy: four landscapes on one diverging scale (one colour bar)",
   await page.locator(".plot .heatmaplayer .hm").count() === 4
   && await page.locator(".plot .colorbar").count() === 1);
