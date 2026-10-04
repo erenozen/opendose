@@ -6,8 +6,8 @@ import { makeInfoSheet, makeProject } from "../../project/ops.ts";
 import { DEFAULT_PREFS } from "../../project/prefs.ts";
 import {
   defaultForm, dFromMeans, effectGrid, fFromMeans, findSampleSizeJustification, hFromProportions,
-  hrFromMedians, JUSTIFICATION_CONSTANT, justificationSheetContent, nGrid, nParam, powerOptions,
-  powerPayload, randomCsv, randomOptions, type PowerResult,
+  hrFromMedians, JUSTIFICATION_CONSTANT, justificationSheetContent, nGrid, nParam, pooledSd, powerOptions,
+  powerPayload, randomCsv, randomOptions, rawDetectable, unroundedN, type PowerResult,
 } from "../power.ts";
 
 test("G*Power (Faul 2007) inputs: two groups, d = 0.5, one-sided, power 0.95", () => {
@@ -90,4 +90,57 @@ test("the justification is saved as an info constant and found again", () => {
   assert.equal(findSampleSizeJustification(p), "A sample size of 26 mice per group…");
   assert.equal(c.constants[0].name, JUSTIFICATION_CONSTANT);
   assert.equal(findSampleSizeJustification(makeProject(DEFAULT_PREFS, [], "y")), null);
+});
+
+const base = { alpha: 0.05, tails: 2, power: 0.8, target_power: 0.8, effect: { name: "d", value: 1 } };
+
+test("unrounded n says per group or total for every design", () => {
+  // R: power.anova.test(groups = 4, between.var = 1, within.var = 3, power = .80) -> n = 11.92613
+  const anova = unroundedN({ ...base, kind: "anova_oneway", solve: "n", n_total: 48, k: 4,
+    n_per_group: [12, 12, 12, 12], n_total_exact: 47.70452, equal_n: true } as PowerResult);
+  assert.deepEqual(anova.map(([l]) => l), ["Unrounded n per group", "Unrounded total N"]);
+  assert.ok(Math.abs(anova[0][1] - 11.92613) < 1e-5);
+  assert.equal(anova[1][1], 47.70452);
+  // R: power.t.test(delta = 1, sd = 1, power = .90) -> n = 22.02110 per group
+  const t = unroundedN({ ...base, kind: "t_two_sample", solve: "n", n_total: 46, n1: 23, n2: 23,
+    n1_exact: 22.0211, ratio: 1 } as PowerResult);
+  assert.deepEqual(t, [["Unrounded n per group", 22.0211], ["Unrounded total N", 44.0422]]);
+  const unequal = unroundedN({ ...base, kind: "two_proportions", solve: "n", n_total: 90, n1: 30, n2: 60,
+    n1_exact: 29.5, ratio: 2 } as PowerResult);
+  assert.deepEqual(unequal, [["Unrounded n, group 1", 29.5], ["Unrounded n, group 2", 59],
+    ["Unrounded total N", 88.5]]);
+  const lr = unroundedN({ ...base, kind: "logrank", solve: "n", n_total: 100, n_exact: 99, ratio: 1 } as PowerResult);
+  assert.deepEqual(lr, [["Unrounded n per group", 49.5], ["Unrounded total N", 99]]);
+  assert.deepEqual(unroundedN({ ...base, kind: "t_paired", solve: "n", n_total: 10, n_exact: 9.4 } as PowerResult),
+    [["Unrounded number of pairs", 9.4]]);
+  assert.deepEqual(unroundedN({ ...base, kind: "t_one_sample", solve: "n", n_total: 10, n_exact: 9.4 } as PowerResult),
+    [["Unrounded n (one group)", 9.4]]);
+  assert.deepEqual(unroundedN({ ...base, kind: "chi_square", solve: "n", n_total: 88, n_exact: 87.2 } as PowerResult),
+    [["Unrounded total N", 87.2]]);
+  // exact searches have no real-valued n; post hoc calculations have none either
+  assert.deepEqual(unroundedN({ ...base, kind: "correlation", solve: "n", n_total: 84 } as PowerResult), []);
+  assert.deepEqual(unroundedN({ ...base, kind: "t_two_sample", solve: "power", n_total: 40, n1_exact: 3 } as PowerResult), []);
+});
+
+test("detectable effect in raw units: d × pooled or common SD, ANOVA spread of the means", () => {
+  const sp = Math.sqrt((9 * 1.44 + 11 * 1.96) / 20);
+  assert.ok(Math.abs(pooledSd(1.2, 1.4, 10, 12)! - sp) < 1e-12);
+  assert.equal(pooledSd(1, 0, 5, 5), null);
+  const r = { ...base, kind: "t_two_sample", solve: "effect", n_total: 22, n1: 10, n2: 12,
+    effect: { name: "d", value: 0.95 } } as PowerResult;
+  const pooled = rawDetectable({ ...defaultForm(), sdSource: "groups", sd1: "1.2", sd2: "1.4", measureUnit: "mmol/L" }, r);
+  assert.equal(pooled.length, 1);
+  assert.equal(pooled[0].label, "Detectable difference");
+  assert.ok(Math.abs(pooled[0].value - 0.95 * sp) < 1e-12);
+  assert.equal(pooled[0].text, "1.25 mmol/L (d = 0.95 × pooled SD 1.31)");
+  assert.equal(rawDetectable({ ...defaultForm(), sd: "2" }, r)[0].text, "1.9 (d = 0.95 × SD 2)");
+  assert.deepEqual(rawDetectable(defaultForm(), r), []);
+  const paired = rawDetectable({ ...defaultForm(), sd: "4" },
+    { ...r, kind: "t_paired", effect: { name: "d_z", value: 0.5 } } as PowerResult);
+  assert.equal(paired[0].text, "2 (d_z = 0.5 × SD of the differences 4)");
+  const an = rawDetectable({ ...defaultForm(), groupSd: "10" },
+    { ...r, kind: "anova_oneway", k: 4, effect: { name: "f", value: 0.25 } } as PowerResult);
+  assert.equal(an[0].value, 2.5);
+  assert.ok(Math.abs(an[1].value - 2.5 * Math.sqrt(8)) < 1e-12);
+  assert.deepEqual(rawDetectable({ ...defaultForm(), sd: "2" }, { ...r, solve: "n" } as PowerResult), []);
 });

@@ -280,7 +280,9 @@ Wizard modules, one folder each (ids `assay_*`):
 - `plate`: plate reader → dose-response (plate map, Z′, CVs, normalised
   XY tables with the fit set up).
 - `stdcurve`: standard curve / ELISA, `qpcr`: ΔCq / ΔΔCq, `densitometry`:
-  Western blot densitometry.
+  Western blot densitometry. `qpcr/headers.ts` resolves Cq-export column
+  names across instruments (shared with the qPCR import recipe); when an
+  export does not name sample, target and Cq, the wizard asks for them.
 
 One-file modules (pure parts `*Model.ts`, `*Sample.ts` unit-tested in
 `assays/__tests__/`; panels load lazily):

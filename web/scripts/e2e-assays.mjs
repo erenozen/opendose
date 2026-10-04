@@ -204,6 +204,28 @@ const fold = Number(kid.split(" ").find((x) => Number(x) > 5 && Number(x) < 6));
 expect("Livak & Schmittgen Table 1: kidney ΔCq 4.365, fold change 5.6",
   kid.includes("4.365") && fold.toFixed(1) === "5.6", kid);
 
+// The same table with the paper's own headers (tissue, replicate, target,
+// Ct): no column is called a sample, so the wizard asks which column is
+// which (prefilled: tissue, target, Ct) instead of refusing the export.
+const paperCsv = ["tissue,replicate,target,Ct", ...csv.slice(1).map((l) => {
+  const [, tissue, gene, ct] = l.split(",");
+  return `${tissue},1,${gene},${ct}`;
+})];
+await startAssay("qPCR (ΔCq / ΔΔCq)", { sample: false, name: "Livak paper headers" });
+await wizard().getByLabel("Paste Cq export").fill(paperCsv.join("\n"));
+await wizard().getByRole("button", { name: "Read pasted export" }).click();
+expect("qPCR export without a sample header: the mapping step is shown, prefilled",
+  await wizard().getByLabel("Sample column").inputValue() === "0"
+  && await wizard().getByLabel("Target (gene) column").inputValue() === "2"
+  && await wizard().getByLabel("Cq / Ct column").inputValue() === "3"
+  && !(await wizard().innerText()).includes("No Cq table found"));
+await wizard().getByRole("button", { name: "Use these columns" }).click();
+expect("the mapped export is read (24 wells)", (await wizard().innerText()).includes("Read 24 wells"));
+await finishWizard();
+await page.waitForSelector(".qpcr-results .qpcr-target", { timeout: 60000 });
+const kid2 = (await page.locator(".qpcr-target tr", { hasText: /^Kidney/ }).first().innerText()).replace(/\s+/g, " ");
+expect("mapped columns give the same kidney ΔCq 4.365", kid2.includes("4.365"), kid2);
+
 // --- Western blot densitometry ---
 await startAssay("Western blot densitometry");
 await finishWizard();

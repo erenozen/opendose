@@ -1,23 +1,36 @@
 // Graphs of the synergy analysis: 2D synergy landscapes (one heat map per
-// model on one diverging scale), monotherapy dose-response curves, and
+// model on one diverging scale, or one chosen matrix: observed, expected,
+// ZIP-fitted), monotherapy dose-response curves, and
 // the Chou-Talalay Fa-CI plot. Drawn through the graph-format layer.
 import { useMemo } from "react";
 import type Plotly from "plotly.js-dist-min";
-import { OptCheck, OptInput } from "../../components/GraphOptionControls";
+import { OptCheck, OptInput, OptSelect } from "../../components/GraphOptionControls";
 import { tagTrace } from "../../graph";
 import FormattedPlot from "../../graph/FormattedPlot";
 import { parseCell } from "../../project/table";
 import { seriesStyle } from "../../lib/palette";
 import { formatSig } from "../../types";
 import type { GraphOptionsProps, PlotProps } from "../types";
-import { MODEL_LABEL, SYNERGY_MODELS, type SynergyOptions } from "./synergyModel";
+import {
+  isMatrixView, MATRIX_VIEWS, MODEL_LABEL, SYNERGY_MODELS, viewMatrix, type SynergyOptions,
+} from "./synergyModel";
 import { axis, chromeOf, divergingScale, layoutBase, messageLayout, useDark, useGraphSettings } from "./plotkit";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type R = Record<string, any>;
 
-interface LandscapeSettings { labels: boolean; max: string }
-const LANDSCAPE_DEFAULTS: LandscapeSettings = { labels: true, max: "" };
+/** `show`: "synergy" (one map per shown model, the default) or one
+ *  matrix of the result (observed, an expected or fitted response, one
+ *  model's synergy). */
+interface LandscapeSettings { labels: boolean; max: string; show: string }
+const LANDSCAPE_DEFAULTS: LandscapeSettings = { labels: true, max: "", show: "synergy" };
+
+/** Pale to dark blue (ColorBrewer Blues) for responses in % inhibition. */
+function sequentialScale(dark: boolean): [number, string][] {
+  return dark
+    ? [[0, "#1c2b3a"], [0.5, "#2f6f9f"], [1, "#9ecae1"]]
+    : [[0, "#f7fbff"], [0.35, "#c6dbef"], [0.65, "#4292c6"], [1, "#08306b"]];
+}
 
 function inkFor(t: number, dark: boolean): string {
   // strong colours at both ends take white text, the pale middle dark text
@@ -39,6 +52,7 @@ export function LandscapePlot({ graph, options, result, titles, scheme, format, 
     const models = shown.length ? shown : SYNERGY_MODELS;
     const c1 = result.conc1 as number[];
     const c2 = result.conc2 as number[];
+    if (isMatrixView(s.show)) return singleMap(result, s, c1, c2, options, { x: titles.x, y: titles.y }, dark);
     const all = models.flatMap((m) => (result.models[m].synergy as (number | null)[][]).flat())
       .filter((v): v is number => typeof v === "number");
     const auto = Math.max(1, ...all.map((v) => Math.abs(v)));
@@ -115,12 +129,77 @@ export function LandscapePlot({ graph, options, result, titles, scheme, format, 
   );
 }
 
-export function LandscapeOptions({ graph }: GraphOptionsProps<SynergyOptions, R>) {
+/** One heat map of one matrix: responses on a sequential scale from 0
+ *  (or the lowest value) to 100 (or the highest), synergy on the
+ *  diverging scale around 0. */
+function singleMap(result: R, s: LandscapeSettings, c1: number[], c2: number[],
+  options: SynergyOptions | null, titles: { x: string; y: string }, dark: boolean) {
+  const chrome = chromeOf(dark);
+  const def = MATRIX_VIEWS.find((d) => d.key === s.show)!;
+  const z = viewMatrix(result, def.key);
+  if (!z) return { traces: [] as Plotly.Data[], layout: messageLayout(chrome, `${def.label}: not in this result`) };
+  const vals = z.flat().filter((v): v is number => typeof v === "number");
+  const userMax = (parseCell(s.max) ?? 0) > 0 ? parseCell(s.max)! : null;
+  let lo: number;
+  let hi: number;
+  if (def.kind === "synergy") {
+    hi = userMax ?? Math.ceil(Math.max(1, ...vals.map((v) => Math.abs(v))) / 5) * 5;
+    lo = -hi;
+  } else {
+    lo = Math.min(0, Math.floor(Math.min(...vals)));
+    hi = userMax ?? Math.max(100, Math.ceil(Math.max(...vals)));
+  }
+  const scale = def.kind === "synergy" ? divergingScale(dark) : sequentialScale(dark);
+  const ink = (v: number) => {
+    const t = (v - lo) / (hi - lo || 1);
+    if (def.kind === "synergy") return inkFor(t, dark);
+    return dark ? (t > 0.6 ? "#1d1d1f" : "#f5f5f7") : (t > 0.55 ? "#ffffff" : "#1d1d1f");
+  };
+  const traces: Plotly.Data[] = [{
+    type: "heatmap", z, x: c2.map((_, j) => j), y: c1.map((_, i) => i),
+    zmin: lo, zmax: hi, zauto: false, colorscale: scale, xgap: 1, ygap: 1,
+    text: z.map((r, i) => r.map((v, j) => `${options?.drug1 ?? "Drug 1"} ${formatSig(c1[i])}, `
+      + `${options?.drug2 ?? "Drug 2"} ${formatSig(c2[j])}: ${v === null ? "no value" : formatSig(v, 3)}`)),
+    hovertemplate: `${def.label}<br>%{text}<extra></extra>`,
+    colorbar: {
+      title: { text: def.kind === "synergy" ? "Synergy (Δ % inhibition)" : "% inhibition", side: "right",
+        font: { color: chrome.inkSecondary } },
+      outlinewidth: 0, thickness: 12, len: 0.9, tickfont: { color: chrome.muted },
+    },
+  } as unknown as Plotly.Data];
+  const annotations: Partial<Plotly.Annotations>[] = [{ xref: "paper", yref: "paper", x: 0.5, y: 1,
+    yanchor: "bottom", xanchor: "center", showarrow: false, text: `<b>${def.label}</b>`,
+    font: { size: 12, color: chrome.ink } }];
+  if (s.labels) {
+    z.forEach((r, i) => r.forEach((v, j) => {
+      if (v === null || (def.kind === "synergy" && (i === 0 || j === 0))) return;
+      annotations.push({ x: j, y: i, text: formatSig(v, 2), showarrow: false, font: { size: 10, color: ink(v) } });
+    }));
+  }
+  const layout: Partial<Plotly.Layout> = layoutBase(chrome, {
+    margin: { l: 72, r: 24, t: 30, b: 56 }, dragmode: false, hovermode: "closest",
+    xaxis: axis(chrome, titles.x, { tickvals: c2.map((_, j) => j), ticktext: c2.map((c) => formatSig(c, 3)),
+      showgrid: false, ticks: "", showline: false, tickangle: -45 }),
+    yaxis: axis(chrome, titles.y, { tickvals: c1.map((_, i) => i), ticktext: c1.map((c) => formatSig(c, 3)),
+      showgrid: false, ticks: "", showline: false }),
+    annotations,
+  });
+  return { traces, layout };
+}
+
+export function LandscapeOptions({ graph, result, options }: GraphOptionsProps<SynergyOptions, R>) {
   const [s, set] = useGraphSettings(graph, "synergy", LANDSCAPE_DEFAULTS);
   if (!set) return null;
+  const shown = SYNERGY_MODELS.filter((m) => options?.models?.[m] ?? true);
+  const views = MATRIX_VIEWS.filter((d) => (d.model === null || shown.includes(d.model))
+    && (!result || viewMatrix(result, d.key) !== null));
   return (
     <>
-      <OptCheck label="Show the score in each cell" checked={s.labels}
+      <OptSelect label="Show" value={isMatrixView(s.show) ? s.show : "synergy"}
+        options={[["synergy", "Synergy scores (one map per model)"],
+          ...views.map((d) => [d.key, d.label] as const)]}
+        onChange={(show) => set({ show })} />
+      <OptCheck label="Show the value in each cell" checked={s.labels}
         onChange={(labels) => set({ labels })} />
       <OptInput label="Colour scale reaches ±" inputMode="decimal" placeholder="auto"
         value={s.max} onChange={(max) => set({ max })} />
