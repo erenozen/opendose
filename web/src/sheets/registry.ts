@@ -3,6 +3,7 @@
 // Adding a table type = one folder under src/sheets/<type>/ plus one entry
 // below. See ./README.md.
 import type { TableType } from "../project/types";
+import { assayAnalyses, assayGraphs } from "./assays";
 import { columnTable } from "./column";
 import { contingencyTable } from "./contingency";
 import { groupedTable } from "./grouped";
@@ -24,6 +25,19 @@ export const REGISTRY: Record<TableType, TableTypeDef> = {
   multivariable: multivariableTable,
   nested: nestedTable,
 };
+
+// Assay modules (sheets/assays) add analyses and graphs to the types they
+// name, after each type's own.
+for (const type of Object.keys(REGISTRY) as TableType[]) {
+  const def = REGISTRY[type];
+  const more = assayAnalyses(type).filter((a) => !def.analyses.some((x) => x.id === a.id));
+  const graphs = assayGraphs(type).filter((g) => !def.graphs.some((x) => x.id === g.id));
+  if (more.length || graphs.length) {
+    REGISTRY[type] = {
+      ...def, analyses: [...def.analyses, ...more], graphs: [...def.graphs, ...graphs],
+    };
+  }
+}
 
 // Data manipulations (chains of analyses) and Monte Carlo apply across
 // table types (sheets/manipulate); they follow each ready type's own

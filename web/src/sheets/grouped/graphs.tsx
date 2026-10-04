@@ -233,6 +233,8 @@ export function HeatOptions({ graph }: GraphOptionsProps) {
         onChange={(transpose) => up({ transpose })} />
       <OptCheck label="Column labels on top" checked={h.xTop}
         onChange={(xTop) => up({ xTop })} />
+      <OptNote>To cluster rows and columns (dendrograms, k-means), add Analyze →
+        Clustered heat map.</OptNote>
     </>
   );
 }

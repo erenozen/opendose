@@ -12,6 +12,7 @@ import {
   templateFromJson, type SheetTemplate,
 } from "../project/templates";
 import type { DataTableModel, Project, ProjectPrefs, TableType } from "../project/types";
+import { ASSAYS } from "../sheets/assays";
 import { REGISTRY, TABLE_ORDER } from "../sheets/registry";
 import { xySample } from "../sheets/xy/sample";
 import { addDerivedOutputs, addFamily } from "./factory";
@@ -201,6 +202,13 @@ export function builtinTemplates(prefs: ProjectPrefs): SheetTemplate[] {
     list.push(fromTable(prefs, "kaplan-meier", "Kaplan–Meier comparison",
       "Time and event (1 = event, 0 = censored) for each subject, one column per group: "
       + "Kaplan–Meier curves with the log-rank comparison.", surv, "Survival"));
+  }
+
+  // Assay modules' example tables, each with its analysis set up.
+  for (const t of ASSAYS.flatMap((m) => m.templates ?? [])) {
+    list.push(fromTable(prefs, t.id, t.name, t.description, t.table(), t.tableName, {
+      analysis: t.analysis, options: t.options, graphType: t.graphType,
+    }));
   }
 
   for (const type of TABLE_ORDER) {
