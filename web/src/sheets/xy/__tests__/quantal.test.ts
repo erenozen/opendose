@@ -15,9 +15,44 @@ test("budworm: one group per data set from responders / N subcolumns", () => {
   assert.deepEqual(g[0].dose, [0, 1, 2, 3, 4, 5]);
 });
 
-test("log transform refuses dose 0; none and parallel pass through", () => {
+test("log transform: dose 0 rows become the control (natural response estimated)", () => {
   const t = budwormTable();
-  assert.match((quantalPayload(t, defaultQuantalOptions()) as { error: string }).error, /dose of 0/);
+  const d = defaultQuantalOptions();
+  const p0 = quantalPayload(t, d);
+  assert.ok("payload" in p0);
+  assert.equal(p0.payload.options.natural_response, "estimate");
+  assert.match(p0.notes.join(" "), /Dose 0 rows are used as the control: natural response estimated/);
+  assert.deepEqual((p0.payload.data as { groups: { dose: number[] }[] }).groups[0].dose, [0, 1, 2, 3, 4, 5]);
+  assert.equal("upper_asymptote" in p0.payload.options, false);
+  assert.equal("information" in p0.payload.options, false);
+  // left out on request (drc's LL.2: natural response 0)
+  const om = quantalPayload(t, { ...d, zeroDose: "omit" });
+  assert.ok("payload" in om);
+  assert.equal(om.payload.options.natural_response, null);
+  assert.deepEqual((om.payload.data as { groups: { dose: number[] }[] }).groups[0].dose, [1, 2, 3, 4, 5]);
+  // an upper asymptote: the controls sit on the plateau, no natural response added
+  const up = quantalPayload(t, { ...d, upper: "estimate", information: "observed" });
+  assert.ok("payload" in up);
+  assert.equal(up.payload.options.natural_response, null);
+  assert.equal(up.payload.options.upper_asymptote, "estimate");
+  assert.equal(up.payload.options.information, "observed");
+  assert.match(up.notes.join(" "), /plateau/);
+  const fixedU = quantalPayload(t, { ...d, upper: "fixed", upperValue: "60" });
+  assert.ok("payload" in fixedU);
+  assert.equal(fixedU.payload.options.upper_asymptote, 0.6);
+  // parallel lines cannot use the controls: left out, with a note
+  const par = quantalPayload(t, { ...d, parallel: true });
+  assert.ok("payload" in par);
+  assert.match(par.notes.join(" "), /parallel-line fit/);
+  assert.deepEqual((par.payload.data as { groups: { dose: number[] }[] }).groups[1].dose, [1, 2, 3, 4, 5]);
+  // negative doses are still refused
+  const neg = normalizeTable({ type: "xy", x: ["-1", "1", "2"], datasets: [{ name: "A",
+    rows: [["1", "10"], ["3", "10"], ["6", "10"]] }] });
+  assert.match((quantalPayload(neg, d) as { error: string }).error, /negative dose/);
+});
+
+test("no dose transform and parallel pass through", () => {
+  const t = budwormTable();
   const p = quantalPayload(t, { ...defaultQuantalOptions(), doseTransform: "none", link: "logit",
     parallel: true, ecLevels: "25, 50, 75" });
   assert.ok("payload" in p);

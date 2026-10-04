@@ -10,10 +10,11 @@ import {
 } from "../../project/types";
 import { xTickFormatter } from "../../project/xformat";
 import type { AnalysisResult, OptionsState } from "../../types";
+import LongTableButton from "../common/LongTableButton";
 import type { AsideProps, ControlsProps, PlotProps, ResultsProps } from "../types";
 import { ANALYSIS_NONLIN } from "../../project/builtin";
 
-export function NonlinControls({ table, options, onChange, readOnly }: ControlsProps<OptionsState>) {
+export function NonlinControls({ sheet, table, options, onChange, readOnly }: ControlsProps<OptionsState>) {
   const fmt = table.subcolumnFormat;
   return (
     <>
@@ -43,6 +44,13 @@ export function NonlinControls({ table, options, onChange, readOnly }: ControlsP
                 means, one point per row. Error bars show what was entered.
               </p>
             )}
+          </section>
+        </div>
+      )}
+      {!readOnly && (
+        <div className="controls long-table-controls">
+          <section>
+            <LongTableButton target="xy" sheet={sheet} />
           </section>
         </div>
       )}
