@@ -420,7 +420,8 @@ export function MultiTResults({ result, options }: ResultsProps<MultiTOptions, R
                 <td>{val(r, "a")}</td><td>{val(r, "b")}</td>
                 <td>{formatSig(log ? r.ratio : (r.hodges_lehmann ?? r.difference))}</td>
                 {!nonpar && <td>{formatSig(r.se_difference)}</td>}
-                <td>{formatSig(r.statistic)}</td>
+                <td>{formatSig(r.statistic_name === "t"
+                  && (log ? r.ratio < 1 : r.difference < 0) ? -Math.abs(r.statistic) : r.statistic)}</td>
                 {!nonpar && <td>{formatSig(r.df, 4)}</td>}
                 <td>{r.n_pairs != null ? `${r.n_pairs} pairs` : `${r.n_a}, ${r.n_b}`}</td>
               </tr>
