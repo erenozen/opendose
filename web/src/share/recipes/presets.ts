@@ -6,7 +6,7 @@ import {
   detectDecimal, detectDelimiter, normalizeNumber, splitDelimited,
 } from "../../project/importText.ts";
 import { guessDelimiter, guessParts, type NamePattern } from "./pattern.ts";
-import { findPlateGrid, ROW_LETTERS } from "./plate.ts";
+import { findPlateGrid, ROW_LABELS } from "./plate.ts";
 import {
   makeStaging, type AggFn, type OutputType, type Role, type Staging,
 } from "./staging.ts";
@@ -222,14 +222,14 @@ const plate: Recipe = {
     for (let r = 0; r < g.rows; r++) {
       for (let c = 0; c < g.cols; c++) {
         const v = g.values[r][c];
-        rows.push([`${ROW_LETTERS[r]}${c + 1}`, ROW_LETTERS[r], String(c + 1), v === null ? "" : String(v)]);
+        rows.push([`${ROW_LABELS[r]}${c + 1}`, ROW_LABELS[r], String(c + 1), v === null ? "" : String(v)]);
       }
     }
     const st = makeStaging(["Well", "Row", "Column", "Value"], rows,
       ["meta", "subject", "group", "value"]);
     return {
       recipe: "plate", staging: st, pattern: null, aggregate: [], output: "column",
-      name: "Plate", notes: [`${g.rows * g.cols}-well plate found at row ${g.top + 1}.`],
+      name: "Plate", notes: [`${g.rows * g.cols}-well plate found at row ${g.top + 1}.`, ...g.warnings],
     };
   },
 };

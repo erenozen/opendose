@@ -60,3 +60,10 @@
 .plate-mini { display: grid; gap: 1px; max-width: 260px; }
 .plate-mini span { aspect-ratio: 1; border-radius: 50%; border: 1px solid var(--border-soft); }
 .plate-mini span.well-blank { background: var(--inset); }
+/* What the reader could not read exactly as found (shown at QC). */
+.plate-read-warnings {
+  margin: 10px 0; padding: 8px 12px; font-size: 12.5px; color: var(--ink-2);
+  border: 1px solid var(--warn-ink); border-radius: var(--radius-s);
+}
+.plate-read-warnings h4 { margin: 0 0 4px; }
+.plate-read-warnings ul { margin: 0; padding-left: 18px; }
