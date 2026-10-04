@@ -188,8 +188,8 @@ export function differNotes(ctx: ResultContext): DifferItem[] {
         elsewhere: "Doubling the one-sided P (some older programs) gives a different value." });
       break;
     case "survival":
-      items.push({ topic: "Curve comparison", used: "Log-rank (Mantel-Cox) and Gehan-Breslow-Wilcoxon, both shown.",
-        elsewhere: "R's survdiff(rho = 0) matches the log-rank test; rho = 1 is the Peto-Peto variant, not Gehan." });
+      items.push({ topic: "Curve comparison", used: "Log-rank (Mantel-Cox) in two forms, Peto Σ(O−E)²/E and the variance form, plus Gehan-Breslow-Wilcoxon.",
+        elsewhere: "R's survdiff(rho = 0) prints the variance form of the log-rank test; GraphPad Prism reports the Peto form. rho = 1 is the Peto-Peto variant, not Gehan." });
       items.push({ topic: "Hazard ratio", used: "Mantel-Haenszel method, HR = exp((O − E)/V).",
         elsewhere: "Cox regression (R's coxph) and the logrank O/E ratio give slightly different HRs." });
       items.push({ topic: "Confidence bands", used: "Greenwood variance with the log-log transformation.",

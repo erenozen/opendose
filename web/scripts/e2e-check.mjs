@@ -25,8 +25,11 @@
 // paste-and-suggest, the guided tour shown once), the reporting package
 // (effect sizes, results sentence and legend, estimation plots, journal
 // checklists, history, P-value style), .pzfx export and re-import, Cox
-// regression, ROC comparison, Bland-Altman, quantal dose-response and the
-// power and sample size tool.
+// regression, ROC comparison, Bland-Altman, quantal dose-response, the
+// power and sample size tool, and the site-validation follow-ups (both
+// log-rank forms and the Kaplan-Meier tables on R's aml, Fisher's exact
+// test on an r x c table, expected counts and residuals, "From long
+// table…" for CMH and quantal data, the quantal upper asymptote).
 import { chromium } from "playwright";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -1719,6 +1722,171 @@ expect("randomisation list: 24 units in balanced blocks, seed in the file name",
 await pw.getByRole("button", { name: "Done" }).click();
 expect("the sample-size justification is saved as an info sheet",
   await navRow("Sample size justification").count() === 1);
+
+// --- Contingency, survival, quantal (site validation follow-ups) ---
+// Kaplan-Meier on R's aml (survival package): log-rank in both forms,
+// Peto sum((O-E)^2/E) 3.135 (P 0.0766) and the variance form of R's
+// survdiff 3.40 (P 0.0653); median of the maintained group 31 with the log
+// CI of survfit from 18 (upper limit not reached).
+{
+  const AML = {
+    Maintained: [[9, 1], [13, 1], [13, 0], [18, 1], [23, 1], [28, 0], [31, 1], [34, 1], [45, 0], [48, 1], [161, 0]],
+    Nonmaintained: [[5, 1], [5, 1], [8, 1], [8, 1], [12, 1], [16, 0], [23, 1], [27, 1], [30, 1], [33, 1], [43, 1], [45, 1]],
+  };
+  await page.getByRole("button", { name: "New data table" }).click();
+  const svDlg = page.locator(".new-table-dialog");
+  await svDlg.locator('input[name="table-type"][value="survival"]').check();
+  await svDlg.getByLabel("Table name").fill("AML");
+  await svDlg.getByLabel("Groups", { exact: true }).fill("2");
+  await svDlg.getByLabel("Rows (subjects)").fill("12");
+  await svDlg.getByRole("button", { name: "Create table" }).click();
+  await page.waitForSelector(".grid-toolbar");
+  const groups = Object.keys(AML);
+  for (let g = 0; g < groups.length; g++) {
+    await page.locator(`.data-table input[aria-label="Group ${g + 1} title"]`).fill(groups[g]);
+  }
+  for (const name of groups) {
+    for (let r = 0; r < AML[name].length; r++) {
+      await page.locator(`.data-table input[aria-label="${name}, Time, row ${r + 1}"]`).fill(String(AML[name][r][0]));
+      await page.locator(`.data-table input[aria-label="${name}, Event, row ${r + 1}"]`).fill(String(AML[name][r][1]));
+    }
+  }
+  const kmCard = page.locator(".result-card", { has: page.locator("h3:has-text('Kaplan-Meier survival analysis')") }).first();
+  await page.waitForFunction(() => [...document.querySelectorAll(".result-card")]
+    .some((c) => /Nonmaintained[^]*Peto form/.test(c.innerText) && /\b161\b/.test(c.innerText)),
+  null, { timeout: 60000 }).catch(() => {});
+  const peto = await kmCard.locator("tr", { hasText: "Peto form" }).first().innerText().catch(() => "");
+  const varForm = await kmCard.locator("tr", { hasText: "variance (Mantel-Haenszel) form" }).first().innerText().catch(() => "");
+  expect("log-rank, Peto form (aml): chi-square 3.135, P 0.0766", /3\.135/.test(peto) && /0\.0766/.test(peto),
+    peto.replace(/\s+/g, " "));
+  expect("log-rank, variance form as R's survdiff (aml): chi-square 3.40, P 0.0653",
+    /3\.39[0-9]|3\.40/.test(varForm) && /0\.065/.test(varForm), varForm.replace(/\s+/g, " "));
+  const maint = await kmCard.locator("table").first().locator("tr", { hasText: /^Maintained/ }).first()
+    .innerText().catch(() => "");
+  expect("aml: median of the maintained group 31, log CI from 18 (upper not reached)",
+    /\b31\b/.test(maint) && /18 to not reached/.test(maint), maint.replace(/\s+/g, " "));
+  const oe = await kmCard.locator("table", { has: page.locator("th", { hasText: "Observed (O)" }) })
+    .locator("tr", { hasText: "Nonmaintained" }).first().innerText().catch(() => "");
+  expect("aml: observed and expected events per group (Nonmaintained O 11, E 7.311)",
+    /7\.311/.test(oe), oe.replace(/\s+/g, " "));
+  const km9 = await kmCard.locator(".km-table", { hasText: "Kaplan-Meier table: Maintained" })
+    .locator("tbody tr").first().innerText().catch(() => "");
+  expect("aml: Kaplan-Meier table, maintained at t = 9: 11 at risk, S 0.9091, SE 0.08668",
+    /^9\s+11\s+1\s+0\s+0\.9091\s+0\.0866[78]/.test(km9), km9.replace(/\s+/g, " "));
+  expect("Kaplan-Meier tables have their own Copy / CSV",
+    await kmCard.getByRole("button", { name: /Copy Kaplan-Meier table Nonmaintained/ }).count() === 1);
+}
+
+// Fisher's exact test on an r x c table: R's fisher.test(Job), Agresti's
+// job satisfaction by income (4 x 4), P = 0.7827, computed on request
+// (beyond the quick budget); expected counts and residuals on a toggle.
+{
+  const JOB = [[1, 3, 10, 6], [2, 3, 10, 7], [1, 6, 14, 12], [0, 1, 9, 11]];
+  await page.getByRole("button", { name: "New data table" }).click();
+  const jbDlg = page.locator(".new-table-dialog");
+  await jbDlg.locator('input[name="table-type"][value="contingency"]').check();
+  await jbDlg.getByLabel("Table name").fill("Job satisfaction");
+  await jbDlg.getByLabel("Outcomes (columns)").fill("4");
+  await jbDlg.getByLabel("Groups (rows)").fill("4");
+  await jbDlg.getByRole("button", { name: "Create table" }).click();
+  await page.waitForSelector(".grid-toolbar");
+  for (let r = 0; r < 4; r++) {
+    for (let c = 0; c < 4; c++) {
+      await page.locator(`.data-table input[aria-label="Outcome ${c + 1}, row ${r + 1}"]`).fill(String(JOB[r][c]));
+    }
+  }
+  const askExact = page.getByRole("button", { name: /Compute the exact P/ });
+  expect("r x c table beyond the quick budget offers the exact P", await appears(askExact, 60000));
+  await askExact.click();
+  const fisherRxc = await page.waitForFunction(() => [...document.querySelectorAll(".results-table tr")]
+    .find((tr) => /Freeman-Halton/.test(tr.innerText))?.innerText ?? false, null, { timeout: 120000 })
+    .then((h) => h.jsonValue(), () => "");
+  expect("Fisher's exact test, 4 x 4 (R fisher.test(Job)): P = 0.7827", /0\.7827/.test(fisherRxc),
+    String(fisherRxc).replace(/\s+/g, " "));
+  await page.getByLabel("Show expected counts and residuals").check();
+  const expCard = page.locator(".expected-residuals");
+  expect("expected counts table appears", await appears(expCard.locator("h4", { hasText: "Expected counts" })));
+  const e11 = await expCard.locator("table").first().locator("tbody tr").first().innerText().catch(() => "");
+  expect("expected count of row 1, column 1: 20 x 4 / 96 = 0.8333", /0\.8333/.test(e11), e11.replace(/\s+/g, " "));
+  expect("adjusted standardized residuals listed",
+    await expCard.locator("h4", { hasText: "Adjusted standardized residuals" }).count() === 1);
+}
+
+// "From long table…": CMH strata from long records (stratum, row, column,
+// count) become blocks of rows titled "Stratum: level".
+{
+  await page.getByRole("button", { name: "New data table" }).click();
+  const lgDlg = page.locator(".new-table-dialog");
+  await lgDlg.locator('input[name="table-type"][value="contingency"]').check();
+  await lgDlg.getByLabel("Table name").fill("Long CMH");
+  await lgDlg.getByLabel("Outcomes (columns)").fill("2");
+  await lgDlg.getByLabel("Groups (rows)").fill("2");
+  await lgDlg.getByRole("button", { name: "Create table" }).click();
+  await page.waitForSelector(".grid-toolbar");
+  await page.getByRole("button", { name: "Analyze", exact: true }).click();
+  await page.getByRole("menuitem", { name: /Cochran-Mantel-Haenszel/ }).click();
+  await page.getByRole("button", { name: "From long table…" }).click();
+  const lt = page.getByRole("dialog", { name: "Stratified tables from a long table" });
+  await lt.getByLabel("Long table text").fill([
+    "centre,treatment,outcome,count",
+    "A,drug,cured,10", "A,drug,not cured,5", "A,placebo,cured,4", "A,placebo,not cured,11",
+    "B,drug,cured,8", "B,drug,not cured,2", "B,placebo,cured,3", "B,placebo,not cured,7",
+  ].join("\n"));
+  const ltSummary = await lt.locator(".import-summary").innerText().catch(() => "");
+  expect("long table dialog: roles guessed, 2 strata of 2 x 2", ltSummary === "2 strata of 2 × 2 tables", ltSummary);
+  await lt.getByRole("button", { name: "Fill the table" }).click();
+  const cmhStrata = await page.locator(".controls .hint-block", { hasText: "strata of" }).first().innerText()
+    .catch(() => "");
+  expect("CMH controls read the filled strata: A, B", /2 strata of 2 × 2 tables: A, B/.test(cmhStrata), cmhStrata);
+  const cmhRow = await page.waitForFunction(() => [...document.querySelectorAll(".results-table tr")]
+    .find((tr) => /^Cochran-Mantel-Haenszel chi-square/.test(tr.innerText))?.innerText ?? false,
+  null, { timeout: 60000 }).then((h) => h.jsonValue(), () => "");
+  expect("CMH runs on the filled table", /df/.test(String(cmhRow)) || /, 1/.test(String(cmhRow)),
+    String(cmhRow).replace(/\s+/g, " "));
+  await navRow("Long CMH").click();
+  await page.waitForSelector(".grid-toolbar");
+  const titles = [];
+  for (let r = 1; r <= 4; r++) titles.push(await page.locator(`.data-table input[aria-label="Row ${r} title"]`).inputValue());
+  const cured = await page.locator('.data-table input[aria-label="Dataset 1 title"], .data-table input[aria-label="Outcome 1 title"]')
+    .first().inputValue().catch(() => "");
+  expect("filled contingency layout: rows 'A: drug' … 'B: placebo', columns cured / not cured",
+    titles.join("|") === "A: drug|A: placebo|B: drug|B: placebo" && cured === "cured", `${titles.join("|")} / ${cured}`);
+}
+
+// "From long table…" on a quantal fit: drc's earthworms (dose, number,
+// total; five containers per dose, dose 0 included) with an estimated
+// upper asymptote, as drc's LL.3 binomial model (Ritz et al. 2015): d =
+// 0.6049 (SE 0.0858, observed information), ED50 0.2924.
+{
+  await page.getByRole("button", { name: "New data table" }).click();
+  const qDlg = page.locator(".new-table-dialog");
+  await qDlg.locator('input[name="table-type"][value="xy"]').check();
+  await qDlg.getByLabel("Table name").fill("Earthworms");
+  await qDlg.getByRole("button", { name: "Create table" }).click();
+  await page.waitForSelector(".grid-toolbar");
+  await page.getByRole("button", { name: "Analyze", exact: true }).click();
+  await page.getByRole("menuitem", { name: /^Quantal dose-response/ }).click();
+  await page.getByRole("button", { name: "From long table…" }).click();
+  const qlt = page.getByRole("dialog", { name: "Quantal dose-response data from a long table" });
+  await qlt.getByLabel("Long table text").fill(readFileSync(join(here, "..", "..", "docs", "validation",
+    "datasets", "drc-earthworms.csv"), "utf8"));
+  const qSummary = await qlt.locator(".import-summary").innerText().catch(() => "");
+  expect("quantal long table: one group, 35 dose rows", qSummary === "1 group, 35 rows (dose groups)", qSummary);
+  await qlt.getByRole("button", { name: "Fill the table" }).click();
+  const zeroNote = page.locator(".result-note", { hasText: "Dose 0 rows are used as the control: natural response estimated" });
+  expect("dose 0 rows used as the control (natural response estimated), not refused", await appears(zeroNote, 60000));
+  await page.getByLabel("Link", { exact: true }).selectOption("logit");
+  await page.getByLabel("Dose transform", { exact: true }).selectOption("ln");
+  await page.getByLabel("Upper asymptote", { exact: true }).selectOption("estimate");
+  await page.getByLabel("Standard errors from", { exact: true }).selectOption("observed");
+  const upRow = await page.waitForFunction(() => [...document.querySelectorAll("tr")]
+    .find((tr) => /^Upper asymptote/.test(tr.innerText) && /0\.60/.test(tr.innerText))?.innerText ?? false,
+  null, { timeout: 60000 }).then((h) => h.jsonValue(), () => "");
+  expect("quantal upper asymptote (earthworms, drc LL.3): d = 0.6049, SE 0.0858", /0\.6049/.test(upRow)
+    && /0\.0858/.test(upRow), String(upRow).replace(/\s+/g, " "));
+  const ed50 = await page.locator("tr", { hasText: "LD50 / ED50" }).first().innerText().catch(() => "");
+  expect("quantal ED50 with the plateau: 0.2924", /0\.2924/.test(ed50), ed50.replace(/\s+/g, " "));
+}
 
 await page.screenshot({
   path: join(here, "app.png"),
