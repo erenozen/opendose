@@ -8,6 +8,12 @@ linear model and reports Type III sums of squares, implemented here via
 effect-coded (sum-to-zero) regression, comparing the full model against
 the model with each term dropped.
 
+One value per cell (no replicates): the interaction model leaves no
+residual df, so the main-effects (additive) model is fitted instead, with
+a note ("model": "main effects only (additive)"). additive=True asks for
+that model with replicates too (R's aov(y ~ A + B)); the follow-up tests
+then use its residual.
+
 "effect_size" (opendose.effectsize): per term, partial eta^2 with its
 noncentral-F CI, partial omega^2, partial epsilon^2, Cohen's f and
 eta^2 = SS / SS_total.
@@ -54,12 +60,15 @@ def _ss_resid(X, y):
 
 
 def two_way_anova(cells, *, row_factor: str = "Rows",
-                  col_factor: str = "Columns") -> dict:
+                  col_factor: str = "Columns", additive: bool = False) -> dict:
+    """additive=True fits the main-effects model even with replicates
+    (R's aov(y ~ A + B)); without replicates it is the only model."""
     y, ri, ci = _design(cells)
     n = y.size
     ss_total = float(((y - y.mean()) ** 2).sum()) if n else 0.0
     out = _type3_table(y, ri, ci, n, ss_total, _ss_resid,
-                       row_factor=row_factor, col_factor=col_factor)
+                       row_factor=row_factor, col_factor=col_factor,
+                       additive=additive)
 
     cell_means = [[(float(np.mean([v for v in cell if v is not None]))
                     if any(v is not None for v in cell) else None)
@@ -72,7 +81,8 @@ def two_way_anova(cells, *, row_factor: str = "Rows",
 
 
 def _type3_table(y, ri, ci, n, ss_total, ss_resid_fn, *,
-                 row_factor: str = "Rows", col_factor: str = "Columns") -> dict:
+                 row_factor: str = "Rows", col_factor: str = "Columns",
+                 additive: bool = False) -> dict:
     """Type III ANOVA table. Each element of y is one observation (raw
     data, ss_resid_fn = _ss_resid) or one cell mean whose residual SS
     ss_resid_fn expands to the n-weighted cell SS plus the within-cell SS
@@ -91,8 +101,28 @@ def _type3_table(y, ri, ci, n, ss_total, ss_resid_fn, *,
 
     X_full = np.column_stack([intercept, A, B, AB])
     df_resid = n - X_full.shape[1]
-    if df_resid < 1:
-        raise ValueError("not enough replicates for interaction model")
+    note = None
+    if not additive and df_resid < 1:
+        # One value per cell (no replicates): the interaction cannot be
+        # separated from the residual. Fit the main-effects (additive)
+        # model, as Prism does for this design; its residual is the
+        # interaction mean square (Tukey's randomised-block analysis).
+        X_full = np.column_stack([intercept, A, B])
+        df_resid = n - X_full.shape[1]
+        if df_resid < 1:
+            raise ValueError("not enough data for the two-way ANOVA "
+                             "main-effects model")
+        note = ("Only one value per cell, so the interaction cannot be "
+                "separated from random variation: fitted the main-effects "
+                "(additive) model, with no interaction term; the residual "
+                "includes any interaction.")
+        additive = True
+    elif additive:
+        X_full = np.column_stack([intercept, A, B])
+        df_resid = n - X_full.shape[1]
+        if df_resid < 1:
+            raise ValueError("not enough data for the two-way ANOVA "
+                             "main-effects model")
     ss_resid = ss_resid_fn(X_full, y)
     ms_resid = ss_resid / df_resid
 
@@ -101,11 +131,12 @@ def _type3_table(y, ri, ci, n, ss_total, ss_resid_fn, *,
         return ss_resid_fn(X_red, y) - ss_resid
 
     sources = {}
-    for label, ss, df in [
-        ("interaction", term_ss([intercept, A, B]), (a - 1) * (b - 1)),
-        (row_factor, term_ss([intercept, B, AB]), a - 1),
-        (col_factor, term_ss([intercept, A, AB]), b - 1),
-    ]:
+    terms = ([(row_factor, term_ss([intercept, B]), a - 1),
+              (col_factor, term_ss([intercept, A]), b - 1)] if additive else
+             [("interaction", term_ss([intercept, A, B]), (a - 1) * (b - 1)),
+              (row_factor, term_ss([intercept, B, AB]), a - 1),
+              (col_factor, term_ss([intercept, A, AB]), b - 1)])
+    for label, ss, df in terms:
         ms = ss / df
         f = ms / ms_resid
         p = float(stats.f.sf(f, df, df_resid))
@@ -119,13 +150,18 @@ def _type3_table(y, ri, ci, n, ss_total, ss_resid_fn, *,
                            "percent_of_total": float(100.0 * ss_resid / ss_total)
                            if ss_total else None}
 
-    return {
+    out = {
         "n": int(n), "rows": a, "cols": b,
         "type": "III (general linear model, effect coding)",
+        "model": "main effects only (additive)" if additive
+                 else "full (with interaction)",
         "sources": sources,
         "cell_means": None,
         "ss_total": ss_total,
     }
+    if note:
+        out["note"] = note
+    return out
 
 
 def _cell_stats(cells):
@@ -144,7 +180,8 @@ def _cell_stats(cells):
 
 def two_way_comparisons(cells, *, direction: str = "columns_within_rows",
                         method: str = "tukey",
-                        row_names=None, col_names=None) -> dict:
+                        row_names=None, col_names=None,
+                        additive: bool = False) -> dict:
     """Prism's two-way ANOVA follow-up tests.
 
     direction:
@@ -162,7 +199,7 @@ def two_way_comparisons(cells, *, direction: str = "columns_within_rows",
     df_residual from the full interaction model (Prism statistics guide,
     "How Prism computes multiple comparisons after two-way ANOVA").
     """
-    base = two_way_anova(cells)
+    base = two_way_anova(cells, additive=additive)
     means, ns = _cell_stats(cells)
 
     def column_marginal(j):

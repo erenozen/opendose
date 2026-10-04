@@ -31,6 +31,22 @@ line assay, Finney 1971 chapter 5): the parallelism likelihood-ratio
 test, each group's ECx under the common slope and the relative potency
 of every group against a reference with Fieller and delta CIs.
 
+An upper asymptote U < 1 (the plateau a decreasing or increasing curve
+levels off at, as drc's three-parameter log-logistic LL.3 for binomial
+data, Ritz et al. 2015 PLoS ONE 10:e0146021) can be fixed or estimated
+("upper_asymptote"): P = C + (U - C) F(a + b x). Control groups at dose
+0 then sit on the plateau the curve approaches as the dose goes to 0
+(U for a decreasing curve, C for an increasing one). drc's LL.3
+parameters are b = -slope, d = U and e = the dose at which F = 1/2
+(the "ec" entry for level 50), with x = ln(dose).
+
+Standard errors use the expected (Fisher) information by default;
+information = "observed" uses the observed information (the negative
+Hessian of the log-likelihood, analytic), as drc does (its covariance is
+the inverse Hessian from optim). For the probit / logit lines without a
+plateau parameter the two agree for the logit link (canonical) and
+differ slightly otherwise.
+
 The GraphPad curve-fitting guide fits graded dose-response curves by
 nonlinear regression; all-or-none responses counted out of n per dose are
 the binomial case handled here.
@@ -63,6 +79,17 @@ def _pdf(link, eta):
         return f * (1.0 - f)
     e = np.exp(np.minimum(eta, 700.0))
     return e * np.exp(-e)
+
+
+def _dpdf(link, eta):
+    """Derivative of the link's density."""
+    if link == "probit":
+        return -eta * stats.norm.pdf(eta)
+    if link == "logit":
+        f = 1.0 / (1.0 + np.exp(-eta))
+        return f * (1.0 - f) * (1.0 - 2.0 * f)
+    e = np.exp(np.minimum(eta, 700.0))
+    return e * np.exp(-e) * (1.0 - e)
 
 
 def _quantile(link, p):
@@ -132,30 +159,51 @@ def _clean(dose, n, r):
 
 
 class _Model:
-    """Binomial model mu = C + (1 - C) F(Z beta) with Z rows per group
-    (zero rows / mask for control groups that inform C only)."""
+    """Binomial model mu = C + (U - C) F(Z beta) with Z rows per group;
+    control groups (dose 0, mask ~active) sit on the plateau the curve
+    approaches as the dose goes to 0 (F = 0 for a rising curve, 1 for a
+    falling one). C (lower) and U (upper asymptote): None (0 / 1), a
+    fixed value, or "estimate" (then appended to theta, C before U)."""
 
-    def __init__(self, link, Z, active, n, r, c_mode):
+    def __init__(self, link, Z, active, n, r, c_mode, u_mode=None):
         self.link, self.Z, self.active = link, Z, active
         self.n, self.r = n, r
         self.c_mode = c_mode  # None, float (fixed), "estimate"
+        self.u_mode = u_mode  # None, float (fixed), "estimate"
         self.p_lin = Z.shape[1]
 
     def split(self, theta):
+        k = self.p_lin
+        beta = theta[:k]
+        i = k
         if self.c_mode == "estimate":
-            return theta[:-1], float(theta[-1])
-        c = 0.0 if self.c_mode is None else float(self.c_mode)
-        return theta, c
+            c = float(theta[i])
+            i += 1
+        else:
+            c = 0.0 if self.c_mode is None else float(self.c_mode)
+        if self.u_mode == "estimate":
+            u = float(theta[i])
+        else:
+            u = 1.0 if self.u_mode is None else float(self.u_mode)
+        return beta, c, u
+
+    def _f(self, beta):
+        eta = self.Z @ beta
+        f_ctrl = 1.0 if (self.p_lin > 1 and beta[-1] < 0) else 0.0
+        F = np.where(self.active, _cdf(self.link, eta), f_ctrl)
+        f = np.where(self.active, _pdf(self.link, eta), 0.0)
+        fp = np.where(self.active, _dpdf(self.link, eta), 0.0)
+        return eta, F, f, fp
 
     def mu_and_grad(self, theta):
-        beta, c = self.split(theta)
-        eta = self.Z @ beta
-        F = np.where(self.active, _cdf(self.link, eta), 0.0)
-        f = np.where(self.active, _pdf(self.link, eta), 0.0)
-        mu = c + (1.0 - c) * F
-        D = (1.0 - c) * f[:, None] * self.Z
+        beta, c, u = self.split(theta)
+        eta, F, f, _ = self._f(beta)
+        mu = c + (u - c) * F
+        D = (u - c) * f[:, None] * self.Z
         if self.c_mode == "estimate":
             D = np.column_stack([D, 1.0 - F])
+        if self.u_mode == "estimate":
+            D = np.column_stack([D, F])
         return mu, D, eta
 
     def loglik(self, theta):
@@ -172,11 +220,38 @@ class _Model:
         info = D.T @ (w[:, None] * D)
         return score, info
 
+    def observed_information(self, theta):
+        """Negative Hessian of the log-likelihood (analytic)."""
+        beta, c, u = self.split(theta)
+        mu, D, _ = self.mu_and_grad(theta)
+        mu = np.clip(mu, 1e-12, 1 - 1e-12)
+        _, F, f, fp = self._f(beta)
+        n, r = self.n, self.r
+        g1 = (r - n * mu) / (mu * (1.0 - mu))            # dl/dmu
+        g2 = -(r / mu ** 2 + (n - r) / (1.0 - mu) ** 2)   # d2l/dmu2
+        H = D.T @ (g2[:, None] * D)
+        k = self.p_lin
+        m = D.shape[1]
+        # second derivatives of mu
+        H[:k, :k] += self.Z.T @ ((g1 * (u - c) * fp)[:, None] * self.Z)
+        i = k
+        if self.c_mode == "estimate":
+            cross = self.Z.T @ (g1 * -f)                  # d2mu/dbeta dc
+            H[:k, i] += cross
+            H[i, :k] += cross
+            i += 1
+        if self.u_mode == "estimate":
+            cross = self.Z.T @ (g1 * f)                   # d2mu/dbeta du
+            H[:k, i] += cross
+            H[i, :k] += cross
+        assert H.shape == (m, m)
+        return -H
 
-def _start(link, Z, active, n, r, c0):
+
+def _start(link, Z, active, n, r, c0, u0=1.0):
     p = (r + 0.5) / (n + 1.0)
-    if c0:
-        p = np.clip((p - c0) / (1.0 - c0), 0.02, 0.98)
+    if c0 or u0 != 1.0:
+        p = np.clip((p - c0) / (u0 - c0), 0.02, 0.98)
     y = _quantile(link, np.clip(p, 1e-4, 1 - 1e-4))
     w = n * active
     Zw = Z * np.sqrt(w)[:, None]
@@ -198,8 +273,12 @@ def _fit(model, theta0, max_iter=200):
         lam = 1.0
         while True:
             new = theta + lam * step
+            k = model.p_lin
             if model.c_mode == "estimate":
-                new[-1] = min(max(new[-1], 0.0), 0.999)
+                new[k] = min(max(new[k], 0.0), 0.999)
+            if model.u_mode == "estimate":
+                lo_u = new[k] + 1e-6 if model.c_mode == "estimate" else 1e-6
+                new[-1] = min(max(new[-1], lo_u), 1.0)
             ll_new = model.loglik(new)
             if np.isfinite(ll_new) and ll_new >= ll - 1e-12 * max(1, abs(ll)):
                 break
@@ -263,9 +342,24 @@ def quantal_fit(dose, n, responders, *, link: str = "probit",
                 dose_transform: str = "log10", natural_response=None,
                 ec_levels=(50,), ci_level: float = 0.95,
                 heterogeneity: str = "auto", heterogeneity_alpha: float = 0.05,
-                curve_points: int = 101) -> dict:
+                curve_points: int = 101, upper_asymptote=None,
+                information: str = "expected") -> dict:
     """Fit one quantal dose-response line. natural_response: None (0),
-    a fixed proportion (Abbott), or "estimate"."""
+    a fixed proportion (Abbott), or "estimate". upper_asymptote: None
+    (1), a fixed proportion, or "estimate" (drc LL.3-type plateau).
+    information: "expected" (Fisher) or "observed" for the SEs."""
+    if information not in ("expected", "observed"):
+        raise ValueError("information must be 'expected' or 'observed'")
+    u_mode = upper_asymptote
+    if isinstance(u_mode, str) and u_mode != "estimate":
+        raise ValueError("upper_asymptote must be null, a proportion or "
+                         "'estimate'")
+    if u_mode is not None and not isinstance(u_mode, str):
+        u_mode = float(u_mode)
+        if not 0 < u_mode <= 1:
+            raise ValueError("a fixed upper asymptote must be in (0, 1]")
+        if u_mode == 1.0:
+            u_mode = None
     if link not in _LINKS:
         raise ValueError(f"link must be one of {_LINKS}")
     d, nn, rr = _clean(dose, n, responders)
@@ -279,7 +373,7 @@ def quantal_fit(dose, n, responders, *, link: str = "probit",
         c_mode = float(c_mode)
         if not 0 <= c_mode < 1:
             raise ValueError("a fixed natural response must be in [0, 1)")
-    if control.any() and c_mode is None:
+    if control.any() and c_mode is None and u_mode is None:
         raise ValueError("dose 0 cannot be log-transformed; drop the control "
                          "group or set natural_response to 'estimate' or a "
                          "fixed rate")
@@ -293,12 +387,26 @@ def quantal_fit(dose, n, responders, *, link: str = "probit",
         c0 = min(max(c0, 1e-3), 0.9)
     else:
         c0 = c_mode or 0.0
-    model = _Model(link, Z, active, nn, rr, c_mode)
-    beta0 = _start(link, Z, active, nn, rr, c0)
-    theta0 = np.append(beta0, c0) if c_mode == "estimate" else beta0
+    if u_mode == "estimate":
+        prop = (rr + 0.5) / (nn + 1.0)
+        u0 = float(rr[control].sum() / nn[control].sum()) \
+            if control.any() else float(prop.max())
+        u0 = min(max(u0, c0 + 0.05, float(prop.max())), 0.999)
+    else:
+        u0 = 1.0 if u_mode is None else u_mode
+    model = _Model(link, Z, active, nn, rr, c_mode, u_mode)
+    beta0 = _start(link, Z, active, nn, rr, c0, u0)
+    theta0 = beta0
+    if c_mode == "estimate":
+        theta0 = np.append(theta0, c0)
+    if u_mode == "estimate":
+        theta0 = np.append(theta0, u0)
     theta, ll, converged, iters = _fit(model, theta0)
     n_par = theta.size
-    _, info = model.fisher(theta)
+    if information == "observed":
+        info = model.observed_information(theta)
+    else:
+        _, info = model.fisher(theta)
     try:
         cov = np.linalg.inv(info)
     except np.linalg.LinAlgError:
@@ -306,7 +414,7 @@ def quantal_fit(dose, n, responders, *, link: str = "probit",
     warnings = []
     if not converged:
         warnings.append("the fit did not converge")
-    if c_mode == "estimate" and theta[-1] <= 1e-10:
+    if c_mode == "estimate" and theta[2] <= 1e-10:
         warnings.append("natural response estimated at 0 (boundary)")
     mu, presid, chi2, dev, df = _gof(model, theta, n_par)
     use_h, p_chi2 = _heterogeneity(chi2, df, heterogeneity, heterogeneity_alpha)
@@ -323,11 +431,16 @@ def quantal_fit(dose, n, responders, *, link: str = "probit",
                   "ci": [b - tcrit * se[1], b + tcrit * se[1]]},
     }
     if c_mode == "estimate":
-        c = float(theta[-1])
-        params["natural_response"] = {"value": c, "se": float(se[-1]),
-                                      "ci": [max(0.0, c - tcrit * se[-1]),
-                                             min(1.0, c + tcrit * se[-1])]}
-    _, c_used = model.split(theta)
+        c = float(theta[2])
+        params["natural_response"] = {"value": c, "se": float(se[2]),
+                                      "ci": [max(0.0, c - tcrit * se[2]),
+                                             min(1.0, c + tcrit * se[2])]}
+    if u_mode == "estimate":
+        u = float(theta[-1])
+        params["upper_asymptote"] = {"value": u, "se": float(se[-1]),
+                                     "ci": [max(0.0, u - tcrit * se[-1]),
+                                            min(1.0, u + tcrit * se[-1])]}
+    _, c_used, u_used = model.split(theta)
     z_slope = b / se[1] if se[1] > 0 else math.inf
     slope_test = {"statistic": float(z_slope),
                   "p": float(2 * (stats.t.sf(abs(z_slope), df) if use_h
@@ -361,15 +474,20 @@ def quantal_fit(dose, n, responders, *, link: str = "probit",
     curve = {
         "x": grid.tolist(),
         "dose": [_back(v, dose_transform) for v in grid],
-        "p": (c_used + (1 - c_used) * _cdf(link, eta)).tolist(),
-        "lower": (c_used + (1 - c_used) * _cdf(link, eta - tcrit * se_eta)).tolist(),
-        "upper": (c_used + (1 - c_used) * _cdf(link, eta + tcrit * se_eta)).tolist(),
+        "p": (c_used + (u_used - c_used) * _cdf(link, eta)).tolist(),
+        "lower": (c_used + (u_used - c_used)
+                  * _cdf(link, eta - tcrit * se_eta)).tolist(),
+        "upper": (c_used + (u_used - c_used)
+                  * _cdf(link, eta + tcrit * se_eta)).tolist(),
     }
     return {
         "analysis": "quantal",
         "link": link, "dose_transform": dose_transform,
         "natural_response_mode": natural_response,
         "natural_response_used": c_used,
+        "upper_asymptote_mode": upper_asymptote,
+        "upper_asymptote_used": u_used,
+        "information": information,
         "n_groups": int(d.size), "n_total": float(nn.sum()),
         "parameters": params,
         "covariance": (cov * h).tolist(),

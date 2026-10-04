@@ -110,6 +110,8 @@ def _dose_response(data, options):
             else:
                 fit = nlfit.fit_model(xs, ys, model, constraints=constraints,
                                       weighting=weighting, ci_method=ci_method,
+                                      weight_source=options.get(
+                                          "weight_source", "predicted"),
                                       **s_kw)
             fit["curve"] = doseresponse.curve_points(
                 fit, min(finite_x), max(finite_x))
@@ -359,7 +361,11 @@ def _correlation(data, options):
 def _contingency(data, options):
     result = {"analysis": "contingency",
               **contingency.contingency(data["table"],
-                                        yates=options.get("yates", True))}
+                                        yates=options.get("yates", True),
+                                        ci_level=options.get("ci_level",
+                                                             0.95),
+                                        fisher_rxc=options.get("fisher_rxc",
+                                                               "auto"))}
     if options.get("effect_sizes"):
         if result["rows"] == 2 and result["cols"] == 2:
             result["effect_sizes"] = proportions.two_by_two_effects(
@@ -393,7 +399,8 @@ def _two_way_anova(data, options):
               **twoway.two_way_anova(
                   cells,
                   row_factor=options.get("row_factor", "Rows"),
-                  col_factor=options.get("col_factor", "Columns"))}
+                  col_factor=options.get("col_factor", "Columns"),
+                  additive=options.get("model") == "additive")}
     method = options.get("comparisons")  # tukey | sidak | bonferroni
     if method:
         row_names = options.get("row_names") or [
@@ -401,7 +408,8 @@ def _two_way_anova(data, options):
         result["multiple_comparisons"] = twoway.two_way_comparisons(
             cells, method=method,
             direction=options.get("direction", "columns_within_rows"),
-            row_names=row_names, col_names=names)
+            row_names=row_names, col_names=names,
+            additive=options.get("model") == "additive")
     return result
 
 
@@ -1455,7 +1463,14 @@ def _cmh(data, options):
     """Cochran-Mantel-Haenszel. data: {"tables": [[[a, b], [c, d]], ...],
     "strata_names"?}; options: correction (false), ci_level. Result:
     {"analysis", "n_strata", "odds_ratio", "relative_risk", "cmh_test",
-    "breslow_day"?, "strata"}."""
+    "breslow_day"?, "strata"}. Strata larger than 2 x 2 (r x c): the
+    generalized CMH test of general association, {"analysis", "test":
+    "generalized_cochran_mantel_haenszel", "cmh_test": {chi2, df, p},
+    "strata"}."""
+    tables = data["tables"]
+    if any(len(t) != 2 or any(len(row) != 2 for row in t) for t in tables):
+        return {"analysis": "cmh",
+                **trend.cmh_general(tables, names=data.get("strata_names"))}
     return {"analysis": "cmh",
             **trend.cmh(data["tables"],
                         ci_level=options.get("ci_level", 0.95),
@@ -1720,7 +1735,17 @@ def _global_model_fit(data, options):
         gdatasets, model, shared=options.get("shared"),
         constraints=options.get("constraints") or {},
         weighting=options.get("weighting", "none"))
-    result.pop("_cov", None)
+    cov = result.pop("_cov", None)
+    if cov is not None:
+        # the joint covariance of the fitted parameters (one row per
+        # fitted parameter: [name, data-set index or null when shared]),
+        # for SEs of differences / contrasts between data sets
+        names_ = [ds.get("name", "") for ds in data["datasets"]]
+        result["covariance"] = {
+            "parameters": [{"name": nm, "dataset": (None if owner is None
+                                                    else names_[owner])}
+                           for nm, owner in cov["layout"]],
+            "matrix": cov["matrix"]}
     finite_x = [v for v in x_col if v is not None]
     pad = 0.5 if spec.x_is_log else 0.0
     lo, hi = min(finite_x) - pad, max(finite_x) + pad
@@ -2411,7 +2436,9 @@ def _quantal(data, options):
     ("probit" | "logit" | "cloglog"), dose_transform ("log10" | "ln" |
     "none"), natural_response (null | proportion | "estimate"),
     ec_levels ([50]), ci_level, heterogeneity ("auto" | "always" |
-    "never"), heterogeneity_alpha (0.05), parallel (common slope across
+    "never"), heterogeneity_alpha (0.05), upper_asymptote (null (1) |
+    proportion | "estimate": the plateau of drc's LL.3 binomial model),
+    information ("expected" | "observed" SEs), parallel (common slope across
     groups: parallelism test and relative potency), reference (group
     index for potency). Result: one line -> quantal_fit's {"parameters",
     "ec": [{level, x, se_x, dose, dose_ci_fieller, dose_ci_delta, g}],
@@ -2435,6 +2462,8 @@ def _quantal(data, options):
         return quantal.quantal_fit(
             data["dose"], data["n"], data["responders"],
             natural_response=options.get("natural_response"),
+            upper_asymptote=options.get("upper_asymptote"),
+            information=options.get("information", "expected"),
             curve_points=options.get("curve_points", 101), **kw)
     if options.get("parallel"):
         return quantal.quantal_parallel(
@@ -2446,6 +2475,8 @@ def _quantal(data, options):
             entry.update(quantal.quantal_fit(
                 g["dose"], g["n"], g["responders"],
                 natural_response=options.get("natural_response"),
+                upper_asymptote=options.get("upper_asymptote"),
+                information=options.get("information", "expected"),
                 curve_points=options.get("curve_points", 101), **kw))
         except ValueError as exc:
             entry["error"] = str(exc)

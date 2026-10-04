@@ -29,6 +29,9 @@ Statistics guide pages implemented here:
   i + 1)), stopping at the first that is not significant). Adjusted P
   values follow the matching closed forms, made monotone for the step-down
   method.
+- Also (not a Prism option): Holm's (1979) step-down Bonferroni, the
+  i-th smallest P value multiplied by K - i + 1, made monotone (R's
+  p.adjust "holm"); thresholds alpha / (K - i + 1).
 - No correction: each P value is compared with alpha on its own.
 
 Missing P values (None/NaN) are left out of the family; their outputs
@@ -42,7 +45,7 @@ import math
 
 import numpy as np
 
-FWER_METHODS = ("bonferroni", "sidak", "holm_sidak")
+FWER_METHODS = ("bonferroni", "sidak", "holm_sidak", "holm")
 FDR_METHODS = ("bh", "by", "bky")
 METHODS = ("none",) + FWER_METHODS + FDR_METHODS
 
@@ -51,6 +54,7 @@ _ALIASES = {
     "fdr_by": "by", "benjamini_yekutieli": "by",
     "fdr_tsbky": "bky", "two_stage": "bky", "bky_two_stage": "bky",
     "holm-sidak": "holm_sidak", "holmsidak": "holm_sidak",
+    "holm_bonferroni": "holm", "bonferroni_holm": "holm",
     "bonferroni_dunn": "bonferroni", "sidak_bonferroni": "sidak",
     "fisher": "none", "fisher_lsd": "none", "uncorrected": "none",
 }
@@ -112,6 +116,16 @@ def holm_sidak(p: np.ndarray) -> np.ndarray:
         adj_sorted[rank] = min(running, 1.0)
     out = np.empty(m)
     out[order] = adj_sorted
+    return out
+
+
+def holm(p: np.ndarray) -> np.ndarray:
+    """Holm (1979) step-down Bonferroni (R's p.adjust "holm")."""
+    m = p.size
+    order = np.argsort(p, kind="mergesort")
+    vals = np.maximum.accumulate(p[order] * (m - np.arange(m)))
+    out = np.empty(m)
+    out[order] = np.minimum(vals, 1.0)
     return out
 
 
@@ -219,6 +233,8 @@ def thresholds(m: int, method: str, *, alpha: float = 0.05,
         t = np.full(m, -math.expm1(math.log1p(-alpha) / m))
     elif method == "holm_sidak":
         t = -np.expm1(np.log1p(-alpha) / (m - ranks + 1))
+    elif method == "holm":
+        t = alpha / (m - ranks + 1)
     elif method == "bh":
         t = ranks * q / m
     elif method == "by":
@@ -235,7 +251,7 @@ def adjust(pvalues, method: str = "bky", *, alpha: float = 0.05,
            q: float = 0.05) -> dict:
     """Correct a family of P values for multiple comparisons.
 
-    method: "none" | "bonferroni" | "sidak" | "holm_sidak" (statistical
+    method: "none" | "bonferroni" | "sidak" | "holm_sidak" | "holm" (statistical
     significance at family-wise alpha) or "bh" | "by" | "bky" (FDR at
     level q, a fraction). Returns adjusted P values ("adjusted"; q values
     for the FDR methods, None for "none"), the per-comparison flag
@@ -264,7 +280,7 @@ def adjust(pvalues, method: str = "bky", *, alpha: float = 0.05,
         flags = p < alpha
     elif method in FWER_METHODS:
         adj = {"bonferroni": bonferroni, "sidak": sidak,
-               "holm_sidak": holm_sidak}[method](p)
+               "holm_sidak": holm_sidak, "holm": holm}[method](p)
         flags = adj <= alpha
     elif method == "bh":
         adj = bh(p)

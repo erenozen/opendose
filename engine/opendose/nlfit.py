@@ -32,6 +32,17 @@ Prism curve-fitting guide references:
   crossings. "Entering default constraints": range constraints (bounds)
   switch the solver to a bounded trust-region method; data-set constants
   computed from the data (centered polynomials' XMean).
+- Solver and covariance (opendose.lsq, whose docstring states the rule):
+  Levenberg-Marquardt (bounded trust region with range constraints) at
+  ftol = xtol = gtol = 1e-12 with a scale-aware forward-difference
+  Jacobian, h_i = sqrt(eps) * max(|p_i|, s_i), s_i = max(|p0_i|, data
+  scale of the parameter's role); the solution is polished by
+  Gauss-Newton steps and the covariance (J'J)^-1 s^2 uses a Richardson-
+  extrapolated central-difference Jacobian with h_i = cbrt(eps) *
+  max(|p_i|, s_i) (adaptive ladder), so SEs do not depend on the units
+  of X. A converged fit no better than a horizontal line, or with a
+  rank-deficient Jacobian, is restarted from more starting values and
+  reported "ambiguous" if that does not help.
 - The extended equation library (equations.py) and user-defined
   equations (userequation.py) register further ModelSpec entries; the
   entries defined in this file are unchanged by them.
@@ -46,6 +57,8 @@ from typing import Callable
 import numpy as np
 from scipy import stats
 from scipy.optimize import brentq, curve_fit, least_squares
+
+from . import lsq
 
 
 # ---------------------------------------------------------------- registry
@@ -83,6 +96,9 @@ class ModelSpec:
     user: bool = False               # compiled user-defined equation
     initials_fixed: bool = False     # initials(x, y, fixed): rules that
                                      # need the experimental constants
+    param_roles: dict | None = None  # name -> "x" | "y" | "slope" | ...:
+                                     # finite-difference scale role
+                                     # (lsq.role_of guesses from the name)
 
 
 @dataclass
@@ -466,7 +482,7 @@ register(ModelSpec(
 # ---------------------------------------------------------------- fitting
 
 WEIGHTINGS = ("none", "1/Y", "1/Y2", "1/X", "1/X2", "1/SD2")
-WEIGHT_SOURCES = ("predicted", "observed_mean")
+WEIGHT_SOURCES = ("predicted", "observed_mean", "objective")
 REPLICATE_MODES = ("account", "means_only")
 
 
@@ -580,7 +596,8 @@ def _summary_inputs(x_values, y_values, sd_values, n_values, replicates,
 
 
 def _ols_fit(spec, x, y, free_names, fixed, p0_map, weighting,
-             weight_source="predicted", summary=None):
+             weight_source="predicted", summary=None, with_cov=True,
+             diagnostics=None):
     """(Weighted) least squares from one start; returns (popt, pcov, wss).
 
     Y-based weighting follows Prism's documented algorithm ("Math theory
@@ -595,6 +612,11 @@ def _ols_fit(spec, x, y, free_names, fixed, p0_map, weighting,
     - "predicted": Prism's IRLS scheme (default; validated session 3).
     - "observed_mean": weights fixed from the mean observed Y of the
       replicates at each X (a close, non-iterative approximation).
+    - "objective": not Prism's: the weighted SS with weights from the
+      fitted curve is minimised directly (the weights move with the
+      parameters and are differentiated), as R's nls with a residual
+      function (y - f)/sqrt(f) for 1/Y; a different estimate from the
+      IRLS fixed point. Raw data only.
 
     summary (from _summary_inputs; None for raw points): y holds row
     means; each row's weight is multiplied by its n (counts) and, for
@@ -608,52 +630,83 @@ def _ols_fit(spec, x, y, free_names, fixed, p0_map, weighting,
         return p
 
     box = _free_bounds(spec, free_names)
+    p0 = [p0_map[n] for n in free_names]
+    # finite-difference scale of each parameter (lsq module docstring)
+    floor = lsq.scale_floor(free_names, p0, x, y,
+                            getattr(spec, "param_roles", None))
 
     def solve(weights_sqrt, p0):
-        def wresid(free_vals):
-            return (y - spec.func(x, make_params(free_vals))) * weights_sqrt
-        if box is None:
-            res = least_squares(wresid, p0, method="lm", max_nfev=20000)
-        else:  # range constraints (Prism's "between"/"greater than")
-            res = least_squares(wresid, _inside(p0, box), method="trf",
-                                bounds=box, x_scale="jac", max_nfev=20000)
+        if callable(weights_sqrt):  # weights from the curve being fitted
+            def wresid(free_vals):
+                f = spec.func(x, make_params(free_vals))
+                return (y - f) * weights_sqrt(f)
+        else:
+            def wresid(free_vals):
+                return (y - spec.func(x, make_params(free_vals))) \
+                    * weights_sqrt
+        # range constraints (Prism's "between"/"greater than") switch to
+        # the bounded trust-region method
+        start = p0 if box is None else _inside(p0, box)
+        with np.errstate(all="ignore"):
+            res = lsq.solve(wresid, start, floor, box=box, max_nfev=20000)
         if not res.success and res.status <= 0:
             raise RuntimeError("did not converge")
+        res.wresid = wresid
+        res.floor = floor
         return res
 
-    p0 = [p0_map[n] for n in free_names]
     y_weighted = weighting in ("1/Y", "1/Y2")
+    if weight_source == "objective" and y_weighted and summary is not None:
+        raise ValueError("weight_source 'objective' needs raw replicates "
+                         "(not mean/SD/n)")
     if summary is not None:
-        return _ols_fit_summary(spec, x, y, free_names, solve, p0,
-                                make_params, weighting, weight_source,
-                                summary)
-
-    if not y_weighted:
-        w = _weights(x, x, weighting)  # 'none' or X-based: fixed weights
-        res = solve(np.sqrt(w), p0)
-    elif weight_source == "observed_mean":
-        w = _weights(x, _replicate_mean_y(x, y), weighting)
-        res = solve(np.sqrt(w), p0)
-    else:  # Prism IRLS: unweighted first, then reweight from the curve
-        res = solve(np.ones_like(y), p0)
-        prev = res.x
-        for _ in range(60):
-            w = _weights(x, spec.func(x, make_params(prev)), weighting)
-            res = solve(np.sqrt(w), prev)
-            if np.allclose(res.x, prev, rtol=1e-10, atol=1e-12):
-                break
+        res, extra_ss = _ols_fit_summary(spec, x, y, free_names, solve, p0,
+                                         make_params, weighting,
+                                         weight_source, summary)
+        dof = summary["n_obs"] - len(free_names)
+    else:
+        extra_ss = 0.0
+        dof = x.size - len(free_names)
+        if not y_weighted:
+            w = _weights(x, x, weighting)  # 'none' or X-based: fixed
+            res = solve(np.sqrt(w), p0)
+        elif weight_source == "observed_mean":
+            w = _weights(x, _replicate_mean_y(x, y), weighting)
+            res = solve(np.sqrt(w), p0)
+        elif weight_source == "objective":
+            # minimise sum w(Ycurve) (Y - Ycurve)^2 directly, the weights
+            # differentiated with the curve (R's nls with a weighted
+            # residual function); start from the unweighted fit
+            res0 = solve(np.ones_like(y), p0)
+            res = solve(lambda f: np.sqrt(_weights(x, f, weighting)), res0.x)
+        else:  # Prism IRLS: unweighted first, then reweight from the curve
+            res = solve(np.ones_like(y), p0)
             prev = res.x
+            for _ in range(60):
+                w = _weights(x, spec.func(x, make_params(prev)), weighting)
+                res = solve(np.sqrt(w), prev)
+                if lsq.same_point(res.x, prev, res.floor):
+                    break
+                prev = res.x
 
-    J = res.jac
-    wss = float(2 * res.cost)
-    # covariance = (J'J)^-1 * s2 (final iteration's frozen weights)
-    dof = x.size - len(free_names)
-    s2 = wss / dof
-    try:
-        cov = np.linalg.inv(J.T @ J) * s2
-    except np.linalg.LinAlgError:
-        cov = np.full((len(free_names), len(free_names)), np.nan)
-    return res.x, cov, wss
+    def finish():
+        """Polish the solution (Gauss-Newton with the central-difference
+        Jacobian, final iteration's frozen weights) and build the
+        covariance (J'J)^-1 * s2 from that scale-aware Jacobian."""
+        with np.errstate(all="ignore"):
+            p, J = lsq.polish(res.wresid, res.x, floor, box=box)
+            f = res.wresid(p)
+        wss = float(f @ f) + extra_ss
+        return p, lsq.covariance(J, wss / dof), wss, J
+
+    if not with_cov:
+        if diagnostics is not None:
+            diagnostics["finish"] = finish
+        return res.x, None, float(2 * res.cost) + extra_ss
+    p, cov, wss, J = finish()
+    if diagnostics is not None:
+        diagnostics["jac"] = J
+    return p, cov, wss
 
 
 def _free_bounds(spec, free_names):
@@ -691,7 +744,8 @@ def _replicate_weights(x, ybase, weighting, summary):
 def _ols_fit_summary(spec, x, y, free_names, solve, p0, make_params,
                      weighting, weight_source, summary):
     """_ols_fit for rows of mean/SD/n; same iteration scheme as the raw
-    path, with row weights W_i * n_i and the within-row SS added back."""
+    path, with row weights W_i * n_i. Returns (res, the within-row SS
+    weighted by the final weights, to be added back to the SS)."""
     counts, within = summary["counts"], summary["within"]
     y_weighted = weighting in ("1/Y", "1/Y2")
 
@@ -708,19 +762,10 @@ def _ols_fit_summary(spec, x, y, free_names, solve, p0, make_params,
             w = _replicate_weights(x, spec.func(x, make_params(prev)),
                                    weighting, summary)
             res = solve(np.sqrt(w * counts), prev)
-            if np.allclose(res.x, prev, rtol=1e-10, atol=1e-12):
+            if lsq.same_point(res.x, prev, res.floor):
                 break
             prev = res.x
-
-    J = res.jac
-    wss = float(2 * res.cost) + float(np.sum(w * within))
-    dof = summary["n_obs"] - len(free_names)
-    s2 = wss / dof
-    try:
-        cov = np.linalg.inv(J.T @ J) * s2
-    except np.linalg.LinAlgError:
-        cov = np.full((len(free_names), len(free_names)), np.nan)
-    return res.x, cov, wss
+    return res, float(np.sum(w * within))
 
 
 def fit_model(x_values, y_values, model: str, *,
@@ -747,6 +792,10 @@ def fit_model(x_values, y_values, model: str, *,
         raise ValueError(f"unknown weight_source: {weight_source}")
     spec = MODELS[model]
     summary = None
+    if weight_source == "objective" and weighting in ("1/Y", "1/Y2") and (
+            sd is not None or n is not None):
+        raise ValueError("weight_source 'objective' needs raw replicates "
+                         "(not mean/SD/n)")
     if sd is not None or n is not None or weighting == "1/SD2":
         x, y, summary = _summary_inputs(x_values, y_values, sd, n,
                                         replicates, weighting)
@@ -795,20 +844,51 @@ def fit_model(x_values, y_values, model: str, *,
                 seed = v if spec.multistart == "LogXmid" else abs(3.0 / max(abs(v), 1e-9))
             starts.append(dict(init, **{spec.multistart: float(seed)}))
 
-    best = None
-    for p0_map in starts:
-        try:
-            popt, pcov, wss = _ols_fit(spec, x, y, free_names, fixed, p0_map,
-                                       weighting, weight_source, summary)
-        except (RuntimeError, ValueError):
-            continue
-        if not np.all(np.isfinite(popt)):
-            continue
-        if best is None or wss < best[2] - 1e-12:
-            best = (popt, pcov, wss)
+    def best_of(start_maps):
+        best = None
+        for p0_map in start_maps:
+            diag_ = {}
+            try:
+                popt, _, wss = _ols_fit(spec, x, y, free_names, fixed, p0_map,
+                                        weighting, weight_source, summary,
+                                        with_cov=False, diagnostics=diag_)
+            except (RuntimeError, ValueError):
+                continue
+            if not np.all(np.isfinite(popt)):
+                continue
+            if best is None or wss < best[2] - 1e-12:
+                best = (popt, diag_["finish"], wss)
+        return best
+
+    best = best_of(starts)
     if best is None:
         raise ValueError("fit did not converge from any starting value")
-    popt, pcov, wss = best
+    # polish the best start and build its covariance (scale-aware
+    # central-difference Jacobian, lsq module)
+    popt, pcov, wss, jac = best[1]()
+
+    # A converged fit that is no better than a horizontal line, or whose
+    # Jacobian is rank-deficient, has run to a degenerate point (NIST
+    # BoxBOD from Start 1: b2 -> 110, exp(-b2*X) underflows and the curve
+    # is the mean of Y). Restart from more starting values; when that
+    # does not help the fit is reported "ambiguous".
+    def degenerate(wss_, jac_):
+        if lsq.rank_deficient(jac_):
+            return True
+        if summary is None and weighting == "none" and len(free_names) > 1:
+            ss_flat = float(np.sum((y - y.mean()) ** 2))
+            return ss_flat > 0 and wss_ >= ss_flat * (1.0 - 1e-9)
+        return False
+
+    degenerate_fit = degenerate(wss, jac)
+    if degenerate_fit:
+        alt = best_of(_restart_starts(init, free_names, x, y,
+                                      getattr(spec, "param_roles", None)))
+        if alt is not None and alt[2] < wss * (1.0 - 1e-9):
+            p2, c2, w2, j2 = alt[1]()
+            if w2 < wss * (1.0 - 1e-9):
+                popt, pcov, wss, jac = p2, c2, w2, j2
+                degenerate_fit = degenerate(wss, jac)
 
     fitted = dict(fixed)
     fitted.update({n: float(v) for n, v in zip(free_names, popt)})
@@ -870,7 +950,7 @@ def fit_model(x_values, y_values, model: str, *,
     # the parameters are not determined at this point, whatever the
     # optimizer reported: e.g. NIST BoxBOD from Start 1, where Y = b1 and
     # exp(-b2*X) underflows, used to be labelled "converged".
-    if not np.all(np.isfinite(pcov)):
+    if not np.all(np.isfinite(pcov)) or degenerate_fit:
         status = "ambiguous"
 
     # A midpoint fitted outside the x actually tested is an extrapolation:
@@ -973,6 +1053,22 @@ def fit_model(x_values, y_values, model: str, *,
     return out
 
 
+def _restart_starts(init, free_names, x, y, roles=None):
+    """Extra starting values for a fit that converged to a degenerate
+    point: each free parameter in turn moved by factors of 10 and 100 up
+    and down from its initial value (from its role's data scale when the
+    initial value is 0)."""
+    scales = lsq.scale_floor(free_names, [0.0] * len(free_names), x, y,
+                             roles)
+    out = []
+    for i, name in enumerate(free_names):
+        v = float(init[name])
+        base = v if v != 0 else (scales[i] if scales[i] > 0 else 1.0)
+        for f in (0.1, 10.0, 0.01, 100.0):
+            out.append(dict(init, **{name: base * f}))
+    return out
+
+
 def _summary_goodness(x, y, yhat, wss, weighting, weight_source, summary):
     """(ss_res, ss_tot, r_squared_weighted) of the replicates a mean/SD/n
     table stands for: every sum of squares splits into n_i times the
@@ -1003,7 +1099,7 @@ def _profile_ci(spec, x, y, free_names, fixed, fitted, wss_min, df, target,
         p0 = {n: fitted[n] for n in others}
         try:
             _, _, wss = _ols_fit(spec, x, y, others, fixed2, p0, weighting,
-                                 weight_source, summary)
+                                 weight_source, summary, with_cov=False)
         except (RuntimeError, ValueError):
             return math.inf
         return wss
@@ -1041,16 +1137,11 @@ def _apply_transforms(spec, x, fitted, free_names, pcov, ci_map, tcrit,
                              curve=spec.func, x=x)
 
 
-def _num_grad(fn, base, names):
-    """Central-difference gradient of fn(p) w.r.t. names."""
-    g = np.zeros(len(names))
-    for j, n in enumerate(names):
-        h = max(abs(base[n]) * 1e-6, 1e-8)
-        up, dn = dict(base), dict(base)
-        up[n] += h
-        dn[n] -= h
-        g[j] = (fn(up) - fn(dn)) / (2 * h)
-    return g
+def _num_grad(fn, base, names, cov=None, index=None):
+    """Central-difference gradient of fn(p) w.r.t. names (scale-aware
+    step, lsq.param_gradient)."""
+    return np.asarray(lsq.param_gradient(fn, base, names, cov, index),
+                      dtype=float).reshape(len(names))
 
 
 def _safe_value(fn, p):
@@ -1130,7 +1221,7 @@ def transform_entries(transforms, fitted, free_names, cov, ci_map, tcrit,
             def band(v, sign):
                 yc = float(curve(np.array([v]), fitted)[0])
                 g = _num_grad(lambda q: float(curve(np.array([v]), q)[0]),
-                              fitted, names)
+                              fitted, names, cov, idx)
                 return yc + sign * tcrit * math.sqrt(max(float(g @ C @ g),
                                                          0.0))
             if tr.ci == "none" or not names:
@@ -1149,7 +1240,8 @@ def transform_entries(transforms, fitted, free_names, cov, ci_map, tcrit,
             names = [n for n in tr.params if n in free_names and n in idx]
         if not names:
             continue  # depends on constants only
-        g = _num_grad(lambda q: _safe_value(tr.fn, q), fitted, names)
+        g = _num_grad(lambda q: _safe_value(tr.fn, q), fitted, names, cov,
+                      idx)
         ii = [idx[n] for n in names]
         var = float(g @ cov[np.ix_(ii, ii)] @ g)
         se = math.sqrt(var) if var >= 0 and math.isfinite(var) else None
@@ -1204,8 +1296,15 @@ def robust_fit(x_values, y_values, model: str, *,
             p.update(dict(zip(free_names, free_vals)))
             return (y - spec.func(x, p)) / rsdr
 
-        res = least_squares(loss_resid, [fitted[nm] for nm in free_names],
-                            loss="cauchy", method="trf", max_nfev=20000)
+        start = [fitted[nm] for nm in free_names]
+        floor = lsq.scale_floor(free_names, start, x, y,
+                                getattr(spec, "param_roles", None))
+        with np.errstate(all="ignore"):
+            res = least_squares(
+                loss_resid, start, loss="cauchy", method="trf",
+                max_nfev=20000, **lsq.TOL,
+                jac=lambda v, f=loss_resid, s=floor: lsq.forward_jacobian(
+                    f, v, s))
         fitted.update({nm: float(v) for nm, v in zip(free_names, res.x)})
 
     resid = y - spec.func(x, fitted)
@@ -1278,6 +1377,13 @@ def compare_fits_f_test(ss_simple: float, df_simple: int,
     parameters so df_simple > df_complex)."""
     if df_simple <= df_complex:
         raise ValueError("simpler model must have more degrees of freedom")
+    if ss_complex <= 0.0:
+        # the complex model fits exactly (noise-free data): any excess SS
+        # of the simple model is infinitely significant
+        f = math.inf if ss_simple > 0.0 else math.nan
+        p = 0.0 if ss_simple > 0.0 else 1.0
+        return {"F": f, "dfn": df_simple - df_complex, "dfd": df_complex,
+                "p": p, "prefer_complex": p < 0.05}
     f = ((ss_simple - ss_complex) / (df_simple - df_complex)) / \
         (ss_complex / df_complex)
     f = max(f, 0.0)
@@ -1292,13 +1398,23 @@ def aicc(ss: float, n: int, k_params: int) -> float:
     k = k_params + 1
     if n - k - 1 <= 0:
         return math.inf
+    if ss <= 0.0:  # an exact fit
+        return -math.inf
     return n * math.log(ss / n) + 2 * k + 2 * k * (k + 1) / (n - k - 1)
 
 
 def compare_fits_aicc(ss1: float, k1: int, ss2: float, k2: int, n: int) -> dict:
     a1, a2 = aicc(ss1, n, k1), aicc(ss2, n, k2)
     delta = a2 - a1  # positive -> model 1 preferred
-    prob1 = 1.0 / (1.0 + math.exp(-0.5 * delta)) if math.isfinite(delta) else 1.0
+    # logistic in delta/2, written so that it cannot overflow and gives
+    # 0 / 1 for an infinite delta (one model fits exactly)
+    if math.isnan(delta):
+        prob1 = 0.5
+    elif delta >= 0:
+        prob1 = 1.0 / (1.0 + math.exp(-0.5 * delta))
+    else:
+        e = math.exp(0.5 * delta)
+        prob1 = e / (1.0 + e)
     return {"aicc_1": a1, "aicc_2": a2, "delta": float(delta),
             "probability_1": prob1, "probability_2": 1 - prob1,
             "prefer": 1 if a1 < a2 else 2}

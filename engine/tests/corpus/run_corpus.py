@@ -495,14 +495,15 @@ def _tukey_rq(m, res, q, names_pair, prefix="anova:multiple_comparisons"):
             break
     else:
         raise KeyError(names_pair)
-    lo, hi = c["ci"] if c.get("ci") else (None, None)
+    ck = "ci" if c.get("ci") else "ci95"   # two-way results say ci95
+    lo, hi = c[ck] if c.get(ck) else (None, None)
     neg = " (sign flipped: engine pair is the reverse)" if sign < 0 else ""
     m.set(f"{q}.diff", sign * c["difference"], path + ".difference" + neg)
     if lo is not None:
         m.set(f"{q}.lower", hi * -1 if sign < 0 else lo,
-              path + (".ci[1] * -1" if sign < 0 else ".ci[0]"))
+              path + (f".{ck}[1] * -1" if sign < 0 else f".{ck}[0]"))
         m.set(f"{q}.upper", lo * -1 if sign < 0 else hi,
-              path + (".ci[0] * -1" if sign < 0 else ".ci[1]"))
+              path + (f".{ck}[0] * -1" if sign < 0 else f".{ck}[1]"))
     m.set(f"{q}.p_adj", c["p_adjusted"], path + ".p_adjusted")
 
 
@@ -534,8 +535,9 @@ def map_r_insectsprays(entry, rows):
     m.set("bartlett_K2", res["bartlett"]["statistic"],
           "anova:bartlett.statistic")
     m.set("bartlett_p", res["bartlett"]["p"], "anova:bartlett.p")
-    m.unmapped("fligner_*", "not implemented: the Fligner-Killeen test (the "
-               "engine reports Brown-Forsythe and Bartlett)")
+    m.set("fligner_chi2", res["fligner_killeen"]["statistic"],
+          "anova:fligner_killeen.statistic")
+    m.set("fligner_p", res["fligner_killeen"]["p"], "anova:fligner_killeen.p")
     return m
 
 
@@ -697,9 +699,12 @@ def map_r_airquality(entry, rows):
         m.set(f"pairwise_t_pooled_bonferroni[{b}-{a}]", c["p_adjusted"],
               f"anova(bonferroni):multiple_comparisons.comparisons"
               f"[pair={c['pair']}].p_adjusted")
-    m.unmapped("pairwise_t_pooled_holm*",
-               "not implemented: Holm (Bonferroni step-down) adjustment; the "
-               "engine offers Holm-Sidak (Prism's choice), which differs")
+    holm = run("anova", data, {"comparisons": "holm"})
+    for c in holm["multiple_comparisons"]["comparisons"]:
+        a, b = c["pair"].split(" vs. ")
+        m.set(f"pairwise_t_pooled_holm[{b}-{a}]", c["p_adjusted"],
+              f"anova(holm):multiple_comparisons.comparisons"
+              f"[pair={c['pair']}].p_adjusted")
     return m
 
 
@@ -730,9 +735,11 @@ def map_r_tuna(entry, rows):
     m.set("pearson_df", n - 2, "derived: n - 2")
     m.set("pearson_t", r * math.sqrt((n - 2) / (1 - r * r)),
           "derived: r sqrt((n-2)/(1-r^2))")
-    m.unmapped("pearson_ci_lower_one_sided",
-               "no option: the engine reports two-sided confidence intervals "
-               "only")
+    cdata = {"datasets": [{"name": "x", "ys": [[v] for v in x]},
+                          {"name": "y", "ys": [[v] for v in y]}]}
+    pc = run("correlation", cdata, {"method": "pearson"})
+    m.set("pearson_ci_lower_one_sided", pc["ci_r_greater"][0],
+          "correlation(pearson):ci_r_greater[0]")
     sp = run("correlation_matrix", v, {"method": "spearman", "tails": 1})
     rho = sp["r"][0][1]
     m.set("spearman_rho", rho, "correlation_matrix(spearman, tails=1):r[0][1]")
@@ -741,7 +748,16 @@ def map_r_tuna(entry, rows):
           f"({sp['p_type'][0][1]})")
     m.set("spearman_S", (n ** 3 - n) * (1 - rho) / 6,
           "derived: (n^3 - n)(1 - rho)/6 (R's S statistic)")
-    m.unmapped("kendall_*", "not implemented: Kendall's tau")
+    kd = run("correlation", cdata, {"method": "kendall"})
+    m.set("kendall_tau", kd["tau"], "correlation(kendall):tau")
+    m.set("kendall_T", kd["T"], "correlation(kendall):T (concordant pairs)")
+    m.set("kendall_p_one_sided_exact", kd["p_greater"],
+          f"correlation(kendall):p_greater ({kd['p_type']})")
+    na = kd["normal_approximation"]
+    m.set("kendall_z_approx", na["z"],
+          "correlation(kendall):normal_approximation.z")
+    m.set("kendall_p_one_sided_approx", na["p_greater"],
+          "correlation(kendall):normal_approximation.p_greater")
     return m
 
 # ============================================================ two-way ANOVA
@@ -779,9 +795,24 @@ def map_r_warpbreaks(entry, rows):
     _map_twoway_sources(m, res, {"wool": "Columns", "tension": "Rows",
                                  "interaction": "interaction",
                                  "residual": "residual"})
-    m.unmapped("additive.*", "no option: the engine fits the full "
-               "interaction model for replicated two-way data (no "
-               "main-effects-only model, so no additive-model F, MS or Tukey)")
+    add = run("two_way_anova", data, {"model": "additive"})
+    lab = "two_way_anova(model=additive)"
+    for q, key in (("wool", "Columns"), ("tension", "Rows")):
+        for stat in ("F", "p"):
+            m.set(f"additive.{stat}.{q}", add["sources"][key][stat],
+                  f"{lab}:sources.{key}.{stat}")
+    m.set("additive.df.residual", add["sources"]["residual"]["df"],
+          f"{lab}:sources.residual.df")
+    m.set("additive.ms.residual", add["sources"]["residual"]["ms"],
+          f"{lab}:sources.residual.ms")
+    mc = run("two_way_anova", data, {"model": "additive",
+                                     "comparisons": "tukey",
+                                     "direction": "row_means",
+                                     "row_names": ["L", "M", "H"]})
+    for x, y in (("M", "H"), ("L", "H"), ("L", "M")):
+        _tukey_rq(m, mc, f"additive.tukey_tension[{x}-{y}]", (x, y),
+                  prefix="two_way_anova(model=additive, tukey, row_means)"
+                         ":multiple_comparisons")
     return m
 
 
@@ -824,43 +855,17 @@ def map_r_toothgrowth(entry, rows):
 
 @dataset("r-morley")
 def map_r_morley(entry, rows):
-    """One value per cell. two_way_anova refuses this design (it always
-    fits the interaction model), so the no-interaction two-way ANOVA is
-    taken from the repeated-measures one-way ANOVA (runs as subjects =
-    randomised block), which is the same linear model."""
+    """One value per cell: two_way_anova fits the main-effects (additive)
+    model, R's aov(Speed ~ Run + Expt)."""
     m = Mapped()
     expts = [f"Expt {i}" for i in range(1, 6)]
     data = {"datasets": [{"name": e, "ys": [[num(r[e])] for r in rows]}
                          for e in expts]}
-    try:
-        res = run("two_way_anova", data)
-        _map_twoway_sources(m, res, {"run": "Rows", "expt": "Columns",
-                                     "residual": "residual"})
-        return m
-    except EngineError as exc:
-        m.note(f"two_way_anova refused the design ({exc}); mapped from "
-               "rm_anova instead")
-    rm = run("rm_anova", data)
-    t = rm["table"]
-    lab = "rm_anova:table"
-    m.set("df.expt", t["df_treatment"], f"{lab}.df_treatment")
-    m.set("ss.expt", t["ss_treatment"], f"{lab}.ss_treatment")
-    m.set("ms.expt", t["ms_treatment"], f"{lab}.ms_treatment")
-    m.set("F.expt", t["F"], f"{lab}.F")
-    m.set("p.expt", t["p_assuming_sphericity"], f"{lab}.p_assuming_sphericity")
-    m.set("df.run", t["df_subject"], f"{lab}.df_subject")
-    m.set("ss.run", t["ss_subject"], f"{lab}.ss_subject")
-    m.set("ms.run", t["ss_subject"] / t["df_subject"],
-          "derived: ss_subject / df_subject")
-    m.set("df.residual", t["df_error"], f"{lab}.df_error")
-    m.set("ss.residual", t["ss_error"], f"{lab}.ss_error")
-    m.set("ms.residual", t["ms_error"], f"{lab}.ms_error")
-    m.unmapped("F.run", "no engine output: the RM ANOVA does not test the "
-               "subject (row) factor, and two_way_anova cannot fit the "
-               "no-interaction model")
-    m.unmapped("p.run", "no engine output: the RM ANOVA does not test the "
-               "subject (row) factor, and two_way_anova cannot fit the "
-               "no-interaction model")
+    res = run("two_way_anova", data)
+    if res.get("model", "").startswith("main effects"):
+        m.note("two_way_anova: " + res.get("note", ""))
+    _map_twoway_sources(m, res, {"run": "Rows", "expt": "Columns",
+                                 "residual": "residual"})
     return m
 
 
@@ -907,14 +912,13 @@ def map_r_tea(entry, rows):
     m = Mapped()
     hdr = entry["layout"]["columns"]
     res = run("contingency", {"table": _table(rows, hdr)})
-    m.unmapped("p_one_sided_greater", "no option: Fisher's exact test is "
-               "two-sided only (two-sided P = "
-               f"{res['fisher_exact']['p']:.4g})")
-    m.unmapped("odds_ratio_conditional_mle", "different estimator: the "
-               "engine reports the sample odds ratio (ad/bc) with a "
-               "Baptista-Pike CI, not R's conditional MLE")
-    m.unmapped("or_ci_lower_one_sided", "no option: one-sided CI of the "
-               "conditional MLE odds ratio")
+    fe = res["fisher_exact"]
+    m.set("p_one_sided_greater", fe["p_greater"],
+          "contingency:fisher_exact.p_greater")
+    m.set("odds_ratio_conditional_mle", fe["odds_ratio_conditional_mle"],
+          "contingency:fisher_exact.odds_ratio_conditional_mle")
+    m.set("or_ci_lower_one_sided", fe["ci_conditional_greater"][0],
+          "contingency:fisher_exact.ci_conditional_greater[0]")
     return m
 
 
@@ -923,22 +927,33 @@ def map_r_convictions(entry, rows):
     m = Mapped()
     hdr = entry["layout"]["columns"]
     res = run("contingency", {"table": _table(rows, hdr)})
-    m.set("p_two_sided", res["fisher_exact"]["p"], "contingency:fisher_exact.p")
-    m.unmapped("p_one_sided_less", "no option: Fisher's exact test is "
-               "two-sided only")
-    m.unmapped("odds_ratio_conditional_mle", "different estimator: the "
-               "engine reports the sample odds ratio (ad/bc), not R's "
-               "conditional MLE")
-    m.unmapped("or_ci9*", "different estimator: R's exact conditional CI of "
-               "the conditional MLE odds ratio")
+    fe = res["fisher_exact"]
+    m.set("p_two_sided", fe["p"], "contingency:fisher_exact.p")
+    m.set("p_one_sided_less", fe["p_less"], "contingency:fisher_exact.p_less")
+    m.set("odds_ratio_conditional_mle", fe["odds_ratio_conditional_mle"],
+          "contingency:fisher_exact.odds_ratio_conditional_mle")
+    m.set("or_ci95_lower", fe["ci_conditional"][0],
+          "contingency:fisher_exact.ci_conditional[0]")
+    m.set("or_ci95_upper", fe["ci_conditional"][1],
+          "contingency:fisher_exact.ci_conditional[1]")
+    r99 = run("contingency", {"table": _table(rows, hdr)},
+              {"ci_level": 0.99})["fisher_exact"]
+    m.set("or_ci99_lower", r99["ci_conditional"][0],
+          "contingency(ci_level=0.99):fisher_exact.ci_conditional[0]")
+    m.set("or_ci99_upper", r99["ci_conditional"][1],
+          "contingency(ci_level=0.99):fisher_exact.ci_conditional[1]")
     return m
 
 
 @dataset("r-fisher-job", "r-fisher-mp6")
 def map_r_fisher_rxc(entry, rows):
     m = Mapped()
-    m.unmapped("p", "not implemented: Fisher-Freeman-Halton exact test for "
-               "r x c tables (Fisher's test is 2 x 2 only, as in Prism)")
+    hdr = entry["layout"]["columns"]
+    res = run("contingency", {"table": _table(rows, hdr)},
+              {"fisher_rxc": True})
+    m.set("p", res["fisher_exact"]["p"],
+          "contingency(fisher_rxc):fisher_exact.p (Freeman-Halton, network "
+          "algorithm)")
     return m
 
 
@@ -949,10 +964,14 @@ def map_r_party(entry, rows):
     res = run("contingency", {"table": _table(rows, hdr)})
     for k in ("chi2", "df", "p"):
         m.set(k, res["chi_square"][k], f"contingency:chi_square.{k}")
-    m.unmapped("expected[*", "no engine output: expected counts are not "
-               "reported by the contingency analysis")
-    m.unmapped("standardized_residual[*", "no engine output: standardized "
-               "(adjusted) residuals are not reported")
+    labels = [r[next(iter(r))] for r in rows]
+    for i, rl in enumerate(labels):
+        for j, cl in enumerate(hdr):
+            m.set(f"expected[{rl},{cl}]", res["expected"][i][j],
+                  f"contingency:expected[{i}][{j}]")
+            m.set(f"standardized_residual[{rl},{cl}]",
+                  res["residuals_standardized"][i][j],
+                  f"contingency:residuals_standardized[{i}][{j}]")
     return m
 
 
@@ -1072,18 +1091,30 @@ def map_r_ucb(entry, rows):
     m.set("or_ci_upper", res["odds_ratio"]["ci"][1], "cmh:odds_ratio.ci[1]")
     m.set("dept_A_odds_ratio", res["strata"][0]["odds_ratio"],
           "cmh:strata[0].odds_ratio")
-    m.unmapped("woolf_homogeneity_p", "not implemented: Woolf's test of "
-               "homogeneity (the engine reports Breslow-Day / Tarone)")
-    m.unmapped("aggregate[*", "not an analysis output: the collapsed 2 x 2 "
-               "table is not reported by the CMH analysis")
+    m.set("woolf_homogeneity_p", res["woolf"]["p"], "cmh:woolf.p")
+    agg = res["aggregate_table"]
+    for i, rl in enumerate(("Admitted", "Rejected")):
+        for j, cl in enumerate(("Male", "Female")):
+            m.set(f"aggregate[{rl},{cl}]", agg[i][j],
+                  f"cmh:aggregate_table[{i}][{j}]")
     return m
 
 
 @dataset("r-cmh-satisfaction")
 def map_r_cmh_rxc(entry, rows):
     m = Mapped()
-    m.unmapped("*", "not implemented: generalized CMH for r x c x k tables "
-               "(the CMH analysis takes 2 x 2 strata)")
+    cols = entry["layout"]["columns"]
+    strata = []
+    for r in rows:
+        if r["gender"] not in strata:
+            strata.append(r["gender"])
+    tables = [[[num(r[c]) for c in cols] for r in rows if r["gender"] == g]
+              for g in strata]
+    res = run("cmh", {"tables": tables, "strata_names": strata})
+    t = res["cmh_test"]
+    m.set("cmh_M2", t["chi2"], "cmh(r x c x k):cmh_test.chi2")
+    m.set("df", t["df"], "cmh(r x c x k):cmh_test.df")
+    m.set("p", t["p"], "cmh(r x c x k):cmh_test.p")
     return m
 
 # ============================================================ R: regression
@@ -1184,9 +1215,13 @@ def map_r_puromycin(entry, rows):
         m.set(f"{name}.sy_x", fit["goodness"]["sy_x"],
               f"{lab}:fit.goodness.sy_x")
         m.set(f"{name}.df", fit["goodness"]["df"], f"{lab}:fit.goodness.df")
+    # R minimises sum((y - yhat)^2 / yhat) directly: weight_source
+    # "objective" (Prism's 1/Y weighting is the IRLS fixed point instead)
     fit = _dr_fit(rows, "conc_ppm", [sets["treated"]],
-                  {"model": "michaelis_menten", "weighting": "1/Y"})[0]
-    lab = "dose_response(michaelis_menten, treated, weighting 1/Y)"
+                  {"model": "michaelis_menten", "weighting": "1/Y",
+                   "weight_source": "objective"})[0]
+    lab = ("dose_response(michaelis_menten, treated, weighting 1/Y, "
+           "weight_source objective)")
     q = "treated_weighted_1_over_Yhat"
     for p in ("Vmax", "Km"):
         _param(m, f"{q}.{p}", fit, p, lab)
@@ -1467,13 +1502,25 @@ def _surv_groups(rows, tcol, ecol, gcol=None, order=None, keep=None):
     return {"datasets": [{"name": str(n), "ys": groups[n]} for n in names]}
 
 
-def _km_at(curve, t):
-    """KM estimate at time t (right-continuous step function)."""
-    s = 1.0
+def _km_at(curve, t, key="survival"):
+    """KM estimate (or its Greenwood SE, key="se") at time t
+    (right-continuous step function)."""
+    s = 1.0 if key == "survival" else 0.0
     for p in curve["points"]:
         if p["time"] <= t + 1e-9:
-            s = p["survival"]
+            s = p[key]
     return s
+
+
+def _km_se_refs(m, entry, curve, label, group):
+    """Map '<group>.se_survival[t=..]' quantities to the Greenwood SE."""
+    for ref in entry["reference"]:
+        mt = re.match(rf"{re.escape(group)}\.se_survival\[t=(\d+)\]",
+                      ref["quantity"])
+        if mt:
+            t = float(mt.group(1))
+            m.set(ref["quantity"], _km_at(curve, t, "se"),
+                  f"{label}:curves.{group}.points[time<={t:g}].se")
 
 
 def _cox_block(m, q, res, label, coef_names=None):
@@ -1522,14 +1569,17 @@ def map_surv_aml(entry, rows):
               f"survival:logrank.observed[{i}]")
         m.set(f"{g}.expected", res["logrank"]["expected"][i],
               f"survival:logrank.expected[{i}]")
-    m.unmapped("*.median_ci_lower", "no engine output: the confidence "
-               "interval of the median survival is not reported")
-    m.unmapped("*.se_survival*", "no engine output: the Kaplan-Meier "
-               "standard error (Greenwood) is not reported (only the CI)")
+        # R's survfit median CI uses its default log band
+        m.set(f"{g}.median_ci_lower", c["median_ci_log"]["lower"],
+              f"survival:curves.{g}.median_ci_log.lower")
+        _km_se_refs(m, entry, c, "survival", g)
     lr = res["logrank"]
-    m.set("logrank_chi2", lr["chi2"], "survival:logrank.chi2 (Peto form)")
+    # R's survdiff reports the variance (Mantel-Haenszel) form; the Peto
+    # form Prism reports is logrank.chi2
+    m.set("logrank_chi2", lr["chi2_variance"],
+          "survival:logrank.chi2_variance (variance form, R survdiff)")
     m.set("logrank_df", lr["df"], "survival:logrank.df")
-    m.set("logrank_p", lr["p"], "survival:logrank.p")
+    m.set("logrank_p", lr["p_variance"], "survival:logrank.p_variance")
     t = [num(r["time_weeks"]) for r in rows]
     e = [int(num(r["status"])) for r in rows]
     g = [1.0 if r["group"] == "Nonmaintained" else 0.0 for r in rows]
@@ -1553,8 +1603,7 @@ def map_surv_ovarian(entry, rows):
             tt = float(mt.group(1))
             m.set(ref["quantity"], _km_at(c, tt),
                   f"survival:curves.overall.points[time<={tt:g}].survival")
-    m.unmapped("*.se_survival*", "no engine output: the Kaplan-Meier "
-               "standard error (Greenwood) is not reported (only the CI)")
+    _km_se_refs(m, entry, c, "survival", "overall")
     t = column(rows, "futime_days")
     e = [int(v) for v in column(rows, "fustat")]
     for cov in ("age", "resid_ds", "rx", "ecog_ps"):
@@ -1586,15 +1635,27 @@ def map_surv_lung(entry, rows):
         m.set(f"median.sex{s}", c["median_survival"],
               f"survival:curves.{s}.median_survival")
     lr = res["logrank"]
-    m.set("logrank_chi2", lr["chi2"], "survival:logrank.chi2 (Peto form)")
+    m.set("logrank_chi2", lr["chi2_variance"],
+          "survival:logrank.chi2_variance (variance form, R survdiff)")
     m.set("logrank_df", lr["df"], "survival:logrank.df")
-    m.set("logrank_p", lr["p"], "survival:logrank.p")
+    m.set("logrank_p", lr["p_variance"], "survival:logrank.p_variance")
+    for i, s in enumerate(("1", "2")):
+        ci = res["curves"][s]["median_ci_log"]
+        m.set(f"median_ci_lower.sex{s}", ci["lower"],
+              f"survival:curves.{s}.median_ci_log.lower")
+        m.set(f"median_ci_upper.sex{s}", ci["upper"],
+              f"survival:curves.{s}.median_ci_log.upper")
     allc = run("survival", _surv_groups(rows, "time_days", "event"))
     c = allc["curves"]["overall"]
     m.set("median.all", c["median_survival"],
           "survival(all):curves.overall.median_survival")
     m.set("survival_1yr.all", _km_at(c, 365),
           "survival(all):curves.overall.points[time<=365].survival")
+    m.set("se_survival_1yr.all", _km_at(c, 365, "se"),
+          "survival(all):curves.overall.points[time<=365].se")
+    for side in ("lower", "upper"):
+        m.set(f"median_ci_{side}.all", c["median_ci_log"][side],
+              f"survival(all):curves.overall.median_ci_log.{side}")
     for s in ("1", "2"):
         for ecog in ("0", "1", "2"):
             sub = run("survival", _surv_groups(
@@ -1604,10 +1665,11 @@ def map_surv_lung(entry, rows):
                   sub["curves"]["overall"]["median_survival"],
                   f"survival(sex={s}, ph_ecog={ecog}):curves.overall"
                   ".median_survival")
-    m.unmapped("median_ci_*", "no engine output: the confidence interval "
-               "of the median survival is not reported")
-    m.unmapped("se_survival_1yr.all", "no engine output: the Kaplan-Meier "
-               "standard error (Greenwood) is not reported (only the CI)")
+            for side in ("lower", "upper"):
+                m.set(f"median_ci_{side}.sex{s}_ecog{ecog}",
+                      sub["curves"]["overall"]["median_ci_log"][side],
+                      f"survival(sex={s}, ph_ecog={ecog}):curves.overall"
+                      f".median_ci_log.{side}")
     t = column(rows, "time_days")
     e = [int(v) for v in column(rows, "event")]
     cx = run("cox", {"time": t, "event": e,
@@ -1795,18 +1857,43 @@ def _map_global_s_alba(m, g, lab, herbs):
     bb = -by["Bentazone"]["params"]["HillSlope"]["value"]
     bg = -by["Glyphosate"]["params"]["HillSlope"]["value"]
     m.set("slope_difference", bb - bg, "derived: b Bentazone - b Glyphosate")
-    m.unmapped("slope_difference_se", "no engine output: the global fit does "
-               "not expose the parameter covariance, so the SE of a "
-               "difference of slopes is not available")
+    cv = g["covariance"]
+    idx = {(q["name"], q["dataset"]): i for i, q in enumerate(cv["parameters"])}
+    i1, i2 = idx[("HillSlope", "Bentazone")], idx[("HillSlope", "Glyphosate")]
+    C = cv["matrix"]
+    m.set("slope_difference_se",
+          math.sqrt(C[i1][i1] + C[i2][i2] - 2 * C[i1][i2]),
+          f"derived: sqrt(var + var - 2 cov) of the two HillSlopes from "
+          f"{lab}:covariance")
 
 
 @dataset("drc-earthworms")
 def map_drc_earthworms(entry, rows):
+    """drc LL.3 (binomial): logit link on ln(dose) with an upper asymptote
+    d (estimated in m1, fixed at 0.5 in m2); drc's b = -slope, e = the
+    dose at which F = 1/2. SEs from the observed information, as drc
+    (inverse Hessian); heterogeneity 'never'."""
     m = Mapped()
-    m.unmapped("*", "not implemented: binomial log-logistic with an "
-               "estimated (or fixed) upper limit d < 1; the quantal analysis "
-               "fits probit/logit/cloglog lines with an optional natural "
-               "(lower) response only")
+    data = {"dose": column(rows, "dose"), "n": column(rows, "total"),
+            "responders": column(rows, "number")}
+    for q, upper in (("m1", "estimate"), ("m2", 0.5)):
+        res = run("quantal", data, {"link": "logit", "dose_transform": "ln",
+                                    "upper_asymptote": upper,
+                                    "information": "observed",
+                                    "heterogeneity": "never"})
+        lab = f"quantal(logit, ln dose, upper_asymptote={upper})"
+        P, ec = res["parameters"], res["ec"][0]
+        bq = "m2_d_fixed_0.5.b" if q == "m2" else "m1.b"
+        m.set(bq, -P["slope"]["value"], f"derived: -{lab}:parameters.slope")
+        m.set(f"{q}.se_b", P["slope"]["se"], f"{lab}:parameters.slope.se")
+        m.set(f"{q}.e_ED50", ec["dose"], f"{lab}:ec[0].dose")
+        m.set(f"{q}.se_e", ec["dose"] * ec["se_x"],
+              f"derived: dose * se_x (delta method) from {lab}:ec[0]")
+        if q == "m1":
+            m.set("m1.d", P["upper_asymptote"]["value"],
+                  f"{lab}:parameters.upper_asymptote.value")
+            m.set("m1.se_d", P["upper_asymptote"]["se"],
+                  f"{lab}:parameters.upper_asymptote.se")
     return m
 
 
@@ -1827,13 +1914,18 @@ def map_drc_selenium(entry, rows):
         ec = res["ec"][0]
         lab = f"quantal(logit, ln dose, type {typ})"
         m.set(f"type{typ}.ED50", ec["dose"], f"{lab}:ec[0].dose")
-        m.set(f"type{typ}.se_ED50", ec["dose"] * ec["se_x"],
+        se_d = ec["dose"] * ec["se_x"]
+        m.set(f"type{typ}.se_ED50", se_d,
               f"derived: dose * se_x (delta method on the dose scale) from "
               f"{lab}:ec[0]")
-    m.unmapped("type*.ED50_ci_*", "different interval: the engine reports "
-               "Fieller and log-dose delta intervals back-transformed to "
-               "doses (asymmetric); drc prints the symmetric dose-scale "
-               "delta interval")
+        # drc's interval: symmetric on the dose scale, ED50 +/- z SE
+        z = 1.959963984540054
+        m.set(f"type{typ}.ED50_ci_lower", ec["dose"] - z * se_d,
+              f"derived: dose - z(0.975) * dose * se_x from {lab}:ec[0] "
+              "(drc's symmetric dose-scale delta interval)")
+        m.set(f"type{typ}.ED50_ci_upper", ec["dose"] + z * se_d,
+              f"derived: dose + z(0.975) * dose * se_x from {lab}:ec[0] "
+              "(drc's symmetric dose-scale delta interval)")
     m.unmapped("*loglik", "no option: a common-ED50 model is not available "
                "(the parallel analysis tests a common slope), and the "
                "engine's log-likelihood includes the binomial coefficients")
@@ -2379,15 +2471,6 @@ def map_gp_ratio(entry, rows):
 # (category, reason). Categories: "a" runner mapping/transcription error,
 # "b" tolerance tighter than the printed digits justify, "c" genuine
 # engine discrepancy, "d" known reference problem (reference_status).
-_NLS_TOL = ("convergence tolerance: Levenberg-Marquardt runs with scipy's "
-            "default ftol = xtol = 1e-8, which stops 1e-7..1e-4 (relative) "
-            "short of the optimum; a refit with ftol = xtol = 1e-12 and a "
-            "relative finite-difference step reaches the reference")
-_NLS_SE = ("standard errors: the covariance uses res.jac, which scipy "
-           "recomputes at the solution with a forward-difference step of "
-           "1.5e-8 * max(1, |p|); for parameters with |p| << 1 that step is "
-           "huge relative to p, so SEs come out 1e-5..1e-4 off (exact with "
-           "an analytic or relative-step Jacobian)")
 _HESSIAN = ("definition: drc's SEs are observed-information SEs (inverse "
             "numerical Hessian of the RSS from optim); the engine, like "
             "Prism and R's nls, uses J'J. Verified: the observed-Hessian SE "
@@ -2399,34 +2482,19 @@ _PRISM4_OPT = ("reference precision: the printed Prism 4 values are not at "
                "has lower SS), so the last printed digits are not "
                "significant")
 
+_R_UNIROOT = ("reference precision: R's fisher.test finds the conditional "
+              "MLE and its exact CI limits with uniroot(tol = "
+              ".Machine$double.eps^0.25 ~ 1.2e-4 on the [0, 1] scale), so its "
+              "printed digits are 1e-6..3e-3 (relative) off the root; the "
+              "engine solves to full precision and agrees with scipy.stats."
+              "contingency.odds_ratio(kind='conditional') to 1e-14")
+
 KNOWN: dict[tuple[str, str], tuple[str, str]] = {
     # ---------------- NIST nonlinear
-    ("nist-misra1a", "se_*"): ("c", _NLS_SE),
-    ("nist-chwirut2", "b1"): ("c", _NLS_TOL + " (Start 2: 1.3e-6)"),
-    ("nist-thurber", "*"): ("c", _NLS_TOL + "; " + _NLS_SE),
-    ("nist-mgh09", "*"): ("c", _NLS_TOL + " (1e-4 short); " + _NLS_SE),
-    ("nist-lanczos3", "se_*"): ("c", _NLS_SE + " (ill-conditioned problem: "
-                                "a central-difference Jacobian is needed "
-                                "for 1e-5)"),
-    ("nist-boxbod", "*"): ("c", "Start 1 (b1 = b2 = 1) runs to a degenerate "
-                           "point (b2 -> 110, exp(-b2*x) underflows, J'J "
-                           "singular, SEs NaN); it is now reported "
-                           "'ambiguous' instead of 'converged' (fixed in "
-                           "this pass) but the estimates are still wrong. "
-                           "Start 2 converges but stops 7.5e-6 short. "
-                           + _NLS_TOL),
     ("nist-rat43", "df"): ("d", "manifest transcription error (new): 15 "
                            "observations - 4 parameters = 11, and NIST's "
                            "own RSS / sigma^2 = 8786.4049 / 28.2624^2 = "
                            "11.0; the manifest says 9"),
-    ("nist-rat43", "*"): ("c", _NLS_TOL + " (8e-6 / 1.3e-5 short)"),
-    ("nist-hahn1", "*"): ("c", "no convergence: the absolute-floor "
-                          "finite-difference step (1.5e-8 against b4 ~ "
-                          "-1.4e-6, b7 ~ -1.2e-7) gives a useless Jacobian; "
-                          "LM stalls with SS 5e-6 above the minimum and SEs "
-                          "up to 40% off. With a relative step (diff_step) "
-                          "it converges to the certified values from both "
-                          "starts"),
     # ---------------- NIST ANOVA / univariate stress tests
     ("nist-smls07", "*"): ("b", "unattainable in float64: inputs such as "
                            "1000000000000.4 are not representable (ulp 1.2e-4 "
@@ -2444,41 +2512,22 @@ KNOWN: dict[tuple[str, str], tuple[str, str]] = {
                                       "printed SS = 15.571979 -> 15.5720); "
                                       "the same page mis-prints the "
                                       "interaction F (README)"),
-    ("r-puromycin", "treated_weighted_1_over_Yhat.*"): (
-        "c", "different estimator, no option: R minimises sum((y - yhat)^2 "
-        "/ yhat) directly; the engine's weighting '1/Y' is Prism's "
-        "documented IRLS fixed point (weights from the previous curve), a "
-        "different estimate (Vmax 207.78 vs 206.83). Fix: offer a "
-        "'minimise weighted SS' option (weights inside the objective)"),
-    ("r-dnase-run1", "fpl.*"): ("c", _NLS_TOL + " (engine 1.3e-6 short; the "
-                                "tight optimum rounds to R's values)"),
     ("r-loblolly-329", "getInitial.Asym"): (
         "b", "reference precision: the exact LS optimum is Asym = "
-        "94.1282101; R's selfStart value 94.128204 is 6e-6 off it (and the "
-        "engine 2.3e-6), so the 7th printed digit is not significant"),
+        "94.1282101; R's selfStart value 94.128204 is 6e-6 off it (the "
+        "engine: 94.1282099), so the 7th printed digit is not significant"),
     ("r-indometh-1", "*_7digits"): (
         "b", "reference precision: R's nls (default relative-offset "
         "tolerance) stops ~1e-6 short; the exact optimum (A1 2.0292780, "
         "lrc1 0.5793898, A2 0.1915480, lrc2 -1.7877833) differs from the "
-        "printed 7th digit, and the engine is within 4e-7 of it"),
+        "printed 7th digit; the engine reaches it (2.0292780, 0.5793898, "
+        "0.1915480, -1.7877833)"),
     ("r-infert", "m2.se_*"): (
         "b", "reference precision: R's glm reports SEs from the working "
         "weights of the last IRLS step, one iteration before convergence "
         "(emulated: 1.4121954, 0.7925498, 0.8341562, 0.3014602 -> the "
         "printed values); the engine reports the SEs at the MLE "
         "(1.4122093, ...), 1-2 units off in the 5th decimal"),
-    ("growthcurver-a1", "r"): ("c", _NLS_TOL + "; worst here because N0 = "
-                               "1.8e-5 is tiny (absolute-floor FD step), r "
-                               "is 1.6e-5 short"),
-    ("surv-aml", "logrank_*"): (
-        "c", "convention: the engine reports the Peto log-rank statistic "
-        "sum((O-E)^2/E) (what its code says Prism reports); R's survdiff "
-        "uses the variance (Mantel-Haenszel) form. The engine computes the "
-        "variance form internally (3.396 = R's 3.4) but does not expose it. "
-        "Fix: report both"),
-    ("surv-lung", "logrank_chi2"): (
-        "c", "convention: Peto form 10.23 vs R's variance form 10.33 (the "
-        "engine's internal variance form reproduces R; see surv-aml)"),
     ("roc-asah", "paper.*"): (
         "d", "the paper's partial AUCs are not reproducible from the "
         "package data: pROC's own regression-test value for the same "
@@ -2490,15 +2539,15 @@ KNOWN: dict[tuple[str, str], tuple[str, str]] = {
     ("drc-ryegrass", "b"): (
         "b", "reference precision: the exact LS optimum is b = 2.4703243, "
         "which rounds to 2.47032, not drc's 2.47033 (drc's optim stops "
-        "short); the engine is 6.7e-6 below the optimum (default LM "
-        "tolerance)"),
+        "short); the engine reaches it (2.4703243)"),
     ("drc-ryegrass", "ED5"): (
         "b", "reference precision: the exact ED5 is 0.9908739 (drc 0.99088 "
-        "is 6e-6 off); the engine is 2.5e-6 below the optimum"),
-    ("drc-ryegrass", "ED10"): ("c", _NLS_TOL + " (exact ED10 1.3408560 "
-                               "rounds to drc's 1.34086; engine 1.3408532)"),
+        "is 6e-6 off); the engine reaches it (0.9908739)"),
     ("drc-s-alba", "se_*"): ("a", _HESSIAN + "; drc's estimates are also "
                              "short of the optimum (README)"),
+    ("drc-s-alba", "slope_difference_se"): (
+        "a", _HESSIAN + "; the SE of the difference uses the J'J "
+        "covariance of the global fit (exposed as 'covariance')"),
     ("drc-s-alba", "*"): (
         "d", "README: drc stopped short of the least-squares optimum (RSS "
         "8.511447 vs 8.511399); the engine reaches RSS 8.511399 and the "
@@ -2508,7 +2557,8 @@ KNOWN: dict[tuple[str, str], tuple[str, str]] = {
         "short; an independent exact logit MLE gives ED50 252.255878 / "
         "378.458986 / 119.712991 / 88.805245 (= the engine) and SE "
         "13.826870 / 39.370505 / 8.616163, which do not round to drc's "
-        "printed 7th digit"),
+        "printed 7th digit; the symmetric dose-scale intervals ED50 +/- "
+        "1.96 SE follow"),
     ("synergy-mathews-block1", "*"): (
         "d", "model_dependent (manifest): ZIP / Loewe / IC50 depend on the "
         "monotherapy dose-response fits. SynergyFinder's drc LL.4 fits "
@@ -2532,6 +2582,19 @@ KNOWN: dict[tuple[str, str], tuple[str, str]] = {
         "1986's sqrt(3 s^2 / n) (16.3); the engine uses Bland & Altman "
         "1999's sqrt((1/n + z^2/(2(n-1))) s^2) (16.6), and the limits' CIs "
         "follow"),
+    ("r-fisher-teatasting", "odds_ratio_conditional_mle"): (
+        "b", _R_UNIROOT),
+    ("r-fisher-teatasting", "or_ci_lower_one_sided"): ("b", _R_UNIROOT),
+    ("r-fisher-convictions", "odds_ratio_conditional_mle"): (
+        "b", _R_UNIROOT),
+    ("r-fisher-convictions", "or_ci*"): ("b", _R_UNIROOT),
+    ("drc-earthworms", "*"): (
+        "b", "reference precision: drc's optim stops short of the maximum "
+        "likelihood (log-likelihood -103.1414050 at drc's m1 estimates, "
+        "-103.1414048 at the engine's, which an independent Nelder-Mead "
+        "maximisation reproduces: b 1.5055729, d 0.6049042, e 0.2924352; "
+        "m2 e 0.3772555); the SEs, from the observed information as drc's, "
+        "agree with drc's to 1e-4 and differ by what the estimates do"),
     # ---------------- GraphPad book / guide
     ("gp-book-twosite-ex1", "F"): (
         "d", "source inconsistency (new): the book's own SS give F = "
@@ -2701,6 +2764,9 @@ def summarize(ids=None, verbose=True):
 
 FINDINGS_MD = """
 ## Findings
+
+*These are the findings of the first run (engine before the fixes); the
+section "After the fixes" below lists what changed and the new counts.*
 
 ### Genuine engine discrepancies (category c)
 
@@ -2920,7 +2986,7 @@ def _write_outputs(per, recs, total, out_json, out_md, priv_note, scope):
             f"| `{p_['id']}` | {p_['workflow']} | {p_['pass']} | "
             f"{p_['fail'] + p_['error']} | {p_['unmapped']} | "
             f"{', '.join(cs)} | {'; '.join(note)} |")
-    lines += ["", FINDINGS_MD.strip(), "",
+    lines += ["", FINDINGS_MD.strip(), "", _after_fixes(recs, scope), "",
               "## Every failure", "",
               "| dataset | quantity | ours | reference | tolerance | cat | "
               "reason |", "|---|---|---|---|---|---|---|"]
@@ -2957,6 +3023,124 @@ def _write_outputs(per, recs, total, out_json, out_md, priv_note, scope):
                       per, key=lambda x: -x["seconds"])[:5]) + ".", ""]
     out_md.write_text("\n".join(lines))
     print(f"wrote {out_json.relative_to(REPO)} and {out_md.relative_to(REPO)}")
+
+
+# counts of the first run (before the fixes), per scope
+_BEFORE = {
+    "public datasets": {"quantities": 1264, "pass": 888, "fail": 153,
+                        "unmapped": 223,
+                        "cats": {"a": 12, "b": 44, "c": 67, "d": 30}},
+    "whole corpus including the licence-flagged datasets": {
+        "quantities": 1499, "pass": 1007, "fail": 249, "unmapped": 243,
+        "cats": None},
+}
+
+AFTER_FIXES_MD = """
+## After the fixes
+
+{counts}
+
+### What changed in `engine/opendose/`
+
+1. **Solver tolerance** (new module `lsq.py`, used by `nlfit`,
+   `globalfit`, `equations.fit_global_model` and `schild`, including the
+   profile-likelihood refits, the IRLS reweighting loops and the robust
+   fit): `ftol = xtol = gtol = 1e-12`, then a Gauss-Newton polish from
+   the solution with an accurate central-difference Jacobian (it stops
+   when the steps stop contracting). Every NIST StRD nonlinear problem of
+   the corpus (Misra1a, Chwirut2, Thurber, MGH09, Lanczos3, BoxBOD,
+   Rat42, Rat43, Eckerle4, Hahn1) now meets its certified estimates,
+   SEs, RSS and residual SD from both NIST starts to better than 1e-7
+   relative (most to 1e-9); R DNase SSfpl, growthcurver r and drc
+   ryegrass ED10 pass.
+2. **Scale-aware Jacobian.** Finite-difference steps
+   h_i = c * max(|p_i|, s_i) with s_i = max(|p0_i|, a data scale of the
+   parameter's role: Y range for Y-like parameters, median |X| for X-like
+   ones, 1 for slopes, 1/X scale for rate constants, Y range / X scale^k
+   for polynomial coefficients), 1 only when everything is 0. The
+   optimiser gets this forward-difference Jacobian (c = sqrt(eps)) as a
+   callable `jac` (this is what makes Hahn1 converge); the covariance
+   uses central differences (c = cbrt(eps), Richardson-extrapolated over
+   an adaptive step ladder). The same dose-response fit with X in M and
+   in nM now gives the same EC50 and SE(EC50)/EC50 to 1e-10 (before: 7 %
+   apart); SEs agree with an analytic 4PL Jacobian to 1e-8, also with
+   Bottom = 0 or LogEC50 = 0.
+3. **Degenerate fits**: a converged fit no better than a horizontal line
+   (or with a rank-deficient Jacobian) restarts from more starting
+   values; NIST BoxBOD from Start 1 now reaches the certified solution.
+   When no restart helps the status is "ambiguous".
+4. **Log-rank**: `logrank.chi2_variance` / `p_variance` (R survdiff's
+   variance form) next to the Peto `chi2` / `p` (unchanged, what Prism
+   reports); `logrank.method` says which is which.
+5. **Two-way ANOVA with one value per cell** fits the main-effects model
+   with a note (and `options.model = "additive"` asks for it with
+   replicates): R `morley` and the `warpbreaks` additive model and its
+   Tukey tests now map and pass.
+6. **New outputs**: Fisher's exact test for r x c tables (network
+   algorithm, work-limited), one-sided Fisher P values and R's
+   conditional MLE odds ratio with exact CIs, expected counts with
+   Pearson and adjusted standardized residuals, the generalized CMH test
+   for r x c x k tables, Woolf's homogeneity test and the collapsed
+   table, Kendall's tau (exact P for n < 50 without ties), one-sided
+   correlation P values and confidence bounds, the Fligner-Killeen test,
+   Holm's adjustment, Kaplan-Meier standard errors and the
+   Brookmeyer-Crowley median CI (log-log and log bands), the quantal fit
+   with an upper asymptote and observed-information SEs (drc LL.3
+   binomial), and the joint covariance of `global_model_fit`.
+7. **Weights inside the objective**: `weight_source = "objective"`
+   minimises the weighted SS with weights from the fitted curve directly
+   (R's Puromycin `nls` example); the default stays Prism's IRLS fixed
+   point.
+8. Also: the extra-SS F test and AICc no longer divide by zero when the
+   more complex model fits exactly (now possible with the tighter
+   solver), and the contingency analysis passes `ci_level` through.
+
+### Tests whose expected values changed
+
+* `test_nlfit.py::test_singular_covariance_is_ambiguous_not_converged`:
+  BoxBOD Start 1 now converges to the certified solution (was
+  "ambiguous" with NaN SEs); flat data that no start can fit better than
+  a horizontal line are the new "ambiguous" case.
+* `test_assay_growth.py::test_growthcurver_vignette_logistic_fit`:
+  SE(r) 0.0151496 now equals the analytic-Jacobian SE (the old 0.0151263
+  was 0.16 % low); the tolerance is half a printed unit of growthcurver's
+  0.0151 (abs 5e-5) instead of rel 3e-3.
+
+### Still failing
+
+No genuine engine discrepancy (category c) is left. Every remaining
+failure is classified in the table below: (b) printed or optimiser
+precision of the reference (R's uniroot in fisher.test's conditional MLE
+and CI, drc's optim in selenium, earthworms and ryegrass, R's nls and
+glm stopping rules, Prism 4's printed digits, float64-unrepresentable
+NIST inputs), (a) a different definition (drc's observed-Hessian SEs,
+Bland-Altman 1986 vs 1999) and (d) reference problems. Unmapped
+quantities are features the engine does not have (listed below).
+"""
+
+
+def _after_fixes(recs, scope):
+    counts = {s_: sum(r["status"] == s_ for r in recs)
+              for s_ in ("pass", "fail", "unmapped", "error")}
+    cats = {}
+    for r in recs:
+        if r["status"] in ("fail", "error"):
+            cats[r["category"]] = cats.get(r["category"], 0) + 1
+    b = _BEFORE.get(scope)
+    now = (f"**Now: {len(recs)} quantities: {counts['pass']} pass, "
+           f"{counts['fail'] + counts['error']} fail, "
+           f"{counts['unmapped']} unmapped** (failures by category: "
+           + ", ".join(f"({k}) {v}" for k, v in sorted(cats.items()))
+           + ").")
+    if b:
+        before = (f"Before the fixes: {b['quantities']} quantities: "
+                  f"{b['pass']} pass, {b['fail']} fail, {b['unmapped']} "
+                  "unmapped"
+                  + (" (failures by category: " + ", ".join(
+                      f"({k}) {v}" for k, v in sorted(b["cats"].items()))
+                     + ")" if b["cats"] else "") + ".")
+        now = before + "\n\n" + now
+    return AFTER_FIXES_MD.replace("{counts}", now).strip()
 
 
 def write_expected_failures(recs):

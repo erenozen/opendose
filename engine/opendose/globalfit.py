@@ -18,8 +18,7 @@ import math
 
 import numpy as np
 from scipy import stats
-from scipy.optimize import least_squares
-
+from . import lsq
 from .nlfit import MODELS, _clean_xy, _weights
 
 
@@ -84,17 +83,23 @@ def fit_global(datasets, model: str, shared: list[str], *,
         else:
             theta0.append(inits[owner][name])
 
-    res = least_squares(residuals, theta0, method="lm", max_nfev=40000)
+    # finite-difference scales (lsq module docstring): start values and
+    # the pooled data's X / Y scales
+    floor = lsq.scale_floor([name for name, _ in layout], theta0,
+                            np.concatenate([x for _, x, _ in data]),
+                            np.concatenate([y for _, _, y in data]),
+                            getattr(spec, "param_roles", None))
+    with np.errstate(all="ignore"):
+        res = lsq.solve(residuals, theta0, floor, max_nfev=40000)
     if not res.success and res.status <= 0:
         raise ValueError("global fit did not converge")
-    theta = res.x
-    wss = float(2 * res.cost)
+    with np.errstate(all="ignore"):
+        theta, J = lsq.polish(residuals, res.x, floor)
+        f = residuals(theta)
+    wss = float(f @ f)
     s2 = wss / df
-    try:
-        cov = np.linalg.inv(res.jac.T @ res.jac) * s2
-        se_vec = np.sqrt(np.clip(np.diag(cov), 0.0, None))
-    except np.linalg.LinAlgError:
-        se_vec = np.full(n_free, np.nan)
+    cov = lsq.covariance(J, s2)
+    se_vec = np.sqrt(np.clip(np.diag(cov), 0.0, None))
     tcrit = float(stats.t.ppf(0.975, df))
 
     def entry(idx):

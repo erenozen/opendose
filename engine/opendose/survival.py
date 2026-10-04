@@ -7,6 +7,18 @@ at risk); hazard ratio for two groups by the Mantel-Haenszel approach
 (HR = exp((O1-E1)/V)) with its 95% CI from the log-hazard SE 1/sqrt(V).
 Survival CIs use Greenwood's variance with the log-log transformation
 (Prism 5+ default).
+
+Also reported: the Greenwood standard error of S(t) at each event time
+("se", as R's summary.survfit "std.err"); the confidence interval of the
+median survival by Brookmeyer and Crowley's inversion (the median's CI is
+where the pointwise survival CI crosses 0.5: lower limit from the lower
+band, upper limit from the upper band; a band flat at exactly 0.5 gives
+the midpoint to the next drop, as R's quantile.survfit), for the log-log
+band ("median_ci") and for the log band R's survfit uses by default
+("median_ci_log"); and both log-rank statistics: the Peto form
+sum((O-E)^2/E) Prism reports ("chi2", "p") and the Mantel-Haenszel
+variance form U'V^-1U that R's survdiff reports ("chi2_variance",
+"p_variance").
 """
 
 from __future__ import annotations
@@ -27,7 +39,10 @@ def km_curve(times, events, ci_level: float = 0.95) -> dict:
     zcrit = stats.norm.ppf((1 + ci_level) / 2)
 
     points = [{"time": 0.0, "survival": 1.0, "lower": 1.0, "upper": 1.0,
-               "at_risk": n}]
+               "se": 0.0, "at_risk": n}]
+    # log-transform band (R survfit's default conf.type = "log") for the
+    # median's CI: S exp(+-z sqrt(Greenwood)), the upper limit capped at 1
+    log_band = [(0.0, 1.0, 1.0)]
     s = 1.0
     greenwood = 0.0
     median = None
@@ -48,17 +63,60 @@ def km_curve(times, events, ci_level: float = 0.95) -> dict:
                 se_loglog = math.sqrt(greenwood) / abs(math.log(s))
                 lower = s ** math.exp(zcrit * se_loglog)
                 upper = s ** math.exp(-zcrit * se_loglog)
+            se_s = s * math.sqrt(greenwood)
+            if at_risk > d:
+                lo_l = s * math.exp(-zcrit * math.sqrt(greenwood))
+                hi_l = min(1.0, s * math.exp(zcrit * math.sqrt(greenwood)))
+            else:  # S = 0: the band is undefined (NA in R)
+                lo_l = hi_l = None
+            log_band.append((t, lo_l, hi_l))
             points.append({"time": t, "survival": s,
                            "lower": lower, "upper": upper,
-                           "at_risk": at_risk - m})
+                           "se": se_s, "at_risk": at_risk - m})
             if median is None and s <= 0.5:
                 median = t
         at_risk -= m
         i += m
 
     n_events = sum(e for _, e in pairs)
+    times_ = [pt["time"] for pt in points]
+    median_ci = {
+        # the band is undefined where S = 0 (as the log band)
+        "lower": _quantile_time(times_, [pt["lower"] if pt["survival"] > 0
+                                         else None for pt in points]),
+        "upper": _quantile_time(times_, [pt["upper"] if pt["survival"] > 0
+                                         else None for pt in points]),
+        "level": ci_level, "transform": "log-log",
+        "method": "Brookmeyer-Crowley (inverted pointwise CI)"}
+    median_ci_log = {
+        "lower": _quantile_time([b[0] for b in log_band],
+                                [b[1] for b in log_band]),
+        "upper": _quantile_time([b[0] for b in log_band],
+                                [b[2] for b in log_band]),
+        "level": ci_level, "transform": "log",
+        "method": "Brookmeyer-Crowley (inverted pointwise CI), R "
+                  "survfit's default log band"}
     return {"points": points, "n": n, "n_events": n_events,
-            "n_censored": n - n_events, "median_survival": median}
+            "n_censored": n - n_events, "median_survival": median,
+            "median_ci": median_ci, "median_ci_log": median_ci_log}
+
+
+def _quantile_time(times, ys, p=0.5):
+    """First time a decreasing step curve reaches p (None if never); a
+    curve flat at exactly p gives the midpoint between that time and the
+    time it drops below p (R's quantile.survfit rule, tolerance
+    sqrt(eps))."""
+    tol = math.sqrt(np.finfo(float).eps)
+    idx = next((k for k, v in enumerate(ys)
+                if v is not None and v <= p + tol), None)
+    if idx is None:
+        return None
+    if abs(ys[idx] - p) <= tol:
+        nxt = next((k for k in range(idx + 1, len(ys))
+                    if ys[k] is not None and ys[k] < p - tol), None)
+        if nxt is not None:
+            return (times[idx] + times[nxt]) / 2.0
+    return times[idx]
 
 
 def _logrank_tables(groups):
@@ -130,8 +188,17 @@ def compare_survival(groups, names=None, *, ci_level: float = 0.95) -> dict:
     O, E, V, k = _weighted_logrank(groups, lambda N: 1.0)
     chi2 = float(np.sum((O - E) ** 2 / np.where(E > 0, E, np.nan)))
     p = float(stats.chi2.sf(chi2, k - 1))
-    out["logrank"] = {"chi2": chi2, "df": k - 1, "p": p,
-                      "observed": O.tolist(), "expected": E.tolist()}
+    # the variance (Mantel-Haenszel) form U'V^-1U, R's survdiff
+    chi2_v = _quadratic_form_chi2(O, E, V, k)
+    out["logrank"] = {
+        "chi2": chi2, "df": k - 1, "p": p,
+        "chi2_variance": chi2_v,
+        "p_variance": float(stats.chi2.sf(chi2_v, k - 1)),
+        "observed": O.tolist(), "expected": E.tolist(),
+        "method": ("chi2 / p: Peto form sum((O-E)^2/E), as Prism reports; "
+                   "chi2_variance / p_variance: Mantel-Haenszel variance "
+                   "form U'V^-1U (hypergeometric variance), as R's "
+                   "survdiff reports; df = groups - 1 for both")}
 
     # Gehan-Breslow-Wilcoxon: weights = n at risk; the valid statistic is
     # the quadratic form on the weighted (O-E) with its covariance.

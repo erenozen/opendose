@@ -21,8 +21,7 @@ import math
 
 import numpy as np
 from scipy import stats
-from scipy.optimize import least_squares
-
+from . import lsq
 from .nlfit import _clean_xy
 
 PARAMS = ["Top", "Bottom", "LogEC50", "HillSlope", "pA2", "SchildSlope"]
@@ -92,27 +91,30 @@ def fit_ec50_shift(datasets, antagonist, *, constraints=None) -> dict:
     for shift in (-1.0, 1.0, -2.0, 2.0):  # multi-start on pA2
         if "pA2" in free:
             seeds.append(dict(init, pA2=init["pA2"] + shift))
+    all_x = np.concatenate([x for _, x, _, _ in data])
     for seed in seeds:
+        # finite-difference scales (lsq module docstring)
+        floor = lsq.scale_floor(free, [seed[p] for p in free], all_x, all_y)
         try:
-            res = least_squares(residuals, [seed[p] for p in free],
-                                method="lm", max_nfev=40000)
+            with np.errstate(all="ignore"):
+                res = lsq.solve(residuals, [seed[p] for p in free], floor,
+                                max_nfev=40000)
         except (RuntimeError, ValueError):
             continue
         if not np.all(np.isfinite(res.x)):
             continue
-        if best is None or res.cost < best.cost - 1e-12:
-            best = res
+        if best is None or res.cost < best[0].cost - 1e-12:
+            best = (res, floor)
     if best is None:
         raise ValueError("EC50 shift fit did not converge")
-    res = best
-    theta = res.x
-    ss = float(2 * res.cost)
+    res, floor = best
+    with np.errstate(all="ignore"):
+        theta, J = lsq.polish(residuals, res.x, floor)
+        f = residuals(theta)
+    ss = float(f @ f)
     s2 = ss / df
-    try:
-        cov = np.linalg.inv(res.jac.T @ res.jac) * s2
-        se_vec = np.sqrt(np.clip(np.diag(cov), 0.0, None))
-    except np.linalg.LinAlgError:
-        se_vec = np.full(len(free), np.nan)
+    cov = lsq.covariance(J, s2)
+    se_vec = np.sqrt(np.clip(np.diag(cov), 0.0, None))
     tcrit = float(stats.t.ppf(0.975, df))
     fitted = make_params(theta)
 

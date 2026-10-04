@@ -170,7 +170,11 @@ def test_growthcurver_vignette_logistic_fit():
     assert p["Y0"]["value"] == pytest.approx(1.82e-05, rel=3e-3)
     assert p["Y0"]["se"] == pytest.approx(2.42e-06, rel=3e-3)
     assert p["K"]["value"] == pytest.approx(1.118657, rel=5e-5)
-    assert p["K"]["se"] == pytest.approx(0.0151, rel=3e-3)
+    # growthcurver prints 3 digits (0.0151 = [0.01505, 0.01515)); the
+    # engine's SE, 0.0151496, equals the analytic-Jacobian SE at the fit
+    # to 1e-6 since the covariance uses a scale-aware Jacobian (the old
+    # 0.0151263 was 0.16 % low, inside rel 3e-3); half a printed unit
+    assert p["K"]["se"] == pytest.approx(0.0151, abs=5e-5)
     assert g["sy_x"] == pytest.approx(0.004685978, rel=1e-6)
     assert g["df"] == 142
     assert round(math.log(2) / p["K"]["value"], 2) == 0.62

@@ -85,9 +85,7 @@ import math
 
 import numpy as np
 from scipy import stats
-from scipy.optimize import least_squares
-
-from . import nlfit
+from . import lsq, nlfit
 from .nlfit import ModelSpec, Transform, register
 
 LN2 = math.log(2.0)
@@ -2557,35 +2555,40 @@ def fit_global_model(datasets, model: str, *, shared=None, constraints=None,
             out.append(nlfit._weights(d["x"], base, weighting))
         return out
 
-    def solve(theta_start, wts):
+    all_x = np.concatenate([d["x"] for d in data])
+    all_y = np.concatenate([d["y"] for d in data])
+    names = [nm for nm, _, _ in layout]
+    roles = getattr(spec, "param_roles", None)
+
+    def solve(theta_start, wts, floor):
         sw = [np.sqrt(w) for w in wts]
 
         def resid(theta):
             return np.concatenate([(d["y"] - spec.func(d["x"], params_for(theta, i)))
                                    * sw[i] for i, d in enumerate(data)])
+        start = (theta_start if box is None
+                 else nlfit._inside(theta_start, box))
         with np.errstate(all="ignore"):
-            if box is None:
-                res = least_squares(resid, theta_start, method="lm",
-                                    max_nfev=40000)
-            else:
-                res = least_squares(resid, nlfit._inside(theta_start, box),
-                                    method="trf", bounds=box, x_scale="jac",
-                                    max_nfev=40000)
+            res = lsq.solve(resid, start, floor, box=box, max_nfev=40000)
         if not res.success and res.status <= 0:
             raise RuntimeError("did not converge")
+        res.wresid = resid
+        res.floor = floor
         return res
 
     def run(start):
+        # finite-difference scales (lsq module docstring)
+        floor = lsq.scale_floor(names, start, all_x, all_y, roles)
         if weighting in ("1/Y", "1/Y2"):
-            res = solve(start, [np.ones_like(d["x"]) for d in data])
+            res = solve(start, [np.ones_like(d["x"]) for d in data], floor)
             prev = res.x
             for _ in range(60):
-                res = solve(prev, weights(prev))
-                if np.allclose(res.x, prev, rtol=1e-10, atol=1e-12):
+                res = solve(prev, weights(prev), floor)
+                if lsq.same_point(res.x, prev, floor):
                     break
                 prev = res.x
             return res
-        return solve(start, weights(start))
+        return solve(start, weights(start), floor)
 
     starts = [np.array(theta0, dtype=float)]
     ms = spec.multistart
@@ -2610,13 +2613,14 @@ def fit_global_model(datasets, model: str, *, shared=None, constraints=None,
             best = res
     if best is None:
         raise ValueError("global fit did not converge from any starting value")
-    theta = best.x
-    wss = float(2 * best.cost)
+    # polish the best start (final frozen weights) and build the
+    # covariance from the scale-aware central-difference Jacobian
+    with np.errstate(all="ignore"):
+        theta, J = lsq.polish(best.wresid, best.x, best.floor, box=box)
+        f = best.wresid(theta)
+    wss = float(f @ f)
     s2 = wss / df
-    try:
-        cov = np.linalg.inv(best.jac.T @ best.jac) * s2
-    except np.linalg.LinAlgError:
-        cov = np.full((len(layout), len(layout)), np.nan)
+    cov = lsq.covariance(J, s2)
     se_vec = np.sqrt(np.clip(np.diag(cov), 0.0, None))
     tcrit = float(stats.t.ppf(0.975, df))
 

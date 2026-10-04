@@ -3,7 +3,11 @@
 Prism statistics guide, "One-way ANOVA (and nonparametric)":
 - ANOVA table: SS/df/MS for between (treatment) and within (residual),
   F, P, R squared (eta squared = SS_between / SS_total).
-- Equal-variance checks: Brown-Forsythe and Bartlett's tests.
+- Equal-variance checks: Brown-Forsythe and Bartlett's tests; also the
+  Fligner-Killeen test (not a Prism option; Conover, Johnson & Johnson
+  1981, as R's fligner.test: absolute deviations from the group medians,
+  ranked, scored a_i = Phi^-1((1 + rank_i/(N+1))/2); chi-square on k-1
+  df).
 - Multiple comparisons, all using the pooled residual MS and df:
   * Tukey(-Kramer): studentized range q; adjusted P and simultaneous CIs.
     Prism reports q = |mean_i - mean_j| / SE where SE = sqrt(MS_res/2 *
@@ -11,7 +15,9 @@ Prism statistics guide, "One-way ANOVA (and nonparametric)":
   * Dunnett: every group vs a control (multivariate t distribution,
     evaluated exactly and deterministically by opendose.dunnett).
   * Bonferroni / Sidak: pairwise t with alpha correction.
-  * Holm-Sidak: step-down Sidak.
+  * Holm-Sidak: step-down Sidak; Holm: step-down Bonferroni (Holm 1979,
+    not a Prism option; R's p.adjust "holm"). No CIs for step-down
+    methods.
 - Nonparametric: Kruskal-Wallis (tie-corrected H) with Dunn's post test.
   Dunn's z uses the tie-corrected SE the guide gives ("How the Dunn
   method for nonparametric comparisons works"): sqrt([N(N+1) -
@@ -76,6 +82,7 @@ def one_way_anova(datasets, names=None) -> dict:
         bart_stat = bart_p = float("nan")
 
     return {
+        "fligner_killeen": fligner_killeen(groups),
         "table": _anova_table(ss_between, ss_within, k, n_total),
         "group_summaries": [
             {"name": (names[i] if names else f"Group {i}"),
@@ -88,6 +95,25 @@ def one_way_anova(datasets, names=None) -> dict:
         "effect_size": effectsize.safe(effectsize.one_way, ss_between,
                                        k - 1, ss_within, n_total - k),
     }
+
+
+def fligner_killeen(groups) -> dict:
+    """Fligner-Killeen (median-centred) test of equal variances."""
+    groups = [np.asarray(g, dtype=float) for g in groups]
+    k = len(groups)
+    dev = np.concatenate([np.abs(g - np.median(g)) for g in groups])
+    n = dev.size
+    a = stats.norm.ppf((1.0 + stats.rankdata(dev) / (n + 1)) / 2.0)
+    sizes = [g.size for g in groups]
+    idx = np.cumsum([0] + sizes)
+    sums = np.array([a[idx[i]:idx[i + 1]].sum() for i in range(k)])
+    var_a = float(np.var(a, ddof=1))
+    if not var_a > 0:
+        return {"statistic": None, "df": k - 1, "p": None}
+    stat = float((np.sum(sums ** 2 / np.array(sizes)) - n * a.mean() ** 2)
+                 / var_a)
+    return {"statistic": stat, "df": k - 1,
+            "p": float(stats.chi2.sf(stat, k - 1))}
 
 
 def _anova_table(ss_between, ss_within, k, n_total) -> dict:
@@ -205,7 +231,7 @@ def _comparisons_from_stats(means, ns, ms_res, df_res, method: str, *,
             })
         return {"method": method, "df": df_res, "comparisons": comparisons}
 
-    if method in ("bonferroni", "sidak", "holm_sidak"):
+    if method in ("bonferroni", "sidak", "holm_sidak", "holm"):
         pairs = _pairs_vs_all(k)
         m = len(pairs)
         raw = []
@@ -216,7 +242,16 @@ def _comparisons_from_stats(means, ns, ms_res, df_res, method: str, *,
             p_unadj = 2 * float(stats.t.sf(t, df_res))
             raw.append((i, j, diff, se, t, p_unadj))
 
-        if method == "holm_sidak":
+        if method == "holm":
+            # Holm (1979) step-down Bonferroni: P_adj_i = (m - rank) p,
+            # made monotone (R's p.adjust(method = "holm"))
+            order = sorted(range(m), key=lambda idx: raw[idx][5])
+            adj = [0.0] * m
+            running_max = 0.0
+            for rank, idx in enumerate(order):
+                running_max = max(running_max, (m - rank) * raw[idx][5])
+                adj[idx] = min(running_max, 1.0)
+        elif method == "holm_sidak":
             # Step-down: rank ascending; P_adj_i = 1-(1-p)^(m-rank), with
             # monotonicity enforcement (Prism's Holm-Sidak).
             order = sorted(range(m), key=lambda idx: raw[idx][5])

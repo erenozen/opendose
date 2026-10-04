@@ -291,29 +291,31 @@ class TestExtrapolationFlag:
 
 
 def test_singular_covariance_is_ambiguous_not_converged():
-    """NIST StRD BoxBOD from Start 1 (b1 = 1, b2 = 1): the fit runs to
-    b2 -> large where exp(-b2*X) underflows, J'J is singular and the SEs
-    are NaN. That must not be reported as 'converged'."""
+    """NIST StRD BoxBOD from Start 1 (b1 = 1, b2 = 1): LM runs to b2 ->
+    large where exp(-b2*X) underflows, J'J is singular and the curve is
+    the mean of Y. That used to be reported 'ambiguous' with NaN SEs; the
+    degenerate-fit guard (SS no better than a horizontal line, or a
+    rank-deficient Jacobian) now restarts and finds the certified
+    solution. Data the model cannot fit better than a horizontal line
+    (flat data: b2 -> infinity from every start) stay 'ambiguous'."""
     from opendose.api import analyze
-    x = [1, 2, 3, 5, 7, 10]
+
+    def fit_(y, rules):
+        x = [1, 2, 3, 5, 7, 10]
+        r = analyze({"analysis": "dose_response",
+                     "data": {"x": x, "datasets": [{"name": "y",
+                                                    "ys": [[v] for v in y]}]},
+                     "options": {"user_equation": {
+                         "text": "Y = b1*(1-exp(-b2*x))", "rules": rules}}})
+        return r["datasets"][0]["fit"]
+
     y = [109, 149, 149, 191, 213, 224]
-    r = analyze({"analysis": "dose_response",
-                 "data": {"x": x, "datasets": [{"name": "y",
-                                                "ys": [[v] for v in y]}]},
-                 "options": {"user_equation": {
-                     "text": "Y = b1*(1-exp(-b2*x))",
-                     "rules": {"b1": 1.0, "b2": 1.0}}}})
-    fit = r["datasets"][0]["fit"]
-    assert not math.isfinite(fit["params"]["b1"]["se"])
+    for rules in ({"b1": 1.0, "b2": 1.0}, {"b1": 100.0, "b2": 0.75}):
+        fit = fit_(y, rules)
+        assert fit["status"] == "converged"
+        assert fit["params"]["b1"]["value"] == pytest.approx(213.80940889,
+                                                             rel=1e-8)
+        assert fit["params"]["b1"]["se"] == pytest.approx(12.354515176,
+                                                          rel=1e-8)
+    fit = fit_([5.0, 5.1, 4.9, 5.05, 4.95, 5.0], {"b1": 1.0, "b2": 1.0})
     assert fit["status"] == "ambiguous"
-    # from NIST Start 2 the certified solution is found and is converged
-    r = analyze({"analysis": "dose_response",
-                 "data": {"x": x, "datasets": [{"name": "y",
-                                                "ys": [[v] for v in y]}]},
-                 "options": {"user_equation": {
-                     "text": "Y = b1*(1-exp(-b2*x))",
-                     "rules": {"b1": 100.0, "b2": 0.75}}}})
-    fit = r["datasets"][0]["fit"]
-    assert fit["status"] == "converged"
-    assert fit["params"]["b1"]["value"] == pytest.approx(213.80940889,
-                                                         rel=1e-5)

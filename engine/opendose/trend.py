@@ -29,8 +29,16 @@ standard methods and validated against statsmodels:
   Mantel-Haenszel common odds ratio with the Robins-Breslow-Greenland
   CI, MH common relative risk with the Greenland-Robins CI, the CMH
   test of conditional independence (with or without continuity
-  correction), and the Breslow-Day test of homogeneous odds ratios
-  (with Tarone's adjustment).
+  correction), the Breslow-Day test of homogeneous odds ratios
+  (with Tarone's adjustment), Woolf's test of homogeneity (1/2 added to
+  every cell) and the collapsed (aggregate) 2 x 2 table.
+- The generalized Cochran-Mantel-Haenszel test (general association)
+  for stratified r x c tables (Landis, Heyman & Koch 1978, Int Stat Rev
+  46:237): the (r-1)(c-1) vector of observed minus expected cell counts
+  summed over strata, against its summed hypergeometric covariance,
+  M^2 = n' V^-1 n on (r-1)(c-1) df (R's mantelhaen.test for I x J x K
+  tables); used by the CMH analysis when the strata are larger than
+  2 x 2.
 - Cohen's kappa for agreement between two raters (unweighted, linear or
   quadratic weights): asymptotic SE of Fleiss, Cohen & Everitt (1969)
   for the CI, the null SE for the z test, and Altman's (1991) strength
@@ -237,6 +245,10 @@ def cmh(tables, *, ci_level: float = 0.95, correction: bool = False,
         out["cmh_test"] = None
     if out["odds_ratio"] is not None and len(strata) > 1:
         out["breslow_day"] = _breslow_day(strata, out["odds_ratio"]["value"])
+    if len(strata) > 1:
+        out["woolf"] = _woolf(strata)
+    out["aggregate_table"] = [[float(v) for v in row]
+                              for row in sum(strata)]
     out["strata"] = []
     labels = list(names or [f"Stratum {i + 1}" for i in range(len(strata))])
     for i, t in enumerate(strata):
@@ -247,6 +259,69 @@ def cmh(tables, *, ci_level: float = 0.95, correction: bool = False,
                            else None),
             "n": float(t.sum())})
     return out
+
+
+def cmh_general(tables, *, names=None) -> dict:
+    """Generalized CMH test of general association for K strata of r x c
+    tables (same r and c in every stratum)."""
+    strata = [_table(t) for t in tables]
+    if not strata:
+        raise ValueError("enter one table per stratum")
+    shape = strata[0].shape
+    if any(t.shape != shape for t in strata):
+        raise ValueError("every stratum needs the same rows and columns")
+    r, c = shape
+    df = (r - 1) * (c - 1)
+    nvec = np.zeros(df)
+    mvec = np.zeros(df)
+    V = np.zeros((df, df))
+    used = 0
+    for t in strata:
+        tot = t.sum()
+        if tot < 2:
+            continue
+        used += 1
+        rows = t.sum(axis=1)[:-1]
+        cols = t.sum(axis=0)[:-1]
+        # cells of the first r-1 rows and c-1 columns, column-major (rows
+        # fastest), matching the Kronecker product below
+        nvec += t[:-1, :-1].ravel(order="F")
+        mvec += np.outer(rows, cols).ravel(order="F") / tot
+        V += np.kron(np.diag(tot * cols) - np.outer(cols, cols),
+                     np.diag(tot * rows) - np.outer(rows, rows)) / (
+            tot * tot * (tot - 1))
+    if not used:
+        raise ValueError("every stratum is empty")
+    d = nvec - mvec
+    try:
+        stat = float(d @ np.linalg.lstsq(V, d, rcond=None)[0])
+    except np.linalg.LinAlgError:
+        stat = float("nan")
+    labels = list(names or [f"Stratum {i + 1}" for i in range(len(strata))])
+    return {"test": "generalized_cochran_mantel_haenszel",
+            "n_strata": len(strata), "rows": r, "cols": c,
+            "cmh_test": {"chi2": stat, "df": df,
+                         "p": float(stats.chi2.sf(stat, df)),
+                         "statistic": "general association M^2"},
+            "strata": [{"name": labels[i] if i < len(labels)
+                        else f"Stratum {i + 1}", "n": float(t.sum())}
+                       for i, t in enumerate(strata)]}
+
+
+def _woolf(strata) -> dict:
+    """Woolf's (1955) test of homogeneous odds ratios: weighted squared
+    deviations of the stratum log odds ratios from their weighted mean,
+    weights 1 / (1/a + 1/b + 1/c + 1/d), chi-square on K - 1 df; 1/2
+    added to every cell (as the example in R's datasets::UCBAdmissions
+    help page)."""
+    t = np.array([s_ + 0.5 for s_ in strata])
+    log_or = np.log(t[:, 0, 0] * t[:, 1, 1] / (t[:, 0, 1] * t[:, 1, 0]))
+    w = 1.0 / np.sum(1.0 / t.reshape(len(strata), 4), axis=1)
+    mean = float(np.sum(w * log_or) / np.sum(w))
+    stat = float(np.sum(w * (log_or - mean) ** 2))
+    df = len(strata) - 1
+    return {"chi2": stat, "df": df, "p": float(stats.chi2.sf(stat, df)),
+            "cell_correction": 0.5}
 
 
 def _breslow_day(strata, or_mh) -> dict:

@@ -9,6 +9,20 @@ variance sqrt(1.06/(n-3)), the standard approximation.
 (lower limit 0 when the r interval spans zero) and Cohen's (1988) label
 (opendose.effectsize).
 
+Kendall's tau (not a Prism option; R's cor.test(method = "kendall")):
+tau-b, S = concordant - discordant pairs, and with no ties and n < 50
+the exact P from the distribution of the number of inversions of a
+random permutation (Mahonian numbers; Kendall 1938); otherwise the
+normal approximation with the tie-corrected variance of S (Kendall 1970,
+eq. 4.4; no continuity correction, as R). T = the number of concordant
+pairs (R's statistic in the exact case).
+
+One-sided results (every method): "p_greater" / "p_less" and the
+one-sided confidence bounds "ci_r_greater" = [lower, 1] and
+"ci_r_less" = [-1, upper] (Fisher z with the one-sided critical value,
+as R's cor.test with alternative = "greater" / "less"); for Spearman
+with 17 pairs or fewer the one-sided P values are exact as well.
+
 Spearman P value. The guide ("Interpreting results: Correlation") states
 that with 17 or fewer XY pairs the P value is exact, computed from all
 possible permutations of the data, and that the exact calculation
@@ -58,6 +72,16 @@ def _fisher_ci(r: float, n: int, sd_z: float, ci_level: float) -> list | None:
     return [math.tanh(z - zcrit * sd_z), math.tanh(z + zcrit * sd_z)]
 
 
+def _one_sided_bounds(r: float, n: int, sd_z: float, ci_level: float):
+    """(ci_r_greater, ci_r_less): one-sided Fisher-z confidence bounds."""
+    if n < 4 or abs(r) >= 1:
+        return None, None
+    z = math.atanh(r)
+    zc = stats.norm.ppf(ci_level)
+    return ([math.tanh(z - zc * sd_z), 1.0],
+            [-1.0, math.tanh(z + zc * sd_z)])
+
+
 def correlate(values_a, values_b, *, method: str = "pearson",
               ci_level: float = 0.95) -> dict:
     a, b = _pairs(values_a, values_b)
@@ -66,23 +90,141 @@ def correlate(values_a, values_b, *, method: str = "pearson",
         raise ValueError("correlation needs at least 3 XY pairs")
     if method == "pearson":
         r, p = stats.pearsonr(a, b)
-        ci = (_fisher_ci(float(r), n, 1 / math.sqrt(n - 3), ci_level)
-              if n >= 4 else None)
-        return {"method": "pearson", "n": n, "r": float(r),
+        r = float(r)
+        sd_z = 1 / math.sqrt(n - 3) if n > 3 else math.inf
+        ci = _fisher_ci(r, n, sd_z, ci_level) if n >= 4 else None
+        g, le = _one_sided_bounds(r, n, sd_z, ci_level)
+        df = n - 2
+        t = r * math.sqrt(df / (1 - r * r)) if abs(r) < 1 else \
+            math.copysign(math.inf, r)
+        return {"method": "pearson", "n": n, "r": r,
                 "ci_r": ci, "r_squared": float(r * r),
-                "p_two_tailed": float(p),
-                "effect_size": _r_effect(float(r), ci)}
+                "p_two_tailed": float(p), "t": t, "df": df,
+                "p_greater": float(stats.t.sf(t, df)),
+                "p_less": float(stats.t.cdf(t, df)),
+                "ci_r_greater": g, "ci_r_less": le,
+                "effect_size": _r_effect(r, ci)}
     if method == "spearman":
         rs, p = stats.spearmanr(a, b)
+        rs = float(rs)
         p_type = "approximate"
-        if n <= SPEARMAN_EXACT_MAX_N and math.isfinite(float(rs)):
+        df = n - 2
+        t = rs * math.sqrt(df / (1 - rs * rs)) if abs(rs) < 1 else \
+            math.copysign(math.inf, rs)
+        p_g, p_l = float(stats.t.sf(t, df)), float(stats.t.cdf(t, df))
+        if n <= SPEARMAN_EXACT_MAX_N and math.isfinite(rs):
             p, p_type = spearman_exact_p(a, b), "exact"
-        ci = (_fisher_ci(float(rs), n, math.sqrt(1.06 / (n - 3)), ci_level)
-              if n >= 4 else None)
-        return {"method": "spearman", "n": n, "r": float(rs),
+            p_g = spearman_exact_p(a, b, alternative="greater")
+            p_l = spearman_exact_p(a, b, alternative="less")
+        sd_z = math.sqrt(1.06 / (n - 3)) if n > 3 else math.inf
+        ci = _fisher_ci(rs, n, sd_z, ci_level) if n >= 4 else None
+        g, le = _one_sided_bounds(rs, n, sd_z, ci_level)
+        return {"method": "spearman", "n": n, "r": rs,
                 "ci_r": ci, "p_two_tailed": float(p), "p_type": p_type,
-                "effect_size": _r_effect(float(rs), ci)}
+                "p_greater": p_g, "p_less": p_l,
+                "S": float((n ** 3 - n) * (1 - rs) / 6),
+                "ci_r_greater": g, "ci_r_less": le,
+                "effect_size": _r_effect(rs, ci)}
+    if method == "kendall":
+        return kendall(a, b, ci_level=ci_level)
     raise ValueError(f"unknown correlation method: {method}")
+
+
+# ------------------------------------------------------- Kendall's tau
+
+KENDALL_EXACT_MAX_N = 49
+
+
+@lru_cache(maxsize=64)
+def _mahonian(n: int) -> tuple:
+    """Number of permutations of n items with k inversions, k = 0 ..
+    n(n-1)/2 (exact integers)."""
+    counts = [1]
+    for m in range(2, n + 1):
+        new = [0] * (len(counts) + m - 1)
+        run = 0
+        for k in range(len(new)):
+            run += counts[k] if k < len(counts) else 0
+            if k - m >= 0:
+                run -= counts[k - m]
+            new[k] = run
+        counts = new
+    return tuple(counts)
+
+
+def _tie_sizes(v):
+    _, c = np.unique(v, return_counts=True)
+    return c[c > 1].astype(float)
+
+
+def kendall(values_a, values_b, *, ci_level: float = 0.95) -> dict:
+    """Kendall's tau-b with exact (no ties, n < 50) or normal-approximation
+    P values (module docstring)."""
+    a, b = _pairs(values_a, values_b)
+    n = int(a.size)
+    if n < 3:
+        raise ValueError("correlation needs at least 3 XY pairs")
+    da = np.sign(a[:, None] - a[None, :])
+    db = np.sign(b[:, None] - b[None, :])
+    iu = np.triu_indices(n, 1)
+    prod = (da * db)[iu]
+    conc, disc = int(np.sum(prod > 0)), int(np.sum(prod < 0))
+    S = conc - disc
+    n0 = n * (n - 1) / 2
+    tx, ty = _tie_sizes(a), _tie_sizes(b)
+    n1 = float(np.sum(tx * (tx - 1)) / 2)
+    n2 = float(np.sum(ty * (ty - 1)) / 2)
+    den = math.sqrt((n0 - n1) * (n0 - n2))
+    tau = S / den if den > 0 else math.nan
+    out = {"method": "kendall", "n": n, "r": tau, "tau": tau,
+           "S": float(S), "concordant": conc, "discordant": disc}
+    # normal approximation (tie-corrected variance of S)
+    v0 = n * (n - 1) * (2 * n + 5)
+    vt = float(np.sum(tx * (tx - 1) * (2 * tx + 5)))
+    vu = float(np.sum(ty * (ty - 1) * (2 * ty + 5)))
+    v1 = float(np.sum(tx * (tx - 1)) * np.sum(ty * (ty - 1)))
+    v2 = float(np.sum(tx * (tx - 1) * (tx - 2))
+               * np.sum(ty * (ty - 1) * (ty - 2)))
+    var_s = (v0 - vt - vu) / 18 + v1 / (2 * n * (n - 1))
+    if n > 2:
+        var_s += v2 / (9 * n * (n - 1) * (n - 2))
+    z = S / math.sqrt(var_s) if var_s > 0 else math.nan
+    approx = {"z": z, "p_two_tailed": float(2 * stats.norm.sf(abs(z))),
+              "p_greater": float(stats.norm.sf(z)),
+              "p_less": float(stats.norm.cdf(z))}
+    out["normal_approximation"] = approx
+    if n <= KENDALL_EXACT_MAX_N and not tx.size and not ty.size:
+        counts = _mahonian(n)          # by number of inversions
+        total = math.factorial(n)
+        q = conc                       # concordant = n0 - inversions
+
+        def cdf(k):                    # P(T <= k), T = concordant pairs
+            if k < 0:
+                return 0.0
+            k = min(k, int(n0))
+            # T <= k  <=>  inversions >= n0 - k
+            return sum(counts[int(n0) - k:]) / total
+        p_less = cdf(q)
+        p_greater = 1.0 - cdf(q - 1)
+        out.update({"T": q, "p_type": "exact",
+                    "p_two_tailed": min(1.0, 2 * min(p_less, p_greater)),
+                    "p_greater": p_greater, "p_less": p_less})
+    else:
+        out.update({"p_type": "approximate", "z": z,
+                    "p_two_tailed": approx["p_two_tailed"],
+                    "p_greater": approx["p_greater"],
+                    "p_less": approx["p_less"]})
+    # CI of tau: Fisher z with the Fieller-Hartley-Pearson variance
+    # 0.437/(n-4) (Fieller, Hartley & Pearson 1957)
+    if n > 4 and math.isfinite(tau):
+        sd_z = math.sqrt(0.437 / (n - 4))
+        out["ci_r"] = _fisher_ci(tau, n, sd_z, ci_level)
+        out["ci_r_greater"], out["ci_r_less"] = _one_sided_bounds(
+            tau, n, sd_z, ci_level)
+    else:
+        out["ci_r"] = out["ci_r_greater"] = out["ci_r_less"] = None
+    out["effect_size"] = _r_effect(tau, out["ci_r"])
+    return out
 
 
 def _r_effect(r, ci) -> dict:

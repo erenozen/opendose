@@ -18,6 +18,7 @@ import numpy as np
 from scipy import stats
 from scipy.optimize import brentq
 
+from . import lsq
 from .nlfit import MODELS
 
 
@@ -27,19 +28,17 @@ def _curve(fit, xs):
 
 
 def _gradient(fit, xs):
-    """d(curve)/d(free params) by central differences: (n_x, n_free)."""
+    """d(curve)/d(free params) by central differences: (n_x, n_free),
+    scale-aware steps (lsq.param_gradient: cbrt(eps) max(|p|, SE))."""
     spec = MODELS[fit["model"]]
     names = fit["_cov"]["free_names"]
     base = dict(fit["fitted_values"])
     xs = np.asarray(xs, float)
-    G = np.zeros((xs.size, len(names)))
-    for j, name in enumerate(names):
-        h = max(abs(base[name]) * 1e-6, 1e-8)
-        up, dn = dict(base), dict(base)
-        up[name] += h
-        dn[name] -= h
-        G[:, j] = (spec.func(xs, up) - spec.func(xs, dn)) / (2 * h)
-    return G
+    if not names:
+        return np.zeros((xs.size, 0))
+    G = lsq.param_gradient(lambda q: spec.func(xs, q), base, names,
+                           np.asarray(fit["_cov"]["matrix"], dtype=float))
+    return np.asarray(G, dtype=float).reshape(xs.size, len(names))
 
 
 def bands(fit, xs, kind: str = "confidence", ci_level: float = 0.95) -> dict:
