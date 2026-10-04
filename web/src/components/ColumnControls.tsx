@@ -42,9 +42,13 @@ export default function ColumnControls({ options, datasetNames, onChange }: Prop
           value={options.analysis}
           onChange={(e) => set({ analysis: e.target.value as ColumnAnalysisKind })}
         >
-          {(Object.keys(COLUMN_ANALYSIS_LABELS) as ColumnAnalysisKind[]).map((k) => (
-            <option key={k} value={k}>{COLUMN_ANALYSIS_LABELS[k]}</option>
-          ))}
+          {(Object.keys(COLUMN_ANALYSIS_LABELS) as ColumnAnalysisKind[])
+            // ROC and Bland-Altman have their own analyses now (with graphs);
+            // the entries stay for results sheets that already use them.
+            .filter((k) => (k !== "roc" && k !== "bland_altman") || options.analysis === k)
+            .map((k) => (
+              <option key={k} value={k}>{COLUMN_ANALYSIS_LABELS[k]}</option>
+            ))}
         </select>
       </section>
 
@@ -358,6 +362,10 @@ export default function ColumnControls({ options, datasetNames, onChange }: Prop
           <h3>Groups</h3>
           {pickDataset("Patients (condition present)", options.datasetA, "datasetA")}
           {pickDataset("Controls (condition absent)", options.datasetB, "datasetB")}
+          <p className="hint-block">
+            ROC curves now have their own analysis (Analyze → ROC curve) with
+            the graph, the optimal cut-off and the comparison of two markers.
+          </p>
         </section>
       )}
 
@@ -366,6 +374,10 @@ export default function ColumnControls({ options, datasetNames, onChange }: Prop
           <h3>Methods to compare</h3>
           {pickDataset("Method A", options.datasetA, "datasetA")}
           {pickDataset("Method B", options.datasetB, "datasetB")}
+          <p className="hint-block">
+            Bland-Altman now has its own analysis (Analyze → Bland-Altman) with
+            the plot, CIs on the limits and proportional bias.
+          </p>
         </section>
       )}
 

@@ -96,8 +96,18 @@ export function columnPayload(table: DataTableModel, o: ColumnOptionsState):
       options: { patients: o.datasetA, controls: o.datasetB } };
   }
   if (o.analysis === "bland_altman") {
-    return { analysis: "bland_altman", ...base,
-      options: { dataset_a: o.datasetA, dataset_b: o.datasetB } };
+    // Pairs are rows holding both values: the engine's bland_altman
+    // flattens each column, so blank rows would shift the pairing. Send
+    // only the complete rows of the two columns.
+    const d = base.data.datasets;
+    const a = d[o.datasetA]?.ys.map((r) => r[0] ?? null) ?? [];
+    const b = d[o.datasetB]?.ys.map((r) => r[0] ?? null) ?? [];
+    const keep = a.map((v, r) => v !== null && b[r] !== null && b[r] !== undefined);
+    const pick = (col: (number | null)[]) => col.filter((_, r) => keep[r]).map((v) => [v]);
+    return { analysis: "bland_altman", data: { x: [], datasets: [
+      { name: d[o.datasetA]?.name ?? "", ys: pick(a) },
+      { name: d[o.datasetB]?.name ?? "", ys: pick(b) },
+    ] }, options: { dataset_a: 0, dataset_b: 1 } };
   }
   if (o.outlierMethod === "rout") {
     return { analysis: "rout_column", ...base,
