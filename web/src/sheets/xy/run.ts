@@ -11,8 +11,19 @@ import {
   builtinConstraints, datasetConstantValues, effectiveShared, globalModelToResult,
   routeFor, userColumnConstants, userFitConstraints,
 } from "./fitOptions";
+import { autoFitGate, type ChooseReason } from "./autofit";
+import { rowPoints } from "./deming";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
+
+/** The engine's weight_source, sent only when it is not the default
+ *  (iteratively reweighted from the curve) and the fit is weighted. The
+ *  global fits do not take it; nor do tables of means with errors. */
+export function weightSourceOption(options: OptionsState, summary: boolean):
+  { weight_source?: "objective" } {
+  return options.weightSource === "objective" && options.weighting !== "none" && !summary
+    ? { weight_source: "objective" } : {};
+}
 
 export function runNonlin(engine: EngineBridge, table: DataTableModel,
   options: OptionsState): AnalysisResult {
@@ -196,6 +207,7 @@ export function runNonlin(engine: EngineBridge, table: DataTableModel,
       error_bars: options.errorBars,
       constraints,
       weighting: options.weighting,
+      ...weightSourceOption(options, summary),
       ci_method: options.ciMethod,
       rout_q: options.routEnabled
         ? (parseCell(options.routQ) ?? 1) / 100 : null,
@@ -249,6 +261,7 @@ function runUserEquation(engine: EngineBridge, _table: DataTableModel,
     data,
     options: {
       ...common,
+      ...weightSourceOption(options, Object.keys(summaryOptions).length > 0),
       ci_method: options.ciMethod,
       rout_q: options.routEnabled
         ? (parseCell(options.routQ) ?? 1) / 100 : null,
@@ -259,9 +272,49 @@ function runUserEquation(engine: EngineBridge, _table: DataTableModel,
   }) as AnalysisResult;
 }
 
+/** What the curve fit returns while it waits for a choice (the data do
+ *  not look like a dose-response and no fit was asked for): no fits, the
+ *  reason, and the points for the graph. */
+export interface ChooseModelResult extends AnalysisResult {
+  choose_model: {
+    reason: ChooseReason;
+    preview: { name: string; points: AnalysisResult["datasets"][number]["points"] }[];
+  };
+}
+
+export function chooseModelOf(result: unknown): ChooseModelResult["choose_model"] | null {
+  const r = result as Partial<ChooseModelResult> | null;
+  return r && typeof r === "object" && r.choose_model ? r.choose_model : null;
+}
+
+/** The curve fit as a new XY table runs it: straight away when asked for
+ *  or when the data look like a dose-response, else "choose a model". */
+export function runNonlinGated(engine: EngineBridge, table: DataTableModel,
+  options: OptionsState): AnalysisResult {
+  const gate = autoFitGate(table, options);
+  if (gate.fit) return runNonlin(engine, table, options);
+  const pts = rowPoints(table);
+  // not "dose_response": the report must not describe a fit that did not run
+  return {
+    analysis: "choose_model",
+    datasets: [],
+    choose_model: {
+      reason: gate.reason,
+      preview: table.datasets.map((d, i) => ({ name: d.name, points: pts[i] })),
+    },
+  } as ChooseModelResult;
+}
+
 /** Automatic axis titles for the XY graph. */
 export function xyAutoTitles(table: DataTableModel, options: OptionsState | null):
   { x: string; y: string } {
+  if (options && !autoFitGate(table, options).fit) {
+    // no model yet: the table's own titles
+    return {
+      x: table.xTitle && table.xTitle !== "X" ? table.xTitle : "X",
+      y: table.yTitle || "Y",
+    };
+  }
   const user = options?.model === USER_MODEL_ID;
   const meta = modelMeta(options?.model);
   const logX = user ? !!options?.userEquation?.xIsLog : meta.needsLogX;

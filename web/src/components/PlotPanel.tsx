@@ -12,6 +12,14 @@ import {
   type GraphFormat,
 } from "../graph";
 
+/** An extra fitted curve drawn with a data set (`altCurves` on a data
+ *  set of the result): dotted, in the data set's colour or in ink. */
+interface AltCurve {
+  label: string;
+  curve: { x: number[]; y: number[] };
+  ink?: boolean;
+}
+
 interface Props {
   result: AnalysisResult | null;
   xTitle: string;
@@ -103,6 +111,20 @@ export default function PlotPanel({
           legendgroup: ds.name,
           hoverinfo: "skip",
         }, { ds: i, role: "fit" }) as Plotly.Data);
+      }
+      // Other curves drawn with this data set (comparison of fits: model 2,
+      // or one curve for all data sets), dotted.
+      const alts = (ds as { altCurves?: AltCurve[] }).altCurves ?? [];
+      for (const a of alts) {
+        traces.push(tagTrace({
+          x: a.curve.x,
+          y: a.curve.y,
+          mode: "lines",
+          line: { color: a.ink ? chrome.ink : color, width: 2, dash: "dot" },
+          name: a.label,
+          legendgroup: `${ds.name} ${a.label}`,
+          hoverinfo: "skip",
+        }, a.ink ? { ds: -1, role: "decor" } : { ds: i, role: "fit" }) as Plotly.Data);
       }
       if (ds.rout && ds.rout.outliers.length > 0) {
         traces.push(tagTrace({

@@ -337,6 +337,21 @@ k-means.
   long records for CMH (stratum, row, column, count), ROC (value, status),
   quantal (dose, N, responders, group) and the XY curve fit (data set, X,
   Y), as one undo step with the analysis' options adjusted.
+- A new XY table's curve fit starts by itself only when the data look
+  like a dose-response (`xy/autofit.ts`: four or more X values spaced
+  like a dilution series, a monotone trend of the row means); otherwise
+  the results offer "Choose a model": Linear regression (the results
+  sheet switches analysis in place, `xy/switchAnalysis.ts`) or Fit a
+  curve. `options.autoFit` is "auto" only on new results sheets; options
+  without it (older files) and any explicit choice fit as before.
+- Linear regression (`xy/linreg.ts`) uses the engine's
+  `linear_regression` handler, or `dose_response` with
+  `line_through_origin` when forced through the origin (R² and the ANOVA
+  table then computed about Y = 0). Compare fits (`xy/compareFits.ts`)
+  calls `compare_fits` per data set, or fits the pooled data sets (one
+  curve) and each data set alone (separate curves) with `dose_response`
+  and applies the F test / AICc of `xy/fitStats.ts`. Both draw through
+  the XY plot; extra curves go in a data set's `altCurves`.
 - Survival tables may carry covariate columns for Cox regression: a
   data set's subcolumns are Time, Event and then one subcolumn per
   covariate, named by its subcolumn title (the same position in every

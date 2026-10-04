@@ -1,0 +1,14 @@
+/* XY results: "Choose a model", linear regression and comparison of fits. */
+.choose-model-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px 20px;
+  margin-top: 10px;
+}
+.choose-model-options > div { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.fit-waiting { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+.fit-waiting .hint-block { flex: 1; }
+.preferred-model { font-weight: 600; margin: 10px 0 4px; }
+.results-table td.num, .results-table th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.compare-table-wrap, .anova-table-wrap { overflow-x: auto; }
+.model-select { max-width: 100%; }

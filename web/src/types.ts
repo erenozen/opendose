@@ -86,6 +86,16 @@ export interface OptionsState {
   /** model === "user": the user-defined equation, stored with the
    *  results so a project file is self-contained. */
   userEquation?: UserEquationDef | null;
+  /** A new XY table's fit starts by itself only when the data look like
+   *  a dose-response ("auto", set by a new results sheet) or once the
+   *  fit was asked for ("requested": a model picked, "Fit a curve", ...).
+   *  Absent (older files) = "requested". See sheets/xy/autofit.ts. */
+  autoFit?: "auto" | "requested";
+  /** Y-based weighting: weights from the fitted curve held fixed within
+   *  each iteration (the iteratively reweighted fixed point, "predicted",
+   *  the default) or the weighted SS minimised directly with the weights
+   *  moving with the parameters ("objective", as R's nls with weights). */
+  weightSource?: "predicted" | "objective";
 }
 
 export const DEFAULT_XY_OPTIONS: OptionsState = {

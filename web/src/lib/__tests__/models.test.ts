@@ -4,7 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   applyModelList, CLASSIC_SHIFT_ID, fitRoute, MODEL_FAMILIES, MODELS_META, modelMeta,
-  searchModels, shareableParams,
+  metaFromEngine, polynomialOrder, searchModels, shareableParams, sortPolynomials,
 } from "../modelLibrary.ts";
 import {
   constraintsPayload, guessParameters, materialize, normalizeEquation, requiredConstants,
@@ -152,4 +152,22 @@ test("imported equations are repaired or rejected", () => {
   const e = normalizeEquation({ equation: "Y = A*X", rules: { A: "2*YMAX", B: 3 } });
   assert.deepEqual(e?.rules.A, { kind: "rule", value: "2", op: "*", of: "YMAX" });
   assert.deepEqual(e?.rules.B, { kind: "value", value: "3", op: "*", of: "YMAX" });
+});
+
+test("polynomials list by order up to any order the engine adds, centred ones after", () => {
+  assert.deepEqual(polynomialOrder("polynomial_tenth"), { order: 10, centered: false });
+  assert.deepEqual(polynomialOrder("centered_polynomial_seventh"), { order: 7, centered: true });
+  assert.deepEqual(polynomialOrder("polynomial_12"), { order: 12, centered: false });
+  assert.equal(polynomialOrder("straight_line"), null);
+  // the engine lists the legacy second / third first, then the rest
+  const ids = ["polynomial_second", "polynomial_third", "polynomial_first",
+    "centered_polynomial_first", "polynomial_tenth", "centered_polynomial_tenth",
+    "polynomial_fourth", "polynomial_seventh", "polynomial_eighth", "polynomial_ninth",
+    "polynomial_fifth", "polynomial_sixth"];
+  const metas = ids.map((id) => metaFromEngine({ id, label: id, family: "Polynomial",
+    equation: "", parameters: ["B0"], has_log_x: false, x_label: "X" }));
+  assert.deepEqual(sortPolynomials(metas).map((m) => m.id), ["polynomial_first",
+    "polynomial_second", "polynomial_third", "polynomial_fourth", "polynomial_fifth",
+    "polynomial_sixth", "polynomial_seventh", "polynomial_eighth", "polynomial_ninth",
+    "polynomial_tenth", "centered_polynomial_first", "centered_polynomial_tenth"]);
 });
