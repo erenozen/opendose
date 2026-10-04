@@ -1,0 +1,17 @@
+,Lymphocytes/Single Cells/Live/CD3+ | Freq. of Parent,Lymphocytes/Single Cells/Live/CD3+/CD4+ | Freq. of Parent,Lymphocytes/Single Cells/Live | Count
+WT_M1_1.fcs,62.7,58.7,14957
+WT_M1_2.fcs,61.5,57.5,15449
+WT_M2_1.fcs,60.4,56.4,15519
+WT_M2_2.fcs,58.8,54.8,15510
+WT_M3_1.fcs,64.1,60.1,15825
+WT_M3_2.fcs,63.5,59.5,15561
+WT_M4_1.fcs,59.7,55.7,15609
+WT_M4_2.fcs,58.3,54.3,15007
+KO_M5_1.fcs,48.6,44.6,14788
+KO_M5_2.fcs,47.2,43.2,15370
+KO_M6_1.fcs,51.5,47.5,14813
+KO_M6_2.fcs,50.9,46.9,15681
+KO_M7_1.fcs,46.8,42.8,15766
+KO_M7_2.fcs,45.4,41.4,14667
+Mean,55.671,51.671,15323
+SD,6.89,6.89,393.876

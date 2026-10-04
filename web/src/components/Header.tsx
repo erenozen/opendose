@@ -7,6 +7,8 @@ import type { ResultsSheet } from "../project/types";
 import { analysisDef, tableDef } from "../sheets/registry";
 import { versionLabel } from "../export/cite";
 import CiteBlock from "./CiteBlock";
+import SaveMenu from "../share/SaveMenu";
+import { openValidation } from "../share/events";
 import PreferencesPopover from "./PreferencesPopover";
 import { Logo } from "./WelcomePanel";
 
@@ -166,7 +168,7 @@ export default function Header({ onOpenFile, onNewProject }: {
           )}
           <span className="analyze-wrap" ref={analyzeRef}>
             <button className="analyze-btn" aria-haspopup="menu" aria-expanded={analyzeOpen}
-              disabled={!tdef?.analyses.length}
+              disabled={!tdef?.analyses.length || api.readOnly}
               title={tdef?.analyses.length ? `Add an analysis of ${data.name}`
                 : "Analyses for this table type arrive in the next release"}
               onClick={() => setAnalyzeOpen((o) => !o)}>
@@ -230,8 +232,15 @@ export default function Header({ onOpenFile, onNewProject }: {
           {infoOpen && (
             <div className="info-pop" role="note">
               <p className="info-privacy">
-                All computation runs locally in your browser; your data
-                never leaves your device. Projects autosave to this browser.
+                Privacy: all computation runs in your browser and no data is
+                sent anywhere. Autosave stays in this browser&apos;s own
+                storage. A share link puts the data in the link itself, so
+                only the people you give it to can open it.
+              </p>
+              <p className="info-format">
+                File format: project files carry a version number, and every
+                release opens every earlier version, so an old file never
+                needs the newest build.
               </p>
               <p>
                 OpenDose is a free, independent open-source project built
@@ -239,7 +248,13 @@ export default function Header({ onOpenFile, onNewProject }: {
                 sponsored by GraphPad Software; results are cross-validated
                 against independent implementations.
               </p>
-              <p className="info-version">Version {versionLabel()}</p>
+              <p className="info-version">
+                Version {versionLabel()} ·{" "}
+                <button type="button" className="linkish"
+                  onClick={() => { setInfoOpen(false); openValidation(); }}>
+                  How OpenDose is validated
+                </button>
+              </p>
               <CiteBlock />
             </div>
           )}
@@ -275,6 +290,7 @@ export default function Header({ onOpenFile, onNewProject }: {
           <span className="label-full">Save project</span>
           <span className="label-short" aria-hidden="true">Save</span>
         </button>
+        <SaveMenu onSave={cmd.save} />
         <label className="load-btn">
           Open
           <input type="file" accept=".json,.pzfx,.prism,.zip" hidden

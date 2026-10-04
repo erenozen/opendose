@@ -497,9 +497,10 @@ Technical vs biological replicates, pooling experiments, n = cells
 - [ ] SuperPlot mode on column and grouped graphs: a replicate column
       colours the points, overlays replicate means, and the statistics
       run on the replicate means (paired when linked by experiment)
-- [ ] Hierarchical aggregation dialog for long-format exports (cell →
+- [x] Hierarchical aggregation dialog for long-format exports (cell →
       image → animal/replicate by mean or median) that keeps the
-      cell-level points for display
+      cell-level points for display (the import recipes' Aggregate step;
+      the lower level is kept as a nested table)
 - [ ] Biological vs technical replicate prompt when a table looks like
       pooled cells; n with its unit on the graph and in the legend
 
@@ -555,16 +556,21 @@ unnamed CSVs inside .prism, mixed R/Prism labs, privacy of web tools
 (UX §3–4, reviews #10, #25, forums #14, #23).
 - Covered: free, no account, all computation in the browser, .pzfx and
   .prism import, project JSON, templates.
-- [ ] Share by link: the project compressed into the URL fragment (no
+- [x] Share by link: the project compressed into the URL fragment (no
       server), opening read-only with "make a copy"
 - [ ] .pzfx export so collaborators with Prism can open OpenDose work,
       including replicate subcolumns and mean/SD/N summary tables
-- [ ] Import recipes for FlowJo, CellProfiler, QuPath and plate-reader
+- [x] Import recipes for FlowJo, CellProfiler, QuPath and plate-reader
       exports: metadata parsing from sample names, long-to-wide pivot
-- [ ] A validation page in the app listing the pinned cross-checks
+      (plus qPCR Cq and tidy CSV; Reshape on every table)
+- [x] A validation page in the app listing the pinned cross-checks
       (Prism screenshots, NIST, statsmodels, R) with numbers
-- [ ] A privacy statement in the info popover: data never leaves the
+- [x] A privacy statement in the info popover: data never leaves the
       browser
+- [x] Export bundle (tidy and wide CSV, results CSV, SVG and PNG graphs,
+      methods, citation, README) from the Save menu; file-format
+      promise (every release opens every earlier version) stated in the
+      info popover and README
 
 ### Theme 6. Figures as journals now expect them
 Show every point, SD or CI rather than SEM, colour-vision safety,
