@@ -10,6 +10,7 @@ import {
   Card, Check, Field, Grid, KV, Note, Problem, Section, Select, SOFTWARE, TextNum,
 } from "../common/clinicalKit";
 import CopyableMethods from "../common/CopyableMethods";
+import LongTableButton from "../common/LongTableButton";
 import { fmtP, levelPct, pLabel } from "../common/statFormat";
 import { baseLayout, chromeFor, useDark } from "../multivariable/chart";
 import { PlotMessage, PlotlyChart } from "../multivariable/plotkit";
@@ -23,12 +24,19 @@ const f = (v: number | null | undefined, sig?: number) => formatSig(v ?? null, s
 const ciTxt = (c: [number | null, number | null] | null | undefined) =>
   (c && c[0] != null && c[1] != null ? `${f(c[0])} to ${f(c[1])}` : "not defined (g ≥ 1)");
 const ecName = (level: number) => (level === 50 ? "LD50 / ED50" : `ED${formatSig(level, 3)}`);
+const PARAM_LABELS: Record<string, string> = {
+  intercept: "Intercept",
+  slope: "Slope",
+  natural_response: "Natural response",
+  upper_asymptote: "Upper asymptote (plateau)",
+};
 
 /* ------------------------------------------------------------ controls */
 
-export function QuantalControls({ table, options, onChange }: ControlsProps<QuantalOptions>) {
+export function QuantalControls({ sheet, table, options, onChange, readOnly }: ControlsProps<QuantalOptions>) {
   const set = (p: Partial<QuantalOptions>) => onChange({ ...options, ...p });
   const groups = quantalGroups(table, options);
+  const hasZero = options.doseTransform !== "none" && groups.some((g) => g.dose.some((x) => x === 0));
   return (
     <div className="controls">
       <Section title="Data">
@@ -40,6 +48,7 @@ export function QuantalControls({ table, options, onChange }: ControlsProps<Quan
           X holds the doses. Each row is one dose group: how many subjects
           responded (died, were affected) out of how many were treated.
         </p>
+        {!readOnly && <LongTableButton target="quantal" sheet={sheet} />}
       </Section>
       <Section title="Model">
         <Select label="Link" value={options.link}
@@ -57,6 +66,38 @@ export function QuantalControls({ table, options, onChange }: ControlsProps<Quan
           <TextNum label="Natural response (%)" value={options.naturalValue}
             onChange={(naturalValue) => set({ naturalValue })} />
         )}
+        <Select label="Upper asymptote" value={options.upper}
+          options={[["one", "100% (every subject responds at high doses)"],
+            ["estimate", "Estimate it from the data"],
+            ["fixed", "A known maximum response"]]}
+          onChange={(upper) => set({ upper })} />
+        {options.upper === "fixed" && (
+          <TextNum label="Upper asymptote (%)" value={options.upperValue}
+            onChange={(upperValue) => set({ upperValue })} />
+        )}
+        {options.upper !== "one" && (
+          <p className="hint-block">
+            The response levels off below 100%: P = C + (U − C) F(a + b x), with U the
+            plateau (the d parameter of drc&apos;s binomial LL.3 model). Effective doses
+            refer to F, the part of the response that depends on the dose.
+          </p>
+        )}
+        {hasZero && (
+          <Select label="Dose 0 rows" value={options.zeroDose}
+            options={[["control", "Use as the control group"],
+              ["omit", "Leave out (natural response 0)"]]}
+            onChange={(zeroDose) => set({ zeroDose })} />
+        )}
+        {hasZero && options.zeroDose === "control" && (
+          <p className="hint-block">
+            A dose of 0 has no logarithm, so those rows inform the control
+            level only: {options.natural === "none" && options.upper === "one"
+              ? "the natural response is estimated from them"
+              : options.natural === "none"
+                ? "they sit on the plateau the curve approaches as the dose goes to 0"
+                : "they inform the natural response"}.
+          </p>
+        )}
         <TextNum label="ECx levels (%)" value={options.ecLevels} onChange={(ecLevels) => set({ ecLevels })}
           note="Comma-separated, e.g. 50, 90 for LD50 and LD90." />
         <Select label="Heterogeneity correction" value={options.heterogeneity}
@@ -64,6 +105,10 @@ export function QuantalControls({ table, options, onChange }: ControlsProps<Quan
             ["always", "Always"], ["never", "Never"]]}
           onChange={(heterogeneity) => set({ heterogeneity })} />
         <TextNum label="Confidence level (%)" value={options.ciLevel} onChange={(ciLevel) => set({ ciLevel })} />
+        <Select label="Standard errors from" value={options.information}
+          options={[["expected", "Expected (Fisher) information, as glm"],
+            ["observed", "Observed information (Hessian), as drc"]]}
+          onChange={(information) => set({ information })} />
       </Section>
       {groups.length > 1 && (
         <Section title="Several data sets">
@@ -77,8 +122,8 @@ export function QuantalControls({ table, options, onChange }: ControlsProps<Quan
               </select>
             </Field>
           )}
-          {options.parallel && options.natural !== "none" && (
-            <p className="hint-block">The parallel-line fit does not model a natural response.</p>
+          {options.parallel && (options.natural !== "none" || options.upper !== "one") && (
+            <p className="hint-block">The parallel-line fit models neither a natural response nor an upper asymptote.</p>
           )}
         </Section>
       )}
@@ -112,8 +157,14 @@ function FitCard({ fit, level }: { fit: QuantalFit; level: number }) {
       <EcTable ec={fit.ec} level={level} transform={fit.dose_transform} />
       <h4>Parameters</h4>
       <Grid caption="Parameters" head={["", "Estimate", "SE", `${levelPct(level)} CI`]}
-        rows={Object.entries(p).map(([k, v]) => [k === "natural_response" ? "Natural response" : k[0].toUpperCase() + k.slice(1),
+        rows={Object.entries(p).map(([k, v]) => [PARAM_LABELS[k] ?? k[0].toUpperCase() + k.slice(1),
           f(v.value), f(v.se), v.ci ? `${f(v.ci[0])} to ${f(v.ci[1])}` : ""])} />
+      {typeof fit.upper_asymptote_mode === "number" && fit.upper_asymptote_used != null && (
+        <p className="hint-block">Upper asymptote fixed at {f(100 * fit.upper_asymptote_used)}%.</p>
+      )}
+      {fit.information === "observed" && (
+        <p className="hint-block">Standard errors from the observed information (as drc).</p>
+      )}
       <div className="stat-cols">
         <KV title="Goodness of fit" rows={[
           ["Pearson χ²", `${f(gof.pearson_chi2)} (df ${gof.df}), ${pLabel(gof.p_pearson)}`],
@@ -136,10 +187,12 @@ export function QuantalResults({ result }: ResultsProps<QuantalOptions, QuantalR
   if (!result) return null;
   if (result.error) return <Problem error={result.error} />;
   const level = result.ci_level;
+  const notes = result.notes?.length ? <Note>{result.notes.join(" ")}</Note> : null;
   if (result.parallel) {
     const r = result.parallel;
     return (
       <>
+        {notes}
         <Card title={`Parallel-line ${r.link} assay`}>
           <KV className="kv-wide" rows={[
             ["Common slope", `${f(r.slope.value)} (SE ${f(r.slope.se)}; ${levelPct(level)} CI ${f(r.slope.ci[0])} to ${f(r.slope.ci[1])})`],
@@ -184,7 +237,7 @@ export function QuantalResults({ result }: ResultsProps<QuantalOptions, QuantalR
       </>
     );
   }
-  return <>{result.fits?.map((fit) => <FitCard key={fit.name} fit={fit} level={level} />)}</>;
+  return <>{notes}{result.fits?.map((fit) => <FitCard key={fit.name} fit={fit} level={level} />)}</>;
 }
 
 export function QuantalMethods({ result }: ResultsProps<QuantalOptions, QuantalResult>) {
@@ -200,9 +253,21 @@ export function QuantalMethods({ result }: ResultsProps<QuantalOptions, QuantalR
     + (o.heterogeneity === "auto" ? "when it indicated heterogeneity (P < 0.05), variances were multiplied by the heterogeneity factor χ²/df and t quantiles were used."
       : o.heterogeneity === "always" ? "variances were always multiplied by the heterogeneity factor χ²/df."
         : "no heterogeneity correction was applied.");
-  if (o.natural !== "none" && !result.parallel) {
-    text += o.natural === "estimate" ? " A natural (control) response rate was estimated (Abbott's formula)."
+  const autoNatural = !result.parallel && o.natural === "none"
+    && result.fits?.some((x) => x.natural_response_mode === "estimate");
+  if ((o.natural !== "none" || autoNatural) && !result.parallel) {
+    text += o.natural === "estimate" || autoNatural
+      ? " A natural (control) response rate was estimated (Abbott's formula)"
+        + (autoNatural ? ", informed by the dose 0 control groups." : ".")
       : ` A natural response rate of ${o.naturalValue}% was assumed (Abbott's formula).`;
+  }
+  if (o.upper !== "one" && !result.parallel) {
+    text += o.upper === "estimate"
+      ? " The upper asymptote (maximum response) was estimated with the other parameters (as the d parameter of a three-parameter log-logistic binomial model)."
+      : ` The upper asymptote (maximum response) was fixed at ${o.upperValue}%.`;
+  }
+  if (o.information === "observed" && !result.parallel) {
+    text += " Standard errors use the observed information.";
   }
   if (result.parallel) {
     const r = result.parallel;

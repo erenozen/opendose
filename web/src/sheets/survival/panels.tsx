@@ -23,8 +23,8 @@ export function SurvivalControls(_: ControlsProps) {
   );
 }
 
-export function SurvivalResultsPanel({ result }: ResultsProps<unknown, any>) {
-  return <SurvivalResults result={result} />;
+export function SurvivalResultsPanel({ result, table }: ResultsProps<unknown, any>) {
+  return <SurvivalResults result={result} table={table} />;
 }
 
 export function SurvivalGraph({ graph, result, titles, scheme, table, format, onFormatChange }:

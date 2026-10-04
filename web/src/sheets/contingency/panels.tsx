@@ -1,9 +1,13 @@
+import { useContext, useState } from "react";
+import { Ctx as ProjectCtx } from "../../app/context";
+import { updateResultsOptions } from "../../project/ops";
 import { formatSig } from "../../types";
 import { pLabel, tableP } from "../../report/pformat";
+import LongTableButton from "../common/LongTableButton";
 import type { ControlsProps, ResultsProps } from "../types";
 import {
   DIFF_CI_LABELS, OR_CI_LABELS, PROP_CI_LABELS, RR_CI_LABELS, readCounts, strataOf,
-  trendApplies,
+  stratumShape, trendApplies,
   type CmhOptions, type ContingencyOptions, type DiffCI, type KappaOptions, type ORCI,
   type PropCI, type ProportionOptions, type RRCI,
 } from "./run";
@@ -84,6 +88,19 @@ export function ContingencyControls({ table, options, onChange }: ControlsProps<
           correction) covers larger tables; odds ratio, relative risk
           and sensitivity/specificity are computed for 2×2.
         </p>
+        {counts.length > 0 && !is2x2 && (
+          <>
+            <p className="hint-block">
+              Larger tables also get Fisher&apos;s exact test (the
+              Freeman-Halton extension) when it can be computed quickly.
+            </p>
+            <label className="check-row">
+              <input type="checkbox" checked={options.fisherRxc === "large"}
+                onChange={(e) => set({ fisherRxc: e.target.checked ? "large" : "auto" })} />
+              <span>Exact test for larger tables even when slow (may take ~10 s)</span>
+            </label>
+          </>
+        )}
       </section>
       <section>
         <h3>Effect sizes</h3>
@@ -209,19 +226,107 @@ function Trend({ t }: { t: any }) {
   );
 }
 
-export function ContingencyResults({ table, result }: ResultsProps<ContingencyOptions, any>) {
+/** Rows × columns of numbers with the table's row and column titles. */
+function CellTable({ title, caption, values, rowTitles, colTitles, digits }: {
+  title: string; caption: string; values: (number | null)[][]; rowTitles: string[];
+  colTitles: string[]; digits?: number;
+}) {
+  return (
+    <>
+      <h4>{title}</h4>
+      <p className="hint-block">{caption}</p>
+      <table className="results-table">
+        <thead>
+          <tr><th></th>{colTitles.map((c, j) => <th key={j}>{c}</th>)}</tr>
+        </thead>
+        <tbody>
+          {values.map((row, i) => (
+            <tr key={i}>
+              <th>{rowTitles[i] ?? `Row ${i + 1}`}</th>
+              {row.map((v, j) => <td key={j}>{v == null ? "n/a" : formatSig(v, digits)}</td>)}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </>
+  );
+}
+
+/** Expected counts, Pearson and adjusted standardized residuals. */
+function ExpectedAndResiduals({ result, table }: { result: any; table: ResultsProps["table"] }) {
+  const c = readCounts(table);
+  const rowTitles = "error" in c ? [] : c.rowTitles;
+  const colTitles = "error" in c ? [] : c.colTitles;
+  const cols = result.cols ?? colTitles.length;
+  const heads = Array.from({ length: cols }, (_, j) => colTitles[j] ?? `Column ${j + 1}`);
+  return (
+    <div className="expected-residuals">
+      {Array.isArray(result.expected) && (
+        <CellTable title="Expected counts" values={result.expected} rowTitles={rowTitles}
+          colTitles={heads}
+          caption="Counts expected if rows and columns were independent: row total × column total / N." />
+      )}
+      {Array.isArray(result.residuals_pearson) && (
+        <CellTable title="Pearson residuals" values={result.residuals_pearson} rowTitles={rowTitles}
+          colTitles={heads}
+          caption="(observed − expected) / √expected; their squares add up to the chi-square statistic." />
+      )}
+      {Array.isArray(result.residuals_standardized) && (
+        <CellTable title="Adjusted standardized residuals" values={result.residuals_standardized}
+          rowTitles={rowTitles} colTitles={heads}
+          caption={"(observed − expected) / √(expected × (1 − row total / N) × (1 − column total / N)) "
+            + "(Agresti; R's chisq.test()$stdres). Approximately standard normal under independence: "
+            + "beyond ±2 marks a cell that departs from it."} />
+      )}
+    </div>
+  );
+}
+
+export function ContingencyResults({ sheet, table, options, result }: ResultsProps<ContingencyOptions, any>) {
+  const [showExpected, setShowExpected] = useState(false);
+  const api = useContext(ProjectCtx);
   if (!result) return null;
   if (result.error) return <Failed result={result} />;
-  const is2x2 = table.x.length === 2 && table.datasets.length === 2;
+  const nRows = result.rows ?? table.x.length;
+  const nCols = result.cols ?? table.datasets.length;
+  const is2x2 = nRows === 2 && nCols === 2;
+  const fe = result.fisher_exact;
+  const level = "95%";
+  const canAsk = !!api && !api.readOnly && !sheet.frozen;
+  const askLarge = () => api?.apply((p) => updateResultsOptions(p, sheet.id,
+    (o) => ({ ...(o && typeof o === "object" ? o : {}), fisherRxc: "large" })));
+  const rxcNote = !is2x2 && fe ? (fe.p != null
+    ? "Exact P of the Freeman-Halton extension of Fisher's test: the sum of the probabilities of every "
+      + "table with the observed row and column totals that is no more probable than the observed one, "
+      + "found with the network algorithm of Mehta and Patel (1983), as R's fisher.test."
+    : null) : null;
   return (
     <div className="result-card">
       <h3>Contingency table analysis</h3>
       <table className="results-table goodness">
         <tbody>
-          {is2x2 && result.fisher_exact && (
+          {is2x2 && fe && (
             <tr>
-              <th>Fisher's exact test (recommended for 2×2)</th>
-              <td>{pLabel(result.fisher_exact.p)}</td>
+              <th>Fisher's exact test, two-sided (recommended for 2×2)</th>
+              <td>{pLabel(fe.p)}</td>
+            </tr>
+          )}
+          {!is2x2 && fe?.p != null && (
+            <tr>
+              <th>Fisher's exact test (Freeman-Halton, exact)</th>
+              <td>{pLabel(fe.p)}</td>
+            </tr>
+          )}
+          {is2x2 && fe?.p_less != null && (
+            <tr>
+              <th>One-sided P (Fisher), alternative: odds ratio &lt; 1</th>
+              <td>{pLabel(fe.p_less)}</td>
+            </tr>
+          )}
+          {is2x2 && fe?.p_greater != null && (
+            <tr>
+              <th>One-sided P (Fisher), alternative: odds ratio &gt; 1</th>
+              <td>{pLabel(fe.p_greater)}</td>
             </tr>
           )}
           {result.chi_square && (
@@ -242,9 +347,16 @@ export function ContingencyResults({ table, result }: ResultsProps<ContingencyOp
           )}
           {result.odds_ratio && (
             <tr>
-              <th>Odds ratio (Woolf 95% CI)</th>
+              <th>Sample odds ratio (Woolf logit {level} CI)</th>
               <td>{formatSig(result.odds_ratio.value)}{" "}
                 ({fmtCI(result.odds_ratio.ci)})</td>
+            </tr>
+          )}
+          {is2x2 && fe?.odds_ratio_conditional_mle != null && (
+            <tr>
+              <th>Odds ratio, conditional maximum likelihood (exact conditional {level} CI, as R&apos;s fisher.test)</th>
+              <td>{formatSig(fe.odds_ratio_conditional_mle)}{" "}
+                ({fmtCI(fe.ci_conditional)})</td>
             </tr>
           )}
           {result.relative_risk && (
@@ -284,8 +396,37 @@ export function ContingencyResults({ table, result }: ResultsProps<ContingencyOp
           )}
         </tbody>
       </table>
+      {is2x2 && fe?.odds_ratio_conditional_mle != null && (
+        <p className="hint-block">
+          The sample odds ratio is (a × d) / (b × c). The conditional maximum-likelihood
+          estimate maximizes the likelihood given the row and column totals (the noncentral
+          hypergeometric distribution); its interval inverts Fisher&apos;s test, so it agrees
+          with the exact P. The one-sided P values test the alternatives named.
+        </p>
+      )}
+      {rxcNote && <p className="hint-block">{rxcNote}</p>}
+      {!is2x2 && fe && fe.p == null && (
+        <div className="fisher-rxc-note">
+          <p className="hint-block">
+            Fisher&apos;s exact test (Freeman-Halton) was not computed: {String(fe.note
+              ?? "the table is too large for the exact test")}.{" "}
+            {options?.fisherRxc === "large"
+              ? "This table is too large even for the extended budget; report the chi-square test."
+              : "The quick budget keeps every edit fast; the extended budget usually finishes in a few seconds."}
+          </p>
+          {canAsk && options?.fisherRxc !== "large" && (
+            <button type="button" onClick={askLarge}>Compute the exact P (may take ~10 s)</button>
+          )}
+        </div>
+      )}
       {result.effect_sizes && <EffectSizes es={result.effect_sizes} />}
       {result.trend && <Trend t={result.trend} />}
+      <label className="check-row expected-toggle">
+        <input type="checkbox" checked={showExpected}
+          onChange={(e) => setShowExpected(e.target.checked)} />
+        <span>Show expected counts and residuals</span>
+      </label>
+      {showExpected && <ExpectedAndResiduals result={result} table={table} />}
     </div>
   );
 }
@@ -357,34 +498,74 @@ export function McNemarResults({ result }: ResultsProps<unknown, any>) {
 
 // ------------------------------------------------------------ CMH
 
-export function CmhControls({ table, options, onChange }: ControlsProps<CmhOptions>) {
+export function CmhControls({ sheet, table, options, onChange, readOnly }: ControlsProps<CmhOptions>) {
   const c = readCounts(table);
   const strata = "error" in c ? c : strataOf(c);
+  const twoByTwo = !("error" in strata) && stratumShape(strata) === "2 × 2";
   return (
     <div className="controls">
       <section>
-        <h3>Stratified 2×2 tables</h3>
+        <h3>Stratified tables</h3>
         <p className="hint-block">
-          Enter two outcome columns and two rows per stratum: rows 1–2 are
-          the first stratum, rows 3–4 the second, and so on (insert rows as
-          needed). Name a stratum by starting both of its row titles with
-          the same word and a colon, e.g. &ldquo;Site A: exposed&rdquo; and
-          &ldquo;Site A: not exposed&rdquo;.
+          Enter the rows of each stratum one after the other, each row
+          title starting with its stratum and a colon, e.g. &ldquo;Site A:
+          exposed&rdquo; and &ldquo;Site A: not exposed&rdquo; (every stratum
+          with the same rows and columns). With 2×2 strata you get the
+          common odds ratio and the CMH test; larger strata (r × c × k) get
+          the generalized CMH test. A two-column table without such titles
+          is read as two rows per stratum.
         </p>
         {"error" in strata ? <p className="hint-block">{strata.error}</p> : (
           <p className="hint-block">
-            {strata.length} strata: {strata.map((s) => s.name).join(", ")}.
+            {strata.length} strata of {stratumShape(strata)} tables:{" "}
+            {strata.map((s) => s.name).join(", ")}.
           </p>
         )}
+        {!readOnly && <LongTableButton target="cmh" sheet={sheet} />}
       </section>
-      <section>
-        <h3>Options</h3>
-        <label className="check-row">
-          <input type="checkbox" checked={options.correction}
-            onChange={(e) => onChange({ ...options, correction: e.target.checked })} />
-          <span>Continuity correction in the CMH test</span>
-        </label>
-      </section>
+      {("error" in strata || twoByTwo) && (
+        <section>
+          <h3>Options</h3>
+          <label className="check-row">
+            <input type="checkbox" checked={options.correction}
+              onChange={(e) => onChange({ ...options, correction: e.target.checked })} />
+            <span>Continuity correction in the CMH test</span>
+          </label>
+        </section>
+      )}
+    </div>
+  );
+}
+
+function GeneralizedCmh({ result }: { result: any }) {
+  const t = result.cmh_test ?? {};
+  return (
+    <div className="result-card">
+      <h3>Generalized Cochran-Mantel-Haenszel test</h3>
+      <Rows rows={[
+        ["Number of strata", String(result.n_strata)],
+        ["Rows × columns per stratum", `${result.rows} × ${result.cols}`],
+        ["Generalized CMH chi-square (general association, M²), df", `${formatSig(t.chi2)}, ${t.df}`],
+        ["P value", fmtP(t.p)],
+      ]} />
+      <p className="hint-block">
+        Tests whether rows and columns are associated within strata, with no
+        ordering assumed for either (the general association statistic of
+        R&apos;s mantelhaen.test for larger tables, df = (rows − 1) × (columns − 1)).
+      </p>
+      {Array.isArray(result.strata) && (
+        <>
+          <h4>Strata</h4>
+          <table className="results-table">
+            <thead><tr><th>Stratum</th><th>n</th></tr></thead>
+            <tbody>
+              {result.strata.map((s: any, i: number) => (
+                <tr key={`${s.name}-${i}`}><th>{s.name}</th><td>{formatSig(s.n)}</td></tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      )}
     </div>
   );
 }
@@ -392,6 +573,7 @@ export function CmhControls({ table, options, onChange }: ControlsProps<CmhOptio
 export function CmhResults({ result }: ResultsProps<CmhOptions, any>) {
   if (!result) return null;
   if (result.error) return <Failed result={result} />;
+  if (result.test === "generalized_cochran_mantel_haenszel") return <GeneralizedCmh result={result} />;
   const rows: [string, string][] = [["Number of strata", String(result.n_strata)]];
   if (result.cmh_test) {
     rows.push([`Cochran-Mantel-Haenszel chi-square, df${result.cmh_test.continuity_correction ? " (corrected)" : ""}`,
@@ -405,6 +587,10 @@ export function CmhResults({ result }: ResultsProps<CmhOptions, any>) {
   if (result.relative_risk) {
     rows.push([`Common relative risk (Mantel-Haenszel, ${result.relative_risk.ci_method} 95% CI)`,
       `${formatSig(result.relative_risk.value)} (${fmtCI(result.relative_risk.ci)})`]);
+  }
+  if (result.woolf) {
+    rows.push(["Woolf's test of homogeneity of odds ratios (½ added to every cell)",
+      `chi-square ${formatSig(result.woolf.chi2)}, df ${result.woolf.df}, ${Pv(result.woolf.p)}`]);
   }
   if (result.breslow_day) {
     rows.push(["Breslow-Day test of equal odds ratios",
@@ -422,8 +608,8 @@ export function CmhResults({ result }: ResultsProps<CmhOptions, any>) {
           <table className="results-table">
             <thead><tr><th>Stratum</th><th>n</th><th>Odds ratio</th></tr></thead>
             <tbody>
-              {result.strata.map((s: any) => (
-                <tr key={s.name}><th>{s.name}</th><td>{formatSig(s.n)}</td>
+              {result.strata.map((s: any, i: number) => (
+                <tr key={`${s.name}-${i}`}><th>{s.name}</th><td>{formatSig(s.n)}</td>
                   <td>{s.odds_ratio == null ? "n/a" : formatSig(s.odds_ratio)}</td></tr>
               ))}
             </tbody>

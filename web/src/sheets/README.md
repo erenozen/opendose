@@ -323,10 +323,18 @@ k-means.
   sheet with `model: "user"` carries its user-defined equation in
   `options.userEquation` (`lib/userEquation.ts`), so project files stay
   self-contained; the browser's "My equations" list is only a library.
-- Stratified 2×2 tables (Cochran-Mantel-Haenszel) use the ordinary
-  contingency table: two outcome columns and two consecutive rows per
-  stratum. A stratum is named by the text its two row titles share
-  before a separator ("Site A: exposed" / "Site A: not exposed").
+- Stratified tables (Cochran-Mantel-Haenszel) use the ordinary
+  contingency table: the rows of each stratum one after the other, every
+  row title starting with its stratum and a separator ("Site A: exposed"
+  / "Site A: not exposed"), the same rows and columns in every stratum.
+  2×2 strata get the classic CMH test (Breslow-Day, Woolf), larger ones
+  the generalized CMH test. A two-column table without such titles is
+  read as two consecutive rows per stratum.
+- "From long table…" (`common/LongTableButton` → `LongTableDialog`,
+  pure reshapes in `common/longTable.ts`) fills the analysed table from
+  long records for CMH (stratum, row, column, count), ROC (value, status),
+  quantal (dose, N, responders, group) and the XY curve fit (data set, X,
+  Y), as one undo step with the analysis' options adjusted.
 - Survival tables may carry covariate columns for Cox regression: a
   data set's subcolumns are Time, Event and then one subcolumn per
   covariate, named by its subcolumn title (the same position in every
@@ -341,7 +349,14 @@ k-means.
   the column analysis' dropdown stay only for results sheets that already
   use them. Bland-Altman pairs values row by row.
 - Quantal dose-response (`xy/quantal.ts`) reads responders and N from
-  each data set's first two subcolumns, or from pairs of data sets.
+  each data set's first two subcolumns, or from pairs of data sets. With
+  a log dose transform, dose 0 rows are the control group (natural
+  response estimated from them unless an upper asymptote or a natural
+  response is set; "Leave out" drops them); the result's `notes` say so.
+- The survival results list both log-rank forms (Peto Σ(O−E)²/E and the
+  variance form of R's survdiff), observed and expected events, median
+  CIs and a Kaplan-Meier table per group (`survival/kmTable.ts`), each
+  with its own Copy / CSV (`common/TableCopy`).
 - The power and sample size tool (`src/power/`) is a dialog, not a sheet
   kind; "Save to project" writes an info sheet whose constant "Sample
   size justification" holds the sentence (`findSampleSizeJustification`).
