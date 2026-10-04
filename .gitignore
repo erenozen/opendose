@@ -13,3 +13,4 @@ RealTestFiles/
 examples/
 *.egg-info/
 .claude/worktrees/
+docs/validation/private/

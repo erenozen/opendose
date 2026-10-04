@@ -1,0 +1,13 @@
+dept,gender,admitted,rejected
+A,Male,512,313
+A,Female,89,19
+B,Male,353,207
+B,Female,17,8
+C,Male,120,205
+C,Female,202,391
+D,Male,138,279
+D,Female,131,244
+E,Male,53,138
+E,Female,94,299
+F,Male,22,351
+F,Female,24,317

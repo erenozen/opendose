@@ -1,0 +1,8 @@
+scenario,test,solve_for,tails,alpha,power,n_per_group,n_total,effect_size,delta,sd,p1,p2,groups,between_var,within_var,rho0,rho1
+gp_corr_rho0,correlation vs rho0 (exact),n_total,2,0.05,0.95,,,,,,,,,,,0.6,0.65
+gp_anova_f,"one-way ANOVA (fixed effects, omnibus)",n_total,,0.05,0.95,,,f = 0.25,,,,,10,,,,
+gp_point_biserial,point biserial correlation,n_total,1,0.05,0.95,,,rho = 0.25,,,,,,,,,
+gp_matched_pairs,paired t (matched pairs),power,2,0.05,,,50,dz = 0.421637,,,,,,,,,
+gp_one_sample_a,one-sample t,n_total,1,0.05,0.95,,,d = 0.625,,,,,,,,,
+gp_one_sample_b,one-sample t,n_total,2,0.01,0.9,,,d = 0.1,,,,,,,,,
+faul2007_two_sample,two-sample t (equal n),n_total,1,0.05,0.95,,,d = 0.5,,,,,,,,,

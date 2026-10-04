@@ -1,0 +1,11 @@
+scenario,test,solve_for,tails,alpha,power,n_per_group,n_total,effect_size,delta,sd,p1,p2,groups,between_var,within_var,rho0,rho1
+r_t_power,two-sample t,power,2,0.05,,20,,,1,1,,,,,,,
+r_t_n,two-sample t,n_per_group,2,0.05,0.9,,,,1,1,,,,,,,
+r_t_n_onesided,two-sample t,n_per_group,1,0.05,0.9,,,,1,1,,,,,,,
+r_prop_power,two proportions (normal approx.),power,2,0.05,,50,,,,,0.5,0.75,,,,,
+r_prop_n,two proportions (normal approx.),n_per_group,2,0.05,0.9,,,,,,0.5,0.75,,,,,
+r_prop_p2,two proportions (normal approx.),p2,2,0.05,0.9,50,,,,,0.5,,,,,,
+r_prop_n_p2_1,two proportions (normal approx.),n_per_group,2,0.05,0.8,,,,,,0.9,1.0,,,,,
+r_anova_power,balanced one-way ANOVA,power,,0.05,,5,,,,,,,4,1,3,,
+r_anova_n,balanced one-way ANOVA,n_per_group,,0.05,0.8,,,,,,,,4,1,3,,
+r_anova_n_means,balanced one-way ANOVA,n_per_group,,0.05,0.9,,,,,,,,4,"166.6667 (= var(c(120,130,140,150)))",500,,

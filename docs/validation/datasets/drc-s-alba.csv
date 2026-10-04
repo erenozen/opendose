@@ -1,0 +1,16 @@
+herbicide,dose_g_ha,drymatter_1,drymatter_2,drymatter_3,drymatter_4,drymatter_5,drymatter_6,drymatter_7,drymatter_8
+Glyphosate,0,4.7,4.6,4.1,4.4,3.2,3,3.8,3.9
+Glyphosate,10,3.8,3.8,3.8,3.3,,,,
+Glyphosate,20,4.1,3.5,4.1,3.2,,,,
+Glyphosate,40,2.8,3,3.7,3.4,,,,
+Glyphosate,80,1.8,1.6,2.3,1.7,,,,
+Glyphosate,160,1.1,1.3,1,1.2,,,,
+Glyphosate,320,0.9,0.9,0.9,0.9,,,,
+Bentazone,0,4.1,3.4,2.6,3.5,4.3,4.2,4.1,4.5
+Bentazone,10,3.5,3.8,3.9,3.7,,,,
+Bentazone,20,3.2,3.5,3,4,,,,
+Bentazone,40,1.1,1.4,1.4,0.9,,,,
+Bentazone,80,0.9,0.6,0.7,0.8,,,,
+Bentazone,160,0.7,0.7,0.5,0.6,,,,
+Bentazone,320,0.8,0.5,0.7,0.8,,,,
+Bentazone,640,0.6,0.7,0.6,0.8,,,,
