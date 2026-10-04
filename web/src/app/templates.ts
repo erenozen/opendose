@@ -14,6 +14,9 @@ import {
 import type { DataTableModel, Project, ProjectPrefs, TableType } from "../project/types";
 import { REGISTRY, TABLE_ORDER } from "../sheets/registry";
 import { xySample } from "../sheets/xy/sample";
+import { budwormTable } from "../sheets/xy/quantalSample";
+import { asahTable, ejectionTable } from "../sheets/column/clinicalSamples";
+import { lungSurvivalTable, lungVariablesTable } from "../sheets/survival/samples";
 import { addDerivedOutputs, addFamily } from "./factory";
 
 const STORAGE_KEY = "templates";
@@ -202,6 +205,33 @@ export function builtinTemplates(prefs: ProjectPrefs): SheetTemplate[] {
       "Time and event (1 = event, 0 = censored) for each subject, one column per group: "
       + "Kaplan–Meier curves with the log-rank comparison.", surv, "Survival"));
   }
+
+  // Clinical statistics, each on published data its numbers are pinned to.
+  list.push(fromTable(prefs, "cox-lung", "Cox regression (lung cancer data)",
+    "228 patients of the NCCTG lung cancer study: days of follow-up, death (1) or censoring (0), "
+    + "one group per sex and age as a covariate column. Cox regression gives the hazard ratio of "
+    + "each, adjusted for the other, with the proportional-hazards test.",
+    lungSurvivalTable(), "Lung cancer survival", { analysis: "cox" }));
+  list.push(fromTable(prefs, "cox-lung-variables", "Cox regression from a variables table",
+    "The same lung cancer data as one row per patient (days, status 1 = censored / 2 = died, "
+    + "age, sex), analysed by Cox regression with the time and event variables chosen.",
+    lungVariablesTable(), "Lung cancer (variables)", { analysis: "mv_cox" }));
+  list.push(fromTable(prefs, "roc-compare", "ROC curves: compare two markers",
+    "113 patients after subarachnoid haemorrhage: the WFNS score and serum S100B for poor and good "
+    + "outcome. Both ROC curves with their optimal cut-offs, and DeLong's paired comparison.",
+    asahTable(), "Haemorrhage markers", { analysis: "roc_curve" }));
+  list.push(fromTable(prefs, "bland-altman", "Bland–Altman method comparison",
+    "Ejection fraction measured by two methods, 60 pairs from 12 subjects (subject in the row "
+    + "titles): bias and limits of agreement with confidence intervals; switch on repeated "
+    + "measurements to account for the subjects.",
+    ejectionTable(), "Ejection fraction", { analysis: "bland_altman" }));
+  list.push(fromTable(prefs, "quantal-budworm", "Quantal dose-response (LD50)",
+    "Moths killed out of 20 at six doses of an insecticide, by sex (X = log2 dose). Logit fits "
+    + "with a common slope: effective doses with Fieller CIs and the relative potency.",
+    budwormTable(), "Budworm", {
+      analysis: "quantal",
+      options: { link: "logit", doseTransform: "none", parallel: true, ecLevels: "25, 50, 75" },
+    }));
 
   for (const type of TABLE_ORDER) {
     const def = REGISTRY[type as TableType];

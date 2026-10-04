@@ -19,6 +19,7 @@ import {
 } from "./run";
 import { multivariableSample } from "./sample";
 import { VOLCANO_GROUPS } from "./volcanoModel";
+import { coxDefinitions } from "../survival";
 
 // Panels load on first use (sheets/lazy.ts).
 const controlsModule = () => import("./controls");
@@ -70,6 +71,10 @@ export const ANALYSIS_MV_REGRESSION = "mv_regression";
 export const ANALYSIS_MV_LOGISTIC = "mv_logistic";
 export const ANALYSIS_MV_PCA = "mv_pca";
 export const ANALYSIS_MV_REARRANGE = "mv_rearrange";
+export const ANALYSIS_MV_COX = "mv_cox";
+
+// Cox regression with time and event variables (panels in sheets/survival).
+const mvCox = coxDefinitions(ANALYSIS_MV_COX, "mv_cox", "Cox proportional hazards regression");
 
 // ------------------------------------------------------------ analyses
 
@@ -268,7 +273,7 @@ export const multivariableTable: TableTypeDef = {
   short: "Multi",
   description: "Spreadsheet-style: one row per observation, one column per "
     + "variable, each continuous or categorical. For correlation matrices, "
-    + "multiple regression, logistic regression and PCA.",
+    + "multiple regression, logistic regression, Cox regression and PCA.",
   status: "ready",
   defaultTable: (init) => emptyTable("multivariable", init),
   sampleTable: multivariableSample,
@@ -277,6 +282,7 @@ export const multivariableTable: TableTypeDef = {
   entryHint: "Each row is one observation (subject, sample); each column one "
     + "variable. Set a column to categorical for text levels such as "
     + "\"male\" / \"female\". Row titles can hold subject IDs.",
-  analyses: [mvDescriptive, mvCorrelation, mvRegression, mvLogistic, mvPca, mvRearrange],
-  graphs: mvGraphs,
+  analyses: [mvDescriptive, mvCorrelation, mvRegression, mvLogistic, mvCox.analysis, mvPca,
+    mvRearrange],
+  graphs: [...mvGraphs, ...mvCox.graphs],
 };

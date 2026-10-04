@@ -25,6 +25,7 @@ import ShareHost from "./share/ShareHost";
 import { useGuide } from "./guide/context";
 import { GuideProvider } from "./guide/GuideProvider";
 import ReportHost from "./report/ReportHost";
+import PowerHost from "./power/PowerHost";
 import { lazy, Suspense } from "react";
 
 // The page-layout composer is loaded the first time a layout sheet opens.
@@ -142,6 +143,7 @@ function Shell() {
       </div>
       )}
       <SimulateHost />
+      <PowerHost />
     </div>
   );
 }

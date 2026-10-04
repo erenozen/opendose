@@ -7,6 +7,7 @@ import {
 } from "../project/ops";
 import { makeDerivedSheet } from "../project/derived";
 import { clearValues, normalizeTable } from "../project/table";
+import { SUBCOLUMN_FORMAT_TITLES } from "../project/types";
 import type {
   DataSheet, DataTableModel, Project, ProjectPrefs, Sheet, SubcolumnFormat,
 } from "../project/types";
@@ -180,13 +181,17 @@ export function prismTableToFamily(p: Project, t: PrismTable, ids: IdFactory):
     return addFamily(p, table, name, ids);
   }
   if (t.table_type === "XY" && t.x) {
+    // Mean / SD (SEM, %CV) / N subcolumns stay a summary table.
+    const fmt = summaryFormat(t);
     const table = normalizeTable({
       type: "xy",
       x: t.x.map(toCell),
       xTitle: t.x_title || "X",
+      subcolumnFormat: fmt,
       datasets: t.datasets.map((ds) => ({
         name: ds.name || "Dataset",
         rows: ds.ys.map((row) => row.map(toCell)),
+        ...summaryTitles(fmt),
       })),
     });
     const res = addFamily(p, table, name, ids);
@@ -204,7 +209,7 @@ export function prismTableToFamily(p: Project, t: PrismTable, ids: IdFactory):
   if (isGroupedPrismTable(t)) {
     // Rows × datasets × replicates: a grouped table, analyzed by two-way
     // ANOVA first (as it would be in Prism).
-    const fmt = PRISM_SUMMARY_FORMATS[String(t.y_format ?? "").toLowerCase()] ?? "replicates";
+    const fmt = summaryFormat(t);
     const table = normalizeTable({
       type: "grouped",
       x: Array(t.n_rows).fill(""),
@@ -213,17 +218,46 @@ export function prismTableToFamily(p: Project, t: PrismTable, ids: IdFactory):
       datasets: t.datasets.map((ds, i) => ({
         name: ds.name || `Dataset ${i + 1}`,
         rows: ds.ys.map((row) => row.map(toCell)),
+        ...summaryTitles(fmt),
       })),
     });
     return addFamily(p, table, name, ids);
   }
+  if (t.table_type.toLowerCase() === "contingency" && t.datasets.length > 0) {
+    // Counts: one outcome per column, one group per row.
+    const table = normalizeTable({
+      type: "contingency",
+      x: Array(t.n_rows).fill(""),
+      rowTitles: t.row_titles ?? [],
+      datasets: t.datasets.map((ds, i) => ({
+        name: ds.name || `Outcome ${i + 1}`,
+        rows: ds.ys.map((row) => [toCell(row[0])]),
+      })),
+    });
+    return addFamily(p, table, name, ids);
+  }
+  const fmt = summaryFormat(t);
   const table = normalizeTable({
     type: "column",
     x: Array(t.n_rows).fill(""),
+    rowTitles: t.row_titles ?? [],
+    subcolumnFormat: fmt,
     datasets: t.datasets.map((ds) => ({
       name: ds.name || "Group",
       rows: ds.ys.map((row) => row.map(toCell)),
+      ...summaryTitles(fmt),
     })),
   });
   return addFamily(p, table, name, ids);
+}
+
+/** The table's Prism Y format as ours (replicates when unknown). */
+function summaryFormat(t: PrismTable): SubcolumnFormat {
+  return PRISM_SUMMARY_FORMATS[String(t.y_format ?? "").toLowerCase()] ?? "replicates";
+}
+
+/** Subcolumn titles a summary format implies (Mean, SD, N, ...). */
+function summaryTitles(fmt: SubcolumnFormat): { subTitles?: string[] } {
+  const titles = SUBCOLUMN_FORMAT_TITLES[fmt];
+  return titles?.length ? { subTitles: [...titles] } : {};
 }

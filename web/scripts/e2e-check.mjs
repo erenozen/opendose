@@ -19,9 +19,11 @@
 // user-defined equation, Welch ANOVA with Games-Howell, the chi-square
 // test for trend and Deming regression, the guidance (the "Which test?"
 // wizard, results chips, an ambiguous-fit banner, the start screen with
-// paste-and-suggest, the guided tour shown once), and the reporting package
+// paste-and-suggest, the guided tour shown once), the reporting package
 // (effect sizes, results sentence and legend, estimation plots, journal
-// checklists, history, P-value style).
+// checklists, history, P-value style), .pzfx export and re-import, Cox
+// regression, ROC comparison, Bland-Altman, quantal dose-response and the
+// power and sample size tool.
 import { chromium } from "playwright";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -1337,6 +1339,156 @@ expect("APA style: sentence and results table follow the preference",
 await page.getByRole("button", { name: "Preferences" }).click();
 await page.getByLabel("P-value style (tables, sentences, legends)").selectOption("graphpad");
 await page.keyboard.press("Escape");
+
+// --- .pzfx export and re-import ---
+// The "Imported CSV" table was switched to Mean, SD, N above: it must
+// come back as a summary table that fits the same (LogIC50 -6.983).
+await navRow("Imported CSV").click({ button: "right" });
+const [pzOne] = await Promise.all([
+  page.waitForEvent("download", { timeout: 30000 }),
+  page.getByRole("menuitem", { name: "Export this table as .pzfx" }).click(),
+]);
+const pzOnePath = join(tmp, pzOne.suggestedFilename());
+await pzOne.saveAs(pzOnePath);
+const pzOneXml = readFileSync(pzOnePath, "utf8");
+expect("table exported as .pzfx with the Mean/SD/N format",
+  pzOne.suggestedFilename() === "imported-csv.pzfx" && pzOneXml.includes('YFormat="SDN"')
+  && pzOneXml.includes("<Title>Imported CSV</Title>"), pzOne.suggestedFilename());
+await page.setInputFiles('.load-btn input[type="file"]', pzOnePath);
+await page.waitForFunction(() => document.querySelector(
+  ".data-table input[aria-label='Drug A, Mean, row 1']"), null, { timeout: 30000 });
+expect(".pzfx round trip: the re-imported table is a Mean/SD/N table named after the export",
+  await navRow("Imported CSV (2)").count() === 1 && await teCellValue("Drug A, Mean, row 1") === "99.6",
+  await teCellValue("Drug A, Mean, row 1"));
+expect(".pzfx round trip: the re-imported summary table fits the same (LogIC50 -6.983)",
+  await waitLogIC50("-6.983"));
+// the whole project from Save project ▾
+await page.getByRole("button", { name: "More ways to save and share" }).click();
+const [pzAll] = await Promise.all([
+  page.waitForEvent("download", { timeout: 30000 }),
+  page.getByRole("menuitem", { name: /Export as \.pzfx/ }).click(),
+]);
+const pzAllPath = join(tmp, pzAll.suggestedFilename());
+await pzAll.saveAs(pzAllPath);
+await page.setInputFiles('.load-btn input[type="file"]', pzAllPath);
+await page.waitForSelector(".pzfx-chooser", { timeout: 30000 });
+const chooser = await page.locator(".pzfx-chooser").innerText();
+expect(".pzfx project export lists its tables on re-import (contingency stays contingency)",
+  chooser.includes("Shoe size (Contingency)") && chooser.includes("Method comparison (XY)")
+  && !chooser.includes("Multiple variables"), chooser.replace(/\s+/g, " ").slice(0, 160));
+await page.locator(".pzfx-chooser button", { hasText: "Cancel" }).click();
+
+// --- clinical statistics, from the built-in templates ---
+const fromTemplate = async (re, name) => {
+  await page.getByRole("button", { name: "New data table" }).click();
+  const dlg = page.locator(".new-table-dialog");
+  await dlg.getByRole("radio", { name: "From a template" }).check();
+  await dlg.getByRole("radio", { name: re }).check();
+  await dlg.getByLabel("Table name").fill(name);
+  await dlg.getByRole("button", { name: "Create from template" }).click();
+};
+const cardRow = async (heading, rowText) => {
+  const card = page.locator(".result-card", { has: page.locator(`h3:has-text("${heading}")`) }).first();
+  await card.waitFor({ timeout: 60000 });
+  return card.locator("tr", { hasText: rowText }).first().innerText({ timeout: 60000 })
+    .then((t) => t.replace(/\s+/g, " "), () => "");
+};
+
+// Cox regression on the R survival package's lung data: coxph(Surv(time,
+// status) ~ age + sex): HR female vs male 0.5986 (0.4311 to 0.8311).
+await fromTemplate(/Cox regression \(lung/, "Lung");
+const coxSex = await cardRow("Cox proportional hazards", "Group: Female vs Male");
+expect("Cox (lung, age + sex): HR female vs male 0.5986, 95% CI 0.4311 to 0.8311",
+  coxSex.includes("0.5986") && coxSex.includes("0.4311 to 0.8311"), coxSex);
+const coxGlobal = await cardRow("Cox proportional hazards", "Global");
+expect("Cox: proportional-hazards global test chi-square 2.771", coxGlobal.includes("2.771"), coxGlobal);
+expect("Cox forest plot draws the hazard ratios",
+  await page.locator(".plot .scatterlayer .point").count() === 2);
+await page.locator(".graph-select").selectOption("cox_curves");
+await page.waitForTimeout(600);
+expect("Cox adjusted curves: one per group", (await page.evaluate(() =>
+  (document.querySelector(".plot-card .plot")?.data ?? []).filter((t) => t.mode === "lines" && t.name)
+    .map((t) => t.name))).join(",") === "Male,Female");
+await page.locator(".graph-select").selectOption("cox_schoenfeld");
+await page.waitForTimeout(600);
+expect("Schoenfeld residuals: 165 events and a smooth",
+  await page.evaluate(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+    .map((t) => t.x?.length ?? 0).join(",")) === "165,165");
+await fromTemplate(/Cox regression from a variables/, "Lung variables");
+const coxMv = await cardRow("Cox proportional hazards", "Sex: Female vs Male");
+expect("Cox from a multiple-variables table (status 2 = died): HR 0.5986", coxMv.includes("0.5986"), coxMv);
+
+// ROC: pROC's aSAH data, DeLong paired WFNS vs S100B Z = 2.209,
+// P = 0.02718; Youden cut-off of S100B 0.205.
+await fromTemplate(/ROC curves: compare/, "aSAH");
+const delongP = await cardRow("Comparison of ROC curves", "P value");
+const delongZ = await cardRow("Comparison of ROC curves", "Z");
+expect("ROC comparison (aSAH, paired DeLong): Z = 2.209, P = 0.02718",
+  delongP.includes("0.02718") && delongZ.includes("2.209"), `${delongZ} | ${delongP}`);
+const s100Cut = await cardRow("ROC curve: S100B", "Cut-off");
+expect("ROC: Youden cut-off of S100B 0.205", s100Cut.includes("0.205"), s100Cut);
+expect("ROC graph draws both curves", (await page.evaluate(() =>
+  (document.querySelector(".plot-card .plot")?.data ?? []).filter((t) => t.mode === "lines" && t.name)
+    .length)) === 2);
+
+// Bland-Altman: Bland & Altman (2007) ejection fractions. Ignoring
+// subjects SD 0.9611 (limits -1.281 to 2.486); with subjects (true
+// value varies) SD 0.9906, limits -1.339 to 2.544.
+await fromTemplate(/Bland–Altman method/, "Ejection fraction");
+const baLoa = await cardRow("Bland-Altman", "limits of agreement");
+expect("Bland-Altman limits -1.281 to 2.486", baLoa.includes("-1.281 to 2.486"), baLoa);
+const baCi = await cardRow("Bland-Altman", "CI of the lower limit");
+expect("Bland-Altman exact CI of the lower limit -1.777 to -0.9183", baCi.includes("-1.777 to -0.9183"), baCi);
+await page.getByLabel("Several rows per subject").selectOption("varies");
+await page.waitForSelector(".result-card h3:has-text('repeated measurements')", { timeout: 60000 });
+const baRep = await cardRow("repeated measurements", "limits of agreement");
+expect("Bland-Altman with repeated measures: limits -1.339 to 2.544", baRep.includes("-1.339 to 2.544"), baRep);
+
+// Quantal: MASS budworm, parallel logit on log2 dose: female ED25 2.231
+// and LD50 3.264 (dose.p).
+await fromTemplate(/Quantal dose-response/, "Budworm");
+const bwRows = await page.locator(".result-card", { has: page.locator("h3:has-text('Female: effective doses')") })
+  .first().innerText({ timeout: 60000 }).catch(() => "");
+expect("quantal (budworm): female ED25 2.231 and LD50 3.264",
+  /ED25\s+2\.231/.test(bwRows) && /LD50 \/ ED50\s+3\.264/.test(bwRows), bwRows.replace(/\s+/g, " ").slice(0, 120));
+expect("quantal graph: proportions and fitted curves", (await page.evaluate(() =>
+  (document.querySelector(".plot-card .plot")?.data ?? []).length)) >= 4);
+
+// Power: Faul et al. (2007), the G*Power example: d = 0.5, one-sided
+// alpha 0.05, power 0.95 -> 88 per group, 176 in total.
+await page.getByRole("button", { name: "Tools" }).click();
+await page.getByRole("menuitem", { name: /Power and sample size/ }).click();
+const pw = page.locator("dialog.power-dialog");
+await pw.getByLabel("Tails").selectOption("1");
+await pw.getByLabel("Power (1 − β)").fill("0.95");
+await pw.getByLabel("Cohen's d").fill("0.5");
+await pw.getByLabel("Unit").fill("mice");
+await pw.getByLabel("Expected attrition (%)").fill("10");
+const pwOk = await page.waitForFunction(() => {
+  const t = document.querySelector("dialog.power-dialog .power-sentence")?.textContent ?? "";
+  return t.includes("88 mice per group (176 in total)") && t.includes("98 mice per group");
+}, null, { timeout: 60000 }).then(() => true, () => false);
+expect("power (G*Power example): 88 per group, 176 in total, 98 allocated with 10% attrition", pwOk,
+  await pw.locator(".power-summary").innerText().catch(() => ""));
+expect("power curves drawn", await pw.locator(".power-curve .plot").count() === 2);
+await pw.getByRole("button", { name: "Save to project" }).click();
+await page.waitForTimeout(400);
+await pw.getByRole("tab", { name: "Randomisation list" }).click();
+await pw.getByLabel("Seed").fill("42");
+await pw.getByRole("button", { name: "Generate list" }).click();
+const [rndDl] = await Promise.all([
+  page.waitForEvent("download", { timeout: 30000 }),
+  pw.getByRole("button", { name: "Download CSV" }).click(),
+]);
+const rndPath = join(tmp, rndDl.suggestedFilename());
+await rndDl.saveAs(rndPath);
+const rnd = readFileSync(rndPath, "utf8").trim().split("\n");
+expect("randomisation list: 24 units in balanced blocks, seed in the file name",
+  rnd.length === 25 && rnd[0] === "Sequence,ID,Block,Group" && /seed-42/.test(rndDl.suggestedFilename())
+  && rnd.filter((l) => l.endsWith(",Drug")).length === 12, rndDl.suggestedFilename());
+await pw.getByRole("button", { name: "Done" }).click();
+expect("the sample-size justification is saved as an info sheet",
+  await navRow("Sample size justification").count() === 1);
 
 await page.screenshot({
   path: join(here, "app.png"),

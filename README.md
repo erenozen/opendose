@@ -272,6 +272,32 @@ from the jsDelivr CDN, ~30 MB, then cached).
   pivoting to a column, grouped, XY, multiple-variables, survival or
   nested table. Reshape (data-table toolbar) turns any table long, or a
   long table wide.
+- Clinical statistics: Cox proportional-hazards regression on survival
+  tables (covariate columns next to Time and Event) or multiple-variables
+  tables, with hazard ratios and Wald or profile CIs, the
+  proportional-hazards test with a plain reading, adjusted survival
+  curves, a hazard-ratio forest plot and Schoenfeld residual plots. ROC
+  curves with the optimal cut-off (Youden, closest to top-left, cost- and
+  prevalence-weighted) and its bootstrap CIs, partial AUC, binormal
+  smoothing and DeLong's paired or unpaired comparison of two markers.
+  Bland-Altman with approximate, exact or MOVER CIs on the limits,
+  proportional bias and regression-based limits, ratio and percent
+  differences, and repeated measurements per subject. Quantal
+  dose-response (responders out of N per dose): probit, logit or cloglog,
+  LD50 / ECx with Fieller CIs, heterogeneity, natural response, parallel
+  lines and relative potency. Built-in templates on published data (lung
+  cancer survival, aSAH markers, ejection fraction, budworm).
+- Power and sample size (Tools menu): a priori n, achieved power or the
+  detectable effect for t tests, one-way ANOVA, proportions, McNemar,
+  chi-square, correlation and the log-rank test, with effect-size helpers
+  and power curves; the ARRIVE-style justification sentence (unit,
+  attrition) can be saved to the project. A randomisation list generator
+  (simple, shuffled, permuted blocks, stratified; seeded) downloads CSV.
+- .pzfx export: Save project ▾ → Export as .pzfx writes the XY, column,
+  grouped, contingency and survival tables (replicates and Mean/SD/N,
+  Mean/SEM/N, Mean/%CV/N) as a GraphPad Prism data file; a single table
+  from its sheet menu; the export bundle includes it. Prism summary
+  tables import as summary tables.
 - Trust: the info popover links to "How OpenDose is validated", a page
   listing every pinned cross-check (Prism screenshots, NIST Longley,
   guide examples, Dunnett and Spearman tables, statsmodels, pingouin)

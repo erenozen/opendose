@@ -36,7 +36,7 @@ import "./grid.css";
 // Default subcolumn header when the user has not titled it.
 function subLabel(type: TableType, di: number, s: number): string {
   if (type === "nested") return `${String.fromCharCode(65 + (di % 26))}${s + 1}`;
-  if (type === "survival") return ["Time", "Event"][s] ?? `Y${s + 1}`;
+  if (type === "survival") return ["Time", "Event"][s] ?? `Covariate ${s - 1}`;
   return `Y${s + 1}`;
 }
 
@@ -454,7 +454,7 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
                     <th key={`${di}-${s}`}>
                       <input className="sub-title" value={d.subTitles?.[s] ?? ""}
                         placeholder={subLabel(t.type, di, s)}
-                        readOnly={readOnly || t.type === "survival"
+                        readOnly={readOnly || (t.type === "survival" && s < 2)
                           || t.subcolumnFormat !== "replicates"}
                         aria-label={`${d.name} subcolumn ${s + 1} title`}
                         onChange={(e) => onChange((x) => setSubTitle(x, di, s, e.target.value),

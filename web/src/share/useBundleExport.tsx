@@ -8,7 +8,8 @@ import { waitForPlot } from "../export/figure";
 import { graphPngBlob, graphSvg } from "../export/graph";
 import { DEFAULT_EXPORT } from "../export/settings";
 import LiveGraph from "../layout/LiveGraph";
-import { getRuntimeVersions } from "../lib/engine";
+import { getEngine, getRuntimeVersions } from "../lib/engine";
+import { exportPzfx, pzfxSelection } from "./pzfx";
 import { findSheet } from "../project/ops";
 import { serializeProject } from "../project/persist";
 import type { DataSheet, ExportPrefs, GraphSheet } from "../project/types";
@@ -69,6 +70,14 @@ export function useBundleExport() {
       legends: [],
       provenance: JSON.stringify(projectProvenance(p, provenanceDeps(api.results), provenanceEnv()), null, 2),
     };
+    // The tables as .pzfx too, for collaborators who use Prism.
+    try {
+      const sel = pzfxSelection(p);
+      if (sel.tables.length) {
+        const px = exportPzfx(await getEngine(), sel);
+        if ("xml" in px) input.pzfx = px.xml;
+      }
+    } catch { /* the bundle goes ahead without it */ }
     const steps: Step[] = [
       ...p.sheets.filter((s) => s.kind === "results").map((s) => ({ kind: "results" as const, id: s.id })),
       ...p.sheets.filter((s) => s.kind === "graph").map((s) => ({ kind: "graph" as const, id: s.id })),

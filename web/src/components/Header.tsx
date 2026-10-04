@@ -9,6 +9,8 @@ import { versionLabel } from "../export/cite";
 import { useGuideOptional } from "../guide/context";
 import CiteBlock from "./CiteBlock";
 import SaveMenu from "../share/SaveMenu";
+import MenuButton from "../sheets/common/MenuButton";
+import { openPowerTool } from "../power/events";
 import { openValidation } from "../share/events";
 import { openChecklist } from "../report/useReport";
 import PreferencesPopover from "./PreferencesPopover";
@@ -315,6 +317,12 @@ export default function Header({ onOpenFile, onNewProject }: {
           </button>
         )}
         <PreferencesPopover />
+        <span className="save-menu tools-menu">
+          <MenuButton align="right" title="Tools" label="Tools" items={[
+            { label: "Power and sample size…", onSelect: () => openPowerTool("power") },
+            { label: "Randomisation list…", onSelect: () => openPowerTool("random") },
+          ]} />
+        </span>
         <button onClick={onNewProject} aria-label="New project" title="New project">New</button>
         <button onClick={cmd.save} aria-label="Save project">
           <span className="label-full">Save project</span>
