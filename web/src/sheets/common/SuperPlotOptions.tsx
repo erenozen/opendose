@@ -17,7 +17,7 @@ import { analysisDef } from "../registry";
 import {
   isReplicateMeansResult, normalizeSuperPlot, replicateInfo, type SuperPlotSettings,
 } from "./superplot";
-import { ReplicateMapFields } from "./ReplicateAssign";
+import { ReplicateMapFields } from "./ReplicateMapFields";
 
 
 

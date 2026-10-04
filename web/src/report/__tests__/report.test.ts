@@ -207,6 +207,16 @@ test("replicate map: unit of n and experiments for the legend and details", () =
     metaWithReplicates(undefined, t)), "n = 6 cells from 3 independent experiments");
 });
 
+test("grouped tables: n per row × data set cell, as the graph's legend sentence", () => {
+  const g = normalizeTable({
+    type: "grouped", rowTitles: ["Day 7", "Day 14"],
+    datasets: [{ name: "Vehicle", rows: [["1", "2", "3"], ["4", "5", "6"]] },
+      { name: "Drug", rows: [["1", "2", ""], ["4", "5", "6"]] }],
+  });
+  assert.deepEqual(tableGroups(g).map((x) => x.n), [3, 2, 3, 3]);
+  assert.equal(tableGroups(g)[1].name, "Day 7 · Drug");
+});
+
 test("migration: graphs that agree on a P style promote it to the project", () => {
   const graph = (id: string, format: unknown) => ({ id, kind: "graph", name: id, parentId: "d",
     resultsId: null, graphType: "scatter", settings: { titles: { x: "", y: "" }, scheme: "default", format } });

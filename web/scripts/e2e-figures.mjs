@@ -420,6 +420,60 @@ await shot("classic");
   await closeSettings();
 }
 
+// --- "n might be cells": Assign replicates… feeds the legend and details ---
+{
+  const cellsN = 60;
+  const val = (g, i) => String(+(10 + g * 2 + ((i * 7) % 11) * 0.3).toFixed(2));
+  const CELLS = join(tmp, "cells.json");
+  writeFileSync(CELLS, JSON.stringify({
+    version: 2, title: "Cells check",
+    prefs: { defaultTableType: "column", errorBars: "sd", ciMethod: "asymptotic",
+      scheme: "colorblind", digits: 4 },
+    sheets: [
+      { id: "c1", kind: "data", name: "Cell area", table: {
+        type: "column", x: Array(cellsN).fill(""), xTitle: "", xFormat: "numbers", xUnit: "",
+        yTitle: "Area", rowTitles: Array(cellsN).fill(""), subcolumnFormat: "replicates",
+        replicateLayout: "side_by_side",
+        datasets: [
+          { name: "Control", rows: Array.from({ length: cellsN }, (_, i) => [val(0, i)]) },
+          { name: "Knockdown", rows: Array.from({ length: cellsN }, (_, i) => [val(1, i)]) },
+          { name: "Experiment", rows: Array.from({ length: cellsN }, (_, i) => [`E${1 + (i % 3)}`]) },
+        ] } },
+      { id: "c2", kind: "results", parentId: "c1", name: "Column stats of Cell area",
+        analysis: "column", options: { analysis: "column_statistics" } },
+      { id: "c3", kind: "graph", parentId: "c1", resultsId: "c2", graphType: "scatter",
+        name: "Graph of Cell area",
+        settings: { titles: { x: "", y: "" }, scheme: "colorblind", column: { caption: "below" } } },
+    ],
+  }));
+  await page.setInputFiles('.load-btn input[type="file"]', CELLS);
+  await page.waitForSelector(".guide-chip", { timeout: 60000 });
+  const chip = page.locator(".guide-chip", { hasText: "n might be cells" });
+  expect("the n-might-be-cells chip fires on 60 values per group", await chip.count() === 1);
+  await chip.click();
+  await page.locator(".guide-chip-detail").getByRole("button", { name: "Assign replicates…" }).click();
+  const dlg = page.getByRole("dialog", { name: /Assign replicates/ });
+  await dlg.waitFor({ timeout: 10000 });
+  expect("the replicate dialog finds the experiment labels (3 experiments)",
+    (await dlg.innerText()).includes("3 experiments: E1, E2, E3"), (await dlg.innerText()).slice(0, 300));
+  await dlg.getByRole("button", { name: "Save" }).click();
+  await page.waitForFunction(() => document.querySelector(".plot-card .figure-legend-text")?.textContent
+    ?.includes("independent experiments"), null, { timeout: 15000 }).catch(() => {});
+  const leg = await page.locator(".plot-card .figure-legend-text").innerText().catch(() => "");
+  expect("legend: n = 60 cells per group from 3 independent experiments",
+    leg.includes("n = 60 cells per group from 3 independent experiments"), leg);
+  expect("the graph turned into a SuperPlot", (await plot()).traces.some((t) => t.means));
+  expect("the chip now reports the experiments",
+    await page.locator(".guide-chip", { hasText: "Cells from 3 experiments" }).count() === 1);
+  await page.getByRole("button", { name: "Reporting details…" }).click();
+  const det = page.getByRole("dialog", { name: /Reporting details/ });
+  await det.waitFor({ timeout: 10000 });
+  expect("Reporting details show the replicate map's unit and experiments",
+    (await det.locator(".details-from-map").innerText()).includes("3 independent")
+    && await det.getByLabel("Independent experiments (biological replicates)").getAttribute("placeholder") === "3");
+  await det.getByRole("button", { name: "Cancel" }).click();
+}
+
 console.log(errors.length ? errors.join("\n") : "no page errors");
 await browser.close();
 if (fail.length || errors.length) {

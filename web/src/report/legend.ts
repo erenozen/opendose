@@ -97,7 +97,8 @@ const UNIT_WORDS: Record<NonNullable<TestInfo["nUnit"]>, string> = {
  *  experiments", "n = 6 (Control), 5 (Treated)". */
 export function nStatement(groups: GroupN[], info: Pick<TestInfo, "nUnit">,
   unit: ReportUnit = {}): string | null {
-  const g = groups.filter((x) => Number.isFinite(x.n));
+  // Groups without values (e.g. a data set of experiment labels) say nothing.
+  const g = groups.filter((x) => Number.isFinite(x.n) && x.n > 0);
   if (!g.length) return null;
   const word = unit.unit?.trim() || (info.nUnit ? UNIT_WORDS[info.nUnit] : "");
   const exp = unit.experiments && unit.experiments > 0 && !/experiment/i.test(word)

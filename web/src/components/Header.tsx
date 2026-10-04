@@ -123,6 +123,33 @@ export default function Header({ onOpenFile, onNewProject }: {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // Phone widths: the secondary actions (about, theme, help, preferences,
+  // tools, new project) fold into a "More" panel so the primary ones
+  // (undo, redo, save, open) stay on one row. On wider screens the panel
+  // is `display: contents` and the button is hidden (App.css).
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreRef = useRef<HTMLSpanElement>(null);
+  const moreBtnRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!moreOpen) return;
+    const onDown = (e: PointerEvent) => {
+      const t = e.target as Node;
+      if (!moreRef.current?.contains(t) && !moreBtnRef.current?.contains(t)) setMoreOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !document.querySelector(".hdr-secondary .info-pop, .hdr-secondary .sheet-menu")) {
+        setMoreOpen(false);
+        moreBtnRef.current?.focus();
+      }
+    };
+    document.addEventListener("pointerdown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [moreOpen]);
+
   const theme = prefs.theme;
   const cycleTheme = () => setPrefs({
     ...prefs, theme: theme === "auto" ? "light" : theme === "light" ? "dark" : "auto",
@@ -233,6 +260,8 @@ export default function Header({ onOpenFile, onNewProject }: {
             <path d="m10.5 3.5 3 3-3 3" /><path d="M13.5 6.5h-7a4 4 0 0 0 0 8H9" />
           </svg>
         </button>
+        <span className="hdr-secondary" id="header-secondary" ref={moreRef}
+          data-open={moreOpen ? "true" : "false"}>
         {/* Hover open/close only on hover-capable pointers; touch taps
             synthesize mouseenter/leave pairs that would instantly undo
             the open. Touch relies on the click + outside-tap path. */}
@@ -311,8 +340,10 @@ export default function Header({ onOpenFile, onNewProject }: {
           )}
         </button>
         {guide && (
-          <button className="theme-btn help-btn" onClick={() => (guide.helpOpen
-            ? guide.closeHelp() : guide.openHelp())}
+          <button className="theme-btn help-btn" onClick={() => {
+            setMoreOpen(false);
+            if (guide.helpOpen) guide.closeHelp(); else guide.openHelp();
+          }}
             aria-label="Help: explainers, tour and keyboard shortcuts"
             aria-expanded={guide.helpOpen} title={`Help (${modKey}/)`}>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor"
@@ -326,11 +357,13 @@ export default function Header({ onOpenFile, onNewProject }: {
         <PreferencesPopover />
         <span className="save-menu tools-menu">
           <MenuButton align="right" title="Tools" label="Tools" items={[
-            { label: "Power and sample size…", onSelect: () => openPowerTool("power") },
-            { label: "Randomisation list…", onSelect: () => openPowerTool("random") },
+            { label: "Power and sample size…", onSelect: () => { setMoreOpen(false); openPowerTool("power"); } },
+            { label: "Randomisation list…", onSelect: () => { setMoreOpen(false); openPowerTool("random"); } },
           ]} />
         </span>
-        <button onClick={onNewProject} aria-label="New project" title="New project">New</button>
+        <button onClick={() => { setMoreOpen(false); onNewProject(); }} aria-label="New project"
+          title="New project">New</button>
+        </span>
         <button onClick={cmd.save} aria-label="Save project">
           <span className="label-full">Save project</span>
           <span className="label-short" aria-hidden="true">Save</span>
@@ -346,6 +379,14 @@ export default function Header({ onOpenFile, onNewProject }: {
               e.target.value = "";
             }} />
         </label>
+        <button ref={moreBtnRef} type="button" className="theme-btn hdr-more-btn"
+          aria-label="More actions" aria-expanded={moreOpen} aria-controls="header-secondary"
+          title="More: about, theme, help, preferences, tools, new project"
+          onClick={() => setMoreOpen((o) => !o)}>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+            <circle cx="3.5" cy="8" r="1.4" /><circle cx="8" cy="8" r="1.4" /><circle cx="12.5" cy="8" r="1.4" />
+          </svg>
+        </button>
         <span className="status" role="status" aria-live="polite">
           {status}
         </span>

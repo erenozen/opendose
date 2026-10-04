@@ -4,6 +4,7 @@
 import { readFormat } from "../graph/format.ts";
 import { legendSpec, plottedClause } from "../graph/legend.ts";
 import { replicateInfo } from "../sheets/common/superplot.ts";
+import { cellStats } from "../sheets/grouped/stats.ts";
 import { numericData } from "../project/table.ts";
 import type { DataSheet, DataTableModel, GraphSheet } from "../project/types.ts";
 import type { GroupN } from "./describe.ts";
@@ -20,6 +21,18 @@ export function tableGroups(t: DataTableModel): GroupN[] {
   if (t.type === "contingency" || t.type === "multivariable") return [];
   if (t.type === "survival") {
     return numericData(t).datasets.map((d) => ({ name: d.name, n: d.ys.filter((r) => r[0] !== null).length }));
+  }
+  // Grouped tables: n is per row × data set cell (as the graph's legend
+  // sentence counts it), not per data set across rows.
+  if (t.type === "grouped") {
+    const out: GroupN[] = [];
+    cellStats(t).forEach((row, r) => row.forEach((c, d) => {
+      if (c && c.n > 0) {
+        out.push({ name: `${t.rowTitles[r]?.trim() || `Row ${r + 1}`} · ${t.datasets[d]?.name.trim()
+          || `Data set ${d + 1}`}`, n: c.n });
+      }
+    }));
+    return out;
   }
   // A long-format replicate map keeps experiment labels in a data set of
   // their own: it is not a group.
