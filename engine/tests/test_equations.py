@@ -17,6 +17,7 @@ import pytest
 from scipy.optimize import curve_fit
 
 from opendose import equations, nlfit
+from opendose import assay_growth, assay_synergy  # noqa: F401 (models)
 from opendose.equations import DataStats, fit_global_model
 from opendose.nlfit import MODELS, fit_model
 
@@ -207,6 +208,20 @@ SINGLE = [
      {"Bottom": 0, "Top": 1, "V50": -20, "Slope": 8}, {}),
     ("power_series", np.linspace(0.5, 5, 15),
      {"A": 2.0, "B": 1.5, "C": 0.5, "D": 0.5}, {}),
+    # registered by the assay modules: Zwietering (1990) growth with lag
+    # (assay_growth) and drc's LL.4 with X = concentration (assay_synergy)
+    ("zwietering_gompertz", T60, {"A": 3.2, "MuMax": 0.25, "Lag": 8.0}, {}),
+    ("zwietering_gompertz_baseline", T60,
+     {"Y0": -2.0, "A": 3.2, "MuMax": 0.25, "Lag": 8.0}, {}),
+    ("zwietering_logistic", T60, {"A": 3.2, "MuMax": 0.25, "Lag": 8.0}, {}),
+    ("zwietering_logistic_baseline", T60,
+     {"Y0": -2.0, "A": 3.2, "MuMax": 0.25, "Lag": 8.0}, {}),
+    ("zwietering_richards", T60,
+     {"A": 3.2, "MuMax": 0.25, "Lag": 8.0, "Nu": 0.5}, {}),
+    ("zwietering_richards_baseline", T60,
+     {"Y0": -2.0, "A": 3.2, "MuMax": 0.25, "Lag": 8.0, "Nu": 0.5}, {}),
+    ("log_logistic_4pl_conc", np.concatenate([[0.0], CONC]),
+     {"Bottom": 5, "Top": 95, "LogEC50": 1.5, "HillSlope": 1.2}, {}),
 ]
 
 # Equivalent parameterizations: (model, fn(params) -> canonical params)
