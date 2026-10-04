@@ -57,8 +57,8 @@ export default function AssayPicker({ onChange }: { onChange: (p: AssayPick | nu
         {mod && (
           <p className="field-note">
             Creates a {mod.tableName.toLowerCase()} table in the module's layout with its
-            analysis and graph, then opens the setup wizard. The results are linked tables
-            that follow the data.
+            analysis and graph{mod.wizard ? ", then opens the setup wizard" : ""}. Results and
+            linked tables follow the data.
           </p>
         )}
       </div>

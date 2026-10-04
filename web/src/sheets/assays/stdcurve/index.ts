@@ -60,6 +60,7 @@ export const stdcurveAssay: AssayModule = {
   emptyTable: emptyStdcurve,
   sampleTable: stdcurveSample,
   mainAnalysis: ANALYSIS_ASSAY_STDCURVE,
+  wizard: true,
   analyses: [{ def: stdcurveAnalysis, types: ["multivariable", "xy"] }],
   graphs: [{ def: stdcurveGraph, types: ["multivariable", "xy"] }],
 };

@@ -63,6 +63,7 @@ export const plateAssay: AssayModule = {
   sampleTable: plateSample,
   sampleOptions: () => ({ wells: rowsLayout() }),
   mainAnalysis: ANALYSIS_ASSAY_PLATE,
+  wizard: true,
   analyses: [{ def: plateAnalysis, types: ["multivariable"] }],
   graphs: [{ def: plateGraph, types: ["multivariable"] }],
 };

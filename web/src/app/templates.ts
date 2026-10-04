@@ -12,6 +12,7 @@ import {
   templateFromJson, type SheetTemplate,
 } from "../project/templates";
 import type { DataTableModel, Project, ProjectPrefs, TableType } from "../project/types";
+import { ASSAYS } from "../sheets/assays";
 import { REGISTRY, TABLE_ORDER } from "../sheets/registry";
 import { xySample } from "../sheets/xy/sample";
 import { budwormTable } from "../sheets/xy/quantalSample";
@@ -232,6 +233,13 @@ export function builtinTemplates(prefs: ProjectPrefs): SheetTemplate[] {
       analysis: "quantal",
       options: { link: "logit", doseTransform: "none", parallel: true, ecLevels: "25, 50, 75" },
     }));
+
+  // Assay modules' example tables, each with its analysis set up.
+  for (const t of ASSAYS.flatMap((m) => m.templates ?? [])) {
+    list.push(fromTable(prefs, t.id, t.name, t.description, t.table(), t.tableName, {
+      analysis: t.analysis, options: t.options, graphType: t.graphType,
+    }));
+  }
 
   for (const type of TABLE_ORDER) {
     const def = REGISTRY[type as TableType];

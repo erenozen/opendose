@@ -18,7 +18,12 @@
 // Usage: node scripts/e2e-assays.mjs http://localhost:5196/
 import { chromium } from "playwright";
 
-const url = process.argv[2] ?? "http://localhost:5173/";
+// ?example=1 opens the example project directly (no start screen, no tour).
+const url = (() => {
+  const u = new URL(process.argv[2] ?? "http://localhost:5173/");
+  u.searchParams.set("example", "1");
+  return u.toString();
+})();
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1500, height: 1100 } });
 const errors = [];
@@ -226,6 +231,36 @@ await page.locator(".dens-results").getByRole("button", { name: "Open “Normali
 expect("the linked matched table opens with the column ratio paired t test (Treated / Control 2.015)",
   await waitText(".result-card", "Ratio paired t test: Treated / Control")
   && (await textOf(".result-card")).includes("2.015"));
+
+// --- one registry: the modules without a wizard start from the picker too ---
+// GTT example, one subcolumn per mouse: trapezoid areas (numpy) chow
+// 20602.5, 19290, 21952.5, 20092.5 (mean 20484.375), high-fat diet mean
+// 33110.625; unpaired t test t(6) = 10.15, P = 5.31e-5 (scipy).
+await page.getByRole("button", { name: "New data table" }).click();
+const pick = page.locator(".new-table-dialog");
+await pick.getByRole("radio", { name: "Start from an assay" }).check();
+const nModules = await pick.locator('input[name="assay-module"]').count();
+expect("Start from an assay lists all ten modules", nModules === 10, String(nModules));
+await pick.getByRole("radio", { name: /^Area under the curve/ }).check();
+expect("a module without a wizard says so", !(await pick.locator(".field-note").innerText()).includes("wizard"));
+await pick.getByRole("button", { name: "Start assay" }).click();
+await page.waitForSelector(".results-table", { timeout: 60000 });
+expect("the AUC module opens no wizard", (await wizard().count()) === 0);
+expect("AUC example: one area per mouse, chow 20480 (SD 1118), high-fat diet 33110 (SD 2221)",
+  await waitText(".pane-results", "Area per experiment")
+  && (await textOf(".pane-results")).includes("Chow 20480 1118 559 18710 to 22260 4 20600, 19290, 21950, 20090")
+  && (await textOf(".pane-results")).includes("High-fat diet 33110 2221"),
+  (await textOf(".pane-results")).slice(0, 400));
+expect("AUC example: areas compared by the unpaired t test, t(6) = -10.15",
+  (await textOf(".pane-results")).includes("t(6) = -10.15"));
+await page.getByRole("button", { name: "Analyze", exact: true }).click();
+expect("the Analyze menu has one Assays divider",
+  await page.locator('.analyze-menu [role=separator][aria-label="Assays"]').count() === 1);
+expect("both halves' assays are listed under it on an XY table",
+  await page.getByRole("menuitem", { name: /^Assay: Standard curve/ }).count() === 1
+  && await page.getByRole("menuitem", { name: /^Assay: Growth curves/ }).count() === 1
+  && await page.getByRole("menuitem", { name: /^Assay: Area under the curve/ }).count() === 1);
+await page.keyboard.press("Escape");
 
 console.log(errors.length ? `errors:\n${errors.join("\n")}` : "errors: none");
 await browser.close();

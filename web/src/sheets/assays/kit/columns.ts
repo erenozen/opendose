@@ -113,6 +113,25 @@ export function longTable(columns: { name: string; varType: VarType; values: str
   };
 }
 
+/** The layout of an example table without its values (column names,
+ *  types and subcolumns kept; at most `maxRows` blank rows): an assay
+ *  module's empty starting table. Row titles go too unless they are part
+ *  of the layout (a combination matrix's concentrations). */
+export function emptyLayout(t: DataTableModel, o: { maxRows?: number; keepRowTitles?: boolean } = {}): DataTableModel {
+  const n = Math.max(1, Math.min(t.x.length, o.maxRows ?? 48));
+  return {
+    ...t,
+    x: Array<string>(n).fill(""),
+    xExcluded: undefined,
+    rowTitles: o.keepRowTitles ? t.rowTitles.slice(0, n) : Array<string>(n).fill(""),
+    datasets: t.datasets.map((d) => ({
+      ...d,
+      rows: Array.from({ length: n }, (_, i) => (d.rows[i] ?? d.rows[0] ?? [""]).map(() => "")),
+      excluded: undefined,
+    })),
+  };
+}
+
 /** Number formatting for table cells built from engine output: up to 10
  *  significant digits (drops float noise such as 0.30000000000000004). */
 export function cellOf(v: number | null | undefined): string {

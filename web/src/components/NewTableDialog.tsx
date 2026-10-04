@@ -77,7 +77,7 @@ export default function NewTableDialog({ defaultType, defaultName, onCancel, onC
   const submit = () => {
     if (mode === "assay") {
       // Start from an assay: the module's input table, analysis and graph,
-      // then its setup wizard (sheets/assays).
+      // then its setup wizard when it has one (sheets/assays).
       if (!assay) return;
       let made = { dataId: "", resultsId: "" };
       apply((p) => {
@@ -85,7 +85,7 @@ export default function NewTableDialog({ defaultType, defaultName, onCancel, onC
         made = r;
         return r.project;
       });
-      if (made.resultsId) requestWizard(made.resultsId);
+      if (made.resultsId && assay.module.wizard) requestWizard(made.resultsId);
       onCancel();
       if (made.dataId) select(made.dataId);
       return;
