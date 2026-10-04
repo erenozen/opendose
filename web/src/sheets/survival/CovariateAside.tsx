@@ -13,8 +13,8 @@ export default function CovariateAside({ table, readOnly, onChange }: AsideProps
   const add = () => onChange((t) => addSurvivalCovariate(t, `Covariate ${survivalCovariateNames(t).length + 1}`));
   return (
     <div className="cov-aside" role="group" aria-label="Covariates for Cox regression">
-      <span className="cov-label">Covariates</span>
-      {names.length === 0 && <span className="field-note">none</span>}
+      <span className="cov-label">Covariates for Cox regression</span>
+      {names.length === 0 && <span className="cov-none">none</span>}
       {names.map((n, k) => (
         <span className="cov-chip" key={k}>
           <input value={table.datasets[0]?.subTitles?.[2 + k] ?? n} disabled={readOnly}
@@ -25,13 +25,10 @@ export default function CovariateAside({ table, readOnly, onChange }: AsideProps
             onClick={() => onChange((t) => removeSurvivalCovariate(t, k))}>×</button>
         </span>
       ))}
-      <button type="button" className="cov-add" disabled={readOnly} onClick={add}>
+      <button type="button" className="cov-add" disabled={readOnly} onClick={add}
+        title="One more column per subject (age, sex, dose…) in every group. Kaplan-Meier and the log-rank test ignore covariates.">
         Add covariate
       </button>
-      <span className="field-note">
-        Extra columns per subject (age, sex, dose…) for Cox regression;
-        Kaplan-Meier and the log-rank test ignore them.
-      </span>
     </div>
   );
 }

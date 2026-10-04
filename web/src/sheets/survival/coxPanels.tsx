@@ -313,7 +313,7 @@ export function CoxCurvesPlot({ graph, table, options, result, titles, scheme, f
     });
     const layout = baseLayout(chrome, titles.x || "Time", titles.y || "Adjusted percent survival", {
       showlegend: true,
-      legend: { orientation: "h", y: 1.02, yanchor: "bottom", x: 0, font: { color: chrome.ink } },
+      legend: { orientation: "h", y: 1.02, yanchor: "bottom", x: 0, traceorder: "normal", font: { color: chrome.ink } },
     });
     layout.yaxis = { ...layout.yaxis, range: [0, 105] };
     return { traces, layout, names };

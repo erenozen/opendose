@@ -281,7 +281,7 @@ export function QuantalPlot({ table, result, titles, scheme, format, onFormatCha
     });
     const layout = baseLayout(chrome, titles.x || table.xTitle || "Dose", titles.y || "Percent responding", {
       showlegend: result.groups.length > 1,
-      legend: { orientation: "h", y: 1.02, yanchor: "bottom", x: 0, font: { color: chrome.ink } },
+      legend: { orientation: "h", y: 1.02, yanchor: "bottom", x: 0, traceorder: "normal", font: { color: chrome.ink } },
     });
     layout.yaxis = { ...layout.yaxis, range: [-3, 103] };
     if (logAxis) layout.xaxis = { ...layout.xaxis, type: "log" };

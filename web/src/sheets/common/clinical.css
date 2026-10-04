@@ -46,4 +46,4 @@
   .cov-aside .cov-chip button:hover { color: var(--danger); background: transparent; }
 }
 .cov-aside .cov-add { font-size: 12.5px; padding: 4px 12px; }
-.cov-aside .field-note { flex-basis: 100%; }
+.cov-aside .cov-none { color: var(--muted); }
