@@ -21,6 +21,8 @@ src/
     multivariable/ nested/   ready (all eight table types)
     manipulate/     cross-type: Transform, Normalize, … (derived tables),
                     user formulas, Simulate data dialog, Monte Carlo
+    assays/         cross-type assay modules (growth, tumour growth, AUC,
+                    synergy, volcano, clustering); see below
   components/       shell UI: Navigator, Header, FamilyWorkspace, dialogs,
                     plus the existing panels the sheets wrap
   guide/            guidance: "Which test?" recommender and wizard, results
@@ -213,6 +215,36 @@ sheets can also carry `simulation: { kind, seed, form }`, written by the
 Simulate data dialog so a table can be re-simulated. Brand-new table types need a `TableType` member in
 `project/types.ts`, a `tableShape` entry in `project/table.ts`, and a
 registry entry.
+
+## Assay modules
+
+`assays/` holds workflows that start from a lab or instrument export
+rather than from one table type. Each module is one file exporting an
+`AssayModule` (`assays/types.ts`): analyses and graph kinds per table
+type, plus example tables that become built-in templates. `assays/index.ts`
+lists the modules in a one-entry-per-line array; `registry.ts` appends
+their analyses and graphs to each type after the type's own, and
+`app/templates.ts` adds their templates. Pure parts (`*Model.ts`,
+`*Sample.ts`) are unit-tested in `assays/__tests__/`; panels load lazily.
+
+- `growth`: XY growth curves → `growth_transform`, then `dose_response`
+  with a growth model; doubling time ln 2 / K (or ln 2 / MuMax); the
+  preprocessed curves as a linked table.
+- `tumour`: long records (multiple-variables table: subject, group, time,
+  value) or subjects as subcolumns of a grouped / XY table. Three
+  analyses share one controls panel with a "which analysis?" guide: the
+  mixed model (the grouped layout fed to the grouped sheet's
+  `runTwoWay`, rendered by its `TwoWayResults`), AUC per subject (`auc`
+  long mode → linked column table with its t test / ANOVA set up), time
+  to endpoint (→ linked survival table).
+- `auc`: the XY area-under-the-curve analysis.
+- `synergy`: a grouped table as a combination matrix (row titles = drug 1
+  concentrations, data-set titles = drug 2, subcolumns = replicate
+  matrices) or long records; landscapes, monotherapy and Fa–CI graphs.
+- `volcano`: multiple-variables fold-change / P tables (`fdr_adjust`).
+- `cluster`: grouped (cell means) and multiple-variables matrices →
+  `cluster_heatmap`; dendrograms are Plotly line traces on extra axes
+  aligned to the heat-map cells.
 
 ## Notes on specific analyses
 

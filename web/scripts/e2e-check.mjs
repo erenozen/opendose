@@ -17,7 +17,9 @@
 // sheet groups and floating notes surviving save / reopen / page reload,
 // go to sheet), a model from the engine's equation library and a
 // user-defined equation, Welch ANOVA with Games-Howell, the chi-square
-// test for trend and Deming regression, and the guidance: the "Which test?"
+// test for trend and Deming regression, the assay modules (growth curve
+// doubling time, synergy scores, AUC, clustered heat map, volcano from a
+// table, tumour growth), and the guidance: the "Which test?"
 // wizard, results chips, an ambiguous-fit banner, the start screen with
 // paste-and-suggest, and the guided tour (shown once).
 import { chromium } from "playwright";
@@ -1153,6 +1155,143 @@ const slopeRow = await paramRow("Slope");
 expect("Deming regression: slope 1.991", slopeRow.includes("1.991"), slopeRow.replace(/\s+/g, " "));
 expect("Deming graph draws the points and the line",
   await page.locator(".plot .scatterlayer .trace").count() === 2);
+
+// --- assay modules: growth, tumour growth, AUC, synergy, volcano, clustering
+// Native numbers from the engine (engine/tests): Growthcurver well A1
+// logistic K = 1.118657 → doubling time ln 2 / K = 0.6196 h; SynergyFinder
+// vignette block 1 Bliss summary 10.86; trapezoid area 7 of (0,0) (1,2)
+// (2,4) (3,2); average-linkage leaf order A, C, B, D / Z, X, Y (scipy).
+const assayTemplate = async (tpl, name) => {
+  await page.getByRole("button", { name: "New data table" }).click();
+  const dlg = page.locator(".new-table-dialog");
+  await dlg.getByRole("radio", { name: "From a template" }).check();
+  await dlg.getByRole("radio", { name: new RegExp(tpl) }).check();
+  await dlg.getByLabel("Table name").fill(name);
+  await dlg.getByRole("button", { name: "Create from template" }).click();
+};
+const resultsText = () => page.locator(".pane-results").first().innerText();
+await assayTemplate("Bacterial growth curve", "Growth A1");
+expect("growth curve (Growthcurver A1): logistic doubling time 0.6196 h",
+  await page.waitForFunction(() => [...document.querySelectorAll(".results-table tr")]
+    .some((tr) => /^A1\s+0\.6196 h/.test(tr.innerText.trim())), null, { timeout: 90000 })
+    .then(() => true, () => false));
+expect("growth curve: K = 1.119 from the same fit", (await resultsText()).includes("K\t1.119"));
+expect("growth graph draws the points and the fitted curve",
+  await page.locator(".plot .scatterlayer .trace").count() === 2);
+
+await assayTemplate("Drug combination matrix", "Combination");
+const blissRow = await page.locator(".results-table tr", { hasText: "Bliss (bliss independence)" })
+  .first().innerText({ timeout: 90000 }).catch(() => "");
+expect("synergy (SynergyFinder vignette block): Bliss summary score 10.86",
+  blissRow.includes("10.86"), blissRow.replace(/\s+/g, " "));
+expect("synergy: four landscapes on one diverging scale (one colour bar)",
+  await page.locator(".plot .heatmaplayer .hm").count() === 4
+  && await page.locator(".plot .colorbar").count() === 1);
+expect("synergy: Chou-Talalay table with combination indices",
+  (await resultsText()).includes("Combination index per dose pair") || (await page.locator(".results-table", { hasText: "Interpretation" }).count()) === 1);
+await page.locator(".graph-select").selectOption("synergy_fa_ci");
+expect("synergy: Fa-CI plot draws the combinations",
+  await appears(page.locator(".plot .scatterlayer .trace")));
+
+// AUC by trapezoid on a tiny XY table
+await page.getByRole("button", { name: "New data table" }).click();
+const aucDlg = page.locator(".new-table-dialog");
+await aucDlg.locator('input[name="table-type"][value="xy"]').check();
+await aucDlg.getByLabel("Table name").fill("Tiny curve");
+await aucDlg.getByLabel("Replicates per X").fill("1");
+await aucDlg.getByLabel("Rows (X values)").fill("4");
+await aucDlg.getByRole("button", { name: "Create table" }).click();
+await page.waitForSelector(".grid-toolbar");
+const AX = [0, 1, 2, 3], AY = [0, 2, 4, 2];
+for (let r = 0; r < 4; r++) {
+  await page.locator(`.data-table input[aria-label="X, row ${r + 1}"]`).fill(String(AX[r]));
+  await page.locator(`.data-table input[aria-label="Dataset A, row ${r + 1}"]`).fill(String(AY[r]));
+}
+await page.getByRole("button", { name: "Analyze", exact: true }).click();
+await page.getByRole("menuitem", { name: /^Area under the curve/ }).click();
+const areaRow = await page.locator(".results-table tbody tr", { hasText: "to 3" }).first()
+  .innerText({ timeout: 60000 }).catch(() => "");
+expect("AUC of a tiny table by trapezoid: area 7", areaRow.split("\t")[1] === "7", areaRow.replace(/\s+/g, " "));
+expect("AUC graph shades the area and draws the baseline",
+  await page.evaluate(() => {
+    const d = document.querySelector(".plot-card .plot");
+    return !!d?.data?.some((t) => t.fill === "toself") && (d.layout?.shapes ?? []).length >= 1;
+  }));
+
+// Clustering leaf order on a 4 × 3 grouped matrix
+await page.getByRole("button", { name: "New data table" }).click();
+const clDlg = page.locator(".new-table-dialog");
+await clDlg.locator('input[name="table-type"][value="grouped"]').check();
+await clDlg.getByLabel("Table name").fill("Cluster 4x3");
+const clShape = clDlg.locator(".field-num input");
+await clShape.nth(0).fill("3");
+await clShape.nth(1).fill("1");
+await clShape.nth(2).fill("4");
+await clDlg.getByRole("button", { name: "Create table" }).click();
+await page.waitForSelector(".grid-toolbar");
+const CM = [[1, 2, 3], [8, 9, 10], [1.5, 2.5, 2.5], [9, 8, 11]];
+for (let r = 0; r < 4; r++) {
+  await page.locator(`.data-table input[aria-label="Row ${r + 1} title"]`).fill("ABCD"[r]);
+  for (let d = 0; d < 3; d++) {
+    await page.locator(`.data-table input[aria-label="Dataset ${"ABC"[d]}, row ${r + 1}"]`).fill(String(CM[r][d]));
+  }
+}
+for (let d = 0; d < 3; d++) await page.locator(`input[aria-label="Dataset ${d + 1} title"]`).fill("XYZ"[d]);
+await page.getByRole("button", { name: "Analyze", exact: true }).click();
+await page.getByRole("menuitem", { name: /^Clustered heat map/ }).click();
+await page.locator(".controls").getByLabel("Standardise", { exact: true }).selectOption("none");
+expect("clustered heat map: row leaf order A, C, B, D (average linkage, scipy)",
+  await page.waitForFunction(() => document.querySelector(".pane-results")?.textContent
+    ?.includes("Row orderA, C, B, D"), null, { timeout: 60000 }).then(() => true, () => false));
+expect("clustered heat map: column leaf order Z, X, Y",
+  (await resultsText()).includes("Column order\tZ, X, Y"));
+expect("clustered heat map draws both dendrograms beside the cells",
+  await page.evaluate(() => {
+    const d = document.querySelector(".plot-card .plot");
+    return !!d?.layout?.xaxis2 && !!d?.layout?.xaxis3 && d.data.filter((t) => t.xaxis === "x2").length === 2
+      && d.data.filter((t) => t.xaxis === "x3").length === 3;
+  }));
+
+// Volcano from an imported table: Benjamini-Hochberg, 19 up and 12 down
+await assayTemplate("Fold-change table", "DE table");
+expect("volcano from a table (BH-adjusted P < 0.05, |log2FC| ≥ 1): 19 up, 12 down",
+  await page.waitForFunction(() => {
+    const t = document.querySelector(".pane-results")?.textContent ?? "";
+    return t.includes("Up19") && t.includes("Down12");
+  }, null, { timeout: 60000 }).then(() => true, () => false));
+expect("volcano labels the top ten hits",
+  await page.evaluate(() => (document.querySelector(".plot-card .plot")?.layout?.annotations ?? [])
+    .filter((a) => a.showarrow).length === 10));
+await page.getByRole("button", { name: "Create a table of the hits" }).click();
+expect("volcano: linked table of the 31 hits",
+  await page.waitForFunction(() => document.querySelectorAll(".data-table tbody tr").length >= 31,
+    null, { timeout: 30000 }).then(() => true, () => false));
+
+// Tumour growth: long format in, mixed model, AUC per animal, time to endpoint
+await assayTemplate("Tumour growth study", "Tumour study");
+expect("tumour growth: mixed model of log volume with the interaction and GG ε",
+  await page.waitForFunction(() => [...document.querySelectorAll(".results-table tr")]
+    .some((tr) => tr.innerText.startsWith("Day × Group")), null, { timeout: 90000 })
+    .then(() => true, () => false));
+expect("tumour growth: the per-day t test warning cites its source",
+  (await page.locator(".controls").innerText()).includes("Oberg et al. 2021"));
+await page.locator(".assay-guide li", { hasText: "Area under each animal" }).getByRole("button").click();
+expect("tumour growth: AUC per animal compared by one-way ANOVA, F(2, 21) = 26.56",
+  await page.waitForFunction(() => document.querySelector(".pane-results")?.textContent
+    ?.includes("F(2, 21) = 26.56"), null, { timeout: 60000 }).then(() => true, () => false));
+await page.getByRole("button", { name: "Create the AUC column table" }).click();
+expect("tumour growth: linked AUC column table opens with its one-way ANOVA",
+  await page.waitForSelector(".result-card h3:has-text('Ordinary one-way ANOVA')", { timeout: 60000 })
+    .then(() => true, () => false));
+await navRow("Tumour study").click();
+await page.locator(".mode-switch [role=tab]", { hasText: "Growth model" }).click();
+await page.locator(".assay-guide li", { hasText: "Time to an endpoint" }).getByRole("button").click();
+expect("tumour growth: time to 1000 mm³, log-rank χ²(2) = 29.42",
+  await page.waitForFunction(() => document.querySelector(".pane-results")?.textContent
+    ?.includes("χ²(2) = 29.42"), null, { timeout: 60000 }).then(() => true, () => false));
+await page.getByRole("button", { name: "Create the survival table" }).click();
+expect("tumour growth: linked survival table runs Kaplan-Meier",
+  await appears(page.locator(".plot .scatterlayer .trace"), 60000));
 
 // --- guidance: "Which test?" wizard, results chips, fit banner -----------
 // The column example (3 groups of 6) answered "each vs a control" is an

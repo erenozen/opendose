@@ -252,6 +252,21 @@ from the jsDelivr CDN, ~30 MB, then cached).
   per analysis; data-entry prompts; sourced explainers in a searchable
   Help panel (Ctrl/Cmd+/) with the keyboard shortcuts. `?example=1` opens
   the example project directly, without the start screen or the tour.
+- Assay modules (`web/src/sheets/assays/`, each with an example template
+  under New data table → From a template): growth curves on XY tables
+  (blank and log preprocessing, logistic / Gompertz / Zwietering lag
+  models, doubling time with CI; Growthcurver's example well); tumour
+  growth and other per-subject time courses from long records or
+  subjects-as-subcolumns (mixed model of log volume with per-time
+  comparisons as one family, AUC per animal as a linked column table,
+  time to an endpoint volume as a linked survival table, mean ± SEM or
+  spaghetti graphs); area under the curve for XY tables (baselines,
+  peaks, SE from replicates, comparisons, shaded graph); drug-combination
+  synergy from a dose matrix (HSA, Bliss, Loewe, ZIP landscapes and
+  scores with replicate SD, Chou–Talalay CI and DRI, Fa–CI plot); a
+  volcano plot from an imported fold-change / P table (FDR, thresholds,
+  top-N labels, linked hits table); clustered heat maps with dendrograms,
+  tree cuts, k-means and the elbow / silhouette / gap table.
 
 ## Roadmap
 
