@@ -952,6 +952,14 @@ def fit_model(x_values, y_values, model: str, *,
     # exp(-b2*X) underflows, used to be labelled "converged".
     if not np.all(np.isfinite(pcov)) or degenerate_fit:
         status = "ambiguous"
+    # A free parameter with a standard error of exactly zero while the fit
+    # still has residual error is not "perfectly determined": its Jacobian
+    # column has collapsed (a step-like curve whose derivatives underflow,
+    # seen on flat data under WebAssembly arithmetic where the native build
+    # returns a near-singular, astronomically wide covariance instead).
+    # Treat it like a singular covariance.
+    if free_names and wss > 0 and any(diag[i] == 0.0 for i in range(len(free_names))):
+        status = "ambiguous"
 
     # A midpoint fitted outside the x actually tested is an extrapolation:
     # the data never reaches half-maximal, so the value is read off the
