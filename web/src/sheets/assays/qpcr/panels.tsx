@@ -279,7 +279,8 @@ function CqImport({ onTable }: { onTable: (t: DataTableModel) => void }) {
     const used = rows.filter((x) => (x[sample] ?? "").trim() !== "" || (x[cq] ?? "").trim() !== "");
     const undetermined = used.filter((x) => isUndeterminedCq(x[cq] ?? "")).length;
     onTable(tableFromStaging(headers, used, fromName, columns));
-    setMsg(`Read ${used.length} wells.${undetermined ? ` ${undetermined} without a Cq (undetermined) are kept as missing.` : ""}`);
+    setMsg(`Read ${used.length} wells.${undetermined === 1 ? " 1 well without a Cq (undetermined) is kept as missing."
+      : undetermined ? ` ${undetermined} wells without a Cq (undetermined) are kept as missing.` : ""}`);
   };
   const take = (m: string[][]) => {
     const found = findCqHeader(m);

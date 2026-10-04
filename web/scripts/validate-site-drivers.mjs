@@ -1256,6 +1256,8 @@ def("synergy-mathews-block1", async (u, R) => {
   await u.settle("synergy (fill)");
   await u.select("Values are", "viability", { exact: true });
   await u.settle("synergy scores", { quiet: 2000 });
+  await u.page.getByLabel("Show matrices").selectOption("all");
+  await u.sleep(300);
   const s = await u.snap();
   const got = {};
   const concs2 = rows[0].slice(1).map(Number);
@@ -1273,11 +1275,12 @@ def("synergy-mathews-block1", async (u, R) => {
   }
   got.__notes = [`matrix titles: ${s.tables.map((t) => t.heading.split(" / ").pop()).filter(Boolean).slice(0, 12).join(" | ")}`];
   void concs2;
-  if (/very strong antagonism/.test(s.text) && /likely synergistic/.test(s.text)) {
+  if (/very strong antagonism/.test(s.text) && /likely synergistic/.test(s.text)
+    && !(await u.page.locator(".qc-chip", { hasText: "Monotherapy fit poor" }).count())) {
     u.friction("friction", "Synergy results contradict themselves without a clear flag: the four synergy scores read \"likely synergistic\" while the Chou-Talalay table below labels every dose pair \"very strong antagonism\" with combination indices up to 1e+28, because a monotherapy median-effect fit failed (r = −0.55); the warning is a sentence under the fits, and the CIs are still printed.");
   }
   return { ...got, __why: (q) => (/ic50|ri_|css/.test(q) ? "not shown: SynergyFinder's monotherapy IC50 / RI / CSS sensitivity scores are not reported"
-    : /_ref\[|_fit\[/.test(q) ? "not shown: the expected (reference) and ZIP-fitted response matrices are not printed, only the observed and synergy matrices" : null) };
+    : /_ref\[|_fit\[/.test(q) ? "not found: the expected (reference) or ZIP-fitted response matrix (Show: Every matrix)" : null) };
 });
 
 // --------------------------------------------------------------- power
@@ -1428,6 +1431,8 @@ def("qpcr-livak-table1", async (u, R) => {
   await wz.getByLabel("Paste Cq export").fill(u.csv());
   await wz.getByRole("button", { name: "Read pasted export" }).click();
   const st = await wz.locator("[role=status]").first().innerText();
+  const useCols = wz.getByRole("button", { name: "Use these columns" });
+  if (await useCols.count()) await useCols.click();   // mapping step: tissue → Sample prefilled
   if (/No Cq table found/.test(st)) {
     u.friction("friction", `qPCR wizard: a Cq export whose sample column is not literally called "Sample" is refused ("${st.slice(0, 110)}"); the column pickers below list the table's own fields, so the header must be renamed in the text first (tissue → Sample here).`);
     await wz.getByLabel("Paste Cq export").fill(u.csv().replace(/^tissue,replicate,target,Ct/, "Sample,Well,Target,Cq"));

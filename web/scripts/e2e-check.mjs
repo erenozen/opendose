@@ -1720,6 +1720,100 @@ await pw.getByRole("button", { name: "Done" }).click();
 expect("the sample-size justification is saved as an info sheet",
   await navRow("Sample size justification").count() === 1);
 
+// --- Power, qPCR, synergy (site validation follow-ups) ---
+// R: power.anova.test(groups = 4, between.var = 1, within.var = 3,
+// power = .80) -> n = 11.92613 per group (f = 0.5), 47.70 in total; the
+// detectable d for two groups of 20 (power 0.8, two-sided) is 0.9091,
+// and with SDs 1.2 and 1.4 the pooled SD is √1.7 = 1.304, so the
+// detectable difference is 1.185.
+await page.getByRole("button", { name: "Tools" }).click();
+await page.getByRole("menuitem", { name: /Power and sample size/ }).click();
+const pwv = page.locator("dialog.power-dialog");
+await pwv.getByLabel("Test", { exact: true }).selectOption("anova_oneway");
+await pwv.getByLabel("Groups (k)").fill("4");
+await pwv.getByLabel("Cohen's f").fill("0.5");
+const powerText = (re) => page.waitForFunction((src) => new RegExp(src)
+  .test(document.querySelector("dialog.power-dialog .power-summary")?.innerText ?? ""), re.source, { timeout: 30000 })
+  .then(() => true, () => false);
+expect("power (R power.anova.test): unrounded n per group 11.93 and total N 47.7, apart",
+  await powerText(/Unrounded n per group\s+11\.93\n.*Unrounded total N\s+47\.7/s)
+  && await powerText(/n per group\s+12 × 4/),
+  await pwv.locator(".power-summary").innerText().catch(() => ""));
+await pwv.getByLabel("Test", { exact: true }).selectOption("t_two_sample");
+await pwv.getByLabel("Solve for").selectOption("effect");
+await pwv.getByLabel("SD from").selectOption("groups");
+await pwv.getByLabel("SD, group 1").fill("1.2");
+await pwv.getByLabel("SD, group 2").fill("1.4");
+await pwv.getByLabel("Measurement unit").fill("mmol/L");
+expect("power: detectable difference in raw units, 1.19 mmol/L (d = 0.909 × pooled SD 1.3)",
+  await powerText(/Detectable difference\s+1\.19 mmol\/L \(d = 0\.909 × pooled SD 1\.3\)/),
+  await pwv.locator(".power-summary").innerText().catch(() => ""));
+await pwv.getByRole("button", { name: "Done" }).click();
+
+// qPCR: Livak & Schmittgen (2001) Table 1 as a QuantStudio-style export
+// (Sample Name, Target Name, CT) with one undetermined well added:
+// kidney vs brain ΔCq 4.365 (the undetermined c-myc well is left out).
+const livakCt = { Brain: { "c-myc": [30.72, 30.34, 30.58, 30.34, 30.50, 30.43], GAPDH: [23.70, 23.56, 23.47, 23.65, 23.69, 23.68] },
+  Kidney: { "c-myc": [27.06, 27.03, 27.03, 27.10, 26.99, 26.94], GAPDH: [22.76, 22.61, 22.62, 22.60, 22.61, 22.76] } };
+const qcsv = ["Sample Name,Target Name,CT"];
+for (const [tissue, genes] of Object.entries(livakCt)) {
+  for (const [gene, cts] of Object.entries(genes)) for (const c of cts) qcsv.push(`${tissue},${gene},${c}`);
+}
+qcsv.push("Kidney,c-myc,Undetermined");
+await page.getByRole("button", { name: "New data table" }).click();
+const qdlg = page.locator(".new-table-dialog");
+await qdlg.getByRole("radio", { name: "Start from an assay" }).check();
+await qdlg.getByRole("radio", { name: /^qPCR/ }).check();
+await qdlg.getByText("An empty layout").click();
+await qdlg.getByRole("button", { name: "Start assay" }).click();
+const qwz = page.locator("dialog.assay-wizard");
+await qwz.waitFor({ timeout: 30000 });
+await qwz.getByLabel("Paste Cq export").fill(qcsv.join("\n"));
+await qwz.getByRole("button", { name: "Read pasted export" }).click();
+expect("qPCR: Sample Name / Target Name / CT export read, the undetermined well kept as missing",
+  (await qwz.innerText()).includes("Read 25 wells. 1 well without a Cq (undetermined) is kept as missing."),
+  await qwz.locator(".assay-setup [role=status]").first().innerText().catch(() => ""));
+await qwz.locator("label", { hasText: /^GAPDH$/ }).locator("input").check().catch(() => {});
+for (let i = 0; i < 6; i++) {
+  const next = qwz.getByRole("button", { name: "Next", exact: true });
+  if (!(await next.count()) || await next.isDisabled()) break;
+  await next.click();
+  await page.waitForTimeout(250);
+}
+await qwz.locator(".modal-actions .btn-primary").click();
+await qwz.waitFor({ state: "detached", timeout: 10000 }).catch(() => {});
+await page.waitForSelector(".qpcr-results .qpcr-target", { timeout: 60000 }).catch(() => {});
+const qkid = (await page.locator(".qpcr-target tr", { hasText: /^Kidney/ }).first().innerText().catch(() => "")).replace(/\s+/g, " ");
+expect("qPCR from the variant headers: kidney ΔCq 4.365", qkid.includes("4.365"), qkid);
+
+// Synergy: the landscape and the matrix table show an expected matrix;
+// the monotherapy median-effect fit of Ispinesib slopes the wrong way
+// (r = −0.551), so the combination indices are flagged next to their table.
+await assayTemplate("Drug combination matrix", "Combination views");
+await page.locator(".results-table tr", { hasText: "Bliss (bliss independence)" }).first()
+  .waitFor({ timeout: 90000 }).catch(() => {});
+await page.waitForFunction(() => document.querySelectorAll(".plot .heatmaplayer .hm").length === 4,
+  null, { timeout: 30000 }).catch(() => {});
+const synGs = await graphSettings();
+await synGs.getByLabel("Show", { exact: true }).selectOption("bliss_expected");
+await closeGraphSettings();
+expect("synergy landscape: the Show select switches to the Bliss expected response (one map, % inhibition scale)",
+  await page.waitForFunction(() => {
+    const l = document.querySelector(".plot-card .plot")?.layout;
+    return document.querySelectorAll(".plot .heatmaplayer .hm").length === 1
+      && (l?.annotations ?? []).some((a) => /Bliss expected response/.test(a.text ?? ""));
+  }, null, { timeout: 15000 }).then(() => true, () => false));
+await page.getByLabel("Show matrices").selectOption("loewe_expected");
+const synRes = await resultsText();
+const synMats = await page.locator(".result-card", { hasText: "Synergy at each dose pair" }).first()
+  .locator("h4").allTextContents();
+expect("synergy results: the Show select prints the Loewe expected matrix alone",
+  synMats.length === 1 && synMats[0] === "Loewe expected response", JSON.stringify(synMats));
+expect("synergy results: a warning chip flags the poor monotherapy fit next to the CI table",
+  await page.locator(".result-card", { hasText: "Chou-Talalay combination index" }).locator(".qc-chip.qc-warn")
+    .filter({ hasText: "Monotherapy fit poor" }).count() === 1
+  && synRes.includes("slopes the wrong way (r = -0.551"));
+
 await page.screenshot({
   path: join(here, "app.png"),
   fullPage: true,
