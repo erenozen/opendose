@@ -181,8 +181,8 @@ await page.waitForTimeout(600);
   expect("methods text says statistics ran on the 3 experiment means",
     methods.includes("3 experiment means"), methods.slice(0, 120));
   const leg = await page.locator(".plot-card .figure-legend-text").innerText().catch(() => "");
-  expect("legend on replicate means: n counts experiments, values in all",
-    leg.includes("n = 3 independent experiments per group (54 values in all)"), leg);
+  expect("legend on replicate means: n counts experiments, the values inside each",
+    leg.includes("n = 3 independent experiments (18 values) per group"), leg);
 }
 
 await shot("superplot");
