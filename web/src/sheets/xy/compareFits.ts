@@ -7,7 +7,11 @@
 //  - "global": one curve for all data sets (every parameter shared: the
 //    data sets pooled into one fit) against a separate curve for each
 //    (each data set fitted on its own), compared here with the same
-//    F test and AICc as the engine (fitStats.ts).
+//    F test and AICc as the engine (fitStats.ts);
+//  - "parameter": one parameter (logEC50, Hill slope, Top ...) of model 1
+//    between two chosen data sets, by the engine's `compare_parameter`
+//    (difference / ratio with CI, F test and AICc for sharing it;
+//    compareParameter.ts).
 // The result keeps the per-data-set fit shape the XY graph draws (model 1
 // or the separate curves as `fit`, the other model's curve under
 // `altCurves`). Pure: unit-tested with node --test.
@@ -18,12 +22,13 @@ import { MODELS_META, modelMeta, modelsByFamily, type ModelMeta } from "../../li
 import {
   compareAicc, extraSumOfSquaresF, type AiccComparison, type FTest,
 } from "./fitStats.ts";
+import { comparableParameters, defaultParameter, runParameter } from "./compareParameter.ts";
 import { tQuantile } from "../grouped/stats.ts";
 
 export const ANALYSIS_COMPARE = "compare_fits";
 export const GRAPH_COMPARE = "compare_fits_xy";
 
-export type CompareMode = "models" | "global";
+export type CompareMode = "models" | "global" | "parameter";
 /** Which comparison to report: both, the F test (nested models) or AICc
  *  only (models that are not nested). */
 export type CompareMethod = "both" | "f" | "aicc";
@@ -39,6 +44,12 @@ export interface CompareOptions {
   /** X values are already log10(concentration) (log-X models). */
   xIsLog: boolean;
   errorBars: ErrorBarKind;
+  /** "parameter" mode: the parameter compared ("" = the model's midpoint,
+   *  logEC50 / logIC50) and the two data sets (indices into the table's
+   *  data sets; the ratio is B / A). */
+  parameter: string;
+  datasetA: number;
+  datasetB: number;
 }
 
 export const DEFAULT_COMPARE: CompareOptions = {
@@ -47,6 +58,7 @@ export const DEFAULT_COMPARE: CompareOptions = {
   model2: "log_inhibitor_vs_response_4pl",
   constraints1: {}, constraints2: {},
   method: "both", xIsLog: false, errorBars: "sd",
+  parameter: "", datasetA: 0, datasetB: 1,
 };
 
 const isConstraints = (v: unknown): v is Record<string, ConstraintState> =>
@@ -55,7 +67,7 @@ const isConstraints = (v: unknown): v is Record<string, ConstraintState> =>
 export function normalizeCompare(raw: unknown): CompareOptions {
   const r = (raw && typeof raw === "object" ? raw : {}) as Partial<CompareOptions>;
   return {
-    mode: r.mode === "global" ? "global" : "models",
+    mode: r.mode === "global" || r.mode === "parameter" ? r.mode : "models",
     model1: typeof r.model1 === "string" && r.model1 ? r.model1 : DEFAULT_COMPARE.model1,
     model2: typeof r.model2 === "string" && r.model2 ? r.model2 : DEFAULT_COMPARE.model2,
     constraints1: isConstraints(r.constraints1) ? r.constraints1 : {},
@@ -64,6 +76,9 @@ export function normalizeCompare(raw: unknown): CompareOptions {
     xIsLog: !!r.xIsLog,
     errorBars: (["sd", "sem", "ci95", "range", "none"] as const).includes(r.errorBars as ErrorBarKind)
       ? r.errorBars as ErrorBarKind : "sd",
+    parameter: typeof r.parameter === "string" ? r.parameter : "",
+    datasetA: Number.isInteger(r.datasetA) && (r.datasetA as number) >= 0 ? r.datasetA as number : 0,
+    datasetB: Number.isInteger(r.datasetB) && (r.datasetB as number) >= 0 ? r.datasetB as number : 1,
   };
 }
 
@@ -296,6 +311,22 @@ function runGlobal(engine: Engine, table: DataTableModel, o: CompareOptions): an
   };
 }
 
+/** The parameter a "parameter" comparison uses with these options. */
+export function chosenParameter(o: CompareOptions): string {
+  const m = modelMeta(o.model1);
+  return defaultParameter(comparableParameters(m, constraintValues(m, o.constraints1)), o.parameter);
+}
+
+function runOneParameter(engine: Engine, table: DataTableModel, o: CompareOptions): any {
+  if (!MODELS_META[o.model1]) return fail("Choose a model from the list");
+  const m = modelMeta(o.model1);
+  return runParameter(engine, table, {
+    model: m, held: constraintValues(m, o.constraints1), parameter: chosenParameter(o),
+    datasetA: o.datasetA, datasetB: o.datasetB, xIsLog: o.xIsLog, errorBars: o.errorBars,
+  });
+}
+
 export function runCompare(engine: Engine, table: DataTableModel, o: CompareOptions): any {
+  if (o.mode === "parameter") return runOneParameter(engine, table, o);
   return o.mode === "global" ? runGlobal(engine, table, o) : runModels(engine, table, o);
 }

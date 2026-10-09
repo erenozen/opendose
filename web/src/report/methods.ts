@@ -11,6 +11,7 @@ import { effectGroups, primaryEffect } from "./effects.ts";
 import { P_STYLES, type PStyle } from "./pformat.ts";
 import type { ReportMeta } from "./meta.ts";
 import type { ReportPrefs } from "./prefs.ts";
+import { compareParameterMethods } from "../sheets/xy/compareParameter.ts";
 
 const FLOOR_TEXT: Record<PStyle, string> = {
   graphpad: "P < 0.0001", apa: "p < .001", nejm: "P<0.001",
@@ -19,6 +20,10 @@ const FLOOR_TEXT: Record<PStyle, string> = {
 export function statsMethodsParagraph(result: unknown, prefs: ReportPrefs,
   meta: ReportMeta | undefined,
   opts: { powerJustification?: string | null; exclusions?: string | null } = {}): string {
+  const cmp = result as { analysis?: string; mode?: string; compare?: Record<string, unknown>; labels?: string[] } | null;
+  if (cmp?.analysis === "compare_fits" && cmp.mode === "parameter" && cmp.compare) {
+    return compareParameterMethods(cmp.compare, cmp.labels?.[0] ?? "nonlinear regression");
+  }
   const info = describeResult(result);
   if (!info.test) return "";
   const parts: string[] = [];
