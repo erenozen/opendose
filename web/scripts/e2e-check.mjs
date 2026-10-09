@@ -2953,7 +2953,7 @@ const axeOn = async (pg, sel) => {
 
   // (b) Plan next experiment: the pilot SD (pooled, 0.825) filled in; the
   // effect to detect is chosen (1 unit): 12 per group for 80% power.
-  await page.getByRole("button", { name: "Plan next experiment…" }).click();
+  await page.getByRole("button", { name: "Sample size for the next experiment…" }).click();
   const pw = page.locator("dialog.power-dialog");
   await pw.waitFor({ timeout: 15000 });
   const sdLine = await pw.locator(".power-pilot-sd").innerText();
@@ -3110,7 +3110,7 @@ const axeOn = async (pg, sel) => {
   const empty = p3.getByRole("list", { name: "Where to start" });
   expect("results empty state lists Help me choose, Plan an experiment and validation",
     await appears(empty) && (await empty.getByRole("button").allInnerTexts()).join("|")
-      === "Help me choose…|Plan an experiment…|Plan an experiment (power)…|How OpenDose is validated",
+      === "Help me choose…|Plan an experiment…|Sample size (power)…|How OpenDose is validated",
     await empty.innerText().catch(() => ""));
   const axeEmpty = await axeViolations(p3, [".results-empty-links"]);
   expect("axe-core: the empty results' entry points pass", axeEmpty.length === 0, axeEmpty.join(" | "));

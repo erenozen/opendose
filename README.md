@@ -297,7 +297,7 @@ example's numbers, regenerate them against a dev server with
   apart; the detectable effect also in raw units from the SDs), with
   power curves and an ARRIVE-style
   justification sentence; a seeded randomisation list generator (simple,
-  shuffled, permuted blocks, stratified) to CSV. "Plan next experiment…"
+  shuffled, permuted blocks, stratified) to CSV. "Sample size for the next experiment…"
   on t test and one-way ANOVA results opens it with the pilot SD filled
   in and the effect to detect chosen by the user (never observed power).
 

@@ -823,9 +823,11 @@ Wave 1:
       ANOVA and RM ANOVA with two treatments
       (`sheets/column/residualsPanel.tsx`).
 - [x] #8 How many animals or replicates (`power-sample-size`). Done:
-      "Plan next experiment…" on t test and one-way ANOVA results and in
-      the empty results pane opens the power tool with the pilot SD; the
-      effect is chosen by the user, never observed power (FAQ 1710;
+      "Sample size for the next experiment…" on t test and one-way ANOVA
+      results opens the power tool with the pilot SD ("Sample size
+      (power)…" in the empty results pane opens it blank; "Plan an
+      experiment…" is the design planner, #38); the effect is chosen by
+      the user, never observed power (FAQ 1710;
       `power/pilot.ts`).
 - [x] #9 Experiment as a block (`experiment-as-block`). Done: wizard
       question (`guide/blocking.ts`) opens the matched analysis; RM ANOVA
@@ -1034,7 +1036,7 @@ and Image Lab by design (#35), not for want of a server.
 What the packages left undone, with the reason:
 
 - **Discoverability (Wave 0)**
-  - "Plan next experiment" is on t test and one-way ANOVA results only:
+  - "Sample size for the next experiment" is on t test and one-way ANOVA results only:
     rank tests, Welch ANOVA without group SDs and the ratio t open the
     plain power tool (no pilot SD to fill in).
   - Cox, Mann-Whitney, Wilcoxon, Kruskal-Wallis, simple linear
@@ -1129,8 +1131,8 @@ What the packages left undone, with the reason:
   - Interaction contrasts are not computed for repeated-measures two-way
     designs (the wizard says so).
 - **Large data and plain language**
-  - The What-this-means line sits above the results card, not under each
-    key table.
+  - The What-this-means line is one block under the results (above the
+    results sentence), not a line under each key table.
   - The t test's percentage difference has no CI (the CI is given in the
     data's units).
   - 66 `Math.min` / `Math.max` spread calls elsewhere could overflow

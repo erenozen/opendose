@@ -2,6 +2,8 @@ import { useMemo } from "react";
 import { analysisPlan, dataNotes } from "../project/dataNotes";
 import type { DataTableModel } from "../project/types";
 import { SRC, type Source } from "../guide/sources";
+import { survivalWarnings } from "../sheets/survival/extras";
+import { ANALYSIS_SURVIVAL } from "../project/builtin";
 import "../sheets/common/dataNotes.css";
 
 /**
@@ -17,8 +19,15 @@ export default function NotesStrip({ analysisId, table, options, result }: {
   options: unknown;
   result: unknown;
 }) {
-  const notes = useMemo(() => (result == null ? null
-    : dataNotes({ analysisId, table, options, result })), [analysisId, table, options, result]);
+  const notes = useMemo(() => {
+    if (result == null) return null;
+    const n = dataNotes({ analysisId, table, options, result });
+    // The survival results list the engine's warnings under the medians,
+    // with the few-events rule and its sources: each is said once, there.
+    if (analysisId !== ANALYSIS_SURVIVAL) return n;
+    const there = survivalWarnings(result as Parameters<typeof survivalWarnings>[0]);
+    return { ...n, notes: n.notes.filter((x) => x.from !== "engine" || !there.some((w) => x.text.endsWith(w.trim()))) };
+  }, [analysisId, table, options, result]);
   if (!notes || (!notes.analysed && !notes.notes.length)) return null;
   const kind = analysisPlan(analysisId, table, options).kind;
   // The rules the Analysed line follows, with their sources.

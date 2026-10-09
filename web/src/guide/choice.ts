@@ -5,9 +5,18 @@
 export interface ChosenTest { test: string; reason: string }
 
 const chosen = new Map<string, ChosenTest>();
+const listeners = new Set<() => void>();
+const changed = () => listeners.forEach((f) => f());
+
+/** Called when a reason is remembered or dismissed (useSyncExternalStore). */
+export function subscribeChoice(f: () => void): () => void {
+  listeners.add(f);
+  return () => { listeners.delete(f); };
+}
 
 export function rememberChoice(resultsId: string, c: ChosenTest): void {
   chosen.set(resultsId, c);
+  changed();
 }
 
 export function choiceFor(resultsId: string): ChosenTest | null {
@@ -15,5 +24,5 @@ export function choiceFor(resultsId: string): ChosenTest | null {
 }
 
 export function forgetChoice(resultsId: string): void {
-  chosen.delete(resultsId);
+  if (chosen.delete(resultsId)) changed();
 }
