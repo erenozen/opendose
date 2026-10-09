@@ -51,6 +51,9 @@ export interface TwoWayOptions {
   direction: TwoWayDirection;
   /** Ordinary design: full model (with interaction) or main effects only. */
   model: TwoWayModel;
+  /** Show the Interaction block first ("Is the treatment effect different
+   *  between groups?", guide/interaction.ts). Absent = after the ANOVA. */
+  interactionFocus?: boolean;
 }
 
 export const DEFAULT_TWO_WAY: TwoWayOptions = {
@@ -89,6 +92,7 @@ export function normalizeTwoWay(raw: unknown): TwoWayOptions {
     direction: pick(o.direction, ["columns_within_rows", "rows_within_columns",
       "column_means", "row_means", "all_cells"] as const, d.direction),
     model: pick(o.model, ["full", "additive"] as const, d.model),
+    ...(o.interactionFocus === true ? { interactionFocus: true } : {}),
   };
 }
 

@@ -1,6 +1,7 @@
 // Project files. Version 2 is the multi-sheet project; version 1 (the
 // single-table app) is migrated on open into one data sheet + its results
 // sheet + its graph.
+import { parsePlan } from "./plan.ts";
 import { isSchemeId } from "../lib/palette.ts";
 import { DEFAULT_COLUMN_OPTIONS, DEFAULT_XY_OPTIONS } from "../types.ts";
 import {
@@ -229,15 +230,18 @@ function normalizeV2(r: Record<string, unknown>, ctx: LoadContext): Project {
         });
         break;
       }
-      case "info":
+      case "info": {
+        const plan = parsePlan(s.plan);
         sheets.push({
           ...common, kind: "info", parentId: str(s.parentId) || null,
           notes: str(s.notes),
           constants: Array.isArray(s.constants)
             ? s.constants.map((c) => ({ name: str(obj(c).name), value: str(obj(c).value) }))
             : [],
+          ...(plan ? { plan } : {}),
         });
         break;
+      }
       case "layout": {
         const g = obj(s.grid);
         const int = (v: unknown, d: number) =>

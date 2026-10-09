@@ -9,6 +9,7 @@ import type { GraphFormat } from "../graph/format.ts";
 import type { CIMethod, ErrorBarKind } from "../types.ts";
 import type { ReportMeta } from "../report/meta.ts";
 import type { ReportPrefs } from "../report/prefs.ts";
+import type { AnalysisPlan } from "./plan.ts";
 import type { ProjectRecipe } from "./recipes.ts";
 
 export type Cell = string; // raw user input; "" = blank
@@ -257,6 +258,8 @@ export interface InfoSheet extends SheetBase {
   parentId: string | null;  // linked data table, or null for project-wide
   notes: string;
   constants: InfoConstant[];
+  /** An analysis plan written before the data (project/plan.ts). */
+  plan?: AnalysisPlan;
 }
 
 export interface ResultsSheet extends SheetBase {

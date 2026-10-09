@@ -93,6 +93,12 @@ export function ResultsEmptyLinks() {
           <span>Answer a few questions about this table; get a test with its reason.</span>
         </li>
       )}
+      {guide && (
+        <li>
+          <button type="button" onClick={guide.openPlanner}>Plan an experiment…</button>
+          <span>Before the data: the table, the analysis, n and design checks, saved as an analysis plan.</span>
+        </li>
+      )}
       <li>
         <button type="button" onClick={() => openPowerTool("power")}>
           Plan an experiment (power)…</button>

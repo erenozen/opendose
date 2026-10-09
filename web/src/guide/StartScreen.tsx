@@ -10,7 +10,7 @@ import { newId } from "../project/ids";
 import type { TableType } from "../project/types";
 import { TABLE_ORDER, tableDef } from "../sheets/registry";
 import { guidedExampleProject, singleTableProject } from "./actions";
-import { setStartScreenEnabled, startScreenEnabled, tourDone } from "./context";
+import { setStartScreenEnabled, startScreenEnabled, tourDone, useGuideOptional } from "./context";
 import { buildTable, parsePasted, suggestTableType } from "./paste";
 import { CARD_TEXT, SKETCHES } from "./sketches";
 import DescribeExperimentButton from "./DescribeExperimentButton";
@@ -27,6 +27,7 @@ export default function StartScreen({ onOpenFile, onClose, onTour }: {
   onTour: () => void;
 }) {
   const { replace, store, status, engineReady, engineError } = useProject();
+  const guide = useGuideOptional();
   const prefs = store.project.prefs;
   const [text, setText] = useState("");
   const [override, setOverride] = useState<TableType | null>(null);
@@ -151,6 +152,11 @@ export default function StartScreen({ onOpenFile, onClose, onTour }: {
           <h3 id="start-types-h" className="start-section">Or choose a table type</h3>
           <DescribeExperimentButton onPick={(r) => begin(singleTableProject(prefs, newId, r.type,
             { table: tableDef(r.type).defaultTable(r.init) }))} />
+          <button type="button" className="describe-experiment" onClick={() => {
+            // A fresh project, then the planner over it.
+            begin(singleTableProject(prefs, newId, "column"));
+            guide?.openPlanner();
+          }}>Plan an experiment before collecting data…</button>
           <ul className="start-cards">
             {TABLE_ORDER.map((t) => {
               const def = tableDef(t);

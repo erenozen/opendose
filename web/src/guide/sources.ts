@@ -172,6 +172,50 @@ export const SRC = {
   // mean (SD), not SEM for variability; exact P; state tails.
   sampl: { label: "Lang & Altman, SAMPL guidelines (EQUATOR Network)",
     url: "https://www.equator-network.org/reporting-guidelines/sampl/" },
+
+  // Wave 2 (needs preregistration-plan, design-stage-checks,
+  // interaction-question). Every URL loaded and read on 2026-10-09.
+  // The interaction asks whether the effect of one factor is the same at
+  // every level of the other; often the most important of the three tests.
+  gpTwoWayResults: { label: "GraphPad Statistics Guide: Interpreting results: Two-way ANOVA",
+    url: `${S}how_to_think_about_results_from_two-way_anova.htm` },
+  // "Significant" vs "not significant" is not itself a significant
+  // difference: test the difference of the effects.
+  gelmanStern2006: { label: "Gelman & Stern 2006, The difference between “significant” and “not significant” is not itself statistically significant, Am Stat 60:328",
+    url: "https://doi.org/10.1198/000313006X152649" },
+  // 79 of 157 neuroscience papers compared two separate tests instead of
+  // testing the interaction.
+  nieuwenhuis2011: { label: "Nieuwenhuis, Forstmann & Wagenmakers 2011, Erroneous analyses of interactions in neuroscience: a problem of significance, Nat Neurosci 14:1105",
+    url: "https://doi.org/10.1038/nn.2886" },
+  // Pairwise log-rank tests with a multiplicity correction; the log-rank
+  // test for trend for ordered groups.
+  gpSurvivalPairwise: { label: "GraphPad Statistics Guide: Interpreting results: Multiple comparisons of survival curves",
+    url: `${S}stat_multiple_comparisons_of_surviv.htm` },
+  gpLogrankTrend: { label: "GraphPad Statistics Guide: The logrank test for trend",
+    url: `${S}stat_the_logrank_test_for_trend_.htm` },
+  // Results are only interpretable at face value when every analysis
+  // choice was made as planned; one-tailed P only with a recorded
+  // prediction; say whether n was chosen in advance.
+  gpDontPHack: { label: "GraphPad Statistics Guide: Advice: Don't P-Hack",
+    url: `${S}stat_advice_dont_p-hack.htm` },
+  motulsky2014: { label: "Motulsky 2014, Common misconceptions about data analysis and statistics, Naunyn-Schmiedeberg's Arch Pharmacol 387:1017",
+    url: "https://pmc.ncbi.nlm.nih.gov/articles/PMC4203998/" },
+  // ARRIVE 2.0: 1 study design (control groups, experimental unit),
+  // 4 randomisation, 5 blinding, 19 protocol registration.
+  arrive2020: { label: "Percie du Sert et al. 2020, The ARRIVE guidelines 2.0, PLoS Biol 18:e3000410",
+    url: "https://doi.org/10.1371/journal.pbio.3000410" },
+  arriveRandomisation: { label: "ARRIVE 2.0 item 4: Randomisation",
+    url: "https://arriveguidelines.org/arrive-guidelines/randomisation" },
+  arriveBlinding: { label: "ARRIVE 2.0 item 5: Blinding/masking",
+    url: "https://arriveguidelines.org/arrive-guidelines/blinding" },
+  arriveProtocol: { label: "ARRIVE 2.0 item 19: Protocol registration",
+    url: "https://arriveguidelines.org/arrive-guidelines/protocol-registration" },
+  arriveDesign: { label: "ARRIVE 2.0 item 1: Study design",
+    url: "https://arriveguidelines.org/arrive-guidelines/study-design" },
+  // Technical repeats / nested observations treated as independent
+  // inflate false positives; use the unit or a multilevel model.
+  aarts2014: { label: "Aarts et al. 2014, A solution to dependency: using multilevel analysis to accommodate nested data, Nat Neurosci 17:491",
+    url: "https://doi.org/10.1038/nn.3648" },
 } satisfies Record<string, Source>;
 
 export type SourceKey = keyof typeof SRC;

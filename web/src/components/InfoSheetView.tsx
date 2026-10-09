@@ -1,6 +1,8 @@
 import { useProject } from "../app/context";
 import { updateSheet } from "../project/ops";
 import type { InfoConstant, InfoSheet, Sheet } from "../project/types";
+import { emptyPlan, planFromResults, resultsOf } from "../project/plan";
+import AnalysisPlanView from "./AnalysisPlanView";
 
 /**
  * Info sheet: a table of named constants on the left (experiment date,
@@ -19,8 +21,26 @@ export default function InfoSheetView({ sheet }: { sheet: InfoSheet }) {
   const c = sheet.constants;
   const dataSheets = project.sheets.filter((s) => s.kind === "data");
 
+  // "Analysis plan": a plan written on this sheet, from the linked table's
+  // first test when it has one (project/plan.ts).
+  const writePlan = () => edit((s) => {
+    const d = project.sheets.find((x) => x.id === s.parentId);
+    const first = d?.kind === "data" ? resultsOf(project, d.id)[0] : undefined;
+    const at = new Date().toISOString();
+    const plan = first && d?.kind === "data" ? planFromResults(first, d.table, at) : emptyPlan(at);
+    return { ...s, plan: { ...plan, groups: plan.groups.length || d?.kind !== "data" ? plan.groups
+      : d.table.datasets.map((x, i) => x.name || `Data set ${i + 1}`) } };
+  });
+
   return (
     <main className="info-main">
+      {sheet.plan ? <AnalysisPlanView sheet={{ ...sheet, plan: sheet.plan }} /> : !ro && (
+        <p className="plan-strip">
+          <button type="button" className="linkish" onClick={writePlan}>Write an analysis plan on this sheet</button>{" "}
+          <span>primary comparison, test, n per group, exclusion rule and α, written before the
+            data; results of the linked table are checked against it.</span>
+        </p>
+      )}
       <div className="info-grid">
         <section className="result-card info-constants" aria-labelledby="info-constants-h">
           <h3 id="info-constants-h">Constants</h3>
