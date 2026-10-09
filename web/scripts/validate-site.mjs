@@ -8,6 +8,8 @@
 //   node scripts/validate-site.mjs https://erenozen.dev/opendose/
 //   node scripts/validate-site.mjs <url> --only=nist-misra1a,r-sleep
 //   node scripts/validate-site.mjs <url> --no-perf | --no-data | --dump
+//   node scripts/validate-site.mjs <url> --digits=10   (results precision; default 6)
+//   node scripts/validate-site.mjs <url> --out=/tmp/run10   (writes /tmp/run10.json and .md)
 //
 // Outputs: docs/validation/results-site.json, docs/validation/results-site.md
 // and one 900 px wide PNG per dataset under docs/validation/site-screens/.
@@ -30,6 +32,12 @@ const skip = (args.find((a) => a.startsWith("--skip=")) ?? "").slice(7).split(",
 const doPerf = !args.includes("--no-perf") && !only.length;
 const doData = !args.includes("--no-data");
 const dump = args.includes("--dump");
+// Results precision chosen in Preferences. The documented protocol (and the
+// 2026-10-04 run) reads results at 6 significant digits; Preferences offer
+// up to 10 since 0.4.0, and a run at 10 is useful as a separate check.
+const digits = Number((args.find((a) => a.startsWith("--digits=")) ?? "--digits=6").slice(9));
+if (!Number.isInteger(digits) || digits < 1) throw new Error(`--digits must be a whole number, got ${digits}`);
+const outBase = (args.find((a) => a.startsWith("--out=")) ?? "").slice(6);
 const partial = only.length > 0 || skip.length > 0 || !doPerf || !doData;
 mkdirSync(SCREENS, { recursive: true });
 
@@ -47,7 +55,11 @@ const csvOf = (id) => readFileSync(join(corpus.get(id).dir, corpus.get(id).file)
   .replace(/^﻿/, "").replace(/\r/g, "");
 
 // -------------------------------------------------------------- comparing
-const isPQuantity = (q) => q.split(/[.\[\]]/).some((s) => /^p(_|$)/i.test(s) || /_p$/i.test(s))
+/** The results precision the run reads at (set from Preferences below):
+ *  the page strips trailing zeros, so a shown value is taken to carry at
+ *  least this many significant digits. */
+let resultDigits = digits;
+const isPQuantity = (q) => q.split(/[.[\]]/).some((s) => /^p(_|$)/i.test(s) || /_p$/i.test(s))
   || /pairwise_t_pooled|p_adj/i.test(q);
 
 /** First number in a shown string, with its significant digits. */
@@ -82,10 +94,13 @@ export function compare(ref, got, ds = null) {
   const g = typeof got === "string" ? { s: got } : got;
   const p = g.value !== undefined ? { value: g.value, sig: g.sigShown ?? g.sig ?? 15, floor: null, text: String(g.value) } : parseShown(g.s);
   if (!p) return { ...base, shown: g.s, status: "missing", note: `could not read a number from "${g.s}"` };
-  const minSig = g.sig ?? (isPQuantity(ref.quantity) ? 4 : 6);
+  const minSig = g.sig ?? (isPQuantity(ref.quantity) ? 4 : resultDigits);
   const eff = Math.max(p.sig, minSig);
   let value = p.value;
   let half = value === 0 ? 0 : 0.5 * 10 ** (Math.floor(Math.log10(Math.abs(value))) - (eff - 1));
+  // a value computed from shown numbers carries their rounding: the driver
+  // passes that half-width (propagated) instead of one from its digits
+  if (g.value !== undefined && typeof g.half === "number") half = g.half;
   if (g.pct) { value /= 100; half /= 100; }
   if (g.conv) {
     const v2 = g.conv(value);
@@ -169,6 +184,11 @@ function helpers(page, log, dsId) {
     sleep: (ms) => page.waitForTimeout(ms),
 
     async newProject() {
+      // a driver that failed half-way can leave a dialog open over the page
+      for (let i = 0; i < 3 && await page.locator("dialog[open], [role=dialog]:visible, [role=alertdialog]:visible").count(); i++) {
+        await page.keyboard.press("Escape");
+        await u.sleep(300);
+      }
       await page.getByRole("button", { name: "New project" }).click();
       await page.getByRole("alertdialog").getByRole("button", { name: "New project" }).click();
       await page.waitForSelector(".grid-toolbar");
@@ -242,11 +262,25 @@ function helpers(page, log, dsId) {
       await imp.getByRole("tab", { name: "Recipes" }).click();
       const rd = page.locator(".recipe-dialog");
       await rd.waitFor();
+      // Since 0.4.0 the Source step recognises instrument exports and picks
+      // a recipe; a long table whose first column holds A/B (r-warpbreaks'
+      // wool) is taken for a plate-reader grid. Choose the long-table
+      // recipe by name, as a user would.
+      const longRecipe = rd.getByRole("radio", { name: /^Long \(tidy\) table/ });
+      if (await longRecipe.count()) {
+        const guess = (await rd.getByText(/^Looks like: /).first().innerText().catch(() => "")).trim();
+        if (guess && !/Long \(tidy\) table/.test(guess)) {
+          u.friction("friction", "Import → Recipes: \"Recognise the file\" takes a long (tidy) table for an instrument export and picks that recipe; the long-table recipe has to be chosen by hand.", guess);
+        }
+        await longRecipe.check();
+      }
       await rd.getByRole("tab", { name: "Columns" }).click();
       for (const [c, r] of Object.entries(roles)) await rd.getByLabel(`Column ${c} holds`).selectOption(r);
       await rd.getByRole("tab", { name: "Table" }).click();
-      await rd.locator("input[name='rcp-out']").nth(["column", "grouped", "xy", "multivariable", "survival", "nested"].indexOf(output)).check();
-      if (name) await rd.locator(".dialog-panel .field input").last().fill(name);
+      const outLabel = { column: /^Column \(/, grouped: /^Grouped \(/, xy: /^XY \(/, multivariable: /^Multiple variables \(/,
+        survival: /^Survival \(/, nested: /^Nested \(/ }[output];
+      await rd.getByRole("radio", { name: outLabel }).check();
+      if (name) await rd.getByRole("textbox", { name: "Table name", exact: true }).fill(name);
       const counts = await rd.locator(".import-summary").innerText().catch(() => "");
       await rd.getByRole("button", { name: "Create table" }).click();
       await rd.waitFor({ state: "detached", timeout: 15000 }).catch(() => {});
@@ -433,18 +467,23 @@ if (doData) {
   const ids = [...DRIVERS.keys()].filter((id) => (!only.length || only.includes(id)) && !skip.includes(id));
   let sess = await newSession();
   sessionInfo.firstLoadMs = sess.loadMs;
-  // Preferences: results precision. The task asks for 8; the menu offers 3-6.
+  // Preferences: results precision, --digits (default 6, the documented
+  // protocol); the largest offered value when the site offers fewer.
   {
     const { page } = sess;
     await page.getByRole("button", { name: "Preferences" }).click();
     const sel = page.getByRole("dialog", { name: "Preferences" }).getByLabel("Significant digits in results");
-    const offered = await sel.locator("option").allInnerTexts();
+    const offered = (await sel.locator("option").allInnerTexts()).map((t) => t.trim());
     sessionInfo.digitsOffered = offered;
-    await sel.selectOption(offered.at(-1));
-    sessionInfo.digitsUsed = Number(offered.at(-1));
+    sessionInfo.digitsRequested = digits;
+    const use = offered.includes(String(digits)) ? String(digits)
+      : offered.filter((o) => Number(o) <= digits).at(-1) ?? offered.at(-1);
+    await sel.selectOption(use);
+    sessionInfo.digitsUsed = Number(use);
+    resultDigits = Number(use);
     await page.keyboard.press("Escape");
-    if (!offered.includes("8")) {
-      friction("missing", `Preferences → "Significant digits in results" offers only ${offered.join(", ")}; 8 (or more) cannot be chosen, so certified values (NIST, 10-15 digits) can be checked only to ${offered.at(-1)} significant digits. P values are always shown with 4 significant digits and P < 0.0001 only as "< 0.0001" (GraphPad style; APA/NEJM are coarser).`);
+    if (Number(use) !== digits) {
+      friction("missing", `Preferences → "Significant digits in results" offers only ${offered.join(", ")}; ${digits} cannot be chosen, so the run read results at ${use} significant digits.`);
     }
   }
   let n = 0;
@@ -530,7 +569,7 @@ const out = {
   manifests: manifests.map((m) => m.replace(REPO + "/", "")), session: sessionInfo,
   tolerance_rule: "manifest tolerance + half a unit in the last significant digit the page shows (two rounded numbers agree when their rounding intervals overlap); "
     + "the page strips trailing zeros, so a value is taken to carry the results precision setting "
-    + "(6 significant digits; P values 4) unless it shows more)",
+    + `(${sessionInfo.digitsUsed ?? digits} significant digits; P values 4) unless it shows more)`,
   summary: {
     datasets: results.length,
     pass: results.filter((r) => r.status === "pass").length,
@@ -561,9 +600,10 @@ if (existsSync(enginePath)) {
     }
   } catch { /* ignore */ }
 }
-const jsonPath = join(VAL, partial ? "results-site.partial.json" : "results-site.json");
+const base = outBase ? resolve(outBase) : join(VAL, partial ? "results-site.partial" : "results-site");
+const jsonPath = `${base}.json`;
 writeFileSync(jsonPath, JSON.stringify(out, (k, v) => (typeof v === "number" && !Number.isFinite(v) ? String(v) : v), 1));
 const { renderMarkdown } = await import("./validate-site-report.mjs");
-writeFileSync(join(VAL, partial ? "results-site.partial.md" : "results-site.md"), renderMarkdown(out));
+writeFileSync(`${base}.md`, renderMarkdown(out));
 console.log(`\nwrote ${jsonPath.replace(REPO + "/", "")}`);
 console.log(JSON.stringify(out.summary));

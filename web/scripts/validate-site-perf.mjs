@@ -441,7 +441,7 @@ export async function runPerf({ newSession, appUrl, browser, friction }) {
       await wz.waitFor({ timeout: 30000 });
     }
     const val = (r, c) => (c === 0 ? 1.21 + 0.01 * Math.sin(r) : c === 23 ? 0.06 + 0.005 * Math.cos(r)
-      : 0.06 + 1.15 / (1 + 10 ** ((11 - c) * 0.45 + 0.2 * (r % 8 - 4) * 0)) + 0.01 * Math.sin(r * 7 + c)).toFixed(4);
+      : 0.06 + 1.15 / (1 + 10 ** ((11 - c) * 0.45)) + 0.01 * Math.sin(r * 7 + c)).toFixed(4);
     const grid = Array.from({ length: 16 }, (_, r) => Array.from({ length: 24 }, (_, c) => val(r, c)));
     const labelled = [["", ...Array.from({ length: 24 }, (_, i) => i + 1)].join("\t"),
       ...grid.map((row, r) => ["ABCDEFGHIJKLMNOP"[r], ...row].join("\t"))].join("\n");
