@@ -19,6 +19,7 @@ import { autoFitGate, chooseReasonText } from "./autofit";
 import { ANALYSIS_LINREG, DEFAULT_LINREG, GRAPH_LINREG } from "./linreg";
 import { chooseModelOf } from "./run";
 import { switchResultsAnalysis } from "./switchAnalysis";
+import { CompareFitsLinks } from "../../components/ResultsLinks";
 import "./xy.css";
 
 /** Open the model picker of the controls pane (after "Fit a curve"). */
@@ -138,11 +139,19 @@ function ChooseModel({ sheet, reason }: { sheet: ResultsProps["sheet"]; reason: 
   );
 }
 
-export function NonlinResults({ sheet, table, result }:
+export function NonlinResults({ sheet, table, result, options }:
   ResultsProps<OptionsState, AnalysisResult>) {
   const choose = chooseModelOf(result);
   if (choose) return <ChooseModel sheet={sheet} reason={chooseReasonText(choose.reason)} />;
-  return <ResultsPanel result={result} xUnit={table.xUnit || "M"} />;
+  return (
+    <>
+      <ResultsPanel result={result} xUnit={table.xUnit || "M"} />
+      {result && !(result as { error?: unknown }).error && (
+        <CompareFitsLinks sheet={sheet} table={table} model={options.model}
+          xIsLog={!!options.xIsLog} />
+      )}
+    </>
+  );
 }
 
 export function NonlinMethods({ table, result, options }:

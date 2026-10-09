@@ -82,7 +82,7 @@ export default function HelpPanel({ initial, onClose, onWizard, onTour, onStart 
           </label>
           {!query && (
             <div className="help-actions">
-              <button type="button" className="btn-primary" onClick={onWizard}>Which test?…</button>
+              <button type="button" className="btn-primary" onClick={onWizard}>Help me choose a test…</button>
               <button type="button" onClick={onTour}>Take the tour</button>
               <button type="button" onClick={onStart}>Start screen</button>
             </div>

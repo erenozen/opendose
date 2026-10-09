@@ -24,6 +24,8 @@ import {
   type PowerForm,
   type PowerKind, type PowerResult, type RandomForm, type RandomResult,
 } from "./power";
+import { pilotForm, type PilotData } from "./pilot";
+import PilotCard from "./PilotCard";
 import "./power.css";
 
 type Tab = "power" | "random";
@@ -43,7 +45,9 @@ const EFFECT_LABEL: Record<PowerKind, string> = {
   correlation: "ρ", logrank: "Hazard ratio (treated vs control)", chi_square: "Cohen's w",
 };
 
-export default function PowerDialog({ initial, onClose }: { initial: Tab; onClose: () => void }) {
+export default function PowerDialog({ initial, pilot, onClose }: {
+  initial: Tab; pilot?: PilotData; onClose: () => void;
+}) {
   const [tab, setTab] = useState<Tab>(initial);
   return (
     <Modal title={tab === "power" ? "Power and sample size" : "Randomisation list"}
@@ -55,21 +59,24 @@ export default function PowerDialog({ initial, onClose }: { initial: Tab; onClos
         <button type="button" role="tab" aria-selected={tab === "random"} className={tab === "random" ? "active" : ""}
           onClick={() => setTab("random")}>Randomisation list</button>
       </div>
-      {tab === "power" ? <PowerTool /> : <RandomTool />}
+      {tab === "power" ? <PowerTool pilot={pilot} /> : <RandomTool />}
     </Modal>
   );
 }
 
 /* ------------------------------------------------------------ power */
 
-function PowerTool() {
+function PowerTool({ pilot }: { pilot?: PilotData }) {
   const { apply, select, readOnly } = useProject();
   const ui = useUi();
-  const [form, setForm] = useState<PowerForm>(defaultForm);
+  const [form, setForm] = useState<PowerForm>(() => (pilot ? pilotForm(defaultForm(), pilot)
+    : defaultForm()));
+  // "Plan next experiment": no effect yet until the user picks one.
+  const [effectChosen, setEffectChosen] = useState(!pilot);
   const [result, setResult] = useState<PowerResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [curves, setCurves] = useState<{ n: Curve; e: Curve; nLabel: string } | null>(null);
-  const set = (p: Partial<PowerForm>) => setForm((x) => ({ ...x, ...p }));
+  const set = (p: Partial<PowerForm>) => { setForm((x) => ({ ...x, ...p })); setEffectChosen(true); };
 
   // Recalculate as the inputs change (debounced, in the engine worker; a
   // newer input cancels what is still pending for the older one).
@@ -133,6 +140,9 @@ function PowerTool() {
   const solvingEffect = form.solve === "effect";
   const two = k === "t_two_sample" || k === "two_proportions" || k === "logrank";
   return (
+    <>
+    {/* "Plan next experiment": first, so a phone shows it before the inputs. */}
+    {pilot && <PilotCard pilot={pilot} form={form} setForm={(f) => { setForm(f); setEffectChosen(true); }} />}
     <div className="power-grid">
       <div className="controls power-inputs">
         <section>
@@ -182,7 +192,7 @@ function PowerTool() {
         </section>
       </div>
       <div className="power-output" aria-live="polite">
-        {error && <div className="results-error" role="alert">{error}</div>}
+        {error && effectChosen && <div className="results-error" role="alert">{error}</div>}
         {result && <PowerSummary r={result} form={form} />}
         {result?.justification && (
           <div className="result-card power-just">
@@ -205,6 +215,7 @@ function PowerTool() {
         {result && curves && <PowerCurves curves={curves} r={result} />}
       </div>
     </div>
+    </>
   );
 }
 

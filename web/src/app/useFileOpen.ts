@@ -27,7 +27,9 @@ export function useFileOpen() {
     });
     setPrismTables(null);
     if (first) select(first);
-  }, [apply, select]);
+    setStatus(`Imported ${tables.length} data table${tables.length === 1 ? "" : "s"} from the `
+      + "Prism file; analyses are recomputed here.");
+  }, [apply, select, setStatus]);
 
   const openPrism = useCallback(async (file: File) => {
     // Sent as bytes for both formats: a .prism file is a zip archive, and

@@ -8,14 +8,17 @@ import { useProject } from "../app/context";
 import Modal from "../components/Modal";
 import { newId } from "../project/ids";
 import { missingInRows, cellChecks } from "./stats";
-import type { DataSheet, TableType } from "../project/types";
+import type { TableType } from "../project/types";
+import { findSheet } from "../project/ops";
 import { tableDef } from "../sheets/registry";
 import { addConfiguredAnalysis, addTargetTable, dataSheetOf, fitsTable } from "./actions";
 import { ExplainerDetails } from "./LearnMore";
 import { normalityPs, withNormality } from "./useGroupChecks";
 import {
-  DEFAULT_DESIGN, deriveChecks, recommend, type DataChecks, type Design,
+  deriveChecks, recommend, type Alternative, type DataChecks, type Design, type Target,
 } from "./recommend";
+import { designFromTable, tableWording } from "./tablePrefill";
+import { rememberChoice } from "./choice";
 import { groupChecks } from "./stats";
 
 function Choice<T extends string>({ legend, value, options, onChange, hint }: {
@@ -45,32 +48,16 @@ function Choice<T extends string>({ legend, value, options, onChange, hint }: {
 
 const YES_NO: ["no" | "yes", string][] = [["no", "No"], ["yes", "Yes"]];
 
-/** A design guess from the table the wizard opens on. */
-function designFromTable(data: DataSheet | null): Design {
-  if (!data) return DEFAULT_DESIGN;
-  const t = data.table;
-  const k = t.datasets.filter((d) => d.rows.some((r) => r.some((v) => v.trim() !== ""))).length
-    || t.datasets.length;
-  const groups = k <= 1 ? "one" : k === 2 ? "two" : "three_plus";
-  switch (t.type) {
-    case "column": return { ...DEFAULT_DESIGN, groups };
-    case "nested": return { ...DEFAULT_DESIGN, groups: k <= 2 ? "two" : "three_plus",
-      replicates: "technical" };
-    case "grouped": return { ...DEFAULT_DESIGN, factors: "two", groups: "three_plus" };
-    case "contingency": return { ...DEFAULT_DESIGN, outcome: "counts",
-      groups: t.x.length <= 2 ? "two" : "three_plus", twoOutcomes: k <= 2 };
-    case "survival": return { ...DEFAULT_DESIGN, outcome: "survival", groups };
-    case "xy": return { ...DEFAULT_DESIGN, outcome: "curve" };
-    case "partsofwhole": return { ...DEFAULT_DESIGN, outcome: "counts", groups: "one",
-      twoOutcomes: false };
-    default: return DEFAULT_DESIGN;
-  }
-}
-
 export default function WhichTest({ onClose }: { onClose: () => void }) {
   const { project, selectedId, apply, select, engineReady } = useProject();
   const data = useMemo(() => dataSheetOf(project, selectedId), [project, selectedId]);
-  const [d, setD] = useState<Design>(() => designFromTable(data));
+  // Pre-filled from the table (groups, layout, replicates) and from the
+  // analysis on screen (a paired t test says the rows are matched).
+  const [d, setD] = useState<Design>(() => {
+    const s = findSheet(project, selectedId);
+    return designFromTable(data?.table, s?.kind === "results" ? s.options : undefined);
+  });
+  const words = useMemo(() => tableWording(data?.table), [data]);
   const set = (patch: Partial<Design>) => setD((x) => ({ ...x, ...patch }));
 
   // ---- data checks on the current table
@@ -107,25 +94,40 @@ export default function WhichTest({ onClose }: { onClose: () => void }) {
   const fits = !!rec.target && fitsTable(data, rec.target);
   const targetType = rec.target ? tableDef(rec.target.tableType as TableType) : null;
 
-  const open = () => {
-    const target = rec.target;
+  const openTarget = (target: Target | null, test: string, reason: string) => {
     if (!target) return;
     let goTo: string | null = null;
-    if (fits && data) {
+    let resultsId: string | null = null;
+    if (fitsTable(data, target) && data) {
       apply((p) => {
         const r = addConfiguredAnalysis(p, data.id, target, newId);
         goTo = r.resultsId;
+        resultsId = r.resultsId;
         return r.project;
       });
     } else {
       apply((p) => {
-        const r = addTargetTable(p, target, `${rec.test.replace(/ \(.*\)$/, "")} data`, newId);
+        const r = addTargetTable(p, target, `${test.replace(/ \(.*\)$/, "")} data`, newId);
         goTo = r.resultsId ?? r.dataId;
+        resultsId = r.resultsId;
         return r.project;
       });
     }
+    if (resultsId) rememberChoice(resultsId, { test, reason });
     onClose();
     if (goTo) select(goTo);
+  };
+  const open = () => openTarget(rec.target, rec.test, rec.reason);
+  /** An alternative OpenDose can open (e.g. Cox regression), as a button. */
+  const altButton = (a: Alternative) => {
+    if (!a.target) return null;
+    const here = fitsTable(data, a.target) && data;
+    return (
+      <button type="button" className="linkish wt-alt-open"
+        onClick={() => openTarget(a.target!, a.test, `${a.test}: ${a.when}.`)}>
+        {here ? `Open ${a.test} on “${data.name}”` : `Create a table for ${a.test}`}
+      </button>
+    );
   };
 
   const c = d.outcome === "continuous";
@@ -133,7 +135,7 @@ export default function WhichTest({ onClose }: { onClose: () => void }) {
     ["one", c ? "One (vs a value)" : "One"], ["two", "Two"], ["three_plus", "Three or more"]];
 
   return (
-    <Modal title="Which test?" className="modal-wide which-test" onClose={onClose}
+    <Modal title="Help me choose a test" className="modal-wide which-test" onClose={onClose}
       actions={
         <>
           <button type="button" onClick={onClose}>Cancel</button>
@@ -145,6 +147,7 @@ export default function WhichTest({ onClose }: { onClose: () => void }) {
       }>
       <p className="modal-text">
         Answer in terms of your experiment; the recommendation updates as you go.
+        {words.pairing || words.groupsHint ? " The questions use your own rows and columns." : ""}
         {data ? <> Data checks run on <strong>{data.name}</strong>.</> : null}
       </p>
       <div className="wt-grid">
@@ -157,7 +160,8 @@ export default function WhichTest({ onClose }: { onClose: () => void }) {
             onChange={(v) => set({ outcome: v })} />
           {d.outcome !== "curve" && (
             <Choice legend="How many groups or conditions?" value={d.groups} options={groupOpts}
-              onChange={(v) => set({ groups: v })} />
+              onChange={(v) => set({ groups: v })}
+              hint={c || d.outcome === "survival" ? words.groupsHint ?? undefined : undefined} />
           )}
           {c && d.groups !== "one" && (
             <Choice legend="How many factors?" value={d.factors}
@@ -174,15 +178,19 @@ export default function WhichTest({ onClose }: { onClose: () => void }) {
           {c && d.groups !== "one" && d.factors === "two" ? (
             <Choice legend="Is a factor measured repeatedly on the same subjects?" value={d.repeated}
               options={[["none", "No"], ["one", "One factor (e.g. time)"], ["both", "Both"]]}
-              onChange={(v) => set({ repeated: v, paired: v !== "none" })} />
+              onChange={(v) => set({ repeated: v, paired: v !== "none" })}
+              hint={words.repeatedHint ?? undefined} />
           ) : (d.outcome === "continuous" || d.outcome === "counts") && d.groups !== "one"
             && d.factors !== "three" && !(c && d.blocked) ? (
-              <Choice legend="Are measurements paired or repeated on the same subject (or matched, e.g. by experiment)?"
+              <Choice legend={c && words.pairing ? words.pairing
+                : "Are measurements paired or repeated on the same subject (or matched, e.g. by experiment)?"}
                 value={d.paired ? "yes" : "no"} options={YES_NO}
-                onChange={(v) => set({ paired: v === "yes" })} />
+                onChange={(v) => set({ paired: v === "yes" })}
+                hint={c && words.pairing ? words.pairingHint ?? undefined : undefined} />
             ) : null}
           {(c || d.outcome === "counts") && (
-            <Choice legend="What is each value?" value={d.replicates}
+            <Choice legend={c && words.replicates ? words.replicates : "What is each value?"}
+              value={d.replicates}
               options={[["independent", "One independent subject or experiment"],
                 ["technical", "A technical replicate within a biological unit"],
                 ["cells", "A cell (or well) within an animal or dish"]]}
@@ -317,7 +325,8 @@ export default function WhichTest({ onClose }: { onClose: () => void }) {
               <h4>Alternatives</h4>
               <ul className="wt-alts">
                 {rec.alternatives.map((a) => (
-                  <li key={a.test}><strong>{a.test}</strong> {a.when}.</li>
+                  <li key={a.test}><strong>{a.test}</strong> {a.when}.{a.target && " "}
+                    {altButton(a)}</li>
                 ))}
               </ul>
             </>
