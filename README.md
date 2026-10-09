@@ -332,6 +332,18 @@ sheets that follow the data.
   one-click replicate assignment); "Why your number may differ" notes;
   data-entry prompts; sourced explainers in a searchable Help panel
   (Ctrl/Cmd+/) with the keyboard shortcuts.
+- n-awareness: with one independent value in a group a t test or ANOVA
+  reports no P (descriptive, exploratory results, with the n a test would
+  need); at n = 2–3 a chip gives the smallest effect the design can detect
+  and the CI width (power engine). New tables are asked "What does each
+  value represent?"; technical repeats and cells get a replicate map
+  (column, grouped and XY tables) and statistics on experiment means, so
+  the legend reads "n = 3 independent experiments (9 wells) per group".
+  The wizard asks whether each condition ran once per experiment on
+  different days and opens the analysis matched by day, which reports the
+  day-to-day variation it removed; three or more t tests on one table get
+  a chip with their familywise error and one click to Dunnett's ANOVA or
+  Holm-Šídák.
 
 ### Sharing, export and trust
 

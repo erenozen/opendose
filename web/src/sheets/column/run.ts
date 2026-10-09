@@ -12,6 +12,7 @@ import type { ColumnOptionsState } from "../../types.ts";
 import { COLUMN_ANALYSIS_LABELS, DEFAULT_NORMALITY_TESTS } from "../../types.ts";
 import { allCellsComparisons, cellsFamily } from "../common/allCells.ts";
 import { familyOptions } from "./comparisonsFamily.ts";
+import { withWithheld } from "../common/withheld.ts";
 
 export function runColumn(engine: EngineBridge, table: DataTableModel,
   o: ColumnOptionsState): Record<string, unknown> {
@@ -21,16 +22,18 @@ export function runColumn(engine: EngineBridge, table: DataTableModel,
     && o.twoWayComparisons !== "none" && r && !r.error) {
     return { ...r, multiple_comparisons: twoWayAllCells(engine, table, o) };
   }
+  // Fewer than two independent values in a group: no P (common/withheld.ts).
+  const w = withWithheld(table, o, r);
   // Residual diagnostics (QQ plot, residuals vs. fitted) for the t tests
   // and ANOVAs that assume Gaussian residuals: a second engine call.
   const rp = residualsPayload(table, o);
-  if (rp && r && !r.error) {
-    if ("unavailable" in rp) return { ...r, residual_check: rp };
+  if (rp && w && !w.error) {
+    if ("unavailable" in rp) return { ...w, residual_check: rp };
     const res = engine.analyze(rp) as Record<string, unknown>;
-    return { ...r, residual_check: res && !res.error ? res
+    return { ...w, residual_check: res && !res.error ? res
       : { unavailable: `Residuals could not be computed: ${String(res?.error ?? "no result")}` } };
   }
-  return r;
+  return w;
 }
 
 /** The residuals_column payload for analyses whose model assumes Gaussian

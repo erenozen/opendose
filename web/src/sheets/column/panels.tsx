@@ -4,6 +4,7 @@ import { extractComparisons, resultBlocks } from "../../graph";
 import { graphPStyle } from "../../graph/significance";
 import ColumnPlot from "../../components/ColumnPlot";
 import StatsResults from "../../components/StatsResults";
+import WithheldResults from "../../guide/WithheldResults";
 import type { ColumnGraphType, ColumnOptionsState } from "../../types";
 import type { ControlsProps, PlotProps, ResultsProps } from "../types";
 import SummaryPlot from "./SummaryPlot";
@@ -25,6 +26,7 @@ export function ColumnAnalysisControls({ table, options, onChange }:
 
 export function ColumnAnalysisResults({ result, options }:
   ResultsProps<ColumnOptionsState, Record<string, unknown>>) {
+  if (result && "withheld" in result) return <WithheldResults result={result} />;
   return <StatsResults result={result} options={options} />;
 }
 

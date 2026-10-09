@@ -13,7 +13,14 @@ export interface ReportMeta {
   /** How the sample size was decided (when no power analysis is in the
    *  project): "based on a pilot study", "resource equation", ... */
   sampleSize?: string;
+  /** The answer to "What does each value represent?" (results guidance;
+   *  sheets/common/declareUnit.ts), or "dismissed" when the user closed
+   *  the question without answering. */
+  valueIs?: ValueIs;
 }
+
+export type ValueIs = "experiment" | "animal" | "technical" | "cell" | "dismissed";
+const VALUE_IS: ValueIs[] = ["experiment", "animal", "technical", "cell", "dismissed"];
 
 const text = (v: unknown, max = 500) =>
   (typeof v === "string" && v.trim() ? v.trim().slice(0, max) : undefined);
@@ -31,5 +38,6 @@ export function parseReportMeta(v: unknown): ReportMeta | undefined {
   if (ex) out.exclusions = ex;
   const ss = text(o.sampleSize);
   if (ss) out.sampleSize = ss;
+  if (VALUE_IS.includes(o.valueIs as ValueIs)) out.valueIs = o.valueIs as ValueIs;
   return Object.keys(out).length ? out : undefined;
 }

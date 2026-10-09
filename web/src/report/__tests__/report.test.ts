@@ -14,7 +14,7 @@ import { parseReportMeta } from "../meta.ts";
 import { statsMethodsParagraph } from "../methods.ts";
 import { formatPValue, pEquals, pLabel, pNumber, pSummary, setReportPrefs, starScale } from "../pformat.ts";
 import { tableGroups } from "../legendFor.ts";
-import { metaWithReplicates, replicateFacts, withinNote } from "../replicates.ts";
+import { metaWithReplicates, replicateFacts, withinNote, withinPerGroup } from "../replicates.ts";
 import { promoteGraphPStyle } from "../../project/persist.ts";
 import { DEFAULT_PREFS, projectPrefs } from "../../project/prefs.ts";
 import { DEFAULT_REPORT, sanitizeReport } from "../prefs.ts";
@@ -214,7 +214,9 @@ test("replicate map: unit of n and experiments for the legend and details", () =
   // on replicate means one n is an experiment
   const onMeans = { superplot: { n: 3, replicates: ["E1", "E2", "E3"] } };
   assert.equal(metaWithReplicates(undefined, t, onMeans).unit, "independent experiments");
-  assert.equal(withinNote(replicateFacts(t, onMeans)), "12 cells in all");
+  // equal values per group: "(6 cells) per group"; unequal: "… in all"
+  assert.equal(withinPerGroup(replicateFacts(t, onMeans)), "6 cells");
+  assert.equal(withinNote(replicateFacts(t, onMeans)), "");
   // the label column is not a group
   assert.deepEqual(tableGroups(t).map((g) => g.name), ["Control", "Drug"]);
   // no map, no SuperPlot: nothing to say
