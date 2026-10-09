@@ -2292,6 +2292,18 @@ expect("compare fits graph draws the separate curves and the shared curve",
   expect("after a cancel the engine computes again (column statistics)", back);
 }
 
+// axe-core (WCAG 2 A / AA) on parts of a page, for the blocks below.
+const axeOn = async (pg, sel) => {
+  await pg.addScriptTag({ path: createRequire(join(here, "e2e-check.mjs")).resolve("axe-core/axe.min.js") })
+    .catch(() => {});
+  return pg.evaluate(async (s) => {
+    const el = document.querySelector(s);
+    if (!el) return [`${s}: missing`];
+    // eslint-disable-next-line no-undef
+    const r = await axe.run(el, { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa"] } });
+    return r.violations.flatMap((x) => x.nodes.map((n) => `${x.id}: ${n.html.slice(0, 70)}`));
+  }, sel);
+};
 // --- exclusions with reasons (exclusion-log): one mouse of eight excluded
 // for tumour ulceration; the results' Exclusions block, the legend and the
 // methods state n enrolled / analysed with the reason; the results with
@@ -2332,6 +2344,8 @@ expect("compare fits graph draws the separate curves and the shared curve",
     await appears(prompt) && await prompt.getByRole("button", { name: "animal welfare endpoint" }).count() === 1
     && await prompt.getByRole("button", { name: "Skip" }).count() === 1
     && /Excluded 1 value \(Treated, row 3\)/.test(await prompt.innerText()));
+  const axPrompt = await axeOn(page, ".exclusion-reason");
+  expect("axe-core: the reason prompt passes", axPrompt.length === 0, axPrompt.join(" | "));
   await prompt.getByLabel("Other reason for excluding").fill("tumour ulceration");
   await prompt.getByRole("button", { name: "Save reason" }).click();
   expect("the reason is kept with the value (cell tooltip) and the prompt closes",
@@ -2365,6 +2379,8 @@ expect("compare fits graph draws the separate curves and the shared curve",
     !!asIs && !!all && asIs !== all && asIs === pStored
     && pOf(await page.locator(".report-sentence p").innerText()) === pStored,
     `as analysed P = ${asIs}, included P = ${all}, stored P = ${pStored}`);
+  const axCard = await axeOn(page, ".exclusions-card");
+  expect("axe-core: the Exclusions block with the comparison passes", axCard.length === 0, axCard.join(" | "));
   expect("the second block lists the numbers that change (n 7 → 8)",
     /n \(Treated\): 7 → 8/.test(await both.locator(".exc-changes").innerText()), await both.locator(".exc-changes").innerText());
   // reasons can be edited from the results; the tidy CSV of the bundle
@@ -2437,6 +2453,8 @@ expect("compare fits graph draws the separate curves and the shared curve",
     head2 === `1 of ${N} results changed with OpenDose ${m?.[2]} (saved with 0.2.0).`
     && list.includes(`chi-square test P (${ct.name}) 0.0234 → ${truth.toPrecision(4)}`)
     && /Why:/.test(await strip.innerText()), `${head2} | ${list}`);
+  const axStrip = await axeOn(p4, ".reproduce-strip");
+  expect("axe-core: the reproduction strip passes", axStrip.length === 0, axStrip.join(" | "));
   await strip.getByRole("button", { name: "Dismiss" }).click();
   expect("the strip is dismissable", await strip.count() === 0);
   await p4.close();
