@@ -221,7 +221,9 @@ export default function Header({ onOpenFile, onNewProject }: {
                   }
                 }}>
                 {guide && (
-                  <button type="button" role="menuitem" tabIndex={-1}
+                  // the first item is in the tab order (roving tabindex), so
+                  // the scrollable menu can be reached from the keyboard
+                  <button type="button" role="menuitem" tabIndex={0}
                     className="menu-item menu-item-2line menu-item-guide"
                     onClick={() => { setAnalyzeOpen(false); guide.openWizard(); }}>
                     <span>Help me choose…</span>
@@ -244,7 +246,7 @@ export default function Header({ onOpenFile, onNewProject }: {
                     {isAssayAnalysis(a.id) && !tdef.analyses.slice(0, i).some((x) => isAssayAnalysis(x.id)) && (
                       <div className="menu-sep" role="separator" aria-label="Assays" />
                     )}
-                    <button type="button" role="menuitem" tabIndex={-1}
+                    <button type="button" role="menuitem" tabIndex={!guide && i === 0 ? 0 : -1}
                       className="menu-item menu-item-2line"
                       onClick={() => { setAnalyzeOpen(false); cmd.addAnalysis(data.id, a.id); }}>
                       <span>{isAssayAnalysis(a.id) ? `Assay: ${a.label}` : a.label}</span>

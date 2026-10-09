@@ -10,6 +10,7 @@
 import type { ComparisonSet } from "../../graph/results.ts";
 import { pEquals } from "../../report/pformat.ts";
 import { formatSig } from "../../types.ts";
+import { SRC } from "../../guide/sources.ts";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type R = Record<string, any>;
@@ -21,14 +22,11 @@ export interface Source { label: string; url: string }
 
 /** Sources cited in the panels (each URL loaded on 2026-10-09). */
 export const MIXED_SRC = {
-  aarts2014: { label: "Aarts et al. 2014, A solution to dependency: using multilevel analysis to accommodate nested data, Nat Neurosci 17:491",
-    url: "https://doi.org/10.1038/nn.3648" },
-  lazic2010: { label: "Lazic 2010, The problem of pseudoreplication in neuroscientific studies, BMC Neurosci 11:5",
-    url: "https://pmc.ncbi.nlm.nih.gov/articles/PMC2817684/" },
+  aarts2014: SRC.aarts2014,
+  lazic2010: SRC.lazic2010,
   lme4: { label: "Bates et al. 2015, Fitting linear mixed-effects models using lme4, J Stat Softw 67(1)",
     url: "https://doi.org/10.18637/jss.v067.i01" },
-  gpNested: { label: "GraphPad Statistics Guide: Overview of nested t tests and ANOVA",
-    url: "https://www.graphpad.com/guides/prism/latest/statistics/stat_overview-of-nested-t-tests.htm" },
+  gpNested: SRC.gpNested,
   gpMixedRm: { label: "GraphPad Statistics Guide: The mixed model approach to analyzing repeated measures data",
     url: "https://www.graphpad.com/guides/prism/latest/statistics/stat_anova-approach-vs_-mixed-model.htm" },
   pinheiroBates: { label: "Pinheiro & Bates 2000, Mixed-Effects Models in S and S-PLUS, Springer, ch. 5",

@@ -28,7 +28,7 @@ export default function PilotCard({ pilot, form, setForm }: {
   const ns = pilot.groups.map((g) => g.n);
   return (
     <section className="result-card power-pilot" aria-labelledby={`${name}-h`}>
-      <h3 id={`${name}-h`}>Plan the next experiment from “{pilot.table}”</h3>
+      <h3 id={`${name}-h`}>Sample size for the next experiment, from “{pilot.table}”</h3>
       <p className="power-pilot-sd">
         Pilot SD: <strong data-pilot-sd>{formatSig(pilot.sd, 4)}</strong>{" "}
         ({pilot.sdLabel}; {pilot.test},{" "}

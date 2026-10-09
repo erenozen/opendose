@@ -1,19 +1,26 @@
-import { useEffect, useRef, type RefObject } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 
 // Draggable divider between the two workbench columns: 1:1 pointer
 // tracking on a CSS variable, clamped, persisted on release. Arrow keys
 // nudge it.
 export default function ColumnSplitter({ mainRef }: { mainRef: RefObject<HTMLElement | null> }) {
   const dragging = useRef(false);
+  // the left column's width in % (aria-valuenow of the separator)
+  const [now, setNow] = useState(41.7);
   useEffect(() => {
     try {
       const saved = localStorage.getItem("opendose-split");
-      if (saved) mainRef.current?.style.setProperty("--split", saved);
+      if (saved) {
+        mainRef.current?.style.setProperty("--split", saved);
+        if (Number.isFinite(parseFloat(saved))) setNow(parseFloat(saved));
+      }
     } catch { /* ignore */ }
   }, [mainRef]);
   const setSplit = (pct: number, persist = false) => {
-    const v = `${Math.min(65, Math.max(24, pct)).toFixed(2)}%`;
+    const clamped = Math.min(65, Math.max(24, pct));
+    const v = `${clamped.toFixed(2)}%`;
     mainRef.current?.style.setProperty("--split", v);
+    setNow(clamped);
     if (persist) {
       try { localStorage.setItem("opendose-split", v); } catch { /* ignore */ }
     }
@@ -25,6 +32,8 @@ export default function ColumnSplitter({ mainRef }: { mainRef: RefObject<HTMLEle
   return (
     <div className="splitter" role="separator" aria-orientation="vertical"
       aria-label="Resize columns" tabIndex={0}
+      aria-valuemin={24} aria-valuemax={65} aria-valuenow={Math.round(now)}
+      aria-valuetext={`left column ${Math.round(now)}% of the width`}
       onPointerDown={(e) => {
         e.preventDefault();
         dragging.current = true;

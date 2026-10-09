@@ -3,14 +3,18 @@
 // result is often misread, the test that was run and why it fits, and
 // the sources (report/meaning.ts). Mounted once by the shell's results
 // pane, so no table type or analysis needs code of its own.
-import { useMemo } from "react";
+import { useMemo, useSyncExternalStore } from "react";
+import { choiceFor, subscribeChoice } from "../guide/choice";
 import type { DataTableModel } from "../project/types";
 import { meaningOf } from "./meaning";
 import { currentReportPrefs } from "./pformat";
 import "./meaning.css";
 
-export default function MeaningLine({ analysisId, table, options, result }: {
+export default function MeaningLine({ analysisId, resultsId, table, options, result }: {
   analysisId: string;
+  /** The results sheet: when Help me choose opened it, its "Why this
+   *  test" note above already names the test and why, so no Test line. */
+  resultsId?: string;
   table: DataTableModel;
   options: unknown;
   result: unknown;
@@ -18,6 +22,7 @@ export default function MeaningLine({ analysisId, table, options, result }: {
   const style = currentReportPrefs().pStyle;
   const m = useMemo(() => meaningOf({ analysisId, table, options, result, style }),
     [analysisId, table, options, result, style]);
+  const chosen = useSyncExternalStore(subscribeChoice, () => (resultsId ? choiceFor(resultsId) : null));
   if (!m) return null;
   return (
     <section className="meaning-line" aria-label="What this means">
@@ -31,7 +36,7 @@ export default function MeaningLine({ analysisId, table, options, result }: {
           {m.misreading}
         </p>
       )}
-      {m.test && (
+      {m.test && !chosen && (
         <p className="meaning-test">
           <span className="meaning-label">Test</span>{" "}
           {m.test}

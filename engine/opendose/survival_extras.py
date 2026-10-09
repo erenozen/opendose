@@ -9,7 +9,7 @@ Methods and sources:
   of comparisons (Bonferroni). Each pair is
   ``survival.compare_survival`` on the two-group subset, so its chi-square
   is the same log-rank statistic the engine reports for two groups (Peto
-  form sum((O-E)^2/E) for Prism parity; the Mantel-Haenszel variance form
+  form sum((O-E)^2/E), as the GraphPad statistics guide documents; the Mantel-Haenszel variance form
   U^2/V that R's ``survival::survdiff`` prints is also given). The
   adjustments are those of ``opendose.fdr``: Bonferroni P*K, Sidak
   1-(1-P)^K, Holm (1979) step-down Bonferroni, and the step-down
@@ -297,8 +297,8 @@ def pairwise_logrank(groups, names=None, *, family="all", control=0,
         trend = logrank_trend(groups, names, scores=trend_scores)
 
     stat_text = ("chi2 / p_unadjusted use the Peto form sum((O-E)^2/E) "
-                 "(the form the engine's survival result reports, for "
-                 "Prism parity)" if statistic == "peto" else
+                 "(the form the engine's survival result reports, as the "
+                 "GraphPad statistics guide documents)" if statistic == "peto" else
                  "chi2 / p_unadjusted use the Mantel-Haenszel variance "
                  "form U^2/V (R's survdiff)")
     method = ("Each pair of groups analysed by its own two-group log-rank "

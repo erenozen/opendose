@@ -67,7 +67,7 @@
 
 .type-list .design-entry { display: block; margin: 0 0 8px; font-size: 13px; }
 .design-chosen strong { color: var(--ink); }
-.describe-experiment { margin: 0 0 12px; }
+.describe-experiment { margin: 0 8px 12px 0; }
 
 @media (max-width: 640px) {
   .paste-report { flex-direction: column; }

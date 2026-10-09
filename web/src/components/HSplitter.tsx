@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 // Draggable horizontal gutter between stacked islands: dragging resizes
 // the island above it (content below reflows). The sibling above may be
@@ -6,6 +6,9 @@ import { useRef } from "react";
 export default function HSplitter() {
   const drag = useRef<{ el: HTMLElement; h0: number; y0: number } | null>(
     null);
+  const self = useRef<HTMLDivElement>(null);
+  // the height of the section above, in px (aria-valuenow)
+  const [now, setNow] = useState(0);
 
   const islandAbove = (splitter: HTMLElement): HTMLElement | null => {
     const prev = splitter.previousElementSibling as HTMLElement | null;
@@ -20,9 +23,18 @@ export default function HSplitter() {
     return prev;
   };
 
+  useEffect(() => {
+    // measured without islandAbove (which makes a multi-card pane scroll)
+    const el = self.current?.previousElementSibling;
+    if (el) setNow(Math.round(el.getBoundingClientRect().height));
+  }, []);
+  const shown = Math.max(40, now);
+
   return (
-    <div className="h-splitter" role="separator"
+    <div className="h-splitter" role="separator" ref={self}
       aria-orientation="horizontal" aria-label="Resize section" tabIndex={0}
+      aria-valuemin={40} aria-valuemax={Math.max(shown, 4000)} aria-valuenow={shown}
+      aria-valuetext={`section above ${shown} px high`}
       onPointerDown={(e) => {
         const el = islandAbove(e.currentTarget);
         if (!el) return;
@@ -38,7 +50,9 @@ export default function HSplitter() {
       onPointerMove={(e) => {
         if (!drag.current) return;
         const { el, h0, y0 } = drag.current;
-        el.style.height = `${Math.max(40, h0 + e.clientY - y0)}px`;
+        const h = Math.max(40, h0 + e.clientY - y0);
+        el.style.height = `${h}px`;
+        setNow(Math.round(h));
       }}
       onPointerUp={() => {
         drag.current = null;
@@ -50,8 +64,9 @@ export default function HSplitter() {
         if (!el) return;
         e.preventDefault();
         const h = el.getBoundingClientRect().height;
-        el.style.height =
-          `${Math.max(40, h + (e.key === "ArrowDown" ? 24 : -24))}px`;
+        const next = Math.max(40, h + (e.key === "ArrowDown" ? 24 : -24));
+        el.style.height = `${next}px`;
+        setNow(Math.round(next));
       }} />
   );
 }
