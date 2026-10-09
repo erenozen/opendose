@@ -48,7 +48,14 @@ from itertools import product
 import numpy as np
 from scipy import stats
 
-from . import effectsize, exactdist
+from . import effectsize, exactdist, orderstats
+
+# Large-data threshold (number of pairwise differences / Walsh averages).
+# Up to this many the set is built and sorted (the original method);
+# above it the order statistics are selected without building it
+# (opendose.orderstats: Johnson & Mizoguchi 1978; Monahan 1984), which
+# returns the same values bit for bit in O(n log n) memory.
+PAIRWISE_DIRECT_MAX = 250_000
 
 
 def _clean(values) -> np.ndarray:
@@ -183,17 +190,25 @@ def mann_whitney(values_a, values_b, *, ci_level: float = 0.95) -> dict:
         p_method = "approximate"
     u1 = float(res.statistic)
     ranks = stats.rankdata(pooled)
-    diffs = np.sort(np.subtract.outer(a, b).ravel())
     k, level = exactdist.rank_sum_ci_index(int(a.size), int(b.size),
                                            ci_level)
-    ci = ([float(diffs[k - 1]), float(diffs[diffs.size - k])]
-          if k is not None else None)
+    n_pairs = int(a.size) * int(b.size)
+    if n_pairs <= PAIRWISE_DIRECT_MAX:
+        diffs = np.sort(np.subtract.outer(a, b).ravel())
+        ci = ([float(diffs[k - 1]), float(diffs[diffs.size - k])]
+              if k is not None else None)
+        hl = _hodges_lehmann(a, b)
+    else:
+        ci = ([orderstats.kth_pairwise_difference(a, b, k),
+               orderstats.kth_pairwise_difference(a, b, n_pairs - k + 1)]
+              if k is not None else None)
+        hl = orderstats.hodges_lehmann_shift(a, b)
     return {
         "test": "mann_whitney",
         "U": u1,
         "p_two_tailed": p,
         "median_a": float(np.median(a)), "median_b": float(np.median(b)),
-        "hodges_lehmann_difference": _hodges_lehmann(a, b),
+        "hodges_lehmann_difference": hl,
         "n_a": int(a.size), "n_b": int(b.size),
         "p_method": p_method,
         "U_smaller": min(u1, a.size * b.size - u1),
@@ -287,12 +302,23 @@ def signed_rank_test(diffs, *, zero_method: str = "wilcox") -> dict:
 def walsh_ci(values, ci_level: float = 0.95) -> dict:
     """CI of the median from the Walsh averages (x_i + x_j)/2, i <= j:
     the k-th smallest to the k-th largest, k from the exact signed-rank
-    distribution (normal approximation for n >= 200)."""
+    distribution (normal approximation for n >= 200). Above
+    PAIRWISE_DIRECT_MAX averages they are selected, not built
+    (opendose.orderstats; identical values)."""
     x = np.asarray(values, dtype=float)
     n = x.size
+    k, level = exactdist.signed_rank_ci_index(n, ci_level)
+    n_walsh = n * (n + 1) // 2
+    if n_walsh > PAIRWISE_DIRECT_MAX:
+        # same values, selected without building the n(n+1)/2 averages
+        return {"hodges_lehmann": orderstats.hodges_lehmann_walsh(x),
+                "ci_median": ([orderstats.kth_walsh_average(x, k),
+                               orderstats.kth_walsh_average(
+                                   x, n_walsh - k + 1)]
+                              if k is not None else None),
+                "ci_actual_level": level}
     iu = np.triu_indices(n)
     walsh = np.sort(((x[:, None] + x[None, :]) / 2.0)[iu])
-    k, level = exactdist.signed_rank_ci_index(n, ci_level)
     return {"hodges_lehmann": float(np.median(walsh)),
             "ci_median": ([float(walsh[k - 1]), float(walsh[walsh.size - k])]
                           if k is not None else None),

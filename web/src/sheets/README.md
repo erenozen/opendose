@@ -390,7 +390,14 @@ k-means.
 - The survival results list both log-rank forms (Peto Σ(O−E)²/E and the
   variance form of R's survdiff), observed and expected events, median
   CIs and a Kaplan-Meier table per group (`survival/kmTable.ts`), each
-  with its own Copy / CSV (`common/TableCopy`).
+  with its own Copy / CSV (`common/TableCopy`). Its run also asks the
+  engine for `survival_pairwise` (3+ groups), `survival_at_time` and
+  `rmst` (`survival/extras.ts`, result key `extras`); the options
+  (`pairwiseFamily`, `pairwiseControl`, `pairwiseCorrection`, `trend`,
+  `survivalAt`, `rmstTau`) are edited in the results blocks. A survival
+  table's `xUnit` holds its time unit ("days"), used in "day 12"
+  wording. `survival/entry.ts` turns counts per day or dates into one
+  row per subject ("Survival data from…" above the table).
 - The power and sample size tool (`src/power/`) is a dialog, not a sheet
   kind; "Save to project" writes an info sheet whose constant "Sample
   size justification" holds the sentence (`findSampleSizeJustification`).

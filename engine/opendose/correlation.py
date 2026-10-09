@@ -53,12 +53,19 @@ from functools import lru_cache
 import numpy as np
 from scipy import stats
 
-from . import effectsize
+from . import effectsize, orderstats
 
 SPEARMAN_EXACT_MAX_N = 17
 
 
 def _pairs(values_a, values_b):
+    if (isinstance(values_a, np.ndarray) and isinstance(values_b, np.ndarray)
+            and values_a.dtype == float and values_b.dtype == float
+            and values_a.ndim == values_b.ndim == 1
+            and values_a.size == values_b.size):
+        # float arrays hold no blanks: the same pairs, without a Python
+        # loop over every value (correlation matrices of large tables)
+        return values_a.copy(), values_b.copy()
     pairs = [(float(a), float(b)) for a, b in zip(values_a, values_b)
              if a is not None and b is not None]
     return (np.array([p[0] for p in pairs]), np.array([p[1] for p in pairs]))
@@ -133,6 +140,10 @@ def correlate(values_a, values_b, *, method: str = "pearson",
 # ------------------------------------------------------- Kendall's tau
 
 KENDALL_EXACT_MAX_N = 49
+# Large-data threshold: up to this many pairs the n x n sign matrices are
+# built (the original method); above it the concordant / discordant
+# counts come from an O(n log^2 n) inversion count (identical integers).
+KENDALL_DIRECT_MAX_N = 1000
 
 
 @lru_cache(maxsize=64)
@@ -164,11 +175,17 @@ def kendall(values_a, values_b, *, ci_level: float = 0.95) -> dict:
     n = int(a.size)
     if n < 3:
         raise ValueError("correlation needs at least 3 XY pairs")
-    da = np.sign(a[:, None] - a[None, :])
-    db = np.sign(b[:, None] - b[None, :])
-    iu = np.triu_indices(n, 1)
-    prod = (da * db)[iu]
-    conc, disc = int(np.sum(prod > 0)), int(np.sum(prod < 0))
+    if n <= KENDALL_DIRECT_MAX_N:
+        da = np.sign(a[:, None] - a[None, :])
+        db = np.sign(b[:, None] - b[None, :])
+        iu = np.triu_indices(n, 1)
+        prod = (da * db)[iu]
+        conc, disc = int(np.sum(prod > 0)), int(np.sum(prod < 0))
+    else:
+        # same integer counts without the n x n sign matrices (Knight
+        # 1966 merge-sort count; opendose.orderstats.count_discordant)
+        counts = orderstats.count_discordant(a, b)
+        conc, disc = counts["concordant"], counts["discordant"]
     S = conc - disc
     n0 = n * (n - 1) / 2
     tx, ty = _tie_sizes(a), _tie_sizes(b)
