@@ -76,8 +76,9 @@ export function bundleFiles(b: BundleInput): BundleFile[] {
     const kind = TYPE_NAMES[t.table.type] ?? t.table.type;
     files.push({ name: `data/${tStems[i]}.csv`, text: csv(tableMatrix(t.table, DEFAULT_EXPORT)),
       about: `"${t.name}" (${kind} table) as laid out in the app (wide form); excluded values end in *.` });
-    files.push({ name: `data/${tStems[i]}.long.csv`, text: csv(longMatrix(tableToLong(t.table))),
-      about: `"${t.name}" in long (tidy) form: one observation per row with its keys.` });
+    files.push({ name: `data/${tStems[i]}.long.csv`, text: csv(longMatrix(tableToLong(t.table), { sourceData: true })),
+      about: `"${t.name}" in long (tidy) form: one observation per row with its keys; `
+        + "excluded values are kept, marked in the excluded column, with exclusion_reason." });
   });
 
   const rStems = uniq(b.results.map((r) => stem(r.name, "results")));

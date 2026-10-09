@@ -6,6 +6,7 @@ import { legendSpec, plottedClause } from "../graph/legend.ts";
 import { replicateInfo } from "../sheets/common/superplot.ts";
 import { cellStats } from "../sheets/grouped/stats.ts";
 import { numericData } from "../project/table.ts";
+import { exclusionSentence } from "../project/exclusions.ts";
 import type { DataSheet, DataTableModel, GraphSheet } from "../project/types.ts";
 import { G_MIXED_NESTED, mixedPlotted, nestedBrackets } from "../sheets/common/mixedModel.ts";
 import {
@@ -143,6 +144,7 @@ export function legendFor(c: LegendContext): string {
     unit: { unit, experiments: meta.experiments ?? null,
       within: withinPerGroup(facts, xy) || undefined, ...(xyByExp ? { per: "X value" } : {}) },
     nNote: withinNote(facts, xy) || undefined,
+    exclusions: exclusionSentence(c.table) ?? undefined,
     errorBars: f.errorBars, points: f.points ?? undefined,
     // the nested scatter draws its brackets until its format says otherwise
     starsShown: f.starsShown || (c.graph?.graphType === G_MIXED_NESTED && !fmt?.comparisons

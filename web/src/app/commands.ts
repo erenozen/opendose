@@ -22,6 +22,7 @@ import type {
 import { analysisDef, graphDef } from "../sheets/registry";
 import { resolveOptions } from "./analysis";
 import { useProject } from "./context";
+import { currentSavedWith } from "./reproduceCheck";
 import { analysisSheets } from "./factory";
 import { useUi } from "./ui";
 
@@ -108,7 +109,7 @@ export function useCommands() {
     const save = () => {
       const p = store.project;
       const blob = new Blob([serializeProject(p, results.snapshot(),
-        { keys: results.fingerprints(), selected: api.selectedId })],
+        { keys: results.fingerprints(), selected: api.selectedId, savedWith: currentSavedWith() })],
         { type: "application/json" });
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);

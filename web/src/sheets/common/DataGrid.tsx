@@ -1,15 +1,16 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useProject } from "../../app/context";
 // factory -> registry -> this grid is a module cycle; addFamily is only
 // called from an event handler, never while modules evaluate.
 import { addFamily } from "../../app/factory";
 import { toDelimited } from "../../project/exportTable";
 import { newId } from "../../project/ids";
-import { dropUnfilledDatasets, pasteNeedsImport } from "../../project/importText";
+import { pasteNeedsImport } from "../../project/importText";
+import { pasteWithReport, type PasteReport } from "../../project/pasteReport";
 import {
   addDataset, addRow, allowsSummaryFormat, blockValues, clearBlock, deleteDataset,
   deleteRow, deleteRows, flatColumns, insertDataset, insertRows, insertSeries,
-  isExcluded, moveDataset, normRect, parseCell, parseClipboardGrid, pasteBlock,
+  isExcluded, moveDataset, normRect, parseCell, parseClipboardGrid,
   renameDataset, reverseRows, setCell, setRowTitle, setSubTitle, setSubcolumnCount,
   setVarType, setX, sortRows, tableShape, toggleBlockExcluded, toggleExcluded,
   type CellRect, type CellRef, type SortKey,
@@ -27,10 +28,16 @@ import {
 } from "./EditDialogs";
 import ImportDialog, { type ImportRequest } from "./ImportDialog";
 import MenuButton from "./MenuButton";
+import ExclusionReasonPrompt, { type ReasonAsk } from "./ExclusionReasonPrompt";
+import { newlyExcluded, reasonAt } from "../../project/exclusions";
+import PasteReportStrip from "./PasteReportStrip";
 import { lazy, Suspense } from "react";
 
 // Wide <-> long (src/share), loaded when first opened.
 const ReshapeDialog = lazy(() => import("../../share/ReshapeDialog"));
+// Convert table to… another type or layout (project/convertType.ts).
+const ConvertTypeDialog = lazy(() => import("./ConvertTypeDialog"));
+const CONVERTIBLE: TableType[] = ["column", "grouped", "xy", "multivariable"];
 import "./grid.css";
 
 // Default subcolumn header when the user has not titled it.
@@ -54,7 +61,7 @@ const HINTS: Partial<Record<TableType, string>> = {
 type Dialog =
   | { kind: "import"; req?: ImportRequest; paste?: { text: string; r: number; c: number } }
   | { kind: "export" } | { kind: "sort" } | { kind: "series" } | { kind: "format" }
-  | { kind: "convert" } | { kind: "reshape" };
+  | { kind: "convert" } | { kind: "reshape" } | { kind: "convertType" };
 
 const mac = typeof navigator !== "undefined" && /Mac|iP(hone|ad)/.test(navigator.platform);
 const MOD = mac ? "⌘" : "Ctrl+";
@@ -105,6 +112,19 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
     && r >= rect.r0 && r <= rect.r1 && c >= rect.c0 && c <= rect.c1;
   const [editing, setEditing] = useState<string | null>(null);
   const [dialog, setDialog] = useState<Dialog | null>(null);
+  // After Ctrl/Cmd+E excludes values: ask why (skippable, never blocks).
+  const [reasonAsk, setReasonAsk] = useState<ReasonAsk | null>(null);
+  const closeReason = useCallback(() => setReasonAsk(null), []);
+  const askReason = (after: DataTableModel) => {
+    const refs = newlyExcluded(t, after);
+    setReasonAsk(refs.length ? { sheetId: sheet.id, refs } : null);
+  };
+  // What the last paste / import did to each cell (kept per sheet).
+  const [pasteInfo, setPasteInfo] = useState<{
+    id: string; verb: "Pasted" | "Imported"; report: PasteReport;
+    paste?: { text: string; r: number; c: number };
+  } | null>(null);
+  const shownReport = pasteInfo?.id === sheet.id ? pasteInfo : null;
   const [selecting, setSelecting] = useState(false);
   const dragging = useRef(false);
 
@@ -145,9 +165,13 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
     if (mod && e.key.toLowerCase() === "e") {
       e.preventDefault();
       if (readOnly) return;
-      if (multi && rect) { onChange((x) => toggleBlockExcluded(x, rect)); return; }
+      if (multi && rect) {
+        onChange((x) => toggleBlockExcluded(x, rect));
+        askReason(toggleBlockExcluded(t, rect));
+        return;
+      }
       const ref = refAt(r, c);
-      if (ref) onChange((x) => toggleExcluded(x, ref));
+      if (ref) { onChange((x) => toggleExcluded(x, ref)); askReason(toggleExcluded(t, ref)); }
       return;
     }
     if (mod && e.shiftKey && e.key === "Enter") {
@@ -206,8 +230,20 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
         paste: { text, r: pr, c: pc } });
       return;
     }
+    pasteAt(text, pr, pc);
+  };
+
+  // A direct paste: the block as typed, with its report above the grid.
+  const pasteAt = (text: string, pr: number, pc: number) => {
     const block = parseClipboardGrid(text);
-    onChange((x) => dropUnfilledDatasets(x, pasteBlock(x, pr, pc, block)));
+    const { report } = pasteWithReport(t, pr, pc, block);
+    onChange((x) => pasteWithReport(x, pr, pc, block).table);
+    setPasteInfo({ id: sheet.id, verb: "Pasted", report, paste: { text, r: pr, c: pc } });
+  };
+
+  const jumpTo = (r: number, c: number) => {
+    setSel({ r0: r, c0: c, r1: r, c1: c });
+    requestAnimationFrame(() => focusCell(r, c));
   };
 
   const onCopy = (e: React.ClipboardEvent, cut: boolean) => {
@@ -264,7 +300,8 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
 
   const cellInput = (r: number, c: number, value: string,
     set: (v: string) => void,
-    opts: { excluded?: boolean; text?: boolean; label: string; isX?: boolean; invalid?: boolean }) => (
+    opts: { excluded?: boolean; text?: boolean; label: string; isX?: boolean; invalid?: boolean;
+      reason?: string }) => (
       <input
         data-r={r} data-c={c}
         inputMode={opts.text ? "text" : "decimal"}
@@ -273,7 +310,7 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
         readOnly={readOnly}
         aria-label={opts.label}
         aria-invalid={opts.invalid || undefined}
-        title={opts.excluded ? `Excluded from analyses and graphs (${MOD}E to include)`
+        title={opts.excluded ? `Excluded from analyses and graphs${opts.reason ? `: ${opts.reason}` : ""} (${MOD}E to include)`
           : opts.invalid ? (t.xFormat === "dates"
             ? "Not read as a date; treated as blank" : "Not read as a time; treated as blank")
             : undefined}
@@ -367,12 +404,30 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
               <button type="button" onClick={() => setDialog({ kind: "convert" })}
                 title="Create a new table of means and errors from this one">Convert…</button>
             )}
+            {CONVERTIBLE.includes(t.type) && (
+              <button type="button" onClick={() => setDialog({ kind: "convertType" })}
+                title="Make a new table of another type or layout with every value, exclusion and pairing kept">
+                Convert table to…</button>
+            )}
             <button type="button" onClick={() => setDialog({ kind: "reshape" })}
               title={t.type === "multivariable" ? "Make a wide table (groups as columns) from this long table"
                 : "Make a long table (one observation per row) from this one"}>Reshape…</button>
           </>
         )}
       </div>
+
+      {reasonAsk?.sheetId === sheet.id && !readOnly && (
+        <ExclusionReasonPrompt key={reasonAsk.refs.map((x) => JSON.stringify(x)).join()} table={t}
+          refs={reasonAsk.refs} onSave={(fn) => onChange(fn)} onClose={closeReason} />
+      )}
+      {shownReport && !readOnly && (
+        <PasteReportStrip verb={shownReport.verb} report={shownReport.report} onJump={jumpTo}
+          onDismiss={() => setPasteInfo(null)}
+          onReimport={shownReport.paste ? () => {
+            const p = shownReport.paste!;
+            setDialog({ kind: "import", req: { text: p.text, mode: "insert", row: p.r, col: p.c } });
+          } : undefined} />
+      )}
 
       <div className={`data-table${readOnly ? " is-readonly" : ""}${selecting ? " selecting" : ""}`}
         ref={wrap} onPointerMove={onPointerMove}
@@ -512,6 +567,7 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
                             key(`c:${di}:${r}:${s}`)),
                           {
                             excluded: ex,
+                            reason: ex ? reasonAt(t, { kind: "y", dataset: di, row: r, sub: s }) : undefined,
                             text: !numeric && d.varType === "categorical",
                             label: `${d.name}, ${subCount(d) > 1
                               ? `${d.subTitles?.[s] || subLabel(t.type, di, s)}, ` : ""}row ${r + 1}`,
@@ -569,11 +625,14 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
           onClose={() => setDialog(null)}
           onPasteAsIs={dialog.paste ? () => {
             const p = dialog.paste!;
-            onChange((x) => dropUnfilledDatasets(x, pasteBlock(x, p.r, p.c,
-              parseClipboardGrid(p.text))));
+            pasteAt(p.text, p.r, p.c);
             setDialog(null);
           } : undefined}
-          onImport={(fn) => { onChange(fn); setDialog(null); }} />
+          onImport={(fn, report) => {
+            onChange(fn);
+            setDialog(null);
+            if (report) setPasteInfo({ id: sheet.id, verb: "Imported", report });
+          }} />
       )}
       {dialog?.kind === "export" && (
         <ExportDialog table={t} name={sheet.name} onClose={() => setDialog(null)} />
@@ -597,6 +656,12 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
       {dialog?.kind === "reshape" && (
         <Suspense fallback={null}>
           <ReshapeDialog sheet={sheet} onClose={() => setDialog(null)} />
+        </Suspense>
+      )}
+      {dialog?.kind === "convertType" && (
+        <Suspense fallback={null}>
+          <ConvertTypeDialog table={t} name={sheet.name} onClose={() => setDialog(null)}
+            onCreate={createTable} />
         </Suspense>
       )}
       {dialog?.kind === "convert" && (
