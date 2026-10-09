@@ -935,6 +935,25 @@ Made discoverable outside the top 15 (Wave 0):
       `docs/research/needs/raw-image-provenance-design.md` (recommends
       building it, effort M; open questions for Eren).
 
+Wave 2, instrument and image-table import:
+- [x] Recipes for Incucyte "Export Data" time series (XY, X = elapsed
+      hours, wells or plate-map groups as data sets), LabChart text
+      exports (XY, channels as data sets, time unit, every k-th sample,
+      a window, comments listed) and multi-read plate runs (wavelengths
+      or kinetic reads as rows or X; each grid read by the shared plate
+      rule; the plate assay's plate map groups wells); "Save as recipe"
+      in the Import and recipe dialogs (this browser, and
+      `project.recipes` so files and share links carry it), listed under
+      "Apply a saved recipe". [`instrument-import`] Not yet: Thermo .eds
+      (binary) and SoftMax Pro wavelengths laid side by side.
+- [x] Several per-image CSVs or a zip (Import dialog, start screen):
+      stacked with a File column, condition / replicate / image read
+      with a name template ("{condition}_rep{replicate}_img{image}.csv")
+      or by splitting at "_", averaged per image, and made into a column
+      or grouped table with the replicate map set (SuperPlot graph,
+      "n = 3 images per group from 3 independent experiments").
+      [`image-table-import`]
+
 Wave 2 (assays):
 - [x] Compare a parameter (logEC50, Hill slope, Top …) between two data
       sets: the EC50 ratio (potency / dose ratio) with its CI, the

@@ -2,17 +2,42 @@
 // software exports and stage them as typed long-format records, with a
 // first guess at roles, a name pattern, the aggregation steps and the
 // table type. Every guess can be changed in the recipe dialog.
-import {
-  detectDecimal, detectDelimiter, normalizeNumber, splitDelimited,
-} from "../../project/importText.ts";
 import { findCqHeader, isUndeterminedCq } from "../../sheets/assays/qpcr/headers.ts";
 import { guessDelimiter, guessParts, type NamePattern } from "./pattern.ts";
 import { findPlateGrid, ROW_LABELS } from "./plate.ts";
+import { parseText } from "./source.ts";
+import { incucyteRecipe } from "./incucyte.ts";
+import { labchartRecipe } from "./labchart.ts";
+import { multiReadRecipe } from "./multiRead.ts";
+import { imagesRecipe } from "./multiFile.ts";
 import {
   makeStaging, type AggFn, type OutputType, type Role, type Staging,
 } from "./staging.ts";
 
-export type RecipeId = "flowjo" | "cellprofiler" | "qupath" | "plate" | "qpcr" | "tidy";
+export type RecipeId = "flowjo" | "cellprofiler" | "qupath" | "plate" | "qpcr" | "tidy"
+  | "incucyte" | "labchart" | "multiread" | "images";
+
+/** A setting a recipe reads before staging (LabChart's time unit and
+ *  down-sampling, how the reads of a plate run are laid out). Values are
+ *  kept as text. */
+export interface RecipeParam {
+  key: string;
+  label: string;
+  kind: "number" | "select";
+  choices?: [string, string][];
+  /** Default (text; "" = blank). */
+  value: string;
+  placeholder?: string;
+  note?: string;
+}
+
+export type RecipeParams = Record<string, string>;
+
+/** The value of a parameter, or its default. */
+export function paramValue(r: Recipe, params: RecipeParams | undefined, key: string): string {
+  const v = params?.[key];
+  return v !== undefined ? v : r.params?.find((p) => p.key === key)?.value ?? "";
+}
 
 /** What a recipe proposes for a file. */
 export interface Staged {
@@ -25,6 +50,14 @@ export interface Staged {
   output: OutputType;
   name: string;
   notes: string[];
+  /** Staging column of well names (A1 …) with the plate format, so a
+   *  plate map can set the groups (multiPlate.ts). */
+  wells?: { column: number; format: 96 | 384 };
+  /** Column and grouped tables get a replicate map (experiment = the
+   *  subject column) so SuperPlots and replicate-mean statistics work. */
+  replicateMap?: boolean;
+  /** Titles for the table made (Y axis, X unit). */
+  yTitle?: string;
 }
 
 export interface Recipe {
@@ -33,22 +66,18 @@ export interface Recipe {
   description: string;
   /** 0 (not this format) .. 1 (certainly this format). */
   detect: (m: string[][]) => number;
-  stage: (m: string[][]) => Staged;
+  stage: (m: string[][], params?: RecipeParams) => Staged;
+  /** Settings read before staging (shown on the Source step). */
+  params?: RecipeParam[];
+  /** The instrument layouts it recognises, in a sentence. */
+  layouts?: string;
 }
 
 // ------------------------------------------------------------ parsing
 
 /** Text of a file as a matrix of cells, numbers with a point decimal. */
 export function parseSource(text: string): string[][] {
-  const lines = text.replace(/\r/g, "").split("\n").filter((l) => l.trim());
-  // Sample lines across the file: instrument preambles at the top must
-  // not decide the delimiter of the data below them.
-  const step = Math.max(1, Math.floor(lines.length / 40));
-  const sample = lines.filter((_, i) => i % step === 0).slice(-40).join("\n");
-  const delim = detectDelimiter(sample);
-  const rows = splitDelimited(text, delim);
-  const dec = detectDecimal(rows);
-  return rows.map((r) => r.map((c) => normalizeNumber(c, dec)));
+  return parseText(text);
 }
 
 const norm = (s: string) => s.trim().toLowerCase();
@@ -307,7 +336,8 @@ const tidy: Recipe = {
   },
 };
 
-export const RECIPES: Recipe[] = [flowjo, cellprofiler, qupath, plate, qpcr, tidy];
+export const RECIPES: Recipe[] = [flowjo, cellprofiler, qupath, plate, qpcr,
+  incucyteRecipe, labchartRecipe, multiReadRecipe, imagesRecipe, tidy];
 
 export function recipeById(id: RecipeId): Recipe {
   return RECIPES.find((r) => r.id === id)!;
