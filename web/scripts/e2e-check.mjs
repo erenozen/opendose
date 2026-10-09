@@ -32,9 +32,11 @@
 // table…" for CMH and quantal data, the quantal upper asymptote), the
 // discoverability links (Help me choose…, Plan next experiment, How this is
 // validated, Cox from survival, Compare fits from a fit, Prism files on the
-// start screen and in the Save menu), and survival data from counts per
+// start screen and in the Save menu), survival data from counts per
 // day with the pairwise log-rank table, the test for trend, "median not
-// reached", survival at a time and RMST.
+// reached", survival at a time and RMST, and the data-entry trust package
+// (paste report, Notes strip with the n analysed, Convert table to…,
+// Describe the experiment).
 import { chromium } from "playwright";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -2839,6 +2841,134 @@ expect("compare fits graph draws the separate curves and the shared curve",
     return out;
   }, [".compare-parameter", ".controls"]);
   expect("axe-core: Compare a parameter passes", axeCp.length === 0, axeCp.join(" | "));
+}
+
+// --- paste report, Notes strip and Analysed line, Convert table to…,
+// Describe the experiment (needs: excel-paste-fidelity, fail-loudly,
+// missing-values-handling, table-layout-chooser). A pasted block with
+// #DIV/0!, a blank and IDs in the row titles is reported cell by cell
+// with nothing read as 0; a text cell in a t test is named in the Notes;
+// a paired t test with two incomplete pairs reads "n = 10 pairs analysed;
+// 2 incomplete pairs (rows 4, 9) left out"; the paired table converts to
+// a grouped table with every value in its row.
+{
+  // axe-core (WCAG 2 A / AA, contrast included) on one part of the page
+  const axeOn = async (selector) => {
+    const req = createRequire(import.meta.url);
+    await page.addScriptTag({ path: req.resolve("axe-core/axe.min.js") }).catch(() => {});
+    return page.evaluate(async (sel) => {
+      // eslint-disable-next-line no-undef
+      const r = await axe.run(document.querySelector(sel), { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa"] } });
+      return r.violations.flatMap((x) => x.nodes.map((n) => `${x.id}: ${n.html.slice(0, 70)}`));
+    }, selector);
+  };
+  const axeFound = [];
+  const pasteInto = (label, text) => page.evaluate(([l, t]) => {
+    const el = document.querySelector(`.data-table input[aria-label='${l}']`);
+    const dt = new DataTransfer();
+    dt.setData("text/plain", t);
+    el.focus();
+    el.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }));
+  }, [label, text]);
+  const cellVal = (label) => page.locator(`.data-table input[aria-label='${label}']`).inputValue();
+  const newColumnTable = async (name) => {
+    await page.getByRole("button", { name: "New data table" }).first().click();
+    const dlg = page.locator(".new-table-dialog");
+    await dlg.locator('input[name="table-type"][value="column"]').check();
+    await dlg.getByLabel("Table name").fill(name);
+    await dlg.getByRole("button", { name: "Create table" }).click();
+    await page.waitForSelector(".grid-toolbar");
+    await page.waitForTimeout(400);
+  };
+
+  // (a) paste report
+  await newColumnTable("Pasted IDs");
+  await pasteInto("Row 1 title", "0001234\t1.5\t#DIV/0!\n0001235\t\t2.5\n1E5\t3.5\t4.5\n");
+  const strip = page.locator(".paste-report");
+  const stripShown = await appears(strip, 5000);
+  const stripText = stripShown ? (await strip.innerText()).replace(/\s+/g, " ") : "";
+  expect("a paste is reported: 4 numbers, the blank B2 and #DIV/0! in C1 kept as missing, nothing read as 0",
+    /4 numbers/.test(stripText) && /1 blank kept as missing: B2/.test(stripText)
+    && /1 spreadsheet error kept as missing: C1/.test(stripText)
+    && /3 labels kept exactly as typed/.test(stripText) && /nothing was converted to 0/.test(stripText), stripText);
+  axeFound.push(...(await axeOn(".paste-report")).map((v) => `paste report: ${v}`));
+  const ids = [await cellVal("Row 1 title"), await cellVal("Row 2 title"), await cellVal("Row 3 title")];
+  const gridVals = await page.locator(".data-table tbody input").evaluateAll((els) => els.map((e) => e.value));
+  expect("identifiers stay as typed (0001234, 1E5), the error text stays, and no cell holds 0",
+    ids.join(",") === "0001234,0001235,1E5" && await cellVal("Group B, row 1") === "#DIV/0!"
+    && await cellVal("Group A, row 2") === "" && !gridVals.some((v) => v.trim() === "0"),
+    `${ids.join(",")} | ${gridVals.filter(Boolean).join(",")}`);
+  await strip.getByRole("button", { name: "Go to cell C1, “#DIV/0!”" }).click();
+  expect("a cell named in the report is one click away",
+    await page.evaluate(() => document.activeElement?.getAttribute("aria-label")) === "Group B, row 1");
+
+  // (c) a text cell in a t test: named in the Notes, n says so
+  await page.locator(".data-table input[aria-label='Group A, row 4']").fill("high");
+  await page.locator(".pane-controls select.analysis-select").selectOption("ttest");
+  const notes = page.locator(".pane-results .notes-strip");
+  const textNoted0 = page.waitForFunction(() => {
+    const t = document.querySelector('.pane-results[data-live="true"] .notes-strip')?.textContent ?? "";
+    return /1 cell is not a number and was skipped: Group A, row 4 \(“high”\)/.test(t)
+      && /n = 2, 2 analysed \(Group A, Group B\)/.test(t);
+  }, null, { timeout: 60000 }).then(() => true, () => false);
+  const textNoted = await textNoted0;
+  if (textNoted) axeFound.push(...(await axeOn(".pane-results .notes-strip")).map((v) => `notes: ${v}`));
+  expect("a text cell in a numeric column: the Notes say it was skipped and give n per group", textNoted,
+    (await notes.innerText().catch(() => "")).replace(/\s+/g, " "));
+
+  // (d) paired t test with two incomplete pairs
+  await newColumnTable("Paired mice");
+  await pasteInto("Group A, row 1", "1\t1.5\n2\t2.4\n3\t3.6\n\t4.1\n5\t5.2\n6\t6.9\n7\t7.1\n8\t8.8\n"
+    + "9\t\n10\t10.2\n11\t11.1\n12\t12.9\n");
+  await page.locator(".pane-controls select.analysis-select").selectOption("ttest");
+  await page.locator(".pane-controls").getByLabel("Test", { exact: true }).selectOption("paired");
+  const analysedOk = await page.waitForFunction(() => /Analysed: n = 10 pairs analysed; 2 incomplete pairs \(rows 4, 9\) left out/
+    .test(document.querySelector('.pane-results[data-live="true"] .notes-strip .analysed-line')?.textContent ?? ""),
+  null, { timeout: 60000 }).then(() => true, () => false);
+  expect("paired t test with two incomplete pairs: n = 10 pairs analysed; 2 incomplete pairs (rows 4, 9) left out",
+    analysedOk, await page.locator(".notes-strip .analysed-line").innerText().catch(() => ""));
+  const meanDiff = await page.locator(".pane-results").innerText();
+  expect("the paired t test pairs row by row (mean difference -0.47 over the 10 complete pairs)",
+    /[-−]0\.47/.test(meanDiff), meanDiff.split("\n").find((l) => /difference/i.test(l)) ?? "");
+
+  // (b) Convert table to… grouped, same rows: values and pairing kept
+  await page.getByRole("button", { name: "Convert table to…" }).click();
+  const conv = page.locator(".convert-type-dialog");
+  await conv.getByLabel("Grouped table, same rows").check();
+  const checkLine = await conv.locator(".convert-check").innerText();
+  axeFound.push(...(await axeOn(".convert-type-dialog")).map((v) => `convert: ${v}`));
+  expect("Convert table to… checks every value against the original", /All 22 values carried over/.test(checkLine),
+    checkLine);
+  await conv.getByRole("button", { name: "Create new table" }).click();
+  await conv.waitFor({ state: "detached", timeout: 10000 });
+  await page.waitForTimeout(600);
+  const placed = [await cellVal("Group A, row 4"), await cellVal("Group B, row 4"),
+    await cellVal("Group A, row 9"), await cellVal("Group B, row 9"), await cellVal("Group B, row 12")];
+  expect("the grouped table keeps every value in its row (pairs and gaps where they were)",
+    await page.getByRole("treeitem", { name: "Paired mice (grouped)" }).count() >= 1
+    && placed.join("|") === "|4.1|9||12.9"
+    && await page.locator(".data-table th.group-head input.ds-name").evaluateAll((e) => e.map((x) => x.value).join(","))
+      === "Group A,Group B", placed.join("|"));
+
+  // Describe the experiment -> the table and its layout
+  await page.getByRole("button", { name: "New data table" }).first().click();
+  const nd = page.locator(".new-table-dialog");
+  await nd.getByRole("button", { name: "Not sure? Describe the experiment…" }).click();
+  const dd = page.locator(".design-dialog");
+  await dd.getByRole("button", { name: "I measured the same mice (WT and KO) at 4 times" }).click();
+  const ddText = await dd.locator(".design-result").innerText();
+  axeFound.push(...(await axeOn(".design-dialog")).map((v) => `design: ${v}`));
+  await dd.getByRole("button", { name: "Use this table" }).click();
+  await dd.waitFor({ state: "detached", timeout: 5000 });
+  expect("describing the experiment picks a grouped table with subjects as subcolumns (4 rows, 4 subcolumns)",
+    /Grouped table, subjects as subcolumns/.test(ddText)
+    && await nd.locator('input[name="table-type"][value="grouped"]').isChecked()
+    && await nd.getByLabel("Replicates", { exact: true }).inputValue() === "4"
+    && await nd.getByLabel("Rows (levels of the row factor)", { exact: true }).inputValue() === "4"
+    && await nd.isVisible(), ddText.replace(/\s+/g, " "));
+  await nd.getByRole("button", { name: "Cancel" }).click();
+  expect("axe-core: the paste report, Notes strip and the convert / design dialogs pass WCAG 2 AA",
+    axeFound.length === 0, axeFound.join(" | "));
 }
 
 await page.screenshot({

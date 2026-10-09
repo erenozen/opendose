@@ -43,6 +43,8 @@ function twoWayAllCells(engine: EngineBridge, table: DataTableModel,
 const sameList = (a: string[], b: string[]) =>
   a.length === b.length && a.every((v) => b.includes(v));
 
+
+
 /** Engine payload of a column analysis. Options left at their defaults add
  *  nothing, so the original analyses send exactly what they always did. */
 export function columnPayload(table: DataTableModel, o: ColumnOptionsState):
