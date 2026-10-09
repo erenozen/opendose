@@ -270,6 +270,16 @@ export function describeResult(result: unknown): TestInfo {
       info.groups = Object.entries(curves).map(([name, c]) => ({ name, n: (c as R).n }))
         .filter((g) => num(g.n));
       info.nUnit = "subjects";
+      // Pairwise log-rank tests and the test for trend (sheets/survival/extras.ts).
+      const pw = r.extras?.pairwise;
+      if (pw && !pw.error && Array.isArray(pw.comparisons) && pw.comparisons.length) {
+        if (r.extras.trend_shown && pw.trend) info.test = "log-rank (Mantel-Cox) test and the log-rank test for trend";
+        const k = pw.family_size ?? pw.comparisons.length;
+        info.posthoc = `pairwise log-rank tests (${String(pw.family?.label ?? "").startsWith("each group")
+          ? `each group against ${pw.comparisons[0].a}` : "all pairs"}, ${k} comparisons)`;
+        info.multiplicity = pw.correction === "none" ? "uncorrected" : "corrected";
+        info.correction = pw.correction === "none" ? null : CORRECTION_NAMES[pw.correction] ?? pw.correction;
+      }
       return info;
     }
     case "nested_t_test":

@@ -1,0 +1,65 @@
+/* Survival results extras and the survival entry aside / dialog.
+   Tokens only (index.css / App.css). */
+
+.surv-notes { margin: 8px 0 4px; }
+.surv-notes .result-note { max-width: 80ch; }
+.surv-extras { margin-top: 6px; }
+.surv-block { margin: 18px 0 8px; padding-top: 12px; border-top: 1px solid var(--grid); }
+.surv-block h4 { margin: 0 0 8px; font-size: 14px; color: var(--ink); }
+.surv-controls {
+  display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: center; margin: 0 0 8px;
+}
+.surv-controls .surv-field { flex-wrap: wrap; margin: 0; }
+.surv-controls .surv-field .field-note { flex-basis: 100%; }
+.surv-family { margin: 6px 0; font-size: 13px; font-weight: 600; color: var(--ink-2); }
+.surv-method { max-width: 80ch; margin: 6px 0; }
+.surv-method cite { font-style: italic; }
+.surv-trend { margin: 4px 0 6px; }
+.surv-diff { margin: 6px 0; font-size: 13px; color: var(--ink-2); }
+.surv-rmst-diff { margin-top: 8px; }
+
+/* Above the survival table: entry button, per-group reading */
+.surv-aside {
+  display: flex; flex-direction: column; gap: 8px; margin: 0 0 10px;
+  font-size: 13px; color: var(--ink-2);
+}
+.surv-aside-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+.surv-aside-row .surv-aside-label { font-weight: 600; color: var(--ink); }
+.surv-aside select { font: inherit; }
+.surv-aside .surv-entry-btn { font-size: 12.5px; padding: 4px 12px; }
+.surv-group-line {
+  display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px;
+  border: 1px solid var(--border); border-radius: var(--radius-pill); background: var(--surface);
+  font-variant-numeric: tabular-nums;
+}
+.surv-chip-warn {
+  display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px; font-size: 12.5px;
+  color: var(--warn-ink);
+  background: color-mix(in srgb, var(--warn-hue) 12%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--warn-hue) 40%, transparent);
+  border-radius: var(--radius-pill);
+}
+.surv-readas {
+  max-height: 220px; overflow: auto; padding: 6px 10px; background: var(--inset);
+  border-radius: var(--radius-s);
+}
+.surv-readas h5 { margin: 6px 0 2px; font-size: 12.5px; color: var(--ink); }
+.surv-readas ol { margin: 0 0 4px; padding-left: 0; list-style: none; columns: 2 16ch; column-gap: 18px; }
+.surv-readas li { font-size: 12.5px; break-inside: avoid; }
+.surv-readas li .surv-row-no { color: var(--muted); display: inline-block; min-width: 5ch; }
+.surv-readas li.unused { color: var(--warn-ink); }
+
+/* The "Survival data from…" dialog */
+.surv-entry-dialog .field-row { display: flex; flex-wrap: wrap; gap: 8px 16px; }
+.surv-entry-dialog textarea { width: 100%; font-family: var(--mono, ui-monospace, monospace); font-size: 12.5px; }
+.surv-entry-preview { max-height: 260px; overflow: auto; margin-top: 8px; }
+.surv-entry-preview table { border-collapse: collapse; font-size: 12.5px; width: 100%; }
+.surv-entry-preview th, .surv-entry-preview td {
+  text-align: left; padding: 3px 10px 3px 0; border-bottom: 1px solid var(--grid);
+  font-variant-numeric: tabular-nums;
+}
+.surv-entry-preview thead th { color: var(--muted); font-weight: 600; position: sticky; top: 0; background: var(--surface); }
+.surv-entry-preview td.readas { color: var(--ink); }
+@media (max-width: 480px) {
+  .surv-readas ol { columns: 1; }
+}

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type Plotly from "plotly.js-dist-min";
 import { loadPlotly, plotlyNow } from "../lib/plotly";
 import { graphPStyle } from "../graph/significance";
@@ -203,10 +203,18 @@ function KmGroupTable({ name, rows }: { name: string; rows: KmRow[] }) {
 }
 
 /** Kaplan-Meier table and curve comparison tests (the results sheet). */
-export function SurvivalResults({ result, table }: {
+export function SurvivalResults({ result, table, medianNotes, afterMedians, extras }: {
   result: Record<string, any> | null;
   /** The data, for the counts of the Kaplan-Meier tables. */
   table?: DataTableModel;
+  /** Median cell text by group when the median is not reached
+   *  ("not reached: 62% survived to day 60 (last follow-up)"). */
+  medianNotes?: Record<string, string>;
+  /** Shown under the medians (explanations, warnings). */
+  afterMedians?: ReactNode;
+  /** Shown after the log-rank tables, before the Kaplan-Meier tables
+   *  (pairwise comparisons, survival at a time, RMST). */
+  extras?: ReactNode;
 }) {
   const groups = useMemo(() => (table ? survivalGroups(table) : []), [table]);
   if (!result) return null;
@@ -237,13 +245,14 @@ export function SurvivalResults({ result, table }: {
                 <td>{c.n_events}</td>
                 <td>{c.n_censored}</td>
                 <td>{c.median_survival != null
-                  ? formatSig(c.median_survival) : "not reached"}</td>
+                  ? formatSig(c.median_survival) : medianNotes?.[name] ?? "not reached"}</td>
                 <td>{c.median_survival != null ? medianCi(c.median_ci) : "n/a"}</td>
                 <td>{c.median_survival != null ? medianCi(c.median_ci_log) : "n/a"}</td>
               </tr>
             ))}
           </tbody>
         </table>
+        {afterMedians}
         {lr && (
           <table className="results-table goodness">
             <tbody>
@@ -302,6 +311,7 @@ export function SurvivalResults({ result, table }: {
             </p>
           </>
         )}
+        {extras}
         {curves.map(([name, c]) => {
           // the engine's table (event times, as R's summary.survfit), else
           // one built from the curve and the data (older engines)

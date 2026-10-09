@@ -851,10 +851,25 @@ in brackets; "discoverable" = already built, make it findable):
 - [ ] Let a provenance file (or a project) be applied to a new data
       file: same tables, analyses, graphs and layouts, with a diff of
       what changed. [`analysis-replay`, 63.1, 32 obs]
-- [ ] Add 'From counts per day' and 'From dates' to the survival table
+- [x] Add 'From counts per day' and 'From dates' to the survival table
       (expand to per-subject rows) and a preview column 'read as: death
       on day 12 / censored on day 30'. [`survival-data-entry`, 61.7, 21
-      obs]
+      obs] Done: "Survival data from…" above the table (alive or deaths
+      per day, or start / end dates with yes/no codes; preview with a
+      "Read as" column; one undo step), a time unit, per-group "8
+      events, 2 censored" lines with warning chips and a "Read as" list
+      (`sheets/survival/entry.ts`).
+- [x] Explain 'median not reached', warn when few events drive the
+      test, survival at a chosen time and RMST difference with CIs.
+      [`median-survival-explained`, 44.7, 16 obs] Done: "not reached:
+      80% survived to day 30 (last follow-up)", the engine's few-events
+      warnings, survival at time t (Greenwood, log-log CI) and RMST with
+      differences and ratios (survRM2 method) on the survival results.
+- [x] Pairwise log-rank table (all pairs or vs control) with Holm-Šídák
+      / Bonferroni adjusted P, and the log-rank test for trend.
+      [`pairwise-logrank`, 36.8, 16 obs] Done (3+ groups), with the
+      family in the methods text and the figure legend. Not offered as
+      graph brackets: Kaplan-Meier graphs have no bracket layer.
 - [ ] Add a 'Comparisons to make' picker (all / vs control / ticked
       pairs) to every post hoc panel; apply Šídák, Holm or Dunn to
       exactly that family and print the family size.
