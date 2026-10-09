@@ -165,6 +165,26 @@ test("no meaning for failed or descriptive results; withheld P is explained", ()
   if (w) assert.match(w.sentence, /no estimate of the variability within groups/);
 });
 
+test("a t test on log values reads as a ratio of geometric means, never a difference of logs", () => {
+  // engine output of a log-scale unpaired t test (sheets/column/__tests__/logScale.test.ts)
+  const logT = {
+    analysis: "ttest", test: "unpaired_t", names: ["Treated", "Control"],
+    t: 4.263102245171385, df: 9, p_two_tailed: 0.0021015302214833194,
+    difference: 0.47202710368140477, ci_difference: [0.22155234792408585, 0.7225018594387237],
+    log_scale: { base: "log10" }, mean_a: 1.62, mean_b: 1.15,
+    ratio: 2.9650164260751364, ratio_ci: [1.6655295712087437, 5.278394667298011],
+  };
+  const m = meaningOf({ result: logT, table: { yTitle: "IL-6 (pg/mL)" } });
+  assert.match(m?.sentence ?? "", /^The geometric mean of Treated was 2\.97 times that of Control \(95% CI 1\.67–5\.28-fold\); a ratio this far from 1 would be unusual \(P = 0\.0021\)/);
+  assert.doesNotMatch(m?.sentence ?? "", /0\.472|pg\/mL higher/);
+  const anova = { analysis: "anova", kind: "parametric", log_scale: { base: "log10" }, table: { p: 0.001 },
+    group_summaries: [{ name: "A" }, { name: "B" }, { name: "C" }],
+    multiple_comparisons: { method: "tukey", comparisons: [{ pair: "A vs. C", difference: -0.4, ci: [-0.6, -0.2],
+      p_adjusted: 0.002, ratio: 0.398, ratio_ci: [0.25, 0.63] }] } };
+  const a = meaningOf({ result: anova });
+  assert.match(a?.sentence ?? "", /group geometric means .* most clearly A\/C = 0\.398-fold \(95% CI 0\.25–0\.63\)/);
+});
+
 test("P values follow the project's style", () => {
   const m = meaningOf({ result: FX.ttest_unpaired.result, style: "apa" });
   assert.match(m?.sentence ?? "", /\(p < \.001\)/);

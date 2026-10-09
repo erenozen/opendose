@@ -211,6 +211,7 @@ function ttestMeaning(r: R, t: MeaningTable | null | undefined, style: PStyle): 
   const p = r.p_two_tailed;
   if (!num(p)) return null;
   const sig = p < ALPHA;
+  if (r.log_scale && typeof r.log_scale === "object" && num(r.ratio)) return logTtestMeaning(r, a, b, p, style);
   switch (r.test) {
     case "unpaired_t":
     case "welch_t": {
@@ -295,6 +296,25 @@ function ttestMeaning(r: R, t: MeaningTable | null | undefined, style: PStyle): 
   }
 }
 
+/** A fold change to three significant digits ("2.97"). */
+const fold = (v: number) => formatSig(v, 3);
+
+/** t test on log values (sheets/column/logScale.ts): the ratio of
+ *  geometric means a/b with its CI, never a difference of logs. */
+function logTtestMeaning(r: R, a: string, b: string, p: number, style: PStyle): Meaning {
+  const c = ci2(r.ratio_ci);
+  const ci = c ? ` (95% CI ${fold(c[0])}–${fold(c[1])}-fold)` : "";
+  const test = "t test on log-transformed values: compares geometric means as a ratio, for data whose SD grows with the mean.";
+  if (p < ALPHA) {
+    return meaning(`The geometric mean of ${a} was ${fold(r.ratio)} times that of ${b}${ci}; a ratio this far from 1 `
+      + `would be unusual (${P(p, style)}) if the groups did not differ.`,
+    [S.gpUnpairedT, S.greenland2016], MIS_SIG(P(p, style)), test);
+  }
+  return meaning(`The geometric mean of ${a} was ${fold(r.ratio)} times that of ${b}, but the data do not show a `
+    + `difference (${P(p, style)})${c ? `: the 95% CI runs from ${fold(c[0])}- to ${fold(c[1])}-fold` : ""}.`,
+  [S.gpUnpairedT, S.amrhein2019], MIS_NS, test);
+}
+
 function ksMeaning(r: R, a: string, b: string, style: PStyle): Meaning | null {
   if (!num(r.p)) return null;
   const test = "Kolmogorov-Smirnov test: compares the whole distributions of two independent groups.";
@@ -325,9 +345,14 @@ function posthocClause(mc: R | null | undefined, unit: string): string {
     const [first, second] = best.pair.split(" vs. ");
     const d = num(best.difference) ? best.difference : null;
     const c = ci2(best.ci) ?? ci2(best.ci95);
-    if (d !== null && d !== 0) {
+    const fam = best.family ? ` (${best.family})` : "";
+    if (num(best.ratio)) {
+      // log-scale comparisons: a ratio of geometric means, not a difference of logs
+      const rc = ci2(best.ratio_ci);
+      ex = `, most clearly ${first}/${second}${fam} = ${fold(best.ratio)}-fold`
+        + `${rc ? ` (95% CI ${fold(rc[0])}–${fold(rc[1])})` : ""}`;
+    } else if (d !== null && d !== 0) {
       const [hi, lo] = d < 0 ? [second, first] : [first, second];
-      const fam = best.family ? ` (${best.family})` : "";
       const ci = c ? ` (95% CI ${abs(d < 0 ? c[1] : c[0])} to ${withUnit(abs(d < 0 ? c[0] : c[1]), unit)})` : "";
       ex = `, most clearly ${hi} above ${lo}${fam} by ${withUnit(abs(d), unit)}${ci}`;
     }
@@ -353,6 +378,10 @@ function oneWayMeaning(r: R, t: MeaningTable | null | undefined, style: PStyle):
       } else {
         p = r.table?.p; mc = r.multiple_comparisons;
         test = "Ordinary one-way ANOVA: compares the means of three or more independent groups, assuming similar SDs.";
+        if (r.log_scale && typeof r.log_scale === "object") {
+          what = "geometric means";
+          test = "Ordinary one-way ANOVA on log-transformed values: compares geometric means, for data whose SD grows with the mean.";
+        }
       }
       break;
     case "anova_unequal_var":
