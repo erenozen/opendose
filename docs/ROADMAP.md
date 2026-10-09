@@ -767,6 +767,90 @@ Still open from the site run:
 - Undo history beyond 100 steps; the engine Web Worker (the page still
   freezes during long runs until it lands).
 
+## User-needs catalogue (2026-10-09)
+
+A second research round (raw observations in `docs/research/needs/raw/`,
+schema in `SCHEMA.md`) collected 3,666 verified observations of user
+problems from 15 venues (Stack Exchange 698, GitHub issues 463, GraphPad
+support pages 400, YouTube comments 324, Methods literature 274,
+Competitor trackers 233, Software reviews 188, Statistics-consulting
+FAQs 183, Lab blogs 171, Journal requirements 160, Forums (image.sc,
+Bioconductor, Galaxy) 153, Courses and workshops 151, Non-English
+communities 126, Hacker News 101, Mastodon / fediverse 41). Reddit,
+ResearchGate, Zhihu and Capterra were unreachable; `REDDIT.md` describes
+how to add Reddit, and the build script picks up any new venue file.
+`build_catalogue.py` clusters the observations with explicit rules into
+178 needs and ranks them by frequency × severity × venue breadth ×
+engagement. 62% of observations fall in needs OpenDose already meets,
+34% in partly met needs and 4% in unmet ones; several of the
+most-requested features exist but are hard to find (and
+`web/src/guide/recommend.ts` still tells users Cox regression is not in
+OpenDose).
+
+Files: [`CATALOGUE.md`](research/needs/CATALOGUE.md),
+[`IMPROVEMENT-PLAN.md`](research/needs/IMPROVEMENT-PLAN.md),
+[`by-venue.md`](research/needs/by-venue.md),
+[`needs.json`](research/needs/needs.json) (built by
+`docs/research/needs/build_catalogue.py`).
+
+Top 15 proposals by priority score (need id, score and observation count
+in brackets; "discoverable" = already built, make it findable):
+- [ ] Offer "Which test?" inline in the Analyze dialog (a 'Help me
+      choose' first entry, pre-filled from the table) and phrase its
+      pairing question with the user's own first row ('Is A1 the same
+      animal as B1?'). [`design-first-test-chooser`, 100.0, 51 obs]
+      (discoverable)
+- [ ] When any group has fewer than two independent values, withhold P
+      and show descriptive results labelled exploratory; at n = 2–3 add
+      a chip with the detectable effect (from the power engine) and the
+      t-based CI width. [`small-n-honesty`, 99.0, 45 obs]
+- [ ] Add a two-way nested mixed model (treatment × genotype with animal
+      random) and a 'grouping column' role on multiple-variables tables
+      that any comparison fits as a random intercept.
+      [`nested-mixed-models`, 98.7, 75 obs]
+- [ ] Ask 'What does each value represent?' (independent experiment /
+      animal / technical repeat / cell) when a table is created or
+      pasted, and extend replicate assignment to XY tables and grouped
+      cells. [`declare-experimental-unit`, 91.0, 69 obs]
+- [ ] After every paste or import, show a one-line report ('412 numbers,
+      3 blanks kept as missing, 2 text cells in numeric columns: B7,
+      C12') and keep text columns as text. [`excel-paste-fidelity`,
+      81.8, 45 obs]
+- [ ] Add a 'Residuals' tab to t-test and ANOVA results with a QQ plot
+      and residual-vs-fitted plot, and word the normality chip as advice
+      that depends on n. [`assumption-checks-residuals`, 81.5, 38 obs]
+- [ ] Add 'Analyse log(values)' to unpaired t tests and ANOVA, reporting
+      geometric-mean ratios with CIs, and a chip that suggests it when
+      SDs rise with means. [`log-scale-analysis`, 78.0, 45 obs]
+- [ ] Offer 'Plan the next experiment' from any results sheet,
+      pre-filled with this data's SD and effect. [`power-sample-size`,
+      72.8, 58 obs] (discoverable)
+- [ ] Ask 'Was each condition run once per experiment, on different
+      days?' and, if yes, open the matched analysis (RM ANOVA / paired)
+      with experiment as the block, and show the
+      experiment-to-experiment variance it removed.
+      [`experiment-as-block`, 67.7, 35 obs]
+- [ ] Document and test limits (rows, points per graph), virtualise the
+      grid, and switch dense scatters to WebGL above a threshold.
+      [`large-data`, 66.1, 43 obs]
+- [ ] Ask for a reason when values are excluded, list exclusions per
+      group in results and methods, and offer a one-click 'results with
+      excluded values included'. [`exclusion-log`, 64.1, 29 obs]
+- [ ] Let a provenance file (or a project) be applied to a new data
+      file: same tables, analyses, graphs and layouts, with a diff of
+      what changed. [`analysis-replay`, 63.1, 32 obs]
+- [ ] Add 'From counts per day' and 'From dates' to the survival table
+      (expand to per-subject rows) and a preview column 'read as: death
+      on day 12 / censored on day 30'. [`survival-data-entry`, 61.7, 21
+      obs]
+- [ ] Add a 'Comparisons to make' picker (all / vs control / ticked
+      pairs) to every post hoc panel; apply Šídák, Holm or Dunn to
+      exactly that family and print the family size.
+      [`planned-comparisons-family`, 61.4, 22 obs]
+- [ ] Offer 'Report as > highest dose' for extrapolated IC50s, carried
+      into the results table, the results sentence and any ratio, with
+      the reason. [`incomplete-curve-flags`, 60.8, 20 obs]
+
 ## Next up
 
 1. ~~Publish the site~~ LIVE (2026-08-11): https://erenozen.dev/opendose/

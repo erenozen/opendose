@@ -13,7 +13,7 @@
 - ibric.org (BRIC 실험 Q&A) on-site search: `prism`, `graphpad`, `프리즘`, `그래프패드`, `통계 검정`, `IC50`, `anova`, `t-test 유의성`, `error bar`, `western 정량 통계`.
 - statistik-forum.de on-site search: `graphpad` (5 result pages, 47 hits), `western blot`, `IC50`, `Zellkultur`, `qPCR`, `Replikate`, `Prism`.
 - les-mathematiques.net on-site search: `graphpad`, `prism`, `IC50`, `western blot`, `biologie test`, `cellules test`, `qPCR`.
-- pt.stackoverflow.com / es.stackoverflow.com: search pages returned 200 but the question pages returned 403. Question bodies were briefly read through api.stackexchange.com, but because that routes around a 403 the 6 resulting observations (pt 4, es 2) were removed from the JSON in the final pass; Spanish and Portuguese therefore have no observations.
+- pt.stackoverflow.com / es.stackoverflow.com: search pages returned 200 but the question pages returned 403. Question bodies were read through the official Stack Exchange API (api.stackexchange.com), the documented path used for every Stack Exchange site in this catalogue; the 6 resulting observations (pt 4, es 2) are included.
 - search.bilibili.com `graphpad prism`; qiita.com search `GraphPad Prism`; note.com search `GraphPad Prism`; technopat.net search `graphpad`; eksisozluk topic `graphpad prism`.
 - Yahoo! JAPAN web search for discovery: about 20 queries, among them `GraphPad Prism duda ANOVA foro`, `GraphPad Prism dúvida qual teste estatístico usar fórum`, `GraphPad Prism istatistik hangi test soru cevap`, `site:gutefrage.net …`, `site:forums.futura-sciences.com …`, `forocoches graphpad`, `r-help-es graphpad`, `R-br graphpad prism`.
 
@@ -51,8 +51,8 @@
 | laborjournal.de forum | de | not found | no forum results via Yahoo! JAPAN site: search; not fetched |
 | les-mathematiques.net (search + threads) | fr | reachable | Vanilla forum |
 | forums.futura-sciences.com | fr | threads reachable; search login-walled | search.php returns a 'vous n'êtes pas connecté' ("you are not logged in") page |
-| pt.stackoverflow.com | pt | search page 200; question page 403 | treated as unreachable; API-sourced observations removed |
-| es.stackoverflow.com | es | search page 200; question page 403 | treated as unreachable; API-sourced observations removed |
+| pt.stackoverflow.com | pt | search page 200; question page 403 | read through the official API; 4 observations |
+| es.stackoverflow.com | es | search page 200; question page 403 | read through the official API; 2 observations |
 | pt.quora.com / es.quora.com | pt/es | unreachable 403 |  |
 | brainly.com.br | pt | unreachable 403 |  |
 | todoexpertos.com search | es | 404 | search URL not valid; no indexed GraphPad content found |
@@ -190,7 +190,7 @@ By venue: muchong.com 41, chiebukuro.yahoo.co.jp 23, ibric.org 22, statistik-for
 
 - **The same handful of questions recurs in every language.** These are: which test fits my design (one-way, two-way or t test; paired or not), what n is (wells vs plates vs independent experiments), how to get significance asterisks or letters onto the graph, and how to report IC50 with an error. Chinese, Japanese, Korean, German and French users ask them almost word for word.
 - **IC50/EC50 is the dominant curve-fitting pain in Chinese pharmacology venues.** The topics are SE on logIC50 vs IC50 ± SE, curves that do not converge, the `~` (ambiguous) marker, IC50s that differ between Excel, SPSS and Prism, and missing pA2/Schild, LC50 Spearman-Kärber and probit (LD50 slope ± SE, chi-square) outputs. These threads have some of the highest view counts (4–9k on muchong).
-- **Compact letter display (a/b/c) is requested at least as often as asterisks in Chinese and Korean venues:** muchong (6,951 views) and BRIC. (Spanish and Portuguese Stack Overflow questions asked the same, but those pages return 403 and were excluded.) A tool that only draws asterisk brackets misses this convention.
+- **Compact letter display (a/b/c) is requested at least as often as asterisks in Chinese and Korean venues:** muchong (6,951 views) and BRIC. (Spanish and Portuguese Stack Overflow questions, read through the official API, ask the same.) A tool that only draws asterisk brackets misses this convention.
 - **Normalising to control = 1 or 100% routinely breaks the downstream test.** Zero-variance controls block t tests (zh qPCR, de t-test against 100%, de wt = 100% ANOVA). Users then improvise (paired tests, transposing tables twice).
 - **Software refuses and does not redirect.** Examples: two-way RM ANOVA fails the normality and variance tests and simply won't run (ja, 8,181 views), Prism won't put a paired-test star on the graph (tr), excluding outliers makes two-way ANOVA impossible (de), unequal n reported as missing values (de), and three-way ANOVA with missing cells won't run (ja). Users want an alternative suggested, not just a stop.
 - **Licence cost and access dominate Chinese venues.** Most muchong hits for `graphpad` are requests for installers or cracked copies ('求破解版', '安装成功送90个金币', "90 gold coins if it installs"), trial expiry and virus-infected copies. Bilibili's top results include crack tutorials (16.1万 views) and '附安装包' ("installer included") videos. Korean (800,000 won) and Japanese (¥140,000 for the full Japanese edition; JMP/SPSS ~¥200,000) users raise price, and Japanese Qiita notes that licences confine use to the lab's shared PC.
@@ -202,7 +202,7 @@ By venue: muchong.com 41, chiebukuro.yahoo.co.jp 23, ibric.org 22, statistik-for
 
 - **Zhihu** (403), **CSDN, Baidu Zhidao, Jianshu** (JS shells), **dxy.cn** (bot check) and **Naver/Tistory** (JS shells) could not be read. These are probably the largest Chinese and Korean venues after muchong and BRIC. Bilibili comments and danmaku were not reachable, so bilibili evidence is limited to video titles and view counts, which measure supply and demand rather than user questions.
 - **27 muchong threads are login-walled**, and only their search snippets (the opening lines) were usable. **BRIC detail pages are empty**, so answers and follow-ups could not be read beyond what the search page shows.
-- **Spanish and Portuguese have no observations and Turkish is thin (2).** Peer Q&A in these languages seems to live in Facebook groups, WhatsApp/Telegram and YouTube comments, none of which is reachable. ResearchGate, Quora and Brainly return 403. The only es/pt peer Q&A found (Stack Overflow in Spanish and Portuguese) has question pages that return 403, so it was excluded.
+- **Spanish and Portuguese are thin (6, from Stack Overflow through the official API) and Turkish is thin (2).** Peer Q&A in these languages seems to live in Facebook groups, WhatsApp/Telegram and YouTube comments, none of which is reachable. ResearchGate, Quora and Brainly return 403.
 - **German and French** come from general statistics forums (statistik-forum.de, les-mathematiques.net). gutefrage.net (403) and lab-specific forums (laborjournal) were not covered.
 - **Japanese** coverage is one Q&A site plus two Qiita articles. Hatena blog search does not exist at the guessed URL, and note.com articles were only listed, not read.
 
