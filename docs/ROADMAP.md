@@ -812,10 +812,11 @@ in brackets; "discoverable" = already built, make it findable):
       animal / technical repeat / cell) when a table is created or
       pasted, and extend replicate assignment to XY tables and grouped
       cells. [`declare-experimental-unit`, 91.0, 69 obs]
-- [ ] After every paste or import, show a one-line report ('412 numbers,
+- [x] After every paste or import, show a one-line report ('412 numbers,
       3 blanks kept as missing, 2 text cells in numeric columns: B7,
       C12') and keep text columns as text. [`excel-paste-fidelity`,
-      81.8, 45 obs]
+      81.8, 45 obs] (`project/pasteReport.ts`; Help explainer
+      "What happens to pasted cells")
 - [ ] Add a 'Residuals' tab to t-test and ANOVA results with a QQ plot
       and residual-vs-fitted plot, and word the normality chip as advice
       that depends on n. [`assumption-checks-residuals`, 81.5, 38 obs]
@@ -850,6 +851,20 @@ in brackets; "discoverable" = already built, make it findable):
 - [ ] Offer 'Report as > highest dose' for extrapolated IC50s, carried
       into the results table, the results sentence and any ratio, with
       the reason. [`incomplete-curve-flags`, 60.8, 20 obs]
+
+Also shipped from Wave 1 of the improvement plan:
+- [x] "Convert table to…" (column ↔ grouped ↔ multiple variables,
+      stacked ↔ side by side) as a new table keeping every value,
+      exclusion and pairing, and "Describe the experiment" picking the
+      table from three design questions. [`table-layout-chooser`]
+      (`project/convertType.ts`, `guide/designToTable.ts`)
+- [x] A Notes strip on every results sheet with every engine warning and
+      every skipped value, unit-tested over the column, grouped, XY and
+      survival payloads. [`fail-loudly`] (`project/dataNotes.ts`)
+- [x] An "Analysed" line: n per group, pairs or subjects, and the rows
+      of incomplete pairs left out; paired t / Wilcoxon / correlation
+      payloads no longer shift pairs after a one-sided blank.
+      [`missing-values-handling`]
 
 ## Next up
 

@@ -16,7 +16,7 @@
 .paste-report-line strong { color: var(--ink); font-weight: 600; }
 .paste-report-part.tone-warn { color: var(--warn-ink); font-weight: 500; }
 .paste-report-sep { color: var(--muted); }
-.paste-report .cell-ref { font-variant-numeric: tabular-nums; }
+.paste-report button.linkish.cell-ref { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
 .paste-report-actions { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
 .paste-report-actions button { padding: 3px 9px; font-size: 12px; }
 .paste-report-close { min-width: 26px; }
