@@ -341,6 +341,25 @@ export const EXPLAINERS: Explainer[] = [
     keywords: "indexed long format wide format unstack subcolumns data entry layout",
   },
   {
+    id: "paste-fidelity",
+    title: "What happens to pasted cells",
+    summary: "Blanks and spreadsheet errors stay missing, text is never read as 0, and identifiers are kept exactly as typed.",
+    body: [
+      "After every paste or import a line above the table counts the numbers read and names "
+        + "every other cell: blanks and errors such as #DIV/0! or #N/A are kept as missing, text "
+        + "in a number column is kept as typed and read as missing, and a value followed by * is "
+        + "kept and excluded. Nothing is ever converted to 0, and the line says so.",
+      "Row titles and categorical variables are identifiers: 0001234, 1E5 or SEPT2 stay exactly "
+        + "as typed, never turned into numbers or dates. A pasted column of text in a "
+        + "multiple-variables table becomes a categorical variable.",
+      "Numbers with a decimal comma (1,5) or thousands separators are not guessed at in a plain "
+        + "paste; the Import dialog reads them with the decimal separator you choose. Each "
+        + "results sheet's Notes then say which cells an analysis skipped.",
+    ],
+    sources: [SRC.ziemann2016, SRC.sampl],
+    keywords: "paste excel import blank missing #DIV/0! #N/A text zero gene id decimal comma",
+  },
+  {
     id: "why-differ",
     title: "Why your number may differ from another program",
     summary: "Tails, tie handling, exact vs approximate P, the correction, quantile definition and CI method all differ by default.",

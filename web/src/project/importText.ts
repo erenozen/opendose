@@ -177,6 +177,10 @@ export interface ImportPreview {
   titles: string[] | null;           // per kept column
   columns: number[];                 // 1-based source column of each kept column
   rows: string[][];                  // kept rows x kept columns
+  /** The same cells as typed in the source (trimmed; no missing code,
+   *  decimal or * treatment): identifiers are written from these, and
+   *  the paste report compares them with what was stored. */
+  raw?: string[][];
   totalRows: number;                 // data rows before filtering
   totalColumns: number;
 }
@@ -221,23 +225,28 @@ export function prepareImport(source: string | string[][], s: SourceOptions,
     const v = normalizeNumber(body, decimal);
     return star ? `${v}*` : v;
   };
+  const rawAt = (src: string[], c: number) => (src[c - 1] ?? "").trim();
   const rows: string[][] = [];
+  const raw: string[][] = [];
   const keptRows: string[][] = [];
   for (let r = r0; r <= r1; r++) {
     if ((r - r0) % k !== 0) continue;
     const src = m[r - 1];
     keptRows.push(src);
     rows.push(columns.map((c) => cellAt(src, c)));
+    raw.push(columns.map((c) => rawAt(src, c)));
   }
   if (f.unstack && f.unstack.dataCol >= 1 && f.unstack.groupCol >= 1) {
     // one column per group id: numeric ids in ascending order, text ids
     // in order of appearance; values keep their order within a group
     const by = new Map<string, string[]>();
+    const byRaw = new Map<string, string[]>();
     for (const src of keptRows) {
       const id = cellAt(src, f.unstack.groupCol).replace(/\*$/, "");
       if (!id) continue;
-      if (!by.has(id)) by.set(id, []);
+      if (!by.has(id)) { by.set(id, []); byRaw.set(id, []); }
       by.get(id)!.push(cellAt(src, f.unstack.dataCol));
+      byRaw.get(id)!.push(rawAt(src, f.unstack.dataCol));
     }
     const ids = [...by.keys()];
     if (ids.every((id) => Number.isFinite(Number(id)))) ids.sort((a, b) => Number(a) - Number(b));
@@ -249,13 +258,14 @@ export function prepareImport(source: string | string[][], s: SourceOptions,
       // made for the unstacked view do not collide with source columns
       columns: ids.map((_, i) => width + 1 + i),
       rows: Array.from({ length: height }, (_, r) => ids.map((id) => by.get(id)![r] ?? "")),
+      raw: Array.from({ length: height }, (_, r) => ids.map((id) => byRaw.get(id)![r] ?? "")),
       totalRows: m.length, totalColumns: width,
     };
   }
   return {
     delimiter, decimal,
     titles: titles ? columns.map((c) => titles![c - 1] ?? "") : null,
-    columns, rows, totalRows: m.length, totalColumns: width,
+    columns, rows, raw, totalRows: m.length, totalColumns: width,
   };
 }
 
@@ -309,23 +319,58 @@ function lastUsedRow(t: DataTableModel): number {
   return -1;
 }
 
+/** A cell an import wrote: grid row, flat grid column (in the returned
+ *  table), the source text and whether a trailing * excluded it. */
+export interface WrittenCell { row: number; col: number; raw: string; starred?: boolean }
+
 /** Apply an import to table t and return the new table. Y source columns
  *  fill the table's Y subcolumns left to right (a new dataset begins
  *  every `perDataset` columns when the table must grow). */
 export function applyImport(t: DataTableModel, p: ImportPreview, roles: ColumnRole[],
   pl: PlacementOptions, f: Pick<FilterOptions, "skipBlankX" | "asteriskExcluded">):
   DataTableModel {
+  return applyImportWithCells(t, p, roles, pl, f).table;
+}
+
+/** A column of identifiers rather than numbers: any value with a leading
+ *  zero (0001234, 007) is a code, never the number it spells. */
+export function looksLikeIdentifiers(values: string[]): boolean {
+  return values.some((v) => /^[+-]?0\d+$/.test(v.trim()));
+}
+
+/** applyImport, also listing every cell it wrote (for the paste report).
+ *  Identifiers are written exactly as typed: row titles, X dates and
+ *  times, and text (categorical) variables of a multiple-variables table
+ *  take the source text without decimal or * treatment. */
+export function applyImportWithCells(t: DataTableModel, p: ImportPreview, roles: ColumnRole[],
+  pl: PlacementOptions, f: Pick<FilterOptions, "skipBlankX" | "asteriskExcluded">):
+  { table: DataTableModel; written: WrittenCell[] } {
   const shape = tableShape(t.type);
   const xi = shape.hasX ? roles.indexOf("x") : -1;
   const ti = shape.hasRowTitles ? roles.indexOf("rowTitle") : -1;
   const yi = roles.map((r, i) => (r === "y" ? i : -1)).filter((i) => i >= 0);
-  let rows = p.rows;
-  if (f.skipBlankX && xi >= 0) rows = rows.filter((r) => (r[xi] ?? "").trim() !== "");
+  const srcRaw = p.raw ?? p.rows;
+  let keep = p.rows.map((_, i) => i);
+  if (f.skipBlankX && xi >= 0) keep = keep.filter((i) => (p.rows[i][xi] ?? "").trim() !== "");
+  const rows = keep.map((i) => p.rows[i]);
+  const rawRows = keep.map((i) => srcRaw[i] ?? p.rows[i]);
   const excludedCells: { row: number; src: number }[] = [];
   const val = (r: number, c: number): string => {
     const raw = (rows[r]?.[c] ?? "").trim();
     if (raw.endsWith("*")) {
       if (f.asteriskExcluded) excludedCells.push({ row: r, src: c });
+      return raw.slice(0, -1).trim();
+    }
+    return raw;
+  };
+  // identifiers: as typed (dates and times lose only an exclusion *)
+  const asTyped = (r: number, c: number): string => (rawRows[r]?.[c] ?? "").trim();
+  const timeX = xi >= 0 && t.xFormat !== "numbers";
+  const xVal = (r: number): string => {
+    if (!timeX) return val(r, xi);
+    const raw = asTyped(r, xi);
+    if (raw.endsWith("*") && raw.length > 1) {
+      if (f.asteriskExcluded) excludedCells.push({ row: r, src: xi });
       return raw.slice(0, -1).trim();
     }
     return raw;
@@ -351,7 +396,8 @@ export function applyImport(t: DataTableModel, p: ImportPreview, roles: ColumnRo
       if (t.type === "multivariable") {
         const vals = rows.map((r) => (r[yi[d] ?? -1] ?? "").replace(/\*$/, "").trim())
           .filter(Boolean);
-        col.varType = vals.some((v) => !isNumeric(v)) ? "categorical" : "continuous";
+        col.varType = vals.some((v) => !isNumeric(v)) || looksLikeIdentifiers(vals)
+          ? "categorical" : "continuous";
       }
       return col;
     });
@@ -394,15 +440,20 @@ export function applyImport(t: DataTableModel, p: ImportPreview, roles: ColumnRo
   const x = [...next.x];
   const rowTitles = [...next.rowTitles];
   const datasets = next.datasets.map((d) => ({ ...d, rows: d.rows.map((r) => [...r]) }));
+  const categorical = (ds: number) => t.type === "multivariable"
+    && datasets[ds]?.varType === "categorical";
   const refs: CellRef[] = [];
   const excludedSet = () => new Set(excludedCells.map((e) => `${e.row}:${e.src}`));
   for (let r = 0; r < rows.length; r++) {
     const tr = startRow + r;
-    if (xi >= 0) x[tr] = val(r, xi);
-    if (ti >= 0) rowTitles[tr] = val(r, ti);
+    if (xi >= 0) x[tr] = xVal(r);
+    if (ti >= 0) rowTitles[tr] = asTyped(r, ti);
     yi.forEach((src, j) => {
       const target = yFlat[yStart + j];
-      if (target) datasets[target.dataset].rows[tr][target.sub] = val(r, src);
+      if (target) {
+        datasets[target.dataset].rows[tr][target.sub] = categorical(target.dataset)
+          ? asTyped(r, src) : val(r, src);
+      }
     });
   }
   const ex = excludedSet();
@@ -438,7 +489,31 @@ export function applyImport(t: DataTableModel, p: ImportPreview, roles: ColumnRo
     next = { ...next, factorNames: { ...next.factorNames, rows: title(ti) } };
   }
   if (pl.mode !== "replace") next = dropUnfilledDatasets(t, next);
-  return refs.length ? setExcluded(next, refs, true) : next;
+  const table = refs.length ? setExcluded(next, refs, true) : next;
+
+  // where each source cell landed (flat columns of the final table)
+  const flat = flatColumns(table);
+  const xCol = flat.findIndex((c) => c.kind === "x");
+  const tCol = flat.findIndex((c) => c.kind === "rowTitle");
+  const yCol = (dataset: number, sub: number) =>
+    flat.findIndex((c) => c.kind === "y" && c.dataset === dataset && c.sub === sub);
+  const written: WrittenCell[] = [];
+  for (let r = 0; r < rows.length; r++) {
+    const row = startRow + r;
+    const push = (col: number, src: number) => {
+      if (col < 0) return;
+      const cell: WrittenCell = { row, col, raw: rawRows[r]?.[src] ?? "" };
+      if (ex.has(`${r}:${src}`)) cell.starred = true;
+      written.push(cell);
+    };
+    if (xi >= 0) push(xCol, xi);
+    if (ti >= 0) push(tCol, ti);
+    yi.forEach((src, j) => {
+      const target = yFlat[yStart + j];
+      if (target) push(yCol(target.dataset, target.sub), src);
+    });
+  }
+  return { table, written };
 }
 
 /** Does the first row (after the skipped lines) hold column titles? Yes
