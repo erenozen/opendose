@@ -10,6 +10,10 @@ import type { DataSheet } from "../project/types";
 import { projectProvenance, type ProvenanceStep } from "./provenance";
 import { provenanceDeps, provenanceEnv } from "./provenanceDeps";
 import "./report.css";
+import "./integrity.css";
+import { useReproduceState } from "../app/reproduceCheck";
+import { changedLines, headline, type ReproductionReport } from "../project/reproduce";
+import { whyLines } from "../share/engineChanges";
 
 const show = (v: unknown) => (typeof v === "string" ? v : JSON.stringify(v));
 
@@ -58,6 +62,33 @@ function Step({ s }: { s: ProvenanceStep }) {
   );
 }
 
+/** One reopen-and-recompute check: the headline, every changed number
+ *  with both values, the engine change log entries that may explain them. */
+function Reproduction({ r }: { r: ReproductionReport }) {
+  const lines = changedLines(r);
+  const why = whyLines(r);
+  return (
+    <div className="history-step history-reproduction">
+      <h3>Reproduced on reopening “{r.file}”</h3>
+      <p className="hs-meta">{new Date(r.checkedAt).toLocaleString()} · {headline(r)} · compared at
+        {" "}{r.digits} significant digits (P values at 4)</p>
+      {lines.length > 0 && (
+        <ul aria-label="Changed results">{lines.map((l, i) => <li key={i}>{l}</li>)}</ul>
+      )}
+      {why.length > 0 && (
+        <ul aria-label="Engine changes">{why.map((c) => <li key={c.note}>{c.version}: {c.note}</li>)}</ul>
+      )}
+      <ul aria-label="Sheets compared">
+        {r.sheets.map((s) => (
+          <li key={s.sheetId}>{s.name}: {s.status === "reproduced" ? `${s.compared} numbers reproduced`
+            : s.status === "changed" ? `${s.changes.length} of ${s.compared} numbers changed`
+              : s.status === "failed" ? `could not be recomputed (${s.note})` : `not compared: ${s.note}`}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export default function HistoryPanel({ dataId, onClose }: { dataId?: string; onClose: () => void }) {
   const { project, results } = useProject();
   const datas = project.sheets.filter((s): s is DataSheet => s.kind === "data");
@@ -66,7 +97,10 @@ export default function HistoryPanel({ dataId, onClose }: { dataId?: string; onC
     id ? [id] : undefined), [project, results, id]);
   const [note, setNote] = useState("");
   const fam = doc.families[0];
-  const json = JSON.stringify(doc, null, 2);
+  // Projects reopened in this session from a file saved by another build:
+  // every saved result recomputed and compared (app/reproduceCheck.ts).
+  const checks = useReproduceState().history;
+  const json = JSON.stringify(checks.length ? { ...doc, reproduction: checks } : doc, null, 2);
   return (
     <Modal title="History" onClose={onClose} className="history-modal"
       actions={(
@@ -100,10 +134,18 @@ export default function HistoryPanel({ dataId, onClose }: { dataId?: string; onC
               {" "}· {fam.table.excluded_values} excluded values · {fam.table.fingerprint}
               {fam.table.derived_from ? ` · derived from “${fam.table.derived_from.table}” by ${fam.table.derived_from.analysis}` : ""}
             </p>
+            {fam.table.exclusions.length > 0 && (
+              <ul className="hs-exclusions" aria-label="Excluded values">
+                {fam.table.exclusions.map((x, i) => (
+                  <li key={i}>{x.data_set}, {x.where}: {x.value} ({x.reason ?? "no reason recorded"})</li>
+                ))}
+              </ul>
+            )}
           </div>
           {fam.steps.map((s) => <Step key={s.sheet_id} s={s} />)}
         </>
       )}
+      {checks.map((r) => <Reproduction key={r.checkedAt} r={r} />)}
     </Modal>
   );
 }

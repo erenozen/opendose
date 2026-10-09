@@ -4,6 +4,7 @@
 // History panel, copied as JSON, and written to the export bundle as
 // provenance.json. Pure: the registry lookups come in as functions.
 import type { DataSheet, DataTableModel, Project, ProjectPrefs, TableType } from "../project/types.ts";
+import { excludedValues } from "../project/exclusions.ts";
 
 /** FNV-1a 64-bit hash of a string's UTF-8 bytes, as 16 hex digits. */
 export function fnv1a64(text: string): string {
@@ -69,6 +70,8 @@ export interface FamilyProvenance {
   table: {
     name: string; sheet_id: string; type: TableType; fingerprint: string;
     rows: number; data_sets: string[]; excluded_values: number;
+    /** Each excluded value with where it sits and why (null: no reason). */
+    exclusions: { data_set: string; where: string; value: string; reason: string | null }[];
     derived_from?: { table: string; analysis: string } | null;
   };
   steps: ProvenanceStep[];
@@ -135,6 +138,8 @@ export function familyProvenance(p: Project, data: DataSheet, deps: ProvenanceDe
     table: {
       name: data.name, sheet_id: data.id, type: t.type, fingerprint: fp, rows: t.x.length,
       data_sets: t.datasets.map((d) => d.name), excluded_values: excludedCount(t),
+      exclusions: excludedValues(t).map((v) => ({ data_set: v.group, where: v.where, value: v.value,
+        reason: v.reason || null })),
       derived_from: data.derived ? {
         table: src?.name ?? "(missing)",
         analysis: producer?.kind === "results" ? producer.analysis : "(missing)",

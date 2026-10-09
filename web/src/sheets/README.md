@@ -78,7 +78,9 @@ src/
 A project is `{version: 2, title, sheets, prefs}`. A *data* sheet holds a
 `DataTableModel`: an X column (`x`, whose length is the row count), row
 titles, and `datasets` (Y columns) each with `rows[row][subcolumn]` raw
-strings, optional `subTitles`, `excluded` cell keys (`"row:sub"`) and, for
+strings, optional `subTitles`, `excluded` cell keys (`"row:sub"`) with
+optional `exclusionReasons` under the same keys (`project/exclusions.ts`
+sets, lists and counts them; the row operations keep them in step) and, for
 multiple-variables tables, `varType`. `subcolumnFormat` is replicates or
 a summary format such as Mean/SD/N (`SUBCOLUMN_FORMAT_ENGINE` maps it to
 the engine's `summary_format` id; analyses that can use summaries pass
