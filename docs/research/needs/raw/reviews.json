@@ -1,0 +1,4637 @@
+[
+  {
+    "id": "reviews-ss-21079-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/graphpad-prism-6",
+    "date": "2015-12",
+    "role": "Organisation: JSS College of Pharmacy, Ooty; application area: Statistics (shown)",
+    "software_named": [
+      "GraphPad Prism 6"
+    ],
+    "workflow": "preclinical/clinical statistics and graphs",
+    "quote": "It is a wonder software for the beginners to apply statistics. It had a very clean and user-friendly interface to learn apply statistics for the preclinical/clinical research.",
+    "problem": "Beginners need statistics they can apply without a statistics background",
+    "need": "A clean, guided interface that lets beginners run the right preclinical statistics",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "review_rating": 5,
+      "ease_rating": 5,
+      "value_rating": 5,
+      "service_rating": 5,
+      "review_id": "i-r-21079"
+    },
+    "tags": [
+      "learning-curve",
+      "which-test"
+    ]
+  },
+  {
+    "id": "reviews-ss-21079-2",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/graphpad-prism-6",
+    "date": "2015-12",
+    "role": "Organisation: JSS College of Pharmacy, Ooty; application area: Statistics (shown)",
+    "software_named": [
+      "GraphPad Prism 6"
+    ],
+    "workflow": "preclinical/clinical statistics and graphs",
+    "quote": "Produces beautiful and easily understandable graphs.",
+    "problem": "Values graphs that are publication-ready and easy to read by default",
+    "need": "Good-looking, readable default graphs",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "review_rating": 5,
+      "ease_rating": 5,
+      "value_rating": 5,
+      "service_rating": 5,
+      "review_id": "i-r-21079"
+    },
+    "tags": [
+      "graph-formatting"
+    ]
+  },
+  {
+    "id": "reviews-ss-5515-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/graphpad-prism-6",
+    "date": "2011-06",
+    "role": "Organisation: CHILDREN'S CANCER INST. (shown)",
+    "software_named": [
+      "GraphPad Prism 6"
+    ],
+    "workflow": "general analysis",
+    "quote": "The help within the program is really good.  It is a bit resource heavy on older computers.",
+    "problem": "Prism is heavy on older lab computers",
+    "need": "Light resource use so the tool runs on old lab PCs; in-app help kept",
+    "severity": "slows the work",
+    "signal": {
+      "review_rating": 3.7,
+      "ease_rating": 4,
+      "value_rating": 3,
+      "service_rating": 4,
+      "review_id": "i-r-5515"
+    },
+    "tags": [
+      "performance",
+      "tutorials"
+    ]
+  },
+  {
+    "id": "reviews-ss-6471-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/sigmaplot-12",
+    "date": "2012-02",
+    "role": "Organisation: University of Cincinnati (shown)",
+    "software_named": [
+      "SigmaPlot 12"
+    ],
+    "workflow": "visual data analysis, publication graphs",
+    "quote": "The range of possibilities to control layouts of the graph is next to unlimited. The unique part of the program is data management when you can transform data using your own algorithms.",
+    "problem": "Wants full control of graph layout and user-defined data transforms",
+    "need": "Fine layout control plus user-defined column transforms",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "review_rating": 5,
+      "ease_rating": 5,
+      "value_rating": 5,
+      "service_rating": 5,
+      "review_id": "i-r-6471"
+    },
+    "tags": [
+      "graph-formatting",
+      "units-and-transforms"
+    ]
+  },
+  {
+    "id": "reviews-ss-6471-2",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/sigmaplot-12",
+    "date": "2012-02",
+    "role": "Organisation: University of Cincinnati (shown)",
+    "software_named": [
+      "SigmaPlot 12"
+    ],
+    "workflow": "visual data analysis, publication graphs",
+    "quote": "The second advantage of the program is the ability to do statistical analysis sophisticated enough for most publications.",
+    "problem": "Needs statistics and graphing in one tool at a level reviewers accept",
+    "need": "Publication-grade statistics alongside graphing",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "review_rating": 5,
+      "ease_rating": 5,
+      "value_rating": 5,
+      "service_rating": 5,
+      "review_id": "i-r-6471"
+    },
+    "tags": [
+      "which-test",
+      "reporting-methods"
+    ]
+  },
+  {
+    "id": "reviews-ss-17388-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/sigmaplot-12",
+    "date": "2014-12",
+    "role": "Organisation: Emory University (shown)",
+    "software_named": [
+      "SigmaPlot 12"
+    ],
+    "workflow": "visual data analysis",
+    "quote": "It is easy to use, flexible, and offers a variety of layouts. The obtained plots have good quality suitable for publications.",
+    "problem": "Needs multi-graph layouts at publication quality",
+    "need": "Layouts and export suitable for publication",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "review_rating": 5,
+      "ease_rating": 5,
+      "value_rating": 5,
+      "service_rating": 5,
+      "review_id": "i-r-17388"
+    },
+    "tags": [
+      "layouts-multipanel",
+      "export-dpi"
+    ]
+  },
+  {
+    "id": "reviews-ss-16516-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/agilent-biotek-gen5-software-for-detection",
+    "date": "2014-07",
+    "role": "Organisation: University of Miami; application area: Bradford protein assays (shown)",
+    "software_named": [
+      "Gen5",
+      "Eager (old BioTek software)"
+    ],
+    "workflow": "Bradford protein assays; teaching lab",
+    "quote": "But my main use is with a different plate map for every plate, and Gen 5 wasn't as eager as \"Eager\" is to accommodate that.",
+    "problem": "Plate-reader software assumes routine fixed protocols; changing the plate map every plate is painful",
+    "need": "Fast per-plate layout definition when every plate has a different map",
+    "severity": "slows the work",
+    "signal": {
+      "review_rating": 1,
+      "ease_rating": 1,
+      "value_rating": 1,
+      "service_rating": 1,
+      "review_id": "i-r-16516"
+    },
+    "tags": [
+      "plate-reader",
+      "data-entry-table-types"
+    ]
+  },
+  {
+    "id": "reviews-ss-16516-2",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/agilent-biotek-gen5-software-for-detection",
+    "date": "2014-07",
+    "role": "Organisation: University of Miami; application area: Bradford protein assays (shown)",
+    "software_named": [
+      "Gen5"
+    ],
+    "workflow": "teaching lab with freshman students",
+    "quote": "Moreover, I have freshman students in an inquiry-based lab also using the plate reader, and in the limited time they have to learn the software, Gen 5 is very far beyond their ability to comprehend.",
+    "problem": "Software too complex for students in a short lab session",
+    "need": "A mode simple enough for students to learn after one demonstration",
+    "severity": "blocks the analysis",
+    "signal": {
+      "review_rating": 1,
+      "ease_rating": 1,
+      "value_rating": 1,
+      "service_rating": 1,
+      "review_id": "i-r-16516"
+    },
+    "tags": [
+      "teaching",
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "reviews-ss-16556-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/agilent-biotek-gen5-software-for-detection",
+    "date": "2014-07",
+    "role": "Organisation: Florida International University; application area: Drug Discovery (shown)",
+    "software_named": [
+      "Gen5",
+      "Excel",
+      "KC4"
+    ],
+    "workflow": "drug discovery plate assays",
+    "quote": "Don’t even start about data analysis once you get them out. I always have to go back to trusty old excel.",
+    "problem": "Instrument software's analysis is weak, so data is moved to Excel",
+    "need": "Analysis that works directly on exported plate-reader data without detouring through Excel",
+    "severity": "slows the work",
+    "signal": {
+      "review_rating": 1.7,
+      "ease_rating": 2,
+      "value_rating": 2,
+      "service_rating": 1,
+      "review_id": "i-r-16556"
+    },
+    "tags": [
+      "plate-reader",
+      "import-instrument-files",
+      "excel-paste"
+    ]
+  },
+  {
+    "id": "reviews-ss-16556-2",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/agilent-biotek-gen5-software-for-detection",
+    "date": "2014-07",
+    "role": "Organisation: Florida International University; application area: Drug Discovery (shown)",
+    "software_named": [
+      "Gen5"
+    ],
+    "workflow": "drug discovery plate assays",
+    "quote": "Using the program is not at all intuitive and one needs to spend a bit of time to start.",
+    "problem": "Not intuitive",
+    "need": "Intuitive set-up for new users",
+    "severity": "slows the work",
+    "signal": {
+      "review_rating": 1.7,
+      "ease_rating": 2,
+      "value_rating": 2,
+      "service_rating": 1,
+      "review_id": "i-r-16556"
+    },
+    "tags": [
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "reviews-ss-16541-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/agilent-biotek-gen5-software-for-detection",
+    "date": "2014-07",
+    "role": "Organisation: Arbor Assays; application area: Research (shown)",
+    "software_named": [
+      "Gen5"
+    ],
+    "workflow": "assay protocol design",
+    "quote": "An actual instruction manual that can lead a new user through the steps of protocol design might be more useful than a \"help\" button on each screen.",
+    "problem": "Help covers individual settings but not how to build an analysis from scratch",
+    "need": "Step-by-step walkthroughs that build a whole protocol/analysis from scratch",
+    "severity": "slows the work",
+    "signal": {
+      "review_rating": 3,
+      "ease_rating": 2,
+      "value_rating": 3,
+      "service_rating": 4,
+      "review_id": "i-r-16541"
+    },
+    "tags": [
+      "tutorials",
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "reviews-ss-16632-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/agilent-biotek-gen5-software-for-detection",
+    "date": "2014-07",
+    "role": "Organisation: Loyola University Medical Center; application area: Clinical Research (shown)",
+    "software_named": [
+      "Gen5"
+    ],
+    "workflow": "clinical research assays",
+    "quote": "A fairly significant time investment is required in order to effectively program the machine beyond the basic templates.",
+    "problem": "Anything beyond basic templates takes a big time investment",
+    "need": "Easy customisation beyond the starting templates",
+    "severity": "slows the work",
+    "signal": {
+      "review_rating": 4,
+      "ease_rating": 4,
+      "value_rating": 5,
+      "service_rating": 3,
+      "review_id": "i-r-16632"
+    },
+    "tags": [
+      "learning-curve",
+      "analysis-templates"
+    ]
+  },
+  {
+    "id": "reviews-ss-16540-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/agilent-biotek-gen5-software-for-detection",
+    "date": "2014-07",
+    "role": "Organisation: Florida Department of Health; application area: Serology (shown)",
+    "software_named": [
+      "Gen5"
+    ],
+    "workflow": "serology assay validation",
+    "quote": "I am a little disappointed to learn that bio-tek does not provide test programming instructions for the EPOCH reader because of possible liable.",
+    "problem": "No help programming a specific assay and its validation",
+    "need": "Ready-made assay analysis set-ups and validation help",
+    "severity": "blocks the analysis",
+    "signal": {
+      "review_rating": 1.7,
+      "ease_rating": 2,
+      "value_rating": 2,
+      "service_rating": 1,
+      "review_id": "i-r-16540"
+    },
+    "tags": [
+      "vendor-support",
+      "trust-validation"
+    ]
+  },
+  {
+    "id": "reviews-ss-16544-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/agilent-biotek-gen5-software-for-detection",
+    "date": "2014-06",
+    "role": "Organisation: Instituto Colombiano Agropecuario; application area: ELISA (shown)",
+    "software_named": [
+      "Gen5"
+    ],
+    "workflow": "ELISA",
+    "quote": "I have needed to calculate the median of four optical density values and have not been able to make that calculation in the previous software.",
+    "problem": "Basic replicate summaries (median of ODs) were not possible in the old software",
+    "need": "Simple replicate summaries (median, mean) of technical wells",
+    "severity": "blocks the analysis",
+    "signal": {
+      "review_rating": 5,
+      "ease_rating": 5,
+      "value_rating": 5,
+      "service_rating": 5,
+      "review_id": "i-r-16544"
+    },
+    "tags": [
+      "plate-reader",
+      "technical-vs-biological-replicates"
+    ]
+  },
+  {
+    "id": "reviews-ss-16544-2",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/agilent-biotek-gen5-software-for-detection",
+    "date": "2014-06",
+    "role": "Organisation: Instituto Colombiano Agropecuario; application area: ELISA (shown)",
+    "software_named": [
+      "Gen5 2.0",
+      "Gen5 1.10"
+    ],
+    "workflow": "ELISA",
+    "quote": "I have not managed to have compatibility between a protocol created by Gen5 2.0 when I install it on another computer that has the Gen5 1.10.",
+    "problem": "Protocols saved in a newer version do not open in an older version on another PC",
+    "need": "Files/protocols that open across versions and computers",
+    "severity": "blocks the analysis",
+    "signal": {
+      "review_rating": 5,
+      "ease_rating": 5,
+      "value_rating": 5,
+      "service_rating": 5,
+      "review_id": "i-r-16544"
+    },
+    "tags": [
+      "file-compatibility",
+      "sharing-collaboration"
+    ]
+  },
+  {
+    "id": "reviews-ss-16538-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/agilent-biotek-gen5-software-for-detection",
+    "date": "2014-06",
+    "role": "Organisation: Agri-King; application area: Mostly Elisa Type and Colorimetric Assays (shown)",
+    "software_named": [
+      "Gen5"
+    ],
+    "workflow": "ELISA and colorimetric assays",
+    "quote": "I like to create standard curves and have Gen5 calculate the actual values from absorbancies.",
+    "problem": "Needs standard-curve interpolation of unknowns from absorbance",
+    "need": "Built-in standard curve fit and back-calculation of unknown concentrations",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "review_rating": 4.3,
+      "ease_rating": 4,
+      "value_rating": 4,
+      "service_rating": 5,
+      "review_id": "i-r-16538"
+    },
+    "tags": [
+      "standard-curve-interpolation",
+      "plate-reader"
+    ]
+  },
+  {
+    "id": "reviews-ss-16538-2",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/agilent-biotek-gen5-software-for-detection",
+    "date": "2014-06",
+    "role": "Organisation: Agri-King; application area: Mostly Elisa Type and Colorimetric Assays (shown)",
+    "software_named": [
+      "Gen5"
+    ],
+    "workflow": "ELISA and colorimetric assays",
+    "quote": "This does pose a problem for some of my less computer friendly co-workers, and they often get confused about this step.",
+    "problem": "A forced workflow step confuses less computer-literate colleagues",
+    "need": "Workflows that match the bench procedure without forced steps",
+    "severity": "slows the work",
+    "signal": {
+      "review_rating": 4.3,
+      "ease_rating": 4,
+      "value_rating": 4,
+      "service_rating": 5,
+      "review_id": "i-r-16538"
+    },
+    "tags": [
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "reviews-ss-16507-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/agilent-biotek-gen5-software-for-detection",
+    "date": "2014-06",
+    "role": "Organisation: Rivalea Australia; application area: Microbiology/Biotech (shown)",
+    "software_named": [
+      "Gen5",
+      "Excel"
+    ],
+    "workflow": "microbiology plate assays",
+    "quote": "When exporting data to Excel, you can't enter any extra data into the spreadsheet, such as plate numbers, until all your results are in, otherwise you need to use a separate spreadsheet.",
+    "problem": "Cannot annotate exported results with metadata such as plate numbers",
+    "need": "Attach sample/plate metadata to results at export time",
+    "severity": "slows the work",
+    "signal": {
+      "review_rating": 3,
+      "ease_rating": 3,
+      "value_rating": 3,
+      "service_rating": 3,
+      "review_id": "i-r-16507"
+    },
+    "tags": [
+      "import-instrument-files",
+      "excel-paste"
+    ]
+  },
+  {
+    "id": "reviews-ss-16518-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/agilent-biotek-gen5-software-for-detection",
+    "date": "2014-06",
+    "role": "Organisation: University of Otago; application area: Synergy 2 Plate Reader Fluorescence, Absorbance. (shown)",
+    "software_named": [
+      "Gen5"
+    ],
+    "workflow": "kinetic fluorescence/absorbance reads",
+    "quote": "sometimes the software loses the communication with the reader, and there is no way to re-establish it during the long run (kinetics).",
+    "problem": "Long kinetic runs are lost when the connection drops",
+    "need": "Robust long runs that recover without losing data",
+    "severity": "blocks the analysis",
+    "signal": {
+      "review_rating": 4.7,
+      "ease_rating": 4,
+      "value_rating": 5,
+      "service_rating": 5,
+      "review_id": "i-r-16518"
+    },
+    "tags": [
+      "crashes",
+      "kinetics-binding"
+    ]
+  },
+  {
+    "id": "reviews-ss-16517-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/agilent-biotek-gen5-software-for-detection",
+    "date": "2014-06",
+    "role": "Organisation: University of Puerto Rico Medical Sciences Campus; application area: Agriculture (shown)",
+    "software_named": [
+      "Gen5"
+    ],
+    "workflow": "plate reading",
+    "quote": "Sometimes the reader software doesn't recognize the plate reader; usually the issues is associated in recognizing what port the reader is connected. Software updates would be welcome to fix some bugs.",
+    "problem": "Software fails to see the instrument",
+    "need": "Reliable instrument connection",
+    "severity": "blocks the analysis",
+    "signal": {
+      "review_rating": 3.3,
+      "ease_rating": 4,
+      "value_rating": 3,
+      "service_rating": 3,
+      "review_id": "i-r-16517"
+    },
+    "tags": [
+      "crashes"
+    ]
+  },
+  {
+    "id": "reviews-ss-16509-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/agilent-biotek-gen5-software-for-detection",
+    "date": "2014-06",
+    "role": "Organisation: Cincinnati Children's Hospital Medical Center; application area: Clinical Research (shown)",
+    "software_named": [
+      "Gen5",
+      "KC Junior",
+      "Windows 7"
+    ],
+    "workflow": "clinical research assays",
+    "quote": "I was forced to upgrade due to computer upgrades to Win 7.  It has been somewhat painful to create new assay profiles from those that were used in KC Jr.",
+    "problem": "OS upgrade forced a software change and assay profiles had to be rebuilt by hand",
+    "need": "Migration of saved analysis profiles across versions/OS upgrades",
+    "severity": "slows the work",
+    "signal": {
+      "review_rating": 3.7,
+      "ease_rating": 4,
+      "value_rating": 4,
+      "service_rating": 3,
+      "review_id": "i-r-16509"
+    },
+    "tags": [
+      "file-compatibility",
+      "analysis-templates"
+    ]
+  },
+  {
+    "id": "reviews-ss-16520-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/agilent-biotek-gen5-software-for-detection",
+    "date": "2014-06",
+    "role": "Organisation: Fundacion Cardiovascular de Colombia; application area: Infection And Cancer (shown)",
+    "software_named": [
+      "Gen5"
+    ],
+    "workflow": "infection and cancer assays",
+    "quote": "Software is intuitive but isn’t easy to program the blanks or controls. To use the mathematical analysis, you will need extensive training.",
+    "problem": "Defining blanks/controls and the data-reduction maths needs extensive training",
+    "need": "Simple blank/control subtraction and normalisation set-up",
+    "severity": "slows the work",
+    "signal": {
+      "review_rating": 3.3,
+      "ease_rating": 3,
+      "value_rating": 3,
+      "service_rating": 4,
+      "review_id": "i-r-16520"
+    },
+    "tags": [
+      "normalization",
+      "plate-reader",
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "reviews-ss-16493-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/agilent-biotek-gen5-software-for-detection",
+    "date": "2014-06",
+    "role": "Organisation: University of Arizona; application area: Endocrinology (shown)",
+    "software_named": [
+      "Gen5"
+    ],
+    "workflow": "endocrinology immunoassays",
+    "quote": "Customer service was not helpful when we had questions about programming protocols, and the existing parallelism protocols.",
+    "problem": "No help setting up parallelism analysis for immunoassays",
+    "need": "Built-in parallelism (curve-comparison) analysis with guidance",
+    "severity": "blocks the analysis",
+    "signal": {
+      "review_rating": 2.7,
+      "ease_rating": 3,
+      "value_rating": 4,
+      "service_rating": 1,
+      "review_id": "i-r-16493"
+    },
+    "tags": [
+      "compare-curves",
+      "standard-curve-interpolation",
+      "vendor-support"
+    ]
+  },
+  {
+    "id": "reviews-ss-16488-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/agilent-biotek-gen5-software-for-detection",
+    "date": "2014-06",
+    "role": "Organisation: Cincinnati Children's Hospital; application area: Research ELISAs (shown)",
+    "software_named": [
+      "Gen5"
+    ],
+    "workflow": "research ELISAs",
+    "quote": "Gen5 is easy to use and I have it worked out to do what I need it to do but it has so many features I wonder what I'm missing out on.",
+    "problem": "Users don't discover features they could use",
+    "need": "Feature discovery and an in-depth tutorial",
+    "severity": "slows the work",
+    "signal": {
+      "review_rating": 4,
+      "ease_rating": 4,
+      "value_rating": 4,
+      "service_rating": 4,
+      "review_id": "i-r-16488"
+    },
+    "tags": [
+      "tutorials",
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "reviews-ss-16554-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/agilent-biotek-gen5-software-for-detection",
+    "date": "2014-06",
+    "role": "Organisation: University of Arkansas; application area: Science (shown)",
+    "software_named": [
+      "Gen5"
+    ],
+    "workflow": "microplate assays",
+    "quote": "The ability to make your own protocol is nice and pretty easy. A pdf of quick steps to do this would be nice though.",
+    "problem": "Wants a short printable quick-start",
+    "need": "Quick-step guides for common tasks",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "review_rating": 5,
+      "ease_rating": 5,
+      "value_rating": 5,
+      "service_rating": 5,
+      "review_id": "i-r-16554"
+    },
+    "tags": [
+      "tutorials"
+    ]
+  },
+  {
+    "id": "reviews-ss-16537-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/agilent-biotek-gen5-software-for-detection",
+    "date": "2014-06",
+    "role": "Organisation: University of Georgia; application area: Cell Growth (shown)",
+    "software_named": [
+      "Gen5"
+    ],
+    "workflow": "cell growth",
+    "quote": "I would recommend Gen5 to others, but it would be beneficial to have an extra application code.",
+    "problem": "Licence limited to one installation; lab wants more seats",
+    "need": "Licences that allow analysis on more than one computer",
+    "severity": "slows the work",
+    "signal": {
+      "review_rating": 3.7,
+      "ease_rating": 4,
+      "value_rating": 3,
+      "service_rating": 4,
+      "review_id": "i-r-16537"
+    },
+    "tags": [
+      "price-licence"
+    ]
+  },
+  {
+    "id": "reviews-ss-47845-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/agilent-biotek-gen5-software-for-detection",
+    "date": "2021-03",
+    "role": "Organisation: University of Geneva; application area: Cell biology (shown)",
+    "software_named": [
+      "Gen5"
+    ],
+    "workflow": "multiplexed cell assays (viability, motility, death)",
+    "quote": "Unfortunately, the software is still quite expensive.",
+    "problem": "Analysis software is expensive",
+    "need": "Affordable analysis software",
+    "severity": "slows the work",
+    "signal": {
+      "review_rating": 3.7,
+      "ease_rating": 5,
+      "value_rating": 3,
+      "service_rating": 3,
+      "review_id": "i-r-47845"
+    },
+    "tags": [
+      "price-licence"
+    ]
+  },
+  {
+    "id": "reviews-ss-47845-2",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/agilent-biotek-gen5-software-for-detection",
+    "date": "2021-03",
+    "role": "Organisation: University of Geneva; application area: Cell biology (shown)",
+    "software_named": [
+      "Gen5"
+    ],
+    "workflow": "multiplexed cell assays (viability, motility, death)",
+    "quote": "The automated output helps to obtain the data fast without post-experiment data processing and image analysis.",
+    "problem": "Post-experiment data processing is the bottleneck",
+    "need": "Automatic processing straight from the instrument to results",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "review_rating": 3.7,
+      "ease_rating": 5,
+      "value_rating": 3,
+      "service_rating": 3,
+      "review_id": "i-r-47845"
+    },
+    "tags": [
+      "plate-reader",
+      "scripting-batch"
+    ]
+  },
+  {
+    "id": "reviews-ss-16572-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/agilent-biotek-gen5-software-for-detection",
+    "date": "2014-06",
+    "role": "Organisation: St. Joseph's University; application area: Microbiology (shown)",
+    "software_named": [
+      "Gen5",
+      "Excel"
+    ],
+    "workflow": "growth and gene-expression monitoring",
+    "quote": "The \"power export\" feature, where your data is exported (with your choice of format) to Excel is extremely useful.",
+    "problem": "Long kinetic plate experiments need to be exported in a usable layout",
+    "need": "Configurable export of kinetic plate data to spreadsheet layouts",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "review_rating": 5,
+      "ease_rating": 5,
+      "value_rating": 5,
+      "service_rating": 5,
+      "review_id": "i-r-16572"
+    },
+    "tags": [
+      "import-instrument-files",
+      "growth-curves",
+      "long-vs-wide"
+    ]
+  },
+  {
+    "id": "reviews-ss-16543-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/agilent-biotek-gen5-software-for-detection",
+    "date": "2014-06",
+    "role": "Organisation: Dow Agrosciences; application area: Protein Engineering (shown)",
+    "software_named": [
+      "Gen5"
+    ],
+    "workflow": "high-throughput enzyme assays",
+    "quote": "In particular, data is readily exported to other software platforms for analysis and presentation.",
+    "problem": "Analysis and presentation happen in other software after the reader",
+    "need": "Clean hand-off from instrument export to the analysis/graphing tool",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "review_rating": 4.3,
+      "ease_rating": 5,
+      "value_rating": 4,
+      "service_rating": 4,
+      "review_id": "i-r-16543"
+    },
+    "tags": [
+      "import-instrument-files",
+      "enzyme-kinetics"
+    ]
+  },
+  {
+    "id": "reviews-ss-16511-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/agilent-biotek-gen5-software-for-detection",
+    "date": "2014-06",
+    "role": "Organisation: Ridge Diagnostics, Research Triangle Park NC; application area: Serum Biomarker Testing (shown)",
+    "software_named": [
+      "Gen5"
+    ],
+    "workflow": "serum biomarker testing",
+    "quote": "Challenging to learn all the features of Gen5, but the level of control over the data acquisition protocols and the data reduction procedure is great.  The audit trail is valuable.",
+    "problem": "Needs control over data reduction and an audit trail",
+    "need": "Transparent data-reduction steps with an audit trail",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "review_rating": 4.7,
+      "ease_rating": 5,
+      "value_rating": 5,
+      "service_rating": 4,
+      "review_id": "i-r-16511"
+    },
+    "tags": [
+      "reproducibility-audit",
+      "plate-reader"
+    ]
+  },
+  {
+    "id": "reviews-ss-16504-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/agilent-biotek-gen5-software-for-detection",
+    "date": "2014-11",
+    "role": "Organisation: CRCHUM/ Université de Montréal; application area: Biochemistry/Cell Biology/Molecular Biology (shown)",
+    "software_named": [
+      "Gen5"
+    ],
+    "workflow": "biochemistry/cell biology plate assays",
+    "quote": "Instant raw results transformation is very convenient and in a minute you get your results in a mode ready to use.",
+    "problem": "Raw reads need transforming before use",
+    "need": "Instant transformation of raw reads into usable results",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "review_rating": 5,
+      "ease_rating": 5,
+      "value_rating": 5,
+      "service_rating": 5,
+      "review_id": "i-r-16504"
+    },
+    "tags": [
+      "units-and-transforms",
+      "plate-reader"
+    ]
+  },
+  {
+    "id": "reviews-ss-16478-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/agilent-biotek-gen5-software-for-detection",
+    "date": "2014-06",
+    "role": "Organisation: Zalgen Labs; application area: IgG Quantization ELISA, ADCC, CDC Assays (shown)",
+    "software_named": [
+      "Gen5"
+    ],
+    "workflow": "IgG quantitation ELISA, ADCC, CDC assays",
+    "quote": "Gen5 is an easy to use platform with adequate statistical analysis.",
+    "problem": "Statistics in instrument software are only adequate",
+    "need": "Adequate statistics close to the data",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "review_rating": 3.7,
+      "ease_rating": 5,
+      "value_rating": 4,
+      "service_rating": 2,
+      "review_id": "i-r-16478"
+    },
+    "tags": [
+      "plate-reader",
+      "which-test"
+    ]
+  },
+  {
+    "id": "reviews-ss-16539-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/agilent-biotek-gen5-software-for-detection",
+    "date": "2014-06",
+    "role": "Organisation: Ecolab; application area: Enzyme Activity (shown)",
+    "software_named": [
+      "Gen5"
+    ],
+    "workflow": "enzyme activity assays",
+    "quote": "As a first-time microplate user, it would have been useful to get some background information on the different types of plate, what applications they are used for, and the reasoning behind choosing one type over another",
+    "problem": "First-time plate users lack background knowledge",
+    "need": "Built-in background/education on plate formats",
+    "severity": "slows the work",
+    "signal": {
+      "review_rating": 4,
+      "ease_rating": 4,
+      "value_rating": 4,
+      "service_rating": 4,
+      "review_id": "i-r-16539"
+    },
+    "tags": [
+      "tutorials",
+      "plate-reader"
+    ]
+  },
+  {
+    "id": "reviews-ss-16471-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/agilent-biotek-gen5-software-for-detection",
+    "date": "2014-06",
+    "role": "Organisation: Sanford-Burnham Medical Research Institute; application area: Monitor Bacteria Growth Curve (shown)",
+    "software_named": [
+      "Gen5"
+    ],
+    "workflow": "bacterial growth curves",
+    "quote": "Overall, the software is good at collecting data and analysis results. One point I do not like is that I have to save it after I set the protocol.",
+    "problem": "Extra save step before running",
+    "need": "Fewer forced steps",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "review_rating": 4,
+      "ease_rating": 4,
+      "value_rating": 3,
+      "service_rating": 5,
+      "review_id": "i-r-16471"
+    },
+    "tags": [
+      "growth-curves"
+    ]
+  },
+  {
+    "id": "reviews-ss-574c5994-624-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/cfx-maestro-tm-software-mac-edition",
+    "date": "2025-11",
+    "role": "Organisation: Hunan Univesity; application area: I am using the software for  qPCR data analysis. (shown)",
+    "software_named": [
+      "CFX Maestro (Mac edition)",
+      "Windows"
+    ],
+    "workflow": "qPCR data analysis",
+    "quote": "I am unable to download on Mac. However the experiance with window was amazing and easy to use",
+    "problem": "qPCR analysis software cannot be installed on Mac",
+    "need": "qPCR analysis that runs on Mac as well as Windows",
+    "severity": "blocks the analysis",
+    "signal": {
+      "review_rating": 5,
+      "ease_rating": 5,
+      "value_rating": 5,
+      "service_rating": 5,
+      "review_id": "574c5994-6246-45f6-8739-5dcac32ee9c7"
+    },
+    "tags": [
+      "mac-windows",
+      "qpcr-ddct"
+    ]
+  },
+  {
+    "id": "reviews-ss-67027-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/cfx-maestro-tm-software",
+    "date": "2024-02",
+    "role": "Organisation: INTA; application area: For qpcr analysis results (shown)",
+    "software_named": [
+      "CFX Maestro"
+    ],
+    "workflow": "qPCR analysis",
+    "quote": "It is the most easy to use software I have ever used to program and analyze qpcr results.",
+    "problem": "qPCR analysis is usually hard to set up",
+    "need": "Easy qPCR analysis",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "review_rating": 5,
+      "ease_rating": 5,
+      "value_rating": 5,
+      "service_rating": 5,
+      "review_id": "i-r-67027"
+    },
+    "tags": [
+      "qpcr-ddct"
+    ]
+  },
+  {
+    "id": "reviews-ss-44462-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/empiria-studio-software",
+    "date": "2020-09",
+    "role": "Organisation: UC Irvine; application area: Western blot analysis (shown)",
+    "software_named": [
+      "Empiria Studio"
+    ],
+    "workflow": "western blot normalisation to housekeeping / pan-target",
+    "quote": "If you want to analyze your protein of interest relative to a housekeeping protein or pan-target for post translational modification, you MUST image BOTH the housekeeping protein/pan target AND your protein of interest in the SAME SCAN.",
+    "problem": "Software forbids normalising to a housekeeping protein imaged in a different scan",
+    "need": "Normalisation that supports valid designs such as separate scans for target and loading control",
+    "severity": "blocks the analysis",
+    "signal": {
+      "review_rating": 1.7,
+      "ease_rating": 2,
+      "value_rating": 2,
+      "service_rating": 1,
+      "review_id": "i-r-44462"
+    },
+    "tags": [
+      "western-blot-densitometry",
+      "normalization"
+    ]
+  },
+  {
+    "id": "reviews-ss-44462-2",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/empiria-studio-software",
+    "date": "2020-09",
+    "role": "Organisation: UC Irvine; application area: Western blot analysis (shown)",
+    "software_named": [
+      "Empiria Studio"
+    ],
+    "workflow": "western blot",
+    "quote": "They have placed restrictions on how you analyze your western blots that just are not compatible with many valid experimental strategies.",
+    "problem": "Tool hard-codes one workflow and rejects valid designs",
+    "need": "Guidance and defaults without blocking valid alternatives",
+    "severity": "blocks the analysis",
+    "signal": {
+      "review_rating": 1.7,
+      "ease_rating": 2,
+      "value_rating": 2,
+      "service_rating": 1,
+      "review_id": "i-r-44462"
+    },
+    "tags": [
+      "western-blot-densitometry",
+      "trust-validation"
+    ]
+  },
+  {
+    "id": "reviews-ss-32661-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/empiria-studio-software",
+    "date": "2019-03",
+    "role": "Organisation: UKSH; application area: Analyze cancer pathway in chronic myeloid leukemia cell line (shown)",
+    "software_named": [
+      "Empiria Studio"
+    ],
+    "workflow": "western blot densitometry",
+    "quote": "With the software you cannot calculate replicates, only triplicates. This is one disadvantage.",
+    "problem": "Replicate handling is fixed to triplicates",
+    "need": "Any number of replicates",
+    "severity": "blocks the analysis",
+    "signal": {
+      "review_rating": 4.7,
+      "ease_rating": 5,
+      "value_rating": 4,
+      "service_rating": 5,
+      "review_id": "i-r-32661"
+    },
+    "tags": [
+      "western-blot-densitometry",
+      "n-definition",
+      "technical-vs-biological-replicates"
+    ]
+  },
+  {
+    "id": "reviews-ss-32662-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/empiria-studio-software",
+    "date": "2019-03",
+    "role": "Organisation: University of Copenhagen; application area: Quantification of phospho-proteins by Western blot (shown)",
+    "software_named": [
+      "Empiria Studio"
+    ],
+    "workflow": "phospho-protein quantification",
+    "quote": "I am very pleased with the replicate function of Empiria Studio, since it easily allows for import of replicates that needs to be analysed the same way as the previous replicate.",
+    "problem": "Each replicate blot must be analysed identically",
+    "need": "Apply the same analysis to each new replicate automatically",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "review_rating": 3.7,
+      "ease_rating": 5,
+      "value_rating": 3,
+      "service_rating": 3,
+      "review_id": "i-r-32662"
+    },
+    "tags": [
+      "western-blot-densitometry",
+      "analysis-templates",
+      "reproducibility-audit"
+    ]
+  },
+  {
+    "id": "reviews-ss-32629-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/empiria-studio-software",
+    "date": "2019-03",
+    "role": "Organisation: IRCAN; application area: Fluorescent western blotting - quantification (shown)",
+    "software_named": [
+      "Empiria Studio"
+    ],
+    "workflow": "fluorescent western blot quantification",
+    "quote": "You can also combine replicates in the same folder and then perform statistics after quantification.",
+    "problem": "Statistics across replicate blots usually need another tool",
+    "need": "Combine replicate blots and run statistics in one place",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "review_rating": 5,
+      "ease_rating": 5,
+      "value_rating": 5,
+      "service_rating": 5,
+      "review_id": "i-r-32629"
+    },
+    "tags": [
+      "western-blot-densitometry",
+      "technical-vs-biological-replicates"
+    ]
+  },
+  {
+    "id": "reviews-ss-32630-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/empiria-studio-software",
+    "date": "2019-03",
+    "role": "Organisation: Weill Cornell Medicine; application area: Qauntify protein in Western Blot (shown)",
+    "software_named": [
+      "Empiria Studio"
+    ],
+    "workflow": "quantitative western blot",
+    "quote": "Empiria Software significantly automates quantification process, thus minimizing variability introduced by the operator.",
+    "problem": "Manual quantification introduces operator variability",
+    "need": "Automated, consistent quantification",
+    "severity": "wrong result risk",
+    "signal": {
+      "review_rating": 4.7,
+      "ease_rating": 4,
+      "value_rating": 5,
+      "service_rating": 5,
+      "review_id": "i-r-32630"
+    },
+    "tags": [
+      "western-blot-densitometry",
+      "reproducibility-audit"
+    ]
+  },
+  {
+    "id": "reviews-ss-32630-2",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/empiria-studio-software",
+    "date": "2019-03",
+    "role": "Organisation: Weill Cornell Medicine; application area: Qauntify protein in Western Blot (shown)",
+    "software_named": [
+      "Empiria Studio"
+    ],
+    "workflow": "quantitative western blot",
+    "quote": "Finally, Empiria takes out guessing out of how many more experiments to do.",
+    "problem": "Unsure how many more replicate blots are needed",
+    "need": "Guidance on how many replicates are needed",
+    "severity": "wrong result risk",
+    "signal": {
+      "review_rating": 4.7,
+      "ease_rating": 4,
+      "value_rating": 5,
+      "service_rating": 5,
+      "review_id": "i-r-32630"
+    },
+    "tags": [
+      "power-sample-size",
+      "western-blot-densitometry"
+    ]
+  },
+  {
+    "id": "reviews-ss-50289-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/empiria-studio-software",
+    "date": "2021-06",
+    "role": "Organisation: Philipps University Marburg; application area: Quantitative analysis of western blot (shown)",
+    "software_named": [
+      "Empiria Studio"
+    ],
+    "workflow": "quantitative western blot",
+    "quote": "A very good tool for preparing images for publications, especially a step-wise guide to make final images for publications.",
+    "problem": "Preparing blot figures for publication",
+    "need": "Step-wise guide to publication-ready figures",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "review_rating": 4.3,
+      "ease_rating": 4,
+      "value_rating": 4,
+      "service_rating": 5,
+      "review_id": "i-r-50289"
+    },
+    "tags": [
+      "western-blot-densitometry",
+      "image-analysis-exports"
+    ]
+  },
+  {
+    "id": "reviews-ss-32644-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/empiria-studio-software",
+    "date": "2019-03",
+    "role": "Organisation: Pfizer; application area: Western blotting, in-cell western blotting (shown)",
+    "software_named": [
+      "Empiria Studio"
+    ],
+    "workflow": "western and in-cell western",
+    "quote": "I also like that this software will generate data plots as part of the reports.",
+    "problem": "Plots of quantified blots normally require another tool",
+    "need": "Plots generated together with the quantification report",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "review_rating": 4.3,
+      "ease_rating": 4,
+      "value_rating": 4,
+      "service_rating": 5,
+      "review_id": "i-r-32644"
+    },
+    "tags": [
+      "western-blot-densitometry",
+      "graph-formatting"
+    ]
+  },
+  {
+    "id": "reviews-ss-44553-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/empiria-studio-software",
+    "date": "2020-10",
+    "role": "Organisation: Apres Therapeutics; application area: Analyze target protein levels in samples run on western blots (shown)",
+    "software_named": [
+      "Empiria Studio"
+    ],
+    "workflow": "target protein levels by western",
+    "quote": "Explanations on the calculations run by the software are available on the LI-COR website along with very detailed and useful protocols.",
+    "problem": "Need to know what the software calculates",
+    "need": "Documented calculations users can cite",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "review_rating": 5,
+      "ease_rating": 5,
+      "value_rating": 5,
+      "service_rating": 5,
+      "review_id": "i-r-44553"
+    },
+    "tags": [
+      "trust-validation",
+      "reporting-methods"
+    ]
+  },
+  {
+    "id": "reviews-ss-46218-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/empiria-studio-software",
+    "date": "2021-01",
+    "role": "Organisation: INSERM; application area: Analyze kinome in osteosarcoma resistant cells (shown)",
+    "software_named": [
+      "Empiria Studio"
+    ],
+    "workflow": "kinome analysis",
+    "quote": "The software is easy to use for a student with automatic functions and statistical analysis. Is also accepted by publishers.",
+    "problem": "Needs analysis that journals accept",
+    "need": "Publisher-accepted, documented analysis",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "review_rating": 4.3,
+      "ease_rating": 4,
+      "value_rating": 4,
+      "service_rating": 5,
+      "review_id": "i-r-46218"
+    },
+    "tags": [
+      "western-blot-densitometry",
+      "reporting-methods"
+    ]
+  },
+  {
+    "id": "reviews-ss-32649-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/empiria-studio-software",
+    "date": "2019-03",
+    "role": "Organisation: University of Pittsburgh; application area: Analyze brain tissue sample (shown)",
+    "software_named": [
+      "Empiria Studio"
+    ],
+    "workflow": "brain tissue westerns",
+    "quote": "However, it would be good to have it for the department, not just for individual labs.",
+    "problem": "Per-lab licensing limits access",
+    "need": "Department-wide licence",
+    "severity": "slows the work",
+    "signal": {
+      "review_rating": 3.3,
+      "ease_rating": 3,
+      "value_rating": 4,
+      "service_rating": 3,
+      "review_id": "i-r-32649"
+    },
+    "tags": [
+      "price-licence",
+      "sharing-collaboration"
+    ]
+  },
+  {
+    "id": "reviews-ss-42741-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/incucyte-r-live-cell-analysis-systems",
+    "date": "2020-07",
+    "role": "Organisation: Cero; application area: Immune cell killing (shown)",
+    "software_named": [
+      "Incucyte"
+    ],
+    "workflow": "immune cell killing assays",
+    "quote": "Very effective but bottlenecks analysis. Difficult to analyze across groups. Graphing software needs to be better.",
+    "problem": "Analysis across groups and plates is the bottleneck; built-in graphing weak",
+    "need": "Group-level analysis and better graphing of exported kinetic data",
+    "severity": "slows the work",
+    "signal": {
+      "review_rating": 4,
+      "ease_rating": 5,
+      "value_rating": 5,
+      "service_rating": 2,
+      "review_id": "i-r-42741"
+    },
+    "tags": [
+      "time-series",
+      "graph-formatting",
+      "compare-curves"
+    ]
+  },
+  {
+    "id": "reviews-ss-42741-2",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/incucyte-r-live-cell-analysis-systems",
+    "date": "2020-07",
+    "role": "Organisation: Cero; application area: Immune cell killing (shown)",
+    "software_named": [
+      "Incucyte"
+    ],
+    "workflow": "immune cell killing assays",
+    "quote": "We also have a very tough time going back and forth between plates and also back and forth between the Incucyte and more conventional killing assays such as chromium and ldh.",
+    "problem": "Hard to combine data across plates and with other assay types",
+    "need": "Merge data from several plates and assay types in one analysis",
+    "severity": "slows the work",
+    "signal": {
+      "review_rating": 4,
+      "ease_rating": 5,
+      "value_rating": 5,
+      "service_rating": 2,
+      "review_id": "i-r-42741"
+    },
+    "tags": [
+      "import-instrument-files",
+      "long-vs-wide"
+    ]
+  },
+  {
+    "id": "reviews-ss-26885-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/incucyte-r-live-cell-analysis-systems",
+    "date": "2017-10",
+    "role": "Organisation: DKFZ; application area: cell proliferation, cytotoxicity (shown)",
+    "software_named": [
+      "Incucyte",
+      "Excel"
+    ],
+    "workflow": "proliferation and cytotoxicity",
+    "quote": "It offers some basic statistic tools and allows to make good looking figures for presentations, for any more detailed analysis it is best to copy the data to a spreadsheet program like excel.",
+    "problem": "Built-in statistics are basic; data is copied to Excel",
+    "need": "A downstream tool that takes Incucyte exports for proper statistics",
+    "severity": "slows the work",
+    "signal": {
+      "review_rating": 4.3,
+      "ease_rating": 4,
+      "value_rating": 4,
+      "service_rating": 5,
+      "review_id": "i-r-26885"
+    },
+    "tags": [
+      "growth-curves",
+      "excel-paste",
+      "import-instrument-files"
+    ]
+  },
+  {
+    "id": "reviews-ss-20979-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/incucyte-r-live-cell-analysis-systems",
+    "date": "2015-12",
+    "role": "Organisation: Harvard Medical School; application area: Proliferation and death after drug treatment. (shown)",
+    "software_named": [
+      "Incucyte"
+    ],
+    "workflow": "proliferation and death after drug treatment",
+    "quote": "2) Better export of raw images and analyzed data (e.g. for multiple plates and multiple features at once).",
+    "problem": "Export is one plate/feature at a time",
+    "need": "Batch export of many plates and metrics at once",
+    "severity": "slows the work",
+    "signal": {
+      "review_rating": 4.7,
+      "ease_rating": 4,
+      "value_rating": 5,
+      "service_rating": 5,
+      "review_id": "i-r-20979"
+    },
+    "tags": [
+      "scripting-batch",
+      "import-instrument-files",
+      "large-data"
+    ]
+  },
+  {
+    "id": "reviews-ss-20551-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/incucyte-r-live-cell-analysis-systems",
+    "date": "2015-11",
+    "role": "Organisation: Centre for Drug Research and Development; application area: Cell growth monitoring (shown)",
+    "software_named": [
+      "Incucyte"
+    ],
+    "workflow": "cell growth monitoring",
+    "quote": "The data presentation (images and output graphs) were informative although some more flexibility in graphing would have been ideal.",
+    "problem": "Instrument graphs are inflexible",
+    "need": "Flexible graphing of instrument time-course data",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "review_rating": 3,
+      "ease_rating": 3,
+      "value_rating": 3,
+      "service_rating": 3,
+      "review_id": "i-r-20551"
+    },
+    "tags": [
+      "graph-formatting",
+      "growth-curves"
+    ]
+  },
+  {
+    "id": "reviews-ss-40046-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/incucyte-r-live-cell-analysis-systems",
+    "date": "2020-02",
+    "role": "Organisation: INSERM U976; application area: Cancer, immunology, etc. (shown)",
+    "software_named": [
+      "Incucyte",
+      "ImageJ"
+    ],
+    "workflow": "cancer/immunology live imaging",
+    "quote": "The software for analysis is not very efficient, the analysis should be done on ImageJ.",
+    "problem": "Instrument analysis inefficient; users move to ImageJ",
+    "need": "Efficient analysis or easy hand-off to ImageJ",
+    "severity": "slows the work",
+    "signal": {
+      "review_rating": 2.7,
+      "ease_rating": 4,
+      "value_rating": 3,
+      "service_rating": 1,
+      "review_id": "i-r-40046"
+    },
+    "tags": [
+      "image-analysis-exports"
+    ]
+  },
+  {
+    "id": "reviews-ss-36930-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/incucyte-r-live-cell-analysis-systems",
+    "date": "2019-08",
+    "role": "Organisation: University of California, Riverside; application area: Compound efficacy on caspase activation and cell viability (shown)",
+    "software_named": [
+      "Incucyte",
+      "Windows",
+      "Mac"
+    ],
+    "workflow": "caspase activation and viability",
+    "quote": "The only drawback is the IncuCyte Analysis software is only Windows and not Mac compatible. Hopefully, this will change so I can access and analyze data from home.",
+    "problem": "Analysis software is Windows-only; cannot analyse from home on a Mac",
+    "need": "Cross-platform analysis accessible from home",
+    "severity": "blocks the analysis",
+    "signal": {
+      "review_rating": 5,
+      "ease_rating": 5,
+      "value_rating": 5,
+      "service_rating": 5,
+      "review_id": "i-r-36930"
+    },
+    "tags": [
+      "mac-windows",
+      "offline"
+    ]
+  },
+  {
+    "id": "reviews-ss-41432-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/incucyte-r-live-cell-analysis-systems",
+    "date": "2020-03",
+    "role": "Organisation: Max Planck Institute; application area: Analysis of cell migration (scratch assay) (shown)",
+    "software_named": [
+      "Incucyte"
+    ],
+    "workflow": "scratch migration assays",
+    "quote": "It would be nice if the software could calculate the number of individual cells (counting) alongside the migrated area.",
+    "problem": "Only migrated area is reported, not cell counts",
+    "need": "Report several metrics (counts and area) together",
+    "severity": "slows the work",
+    "signal": {
+      "review_rating": 4.7,
+      "ease_rating": 4,
+      "value_rating": 5,
+      "service_rating": 5,
+      "review_id": "i-r-41432"
+    },
+    "tags": [
+      "image-analysis-exports"
+    ]
+  },
+  {
+    "id": "reviews-ss-36894-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/incucyte-r-live-cell-analysis-systems",
+    "date": "2019-08",
+    "role": "Organisation: KU Leuven; application area: Study NETosis in blood neutrophils (shown)",
+    "software_named": [
+      "Incucyte"
+    ],
+    "workflow": "NETosis in neutrophils",
+    "quote": "The built-in analysis tool is not always suitable to distinguish between different cells, and the plugin for single cell analysis is very expensive.",
+    "problem": "Single-cell analysis is a costly add-on",
+    "need": "Affordable single-cell analysis",
+    "severity": "slows the work",
+    "signal": {
+      "review_rating": 3.7,
+      "ease_rating": 4,
+      "value_rating": 3,
+      "service_rating": 4,
+      "review_id": "i-r-36894"
+    },
+    "tags": [
+      "price-licence",
+      "image-analysis-exports"
+    ]
+  },
+  {
+    "id": "reviews-ss-38580-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/incucyte-r-live-cell-analysis-systems",
+    "date": "2019-12",
+    "role": "Organisation: Senti Biosciences; application area: T cell killing assays (shown)",
+    "software_named": [
+      "Incucyte"
+    ],
+    "workflow": "T cell killing assays",
+    "quote": "I think some of the settings for analysis are a little confusing, and I haven't been able to find the information that explains it all in the manual.",
+    "problem": "Analysis settings unexplained",
+    "need": "Explain every analysis setting in context",
+    "severity": "slows the work",
+    "signal": {
+      "review_rating": 3.7,
+      "ease_rating": 4,
+      "value_rating": 4,
+      "service_rating": 3,
+      "review_id": "i-r-38580"
+    },
+    "tags": [
+      "tutorials",
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "reviews-ss-21033-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/incucyte-r-live-cell-analysis-systems",
+    "date": "2015-12",
+    "role": "Organisation: Seattle Genetics; application area: Cytotoxicity and cell growth studies (shown)",
+    "software_named": [
+      "Incucyte"
+    ],
+    "workflow": "cytotoxicity and cell growth",
+    "quote": "The analysis of data produced by this system is a bit challenging and has a steep learning curve to fully utilize the full potential of analysis capabilities.",
+    "problem": "Large image-derived datasets are hard to analyse",
+    "need": "Guided analysis of large time-lapse datasets",
+    "severity": "slows the work",
+    "signal": {
+      "review_rating": 4,
+      "ease_rating": 4,
+      "value_rating": 4,
+      "service_rating": 4,
+      "review_id": "i-r-21033"
+    },
+    "tags": [
+      "learning-curve",
+      "large-data"
+    ]
+  },
+  {
+    "id": "reviews-ss-40569-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/incucyte-r-live-cell-analysis-systems",
+    "date": "2020-03",
+    "role": "Organisation: Oncorus; application area: Immune cell killing (shown)",
+    "software_named": [
+      "Incucyte"
+    ],
+    "workflow": "immune cell killing",
+    "quote": "Analysis templates can be difficult to establish for new users and take time to learn.",
+    "problem": "Templates hard to set up for new users",
+    "need": "Easy-to-create reusable analysis templates",
+    "severity": "slows the work",
+    "signal": {
+      "review_rating": 4.3,
+      "ease_rating": 4,
+      "value_rating": 4,
+      "service_rating": 5,
+      "review_id": "i-r-40569"
+    },
+    "tags": [
+      "analysis-templates",
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "reviews-ss-34811-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/incucyte-r-live-cell-analysis-systems",
+    "date": "2019-05",
+    "role": "Organisation: McGill University; application area: Confluency curves (shown)",
+    "software_named": [
+      "Incucyte"
+    ],
+    "workflow": "confluency curves",
+    "quote": "It is very simple and easy to use, some issues with developing a analysis method so it would be nice to have an example to follow.",
+    "problem": "No worked example for building an analysis method",
+    "need": "Worked examples for each analysis",
+    "severity": "slows the work",
+    "signal": {
+      "review_rating": 5,
+      "ease_rating": 5,
+      "value_rating": 5,
+      "service_rating": 5,
+      "review_id": "i-r-34811"
+    },
+    "tags": [
+      "tutorials",
+      "growth-curves"
+    ]
+  },
+  {
+    "id": "reviews-ss-36923-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/incucyte-r-live-cell-analysis-systems",
+    "date": "2019-08",
+    "role": "Organisation: Wake Forest Baptist Medical Center; application area: Analyze protein expression in GFP tagged cells (shown)",
+    "software_named": [
+      "Incucyte"
+    ],
+    "workflow": "GFP protein expression",
+    "quote": "Furthermore some technical support window for just routine data analysis would be nice.",
+    "problem": "No support channel for routine data-analysis questions",
+    "need": "Help with routine data analysis, not just hardware",
+    "severity": "slows the work",
+    "signal": {
+      "review_rating": 4.3,
+      "ease_rating": 4,
+      "value_rating": 5,
+      "service_rating": 4,
+      "review_id": "i-r-36923"
+    },
+    "tags": [
+      "vendor-support"
+    ]
+  },
+  {
+    "id": "reviews-ss-40564-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/incucyte-r-live-cell-analysis-systems",
+    "date": "2020-03",
+    "role": "Organisation: FUJIFILM Irvine Scientific; application area: Live-imaging different cell lines, counting, and analyzing data (shown)",
+    "software_named": [
+      "Incucyte"
+    ],
+    "workflow": "live imaging, counting",
+    "quote": "The software is intuitive, but has a bug that occasionally causes it to become unresponsive when setting up a complex experiment.",
+    "problem": "Software hangs on complex set-ups",
+    "need": "Stable software for complex designs",
+    "severity": "slows the work",
+    "signal": {
+      "review_rating": 5,
+      "ease_rating": 5,
+      "value_rating": 5,
+      "service_rating": 5,
+      "review_id": "i-r-40564"
+    },
+    "tags": [
+      "crashes"
+    ]
+  },
+  {
+    "id": "reviews-ss-36998-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/incucyte-r-live-cell-analysis-systems",
+    "date": "2019-09",
+    "role": "Organisation: University of Antwerp; application area: 3D cultures (shown)",
+    "software_named": [
+      "Incucyte"
+    ],
+    "workflow": "3D spheroid cultures",
+    "quote": "Sometimes we struggle with the analysis of 3D spheroid cultures as it is difficult to mask using the current software",
+    "problem": "Spheroid segmentation difficult",
+    "need": "Better spheroid masking",
+    "severity": "slows the work",
+    "signal": {
+      "review_rating": 4.3,
+      "ease_rating": 4,
+      "value_rating": 4,
+      "service_rating": 5,
+      "review_id": "i-r-36998"
+    },
+    "tags": [
+      "image-analysis-exports"
+    ]
+  },
+  {
+    "id": "reviews-ss-41141-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/incucyte-r-live-cell-analysis-systems",
+    "date": "2020-03",
+    "role": "Organisation: Azienda USL di Reggio Emilia - IRCCS (Italy); application area: Cellular assays: proliferation, migration, toxicity, spheroids analysis (shown)",
+    "software_named": [
+      "Incucyte"
+    ],
+    "workflow": "proliferation, IC50, migration",
+    "quote": "In particular, we really appreciated it for proliferation (e.g. IC50 calculation of drugs) and migration assays",
+    "problem": "Needs IC50 from proliferation kinetics",
+    "need": "IC50 calculation from live-cell proliferation data",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "review_rating": 4.3,
+      "ease_rating": 4,
+      "value_rating": 5,
+      "service_rating": 4,
+      "review_id": "i-r-41141"
+    },
+    "tags": [
+      "ic50-ec50-setup",
+      "growth-curves"
+    ]
+  },
+  {
+    "id": "reviews-ss-20582-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/matlab",
+    "date": "2015-11",
+    "role": "Organisation: Boston University; application area: Data Analysis (shown)",
+    "software_named": [
+      "MATLAB",
+      "R"
+    ],
+    "workflow": "data analysis",
+    "quote": "If you are a student starting out - I highly recommend looking into R. Sometimes there is a lot of code in the lab and it might take a long time for you to rewrite it in R",
+    "problem": "Lab locked into legacy paid code; free alternatives cost rewrite time",
+    "need": "Free tools that can take over existing lab analyses",
+    "severity": "slows the work",
+    "signal": {
+      "review_rating": 2.7,
+      "ease_rating": 4,
+      "value_rating": 1,
+      "service_rating": 3,
+      "review_id": "i-r-20582"
+    },
+    "tags": [
+      "price-licence",
+      "scripting-batch"
+    ]
+  },
+  {
+    "id": "reviews-ss-17229-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/matlab",
+    "date": "2014-10",
+    "role": "Organisation: Brigham Young University; application area: Neuroscience (shown)",
+    "software_named": [
+      "MATLAB"
+    ],
+    "workflow": "neuroscience",
+    "quote": "If code isn't your thing you'll most likely want to hire someone to write scripts for you.",
+    "problem": "Code-based tools exclude non-programmers",
+    "need": "Point-and-click analysis for non-coders",
+    "severity": "blocks the analysis",
+    "signal": {
+      "review_rating": 2.7,
+      "ease_rating": 1,
+      "value_rating": 4,
+      "service_rating": 3,
+      "review_id": "i-r-17229"
+    },
+    "tags": [
+      "learning-curve",
+      "scripting-batch"
+    ]
+  },
+  {
+    "id": "reviews-ss-5751-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/matlab",
+    "date": "2011-07",
+    "role": "Organisation: UNIVERSITY  MAGNA GRAECIA (shown)",
+    "software_named": [
+      "MATLAB"
+    ],
+    "workflow": "data analysis",
+    "quote": "I found this software too complicated to use. It would be better if the interface was more user-friendly.",
+    "problem": "Too complicated for the reviewer",
+    "need": "User-friendly interface",
+    "severity": "blocks the analysis",
+    "signal": {
+      "review_rating": 2,
+      "ease_rating": 1,
+      "value_rating": 3,
+      "service_rating": 2,
+      "review_id": "i-r-5751"
+    },
+    "tags": [
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "reviews-ss-6318-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/matlab",
+    "date": "2011-12",
+    "role": "Organisation: National Institutes of Health (shown)",
+    "software_named": [
+      "MATLAB"
+    ],
+    "workflow": "acquisition to pre-publication imaging",
+    "quote": "Matlab is the most indispensable tool in all aspects of research, from data acquisition to data analysis to pre-publishing imaging. However, it is expensive.",
+    "problem": "Indispensable but expensive",
+    "need": "Affordable all-in-one tool",
+    "severity": "slows the work",
+    "signal": {
+      "review_rating": 4.3,
+      "ease_rating": 5,
+      "value_rating": 3,
+      "service_rating": 5,
+      "review_id": "i-r-6318"
+    },
+    "tags": [
+      "price-licence"
+    ]
+  },
+  {
+    "id": "reviews-ss-13262-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/matlab",
+    "date": "2012-11",
+    "role": "Organisation: Western New England University; application area: Data acquisition and analysis (shown)",
+    "software_named": [
+      "MATLAB"
+    ],
+    "workflow": "data acquisition and analysis",
+    "quote": "The software isn't very intuitive, however, we have not received formal training.",
+    "problem": "Not usable without formal training",
+    "need": "Usable without formal training",
+    "severity": "slows the work",
+    "signal": {
+      "review_rating": 2.3,
+      "ease_rating": 1,
+      "value_rating": 3,
+      "service_rating": 3,
+      "review_id": "i-r-13262"
+    },
+    "tags": [
+      "learning-curve",
+      "tutorials"
+    ]
+  },
+  {
+    "id": "reviews-ss-41210-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/axon-pclamp-r-11-electrophysiology-data-acquisition-and-analysis-software",
+    "date": "2020-03",
+    "role": "Organisation: UPV/EHU; application area: Electrophysiology (shown)",
+    "software_named": [
+      "pCLAMP 11",
+      "Clampfit"
+    ],
+    "workflow": "electrophysiology analysis",
+    "quote": "The biggest negative is the price and the need to use a dongle for a single computer - a problem when several users need to analyze data.",
+    "problem": "Dongle licence on one PC blocks several people analysing",
+    "need": "Licensing that lets several lab members analyse",
+    "severity": "slows the work",
+    "signal": {
+      "review_rating": 4.7,
+      "ease_rating": 5,
+      "value_rating": 4,
+      "service_rating": 5,
+      "review_id": "i-r-41210"
+    },
+    "tags": [
+      "price-licence",
+      "sharing-collaboration"
+    ]
+  },
+  {
+    "id": "reviews-ss-15253-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/pclamp-10-standard-electrophysiology-software-windows",
+    "date": "2013-12",
+    "role": "Organisation: Southern Illinois University School Of Medicine; application area: Patching Neurons (shown)",
+    "software_named": [
+      "pCLAMP 10"
+    ],
+    "workflow": "patch clamp neurons",
+    "quote": "What would be really nice is if it can incorporate more analytical tools that might be useful for data analysis and making figures.",
+    "problem": "Acquisition software lacks analysis and figure tools",
+    "need": "Analysis and figure-making after acquisition",
+    "severity": "slows the work",
+    "signal": {
+      "review_rating": 3.7,
+      "ease_rating": 4,
+      "value_rating": 4,
+      "service_rating": 3,
+      "review_id": "i-r-15253"
+    },
+    "tags": [
+      "graph-formatting",
+      "import-instrument-files"
+    ]
+  },
+  {
+    "id": "reviews-ss-15110-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/pclamp-10-standard-electrophysiology-software-windows",
+    "date": "2013-11",
+    "role": "Organisation: University Of Michigan; application area: Field Slice Recordings (shown)",
+    "software_named": [
+      "pCLAMP 10"
+    ],
+    "workflow": "field slice recordings",
+    "quote": "pCLAMP is a fantastic software that has been essential in my experience - it is however hideously non user-friendly and the analysis plugins leave a lot to be desired.",
+    "problem": "Analysis plugins weak and interface unfriendly",
+    "need": "Usable analysis of recordings",
+    "severity": "slows the work",
+    "signal": {
+      "review_rating": 4.3,
+      "ease_rating": 3,
+      "value_rating": 5,
+      "service_rating": 5,
+      "review_id": "i-r-15110"
+    },
+    "tags": [
+      "learning-curve",
+      "time-series"
+    ]
+  },
+  {
+    "id": "reviews-ss-15182-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/pclamp-10-standard-electrophysiology-software-windows",
+    "date": "2013-12",
+    "role": "Organisation: University Of Kentucky (shown)",
+    "software_named": [
+      "pCLAMP 10"
+    ],
+    "workflow": "single channel / spontaneous PSC analysis",
+    "quote": "It work very well and is great for single channel analysis. But it is not great for spontaneous psc analysis.",
+    "problem": "Event detection for spontaneous PSCs is weak",
+    "need": "Spontaneous event detection and analysis",
+    "severity": "slows the work",
+    "signal": {
+      "review_rating": 5,
+      "ease_rating": 5,
+      "value_rating": 5,
+      "service_rating": 5,
+      "review_id": "i-r-15182"
+    },
+    "tags": [
+      "time-series"
+    ]
+  },
+  {
+    "id": "reviews-ss-15235-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/pclamp-10-standard-electrophysiology-software-windows",
+    "date": "2013-11",
+    "role": "Organisation: Cinvestav; application area: Electrophysiology Records (shown)",
+    "software_named": [
+      "pCLAMP 10"
+    ],
+    "workflow": "electrophysiology records",
+    "quote": "I think a better tutorial, academic lessons, summer school on how properly use it; it’s a very powerful tool and sometimes we don't use it properly",
+    "problem": "Users misuse a powerful tool for lack of training",
+    "need": "Tutorials that teach correct use",
+    "severity": "wrong result risk",
+    "signal": {
+      "review_rating": 3.3,
+      "ease_rating": 3,
+      "value_rating": 3,
+      "service_rating": 4,
+      "review_id": "i-r-15235"
+    },
+    "tags": [
+      "tutorials",
+      "teaching"
+    ]
+  },
+  {
+    "id": "reviews-ss-15699-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/magellan-tm-data-analysis-software",
+    "date": "2014-10",
+    "role": "Organisation: Animal Disease Research Institute (ADRI) Phulnakhara, Cuttack; application area: Veterinary ELISA Test (shown)",
+    "software_named": [
+      "Magellan",
+      "Tecan Sunrise"
+    ],
+    "workflow": "veterinary ELISA",
+    "quote": "Our Tecan sunrise reader is lying idle because of a permanent licence problem in the computer, we updated the computer and afterwards was unable to reinstall the magellan CD.",
+    "problem": "A licence tied to one computer stopped all ELISA analysis after a PC update",
+    "need": "Licences that survive computer replacement",
+    "severity": "blocks the analysis",
+    "signal": {
+      "review_rating": 2.3,
+      "ease_rating": 5,
+      "value_rating": 1,
+      "service_rating": 1,
+      "review_id": "i-r-15699"
+    },
+    "tags": [
+      "price-licence",
+      "plate-reader"
+    ]
+  },
+  {
+    "id": "reviews-ss-18673-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/magellan-tm-data-analysis-software",
+    "date": "2015-07",
+    "role": "Organisation: Glostrup hospital (shown)",
+    "software_named": [
+      "Magellan"
+    ],
+    "workflow": "plate reader analysis",
+    "quote": "Hard  to upgrade without the help from specialist and IT support.",
+    "problem": "Upgrades need IT and specialist help",
+    "need": "Self-service upgrades",
+    "severity": "slows the work",
+    "signal": {
+      "review_rating": 2.7,
+      "ease_rating": 3,
+      "value_rating": 3,
+      "service_rating": 2,
+      "review_id": "i-r-18673"
+    },
+    "tags": [
+      "file-compatibility"
+    ]
+  },
+  {
+    "id": "reviews-ss-31877-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/magellan-tm-data-analysis-software",
+    "date": "2019-01",
+    "role": "Organisation: Rexgenero; application area: Biomedicine. Data from Enzyme-linked Immunoassay  (ELISA) (shown)",
+    "software_named": [
+      "Magellan"
+    ],
+    "workflow": "cytokine ELISA (GMP)",
+    "quote": "Our GMP-oriented assay is fulfilled  due to the GMP tracker option.",
+    "problem": "GMP assays need traceability",
+    "need": "Audit tracking for regulated assays",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "review_rating": 4.3,
+      "ease_rating": 4,
+      "value_rating": 4,
+      "service_rating": 5,
+      "review_id": "i-r-31877"
+    },
+    "tags": [
+      "reproducibility-audit",
+      "plate-reader"
+    ]
+  },
+  {
+    "id": "reviews-ss-17254-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/milliplex-r-analyst-5-1-software",
+    "date": "2014-10",
+    "role": "Organisation: Texas Biomedical Research Institute; application area: To analyze multiplex bead assays related to diabetes and obesity (shown)",
+    "software_named": [
+      "MILLIPLEX Analyst 5.1",
+      "Luminex xPONENT",
+      "Excel"
+    ],
+    "workflow": "multiplex bead assays",
+    "quote": "The only thing I don't like about it is that the Excel export file is designed to look nice, but can be cumbersome to select the actual data for our genetic analysis.",
+    "problem": "Export is formatted for looks, not for downstream analysis",
+    "need": "Tidy machine-readable export alongside the pretty report",
+    "severity": "slows the work",
+    "signal": {
+      "review_rating": 4.7,
+      "ease_rating": 4,
+      "value_rating": 5,
+      "service_rating": 5,
+      "review_id": "i-r-17254"
+    },
+    "tags": [
+      "import-instrument-files",
+      "long-vs-wide",
+      "excel-paste"
+    ]
+  },
+  {
+    "id": "reviews-ss-29513-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/ique-forecyt-less-than-sup-greater-than-r-less-than-sup-greater-than-software",
+    "date": "2018-06",
+    "role": "Organisation: Caribou Biosciences; application area: Analysis of flow cytometry data (shown)",
+    "software_named": [
+      "iQue ForeCyt"
+    ],
+    "workflow": "flow cytometry HTS",
+    "quote": "Some additional features I would like to see are the ability to annotate analysis or results pages with text and simple shapes, for example to point out positive and negative controls.",
+    "problem": "Cannot annotate results with text/shapes",
+    "need": "Free text and shape annotations on result pages",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "review_rating": 3.7,
+      "ease_rating": 4,
+      "value_rating": 3,
+      "service_rating": 4,
+      "review_id": "i-r-29513"
+    },
+    "tags": [
+      "flow-cytometry",
+      "graph-formatting"
+    ]
+  },
+  {
+    "id": "reviews-ss-29513-2",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/ique-forecyt-less-than-sup-greater-than-r-less-than-sup-greater-than-software",
+    "date": "2018-06",
+    "role": "Organisation: Caribou Biosciences; application area: Analysis of flow cytometry data (shown)",
+    "software_named": [
+      "iQue ForeCyt"
+    ],
+    "workflow": "bead-based standard curves",
+    "quote": "the software will highlight samples that are outside the linear range of the standard curve with red text, but this formatting is lost upon export to csv.",
+    "problem": "Out-of-range flags lost on export",
+    "need": "Carry out-of-range flags into exported data",
+    "severity": "wrong result risk",
+    "signal": {
+      "review_rating": 3.7,
+      "ease_rating": 4,
+      "value_rating": 3,
+      "service_rating": 4,
+      "review_id": "i-r-29513"
+    },
+    "tags": [
+      "standard-curve-interpolation",
+      "import-instrument-files"
+    ]
+  },
+  {
+    "id": "reviews-ss-29524-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/ique-forecyt-less-than-sup-greater-than-r-less-than-sup-greater-than-software",
+    "date": "2018-07",
+    "role": "Organisation: Pfizer Inc; application area: Analysis of antigen presentation on tumor cells (shown)",
+    "software_named": [
+      "iQue ForeCyt"
+    ],
+    "workflow": "HTS flow screen",
+    "quote": "Panorama is great for getting a quick review of the quality of the data - we use it to see if we need to re-read a plate due to any clogs.",
+    "problem": "Needs quick QC of plate data",
+    "need": "Plate-level quality overview",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "review_rating": 4,
+      "ease_rating": 4,
+      "value_rating": 4,
+      "service_rating": 4,
+      "review_id": "i-r-29524"
+    },
+    "tags": [
+      "flow-cytometry",
+      "plate-reader",
+      "outliers"
+    ]
+  },
+  {
+    "id": "reviews-ss-15373-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/knime-software",
+    "date": "2013-12",
+    "role": "Organisation: Zymeworks Inc; application area: Data Analysis Software (shown)",
+    "software_named": [
+      "KNIME",
+      "Excel"
+    ],
+    "workflow": "data analysis for non-programmers",
+    "quote": "This was useful as I helped colleagues with no programming skills analyze their data in ways Excel cannot do.",
+    "problem": "Colleagues without programming skills outgrow Excel",
+    "need": "Visual workflows for non-programmers",
+    "severity": "slows the work",
+    "signal": {
+      "review_rating": 4.7,
+      "ease_rating": 5,
+      "value_rating": 5,
+      "service_rating": 4,
+      "review_id": "i-r-15373"
+    },
+    "tags": [
+      "scripting-batch",
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "reviews-ss-15373-2",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/knime-software",
+    "date": "2013-12",
+    "role": "Organisation: Zymeworks Inc; application area: Data Analysis Software (shown)",
+    "software_named": [
+      "KNIME"
+    ],
+    "workflow": "data analysis workflows",
+    "quote": "If the schema of the database from which data is read changes, workflows can break.",
+    "problem": "Saved workflows break when input format changes",
+    "need": "Robust re-usable workflows",
+    "severity": "slows the work",
+    "signal": {
+      "review_rating": 4.7,
+      "ease_rating": 5,
+      "value_rating": 5,
+      "service_rating": 4,
+      "review_id": "i-r-15373"
+    },
+    "tags": [
+      "analysis-templates",
+      "reproducibility-audit"
+    ]
+  },
+  {
+    "id": "reviews-ss-1404-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/activitybase-suite",
+    "date": "2007-06",
+    "role": "Organisation: The University of Mississippi (shown)",
+    "software_named": [
+      "ActivityBase"
+    ],
+    "workflow": "high-throughput data",
+    "quote": "A great product, but it is expensive.",
+    "problem": "Expensive",
+    "need": "Affordable",
+    "severity": "slows the work",
+    "signal": {
+      "review_rating": 3,
+      "ease_rating": 3,
+      "value_rating": 2,
+      "service_rating": 4,
+      "review_id": "i-r-1404"
+    },
+    "tags": [
+      "price-licence"
+    ]
+  },
+  {
+    "id": "reviews-ss-5406-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/genedata-screener",
+    "date": "2011-06",
+    "role": "Organisation: University of Cincinnati (shown)",
+    "software_named": [
+      "Genedata Screener"
+    ],
+    "workflow": "HTS dose-response",
+    "quote": "Manuals and online help could better.  Support and help from GeneData is excellent.  Excellent curve fit capability for dose-response curve.",
+    "problem": "Needs strong dose-response curve fitting at scale",
+    "need": "Robust dose-response fitting for many compounds",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "review_rating": 5,
+      "ease_rating": 5,
+      "value_rating": 5,
+      "service_rating": 5,
+      "review_id": "i-r-5406"
+    },
+    "tags": [
+      "ic50-ec50-setup",
+      "large-data"
+    ]
+  },
+  {
+    "id": "reviews-ss-47030-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/flowjo",
+    "date": "2021-02",
+    "role": "Organisation: NA; application area: Flow cytometry analysis (shown)",
+    "software_named": [
+      "FlowJo"
+    ],
+    "workflow": "cell cycle analysis",
+    "quote": "Provides algorithm for cell cycle analysis which is not available in most software.",
+    "problem": "Cell cycle modelling rare in other software",
+    "need": "Cell-cycle fitting",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "review_rating": 4.7,
+      "ease_rating": 4,
+      "value_rating": 5,
+      "service_rating": 5,
+      "review_id": "i-r-47030"
+    },
+    "tags": [
+      "flow-cytometry"
+    ]
+  },
+  {
+    "id": "reviews-ss-3153-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/nis-elements-microscopy-software",
+    "date": "2010-02",
+    "role": "Organisation: Usda Hnrca At Tufts University (shown)",
+    "software_named": [
+      "NIS-Elements"
+    ],
+    "workflow": "imaging",
+    "quote": "The program crashes often and is overly complicated.",
+    "problem": "Crashes and complexity",
+    "need": "Stable, simple software",
+    "severity": "slows the work",
+    "signal": {
+      "review_rating": 2.7,
+      "ease_rating": 3,
+      "value_rating": 3,
+      "service_rating": 2,
+      "review_id": "i-r-3153"
+    },
+    "tags": [
+      "crashes"
+    ]
+  },
+  {
+    "id": "reviews-ss-12545-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/nis-elements-microscopy-software",
+    "date": "2012-04",
+    "role": "Organisation: Florida State University; application area: Bio-imaging (shown)",
+    "software_named": [
+      "NIS-Elements"
+    ],
+    "workflow": "bio-imaging",
+    "quote": "The real-time measurement from the Elements doesn't work for me and the output is sometimes corrupted.",
+    "problem": "Measurement output sometimes corrupted",
+    "need": "Reliable measurement export",
+    "severity": "wrong result risk",
+    "signal": {
+      "review_rating": 2.7,
+      "ease_rating": 4,
+      "value_rating": 3,
+      "service_rating": 1,
+      "review_id": "i-r-12545"
+    },
+    "tags": [
+      "image-analysis-exports",
+      "file-compatibility"
+    ]
+  },
+  {
+    "id": "reviews-ss-57233-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/halo-less-than-sup-greater-than-r-less-than-sup-greater-than-image-analysis-platform",
+    "date": "2022-06",
+    "role": "Organisation: Fudan University Shanghai Cancer Center; application area: Analyse cell compenents in tissue samples (shown)",
+    "software_named": [
+      "HALO",
+      "QuPath"
+    ],
+    "workflow": "tissue cell analysis",
+    "quote": "It would be better if the exported annotation file could be compatible with other software such as qupath",
+    "problem": "Annotations locked to one tool",
+    "need": "Exports readable by other tools",
+    "severity": "slows the work",
+    "signal": {
+      "review_rating": 5,
+      "ease_rating": 5,
+      "value_rating": 5,
+      "service_rating": 5,
+      "review_id": "i-r-57233"
+    },
+    "tags": [
+      "file-compatibility",
+      "image-analysis-exports"
+    ]
+  },
+  {
+    "id": "reviews-ss-57233-2",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/halo-less-than-sup-greater-than-r-less-than-sup-greater-than-image-analysis-platform",
+    "date": "2022-06",
+    "role": "Organisation: Fudan University Shanghai Cancer Center; application area: Analyse cell compenents in tissue samples (shown)",
+    "software_named": [
+      "HALO"
+    ],
+    "workflow": "tissue cell analysis",
+    "quote": "The app is too expensive, I hope to have a free web version, which is convenient for viewing the results and exporting data on a personal computer",
+    "problem": "Need a licensed workstation just to view results and export data",
+    "need": "Free web viewer for results and export",
+    "severity": "slows the work",
+    "signal": {
+      "review_rating": 5,
+      "ease_rating": 5,
+      "value_rating": 5,
+      "service_rating": 5,
+      "review_id": "i-r-57233"
+    },
+    "tags": [
+      "price-licence",
+      "sharing-collaboration"
+    ]
+  },
+  {
+    "id": "reviews-ss-57233-3",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/halo-less-than-sup-greater-than-r-less-than-sup-greater-than-image-analysis-platform",
+    "date": "2022-06",
+    "role": "Organisation: Fudan University Shanghai Cancer Center; application area: Analyse cell compenents in tissue samples (shown)",
+    "software_named": [
+      "HALO"
+    ],
+    "workflow": "tissue cell analysis",
+    "quote": "Considering the large number of users in China, it is recommended to enable the Chinese interface",
+    "problem": "No Chinese interface",
+    "need": "Localised interface",
+    "severity": "slows the work",
+    "signal": {
+      "review_rating": 5,
+      "ease_rating": 5,
+      "value_rating": 5,
+      "service_rating": 5,
+      "review_id": "i-r-57233"
+    },
+    "tags": [
+      "language-localisation"
+    ]
+  },
+  {
+    "id": "reviews-ss-57244-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/halo-less-than-sup-greater-than-r-less-than-sup-greater-than-image-analysis-platform",
+    "date": "2022-06",
+    "role": "Organisation: UCLA; application area: Analysis of multiplex fluorescent immunohistochemically stained tumor tissue images with 3+ markers. (shown)",
+    "software_named": [
+      "HALO"
+    ],
+    "workflow": "multiplex IHC tumour images",
+    "quote": "The ability to perform batch analysis on many images at once.",
+    "problem": "Needs batch analysis of many images",
+    "need": "Batch processing across many images",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "review_rating": 5,
+      "ease_rating": 5,
+      "value_rating": 5,
+      "service_rating": 5,
+      "review_id": "i-r-57244"
+    },
+    "tags": [
+      "scripting-batch",
+      "image-analysis-exports"
+    ]
+  },
+  {
+    "id": "reviews-ss-57244-2",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/halo-less-than-sup-greater-than-r-less-than-sup-greater-than-image-analysis-platform",
+    "date": "2022-06",
+    "role": "Organisation: UCLA; application area: Analysis of multiplex fluorescent immunohistochemically stained tumor tissue images with 3+ markers. (shown)",
+    "software_named": [
+      "HALO"
+    ],
+    "workflow": "multiplex IHC tumour images",
+    "quote": "Useful and handy multi-panel figure maker that makes it easy for publication.",
+    "problem": "Assembling multi-panel publication figures",
+    "need": "Built-in multi-panel figure maker",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "review_rating": 5,
+      "ease_rating": 5,
+      "value_rating": 5,
+      "service_rating": 5,
+      "review_id": "i-r-57244"
+    },
+    "tags": [
+      "layouts-multipanel"
+    ]
+  },
+  {
+    "id": "reviews-ss-37007-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/halo-less-than-sup-greater-than-r-less-than-sup-greater-than-image-analysis-platform",
+    "date": "2019-09",
+    "role": "Organisation: AstraZeneca; application area: Spatial analysis of multiplex immunofluorescent pathology images (shown)",
+    "software_named": [
+      "HALO"
+    ],
+    "workflow": "spatial multiplex IF analysis",
+    "quote": "My principle bottleneck is in creating actionable insight from the multiple reported parameters.",
+    "problem": "Many exported parameters, hard to turn into conclusions",
+    "need": "Downstream analysis of many per-cell parameters",
+    "severity": "slows the work",
+    "signal": {
+      "review_rating": 5,
+      "ease_rating": 5,
+      "value_rating": 5,
+      "service_rating": 5,
+      "review_id": "i-r-37007"
+    },
+    "tags": [
+      "large-data",
+      "pca-clustering"
+    ]
+  },
+  {
+    "id": "reviews-ss-57198-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/halo-less-than-sup-greater-than-r-less-than-sup-greater-than-image-analysis-platform",
+    "date": "2022-05",
+    "role": "Organisation: Tulane National Primate Research Center; application area: Digital Image Analysis (shown)",
+    "software_named": [
+      "HALO"
+    ],
+    "workflow": "pathology core",
+    "quote": "Large program packages (group licenses with 10+ modules) are expensive and similar analytical capabilities can likely be acquired for less money.",
+    "problem": "Module bundles expensive",
+    "need": "Lower-cost equivalent capability",
+    "severity": "slows the work",
+    "signal": {
+      "review_rating": 4.7,
+      "ease_rating": 5,
+      "value_rating": 4,
+      "service_rating": 5,
+      "review_id": "i-r-57198"
+    },
+    "tags": [
+      "price-licence"
+    ]
+  },
+  {
+    "id": "reviews-ss-57679-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/halo-less-than-sup-greater-than-r-less-than-sup-greater-than-image-analysis-platform",
+    "date": "2022-06",
+    "role": "Organisation: Enara Bio; application area: Quantification of Markers (IHC and RNAscope) (shown)",
+    "software_named": [
+      "HALO",
+      "HALO AI"
+    ],
+    "workflow": "IHC/RNAscope quantification",
+    "quote": "Nuclei segmentation within HALO image analysis requires improvement in order to use it to its full potential and obtaining HALO AI just to access a better nuclei segmentation is currently too costly.",
+    "problem": "Better segmentation gated behind costly add-on",
+    "need": "Core functions not paywalled",
+    "severity": "slows the work",
+    "signal": {
+      "review_rating": 4,
+      "ease_rating": 5,
+      "value_rating": 2,
+      "service_rating": 5,
+      "review_id": "i-r-57679"
+    },
+    "tags": [
+      "price-licence",
+      "image-analysis-exports"
+    ]
+  },
+  {
+    "id": "reviews-ss-13279-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/any-maze",
+    "date": "2012-11",
+    "role": "Organisation: University of CA - Irvine; application area: Animal behaviour tracking (shown)",
+    "software_named": [
+      "ANY-maze"
+    ],
+    "workflow": "animal behaviour tracking",
+    "quote": "However, software seems to crash a lot due to incompatibility with other versions.",
+    "problem": "Crashes due to version incompatibility",
+    "need": "Version-compatible stable software",
+    "severity": "slows the work",
+    "signal": {
+      "review_rating": 3.3,
+      "ease_rating": 3,
+      "value_rating": 3,
+      "service_rating": 4,
+      "review_id": "i-r-13279"
+    },
+    "tags": [
+      "crashes",
+      "file-compatibility"
+    ]
+  },
+  {
+    "id": "reviews-ss-13285-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/any-maze",
+    "date": "2012-11",
+    "role": "Organisation: University of Calgary; application area: Animal behaviour (shown)",
+    "software_named": [
+      "ANY-maze 4.7"
+    ],
+    "workflow": "animal behaviour",
+    "quote": "ANY-maze 4.7 is fairly user-friendly, but I do feel a better tutorial is needed.",
+    "problem": "Tutorial insufficient",
+    "need": "Better tutorial",
+    "severity": "slows the work",
+    "signal": {
+      "review_rating": 3.7,
+      "ease_rating": 3,
+      "value_rating": 3,
+      "service_rating": 5,
+      "review_id": "i-r-13285"
+    },
+    "tags": [
+      "tutorials"
+    ]
+  },
+  {
+    "id": "reviews-ss-15084-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/any-maze",
+    "date": "2013-11",
+    "role": "Organisation: University of California, Irvine; application area: Behavior Tracking Software (shown)",
+    "software_named": [
+      "ANY-maze"
+    ],
+    "workflow": "behavioural paradigm",
+    "quote": "It adequately tracks and records all positional data and generates reliable statistics.",
+    "problem": "Needs reliable stats from tracking data",
+    "need": "Statistics generated straight from tracked data",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "review_rating": 5,
+      "ease_rating": 5,
+      "value_rating": 5,
+      "service_rating": 5,
+      "review_id": "i-r-15084"
+    },
+    "tags": [
+      "trust-validation",
+      "time-series"
+    ]
+  },
+  {
+    "id": "reviews-ss-6287-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/ethovision-xt",
+    "date": "2011-12",
+    "role": "Organisation: Case Western Reserve University (shown)",
+    "software_named": [
+      "EthoVision XT"
+    ],
+    "workflow": "behaviour analysis",
+    "quote": "The program is not intuitive, it is necessary to read through the thick manual before starting any experiments.",
+    "problem": "Must read a thick manual before starting",
+    "need": "Intuitive software usable without the manual",
+    "severity": "slows the work",
+    "signal": {
+      "review_rating": 3.7,
+      "ease_rating": 3,
+      "value_rating": 4,
+      "service_rating": 4,
+      "review_id": "i-r-6287"
+    },
+    "tags": [
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "reviews-ss-4245-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/ethovision-xt",
+    "date": "2010-12",
+    "role": "Organisation: University of British Columbia (shown)",
+    "software_named": [
+      "EthoVision XT"
+    ],
+    "workflow": "behaviour",
+    "quote": "Good product, but sometimes too demanding on processor.",
+    "problem": "Heavy CPU demands",
+    "need": "Lighter resource use",
+    "severity": "slows the work",
+    "signal": {
+      "review_rating": 4,
+      "ease_rating": 4,
+      "value_rating": 4,
+      "service_rating": 4,
+      "review_id": "i-r-4245"
+    },
+    "tags": [
+      "performance"
+    ]
+  },
+  {
+    "id": "reviews-ss-13264-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/genespring-gx",
+    "date": "2012-11",
+    "role": "Organisation: Wayne State University; application area: Microarray analysis (shown)",
+    "software_named": [
+      "GeneSpring GX"
+    ],
+    "workflow": "microarray analysis",
+    "quote": "The technical support is good but again we still don't really know how it is performing all calculations.  There is limited flexibility to change analysis options.",
+    "problem": "Black-box calculations the user cannot explain",
+    "need": "Transparent calculations and adjustable options",
+    "severity": "wrong result risk",
+    "signal": {
+      "review_rating": 2.7,
+      "ease_rating": 3,
+      "value_rating": 1,
+      "service_rating": 4,
+      "review_id": "i-r-13264"
+    },
+    "tags": [
+      "trust-validation",
+      "reporting-methods"
+    ]
+  },
+  {
+    "id": "reviews-ss-13264-2",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/genespring-gx",
+    "date": "2012-11",
+    "role": "Organisation: Wayne State University; application area: Microarray analysis (shown)",
+    "software_named": [
+      "GeneSpring GX"
+    ],
+    "workflow": "microarray analysis",
+    "quote": "It is complicated to use, especially in terms of combining multiple array data.",
+    "problem": "Hard to combine multiple datasets",
+    "need": "Easy merging of multiple runs",
+    "severity": "slows the work",
+    "signal": {
+      "review_rating": 2.7,
+      "ease_rating": 3,
+      "value_rating": 1,
+      "service_rating": 4,
+      "review_id": "i-r-13264"
+    },
+    "tags": [
+      "large-data",
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "reviews-ss-41686-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/genespring-gx",
+    "date": "2020-04",
+    "role": "Organisation: Taipei Medical University; application area: Microarray analysis (shown)",
+    "software_named": [
+      "GeneSpring GX"
+    ],
+    "workflow": "microarray analysis",
+    "quote": "The platform is as easy as click and go without needing any programming background. It's quite expensive but it's worth purchasing since it gives reliable result at the end and is comparable with other programming tools.",
+    "problem": "Biologists without programming want results comparable to code-based tools",
+    "need": "Point-and-click analysis matching programming tools",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "review_rating": 4,
+      "ease_rating": 5,
+      "value_rating": 3,
+      "service_rating": 4,
+      "review_id": "i-r-41686"
+    },
+    "tags": [
+      "numbers-differ-between-tools",
+      "price-licence"
+    ]
+  },
+  {
+    "id": "reviews-ss-5017-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/diadem",
+    "date": "2011-05",
+    "role": "Organisation: Analog Devices (shown)",
+    "software_named": [
+      "DIAdem",
+      "Excel"
+    ],
+    "workflow": "large datasets",
+    "quote": "great for very large datasets where excel just won't cut it. very powerful visualisation tools, but with a steep learning curve.",
+    "problem": "Excel fails on very large datasets",
+    "need": "Handle large data with a gentle learning curve",
+    "severity": "slows the work",
+    "signal": {
+      "review_rating": 3.7,
+      "ease_rating": 3,
+      "value_rating": 4,
+      "service_rating": 4,
+      "review_id": "i-r-5017"
+    },
+    "tags": [
+      "large-data",
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "reviews-ss-6322-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/spike2",
+    "date": "2011-12",
+    "role": "Organisation: Washington Univ Sch Med (shown)",
+    "software_named": [
+      "Spike2",
+      "Mac",
+      "PC"
+    ],
+    "workflow": "electrophysiology",
+    "quote": "However no longer supported by MAC, I had to switch everything to PC.",
+    "problem": "Mac support dropped, forced to switch platform",
+    "need": "Continued cross-platform support",
+    "severity": "blocks the analysis",
+    "signal": {
+      "review_rating": 4,
+      "ease_rating": 4,
+      "value_rating": 4,
+      "service_rating": 4,
+      "review_id": "i-r-6322"
+    },
+    "tags": [
+      "mac-windows"
+    ]
+  },
+  {
+    "id": "reviews-ss-39884-1",
+    "venue": "selectscience.net",
+    "url": "https://www.selectscience.net/product/logger-pro-r",
+    "date": "2020-02",
+    "role": "Organisation: University Of Technology,jamaica; application area: Physics, environmental chemistry, general chemistry, forensics (shown)",
+    "software_named": [
+      "Logger Pro"
+    ],
+    "workflow": "teaching labs: physics/chemistry",
+    "quote": "Great for plotting data points/calibration curves when operated in the events with entry mode. The software allows for the statistical analysis of the data collected.",
+    "problem": "Teaching labs need calibration curves and statistics",
+    "need": "Simple calibration curves and stats for students",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "review_rating": 4.7,
+      "ease_rating": 5,
+      "value_rating": 5,
+      "service_rating": 4,
+      "review_id": "i-r-39884"
+    },
+    "tags": [
+      "teaching",
+      "standard-curve-interpolation"
+    ]
+  },
+  {
+    "id": "reviews-at-001",
+    "venue": "alternativeto.net",
+    "url": "https://alternativeto.net/software/graphpad-prism/about/",
+    "date": "2020-05",
+    "role": null,
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "scientific figure making",
+    "quote": "Easy, beautiful and powerful for scientific figure making",
+    "problem": "Wants figures that are good-looking without effort",
+    "need": "Easy, attractive scientific figures",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "user": "laviex"
+    },
+    "tags": [
+      "graph-formatting"
+    ]
+  },
+  {
+    "id": "reviews-at-002",
+    "venue": "alternativeto.net",
+    "url": "https://alternativeto.net/software/graphpad-prism/",
+    "date": "2021-07",
+    "role": null,
+    "software_named": [
+      "R",
+      "GraphPad Prism"
+    ],
+    "workflow": "plotting",
+    "quote": "R is very highly customisable. You show me something/anything and you can plot it in R",
+    "problem": "Point-and-click tools limit which plots can be made",
+    "need": "Any plot type the user can imagine",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "user": "Guest",
+      "context": "comment on R as alternative to GraphPad Prism"
+    },
+    "tags": [
+      "graph-formatting",
+      "scripting-batch"
+    ]
+  },
+  {
+    "id": "reviews-at-003",
+    "venue": "alternativeto.net",
+    "url": "https://alternativeto.net/software/graphpad-prism/",
+    "date": "2019-09",
+    "role": null,
+    "software_named": [
+      "SOFA Statistics",
+      "GraphPad Prism"
+    ],
+    "workflow": "choosing a graph",
+    "quote": "It has a Graphical interface (GUI), a wizard to help you to select the best graph similar to GraphPad.",
+    "problem": "Users need help choosing the right graph",
+    "need": "A wizard that suggests the best graph for the data",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "user": "domi984",
+      "context": "comment on SOFA Statistics as alternative to GraphPad Prism"
+    },
+    "tags": [
+      "graph-formatting",
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "reviews-at-004",
+    "venue": "alternativeto.net",
+    "url": "https://alternativeto.net/software/sigmaplot/",
+    "date": "2015-07",
+    "role": null,
+    "software_named": [
+      "GraphPad Prism",
+      "SigmaPlot"
+    ],
+    "workflow": "curve fitting with user-defined equations",
+    "quote": "There is no option to write your own equations and fit a curve to that in Prism, although it's great for general graph plotting.",
+    "problem": "Reviewer could not fit a user-written equation",
+    "need": "Fitting user-defined equations",
+    "severity": "blocks the analysis",
+    "signal": {
+      "user": "Guest",
+      "context": "comment on GraphPad Prism as alternative to SigmaPlot"
+    },
+    "tags": [
+      "custom-equations",
+      "fit-diagnostics"
+    ]
+  },
+  {
+    "id": "reviews-at-005",
+    "venue": "alternativeto.net",
+    "url": "https://alternativeto.net/software/sigmaplot/",
+    "date": "2020-01",
+    "role": null,
+    "software_named": [
+      "MATLAB",
+      "SigmaPlot"
+    ],
+    "workflow": "editing statistical graphs for publication",
+    "quote": "For example, editing statistical graphs for printing or publication is a frustrating endeavor in MATLAB, whereas SigmaPlot is designed specifically for that purpose.",
+    "problem": "Code tools make publication graph editing frustrating",
+    "need": "Graph editing designed for publication",
+    "severity": "slows the work",
+    "signal": {
+      "user": "docandreore"
+    },
+    "tags": [
+      "graph-formatting",
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "reviews-at-006",
+    "venue": "alternativeto.net",
+    "url": "https://alternativeto.net/software/originlab/about/",
+    "date": "2025-12",
+    "role": null,
+    "software_named": [
+      "OriginPro",
+      "Python"
+    ],
+    "workflow": "repetitive plotting tasks",
+    "quote": "Good for analysis and if paid for by an institution, but the interface is unmodern and if you really often have to do repetitive tasks, clicking through all the tiny symbols and large menus is a pain and you rather learn Python :P",
+    "problem": "Repetitive tasks through menus are painful; only worth it if institution pays",
+    "need": "Repeatable analyses without clicking through menus, at a price individuals can pay",
+    "severity": "slows the work",
+    "signal": {
+      "user": "Diatomee"
+    },
+    "tags": [
+      "scripting-batch",
+      "price-licence"
+    ]
+  },
+  {
+    "id": "reviews-at-007",
+    "venue": "alternativeto.net",
+    "url": "https://alternativeto.net/software/originlab/about/",
+    "date": "2025-12",
+    "role": null,
+    "software_named": [
+      "OriginPro",
+      "Python"
+    ],
+    "workflow": "visualising large data",
+    "quote": "But still a very good app if you have loads of data which you want to visualize without setting up a Python script just for that.",
+    "problem": "Visualising lots of data otherwise needs a script",
+    "need": "No-code visualisation of large data",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "user": "Diatomee"
+    },
+    "tags": [
+      "large-data",
+      "scripting-batch"
+    ]
+  },
+  {
+    "id": "reviews-at-008",
+    "venue": "alternativeto.net",
+    "url": "https://alternativeto.net/software/originlab/about/",
+    "date": "2020-12",
+    "role": null,
+    "software_named": [
+      "OriginPro"
+    ],
+    "workflow": "student reports",
+    "quote": "Now there are about 100 symbols present in the standard view, some of which are not available/necessary for all tasks.",
+    "problem": "Cluttered toolbar of ~100 icons",
+    "need": "An uncluttered interface showing only relevant actions",
+    "severity": "slows the work",
+    "signal": {
+      "user": "dominik123"
+    },
+    "tags": [
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "reviews-at-009",
+    "venue": "alternativeto.net",
+    "url": "https://alternativeto.net/software/originlab/about/",
+    "date": "2020-12",
+    "role": null,
+    "software_named": [
+      "OriginPro"
+    ],
+    "workflow": "students drawing a simple diagram for a report",
+    "quote": "All in all, the learning curve is incredibly steep, the documentation features suspiciously many screenshots from Windows XP and tooltips are a rare sight, making it an awful choice for the one task most students will use it for: Drawing a simple diagram to put in a report",
+    "problem": "Steep learning curve, outdated docs for the simplest student task",
+    "need": "Simple path for a simple report figure; current docs and tooltips",
+    "severity": "slows the work",
+    "signal": {
+      "user": "dominik123"
+    },
+    "tags": [
+      "learning-curve",
+      "tutorials",
+      "teaching"
+    ]
+  },
+  {
+    "id": "reviews-at-010",
+    "venue": "alternativeto.net",
+    "url": "https://alternativeto.net/software/originlab/about/",
+    "date": "2020-12",
+    "role": null,
+    "software_named": [
+      "OriginPro"
+    ],
+    "workflow": "validated analysis, medical/blinded experiments",
+    "quote": "If you need validated software and an option to have a wathertight data-trail for your application",
+    "problem": "Regulated or blinded work needs validated software and a data trail",
+    "need": "Validated calculations and a watertight data trail",
+    "severity": "wrong result risk",
+    "signal": {
+      "user": "dominik123"
+    },
+    "tags": [
+      "reproducibility-audit",
+      "trust-validation"
+    ]
+  },
+  {
+    "id": "reviews-at-011",
+    "venue": "alternativeto.net",
+    "url": "https://alternativeto.net/software/originlab/",
+    "date": "2018-10",
+    "role": null,
+    "software_named": [
+      "gnuplot",
+      "OriginPro"
+    ],
+    "workflow": "nonparametric testing",
+    "quote": "There is no Mann-Whitney test",
+    "problem": "Plotting tool lacks basic nonparametric test",
+    "need": "Mann-Whitney test alongside plotting",
+    "severity": "blocks the analysis",
+    "signal": {
+      "user": "Guest",
+      "context": "negative comment on GnuPlot as alternative to OriginPro"
+    },
+    "tags": [
+      "nonparametric"
+    ]
+  },
+  {
+    "id": "reviews-at-012",
+    "venue": "alternativeto.net",
+    "url": "https://alternativeto.net/software/originlab/",
+    "date": "2024-10",
+    "role": null,
+    "software_named": [
+      "LabPlot",
+      "OriginPro"
+    ],
+    "workflow": "curve fitting, localisation",
+    "quote": "I like LabPlot as an alternative to OriginPro because it supports Ukrainian, curve fitting and LaTeX, and it looks cool",
+    "problem": "Wants interface in own language and LaTeX labels",
+    "need": "Localised interface plus LaTeX text",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "user": "Guest"
+    },
+    "tags": [
+      "language-localisation",
+      "graph-formatting"
+    ]
+  },
+  {
+    "id": "reviews-at-013",
+    "venue": "alternativeto.net",
+    "url": "https://alternativeto.net/software/originlab/",
+    "date": "2020-03",
+    "role": null,
+    "software_named": [
+      "LabPlot",
+      "Octave",
+      "Julia",
+      "R",
+      "Python",
+      "Maxima",
+      "OriginPro"
+    ],
+    "workflow": "plotting and curve fitting",
+    "quote": "Great for plotting and curve fitting. You can also call Octave, Julia, R, Python, Maxima etc. through the CAS interface to enhance your analyses.",
+    "problem": "GUI tool analyses need extending with code",
+    "need": "GUI plus optional scripting hooks",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "user": "Guest"
+    },
+    "tags": [
+      "scripting-batch"
+    ]
+  },
+  {
+    "id": "reviews-at-014",
+    "venue": "alternativeto.net",
+    "url": "https://alternativeto.net/software/originlab/",
+    "date": "2020-01",
+    "role": null,
+    "software_named": [
+      "OriginPro",
+      "free Origin-like alternative (listed under SciDAVis on first read, QtiPlot on second)"
+    ],
+    "workflow": "opening Origin projects",
+    "quote": "Sometimes fails to open .opj files, usually those containing big number of tables and graphs.",
+    "problem": "Cannot reliably open Origin project files",
+    "need": "Open competitor project files",
+    "severity": "blocks the analysis",
+    "signal": {
+      "user": "Guest"
+    },
+    "tags": [
+      "file-compatibility"
+    ]
+  },
+  {
+    "id": "reviews-at-015",
+    "venue": "alternativeto.net",
+    "url": "https://alternativeto.net/software/originlab/",
+    "date": "2019-05",
+    "role": null,
+    "software_named": [
+      "QtiPlot",
+      "OriginPro"
+    ],
+    "workflow": "opening Origin projects",
+    "quote": "It's quite small compared to origin, but the free version don't open originlab .opj files.",
+    "problem": "Free version cannot open Origin files",
+    "need": "Import of commercial-tool project files",
+    "severity": "blocks the analysis",
+    "signal": {
+      "user": "Guest"
+    },
+    "tags": [
+      "file-compatibility",
+      "price-licence"
+    ]
+  },
+  {
+    "id": "reviews-at-016",
+    "venue": "alternativeto.net",
+    "url": "https://alternativeto.net/software/originlab/",
+    "date": "2022-08",
+    "role": null,
+    "software_named": [
+      "QtiPlot",
+      "OriginPro"
+    ],
+    "workflow": "general plotting/analysis",
+    "quote": "Have a very lower price than Origin but do almost everything like it.",
+    "problem": "Origin price",
+    "need": "Most of Origin's capability at a much lower price",
+    "severity": "slows the work",
+    "signal": {
+      "user": "jeronimoferreira"
+    },
+    "tags": [
+      "price-licence"
+    ]
+  },
+  {
+    "id": "reviews-at-017",
+    "venue": "alternativeto.net",
+    "url": "https://alternativeto.net/software/originlab/",
+    "date": "2020-08",
+    "role": null,
+    "software_named": [
+      "QtiPlot",
+      "OriginPro"
+    ],
+    "workflow": "fitting user-defined functions",
+    "quote": "In many cases of fitting analytical user-defined functions it does a better job than Origin.",
+    "problem": "Fits of user-defined functions differ in quality between tools",
+    "need": "Robust fitting of user-defined functions",
+    "severity": "wrong result risk",
+    "signal": {
+      "user": "Guest"
+    },
+    "tags": [
+      "custom-equations",
+      "numbers-differ-between-tools"
+    ]
+  },
+  {
+    "id": "reviews-at-018",
+    "venue": "alternativeto.net",
+    "url": "https://alternativeto.net/software/veusz/about/",
+    "date": "2022-02",
+    "role": null,
+    "software_named": [
+      "Veusz",
+      "LabPlot",
+      "Origin"
+    ],
+    "workflow": "curve fitting",
+    "quote": "It does curve fits BUT it apparently will not supply uncertainties in the fit parameters, and without that, it is scientifically useless.",
+    "problem": "Fit parameters reported without uncertainties",
+    "need": "Standard errors/CIs on every fitted parameter",
+    "severity": "blocks the analysis",
+    "signal": {
+      "user": "Paul Camp"
+    },
+    "tags": [
+      "fit-diagnostics"
+    ]
+  },
+  {
+    "id": "reviews-at-019",
+    "venue": "alternativeto.net",
+    "url": "https://alternativeto.net/software/veusz/about/",
+    "date": "2022-02",
+    "role": null,
+    "software_named": [
+      "Veusz",
+      "Origin"
+    ],
+    "workflow": "graphing",
+    "quote": "It's free whereas Origin is a subscription.",
+    "problem": "Subscription cost of Origin",
+    "need": "Free tool",
+    "severity": "slows the work",
+    "signal": {
+      "user": "Paul Camp"
+    },
+    "tags": [
+      "price-licence"
+    ]
+  },
+  {
+    "id": "reviews-at-020",
+    "venue": "alternativeto.net",
+    "url": "https://alternativeto.net/software/veusz/about/",
+    "date": "2017-03",
+    "role": null,
+    "software_named": [
+      "Veusz"
+    ],
+    "workflow": "data table editing",
+    "quote": "Cons: No 3D graphs, cannot edit data table easily",
+    "problem": "Data table hard to edit in a plotting tool",
+    "need": "Editable in-app data table",
+    "severity": "slows the work",
+    "signal": {
+      "user": "juliocortes"
+    },
+    "tags": [
+      "data-entry-table-types"
+    ]
+  },
+  {
+    "id": "reviews-at-021",
+    "venue": "alternativeto.net",
+    "url": "https://alternativeto.net/software/qtiplot/about/",
+    "date": "2021-05",
+    "role": null,
+    "software_named": [
+      "QtiPlot"
+    ],
+    "workflow": "importing CSV",
+    "quote": "Hangs and freezes when importing text/csv files (tab separator, windows new line, regular numbers with \".\" decimal separator).",
+    "problem": "Import hangs on ordinary CSV",
+    "need": "Robust CSV/text import",
+    "severity": "blocks the analysis",
+    "signal": {
+      "user": "ILYA_"
+    },
+    "tags": [
+      "import-instrument-files",
+      "crashes"
+    ]
+  },
+  {
+    "id": "reviews-at-022",
+    "venue": "alternativeto.net",
+    "url": "https://alternativeto.net/software/qtiplot/about/",
+    "date": "2021-05",
+    "role": null,
+    "software_named": [
+      "QtiPlot",
+      "OpenOffice"
+    ],
+    "workflow": "importing from a spreadsheet",
+    "quote": "When importing from OpenOffice, it modifies zero values to empty field.",
+    "problem": "Zeros silently become missing values on import",
+    "need": "Import that preserves zeros versus blanks",
+    "severity": "wrong result risk",
+    "signal": {
+      "user": "ILYA_"
+    },
+    "tags": [
+      "missing-values",
+      "excel-paste"
+    ]
+  },
+  {
+    "id": "reviews-at-023",
+    "venue": "alternativeto.net",
+    "url": "https://alternativeto.net/software/scidavis/about/",
+    "date": "2022-02",
+    "role": null,
+    "software_named": [
+      "SciDAVis"
+    ],
+    "workflow": "graph styling",
+    "quote": "You can set a lot of graph settings as general settings, so you dont have to do it everytime and have it work like you want.",
+    "problem": "Re-styling every graph is repetitive",
+    "need": "Default graph settings applied automatically",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "user": "LinuxDoge"
+    },
+    "tags": [
+      "graph-formatting",
+      "analysis-templates"
+    ]
+  },
+  {
+    "id": "reviews-at-024",
+    "venue": "alternativeto.net",
+    "url": "https://alternativeto.net/software/scidavis/about/",
+    "date": "2022-02",
+    "role": null,
+    "software_named": [
+      "SciDAVis",
+      "Ubuntu",
+      "Flatpak"
+    ],
+    "workflow": "Linux installation",
+    "quote": "Stay away from the Ubuntu version to be sure, it has extreme bugs.",
+    "problem": "Linux builds buggy",
+    "need": "Stable packages on every platform",
+    "severity": "slows the work",
+    "signal": {
+      "user": "LinuxDoge"
+    },
+    "tags": [
+      "crashes",
+      "mac-windows"
+    ]
+  },
+  {
+    "id": "reviews-at-025",
+    "venue": "alternativeto.net",
+    "url": "https://alternativeto.net/software/scidavis/about/",
+    "date": "2021-05",
+    "role": null,
+    "software_named": [
+      "SciDAVis"
+    ],
+    "workflow": "CSV plotting",
+    "quote": "It works well with CSV and gives an intuitive result (plot) without unwanted surprises.",
+    "problem": "Plots from CSV often surprise",
+    "need": "Predictable plots straight from CSV",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "user": "ILYA_"
+    },
+    "tags": [
+      "import-instrument-files"
+    ]
+  },
+  {
+    "id": "reviews-at-026",
+    "venue": "alternativeto.net",
+    "url": "https://alternativeto.net/software/originlab/",
+    "date": "2019-11",
+    "role": null,
+    "software_named": [
+      "SciDAVis",
+      "OriginPro"
+    ],
+    "workflow": "large absorbance datasets",
+    "quote": "Even when a large set of data is loaded (Laser flash action absorbance), the program can handle pretty well.",
+    "problem": "Large instrument datasets slow tools down",
+    "need": "Handles large datasets",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "user": "Guest"
+    },
+    "tags": [
+      "large-data",
+      "performance"
+    ]
+  },
+  {
+    "id": "reviews-at-027",
+    "venue": "alternativeto.net",
+    "url": "https://alternativeto.net/software/jamovi/about/",
+    "date": "2018-04",
+    "role": null,
+    "software_named": [
+      "jamovi"
+    ],
+    "workflow": "statistics GUI",
+    "quote": "Jamovi has an easy-to-use, ribbon-like interface. Particularly useful is the quick preview.",
+    "problem": "Wants to see results update immediately",
+    "need": "Live preview of results as options change",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "user": "superluminar"
+    },
+    "tags": [
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "reviews-at-028",
+    "venue": "alternativeto.net",
+    "url": "https://alternativeto.net/software/spss/",
+    "date": "2016-02",
+    "role": null,
+    "software_named": [
+      "JASP",
+      "SPSS"
+    ],
+    "workflow": "statistics",
+    "quote": "JASP has many of the most popular methods in SPSS, but much faster, more intuitive, free, and with their Bayesian implementation included.",
+    "problem": "SPSS is slow, unintuitive and paid",
+    "need": "Free, fast, intuitive common methods",
+    "severity": "slows the work",
+    "signal": {
+      "user": "gillesdutilh"
+    },
+    "tags": [
+      "price-licence",
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "reviews-at-029",
+    "venue": "alternativeto.net",
+    "url": "https://alternativeto.net/software/spss/",
+    "date": "2016-11",
+    "role": null,
+    "software_named": [
+      "PSPP",
+      "SPSS"
+    ],
+    "workflow": "switching statistics tools",
+    "quote": "With similar UI to SPSS, it makes transition easier.",
+    "problem": "Switching tools costs relearning",
+    "need": "Familiar interface to ease switching",
+    "severity": "slows the work",
+    "signal": {
+      "user": "Guest"
+    },
+    "tags": [
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "reviews-at-030",
+    "venue": "alternativeto.net",
+    "url": "https://alternativeto.net/software/spss/",
+    "date": "2024-09",
+    "role": null,
+    "software_named": [
+      "JASP",
+      "SPSS",
+      "GNU/Linux"
+    ],
+    "workflow": "statistics on Linux",
+    "quote": "Faster and reliable than SPSS, and works on GNU/Linux without problem.",
+    "problem": "SPSS slow and platform-limited",
+    "need": "Fast tool that runs on Linux",
+    "severity": "slows the work",
+    "signal": {
+      "user": "utkb"
+    },
+    "tags": [
+      "performance",
+      "mac-windows"
+    ]
+  },
+  {
+    "id": "reviews-sf-001",
+    "venue": "sourceforge.net",
+    "url": "https://sourceforge.net/projects/scidavis/reviews/",
+    "date": "2022-09",
+    "role": null,
+    "software_named": [
+      "SciDAVis"
+    ],
+    "workflow": "academic plotting across studies",
+    "quote": "I fail to remember the number of headaches that this software has caused me, the heap of hours wasted on corrupted project files, the amount of pain that I have been through.",
+    "problem": "Project files corrupted, work lost",
+    "need": "Project files that never corrupt; autosave/recovery",
+    "severity": "blocks the analysis",
+    "signal": {
+      "user": "scl-lrt",
+      "rating": 1
+    },
+    "tags": [
+      "crashes",
+      "file-compatibility"
+    ]
+  },
+  {
+    "id": "reviews-sf-002",
+    "venue": "sourceforge.net",
+    "url": "https://sourceforge.net/projects/scidavis/reviews/",
+    "date": "2021-04",
+    "role": null,
+    "software_named": [
+      "SciDAVis"
+    ],
+    "workflow": "reopening projects",
+    "quote": "The graphs can be attractive, but half the time when opening my project, all the formatting would change",
+    "problem": "Graph formatting lost when reopening a project",
+    "need": "Graphs that reopen exactly as saved",
+    "severity": "slows the work",
+    "signal": {
+      "user": "jamespb1",
+      "rating": 1
+    },
+    "tags": [
+      "graph-formatting",
+      "file-compatibility"
+    ]
+  },
+  {
+    "id": "reviews-sf-003",
+    "venue": "sourceforge.net",
+    "url": "https://sourceforge.net/projects/scidavis/reviews/",
+    "date": "2021-04",
+    "role": null,
+    "software_named": [
+      "SciDAVis"
+    ],
+    "workflow": "plotting",
+    "quote": "The one star review was earned by the constant crashing.",
+    "problem": "Constant crashes",
+    "need": "Stability",
+    "severity": "blocks the analysis",
+    "signal": {
+      "user": "jamespb1",
+      "rating": 1
+    },
+    "tags": [
+      "crashes"
+    ]
+  },
+  {
+    "id": "reviews-sf-004",
+    "venue": "sourceforge.net",
+    "url": "https://sourceforge.net/projects/scidavis/reviews/",
+    "date": "2022-10",
+    "role": null,
+    "software_named": [
+      "SciDAVis",
+      "LabPlot"
+    ],
+    "workflow": "plotting",
+    "quote": "But I prefer much more to use LabPlot now, which is also open-source and cross-platform.",
+    "problem": "Wants open, cross-platform tool",
+    "need": "Open-source cross-platform plotting",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "user": "disuser",
+      "rating": 1
+    },
+    "tags": [
+      "mac-windows",
+      "price-licence"
+    ]
+  },
+  {
+    "id": "reviews-sf-005",
+    "venue": "sourceforge.net",
+    "url": "https://sourceforge.net/projects/qtiplot.berlios/reviews/",
+    "date": "2022-09",
+    "role": null,
+    "software_named": [
+      "QtiPlot"
+    ],
+    "workflow": "plotting",
+    "quote": "As other reviewers said, the application is no longer open-source and if you want to use it, you have to pay for it (except for the limited demo version).",
+    "problem": "Tool went from free to paid",
+    "need": "Stable free availability",
+    "severity": "slows the work",
+    "signal": {
+      "user": "disuser",
+      "rating": 2
+    },
+    "tags": [
+      "price-licence"
+    ]
+  },
+  {
+    "id": "reviews-sf-006",
+    "venue": "sourceforge.net",
+    "url": "https://sourceforge.net/projects/qtiplot.berlios/reviews/",
+    "date": "2020-12",
+    "role": null,
+    "software_named": [
+      "QtiPlot"
+    ],
+    "workflow": "plotting",
+    "quote": "Not usable! This is a demo version with limited itme and usuage.",
+    "problem": "Free download is a time-limited demo",
+    "need": "Full free version",
+    "severity": "blocks the analysis",
+    "signal": {
+      "user": "doublehapps",
+      "rating": 1
+    },
+    "tags": [
+      "price-licence"
+    ]
+  },
+  {
+    "id": "reviews-sf-007",
+    "venue": "sourceforge.net",
+    "url": "https://sourceforge.net/projects/fityk/reviews/",
+    "date": "2010-04",
+    "role": null,
+    "software_named": [
+      "fityk",
+      "bash"
+    ],
+    "workflow": "batch peak fitting of X-ray profiles",
+    "quote": "Nice script language giving a lot of power to users who need to work on similar data a lot. Lately did index and pre-evaluate 400+ X-Ray profiles in minutes.",
+    "problem": "Same fit repeated on hundreds of datasets",
+    "need": "Scriptable batch fitting",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "user": "mikebk1976",
+      "rating": 5
+    },
+    "tags": [
+      "scripting-batch",
+      "fit-diagnostics"
+    ]
+  },
+  {
+    "id": "reviews-sf-008",
+    "venue": "sourceforge.net",
+    "url": "https://sourceforge.net/projects/gnuplot/reviews/",
+    "date": "2017-09",
+    "role": null,
+    "software_named": [
+      "gnuplot",
+      "macOS"
+    ],
+    "workflow": "plotting on Mac",
+    "quote": "Unfortunately unusable - iMac/OSX 10.11.6",
+    "problem": "Does not run on the user's Mac",
+    "need": "Works on Mac",
+    "severity": "blocks the analysis",
+    "signal": {
+      "user": "johnkgill",
+      "rating": 1
+    },
+    "tags": [
+      "mac-windows"
+    ]
+  },
+  {
+    "id": "reviews-sf-009",
+    "venue": "sourceforge.net",
+    "url": "https://sourceforge.net/projects/labplot/reviews/",
+    "date": "2022-01",
+    "role": null,
+    "software_named": [
+      "LabPlot"
+    ],
+    "workflow": "fitting, smoothing, publication plots",
+    "quote": "Project-based, user-friendly alternative to commercial software for analyzing, fitting, smoothing data and making beautiful, publication-ready, themed plots.",
+    "problem": "Commercial tools needed for fitting and publication plots",
+    "need": "Free project-based fitting and themed publication plots",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "user": "profo",
+      "rating": 5
+    },
+    "tags": [
+      "price-licence",
+      "graph-formatting"
+    ]
+  },
+  {
+    "id": "reviews-as-001",
+    "venue": "apps.apple.com",
+    "url": "https://apps.apple.com/us/app/datagraph/id407412840",
+    "date": "2024-08",
+    "role": null,
+    "software_named": [
+      "DataGraph",
+      "KaleidaGraph",
+      "DeltaGraph",
+      "CricketGraph"
+    ],
+    "workflow": "schoolwork to journal-style graphics",
+    "quote": "For simple schoolwork to sophfisticated journal-style graphics, it was always a chore to prepare exactly the graphic representation of my data with everything in the past (albeit KG was pretty good).",
+    "problem": "Getting exactly the intended journal graphic is a chore",
+    "need": "Precise control of the final figure",
+    "severity": "slows the work",
+    "signal": {
+      "user": "Stuke"
+    },
+    "tags": [
+      "graph-formatting"
+    ]
+  },
+  {
+    "id": "reviews-as-002",
+    "venue": "apps.apple.com",
+    "url": "https://apps.apple.com/us/app/datagraph/id407412840",
+    "date": "2024-08",
+    "role": null,
+    "software_named": [
+      "DataGraph"
+    ],
+    "workflow": "buying a graphing app",
+    "quote": "Price is steep, but once again, when you realize what you've just bought and what it can do, I think you'll find it is a fair price.",
+    "problem": "Price is steep",
+    "need": "Affordable",
+    "severity": "slows the work",
+    "signal": {
+      "user": "Stuke"
+    },
+    "tags": [
+      "price-licence"
+    ]
+  },
+  {
+    "id": "reviews-as-003",
+    "venue": "apps.apple.com",
+    "url": "https://apps.apple.com/us/app/datagraph/id407412840",
+    "date": "2020-02",
+    "role": null,
+    "software_named": [
+      "DataGraph",
+      "macOS 10.9.5"
+    ],
+    "workflow": "upgrading",
+    "quote": "However, when I upgraded from version 4.4 to 4.5, the application crashed and I was unable to get it to run prperly on my OS 10.9.5 system.",
+    "problem": "Update broke the app on an older OS",
+    "need": "Updates that keep working on older lab OSes",
+    "severity": "blocks the analysis",
+    "signal": {
+      "user": "AncientSci"
+    },
+    "tags": [
+      "crashes",
+      "mac-windows"
+    ]
+  },
+  {
+    "id": "reviews-as-004",
+    "venue": "apps.apple.com",
+    "url": "https://apps.apple.com/us/app/datagraph/id407412840",
+    "date": "2020-05",
+    "role": null,
+    "software_named": [
+      "DataGraph"
+    ],
+    "workflow": "starting a new chart",
+    "quote": "A Template chooser is much more useful almost all quality apps have them so you can easily choose a basic project and get started quicky.",
+    "problem": "No template chooser at start",
+    "need": "Template chooser for a quick start",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "user": "Dave551404"
+    },
+    "tags": [
+      "analysis-templates",
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "reviews-as-005",
+    "venue": "apps.apple.com",
+    "url": "https://apps.apple.com/us/app/datagraph/id407412840",
+    "date": "2020-05",
+    "role": null,
+    "software_named": [
+      "DataGraph"
+    ],
+    "workflow": "sample files",
+    "quote": "Who needs or wants to look at sample files all the time? and have to be connected to internet to see them",
+    "problem": "Examples need an internet connection",
+    "need": "Examples available offline",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "user": "Dave551404"
+    },
+    "tags": [
+      "offline",
+      "tutorials"
+    ]
+  },
+  {
+    "id": "reviews-as-006",
+    "venue": "apps.apple.com",
+    "url": "https://apps.apple.com/us/app/datagraph/id407412840",
+    "date": "2024-05",
+    "role": "researcher (NCSU, as shown in username)",
+    "software_named": [
+      "DataGraph",
+      "OriginLab",
+      "gnuplot",
+      "macOS"
+    ],
+    "workflow": "plotting on Mac",
+    "quote": "I was used to Originlab for a long time and used to miss it badly on MacOs.",
+    "problem": "Origin not available on Mac",
+    "need": "Origin-class plotting on Mac",
+    "severity": "blocks the analysis",
+    "signal": {
+      "user": "Ajay NCSU"
+    },
+    "tags": [
+      "mac-windows"
+    ]
+  },
+  {
+    "id": "reviews-as-007",
+    "venue": "apps.apple.com",
+    "url": "https://apps.apple.com/us/app/id876317178",
+    "date": "2018-04",
+    "role": null,
+    "software_named": [
+      "Plot2 Pro",
+      "MATLAB",
+      "Excel"
+    ],
+    "workflow": "exporting figures",
+    "quote": "I used MATLAB and excel before, they are not compareble to this software for the quality of the final export image!",
+    "problem": "Excel/MATLAB export quality poor",
+    "need": "High-quality exported figures",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "user": "Memento.me"
+    },
+    "tags": [
+      "export-vector",
+      "export-dpi"
+    ]
+  },
+  {
+    "id": "reviews-as-008",
+    "venue": "apps.apple.com",
+    "url": "https://apps.apple.com/us/app/id876317178",
+    "date": "2018-04",
+    "role": null,
+    "software_named": [
+      "Plot2 Pro"
+    ],
+    "workflow": "scientific illustrations",
+    "quote": "I hope the seller make a simple software for making scientific illustrations with the same high qulity output.",
+    "problem": "Needs illustrations alongside plots",
+    "need": "Simple scientific illustration at plot quality",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "user": "Memento.me"
+    },
+    "tags": [
+      "illustrator-handoff",
+      "layouts-multipanel"
+    ]
+  },
+  {
+    "id": "reviews-as-009",
+    "venue": "apps.apple.com",
+    "url": "https://apps.apple.com/us/app/id876317178",
+    "date": "2018-01",
+    "role": null,
+    "software_named": [
+      "Plot2 Pro",
+      "Plot2"
+    ],
+    "workflow": "large data plotting",
+    "quote": "On the other hand, the UI for this program is poor. The documentation is sparse and nothing is intuitive.",
+    "problem": "Poor UI, sparse docs",
+    "need": "Intuitive UI and documentation",
+    "severity": "slows the work",
+    "signal": {
+      "user": "roselma"
+    },
+    "tags": [
+      "learning-curve",
+      "tutorials"
+    ]
+  },
+  {
+    "id": "reviews-as-010",
+    "venue": "apps.apple.com",
+    "url": "https://apps.apple.com/us/app/id876317178",
+    "date": "2018-01",
+    "role": null,
+    "software_named": [
+      "Plot2 Pro"
+    ],
+    "workflow": "inspecting a chart",
+    "quote": "For example, attempting to zoom in on part of a chart will actually modify the chart by changing the axis bounds to accomplish the zoom.",
+    "problem": "Zooming to inspect changes the figure itself",
+    "need": "View zoom separate from figure edits",
+    "severity": "slows the work",
+    "signal": {
+      "user": "roselma"
+    },
+    "tags": [
+      "graph-formatting"
+    ]
+  },
+  {
+    "id": "reviews-as-011",
+    "venue": "apps.apple.com",
+    "url": "https://apps.apple.com/us/app/id846509360",
+    "date": "2018-12",
+    "role": null,
+    "software_named": [
+      "Plot2"
+    ],
+    "workflow": "multi-pane publication figures",
+    "quote": "The most complex figure I have made so far with this tool is a 9-pane plot with 2-5 data series per pane.",
+    "problem": "Publications need multi-pane figures",
+    "need": "Multi-panel layouts with several series",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "user": "sgtpepper729"
+    },
+    "tags": [
+      "layouts-multipanel"
+    ]
+  },
+  {
+    "id": "reviews-as-012",
+    "venue": "apps.apple.com",
+    "url": "https://apps.apple.com/us/app/id846509360",
+    "date": "2018-12",
+    "role": null,
+    "software_named": [
+      "Plot2",
+      "Excel"
+    ],
+    "workflow": "getting started",
+    "quote": "This is nothing like excel where you can just highlight data and after a couple of clicks you have something usable.",
+    "problem": "Hours of fiddling before first usable plot",
+    "need": "Excel-like speed to a first usable graph",
+    "severity": "slows the work",
+    "signal": {
+      "user": "sgtpepper729"
+    },
+    "tags": [
+      "learning-curve",
+      "excel-paste"
+    ]
+  },
+  {
+    "id": "reviews-as-013",
+    "venue": "apps.apple.com",
+    "url": "https://apps.apple.com/us/app/id846509360",
+    "date": "2021-03",
+    "role": null,
+    "software_named": [
+      "Plot2"
+    ],
+    "workflow": "plots at final paper size",
+    "quote": "If there was some way to show a magnified plot without having to change the actual plot and font sizes, that would be great.",
+    "problem": "Figures built at final print size are too small to see on screen",
+    "need": "On-screen zoom that does not change real sizes",
+    "severity": "slows the work",
+    "signal": {
+      "user": "abhinavparihar"
+    },
+    "tags": [
+      "graph-formatting",
+      "export-dpi"
+    ]
+  },
+  {
+    "id": "reviews-as-014",
+    "venue": "apps.apple.com",
+    "url": "https://apps.apple.com/us/app/id846509360",
+    "date": "2018-03",
+    "role": null,
+    "software_named": [
+      "Plot2",
+      "Excel"
+    ],
+    "workflow": "entering data",
+    "quote": "Theres a screen with what looks like a spreadsheet but no way to enter antything, nothing is clear about how you would go about it",
+    "problem": "Cannot work out how to type data in",
+    "need": "Obvious data entry",
+    "severity": "blocks the analysis",
+    "signal": {
+      "user": "Netsua1"
+    },
+    "tags": [
+      "data-entry-table-types",
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "reviews-as-015",
+    "venue": "apps.apple.com",
+    "url": "https://apps.apple.com/us/app/id846509360",
+    "date": "2019-05",
+    "role": "academic researcher (stated)",
+    "software_named": [
+      "Plot2",
+      "LaTeX",
+      "Word"
+    ],
+    "workflow": "figures for papers",
+    "quote": "Written from the core to manipulate postcript/PDF, it produces lightweight graphics that can be added easily to the text editor of your choice (from LaTex to Word).",
+    "problem": "Figures must drop into LaTeX or Word",
+    "need": "Lightweight vector export",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "user": "Agrineer"
+    },
+    "tags": [
+      "export-vector"
+    ]
+  },
+  {
+    "id": "reviews-as-016",
+    "venue": "apps.apple.com",
+    "url": "https://apps.apple.com/us/app/id495152161",
+    "date": "2017-10",
+    "role": null,
+    "software_named": [
+      "Wizard"
+    ],
+    "workflow": "regression modelling",
+    "quote": "In the Model view, I have been searching for the model variance and/or standard deviation, but I cannot find it.",
+    "problem": "Model variance/MSE not reported",
+    "need": "Report MSE/residual SD with every model",
+    "severity": "wrong result risk",
+    "signal": {
+      "user": "zman0000"
+    },
+    "tags": [
+      "fit-diagnostics"
+    ]
+  },
+  {
+    "id": "reviews-as-017",
+    "venue": "apps.apple.com",
+    "url": "https://apps.apple.com/us/app/id495152161",
+    "date": "2017-10",
+    "role": null,
+    "software_named": [
+      "Wizard"
+    ],
+    "workflow": "regression with interactions",
+    "quote": "Therefore, to add interaction terms of three or more, I have to go back to the raw data and multiply the separate columns along with the lower interaction and insert them individually into the model.",
+    "problem": "Higher-order interactions require manual column building",
+    "need": "Interaction terms of any order from the UI",
+    "severity": "slows the work",
+    "signal": {
+      "user": "zman0000"
+    },
+    "tags": [
+      "two-way-anova",
+      "units-and-transforms"
+    ]
+  },
+  {
+    "id": "reviews-as-018",
+    "venue": "apps.apple.com",
+    "url": "https://apps.apple.com/us/app/id495152161",
+    "date": "2017-10",
+    "role": null,
+    "software_named": [
+      "Wizard"
+    ],
+    "workflow": "scatter plots",
+    "quote": "Hard to see the scatter plots, since the dots are small and often gray.",
+    "problem": "Points hard to see",
+    "need": "Adjustable, visible point styling",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "user": "zman0000"
+    },
+    "tags": [
+      "show-the-points",
+      "graph-formatting"
+    ]
+  },
+  {
+    "id": "reviews-as-019",
+    "venue": "apps.apple.com",
+    "url": "https://apps.apple.com/us/app/id495152161",
+    "date": "2019-10",
+    "role": null,
+    "software_named": [
+      "Wizard"
+    ],
+    "workflow": "learning the app",
+    "quote": "The support manual is not as helpful as I would like and sometimes is missing text",
+    "problem": "Manual incomplete",
+    "need": "Complete documentation",
+    "severity": "slows the work",
+    "signal": {
+      "user": "3Retrievers"
+    },
+    "tags": [
+      "tutorials"
+    ]
+  },
+  {
+    "id": "reviews-as-020",
+    "venue": "apps.apple.com",
+    "url": "https://apps.apple.com/us/app/id495152161",
+    "date": "2018-03",
+    "role": null,
+    "software_named": [
+      "Wizard"
+    ],
+    "workflow": "exploring data without statistics training",
+    "quote": "I’m not a statistican so much of the high end stat stuff is lost on me, but the simplicity of the interface allows me to quickly see overviews of the data",
+    "problem": "Non-statisticians lost in advanced statistics",
+    "need": "Simple overviews that invite exploration",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "user": "5 Fountains"
+    },
+    "tags": [
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "reviews-as-021",
+    "venue": "apps.apple.com",
+    "url": "https://apps.apple.com/us/app/id1030762074",
+    "date": "2024-11",
+    "role": null,
+    "software_named": [
+      "pro Fit 7",
+      "Python",
+      "Pascal"
+    ],
+    "workflow": "composite figures for publication",
+    "quote": "Unexcelled for assembling composite data graphics for publication. It takes a half-dozen programs to replace what this simple package does.",
+    "problem": "Composite figures normally need many programs",
+    "need": "Plotting, fitting, statistics and figure assembly in one tool",
+    "severity": "slows the work",
+    "signal": {
+      "user": "FearlessLeader"
+    },
+    "tags": [
+      "layouts-multipanel",
+      "custom-equations"
+    ]
+  },
+  {
+    "id": "reviews-as-022",
+    "venue": "apps.apple.com",
+    "url": "https://apps.apple.com/us/app/id404419961",
+    "date": "2013-04",
+    "role": null,
+    "software_named": [
+      "Graph"
+    ],
+    "workflow": "first use",
+    "quote": "I think there at least needs to be a tutorial on how to use it when it's first used because how on earth do the data points show up on the graph??",
+    "problem": "Data entered but nothing appears on graph",
+    "need": "First-run tutorial linking data entry to the graph",
+    "severity": "blocks the analysis",
+    "signal": {
+      "user": "Ninja18965"
+    },
+    "tags": [
+      "tutorials",
+      "data-entry-table-types"
+    ]
+  },
+  {
+    "id": "reviews-as-023",
+    "venue": "apps.apple.com",
+    "url": "https://apps.apple.com/us/app/id1385963326",
+    "date": "2021-01",
+    "role": "student (physics lab, stated)",
+    "software_named": [
+      "Vernier Graphical Analysis"
+    ],
+    "workflow": "physics lab graphs",
+    "quote": "So far it has deleted one of my graphs when I closed it but it’s only done this once.",
+    "problem": "Graph lost on close",
+    "need": "Autosave, no data loss",
+    "severity": "slows the work",
+    "signal": {
+      "user": "#1 Truth Reviews",
+      "app_rating": "2.1 of 5 (526 ratings)"
+    },
+    "tags": [
+      "crashes",
+      "teaching"
+    ]
+  },
+  {
+    "id": "reviews-as-024",
+    "venue": "apps.apple.com",
+    "url": "https://apps.apple.com/us/app/id1385963326",
+    "date": "2021-01",
+    "role": "student (physics lab, stated)",
+    "software_named": [
+      "Vernier Graphical Analysis"
+    ],
+    "workflow": "plotting columns from several data sets",
+    "quote": "I can plot multiple columns from multiple data sets in one graph which is great but you can’t pick and chose which columns you want plotted from each data set.",
+    "problem": "Cannot choose which columns from each run to plot",
+    "need": "Pick any columns from any data set onto one graph",
+    "severity": "slows the work",
+    "signal": {
+      "user": "#1 Truth Reviews"
+    },
+    "tags": [
+      "graph-formatting",
+      "teaching"
+    ]
+  },
+  {
+    "id": "reviews-as-025",
+    "venue": "apps.apple.com",
+    "url": "https://apps.apple.com/us/app/id522996341",
+    "date": "2018-05",
+    "role": "physics teacher (stated)",
+    "software_named": [
+      "Vernier Graphical Analysis GW",
+      "LabQuest"
+    ],
+    "workflow": "teaching physics labs on iPads",
+    "quote": "However, some of the features seem clunky when creating graphs by manually inputting data.",
+    "problem": "Manual data entry clunky",
+    "need": "Smooth manual data entry",
+    "severity": "slows the work",
+    "signal": {
+      "user": "CAN090872",
+      "app_rating": "2.4 of 5 (158 ratings)"
+    },
+    "tags": [
+      "data-entry-table-types",
+      "teaching",
+      "mobile"
+    ]
+  },
+  {
+    "id": "reviews-as-026",
+    "venue": "apps.apple.com",
+    "url": "https://apps.apple.com/us/app/id522996341",
+    "date": "2018-05",
+    "role": "physics teacher (stated)",
+    "software_named": [
+      "Vernier Graphical Analysis GW",
+      "LabQuest"
+    ],
+    "workflow": "area under curve in physics labs",
+    "quote": "In addition and most importantly there needs to be an integral function as I teach physics.",
+    "problem": "No integral (area under curve) function",
+    "need": "Area-under-curve calculation",
+    "severity": "blocks the analysis",
+    "signal": {
+      "user": "CAN090872"
+    },
+    "tags": [
+      "area-under-curve",
+      "teaching"
+    ]
+  },
+  {
+    "id": "reviews-as-027",
+    "venue": "apps.apple.com",
+    "url": "https://apps.apple.com/us/app/id1462593060",
+    "date": "2019-11",
+    "role": "lab tech / researcher (implied)",
+    "software_named": [
+      "Lab.Hacks"
+    ],
+    "workflow": "bench calculations for assays",
+    "quote": "I absolutely HATE doing calculations on the fly, and almost always ruin whatever experiment/assay I’m doing because of it.",
+    "problem": "Bench calculations done on the fly cause failed experiments",
+    "need": "Reliable bench calculators for dilutions/recipes",
+    "severity": "wrong result risk",
+    "signal": {
+      "user": "Drguitarking",
+      "app_rating": "4.9 of 5 (136 ratings)"
+    },
+    "tags": [
+      "units-and-transforms",
+      "mobile"
+    ]
+  },
+  {
+    "id": "reviews-as-028",
+    "venue": "apps.apple.com",
+    "url": "https://apps.apple.com/us/app/id1462593060",
+    "date": "2019-05",
+    "role": "PhD student (implied)",
+    "software_named": [
+      "Lab.Hacks"
+    ],
+    "workflow": "conversions and buffer recipes",
+    "quote": "Do you know how much time I have wasted going back and forth from my bench to my desk to look up conversions or how to make a buffer...the limit does not exist.",
+    "problem": "Walking between bench and desk to look up conversions",
+    "need": "Conversions and buffer recipes at the bench",
+    "severity": "slows the work",
+    "signal": {
+      "user": "A&pII"
+    },
+    "tags": [
+      "units-and-transforms",
+      "mobile"
+    ]
+  },
+  {
+    "id": "reviews-as-029",
+    "venue": "apps.apple.com",
+    "url": "https://apps.apple.com/us/app/id1462593060",
+    "date": "2020-09",
+    "role": null,
+    "software_named": [
+      "Lab.Hacks"
+    ],
+    "workflow": "saved custom solutions across devices",
+    "quote": "It would be great to sync between the iPhone and the iPad so I don’t have to put custom solutions in both or put a stopwatch in both.",
+    "problem": "Saved lab recipes don't sync between devices",
+    "need": "Sync saved items across devices",
+    "severity": "slows the work",
+    "signal": {
+      "user": "Aroliveras"
+    },
+    "tags": [
+      "sharing-collaboration",
+      "mobile"
+    ]
+  },
+  {
+    "id": "reviews-as-030",
+    "venue": "apps.apple.com",
+    "url": "https://apps.apple.com/us/app/id1599474757",
+    "date": "2022-12",
+    "role": null,
+    "software_named": [
+      "Art of Stat"
+    ],
+    "workflow": "typing data on an iPad",
+    "quote": "I have a hard time typing a bunch of numbers on a little keyboard in that mode, and my iPad case does not have ability to stand in a portrait mode.",
+    "problem": "Data entry on tablet painful",
+    "need": "Comfortable tablet data entry (landscape, paste, CSV)",
+    "severity": "slows the work",
+    "signal": {
+      "user": "Mila456738"
+    },
+    "tags": [
+      "mobile",
+      "data-entry-table-types"
+    ]
+  },
+  {
+    "id": "reviews-swsg-001",
+    "venue": "softwaresuggest.com",
+    "url": "https://www.softwaresuggest.com/graphpad-prism",
+    "date": "2020-09",
+    "role": "company size 51-200, 2+ years user (shown)",
+    "software_named": [
+      "GraphPad Prism",
+      "CurveMaster"
+    ],
+    "workflow": "graphs and data analysis",
+    "quote": "Software could be made more organized. Bugs could be eliminated for smoother functioning.",
+    "problem": "Disorganised interface and bugs",
+    "need": "Organised interface, fewer bugs",
+    "severity": "slows the work",
+    "signal": {
+      "user": "Siddharth",
+      "rating": 4,
+      "ease_of_use": 3,
+      "customer_support": 3
+    },
+    "tags": [
+      "learning-curve",
+      "crashes"
+    ]
+  },
+  {
+    "id": "reviews-swsg-002",
+    "venue": "softwaresuggest.com",
+    "url": "https://www.softwaresuggest.com/graphpad-prism",
+    "date": "2020-09",
+    "role": "company size 51-200, 2+ years user (shown)",
+    "software_named": [
+      "GraphPad Prism",
+      "MS Office"
+    ],
+    "workflow": "graphs for reports",
+    "quote": "The graphs look professional and are compatible with MS Office as well.",
+    "problem": "Graphs must go into Office documents",
+    "need": "Professional graphs that paste into Office",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "user": "Siddharth",
+      "rating": 4
+    },
+    "tags": [
+      "powerpoint",
+      "graph-formatting"
+    ]
+  },
+  {
+    "id": "reviews-swsg-003",
+    "venue": "softwaresuggest.com",
+    "url": "https://www.softwaresuggest.com/graphpad-prism",
+    "date": "2020-09",
+    "role": "company size 51-200, 2+ years user (shown)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "organising data and analyses",
+    "quote": "I like how the data is shown in different tabs, with different calculations that you can access for various purposes.",
+    "problem": "Data and calculations need clear organisation",
+    "need": "Tabbed data/results organisation",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "user": "Siddharth",
+      "rating": 4
+    },
+    "tags": [
+      "data-entry-table-types"
+    ]
+  },
+  {
+    "id": "reviews-ps-001",
+    "venue": "peerspot.com",
+    "url": "https://www.peerspot.com/products/ibm-spss-statistics-reviews",
+    "date": null,
+    "role": "Emeritus Professor of Health Services Research at University of South Wales (shown)",
+    "software_named": [
+      "IBM SPSS Statistics",
+      "KNIME"
+    ],
+    "workflow": "cross tabs, correlation, regression, chi-squared for papers",
+    "quote": "SPSS is perfectly adequate if all you want are some results. If you only need the results, you do not require the trail of evidence on how you obtained those results.",
+    "problem": "Point-and-click output lacks a trail of how results were obtained",
+    "need": "A recorded trail from data to every result",
+    "severity": "wrong result risk",
+    "signal": {
+      "source": "featured review on product page"
+    },
+    "tags": [
+      "reproducibility-audit"
+    ]
+  },
+  {
+    "id": "reviews-ps-002",
+    "venue": "peerspot.com",
+    "url": "https://www.peerspot.com/products/ibm-spss-statistics-reviews",
+    "date": null,
+    "role": "Emeritus Professor of Health Services Research at University of South Wales (shown)",
+    "software_named": [
+      "IBM SPSS Statistics",
+      "KNIME"
+    ],
+    "workflow": "data transformations",
+    "quote": "For wider uses I find Knime keeps me in touch with my data, however much I transform them.",
+    "problem": "Losing sight of the data after transformations",
+    "need": "Transformations that keep the data visible",
+    "severity": "slows the work",
+    "signal": {
+      "source": "featured review on product page"
+    },
+    "tags": [
+      "reproducibility-audit",
+      "units-and-transforms"
+    ]
+  },
+  {
+    "id": "reviews-ps-003",
+    "venue": "peerspot.com",
+    "url": "https://www.peerspot.com/products/ibm-spss-statistics-reviews",
+    "date": null,
+    "role": "Data Analyst at Toluna (shown)",
+    "software_named": [
+      "IBM SPSS Statistics"
+    ],
+    "workflow": "large survey datasets",
+    "quote": "Whenever we use it, it takes a longer time to run, and sometimes we have to use a higher-end machine.",
+    "problem": "Slow on large datasets",
+    "need": "Fast analysis on ordinary machines",
+    "severity": "slows the work",
+    "signal": {
+      "source": "featured review on product page"
+    },
+    "tags": [
+      "performance",
+      "large-data"
+    ]
+  },
+  {
+    "id": "reviews-ph-001",
+    "venue": "producthunt.com",
+    "url": "https://www.producthunt.com/products/autoplot",
+    "date": null,
+    "role": null,
+    "software_named": [
+      "Autoplot",
+      "Python"
+    ],
+    "workflow": "AI-written analysis and plots",
+    "quote": "The reproducible-Python export is the right call, because with AI-written analysis the plot that renders cleanly is the one you stop checking.",
+    "problem": "Clean-looking AI-generated plots stop getting checked",
+    "need": "Reproducible exported code and visible assumptions behind each figure",
+    "severity": "wrong result risk",
+    "signal": {
+      "user": "Dipankar Sarkar",
+      "posted": "about 3 months before 2026-10"
+    },
+    "tags": [
+      "reproducibility-audit",
+      "trust-validation"
+    ]
+  },
+  {
+    "id": "reviews-ph-002",
+    "venue": "producthunt.com",
+    "url": "https://www.producthunt.com/products/autoplot",
+    "date": null,
+    "role": null,
+    "software_named": [
+      "Autoplot"
+    ],
+    "workflow": "analysis plus plotting",
+    "quote": "Unifying analysis and plotting in one place is a real pain point — too many tools force you to jump between a notebook and a separate charting tool.",
+    "problem": "Analysis and charting split across tools",
+    "need": "Analysis and plotting in one place",
+    "severity": "slows the work",
+    "signal": {
+      "user": "Yuki_Code1",
+      "posted": "about 3 months before 2026-10"
+    },
+    "tags": [
+      "graph-formatting",
+      "scripting-batch"
+    ]
+  },
+  {
+    "id": "reviews-ph-003",
+    "venue": "producthunt.com",
+    "url": "https://www.producthunt.com/products/autoplot",
+    "date": null,
+    "role": null,
+    "software_named": [
+      "Autoplot",
+      "matplotlib"
+    ],
+    "workflow": "3D plots of big datasets",
+    "quote": "the Metal-backed 3D plots are genuinely smooth, way better than fighting with matplotlib on a big dataset.",
+    "problem": "Plotting libraries struggle with big data",
+    "need": "Smooth interactive plots for large data",
+    "severity": "slows the work",
+    "signal": {
+      "user": "Mertcan",
+      "posted": "about 3 months before 2026-10"
+    },
+    "tags": [
+      "large-data",
+      "performance"
+    ]
+  },
+  {
+    "id": "reviews-as-031",
+    "venue": "apps.apple.com",
+    "url": "https://apps.apple.com/us/app/id522996341",
+    "date": "2021-10",
+    "role": null,
+    "software_named": [
+      "Vernier Graphical Analysis GW",
+      "Google Sheets"
+    ],
+    "workflow": "quick results in a science lab",
+    "quote": "they clearly do not understand how much easier to use this is for quick results from a science lab over some other graphing system like Google Sheets.",
+    "problem": "General spreadsheets are slow for lab graphs",
+    "need": "A lab-specific grapher faster than spreadsheets",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "user": "starico"
+    },
+    "tags": [
+      "teaching",
+      "excel-paste"
+    ]
+  }
+]

@@ -1,0 +1,3716 @@
+[
+  {
+    "id": "courses-babraham-ex-power-fisher",
+    "venue": "www.bioinformatics.babraham.ac.uk",
+    "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/GraphPad%20Prism%20Exercises.pdf",
+    "date": "2024-05",
+    "role": "Life-science researchers at the Babraham Institute and external attendees (course audience)",
+    "software_named": [
+      "GraphPad Prism",
+      "G*Power"
+    ],
+    "workflow": "power analysis, two proportions, 2x2 contingency",
+    "quote": "Providing the observed difference between WT and KO cells is of scientific interest, using a Fisher’s Exact test (test family: Exact), what sample size is needed to achieve 80% power?",
+    "problem": "Researchers must size a pilot-based study comparing two proportions; Prism has no power module so the course switches to G*Power",
+    "need": "Built-in power/sample-size calculation for 2x2 proportions, seeded from pilot counts",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "Babraham Institute Bioinformatics Training",
+      "course": "Introduction to Statistics with GraphPad Prism (two days)",
+      "exercise": "Exercise 1: Power"
+    },
+    "tags": [
+      "power-sample-size",
+      "contingency",
+      "teaching"
+    ]
+  },
+  {
+    "id": "courses-babraham-ex-power-ttest",
+    "venue": "www.bioinformatics.babraham.ac.uk",
+    "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/GraphPad%20Prism%20Exercises.pdf",
+    "date": "2024-05",
+    "role": "Life-science researchers at the Babraham Institute and external attendees (course audience)",
+    "software_named": [
+      "GraphPad Prism",
+      "G*Power",
+      "Excel"
+    ],
+    "workflow": "power analysis, two independent means",
+    "quote": "Use the data to calculate the values needed and run a power calculation. You will use an independent t-test for your analysis (test family: t tests). o Hint: in Excel: function STDEV.S",
+    "problem": "To run a power calculation the student must compute mean/SD in Excel and transfer them by hand to a separate power tool",
+    "need": "Power calculation that reads the pilot column directly (mean, SD, % difference of interest) instead of hand-computed inputs",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "Babraham Institute Bioinformatics Training",
+      "course": "Introduction to Statistics with GraphPad Prism (two days)",
+      "exercise": "Mice weight"
+    },
+    "tags": [
+      "power-sample-size",
+      "excel-paste"
+    ]
+  },
+  {
+    "id": "courses-babraham-ex-power-paired",
+    "venue": "www.bioinformatics.babraham.ac.uk",
+    "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/GraphPad%20Prism%20Exercises.pdf",
+    "date": "2024-05",
+    "role": "Life-science researchers at the Babraham Institute and external attendees (course audience)",
+    "software_named": [
+      "GraphPad Prism",
+      "G*Power"
+    ],
+    "workflow": "power analysis, paired vs unpaired design",
+    "quote": "If, after running your power analysis, you realise that the pilot study actually involved 5 arachnophobes, who each looked at both a picture and a real spider (i.e. creating a paired design, so using a paired (dependent) t-test), how many arachnophobes would you need to achieve a power of 80%?",
+    "problem": "Sample size depends on whether the design is paired; the answer drops from 10 per group to 4 subjects",
+    "need": "Power calculator that asks for the design (paired vs independent) and uses SD of differences for paired designs",
+    "severity": "wrong result risk",
+    "signal": {
+      "source": "course material",
+      "institution": "Babraham Institute Bioinformatics Training",
+      "course": "Introduction to Statistics with GraphPad Prism (two days)",
+      "answer_unpaired_per_group": 10,
+      "answer_paired": 4
+    },
+    "tags": [
+      "power-sample-size",
+      "which-test"
+    ]
+  },
+  {
+    "id": "courses-babraham-ex-paired-ttest",
+    "venue": "www.bioinformatics.babraham.ac.uk",
+    "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/GraphPad%20Prism%20Exercises.pdf",
+    "date": "2024-05",
+    "role": "Life-science researchers at the Babraham Institute and external attendees (course audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "paired t-test, before/after in same subjects",
+    "quote": "They are then asked to perform the same task after having received a dopamine depleting agent. • Is there an effect of treatment on the monkeys' performance?",
+    "problem": "Recognising a before/after design in the same animals as paired and analysing it accordingly",
+    "need": "Paired t-test with residual/QQ diagnostics and an estimation plot of the paired differences",
+    "severity": "wrong result risk",
+    "signal": {
+      "source": "course material",
+      "institution": "Babraham Institute Bioinformatics Training",
+      "course": "Introduction to Statistics with GraphPad Prism (two days)",
+      "exercise": "Exercise 2: Working memory"
+    },
+    "tags": [
+      "which-test",
+      "teaching"
+    ]
+  },
+  {
+    "id": "courses-babraham-ans-paired-graph",
+    "venue": "www.bioinformatics.babraham.ac.uk",
+    "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/GraphPad%20Prism%20Exercises%20Worked%20Answers.pdf",
+    "date": "2024-05",
+    "role": "Life-science researchers at the Babraham Institute and external attendees (course audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "paired t-test graph",
+    "quote": "It is misleading to show a p-value associated with a paired t-test without showing the pairing on the graph (as in the first plot). It is preferable to show what has actually been tested, by either showing the pairing on the plot or plotting the differences between the groups, as in the second and third plots.",
+    "problem": "Common graphs of paired data hide the pairing, so the p-value shown does not match what the plot shows",
+    "need": "When a paired test is run, default the graph to before-after lines or a plot of differences",
+    "severity": "wrong result risk",
+    "signal": {
+      "source": "course material",
+      "institution": "Babraham Institute Bioinformatics Training",
+      "course": "Introduction to Statistics with GraphPad Prism (two days)",
+      "exercise": "Working memory (answers)"
+    },
+    "tags": [
+      "show-the-points",
+      "graph-formatting",
+      "significance-brackets"
+    ]
+  },
+  {
+    "id": "courses-babraham-ans-difference-steps",
+    "venue": "www.bioinformatics.babraham.ac.uk",
+    "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/GraphPad%20Prism%20Exercises%20Worked%20Answers.pdf",
+    "date": "2024-05",
+    "role": "Life-science researchers at the Babraham Institute and external attendees (course audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "paired differences plot",
+    "quote": "Just showing the difference can be a useful, especially if there are a lot of points – to do this: o Analyse > Remove baseline and column math o Definition of baseline: Selected column(s) = Every other dataset (column): 1st, 3rd, 5th… o Calculation: Difference = Value – Baseline. o Create a graph from the resulting data.",
+    "problem": "Plotting paired differences takes a multi-step detour through a baseline-subtraction analysis and a new graph",
+    "need": "One-click 'plot the paired differences' from a paired test result",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "Babraham Institute Bioinformatics Training",
+      "course": "Introduction to Statistics with GraphPad Prism (two days)"
+    },
+    "tags": [
+      "units-and-transforms",
+      "graph-formatting",
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "courses-babraham-ex-onewayanova",
+    "venue": "www.bioinformatics.babraham.ac.uk",
+    "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/GraphPad%20Prism%20Exercises.pdf",
+    "date": "2024-05",
+    "role": "Life-science researchers at the Babraham Institute and external attendees (course audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "one-way ANOVA with post-hoc",
+    "quote": "Do the fertilisers have an impact on yield and, if so, which fertiliser mixture gives the highest yield?",
+    "problem": "Comparing three independent groups and identifying which differs requires an omnibus test plus multiple comparisons",
+    "need": "One-way ANOVA with Tukey post-hoc, QQ plot and outlier check in one flow",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "Babraham Institute Bioinformatics Training",
+      "course": "Introduction to Statistics with GraphPad Prism (two days)",
+      "exercise": "Exercise 3: Crop yield"
+    },
+    "tags": [
+      "which-test",
+      "post-hoc-choice",
+      "multiple-comparisons"
+    ]
+  },
+  {
+    "id": "courses-babraham-ex-rm-anova-neutrophils",
+    "venue": "www.bioinformatics.babraham.ac.uk",
+    "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/GraphPad%20Prism%20Exercises.pdf",
+    "date": "2024-05",
+    "role": "Life-science researchers at the Babraham Institute and external attendees (course audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "repeated-measures one-way ANOVA, independent experiments as blocks",
+    "quote": "A researcher is looking at the difference between 4 cell groups. They have run the experiment 5 times. Within each experiment, they have neutrophils from a WT (control), a KO, a KO + Treatment 1 and a KO + Treatment2.",
+    "problem": "Repeating an experiment 5 times makes each experiment a matched block; analysing as independent groups loses power and misstates n",
+    "need": "Design question that detects 'experiment repeated N times' and proposes repeated-measures/matched ANOVA vs control",
+    "severity": "wrong result risk",
+    "signal": {
+      "source": "course material",
+      "institution": "Babraham Institute Bioinformatics Training",
+      "course": "Introduction to Statistics with GraphPad Prism (two days)",
+      "exercise": "Exercise 3: Neutrophils"
+    },
+    "tags": [
+      "technical-vs-biological-replicates",
+      "repeated-measures",
+      "n-definition"
+    ]
+  },
+  {
+    "id": "courses-babraham-ans-colour-by-experiment",
+    "venue": "www.bioinformatics.babraham.ac.uk",
+    "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/GraphPad%20Prism%20Exercises%20Worked%20Answers.pdf",
+    "date": "2024-05",
+    "role": "Life-science researchers at the Babraham Institute and external attendees (course audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "superplot-style colouring by experiment",
+    "quote": "As the experiment has been run independently 5 times, this makes it a repeated measures design, and this should be reflected in our graphs.",
+    "problem": "Graphs should show which points come from which independent experiment, which requires manual per-point formatting",
+    "need": "Colour points by experiment/block automatically when the design is matched",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "Babraham Institute Bioinformatics Training",
+      "course": "Introduction to Statistics with GraphPad Prism (two days)"
+    },
+    "tags": [
+      "superplots",
+      "show-the-points",
+      "graph-formatting"
+    ]
+  },
+  {
+    "id": "courses-babraham-ans-colour-hint",
+    "venue": "www.bioinformatics.babraham.ac.uk",
+    "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/GraphPad%20Prism%20Exercises%20Worked%20Answers.pdf",
+    "date": "2024-05",
+    "role": "Life-science researchers at the Babraham Institute and external attendees (course audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "graph formatting",
+    "quote": "Hint: to colour the points by experiment you highlight the data on the data table, right click and select Format Points > Symbol Color",
+    "problem": "Colouring by experiment is a hidden right-click route the course has to teach explicitly",
+    "need": "Discoverable 'colour by replicate/experiment' option",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "Babraham Institute Bioinformatics Training",
+      "course": "Introduction to Statistics with GraphPad Prism (two days)"
+    },
+    "tags": [
+      "superplots",
+      "learning-curve",
+      "graph-formatting"
+    ]
+  },
+  {
+    "id": "courses-babraham-ex-correlation-groups",
+    "venue": "www.bioinformatics.babraham.ac.uk",
+    "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/GraphPad%20Prism%20Exercises.pdf",
+    "date": "2024-05",
+    "role": "Life-science researchers at the Babraham Institute and external attendees (course audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "correlation / linear regression by group",
+    "quote": "Is there a relationship between time spent revising and exam anxiety? And, if yes, are males and females different? • How good is the model?",
+    "problem": "Needs correlation plus a comparison of slopes between two groups and goodness-of-fit",
+    "need": "Correlation/regression per group with a test comparing slopes",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "Babraham Institute Bioinformatics Training",
+      "course": "Introduction to Statistics with GraphPad Prism (two days)",
+      "exercise": "Exercise 4: Exam anxiety"
+    },
+    "tags": [
+      "correlation",
+      "compare-curves"
+    ]
+  },
+  {
+    "id": "courses-babraham-ans-correlation-workaround",
+    "venue": "www.bioinformatics.babraham.ac.uk",
+    "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/GraphPad%20Prism%20Exercises%20Worked%20Answers.pdf",
+    "date": "2024-05",
+    "role": "Life-science researchers at the Babraham Institute and external attendees (course audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "correlation with outlier detection",
+    "quote": "If we run a non-linear regression, but choose a linear model this gives us many more options, including normality testing and outlier identification.",
+    "problem": "The correlation analysis lacks diagnostics; the course teaches using nonlinear regression with a straight-line model as a workaround",
+    "need": "Residual diagnostics and outlier detection available directly in correlation/linear regression",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "Babraham Institute Bioinformatics Training",
+      "course": "Introduction to Statistics with GraphPad Prism (two days)"
+    },
+    "tags": [
+      "correlation",
+      "fit-diagnostics",
+      "outliers",
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "courses-babraham-ans-linreg-no-r",
+    "venue": "www.bioinformatics.babraham.ac.uk",
+    "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/GraphPad%20Prism%20Exercises%20Worked%20Answers.pdf",
+    "date": "2024-05",
+    "role": "Life-science researchers at the Babraham Institute and external attendees (course audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "correlation vs linear regression output",
+    "quote": "Linear regression gives us R2 and a p-value for whether the slope is non-zero (the same p as from the correlation), although it does not directly give us Pearson r.",
+    "problem": "Users must run two analyses to get both the line and Pearson r",
+    "need": "One analysis reporting r, R², slope, CI and line of best fit together",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "Babraham Institute Bioinformatics Training",
+      "course": "Introduction to Statistics with GraphPad Prism (two days)"
+    },
+    "tags": [
+      "correlation",
+      "reporting-methods"
+    ]
+  },
+  {
+    "id": "courses-babraham-ans-outlier-policy",
+    "venue": "www.bioinformatics.babraham.ac.uk",
+    "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/GraphPad%20Prism%20Exercises%20Worked%20Answers.pdf",
+    "date": "2024-05",
+    "role": "Life-science researchers at the Babraham Institute and external attendees (course audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "outlier handling",
+    "quote": "You should state how you will deal with outliers before seeing your data, and be consistent across experiments (i.e. do not delete them when you get a significant result without them and leave them in when you get a significant result with them).",
+    "problem": "Outlier removal decisions are ad hoc and can become p-hacking",
+    "need": "Record a pre-declared outlier rule and log every excluded value in the analysis history",
+    "severity": "wrong result risk",
+    "signal": {
+      "source": "course material",
+      "institution": "Babraham Institute Bioinformatics Training",
+      "course": "Introduction to Statistics with GraphPad Prism (two days)"
+    },
+    "tags": [
+      "outliers",
+      "reproducibility-audit"
+    ]
+  },
+  {
+    "id": "courses-babraham-ans-outlier-with-without",
+    "venue": "www.bioinformatics.babraham.ac.uk",
+    "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/GraphPad%20Prism%20Exercises%20Worked%20Answers.pdf",
+    "date": "2024-05",
+    "role": "Life-science researchers at the Babraham Institute and external attendees (course audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "sensitivity analysis with/without outlier",
+    "quote": "The outlier should not be excluded just because there is a significant result after it is removed.",
+    "problem": "Course has to show results both with and without the outlier by duplicating the analysis",
+    "need": "Side-by-side sensitivity view: results with and without flagged outliers",
+    "severity": "wrong result risk",
+    "signal": {
+      "source": "course material",
+      "institution": "Babraham Institute Bioinformatics Training",
+      "course": "Introduction to Statistics with GraphPad Prism (two days)",
+      "exercise": "Creatine [Kruskal-Wallis]"
+    },
+    "tags": [
+      "outliers",
+      "nonparametric"
+    ]
+  },
+  {
+    "id": "courses-babraham-ex-mannwhitney",
+    "venue": "www.bioinformatics.babraham.ac.uk",
+    "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/GraphPad%20Prism%20Exercises.pdf",
+    "date": "2024-05",
+    "role": "Life-science researchers at the Babraham Institute and external attendees (course audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "Mann-Whitney, ordinal scores",
+    "quote": "Can Cambridge students tell the difference between worn T-shirts from Oxford or Cambridge? Explore the data and answer the question with a non-parametric approach.",
+    "problem": "Ordinal 1-7 scores need a rank-based test",
+    "need": "Mann-Whitney test with median plots for ordinal data",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "Babraham Institute Bioinformatics Training",
+      "course": "Introduction to Statistics with GraphPad Prism (two days)",
+      "exercise": "Exercise 5"
+    },
+    "tags": [
+      "nonparametric",
+      "which-test"
+    ]
+  },
+  {
+    "id": "courses-babraham-ans-nonparam-menu",
+    "venue": "www.bioinformatics.babraham.ac.uk",
+    "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/GraphPad%20Prism%20Exercises%20Worked%20Answers.pdf",
+    "date": "2024-05",
+    "role": "Life-science researchers at the Babraham Institute and external attendees (course audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "finding the nonparametric test",
+    "quote": "As this is a non-parametric test, need to select ‘t tests (and nonparametric tests)’ in analysis menu",
+    "problem": "The Mann-Whitney test is hidden under the t-test menu entry, which students must be told",
+    "need": "Test chooser organised by question/design, not by parametric test names",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "Babraham Institute Bioinformatics Training",
+      "course": "Introduction to Statistics with GraphPad Prism (two days)"
+    },
+    "tags": [
+      "nonparametric",
+      "learning-curve",
+      "which-test"
+    ]
+  },
+  {
+    "id": "courses-babraham-ex-wilcoxon",
+    "venue": "www.bioinformatics.babraham.ac.uk",
+    "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/GraphPad%20Prism%20Exercises.pdf",
+    "date": "2024-05",
+    "role": "Life-science researchers at the Babraham Institute and external attendees (course audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "Wilcoxon signed-rank, paired ordinal",
+    "quote": "Question: do botulinum toxin injections reduce muscle spasticity levels? Explore the data and answer the question with a non-parametric approach.",
+    "problem": "Paired ordinal before/after ratings need Wilcoxon signed-rank",
+    "need": "Paired nonparametric test with plot of differences",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "Babraham Institute Bioinformatics Training",
+      "course": "Introduction to Statistics with GraphPad Prism (two days)"
+    },
+    "tags": [
+      "nonparametric",
+      "which-test"
+    ]
+  },
+  {
+    "id": "courses-babraham-ex-kruskal",
+    "venue": "www.bioinformatics.babraham.ac.uk",
+    "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/GraphPad%20Prism%20Exercises.pdf",
+    "date": "2024-05",
+    "role": "Life-science researchers at the Babraham Institute and external attendees (course audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "Kruskal-Wallis + Dunn",
+    "quote": "Question: does the average weight gain depend on the creatine group to which people were assigned? Explore the data and answer the question with a non- parametric approach.",
+    "problem": "Three independent groups with an extreme value; nonparametric omnibus plus Dunn's comparisons",
+    "need": "Kruskal-Wallis with Dunn's post-hoc and outlier flagging",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "Babraham Institute Bioinformatics Training",
+      "course": "Introduction to Statistics with GraphPad Prism (two days)"
+    },
+    "tags": [
+      "nonparametric",
+      "post-hoc-choice",
+      "outliers"
+    ]
+  },
+  {
+    "id": "courses-babraham-ex-friedman",
+    "venue": "www.bioinformatics.babraham.ac.uk",
+    "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/GraphPad%20Prism%20Exercises.pdf",
+    "date": "2024-05",
+    "role": "Life-science researchers at the Babraham Institute and external attendees (course audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "Friedman test, repeated ratings",
+    "quote": "Question: which violin is the best according to the 10 violinists? o Explore the data and answer the question with a non-parametric approach.",
+    "problem": "Same raters score all three items: repeated-measures nonparametric design",
+    "need": "Friedman test with Dunn's comparisons",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "Babraham Institute Bioinformatics Training",
+      "course": "Introduction to Statistics with GraphPad Prism (two days)"
+    },
+    "tags": [
+      "nonparametric",
+      "which-test"
+    ]
+  },
+  {
+    "id": "courses-babraham-ex-spearman",
+    "venue": "www.bioinformatics.babraham.ac.uk",
+    "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/GraphPad%20Prism%20Exercises.pdf",
+    "date": "2024-05",
+    "role": "Life-science researchers at the Babraham Institute and external attendees (course audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "Spearman rank correlation",
+    "quote": "Six male colobus monkeys were ranked for social dominance and the eggs of Trichirus nematode per gram of monkey faeces were measured. • Is social dominance associated with parasitism?",
+    "problem": "Ranked predictor and skewed counts need rank correlation",
+    "need": "Spearman correlation",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "Babraham Institute Bioinformatics Training",
+      "course": "Introduction to Statistics with GraphPad Prism (two days)"
+    },
+    "tags": [
+      "correlation",
+      "nonparametric"
+    ]
+  },
+  {
+    "id": "courses-babraham-ex-contingency",
+    "venue": "www.bioinformatics.babraham.ac.uk",
+    "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/GraphPad%20Prism%20Exercises.pdf",
+    "date": "2024-05",
+    "role": "Life-science researchers at the Babraham Institute and external attendees (course audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "Fisher/chi-square 2x2 with graph",
+    "quote": "Repeat this analysis for dogs & compare to the results from cats, graphically represent the results.",
+    "problem": "Categorical outcomes need a contingency test, odds ratio and a graph of proportions",
+    "need": "Contingency analysis with odds ratio and stacked percentage bar graph",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "Babraham Institute Bioinformatics Training",
+      "course": "Introduction to Statistics with GraphPad Prism (two days)",
+      "exercise": "Exercise 6: Cats & dogs"
+    },
+    "tags": [
+      "contingency",
+      "graph-formatting"
+    ]
+  },
+  {
+    "id": "courses-babraham-ans-stack-of-p",
+    "venue": "www.bioinformatics.babraham.ac.uk",
+    "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/GraphPad%20Prism%20Exercises%20Worked%20Answers.pdf",
+    "date": "2024-05",
+    "role": "Life-science researchers at the Babraham Institute and external attendees (course audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "pairwise chi-square comparisons with multiplicity correction",
+    "quote": "For this, we need to run 3 separate tests to get results for the individual comparisons (i.e. Rockhampton vs Mackay, Rockhampton vs Bowen, and Mackay vs Bowden), then add the resulting p-values to a column table and select “Analyse a stack of P values” to get multiple comparison corrections",
+    "problem": "There is no post-hoc for a >2x2 contingency table; users run separate 2x2 tests and copy p-values into a new table to correct them",
+    "need": "Pairwise post-hoc comparisons with multiplicity correction directly from a contingency table",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "Babraham Institute Bioinformatics Training",
+      "course": "Introduction to Statistics with GraphPad Prism (two days)",
+      "exercise": "Cane toads"
+    },
+    "tags": [
+      "contingency",
+      "multiple-comparisons",
+      "post-hoc-choice"
+    ]
+  },
+  {
+    "id": "courses-babraham-ans-iris-copy-error",
+    "venue": "www.bioinformatics.babraham.ac.uk",
+    "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/GraphPad%20Prism%20Exercises%20Worked%20Answers.pdf",
+    "date": "2024-05",
+    "role": "Life-science researchers at the Babraham Institute and external attendees (course audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "data entry error found as outlier",
+    "quote": "In this case, the raw data is in the raw.data tab in the Excel file, and we can see that this outlier actually comes from another species of iris. We can comfortably remove that outlier, knowing it was there due to a copying error.",
+    "problem": "Copying from Excel introduced a wrong value that only appears as an outlier",
+    "need": "Keep a link back to the raw source rows so outliers can be traced to entry errors",
+    "severity": "wrong result risk",
+    "signal": {
+      "source": "course material",
+      "institution": "Babraham Institute Bioinformatics Training",
+      "course": "Introduction to Statistics with GraphPad Prism (two days)"
+    },
+    "tags": [
+      "excel-paste",
+      "outliers",
+      "reproducibility-audit"
+    ]
+  },
+  {
+    "id": "courses-babraham-ex-linreg-predict",
+    "venue": "www.bioinformatics.babraham.ac.uk",
+    "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/GraphPad%20Prism%20Exercises.pdf",
+    "date": "2024-05",
+    "role": "Life-science researchers at the Babraham Institute and external attendees (course audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "simple linear regression, prediction",
+    "quote": "Generate a linear model describing the relationship between income and happiness. • How happy would you expect someone earing 50k to be, based on your model?",
+    "problem": "Users need the fitted equation and a prediction for a new X",
+    "need": "Linear regression with interpolation of Y at a given X",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "Babraham Institute Bioinformatics Training",
+      "course": "Introduction to Statistics with GraphPad Prism (two days)"
+    },
+    "tags": [
+      "standard-curve-interpolation",
+      "correlation"
+    ]
+  },
+  {
+    "id": "courses-babraham-ans-kw-vs-anova",
+    "venue": "www.bioinformatics.babraham.ac.uk",
+    "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/GraphPad%20Prism%20Exercises%20Worked%20Answers.pdf",
+    "date": "2024-05",
+    "role": "Life-science researchers at the Babraham Institute and external attendees (course audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "choosing parametric vs nonparametric",
+    "quote": "Including the potential outliers, the data fail normality tests and, although the QQ plot doesn’t look too far off, it doesn’t seem to follow the line as well as we would like, particularly with the potential outlier.",
+    "problem": "Choosing parametric vs nonparametric is a judgement from normality tests and QQ plots the course has to model",
+    "need": "Guided assumption check that explains QQ plots and normality tests together with the decision",
+    "severity": "wrong result risk",
+    "signal": {
+      "source": "course material",
+      "institution": "Babraham Institute Bioinformatics Training",
+      "course": "Introduction to Statistics with GraphPad Prism (two days)",
+      "exercise": "Coffee part 2"
+    },
+    "tags": [
+      "which-test",
+      "nonparametric",
+      "fit-diagnostics"
+    ]
+  },
+  {
+    "id": "courses-babraham-sl-tech-bio",
+    "venue": "www.bioinformatics.babraham.ac.uk",
+    "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/Intro%20to%20statistics%20with%20GraphPad%20Prism%20slides.pdf",
+    "date": "2025-01",
+    "role": "Life-science researchers at the Babraham Institute and external attendees (course audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "defining n in cell culture",
+    "quote": "• Identify technical and biological replicates • Make the replicates as independent as possible • Consider wider factors, e.g. rarity of samples, cost and accuracy of measurements • Never mix technical and biological replicates",
+    "problem": "Researchers mix technical and biological replicates and inflate n",
+    "need": "Data entry that distinguishes technical from biological replicates and averages technicals first",
+    "severity": "wrong result risk",
+    "signal": {
+      "source": "course material",
+      "institution": "Babraham Institute Bioinformatics Training",
+      "course": "Introduction to Statistics with GraphPad Prism (two days)",
+      "slides": "Experimental design, p20"
+    },
+    "tags": [
+      "technical-vs-biological-replicates",
+      "n-definition"
+    ]
+  },
+  {
+    "id": "courses-babraham-sl-what-is-n",
+    "venue": "www.bioinformatics.babraham.ac.uk",
+    "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/Intro%20to%20statistics%20with%20GraphPad%20Prism%20slides.pdf",
+    "date": "2025-01",
+    "role": "Life-science researchers at the Babraham Institute and external attendees (course audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "n in cell culture",
+    "quote": "• Design 1: One value per glass slide e.g. cell count • After quantification: 6 values • Sample size: n = 1 • no independence between slides • variability = pipetting/measurement error",
+    "problem": "Six values from one culture are n=1, a frequent misunderstanding",
+    "need": "Prompt for the experimental unit and compute n from it",
+    "severity": "wrong result risk",
+    "signal": {
+      "source": "course material",
+      "institution": "Babraham Institute Bioinformatics Training",
+      "course": "Introduction to Statistics with GraphPad Prism (two days)",
+      "slides": "Technical versus biological replicates: Not always easy to tell the difference"
+    },
+    "tags": [
+      "n-definition",
+      "technical-vs-biological-replicates"
+    ]
+  },
+  {
+    "id": "courses-babraham-sl-onetailed",
+    "venue": "www.bioinformatics.babraham.ac.uk",
+    "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/Intro%20to%20statistics%20with%20GraphPad%20Prism%20slides.pdf",
+    "date": "2025-01",
+    "role": "Life-science researchers at the Babraham Institute and external attendees (course audience)",
+    "software_named": [
+      "GraphPad Prism",
+      "G*Power"
+    ],
+    "workflow": "power analysis defaults",
+    "quote": "Step 4: Choice of Parameters Tricky bit: need information about the effect size. G*Power Example case: 0 cows killed in the painted group 3 out 39 in unpainted Remember to check all parameters! By default: Tail(s) = One Power = 0.95",
+    "problem": "Power tool defaults (one-tailed, 95% power) silently change the sample size",
+    "need": "Power calculator with conventional defaults (two-sided, 80%) and visible assumptions",
+    "severity": "wrong result risk",
+    "signal": {
+      "source": "course material",
+      "institution": "Babraham Institute Bioinformatics Training",
+      "course": "Introduction to Statistics with GraphPad Prism (two days)"
+    },
+    "tags": [
+      "power-sample-size",
+      "trust-validation"
+    ]
+  },
+  {
+    "id": "courses-babraham-sl-unequal-n",
+    "venue": "www.bioinformatics.babraham.ac.uk",
+    "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/Intro%20to%20statistics%20with%20GraphPad%20Prism%20slides.pdf",
+    "date": "2025-01",
+    "role": "Life-science researchers at the Babraham Institute and external attendees (course audience)",
+    "software_named": [
+      "GraphPad Prism",
+      "G*Power"
+    ],
+    "workflow": "power with unequal group sizes",
+    "quote": "Different methods give slightly different sample sizes: • Using adjustment • Painted (n1) = 77 • Unpainted (n2) = 153 • Total sample = 230 • Using G*Power: • Painted (n2) = 74 • Unpainted (n1) = 147 • Total sample = 221",
+    "problem": "Hand adjustment and software give different sample sizes for unbalanced designs",
+    "need": "Power calculation supporting allocation ratio directly",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "Babraham Institute Bioinformatics Training",
+      "course": "Introduction to Statistics with GraphPad Prism (two days)"
+    },
+    "tags": [
+      "power-sample-size",
+      "numbers-differ-between-tools"
+    ]
+  },
+  {
+    "id": "courses-babraham-sl-sd-sem",
+    "venue": "www.bioinformatics.babraham.ac.uk",
+    "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/Intro%20to%20statistics%20with%20GraphPad%20Prism%20slides.pdf",
+    "date": "2025-01",
+    "role": "Life-science researchers at the Babraham Institute and external attendees (course audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "error bars SD vs SEM",
+    "quote": "• If we want to show the variation among values: → Report the SD • If we want to show how precisely we have determined the population mean: → Report the SEM • Preferably show all data points and the SEM → Both variation and precision Mean + SEM",
+    "problem": "Researchers choose SD/SEM without knowing what each shows",
+    "need": "Error-bar chooser that explains SD vs SEM vs CI and labels the choice in the legend",
+    "severity": "wrong result risk",
+    "signal": {
+      "source": "course material",
+      "institution": "Babraham Institute Bioinformatics Training",
+      "course": "Introduction to Statistics with GraphPad Prism (two days)",
+      "slides": "SD or SEM?"
+    },
+    "tags": [
+      "error-bars-sd-sem",
+      "show-the-points",
+      "figure-legend"
+    ]
+  },
+  {
+    "id": "courses-babraham-sl-barchart-hides",
+    "venue": "www.bioinformatics.babraham.ac.uk",
+    "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/Intro%20to%20statistics%20with%20GraphPad%20Prism%20slides.pdf",
+    "date": "2025-01",
+    "role": "Life-science researchers at the Babraham Institute and external attendees (course audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "bar chart vs exploring data",
+    "quote": "• Five experiments: change in the variable of interest between 3 treatments and a control. ❖Data plotted as a bar chart. Plotting is not inherently the same thing as exploring",
+    "problem": "Bar charts of pooled data hide experiment-to-experiment structure",
+    "need": "Default graphs that show individual points and experiment identity",
+    "severity": "wrong result risk",
+    "signal": {
+      "source": "course material",
+      "institution": "Babraham Institute Bioinformatics Training",
+      "course": "Introduction to Statistics with GraphPad Prism (two days)"
+    },
+    "tags": [
+      "show-the-points",
+      "superplots"
+    ]
+  },
+  {
+    "id": "courses-babraham-sl-nonparam-not-default",
+    "venue": "www.bioinformatics.babraham.ac.uk",
+    "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/Intro%20to%20statistics%20with%20GraphPad%20Prism%20slides.pdf",
+    "date": "2025-01",
+    "role": "Life-science researchers at the Babraham Institute and external attendees (course audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "when to use nonparametric",
+    "quote": "• Not meeting the assumptions for parametric tests is not enough to switch to a non-parametric approach • Data exploration is key: • Outliers? • Possible transformation? • Parametric with corrections?",
+    "problem": "Users switch to nonparametric tests reflexively when normality fails",
+    "need": "Assumption-failure guidance offering transform, Welch correction or nonparametric with reasons",
+    "severity": "wrong result risk",
+    "signal": {
+      "source": "course material",
+      "institution": "Babraham Institute Bioinformatics Training",
+      "course": "Introduction to Statistics with GraphPad Prism (two days)"
+    },
+    "tags": [
+      "nonparametric",
+      "which-test",
+      "units-and-transforms"
+    ]
+  },
+  {
+    "id": "courses-babraham-sl-sphericity",
+    "venue": "www.bioinformatics.babraham.ac.uk",
+    "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/Intro%20to%20statistics%20with%20GraphPad%20Prism%20slides.pdf",
+    "date": "2025-01",
+    "role": "Life-science researchers at the Babraham Institute and external attendees (course audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "repeated measures ANOVA sphericity",
+    "quote": "• If the assumption of sphericity is not met, a correction is applied • Often the default as the assumption is seldom met • Most common correction: Greenhouse-Geisser correction",
+    "problem": "Repeated-measures ANOVA needs a sphericity correction that beginners do not know about",
+    "need": "Greenhouse-Geisser correction on by default with an explanation",
+    "severity": "wrong result risk",
+    "signal": {
+      "source": "course material",
+      "institution": "Babraham Institute Bioinformatics Training",
+      "course": "Introduction to Statistics with GraphPad Prism (two days)"
+    },
+    "tags": [
+      "repeated-measures",
+      "trust-validation"
+    ]
+  },
+  {
+    "id": "courses-babraham-sl-familywise",
+    "venue": "www.bioinformatics.babraham.ac.uk",
+    "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/Intro%20to%20statistics%20with%20GraphPad%20Prism%20slides.pdf",
+    "date": "2025-01",
+    "role": "Life-science researchers at the Babraham Institute and external attendees (course audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "multiple comparisons",
+    "quote": "• Probability has increased from 5% → 14.3% • For comparisons between 5 groups, the familywise error rate is 40% (=1-(0.95)n)",
+    "problem": "Running many t-tests instead of ANOVA + post-hoc inflates false positives",
+    "need": "Warn when several pairwise tests are run on the same dataset and offer a corrected family",
+    "severity": "wrong result risk",
+    "signal": {
+      "source": "course material",
+      "institution": "Babraham Institute Bioinformatics Training",
+      "course": "Introduction to Statistics with GraphPad Prism (two days)"
+    },
+    "tags": [
+      "multiple-comparisons",
+      "post-hoc-choice"
+    ]
+  },
+  {
+    "id": "courses-babraham-sl-histogram-bins",
+    "venue": "www.bioinformatics.babraham.ac.uk",
+    "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/Intro%20to%20statistics%20with%20GraphPad%20Prism%20slides.pdf",
+    "date": "2025-01",
+    "role": "Life-science researchers at the Babraham Institute and external attendees (course audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "frequency distribution / histogram",
+    "quote": "Auto: bin width = 0.5 Centre 1st = 0 Bin width = 2 Centre 1st = 1 Bin width = auto (0.5) Centre 1st = 0.25 Bin width = 1 Centre 1st = 0.5",
+    "problem": "Histogram shape depends on bin width and first-bin centre, which users must tune",
+    "need": "Histogram with interactive bin width/centre and a density overlay",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "Babraham Institute Bioinformatics Training",
+      "course": "Introduction to Statistics with GraphPad Prism (two days)",
+      "slides": "Histogram"
+    },
+    "tags": [
+      "graph-formatting",
+      "teaching"
+    ]
+  },
+  {
+    "id": "courses-babraham-sl-log-transform",
+    "venue": "www.bioinformatics.babraham.ac.uk",
+    "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/Intro%20to%20statistics%20with%20GraphPad%20Prism%20slides.pdf",
+    "date": "2025-01",
+    "role": "Life-science researchers at the Babraham Institute and external attendees (course audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "log transform before ANOVA",
+    "quote": "• Question: is there a difference in protein expression between the 5 cell lines? • 1 Plot the data • 2 Check the assumptions for parametric test",
+    "problem": "Skewed protein expression needs a log transform before ANOVA, which creates a new derived table",
+    "need": "Transform-in-place option inside the test dialog with back-transformed reporting",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "Babraham Institute Bioinformatics Training",
+      "course": "Introduction to Statistics with GraphPad Prism (two days)",
+      "slides": "One-way ANOVA protein expression exercise"
+    },
+    "tags": [
+      "units-and-transforms",
+      "log-axis"
+    ]
+  },
+  {
+    "id": "courses-babraham-sl-twoway-format",
+    "venue": "www.bioinformatics.babraham.ac.uk",
+    "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/Intro%20to%20statistics%20with%20GraphPad%20Prism%20slides.pdf",
+    "date": "2025-01",
+    "role": "Life-science researchers at the Babraham Institute and external attendees (course audience)",
+    "software_named": [
+      "GraphPad Prism",
+      "Excel"
+    ],
+    "workflow": "two-way ANOVA data layout",
+    "quote": "Main effect of Density Main effect of Fertiliser Interaction between Density and Fertiliser Two-way Analysis of Variance * Need data in Column format for these graphs",
+    "problem": "Different graphs of the same two-way data require re-entering it in a different table format",
+    "need": "One long-format dataset that can be graphed by either factor and analysed by two-way ANOVA",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "Babraham Institute Bioinformatics Training",
+      "course": "Introduction to Statistics with GraphPad Prism (two days)",
+      "slides": "Two-way ANOVA: Excel to Prism"
+    },
+    "tags": [
+      "long-vs-wide",
+      "data-entry-table-types",
+      "two-way-anova"
+    ]
+  },
+  {
+    "id": "courses-babraham-sl-twoway-interaction",
+    "venue": "www.bioinformatics.babraham.ac.uk",
+    "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/Intro%20to%20statistics%20with%20GraphPad%20Prism%20slides.pdf",
+    "date": "2025-01",
+    "role": "Life-science researchers at the Babraham Institute and external attendees (course audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "two-way ANOVA interaction",
+    "quote": "• Three null hypotheses: • No difference in yield for any fertiliser type • No difference in yield for either planting density • Effect of fertiliser type or density on yield does not depend on the effect of the other variable",
+    "problem": "Interpreting main effects vs interaction in two-way ANOVA",
+    "need": "Two-way ANOVA output that explains each of the three tests in plain language with interaction plots",
+    "severity": "wrong result risk",
+    "signal": {
+      "source": "course material",
+      "institution": "Babraham Institute Bioinformatics Training",
+      "course": "Introduction to Statistics with GraphPad Prism (two days)"
+    },
+    "tags": [
+      "two-way-anova",
+      "teaching"
+    ]
+  },
+  {
+    "id": "courses-babraham-sl-dose-response-model",
+    "venue": "www.bioinformatics.babraham.ac.uk",
+    "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/Intro%20to%20statistics%20with%20GraphPad%20Prism%20slides.pdf",
+    "date": "2025-01",
+    "role": "Life-science researchers at the Babraham Institute and external attendees (course audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "dose-response IC50 fit",
+    "quote": "1. Choose a Model • not necessary to normalise • should choose it when values defining 0 and 100 are precise • variable slope better if plenty of data points (variable slope or 4 parameters)",
+    "problem": "Choosing between normalised/raw and 3- vs 4-parameter models",
+    "need": "Model chooser for dose-response that explains normalisation and Hill slope choices",
+    "severity": "wrong result risk",
+    "signal": {
+      "source": "course material",
+      "institution": "Babraham Institute Bioinformatics Training",
+      "course": "Introduction to Statistics with GraphPad Prism (two days)",
+      "slides": "Curve fitting: Inhibition data"
+    },
+    "tags": [
+      "ic50-ec50-setup",
+      "normalization"
+    ]
+  },
+  {
+    "id": "courses-babraham-sl-dose-response-constrain",
+    "venue": "www.bioinformatics.babraham.ac.uk",
+    "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/Intro%20to%20statistics%20with%20GraphPad%20Prism%20slides.pdf",
+    "date": "2025-01",
+    "role": "Life-science researchers at the Babraham Institute and external attendees (course audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "dose-response constraints and diagnostics",
+    "quote": "4. Constrain: depends on your experiment depends if your data don’t define the top or the bottom of the curve 5. Initial values: defaults usually OK unless the fit looks funny",
+    "problem": "Incomplete curves need constraints; users must judge when the fit 'looks funny'",
+    "need": "Automatic warning when top/bottom plateaus are not defined by the data, suggesting constraints",
+    "severity": "wrong result risk",
+    "signal": {
+      "source": "course material",
+      "institution": "Babraham Institute Bioinformatics Training",
+      "course": "Introduction to Statistics with GraphPad Prism (two days)"
+    },
+    "tags": [
+      "ic50-ec50-setup",
+      "fit-diagnostics"
+    ]
+  },
+  {
+    "id": "courses-babraham-sl-compare-curves",
+    "venue": "www.bioinformatics.babraham.ac.uk",
+    "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/Intro%20to%20statistics%20with%20GraphPad%20Prism%20slides.pdf",
+    "date": "2025-01",
+    "role": "Life-science researchers at the Babraham Institute and external attendees (course audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "comparing dose-response curves",
+    "quote": "3. Compare different conditions Curve fitting Example: Inhibition data.xlsx Diff in parameters Constraint vs no constraint Diff between conditions for one or more parameters",
+    "problem": "Testing whether an inhibitor shifts the curve requires an extra-sum-of-squares comparison",
+    "need": "Compare-fits test (shared vs separate parameters) for two conditions",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "Babraham Institute Bioinformatics Training",
+      "course": "Introduction to Statistics with GraphPad Prism (two days)"
+    },
+    "tags": [
+      "compare-curves",
+      "ic50-ec50-setup"
+    ]
+  },
+  {
+    "id": "courses-babraham-sl-fit-diagnostics",
+    "venue": "www.bioinformatics.babraham.ac.uk",
+    "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/Intro%20to%20statistics%20with%20GraphPad%20Prism%20slides.pdf",
+    "date": "2025-01",
+    "role": "Life-science researchers at the Babraham Institute and external attendees (course audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "curve fit diagnostics",
+    "quote": "9. Diagnostics: Check for normality Check Replicates test (heteroscedasticity) QQ plots 10. Flag: Only useful if doing lots of curve fits",
+    "problem": "Fit diagnostics are optional checkboxes users skip",
+    "need": "Fit diagnostics (residuals, replicates test) shown by default",
+    "severity": "wrong result risk",
+    "signal": {
+      "source": "course material",
+      "institution": "Babraham Institute Bioinformatics Training",
+      "course": "Introduction to Statistics with GraphPad Prism (two days)"
+    },
+    "tags": [
+      "fit-diagnostics"
+    ]
+  },
+  {
+    "id": "courses-babraham-sl-chi-assumptions",
+    "venue": "www.bioinformatics.babraham.ac.uk",
+    "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/Intro%20to%20statistics%20with%20GraphPad%20Prism%20slides.pdf",
+    "date": "2025-02",
+    "role": "Life-science researchers at the Babraham Institute and external attendees (course audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "chi-square vs Fisher",
+    "quote": "• Often software will not perform a Fisher’s test on tables > 2x2 • Fisher’s test more accurate than Chi2 test on small samples • Chi2 test generally preferable on large samples • Chi2 test assumptions: • 2x2 table: no expected count <5",
+    "problem": "Users do not check expected counts and software lacks Fisher for larger tables",
+    "need": "Contingency analysis that checks expected counts and offers exact tests for RxC tables",
+    "severity": "wrong result risk",
+    "signal": {
+      "source": "course material",
+      "institution": "Babraham Institute Bioinformatics Training",
+      "course": "Introduction to Statistics with GraphPad Prism (two days)"
+    },
+    "tags": [
+      "contingency",
+      "which-test"
+    ]
+  },
+  {
+    "id": "courses-babraham-sl-decision-tree",
+    "venue": "www.bioinformatics.babraham.ac.uk",
+    "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/Intro%20to%20statistics%20with%20GraphPad%20Prism%20slides.pdf",
+    "date": "2025-01",
+    "role": "Life-science researchers at the Babraham Institute and external attendees (course audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "choosing a statistical test",
+    "quote": "Start Differences? How many factors? Two or more Two-way ANOVA, General Linear (Mixed) Model, etc. One Same or different subjects? Same Parametric Paired T test/repeated ANOVA Non-parametric Wilcoxon paired test",
+    "problem": "Courses rely on external decision trees because test choice is not built into the software flow",
+    "need": "Built-in decision tree that maps the design to the test",
+    "severity": "blocks the analysis",
+    "signal": {
+      "source": "course material",
+      "institution": "Babraham Institute Bioinformatics Training",
+      "course": "Introduction to Statistics with GraphPad Prism (two days)",
+      "slides": "Decision trees & resources"
+    },
+    "tags": [
+      "which-test",
+      "teaching"
+    ]
+  },
+  {
+    "id": "courses-babraham-sl-resources",
+    "venue": "www.bioinformatics.babraham.ac.uk",
+    "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/Intro%20to%20statistics%20with%20GraphPad%20Prism%20slides.pdf",
+    "date": "2025-01",
+    "role": "Life-science researchers at the Babraham Institute and external attendees (course audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "learning resources",
+    "quote": "https://www.graphpad.com/guides/prism/latest/statistics/index.htm https://www.nature.com/collections/qghhqm Not always the friendliest, but covers lots of relevant topics",
+    "problem": "The vendor statistics guide is recommended but described as not friendly",
+    "need": "Plain-language contextual help next to each result",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "Babraham Institute Bioinformatics Training",
+      "course": "Introduction to Statistics with GraphPad Prism (two days)"
+    },
+    "tags": [
+      "tutorials",
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "courses-babraham-sl-overpower",
+    "venue": "www.bioinformatics.babraham.ac.uk",
+    "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/Intro%20to%20statistics%20with%20GraphPad%20Prism%20slides.pdf",
+    "date": "2025-01",
+    "role": "Life-science researchers at the Babraham Institute and external attendees (course audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "interpreting p-values with effect size",
+    "quote": "• Never ever interpret p-values without context! • Significant p-value (<0.05): but what is the difference? • >= smallest meaningful difference: exciting effect",
+    "problem": "p-values are read without the effect size or the minimal meaningful difference",
+    "need": "Results that report effect size with CI next to the p-value and compare to a stated meaningful difference",
+    "severity": "wrong result risk",
+    "signal": {
+      "source": "course material",
+      "institution": "Babraham Institute Bioinformatics Training",
+      "course": "Introduction to Statistics with GraphPad Prism (two days)"
+    },
+    "tags": [
+      "effect-size",
+      "exact-p"
+    ]
+  },
+  {
+    "id": "courses-babraham-sl-r2-sample",
+    "venue": "www.bioinformatics.babraham.ac.uk",
+    "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/Intro%20to%20statistics%20with%20GraphPad%20Prism%20slides.pdf",
+    "date": "2025-01",
+    "role": "Life-science researchers at the Babraham Institute and external attendees (course audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "effect size eta squared",
+    "quote": "R2 does not change but p-value n=86 n=172 n=258",
+    "problem": "Researchers conflate significance with effect size",
+    "need": "Report R²/eta squared alongside the t-test p",
+    "severity": "wrong result risk",
+    "signal": {
+      "source": "course material",
+      "institution": "Babraham Institute Bioinformatics Training",
+      "course": "Introduction to Statistics with GraphPad Prism (two days)"
+    },
+    "tags": [
+      "effect-size"
+    ]
+  },
+  {
+    "id": "courses-babraham-fd-export-pdf",
+    "venue": "www.bioinformatics.babraham.ac.uk",
+    "url": "https://www.bioinformatics.babraham.ac.uk/training/Figure_Design_Course/Exporting%20Files.pdf",
+    "date": null,
+    "role": "Researchers on Babraham 'Scientific Figure Design' course (course audience)",
+    "software_named": [
+      "GraphPad Prism",
+      "Excel",
+      "R",
+      "FlowJo",
+      "SeqMonk",
+      "Inkscape"
+    ],
+    "workflow": "vector export for figure assembly",
+    "quote": "Broadly speaking, vectors should be used for anything that has been generated by a computer – typically graphs, illustrations and text.",
+    "problem": "Researchers export graphs as bitmaps, losing editability and quality when assembling figures",
+    "need": "Vector (PDF/SVG) export as the default for graphs",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "source": "course material",
+      "institution": "Babraham Institute Bioinformatics Training",
+      "course": "Scientific Figure Design"
+    },
+    "tags": [
+      "export-vector",
+      "illustrator-handoff"
+    ]
+  },
+  {
+    "id": "courses-babraham-fd-journal-dpi",
+    "venue": "www.bioinformatics.babraham.ac.uk",
+    "url": "https://www.bioinformatics.babraham.ac.uk/training/Figure_Design_Course/Submitting%20to%20Journals.pdf",
+    "date": null,
+    "role": "Researchers on Babraham 'Scientific Figure Design' course (course audience)",
+    "software_named": [],
+    "workflow": "journal figure submission",
+    "quote": "Nature: JPEG, 150 dpi, included in the manuscript, fit to column width – Science: PDF, 150 – 300 dpi, included in manuscript, fit to A4 page – BMC Biology: Several, 300 dpi, separate from manuscript, fit to A4 page",
+    "problem": "Each journal wants different format, resolution and size",
+    "need": "Export presets per journal (format, dpi, column width)",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "Babraham Institute Bioinformatics Training",
+      "course": "Scientific Figure Design"
+    },
+    "tags": [
+      "export-dpi",
+      "export-vector"
+    ]
+  },
+  {
+    "id": "courses-babraham-fd-colourblind",
+    "venue": "www.bioinformatics.babraham.ac.uk",
+    "url": "https://www.bioinformatics.babraham.ac.uk/training/Figure_Design_Course/Figure%20Design%20Slides.pdf",
+    "date": "2026-06",
+    "role": "Researchers on Babraham 'Scientific Figure Design' course (course audience)",
+    "software_named": [],
+    "workflow": "colour choice in figures",
+    "quote": "If a submitted manuscript happens to go to three male reviewers of Northern European descent, the chance that at least one will be colour blind is 22 percent.",
+    "problem": "Figures use red/green palettes that colour-blind reviewers cannot read",
+    "need": "Colour-blind-safe default palettes and a simulator preview",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "source": "course material",
+      "institution": "Babraham Institute Bioinformatics Training",
+      "course": "Scientific Figure Design"
+    },
+    "tags": [
+      "colour-blind",
+      "accessibility"
+    ]
+  },
+  {
+    "id": "courses-babraham-fd-legible-text",
+    "venue": "www.bioinformatics.babraham.ac.uk",
+    "url": "https://www.bioinformatics.babraham.ac.uk/training/Figure_Design_Course/Figure%20Design%20Slides.pdf",
+    "date": "2026-06",
+    "role": "Researchers on Babraham 'Scientific Figure Design' course (course audience)",
+    "software_named": [],
+    "workflow": "text size at print size",
+    "quote": "6 point font is the smallest you can comfortably read (just over 2mm height on paper)",
+    "problem": "Text becomes illegible after graphs are shrunk into multi-panel figures",
+    "need": "Set the figure's final physical size and show actual font size in points at that size",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "source": "course material",
+      "institution": "Babraham Institute Bioinformatics Training",
+      "course": "Scientific Figure Design"
+    },
+    "tags": [
+      "graph-formatting",
+      "layouts-multipanel"
+    ]
+  },
+  {
+    "id": "courses-babraham-fd-consistency",
+    "venue": "www.bioinformatics.babraham.ac.uk",
+    "url": "https://www.bioinformatics.babraham.ac.uk/training/Figure_Design_Course/Figure%20Design%20Slides.pdf",
+    "date": "2026-06",
+    "role": "Researchers on Babraham 'Scientific Figure Design' course (course audience)",
+    "software_named": [],
+    "workflow": "consistent styling across panels",
+    "quote": "• Plan your panels before starting to draw final figures • Plan to be consistent – Multiple figures of the same type – Common colour/shape schemes – Common fonts and sizing – Common abbreviations and units – Common naming of samples / conditions",
+    "problem": "Keeping colours, fonts and names consistent across many graphs is manual",
+    "need": "Shared style themes applied to all graphs in a project",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "Babraham Institute Bioinformatics Training",
+      "course": "Scientific Figure Design"
+    },
+    "tags": [
+      "graph-formatting",
+      "layouts-multipanel"
+    ]
+  },
+  {
+    "id": "courses-babraham-fd-not-limited",
+    "venue": "www.bioinformatics.babraham.ac.uk",
+    "url": "https://www.bioinformatics.babraham.ac.uk/training/Figure_Design_Course/Figure%20Design%20Slides.pdf",
+    "date": "2026-06",
+    "role": "Researchers on Babraham 'Scientific Figure Design' course (course audience)",
+    "software_named": [
+      "Inkscape"
+    ],
+    "workflow": "figure assembly outside plotting program",
+    "quote": "What this course doesn’t cover… • How to draw graphs in specific programs",
+    "problem": "Final figure assembly is taught in Inkscape, separate from the plotting program",
+    "need": "Multi-panel layout and annotation inside the analysis tool, or clean vector handoff",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "Babraham Institute Bioinformatics Training",
+      "course": "Scientific Figure Design"
+    },
+    "tags": [
+      "layouts-multipanel",
+      "illustrator-handoff"
+    ]
+  },
+  {
+    "id": "courses-babraham-ri-anscombe",
+    "venue": "www.bioinformatics.babraham.ac.uk",
+    "url": "https://www.bioinformatics.babraham.ac.uk/training/Research_Integrity/Research_Integrity_Slides.pdf",
+    "date": null,
+    "role": "Researchers on Babraham 'Research Integrity' course (course audience)",
+    "software_named": [],
+    "workflow": "data exploration before summary statistics",
+    "quote": "Beware of statistical or graphical summaries… …without proper exploration & visualisation!",
+    "problem": "Mean ± SEM summaries hide very different data structures (Anscombe, Datasaurus)",
+    "need": "Always show raw points under summaries",
+    "severity": "wrong result risk",
+    "signal": {
+      "source": "course material",
+      "institution": "Babraham Institute Bioinformatics Training",
+      "course": "Research Integrity"
+    },
+    "tags": [
+      "show-the-points",
+      "error-bars-sd-sem"
+    ]
+  },
+  {
+    "id": "courses-niaid-l1-table-choice",
+    "venue": "github.com",
+    "url": "https://github.com/niaid/Prism/blob/master/Lab-1/1.Create%20and%20Edit%20Data%20Tables.pdf",
+    "date": null,
+    "role": "NIAID intramural researchers (BCBB workshop audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "choosing a data table type",
+    "quote": "The choice you make about how to format your data table is important. If you don't choose the appropriate kind of data table, you won't be able to make the kind of graph you want or perform the analyses you have in mind.",
+    "problem": "The table type chosen up front constrains later graphs and analyses; beginners pick wrong",
+    "need": "Data entry that does not lock the analysis choice, or a guided table chooser that can be changed later without loss",
+    "severity": "blocks the analysis",
+    "signal": {
+      "source": "course material",
+      "institution": "NIH / NIAID Bioinformatics and Computational Biosciences Branch (BCBB)",
+      "course": "BCBB Prism Lab 1: Create and Edit Data Tables"
+    },
+    "tags": [
+      "data-entry-table-types",
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "courses-niaid-l1-import-csv",
+    "venue": "github.com",
+    "url": "https://github.com/niaid/Prism/blob/master/Lab-1/1.Create%20and%20Edit%20Data%20Tables.pdf",
+    "date": null,
+    "role": "NIAID intramural researchers (BCBB workshop audience)",
+    "software_named": [
+      "GraphPad Prism",
+      "Excel"
+    ],
+    "workflow": "importing csv/txt",
+    "quote": "Prism can import text files delimited with tabs (.txt files) or commas (.csv files). To import an Excel file or text file, we also need to create an empty table first:",
+    "problem": "Import requires creating an empty table of the right type first",
+    "need": "Drag-and-drop import of CSV/Excel that infers the table layout",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "NIH / NIAID Bioinformatics and Computational Biosciences Branch (BCBB)",
+      "course": "BCBB Prism Lab 1"
+    },
+    "tags": [
+      "excel-paste",
+      "import-instrument-files"
+    ]
+  },
+  {
+    "id": "courses-niaid-l1-dates",
+    "venue": "github.com",
+    "url": "https://github.com/niaid/Prism/blob/master/Lab-1/1.Create%20and%20Edit%20Data%20Tables.pdf",
+    "date": null,
+    "role": "NIAID intramural researchers (BCBB workshop audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "entering dates as X",
+    "quote": "Try to enter “01-01-2019”, “01/02/2019” and “13-13-2019” in the date column. Then see what happens.",
+    "problem": "Ambiguous date formats are silently interpreted; the lab has users probe the behaviour",
+    "need": "Explicit date-format choice with visible parsing and invalid-date flags",
+    "severity": "wrong result risk",
+    "signal": {
+      "source": "course material",
+      "institution": "NIH / NIAID Bioinformatics and Computational Biosciences Branch (BCBB)",
+      "course": "BCBB Prism Lab 1"
+    },
+    "tags": [
+      "data-entry-table-types",
+      "language-localisation"
+    ]
+  },
+  {
+    "id": "courses-niaid-l1-sort-lines",
+    "venue": "github.com",
+    "url": "https://github.com/niaid/Prism/blob/master/Lab-1/1.Create%20and%20Edit%20Data%20Tables.pdf",
+    "date": null,
+    "role": "NIAID intramural researchers (BCBB workshop audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "XY graph with connecting lines",
+    "quote": "If you choose connecting lines on an XY graph, Prism connects the points in the order they appear on the data table. If the data are not sorted on the data table, the connecting lines will jump",
+    "problem": "Unsorted XY data produce zig-zag connecting lines",
+    "need": "Connect points in X order by default",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "source": "course material",
+      "institution": "NIH / NIAID Bioinformatics and Computational Biosciences Branch (BCBB)",
+      "course": "BCBB Prism Lab 1"
+    },
+    "tags": [
+      "graph-formatting"
+    ]
+  },
+  {
+    "id": "courses-niaid-l1-exclude",
+    "venue": "github.com",
+    "url": "https://github.com/niaid/Prism/blob/master/Lab-1/1.Create%20and%20Edit%20Data%20Tables.pdf",
+    "date": null,
+    "role": "NIAID intramural researchers (BCBB workshop audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "excluding outlier values",
+    "quote": "Excluded values are shown in blue italics on the data table, but are not included in analyses and are not shown on graphs. From the point of view of analyses and graphs, it is the same as if you had deleted the value, but the number remains on the data table to document its value.",
+    "problem": "Excluding a value removes it from analyses and graphs without any record of why",
+    "need": "Exclusions with a mandatory reason and an exclusion log in the report",
+    "severity": "wrong result risk",
+    "signal": {
+      "source": "course material",
+      "institution": "NIH / NIAID Bioinformatics and Computational Biosciences Branch (BCBB)",
+      "course": "BCBB Prism Lab 1"
+    },
+    "tags": [
+      "outliers",
+      "reproducibility-audit"
+    ]
+  },
+  {
+    "id": "courses-niaid-l1-copy-to-word",
+    "venue": "github.com",
+    "url": "https://github.com/niaid/Prism/blob/master/Lab-1/1.Create%20and%20Edit%20Data%20Tables.pdf",
+    "date": null,
+    "role": "NIAID intramural researchers (BCBB workshop audience)",
+    "software_named": [
+      "GraphPad Prism",
+      "Word",
+      "PowerPoint"
+    ],
+    "workflow": "moving result tables into Word/PowerPoint",
+    "quote": "The best way to take Prism data or results and place into Word or PowerPoint is via copy and paste. If you do this, you'll find that Prism's tables remain tables when they are pasted. In contrast, if you export then import a text file, Word or PowerPoint won't format it as a table.",
+    "problem": "Exported result files lose table structure in Office",
+    "need": "Copy/export results as formatted tables (Word/PowerPoint/HTML)",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "NIH / NIAID Bioinformatics and Computational Biosciences Branch (BCBB)",
+      "course": "BCBB Prism Lab 1"
+    },
+    "tags": [
+      "powerpoint",
+      "reporting-methods"
+    ]
+  },
+  {
+    "id": "courses-niaid-l2-axis-break",
+    "venue": "github.com",
+    "url": "https://github.com/niaid/Prism/blob/master/Lab-2/2.Visualization.pdf",
+    "date": null,
+    "role": "NIAID intramural researchers (BCBB workshop audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "broken Y axis",
+    "quote": "Apparently, Group B has a much higher distribution than the other 3 groups, which makes it not clear to see the boxplots of the other 2 groups. Therefore, we split the Y axis into two parts.",
+    "problem": "One group's much larger values squash the others",
+    "need": "Two- or three-segment axis breaks with chosen ranges",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "source": "course material",
+      "institution": "NIH / NIAID Bioinformatics and Computational Biosciences Branch (BCBB)",
+      "course": "BCBB Prism Lab 2: Visualization"
+    },
+    "tags": [
+      "axis-breaks",
+      "graph-formatting"
+    ]
+  },
+  {
+    "id": "courses-niaid-l2-errorbar-hidden",
+    "venue": "github.com",
+    "url": "https://github.com/niaid/Prism/blob/master/Lab-2/2.Visualization.pdf",
+    "date": null,
+    "role": "NIAID intramural researchers (BCBB workshop audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "error bars on XY graph",
+    "quote": "Why there is no error bar for some dots? Because if the error bar would be shorter than the size of the symbol, Prism simply won't draw it, even if the symbol is clear.",
+    "problem": "Error bars silently disappear when shorter than the symbol, confusing users",
+    "need": "Indicate hidden error bars or draw them over hollow symbols",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "source": "course material",
+      "institution": "NIH / NIAID Bioinformatics and Computational Biosciences Branch (BCBB)",
+      "course": "BCBB Prism Lab 2"
+    },
+    "tags": [
+      "error-bars-sd-sem",
+      "graph-formatting"
+    ]
+  },
+  {
+    "id": "courses-niaid-l2-ambiguous-fit",
+    "venue": "github.com",
+    "url": "https://github.com/niaid/Prism/blob/master/Lab-2/2.Visualization.pdf",
+    "date": null,
+    "role": "NIAID intramural researchers (BCBB workshop audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "dose-response EC50 with undefined plateau",
+    "quote": "The control results are labeled ambiguous. This means that Prism is unable to find a unique curve through the data. Lots of other sets of parameter values would lead to curves that fit just as well.",
+    "problem": "Data without a bottom plateau yield an ambiguous EC50",
+    "need": "Explain ambiguous fits and suggest sharing or constraining plateaus",
+    "severity": "wrong result risk",
+    "signal": {
+      "source": "course material",
+      "institution": "NIH / NIAID Bioinformatics and Computational Biosciences Branch (BCBB)",
+      "course": "BCBB Prism Lab 2"
+    },
+    "tags": [
+      "ic50-ec50-setup",
+      "fit-diagnostics"
+    ]
+  },
+  {
+    "id": "courses-niaid-l2-global-fit",
+    "venue": "github.com",
+    "url": "https://github.com/niaid/Prism/blob/master/Lab-2/2.Visualization.pdf",
+    "date": null,
+    "role": "NIAID intramural researchers (BCBB workshop audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "global fit sharing parameters",
+    "quote": "Go to the constraints tab and choose to share the value of Bottom, Top, and HillSlope. When you share these parameters, Prism fits the data sets globally to find one best-fit value for Bottom, Top and HillSlope (for both data sets) and separate best-fit values for the logEC50.",
+    "problem": "Comparing EC50s robustly requires global fitting with shared parameters",
+    "need": "Global fit with shared parameters across datasets",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "NIH / NIAID Bioinformatics and Computational Biosciences Branch (BCBB)",
+      "course": "BCBB Prism Lab 2"
+    },
+    "tags": [
+      "compare-curves",
+      "ic50-ec50-setup"
+    ]
+  },
+  {
+    "id": "courses-niaid-l2-ec50-label",
+    "venue": "github.com",
+    "url": "https://github.com/niaid/Prism/blob/master/Lab-2/2.Visualization.pdf",
+    "date": null,
+    "role": "NIAID intramural researchers (BCBB workshop audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "annotating EC50 on graph",
+    "quote": "In Format Axes dialog, click the hook then select the “Best fit values” – “#LogEC50 = -5.429”",
+    "problem": "Marking the fitted EC50 on the graph needs an additional-ticks workaround",
+    "need": "One-click EC50/IC50 marker linked to the fit result",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "NIH / NIAID Bioinformatics and Computational Biosciences Branch (BCBB)",
+      "course": "BCBB Prism Lab 2"
+    },
+    "tags": [
+      "ic50-ec50-setup",
+      "graph-formatting"
+    ]
+  },
+  {
+    "id": "courses-niaid-l2-share-viewer",
+    "venue": "github.com",
+    "url": "https://github.com/niaid/Prism/blob/master/Lab-2/2.Visualization.pdf",
+    "date": null,
+    "role": "NIAID intramural researchers (BCBB workshop audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "sharing graphs with colleagues",
+    "quote": "If your goal is to send graphs to a colleague who doesn't own Prism, consider sending a Prism file. He or she can then open the file using Prism itself, or the free Prism trial (which expires in 30 days but then becomes a free Prism viewer that never expires).",
+    "problem": "Colleagues without a licence need a workaround to open project files",
+    "need": "Free viewer or browser-openable project files",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "NIH / NIAID Bioinformatics and Computational Biosciences Branch (BCBB)",
+      "course": "BCBB Prism Lab 2"
+    },
+    "tags": [
+      "sharing-collaboration",
+      "price-licence",
+      "file-compatibility"
+    ]
+  },
+  {
+    "id": "courses-niaid-l2-no-template",
+    "venue": "github.com",
+    "url": "https://github.com/niaid/Prism/blob/master/Lab-2/2.Visualization.pdf",
+    "date": null,
+    "role": "NIAID intramural researchers (BCBB workshop audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "graph templates",
+    "quote": "It is really complicated to create a graph template to be applied to all situations.",
+    "problem": "Instructors cannot offer a reusable graph template",
+    "need": "Reusable style templates that apply across graph types",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "NIH / NIAID Bioinformatics and Computational Biosciences Branch (BCBB)",
+      "course": "BCBB Prism Lab 2"
+    },
+    "tags": [
+      "graph-formatting"
+    ]
+  },
+  {
+    "id": "courses-niaid-l3-report-desc",
+    "venue": "github.com",
+    "url": "https://github.com/niaid/Prism/blob/master/Lab-3/3.Descriptive%20Statistics.pdf",
+    "date": null,
+    "role": "NIAID intramural researchers (BCBB workshop audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "descriptive statistics reporting",
+    "quote": "For numerical variables, if the variable is normally distributed, the mean and standard deviation (SD) are presented. In the text, this is reported as mean (SD = value), for example, “the mean age was 46.5 (SD = 3.0).” Whenever the variable is not normally distributed, the median and inter- quartile range (IQR) are reported instead.",
+    "problem": "Which summary to report depends on the distribution",
+    "need": "Descriptive stats that suggest mean(SD) vs median(IQR) and produce report text",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "NIH / NIAID Bioinformatics and Computational Biosciences Branch (BCBB)",
+      "course": "BCBB Prism Lab 3: Descriptive Statistics"
+    },
+    "tags": [
+      "reporting-methods",
+      "error-bars-sd-sem"
+    ]
+  },
+  {
+    "id": "courses-niaid-l3-cumfreq",
+    "venue": "github.com",
+    "url": "https://github.com/niaid/Prism/blob/master/Lab-3/3.Descriptive%20Statistics.pdf",
+    "date": null,
+    "role": "NIAID intramural researchers (BCBB workshop audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "frequency distribution / cumulative",
+    "quote": "Then Prism 8 would ask if you would like to create a new results sheet or change the existing analysis. In this case, we choose “Analyze this table again, creating a new results sheet”.",
+    "problem": "A second view of the same distribution means re-running the analysis into another sheet",
+    "need": "Toggle histogram/cumulative views of the same frequency analysis",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "NIH / NIAID Bioinformatics and Computational Biosciences Branch (BCBB)",
+      "course": "BCBB Prism Lab 3"
+    },
+    "tags": [
+      "graph-formatting",
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "courses-niaid-l4-welch",
+    "venue": "github.com",
+    "url": "https://github.com/niaid/Prism/blob/master/Lab-4/4.Statistical%20Testing.pdf",
+    "date": null,
+    "role": "NIAID intramural researchers (BCBB workshop audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "unpaired t-test, Welch",
+    "quote": "Choose the Welch's correction if you don't want to assume the two sets of data are sampled from populations with equal variances, and you are willing to accept the loss of power that comes with that choice. That choice is used rarely, so don't check it unless you are quite sure.",
+    "problem": "Course advice discourages Welch's correction, contrary to common statistical advice; users get conflicting guidance",
+    "need": "Clear, consistent guidance on Welch vs Student t-test defaults",
+    "severity": "wrong result risk",
+    "signal": {
+      "source": "course material",
+      "institution": "NIH / NIAID Bioinformatics and Computational Biosciences Branch (BCBB)",
+      "course": "BCBB Prism Lab 4: Statistical Testing"
+    },
+    "tags": [
+      "which-test",
+      "trust-validation"
+    ]
+  },
+  {
+    "id": "courses-niaid-l4-flowchart",
+    "venue": "github.com",
+    "url": "https://github.com/niaid/Prism/blob/master/Lab-4/4.Statistical%20Testing.pdf",
+    "date": null,
+    "role": "NIAID intramural researchers (BCBB workshop audience)",
+    "software_named": [
+      "GraphPad Prism",
+      "SAS",
+      "Stata",
+      "SPSS",
+      "R"
+    ],
+    "workflow": "choosing a test",
+    "quote": "Useful References for choosing appropriate tests • Statistics with Prism 8 (link) • Choosing the Correct Statistical Test in SAS, Stata, SPSS and R (link)",
+    "problem": "Test choice relies on external flow charts and references",
+    "need": "Integrated test selection flow",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "NIH / NIAID Bioinformatics and Computational Biosciences Branch (BCBB)",
+      "course": "BCBB Prism Lab 4"
+    },
+    "tags": [
+      "which-test",
+      "tutorials"
+    ]
+  },
+  {
+    "id": "courses-niaid-l5-survival-entry",
+    "venue": "github.com",
+    "url": "https://github.com/niaid/Prism/blob/master/Lab-5/5.Survival%20Analysis.pdf",
+    "date": null,
+    "role": "NIAID intramural researchers (BCBB workshop audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "Kaplan-Meier survival entry",
+    "quote": "“1” is for rows where the subject died (or the event occurred) at the time shown in the X column. “0” is for rows where the subject was censored at that time. Every subject in a survival study either dies or is censored.",
+    "problem": "Survival data must be coded as event/censor 1/0 per subject",
+    "need": "Survival entry with clear event/censor coding and validation",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "NIH / NIAID Bioinformatics and Computational Biosciences Branch (BCBB)",
+      "course": "BCBB Prism Lab 5: Survival Analysis"
+    },
+    "tags": [
+      "survival",
+      "data-entry-table-types"
+    ]
+  },
+  {
+    "id": "courses-niaid-l5-logrank-vs-gehan",
+    "venue": "github.com",
+    "url": "https://github.com/niaid/Prism/blob/master/Lab-5/5.Survival%20Analysis.pdf",
+    "date": null,
+    "role": "NIAID intramural researchers (BCBB workshop audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "comparing survival curves",
+    "quote": "The results can be misleading when a large fraction of patients is censored at early time points. • Doesn’t require a consistent hazard ratio, but does require that one group consistently have a higher risk than the other.",
+    "problem": "Choosing log-rank vs Gehan-Breslow-Wilcoxon depends on censoring and hazards",
+    "need": "Survival comparison that explains which test fits and checks proportional hazards",
+    "severity": "wrong result risk",
+    "signal": {
+      "source": "course material",
+      "institution": "NIH / NIAID Bioinformatics and Computational Biosciences Branch (BCBB)",
+      "course": "BCBB Prism Lab 5"
+    },
+    "tags": [
+      "survival",
+      "which-test"
+    ]
+  },
+  {
+    "id": "courses-niaid-l5-hazard-ratio",
+    "venue": "github.com",
+    "url": "https://github.com/niaid/Prism/blob/master/Lab-5/5.Survival%20Analysis.pdf",
+    "date": null,
+    "role": "NIAID intramural researchers (BCBB workshop audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "hazard ratio interpretation",
+    "quote": "Since there is only one hazard ratio reported, it can only be interpreted if you assume that the population hazard ratio is consistent over time, and that any differences are due to random sampling. This is called the assumption of proportional hazards.",
+    "problem": "Single hazard ratio is only valid under proportional hazards, which users do not check",
+    "need": "Proportional-hazards check alongside hazard ratio",
+    "severity": "wrong result risk",
+    "signal": {
+      "source": "course material",
+      "institution": "NIH / NIAID Bioinformatics and Computational Biosciences Branch (BCBB)",
+      "course": "BCBB Prism Lab 5"
+    },
+    "tags": [
+      "hazard-ratio",
+      "survival"
+    ]
+  },
+  {
+    "id": "courses-niaid-l6-no-crosstab",
+    "venue": "github.com",
+    "url": "https://github.com/niaid/Prism/blob/master/Lab-6/6.%20Categorical%20data%20analysis.pdf",
+    "date": null,
+    "role": "NIAID intramural researchers (BCBB workshop audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "contingency table from raw data",
+    "quote": "You must enter data in the form of a contingency table. Prism cannot cross- tabulate raw data to create a contingency table.",
+    "problem": "Raw categorical records must be tallied elsewhere before analysis",
+    "need": "Cross-tabulate raw per-subject categorical data into a contingency table",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "NIH / NIAID Bioinformatics and Computational Biosciences Branch (BCBB)",
+      "course": "BCBB Prism Lab 6: Categorical data analysis"
+    },
+    "tags": [
+      "contingency",
+      "long-vs-wide"
+    ]
+  },
+  {
+    "id": "courses-niaid-l6-mcnemar-web",
+    "venue": "github.com",
+    "url": "https://github.com/niaid/Prism/blob/master/Lab-6/6.%20Categorical%20data%20analysis.pdf",
+    "date": null,
+    "role": "NIAID intramural researchers (BCBB workshop audience)",
+    "software_named": [
+      "GraphPad Prism",
+      "GraphPad QuickCalcs"
+    ],
+    "workflow": "McNemar paired categorical",
+    "quote": "Among these, Chi-square test and Fisher’s exact test are available in Prism software and McNemar test is available in the Prism online calculator.",
+    "problem": "Paired categorical (McNemar) and stratified (CMH) tests are not in the main program",
+    "need": "McNemar, CMH and trend tests within the contingency analysis",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "NIH / NIAID Bioinformatics and Computational Biosciences Branch (BCBB)",
+      "course": "BCBB Prism Lab 6"
+    },
+    "tags": [
+      "contingency",
+      "which-test"
+    ]
+  },
+  {
+    "id": "courses-niaid-st-fisher-silent",
+    "venue": "github.com",
+    "url": "https://github.com/niaid/Prism/blob/master/Workshops/Practical%20Training%20on%20GraphPad%20Prism%20for%20Statistical%20Testing/Graphpad%20Prism%20-%20Statistical%20testing%20(upload).pptx",
+    "date": null,
+    "role": "NIAID intramural researchers (BCBB workshop audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "Fisher exact test on large counts",
+    "quote": "In Prism, if you enter huge numbers (the sum is greater than 1,000,000), it will perform the chi-square test even if you chose Fisher's test.",
+    "problem": "The requested test is silently swapped for another on large tables",
+    "need": "Explicit notice when a different test than requested is computed",
+    "severity": "wrong result risk",
+    "signal": {
+      "source": "course material",
+      "institution": "NIH / NIAID Bioinformatics and Computational Biosciences Branch (BCBB)",
+      "course": "Practical Training on GraphPad Prism for Statistical Testing"
+    },
+    "tags": [
+      "contingency",
+      "trust-validation"
+    ]
+  },
+  {
+    "id": "courses-niaid-st-mixed-missing",
+    "venue": "github.com",
+    "url": "https://github.com/niaid/Prism/blob/master/Workshops/Practical%20Training%20on%20GraphPad%20Prism%20for%20Statistical%20Testing/Graphpad%20Prism%20-%20Statistical%20testing%20(upload).pptx",
+    "date": null,
+    "role": "NIAID intramural researchers (BCBB workshop audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "repeated measures with missing values",
+    "quote": "Under this experimental design, if there is missing values, mixed effects model will be performed instead of ANOVA. Result only meaningful if the values are missing for random reasons.",
+    "problem": "Missing values switch the analysis to a mixed model, valid only if data are missing at random",
+    "need": "Explain the switch and ask about the missingness mechanism",
+    "severity": "wrong result risk",
+    "signal": {
+      "source": "course material",
+      "institution": "NIH / NIAID Bioinformatics and Computational Biosciences Branch (BCBB)",
+      "course": "Practical Training on GraphPad Prism for Statistical Testing"
+    },
+    "tags": [
+      "mixed-model-missing-values",
+      "repeated-measures"
+    ]
+  },
+  {
+    "id": "courses-niaid-st-nonparam-hard",
+    "venue": "github.com",
+    "url": "https://github.com/niaid/Prism/blob/master/Workshops/Practical%20Training%20on%20GraphPad%20Prism%20for%20Statistical%20Testing/Graphpad%20Prism%20-%20Statistical%20testing%20(upload).pptx",
+    "date": null,
+    "role": "NIAID intramural researchers (BCBB workshop audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "parametric vs nonparametric choice",
+    "quote": "Nonparametric tests does not require Gaussian but have less power. Deciding when to use a nonparametric test is not straightforward.",
+    "problem": "Nonparametric choice is unclear to users",
+    "need": "Guided parametric/nonparametric decision with data checks",
+    "severity": "wrong result risk",
+    "signal": {
+      "source": "course material",
+      "institution": "NIH / NIAID Bioinformatics and Computational Biosciences Branch (BCBB)",
+      "course": "Practical Training on GraphPad Prism for Statistical Testing"
+    },
+    "tags": [
+      "nonparametric",
+      "which-test"
+    ]
+  },
+  {
+    "id": "courses-niaid-st-paired-quiz",
+    "venue": "github.com",
+    "url": "https://github.com/niaid/Prism/blob/master/Workshops/Practical%20Training%20on%20GraphPad%20Prism%20for%20Statistical%20Testing/Graphpad%20Prism%20-%20Statistical%20testing%20(upload).pptx",
+    "date": null,
+    "role": "NIAID intramural researchers (BCBB workshop audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "recognising paired designs",
+    "quote": "The four columns represent four sequential treatments. Each row represents a different subject (or a different set of matched data). Paired (Repeat Measures)",
+    "problem": "Users need to be quizzed to recognise when a design is paired/repeated",
+    "need": "Design question in the test dialog: 'is each row the same subject?'",
+    "severity": "wrong result risk",
+    "signal": {
+      "source": "course material",
+      "institution": "NIH / NIAID Bioinformatics and Computational Biosciences Branch (BCBB)",
+      "course": "Practical Training on GraphPad Prism for Statistical Testing"
+    },
+    "tags": [
+      "repeated-measures",
+      "which-test"
+    ]
+  },
+  {
+    "id": "courses-niaid-st-rm-challenge",
+    "venue": "github.com",
+    "url": "https://github.com/niaid/Prism/blob/master/Workshops/Practical%20Training%20on%20GraphPad%20Prism%20for%20Statistical%20Testing/Graphpad%20Prism%20-%20Statistical%20testing%20(upload).pptx",
+    "date": null,
+    "role": "NIAID intramural researchers (BCBB workshop audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "RM one-way ANOVA with comparisons vs baseline",
+    "quote": "Questions: Is there any difference in fitness level on these three occasions? If differences exist, compare group differences in 3 months intervention and 6 months intervention with the pre- group.",
+    "problem": "Repeated measures over time with comparisons only against baseline (Dunnett-type)",
+    "need": "RM ANOVA with comparisons to control/baseline",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "NIH / NIAID Bioinformatics and Computational Biosciences Branch (BCBB)",
+      "course": "Practical Training on GraphPad Prism for Statistical Testing"
+    },
+    "tags": [
+      "repeated-measures",
+      "post-hoc-choice"
+    ]
+  },
+  {
+    "id": "courses-niaid-l7-stim-vs-inhib",
+    "venue": "github.com",
+    "url": "https://github.com/niaid/Prism/blob/master/Lab-7/7.Curve%20Fitting.pdf",
+    "date": null,
+    "role": "NIAID intramural researchers (BCBB workshop audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "choosing dose-response equation",
+    "quote": "If the curve goes up hill, choose from the set of stimulation equations. If the curve goes down hill, choose from the set of inhibition equations.",
+    "problem": "Users must choose between stimulation and inhibition equation families",
+    "need": "Auto-detect curve direction and suggest the equation",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "NIH / NIAID Bioinformatics and Computational Biosciences Branch (BCBB)",
+      "course": "BCBB Prism Lab 7: Curve Fitting"
+    },
+    "tags": [
+      "ic50-ec50-setup"
+    ]
+  },
+  {
+    "id": "courses-niaid-l7-ftest-aic",
+    "venue": "github.com",
+    "url": "https://github.com/niaid/Prism/blob/master/Lab-7/7.Curve%20Fitting.pdf",
+    "date": null,
+    "role": "NIAID intramural researchers (BCBB workshop audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "comparing models F test vs AICc",
+    "quote": "If the two models are nested (one model is a simpler case of the other), you may use either the F test or the AIC approach. • If the models are not nested, then the F test is not valid, so you should choose the information theory approach.",
+    "problem": "Model comparison method depends on nesting, which users must determine",
+    "need": "Model comparison that detects nesting and picks F test or AICc",
+    "severity": "wrong result risk",
+    "signal": {
+      "source": "course material",
+      "institution": "NIH / NIAID Bioinformatics and Computational Biosciences Branch (BCBB)",
+      "course": "BCBB Prism Lab 7"
+    },
+    "tags": [
+      "compare-curves",
+      "fit-diagnostics"
+    ]
+  },
+  {
+    "id": "courses-niaid-l7-initial-values",
+    "venue": "github.com",
+    "url": "https://github.com/niaid/Prism/blob/master/Lab-7/7.Curve%20Fitting.pdf",
+    "date": null,
+    "role": "NIAID intramural researchers (BCBB workshop audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "custom equations and initial values",
+    "quote": "Nonlinear regression is an iterative procedure. The program must start with estimated initial values for each parameter. It then adjusts these initial values to improve the fit.",
+    "problem": "Custom models need initial-value rules users must write",
+    "need": "Automatic initial values for user-defined equations with preview",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "NIH / NIAID Bioinformatics and Computational Biosciences Branch (BCBB)",
+      "course": "BCBB Prism Lab 7"
+    },
+    "tags": [
+      "fit-diagnostics",
+      "kinetics-binding"
+    ]
+  },
+  {
+    "id": "courses-niaid-cfs-rarely-taught",
+    "venue": "github.com",
+    "url": "https://github.com/niaid/Prism/blob/master/Lab-7/Curve%20Fitting%20slides.pdf",
+    "date": "2010-03",
+    "role": "NIAID researchers (BCBB/BSIP seminar audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "nonlinear regression for dose-response and binding",
+    "quote": "Nonlinear regression is rarely studied in statistics coursework",
+    "problem": "Biologists use nonlinear regression daily but are not taught it",
+    "need": "Built-in guidance for nonlinear fitting aimed at biologists",
+    "severity": "wrong result risk",
+    "signal": {
+      "source": "course material",
+      "institution": "NIH / NIAID Bioinformatics and Computational Biosciences Branch (BCBB)",
+      "course": "Curve-Fitting with GraphPad Prism (seminar)"
+    },
+    "tags": [
+      "ic50-ec50-setup",
+      "learning-curve",
+      "teaching"
+    ]
+  },
+  {
+    "id": "courses-niaid-cfs-most-common",
+    "venue": "github.com",
+    "url": "https://github.com/niaid/Prism/blob/master/Lab-7/Curve%20Fitting%20slides.pdf",
+    "date": "2010-03",
+    "role": "NIAID researchers (BCBB/BSIP seminar audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "dose-response model",
+    "quote": "Dose‐Response Models • Most commonly used model among NIAID researchers",
+    "problem": "Sizes the workflow: dose-response is the dominant nonlinear model at NIAID",
+    "need": "Dose-response fitting as a first-class, well-guided workflow",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "NIH / NIAID Bioinformatics and Computational Biosciences Branch (BCBB)",
+      "course": "Curve-Fitting with GraphPad Prism (seminar)",
+      "note": "dose-response is the most commonly used model among NIAID researchers"
+    },
+    "tags": [
+      "ic50-ec50-setup"
+    ]
+  },
+  {
+    "id": "courses-niaid-cfs-local-min",
+    "venue": "github.com",
+    "url": "https://github.com/niaid/Prism/blob/master/Lab-7/Curve%20Fitting%20slides.pdf",
+    "date": "2010-03",
+    "role": "NIAID researchers (BCBB/BSIP seminar audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "nonlinear fit convergence",
+    "quote": "Weaknesses of the iterative method – Computationally slower than calculus method – May find the local min, instead of global min – May get “stuck” if model choice is poor",
+    "problem": "Fits can converge to local minima without the user noticing",
+    "need": "Convergence checks from multiple starting values",
+    "severity": "wrong result risk",
+    "signal": {
+      "source": "course material",
+      "institution": "NIH / NIAID Bioinformatics and Computational Biosciences Branch (BCBB)",
+      "course": "Curve-Fitting with GraphPad Prism (seminar)"
+    },
+    "tags": [
+      "fit-diagnostics"
+    ]
+  },
+  {
+    "id": "courses-niaid-cfs-constraints",
+    "venue": "github.com",
+    "url": "https://github.com/niaid/Prism/blob/master/Lab-7/Curve%20Fitting%20slides.pdf",
+    "date": "2010-03",
+    "role": "NIAID researchers (BCBB/BSIP seminar audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "constraints for poorly chosen doses",
+    "quote": "Improve model fit if doses are poorly chosen, etc. – Not enough low doses – Doses too low for saturation",
+    "problem": "Dose ranges that miss plateaus require constraints",
+    "need": "Warn when doses do not span the curve and suggest constraints",
+    "severity": "wrong result risk",
+    "signal": {
+      "source": "course material",
+      "institution": "NIH / NIAID Bioinformatics and Computational Biosciences Branch (BCBB)",
+      "course": "Curve-Fitting with GraphPad Prism (seminar)"
+    },
+    "tags": [
+      "ic50-ec50-setup",
+      "fit-diagnostics"
+    ]
+  },
+  {
+    "id": "courses-niaid-cfs-weighting",
+    "venue": "github.com",
+    "url": "https://github.com/niaid/Prism/blob/master/Lab-7/Curve%20Fitting%20slides.pdf",
+    "date": "2010-03",
+    "role": "NIAID researchers (BCBB/BSIP seminar audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "weighted nonlinear regression",
+    "quote": "Use 1 / SD2 weights for non‐constant variance – Requires many replicates per X • Use other weight schemes to apply unequal weights to one part of the curve",
+    "problem": "Heteroscedastic dose-response data need weighting that users do not choose",
+    "need": "Detect non-constant variance and propose weighting",
+    "severity": "wrong result risk",
+    "signal": {
+      "source": "course material",
+      "institution": "NIH / NIAID Bioinformatics and Computational Biosciences Branch (BCBB)",
+      "course": "Curve-Fitting with GraphPad Prism (seminar)"
+    },
+    "tags": [
+      "fit-diagnostics"
+    ]
+  },
+  {
+    "id": "courses-niaid-cg-overlay-layout",
+    "venue": "github.com",
+    "url": "https://github.com/niaid/Prism/blob/master/Workshops/Customizing%20Your%20Graphs%20Using%20GraphPad%20Prism%208/Customizing%20your%20graphs%20with%20Prism%208_github.pdf",
+    "date": null,
+    "role": "NIAID intramural researchers (BCBB workshop audience)",
+    "software_named": [
+      "GraphPad Prism",
+      "Word",
+      "PowerPoint"
+    ],
+    "workflow": "graph customisation and layouts",
+    "quote": "6. Overlay one figure over another using Prism Layouts 7. Export graphs to MS Word, MS PowerPoint, and other options",
+    "problem": "Multi-panel layouts and Office export are core workshop topics",
+    "need": "Simple multi-panel layout and Office export",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "NIH / NIAID Bioinformatics and Computational Biosciences Branch (BCBB)",
+      "course": "Customizing Your Graphs Using GraphPad Prism 8"
+    },
+    "tags": [
+      "layouts-multipanel",
+      "powerpoint"
+    ]
+  },
+  {
+    "id": "courses-niaid-cg-pdf-tiff",
+    "venue": "github.com",
+    "url": "https://github.com/niaid/Prism/blob/master/Workshops/Customizing%20Your%20Graphs%20Using%20GraphPad%20Prism%208/Customizing%20your%20graphs%20with%20Prism%208_github.pdf",
+    "date": null,
+    "role": "NIAID intramural researchers (BCBB workshop audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "export format for journals",
+    "quote": "File can be stretched to any size with no loss of quality Tend to be trouble-free when submitted to journals Disadvantages 1.Few Windows programs import pdf images 2.Few Journals accept them. You need to choose resolution and size",
+    "problem": "Choosing PDF vs TIFF export involves trade-offs in compatibility and resolution",
+    "need": "Export presets that produce journal-acceptable files",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "NIH / NIAID Bioinformatics and Computational Biosciences Branch (BCBB)",
+      "course": "Customizing Your Graphs Using GraphPad Prism 8"
+    },
+    "tags": [
+      "export-dpi",
+      "export-vector"
+    ]
+  },
+  {
+    "id": "courses-niaid-cg-pzfx",
+    "venue": "github.com",
+    "url": "https://github.com/niaid/Prism/blob/master/Workshops/Customizing%20Your%20Graphs%20Using%20GraphPad%20Prism%208/Customizing%20your%20graphs%20with%20Prism%208_github.pdf",
+    "date": null,
+    "role": "NIAID intramural researchers (BCBB workshop audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "project file format",
+    "quote": "After that comes information about results, graphs and layouts in a format that is incomprehensible to any program but Prism.",
+    "problem": "Results and graphs are locked in a proprietary format",
+    "need": "Open, documented project format",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "NIH / NIAID Bioinformatics and Computational Biosciences Branch (BCBB)",
+      "course": "Customizing Your Graphs Using GraphPad Prism 8"
+    },
+    "tags": [
+      "file-compatibility",
+      "reproducibility-audit"
+    ]
+  },
+  {
+    "id": "courses-niaid-cg-report-methods",
+    "venue": "github.com",
+    "url": "https://github.com/niaid/Prism/blob/master/Workshops/Customizing%20Your%20Graphs%20Using%20GraphPad%20Prism%208/Customizing%20your%20graphs%20with%20Prism%208_github.pdf",
+    "date": null,
+    "role": "NIAID intramural researchers (BCBB workshop audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "reporting statistical methods",
+    "quote": "State the full name of the test. •Identify the program of the program that did the calculations •State all options you selected. Repeated measures? Report enough detail so anyone could start with your data and get precisely the same results you got.",
+    "problem": "Methods sections omit the test options needed to reproduce results",
+    "need": "Auto-generated methods text listing test, options and software version",
+    "severity": "wrong result risk",
+    "signal": {
+      "source": "course material",
+      "institution": "NIH / NIAID Bioinformatics and Computational Biosciences Branch (BCBB)",
+      "course": "Customizing Your Graphs Using GraphPad Prism 8"
+    },
+    "tags": [
+      "reporting-methods",
+      "reproducibility-audit"
+    ]
+  },
+  {
+    "id": "courses-niaid-cg-table-quiz",
+    "venue": "github.com",
+    "url": "https://github.com/niaid/Prism/blob/master/Workshops/Customizing%20Your%20Graphs%20Using%20GraphPad%20Prism%208/Customizing%20your%20graphs%20with%20Prism%208_github.pdf",
+    "date": null,
+    "role": "NIAID intramural researchers (BCBB workshop audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "choosing among eight table types",
+    "quote": "Eight Types of Data Tables 1.XY Tables 2.Column Tables 3.Grouped Tables 4.Contingency Tables 5.Survival Tables 6.Parts of Whole Tables 7.Multiple Variable Tables 8.Nested Tables",
+    "problem": "Eight table types must be learnt before any analysis; the workshop quizzes participants on them",
+    "need": "Start from the question/design rather than table type",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "NIH / NIAID Bioinformatics and Computational Biosciences Branch (BCBB)",
+      "course": "Customizing Your Graphs Using GraphPad Prism 8"
+    },
+    "tags": [
+      "data-entry-table-types",
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "courses-weill-licence-cost",
+    "venue": "library.weill.cornell.edu",
+    "url": "https://library.weill.cornell.edu/graphpad-prism",
+    "date": null,
+    "role": "Weill Cornell Medicine faculty, staff and students (library audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "obtaining a licence",
+    "quote": "Due to high demand and license cost increase from the vendor, a GraphPad license is now charged $150/year/machine (60% discount compared to public pricing). Students can receive one license for one machine per year for free upon request.",
+    "problem": "Institutions pass rising per-machine licence costs on to researchers; one machine per student",
+    "need": "Analysis tool without per-machine annual licence cost",
+    "severity": "slows the work",
+    "signal": {
+      "source": "library software guide",
+      "institution": "Weill Cornell Medicine Library",
+      "price_usd_per_year": 150,
+      "discount_vs_public": "60%"
+    },
+    "tags": [
+      "price-licence"
+    ]
+  },
+  {
+    "id": "courses-becker-licence-shared",
+    "venue": "becker.wustl.edu",
+    "url": "https://becker.wustl.edu/?p=2127",
+    "date": null,
+    "role": "Washington University in St. Louis researchers (library audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "licensing on shared lab workstations",
+    "quote": "Consider this option for shared lab workstations because users with personal licenses will deactivate each other’s Prism if they share the same computer.",
+    "problem": "Personal licences conflict on shared lab computers, so labs must buy separate machine tokens",
+    "need": "Software usable on shared lab workstations without licence juggling",
+    "severity": "slows the work",
+    "signal": {
+      "source": "library software guide",
+      "institution": "Becker Medical Library, WashU",
+      "price_usd_per_person_year": 150,
+      "price_usd_per_machine_year": 150
+    },
+    "tags": [
+      "price-licence",
+      "sharing-collaboration"
+    ]
+  },
+  {
+    "id": "courses-becker-licence-cost",
+    "venue": "becker.wustl.edu",
+    "url": "https://becker.wustl.edu/?p=2127",
+    "date": null,
+    "role": "Washington University in St. Louis researchers (library audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "licence renewal",
+    "quote": "The Prism license year runs from September to September, with licenses renewing automatically. License costs cannot be prorated.",
+    "problem": "Annual non-prorated licences charged per person",
+    "need": "Low-cost or free access for occasional users",
+    "severity": "slows the work",
+    "signal": {
+      "source": "library software guide",
+      "institution": "Becker Medical Library, WashU"
+    },
+    "tags": [
+      "price-licence"
+    ]
+  },
+  {
+    "id": "courses-cornell-cscu-topics",
+    "venue": "cscu.cornell.edu",
+    "url": "https://cscu.cornell.edu/workshop/introductory-statistics-using-graphpad-prism",
+    "date": null,
+    "role": "People who have very little experience with statistics (course audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "introductory statistics curriculum",
+    "quote": "This workshop is designed for people who have very little experience with statistics. We strongly recommend that participants view our Basic Data and Research Skills workshop on our Cornell VOD Page beforehand.",
+    "problem": "Users with little statistics background need a workshop before analysing their own data",
+    "need": "In-tool guidance aimed at statistics beginners",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "Cornell Statistical Consulting Unit (CSCU)",
+      "topics": [
+        "loading data",
+        "graphing",
+        "descriptive stats",
+        "t-tests",
+        "chi-squared",
+        "linear regression",
+        "correlation",
+        "one-way ANOVA",
+        "two-way ANOVA",
+        "model assumptions"
+      ]
+    },
+    "tags": [
+      "learning-curve",
+      "teaching"
+    ]
+  },
+  {
+    "id": "courses-gsls-wuerzburg-demand",
+    "venue": "gsls.cloud.opencampus.net",
+    "url": "https://gsls.cloud.opencampus.net/node/47121",
+    "date": "2022-11",
+    "role": "Early-stage doctoral researchers, Graduate School of Life Sciences Würzburg (course audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "four-day introductory Prism course",
+    "quote": "Overview of group comparisons: When to use which test? Day 4: Data analysis with Prism - continuation Curve Fitting Regression Basics, linear regression Linear vs. non-linear regression Curve fitting using the example of dose-response",
+    "problem": "Doctoral researchers need 14 hours of training to cover test choice, ANOVA and dose-response fitting",
+    "need": "Test chooser and dose-response workflow that need less formal training",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "GSLS, University of Würzburg (taught by Statcon)",
+      "size_shown": "39/15",
+      "hours": 14
+    },
+    "tags": [
+      "which-test",
+      "ic50-ec50-setup",
+      "learning-curve",
+      "teaching"
+    ]
+  },
+  {
+    "id": "courses-gsls-wuerzburg-own-questions",
+    "venue": "gsls.cloud.opencampus.net",
+    "url": "https://gsls.cloud.opencampus.net/node/47121",
+    "date": "2022-11",
+    "role": "Early-stage doctoral researchers, Graduate School of Life Sciences Würzburg (course audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "post-hoc tests and repeated measures",
+    "quote": "Post-Hoc Tests (Multiple Comparisons) Alternative methods Dependent Measures: Repeated Measures ANOVA Group Comparisons (Multiple Factors - Grouped Project) Two-Way ANOVA: Idea, Interpretation, Special Features",
+    "problem": "Post-hoc choice, repeated measures and two-way ANOVA are each a dedicated teaching block",
+    "need": "Guided post-hoc selection and repeated-measures detection",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "GSLS, University of Würzburg",
+      "size_shown": "39/15"
+    },
+    "tags": [
+      "post-hoc-choice",
+      "repeated-measures",
+      "two-way-anova"
+    ]
+  },
+  {
+    "id": "courses-lmu-sfb1064-refresher",
+    "venue": "www.sfb1064.med.uni-muenchen.de",
+    "url": "https://www.sfb1064.med.uni-muenchen.de/irtg/irtg_news/archive-2019/prism/index.html",
+    "date": "2019-04",
+    "role": "Doctoral researchers, CRC 1064 / IMPRS-LS / IRTG 1243, LMU Munich (course audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "introductory Prism course and version refresher",
+    "quote": "In addition this course also shows the new features of GraphPad Prism 7, so this course can also be seen as a refresher for everyone who has worked with an older version of GraphPad Prism.",
+    "problem": "Version changes require refresher training even for existing users",
+    "need": "Stable interface that does not need retraining between versions",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "LMU Munich SFB 1064 (taught by STAT Con)"
+    },
+    "tags": [
+      "learning-curve",
+      "teaching"
+    ]
+  },
+  {
+    "id": "courses-lmu-sfb1064-project-types",
+    "venue": "www.sfb1064.med.uni-muenchen.de",
+    "url": "https://www.sfb1064.med.uni-muenchen.de/irtg/irtg_news/archive-2019/prism/index.html",
+    "date": "2019-04",
+    "role": "Doctoral researchers, LMU Munich (course audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "project types and dialog system",
+    "quote": "You can differentiate the different project types and interpret many of the results.",
+    "problem": "Distinguishing project/table types is a learning outcome in itself",
+    "need": "Question-first entry that hides table types",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "LMU Munich SFB 1064"
+    },
+    "tags": [
+      "data-entry-table-types",
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "courses-hmu-export-word",
+    "venue": "www.hmu.edu.krd",
+    "url": "https://www.hmu.edu.krd/attachments/article/944/GraphPad_prism_Agenda-2.pdf",
+    "date": "2018-12",
+    "role": "Hawler Medical University staff (workshop audience)",
+    "software_named": [
+      "GraphPad Prism",
+      "Excel",
+      "Word"
+    ],
+    "workflow": "three-day Prism workshop agenda",
+    "quote": "o Making appropriate statistical analysis o P value and Error bar settings - Exporting graphs to MS Word",
+    "problem": "Error bar settings, p-values and exporting to Word are core taught tasks",
+    "need": "Clear error bar/p-value presentation and Word export",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "Hawler Medical University, Erbil"
+    },
+    "tags": [
+      "error-bars-sd-sem",
+      "significance-brackets",
+      "export-dpi",
+      "teaching"
+    ]
+  },
+  {
+    "id": "courses-hmu-excel-import",
+    "venue": "www.hmu.edu.krd",
+    "url": "https://www.hmu.edu.krd/attachments/article/944/GraphPad_prism_Agenda-2.pdf",
+    "date": "2018-12",
+    "role": "Hawler Medical University staff (workshop audience)",
+    "software_named": [
+      "GraphPad Prism",
+      "Excel"
+    ],
+    "workflow": "data entry and Excel import, table types",
+    "quote": "o XY, Column Grouped, Survival o Data entry and import from Excel o Choosing appropriate graph type",
+    "problem": "Choosing table/graph type and importing from Excel take a workshop day",
+    "need": "Simpler Excel import and graph-type choice",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "Hawler Medical University, Erbil"
+    },
+    "tags": [
+      "excel-paste",
+      "data-entry-table-types"
+    ]
+  },
+  {
+    "id": "courses-fli-layout-export",
+    "venue": "gms.fli.de",
+    "url": "https://gms.fli.de/node/25963",
+    "date": "2026-04",
+    "role": "Doctoral researchers, Leibniz Institute on Aging (FLI) Graduate School (course audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "import, statistics, layout and export",
+    "quote": "Contents: Import and visualization of data using Graphpad prism Statistics in GraphPad Prism Layout / Figure preparation and Data export Access to the software during the course is not necessary.",
+    "problem": "Figure layout and export are taught alongside statistics; course can be taken without access to the software",
+    "need": "Accessible tool covering import, stats, layout and export",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "FLI Jena Graduate School",
+      "capacity": "12-14",
+      "runs_per_year": 2
+    },
+    "tags": [
+      "layouts-multipanel",
+      "export-dpi",
+      "price-licence"
+    ]
+  },
+  {
+    "id": "courses-irb-illustrator-handoff",
+    "venue": "www.irbbarcelona.org",
+    "url": "https://www.irbbarcelona.org/en/events/sketch-vector-adobe-illustrator-and-graphpad-prism-workshop-2025",
+    "date": "2025-06",
+    "role": "IRB Barcelona researchers (workshop audience)",
+    "software_named": [
+      "GraphPad Prism",
+      "Adobe Illustrator"
+    ],
+    "workflow": "Prism graphs into Illustrator for publication figures",
+    "quote": "Understanding how to properly format and export data for publication and presentation Learning how to import figures from GraphPad PRISM into Illustrator",
+    "problem": "Publication figures require a Prism-to-Illustrator handoff that is taught as a course",
+    "need": "Clean vector export that opens editable in Illustrator, or built-in figure assembly",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "IRB Barcelona (led by Graphit)",
+      "runs": "2023 and 2025 editions"
+    },
+    "tags": [
+      "illustrator-handoff",
+      "export-vector",
+      "layouts-multipanel"
+    ]
+  },
+  {
+    "id": "courses-irb-which-test",
+    "venue": "www.irbbarcelona.org",
+    "url": "https://www.irbbarcelona.org/en/events/sketch-vector-adobe-illustrator-and-graphpad-prism-workshop-2025",
+    "date": "2025-06",
+    "role": "IRB Barcelona researchers (workshop audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "choosing tests",
+    "quote": "Familiarizing yourself with the various types of statistical tests available in GraphPad PRISM and when to use them",
+    "problem": "Knowing which test to use is a workshop learning goal",
+    "need": "Built-in test selection guidance",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "IRB Barcelona"
+    },
+    "tags": [
+      "which-test"
+    ]
+  },
+  {
+    "id": "courses-pmc-forero-prism-preclinical",
+    "venue": "pmc.ncbi.nlm.nih.gov",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC13352756/",
+    "date": "2026-06",
+    "role": null,
+    "software_named": [
+      "GraphPad Prism",
+      "SPSS",
+      "R",
+      "Stata",
+      "SAS",
+      "RevMan"
+    ],
+    "workflow": "statistical software used in published biomedical articles",
+    "quote": "For preclinical research, such as cell models and animal models, the proprietary GraphPad Prism software was the most frequently reported (48.4%).",
+    "problem": "Sizes the workflow: about half of cell- and animal-model papers report using Prism",
+    "need": "Any replacement must cover the preclinical bench workflow first",
+    "severity": "slows the work",
+    "signal": {
+      "source": "survey",
+      "n_papers": 1740,
+      "years": "2021, 2023",
+      "share_prism_preclinical": 0.484,
+      "share_prism_overall": 0.088,
+      "share_spss_overall": 0.371,
+      "share_r_overall": 0.146
+    },
+    "tags": [
+      "trust-validation",
+      "reporting-methods"
+    ]
+  },
+  {
+    "id": "courses-pmc-forero-not-reported",
+    "venue": "pmc.ncbi.nlm.nih.gov",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC13352756/",
+    "date": "2026-06",
+    "role": null,
+    "software_named": [],
+    "workflow": "reporting statistical software in methods",
+    "quote": "The lack of reporting statistical software was higher for animal and cell models and for quasi-experimental studies (17.0, 15.7 and 12.1%, respectively)",
+    "problem": "Preclinical papers most often omit which software produced the statistics",
+    "need": "Auto-generated methods text naming software and version",
+    "severity": "wrong result risk",
+    "signal": {
+      "source": "survey",
+      "n_papers": 1740,
+      "not_reported_animal": 0.17,
+      "not_reported_cell": 0.157
+    },
+    "tags": [
+      "reporting-methods",
+      "reproducibility-audit"
+    ]
+  },
+  {
+    "id": "courses-pmc-forero-defaults-differ",
+    "venue": "pmc.ncbi.nlm.nih.gov",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC13352756/",
+    "date": "2026-06",
+    "role": null,
+    "software_named": [],
+    "workflow": "cross-software comparability",
+    "quote": "It is important to identify the statistical software package used in the data analysis because different statistical programs use different algorithms and default options to compute statistics [ 6 ]. Consequently, the findings may differ depending on the software package or algorithm used.",
+    "problem": "Results can differ between packages because of algorithms and defaults",
+    "need": "Document algorithms/defaults and validate against reference implementations",
+    "severity": "wrong result risk",
+    "signal": {
+      "source": "survey",
+      "n_papers": 1740
+    },
+    "tags": [
+      "numbers-differ-between-tools",
+      "trust-validation"
+    ]
+  },
+  {
+    "id": "courses-labome-citation-count",
+    "venue": "www.labome.com",
+    "url": "https://www.labome.com/method/Statistical-Analysis-Software-Programs-in-Biomedical-Research.html",
+    "date": "2023-04",
+    "role": null,
+    "software_named": [
+      "GraphPad Prism",
+      "Excel",
+      "Origin",
+      "SPSS",
+      "R",
+      "Stata",
+      "Matlab"
+    ],
+    "workflow": "data analysis and graphing software cited in formal articles",
+    "quote": "Major suppliers and their main brands of data analysis and graphing software and the number of articles among the articles Labome has surveyed since 2006.",
+    "problem": "Sizes the workflow: Prism/InStat dominates citations in the surveyed biomedical articles",
+    "need": "Bench-science graphing+stats is the dominant use case",
+    "severity": "slows the work",
+    "signal": {
+      "source": "survey",
+      "counts_articles": {
+        "GraphPad Prism/InStat": 101,
+        "Excel": 17,
+        "Origin": 15,
+        "SPSS": 13,
+        "R": 6,
+        "Stata": 5,
+        "Matlab": 3
+      },
+      "since": 2006
+    },
+    "tags": [
+      "trust-validation"
+    ]
+  },
+  {
+    "id": "courses-labome-why-dominant",
+    "venue": "www.labome.com",
+    "url": "https://www.labome.com/method/Statistical-Analysis-Software-Programs-in-Biomedical-Research.html",
+    "date": "2023-04",
+    "role": null,
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "interpreted results for non-statisticians",
+    "quote": "The best part of the software is its interpreted result analysis page that is prepared at the end of the analysis. The language used is very simple and straightforward without the use of technical jargons of statistics that a researcher looking at biological interpretations is not much concerned about.",
+    "problem": "Biologists value plain-language result interpretation over statistical depth",
+    "need": "Plain-language interpretation of every result",
+    "severity": "slows the work",
+    "signal": {
+      "source": "survey",
+      "n_articles_prism": 101
+    },
+    "tags": [
+      "learning-curve",
+      "tutorials"
+    ]
+  },
+  {
+    "id": "courses-labome-live-update",
+    "venue": "www.labome.com",
+    "url": "https://www.labome.com/method/Statistical-Analysis-Software-Programs-in-Biomedical-Research.html",
+    "date": "2023-04",
+    "role": null,
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "repeating the same analysis on new data",
+    "quote": "The live-update and graph cloning save a lot of precious time by avoiding repetition of the routine every time the same analysis is done.",
+    "problem": "Researchers repeat the same analysis and graph for each new experiment",
+    "need": "Live re-analysis and cloning of analysis+graph templates",
+    "severity": "slows the work",
+    "signal": {
+      "source": "survey"
+    },
+    "tags": [
+      "scripting-batch",
+      "reproducibility-audit"
+    ]
+  },
+  {
+    "id": "courses-labome-excel-dual-axis",
+    "venue": "www.labome.com",
+    "url": "https://www.labome.com/method/Statistical-Analysis-Software-Programs-in-Biomedical-Research.html",
+    "date": "2023-04",
+    "role": null,
+    "software_named": [
+      "Excel"
+    ],
+    "workflow": "Excel as statistics tool",
+    "quote": "The interpretations are not descriptive and so the user needs to obtain the inferences depending on his level of knowledge of statistics.",
+    "problem": "Excel users get numbers without interpretation and must rely on their own statistics knowledge",
+    "need": "Interpreted output for spreadsheet users",
+    "severity": "wrong result risk",
+    "signal": {
+      "source": "survey",
+      "n_articles_excel": 17
+    },
+    "tags": [
+      "learning-curve",
+      "excel-paste"
+    ]
+  },
+  {
+    "id": "courses-gosselin-prism-share",
+    "venue": "pmc.ncbi.nlm.nih.gov",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC7870941/",
+    "date": "2021-02",
+    "role": null,
+    "software_named": [
+      "GraphPad Prism",
+      "SPSS",
+      "R"
+    ],
+    "workflow": "software and tests in preclinical articles",
+    "quote": "The most frequently used software was determined to be Prism (mentioned in 59.01% of publications, k = 223) and SPSS (16.22%). The only non-proprietary package mentioned in the sampled articles is R (used in 4.50% of articles).",
+    "problem": "Sizes the workflow: Prism is used in ~59% of preclinical papers",
+    "need": "Cover Prism-style preclinical analyses",
+    "severity": "slows the work",
+    "signal": {
+      "source": "survey",
+      "n_papers": 223,
+      "journals": 16,
+      "year": 2019,
+      "share_prism": 0.5901,
+      "share_spss": 0.1622,
+      "share_r": 0.045
+    },
+    "tags": [
+      "trust-validation"
+    ]
+  },
+  {
+    "id": "courses-gosselin-test-frequency",
+    "venue": "pmc.ncbi.nlm.nih.gov",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC7870941/",
+    "date": "2021-02",
+    "role": null,
+    "software_named": [],
+    "workflow": "frequency of location tests in preclinical papers",
+    "quote": "The most frequently used tests were one way analysis of variance (ANOVA; used in 53.15% of articles, k = 223 articles), two way ANOVA (28.83%), repeated measure one way ANOVA (9.46%), unpaired Student’s t test (38.74%) and Student’s t test of undefined laterality (26.83% of articles).",
+    "problem": "Sizes the workflows: one-way ANOVA, t-tests and two-way ANOVA dominate",
+    "need": "Prioritise one-way ANOVA, t-test, two-way ANOVA, Mann-Whitney",
+    "severity": "slows the work",
+    "signal": {
+      "source": "survey",
+      "n_papers": 223,
+      "one_way_anova": 0.5315,
+      "two_way_anova": 0.2883,
+      "rm_one_way": 0.0946,
+      "unpaired_t": 0.3874,
+      "t_undefined": 0.2683,
+      "mann_whitney": 0.1937
+    },
+    "tags": [
+      "which-test",
+      "two-way-anova"
+    ]
+  },
+  {
+    "id": "courses-gosselin-insufficient",
+    "venue": "pmc.ncbi.nlm.nih.gov",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC7870941/",
+    "date": "2021-02",
+    "role": null,
+    "software_named": [],
+    "workflow": "reporting tests, software and n",
+    "quote": "Results revealed that a large proportion of articles insufficiently describe tests (median 44.8%, IQR [33.3–62.5%], k = 16 journals), software (31%, IQR [22.3–39.6%]) or sample sizes (44.2%, IQR [35.7–55.4%]).",
+    "problem": "Tests, software and sample sizes are insufficiently reported",
+    "need": "Automatic, complete methods/legend text with test, software and n",
+    "severity": "wrong result risk",
+    "signal": {
+      "source": "survey",
+      "n_papers": 223,
+      "insufficient_tests": 0.448,
+      "insufficient_software": 0.31,
+      "insufficient_n": 0.442
+    },
+    "tags": [
+      "reporting-methods",
+      "n-definition",
+      "figure-legend"
+    ]
+  },
+  {
+    "id": "courses-gosselin-scripts",
+    "venue": "pmc.ncbi.nlm.nih.gov",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC7870941/",
+    "date": "2021-02",
+    "role": null,
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "code disclosure for GUI software",
+    "quote": "However, it should become mandatory that such companies make publishable scripts more easily accessible to users.",
+    "problem": "GUI-based analyses cannot be shared as code for reproducibility",
+    "need": "Exportable, publishable analysis script/log from GUI analyses",
+    "severity": "slows the work",
+    "signal": {
+      "source": "survey",
+      "n_papers": 223
+    },
+    "tags": [
+      "reproducibility-audit",
+      "scripting-batch"
+    ]
+  },
+  {
+    "id": "courses-weissgerber2018-anova-type",
+    "venue": "pmc.ncbi.nlm.nih.gov",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC6326723/",
+    "date": "2018-12",
+    "role": null,
+    "software_named": [],
+    "workflow": "reporting ANOVA and post-hoc tests",
+    "quote": "However, papers in our sample were routinely missing essential information about both types of tests: 213 papers (95% of the papers that used ANOVA) did not contain the information needed to determine what type of ANOVA was performed, and 26.7% of papers did not specify what post-hoc test was performed.",
+    "problem": "Papers do not say which ANOVA or post-hoc test was run",
+    "need": "Methods text generated from the actual analysis settings",
+    "severity": "wrong result risk",
+    "signal": {
+      "source": "survey",
+      "n_papers": 328,
+      "with_anova_or_t": 277,
+      "anova_type_unclear": 0.95,
+      "posthoc_unspecified": 0.267
+    },
+    "tags": [
+      "reporting-methods",
+      "post-hoc-choice"
+    ]
+  },
+  {
+    "id": "courses-weissgerber2018-oneway-misuse",
+    "venue": "pmc.ncbi.nlm.nih.gov",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC6326723/",
+    "date": "2018-12",
+    "role": null,
+    "software_named": [],
+    "workflow": "one-way ANOVA used for factorial designs",
+    "quote": "Among papers that used one-way ANOVAs, 60.9% (67/110) used a one-way ANOVA for an analysis where the study design included two or more factors.",
+    "problem": "One-way ANOVA is applied to two-factor designs",
+    "need": "Design capture that proposes two-way ANOVA when two factors exist",
+    "severity": "wrong result risk",
+    "signal": {
+      "source": "survey",
+      "n_papers_oneway": 110,
+      "share_misapplied": 0.609
+    },
+    "tags": [
+      "which-test",
+      "two-way-anova"
+    ]
+  },
+  {
+    "id": "courses-weissgerber2018-rm-unstated",
+    "venue": "pmc.ncbi.nlm.nih.gov",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC6326723/",
+    "date": "2018-12",
+    "role": null,
+    "software_named": [],
+    "workflow": "repeated measures ANOVA reporting",
+    "quote": "Our data suggest that scientists should be cautious about this assumption, as 28.3% of papers that did not indicate that repeated measures were used (52/184) included at least one ANOVA that appeared",
+    "problem": "Repeated-measures designs analysed or reported without stating repeated measures",
+    "need": "Ask whether factors are within-subject and report it",
+    "severity": "wrong result risk",
+    "signal": {
+      "source": "survey",
+      "n_papers": 184,
+      "share_apparent_rm_unstated": 0.283
+    },
+    "tags": [
+      "repeated-measures",
+      "reporting-methods"
+    ]
+  },
+  {
+    "id": "courses-weissgerber2018-paired-unclear",
+    "venue": "pmc.ncbi.nlm.nih.gov",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC6326723/",
+    "date": "2018-12",
+    "role": null,
+    "software_named": [],
+    "workflow": "paired vs unpaired t-test reporting",
+    "quote": "Over half of the papers (53%; 95/179) did not specify whether any t-tests were paired or unpaired; a small proportion (2.2%; 4/179) provided this information for some but not all of the t-tests in the paper.",
+    "problem": "Paired vs unpaired t-test is not stated",
+    "need": "Legends/methods that always state paired/unpaired and variance assumption",
+    "severity": "wrong result risk",
+    "signal": {
+      "source": "survey",
+      "n_papers_t": 179,
+      "share_unspecified": 0.53
+    },
+    "tags": [
+      "reporting-methods",
+      "figure-legend"
+    ]
+  },
+  {
+    "id": "courses-weissgerber2018-exact-p",
+    "venue": "pmc.ncbi.nlm.nih.gov",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC6326723/",
+    "date": "2018-12",
+    "role": null,
+    "software_named": [],
+    "workflow": "reporting test statistics and exact p",
+    "quote": "While most papers reported the sample size or degrees of freedom for some (16.6%) or all (76.7%) t-tests, t-statistics were missing from 95.7% of papers ( Table 1 ).",
+    "problem": "Test statistics and exact p-values are rarely reported",
+    "need": "One-click results sentence with statistic, df and exact p",
+    "severity": "wrong result risk",
+    "signal": {
+      "source": "survey",
+      "n_papers_t": 163,
+      "t_stat_missing": 0.957
+    },
+    "tags": [
+      "exact-p",
+      "reporting-methods"
+    ]
+  },
+  {
+    "id": "courses-weissgerber2015-bar-graphs",
+    "venue": "pmc.ncbi.nlm.nih.gov",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4406565/",
+    "date": "2015-04",
+    "role": null,
+    "software_named": [
+      "Excel",
+      "GraphPad Prism"
+    ],
+    "workflow": "presenting continuous data in small-n studies",
+    "quote": "Bar graphs were the most commonly used figures for presenting continuous data. 85.6% of papers included at least one bar graph. Most of these papers used bar graphs that showed mean ± SE (77.6%, Panel B in S2 Fig ), rather than mean ± SD (15.3%).",
+    "problem": "Bar graphs with SEM hide distributions in small-n studies",
+    "need": "Default to dot plots/box plots with points for continuous data",
+    "severity": "wrong result risk",
+    "signal": {
+      "source": "survey",
+      "n_papers": 703,
+      "share_bar": 0.856,
+      "share_sem": 0.776,
+      "share_scatter": 0.134
+    },
+    "tags": [
+      "show-the-points",
+      "error-bars-sd-sem"
+    ]
+  },
+  {
+    "id": "courses-weissgerber2015-small-n",
+    "venue": "pmc.ncbi.nlm.nih.gov",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4406565/",
+    "date": "2015-04",
+    "role": null,
+    "software_named": [],
+    "workflow": "sample size per group in physiology figures",
+    "quote": "The minimum sample size for any group shown in a figure was four (median number of independent observations), with an interquartile range of three independent observations (25th percentile: n = 3, 75th percentile: n = 6).",
+    "problem": "Typical groups are n=3-6, where summaries mislead",
+    "need": "Show every point when n is small",
+    "severity": "wrong result risk",
+    "signal": {
+      "source": "survey",
+      "n_papers": 703,
+      "median_min_n": 4
+    },
+    "tags": [
+      "show-the-points",
+      "n-definition"
+    ]
+  },
+  {
+    "id": "courses-weissgerber2015-scatter-hard",
+    "venue": "pmc.ncbi.nlm.nih.gov",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4406565/",
+    "date": "2015-04",
+    "role": null,
+    "software_named": [
+      "Excel",
+      "GraphPad Prism"
+    ],
+    "workflow": "making univariate scatterplots",
+    "quote": "While Microsoft Excel allows scientists to quickly and efficiently create bar graphs, univariate scatterplots are more challenging. We created free Excel templates that are available in the supplemental files for the manuscript ( S2 Text and S3 Text ).",
+    "problem": "Dot plots are harder to make than bar graphs in common tools, needing templates and instructions",
+    "need": "Dot/scatter plots of groups as easy as bar graphs, including paired data",
+    "severity": "slows the work",
+    "signal": {
+      "source": "survey",
+      "n_papers": 703
+    },
+    "tags": [
+      "show-the-points",
+      "excel-paste"
+    ]
+  },
+  {
+    "id": "courses-riedel2022-bar-continuous",
+    "venue": "pmc.ncbi.nlm.nih.gov",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC9366861/",
+    "date": "2022-08",
+    "role": null,
+    "software_named": [],
+    "workflow": "graph types across 23 fields",
+    "quote": "The proportion of papers that use bar graphs of continuous data varies markedly across fields (range in 2020: 4–58%), with high rates in biochemistry and cell biology, complementary and alternative medicine, physiology, genetics, oncology and carcinogenesis, pharmacology, microbiology and immunology.",
+    "problem": "Bar graphs of continuous data remain common in bench fields",
+    "need": "Distribution-showing graphs as defaults",
+    "severity": "wrong result risk",
+    "signal": {
+      "source": "survey",
+      "n_papers": 227998,
+      "fields": 23,
+      "range_2020": "4-58%"
+    },
+    "tags": [
+      "show-the-points"
+    ]
+  },
+  {
+    "id": "courses-lazic2018-pseudoreplication",
+    "venue": "pmc.ncbi.nlm.nih.gov",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC5902037/",
+    "date": "2018-04",
+    "role": null,
+    "software_named": [],
+    "workflow": "defining n / experimental unit",
+    "quote": "We found that only 22% of studies (95% CI = 17%–29%) had genuine replication and thus made valid statistical inferences. Nearly half of the studies (46%, 95% CI = 38%–53%) had pseudoreplication while 32% (95% CI = 26%–39%) did not provide enough information to determine if N corresponds to genuine replication or pseudoreplication.",
+    "problem": "Pseudoreplication inflates n in nearly half of studies",
+    "need": "Data model that records the experimental unit and analyses at that level",
+    "severity": "wrong result risk",
+    "signal": {
+      "source": "survey",
+      "share_valid": 0.22,
+      "share_pseudoreplication": 0.46,
+      "share_unclear": 0.32
+    },
+    "tags": [
+      "n-definition",
+      "technical-vs-biological-replicates"
+    ]
+  },
+  {
+    "id": "courses-diong2018-sem-exact-p",
+    "venue": "pmc.ncbi.nlm.nih.gov",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC6093658/",
+    "date": "2018-08",
+    "role": null,
+    "software_named": [],
+    "workflow": "error bars and p-values in physiology/pharmacology papers",
+    "quote": "76-84% of papers that plotted measures to summarize data variability used standard errors of the mean, and only 2-4% of papers plotted raw data used to calculate variability.",
+    "problem": "SEM bars without raw data dominate, despite editorial advice",
+    "need": "Defaults that plot raw data and SD/CI rather than SEM alone",
+    "severity": "wrong result risk",
+    "signal": {
+      "source": "survey",
+      "n_papers": 401,
+      "journals": "J Physiol, Br J Pharmacol",
+      "share_sem": "76-84%",
+      "share_raw_data": "2-4%"
+    },
+    "tags": [
+      "error-bars-sd-sem",
+      "show-the-points"
+    ]
+  },
+  {
+    "id": "courses-diong2018-exact-p",
+    "venue": "pmc.ncbi.nlm.nih.gov",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC6093658/",
+    "date": "2018-08",
+    "role": null,
+    "software_named": [],
+    "workflow": "exact p-values and trends",
+    "quote": "Overall, 76-84% of papers with written measures that summarized data variability used standard errors of the mean, and 90-96% of papers did not report exact p-values for primary analyses and post-hoc tests.",
+    "problem": "Exact p-values are not reported for primary and post-hoc tests",
+    "need": "Exact p-values exported with every comparison",
+    "severity": "wrong result risk",
+    "signal": {
+      "source": "survey",
+      "n_papers": 401,
+      "no_exact_p": "90-96%"
+    },
+    "tags": [
+      "exact-p",
+      "multiple-comparisons"
+    ]
+  },
+  {
+    "id": "courses-diong2018-trends",
+    "venue": "pmc.ncbi.nlm.nih.gov",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC6093658/",
+    "date": "2018-08",
+    "role": null,
+    "software_named": [],
+    "workflow": "interpreting p between 0.05 and 0.1",
+    "quote": "Of papers that reported p-values between 0.05 and 0.1, 56-63% interpreted these as trends or statistically significant.",
+    "problem": "Near-threshold p-values are spun as trends",
+    "need": "Effect sizes with CIs alongside p to discourage spin",
+    "severity": "wrong result risk",
+    "signal": {
+      "source": "survey",
+      "n_papers": 401,
+      "share_spin": "56-63%"
+    },
+    "tags": [
+      "effect-size",
+      "exact-p"
+    ]
+  },
+  {
+    "id": "courses-unc-power-external",
+    "venue": "bbsp710.web.unc.edu",
+    "url": "https://bbsp710.web.unc.edu/wp-content/uploads/sites/22952/2023/07/BBSP710_FALL_2023_final.pdf",
+    "date": "2023-09",
+    "role": "2nd year+ biomedical graduate students, UNC Chapel Hill (course audience)",
+    "software_named": [
+      "GraphPad Prism",
+      "G*Power",
+      "NQuiry"
+    ],
+    "workflow": "power analysis taught with separate tools",
+    "quote": "Tues: Power Practical–Power Tutorial (G*Power & NQuiry Demos) + Bring Your Own Data (BYOD)",
+    "problem": "Power analysis is taught in separate tools from the main analysis software",
+    "need": "Integrated power/sample-size calculation",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "UNC Chapel Hill BBSP 710 Biostatistics for Laboratory Scientists",
+      "credit_hours": 2
+    },
+    "tags": [
+      "power-sample-size",
+      "teaching"
+    ]
+  },
+  {
+    "id": "courses-unc-final-project",
+    "venue": "bbsp710.web.unc.edu",
+    "url": "https://bbsp710.web.unc.edu/wp-content/uploads/sites/22952/2023/07/BBSP710_FALL_2023_final.pdf",
+    "date": "2023-09",
+    "role": "2nd year+ biomedical graduate students, UNC Chapel Hill (course audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "end-to-end analysis write-up of own lab data",
+    "quote": "The final project should include a written description of your analysis that includes: 1) how the data were collected, 2) the hypotheses that you tested, 3) descriptive statistics and frequency distributions of the data, 4) treatment of outliers if there are any, 5) statistical methods used to analyze the data and your justification, 6) power calculation and explanation of sample size choice, and 7) the results and conclusions of your analysis.",
+    "problem": "A complete, justified analysis report of own lab data is the course's capstone",
+    "need": "Analysis report that assembles descriptives, outlier handling, test justification, power and results",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "UNC Chapel Hill BBSP 710 Biostatistics for Laboratory Scientists",
+      "credit_hours": 2
+    },
+    "tags": [
+      "reporting-methods",
+      "outliers",
+      "power-sample-size"
+    ]
+  },
+  {
+    "id": "courses-unc-advanced-anova",
+    "venue": "bbsp710.web.unc.edu",
+    "url": "https://bbsp710.web.unc.edu/wp-content/uploads/sites/22952/2023/07/BBSP710_FALL_2023_final.pdf",
+    "date": "2023-09",
+    "role": "2nd year+ biomedical graduate students, UNC Chapel Hill (course audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "factorial and repeated measures ANOVA",
+    "quote": "Tues: Multi-sample Inference - Advanced ANOVA (Factorial ANOVA & Repeated Measures) 5. Two-way ANOVA 6. Repeated Measures ANOVA 7. Three-Way ANOVA (PRISM Tutorial)",
+    "problem": "Factorial and repeated-measures designs need dedicated teaching",
+    "need": "Guided two-/three-way and RM ANOVA setup",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "UNC Chapel Hill BBSP 710 Biostatistics for Laboratory Scientists",
+      "credit_hours": 2
+    },
+    "tags": [
+      "two-way-anova",
+      "repeated-measures"
+    ]
+  },
+  {
+    "id": "courses-unc-special-topics",
+    "venue": "bbsp710.web.unc.edu",
+    "url": "https://bbsp710.web.unc.edu/wp-content/uploads/sites/22952/2023/07/BBSP710_FALL_2023_final.pdf",
+    "date": "2023-09",
+    "role": "2nd year+ biomedical graduate students, UNC Chapel Hill (course audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "advanced special topics",
+    "quote": "Sample Special Topics: Survival, Non-Linear, Growth; MANCOVA ANCOVA MANOVA + GLM (SEM/Mediation); Factor Analysis + Logistic Regression",
+    "problem": "Students' thesis data require methods beyond the core tests",
+    "need": "Survival, growth curves, ANCOVA and logistic regression within reach",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "UNC Chapel Hill BBSP 710 Biostatistics for Laboratory Scientists",
+      "credit_hours": 2
+    },
+    "tags": [
+      "survival",
+      "growth-curves",
+      "logistic-regression"
+    ]
+  },
+  {
+    "id": "courses-unc-site-variety",
+    "venue": "bbsp710.web.unc.edu",
+    "url": "https://bbsp710.web.unc.edu",
+    "date": null,
+    "role": "2nd year+ biomedical graduate students, UNC Chapel Hill (course audience)",
+    "software_named": [],
+    "workflow": "course shift to multiple software options",
+    "quote": "Emphasis is on mastery of common statistical skills and familiarity with advanced analytical skills with emphasis on trying out a variety of statistical and graphical software and coding options.",
+    "problem": "Course moved from single-package mastery (2023 syllabus) to trying a variety of software and coding options",
+    "need": "Tools that work alongside code-based workflows",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "UNC Chapel Hill BBSP 710 Biostatistics for Laboratory Scientists",
+      "credit_hours": 2,
+      "note": "2023 syllabus emphasised GraphPad Prism mastery; current site says variety of software"
+    },
+    "tags": [
+      "teaching",
+      "scripting-batch"
+    ]
+  },
+  {
+    "id": "courses-kcl-labchart-export",
+    "venue": "ehealth.kcl.ac.uk",
+    "url": "https://ehealth.kcl.ac.uk/sites/physiology/LST-HandlingData2a.html",
+    "date": null,
+    "role": "Physiology students, King's College London (tutorial audience)",
+    "software_named": [
+      "GraphPad Prism",
+      "ADInstruments LabChart"
+    ],
+    "workflow": "moving instrument recordings into the graphing tool",
+    "quote": "Exporting continuous data from LabChart for plotting in Graphpad Prism Sometimes you need to present continuous data as... read more...",
+    "problem": "Instrument recordings need an export/import tutorial to reach the graphing tool",
+    "need": "Direct import of instrument files (LabChart etc.)",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "King's College London, Dept. of Physiology (Life Science Tutorials)"
+    },
+    "tags": [
+      "import-instrument-files"
+    ]
+  },
+  {
+    "id": "courses-kcl-auc",
+    "venue": "ehealth.kcl.ac.uk",
+    "url": "https://ehealth.kcl.ac.uk/sites/physiology/LST-HandlingData2a.html",
+    "date": null,
+    "role": "Physiology students, King's College London (tutorial audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "area under the curve",
+    "quote": "Graphpad Prism – Performing area under the curve (AUC) calculations Sometimes one needs to calculate the area under… read more...",
+    "problem": "AUC of time courses is a common task needing a tutorial",
+    "need": "AUC analysis with baseline choice for time courses",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "King's College London, Dept. of Physiology (Life Science Tutorials)"
+    },
+    "tags": [
+      "time-series",
+      "kinetics-binding"
+    ]
+  },
+  {
+    "id": "courses-kcl-overlay",
+    "venue": "ehealth.kcl.ac.uk",
+    "url": "https://ehealth.kcl.ac.uk/sites/physiology/LST-HandlingData2a.html",
+    "date": null,
+    "role": "Physiology students, King's College London (tutorial audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "overlaying two data sets on one graph",
+    "quote": "Graphpad Prism – Overlaying two data sets into one graph A tutorial describing the steps required to undertake... read more...",
+    "problem": "Combining two data tables on one graph is not obvious",
+    "need": "Add any dataset to any graph by drag-and-drop",
+    "severity": "slows the work",
+    "signal": {
+      "source": "course material",
+      "institution": "King's College London, Dept. of Physiology (Life Science Tutorials)"
+    },
+    "tags": [
+      "graph-formatting",
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "courses-hms-licence-eligibility",
+    "venue": "it.hms.harvard.edu",
+    "url": "https://it.hms.harvard.edu/service/graphpad-prism",
+    "date": null,
+    "role": "Harvard University faculty, staff and students (IT service audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "obtaining a licence through central IT",
+    "quote": "GraphPad Prism is available to members of Harvard University, including Faculty, Staff and Students who are working within a lab or department that will provide funding for software purchases using the Harvard University 33-digit billing system. Note – Hospital affiliates are not eligible for this service.",
+    "problem": "Access depends on departmental billing; hospital-affiliated researchers are excluded",
+    "need": "Access not gated by institutional billing",
+    "severity": "blocks the analysis",
+    "signal": {
+      "source": "institutional software page",
+      "institution": "Harvard Medical School IT"
+    },
+    "tags": [
+      "price-licence"
+    ]
+  },
+  {
+    "id": "courses-hms-licence-delay",
+    "venue": "it.hms.harvard.edu",
+    "url": "https://it.hms.harvard.edu/service/graphpad-prism",
+    "date": null,
+    "role": "Harvard University faculty, staff and students (IT service audience)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "licence provisioning delay",
+    "quote": "Please allow up to 5 business days to process and issue new ppms accounts, plus 3 business days to process and issue software licenses once software orders are placed",
+    "problem": "Getting a licence can take over a week",
+    "need": "Immediate access for new lab members",
+    "severity": "slows the work",
+    "signal": {
+      "source": "institutional software page",
+      "institution": "Harvard Medical School IT"
+    },
+    "tags": [
+      "price-licence"
+    ]
+  },
+  {
+    "id": "courses-protocolonline-poll-prism-excel-spss",
+    "venue": "protocol-online.org",
+    "url": "https://protocol-online.org/science-forums-2/posts/23504.html",
+    "date": "2011-11",
+    "role": "Forum member, self-described 'science noob' (shown)",
+    "software_named": [
+      "GraphPad Prism",
+      "Excel",
+      "SPSS"
+    ],
+    "workflow": "choosing graphing + statistics software",
+    "quote": "I have used Graphpad Prism (awesome + love the graph wizard function), Microsoft Excel (not very user friendly stat-wise) and currently learning to use IBM's SPSS (very technical).",
+    "problem": "Bench scientists juggle a graphing tool, a spreadsheet and a 'very technical' stats package",
+    "need": "One approachable tool for graphs and statistics",
+    "severity": "slows the work",
+    "signal": {
+      "source": "forum poll",
+      "replies": 7,
+      "users_mentioning": {
+        "GraphPad Prism": 5,
+        "Excel": 3,
+        "R": 2,
+        "SPSS": 2,
+        "SigmaPlot": 2,
+        "Minitab": 1,
+        "BioVinci": 1
+      }
+    },
+    "tags": [
+      "learning-curve",
+      "excel-paste"
+    ]
+  },
+  {
+    "id": "courses-protocolonline-poll-split-tools",
+    "venue": "protocol-online.org",
+    "url": "https://protocol-online.org/science-forums-2/posts/23504.html",
+    "date": "2011-11",
+    "role": "Forum member (shown)",
+    "software_named": [
+      "GraphPad Prism",
+      "Excel",
+      "SPSS"
+    ],
+    "workflow": "split tool chain: storage, stats, plotting",
+    "quote": "Graphpad Prism is nice for ploting and graph I use Microsoft Excel as data storage and simple calculation SPSS is nice for stats analysis.",
+    "problem": "Data, statistics and plotting live in three different programs",
+    "need": "Single workflow from data table through statistics to graph",
+    "severity": "slows the work",
+    "signal": {
+      "source": "forum poll",
+      "replies": 7
+    },
+    "tags": [
+      "excel-paste",
+      "sharing-collaboration"
+    ]
+  },
+  {
+    "id": "courses-protocolonline-poll-r-if-code",
+    "venue": "protocol-online.org",
+    "url": "https://protocol-online.org/science-forums-2/posts/23504.html",
+    "date": "2011-11",
+    "role": "Forum member (shown)",
+    "software_named": [
+      "R",
+      "BioVinci"
+    ],
+    "workflow": "free alternative for non-programmers",
+    "quote": "Go for R if you can code. It's free and powerful (probably the most powerful out there). But it takes some time to learn though.",
+    "problem": "The free option requires programming skills and learning time",
+    "need": "Free tool with a point-and-click interface",
+    "severity": "slows the work",
+    "signal": {
+      "source": "forum poll",
+      "replies": 7
+    },
+    "tags": [
+      "price-licence",
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "courses-mjff-prism-grant-scope",
+    "venue": "rcop.michaeljfox.org",
+    "url": "https://rcop.michaeljfox.org/t/stats-software-insights-which-one-and-why/1280",
+    "date": "2025-10",
+    "role": "Researcher reviewing a grant application (shown)",
+    "software_named": [
+      "GraphPad Prism",
+      "R",
+      "SPSS",
+      "Stata",
+      "Python"
+    ],
+    "workflow": "judging whether Prism suffices for a trainee's analyses",
+    "quote": "i was going through someone’s grant application and they have stats as one of their training goals, but proposed to use graphpad for all the analyses so i was curious about graphpad’s abilities.",
+    "problem": "Reviewers are unsure whether a point-and-click tool covers a project's statistics",
+    "need": "Clear statement of supported analyses and their limits",
+    "severity": "slows the work",
+    "signal": {
+      "source": "forum poll",
+      "posts": 12
+    },
+    "tags": [
+      "trust-validation",
+      "teaching"
+    ]
+  },
+  {
+    "id": "courses-mjff-prism-small-data",
+    "venue": "rcop.michaeljfox.org",
+    "url": "https://rcop.michaeljfox.org/t/stats-software-insights-which-one-and-why/1280",
+    "date": "2025-10",
+    "role": "Researcher using SPSS, Prism and R (shown)",
+    "software_named": [
+      "GraphPad Prism",
+      "SPSS",
+      "R"
+    ],
+    "workflow": "small-data biostatistics vs genomics",
+    "quote": "I use SPSS or GraphPad for small data biostatistics and R when I am working with genomic data: more of downstream biostatistic after bioinformatics.",
+    "problem": "Users switch tools by data size; point-and-click tools are used for small bench datasets",
+    "need": "Handle small bench datasets simply while interoperating with R for large data",
+    "severity": "slows the work",
+    "signal": {
+      "source": "forum poll",
+      "posts": 12,
+      "reads": 13,
+      "reactions": 2
+    },
+    "tags": [
+      "large-data",
+      "scripting-batch"
+    ]
+  },
+  {
+    "id": "courses-mjff-prism-graphics",
+    "venue": "rcop.michaeljfox.org",
+    "url": "https://rcop.michaeljfox.org/t/stats-software-insights-which-one-and-why/1280",
+    "date": "2025-10",
+    "role": "Researcher (shown)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "publication graphics without code",
+    "quote": "It’s great for beautiful publication quality graphics by pointing and clicking rather than writing fancy codes.",
+    "problem": "Publication-quality graphs without coding is the main draw",
+    "need": "Point-and-click publication graphics",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "source": "forum poll",
+      "posts": 12,
+      "reads": 17,
+      "reactions": 3
+    },
+    "tags": [
+      "graph-formatting"
+    ]
+  },
+  {
+    "id": "courses-mjff-stata-price",
+    "venue": "rcop.michaeljfox.org",
+    "url": "https://rcop.michaeljfox.org/t/stats-software-insights-which-one-and-why/1280",
+    "date": "2025-10",
+    "role": "Researcher who trains students (shown)",
+    "software_named": [
+      "Stata",
+      "R",
+      "GraphPad Prism"
+    ],
+    "workflow": "training choice of software",
+    "quote": "I am a diehard STATA user - it was the first language I learnt. The downside is that it has price-tag. I encourage all trainees to pick up R, which they do within 4-6 weeks.",
+    "problem": "Licence cost pushes trainers to teach R, which takes weeks to learn",
+    "need": "Free tool with a short learning curve",
+    "severity": "slows the work",
+    "signal": {
+      "source": "forum poll",
+      "posts": 12,
+      "reads": 15,
+      "reactions": 4
+    },
+    "tags": [
+      "price-licence",
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "courses-nzmsj-point-click-reanalysis",
+    "venue": "nzmsj.scholasticahq.com",
+    "url": "https://nzmsj.scholasticahq.com/api/v1/articles/36704-what-statistical-software-should-i-use-and-does-it-actually-matter.pdf",
+    "date": "2022-06",
+    "role": "Biostatisticians advising health researchers (authors)",
+    "software_named": [
+      "GraphPad Prism",
+      "SPSS",
+      "R",
+      "SAS",
+      "Stata",
+      "Excel"
+    ],
+    "workflow": "updating analyses after reviewer requests",
+    "quote": "It encourages a point-and-click approach, and while this can be very appealing for beginners, we find that this approach makes it much harder for researchers to update or expand the statistical analyses they’ve performed.",
+    "problem": "Point-and-click analyses are hard to update when reviewers ask for changes",
+    "need": "Re-runnable analysis record (script/log) behind the point-and-click interface",
+    "severity": "slows the work",
+    "signal": {
+      "source": "statistics primer",
+      "journal": "NZ Medical Student Journal 34"
+    },
+    "tags": [
+      "reproducibility-audit",
+      "scripting-batch"
+    ]
+  },
+  {
+    "id": "courses-nzmsj-excel-dead-end",
+    "venue": "nzmsj.scholasticahq.com",
+    "url": "https://nzmsj.scholasticahq.com/api/v1/articles/36704-what-statistical-software-should-i-use-and-does-it-actually-matter.pdf",
+    "date": "2022-06",
+    "role": "Biostatisticians advising health researchers (authors)",
+    "software_named": [
+      "Excel"
+    ],
+    "workflow": "starting in Excel",
+    "quote": "We sometimes see researchers who started using Microsoft Excel because it seemed easier, but who then found that they couldn’t do what they needed, or what reviewers or examiners asked them to do.",
+    "problem": "Researchers start in Excel and hit a wall when reviewers ask for more",
+    "need": "Easy start that does not cap the analyses available later",
+    "severity": "blocks the analysis",
+    "signal": {
+      "source": "statistics primer",
+      "journal": "NZ Medical Student Journal 34"
+    },
+    "tags": [
+      "excel-paste",
+      "learning-curve"
+    ]
+  }
+]
