@@ -353,7 +353,8 @@ function fitChips(r: R): Chip[] {
         detail: "No parameter is ambiguous: the data determine every fitted value.",
         explainer: "ambiguous" });
   }
-  const extra = fits.filter((f) => f.fit.extrapolation);
+  // "> top dose" IC50s have their own block (sheets/xy/rangeFlags.tsx)
+  const extra = fits.filter((f) => f.fit.extrapolation && !f.fit.range_flags?.report_as);
   if (extra.length) {
     out.push({ id: "extrapolated", label: `IC50 outside the doses: ${extra.map((f) => f.name).join(", ")}`,
       state: "warn", detail: "The midpoint lies beyond the concentrations tested, so it is "

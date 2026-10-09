@@ -68,7 +68,9 @@ function fitBanners(ctx: ResultContext, r: R): Banner[] {
       ],
       explainer: "ambiguous", sources: [SRC.gpAmbiguous] });
   }
-  const extra = sets.filter((d) => d.fit?.extrapolation);
+  // an IC50 the fit reports as "> top dose" has its own block with the
+  // option and sources (sheets/xy/rangeFlags.tsx): not repeated here
+  const extra = sets.filter((d) => d.fit?.extrapolation && !d.fit?.range_flags?.report_as);
   if (extra.length) {
     out.push({ id: "fit-extrapolated", tone: "warn",
       title: `The IC50/EC50 lies outside the doses tested: ${extra.map((d) => d.name).join(", ")}`,

@@ -409,6 +409,10 @@ export function engineMessages(result: unknown): EngineMessage[] {
       // the Residuals section states its own note and warnings
       // (sheets/column/residualsPanel.tsx): not repeated here
       if (depth === 0 && k === "residual_check") continue;
+      // an IC50 reported as "> top dose": the fit's panel states every
+      // reason under its table (sheets/xy/rangeReport.ts)
+      if (k === "range_flags" && val && typeof val === "object" && (val as Record<string, unknown>).report_as
+        && !(val as Record<string, unknown>).error) continue;
       if (WARN_KEYS.has(k)) take(val, ctx, true);
       else if (NOTE_KEYS.has(k)) take(val, ctx, false);
       else if (k.endsWith("_error") && typeof val === "string") add(val, ctx, true);
