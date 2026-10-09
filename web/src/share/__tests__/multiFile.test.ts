@@ -8,6 +8,8 @@ import { strToU8, zipSync } from "fflate";
 import {
   filePattern, isTableEntry, previewNames, stackTables, stageStacked, unzipTables,
 } from "../recipes/multiFile.ts";
+import { isTableDrop } from "../recipes/dropKind.ts";
+import { zipHoldsTables } from "../recipes/readFiles.ts";
 import { compileTemplate, fieldRole, matchTemplate, templateFit, templateParts } from "../recipes/pattern.ts";
 import { initialConfig, runPipeline } from "../recipes/pipeline.ts";
 import { recipeById } from "../recipes/presets.ts";
@@ -116,6 +118,17 @@ test("per-image CSVs: grouped output carries the map by subcolumns; one value pe
   assert.equal(means.replicates, null);
   assert.equal(means.result!.table.replicates, undefined);
   assert.deepEqual(means.result!.counts, [{ name: "ctrl", n: 3 }, { name: "drug", n: 3 }]);
+});
+
+test("drops: several table files or a zip go to the recipe; projects and Prism archives do not", () => {
+  assert.equal(isTableDrop([{ name: "a.csv" }, { name: "b.csv" }]), true);
+  assert.equal(isTableDrop([{ name: "a.csv" }]), false);
+  assert.equal(isTableDrop([{ name: "imgs.zip" }]), true);
+  assert.equal(isTableDrop([{ name: "a.csv" }, { name: "p.pzfx" }]), false);
+  assert.equal(isTableDrop([{ name: "a.csv" }, { name: "notes.pdf" }]), false);
+  assert.equal(zipHoldsTables(zipSync({ "a.csv": strToU8("x\n1\n") })), true);
+  assert.equal(zipHoldsTables(zipSync({ "project.json": strToU8("{}"), "data/a.csv": strToU8("x\n1\n") })), false);
+  assert.equal(zipHoldsTables(strToU8("not a zip")), false);
 });
 
 test("names that do not fit the template are split at the separator", () => {
