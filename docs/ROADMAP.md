@@ -229,7 +229,8 @@ save/load; methods text; theme; accessibility pass.
       delete / move rows and columns, block select / copy / cut / clear
 - [x] Rounding as a transform (Transform: "Y rounded to K decimals", and
       ROUND() in user formulas)
-- [ ] Data-table limits documented (rows, data sets, subcolumns)
+- [x] Data-table limits documented (rows, data sets, subcolumns): Help →
+      "Limits" (100,000 rows, 200,000 graph points, 50 data sets tested)
 - [x] Undo / redo for every table edit (project-level history, Ctrl/Cmd+Z,
       Shift+Ctrl/Cmd+Z, coalesced typing, 100 steps)
 
@@ -439,7 +440,6 @@ READMEs:
   approximation is used now; engine).
 - Calculated variables (in-table formulas) on multiple-variables tables.
 - Excluding points from one analysis without excluding them from the table.
-- Data-table limits documented (rows, data sets, subcolumns).
 - Grouped graphs: brackets between the two panels of the three-way graph,
   compact letters, and Format graph colours on separated bars (those are
   coloured by group).
@@ -859,9 +859,15 @@ in brackets; "discoverable" = already built, make it findable):
       [`experiment-as-block`, 67.7, 35 obs] Done: wizard question
       (`guide/blocking.ts`), "day-to-day differences removed: SS, % of
       total" on RM ANOVA, pairing r on the paired t test.
-- [ ] Document and test limits (rows, points per graph), virtualise the
+- [x] Document and test limits (rows, points per graph), virtualise the
       grid, and switch dense scatters to WebGL above a threshold.
-      [`large-data`, 66.1, 43 obs]
+      [`large-data`, 66.1, 43 obs] Done: the grid renders the rows in
+      view above 150 rows (`sheets/common/virtualRows.ts`; sticky header,
+      keyboard, block selection, paste and undo unchanged); graphs above
+      5,000 points draw markers with WebGL (`graph/dense.ts`; the export
+      panel says when an SVG/PDF embeds them as an image); Help "Limits";
+      e2e pastes 100,000 rows (grid in ~10 s, t test on 2 × 100,000) and
+      the perf probe times paste, scroll frames and memory.
 - [x] Ask for a reason when values are excluded, list exclusions per
       group in results and methods, and offer a one-click 'results with
       excluded values included'. [`exclusion-log`, 64.1, 29 obs]
@@ -1007,6 +1013,19 @@ Wave 2 (statistics):
       error; table with family line, brackets, methods and legend; the
       mixed-effects model keeps subjects with missing values.
       [`rm-posthoc`] (`sheets/column/rmPosthoc.ts`)
+
+Wave 2 (plain-language results):
+- [x] "What this means" under the results of every analysis: one
+      sentence in the user's groups and units (difference with its CI and
+      %, ANOVA vs post hoc, interaction, r, IC50 and Hill slope, hazard /
+      odds ratio and relative risk, medians, nested df), the common
+      misreading, the test run and why it fits, with sources (Greenland et
+      al. 2016, Amrhein et al. 2019, GraphPad "Interpreting results"
+      pages). Non-significant results read "the data do not show a
+      difference" with the CI, never "no difference" or "a trend".
+      [`plain-language-results`, `nonsig-wording`,
+      `explain-test-choice-in-output`] (`report/meaning.ts`,
+      `report/MeaningLine.tsx`)
 
 Also shipped from Wave 1 of the improvement plan:
 - [x] "Convert table to…" (column ↔ grouped ↔ multiple variables,

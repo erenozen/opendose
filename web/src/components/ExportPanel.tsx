@@ -14,6 +14,7 @@ import {
   toUnit, tooLarge,
 } from "../export/settings";
 import { useExportSettings } from "../export/useExportSettings";
+import { DENSE_POINTS, hasWebglTraces } from "../graph/dense";
 import type { SchemeId } from "../lib/palette";
 import type { ExportFormat, ExportPrefs } from "../project/types";
 
@@ -145,6 +146,12 @@ export default function ExportPanel({
     try {
       const blob = await graphBlob(gd, eff, scheme);
       saveBlob(blob, `${filename}.${EXTENSIONS[eff.format]}`);
+      // Dense graphs draw their points with WebGL (graph/dense.ts): a
+      // vector file then holds those points as an embedded image.
+      if (vector && hasWebglTraces(gd)) {
+        setNote(`This graph has more than ${DENSE_POINTS.toLocaleString("en-US")} points, drawn with WebGL: `
+          + `in the ${eff.format.toUpperCase()} file they are one embedded image; axes, text and lines stay vector.`);
+      }
     } catch {
       setErr("Could not export the graph at that size. Try a smaller one.");
     } finally {

@@ -50,6 +50,9 @@
 // differences with its CI on a hand-made 2 × 2) and the nested mixed
 // models (nested two-way ANOVA from a long table, the grouping-column
 // model on a multiple-variables table).
+// Also: the "What this means" line under results (t test, survival, Cox)
+// and large data (100,000 pasted rows in a virtualised grid, a WebGL graph
+// and its SVG export, a t test on them, the Limits explainer).
 import { chromium } from "playwright";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -1311,7 +1314,7 @@ expect("volcano labels the top ten hits",
     .filter((a) => a.showarrow).length === 10));
 await page.getByRole("button", { name: "Create a table of the hits" }).click();
 expect("volcano: linked table of the 31 hits",
-  await page.waitForFunction(() => document.querySelectorAll(".data-table tbody tr").length >= 31,
+  await page.waitForFunction(() => Number(document.querySelector(".data-table table")?.dataset.rows) >= 31,
     null, { timeout: 30000 }).then(() => true, () => false));
 
 // Tumour growth: long format in, mixed model, AUC per animal, time to endpoint
@@ -2206,7 +2209,7 @@ expect("compare fits graph draws the separate curves and the shared curve",
   await imp9.getByLabel(/In place of the table/).check();
   await imp9.getByRole("button", { name: "Import", exact: true }).click();
   await imp9.waitFor({ state: "detached", timeout: 60000 });
-  await page.waitForFunction(() => document.querySelectorAll(".data-table tbody tr").length >= 2001,
+  await page.waitForFunction(() => Number(document.querySelector(".data-table table")?.dataset.rows) >= 2001,
     null, { timeout: 60000 });
   await page.waitForTimeout(1500);
   // Typing 9 characters costs what it costs the grid to re-render (a
@@ -3774,6 +3777,184 @@ const axeOn = async (pg, sel) => {
     /F\(1, 8\) = 6\.308 0\.036(28|3)\b/.test(geno2), geno2);
   expect("grouping column: the model line names the outcome and the mouse",
     (await page.locator(".pane-results").innerText()).includes("Soma area ~ Genotype * Treatment + (1 | mouse)"));
+}
+
+// --- "What this means" under every result (plain-language-results,
+// nonsig-wording) and large data (large-data): 100,000 pasted rows, a
+// virtualised grid, a WebGL graph and a t test on all of them.
+{
+  const req = createRequire(import.meta.url);
+  const axeOn = async (selector) => {
+    await page.addScriptTag({ path: req.resolve("axe-core/axe.min.js") }).catch(() => {});
+    return page.evaluate(async (sel) => {
+      // eslint-disable-next-line no-undef
+      const r = await axe.run(document.querySelector(sel), { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa"] } });
+      return r.violations.flatMap((x) => x.nodes.map((n) => `${x.id}: ${n.html.slice(0, 70)}`));
+    }, selector);
+  };
+  const live = () => page.waitForSelector('.pane-results[data-live="true"]', { timeout: 240000 });
+  const meaningText = async () => {
+    const m = page.locator(".pane-results .meaning-line").first();
+    return (await appears(m, 60000)) ? (await m.innerText()).replace(/\s+/g, " ") : "";
+  };
+  const newColumn = async (name, example) => {
+    await page.getByRole("button", { name: "New data table" }).first().click();
+    const dlg = page.locator(".new-table-dialog");
+    await dlg.locator('input[name="table-type"][value="column"]').check();
+    await dlg.getByLabel("Table name").fill(name);
+    if (example) await dlg.getByLabel("Example data").check();
+    await dlg.getByRole("button", { name: "Create table" }).click();
+    await page.waitForSelector(".grid-toolbar");
+    await page.waitForTimeout(400);
+  };
+
+  // (a) the example t test: groups, difference, CI and what P means
+  await newColumn("Meaning t test", true);
+  await page.locator(".analysis-select").first().selectOption("ttest");
+  await page.waitForTimeout(400);
+  await live();
+  await page.waitForFunction(() => /Treated A/.test(document.querySelector(".pane-results .meaning-line")?.textContent ?? ""),
+    null, { timeout: 60000 }).catch(() => {});
+  const tMeaning = await meaningText();
+  expect("What this means under the t test: the groups, the difference with its 95% CI, what P means",
+    /On average Treated A was 5\.2 higher than Control/.test(tMeaning) && /95% CI 3\.129 to 7\.271 higher/.test(tMeaning)
+    && /would be unusual \(P = 0\.0002\) if the groups did not differ/.test(tMeaning), tMeaning);
+  expect("the t test's line names the common misreading of P, the test that was run and its sources",
+    /Often misread as/i.test(tMeaning) && /not the probability that there is none/.test(tMeaning)
+    && /Unpaired t test: compares the means of two independent groups/.test(tMeaning)
+    && /Greenland et al\. 2016/.test(tMeaning), tMeaning);
+  const axeMeaning = await axeOn(".pane-results .meaning-line");
+  expect("axe-core: the What this means line passes WCAG 2 AA", axeMeaning.length === 0, axeMeaning.join(" | "));
+
+  // (b) the survival example: a hazard ratio in the user's own groups
+  await page.getByRole("button", { name: "New data table" }).first().click();
+  const sdlg = page.locator(".new-table-dialog");
+  await sdlg.locator('input[name="table-type"][value="survival"]').check();
+  await sdlg.getByLabel("Table name").fill("Meaning survival");
+  await sdlg.getByLabel("Example data").check();
+  await sdlg.getByRole("button", { name: "Create table" }).click();
+  await page.waitForSelector(".grid-toolbar");
+  await page.waitForTimeout(400);
+  await live();
+  const sMeaning = await meaningText();
+  expect("What this means under the survival example: the hazard ratio in Control and Treated, the CI including 1",
+    /Control's rate of the event \(hazard\) was 2\.251 times Treated's \(95% CI 0\.739 to 6\.859\)/.test(sMeaning)
+    && /the CI includes 1, so the data do not show a difference in risk/.test(sMeaning)
+    && !/no difference between|proves?\b/.test(sMeaning), sMeaning);
+  // and under the Cox regression of R's lung data (made earlier)
+  if (await page.getByRole("treeitem", { name: "Lung", exact: true }).count()) {
+    await navRow("Lung").click();
+    await live();
+    const cMeaning = await meaningText();
+    expect("What this means under the Cox regression: Female's hazard as a share of Male's, adjusted for age",
+      /in Female was 60% of that in Male \(hazard ratio 0\.5986, 95% CI 0\.4311 to 0\.8311\)/.test(cMeaning)
+      && /holding Age constant/.test(cMeaning), cMeaning);
+  }
+
+  // (c) 100,000 rows pasted into a column table
+  await newColumn("Hundred thousand", false);
+  const N = 100000;
+  let seed = 11;
+  const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+  const big = Array.from({ length: N }, () => `${(10 + 3 * rnd()).toFixed(3)}\t${(10.4 + 3 * rnd()).toFixed(3)}`).join("\n");
+  const t0 = Date.now();
+  await page.evaluate((t) => {
+    const el = document.querySelector(".data-table input[aria-label='Group A, row 1']");
+    const dt = new DataTransfer();
+    dt.setData("text/plain", t);
+    el.focus();
+    el.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }));
+  }, big);
+  const imp = page.locator(".import-dialog");
+  await imp.waitFor({ timeout: 60000 });
+  await imp.getByRole("tab", { name: "Placement" }).click();
+  await imp.getByLabel(/In place of the table/).check();
+  await imp.getByRole("button", { name: "Import", exact: true }).click();
+  await imp.waitFor({ state: "detached", timeout: 120000 });
+  const pasted = await page.waitForFunction((n) => Number(document.querySelector(".data-table table")?.dataset.rows) === n,
+    N, { timeout: 120000 }).then(() => true, () => false);
+  const pasteMs = Date.now() - t0;
+  const rendered = await page.locator(".data-table tbody tr[data-row]").count();
+  expect("100,000 pasted rows reach the grid within 30 s, and only the rows in view are rendered",
+    pasted && pasteMs < 30000 && rendered > 10 && rendered < 200,
+    `${pasteMs} ms (Ctrl+V → Import → grid); ${rendered} rows rendered of ${N}`);
+
+  // the graph draws its 200,000 points with WebGL
+  const g0 = Date.now();
+  const gl = await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?._fullData ?? [])
+    .some((t) => t.type === "scattergl"), null, { timeout: 120000 }).then(() => true, () => false);
+  expect("the column scatter of 200,000 values draws with WebGL (scattergl)", gl,
+    `${Date.now() - t0} ms after Ctrl+V (${Date.now() - g0} ms after the grid)`);
+
+  // the grid scrolls: scrollTop changes and the rows in view follow
+  const scroll = await page.evaluate(async () => {
+    const w = document.querySelector(".data-table");
+    const before = w.scrollTop;
+    const frames = [];
+    let last = performance.now();
+    for (let i = 0; i < 40; i++) {
+      w.scrollTop += 1500;
+      await new Promise((r) => requestAnimationFrame(r));
+      const now = performance.now(); frames.push(now - last); last = now;
+    }
+    w.scrollTop = Math.round(w.scrollHeight / 2);
+    await new Promise((r) => setTimeout(r, 400));
+    const rows = [...document.querySelectorAll(".data-table tbody tr[data-row]")].map((tr) => Number(tr.dataset.row));
+    frames.sort((a, b) => a - b);
+    return { before, after: w.scrollTop, rows, median: Math.round(frames[20]) };
+  });
+  const mid = scroll.rows.filter((r) => r > 1000);
+  expect("the 100,000-row grid scrolls: scrollTop moves and the rows around the middle are rendered",
+    scroll.after > scroll.before && mid.length > 10 && mid[0] > 40000 && mid[0] < 60000
+    && await page.locator(`.data-table input[aria-label="Group B, row ${mid[5] + 1}"]`).count() === 1,
+    `scrollTop ${scroll.before} → ${scroll.after}; rows ${mid[0] + 1}–${mid[mid.length - 1] + 1} rendered; median frame ${scroll.median} ms while scrolling`);
+  // keyboard navigation past the rendered rows keeps the focus
+  await page.locator(`.data-table input[aria-label="Group A, row ${mid[10] + 1}"]`).click();
+  for (let i = 0; i < 40; i++) await page.keyboard.press("ArrowDown");
+  const focused = await page.evaluate(() => document.activeElement?.getAttribute("aria-label") ?? "");
+  expect("arrow keys move through the virtualised rows (40 rows down)", focused === `Group A, row ${mid[10] + 41}`, focused);
+  for (let i = 0; i < 60; i++) await page.keyboard.press("Shift+ArrowDown");
+  const scope = await page.locator(".data-inspector .inspector-scope").innerText().catch(() => "");
+  const corner = await page.locator(`.data-table td.sel input[aria-label="Group A, row ${mid[10] + 101}"]`).isVisible().catch(() => false);
+  expect("Shift+arrows select a block past the rendered rows, kept in view, summarised by the Data Inspector",
+    scope.startsWith("61 × 1 cells") && corner, `${scope}; far corner visible: ${corner}`);
+  await page.keyboard.press("Escape");
+
+  await page.getByLabel("Export format").selectOption("svg");
+  const [dl] = await Promise.all([page.waitForEvent("download", { timeout: 120000 }).catch(() => null),
+    page.locator(".plot-card").getByRole("button", { name: "Download", exact: true }).click()]);
+  const note = await page.locator(".plot-card .export-note").innerText().catch(() => "");
+  let svgHasImage = false;
+  if (dl) {
+    const f = join(tmp, "dense.svg");
+    await dl.saveAs(f);
+    svgHasImage = readFileSync(f, "utf8").includes("<image");
+  }
+  expect("an SVG export of the WebGL graph says its points are one embedded image (and the file holds it)",
+    /drawn with WebGL/.test(note) && svgHasImage, note);
+  await page.getByLabel("Export format").selectOption("png");
+
+  // a t test on all of it returns live results
+  const tt0 = Date.now();
+  await page.locator(".analysis-select").first().selectOption("ttest");
+  await page.waitForTimeout(400);
+  const tLive = await page.waitForFunction(() => /P value \(two-tailed\)/.test(document.querySelector(".pane-results")?.textContent ?? "")
+    && !!document.querySelector('.pane-results[data-live="true"]'), null, { timeout: 240000 }).then(() => true, () => false);
+  expect("a t test on 2 × 100,000 values returns live results", tLive, `${Date.now() - tt0} ms`);
+
+  // the documented limit is in Help
+  await page.keyboard.press("Control+/");
+  const help = page.getByRole("complementary", { name: "Help" });
+  if (await appears(help, 5000)) {
+    await help.getByRole("searchbox", { name: "Search help" }).fill("limits");
+    await help.getByRole("button", { name: /Limits: how much data/ }).click();
+    const helpText = (await help.innerText()).replace(/\s+/g, " ");
+    expect("Help states the tested limits (100,000 rows, 200,000 points, WebGL above 5,000 points)",
+      /100,000 rows/.test(helpText) && /200,000/.test(helpText) && /5,000 points/.test(helpText), helpText.slice(0, 200));
+    await page.keyboard.press("Escape");
+  } else {
+    expect("Help opens with Ctrl+/", false);
+  }
 }
 
 await page.screenshot({

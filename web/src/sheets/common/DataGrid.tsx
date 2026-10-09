@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useProject } from "../../app/context";
 // factory -> registry -> this grid is a module cycle; addFamily is only
 // called from an event handler, never while modules evaluate.
@@ -31,6 +31,10 @@ import MenuButton from "./MenuButton";
 import ExclusionReasonPrompt, { type ReasonAsk } from "./ExclusionReasonPrompt";
 import { newlyExcluded, reasonAt } from "../../project/exclusions";
 import PasteReportStrip from "./PasteReportStrip";
+import {
+  DEFAULT_ROW_PX, INITIAL_ROWS, rowSegments, sameRange, scrollTopFor, shouldVirtualise,
+  visibleRange, type RowRange,
+} from "./virtualRows";
 import { lazy, Suspense } from "react";
 
 // Wide <-> long (src/share), loaded when first opened.
@@ -145,10 +149,92 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
       : { kind: "y", dataset: col.dataset, row: r, sub: col.sub };
   };
 
+  // ---- row virtualisation (virtualRows.ts): a long table renders the
+  // rows in view plus an overscan; the rest are spacer rows.
+  const virtual = shouldVirtualise(nRows);
+  const [rowPx, setRowPx] = useState(DEFAULT_ROW_PX);
+  const [range, setRange] = useState<RowRange>({ start: 0, end: INITIAL_ROWS });
+  const bodyRef = useRef<HTMLTableSectionElement>(null);
+  const headRef = useRef<HTMLTableSectionElement>(null);
+  const pendingFocus = useRef<{ r: number; c: number } | null>(null);
+  const metrics = () => {
+    const w = wrap.current, b = bodyRef.current;
+    if (!w || !b) return null;
+    const bodyTop = b.getBoundingClientRect().top - w.getBoundingClientRect().top - w.clientTop
+      + w.scrollTop;
+    return { scrollTop: w.scrollTop, viewport: w.clientHeight, bodyTop, rowPx };
+  };
+  const updateRange = () => {
+    const m = metrics();
+    if (!m) return;
+    const next = visibleRange(m, nRows);
+    setRange((cur) => (sameRange(cur, next) ? cur : next));
+  };
+  const updateRef = useRef(updateRange);
+  updateRef.current = updateRange;
+  // Measure the real row height from the rendered rows (one-line inputs:
+  // all rows are as tall), then recompute the rows in view.
+  useLayoutEffect(() => {
+    if (!virtual) return;
+    const rows = bodyRef.current?.querySelectorAll<HTMLTableRowElement>("tr[data-row]");
+    if (rows && rows.length > 4) {
+      const first = rows[0], last = rows[rows.length - 1];
+      const span = Number(last.dataset.row) - Number(first.dataset.row) + 1;
+      if (span === rows.length) {
+        const px = (last.getBoundingClientRect().bottom - first.getBoundingClientRect().top) / span;
+        if (px > 8 && Math.abs(px - rowPx) > 0.25) setRowPx(px);
+      }
+    }
+  }, [virtual, range, nRows, rowPx]);
+  useLayoutEffect(() => {
+    if (virtual) updateRef.current();
+  }, [virtual, nRows, rowPx, sheet.id]);
+  useEffect(() => {
+    const w = wrap.current;
+    if (!w || !virtual) return;
+    let raf = 0;
+    const on = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => updateRef.current());
+    };
+    w.addEventListener("scroll", on, { passive: true });
+    const ro = new ResizeObserver(on);
+    ro.observe(w);
+    return () => { w.removeEventListener("scroll", on); ro.disconnect(); cancelAnimationFrame(raf); };
+  }, [virtual]);
+  // A cell asked for before its row was rendered gets focus once it is.
+  useLayoutEffect(() => {
+    const p = pendingFocus.current;
+    if (!p) return;
+    const el = wrap.current?.querySelector<HTMLInputElement>(
+      `input[data-r="${p.r}"][data-c="${p.c}"]`);
+    if (el) { pendingFocus.current = null; el.focus(); el.select(); }
+  });
+
+  // Keep a row in view (the far corner of a Shift+arrow block).
+  const revealRow = (r: number) => {
+    const w = wrap.current, m = metrics();
+    if (!virtual || !w || !m) return;
+    const top = scrollTopFor(r, m, headRef.current?.getBoundingClientRect().height ?? 0);
+    if (top !== null) w.scrollTop = top;
+  };
+
   const focusCell = (r: number, c: number) => {
     const el = wrap.current?.querySelector<HTMLInputElement>(
       `input[data-r="${r}"][data-c="${c}"]`);
-    if (el) { el.focus(); el.select(); }
+    const w = wrap.current;
+    if (el) {
+      el.focus();
+      el.select();
+    } else if (virtual && w) {
+      // Not rendered yet: scroll it into view, render, then focus.
+      pendingFocus.current = { r, c };
+      const m = metrics();
+      const head = headRef.current?.getBoundingClientRect().height ?? 0;
+      const top = m ? scrollTopFor(r, m, head) : null;
+      if (top !== null) w.scrollTop = top;
+      updateRange();
+    }
   };
 
   const key = (what: string) => `${sheet.id}:${what}`;
@@ -199,11 +285,9 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
       e.preventDefault();
       const [dr, dc] = arrows[e.key];
       const base = sel ?? { r0: r, c0: c, r1: r, c1: c };
-      setSel({
-        ...base,
-        r1: Math.max(0, Math.min(nRows - 1, base.r1 + dr)),
-        c1: Math.max(0, Math.min(flat - 1, base.c1 + dc)),
-      });
+      const r1 = Math.max(0, Math.min(nRows - 1, base.r1 + dr));
+      setSel({ ...base, r1, c1: Math.max(0, Math.min(flat - 1, base.c1 + dc)) });
+      revealRow(r1);
       return;
     }
     let target: [number, number] | null = null;
@@ -348,14 +432,91 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
   };
 
   // ---- inspector scope
-  const inspectRect: CellRect | null = !sel ? null : multi ? rect
+  const inspectNow: CellRect | null = !sel ? null : multi ? rect
     : cols[sel.c0]?.kind === "rowTitle" ? null
       : { r0: 0, r1: nRows - 1, c0: sel.c0, c1: sel.c0 };
+  // One object per selection, so the inspector's statistics (a whole
+  // column of a long table) are not recomputed on every scroll or render.
+  const inspectKey = inspectNow
+    ? [inspectNow.r0, inspectNow.r1, inspectNow.c0, inspectNow.c1].join(":") : "";
+  const inspectRect = useMemo((): CellRect | null => {
+    if (!inspectKey) return null;
+    const [r0, r1, c0, c1] = inspectKey.split(":").map(Number);
+    return { r0, r1, c0, c1 };
+  }, [inspectKey]);
   const scope = !sel ? "" : multi && rect
     ? `${rect.r1 - rect.r0 + 1} × ${rect.c1 - rect.c0 + 1} cells (rows ${rect.r0 + 1}–${rect.r1 + 1})`
     : cols[sel.c0] ? `${columnLabel(t, cols[sel.c0])}, all rows` : "";
 
   const datasetHint = HINTS[t.type];
+
+  // One body row (virtualised tables render only some of them).
+  const headRows = showSubhead ? 2 : 1;
+  const colCount = 2 + (shape.hasRowTitles ? 1 : 0) + (shape.hasX ? 1 : 0)
+    + t.datasets.reduce((n, d) => n + subCount(d), 0);
+  const segments = virtual ? rowSegments(nRows, range, [sel?.r0, sel?.r1]) : [];
+  const renderRow = (r: number) => (
+    <tr key={r} data-row={r} aria-rowindex={virtual ? r + headRows + 1 : undefined}>
+      <td className="rownum">{r + 1}</td>
+      {shape.hasRowTitles && (
+        <th className={`row-label${inSel(r, rowTitleCol) ? " sel" : ""}`}>
+          <input className="ds-name" value={t.rowTitles[r] ?? ""}
+            data-r={r} data-c={rowTitleCol}
+            readOnly={readOnly}
+            aria-label={`Row ${r + 1} title`}
+            onChange={(e) => onChange((x) => setRowTitle(x, r, e.target.value),
+              key(`rt:${r}`))}
+            onKeyDown={onKeyDown}
+            onFocus={() => onCellFocus(r, rowTitleCol)}
+            onBlur={() => setEditing(null)}
+            onPointerDown={(e) => onCellPointerDown(e, r, rowTitleCol)}
+            onPaste={(e) => onPaste(e, r, rowTitleCol)} />
+        </th>
+      )}
+      {shape.hasX && (() => {
+        const ex = isExcluded(t, { kind: "x", row: r });
+        const bad = t.xFormat !== "numbers" && xInvalid(t, t.x[r]);
+        const cls = [ex && "excluded", bad && "x-invalid", inSel(r, xCol) && "sel"]
+          .filter(Boolean).join(" ");
+        return (
+          <td className={cls || undefined}>
+            {cellInput(r, xCol, t.x[r], (v) => onChange((x) => setX(x, r, v),
+              key(`x:${r}`)), {
+              excluded: ex, text: t.xFormat !== "numbers", isX: true, invalid: bad,
+              label: `X, row ${r + 1}`,
+            })}
+          </td>
+        );
+      })()}
+      {t.datasets.map((d, di) =>
+        d.rows[r]?.map((v, s) => {
+          const ex = isExcluded(t, { kind: "y", dataset: di, row: r, sub: s });
+          const c = dsBase[di] + s;
+          const cls = [ex && "excluded", inSel(r, c) && "sel"].filter(Boolean).join(" ");
+          return (
+            <td key={`${di}-${s}`} className={cls || undefined}>
+              {cellInput(r, c, v,
+                (nv) => onChange((x) => setCell(x, di, r, s, nv),
+                  key(`c:${di}:${r}:${s}`)),
+                {
+                  excluded: ex,
+                  reason: ex ? reasonAt(t, { kind: "y", dataset: di, row: r, sub: s }) : undefined,
+                  text: !numeric && d.varType === "categorical",
+                  label: `${d.name}, ${subCount(d) > 1
+                    ? `${d.subTitles?.[s] || subLabel(t.type, di, s)}, ` : ""}row ${r + 1}`,
+                })}
+            </td>
+          );
+        }),
+      )}
+      <td className="rowtools">
+        {!readOnly && nRows > 1 && (
+          <button title="Delete row" aria-label={`Delete row ${r + 1}`}
+            onClick={() => onChange((x) => deleteRow(x, r))}>✕</button>
+        )}
+      </td>
+    </tr>
+  );
   const summary = t.subcolumnFormat !== "replicates";
 
   return (
@@ -429,11 +590,11 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
           } : undefined} />
       )}
 
-      <div className={`data-table${readOnly ? " is-readonly" : ""}${selecting ? " selecting" : ""}`}
+      <div className={`data-table${readOnly ? " is-readonly" : ""}${selecting ? " selecting" : ""}${virtual ? " virtual" : ""}`}
         ref={wrap} onPointerMove={onPointerMove}
         onCopy={(e) => onCopy(e, false)} onCut={(e) => onCopy(e, true)}>
-        <table>
-          <thead>
+        <table data-rows={nRows} aria-rowcount={virtual ? nRows + headRows : undefined}>
+          <thead ref={headRef}>
             <tr>
               <th className="rownum" />
               {shape.hasRowTitles && (
@@ -521,69 +682,15 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
               </tr>
             )}
           </thead>
-          <tbody>
-            {Array.from({ length: nRows }, (_, r) => (
-              <tr key={r}>
-                <td className="rownum">{r + 1}</td>
-                {shape.hasRowTitles && (
-                  <th className={`row-label${inSel(r, rowTitleCol) ? " sel" : ""}`}>
-                    <input className="ds-name" value={t.rowTitles[r] ?? ""}
-                      data-r={r} data-c={rowTitleCol}
-                      readOnly={readOnly}
-                      aria-label={`Row ${r + 1} title`}
-                      onChange={(e) => onChange((x) => setRowTitle(x, r, e.target.value),
-                        key(`rt:${r}`))}
-                      onKeyDown={onKeyDown}
-                      onFocus={() => onCellFocus(r, rowTitleCol)}
-                      onBlur={() => setEditing(null)}
-                      onPointerDown={(e) => onCellPointerDown(e, r, rowTitleCol)}
-                      onPaste={(e) => onPaste(e, r, rowTitleCol)} />
-                  </th>
-                )}
-                {shape.hasX && (() => {
-                  const ex = isExcluded(t, { kind: "x", row: r });
-                  const bad = t.xFormat !== "numbers" && xInvalid(t, t.x[r]);
-                  const cls = [ex && "excluded", bad && "x-invalid", inSel(r, xCol) && "sel"]
-                    .filter(Boolean).join(" ");
-                  return (
-                    <td className={cls || undefined}>
-                      {cellInput(r, xCol, t.x[r], (v) => onChange((x) => setX(x, r, v),
-                        key(`x:${r}`)), {
-                        excluded: ex, text: t.xFormat !== "numbers", isX: true, invalid: bad,
-                        label: `X, row ${r + 1}`,
-                      })}
-                    </td>
-                  );
-                })()}
-                {t.datasets.map((d, di) =>
-                  d.rows[r]?.map((v, s) => {
-                    const ex = isExcluded(t, { kind: "y", dataset: di, row: r, sub: s });
-                    const c = dsBase[di] + s;
-                    const cls = [ex && "excluded", inSel(r, c) && "sel"].filter(Boolean).join(" ");
-                    return (
-                      <td key={`${di}-${s}`} className={cls || undefined}>
-                        {cellInput(r, c, v,
-                          (nv) => onChange((x) => setCell(x, di, r, s, nv),
-                            key(`c:${di}:${r}:${s}`)),
-                          {
-                            excluded: ex,
-                            reason: ex ? reasonAt(t, { kind: "y", dataset: di, row: r, sub: s }) : undefined,
-                            text: !numeric && d.varType === "categorical",
-                            label: `${d.name}, ${subCount(d) > 1
-                              ? `${d.subTitles?.[s] || subLabel(t.type, di, s)}, ` : ""}row ${r + 1}`,
-                          })}
-                      </td>
-                    );
-                  }),
-                )}
-                <td className="rowtools">
-                  {!readOnly && nRows > 1 && (
-                    <button title="Delete row" aria-label={`Delete row ${r + 1}`}
-                      onClick={() => onChange((x) => deleteRow(x, r))}>✕</button>
-                  )}
-                </td>
-              </tr>
-            ))}
+          <tbody ref={bodyRef}>
+            {/* One flat, keyed list: rows keep their elements (and the
+                focused input) when the segments around them change. */}
+            {virtual ? segments.flatMap((seg) => (seg.kind === "gap" ? [
+              <tr key={`gap-${seg.at}`} className="grid-gap" aria-hidden="true">
+                <td colSpan={colCount} style={{ height: seg.rows * rowPx }} />
+              </tr>,
+            ] : Array.from({ length: seg.end - seg.start }, (_, i) => renderRow(seg.start + i))))
+              : Array.from({ length: nRows }, (_, r) => renderRow(r))}
           </tbody>
         </table>
         <div className="table-actions">

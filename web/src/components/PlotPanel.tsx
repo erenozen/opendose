@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type Plotly from "plotly.js-dist-min";
 import { loadPlotly, plotlyNow } from "../lib/plotly";
 import { graphPStyle } from "../graph/significance";
+import { densify } from "../graph/dense";
 import type { AnalysisResult } from "../types";
 import { niceTicks } from "../project/xformat";
 import {
@@ -214,7 +215,7 @@ export default function PlotPanel({
       results: resultBlocks(result, graphPStyle(format)), editRevision: rev,
     });
     const div = el.current;
-    void loadPlotly().then((P) => P.react(div, out.traces as Plotly.Data[], out.layout, plotConfig({
+    void loadPlotly().then((P) => P.react(div, densify(out.traces).traces as Plotly.Data[], out.layout, plotConfig({
       responsive: true,
       scrollZoom: true,
       displaylogo: false,

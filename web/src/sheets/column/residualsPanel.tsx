@@ -75,8 +75,12 @@ export default function ResidualsSection({ data }: { data: R | null | undefined 
     }).filter((t) => ((t as { x: number[] }).x).length > 0);
     // QQ: theoretical normal quantile vs. standardized residual, y = x
     const tq = qq.map((p) => p.theoretical as number);
-    const lo = Math.min(-2, ...tq, ...qq.map((p) => p.standardized as number));
-    const hi = Math.max(2, ...tq, ...qq.map((p) => p.standardized as number));
+    // A loop, not Math.min(...values): spreading 100,000 values overflows the stack.
+    let lo = -2, hi = 2;
+    for (const v of [...tq, ...qq.map((p) => p.standardized as number)]) {
+      if (v < lo) lo = v;
+      if (v > hi) hi = v;
+    }
     const line = (x0: number, y0: number, x1: number, y1: number): Partial<Plotly.Shape> => ({
       type: "line", x0, y0, x1, y1, layer: "below",
       line: { color: chrome.muted, width: 1.25, dash: "dash" } });

@@ -93,6 +93,12 @@ example's numbers, regenerate them against a dev server with
   decimal places, block select / copy / cut / clear / exclude, and a Data
   Inspector card for the selection. Dates and elapsed times as X (parsed,
   analysed in a chosen unit, graphed as dates or h:mm:ss).
+- Large data: tested with 100,000 pasted rows (in the grid in about ten
+  seconds), 200,000 points in one graph, 50 data sets and a t test on
+  2 × 100,000 values. Tables over 150 rows scroll inside their card and
+  render only the rows in view; graphs over 5,000 points draw them with
+  WebGL (an SVG / PDF export then embeds those points as one image).
+  Help → "Limits" says what happens beyond (it slows, nothing is cut).
 - Import: CSV / TSV / other delimiters and .xlsx worksheets through an
   Import dialog (delimiter, decimal comma, encoding, skipped lines,
   column roles, row / column filters, every k-th row, missing code,
@@ -382,6 +388,12 @@ sheets that follow the data.
   methods text and a "Statistical analysis" paragraph. The unit of n and
   the experiments come from Reporting details or from the table's
   replicate assignment ("n = 18 cells from 3 independent experiments").
+- "What this means" under every result: one sentence in the table's own
+  groups and units (the difference with its CI and as a %, what P
+  means, the hazard ratio as "45% of Control's", IC50 and Hill slope),
+  how that result is often misread, and the test run and why it fits,
+  with sources. A non-significant result reads "the data do not show a
+  difference" with the CI, never "no difference" or "a trend".
 - Journal checklists (Nature reporting summary, eLife, Cell STAR Methods,
   SAMPL, ARRIVE items 1-3, 7, 10) ticked from the project with reasons;
   History (provenance of every analysis with its options and table
