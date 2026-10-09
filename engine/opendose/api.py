@@ -3365,6 +3365,78 @@ _HANDLERS.update({
 })
 
 
+# ------------------------------------------- Wave 3: mixed models (nested,
+# grouping column, time course). Payload and result shapes are documented
+# on each handler; methods and sources in opendose.mixed_nested and
+# opendose.mixed_timecourse.
+from . import mixed_nested, mixed_timecourse  # noqa: E402
+
+
+def _mixed_nested_two_way(data, options):
+    """Two-way nested mixed model value ~ A * B + (1 | unit), REML,
+    containment df (units - cells). data: {"records": [{value, factor_a,
+    factor_b, unit, replicate?}]} or column arrays {"value", "factor_a",
+    "factor_b", "unit"}, or the grouped-table layout {"row_titles": [A
+    levels], "datasets": [{"name": B level, "ys": [[unit values (number
+    or list of replicates) per subcolumn] per row], "unit_names"?:
+    [[label per subcolumn] per row]}]}. options: factor_a_name,
+    factor_b_name, levels_a, levels_b, unit_name ("units"), unit_labels
+    ("within_cell" | "as_given"), negative_variance ("allow" | "zero"),
+    ci_level, comparisons (tukey | dunnett | bonferroni | sidak |
+    holm_sidak | holm | fisher), comparison_scope (b_within_a |
+    a_within_b | cells | a_means | b_means), control_index. Result:
+    {"analysis", "formula", "anova": [{term, f, dfn, dfd, p,
+    significant_05, error_term}], "variance_components": {unit, residual:
+    {variance, sd, percent_of_total}}, "icc", "design_effect",
+    "effective_n", "n_units", "n_values", "cell_means": [{a, b, mean, se,
+    ci, df, n_units, n_values, raw_mean}], "marginal_means", "comparisons",
+    "units", "design_note", "warnings", ...}."""
+    return mixed_nested.mixed_nested_two_way(data, options)
+
+
+def _mixed_grouping(data, options):
+    """Multiple-variables table: outcome ~ factors (1-2, with interaction)
+    + (1 | grouping). data: {"variables": [{"name", "values"}]}. options:
+    outcome, factors ([names]), grouping (column name), levels
+    ({factor: [order]}), unit_name, negative_variance, ci_level,
+    comparisons, comparison_scope, control_index. Result: as
+    mixed_nested_two_way with "analysis": "mixed_grouping", "outcome",
+    "grouping"."""
+    for key in ("outcome", "factors", "grouping"):
+        if not options.get(key):
+            raise ValueError(f"mixed_grouping needs options.{key}")
+    return mixed_nested.mixed_grouping(
+        _mv_variables(data), options["outcome"], options["factors"],
+        options["grouping"], options)
+
+
+def _mixed_timecourse(data, options):
+    """Group x time mixed model (opendose.mixed_timecourse). data:
+    {"records": [{subject, group, time, value}]}, column arrays {"subject",
+    "group", "time", "value"} (the auc handler's per-subject payload), or
+    a grouped table {"x" | "row_titles": times, "datasets": [{"name":
+    group, "ys": [[subject values] per time], "subject_names"?}]}.
+    options: covariance (cs | ar1 | unstructured | random_slope), time_as
+    (factor | linear), center_time, random_intercept (ar1), method (reml |
+    ml), baseline_covariate, baseline_time, negative_variance,
+    compare_covariances, comparisons (default sidak; null for none),
+    control_index, ci_level, include_auc, auc_baseline. Result:
+    {"analysis", "formula", "anova", "covariance": {kind, label,
+    parameters, implied_covariance, times}, "fit": {method,
+    minus2_log_likelihood, reml_loglik | log_likelihood, aic, bic,
+    n_covariance_parameters, converged}, "group_at_time",
+    "group_difference_at_time", "model_comparison"?, "auc"?, "warnings",
+    ...}."""
+    return mixed_timecourse.mixed_timecourse(data, options)
+
+
+_HANDLERS.update({
+    "mixed_nested_two_way": _mixed_nested_two_way,
+    "mixed_grouping": _mixed_grouping,
+    "mixed_timecourse": _mixed_timecourse,
+})
+
+
 def analyze(payload: dict) -> dict:
     kind = payload.get("analysis")
     if kind not in _HANDLERS:
