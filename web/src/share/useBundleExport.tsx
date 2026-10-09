@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useProject } from "../app/context";
 import { useUi } from "../app/ui";
+import { currentSavedWith } from "../app/reproduceCheck";
 import { citation, librariesPhrase, versionLabel } from "../export/cite";
 import { saveBlob } from "../export/download";
 import { waitForPlot } from "../export/figure";
@@ -59,7 +60,7 @@ export function useBundleExport() {
     const input: BundleInput = {
       title: p.title,
       projectJson: serializeProject(p, api.results.snapshot(),
-        { keys: api.results.fingerprints(), selected: api.selectedId }),
+        { keys: api.results.fingerprints(), selected: api.selectedId, savedWith: currentSavedWith() }),
       tables: p.sheets.filter((s): s is DataSheet => s.kind === "data")
         .map((s) => ({ name: s.name, table: s.table })),
       results: [], graphs: [], methods: [],

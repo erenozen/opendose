@@ -849,9 +849,21 @@ in brackets; "discoverable" = already built, make it findable):
 - [ ] Document and test limits (rows, points per graph), virtualise the
       grid, and switch dense scatters to WebGL above a threshold.
       [`large-data`, 66.1, 43 obs]
-- [ ] Ask for a reason when values are excluded, list exclusions per
+- [x] Ask for a reason when values are excluded, list exclusions per
       group in results and methods, and offer a one-click 'results with
       excluded values included'. [`exclusion-log`, 64.1, 29 obs]
+      Done: skippable reason prompt after Ctrl/Cmd+E
+      (`DataColumn.exclusionReasons`, `project/exclusions.ts`), an
+      Exclusions block on results sheets, "n = 8 enrolled, 7 analysed
+      (1 excluded: …)" in methods and legends, the side-by-side results
+      with every value included, reasons in History / provenance.json.
+- [x] Reopened projects say whether every saved number came back: files
+      record `savedWith`; opening one saved by another build recomputes
+      and compares at display precision ("All 48 results reproduced …"
+      or each change with both values and the `share/engineChanges.ts`
+      log), kept in History. [`stable-results-versions`, 50.8, 26 obs]
+- [x] Tidy CSV of the export bundle keeps excluded values with
+      `excluded` and `exclusion_reason` columns. [`source-data-export`]
 - [ ] Let a provenance file (or a project) be applied to a new data
       file: same tables, analyses, graphs and layouts, with a diff of
       what changed. [`analysis-replay`, 63.1, 32 obs]

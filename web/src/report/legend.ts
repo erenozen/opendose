@@ -134,6 +134,10 @@ export interface LegendInput {
   plotted?: string;
   /** Added in parentheses after the n statement ("54 cells in all"). */
   nNote?: string;
+  /** Values excluded, per group, after the n statement:
+   *  "n = 8 enrolled, 7 analysed (1 excluded: tumour ulceration)"
+   *  (project/exclusions.ts exclusionSentence). */
+  exclusions?: string;
   result: unknown;
   /** n per group from the table, used when the result has none. */
   groups?: GroupN[];
@@ -164,6 +168,7 @@ export function legendParagraph(i: LegendInput): string {
     : info.groups.length ? info.groups : i.groups ?? [];
   const n = nStatement(groups, wh ? { nUnit: wh.matched ? "pairs" : "values" } : info, i.unit);
   if (n) parts.push(`${n}${i.nNote ? ` (${i.nNote})` : ""}.`);
+  if (i.exclusions) parts.push(`${i.exclusions.replace(/\.$/, "")}.`);
   const est = (i.result as R | null)?.analysis === "estimation";
   if (wh) {
     parts.push(`Descriptive results only, exploratory (${withheldPhrase(wh)}): no statistical `

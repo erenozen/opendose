@@ -85,7 +85,11 @@ example's numbers, regenerate them against a dev server with
   floating notes and Ctrl/Cmd+K to go to any sheet.
 - Editing: Excel paste, keyboard navigation, project-wide undo / redo,
   excluded values (Ctrl/Cmd+E: struck through, skipped by analyses and
-  graphs), sort, insert series, insert / delete / move rows and columns,
+  graphs, with an optional reason asked for on the spot and kept with
+  the data; results list n entered / excluded / analysed per group with
+  the reasons, the methods and legend say "n = 8 enrolled, 7 analysed
+  (1 excluded: tumour ulceration)", and one click shows the results with
+  the excluded values included beside the stored ones), sort, insert series, insert / delete / move rows and columns,
   decimal places, block select / copy / cut / clear / exclude, and a Data
   Inspector card for the selection. Dates and elapsed times as X (parsed,
   analysed in a chosen unit, graphed as dates or h:mm:ss).
@@ -136,7 +140,10 @@ example's numbers, regenerate them against a dev server with
   and graph like…" another table; one graph's format applied to every
   graph of its kind.
 - Project files (JSON, versioned; every release opens every earlier
-  version), autosave in the browser (the last session reopens on the
+  version; a file records the version that saved it, and opening one
+  saved by another version recomputes every result and says "All 48
+  results reproduced" or lists each changed number with both values and
+  the engine change log, also kept in History), autosave in the browser (the last session reopens on the
   next visit), preferences (default table type, error bars, CI method,
   colour scheme, theme, results precision up to 10 significant digits,
   P-value style with a selectable floor for exact P (0.0001, 1e-6, 1e-10
@@ -374,7 +381,8 @@ sheets that follow the data.
 
 - Share links: the project (or one family) compressed into the URL
   fragment, no server; opens read-only with "Make a copy".
-- Export bundle: project file, tidy and wide CSV of every table, results
+- Export bundle: project file, tidy (with `excluded` and
+  `exclusion_reason` columns) and wide CSV of every table, results
   CSV, SVG and PNG graphs, methods, figure legends and results
   sentences, provenance.json, citation and a README with the software
   versions. .pzfx export of XY, column, grouped, contingency and

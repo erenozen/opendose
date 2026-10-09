@@ -3,6 +3,7 @@ import { analyzeAsync } from "../lib/engine";
 import { newId } from "../project/ids";
 import { parseProjectFile, savedSelection } from "../project/persist";
 import { useProject } from "./context";
+import { prepareReproduceCheck } from "./reproduceCheck";
 import { prismTableToFamily, type PrismTable } from "./factory";
 
 /**
@@ -59,7 +60,8 @@ export function useFileOpen() {
       }
       const text = await file.text();
       const project = parseProjectFile(text, { prefs: store.project.prefs, ids: newId });
-      replace(project, savedSelection(text));
+      // Saved by another build: recompute and compare (stable-results-versions).
+      replace(prepareReproduceCheck(text, project, file.name), savedSelection(text));
       setStatus("");
     } catch (e) {
       setStatus(`Could not load file: ${e instanceof Error ? e.message : e}`);
