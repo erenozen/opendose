@@ -810,10 +810,16 @@ in brackets; "discoverable" = already built, make it findable):
       t-based CI width. [`small-n-honesty`, 99.0, 45 obs] Done: web
       side (`sheets/common/withheld.ts`, `guide/smallN.ts`); reads the
       engine's `withheld` / `design_sensitivity` blocks when present.
-- [ ] Add a two-way nested mixed model (treatment × genotype with animal
+- [x] Add a two-way nested mixed model (treatment × genotype with animal
       random) and a 'grouping column' role on multiple-variables tables
       that any comparison fits as a random intercept.
-      [`nested-mixed-models`, 98.7, 75 obs]
+      [`nested-mixed-models`, 98.7, 75 obs] Done: "Nested two-way ANOVA
+      (mixed model: units random)" on grouped tables (block or titled
+      subcolumns, From long table…) and "Mixed model with a grouping
+      column" on multiple-variables tables (row titles allowed), one
+      results panel (design note, variance components and ICC, cell
+      means, comparisons with family header) and the nested scatter with
+      brackets; the wizard routes cells / repeats × two factors there.
 - [x] Ask 'What does each value represent?' (independent experiment /
       animal / technical repeat / cell) when a table is created or
       pasted, and extend replicate assignment to XY tables and grouped
@@ -948,6 +954,17 @@ Made discoverable outside the top 15 (Wave 0):
       data table, one zip). [`prism-files`]
 - [x] Compare fits reachable from curve-fit results ("Compare with
       another model… / another data set…").
+- [x] Time courses: a mixed model with a covariance choice, AUC or a
+      window summary per subject. [`time-course-models`, 58.1, 23 obs]
+      Done: the "Time course" assay (`sheets/assays/timecourse/`):
+      CS / AR(1) / unstructured / random slope with an AIC comparison,
+      group means and differences at each time, AUC per subject and a
+      window summary as linked column tables; GTT example; offered by
+      the wizard for one repeated factor.
+- [ ] Keep the raw, uncropped blot linked to the densitometry numbers.
+      [`raw-image-provenance`, 40.6, 11 obs] Research done:
+      `docs/research/needs/raw-image-provenance-design.md` (recommends
+      building it, effort M; open questions for Eren).
 
 Wave 2, instrument and image-table import:
 - [x] Recipes for Incucyte "Export Data" time series (XY, X = elapsed

@@ -47,10 +47,12 @@
 // ANOVA (with the mixed-effects model for a missing value), and the
 // analysis plan (deviation chip and methods text), "Plan an experiment…"
 // (pooled samples are n = 1), the interaction question (difference of
-// differences with its CI on a hand-made 2 × 2), the "What this means"
-// line under results (t test, survival, Cox) and large data (100,000
-// pasted rows in a virtualised grid, a WebGL graph and its SVG export, a
-// t test on them, the Limits explainer).
+// differences with its CI on a hand-made 2 × 2) and the nested mixed
+// models (nested two-way ANOVA from a long table, the grouping-column
+// model on a multiple-variables table).
+// Also: the "What this means" line under results (t test, survival, Cox)
+// and large data (100,000 pasted rows in a virtualised grid, a WebGL graph
+// and its SVG export, a t test on them, the Limits explainer).
 import { chromium } from "playwright";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -3655,6 +3657,126 @@ const axeOn = async (pg, sel) => {
   expect("one click back to the Interaction block", await appears(page.locator(".pane-results .interaction-test"), 30000));
   expect("axe-core: the plan chip, the plan sheet, Plan an experiment and the Interaction block pass WCAG 2 AA",
     axeHits.length === 0, axeHits.join(" | "));
+}
+
+// --- nested mixed models (need nested-mixed-models): cells nested in mice
+// in a WT/KO × vehicle/drug design, the literal data set of
+// engine/tests/test_mixed_nested.py (3 mice per cell, 4 values per mouse).
+// Hand-written classical nested ANOVA (pinned in the engine tests):
+// Genotype F = 6.30811 on (1, 8), P = 0.036281; ICC 0.748744; cell SE
+// 0.909117. The same records on a multiple-variables table with the mouse
+// as the grouping column give the same Genotype test.
+{
+  const DATA = [
+    ["WT", "Vehicle", "WV1", [11.4, 11.3, 9.5, 9.7]], ["WT", "Vehicle", "WV2", [9.9, 9.3, 10.1, 7.5]],
+    ["WT", "Vehicle", "WV3", [11.8, 12.6, 11.7, 11.5]], ["WT", "Drug", "WD1", [12.2, 11.2, 11.2, 12.0]],
+    ["WT", "Drug", "WD2", [8.2, 10.2, 9.1, 7.8]], ["WT", "Drug", "WD3", [9.4, 8.6, 8.3, 9.9]],
+    ["KO", "Vehicle", "KV1", [12.3, 11.8, 13.0, 13.3]], ["KO", "Vehicle", "KV2", [11.7, 12.2, 10.9, 10.3]],
+    ["KO", "Vehicle", "KV3", [12.2, 13.0, 10.6, 11.3]], ["KO", "Drug", "KD1", [10.6, 12.4, 12.8, 11.6]],
+    ["KO", "Drug", "KD2", [15.8, 15.6, 15.4, 15.9]], ["KO", "Drug", "KD3", [12.3, 12.3, 9.9, 12.0]],
+  ];
+  const LONG = "Mouse\tGenotype\tTreatment\tSoma area\n"
+    + DATA.flatMap(([a, b, u, v]) => v.map((x) => `${u}\t${a}\t${b}\t${x}`)).join("\n");
+  const resultsHas = (re, timeout = 90000) => page.waitForFunction((src) =>
+    new RegExp(src).test(document.querySelector('.pane-results[data-live="true"]')?.innerText ?? ""),
+  re.source, { timeout }).then(() => true, () => false);
+  const anovaRow = async (term) => (await page.locator(".mixed-anova tbody tr", {
+    has: page.locator("th", { hasText: new RegExp(`^${term}$`) }) }).first().innerText().catch(() => ""))
+    .replace(/\s+/g, " ");
+  const axeOn = async (selectors) => {
+    const axeFile = createRequire(import.meta.url).resolve("axe-core/axe.min.js");
+    await page.addScriptTag({ path: axeFile }).catch(() => {});
+    return page.evaluate(async (sels) => {
+      const out = [];
+      for (const sel of sels) {
+        const el = document.querySelector(sel);
+        if (!el) continue;
+        // eslint-disable-next-line no-undef
+        const r = await axe.run(el, { runOnly: { type: "rule", values: ["select-name", "label",
+          "aria-input-field-name", "button-name", "color-contrast", "th-has-data-cells"] } });
+        out.push(...r.violations.flatMap((x) => x.nodes.map((n) => `${sel} ${x.id}: ${n.html.slice(0, 80)}`)));
+      }
+      return out;
+    }, selectors);
+  };
+
+  // (a) grouped table, nested two-way ANOVA, filled from long records
+  await page.getByRole("button", { name: "New data table" }).click();
+  const nd = page.locator(".new-table-dialog");
+  await nd.locator('input[name="table-type"][value="grouped"]').check();
+  await nd.getByLabel("Table name").fill("Soma nested");
+  await nd.getByRole("button", { name: "Create table" }).click();
+  await page.waitForSelector(".controls h3:has-text('Design')", { timeout: 10000 });
+  await page.getByRole("button", { name: "Analyze", exact: true }).click();
+  await page.getByRole("menuitem", { name: /Nested two-way ANOVA \(mixed model: units random\)/ }).click();
+  expect("nested two-way: an empty table asks for blocks of rows, one subcolumn per unit",
+    await resultsHas(/Enter values: rows titled with a level of the row factor/, 30000));
+  await page.getByRole("button", { name: "From long table…" }).click();
+  const ld = page.getByRole("dialog", { name: "Nested two-factor data from a long table" });
+  await ld.getByLabel("Long table text").fill(LONG);
+  expect("From long table: 2 levels × 2 data sets, 12 units, 48 values",
+    (await ld.locator(".import-summary").innerText().catch(() => "")).includes("2 levels × 2 data sets, 12 units, 48 values"));
+  await ld.getByRole("button", { name: "Fill the table" }).click();
+  expect("the design note says where the df come from: 12 mice, not 48 values",
+    await resultsHas(/df come from 12 mice, not from 48 values/));
+  const geno = await anovaRow("Genotype");
+  expect("nested two-way: Genotype F = 6.308 on (1, 8), P = 0.0363 (hand-written nested ANOVA)",
+    /F\(1, 8\) = 6\.308 0\.036(28|3)\b/.test(geno), geno);
+  expect("nested two-way: interaction F(1, 8) = 1.035, tested against mice",
+    /F\(1, 8\) = 1\.035 0\.3387 ns mice \(8 df\)/.test(await anovaRow("Genotype × Treatment")),
+    await anovaRow("Genotype × Treatment"));
+  const res = (await page.locator(".pane-results").innerText()).replace(/\s+/g, " ");
+  expect("variance components: ICC 0.749 with the design-effect sentence (Aarts 2014)",
+    res.includes("Intraclass correlation (ICC) 0.749") && res.includes("ICC = 0.749: 75% of the variation lies between mice")
+    && res.includes("Aarts et al. 2014"));
+  expect("cell means: KO · Drug 13.05, SE 0.9091, 3 mice, 12 values",
+    /KO Drug 13\.05 0\.9091 10\.95 to 15\.15 8 3 12/.test(res));
+  expect("comparisons header names the family: Treatment within each Genotype, adjusted per family (Tukey)",
+    res.includes("Compared: Treatment within each level of Genotype. P values adjusted for 1 comparison within each of 2 families (Tukey)"));
+  await page.getByLabel("Multiple comparisons method").selectOption("sidak");
+  expect("Šídák: P values adjusted for the 2 comparisons together",
+    await resultsHas(/P values adjusted for 2 comparisons \(Šídák\)/));
+  const brackets = await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.layout
+    ?.annotations ?? []).filter((a) => a.name === "bracket-label").length === 2, null, { timeout: 30000 })
+    .then(() => true, () => false);
+  const unitPoints = await page.evaluate(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+    .filter((t) => t.meta?.odTag?.role === "points").reduce((a, t) => a + t.y.length, 0));
+  expect("nested scatter: 12 mouse means and a bracket per genotype from the comparisons",
+    brackets && unitPoints === 12, String(unitPoints));
+  const legendText = await page.locator(".methods-text").first().innerText().catch(() => "");
+  expect("methods text: mouse as a random intercept, df from the 12 mice",
+    legendText.includes("mouse as a random intercept") && legendText.includes("12 mice − 4 cells = 8 df"),
+    legendText.slice(0, 160));
+  const axeNested = await axeOn([".mixed-results", ".pane-controls .controls"]);
+  expect("axe-core: nested two-way results and controls pass", axeNested.length === 0, axeNested.join(" | "));
+
+  // (b) the same records on a multiple-variables table, mouse as grouping
+  await page.getByRole("button", { name: "New data table" }).click();
+  const nm = page.locator(".new-table-dialog");
+  await nm.locator('input[name="table-type"][value="multivariable"]').check();
+  await nm.getByLabel("Table name").fill("Soma long");
+  await nm.getByRole("button", { name: "Create table" }).click();
+  await page.waitForTimeout(500);
+  await page.evaluate((t) => {
+    const el = document.querySelector(".data-table tbody input[data-r='0']:not([aria-label$='title'])");
+    const dt = new DataTransfer();
+    dt.setData("text/plain", t);
+    el.focus();
+    el.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }));
+  }, LONG);
+  const imp = page.locator(".import-dialog");
+  await imp.waitFor({ timeout: 10000 });
+  await imp.getByRole("button", { name: "Import", exact: true }).click();
+  await imp.waitFor({ state: "detached", timeout: 10000 }).catch(() => {});
+  await page.getByRole("button", { name: "Analyze", exact: true }).click();
+  await page.getByRole("menuitem", { name: /Mixed model with a grouping column/ }).click();
+  expect("grouping column: the same design note (12 mice, 48 values)",
+    await resultsHas(/df come from 12 mice, not from 48 values/));
+  const geno2 = await anovaRow("Genotype");
+  expect("grouping column: the same Genotype test, F(1, 8) = 6.308, P = 0.0363",
+    /F\(1, 8\) = 6\.308 0\.036(28|3)\b/.test(geno2), geno2);
+  expect("grouping column: the model line names the outcome and the mouse",
+    (await page.locator(".pane-results").innerText()).includes("Soma area ~ Genotype * Treatment + (1 | mouse)"));
 }
 
 // --- "What this means" under every result (plain-language-results,
