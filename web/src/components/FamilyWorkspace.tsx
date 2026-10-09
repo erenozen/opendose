@@ -210,9 +210,10 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
                 {engineReady && <AnalysisBusy status={resStatus} engine={engine} />}
                 <ResultsGuide analysisId={resSheet.analysis} tableType={data.table.type}
                   table={data.table} options={options} result={result}
-                  dataId={data.id} readOnly={readOnly} />
+                  dataId={data.id} resultsId={resSheet.id} readOnly={readOnly} />
                 <ResultsLinks key={resSheet.id} sheet={resSheet} tableName={data.name}
                   options={options} result={result} />
+
                 <ResultsExport name={resSheet.name}>
                   <Suspense fallback={<Pending />}>
                     <Results sheet={resSheet} table={data.table} options={options} result={result} />
