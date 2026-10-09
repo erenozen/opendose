@@ -5,6 +5,7 @@ import type { ControlsProps, GraphOptionsProps, PlotProps, ResultsProps } from "
 import { OptCheck, OptNote, OptSlider } from "../../components/GraphOptionControls";
 import { useGraphSetting } from "../grouped/plotting";
 import { normalizeSurvivalGraph } from "./graphSettings";
+import { CoxLink } from "../../components/ResultsLinks";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -23,8 +24,13 @@ export function SurvivalControls(_: ControlsProps) {
   );
 }
 
-export function SurvivalResultsPanel({ result, table }: ResultsProps<unknown, any>) {
-  return <SurvivalResults result={result} table={table} />;
+export function SurvivalResultsPanel({ sheet, result, table }: ResultsProps<unknown, any>) {
+  return (
+    <>
+      <SurvivalResults result={result} table={table} />
+      {result && !result.error && <CoxLink sheet={sheet} />}
+    </>
+  );
 }
 
 export function SurvivalGraph({ graph, result, titles, scheme, table, format, onFormatChange }:

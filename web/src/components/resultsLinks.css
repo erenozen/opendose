@@ -1,0 +1,41 @@
+/* Results-sheet links (ResultsLinks.tsx) and the validation page's
+   per-analysis note. Tokens only. */
+.results-links {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 18px;
+  margin: 0 0 10px; padding: 0 2px; font-size: 12.5px; color: var(--muted);
+}
+.results-link { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 2px 6px; min-width: 0; }
+.results-link button.linkish { font-size: 13px; font-weight: 550; }
+.results-link-note { color: var(--muted); }
+
+.results-why {
+  display: flex; align-items: flex-start; gap: 10px; margin: 0 0 10px;
+  padding: 10px 12px; border: 1px solid var(--accent-border); border-radius: var(--radius-s);
+  background: var(--accent-soft); color: var(--ink); font-size: 13px; line-height: 1.5;
+}
+.results-why p { margin: 0; max-width: 80ch; }
+.results-why .dismiss { margin-left: auto; padding: 0 8px; min-height: 28px; flex: none; }
+
+.results-crosslink { margin: 10px 0 0; font-size: 13px; color: var(--muted); line-height: 1.5; }
+.results-crosslink button.linkish { font-weight: 550; }
+
+.results-empty-links {
+  list-style: none; margin: 14px auto 0; padding: 0; display: flex; flex-direction: column;
+  gap: 10px; max-width: 520px; text-align: left;
+}
+.results-empty-links li { display: grid; grid-template-columns: minmax(0, 220px) minmax(0, 1fr); gap: 4px 12px; align-items: center; }
+.results-empty-links span { font-size: 12.5px; color: var(--muted); }
+@media (max-width: 640px) {
+  .results-empty-links li { grid-template-columns: minmax(0, 1fr); }
+}
+
+.validation-scope {
+  border: 1px solid var(--accent-border); border-radius: var(--radius-s);
+  background: var(--accent-soft); padding: 10px 12px;
+}
+.validation-scope h3 { margin: 0 0 4px; font-size: 14px; font-weight: 650; color: var(--ink); }
+.validation-scope p { margin: 0; font-size: 13px; line-height: 1.55; color: var(--ink-2); max-width: 80ch; }
+
+@media print {
+  .results-links, .results-why, .results-crosslink { display: none !important; }
+}

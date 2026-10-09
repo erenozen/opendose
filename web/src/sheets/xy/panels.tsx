@@ -21,6 +21,7 @@ import { chooseModelOf } from "./run";
 import { switchResultsAnalysis } from "./switchAnalysis";
 import { RangeFlagsBar } from "./rangeFlags";
 import { concentrationUnit, displayOf } from "./rangeReport";
+import { CompareFitsLinks } from "../../components/ResultsLinks";
 import "./xy.css";
 
 /** Open the model picker of the controls pane (after "Fit a curve"). */
@@ -148,6 +149,10 @@ export function NonlinResults({ sheet, table, result, options }:
     <>
       <RangeFlagsBar sheet={sheet} result={result} options={options} />
       <ResultsPanel result={result} xUnit={concentrationUnit(table) || "M"} />
+      {result && !(result as { error?: unknown }).error && (
+        <CompareFitsLinks sheet={sheet} table={table} model={options.model}
+          xIsLog={!!options.xIsLog} />
+      )}
     </>
   );
 }

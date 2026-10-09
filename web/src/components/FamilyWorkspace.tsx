@@ -37,6 +37,7 @@ import EffectSizeCard from "../report/EffectSizeCard";
 import GraphLegend from "../report/GraphLegend";
 import ReportCard from "../report/ReportCard";
 import StatsMethodsCard from "../report/StatsMethodsCard";
+import ResultsLinks, { ResultsEmptyLinks } from "./ResultsLinks";
 
 /**
  * The workbench for one family: the data table (left) with the active
@@ -165,7 +166,7 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
                       appear next to this table.
                     </p>
                     {guide && (
-                      <button type="button" onClick={guide.openWizard}>Which test?…</button>
+                      <button type="button" onClick={guide.openWizard}>Help me choose…</button>
                     )}
                   </section>
                 </div>
@@ -209,6 +210,8 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
                 <ResultsGuide analysisId={resSheet.analysis} tableType={data.table.type}
                   table={data.table} options={options} result={result}
                   dataId={data.id} readOnly={readOnly} />
+                <ResultsLinks key={resSheet.id} sheet={resSheet} tableName={data.name}
+                  options={options} result={result} />
                 <ResultsExport name={resSheet.name}>
                   <Suspense fallback={<Pending />}>
                     <Results sheet={resSheet} table={data.table} options={options} result={result} />
@@ -240,13 +243,8 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
             ) : !graph && !resSheet && (
               <div className="pane pane-results">
                 <div className="empty-hint result-card">
-                  No results or graphs for this table yet.
-                  {guide && (
-                    <div className="results-empty-actions">
-                      <button type="button" className="btn-primary" onClick={guide.openWizard}>
-                        Which test?…</button>
-                    </div>
-                  )}
+                  No results or graphs for this table yet. Use Analyze in the toolbar, or:
+                  <ResultsEmptyLinks />
                 </div>
               </div>
             )}

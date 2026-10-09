@@ -224,9 +224,10 @@ export default function Header({ onOpenFile, onNewProject }: {
                   <button type="button" role="menuitem" tabIndex={-1}
                     className="menu-item menu-item-2line menu-item-guide"
                     onClick={() => { setAnalyzeOpen(false); guide.openWizard(); }}>
-                    <span>Which test?…</span>
-                    <span className="menu-desc">Answer a few questions about your design; get a
-                      recommended test with its reason, set up on this table.</span>
+                    <span>Help me choose…</span>
+                    <span className="menu-desc">
+                      {`Which test? A few questions about ${data.name} and its rows; get the `
+                        + "recommended test with its reason, set up here."}</span>
                   </button>
                 )}
                                 {tdef.analyses.map((a, i) => (

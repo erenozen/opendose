@@ -795,11 +795,14 @@ Files: [`CATALOGUE.md`](research/needs/CATALOGUE.md),
 
 Top 15 proposals by priority score (need id, score and observation count
 in brackets; "discoverable" = already built, make it findable):
-- [ ] Offer "Which test?" inline in the Analyze dialog (a 'Help me
+- [x] Offer "Which test?" inline in the Analyze dialog (a 'Help me
       choose' first entry, pre-filled from the table) and phrase its
       pairing question with the user's own first row ('Is A1 the same
       animal as B1?'). [`design-first-test-chooser`, 100.0, 51 obs]
-      (discoverable)
+      (discoverable) Done: "Help me choose…" first in Analyze; groups,
+      layout, replicates and a paired analysis on screen pre-filled
+      (`guide/tablePrefill.ts`); questions name the table's data sets and
+      first complete row; the results sheet it opens says why.
 - [ ] When any group has fewer than two independent values, withhold P
       and show descriptive results labelled exploratory; at n = 2–3 add
       a chip with the detectable effect (from the power engine) and the
@@ -825,9 +828,12 @@ in brackets; "discoverable" = already built, make it findable):
 - [ ] Add 'Analyse log(values)' to unpaired t tests and ANOVA, reporting
       geometric-mean ratios with CIs, and a chip that suggests it when
       SDs rise with means. [`log-scale-analysis`, 78.0, 45 obs]
-- [ ] Offer 'Plan the next experiment' from any results sheet,
+- [x] Offer 'Plan the next experiment' from any results sheet,
       pre-filled with this data's SD and effect. [`power-sample-size`,
-      72.8, 58 obs] (discoverable)
+      72.8, 58 obs] (discoverable) Done for t tests and one-way ANOVA
+      (`power/pilot.ts`): the pilot SD is filled in, the effect to detect
+      is a chosen difference or the pilot difference labelled as such;
+      never observed power (FAQ 1710). Also in the empty results pane.
 - [ ] Ask 'Was each condition run once per experiment, on different
       days?' and, if yes, open the matched analysis (RM ANOVA / paired)
       with experiment as the block, and show the
@@ -858,6 +864,20 @@ in brackets; "discoverable" = already built, make it findable):
 - [x] Offer 'Report as > highest dose' for extrapolated IC50s, carried
       into the results table, the results sentence and any ratio, with
       the reason. [`incomplete-curve-flags`, 60.8, 20 obs]
+
+Made discoverable outside the top 15 (Wave 0):
+- [x] Cox regression: the stale "not in OpenDose yet" wizard text fixed;
+      the survival recommendation opens Cox on the same table, and the
+      survival results link to it. [`hazard-ratio-cox`]
+- [x] "How this is validated" on every results sheet, opening the
+      validation page filtered to that analysis' checks with a count
+      sentence (`share/validationIndex.ts`). [`validated-results`]
+- [x] Start screen: .prism / .pzfx files open here (also dropped on the
+      screen); Save menu: "Export tables as .pzfx (opens in GraphPad
+      Prism)" and "Convert Prism files to CSV…" (several files, every
+      data table, one zip). [`prism-files`]
+- [x] Compare fits reachable from curve-fit results ("Compare with
+      another model… / another data set…").
 
 ## Next up
 
