@@ -13,6 +13,7 @@ import { getRuntimeVersions, runEngine } from "../lib/engine";
 import { exportPzfx, pzfxSelection } from "./pzfx";
 import { findSheet } from "../project/ops";
 import { serializeProject } from "../project/persist";
+import { replayPlanOf } from "../project/replay";
 import type { DataSheet, ExportPrefs, GraphSheet } from "../project/types";
 import { resultsMatrix } from "../sheets/common/download";
 import { analysisDef } from "../sheets/registry";
@@ -71,6 +72,7 @@ export function useBundleExport() {
       skipped: [],
       legends: [],
       provenance: JSON.stringify(projectProvenance(p, provenanceDeps(api.results), provenanceEnv()), null, 2),
+      replayPlan: replayPlanOf(p),
     };
     // The tables as .pzfx too, for collaborators who use Prism.
     try {

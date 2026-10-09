@@ -15,6 +15,7 @@
 // Every test is named with its sidedness; exact P values follow the
 // style's floor (pformat.ts). Pure (no React), unit-tested against native
 // engine results (__tests__/sentences.test.ts).
+import { familyAdjustedFor, familyOf } from "./family.ts";
 import { formatSig } from "../types.ts";
 import { describeResult, POSTHOC_NAMES, TEST_NAMES } from "./describe.ts";
 import { effectGroups, primaryEffect, type EffectRow } from "./effects.ts";
@@ -278,7 +279,11 @@ function posthocSentence(mc: R | null | undefined, f: Fmt, method?: string,
     return `${label}, ${join([est, ci ? f.ci(ci, mc.ci_level ?? 0.95) : null,
       num(p) ? f.p(p, pLabel) : null])}`;
   });
-  const note = uncorrected ? " (not corrected for multiple comparisons)" : "";
+  // the family the P values were adjusted for (report/family.ts)
+  const fam = familyOf(mc, m === "dunns" ? "dunns" : undefined);
+  const adjFor = fam && !uncorrected ? familyAdjustedFor(fam) : "";
+  const note = uncorrected ? " (not corrected for multiple comparisons)"
+    : adjFor ? ` (P values ${adjFor})` : "";
   return `${name}${note}: ${items.join("; ")}.`;
 }
 
@@ -476,14 +481,26 @@ function doseResponseSentences(r: R, f: Fmt): string[] {
     const fit = ds?.fit;
     if (!fit?.params) continue;
     const order: string[] = Array.isArray(fit.param_order) ? fit.param_order : Object.keys(fit.params);
+    // An IC50 beyond the doses tested (sheets/xy/rangeReport.ts): "IC50 >
+    // 30 µM (not reached in the range tested)", or the number, flagged.
+    const rd = fit.range_flags?.display;
+    const flagged = (k: string) => !!rd && (k === rd.label || k === rd.param);
+    const hasLabel = !!rd && order.includes(rd.label);
     const items = order.map((k) => {
       const e = fit.params[k];
       if (!e || !num(e.value)) return null;
+      if (rd && rd.mode === "bound" && flagged(k)) {
+        if (hasLabel && k !== rd.label) return null;
+        return k === rd.label ? String(rd.text) : `${k} ${rd.logBound ?? rd.bound} (not reached in the range tested)`;
+      }
+      if (rd && rd.mode === "bound" && /ratio|potency/i.test(k)) return `${k} undefined (${rd.label} ${rd.boundWithUnit})`;
       const c = ci2(e.ci95);
       const v = (x: number) => (Math.abs(x) < 1e-3 || Math.abs(x) >= 1e5 ? minus(formatSig(x, 3)) : f.n(x));
       const ci = c ? (f.style === "apa" ? `, 95% CI [${v(c[0])}, ${v(c[1])}]`
         : f.style === "nejm" ? ` (95% CI, ${v(c[0])} to ${v(c[1])})` : `, 95% CI ${v(c[0])} to ${v(c[1])}`) : "";
-      return `${k} = ${v(e.value)}${ci}`;
+      const flag = rd && rd.mode === "fitted" && flagged(k)
+        ? ` (extrapolated, ${rd.relation === ">" ? "above" : "below"} the range tested)` : "";
+      return `${k} = ${v(e.value)}${ci}${flag}`;
     }).filter(Boolean);
     const r2 = fit.goodness?.r_squared;
     const r2s = num(r2) ? (f.style === "graphpad" ? f.n(r2) : r2.toFixed(3).replace(/^0/, f.style === "apa" ? "" : "0")) : "";

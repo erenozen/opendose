@@ -1,0 +1,24 @@
+/* Residuals section of t test / ANOVA results (residualsPanel.tsx), the
+   comparisons family picker (comparisonsPicker.tsx) and the family line of
+   comparisons tables (sheets/common/FamilyLine.tsx). */
+.resid-toggle {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: none; border: 0; padding: 2px 0; cursor: pointer;
+  font: inherit; font-size: 15px; font-weight: 650; color: var(--ink);
+  letter-spacing: -0.01em;
+}
+.resid-toggle:hover { color: var(--accent); }
+.resid-caret { width: 1em; color: var(--muted); }
+.resid-grid {
+  display: grid; gap: 16px; margin-top: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+}
+.resid-fig { margin: 0; min-width: 0; }
+.resid-fig figcaption { color: var(--ink-2); font-size: 12.5px; line-height: 1.5; margin-top: 4px; }
+.resid-plot { width: 100%; min-height: 300px; }
+.resid-shapiro { margin-top: 10px; }
+.resid-advice .source-line, .comparisons-picker .source-line { display: block; margin-top: 4px; }
+.resid-warnings { color: var(--warn-ink); font-size: 12.5px; margin: 6px 0 0; padding-left: 18px; }
+.planned-pairs { border: 1px solid var(--border-soft); border-radius: var(--radius-s); padding: 6px 10px; margin: 4px 0; }
+.planned-pairs legend { font-size: 12px; color: var(--muted); padding: 0 4px; }
+.family-line { color: var(--ink-2); }

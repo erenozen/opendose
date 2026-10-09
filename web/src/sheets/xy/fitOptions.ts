@@ -171,6 +171,7 @@ export function globalModelToResult(g: any): AnalysisResult {
             sy_x: g.goodness?.sy_x,
           },
           curve: ds.curve,
+          ...(ds.range_flags ? { range_flags: ds.range_flags } : {}),
         },
       };
     }),

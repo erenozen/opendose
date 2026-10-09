@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { strFromU8, unzipSync } from "fflate";
 import { setReasons } from "../../project/exclusions.ts";
 import { emptyTable, setCell, toggleExcluded } from "../../project/table.ts";
-import { bundleFiles, zipBundle, type BundleInput } from "../bundle.ts";
+import { bundleFiles, withReplayPlan, zipBundle, type BundleInput } from "../bundle.ts";
 
 function input(): BundleInput {
   let t = emptyTable("column", { datasets: 2, rows: 2 });
@@ -56,6 +56,18 @@ test("tidy CSV is long, wide CSV is the grid; zip round-trips", () => {
   const back = unzipSync(zipBundle(files));
   assert.deepEqual(Object.keys(back), files.map((f) => f.name));
   assert.deepEqual([...back["graphs/graph-of-dose-response.png"]], [137, 80]);
+});
+
+test("provenance.json carries the replay plan when there is one", () => {
+  const plan = { opendose_project: 2, version: 2, sheets: [] };
+  const files = bundleFiles({ ...input(), provenance: "{\"opendose_provenance\":1,\"families\":[]}",
+    replayPlan: plan });
+  const prov = JSON.parse(strFromU8(files.find((f) => f.name === "provenance.json")!.data));
+  assert.equal(prov.opendose_provenance, 1);
+  assert.deepEqual(prov.replay_plan, plan);
+  assert.match(strFromU8(files[0].data), /replay_plan re-applies/);
+  assert.equal(withReplayPlan("{\"a\":1}"), "{\"a\":1}");
+  assert.equal(withReplayPlan("not json", plan), "not json");
 });
 
 test("tidy CSV keeps excluded values with their reason (source data)", () => {

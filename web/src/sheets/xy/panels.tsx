@@ -19,6 +19,8 @@ import { autoFitGate, chooseReasonText } from "./autofit";
 import { ANALYSIS_LINREG, DEFAULT_LINREG, GRAPH_LINREG } from "./linreg";
 import { chooseModelOf } from "./run";
 import { switchResultsAnalysis } from "./switchAnalysis";
+import { RangeFlagsBar } from "./rangeFlags";
+import { concentrationUnit, displayOf } from "./rangeReport";
 import { CompareFitsLinks } from "../../components/ResultsLinks";
 import "./xy.css";
 
@@ -145,7 +147,8 @@ export function NonlinResults({ sheet, table, result, options }:
   if (choose) return <ChooseModel sheet={sheet} reason={chooseReasonText(choose.reason)} />;
   return (
     <>
-      <ResultsPanel result={result} xUnit={table.xUnit || "M"} />
+      <RangeFlagsBar sheet={sheet} result={result} options={options} />
+      <ResultsPanel result={result} xUnit={concentrationUnit(table) || "M"} />
       {result && !(result as { error?: unknown }).error && (
         <CompareFitsLinks sheet={sheet} table={table} model={options.model}
           xIsLog={!!options.xIsLog} />
@@ -156,7 +159,19 @@ export function NonlinResults({ sheet, table, result, options }:
 
 export function NonlinMethods({ table, result, options }:
   ResultsProps<OptionsState, AnalysisResult>) {
-  return <MethodsText result={result} options={options} xUnit={table.xUnit || "M"} />;
+  const flagged = (result?.datasets ?? []).some((ds) => displayOf(ds.fit));
+  return (
+    <>
+      <MethodsText result={result} options={options} xUnit={table.xUnit || "M"} />
+      {flagged && (
+        <p className="hint-block range-methods">
+          {options.extrapolatedReport === "fitted"
+            ? "IC50/EC50 values beyond the concentrations tested are reported as the fitted values, flagged as extrapolations."
+            : "IC50/EC50 values beyond the concentrations tested are reported as greater than the highest (or less than the lowest) concentration tested, not as extrapolated values."}
+        </p>
+      )}
+    </>
+  );
 }
 
 export function XYPlot({ table, result, titles, scheme, format, onFormatChange }:

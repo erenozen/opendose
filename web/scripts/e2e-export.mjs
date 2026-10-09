@@ -2,14 +2,17 @@
 // from the sample project's graphs and exports it, exports a graph as a
 // vector PDF and as a transparent PNG, and checks the files byte by byte
 // (PNG header, pHYs resolution, alpha at a corner; PDF signature and
-// text kept as text). Also checks the citation and version stamp.
+// text kept as text). Also checks the citation and version stamp, the
+// PowerPoint export (a slide per graph, SVG picture with PNG fallback,
+// legend in the notes) and "Copy for Word" / "Copy graph" on the clipboard.
 import { chromium } from "playwright";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
+import { createRequire } from "node:module";
 import { inflateSync } from "node:zlib";
-import { unzipSync } from "fflate";
+import { strFromU8, unzipSync } from "fflate";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const baseUrl = process.argv[2] ?? "http://localhost:5173/";
@@ -26,7 +29,10 @@ const browser = await chromium.launch({
     ? [`--host-resolver-rules=${process.env.HOST_RESOLVER}`]
     : [],
 });
-const page = await browser.newPage({ viewport: { width: 1500, height: 1000 } });
+// Clipboard permissions: "Copy for Word" and "Copy graph" are read back.
+const context = await browser.newContext({ viewport: { width: 1500, height: 1000 },
+  permissions: ["clipboard-read", "clipboard-write"] });
+const page = await context.newPage();
 const errors = [];
 const fail = [];
 page.on("pageerror", (e) => errors.push(`pageerror: ${e.message}`));
@@ -116,6 +122,82 @@ expect("export all graphs: one PNG per graph in a zip",
   `${zip.name}: ${names.join(", ")}`);
 await page.keyboard.press("Escape");
 
+// --- every graph to PowerPoint: one slide per graph sheet, each graph an
+// SVG picture (svgBlip) with a PNG fallback, the figure legend in the notes
+const graphSheets = await page.locator(".nav-item[data-key^='graph:']").count();
+const legendShown = ((await page.locator(".figure-legend-text").first().textContent()) ?? "").trim();
+await page.getByRole("button", { name: "More ways to save and share" }).click();
+await page.getByRole("menuitem", { name: "Export graphs to PowerPoint (.pptx)…" }).click();
+const pptDlg = page.getByRole("dialog", { name: "Export graphs to PowerPoint" });
+await pptDlg.waitFor({ timeout: 10000 });
+expect("PowerPoint dialog explains how to edit a graph (Convert to Shape)",
+  (await pptDlg.innerText()).includes("Convert to Shape"));
+await page.addScriptTag({ path: createRequire(import.meta.url).resolve("axe-core/axe.min.js") })
+  .catch(() => {});
+const axePptx = await page.evaluate(async () => {
+  // eslint-disable-next-line no-undef
+  const r = await axe.run(document.querySelector("dialog[open]"),
+    { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa"] } });
+  return r.violations.flatMap((x) => x.nodes.map((n) => `${x.id}: ${n.html.slice(0, 90)}`));
+});
+expect("axe-core: no WCAG A/AA violations in the PowerPoint dialog", axePptx.length === 0, axePptx.join(" | "));
+await pptDlg.getByRole("radio", { name: /^Every graph/ }).check();
+const pptx = await save(() => pptDlg.getByRole("button", { name: "Export .pptx" }).click());
+const parts = unzipSync(new Uint8Array(pptx.buf));
+const slides = Object.keys(parts).filter((n) => /^ppt\/slides\/slide\d+\.xml$/.test(n));
+expect("pptx has one slide per graph sheet", graphSheets === 2 && slides.length === graphSheets,
+  `${pptx.name}: ${slides.length} slides, ${graphSheets} graph sheets`);
+const xmlText = (n) => strFromU8(parts[n] ?? new Uint8Array());
+const types = xmlText("[Content_Types].xml");
+const slide1 = xmlText("ppt/slides/slide1.xml");
+const rels1 = xmlText("ppt/slides/_rels/slide1.xml.rels");
+expect("pptx slide 1 references an SVG part of type image/svg+xml",
+  /Id="rId3"[^>]*Target="\.\.\/media\/image1\.svg"/.test(rels1)
+  && types.includes('<Default Extension="svg" ContentType="image/svg+xml"/>')
+  && xmlText("ppt/media/image1.svg").includes("<svg"));
+expect("pptx slide 1 picture is an svgBlip with a PNG fallback",
+  /<a:blip r:embed="rId2">/.test(slide1) && /<asvg:svgBlip [^>]*r:embed="rId3"\/>/.test(slide1)
+  && parts["ppt/media/image1.png"]?.[0] === 0x89);
+expect("pptx slide 1 is titled with the graph sheet's name", slide1.includes("<a:t>Graph of Dose response</a:t>"));
+const unxml = (s) => s.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"')
+  .replace(/&apos;/g, "'").replace(/&amp;/g, "&");
+const notes1 = unxml(xmlText("ppt/notesSlides/notesSlide1.xml"));
+expect("pptx notes of slide 1 hold the figure legend", legendShown.length > 40 && notes1.includes(legendShown),
+  legendShown.slice(0, 80));
+
+// --- "Copy for Word": an HTML table (and plain text) on the clipboard
+const firstShown = await page.locator(".results-export-wrap").first().evaluate((root) => {
+  for (const td of root.querySelectorAll("table tbody td")) {
+    const t = td.innerText.replace(/\s+/g, " ").trim();
+    if (/^[<>]?\s?[−-]?\d[\d.,]*(e[−+-]?\d+)?$/.test(t)) return t;
+  }
+  return "";
+});
+await page.getByRole("group", { name: "Export these results" }).first()
+  .getByRole("button", { name: "Copy for Word" }).click();
+await page.waitForTimeout(300);
+const clip = await page.evaluate(async () => {
+  const out = {};
+  for (const it of await navigator.clipboard.read()) {
+    for (const t of it.types) out[t] = await (await it.getType(t)).text();
+  }
+  return out;
+});
+const html = clip["text/html"] ?? "";
+expect("Copy for Word puts an HTML table with a header row on the clipboard",
+  html.includes("<table") && html.includes("<thead>") && html.includes("border-collapse"),
+  `${html.length} characters`);
+expect("the HTML table holds the first number shown", !!firstShown && html.includes(`>${firstShown.replace(/</g, "&lt;")}<`),
+  firstShown);
+expect("Copy for Word also puts plain text on the clipboard",
+  (clip["text/plain"] ?? "").includes(firstShown) && (clip["text/plain"] ?? "").includes("\t"));
+
+// --- "Copy graph for Word or PowerPoint": a PNG picture on the clipboard
+await panel.getByRole("button", { name: "Copy graph for Word or PowerPoint" }).click();
+await panel.getByRole("status").filter({ hasText: /^Copied as PNG/ }).waitFor({ timeout: 30000 });
+const imgTypes = await page.evaluate(async () => (await navigator.clipboard.read()).flatMap((i) => i.types));
+expect("Copy graph puts a PNG on the clipboard", imgTypes.includes("image/png"), imgTypes.join(", "));
+
 // --- methods text: version stamp and citation ---
 const methods = await page.locator(".methods-text").first().textContent();
 expect("methods text carries the version stamp", /OpenDose version \S+/.test(methods));
@@ -183,6 +265,27 @@ const svgText = pageSvg.buf.toString("utf8");
 expect("layout SVG embeds both graphs as vector",
   (svgText.match(/class="main-svg"/g) ?? []).length >= 2 && svgText.startsWith("<svg"));
 await exportBar.getByLabel("Page export format").selectOption("png");
+
+// --- the layout as a PowerPoint slide at its own page size
+await page.getByRole("treeitem", { name: "Layout 1", exact: true }).first()
+  .locator(":scope > .nav-row").click({ button: "right" });
+await page.getByRole("menuitem", { name: "Export to PowerPoint (.pptx)…" }).click();
+const layDlg = page.getByRole("dialog", { name: "Export graphs to PowerPoint" });
+await layDlg.waitFor({ timeout: 10000 });
+expect("PowerPoint dialog from a layout offers this layout",
+  await layDlg.getByRole("radio", { name: "This layout: “Layout 1”" }).isChecked());
+const layPptx = await save(() => layDlg.getByRole("button", { name: "Export .pptx" }).click());
+const lp = unzipSync(new Uint8Array(layPptx.buf));
+const lpText = (n) => strFromU8(lp[n] ?? new Uint8Array());
+expect("layout pptx: one A4 slide (210 × 297 mm in EMU)",
+  /<p:sldSz cx="7560000" cy="10692000"\/>/.test(lpText("ppt/presentation.xml"))
+  && Object.keys(lp).filter((n) => /^ppt\/slides\/slide\d+\.xml$/.test(n)).length === 1,
+  layPptx.name);
+expect("layout pptx: the page is an SVG picture holding both graphs",
+  /<asvg:svgBlip /.test(lpText("ppt/slides/slide1.xml"))
+  && (lpText("ppt/media/image1.svg").match(/class="main-svg"/g) ?? []).length >= 2);
+expect("layout pptx notes give each panel's legend by letter",
+  /\(A\) .+\(B\) /s.test(unxml(lpText("ppt/notesSlides/notesSlide1.xml"))));
 
 // rearrange into 2 × 2: the two graphs stay, two empty placeholders appear
 await page.getByRole("button", { name: "Arrange as 2 rows by 2 columns" }).click();

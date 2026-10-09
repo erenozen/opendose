@@ -10,7 +10,8 @@ import {
 } from "../../project/types.ts";
 import type { ColumnOptionsState } from "../../types.ts";
 import { COLUMN_ANALYSIS_LABELS, DEFAULT_NORMALITY_TESTS } from "../../types.ts";
-import { allCellsComparisons } from "../common/allCells.ts";
+import { allCellsComparisons, cellsFamily } from "../common/allCells.ts";
+import { familyOptions } from "./comparisonsFamily.ts";
 import { withWithheld } from "../common/withheld.ts";
 
 export function runColumn(engine: EngineBridge, table: DataTableModel,
@@ -22,7 +23,55 @@ export function runColumn(engine: EngineBridge, table: DataTableModel,
     return { ...r, multiple_comparisons: twoWayAllCells(engine, table, o) };
   }
   // Fewer than two independent values in a group: no P (common/withheld.ts).
-  return withWithheld(table, o, r);
+  const w = withWithheld(table, o, r);
+  // Residual diagnostics (QQ plot, residuals vs. fitted) for the t tests
+  // and ANOVAs that assume Gaussian residuals: a second engine call.
+  const rp = residualsPayload(table, o);
+  if (rp && w && !w.error) {
+    if ("unavailable" in rp) return { ...w, residual_check: rp };
+    const res = engine.analyze(rp) as Record<string, unknown>;
+    return { ...w, residual_check: res && !res.error ? res
+      : { unavailable: `Residuals could not be computed: ${String(res?.error ?? "no result")}` } };
+  }
+  return w;
+}
+
+/** The residuals_column payload for analyses whose model assumes Gaussian
+ *  residuals (unpaired / Welch / paired t test, ordinary and Welch one-way
+ *  ANOVA, RM ANOVA with two treatments), {unavailable} for RM ANOVA with
+ *  more treatments (the subject + treatment residuals are not computed by
+ *  the engine yet), else null. */
+export function residualsPayload(table: DataTableModel, o: ColumnOptionsState):
+  Record<string, unknown> | { unavailable: string } | null {
+  const d = numericData(table).datasets;
+  if (o.analysis === "ttest") {
+    const a = d[o.datasetA], b = d[o.datasetB];
+    if (!a || !b || o.datasetA === o.datasetB) return null;
+    if (o.ttestKind === "unpaired" || o.ttestKind === "welch") {
+      return { analysis: "residuals_column", data: { datasets: [a, b] }, options: {} };
+    }
+    if (o.ttestKind === "paired") {
+      return { analysis: "residuals_column", data: { datasets: [a, b] },
+        options: { paired: true, dataset_a: 0, dataset_b: 1 } };
+    }
+    return null;
+  }
+  if (o.analysis === "anova" && o.anovaKind === "parametric") {
+    return { analysis: "residuals_column", data: { datasets: d }, options: {} };
+  }
+  if (o.analysis === "rm_anova" && o.rmKind === "parametric") {
+    if (d.length === 2) {
+      // two matched treatments: the residuals of the paired differences
+      return { analysis: "residuals_column",
+        data: { datasets: d.map((x) => ({ name: x.name, ys: x.ys.map((row) => [row[0] ?? null]) })) },
+        options: { paired: true, dataset_a: 0, dataset_b: 1 } };
+    }
+    return { unavailable: "Residual plots for repeated measures with more than two "
+      + "treatments need the residuals of the subject + treatment model, which this "
+      + "version does not compute yet. Check the matched values on a before-after graph, "
+      + "or analyse the paired differences of two treatments with a paired t test." };
+  }
+  return null;
 }
 
 /** Every cell mean against every other: needs the interaction model. */
@@ -90,6 +139,8 @@ export function columnPayload(table: DataTableModel, o: ColumnOptionsState):
         control_index: o.controlIndex,
         ...(o.anovaKind === "nonparametric" && o.dunnCorrected === false
           ? { dunn_corrected: false } : {}),
+        // each vs. control or planned pairs (comparisonsFamily.ts)
+        ...familyOptions(o, base.data.datasets.length),
       } };
   }
   if (o.analysis === "median_test") return { analysis: "median_test", ...base, options: {} };
@@ -119,7 +170,8 @@ export function columnPayload(table: DataTableModel, o: ColumnOptionsState):
   if (o.analysis === "rm_anova") {
     return { analysis: "rm_anova", ...base,
       options: { kind: o.rmKind,
-        ...(o.rmKind === "nonparametric" && o.rmExact ? { exact: true } : {}) } };
+        ...(o.rmKind === "nonparametric" && o.rmExact ? { exact: true } : {}),
+        ...familyOptions(o, base.data.datasets.length) } };
   }
   if (o.analysis === "roc") {
     return { analysis: "roc", ...base,
@@ -238,10 +290,12 @@ export function runColumnSummary(engine: EngineBridge, table: DataTableModel,
         if (!c.error && m) {
           const comps = (m.comparisons as Result[]).map((x) => ({
             family: "All cells", pair: x.pair, difference: x.difference, ci95: x.ci ?? null,
-            statistic: x.statistic, p_adjusted: x.p_adjusted, significant_05: x.significant_05 }));
+            statistic: x.statistic, p_adjusted: x.p_adjusted, significant_05: x.significant_05,
+            p_unadjusted: x.p_unadjusted, family_size: x.family_size, method: x.method }));
           mc = { method: o.twoWayComparisons, direction: "all_cells",
             ms_residual: (c.table as Result)?.ms_within, df_residual: (c.table as Result)?.df_within,
-            n_comparisons: comps.length, comparisons: comps };
+            n_comparisons: comps.length, comparisons: comps,
+            ...(cellsFamily(m.family) ? { family: cellsFamily(m.family) } : {}) };
         }
       }
       return { ...r, analysis: "two_way_anova", from_summary: true,

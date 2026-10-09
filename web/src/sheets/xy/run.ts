@@ -13,6 +13,7 @@ import {
 } from "./fitOptions";
 import { autoFitGate, type ChooseReason } from "./autofit";
 import { rowPoints } from "./deming";
+import { withRangeReport } from "./rangeReport";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -193,6 +194,7 @@ export function runNonlin(engine: EngineBridge, table: DataTableModel,
             sy_x: g.goodness.sy_x,
           },
           curve: ds.curve,
+          ...(ds.range_flags ? { range_flags: ds.range_flags } : {}),
         },
       })),
     };
@@ -292,7 +294,8 @@ export function chooseModelOf(result: unknown): ChooseModelResult["choose_model"
 export function runNonlinGated(engine: EngineBridge, table: DataTableModel,
   options: OptionsState): AnalysisResult {
   const gate = autoFitGate(table, options);
-  if (gate.fit) return runNonlin(engine, table, options);
+  // an IC50 beyond the doses tested is reported as "> highest dose"
+  if (gate.fit) return withRangeReport(runNonlin(engine, table, options), table, options);
   const pts = rowPoints(table);
   // not "dose_response": the report must not describe a fit that did not run
   return {

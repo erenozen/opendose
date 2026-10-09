@@ -109,8 +109,15 @@ example's numbers, regenerate them against a dev server with
   "From long table…" fills CMH, ROC, quantal and multi-curve XY tables
   from long records;
   import recipes for FlowJo, CellProfiler, QuPath, plate-reader grids,
-  qPCR Cq exports and long CSVs (metadata from sample names, aggregation
-  cell → image → animal, pivot to any table type); Reshape between long
+  qPCR Cq exports, Incucyte time series, LabChart text exports,
+  multi-read plate runs (wavelengths or kinetic reads, wells grouped
+  with a plate map) and long CSVs (metadata from sample names,
+  aggregation cell → image → animal, pivot to any table type); many
+  per-image CSVs or a zip at once, stacked with the file name and read
+  with a name template ("{condition}_rep{replicate}_img{image}.csv")
+  into a SuperPlot-ready table with its replicate map; any import
+  mapping saved as a recipe (in this browser and in the project, so a
+  share link carries it) and applied to the next file; Reshape between long
   and wide; .prism and .pzfx files (one or all tables, summary tables as
   summary tables; also dropped on the start screen), and "Convert Prism
   files to CSV…" (several files, every data table, one zip). Export: any
@@ -175,6 +182,10 @@ example's numbers, regenerate them against a dev server with
   the weighted SS directly (as R's nls with weights). Polynomials to
   tenth order. A new XY table fits on its own only when the data look like
   a dose-response; otherwise it offers linear regression or a curve fit.
+  An IC50 / EC50 beyond the concentrations tested is reported as
+  "IC50 > 30 µM (not reached in the range tested)" in the table and the
+  results sentence, with the reason (or, per results sheet, as the fitted
+  number flagged as extrapolated).
 - Linear regression on XY tables (slope, intercept, X intercept, the
   regression ANOVA table, runs test, bands, optionally through the
   origin with R² about Y = 0); Deming (Model II) regression.
@@ -201,6 +212,15 @@ example's numbers, regenerate them against a dev server with
   small); Mood's median test; Pearson, Spearman or Kendall correlation
   with one-sided P; Grubbs and ROUT outliers. Results sheets are named
   after the test they show.
+- Every comparisons table (one-way, Dunn's, two- and three-way, multiple
+  t tests, nested) shows the unadjusted P beside the adjusted one and
+  the family it was adjusted for ("adjusted for 6 comparisons (Tukey)"),
+  in the legend and methods too. Dunn's test (Kruskal-Wallis, Friedman)
+  and Šídák, Bonferroni, Holm-Šídák, Holm or Fisher's LSD after one-way
+  ANOVA compare every pair, each group vs. a control or only the planned
+  pairs ticked. t test and ANOVA results have a Residuals section: a QQ
+  plot and residuals vs. fitted, with Shapiro-Wilk as a secondary line
+  and advice that depends on n.
 - Grouped data: two-way ANOVA (ordinary with or without the interaction
   term, repeated measures by rows or both factors, mixed-effects model
   when values are missing, or from mean / SD / N; factor names read from
@@ -327,6 +347,11 @@ sheets that follow the data.
   a chosen DPI, JPEG, WebP, SVG or vector PDF, journal width presets
   with a font-floor warning, clipboard copy, all graphs as a zip;
   Ctrl/Cmd+P prints the selected sheet.
+- PowerPoint export (.pptx, made in the browser): one slide per graph
+  or page layout, each graph a vector picture that PowerPoint's
+  "Convert to Shape" makes editable, with its figure legend in the
+  notes. "Copy for Word" on every results sheet pastes as a formatted
+  table; "Copy" under a graph puts it on the clipboard as PNG and SVG.
 
 ### Reporting
 
@@ -395,6 +420,10 @@ sheets that follow the data.
   sentences, provenance.json, citation and a README with the software
   versions. .pzfx export of XY, column, grouped, contingency and
   survival tables.
+- Apply to new data: next week's file (CSV, TSV, pasted, .xlsx, .pzfx)
+  goes into the tables of this project, a project file or a bundle's
+  provenance.json; every analysis, graph and layout is kept and re-run,
+  and a replay log lists which numbers changed (P values first).
 - "How OpenDose is validated": every pinned cross-check (Prism
   screenshots, NIST, statistics-guide examples, published tables,
   statsmodels, pingouin, R) with both values and the source, also as
