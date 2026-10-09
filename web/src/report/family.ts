@@ -112,6 +112,9 @@ export function comparisonsBlock(result: unknown): R | null {
   if (r.multiple_comparisons && typeof r.multiple_comparisons === "object") {
     return r.multiple_comparisons;
   }
+  // RM one-way ANOVA's comparisons block (engine rm_posthoc)
+  if (r.analysis === "rm_one_way_anova" && r.comparisons && typeof r.comparisons === "object"
+    && Array.isArray(r.comparisons.comparisons)) return r.comparisons;
   return null;
 }
 

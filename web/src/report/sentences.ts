@@ -326,6 +326,15 @@ function rmSentences(r: R, f: Fmt, eff: EffectRow | null): string[] {
   const head = f.style === "nejm"
     ? `Matched values (${r.n_subjects} subjects) were compared by repeated-measures one-way ANOVA (${join([stat, eps, eff ? effectText(eff, f) : null, f.p(t.p_geisser_greenhouse)], "; ")}).`
     : `A repeated-measures one-way ANOVA (${r.n_subjects} subjects; ${eps ?? "no correction"}) gave ${join([stat, f.p(t.p_geisser_greenhouse), eff ? effectText(eff, f) : null])}.`;
+  return [head, posthocSentence(r.multiple_comparisons ?? r.comparisons, f)].filter(Boolean) as string[];
+}
+
+/** RM one-way design fitted as a mixed-effects model (values missing). */
+function mixedRmSentences(r: R, f: Fmt): string[] {
+  const fe = r.fixed_effect ?? {};
+  const p = num(fe.p_geisser_greenhouse) ? fe.p_geisser_greenhouse : fe.p;
+  const stat = fStat(f, fe.F, fe.df_num, fe.df_den);
+  const head = `A mixed-effects model for repeated measures (${r.n_subjects} subjects, ${r.n_missing} missing value${r.n_missing === 1 ? "" : "s"}; Geisser-Greenhouse corrected) gave ${join([stat, num(p) ? f.p(p) : null])}.`;
   return [head, posthocSentence(r.multiple_comparisons, f)].filter(Boolean) as string[];
 }
 
@@ -570,6 +579,57 @@ function proportionSentence(r: R, f: Fmt): string {
   return `${cap(props.join(" vs. "))}${d && num(d.value) ? `; difference ${f.n(d.value)}${dc ? `, ${f.ci(dc)}` : ""}` : ""}${num(r.fisher_exact?.p) ? `; Fisher's exact test (two-sided), ${f.p(r.fisher_exact.p)}` : ""}.`;
 }
 
+// ------------------------------------------------------- log scale
+// t test and one-way ANOVA on log10(values) (sheets/column/logScale.ts):
+// the estimate is the ratio of geometric means, "Treated/Control =
+// 2.97-fold (95% CI 1.67–5.28)", and P is the P of the test on the logs.
+
+function logBaseOf(r: R): string {
+  return r.log_scale?.base === "ln" || r.log_scale?.base === "log2" ? r.log_scale.base : "log10";
+}
+
+function fold(a: string, b: string, ratio: unknown, ci: unknown, f: Fmt): string | null {
+  if (!num(ratio)) return null;
+  const c = ci2(ci);
+  const s = (v: number) => formatSig(v, 3);
+  const ciText = !c ? "" : f.style === "apa" ? ` (95% CI [${s(c[0])}, ${s(c[1])}])`
+    : f.style === "nejm" ? ` (95% CI, ${s(c[0])} to ${s(c[1])})` : ` (95% CI ${s(c[0])}–${s(c[1])})`;
+  return `${a}/${b} = ${s(ratio)}-fold${ciText}`;
+}
+
+function logScaleTtest(r: R, f: Fmt): string[] | null {
+  if (!r.log_scale || typeof r.log_scale !== "object" || !num(r.ratio)) return null;
+  const [a, b] = Array.isArray(r.names) ? r.names.map(String) : ["A", "B"];
+  const test = `${TEST_NAMES[String(r.test)] ?? "t test"} on ${logBaseOf(r)}-transformed values, two-tailed`;
+  const stat = num(r.t) ? (f.style === "apa" ? `t(${f.df(r.df)}) = ${f.n(Math.abs(r.t))}`
+    : f.style === "graphpad" ? `t = ${f.n(Math.abs(r.t))}, df = ${f.df(r.df)}` : null) : null;
+  const gm = Array.isArray(r.geometric_means) && r.geometric_means.length === 2
+    ? `geometric means ${f.n(r.geometric_means[0].geometric_mean)} and ${f.n(r.geometric_means[1].geometric_mean)}` : null;
+  return [`${fold(a, b, r.ratio, r.ratio_ci, f)} (${join([gm, `${test}`, stat, f.p(r.p_two_tailed)], "; ")}).`];
+}
+
+function logScaleAnova(r: R, f: Fmt): string[] | null {
+  if (!r.log_scale || typeof r.log_scale !== "object" || r.kind === "nonparametric" || !r.table) return null;
+  const t = r.table;
+  const stat = fStat(f, t.F, t.df_between, t.df_within);
+  const gm = Array.isArray(r.geometric_means)
+    ? r.geometric_means.map((g: R) => `${g.name} ${f.n(g.geometric_mean)}`).join(", ") : "";
+  const head = `An ordinary one-way ANOVA on ${logBaseOf(r)}-transformed values gave ${join([stat, f.p(t.p)])}${gm ? ` (geometric means: ${gm})` : ""}.`;
+  const mc = r.multiple_comparisons;
+  if (!mc || !Array.isArray(mc.comparisons) || !mc.comparisons.length) return [head];
+  const m = String(mc.method ?? "");
+  const uncorrected = m === "fisher_lsd";
+  const items = mc.comparisons.map((c: R) => {
+    const i = typeof c.pair === "string" ? c.pair.indexOf(" vs. ") : -1;
+    const [x, y] = i > 0 ? [c.pair.slice(0, i), c.pair.slice(i + 5)] : [String(c.pair), ""];
+    const p = num(c.p_adjusted) ? c.p_adjusted : c.p_unadjusted;
+    return join([fold(x, y, c.ratio, c.ratio_ci, f) ?? String(c.pair), num(p) ? f.p(p, uncorrected ? "P" : "adjusted P") : null]);
+  });
+  const fam = familyOf(mc);
+  const adjFor = fam && !uncorrected ? familyAdjustedFor(fam) : "";
+  return [head, `${cap(POSTHOC_NAMES[m] ?? m)}${adjFor ? ` (P values ${adjFor})` : ""}, as ratios of geometric means: ${items.join("; ")}.`];
+}
+
 /** P withheld (fewer than two independent values in a group): the values
  *  described, labelled exploratory, and why there is no P. */
 function withheldSentence(w: WithheldInfo, f: Fmt): string {
@@ -599,11 +659,12 @@ export function resultSentences(result: unknown, ctx: SentenceContext = {}): str
   const eff = primaryEffect(effectGroups(r, prefs));
   try {
     switch (r.analysis) {
-      case "ttest": return [ttestSentence(r, f, eff)].filter(Boolean);
+      case "ttest": return logScaleTtest(r, f) ?? [ttestSentence(r, f, eff)].filter(Boolean);
       case "ks_test": return [ttestSentence({ ...r, test: "kolmogorov_smirnov" }, f, null)].filter(Boolean);
-      case "anova": return anovaSentences(r, f, eff);
+      case "anova": return logScaleAnova(r, f) ?? anovaSentences(r, f, eff);
       case "anova_unequal_var": return welchAnovaSentences(r, f);
       case "rm_one_way_anova": return rmSentences(r, f, eff);
+      case "mixed_rm_one_way": return mixedRmSentences(r, f);
       case "friedman": return friedmanSentences(r, f, eff);
       case "two_way_anova": return factorialSentences(r, f, prefs, "two-way ANOVA");
       case "rm_two_way_mixed": return factorialSentences(r, f, prefs, "two-way repeated-measures ANOVA, mixed design");

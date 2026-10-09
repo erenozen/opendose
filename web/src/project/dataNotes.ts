@@ -301,6 +301,12 @@ function tableNotes(t: DataTableModel, plan: Plan, result: unknown):
       if (has.every(Boolean)) complete++;
       else if (has.some(Boolean)) incomplete.push(r);
     }
+    // RM one-way fitted as a mixed-effects model: incomplete subjects kept
+    if ((result as { analysis?: string } | null)?.analysis === "mixed_rm_one_way" && incomplete.length) {
+      return { analysed: `n = ${plural(complete + incomplete.length, "row", "rows")} (subjects) analysed by the `
+        + `mixed-effects model; ${plural(incomplete.length, "incomplete row", "incomplete rows")} (row`
+        + `${incomplete.length === 1 ? "" : "s"} ${rowList(incomplete)}) kept`, notes };
+    }
     const left = incomplete.length
       ? `; ${plural(incomplete.length, "incomplete row", "incomplete rows")} (row${incomplete.length === 1 ? "" : "s"} `
         + `${rowList(incomplete)}) left out`

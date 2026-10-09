@@ -247,9 +247,10 @@ function postHocFor(d: Design, kind: "ordinary" | "welch" | "rank" | "twoway" | 
     return { family: fam, method: d.question === "all" ? "Tukey" : "Dunnett",
       why: d.question === "all" ? "Tukey's test compares every condition with every other."
         : "Dunnett's test compares each condition with the control condition.",
-      inOpenDose: "OpenDose's repeated-measures one-way ANOVA reports the overall test only; "
-        + "for pairwise comparisons that keep the matching, run paired t tests on the pairs "
-        + "you need and correct for their number (Šídák)." };
+      inOpenDose: "In the repeated-measures one-way ANOVA controls, choose "
+        + (d.question === "all" ? "Tukey" : "Dunnett (each vs. baseline)")
+        + " under Multiple comparisons: every comparison keeps the matching (each pair's own "
+        + "paired differences with the Geisser-Greenhouse correction)." };
   }
   if (d.question === "all") {
     if (kind === "welch") {
@@ -285,9 +286,8 @@ function postHocFor(d: Design, kind: "ordinary" | "welch" | "rank" | "twoway" | 
       ? "OpenDose opens Dunnett's T3 over every pair; for a few planned pairs, the Šídák "
         + "correction for just those pairs is less conservative."
       : kind === "rm"
-        ? "OpenDose's repeated-measures one-way ANOVA reports the overall test only; for "
-          + "pairwise comparisons, run paired t tests on the planned pairs and correct for "
-          + "their number."
+        ? "In the repeated-measures one-way ANOVA controls, choose Šídák under Multiple "
+          + "comparisons and tick the planned pairs: the correction then counts only those."
         : "OpenDose applies Šídák's correction to every pair in the results; if you planned "
           + "fewer comparisons, the correct adjustment for your family is smaller than the "
           + "one shown." };
