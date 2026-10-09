@@ -10,7 +10,9 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { contrastReading, contrastSentence, interactionSummary } from "../interactionSummary.ts";
+import {
+  contrastReading, contrastSentence, interactionSummary, isAdditiveTwoWay,
+} from "../interactionSummary.ts";
 import { normalizeTwoWay } from "../options.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -62,4 +64,12 @@ test("the interactionFocus option survives normalisation; absent otherwise", () 
   assert.equal(normalizeTwoWay({ interactionFocus: true }).interactionFocus, true);
   assert.equal("interactionFocus" in normalizeTwoWay({}), false);
   assert.equal("interactionFocus" in normalizeTwoWay({ interactionFocus: "yes" }), false);
+});
+
+test("the no-interaction note belongs to the additive model only", () => {
+  // the engine (opendose.twoway) names the model it fitted every time
+  assert.equal(isAdditiveTwoWay({ ...result, model: "full (with interaction)" }), false);
+  assert.equal(isAdditiveTwoWay({ model: "main effects only (additive)" }), true);
+  assert.equal(isAdditiveTwoWay({}), false);
+  assert.equal(isAdditiveTwoWay(null), false);
 });

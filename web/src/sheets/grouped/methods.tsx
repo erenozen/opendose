@@ -4,6 +4,7 @@ import { useState } from "react";
 import { formatSig } from "../../types";
 import type { ResultsProps } from "../types";
 import { pLabel } from "./format";
+import { isAdditiveTwoWay } from "./interactionSummary";
 import {
   CORRECTION_LABEL, FDR_METHODS, ROW_TEST_LABEL, type ColumnStatsOptions,
   type MultiTOptions, type RowMeansOptions, type ThreeWayOptions, type TwoWayOptions,
@@ -99,7 +100,7 @@ export function TwoWayMethods({ result, options: o }: ResultsProps<TwoWayOptions
       : "");
     const keys = Object.keys(src).filter((k) => k !== "residual" && k !== "interaction");
     text = `Data were analyzed by ordinary two-way ANOVA (type III sums of squares) `
-      + `with ${fA} and ${fB} as factors${result.model
+      + `with ${fA} and ${fB} as factors${isAdditiveTwoWay(result)
         ? " (main effects only, without the interaction term)" : ""}${result.analysis === "two_way_anova_summary"
         ? ", computed from the entered means, SD and n" : ""}, using ${TOOL}. `
       + [line("interaction", "Interaction"), ...keys.map((k) => line(k, k))]

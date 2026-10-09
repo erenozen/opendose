@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { emptyTable, pasteBlock, parseClipboardGrid } from "../table.ts";
 import {
   applyImport, datasetTitle, DEFAULT_FILTER, DEFAULT_SOURCE, defaultRoles, detectTitlesRow,
-  dropUnfilledDatasets, pasteNeedsImport, prepareImport,
+  distinctNames, dropUnfilledDatasets, pasteNeedsImport, prepareImport,
 } from "../importText.ts";
 
 test("a titles row is detected when text sits above columns of numbers", () => {
@@ -34,6 +34,39 @@ test("data sets are named after the stem of their replicate titles", () => {
   const out = applyImport(t, p, defaultRoles(t, p),
     { mode: "replace", row: 0, col: 0, perDataset: 2, useTitles: true }, DEFAULT_FILTER);
   assert.deepEqual(out.datasets.map((d) => d.name), ["treated", "untreated"]);
+});
+
+test("a pair of subcolumns with one shared title keeps the whole title; names stay distinct", () => {
+  // quantal pairs (responders / total) both headed "type 1", then "type 2" …
+  assert.equal(datasetTitle(["type 1", "type 1"]), "type 1");
+  assert.equal(datasetTitle(["Drug", " Drug "]), "Drug");
+  // replicate stems still work
+  assert.equal(datasetTitle(["Control 1", "Control 2", "Control 3"]), "Control");
+  const t = emptyTable("xy");
+  const p = prepareImport([
+    "conc,type 1,type 1,type 2,type 2,type 3,type 3,type 4,type 4",
+    "100,40,146,12,150,3,148,1,150",
+    "200,31,116,25,152,8,149,2,148",
+  ].join("\n"), { ...DEFAULT_SOURCE, titlesRow: true }, DEFAULT_FILTER);
+  const out = applyImport(t, p, defaultRoles(t, p),
+    { mode: "replace", row: 0, col: 0, perDataset: 2, useTitles: true }, DEFAULT_FILTER);
+  assert.deepEqual(out.datasets.map((d) => d.name), ["type 1", "type 2", "type 3", "type 4"]);
+  const rep = prepareImport("conc,Control 1,Control 2,Control 3\n1,2,3,4",
+    { ...DEFAULT_SOURCE, titlesRow: true }, DEFAULT_FILTER);
+  const out2 = applyImport(t, rep, defaultRoles(t, rep),
+    { mode: "replace", row: 0, col: 0, perDataset: 3, useTitles: true }, DEFAULT_FILTER);
+  assert.equal(out2.datasets[0].name, "Control");
+  // two data sets whose titles reduce to the same stem get a counter
+  const twice = prepareImport("conc,a_1,a_2,a_1,a_2\n1,2,3,4,5",
+    { ...DEFAULT_SOURCE, titlesRow: true }, DEFAULT_FILTER);
+  const out3 = applyImport(t, twice, defaultRoles(t, twice),
+    { mode: "replace", row: 0, col: 0, perDataset: 2, useTitles: true }, DEFAULT_FILTER);
+  assert.deepEqual(out3.datasets.map((d) => d.name), ["a", "a (2)"]);
+  assert.deepEqual(distinctNames(["type", "type", "type", "type"]),
+    ["type", "type (2)", "type (3)", "type (4)"]);
+  // only the data sets being named change; the others keep theirs
+  assert.deepEqual(distinctNames(["B", "A", "A"], [2]), ["B", "A", "A (2)"]);
+  assert.deepEqual(distinctNames(["A", "B", "A (2)", "A"], [0]), ["A (3)", "B", "A (2)", "A"]);
 });
 
 test("pasting two columns into an empty three-group table leaves two groups", () => {

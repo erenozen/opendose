@@ -401,6 +401,7 @@ export function applyImportWithCells(t: DataTableModel, p: ImportPreview, roles:
       }
       return col;
     });
+    distinctNames(datasets.map((d) => d.name)).forEach((n, d) => { datasets[d].name = n; });
     next = normalizeTable({
       ...t,
       x: Array(Math.max(1, rows.length)).fill(""),
@@ -477,10 +478,12 @@ export function applyImportWithCells(t: DataTableModel, p: ImportPreview, roles:
       if (!byDataset.has(target.dataset)) byDataset.set(target.dataset, []);
       byDataset.get(target.dataset)!.push(title(src));
     });
+    const named: number[] = [];
     for (const [d, titles] of byDataset) {
       const name = datasetTitle(titles);
-      if (name) datasets[d].name = name;
+      if (name) { datasets[d].name = name; named.push(d); }
     }
+    distinctNames(datasets.map((d) => d.name), named).forEach((n, d) => { datasets[d].name = n; });
     if (xi >= 0 && title(xi)) next = { ...next, xTitle: title(xi) };
   }
   next = { ...next, x, rowTitles, datasets };
@@ -540,10 +543,13 @@ export function detectTitlesRow(source: string | string[][], s: SourceOptions): 
 
 /** Name of a data set from the titles of its source columns: the title
  *  itself, or for replicates the shared stem ("treated_1", "treated_2"
- *  -> "treated"; "A1", "A2" -> "A"). */
+ *  -> "treated"; "A1", "A2" -> "A"). Columns that all carry the same
+ *  title (a responders / total pair both headed "type 1") are named by
+ *  that whole title, never cut back to a stem. */
 export function datasetTitle(titles: string[]): string {
   const ts = titles.map((t) => t.trim()).filter(Boolean);
   if (ts.length <= 1) return ts[0] ?? "";
+  if (ts.every((t) => t === ts[0])) return ts[0];
   let pre = ts[0];
   for (const t of ts.slice(1)) {
     let i = 0;
@@ -553,6 +559,24 @@ export function datasetTitle(titles: string[]): string {
   // a stem ends before the replicate number and its separator
   const stem = pre.replace(/[\s_\-.:#(]*\d*$/, "").replace(/[\s_\-.:#(]+$/, "");
   return stem || ts[0];
+}
+
+/** Data set names made distinct: a name already used by an earlier data
+ *  set (or by one outside `which`, the indices being named) gets a
+ *  counter, "type (2)", so no two data sets share a name. */
+export function distinctNames(names: string[], which?: Iterable<number>): string[] {
+  const out = [...names];
+  const renaming = new Set(which ?? out.keys());
+  const taken = new Set(out.filter((_, i) => !renaming.has(i)));
+  for (let i = 0; i < out.length; i++) {
+    if (!renaming.has(i)) continue;
+    const base = out[i];
+    let name = base;
+    for (let k = 2; taken.has(name); k++) name = `${base} (${k})`;
+    out[i] = name;
+    taken.add(name);
+  }
+  return out;
 }
 
 /** After pasting or importing into a table that held no values: drop the
