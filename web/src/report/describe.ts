@@ -301,6 +301,52 @@ export function describeResult(result: unknown): TestInfo {
         .map((g: R) => ({ name: String(g.name), n: g.n_subcolumns })).filter((g: GroupN) => num(g.n));
       info.nUnit = "subcolumns";
       return withMc(info, r.multiple_comparisons);
+    case "mixed_nested_two_way":
+    case "mixed_grouping": {
+      // unit-random mixed models (sheets/common/mixedModel.ts)
+      const w = r.unit_words ?? { singular: "unit", plural: "units" };
+      const names: string[] = Array.isArray(r.factor_names) ? r.factor_names : [];
+      info.test = `linear mixed model (REML) with ${names.join(" × ") || "the factors"} fixed and `
+        + `${w.singular} as a random intercept (${r.analysis === "mixed_nested_two_way" ? "nested two-way ANOVA; " : ""}`
+        + `df from the ${r.n_units} ${w.plural}, not from the ${r.n_values} values)`;
+      info.sided = "two-sided";
+      info.exactP = true;
+      info.statisticWithDf = true;
+      info.nUnit = "subjects";
+      info.groups = (Array.isArray(r.cell_means) ? r.cell_means : [])
+        .map((c: R) => ({ name: c.b != null ? `${c.a} · ${c.b}` : String(c.a), n: c.n_units }))
+        .filter((g: GroupN) => num(g.n));
+      return withMc(info, r.comparisons);
+    }
+    case "mixed_timecourse": {
+      info.test = `mixed-effects model for repeated measures (REML; ${String(r.covariance?.label ?? "")
+        .toLowerCase()}; between-within df)`;
+      info.sided = "two-sided";
+      info.exactP = true;
+      info.statisticWithDf = true;
+      info.repeated = true;
+      info.nUnit = "subjects";
+      const gat: R[] = Array.isArray(r.group_at_time) ? r.group_at_time : [];
+      info.groups = (Array.isArray(r.groups) ? r.groups : []).map((g: string) => ({
+        name: g, n: Math.max(0, ...gat.filter((x) => x.group === g).map((x) => x.n ?? 0)) }))
+        .filter((g: GroupN) => g.n > 0);
+      return withMc(info, r.group_difference_at_time);
+    }
+    case "subject_auc": {
+      // one value per subject (area or window summary), compared by groups
+      const cmp = r.comparison;
+      info.groups = (Array.isArray(r.groups) ? r.groups : [])
+        .map((g: R) => ({ name: String(g.group), n: g.n })).filter((g: GroupN) => num(g.n));
+      info.nUnit = "subjects";
+      if (cmp?.test) {
+        info.test = String(cmp.test) === "one-way ANOVA" ? "ordinary one-way ANOVA" : String(cmp.test);
+        info.sided = "two-sided";
+        info.exactP = true;
+        info.multiplicity = "single";
+        info.statisticWithDf = true;
+      }
+      return info;
+    }
     case "estimation":
       info.test = r.paired ? "paired estimation (bootstrap)" : "estimation statistics (bootstrap)";
       info.sided = "two-sided";

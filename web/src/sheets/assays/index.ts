@@ -30,6 +30,7 @@ import { plateAssay } from "./plate";
 import { qpcrAssay } from "./qpcr";
 import { stdcurveAssay } from "./stdcurve";
 import { synergyAssay } from "./synergy";
+import { timecourseAssay } from "./timecourse";
 import { tumourAssay } from "./tumour";
 import { volcanoAssay } from "./volcano";
 
@@ -89,6 +90,7 @@ export const ASSAYS: AssayModule[] = [
   densitometryAssay,
   growthAssay,
   tumourAssay,
+  timecourseAssay,
   synergyAssay,
   aucAssay,
   volcanoAssay,

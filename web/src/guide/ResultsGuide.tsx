@@ -132,6 +132,10 @@ function BannerView({ b }: { b: Banner }) {
   );
 }
 
+/** Mixed models with the unit (grouped / multiple variables) or the
+ *  subject (time course) as a random effect. */
+const UNIT_MODELLED = /^(grouped_nested_two_way|mv_mixed_grouping|assay_timecourse_)/;
+
 /** The question, banners and chips, shown above the results. */
 export function ResultsGuide(p: Props) {
   const { project } = useProject();
@@ -144,7 +148,9 @@ export function ResultsGuide(p: Props) {
   const ctx = useContextFor(p, { sensitivity, needed, multiplicity });
   const banners = useMemo(() => (ctx ? resultBanners(ctx) : []), [ctx]);
   const chips = useMemo(() => (ctx ? resultChips(ctx) : []), [ctx]);
-  const question = p.dataId && !p.readOnly ? <UnitQuestion dataId={p.dataId} /> : null;
+  // analyses that model the unit or the subject themselves do not ask
+  const question = p.dataId && !p.readOnly && !UNIT_MODELLED.test(p.analysisId)
+    ? <UnitQuestion dataId={p.dataId} /> : null;
   if (!banners.length && !chips.length) {
     return question ? <div className="results-guide">{question}</div> : null;
   }

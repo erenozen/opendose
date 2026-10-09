@@ -20,6 +20,12 @@ import {
 import { multivariableSample } from "./sample";
 import { VOLCANO_GROUPS } from "./volcanoModel";
 import { coxDefinitions } from "../survival";
+import { G_MIXED_NESTED } from "../common/mixedModel";
+import { mixedNestedGraph } from "../common/mixedGraph";
+import {
+  ANALYSIS_MV_MIXED_GROUPING, defaultMixedGrouping, normalizeMixedGrouping, runMixedGrouping,
+  type MixedGroupingOptions,
+} from "./mixedGrouping";
 
 // Panels load on first use (sheets/lazy.ts).
 const controlsModule = () => import("./controls");
@@ -179,6 +185,30 @@ export const mvRearrange = defineAnalysis<RearrangeOptions, RearrangeResult>({
   derivedName: (t) => `${t} (rearranged)`,
 });
 
+// Mixed model with a grouping column (animal, litter, cage) as a random
+// intercept; results and graph shared with the grouped nested two-way.
+const mixedGroupingControls = () => import("./mixedGroupingPanels");
+const MixedGroupingControls = lazyPart(mixedGroupingControls, "MixedGroupingControls");
+const mixedPanels = () => import("../common/mixedPanels");
+const MixedUnitResults = lazyPart(mixedPanels, "MixedUnitResults");
+const MixedUnitMethods = lazyPart(mixedPanels, "MixedUnitMethods");
+
+export const mvMixedGrouping = defineAnalysis<MixedGroupingOptions, Record<string, unknown>>({
+  id: ANALYSIS_MV_MIXED_GROUPING,
+  label: "Mixed model with a grouping column",
+  short: "Mixed model",
+  description: "An outcome, one or two factors and a grouping column (animal, litter, "
+    + "cage) fitted as a random intercept: the df come from the groups, not the rows.",
+  sheetName: (t) => `Mixed model of ${t}`,
+  defaultOptions: ({ table }) => defaultMixedGrouping(table),
+  normalizeOptions: (raw, { table }) => normalizeMixedGrouping(raw, table),
+  run: runMixedGrouping,
+  defaultGraph: G_MIXED_NESTED,
+  ControlsPanel: MixedGroupingControls,
+  ResultsPanel: MixedUnitResults,
+  MethodsPanel: MixedUnitMethods,
+});
+
 // ------------------------------------------------------------ graphs
 
 const none = () => ({ x: "", y: "" });
@@ -283,6 +313,6 @@ export const multivariableTable: TableTypeDef = {
     + "variable. Set a column to categorical for text levels such as "
     + "\"male\" / \"female\". Row titles can hold subject IDs.",
   analyses: [mvDescriptive, mvCorrelation, mvRegression, mvLogistic, mvCox.analysis, mvPca,
-    mvRearrange],
-  graphs: [...mvGraphs, ...mvCox.graphs],
+    mvRearrange, mvMixedGrouping],
+  graphs: [...mvGraphs, ...mvCox.graphs, mixedNestedGraph],
 };

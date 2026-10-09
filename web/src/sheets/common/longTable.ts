@@ -20,8 +20,9 @@ import type { DataTableModel } from "../../project/types.ts";
 import { parseSource } from "../../share/recipes/presets.ts";
 import { distinct, makeStaging, numText, pivot, type Role } from "../../share/recipes/staging.ts";
 import { cellNumber, isMissing, isNumericColumn } from "../../share/tidy.ts";
+import { nestedFromLong } from "../grouped/nestedTwoWay.ts";
 
-export type LongTarget = "cmh" | "roc" | "quantal" | "xy";
+export type LongTarget = "cmh" | "roc" | "quantal" | "xy" | "nested2";
 
 /** A long table: a header row and records. */
 export interface LongSource { headers: string[]; rows: string[][] }
@@ -83,6 +84,12 @@ export const TARGET_ROLES: Record<LongTarget, { key: string; label: string; opti
     { key: "x", label: "X" },
     { key: "y", label: "Y" },
   ],
+  nested2: [
+    { key: "value", label: "Value" },
+    { key: "a", label: "Row factor (e.g. genotype)" },
+    { key: "b", label: "Data-set factor (e.g. treatment)", optional: true },
+    { key: "unit", label: "Unit (animal, litter, culture)" },
+  ],
 };
 
 export type Roles = Record<string, number>;
@@ -99,6 +106,9 @@ const RE: Record<string, RegExp> = {
   dataset: /dataset|data set|group|curve|series|condition|treatment|drug|compound|sample|line|subject/,
   x: /^(x|dose|log ?dose|conc|concentration|time|log)|dose|conc|time/,
   y: /^(y|response|value|signal|od|activity|inhibition|viability)|response|value/,
+  a: /genotype|strain|line|sex|diet|group/,
+  b: /treatment|drug|condition|dose|stim|compound/,
+  unit: /mouse|mice|animal|rat|litter|culture|subject|donor|cage|dish|patient|^id$/,
 };
 
 const ID_RE = /^(id|#|no\.?|row|subject|subject ?id|patient|patient ?id|record|obs|observation|index|sample ?id)$/;
@@ -133,6 +143,15 @@ export function guessRoles(src: LongSource, target: LongTarget): Roles {
     pick("n", "num");
     pick("responders", "num");
     pick("group", "any", true);
+  } else if (target === "nested2") {
+    // the unit is often an identifier column: guessed by name first
+    const u = norm.findIndex((h) => RE.unit.test(h));
+    if (u >= 0) used.add(u);
+    pick("value", "num");
+    pick("a", "any");
+    pick("b", "any", true);
+    out.unit = u >= 0 ? u : norm.findIndex((_, i) => !used.has(i));
+    if (out.unit >= 0) used.add(out.unit);
   } else {
     pick("x", "num");
     pick("y", "num");
@@ -381,6 +400,20 @@ export function fillFromLong(target: LongTarget, src: LongSource, roles: Roles, 
     case "cmh": return cmhFromLong(src, roles, base);
     case "roc": return rocFromLong(src, roles, positive, base);
     case "quantal": return quantalFromLong(src, roles, base);
+    case "nested2": {
+      const r = nestedFromLong(src.headers, src.rows, { value: roles.value ?? -1, a: roles.a ?? -1,
+        b: roles.b ?? -1, unit: roles.unit ?? -1 }, base);
+      if ("error" in r) return r;
+      const t = r.table;
+      const la = new Set(t.rowTitles).size;
+      return {
+        table: t,
+        summary: `${plural(la, "level")} × ${plural(t.datasets.length, "data set")}, ${plural(r.units, "unit")}, ${plural(r.values, "value")}`,
+        notes: ["Each level of the row factor is a block of rows; each subcolumn is one unit, its values down the block (units are numbered within each cell).",
+          ...(r.skipped ? [`${plural(r.skipped, "record")} without a value, factor level or unit left out.`] : [])],
+        options: r.options,
+      };
+    }
     default: return xyFromLong(src, roles, base);
   }
 }

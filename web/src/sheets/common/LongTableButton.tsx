@@ -12,6 +12,7 @@ const HINTS: Record<LongTarget, string> = {
   roc: "A file with one row per subject: the marker value and the status.",
   quantal: "A file with one row per dose group: dose, number of subjects, responders (and a group).",
   xy: "A file with one row per point: data set, X and Y.",
+  nested2: "A file with one row per value: the value, the two factors and the unit (animal) it comes from.",
 };
 
 /** "From long table…": fills the analysed data table from long records

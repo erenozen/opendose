@@ -14,7 +14,10 @@
 //   fold change 5.6;
 // - densitometry: the example's ratio 2.427 (P = 0.000755), and the
 //   GraphPad ratio paired t test example pasted as an export: ratio
-//   2.015, 95% CI 1.881 to 2.158, P = 0.0005.
+//   2.015, 95% CI 1.881 to 2.158, P = 0.0005;
+// - time course: the GTT example's mixed model (Group, Time, Group × Time),
+//   the AIC comparison of four covariance structures, the group-means
+//   graph, AUC per mouse and a 60-120 min window summary.
 // Usage: node scripts/e2e-assays.mjs http://localhost:5196/
 import { chromium } from "playwright";
 
@@ -283,7 +286,7 @@ await page.getByRole("button", { name: "New data table" }).click();
 const pick = page.locator(".new-table-dialog");
 await pick.getByRole("radio", { name: "Start from an assay" }).check();
 const nModules = await pick.locator('input[name="assay-module"]').count();
-expect("Start from an assay lists all ten modules", nModules === 10, String(nModules));
+expect("Start from an assay lists every module (eleven or more)", nModules >= 11, String(nModules));
 await pick.getByRole("radio", { name: /^Area under the curve/ }).check();
 expect("a module without a wizard says so", !(await pick.locator(".field-note").innerText()).includes("wizard"));
 await pick.getByRole("button", { name: "Start assay" }).click();
@@ -304,6 +307,64 @@ expect("both halves' assays are listed under it on an XY table",
   && await page.getByRole("menuitem", { name: /^Assay: Growth curves/ }).count() === 1
   && await page.getByRole("menuitem", { name: /^Assay: Area under the curve/ }).count() === 1);
 await page.keyboard.press("Escape");
+
+// --- time course (need time-course-models): the GTT example with six mice
+// per diet. Native engine mixed_timecourse (compound symmetry, REML):
+// Group F(1, 10), Time F(5, 50), Group × Time F(5, 50) = 99.85; AIC of the
+// four covariance structures unstructured 421.45 (best), CS 445.52, AR(1)
+// 446.90, random slope 448.80. Areas (numpy trapezoid): chow mean 20494,
+// high-fat diet 32915, unpaired t(10) = -15.60 (scipy); mean of 60-120 min
+// per mouse: t(10) = -16.65 (scipy).
+{
+  await page.getByRole("button", { name: "New data table" }).click();
+  const nd = page.locator(".new-table-dialog");
+  await nd.getByRole("radio", { name: "Start from an assay" }).check();
+  await nd.getByRole("radio", { name: /^Time course/ }).check();
+  await nd.getByRole("button", { name: "Start assay" }).click();
+  expect("time course opens no wizard and fits the mixed model",
+    await waitText('.pane-results[data-live="true"]', "Group × Time", 90000) && (await wizard().count()) === 0);
+  const rows = await page.locator(".mixed-anova tbody tr").allInnerTexts();
+  expect("time course ANOVA: Group, Time and Group × Time rows with F, df and P",
+    rows.length === 3 && /^Group\s+F\(1, 10\) = 223\.5\s+< 0\.0001/.test(rows[0])
+    && /^Time\s+F\(5, 50\) = 1950\s/.test(rows[1]) && /^Group × Time\s+F\(5, 50\) = 99\.85\s+< 0\.0001/.test(rows[2]),
+    rows.join(" | ").replace(/\s+/g, " "));
+  expect("time course: the df note names the between-within method",
+    (await textOf(".pane-results")).includes("Denominator df by the between-within method: Group is tested on 10 df between subjects (12 subjects − 2 groups)"));
+  await page.getByRole("button", { name: "Compare covariance structures (AIC)" }).click();
+  expect("covariance comparison: four structures listed",
+    await page.waitForFunction(() => document.querySelectorAll(".mixed-aic tbody tr").length === 4, null,
+      { timeout: 90000 }).then(() => true, () => false));
+  const aic = await page.locator(".mixed-aic tbody tr").allInnerTexts();
+  expect("covariance comparison: one best (unstructured, AIC 421.4), compound symmetry AIC 445.5",
+    aic.filter((r) => r.includes("Best (lowest AIC)")).length === 1 && /^Unstructured[^]*421\.[45][^]*Best/.test(aic[0])
+    && aic.some((r) => /^Compound symmetry[^]*445\.5/.test(r)), aic.join(" | ").replace(/\s+/g, " "));
+  expect("the covariance choice cites Littell 2006 and Pinheiro & Bates 2000",
+    /Littell et al\. 2006[^]*Pinheiro & Bates 2000/.test(await textOf(".pane-results")));
+  const traces = await page.evaluate(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+    .filter((t) => t.meta?.odTag?.role === "points").map((t) => ({ mode: t.mode, err: !!t.error_y?.visible, n: t.x.length })));
+  expect("group-means graph: 2 line traces with CI error bars at 6 times",
+    traces.length === 2 && traces.every((t) => t.mode === "lines+markers" && t.err && t.n === 6), JSON.stringify(traces));
+  expect("group differences at each time: family header adjusted for 6 comparisons (Šídák)",
+    (await textOf(".pane-results")).includes("P values adjusted for 6 comparisons (Šídák)"));
+  // AUC per mouse from the same table, then the summary over 60-120 min
+  await page.getByRole("button", { name: "Add: Area under each subject's curve" }).click();
+  expect("AUC per mouse: 12 mice compared by the unpaired t test, t(10) = -15.6",
+    await waitText(".pane-results", "t(10) = -15.6", 60000));
+  expect("AUC per mouse: the per-subject table lists 12 mice",
+    await page.locator(".result-card", { hasText: "AUC of each subject" }).locator("tbody tr").count() === 12);
+  await page.getByRole("button", { name: "Add: Summary over a time window" }).click();
+  await page.getByLabel("From time").fill("60");
+  await page.getByLabel("To time").fill("120");
+  expect("window 60 to 120 min: mean per mouse compared, t(10) = -16.65",
+    await waitText(".pane-results", "t(10) = -16.65", 60000)
+    && (await textOf(".pane-results")).includes("Mean of the values in the window, from 60 to 120"));
+  await page.locator(".mode-switch [role=tab]", { hasText: "AUC per subject" }).click();
+  await page.getByRole("button", { name: "Create the AUC column table" }).click();
+  expect("the linked AUC column table opens with its t test: 6 mice per diet (12 values)",
+    await waitText(".pane-results", "(n=6)", 60000)
+    && (await textOf(".pane-results")).match(/\(n=6\)/g)?.length >= 2
+    && await page.locator(".data-table tbody tr").count() >= 6);
+}
 
 console.log(errors.length ? `errors:\n${errors.join("\n")}` : "errors: none");
 await browser.close();
