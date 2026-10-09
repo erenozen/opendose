@@ -33,6 +33,8 @@ graph/
   legend.ts       legendSentence / legendSpec / plottedClause: error-bar
                   meaning, n, star scale (pure)
   usePlotArea.ts  the drawn plot area in px (for beeswarm / symmetric)
+  dense.ts        above 5,000 points, marker traces become scattergl
+                  (applied after applyFormat by every render site)
   FigurePanel.tsx Settings → Figure style: theme, P style, CVD check
 
   *Dialog.tsx     the dialogs; useFormatDialogs.tsx wires them to a card

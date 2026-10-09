@@ -107,7 +107,10 @@ formats (`project/wand.ts`), and info constants hooked into an analysis'
 `common/DataGrid` is the editor of every table type: toolbar (Import,
 Export, Sort, Insert series, Rows, Columns, Format, Convert), block
 selection, Data Inspector, and the dialogs in `common/`. A table type gets
-all of it by using `DataGrid` as its `Editor`. Results sheets get Copy /
+all of it by using `DataGrid` as its `Editor`. Above 150 rows the grid
+renders only the rows in view (`common/virtualRows.ts`): count rows with
+`table[data-rows]`, and scroll a row into view before selecting its cell
+in a test. Results sheets get Copy /
 CSV / TSV of their rendered tables from the shell (`common/ResultsExport`).
 
 ## The contract

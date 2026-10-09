@@ -1,6 +1,7 @@
 // Performance and robustness probe for validate-site.mjs, on the live site
 // through the UI: cold loads, a 2,000-row paste and t test, a 500-point
-// fit, a 50-dataset grouped table, undo / redo after 200 edits, reload and
+// fit, a 100,000-row paste (grid scroll frame time, WebGL graph, memory),
+// a 50-dataset grouped table, undo / redo after 200 edits, reload and
 // restore of a 30-sheet project, a share-link round trip and a 384-well
 // plate through the plate wizard. Every step is timed from the user's
 // action to the result on screen; anything slower than 5 s is flagged.
@@ -65,6 +66,8 @@ export async function runPerf({ newSession, appUrl, browser, friction }) {
     await imp.waitFor({ state: "detached", timeout: 120000 });
     return { tDialog, tImport: Date.now() - t1, t1 };
   };
+  // Rows in the table (the grid renders only the rows in view).
+  const gridRows = (page) => page.evaluate(() => Number(document.querySelector(".data-table table")?.dataset.rows ?? 0));
   const resultsText = (page) => page.locator(".pane-results").first().innerText().catch(() => "");
   const longTasks = (page) => page.evaluate(() => { const a = window.__lt ?? []; window.__lt = []; return Math.round(a.reduce((x, y) => x + y, 0)); });
 
@@ -129,7 +132,7 @@ export async function runPerf({ newSession, appUrl, browser, friction }) {
     const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
     const lines = ["Control,Treated", ...Array.from({ length: 2000 }, () => `${(10 + 3 * rnd()).toFixed(3)},${(10.4 + 3 * rnd()).toFixed(3)}`)];
     const r = await pasteCsv(page, lines.join("\n"), "Group A, row 1");
-    const tGrid = await until(page, async () => (await page.locator(".data-table tbody tr").count()) >= 2000);
+    const tGrid = await until(page, async () => (await gridRows(page)) >= 2000);
     add("2,000-row column paste (Ctrl+V → Import dialog → grid)", r.tDialog + r.tImport + tGrid,
       `Import dialog opened in ${r.tDialog} ms; Import → 2,000 rows in the grid ${r.tImport + tGrid} ms`);
     await longTasks(page);
@@ -159,13 +162,16 @@ export async function runPerf({ newSession, appUrl, browser, friction }) {
       ...Array.from({ length: 2001 }, () => Array.from({ length: 9 },
         (_, g) => (1000000.4 + g * 0.01 + 0.1 * rnd()).toFixed(4)).join(","))];
     await pasteCsv(page, lines.join("\n"), "Group A, row 1");
-    await until(page, async () => (await page.locator(".data-table tbody tr").count()) >= 2001);
+    await until(page, async () => (await gridRows(page)) >= 2001);
     await wait(page, 2000);
     await longTasks(page);
     const t0 = Date.now();
     await page.locator(".analysis-select").first().selectOption("anova");
     await wait(page, 500);
     // typing while it computes (a newer input replaces the running job)
+    // a long grid renders the rows in view: scroll to the last row first
+    await page.evaluate(() => { const w = document.querySelector(".data-table"); w.scrollTop = w.scrollHeight; });
+    await wait(page, 300);
     const cellIn = page.locator('.data-table input[aria-label="G9, row 2001"]');
     await cellIn.click();
     const k0 = Date.now();
@@ -185,6 +191,58 @@ export async function runPerf({ newSession, appUrl, browser, friction }) {
       + `${busySeen ? "; busy line with Cancel shown" : ""}`,
       { typing_ms: typing, blocked_ms: blocked, longest_task_ms: worst, busy_line: busySeen });
     rows.at(-1).slow = worst > 1000;
+  });
+
+  // 2c. 100,000 rows: paste, scroll, graph, memory ---------------------------
+  // The documented limit (Help → Limits): 100,000 pasted rows of two
+  // groups; the grid renders the rows in view, the graph draws its
+  // 200,000 points with WebGL.
+  await guard("100,000-row paste (Ctrl+V → Import dialog → grid)", async () => {
+    await newProject(page);
+    await newTable(page, "column", "Hundred thousand", { "Groups (columns)": 2 });
+    let seed = 13;
+    const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+    const lines = ["Control,Treated", ...Array.from({ length: 100000 }, () => `${(10 + 3 * rnd()).toFixed(3)},${(10.4 + 3 * rnd()).toFixed(3)}`)];
+    const heap0 = await page.evaluate(() => performance.memory?.usedJSHeapSize ?? null);
+    const r = await pasteCsv(page, lines.join("\n"), "Group A, row 1");
+    const tGrid = await until(page, async () => (await gridRows(page)) >= 100000);
+    const rendered = await page.locator(".data-table tbody tr[data-row]").count();
+    add("100,000-row paste (Ctrl+V → Import dialog → grid)", r.tDialog + r.tImport + tGrid,
+      `Import dialog opened in ${r.tDialog} ms; Import → 100,000 rows in the grid ${r.tImport + tGrid} ms; ${rendered} rows rendered`);
+    const g0 = Date.now();
+    const glMs = await until(page, () => page.evaluate(() => (document.querySelector(".plot-card .plot")?._fullData ?? [])
+      .some((t) => t.type === "scattergl")), 60000).catch(() => null);
+    add("100,000 rows: column scatter drawn (WebGL)", glMs === null ? null : Date.now() - g0,
+      glMs === null ? "no WebGL trace within 60 s" : "200,000 points as scattergl");
+    await wait(page, 3000);
+    await longTasks(page);
+    const sc = await page.evaluate(async () => {
+      const w = document.querySelector(".data-table");
+      const frames = [];
+      let last = performance.now();
+      for (let i = 0; i < 120; i++) {   // a steady wheel-like scroll, 90 px per frame
+        w.scrollTop += 90;
+        await new Promise((res) => requestAnimationFrame(res));
+        const now = performance.now(); frames.push(now - last); last = now;
+      }
+      w.scrollTop = Math.round(w.scrollHeight / 2);
+      await new Promise((res) => setTimeout(res, 300));
+      frames.sort((a, b) => a - b);
+      const first = [...document.querySelectorAll(".data-table tbody tr[data-row]")].map((tr) => Number(tr.dataset.row)).filter((x) => x > 100)[0];
+      return { median: frames[60], p95: frames[113], max: frames[119], first };
+    });
+    const heap1 = await page.evaluate(() => performance.memory?.usedJSHeapSize ?? null);
+    add("100,000 rows: scroll frame time", sc.median,
+      `median ${sc.median.toFixed(1)} ms, 95th percentile ${sc.p95.toFixed(1)} ms, worst ${sc.max.toFixed(1)} ms per frame over 120 frames; `
+      + `jump to the middle shows row ${sc.first + 1}; JS heap ${heap0 === null ? "n/a" : `${Math.round(heap0 / 1e6)} → ${Math.round(heap1 / 1e6)} MB`}`,
+      { aggregate: true, median_frame_ms: Math.round(sc.median * 10) / 10, p95_frame_ms: Math.round(sc.p95 * 10) / 10,
+        heap_mb: heap1 === null ? null : Math.round(heap1 / 1e6) });
+    rows.at(-1).slow = sc.median > 50;
+    const t0 = Date.now();
+    await page.locator(".analysis-select").first().selectOption("ttest");
+    const ms = await until(page, async () => /P value \(two-tailed\)/.test(await resultsText(page))
+      && (await page.locator('.pane-results[data-live="true"]').count()) > 0, 240000);
+    add("unpaired t test on 2 × 100,000 values (select → result)", Date.now() - t0, `result after ${ms} ms`);
   });
 
   // 3. 500-point XY fit ----------------------------------------------------
@@ -231,7 +289,7 @@ export async function runPerf({ newSession, appUrl, browser, friction }) {
       const t = await resultsText(page);
       return /Source of variation/.test(t) && /Column factor/.test(t) && !/Analysis failed/.test(t);
     });
-    const df = (await resultsText(page)).match(/Column factor[^\n]*\n?/)?.[0]?.replace(/\s+/g, " ") ?? "";
+    const df = (await resultsText(page)).match(/(?:^|\n)\s*Column factor[^\n]*\n?/)?.[0]?.replace(/\s+/g, " ") ?? "";
     add("50-dataset grouped table (paste + two-way ANOVA)", Date.now() - t0,
       `two-way ANOVA ready ${ms} ms after Import; ${df.trim().slice(0, 80)}; long tasks ${await longTasks(page)} ms`);
     // switching the graph type on a 50-dataset table

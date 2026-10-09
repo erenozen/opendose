@@ -211,6 +211,14 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
     if (el) { pendingFocus.current = null; el.focus(); el.select(); }
   });
 
+  // Keep a row in view (the far corner of a Shift+arrow block).
+  const revealRow = (r: number) => {
+    const w = wrap.current, m = metrics();
+    if (!virtual || !w || !m) return;
+    const top = scrollTopFor(r, m, headRef.current?.getBoundingClientRect().height ?? 0);
+    if (top !== null) w.scrollTop = top;
+  };
+
   const focusCell = (r: number, c: number) => {
     const el = wrap.current?.querySelector<HTMLInputElement>(
       `input[data-r="${r}"][data-c="${c}"]`);
@@ -277,11 +285,9 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
       e.preventDefault();
       const [dr, dc] = arrows[e.key];
       const base = sel ?? { r0: r, c0: c, r1: r, c1: c };
-      setSel({
-        ...base,
-        r1: Math.max(0, Math.min(nRows - 1, base.r1 + dr)),
-        c1: Math.max(0, Math.min(flat - 1, base.c1 + dc)),
-      });
+      const r1 = Math.max(0, Math.min(nRows - 1, base.r1 + dr));
+      setSel({ ...base, r1, c1: Math.max(0, Math.min(flat - 1, base.c1 + dc)) });
+      revealRow(r1);
       return;
     }
     let target: [number, number] | null = null;
