@@ -3,6 +3,10 @@ import { pLabel, tableP, tableStars } from "../report/pformat";
 import { adjustedHeader, familyOf, hasUnadjusted } from "../report/family";
 import FamilyLine from "../sheets/common/FamilyLine";
 import ResidualsSection from "../sheets/column/residualsPanel";
+import { LogAnovaRatios, LogTTest } from "../sheets/column/logScaleResults";
+import { onLogScale } from "../sheets/column/logScale";
+import { MixedRmOneWay, RmComparisons } from "../sheets/column/rmPosthocResults";
+import { rmComparisonsOf } from "../sheets/column/rmPosthoc";
 
 interface Props {
   result: Record<string, unknown> | null;
@@ -349,7 +353,7 @@ function Anova({ result }: { result: any }) {
   }
   return (
     <div className="result-card">
-      <h3>Ordinary one-way ANOVA</h3>
+      <h3>Ordinary one-way ANOVA{onLogScale(result) ? ` on ${result.log_scale.base ?? "log10"}(values)` : ""}</h3>
       <table className="results-table anova-table">
         <caption className="sr-only">ANOVA table</caption>
         <thead>
@@ -599,6 +603,7 @@ function RMAnova({ result }: { result: any }) {
         ["n subjects (complete rows)", String(result.n_subjects)],
         ["R squared", formatSig(result.r_squared)],
       ]} />
+      {rmComparisonsOf(result) && <RmComparisons mc={rmComparisonsOf(result)} names={result.names} />}
     </div>
   );
 }
@@ -827,12 +832,15 @@ export default function StatsResults({ result, options }: Props) {
 function mainResults(result: Record<string, unknown>, options: Props["options"]) {
   switch (result.analysis) {
     case "column_statistics": return <ColumnStats result={result} />;
-    case "ttest": return <TTest result={result} />;
-    case "anova": return <Anova result={result} />;
+    case "ttest": return onLogScale(result) && result.ratio != null
+      ? <LogTTest result={result} /> : <TTest result={result} />;
+    case "anova": return onLogScale(result) && result.kind !== "nonparametric" && result.table
+      ? <><LogAnovaRatios result={result} /><Anova result={result} /></> : <Anova result={result} />;
     case "anova_unequal_var": return <AnovaUnequal result={result} />;
     case "median_test": return <MedianTest result={result} />;
     case "ks_test": return <KSTest result={result} />;
     case "rm_one_way_anova": return <RMAnova result={result} />;
+    case "mixed_rm_one_way": return <MixedRmOneWay result={result} />;
     case "friedman": return <Friedman result={result} />;
     case "two_way_anova": return <TwoWayAnova result={result} />;
     case "rm_two_way_mixed":

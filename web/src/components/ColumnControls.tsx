@@ -11,6 +11,9 @@ import type {
 } from "../types";
 import { TWO_WAY_ADDITIVE_NOTE as ADDITIVE_NOTE } from "../types";
 import ComparisonsPicker from "../sheets/column/comparisonsPicker";
+import LogScaleOption from "../sheets/column/logScaleControls";
+import RmPosthocControls from "../sheets/column/rmPosthocControls";
+import "../sheets/column/logScale.css";
 
 interface Props {
   options: ColumnOptionsState;
@@ -18,9 +21,12 @@ interface Props {
   onChange: (o: ColumnOptionsState) => void;
   /** Data entered as mean / SD / N: planned families are not available. */
   summaryData?: boolean;
+  /** Subjects (rows) missing a treatment: RM ANOVA can fit the mixed model. */
+  incompleteSubjects?: number;
 }
 
-export default function ColumnControls({ options, datasetNames, onChange, summaryData }: Props) {
+export default function ColumnControls({ options, datasetNames, onChange, summaryData,
+  incompleteSubjects = 0 }: Props) {
   const set = (patch: Partial<ColumnOptionsState>) =>
     onChange({ ...options, ...patch });
 
@@ -147,6 +153,7 @@ export default function ColumnControls({ options, datasetNames, onChange, summar
           </select>
           {pickDataset("Group A", options.datasetA, "datasetA")}
           {pickDataset("Group B", options.datasetB, "datasetB")}
+          <LogScaleOption options={options} onChange={onChange} summaryData={summaryData} />
           {options.ttestKind === "wilcoxon" && (
             <ZeroMethod value={options.zeroMethod ?? "wilcox"}
               onChange={(zeroMethod) => set({ zeroMethod })}
@@ -249,6 +256,7 @@ export default function ColumnControls({ options, datasetNames, onChange, summar
                 pickDataset("Control group", options.controlIndex, "controlIndex")}
               <ComparisonsPicker options={options} datasetNames={datasetNames}
                 onChange={onChange} summaryData={summaryData} />
+              <LogScaleOption options={options} onChange={onChange} summaryData={summaryData} />
             </>
           )}
           <p className="guide-control-links">
@@ -407,6 +415,10 @@ export default function ColumnControls({ options, datasetNames, onChange, summar
           {options.rmKind === "nonparametric" && (
             <ComparisonsPicker options={options} datasetNames={datasetNames}
               onChange={onChange} summaryData={summaryData} />
+          )}
+          {options.rmKind === "parametric" && !summaryData && (
+            <RmPosthocControls options={options} datasetNames={datasetNames}
+              onChange={onChange} incomplete={incompleteSubjects} />
           )}
           <p className="hint-block">
             Rows are matched subjects; each dataset is one treatment.

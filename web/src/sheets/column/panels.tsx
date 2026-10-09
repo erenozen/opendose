@@ -13,6 +13,8 @@ import { normalizeColumnGraph } from "./graphSettings";
 import { legendSentence } from "../../graph/legend";
 
 import { superPlotOn } from "../common/superplot";
+import { incompleteSubjects } from "./rmPosthoc";
+import LogScaleChips from "./logScaleChips";
 
 export function ColumnAnalysisControls({ table, options, onChange }:
   ControlsProps<ColumnOptionsState>) {
@@ -20,14 +22,21 @@ export function ColumnAnalysisControls({ table, options, onChange }:
     <ColumnControls options={options}
       datasetNames={table.datasets.map((d) => d.name)}
       summaryData={table.subcolumnFormat !== "replicates"}
+      incompleteSubjects={options.analysis === "rm_anova" ? incompleteSubjects(table) : 0}
       onChange={onChange} />
   );
 }
 
-export function ColumnAnalysisResults({ result, options }:
+export function ColumnAnalysisResults({ sheet, result, options }:
   ResultsProps<ColumnOptionsState, Record<string, unknown>>) {
   if (result && "withheld" in result) return <WithheldResults result={result} />;
-  return <StatsResults result={result} options={options} />;
+  return (
+    <>
+      {/* "SD grows with the mean: analyse on the log scale?" (logScale.ts) */}
+      <LogScaleChips sheet={sheet} result={result} options={options} />
+      <StatsResults result={result} options={options} />
+    </>
+  );
 }
 
 export function ColumnGraph({ graph, table, titles, scheme, result, format,

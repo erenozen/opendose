@@ -1,0 +1,29 @@
+/* Log-scale option and chips (logScaleControls.tsx, logScaleChips.tsx),
+   log-scale results cards (logScaleResults.tsx) and the RM comparisons
+   controls (rmPosthocControls.tsx). */
+.log-chips { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+.log-chip {
+  font-size: 12.5px; color: var(--ink-2); background: var(--inset);
+  border: 1px solid var(--border-soft); border-left: 3px solid var(--accent);
+  border-radius: var(--radius-s); padding: 8px 12px;
+}
+.log-chip.chip-warn { border-left-color: var(--warn-ink); }
+.log-chip p { margin: 0 0 4px; }
+.log-chip p:last-child { margin-bottom: 0; }
+.log-chip-title {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  color: var(--ink); font-weight: 600; font-size: 13px;
+}
+.log-chip .chip-icon {
+  display: inline-grid; place-items: center; width: 17px; height: 17px; flex: none;
+  border-radius: 50%; font-size: 11px; font-weight: 700; line-height: 1;
+  color: var(--surface); background: var(--accent);
+}
+.log-chip.chip-warn .chip-icon { background: var(--warn-ink); }
+.log-chip-actions { margin-top: 6px !important; }
+.log-chip-actions button, .log-chip-more { font-size: 12.5px; padding: 4px 12px; }
+.log-chip .source-line { display: block; margin-top: 4px; color: var(--ink-2); }
+.log-scale-hint button { font-size: 12.5px; padding: 2px 10px; margin-top: 4px; }
+.log-scale-option .source-line, .rm-posthoc .source-line { display: block; margin-top: 4px; }
+.log-fold { font-size: 15px; font-weight: 650; color: var(--ink); margin: 4px 0 8px; }
+.log-note { color: var(--ink-2); font-size: 12.5px; }

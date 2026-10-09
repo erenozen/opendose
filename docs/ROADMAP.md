@@ -506,7 +506,7 @@ its most praised feature; users want more of it.
       table dialog (today it points to Import › Unstack indexed data);
       Šídák correction restricted to the planned pairs ("selected pairs"
       family) and Dunn's test vs a control only; pairwise comparisons
-      after repeated-measures one-way ANOVA
+      after repeated-measures one-way ANOVA (done: `rm-posthoc`)
 
 ### Theme 2. Replicates, n and SuperPlots
 Technical vs biological replicates, pooling experiments, n = cells
@@ -830,9 +830,15 @@ in brackets; "discoverable" = already built, make it findable):
       (Residuals section on unpaired / Welch / paired t, ordinary and
       Welch ANOVA, RM ANOVA with two treatments; RM ANOVA with more
       treatments needs subject + treatment residuals from the engine)
-- [ ] Add 'Analyse log(values)' to unpaired t tests and ANOVA, reporting
+- [x] Add 'Analyse log(values)' to unpaired t tests and ANOVA, reporting
       geometric-mean ratios with CIs, and a chip that suggests it when
-      SDs rise with means. [`log-scale-analysis`, 78.0, 45 obs]
+      SDs rise with means. [`log-scale-analysis`, 78.0, 45 obs] Done
+      (Wave 2, `sheets/column/logScale.ts`): "Analyse on the log scale"
+      for unpaired / Welch t and ordinary one-way ANOVA (paired → ratio
+      paired t), geometric means with CIs, "Treated/Control = 2.85-fold
+      (95% CI 1.69–4.8)", post hoc as ratios, sentence, legend, methods;
+      the scale_check chip with one click, a chip for values ≤ 0 left
+      out, a one-click log10 Y axis. Summary-data entry: not yet.
 - [x] Offer 'Plan the next experiment' from any results sheet,
       pre-filled with this data's SD and effect. [`power-sample-size`,
       72.8, 58 obs] (discoverable) Done for t tests and one-way ANOVA
@@ -935,8 +941,17 @@ Wave 2 (assays):
       condition (FMO / isotype subtraction) → linked column table with
       donor as the experiment, paired t test or RM one-way ANOVA on the
       donor values, SuperPlot; example and template.
-      [`flow-stats-to-tests`] (`sheets/assays/flow/`). Open: the RM
-      ANOVA post hoc is not passed by the column analysis on the web yet.
+      [`flow-stats-to-tests`] (`sheets/assays/flow/`). Its Dunnett vs
+      the control condition now runs (RM post hoc below).
+
+Wave 2 (statistics):
+- [x] Comparisons after repeated-measures one-way ANOVA: Tukey, Dunnett
+      vs baseline, Šídák, Bonferroni, Holm, Holm-Šídák, Fisher (every
+      pair / vs control / planned pairs), each pair's own paired
+      differences with the Geisser-Greenhouse correction or the pooled
+      error; table with family line, brackets, methods and legend; the
+      mixed-effects model keeps subjects with missing values.
+      [`rm-posthoc`] (`sheets/column/rmPosthoc.ts`)
 
 Also shipped from Wave 1 of the improvement plan:
 - [x] "Convert table to…" (column ↔ grouped ↔ multiple variables,
