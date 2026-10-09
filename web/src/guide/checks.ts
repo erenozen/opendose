@@ -8,6 +8,10 @@ import { formatPValue } from "../report/pformat.ts";
 import { replicateFacts } from "../report/replicates.ts";
 import type { GroupCheck } from "./recommend.ts";
 import { cellChecks, looksLikeCells, missingInRows, normalisedControl } from "./stats.ts";
+import { withheldInfo } from "../sheets/common/withheld.ts";
+import { multiplicityChip, type MultiplicityFacts } from "./multiplicity.ts";
+import { sensitivityChip, type NeededN, type Sensitivity } from "./smallN.ts";
+import type { Source } from "./sources.ts";
 
 export type ChipState = "ok" | "warn" | "bad" | "info";
 
@@ -18,8 +22,11 @@ export interface Chip {
   /** One or two sentences of advice, shown when the chip is expanded. */
   detail: string;
   explainer?: string;
-  /** A one-click fix offered under the detail. */
-  action?: "assign-replicates";
+  /** A one-click fix offered under the detail: Assign replicates…, the
+   *  power tool, or the multiplicity alternatives (ANOVA / Holm-Šídák). */
+  action?: "assign-replicates" | "open-power" | "multiplicity";
+  /** Where the rule comes from, linked under the detail. */
+  sources?: Source[];
 }
 
 export interface ResultContext {
@@ -30,6 +37,13 @@ export interface ResultContext {
   table: DataTableModel;
   /** Per data set summaries; normalityP filled from the engine if known. */
   groups: GroupCheck[];
+  /** n = 2–3: the smallest effect the design detects (engine: the
+   *  result's design_sensitivity, else the power handler). */
+  sensitivity?: Sensitivity | null;
+  /** P withheld: independent values per group a test would need. */
+  needed?: NeededN[] | null;
+  /** Three or more t tests on this table (project-level count). */
+  multiplicity?: MultiplicityFacts | null;
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -273,7 +287,8 @@ function cellsChip(ctx: ResultContext, groups: GroupCheck[]): Chip | null {
       + "these are cells or wells from a few animals or experiments, they are not independent "
       + "and the P value will be far too small. Average per biological replicate (or use a "
       + "Nested table) so n is the number of animals or experiments.", explainer: "replicates",
-    ...(ctx.tableType === "column" ? { action: "assign-replicates" as const } : {}) };
+    ...(ctx.tableType === "column" || ctx.tableType === "xy"
+      ? { action: "assign-replicates" as const } : {}) };
 }
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -466,9 +481,17 @@ export function resultChips(ctx: ResultContext): Chip[] {
     ];
     return nestedChips.filter((c): c is Chip => !!c);
   }
-  if (!GROUP_TESTS.has(kind) && !(ctx.tableType === "column")) return [];
+  // Project-level and small-n chips lead (need ids multiplicity-by-default,
+  // small-n-honesty); with P withheld the assumption checks say nothing.
+  const lead = [
+    ctx.multiplicity ? multiplicityChip(ctx.multiplicity) : null,
+    ctx.sensitivity ? sensitivityChip(ctx.sensitivity) : null,
+  ].filter((c): c is Chip => !!c);
+  if (withheldInfo(r)) return lead;
+  if (!GROUP_TESTS.has(kind) && !(ctx.tableType === "column")) return lead;
   const groups = usedGroups(ctx, kind);
   return [
+    ...lead,
     nChip(groups),
     kind === "outliers" || kind === "rout_column" ? null : normalityChip(groups, kind),
     equalSdChip(ctx, groups, kind),

@@ -164,12 +164,19 @@ export default function WhichTest({ onClose }: { onClose: () => void }) {
               options={[["one", "One"], ["two", "Two (e.g. genotype × treatment)"], ["three", "Three"]]}
               onChange={(v) => set({ factors: v })} />
           )}
+          {c && d.groups !== "one" && d.factors === "one" && (
+            <Choice legend="Was each condition run once per experiment, on different days?"
+              value={d.blocked ? "yes" : "no"} options={YES_NO}
+              onChange={(v) => set({ blocked: v === "yes" })}
+              hint={d.blocked ? "Then each experiment (day) is a block: the analysis is matched "
+                + "by experiment, one row per day." : undefined} />
+          )}
           {c && d.groups !== "one" && d.factors === "two" ? (
             <Choice legend="Is a factor measured repeatedly on the same subjects?" value={d.repeated}
               options={[["none", "No"], ["one", "One factor (e.g. time)"], ["both", "Both"]]}
               onChange={(v) => set({ repeated: v, paired: v !== "none" })} />
           ) : (d.outcome === "continuous" || d.outcome === "counts") && d.groups !== "one"
-            && d.factors !== "three" ? (
+            && d.factors !== "three" && !(c && d.blocked) ? (
               <Choice legend="Are measurements paired or repeated on the same subject (or matched, e.g. by experiment)?"
                 value={d.paired ? "yes" : "no"} options={YES_NO}
                 onChange={(v) => set({ paired: v === "yes" })} />
@@ -190,14 +197,14 @@ export default function WhichTest({ onClose }: { onClose: () => void }) {
                 ["not_normal", "Not Gaussian (scores, off-scale values)"]]}
               onChange={(v) => set({ distribution: v })} />
           )}
-          {c && !d.paired && d.groups !== "one" && d.factors === "one"
+          {c && !d.paired && !d.blocked && d.groups !== "one" && d.factors === "one"
             && d.replicates === "independent" && (
             <Choice legend="Do you expect the groups to have equal SDs?" value={d.equalSD}
               options={[["unsure", "Not sure"], ["equal", "Yes, by design"], ["unequal", "No"]]}
               onChange={(v) => set({ equalSD: v })}
               hint="Decide from the design or earlier data, not by testing these values." />
           )}
-          {c && d.paired && d.groups === "two" && d.factors === "one" && (
+          {c && (d.paired || d.blocked) && d.groups === "two" && d.factors === "one" && (
             <Choice legend="Does the treatment add a constant amount or multiply?"
               value={d.ratioEffect ? "ratio" : "difference"}
               options={[["difference", "Adds (consistent difference)"],

@@ -10,7 +10,9 @@ import type { DataSheet, DataTableModel, GraphSheet } from "../project/types.ts"
 import type { GroupN } from "./describe.ts";
 import { legendParagraph, whatIsPlotted, type ErrorBars } from "./legend.ts";
 import type { ReportPrefs } from "./prefs.ts";
-import { metaWithReplicates, replicateFacts, withinNote } from "./replicates.ts";
+import {
+  hasRepeats, metaWithReplicates, replicateFacts, withinNote, withinPerGroup,
+} from "./replicates.ts";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -99,6 +101,10 @@ export function legendFor(c: LegendContext): string {
   // table's replicate map (report/replicates.ts).
   const superplot = !!c.graph && legendSpec(c.graph, c.table, c.result)?.display === "superplot";
   const meta = metaWithReplicates(c.data.report, c.table, c.result, { superplot });
+  const facts = replicateFacts(c.table, c.result, { superplot });
+  // XY with repeats inside experiments: the points are experiment means.
+  const xyByExp = xy && hasRepeats(facts) && !c.data.report?.unit;
+  const xyGroups = xyByExp ? groups.map((g) => ({ ...g, n: facts!.experiments })) : groups;
   const unit = meta.unit ?? (xy ? "replicates per X value" : undefined);
   // The graph's own P style / "hide ns" override the project's.
   const fmt = c.graph ? readFormat(c.graph.settings) : null;
@@ -106,9 +112,10 @@ export function legendFor(c: LegendContext): string {
     graphType: c.graph?.graphType ?? null,
     plotted: c.graph ? plottedClause(c.graph, c.table, c.result) : undefined,
     result: c.result,
-    groups,
-    unit: { unit, experiments: meta.experiments ?? null },
-    nNote: withinNote(replicateFacts(c.table, c.result, { superplot })) || undefined,
+    groups: xyGroups,
+    unit: { unit, experiments: meta.experiments ?? null,
+      within: withinPerGroup(facts, xy) || undefined, ...(xyByExp ? { per: "X value" } : {}) },
+    nNote: withinNote(facts, xy) || undefined,
     errorBars: f.errorBars, points: f.points ?? undefined,
     starsShown: f.starsShown, pShown: f.pShown,
     style: fmt?.pStyle ?? c.prefs.pStyle,

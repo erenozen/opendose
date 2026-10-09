@@ -19,6 +19,7 @@
 //  - repeated measures: RM ANOVA with the Geisser-Greenhouse correction, a
 //    mixed-effects model when values are missing.
 import { SRC, type Source } from "./sources.ts";
+import { blockedRecommendation } from "./blocking.ts";
 
 export type Outcome = "continuous" | "counts" | "survival" | "curve";
 export type GroupCount = "one" | "two" | "three_plus";
@@ -61,6 +62,9 @@ export interface Design {
   agonist: boolean;
   /** One group: the value to compare against. */
   hypothetical: string;
+  /** Each condition run once per experiment, on different days: the
+   *  experiment is a block (guide/blocking.ts). */
+  blocked?: boolean;
 }
 
 export const DEFAULT_DESIGN: Design = {
@@ -338,6 +342,10 @@ export function recommend(d: Design, checks: DataChecks | null = null): Recommen
   if (d.outcome === "counts") return counts(d, base);
   if (d.outcome === "survival") return survival(d, base);
   if (d.outcome === "curve") return curve(d, base);
+  // Experiment (day) as the block: the matched analysis by experiment.
+  if (d.blocked && d.factors === "one" && d.groups !== "one") {
+    return blockedRecommendation(recommend({ ...d, paired: true, blocked: false }, checks));
+  }
 
   // ---------------------------------------------------------- continuous
   const rank = rankTest(d, k, size);

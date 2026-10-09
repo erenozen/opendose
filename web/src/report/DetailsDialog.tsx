@@ -24,10 +24,11 @@ export default function DetailsDialog({ dataId, onClose }: { dataId: string; onC
   // The table's replicate map supplies the unit and the experiments when
   // these fields are left blank (replicates.ts).
   const rep = replicateFacts(data.table);
-  const canAssign = !readOnly && (data.table.type === "column" || data.table.type === "grouped");
+  const canAssign = !readOnly && ["column", "grouped", "xy"].includes(data.table.type);
   const save = () => {
     const report = parseReportMeta({
       unit, experiments: experiments.trim() ? Number(experiments) : undefined, exclusions, sampleSize,
+      valueIs: m.valueIs,
     });
     apply((p) => updateSheet<Sheet>(p, dataId, (s) => {
       if (s.kind !== "data") return s;
