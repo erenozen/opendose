@@ -6,6 +6,7 @@ import type {
   XFormat,
 } from "./types.ts";
 import { SUBCOLUMN_FORMAT_TITLES } from "./types.ts";
+import { parseReasons, syncReasons } from "./exclusions.ts";
 import { xNumbers } from "./xformat.ts";
 
 export function rowCount(t: DataTableModel): number {
@@ -161,6 +162,8 @@ export function normalizeTable(raw: unknown, fallbackType: TableType = "xy"):
     if (Array.isArray(o.subTitles)) col.subTitles = o.subTitles.map(str);
     if (Array.isArray(o.excluded)) {
       col.excluded = o.excluded.filter((k) => typeof k === "string") as string[];
+      const reasons = parseReasons(o.exclusionReasons);
+      if (reasons) col.exclusionReasons = reasons;
     }
     if (o.varType === "categorical" || o.varType === "continuous") {
       col.varType = o.varType;
@@ -299,16 +302,18 @@ export function setVarType(t: DataTableModel, d: number, varType: VarType): Data
 
 // ------------------------------------------------------------ structure
 
+const shiftKey = (k: string, at: number, delta: number,
+  removeRow: number | null): string | null => {
+  const [r, s] = k.split(":").map(Number);
+  if (removeRow !== null && r === removeRow) return null;
+  return r >= at ? `${r + delta}:${s}` : k;
+};
+
 const shiftKeys = (keys: string[] | undefined, at: number, delta: number,
   removeRow: number | null): string[] | undefined => {
   if (!keys?.length) return keys;
-  const out: string[] = [];
-  for (const k of keys) {
-    const [r, s] = k.split(":").map(Number);
-    if (removeRow !== null && r === removeRow) continue;
-    out.push(r >= at ? `${r + delta}:${s}` : k);
-  }
-  return out;
+  return keys.map((k) => shiftKey(k, at, delta, removeRow))
+    .filter((k): k is string => k !== null);
 };
 
 export function insertRows(t: DataTableModel, at: number, n = 1): DataTableModel {
@@ -320,11 +325,11 @@ export function insertRows(t: DataTableModel, at: number, n = 1): DataTableModel
     x: ins(t.x, () => ""),
     xExcluded: t.xExcluded?.map((r) => (r >= pos ? r + n : r)),
     rowTitles: ins(t.rowTitles, () => ""),
-    datasets: t.datasets.map((d) => ({
+    datasets: t.datasets.map((d) => syncReasons({
       ...d,
       rows: ins(d.rows, () => blankRow(subCount(d))),
       excluded: shiftKeys(d.excluded, pos, n, null),
-    })),
+    }, (k) => shiftKey(k, pos, n, null))),
   };
 }
 
@@ -340,11 +345,11 @@ export function deleteRow(t: DataTableModel, r: number): DataTableModel {
     x: drop(t.x),
     xExcluded: t.xExcluded?.filter((i) => i !== r).map((i) => (i > r ? i - 1 : i)),
     rowTitles: drop(t.rowTitles),
-    datasets: t.datasets.map((d) => ({
+    datasets: t.datasets.map((d) => syncReasons({
       ...d,
       rows: drop(d.rows),
       excluded: shiftKeys(d.excluded, r + 1, -1, r),
-    })),
+    }, (k) => shiftKey(k, r + 1, -1, r))),
   };
 }
 
@@ -386,7 +391,7 @@ export function setSubcolumnCount(
   });
   const excluded = ds.excluded?.filter((k) => Number(k.split(":")[1]) < count);
   const subTitles = ds.subTitles?.slice(0, count);
-  return replaceDataset(t, d, { ...ds, rows, excluded, subTitles });
+  return replaceDataset(t, d, syncReasons({ ...ds, rows, excluded, subTitles }));
 }
 
 /** "Duplicate without data": same columns, titles and row count, no values. */
@@ -395,7 +400,7 @@ export function clearValues(t: DataTableModel): DataTableModel {
     ...t,
     x: t.x.map(() => ""),
     xExcluded: undefined,
-    datasets: t.datasets.map((d) => ({
+    datasets: t.datasets.map((d) => syncReasons({
       ...d,
       rows: d.rows.map((row) => row.map(() => "")),
       excluded: undefined,
@@ -481,7 +486,12 @@ export function toggleExcluded(t: DataTableModel, ref: CellRef): DataTableModel 
   const key = `${ref.row}:${ref.sub}`;
   const cur = ds.excluded ?? [];
   const excluded = cur.includes(key) ? cur.filter((k) => k !== key) : [...cur, key];
-  return replaceDataset(t, ref.dataset, { ...ds, excluded });
+  // A reason belongs to one exclusion: including the value drops it, and
+  // a fresh exclusion never inherits a stale one.
+  const reasons = ds.exclusionReasons && key in ds.exclusionReasons
+    ? (({ [key]: _gone, ...rest }) => rest)(ds.exclusionReasons) : ds.exclusionReasons;
+  return replaceDataset(t, ref.dataset, syncReasons({ ...ds, excluded,
+    ...(reasons ? { exclusionReasons: reasons } : {}) }));
 }
 
 /** The table as graphs see it: excluded cells read as blank. */
@@ -502,9 +512,13 @@ export function withExclusionsBlanked(t: DataTableModel): DataTableModel {
   };
 }
 
+/** A cell's number, or null: blanks, text, spreadsheet errors and
+ *  number-like text with separators are missing, never 0. Only plain
+ *  decimal notation reads (0x10, 0b11 and 1,5 do not). */
 export function parseCell(v: Cell): number | null {
   const t = v.trim();
   if (t === "") return null;
+  if (!/^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/.test(t)) return null;
   const n = Number(t);
   return Number.isFinite(n) ? n : null;
 }
@@ -545,16 +559,12 @@ export function pickRows(t: DataTableModel, rows: number[]): DataTableModel {
   }
   const to = new Map<number, number>();
   idx.forEach((src, dst) => { if (!to.has(src)) to.set(src, dst); });
-  const remap = (keys?: string[]) => {
-    if (!keys) return keys;
-    const out: string[] = [];
-    for (const k of keys) {
-      const [r, s] = k.split(":");
-      const nr = to.get(Number(r));
-      if (nr !== undefined) out.push(`${nr}:${s}`);
-    }
-    return out;
+  const moveKey = (k: string): string | null => {
+    const [r, s] = k.split(":");
+    const nr = to.get(Number(r));
+    return nr === undefined ? null : `${nr}:${s}`;
   };
+  const remap = (keys?: string[]) => keys?.map(moveKey).filter((k): k is string => k !== null);
   const xEx = t.xExcluded?.map((r) => to.get(r))
     .filter((r): r is number => r !== undefined).sort((a, b) => a - b);
   return {
@@ -562,11 +572,11 @@ export function pickRows(t: DataTableModel, rows: number[]): DataTableModel {
     x: idx.map((i) => t.x[i]),
     rowTitles: idx.map((i) => t.rowTitles[i] ?? ""),
     xExcluded: xEx,
-    datasets: t.datasets.map((d) => ({
+    datasets: t.datasets.map((d) => syncReasons({
       ...d,
       rows: idx.map((i) => [...d.rows[i]]),
       excluded: remap(d.excluded),
-    })),
+    }, moveKey)),
   };
 }
 
@@ -677,7 +687,7 @@ export function setSubcolumnFormat(t: DataTableModel, fmt: SubcolumnFormat,
       return next;
     });
     const excluded = d.excluded?.filter((k) => Number(k.split(":")[1]) < width);
-    const col: DataColumn = { ...d, rows, excluded };
+    const col: DataColumn = syncReasons({ ...d, rows, excluded });
     if (titles.length) col.subTitles = [...titles];
     else delete col.subTitles;
     return col;

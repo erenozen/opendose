@@ -26,6 +26,7 @@ import ShareHost from "./share/ShareHost";
 import { useGuide } from "./guide/context";
 import { GuideProvider } from "./guide/GuideProvider";
 import ReportHost from "./report/ReportHost";
+import ReproduceStrip from "./report/ReproduceStrip";
 import PowerHost from "./power/PowerHost";
 import { lazy, Suspense, useEffect } from "react";
 
@@ -114,6 +115,7 @@ function Shell() {
       <Header onOpenFile={openFile} onNewProject={newProject} />
       <ShareHost />
       <ReportHost />
+      <ReproduceStrip />
       {autosave.offer && !guide.startPending && (
         <div className="restore-banner" role="region" aria-label="Restore last session">
           <span>

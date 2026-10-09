@@ -11,10 +11,19 @@ export interface LongTable {
   rows: string[][];
   /** Per row: the observation was excluded in the source table. */
   excluded: boolean[];
+  /** Per row: why it was excluded ("" when not excluded or no reason was
+   *  recorded; see project/exclusions.ts). Optional for long tables built
+   *  elsewhere. */
+  reasons?: string[];
 }
 
 const subCount = (d: DataColumn) => d.rows[0]?.length ?? 1;
 const isExcl = (d: DataColumn, r: number, s: number) => !!d.excluded?.includes(`${r}:${s}`);
+const reasonOf = (d: DataColumn, r: number, s: number) =>
+  (isExcl(d, r, s) ? d.exclusionReasons?.[`${r}:${s}`] ?? "" : "");
+/** The distinct reasons of a record's excluded cells, joined. */
+const reasonsOf = (ds: DataColumn[], r: number, subs: number[]) =>
+  [...new Set(ds.flatMap((d) => subs.map((s) => reasonOf(d, r, s))).filter(Boolean))].join("; ");
 
 /** Subcolumns that form one record (Time + Event, Mean + SD + N) rather
  *  than replicates of one measurement. */
@@ -43,6 +52,7 @@ export function tableToLong(t: DataTableModel): LongTable {
   const n = t.x.length;
   const rowsOut: string[][] = [];
   const excluded: boolean[] = [];
+  const reasons: string[] = [];
   const hasRowTitles = shape.hasRowTitles && t.rowTitles.some((r) => r.trim());
 
   if (t.type === "multivariable") {
@@ -52,8 +62,9 @@ export function tableToLong(t: DataTableModel): LongTable {
       if (vals.every((v) => v.trim() === "")) continue;
       rowsOut.push([String(r + 1), ...(hasRowTitles ? [t.rowTitles[r] ?? ""] : []), ...vals]);
       excluded.push(t.datasets.some((d) => isExcl(d, r, 0)));
+      reasons.push(reasonsOf(t.datasets, r, [0]));
     }
-    return { headers, rows: rowsOut, excluded };
+    return { headers, rows: rowsOut, excluded, reasons };
   }
 
   const keyHead: string[] = [];
@@ -80,9 +91,10 @@ export function tableToLong(t: DataTableModel): LongTable {
         if (vals.every((v) => v.trim() === "")) continue;
         rowsOut.push([...keyOf.map((f) => f(r)), d.name, String(r + 1), ...vals]);
         excluded.push(record.some((_, s) => isExcl(d, r, s)));
+        reasons.push(reasonsOf([d], r, record.map((_, s) => s)));
       }
     }
-    return { headers, rows: rowsOut, excluded };
+    return { headers, rows: rowsOut, excluded, reasons };
   }
 
   const nested = t.type === "nested";
@@ -101,15 +113,26 @@ export function tableToLong(t: DataTableModel): LongTable {
         rowsOut.push([...keyOf.map((f) => f(r)), d.name,
           ...(single ? [] : [sub]), ...(nested ? [String(r + 1)] : []), v]);
         excluded.push(isExcl(d, r, s));
+        reasons.push(reasonOf(d, r, s));
       }
     }
   }
-  return { headers, rows: rowsOut, excluded };
+  return { headers, rows: rowsOut, excluded, reasons };
 }
 
 /** Long form as rows of text for CSV, with an "Excluded" column when
- *  any observation was excluded. */
-export function longMatrix(l: LongTable): string[][] {
+ *  any observation was excluded. `sourceData` (the export bundle's tidy
+ *  CSV) always writes `excluded` (TRUE / FALSE) and `exclusion_reason`
+ *  columns instead, so excluded values are never silently absent from
+ *  source data and their reasons travel with them. */
+export function longMatrix(l: LongTable, opts: { sourceData?: boolean } = {}): string[][] {
+  if (opts.sourceData) {
+    return [
+      [...l.headers, "excluded", "exclusion_reason"],
+      ...l.rows.map((r, i) => [...r, l.excluded[i] ? "TRUE" : "FALSE",
+        l.excluded[i] ? l.reasons?.[i] ?? "" : ""]),
+    ];
+  }
   const any = l.excluded.some(Boolean);
   return [
     any ? [...l.headers, "Excluded"] : l.headers,

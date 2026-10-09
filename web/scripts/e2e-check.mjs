@@ -32,9 +32,14 @@
 // table…" for CMH and quantal data, the quantal upper asymptote), the
 // discoverability links (Help me choose…, Plan next experiment, How this is
 // validated, Cox from survival, Compare fits from a fit, Prism files on the
-// start screen and in the Save menu), and survival data from counts per
+// start screen and in the Save menu), survival data from counts per
 // day with the pairwise log-rank table, the test for trend, "median not
-// reached", survival at a time and RMST.
+// reached", survival at a time and RMST, the data-entry trust package
+// (paste report, Notes strip with the n analysed, Convert table to…,
+// Describe the experiment), exclusions with reasons (n enrolled /
+// analysed in the results, legend and methods; the results with the
+// excluded values included) and the reproduction check when a project
+// saved by another version is opened.
 import { chromium } from "playwright";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -2291,6 +2296,174 @@ expect("compare fits graph draws the separate curves and the shared curve",
   expect("after a cancel the engine computes again (column statistics)", back);
 }
 
+// axe-core (WCAG 2 A / AA) on parts of a page, for the blocks below.
+const axeOn = async (pg, sel) => {
+  await pg.addScriptTag({ path: createRequire(join(here, "e2e-check.mjs")).resolve("axe-core/axe.min.js") })
+    .catch(() => {});
+  return pg.evaluate(async (s) => {
+    const el = document.querySelector(s);
+    if (!el) return [`${s}: missing`];
+    // eslint-disable-next-line no-undef
+    const r = await axe.run(el, { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa"] } });
+    return r.violations.flatMap((x) => x.nodes.map((n) => `${x.id}: ${n.html.slice(0, 70)}`));
+  }, sel);
+};
+// --- exclusions with reasons (exclusion-log): one mouse of eight excluded
+// for tumour ulceration; the results' Exclusions block, the legend and the
+// methods state n enrolled / analysed with the reason; the results with
+// the excluded value included come as a second block with another P.
+{
+  await page.getByRole("button", { name: "New data table" }).first().click();
+  const dlg = page.locator(".new-table-dialog");
+  await dlg.locator('input[name="table-type"][value="column"]').check();
+  await dlg.getByLabel("Table name").fill("Tumour volume");
+  await dlg.getByLabel("Groups (columns)", { exact: true }).fill("2");
+  await dlg.getByLabel("Rows (values per group)", { exact: true }).fill("8");
+  await dlg.getByRole("button", { name: "Create table" }).click();
+  await page.waitForSelector(".grid-toolbar");
+  const control = ["12", "14", "11", "13", "15", "12", "14", "13"];
+  const treated = ["20", "22", "41", "21", "23", "19", "22", "24"];
+  await page.getByRole("button", { name: "Import…", exact: true }).click();
+  const imp = page.locator(".import-dialog");
+  await imp.getByLabel("Pasted text").check();
+  await imp.getByLabel("Text to import").fill(["Control,Treated",
+    ...control.map((c, i) => `${c},${treated[i]}`)].join("\n"));
+  const titles = imp.getByLabel(/holds column titles/);
+  if (!(await titles.isChecked())) await titles.check();
+  await imp.getByRole("tab", { name: "Placement" }).click();
+  await imp.getByLabel(/In place of the table/).check();
+  await imp.getByRole("button", { name: "Import", exact: true }).click();
+  await imp.waitFor({ state: "detached", timeout: 60000 });
+  await page.locator(".pane-controls select.analysis-select").selectOption("ttest");
+  await page.waitForFunction(() => /t test/i.test(document.querySelector(".pane-results")?.textContent ?? "")
+    && !!document.querySelector('.pane-results[data-live="true"]'), null, { timeout: 120000 });
+  const pOf = (s) => (s.match(/P\s*[=<]\s*([\d.e-]+)/) ?? [])[1] ?? "";
+  const sentenceBefore = await page.locator(".report-sentence p").innerText();
+  // Ctrl+E on Treated, row 3 (the 41): the reason prompt, never blocking
+  const cell = page.locator('.data-table input[aria-label="Treated, row 3"]');
+  await cell.click();
+  await page.keyboard.press("Control+e");
+  const prompt = page.getByRole("region", { name: "Exclusion reason" });
+  expect("Ctrl+E asks for a reason (usual reasons offered, skippable)",
+    await appears(prompt) && await prompt.getByRole("button", { name: "animal welfare endpoint" }).count() === 1
+    && await prompt.getByRole("button", { name: "Skip" }).count() === 1
+    && /Excluded 1 value \(Treated, row 3\)/.test(await prompt.innerText()));
+  const axPrompt = await axeOn(page, ".exclusion-reason");
+  expect("axe-core: the reason prompt passes", axPrompt.length === 0, axPrompt.join(" | "));
+  await prompt.getByLabel("Other reason for excluding").fill("tumour ulceration");
+  await prompt.getByRole("button", { name: "Save reason" }).click();
+  expect("the reason is kept with the value (cell tooltip) and the prompt closes",
+    /Excluded from analyses and graphs: tumour ulceration/.test(await cell.getAttribute("title") ?? "")
+    && await prompt.count() === 0);
+  await page.waitForFunction((before) => {
+    const s = document.querySelector(".report-sentence p")?.textContent ?? "";
+    return s && s !== before && !!document.querySelector('.pane-results[data-live="true"]');
+  }, sentenceBefore, { timeout: 60000 });
+  const card = page.getByRole("region", { name: "Exclusions" });
+  const row = await card.locator(".exc-groups tbody tr", { hasText: "Treated" }).innerText();
+  expect("Exclusions block: Treated 8 entered, 1 excluded, 7 analysed, tumour ulceration",
+    /Treated\s+8\s+1\s+7\s+tumour ulceration/.test(row), row.replace(/\s+/g, " "));
+  const sentence = "Treated, n = 8 enrolled, 7 analysed (1 excluded: tumour ulceration); no exclusions in Control";
+  expect("Exclusions block states the methods / legend sentence",
+    (await card.locator(".exc-sentence").innerText()).trim() === `${sentence}.`);
+  const legend = await page.locator(".report-legend p").innerText();
+  expect("the figure legend states n enrolled, analysed and the reason",
+    legend.includes("n = 8 enrolled, 7 analysed (1 excluded: tumour ulceration)"), legend);
+  const methods = await page.locator(".stats-methods p").innerText();
+  expect("the methods paragraph states the exclusions with n enrolled and analysed",
+    methods.includes(`Exclusions: ${sentence}.`), methods);
+  // one click: the results with the excluded value included, as a second block
+  const pStored = pOf(await page.locator(".report-sentence p").innerText());
+  await card.getByRole("button", { name: "Show results with excluded values included" }).click();
+  const both = card.getByRole("group", { name: "Results with excluded values included" });
+  await both.waitFor({ timeout: 60000 });
+  const asIs = pOf(await both.locator(".exc-as-is").innerText());
+  const all = pOf(await both.locator(".exc-all").innerText());
+  expect("the results with the excluded value included give another P; the stored P is unchanged",
+    !!asIs && !!all && asIs !== all && asIs === pStored
+    && pOf(await page.locator(".report-sentence p").innerText()) === pStored,
+    `as analysed P = ${asIs}, included P = ${all}, stored P = ${pStored}`);
+  const axCard = await axeOn(page, ".exclusions-card");
+  expect("axe-core: the Exclusions block with the comparison passes", axCard.length === 0, axCard.join(" | "));
+  expect("the second block lists the numbers that change (n 7 → 8)",
+    /n \(Treated\): 7 → 8/.test(await both.locator(".exc-changes").innerText()), await both.locator(".exc-changes").innerText());
+  // reasons can be edited from the results; the tidy CSV of the bundle
+  // carries them (share/tidy.ts, unit-tested)
+  await card.getByLabel("Reason for excluding Treated, row 3").fill("tumour ulceration (day 12)");
+  await card.getByLabel("Reason for excluding Treated, row 3").press("Enter");
+  expect("a reason edited in the Exclusions block reaches the methods",
+    await page.waitForFunction(() => (document.querySelector(".stats-methods p")?.textContent ?? "")
+      .includes("(1 excluded: tumour ulceration (day 12))"), null, { timeout: 10000 }).then(() => true, () => false));
+}
+
+// --- reopening a project saved by another version (stable-results-
+// versions): every saved result is recomputed and compared at display
+// precision; the strip says all reproduced, or lists what changed with
+// both values and the engine change log as the why. A fresh page with the
+// example project (deterministic results).
+{
+  const p4 = await browser.newPage({ viewport: { width: 1500, height: 1100 } });
+  p4.on("pageerror", (e) => errors.push(`pageerror (reproduce): ${e.message}`));
+  await p4.goto(url, { waitUntil: "domcontentloaded" });
+  await p4.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 180000 });
+  // save once every result is live (each carries its input fingerprint)
+  let saved = null;
+  for (let i = 0; i < 20 && !saved; i++) {
+    const [dl] = await Promise.all([p4.waitForEvent("download", { timeout: 30000 }),
+      p4.getByRole("button", { name: "Save project" }).click()]);
+    const f = join(tmp, `reproduce-${i}.json`);
+    await dl.saveAs(f);
+    const j = JSON.parse(readFileSync(f, "utf8"));
+    if (j.sheets.filter((s) => s.kind === "results").every((s) => s.cachedKey)) saved = j;
+    else await p4.waitForTimeout(1500);
+  }
+  expect("a saved project records the software that saved it",
+    !!saved && typeof saved.savedWith?.app === "string" && !!saved.savedWith.engine,
+    JSON.stringify(saved?.savedWith ?? null));
+  const nResults = saved.sheets.filter((s) => s.kind === "results").length;
+  const older = { ...saved, savedWith: { ...saved.savedWith, app: "0.2.0" } };
+  const OLD = join(tmp, "saved-with-0.2.0.json");
+  writeFileSync(OLD, JSON.stringify(older));
+  await p4.setInputFiles('.load-btn input[type="file"]', OLD);
+  const strip = p4.getByRole("region", { name: "Reproducing saved results" });
+  await strip.waitFor({ timeout: 30000 });
+  const done = await p4.waitForFunction(() => /reproduced with|changed with/.test(
+    document.querySelector(".reproduce-strip .rs-headline")?.textContent ?? ""), null, { timeout: 180000 })
+    .then(() => true, () => false);
+  const head = done ? await strip.locator(".rs-headline").innerText() : await strip.innerText();
+  const m = head.match(/^All (\d+) results reproduced with OpenDose ([\w.-]+) \(saved with 0\.2\.0\)\.$/);
+  const N = m ? Number(m[1]) : 0;
+  expect(`reopening a file saved with 0.2.0 recomputes the ${nResults} analyses and says all reproduced`,
+    !!m && N > 20, head);
+  await strip.getByRole("button", { name: "History" }).click();
+  const hist = p4.getByRole("dialog", { name: "History" });
+  expect("the History panel records the comparison",
+    await appears(hist.locator(".history-reproduction"))
+    && (await hist.locator(".history-reproduction").first().innerText()).includes(`All ${N} results reproduced`));
+  await hist.getByRole("button", { name: "Close" }).click();
+  // one stored number off: the strip lists it with both values
+  const ct = older.sheets.find((s) => s.kind === "results" && s.cached?.analysis === "contingency");
+  const truth = ct.cached.chi_square.p;
+  ct.cached.chi_square.p = 0.0234;
+  const OLD2 = join(tmp, "saved-with-0.2.0-patched.json");
+  writeFileSync(OLD2, JSON.stringify(older));
+  await p4.setInputFiles('.load-btn input[type="file"]', OLD2);
+  const changed = await p4.waitForFunction(() => /changed with/.test(
+    document.querySelector(".reproduce-strip .rs-headline")?.textContent ?? ""), null, { timeout: 180000 })
+    .then(() => true, () => false);
+  const head2 = changed ? await strip.locator(".rs-headline").innerText() : "";
+  const list = changed ? await strip.getByRole("list", { name: "Changed results" }).innerText() : "";
+  expect("a changed stored number: '1 of N results changed' with that number listed, both values",
+    head2 === `1 of ${N} results changed with OpenDose ${m?.[2]} (saved with 0.2.0).`
+    && list.includes(`chi-square test P (${ct.name}) 0.0234 → ${truth.toPrecision(4)}`)
+    && /Why:/.test(await strip.innerText()), `${head2} | ${list}`);
+  const axStrip = await axeOn(p4, ".reproduce-strip");
+  expect("axe-core: the reproduction strip passes", axStrip.length === 0, axStrip.join(" | "));
+  await strip.getByRole("button", { name: "Dismiss" }).click();
+  expect("the strip is dismissable", await strip.count() === 0);
+  await p4.close();
+}
+
 // --- Survival entry and extras (needs survival-data-entry,
 // median-survival-explained, pairwise-logrank). Alive mice per day for
 // two groups become one row per mouse with a "read as" preview; the drug
@@ -2779,6 +2952,134 @@ expect("compare fits graph draws the separate curves and the shared curve",
   const axeEmpty = await axeViolations(p3, [".results-empty-links"]);
   expect("axe-core: the empty results' entry points pass", axeEmpty.length === 0, axeEmpty.join(" | "));
   await ctx3.close();
+}
+
+// --- paste report, Notes strip and Analysed line, Convert table to…,
+// Describe the experiment (needs: excel-paste-fidelity, fail-loudly,
+// missing-values-handling, table-layout-chooser). A pasted block with
+// #DIV/0!, a blank and IDs in the row titles is reported cell by cell
+// with nothing read as 0; a text cell in a t test is named in the Notes;
+// a paired t test with two incomplete pairs reads "n = 10 pairs analysed;
+// 2 incomplete pairs (rows 4, 9) left out"; the paired table converts to
+// a grouped table with every value in its row.
+{
+  // axe-core (WCAG 2 A / AA, contrast included) on one part of the page
+  const axeOn = async (selector) => {
+    const req = createRequire(import.meta.url);
+    await page.addScriptTag({ path: req.resolve("axe-core/axe.min.js") }).catch(() => {});
+    return page.evaluate(async (sel) => {
+      // eslint-disable-next-line no-undef
+      const r = await axe.run(document.querySelector(sel), { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa"] } });
+      return r.violations.flatMap((x) => x.nodes.map((n) => `${x.id}: ${n.html.slice(0, 70)}`));
+    }, selector);
+  };
+  const axeFound = [];
+  const pasteInto = (label, text) => page.evaluate(([l, t]) => {
+    const el = document.querySelector(`.data-table input[aria-label='${l}']`);
+    const dt = new DataTransfer();
+    dt.setData("text/plain", t);
+    el.focus();
+    el.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }));
+  }, [label, text]);
+  const cellVal = (label) => page.locator(`.data-table input[aria-label='${label}']`).inputValue();
+  const newColumnTable = async (name) => {
+    await page.getByRole("button", { name: "New data table" }).first().click();
+    const dlg = page.locator(".new-table-dialog");
+    await dlg.locator('input[name="table-type"][value="column"]').check();
+    await dlg.getByLabel("Table name").fill(name);
+    await dlg.getByRole("button", { name: "Create table" }).click();
+    await page.waitForSelector(".grid-toolbar");
+    await page.waitForTimeout(400);
+  };
+
+  // (a) paste report
+  await newColumnTable("Pasted IDs");
+  await pasteInto("Row 1 title", "0001234\t1.5\t#DIV/0!\n0001235\t\t2.5\n1E5\t3.5\t4.5\n");
+  const strip = page.locator(".paste-report");
+  const stripShown = await appears(strip, 5000);
+  const stripText = stripShown ? (await strip.innerText()).replace(/\s+/g, " ") : "";
+  expect("a paste is reported: 4 numbers, the blank B2 and #DIV/0! in C1 kept as missing, nothing read as 0",
+    /4 numbers/.test(stripText) && /1 blank kept as missing: B2/.test(stripText)
+    && /1 spreadsheet error kept as missing: C1/.test(stripText)
+    && /3 labels kept exactly as typed/.test(stripText) && /nothing was converted to 0/.test(stripText), stripText);
+  axeFound.push(...(await axeOn(".paste-report")).map((v) => `paste report: ${v}`));
+  const ids = [await cellVal("Row 1 title"), await cellVal("Row 2 title"), await cellVal("Row 3 title")];
+  const gridVals = await page.locator(".data-table tbody input").evaluateAll((els) => els.map((e) => e.value));
+  expect("identifiers stay as typed (0001234, 1E5), the error text stays, and no cell holds 0",
+    ids.join(",") === "0001234,0001235,1E5" && await cellVal("Group B, row 1") === "#DIV/0!"
+    && await cellVal("Group A, row 2") === "" && !gridVals.some((v) => v.trim() === "0"),
+    `${ids.join(",")} | ${gridVals.filter(Boolean).join(",")}`);
+  await strip.getByRole("button", { name: "Go to cell C1, “#DIV/0!”" }).click();
+  expect("a cell named in the report is one click away",
+    await page.evaluate(() => document.activeElement?.getAttribute("aria-label")) === "Group B, row 1");
+
+  // (c) a text cell in a t test: named in the Notes, n says so
+  await page.locator(".data-table input[aria-label='Group A, row 4']").fill("high");
+  await page.locator(".pane-controls select.analysis-select").selectOption("ttest");
+  const notes = page.locator(".pane-results .notes-strip");
+  const textNoted0 = page.waitForFunction(() => {
+    const t = document.querySelector('.pane-results[data-live="true"] .notes-strip')?.textContent ?? "";
+    return /1 cell is not a number and was skipped: Group A, row 4 \(“high”\)/.test(t)
+      && /n = 2, 2 analysed \(Group A, Group B\)/.test(t);
+  }, null, { timeout: 60000 }).then(() => true, () => false);
+  const textNoted = await textNoted0;
+  if (textNoted) axeFound.push(...(await axeOn(".pane-results .notes-strip")).map((v) => `notes: ${v}`));
+  expect("a text cell in a numeric column: the Notes say it was skipped and give n per group", textNoted,
+    (await notes.innerText().catch(() => "")).replace(/\s+/g, " "));
+
+  // (d) paired t test with two incomplete pairs
+  await newColumnTable("Paired mice");
+  await pasteInto("Group A, row 1", "1\t1.5\n2\t2.4\n3\t3.6\n\t4.1\n5\t5.2\n6\t6.9\n7\t7.1\n8\t8.8\n"
+    + "9\t\n10\t10.2\n11\t11.1\n12\t12.9\n");
+  await page.locator(".pane-controls select.analysis-select").selectOption("ttest");
+  await page.locator(".pane-controls").getByLabel("Test", { exact: true }).selectOption("paired");
+  const analysedOk = await page.waitForFunction(() => /Analysed: n = 10 pairs analysed; 2 incomplete pairs \(rows 4, 9\) left out/
+    .test(document.querySelector('.pane-results[data-live="true"] .notes-strip .analysed-line')?.textContent ?? ""),
+  null, { timeout: 60000 }).then(() => true, () => false);
+  expect("paired t test with two incomplete pairs: n = 10 pairs analysed; 2 incomplete pairs (rows 4, 9) left out",
+    analysedOk, await page.locator(".notes-strip .analysed-line").innerText().catch(() => ""));
+  const meanDiff = await page.locator(".pane-results").innerText();
+  expect("the paired t test pairs row by row (mean difference -0.47 over the 10 complete pairs)",
+    /[-−]0\.47/.test(meanDiff), meanDiff.split("\n").find((l) => /difference/i.test(l)) ?? "");
+
+  // (b) Convert table to… grouped, same rows: values and pairing kept
+  await page.getByRole("button", { name: "Convert table to…" }).click();
+  const conv = page.locator(".convert-type-dialog");
+  await conv.getByLabel("Grouped table, same rows").check();
+  const checkLine = await conv.locator(".convert-check").innerText();
+  axeFound.push(...(await axeOn(".convert-type-dialog")).map((v) => `convert: ${v}`));
+  expect("Convert table to… checks every value against the original", /All 22 values carried over/.test(checkLine),
+    checkLine);
+  await conv.getByRole("button", { name: "Create new table" }).click();
+  await conv.waitFor({ state: "detached", timeout: 10000 });
+  await page.waitForTimeout(600);
+  const placed = [await cellVal("Group A, row 4"), await cellVal("Group B, row 4"),
+    await cellVal("Group A, row 9"), await cellVal("Group B, row 9"), await cellVal("Group B, row 12")];
+  expect("the grouped table keeps every value in its row (pairs and gaps where they were)",
+    await page.getByRole("treeitem", { name: "Paired mice (grouped)" }).count() >= 1
+    && placed.join("|") === "|4.1|9||12.9"
+    && await page.locator(".data-table th.group-head input.ds-name").evaluateAll((e) => e.map((x) => x.value).join(","))
+      === "Group A,Group B", placed.join("|"));
+
+  // Describe the experiment -> the table and its layout
+  await page.getByRole("button", { name: "New data table" }).first().click();
+  const nd = page.locator(".new-table-dialog");
+  await nd.getByRole("button", { name: "Not sure? Describe the experiment…" }).click();
+  const dd = page.locator(".design-dialog");
+  await dd.getByRole("button", { name: "I measured the same mice (WT and KO) at 4 times" }).click();
+  const ddText = await dd.locator(".design-result").innerText();
+  axeFound.push(...(await axeOn(".design-dialog")).map((v) => `design: ${v}`));
+  await dd.getByRole("button", { name: "Use this table" }).click();
+  await dd.waitFor({ state: "detached", timeout: 5000 });
+  expect("describing the experiment picks a grouped table with subjects as subcolumns (4 rows, 4 subcolumns)",
+    /Grouped table, subjects as subcolumns/.test(ddText)
+    && await nd.locator('input[name="table-type"][value="grouped"]').isChecked()
+    && await nd.getByLabel("Replicates", { exact: true }).inputValue() === "4"
+    && await nd.getByLabel("Rows (levels of the row factor)", { exact: true }).inputValue() === "4"
+    && await nd.isVisible(), ddText.replace(/\s+/g, " "));
+  await nd.getByRole("button", { name: "Cancel" }).click();
+  expect("axe-core: the paste report, Notes strip and the convert / design dialogs pass WCAG 2 AA",
+    axeFound.length === 0, axeFound.join(" | "));
 }
 
 await page.screenshot({

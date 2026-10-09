@@ -2,7 +2,7 @@ import { lazy, Suspense, useMemo, useState } from "react";
 import Modal from "../../components/Modal";
 import { readXlsx, type XlsxSheet } from "../../lib/engine";
 import {
-  applyImport, DEFAULT_FILTER, DEFAULT_SOURCE, defaultRoles, DELIMITER_LABELS, detectTitlesRow,
+  applyImport, applyImportWithCells, DEFAULT_FILTER, DEFAULT_SOURCE, defaultRoles, DELIMITER_LABELS, detectTitlesRow,
   importWidth, prepareImport, type ColumnRole, type DecimalChoice,
   type DelimiterChoice, type FilterOptions, type PlacementOptions, type SourceOptions,
 } from "../../project/importText";
@@ -10,6 +10,7 @@ import { flatColumns, hasAnyValue, tableShape } from "../../project/table";
 import type { DataTableModel } from "../../project/types";
 import { isTableDrop } from "../../share/recipes/dropKind";
 import type { PlainSpec } from "../../share/recipes/saved";
+import { pasteReport, placedCells, type PasteReport } from "../../project/pasteReport";
 
 export interface ImportRequest {
   text?: string;                        // clipboard text to start from
@@ -53,7 +54,9 @@ const intOr = (v: string, d: number) => {
 export default function ImportDialog({ table, initial, onImport, onPasteAsIs, onClose }: {
   table: DataTableModel;
   initial?: ImportRequest;
-  onImport: (fn: (t: DataTableModel) => DataTableModel) => void;
+  /** The edit, and what it does to every cell it writes (the report the
+   *  grid shows above the table). */
+  onImport: (fn: (t: DataTableModel) => DataTableModel, report?: PasteReport) => void;
   onPasteAsIs?: () => void;
   onClose: () => void;
 }) {
@@ -157,8 +160,10 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
 
   const submit = () => {
     if (empty) { setError("Nothing to import with these settings."); return; }
-    onImport((t) => applyImport(t, preview, roles, place,
-      { skipBlankX: filter.skipBlankX, asteriskExcluded: filter.asteriskExcluded }));
+    const f = { skipBlankX: filter.skipBlankX, asteriskExcluded: filter.asteriskExcluded };
+    const res = applyImportWithCells(table, preview, roles, place, f);
+    onImport((t) => applyImport(t, preview, roles, place, f),
+      pasteReport(placedCells(res.table, res.written)));
   };
 
   const num = (label: string, value: number | null, set: (v: number | null) => void,

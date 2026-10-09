@@ -819,10 +819,11 @@ in brackets; "discoverable" = already built, make it findable):
       cells. [`declare-experimental-unit`, 91.0, 69 obs] Done: question
       strip above the results (`guide/declareUnit.ts`), replicate maps on
       XY and grouped cells, "n = 3 independent experiments (9 wells)".
-- [ ] After every paste or import, show a one-line report ('412 numbers,
+- [x] After every paste or import, show a one-line report ('412 numbers,
       3 blanks kept as missing, 2 text cells in numeric columns: B7,
       C12') and keep text columns as text. [`excel-paste-fidelity`,
-      81.8, 45 obs]
+      81.8, 45 obs] (`project/pasteReport.ts`; Help explainer
+      "What happens to pasted cells")
 - [ ] Add a 'Residuals' tab to t-test and ANOVA results with a QQ plot
       and residual-vs-fitted plot, and word the normality chip as advice
       that depends on n. [`assumption-checks-residuals`, 81.5, 38 obs]
@@ -845,9 +846,21 @@ in brackets; "discoverable" = already built, make it findable):
 - [ ] Document and test limits (rows, points per graph), virtualise the
       grid, and switch dense scatters to WebGL above a threshold.
       [`large-data`, 66.1, 43 obs]
-- [ ] Ask for a reason when values are excluded, list exclusions per
+- [x] Ask for a reason when values are excluded, list exclusions per
       group in results and methods, and offer a one-click 'results with
       excluded values included'. [`exclusion-log`, 64.1, 29 obs]
+      Done: skippable reason prompt after Ctrl/Cmd+E
+      (`DataColumn.exclusionReasons`, `project/exclusions.ts`), an
+      Exclusions block on results sheets, "n = 8 enrolled, 7 analysed
+      (1 excluded: …)" in methods and legends, the side-by-side results
+      with every value included, reasons in History / provenance.json.
+- [x] Reopened projects say whether every saved number came back: files
+      record `savedWith`; opening one saved by another build recomputes
+      and compares at display precision ("All 48 results reproduced …"
+      or each change with both values and the `share/engineChanges.ts`
+      log), kept in History. [`stable-results-versions`, 50.8, 26 obs]
+- [x] Tidy CSV of the export bundle keeps excluded values with
+      `excluded` and `exclusion_reason` columns. [`source-data-export`]
 - [ ] Let a provenance file (or a project) be applied to a new data
       file: same tables, analyses, graphs and layouts, with a diff of
       what changed. [`analysis-replay`, 63.1, 32 obs]
@@ -915,6 +928,20 @@ Wave 2, instrument and image-table import:
       or grouped table with the replicate map set (SuperPlot graph,
       "n = 3 images per group from 3 independent experiments").
       [`image-table-import`]
+
+Also shipped from Wave 1 of the improvement plan:
+- [x] "Convert table to…" (column ↔ grouped ↔ multiple variables,
+      stacked ↔ side by side) as a new table keeping every value,
+      exclusion and pairing, and "Describe the experiment" picking the
+      table from three design questions. [`table-layout-chooser`]
+      (`project/convertType.ts`, `guide/designToTable.ts`)
+- [x] A Notes strip on every results sheet with every engine warning and
+      every skipped value, unit-tested over the column, grouped, XY and
+      survival payloads. [`fail-loudly`] (`project/dataNotes.ts`)
+- [x] An "Analysed" line: n per group, pairs or subjects, and the rows
+      of incomplete pairs left out; paired t / Wilcoxon / correlation
+      payloads no longer shift pairs after a one-sided blank.
+      [`missing-values-handling`]
 
 ## Next up
 

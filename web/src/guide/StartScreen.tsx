@@ -13,6 +13,7 @@ import { guidedExampleProject, singleTableProject } from "./actions";
 import { setStartScreenEnabled, startScreenEnabled, tourDone } from "./context";
 import { buildTable, parsePasted, suggestTableType } from "./paste";
 import { CARD_TEXT, SKETCHES } from "./sketches";
+import DescribeExperimentButton from "./DescribeExperimentButton";
 import { usePrismBatch } from "../share/usePrismBatch";
 import { takeTableDrop } from "../share/recipes/readFiles";
 import "./startPrism.css";
@@ -148,6 +149,8 @@ export default function StartScreen({ onOpenFile, onClose, onTour }: {
 
         <section aria-labelledby="start-types-h">
           <h3 id="start-types-h" className="start-section">Or choose a table type</h3>
+          <DescribeExperimentButton onPick={(r) => begin(singleTableProject(prefs, newId, r.type,
+            { table: tableDef(r.type).defaultTable(r.init) }))} />
           <ul className="start-cards">
             {TABLE_ORDER.map((t) => {
               const def = tableDef(t);

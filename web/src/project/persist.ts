@@ -36,6 +36,9 @@ export interface SerializeOptions {
   selected?: string | null;
   /** Compact JSON (autosave) instead of indented (files). */
   compact?: boolean;
+  /** The software saving the file (project/reproduce.ts SavedWith): a
+   *  later version that opens it recomputes and compares the results. */
+  savedWith?: unknown;
 }
 
 /** JSON text of a project. `results` (sheet id -> last computed result)
@@ -58,6 +61,7 @@ export function serializeProject(p: Project,
     [FILE_MARKER]: 2,
     version: 2,
     title: p.title,
+    ...(opts.savedWith ? { savedWith: opts.savedWith } : {}),
     prefs: p.prefs,
     ...(p.groups?.length ? { groups: p.groups } : {}),
     ...(p.recipes?.length ? { recipes: p.recipes } : {}),
