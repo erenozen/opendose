@@ -48,7 +48,7 @@ cd web && node scripts/e2e-check.mjs && node scripts/e2e-tiff.mjs
 cd web && node scripts/e2e-export.mjs   # page layouts, PDF/PNG/zip export
 cd web && node scripts/e2e-share.mjs    # share links, export bundle, import recipes
 cd web && node scripts/e2e-figures.mjs  # SuperPlots, legends, P styles, classic theme, CVD check, volcano, heat-map dendrograms
-cd web && node scripts/e2e-assays.mjs   # assay wizards (plate, ELISA, qPCR, blots)
+cd web && node scripts/e2e-assays.mjs   # assay wizards (plate, ELISA, qPCR, flow, blots)
 ```
 
 The dev server needs internet access on first load (Pyodide + SciPy come
@@ -152,6 +152,10 @@ example's numbers, regenerate them against a dev server with
   origin with R² about Y = 0); Deming (Model II) regression.
 - Compare fits: two models by the extra-sum-of-squares F test and AICc,
   or one curve for all data sets against a separate curve for each.
+- Compare a parameter between two curves (logEC50, Hill slope, Top …):
+  the EC50 ratio (potency ratio) with its CI, the difference with its
+  t test, and the F test and AICc for one shared value; a ratio involving
+  an IC50 beyond the tested range is reported as undefined.
 
 ### Statistics
 
@@ -252,6 +256,11 @@ sheets that follow the data.
   efficiencies, statistics on ΔCq, fold changes with asymmetric CIs on a
   log2 axis (MIQE 2.0); exports are read whatever the instrument calls
   its sample, target and Cq columns, with a mapping step when unsure.
+  Reference genes are checked before any fold change (Cq per group, the
+  shift with treatment, geNorm M), with one-click choice of references.
+- Flow cytometry (wizard): a FlowJo statistics table to one value per
+  donor and condition (FMO / isotype subtraction), a paired t test or
+  repeated-measures ANOVA with the donor as the block, and a SuperPlot.
 - Western blot densitometry (wizard): ImageJ / Image Lab exports,
   background and loading-control normalisation, fold change within blot,
   ratio paired t test with blot as the pair.
