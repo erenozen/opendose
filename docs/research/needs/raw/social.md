@@ -1,8 +1,8 @@
 # Needs catalogue: social (Bluesky and Mastodon)
 
-Venue family: Bluesky and the Mastodon fediverse. Collected 2026-10-09. Raw observations are in `social.json` (56 observations from 53 posts; `verify.py`: 56 observations, 0 with problems).
+Venue family: Bluesky and the Mastodon fediverse. Collected 2026-10-09. Raw observations are in `social.json`. The agent collected 56 observations from 53 posts (`verify.py`: 56 observations, 0 with problems). The coordinator then removed 15 from authors outside bench and lab science (psychology, sociology, politics, digital humanities, geography, survey design, presentation training, and a general methodology account), leaving **41**.
 
-**About the `url` field.** A Mastodon status permalink returns only an HTML shell whose `<title>` holds a truncated preview, so quotes cannot be checked against it. Each observation's `url` is therefore the public, unauthenticated status JSON (`https://<host>/api/v1/statuses/<id>`), fetched with `fetch.py`, which holds the full post text. The `venue` is the host that served that JSON: the author's home server where reachable, otherwise the instance whose federated copy was read. The human permalink for every observation is listed in the appendix.
+**About the `url` field.** Each observation's `url` is the human permalink. A Mastodon permalink returns only an HTML shell with a truncated title, so quotes were checked against the public status JSON (`https://<host>/api/v1/statuses/<id>`), which holds the full text. `venue` is the host that served that JSON. Two posts federated from non-Mastodon servers have object URLs as their permalinks.
 
 ## 1. Coverage
 
@@ -53,18 +53,18 @@ Both refused, so Bluesky is listed as UNREACHABLE and no further Bluesky calls w
 
 | Tag | Count |
 |---|---|
-| price-licence | 8 |
-| file-compatibility | 8 |
-| graph-formatting | 7 |
-| scripting-batch | 6 |
-| reproducibility-audit | 6 |
-| learning-curve | 6 |
-| trust-validation | 5 |
+| file-compatibility | 6 |
+| price-licence | 5 |
+| scripting-batch | 5 |
+| graph-formatting | 5 |
 | image-analysis-exports | 5 |
-| mac-windows | 4 |
-| which-test | 4 |
+| reproducibility-audit | 4 |
+| mac-windows | 3 |
+| which-test | 3 |
+| learning-curve | 3 |
+| multiple-comparisons | 3 |
 
-Severity split: slows the work 21, wrong result risk 21, blocks the analysis 9, cosmetic / preference 5.
+Severity split: wrong result risk 18, slows the work 16, blocks the analysis 5, cosmetic / preference 2.
 
 ## 3. Twenty strongest observations
 
@@ -128,16 +128,6 @@ Link: https://social.anoxinon.de/@RoedigerRG/113362576978151533 (role: Research 
 Why strong: A cell-biology lab manager's scale bars silently came out wrong after rotate/crop. The error is invisible until it is published.  
 Link: https://qoto.org/@Drosmel/114440041699396307 (role: Research scientist and lab manager, cell biology PhD (bio); date 2025-05-02)
 
-**13. `mastodon-fediscience.org-109879542804288063`**: Hours lost building a grouped mean ± error bar plot with connecting lines  
-> I've been working on these plots for hours, and can't seem to get from the first image to the second - I want to show each group's mean for each level on the x axis (midpoint of error bars) and then join the means for each group with lines.  
-Why strong: Hours spent on a standard grouped mean ± error-bar plot with joined means, by a statistical methodologist.  
-Link: https://fediscience.org/@emma_cogdev/109879542804288063 (role: Statistical methodologist, perception/autism research (bio); date 2023-02-17)
-
-**14. `mastodon-mastodon.social-113151485600181880`**: Point-and-click analyses leave no record that reviewers can check  
-> Authors provided data, but "No code was used as all analysis were performed with SPSS."  
-Why strong: Point-and-click analysis left reviewers with no record of the steps that were run.  
-Link: https://mastodon.social/@renebekkers/113151485600181880 (role: Professor, sociology; journal reviewer (bio); date 2024-09-17)
-
 **15. `mastodon-fosstodon.org-116013906772213820`**: Wet-lab spreadsheets are messy and inconsistently named, which breaks downstream analysis  
 > Experimental folks in the biological sciences really need to learn how to fill out an Excel sheet. The sheet starts in row 1, column A. ... Plus, you can't keep changing the nomenclature.  
 Why strong: Wet-lab spreadsheets break downstream analysis: columns move and sample names keep changing.  
@@ -152,11 +142,6 @@ Link: https://mathstodon.xyz/@albertcardona/115977601390005740 (role: Group lead
 > the use of six tumor growth plots with mismatched Y-axis scales weakens the data’s clarity and scientific integrity.  
 Why strong: Six tumour growth panels with mismatched y-axes in an immunology preprint: a multi-panel default that misleads readers.  
 Link: https://bookstodon.com/@BOOKidealist/114773280194272146 (role: Reader commenting on an immunology preprint (bio: news/books account); date 2025-06-30)
-
-**18. `mastodon-fediscience.org-113117856053679074`**: A student's course needs SPSS, which costs €110/month; the family is asked to pirate it  
-> A mi hija se lo han pedido ahora para tercero de psicología en la UAM y me ha pedido a mí que lo piratee. ... Los precios en la web de IBM son de 110€ al mes y unos 1180€ al año y, obviamente, no podemos pagar eso.  
-Why strong: A psychology course requires SPSS at €110/month, and the family is asked to pirate it. Price as a barrier to teaching.  
-Link: https://taquiones.net/social/victor/p/1726041495.575481 (role: Parent of a psychology undergraduate (Universidad Autónoma de Madrid); date 2024-09-11)
 
 **19. `mastodon-genomic.social-111632643369774216`**: FlowJo's built-in tools fall short, so the lab hard-codes its own analyses  
 > this appears to make a lot of the analyses that our lab has hard-coded into a very nifty interactive web-app!! Really awesome way to make complex #FlowCytometry analysis accessible when built-in tools to #FlowJo don't quite deliver!  
@@ -217,25 +202,12 @@ Link: https://mastodon.au/@ListonLab/109710020351052909 (role: Medical researche
 | mastodon-social.anoxinon.de-113362576978151533 | https://social.anoxinon.de/@RoedigerRG/113362576978151533 |
 | mastodon-mastodon.social-115995169354646594 | https://mastodon.social/@FabMusacchio/115995169354646594 |
 | mastodon-mastodon.au-109710020351052909 | https://mastodon.au/@ListonLab/109710020351052909 |
-| mastodon-mastodon.online-116883668508377648 | https://mastodon.online/@d_yellowlees/116883668508377648 |
 | mastodon-ecoevo.social-110234359746262096 | https://qoto.org/@medigoth/110234359540911172 |
 | mastodon-fediscience.org-117092831216433935 | https://fediscience.org/@volephd/117092831216433935 |
-| mastodon-mastodon.social-112241988991846762 | https://mastodon.social/@mzloteanu/112241988991846762 |
-| mastodon-mastodon.social-112202624292062000 | https://mastodon.social/@mzloteanu/112202624292062000 |
-| mastodon-mastodon.social-113804494582461294 | https://mastodon.social/@mzloteanu/113804494582461294 |
 | mastodon-scholar.social-99655618416874622 | https://scholar.social/@noctiluca/99655618416874622 |
 | mastodon-fosstodon.org-116013906772213820 | https://fosstodon.org/@rohitfarmer/116013906772213820 |
-| mastodon-fediscience.org-114250682695999642 | https://kolektiva.social/@forse/114250682692310779 |
-| mastodon-vis.social-110348798219658139 | https://vis.social/@waeiski/110348798219658139 |
 | mastodon-biologists.social-114709090932207911 | https://biologists.social/@steveroyle/114709090932207911 |
 | mastodon-biologists.social-114150012770263099 | https://biologists.social/@steveroyle/114150012770263099 |
-| mastodon-fediscience.org-109879542804288063 | https://fediscience.org/@emma_cogdev/109879542804288063 |
-| mastodon-fediscience.org-109879716472592986 | https://fediscience.org/@emma_cogdev/109879716472592986 |
-| mastodon-mastodon.social-111255542507645897 | https://mastodon.social/@mzloteanu/111255542507645897 |
-| mastodon-fediscience.org-117240503307435083 | https://fediscience.org/@wviechtb/117240503307435083 |
-| mastodon-mstdn.social-111880297522128290 | https://mstdn.social/@quinnanya/111880297522128290 |
-| mastodon-tech.lgbt-112562064737165885 | https://tech.lgbt/@bidoof29/112562064737165885 |
-| mastodon-fediscience.org-113117856053679074 | https://taquiones.net/social/victor/p/1726041495.575481 |
 | mastodon-ecoevo.social-114440041747939117 | https://qoto.org/@Drosmel/114440041699396307 |
 | mastodon-8bitorbust.info-115315620267316809 | https://8bitorbust.info/@dtl/115315620267316809 |
 | mastodon-biologists.social-114415479750505635 | https://biologists.social/@JontyTownson/114415479750505635 |
@@ -243,6 +215,4 @@ Link: https://mastodon.au/@ListonLab/109710020351052909 (role: Medical researche
 | mastodon-mstdn.science-110033513018885906 | https://mstdn.science/@josyterbeek/110033513018885906 |
 | mastodon-mstdn.science-109783546566069385 | https://mstdn.science/@AnhHLe2702/109783546566069385 |
 | mastodon-genomic.social-111632643369774216 | https://genomic.social/@carondanielp/111632643369774216 |
-| mastodon-mastodon.social-113151485600181880 | https://mastodon.social/@renebekkers/113151485600181880 |
 | mastodon-mastodon.social-109816897396255021 | https://mastodon.social/@bruvellu/109816897396255021 |
-| mastodon-fediscience.org-109836977506872248 | https://fediscience.org/@kaiarzheimer/109836977506872248 |
