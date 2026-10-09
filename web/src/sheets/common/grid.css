@@ -152,3 +152,21 @@ button.linkish:active { transform: none; }
 .table-copy { margin: 2px 0 4px; }
 .long-table-dialog .field-row > .field { min-width: 12ch; }
 .long-table-error { color: var(--danger); }
+
+/* ---- long tables (virtualRows.ts): the table scrolls inside its card,
+   only the rows in view are rendered, and the header stays in view. */
+.data-table.virtual { max-height: max(420px, 85vh); overscroll-behavior: contain; }
+.data-table.virtual thead {
+  position: sticky; top: -10px; z-index: 2; background: var(--surface);
+}
+/* --inset is translucent: layer it on the card colour so rows scrolling
+   under the header do not show through. */
+.data-table.virtual thead th {
+  background: linear-gradient(var(--inset), var(--inset)), var(--surface);
+  /* collapsed borders stay where the header was laid out: draw them here */
+  box-shadow: 0 0 0 1px var(--grid);
+}
+.data-table.virtual thead th.rownum, .data-table.virtual thead th.rowtools {
+  background: var(--surface); box-shadow: 0 0 0 1px var(--surface);
+}
+.data-table tr.grid-gap td { padding: 0; border: none; background: transparent; }

@@ -1,0 +1,18 @@
+/* "What this means" (MeaningLine.tsx). Tokens only (index.css / App.css). */
+.meaning-line {
+  margin: 0 0 10px; padding: 9px 12px 8px;
+  font-size: 13px; line-height: 1.5; color: var(--ink-2);
+  background: var(--accent-soft); border: 1px solid var(--accent-border);
+  border-radius: var(--radius-s);
+}
+.meaning-line p { margin: 0; overflow-wrap: anywhere; }
+.meaning-line p + p { margin-top: 4px; }
+.meaning-sentence { color: var(--ink); font-size: 13.5px; }
+.meaning-label {
+  font-size: 11.5px; font-weight: 650; letter-spacing: 0.02em;
+  text-transform: uppercase; color: var(--muted); margin-right: 2px;
+}
+.meaning-sentence .meaning-label { color: var(--accent); }
+.meaning-misread, .meaning-test { font-size: 12.5px; }
+.meaning-sources { font-size: 12px; color: var(--muted); }
+.meaning-sources a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }

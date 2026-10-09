@@ -7,6 +7,7 @@ import { useEffect, useRef } from "react";
 import type Plotly from "plotly.js-dist-min";
 import { loadPlotly, plotlyNow } from "../lib/plotly";
 import { applyFormat, type FormatContext } from "./apply";
+import { densify } from "./dense";
 import { plotConfig } from "./edits";
 import { EMPTY_FORMAT, type GraphFormat } from "./format";
 import { usePlotEdits } from "./usePlotEdits";
@@ -68,7 +69,7 @@ export default function FormattedPlot({
     const div = el.current;
     if (!div) return;
     const out = applyFormat(traces as never, layout, format, { ...ctx, editRevision: rev });
-    void loadPlotly().then((P) => P.react(div, out.traces as Plotly.Data[], out.layout, plotConfig({
+    void loadPlotly().then((P) => P.react(div, densify(out.traces).traces as Plotly.Data[], out.layout, plotConfig({
       responsive: true, scrollZoom, displaylogo: false,
       toImageButtonOptions: { format: "svg", filename },
     }, format, !!onFormatChange))).then(() => {

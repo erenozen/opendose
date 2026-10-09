@@ -38,6 +38,7 @@ import GraphLegend from "../report/GraphLegend";
 import ReportCard from "../report/ReportCard";
 import StatsMethodsCard from "../report/StatsMethodsCard";
 import ExclusionsCard from "../report/ExclusionsCard";
+import MeaningLine from "../report/MeaningLine";
 import NotesStrip from "./NotesStrip";
 import ResultsLinks, { ResultsEmptyLinks } from "./ResultsLinks";
 
@@ -216,6 +217,7 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
                   result={result} />
                 <ResultsLinks key={resSheet.id} sheet={resSheet} tableName={data.name}
                   options={options} result={result} />
+                <MeaningLine analysisId={resSheet.analysis} table={data.table} options={options} result={result} />
 
                 <ResultsExport name={resSheet.name}>
                   <Suspense fallback={<Pending />}>

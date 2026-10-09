@@ -1,0 +1,1072 @@
+{
+ "cox": {
+  "options": {
+   "categorical": [
+    "Group"
+   ]
+  },
+  "result": {
+   "aic": 57.164054653810005,
+   "analysis": "cox",
+   "coefficients": [
+    {
+     "ci": [
+      -2.359404949955055,
+      0.1355451143987696
+     ],
+     "coef": -1.1119299177781428,
+     "hazard_ratio": 0.32892355271742607,
+     "hazard_ratio_ci": [
+      0.0944764246740466,
+      1.1451608579126744
+     ],
+     "level": "Treated",
+     "name": "Group[Treated]",
+     "p": 0.08063682209942677,
+     "reference": "Control",
+     "se": 0.6364785485941764,
+     "term": "Group",
+     "z": -1.7470029747807223
+    },
+    {
+     "ci": [
+      -0.38554656231315154,
+      -0.049599668977115985
+     ],
+     "coef": -0.21757311564513376,
+     "hazard_ratio": 0.8044687835153749,
+     "hazard_ratio_ci": [
+      0.6800788291479966,
+      0.951610307383752
+     ],
+     "name": "Age",
+     "p": 0.01112627605560191,
+     "se": 0.08570231289603834,
+     "term": "Age",
+     "z": -2.5387076298519737
+    }
+   ],
+   "concordance": {
+    "c": 0.7586206896551724,
+    "comparable": 145.0,
+    "concordant": 110.0,
+    "discordant": 35.0,
+    "se": 0.07260089190237218,
+    "tied_risk": 0.0,
+    "tied_time": 0.0
+   },
+   "converged": true,
+   "covariance": [
+    [
+     0.4051049428205494,
+     0.009561341359007857
+    ],
+    [
+     0.00956134135900788,
+     0.0073448864357304605
+    ]
+   ],
+   "curves": [
+    {
+     "covariates": {
+      "Age": 64.05,
+      "Group[Treated]": 0.5
+     },
+     "label": "at covariate means",
+     "strata": [
+      {
+       "cumulative_hazard": [
+        0.0,
+        0.028702130905551595,
+        0.06134773733352877,
+        0.0952249646199087,
+        0.13357742807912848,
+        0.18595253959793273,
+        0.24680161469859274,
+        0.3083827037452849,
+        0.37461669284993315,
+        0.4759704744426554,
+        0.6302742610425602,
+        0.9790359419838128
+       ],
+       "lower": [
+        1.0,
+        0.9154184673585999,
+        0.8555596336452839,
+        0.8018500960354716,
+        0.7456273467229398,
+        0.676525775117117,
+        0.6060764325878815,
+        0.5442680517521331,
+        0.484944277359303,
+        0.40950930074433634,
+        0.3192328934407017,
+        0.16401486369526322
+       ],
+       "n_events": [
+        0,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+       ],
+       "n_risk": [
+        20,
+        20,
+        19,
+        18,
+        16,
+        14,
+        13,
+        12,
+        11,
+        10,
+        9,
+        6
+       ],
+       "se_cumulative_hazard": [
+        0.0,
+        0.030445378815590864,
+        0.048292593793880824,
+        0.0640872167197076,
+        0.0816096173165198,
+        0.10450814067216231,
+        0.12956746235540892,
+        0.153028683135442,
+        0.17811786165035876,
+        0.21266982064556447,
+        0.26100485115136474,
+        0.4228456683540944
+       ],
+       "se_survival": [
+        0.0,
+        0.029583953081399734,
+        0.045418997922737174,
+        0.05826607105126768,
+        0.07140512790876608,
+        0.08677446791416236,
+        0.1012304980543539,
+        0.11242009150723242,
+        0.1224654295528201,
+        0.13212789443533923,
+        0.13897092420857032,
+        0.15885174093344984
+       ],
+       "stratum": "all",
+       "survival": [
+        1.0,
+        0.9717058625084343,
+        0.9404961372874578,
+        0.9091683807412119,
+        0.8749597199043833,
+        0.8303130010356825,
+        0.7812956757358915,
+        0.7346341169761758,
+        0.6875527721819213,
+        0.6212818256688314,
+        0.532445751853006,
+        0.37567309498941376
+       ],
+       "time": [
+        0.0,
+        5.0,
+        6.0,
+        8.0,
+        12.0,
+        15.0,
+        18.0,
+        20.0,
+        22.0,
+        25.0,
+        26.0,
+        33.0
+       ],
+       "upper": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.9915836215041081,
+        0.9748105846494867,
+        0.9425698175958573,
+        0.8880616142364208,
+        0.8604724664536665
+       ]
+      }
+     ]
+    }
+   ],
+   "hazard_method": "efron",
+   "iterations": 5,
+   "loglik": -26.582027326905003,
+   "loglik_null": -31.670388936191795,
+   "means": {
+    "Age": 64.05,
+    "Group[Treated]": 0.5
+   },
+   "n": 20,
+   "n_events": 14,
+   "n_excluded": 0,
+   "ph_test": {
+    "global": {
+     "chi2": 2.3325544693972327,
+     "df": 2,
+     "p": 0.311524517901289
+    },
+    "terms": [
+     {
+      "chi2": 2.078683015354199,
+      "df": 1,
+      "p": 0.1493690026391546,
+      "term": "Group"
+     },
+     {
+      "chi2": 0.0008970560897430996,
+      "df": 1,
+      "p": 0.9761062159818953,
+      "term": "Age"
+     }
+    ],
+    "transform": "km"
+   },
+   "strata": null,
+   "term_tests": [
+    {
+     "chi2": 3.0520193938926936,
+     "df": 1,
+     "p": 0.08063682209942669,
+     "term": "Group"
+    },
+    {
+     "chi2": 6.445036429868627,
+     "df": 1,
+     "p": 0.011126276055601913,
+     "term": "Age"
+    }
+   ],
+   "terms": [
+    {
+     "kind": "categorical",
+     "levels": [
+      "Control",
+      "Treated"
+     ],
+     "name": "Group",
+     "reference": "Control"
+    },
+    {
+     "kind": "continuous",
+     "name": "Age"
+    }
+   ],
+   "tests": {
+    "likelihood_ratio": {
+     "chi2": 10.176723218573585,
+     "df": 2,
+     "p": 0.006168117399340114
+    },
+    "score": {
+     "chi2": 9.627366173233785,
+     "df": 2,
+     "p": 0.00811790562026287
+    },
+    "wald": {
+     "chi2": 8.193996980316427,
+     "df": 2,
+     "p": 0.016622493176954686
+    }
+   },
+   "ties": "efron",
+   "warnings": []
+  }
+ },
+ "linear_regression": {
+  "options": {},
+  "result": {
+   "analysis": "linear_regression",
+   "datasets": [
+    {
+     "fit": {
+      "analysis": "linear_regression",
+      "df": 4,
+      "equation": "Y = Slope*X + Yintercept",
+      "f_nonzero_slope": {
+       "F": 2231.4687500000027,
+       "dfd": 4,
+       "dfn": 1,
+       "p": 1.2013602560215702e-06
+      },
+      "n": 6,
+      "one_over_slope": 0.49504950495049516,
+      "r_squared": 0.9982106661074999,
+      "runs_test": {
+       "n_negative": 2,
+       "n_positive": 4,
+       "n_runs": 5,
+       "p": 1.0
+      },
+      "slope": {
+       "ci95": [
+        1.9012742132933063,
+        2.138725786706693
+       ],
+       "se": 0.04276179870598786,
+       "value": 2.0199999999999996
+      },
+      "ss_res": 0.12799999999999978,
+      "sy_x": 0.178885438199983,
+      "x_intercept": 0.009900990099009252,
+      "y_intercept": {
+       "ci95": [
+        -0.4823705099899516,
+        0.44237050998995425
+       ],
+       "se": 0.16653327995729048,
+       "value": -0.019999999999998685
+      }
+     },
+     "name": "Rate"
+    }
+   ]
+  }
+ },
+ "logistic": {
+  "options": {
+   "outcome": "Response",
+   "predictors": [
+    "Dose",
+    "Sex"
+   ]
+  },
+  "result": {
+   "analysis": "logistic_regression",
+   "ci_level": 0.95,
+   "ci_method": "profile",
+   "classification": {
+    "cutoff": 0.5,
+    "negative_predictive_power": 87.5,
+    "observed_0_predicted_0": 7,
+    "observed_0_predicted_1": 2,
+    "observed_1_predicted_0": 1,
+    "observed_1_predicted_1": 10,
+    "percent_correct": 85.0,
+    "percent_correct_0": 77.77777777777777,
+    "percent_correct_1": 90.9090909090909,
+    "positive_predictive_power": 83.33333333333333
+   },
+   "coefficients": [
+    {
+     "ci": [
+      -11.020109663993905,
+      -1.469892866433135
+     ],
+     "estimate": -4.931630215889874,
+     "name": "Intercept",
+     "odds_ratio": 0.007214732118274422,
+     "odds_ratio_ci": [
+      1.636918974740739e-05,
+      0.2299501192436087
+     ],
+     "p": 0.03121534760704301,
+     "se": 2.2891853914533664,
+     "vif": null,
+     "z": 2.1543166553054327
+    },
+    {
+     "ci": [
+      0.27409997650744283,
+      1.760302863262187
+     ],
+     "estimate": 0.8172470564500408,
+     "name": "Dose",
+     "odds_ratio": 2.26425787547624,
+     "odds_ratio_ci": [
+      1.3153462993943932,
+      5.8141980347562985
+     ],
+     "p": 0.021553059460491,
+     "se": 0.3556103147140591,
+     "vif": 1.03125,
+     "z": 2.29815340735315
+    },
+    {
+     "ci": [
+      -0.8329020220289687,
+      5.228929928900191
+     ],
+     "estimate": 1.740661721037238,
+     "name": "Sex[M]",
+     "odds_ratio": 5.701114722307683,
+     "odds_ratio_ci": [
+      0.4347856960571073,
+      186.59302884508477
+     ],
+     "p": 0.2273884427996169,
+     "se": 1.442003377918887,
+     "vif": 1.0312500000000002,
+     "z": 1.207113483707214
+    }
+   ],
+   "deviance": 14.56121436206676,
+   "hosmer_lemeshow": {
+    "df": 8,
+    "groups": [
+     {
+      "expected_0": 1.9678531237839991,
+      "expected_1": 0.032146876216000805,
+      "n": 2,
+      "observed_0": 2.0,
+      "observed_1": 0.0
+     },
+     {
+      "expected_0": 1.845439772752852,
+      "expected_1": 0.15456022724714796,
+      "n": 2,
+      "observed_0": 1.0,
+      "observed_1": 1.0
+     },
+     {
+      "expected_0": 1.6516937350206515,
+      "expected_1": 0.3483062649793484,
+      "n": 2,
+      "observed_0": 2.0,
+      "observed_1": 0.0
+     },
+     {
+      "expected_0": 1.3992004667166498,
+      "expected_1": 0.6007995332833502,
+      "n": 2,
+      "observed_0": 2.0,
+      "observed_1": 0.0
+     },
+     {
+      "expected_0": 0.9610099104977166,
+      "expected_1": 1.0389900895022834,
+      "n": 2,
+      "observed_0": 1.0,
+      "observed_1": 1.0
+     },
+     {
+      "expected_0": 0.6247242516363758,
+      "expected_1": 1.3752757483636242,
+      "n": 2,
+      "observed_0": 1.0,
+      "observed_1": 1.0
+     },
+     {
+      "expected_0": 0.3056758857700921,
+      "expected_1": 1.694324114229908,
+      "n": 2,
+      "observed_0": 0.0,
+      "observed_1": 2.0
+     },
+     {
+      "expected_0": 0.16278238511012355,
+      "expected_1": 1.8372176148898764,
+      "n": 2,
+      "observed_0": 0.0,
+      "observed_1": 2.0
+     },
+     {
+      "expected_0": 0.06798655841983381,
+      "expected_1": 1.9320134415801662,
+      "n": 2,
+      "observed_0": 0.0,
+      "observed_1": 2.0
+     },
+     {
+      "expected_0": 0.013633910291706242,
+      "expected_1": 1.9863660897082938,
+      "n": 2,
+      "observed_0": 0.0,
+      "observed_1": 2.0
+     }
+    ],
+    "p": 0.506950467518392,
+    "statistic": 7.27806344368458
+   },
+   "iterations": 7,
+   "likelihood_ratio_test": {
+    "G": 12.964338186476777,
+    "df": 2,
+    "p": 0.0015304873066066481
+   },
+   "log_likelihood": -7.28060718103338,
+   "model_comparison": {
+    "intercept_only": {
+     "aic": 29.525552548543537,
+     "aicc": 29.74777477076576,
+     "df": 19,
+     "log_likelihood": -13.762776274271769
+    },
+    "selected": {
+     "aic": 20.56121436206676,
+     "aicc": 22.06121436206676,
+     "df": 17,
+     "log_likelihood": -7.28060718103338
+    }
+   },
+   "n_ones": 11,
+   "n_parameters": 3,
+   "n_rows_analyzed": 20,
+   "n_rows_skipped": 0,
+   "n_zeros": 9,
+   "null_deviance": 27.525552548543537,
+   "null_log_likelihood": -13.762776274271769,
+   "outcome": "Response",
+   "outcome_coding": {
+    "0": 0.0,
+    "1": 1.0
+   },
+   "pseudo_r_squared": {
+    "cox_snell": 0.4770225378890327,
+    "mcfadden": 0.47099284069277514,
+    "nagelkerke": 0.638171556235677,
+    "tjur": 0.5422897561544994
+   },
+   "reference_levels": {
+    "Sex": "F"
+   }
+  }
+ },
+ "multiple_regression": {
+  "options": {
+   "outcome": "Weight",
+   "predictors": [
+    "Dose",
+    "Sex"
+   ]
+  },
+  "result": {
+   "analysis": "multiple_regression",
+   "anova": [
+    {
+     "F": 816.2065706570686,
+     "df": 2,
+     "ms": 106.68300000000004,
+     "p": 1.2927528487760104e-17,
+     "source": "Regression",
+     "ss": 213.36600000000007
+    },
+    {
+     "df": 17,
+     "ms": 0.13070588235294076,
+     "source": "Residual",
+     "ss": 2.221999999999993
+    },
+    {
+     "df": 19,
+     "source": "Total",
+     "ss": 215.58800000000005
+    }
+   ],
+   "ci_level": 0.95,
+   "coefficients": [
+    {
+     "ci": [
+      19.328878487906657,
+      20.101121512093336
+     ],
+     "estimate": 19.714999999999996,
+     "name": "Intercept",
+     "p": 1.5298022021452933e-25,
+     "r2_with_others": null,
+     "se": 0.18301197325022497,
+     "t": 107.72519223670936,
+     "vif": null
+    },
+    {
+     "ci": [
+      1.0546979509102663,
+      1.1753020490897337
+     ],
+     "estimate": 1.115,
+     "name": "Dose",
+     "p": 4.468010354952433e-18,
+     "r2_with_others": 0.030303030303030276,
+     "se": 0.028581668333144575,
+     "t": 39.011018776220155,
+     "vif": 1.03125
+    },
+    {
+     "ci": [
+      0.23859110128941596,
+      0.9314088987105884
+     ],
+     "estimate": 0.5850000000000022,
+     "name": "Sex[M]",
+     "p": 0.0023937710332190354,
+     "r2_with_others": 0.030303030303030498,
+     "se": 0.16418918428232118,
+     "t": 3.5629630694437355,
+     "vif": 1.0312500000000002
+    }
+   ],
+   "goodness": {
+    "adjusted_r_squared": 0.9884807514114613,
+    "aicc": -33.279824980064454,
+    "df": 17,
+    "multiple_r": 0.9948333045764327,
+    "r_squared": 0.9896933038944654,
+    "rmse": 0.3419756839616704,
+    "sum_of_squares": 2.221999999999993,
+    "sy_x": 0.3615326850409804
+   },
+   "n_parameters": 3,
+   "n_rows_analyzed": 20,
+   "n_rows_skipped": 0,
+   "normality_of_residuals": {
+    "anderson_darling": {
+     "A2": 0.1248192682166902,
+     "p": 0.9827537732192945,
+     "passed_alpha_05": true
+    },
+    "dagostino_pearson": {
+     "K2": 0.023479686502385383,
+     "p": 0.9883287998263416,
+     "passed_alpha_05": true
+    },
+    "shapiro_wilk": {
+     "W": 0.9834572946065234,
+     "p": 0.9705899679026017,
+     "passed_alpha_05": true
+    }
+   },
+   "outcome": "Weight",
+   "overall_test": {
+    "F": 816.2065706570686,
+    "dfd": 17,
+    "dfn": 2,
+    "p": 1.2927528487760104e-17
+   },
+   "predicted": [
+    20.829999999999995,
+    22.529999999999998,
+    23.059999999999995,
+    24.759999999999998,
+    25.289999999999996,
+    26.989999999999995,
+    27.519999999999996,
+    29.22,
+    29.749999999999996,
+    31.449999999999996,
+    20.829999999999995,
+    22.529999999999998
+   ],
+   "reference_levels": {
+    "Sex": "F"
+   },
+   "term_tests": [
+    {
+     "F": 1521.8595859586012,
+     "df": 1,
+     "ms": 198.91600000000005,
+     "p": 4.468010354952437e-18,
+     "ss": 198.91600000000005,
+     "term": "Dose"
+    },
+    {
+     "F": 12.694705834219848,
+     "df": 1,
+     "ms": 1.6592727272727301,
+     "p": 0.0023937710332190944,
+     "ss": 1.6592727272727301,
+     "term": "Sex"
+    }
+   ]
+  }
+ },
+ "survival_three": {
+  "options": {},
+  "result": {
+   "analysis": "survival",
+   "curves": {
+    "A": {
+     "median_ci": {
+      "level": 0.95,
+      "lower": 3.0,
+      "method": "Brookmeyer-Crowley (inverted pointwise CI)",
+      "transform": "log-log",
+      "upper": null
+     },
+     "median_ci_log": {
+      "level": 0.95,
+      "lower": 5.0,
+      "method": "Brookmeyer-Crowley (inverted pointwise CI), R survfit's default log band",
+      "transform": "log",
+      "upper": null
+     },
+     "median_survival": 7.0,
+     "n": 6,
+     "n_censored": 1,
+     "n_events": 5,
+     "table": [
+      {
+       "at_risk": 6,
+       "censored": 0,
+       "events": 1,
+       "lower": 0.27312284992835584,
+       "lower_log": 0.5826547954771396,
+       "se": 0.15214515486254615,
+       "survival": 0.8333333333333334,
+       "time": 3.0,
+       "upper": 0.9747124266908935,
+       "upper_log": 1.0
+      },
+      {
+       "at_risk": 5,
+       "censored": 0,
+       "events": 1,
+       "lower": 0.19461663680623476,
+       "lower_log": 0.37860646088709504,
+       "se": 0.1924500897298753,
+       "survival": 0.6666666666666667,
+       "time": 5.0,
+       "upper": 0.9044341643225164,
+       "upper_log": 1.0
+      },
+      {
+       "at_risk": 4,
+       "censored": 0,
+       "events": 1,
+       "lower": 0.11094826035143801,
+       "lower_log": 0.2246303477692667,
+       "se": 0.2041241452319315,
+       "survival": 0.5,
+       "time": 7.0,
+       "upper": 0.8037092368500567,
+       "upper_log": 1.0
+      },
+      {
+       "at_risk": 2,
+       "censored": 0,
+       "events": 1,
+       "lower": 0.012309516475010473,
+       "lower_log": 0.0504587931389417,
+       "se": 0.2041241452319315,
+       "survival": 0.25,
+       "time": 11.0,
+       "upper": 0.6459485373981005,
+       "upper_log": 1.0
+      },
+      {
+       "at_risk": 1,
+       "censored": 0,
+       "events": 1,
+       "lower": 0.0,
+       "lower_log": null,
+       "se": 0.0,
+       "survival": 0.0,
+       "time": 12.0,
+       "upper": 0.0,
+       "upper_log": null
+      }
+     ],
+     "table_columns": {
+      "at_risk": "number at risk just before the time (R's n.risk)",
+      "censored": "censored at the time",
+      "events": "events at the time (n.event)",
+      "lower": "95% CI, log-log transform (Prism)",
+      "lower_log": "95% CI, log transform (R survfit's default; null where S = 0)",
+      "se": "Greenwood SE of S(t) (std.err)",
+      "survival": "Kaplan-Meier S(t)",
+      "time": "event time",
+      "upper": "95% CI, log-log transform (Prism)",
+      "upper_log": "95% CI, log transform (R survfit's default; capped at 1)"
+     }
+    },
+    "B": {
+     "median_ci": {
+      "level": 0.95,
+      "lower": 4.0,
+      "method": "Brookmeyer-Crowley (inverted pointwise CI)",
+      "transform": "log-log",
+      "upper": null
+     },
+     "median_ci_log": {
+      "level": 0.95,
+      "lower": 8.0,
+      "method": "Brookmeyer-Crowley (inverted pointwise CI), R survfit's default log band",
+      "transform": "log",
+      "upper": null
+     },
+     "median_survival": 10.0,
+     "n": 6,
+     "n_censored": 2,
+     "n_events": 4,
+     "table": [
+      {
+       "at_risk": 6,
+       "censored": 0,
+       "events": 1,
+       "lower": 0.27312284992835584,
+       "lower_log": 0.5826547954771396,
+       "se": 0.15214515486254615,
+       "survival": 0.8333333333333334,
+       "time": 4.0,
+       "upper": 0.9747124266908935,
+       "upper_log": 1.0
+      },
+      {
+       "at_risk": 5,
+       "censored": 0,
+       "events": 1,
+       "lower": 0.19461663680623476,
+       "lower_log": 0.37860646088709504,
+       "se": 0.1924500897298753,
+       "survival": 0.6666666666666667,
+       "time": 8.0,
+       "upper": 0.9044341643225164,
+       "upper_log": 1.0
+      },
+      {
+       "at_risk": 4,
+       "censored": 0,
+       "events": 1,
+       "lower": 0.11094826035143801,
+       "lower_log": 0.2246303477692667,
+       "se": 0.2041241452319315,
+       "survival": 0.5,
+       "time": 10.0,
+       "upper": 0.8037092368500567,
+       "upper_log": 1.0
+      },
+      {
+       "at_risk": 2,
+       "censored": 0,
+       "events": 1,
+       "lower": 0.012309516475010473,
+       "lower_log": 0.0504587931389417,
+       "se": 0.2041241452319315,
+       "survival": 0.25,
+       "time": 16.0,
+       "upper": 0.6459485373981005,
+       "upper_log": 1.0
+      }
+     ],
+     "table_columns": {
+      "at_risk": "number at risk just before the time (R's n.risk)",
+      "censored": "censored at the time",
+      "events": "events at the time (n.event)",
+      "lower": "95% CI, log-log transform (Prism)",
+      "lower_log": "95% CI, log transform (R survfit's default; null where S = 0)",
+      "se": "Greenwood SE of S(t) (std.err)",
+      "survival": "Kaplan-Meier S(t)",
+      "time": "event time",
+      "upper": "95% CI, log-log transform (Prism)",
+      "upper_log": "95% CI, log transform (R survfit's default; capped at 1)"
+     }
+    },
+    "C": {
+     "median_ci": {
+      "level": 0.95,
+      "lower": 6.0,
+      "method": "Brookmeyer-Crowley (inverted pointwise CI)",
+      "transform": "log-log",
+      "upper": null
+     },
+     "median_ci_log": {
+      "level": 0.95,
+      "lower": 15.0,
+      "method": "Brookmeyer-Crowley (inverted pointwise CI), R survfit's default log band",
+      "transform": "log",
+      "upper": null
+     },
+     "median_survival": 20.0,
+     "n": 6,
+     "n_censored": 3,
+     "n_events": 3,
+     "table": [
+      {
+       "at_risk": 6,
+       "censored": 0,
+       "events": 1,
+       "lower": 0.27312284992835584,
+       "lower_log": 0.5826547954771396,
+       "se": 0.15214515486254615,
+       "survival": 0.8333333333333334,
+       "time": 6.0,
+       "upper": 0.9747124266908935,
+       "upper_log": 1.0
+      },
+      {
+       "at_risk": 4,
+       "censored": 0,
+       "events": 1,
+       "lower": 0.141853389931655,
+       "lower_log": 0.319992161862854,
+       "se": 0.21347814095749162,
+       "survival": 0.625,
+       "time": 15.0,
+       "upper": 0.8930506044985778,
+       "upper_log": 1.0
+      },
+      {
+       "at_risk": 3,
+       "censored": 0,
+       "events": 1,
+       "lower": 0.05599186485205291,
+       "lower_log": 0.14679191553447146,
+       "se": 0.22178776975932377,
+       "survival": 0.41666666666666663,
+       "time": 20.0,
+       "upper": 0.76652221955058,
+       "upper_log": 1.0
+      }
+     ],
+     "table_columns": {
+      "at_risk": "number at risk just before the time (R's n.risk)",
+      "censored": "censored at the time",
+      "events": "events at the time (n.event)",
+      "lower": "95% CI, log-log transform (Prism)",
+      "lower_log": "95% CI, log transform (R survfit's default; null where S = 0)",
+      "se": "Greenwood SE of S(t) (std.err)",
+      "survival": "Kaplan-Meier S(t)",
+      "time": "event time",
+      "upper": "95% CI, log-log transform (Prism)",
+      "upper_log": "95% CI, log transform (R survfit's default; capped at 1)"
+     }
+    }
+   },
+   "gehan_breslow_wilcoxon": {
+    "chi2": 4.405854833887335,
+    "df": 2,
+    "p": 0.1104792656349683
+   },
+   "logrank": {
+    "chi2": 4.992412208354926,
+    "chi2_peto": 4.992412208354926,
+    "chi2_variance": 5.7944782519631985,
+    "df": 2,
+    "expected": [
+     2.216030456471633,
+     3.804169115198527,
+     5.97980042832984
+    ],
+    "group_names": [
+     "A",
+     "B",
+     "C"
+    ],
+    "method": "chi2 / p (= chi2_peto / p_peto): Peto form sum((O-E)^2/E), the approximation the engine reports for Prism parity; chi2_variance / p_variance: Mantel-Haenszel variance form U'V^-1U (hypergeometric variance), the exact log-rank statistic R's survdiff and SAS LIFETEST report and the Cox score test equals for two groups; df = groups - 1 for both. The Peto form is never larger, so its P is never smaller.",
+    "p": 0.08239701205624893,
+    "p_peto": 0.08239701205624893,
+    "p_variance": 0.05517534213338644
+   },
+   "warnings": [
+    "Few events in B (4 events), C (3 events) (fewer than 5 per group): the tests and confidence intervals for these groups rest on very few events (the log-rank chi-square approximation needs adequate numbers of events in each group)."
+   ]
+  }
+ },
+ "ttest_ns": {
+  "options": {
+   "dataset_a": 0,
+   "dataset_b": 1,
+   "kind": "unpaired",
+   "welch": true
+  },
+  "result": {
+   "analysis": "ttest",
+   "ci_difference": [
+    -2.1962298723755627,
+    1.4962298723755598
+   ],
+   "df": 9.549837767256204,
+   "difference": -0.3500000000000014,
+   "effect_size": {
+    "ci_d": [
+     -1.3759485572626515,
+     0.8976124846751956
+    ],
+    "ci_g": [
+     -1.2696504881210933,
+     0.8282679779676556
+    ],
+    "ci_level": 0.95,
+    "ci_method": "noncentral t on the Welch t and df, standardizer held fixed (approximate; Algina & Keselman 2003)",
+    "cles_parametric": 0.4311085692280939,
+    "d": -0.24544034683690896,
+    "df_correction": 10,
+    "hedges_g": -0.22647900208278413,
+    "hedges_j": 0.922745608053087,
+    "interpretation": {
+     "label": "small",
+     "scale": "d",
+     "source": "Cohen (1988) sec. 2.2.3: d = 0.2 small, 0.5 medium, 0.8 large",
+     "thresholds": [
+      0.2,
+      0.5,
+      0.8
+     ]
+    },
+    "measure": "cohens_d_av",
+    "n_a": 6,
+    "n_b": 6,
+    "standardizer": "average",
+    "standardizer_sd": 1.4260084151224355
+   },
+   "f_test_variances": {
+    "F": 1.5546482412060305,
+    "dfd": 5,
+    "dfn": 5,
+    "p": 0.640042325601412
+   },
+   "mean_a": 11.299999999999999,
+   "mean_b": 11.65,
+   "n_a": 6,
+   "n_b": 6,
+   "names": [
+    "Vehicle",
+    "Drug"
+   ],
+   "p_two_tailed": 0.6801720261892324,
+   "r_squared": 0.01857271105981024,
+   "scale_check": {
+    "all_positive": true,
+    "groups": [
+     {
+      "cv": 0.11165883395106199,
+      "mean": 11.299999999999999,
+      "n": 6,
+      "name": "Vehicle",
+      "sd": 1.2617448236470004
+     },
+     {
+      "cv": 0.1350397658588178,
+      "mean": 11.65,
+      "n": 6,
+      "name": "Drug",
+      "sd": 1.5732132722552274
+     }
+    ],
+    "pearson_r_sd_mean": null,
+    "reason": "the SDs do not differ more than 3-fold in the direction of the means",
+    "rule": {
+     "min_groups_for_r": 3,
+     "r_threshold": 0.7,
+     "sd_ratio_threshold_two_groups": 3.0
+    },
+    "sd_ratio_max_min": 1.246855340930146,
+    "source": "Bland & Altman 1996, BMJ 312:770 ('Transforming data'); GraphPad statistics guide, 'Advice: When to transform data to logarithms'",
+    "spearman_rho_sd_mean": null,
+    "suggest_log": false,
+    "text": null
+   },
+   "se_difference": 0.8233063423376098,
+   "sem_a": 0.5151051672555162,
+   "sem_b": 0.6422616289332566,
+   "t": 0.4251151509488535,
+   "test": "welch_t"
+  }
+ }
+}

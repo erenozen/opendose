@@ -12,6 +12,7 @@ import {
   type GraphFormat, type ResultsBlock,
 } from "../graph";
 import { laneJitter, spreadOffsets, type PointSpread } from "../graph/swarm";
+import { densify } from "../graph/dense";
 import { areaScale, estimateArea, usePlotArea } from "../graph/usePlotArea";
 import { summaryOf, type ColumnSummary } from "../sheets/column/graphSettings";
 
@@ -232,7 +233,7 @@ export default function ColumnPlot({
       rowTitles, comparisons, results, editRevision: rev, caption,
     });
     const div = el.current;
-    void loadPlotly().then((P) => P.react(div, out.traces as Plotly.Data[], out.layout, plotConfig({
+    void loadPlotly().then((P) => P.react(div, densify(out.traces).traces as Plotly.Data[], out.layout, plotConfig({
       responsive: true, scrollZoom: true, displaylogo: false,
       toImageButtonOptions: { format: "svg", filename: "column-graph" },
     }, format, !!onFormatChange))).then(() => {
