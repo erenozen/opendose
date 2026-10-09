@@ -16,6 +16,17 @@ Prism statistics guide:
 - "effect_size" (opendose.effectsize): partial eta^2 (with its
   noncentral-F CI) and generalized eta^2 (Olejnik & Algina 2003) per
   term of the RM ANOVAs; Kendall's W for the Friedman test.
+- Dunn's test after Friedman (Dunn 1964, Technometrics 6:241; GraphPad
+  statistics guide "Dunn's multiple comparisons test" and "How the Dunn
+  method for nonparametric comparisons works"): z = |difference of mean
+  ranks| / sqrt(k(k+1)/(6n)), unadjusted P = 2 * (1 - Phi(z)), adjusted
+  for exactly the family asked for: all pairs (default), each treatment
+  vs. a control (k - 1 comparisons) or a list of planned pairs.
+  Correction: Bonferroni (P times the family size, capped at 1; the
+  default and Prism's choice), Holm's (1979, Scand J Statist 6:65)
+  step-down (R p.adjust "holm"), or none. Each comparison carries
+  p_unadjusted, p_adjusted, family_size and method; the block carries
+  family {size, method, label}.
 """
 
 from __future__ import annotations
@@ -26,7 +37,74 @@ from itertools import combinations
 import numpy as np
 from scipy import stats
 
-from . import effectsize
+from . import effectsize, fdr
+from .moretests import comparison_family
+
+DUNN_FAMILIES = ("all", "control", "pairs")
+DUNN_CORRECTIONS = ("bonferroni", "holm", "none")
+
+
+def dunn_family_pairs(k: int, dunn_family: str = "all", control=0,
+                      pairs=None) -> list:
+    """The (i, j) index pairs of a Dunn family over k groups: all pairs
+    (i < j), each group vs. the control as (i, control), or the given
+    planned pairs (validated: indices in range, i != j, no pair twice)."""
+    if dunn_family not in DUNN_FAMILIES:
+        raise ValueError(f"unknown Dunn family: {dunn_family!r} (use "
+                         f"'all', 'control' or 'pairs')")
+    if dunn_family == "all":
+        return list(combinations(range(k), 2))
+    if dunn_family == "control":
+        if isinstance(control, bool) or not isinstance(
+                control, (int, np.integer)) or not 0 <= int(control) < k:
+            raise ValueError(f"control must be a group index from 0 to "
+                             f"{k - 1}, got {control!r}")
+        c = int(control)
+        return [(i, c) for i in range(k) if i != c]
+    if not pairs:
+        raise ValueError("dunn_family 'pairs' needs a non-empty list of "
+                         "[i, j] index pairs")
+    out, seen = [], set()
+    for pr in pairs:
+        if not isinstance(pr, (list, tuple)) or len(pr) != 2:
+            raise ValueError(f"each planned pair must be [i, j], got {pr!r}")
+        i, j = pr
+        if any(isinstance(x, bool) or not isinstance(x, (int, np.integer))
+               for x in (i, j)):
+            raise ValueError(f"pair indices must be integers, got {pr!r}")
+        i, j = int(i), int(j)
+        if not (0 <= i < k and 0 <= j < k):
+            raise ValueError(f"pair {[i, j]} has an index outside 0..{k - 1}")
+        if i == j:
+            raise ValueError(f"pair {[i, j]} compares a group with itself")
+        key = frozenset((i, j))
+        if key in seen:
+            raise ValueError(f"pair {[i, j]} is listed more than once")
+        seen.add(key)
+        out.append((i, j))
+    return out
+
+
+def dunn_adjust(p_raw, correction: str = "bonferroni") -> list:
+    """Adjusted P values for one Dunn family: Bonferroni min(P m, 1),
+    Holm step-down (R p.adjust 'holm'), or none (P itself)."""
+    m = len(p_raw)
+    if correction == "bonferroni":
+        return [min(p * m, 1.0) for p in p_raw]
+    if correction == "holm":
+        return [float(v) for v in fdr.holm(np.asarray(p_raw, dtype=float))]
+    if correction == "none":
+        return list(p_raw)
+    raise ValueError(f"unknown Dunn correction: {correction!r} (use "
+                     f"'bonferroni', 'holm' or 'none')")
+
+
+def dunn_scope(k: int, dunn_family: str, names, control) -> str:
+    if dunn_family == "all":
+        return f"all pairs of {k} groups"
+    if dunn_family == "control":
+        return f"each of {k - 1} groups vs. {names[int(control)]}"
+    return "planned pairs"
 
 
 def _complete_matrix(datasets):
@@ -326,7 +404,15 @@ def rm_two_way_both(cells, *, row_names=None, col_names=None) -> dict:
 
 
 def friedman(datasets, names=None, *, dunns: bool = True,
-             exact: bool = False) -> dict:
+             exact: bool = False, dunn_family: str = "all", control=0,
+             pairs=None, dunn_correction: str = "bonferroni") -> dict:
+    """Friedman test, with Dunn's post test on the family dunn_family
+    ("all" | "control" vs. group index `control` | "pairs" = planned
+    [[i, j], ...]) corrected by dunn_correction ("bonferroni" | "holm" |
+    "none"); see the module docstring."""
+    if dunn_correction not in DUNN_CORRECTIONS:
+        raise ValueError(f"unknown Dunn correction: {dunn_correction!r} "
+                         f"(use 'bonferroni', 'holm' or 'none')")
     M = _complete_matrix(datasets)
     n, k = M.shape
     stat, p = stats.friedmanchisquare(*[M[:, j] for j in range(k)])
@@ -356,19 +442,30 @@ def friedman(datasets, names=None, *, dunns: bool = True,
         # comparing mean ranks; Bonferroni-adjusted P (Prism reports
         # multiplicity-adjusted P values).
         mean_ranks = rank_sums / n
-        pairs = list(combinations(range(k), 2))
-        m = len(pairs)
+        fam_pairs = dunn_family_pairs(k, dunn_family, control, pairs)
+        m = len(fam_pairs)
         se = math.sqrt(k * (k + 1) / (6.0 * n))
+        zs = [abs(mean_ranks[i] - mean_ranks[j]) / se for i, j in fam_pairs]
+        p_raw = [2 * float(stats.norm.sf(z)) for z in zs]
+        p_adjs = dunn_adjust(p_raw, dunn_correction)
+        method_id = f"dunn_{dunn_correction}"
         comparisons = []
-        for i, j in pairs:
-            z = abs(mean_ranks[i] - mean_ranks[j]) / se
-            p_adj = min(2 * float(stats.norm.sf(z)) * m, 1.0)
+        for (i, j), z, p0, p_adj in zip(fam_pairs, zs, p_raw, p_adjs):
             comparisons.append({
                 "pair": f"{names[i]} vs. {names[j]}",
                 "mean_rank_difference": float(mean_ranks[i] - mean_ranks[j]),
                 "statistic": float(z),
                 "p_adjusted": p_adj,
                 "significant_05": bool(p_adj < 0.05),
+                "p_unadjusted": p0,
+                "family_size": m,
+                "method": method_id,
+                "a_index": int(i), "b_index": int(j),
             })
-        out["dunns"] = {"method": "dunns", "comparisons": comparisons}
+        out["dunns"] = {
+            "method": "dunns", "comparisons": comparisons,
+            "family": comparison_family(
+                m, method_id, dunn_scope(k, dunn_family, names, control)),
+            "dunn_family": dunn_family, "correction": dunn_correction,
+            "se": se, "mean_ranks": [float(v) for v in mean_ranks]}
     return out

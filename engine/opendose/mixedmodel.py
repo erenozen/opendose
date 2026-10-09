@@ -58,6 +58,7 @@ import numpy as np
 from scipy import optimize, stats
 
 from . import dunnett, studentized
+from .moretests import METHOD_NAMES, comparison_family
 
 _LN2PI = math.log(2.0 * math.pi)
 
@@ -564,6 +565,12 @@ def compare_estimates(est, cov, df, method: str, *, names=None,
     holm_sidak (step-down), fisher (uncorrected LSD). n_family_total sets
     the number of comparisons the Bonferroni/Sidak/Holm corrections use
     (Prism corrects for all comparisons in two-way designs).
+
+    Each comparison also carries "p_unadjusted" (the Wald t test of the
+    contrast on the model df), "family_size" (the comparisons the
+    adjustment used: the pairs in this call for Tukey and Dunnett,
+    n_family_total for Bonferroni / Sidak / Holm-Sidak and Fisher) and
+    "method" (fisher reported as "fisher_lsd").
     """
     est = np.asarray(est, dtype=float)
     cov = np.asarray(cov, dtype=float)
@@ -644,6 +651,8 @@ def compare_estimates(est, cov, df, method: str, *, names=None,
     else:
         raise ValueError(f"unknown multiple-comparisons method: {method}")
 
+    fam_size = m if method in ("tukey", "dunnett") else m_total
+    method_id = "fisher_lsd" if method == "fisher" else method
     out = []
     for r in rows:
         half = r["half"]
@@ -657,6 +666,7 @@ def compare_estimates(est, cov, df, method: str, *, names=None,
             "p_unadjusted": float(r["p_raw"]),
             "p_adjusted": float(r["p_adj"]),
             "significant_05": _p_summary(r["p_adj"]),
+            "family_size": int(fam_size), "method": method_id,
         }
         if family is not None:
             entry["family"] = family
@@ -665,6 +675,22 @@ def compare_estimates(est, cov, df, method: str, *, names=None,
 
 
 _METHODS = ("tukey", "dunnett", "bonferroni", "sidak", "holm_sidak", "fisher")
+
+
+def comparisons_family(method: str, k: int, comps: list, names=None,
+                       control_index: int = 0) -> dict:
+    """{size, method, label} for one family of compare_estimates over k
+    means (the size the adjustment used, as on each comparison)."""
+    method_id = "fisher_lsd" if method == "fisher" else method
+    size = comps[0]["family_size"] if comps else (
+        k - 1 if method == "dunnett" else k * (k - 1) // 2)
+    if method == "dunnett":
+        ctrl = (names[control_index] if names is not None
+                and 0 <= control_index < len(names) else "the control")
+        scope = f"each of {k - 1} means vs. {ctrl}"
+    else:
+        scope = f"all pairs of {k} means"
+    return comparison_family(size, method_id, scope)
 
 
 # ---------------------------------------------------------- RM one-way
@@ -788,11 +814,14 @@ def mixed_rm_one_way(datasets, names=None, *, comparisons=None,
         if comparisons not in _METHODS:
             raise ValueError(f"unknown multiple-comparisons method: "
                              f"{comparisons}")
+        comps = compare_estimates(
+            emm, emm_cov, df_den, comparisons, names=names,
+            control_index=control_index, ci_level=ci_level)
         out["multiple_comparisons"] = {
             "method": comparisons, "df": float(df_den),
-            "comparisons": compare_estimates(
-                emm, emm_cov, df_den, comparisons, names=names,
-                control_index=control_index, ci_level=ci_level)}
+            "comparisons": comps,
+            "family": comparisons_family(comparisons, k, comps, names,
+                                         control_index)}
     return out
 
 
@@ -981,15 +1010,45 @@ def mixed_rm_two_way(cells, *, design: str = "mixed", row_names=None,
             sizes.append(k - 1 if comparisons == "dunnett" else k * (k - 1) // 2)
         total = sum(sizes)
         comps = []
+        fam_blocks = []
         for fam, Lf, nm, dfx in families:
             est, cov = estimate(fit, Lf)
-            comps.extend(compare_estimates(
+            part = compare_estimates(
                 est, cov, dfx, comparisons, names=nm,
                 control_index=control_index, ci_level=ci_level,
-                n_family_total=total, family=fam))
+                n_family_total=total, family=fam)
+            comps.extend(part)
+            blk = comparisons_family(comparisons, Lf.shape[0], part, nm,
+                                     control_index)
+            fam_blocks.append({"name": fam, "n_means": int(Lf.shape[0]),
+                               "n_comparisons": len(part), **blk})
+        per_family = comparisons in ("tukey", "dunnett")
+        method_id = "fisher_lsd" if comparisons == "fisher" else comparisons
+        if per_family and len(families) > 1:
+            sizes = sorted({blk["size"] for blk in fam_blocks})
+            size_txt = (str(sizes[0]) if len(sizes) == 1
+                        else f"{sizes[0]}-{sizes[-1]}")
+            what = ("row" if direction == "columns_within_rows" else
+                    "column")
+            family = {"size": sizes[-1], "method": method_id,
+                      "label": (f"{METHOD_NAMES[method_id]}, {size_txt} "
+                                f"comparisons within each {what} "
+                                f"({len(families)} separate families)"),
+                      "n_families": len(families), "per_family": True}
+        elif per_family:
+            family = {**{k_: fam_blocks[0][k_]
+                         for k_ in ("size", "method", "label")},
+                      "n_families": 1, "per_family": True}
+        else:
+            scope = (f"all {len(families)} families corrected together"
+                     if len(families) > 1 else
+                     f"all pairs of {fam_blocks[0]['n_means']} means")
+            family = {**comparison_family(total, method_id, scope),
+                      "n_families": len(families), "per_family": False}
         out["multiple_comparisons"] = {
             "method": comparisons, "direction": direction,
-            "n_comparisons": len(comps), "comparisons": comps}
+            "n_comparisons": len(comps), "comparisons": comps,
+            "family": family, "families": fam_blocks}
     return out
 
 
