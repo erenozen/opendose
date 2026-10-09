@@ -1025,6 +1025,18 @@ Wave 4:
       `docs/research/needs/raw-image-provenance-design.md` (recommends
       building it, effort M; open questions for Eren).
 
+### Re-validation (2026-10-10)
+
+After the 0.4.0 deployment the live site was run through the whole
+reference corpus again (`docs/validation/results-site.md`, last
+section): 967 of 1,499 reference quantities pass (856 on 2026-10-04),
+112 fail (112), 348 are not shown (474); no quantity that passed
+before fails or is missing now, 111 are newly read. The engine corpus
+(`engine/tests/test_reference_corpus.py`) is unchanged at 1197 passed,
+203 xfailed. Full suite: engine 3286 passed / 99 skipped / 203 xfailed;
+web 747 unit tests; e2e-check 414, assays 69, share 85, export 39,
+figures 48, tiff 18 checks; a11y audit 0 violations.
+
 ### Skipped: breaks browser-only
 
 None: every item in the plan computes in the browser. Image processing
@@ -1136,6 +1148,13 @@ What the packages left undone, with the reason:
     rows from 0 (the web renumbers them from 1). The log-rank `method`
     strings now say "as the GraphPad statistics guide documents"
     (fixed 2026-10-10).
+  - AICc for replicate data: the live-site run of 2026-10-10 drives the
+    model comparison of the GraphPad book's two-site examples for the
+    first time; the engine's AICc (gp-book-twosite-ex2: 292.31 and
+    293.21) differs from the book's 290.88 and 289.98, and so does the
+    evidence ratio, while F and P agree to the printed digits. Check
+    whether the book's numbers leave out the small-sample correction
+    or count the points differently for replicate data.
 - **Large data and plain language**
   - The What-this-means line is one block under the results (above the
     results sentence), not a line under each key table.
