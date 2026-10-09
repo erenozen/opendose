@@ -49,6 +49,8 @@ cd web && node scripts/e2e-export.mjs   # page layouts, PDF/PNG/zip export
 cd web && node scripts/e2e-share.mjs    # share links, export bundle, import recipes
 cd web && node scripts/e2e-figures.mjs  # SuperPlots, legends, P styles, classic theme, CVD check, volcano, heat-map dendrograms
 cd web && node scripts/e2e-assays.mjs   # assay wizards (plate, ELISA, qPCR, flow, blots)
+cd web && node scripts/a11y-audit.mjs   # axe-core on every analysis' controls
+cd web && node scripts/smoke-0.4.0.mjs http://localhost:5173/ OUT   # screenshots of every 0.4.0 entry point, 1400/390 px, light/dark, with axe-core
 ```
 
 The dev server needs internet access on first load (Pyodide + SciPy come
