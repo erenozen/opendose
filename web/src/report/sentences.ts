@@ -21,6 +21,7 @@ import { effectGroups, primaryEffect, type EffectRow } from "./effects.ts";
 import { formatPValue, type PStyle } from "./pformat.ts";
 import { DEFAULT_REPORT, type ReportPrefs } from "./prefs.ts";
 import { withheldInfo, withheldPhrase, type WithheldInfo } from "../sheets/common/withheld.ts";
+import { compareParameterSentence } from "../sheets/xy/compareParameter.ts";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type R = Record<string, any>;
@@ -610,6 +611,8 @@ export function resultSentences(result: unknown, ctx: SentenceContext = {}): str
       case "deming": return demingSentences(r, f);
       case "column_statistics": return columnStatsSentences(r, f, prefs);
       case "estimation": return estimationSentences(r, f);
+      case "compare_fits": return r.mode === "parameter" && r.compare
+        ? [compareParameterSentence(r.compare, r.flags ?? [], f.style)].filter(Boolean) : [];
       default: return [];
     }
   } catch {
