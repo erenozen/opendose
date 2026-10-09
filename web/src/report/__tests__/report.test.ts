@@ -271,6 +271,10 @@ test("statistical-analysis paragraph", () => {
   assert.match(p, /n is the number of mice, from 2 independent experiments\./);
   assert.match(p, /Exclusions: none\. Sample size: pilot data\./);
   assert.equal(statsMethodsParagraph(R("dose_response"), DEFAULT_REPORT, undefined).length > 0, true);
+  // the analysis plan sentence (project/plan.ts) closes the paragraph
+  const withPlan = statsMethodsParagraph(R("anova_tukey"), DEFAULT_REPORT, undefined,
+    { plan: "Pre-specified analysis plan (written 2026-10-09): … No deviations from the plan." });
+  assert.match(withPlan, / Pre-specified analysis plan \(written 2026-10-09\): … No deviations from the plan\.$/);
 });
 
 // ------------------------------------------------------------ checklists
@@ -320,7 +324,16 @@ test("the five checklists, combined items and summary", () => {
   const lists = evaluateChecklists(facts());
   assert.deepEqual(lists.map((l) => l.id), ["nature", "elife", "star", "sampl", "arrive"]);
   const arrive = lists.find((l) => l.id === "arrive")!;
-  assert.deepEqual(arrive.items.map((i) => i.id), ["e1", "e2", "e3", "e7", "e10"]);
+  assert.deepEqual(arrive.items.map((i) => i.id), ["e1", "e2", "e3", "e7", "e10", "r19"]);
+  // ARRIVE 2.0 item 19 from the analysis plan (project/plan.ts)
+  assert.equal(arrive.items.find((i) => i.id === "r19")!.status, "na");
+  const plan = { written: "2026-10-09", locked: true, deviations: 1, unexplained: 1, sheetId: "i1",
+    firstUnexplained: "r1" };
+  assert.equal(RULES.plan(facts({ plan })).status, "unmet");
+  assert.equal(RULES.plan(facts({ plan })).fix?.sheetId, "r1");
+  assert.equal(RULES.plan(facts({ plan: { ...plan, locked: false } })).status, "unmet");
+  assert.match(RULES.plan(facts({ plan: { ...plan, unexplained: 0 } })).reason,
+    /locked; 1 deviation, each with its reason/);
   assert.equal(arrive.items.find((i) => i.id === "e10")!.status, "met");
   assert.equal(arrive.items.find((i) => i.id === "e2")!.status, "unmet");
   const s = checklistSummary(lists);

@@ -14,9 +14,11 @@ import {
 const HelpPanel = lazy(() => import("./HelpPanel"));
 const Tour = lazy(() => import("./Tour"));
 const WhichTest = lazy(() => import("./WhichTest"));
+const PlanExperiment = lazy(() => import("./PlanExperiment"));
 
 export function GuideProvider({ children }: { children: ReactNode }) {
   const [wizard, setWizard] = useState(false);
+  const [planner, setPlanner] = useState(false);
   const [help, setHelp] = useState<{ topic: string | null } | null>(null);
   const [tour, setTour] = useState(false);
   // `?example=1` and share links open their project directly. Otherwise
@@ -32,6 +34,7 @@ export function GuideProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const openWizard = useCallback(() => { setHelp(null); setWizard(true); }, []);
+  const openPlanner = useCallback(() => { setHelp(null); setPlanner(true); }, []);
   const openHelp = useCallback((id?: string) => setHelp({ topic: id ?? null }), []);
   const closeHelp = useCallback(() => setHelp(null), []);
   const startTour = useCallback(() => { setHelp(null); setStartOpen(false); setTour(true); }, []);
@@ -55,9 +58,9 @@ export function GuideProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const api = useMemo<GuideApi>(() => ({
-    openWizard, openHelp, closeHelp, helpOpen: !!help, startTour, startOpen, showStart, hideStart,
-    startPending, resolveStart,
-  }), [openWizard, openHelp, closeHelp, help, startTour, startOpen, showStart, hideStart,
+    openWizard, openPlanner, openHelp, closeHelp, helpOpen: !!help, startTour, startOpen, showStart,
+    hideStart, startPending, resolveStart,
+  }), [openWizard, openPlanner, openHelp, closeHelp, help, startTour, startOpen, showStart, hideStart,
     startPending, resolveStart]);
 
   return (
@@ -65,6 +68,7 @@ export function GuideProvider({ children }: { children: ReactNode }) {
       {children}
       <Suspense fallback={null}>
         {wizard && <WhichTest onClose={() => setWizard(false)} />}
+        {planner && <PlanExperiment onClose={() => setPlanner(false)} />}
         {help && (
           <HelpPanel initial={help.topic} onClose={closeHelp} onWizard={openWizard}
             onTour={startTour} onStart={showStart} />

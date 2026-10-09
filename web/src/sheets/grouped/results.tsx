@@ -12,6 +12,7 @@ import {
 } from "./options";
 import { fmtCI, fmtP, pLabel, stars } from "./format";
 import { rowMeansTable, CALC_TITLE } from "./tables";
+import InteractionBlock from "./interaction";
 import "./grouped.css";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -248,7 +249,13 @@ export function TwoWayResults({ result, options, table }: ResultsProps<TwoWayOpt
   const rows: [string, R][] = Object.entries(src).map(([k, v]) => [
     k === "interaction" ? `Interaction (${factors[0]} × ${factors[1]})`
       : k === "residual" ? "Residual" : k, v as R]);
+  // The interaction first when the analysis was opened to ask whether an
+  // effect differs between groups; otherwise folded under the ANOVA.
+  const first = options.interactionFocus === true;
+  const interaction = <InteractionBlock result={result} table={table} factors={factors} first={first} />;
   return (
+    <>
+    {first && interaction}
     <div className="result-card">
       <h3>Two-way ANOVA</h3>
       <p className="model-line">
@@ -270,6 +277,8 @@ export function TwoWayResults({ result, options, table }: ResultsProps<TwoWayOpt
       {result.cell_means && <CellMeans means={result.cell_means} rows={rowNames} cols={colNames} />}
       {result.multiple_comparisons && <TwoWayComparisons mc={result.multiple_comparisons} />}
     </div>
+    {!first && interaction}
+    </>
   );
 }
 

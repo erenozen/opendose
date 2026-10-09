@@ -38,8 +38,11 @@
 // (paste report, Notes strip with the n analysed, Convert table to…,
 // Describe the experiment), exclusions with reasons (n enrolled /
 // analysed in the results, legend and methods; the results with the
-// excluded values included) and the reproduction check when a project
-// saved by another version is opened.
+// excluded values included), the reproduction check when a project
+// saved by another version is opened, and the analysis plan (deviation
+// chip and methods text), "Plan an experiment…" (pooled samples are
+// n = 1) and the interaction question (difference of differences with
+// its CI on a hand-made 2 × 2).
 import { chromium } from "playwright";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -1556,7 +1559,8 @@ const unmetReason = await ck.locator(".checklist li.unmet .ck-reason").first().i
 expect("checklist shows ticked and unticked items with reasons", met >= 1 && unmet >= 1 && unmetReason.length > 10,
   `${met} met, ${unmet} not met; "${unmetReason}"`);
 await ck.getByRole("tab", { name: /ARRIVE/ }).click();
-expect("ARRIVE Essential 10 items listed", (await ck.locator(".checklist li").count()) === 5);
+expect("ARRIVE Essential 10 items and protocol registration (item 19) listed",
+  (await ck.locator(".checklist li").count()) === 6);
 await ck.getByRole("button", { name: "Close" }).click();
 await page.getByRole("button", { name: "History" }).click();
 const hist = page.getByRole("dialog", { name: "History" });
@@ -2947,7 +2951,7 @@ const axeOn = async (pg, sel) => {
   const empty = p3.getByRole("list", { name: "Where to start" });
   expect("results empty state lists Help me choose, Plan an experiment and validation",
     await appears(empty) && (await empty.getByRole("button").allInnerTexts()).join("|")
-      === "Help me choose…|Plan an experiment (power)…|How OpenDose is validated",
+      === "Help me choose…|Plan an experiment…|Plan an experiment (power)…|How OpenDose is validated",
     await empty.innerText().catch(() => ""));
   const axeEmpty = await axeViolations(p3, [".results-empty-links"]);
   expect("axe-core: the empty results' entry points pass", axeEmpty.length === 0, axeEmpty.join(" | "));
@@ -3080,6 +3084,224 @@ const axeOn = async (pg, sel) => {
   await nd.getByRole("button", { name: "Cancel" }).click();
   expect("axe-core: the paste report, Notes strip and the convert / design dialogs pass WCAG 2 AA",
     axeFound.length === 0, axeFound.join(" | "));
+}
+
+// --- analysis plan, Plan an experiment, the interaction question (needs:
+// preregistration-plan, design-stage-checks, interaction-question). (a) A
+// two-tailed Welch t test with n = 8 per group made the plan and locked;
+// switching to a paired t test raises the deviation chip, the methods text
+// records the deviation, a reason is recorded, and Revert restores the
+// plan. (b) Plan an experiment with one pooled sample per group is told
+// n = 1 before any data, with the a priori n from the power engine and the
+// plan saved with its design notes. (c) A hand-made 2 × 2 (Vehicle/Drug ×
+// WT/KO, 3 mice per cell, each cell mean ± 1, so MS residual = 1 on 8 df):
+// "Are you asking whether the treatment effect differs between groups?"
+// opens two-way ANOVA with the Interaction block first: interaction
+// F(1, 8) = 12, P = 0.008516, drug effect 3 in WT and 7 in KO, difference
+// 4 with 95% CI 4 ± t(0.975, 8) × √(4/3) = 1.337 to 6.663, the warning
+// against two separate tests, and an interaction plot with two lines; one
+// t test per row on the same table raises the separate-tests chip.
+{
+  const axeAt = async (selector) => {
+    const req = createRequire(import.meta.url);
+    await page.addScriptTag({ path: req.resolve("axe-core/axe.min.js") }).catch(() => {});
+    return page.evaluate(async (sel) => {
+      const el = document.querySelector(sel);
+      if (!el) return [`${sel}: missing`];
+      // eslint-disable-next-line no-undef
+      // Plotly figures (the graph layer's role="img" div around the mode
+      // bar) are checked with the graphs, not here.
+      const r = await axe.run({ include: [el], exclude: [...el.querySelectorAll(".js-plotly-plot")] },
+        { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa"] } });
+      return r.violations.flatMap((x) => x.nodes.map((n) => `${sel} ${x.id}: ${n.html.slice(0, 70)}`));
+    }, selector);
+  };
+  const axeHits = [];
+  const pasteAt = (label, text) => page.evaluate(([l, t]) => {
+    const el = document.querySelector(`.data-table input[aria-label='${l}']`);
+    const dt = new DataTransfer();
+    dt.setData("text/plain", t);
+    el.focus();
+    el.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }));
+  }, [label, text]);
+  const newTable = async (type, name, shape) => {
+    await page.getByRole("button", { name: "New data table" }).first().click();
+    const dlg = page.locator(".new-table-dialog");
+    await dlg.locator(`input[name="table-type"][value="${type}"]`).check();
+    await dlg.getByLabel("Table name").fill(name);
+    if (Array.isArray(shape)) {
+      const nums = dlg.locator(".field-num input");
+      for (let i = 0; i < shape.length; i++) await nums.nth(i).fill(String(shape[i]));
+    } else {
+      for (const [label, v] of Object.entries(shape)) await dlg.getByLabel(label, { exact: true }).fill(String(v));
+    }
+    await dlg.getByRole("button", { name: "Create table" }).click();
+    await page.waitForSelector(".grid-toolbar");
+    await page.waitForTimeout(400);
+  };
+  const planChip = page.getByRole("region", { name: "Analysis plan check" }).locator(".plan-chip");
+  const chipSays = (re) => page.waitForFunction((src) => new RegExp(src).test(
+    document.querySelector('.pane-results[data-live="true"] .plan-chip')?.textContent ?? ""), re.source,
+  { timeout: 60000 }).then(() => true, () => false);
+
+  // (a) the plan: two-tailed Welch t test, Treated vs Control, n = 8
+  await newTable("column", "Planned mice", { "Groups (columns)": 2, "Rows (values per group)": 8 });
+  await pasteAt("Group A, row 1", "10.1\t13.9\n11.4\t15.2\n9.6\t12.8\n10.8\t14.4\n11.9\t13.1\n"
+    + "10.2\t15.8\n9.9\t14.0\n11.0\t13.6\n");
+  await page.locator('input[aria-label="Group 1 title"], input[aria-label="Dataset 1 title"]').first().fill("Control");
+  await page.locator('input[aria-label="Group 2 title"], input[aria-label="Dataset 2 title"]').first().fill("Treated");
+  await page.locator(".pane-controls select.analysis-select").selectOption("ttest");
+  await page.locator(".pane-controls").getByLabel("Test", { exact: true }).selectOption("welch");
+  await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 60000 });
+  await page.getByRole("button", { name: "Make this the plan" }).click();
+  expect("Make this the plan: the results read “As planned: two-tailed Welch t test, n = 8 per group.”",
+    await chipSays(/^✓\s*(OK: |Note: )?As planned: two-tailed Welch t test, n = 8 per group\.$/),
+    await planChip.innerText().catch(() => ""));
+  await planChip.click();
+  await page.getByRole("button", { name: "Lock the plan" }).click();
+  // the analysis departs from the plan
+  await page.locator(".pane-controls").getByLabel("Test", { exact: true }).selectOption("paired");
+  const flagged = await chipSays(/Planned: two-tailed Welch t test, n = 8 per group\. Now: paired t test\. Add a reason or revert\./);
+  expect("deviation chip: Planned: two-tailed Welch t test, n = 8 per group. Now: paired t test. Add a reason or revert.",
+    flagged, await planChip.innerText().catch(() => ""));
+  const methodsDev = await page.waitForFunction(() => {
+    const t = document.querySelector(".stats-methods p")?.textContent ?? "";
+    return /Pre-specified analysis plan \(written \d{4}-\d\d-\d\d\): two-tailed Welch t test comparing Treated with Control, n = 8 per group, α = 0\.05; exclusions: none planned\. Deviations from the plan: paired t test instead of the planned Welch t test \(reason not recorded\)\./.test(t) ? t : null;
+  }, null, { timeout: 30000 }).then((h) => h.jsonValue(), () => "");
+  expect("methods text: the pre-specified plan and the deviation (reason not recorded)", !!methodsDev,
+    String(methodsDev || await page.locator(".stats-methods p").innerText().catch(() => "")).slice(-260));
+  if (!(await page.locator(".plan-detail").count())) await planChip.click();
+  await page.getByLabel("Reason for: paired t test instead of the planned Welch t test")
+    .fill("littermates were matched by cage");
+  await page.getByRole("button", { name: "Record reason" }).click();
+  expect("the recorded reason is in the methods text and the chip says so",
+    await page.waitForFunction(() => /\(reason: littermates were matched by cage\)\./.test(
+      document.querySelector(".stats-methods p")?.textContent ?? ""), null, { timeout: 30000 })
+      .then(() => true, () => false) && await chipSays(/Reasons recorded\.$/));
+  axeHits.push(...await axeAt(".plan-check"));
+  await page.getByRole("button", { name: "Revert to the plan" }).click();
+  expect("Revert to the plan: back to the Welch t test, as planned",
+    await chipSays(/As planned: two-tailed Welch t test, n = 8 per group\./)
+    && await page.locator(".pane-controls").getByLabel("Test", { exact: true }).inputValue() === "welch");
+  await page.getByRole("button", { name: "Open the analysis plan" }).click().catch(async () => {
+    await planChip.click();
+    await page.getByRole("button", { name: "Open the analysis plan" }).click();
+  });
+  const planSheet = page.locator(".plan-sheet");
+  expect("the plan sheet: locked, Welch t test, n = 8, in the methods text",
+    await appears(planSheet) && /Locked/.test(await planSheet.locator(".plan-badge").innerText())
+    && await planSheet.getByLabel("n per group (independent units)").inputValue() === "8"
+    && /two-tailed Welch t test comparing Treated with Control/.test(await planSheet.locator(".plan-methods").innerText()));
+  // a locked plan is not edited silently
+  await planSheet.getByLabel("n per group (independent units)").fill("10");
+  expect("locked plan: a change waits for its reason",
+    await planSheet.getByRole("button", { name: "Save the change" }).isDisabled());
+  await planSheet.getByLabel(/Reason for the change/).fill("pilot SD larger than expected");
+  await planSheet.getByRole("button", { name: "Save the change" }).click();
+  expect("the change is logged with its reason",
+    /n per group: 8 → 10 \(reason: pilot SD larger than expected\)/.test(
+      await planSheet.getByRole("list", { name: "Change log" }).innerText().catch(() => "")));
+  axeHits.push(...await axeAt(".plan-sheet"));
+
+  // (b) Plan an experiment: one pooled sample per group is n = 1
+  await navRow("Planned mice").click();
+  await page.getByRole("button", { name: "Analyze", exact: true }).click();
+  await page.getByRole("menuitem", { name: /^Plan an experiment…/ }).click();
+  const pe = page.getByRole("dialog", { name: "Plan an experiment" });
+  await pe.waitFor({ timeout: 15000 });
+  await pe.getByLabel("Primary outcome").fill("Serum IL-6 (pg/mL)");
+  await pe.getByRole("group", { name: "Are the samples of a group pooled before measuring?" })
+    .getByRole("radio", { name: "Yes, one pooled sample per group" }).check();
+  const pooled = pe.locator('.plan-checks li[data-check="pooled"]');
+  expect("Plan an experiment: one pooled sample per group is told n = 1 before the experiment",
+    await appears(pooled, 5000) && /One pooled sample per group gives n = 1/.test(await pooled.innerText())
+    && /Lazic 2010/.test(await pooled.innerText()), await pooled.innerText().catch(() => ""));
+  expect("design checks: randomisation and blinding plans are asked for (ARRIVE 2.0 items 4 and 5)",
+    await pe.locator('.plan-checks li[data-check="random"]').count() === 1
+    && await pe.locator('.plan-checks li[data-check="blind"]').count() === 1
+    && await pe.getByRole("button", { name: "Make a randomisation list…" }).count() === 1);
+  await pe.getByLabel("Smallest difference that matters").fill("1");
+  await pe.getByLabel("Expected SD (earlier work, literature)").fill("0.825");
+  const nLine = await page.waitForFunction(() => {
+    const t = document.querySelector('.plan-exp [aria-label="Suggested sample size"]')?.textContent ?? "";
+    return /Suggested: 12 per group/.test(t) ? t : null;
+  }, null, { timeout: 60000 }).then((h) => h.jsonValue(), () => "");
+  expect("a priori n from the power engine: 12 per group for a difference of 1 with SD 0.825", !!nLine,
+    String(nLine).slice(0, 160));
+  axeHits.push(...await axeAt(".plan-exp"));
+  await pe.getByRole("button", { name: "Save as analysis plan" }).click();
+  await pe.waitFor({ state: "detached", timeout: 10000 });
+  const saved = page.locator(".plan-sheet");
+  expect("the planned table and its plan: Welch t test, n = 12, the pooled-sample check in the design notes",
+    await appears(saved) && await saved.getByLabel("n per group (independent units)").inputValue() === "12"
+    && /Problem: One pooled sample per group gives n = 1\./.test(await saved.innerText())
+    && await page.getByRole("treeitem", { name: "Serum IL-6 (pg/mL) (planned)" }).count() >= 1
+    && await page.getByRole("treeitem", { name: "t test of Serum IL-6 (pg/mL) (planned)" }).count() >= 1,
+    (await saved.innerText().catch(() => "")).slice(0, 200));
+
+  // (c) the interaction question on a 2 × 2 grouped table
+  await newTable("grouped", "Drug by genotype", [2, 3, 2]);
+  await pasteAt("Row 1 title", "Vehicle\t9\t10\t11\t9\t10\t11\nDrug\t12\t13\t14\t16\t17\t18\n");
+  await page.locator('input[aria-label="Dataset 1 title"]').fill("WT");
+  await page.locator('input[aria-label="Dataset 2 title"]').fill("KO");
+  await page.waitForTimeout(400);
+  await page.getByRole("button", { name: "Analyze", exact: true }).click();
+  await page.getByRole("menuitem", { name: /^Help me choose…/ }).click();
+  const hw = page.getByRole("dialog", { name: "Help me choose a test" });
+  await hw.waitFor({ timeout: 10000 });
+  await hw.getByRole("group", { name: "Are you asking whether the treatment effect differs between groups?" })
+    .getByRole("radio", { name: /^Yes/ }).check();
+  expect("the differential-effect question recommends two-way ANOVA, interaction first, and warns against two t tests",
+    await hw.locator(".wt-test").innerText() === "Two-way ANOVA, interaction first"
+    && /Do not compare two separate t tests/.test(await hw.locator(".wt-notes").innerText()));
+  await hw.getByRole("button", { name: "Open on “Drug by genotype”" }).click();
+  const block = page.locator(".pane-results .interaction-block");
+  const testLine = await page.waitForFunction(() => {
+    const t = document.querySelector('.pane-results[data-live="true"] .interaction-test')?.textContent ?? "";
+    return /F\(1, 8\) = 12(\.0+)?, P = 0\.008516/.test(t) ? t : null;
+  }, null, { timeout: 60000 }).then((h) => h.jsonValue(), () => "");
+  expect("Interaction block first: interaction F(1, 8) = 12, P = 0.008516", !!testLine
+    && await page.evaluate(() => {
+      const b = document.querySelector(".pane-results .interaction-block");
+      const anova = [...document.querySelectorAll(".pane-results .result-card h3")].find((h) => h.textContent === "Two-way ANOVA");
+      return !!b && !!anova && !!(b.compareDocumentPosition(anova) & Node.DOCUMENT_POSITION_FOLLOWING);
+    }), String(testLine || await block.innerText().catch(() => "")).slice(0, 200));
+  const dod = await block.locator(".interaction-dod").innerText().catch(() => "");
+  expect("difference of differences: drug effect 3 in WT, 7 in KO, difference 4 (95% CI 1.337 to 6.663)",
+    dod.includes("The effect (Drug − Vehicle) is 3 in WT and 7 in KO: the difference between these effects is 4 (95% CI 1.337 to 6.663), P = 0.008516"), dod);
+  expect("the warning: significant in one group, not in the other, is not a difference; sources cited",
+    /Significant in one group, not in the other, is not evidence of a difference\s+between groups\./
+      .test(await block.getByRole("note").innerText())
+    && await block.getByRole("link", { name: /Gelman & Stern 2006/ }).count() === 1
+    && await block.getByRole("link", { name: /Nieuwenhuis/ }).count() === 1);
+  expect("simple effects: Drug − Vehicle within WT (3) and KO (7)",
+    /WT\s+Drug − Vehicle\s+3\b[\s\S]*KO\s+Drug − Vehicle\s+7\b/.test(
+      await block.getByRole("table", { name: /Simple effects: .* within each/ }).first().innerText()));
+  const lines = await page.waitForFunction(() => {
+    const d = document.querySelector(".interaction-plot .plot");
+    const ls = (d?.data ?? []).filter((t) => String(t.mode ?? "").includes("lines"));
+    return ls.length ? ls.map((t) => `${t.name}:${t.y.join(",")}`).join(" | ") : null;
+  }, null, { timeout: 60000 }).then((h) => h.jsonValue(), () => "");
+  expect("interaction plot: two lines (WT 10 → 13, KO 10 → 17) with 95% CIs", lines === "WT:10,13 | KO:10,17",
+    String(lines));
+  axeHits.push(...await axeAt(".interaction-block"));
+  // one t test per row instead: the chip says it is not a test of a difference
+  await page.getByRole("button", { name: "Analyze", exact: true }).click();
+  await page.getByRole("menuitem", { name: /Multiple t tests/ }).click();
+  await page.waitForSelector(".result-card h3:has-text('Multiple t tests')", { timeout: 30000 });
+  const sep = page.getByRole("button", { name: /Significant in one row, not in another: that is not a test of a difference/ });
+  expect("multiple t tests on the 2 × 2 (P = 1 in Vehicle, P < 0.05 in Drug): the separate-tests chip",
+    await appears(sep, 60000));
+  await sep.click();
+  const sepDetail = page.getByRole("region", { name: /Significant in one row, not in another/ });
+  expect("the chip explains the interaction and opens the two-way ANOVA already there",
+    /Test the interaction instead/.test(await sepDetail.innerText())
+    && await sepDetail.getByRole("link", { name: /Gelman & Stern 2006/ }).count() === 1
+    && await sepDetail.getByRole("button", { name: /^Open “/ }).count() === 1);
+  await sepDetail.getByRole("button", { name: /^Open “/ }).click();
+  expect("one click back to the Interaction block", await appears(page.locator(".pane-results .interaction-test"), 30000));
+  expect("axe-core: the plan chip, the plan sheet, Plan an experiment and the Interaction block pass WCAG 2 AA",
+    axeHits.length === 0, axeHits.join(" | "));
 }
 
 await page.screenshot({

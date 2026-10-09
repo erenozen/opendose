@@ -1,0 +1,55 @@
+/* Analysis plan: the check strip on results sheets (PlanCheck), the plan
+   sheet (AnalysisPlanView) and "Plan an experiment…" (guide). */
+.plan-strip { margin: 4px 0 6px; font-size: 12.5px; color: var(--muted); }
+.plan-strip .linkish { font-size: 12.5px; }
+.plan-check { display: flex; flex-direction: column; gap: 6px; margin: 6px 0; }
+.plan-chip { align-self: flex-start; }
+.plan-devs { margin: 6px 0; padding-left: 18px; display: grid; gap: 6px; }
+.plan-dev-text { color: var(--ink); }
+.plan-dev-reason { display: block; color: var(--ink-2); }
+.plan-dev-form { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.plan-dev-form input { flex: 1 1 220px; min-width: 0; }
+.plan-dev.explained .plan-dev-text { color: var(--ink-2); }
+
+.plan-sheet { display: grid; gap: 12px; }
+.plan-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px 16px; }
+.plan-fields .field { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: var(--ink-2); }
+.plan-fields .field input, .plan-fields .field select, .plan-fields .field textarea { width: 100%; }
+.plan-fields .plan-wide { grid-column: 1 / -1; }
+.plan-status { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 13px; color: var(--ink-2); }
+.plan-status .plan-badge {
+  border: 1px solid var(--border); border-radius: 999px; padding: 1px 10px; font-size: 12px;
+  color: var(--ink);
+}
+.plan-status .plan-badge.locked { border-color: var(--accent-border); background: var(--accent-soft); }
+.plan-log { margin: 0; padding-left: 18px; font-size: 12.5px; color: var(--ink-2); }
+.plan-reason { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; }
+.plan-reason .field { flex: 1 1 260px; }
+.plan-error { color: var(--danger); font-size: 12.5px; margin: 0; }
+.plan-sources { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; }
+.plan-sources a { color: var(--muted); }
+
+/* Plan an experiment… */
+.plan-exp .plan-checks { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.plan-exp .plan-checks li {
+  border: 1px solid var(--border); border-left: 3px solid var(--accent);
+  border-radius: var(--radius-s); padding: 8px 12px; font-size: 12.5px; color: var(--ink-2);
+  background: var(--surface);
+}
+.plan-exp .plan-checks li.bad { border-left-color: var(--danger); }
+.plan-exp .plan-checks li.warn { border-left-color: var(--warn-hue); }
+.plan-exp .plan-checks li.ok { border-left-color: var(--guide-ok); }
+.plan-exp .plan-check-title { color: var(--ink); font-weight: 600; margin: 0 0 2px; }
+.plan-exp .plan-checks p { margin: 0 0 4px; }
+.plan-exp .plan-n { font-size: 13px; color: var(--ink-2); }
+.plan-exp .plan-n strong { color: var(--ink); }
+.plan-exp .plan-numbers { display: flex; flex-wrap: wrap; gap: 8px 14px; }
+.plan-exp .plan-numbers .wt-field { flex: 1 1 160px; }
+.plan-exp .wt-field { flex-direction: column; align-items: stretch; gap: 4px; }
+.plan-exp .wt-field input { width: 100%; }
+/* The detail sits on --inset: links in --ink-2 / --ink keep AA contrast. */
+.plan-detail a, .plan-detail .guide-source { color: var(--ink-2); }
+.plan-detail .linkish { color: var(--ink); text-decoration: underline; }
+.plan-fields textarea { font: inherit; }
+.plan-methods { font-size: 13px; color: var(--ink); margin: 0; }
+.plan-exp .modal-actions { flex-wrap: wrap; }

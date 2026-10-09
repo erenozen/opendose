@@ -924,6 +924,29 @@ Also shipped from Wave 1 of the improvement plan:
       payloads no longer shift pairs after a one-sided blank.
       [`missing-values-handling`]
 
+Shipped from Wave 2 of the improvement plan:
+- [x] Analysis plan on an info sheet (primary outcome and comparison,
+      test and sidedness, n per group, exclusion rule, α), lockable,
+      later changes logged with a reason; results of the table get a
+      deviation chip (test, sidedness, n, exclusions beyond the rule,
+      extra comparisons) with Record reason / Revert, and the methods
+      text and ARRIVE item 19 state the plan and its deviations.
+      [`preregistration-plan`] (`project/plan.ts`)
+- [x] "Plan an experiment…" (Analyze, start screen, empty results): the
+      wizard's design questions before data, the planned table and
+      analysis, an a priori n from the power engine and a sourced design
+      check list (pooled samples = n = 1, shared cage, technical repeats,
+      control, randomisation, blinding), saved as an analysis plan.
+      [`design-stage-checks`] (`guide/designChecks.ts`). The power tool
+      itself opens unfilled: `power/` takes only a pilot result today.
+- [x] "Are you asking whether the treatment effect differs between
+      groups?" in Help me choose: two-way ANOVA with the Interaction
+      block first (interaction P, difference of differences with its CI
+      from the engine, simple effects, interaction plot, the Gelman &
+      Stern / Nieuwenhuis warning); a chip on one-t-test-per-row and on
+      two t tests of disjoint columns. [`interaction-question`]
+      (`guide/interaction.ts`, `sheets/grouped/interaction.tsx`)
+
 ## Next up
 
 1. ~~Publish the site~~ LIVE (2026-08-11): https://erenozen.dev/opendose/

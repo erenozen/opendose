@@ -4,6 +4,8 @@ import { createContext, useContext } from "react";
 
 export interface GuideApi {
   openWizard: () => void;
+  /** "Plan an experiment…": the design questions before any data. */
+  openPlanner: () => void;
   /** Open the Help panel, optionally at one explainer. */
   openHelp: (explainerId?: string) => void;
   closeHelp: () => void;
