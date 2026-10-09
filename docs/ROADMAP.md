@@ -1132,6 +1132,11 @@ What the packages left undone, with the reason:
     in the result).
   - Interaction contrasts are not computed for repeated-measures two-way
     designs (the wizard says so).
+  - Engine wording (web worktrees do not edit `engine/`): the log-rank
+    `method` strings in `survival.py` / `survival_extras.py` say "for
+    Prism parity" (not shown in the UI, but in exported result JSON;
+    should read "as GraphPad Prism reports"), and the residual warnings
+    count rows from 0 (the web renumbers them from 1).
 - **Large data and plain language**
   - The What-this-means line is one block under the results (above the
     results sentence), not a line under each key table.
