@@ -407,6 +407,19 @@ sheets that follow the data.
   day-to-day variation it removed; three or more t tests on one table get
   a chip with their familywise error and one click to Dunnett's ANOVA or
   Holm-Šídák.
+- Planning before the data: "Plan an experiment…" asks the wizard's
+  design questions plus how many independent units per group and whether
+  samples are pooled, then creates the planned table and analysis, gives
+  an a priori n from the power engine and a sourced design check list
+  (one pooled sample per group is n = 1, cage as the unit, technical
+  repeats, controls, randomisation, blinding). An analysis plan on an
+  info sheet (test, sidedness, n, exclusion rule, α) can be locked; later
+  changes need a reason, results that depart from it get a chip, and the
+  methods text states the plan with each deviation and its reason.
+- "Is the treatment effect different between groups?" routes to two-way
+  ANOVA with the interaction first: the difference of the two effects
+  with its CI, simple effects, an interaction plot and the warning that
+  "significant in one, not in the other" is not a difference.
 
 ### Sharing, export and trust
 

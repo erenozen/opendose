@@ -13,6 +13,8 @@ import { differNotes } from "./differ";
 import LearnMore from "./LearnMore";
 import MultiplicityActions from "./MultiplicityActions";
 import { multiplicityFacts, type MultiplicityFacts } from "./multiplicity";
+import { InteractionAction } from "./InteractionAction";
+import { useSeparateTests } from "./useSeparateTests";
 import { openAssignReplicates } from "../report/useReport";
 import type { Source } from "./sources";
 import UnitQuestion from "./UnitQuestion";
@@ -35,14 +37,14 @@ interface Props {
 function useContextFor(p: Props, extra: Partial<ResultContext> = {}): ResultContext | null {
   // Normality per group only matters to the column analyses' chips.
   const groups = useGroupChecks(p.table, !!p.result && p.analysisId === "column");
-  const { sensitivity, needed, multiplicity } = extra;
+  const { sensitivity, needed, multiplicity, separate } = extra;
   return useMemo(() => (p.result && typeof p.result === "object" ? {
     tableType: p.tableType, analysisId: p.analysisId, table: p.table, groups,
     options: (p.options && typeof p.options === "object" ? p.options : {}) as Record<string, unknown>,
     result: p.result as Record<string, unknown>,
-    sensitivity, needed, multiplicity,
+    sensitivity, needed, multiplicity, separate,
   } : null), [p.tableType, p.analysisId, p.table, p.options, p.result, groups,
-    sensitivity, needed, multiplicity]);
+    sensitivity, needed, multiplicity, separate]);
 }
 
 const ICON: Record<Chip["state"], string> = { ok: "✓", warn: "!", bad: "×", info: "i" };
@@ -59,8 +61,8 @@ function Sources({ sources }: { sources?: Source[] }) {
   );
 }
 
-function Chips({ chips, dataId, multiplicity }: {
-  chips: Chip[]; dataId?: string; multiplicity: MultiplicityFacts | null;
+function Chips({ chips, dataId, multiplicity, readOnly }: {
+  chips: Chip[]; dataId?: string; multiplicity: MultiplicityFacts | null; readOnly?: boolean;
 }) {
   const [open, setOpen] = useState<string | null>(null);
   const detailId = useId();
@@ -98,6 +100,7 @@ function Chips({ chips, dataId, multiplicity }: {
             </p>
           )}
           {cur.action === "multiplicity" && multiplicity && <MultiplicityActions facts={multiplicity} />}
+          {cur.action === "interaction" && dataId && !readOnly && <InteractionAction dataId={dataId} />}
           <Sources sources={cur.sources} />
           {cur.explainer && <LearnMore id={cur.explainer} />}
         </div>
@@ -145,7 +148,8 @@ export function ResultsGuide(p: Props) {
     const f = multiplicityFacts(project, p.dataId);
     return f && f.runs.some((t) => t.sheetId === p.resultsId) ? f : null;
   }, [project, p.dataId, p.resultsId, p.analysisId]);
-  const ctx = useContextFor(p, { sensitivity, needed, multiplicity });
+  const separate = useSeparateTests(p.dataId, p.resultsId, p.result);
+  const ctx = useContextFor(p, { sensitivity, needed, multiplicity, separate });
   const banners = useMemo(() => (ctx ? resultBanners(ctx) : []), [ctx]);
   const chips = useMemo(() => (ctx ? resultChips(ctx) : []), [ctx]);
   // analyses that model the unit or the subject themselves do not ask
@@ -159,7 +163,7 @@ export function ResultsGuide(p: Props) {
       {question}
       {banners.map((b) => <BannerView key={b.id} b={b} />)}
       {chips.length > 0 && <Chips chips={chips} dataId={p.readOnly ? undefined : p.dataId}
-        multiplicity={p.readOnly ? null : multiplicity} />}
+        multiplicity={p.readOnly ? null : multiplicity} readOnly={p.readOnly} />}
     </div>
   );
 }

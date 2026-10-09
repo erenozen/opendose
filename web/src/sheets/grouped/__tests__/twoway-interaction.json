@@ -1,0 +1,196 @@
+{
+ "sources": {
+  "interaction": {
+   "ss": 11.99999999999999,
+   "df": 1,
+   "ms": 11.99999999999999,
+   "F": 11.99999999999999,
+   "p": 0.008516263370901292,
+   "percent_of_total": 11.214953271028026
+  },
+  "Treatment": {
+   "ss": 75.0,
+   "df": 1,
+   "ms": 75.0,
+   "F": 75.0,
+   "p": 2.456840776151987e-05,
+   "percent_of_total": 70.09345794392523
+  },
+  "Genotype": {
+   "ss": 12.0,
+   "df": 1,
+   "ms": 12.0,
+   "F": 12.0,
+   "p": 0.00851626337090128,
+   "percent_of_total": 11.214953271028037
+  },
+  "residual": {
+   "ss": 8.0,
+   "df": 8,
+   "ms": 1.0,
+   "F": null,
+   "p": null,
+   "percent_of_total": 7.4766355140186915
+  }
+ },
+ "interaction_contrasts": {
+  "ms_residual": 1.0,
+  "df_residual": 8.0,
+  "ci_level": 0.95,
+  "n_contrasts": 1,
+  "contrasts": [
+   {
+    "rows": [
+     "Vehicle",
+     "Drug"
+    ],
+    "cols": [
+     "WT",
+     "KO"
+    ],
+    "row_indices": [
+     0,
+     1
+    ],
+    "col_indices": [
+     0,
+     1
+    ],
+    "label": "(Drug - Vehicle) in KO minus (Drug - Vehicle) in WT",
+    "effect_in_col_1": 3.0,
+    "effect_in_col_2": 7.0,
+    "difference": 4.0,
+    "se": 1.1547005383792515,
+    "t": 3.464101615137755,
+    "df": 8.0,
+    "ci": [
+     1.3372557835749697,
+     6.662744216425031
+    ],
+    "p": 0.00851626337090128,
+    "F": 12.000000000000002,
+    "equals_interaction_test": true
+   }
+  ],
+  "p_adjustment": "none (each contrast is its own question)",
+  "explainer": "To ask whether the effect of one factor differs between the levels of the other, look at the interaction: the difference of the two effects with its CI. One effect being 'significant' and the other 'not significant' does not show that they differ (Gelman & Stern 2006).",
+  "source": "GraphPad statistics guide, 'Interpreting results: Two-way ANOVA' (interaction); Gelman & Stern 2006, Am Stat 60:328; Maxwell & Delaney 2004, ch. 7 (interaction contrasts, simple effects)",
+  "notes": [
+   "2 x 2 design: this contrast's t^2 is the interaction F and its P the interaction P"
+  ],
+  "error_term": "pooled within-cell residual (full model)"
+ },
+ "simple_effects": [
+  {
+   "within": "Vehicle",
+   "direction": "columns_within_rows",
+   "n_levels": 2,
+   "F": 0.0,
+   "dfn": 1,
+   "dfd": 8.0,
+   "p": 1.0,
+   "differences": [
+    {
+     "pair": "KO - WT",
+     "first": "KO",
+     "second": "WT",
+     "difference": 0.0,
+     "se": 0.816496580927726,
+     "t": 0.0,
+     "df": 8.0,
+     "ci": [
+      -1.882844491999399,
+      1.882844491999399
+     ],
+     "p": 1.0,
+     "p_label": "unadjusted"
+    }
+   ],
+   "p_label": "unadjusted"
+  },
+  {
+   "within": "Drug",
+   "direction": "columns_within_rows",
+   "n_levels": 2,
+   "F": 24.0,
+   "dfn": 1,
+   "dfd": 8.0,
+   "p": 0.0011953106743925375,
+   "differences": [
+    {
+     "pair": "KO - WT",
+     "first": "KO",
+     "second": "WT",
+     "difference": 4.0,
+     "se": 0.816496580927726,
+     "t": 4.898979485566356,
+     "df": 8.0,
+     "ci": [
+      2.117155508000601,
+      5.882844491999399
+     ],
+     "p": 0.0011953106743925375,
+     "p_label": "unadjusted"
+    }
+   ],
+   "p_label": "unadjusted"
+  }
+ ],
+ "simple_effects_rows_within_columns": [
+  {
+   "within": "WT",
+   "direction": "rows_within_columns",
+   "n_levels": 2,
+   "F": 13.5,
+   "dfn": 1,
+   "dfd": 8.0,
+   "p": 0.006271062103864102,
+   "differences": [
+    {
+     "pair": "Drug - Vehicle",
+     "first": "Drug",
+     "second": "Vehicle",
+     "difference": 3.0,
+     "se": 0.816496580927726,
+     "t": 3.6742346141747673,
+     "df": 8.0,
+     "ci": [
+      1.117155508000601,
+      4.882844491999399
+     ],
+     "p": 0.006271062103864102,
+     "p_label": "unadjusted"
+    }
+   ],
+   "p_label": "unadjusted"
+  },
+  {
+   "within": "KO",
+   "direction": "rows_within_columns",
+   "n_levels": 2,
+   "F": 73.5,
+   "dfn": 1,
+   "dfd": 8.0,
+   "p": 2.644813123684108e-05,
+   "differences": [
+    {
+     "pair": "Drug - Vehicle",
+     "first": "Drug",
+     "second": "Vehicle",
+     "difference": 7.0,
+     "se": 0.816496580927726,
+     "t": 8.573214099741124,
+     "df": 8.0,
+     "ci": [
+      5.117155508000601,
+      8.8828444919994
+     ],
+     "p": 2.6448131236841068e-05,
+     "p_label": "unadjusted"
+    }
+   ],
+   "p_label": "unadjusted"
+  }
+ ],
+ "contrast_notes": []
+}

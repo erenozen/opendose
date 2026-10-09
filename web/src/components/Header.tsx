@@ -230,6 +230,14 @@ export default function Header({ onOpenFile, onNewProject }: {
                         + "recommended test with its reason, set up here."}</span>
                   </button>
                 )}
+                {guide && (
+                  <button type="button" role="menuitem" tabIndex={-1}
+                    className="menu-item menu-item-2line menu-item-guide"
+                    onClick={() => { setAnalyzeOpen(false); guide.openPlanner(); }}>
+                    <span>Plan an experiment…</span>
+                    <span className="menu-desc">Before the data: the table, the analysis, n and a design check list, saved as an analysis plan.</span>
+                  </button>
+                )}
                                 {tdef.analyses.map((a, i) => (
                   <Fragment key={a.id}>
                     {/* assay modules (sheets/assays) under their own heading */}
