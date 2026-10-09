@@ -14,6 +14,7 @@ import {
   type ColumnChoice, type ColumnIndex, type RoleSpec,
 } from "../kit/columns.ts";
 import { aliasPatterns, resolveCqHeaders, type CqRole } from "./headers.ts";
+import { referenceCandidates, referenceCheckPayload } from "./refs.ts";
 
 export type QRole = "sample" | "group" | "target" | "cq" | "well" | "pair" | "quantity";
 
@@ -44,6 +45,9 @@ export type PostTest = "dunnett" | "tukey" | "bonferroni" | "sidak";
 export interface QpcrOptions {
   columns: ColumnChoice<QRole>;
   referenceGenes: string[];
+  /** Reference genes the stability check covers besides those in use
+   *  (kept when a one-click choice sets one aside, refs.ts). */
+  referenceCandidates: string[];
   calibrator: string;
   efficiencyMode: "assumed" | "entered" | "curve";
   /** target -> factor (2 = 100%) or percent, as typed. */
@@ -60,7 +64,7 @@ export interface QpcrOptions {
 }
 
 export const DEFAULT_QPCR_OPTIONS: QpcrOptions = {
-  columns: {}, referenceGenes: [], calibrator: "", efficiencyMode: "assumed", efficiencies: {},
+  columns: {}, referenceGenes: [], referenceCandidates: [], calibrator: "", efficiencyMode: "assumed", efficiencies: {},
   maxCq: 35, maxSpread: 0.5, excludeHighCq: false, undetermined: "", test: "auto",
   comparisons: "dunnett", ciLevel: 0.95,
 };
@@ -78,6 +82,8 @@ export function normalizeQpcrOptions(raw: unknown): QpcrOptions {
   return {
     columns: o.columns && typeof o.columns === "object" ? { ...(o.columns as ColumnChoice<QRole>) } : {},
     referenceGenes: Array.isArray(o.referenceGenes) ? o.referenceGenes.filter((x): x is string => typeof x === "string") : [],
+    referenceCandidates: Array.isArray(o.referenceCandidates)
+      ? o.referenceCandidates.filter((x): x is string => typeof x === "string") : [],
     calibrator: typeof o.calibrator === "string" ? o.calibrator : "",
     efficiencyMode: o.efficiencyMode === "entered" || o.efficiencyMode === "curve" ? o.efficiencyMode : "assumed",
     efficiencies: eff,
@@ -159,6 +165,9 @@ export function qpcrPayload(d: QData, o: QpcrOptions): unknown {
     max_cq: o.maxCq, max_spread: o.maxSpread, exclude_high_cq: o.excludeHighCq,
     test: o.test, comparisons: o.comparisons, ci_level: o.ciLevel,
   };
+  // A reference gene set aside by the reference check is not a target.
+  const aside = referenceCandidates(refs, o.referenceCandidates, d.targets).filter((g) => !refs.includes(g));
+  if (aside.length) options.targets = d.targets.filter((g) => !refs.includes(g) && !aside.includes(g));
   const und = Number(o.undetermined);
   if (o.undetermined.trim() !== "" && Number.isFinite(und)) options.undetermined_value = und;
   if (o.efficiencyMode === "entered") {
@@ -185,10 +194,23 @@ export function qpcrPayload(d: QData, o: QpcrOptions): unknown {
 export function runQpcr(analyze: (p: unknown) => unknown, t: DataTableModel, o: QpcrOptions): QpcrResult {
   const d = readQpcr(t, o);
   if (d.problem) return { error: d.problem };
-  if (!referenceGenes(o, d.targets).length) {
+  const refs = referenceGenes(o, d.targets);
+  if (!refs.length) {
     return { error: "Choose the reference gene(s) in the setup wizard." };
   }
-  return analyze(qpcrPayload(d, o)) as QpcrResult;
+  const res = analyze(qpcrPayload(d, o)) as QpcrResult;
+  // Genes set aside from the normalisation stay in the reference check
+  // (refs.ts), so the reason they were left out remains on the sheet.
+  const cands = referenceCandidates(refs, o.referenceCandidates, d.targets);
+  if (!res || res.error || cands.length === refs.length) return res;
+  const eff: Record<string, number> = {};
+  for (const g of cands) {
+    const e = res.efficiencies?.[g]?.efficiency;
+    if (typeof e === "number") eff[g] = e;
+  }
+  const check = analyze(referenceCheckPayload(d, o, cands, String(res.calibrator ?? calibratorOf(o, d.groups)),
+    eff, res.groups)) as QpcrResult;
+  return { ...res, reference_stability: check && !check.error ? check : { error: String(check?.error ?? "no result") } };
 }
 
 // ------------------------------------------------------------ outputs

@@ -9,9 +9,15 @@
 // - standard curve: LLOQ 15.63 pg/mL (the 7.81 standard fails on CV),
 //   S1 at 95.26 pg/mL after the 1:2 dilution, parallelism P 0.659, the
 //   concentrations table, refitting without a standard;
-// - qPCR: IL6 fold change LPS vs Control 11.71, and Livak & Schmittgen
+// - qPCR: the reference check flags ACTB (shifts 1.4 cycles, P = 0.0044;
+//   geNorm M 0.592), "Use GAPDH only" gives IL6 11.88; IL6 fold change
+//   LPS vs Control 11.71 with both references, and Livak & Schmittgen
 //   (2001) Table 1 pasted as a Cq export: kidney vs brain ΔCq 4.365,
 //   fold change 5.6;
+// - flow cytometry: a FlowJo table of 3 donors × 4 conditions pasted,
+//   the linked per-donor table (3 rows × 4 conditions), RM one-way ANOVA
+//   on the donor values F(3, 6) = 474.1, "n = 3 donors" in the legend,
+//   the graph a SuperPlot;
 // - densitometry: the example's ratio 2.427 (P = 0.000755), and the
 //   GraphPad ratio paired t test example pasted as an export: ratio
 //   2.015, 95% CI 1.881 to 2.158, P = 0.0005;
@@ -20,6 +26,7 @@
 //   graph, AUC per mouse and a 60-120 min window summary.
 // Usage: node scripts/e2e-assays.mjs http://localhost:5196/
 import { chromium } from "playwright";
+import { createRequire } from "node:module";
 
 // ?example=1 opens the example project directly (no start screen, no tour).
 const url = (() => {
@@ -48,6 +55,21 @@ const waitCell = (label, test, timeout = 20000) => page.waitForFunction(([l, src
   const v = document.querySelector(`.data-table input[aria-label="${l}"]`)?.value;
   return v !== undefined && new Function("v", `return ${src}`)(v);
 }, [label, test], { timeout }).then(() => true, () => false);
+// axe-core (WCAG 2 A/AA, contrast included) on parts of the page.
+const axeViolations = async (selectors) => {
+  await page.addScriptTag({ path: createRequire(import.meta.url).resolve("axe-core/axe.min.js") }).catch(() => {});
+  return page.evaluate(async (sels) => {
+    const out = [];
+    for (const sel of sels) {
+      const el = document.querySelector(sel);
+      if (!el) { out.push(`${sel}: missing`); continue; }
+      // eslint-disable-next-line no-undef
+      const r = await axe.run(el, { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa"] } });
+      out.push(...r.violations.flatMap((x) => x.nodes.map((n) => `${sel} ${x.id}: ${n.html.slice(0, 70)}`)));
+    }
+    return out;
+  }, selectors);
+};
 
 const wizard = () => page.locator("dialog.assay-wizard");
 async function startAssay(label, { sample = true, name } = {}) {
@@ -198,7 +220,17 @@ expect("leaving out the failing standard refits: 7 of 7 levels pass",
   await waitText(".std-results", "7 / 7"));
 
 // --- qPCR ---
+// The example's ACTB is 1.4 cycles higher in LPS + inhibitor (engine
+// qpcr_reference_check: one-way ANOVA P = 0.0044, geNorm M 0.592 for
+// both references), so the reference check flags it before any fold
+// change; GAPDH alone gives IL6 LPS vs Control 11.88 (6.889 to 20.47).
+const ACTB_CHIP = "ACTB shifts with treatment by 1.4 Cq (P = 0.0044): do not normalise to it";
 await startAssay("qPCR (ΔCq / ΔΔCq)");
+await wizard().getByRole("button", { name: /Reference check/ }).click();
+expect("qPCR wizard: the Reference check step flags ACTB before any fold change",
+  await waitText("dialog.assay-wizard .qpcr-refs", ACTB_CHIP, 60000)
+  && (await textOf("dialog.assay-wizard .qpcr-refs")).includes("GAPDH stable (M = 0.59)"),
+  await textOf("dialog.assay-wizard .wizard-body").catch(() => ""));
 await finishWizard();
 await page.waitForSelector(".qpcr-results .qpcr-target", { timeout: 60000 });
 const il6 = (await page.locator(".qpcr-target", { hasText: "IL6" }).locator("tr", { hasText: /^LPS vs\. Control/ })
@@ -209,6 +241,31 @@ expect("qPCR: MIQE 2.0 note on statistics on ΔCq",
   (await textOf(".qpcr-results")).includes("Statistics are computed on ΔCq"));
 expect("qPCR: the flagged ACTB replicate set of CON-1 is listed",
   (await textOf(".qpcr-results")).includes("replicates spread"));
+const refBlock = await textOf(".qpcr-results .qpcr-refs");
+const mOf = async (gene) => (await page.locator(".qpcr-ref-table tr", { hasText: new RegExp(`^${gene}`) })
+  .first().locator("td").nth(4).innerText()).trim();
+expect("qPCR reference genes: shown above the fold changes, geNorm M for each reference",
+  await page.locator(".qpcr-results .qpcr-refs ~ .qpcr-target").count() === 2
+  && await mOf("GAPDH") === "0.592" && await mOf("ACTB") === "0.592", `${await mOf("GAPDH")} / ${await mOf("ACTB")}`);
+expect("qPCR reference genes: ACTB shifts with treatment (chip), GAPDH stable, ACTB in use is warned",
+  refBlock.includes(ACTB_CHIP) && refBlock.includes("GAPDH stable (M = 0.59)")
+  && refBlock.includes("ACTB is in use but shifts with treatment") && refBlock.includes("18.42 (+1.44)"),
+  refBlock.slice(0, 400));
+await page.waitForTimeout(800); // let the results settle (fade-in) before measuring contrast
+const axeRefs = await axeViolations([".qpcr-results .qpcr-refs"]);
+expect("axe-core: the reference-gene block passes", axeRefs.length === 0, axeRefs.join(" | "));
+await page.locator(".qpcr-results .qpcr-refs").getByRole("button", { name: "Use GAPDH only" }).click();
+expect("one click: GAPDH only, IL6 LPS vs Control 11.88 (6.889 to 20.47), ACTB still shown as not used",
+  await page.waitForFunction(() => {
+    const il6Block = [...document.querySelectorAll(".qpcr-target")].find((b) => /^IL6/.test(b.querySelector("h4")?.textContent ?? ""));
+    const row = [...(il6Block?.querySelectorAll("tr") ?? [])].find((r) => /^LPS vs\. Control/.test(r.textContent ?? ""));
+    return /11\.88/.test(row?.textContent ?? "") && /6\.889 to 20\.47/.test(row?.textContent ?? "");
+  }, null, { timeout: 60000 }).then(() => true, () => false)
+  && (await textOf(".qpcr-ref-table")).includes("ACTB")
+  && (await textOf(".qpcr-results .qpcr-refs")).includes("normalised to GAPDH.")
+  && await page.locator(".qpcr-target h4", { hasText: /^ACTB/ }).count() === 0);
+expect("qPCR methods record which references were used and why",
+  await waitText(".pane-methods", "ACTB shifted with treatment (M = 0.59; 1.4 cycles between groups, P = 0.0044) and was not used"));
 
 const livak = { Brain: { "c-myc": [30.72, 30.34, 30.58, 30.34, 30.50, 30.43], GAPDH: [23.70, 23.56, 23.47, 23.65, 23.69, 23.68] },
   Kidney: { "c-myc": [27.06, 27.03, 27.03, 27.10, 26.99, 26.94], GAPDH: [22.76, 22.61, 22.62, 22.60, 22.61, 22.76] } };
@@ -250,6 +307,71 @@ await page.waitForSelector(".qpcr-results .qpcr-target", { timeout: 60000 });
 const kid2 = (await page.locator(".qpcr-target tr", { hasText: /^Kidney/ }).first().innerText()).replace(/\s+/g, " ");
 expect("mapped columns give the same kidney ΔCq 4.365", kid2.includes("4.365"), kid2);
 
+// --- Flow cytometry summary (flow-stats-to-tests) ---
+// The module's example (src/sheets/assays/flow/sample.ts) pasted as a
+// FlowJo table: % CD69+ of 3 donors × 4 conditions. Engine: flow_summary
+// gives one value per donor and condition; repeated-measures one-way
+// ANOVA on them, F(3, 6) = 474.1 (donor as the block).
+{
+  const conds = ["Unstim", "aCD3", "aCD3+aCD28", "PMA+Iono"];
+  const freq = [[2.1, 3.4, 1.6], [18.5, 24.2, 14.8], [35.2, 41.7, 29.9], [78.4, 85.1, 71.6]];
+  const median = [[412, 455, 389], [1830, 2210, 1540], [3120, 3650, 2780], [8950, 9840, 8120]];
+  const lines = [",Lymphocytes/Single Cells/Live/CD4+/CD69+ | Freq. of Parent,"
+    + "Lymphocytes/Single Cells/Live/CD4+/CD69+ | Median (BV421-A)"];
+  let tube = 0;
+  for (let dn = 0; dn < 3; dn++) {
+    conds.forEach((c, j) => lines.push(`D${dn + 1}_${c}_${String(++tube).padStart(3, "0")}.fcs,${freq[j][dn]},${median[j][dn]}`));
+  }
+  lines.push("Mean,34.4,3775", "SD,29.6,3392");
+  await startAssay("Flow cytometry", { sample: false, name: "CD69 flow" });
+  await wizard().getByLabel("Paste FlowJo table").fill(lines.join("\n"));
+  await wizard().getByRole("button", { name: "Read pasted table" }).click();
+  expect("flow: the pasted FlowJo table is read (12 samples, summary rows dropped)",
+    (await wizard().innerText()).includes("Read 12 samples and 2 statistic columns"));
+  await nextStep();
+  expect("flow: % CD69+ (Freq. of Parent) is the statistic by default",
+    (await wizard().getByRole("combobox", { name: /^Statistic/ }).inputValue()).endsWith("CD69+ | Freq. of Parent"));
+  await nextStep();
+  expect("flow: names split into 3 donors × 4 conditions",
+    (await wizard().innerText()).includes("3 donors (D1, D2, D3) × 4 conditions (Unstim, aCD3, aCD3+aCD28, PMA+Iono)"));
+  await nextStep();
+  await nextStep();
+  expect("flow preview: % CD69+ per donor and the planned RM ANOVA",
+    await waitText("dialog.assay-wizard .flow-values", "85.1")
+    && (await wizard().innerText()).includes("repeated-measures one-way ANOVA (4 conditions, donor as the block)"));
+  await finishWizard();
+  await page.waitForSelector(".flow-results .flow-values", { timeout: 60000 });
+  await page.waitForTimeout(800);
+  const axeFlow = await axeViolations([".flow-results"]);
+  expect("axe-core: the flow results pass", axeFlow.length === 0, axeFlow.join(" | "));
+  const linkedBtn = page.locator(".flow-results").getByRole("button", { name: "Open “Per donor of CD69 flow”" });
+  await linkedBtn.waitFor({ timeout: 60000 });
+  await linkedBtn.click();
+  await page.waitForSelector(".data-table", { timeout: 30000 });
+  expect("flow: the linked table has 3 donor rows × 4 condition data sets (plus the donor column)",
+    await cell("PMA+Iono, row 3").count() === 1 && await cell("PMA+Iono, row 4").count() === 0
+    && await cell("Unstim, row 1").count() === 1 && await cell("Donor, row 2").count() === 1
+    && await page.locator(".data-table input[aria-label^='aCD3+aCD28, row']").count() === 3,
+    await page.locator(".data-table thead").innerText().catch(() => ""));
+  expect("flow: the linked table holds donor 2's PMA+Iono value 85.1",
+    await cell("PMA+Iono, row 2").inputValue() === "85.1");
+  await navRow("RM one-way ANOVA of Per donor of CD69 flow").click();
+  expect("flow: the linked results are an RM one-way ANOVA on donor means, F(3, 6) = 474.1",
+    await page.waitForFunction(() => /474\.1/.test(document.querySelector(".pane-results")?.textContent ?? "")
+      && /[Rr]epeated[- ]measures/.test(document.querySelector(".pane-results")?.textContent ?? ""),
+    null, { timeout: 60000 }).then(() => true, () => false),
+    (await textOf(".pane-results")).slice(0, 300));
+  const legend = await page.locator(".report-legend p").innerText().catch(() => "");
+  expect("flow: the legend counts n = 3 donors", legend.includes("n = 3 donors per group."), legend);
+  await navRow("Graph of Per donor of CD69 flow").click();
+  await page.locator(".plot-card").getByRole("button", { name: "Settings" }).click();
+  const settings = page.getByRole("dialog", { name: "Graph settings" });
+  expect("flow: the graph is a SuperPlot (donor-coloured points, donor means joined)",
+    await settings.getByLabel("Colour every point by experiment (SuperPlot)").isChecked()
+    && await settings.getByLabel("Join each experiment's means across groups").isChecked());
+  await page.keyboard.press("Escape");
+}
+
 // --- Western blot densitometry ---
 await startAssay("Western blot densitometry");
 await finishWizard();
@@ -286,7 +408,7 @@ await page.getByRole("button", { name: "New data table" }).click();
 const pick = page.locator(".new-table-dialog");
 await pick.getByRole("radio", { name: "Start from an assay" }).check();
 const nModules = await pick.locator('input[name="assay-module"]').count();
-expect("Start from an assay lists every module (eleven or more)", nModules >= 11, String(nModules));
+expect("Start from an assay lists all twelve modules", nModules === 12, String(nModules));
 await pick.getByRole("radio", { name: /^Area under the curve/ }).check();
 expect("a module without a wizard says so", !(await pick.locator(".field-note").innerText()).includes("wizard"));
 await pick.getByRole("button", { name: "Start assay" }).click();

@@ -18,6 +18,7 @@ import type { ReportPrefs } from "./prefs.ts";
 import {
   metaWithReplicates, replicateFacts, withinNote, withinPerGroup,
 } from "./replicates.ts";
+import { compareParameterLegend } from "../sheets/xy/compareParameter.ts";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -133,16 +134,22 @@ export function legendFor(c: LegendContext): string {
   const xyGroups = xyByExp ? groups.map((g) => ({ ...g, n: facts!.experiments })) : groups;
   const unit = meta.unit ?? (c.result as any)?.unit_words?.plural
     ?? (longitudinal ? "subjects" : xy ? "replicates per X value" : undefined);
+  // Statistics on experiment means with one value per experiment (a flow
+  // summary's donors) and the experiment named in Reporting details: n
+  // already counts the experiments, so "(3 donors)" and "from 3
+  // independent experiments" would only repeat it.
+  const onePer = !xy && !!facts?.onMeans && !!c.data.report?.unit
+    && facts.values.every((g) => g.n <= facts.experiments);
   // The graph's own P style / "hide ns" override the project's.
   const fmt = c.graph ? readFormat(c.graph.settings) : null;
   return legendParagraph({
     graphType: c.graph?.graphType ?? null,
-    plotted: c.graph ? (own ? ownPlotted(c.graph, c.result, c.options)
-      : plottedClause(c.graph, c.table, c.result)) : undefined,
+    plotted: withCompareClause(c.graph ? (own ? ownPlotted(c.graph, c.result, c.options)
+      : plottedClause(c.graph, c.table, c.result)) : undefined, c.result),
     result: c.result,
     groups: xyGroups,
-    unit: { unit, experiments: meta.experiments ?? null,
-      within: withinPerGroup(facts, xy) || undefined, ...(xyByExp ? { per: "X value" } : {}) },
+    unit: { unit, experiments: onePer ? null : meta.experiments ?? null,
+      within: onePer ? undefined : withinPerGroup(facts, xy) || undefined, ...(xyByExp ? { per: "X value" } : {}) },
     nNote: withinNote(facts, xy) || undefined,
     exclusions: exclusionSentence(c.table) ?? undefined,
     errorBars: f.errorBars, points: f.points ?? undefined,
@@ -154,6 +161,15 @@ export function legendFor(c: LegendContext): string {
     style: fmt?.pStyle ?? c.prefs.pStyle,
     hideNs: fmt?.comparisons?.hideNs ?? c.prefs.hideNs, software: c.software,
   });
+}
+
+/** A "Compare a parameter" result adds what was compared and how to the
+ *  legend (sheets/xy/compareParameter.ts). */
+function withCompareClause(plotted: string | undefined, result: unknown): string | undefined {
+  const r = result as { analysis?: string; mode?: string; compare?: unknown } | null;
+  if (r?.analysis !== "compare_fits" || r.mode !== "parameter" || !r.compare) return plotted;
+  const clause = compareParameterLegend(r.compare as Record<string, unknown>);
+  return [plotted, clause].filter(Boolean).join(" ") || undefined;
 }
 
 /** Can the legend say what this graph draws? */

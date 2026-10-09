@@ -111,6 +111,13 @@ function nChip(groups: GroupCheck[], unit = "group"): Chip | null {
     explainer: "replicates" };
 }
 
+/** Where the residual QQ plot is (results with a Residuals section). */
+const RESIDUAL_KINDS = new Set(["ttest:unpaired", "ttest:welch", "ttest:paired", "anova",
+  "welch_anova", "rm_anova"]);
+const qqWhere = (kind: string) => (RESIDUAL_KINDS.has(kind)
+  ? "the residual QQ plot (Residuals, under the results)"
+  : "a residual QQ plot (with the t test and one-way ANOVA results)");
+
 function normalityChip(groups: GroupCheck[], kind: string): Chip | null {
   if (RANK.has(kind)) {
     return { id: "normality", label: "Normality not assumed", state: "ok",
@@ -135,15 +142,20 @@ function normalityChip(groups: GroupCheck[], kind: string): Chip | null {
       state: "warn",
       detail: `Shapiro-Wilk ${failed.map((g) => `${g.name} ${pText(g.normalityP as number)}`)
         .join(", ")}. `
-        + (minN >= 30 ? "With 30 or more values per group the test is robust to moderate "
-          + "departures. " : "If the values are skewed and positive, analyse log(values); if "
-          + "they are ordinal, a rank-based test fits better. ")
-        + "Don't switch tests on this result alone." + paired,
+        + `Look at ${qqWhere(kind)} first: `
+        + (minN >= 30 ? "with 30 or more values per group the test flags departures too "
+          + "small to matter, and t tests and ANOVA are robust to them. "
+          : "with small groups this test misses real skew and can flag a single unusual "
+          + "value. ")
+        + "If the spreads differ, use Welch's test; if the values are positive and skewed, "
+        + "analyse log(values). Don't switch to a rank-based test on this P value alone."
+        + paired,
       explainer: "normality" };
   }
   return { id: "normality", label: "Normality: no evidence against", state: "ok",
     detail: `Shapiro-Wilk P ≥ 0.05 in every group (${tested.length} tested). With small `
-      + "samples this test has little power, so it does not prove the data are Gaussian."
+      + "samples this test has little power, so it does not prove the data are Gaussian: "
+      + `${qqWhere(kind)} shows more.`
       + paired, explainer: "normality" };
 }
 

@@ -12,6 +12,8 @@ import { takeWizardRequest } from "../kit/create";
 import { interval, num, pValue, testSummary } from "../kit/format";
 import { Chip, ColumnPicker, KV, LinkedOutputs, Note, Warnings } from "../kit/ui";
 import { useAssay, type SpecsFor } from "../kit/useAssay";
+import { RefCheck, WizardRefCheck } from "./refPanels";
+import { referenceMethods } from "./refs";
 import Wizard from "../kit/Wizard";
 import { findCqHeader, guessCqMapping, isUndeterminedCq, resolveCqHeaders, type CqRole } from "./headers";
 import {
@@ -96,7 +98,7 @@ function RefFields({ o, set, targets, groups, readOnly }: {
           {targets.map((g) => (
             <label key={g}>
               <input type="checkbox" checked={refs.includes(g)} disabled={readOnly}
-                onChange={(e) => set({ referenceGenes: e.target.checked ? [...refs, g] : refs.filter((x) => x !== g) })} />
+                onChange={(e) => set({ referenceGenes: e.target.checked ? [...refs, g] : refs.filter((x) => x !== g), referenceCandidates: [] })} />
               {g}
             </label>
           ))}
@@ -224,6 +226,18 @@ function QpcrWizard({ start, table, options, hasOutputs, onClose, onFinish }: {
                 </p>
               )}
               <p className="wizard-explain">{MIQE_NOTE}</p>
+            </>
+          ),
+        },
+        {
+          id: "refcheck", title: "Reference check",
+          render: () => (
+            <>
+              <p className="hint-block">
+                Before any fold change: does a reference gene move with treatment? Each reference
+                gene's Cq is compared across groups, with its geNorm stability.
+              </p>
+              <WizardRefCheck table={t} options={o} onChange={set} />
             </>
           ),
         },
@@ -401,9 +415,12 @@ export function QpcrResults({ sheet, options: o, result: r }: ResultsProps<QpcrO
     <div className="result-card assay-results qpcr-results">
       <h3>qPCR relative quantification</h3>
       <p className="model-line">
-        Reference: {(r.reference_genes ?? []).join(" + ")} (geometric mean); calibrator: {r.calibrator};
+        Reference: {(r.reference_genes ?? []).join(" + ")}{(r.reference_genes ?? []).length > 1 ? " (geometric mean)" : ""}; calibrator: {r.calibrator};
         {" "}{r.method}.
       </p>
+      <RefCheck stab={r.reference_stability} used={r.reference_genes ?? []} calibrator={r.calibrator}
+        readOnly={sheet.frozen}
+        onChoose={(act, cands) => a.save({ ...o, referenceGenes: act.genes, referenceCandidates: cands })} />
       <Note>{MIQE_NOTE}</Note>
 
       {(r.per_target ?? []).map((pt: any) => {
@@ -535,6 +552,8 @@ export function QpcrMethods({ options: o, result: r }: ResultsProps<QpcrOptions,
     + `Statistics were computed on ΔCq values${test ? ` (${test.toLowerCase()}`
       + `${st?.multiple_comparisons ? `, ${o.comparisons === "dunnett" ? "Dunnett's" : o.comparisons} post test` : ""})` : ""}; `
     + `fold changes are shown with ${Math.round(o.ciLevel * 100)}% confidence intervals back-transformed `
-    + `from the ΔCq scale (asymmetric), following MIQE 2.0 (Bustin et al. 2025). Analysed in OpenDose.`;
+    + `from the ΔCq scale (asymmetric), following MIQE 2.0 (Bustin et al. 2025). `
+    + `${referenceMethods(r.reference_stability, r.reference_genes ?? [])} Analysed in OpenDose.`
+      .replace(/^ /, "");
   return <CopyableMethods text={text} />;
 }

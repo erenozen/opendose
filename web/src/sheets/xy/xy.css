@@ -12,3 +12,13 @@
 .results-table td.num, .results-table th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .compare-table-wrap, .anova-table-wrap { overflow-x: auto; }
 .model-select { max-width: 100%; }
+
+/* Incomplete curves: IC50 reported as "> highest dose" (rangeFlags.tsx). */
+.range-flags { border-color: color-mix(in srgb, var(--warn-hue) 45%, transparent); }
+.range-chip { margin: 0 0 6px; color: var(--ink); font-size: 13px; }
+.range-chip strong { color: var(--warn-ink); }
+.range-mode select { max-width: 100%; }
+.range-bound { font-weight: 600; }
+.range-note { font-weight: 400; color: var(--muted); font-size: 12px; }
+.range-flag { color: var(--warn-ink); font-size: 12px; font-weight: 600; white-space: nowrap; }
+.range-line { color: var(--ink-2); }
