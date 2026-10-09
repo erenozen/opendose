@@ -1,0 +1,57 @@
+/* Exclusions card (ExclusionsCard.tsx) and the reproduction strip
+   (ReproduceStrip.tsx). */
+.exclusions-card .exc-lead { margin: 0 0 6px; color: var(--ink-2); font-size: 13px; }
+.exclusions-card .exc-groups { margin: 4px 0 2px; }
+.exclusions-card .exc-groups td, .exclusions-card .exc-groups th { font-variant-numeric: tabular-nums; }
+.exclusions-card .exc-values { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.exclusions-card .exc-values li {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: 13px;
+}
+.exclusions-card .exc-where { color: var(--ink-2); }
+.exclusions-card .exc-where strong { text-decoration: line-through; font-weight: 600; color: var(--ink); }
+.exclusions-card .exc-reason { color: var(--muted); }
+.exclusions-card .exc-reason-input { flex: 1 1 200px; min-width: 0; padding: 3px 8px; font-size: 12.5px; }
+.exclusions-card .exc-sentence { color: var(--ink-2); font-size: 13px; margin: 4px 0 6px; }
+.exclusions-card .exc-compare { margin-top: 10px; }
+.exclusions-card .exc-compare > button { font-size: 12.5px; }
+.exclusions-card .exc-results {
+  margin-top: 8px; padding: 10px 12px; border: 1px dashed var(--accent-border);
+  border-radius: var(--radius-s); background: var(--accent-soft);
+}
+.exclusions-card .exc-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.exclusions-card h5 { margin: 8px 0 2px; font-size: 12px; color: var(--ink); font-weight: 650; }
+.exclusions-card .exc-cols p { margin: 0; font-size: 13px; color: var(--ink-2); line-height: 1.5; }
+.exclusions-card .exc-changes { margin: 2px 0 0; padding-left: 18px; font-size: 12.5px; color: var(--ink-2); }
+.exclusions-card .exc-pending { color: var(--muted); font-size: 12.5px; margin: 6px 0 0; }
+.exclusions-card .exc-sources { color: var(--muted); font-size: 11.5px; margin: 10px 0 0; line-height: 1.5; }
+.exclusions-card a, .reproduce-strip a { color: var(--accent); }
+
+.reproduce-strip {
+  margin: 12px 24px 0; padding: 10px 14px; max-width: 1632px;
+  border: 1px solid var(--accent-border); border-radius: var(--radius-s);
+  background: var(--accent-soft); color: var(--ink); font-size: 13px;
+  display: flex; flex-direction: column; gap: 6px;
+  transition: opacity 200ms var(--ease-out), transform 200ms var(--ease-out);
+  opacity: 1; transform: translateY(0);
+  @starting-style { opacity: 0; transform: translateY(-6px); }
+}
+.reproduce-strip:has(> span[role="status"]) { flex-direction: row; flex-wrap: wrap; align-items: center; }
+.reproduce-strip.has-changes { border-color: var(--warn-hue); }
+.reproduce-strip .rs-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.reproduce-strip .rs-headline { flex: 1 1 260px; font-weight: 600; }
+.reproduce-strip button { padding: 4px 10px; background: var(--surface); }
+.reproduce-strip button.dismiss { opacity: 0.75; }
+.reproduce-strip ul { margin: 0; padding-left: 20px; }
+.reproduce-strip li { overflow-wrap: anywhere; }
+.reproduce-strip .rs-why { margin: 0; color: var(--ink-2); font-size: 12.5px; line-height: 1.5; }
+
+.history-reproduction h3 { margin: 0 0 4px; font-size: 13.5px; }
+.history-reproduction ul, .history-step .hs-exclusions { margin: 4px 0 0; padding-left: 20px; font-size: 12.5px; }
+
+@media (max-width: 760px) {
+  .reproduce-strip { margin: 10px 12px 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .reproduce-strip { transition: none; }
+}
+@media print { .reproduce-strip { display: none; } }

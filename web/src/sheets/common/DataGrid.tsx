@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useProject } from "../../app/context";
 // factory -> registry -> this grid is a module cycle; addFamily is only
 // called from an event handler, never while modules evaluate.
@@ -27,6 +27,8 @@ import {
 } from "./EditDialogs";
 import ImportDialog, { type ImportRequest } from "./ImportDialog";
 import MenuButton from "./MenuButton";
+import ExclusionReasonPrompt, { type ReasonAsk } from "./ExclusionReasonPrompt";
+import { newlyExcluded, reasonAt } from "../../project/exclusions";
 import { lazy, Suspense } from "react";
 
 // Wide <-> long (src/share), loaded when first opened.
@@ -105,6 +107,13 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
     && r >= rect.r0 && r <= rect.r1 && c >= rect.c0 && c <= rect.c1;
   const [editing, setEditing] = useState<string | null>(null);
   const [dialog, setDialog] = useState<Dialog | null>(null);
+  // After Ctrl/Cmd+E excludes values: ask why (skippable, never blocks).
+  const [reasonAsk, setReasonAsk] = useState<ReasonAsk | null>(null);
+  const closeReason = useCallback(() => setReasonAsk(null), []);
+  const askReason = (after: DataTableModel) => {
+    const refs = newlyExcluded(t, after);
+    setReasonAsk(refs.length ? { sheetId: sheet.id, refs } : null);
+  };
   const [selecting, setSelecting] = useState(false);
   const dragging = useRef(false);
 
@@ -145,9 +154,13 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
     if (mod && e.key.toLowerCase() === "e") {
       e.preventDefault();
       if (readOnly) return;
-      if (multi && rect) { onChange((x) => toggleBlockExcluded(x, rect)); return; }
+      if (multi && rect) {
+        onChange((x) => toggleBlockExcluded(x, rect));
+        askReason(toggleBlockExcluded(t, rect));
+        return;
+      }
       const ref = refAt(r, c);
-      if (ref) onChange((x) => toggleExcluded(x, ref));
+      if (ref) { onChange((x) => toggleExcluded(x, ref)); askReason(toggleExcluded(t, ref)); }
       return;
     }
     if (mod && e.shiftKey && e.key === "Enter") {
@@ -264,7 +277,8 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
 
   const cellInput = (r: number, c: number, value: string,
     set: (v: string) => void,
-    opts: { excluded?: boolean; text?: boolean; label: string; isX?: boolean; invalid?: boolean }) => (
+    opts: { excluded?: boolean; text?: boolean; label: string; isX?: boolean; invalid?: boolean;
+      reason?: string }) => (
       <input
         data-r={r} data-c={c}
         inputMode={opts.text ? "text" : "decimal"}
@@ -273,7 +287,7 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
         readOnly={readOnly}
         aria-label={opts.label}
         aria-invalid={opts.invalid || undefined}
-        title={opts.excluded ? `Excluded from analyses and graphs (${MOD}E to include)`
+        title={opts.excluded ? `Excluded from analyses and graphs${opts.reason ? `: ${opts.reason}` : ""} (${MOD}E to include)`
           : opts.invalid ? (t.xFormat === "dates"
             ? "Not read as a date; treated as blank" : "Not read as a time; treated as blank")
             : undefined}
@@ -374,6 +388,10 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
         )}
       </div>
 
+      {reasonAsk?.sheetId === sheet.id && !readOnly && (
+        <ExclusionReasonPrompt key={reasonAsk.refs.map((x) => JSON.stringify(x)).join()} table={t}
+          refs={reasonAsk.refs} onSave={(fn) => onChange(fn)} onClose={closeReason} />
+      )}
       <div className={`data-table${readOnly ? " is-readonly" : ""}${selecting ? " selecting" : ""}`}
         ref={wrap} onPointerMove={onPointerMove}
         onCopy={(e) => onCopy(e, false)} onCut={(e) => onCopy(e, true)}>
@@ -512,6 +530,7 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
                             key(`c:${di}:${r}:${s}`)),
                           {
                             excluded: ex,
+                            reason: ex ? reasonAt(t, { kind: "y", dataset: di, row: r, sub: s }) : undefined,
                             text: !numeric && d.varType === "categorical",
                             label: `${d.name}, ${subCount(d) > 1
                               ? `${d.subTitles?.[s] || subLabel(t.type, di, s)}, ` : ""}row ${r + 1}`,

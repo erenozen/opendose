@@ -3,6 +3,7 @@
 // bundle's methods.txt.
 import { useProject } from "../app/context";
 import { CopyButton } from "../components/CiteBlock";
+import { exclusionSentence } from "../project/exclusions";
 import type { DataSheet, ResultsSheet } from "../project/types";
 import { powerJustification } from "./facts";
 import { statsMethodsParagraph } from "./methods";
@@ -19,7 +20,8 @@ export default function StatsMethodsCard({ sheet, result }: { sheet: ResultsShee
   // table's replicate map (replicates.ts).
   const meta = data ? metaWithReplicates(data.report, data.table, result) : undefined;
   const text = statsMethodsParagraph(result, prefs, meta,
-    { powerJustification: powerJustification(project, results) });
+    { powerJustification: powerJustification(project, results),
+      exclusions: data ? exclusionSentence(data.table) : null });
   if (!text) return null;
   return (
     <div className="result-card methods-text stats-methods">

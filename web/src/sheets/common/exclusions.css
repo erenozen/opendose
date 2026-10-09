@@ -1,0 +1,25 @@
+/* Reason prompt after Ctrl/Cmd+E (ExclusionReasonPrompt.tsx) */
+.exclusion-reason {
+  margin: 0 0 8px; padding: 8px 12px;
+  border: 1px solid var(--accent-border); border-radius: var(--radius-s);
+  background: var(--accent-soft);
+  font-size: 13px; color: var(--ink);
+  display: grid; gap: 6px;
+  transition: opacity 160ms var(--ease-out), transform 160ms var(--ease-out);
+  opacity: 1; transform: translateY(0);
+  @starting-style { opacity: 0; transform: translateY(-4px); }
+}
+.exclusion-reason p { margin: 0; }
+.exclusion-reason .er-presets { display: flex; flex-wrap: wrap; gap: 6px; }
+.exclusion-reason .er-presets button { padding: 3px 10px; background: var(--surface); font-size: 12.5px; }
+.exclusion-reason .er-other { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.exclusion-reason .er-other label { font-size: 12.5px; color: var(--ink-2); }
+.exclusion-reason .er-other input { flex: 1 1 180px; min-width: 0; padding: 4px 8px; }
+.exclusion-reason .er-other button { padding: 3px 10px; }
+.exclusion-reason .er-other button.dismiss { background: var(--surface); }
+.exclusion-reason .er-why { color: var(--ink-2); font-size: 12px; }
+.exclusion-reason a { color: var(--accent); }
+
+@media (prefers-reduced-motion: reduce) {
+  .exclusion-reason { transition: none; }
+}

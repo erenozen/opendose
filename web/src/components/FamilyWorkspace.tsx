@@ -37,6 +37,7 @@ import EffectSizeCard from "../report/EffectSizeCard";
 import GraphLegend from "../report/GraphLegend";
 import ReportCard from "../report/ReportCard";
 import StatsMethodsCard from "../report/StatsMethodsCard";
+import ExclusionsCard from "../report/ExclusionsCard";
 
 /**
  * The workbench for one family: the data table (left) with the active
@@ -218,6 +219,7 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
                 </ResultsExport>
                 <DifferNote analysisId={resSheet.analysis} tableType={data.table.type}
                   table={data.table} options={options} result={result} />
+                <ExclusionsCard sheet={resSheet} table={data.table} options={options} result={result} />
                 <ReportCard sheet={resSheet} table={data.table} options={options} result={result} />
               </div>
             )}
