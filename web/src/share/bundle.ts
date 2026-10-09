@@ -29,6 +29,10 @@ export interface BundleInput {
   legends?: { name: string; kind: "graph" | "results"; text: string }[];
   /** Provenance of every analysis (src/report/provenance.ts), as JSON. */
   provenance?: string;
+  /** The project without its data values (project/replay.ts replayPlanOf),
+   *  written into provenance.json as `replay_plan` so "Apply to new data"
+   *  can rebuild every table layout, analysis, graph and page layout. */
+  replayPlan?: Record<string, unknown>;
   /** The data tables as a .pzfx file (share/pzfx.ts), when any can be. */
   pzfx?: string;
 }
@@ -98,8 +102,9 @@ export function bundleFiles(b: BundleInput): BundleFile[] {
   files.push({ name: "methods.txt", text: methods, about: "Methods text for each results sheet." });
   if (b.legends) files.push({ name: "legends.txt", text: legendsText(b.legends),
     about: "Figure legend of each graph and the results sentence of each results sheet." });
-  if (b.provenance) files.push({ name: "provenance.json", text: b.provenance,
-    about: "Every analysis with its full options (defaults marked), input table fingerprints and software versions." });
+  if (b.provenance) files.push({ name: "provenance.json", text: withReplayPlan(b.provenance, b.replayPlan),
+    about: "Every analysis with its full options (defaults marked), input table fingerprints and software versions"
+      + (b.replayPlan ? "; its replay_plan re-applies the analyses, graphs and layouts to new data (Apply to new data in OpenDose)." : ".") });
   files.push({ name: "CITATION.txt", text: `${b.citation.plain}\n\nBibTeX:\n\n${b.citation.bibtex}\n`,
     about: "How to cite OpenDose (plain reference and BibTeX)." });
 
@@ -107,6 +112,14 @@ export function bundleFiles(b: BundleInput): BundleFile[] {
   const out: BundleFile[] = [{ name: "README.txt", data: strToU8(readme) }];
   for (const f of files) out.push({ name: f.name, data: f.bytes ?? strToU8(f.text ?? "") });
   return out;
+}
+
+/** provenance.json with the replay plan added under `replay_plan`. */
+export function withReplayPlan(provenance: string, plan?: Record<string, unknown>): string {
+  if (!plan) return provenance;
+  try {
+    return JSON.stringify({ ...JSON.parse(provenance) as Record<string, unknown>, replay_plan: plan }, null, 2);
+  } catch { return provenance; }
 }
 
 /** legends.txt: figure legends first, then results sentences. */

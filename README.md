@@ -305,6 +305,11 @@ sheets that follow the data.
   a chosen DPI, JPEG, WebP, SVG or vector PDF, journal width presets
   with a font-floor warning, clipboard copy, all graphs as a zip;
   Ctrl/Cmd+P prints the selected sheet.
+- PowerPoint export (.pptx, made in the browser): one slide per graph
+  or page layout, each graph a vector picture that PowerPoint's
+  "Convert to Shape" makes editable, with its figure legend in the
+  notes. "Copy for Word" on every results sheet pastes as a formatted
+  table; "Copy" under a graph puts it on the clipboard as PNG and SVG.
 
 ### Reporting
 
@@ -366,6 +371,10 @@ sheets that follow the data.
   sentences, provenance.json, citation and a README with the software
   versions. .pzfx export of XY, column, grouped, contingency and
   survival tables.
+- Apply to new data: next week's file (CSV, TSV, pasted, .xlsx, .pzfx)
+  goes into the tables of this project, a project file or a bundle's
+  provenance.json; every analysis, graph and layout is kept and re-run,
+  and a replay log lists which numbers changed (P values first).
 - "How OpenDose is validated": every pinned cross-check (Prism
   screenshots, NIST, statistics-guide examples, published tables,
   statsmodels, pingouin, R) with both values and the source, also as

@@ -170,7 +170,8 @@ graphs, layouts, export, project management.
 Windows/Mac differences, installation, firewalls, SSO, command-line
 switches, LabArchives, Prism Cloud, scripts (replaced by project files
 + URL-free static hosting), printing beyond the browser's own print,
-Word/PowerPoint one-click send, EPS/EMF/CMYK output, "Prism Labs".
+Word/PowerPoint one-click send (a .pptx download and "Copy for Word"
+exist since `office-export`), EPS/EMF/CMYK output, "Prism Labs".
 
 ### Already covered
 XY / Column / Contingency / Survival tables; Excel paste; .pzfx and
@@ -849,9 +850,17 @@ in brackets; "discoverable" = already built, make it findable):
 - [ ] Ask for a reason when values are excluded, list exclusions per
       group in results and methods, and offer a one-click 'results with
       excluded values included'. [`exclusion-log`, 64.1, 29 obs]
-- [ ] Let a provenance file (or a project) be applied to a new data
+- [x] Let a provenance file (or a project) be applied to a new data
       file: same tables, analyses, graphs and layouts, with a diff of
-      what changed. [`analysis-replay`, 63.1, 32 obs]
+      what changed. [`analysis-replay`, 63.1, 32 obs] Done: "Apply to
+      new data…" (Save menu, a data table's menu) takes this project, a
+      project file or the bundle's provenance.json (now with a
+      `replay_plan`) and CSV / TSV / pasted / .xlsx / .pzfx data, matches
+      tables by name then shape (a mapping when ambiguous), refills them
+      in their own layout, re-runs, and logs per results sheet which
+      numbers changed, P first (`project/replay.ts`, `replayDiff.ts`).
+      Not yet: re-running an import recipe or a plate-reader mapping
+      (tables do not store how they were imported).
 - [x] Add 'From counts per day' and 'From dates' to the survival table
       (expand to per-subject rows) and a preview column 'read as: death
       on day 12 / censored on day 30'. [`survival-data-entry`, 61.7, 21
@@ -883,6 +892,16 @@ in brackets; "discoverable" = already built, make it findable):
       click to one-way ANOVA with Dunnett vs the common control, or to
       Holm-Šídák across those P values. [`multiplicity-by-default`,
       54.3, 21 obs] Done: `guide/multiplicity.ts`.
+
+- [x] Export graphs and page layouts to PowerPoint (.pptx) and copy
+      results tables for Word. [`office-export`, 43.4, 19 obs] Done: a
+      .pptx written in the browser (`export/pptx.ts`, fflate), one 16:9
+      slide per graph (title, SVG picture with PNG fallback so "Convert
+      to Shape" works, legend in the notes) and per layout (a deck of
+      layouts takes the page size); "Copy for Word" on every results
+      sheet (HTML table + text); "Copy" under a graph puts PNG and SVG on
+      the clipboard. Not checked in PowerPoint itself here (the file is
+      validated by unzipping, XML parsing and python-pptx).
 
 Made discoverable outside the top 15 (Wave 0):
 - [x] Cox regression: the stale "not in OpenDose yet" wizard text fixed;
