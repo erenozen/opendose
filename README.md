@@ -102,7 +102,9 @@ example's numbers, regenerate them against a dev server with
   qPCR Cq exports and long CSVs (metadata from sample names, aggregation
   cell → image → animal, pivot to any table type); Reshape between long
   and wide; .prism and .pzfx files (one or all tables, summary tables as
-  summary tables). Export: any table as CSV / TSV, results as shown.
+  summary tables; also dropped on the start screen), and "Convert Prism
+  files to CSV…" (several files, every data table, one zip). Export: any
+  table as CSV / TSV, results as shown.
 - Paste and import report: after every paste or import a line above the
   table counts the numbers read and names every other cell by address
   (blanks and #DIV/0! / #N/A kept as missing, text in a number column
@@ -231,7 +233,9 @@ example's numbers, regenerate them against a dev server with
   apart; the detectable effect also in raw units from the SDs), with
   power curves and an ARRIVE-style
   justification sentence; a seeded randomisation list generator (simple,
-  shuffled, permuted blocks, stratified) to CSV.
+  shuffled, permuted blocks, stratified) to CSV. "Plan next experiment…"
+  on t test and one-way ANOVA results opens it with the pilot SD filled
+  in and the effect to detect chosen by the user (never observed power).
 
 ### Assay modules
 
@@ -319,8 +323,12 @@ sheets that follow the data.
   reopen) with picture cards for the eight table types, "paste data and
   get a table type", templates and the example project with a five-step
   tour; `?example=1` opens the example project directly.
-- A "Which test?" wizard that asks about the design, runs the data checks
-  it can and opens the recommended analysis pre-configured; assumption
+- A "Which test?" wizard ("Help me choose…", first in Analyze) that reads
+  the table, asks about the design in terms of the user's own rows ("Is
+  row 1 of Control the same animal as row 1 of Treated?"), runs the data
+  checks it can and opens the recommended analysis pre-configured, with
+  its reason on the results sheet; links from results to Cox regression
+  (survival) and Compare fits (curve fits); assumption
   chips and plain-language banners on results (ambiguous fits, omnibus vs
   pairwise disagreement, normalised controls, "n might be cells" with
   one-click replicate assignment); "Why your number may differ" notes;
@@ -338,7 +346,9 @@ sheets that follow the data.
   survival tables.
 - "How OpenDose is validated": every pinned cross-check (Prism
   screenshots, NIST, statistics-guide examples, published tables,
-  statsmodels, pingouin, R) with both values and the source. Privacy:
+  statsmodels, pingouin, R) with both values and the source, also as
+  "How this is validated" on every results sheet, filtered to that
+  analysis' checks. Privacy:
   computation in the browser, nothing sent anywhere.
 
 ## Roadmap

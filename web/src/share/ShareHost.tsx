@@ -12,7 +12,7 @@ import type { DataSheet, Project } from "../project/types";
 import { analysisDef } from "../sheets/registry";
 import { hasShareLink, locationHash } from "./boot";
 import { useBundleExport } from "./useBundleExport";
-import { SHARE_EVENT, type ShareRequest } from "./events";
+import { SHARE_EVENT, type ShareRequest, type ValidationFor } from "./events";
 import { familyProject, kb, makeFragment, SHARE_LIMIT } from "./link";
 import "./share.css";
 
@@ -36,7 +36,7 @@ function withResolvedOptions(p: Project): Project {
 
 type Dialog =
   | { kind: "link"; dataId?: string }
-  | { kind: "validation" };
+  | { kind: "validation"; scope?: ValidationFor };
 
 /**
  * Sharing, interoperability and trust: answers the commands in
@@ -132,7 +132,7 @@ export default function ShareHost() {
       )}
       {dialog?.kind === "validation" && (
         <Suspense fallback={null}>
-          <ValidationPage onClose={closeValidation} />
+          <ValidationPage onClose={closeValidation} scope={dialog.scope} />
         </Suspense>
       )}
       {bundle.host}

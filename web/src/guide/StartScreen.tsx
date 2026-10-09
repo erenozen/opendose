@@ -1,8 +1,9 @@
 // Start screen: picture cards for the eight table types (sketch of the
 // table and its typical graph, the analyses it allows, an empty table or
 // the example), "paste data and suggest a table type", the example
-// project with its guided tour, and opening a project or Prism file.
-import { useId, useMemo, useState } from "react";
+// project with its guided tour, and opening a project or Prism file (also
+// by dropping it anywhere on the screen), or converting Prism files to CSV.
+import { useId, useMemo, useState, type DragEvent } from "react";
 import { useProject } from "../app/context";
 import { Logo } from "../components/WelcomePanel";
 import { newId } from "../project/ids";
@@ -13,6 +14,11 @@ import { setStartScreenEnabled, startScreenEnabled, tourDone } from "./context";
 import { buildTable, parsePasted, suggestTableType } from "./paste";
 import { CARD_TEXT, SKETCHES } from "./sketches";
 import DescribeExperimentButton from "./DescribeExperimentButton";
+import { usePrismBatch } from "../share/usePrismBatch";
+import "./startPrism.css";
+
+/** Files the Open button takes: OpenDose projects and Prism files. */
+const OPENABLE = /\.(json|pzfx|prism|zip)$/i;
 
 export default function StartScreen({ onOpenFile, onClose, onTour }: {
   onOpenFile: (f: File) => void;
@@ -28,6 +34,25 @@ export default function StartScreen({ onOpenFile, onClose, onTour }: {
   const block = useMemo(() => parsePasted(text), [text]);
   const guess = useMemo(() => suggestTableType(block), [block]);
   const type = override ?? guess.type;
+  const batch = usePrismBatch();
+  // Drag a project or Prism file anywhere onto the screen to open it.
+  const [dropping, setDropping] = useState(false);
+  const [dropNote, setDropNote] = useState<string | null>(null);
+  const hasFiles = (e: DragEvent) => [...e.dataTransfer.types].includes("Files");
+  const onDrop = (e: DragEvent) => {
+    if (!hasFiles(e)) return;
+    e.preventDefault();
+    setDropping(false);
+    const files = [...e.dataTransfer.files];
+    const f = files.find((x) => OPENABLE.test(x.name));
+    if (!f) {
+      setDropNote("That is not a file OpenDose opens here: drop a .prism, .pzfx or OpenDose "
+        + "project (.json) file, or paste the cells of a spreadsheet below.");
+      return;
+    }
+    onOpenFile(f);
+    onClose();
+  };
 
   const begin = (r: { project: Parameters<typeof replace>[0]; dataId: string }) => {
     replace(r.project, r.dataId);
@@ -43,7 +68,10 @@ export default function StartScreen({ onOpenFile, onClose, onTour }: {
   };
 
   return (
-    <main className="start-screen" aria-labelledby="start-title">
+    <main className={`start-screen${dropping ? " start-dropping" : ""}`} aria-labelledby="start-title"
+      onDragOver={(e) => { if (hasFiles(e)) { e.preventDefault(); setDropping(true); } }}
+      onDragLeave={(e) => { if (e.currentTarget === e.target) setDropping(false); }}
+      onDrop={onDrop}>
       <div className="start-inner">
         <div className="start-hero">
           <Logo />
@@ -99,6 +127,23 @@ export default function StartScreen({ onOpenFile, onClose, onTour }: {
             )}
           </section>
         </div>
+
+        <section className="start-prism" aria-labelledby="start-prism-h">
+          <h3 id="start-prism-h">GraphPad Prism files (.prism, .pzfx)</h3>
+          <p>
+            Open a .prism or .pzfx file: every data table is imported; analyses are
+            recomputed here. Drop the file anywhere on this screen, or use{" "}
+            <em>Open a project or Prism file…</em> above.
+          </p>
+          <p>
+            Several files?{" "}
+            <button type="button" className="linkish" disabled={batch.busy} onClick={batch.pick}>
+              Convert Prism files to CSV…</button>{" "}
+            saves every data table of each file as a CSV, in one zip.
+          </p>
+          {batch.input}
+          {dropNote && <p className="start-drop-note" role="alert">{dropNote}</p>}
+        </section>
 
         <section aria-labelledby="start-types-h">
           <h3 id="start-types-h" className="start-section">Or choose a table type</h3>

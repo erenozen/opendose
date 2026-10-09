@@ -14,7 +14,7 @@ const TOUR_STEPS: TourStep[] = [
       + "cell and watch the graph and the ANOVA P value update as you type. "
       + `${MOD}Z undoes it.` },
   { anchor: [".analyze-wrap", ".analyze-btn"], title: "Analyze, or ask which test",
-    body: "Analyze adds another analysis of this table. Not sure which one? “Which test?” at "
+    body: "Analyze adds another analysis of this table. Not sure which one? “Help me choose…” at "
       + "the top of the menu asks about your design, checks the data and recommends a test, "
       + "with its reason and the alternatives." },
   { anchor: [".guide-chips-wrap", ".pane-results"], title: "Check the assumptions",
