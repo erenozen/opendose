@@ -37,6 +37,7 @@ import EffectSizeCard from "../report/EffectSizeCard";
 import GraphLegend from "../report/GraphLegend";
 import ReportCard from "../report/ReportCard";
 import StatsMethodsCard from "../report/StatsMethodsCard";
+import NotesStrip from "./NotesStrip";
 
 /**
  * The workbench for one family: the data table (left) with the active
@@ -209,6 +210,8 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
                 <ResultsGuide analysisId={resSheet.analysis} tableType={data.table.type}
                   table={data.table} options={options} result={result}
                   dataId={data.id} readOnly={readOnly} />
+                <NotesStrip analysisId={resSheet.analysis} table={data.table} options={options}
+                  result={result} />
                 <ResultsExport name={resSheet.name}>
                   <Suspense fallback={<Pending />}>
                     <Results sheet={resSheet} table={data.table} options={options} result={result} />

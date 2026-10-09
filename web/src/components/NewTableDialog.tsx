@@ -14,6 +14,8 @@ import { createAssayFamily, requestWizard } from "../sheets/assays/kit/create";
 import { newId } from "../project/ids";
 import Modal from "./Modal";
 import { ExplainerDetails } from "../guide/LearnMore";
+import DesignDialog from "../guide/DesignDialog";
+import type { TableRecommendation } from "../guide/designToTable";
 
 export interface NewTableRequest {
   type: TableType;
@@ -61,12 +63,25 @@ export default function NewTableDialog({ defaultType, defaultName, onCancel, onC
   const [summary, setSummary] = useState<SubcolumnFormat>("replicates");
   const [xFormat, setXFormat] = useState<XFormat>("numbers");
   const [sample, setSample] = useState(false);
+  // "Not sure? Describe the experiment": the chosen layout, shown below.
+  const [designOpen, setDesignOpen] = useState(false);
+  const [design, setDesign] = useState<TableRecommendation | null>(null);
 
   const def = REGISTRY[type];
   const labels = SHAPE_LABELS[type];
   const allowsSummary = allowsSummaryFormat(type);
 
+  const fromDesign = (r: TableRecommendation) => {
+    setDesignOpen(false);
+    setMode("format");
+    choose(r.type);
+    const d = { ...defaultInit(r.type), ...r.init };
+    setShape({ datasets: String(d.datasets), subcolumns: String(d.subcolumns), rows: String(d.rows) });
+    setDesign(r);
+  };
+
   const choose = (t: TableType) => {
+    setDesign((d) => (d?.type === t ? d : null));
     setType(t);
     const d = defaultInit(t);
     setShape({ datasets: String(d.datasets), subcolumns: String(d.subcolumns), rows: String(d.rows) });
@@ -165,6 +180,8 @@ export default function NewTableDialog({ defaultType, defaultName, onCancel, onC
       <div className="new-table-grid">
         <fieldset className="type-list">
           <legend>Table format</legend>
+          <button type="button" className="linkish design-entry" onClick={() => setDesignOpen(true)}>
+            Not sure? Describe the experiment…</button>
           {TABLE_ORDER.map((t) => {
             const d = REGISTRY[t];
             return (
@@ -248,6 +265,11 @@ export default function NewTableDialog({ defaultType, defaultName, onCancel, onC
               )}
             </label>
           )}
+          {design?.type === type && (
+            <p className="field-note design-chosen" role="status">
+              <strong>{design.title}.</strong> {design.layout}
+            </p>
+          )}
           {(type === "column" || type === "xy" || type === "grouped") && (
             <div className="new-table-guide">
               <p className="field-note">
@@ -268,6 +290,9 @@ export default function NewTableDialog({ defaultType, defaultName, onCancel, onC
           )}
         </div>
       </div>
+      )}
+      {designOpen && (
+        <DesignDialog onPick={fromDesign} onClose={() => setDesignOpen(false)} />
       )}
     </Modal>
   );

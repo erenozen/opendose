@@ -128,6 +128,10 @@ export const SRC = {
     url: `${C}reg_example_global_nonlin.htm` },
 
   // n = biological replicates; P "using an n of three, not 300".
+  // Spreadsheets with default settings turn gene names into dates and
+  // numbers (about a fifth of papers with Excel gene lists affected).
+  ziemann2016: { label: "Ziemann et al. 2016, Gene name errors are widespread in the scientific literature, Genome Biol 17:177",
+    url: "https://pmc.ncbi.nlm.nih.gov/articles/PMC4994289/" },
   lord2020: { label: "Lord et al. 2020, SuperPlots, J Cell Biol 219:e202001064",
     url: "https://pmc.ncbi.nlm.nih.gov/articles/PMC7265319/" },
   // Show the data; bar graphs of small samples hide the distribution.
