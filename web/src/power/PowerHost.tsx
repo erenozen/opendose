@@ -11,7 +11,7 @@ export default function PowerHost() {
   if (!req) return null;
   return (
     <Suspense fallback={null}>
-      <PowerDialog initial={req.tab} onClose={() => setReq(null)} />
+      <PowerDialog initial={req.tab} pilot={req.pilot} onClose={() => setReq(null)} />
     </Suspense>
   );
 }
