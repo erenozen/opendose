@@ -1,0 +1,2963 @@
+[
+  {
+    "id": "journal-nature-rs-1",
+    "venue": "nature.com",
+    "url": "https://www.nature.com/documents/nr-reporting-summary-flat.pdf",
+    "date": null,
+    "role": "journal requirement, Nature Portfolio (Reporting Summary)",
+    "software_named": [],
+    "workflow": "reporting summary, statistics section",
+    "quote": "The exact sample size (n) for each experimental group/condition, given as a discrete number and unit of measurement",
+    "problem": "Authors give ranges ('n = 3-6') or omit what n counts (cells, mice, wells); the Reporting Summary forces an exact count plus its unit",
+    "need": "Output the exact n per group as an integer together with its unit (e.g. 'n = 6 mice') in the results table and auto-generated legend text",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "n-definition",
+      "figure-legend",
+      "reporting-methods"
+    ]
+  },
+  {
+    "id": "journal-nature-rs-2",
+    "venue": "nature.com",
+    "url": "https://www.nature.com/documents/nr-reporting-summary-flat.pdf",
+    "date": null,
+    "role": "journal requirement, Nature Portfolio (Reporting Summary)",
+    "software_named": [],
+    "workflow": "reporting summary, statistics section",
+    "quote": "A statement on whether measurements were taken from distinct samples or whether the same sample was measured repeatedly",
+    "problem": "Repeated measurements of one sample are analysed as if independent; journals now require an explicit statement",
+    "need": "Ask at data entry whether columns/replicates are distinct samples or repeated measures of the same sample and print that statement in the methods text",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "technical-vs-biological-replicates",
+      "n-definition",
+      "reporting-methods"
+    ]
+  },
+  {
+    "id": "journal-nature-rs-3",
+    "venue": "nature.com",
+    "url": "https://www.nature.com/documents/nr-reporting-summary-flat.pdf",
+    "date": null,
+    "role": "journal requirement, Nature Portfolio (Reporting Summary)",
+    "software_named": [],
+    "workflow": "reporting summary, statistics section",
+    "quote": "The statistical test(s) used AND whether they are one- or two-sided",
+    "problem": "Legends name a test vaguely ('t-test') and omit sidedness",
+    "need": "Every test result must carry its full name and sidedness (e.g. 'two-tailed unpaired Welch t-test') in an exportable methods sentence",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "reporting-methods",
+      "figure-legend",
+      "which-test"
+    ]
+  },
+  {
+    "id": "journal-nature-rs-4",
+    "venue": "nature.com",
+    "url": "https://www.nature.com/documents/nr-reporting-summary-flat.pdf",
+    "date": null,
+    "role": "journal requirement, Nature Portfolio (Reporting Summary)",
+    "software_named": [],
+    "workflow": "reporting summary, statistics section",
+    "quote": "A description of any assumptions or corrections, such as tests of normality and adjustment for multiple comparisons",
+    "problem": "Authors run normality checks and multiplicity adjustments silently (or not at all) and cannot document them",
+    "need": "Record which normality test and which multiple-comparison correction were applied to each analysis and export them as a methods paragraph",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "multiple-comparisons",
+      "reporting-methods",
+      "which-test"
+    ]
+  },
+  {
+    "id": "journal-nature-rs-5",
+    "venue": "nature.com",
+    "url": "https://www.nature.com/documents/nr-reporting-summary-flat.pdf",
+    "date": null,
+    "role": "journal requirement, Nature Portfolio (Reporting Summary)",
+    "software_named": [],
+    "workflow": "reporting summary, statistics section",
+    "quote": "For null hypothesis testing, the test statistic (e.g. F, t, r) with confidence intervals, effect sizes, degrees of freedom and P value noted ... Give P values as exact values whenever suitable.",
+    "problem": "Results report only asterisks or P thresholds, without test statistic, df, CI or effect size",
+    "need": "Results tables must show test statistic, df, exact P, effect size and CI side by side, with a one-click 'copy as reporting sentence' (e.g. t(10) = 3.2, P = 0.0094)",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "exact-p",
+      "effect-size",
+      "reporting-methods"
+    ]
+  },
+  {
+    "id": "journal-nature-rs-6",
+    "venue": "nature.com",
+    "url": "https://www.nature.com/documents/nr-reporting-summary-flat.pdf",
+    "date": null,
+    "role": "journal requirement, Nature Portfolio (Reporting Summary)",
+    "software_named": [],
+    "workflow": "reporting summary, statistics section",
+    "quote": "For hierarchical and complex designs, identification of the appropriate level for tests and full reporting of outcomes",
+    "problem": "Nested data (cells within animals) are tested at the wrong level, inflating n",
+    "need": "Let users declare the hierarchy (e.g. cells nested in animals) and test at the declared level, stating that level in the output",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "n-definition",
+      "technical-vs-biological-replicates",
+      "superplots"
+    ]
+  },
+  {
+    "id": "journal-nature-rs-7",
+    "venue": "nature.com",
+    "url": "https://www.nature.com/documents/nr-reporting-summary-flat.pdf",
+    "date": null,
+    "role": "journal requirement, Nature Portfolio (Reporting Summary)",
+    "software_named": [],
+    "workflow": "reporting summary, statistics section",
+    "quote": "Estimates of effect sizes (e.g. Cohen's d, Pearson's r), indicating how they were calculated",
+    "problem": "Effect sizes are omitted or given without the formula used",
+    "need": "Report an effect size for each comparison and name the estimator (Cohen's d, Hedges' g, r) and its formula in the output",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "effect-size",
+      "reporting-methods"
+    ]
+  },
+  {
+    "id": "journal-nature-rs-8",
+    "venue": "nature.com",
+    "url": "https://www.nature.com/documents/nr-reporting-summary-flat.pdf",
+    "date": null,
+    "role": "journal requirement, Nature Portfolio (Reporting Summary)",
+    "software_named": [],
+    "workflow": "reporting summary, life sciences study design",
+    "quote": "All studies must disclose on these points even when the disclosure is negative. Sample size Data exclusions Replication Randomization Blinding",
+    "problem": "Authors must state sample-size rationale, exclusions, replication, randomisation and blinding even when none were done, and often have no record of these",
+    "need": "Keep a per-experiment design record (how n was chosen, exclusions, replication count, randomisation, blinding) and export it in Reporting Summary order",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "power-sample-size",
+      "randomisation",
+      "outliers",
+      "reporting-methods"
+    ]
+  },
+  {
+    "id": "journal-nature-rs-9",
+    "venue": "nature.com",
+    "url": "https://www.nature.com/documents/nr-reporting-summary-flat.pdf",
+    "date": null,
+    "role": "journal requirement, Nature Portfolio (Reporting Summary)",
+    "software_named": [],
+    "workflow": "flow cytometry figure reporting",
+    "quote": "The axis labels state the marker and fluorochrome used (e.g. CD4-FITC). ... A numerical value for number of cells or percentage (with statistics) is provided.",
+    "problem": "Flow plots lack marker-fluorochrome axis labels and numeric population frequencies",
+    "need": "Flow cytometry plots should auto-label axes as marker-fluorochrome and print gate percentages/counts with statistics",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "flow-cytometry",
+      "graph-formatting"
+    ]
+  },
+  {
+    "id": "journal-nature-rs-10",
+    "venue": "nature.com",
+    "url": "https://www.nature.com/documents/nr-reporting-summary-flat.pdf",
+    "date": null,
+    "role": "journal requirement, Nature Portfolio (Reporting Summary)",
+    "software_named": [],
+    "workflow": "flow cytometry figure reporting",
+    "quote": "Tick this box to confirm that a figure exemplifying the gating strategy is provided in the Supplementary Information.",
+    "problem": "Gating strategy figures must be assembled separately for the supplement",
+    "need": "Export a gating-hierarchy figure directly from the analysis so the gating strategy can be submitted as a supplementary figure",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "flow-cytometry",
+      "layouts-multipanel"
+    ]
+  },
+  {
+    "id": "journal-nature-fmt-1",
+    "venue": "nature.com",
+    "url": "https://www.nature.com/nature/for-authors/formatting-guide",
+    "date": null,
+    "role": "journal requirement, Nature",
+    "software_named": [],
+    "workflow": "figure legends",
+    "quote": "All error bars and statistics must be defined in the figure legend, as discussed above.",
+    "problem": "Figures show error bars whose meaning (SD, SEM, CI) is never stated",
+    "need": "Generate legend text that states what the error bar is (SD/SEM/95% CI), the n, and the test, from the graph's own settings",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "error-bars-sd-sem",
+      "figure-legend"
+    ]
+  },
+  {
+    "id": "journal-nature-fmt-2",
+    "venue": "nature.com",
+    "url": "https://www.nature.com/nature/for-authors/formatting-guide",
+    "date": null,
+    "role": "journal requirement, Nature",
+    "software_named": [],
+    "workflow": "units in figures and text",
+    "quote": "Units should have a single space between the number and the unit, and follow SI nomenclature or the nomenclature common to a particular field. ... Unusual units or abbreviations are defined in the legend.",
+    "problem": "Axis titles and tables carry non-SI or undefined units",
+    "need": "Store a unit per column and render axis titles and table headers with SI-formatted units (number, space, unit)",
+    "severity": "cosmetic / preference",
+    "signal": null,
+    "tags": [
+      "units-and-transforms",
+      "graph-formatting"
+    ]
+  },
+  {
+    "id": "journal-nature-img-1",
+    "venue": "nature.com",
+    "url": "https://www.nature.com/nature-portfolio/editorial-policies/image-integrity",
+    "date": null,
+    "role": "journal requirement, Nature Portfolio (image integrity)",
+    "software_named": [],
+    "workflow": "western blot and gel figures",
+    "quote": "All life science papers published in Nature Portfolio journals require submission of unprocessed original images of gels and western blots to be submitted with the final accepted version.",
+    "problem": "Labs lose or cannot match the raw blot scans behind cropped figure panels",
+    "need": "Keep the original uncropped blot image linked to every quantified band and export an annotated uncropped-blot supplement",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "western-blot-densitometry",
+      "image-analysis-exports"
+    ]
+  },
+  {
+    "id": "journal-nature-img-2",
+    "venue": "nature.com",
+    "url": "https://www.nature.com/nature-portfolio/editorial-policies/image-integrity",
+    "date": null,
+    "role": "journal requirement, Nature Portfolio (image integrity)",
+    "software_named": [],
+    "workflow": "western blot quantification",
+    "quote": "Quantitative comparisons between samples on different gels/blots are strongly discouraged; if this is unavoidable, the figure legend must state that the samples derive from the same experiment or parallel experiments and that gels/blots were processed in parallel.",
+    "problem": "Densitometry compares bands across separate blots without disclosure",
+    "need": "Record which blot each lane came from and warn (and add legend text) when a comparison spans different gels/blots",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "western-blot-densitometry",
+      "normalization",
+      "figure-legend"
+    ]
+  },
+  {
+    "id": "journal-nature-img-3",
+    "venue": "nature.com",
+    "url": "https://www.nature.com/nature-portfolio/editorial-policies/image-integrity",
+    "date": null,
+    "role": "journal requirement, Nature Portfolio (image integrity)",
+    "software_named": [],
+    "workflow": "western blot loading controls",
+    "quote": "Loading controls (e.g. GAPDH, actin) must be run on the same blot. When sample processing controls are run on different gels, they must be identified as such in the figure legend.",
+    "problem": "Normalisation to a loading control from a different blot is presented as if it were the same blot",
+    "need": "When normalising band intensity, require the loading-control lane to come from the same blot, or flag it as a processing control in the legend",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "western-blot-densitometry",
+      "normalization"
+    ]
+  },
+  {
+    "id": "journal-nature-img-4",
+    "venue": "nature.com",
+    "url": "https://www.nature.com/nature-portfolio/editorial-policies/image-integrity",
+    "date": null,
+    "role": "journal requirement, Nature Portfolio (image integrity)",
+    "software_named": [],
+    "workflow": "image processing",
+    "quote": "Processing (such as changing brightness and contrast) is appropriate only when it is applied equally across the entire image and is applied equally to controls. Contrast should not be adjusted so that data disappear.",
+    "problem": "Uneven brightness/contrast between control and treatment images",
+    "need": "Any image adjustment must apply to the whole image and all compared panels, with the adjustment logged for the methods",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "image-analysis-exports",
+      "western-blot-densitometry"
+    ]
+  },
+  {
+    "id": "journal-nature-std-1",
+    "venue": "nature.com",
+    "url": "https://www.nature.com/nature-portfolio/editorial-policies/reporting-standards",
+    "date": null,
+    "role": "journal requirement, Nature Portfolio",
+    "software_named": [],
+    "workflow": "data availability statement",
+    "quote": "The data availability statement must make the conditions of access to the “minimum dataset” that are necessary to interpret, verify and extend the research in the article, transparent to readers.",
+    "problem": "Authors have no tidy minimum dataset to deposit; underlying values are scattered across instrument files and spreadsheets",
+    "need": "Export the analysed dataset (raw values per figure, with metadata) in an open repository-ready format to support the data availability statement",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "reproducibility-audit",
+      "sharing-collaboration"
+    ]
+  },
+  {
+    "id": "journal-nature-std-2",
+    "venue": "nature.com",
+    "url": "https://www.nature.com/nature-portfolio/editorial-policies/reporting-standards",
+    "date": null,
+    "role": "journal requirement, Nature Portfolio",
+    "software_named": [],
+    "workflow": "code availability",
+    "quote": "For all studies using custom code or mathematical algorithm that is deemed central to the conclusions, a statement must be included under the heading \"Code availability\", indicating whether and how the code or algorithm can be accessed, including any restrictions to access.",
+    "problem": "Point-and-click analyses leave no shareable record of the computation for a code availability statement",
+    "need": "Save a reproducible analysis script/log for every analysis that can be shared alongside the data",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "reproducibility-audit",
+      "scripting-batch"
+    ]
+  },
+  {
+    "id": "journal-nature-ann-1",
+    "venue": "nature.com",
+    "url": "https://www.nature.com/articles/496398a",
+    "date": "2013-04",
+    "role": "journal requirement, Nature (editorial announcement)",
+    "software_named": [],
+    "workflow": "source data behind graphs",
+    "quote": "To further increase transparency, we will encourage authors to provide tables of the data behind graphs and figures.",
+    "problem": "Graphs are published without the numbers behind them",
+    "need": "One-click export of the table underlying each graph, labelled by figure panel",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "reproducibility-audit",
+      "show-the-points"
+    ]
+  },
+  {
+    "id": "journal-srep-stats-1",
+    "venue": "nature.com",
+    "url": "https://www.nature.com/srep/author-instructions/submission-guidelines",
+    "date": null,
+    "role": "journal requirement, Scientific Reports",
+    "software_named": [],
+    "workflow": "statistical reporting",
+    "quote": "it should state the name of the statistical test, the n value for each statistical analysis, the comparisons of interest, a justification for the use of that test ... the alpha level for all tests, whether the tests were one-tailed or two-tailed, and the actual P value for each test (not merely \"significant\" or \"P < 0.05\").",
+    "problem": "Papers report 'P < 0.05' without test name, n, alpha, sidedness or justification",
+    "need": "For every P value, output test name, n, comparison, alpha, sidedness and exact P together, plus a stored justification of test choice",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "exact-p",
+      "reporting-methods",
+      "which-test"
+    ]
+  },
+  {
+    "id": "journal-srep-stats-2",
+    "venue": "nature.com",
+    "url": "https://www.nature.com/srep/author-instructions/submission-guidelines",
+    "date": null,
+    "role": "journal requirement, Scientific Reports",
+    "software_named": [],
+    "workflow": "statistical reporting",
+    "quote": "Please make it clear what statistical test was used to generate every P value. Use of the word \"significant\" should always be accompanied by a P value",
+    "problem": "Figures contain P values or stars whose originating test is unclear",
+    "need": "Attach the generating test's name to each P value/significance bracket on the graph and in the legend",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "significance-brackets",
+      "exact-p",
+      "figure-legend"
+    ]
+  },
+  {
+    "id": "journal-srep-stats-3",
+    "venue": "nature.com",
+    "url": "https://www.nature.com/srep/author-instructions/submission-guidelines",
+    "date": null,
+    "role": "journal requirement, Scientific Reports",
+    "software_named": [],
+    "workflow": "error bars",
+    "quote": "Graphs should include clearly labelled error bars. You must state whether a number that follows the ± sign is a standard error (s.e.m.) or a standard deviation (s.d.).",
+    "problem": "± values and error bars are ambiguous between SD and SEM",
+    "need": "Label every ± value and error bar with its type (s.d., s.e.m., CI) automatically in tables, text export and legends",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "error-bars-sd-sem",
+      "figure-legend"
+    ]
+  },
+  {
+    "id": "journal-srep-stats-4",
+    "venue": "nature.com",
+    "url": "https://www.nature.com/srep/author-instructions/submission-guidelines",
+    "date": null,
+    "role": "journal requirement, Scientific Reports",
+    "software_named": [],
+    "workflow": "multiple comparisons",
+    "quote": "Multiple comparisons: when making multiple statistical comparisons on a single data set, you should explain how you adjusted the alpha level to avoid an inflated Type I error rate, or you should select statistical tests appropriate for multiple groups (such as ANOVA rather than a series of t-tests).",
+    "problem": "Authors run repeated t-tests across many groups",
+    "need": "Detect when several pairwise t-tests are run on one dataset and steer to ANOVA with a named multiple-comparison correction",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "multiple-comparisons",
+      "which-test",
+      "post-hoc-choice"
+    ]
+  },
+  {
+    "id": "journal-srep-stats-5",
+    "venue": "nature.com",
+    "url": "https://www.nature.com/srep/author-instructions/submission-guidelines",
+    "date": null,
+    "role": "journal requirement, Scientific Reports",
+    "software_named": [],
+    "workflow": "normality",
+    "quote": "Normal distribution: many statistical tests require that the data be approximately normally distributed; when using these tests, you should explain how you tested your data for normality. If the data does not meet the assumptions of the test, you should use a non-parametric alternative instead.",
+    "problem": "Parametric tests applied without checking or documenting normality",
+    "need": "Run and report an assumption check (with method named) before parametric tests and offer the non-parametric alternative",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "nonparametric",
+      "which-test",
+      "reporting-methods"
+    ]
+  },
+  {
+    "id": "journal-srep-stats-6",
+    "venue": "nature.com",
+    "url": "https://www.nature.com/srep/author-instructions/submission-guidelines",
+    "date": null,
+    "role": "journal requirement, Scientific Reports",
+    "software_named": [],
+    "workflow": "small samples",
+    "quote": "Small sample size: when the sample size is small (less than about 10), you should use tests appropriate to small samples or justify the use of large-sample tests.",
+    "problem": "Large-sample approximations used with n < 10",
+    "need": "Warn when n per group is below ~10 and suggest exact or small-sample methods",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "which-test",
+      "power-sample-size"
+    ]
+  },
+  {
+    "id": "journal-ncomms-source-1",
+    "venue": "nature.com",
+    "url": "https://www.nature.com/ncomms/submit/how-to-submit",
+    "date": null,
+    "role": "journal requirement, Nature Communications",
+    "software_named": [
+      "Microsoft Excel"
+    ],
+    "workflow": "source data file",
+    "quote": "The source data file should, as a minimum, contain the numerical data underlying any graphs and charts, and uncropped versions of any gels or blots presented in the figures. Within the source data file, each figure or table ... containing relevant data should be represented by a single sheet in an Excel document",
+    "problem": "Assembling a source data workbook (one sheet per figure, plus uncropped blots) is manual and error-prone",
+    "need": "Export a source-data Excel workbook with one sheet per figure panel holding the plotted values",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "reproducibility-audit",
+      "excel-paste"
+    ]
+  },
+  {
+    "id": "journal-nih-principles-1",
+    "venue": "nature.com",
+    "url": "https://www.nature.com/articles/515007a",
+    "date": "2014-11",
+    "role": "funder requirement, NIH Principles and Guidelines for Reporting Preclinical Research (as reported in Nature)",
+    "software_named": [],
+    "workflow": "journal checklists from NIH principles",
+    "quote": "The guidelines encourage using a checklist to ensure reporting of important experimental parameters, such as standards used, number and type of replicates, statistics, method of randomization, whether experiments were blinded, how the sample size was determined and what criteria were used to include or exclude any data.",
+    "problem": "Authors must report replicate type, randomisation, blinding, sample-size rationale and inclusion/exclusion criteria to satisfy NIH-endorsed checklists",
+    "need": "Capture replicate type, randomisation method, blinding, sample-size rationale and exclusion criteria with the data and export them as a checklist-ready block",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "technical-vs-biological-replicates",
+      "randomisation",
+      "power-sample-size",
+      "outliers"
+    ]
+  },
+  {
+    "id": "journal-elife-guide-1",
+    "venue": "elifesciences.org",
+    "url": "https://reviewer.elifesciences.org/author-guide/full",
+    "date": null,
+    "role": "journal requirement, eLife",
+    "software_named": [],
+    "workflow": "figure legends",
+    "quote": "Authors should provide information about data processing and analysis in their figure legends, including any statistical tests applied, with exact sample number, p values of tests, criteria for data inclusion or exclusion, and details of replicates.",
+    "problem": "Legends lack the test, exact n, p values, exclusion criteria and replicate details",
+    "need": "Auto-draft a figure legend from the analysis containing test name, exact n, exact p, exclusion criteria and replicate structure",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "figure-legend",
+      "exact-p",
+      "n-definition"
+    ]
+  },
+  {
+    "id": "journal-elife-guide-2",
+    "venue": "elifesciences.org",
+    "url": "https://reviewer.elifesciences.org/author-guide/full",
+    "date": null,
+    "role": "journal requirement, eLife",
+    "software_named": [],
+    "workflow": "error bars",
+    "quote": "When showing data with error bars the figure/figure legend should clearly indicate the sample size (n), define the error bars, and provide all statistical information including the statistical method used and levels of significance.",
+    "problem": "Error-bar graphs published without n, error definition or method",
+    "need": "Graphs with error bars must carry n, error-bar definition and method in their legend text, generated from the graph settings",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "error-bars-sd-sem",
+      "figure-legend"
+    ]
+  },
+  {
+    "id": "journal-elife-guide-3",
+    "venue": "elifesciences.org",
+    "url": "https://reviewer.elifesciences.org/author-guide/full",
+    "date": null,
+    "role": "journal requirement, eLife",
+    "software_named": [],
+    "workflow": "western blot source data",
+    "quote": "For submissions with figures containing gels or blots, we require that both (1) the original files of the full raw unedited gels or blots and (2) figures with the uncropped gels or blots with the relevant bands clearly labelled be provided.",
+    "problem": "Raw unedited blot files and labelled uncropped versions must be produced for every blot panel",
+    "need": "Store the raw blot file with each densitometry analysis and export an uncropped, band-labelled version of every blot panel",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "western-blot-densitometry",
+      "image-analysis-exports"
+    ]
+  },
+  {
+    "id": "journal-elife-guide-4",
+    "venue": "elifesciences.org",
+    "url": "https://reviewer.elifesciences.org/author-guide/full",
+    "date": null,
+    "role": "journal requirement, eLife",
+    "software_named": [],
+    "workflow": "source data files",
+    "quote": "Each source data file should relate directly to a single figure or table, and should be under 100MB each.",
+    "problem": "Source data must be split per figure/table rather than one dump",
+    "need": "Export source data per figure/table as separate, labelled files ('Figure 1-Source Data 1')",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "reproducibility-audit"
+    ]
+  },
+  {
+    "id": "journal-elife-guide-5",
+    "venue": "elifesciences.org",
+    "url": "https://reviewer.elifesciences.org/author-guide/full",
+    "date": null,
+    "role": "journal requirement, eLife",
+    "software_named": [],
+    "workflow": "analysis code availability",
+    "quote": "Regardless of whether authors use original data or are reusing data available from public repositories, they must provide program code, algorithms, scripts for statistical packages, and other documentation sufficient to allow an informed researcher to precisely reproduce all published results.",
+    "problem": "GUI-based analyses leave no 'script for statistical packages' to deposit",
+    "need": "Every analysis should be exportable as a re-runnable script or analysis log that reproduces the published numbers",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "reproducibility-audit",
+      "scripting-batch"
+    ]
+  },
+  {
+    "id": "journal-elife-guide-6",
+    "venue": "elifesciences.org",
+    "url": "https://reviewer.elifesciences.org/author-guide/full",
+    "date": null,
+    "role": "journal requirement, eLife",
+    "software_named": [],
+    "workflow": "software citation",
+    "quote": "Please provide a version of the software.",
+    "problem": "Software is cited without a version",
+    "need": "Stamp the software name and version on every exported result and methods text",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "reporting-methods"
+    ]
+  },
+  {
+    "id": "journal-elife-form-1",
+    "venue": "elifesciences.org",
+    "url": "https://cdn.elifesciences.org/xpub/guides/transparent_reporting.pdf",
+    "date": null,
+    "role": "journal requirement, eLife (transparent reporting form)",
+    "software_named": [],
+    "workflow": "sample size estimation",
+    "quote": "You should state the statistical method of sample size computation and any required assumptions ... If no explicit power analysis was used, you should describe how you decided what sample (replicate) size (number) to use",
+    "problem": "Authors cannot state how n was chosen or which power assumptions were used",
+    "need": "Provide a sample-size/power calculator whose inputs (effect size, SD, alpha, power) are saved and exported as a methods sentence",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "power-sample-size",
+      "reporting-methods"
+    ]
+  },
+  {
+    "id": "journal-elife-form-2",
+    "venue": "elifesciences.org",
+    "url": "https://cdn.elifesciences.org/xpub/guides/transparent_reporting.pdf",
+    "date": null,
+    "role": "journal requirement, eLife (transparent reporting form)",
+    "software_named": [],
+    "workflow": "replicates",
+    "quote": "You should include a definition of biological versus technical replication ... If you encountered any outliers, you should describe how these were handled",
+    "problem": "Biological vs technical replicates and outlier handling are undefined",
+    "need": "Require labelling replicates as biological or technical and log any outlier removal with its rule, both exported to methods",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "technical-vs-biological-replicates",
+      "outliers"
+    ]
+  },
+  {
+    "id": "journal-elife-form-3",
+    "venue": "elifesciences.org",
+    "url": "https://cdn.elifesciences.org/xpub/guides/transparent_reporting.pdf",
+    "date": null,
+    "role": "journal requirement, eLife (transparent reporting form)",
+    "software_named": [],
+    "workflow": "statistical reporting",
+    "quote": "Raw data should be presented in figures whenever informative to do so (typically when N per group is less than 10)",
+    "problem": "Small-n data are shown as bars only",
+    "need": "Default to plotting individual points (alone or over bars/boxes) when n per group is under 10",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "show-the-points",
+      "superplots"
+    ]
+  },
+  {
+    "id": "journal-elife-form-4",
+    "venue": "elifesciences.org",
+    "url": "https://cdn.elifesciences.org/xpub/guides/transparent_reporting.pdf",
+    "date": null,
+    "role": "journal requirement, eLife (transparent reporting form)",
+    "software_named": [],
+    "workflow": "statistical reporting",
+    "quote": "For each experiment, you should identify the statistical tests used, exact values of N, definitions of center, methods of multiple test correction, and dispersion and precision measures (e.g., mean, median, SD, SEM, confidence intervals; and, for the major substantive results, a measure of effect size (e.g., Pearson's r, Cohen's d)",
+    "problem": "Per-experiment statistical detail (centre, dispersion, correction method, effect size) is incomplete",
+    "need": "Per experiment, output test, exact N, centre definition, dispersion, multiple-test correction and effect size in one exportable table",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "reporting-methods",
+      "multiple-comparisons",
+      "effect-size",
+      "n-definition"
+    ]
+  },
+  {
+    "id": "journal-elife-form-5",
+    "venue": "elifesciences.org",
+    "url": "https://cdn.elifesciences.org/xpub/guides/transparent_reporting.pdf",
+    "date": null,
+    "role": "journal requirement, eLife (transparent reporting form)",
+    "software_named": [],
+    "workflow": "exact p values",
+    "quote": "Report exact p-values wherever possible alongside the summary statistics and 95% confidence intervals. These should be reported for all key questions and not only when the p-value is less than 0.05.",
+    "problem": "Non-significant results are reported as 'ns' without exact p or CI",
+    "need": "Show exact p and 95% CI for every comparison including non-significant ones; never collapse to 'ns' only",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "exact-p",
+      "effect-size"
+    ]
+  },
+  {
+    "id": "journal-elife-form-6",
+    "venue": "elifesciences.org",
+    "url": "https://cdn.elifesciences.org/xpub/guides/transparent_reporting.pdf",
+    "date": null,
+    "role": "journal requirement, eLife (transparent reporting form)",
+    "software_named": [],
+    "workflow": "large statistical reporting table",
+    "quote": "For large datasets, or papers with a very large number of statistical tests, you may upload a single table file with tests, Ns, etc., with reference to sections in the manuscript.",
+    "problem": "Papers with many tests need a consolidated statistics table",
+    "need": "Export all tests in a project into a single statistics table (figure panel, test, N, statistic, df, exact p, CI)",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "reporting-methods",
+      "exact-p"
+    ]
+  },
+  {
+    "id": "journal-elife-form-7",
+    "venue": "elifesciences.org",
+    "url": "https://cdn.elifesciences.org/xpub/guides/transparent_reporting.pdf",
+    "date": null,
+    "role": "journal requirement, eLife (transparent reporting form)",
+    "software_named": [],
+    "workflow": "group allocation",
+    "quote": "if randomization was used, please also state if restricted randomization was applied ... Indicate if masking was used during group allocation, data collection and/or data analysis",
+    "problem": "Randomisation type and blinding stages are not documented",
+    "need": "Provide a randomisation/allocation helper that records the scheme (simple, blocked) and blinding stages for export",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "randomisation",
+      "reporting-methods"
+    ]
+  },
+  {
+    "id": "journal-elife-form-8",
+    "venue": "elifesciences.org",
+    "url": "https://cdn.elifesciences.org/xpub/guides/transparent_reporting.pdf",
+    "date": null,
+    "role": "journal requirement, eLife (transparent reporting form)",
+    "software_named": [
+      "R",
+      "MATLAB"
+    ],
+    "workflow": "source data",
+    "quote": "Include code used for data analysis (e.g., R, MatLab) ... Avoid stating that data files are “available upon request”",
+    "problem": "'Available upon request' is no longer acceptable; code and data must be deposited",
+    "need": "Export the data and analysis definition as deposit-ready files rather than leaving them locked in a proprietary project",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "reproducibility-audit",
+      "file-compatibility"
+    ]
+  },
+  {
+    "id": "journal-elife-form-9",
+    "venue": "elifesciences.org",
+    "url": "https://cdn.elifesciences.org/xpub/guides/transparent_reporting.pdf",
+    "date": null,
+    "role": "journal requirement, eLife (transparent reporting form)",
+    "software_named": [],
+    "workflow": "model definition",
+    "quote": "Include model definition files including the full list of parameters used",
+    "problem": "Fitted models (e.g. curve fits) are published without equations, constraints and parameter settings",
+    "need": "For every curve fit, export the model equation, constraints, initial values, weighting and fitted parameters with SE/CI",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "fit-diagnostics",
+      "reporting-methods",
+      "ic50-ec50-setup"
+    ]
+  },
+  {
+    "id": "journal-plos-bp-1",
+    "venue": "plos.org",
+    "url": "https://journals.plos.org/plosone/s/best-practices-in-research-reporting",
+    "date": null,
+    "role": "journal requirement, PLOS (all journals)",
+    "software_named": [],
+    "workflow": "statistical methods section",
+    "quote": "List the name and version of any software package used, alongside any relevant references",
+    "problem": "Methods omit software version",
+    "need": "Methods-text export should include the tool name and exact version (and citation)",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "reporting-methods"
+    ]
+  },
+  {
+    "id": "journal-plos-bp-2",
+    "venue": "plos.org",
+    "url": "https://journals.plos.org/plosone/s/best-practices-in-research-reporting",
+    "date": null,
+    "role": "journal requirement, PLOS (all journals)",
+    "software_named": [],
+    "workflow": "design description",
+    "quote": "Identify research design and independent variables as being between- or within-subjects",
+    "problem": "Within-subject (paired/repeated) designs are analysed and reported as between-subject",
+    "need": "Ask whether each factor is between- or within-subjects at data entry and state it in the methods export",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "which-test",
+      "two-way-anova",
+      "reporting-methods"
+    ]
+  },
+  {
+    "id": "journal-plos-bp-3",
+    "venue": "plos.org",
+    "url": "https://journals.plos.org/plosone/s/best-practices-in-research-reporting",
+    "date": null,
+    "role": "journal requirement, PLOS (all journals)",
+    "software_named": [],
+    "workflow": "assumption checks",
+    "quote": "Justify the selection of statistical tests by describing any analysis confirming that the data meets the assumptions of the analysis performed (e.g., linearity, collinearity, normality of the distribution)",
+    "problem": "Test choice not justified by assumption checks",
+    "need": "Record the assumption checks performed and output a justification sentence for the chosen test",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "which-test",
+      "reporting-methods"
+    ]
+  },
+  {
+    "id": "journal-plos-bp-4",
+    "venue": "plos.org",
+    "url": "https://journals.plos.org/plosone/s/best-practices-in-research-reporting",
+    "date": null,
+    "role": "journal requirement, PLOS (all journals)",
+    "software_named": [],
+    "workflow": "outliers",
+    "quote": "Provide details of how outliers were treated and analysis, both with the full dataset and with the outliers removed",
+    "problem": "Only the outlier-removed analysis is reported",
+    "need": "When an outlier is excluded, automatically run and report the analysis both with and without it",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "outliers",
+      "reproducibility-audit"
+    ]
+  },
+  {
+    "id": "journal-plos-bp-5",
+    "venue": "plos.org",
+    "url": "https://journals.plos.org/plosone/s/best-practices-in-research-reporting",
+    "date": null,
+    "role": "journal requirement, PLOS (all journals)",
+    "software_named": [],
+    "workflow": "sample size and replicates",
+    "quote": "If a sample size calculation was performed, specify the inputs for power, effect size and alpha. Where relevant, report the number of independent replications for each experiment and whether replicates were derived from different experimental units/subjects or from multiple contemporary measurements of the same experimental unit/subject",
+    "problem": "Power inputs and replicate structure not reported",
+    "need": "Save power-calculation inputs and label replicates as independent units vs repeated measurements of one unit",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "power-sample-size",
+      "technical-vs-biological-replicates"
+    ]
+  },
+  {
+    "id": "journal-plos-bp-6",
+    "venue": "plos.org",
+    "url": "https://journals.plos.org/plosone/s/best-practices-in-research-reporting",
+    "date": null,
+    "role": "journal requirement, PLOS (all journals)",
+    "software_named": [],
+    "workflow": "post hoc tests and corrections",
+    "quote": "For analyses of variance (ANOVAs), detail any post hoc tests that were performed ... Include details of any corrections applied to account for multiple comparisons. If corrections were not applied, include a justification for not doing so",
+    "problem": "ANOVA reported without post hoc test or correction details",
+    "need": "ANOVA output must name the post hoc test and correction, and prompt for a justification if no correction is applied",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "post-hoc-choice",
+      "multiple-comparisons"
+    ]
+  },
+  {
+    "id": "journal-plos-bp-7",
+    "venue": "plos.org",
+    "url": "https://journals.plos.org/plosone/s/best-practices-in-research-reporting",
+    "date": null,
+    "role": "journal requirement, PLOS (all journals)",
+    "software_named": [],
+    "workflow": "units",
+    "quote": "Clearly define measurement units in all tables and figures.",
+    "problem": "Units missing from axes and table headers",
+    "need": "Require a unit per variable and print it on axes and table headers",
+    "severity": "cosmetic / preference",
+    "signal": null,
+    "tags": [
+      "units-and-transforms",
+      "graph-formatting"
+    ]
+  },
+  {
+    "id": "journal-plos-bp-8",
+    "venue": "plos.org",
+    "url": "https://journals.plos.org/plosone/s/best-practices-in-research-reporting",
+    "date": null,
+    "role": "journal requirement, PLOS (all journals)",
+    "software_named": [],
+    "workflow": "regression reporting",
+    "quote": "Include the full results of any regression analysis performed as a Supporting Information file. Include all estimated regression coefficients, their standard error, p-values, and confidence intervals, as well as measures of goodness of fit.",
+    "problem": "Regression/curve-fit results reported as a single parameter without SE, CI or goodness of fit",
+    "need": "Export the full fit report (all parameters with SE, CI, p and goodness-of-fit) as a supplementary table",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "fit-diagnostics",
+      "reporting-methods"
+    ]
+  },
+  {
+    "id": "journal-plos-bp-9",
+    "venue": "plos.org",
+    "url": "https://journals.plos.org/plosone/s/best-practices-in-research-reporting",
+    "date": null,
+    "role": "journal requirement, PLOS (all journals)",
+    "software_named": [],
+    "workflow": "p values",
+    "quote": "Report exact p-values for all values greater than or equal to 0.001. P-values less than 0.001 may be expressed as p < 0.001",
+    "problem": "P values reported as thresholds or stars",
+    "need": "Format P values per house style: exact when >= 0.001, '< 0.001' below, configurable per journal",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "exact-p"
+    ]
+  },
+  {
+    "id": "journal-plos-bp-10",
+    "venue": "plos.org",
+    "url": "https://journals.plos.org/plosone/s/best-practices-in-research-reporting",
+    "date": null,
+    "role": "journal requirement, PLOS (all journals)",
+    "software_named": [],
+    "workflow": "test statistics and percentages",
+    "quote": "Test statistics (F/t/r) and associated degrees of freedom should be provided. Effect sizes and confidence intervals should be reported where appropriate. If percentages are provided, the numerator and denominator should also be given.",
+    "problem": "Percentages given without denominators; test statistics without df",
+    "need": "Show numerator/denominator for every percentage and df for every test statistic in results exports",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "reporting-methods",
+      "effect-size",
+      "contingency"
+    ]
+  },
+  {
+    "id": "journal-plos-bp-11",
+    "venue": "plos.org",
+    "url": "https://journals.plos.org/plosone/s/best-practices-in-research-reporting",
+    "date": null,
+    "role": "journal requirement, PLOS (all journals)",
+    "software_named": [],
+    "workflow": "open data",
+    "quote": "be sure to make individual data points, underlying graphs and summary statistics available at the time of publication.",
+    "problem": "Individual data points behind graphs are not shared",
+    "need": "Export the individual data points and summary statistics behind each graph in an open format",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "reproducibility-audit",
+      "show-the-points"
+    ]
+  },
+  {
+    "id": "journal-plos-data-1",
+    "venue": "plos.org",
+    "url": "https://journals.plos.org/plosone/s/data-availability",
+    "date": null,
+    "role": "journal requirement, PLOS ONE (data availability)",
+    "software_named": [],
+    "workflow": "minimal data set",
+    "quote": "PLOS defines the minimal data set to consist of the data required to replicate all study findings reported in the article, as well as related metadata and methods.",
+    "problem": "Authors must bundle data plus metadata plus methods sufficient to replicate every finding",
+    "need": "Package each analysis as data + metadata + methods description that replicates the reported numbers",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "reproducibility-audit"
+    ]
+  },
+  {
+    "id": "journal-plos-fig-1",
+    "venue": "plos.org",
+    "url": "https://journals.plos.org/plosone/s/figures",
+    "date": null,
+    "role": "journal requirement, PLOS ONE (figures, blots and gels)",
+    "software_named": [],
+    "workflow": "raw blot images",
+    "quote": "Authors should label each raw blot or gel image to clearly annotate the loading order, identity of experimental samples, method used to capture the image, and to specify which figure panel was generated from that original image. Molecular weight markers should be included or indicated on the raw image, and any lanes not included in the final figure should be marked with an “X” above the lane label on the original blot/gel image.",
+    "problem": "Annotating every raw blot with loading order, sample identity, MW markers and excluded lanes is laborious",
+    "need": "Keep lane annotations with each blot quantification and render an annotated raw-blot sheet (lane labels, MW markers, X on omitted lanes)",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "western-blot-densitometry",
+      "image-analysis-exports"
+    ]
+  },
+  {
+    "id": "journal-plos-fig-2",
+    "venue": "plos.org",
+    "url": "https://journals.plos.org/plosone/s/figures",
+    "date": null,
+    "role": "journal requirement, PLOS ONE (figures, blots and gels)",
+    "software_named": [],
+    "workflow": "blot compliance hold",
+    "quote": "If any concerns arise about the availability of the original blot or gel images or compliance with the figure preparation guidelines (see below), the submission will be placed on hold while this is resolved.",
+    "problem": "Missing raw blot images halt the submission",
+    "need": "Never separate quantified band values from their source image; flag analyses that lack an attached raw image",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "western-blot-densitometry"
+    ]
+  },
+  {
+    "id": "journal-plos-fig-3",
+    "venue": "plos.org",
+    "url": "https://journals.plos.org/plosone/s/figures",
+    "date": null,
+    "role": "journal requirement, PLOS ONE (figures, blots and gels)",
+    "software_named": [],
+    "workflow": "blot splicing",
+    "quote": "A figure panel should not include composite images of bands originating from different blots, exposures, or gels.",
+    "problem": "Composite blot panels assembled from different exposures",
+    "need": "Track exposure/blot identity per lane and refuse to build a single quantified panel across different blots without marking it",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "western-blot-densitometry"
+    ]
+  },
+  {
+    "id": "journal-plosbio-graphs-1",
+    "venue": "plos.org",
+    "url": "https://journals.plos.org/plosbiology/s/submission-guidelines",
+    "date": null,
+    "role": "journal requirement, PLOS Biology",
+    "software_named": [],
+    "workflow": "data presentation in graphs",
+    "quote": "we discourage the use of bar graphs and line plots for continuous data, particularly for studies with small sample sizes (n≤9 independent observations per group).",
+    "problem": "Bar graphs of small-n continuous data hide the distribution",
+    "need": "Default to dot/box/violin plots with all points when n <= 9 per group, with bar charts as an opt-in",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "show-the-points",
+      "graph-formatting"
+    ]
+  },
+  {
+    "id": "journal-plosbio-graphs-2",
+    "venue": "plos.org",
+    "url": "https://journals.plos.org/plosbiology/s/submission-guidelines",
+    "date": null,
+    "role": "journal requirement, PLOS Biology",
+    "software_named": [],
+    "workflow": "error bars on bar graphs",
+    "quote": "If there is a particular reason that bar or line graphs are preferred, these must include inferential error bars: SD - standard deviation of the population, or CI - confidence intervals.",
+    "problem": "Bar graphs use SEM error bars",
+    "need": "When a bar/line graph is chosen, default error bars to SD or 95% CI rather than SEM and say so in the legend",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "error-bars-sd-sem"
+    ]
+  },
+  {
+    "id": "journal-plosbio-graphs-3",
+    "venue": "plos.org",
+    "url": "https://journals.plos.org/plosbiology/s/submission-guidelines",
+    "date": null,
+    "role": "journal requirement, PLOS Biology",
+    "software_named": [],
+    "workflow": "paired data",
+    "quote": "Paired or non-independent data should be presented to include information about whether changes are consistent across individuals.",
+    "problem": "Paired data are plotted as unpaired group means",
+    "need": "For paired/repeated data, offer before-after plots with lines connecting each subject",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "show-the-points",
+      "graph-formatting"
+    ]
+  },
+  {
+    "id": "journal-plosbio-graphs-4",
+    "venue": "plos.org",
+    "url": "https://journals.plos.org/plosbiology/s/submission-guidelines",
+    "date": null,
+    "role": "journal requirement, PLOS Biology",
+    "software_named": [],
+    "workflow": "numerical values for graphs",
+    "quote": "All numerical values used to generate graphs must be provided as per the PLOS Data Availability policy",
+    "problem": "Every graph requires its numerical values to be supplied",
+    "need": "Export the exact values plotted in each graph as a data file",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "reproducibility-audit"
+    ]
+  },
+  {
+    "id": "journal-jbc-data-1",
+    "venue": "asbmb.org",
+    "url": "https://www.asbmb.org/journals/author-resources/collecting-and-presenting-data",
+    "date": null,
+    "role": "journal requirement, Journal of Biological Chemistry (ASBMB)",
+    "software_named": [],
+    "workflow": "replicates and n",
+    "quote": "N values , including those for technical and biological replicates, should be clearly stated and explained. Whenever possible, use scatter plots rather than bar graphs.",
+    "problem": "n is reported without saying whether it counts technical or biological replicates; bar graphs hide them",
+    "need": "Report n separately for biological and technical replicates and default to scatter plots",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "n-definition",
+      "technical-vs-biological-replicates",
+      "show-the-points"
+    ]
+  },
+  {
+    "id": "journal-jbc-data-2",
+    "venue": "asbmb.org",
+    "url": "https://www.asbmb.org/journals/author-resources/collecting-and-presenting-data",
+    "date": null,
+    "role": "journal requirement, Journal of Biological Chemistry (ASBMB)",
+    "software_named": [],
+    "workflow": "error bars",
+    "quote": "Clearly indicate what any error bars represent (standard deviation or confidence interval). Standard deviation is preferred as it shows the variability of the data.",
+    "problem": "Error bars undefined or SEM",
+    "need": "Default error bars to SD and always print their definition in the legend",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "error-bars-sd-sem",
+      "figure-legend"
+    ]
+  },
+  {
+    "id": "journal-jbc-data-3",
+    "venue": "asbmb.org",
+    "url": "https://www.asbmb.org/journals/author-resources/collecting-and-presenting-data",
+    "date": null,
+    "role": "journal requirement, Journal of Biological Chemistry (ASBMB)",
+    "software_named": [],
+    "workflow": "replicate structure",
+    "quote": "How many technical and biological replicates were performed during how many independent experiments? How is the replication represented by the data points shown in figures?",
+    "problem": "Readers cannot tell what each plotted point represents (well, technical repeat, independent experiment)",
+    "need": "Let users declare the replicate hierarchy (technical within biological within experiment) and state what each plotted point represents",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "technical-vs-biological-replicates",
+      "superplots",
+      "n-definition"
+    ]
+  },
+  {
+    "id": "journal-jbc-data-4",
+    "venue": "asbmb.org",
+    "url": "https://www.asbmb.org/journals/author-resources/collecting-and-presenting-data",
+    "date": null,
+    "role": "journal requirement, Journal of Biological Chemistry (ASBMB)",
+    "software_named": [],
+    "workflow": "bar graphs",
+    "quote": "Simple bar graphs to report mean±SEM values are not generally permitted: authors should super-impose a scatter plot to report the reproducibility of independent biological replicates within such data sets, and report mean±S.D. values to make the distribution and variation transparent.",
+    "problem": "Mean±SEM bar charts without points are rejected",
+    "need": "Bar charts should overlay individual biological replicates and default to mean±SD",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "show-the-points",
+      "error-bars-sd-sem",
+      "superplots"
+    ]
+  },
+  {
+    "id": "journal-jbc-data-5",
+    "venue": "asbmb.org",
+    "url": "https://www.asbmb.org/journals/author-resources/collecting-and-presenting-data",
+    "date": null,
+    "role": "journal requirement, Journal of Biological Chemistry (ASBMB)",
+    "software_named": [],
+    "workflow": "excluded data",
+    "quote": "State whether any data were excluded from the quantitative analyses. If so, indicate the reason and criteria for exclusion.",
+    "problem": "Silent exclusions",
+    "need": "Excluding a value must require a reason/criterion, which is logged and exported",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "outliers",
+      "reproducibility-audit"
+    ]
+  },
+  {
+    "id": "journal-jbc-data-6",
+    "venue": "asbmb.org",
+    "url": "https://www.asbmb.org/journals/author-resources/collecting-and-presenting-data",
+    "date": null,
+    "role": "journal requirement, Journal of Biological Chemistry (ASBMB)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "significance testing",
+    "quote": "The exact p-values should be reported. Comparisons of more than 2 data sets from the same experiment should be done with an appropriate 1- or 2-way ANOVA with specifically defined post hoc tests.",
+    "problem": "Multiple t-tests instead of ANOVA; p thresholds instead of exact p",
+    "need": "Route >2-group comparisons to 1- or 2-way ANOVA with a named post hoc test and print exact p values",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "exact-p",
+      "post-hoc-choice",
+      "two-way-anova",
+      "multiple-comparisons"
+    ]
+  },
+  {
+    "id": "journal-jbc-data-7",
+    "venue": "asbmb.org",
+    "url": "https://www.asbmb.org/journals/author-resources/collecting-and-presenting-data",
+    "date": null,
+    "role": "journal requirement, Journal of Biological Chemistry (ASBMB)",
+    "software_named": [],
+    "workflow": "statistics in legends",
+    "quote": "The results of all statistical comparisons between experimental groups should be fully reported in each figure legend (or in a separate supplementary table), including exact p values where appropriate.",
+    "problem": "Legends report only selected comparisons",
+    "need": "Export a per-figure supplementary table of every comparison made, with exact p",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "figure-legend",
+      "exact-p",
+      "reporting-methods"
+    ]
+  },
+  {
+    "id": "journal-jbc-data-8",
+    "venue": "asbmb.org",
+    "url": "https://www.asbmb.org/journals/author-resources/collecting-and-presenting-data",
+    "date": null,
+    "role": "journal requirement, Journal of Biological Chemistry (ASBMB)",
+    "software_named": [],
+    "workflow": "blot normalisation",
+    "quote": "Normalize signal intensity to total protein loading (assessed by staining membranes for total protein) whenever possible. “House-keeping” proteins should not be used for normalization without evidence that the experimental manipulations do not affect expression.",
+    "problem": "Densitometry normalised to housekeeping proteins without validation",
+    "need": "Support total-protein normalisation for densitometry and flag housekeeping-protein normalisation for justification",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "western-blot-densitometry",
+      "normalization"
+    ]
+  },
+  {
+    "id": "journal-jbc-data-9",
+    "venue": "asbmb.org",
+    "url": "https://www.asbmb.org/journals/author-resources/collecting-and-presenting-data",
+    "date": null,
+    "role": "journal requirement, Journal of Biological Chemistry (ASBMB)",
+    "software_named": [],
+    "workflow": "blot linear range",
+    "quote": "If blots are quantitatively analyzed, record how data were obtained, whether signal intensity was linear with antigen loading, and how protein loading was normalized. Some detection methods (e.g., ECL) have a very limited linear range.",
+    "problem": "Saturated or non-linear band signals are quantified",
+    "need": "Check band intensities against a loading/standard series for linearity and warn on saturation before quantification",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "western-blot-densitometry",
+      "standard-curve-interpolation"
+    ]
+  },
+  {
+    "id": "journal-jbc-data-10",
+    "venue": "asbmb.org",
+    "url": "https://www.asbmb.org/journals/author-resources/collecting-and-presenting-data",
+    "date": null,
+    "role": "journal requirement, Journal of Biological Chemistry (ASBMB)",
+    "software_named": [],
+    "workflow": "PTM normalisation",
+    "quote": "Antibodies that recognize post-translationally modified proteins should be normalized to total levels of the target protein.",
+    "problem": "Phospho-signals normalised to loading control rather than total protein",
+    "need": "Offer phospho/total ratio normalisation as the default for PTM blots",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "western-blot-densitometry",
+      "normalization"
+    ]
+  },
+  {
+    "id": "journal-jbc-data-11",
+    "venue": "asbmb.org",
+    "url": "https://www.asbmb.org/journals/author-resources/collecting-and-presenting-data",
+    "date": null,
+    "role": "journal requirement, Journal of Biological Chemistry (ASBMB)",
+    "software_named": [
+      "PowerPoint"
+    ],
+    "workflow": "image formats",
+    "quote": "Do not prepare images in PowerPoint or save them in JPEG format .",
+    "problem": "Figures assembled in PowerPoint and saved as lossy JPEG",
+    "need": "Export figures in lossless/vector formats (TIFF, PDF, EPS) at journal resolution so PowerPoint/JPEG are not needed",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "export-dpi",
+      "export-vector",
+      "powerpoint"
+    ]
+  },
+  {
+    "id": "journal-jbc-data-12",
+    "venue": "asbmb.org",
+    "url": "https://www.asbmb.org/journals/author-resources/collecting-and-presenting-data",
+    "date": null,
+    "role": "journal requirement, Journal of Biological Chemistry (ASBMB)",
+    "software_named": [],
+    "workflow": "fluorescence images",
+    "quote": "Fluorescence images should show signals from individual channels in gray scale to reveal the full dynamic range of intensities, and to allow color-blind individuals to appreciate your data.",
+    "problem": "Single channels shown in red/green",
+    "need": "Offer greyscale single-channel and colour-blind-safe merged palettes by default",
+    "severity": "cosmetic / preference",
+    "signal": null,
+    "tags": [
+      "colour-blind",
+      "image-analysis-exports"
+    ]
+  },
+  {
+    "id": "journal-jbc-data-13",
+    "venue": "asbmb.org",
+    "url": "https://www.asbmb.org/journals/author-resources/collecting-and-presenting-data",
+    "date": null,
+    "role": "journal requirement, Journal of Biological Chemistry (ASBMB)",
+    "software_named": [],
+    "workflow": "enzyme kinetics fitting",
+    "quote": "should be estimated using nonlinear fitting (and the software system cited). Parameters should include estimates of error (SD preferred). The use of linear transformations for calculation of Michaelis-Menten parameters is recognized to be inaccurate.",
+    "problem": "Km/Vmax obtained from Lineweaver-Burk linearisation without error estimates or software citation",
+    "need": "Fit Michaelis-Menten by nonlinear regression, report kcat/Km with SD/SE, cite the software, and discourage linearised fits",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "enzyme-kinetics",
+      "fit-diagnostics",
+      "reporting-methods"
+    ]
+  },
+  {
+    "id": "journal-jbc-data-14",
+    "venue": "asbmb.org",
+    "url": "https://www.asbmb.org/journals/author-resources/collecting-and-presenting-data",
+    "date": null,
+    "role": "journal requirement, Journal of Biological Chemistry (ASBMB)",
+    "software_named": [],
+    "workflow": "Ki vs IC50",
+    "quote": "Ki values are preferred to IC50 .",
+    "problem": "IC50 reported where Ki is required",
+    "need": "Offer Cheng-Prusoff conversion of IC50 to Ki given substrate/ligand concentration and Km/Kd",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "ic50-ec50-setup",
+      "enzyme-kinetics"
+    ]
+  },
+  {
+    "id": "journal-jbc-checklist-1",
+    "venue": "elsevier.com",
+    "url": "https://legacyfileshare.elsevier.com/promis_misc/jbc-checklist.pdf",
+    "date": null,
+    "role": "journal requirement, Journal of Biological Chemistry (data presentation checklist)",
+    "software_named": [],
+    "workflow": "bar graph points",
+    "quote": "Are individual data points super-imposed on the bar graph? ... does the figure legend explicitly define individual data points as technical replicates (i.e., assay duplicates/triplicates, etc) or independent biological replicates?",
+    "problem": "Points are shown but not defined as technical or biological replicates",
+    "need": "Legend text must state whether plotted points are technical or independent biological replicates",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "show-the-points",
+      "technical-vs-biological-replicates",
+      "figure-legend"
+    ]
+  },
+  {
+    "id": "journal-jbc-checklist-2",
+    "venue": "elsevier.com",
+    "url": "https://legacyfileshare.elsevier.com/promis_misc/jbc-checklist.pdf",
+    "date": null,
+    "role": "journal requirement, Journal of Biological Chemistry (data presentation checklist)",
+    "software_named": [],
+    "workflow": "t test specification",
+    "quote": "Is the specific type of t test (paired/unpaired; 1/2-tailed, one sample) defined for each use?",
+    "problem": "t-test variant unspecified",
+    "need": "Always print paired/unpaired, one-/two-tailed and one-sample in t-test output and legend text",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "which-test",
+      "reporting-methods"
+    ]
+  },
+  {
+    "id": "journal-jbc-checklist-3",
+    "venue": "elsevier.com",
+    "url": "https://legacyfileshare.elsevier.com/promis_misc/jbc-checklist.pdf",
+    "date": null,
+    "role": "journal requirement, Journal of Biological Chemistry (data presentation checklist)",
+    "software_named": [],
+    "workflow": "ANOVA reporting",
+    "quote": "Is a 1-way or 2-way ANOVA used as needed for the number of variables? ... Does each figure legend report the full results of the ANOVA?",
+    "problem": "Legends omit the ANOVA table and post hoc method",
+    "need": "Generate legend text with ANOVA F, df, P and the post hoc method name",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "post-hoc-choice",
+      "figure-legend",
+      "two-way-anova"
+    ]
+  },
+  {
+    "id": "journal-bjp-design-1",
+    "venue": "pmc.ncbi.nlm.nih.gov",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC5843711/",
+    "date": "2018",
+    "role": "journal requirement, British Journal of Pharmacology",
+    "software_named": [],
+    "workflow": "group size and n",
+    "quote": "We note that it is common for authors to run three samples ‘in quintuplicate’ then analyse the data with statistical analysis as if it were n = 15 rather than n = 3. This is not acceptable for publication in BJP.",
+    "problem": "Technical replicates are counted as n (pseudoreplication)",
+    "need": "Average technical replicates within each independent sample before testing and report n as the number of independent values",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "technical-vs-biological-replicates",
+      "n-definition"
+    ]
+  },
+  {
+    "id": "journal-bjp-design-2",
+    "venue": "pmc.ncbi.nlm.nih.gov",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC5843711/",
+    "date": "2018",
+    "role": "journal requirement, British Journal of Pharmacology",
+    "software_named": [],
+    "workflow": "minimum n",
+    "quote": "BJP has set 5 as the minimum ‘n’ required for datasets subjected to statistical analysis. ... any data set containing groups of n < 5 must not be subjected to statistical analysis, and findings must be labelled as ‘exploratory’ or ‘preliminary’.",
+    "problem": "Statistics applied to n < 5 groups",
+    "need": "Allow a journal profile (e.g. BJP) that warns/blocks hypothesis tests when any group n < 5 and labels the result exploratory",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "power-sample-size",
+      "n-definition"
+    ]
+  },
+  {
+    "id": "journal-bjp-design-3",
+    "venue": "pmc.ncbi.nlm.nih.gov",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC5843711/",
+    "date": "2018",
+    "role": "journal requirement, British Journal of Pharmacology",
+    "software_named": [],
+    "workflow": "post hoc gating",
+    "quote": "post hoc tests may be run only if F achieves the necessary level of statistical significance (i.e. P < 0.05) and there is no significant variance inhomogeneity. ... If these criteria are not met, a post hoc test should not be run (even if the software permits this, which it may ).",
+    "problem": "Software lets users run post hoc tests after a non-significant ANOVA or with unequal variances",
+    "need": "Gate post hoc tests on a significant overall F and homogeneous variance (configurable), and state the gating in methods",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "post-hoc-choice",
+      "multiple-comparisons"
+    ]
+  },
+  {
+    "id": "journal-bjp-design-4",
+    "venue": "pmc.ncbi.nlm.nih.gov",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC5843711/",
+    "date": "2018",
+    "role": "journal requirement, British Journal of Pharmacology",
+    "software_named": [],
+    "workflow": "normalisation to matched controls",
+    "quote": "normalization to matched controls will generate a control mean of 1 and no SEM, meaning that parametric tests (ANOVA, etc.) cannot be used (only non‐parametric analysis is acceptable). Any dataset where one group has no SEM (common in Western blot analysis) must be analysed by non‐parametric statistics.",
+    "problem": "Normalised-to-control data (control = 1, no variance) are analysed with ANOVA/t-tests",
+    "need": "Detect a zero-variance normalised control group and steer to non-parametric or one-sample/ratio approaches",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "normalization",
+      "nonparametric",
+      "western-blot-densitometry"
+    ]
+  },
+  {
+    "id": "journal-bjp-design-5",
+    "venue": "pmc.ncbi.nlm.nih.gov",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC5843711/",
+    "date": "2018",
+    "role": "journal requirement, British Journal of Pharmacology",
+    "software_named": [],
+    "workflow": "y axis labelling after normalisation",
+    "quote": "Following data transformation, the Y axis is often labelled incorrectly (it should be ‘fold matched control values’ or ‘fold of the control mean’, and not ‘fold control’).",
+    "problem": "Y axis mislabelled after normalisation",
+    "need": "When normalising, auto-generate the correct Y-axis label ('fold matched control' vs 'fold of control mean') from the normalisation method",
+    "severity": "slows the work",
+    "signal": {
+      "compliance_correct_y_axis_label_pct": 50,
+      "source": "BJP internal audit, Table 1"
+    },
+    "tags": [
+      "normalization",
+      "graph-formatting",
+      "units-and-transforms"
+    ]
+  },
+  {
+    "id": "journal-bjp-design-6",
+    "venue": "pmc.ncbi.nlm.nih.gov",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC5843711/",
+    "date": "2018",
+    "role": "journal requirement, British Journal of Pharmacology",
+    "software_named": [],
+    "workflow": "significance threshold",
+    "quote": "a level of probability ( P ) deemed to constitute the threshold for statistical significance (typically in pharmacology this is P < 0.05) should be defined in Methods and not varied later in Results (by presentation of multiple levels of significance).",
+    "problem": "Multiple star levels (*, **, ***) imply shifting thresholds",
+    "need": "Let users fix one alpha in methods and offer a single-threshold annotation style",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "compliance_P_constant_pct": 85,
+      "source": "BJP internal audit, Table 1"
+    },
+    "tags": [
+      "significance-brackets",
+      "exact-p"
+    ]
+  },
+  {
+    "id": "journal-bjp-design-7",
+    "venue": "pmc.ncbi.nlm.nih.gov",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC5843711/",
+    "date": "2018",
+    "role": "journal requirement, British Journal of Pharmacology",
+    "software_named": [],
+    "workflow": "outliers",
+    "quote": "Outliers should therefore be included in data analysis and presentation unless a predefined and defensible set of exclusion criteria can be generated and applied.",
+    "problem": "Outliers removed post hoc",
+    "need": "Require a predefined exclusion rule before removing points and keep excluded points visible in the audit trail",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "outliers"
+    ]
+  },
+  {
+    "id": "journal-bjp-design-8",
+    "venue": "pmc.ncbi.nlm.nih.gov",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC5843711/",
+    "date": "2018",
+    "role": "journal requirement, British Journal of Pharmacology",
+    "software_named": [],
+    "workflow": "audit of compliance",
+    "quote": "In recently submitted studies that do not currently comply with our requirements, it is often the case that we find all of the following: a lack of randomization and blinding, unequal group sizes, and statistical analysis applied when n is <5. Together, these render a paper fundamentally flawed, and, as Figure 1 indicates, this will now result in triage rejection.",
+    "problem": "Missing randomisation/blinding statements, unequal n and n<5 statistics lead to desk rejection",
+    "need": "Capture randomisation and blinding statements and check n per group before export, warning before a submission-blocking omission",
+    "severity": "blocks the analysis",
+    "signal": {
+      "compliance_n_5plus_pct": 73,
+      "compliance_equal_n_pct": 31,
+      "compliance_randomization_statement_pct": 38,
+      "compliance_blinding_statement_pct": 35,
+      "compliance_correct_post_hoc_pct": 69,
+      "source": "BJP audit of three issues, Table 1"
+    },
+    "tags": [
+      "randomisation",
+      "power-sample-size",
+      "reproducibility-audit"
+    ]
+  },
+  {
+    "id": "journal-bjp-design-9",
+    "venue": "pmc.ncbi.nlm.nih.gov",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC5843711/",
+    "date": "2018",
+    "role": "journal requirement, British Journal of Pharmacology",
+    "software_named": [],
+    "workflow": "log transformation",
+    "quote": "if the SEM increases in size in proportion to the size of the mean, the data are likely to be log‐Gaussian distributed, and the benefits (and indeed the necessity) of log transformation are shown in Figure",
+    "problem": "Log-normal data analysed on the linear scale",
+    "need": "Detect SD/SEM proportional to the mean and suggest log transformation (with log axis) before testing",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "units-and-transforms",
+      "log-axis",
+      "nonparametric"
+    ]
+  },
+  {
+    "id": "journal-bjp-design-10",
+    "venue": "pmc.ncbi.nlm.nih.gov",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC5843711/",
+    "date": "2018",
+    "role": "journal requirement, British Journal of Pharmacology",
+    "software_named": [],
+    "workflow": "pEC50 reporting",
+    "quote": "that should be expressed as pEC50 and pIC50.",
+    "problem": "Potencies reported and averaged on the linear EC50 scale",
+    "need": "Report potency as pEC50/pIC50 (−log M) with SEM/CI and average on the log scale",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "ic50-ec50-setup",
+      "log-axis",
+      "units-and-transforms"
+    ]
+  },
+  {
+    "id": "journal-bjp-design-11",
+    "venue": "pmc.ncbi.nlm.nih.gov",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC5843711/",
+    "date": "2018",
+    "role": "journal requirement, British Journal of Pharmacology",
+    "software_named": [],
+    "workflow": "independence of samples",
+    "quote": "Thus, five cells from one mouse given the same treatment is not",
+    "problem": "Cells from one animal treated as independent n",
+    "need": "Aggregate per animal (or model the animal level) and count animals, not cells, as n",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "n-definition",
+      "technical-vs-biological-replicates",
+      "superplots"
+    ]
+  },
+  {
+    "id": "journal-bjp-design-12",
+    "venue": "pmc.ncbi.nlm.nih.gov",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC5843711/",
+    "date": "2018",
+    "role": "journal requirement, British Journal of Pharmacology",
+    "software_named": [],
+    "workflow": "power analysis margin",
+    "quote": "To reduce this risk we encourage investigators to acknowledge this and add 50% to the calculated minimum group sizes.",
+    "problem": "Groups sized at the bare power-analysis minimum",
+    "need": "Power calculator should show the minimum n and an inflated recommended n (e.g. +50% margin) with the assumptions",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "power-sample-size"
+    ]
+  },
+  {
+    "id": "journal-jneurosci-policy-1",
+    "venue": "pmc.ncbi.nlm.nih.gov",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC6596713/",
+    "date": "2017-04",
+    "role": "journal requirement, Journal of Neuroscience (editorial)",
+    "software_named": [],
+    "workflow": "experimental design and statistical analysis section",
+    "quote": "Every manuscript must now include a section entitled “Experimental Design and Statistical Analysis” in the Materials and Methods that describes the design (control groups, sample sizes, sex of subjects, etc.) and all of the statistical tests used in the study.",
+    "problem": "Design facts (controls, n, sex) and every test used must be compiled into a dedicated methods section",
+    "need": "Generate an 'Experimental Design and Statistical Analysis' draft listing groups, n, sex of subjects and every test used across the project",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "reporting-methods",
+      "n-definition"
+    ]
+  },
+  {
+    "id": "journal-jneurosci-policy-2",
+    "venue": "pmc.ncbi.nlm.nih.gov",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC6596713/",
+    "date": "2017-04",
+    "role": "journal requirement, Journal of Neuroscience (editorial)",
+    "software_named": [],
+    "workflow": "complete results",
+    "quote": "The policy also requires authors to report complete results of the statistical analyses, including degrees of freedom, effects sizes and exact",
+    "problem": "Results reported as P ranges without df or effect sizes",
+    "need": "Every result export includes df, effect size and exact P (not a range)",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "exact-p",
+      "effect-size",
+      "reporting-methods"
+    ]
+  },
+  {
+    "id": "journal-jneurosci-policy-3",
+    "venue": "pmc.ncbi.nlm.nih.gov",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC6596713/",
+    "date": "2017-04",
+    "role": "journal requirement, Journal of Neuroscience (editorial)",
+    "software_named": [],
+    "workflow": "data display",
+    "quote": "encourages authors to report the full variability and complexity of the data, for example, by using histograms or scatter plots in addition to bar and line graphs.",
+    "problem": "Bar/line graphs hide variability",
+    "need": "Offer histogram and scatter overlays alongside bar/line graphs",
+    "severity": "cosmetic / preference",
+    "signal": null,
+    "tags": [
+      "show-the-points",
+      "graph-formatting"
+    ]
+  },
+  {
+    "id": "journal-eneuro-stats-1",
+    "venue": "eneuro.org",
+    "url": "https://www.eneuro.org/content/preparing-manuscript",
+    "date": null,
+    "role": "journal requirement, eNeuro (Society for Neuroscience)",
+    "software_named": [],
+    "workflow": "statistical table",
+    "quote": "Authors must provide detailed information for each analysis performed, including population size, definition of the population (e.g., number of individual measurements, number of animals, number of slices, number of times treatment was applied, etc.), and specific p values (not > or <), followed by a superscript lowercase letter referring to the statistical table provided at the end of the results section.",
+    "problem": "Each analysis needs n with its unit (animals vs slices vs measurements), exact p and a cross-reference into a statistical table",
+    "need": "Build a statistical table (data structure, test, power/CI) keyed by superscript letters that are inserted next to each reported p value",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "n-definition",
+      "exact-p",
+      "reporting-methods"
+    ]
+  },
+  {
+    "id": "journal-eneuro-stats-2",
+    "venue": "eneuro.org",
+    "url": "https://www.eneuro.org/content/preparing-manuscript",
+    "date": null,
+    "role": "journal requirement, eNeuro (Society for Neuroscience)",
+    "software_named": [],
+    "workflow": "estimation statistics",
+    "quote": "Statistical analysis should always include effect sizes and expressions of uncertainty (an interval estimate).",
+    "problem": "Only p values are reported",
+    "need": "Report effect sizes with CIs (frequentist, bootstrap or Bayesian) for every comparison",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "effect-size"
+    ]
+  },
+  {
+    "id": "journal-eneuro-stats-3",
+    "venue": "eneuro.org",
+    "url": "https://www.eneuro.org/content/preparing-manuscript",
+    "date": null,
+    "role": "journal requirement, eNeuro (Society for Neuroscience)",
+    "software_named": [],
+    "workflow": "estimation plots",
+    "quote": "For key findings it is especially helpful to provide figures that directly visualize uncertainty (e.g., the estimation plots,",
+    "problem": "No graph type visualises the effect size and its CI",
+    "need": "Provide estimation plots (Gardner-Altman / Cumming) showing all points plus the effect-size CI",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "effect-size",
+      "show-the-points",
+      "graph-formatting"
+    ]
+  },
+  {
+    "id": "journal-eneuro-stats-4",
+    "venue": "eneuro.org",
+    "url": "https://www.eneuro.org/content/preparing-manuscript",
+    "date": null,
+    "role": "journal requirement, eNeuro (Society for Neuroscience)",
+    "software_named": [],
+    "workflow": "box plots",
+    "quote": "Numerical data must be depicted in the figures with box plots.",
+    "problem": "Journal mandates box plots rather than bars",
+    "need": "Box-plot (with points) templates that meet journal styles in one click",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "graph-formatting",
+      "show-the-points"
+    ]
+  },
+  {
+    "id": "journal-eneuro-stats-5",
+    "venue": "eneuro.org",
+    "url": "https://www.eneuro.org/content/preparing-manuscript",
+    "date": null,
+    "role": "journal requirement, eNeuro (Society for Neuroscience)",
+    "software_named": [],
+    "workflow": "two-bar graphs",
+    "quote": "Do not include any two-bar graphs/histograms; instead state those values in the text.",
+    "problem": "Two-group bar graphs disallowed",
+    "need": "When only two groups are compared, offer a text/table summary with effect size instead of a bar graph",
+    "severity": "cosmetic / preference",
+    "signal": null,
+    "tags": [
+      "graph-formatting"
+    ]
+  },
+  {
+    "id": "journal-eneuro-figs-1",
+    "venue": "eneuro.org",
+    "url": "https://www.eneuro.org/content/preparing-manuscript",
+    "date": null,
+    "role": "journal requirement, eNeuro (Society for Neuroscience)",
+    "software_named": [],
+    "workflow": "colour-blind figures",
+    "quote": "Figures with red and green are particularly problematic and should generally be converted to magenta and green.",
+    "problem": "Default red/green palettes are inaccessible",
+    "need": "Colour-blind-safe default palettes and a magenta/green swap for channel images",
+    "severity": "cosmetic / preference",
+    "signal": null,
+    "tags": [
+      "colour-blind",
+      "accessibility"
+    ]
+  },
+  {
+    "id": "journal-physoc-policy-1",
+    "venue": "pmc.ncbi.nlm.nih.gov",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC10988475/",
+    "date": "2023-04",
+    "role": "journal requirement, Experimental Physiology / Journal of Physiology (statistics policy)",
+    "software_named": [],
+    "workflow": "mandated statistics policy",
+    "quote": "These requirements include, but are not limited to: (1) providing a statistical summary document for revised research articles, which is included as Supporting Information in the published paper; (2) using SD, not SEM (unless clearly justified and exempted); (3) providing mean and SD values in the text and statistical summary document; (4) providing precise",
+    "problem": "Authors must switch from SEM to SD, give precise P values and supply a statistical summary document",
+    "need": "Default summaries to mean ± SD and produce a statistical summary table (per conclusion: data, test, exact P) ready for supporting information",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "error-bars-sd-sem",
+      "exact-p",
+      "reporting-methods"
+    ]
+  },
+  {
+    "id": "journal-physoc-policy-2",
+    "venue": "pmc.ncbi.nlm.nih.gov",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC10988475/",
+    "date": "2023-04",
+    "role": "journal requirement, Experimental Physiology / Journal of Physiology (statistics policy)",
+    "software_named": [],
+    "workflow": "audit of reporting before policy",
+    "quote": "In the vast majority of papers, SEMs were used inappropriately to summarize data variability, in >90%, exact",
+    "problem": "Even after editorial advice, SEMs summarised variability and exact P values were missing in >90% of papers",
+    "need": "Make SD and exact P the defaults so compliant reporting requires no extra effort",
+    "severity": "wrong result risk",
+    "signal": {
+      "pct_papers_without_exact_p": ">90",
+      "source": "Diong et al. 2018 audit cited in editorial"
+    },
+    "tags": [
+      "error-bars-sd-sem",
+      "exact-p",
+      "reproducibility-audit"
+    ]
+  },
+  {
+    "id": "journal-physoc-news-1",
+    "venue": "physoc.org",
+    "url": "https://www.physoc.org/news_article/a-change-to-experimental-physiologys-statistics-policy/",
+    "date": "2023",
+    "role": "journal requirement, Experimental Physiology (The Physiological Society)",
+    "software_named": [],
+    "workflow": "statistical summary document burden",
+    "quote": "However, there was a general consensus that the ‘duplication’ of work required to complete and check this summary document was an unnecessary burden on both time and resources, that did not provide significant benefit.",
+    "problem": "Re-typing results into a separate statistical summary document duplicates work",
+    "need": "Generate the statistics summary directly from the analysis so no manual duplication is needed",
+    "severity": "slows the work",
+    "signal": {
+      "pct_authors_supporting_strict_policy": 88,
+      "source": "Experimental Physiology author consultation"
+    },
+    "tags": [
+      "reporting-methods",
+      "reproducibility-audit"
+    ]
+  },
+  {
+    "id": "journal-jphys-2011-1",
+    "venue": "pmc.ncbi.nlm.nih.gov",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC3087124/",
+    "date": "2011",
+    "role": "journal requirement, Journal of Physiology / British Journal of Pharmacology (editorial)",
+    "software_named": [],
+    "workflow": "statistical reporting falling short",
+    "quote": "Nevertheless, in many instances the quality of data presentation and statistical analysis can be poor, and this despite the widespread availability of books, articles, websites and easily used statistical packages.",
+    "problem": "Easy-to-use statistics packages have not prevented poor presentation and analysis",
+    "need": "Build guidance into the workflow (assumption checks, correct n, error-bar choice) rather than relying on authors to read guidelines",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "learning-curve",
+      "reporting-methods"
+    ]
+  },
+  {
+    "id": "journal-mdar-1",
+    "venue": "osf.io",
+    "url": "https://osf.io/download/xfpn4/",
+    "date": "2021",
+    "role": "journal requirement, MDAR Framework (multi-publisher)",
+    "software_named": [],
+    "workflow": "sample definition and replicates",
+    "quote": "Define how many replicates were performed and whether they are biological (derived from different experimental units or subjects) or technical (multiple contemporary measurements from the same experimental unit or subject).",
+    "problem": "Replicate type undefined",
+    "need": "Every dataset carries a replicate-type field (biological/technical) and a count, exported to methods",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "technical-vs-biological-replicates",
+      "n-definition"
+    ]
+  },
+  {
+    "id": "journal-mdar-2",
+    "venue": "osf.io",
+    "url": "https://osf.io/download/xfpn4/",
+    "date": "2021",
+    "role": "journal requirement, MDAR Framework (multi-publisher)",
+    "software_named": [],
+    "workflow": "unit of study",
+    "quote": "In studies using model organisms, cell lines, primary cell cultures, plants or micro-organisms, the unit of study is the smallest object that could be randomly and independently assigned to an intervention.",
+    "problem": "The unit of study (n) is not defined as the independently assignable unit",
+    "need": "Ask 'what was independently assigned to treatment?' and use that as n",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "n-definition"
+    ]
+  },
+  {
+    "id": "journal-mdar-3",
+    "venue": "osf.io",
+    "url": "https://osf.io/download/xfpn4/",
+    "date": "2021",
+    "role": "journal requirement, MDAR Framework (multi-publisher)",
+    "software_named": [],
+    "workflow": "attrition and exclusions",
+    "quote": "Describe whether exclusion criteria were pre-established. Report whether any sample or data point from the analysis was omitted owing to attrition or intentionally excluded and provide justification.",
+    "problem": "Dropped samples and excluded points go unreported",
+    "need": "Track attrition and excluded points with reasons and pre-registration status, exported as a methods statement",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "outliers",
+      "missing-values"
+    ]
+  },
+  {
+    "id": "journal-mdar-4",
+    "venue": "osf.io",
+    "url": "https://osf.io/download/xfpn4/",
+    "date": "2021",
+    "role": "journal requirement, MDAR Framework (multi-publisher)",
+    "software_named": [],
+    "workflow": "statistics",
+    "quote": "Provide statistics information relevant to study analysis in Methods or Figure legends. Describe statistical tests used and justify choice.",
+    "problem": "Test choice is not justified",
+    "need": "Store a reason for each test choice (design, assumptions) and include it in exported methods",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "which-test",
+      "reporting-methods"
+    ]
+  },
+  {
+    "id": "journal-mdar-5",
+    "venue": "osf.io",
+    "url": "https://osf.io/download/xfpn4/",
+    "date": "2021",
+    "role": "journal requirement, MDAR Framework (multi-publisher)",
+    "software_named": [],
+    "workflow": "code availability",
+    "quote": "Include a dedicated Code Availability statement that provides transparent disclosure about availability of newly created custom computer code, software or mathematical algorithms, including any restrictions on availability.",
+    "problem": "No shareable code for custom analyses",
+    "need": "Export analyses as code or reproducible recipes that can be deposited with a persistent identifier",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "reproducibility-audit",
+      "scripting-batch"
+    ]
+  },
+  {
+    "id": "journal-mdar-pnas-1",
+    "venue": "pmc.ncbi.nlm.nih.gov",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC8092464/",
+    "date": "2021-04",
+    "role": "journal requirement, MDAR Framework (PNAS article)",
+    "software_named": [],
+    "workflow": "checklist pilot",
+    "quote": "Eighty percent of 211 corresponding authors who responded, and 84% of 33 editorial staff, found the checklist “very” or “somewhat” helpful.",
+    "problem": "Authors need a structured checklist to report design and analysis",
+    "need": "Present journal reporting requirements as an in-tool checklist auto-filled from the analysis",
+    "severity": "slows the work",
+    "signal": {
+      "authors_found_helpful_pct": 80,
+      "n_authors": 211,
+      "editors_found_helpful_pct": 84,
+      "n_editors": 33,
+      "manuscripts_screened": 289
+    },
+    "tags": [
+      "reporting-methods"
+    ]
+  },
+  {
+    "id": "journal-arrive-ss-1",
+    "venue": "arriveguidelines.org",
+    "url": "https://arriveguidelines.org/arrive-guidelines/sample-size",
+    "date": null,
+    "role": "journal requirement, ARRIVE 2.0 Essential 10",
+    "software_named": [],
+    "workflow": "sample size",
+    "quote": "Report the exact value of n per group and the total number in each experiment (including any independent replications). If the experimental unit is not the animal, also report the total number of animals to help readers understand the study design.",
+    "problem": "n reported without total animals when the unit is not the animal (cage, litter)",
+    "need": "Report n per group, total per experiment and total animals, distinguishing experimental units from animals",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "n-definition",
+      "power-sample-size"
+    ]
+  },
+  {
+    "id": "journal-arrive-ss-2",
+    "venue": "arriveguidelines.org",
+    "url": "https://arriveguidelines.org/arrive-guidelines/sample-size",
+    "date": null,
+    "role": "journal requirement, ARRIVE 2.0 Essential 10",
+    "software_named": [],
+    "workflow": "sample size justification",
+    "quote": "Explain how the sample size was decided. Provide details of any a priori sample size calculation, if done.",
+    "problem": "Sample size not justified",
+    "need": "A priori power calculation tool whose parameters are saved and exported as the justification",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "power-sample-size"
+    ]
+  },
+  {
+    "id": "journal-arrive-sd-1",
+    "venue": "arriveguidelines.org",
+    "url": "https://arriveguidelines.org/arrive-guidelines/study-design",
+    "date": null,
+    "role": "journal requirement, ARRIVE 2.0 Essential 10",
+    "software_named": [],
+    "workflow": "experimental unit",
+    "quote": "The experimental unit (e.g. a single animal, litter, or cage of animals).",
+    "problem": "Experimental unit not stated",
+    "need": "Require selecting the experimental unit (animal, litter, cage, well, culture) and derive n from it",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "n-definition"
+    ]
+  },
+  {
+    "id": "journal-arrive-ie-1",
+    "venue": "arriveguidelines.org",
+    "url": "https://arriveguidelines.org/arrive-guidelines/inclusion-and-exclusion-criteria",
+    "date": null,
+    "role": "journal requirement, ARRIVE 2.0 Essential 10",
+    "software_named": [],
+    "workflow": "exclusions",
+    "quote": "For each experimental group, report any animals, experimental units, or data points not included in the analysis and explain why. If there were no exclusions, state so.",
+    "problem": "Exclusions not reported per group",
+    "need": "Show per-group counts of excluded units with reasons, and an explicit 'no exclusions' statement when none",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "outliers",
+      "missing-values",
+      "n-definition"
+    ]
+  },
+  {
+    "id": "journal-arrive-ie-2",
+    "venue": "arriveguidelines.org",
+    "url": "https://arriveguidelines.org/arrive-guidelines/inclusion-and-exclusion-criteria",
+    "date": null,
+    "role": "journal requirement, ARRIVE 2.0 Essential 10",
+    "software_named": [],
+    "workflow": "a priori criteria",
+    "quote": "Specify if these criteria were established a priori. If no criteria were set, state this explicitly.",
+    "problem": "Exclusion criteria invented after seeing data",
+    "need": "Let users pre-register exclusion/outlier rules before data entry and timestamp them",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "outliers",
+      "reproducibility-audit"
+    ]
+  },
+  {
+    "id": "journal-arrive-rand-1",
+    "venue": "arriveguidelines.org",
+    "url": "https://arriveguidelines.org/arrive-guidelines/randomisation",
+    "date": null,
+    "role": "journal requirement, ARRIVE 2.0 Essential 10",
+    "software_named": [],
+    "workflow": "randomisation method",
+    "quote": "State whether randomisation was used to allocate experimental units to control and treatment groups. If done, provide the method used to generate the randomisation sequence.",
+    "problem": "Randomisation method undocumented",
+    "need": "Built-in allocation randomiser that records method, seed and scheme for the methods section",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "randomisation"
+    ]
+  },
+  {
+    "id": "journal-arrive-rand-2",
+    "venue": "arriveguidelines.org",
+    "url": "https://arriveguidelines.org/arrive-guidelines/randomisation",
+    "date": null,
+    "role": "journal requirement, ARRIVE 2.0 Essential 10",
+    "software_named": [
+      "Microsoft Excel",
+      "Google Sheets",
+      "LibreOffice"
+    ],
+    "workflow": "haphazard allocation",
+    "quote": "Selecting an animal ‘at random’ (i.e. haphazardly or arbitrarily) from a cage is not statistically random as the process involves human judgement. ... Inferential statistics based on non-randomised group allocation are not valid",
+    "problem": "'Random' allocation is actually haphazard",
+    "need": "Generate a true random allocation list (simple, blocked, stratified) instead of relying on haphazard picking",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "randomisation"
+    ]
+  },
+  {
+    "id": "journal-arrive-blind-1",
+    "venue": "arriveguidelines.org",
+    "url": "https://arriveguidelines.org/arrive-guidelines/blindingmasking",
+    "date": null,
+    "role": "journal requirement, ARRIVE 2.0 Essential 10",
+    "software_named": [],
+    "workflow": "blinding",
+    "quote": "Describe who was aware of the group allocation at the different stages of the experiment (during the allocation, the conduct of the experiment, the outcome assessment, and the data analysis).",
+    "problem": "Blinding status per stage not documented",
+    "need": "Record blinding per stage and support coded group labels during analysis",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "randomisation",
+      "reporting-methods"
+    ]
+  },
+  {
+    "id": "journal-arrive-blind-2",
+    "venue": "arriveguidelines.org",
+    "url": "https://arriveguidelines.org/arrive-guidelines/blindingmasking",
+    "date": null,
+    "role": "journal requirement, ARRIVE 2.0 Essential 10",
+    "software_named": [],
+    "workflow": "blinded analysis",
+    "quote": "The person analysing the data should know which data are grouped together to enable group comparisons, but should not be aware of which specific treatment each group received. This type of blinding is often neglected",
+    "problem": "Analysts make subjective choices (transformations, outliers) while unblinded",
+    "need": "Offer a blinded-analysis mode that masks group names until analysis decisions are locked",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "randomisation",
+      "outliers"
+    ]
+  },
+  {
+    "id": "journal-arrive-stat-1",
+    "venue": "arriveguidelines.org",
+    "url": "https://arriveguidelines.org/arrive-guidelines/statistical-methods",
+    "date": null,
+    "role": "journal requirement, ARRIVE 2.0 Essential 10",
+    "software_named": [],
+    "workflow": "statistical methods",
+    "quote": "Provide details of the statistical methods used for each analysis, including software used.",
+    "problem": "Methods per analysis and software unreported",
+    "need": "Per-analysis methods sentence including software name and version",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "reporting-methods"
+    ]
+  },
+  {
+    "id": "journal-arrive-stat-2",
+    "venue": "arriveguidelines.org",
+    "url": "https://arriveguidelines.org/arrive-guidelines/statistical-methods",
+    "date": null,
+    "role": "journal requirement, ARRIVE 2.0 Essential 10",
+    "software_named": [],
+    "workflow": "assumption checks",
+    "quote": "Describe any methods used to assess whether the data met the assumptions of the statistical approach, and what was done if the assumptions were not met.",
+    "problem": "Assumption checks and remedies undocumented",
+    "need": "Log assumption diagnostics (residual plots, normality, variance) and the remedy used",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "which-test",
+      "fit-diagnostics",
+      "nonparametric"
+    ]
+  },
+  {
+    "id": "journal-arrive-stat-3",
+    "venue": "arriveguidelines.org",
+    "url": "https://arriveguidelines.org/arrive-guidelines/statistical-methods",
+    "date": null,
+    "role": "journal requirement, ARRIVE 2.0 Essential 10",
+    "software_named": [],
+    "workflow": "hierarchical data",
+    "quote": "This relationship has to be managed in the statistical analysis by including cage/litter/animal effects in the model or by aggregating the outcome measure to the cage/litter/animal level.",
+    "problem": "Clustered data analysed as independent",
+    "need": "Support nested/mixed models or automatic aggregation to the cluster level",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "n-definition",
+      "technical-vs-biological-replicates",
+      "mixed-model-missing-values",
+      "superplots"
+    ]
+  },
+  {
+    "id": "journal-arrive-stat-4",
+    "venue": "arriveguidelines.org",
+    "url": "https://arriveguidelines.org/arrive-guidelines/statistical-methods",
+    "date": null,
+    "role": "journal requirement, ARRIVE 2.0 Essential 10",
+    "software_named": [],
+    "workflow": "software reporting",
+    "quote": "the software package and version used, including computer code if available",
+    "problem": "Software version and code not given",
+    "need": "Embed tool version and an exportable analysis script with every result",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "reporting-methods",
+      "reproducibility-audit"
+    ]
+  },
+  {
+    "id": "journal-arrive-res-1",
+    "venue": "arriveguidelines.org",
+    "url": "https://arriveguidelines.org/arrive-guidelines/results",
+    "date": null,
+    "role": "journal requirement, ARRIVE 2.0 Essential 10",
+    "software_named": [],
+    "workflow": "results",
+    "quote": "Summary/descriptive statistics for each experimental group, with a measure of variability where applicable (e.g. mean and SD, or median and range). ... If applicable, the effect size with a confidence interval.",
+    "problem": "Descriptives lack variability; effect sizes lack CIs",
+    "need": "Default descriptive table with mean/SD or median/range per group and effect size with CI",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "effect-size",
+      "error-bars-sd-sem"
+    ]
+  },
+  {
+    "id": "journal-arrive-res-2",
+    "venue": "arriveguidelines.org",
+    "url": "https://arriveguidelines.org/arrive-guidelines/results",
+    "date": null,
+    "role": "journal requirement, ARRIVE 2.0 Essential 10",
+    "software_named": [],
+    "workflow": "all repeats",
+    "quote": "If a complete experiment is repeated on a different day, or under different conditions, report the results of all repeats, rather than selecting data from representative experiments.",
+    "problem": "Only a 'representative experiment' is shown",
+    "need": "Combine all independent repeats in one view (e.g. SuperPlot coloured by experiment) instead of a single representative run",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "superplots",
+      "technical-vs-biological-replicates"
+    ]
+  },
+  {
+    "id": "journal-arrive-out-1",
+    "venue": "arriveguidelines.org",
+    "url": "https://arriveguidelines.org/arrive-guidelines/outcome-measures",
+    "date": null,
+    "role": "journal requirement, ARRIVE 2.0 Essential 10",
+    "software_named": [],
+    "workflow": "primary outcome",
+    "quote": "For hypothesis-testing studies, specify the primary outcome measure, i.e. the outcome measure that was used to determine the sample size.",
+    "problem": "Primary outcome not linked to the sample-size calculation",
+    "need": "Link the power calculation to a declared primary outcome and report both together",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "power-sample-size"
+    ]
+  },
+  {
+    "id": "journal-arrive20-1",
+    "venue": "pmc.ncbi.nlm.nih.gov",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC7430098/",
+    "date": "2020",
+    "role": "journal requirement, ARRIVE 2.0 (PLOS Biology article)",
+    "software_named": [],
+    "workflow": "compliance evidence",
+    "quote": "This includes details on randomisation (reported in only 30%–40% of publications), blinding (reported in only approximately 20% of publications), sample size justification (reported in less than 10% of publications), and animal characteristics (all basic characteristics reported in less than 10% of publications).",
+    "problem": "Randomisation, blinding and sample-size justification are rarely reported despite journal endorsement",
+    "need": "Make randomisation, blinding and sample-size justification required fields of the analysis record",
+    "severity": "wrong result risk",
+    "signal": {
+      "randomisation_reported_pct": "30-40",
+      "blinding_reported_pct": "~20",
+      "sample_size_justification_pct": "<10"
+    },
+    "tags": [
+      "randomisation",
+      "power-sample-size",
+      "reproducibility-audit"
+    ]
+  },
+  {
+    "id": "journal-nc3rs-eda-1",
+    "venue": "eda.nc3rs.org.uk",
+    "url": "https://eda.nc3rs.org.uk/experimental-design-unit",
+    "date": null,
+    "role": "funder requirement, NC3Rs Experimental Design Assistant",
+    "software_named": [],
+    "workflow": "experimental unit",
+    "quote": "if you do not correctly identify the experimental unit, there is a risk you overestimate your sample size which could invalidate the results of your statistical analysis and conclusions.",
+    "problem": "Wrong experimental unit inflates n",
+    "need": "Guide users to identify the experimental unit (animal, cage, litter, cell) and compute n from it",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "n-definition",
+      "technical-vs-biological-replicates"
+    ]
+  },
+  {
+    "id": "journal-nc3rs-eda-2",
+    "venue": "eda.nc3rs.org.uk",
+    "url": "https://eda.nc3rs.org.uk/experimental-design-unit",
+    "date": null,
+    "role": "funder requirement, NC3Rs Experimental Design Assistant",
+    "software_named": [],
+    "workflow": "repeated measurements",
+    "quote": "Note that if you take multiple measurements from the same animal it does not mean that each animal provides multiple experimental units.",
+    "problem": "Multiple measurements per animal counted as separate units",
+    "need": "Collapse or model repeated measurements per animal rather than counting them as n",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "n-definition",
+      "technical-vs-biological-replicates"
+    ]
+  },
+  {
+    "id": "journal-nc3rs-eda-3",
+    "venue": "eda.nc3rs.org.uk",
+    "url": "https://eda.nc3rs.org.uk/experimental-design-analysis",
+    "date": null,
+    "role": "funder requirement, NC3Rs Experimental Design Assistant",
+    "software_named": [],
+    "workflow": "normality testing at small n",
+    "quote": "There are various tests for normality, including the Shapiro-Wilk and Kolmogorov-Smirnov tests. However, these tests struggle to detect non-normality if the sample size is small, as is often the case with animal experiments. An alternative approach is to produce a normal probability plot",
+    "problem": "Formal normality tests are unreliable at small n",
+    "need": "Show residual QQ (normal probability) and residual-vs-predicted plots, not just a Shapiro-Wilk p value",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "fit-diagnostics",
+      "nonparametric",
+      "which-test"
+    ]
+  },
+  {
+    "id": "journal-nc3rs-eda-4",
+    "venue": "eda.nc3rs.org.uk",
+    "url": "https://eda.nc3rs.org.uk/experimental-design-analysis",
+    "date": null,
+    "role": "funder requirement, NC3Rs Experimental Design Assistant",
+    "software_named": [],
+    "workflow": "multiple comparisons",
+    "quote": "With the same significance level, for an experiment with three hypotheses the probability of obtaining a false positive result is raised to 14%",
+    "problem": "Familywise error inflates with many hypotheses",
+    "need": "Show the familywise error implied by the number of comparisons and apply a chosen correction",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "multiple-comparisons"
+    ]
+  },
+  {
+    "id": "journal-nc3rs-eda-5",
+    "venue": "eda.nc3rs.org.uk",
+    "url": "https://eda.nc3rs.org.uk/experimental-design-analysis",
+    "date": null,
+    "role": "funder requirement, NC3Rs Experimental Design Assistant",
+    "software_named": [],
+    "workflow": "post hoc",
+    "quote": "There are several post-hoc tests to choose from, depending on if you planned the post-hoc comparisons in advance and whether all-pairwise comparisons, or only comparisons with the control group are required. You should only run one post-hoc test per experiment.",
+    "problem": "Users try several post hoc tests and pick the best",
+    "need": "Ask which comparisons were planned (all pairs vs vs-control) and lock a single post hoc test per experiment",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "post-hoc-choice",
+      "multiple-comparisons"
+    ]
+  },
+  {
+    "id": "journal-mrc-animals-1",
+    "venue": "ukri.org",
+    "url": "https://www.ukri.org/councils/mrc/guidance-for-applicants/proposals-involving-animal-use/4-3-experimental-design-avoidance-of-bias-and-statistical-considerations",
+    "date": null,
+    "role": "funder requirement, UKRI Medical Research Council",
+    "software_named": [],
+    "workflow": "power justification in grant",
+    "quote": "In many instances this section will include statistical power calculations based on justifiable and explicit assumptions about the anticipated size of the experimental effects. If you are not giving statistical power calculations, you should provide a principled explanation of the choice of numbers.",
+    "problem": "Applicants cannot justify animal numbers with explicit power assumptions",
+    "need": "Power calculator that documents effect size, variability source, alpha and power in grant-ready text",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "power-sample-size"
+    ]
+  },
+  {
+    "id": "journal-mrc-animals-2",
+    "venue": "ukri.org",
+    "url": "https://www.ukri.org/councils/mrc/guidance-for-applicants/proposals-involving-animal-use/4-3-experimental-design-avoidance-of-bias-and-statistical-considerations",
+    "date": null,
+    "role": "funder requirement, UKRI Medical Research Council",
+    "software_named": [],
+    "workflow": "usual practice not accepted",
+    "quote": "In general, we will not consider explanations as adequate if you base them solely in terms of ‘usual practice’.",
+    "problem": "'n = 6 because that is usual' is rejected by reviewers",
+    "need": "Steer users from convention-based n to a calculation, with sensitivity analysis (detectable effect for given n)",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "power-sample-size"
+    ]
+  },
+  {
+    "id": "journal-mrc-animals-3",
+    "venue": "ukri.org",
+    "url": "https://www.ukri.org/councils/mrc/guidance-for-applicants/proposals-involving-animal-use/4-3-experimental-design-avoidance-of-bias-and-statistical-considerations",
+    "date": null,
+    "role": "funder requirement, UKRI Medical Research Council",
+    "software_named": [],
+    "workflow": "experimental unit in grant",
+    "quote": "a clear definition of the experimental unit in the analysis and the implications of that experimental unit (that is, there is a difference between N samples from one animal, as distinct from one sample from each of N animals, or combining samples from multiple animals)",
+    "problem": "Experimental unit confusion in plans",
+    "need": "Planning mode that defines the experimental unit and shows the implied n",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "n-definition",
+      "technical-vs-biological-replicates"
+    ]
+  },
+  {
+    "id": "journal-mrc-animals-4",
+    "venue": "ukri.org",
+    "url": "https://www.ukri.org/councils/mrc/guidance-for-applicants/proposals-involving-animal-use/4-3-experimental-design-avoidance-of-bias-and-statistical-considerations",
+    "date": null,
+    "role": "funder requirement, UKRI Medical Research Council",
+    "software_named": [],
+    "workflow": "sex as a variable",
+    "quote": "In applications involving animals, cells and tissues, you should plan to use males and females unless there is a strong reason for not doing so, which you should detail in the application.",
+    "problem": "Single-sex designs without justification; sex not analysed",
+    "need": "Support sex as a factor in design/power calculations and two-way analyses (treatment x sex)",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "two-way-anova",
+      "power-sample-size"
+    ]
+  },
+  {
+    "id": "journal-mrc-animals-5",
+    "venue": "ukri.org",
+    "url": "https://www.ukri.org/councils/mrc/guidance-for-applicants/proposals-involving-animal-use/4-3-experimental-design-avoidance-of-bias-and-statistical-considerations",
+    "date": null,
+    "role": "funder requirement, UKRI Medical Research Council",
+    "software_named": [],
+    "workflow": "independent replications",
+    "quote": "an indication of the number of independent replications of each experiment you will perform with the objective of minimising the likelihood of spurious nonreplicable results",
+    "problem": "Independent replication is not planned or recorded",
+    "need": "Track independent replications (experiment/batch) as a factor in the data model",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "technical-vs-biological-replicates",
+      "superplots"
+    ]
+  },
+  {
+    "id": "journal-mrc-animals-6",
+    "venue": "ukri.org",
+    "url": "https://www.ukri.org/councils/mrc/guidance-for-applicants/proposals-involving-animal-use/4-3-experimental-design-avoidance-of-bias-and-statistical-considerations",
+    "date": null,
+    "role": "funder requirement, UKRI Medical Research Council",
+    "software_named": [],
+    "workflow": "statistical analysis plan",
+    "quote": "a description of the statistical analysis methods that you will use, explaining how they relate to the experimental design and showing that they are appropriate for the types of data that you will collect",
+    "problem": "Analysis plans disconnected from design",
+    "need": "A design-first planner that proposes the analysis matching the design and exports it for applications",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "which-test",
+      "power-sample-size"
+    ]
+  },
+  {
+    "id": "journal-mrc-rigour-1",
+    "venue": "ukri.org",
+    "url": "https://www.ukri.org/councils/mrc/guidance-for-applicants/policies-and-guidance-for-researchers/research-integrity-rigour-and-reproducibility/",
+    "date": null,
+    "role": "funder requirement, UKRI Medical Research Council",
+    "software_named": [],
+    "workflow": "grant methodological detail",
+    "quote": "applications for funding must include sufficient methodological detail to ensure that experimental design and statistical analysis plans can be properly reviewed, and an additional annex to the application form is now allowed to provide space for this extra detail.",
+    "problem": "Grant applicants must write design and analysis plans in reviewable detail",
+    "need": "Export a design + analysis plan summary suitable for a funder's reproducibility annex",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "power-sample-size",
+      "reporting-methods"
+    ]
+  },
+  {
+    "id": "journal-wellcome-data-1",
+    "venue": "wellcome.org",
+    "url": "https://wellcome.org/research-funding/guidance/policies-grant-conditions/data-software-materials-management-and-sharing-policy",
+    "date": null,
+    "role": "funder requirement, Wellcome",
+    "software_named": [],
+    "workflow": "data and software sharing",
+    "quote": "The data underpinning original research publications must be made available to other researchers at the time of publication, as well as any original software that is required to view datasets or to replicate analyses.",
+    "problem": "Analyses locked in proprietary files cannot be replicated by others",
+    "need": "Save data and analyses in open, documented formats and export a replication bundle readable without a licence",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "reproducibility-audit",
+      "file-compatibility",
+      "price-licence"
+    ]
+  },
+  {
+    "id": "journal-nih-ninds-1",
+    "venue": "pmc.ncbi.nlm.nih.gov",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC3511845/",
+    "date": "2012-10",
+    "role": "funder requirement, NIH/NINDS (Landis et al. workshop recommendations)",
+    "software_named": [],
+    "workflow": "core reporting set",
+    "quote": "The main workshop recommendation is that at a minimum studies should report on sample-size estimation, whether and how animals were randomized, whether investigators were blind to the treatment, and the handling of data.",
+    "problem": "Core design facts missing from preclinical papers and grants",
+    "need": "Make sample-size estimation, randomisation, blinding and data handling part of every analysis record",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "power-sample-size",
+      "randomisation",
+      "outliers"
+    ]
+  },
+  {
+    "id": "journal-nih-ninds-2",
+    "venue": "pmc.ncbi.nlm.nih.gov",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC3511845/",
+    "date": "2012-10",
+    "role": "funder requirement, NIH/NINDS (Landis et al. workshop recommendations)",
+    "software_named": [],
+    "workflow": "audit of reporting",
+    "quote": "A review of 100 articles published in Cancer Research in 2010 revealed that only 28% of papers reported that animals were randomly allocated to treatment groups, just 2% of papers reported that observers were blinded to treatment, and none stated the methods used to determine the number of animals per group",
+    "problem": "Randomisation, blinding and sample size are almost never reported",
+    "need": "Prompt for and export randomisation, blinding and sample-size method statements",
+    "severity": "wrong result risk",
+    "signal": {
+      "papers_audited": 100,
+      "randomisation_reported_pct": 28,
+      "blinding_reported_pct": 2,
+      "sample_size_method_reported_pct": 0
+    },
+    "tags": [
+      "randomisation",
+      "power-sample-size",
+      "reproducibility-audit"
+    ]
+  },
+  {
+    "id": "journal-nih-ninds-3",
+    "venue": "pmc.ncbi.nlm.nih.gov",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC3511845/",
+    "date": "2012-10",
+    "role": "funder requirement, NIH/NINDS (Landis et al. workshop recommendations)",
+    "software_named": [],
+    "workflow": "outliers and multiple endpoints",
+    "quote": "How outliers will be defined and handled should be decided when the experiment is being designed, and any data removed before analysis should be reported. The primary end point should be prospectively selected. If multiple end points are to be assessed, then appropriate statistical corrections should be applied.",
+    "problem": "Post hoc outlier rules; uncorrected multiple endpoints",
+    "need": "Pre-declared outlier rules and endpoint-level multiplicity correction",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "outliers",
+      "multiple-comparisons"
+    ]
+  },
+  {
+    "id": "journal-nih-ninds-4",
+    "venue": "pmc.ncbi.nlm.nih.gov",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC3511845/",
+    "date": "2012-10",
+    "role": "funder requirement, NIH/NINDS (Landis et al. workshop recommendations)",
+    "software_named": [],
+    "workflow": "pseudoreplication",
+    "quote": "For example, in analysing effects of pollutants on reproductive health, multiple sampling from a litter, regardless of how many littermates are quantified, provides data from only a single biologic replicate.",
+    "problem": "Littermates counted as independent replicates",
+    "need": "Aggregate to the litter (or model litter) when treatment is applied per litter",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "technical-vs-biological-replicates",
+      "n-definition"
+    ]
+  },
+  {
+    "id": "journal-miflowcyt-1",
+    "venue": "pmc.ncbi.nlm.nih.gov",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC2773297/",
+    "date": "2008-10",
+    "role": "journal requirement, MIFlowCyt (ISAC standard)",
+    "software_named": [],
+    "workflow": "gating reporting",
+    "quote": "Gating descriptions shall be clear and unambiguous, preferably by mathematical descriptions of each gate boundary. It is important to define qualitative gate descriptors as well as to state denominators used to calculate percentages of events within a gate.",
+    "problem": "Gate percentages reported without denominators or gate definitions",
+    "need": "Export gate boundaries and the parent population used as denominator for each percentage",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "flow-cytometry",
+      "reporting-methods"
+    ]
+  },
+  {
+    "id": "journal-miflowcyt-2",
+    "venue": "pmc.ncbi.nlm.nih.gov",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC2773297/",
+    "date": "2008-10",
+    "role": "journal requirement, MIFlowCyt (ISAC standard)",
+    "software_named": [],
+    "workflow": "compensation",
+    "quote": "The type of compensation shall be described (e.g., no compensation, hardware compensation, computed compensation) and the spillover or compensation matrix shall be provided whenever available.",
+    "problem": "Compensation matrices not reported",
+    "need": "Keep and export the spillover/compensation matrix with flow-derived statistics",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "flow-cytometry",
+      "import-instrument-files"
+    ]
+  },
+  {
+    "id": "journal-miflowcyt-3",
+    "venue": "pmc.ncbi.nlm.nih.gov",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC2773297/",
+    "date": "2008-10",
+    "role": "journal requirement, MIFlowCyt (ISAC standard)",
+    "software_named": [],
+    "workflow": "raw list-mode data",
+    "quote": "These data are crucial for independent re-analysis, therefore they shall either be provided directly or details shall be stated on how they may be requested.",
+    "problem": "Only summary percentages are shared, not FCS files",
+    "need": "Link summary statistics back to the source FCS files for deposition",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "flow-cytometry",
+      "reproducibility-audit",
+      "import-instrument-files"
+    ]
+  },
+  {
+    "id": "journal-miame-1",
+    "venue": "fged.org",
+    "url": "https://www.fged.org/projects/miame/",
+    "date": null,
+    "role": "journal requirement, MIAME (FGED)",
+    "software_named": [],
+    "workflow": "raw and processed data",
+    "quote": "The raw data for each hybridisation (e.g., CEL or GPR files) The final processed (normalised) data for the set of hybridisations in the experiment (study)",
+    "problem": "Raw and normalised expression data must both be supplied",
+    "need": "Retain raw input and normalised output side by side and export both",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "normalization",
+      "reproducibility-audit"
+    ]
+  },
+  {
+    "id": "journal-miame-2",
+    "venue": "fged.org",
+    "url": "https://www.fged.org/projects/miame/",
+    "date": null,
+    "role": "journal requirement, MIAME (FGED)",
+    "software_named": [],
+    "workflow": "replicate relationships",
+    "quote": "The experimental design including sample data relationships (e.g., which raw data file relates to which sample, which hybridisations are technical, which are biological replicates)",
+    "problem": "Sample-to-file and replicate-type relationships are lost",
+    "need": "Keep a sample sheet mapping files to samples and replicate type",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "technical-vs-biological-replicates",
+      "import-instrument-files"
+    ]
+  },
+  {
+    "id": "journal-miame-3",
+    "venue": "fged.org",
+    "url": "https://www.fged.org/projects/miame/",
+    "date": null,
+    "role": "journal requirement, MIAME (FGED)",
+    "software_named": [],
+    "workflow": "normalisation method",
+    "quote": "The essential laboratory and data processing protocols (e.g., what normalisation method has been used to obtain the final processed data)",
+    "problem": "Normalisation method undocumented",
+    "need": "Record and export the normalisation method used for every derived dataset",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "normalization",
+      "reporting-methods"
+    ]
+  },
+  {
+    "id": "journal-miqe2-1",
+    "venue": "pmc.ncbi.nlm.nih.gov",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC12154065/",
+    "date": "2025",
+    "role": "journal requirement, MIQE 2.0 (IJMS editorial)",
+    "software_named": [],
+    "workflow": "qPCR analysis failures",
+    "quote": "an examination of the methods section generally reveals serious problems with the experimental workflow, ranging from poorly documented sample handling to absent assay validation, inappropriate normalisation, missing PCR efficiency calculations and nonexistent statistical justification.",
+    "problem": "qPCR papers lack efficiency calculations, valid normalisation and statistics",
+    "need": "qPCR module that computes amplification efficiency from standard curves, uses efficiency-corrected multi-reference normalisation and reports it MIQE-style",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "qpcr-ddct",
+      "normalization",
+      "standard-curve-interpolation"
+    ]
+  },
+  {
+    "id": "journal-miqe2-2",
+    "venue": "pmc.ncbi.nlm.nih.gov",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC12154065/",
+    "date": "2025",
+    "role": "journal requirement, MIQE 2.0 (IJMS editorial)",
+    "software_named": [],
+    "workflow": "fold change without uncertainty",
+    "quote": "Fold-changes of 1.2- or 1.5-fold are routinely reported as biologically meaningful, even at low expression levels, without any assessment of measurement uncertainty or technical variance",
+    "problem": "Small fold changes reported without uncertainty",
+    "need": "Report fold changes with CIs propagated from Cq variance across biological replicates",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "qpcr-ddct",
+      "effect-size"
+    ]
+  },
+  {
+    "id": "journal-consort2025-1",
+    "venue": "plos.org",
+    "url": "https://journals.plos.org/plosmedicine/article?id=10.1371/journal.pmed.1004587",
+    "date": "2025-04",
+    "role": "journal requirement, CONSORT 2025 statement (clinical trials)",
+    "software_named": [],
+    "workflow": "missing data in trials",
+    "quote": "Item 21: added items to define who is included in each analysis (e.g., all randomised participants) and in which group (item 21b), and how missing data were handled in the analysis (item 21c).",
+    "problem": "Analysis populations and missing-data handling are unstated",
+    "need": "Show the analysis population per test and the missing-data method (complete case, imputation, mixed model)",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "missing-values",
+      "mixed-model-missing-values",
+      "reporting-methods"
+    ]
+  },
+  {
+    "id": "journal-consort2025-2",
+    "venue": "plos.org",
+    "url": "https://journals.plos.org/plosmedicine/article?id=10.1371/journal.pmed.1004587",
+    "date": "2025-04",
+    "role": "journal requirement, CONSORT 2025 statement (clinical trials)",
+    "software_named": [],
+    "workflow": "data and code sharing",
+    "quote": "Item 4: added item on data sharing, including where and how individual de-identified participant data, statistical code, and any other materials can be accessed.",
+    "problem": "Statistical code and participant data must be shareable",
+    "need": "Export de-identified data and the statistical code/recipe for sharing",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "reproducibility-audit",
+      "privacy"
+    ]
+  },
+  {
+    "id": "journal-champ-1",
+    "venue": "eprints.whiterose.ac.uk",
+    "url": "https://eprints.whiterose.ac.uk/175755/3/CHAMP-statement.pdf",
+    "date": "2021",
+    "role": "journal requirement, CHAMP statistical checklist (BMJ / BJSM)",
+    "software_named": [],
+    "workflow": "confidence intervals for contrasts",
+    "quote": "19. Confidence intervals provided for the contrast between groups rather than for each group",
+    "problem": "CIs given per group instead of for the difference",
+    "need": "Report the CI of the difference/ratio between groups, not just per-group CIs",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "effect-size"
+    ]
+  },
+  {
+    "id": "journal-champ-2",
+    "venue": "eprints.whiterose.ac.uk",
+    "url": "https://eprints.whiterose.ac.uk/175755/3/CHAMP-statement.pdf",
+    "date": "2021",
+    "role": "journal requirement, CHAMP statistical checklist (BMJ / BJSM)",
+    "software_named": [],
+    "workflow": "numerical precision",
+    "quote": "21. Appropriate and consistent numerical precisions for effect sizes, test statistics, and P-values, and reporting the P-values rather their range",
+    "problem": "Inconsistent decimals; P ranges",
+    "need": "Consistent configurable precision for effect sizes, statistics and exact P values",
+    "severity": "cosmetic / preference",
+    "signal": null,
+    "tags": [
+      "exact-p",
+      "reporting-methods"
+    ]
+  },
+  {
+    "id": "journal-champ-3",
+    "venue": "eprints.whiterose.ac.uk",
+    "url": "https://eprints.whiterose.ac.uk/175755/3/CHAMP-statement.pdf",
+    "date": "2021",
+    "role": "journal requirement, CHAMP statistical checklist (BMJ / BJSM)",
+    "software_named": [],
+    "workflow": "post hoc power",
+    "quote": "25. Using confidence intervals rather than post-hoc power analysis for interpreting the results of studies",
+    "problem": "Post hoc power used to interpret non-significant results",
+    "need": "Discourage observed-power calculations and show CIs instead",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "power-sample-size",
+      "effect-size"
+    ]
+  },
+  {
+    "id": "journal-jcb-images-1",
+    "venue": "pmc.ncbi.nlm.nih.gov",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC2172141/",
+    "date": "2004-07",
+    "role": "journal requirement, Journal of Cell Biology (Rockefeller University Press)",
+    "software_named": [
+      "Adobe Photoshop"
+    ],
+    "workflow": "image manipulation rules",
+    "quote": "No specific feature within an image may be enhanced, obscured, moved, removed, or introduced. The grouping of images from different parts of the same gel, or from different gels, fields, or exposures must be made explicit by the arrangement of the figure (e.g., using dividing lines) and in the text of the figure legend.",
+    "problem": "Spliced gels/fields not marked",
+    "need": "Figure builder that inserts dividing lines and legend text whenever lanes or fields from different sources are combined",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "western-blot-densitometry",
+      "image-analysis-exports",
+      "layouts-multipanel"
+    ]
+  },
+  {
+    "id": "journal-jcb-images-2",
+    "venue": "pmc.ncbi.nlm.nih.gov",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC2172141/",
+    "date": "2004-07",
+    "role": "journal requirement, Journal of Cell Biology (Rockefeller University Press)",
+    "software_named": [
+      "Adobe Photoshop"
+    ],
+    "workflow": "nonlinear adjustments",
+    "quote": "Nonlinear adjustments (e.g., changes to gamma settings) must be disclosed in",
+    "problem": "Gamma changes undisclosed",
+    "need": "Log nonlinear image adjustments and add them to the legend automatically",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "image-analysis-exports"
+    ]
+  },
+  {
+    "id": "journal-jcb-images-3",
+    "venue": "pmc.ncbi.nlm.nih.gov",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC2172141/",
+    "date": "2004-07",
+    "role": "journal requirement, Journal of Cell Biology (Rockefeller University Press)",
+    "software_named": [
+      "Adobe Photoshop"
+    ],
+    "workflow": "resolution",
+    "quote": "You should not set the total number of pixels to be greater than that in the original image; otherwise, the computer must create data for you that were not present in the original",
+    "problem": "Images upsampled to meet DPI requirements",
+    "need": "Export at the required DPI by resizing physical dimensions, never by interpolating new pixels, and warn when upsampling",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "export-dpi",
+      "image-analysis-exports"
+    ]
+  },
+  {
+    "id": "journal-cellpress-krt-1",
+    "venue": "elsevier.com",
+    "url": "https://www.elsevier.com/authors/tools-and-resources/key-resources-table",
+    "date": null,
+    "role": "journal requirement, Cell Press STAR Methods Key Resources Table (Elsevier)",
+    "software_named": [],
+    "workflow": "key resources table",
+    "quote": "Provide the full descriptive names of items so that they can be identified and linked with their description in the manuscript (e.g., provide version number for software, host source for antibody, strain name, etc.).",
+    "problem": "Software versions missing from the STAR Methods Key Resources Table",
+    "need": "Provide a citable name, version and RRID for the analysis software in exports",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "reporting-methods"
+    ]
+  }
+]

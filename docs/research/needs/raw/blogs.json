@@ -1,0 +1,3377 @@
+[
+  {
+    "id": "blog-wildtypeone-prism-goodbye-1",
+    "venue": "wildtypeone.substack.com",
+    "url": "https://wildtypeone.substack.com/p/are-we-kissing-graphpad-prism-goodbye",
+    "date": "2025-05",
+    "role": "lab newsletter author (Wildtype One)",
+    "software_named": [
+      "GraphPad Prism",
+      "tidyplots",
+      "R",
+      "ggplot2"
+    ],
+    "workflow": "publication figures from replicate experiments",
+    "quote": "In Prism, it's easy to: Drag the wrong data into a chart ... Forget which condition was which ... Copy-paste the wrong result into your figure",
+    "problem": "Manual drag-and-drop/copy-paste between data, results and figures produces silent errors and loses track of conditions",
+    "need": "Keep data, statistics and figure linked so a figure is always regenerated from the source table, with an audit trail of every change",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "reproducibility-audit",
+      "excel-paste"
+    ]
+  },
+  {
+    "id": "blog-wildtypeone-prism-goodbye-2",
+    "venue": "wildtypeone.substack.com",
+    "url": "https://wildtypeone.substack.com/p/are-we-kissing-graphpad-prism-goodbye",
+    "date": "2025-05",
+    "role": "lab newsletter author (Wildtype One)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "qPCR figures redone weekly",
+    "quote": "So if you're still manually replotting qPCR data for the third time this week, maybe it's time to ask: \"Is it me... or is it the tool?\"",
+    "problem": "Repeated experiments force manual re-plotting of the same qPCR figure each time new data arrive",
+    "need": "Template a finished analysis+graph so new runs of the same assay can be dropped in and replotted automatically (batch)",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "scripting-batch",
+      "qpcr-ddct"
+    ]
+  },
+  {
+    "id": "blog-wildtypeone-prism-goodbye-3",
+    "venue": "wildtypeone.substack.com",
+    "url": "https://wildtypeone.substack.com/p/are-we-kissing-graphpad-prism-goodbye",
+    "date": "2025-05",
+    "role": "lab newsletter author (Wildtype One)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "collaborative projects",
+    "quote": "Prism lives in a world of drag-and-drop, local files, and single-user workflows.",
+    "problem": "Point-and-click tool files are local and single-user, poorly suited to team projects and version control",
+    "need": "Shareable projects that a whole team can open, review and version without per-seat desktop installs",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "sharing-collaboration",
+      "reproducibility-audit"
+    ]
+  },
+  {
+    "id": "blog-quantixed-rforcellbio-1",
+    "venue": "r-bloggers.com",
+    "url": "https://www.r-bloggers.com/2025/01/get-better-r-for-cell-biologists/",
+    "date": "2025-01",
+    "role": "PI, cell biology (Stephen Royle, quantixed)",
+    "software_named": [
+      "R"
+    ],
+    "workflow": "learning R for lab data",
+    "quote": "Often, folks from my lab will take an R course and spend a half-day making some plots of the iris dataset or calculating miles per gallon using mtcars . Once they leave the room, it is hard for them to connect what they learned to a real-life use case in the lab.",
+    "problem": "Generic programming courses do not transfer to the lab members' own experiments",
+    "need": "Teach and guide with the user's own assay data (e.g. Fiji per-image outputs) rather than toy datasets",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "learning-curve",
+      "tutorials",
+      "teaching"
+    ]
+  },
+  {
+    "id": "blog-quantixed-rforcellbio-2",
+    "venue": "r-bloggers.com",
+    "url": "https://www.r-bloggers.com/2025/01/get-better-r-for-cell-biologists/",
+    "date": "2025-01",
+    "role": "PI, cell biology (Stephen Royle, quantixed)",
+    "software_named": [
+      "Fiji",
+      "R"
+    ],
+    "workflow": "microscopy: one Fiji output text file per image -> figure",
+    "quote": "The output of the analysis is plain text files, one for each image. To make a figure, we need to process all of these text files and turn them into publication-quality figures",
+    "problem": "Image analysis yields dozens of per-image files that must be merged with condition/replicate labels before plotting",
+    "need": "Import a folder of per-image result files at once, deriving condition and experimental repeat from file or folder names",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "image-analysis-exports",
+      "import-instrument-files",
+      "scripting-batch"
+    ]
+  },
+  {
+    "id": "blog-quantixed-rforcellbio-3",
+    "venue": "r-bloggers.com",
+    "url": "https://www.r-bloggers.com/2025/01/get-better-r-for-cell-biologists/",
+    "date": "2025-01",
+    "role": "PI, cell biology (Stephen Royle, quantixed)",
+    "software_named": [
+      "Fiji",
+      "R"
+    ],
+    "workflow": "microscopy file naming through to analysis",
+    "quote": "For example, when they are at the microscope, naming files is important because they get carried through: to the Fiji step and then into R. Any inconsistencies cause headaches.",
+    "problem": "Inconsistent file names at acquisition break the downstream merge of conditions/replicates",
+    "need": "Tolerant import that previews parsed condition/replicate labels from file names and flags inconsistencies before analysis",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "import-instrument-files",
+      "image-analysis-exports"
+    ]
+  },
+  {
+    "id": "blog-quantixed-rforcellbio-4",
+    "venue": "r-bloggers.com",
+    "url": "https://www.r-bloggers.com/2025/01/get-better-r-for-cell-biologists/",
+    "date": "2025-01",
+    "role": "PI, cell biology (Stephen Royle, quantixed)",
+    "software_named": [
+      "R"
+    ],
+    "workflow": "excluding a bad experimental repeat and replotting",
+    "quote": "Next, explain that the person who did the experiments found out that the rapamycin used in the 4th experiment, was prepared from a stock solution which was at the wrong concentration. How can we exclude the n4 data and remake a new SuperPlot",
+    "problem": "Need to exclude one whole biological repeat and regenerate the replicate-aware plot and stats",
+    "need": "Allow excluding an entire experimental repeat (with a recorded reason) and auto-refresh SuperPlot and test on replicate means",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "superplots",
+      "outliers",
+      "technical-vs-biological-replicates"
+    ]
+  },
+  {
+    "id": "blog-plantae-beyondbar-1",
+    "venue": "plantae.org",
+    "url": "https://plantae.org/going-beyond-the-bar-graph-resources-and-suggestions/",
+    "date": "2020-09",
+    "role": "commenter",
+    "software_named": [
+      "GraphPad Prism",
+      "ggplot2",
+      "R"
+    ],
+    "workflow": "box/violin plots for publication",
+    "quote": "Very intuitive and plots are super easy to customise (changing plot design with ggplot2 always requires lots of googling for me). R defs has the edge of being a free software, whereas Prism is not.",
+    "problem": "Free code-based plotting is hard to customise without constant searching; the easy GUI tool costs money",
+    "need": "GUI-level ease of customising violin/box plots without licence cost",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "graph-formatting",
+      "learning-curve",
+      "price-licence"
+    ]
+  },
+  {
+    "id": "blog-plantae-beyondbar-2",
+    "venue": "plantae.org",
+    "url": "https://plantae.org/going-beyond-the-bar-graph-resources-and-suggestions/",
+    "date": "2020-09",
+    "role": "commenter",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "graphs and basic statistics",
+    "quote": "I know the price is an issue but if the school can grant access somehow, graphpad prism allows for data vizualisation and some basic data analysis. Not as much freedom in it as youd have with R though.",
+    "problem": "Access to the preferred tool depends on the institution paying; the tool also restricts freedom compared to code",
+    "need": "Freely accessible tool with enough flexibility not to force a move to code",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "price-licence"
+    ]
+  },
+  {
+    "id": "blog-plantae-beyondbar-3",
+    "venue": "plantae.org",
+    "url": "https://plantae.org/going-beyond-the-bar-graph-resources-and-suggestions/",
+    "date": "2020-09",
+    "role": "PI/editor (Mary Williams, Plantae) summarising reader questions",
+    "software_named": [
+      "GraphPad Prism",
+      "R",
+      "PlotsOfData"
+    ],
+    "workflow": "replacing bar graphs with violin graphs",
+    "quote": "I mentioned the greater usefulness of violin graphs over bar graphs. Naturally, several people asked for suggestions about how to make a violin graph.",
+    "problem": "Researchers told to move beyond bar graphs do not know which tool can make a violin plot",
+    "need": "Offer violin/box/dot plots as first-class graph types, one click from a bar graph",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "show-the-points",
+      "graph-formatting"
+    ]
+  },
+  {
+    "id": "blog-plantae-beyondbar-4",
+    "venue": "plantae.org",
+    "url": "https://plantae.org/going-beyond-the-bar-graph-resources-and-suggestions/",
+    "date": "2020-09",
+    "role": "commenter",
+    "software_named": [],
+    "workflow": "small-n distribution plots",
+    "quote": "I have to say violin plots are not better than boxplot for small sample sizes (n < 30). Violin plots show the distribution shape, but it's impossible to know the exact distribution w/o a large n. For n < 100 I'd recommend boxplot w/ all dots jittered.",
+    "problem": "Violin plots mislead at the small n typical of bench experiments",
+    "need": "Recommend the plot type from n (e.g. warn on violin with n<30; default to box + all points)",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "show-the-points"
+    ]
+  },
+  {
+    "id": "blog-thenode-tidy2-1",
+    "venue": "thenode.biologists.com",
+    "url": "https://thenode.biologists.com/converting-excellent-spreadsheets-part2/research/",
+    "date": "2020-09",
+    "role": "researcher, cell biology / dataviz (Joachim Goedhart)",
+    "software_named": [
+      "Excel",
+      "R",
+      "SuperPlotsOfData"
+    ],
+    "workflow": "superplots from replicate spreadsheets",
+    "quote": "The tidy data structure is different from the popular spreadsheet format and (in my experience) not intuitive to grasp. Therefore, the conversion of ordinary, spreadsheet data into this structure may present a considerable bottleneck for creating superplots.",
+    "problem": "Wide spreadsheet layouts must be converted to tidy/long format before replicate-aware plots can be made",
+    "need": "Accept wide spreadsheets (condition and replicate as header rows) and convert to long format automatically",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "long-vs-wide",
+      "superplots",
+      "data-entry-table-types"
+    ]
+  },
+  {
+    "id": "blog-thenode-tidy2-2",
+    "venue": "thenode.biologists.com",
+    "url": "https://thenode.biologists.com/converting-excellent-spreadsheets-part2/research/",
+    "date": "2020-09",
+    "role": "researcher, cell biology / dataviz (Joachim Goedhart)",
+    "software_named": [
+      "Excel",
+      "R"
+    ],
+    "workflow": "importing two-header-row Excel sheets",
+    "quote": "The reason is that duplicate column names (as present in this file) are not accepted and will be modified.",
+    "problem": "Typical lab sheets with repeated condition headers break standard importers",
+    "need": "Import multi-row headers with duplicate names (condition x replicate) without mangling them",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "excel-paste",
+      "long-vs-wide"
+    ]
+  },
+  {
+    "id": "blog-babraham-phdadvice-1",
+    "venue": "babraham.ac.uk",
+    "url": "https://www.babraham.ac.uk/blog/advice-new-PhD-students",
+    "date": "2021-10",
+    "role": "PhD student, Babraham Institute (stated)",
+    "software_named": [],
+    "workflow": "statistics in experiment planning and analysis",
+    "quote": "Bioscience students are especially guilty of this. Taking statistics courses early on is useful. However, don't be discouraged if it all goes over your head at first.",
+    "problem": "Bioscience students avoid statistics and find courses go over their heads",
+    "need": "In-context guidance on replicates and test choice at the moment of analysis",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "learning-curve",
+      "which-test"
+    ]
+  },
+  {
+    "id": "blog-babraham-phdadvice-2",
+    "venue": "babraham.ac.uk",
+    "url": "https://www.babraham.ac.uk/blog/advice-new-PhD-students",
+    "date": "2021-10",
+    "role": "PhD student, Babraham Institute (stated)",
+    "software_named": [],
+    "workflow": "learning statistics",
+    "quote": "I have attended one particular course two times before it really became useful, because I had my own data to practice with by the second time.",
+    "problem": "Statistics training only sticks when applied to one's own data",
+    "need": "Explanations attached to the user's own dataset and results, not abstract",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "teaching",
+      "tutorials",
+      "power-sample-size"
+    ]
+  },
+  {
+    "id": "blog-bmedia-omicsR-1",
+    "venue": "bmedia.nl",
+    "url": "https://bmedia.nl/artikel.php?id=567",
+    "date": "2024-07",
+    "role": "bioinformatics core manager (John Cole, quoted)",
+    "software_named": [
+      "R"
+    ],
+    "workflow": "omics data analysis by wet-lab labs",
+    "quote": "But the analysis of these data can take months. Labs can't afford to pay anyone to do that. Also, the wet-lab scientist knows best what to look for in their data. But without the skills to do the data analysis themselves, these labs get stuck.",
+    "problem": "Wet labs generate omics data but lack skills or funds to analyse it",
+    "need": "Self-serve PCA / MA / volcano analyses for wet-lab scientists without coding",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "pca-clustering",
+      "volcano-heatmap",
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "blog-bmedia-omicsR-2",
+    "venue": "bmedia.nl",
+    "url": "https://bmedia.nl/artikel.php?id=567",
+    "date": "2024-07",
+    "role": "PI, immunology (Sander van Kasteren, quoted)",
+    "software_named": [
+      "R"
+    ],
+    "workflow": "judging quality of analyses",
+    "quote": "I have no talent for programming but this training was exactly what I hoped it would be. The basics are not as scary as I thought. I can now judge the quality of analyses in my own work and others and avoid pitfalls.",
+    "problem": "PI felt unable to judge analysis quality without programming skills",
+    "need": "Transparent analyses whose steps a non-programmer can inspect and judge",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "learning-curve",
+      "trust-validation"
+    ]
+  },
+  {
+    "id": "blog-quantixed-digitalcell-1",
+    "venue": "quantixed.org",
+    "url": "https://quantixed.org/2016/06/15/the-digital-cell/",
+    "date": "2016-06",
+    "role": "commenter",
+    "software_named": [],
+    "workflow": "peer review of quantitative cell biology",
+    "quote": "One concern of mine is that real knowledge in quantitative methods is scarce and yet as it permeates mainstream biology, there is a lack of prepared peer reviewers.",
+    "problem": "Quantitative analyses are spreading in cell biology faster than reviewers can check them",
+    "need": "Analysis reports that state the test, n and assumptions explicitly so reviewers can verify them",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "reporting-methods",
+      "trust-validation"
+    ]
+  },
+  {
+    "id": "blog-quantixed-digitalcell-2",
+    "venue": "quantixed.org",
+    "url": "https://quantixed.org/2016/06/15/the-digital-cell/",
+    "date": "2016-06",
+    "role": "PI, cell biology (Stephen Royle), reply",
+    "software_named": [],
+    "workflow": "statistics in biology education",
+    "quote": "I know Universities where cutting Mathematics/Statistics modules from our Biology courses has been considered. The reason: \"the students find it tough\"",
+    "problem": "Biology students arrive with weak statistics training because courses are cut",
+    "need": "Assume minimal statistics background: built-in plain-language explanations for each test",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "teaching",
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "blog-quantixed-rbeginners-1",
+    "venue": "quantixed.org",
+    "url": "https://quantixed.org/2020/02/18/get-better-r-for-absolute-beginners/",
+    "date": "2020-02",
+    "role": "PI, cell biology (Stephen Royle)",
+    "software_named": [
+      "R"
+    ],
+    "workflow": "lab-wide adoption of R",
+    "quote": "The people with no prior experience found the final session pretty tough so I don't think it would be possible to go through this material in fewer sessions.",
+    "problem": "Going from zero to a real figure in R needs multiple taught sessions even with a PI teaching",
+    "need": "Path from raw lab data to finished figure that does not need multi-session programming training",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "learning-curve",
+      "teaching"
+    ]
+  },
+  {
+    "id": "blog-quantixed-rbeginners-2",
+    "venue": "quantixed.org",
+    "url": "https://quantixed.org/2020/02/18/get-better-r-for-absolute-beginners/",
+    "date": "2020-02",
+    "role": "PI, cell biology (Stephen Royle)",
+    "software_named": [
+      "R"
+    ],
+    "workflow": "keeping lab members using R",
+    "quote": "Of course, the best way to learn is by doing, so the challenge is to get people to persist with R for their number crunching. A simple way is to keep advocating for analysis to be done in R or more drastically, other software could be outlawed.",
+    "problem": "Lab members drift back to other software after R training",
+    "need": "Lower ongoing friction so reproducible analysis does not need policing",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "learning-curve",
+      "reproducibility-audit"
+    ]
+  },
+  {
+    "id": "blog-thenode-ggplottime-1",
+    "venue": "thenode.biologists.com",
+    "url": "https://thenode.biologists.com/visualizing-data-with-r-ggplot2/education/",
+    "date": "2018-05",
+    "role": "assistant professor, molecular cytology (Joachim Goedhart)",
+    "software_named": [
+      "R",
+      "ggplot2"
+    ],
+    "workflow": "time-course plots of single-cell ratio imaging",
+    "quote": "Some time ago, my favorite (commercial) software package for making graphs was no longer supported due to a system upgrade. So I was looking for a powerful and flexible alternative for data visualization.",
+    "problem": "A commercial graphing package stopped working after an OS upgrade, stranding the user's workflow",
+    "need": "Platform-independent tool (e.g. browser-based) whose files keep opening after OS upgrades",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "mac-windows",
+      "file-compatibility"
+    ]
+  },
+  {
+    "id": "blog-thenode-ggplottime-2",
+    "venue": "thenode.biologists.com",
+    "url": "https://thenode.biologists.com/visualizing-data-with-r-ggplot2/education/",
+    "date": "2018-05",
+    "role": "assistant professor, molecular cytology (Joachim Goedhart)",
+    "software_named": [
+      "R",
+      "ggplot2"
+    ],
+    "workflow": "time-course: mean + 95% CI ribbon over single-cell traces",
+    "quote": "The instruction to plot graphs with ggplot() usually consists of several different functions and may be daunting at first sight.",
+    "problem": "Layered code graphs (individual traces + mean + CI band + stimulus box) are daunting for wet-lab users",
+    "need": "Time-course graph with individual traces in grey, mean with 95% CI ribbon and shaded stimulus intervals as built-in options",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "learning-curve",
+      "graph-formatting",
+      "time-series"
+    ]
+  },
+  {
+    "id": "blog-scitable-spreadsheetsevil-1",
+    "venue": "nature.com/scitable",
+    "url": "https://www.nature.com/scitable/blog/bioscience-elearning/exam_question_spreadsheets_are_evil/",
+    "date": "2011-04",
+    "role": "lecturer, bioscience e-learning (blog author)",
+    "software_named": [
+      "Excel"
+    ],
+    "workflow": "storing lab/gene data in spreadsheets",
+    "quote": "I have also, over the years, encountered problems where students have stored data in spreadsheets and then had the program change all there gene names/tracking codes etc. to a 'correct' value. This has resulted in months of work lost and confused.",
+    "problem": "Spreadsheet autocorrect silently converts gene names/IDs, losing months of work",
+    "need": "Never auto-convert identifiers on paste/import; keep text columns as text and flag date-like coercions",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "excel-paste",
+      "trust-validation"
+    ]
+  },
+  {
+    "id": "blog-scitable-spreadsheetsevil-2",
+    "venue": "nature.com/scitable",
+    "url": "https://www.nature.com/scitable/blog/bioscience-elearning/exam_question_spreadsheets_are_evil/",
+    "date": "2011-04",
+    "role": "lecturer, bioscience e-learning (blog author)",
+    "software_named": [
+      "Excel"
+    ],
+    "workflow": "date and ID columns",
+    "quote": "There is no indication whether the date is mm/dd/yyyy or dd/mm/yyyy, hence the program may change 01/10/2011 to either the 1st October 2011, or the 10th January 2011.",
+    "problem": "Ambiguous date formats and stripped leading zeros corrupt data on entry",
+    "need": "Locale-explicit date parsing and preservation of leading zeros on import",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "excel-paste",
+      "language-localisation"
+    ]
+  },
+  {
+    "id": "blog-nature-excelgenes-1",
+    "venue": "nature.com",
+    "url": "https://www.nature.com/articles/d41586-021-02211-4",
+    "date": "2021-08",
+    "role": "Nature news (reporting analysis by bioinformatician Mark Ziemann)",
+    "software_named": [
+      "Excel"
+    ],
+    "workflow": "supplementary gene lists",
+    "quote": "Despite geneticists being warned about spreadsheet problems, 30% of published papers contain mangled gene names in supplementary data.",
+    "problem": "Spreadsheet autocorrect corrupts gene names in a large share of published papers",
+    "need": "Data entry that treats identifiers as text and warns about auto-converted values before export",
+    "severity": "wrong result risk",
+    "signal": {
+      "papers_with_mangled_gene_names_pct": 30
+    },
+    "tags": [
+      "excel-paste",
+      "reproducibility-audit"
+    ]
+  },
+  {
+    "id": "blog-nature-spreadsheets2025-1",
+    "venue": "nature.com",
+    "url": "https://media.nature.com/original/magazine-assets/d41586-025-02511-z/d41586-025-02511-z.pdf",
+    "date": "2025-08",
+    "role": "statistician (Karl Broman, quoted in Nature Technology feature)",
+    "software_named": [
+      "Excel"
+    ],
+    "workflow": "working on raw data in spreadsheets",
+    "quote": "Every time you interact with Excel is an opportunity to accidentally type something extra somewhere and not realize it",
+    "problem": "Raw data in spreadsheets is silently altered by stray keystrokes",
+    "need": "Keep raw data read-only/locked and do analysis on derived copies with change history",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "reproducibility-audit",
+      "excel-paste"
+    ]
+  },
+  {
+    "id": "blog-nature-spreadsheets2025-2",
+    "venue": "nature.com",
+    "url": "https://media.nature.com/original/magazine-assets/d41586-025-02511-z/d41586-025-02511-z.pdf",
+    "date": "2025-08",
+    "role": "data scientist (Heidi Seibold, quoted in Nature Technology feature)",
+    "software_named": [
+      "Excel",
+      "R",
+      "Python"
+    ],
+    "workflow": "point-and-click analysis",
+    "quote": "an analysis that happens inside a spreadsheet using pointing and clicking is hard to follow and even harder to replicate.",
+    "problem": "Point-and-click analyses leave no replayable record",
+    "need": "Record every GUI step as a replayable, exportable analysis log/script",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "reproducibility-audit",
+      "scripting-batch"
+    ]
+  },
+  {
+    "id": "blog-nature-spreadsheets2025-3",
+    "venue": "nature.com",
+    "url": "https://media.nature.com/original/magazine-assets/d41586-025-02511-z/d41586-025-02511-z.pdf",
+    "date": "2025-08",
+    "role": "research software technician (Obose Eselebor, quoted in Nature Technology feature)",
+    "software_named": [
+      "Excel",
+      "Python",
+      "SQL"
+    ],
+    "workflow": "large tables",
+    "quote": "She recalls a time when what should have been a quick peek at a spreadsheet with 100,000 rows kept freezing her laptop.",
+    "problem": "Spreadsheet software freezes on 100,000-row data sets",
+    "need": "Handle 100k+ row tables smoothly (virtualised grid, streaming import)",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "large-data",
+      "performance"
+    ]
+  },
+  {
+    "id": "blog-nature-spreadsheets2025-4",
+    "venue": "nature.com",
+    "url": "https://media.nature.com/original/magazine-assets/d41586-025-02511-z/d41586-025-02511-z.pdf",
+    "date": "2025-08",
+    "role": "bioinformatics director (Ming Tommy Tang, quoted in Nature Technology feature)",
+    "software_named": [],
+    "workflow": "wet-lab / bioinformatics collaboration",
+    "quote": "Collaborations between bioinformaticians and wet-laboratory researchers can become frustrating if both sides don't clearly communicate what they're doing and what they need.",
+    "problem": "Hand-offs between wet-lab and bioinformatics people are frustrating",
+    "need": "Shareable analysis files that show data, steps and assumptions to both bench and computational collaborators",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "sharing-collaboration"
+    ]
+  },
+  {
+    "id": "blog-kclhab-prismtor-1",
+    "venue": "hab.sites.er.kcl.ac.uk",
+    "url": "https://hab.sites.er.kcl.ac.uk/?p=2312",
+    "date": null,
+    "role": "institutional analysis hub (King's College London HAB) news post",
+    "software_named": [
+      "GraphPad Prism",
+      "R"
+    ],
+    "workflow": "migrating existing Prism analyses",
+    "quote": "Following the recent announcement that GraphPad Prism will now require subscriptions, the HAB will be offering a new series of hands-on workshops for non-coders.",
+    "problem": "Licensing change forces a whole faculty to consider retraining non-coders to redo their Prism analyses in R",
+    "need": "Free tool that covers the everyday Prism analyses (t-tests, ANOVA, regression, mixed models, graphs) without retraining in code",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "price-licence",
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "blog-everydayscientist-superplots-1",
+    "venue": "blog.everydayscientist.com",
+    "url": "https://blog.everydayscientist.com/?p=3747",
+    "date": "2019-11",
+    "role": "cell biologist / microscopist (Sam Lord, blog author)",
+    "software_named": [],
+    "workflow": "cell-level data plotted as dots",
+    "quote": "But a concerning outcome of this trend is that, when authors decide to plot every measurement or every cell as a separate datapoint, it seems to trick people into thinking that each cell is an independent sample.",
+    "problem": "Plotting every cell encourages treating cells as independent n, inflating significance",
+    "need": "When per-cell data carry a replicate label, test on replicate means by default and warn if n = number of cells",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "n-definition",
+      "technical-vs-biological-replicates",
+      "superplots"
+    ]
+  },
+  {
+    "id": "blog-everydayscientist-superplots-2",
+    "venue": "blog.everydayscientist.com",
+    "url": "https://blog.everydayscientist.com/?p=3747",
+    "date": "2019-11",
+    "role": "cell biologist / microscopist (Sam Lord, blog author)",
+    "software_named": [],
+    "workflow": "journal audit of n definition",
+    "quote": "I scanned the latest issues of popular cell biology journals and found that over half the papers counted each cell as a separate",
+    "problem": "More than half of sampled cell biology papers pseudo-replicate (each cell = n)",
+    "need": "Make the n definition explicit in the analysis and in exported methods text",
+    "severity": "wrong result risk",
+    "signal": {
+      "papers_counting_cells_as_n_pct_over": 50
+    },
+    "tags": [
+      "n-definition",
+      "reporting-methods"
+    ]
+  },
+  {
+    "id": "blog-everydayscientist-superplots-3",
+    "venue": "blog.everydayscientist.com",
+    "url": "https://blog.everydayscientist.com/?p=3747",
+    "date": "2019-11",
+    "role": "cell biologist / microscopist (Sam Lord, blog author)",
+    "software_named": [
+      "Adobe Illustrator",
+      "GraphPad Prism"
+    ],
+    "workflow": "making a SuperPlot",
+    "quote": "On the simplest level, you can simply paste two (or more!) plots in Illustrator and overlay them. Play around with colors and transparency to make it visually appealing, and you're done!",
+    "problem": "SuperPlots have to be built by overlaying separate plots by hand in Illustrator",
+    "need": "One-click SuperPlot: cell-level points coloured by replicate with replicate means overlaid and the test run on those means",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "superplots",
+      "illustrator-handoff"
+    ]
+  },
+  {
+    "id": "blog-simplystats-dynamite-1",
+    "venue": "simplystatistics.org",
+    "url": "https://simplystatistics.org/posts/2019-02-21-dynamite-plots-must-die/",
+    "date": "2019-02",
+    "role": "statistician (Rafael Irizarry, blog author)",
+    "software_named": [],
+    "workflow": "bar graphs of continuous data",
+    "quote": "However, despite all these efforts, dynamite plots continue to be ubiquitous in the scientific literature.",
+    "problem": "Mean+error bar 'dynamite' plots persist despite years of criticism",
+    "need": "Default to dot/box plots showing every point for continuous small-n data; make bars an explicit choice",
+    "severity": "wrong result risk",
+    "signal": {
+      "cited_pct_physiology_papers_with_bar_graph": 85.6
+    },
+    "tags": [
+      "show-the-points",
+      "error-bars-sd-sem"
+    ]
+  },
+  {
+    "id": "blog-retractionwatch-paste-1",
+    "venue": "retractionwatch.com",
+    "url": "https://retractionwatch.com/2024/03/08/how-a-sleuths-email-turned-a-correction-into-a-retraction",
+    "date": "2024-03",
+    "role": "PI, biomedical (quoted in Retraction Watch)",
+    "software_named": [],
+    "workflow": "pasting data into statistics software",
+    "quote": "I analyzed these data and inaccurately pasted the data into the analysis software, leading to an incorrect grouping of the data.",
+    "problem": "Mis-pasted data produced wrong group assignments and a retracted paper",
+    "need": "Show group membership and n per group clearly after paste/import and keep a link to the raw data file",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "excel-paste",
+      "reproducibility-audit",
+      "trust-validation"
+    ]
+  },
+  {
+    "id": "blog-retractionwatch-paste-2",
+    "venue": "retractionwatch.com",
+    "url": "https://retractionwatch.com/2024/03/08/how-a-sleuths-email-turned-a-correction-into-a-retraction",
+    "date": "2024-03",
+    "role": "PubPeer commenter (quoted in Retraction Watch)",
+    "software_named": [],
+    "workflow": "replicate readings treated as independent experiments",
+    "quote": "Actually data show replicate reading of same sample from same experiment. This false statistic analysis make very small error bar so statistic significance is reached.",
+    "problem": "Technical replicate readings were analysed as independent experiments",
+    "need": "Ask whether replicates are technical or biological and aggregate technical ones before testing",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "technical-vs-biological-replicates",
+      "n-definition",
+      "error-bars-sd-sem"
+    ]
+  },
+  {
+    "id": "blog-retractionwatch-paste-3",
+    "venue": "retractionwatch.com",
+    "url": "https://retractionwatch.com/2024/03/08/how-a-sleuths-email-turned-a-correction-into-a-retraction",
+    "date": "2024-03",
+    "role": "journal ethics committee chair (quoted in Retraction Watch)",
+    "software_named": [],
+    "workflow": "post-publication scrutiny",
+    "quote": "We do need to see the individual data points on which these figures and statistics were based.",
+    "problem": "Journals need individual data points behind summary figures and tests",
+    "need": "Export figures with underlying point data and analysis record for journal/reviewer requests",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "show-the-points",
+      "reproducibility-audit"
+    ]
+  },
+  {
+    "id": "blog-retractionwatch-sesd-1",
+    "venue": "retractionwatch.com",
+    "url": "https://retractionwatch.com/2019/12/09/authors-retract-two-studies-on-high-blood-pressure-and-supplements-after-realizing-theyd-made-a-common-error/",
+    "date": "2019-12",
+    "role": "statistics expert (quoted in Retraction Watch)",
+    "software_named": [],
+    "workflow": "SE vs SD in reported results",
+    "quote": "Mistaking a standard error for a standard deviation is common and seems to often result from a combination of insufficient carefulness on the part of the meta-analysts and unclear or incorrect labeling of standard errors vs standard deviations in the original articles being meta-analyzed.",
+    "problem": "Unclear SE/SD labelling in papers leads to downstream errors and retractions",
+    "need": "Always label error bars and table values explicitly (SD, SEM, 95% CI) in graphs, legends and exports",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "error-bars-sd-sem",
+      "figure-legend",
+      "reporting-methods"
+    ]
+  },
+  {
+    "id": "blog-focalplane-imageanalysis-1",
+    "venue": "focalplane.biologists.com",
+    "url": "https://focalplane.biologists.com/?p=29415",
+    "date": "2025-12",
+    "role": "image analysts (Owen Puls & Rachel Lee, blog authors)",
+    "software_named": [
+      "Fiji",
+      "CellProfiler",
+      "Cellpose"
+    ],
+    "workflow": "getting started with microscopy quantification",
+    "quote": "And yet, it can be difficult to know where to get started with image analysis, given the abundance of tools and techniques that are available.",
+    "problem": "Overwhelming tool choice for turning microscopy into numbers that reviewers expect",
+    "need": "Clear entry path from image-analysis outputs (Fiji/CellProfiler tables) into analysis and graphs",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "image-analysis-exports",
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "blog-sinica-doseresponse-1",
+    "venue": "lsl.sinica.edu.tw",
+    "url": "https://lsl.sinica.edu.tw/Blog/?p=2418",
+    "date": "2020-08",
+    "role": "life science library staff (Academia Sinica, blog author)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "dose-response EC50/IC50 fitting",
+    "quote": "The EC50 (or IC50) should be within range of your data, near the middle of the curve. If these values are not appropriate, it might be useful to constrain some of the parameters. Additionally, check that plateaus of your data are reasonable.",
+    "problem": "Users must manually judge whether fitted IC50/plateaus are plausible and decide on constraints",
+    "need": "Automatic fit diagnostics: flag IC50 outside the tested range and plateaus far beyond the data, and suggest constraints",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "ic50-ec50-setup",
+      "fit-diagnostics"
+    ]
+  },
+  {
+    "id": "blog-sinica-doseresponse-2",
+    "venue": "lsl.sinica.edu.tw",
+    "url": "https://lsl.sinica.edu.tw/Blog/?p=2418",
+    "date": "2020-08",
+    "role": "life science library staff (Academia Sinica, blog author)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "learning a stats/graphing package",
+    "quote": "It has so many options that sometimes it can be daunting to learn the hangs of it, but the more you invest in understanding it, the more you will get out of it, and when stuck, you can always reach out to someone for help!",
+    "problem": "The number of options in the analysis package is daunting for new users",
+    "need": "Progressive disclosure: sensible defaults first, advanced options only when needed",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "blog-khlab-figureworkflow-1",
+    "venue": "cloud.wikis.utexas.edu",
+    "url": "https://cloud.wikis.utexas.edu/wiki/spaces/khlab/pages/53544722",
+    "date": null,
+    "role": "lab wiki, neuroscience EM lab (Harris lab, UT Austin)",
+    "software_named": [
+      "GraphPad Prism",
+      "Adobe Illustrator",
+      "Adobe Photoshop",
+      "Excel",
+      "PowerPoint",
+      "Fiji"
+    ],
+    "workflow": "assembling publication figures",
+    "quote": "Information on this page is based on a Windows PC with Adobe Photoshop version 23.0 (and later), Adobe Illustrator version 26.0 (and later), and GraphPad Prism 9. Also requires basic knowledge of Microsoft Excel, Microsoft PowerPoint, Reconstruct, and maybe Fiji/ImageJ.",
+    "problem": "Producing one publication figure requires a chain of five or more separate (mostly paid) programs",
+    "need": "Produce journal-ready multi-panel figures (sizes, fonts, vector export) without a multi-program chain",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "layouts-multipanel",
+      "illustrator-handoff",
+      "price-licence"
+    ]
+  },
+  {
+    "id": "blog-khlab-figureworkflow-2",
+    "venue": "cloud.wikis.utexas.edu",
+    "url": "https://cloud.wikis.utexas.edu/wiki/spaces/khlab/pages/53544722",
+    "date": null,
+    "role": "lab wiki, neuroscience EM lab (Harris lab, UT Austin)",
+    "software_named": [
+      "GraphPad Prism",
+      "Adobe Illustrator"
+    ],
+    "workflow": "graph export to figure assembly",
+    "quote": "Output from GraphPad Prism: export as EPS, then open in Illustrator",
+    "problem": "Graphs must be exported and reopened in Illustrator to assemble figures",
+    "need": "Clean vector (EPS/PDF/SVG) export with editable text and true sizing so graphs drop into figure layouts unchanged",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "export-vector",
+      "illustrator-handoff"
+    ]
+  },
+  {
+    "id": "blog-khlab-figureworkflow-3",
+    "venue": "cloud.wikis.utexas.edu",
+    "url": "https://cloud.wikis.utexas.edu/wiki/spaces/khlab/pages/53544722",
+    "date": null,
+    "role": "lab wiki, neuroscience EM lab (Harris lab, UT Austin)",
+    "software_named": [
+      "Adobe Illustrator"
+    ],
+    "workflow": "journal figure requirements",
+    "quote": "Every journal has its own figure format, so pay attention to what they are asking for. Not following the instructions can result in published figures with a sub-optimal resolution, shifted colors, shifted brightness/contrast, etc., etc.",
+    "problem": "Journal-specific size/resolution/colour rules are easy to get wrong",
+    "need": "Journal presets for figure width, minimum font size, colour mode and DPI at export",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "export-dpi",
+      "graph-formatting"
+    ]
+  },
+  {
+    "id": "blog-khlab-figureworkflow-4",
+    "venue": "cloud.wikis.utexas.edu",
+    "url": "https://cloud.wikis.utexas.edu/wiki/spaces/khlab/pages/53544722",
+    "date": null,
+    "role": "lab wiki, neuroscience EM lab (Harris lab, UT Austin)",
+    "software_named": [
+      "Microsoft Office",
+      "Adobe Illustrator"
+    ],
+    "workflow": "consistent fonts across figures",
+    "quote": "Remember that your software tools may have their own default font (e.g., Calibri for Microsoft Office and Myriad Pro for Adobe Illustrator). Use the same font across all figures because having different fonts can be distracting.",
+    "problem": "Different tools' default fonts produce inconsistent figures",
+    "need": "Project-wide style (font, sizes, condition colours) applied to all graphs",
+    "severity": "cosmetic / preference",
+    "signal": null,
+    "tags": [
+      "graph-formatting"
+    ]
+  },
+  {
+    "id": "blog-cheekyscientist-flowstats-1",
+    "venue": "expert.cheekyscientist.com",
+    "url": "https://expert.cheekyscientist.com/?p=1420",
+    "date": null,
+    "role": "flow cytometry trainer, PhD biology (Tim Bushnell, stated)",
+    "software_named": [
+      "FlowJo"
+    ],
+    "workflow": "comparing antigen expression (MFI) between conditions",
+    "quote": "Before you move to hypothesis testing, it is often best to convert this data to a fold over background, or resolution metric (R",
+    "problem": "MFI data need conversion (fold over background / resolution metric using median and robust SD) before testing",
+    "need": "Flow-cytometry-aware analysis: median/rSD summaries, fold-over-background or resolution metric, then one-sample test vs 0",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "flow-cytometry",
+      "normalization",
+      "which-test"
+    ]
+  },
+  {
+    "id": "blog-prelights-plotsofdata-1",
+    "venue": "prelights.biologists.com",
+    "url": "https://prelights.biologists.com/?p=5302",
+    "date": "2018-10",
+    "role": "cell biologist, preLights selector (Guillaume Jacquemet)",
+    "software_named": [
+      "R",
+      "boxplotr",
+      "PlotsOfData"
+    ],
+    "workflow": "dot/box/violin plots for a manuscript",
+    "quote": "However, generating these plots remains relatively difficult. Commercial plotting software are widely available but are often expensive and constitute a financial burden for academic labs and students alike. Free alternatives exist but mostly require coding knowledge (i.e., R language).",
+    "problem": "Better-than-bar plots are either expensive (commercial) or require coding",
+    "need": "Free, no-code tool for dot/box/violin plots with paste-in data and editable PDF export",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "price-licence",
+      "show-the-points",
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "blog-prelights-plotsofdata-2",
+    "venue": "prelights.biologists.com",
+    "url": "https://prelights.biologists.com/?p=5302",
+    "date": "2018-10",
+    "role": "cell biologist, preLights selector (Guillaume Jacquemet)",
+    "software_named": [
+      "PlotsOfData"
+    ],
+    "workflow": "exporting plots for a manuscript",
+    "quote": "the resulting graphs can be exported as images or modifiable PDFs. PlotsOfData was written using the powerful R/shiny and implements the well-known ggplot2 package for generating plots. I have already used this tool to generate plots for my current manuscript",
+    "problem": "Researcher needs plots that remain editable after export for figure assembly",
+    "need": "Export editable vector PDF/SVG plus raster images",
+    "severity": "cosmetic / preference",
+    "signal": null,
+    "tags": [
+      "export-vector",
+      "excel-paste"
+    ]
+  },
+  {
+    "id": "blog-prelights-estimation-1",
+    "venue": "prelights.biologists.com",
+    "url": "https://prelights.biologists.com/?p=4025",
+    "date": "2018-08",
+    "role": "data scientist, fly neuroscience lab (Joses Ho, interviewed author)",
+    "software_named": [
+      "Python",
+      "DABEST"
+    ],
+    "workflow": "getting other labs to use estimation statistics",
+    "quote": "I also attempted to get other laboratories to use my Python code, but the need to learn programming was a major barrier to adoption, so it became clear I needed to be able to say: \"There's an app for that.\"",
+    "problem": "Better statistics methods do not spread to bench labs when they require programming",
+    "need": "Provide estimation plots (effect size + CI with raw data) in a no-code tool",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "effect-size",
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "blog-prelights-estimation-2",
+    "venue": "prelights.biologists.com",
+    "url": "https://prelights.biologists.com/?p=4025",
+    "date": "2018-08",
+    "role": "data scientist, fly neuroscience lab (Joses Ho, interviewed author)",
+    "software_named": [
+      "DABEST"
+    ],
+    "workflow": "significance testing in everyday analysis",
+    "quote": "So it really grew out of our own frustration with significance testing, and a desire for better tools for ourselves.",
+    "problem": "Lab frustrated by P-value-only significance testing",
+    "need": "Report effect size with bootstrap CI alongside or instead of P values",
+    "severity": "cosmetic / preference",
+    "signal": null,
+    "tags": [
+      "effect-size",
+      "exact-p"
+    ]
+  },
+  {
+    "id": "blog-astar-estimation-1",
+    "venue": "research.a-star.edu.sg",
+    "url": "https://research.a-star.edu.sg/articles/highlights/the-p-value-is-dead-long-live-the-estimation-plot/",
+    "date": null,
+    "role": "PI, molecular and cell biology (Adam Claridge-Chang, quoted)",
+    "software_named": [
+      "DABEST"
+    ],
+    "workflow": "two-group comparisons presented as bar charts with P values",
+    "quote": "For experimental outcomes, this false dichotomy constrains interpretation to the presence or absence of an effect, instead of a more meaningful consideration of effect size",
+    "problem": "P-value significant/non-significant framing hides effect magnitude",
+    "need": "Default output shows effect size and its CI with the raw data, not just a significance verdict",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "effect-size",
+      "show-the-points"
+    ]
+  },
+  {
+    "id": "blog-occamstypewriter-statpain-1",
+    "venue": "occamstypewriter.org",
+    "url": "https://occamstypewriter.org/boboh/2010/09/20/im_been_meaning_to_write/",
+    "date": "2010-09",
+    "role": "commenter",
+    "software_named": [],
+    "workflow": "mean+SEM bar graphs tested non-parametrically",
+    "quote": "it condemned the rather common and erroneous practice of depicting means and SD/SEM on bar graphs in figures, and analyzing that data with a non-parametric test which does not look at means, such as the Mann Whitney U test. Sadly, this practice still exists, even in journals as hallowed as Nature.",
+    "problem": "Graph summary (mean +/- SEM bars) and test (rank-based Mann-Whitney) disagree",
+    "need": "Keep the plotted summary consistent with the test (medians/IQR with rank tests; means/CI with t-tests) and warn on mismatch",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "nonparametric",
+      "error-bars-sd-sem",
+      "show-the-points"
+    ]
+  },
+  {
+    "id": "blog-occamstypewriter-statpain-2",
+    "venue": "occamstypewriter.org",
+    "url": "https://occamstypewriter.org/boboh/2010/09/20/im_been_meaning_to_write/",
+    "date": "2010-09",
+    "role": "statistician (Bob O'Hara, blog author)",
+    "software_named": [],
+    "workflow": "biologist-statistician collaboration",
+    "quote": "I think the problems come when the statistician isn't seen as a collaborator, but as a workman or a servant. The Beast thinks of me as a servant too, but he never annoys me with questions about why he can't just do a t-test.",
+    "problem": "Biologists push statisticians to just run a t-test regardless of design",
+    "need": "Explain in plain language why a design needs something other than a t-test",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "which-test",
+      "teaching"
+    ]
+  },
+  {
+    "id": "blog-nature-codealert-1",
+    "venue": "nature.com",
+    "url": "https://www.nature.com/articles/nj7638-563a",
+    "date": "2017-01",
+    "role": "Nature careers feature",
+    "software_named": [
+      "R",
+      "Python"
+    ],
+    "workflow": "programming for analysis",
+    "quote": "Programming tools can speed up and strengthen analyses, but mastering the skills takes time and can be daunting.",
+    "problem": "Programming skills that would strengthen analyses are daunting and slow to acquire",
+    "need": "Strong analyses available without programming mastery",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "blog-scisound-poorstats-1",
+    "venue": "scientificallysound.org",
+    "url": "https://scientificallysound.org/2016/10/24/poor-statistical-practices/",
+    "date": "2016-10",
+    "role": "neuroscience researcher (Martin Heroux, blog author)",
+    "software_named": [],
+    "workflow": "error bars in neurophysiology papers",
+    "quote": "Sadly, 65% of papers published in 2015 reported the SEM to (presumably) summarize data variability, while another 12.5% of papers included figures with error bars that were not defined (!).",
+    "problem": "SEM used to describe variability and error bars left undefined in most papers",
+    "need": "Prompt for the purpose of the error bar (describe spread -> SD; precision -> 95% CI) and always print its definition in the legend",
+    "severity": "wrong result risk",
+    "signal": {
+      "papers_using_sem_pct": 65,
+      "papers_undefined_error_bars_pct": 12.5,
+      "papers_audited_year": 2015
+    },
+    "tags": [
+      "error-bars-sd-sem",
+      "figure-legend"
+    ]
+  },
+  {
+    "id": "blog-scisound-poorstats-2",
+    "venue": "scientificallysound.org",
+    "url": "https://scientificallysound.org/2016/10/24/poor-statistical-practices/",
+    "date": "2016-10",
+    "role": "neuroscience researcher (Martin Heroux, blog author)",
+    "software_named": [],
+    "workflow": "reporting P values",
+    "quote": "When authors report p<0.05, it is unclear whether the p-value is p=0.013 or p=0.049 or p=0.00001. In my audit of published papers, only 58% consistently reported exact p-values.",
+    "problem": "Inexact P values (p<0.05) hide the actual result",
+    "need": "Report exact P values by default in results tables, graph annotations and methods text",
+    "severity": "slows the work",
+    "signal": {
+      "papers_consistently_exact_p_pct": 58
+    },
+    "tags": [
+      "exact-p",
+      "reporting-methods"
+    ]
+  },
+  {
+    "id": "blog-scisound-poorstats-3",
+    "venue": "scientificallysound.org",
+    "url": "https://scientificallysound.org/2016/10/24/poor-statistical-practices/",
+    "date": "2016-10",
+    "role": "neuroscience researcher (Martin Heroux, blog author)",
+    "software_named": [],
+    "workflow": "interpreting p between 0.05 and 0.1",
+    "quote": "Of the papers audited that reported p-values between 0.05-0.1, 57% of them interpreted these p-values as statistically significant or statistical trends.",
+    "problem": "Near-threshold P values are spun as significant 'trends'",
+    "need": "Results wording that states effect size and CI and does not label p>alpha as significant or a trend",
+    "severity": "wrong result risk",
+    "signal": {
+      "near_threshold_p_called_significant_or_trend_pct": 57
+    },
+    "tags": [
+      "exact-p",
+      "effect-size"
+    ]
+  },
+  {
+    "id": "blog-scisound-poorstats-4",
+    "venue": "scientificallysound.org",
+    "url": "https://scientificallysound.org/2016/10/24/poor-statistical-practices/",
+    "date": "2016-10",
+    "role": "neuroscience researcher (Martin Heroux, blog author)",
+    "software_named": [],
+    "workflow": "SEM in figures by journal convention",
+    "quote": "In their response to my comments, the authors explained they changed the SEM to SD in text, but kept the SEM in figures because this was the convention for the Journal of Neurophysiology!",
+    "problem": "Authors keep SEM error bars in figures because of field convention, contradicting text",
+    "need": "Keep error-bar type consistent between figure and text and explain the choice",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "error-bars-sd-sem"
+    ]
+  },
+  {
+    "id": "blog-scisound-smokemirrors-1",
+    "venue": "scientificallysound.org",
+    "url": "https://scientificallysound.org/2016/08/24/the-smoke-and-mirrors-of-plotting-summary-statistics/",
+    "date": "2016-08",
+    "role": "neuroscience researcher (blog author)",
+    "software_named": [],
+    "workflow": "time-course plots of mean +/- error bars",
+    "quote": "However, when a plot reveals a pattern over time, humans may erroneously conclude, consciously or not, that each subject or sample used to compute these summary statistics follow the same overall pattern.",
+    "problem": "Mean time-course plots hide divergent individual trajectories",
+    "need": "Option to overlay individual subject traces under the mean time course",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "show-the-points",
+      "time-series"
+    ]
+  },
+  {
+    "id": "blog-scisound-smokemirrors-2",
+    "venue": "scientificallysound.org",
+    "url": "https://scientificallysound.org/2016/08/24/the-smoke-and-mirrors-of-plotting-summary-statistics/",
+    "date": "2019-01",
+    "role": "commenter",
+    "software_named": [],
+    "workflow": "choosing SD vs SEM",
+    "quote": "In my experience, presenting the standard deviation when the standard error in the mean is appropriate is the much more common error.",
+    "problem": "Readers disagree on which error bar is appropriate; the SD/SEM choice remains confusing",
+    "need": "Explain SD vs SEM vs CI at the point of choice, based on whether the goal is to describe spread or estimate the mean",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "error-bars-sd-sem",
+      "teaching"
+    ]
+  },
+  {
+    "id": "blog-scisound-rawdata-1",
+    "venue": "scientificallysound.org",
+    "url": "https://scientificallysound.org/2016/04/07/why-showing-raw-data-matters/",
+    "date": "2016-04",
+    "role": "physiology researcher (blog author)",
+    "software_named": [],
+    "workflow": "small-n lab studies shown as bar graphs",
+    "quote": "That is, presenting SE error bars magnifies an apparent visual difference between groups",
+    "problem": "SE bars on bar graphs exaggerate apparent group differences in small samples",
+    "need": "Default to scatter (all points) for small n, with SD or CI overlay",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "show-the-points",
+      "error-bars-sd-sem"
+    ]
+  },
+  {
+    "id": "blog-sardanalab-superplots-1",
+    "venue": "sardanalab.vet.cornell.edu",
+    "url": "https://sardanalab.vet.cornell.edu/blog/multi-color-beeswarm-plot",
+    "date": "2020-01",
+    "role": "lab blog, cell biology (Sardana lab, Cornell)",
+    "software_named": [
+      "GraphPad Prism",
+      "Excel",
+      "R",
+      "Python"
+    ],
+    "workflow": "P values from per-cell measurements",
+    "quote": "The problem of comically miniscule (and hence useless) P-values in many cell biology studies is in part due to erroneous and inflated sample size, N. N should represent the number of times an experiment is repeated, not the total number of cells.",
+    "problem": "N inflated by counting cells yields meaninglessly small P values",
+    "need": "Make the experimental unit explicit and compute tests on per-replicate summaries",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "n-definition",
+      "technical-vs-biological-replicates"
+    ]
+  },
+  {
+    "id": "blog-sardanalab-superplots-2",
+    "venue": "sardanalab.vet.cornell.edu",
+    "url": "https://sardanalab.vet.cornell.edu/blog/multi-color-beeswarm-plot",
+    "date": "2020-01",
+    "role": "lab blog, cell biology (Sardana lab, Cornell)",
+    "software_named": [],
+    "workflow": "cell migration speed, 3 replicates x 200 cells",
+    "quote": "first calculate the mean of those 200 measurements for each sample, then run a t-test on those sample means (three control, three treated).",
+    "problem": "Researchers must aggregate cell measurements to replicate means by hand before testing",
+    "need": "Automatic per-replicate aggregation and colour-coded beeswarm SuperPlot from long-format cell data",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "superplots",
+      "technical-vs-biological-replicates"
+    ]
+  },
+  {
+    "id": "blog-thenode-flyingcolors-1",
+    "venue": "thenode.biologists.com",
+    "url": "https://thenode.biologists.com/data-visualization-with-flying-colors/research/embed/",
+    "date": null,
+    "role": "assistant professor, molecular cytology (Joachim Goedhart; colour vision deficiency, stated)",
+    "software_named": [],
+    "workflow": "choosing colours for categorical graphs",
+    "quote": "One of the recommendations is to use a color blindness simulator. Having a color vision deficiency myself,",
+    "problem": "Default category colours are not readable by colour-blind researchers/readers",
+    "need": "Colour-blind-safe default palettes and a built-in colour-vision-deficiency preview",
+    "severity": "cosmetic / preference",
+    "signal": null,
+    "tags": [
+      "colour-blind",
+      "accessibility"
+    ]
+  },
+  {
+    "id": "blog-prelights-tidyplots-1",
+    "venue": "prelights.biologists.com",
+    "url": "https://prelights.biologists.com/highlights/tidyplots-empowers-life-scientists-with-easy-code-based-data-visualization/",
+    "date": "2025",
+    "role": "ECR preLights reviewers (life scientists)",
+    "software_named": [
+      "tidyplots",
+      "R",
+      "ggplot2"
+    ],
+    "workflow": "data visualization without commercial licences",
+    "quote": "Additionally, many scientists are not able to afford commercial licenses for more mainstream programs that take care of data analysis and visualization, which can sometimes lead to inadequate data assessing and analysis.",
+    "problem": "Unaffordable commercial licences push scientists toward inadequate analysis",
+    "need": "Free tool with the standard analyses and graph types so cost does not degrade analysis quality",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "price-licence"
+    ]
+  },
+  {
+    "id": "blog-prelights-tidyplots-2",
+    "venue": "prelights.biologists.com",
+    "url": "https://prelights.biologists.com/highlights/tidyplots-empowers-life-scientists-with-easy-code-based-data-visualization/",
+    "date": "2025",
+    "role": "ECR preLights reviewers (life scientists)",
+    "software_named": [
+      "R",
+      "ggplot2"
+    ],
+    "workflow": "code-based plotting for life scientists",
+    "quote": "Unfortunately, existing open-source tools often have complex syntax, posing a barrier for life scientists especially those not used to work with code. Traditional data analysis workflows can't really cope with the increasing data volume and current reproducibility standards.",
+    "problem": "Free tools have complex syntax; manual workflows fail on volume and reproducibility",
+    "need": "Low-syntax interface that still records reproducible, rerunnable analysis steps",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "learning-curve",
+      "reproducibility-audit",
+      "large-data"
+    ]
+  },
+  {
+    "id": "blog-becker-prismlicence-1",
+    "venue": "becker.wustl.edu",
+    "url": "https://becker.wustl.edu/resources/software/graphpad-prism/",
+    "date": null,
+    "role": "university medical library software licensing page",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "institutional licence cost to labs",
+    "quote": "Personal Prism licenses cost $150 per person per license year.",
+    "problem": "Recurring per-person annual cost charged to labs (vs $40 per computer announced by the same library in 2017)",
+    "need": "No per-seat recurring licence for core lab statistics and graphing",
+    "severity": "slows the work",
+    "signal": {
+      "usd_per_person_per_year": 150
+    },
+    "tags": [
+      "price-licence"
+    ]
+  },
+  {
+    "id": "blog-becker-prismlicence-2",
+    "venue": "becker.wustl.edu",
+    "url": "https://becker.wustl.edu/?p=730",
+    "date": "2017-10",
+    "role": "university medical library news post",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "institutional licence cost to labs",
+    "quote": "Becker Library is pleased to announce the annual license fee for GraphPad Prism has been reduced to $40 per computer.",
+    "problem": "Licence cost depends on institutional volume deals; earlier per-computer fee later replaced by much higher per-person fee",
+    "need": "Predictable, low or zero cost access independent of institutional purchasing",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "usd_per_computer_per_year": 40
+    },
+    "tags": [
+      "price-licence"
+    ]
+  },
+  {
+    "id": "blog-editage-wettodry-1",
+    "venue": "editage.com",
+    "url": "https://www.editage.com/insights/?p=2324",
+    "date": null,
+    "role": "MPhil candidate, plant epigenetics; former wet-lab student (stated)",
+    "software_named": [
+      "R",
+      "Bash"
+    ],
+    "workflow": "learning coding for data analysis from a wet-lab background",
+    "quote": "Coming from a non-coding background, for me the letters and symbols of different coding functions seemed like ancient hieroglyphs that I couldn't comprehend.",
+    "problem": "Code syntax is incomprehensible to wet-lab-trained students",
+    "need": "Analysis without writing code, with optional code export for those who want it",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "blog-editage-wettodry-2",
+    "venue": "editage.com",
+    "url": "https://www.editage.com/insights/?p=2324",
+    "date": null,
+    "role": "MPhil candidate, plant epigenetics; former wet-lab student (stated)",
+    "software_named": [
+      "R"
+    ],
+    "workflow": "checking processed data and outputs",
+    "quote": "At first, I found it overwhelming to understand what happens once a code is executed. This was because I knew too little at the time to check the processed data files and interpret the output.",
+    "problem": "Cannot verify what an analysis step did or interpret its output",
+    "need": "Show intermediate results and plain-language interpretation of each output",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "trust-validation",
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "blog-editage-wettodry-3",
+    "venue": "editage.com",
+    "url": "https://www.editage.com/insights/?p=2324",
+    "date": null,
+    "role": "MPhil candidate, plant epigenetics; former wet-lab student (stated)",
+    "software_named": [],
+    "workflow": "PCA/clustering terminology",
+    "quote": "I also faced problems understanding the terminologies used in computational biology - hierarchical clustering, principal component analysis (PCA), and bootstrapping, just to name a few of these terms.",
+    "problem": "Jargon of multivariate methods blocks understanding",
+    "need": "Inline glossary/explanations for PCA, clustering and bootstrap outputs",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "pca-clustering",
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "blog-kiblog-wettodry-1",
+    "venue": "researcherblogs.ki.se",
+    "url": "https://researcherblogs.ki.se/?p=13190",
+    "date": null,
+    "role": "computational postdoc, former wet-lab PhD (profiled)",
+    "software_named": [],
+    "workflow": "biologist-bioinformatician communication",
+    "quote": "There was still a big gap in knowledge and communication between pure biologists and bioinformaticians here at Cambridge, despite it being one of the most resourceful pioneers in research transformation.",
+    "problem": "Knowledge/communication gap between bench biologists and bioinformaticians",
+    "need": "Tools wet-lab scientists can use themselves for routine analyses, with outputs bioinformaticians can audit",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "sharing-collaboration",
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "blog-onishlab-statsworkshop-1",
+    "venue": "onishlab.colostate.edu",
+    "url": "https://onishlab.colostate.edu/summer-statistics-workshop-2019",
+    "date": "2019",
+    "role": "lab website, molecular biology (Onish lab, Colorado State)",
+    "software_named": [],
+    "workflow": "lab statistics training",
+    "quote": "The interpretation of data we generate as biologists is often incomplete without the proper implementation of statistical tools. However, it is commonplace for biologists to be deficient in statistical thinking.",
+    "problem": "Labs need to run their own statistics workshops because biologists lack statistical thinking",
+    "need": "Built-in statistics guidance that teaches while analysing",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "teaching",
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "blog-thenode-effectsize-1",
+    "venue": "thenode.biologists.com",
+    "url": "https://thenode.biologists.com/quantification-of-differences-as-alternative-for-p-values/research/",
+    "date": "2018-10",
+    "role": "researcher, molecular cytology (Joachim Goedhart)",
+    "software_named": [
+      "Excel"
+    ],
+    "workflow": "cell area under three conditions, skewed data",
+    "quote": "Therefore, p-values fail to answer a very relevant question: \"How large is the difference between the conditions?\"",
+    "problem": "P values do not tell bench scientists how large the effect is",
+    "need": "Report difference of medians/means vs control with bootstrap 95% CI and plot it beside the data",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "effect-size",
+      "exact-p"
+    ]
+  },
+  {
+    "id": "blog-thenode-effectsize-2",
+    "venue": "thenode.biologists.com",
+    "url": "https://thenode.biologists.com/quantification-of-differences-as-alternative-for-p-values/research/",
+    "date": "2018-10",
+    "role": "researcher, molecular cytology (Joachim Goedhart)",
+    "software_named": [],
+    "workflow": "skewed cell-size data",
+    "quote": "When the distribution of the observed areas is non-normal (as is the case here), the median better reflects the central tendency (i.e. typical value) of the sample.",
+    "problem": "Skewed per-cell measurements need median-based summaries and effect sizes",
+    "need": "Detect skew and offer median differences with bootstrap CIs",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "nonparametric",
+      "effect-size"
+    ]
+  },
+  {
+    "id": "blog-thenode-distributions-1",
+    "venue": "thenode.biologists.com",
+    "url": "https://thenode.biologists.com/distribution_plots/education/",
+    "date": "2018-08",
+    "role": "researcher / dataviz author (Helena Jambor)",
+    "software_named": [],
+    "workflow": "choosing distribution plots",
+    "quote": "However, in life science we often have bimodal distributions, clusters, or gaps. Then boxplots become very insufficient and might even conceal interesting aspects (if not outright be misleading).",
+    "problem": "Box plots hide bimodality and gaps common in life-science data",
+    "need": "Offer histogram/density/violin + points, and flag apparent multimodality",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "show-the-points",
+      "graph-formatting"
+    ]
+  },
+  {
+    "id": "blog-thenode-distributions-2",
+    "venue": "thenode.biologists.com",
+    "url": "https://thenode.biologists.com/distribution_plots/education/",
+    "date": "2018-08",
+    "role": "researcher / dataviz author (Helena Jambor)",
+    "software_named": [],
+    "workflow": "histograms",
+    "quote": "Here, one has to be very careful with choosing bin sizes: too large or too small bins can greatly distort the histogram shape and result in a misleading chart.",
+    "problem": "Histogram bin choice can distort the distribution",
+    "need": "Sensible automatic binning with an interactive bin-width control",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "graph-formatting"
+    ]
+  },
+  {
+    "id": "blog-thenode-distributions-3",
+    "venue": "thenode.biologists.com",
+    "url": "https://thenode.biologists.com/distribution_plots/education/",
+    "date": "2018-08",
+    "role": "commenter",
+    "software_named": [],
+    "workflow": "interpreting raw-data plots",
+    "quote": "One thing to keep in mind I think is to avoid over-interpretation of the raw data. When you say \"that zebras show a curious clustering\" it shows more a weakness of raw points to me because our brain tends to seek for patterns of all kinds",
+    "problem": "Showing all points invites over-interpretation of chance patterns",
+    "need": "Pair raw points with summaries and uncertainty so patterns are judged against noise",
+    "severity": "cosmetic / preference",
+    "signal": null,
+    "tags": [
+      "show-the-points"
+    ]
+  },
+  {
+    "id": "blog-ascb-training-1",
+    "venue": "ascb.org",
+    "url": "http://www.ascb.org/ascb-post/careers/who-should-be-training-trainees-on-reproducibility-and-ethics/",
+    "date": "2017-02",
+    "role": "Executive Director, Future of Research (Gary McDowell, former bench scientist)",
+    "software_named": [],
+    "workflow": "training junior researchers in rigor/statistics",
+    "quote": "There is, however, open admission in the Nature article that current PIs often have not been trained in these methods themselves, so training cannot be expected to come from them.",
+    "problem": "Trainees cannot learn rigorous analysis from PIs who were never trained in it",
+    "need": "Analysis tool that embeds rigor checks (replicates, blinding, design) so good practice does not depend on the PI",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "teaching",
+      "reproducibility-audit"
+    ]
+  },
+  {
+    "id": "blog-ascb-training-2",
+    "venue": "ascb.org",
+    "url": "http://www.ascb.org/ascb-post/careers/who-should-be-training-trainees-on-reproducibility-and-ethics/",
+    "date": "2017-02",
+    "role": "Executive Director, Future of Research (Gary McDowell)",
+    "software_named": [],
+    "workflow": "time for statistics training",
+    "quote": "How is the biomedical research enterprise ensuring that rigorous scientific research is taking place, if training in rigor and reproducibility is expected to be carried out in a non-standard, individual manner by the trainees themselves, despite a lack of protected time for any training?",
+    "problem": "No protected time for trainees to learn statistics/rigor",
+    "need": "Just-in-time guidance inside the analysis rather than separate courses",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "teaching",
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "blog-myphdiary-learncode-1",
+    "venue": "myphdiary.substack.com",
+    "url": "https://myphdiary.substack.com/p/so-you-want-to-learn-how-to-code",
+    "date": null,
+    "role": "PhD student, biology (stated)",
+    "software_named": [
+      "GraphPad Prism",
+      "R",
+      "Excel"
+    ],
+    "workflow": "first data analysis as a new biologist",
+    "quote": "If you're a baby biologist, you may soon encounter one of your first hurdles: data analysis. Excel, Prism, R, there are lots of options for analyzing your data, and they all have different purposes.",
+    "problem": "New biologists face data analysis as an early hurdle with confusing tool choice",
+    "need": "One accessible starting point covering everyday lab analyses and graphs",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "blog-myphdiary-learncode-2",
+    "venue": "myphdiary.substack.com",
+    "url": "https://myphdiary.substack.com/p/so-you-want-to-learn-how-to-code",
+    "date": null,
+    "role": "PhD student, biology (stated)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "access to analysis software for students",
+    "quote": "other software that you may use to analyze data, like Prism, for example, may not be accessible to someone just starting out, since it comes with a cost of about $150/year.",
+    "problem": "Annual licence cost makes standard lab software inaccessible to beginners",
+    "need": "Free access for students and early-career researchers",
+    "severity": "slows the work",
+    "signal": {
+      "usd_per_year": 150
+    },
+    "tags": [
+      "price-licence"
+    ]
+  },
+  {
+    "id": "blog-retractionwatch-wbstats-1",
+    "venue": "retractionwatch.com",
+    "url": "https://retractionwatch.com/2018/03/29/caught-our-notice-duplicates-errors-prompt-two-retractions-for-same-author/",
+    "date": "2018-03",
+    "role": "retraction notice quoted in Retraction Watch",
+    "software_named": [],
+    "workflow": "statistics on quantitative western blots",
+    "quote": "In Figure 5, there was an error in statistical analysis of quantitative Western blot data, resulting in error bars that were too small.",
+    "problem": "Wrong statistical handling of densitometry data produced too-small error bars and a retraction",
+    "need": "Densitometry-to-statistics workflow that aggregates lanes/blots correctly and states n and error type",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "western-blot-densitometry",
+      "error-bars-sd-sem",
+      "n-definition"
+    ]
+  },
+  {
+    "id": "blog-retractionwatch-trustwb-1",
+    "venue": "retractionwatch.com",
+    "url": "https://retractionwatch.com/2012/04/03/can-we-trust-western-blots/",
+    "date": "2012-04",
+    "role": "commenter",
+    "software_named": [
+      "PowerPoint"
+    ],
+    "workflow": "quantifying saturated western blot bands",
+    "quote": "In one case I alerted the authors to this problem, and their response was simply to dial back all the blots in powerpoint (using brightness/contrast), resulting in gray fat bands instead of black fat bands.",
+    "problem": "Saturated bands are quantified anyway; contrast tweaks hide saturation",
+    "need": "Detect saturated (flat-topped) lane profiles from raw images and refuse/flag quantification",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "western-blot-densitometry",
+      "trust-validation"
+    ]
+  },
+  {
+    "id": "blog-retractionwatch-trustwb-2",
+    "venue": "retractionwatch.com",
+    "url": "https://retractionwatch.com/2012/04/03/can-we-trust-western-blots/",
+    "date": "2012-04",
+    "role": "commenter",
+    "software_named": [],
+    "workflow": "dynamic range of ECL/film",
+    "quote": "The dynamic range of most traditional western blot methods (i.e., ECL plus film) is about 10 fold. In reality it is more like 5-7 fold. It is simply impossible to measure a greater than a 5-7 fold change in the level of a protein using such methods.",
+    "problem": "Reported fold changes exceed the linear range of the detection method",
+    "need": "Warn when reported densitometry fold changes exceed the validated linear range of the method",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "western-blot-densitometry",
+      "trust-validation"
+    ]
+  },
+  {
+    "id": "blog-retractionwatch-trustwb-3",
+    "venue": "retractionwatch.com",
+    "url": "https://retractionwatch.com/2012/04/03/can-we-trust-western-blots/",
+    "date": "2013-07",
+    "role": "commenter",
+    "software_named": [],
+    "workflow": "student densitometry",
+    "quote": "All his Western blot bands were saturated and when the post-doc was challenged it was quite clear he had no idea about basic densitometry.",
+    "problem": "Trainees quantify saturated blots without understanding densitometry basics",
+    "need": "Built-in densitometry checks and explanations (saturation, background, linear range)",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "western-blot-densitometry",
+      "teaching"
+    ]
+  },
+  {
+    "id": "blog-nc3rs-samplesize-1",
+    "venue": "nc3rs.org.uk",
+    "url": "https://nc3rs.org.uk/how-decide-your-sample-size-when-power-calculation-not-straightforward",
+    "date": null,
+    "role": "statistician supporting animal researchers (Simon Bate, GSK; questions from researchers)",
+    "software_named": [
+      "InVivoStat"
+    ],
+    "workflow": "choosing n for animal / cell experiments",
+    "quote": "I often hear \"we always use n=6\" or \"the other researchers use n=6, so shall we\". Needless to say, this is not a recommended approach.",
+    "problem": "Sample sizes are copied by habit instead of calculated from the lab's own variability",
+    "need": "Power/sample-size calculator fed by variability from the user's previous data, with power curves over a range of effect sizes",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "power-sample-size"
+    ]
+  },
+  {
+    "id": "blog-nc3rs-samplesize-2",
+    "venue": "nc3rs.org.uk",
+    "url": "https://nc3rs.org.uk/how-decide-your-sample-size-when-power-calculation-not-straightforward",
+    "date": null,
+    "role": "statistician supporting animal researchers (question asked by researchers)",
+    "software_named": [],
+    "workflow": "adding animals/batches until significant",
+    "quote": "My results are interesting but not statistically significant. Can I test more animals/batches of cells until I reach p<0.05?",
+    "problem": "Researchers want to keep adding batches until p<0.05 (optional stopping)",
+    "need": "Pre-registered n with warnings against sequential top-ups, or proper group-sequential designs with adjusted alpha",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "power-sample-size",
+      "randomisation"
+    ]
+  },
+  {
+    "id": "blog-nc3rs-samplesize-3",
+    "venue": "nc3rs.org.uk",
+    "url": "https://nc3rs.org.uk/how-decide-your-sample-size-when-power-calculation-not-straightforward",
+    "date": null,
+    "role": "statistician supporting animal researchers (Simon Bate, GSK)",
+    "software_named": [],
+    "workflow": "repeating a small experiment three times",
+    "quote": "One option would be to analyse the data from the three experiments as one single (larger) dataset. ... However, this is still not ideal and a more effective approach is to use a block design (each small experiment being a block)",
+    "problem": "Repeated small experiments are analysed separately or pooled instead of as blocks",
+    "need": "Offer randomised-block analysis with experiment/day as block for repeated experiments",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "technical-vs-biological-replicates",
+      "two-way-anova",
+      "randomisation"
+    ]
+  },
+  {
+    "id": "blog-heareresearch-qpcr-1",
+    "venue": "heareresearch.blogspot.com",
+    "url": "https://heareresearch.blogspot.com/2015/09/9-1-2015-mean-ct-value-stats-and-graphs.html",
+    "date": "2015-09",
+    "role": "graduate researcher, aquatic/fish physiology (open lab notebook)",
+    "software_named": [
+      "R",
+      "Excel"
+    ],
+    "workflow": "qPCR Ct curation, delta Ct, ANOVA",
+    "quote": "Steven has been helping me cull and curate the Ct values from the qPCR runs over the summer. He's developed a spreadsheet of mean Ct values of the good replicate runs.",
+    "problem": "Manual culling of replicate Ct values in spreadsheets takes a whole summer",
+    "need": "Import qPCR run exports, flag discordant technical replicates automatically, and compute dCt with documented exclusions",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "qpcr-ddct",
+      "import-instrument-files",
+      "outliers"
+    ]
+  },
+  {
+    "id": "blog-heareresearch-qpcr-2",
+    "venue": "heareresearch.blogspot.com",
+    "url": "https://heareresearch.blogspot.com/2015/09/9-1-2015-mean-ct-value-stats-and-graphs.html",
+    "date": "2015-09",
+    "role": "graduate researcher, aquatic/fish physiology (open lab notebook)",
+    "software_named": [
+      "R"
+    ],
+    "workflow": "statistics on delta Ct",
+    "quote": "Then I log transformed the data to produce as normal data as possible. Finally I ran ANOVA and Tukey's Honest Significant Difference Post Hoc, on the log transformed data.",
+    "problem": "User must decide on transforms and post-hoc tests by hand in a script",
+    "need": "qPCR workflow that runs tests on the dCt (log) scale with a recommended post-hoc and back-transforms for display",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "qpcr-ddct",
+      "units-and-transforms",
+      "post-hoc-choice"
+    ]
+  },
+  {
+    "id": "blog-openwetware-densitometry-1",
+    "venue": "openwetware.org",
+    "url": "https://openwetware.org/wiki/Bitan:densitometry",
+    "date": null,
+    "role": "lab wiki protocol (Bitan lab)",
+    "software_named": [
+      "ImageJ"
+    ],
+    "workflow": "lane-by-lane western blot densitometry",
+    "quote": "The blot's lanes may not be oriented vertically, do Image->Rotate->Arbitrarily... in 0.5 or 1.0 degree increments.",
+    "problem": "Densitometry requires many manual ImageJ steps (rotation, line selections, peak tracing)",
+    "need": "Lane detection and band quantification from a blot image with exportable, auditable values into the stats table",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "western-blot-densitometry",
+      "image-analysis-exports"
+    ]
+  },
+  {
+    "id": "blog-quantixed-stattests-1",
+    "venue": "quantixed.org",
+    "url": "https://quantixed.org/2016/07/19/the-digital-cell-statistical-tests/",
+    "date": "2021-07",
+    "role": "commenter (Ioanna, cell viability researcher)",
+    "software_named": [],
+    "workflow": "96-well viability, 3 drugs x 5 concentrations, repeated days",
+    "quote": "Are my data from the same day of experiment paired, regarding that they are from the same cell passage? There are many opinions on this issue.",
+    "problem": "Cannot decide whether same-day/same-passage wells make the data paired",
+    "need": "A test chooser that asks how replicates were generated (same passage/day) and explains pairing/blocking consequences",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "which-test",
+      "technical-vs-biological-replicates",
+      "plate-reader"
+    ]
+  },
+  {
+    "id": "blog-quantixed-stattests-2",
+    "venue": "quantixed.org",
+    "url": "https://quantixed.org/2016/07/19/the-digital-cell-statistical-tests/",
+    "date": "2016-07",
+    "role": "PI, cell biology (Stephen Royle, blog author)",
+    "software_named": [
+      "IgorPro",
+      "SPSS"
+    ],
+    "workflow": "survival/hazard analysis in a cell biology lab",
+    "quote": "In the lab we have, in the past, done survival/hazard analysis. This is a bit more complex and we used SPSS and would do so again as Igor does not provide these functions.",
+    "problem": "Main lab tool lacks survival analysis so a second package is needed",
+    "need": "Survival / hazard analysis in the same tool as the rest of the lab's statistics",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "survival",
+      "hazard-ratio"
+    ]
+  },
+  {
+    "id": "blog-quantixed-stattests-3",
+    "venue": "quantixed.org",
+    "url": "https://quantixed.org/2016/07/19/the-digital-cell-statistical-tests/",
+    "date": "2016-07",
+    "role": "PI, cell biology (Stephen Royle, blog author)",
+    "software_named": [
+      "IgorPro"
+    ],
+    "workflow": "paired binomial outcomes",
+    "quote": "To do Fisher's exact test, you need a 2D wave representing a contingency table. McNemar's test for paired binomial data is not available in Igor",
+    "problem": "Contingency tests need awkward data structures and McNemar is missing",
+    "need": "Simple contingency entry with Fisher, chi-square and McNemar available",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "contingency"
+    ]
+  },
+  {
+    "id": "blog-quantixed-stattests-4",
+    "venue": "quantixed.org",
+    "url": "https://quantixed.org/2016/07/19/the-digital-cell-statistical-tests/",
+    "date": "2016-07",
+    "role": "PI, cell biology (Stephen Royle, blog author)",
+    "software_named": [
+      "IgorPro"
+    ],
+    "workflow": "recording test results",
+    "quote": "You should always either print the results to the history or put them into a table so that we can check them. Note that the table gets over written if you do the same test with different data, so printing in this case is a good idea.",
+    "problem": "Re-running a test overwrites previous results, risking lost or unverifiable stats",
+    "need": "Keep every analysis result versioned and linked to its input so the PI can check it later",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "reproducibility-audit"
+    ]
+  },
+  {
+    "id": "blog-quantixed-stattests-5",
+    "venue": "quantixed.org",
+    "url": "https://quantixed.org/2016/07/19/the-digital-cell-statistical-tests/",
+    "date": "2016-07",
+    "role": "PI, cell biology (Stephen Royle, blog author)",
+    "software_named": [],
+    "workflow": "choosing statistical tests for lab members",
+    "quote": "Statistical hypothesis testing , commonly referred to as \"statistics\", is a topic of consternation among cell biologists.",
+    "problem": "Test choice is a recurring source of anxiety in cell biology labs",
+    "need": "Built-in test chooser driven by data type and design",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "which-test"
+    ]
+  },
+  {
+    "id": "blog-quantixed-volcano-1",
+    "venue": "quantixed.org",
+    "url": "https://quantixed.org/2026/07/15/eruption-announcing-new-r-package-volcanoplotr/",
+    "date": "2026-07",
+    "role": "PI, cell biology (Stephen Royle, blog author)",
+    "software_named": [
+      "Perseus",
+      "IgorPro",
+      "MaxQuant"
+    ],
+    "workflow": "proteomics volcano plots",
+    "quote": "The best tool for analysing MaxQuant data is the Windows program Perseus. As wonderful as Perseus is, its graphics are terrible.",
+    "problem": "The analysis tool for proteomics produces unpublishable graphics",
+    "need": "Publication-quality volcano plots directly from MaxQuant output",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "volcano-heatmap",
+      "graph-formatting",
+      "import-instrument-files"
+    ]
+  },
+  {
+    "id": "blog-quantixed-volcano-2",
+    "venue": "quantixed.org",
+    "url": "https://quantixed.org/2026/07/15/eruption-announcing-new-r-package-volcanoplotr/",
+    "date": "2026-07",
+    "role": "PI, cell biology (Stephen Royle, blog author)",
+    "software_named": [
+      "IgorPro",
+      "R"
+    ],
+    "workflow": "maintaining lab analysis tools",
+    "quote": "R is the main language we use in the lab these days and because IGOR is closed source and is no longer developed for mac, I am ported VolcanoPlot to R.",
+    "problem": "Closed-source tool stopped supporting Mac, forcing the lab to rewrite its pipeline",
+    "need": "Cross-platform, open tool so lab pipelines are not stranded by vendor platform decisions",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "mac-windows",
+      "file-compatibility"
+    ]
+  },
+  {
+    "id": "blog-quantixed-volcano-3",
+    "venue": "quantixed.org",
+    "url": "https://quantixed.org/2026/07/15/eruption-announcing-new-r-package-volcanoplotr/",
+    "date": "2026-07",
+    "role": "PI, cell biology (Stephen Royle, blog author)",
+    "software_named": [
+      "Perseus"
+    ],
+    "workflow": "verifying proteomics statistics",
+    "quote": "The other motivation was that I wanted to make sure the analysis was correct (I felt back then that Perseus was too \"black box\" but I no longer hold that view).",
+    "problem": "Black-box analysis made the PI unsure the results were correct",
+    "need": "Transparent, inspectable computations behind each plotted result",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "trust-validation"
+    ]
+  },
+  {
+    "id": "blog-quantixed-volcano-4",
+    "venue": "quantixed.org",
+    "url": "https://quantixed.org/2026/07/15/eruption-announcing-new-r-package-volcanoplotr/",
+    "date": "2026-07",
+    "role": "PI, cell biology (Stephen Royle, blog author)",
+    "software_named": [
+      "MaxQuant"
+    ],
+    "workflow": "consistent figure styling across papers",
+    "quote": "None of these suit our needs, for example VolcanoPlotR will combine multiple MaxQuant datasets, and I was also keen to keep the look of our graphics the same for consistency between papers.",
+    "problem": "Existing tools can't combine datasets or keep a consistent lab graphic style",
+    "need": "Saved lab style templates and multi-dataset import",
+    "severity": "cosmetic / preference",
+    "signal": null,
+    "tags": [
+      "graph-formatting",
+      "import-instrument-files"
+    ]
+  },
+  {
+    "id": "blog-thenode-tidy1-1",
+    "venue": "thenode.biologists.com",
+    "url": "https://thenode.biologists.com/converting-excellent-spreadsheets-tidy-data/education/",
+    "date": "2017-10",
+    "role": "assistant professor, molecular cytology (Joachim Goedhart; stated)",
+    "software_named": [
+      "R",
+      "ggplot2",
+      "Excel"
+    ],
+    "workflow": "spreadsheet data to ggplot2 graphs",
+    "quote": "Before I could make those graphs, however, I was struggling with the tidy data structure, which is a requirement for using ggplot2. The reason that I was struggling is that as a researcher I am used to collect, process and summarise my data in spreadsheets.",
+    "problem": "Code-based plotting requires a long/tidy layout that clashes with how researchers keep data in spreadsheets",
+    "need": "Accept the familiar spreadsheet (one column per condition) layout and reshape internally",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "long-vs-wide",
+      "learning-curve",
+      "data-entry-table-types"
+    ]
+  },
+  {
+    "id": "blog-thenode-tidy1-2",
+    "venue": "thenode.biologists.com",
+    "url": "https://thenode.biologists.com/converting-excellent-spreadsheets-tidy-data/education/",
+    "date": "2017-10",
+    "role": "assistant professor, molecular cytology (Joachim Goedhart; stated)",
+    "software_named": [
+      "R"
+    ],
+    "workflow": "learning the tidy data concept",
+    "quote": "If you do not comprehend the concept of tidy data right away, don't worry. It took me actually quite a while to grasp it and I'm still not confident that I fully understand it.",
+    "problem": "Even an experienced, motivated researcher found the long data concept hard to grasp",
+    "need": "Hide data-shape concepts from the user, or visualise the wide->long mapping explicitly",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "long-vs-wide",
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "blog-thenode-tidy1-3",
+    "venue": "thenode.biologists.com",
+    "url": "https://thenode.biologists.com/converting-excellent-spreadsheets-tidy-data/education/",
+    "date": "2017-10",
+    "role": "assistant professor, molecular cytology (Joachim Goedhart; stated)",
+    "software_named": [
+      "R"
+    ],
+    "workflow": "time-series per-cell data",
+    "quote": "This long format with the values for \"Time\" repeated several times look atypical. But this format offers flexibility, for instance when the measurements for the conditions are taken at different times.",
+    "problem": "Time series with unequal sampling times per condition do not fit a single shared X column",
+    "need": "Support per-series X values in XY tables so conditions measured at different times can be plotted together",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "time-series",
+      "long-vs-wide"
+    ]
+  },
+  {
+    "id": "blog-thenode-protocols-1",
+    "venue": "thenode.biologists.com",
+    "url": "https://thenode.biologists.com/protocols-for-data-visualization/education/",
+    "date": "2022-10",
+    "role": "assistant professor, molecular cytology (Joachim Goedhart; stated)",
+    "software_named": [
+      "R",
+      "ggplot2"
+    ],
+    "workflow": "lowering the barrier to coding for wet-lab scientists",
+    "quote": "Scientists are familiar with protocols that describe in a step-by-step fashion how an experiment is performed. But they are usually less familiar with code or scripts for handling data.",
+    "problem": "Wet-lab scientists lack familiarity with scripts for reproducible processing",
+    "need": "Analysis recorded as a readable step-by-step protocol that can be rerun on new data without coding",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "learning-curve",
+      "reproducibility-audit",
+      "scripting-batch"
+    ]
+  },
+  {
+    "id": "blog-thenode-protocols-2",
+    "venue": "thenode.biologists.com",
+    "url": "https://thenode.biologists.com/protocols-for-data-visualization/education/",
+    "date": "2022-10",
+    "role": "assistant professor, molecular cytology (Joachim Goedhart; stated)",
+    "software_named": [
+      "R"
+    ],
+    "workflow": "learning tidy data",
+    "quote": "I wrote this blog because I had a hard time understanding the tidy format.",
+    "problem": "Data format requirements are a key learning hurdle",
+    "need": "No reformatting required before plotting",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "long-vs-wide",
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "blog-thenode-goedhart15-1",
+    "venue": "thenode.biologists.com",
+    "url": "https://thenode.biologists.com/the-node-at-15-then-and-now-with-joachim-goedhart/interview/",
+    "date": "2025-07",
+    "role": "assistant professor, molecular cytology (Joachim Goedhart; stated)",
+    "software_named": [],
+    "workflow": "automated multidimensional microscopy",
+    "quote": "Therefore, the datasets have become larger and there's a lot of effort needed for processing, analysis and visualization of the data.",
+    "problem": "Automated acquisition produces much larger datasets that strain processing and visualisation",
+    "need": "Handle large, multi-dimensional per-cell datasets without slowdowns",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "large-data",
+      "image-analysis-exports"
+    ]
+  },
+  {
+    "id": "blog-thenode-goedhart15-2",
+    "venue": "thenode.biologists.com",
+    "url": "https://thenode.biologists.com/the-node-at-15-then-and-now-with-joachim-goedhart/interview/",
+    "date": "2025-07",
+    "role": "assistant professor, molecular cytology (Joachim Goedhart; stated)",
+    "software_named": [],
+    "workflow": "choosing figure colours",
+    "quote": "This is something close to my heart as I'm red-colorblind, and it also seems to resonate with the community as it is often re-shared on social media.",
+    "problem": "Default red/green colour choices exclude colour-blind readers and researchers",
+    "need": "Colour-blind-safe default palettes and a simulation preview",
+    "severity": "cosmetic / preference",
+    "signal": null,
+    "tags": [
+      "colour-blind",
+      "accessibility"
+    ]
+  },
+  {
+    "id": "blog-thenode-goedhart15-3",
+    "venue": "thenode.biologists.com",
+    "url": "https://thenode.biologists.com/the-node-at-15-then-and-now-with-joachim-goedhart/interview/",
+    "date": "2025-07",
+    "role": "assistant professor, molecular cytology (Joachim Goedhart; stated)",
+    "software_named": [],
+    "workflow": "p-value reporting in literature",
+    "quote": "It's the practice of mindless repeating what others do, and examples for statistical analysis - especially calculating p-values - are abundantly present in the scientific literature.",
+    "problem": "Statistics are copied from previous papers without understanding",
+    "need": "Explain why a test/p-value is appropriate for this design rather than defaulting to precedent",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "which-test",
+      "exact-p"
+    ]
+  },
+  {
+    "id": "blog-addgene-wbnorm-1",
+    "venue": "blog.addgene.org",
+    "url": "https://blog.addgene.org/antibodies-101-normalization-and-loading-controls-for-western-blots",
+    "date": "2025-04",
+    "role": "Addgene blog author (scientist writer)",
+    "software_named": [],
+    "workflow": "semi-quantitative western blot normalisation",
+    "quote": "Most housekeeping proteins are highly expressed in cells. This means that at sample concentrations appropriate to detect a less-abundant POI, the loading control will almost certainly be overloaded.",
+    "problem": "Loading control bands saturate outside the linear range, distorting normalised ratios",
+    "need": "Flag saturated / out-of-linear-range bands and support total-protein normalisation in densitometry workflows",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "western-blot-densitometry",
+      "normalization"
+    ]
+  },
+  {
+    "id": "blog-addgene-wbnorm-2",
+    "venue": "blog.addgene.org",
+    "url": "https://blog.addgene.org/antibodies-101-normalization-and-loading-controls-for-western-blots",
+    "date": "2025-04",
+    "role": "Addgene blog author (scientist writer)",
+    "software_named": [],
+    "workflow": "choosing a loading control",
+    "quote": "Unfortunately, multiple reports suggest that common housekeeping proteins are influenced by a variety of experimental conditions (Ghosh et al., 2014).",
+    "problem": "Housekeeping proteins may change with treatment, invalidating normalisation",
+    "need": "Check that the reference signal is stable across conditions before normalising",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "western-blot-densitometry",
+      "normalization",
+      "trust-validation"
+    ]
+  },
+  {
+    "id": "blog-addgene-qpcr-1",
+    "venue": "blog.addgene.org",
+    "url": "https://blog.addgene.org/deep-dive-qpcr",
+    "date": "2022-09",
+    "role": "Addgene blog author (scientist writer)",
+    "software_named": [
+      "Excel"
+    ],
+    "workflow": "qPCR relative quantification",
+    "quote": "There are a number of methods available for analyzing qPCR data, most with plug-and-play Excel spreadsheets available for easy analysis. These useful tools don't excuse you from understanding how the analyses work - you do need to make sure the assumptions in your dataset match the assumptions in your analysis method.",
+    "problem": "Plug-and-play Excel ddCt sheets hide their assumptions",
+    "need": "qPCR analysis that states and checks its assumptions (efficiency, reference stability)",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "qpcr-ddct",
+      "excel-paste",
+      "trust-validation"
+    ]
+  },
+  {
+    "id": "blog-addgene-qpcr-2",
+    "venue": "blog.addgene.org",
+    "url": "https://blog.addgene.org/deep-dive-qpcr",
+    "date": "2022-09",
+    "role": "Addgene blog author (scientist writer)",
+    "software_named": [],
+    "workflow": "ddCt with unverified efficiencies",
+    "quote": "The model assumes the amplification kinetics of the target and control genes are fairly equal, an assumption that is not always verified before use.",
+    "problem": "ddCt is applied without verifying equal amplification efficiency",
+    "need": "Efficiency-corrected (Pfaffl) option and a dilution-series efficiency check alongside ddCt",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "qpcr-ddct",
+      "standard-curve-interpolation"
+    ]
+  },
+  {
+    "id": "blog-addgene-qpcr-3",
+    "venue": "blog.addgene.org",
+    "url": "https://blog.addgene.org/deep-dive-qpcr",
+    "date": "2022-09",
+    "role": "Addgene blog author (scientist writer)",
+    "software_named": [],
+    "workflow": "presenting negative fold changes",
+    "quote": "Negative fold changes in ΔΔCT are represented by RQs between 0 and 1. Flipping your experimental and control values during analysis can allow you to see this fold change as a positive difference (RQ>1), which may be easier to conceptualize.",
+    "problem": "Down-regulation as RQ between 0 and 1 is hard to read; manual flipping invites errors",
+    "need": "Offer log2 fold-change display so up and down changes are symmetric",
+    "severity": "cosmetic / preference",
+    "signal": null,
+    "tags": [
+      "qpcr-ddct",
+      "units-and-transforms",
+      "log-axis"
+    ]
+  },
+  {
+    "id": "blog-unilfcf-cells-1",
+    "venue": "wp.unil.ch",
+    "url": "https://wp.unil.ch/fcf/mailpoet-email/cba94f80e3a8-fcf-unil-june-2022-how-many-cells-is-enough/",
+    "date": "2022-06",
+    "role": "flow cytometry core facility staff (UNIL FCF newsletter)",
+    "software_named": [
+      "Excel"
+    ],
+    "workflow": "deciding how many events to record",
+    "quote": "More often this will give us much more than we need, meaning we use an unnecessary amount of machine time, and slow ourselves down with larger than needed file sizes. It is also possible that we may be under sampling and need to scale up the number of cells in each tube to make more precise repeatable experiments.",
+    "problem": "Users do not know how many events to acquire for a precise population estimate",
+    "need": "Calculator for events needed from target frequency and desired CV",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "flow-cytometry",
+      "power-sample-size"
+    ]
+  },
+  {
+    "id": "blog-natureblogs-cellstats-1",
+    "venue": "blogs.nature.com",
+    "url": "https://blogs.nature.com/blog/new_rules_for_presentation_of_1/",
+    "date": null,
+    "role": "journal editors, Nature Cell Biology (editorial reposted)",
+    "software_named": [],
+    "workflow": "small-n cell biology experiments",
+    "quote": "Alas, these can be as hard come by as a biostatistician (",
+    "problem": "Cell biologists rarely have access to a biostatistician and have small n",
+    "need": "Built-in statistical guidance for small-n designs in lieu of a consultant",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "which-test",
+      "power-sample-size"
+    ]
+  },
+  {
+    "id": "blog-natureblogs-cellstats-2",
+    "venue": "blogs.nature.com",
+    "url": "https://blogs.nature.com/blog/new_rules_for_presentation_of_1/",
+    "date": null,
+    "role": "journal editors, Nature Cell Biology (editorial reposted)",
+    "software_named": [],
+    "workflow": "error bars on few repeats",
+    "quote": "The result is that all too often statistics (frequently undefined 'error bars') are applied to data where they are simply not warranted.",
+    "problem": "Error bars are undefined and shown for too few repeats",
+    "need": "Require stating what error bars are; with n<5 default to showing individual points",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "error-bars-sd-sem",
+      "show-the-points",
+      "figure-legend"
+    ]
+  },
+  {
+    "id": "blog-natureblogs-cellstats-3",
+    "venue": "blogs.nature.com",
+    "url": "https://blogs.nature.com/blog/new_rules_for_presentation_of_1/",
+    "date": null,
+    "role": "journal editors, Nature Cell Biology (editorial reposted)",
+    "software_named": [],
+    "workflow": "defining n",
+    "quote": "Consider whether n represents independent experiments (you may actually be publishing a measure of the quality of your pipette!) and whether it is large enough for the test applied.",
+    "problem": "Technical replicates (pipetting) are passed off as n",
+    "need": "Ask what each replicate is and compute statistics on independent experiments",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "technical-vs-biological-replicates",
+      "n-definition"
+    ]
+  },
+  {
+    "id": "blog-natureblogs-cellstats-4",
+    "venue": "blogs.nature.com",
+    "url": "https://blogs.nature.com/blog/new_rules_for_presentation_of_1/",
+    "date": null,
+    "role": "journal editors, Nature Cell Biology (editorial reposted)",
+    "software_named": [],
+    "workflow": "outlier removal",
+    "quote": "Finally, please remember that you are interrogating a complex system — be careful not to discard 'outlier' data points on a whim, as they may well be as relevant as clustered measurements.",
+    "problem": "Outliers get discarded without justification",
+    "need": "Outlier handling that records and reports exclusions instead of silent deletion",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "outliers",
+      "reproducibility-audit"
+    ]
+  },
+  {
+    "id": "blog-quantixed-workflow-1",
+    "venue": "quantixed.org",
+    "url": "https://quantixed.org/2016/06/16/the-digital-cell-workflow/",
+    "date": "2016-06",
+    "role": "PI, cell biology (Stephen Royle, blog author)",
+    "software_named": [],
+    "workflow": "microscopy data -> analysis -> figure",
+    "quote": "Figures are generated using scripts which are linked to the original data with an auditable record of any modification to the image.",
+    "problem": "Lab wants every figure traceable to raw data with a record of modifications (aspirational, not yet achieved)",
+    "need": "Figures linked to source data with an automatic change log",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "reproducibility-audit"
+    ]
+  },
+  {
+    "id": "blog-quantixed-workflow-2",
+    "venue": "quantixed.org",
+    "url": "https://quantixed.org/2016/06/16/the-digital-cell-workflow/",
+    "date": "2016-06",
+    "role": "PI, cell biology (Stephen Royle, blog author)",
+    "software_named": [],
+    "workflow": "lab-wide quantitative workflow",
+    "quote": "Just to reiterate, that my team are not at this point yet, but we are reasonably close. We have not yet implemented three of these things properly in my group",
+    "problem": "Even a computationally minded lab struggles to implement an auditable end-to-end workflow",
+    "need": "Low-effort traceability built into the analysis tool",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "reproducibility-audit",
+      "sharing-collaboration"
+    ]
+  },
+  {
+    "id": "blog-quantixed-igor-1",
+    "venue": "quantixed.org",
+    "url": "https://quantixed.org/2016/07/07/the-digital-cell-getting-started-with-igorpro/",
+    "date": "2016-07",
+    "role": "PI, cell biology (Stephen Royle, blog author)",
+    "software_named": [
+      "IgorPro",
+      "Excel"
+    ],
+    "workflow": "moving a lab off Excel",
+    "quote": "Even so, people in the lab engage with it to varying extents. The main battle is that the use of Excel is pretty ubiquitous.",
+    "problem": "Lab members default to Excel despite a lab-standard analysis tool",
+    "need": "A tool as approachable as Excel for quick work but rigorous enough for analysis",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "learning-curve",
+      "excel-paste"
+    ]
+  },
+  {
+    "id": "blog-quantixed-igor-2",
+    "venue": "quantixed.org",
+    "url": "https://quantixed.org/2016/07/07/the-digital-cell-getting-started-with-igorpro/",
+    "date": "2016-07",
+    "role": "PI, cell biology (Stephen Royle, blog author)",
+    "software_named": [
+      "Excel"
+    ],
+    "workflow": "gene/protein names in spreadsheets",
+    "quote": "Not good for biological data – Transcription factor Oct4 gets converted to a date.",
+    "problem": "Spreadsheet autoformat silently corrupts gene names",
+    "need": "Never auto-convert text identifiers on paste/import",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "excel-paste",
+      "data-entry-table-types"
+    ]
+  },
+  {
+    "id": "blog-quantixed-igor-3",
+    "venue": "quantixed.org",
+    "url": "https://quantixed.org/2016/07/07/the-digital-cell-getting-started-with-igorpro/",
+    "date": "2016-07",
+    "role": "PI, cell biology (Stephen Royle, blog author)",
+    "software_named": [
+      "Excel",
+      "IgorPro"
+    ],
+    "workflow": "baseline-subtract, scale and average traces with different sampling",
+    "quote": "Imagine that your data are sampled at different intervals. How would you do that? Dealing with those simple cases in Excel is difficult-to-impossible.",
+    "problem": "Time series sampled at different intervals cannot be combined in spreadsheets",
+    "need": "Baseline subtraction, scaling and averaging of XY traces with unequal X values",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "time-series",
+      "normalization",
+      "excel-paste"
+    ]
+  },
+  {
+    "id": "blog-quantixed-igor-4",
+    "venue": "quantixed.org",
+    "url": "https://quantixed.org/2016/07/07/the-digital-cell-getting-started-with-igorpro/",
+    "date": "2016-07",
+    "role": "PI, cell biology (Stephen Royle, blog author)",
+    "software_named": [
+      "IgorPro"
+    ],
+    "workflow": "learning a lab analysis package",
+    "quote": "IgorPro is very powerful and the learning curve is steep, but the investment is worth it.",
+    "problem": "Powerful analysis tools have steep learning curves (manual ~3000 pages)",
+    "need": "Power without a steep learning curve; guided tours on the user's own data",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "learning-curve",
+      "tutorials"
+    ]
+  },
+  {
+    "id": "blog-quantixed-volcanoR-1",
+    "venue": "quantixed.org",
+    "url": "https://quantixed.org/2023/06/16/step-by-step-recreating-a-volcano-plot-in-r/",
+    "date": "2023-06",
+    "role": "PI, cell biology (Stephen Royle, blog author)",
+    "software_named": [
+      "IgorPro",
+      "R",
+      "ggplot2"
+    ],
+    "workflow": "volcano plot from proteomics t-tests",
+    "quote": "This doesn't look good! The p-values and ratios are their true values and we would like to represent them differently. In Igor, this is a simple option to change the axis type, set limits and you're done. With ggplot, it is more tricky.",
+    "problem": "Log2 fold-change / -log10 p axes take extra work in code-based plotting",
+    "need": "Volcano plot with built-in log2/-log10 axes, symmetric x limits and threshold colouring",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "volcano-heatmap",
+      "log-axis",
+      "units-and-transforms"
+    ]
+  },
+  {
+    "id": "blog-quantixed-volcanoR-2",
+    "venue": "quantixed.org",
+    "url": "https://quantixed.org/2023/06/16/step-by-step-recreating-a-volcano-plot-in-r/",
+    "date": "2023-06",
+    "role": "PI, cell biology (Stephen Royle, blog author)",
+    "software_named": [
+      "R",
+      "ggplot2"
+    ],
+    "workflow": "colouring points by category",
+    "quote": "However, if the dataframe did not have any 2s (blue points) for example, without a named list, the colours change order.",
+    "problem": "Category colours shift silently when a category is absent",
+    "need": "Stable colour mapping per named group across datasets/figures",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "graph-formatting",
+      "colour-blind"
+    ]
+  },
+  {
+    "id": "blog-quantixed-colorblind-1",
+    "venue": "quantixed.org",
+    "url": "https://quantixed.org/2026/07/21/colorblind-ii-microscopy-images-and-colour-blindness/",
+    "date": "2026-07",
+    "role": "PI, cell biology (Stephen Royle, blog author)",
+    "software_named": [],
+    "workflow": "figure revision for referees",
+    "quote": "With increased awareness around this issue, I've noticed that these days referees are more likely to request changes to colour palettes in our papers to assist colour blind readers.",
+    "problem": "Referees increasingly demand colour-blind-safe palettes at revision",
+    "need": "Colour-blind simulation preview and accessible palettes before submission",
+    "severity": "cosmetic / preference",
+    "signal": null,
+    "tags": [
+      "colour-blind",
+      "accessibility"
+    ]
+  },
+  {
+    "id": "blog-quantixed-colorblind-2",
+    "venue": "quantixed.org",
+    "url": "https://quantixed.org/2026/07/21/colorblind-ii-microscopy-images-and-colour-blindness/",
+    "date": "2026-07",
+    "role": "PI, cell biology (Stephen Royle, blog author)",
+    "software_named": [],
+    "workflow": "multichannel microscopy figure panels",
+    "quote": "Magenta-green is the go-to combination to replace red-green, and it is a good solution, but it only works for two channel combinations.",
+    "problem": "No palette makes 3+ channel overlays accessible to everyone",
+    "need": "Figure layouts that show greyscale single channels alongside merges",
+    "severity": "cosmetic / preference",
+    "signal": null,
+    "tags": [
+      "colour-blind",
+      "layouts-multipanel",
+      "accessibility"
+    ]
+  },
+  {
+    "id": "blog-myphdiary-figures-1",
+    "venue": "myphdiary.substack.com",
+    "url": "https://myphdiary.substack.com/p/a-beginners-guide-to-making-scientific",
+    "date": "2026-03",
+    "role": "PhD student, biology (My Ph.Diary author; stated)",
+    "software_named": [
+      "GraphPad Prism",
+      "Adobe Illustrator"
+    ],
+    "workflow": "graphs in Prism, assembled in Illustrator",
+    "quote": "I mainly use Adobe Illustrator for publication figures. I find that it is very useful, but it often comes with a bit of a learning curve.",
+    "problem": "Figure assembly requires a second, paid tool with its own learning curve",
+    "need": "Assemble multi-panel publication figures in the graphing tool itself",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "illustrator-handoff",
+      "layouts-multipanel",
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "blog-myphdiary-figures-2",
+    "venue": "myphdiary.substack.com",
+    "url": "https://myphdiary.substack.com/p/a-beginners-guide-to-making-scientific",
+    "date": "2026-03",
+    "role": "PhD student, biology (My Ph.Diary author; stated)",
+    "software_named": [
+      "BioRender"
+    ],
+    "workflow": "schematics for figures",
+    "quote": "The free version of BioRender limits the number of elements you can add to a given figure. In order to publish figures using BioRender, you must have the paid version",
+    "problem": "Schematic tool paywalls publication use",
+    "need": "Free schematic/annotation elements usable in published figures",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "price-licence",
+      "layouts-multipanel"
+    ]
+  },
+  {
+    "id": "blog-myphdiary-figures-3",
+    "venue": "myphdiary.substack.com",
+    "url": "https://myphdiary.substack.com/p/a-beginners-guide-to-making-scientific",
+    "date": "2026-03",
+    "role": "commenter (incoming PhD student)",
+    "software_named": [
+      "Canva"
+    ],
+    "workflow": "choosing a figure tool as a new PhD student",
+    "quote": "I'm starting my PhD this fall, is Canva something you could recommend for making figures? I know Canva is horrible for making graphs though.",
+    "problem": "New students don't know which tool to use for graphs vs. figure layout",
+    "need": "One accessible tool covering graphs and figure layout",
+    "severity": "cosmetic / preference",
+    "signal": null,
+    "tags": [
+      "graph-formatting",
+      "layouts-multipanel",
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "blog-myphdiary-figures-4",
+    "venue": "myphdiary.substack.com",
+    "url": "https://myphdiary.substack.com/p/a-beginners-guide-to-making-scientific",
+    "date": "2026-03",
+    "role": "PhD student, biology (My Ph.Diary author; stated)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "consistent graph styling",
+    "quote": "Another thing I like about PRISM is that you can copy the appearance of one graph onto another, allowing for consistent aesthetics.",
+    "problem": "Consistency across many graphs relies on copying formats (valued feature)",
+    "need": "Apply a saved style/theme to many graphs at once",
+    "severity": "cosmetic / preference",
+    "signal": null,
+    "tags": [
+      "graph-formatting"
+    ]
+  },
+  {
+    "id": "blog-biochemist-genomics-1",
+    "venue": "thebiochemistblog.com",
+    "url": "https://thebiochemistblog.com/2020/09/14/learning-genomic-data-analysis-as-a-wet-lab-biologist/",
+    "date": "2020-09",
+    "role": "PhD student, epigenetics (Natalia Benetti; stated)",
+    "software_named": [
+      "Bash",
+      "R",
+      "Python",
+      "SeqMonk"
+    ],
+    "workflow": "looking at own sequencing data",
+    "quote": "I had no experience in coding prior to my PhD and found that this was a huge hurdle to overcome because there is a threshold level of coding knowledge required to be able to even start looking at your data.",
+    "problem": "Wet-lab student cannot even view own data without coding",
+    "need": "Point-and-click visualisation and statistics for sequencing-derived tables",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "learning-curve",
+      "large-data"
+    ]
+  },
+  {
+    "id": "blog-biochemist-genomics-2",
+    "venue": "thebiochemistblog.com",
+    "url": "https://thebiochemistblog.com/2020/09/14/learning-genomic-data-analysis-as-a-wet-lab-biologist/",
+    "date": "2020-09",
+    "role": "PhD student, epigenetics (Natalia Benetti; stated)",
+    "software_named": [],
+    "workflow": "bioinformatics for wet-lab biologists",
+    "quote": "Understandably, bioinformatics can be daunting to wet lab biologists as it requires an understanding of programming and in-depth statistics which we don't typically learn in biology degrees.",
+    "problem": "Biology degrees leave students without programming or deep statistics",
+    "need": "Guided analyses that teach statistics as they are used",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "learning-curve",
+      "teaching"
+    ]
+  },
+  {
+    "id": "blog-dukectl-rviz-1",
+    "venue": "ctl.duke.edu",
+    "url": "https://ctl.duke.edu/blog/2020/08/teaching-students-to-visualize-data-with-r/",
+    "date": "2020-08",
+    "role": "biology course instructors, Duke (blog authors)",
+    "software_named": [
+      "Excel"
+    ],
+    "workflow": "undergraduate physiology lab reports",
+    "quote": "One of the main issues with excel is that students can click random buttons to produce error bars or regression lines without understanding their meaning or knowing whether they are actually correct.",
+    "problem": "Spreadsheet charting adds error bars/trendlines without the user knowing what they are",
+    "need": "Error bars and fits that state what they represent and are computed from the data shown",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "error-bars-sd-sem",
+      "excel-paste",
+      "teaching"
+    ]
+  },
+  {
+    "id": "blog-dukectl-rviz-2",
+    "venue": "ctl.duke.edu",
+    "url": "https://ctl.duke.edu/blog/2020/08/teaching-students-to-visualize-data-with-r/",
+    "date": "2020-08",
+    "role": "undergraduate student, animal physiology (quoted)",
+    "software_named": [
+      "R"
+    ],
+    "workflow": "making graphs in R for lab reports",
+    "quote": "I don't have a super strong background in coding, and I would be tripped up a good bit when I thought of something I would like to do but was just unable to put it into code or find a source to put it into code.",
+    "problem": "Knows the graph wanted but cannot express it in code",
+    "need": "Direct-manipulation graph building",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "learning-curve",
+      "graph-formatting"
+    ]
+  },
+  {
+    "id": "blog-dukectl-rviz-3",
+    "venue": "ctl.duke.edu",
+    "url": "https://ctl.duke.edu/blog/2020/08/teaching-students-to-visualize-data-with-r/",
+    "date": "2020-08",
+    "role": "biology course instructors, Duke (blog authors)",
+    "software_named": [
+      "R"
+    ],
+    "workflow": "introducing R in a biology course",
+    "quote": "Student engagement in the R portion of the class was not well received at first, but it improved over time as students got more comfortable with the coding and were able to see the benefits of learning how to visualize their data.",
+    "problem": "Students initially resist coding-based analysis",
+    "need": "Low-friction entry to good visualisation",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "teaching",
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "blog-wildtypeone-miniguide-1",
+    "venue": "wildtypeone.substack.com",
+    "url": "https://substack.com/home/post/p-161785350",
+    "date": "2025-04",
+    "role": "lab newsletter author (Wildtype One)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "multi-panel figure with comparable charts",
+    "quote": "If you have a panel with different charts, make sure they have the same scale (Graphpad Prism sets the axes automatically, if two similar charts have different scales, switch to manual and adjust them).",
+    "problem": "Auto-scaled axes differ between panels that should be compared",
+    "need": "Link axis ranges across panels of a figure",
+    "severity": "cosmetic / preference",
+    "signal": null,
+    "tags": [
+      "layouts-multipanel",
+      "graph-formatting"
+    ]
+  },
+  {
+    "id": "blog-wildtypeone-miniguide-2",
+    "venue": "wildtypeone.substack.com",
+    "url": "https://substack.com/home/post/p-161785350",
+    "date": "2025-04",
+    "role": "lab newsletter author (Wildtype One)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "preparing figures the night before a talk",
+    "quote": "So, it's 8 pm. Your next presentation is tomorrow. And you've got a pile of GraphPad Prism data staring at you to turn into figures.",
+    "problem": "Figure making is a time-pressured, last-minute chore",
+    "need": "Fast path from data tables to presentation-ready figures",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "graph-formatting",
+      "powerpoint"
+    ]
+  },
+  {
+    "id": "blog-wildtypeone-miniguide-3",
+    "venue": "wildtypeone.substack.com",
+    "url": "https://substack.com/home/post/p-161785350",
+    "date": "2025-04",
+    "role": "lab newsletter author (Wildtype One)",
+    "software_named": [],
+    "workflow": "small-n bar charts",
+    "quote": "A bar graph with mean ± SEM masks data distribution. If your n < 10, the chart would be misleading",
+    "problem": "Mean ± SEM bars mislead at small n",
+    "need": "Default to dot plots with individual points when n is small",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "show-the-points",
+      "error-bars-sd-sem"
+    ]
+  },
+  {
+    "id": "blog-expertcyto-tips-1",
+    "venue": "expertcytometry.com",
+    "url": "https://expertcytometry.com/?p=2572",
+    "date": null,
+    "role": "flow cytometry core manager / trainer (Tim Bushnell, PhD; stated)",
+    "software_named": [],
+    "workflow": "reporting flow cytometry results",
+    "quote": "Many times, researchers are content to show histograms to illustrate their point after a flow experiment. This approach misses the opportunity to take that content rich data and extend the analysis into a statistical analysis.",
+    "problem": "Flow results are shown as representative histograms without statistics across replicates",
+    "need": "Take exported gate statistics (percent, MFI) across replicates straight into a test and graph",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "flow-cytometry",
+      "which-test",
+      "import-instrument-files"
+    ]
+  },
+  {
+    "id": "blog-expertcyto-tips-2",
+    "venue": "expertcytometry.com",
+    "url": "https://expertcytometry.com/?p=2572",
+    "date": null,
+    "role": "flow cytometry core manager / trainer (Tim Bushnell, PhD; stated)",
+    "software_named": [],
+    "workflow": "drug X, drug Y, combination vs untreated",
+    "quote": "In the case where the experimental design has Drug X, Drug Y and the combination of Drug X and Y, to be compared to an untreated sample, what is the best test? Pairwise comparisons should not be performed in this case for the following reason.",
+    "problem": "Researchers run repeated pairwise t-tests for multi-group designs",
+    "need": "Steer multi-group/factorial designs to ANOVA with appropriate multiple-comparison correction",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "multiple-comparisons",
+      "which-test",
+      "two-way-anova"
+    ]
+  },
+  {
+    "id": "blog-expertcyto-5steps-1",
+    "venue": "expertcytometry.com",
+    "url": "https://expertcytometry.com/?p=4457",
+    "date": null,
+    "role": "flow cytometry core manager / trainer (Tim Bushnell, PhD; stated)",
+    "software_named": [],
+    "workflow": "statistical analysis after flow experiments",
+    "quote": "When it comes up, many researchers freeze not knowing how to proceed, and they muddle through as best they can.",
+    "problem": "Researchers reach the statistics step without a plan and get stuck",
+    "need": "Plan the analysis (hypothesis, alpha, power) at experiment design time and carry it into the analysis",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "which-test",
+      "power-sample-size"
+    ]
+  },
+  {
+    "id": "blog-expertcyto-5steps-2",
+    "venue": "expertcytometry.com",
+    "url": "https://expertcytometry.com/?p=4457",
+    "date": null,
+    "role": "flow cytometry core manager / trainer (Tim Bushnell, PhD; stated)",
+    "software_named": [
+      "StatMate"
+    ],
+    "workflow": "power calculation before the experiment",
+    "quote": "There are a variety of calculators out there and one of the most useful is Statmate , from GraphPad software. Although those using OSX are out of luck with the package, it is a great program to add to your toolkit.",
+    "problem": "Recommended power calculator is Windows-only",
+    "need": "Cross-platform power/sample-size calculator",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "power-sample-size",
+      "mac-windows"
+    ]
+  },
+  {
+    "id": "blog-expertcyto-numbers-1",
+    "venue": "expertcytometry.com",
+    "url": "https://expertcytometry.com/a-numbers-game/",
+    "date": null,
+    "role": "flow cytometry core manager / trainer (Tim Bushnell, PhD; stated)",
+    "software_named": [],
+    "workflow": "reporting MFI in papers",
+    "quote": "You have seen MFI as an abbreviation, don't assume you know what it means, make sure you can find that in the paper, and make sure you define it for your readers.",
+    "problem": "MFI is reported without saying whether it is mean or median",
+    "need": "Results that carry the exact summary statistic name into the methods text",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "flow-cytometry",
+      "reporting-methods"
+    ]
+  },
+  {
+    "id": "blog-expertcyto-numbers-2",
+    "venue": "expertcytometry.com",
+    "url": "https://expertcytometry.com/a-numbers-game/",
+    "date": null,
+    "role": "flow cytometry core manager / trainer (Tim Bushnell, PhD; stated)",
+    "software_named": [],
+    "workflow": "comparing flow experiments statistically",
+    "quote": "Plots are a nice way to show the data, but they don't get to the meat of the matter. Does the data support the conclusion the researcher is suggesting? That requires that we take multiple experiments and compare them in some statistical manner.",
+    "problem": "Flow results stop at plots instead of multi-experiment statistics",
+    "need": "Combine per-experiment gate statistics into replicate-level tests",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "flow-cytometry",
+      "technical-vs-biological-replicates"
+    ]
+  },
+  {
+    "id": "blog-expertcyto-numbers-3",
+    "venue": "expertcytometry.com",
+    "url": "https://expertcytometry.com/a-numbers-game/",
+    "date": null,
+    "role": "flow cytometry core manager / trainer (Tim Bushnell, PhD; stated)",
+    "software_named": [],
+    "workflow": "tracking instrument QC over time",
+    "quote": "A quick reminder that when using quality controls, it's not sufficient to just run them with each experiment, but you need to track the performance over time.",
+    "problem": "QC values are recorded per run but not tracked longitudinally",
+    "need": "Simple QC trend charts (Levey-Jennings style) for control values over time",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "flow-cytometry",
+      "time-series",
+      "trust-validation"
+    ]
+  },
+  {
+    "id": "blog-wildtypeone-truths-1",
+    "venue": "wildtypeone.substack.com",
+    "url": "https://wildtypeone.substack.com/p/hard-biology-bench-truths-that-take",
+    "date": "2026-06",
+    "role": "lab newsletter author (Wildtype One)",
+    "software_named": [],
+    "workflow": "replicates on graphs",
+    "quote": "Technical replicates only control for assay variability. They should not be treated like biological replicates. Technical replicates should not be shown on your figure graphs when you have biological replicates.",
+    "problem": "Technical replicates are plotted and analysed as if biological",
+    "need": "Data entry that distinguishes technical from biological replicates and collapses technical ones before plotting/testing",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "technical-vs-biological-replicates",
+      "show-the-points"
+    ]
+  },
+  {
+    "id": "blog-wildtypeone-truths-2",
+    "venue": "wildtypeone.substack.com",
+    "url": "https://wildtypeone.substack.com/p/hard-biology-bench-truths-that-take",
+    "date": "2026-06",
+    "role": "lab newsletter author (Wildtype One)",
+    "software_named": [],
+    "workflow": "conditions processed on different days",
+    "quote": "If condition A was processed Monday and condition B was processed Thursday, you may not have a treatment effect. You may have a calendar effect. Batch is not always noise. Sometimes batch is the experiment.",
+    "problem": "Batch/day confounded with treatment",
+    "need": "Record processing batch/day as a factor and warn when it is confounded with treatment",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "randomisation",
+      "technical-vs-biological-replicates"
+    ]
+  },
+  {
+    "id": "blog-wildtypeone-truths-3",
+    "venue": "wildtypeone.substack.com",
+    "url": "https://wildtypeone.substack.com/p/hard-biology-bench-truths-that-take",
+    "date": "2026-06",
+    "role": "lab newsletter author (Wildtype One)",
+    "software_named": [],
+    "workflow": "choosing error bars",
+    "quote": "Stop using SEM instead of SD to make data look cleaner. In most cases, your need SD + independent points.",
+    "problem": "SEM is chosen to make data look tighter",
+    "need": "Default to SD with individual points and explain the SD/SEM choice",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "error-bars-sd-sem",
+      "show-the-points"
+    ]
+  },
+  {
+    "id": "blog-wildtypeone-truths-4",
+    "venue": "wildtypeone.substack.com",
+    "url": "https://wildtypeone.substack.com/p/hard-biology-bench-truths-that-take",
+    "date": "2026-06",
+    "role": "lab newsletter author (Wildtype One)",
+    "software_named": [],
+    "workflow": "removing outliers",
+    "quote": "You're not allowed to remove outliers because your statistics are non-significant.",
+    "problem": "Outliers are removed to reach significance",
+    "need": "Outlier exclusion that requires a stated technical reason and is logged in the report",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "outliers",
+      "reproducibility-audit"
+    ]
+  },
+  {
+    "id": "blog-wildtypeone-truths-5",
+    "venue": "wildtypeone.substack.com",
+    "url": "https://wildtypeone.substack.com/p/hard-biology-bench-truths-that-take",
+    "date": "2026-06",
+    "role": "lab newsletter author (Wildtype One)",
+    "software_named": [
+      "FlowJo",
+      "GraphPad Prism",
+      "ImageJ"
+    ],
+    "workflow": "lab software budget",
+    "quote": "FlowJo (flow), GraphPad Prism (statiistics), and ImageJ (imaging) don't have the best value for price. There are better tools depending on your case.",
+    "problem": "Standard lab analysis tools are seen as poor value for money",
+    "need": "Lower-cost tools with equivalent capability",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "price-licence"
+    ]
+  },
+  {
+    "id": "blog-wildtypeone-truths-6",
+    "venue": "wildtypeone.substack.com",
+    "url": "https://wildtypeone.substack.com/p/hard-biology-bench-truths-that-take",
+    "date": "2026-06",
+    "role": "lab newsletter author (Wildtype One)",
+    "software_named": [],
+    "workflow": "blinding analysis",
+    "quote": "The best way to have confidence in your analysis is to blind it. Have a colleague rename the files. Analyze without knowing which is which. Do the statistical test. Then check.",
+    "problem": "Blinding analysis requires a manual file-renaming workaround",
+    "need": "Built-in blinding: hide group labels during analysis and reveal after",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "randomisation",
+      "trust-validation"
+    ]
+  },
+  {
+    "id": "blog-wildtypeone-truths-7",
+    "venue": "wildtypeone.substack.com",
+    "url": "https://wildtypeone.substack.com/p/hard-biology-bench-truths-that-take",
+    "date": "2026-06",
+    "role": "lab newsletter author (Wildtype One)",
+    "software_named": [],
+    "workflow": "keeping track of data",
+    "quote": "Retractions are not always intentional fraud. They can also come from innocent mistakes. Track your data.",
+    "problem": "Untracked data handling leads to errors and retractions",
+    "need": "Automatic provenance from raw data to reported number",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "reproducibility-audit"
+    ]
+  },
+  {
+    "id": "blog-wildtypeone-testguide-1",
+    "venue": "wildtypeone.substack.com",
+    "url": "https://wildtypeone.substack.com/p/the-biology-researchers-guide-to",
+    "date": "2025-04",
+    "role": "lab newsletter author (Wildtype One)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "choosing tests for multi-group experiments",
+    "quote": "Meanwhile, many researchers rush to do t-tests! This mistake yields a lot of false positives or missed discoveries.",
+    "problem": "Default to t-tests regardless of design",
+    "need": "Test chooser that starts from design (groups, factors, pairing)",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "which-test",
+      "multiple-comparisons"
+    ]
+  },
+  {
+    "id": "blog-wildtypeone-testguide-2",
+    "venue": "wildtypeone.substack.com",
+    "url": "https://wildtypeone.substack.com/p/the-biology-researchers-guide-to",
+    "date": "2025-04",
+    "role": "lab newsletter author (Wildtype One)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "paired vs unpaired",
+    "quote": "Conversely, treating independent samples as paired will also give wrong results.",
+    "problem": "Pairing is mis-specified in either direction",
+    "need": "Ask explicitly how samples are matched and explain the consequence",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "which-test",
+      "technical-vs-biological-replicates"
+    ]
+  },
+  {
+    "id": "blog-wildtypeone-testguide-3",
+    "venue": "wildtypeone.substack.com",
+    "url": "https://wildtypeone.substack.com/p/the-biology-researchers-guide-to",
+    "date": "2025-04",
+    "role": "lab newsletter author (Wildtype One)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "Kruskal-Wallis follow-up",
+    "quote": "Note: By default, Prism's Dunn can be without correction (which is anticonservative) or you can apply Bonferroni to the Dunn p-values.",
+    "problem": "Non-parametric post-hoc may be run uncorrected, inflating false positives",
+    "need": "Corrected post-hoc by default with an explicit warning when uncorrected",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "post-hoc-choice",
+      "nonparametric",
+      "multiple-comparisons"
+    ]
+  },
+  {
+    "id": "blog-wildtypeone-testguide-4",
+    "venue": "wildtypeone.substack.com",
+    "url": "https://wildtypeone.substack.com/p/the-biology-researchers-guide-to",
+    "date": "2025-04",
+    "role": "lab newsletter author (Wildtype One)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "parametric vs nonparametric",
+    "quote": "If in doubt, you can run both a t-test and a Mann-Whitney to see if they agree – just don't report the one that \"looks better\" without justification (that's p-hacking!).",
+    "problem": "Users run several tests and report the best-looking one",
+    "need": "Record which test was chosen a priori and show all tests run on a dataset",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "nonparametric",
+      "which-test",
+      "reproducibility-audit"
+    ]
+  },
+  {
+    "id": "blog-rsgspain-pandas-1",
+    "venue": "rsg-spain.iscbsc.org",
+    "url": "https://www.rsg-spain.iscbsc.org/a-pandas-mini-course-at-cnio/",
+    "date": "2021-05",
+    "role": "PhD student / bioinformatics technician, cancer genetics lab (CNIO; stated)",
+    "software_named": [
+      "Excel",
+      "Python",
+      "pandas"
+    ],
+    "workflow": "merging two methylation-array tables (~500k rows) by probe id",
+    "quote": "Some labmates used to apply a vertical look up ... search with Excel but these large files required a lot of RAM memory and they would freeze their monitors or end up crashing their computers. In addition, they would apply this operation manually as many times as the number of samples to merge.",
+    "problem": "Spreadsheet lookups on large tables freeze or crash and must be repeated per sample",
+    "need": "Join/merge tables by an ID column at scale without manual per-sample repetition",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "large-data",
+      "performance",
+      "crashes",
+      "excel-paste"
+    ]
+  },
+  {
+    "id": "blog-rsgspain-pandas-2",
+    "venue": "rsg-spain.iscbsc.org",
+    "url": "https://www.rsg-spain.iscbsc.org/a-pandas-mini-course-at-cnio/",
+    "date": "2021-05",
+    "role": "PhD student / bioinformatics technician, cancer genetics lab (CNIO; stated)",
+    "software_named": [
+      "Excel"
+    ],
+    "workflow": "routine data-frame chores in a wet lab",
+    "quote": "The \"vlookup\" Excel function to merge data tables, formatting strings, manually curating data, multiple manual searches for genes names in .xlsx tables, apply statistical tests, sorting data, and a loooong etcetera, I found that we had in common the frequent use of data frames to explore data.",
+    "problem": "Lab members do merge/curate/search/test chores by hand in spreadsheets",
+    "need": "Table operations (merge, filter, search, reshape) built into the analysis tool",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "excel-paste",
+      "scripting-batch",
+      "long-vs-wide"
+    ]
+  },
+  {
+    "id": "blog-rsgspain-pandas-3",
+    "venue": "rsg-spain.iscbsc.org",
+    "url": "https://www.rsg-spain.iscbsc.org/a-pandas-mini-course-at-cnio/",
+    "date": "2021-05",
+    "role": "PhD student / bioinformatics technician, cancer genetics lab (CNIO; stated)",
+    "software_named": [
+      "Miniconda",
+      "Python"
+    ],
+    "workflow": "installing analysis software on institute computers",
+    "quote": "A key technical tip from a colleague at the Bioinformatic Unit of the CNIO (thanks, Tomás) was to install Miniconda without Admin privileges, since some people would have to be working at the CNIO during the training, and Admin privileges are reserved to the IT department.",
+    "problem": "Researchers lack admin rights to install analysis software",
+    "need": "Analysis that runs without installation (e.g. in the browser)",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "offline",
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "blog-carpentries-nederbragt-1",
+    "venue": "carpentries.org",
+    "url": "https://carpentries.org/blog/2013/09/lex-nederbragt/",
+    "date": "2013-09",
+    "role": "biologist, self-taught bioinformatician (Lex Nederbragt, Univ. Oslo; stated)",
+    "software_named": [
+      "Excel",
+      "Python"
+    ],
+    "workflow": "sequencing data analysis",
+    "quote": "A couple of years ago, the increasing size of my data forced me to stop using Excel, and switch to the Unix command line and scripting for my analyses.",
+    "problem": "Data outgrew the spreadsheet, forcing a jump to command-line scripting",
+    "need": "Handle larger tables without forcing users into the command line",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "large-data",
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "blog-carpentries-nederbragt-2",
+    "venue": "carpentries.org",
+    "url": "https://carpentries.org/blog/2013/09/lex-nederbragt/",
+    "date": "2013-09",
+    "role": "biologist, self-taught bioinformatician (Lex Nederbragt, Univ. Oslo; stated)",
+    "software_named": [],
+    "workflow": "re-running near-identical analyses",
+    "quote": "No more copy-and-paste a few lines of code, change a few small things, run again and discovering (or not...) that I forgot to change one of the '1's into a '2'.",
+    "problem": "Copy-edit-rerun of analyses silently introduces errors",
+    "need": "Re-run the same analysis on new inputs without manual edits (templates/batch)",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "scripting-batch",
+      "reproducibility-audit"
+    ]
+  },
+  {
+    "id": "blog-mozilla-datacarp-1",
+    "venue": "blog.mozilla.org",
+    "url": "https://blog.mozilla.org/foundation-archive/mozilla-science/our-first-data-carpentry-workshop/",
+    "date": "2014-05",
+    "role": "workshop learner (grad student/postdoc/faculty, biology; quoted)",
+    "software_named": [
+      "Excel"
+    ],
+    "workflow": "managing lab data",
+    "quote": "I usually manage data in Excel and it's terrible and I want to do it better.",
+    "problem": "Spreadsheet data management is felt to be terrible but is the default",
+    "need": "Structured tables that are as easy as a spreadsheet",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "excel-paste",
+      "data-entry-table-types"
+    ]
+  },
+  {
+    "id": "blog-mozilla-datacarp-2",
+    "venue": "blog.mozilla.org",
+    "url": "https://blog.mozilla.org/foundation-archive/mozilla-science/our-first-data-carpentry-workshop/",
+    "date": "2014-05",
+    "role": "workshop learner (grad student/postdoc/faculty, biology; quoted)",
+    "software_named": [
+      "Excel",
+      "Access"
+    ],
+    "workflow": "microarray / SNP / multivariate data",
+    "quote": "I'm having a hard time analyzing microarray, SNP or multivariate data with Excel and Access.",
+    "problem": "General office tools cannot handle multivariate omics analysis",
+    "need": "PCA/clustering and large-table analyses for non-programmers",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "large-data",
+      "pca-clustering"
+    ]
+  },
+  {
+    "id": "blog-mozilla-datacarp-3",
+    "venue": "blog.mozilla.org",
+    "url": "https://blog.mozilla.org/foundation-archive/mozilla-science/our-first-data-carpentry-workshop/",
+    "date": "2014-05",
+    "role": "workshop learner (grad student/postdoc/faculty, biology; quoted)",
+    "software_named": [],
+    "workflow": "repeated manual data entry",
+    "quote": "I'm re-entering data over and over again by hand and know there's a better way.",
+    "problem": "Data are re-typed by hand repeatedly",
+    "need": "Import once from instrument/spreadsheet files and reuse",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "import-instrument-files",
+      "excel-paste"
+    ]
+  },
+  {
+    "id": "blog-mozilla-datacarp-4",
+    "venue": "blog.mozilla.org",
+    "url": "https://blog.mozilla.org/foundation-archive/mozilla-science/our-first-data-carpentry-workshop/",
+    "date": "2014-05",
+    "role": "workshop learner (grad student/postdoc/faculty, biology; quoted)",
+    "software_named": [],
+    "workflow": "lab workflow overhaul",
+    "quote": "I'm trying to reboot my lab's workflow to manage data and analysis in a more sustainable way.",
+    "problem": "Lab-wide data/analysis workflow is unsustainable",
+    "need": "Shared, reproducible lab analysis templates",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "reproducibility-audit",
+      "sharing-collaboration"
+    ]
+  },
+  {
+    "id": "blog-mozilla-datacarp-5",
+    "venue": "blog.mozilla.org",
+    "url": "https://blog.mozilla.org/foundation-archive/mozilla-science/our-first-data-carpentry-workshop/",
+    "date": "2014-05",
+    "role": "workshop learner (grad student/postdoc/faculty, biology; quoted)",
+    "software_named": [],
+    "workflow": "confidence with computation",
+    "quote": "I'm tired of feeling out of my depth on computation and want to increase my confidence.",
+    "problem": "Researchers feel out of their depth with computational analysis",
+    "need": "Tools that build confidence by explaining each step",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "blog-mozilla-datacarp-6",
+    "venue": "blog.mozilla.org",
+    "url": "https://blog.mozilla.org/foundation-archive/mozilla-science/our-first-data-carpentry-workshop/",
+    "date": "2014-05",
+    "role": "workshop instructors (Data Carpentry; blog authors)",
+    "software_named": [],
+    "workflow": "choosing between tools",
+    "quote": "What the best tool is for a particular job is still a big question. When would I use bash vs R vs SQL? Learners brought this up repeatedly",
+    "problem": "Learners cannot tell which tool fits which data task",
+    "need": "One environment that covers common table tasks so tool choice is not a barrier",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "learning-curve"
+    ]
+  }
+]

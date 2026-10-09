@@ -1,0 +1,2753 @@
+[
+ {
+  "id": "nonen-zh-replicates-grouped-1",
+  "venue": "muchong.com",
+  "url": "https://muchong.com/t-14889747-1",
+  "date": "2021-08",
+  "role": "student, zoology (profile: 动物学)",
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "grouped bar chart, treatment groups with nested replicates",
+  "quote": "在使用graphpad绘制分组柱状图时，若一个处理组下有五个重复，每个重复下有五个样本，那这一个处理组的二十五个数据都要填?，还是只填每个重复下的平均值?",
+  "problem": "Gloss: 'When drawing a grouped bar chart in GraphPad, if a treatment group has five replicates and each replicate has five samples, do I enter all 25 values, or only the mean of each replicate?' — Problem: does not know whether nested samples are independent n or must be averaged per replicate before plotting/testing.",
+  "need": "Ask how the data are nested (replicate > sample) and aggregate the inner level to one value per biological replicate before plotting and testing, stating the resulting n",
+  "severity": "wrong result risk",
+  "signal": {
+   "views": 861,
+   "replies": 3
+  },
+  "tags": [
+   "technical-vs-biological-replicates",
+   "n-definition",
+   "data-entry-table-types"
+  ]
+ },
+ {
+  "id": "nonen-zh-normalize-columns-1",
+  "venue": "muchong.com",
+  "url": "https://muchong.com/t-15078352-1",
+  "date": "2022-02",
+  "role": "pharmacology researcher (cAMP assay, posted in 药学/药理学)",
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "96-well cAMP time course, AUC per treatment, normalise then one-way ANOVA",
+  "quote": "结果，graphpad的归一化功能只能归一化同一列内的不同行的数据，不能归一同一行不同列的数据。",
+  "problem": "Gloss: 'GraphPad's Normalize can only normalise different rows within one column, not different columns within the same row.' — Problem: after computing AUC per treatment (one row, many columns) the user could not normalise across treatments and then run ANOVA without transposing twice.",
+  "need": "Let normalisation be defined relative to a chosen group/column (e.g. percent of control) regardless of table orientation, and feed the normalised values straight into the comparison",
+  "severity": "slows the work",
+  "signal": {
+   "views": 1681,
+   "replies": 1
+  },
+  "tags": [
+   "normalization",
+   "data-entry-table-types",
+   "long-vs-wide"
+  ]
+ },
+ {
+  "id": "nonen-zh-auc-baseline-1",
+  "venue": "muchong.com",
+  "url": "https://muchong.com/t-15078352-1",
+  "date": "2022-02",
+  "role": "pharmacology researcher (cAMP assay, posted in 药学/药理学)",
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "cAMP accumulation time course, area under curve vs control",
+  "quote": "但是graphpad计算曲线下面积只依据一条直线作为baseline，所以我就remove baseline功能，把对照组拉直，然后再计算AUC",
+  "problem": "Gloss: 'GraphPad computes area under the curve only against a straight-line baseline, so I used Remove Baseline to flatten the control group and then computed AUC.' — Problem: wants AUC relative to the control curve, not a constant baseline, and had to improvise with baseline subtraction.",
+  "need": "Offer AUC relative to a control/vehicle curve (or a per-time baseline series) and report the per-group AUC with its error ready for comparison",
+  "severity": "slows the work",
+  "signal": {
+   "views": 1681,
+   "replies": 1
+  },
+  "tags": [
+   "time-series",
+   "normalization",
+   "kinetics-binding"
+  ]
+ },
+ {
+  "id": "nonen-zh-ic50-se-log-1",
+  "venue": "muchong.com",
+  "url": "https://muchong.com/t-3763835-1",
+  "date": "2011-10",
+  "role": null,
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "IC50 by nonlinear regression",
+  "quote": "用graphpad prism计算IC50，导出的SE是logIC50形式，如下图所示，请问如何输出IC50±S.E.",
+  "problem": "Gloss: 'Calculating IC50 with GraphPad Prism, the exported SE is for logIC50; how do I output IC50 ± S.E.?' — Problem: the fit reports error on the log scale and the user cannot obtain the IC50 ± SE that journals/advisers expect.",
+  "need": "Report IC50 with an asymmetric 95% CI back-transformed from logIC50 and explain why a symmetric ± SE on IC50 is not appropriate; offer a ready-to-paste 'IC50 (95% CI)' string",
+  "severity": "slows the work",
+  "signal": {
+   "views": 8617,
+   "replies": 0
+  },
+  "tags": [
+   "ic50-ec50-setup",
+   "units-and-transforms",
+   "reporting-methods"
+  ]
+ },
+ {
+  "id": "nonen-zh-ic50-sd-1",
+  "venue": "muchong.com",
+  "url": "https://muchong.com/t-14782136-1",
+  "date": "2021-05",
+  "role": null,
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "IC50 by nonlinear regression",
+  "quote": "软件拟合出来的只有IC50值，怎么知道它的SD呢？",
+  "problem": "Gloss: 'The software fit only gives the IC50 value — how do I know its SD?' — Problem: wants an SD for IC50 (offered a 100-coin bounty) and does not see how to get variability across experiments from a single fit.",
+  "need": "Distinguish fit uncertainty (CI of one fit) from between-experiment variability (mean ± SD of logIC50 from independent runs) and compute the latter automatically when replicate experiments are entered",
+  "severity": "slows the work",
+  "signal": {
+   "views": 2294,
+   "replies": 0
+  },
+  "tags": [
+   "ic50-ec50-setup",
+   "technical-vs-biological-replicates",
+   "reporting-methods"
+  ]
+ },
+ {
+  "id": "nonen-zh-ic50-converge-1",
+  "venue": "muchong.com",
+  "url": "https://muchong.com/t-4572813-1",
+  "date": "2012-05",
+  "role": "biology researcher (posted in 生物科学)",
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "IC50 dose-response fit",
+  "quote": "用Graphpad Prism 酸IC50时，所画曲线不收敛，在结果中要么很大达到200，要么Bottom 很小，要么top很大。怎样限制一下Bottom 和 top 。",
+  "problem": "Gloss: 'When calculating IC50 with GraphPad Prism the curve does not converge — the result is either huge (200), or Bottom is very small, or Top very large. How do I constrain Bottom and Top?' — Problem: ill-determined plateaus give absurd parameters and the user cannot find where to constrain them.",
+  "need": "Detect unconstrained/ambiguous plateaus, warn in plain language, and offer one-click constraints (e.g. Bottom=0, Top=100 for normalised data) with a note on how they change the IC50",
+  "severity": "wrong result risk",
+  "signal": {
+   "views": 4512,
+   "replies": 3
+  },
+  "tags": [
+   "fit-diagnostics",
+   "ic50-ec50-setup"
+  ]
+ },
+ {
+  "id": "nonen-zh-ic50-twofold-1",
+  "venue": "muchong.com",
+  "url": "https://muchong.com/t-5944942-1",
+  "date": "2013-05",
+  "role": "molecular biology researcher",
+  "software_named": [
+   "GraphPad Prism",
+   "GreatBasic"
+  ],
+  "workflow": "IC50 with two-fold dilution series at high concentrations",
+  "quote": "我用的抑制剂浓度较大，不是10倍稀释，算出来的是一条不对称曲线，很难看，IC50的值也与用GreatBasic软件算出来的不一样。",
+  "problem": "Gloss: 'My inhibitor concentrations are high and not 10-fold dilutions; the computed curve is asymmetric and ugly, and the IC50 differs from what GreatBasic gives.' — Problem: unsure how to enter a two-fold dilution series (log transform) and why two tools give different IC50s.",
+  "need": "Accept concentrations as entered, log-transform automatically for any dilution factor, and show which model/settings each tool uses so differing IC50s can be reconciled",
+  "severity": "wrong result risk",
+  "signal": {
+   "views": 2170,
+   "replies": 1
+  },
+  "tags": [
+   "ic50-ec50-setup",
+   "numbers-differ-between-tools",
+   "units-and-transforms"
+  ]
+ },
+ {
+  "id": "nonen-zh-qpcr-control-one-1",
+  "venue": "muchong.com",
+  "url": "https://muchong.com/t-6169176-1",
+  "date": "2013-07",
+  "role": "molecular biology researcher",
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "real-time PCR relative expression, control normalised to 1",
+  "quote": "阴性对照组所有数据都为1，从而计算实验组相对对照组的相对表达量，但是用Graphpad分析时，因为PBS全为1，所以软件不让进行非配对t检验，只能用配对t检验了，但是感觉用配对t检验又不太合适。",
+  "problem": "Gloss: 'All negative-control values are 1 (relative expression), so GraphPad will not run an unpaired t test because PBS is all 1s; only a paired t test works, but that feels wrong.' — Problem: normalising each control to exactly 1 removes its variance and blocks the intended test.",
+  "need": "Warn when a group has zero variance because of normalisation, and recommend testing on ΔCt (log scale) or a one-sample test against 1/0 instead",
+  "severity": "blocks the analysis",
+  "signal": {
+   "views": 867,
+   "replies": 0
+  },
+  "tags": [
+   "qpcr-ddct",
+   "normalization",
+   "which-test"
+  ]
+ },
+ {
+  "id": "nonen-zh-apply-style-all-1",
+  "venue": "muchong.com",
+  "url": "https://muchong.com/t-12030332-1",
+  "date": "2018-02",
+  "role": "molecular biology researcher",
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "many statistical graphs for a paper",
+  "quote": "graphpad统计图各种参数设置，如何应用于所有图片呢？ 每次都得一一设置颜色等等比较麻烦。",
+  "problem": "Gloss: 'How do I apply GraphPad graph settings to all figures? Setting colours etc. one by one every time is tedious.' — Problem: no obvious way to apply one style to all graphs.",
+  "need": "Provide reusable figure themes that apply colours, fonts and axis styles to every graph in a project in one action",
+  "severity": "slows the work",
+  "signal": {
+   "views": 1569,
+   "replies": 2
+  },
+  "tags": [
+   "graph-formatting",
+   "scripting-batch"
+  ]
+ },
+ {
+  "id": "nonen-zh-pdf-fonts-1",
+  "venue": "muchong.com",
+  "url": "https://muchong.com/t-7294777-1",
+  "date": "2014-04",
+  "role": "author preparing a paper (论文投稿)",
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "export figure to PDF",
+  "quote": "用Graphpad 导出PDF格式遇到问题, 哪位高人知道是什么原因呢? ,导出后出现字体无法显示 .",
+  "problem": "Gloss: 'Problem exporting PDF from GraphPad — after export the fonts cannot be displayed. Why?' — Problem: exported vector PDF loses fonts.",
+  "need": "Embed or outline fonts in vector exports and preview the exported file before saving",
+  "severity": "blocks the analysis",
+  "signal": {
+   "views": 3260,
+   "replies": 1
+  },
+  "tags": [
+   "export-vector",
+   "file-compatibility"
+  ]
+ },
+ {
+  "id": "nonen-zh-eps-greek-1",
+  "venue": "muchong.com",
+  "url": "https://muchong.com/t-7440675-1",
+  "date": "2014-05",
+  "role": "author preparing a paper (论文投稿)",
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "export figure with Greek letters to EPS/PDF",
+  "quote": "用graphpad作图不论是输出PDF还是eps文件希腊字母都变成了“？”",
+  "problem": "Gloss: 'Whether I export PDF or EPS from GraphPad, Greek letters turn into “?”.' — Problem: symbol glyphs are lost in vector export (likely font/encoding with a Chinese system font).",
+  "need": "Export text with Unicode-safe embedded fonts so Greek/special symbols survive in PDF/EPS regardless of system locale",
+  "severity": "blocks the analysis",
+  "signal": {
+   "views": 3263,
+   "replies": 3
+  },
+  "tags": [
+   "export-vector",
+   "illustrator-handoff"
+  ]
+ },
+ {
+  "id": "nonen-zh-editable-figure-1",
+  "venue": "muchong.com",
+  "url": "https://muchong.com/t-13062828-1",
+  "date": "2018-12",
+  "role": "author with accepted paper (Hindawi journal)",
+  "software_named": [
+   "GraphPad Prism",
+   "PowerPoint",
+   "Adobe Illustrator"
+  ],
+  "workflow": "submitting editable figures to a journal",
+  "quote": "杂志社要求上传可编辑形式的Figure，我的柱状图是用graphpad里面截图出来的",
+  "problem": "Gloss: 'The journal requires editable figures; my bar charts were screenshots taken from GraphPad.' — Problem: figures were assembled from raster screenshots and the journal rejects them as non-editable.",
+  "need": "Export each graph as editable vector (SVG/EMF/PDF with live text) that stays editable in PowerPoint/Illustrator, and steer users away from screenshots",
+  "severity": "blocks the analysis",
+  "signal": {
+   "views": 1863,
+   "replies": 8
+  },
+  "tags": [
+   "export-vector",
+   "powerpoint",
+   "illustrator-handoff"
+  ]
+ },
+ {
+  "id": "nonen-zh-fit-params-meaning-1",
+  "venue": "muchong.com",
+  "url": "https://muchong.com/t-9324276-1",
+  "date": "2015-08",
+  "role": "molecular biology researcher",
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "one-phase exponential decay fit (dissociation)",
+  "quote": "用graphpad prism分析数据时，用到了Dissociation - One phase exponential decay，得出的结果中有很多参数不知道代表什么？",
+  "problem": "Gloss: 'Using Dissociation – One phase exponential decay in GraphPad Prism, there are many parameters in the results whose meaning I don't know.' — Problem: Goodness of Fit, Degrees of Freedom, Absolute Sum of Squares etc. are unexplained to the user.",
+  "need": "Annotate every fit output in plain language (what it means, whether it is good) with localised explanations",
+  "severity": "slows the work",
+  "signal": {
+   "views": 1783,
+   "replies": 1
+  },
+  "tags": [
+   "fit-diagnostics",
+   "kinetics-binding",
+   "learning-curve"
+  ]
+ },
+ {
+  "id": "nonen-zh-ec50-no-plateau-1",
+  "venue": "muchong.com",
+  "url": "https://muchong.com/t-13400587-1",
+  "date": "2019-05",
+  "role": "researcher (gene induction dose-response)",
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "EC50 from a curve without top plateau",
+  "quote": "某化合作用于细胞，上调基因A的倍数随浓度增大而升高，但是没有达到平台期。我使用graphpad中自带的log(agonist) vs. response -- Variable slope公式模拟得到效应曲线，并得到EC50。请问这样得出的EC50可信吗，写paper中数据处理部分要怎么描述我采用何种方法得出的EC50。",
+  "problem": "Gloss: 'Fold induction rises with concentration but never plateaus. I fitted log(agonist) vs. response – Variable slope in GraphPad and got an EC50. Is it trustworthy, and how do I describe the method in the paper?' — Problem: extrapolated EC50 without a plateau and no ready methods text.",
+  "need": "Flag EC50 values that lie beyond the data or lack a defined top, and generate a methods paragraph naming the model, constraints and software version",
+  "severity": "wrong result risk",
+  "signal": {
+   "views": 722,
+   "replies": 0
+  },
+  "tags": [
+   "ic50-ec50-setup",
+   "fit-diagnostics",
+   "reporting-methods"
+  ]
+ },
+ {
+  "id": "nonen-zh-qpcr-errorbar-1",
+  "venue": "muchong.com",
+  "url": "https://muchong.com/t-4936959-1",
+  "date": "2012-09",
+  "role": "clinical-sample qPCR researcher",
+  "software_named": [
+   "GraphPad Prism",
+   "Excel"
+  ],
+  "workflow": "relative quantification qPCR pooled across runs, bar chart",
+  "quote": "我仔细看了下仪器的分析结果，好像它的error bar用的是RQ max和RQ min，所以请问一下，这里的error bar难道不是用SD么？",
+  "problem": "Gloss: 'The instrument's error bars appear to use RQmax and RQmin — shouldn't error bars be SD?' — Problem: does not know how to carry SD of ΔCt onto 2^-ΔΔCt bars (gets bars larger than the bar height).",
+  "need": "Compute ΔΔCt error on the Ct scale and back-transform to asymmetric fold-change limits automatically, explaining RQmin/RQmax",
+  "severity": "wrong result risk",
+  "signal": {
+   "views": 4750,
+   "replies": 4
+  },
+  "tags": [
+   "qpcr-ddct",
+   "error-bars-sd-sem",
+   "units-and-transforms"
+  ]
+ },
+ {
+  "id": "nonen-zh-chinese-guide-1",
+  "venue": "muchong.com",
+  "url": "https://muchong.com/t-4079388-1",
+  "date": "2012-02",
+  "role": null,
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "learning the software",
+  "quote": "请问谁有Graphpad Prism 5.0 用户指南中文版？",
+  "problem": "Gloss: 'Does anyone have the Chinese edition of the GraphPad Prism 5.0 user guide?' — Problem: needs documentation in Chinese; thread drew 15 replies.",
+  "need": "Provide the user guide and in-app help in Chinese (and other major lab languages)",
+  "severity": "slows the work",
+  "signal": {
+   "views": 6952,
+   "replies": 15
+  },
+  "tags": [
+   "language-localisation",
+   "tutorials",
+   "learning-curve"
+  ]
+ },
+ {
+  "id": "nonen-zh-no-chinese-1",
+  "venue": "muchong.com",
+  "url": "https://muchong.com/bbs/search.php?wd=graphpad&fid=0&search_type=&adfilter=0&order=2&mode=5&page=6",
+  "date": "2009-08",
+  "role": null,
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "nonlinear regression, first-time user",
+  "quote": "最近处理数据临时突击了一下，怎奈何没有中文版以及中文使用说明，好在英文马马虎虎，照着帮助中的英文，对其中要用到的非线性回归的做法狠看了一遍",
+  "problem": "Gloss: 'I crammed it for my data recently, but there is no Chinese version or Chinese manual; luckily my English is so-so, so I read the English help on nonlinear regression hard.' — Problem: English-only software and help slows learning. (thread body is login-walled; quote is the public snippet shown on the site's own search-results page)",
+  "need": "Localised UI and help (Chinese) for core workflows such as nonlinear regression",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "language-localisation",
+   "learning-curve"
+  ]
+ },
+ {
+  "id": "nonen-zh-stars-on-graph-1",
+  "venue": "muchong.com",
+  "url": "https://muchong.com/t-9406936-1",
+  "date": "2015-09",
+  "role": "researcher reproducing a Parkinson's-model figure",
+  "software_named": [
+   "SPSS",
+   "Origin",
+   "GraphPad Prism"
+  ],
+  "workflow": "bar graph with significance asterisks",
+  "quote": "这种可以标记处\"p\"的图是怎么弄出来的，我手里有spss，origin，graphpad这三款统计软件，但摸索了很久都没搞懂怎么弄。",
+  "problem": "Gloss: 'How are these graphs that mark p made? I have SPSS, Origin and GraphPad but after a long time exploring I still can't figure it out.' — Problem: cannot get test results onto the graph as asterisks.",
+  "need": "Draw significance brackets/asterisks directly from the analysis results with editable thresholds",
+  "severity": "slows the work",
+  "signal": {
+   "views": 1469,
+   "replies": 7
+  },
+  "tags": [
+   "significance-brackets",
+   "learning-curve"
+  ]
+ },
+ {
+  "id": "nonen-zh-abc-letters-1",
+  "venue": "muchong.com",
+  "url": "https://muchong.com/t-11876145-1",
+  "date": "2017-12",
+  "role": "agronomy researcher (maize yield)",
+  "software_named": [
+   "GraphPad Prism",
+   "Origin"
+  ],
+  "workflow": "multi-variety yield comparison, letter display",
+  "quote": "问题二：同问题一，这种带abc的用软件怎么做呀？",
+  "problem": "Gloss: 'Question two: how do I make these tables/graphs with abc letters in software?' — Problem: wants compact letter display of post-hoc results (6,951 views).",
+  "need": "Generate compact letter displays (a, b, c) from post-hoc comparisons for tables and graphs",
+  "severity": "slows the work",
+  "signal": {
+   "views": 6951,
+   "replies": 5
+  },
+  "tags": [
+   "multiple-comparisons",
+   "significance-brackets",
+   "post-hoc-choice"
+  ]
+ },
+ {
+  "id": "nonen-zh-substrate-inhibition-1",
+  "venue": "muchong.com",
+  "url": "https://muchong.com/t-5020779-1",
+  "date": "2012-10",
+  "role": "drug metabolism researcher",
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "enzyme kinetics with substrate inhibition",
+  "quote": "我做一个药物的酶动力学时，发现呈底物抑制，但是用GRaphPad拟合算参数时，发现Vmax和Km大得离谱，完全与实际不符，不知道怎么回事",
+  "problem": "Gloss: 'My drug's enzyme kinetics show substrate inhibition, but when fitting in GraphPad Vmax and Km are absurdly large, nothing like reality.' — Problem: wrong model (plain Michaelis-Menten) or unconstrained fit gives meaningless parameters.",
+  "need": "Detect a falling high-substrate tail, suggest the substrate-inhibition model and warn when Vmax/Km exceed the measured range",
+  "severity": "wrong result risk",
+  "signal": {
+   "views": 531,
+   "replies": 0
+  },
+  "tags": [
+   "enzyme-kinetics",
+   "fit-diagnostics"
+  ]
+ },
+ {
+  "id": "nonen-zh-inhibition-type-1",
+  "venue": "muchong.com",
+  "url": "https://muchong.com/t-9519668-1",
+  "date": "2015-10",
+  "role": "drug metabolism researcher (UGT1A1 data attached)",
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "enzyme inhibition mechanism",
+  "quote": "请问如何使用graphpad软件判断酶抑制类型，步骤是什么？",
+  "problem": "Gloss: 'How do I use GraphPad to determine the type of enzyme inhibition — what are the steps?' — Problem: needs a guided workflow for competitive/non-competitive/mixed model comparison.",
+  "need": "Guided inhibition-mechanism workflow: fit competing models globally and report which fits best with an explanation",
+  "severity": "slows the work",
+  "signal": {
+   "views": 1560,
+   "replies": 0
+  },
+  "tags": [
+   "enzyme-kinetics",
+   "compare-curves",
+   "tutorials"
+  ]
+ },
+ {
+  "id": "nonen-zh-kon-koff-units-1",
+  "venue": "muchong.com",
+  "url": "https://muchong.com/t-7310266-1",
+  "date": "2014-04",
+  "role": "researcher (binding kinetics)",
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "association/dissociation kinetics, kon koff Kd",
+  "quote": "请问用graphpad计算kon koff kd 输入数据的单位和出结果的单位分别是什么呢？怎么对应的？总觉得我的结果差了好几个数量级。。。",
+  "problem": "Gloss: 'When computing kon, koff and Kd in GraphPad, what units should the input be and what units are the results? I feel my results are off by several orders of magnitude.' — Problem: unit handling in kinetic fits is opaque.",
+  "need": "Make units explicit on input (time, concentration) and propagate them to fitted kon/koff/Kd with a sanity check against typical ranges",
+  "severity": "wrong result risk",
+  "signal": {
+   "views": 603,
+   "replies": 0
+  },
+  "tags": [
+   "kinetics-binding",
+   "units-and-transforms"
+  ]
+ },
+ {
+  "id": "nonen-zh-wells-average-1",
+  "venue": "muchong.com",
+  "url": "https://muchong.com/t-15958448-1",
+  "date": "2024-01",
+  "role": "researcher (cell viability, duplicate wells)",
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "cell viability vs concentration, significance vs control",
+  "quote": "设了两个复孔，细胞存活率用取平均值吗",
+  "problem": "Gloss: 'I set up two duplicate wells — should cell viability use their average?' — Problem: unsure whether duplicate wells are averaged before testing each concentration against control (thread had 14 replies).",
+  "need": "Ask whether wells are technical duplicates and average them per experiment before comparing concentrations to control",
+  "severity": "wrong result risk",
+  "signal": {
+   "views": 620,
+   "replies": 14
+  },
+  "tags": [
+   "technical-vs-biological-replicates",
+   "n-definition",
+   "plate-reader"
+  ]
+ },
+ {
+  "id": "nonen-zh-learn-cck8-1",
+  "venue": "muchong.com",
+  "url": "https://muchong.com/t-15186674-1",
+  "date": "2022-03",
+  "role": "biomaterials researcher (collaborators ran cell/animal tests)",
+  "software_named": [
+   "GraphPad Prism",
+   "Excel"
+  ],
+  "workflow": "CCK-8 results returned by collaborators",
+  "quote": "现在他们返回了CCK-8的结果，上手时却发现不清楚怎么分析。能否推荐一些参考书或者课程？",
+  "problem": "Gloss: 'They sent back the CCK-8 results, but when I started I realised I don't know how to analyse them. Can you recommend books or courses?' — Problem: non-biologist owner of the data lacks a standard analysis path for a viability assay.",
+  "need": "Assay templates (e.g. CCK-8/MTT viability) that walk from raw OD to normalised viability, test and figure",
+  "severity": "blocks the analysis",
+  "signal": {
+   "views": 864,
+   "replies": 1
+  },
+  "tags": [
+   "learning-curve",
+   "tutorials",
+   "plate-reader"
+  ]
+ },
+ {
+  "id": "nonen-zh-schild-1",
+  "venue": "muchong.com",
+  "url": "https://muchong.com/t-3718588-1",
+  "date": "2011-10",
+  "role": "pharmacology researcher",
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "agonist curves at three antagonist concentrations",
+  "quote": "现在计算EC50分别得到三个浓度组高中低的EC50，但是文献报道的只是一个EC50 值。不知道这个值是怎么得到的",
+  "problem": "Gloss: 'I get an EC50 for each of the high/mid/low antagonist groups, but the literature reports only one EC50; I don't know how that value is obtained.' — Problem: does not know the shared-parameter / Schild approach.",
+  "need": "Offer global fitting with shared parameters and a Schild/pA2 analysis template for antagonist series",
+  "severity": "slows the work",
+  "signal": {
+   "views": 1903,
+   "replies": 3
+  },
+  "tags": [
+   "ic50-ec50-setup",
+   "compare-curves"
+  ]
+ },
+ {
+  "id": "nonen-zh-pa2-1",
+  "venue": "muchong.com",
+  "url": "https://muchong.com/t-4909067-1",
+  "date": "2012-09",
+  "role": "pharmacology researcher (药效评价)",
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "pA2 from EC50s at several antagonist doses",
+  "quote": "现在只是求算出各剂量的ＥＣ５０和对应的标准差，请问怎么去换算，求出ｐＡ２值",
+  "problem": "Gloss: 'So far I've only computed each dose's EC50 and SD — how do I convert these to obtain the pA2 value?' — Problem: no guided route from EC50 shifts to pA2 ± SD (4,185 views).",
+  "need": "Built-in Schild regression / pA2 with error from replicate experiments",
+  "severity": "blocks the analysis",
+  "signal": {
+   "views": 4185,
+   "replies": 0
+  },
+  "tags": [
+   "ic50-ec50-setup",
+   "compare-curves"
+  ]
+ },
+ {
+  "id": "nonen-zh-lc50-sk-1",
+  "venue": "muchong.com",
+  "url": "https://muchong.com/t-2490556-1",
+  "date": "2010-10",
+  "role": "toxicology/ecotoxicology researcher",
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "LC50 estimation",
+  "quote": "请问一下大家都用什么软件计算LC50啊，如果想用这个方法计算的话 Trimmed spearman-karber method ， 该用什么软件啊Graphpad行否？",
+  "problem": "Gloss: 'What software do you use to compute LC50? If I want the Trimmed Spearman-Karber method, which software — can GraphPad do it?' — Problem: required regulatory method not obviously available (5,533 views).",
+  "need": "Support quantal-response LC50 methods (probit, logit, Trimmed Spearman-Karber) alongside the 4PL fit",
+  "severity": "blocks the analysis",
+  "signal": {
+   "views": 5533,
+   "replies": 2
+  },
+  "tags": [
+   "ic50-ec50-setup",
+   "logistic-regression"
+  ]
+ },
+ {
+  "id": "nonen-zh-ld50-probit-1",
+  "venue": "muchong.com",
+  "url": "https://muchong.com/t-7659339-1",
+  "date": "2014-07",
+  "role": "entomology researcher (contact toxicity in beetles)",
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "LD50 with 95% fiducial limits, slope ± SE, chi-square",
+  "quote": "LD50是半致死浓度，95%FL是95%置信区间对不？我会用软件Graphpad分析出来，",
+  "problem": "Gloss: 'LD50 is the median lethal dose and 95% FL is the 95% CI, right? I can get those out of GraphPad,' (but not slope ± SE and chi-square) — Problem: journals expect probit-style output the tool does not produce.",
+  "need": "Probit/logit dose-mortality analysis reporting LD50, fiducial limits, slope ± SE and goodness-of-fit chi-square",
+  "severity": "blocks the analysis",
+  "signal": {
+   "views": 731,
+   "replies": 2
+  },
+  "tags": [
+   "ic50-ec50-setup",
+   "logistic-regression",
+   "reporting-methods"
+  ]
+ },
+ {
+  "id": "nonen-zh-two-way-nonpar-1",
+  "venue": "muchong.com",
+  "url": "https://muchong.com/bbs/search.php?wd=graphpad&fid=0&search_type=&adfilter=0&order=2&mode=5&page=3",
+  "date": "2023-03",
+  "role": null,
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "two-factor design, non-normal data",
+  "quote": "想问问双因素数据不符合正态分布，想用非参数检验，Graphpad怎么进行双因素的非参数检验？网上搜了只有t检验和单因素的",
+  "problem": "Gloss: 'My two-factor data are not normal and I want a nonparametric test — how does GraphPad do a two-factor nonparametric test? Online I only find t tests and one-factor ones.' — Problem: no nonparametric two-way option. (thread body is login-walled; quote is the public snippet shown on the site's own search-results page)",
+  "need": "Offer a route for non-normal two-factor data (aligned-rank transform, permutation two-way, or log-transform guidance) with explanation",
+  "severity": "blocks the analysis",
+  "signal": null,
+  "tags": [
+   "nonparametric",
+   "two-way-anova"
+  ]
+ },
+ {
+  "id": "nonen-zh-p-not-shown-1",
+  "venue": "muchong.com",
+  "url": "https://muchong.com/bbs/search.php?wd=graphpad&fid=0&search_type=&adfilter=0&order=2&mode=5&page=3",
+  "date": "2020-03",
+  "role": null,
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "significance display after test",
+  "quote": "求助，用graphpad统计，为什么出现这种情况？明明p小于0.5=05，但是不显示显著性？",
+  "problem": "Gloss: 'Using GraphPad stats, why does this happen? p is clearly below 0.05 but significance is not shown.' — Problem: mismatch between reported P and the significance summary/asterisks confuses the user. (thread body is login-walled; quote is the public snippet shown on the site's own search-results page)",
+  "need": "Show exactly which P value (adjusted vs unadjusted, which comparison) drives each asterisk, with the threshold used",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "significance-brackets",
+   "multiple-comparisons",
+   "exact-p"
+  ]
+ },
+ {
+  "id": "nonen-zh-excel-fits-prism-not-1",
+  "venue": "muchong.com",
+  "url": "https://muchong.com/bbs/search.php?wd=graphpad&fid=0&search_type=&adfilter=0&order=2&mode=5&page=5",
+  "date": "2021-01",
+  "role": null,
+  "software_named": [
+   "GraphPad Prism",
+   "Excel"
+  ],
+  "workflow": "IC50 from inhibition rates",
+  "quote": "能够得出不同浓度的抑制率，有一定趋势，但用prism5拟合不出曲线，计算不出IC50。但用Excel又可以计算出来，为什么用prism就计算不出呢？",
+  "problem": "Gloss: 'I have inhibition rates at different concentrations with a trend, but Prism 5 cannot fit a curve or compute IC50, while Excel can. Why?' — Problem: fit failure without an explanation; user falls back to a cruder Excel method. (thread body is login-walled; quote is the public snippet shown on the site's own search-results page)",
+  "need": "When a fit fails, say why (no plateau, too few points, wrong x scale) and suggest the fix instead of silently returning nothing",
+  "severity": "blocks the analysis",
+  "signal": null,
+  "tags": [
+   "fit-diagnostics",
+   "ic50-ec50-setup",
+   "numbers-differ-between-tools"
+  ]
+ },
+ {
+  "id": "nonen-zh-ic50-tools-differ-1",
+  "venue": "muchong.com",
+  "url": "https://muchong.com/bbs/search.php?wd=graphpad&fid=0&search_type=&adfilter=0&order=2&mode=5&page=4",
+  "date": "2018-12",
+  "role": null,
+  "software_named": [
+   "Excel",
+   "SPSS",
+   "GraphPad Prism"
+  ],
+  "workflow": "IC50 of a drug",
+  "quote": "相求一个药物的ic50，用excelspss和graphpad算的结果数量级都不一样，求大神帮看看咋回事，用哪个比较恰当呢",
+  "problem": "Gloss: 'I want a drug's IC50; Excel, SPSS and GraphPad give results that differ by orders of magnitude. Which is appropriate?' — Problem: three tools, three IC50s, no way to judge. (thread body is login-walled; quote is the public snippet shown on the site's own search-results page)",
+  "need": "Show the model, x-transform and normalisation behind an IC50 and reproduce common alternative methods side by side so discrepancies are explainable",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "numbers-differ-between-tools",
+   "ic50-ec50-setup",
+   "trust-validation"
+  ]
+ },
+ {
+  "id": "nonen-zh-survival-vs-spss-1",
+  "venue": "muchong.com",
+  "url": "https://muchong.com/bbs/search.php?wd=graphpad&fid=0&search_type=&adfilter=0&order=2&mode=5&page=4",
+  "date": "2010-12",
+  "role": null,
+  "software_named": [
+   "GraphPad Prism",
+   "SPSS"
+  ],
+  "workflow": "Kaplan-Meier survival",
+  "quote": "我用GraphPadPrism做的生存分析图和SPSS作出的图不一致，可能是GraphPadPrism用的不对",
+  "problem": "Gloss: 'My survival plot from GraphPad Prism differs from SPSS's; maybe I used Prism wrongly.' — Problem: data-entry conventions for survival (event/censor coding) lead to different curves. (thread body is login-walled; quote is the public snippet shown on the site's own search-results page)",
+  "need": "Validate survival data entry (event vs censored coding, time units) and show the life table so results can be checked against other packages",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "survival",
+   "numbers-differ-between-tools",
+   "data-entry-table-types"
+  ]
+ },
+ {
+  "id": "nonen-zh-grouped-vs-column-1",
+  "venue": "muchong.com",
+  "url": "https://muchong.com/bbs/search.php?wd=graphpad&fid=0&search_type=&adfilter=0&order=2&mode=5&page=4",
+  "date": "2016-03",
+  "role": "behavioural-experiment researcher",
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "behavioural experiment, several measures per animal",
+  "quote": "如果在使用graph时选择grouped组是不是就不能使用单因素方差分析，或者独立样本t检验？可是选择column组是不是每次只能键入一种行为选项?",
+  "problem": "Gloss: 'If I choose a Grouped table, can I no longer use one-way ANOVA or an independent t test? But with a Column table can I only enter one behavioural measure at a time?' — Problem: table type choice constrains which tests are available. (thread body is login-walled; quote is the public snippet shown on the site's own search-results page)",
+  "need": "Decouple data entry from analysis: keep one tidy table and let the user pick the test and the variable to analyse",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "data-entry-table-types",
+   "which-test",
+   "long-vs-wide"
+  ]
+ },
+ {
+  "id": "nonen-zh-box-mean-sd-1",
+  "venue": "muchong.com",
+  "url": "https://muchong.com/bbs/search.php?wd=graphpad&fid=0&search_type=&adfilter=0&order=2&mode=5&page=3",
+  "date": "2015-11",
+  "role": null,
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "box plot",
+  "quote": "想用GraphPad做箱式图，但是我想表达的是mean±SD,但是界面上并没有这个选项",
+  "problem": "Gloss: 'I want a box plot in GraphPad but showing mean ± SD, and the interface has no such option.' — Problem: confuses box plots with mean±SD summaries; tool does not explain the difference. (thread body is login-walled; quote is the public snippet shown on the site's own search-results page)",
+  "need": "Explain what each summary plot shows (box = median/IQR) and offer mean ± SD/SEM with points as an alternative",
+  "severity": "cosmetic / preference",
+  "signal": null,
+  "tags": [
+   "error-bars-sd-sem",
+   "graph-formatting",
+   "show-the-points"
+  ]
+ },
+ {
+  "id": "nonen-zh-bar-scatter-1",
+  "venue": "muchong.com",
+  "url": "https://muchong.com/bbs/search.php?wd=graphpad&fid=0&search_type=&adfilter=0&order=2&mode=5&page=3",
+  "date": "2017-03",
+  "role": null,
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "bar chart with individual points and SD",
+  "quote": "请问如何使用Graphpad做出附件里的含有标准差里面同时还包含有散点图的柱状图？",
+  "problem": "Gloss: 'How do I make, in GraphPad, the bar chart in the attachment with SD and the scatter points inside it?' — Problem: cannot find how to overlay individual data points on bars. (thread body is login-walled; quote is the public snippet shown on the site's own search-results page)",
+  "need": "Make 'bar + individual points + SD' a one-click default",
+  "severity": "cosmetic / preference",
+  "signal": null,
+  "tags": [
+   "show-the-points",
+   "error-bars-sd-sem"
+  ]
+ },
+ {
+  "id": "nonen-zh-ppt-editable-1",
+  "venue": "muchong.com",
+  "url": "https://muchong.com/bbs/search.php?wd=graphpad&fid=0&search_type=&adfilter=0&order=2&mode=5&page=5",
+  "date": "2020-04",
+  "role": "author with accepted paper",
+  "software_named": [
+   "GraphPad Prism",
+   "PowerPoint"
+  ],
+  "workflow": "journal requires editable figures in PPT",
+  "quote": "文章被接收。但是图片一直被要求修改。说PPT里面的突变要可编辑的类型。里面的图大多是graphpad的柱状图和免疫组化的图片。",
+  "problem": "Gloss: 'Paper accepted, but figures keep being sent back: the graphs in the PPT must be editable. Most are GraphPad bar charts and IHC images.' — Problem: graphs pasted as pictures are not editable for the journal. (thread body is login-walled; quote is the public snippet shown on the site's own search-results page)",
+  "need": "Export charts as native/editable PowerPoint or vector objects",
+  "severity": "blocks the analysis",
+  "signal": null,
+  "tags": [
+   "powerpoint",
+   "export-vector"
+  ]
+ },
+ {
+  "id": "nonen-zh-layout-shared-axis-1",
+  "venue": "muchong.com",
+  "url": "https://muchong.com/bbs/search.php?wd=graphpad&fid=0&search_type=&adfilter=0&order=2&mode=5&page=5",
+  "date": "2019-09",
+  "role": null,
+  "software_named": [
+   "GraphPad Prism",
+   "Photoshop"
+  ],
+  "workflow": "multi-panel figure sharing a y axis",
+  "quote": "我平常用graphpad比较多，好像layout中没有这个功能。不知道是不是我没有发现。如果graphpad不行，是不是需要用别的软件",
+  "problem": "Gloss: 'I mostly use GraphPad; the Layout doesn't seem to have this function (panels joined on one y axis). If GraphPad can't, do I need other software?' — Problem: assembles panels in Photoshop because layout cannot join axes. (thread body is login-walled; quote is the public snippet shown on the site's own search-results page)",
+  "need": "Multi-panel layouts with shared/aligned axes between panels",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "layouts-multipanel",
+   "graph-formatting"
+  ]
+ },
+ {
+  "id": "nonen-zh-journal-accept-1",
+  "venue": "muchong.com",
+  "url": "https://muchong.com/bbs/search.php?wd=graphpad&fid=0&search_type=&adfilter=0&order=2&mode=5&page=4",
+  "date": "2011-10",
+  "role": null,
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "choosing software for a paper",
+  "quote": "现在我面临的问题就是数据用GraphpadPrism处理，会不会承认可信度？",
+  "problem": "Gloss: 'My problem now is: if the data are processed with GraphPad Prism, will (SCI journals) accept its credibility?' — Problem: unsure whether reviewers trust the tool's statistics. (thread body is login-walled; quote is the public snippet shown on the site's own search-results page)",
+  "need": "Publish validation against reference implementations and produce citable methods text with software/version",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "trust-validation",
+   "reporting-methods"
+  ]
+ },
+ {
+  "id": "nonen-zh-trial-expired-1",
+  "venue": "muchong.com",
+  "url": "https://muchong.com/bbs/search.php?wd=graphpad&fid=0&search_type=&adfilter=0&order=2&mode=5&page=2",
+  "date": "2011-08",
+  "role": "student",
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "software access",
+  "quote": "我的是一个师兄给传的，没想到是试用版30天过期了，他人也走了，我下了好多其他的都说有病毒",
+  "problem": "Gloss: 'Mine was passed to me by a senior labmate; it turned out to be a 30-day trial that expired, he has left, and the other copies I downloaded were reported as viruses.' — Problem: access depends on informal copies; licence lapses mid-project. (thread body is login-walled; quote is the public snippet shown on the site's own search-results page)",
+  "need": "A free or affordable tier students can install legitimately, with files that stay openable",
+  "severity": "blocks the analysis",
+  "signal": null,
+  "tags": [
+   "price-licence",
+   "file-compatibility"
+  ]
+ },
+ {
+  "id": "nonen-zh-bonferroni-dunn-1",
+  "venue": "muchong.com",
+  "url": "https://muchong.com/bbs/search.php?wd=graphpad&fid=0&search_type=&adfilter=0&order=2&mode=5&page=7",
+  "date": "2011-11",
+  "role": null,
+  "software_named": [
+   "Origin",
+   "GraphPad Prism"
+  ],
+  "workflow": "post-hoc after ANOVA",
+  "quote": "求助如何用origin的post-hoctest的Bonferroni/Dunn算出P值的方法？如果知道如何用GraphPadPrism5的post-hoctest的Bonferroni/Dunn算出P值的方法的话就更好了",
+  "problem": "Gloss: 'How do I get P values from the Bonferroni/Dunn post-hoc test in Origin? Even better if you know how in GraphPad Prism 5.' — Problem: post-hoc output did not give exact P values per comparison. (thread body is login-walled; quote is the public snippet shown on the site's own search-results page)",
+  "need": "Report exact multiplicity-adjusted P for every post-hoc comparison",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "post-hoc-choice",
+   "exact-p",
+   "multiple-comparisons"
+  ]
+ },
+ {
+  "id": "nonen-zh-bili-beginner-1",
+  "venue": "bilibili.com",
+  "url": "https://search.bilibili.com/all?keyword=graphpad%20prism",
+  "date": null,
+  "role": "video uploader; demand signal is view count",
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "beginner tutorials: column, grouped and XY graphs with statistics",
+  "quote": "研途指南：Graphpad Prism数据量化作图及统计分析实操，柱状图（column）-分组柱状图（grouped）-线图（XY）,新手入门指南",
+  "problem": "Gloss: 'Grad-school guide: hands-on GraphPad Prism data quantification graphing and statistics — column, grouped and XY graphs, a beginner's guide' — Problem: the top Chinese results for the software are beginner walkthroughs with very large audiences (search page shows 131.7万 views for this one), indicating that table-type choice and basic graphing are a widespread learning barrier.",
+  "need": "Built-in, localised first-run guidance that picks the table/graph type from a description of the experiment",
+  "severity": "slows the work",
+  "signal": {
+   "views_displayed": "131.7万"
+  },
+  "tags": [
+   "learning-curve",
+   "tutorials",
+   "data-entry-table-types"
+  ]
+ },
+ {
+  "id": "nonen-zh-bili-hanhua-1",
+  "venue": "bilibili.com",
+  "url": "https://search.bilibili.com/all?keyword=graphpad%20prism",
+  "date": null,
+  "role": "video uploader",
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "installing a Chinese UI patch",
+  "quote": "GraphPad Prism 10.6.1 11.0以上版本通用汉化包（编号275 链接看空间置顶视频）",
+  "problem": "Gloss: 'GraphPad Prism 10.6.1 / 11.0+ universal Chinese-localisation patch (no. 275, link in pinned video)' — Problem: users seek unofficial Chinese UI patches; the same search page also lists '官方中文版 非汉化' (official Chinese version, not a patch) install videos, showing that a Chinese interface is a primary selection criterion.",
+  "need": "Ship a complete official Chinese UI (menus, dialogs, results) so users do not rely on third-party patches",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "language-localisation"
+  ]
+ },
+ {
+  "id": "nonen-zh-bili-crack-1",
+  "venue": "bilibili.com",
+  "url": "https://search.bilibili.com/all?keyword=graphpad%20prism",
+  "date": null,
+  "role": "video uploader; demand signal is view count",
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "obtaining the software",
+  "quote": "graphpad prism破解安装教程",
+  "problem": "Gloss: 'GraphPad Prism cracked-install tutorial' — Problem: cracked-install tutorials rank among the top results (search page shows 16.1万 views), alongside many '附安装包' (installer included) videos and muchong threads begging for installers, i.e. licence cost pushes students to unlicensed copies.",
+  "need": "A legitimate free/low-cost tier for students and teaching",
+  "severity": "blocks the analysis",
+  "signal": {
+   "views_displayed": "16.1万"
+  },
+  "tags": [
+   "price-licence"
+  ]
+ },
+ {
+  "id": "nonen-ja-roc-compare-1",
+  "venue": "chiebukuro.yahoo.co.jp",
+  "url": "https://detail.chiebukuro.yahoo.co.jp/qa/question_detail/q13174825478",
+  "date": "2017-05",
+  "role": null,
+  "software_named": [
+   "GraphPad Prism",
+   "EZR"
+  ],
+  "workflow": "diagnostic ROC curves",
+  "quote": "Graphpad Prism7を使用しています。ROC曲線のAUCの差を検定することが、R（EZR)では可能ですが、Prismで同様の操作を行うには、どのようにすればいいでしょうか。",
+  "problem": "Gloss: 'I use GraphPad Prism 7. Testing the difference in AUC between ROC curves is possible in R (EZR) — how do I do the same in Prism?' — Problem: Prism does not compare ROC curves (the answer quotes the manual: compute a Z test by hand).",
+  "need": "Built-in comparison of two ROC AUCs (DeLong/Hanley-McNeil) with CI and P",
+  "severity": "blocks the analysis",
+  "signal": {
+   "views": 2515
+  },
+  "tags": [
+   "roc",
+   "which-test"
+  ]
+ },
+ {
+  "id": "nonen-ja-r-reproduce-tau-1",
+  "venue": "chiebukuro.yahoo.co.jp",
+  "url": "https://detail.chiebukuro.yahoo.co.jp/qa/question_detail/q12245137307",
+  "date": "2021-06",
+  "role": null,
+  "software_named": [
+   "GraphPad Prism",
+   "R"
+  ],
+  "workflow": "exponential association fit, time constant tau",
+  "quote": "添付の写真は、Graphpad prismで解析されたものですが、 同様に、Rを使って非線形回帰によるフィッティングを行い、 時定数(tau)を算出したいと考えています。",
+  "problem": "Gloss: 'The attached figure was analysed in GraphPad Prism; I want to do the same nonlinear fit in R and compute the time constant tau.' — Problem: cannot reproduce a GUI fit in a scriptable tool.",
+  "need": "Export the exact model, initial values and constraints of a fit as runnable R/Python code",
+  "severity": "slows the work",
+  "signal": {
+   "views": 137
+  },
+  "tags": [
+   "reproducibility-audit",
+   "scripting-batch",
+   "kinetics-binding"
+  ]
+ },
+ {
+  "id": "nonen-ja-dunn-vs-pbm-1",
+  "venue": "chiebukuro.yahoo.co.jp",
+  "url": "https://detail.chiebukuro.yahoo.co.jp/qa/question_detail/q11283818896",
+  "date": "2023-08",
+  "role": "statistics beginner analysing rat experiments",
+  "software_named": [
+   "GraphPad Prism",
+   "R"
+  ],
+  "workflow": "small-n, unequal-variance group comparisons",
+  "quote": "GraphPad Prismにデフォルトで入っているDunn検定を試しにRを使って、2群比較を行った結果、より有意差が出たので、本研究でDunn検定がpBM検定に対して、代用可能かどうかが知りたくなりました。",
+  "problem": "Gloss: 'I tried the Dunn test that comes by default in GraphPad Prism (via R) and it gave more significant differences, so I want to know whether Dunn can substitute for the permuted Brunner-Munzel test.' — Problem: tempted to switch to whichever test gives significance; unsure of Dunn's assumptions with unequal variances.",
+  "need": "State each nonparametric test's assumptions (e.g. equal shapes for Dunn/Kruskal-Wallis) and recommend Brunner-Munzel-type tests when variances differ",
+  "severity": "wrong result risk",
+  "signal": {
+   "views": 143
+  },
+  "tags": [
+   "nonparametric",
+   "post-hoc-choice",
+   "which-test"
+  ]
+ },
+ {
+  "id": "nonen-ja-mst-1",
+  "venue": "chiebukuro.yahoo.co.jp",
+  "url": "https://detail.chiebukuro.yahoo.co.jp/qa/question_detail/q12144792952",
+  "date": "2015-04",
+  "role": "cancer researcher (anticancer drug survival study)",
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "Kaplan-Meier, median survival time comparison",
+  "quote": "Kaplan-meierで出てきたこのp値がMSTの差と考えてしまってよいのでしょうか？",
+  "problem": "Gloss: 'Can I treat the p value from Kaplan-Meier as the difference in median survival time?' — Problem: conflates the log-rank test of whole curves with a test of medians.",
+  "need": "Explain what the log-rank P tests and offer median survival with CI and a ratio of medians",
+  "severity": "wrong result risk",
+  "signal": {
+   "views": 331
+  },
+  "tags": [
+   "survival",
+   "hazard-ratio"
+  ]
+ },
+ {
+  "id": "nonen-ja-n3-power-1",
+  "venue": "chiebukuro.yahoo.co.jp",
+  "url": "https://detail.chiebukuro.yahoo.co.jp/qa/question_detail/q12213029872",
+  "date": "2019-09",
+  "role": "food analysis researcher",
+  "software_named": [],
+  "workflow": "two-group comparison, n=3",
+  "quote": "検定力が0.10と小さく、「差があるはずなのに、差がないと出てしまう」確率が高いはずです。",
+  "problem": "Gloss: 'Power is only 0.10, so the chance that it says no difference even though there should be one must be high.' — Problem: with n=3 and p=0.50 does not know whether 'no significant difference' can be stated.",
+  "need": "Report effect size with CI and achieved power next to non-significant results, and phrase the conclusion appropriately",
+  "severity": "wrong result risk",
+  "signal": {
+   "views": 304
+  },
+  "tags": [
+   "power-sample-size",
+   "effect-size"
+  ]
+ },
+ {
+  "id": "nonen-ja-tukey-none-1",
+  "venue": "chiebukuro.yahoo.co.jp",
+  "url": "https://detail.chiebukuro.yahoo.co.jp/qa/question_detail/q12156837247",
+  "date": "2016-03",
+  "role": "graduate student",
+  "software_named": [
+   "Excel"
+  ],
+  "workflow": "one-way ANOVA then hand-calculated Tukey",
+  "quote": "どのサンプルの算出した値も、スチューデント化された範囲表の該当する値よりも小さな値になり、どのサンプル間に有意差があるのかがわかりません。",
+  "problem": "Gloss: 'Every computed value is below the studentized-range table value, so I can't tell which samples differ (although ANOVA was significant).' — Problem: significant omnibus ANOVA but no significant Tukey pair, computed by hand in Excel.",
+  "need": "Run post-hoc tests automatically after ANOVA and explain why an omnibus result can be significant with no significant pair",
+  "severity": "slows the work",
+  "signal": {
+   "views": 371
+  },
+  "tags": [
+   "post-hoc-choice",
+   "multiple-comparisons"
+  ]
+ },
+ {
+  "id": "nonen-ja-ltp-curves-1",
+  "venue": "chiebukuro.yahoo.co.jp",
+  "url": "https://detail.chiebukuro.yahoo.co.jp/qa/question_detail/q13187551418",
+  "date": "2018-03",
+  "role": "neuroscience researcher (LTP electrophysiology, WT vs KO)",
+  "software_named": [
+   "GraphPad Prism",
+   "Excel"
+  ],
+  "workflow": "time course recorded every minute, WT vs KO",
+  "quote": "その折れ線グラフを60～120分の間で野生型とノックアウトで比べたいのですが、折れ線グラフと折れ線グラフの有意差検定はどの検定を使えばいいのでしょうか？",
+  "problem": "Gloss: 'I want to compare the WT and KO line graphs between 60 and 120 min — which test compares one line graph with another?' — Problem: does not know how to test two time courses (repeated measures over time).",
+  "need": "Time-course comparison wizard: repeated-measures/mixed model over a chosen window, or summary-measure (mean of 60-120 min) per animal",
+  "severity": "blocks the analysis",
+  "signal": {
+   "views": 79
+  },
+  "tags": [
+   "time-series",
+   "which-test",
+   "two-way-anova"
+  ]
+ },
+ {
+  "id": "nonen-ja-r2-format-1",
+  "venue": "chiebukuro.yahoo.co.jp",
+  "url": "https://detail.chiebukuro.yahoo.co.jp/qa/question_detail/q12297933847",
+  "date": "2024-05",
+  "role": null,
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "correlation result reporting",
+  "quote": "解析ソフトのプリズムで解析をしたところ、r^2の値が、3.490e-005となりました。",
+  "problem": "Gloss: 'Analysing in Prism, r² came out as 3.490e-005' (and I don't know how to write this on the graph — can I write r² < 0.01?) — Problem: scientific-notation output is not presentation-ready.",
+  "need": "Format statistics for publication (sensible rounding, no e-notation, r vs r²) when placing them on graphs",
+  "severity": "cosmetic / preference",
+  "signal": {
+   "views": 44
+  },
+  "tags": [
+   "correlation",
+   "reporting-methods",
+   "exact-p"
+  ]
+ },
+ {
+  "id": "nonen-ja-three-way-missing-1",
+  "venue": "chiebukuro.yahoo.co.jp",
+  "url": "https://detail.chiebukuro.yahoo.co.jp/qa/question_detail/q13302089753",
+  "date": "2024-08",
+  "role": "biology researcher (time × temperature × strain)",
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "three-factor design with missing cells",
+  "quote": "要素が3つあるのでThree way ANOVAで解析しようとしたのですが、データが不足しているところがあるためか解析できませんでした。",
+  "problem": "Gloss: 'With three factors I tried three-way ANOVA, but it would not run, probably because some data are missing.' — Problem: missing cells block the design-appropriate analysis and the user falls back to two-way.",
+  "need": "Fit unbalanced/missing-cell designs with a mixed/linear model and explain which comparisons remain estimable",
+  "severity": "blocks the analysis",
+  "signal": {
+   "views": 86
+  },
+  "tags": [
+   "mixed-model-missing-values",
+   "which-test",
+   "missing-values"
+  ]
+ },
+ {
+  "id": "nonen-ja-subjects-matching-1",
+  "venue": "chiebukuro.yahoo.co.jp",
+  "url": "https://detail.chiebukuro.yahoo.co.jp/qa/question_detail/q14285512504",
+  "date": "2023-09",
+  "role": "researcher (two drugs over time)",
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "two-way repeated-measures ANOVA output",
+  "quote": "上の3つは何のことかりかいできたのですが、対象（マッチあり）とはどういう意味かわかりません。",
+  "problem": "Gloss: 'I understood the first three (interaction, row factor, column factor), but I don't know what “対象（マッチあり）” (Subjects (matching)) means.' — Problem: the localised output term for the subject/matching variance component is opaque.",
+  "need": "Plain-language explanations of each ANOVA table row, with translated terms that keep the statistical meaning",
+  "severity": "slows the work",
+  "signal": {
+   "views": 39
+  },
+  "tags": [
+   "two-way-anova",
+   "language-localisation",
+   "learning-curve"
+  ]
+ },
+ {
+  "id": "nonen-ja-inhibition-pct-1",
+  "venue": "chiebukuro.yahoo.co.jp",
+  "url": "https://detail.chiebukuro.yahoo.co.jp/qa/question_detail/q13267313493",
+  "date": "2022-08",
+  "role": null,
+  "software_named": [],
+  "workflow": "IC50 assay, computing % inhibition",
+  "quote": "阻害率(y軸)の求め方がイマイチわかりません。",
+  "problem": "Gloss: 'I don't really understand how to compute the % inhibition (y axis).' — Problem: normalisation of raw signal to 0-100% inhibition using controls is the first stumbling block (1,562 views).",
+  "need": "Guided normalisation from raw readouts using defined 0% and 100% controls before fitting",
+  "severity": "blocks the analysis",
+  "signal": {
+   "views": 1562
+  },
+  "tags": [
+   "normalization",
+   "ic50-ec50-setup",
+   "plate-reader"
+  ]
+ },
+ {
+  "id": "nonen-ja-one-sided-bars-1",
+  "venue": "chiebukuro.yahoo.co.jp",
+  "url": "https://detail.chiebukuro.yahoo.co.jp/qa/question_detail/q11306303446",
+  "date": "2024-11",
+  "role": null,
+  "software_named": [
+   "Excel",
+   "ChatGPT"
+  ],
+  "workflow": "graph legend for error bars",
+  "quote": "私の感覚では、このような片側の場合、平均＋SD（や、SE）と表示するのがいいと思うのですが（実際、そのようになっているグラフもあります）、±SD（や、SE）と表記されている場合もあります。",
+  "problem": "Gloss: 'My sense is that with one-sided error bars one should write mean + SD (or SE), but some graphs write ± SD (or SE).' — Problem: no guidance on how to label one-sided error bars in legends.",
+  "need": "Generate the figure legend text from the actual plot settings (SD vs SEM, one- vs two-sided, n)",
+  "severity": "cosmetic / preference",
+  "signal": {
+   "views": 1521
+  },
+  "tags": [
+   "error-bars-sd-sem",
+   "figure-legend"
+  ]
+ },
+ {
+  "id": "nonen-ja-wells-vs-experiments-1",
+  "venue": "chiebukuro.yahoo.co.jp",
+  "url": "https://detail.chiebukuro.yahoo.co.jp/qa/question_detail/q14109889204",
+  "date": "2013-07",
+  "role": null,
+  "software_named": [],
+  "workflow": "96-well cell viability/ELISA, n=8 wells, 3 independent experiments",
+  "quote": "たとえばcontrolや薬物を加えるときに、それぞれ8つのwellを用いて実験をしたとするとn=8になるので、これだけでも統計ソフトを使ってt-検定をして有意差を出すことはできます。",
+  "problem": "Gloss: 'If I use 8 wells each for control and drug, that is n=8, so I can get significance with a t test from that alone.' — Problem: treats wells as independent n and wonders how 'three independent experiments' fits in (1,481 views).",
+  "need": "Ask for experiment ID and well ID; analyse one value per independent experiment and show both levels in the plot",
+  "severity": "wrong result risk",
+  "signal": {
+   "views": 1481
+  },
+  "tags": [
+   "technical-vs-biological-replicates",
+   "n-definition",
+   "plate-reader",
+   "superplots"
+  ]
+ },
+ {
+  "id": "nonen-ja-three-plates-1",
+  "venue": "chiebukuro.yahoo.co.jp",
+  "url": "https://detail.chiebukuro.yahoo.co.jp/qa/question_detail/q10115622960",
+  "date": "2013-10",
+  "role": null,
+  "software_named": [],
+  "workflow": "three 96-well plates seeded from one dish",
+  "quote": "もしも統計処理をするとしたら、本来は、同じdishの細胞をまいただけですから、そもそもN=24で統計処理をするべきなのでしょうか？",
+  "problem": "Gloss: 'If I do statistics, since these are just cells from the same dish, should I really analyse with N=24?' — Problem: unclear what the experimental unit is when plates share a cell source.",
+  "need": "Explain experimental units with examples (same dish = one biological replicate) and refuse to pool wells as n by default",
+  "severity": "wrong result risk",
+  "signal": {
+   "views": 439
+  },
+  "tags": [
+   "technical-vs-biological-replicates",
+   "n-definition"
+  ]
+ },
+ {
+  "id": "nonen-ja-tumour-three-groups-1",
+  "venue": "chiebukuro.yahoo.co.jp",
+  "url": "https://detail.chiebukuro.yahoo.co.jp/qa/question_detail/q1476177259",
+  "date": "2011-11",
+  "role": "animal researcher (mouse xenograft)",
+  "software_named": [],
+  "workflow": "tumour size, saline vs old drug vs new drug, n=7-10",
+  "quote": "Tukey-Kramerの検定では、AとB、AとCの間にはそれぞれ有意差があることが示されましたが、BとCの間には有意差なしとなります。 Dunnの検定では、AとCのみ間にのみ有意差があることが示されました。",
+  "problem": "Gloss: 'Tukey-Kramer shows A-B and A-C significant but not B-C; Dunn's test shows only A-C significant.' (repeated pairwise Wilcoxon showed all three) — Problem: different post-hoc tests give different answers and the user cannot choose.",
+  "need": "Recommend one post-hoc test from the design and question (e.g. new vs old drug as planned comparison) before results are seen, and explain why tests disagree",
+  "severity": "wrong result risk",
+  "signal": {
+   "views": 999
+  },
+  "tags": [
+   "post-hoc-choice",
+   "multiple-comparisons",
+   "nonparametric"
+  ]
+ },
+ {
+  "id": "nonen-ja-n1-expression-1",
+  "venue": "chiebukuro.yahoo.co.jp",
+  "url": "https://detail.chiebukuro.yahoo.co.jp/qa/question_detail/q1313389723",
+  "date": "2007-11",
+  "role": "student starting biology research",
+  "software_named": [],
+  "workflow": "gene expression in two cell types, n=1",
+  "quote": "自分のデータはn=1なので、やはり有意差をだすだなんて無理な話なのでしょうか。",
+  "problem": "Gloss: 'My data are n=1, so is getting a significant difference impossible after all?' — Problem: does not understand replication requirements for testing (2,180 views).",
+  "need": "Block tests when n<2 per group and explain what replication is needed",
+  "severity": "blocks the analysis",
+  "signal": {
+   "views": 2180
+  },
+  "tags": [
+   "n-definition",
+   "power-sample-size",
+   "teaching"
+  ]
+ },
+ {
+  "id": "nonen-ja-oneway-twoway-1",
+  "venue": "chiebukuro.yahoo.co.jp",
+  "url": "https://detail.chiebukuro.yahoo.co.jp/qa/question_detail/q14137692429",
+  "date": "2014-11",
+  "role": "cell biologist (drug response, two cell lines)",
+  "software_named": [],
+  "workflow": "cell number over days; dose response in two cell lines",
+  "quote": "以下の実験結果の統計はOne-wayかTwo-wayのどちらになるのでしょうか。それともそれ以外でしょうか。",
+  "problem": "Gloss: 'Is the statistics for the following experiments one-way or two-way? Or something else?' — Problem: cannot map a time course and a two-cell-line dose series onto one-way vs two-way ANOVA vs t tests (3,408 views).",
+  "need": "Design-first test chooser that asks about factors, levels and independence and shows the resulting model",
+  "severity": "blocks the analysis",
+  "signal": {
+   "views": 3408
+  },
+  "tags": [
+   "which-test",
+   "two-way-anova"
+  ]
+ },
+ {
+  "id": "nonen-ja-interaction-ns-1",
+  "venue": "chiebukuro.yahoo.co.jp",
+  "url": "https://detail.chiebukuro.yahoo.co.jp/qa/question_detail/q11209179061",
+  "date": "2019-06",
+  "role": "researcher (WT/KO mice, vehicle vs drug)",
+  "software_named": [],
+  "workflow": "2×2 body-weight experiment",
+  "quote": "二元配置分散分析をすると交互作用に有意差がありません。",
+  "problem": "Gloss: 'In two-way ANOVA the interaction is not significant' (yet the data look like the drug works only in WT; may I publish separate t tests within WT and KO?) — Problem: wants to claim a genotype-specific effect without a significant interaction.",
+  "need": "Explain that a differential effect requires the interaction test; show interaction effect size with CI and warn against within-group t tests as evidence of difference",
+  "severity": "wrong result risk",
+  "signal": {
+   "views": 96
+  },
+  "tags": [
+   "two-way-anova",
+   "post-hoc-choice",
+   "multiple-comparisons"
+  ]
+ },
+ {
+  "id": "nonen-ja-rm-two-way-nonpar-1",
+  "venue": "chiebukuro.yahoo.co.jp",
+  "url": "https://detail.chiebukuro.yahoo.co.jp/qa/question_detail/q14116496854",
+  "date": "2013-11",
+  "role": null,
+  "software_named": [],
+  "workflow": "3 groups × 8 weekly measurements, repeated measures",
+  "quote": "①Normality Test をパスしない ②equal variances testをパスしないということから、同テストを行えないということになり（ソフトウェア）ました。",
+  "problem": "Gloss: '(1) it fails the normality test and (2) fails the equal-variances test, so the software says the test cannot be run.' — Problem: software blocks two-way repeated-measures ANOVA on assumption checks and offers no nonparametric alternative (8,181 views).",
+  "need": "When assumptions fail, propose concrete alternatives (transform, mixed model with robust SE, rank-based/permutation repeated measures) instead of refusing",
+  "severity": "blocks the analysis",
+  "signal": {
+   "views": 8181
+  },
+  "tags": [
+   "nonparametric",
+   "two-way-anova",
+   "which-test"
+  ]
+ },
+ {
+  "id": "nonen-ja-jmp-spss-price-1",
+  "venue": "chiebukuro.yahoo.co.jp",
+  "url": "https://detail.chiebukuro.yahoo.co.jp/qa/question_detail/q12150951742",
+  "date": "2015-10",
+  "role": null,
+  "software_named": [
+   "JMP",
+   "SPSS",
+   "StatView"
+  ],
+  "workflow": "choosing statistics software for medical papers",
+  "quote": "医学論文の統計処理ソフト、JMPやSPSSって、1本２０万円くらいしますか？初心者でも操作しやすい統計処理ソフトというとなにがありますか？",
+  "problem": "Gloss: 'Do statistics packages for medical papers like JMP or SPSS cost about ¥200,000 each? What software is easy for beginners?' — Problem: cost and beginner-friendliness drive tool choice (StatView, which the user liked, is discontinued).",
+  "need": "Affordable, beginner-friendly statistics for medical/bench papers",
+  "severity": "slows the work",
+  "signal": {
+   "views": 923
+  },
+  "tags": [
+   "price-licence",
+   "learning-curve"
+  ]
+ },
+ {
+  "id": "nonen-ja-japanese-version-price-1",
+  "venue": "chiebukuro.yahoo.co.jp",
+  "url": "https://detail.chiebukuro.yahoo.co.jp/qa/question_detail/q10144304665",
+  "date": "2015-04",
+  "role": "scientist replacing DeltaGraph at work",
+  "software_named": [
+   "DeltaGraph",
+   "Excel",
+   "GraphPad Prism"
+  ],
+  "workflow": "XY scatter graphs for work",
+  "quote": "同ソフトは、DeltaGraf経験者であれば、完全日本語版（14万円台と高価）でなくても、日本語サポート版や英語版でも、使用は可能でしょうか。",
+  "problem": "Gloss: 'For someone experienced with DeltaGraph, could I use the Japanese-support or English version rather than the fully Japanese version (expensive, ~¥140,000)?' — Problem: the localised edition costs more, forcing a trade-off between language and price.",
+  "need": "Offer full Japanese UI at no extra cost / language as a setting, not a separate SKU",
+  "severity": "slows the work",
+  "signal": {
+   "views": 287
+  },
+  "tags": [
+   "language-localisation",
+   "price-licence"
+  ]
+ },
+ {
+  "id": "nonen-ja-arm-laptop-1",
+  "venue": "chiebukuro.yahoo.co.jp",
+  "url": "https://detail.chiebukuro.yahoo.co.jp/qa/question_detail/q10321048690",
+  "date": "2025-10",
+  "role": null,
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "choosing a laptop (Windows on ARM)",
+  "quote": "graphpad prism は上記のARM版でも実際問題なく動作しますか？",
+  "problem": "Gloss: 'Does GraphPad Prism actually run without problems on the ARM versions (Zenbook/Surface)?' — Problem: unsure whether the desktop app works under emulation on new ARM laptops.",
+  "need": "Platform-independent access (e.g. browser-based) so hardware choice does not matter",
+  "severity": "slows the work",
+  "signal": {
+   "views": 39
+  },
+  "tags": [
+   "mac-windows",
+   "performance"
+  ]
+ },
+ {
+  "id": "nonen-ja-gapdh-ratio-1",
+  "venue": "chiebukuro.yahoo.co.jp",
+  "url": "https://detail.chiebukuro.yahoo.co.jp/qa/question_detail/q12281841097",
+  "date": "2023-06",
+  "role": null,
+  "software_named": [],
+  "workflow": "western blot, protein/GAPDH ratio",
+  "quote": "タンパク質A/GAPDHの割合の有意差検定を行った場合、タンパク質レベルでのタンパク質Aの発現量がわかるということであっていますでしょうか？",
+  "problem": "Gloss: 'If I test the protein A/GAPDH ratio for significance, does that tell me protein A expression at the protein level?' — Problem: unsure what a loading-control-normalised ratio represents.",
+  "need": "Western-blot densitometry template explaining loading-control normalisation and what is being compared",
+  "severity": "slows the work",
+  "signal": {
+   "views": 43
+  },
+  "tags": [
+   "western-blot-densitometry",
+   "normalization"
+  ]
+ },
+ {
+  "id": "nonen-ja-qiita-dots-1",
+  "venue": "qiita.com",
+  "url": "https://qiita.com/harasho_-_/items/0ef24f2c218b31579ce0",
+  "date": "2021-06",
+  "role": "life-science researcher writing an R tutorial",
+  "software_named": [
+   "R",
+   "ggplot2"
+  ],
+  "workflow": "WT vs KO bar + error bar + individual points",
+  "quote": "近年、生物科学分野ではデータの透明性が求められており、実験結果の平均値や分布を示す棒グラフとエラーバーだけではなく、個別データをプロットした図が求められるようになりました。",
+  "problem": "Gloss: 'In recent years the life sciences demand data transparency, and figures plotting individual data — not just bars and error bars of means — are now required.' — Problem: journals now require dot-overlay bar charts; the author writes an R recipe so labmates can make them.",
+  "need": "Individual points overlaid on bar/error-bar charts by default, publication-ready",
+  "severity": "cosmetic / preference",
+  "signal": null,
+  "tags": [
+   "show-the-points",
+   "error-bars-sd-sem",
+   "graph-formatting"
+  ]
+ },
+ {
+  "id": "nonen-ja-qiita-shared-terminal-1",
+  "venue": "qiita.com",
+  "url": "https://qiita.com/harasho_-_/items/0ef24f2c218b31579ce0",
+  "date": "2021-06",
+  "role": "life-science researcher writing an R tutorial",
+  "software_named": [
+   "R"
+  ],
+  "workflow": "access to graphing software in the lab",
+  "quote": "などのアプリケーションを使用すれば比較的容易に描くことができますが、有料ですし、使用できるとしても研究室の共用端末でしか使用できないことも多いでしょう。",
+  "problem": "Gloss: '(With applications such as [the commercial graphing tool]) it is relatively easy to draw, but they are paid, and even when available they can often only be used on the lab's shared terminal.' — Problem: licence cost confines analysis to one shared lab PC, pushing people to R.",
+  "need": "Access from any personal device without per-seat cost",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "price-licence",
+   "sharing-collaboration"
+  ]
+ },
+ {
+  "id": "nonen-ja-qiita-hill-misread-1",
+  "venue": "qiita.com",
+  "url": "https://qiita.com/Yomiyama1998/items/14343814d08b0a3a3f0b",
+  "date": "2022-03",
+  "role": "lab member teaching a junior how to get IC50",
+  "software_named": [
+   "GraphPad Prism",
+   "R",
+   "Excel"
+  ],
+  "workflow": "IC50 and Hill coefficient, reproducing Prism in R/Excel",
+  "quote": "GraphPadPrismの結果Hill係数の部分に、UpperとEstの結果を逆に示すという誤りがあったため修正した。",
+  "problem": "Gloss: 'Corrected an error where, for the GraphPad Prism result, I had swapped the Upper and Est values for the Hill coefficient.' — Problem: even an experienced user mis-transcribed fit output (estimate vs CI bound) when moving results between tools.",
+  "need": "Copy-ready result summaries (estimate [95% CI]) and export of fit results in a structured form to avoid transcription errors",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "reporting-methods",
+   "ic50-ec50-setup",
+   "numbers-differ-between-tools"
+  ]
+ },
+ {
+  "id": "nonen-ko-wb-anova-vs-t-1",
+  "venue": "ibric.org",
+  "url": "https://www.ibric.org/bric/search.do?qt=prism&menu=%EC%BB%A4%EB%AE%A4%EB%8B%88%ED%8B%B0&section=%EC%BB%A4%EB%AE%A4%EB%8B%88%ED%8B%B0%7BQ_A%7D",
+  "date": "2025-08",
+  "role": null,
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "western blot densitometry, control vs treatments",
+  "quote": "ANOVA검정에서 multiple comparisons를 하면 유의성이 안 뜨는데 t-test를 진행하면 유의성이 나타납니다. 이럴 때에는 어떻게 진행을 해야하는 지 모르겠어서 질문을 드립니다.",
+  "problem": "Gloss: 'With multiple comparisons after ANOVA there is no significance, but with a t test there is. I don't know how to proceed.' — Problem: tempted to replace corrected comparisons with uncorrected t tests to obtain significance. (BRIC Q&A detail pages return an empty body to the fetcher; quote is from the question text shown on BRIC's own search-results page)",
+  "need": "Explain why corrected post-hoc and lone t tests differ, and offer planned comparisons (e.g. Dunnett vs control) chosen before seeing results",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "multiple-comparisons",
+   "post-hoc-choice",
+   "western-blot-densitometry"
+  ]
+ },
+ {
+  "id": "nonen-ko-qpcr-kw-n3-1",
+  "venue": "ibric.org",
+  "url": "https://www.ibric.org/bric/search.do?qt=prism&menu=%EC%BB%A4%EB%AE%A4%EB%8B%88%ED%8B%B0&section=%EC%BB%A4%EB%AE%A4%EB%8B%88%ED%8B%B0%7BQ_A%7D",
+  "date": "2025-03",
+  "role": "plant researcher (RT-qPCR)",
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "RT-qPCR, n=3 per group",
+  "quote": "n=3이기 때문에, nonparametric으로 One-way-ANOVA인, Kruskal-Wallis test로 통계처리를 하였습니다. 그런데 이렇게 에러바도 작고 차이도 확연한 것 같은데, Positive와 negative간의 유의성이 나오질 않네요..",
+  "problem": "Gloss: 'Because n=3 I used the nonparametric Kruskal-Wallis test, but even though error bars are small and the difference is obvious, positive vs negative is not significant.' — Problem: picked a rank test with n=3, which cannot reach significance; misunderstands why. (BRIC Q&A detail pages return an empty body to the fetcher; quote is from the question text shown on BRIC's own search-results page)",
+  "need": "Warn that rank tests with n=3 per group have a minimum attainable P above 0.05 and suggest analysis on ΔCt with a parametric test",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "nonparametric",
+   "power-sample-size",
+   "qpcr-ddct",
+   "which-test"
+  ]
+ },
+ {
+  "id": "nonen-ko-ec50-top-95-1",
+  "venue": "ibric.org",
+  "url": "https://www.ibric.org/bric/search.do?qt=prism&menu=%EC%BB%A4%EB%AE%A4%EB%8B%88%ED%8B%B0&section=%EC%BB%A4%EB%AE%A4%EB%8B%88%ED%8B%B0%7BQ_A%7D",
+  "date": "2024-11",
+  "role": null,
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "dose-response, normalised EC50",
+  "quote": "이때 값을 노멀라이즈 하여 0~100%사이로 만들어준 후 EC50구하고 싶은데 최대값이 100%가 아닌 95%로 지정하고 싶으면 어떻게 해야할까요",
+  "problem": "Gloss: 'I want to normalise values to 0-100% and then get the EC50, but how do I set the maximum to 95% instead of 100%?' — Problem: unclear how normalisation and Top constraint interact. (BRIC Q&A detail pages return an empty body to the fetcher; quote is from the question text shown on BRIC's own search-results page)",
+  "need": "Separate normalisation from model constraints and show how constraining Top changes the EC50",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "normalization",
+   "ic50-ec50-setup",
+   "fit-diagnostics"
+  ]
+ },
+ {
+  "id": "nonen-ko-pairwise-stars-1",
+  "venue": "ibric.org",
+  "url": "https://www.ibric.org/bric/search.do?qt=prism&menu=%EC%BB%A4%EB%AE%A4%EB%8B%88%ED%8B%B0&section=%EC%BB%A4%EB%AE%A4%EB%8B%88%ED%8B%B0%7BQ_A%7D",
+  "date": "2024-10",
+  "role": "learning the software (mouse body weight, n=4 per group)",
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "body weight over 15 days, comparison on day 15",
+  "quote": "15일차 data를 어떤 분석을 돌려야하는지, 어떤 항목을 체크해야하는지 알려주시면 감사하겠습니다.",
+  "problem": "Gloss: 'Please tell me which analysis to run on the day-15 data and which options to tick.' — Problem: wants pairwise brackets like a published figure but does not know the analysis; then the brackets do not appear on the graph. (BRIC Q&A detail pages return an empty body to the fetcher; quote is from the question text shown on BRIC's own search-results page)",
+  "need": "From a graph, let the user click two groups to compare and run the appropriate test, with the bracket drawn automatically",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "significance-brackets",
+   "which-test",
+   "learning-curve"
+  ]
+ },
+ {
+  "id": "nonen-ko-ic50-wrong-range-1",
+  "venue": "ibric.org",
+  "url": "https://www.ibric.org/bric/search.do?qt=prism&menu=%EC%BB%A4%EB%AE%A4%EB%8B%88%ED%8B%B0&section=%EC%BB%A4%EB%AE%A4%EB%8B%88%ED%8B%B0%7BQ_A%7D",
+  "date": "2024-07",
+  "role": null,
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "CCK-8 viability, GI50/IC50 for several compounds",
+  "quote": "raw data로 봤을때는 IC50값이 10uM 초과해야 맞는데 프로그램으로 분석하면 2uM 아니면 아예 <1.52E-03 이런식으로 값이 나와버릴때도 있고",
+  "problem": "Gloss: 'Judging from the raw data the IC50 should be above 10 µM, but the program gives 2 µM or even <1.52E-03.' — Problem: fitted IC50s are implausible versus the data and the user cannot tell why. (BRIC Q&A detail pages return an empty body to the fetcher; quote is from the question text shown on BRIC's own search-results page)",
+  "need": "Flag IC50s outside the tested range or driven by missing plateaus; plot the fit over the raw points with a plain-language diagnostic",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "fit-diagnostics",
+   "ic50-ec50-setup",
+   "trust-validation"
+  ]
+ },
+ {
+  "id": "nonen-ko-price-800k-1",
+  "venue": "ibric.org",
+  "url": "https://www.ibric.org/bric/search.do?qt=prism&menu=%EC%BB%A4%EB%AE%A4%EB%8B%88%ED%8B%B0&section=%EC%BB%A4%EB%AE%A4%EB%8B%88%ED%8B%B0%7BQ_A%7D",
+  "date": "2024-07",
+  "role": null,
+  "software_named": [
+   "GraphPad Prism",
+   "SigmaPlot",
+   "Origin",
+   "Excel"
+  ],
+  "workflow": "choosing graphing software",
+  "quote": "프로그램 사용하려고 찾아보니 무료인줄 알았는데 구입 비용이 80만원정도로 생각보다 비싸더라구요..",
+  "problem": "Gloss: 'I looked into using the program and thought it was free, but it costs around 800,000 won — more expensive than I thought.' — Problem: price is a barrier; respondents mention people use cracked copies. (BRIC Q&A detail pages return an empty body to the fetcher; quote is from the question text shown on BRIC's own search-results page)",
+  "need": "Free or low-cost legitimate access for students",
+  "severity": "blocks the analysis",
+  "signal": null,
+  "tags": [
+   "price-licence"
+  ]
+ },
+ {
+  "id": "nonen-ko-tilde-ic50-1",
+  "venue": "ibric.org",
+  "url": "https://www.ibric.org/bric/search.do?qt=graphpad&menu=%EC%BB%A4%EB%AE%A4%EB%8B%88%ED%8B%B0&section=%EC%BB%A4%EB%AE%A4%EB%8B%88%ED%8B%B0%7BQ_A%7D",
+  "date": "2024-06",
+  "role": null,
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "IC50 in Prism 5",
+  "quote": "graphpad prism 5로 IC50를 구했는데 IC50 값 앞에 ~표시가 있어서 어떤 의미인지 알고 싶습니다.",
+  "problem": "Gloss: 'I got an IC50 in GraphPad Prism 5 and there is a ~ sign in front of the value; what does it mean?' — Problem: the 'ambiguous fit' marker is not self-explanatory. (BRIC Q&A detail pages return an empty body to the fetcher; quote is from the question text shown on BRIC's own search-results page)",
+  "need": "Replace cryptic markers with an explicit warning ('IC50 poorly determined because…') and suggested fixes",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "fit-diagnostics",
+   "ic50-ec50-setup"
+  ]
+ },
+ {
+  "id": "nonen-ko-bartlett-1",
+  "venue": "ibric.org",
+  "url": "https://www.ibric.org/bric/search.do?qt=prism&menu=%EC%BB%A4%EB%AE%A4%EB%8B%88%ED%8B%B0&section=%EC%BB%A4%EB%AE%A4%EB%8B%88%ED%8B%B0%7BQ_A%7D",
+  "date": "2024-04",
+  "role": "graduate student (cell experiments, n=3)",
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "one-way ANOVA with Dunnett vs control",
+  "quote": "근데 그 밑에 나와있는 [Bartlett's test]는 무엇을 나타내는건가요 밑 이미지의 경우 [Bartlett's test] 유의적이라고 떴는데 이 통계 결과는 사용하면 안되는건가요",
+  "problem": "Gloss: 'What does the Bartlett's test shown below mean? It came out significant — does that mean I can't use these results?' — Problem: two variance tests disagree (Brown-Forsythe ns, Bartlett significant) and the user cannot interpret them. (BRIC Q&A detail pages return an empty body to the fetcher; quote is from the question text shown on BRIC's own search-results page)",
+  "need": "Interpret assumption checks in words and recommend a single action (e.g. Welch/Brown-Forsythe ANOVA) when variances differ",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "which-test",
+   "learning-curve",
+   "fit-diagnostics"
+  ]
+ },
+ {
+  "id": "nonen-ko-wb-error-bar-1",
+  "venue": "ibric.org",
+  "url": "https://www.ibric.org/bric/search.do?qt=prism&menu=%EC%BB%A4%EB%AE%A4%EB%8B%88%ED%8B%B0&section=%EC%BB%A4%EB%AE%A4%EB%8B%88%ED%8B%B0%7BQ_A%7D",
+  "date": "2023-12",
+  "role": "graduate student (western blot CD31/actin)",
+  "software_named": [
+   "ImageJ",
+   "Excel",
+   "GraphPad Prism"
+  ],
+  "workflow": "western blot quantification to bar graph",
+  "quote": "오차값을 구하려면 평균 값을 구하고 해야한다는데 어디서 어떤 평균 값을 구하라는 건지 전혀",
+  "problem": "Gloss: 'They say to get error values I need to compute a mean first, but I have no idea where or which mean' — Problem: has one band per condition (n=1) and does not know replicates are needed for error bars. (BRIC Q&A detail pages return an empty body to the fetcher; quote is from the question text shown on BRIC's own search-results page)",
+  "need": "Western-blot template: ImageJ values per lane → ratio to loading control → normalise to control → mean ± SD across independent blots, refusing error bars at n=1",
+  "severity": "blocks the analysis",
+  "signal": null,
+  "tags": [
+   "western-blot-densitometry",
+   "n-definition",
+   "error-bars-sd-sem"
+  ]
+ },
+ {
+  "id": "nonen-ko-actin-normalise-1",
+  "venue": "ibric.org",
+  "url": "https://www.ibric.org/bric/search.do?qt=prism&menu=%EC%BB%A4%EB%AE%A4%EB%8B%88%ED%8B%B0&section=%EC%BB%A4%EB%AE%A4%EB%8B%88%ED%8B%B0%7BQ_A%7D",
+  "date": "2024-09",
+  "role": "lab member whose only mentor left",
+  "software_named": [
+   "ImageJ",
+   "GraphPad Prism"
+  ],
+  "workflow": "western blot densitometry relative to β-actin",
+  "quote": "사진의 그래프를 보면 β-actin에 해당하는 막대는 따로 있지 않은데 어떻게 비교가 된 건가요 기왕이면 Prism 으로 어떻게 조작하면 되는지 알려주시면 감사하겠습니다...",
+  "problem": "Gloss: 'In the graph there is no separate bar for β-actin — how was it compared? Ideally tell me how to do it in Prism.' — Problem: does not know densitometry is normalised to the loading control before plotting; the only senior who could teach has left. (BRIC Q&A detail pages return an empty body to the fetcher; quote is from the question text shown on BRIC's own search-results page)",
+  "need": "Built-in loading-control normalisation step for densitometry data",
+  "severity": "blocks the analysis",
+  "signal": null,
+  "tags": [
+   "western-blot-densitometry",
+   "normalization",
+   "learning-curve"
+  ]
+ },
+ {
+  "id": "nonen-ko-foreign-senior-1",
+  "venue": "ibric.org",
+  "url": "https://www.ibric.org/bric/search.do?qt=%ED%94%84%EB%A6%AC%EC%A6%98&menu=%EC%BB%A4%EB%AE%A4%EB%8B%88%ED%8B%B0&section=%EC%BB%A4%EB%AE%A4%EB%8B%88%ED%8B%B0%7BQ_A%7D",
+  "date": "2025-02",
+  "role": "lab member (only a foreign senior colleague in lab)",
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "quantification then graph with N=3",
+  "quote": "실험실에 외국인 선배만 있어서 질문은 잘 못해서 그냥 유튜브에 정량법을 찾아 정량화를 해봤는데",
+  "problem": "Gloss: 'The only senior in my lab is a foreigner, so I can't really ask questions; I just found a quantification method on YouTube' (and don't know which numbers to enter in Prism for N=3) — Problem: language gap with the lab mentor leaves the user to self-teach data entry. (BRIC Q&A detail pages return an empty body to the fetcher; quote is from the question text shown on BRIC's own search-results page)",
+  "need": "In-app guidance in the user's own language on what to enter for N independent experiments",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "language-localisation",
+   "n-definition",
+   "tutorials"
+  ]
+ },
+ {
+  "id": "nonen-ko-survival-cumulative-1",
+  "venue": "ibric.org",
+  "url": "https://www.ibric.org/bric/search.do?qt=prism&menu=%EC%BB%A4%EB%AE%A4%EB%8B%88%ED%8B%B0&section=%EC%BB%A4%EB%AE%A4%EB%8B%88%ED%8B%B0%7BQ_A%7D",
+  "date": "2025-08",
+  "role": "animal researcher",
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "survival graph for three groups",
+  "quote": "그래서 그림대로 작성하였더니 폐사 개체수가 누적된 것처럼 나옵니다..",
+  "problem": "Gloss: 'So I entered it like the picture, and the deaths come out as if cumulative.' — Problem: survival data entry format (one row per animal) is not intuitive. (BRIC Q&A detail pages return an empty body to the fetcher; quote is from the question text shown on BRIC's own search-results page)",
+  "need": "Accept survival data as 'deaths per day per group' and convert to per-subject format automatically",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "survival",
+   "data-entry-table-types"
+  ]
+ },
+ {
+  "id": "nonen-ko-tick-between-bars-1",
+  "venue": "ibric.org",
+  "url": "https://www.ibric.org/bric/search.do?qt=prism&menu=%EC%BB%A4%EB%AE%A4%EB%8B%88%ED%8B%B0&section=%EC%BB%A4%EB%AE%A4%EB%8B%88%ED%8B%B0%7BQ_A%7D",
+  "date": "2025-04",
+  "role": "graduate student before graduation",
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "bar graph formatting",
+  "quote": "그래프 X축의 tick을 막대 중앙이 아닌 막대와 막대 사이에 위치하게끔 하고 싶은데",
+  "problem": "Gloss: 'I want the x-axis ticks between bars rather than at the bar centre' — Problem: cannot move ticks; the answer was to remove ticks and redraw in PowerPoint. (BRIC Q&A detail pages return an empty body to the fetcher; quote is from the question text shown on BRIC's own search-results page)",
+  "need": "Finer axis tick placement options without leaving the tool",
+  "severity": "cosmetic / preference",
+  "signal": null,
+  "tags": [
+   "graph-formatting",
+   "powerpoint"
+  ]
+ },
+ {
+  "id": "nonen-ko-um-spacing-1",
+  "venue": "ibric.org",
+  "url": "https://www.ibric.org/bric/search.do?qt=%ED%94%84%EB%A6%AC%EC%A6%98&menu=%EC%BB%A4%EB%AE%A4%EB%8B%88%ED%8B%B0&section=%EC%BB%A4%EB%AE%A4%EB%8B%88%ED%8B%B0%7BQ_A%7D",
+  "date": "2025-09",
+  "role": null,
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "axis/label units",
+  "quote": "데이터 입력 칸에는 uM이라고 붙여서 썼는데 막상 그래프에서 보니까 u M 이렇게 띄어져 있습니다.",
+  "problem": "Gloss: 'I typed uM together in the data table, but on the graph it shows as u M with a space.' — Problem: unit text rendering (µ symbol handling) in labels. (BRIC Q&A detail pages return an empty body to the fetcher; quote is from the question text shown on BRIC's own search-results page)",
+  "need": "Proper unit/µ symbol handling in labels",
+  "severity": "cosmetic / preference",
+  "signal": null,
+  "tags": [
+   "graph-formatting",
+   "units-and-transforms"
+  ]
+ },
+ {
+  "id": "nonen-ko-normality-n3-1",
+  "venue": "ibric.org",
+  "url": "https://www.ibric.org/bric/search.do?qt=graphpad&menu=%EC%BB%A4%EB%AE%A4%EB%8B%88%ED%8B%B0&section=%EC%BB%A4%EB%AE%A4%EB%8B%88%ED%8B%B0%7BQ_A%7D",
+  "date": "2023-02",
+  "role": "cell biologist (PCR, western, n=3)",
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "normality test before ANOVA with small n",
+  "quote": "그런데 n수가 5미만으로 작을 경우는 사용할 수 없더라구요 이 경우엔 검증없이 anova를 돌릴 수 있나요",
+  "problem": "Gloss: 'But when n is under 5 the normality test can't be used — can I run ANOVA without checking in that case?' — Problem: normality tests are unavailable/uninformative at n=3 and the user doesn't know what to do. (BRIC Q&A detail pages return an empty body to the fetcher; quote is from the question text shown on BRIC's own search-results page)",
+  "need": "Explain that normality cannot be assessed at n=3 and base the choice on prior knowledge/scale (e.g. log for ratios), with residual plots when possible",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "which-test",
+   "power-sample-size",
+   "learning-curve"
+  ]
+ },
+ {
+  "id": "nonen-ko-facs-mfi-1",
+  "venue": "ibric.org",
+  "url": "https://www.ibric.org/bric/search.do?qt=graphpad&menu=%EC%BB%A4%EB%AE%A4%EB%8B%88%ED%8B%B0&section=%EC%BB%A4%EB%AE%A4%EB%8B%88%ED%8B%B0%7BQ_A%7D",
+  "date": "2022-12",
+  "role": null,
+  "software_named": [
+   "GraphPad Prism",
+   "Excel"
+  ],
+  "workflow": "flow cytometry MFI across repeats",
+  "quote": "FACS 데이터를 정리하는데 반복 실험의 median 값들로 평균을 내서 MFI 값을 계산하는지 궁금합니다.",
+  "problem": "Gloss: 'When organising FACS data, do I compute MFI by averaging the medians from repeated experiments?' — Problem: unsure how to summarise MFI across independent experiments. (BRIC Q&A detail pages return an empty body to the fetcher; quote is from the question text shown on BRIC's own search-results page)",
+  "need": "Flow template: one median per sample per experiment, summarised across experiments with the right n",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "flow-cytometry",
+   "technical-vs-biological-replicates"
+  ]
+ },
+ {
+  "id": "nonen-ko-normalise-first-day-1",
+  "venue": "ibric.org",
+  "url": "https://www.ibric.org/bric/search.do?qt=%EA%B7%B8%EB%9E%98%ED%94%84%ED%8C%A8%EB%93%9C&menu=%EC%BB%A4%EB%AE%A4%EB%8B%88%ED%8B%B0&section=%EC%BB%A4%EB%AE%A4%EB%8B%88%ED%8B%B0%7BQ_A%7D",
+  "date": "2021-02",
+  "role": "first-time user",
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "normalise to control mean = 1",
+  "quote": "통계도 처음 해보는데 처음 사용하는 프로그램이라 정말 뭐가 뭔지 하나도 모르겠습니다.",
+  "problem": "Gloss: 'It's my first time doing statistics and my first time using the program, so I really don't understand anything.' (needs to normalise to the control mean = 1) — Problem: steep start for a common normalisation task. (BRIC Q&A detail pages return an empty body to the fetcher; quote is from the question text shown on BRIC's own search-results page)",
+  "need": "Guided 'normalise to control mean' step with preview",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "normalization",
+   "learning-curve"
+  ]
+ },
+ {
+  "id": "nonen-ko-excel-vs-gp-p-1",
+  "venue": "ibric.org",
+  "url": "https://www.ibric.org/bric/search.do?qt=%EA%B7%B8%EB%9E%98%ED%94%84%ED%8C%A8%EB%93%9C&menu=%EC%BB%A4%EB%AE%A4%EB%8B%88%ED%8B%B0&section=%EC%BB%A4%EB%AE%A4%EB%8B%88%ED%8B%B0%7BQ_A%7D",
+  "date": "2024-09",
+  "role": null,
+  "software_named": [
+   "Excel",
+   "GraphPad Prism"
+  ],
+  "workflow": "RT-qPCR t test",
+  "quote": "엑셀로 구한 p-value값과 그래프 패드 로 구한 p-value값이 다르게 나왔습니다.",
+  "problem": "Gloss: 'The p-value from Excel and the p-value from GraphPad came out different.' — Problem: Excel test on ΔCt means vs GraphPad on other values; can't reconcile. (BRIC Q&A detail pages return an empty body to the fetcher; quote is from the question text shown on BRIC's own search-results page)",
+  "need": "Show the exact test variant and the values fed into it so results can be reproduced in other tools",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "numbers-differ-between-tools",
+   "qpcr-ddct",
+   "trust-validation"
+  ]
+ },
+ {
+  "id": "nonen-ko-letters-control-1",
+  "venue": "ibric.org",
+  "url": "https://www.ibric.org/bric/search.do?qt=%ED%86%B5%EA%B3%84%20%EA%B2%80%EC%A0%95&menu=%EC%BB%A4%EB%AE%A4%EB%8B%88%ED%8B%B0&section=%EC%BB%A4%EB%AE%A4%EB%8B%88%ED%8B%B0%7BQ_A%7D",
+  "date": "2022-04",
+  "role": "lab beginner",
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "one-way ANOVA post-hoc, letter display",
+  "quote": "모든 실험군이 컨트롤과 차이가 없으니 a를 공유해야 하는 것 아닌가요",
+  "problem": "Gloss: 'Since no group differs from the control, shouldn't they all share the letter a?' — Problem: converting many post-hoc results into compact letters by hand is confusing. (BRIC Q&A detail pages return an empty body to the fetcher; quote is from the question text shown on BRIC's own search-results page)",
+  "need": "Automatic compact letter display from post-hoc results",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "multiple-comparisons",
+   "significance-brackets"
+  ]
+ },
+ {
+  "id": "nonen-ko-ttest-vs-anova-1",
+  "venue": "ibric.org",
+  "url": "https://www.ibric.org/bric/search.do?qt=%ED%86%B5%EA%B3%84%20%EA%B2%80%EC%A0%95&menu=%EC%BB%A4%EB%AE%A4%EB%8B%88%ED%8B%B0&section=%EC%BB%A4%EB%AE%A4%EB%8B%88%ED%8B%B0%7BQ_A%7D",
+  "date": "2024-07",
+  "role": "graduate student, biotechnology",
+  "software_named": [],
+  "workflow": "5 groups, n=3, disease model with drugs",
+  "quote": "지금까지는 모두 t-test 로만 데이터 처리를 하였는데 이 방법이 제 그룹에서 잘못되었다고 하여서요 .. t-test 와 ANOVA 중 어떤 방법을 사용하는 것이 맞는지 궁금합니다.",
+  "problem": "Gloss: 'So far I've analysed everything only with t tests, but I was told this is wrong for my groups — which is correct, t test or ANOVA?' — Problem: multi-group design analysed with repeated t tests. (BRIC Q&A detail pages return an empty body to the fetcher; quote is from the question text shown on BRIC's own search-results page)",
+  "need": "Detect >2 groups and recommend ANOVA with planned comparisons (e.g. vs positive control)",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "which-test",
+   "multiple-comparisons"
+  ]
+ },
+ {
+  "id": "nonen-ko-multiple-t-1",
+  "venue": "ibric.org",
+  "url": "https://www.ibric.org/bric/search.do?qt=%ED%86%B5%EA%B3%84%20%EA%B2%80%EC%A0%95&menu=%EC%BB%A4%EB%AE%A4%EB%8B%88%ED%8B%B0&section=%EC%BB%A4%EB%AE%A4%EB%8B%88%ED%8B%B0%7BQ_A%7D",
+  "date": "2022-07",
+  "role": null,
+  "software_named": [],
+  "workflow": "WT vs KO under fasted and fed",
+  "quote": "multiple을 사용하게 되면, 검정 오류에 걸릴 수 있어서 ANOVA를 사용하는 거 같던데",
+  "problem": "Gloss: 'If you use multiple t tests you can get testing errors, so it seems ANOVA is used' (which test for WT/KO × fasted/fed?) — Problem: unsure between multiple t tests and two-way ANOVA. (BRIC Q&A detail pages return an empty body to the fetcher; quote is from the question text shown on BRIC's own search-results page)",
+  "need": "Design-first chooser that identifies the 2×2 factorial and runs two-way ANOVA with the relevant simple effects",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "two-way-anova",
+   "multiple-comparisons",
+   "which-test"
+  ]
+ },
+ {
+  "id": "nonen-ko-home-pc-licence-1",
+  "venue": "ibric.org",
+  "url": "https://www.ibric.org/bric/search.do?qt=prism&menu=%EC%BB%A4%EB%AE%A4%EB%8B%88%ED%8B%B0&section=%EC%BB%A4%EB%AE%A4%EB%8B%88%ED%8B%B0%7BQ_A%7D",
+  "date": "2024-01",
+  "role": null,
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "licence for lab and home PC",
+  "quote": "실험실 pc, 집 pc 따로 구매를해서 사용해야하나요",
+  "problem": "Gloss: 'Do I need to buy separately for the lab PC and home PC?' — Problem: per-machine licensing complicates working from home. (BRIC Q&A detail pages return an empty body to the fetcher; quote is from the question text shown on BRIC's own search-results page)",
+  "need": "Access from any machine without per-device activation",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "price-licence",
+   "sharing-collaboration"
+  ]
+ },
+ {
+  "id": "nonen-de-grouping-var-1",
+  "venue": "statistik-forum.de",
+  "url": "http://www.statistik-forum.de/allgemeine-fragen-f5/graph-pad-gruppierungsvariable-t12433.html",
+  "date": "2021-02",
+  "role": "master's student",
+  "software_named": [
+   "GraphPad Prism",
+   "SPSS"
+  ],
+  "workflow": "bar graphs overall and split by sex from an SPSS file",
+  "quote": "Jetzt stehe ich aber vor der Schwierigkeit, dass ich in GraphPad keine Funktion finde, welche mir helfen würde die Datei aufzuteilen (ähnlich der Funktion in SPSS z.B. Gruppierungsvariable).",
+  "problem": "Gloss: 'I can't find a function in GraphPad to split the file (like a grouping variable in SPSS).' — Problem: long-format data with a grouping column cannot be split/grouped for graphing without manual re-entry.",
+  "need": "Import long/tidy data and let any column act as a grouping/splitting variable for graphs and tests",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "long-vs-wide",
+   "data-entry-table-types",
+   "import-instrument-files"
+  ]
+ },
+ {
+  "id": "nonen-de-naca-contingency-1",
+  "venue": "statistik-forum.de",
+  "url": "http://www.statistik-forum.de/allgemeine-fragen-f5/gruppen-auf-signifikanz-prufen-t6492.html",
+  "date": "2015-10",
+  "role": null,
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "emergency calls by severity level, nursing home vs other",
+  "quote": "Zum Auswerten nehme ich graphpad. Könnte mir bitte jemand sagen welchen Test ich nehmen muss, bzw. wie ich es rechnen kann. Ich möchte es auch wirklich gern auch verstehen nicht nur stumpf anwenden.",
+  "problem": "Gloss: 'I use GraphPad for the analysis. Could someone tell me which test I must use and how to calculate it? I really want to understand it, not just apply it blindly.' — Problem: ordinal count data across two groups; no guidance on test choice.",
+  "need": "Test chooser that recognises counts/ordinal categories and explains the recommended test (chi-square trend, Mann-Whitney on ordinal) in plain language",
+  "severity": "blocks the analysis",
+  "signal": null,
+  "tags": [
+   "which-test",
+   "contingency",
+   "learning-curve"
+  ]
+ },
+ {
+  "id": "nonen-de-repeat-patients-1",
+  "venue": "statistik-forum.de",
+  "url": "http://www.statistik-forum.de/allgemeine-fragen-f5/mehrfachmessung-einzelmessung-statistik-t11209.html",
+  "date": "2019-10",
+  "role": "student, immunology study",
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "blood parameter in 15 patients, some measured repeatedly",
+  "quote": "Bilde ich den Mittelwert der mehrmals gmessenen Punkte (X1-X4) und trag dann von diesen den Mittelwert (Xm) in den Graphen ein, gemeinsam mit den Einzelmesswertren X der Personen die nur einmal gemessen wurden?",
+  "problem": "Gloss: 'Do I average the repeatedly measured points (X1-X4) and plot that mean together with single values of people measured once?' — Problem: mixed repeated/single measurements per subject; unclear unit of analysis and plotting.",
+  "need": "Accept subject IDs, collapse repeated measures to one value per subject (or fit a mixed model) and plot per-subject points",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "technical-vs-biological-replicates",
+   "n-definition",
+   "mixed-model-missing-values"
+  ]
+ },
+ {
+  "id": "nonen-de-proliferation-design-1",
+  "venue": "statistik-forum.de",
+  "url": "http://www.statistik-forum.de/allgemeine-fragen-f5/proliferation-von-zellen-t8041.html",
+  "date": "2016-10",
+  "role": "student",
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "cell proliferation on 5 materials at 3 time points",
+  "quote": "Habe ich nun hier für diesen Fall verbundene oder unverbundene Stichproben? Welchen Test soll ich eurer Meinung nach anwenden? Ist eine two-way ANOVA sinnvoll?",
+  "problem": "Gloss: 'Do I have paired or unpaired samples here? Which test should I use? Is a two-way ANOVA sensible?' — Problem: cannot classify the design (materials × time, repeated or not).",
+  "need": "Design questions (same wells over time? independent cultures?) that determine paired vs unpaired and one- vs two-way",
+  "severity": "blocks the analysis",
+  "signal": null,
+  "tags": [
+   "which-test",
+   "two-way-anova"
+  ]
+ },
+ {
+  "id": "nonen-de-median-survival-ci-1",
+  "venue": "statistik-forum.de",
+  "url": "http://www.statistik-forum.de/allgemeine-fragen-f5/umgang-mit-ratio-t7340.html",
+  "date": "2016-05",
+  "role": "beginner switching from SPSS",
+  "software_named": [
+   "SPSS",
+   "GraphPad Prism"
+  ],
+  "workflow": "Kaplan-Meier median survival with CI",
+  "quote": "Wie bekomme ich darauf mein schönes 15,34 Monate (95% CI XX - XX Monate)?",
+  "problem": "Gloss: 'How do I get my nice 15.34 months (95% CI XX-XX months) from this?' — Problem: Prism reports a ratio of medians with CI, not the median survival CI that SPSS gave.",
+  "need": "Report median survival with 95% CI per group as well as ratios",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "survival",
+   "numbers-differ-between-tools",
+   "reporting-methods"
+  ]
+ },
+ {
+  "id": "nonen-de-4pl-linear-axis-1",
+  "venue": "statistik-forum.de",
+  "url": "http://www.statistik-forum.de/regressionanalyse-f11/four-parameter-4pl-t6462.html",
+  "date": "2015-09",
+  "role": "biotechnology researcher",
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "4PL standard curve, interpolate unknowns",
+  "quote": "Mein Problem: In Prism gibt er mir von den Log-Werten (x) und den RLUs (y) eine schöne 4PL-Kurve aus, die sicherlich auch richtig ist. Aber ich möchte gerne die selbige 4PL-Kurve mit den Konz. als x-Achse und RLUs als y.",
+  "problem": "Gloss: 'Prism gives me a nice 4PL curve of log values (x) vs RLU (y), but I want the same 4PL curve with concentrations on the x axis.' — Problem: forced to log-transform x manually, then cannot show/interpolate on the concentration scale.",
+  "need": "Fit 4PL on concentrations directly (log x internally), plot on a log-scaled concentration axis and interpolate unknowns back in concentration units",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "standard-curve-interpolation",
+   "log-axis",
+   "units-and-transforms"
+  ]
+ },
+ {
+  "id": "nonen-de-slope-test-how-1",
+  "venue": "statistik-forum.de",
+  "url": "http://www.statistik-forum.de/regressionanalyse-f11/lineare-regression-graphpad-t11401.html",
+  "date": "2020-01",
+  "role": null,
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "comparing regression slopes between treatment and control",
+  "quote": "Weiß jemand wie das errechnet wurde oder wie ich finden kann, wie das in Graphpad berechnet wurde? Oder welches Testverfahren benutzt wurde.",
+  "problem": "Gloss: 'Does anyone know how that was calculated or where I can find how GraphPad computed it? Or which test was used?' — Problem: tick-box slope comparison gives p=0.0009 but the method is opaque for the methods section.",
+  "need": "Name the test (e.g. ANCOVA F test) and its formula next to each result, with citable methods text",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "compare-curves",
+   "reporting-methods",
+   "trust-validation"
+  ]
+ },
+ {
+  "id": "nonen-de-nonlinear-compare-1",
+  "venue": "statistik-forum.de",
+  "url": "http://www.statistik-forum.de/regressionanalyse-f11/vergleich-zweier-nichtlinearer-regressionen-t314.html",
+  "date": "2011-07",
+  "role": "fisheries biologist",
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "length-weight power curves from two seas",
+  "quote": "Es ergibt sich ein hochsignifikanter Unterschied, dem ich nicht so ganz traue, da sich die Parameter doch sehr ähneln",
+  "problem": "Gloss: 'It gives a highly significant difference that I don't quite trust, since the parameters are very similar' — Problem: with large n the curve-comparison F test flags trivial differences; no effect-size view.",
+  "need": "Report parameter differences with CIs (effect size) alongside the F-test P, warning when large n makes trivial differences significant",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "compare-curves",
+   "effect-size"
+  ]
+ },
+ {
+  "id": "nonen-de-ttest-vs-100-1",
+  "venue": "statistik-forum.de",
+  "url": "http://www.statistik-forum.de/test-f8/test-bei-graphpad-prism-t2575.html",
+  "date": "2013-03",
+  "role": "beginner moving from Excel",
+  "software_named": [
+   "Excel",
+   "GraphPad Prism"
+  ],
+  "workflow": "groups vs control normalised to 100%",
+  "quote": "Ich habe diverse Gruppen, welche ich mit dem t-Test auf Signifikanz im Vergleich zur auf 100% normierten Kontrolle testen möchte.",
+  "problem": "Gloss: 'I have several groups I want to t-test against the control normalised to 100%.' — Problem: control has no variance after normalisation; could not get Prism to compute it.",
+  "need": "Recognise 'normalised to control = 100%' and offer a one-sample test against 100 or analysis of unnormalised/log ratios",
+  "severity": "blocks the analysis",
+  "signal": null,
+  "tags": [
+   "normalization",
+   "which-test"
+  ]
+ },
+ {
+  "id": "nonen-de-summary-subcolumns-1",
+  "venue": "statistik-forum.de",
+  "url": "http://www.statistik-forum.de/test-f8/test-incl-und-mit-prism-t5726.html",
+  "date": "2015-04",
+  "role": null,
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "t test from mean, SD and n; unequal group sizes",
+  "quote": "Wende ich nun auf meine Daten einen einfachen T-Test (unabhängige Variablen) an, bekomme ich den Hinweis, dass \"subcolumns\" (also Standardabweichung und Werteinzahl n) nicht mit in die Berechnung eingegangen sind",
+  "problem": "Gloss: 'When I run a simple t test I get a note that subcolumns (SD and n) were not used in the calculation' — Problem: summary data entered in the wrong table type are silently treated as raw values.",
+  "need": "Detect summary-statistics input (mean/SD/n) and run the summary-data test, warning loudly when subcolumns would be ignored",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "data-entry-table-types",
+   "which-test"
+  ]
+ },
+ {
+  "id": "nonen-de-unequal-n-error-1",
+  "venue": "statistik-forum.de",
+  "url": "http://www.statistik-forum.de/test-f8/test-incl-und-mit-prism-t5726.html",
+  "date": "2015-04",
+  "role": null,
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "three or more groups with unequal n",
+  "quote": "Will ich drei oder mehr Gruppen vergleichen, habe aber nicht in jeder Gruppe gleich viele Individuen, bekomme ich eine Fehlermeldung, dass Werte fehlen.",
+  "problem": "Gloss: 'If I compare three or more groups with unequal numbers of individuals, I get an error that values are missing.' — Problem: unequal group sizes are treated as missing data.",
+  "need": "Handle unequal n natively for independent groups and explain when missing values matter (only for matched designs)",
+  "severity": "blocks the analysis",
+  "signal": null,
+  "tags": [
+   "missing-values",
+   "data-entry-table-types"
+  ]
+ },
+ {
+  "id": "nonen-de-reviewer-anova-1",
+  "venue": "statistik-forum.de",
+  "url": "http://www.statistik-forum.de/test-f8/test-post-test-nach-anova-t1033.html",
+  "date": "2012-02",
+  "role": "author revising a paper",
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "reviewer requests ANOVA with Dunnett instead of t tests",
+  "quote": "ein reviewer möchte jetzt, dass ich alles mit ANOVA nochmal mache. mein problem ist jetzt, dass sich die signifikanzen ändern!!!",
+  "problem": "Gloss: 'A reviewer now wants me to redo everything with ANOVA. My problem is that the significances change!!!' — Problem: switching from multiple t tests to ANOVA+Dunnett changes conclusions; user asks which to trust.",
+  "need": "Explain multiplicity correction and pooled variance and show both analyses side by side with the reason they differ",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "multiple-comparisons",
+   "post-hoc-choice",
+   "trust-validation"
+  ]
+ },
+ {
+  "id": "nonen-de-paired-unpaired-mix-1",
+  "venue": "statistik-forum.de",
+  "url": "http://www.statistik-forum.de/varianzanalysen-f9/multiple-vergleiche-gepaarte-und-ungepaarte-daten-t10047.html",
+  "date": "2018-07",
+  "role": null,
+  "software_named": [],
+  "workflow": "six datasets, four paired and two paired to each other but not to the first four",
+  "quote": "Ich möchte mehrere Datensätze miteinander vergleichen, aber es ist so, dass 4 der Datensätze gepaarte Daten beinhalten (Datensätze A bis D), 2 Datensätze davon jedoch ungepaarte in Relation zu den ersten 4 (Datensätze E und F), jedoch wiederum zueinander gepaart sind.",
+  "problem": "Gloss: 'Four datasets are paired (A-D), two are unpaired relative to those but paired with each other (E, F).' — Problem: partially matched designs do not fit RM-ANOVA or ordinary ANOVA.",
+  "need": "Mixed-effects model with subject IDs that handles partially paired designs",
+  "severity": "blocks the analysis",
+  "signal": null,
+  "tags": [
+   "mixed-model-missing-values",
+   "which-test",
+   "multiple-comparisons"
+  ]
+ },
+ {
+  "id": "nonen-de-nonpar-rm-two-way-1",
+  "venue": "statistik-forum.de",
+  "url": "http://www.statistik-forum.de/varianzanalysen-f9/non-parametrische-variante-fur-two-way-anova-t3615.html",
+  "date": "2013-11",
+  "role": null,
+  "software_named": [
+   "GraphPad Prism",
+   "SigmaStat"
+  ],
+  "workflow": "two-way repeated measures, non-normal data",
+  "quote": "Ich habe allerdings nur GraphPad Prism oder SigmaStat zur Verfügung und kann bei keinem der beiden Programme den passenden Test finden.",
+  "problem": "Gloss: 'I only have GraphPad Prism or SigmaStat and can't find a suitable test in either.' — Problem: no nonparametric two-way RM option in available tools.",
+  "need": "Provide a nonparametric/robust option for factorial repeated-measures designs (aligned rank transform, permutation)",
+  "severity": "blocks the analysis",
+  "signal": null,
+  "tags": [
+   "nonparametric",
+   "two-way-anova"
+  ]
+ },
+ {
+  "id": "nonen-de-normalised-anova-1",
+  "venue": "statistik-forum.de",
+  "url": "http://www.statistik-forum.de/varianzanalysen-f9/normalisierte-biochemische-daten-t2647.html",
+  "date": "2013-03",
+  "role": "master's student, biochemistry",
+  "software_named": [],
+  "workflow": "three genotypes normalised to wild type = 100%",
+  "quote": "Da ich aber die Genotypen tg und ko auf wt normalisiert habe (also wt immer auf 100% gesetzt habe) muss ich ja wohl die Rohdaten (nicht normalisiert) für die Analyse nehmen, weil die Varianz der Daten sonst sowieso unterschiedlich ist.",
+  "problem": "Gloss: 'Because I normalised tg and ko to wt (wt always 100%) I presumably must analyse the raw data, since otherwise the variance differs anyway.' — Problem: normalisation per experiment destroys the control's variance; raw values vary hugely between runs.",
+  "need": "Analyse normalised data as ratios on the log scale with experiment as a blocking factor (paired/RM), explained",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "normalization",
+   "which-test",
+   "technical-vs-biological-replicates"
+  ]
+ },
+ {
+  "id": "nonen-de-wt-ko-fast-1",
+  "venue": "statistik-forum.de",
+  "url": "http://www.statistik-forum.de/varianzanalysen-f9/two-way-anova-oder-step-step-test-t1365.html",
+  "date": "2012-05",
+  "role": "doctoral student (WT vs KO mice, fed vs fasted, two brain regions)",
+  "software_named": [],
+  "workflow": "protein content, 2×2×2 design",
+  "quote": "Ich bin gerade in den Endzügen meiner Doktorarbeit und verzweifle fast an der statistischen Auswertung.",
+  "problem": "Gloss: 'I'm in the final stages of my doctorate and am almost despairing over the statistical analysis.' — Problem: genotype × feeding × brain-region design; unsure between two-way ANOVA and step-by-step t tests.",
+  "need": "Design builder for factorial animal studies that sets up the ANOVA and the relevant simple-effect comparisons",
+  "severity": "blocks the analysis",
+  "signal": null,
+  "tags": [
+   "two-way-anova",
+   "which-test"
+  ]
+ },
+ {
+  "id": "nonen-de-outlier-anova-1",
+  "venue": "statistik-forum.de",
+  "url": "http://www.statistik-forum.de/varianzanalysen-f9/way-anova-mit-nicht-normalverteilten-werten-t10132.html",
+  "date": "2018-07",
+  "role": null,
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "experiment repeated 3 times, 12 samples measured twice",
+  "quote": "Wenn ich die Outlier einfach ausschliesse, kann ich keine 2-way anova mit prism mehr durchfuehren.",
+  "problem": "Gloss: 'If I simply exclude the outliers, I can no longer run a 2-way ANOVA in Prism.' — Problem: removing values creates missing cells that block the analysis; duplicate measurements treated as data.",
+  "need": "Average duplicate measurements first, document any exclusions, and fit a model that tolerates missing cells",
+  "severity": "blocks the analysis",
+  "signal": null,
+  "tags": [
+   "outliers",
+   "missing-values",
+   "technical-vs-biological-replicates"
+  ]
+ },
+ {
+  "id": "nonen-de-curvefit-few-data-1",
+  "venue": "statistik-forum.de",
+  "url": "http://www.statistik-forum.de/weitere-software-f22/graphpad-prism-curve-fit-unpassend-durch-wenig-daten-t11131.html",
+  "date": "2019-09",
+  "role": "toxicology researcher (cell viability)",
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "dose-response with 8 concentrations, 3 independent experiments",
+  "quote": "Ich habe also in GraphPad 3 Spalten mit den Daten der Experimenten und x stellt die 8 Behandlungskonzentrationen dar (siehe Bild 1).",
+  "problem": "Gloss: 'So in GraphPad I have 3 columns with the experiments' data and x is the 8 treatment concentrations.' — Problem (thread title: 'curve fit unsuitable due to too little data'): fit looks wrong with few points; unclear whether to fit pooled replicates or per experiment.",
+  "need": "Fit each independent experiment and the pooled data, show fit quality, and say when there are too few points around the transition",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "fit-diagnostics",
+   "ic50-ec50-setup",
+   "technical-vs-biological-replicates"
+  ]
+ },
+ {
+  "id": "nonen-fr-embryos-small-n-1",
+  "venue": "forums.futura-sciences.com",
+  "url": "https://forums.futura-sciences.com/biologie/443336-test-statistique-petits-echantillons.html",
+  "date": "2010-12",
+  "role": "cell biology researcher (cloned embryos)",
+  "software_named": [],
+  "workflow": "embryo size per clone, 2 samples per clone",
+  "quote": "Je mesure la taille de différents embryons clonés, mais je ne sais pas quel test statistiques utiliser pour montrer qu'il y a une différence ou non.",
+  "problem": "Gloss: 'I measure the size of different cloned embryos but don't know which statistical test to use to show whether there is a difference.' — Problem: only two samples per clone; test choice with tiny n.",
+  "need": "Test chooser that accounts for very small n per group and suggests pooling/aggregating at the right level",
+  "severity": "blocks the analysis",
+  "signal": null,
+  "tags": [
+   "which-test",
+   "power-sample-size",
+   "n-definition"
+  ]
+ },
+ {
+  "id": "nonen-fr-viability-test-1",
+  "venue": "les-mathematiques.net",
+  "url": "https://les-mathematiques.net/vanilla/discussion/1232699/biostatistiques-test-de-viabilite",
+  "date": "2016-03",
+  "role": "intern in cancer research (no stats mentor)",
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "MTS viability, two cell lines across doxorubicin doses, 3 experiments × 4 repeats",
+  "quote": "Je suis actuellement en stage en recherche contre le cancer et je ne trouve malheureusement pas de référent en stat c'est pourquoi je me tourne vers ce forum.",
+  "problem": "Gloss: 'I'm an intern in cancer research and unfortunately can't find a statistics referent, so I'm turning to this forum.' — Problem: needs to show one cell line survives better across doses (dose × cell line, with repeats) without local statistical help.",
+  "need": "Embedded statistical guidance for common assay designs (two cell lines × dose, independent experiments) as a substitute for an absent stats adviser",
+  "severity": "blocks the analysis",
+  "signal": null,
+  "tags": [
+   "which-test",
+   "two-way-anova",
+   "learning-curve"
+  ]
+ },
+ {
+  "id": "nonen-fr-translate-biology-1",
+  "venue": "les-mathematiques.net",
+  "url": "https://les-mathematiques.net/vanilla/discussion/1423446/choix-de-test-statistique",
+  "date": "2017-03",
+  "role": "PhD student, biology (year 3)",
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "receptor endocytosis at 3 time points in cells from 8-15 donors",
+  "quote": "J'utilise le logiciel \"GraphPad Prism\". Et j'ai beaucoup de mal à \"traduire\" la biologie en statistiques. Je ne sais pas si mes données sont appariées ou non et si je dois effectuer un test paramétrique ou non.",
+  "problem": "Gloss: 'I use GraphPad Prism and have a hard time translating biology into statistics. I don't know whether my data are paired and whether to use a parametric test.' — Problem: donor-matched time points; cannot map the design onto paired/RM choices.",
+  "need": "Questions phrased in biological terms (same donor at each time? different donors?) that set pairing/RM automatically",
+  "severity": "blocks the analysis",
+  "signal": null,
+  "tags": [
+   "which-test",
+   "n-definition",
+   "learning-curve"
+  ]
+ },
+ {
+  "id": "nonen-fr-chisq-two-menus-1",
+  "venue": "les-mathematiques.net",
+  "url": "https://les-mathematiques.net/vanilla/discussion/1517652/quel-test-appliquer",
+  "date": "2017-08",
+  "role": null,
+  "software_named": [
+   "GraphPad Prism",
+   "R"
+  ],
+  "workflow": "observed vs expected counts in three categories",
+  "quote": "je n'obtiens pas la même valeur dans la table du khi-deux que celle annoncée quand je fais le test \"Contingency table analyses --> Chi square test\".",
+  "problem": "Gloss: 'I don't get the same chi-square value as when I run Contingency table analyses → Chi square test' (vs Parts of whole → Compare observed with expected) — Problem: two menu paths give different chi-square values and the user can't see why.",
+  "need": "Explain which chi-square (goodness-of-fit vs independence) each path computes and steer to the right one from the data shape",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "contingency",
+   "numbers-differ-between-tools",
+   "which-test"
+  ]
+ },
+ {
+  "id": "nonen-fr-auc-sigmoid-1",
+  "venue": "les-mathematiques.net",
+  "url": "https://les-mathematiques.net/vanilla/discussion/1631516/aire-sous-la-courbe-dune-sigmoide",
+  "date": "2018-03",
+  "role": "researcher, Université de Montréal",
+  "software_named": [
+   "GraphPad Prism",
+   "Excel"
+  ],
+  "workflow": "comparing compounds by AUC of dose-response curves",
+  "quote": "Le logiciel que j'utilise (Graphpad Prism) me permet de le calculer à l'aide de la méthode des trapèzes. Cependant, j'aimerais pouvoir donner la valeur exacte de cette aire et pouvoir automatiser ce calcul sous Excel.",
+  "problem": "Gloss: 'Prism lets me compute it by the trapezoid method, but I'd like the exact area and to automate the calculation in Excel.' — Problem: wants AUC of the fitted curve (analytic integral) and batch automation.",
+  "need": "Offer AUC of the fitted model (analytic) as well as trapezoid AUC, and batch it across many compounds",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "ic50-ec50-setup",
+   "scripting-batch"
+  ]
+ },
+ {
+  "id": "nonen-fr-paired-unequal-1",
+  "venue": "les-mathematiques.net",
+  "url": "https://les-mathematiques.net/vanilla/discussion/509818/t-test-apparie-ou-non",
+  "date": "2009-04",
+  "role": "student writing a thesis (mémoire), echography",
+  "software_named": [],
+  "workflow": "patients vs controls, 12 vs 10",
+  "quote": "A priori il faudrait utiliser un test de Mann-Whitney pour savoir s'il existe une différence significative entre les deux groupes, mais mon boss me demande d'apparier les deux populations.",
+  "problem": "Gloss: 'A priori I should use Mann-Whitney, but my boss asks me to pair the two populations.' — Problem: supervisor wants pairing of unmatched groups of unequal size.",
+  "need": "Explain when pairing is valid (matched by design) and refuse paired tests on independently sampled groups",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "which-test",
+   "nonparametric"
+  ]
+ },
+ {
+  "id": "nonen-fr-rare-samples-1",
+  "venue": "les-mathematiques.net",
+  "url": "https://les-mathematiques.net/vanilla/discussion/579149/quel-test-choisir",
+  "date": "2010-02",
+  "role": "researcher with rare biological samples",
+  "software_named": [
+   "GraphPad InStat"
+  ],
+  "workflow": "four cell types with 11, 8, 3 and 2 samples",
+  "quote": "Pour chaque groupe j'ai un nombre différent d'échantillon (11, 8, 3 et 2). Je veux comparer la moyenne des différents groupes dans un premier temps.",
+  "problem": "Gloss: 'Each group has a different number of samples (11, 8, 3 and 2). I first want to compare the group means.' — Problem: extremely small, unbalanced groups; unsure parametric vs not.",
+  "need": "Warn about groups too small to test, show individual points and CIs, and suggest descriptive reporting",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "which-test",
+   "power-sample-size",
+   "show-the-points"
+  ]
+ },
+ {
+  "id": "nonen-fr-average-ic50-ci-1",
+  "venue": "les-mathematiques.net",
+  "url": "https://les-mathematiques.net/vanilla/discussion/886085/moyenne-et-intervalles",
+  "date": "2013-12",
+  "role": "intern",
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "IC50 repeated several times per sample",
+  "quote": "Savez-vous comment faire pour moyenner l'ensemble des données pour un échantillon ? Est-ce que je dois seulement garder l'IC50 et calculer un nouvel intervalle de confiance ou est-ce qu'il faut que je fasse une \"moyenne des intervalles\" obtenus (et comment ?",
+  "problem": "Gloss: 'How do I average all the data for one sample? Keep only the IC50s and compute a new CI, or average the intervals obtained (and how)?' — Problem: combining IC50s from repeated experiments.",
+  "need": "Summarise replicate experiments as mean logIC50 with CI across experiments (n = experiments)",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "ic50-ec50-setup",
+   "technical-vs-biological-replicates",
+   "reporting-methods"
+  ]
+ },
+ {
+  "id": "nonen-tr-paired-star-1",
+  "venue": "eksisozluk.com",
+  "url": "https://eksisozluk.com/graphpad-prism--6135998",
+  "date": null,
+  "role": null,
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "paired t test result on a graph",
+  "quote": "istatistik bilmiyorum ama paired t test analizinin sonucunu ısrarla \"pairwise analiz yapmadın ki, ben bunun yıldızını bu grafiğe koymam\" diyerek can sıkan program.",
+  "problem": "Gloss: 'I don't know statistics, but it's an annoying program that keeps insisting \"you didn't do a pairwise analysis, I won't put this star on this graph\" about my paired t test result.' — Problem: user cannot get the paired-test asterisk onto the graph and does not understand why the program refuses.",
+  "need": "When the graph and the analysis don't match (e.g. paired test on an unpaired layout), explain the mismatch and offer to fix it rather than silently refusing",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "significance-brackets",
+   "which-test",
+   "learning-curve"
+  ]
+ },
+ {
+  "id": "nonen-tr-zero-knowledge-1",
+  "venue": "eksisozluk.com",
+  "url": "https://eksisozluk.com/graphpad-prism--6135998",
+  "date": null,
+  "role": null,
+  "software_named": [
+   "GraphPad Prism",
+   "SPSS"
+  ],
+  "workflow": "general statistics and graphing",
+  "quote": "ana istatiksel bilgilerin bilindigi durumda cok yardimci oldugunu soyleyebilirim ama yine de sifir bilgiyle yapmak mumkun degil.",
+  "problem": "Gloss: 'I can say it is very helpful when you know the basic statistics, but it is still not possible to do it with zero knowledge.' — Problem: the tool assumes statistical knowledge users often lack (same topic also praises it as an oasis after SPSS).",
+  "need": "Embedded statistical guidance so users without formal training can choose and interpret analyses",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "learning-curve",
+   "which-test"
+  ]
+ },
+ {
+  "id": "nonen-pt-brackets-cost-1",
+  "venue": "pt.stackoverflow.com",
+  "url": "https://api.stackexchange.com/2.3/search/advanced?site=pt.stackoverflow&q=graphpad&filter=withbody",
+  "date": "2019-08",
+  "role": null,
+  "software_named": [
+   "GraphPad Prism",
+   "R",
+   "ggplot2"
+  ],
+  "workflow": "box plots with post-hoc difference lines",
+  "quote": "Tenho conhecimento que o software graphpad prism executa isso com certa facilidade. Mas, como todos sabem ele tem um custo elevado e portanto, acredito que no R seja possível",
+  "problem": "Gloss: 'I know GraphPad Prism does this fairly easily. But, as everyone knows, it is expensive, so I believe it should be possible in R' — Problem: wants post-hoc significance lines on plots; the easy tool is unaffordable and the free tool is hard (question fetched via the Stack Exchange API because the question page returned 403).",
+  "need": "Free tool that draws post-hoc brackets on graphs as easily as the paid one",
+  "severity": "slows the work",
+  "signal": {
+   "views": 865,
+   "answers": 2,
+   "score": 2
+  },
+  "tags": [
+   "significance-brackets",
+   "price-licence",
+   "post-hoc-choice"
+  ]
+ },
+ {
+  "id": "nonen-pt-drc-compare-1",
+  "venue": "pt.stackoverflow.com",
+  "url": "https://api.stackexchange.com/2.3/questions/277438;553186;200244?site=pt.stackoverflow&filter=withbody",
+  "date": "2018-02",
+  "role": null,
+  "software_named": [
+   "R",
+   "drc"
+  ],
+  "workflow": "two dose-response curves (ryegrass example)",
+  "quote": "Meu objetivo é saber se as curvas são estatisticamente iguais ou diferentes.",
+  "problem": "Gloss: 'My goal is to know whether the curves are statistically equal or different.' — Problem: wants to compare two dose-response fits and is tempted to judge by overlapping confidence bands.",
+  "need": "Built-in comparison of dose-response curves (extra-sum-of-squares / shared-parameter test, EC50 ratio with CI)",
+  "severity": "wrong result risk",
+  "signal": {
+   "views": 174
+  },
+  "tags": [
+   "compare-curves",
+   "ic50-ec50-setup"
+  ]
+ },
+ {
+  "id": "nonen-pt-two-way-letters-1",
+  "venue": "pt.stackoverflow.com",
+  "url": "https://api.stackexchange.com/2.3/questions/288975;498352;404181?site=pt.stackoverflow&filter=withbody",
+  "date": "2018-04",
+  "role": null,
+  "software_named": [
+   "R"
+  ],
+  "workflow": "two-way factorial (cultivars × treatments) result table",
+  "quote": "Gostaria de saber como faço para gerar as letras de diferenciação entre tratamentos para os dois fatores.",
+  "problem": "Gloss: 'I'd like to know how to generate the letters differentiating treatments for both factors.' — Problem: journals expect lowercase/uppercase letter tables for two-way designs; Tukey output is a giant list of pairwise comparisons.",
+  "need": "Compact letter display for two-way designs (within rows and within columns) exported as a table",
+  "severity": "slows the work",
+  "signal": {
+   "views": 217
+  },
+  "tags": [
+   "multiple-comparisons",
+   "two-way-anova",
+   "significance-brackets"
+  ]
+ },
+ {
+  "id": "nonen-pt-tukey-table-1",
+  "venue": "pt.stackoverflow.com",
+  "url": "https://api.stackexchange.com/2.3/questions/288975;498352;404181?site=pt.stackoverflow&filter=withbody",
+  "date": "2019-08",
+  "role": null,
+  "software_named": [
+   "R"
+  ],
+  "workflow": "formatting Tukey results for publication",
+  "quote": "Tenho várias análises do teste de Tukey feitas no R e gostaria de transformar as tabelas obtidas em tabelas com o aspecto que se pode ver na imagem. Existe alguma forma mais ou menos automática para fazer isso?",
+  "problem": "Gloss: 'I have several Tukey analyses done in R and would like to turn the tables into tables that look like the image. Is there a more or less automatic way?' — Problem: publication-style post-hoc tables require manual formatting.",
+  "need": "Export publication-ready post-hoc tables (means ± SD with letters)",
+  "severity": "slows the work",
+  "signal": {
+   "views": 502
+  },
+  "tags": [
+   "multiple-comparisons",
+   "reporting-methods"
+  ]
+ },
+ {
+  "id": "nonen-es-kw-dunn-1",
+  "venue": "es.stackoverflow.com",
+  "url": "https://api.stackexchange.com/2.3/questions/6025;268820;113429?site=es.stackoverflow&filter=withbody",
+  "date": "2016-03",
+  "role": "new R user (fish ecology)",
+  "software_named": [
+   "R",
+   "dunn.test"
+  ],
+  "workflow": "Kruskal-Wallis then Dunn with Bonferroni across months",
+  "quote": "Sorprendentemente el dunn test (package dunn.test) no me dió ninguna combinación de grupos (en este caso meses) con p valor significativo.",
+  "problem": "Gloss: 'Surprisingly the Dunn test gave no pair of groups (months) with a significant p value' (while Kruskal-Wallis was significant, p=0.01) — Problem: omnibus significant but no post-hoc pair, with many groups and Bonferroni.",
+  "need": "Explain omnibus-vs-post-hoc disagreement and the cost of many comparisons; suggest fewer planned comparisons",
+  "severity": "wrong result risk",
+  "signal": {
+   "views": 3905
+  },
+  "tags": [
+   "nonparametric",
+   "post-hoc-choice",
+   "multiple-comparisons"
+  ]
+ },
+ {
+  "id": "nonen-es-letters-time-1",
+  "venue": "es.stackoverflow.com",
+  "url": "https://api.stackexchange.com/2.3/questions/6025;268820;113429?site=es.stackoverflow&filter=withbody",
+  "date": "2019-06",
+  "role": null,
+  "software_named": [
+   "R",
+   "ggplot2",
+   "agricolae"
+  ],
+  "workflow": "factorial field experiment repeated three times",
+  "quote": "Necesito analizar los datos por separado cada vez que se realizó el experimento, por lo que divido la base de datos y hago los ANOVA y la prueba de Fisher en cada tiempo.",
+  "problem": "Gloss: 'I need to analyse the data separately for each time the experiment was run, so I split the dataset and do the ANOVA and Fisher test for each time' (then want the letter groups on faceted plots) — Problem: per-run analysis and letter annotation on multi-panel plots is manual.",
+  "need": "Run the same analysis per subset (by run/time) and annotate letters on each panel automatically",
+  "severity": "slows the work",
+  "signal": {
+   "views": 823
+  },
+  "tags": [
+   "multiple-comparisons",
+   "layouts-multipanel",
+   "scripting-batch"
+  ]
+ }
+]

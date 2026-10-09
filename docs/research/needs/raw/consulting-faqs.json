@@ -1,0 +1,3512 @@
+[
+ {
+  "id": "consult-cornell-pseudo",
+  "venue": "cscu.cornell.edu",
+  "url": "https://cscu.cornell.edu/wp-content/uploads/pseudo.pdf",
+  "date": "2022-04",
+  "role": "course/consulting page, audience: Cornell researchers (CSCU consulting handout)",
+  "software_named": [],
+  "workflow": "experimental design, defining the experimental unit",
+  "quote": "The mistake that the experimenters have made is that they have not replicated their treatments correctly. They actually have false “replicates” or subsamples.",
+  "problem": "Researchers treat subsamples within one treated unit as independent replicates (pseudoreplication)",
+  "need": "Ask what unit received the treatment and set n to the number of experimental units, flagging subsamples",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "technical-vs-biological-replicates",
+   "n-definition"
+  ]
+ },
+ {
+  "id": "consult-cornell-pseudo-2",
+  "venue": "cscu.cornell.edu",
+  "url": "https://cscu.cornell.edu/wp-content/uploads/pseudo.pdf",
+  "date": "2022-04",
+  "role": "course/consulting page, audience: Cornell researchers (CSCU consulting handout)",
+  "software_named": [],
+  "workflow": "experimental design, replicate structure",
+  "quote": "Treating subsamples or pseudoreplicates as experimental unit replicates may result in incorrect statistical inference and needlessly increase experimental costs.",
+  "problem": "Inflated n from subsamples gives wrong inference and wastes effort on the wrong level of replication",
+  "need": "Design-stage guidance that separates units of analysis from units of replication and averages subsamples",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "technical-vs-biological-replicates",
+   "n-definition",
+   "power-sample-size"
+  ]
+ },
+ {
+  "id": "consult-cornell-ci-overlap",
+  "venue": "cscu.cornell.edu",
+  "url": "https://cscu.cornell.edu/wp-content/uploads/ci.pdf",
+  "date": "2022-04",
+  "role": "course/consulting page, audience: Cornell researchers (CSCU consulting handout)",
+  "software_named": [],
+  "workflow": "comparing two group means from a graph",
+  "quote": "In this document, we address the following question: can we judge whether two statistics are significantly different based on whether or not their confidence intervals overlap? The short answer is: not always.",
+  "problem": "Researchers judge significance by eye from overlapping CI/error bars",
+  "need": "Show the CI of the difference (estimation plot) rather than leaving readers to infer significance from overlapping bars",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "error-bars-sd-sem",
+   "effect-size"
+  ]
+ },
+ {
+  "id": "consult-cornell-surv-censor",
+  "venue": "cscu.cornell.edu",
+  "url": "https://cscu.cornell.edu/wp-content/uploads/surv.pdf",
+  "date": "2022-04",
+  "role": "course/consulting page, audience: Cornell researchers (CSCU consulting handout)",
+  "software_named": [],
+  "workflow": "time-to-event analysis",
+  "quote": "Censoring is an important issue in survival analysis, representing a particular type of missing data. Censoring that is random and non informative is usually required in order to avoid bias in a survival analysis.",
+  "problem": "Survival data contain censored subjects that ordinary mean comparisons cannot handle",
+  "need": "A survival data table with an explicit event/censored column and Kaplan-Meier plus log-rank by default",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "survival",
+   "data-entry-table-types"
+  ]
+ },
+ {
+  "id": "consult-cornell-viz-barzero",
+  "venue": "cscu.cornell.edu",
+  "url": "https://cscu.cornell.edu/wp-content/uploads/viz.pdf",
+  "date": "2022-04",
+  "role": "course/consulting page, audience: Cornell researchers (CSCU consulting handout)",
+  "software_named": [],
+  "workflow": "choosing a graph type for continuous outcome by group",
+  "quote": "Bar charts (with or without error bars) are intended to compare magnitude of values, so it is important to always start the y-axis scale at zero.",
+  "problem": "Choice of graph type and axis range for group comparisons is often wrong (truncated bar charts)",
+  "need": "Graph defaults that start bar axes at zero and suggest dot/box plots for small samples",
+  "severity": "cosmetic / preference",
+  "signal": null,
+  "tags": [
+   "graph-formatting",
+   "show-the-points"
+  ]
+ },
+ {
+  "id": "consult-cornell-viz-dotplot",
+  "venue": "cscu.cornell.edu",
+  "url": "https://cscu.cornell.edu/wp-content/uploads/viz.pdf",
+  "date": "2022-04",
+  "role": "course/consulting page, audience: Cornell researchers (CSCU consulting handout)",
+  "software_named": [],
+  "workflow": "choosing a graph type for continuous outcome by group",
+  "quote": "If the data set is small, you can show all the observations grouped by category in a dot plot (Figure 3.1(g)).",
+  "problem": "Small datasets are summarised as bars when all points could be shown",
+  "need": "Default to showing all observations for small n",
+  "severity": "cosmetic / preference",
+  "signal": null,
+  "tags": [
+   "show-the-points"
+  ]
+ },
+ {
+  "id": "consult-cornell-rm-sphericity",
+  "venue": "cscu.cornell.edu",
+  "url": "https://cscu.cornell.edu/wp-content/uploads/repeatedmeasures.pdf",
+  "date": "2022-04",
+  "role": "course/consulting page, audience: Cornell researchers (CSCU consulting handout)",
+  "software_named": [
+   "SPSS",
+   "SAS",
+   "Stata",
+   "R",
+   "JMP"
+  ],
+  "workflow": "repeated measures over time, between and within factors",
+  "quote": "When the assumption of sphericity is badly violated, the F-statistics and the associated p-values for the within-subject hypotheses have been shown to be inflated, leading to false rejections of the null hypotheses.",
+  "problem": "Repeated-measures ANOVA p-values are inflated when sphericity fails and users do not apply a correction",
+  "need": "Apply Greenhouse-Geisser by default and explain it in the output",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "two-way-anova",
+   "mixed-model-missing-values"
+  ]
+ },
+ {
+  "id": "consult-cornell-rm-missing",
+  "venue": "cscu.cornell.edu",
+  "url": "https://cscu.cornell.edu/wp-content/uploads/repeatedmeasures.pdf",
+  "date": "2022-04",
+  "role": "course/consulting page, audience: Cornell researchers (CSCU consulting handout)",
+  "software_named": [],
+  "workflow": "repeated measures with a missing time point",
+  "quote": "In contrast, in analyzing data in wide format, subjects with even only one missing repeated measurement will be completely excluded from the analysis.",
+  "problem": "Wide-format repeated-measures ANOVA silently drops any subject with one missing value",
+  "need": "A mixed-model fit that keeps subjects with missing time points, and a warning when rows are dropped",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "mixed-model-missing-values",
+   "missing-values",
+   "long-vs-wide"
+  ]
+ },
+ {
+  "id": "consult-cornell-rm-format",
+  "venue": "cscu.cornell.edu",
+  "url": "https://cscu.cornell.edu/wp-content/uploads/repeatedmeasures.pdf",
+  "date": "2022-04",
+  "role": "course/consulting page, audience: Cornell researchers (CSCU consulting handout)",
+  "software_named": [],
+  "workflow": "organising repeated-measures data",
+  "quote": "Data sets in either format can be used to analyze data from repeated measures designs. However, there are significant differences in the analysis methods used with each data structure.",
+  "problem": "Researchers do not know whether to lay repeated-measures data out wide or long, and the choice changes the analysis",
+  "need": "Accept either layout and convert between wide and long automatically",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "long-vs-wide",
+   "data-entry-table-types"
+  ]
+ },
+ {
+  "id": "consult-cornell-transform",
+  "venue": "cscu.cornell.edu",
+  "url": "https://cscu.cornell.edu/wp-content/uploads/transform.pdf",
+  "date": "2022-04",
+  "role": "course/consulting page, audience: Cornell researchers (CSCU consulting handout)",
+  "software_named": [],
+  "workflow": "log/sqrt transforming an outcome before ANOVA or regression",
+  "quote": "Because transformations have multiple effects, their use requires care.",
+  "problem": "Transforming data to meet assumptions changes interpretation and back-transformed errors become asymmetric",
+  "need": "Transform options that report back-transformed estimates with asymmetric CIs",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "units-and-transforms"
+  ]
+ },
+ {
+  "id": "consult-cornell-prepost",
+  "venue": "cscu.cornell.edu",
+  "url": "https://cscu.cornell.edu/wp-content/uploads/prepost.pdf",
+  "date": "2022-04",
+  "role": "course/consulting page, audience: Cornell researchers (CSCU consulting handout)",
+  "software_named": [],
+  "workflow": "baseline and follow-up measurement per subject, two groups",
+  "quote": "Pretest-posttest studies have been pervasive for many years, however many researchers are still unclear on the statistical methods most appropriate for analyzing such data.",
+  "problem": "Unclear whether to analyse change scores, repeated-measures ANOVA or ANCOVA for before/after designs",
+  "need": "A test chooser path for baseline-adjusted (ANCOVA) comparison of two groups",
+  "severity": "blocks the analysis",
+  "signal": null,
+  "tags": [
+   "which-test",
+   "two-way-anova"
+  ]
+ },
+ {
+  "id": "consult-cornell-posthoc-spss",
+  "venue": "cscu.cornell.edu",
+  "url": "https://cscu.cornell.edu/wp-content/uploads/post.pdf",
+  "date": "2024-09",
+  "role": "course/consulting page, audience: Cornell researchers (CSCU consulting handout)",
+  "software_named": [
+   "SPSS"
+  ],
+  "workflow": "post-hoc comparisons after factorial ANOVA",
+  "quote": "In the SPSS menus, only post-hoc testing on main effects can be done. In order to do more sophisticated analyses, you need to use the syntax.",
+  "problem": "Menu-driven software cannot do simple-effects post-hoc comparisons within an interaction",
+  "need": "Point-and-click simple-effects comparisons (factor A within each level of B) after two-way ANOVA",
+  "severity": "blocks the analysis",
+  "signal": null,
+  "tags": [
+   "post-hoc-choice",
+   "two-way-anova",
+   "multiple-comparisons"
+  ]
+ },
+ {
+  "id": "consult-cornell-clust",
+  "venue": "cscu.cornell.edu",
+  "url": "https://cscu.cornell.edu/wp-content/uploads/clust.pdf",
+  "date": "2022-04",
+  "role": "course/consulting page, audience: Cornell researchers (CSCU consulting handout)",
+  "software_named": [],
+  "workflow": "clustered or nested measurements",
+  "quote": "All such data violate the assumption of independence of observations that we typically make in regression models. This is particularly influential on the variability of the model estimates, often resulting in standard errors that are smaller than they should be and thus leading to incorrect inference.",
+  "problem": "Nested data (cells within animals, repeated measures) analysed as independent gives too-small SEs",
+  "need": "Nested/hierarchical analysis options (nested t-test/ANOVA, mixed model) surfaced when data are clustered",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "technical-vs-biological-replicates",
+   "n-definition",
+   "superplots"
+  ]
+ },
+ {
+  "id": "consult-ucla-mannwhitney",
+  "venue": "stats.oarc.ucla.edu",
+  "url": "https://stats.oarc.ucla.edu/other/mult-pkg/faq/general/faq-why-is-the-mann-whitney-significant-when-the-medians-are-equal/",
+  "date": null,
+  "role": "client question to UCLA OARC statistical consulting (shown as \"A client has sent us the following question\")",
+  "software_named": [],
+  "workflow": "two independent groups, nonparametric comparison",
+  "quote": "I ran a Mann-Whitney test on two independent groups that have equal medians, the results were significant. I thought that the Mann-Whitney tested differences in medians.",
+  "problem": "Researchers misread what the Mann-Whitney test actually tests (rank sums, not medians)",
+  "need": "Nonparametric results that state plainly what was compared (mean ranks / distributions) and show medians alongside",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "nonparametric",
+   "trust-validation"
+  ]
+ },
+ {
+  "id": "consult-ucla-onetailed",
+  "venue": "stats.oarc.ucla.edu",
+  "url": "https://stats.oarc.ucla.edu/other/mult-pkg/faq/general/faq-what-are-the-differences-between-one-tailed-and-two-tailed-tests/",
+  "date": null,
+  "role": "course/consulting page, audience: researchers using the UCLA OARC statistical consulting FAQ",
+  "software_named": [],
+  "workflow": "choosing one- vs two-tailed p-value",
+  "quote": "Choosing a one-tailed test after running a two-tailed test that failed to reject the null hypothesis is not appropriate, no matter how \"close\" to significant the two-tailed test was.",
+  "problem": "Researchers switch to one-tailed tests post hoc to reach significance",
+  "need": "Default two-tailed, require the tail choice to be made and recorded before seeing results",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "which-test",
+   "reproducibility-audit"
+  ]
+ },
+ {
+  "id": "consult-ucla-onetailed-2",
+  "venue": "stats.oarc.ucla.edu",
+  "url": "https://stats.oarc.ucla.edu/other/mult-pkg/faq/general/faq-what-are-the-differences-between-one-tailed-and-two-tailed-tests/",
+  "date": null,
+  "role": "course/consulting page, audience: researchers using the UCLA OARC statistical consulting FAQ",
+  "software_named": [],
+  "workflow": "reading p-values from software output",
+  "quote": "However, the p-value presented is (almost always) for a two-tailed test. But how do you choose which test? Is the p-value appropriate for your test?",
+  "problem": "Users do not know whether the reported p is one- or two-tailed or how to convert it",
+  "need": "Label every p-value with its tail and let the user pick tails explicitly",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "exact-p",
+   "reporting-methods"
+  ]
+ },
+ {
+  "id": "consult-ucla-whatstat",
+  "venue": "stats.oarc.ucla.edu",
+  "url": "https://stats.oarc.ucla.edu/other/mult-pkg/whatstat/",
+  "date": null,
+  "role": "course/consulting page, audience: researchers using the UCLA OARC statistical consulting FAQ",
+  "software_named": [
+   "SAS",
+   "Stata",
+   "SPSS",
+   "R"
+  ],
+  "workflow": "choosing a statistical test from design and outcome type",
+  "quote": "The table below covers a number of common analyses and helps you choose among them based on the number of dependent variables (sometimes referred to as outcome variables), the nature of your independent variables (sometimes referred to as predictors).",
+  "problem": "\"Which test should I use?\" is common enough that the consulting group maintains a decision table by number/type of variables and pairing",
+  "need": "An interactive test chooser that asks outcome type, number of groups, and paired vs independent",
+  "severity": "blocks the analysis",
+  "signal": null,
+  "tags": [
+   "which-test",
+   "nonparametric"
+  ]
+ },
+ {
+  "id": "consult-ucla-excel-import",
+  "venue": "stats.oarc.ucla.edu",
+  "url": "https://stats.oarc.ucla.edu/other/mult-pkg/faq/general/tips-for-creating-an-excel-file-that-can-be-easily-moved-to-a-statistical-program-for-analysis/",
+  "date": null,
+  "role": "course/consulting page, audience: researchers using the UCLA OARC statistical consulting FAQ",
+  "software_named": [
+   "Excel",
+   "SPSS"
+  ],
+  "workflow": "moving data entered in Excel into a stats package",
+  "quote": "Excel is not a statistical package; however, Excel is often the software of choice for inputting data.",
+  "problem": "Data are entered in Excel and must be moved into a stats tool",
+  "need": "Robust paste/import from Excel that tolerates typical lab spreadsheets",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "excel-paste",
+   "data-entry-table-types"
+  ]
+ },
+ {
+  "id": "consult-ucla-excel-merged",
+  "venue": "stats.oarc.ucla.edu",
+  "url": "https://stats.oarc.ucla.edu/other/mult-pkg/faq/general/tips-for-creating-an-excel-file-that-can-be-easily-moved-to-a-statistical-program-for-analysis/",
+  "date": null,
+  "role": "course/consulting page, audience: researchers using the UCLA OARC statistical consulting FAQ",
+  "software_named": [
+   "Excel",
+   "SPSS"
+  ],
+  "workflow": "importing an Excel sheet with a merged header row",
+  "quote": "If we take a look at our data file, we will immediately see that something went wrong! SPSS appears to have included our row of variable names as an observation in our data file instead of reading them in as variable names like we specified!",
+  "problem": "Merged header cells and decorative rows in Excel break import",
+  "need": "Import preview that detects merged/extra header rows and lets the user pick the header row",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "excel-paste",
+   "import-instrument-files"
+  ]
+ },
+ {
+  "id": "consult-ucla-excel-mixed",
+  "venue": "stats.oarc.ucla.edu",
+  "url": "https://stats.oarc.ucla.edu/other/mult-pkg/faq/general/tips-for-creating-an-excel-file-that-can-be-easily-moved-to-a-statistical-program-for-analysis/",
+  "date": null,
+  "role": "course/consulting page, audience: researchers using the UCLA OARC statistical consulting FAQ",
+  "software_named": [
+   "Excel",
+   "SPSS"
+  ],
+  "workflow": "importing a column with mixed text and numbers",
+  "quote": "If any further values in that column do not match the format of your first value, SPSS may convert that value to missing (as is the case with observation 9) or it may truncate the information to match the detected format.",
+  "problem": "Mixed-format cells are silently converted to missing on import",
+  "need": "Flag non-numeric cells on paste instead of silently dropping them",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "excel-paste",
+   "missing-values"
+  ]
+ },
+ {
+  "id": "consult-ucla-ld50",
+  "venue": "stats.oarc.ucla.edu",
+  "url": "https://stats.oarc.ucla.edu/other/mult-pkg/faq/general/faq-how-can-i-compute-ld50-from-logit-or-probit/",
+  "date": null,
+  "role": "course/consulting page, audience: researchers using the UCLA OARC statistical consulting FAQ",
+  "software_named": [],
+  "workflow": "quantal dose-response (dead/alive) LD50",
+  "quote": "Basically, what we have is a predictor that is the dose of a chemical and a binary response variable that indicates whether the individual dies or not.",
+  "problem": "Users need LD50/LDp from binary dose-response data and must compute it by hand from logit/probit coefficients",
+  "need": "Quantal (probit/logit) dose-response fitting that reports LD50/LDx with CIs directly",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "ic50-ec50-setup",
+   "logistic-regression"
+  ]
+ },
+ {
+  "id": "consult-ucla-effectsize-power",
+  "venue": "stats.oarc.ucla.edu",
+  "url": "https://stats.oarc.ucla.edu/other/mult-pkg/faq/general/effect-size-power/faqhow-is-effect-size-used-in-power-analysis/",
+  "date": null,
+  "role": "course/consulting page, audience: researchers using the UCLA OARC statistical consulting FAQ",
+  "software_named": [],
+  "workflow": "prospective power analysis",
+  "quote": "However, using very large effect sizes in prospective power analysis is probably not a good idea as it could lead to under powered studies.",
+  "problem": "Researchers plug optimistic effect sizes into power calculations and end up underpowered",
+  "need": "Power tool that asks for effect size in raw units from pilot data and warns on implausibly large effects",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "power-sample-size",
+   "effect-size"
+  ]
+ },
+ {
+  "id": "consult-ucla-cv",
+  "venue": "stats.oarc.ucla.edu",
+  "url": "https://stats.oarc.ucla.edu/other/mult-pkg/faq/general/faq-what-is-the-coefficient-of-variation/",
+  "date": null,
+  "role": "course/consulting page, audience: researchers using the UCLA OARC statistical consulting FAQ",
+  "software_named": [
+   "Stata"
+  ],
+  "workflow": "assay precision, coefficient of variation",
+  "quote": "The CV for a variable can easily be calculated using the information from a typical variable summary (and sometimes the CV will be returned by default in the variable summary).",
+  "problem": "CV is asked about often and is not always output by default",
+  "need": "Report %CV in descriptive statistics by default (useful for replicate/assay QC)",
+  "severity": "cosmetic / preference",
+  "signal": null,
+  "tags": [
+   "plate-reader",
+   "reporting-methods"
+  ]
+ },
+ {
+  "id": "consult-ucla-logtransform",
+  "venue": "stats.oarc.ucla.edu",
+  "url": "https://stats.oarc.ucla.edu/other/mult-pkg/faq/general/faqhow-do-i-interpret-a-regression-model-when-some-variables-are-log-transformed/",
+  "date": null,
+  "role": "course/consulting page, audience: researchers using the UCLA OARC statistical consulting FAQ",
+  "software_named": [],
+  "workflow": "regression with log-transformed variables",
+  "quote": "In this page, we will discuss how to interpret a regression model when some variables in the model have been log transformed.",
+  "problem": "Interpreting coefficients after log transforms is a recurring question",
+  "need": "Back-transformed estimates (fold-change / percent change) reported automatically when a log scale is used",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "units-and-transforms",
+   "log-axis"
+  ]
+ },
+ {
+  "id": "consult-ucla-separation",
+  "venue": "stats.oarc.ucla.edu",
+  "url": "https://stats.oarc.ucla.edu/other/mult-pkg/faq/general/faqwhat-is-complete-or-quasi-complete-separation-in-logisticprobit-regression-and-how-do-we-deal-with-them/",
+  "date": null,
+  "role": "course/consulting page, audience: researchers using the UCLA OARC statistical consulting FAQ",
+  "software_named": [
+   "SAS"
+  ],
+  "workflow": "logistic regression with small samples",
+  "quote": "WARNING: The LOGISTIC procedure continues in spite of the above warning. Results shown are based on the last maximum likelihood iteration. Validity of the model fit is questionable.",
+  "problem": "Logistic fits on small data hit separation; software continues and prints results anyway",
+  "need": "Detect separation and explain it in plain language instead of printing questionable estimates",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "logistic-regression",
+   "fit-diagnostics"
+  ]
+ },
+ {
+  "id": "consult-ucla-errorterm",
+  "venue": "stats.oarc.ucla.edu",
+  "url": "https://stats.oarc.ucla.edu/other/mult-pkg/faq/general/faq-how-can-i-determine-the-correct-error-term-in-an-anova/",
+  "date": null,
+  "role": "course/consulting page, audience: researchers using the UCLA OARC statistical consulting FAQ",
+  "software_named": [
+   "SAS",
+   "Stata"
+  ],
+  "workflow": "ANOVA with fixed and random factors",
+  "quote": "One method for determining correct denominators in analysis of variance is the Cornfield-Tukey method.",
+  "problem": "Choosing the correct error term in ANOVA with random/nested factors is a recurring FAQ",
+  "need": "Automatic correct F denominators for nested/random factors (e.g. animal within treatment)",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "two-way-anova",
+   "technical-vs-biological-replicates"
+  ]
+ },
+ {
+  "id": "consult-iths-power",
+  "venue": "iths.org",
+  "url": "https://www.iths.org/wp-content/uploads/CDS-How-to-Prepare-for-your-Biostats-Consult__-final-10_4_2023-PDF.pdf",
+  "date": "2023-10",
+  "role": "course/consulting page, audience: clinical and translational investigators preparing for a biostatistics consult (ITHS seminar slides)",
+  "software_named": [],
+  "workflow": "sample size planning for a grant",
+  "quote": "Power analysis is typically not as easy as plug-and-chug",
+  "problem": "Investigators expect power analysis to be a quick formula and arrive without the inputs",
+  "need": "A guided power calculator that asks for the variability estimate and minimum meaningful difference and explains each input",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "power-sample-size"
+  ]
+ },
+ {
+  "id": "consult-iths-variability",
+  "venue": "iths.org",
+  "url": "https://www.iths.org/wp-content/uploads/CDS-How-to-Prepare-for-your-Biostats-Consult__-final-10_4_2023-PDF.pdf",
+  "date": "2023-10",
+  "role": "course/consulting page, audience: clinical and translational investigators preparing for a biostatistics consult (ITHS seminar slides)",
+  "software_named": [],
+  "workflow": "sample size planning",
+  "quote": "Very important: estimate(s) of variability around yourprimaryoutcome/variables.",
+  "problem": "Researchers lack a variability estimate for the primary outcome, which every power calculation needs",
+  "need": "Ways to derive SD from pilot data or published means/SEM/CI inside the power tool",
+  "severity": "blocks the analysis",
+  "signal": null,
+  "tags": [
+   "power-sample-size"
+  ]
+ },
+ {
+  "id": "consult-iths-nonsig",
+  "venue": "iths.org",
+  "url": "https://www.iths.org/wp-content/uploads/CDS-How-to-Prepare-for-your-Biostats-Consult__-final-10_4_2023-PDF.pdf",
+  "date": "2023-10",
+  "role": "course/consulting page, audience: clinical and translational investigators preparing for a biostatistics consult (ITHS seminar slides)",
+  "software_named": [],
+  "workflow": "interpreting non-significant results",
+  "quote": "Studies A and B are both “nonsignificant” •Only study B ruled out clinically important differences",
+  "problem": "Non-significant p-values are read as \"no effect\" without looking at the CI width",
+  "need": "Report effect size with CI next to every p-value so non-significance can be judged",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "effect-size",
+   "reporting-methods"
+  ]
+ },
+ {
+  "id": "consult-iths-oddsratio",
+  "venue": "iths.org",
+  "url": "https://www.iths.org/wp-content/uploads/CDS-How-to-Prepare-for-your-Biostats-Consult__-final-10_4_2023-PDF.pdf",
+  "date": "2023-10",
+  "role": "course/consulting page, audience: clinical and translational investigators preparing for a biostatistics consult (ITHS seminar slides)",
+  "software_named": [],
+  "workflow": "interpreting logistic regression / contingency results",
+  "quote": "Wrongly interpreting odds ratios as probabilities.",
+  "problem": "Odds ratios are misread as probabilities when results are written up",
+  "need": "Plain-language interpretation lines under odds ratio / relative risk output",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "contingency",
+   "logistic-regression",
+   "reporting-methods"
+  ]
+ },
+ {
+  "id": "consult-iths-sap",
+  "venue": "iths.org",
+  "url": "https://www.iths.org/wp-content/uploads/CDS-How-to-Prepare-for-your-Biostats-Consult__-final-10_4_2023-PDF.pdf",
+  "date": "2023-10",
+  "role": "course/consulting page, audience: clinical and translational investigators preparing for a biostatistics consult (ITHS seminar slides)",
+  "software_named": [],
+  "workflow": "planning the analysis before data collection",
+  "quote": "Having a well-defined SAP can save a lot of time in data analysis and also can be used to draft the methods section of your manuscript.",
+  "problem": "Analyses are improvised after data collection and the methods text is written from scratch",
+  "need": "Record the planned analysis up front and generate a methods paragraph from what was run",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "reporting-methods",
+   "reproducibility-audit"
+  ]
+ },
+ {
+  "id": "consult-stanford-ortho-power",
+  "venue": "med.stanford.edu",
+  "url": "https://med.stanford.edu/content/dam/sm/ortho/documents/Orthopaedic%20Biostatistics%20Consulting%20Information%2020180806.pdf",
+  "date": "2018-08",
+  "role": "course/consulting page, audience: Stanford orthopaedics researchers requesting biostatistics support",
+  "software_named": [],
+  "workflow": "power / sample size for a study or grant",
+  "quote": "Typically, mean & standard deviation or the proportion observed for your primary outcome(s) previously in similar cohort(s)/sample(s) from the literature",
+  "problem": "Power calculations need a mean/SD or proportion from prior work that investigators must dig out themselves",
+  "need": "Power tool that accepts literature summaries (mean, SD/SEM, n) and converts them",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "power-sample-size"
+  ]
+ },
+ {
+  "id": "consult-stanford-ortho-format",
+  "venue": "med.stanford.edu",
+  "url": "https://med.stanford.edu/content/dam/sm/ortho/documents/Orthopaedic%20Biostatistics%20Consulting%20Information%2020180806.pdf",
+  "date": "2018-08",
+  "role": "course/consulting page, audience: Stanford orthopaedics researchers requesting biostatistics support",
+  "software_named": [
+   "Excel"
+  ],
+  "workflow": "preparing a spreadsheet for analysis",
+  "quote": "Data should typically be in one large table with each row containing a patient/sample, and each column containing a variable/outcome",
+  "problem": "Researchers send spreadsheets in layouts that are not analysable (not one row per sample)",
+  "need": "Accept tidy (one row per sample) input and convert from grouped/column layouts",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "long-vs-wide",
+   "data-entry-table-types",
+   "excel-paste"
+  ]
+ },
+ {
+  "id": "consult-stanford-ortho-case",
+  "venue": "med.stanford.edu",
+  "url": "https://med.stanford.edu/content/dam/sm/ortho/documents/Orthopaedic%20Biostatistics%20Consulting%20Information%2020180806.pdf",
+  "date": "2018-08",
+  "role": "course/consulting page, audience: Stanford orthopaedics researchers requesting biostatistics support",
+  "software_named": [
+   "Excel"
+  ],
+  "workflow": "cleaning categorical data entered by hand",
+  "quote": "Example: “no”, “NO”, and “No” are treated as 3 different responses by statistical software, so ensure that capitalization and spelling are consistent",
+  "problem": "Inconsistent capitalisation of categories splits one group into several",
+  "need": "Detect near-duplicate category labels on import and offer to merge them",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "excel-paste",
+   "contingency"
+  ]
+ },
+ {
+  "id": "consult-stanford-ortho-formulas",
+  "venue": "med.stanford.edu",
+  "url": "https://med.stanford.edu/content/dam/sm/ortho/documents/Orthopaedic%20Biostatistics%20Consulting%20Information%2020180806.pdf",
+  "date": "2018-08",
+  "role": "course/consulting page, audience: Stanford orthopaedics researchers requesting biostatistics support",
+  "software_named": [
+   "Excel"
+  ],
+  "workflow": "derived columns computed in Excel",
+  "quote": "Copy and paste as values any data derived from excel formulas after they are calculated to avoid errors creeping in if data is edited/moved; formulas should be listed in the data dictionary",
+  "problem": "Excel formula-derived values break when data are moved, and the derivation is undocumented",
+  "need": "Transforms/normalisations computed inside the analysis tool and recorded with the data",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "excel-paste",
+   "reproducibility-audit",
+   "normalization"
+  ]
+ },
+ {
+  "id": "consult-stanford-ms-bring",
+  "venue": "mass-spec.stanford.edu",
+  "url": "https://mass-spec.stanford.edu/sites/g/files/sbiybj25116/files/media/file/1250_tamaresis_presentation_msug_20141007_1.pdf",
+  "date": "2014-10",
+  "role": "course/consulting page, audience: Stanford mass spectrometry core users (biostatistics lightning-round slides)",
+  "software_named": [],
+  "workflow": "sample size for a mass-spec / omics experiment",
+  "quote": "WHAT YOU CAN BRING Statistics • Outcomes: Primary & Secondary • Variability of outcomes • Effect size • Number of samples",
+  "problem": "Core-facility users come for sample-size help without knowing which inputs are needed",
+  "need": "Sample-size helper that lists and collects outcome, variability and effect size",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "power-sample-size"
+  ]
+ },
+ {
+  "id": "consult-stanford-ms-reviewers",
+  "venue": "mass-spec.stanford.edu",
+  "url": "https://mass-spec.stanford.edu/sites/g/files/sbiybj25116/files/media/file/1250_tamaresis_presentation_msug_20141007_1.pdf",
+  "date": "2014-10",
+  "role": "course/consulting page, audience: Stanford mass spectrometry core users (biostatistics lightning-round slides)",
+  "software_named": [],
+  "workflow": "responding to journal review of statistics",
+  "quote": "Reviewer comments about statistical analyses",
+  "problem": "Researchers bring reviewer critiques of their statistics to the consultant",
+  "need": "Output that documents tests and assumptions well enough to answer reviewer queries",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "reporting-methods",
+   "trust-validation"
+  ]
+ },
+ {
+  "id": "consult-unm-howmany",
+  "venue": "frdo.unm.edu",
+  "url": "https://frdo.unm.edu/sites/default/files/Biostatistics_Support.pdf",
+  "date": null,
+  "role": "course/consulting page, audience: UNM investigators using CTSC biostatistics support",
+  "software_named": [],
+  "workflow": "sample size question",
+  "quote": "Sample Size/Power Calculations •“How many subjects do I need?” •Bring to your meeting: –Idea of effect size",
+  "problem": "\"How many subjects do I need?\" is the headline consulting question",
+  "need": "Self-serve sample-size calculator with plain inputs",
+  "severity": "blocks the analysis",
+  "signal": null,
+  "tags": [
+   "power-sample-size"
+  ]
+ },
+ {
+  "id": "consult-unm-postcollection",
+  "venue": "frdo.unm.edu",
+  "url": "https://frdo.unm.edu/sites/default/files/Biostatistics_Support.pdf",
+  "date": null,
+  "role": "course/consulting page, audience: UNM investigators using CTSC biostatistics support",
+  "software_named": [],
+  "workflow": "data collected before consulting a statistician",
+  "quote": "If you have already collected data without seeking biostatistical advice, expect –A lot of questions from the biostatistician! –Requests for considerable data clean-up on your behalf. –The possibility that the data you have collected may not answer the question(s) intended.",
+  "problem": "Data collected without design input often need heavy cleanup or cannot answer the question",
+  "need": "Design-stage guidance (replicates, groups, randomisation) before the experiment is run",
+  "severity": "blocks the analysis",
+  "signal": null,
+  "tags": [
+   "randomisation",
+   "power-sample-size",
+   "which-test"
+  ]
+ },
+ {
+  "id": "consult-unc-flow-replicates",
+  "venue": "med.unc.edu",
+  "url": "https://www.med.unc.edu/flowcytometry/rigor/",
+  "date": null,
+  "role": "course/consulting page, audience: users of the UNC Flow Cytometry Core Facility",
+  "software_named": [
+   "FlowJo",
+   "FCS Express"
+  ],
+  "workflow": "multicolour flow cytometry experiment planning",
+  "quote": "Multicolor Flow Cytometry experiments should be run using replicates [be mindful of biological / technical replicates] based on power calculations and include appropriate controls.",
+  "problem": "Flow users must decide replicate numbers and replicate type without built-in guidance",
+  "need": "Power/replicate guidance that distinguishes biological from technical replicates for gated percentages",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "flow-cytometry",
+   "technical-vs-biological-replicates",
+   "power-sample-size"
+  ]
+ },
+ {
+  "id": "consult-unc-flow-plan",
+  "venue": "med.unc.edu",
+  "url": "https://www.med.unc.edu/flowcytometry/rigor/",
+  "date": null,
+  "role": "course/consulting page, audience: users of the UNC Flow Cytometry Core Facility",
+  "software_named": [],
+  "workflow": "experimental documentation",
+  "quote": "Have a clear and detailed protoco l (SOP) and data analysis plan.",
+  "problem": "Core asks users to fix a data analysis plan up front and document all analysis steps",
+  "need": "Analysis log that records every step and setting for the methods section",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "reproducibility-audit",
+   "reporting-methods",
+   "flow-cytometry"
+  ]
+ },
+ {
+  "id": "consult-peds-flow-power",
+  "venue": "pedsresearch.org",
+  "url": "https://pedsresearch.org/cores/flow-cytometry-core/resources/rigor-reproducibility",
+  "date": null,
+  "role": "course/consulting page, audience: users of the Pediatric/Winship Flow Cytometry Core (Emory/Children's)",
+  "software_named": [
+   "FlowJo",
+   "FCS Express",
+   "Kaluza",
+   "SpectroFlo"
+  ],
+  "workflow": "multicolour flow cytometry replicates",
+  "quote": "For all Multi-color flow cytometry experiments users should run replicates based on Power Calculations .",
+  "problem": "Core expects power-based replicate numbers that flow users rarely calculate",
+  "need": "Simple power calculator for proportions/percent-positive endpoints",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "flow-cytometry",
+   "power-sample-size"
+  ]
+ },
+ {
+  "id": "consult-unil-flow-real",
+  "venue": "wp.unil.ch",
+  "url": "https://wp.unil.ch/fcf/mailpoet-email/cba94f80e3a8-fcf-unil-june-2022-how-many-cells-is-enough/",
+  "date": "2022-06",
+  "role": "course/consulting page, audience: users of the UNIL Flow Cytometry Facility (facility newsletter FACS Tips)",
+  "software_named": [],
+  "workflow": "deciding whether a rare gated population is real",
+  "quote": "This month, in FACS Tips we are answering a recurring question in our facility : Is my population real ? We often have to discuss with users about it and we will provide here an explanation so you can be confident your data is revelant.",
+  "problem": "Users repeatedly ask whether a small gated population is real",
+  "need": "Report CI for gated percentages based on event counts and controls",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "flow-cytometry",
+   "trust-validation"
+  ]
+ },
+ {
+  "id": "consult-unil-flow-events",
+  "venue": "wp.unil.ch",
+  "url": "https://wp.unil.ch/fcf/mailpoet-email/cba94f80e3a8-fcf-unil-june-2022-how-many-cells-is-enough/",
+  "date": "2022-06",
+  "role": "course/consulting page, audience: users of the UNIL Flow Cytometry Facility (facility newsletter FACS Tips)",
+  "software_named": [
+   "Excel"
+  ],
+  "workflow": "choosing how many events to record",
+  "quote": "Alternatively, if you want to calculate the interval of confidence of your results based on the number of cells acquired and the percentage of your population of interest, you can use the excel tool provided herein.",
+  "problem": "The facility has to hand out an Excel tool to compute CIs/precision of a gated percentage from event counts",
+  "need": "Built-in calculator: events needed for a target CV, and CI of a percentage from counts",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "flow-cytometry",
+   "power-sample-size",
+   "excel-paste"
+  ]
+ },
+ {
+  "id": "consult-dkfz-replicates",
+  "venue": "dkfz.de",
+  "url": "https://www.dkfz.de/en/molecular-profiling-and-screening/expression-profiling-service/faq",
+  "date": null,
+  "role": "course/consulting page, audience: users of the DKFZ Expression Profiling core facility",
+  "software_named": [],
+  "workflow": "microarray expression profiling replicate planning",
+  "quote": "The same sample on different arrays is considered a technical replicate , but the same treatment (different RNAs) on different arrays is a biological replicate .",
+  "problem": "\"How many replicates?\" is the first FAQ, and users confuse technical with biological replicates",
+  "need": "Replicate-type labels in the data table so technical repeats are averaged and n counts biological replicates",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "technical-vs-biological-replicates",
+   "n-definition"
+  ]
+ },
+ {
+  "id": "consult-dkfz-postmortem",
+  "venue": "dkfz.de",
+  "url": "https://www.dkfz.de/en/molecular-profiling-and-screening/expression-profiling-service/faq",
+  "date": null,
+  "role": "course/consulting page, audience: users of the DKFZ Expression Profiling core facility",
+  "software_named": [],
+  "workflow": "design before the experiment",
+  "quote": "Make sure you involve a statistician in an early phase of your experimental design (\"To consult a statistician after an experiment is finished is often merely to ask him to conduct a post mortem examination.",
+  "problem": "Statistics are considered only after data exist, too late to fix the design",
+  "need": "Design-time helper (replicates per group, power) before samples are submitted",
+  "severity": "blocks the analysis",
+  "signal": null,
+  "tags": [
+   "power-sample-size",
+   "technical-vs-biological-replicates"
+  ]
+ },
+ {
+  "id": "consult-dkfz-naming",
+  "venue": "dkfz.de",
+  "url": "https://www.dkfz.de/en/molecular-profiling-and-screening/expression-profiling-service/faq",
+  "date": null,
+  "role": "course/consulting page, audience: users of the DKFZ Expression Profiling core facility",
+  "software_named": [],
+  "workflow": "sample naming for core submission",
+  "quote": "Also avoid \"simple\" namings (e.g. 1, 2, 3... or a, b, c...) and reiteration of sample names.",
+  "problem": "Uninformative or duplicated sample names cause mix-ups between submitted tubes and data",
+  "need": "Sample metadata columns (group, replicate, animal) rather than ad-hoc names",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "data-entry-table-types",
+   "reproducibility-audit"
+  ]
+ },
+ {
+  "id": "consult-babraham-phd-fear",
+  "venue": "babraham.ac.uk",
+  "url": "https://www.babraham.ac.uk/blog/advice-new-PhD-students",
+  "date": "2021-10",
+  "role": "Dorottya Horkai, PhD student, Houseley lab, Babraham Institute (shown)",
+  "software_named": [],
+  "workflow": "learning statistics as a bioscience PhD student",
+  "quote": "My advice is to never be afraid of doing any statistical analysis, either as you plan experiments or later when analysing your results! Bioscience students are especially guilty of this.",
+  "problem": "Bioscience students avoid statistics out of fear",
+  "need": "Approachable, guided analysis that teaches while doing",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "learning-curve",
+   "teaching"
+  ]
+ },
+ {
+  "id": "consult-babraham-phd-course",
+  "venue": "babraham.ac.uk",
+  "url": "https://www.babraham.ac.uk/blog/advice-new-PhD-students",
+  "date": "2021-10",
+  "role": "Dorottya Horkai, PhD student, Houseley lab, Babraham Institute (shown)",
+  "software_named": [],
+  "workflow": "statistics training",
+  "quote": "I have attended one particular course two times before it really became useful, because I had my own data to practice with by the second time.",
+  "problem": "Statistics courses only stick once the student has their own data to analyse",
+  "need": "In-tool explanations tied to the user's own dataset rather than generic examples",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "learning-curve",
+   "tutorials",
+   "teaching"
+  ]
+ },
+ {
+  "id": "consult-cuanschutz-whatanalysis",
+  "venue": "news.cuanschutz.edu",
+  "url": "https://news.cuanschutz.edu/coloradosph/gaining-confidence-in-statistical-analyses",
+  "date": "2020-06",
+  "role": "course/consulting page, audience: CU Anschutz campus investigators without statistical expertise (CIDA One Hour Consultation)",
+  "software_named": [],
+  "workflow": "deciding what analysis to run",
+  "quote": "While no in-depth analysis of a specific data set can take place during the One Hour Consultation Program, the biostatisticians “can help with talking through how to interpret analysis, or talk through what analysis should be done.”",
+  "problem": "Investigators without statistical expertise mostly need to know what analysis to run and how to interpret it",
+  "need": "Guided \"what should I run and what does it mean\" assistance alongside results",
+  "severity": "blocks the analysis",
+  "signal": null,
+  "tags": [
+   "which-test",
+   "learning-curve"
+  ]
+ },
+ {
+  "id": "consult-muenster-whichtest",
+  "venue": "uni-muenster.de",
+  "url": "https://www.uni-muenster.de/Biologie/en/Promovieren/Habilitieren/StatisticsforBiologists.html",
+  "date": null,
+  "role": "course/consulting page, audience: PhD students of biology (Statistics for Biologists workshop, University of Münster)",
+  "software_named": [],
+  "workflow": "choosing a significance test",
+  "quote": "Tests of statistical significance: which test to use for which question and/or dataset?",
+  "problem": "Doctoral biologists need to know which test fits their question and data",
+  "need": "Design-driven test chooser",
+  "severity": "blocks the analysis",
+  "signal": null,
+  "tags": [
+   "which-test"
+  ]
+ },
+ {
+  "id": "consult-muenster-sdse",
+  "venue": "uni-muenster.de",
+  "url": "https://www.uni-muenster.de/Biologie/en/Promovieren/Habilitieren/StatisticsforBiologists.html",
+  "date": null,
+  "role": "course/consulting page, audience: PhD students of biology (Statistics for Biologists workshop, University of Münster)",
+  "software_named": [],
+  "workflow": "summarising replicate data",
+  "quote": "What is the difference between standard deviation and standard error? · When to use mean or median?",
+  "problem": "SD vs SEM and mean vs median remain open questions for biology PhD students",
+  "need": "Error-bar choice explained at the point of graphing, with SD as default for describing data",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "error-bars-sd-sem",
+   "nonparametric"
+  ]
+ },
+ {
+  "id": "consult-muenster-howmany",
+  "venue": "uni-muenster.de",
+  "url": "https://www.uni-muenster.de/Biologie/en/Promovieren/Habilitieren/StatisticsforBiologists.html",
+  "date": null,
+  "role": "course/consulting page, audience: PhD students of biology (Statistics for Biologists workshop, University of Münster)",
+  "software_named": [],
+  "workflow": "planning sample size",
+  "quote": "How to design experiments form a statistical point of view (e.g. how many samples and/or experiments do I need to get a significant result)?",
+  "problem": "Students want to know how many samples/experiments they need",
+  "need": "Sample-size planning from expected effect and variability",
+  "severity": "blocks the analysis",
+  "signal": null,
+  "tags": [
+   "power-sample-size",
+   "n-definition"
+  ]
+ },
+ {
+  "id": "consult-muenster-outliers",
+  "venue": "uni-muenster.de",
+  "url": "https://www.uni-muenster.de/Biologie/en/Promovieren/Habilitieren/StatisticsforBiologists.html",
+  "date": null,
+  "role": "course/consulting page, audience: PhD students of biology (Statistics for Biologists workshop, University of Münster)",
+  "software_named": [],
+  "workflow": "handling odd data points",
+  "quote": "What are criteria for outliers? How to deal with “irregular” data sets?",
+  "problem": "No agreed criteria for outliers or for non-normal \"irregular\" data",
+  "need": "Documented outlier-detection methods (e.g. ROUT/Grubbs) with a record of what was excluded",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "outliers",
+   "nonparametric",
+   "reproducibility-audit"
+  ]
+ },
+ {
+  "id": "consult-muenster-graph",
+  "venue": "uni-muenster.de",
+  "url": "https://www.uni-muenster.de/Biologie/en/Promovieren/Habilitieren/StatisticsforBiologists.html",
+  "date": null,
+  "role": "course/consulting page, audience: PhD students of biology (Statistics for Biologists workshop, University of Münster)",
+  "software_named": [],
+  "workflow": "presenting results",
+  "quote": "How to illustrate data and statistical results?",
+  "problem": "Students are unsure how to graph data together with the statistics",
+  "need": "Graph templates that combine raw points with test annotations",
+  "severity": "cosmetic / preference",
+  "signal": null,
+  "tags": [
+   "show-the-points",
+   "significance-brackets"
+  ]
+ },
+ {
+  "id": "consult-psu555-techrep",
+  "venue": "online.stat.psu.edu",
+  "url": "https://online.stat.psu.edu/stat555/node/42/",
+  "date": "2018",
+  "role": "course/consulting page, audience: students of STAT 555 Statistical Analysis of Genomics Data (Penn State online notes)",
+  "software_named": [],
+  "workflow": "replication strategy for omics / qPCR follow-up",
+  "quote": "Technical replication and remeasurement of the same biological samples is typically not cost-effective when making biological inferences.",
+  "problem": "Labs spend resources on technical rather than biological replicates",
+  "need": "Planning guidance that shows how SE shrinks with biological vs technical replicates",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "technical-vs-biological-replicates",
+   "power-sample-size"
+  ]
+ },
+ {
+  "id": "consult-psu555-qpcr-confirm",
+  "venue": "online.stat.psu.edu",
+  "url": "https://online.stat.psu.edu/stat555/node/42/",
+  "date": "2018",
+  "role": "course/consulting page, audience: students of STAT 555 Statistical Analysis of Genomics Data (Penn State online notes)",
+  "software_named": [],
+  "workflow": "qPCR confirmation of RNA-seq/microarray hits",
+  "quote": "Many of you have likely read papers where people did a high throughput gene expression study which was followed up with PCR.",
+  "problem": "qPCR validation of a few high-throughput hits is routine but addresses the technology, not the biology",
+  "need": "qPCR analysis that works on new biological samples, not just re-measured ones",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "qpcr-ddct",
+   "technical-vs-biological-replicates"
+  ]
+ },
+ {
+  "id": "consult-lincoln-whichtest",
+  "venue": "guides.library.lincoln.ac.uk",
+  "url": "https://guides.library.lincoln.ac.uk/mash/choosing_a_test",
+  "date": "2026-10",
+  "role": "course/consulting page, audience: University of Lincoln students using MASH maths and stats help",
+  "software_named": [],
+  "workflow": "choosing a statistical test",
+  "quote": "One of the biggest challenges students face when doing statistical testing is knowing which test to use in which circumstance.",
+  "problem": "Knowing which test to use is named the biggest challenge for students",
+  "need": "Flowchart-style chooser built into the analysis step",
+  "severity": "blocks the analysis",
+  "signal": null,
+  "tags": [
+   "which-test",
+   "learning-curve"
+  ]
+ },
+ {
+  "id": "consult-lincoln-daunting",
+  "venue": "guides.library.lincoln.ac.uk",
+  "url": "https://guides.library.lincoln.ac.uk/mash/choosing_a_test",
+  "date": "2026-10",
+  "role": "course/consulting page, audience: University of Lincoln students using MASH maths and stats help",
+  "software_named": [],
+  "workflow": "choosing a statistical test",
+  "quote": "At MASH we understand that this can be very daunting and overwhelming, so we have made these guides to hopefully talk you through the process.",
+  "problem": "Test selection is daunting and overwhelming for learners",
+  "need": "Step-by-step guided analysis with plain explanations",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "which-test",
+   "learning-curve",
+   "tutorials"
+  ]
+ },
+ {
+  "id": "consult-duke-reproduce",
+  "venue": "globalhealth.duke.edu",
+  "url": "https://globalhealth.duke.edu/news/10-things-know-about-working-statistician",
+  "date": "2022-03",
+  "role": "course/consulting page, audience: Duke Global Health investigators (Research Design and Analysis Core)",
+  "software_named": [],
+  "workflow": "reproducible reporting",
+  "quote": "If someone had your study dataset and the manuscript, could they reproduce the analysis and obtain the same numerical results?",
+  "problem": "Published analyses often cannot be reproduced from the data plus the methods text",
+  "need": "Saved analysis that re-runs from the data and exports exact settings",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "reproducibility-audit",
+   "reporting-methods"
+  ]
+ },
+ {
+  "id": "consult-duke-design",
+  "venue": "globalhealth.duke.edu",
+  "url": "https://globalhealth.duke.edu/news/10-things-know-about-working-statistician",
+  "date": "2022-03",
+  "role": "course/consulting page, audience: Duke Global Health investigators (Research Design and Analysis Core)",
+  "software_named": [],
+  "workflow": "study design",
+  "quote": "Not even the most sophisticated statistical fireworks can overcome the limitations of a study that was not designed properly to answer a particular research question.",
+  "problem": "Poor design cannot be rescued by analysis",
+  "need": "Design checks (replicates, controls, randomisation) before data collection",
+  "severity": "blocks the analysis",
+  "signal": null,
+  "tags": [
+   "randomisation",
+   "power-sample-size"
+  ]
+ },
+ {
+  "id": "consult-duke-signif",
+  "venue": "globalhealth.duke.edu",
+  "url": "https://globalhealth.duke.edu/news/10-things-know-about-working-statistician",
+  "date": "2022-03",
+  "role": "course/consulting page, audience: Duke Global Health investigators (Research Design and Analysis Core)",
+  "software_named": [],
+  "workflow": "writing results",
+  "quote": "Have you considered trying to write your next Discussion section without using the phrase “statistically significant”?",
+  "problem": "Overreliance on p<0.05 dichotomy in write-ups",
+  "need": "Results output that leads with effect sizes and CIs",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "effect-size",
+   "reporting-methods",
+   "exact-p"
+  ]
+ },
+ {
+  "id": "consult-duke-oddsratio",
+  "venue": "globalhealth.duke.edu",
+  "url": "https://globalhealth.duke.edu/news/10-things-know-about-working-statistician",
+  "date": "2022-03",
+  "role": "course/consulting page, audience: Duke Global Health investigators (Research Design and Analysis Core)",
+  "software_named": [],
+  "workflow": "interpreting results",
+  "quote": "A statistician will know many of the pitfalls of interpretation of study results, such as how odds ratios are commonly misinterpreted, when measurement error may be a bigger problem than confounding, and how conclusions often go beyond what the study design and statistical results allow.",
+  "problem": "Odds ratios misinterpreted and conclusions overreach",
+  "need": "Plain-language interpretation of ORs/RRs in output",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "contingency",
+   "logistic-regression"
+  ]
+ },
+ {
+  "id": "consult-uva-dunnett-puzzle",
+  "venue": "library.virginia.edu",
+  "url": "https://library.virginia.edu/data/articles/understanding-dunnetts-test",
+  "date": "2026-03",
+  "role": "chemistry lab students who came to UVA StatLab consultants (reported in StatLab article)",
+  "software_named": [
+   "R"
+  ],
+  "workflow": "many compounds vs one control, one-way ANOVA + post-hoc",
+  "quote": "Later, they learned that individual t-tests were not appropriate, so they used Dunnett’s test instead. However, they were puzzled: after adding just one more compound to the analysis, a result that had been significant became non-significant.",
+  "problem": "Users do not understand why adding a group changes other comparisons' adjusted p-values in Dunnett's test",
+  "need": "Explain multiplicity in the output: show how many comparisons the correction covers and why p changed",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "post-hoc-choice",
+   "multiple-comparisons",
+   "trust-validation"
+  ]
+ },
+ {
+  "id": "consult-uva-dunnett-ttests",
+  "venue": "library.virginia.edu",
+  "url": "https://library.virginia.edu/data/articles/understanding-dunnetts-test",
+  "date": "2026-03",
+  "role": "chemistry lab students who came to UVA StatLab consultants (reported in StatLab article)",
+  "software_named": [],
+  "workflow": "screening compounds against a control",
+  "quote": "The data were analyzed using a one-way ANOVA, and then t-tests between each compound and the control to determine whether the differences were significant—that is, 20-30 comparisons against the control.",
+  "problem": "Labs run 20-30 uncorrected t-tests after ANOVA",
+  "need": "Default to Dunnett (vs control) after one-way ANOVA when a control column is marked",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "multiple-comparisons",
+   "post-hoc-choice",
+   "which-test"
+  ]
+ },
+ {
+  "id": "consult-uva-dunnett-otherlab",
+  "venue": "library.virginia.edu",
+  "url": "https://library.virginia.edu/data/articles/understanding-dunnetts-test",
+  "date": "2026-03",
+  "role": "chemistry lab students who came to UVA StatLab consultants (reported in StatLab article)",
+  "software_named": [],
+  "workflow": "comparing results across labs",
+  "quote": "Even more confusing, the same effect size was significant in another lab’s analysis but not in theirs.",
+  "problem": "Same effect significant in one lab and not another because of differing numbers of comparisons",
+  "need": "Report the family size and correction method alongside each adjusted p",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "multiple-comparisons",
+   "numbers-differ-between-tools",
+   "reporting-methods"
+  ]
+ },
+ {
+  "id": "consult-uva-dunnett-power",
+  "venue": "library.virginia.edu",
+  "url": "https://library.virginia.edu/data/articles/understanding-dunnetts-test",
+  "date": "2026-03",
+  "role": "course/consulting page, audience: UVA researchers and students (StatLab consulting article)",
+  "software_named": [],
+  "workflow": "planning multi-compound screens",
+  "quote": "To maintain power, the number of comparisons should be limited to those essential for the research question.",
+  "problem": "Including every possible comparison drains power",
+  "need": "Let users pick only planned comparisons and show the power consequence",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "multiple-comparisons",
+   "power-sample-size"
+  ]
+ },
+ {
+  "id": "consult-uva-wilcoxon-flowchart",
+  "venue": "library.virginia.edu",
+  "url": "https://library.virginia.edu/data/articles/the-wilcoxon-rank-sum-test",
+  "date": "2023-05",
+  "role": "course/consulting page, audience: UVA researchers and students (StatLab consulting article)",
+  "software_named": [
+   "R"
+  ],
+  "workflow": "two-group comparison with non-normal data",
+  "quote": "You sometimes see it in analysis flowcharts after a question such as \"is your data normal?\" A \"no\" branch off this question will recommend a Wilcoxon test if you're comparing two groups of continuous measures. So what is this Wilcoxon test?",
+  "problem": "Researchers reach the Wilcoxon test via flowcharts without knowing what it tests",
+  "need": "Nonparametric result pages that explain the hypothesis tested",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "nonparametric",
+   "which-test"
+  ]
+ },
+ {
+  "id": "consult-uva-kruskal-small",
+  "venue": "library.virginia.edu",
+  "url": "https://library.virginia.edu/data/articles/getting-started-with-the-kruskal-wallis-test",
+  "date": "2021-12",
+  "role": "course/consulting page, audience: UVA researchers and students (StatLab consulting article)",
+  "software_named": [
+   "R"
+  ],
+  "workflow": "more than two groups with small n",
+  "quote": "What if your data doesn’t follow a normal distribution or if your sample size is too small to determine a normal distribution?",
+  "problem": "Small samples make normality impossible to judge, leaving the parametric vs nonparametric choice open",
+  "need": "Guidance for small-n normality decisions instead of relying on normality tests",
+  "severity": "blocks the analysis",
+  "signal": null,
+  "tags": [
+   "nonparametric",
+   "which-test"
+  ]
+ },
+ {
+  "id": "consult-uva-qq",
+  "venue": "library.virginia.edu",
+  "url": "https://library.virginia.edu/data/articles/understanding-q-q-plots",
+  "date": "2015-08",
+  "role": "course/consulting page, audience: UVA researchers and students (StatLab consulting article)",
+  "software_named": [
+   "R"
+  ],
+  "workflow": "checking the normality assumption",
+  "quote": "It’s just a visual check, not an air-tight proof, so it is somewhat subjective.",
+  "problem": "Assumption checks (QQ plots) are subjective and hard to read",
+  "need": "Residual QQ plots with plain-language guidance attached to ANOVA/t-test output",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "fit-diagnostics",
+   "nonparametric"
+  ]
+ },
+ {
+  "id": "consult-usu-reps",
+  "venue": "bioinfocore.usu.edu",
+  "url": "https://bioinfocore.usu.edu/faq",
+  "date": null,
+  "role": "course/consulting page, audience: users of the Utah State University Bioinformatics Core",
+  "software_named": [],
+  "workflow": "RNA-seq experimental design",
+  "quote": "How many biological replicates are needed? At least 3 (more if you can afford)",
+  "problem": "\"How many biological replicates?\" is a standing core-facility FAQ",
+  "need": "Replicate-number guidance tied to expected variability",
+  "severity": "blocks the analysis",
+  "signal": null,
+  "tags": [
+   "power-sample-size",
+   "technical-vs-biological-replicates"
+  ]
+ },
+ {
+  "id": "consult-usu-degtools",
+  "venue": "bioinfocore.usu.edu",
+  "url": "https://bioinfocore.usu.edu/faq",
+  "date": null,
+  "role": "course/consulting page, audience: users of the Utah State University Bioinformatics Core",
+  "software_named": [
+   "edgeR",
+   "DESeq"
+  ],
+  "workflow": "differential expression analysis",
+  "quote": "All the DEG analysis tools are developed based on different normalization methods and assumptions. There is no single tool that can be declared better over other.",
+  "problem": "Different DE tools give different results because of different normalisation assumptions",
+  "need": "Transparent statement of normalisation method and a way to compare methods side by side",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "numbers-differ-between-tools",
+   "normalization"
+  ]
+ },
+ {
+  "id": "consult-usu-logfc",
+  "venue": "bioinfocore.usu.edu",
+  "url": "https://bioinfocore.usu.edu/faq",
+  "date": null,
+  "role": "course/consulting page, audience: users of the Utah State University Bioinformatics Core",
+  "software_named": [
+   "edgeR"
+  ],
+  "workflow": "interpreting fold changes",
+  "quote": "To convert the logFC value from edgeR (which are essentially ratios of the normalized count values per gene) into an up or down ratio, you simply take 2 to the power of the logFC number.",
+  "problem": "Users need help converting log2 fold-change back to ratios",
+  "need": "Show both log2FC and linear fold-change in results tables",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "units-and-transforms",
+   "volcano-heatmap"
+  ]
+ },
+ {
+  "id": "consult-unt-reps",
+  "venue": "research.unt.edu",
+  "url": "https://research.unt.edu/research-units-facilities/questions-and-answers-rnaseq.html",
+  "date": null,
+  "role": "course/consulting page, audience: users of the UNT Genomics Center (RNAseq Q&A)",
+  "software_named": [],
+  "workflow": "RNA-seq replicate planning",
+  "quote": "More than two biological replicates are required; 3-5 replicates are common choices; and more than 6-12 replicates are recommended (Schurch et al. 2016). However, this question is more appropriate for your statistician.",
+  "problem": "Replicate number questions are referred on to statisticians because the core cannot answer them generically",
+  "need": "Self-serve power/replicate estimate using variance and effect size inputs",
+  "severity": "blocks the analysis",
+  "signal": null,
+  "tags": [
+   "power-sample-size",
+   "technical-vs-biological-replicates"
+  ]
+ },
+ {
+  "id": "consult-babbio-whatisn",
+  "venue": "bioinformatics.babraham.ac.uk",
+  "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/Intro%20to%20statistics%20with%20GraphPad%20Prism%20slides.pdf",
+  "date": "2025-01",
+  "role": "course/consulting page, audience: Babraham Institute scientists (Introduction to Statistics with GraphPad Prism course slides)",
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "cell culture experiments, defining n",
+  "quote": "Technical versus biological replicates Not always easy to tell the difference • Design 1: One value per glass slide e.g. cell count • After quantification: 6 values • Sample size: n = 1",
+  "problem": "Six measured values from one culture are often counted as n=6 when n=1",
+  "need": "Data table that records the replicate hierarchy (day/culture/well) and computes n at the right level",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "technical-vs-biological-replicates",
+   "n-definition",
+   "superplots"
+  ]
+ },
+ {
+  "id": "consult-babbio-nevermix",
+  "venue": "bioinformatics.babraham.ac.uk",
+  "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/Intro%20to%20statistics%20with%20GraphPad%20Prism%20slides.pdf",
+  "date": "2025-01",
+  "role": "course/consulting page, audience: Babraham Institute scientists (Introduction to Statistics with GraphPad Prism course slides)",
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "mixing replicate types",
+  "quote": "Identify technical and biological replicates • Make the replicates as independent as possible • Consider wider factors, e.g. rarity of samples, cost and accuracy of measurements • Never mix technical and biological replicates",
+  "problem": "Labs mix technical and biological replicates within the same analysis",
+  "need": "Separate replicate-type columns with automatic averaging of technical repeats",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "technical-vs-biological-replicates",
+   "data-entry-table-types"
+  ]
+ },
+ {
+  "id": "consult-babbio-power-reviewers",
+  "venue": "bioinformatics.babraham.ac.uk",
+  "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/Intro%20to%20statistics%20with%20GraphPad%20Prism%20slides.pdf",
+  "date": "2025-01",
+  "role": "course/consulting page, audience: Babraham Institute scientists (Introduction to Statistics with GraphPad Prism course slides)",
+  "software_named": [
+   "G*Power",
+   "R"
+  ],
+  "workflow": "justifying sample size",
+  "quote": "Grants: justification of sample size • Publications: reviewers ask for power calculation evidence",
+  "problem": "Grants and reviewers demand power calculations that bench scientists struggle to provide",
+  "need": "Built-in power analysis with a citable report",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "power-sample-size",
+   "reporting-methods"
+  ]
+ },
+ {
+  "id": "consult-babbio-onetailed",
+  "venue": "bioinformatics.babraham.ac.uk",
+  "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/Intro%20to%20statistics%20with%20GraphPad%20Prism%20slides.pdf",
+  "date": "2025-01",
+  "role": "course/consulting page, audience: Babraham Institute scientists (Introduction to Statistics with GraphPad Prism course slides)",
+  "software_named": [],
+  "workflow": "choosing test sidedness",
+  "quote": "Two times easier to reach significance with one-tailed than two-tailed → suspicious reviewer!",
+  "problem": "One-tailed tests are used to reach significance and attract reviewer suspicion",
+  "need": "Two-tailed default with justification required for one-tailed",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "which-test",
+   "exact-p"
+  ]
+ },
+ {
+  "id": "consult-babbio-nonpar",
+  "venue": "bioinformatics.babraham.ac.uk",
+  "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/Intro%20to%20statistics%20with%20GraphPad%20Prism%20slides.pdf",
+  "date": "2025-01",
+  "role": "course/consulting page, audience: Babraham Institute scientists (Introduction to Statistics with GraphPad Prism course slides)",
+  "software_named": [],
+  "workflow": "non-normal data, parametric vs nonparametric",
+  "quote": "Not meeting the assumptions for parametric tests is not enough to switch to a non-parametric approach • Data exploration is key: • Outliers? • Possible transformation? • Parametric with corrections?",
+  "problem": "Researchers switch to nonparametric tests automatically when a normality test fails",
+  "need": "Guided assumption checking that suggests transformation or corrections before switching tests",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "nonparametric",
+   "outliers",
+   "units-and-transforms"
+  ]
+ },
+ {
+  "id": "consult-babbio-doseresp",
+  "venue": "bioinformatics.babraham.ac.uk",
+  "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/Intro%20to%20statistics%20with%20GraphPad%20Prism%20slides.pdf",
+  "date": "2025-01",
+  "role": "course/consulting page, audience: Babraham Institute scientists (Introduction to Statistics with GraphPad Prism course slides)",
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "dose-response inhibition curves, IC50/EC50",
+  "quote": "Step by step analysis and considerations: 1. Choose a Model • not necessary to normalise • should choose it when values defining 0 and 100 are precise • variable slope better if plenty of data points",
+  "problem": "Choosing the dose-response model (normalised or not, variable slope or not) needs explicit guidance",
+  "need": "Model-choice helper for dose-response that explains normalisation and slope options",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "ic50-ec50-setup",
+   "normalization",
+   "fit-diagnostics"
+  ]
+ },
+ {
+  "id": "consult-babbio-bonferroni",
+  "venue": "bioinformatics.babraham.ac.uk",
+  "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/Intro%20to%20statistics%20with%20GraphPad%20Prism%20slides.pdf",
+  "date": "2025-01",
+  "role": "course/consulting page, audience: Babraham Institute scientists (Introduction to Statistics with GraphPad Prism course slides)",
+  "software_named": [],
+  "workflow": "multiple comparisons",
+  "quote": "Problem: very conservative leading to loss of power (lots of false negative)",
+  "problem": "Bonferroni correction costs power and users do not know the alternatives",
+  "need": "Correction chooser explaining FWER vs FDR trade-offs",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "multiple-comparisons",
+   "post-hoc-choice"
+  ]
+ },
+ {
+  "id": "consult-mandela-ethics-n",
+  "venue": "rd.mandela.ac.za",
+  "url": "https://rd.mandela.ac.za/Unit-for-Statistical-Consultation/FAQs",
+  "date": null,
+  "role": "course/consulting page, audience: Nelson Mandela University postgraduates and researchers (Unit for Statistical Consultation FAQ)",
+  "software_named": [],
+  "workflow": "sample size for an ethics application",
+  "quote": "Q: I need to figure out my required sample size for my study to include in my ethics application/proposal, can the USC help me with that?",
+  "problem": "Sample size is needed for ethics/proposal paperwork before the researcher understands how to compute it",
+  "need": "Sample-size calculator with an exportable justification paragraph for ethics forms",
+  "severity": "blocks the analysis",
+  "signal": null,
+  "tags": [
+   "power-sample-size",
+   "reporting-methods"
+  ]
+ },
+ {
+  "id": "consult-mandela-design-first",
+  "venue": "rd.mandela.ac.za",
+  "url": "https://rd.mandela.ac.za/Unit-for-Statistical-Consultation/FAQs",
+  "date": null,
+  "role": "course/consulting page, audience: Nelson Mandela University postgraduates and researchers (Unit for Statistical Consultation FAQ)",
+  "software_named": [],
+  "workflow": "sample size planning",
+  "quote": "It is important to note that you need a clear understanding of your research design before you can determine the sample size necessary for your study.",
+  "problem": "Researchers ask for n before the design is settled",
+  "need": "Power tools that start by capturing the design (groups, pairing, outcome type)",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "power-sample-size",
+   "which-test"
+  ]
+ },
+ {
+  "id": "consult-mandela-quick",
+  "venue": "rd.mandela.ac.za",
+  "url": "https://rd.mandela.ac.za/Unit-for-Statistical-Consultation/FAQs",
+  "date": null,
+  "role": "course/consulting page, audience: Nelson Mandela University postgraduates and researchers (Unit for Statistical Consultation FAQ)",
+  "software_named": [],
+  "workflow": "quick statistical questions",
+  "quote": "Unfortunately, while it may seem that it will only take a few minutes, in most cases the question needs a significant amount of time to answer.",
+  "problem": "\"Quick\" statistics questions are rarely quick; consultants are a bottleneck (2 consultants for the whole university)",
+  "need": "Self-service guidance that answers the common questions without a consultant",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "learning-curve",
+   "which-test"
+  ]
+ },
+ {
+  "id": "consult-mandela-interpret",
+  "venue": "rd.mandela.ac.za",
+  "url": "https://rd.mandela.ac.za/Unit-for-Statistical-Consultation/FAQs",
+  "date": null,
+  "role": "course/consulting page, audience: Nelson Mandela University postgraduates and researchers (Unit for Statistical Consultation FAQ)",
+  "software_named": [],
+  "workflow": "writing up results",
+  "quote": "Once you have finished writing up your results chapter, your consultant will be able to read through it to ensure that the statistical results are correctly written up and interpreted.",
+  "problem": "Students need their write-up of statistical results checked for correct interpretation",
+  "need": "Auto-generated results sentences with correct statistic, df and p formatting",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "reporting-methods",
+   "exact-p"
+  ]
+ },
+ {
+  "id": "consult-jku-services",
+  "venue": "jku.at",
+  "url": "https://www.jku.at/en/faculty-of-medicine/research/center-for-clinical-research/competence-centre-for-clinical-studies-ccs-linz/statistical-consulting-and-data-analysis/faq/",
+  "date": null,
+  "role": "course/consulting page, audience: JKU Linz medical faculty researchers (statistical consulting FAQ)",
+  "software_named": [],
+  "workflow": "what researchers come to consultants for",
+  "quote": "The Team Statistics helps with: study design and sample size calculation writing the statistical analysis plan writing the biometry section of the application for the ethics committee answering questions regarding the data acquisition selecting appropriate statistical methods",
+  "problem": "Consulting demand centres on sample size, analysis plans, ethics biometry sections and method choice",
+  "need": "Tooling for method selection and sample-size justification text",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "power-sample-size",
+   "which-test",
+   "reporting-methods"
+  ]
+ },
+ {
+  "id": "consult-crick-bioimage",
+  "venue": "crick.ac.uk",
+  "url": "https://www.crick.ac.uk/research/publications/practical-statistics-for-bioimage-analysis-a-guide-to-experimental-design-and-data-interpretation",
+  "date": "2026-05",
+  "role": "course/consulting page, audience: bioimage analysis users (Crick imaging and bioinformatics facility staff guidance, Journal of Cell Science 2026)",
+  "software_named": [],
+  "workflow": "quantifying microscopy images and testing differences",
+  "quote": "In particular, the use of appropriate controls and experimental repetition is critical for drawing meaningful conclusions. However, there are times when both are inadequately applied or overlooked in favour of 'statistical significance', often derived from misused or misinterpreted statistical tests.",
+  "problem": "Image-analysis results lean on p-values from misused tests instead of proper repetition and controls",
+  "need": "Image-derived data analysed per experiment (superplot style) with effect sizes",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "image-analysis-exports",
+   "superplots",
+   "technical-vs-biological-replicates"
+  ]
+ },
+ {
+  "id": "consult-crick-bioimage-more",
+  "venue": "crick.ac.uk",
+  "url": "https://www.crick.ac.uk/research/publications/practical-statistics-for-bioimage-analysis-a-guide-to-experimental-design-and-data-interpretation",
+  "date": "2026-05",
+  "role": "course/consulting page, audience: bioimage analysis users (Crick imaging and bioinformatics facility staff guidance, Journal of Cell Science 2026)",
+  "software_named": [],
+  "workflow": "how many cells/images to acquire",
+  "quote": "We also discuss the diminishing returns of increased data collection once statistical stability has been achieved.",
+  "problem": "Imaging users collect ever more cells expecting more certainty",
+  "need": "Show how precision changes with more cells vs more independent experiments",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "image-analysis-exports",
+   "power-sample-size",
+   "effect-size"
+  ]
+ },
+ {
+  "id": "consult-nwu-surv-ttest",
+  "venue": "prism.northwestern.edu",
+  "url": "https://prism.northwestern.edu/records/cag23-vdz25/files/BCC%20Statistically%20Speaking%20Survival%20Analysis%202019_LaurenBalmert.pdf?download=1",
+  "date": "2019",
+  "role": "course/consulting page, audience: Northwestern investigators (Biostatistics Collaboration Center \"Statistically Speaking\" lecture slides)",
+  "software_named": [
+   "R"
+  ],
+  "workflow": "comparing time to event between treatment groups",
+  "quote": "Compare mean time between groups - T-test, linear regression? - Not normally distributed - Ignores subjects without events",
+  "problem": "Researchers compare mean time-to-event with t-tests, ignoring censored subjects",
+  "need": "Route time-to-event data to Kaplan-Meier/log-rank automatically",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "survival",
+   "which-test"
+  ]
+ },
+ {
+  "id": "consult-nwu-surv-hr",
+  "venue": "prism.northwestern.edu",
+  "url": "https://prism.northwestern.edu/records/cag23-vdz25/files/BCC%20Statistically%20Speaking%20Survival%20Analysis%202019_LaurenBalmert.pdf?download=1",
+  "date": "2019",
+  "role": "course/consulting page, audience: Northwestern investigators (Biostatistics Collaboration Center \"Statistically Speaking\" lecture slides)",
+  "software_named": [],
+  "workflow": "Cox model hazard ratios",
+  "quote": "Interpretation of Hazard Ratio depends on how you code your variables!",
+  "problem": "Hazard ratio direction depends on reference coding and is easily misread",
+  "need": "State the reference group explicitly next to every hazard ratio",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "hazard-ratio",
+   "survival"
+  ]
+ },
+ {
+  "id": "consult-nwu-surv-median",
+  "venue": "prism.northwestern.edu",
+  "url": "https://prism.northwestern.edu/records/cag23-vdz25/files/BCC%20Statistically%20Speaking%20Survival%20Analysis%202019_LaurenBalmert.pdf?download=1",
+  "date": "2019",
+  "role": "course/consulting page, audience: Northwestern investigators (Biostatistics Collaboration Center \"Statistically Speaking\" lecture slides)",
+  "software_named": [],
+  "workflow": "reporting median survival",
+  "quote": "What if last observation is censored? Survival Time (Days) Survival Probability Day At risk Events Estimate 7 8 1 0.875 12 5 1 0.700 15 4 1 0.525 20 2 0 -- 22 1 0 -- Median failure time not always estimable",
+  "problem": "Median survival can be undefined when the curve does not reach 50%, which confuses users",
+  "need": "Report \"undefined\" medians clearly with an explanation",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "survival"
+  ]
+ },
+ {
+  "id": "consult-nwu-surv-ph",
+  "venue": "prism.northwestern.edu",
+  "url": "https://prism.northwestern.edu/records/cag23-vdz25/files/BCC%20Statistically%20Speaking%20Survival%20Analysis%202019_LaurenBalmert.pdf?download=1",
+  "date": "2019",
+  "role": "course/consulting page, audience: Northwestern investigators (Biostatistics Collaboration Center \"Statistically Speaking\" lecture slides)",
+  "software_named": [],
+  "workflow": "Cox proportional hazards assumption",
+  "quote": "Proportional hazards assumption - Hazard functions are proportional over time - Covariate effect is constant over time",
+  "problem": "Proportional hazards assumption must be checked but is often not",
+  "need": "Built-in PH check (log-log plot / test) with Cox and log-rank output",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "hazard-ratio",
+   "survival",
+   "fit-diagnostics"
+  ]
+ },
+ {
+  "id": "consult-uvaflow-luminex-interpret",
+  "venue": "med.virginia.edu",
+  "url": "https://med.virginia.edu/flow-cytometry-facility/wp-content/uploads/sites/170/2021/03/Luminex-FAQ.pdf",
+  "date": "2021-03",
+  "role": "course/consulting page, audience: users of the UVA Flow Cytometry Core Luminex service (FAQ)",
+  "software_named": [
+   "Excel",
+   "Milliplex"
+  ],
+  "workflow": "multiplex bead assay, standard-curve interpolation of analyte concentrations",
+  "quote": "How do I interpret the data? o Generally, users will receive two excel documents: a Detailed report and a Summary report.",
+  "problem": "\"How do I interpret the data?\" is a core FAQ; results arrive as two large Excel reports",
+  "need": "Import of multiplex reports with standard-curve fits, interpolated concentrations and replicate CVs in one view",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "standard-curve-interpolation",
+   "import-instrument-files",
+   "plate-reader"
+  ]
+ },
+ {
+  "id": "consult-uvaflow-luminex-cv",
+  "venue": "med.virginia.edu",
+  "url": "https://med.virginia.edu/flow-cytometry-facility/wp-content/uploads/sites/170/2021/03/Luminex-FAQ.pdf",
+  "date": "2021-03",
+  "role": "course/consulting page, audience: users of the UVA Flow Cytometry Core Luminex service (FAQ)",
+  "software_named": [
+   "Excel"
+  ],
+  "workflow": "checking replicate agreement in multiplex assays",
+  "quote": "This report is very large and is used for troubleshooting, such as looking at samples with high CVs between the two replicates.",
+  "problem": "Finding duplicate wells with high CV requires digging through a very large detailed report",
+  "need": "Automatic flagging of high-CV replicate pairs and out-of-range interpolations",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "standard-curve-interpolation",
+   "outliers",
+   "large-data"
+  ]
+ },
+ {
+  "id": "consult-sheffield-choose",
+  "venue": "sheffield.ac.uk",
+  "url": "https://www.sheffield.ac.uk/mash/stats-resources/choosing",
+  "date": null,
+  "role": "course/consulting page, audience: University of Sheffield students and researchers (MASH statistics help)",
+  "software_named": [
+   "SPSS",
+   "R",
+   "Excel"
+  ],
+  "workflow": "choosing a hypothesis test",
+  "quote": "It can be difficult to know what analysis to perform on your dataset. This page is designed to help you.",
+  "problem": "Students find it difficult to know which analysis fits their dataset",
+  "need": "Test chooser driven by data types and design",
+  "severity": "blocks the analysis",
+  "signal": null,
+  "tags": [
+   "which-test"
+  ]
+ },
+ {
+  "id": "consult-sheffield-datatypes",
+  "venue": "sheffield.ac.uk",
+  "url": "https://www.sheffield.ac.uk/mash/stats-resources/choosing",
+  "date": null,
+  "role": "course/consulting page, audience: University of Sheffield students and researchers (MASH statistics help)",
+  "software_named": [],
+  "workflow": "classifying variables before analysis",
+  "quote": "Variables can be classified as continuous, categorical, ordinal etc. Usually one variable is an outcome / dependent variable while you may have several predictor / independent variables.",
+  "problem": "Users must first classify variables (outcome vs predictor, continuous vs categorical) before any test choice",
+  "need": "Data-table types that capture outcome/predictor roles so test choice follows",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "which-test",
+   "data-entry-table-types"
+  ]
+ },
+ {
+  "id": "consult-cam-decide-early",
+  "venue": "bio.cam.ac.uk",
+  "url": "https://www.bio.cam.ac.uk/sites/default/files/gslsstats_0.pdf",
+  "date": "2013-01",
+  "role": "course/consulting page, audience: Cambridge graduate biologists (Statistics for Graduate Biologists course outline)",
+  "software_named": [
+   "R",
+   "SPSS",
+   "MINITAB",
+   "GENSTAT"
+  ],
+  "workflow": "planning statistics before data collection",
+  "quote": "REMEMBER - DECIDE ON YOUR STATISTICAL PROCEDURES WHEN DESIGNING YOUR PROJECT, BEFORE YOU COLLECT THE DATA",
+  "problem": "Graduate biologists choose statistics after collecting data",
+  "need": "Design-stage planning tool that fixes the analysis before data collection",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "which-test",
+   "power-sample-size",
+   "reproducibility-audit"
+  ]
+ },
+ {
+  "id": "consult-cam-specialist",
+  "venue": "bio.cam.ac.uk",
+  "url": "https://www.bio.cam.ac.uk/sites/default/files/gslsstats_0.pdf",
+  "date": "2013-01",
+  "role": "course/consulting page, audience: Cambridge graduate biologists (Statistics for Graduate Biologists course outline)",
+  "software_named": [],
+  "workflow": "complex designs beyond a basic course",
+  "quote": "For more complex statistical problems, you should be able to design experiments and surveys, and analyse your data correctly, on the basis of specialist advice.",
+  "problem": "Complex designs (nested, factorial) still need specialist help after a full course",
+  "need": "Guided support for nested/factorial designs common in biology",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "two-way-anova",
+   "learning-curve"
+  ]
+ },
+ {
+  "id": "consult-statstutor-summarise",
+  "venue": "statstutor.ac.uk",
+  "url": "https://www.statstutor.ac.uk/resources/uploaded/tutorsquickguidetostatistics.pdf",
+  "date": null,
+  "role": "course/consulting page, audience: maths/statistics support tutors helping students (statstutor quick guide)",
+  "software_named": [
+   "SPSS"
+  ],
+  "workflow": "exploring data before testing",
+  "quote": "Students often go straight to the hypothesis test rather than investigating the data with summary statistics and charts first.",
+  "problem": "Users jump to a test without looking at the data, missing outliers and skew",
+  "need": "Show descriptive stats and a points plot before any test result",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "show-the-points",
+   "outliers",
+   "which-test"
+  ]
+ },
+ {
+  "id": "consult-statstutor-normtests",
+  "venue": "statstutor.ac.uk",
+  "url": "https://www.statstutor.ac.uk/resources/uploaded/tutorsquickguidetostatistics.pdf",
+  "date": null,
+  "role": "course/consulting page, audience: maths/statistics support tutors helping students (statstutor quick guide)",
+  "software_named": [],
+  "workflow": "checking normality",
+  "quote": "There are statistical tests for normality such as the Shapiro-Wilk and Kolmogorov-Smirnoff tests but for small sample sizes (n < 20), the tests are unlikely to detect non-normality and for larger sample sizes (n > 50), the tests can be too sensitive.",
+  "problem": "Normality tests are unreliable at the small n typical of lab work yet drive test choice",
+  "need": "De-emphasise normality-test p-values for small n; show QQ plots and guidance",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "nonparametric",
+   "fit-diagnostics"
+  ]
+ },
+ {
+  "id": "consult-statstutor-manytests",
+  "venue": "statstutor.ac.uk",
+  "url": "https://www.statstutor.ac.uk/resources/uploaded/tutorsquickguidetostatistics.pdf",
+  "date": null,
+  "role": "course/consulting page, audience: maths/statistics support tutors helping students (statstutor quick guide)",
+  "software_named": [],
+  "workflow": "running many tests on one dataset",
+  "quote": "Some students will try to perform a large number of tests on their data. The chance of a type I error increases with the number of tests.",
+  "problem": "Many uncorrected tests inflate false positives",
+  "need": "Track the number of comparisons and offer correction",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "multiple-comparisons"
+  ]
+ },
+ {
+  "id": "consult-statstutor-posthoc",
+  "venue": "statstutor.ac.uk",
+  "url": "https://www.statstutor.ac.uk/resources/uploaded/tutorsquickguidetostatistics.pdf",
+  "date": null,
+  "role": "course/consulting page, audience: maths/statistics support tutors helping students (statstutor quick guide)",
+  "software_named": [],
+  "workflow": "choosing a post-hoc test",
+  "quote": "The most commonly used post hoc tests are Tukey and Sidak although Scheffe’s is often used in medicine. Suggest that the student looks in their notes or papers in their field when choosing.",
+  "problem": "Post-hoc test choice is made by field convention rather than design",
+  "need": "Post-hoc recommendation based on which comparisons are planned (all pairs, vs control, selected)",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "post-hoc-choice",
+   "multiple-comparisons"
+  ]
+ },
+ {
+  "id": "consult-statstutor-ordinal",
+  "venue": "statstutor.ac.uk",
+  "url": "https://www.statstutor.ac.uk/resources/uploaded/tutorsquickguidetostatistics.pdf",
+  "date": null,
+  "role": "course/consulting page, audience: maths/statistics support tutors helping students (statstutor quick guide)",
+  "software_named": [],
+  "workflow": "scores and ordinal outcomes",
+  "quote": "Some departments routinely use parametric tests to analyse ordinal data.",
+  "problem": "Ordinal scores (e.g. histology scores) are analysed with parametric tests by department habit",
+  "need": "Flag ordinal/score outcomes and suggest rank-based tests",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "nonparametric",
+   "which-test"
+  ]
+ },
+ {
+  "id": "consult-statstutor-sphericity",
+  "venue": "statstutor.ac.uk",
+  "url": "https://www.statstutor.ac.uk/resources/uploaded/tutorsquickguidetostatistics.pdf",
+  "date": null,
+  "role": "course/consulting page, audience: maths/statistics support tutors helping students (statstutor quick guide)",
+  "software_named": [
+   "SPSS"
+  ],
+  "workflow": "repeated measures ANOVA assumptions",
+  "quote": "If the assumption is not met, the F-statistic is positively biased leading to an increased risk of a type 1 error.",
+  "problem": "Sphericity violations in repeated measures ANOVA inflate false positives",
+  "need": "Automatic Greenhouse-Geisser correction with a plain explanation",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "two-way-anova",
+   "fit-diagnostics"
+  ]
+ },
+ {
+  "id": "consult-psu503-consult-before",
+  "venue": "online.stat.psu.edu",
+  "url": "https://online.stat.psu.edu/stat503/lesson/3/3.3",
+  "date": null,
+  "role": "course/consulting page, audience: students of STAT 503 Design of Experiments (Penn State online notes)",
+  "software_named": [
+   "SAS"
+  ],
+  "workflow": "designing experiments",
+  "quote": "However, as most practicing statisticians quickly learn, typically problems that arise at the analysis stage, could have been avoided if the experimenter had consulted a statistician before the experiment was done and the data were conducted.",
+  "problem": "Analysis-stage problems stem from designs made without statistical input",
+  "need": "Design checks before the experiment",
+  "severity": "blocks the analysis",
+  "signal": null,
+  "tags": [
+   "randomisation",
+   "power-sample-size"
+  ]
+ },
+ {
+  "id": "consult-cornell-conttable",
+  "venue": "cscu.cornell.edu",
+  "url": "https://cscu.cornell.edu/wp-content/uploads/conttableresid.pdf",
+  "date": "2022-04",
+  "role": "course/consulting page, audience: Cornell researchers (CSCU consulting handout)",
+  "software_named": [],
+  "workflow": "chi-square test on a larger contingency table",
+  "quote": "When a significant association is detected in a large table, interpretations can be difficult. In this document, we will present a method for performing post-hoc tests on a contingency table that is easy to interpret.",
+  "problem": "After a significant chi-square on a large table users cannot tell which cells drive it",
+  "need": "Adjusted standardised residuals / cell-wise post-hoc output for contingency tables",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "contingency",
+   "post-hoc-choice"
+  ]
+ },
+ {
+  "id": "consult-cornell-equiv",
+  "venue": "cscu.cornell.edu",
+  "url": "https://cscu.cornell.edu/wp-content/uploads/equiv.pdf",
+  "date": "2023-01",
+  "role": "course/consulting page, audience: Cornell researchers (CSCU consulting handout)",
+  "software_named": [],
+  "workflow": "showing two treatments are similar",
+  "quote": "Equivalence testing should not be confused with the more familiar method of significance testing for comparing two population means.",
+  "problem": "Researchers treat a non-significant difference as proof of equivalence",
+  "need": "Equivalence (TOST) option with a user-set margin",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "which-test",
+   "effect-size"
+  ]
+ },
+ {
+  "id": "consult-cornell-anovareg",
+  "venue": "cscu.cornell.edu",
+  "url": "https://cscu.cornell.edu/wp-content/uploads/anovareg.pdf",
+  "date": "2022-04",
+  "role": "course/consulting page, audience: Cornell researchers (CSCU consulting handout)",
+  "software_named": [],
+  "workflow": "unbalanced two-factor design",
+  "quote": "Each technique results in the same overall fit to the data, but the hypotheses tested by the computer-generated output are not necessarily the same.",
+  "problem": "ANOVA and regression output test different hypotheses with unbalanced cells (type I vs III SS), confusing users",
+  "need": "State the sums-of-squares type and hypotheses tested in two-way ANOVA output",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "two-way-anova",
+   "numbers-differ-between-tools"
+  ]
+ },
+ {
+  "id": "consult-cornell-fixran",
+  "venue": "cscu.cornell.edu",
+  "url": "https://cscu.cornell.edu/wp-content/uploads/fixran.pdf",
+  "date": "2022-04",
+  "role": "course/consulting page, audience: Cornell researchers (CSCU consulting handout)",
+  "software_named": [],
+  "workflow": "batches, plates or runs as factors",
+  "quote": "Most statistical analyses will incorporate these sources of variation as explanatory variables or “factors” in a statistical model.",
+  "problem": "Users must decide whether batch/run/plate is a fixed or random factor",
+  "need": "Guided choice of blocking/random factor (e.g. experiment day) in ANOVA",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "mixed-model-missing-values",
+   "technical-vs-biological-replicates"
+  ]
+ },
+ {
+  "id": "consult-babbio-sdsem",
+  "venue": "bioinformatics.babraham.ac.uk",
+  "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/Intro%20to%20statistics%20with%20GraphPad%20Prism%20slides.pdf",
+  "date": "2025-01",
+  "role": "course/consulting page, audience: Babraham Institute scientists (Introduction to Statistics with GraphPad Prism course slides)",
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "choosing error bars for a graph",
+  "quote": "SD or SEM ? • If we want to show the variation among values: → Report the SD • If we want to show how precisely we have determined the population mean: → Report the SEM • Preferably show all data points and the SEM",
+  "problem": "SD vs SEM error bar choice is a recurring question",
+  "need": "Graphs that show all points plus a labelled error bar, with the bar type written into the legend",
+  "severity": "cosmetic / preference",
+  "signal": null,
+  "tags": [
+   "error-bars-sd-sem",
+   "show-the-points",
+   "figure-legend"
+  ]
+ },
+ {
+  "id": "consult-statstutor-chisq",
+  "venue": "statstutor.ac.uk",
+  "url": "https://www.statstutor.ac.uk/resources/uploaded/tutorsquickguidetostatistics.pdf",
+  "date": null,
+  "role": "course/consulting page, audience: maths/statistics support tutors helping students (statstutor quick guide)",
+  "software_named": [
+   "SPSS"
+  ],
+  "workflow": "chi-square on small counts",
+  "quote": "80% of expected cell counts >5 SPSS tells you under the test Fisher’s exact (usually for 2x2 tables, but can also be used for others) or merge categories where sensible",
+  "problem": "Small expected counts invalidate chi-square and users must switch to Fisher or merge categories",
+  "need": "Automatic expected-count check that recommends Fisher exact",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "contingency",
+   "which-test"
+  ]
+ },
+ {
+  "id": "consult-babraham-nested-mouse-3",
+  "venue": "bioinformatics.babraham.ac.uk",
+  "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/Intro%20to%20statistics%20with%20GraphPad%20Prism%20slides.pdf",
+  "date": null,
+  "role": "course/consulting page, audience: life scientists using GraphPad Prism (Babraham Institute training course)",
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "in vivo, several measurements per animal",
+  "quote": "What to do? Not one good answer ... In this case: mouse = experiment unit, nerve segments = biological replicates, axons = technical replicates",
+  "problem": "Nested measurements (axons within nerve segments within mice) have no single obvious n",
+  "need": "Support nested/hierarchical data entry and offer a nested analysis (or per-animal summary) instead of treating every axon as independent",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "n-definition",
+   "technical-vs-biological-replicates",
+   "mixed-model-missing-values"
+  ]
+ },
+ {
+  "id": "consult-babraham-pvalue-context-6",
+  "venue": "bioinformatics.babraham.ac.uk",
+  "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/Intro%20to%20statistics%20with%20GraphPad%20Prism%20slides.pdf",
+  "date": null,
+  "role": "course/consulting page, audience: life scientists using GraphPad Prism (Babraham Institute training course)",
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "hypothesis testing, interpreting results",
+  "quote": "Never ever interpret p-values without context! ... Not big enough = underpowered: potentially a false negative/type 2 error",
+  "problem": "Non-significant results from small samples are read as 'no effect'",
+  "need": "Report the effect size with its CI next to every p-value and flag likely underpowered comparisons",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "effect-size",
+   "power-sample-size",
+   "exact-p"
+  ]
+ },
+ {
+  "id": "consult-babraham-nonparam-power-8",
+  "venue": "bioinformatics.babraham.ac.uk",
+  "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/Intro%20to%20statistics%20with%20GraphPad%20Prism%20slides.pdf",
+  "date": null,
+  "role": "course/consulting page, audience: life scientists using GraphPad Prism (Babraham Institute training course)",
+  "software_named": [
+   "GraphPad Prism",
+   "G*Power"
+  ],
+  "workflow": "study planning, non-parametric",
+  "quote": "Proper power calculations need to specify which kind of distribution we are dealing with – not easy ... Compute sample size required for a parametric test and add 15%",
+  "problem": "Power for non-parametric tests is hard; trainees are given a crude rule of thumb",
+  "need": "Offer sample-size estimates for rank-based tests (with the +15% rule or simulation) rather than leaving users to improvise",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "power-sample-size",
+   "nonparametric"
+  ]
+ },
+ {
+  "id": "consult-babraham-fwer-9",
+  "venue": "bioinformatics.babraham.ac.uk",
+  "url": "https://www.bioinformatics.babraham.ac.uk/training/GraphPadPrism/Intro%20to%20statistics%20with%20GraphPad%20Prism%20slides.pdf",
+  "date": null,
+  "role": "course/consulting page, audience: life scientists using GraphPad Prism (Babraham Institute training course)",
+  "software_named": [
+   "GraphPad Prism"
+  ],
+  "workflow": "one-way ANOVA with several groups",
+  "quote": "Running multiple tests on the same data increases the familywise error rate ... For comparisons between 5 groups, the familywise error rate is 40%",
+  "problem": "Users run many uncorrected pairwise t-tests after ANOVA",
+  "need": "Route multi-group comparisons through a corrected post-hoc procedure by default and show the familywise error rate if uncorrected tests are chosen",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "multiple-comparisons",
+   "post-hoc-choice"
+  ]
+ },
+ {
+  "id": "consult-edinburgh-pseudorep-11",
+  "venue": "biomedical-sciences.ed.ac.uk",
+  "url": "https://biomedical-sciences.ed.ac.uk/experimental-design-and-data-analysis/what-to-do-with-experiments/chapter-10",
+  "date": null,
+  "role": "course/consulting page, audience: biomedical science students and researchers (University of Edinburgh)",
+  "software_named": [],
+  "workflow": "animal and cell experiments with sub-sampling",
+  "quote": "Pseudoreplication is a common and serious problem. Pseudo-replication occurs when an analysis treats a dataset as if the sample size is larger than is appropriate.",
+  "problem": "Analyses treat non-independent measurements as separate samples, shrinking p-values",
+  "need": "Detect repeated rows from the same subject/culture and warn that n is inflated before running a test",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "technical-vs-biological-replicates",
+   "n-definition"
+  ]
+ },
+ {
+  "id": "consult-edinburgh-samplesize-q-12",
+  "venue": "biomedical-sciences.ed.ac.uk",
+  "url": "https://biomedical-sciences.ed.ac.uk/experimental-design-and-data-analysis/what-to-do-with-experiments/chapter-10",
+  "date": null,
+  "role": "course/consulting page, audience: biomedical science students and researchers (University of Edinburgh)",
+  "software_named": [],
+  "workflow": "any experiment",
+  "quote": "\"But, isn't the sample size simply equal to the number of measurements that were made?\". The answer is, \"Sometimes yes, sometimes no.\"",
+  "problem": "Students assume sample size equals number of measurements",
+  "need": "Ask for the unit of randomisation at data entry and show n per that unit",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "n-definition"
+  ]
+ },
+ {
+  "id": "consult-edinburgh-mannwhitney-13",
+  "venue": "biomedical-sciences.ed.ac.uk",
+  "url": "https://biomedical-sciences.ed.ac.uk/experimental-design-and-data-analysis/what-to-do-with-experiments/chapter-7-comparing-averages",
+  "date": null,
+  "role": "course/consulting page, audience: biomedical science students and researchers (University of Edinburgh)",
+  "software_named": [
+   "R"
+  ],
+  "workflow": "two-group comparison, non-normal data",
+  "quote": "researchers often use a Mann-Whitney U test to analyse data that fail to meet the assumptions of a t-test; here, researchers aim to evaluate evidence that the median values differ between the groups ... if two distributions being compared differ in shape, then a small p-value might arise from a Mann-Whitney U test (at least in part) due to shape differences",
+  "problem": "Mann-Whitney is used as a 'median test' when distributions differ in shape",
+  "need": "When a rank test is chosen, state what hypothesis it actually tests and offer bootstrap/permutation CIs for the median difference",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "nonparametric",
+   "which-test",
+   "effect-size"
+  ]
+ },
+ {
+  "id": "consult-edinburgh-significance-14",
+  "venue": "biomedical-sciences.ed.ac.uk",
+  "url": "https://biomedical-sciences.ed.ac.uk/experimental-design-and-data-analysis/what-to-do-with-experiments/chapter-8",
+  "date": null,
+  "role": "course/consulting page, audience: biomedical science students and researchers (University of Edinburgh)",
+  "software_named": [],
+  "workflow": "interpreting any test",
+  "quote": "This idea of ‘significance’ is commonly ingrained in interpretation of statistical tests in biology. But, it turns out that this approach leads to serious errors.",
+  "problem": "Results are reduced to significant/not significant at p<0.05",
+  "need": "Report exact p-values and effect sizes with 95% CI as the primary output, not asterisks alone",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "exact-p",
+   "effect-size",
+   "significance-brackets"
+  ]
+ },
+ {
+  "id": "consult-edinburgh-power-posthoc-15",
+  "venue": "biomedical-sciences.ed.ac.uk",
+  "url": "https://biomedical-sciences.ed.ac.uk/experimental-design-and-data-analysis/what-to-do-with-experiments/chapter-11",
+  "date": null,
+  "role": "course/consulting page, audience: biomedical science students and researchers (University of Edinburgh)",
+  "software_named": [
+   "G*Power",
+   "R"
+  ],
+  "workflow": "one-factor ANOVA planning",
+  "quote": "a power analysis based on standard software can easily lead a researcher to design a study that has high power to detect a factor’s overall effect, but lower power when conducting post-hoc tests.",
+  "problem": "Standard power software sizes ANOVA studies for the omnibus F, not the pairwise comparisons researchers care about",
+  "need": "Power analysis for multi-group designs at the level of the planned post-hoc contrasts (simulation-based)",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "power-sample-size",
+   "post-hoc-choice"
+  ]
+ },
+ {
+  "id": "consult-edinburgh-underpowered-16",
+  "venue": "biomedical-sciences.ed.ac.uk",
+  "url": "https://biomedical-sciences.ed.ac.uk/experimental-design-and-data-analysis/what-to-do-with-experiments/chapter-11",
+  "date": null,
+  "role": "course/consulting page, audience: biomedical science students and researchers (University of Edinburgh)",
+  "software_named": [],
+  "workflow": "study design",
+  "quote": "In short, low-powered studies cannot be trusted. This begs the question, how often are studies insufficiently powered? As we discuss, at least within the biological sciences, it appears that most published studies are underpowered.",
+  "problem": "Most biology studies are underpowered and their effect sizes inflated",
+  "need": "Show achieved precision (CI width) and warn when n is too small to detect the smallest effect of biological interest",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "power-sample-size",
+   "effect-size"
+  ]
+ },
+ {
+  "id": "consult-edinburgh-many-ttests-17",
+  "venue": "biomedical-sciences.ed.ac.uk",
+  "url": "https://biomedical-sciences.ed.ac.uk/experimental-design-and-data-analysis/what-to-do-with-experiments/chapter-14-comparing-averages-between-more-than-two-groups",
+  "date": null,
+  "role": "course/consulting page, audience: biomedical science students and researchers (University of Edinburgh)",
+  "software_named": [
+   "R"
+  ],
+  "workflow": "multi-treatment experiment",
+  "quote": "This video provides a general introduction to 1-factor GLM (1-way ANOVA), and addresses the question, \"Why shouldn't we analyse an experiment with lots of treatments with many t-tests?\"",
+  "problem": "Experiments with many treatments are analysed with a series of t-tests",
+  "need": "Detect >2 groups and steer the user to one model plus corrected contrasts",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "multiple-comparisons",
+   "which-test"
+  ]
+ },
+ {
+  "id": "consult-edinburgh-interactions-18",
+  "venue": "biomedical-sciences.ed.ac.uk",
+  "url": "https://biomedical-sciences.ed.ac.uk/experimental-design-and-data-analysis/what-to-do-with-experiments/chapter-15-analysing-experiments-multiple-factors",
+  "date": null,
+  "role": "course/consulting page, audience: biomedical science students and researchers (University of Edinburgh)",
+  "software_named": [
+   "R"
+  ],
+  "workflow": "two-factor experiment (drug x sex, genotype x treatment)",
+  "quote": "my experience suggests that the field of Biomedical Sciences less frequently addresses hypotheses involving interactions ... a 2-factor GLM can only include an ‘interaction term’ if the experiment has appropriate replication",
+  "problem": "Biomedical researchers rarely test interactions (e.g. drug x sex) and may lack replication to do so",
+  "need": "Two-way ANOVA output that leads with the interaction, explains it in words, and checks the design has replicates per cell",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "two-way-anova"
+  ]
+ },
+ {
+  "id": "consult-edinburgh-longitudinal-19",
+  "venue": "biomedical-sciences.ed.ac.uk",
+  "url": "https://biomedical-sciences.ed.ac.uk/experimental-design-and-data-analysis/what-to-do-with-experiments/chapter-18-mixed-effect-models",
+  "date": null,
+  "role": "course/consulting page, audience: biomedical science students and researchers (University of Edinburgh)",
+  "software_named": [
+   "R"
+  ],
+  "workflow": "longitudinal / time-course measurements",
+  "quote": "appropriate analyses can require more sophisticated models than simply including ‘subject’ as a random effect (often the first instinct for many researchers). For example, when measurements within subjects are more similar between points closer in time than between those more distant points in time, ‘autocorrelation’ can increase type 1 errors",
+  "problem": "Time-course data are analysed with a random intercept only, ignoring autocorrelation",
+  "need": "Repeated-measures/time-course module that offers correlation structures beyond a random subject effect and explains when they matter",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "mixed-model-missing-values",
+   "time-series"
+  ]
+ },
+ {
+  "id": "consult-edinburgh-random-effect-20",
+  "venue": "biomedical-sciences.ed.ac.uk",
+  "url": "https://biomedical-sciences.ed.ac.uk/experimental-design-and-data-analysis/what-to-do-with-experiments/chapter-18-mixed-effect-models",
+  "date": null,
+  "role": "course/consulting page, audience: biomedical science students and researchers (University of Edinburgh)",
+  "software_named": [
+   "R"
+  ],
+  "workflow": "animal studies with cages/litters",
+  "quote": "if our experiment involved repeatedly measuring subjects, families, individuals within cages (etc), our analysis would suffer from pseudo-replication if we did not account for the non-independence of the repeated measurements.",
+  "problem": "Cage, litter and repeated-subject structure is ignored in analysis",
+  "need": "Let users tag a grouping column (cage, litter, animal) and fit it as a random effect automatically",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "mixed-model-missing-values",
+   "technical-vs-biological-replicates"
+  ]
+ },
+ {
+  "id": "consult-edinburgh-show-all-data-21",
+  "venue": "biomedical-sciences.ed.ac.uk",
+  "url": "https://biomedical-sciences.ed.ac.uk/experimental-design-and-data-analysis/what-to-do-with-experiments/chapter-4-plotting-data",
+  "date": null,
+  "role": "course/consulting page, audience: biomedical science students and researchers (University of Edinburgh)",
+  "software_named": [
+   "R"
+  ],
+  "workflow": "plotting multi-treatment experiments",
+  "quote": "we walk through an example of plotting data for experiments with several treatments and focus on the need to display all of the data (not merely mean values) to communicate results transparently.",
+  "problem": "Figures show only means",
+  "need": "Default graphs that overlay individual points on summary statistics",
+  "severity": "cosmetic / preference",
+  "signal": null,
+  "tags": [
+   "show-the-points",
+   "graph-formatting"
+  ]
+ },
+ {
+  "id": "consult-edinburgh-blinding-22",
+  "venue": "biomedical-sciences.ed.ac.uk",
+  "url": "https://biomedical-sciences.ed.ac.uk/experimental-design-and-data-analysis/what-to-do-with-experiments/chapter-9",
+  "date": null,
+  "role": "course/consulting page, audience: biomedical science students and researchers (University of Edinburgh)",
+  "software_named": [],
+  "workflow": "experimental design",
+  "quote": "The importance of ‘blinding’ throughout an experiment; studies that lack blinding can yield surprisingly biased results.",
+  "problem": "Experiments are run unblinded and unrandomised",
+  "need": "Provide a randomisation/blinding helper (random allocation and coded group labels) linked to the data table",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "randomisation"
+  ]
+ },
+ {
+  "id": "consult-uva-normality-25",
+  "venue": "library.virginia.edu",
+  "url": "https://library.virginia.edu/data/articles/normality-assumption",
+  "date": null,
+  "role": "course/consulting page, audience: university researchers who consult the UVA Library StatLab",
+  "software_named": [],
+  "workflow": "t-test / ANOVA / regression assumption checking",
+  "quote": "I always checked normality for each variable and made sure they were normally distributed before running any analyses, such as t-test, ANOVA, or linear regression. ... No, you don’t have to transform your observed variables just because they don’t follow a normal distribution.",
+  "problem": "Researchers test raw variables for normality instead of model residuals",
+  "need": "Run assumption checks on residuals of the fitted model and explain what the check means",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "fit-diagnostics",
+   "which-test",
+   "units-and-transforms"
+  ]
+ },
+ {
+  "id": "consult-uva-posthoc-power-26",
+  "venue": "library.virginia.edu",
+  "url": "https://library.virginia.edu/data/articles/post-hoc-power-calculations-are-not-useful",
+  "date": null,
+  "role": "course/consulting page, audience: university researchers who consult the UVA Library StatLab",
+  "software_named": [
+   "R"
+  ],
+  "workflow": "after a non-significant test",
+  "quote": "The idea is to show that a “non-significant” hypothesis test failed to achieve significance because it wasn’t powerful enough.",
+  "problem": "Researchers compute 'observed power' after a non-significant result",
+  "need": "Do not offer post hoc observed power; offer CI of the effect and a prospective power calculation instead",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "power-sample-size",
+   "effect-size"
+  ]
+ },
+ {
+  "id": "consult-uva-logtransform-28",
+  "venue": "library.virginia.edu",
+  "url": "https://library.virginia.edu/data/articles/interpreting-log-transformations-in-a-linear-model",
+  "date": null,
+  "role": "course/consulting page, audience: university researchers who consult the UVA Library StatLab",
+  "software_named": [
+   "R"
+  ],
+  "workflow": "skewed outcome, regression",
+  "quote": "Why do this? One reason is to make data more \"normal\", or symmetric. ... But while it's easy to implement a log transformation, it can complicate interpretation.",
+  "problem": "After log-transforming skewed data, users cannot interpret the coefficients",
+  "need": "When a log transform is applied, back-transform results and state them as fold/percent changes",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "units-and-transforms"
+  ]
+ },
+ {
+  "id": "consult-uva-proportions-29",
+  "venue": "library.virginia.edu",
+  "url": "https://library.virginia.edu/data/articles/pairwise-comparisons-of-proportions",
+  "date": null,
+  "role": "course/consulting page, audience: university researchers who consult the UVA Library StatLab",
+  "software_named": [
+   "R"
+  ],
+  "workflow": "comparing proportions across several groups",
+  "quote": "We sometimes want to make pairwise comparisons to see where differences occur. ... Making multiple comparisons leads to an increased chance of making a false discovery",
+  "problem": "Pairwise comparisons of several proportions are run without adjustment",
+  "need": "Contingency module with adjusted pairwise proportion comparisons after the overall chi-square/Fisher test",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "contingency",
+   "multiple-comparisons"
+  ]
+ },
+ {
+  "id": "consult-uva-diagnostics-30",
+  "venue": "library.virginia.edu",
+  "url": "https://library.virginia.edu/data/articles/diagnostic-plots",
+  "date": null,
+  "role": "course/consulting page, audience: university researchers who consult the UVA Library StatLab",
+  "software_named": [
+   "R"
+  ],
+  "workflow": "linear regression",
+  "quote": "You ran a linear regression analysis and the stats software spit out a bunch of numbers. The results were significant (or not). You might think that you’re done with analysis. No, not yet.",
+  "problem": "Users stop at the p-value without checking residuals",
+  "need": "Show residual/QQ diagnostics automatically with every fit and flag clear violations",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "fit-diagnostics"
+  ]
+ },
+ {
+  "id": "consult-uva-interaction-31",
+  "venue": "library.virginia.edu",
+  "url": "https://library.virginia.edu/data/articles/understanding-2-way-interactions",
+  "date": null,
+  "role": "course/consulting page, audience: university researchers who consult the UVA Library StatLab",
+  "software_named": [
+   "R"
+  ],
+  "workflow": "two-factor design (treatment x sex)",
+  "quote": "Neither appear to have any effect on the mean response value. But what about their interaction? ... The effect of trt depends on gender.",
+  "problem": "Main effects can look null while a strong interaction exists",
+  "need": "Two-way ANOVA output with an automatic interaction plot and plain-language interpretation",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "two-way-anova"
+  ]
+ },
+ {
+  "id": "consult-dundee-dynamite-32",
+  "venue": "dag.compbio.dundee.ac.uk",
+  "url": "https://dag.compbio.dundee.ac.uk/workshops/statistics_lectures/05_Data_presentation.pdf",
+  "date": null,
+  "role": "course/consulting page, audience: biologists attending the Dundee Data Analysis Group statistics workshop",
+  "software_named": [
+   "R"
+  ],
+  "workflow": "group comparison graphs",
+  "quote": "Show your data! Dynamite plot Awful! Box plot OK Jitter plot Better Beeswarm plot Best!",
+  "problem": "Dynamite plots (bar + error bar) hide the data",
+  "need": "Make beeswarm/box-with-points the default for small-sample group comparisons, not bars",
+  "severity": "cosmetic / preference",
+  "signal": null,
+  "tags": [
+   "show-the-points",
+   "graph-formatting"
+  ]
+ },
+ {
+  "id": "consult-dundee-errorbar-type-33",
+  "venue": "dag.compbio.dundee.ac.uk",
+  "url": "https://dag.compbio.dundee.ac.uk/workshops/statistics_lectures/05_Data_presentation.pdf",
+  "date": null,
+  "role": "course/consulting page, audience: biologists attending the Dundee Data Analysis Group statistics workshop",
+  "software_named": [
+   "R"
+  ],
+  "workflow": "plots with error bars",
+  "quote": "Make sure error bars are visible ... Always state what type of uncertainty is represented by your error bars",
+  "problem": "Error bars are unlabelled or hidden behind bars",
+  "need": "Auto-insert error-bar type (SD/SEM/95% CI) and n into the legend; always draw both arms",
+  "severity": "cosmetic / preference",
+  "signal": null,
+  "tags": [
+   "error-bars-sd-sem",
+   "figure-legend"
+  ]
+ },
+ {
+  "id": "consult-dundee-logbars-34",
+  "venue": "dag.compbio.dundee.ac.uk",
+  "url": "https://dag.compbio.dundee.ac.uk/workshops/statistics_lectures/05_Data_presentation.pdf",
+  "date": null,
+  "role": "course/consulting page, audience: biologists attending the Dundee Data Analysis Group statistics workshop",
+  "software_named": [
+   "R"
+  ],
+  "workflow": "plots on log scale",
+  "quote": "There is no zero in a logarithmic scale! ... Bar size depends on an arbitrary lower limit of the vertical axis ... Don’t do it!",
+  "problem": "Bar charts are drawn on log axes where bar length is meaningless",
+  "need": "Warn or switch to points when the user puts bars on a log axis",
+  "severity": "cosmetic / preference",
+  "signal": null,
+  "tags": [
+   "log-axis",
+   "graph-formatting"
+  ]
+ },
+ {
+  "id": "consult-dundee-colourblind-35",
+  "venue": "dag.compbio.dundee.ac.uk",
+  "url": "https://dag.compbio.dundee.ac.uk/workshops/statistics_lectures/05_Data_presentation.pdf",
+  "date": null,
+  "role": "course/consulting page, audience: biologists attending the Dundee Data Analysis Group statistics workshop",
+  "software_named": [
+   "R"
+  ],
+  "workflow": "figure colours",
+  "quote": "Make your plots colour-blind friendly ... Colour-blindness affects about 8% men and 0.5% women",
+  "problem": "Default palettes (red/green) are not colour-blind safe",
+  "need": "Ship a colour-blind-safe default palette (e.g. Okabe-Ito)",
+  "severity": "cosmetic / preference",
+  "signal": null,
+  "tags": [
+   "colour-blind",
+   "accessibility"
+  ]
+ },
+ {
+  "id": "consult-dundee-fdr-36",
+  "venue": "dag.compbio.dundee.ac.uk",
+  "url": "https://dag.compbio.dundee.ac.uk/workshops/statistics_lectures/14_What_is_wrong.pdf",
+  "date": null,
+  "role": "course/consulting page, audience: biologists attending the Dundee Data Analysis Group statistics workshop",
+  "software_named": [],
+  "workflow": "interpreting p-values",
+  "quote": "If you publish a p<0.05 result, you have a 36% chance of making a fool of yourself",
+  "problem": "p<0.05 is treated as proof although the false discovery rate can be far higher",
+  "need": "Present p as a continuous measure with effect size and avoid binary 'significant' labels by default",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "exact-p",
+   "effect-size"
+  ]
+ },
+ {
+  "id": "consult-dundee-underpowered-37",
+  "venue": "dag.compbio.dundee.ac.uk",
+  "url": "https://dag.compbio.dundee.ac.uk/workshops/statistics_lectures/14_What_is_wrong.pdf",
+  "date": null,
+  "role": "course/consulting page, audience: biologists attending the Dundee Data Analysis Group statistics workshop",
+  "software_named": [],
+  "workflow": "small-sample experiments (n=3)",
+  "quote": "Underpowered studies lead to unreliable p-values ... When your experiment is underpowered, you are screwed",
+  "problem": "Small-n experiments give unreliable p-values and inflated effects",
+  "need": "Warn when power for the observed design is low and show CI width rather than a bare p",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "power-sample-size",
+   "effect-size"
+  ]
+ },
+ {
+  "id": "consult-dundee-phacking-38",
+  "venue": "dag.compbio.dundee.ac.uk",
+  "url": "https://dag.compbio.dundee.ac.uk/workshops/statistics_lectures/14_What_is_wrong.pdf",
+  "date": null,
+  "role": "course/consulting page, audience: biologists attending the Dundee Data Analysis Group statistics workshop",
+  "software_named": [],
+  "workflow": "analysis practice",
+  "quote": "Data dredging, p-hacking ... Searching until you find the result you were looking for ... Let’s try again",
+  "problem": "Researchers repeat or re-analyse until p<0.05 (p=0.06? let's try again)",
+  "need": "Keep an analysis log of every test run on a dataset so unreported tests and re-runs are visible",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "reproducibility-audit",
+   "multiple-comparisons"
+  ]
+ },
+ {
+  "id": "consult-dundee-large-p-39",
+  "venue": "dag.compbio.dundee.ac.uk",
+  "url": "https://dag.compbio.dundee.ac.uk/workshops/statistics_lectures/14_What_is_wrong.pdf",
+  "date": null,
+  "role": "course/consulting page, audience: biologists attending the Dundee Data Analysis Group statistics workshop",
+  "software_named": [],
+  "workflow": "reporting results",
+  "quote": "Never, ever say that large p supports H0 ... Reporting a discovery based only on p<0.05 is wrong",
+  "problem": "Large p-values are reported as evidence of no difference",
+  "need": "Phrase non-significant results as 'inconclusive' with the CI of the effect in generated text",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "exact-p",
+   "reporting-methods"
+  ]
+ },
+ {
+  "id": "consult-dundee-normality-test-40",
+  "venue": "dag.compbio.dundee.ac.uk",
+  "url": "https://dag.compbio.dundee.ac.uk/workshops/statistics_lectures/09_ANOVA.pdf",
+  "date": null,
+  "role": "course/consulting page, audience: biologists attending the Dundee Data Analysis Group statistics workshop",
+  "software_named": [
+   "R"
+  ],
+  "workflow": "one-way ANOVA",
+  "quote": "My recommendation: do not perform normality test before ANOVA ... underpowered for small samples (many false negatives) ... oversensitive for large samples (many false positives)",
+  "problem": "Users gate ANOVA on a Shapiro-Wilk test that is uninformative at small and large n",
+  "need": "Do not auto-switch tests on a normality-test p-value; show residual plots and suggest transforms or Welch",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "which-test",
+   "nonparametric",
+   "fit-diagnostics"
+  ]
+ },
+ {
+  "id": "consult-dundee-nonparam-smalln-41",
+  "venue": "dag.compbio.dundee.ac.uk",
+  "url": "https://dag.compbio.dundee.ac.uk/workshops/statistics_lectures/10_Non-parametric_tests.pdf",
+  "date": null,
+  "role": "course/consulting page, audience: biologists attending the Dundee Data Analysis Group statistics workshop",
+  "software_named": [
+   "R"
+  ],
+  "workflow": "small-n group comparisons",
+  "quote": "doesn’t work for small samples, only 5 discrete p-values for n=3",
+  "problem": "Rank/permutation tests cannot reach significance with n=3 per group, but biologists choose them for small samples",
+  "need": "Warn when a non-parametric test is chosen for tiny n and show the minimum attainable p-value",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "nonparametric",
+   "power-sample-size"
+  ]
+ },
+ {
+  "id": "consult-dundee-chisq-small-42",
+  "venue": "dag.compbio.dundee.ac.uk",
+  "url": "https://dag.compbio.dundee.ac.uk/workshops/statistics_lectures/07_Contigency_tables.pdf",
+  "date": null,
+  "role": "course/consulting page, audience: biologists attending the Dundee Data Analysis Group statistics workshop",
+  "software_named": [
+   "R"
+  ],
+  "workflow": "count/categorical data",
+  "quote": "Breaksdown for small numbers (total count < 100) ... For small numbers use the exact multinomial (or binomial) test",
+  "problem": "Chi-square is applied to small counts where it is inaccurate",
+  "need": "Automatically recommend Fisher/exact tests when counts are small",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "contingency",
+   "which-test"
+  ]
+ },
+ {
+  "id": "consult-nc3rs-terms-48",
+  "venue": "nc3rs.org.uk",
+  "url": "https://nc3rs.org.uk/3rs-resources/driver-recommendations/experimental-unit",
+  "date": null,
+  "role": "institute guidance page, audience: animal and in vitro researchers (UK NC3Rs)",
+  "software_named": [],
+  "workflow": "experimental design",
+  "quote": "commonly used terms such as “biological” and “technical” replicates, which are frequently used to refer to genuine replication and sub-sampling (see below), respectively, but are often inconsistently defined or misapplied",
+  "problem": "The words biological/technical replicate are used inconsistently and hide what n is",
+  "need": "Use the experimental unit / observational unit vocabulary in the data-entry wizard instead of ambiguous replicate labels",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "technical-vs-biological-replicates",
+   "n-definition"
+  ]
+ },
+ {
+  "id": "consult-nc3rs-subsample-49",
+  "venue": "nc3rs.org.uk",
+  "url": "https://nc3rs.org.uk/3rs-resources/driver-recommendations/experimental-unit",
+  "date": null,
+  "role": "institute guidance page, audience: animal and in vitro researchers (UK NC3Rs)",
+  "software_named": [],
+  "workflow": "sub-sampling within animals/wells",
+  "quote": "Pseudoreplication does not increase the sample size of an experiment, even if there are more data points. ... To address this, you can average the sub-samples for each experimental unit.",
+  "problem": "Sub-samples (multiple measurements per unit) are entered as independent data points",
+  "need": "One-click aggregation of sub-samples to one value per experimental unit before testing",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "technical-vs-biological-replicates",
+   "n-definition"
+  ]
+ },
+ {
+  "id": "consult-nc3rs-single-line-50",
+  "venue": "nc3rs.org.uk",
+  "url": "https://nc3rs.org.uk/3rs-resources/driver-recommendations/experimental-unit",
+  "date": null,
+  "role": "institute guidance page, audience: animal and in vitro researchers (UK NC3Rs)",
+  "software_named": [],
+  "workflow": "cell-line experiments",
+  "quote": "If only one biological unit (e.g. a single cell line) is used, it is unclear how applicable the findings are beyond that unit.",
+  "problem": "Conclusions are generalised from a single cell line",
+  "need": "Record the biological unit in the methods summary and flag single-line designs in the generated text",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "n-definition",
+   "reporting-methods"
+  ]
+ },
+ {
+  "id": "consult-nc3rs-report-unit-51",
+  "venue": "nc3rs.org.uk",
+  "url": "https://nc3rs.org.uk/3rs-resources/driver-recommendations/experimental-unit",
+  "date": null,
+  "role": "institute guidance page, audience: animal and in vitro researchers (UK NC3Rs)",
+  "software_named": [],
+  "workflow": "reporting",
+  "quote": "The experimental and biological unit should be clearly identified for each experiment. ... It ensures that the sample size for each experiment is clear.",
+  "problem": "Papers do not state the experimental unit so n is ambiguous",
+  "need": "Auto-generate a methods/legend sentence stating the experimental unit and n per group",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "reporting-methods",
+   "figure-legend",
+   "n-definition"
+  ]
+ },
+ {
+  "id": "consult-uvm-image-ethics-53",
+  "venue": "uvm.edu",
+  "url": "https://www.uvm.edu/d10-files/documents/2025-11/cbsr_rigor_and_reproducibility_policy.pdf",
+  "date": "2025-11",
+  "role": "core facility guidance page, audience: clients of University of Vermont shared resource cores",
+  "software_named": [],
+  "workflow": "imaging quantification",
+  "quote": "Consult with core staff for best practices regarding image processing and analysis. ... Consult with core staff regarding ethical standards for image manipulation.",
+  "problem": "Core clients need guidance on image processing and acceptable manipulation before quantifying",
+  "need": "Keep a record of every image-processing step applied before quantified values enter the analysis",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "image-analysis-exports",
+   "reproducibility-audit"
+  ]
+ },
+ {
+  "id": "consult-unil-events-54",
+  "venue": "wp.unil.ch",
+  "url": "https://wp.unil.ch/fcf/mailpoet-email/cba94f80e3a8-fcf-unil-june-2022-how-many-cells-is-enough/",
+  "date": "2022-06",
+  "role": "core facility newsletter, audience: users of the UNIL Flow Cytometry Facility",
+  "software_named": [
+   "Excel"
+  ],
+  "workflow": "flow cytometry acquisition",
+  "quote": "How many events do I need to record? When performing a flow cytometry experiment, often samples are just run to completion. ... It is also possible that we may be under sampling",
+  "problem": "Users do not know how many events to acquire for a rare population",
+  "need": "Calculator for events needed from population frequency and target CV (Poisson), with CI for the observed %",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "flow-cytometry",
+   "power-sample-size"
+  ]
+ },
+ {
+  "id": "consult-nigms-close-sig-57",
+  "venue": "nigms.nih.gov",
+  "url": "https://www.nigms.nih.gov/sites/nigms/files/migrated/module3-biological-and-technical-replicates.pdf",
+  "date": null,
+  "role": "institute training module (case study discussion), audience: NIH-funded trainees and postdocs",
+  "software_named": [],
+  "workflow": "lab experiment replication",
+  "quote": "Have you ever had data that was “close” to significance? If so, what did you do? ... Would Dr. Fielding (Harry) have suggested adding a few more samples and trying a different statistical test if they had initially defined their sample size and exclusion criteria",
+  "problem": "Near-significant results lead to adding samples and switching tests",
+  "need": "Pre-register sample size, test and exclusion rules in the project and flag later changes",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "reproducibility-audit",
+   "power-sample-size",
+   "which-test"
+  ]
+ },
+ {
+  "id": "consult-nigms-outliers-58",
+  "venue": "nigms.nih.gov",
+  "url": "https://www.nigms.nih.gov/sites/nigms/files/migrated/module3-biological-and-technical-replicates.pdf",
+  "date": null,
+  "role": "institute training module (case study discussion), audience: NIH-funded trainees and postdocs",
+  "software_named": [],
+  "workflow": "lab experiment, outlier removal",
+  "quote": "Jamal told Robin to drop outliers above a certain value, as it is outside the physiologic range. ... Do you think they actually developed exclusion criteria, or just considered that point as valid",
+  "problem": "Outliers are dropped ad hoc without predefined exclusion criteria",
+  "need": "Outlier handling that requires a stated rule, keeps excluded points visible and reports them",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "outliers",
+   "reproducibility-audit"
+  ]
+ },
+ {
+  "id": "consult-shu-paired-layout-63",
+  "venue": "libguides.shu.ac.uk",
+  "url": "https://libguides.shu.ac.uk/maths-and-stats/pairedT",
+  "date": null,
+  "role": "maths and stats support guide, audience: Sheffield Hallam University students and researchers",
+  "software_named": [
+   "SPSS",
+   "Jamovi",
+   "R",
+   "SAS"
+  ],
+  "workflow": "paired before/after measurements",
+  "quote": "Comparing the mean difference of two measurements of the same continuous variable. You should have measurements in different columns with each row representing one subject.",
+  "problem": "Paired data must be laid out one subject per row, which users often get wrong",
+  "need": "Data-table template for paired/repeated designs that enforces one row per subject",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "long-vs-wide",
+   "data-entry-table-types"
+  ]
+ },
+ {
+  "id": "consult-shu-rm-gap-64",
+  "venue": "libguides.shu.ac.uk",
+  "url": "https://libguides.shu.ac.uk/maths-and-stats/ANOVArepeated",
+  "date": null,
+  "role": "maths and stats support guide, audience: Sheffield Hallam University students and researchers",
+  "software_named": [
+   "Jamovi",
+   "SPSS",
+   "SAS"
+  ],
+  "workflow": "repeated measures, 3+ time points",
+  "quote": "We don't currently have resources on this topic in Jamovi so book an appointment to see a stats tutor",
+  "problem": "No self-serve help for repeated-measures ANOVA/Friedman in the free tool, so users must book a tutor",
+  "need": "Guided repeated-measures ANOVA and Friedman test with step-by-step help in the tool",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "learning-curve",
+   "nonparametric",
+   "tutorials"
+  ]
+ },
+ {
+  "id": "consult-rush-complex-65",
+  "venue": "rushu.rush.edu",
+  "url": "https://www.rushu.rush.edu/sites/default/files/2025-10/Reference%20Table%20for%20Choosing%20the%20Right%20Statistical%20Test.pdf",
+  "date": "2025-10",
+  "role": "biostatistics core reference sheet, audience: Rush University investigators",
+  "software_named": [],
+  "workflow": "advanced models",
+  "quote": "some of these types of analyses (logistic regression, linear mixed effects modeling, survival analysis, etc.) can be quite complex and complicated to interpret, and we strongly recommend you come to us at the Rush Biostatistics Core",
+  "problem": "Logistic, mixed-effects and survival models are hard for investigators to fit and interpret alone",
+  "need": "Guided set-up and plain-language interpretation for logistic, mixed and survival models",
+  "severity": "blocks the analysis",
+  "signal": null,
+  "tags": [
+   "logistic-regression",
+   "mixed-model-missing-values",
+   "survival",
+   "learning-curve"
+  ]
+ },
+ {
+  "id": "consult-rush-nonparam-66",
+  "venue": "rushu.rush.edu",
+  "url": "https://www.rushu.rush.edu/sites/default/files/2025-10/Reference%20Table%20for%20Choosing%20the%20Right%20Statistical%20Test.pdf",
+  "date": "2025-10",
+  "role": "biostatistics core reference sheet, audience: Rush University investigators",
+  "software_named": [],
+  "workflow": "choosing parametric vs non-parametric",
+  "quote": "if the assumptions are severely violated, there are alternative nonparametric tests that may be used instead ... We strongly encourage investigators to consult the Rush Biostatistics Core when choosing between these methods.",
+  "problem": "Choosing between parametric and non-parametric versions requires a consultation",
+  "need": "Assumption-aware chooser that explains the trade-off when proposing the non-parametric alternative",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "nonparametric",
+   "which-test"
+  ]
+ },
+ {
+  "id": "consult-ucd-notintelligent-69",
+  "venue": "ucd.ie",
+  "url": "https://www.ucd.ie/3dnet/t4media/KalVista_curvefitting.pdf",
+  "date": null,
+  "role": "training aide-memoir on dose-response curve fitting, audience: pharmacology trainees (UCD 3DNet)",
+  "software_named": [
+   "XLfit",
+   "GraphPad Prism",
+   "ActivityBase",
+   "Excel"
+  ],
+  "workflow": "dose-response / IC50",
+  "quote": "REMEMBER - Curve fitting packages are not intelligent and results must be scrutinised. ... Where ever possible use an unconstrained (4-parameter) fit",
+  "problem": "Curve-fit output is accepted without scrutiny",
+  "need": "Dose-response fit report with QC checks (plateaus defined, sensible slope, CI width) and warnings",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "ic50-ec50-setup",
+   "fit-diagnostics"
+  ]
+ },
+ {
+  "id": "consult-ucd-constrain-70",
+  "venue": "ucd.ie",
+  "url": "https://www.ucd.ie/3dnet/t4media/KalVista_curvefitting.pdf",
+  "date": null,
+  "role": "training aide-memoir on dose-response curve fitting, audience: pharmacology trainees (UCD 3DNet)",
+  "software_named": [
+   "XLfit",
+   "GraphPad Prism"
+  ],
+  "workflow": "dose-response / IC50",
+  "quote": "If you must constrain parameters, constrain only one parameter, if two parameters need constraining then the data needs regenerating with a more appropriate concentration range.",
+  "problem": "Users constrain several parameters to rescue poor concentration ranges",
+  "need": "Warn when more than one parameter is constrained and suggest extending the concentration range",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "ic50-ec50-setup",
+   "fit-diagnostics"
+  ]
+ },
+ {
+  "id": "consult-ucd-independent-71",
+  "venue": "ucd.ie",
+  "url": "https://www.ucd.ie/3dnet/t4media/KalVista_curvefitting.pdf",
+  "date": null,
+  "role": "training aide-memoir on dose-response curve fitting, audience: pharmacology trainees (UCD 3DNet)",
+  "software_named": [
+   "XLfit",
+   "GraphPad Prism"
+  ],
+  "workflow": "dose-response / IC50",
+  "quote": "If the experiment is inherently variable generate more determinations n=3 or 4. Four pieces of independent information are better than curves with quadruplicate points.",
+  "problem": "Replicate wells within one curve are treated as replication instead of independent determinations",
+  "need": "Summarise IC50 across independent experiments (e.g. mean log IC50 with CI) rather than pooling replicate points",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "ic50-ec50-setup",
+   "technical-vs-biological-replicates"
+  ]
+ },
+ {
+  "id": "consult-ucd-asymptote-72",
+  "venue": "ucd.ie",
+  "url": "https://www.ucd.ie/3dnet/t4media/KalVista_curvefitting.pdf",
+  "date": null,
+  "role": "training aide-memoir on dose-response curve fitting, audience: pharmacology trainees (UCD 3DNet)",
+  "software_named": [
+   "XLfit",
+   "GraphPad Prism"
+  ],
+  "workflow": "enzyme/receptor inhibition assays",
+  "quote": "This example of poor lower asymptote estimate underestimates the true IC50 value for the compound. ... Data should run from 100% to 0% control, with a slope of 1 when the interaction is simple competitive one-site.",
+  "problem": "Poorly defined plateaus or unmatched controls bias IC50",
+  "need": "Flag fits whose plateaus are extrapolated and check normalisation controls (0%/100%)",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "ic50-ec50-setup",
+   "normalization",
+   "fit-diagnostics"
+  ]
+ },
+ {
+  "id": "consult-ucd-initial-values-73",
+  "venue": "ucd.ie",
+  "url": "https://www.ucd.ie/3dnet/t4media/KalVista_curvefitting.pdf",
+  "date": null,
+  "role": "training aide-memoir on dose-response curve fitting, audience: pharmacology trainees (UCD 3DNet)",
+  "software_named": [
+   "XLfit",
+   "GraphPad Prism"
+  ],
+  "workflow": "nonlinear regression",
+  "quote": "Note that the final values depend on the initial values, so repeated analysis may give slightly different results",
+  "problem": "Nonlinear fits can return different results on re-running",
+  "need": "Deterministic, documented initial-value strategy so the same data give the same fit",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "fit-diagnostics",
+   "numbers-differ-between-tools"
+  ]
+ },
+ {
+  "id": "consult-ainslie-perplate-74",
+  "venue": "ainslielab.web.unc.edu",
+  "url": "https://ainslielab.web.unc.edu/wp-content/uploads/sites/12416/2019/03/Standard-Curve-Basics.pdf",
+  "date": null,
+  "role": "lab guidance FAQ, audience: lab members running standard curves (UNC)",
+  "software_named": [],
+  "workflow": "ELISA / Griess / plate assays",
+  "quote": "A standard curve should be run for every plate or sample run. ... is whether the plate reader or fluoro-/lumino-meter is set to automatically change the reading values based on the maximum fluorescent intensity observed in the plate.",
+  "problem": "Standard curves reused across plates despite plate-to-plate and auto-gain variation",
+  "need": "Tie each standard curve to its plate and interpolate samples only against their own plate's curve",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "standard-curve-interpolation",
+   "plate-reader"
+  ]
+ },
+ {
+  "id": "consult-ainslie-range-75",
+  "venue": "ainslielab.web.unc.edu",
+  "url": "https://ainslielab.web.unc.edu/wp-content/uploads/sites/12416/2019/03/Standard-Curve-Basics.pdf",
+  "date": null,
+  "role": "lab guidance FAQ, audience: lab members running standard curves (UNC)",
+  "software_named": [],
+  "workflow": "standard curve interpolation",
+  "quote": "Your concentration range should be well distributed with two or more samples above and below your estimated sample concentration.",
+  "problem": "Samples are interpolated near the edge of, or outside, the standard range",
+  "need": "Flag samples outside or at the edge of the standard range (LLOQ/ULOQ) and suggest dilution",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "standard-curve-interpolation"
+  ]
+ },
+ {
+  "id": "consult-barrick-refgene-76",
+  "venue": "barricklab.org",
+  "url": "https://www.barricklab.org/twiki/bin/view/Lab/RefGeneqPCR",
+  "date": null,
+  "role": "lab protocol wiki, audience: lab members running qPCR (university lab)",
+  "software_named": [],
+  "workflow": "RT-qPCR",
+  "quote": "Reference genes need to be stable across your control and experimental samples in order to be useful. If expression between the two differs, you will be normalizing to two different values.",
+  "problem": "Unvalidated reference genes distort ddCt normalisation",
+  "need": "Reference-gene stability check (across conditions) before computing ddCt",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "qpcr-ddct",
+   "normalization"
+  ]
+ },
+ {
+  "id": "consult-barrick-techrep-77",
+  "venue": "barricklab.org",
+  "url": "https://www.barricklab.org/twiki/bin/view/Lab/RefGeneqPCR",
+  "date": null,
+  "role": "lab protocol wiki, audience: lab members running qPCR (university lab)",
+  "software_named": [],
+  "workflow": "RT-qPCR",
+  "quote": "Technical replicates with a standard deviation below 0.2. ... The first few times you run qPCR the results can be messy, and sometimes you have to redo things to get accurate results.",
+  "problem": "Messy technical replicates in early qPCR runs",
+  "need": "Flag technical-replicate Cq SD above a threshold before averaging",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "qpcr-ddct",
+   "technical-vs-biological-replicates",
+   "outliers"
+  ]
+ },
+ {
+  "id": "consult-satqpcr-layout-78",
+  "venue": "satqpcr.sophia.inrae.fr",
+  "url": "https://satqpcr.sophia.inrae.fr/cgi/help.cgi",
+  "date": null,
+  "role": "institute analysis-tool help page, audience: qPCR users (INRAE)",
+  "software_named": [
+   "SATqPCR"
+  ],
+  "workflow": "RT-qPCR relative quantification",
+  "quote": "The design of your experiment is describing the number of biological samples including your biological control, the number of technical replicates, and the number of genes tested ... All samples from the same biological replicate have to be in a same block,",
+  "problem": "qPCR analysis requires a specific layout encoding biological vs technical replicates",
+  "need": "qPCR import that captures biological replicate, technical replicate and gene as explicit columns",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "qpcr-ddct",
+   "data-entry-table-types",
+   "technical-vs-biological-replicates"
+  ]
+ },
+ {
+  "id": "consult-satqpcr-efficiency-79",
+  "venue": "satqpcr.sophia.inrae.fr",
+  "url": "https://satqpcr.sophia.inrae.fr/cgi/help.cgi",
+  "date": null,
+  "role": "institute analysis-tool help page, audience: qPCR users (INRAE)",
+  "software_named": [
+   "SATqPCR"
+  ],
+  "workflow": "RT-qPCR primer validation",
+  "quote": "This validation is done using calibration curves with at least 5 dilution points. The efficiency of the PCR reaction should be between 90-100% with an R2 between 0.99-1.",
+  "problem": "Primer efficiency must be validated before relative quantification",
+  "need": "Efficiency calculation from dilution series with efficiency-corrected (Pfaffl) quantification",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "qpcr-ddct",
+   "standard-curve-interpolation"
+  ]
+ },
+ {
+  "id": "consult-nus-hr-or-80",
+  "venue": "medicine.nus.edu.sg",
+  "url": "https://medicine.nus.edu.sg/rsu/wp-content/uploads/sites/15/2020/02/Biostats203_Survival9.pdf",
+  "date": null,
+  "role": "research support unit teaching article, audience: clinicians and researchers (NUS Research Support Unit)",
+  "software_named": [
+   "SPSS"
+  ],
+  "workflow": "Cox regression",
+  "quote": "This is another common mistake – researchers at times refer to odds ratio in survival analysis (mistaken by the same symbol).",
+  "problem": "Hazard ratios are mislabelled as odds ratios",
+  "need": "Label exp(B) correctly as hazard ratio in Cox output and in generated text",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "hazard-ratio",
+   "survival",
+   "reporting-methods"
+  ]
+ },
+ {
+  "id": "consult-nus-censoring-81",
+  "venue": "medicine.nus.edu.sg",
+  "url": "https://medicine.nus.edu.sg/rsu/wp-content/uploads/sites/15/2020/02/Biostats203_Survival9.pdf",
+  "date": null,
+  "role": "research support unit teaching article, audience: clinicians and researchers (NUS Research Support Unit)",
+  "software_named": [
+   "SPSS"
+  ],
+  "workflow": "Kaplan-Meier survival",
+  "quote": "We observe that the median survival time has increased from 12 months (without censoring) to 32 months.",
+  "problem": "Ignoring censoring badly underestimates median survival",
+  "need": "Survival data entry that requires an event/censor flag and computes Kaplan-Meier medians",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "survival"
+  ]
+ },
+ {
+  "id": "consult-nus-ph-82",
+  "venue": "medicine.nus.edu.sg",
+  "url": "https://medicine.nus.edu.sg/rsu/wp-content/uploads/sites/15/2020/02/Biostats203_Survival9.pdf",
+  "date": null,
+  "role": "research support unit teaching article, audience: clinicians and researchers (NUS Research Support Unit)",
+  "software_named": [
+   "SPSS"
+  ],
+  "workflow": "Cox regression",
+  "quote": "When the proportional hazard assumption is not satisfied, we will have to use Cox regression with time-dependent covariate to analyse the data.",
+  "problem": "Proportional hazards assumption is not checked",
+  "need": "Automatic proportional-hazards check (log-minus-log or Schoenfeld) with a warning",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "hazard-ratio",
+   "fit-diagnostics"
+  ]
+ },
+ {
+  "id": "consult-ucdavis-sem-power-83",
+  "venue": "research.ucdavis.edu",
+  "url": "https://research.ucdavis.edu/wp-content/uploads/IACUC-20",
+  "date": null,
+  "role": "IACUC guidance page, audience: animal researchers at UC Davis",
+  "software_named": [],
+  "workflow": "animal number justification",
+  "quote": "the number of animals can be determined by a power analysis (sample size estimation), which is identified by the variability in the data (e.g., Standard Error of the Mean, SEM) and the difference the investigator might anticipate between groups.",
+  "problem": "Institutional guidance suggests using the SEM as the variability input to power analysis (power needs the SD)",
+  "need": "Power calculator that asks for SD explicitly and converts SEM to SD with n when users enter SEM",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "power-sample-size",
+   "error-bars-sd-sem"
+  ]
+ },
+ {
+  "id": "consult-lehigh-unit-84",
+  "venue": "research.lehigh.edu",
+  "url": "https://research.lehigh.edu/policies-guidance-forms/guidance-justifying-number-animals-research",
+  "date": null,
+  "role": "IACUC guidance page, audience: animal researchers at Lehigh University",
+  "software_named": [],
+  "workflow": "animal number justification",
+  "quote": "When the animal is not the experimental unit, determine the appropriate sample size for your unit of study (e.g., the number of neurons needed) and extrapolate to determine the maximum number of animals required.",
+  "problem": "Sample size must be planned at the unit of study when it is not the animal",
+  "need": "Power planning for nested designs (cells within animals) that returns animals needed",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "power-sample-size",
+   "n-definition"
+  ]
+ },
+ {
+  "id": "consult-umt-assumptions-85",
+  "venue": "umt.edu",
+  "url": "https://www.umt.edu/research-compliance-tech-transfer/iacuc/policies-and-guidelines/guidance-011/default.php",
+  "date": null,
+  "role": "IACUC guidance page, audience: animal researchers at the University of Montana",
+  "software_named": [],
+  "workflow": "animal number justification",
+  "quote": "The variability in the response variable expected between animals, frequently expressed as the standard deviation, with literature cited from which PI’s draw these conclusions. ... Using unrealistic statistical assumptions can result in inappropriate group sizes.",
+  "problem": "PIs must justify SD and effect size from literature and often use unrealistic assumptions",
+  "need": "Power tool that records the source of SD/effect size and shows sensitivity of n to those inputs",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "power-sample-size"
+  ]
+ },
+ {
+  "id": "consult-uci-cells-n-86",
+  "venue": "genomics.uci.edu",
+  "url": "https://genomics.uci.edu/wp-content/uploads/sites/30/Spatial-Omics-Workshop-Mixed-Model-Danni-Lui-MS.pdf",
+  "date": null,
+  "role": "biostatistics shared resource workshop slides, audience: spatial omics users at UC Irvine",
+  "software_named": [
+   "Seurat"
+  ],
+  "workflow": "spatial / single-cell omics",
+  "quote": "10 x 3 x 5000=150,000 data points, but only 10 TRUE biologically independent samples (mice) ... They treat cells as independent observations.",
+  "problem": "Single-cell/spatial tests treat cells as independent, inflating false positives",
+  "need": "Pseudobulk or mixed-model option that analyses at the animal level when cells are nested in mice",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "technical-vs-biological-replicates",
+   "n-definition",
+   "large-data"
+  ]
+ },
+ {
+  "id": "consult-uci-batch-87",
+  "venue": "genomics.uci.edu",
+  "url": "https://genomics.uci.edu/wp-content/uploads/sites/30/Spatial-Omics-Workshop-Mixed-Model-Danni-Lui-MS.pdf",
+  "date": null,
+  "role": "biostatistics shared resource workshop slides, audience: spatial omics users at UC Irvine",
+  "software_named": [],
+  "workflow": "omics study design",
+  "quote": "Bad experimental design: Confounded batch effects with biological signals ... Disease samples → All in Batch 1",
+  "problem": "Disease and control samples processed in separate batches",
+  "need": "Design helper that balances groups across batches/days and warns when group and batch are confounded",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "randomisation"
+  ]
+ },
+ {
+  "id": "consult-lund-hypothesis-90",
+  "venue": "maths.lu.se",
+  "url": "https://www.maths.lu.se/statisticalconsulting/?L=2",
+  "date": null,
+  "role": "consulting intake page, audience: Lund University researchers",
+  "software_named": [],
+  "workflow": "consult preparation",
+  "quote": "Can you formulate one main question or hypotheses without using the words ”and” or ”or”? ... How large effect do you wish to be able to interpret as statistically significant?",
+  "problem": "Clients arrive without a single clear hypothesis or a target effect size",
+  "need": "Start each analysis by recording the primary question and smallest effect of interest",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "which-test",
+   "effect-size",
+   "power-sample-size"
+  ]
+ },
+ {
+  "id": "consult-purdue-welch-91",
+  "venue": "stat.purdue.edu",
+  "url": "https://www.stat.purdue.edu/scs/docs/cheat.pdf",
+  "date": null,
+  "role": "consulting cheat sheet, audience: Purdue statistical consulting service consultants and clients",
+  "software_named": [
+   "R"
+  ],
+  "workflow": "two-sample t-test",
+  "quote": "A common population variance is usually assumed, to be estimated by the pooled sample variances. The default two-sample t-test implemented in the R function t.test() however does not assume a common population variance.",
+  "problem": "Default t-test differs between software (pooled vs Welch), so p-values differ",
+  "need": "State clearly which t-test variant is used and let users match other software",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "numbers-differ-between-tools",
+   "which-test"
+  ]
+ },
+ {
+  "id": "consult-windsor-residuals-92",
+  "venue": "leddy.uwindsor.ca",
+  "url": "https://leddy.uwindsor.ca/sites/default/files/files/What%20Statistical%20Analysis%20Should%20I%20Use.pdf",
+  "date": null,
+  "role": "library research data guide, audience: University of Windsor researchers",
+  "software_named": [
+   "R",
+   "SAS",
+   "Stata",
+   "SPSS"
+  ],
+  "workflow": "choosing a test",
+  "quote": "Assumptions of normality concern model residuals, the deviation of the observed values from the model-predicted values. Many of these models are robust to violation of the assumption of normality, particularly in large samples.",
+  "problem": "Library test-choice guide has to correct the belief that raw data must be normal",
+  "need": "Check normality on residuals and say so in the output",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "fit-diagnostics",
+   "which-test"
+  ]
+ },
+ {
+  "id": "consult-duke-ownanalysis-94",
+  "venue": "biostat.duke.edu",
+  "url": "https://biostat.duke.edu/research/berd-methods-core/frequently-asked-questions",
+  "date": null,
+  "role": "consulting FAQ, audience: Duke investigators using the BERD Methods Core",
+  "software_named": [],
+  "workflow": "consult access",
+  "quote": "Can you provide guidance on the study design and analytic methods so I can do my own analysis?",
+  "problem": "Investigators want to run their own analysis after brief guidance",
+  "need": "Tool that lets researchers execute an agreed analysis plan themselves with guard-rails",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "learning-curve",
+   "which-test"
+  ]
+ },
+ {
+  "id": "consult-fuberlin-thesis-95",
+  "venue": "stat.fu-berlin.de",
+  "url": "https://www.stat.fu-berlin.de/en/FAQ/FAQ-statistical-consulting/index.html",
+  "date": null,
+  "role": "consulting FAQ, audience: Freie Universität Berlin students and staff",
+  "software_named": [],
+  "workflow": "thesis analysis",
+  "quote": "In case of a thesis work, we assist you by the choice and realization of statistical methods. However, we do not perform the implementation ourselves.",
+  "problem": "Students get advice but must implement the analysis themselves",
+  "need": "Approachable tool to implement the advised analysis without coding",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "learning-curve",
+   "which-test"
+  ]
+ },
+ {
+  "id": "consult-harrell-change-96",
+  "venue": "fharrell.com",
+  "url": "https://www.fharrell.com/post/errmed/",
+  "date": null,
+  "role": "biostatistician's guidance page, audience: medical researchers (Vanderbilt biostatistics)",
+  "software_named": [],
+  "workflow": "pre/post measurements",
+  "quote": "Many authors and pharmaceutical clinical trialists make the mistake of analyzing change from baseline instead of making the raw follow-up measurements the primary outcomes, covariate-adjusted for baseline.",
+  "problem": "Change-from-baseline scores are analysed instead of baseline-adjusted follow-up",
+  "need": "Offer ANCOVA (follow-up adjusted for baseline) for pre/post designs instead of only change scores",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "normalization",
+   "which-test"
+  ]
+ },
+ {
+  "id": "consult-harrell-dichot-97",
+  "venue": "fharrell.com",
+  "url": "https://www.fharrell.com/post/errmed/",
+  "date": null,
+  "role": "biostatistician's guidance page, audience: medical researchers (Vanderbilt biostatistics)",
+  "software_named": [],
+  "workflow": "continuous predictors/outcomes",
+  "quote": "Categorization of continuous variables for analysis is inefficient at best and ... misleading and arbitrary at worst",
+  "problem": "Continuous measurements are dichotomised (high/low) before analysis",
+  "need": "Discourage splitting continuous variables and offer regression on the continuous scale",
+  "severity": "wrong result risk",
+  "signal": null,
+  "tags": [
+   "which-test",
+   "units-and-transforms"
+  ]
+ },
+ {
+  "id": "consult-cuni-imaging-98",
+  "venue": "web.natur.cuni.cz",
+  "url": "https://web.natur.cuni.cz/sekce-bi/VMCF/data-analysis/",
+  "date": null,
+  "role": "core facility consultation page, audience: users of the Viničná Microscopy Core Facility (Charles University)",
+  "software_named": [
+   "FIJI"
+  ],
+  "workflow": "bioimage analysis",
+  "quote": "Clarify the specific numbers you wish to measure, the volume of data (e.g., 10, 100, 1,000 images), image sizes, preferred software, and any preliminary analysis attempts.",
+  "problem": "Users come to the imaging core without defining what number to extract from images",
+  "need": "Image-to-statistics workflow that starts by defining the measured quantity and its unit of analysis",
+  "severity": "slows the work",
+  "signal": null,
+  "tags": [
+   "image-analysis-exports",
+   "large-data"
+  ]
+ }
+]
