@@ -3344,7 +3344,14 @@ const axeOn = async (pg, sel) => {
   expect("axe-core: the What this means line passes WCAG 2 AA", axeMeaning.length === 0, axeMeaning.join(" | "));
 
   // (b) the survival example: a hazard ratio in the user's own groups
-  await navRow("Survival example").click();
+  await page.getByRole("button", { name: "New data table" }).first().click();
+  const sdlg = page.locator(".new-table-dialog");
+  await sdlg.locator('input[name="table-type"][value="survival"]').check();
+  await sdlg.getByLabel("Table name").fill("Meaning survival");
+  await sdlg.getByLabel("Example data").check();
+  await sdlg.getByRole("button", { name: "Create table" }).click();
+  await page.waitForSelector(".grid-toolbar");
+  await page.waitForTimeout(400);
   await live();
   const sMeaning = await meaningText();
   expect("What this means under the survival example: the hazard ratio in Control and Treated, the CI including 1",
