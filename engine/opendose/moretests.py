@@ -32,6 +32,16 @@ GraphPad statistics guide pages whose documented methods this implements:
   reports statistical significance but neither CIs nor multiplicity
   adjusted P values.
 
+Every comparisons table also states its family ("Multiple comparisons:
+adjusted P values", GraphPad statistics guide; Bender & Lange 2001, J
+Clin Epidemiol 54:343): each comparison carries "p_unadjusted" (the
+unprotected test of that pair: here the Welch t test with the Welch-
+Satterthwaite df; for Newman-Keuls the pooled-variance t test with the
+ANOVA's residual MS and df), "family_size" (the number of comparisons the
+correction used) and "method"; the result carries a family block
+{size, method, label} (comparison_family below, shared by the other
+modules' comparisons tables).
+
 Not in the guide (no Prism dialog offers it), provided because it is a
 standard companion of the Kruskal-Wallis test:
 - Mood's median test: counts above / not above the grand median in each
@@ -55,6 +65,37 @@ def _clean(values) -> np.ndarray:
                      if v is not None and not (isinstance(v, float)
                                                and math.isnan(v))],
                     dtype=float)
+
+
+# ------------------------------------------------- comparison families
+
+METHOD_NAMES = {
+    "tukey": "Tukey", "dunnett": "Dunnett", "bonferroni": "Bonferroni",
+    "sidak": "Sidak", "holm_sidak": "Holm-Sidak", "holm": "Holm",
+    "fisher_lsd": "Fisher's LSD (no correction)",
+    "none": "No correction", "newman_keuls": "Newman-Keuls",
+    "games_howell": "Games-Howell", "dunnett_t3": "Dunnett T3",
+    "tamhane_t2": "Tamhane T2",
+    "welch_uncorrected": "Welch t tests (no correction)",
+    "dunn_bonferroni": "Dunn (Bonferroni)", "dunn_holm": "Dunn (Holm)",
+    "dunn_none": "Dunn (no correction)",
+    "bh": "Benjamini-Hochberg FDR", "by": "Benjamini-Yekutieli FDR",
+    "bky": "Two-stage Benjamini-Krieger-Yekutieli FDR",
+}
+
+
+def comparison_family(size: int, method: str, scope: str | None = None
+                      ) -> dict:
+    """The {size, method, label} block that names a comparisons family:
+    size = number of comparisons the multiplicity adjustment used,
+    method = its id, label e.g. "Tukey, 6 comparisons (all pairs of 4
+    means)"."""
+    size = int(size)
+    name = METHOD_NAMES.get(method, method)
+    label = f"{name}, {size} comparison{'' if size == 1 else 's'}"
+    if scope:
+        label += f" ({scope})"
+    return {"size": size, "method": method, "label": label}
 
 
 # ----------------------------------------------- two-sample Kolmogorov-Smirnov
@@ -223,7 +264,9 @@ def unequal_variance_comparisons(datasets, method: str, *, names=None,
             entry.update({"statistic": t, "ci": None,
                           "p_adjusted": math.nan, "significant_05": False,
                           "significant": False,
-                          "note": "both groups have zero SD"})
+                          "note": "both groups have zero SD",
+                          "p_unadjusted": math.nan, "family_size": m,
+                          "method": method, "a_index": i, "b_index": j})
             comparisons.append(entry)
             continue
         if method == "games_howell":
@@ -250,9 +293,18 @@ def unequal_variance_comparisons(datasets, method: str, *, names=None,
                       "p_adjusted": p,
                       "significant_05": bool(p < 0.05),
                       "significant": bool(p < alpha)})
+        # the unprotected Welch t test of this pair (same t and df)
+        entry.update({"p_unadjusted": float(2 * stats.t.sf(t, df)),
+                      "family_size": m, "method": method,
+                      "a_index": i, "b_index": j})
         comparisons.append(entry)
+    scope = (f"all pairs of {k} means" if family == "all" else
+             f"each of {k - 1} groups vs. {names[control_index]}")
+    # "family" (the "all"/"control" choice) predates this block, so the
+    # {size, method, label} block is "family_info" here.
     return {"method": method, "family": family, "n_comparisons": m,
-            "ci_level": ci_level, "comparisons": comparisons}
+            "ci_level": ci_level, "comparisons": comparisons,
+            "family_info": comparison_family(m, method, scope)}
 
 
 # -------------------------------------------------------------- Newman-Keuls
@@ -287,8 +339,13 @@ def newman_keuls_from_stats(means, ns, ms_res, df_res, *, names=None,
                 "significant": bool(significant),
                 "tested": not covered}
     comparisons = []
+    n_pairs = k * (k - 1) // 2
     for i, j in combinations(range(k), 2):
         r = results[frozenset((i, j))]
+        # unprotected pooled-variance t test of this pair (residual MS, df)
+        se_t = math.sqrt(ms_res * (1.0 / ns[i] + 1.0 / ns[j]))
+        d_ij = means[i] - means[j]
+        t_ij = abs(d_ij) / se_t if se_t > 0 else (math.inf if d_ij else 0.0)
         comparisons.append({
             "pair": f"{names[i]} vs. {names[j]}",
             "difference": means[i] - means[j],
@@ -298,10 +355,17 @@ def newman_keuls_from_stats(means, ns, ms_res, df_res, *, names=None,
             "significant": r["significant"],
             "significant_05": (r["significant"] if abs(alpha - 0.05) < 1e-12
                                else None),
+            "p_unadjusted": float(2.0 * stats.t.sf(t_ij, df_res)),
+            "family_size": n_pairs, "method": "newman_keuls",
+            "a_index": i, "b_index": j,
         })
     return {"method": "newman_keuls", "df": df_res, "alpha": alpha,
             "comparisons": comparisons,
-            "ordered_groups": [names[g] for g in order]}
+            "ordered_groups": [names[g] for g in order],
+            "family": comparison_family(
+                n_pairs, "newman_keuls",
+                f"all pairs of {k} means; significance only, no adjusted "
+                f"P values")}
 
 
 # ------------------------------------------------------------ median test

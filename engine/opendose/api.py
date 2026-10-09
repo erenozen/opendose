@@ -35,16 +35,17 @@ from . import (assay_clustering, assay_densitometry, assay_growth,
                assay_synergy)
 from . import effectsize, estimation, power
 from . import auc, cox, quantal
+from . import rangeflags, residuals, survival_extras
 
 
 def _expand(x_col, replicate_rows):
     """Pair each replicate with its row X: -> (xs, ys) flat lists."""
     xs, ys = [], []
     for xv, row in zip(x_col, replicate_rows):
-        if xv is None:
+        if xv is None or (isinstance(xv, float) and xv != xv):
             continue
         for yv in row:
-            if yv is not None:
+            if yv is not None and not (isinstance(yv, float) and yv != yv):
                 xs.append(float(xv))
                 ys.append(float(yv))
     return xs, ys
@@ -137,11 +138,29 @@ def _dose_response(data, options):
                 fit["params"]["AbsoluteIC50"] = _abs_ic50_entry(
                     fit, float(abs_level), x_lo, x_hi)
             fit.pop("_cov", None)  # internal; keep the JSON payload lean
+            try:
+                flags = rangeflags.range_flags(fit["params"], xs, ys,
+                                               x_is_log=spec.x_is_log)
+            except Exception as exc:  # flags must never cost the fit
+                flags = {"error": str(exc)}
+            if flags is not None:
+                fit["range_flags"] = flags
             entry["fit"] = fit
         except Exception as exc:  # per-dataset failure must not kill others
             entry["error"] = str(exc)
         results.append(entry)
 
+    for ds, entry in zip(data["datasets"], results):
+        lost = sum(1 for xv, row in zip(x_col, ds.get("ys") or [])
+                   if _is_missing(xv) for v in (row or [])
+                   if not _is_missing(v))
+        warn = _nan_warnings({"datasets": [ds]})
+        if lost:
+            warn.append(
+                f"{lost} Y value{'s' if lost != 1 else ''} in rows without "
+                "an X value left out of the fit")
+        if warn:
+            entry["warnings"] = warn
     error_bar_kind = options.get("error_bars", "sd")
     for ds, entry in zip(data["datasets"], results):
         entry["points"] = {
@@ -239,19 +258,192 @@ def _plate_quantify(data, options):
     }
 
 
+def _is_missing(v):
+    """A blank cell: None, or a float NaN (Python callers; JSON from the
+    web carries blanks as null)."""
+    return v is None or (isinstance(v, float) and v != v)
+
+
 def _flatten_columns(data):
     """Column-table view of the data model: every dataset's cells,
-    row-major, as one flat list per dataset (X is ignored)."""
+    row-major, as one flat list per dataset (X is ignored). Blank cells
+    (None, NaN) are left out; _nan_warnings reports NaN values."""
     cols, names = [], []
     for ds in data["datasets"]:
-        cols.append([v for row in ds["ys"] for v in row if v is not None])
+        cols.append([v for row in ds["ys"] for v in (row or [])
+                     if not _is_missing(v)])
         names.append(ds.get("name", ""))
     return cols, names
 
 
+def _nan_warnings(data, indices=None):
+    """Warnings for NaN (not-a-number) cells, which are left out like
+    blanks: a NaN usually means a text or error cell upstream, so it is
+    reported (nothing is dropped silently)."""
+    out = []
+    for i, ds in enumerate(data.get("datasets") or []):
+        if indices is not None and i not in indices:
+            continue
+        rows = sorted({r + 1 for r, row in enumerate(ds.get("ys") or [])
+                       for v in (row or [])
+                       if isinstance(v, float) and v != v})
+        if rows:
+            out.append(f"{ds.get('name', '') or f'Data set {i + 1}'}: "
+                       f"{len(rows)} non-numeric (NaN) value"
+                       f"{'s' if len(rows) > 1 else ''} left out (row"
+                       f"{'s' if len(rows) > 1 else ''} "
+                       f"{', '.join(str(r) for r in rows)})")
+    return out
+
+
+def _pair_cells(data, ia, ib):
+    """Row-aligned pairs from two data sets: cell (row, subcolumn) of A
+    with the same cell of B. Pairs with one value missing are left out
+    and their 0-based row indices returned; rows blank in both are
+    ignored. With complete data the pairs are exactly the row-major
+    flattened columns zipped together (the earlier behaviour)."""
+    def cells(ds):
+        out = {}
+        for r, row in enumerate(ds.get("ys") or []):
+            for c, v in enumerate(row or []):
+                out[(r, c)] = v
+        return out
+    A = cells(data["datasets"][ia])
+    B = cells(data["datasets"][ib])
+    a, b, incomplete = [], [], []
+    for key in sorted(set(A) | set(B)):
+        ma, mb = _is_missing(A.get(key)), _is_missing(B.get(key))
+        if ma and mb:
+            continue
+        if ma or mb:
+            incomplete.append(key[0])
+            continue
+        a.append(A[key])
+        b.append(B[key])
+    return a, b, incomplete
+
+
+def _incomplete_warning(incomplete, what="pair"):
+    n = len(incomplete)
+    rows = sorted({r + 1 for r in incomplete})
+    return (f"{n} incomplete {what}{'s' if n != 1 else ''} (row"
+            f"{'s' if len(rows) != 1 else ''} "
+            f"{', '.join(str(r) for r in rows)}) left out")
+
+
+SMALL_N_SOURCE = (
+    "GraphPad statistics guide, 'The essential concepts of statistics' / "
+    "'Statistical tests with n = 1' (a P value needs at least two "
+    "independent values per group to estimate scatter); Motulsky, "
+    "Intuitive Biostatistics, 4th ed., ch. 22 and 26 (sample size, power)")
+
+
+def _withheld_two_groups(kind, names, a, b, paired=False, warnings=None):
+    """Descriptive-only result when a group (or the pairs) has fewer than
+    two values: no P value, the reason, and what replication buys."""
+    import statistics
+    ga = [float(v) for v in a]
+    gb = [float(v) for v in b]
+    groups = [{"name": names[0], "n": len(ga),
+               "mean": statistics.fmean(ga) if ga else None,
+               "median": statistics.median(ga) if ga else None,
+               "values": ga},
+              {"name": names[1], "n": len(gb),
+               "mean": statistics.fmean(gb) if gb else None,
+               "median": statistics.median(gb) if gb else None,
+               "values": gb}]
+    if paired:
+        diffs = [x - y for x, y in zip(ga, gb)]
+        min_n = len(diffs)
+        difference = statistics.fmean(diffs) if diffs else None
+        what = "pair" if min_n == 1 else "pairs"
+        reason = (f"{min_n} complete {what}: one value allows description "
+                  "only" if min_n else "no complete pairs")
+    else:
+        min_n = min(len(ga), len(gb))
+        difference = (groups[0]["mean"] - groups[1]["mean"]
+                      if ga and gb else None)
+        reason = ("one value per group allows description only"
+                  if min_n == 1 else "a group has no values")
+    guide = []
+    for n in (3, 5, 10):
+        try:
+            if paired:
+                d = power.t_test_one("effect", n=n, power=0.8, alpha=0.05,
+                                     design="paired")["effect"]["value"]
+            else:
+                d = power.t_test_two("effect", n1=n, n2=n, power=0.8,
+                                     alpha=0.05)["effect"]["value"]
+            guide.append({"n_per_group": n, "detectable_d_80": d})
+        except ValueError:
+            pass
+    withheld = {"reason": reason, "min_n": min_n,
+                "groups": [{"name": g["name"], "n": g["n"]} for g in groups],
+                "replication_guide": guide,
+                "text": (f"P value withheld: {reason}. Repeat the experiment "
+                         "independently: with n = 3 per group a t test has "
+                         "80% power only for differences of about "
+                         f"{guide[0]['detectable_d_80']:.1f} SDs." if guide
+                         else f"P value withheld: {reason}."),
+                "source": SMALL_N_SOURCE}
+    w = list(warnings or [])
+    w.append(withheld["text"])
+    test = {"unpaired": "unpaired_t", "paired": "paired_t",
+            "mann_whitney": "mann_whitney",
+            "wilcoxon": "wilcoxon_matched_pairs",
+            "ratio_paired": "ratio_paired_t",
+            "kolmogorov_smirnov": "kolmogorov_smirnov"}.get(kind, kind)
+    out = {"test": test, "p_two_tailed": None, "p": None,
+           "withheld": withheld,
+           "descriptive": {"groups": groups, "difference": difference,
+                           "difference_definition": (
+                               "mean of (A - B) over pairs" if paired
+                               else "mean A - mean B")},
+           "mean_a": groups[0]["mean"], "mean_b": groups[1]["mean"],
+           "n_a": len(ga), "n_b": len(gb), "difference": difference,
+           "warnings": w}
+    if paired:
+        out["n_pairs"] = min_n
+    return out
+
+
+def _design_sensitivity(n1, n2=None, *, df=None, paired=False):
+    """What n this small can detect: Cohen's d (paired: d_z) detectable
+    with 80% power at two-sided alpha 0.05 (opendose.power, G*Power's
+    sensitivity analysis), and the CI half-width in SD units:
+    t_{0.975, df} sqrt(1/n1 + 1/n2) (paired: t_{0.975, n-1} / sqrt(n))."""
+    from scipy import stats as _st
+    if paired:
+        d = power.t_test_one("effect", n=n1, power=0.8, alpha=0.05,
+                             design="paired")["effect"]["value"]
+        df = n1 - 1
+        factor = float(_st.t.ppf(0.975, df)) * (1.0 / n1) ** 0.5
+        effect, n_text = "d_z", f"n = {n1} pairs"
+    else:
+        d = power.t_test_two("effect", n1=n1, n2=n2, power=0.8,
+                             alpha=0.05)["effect"]["value"]
+        df = df if df is not None else n1 + n2 - 2
+        factor = float(_st.t.ppf(0.975, df)) * (1.0 / n1 + 1.0 / n2) ** 0.5
+        effect = "d"
+        n_text = (f"n = {n1} per group" if n1 == n2
+                  else f"n = {n1} and {n2}")
+    return {
+        "min_n": int(min(n1, n2) if n2 is not None else n1),
+        "detectable_d_80": d, "effect": effect, "alpha": 0.05,
+        "power": 0.8, "ci_halfwidth_factor": factor, "df": df,
+        "text": (f"{n_text} can detect only {effect} >= {d:.2f} with 80% "
+                 "power (alpha 0.05, two-sided); the 95% CI of the "
+                 f"difference spans +/- {factor:.2f} SDs"),
+        "source": ("G*Power sensitivity analysis (Faul et al. 2007, Behav "
+                   "Res Methods 39:175) via opendose.power; CI half-width "
+                   "t(0.975, df) x sqrt(1/n1 + 1/n2) in SD units"),
+    }
+
+
 def _column_statistics(data, options):
     cols, names = _flatten_columns(data)
-    return {
+    warnings = _nan_warnings(data)
+    out = {
         "analysis": "column_statistics",
         "datasets": [
             {"name": name,
@@ -268,46 +460,142 @@ def _column_statistics(data, options):
             for name, col in zip(names, cols)
         ],
     }
+    if warnings:
+        out["warnings"] = warnings
+    return out
+
+
+_PAIRED_KINDS = ("paired", "wilcoxon", "ratio_paired")
+_TTEST_KINDS = ("unpaired", "mann_whitney", "kolmogorov_smirnov") + \
+    _PAIRED_KINDS
 
 
 def _ttest(data, options):
+    """Two-group tests. Paired kinds (paired, wilcoxon, ratio_paired)
+    pair cell by cell (row, subcolumn); incomplete pairs are left out and
+    listed in incomplete_pairs (0-based row indices) with a warning.
+    With fewer than two values in a group (or fewer than two complete
+    pairs) no test is run: p_two_tailed is null and "withheld" says why
+    (small-n honesty). With the smallest n <= 3, unpaired / Welch /
+    paired / ratio t tests add "design_sensitivity"."""
     cols, names = _flatten_columns(data)
     ia, ib = options.get("dataset_a", 0), options.get("dataset_b", 1)
     kind = options.get("kind", "unpaired")
+    if kind not in _TTEST_KINDS:
+        raise ValueError(f"unknown t test kind: {kind}")
+    warnings = _nan_warnings(data, {ia, ib})
+    incomplete = None
+    if kind in _PAIRED_KINDS:
+        va, vb, incomplete = _pair_cells(data, ia, ib)
+        if incomplete:
+            warnings.append(_incomplete_warning(incomplete))
+        n_min = len(va)
+    else:
+        va, vb = cols[ia], cols[ib]
+        n_min = min(len(va), len(vb))
+    if n_min < 2:
+        result = _withheld_two_groups(kind, [names[ia], names[ib]], va, vb,
+                                      paired=kind in _PAIRED_KINDS,
+                                      warnings=warnings)
+        if incomplete is not None:
+            result["incomplete_pairs"] = incomplete
+        result["names"] = [names[ia], names[ib]]
+        return {"analysis": "ttest", **result}
     if kind == "unpaired":
-        result = ttests.unpaired_t(cols[ia], cols[ib],
+        result = ttests.unpaired_t(va, vb,
                                    welch=options.get("welch", False),
                                    ci_level=options.get("ci_level", 0.95))
     elif kind == "paired":
-        result = ttests.paired_t(cols[ia], cols[ib],
+        result = ttests.paired_t(va, vb,
                                  ci_level=options.get("ci_level", 0.95))
     elif kind == "mann_whitney":
-        result = ttests.mann_whitney(cols[ia], cols[ib],
+        result = ttests.mann_whitney(va, vb,
                                      ci_level=options.get("ci_level", 0.95))
     elif kind == "wilcoxon":
         result = ttests.wilcoxon_matched_pairs(
-            cols[ia], cols[ib],
+            va, vb,
             zero_method=options.get("zero_method", "wilcox"),
             ci_level=options.get("ci_level", 0.95))
     elif kind == "ratio_paired":
-        result = ttests.ratio_paired_t(cols[ia], cols[ib],
+        result = ttests.ratio_paired_t(va, vb,
                                        ci_level=options.get("ci_level", 0.95))
-    elif kind == "kolmogorov_smirnov":
-        result = moretests.ks_two_sample(cols[ia], cols[ib])
     else:
-        raise ValueError(f"unknown t test kind: {kind}")
+        result = moretests.ks_two_sample(va, vb)
     result["names"] = [names[ia], names[ib]]
+    if incomplete is not None:
+        result["incomplete_pairs"] = incomplete
+    if n_min <= 3:
+        if kind == "unpaired":
+            result["design_sensitivity"] = _design_sensitivity(
+                len(va), len(vb))
+        elif kind in ("paired", "ratio_paired"):
+            result["design_sensitivity"] = _design_sensitivity(
+                n_min, paired=True)
+    if warnings:
+        result["warnings"] = warnings
     return {"analysis": "ttest", **result}
 
 
+def _withheld_groups(kind, cols, names, warnings):
+    """One-way ANOVA / Kruskal-Wallis with a group of fewer than two
+    values: descriptive results only, P withheld."""
+    import statistics
+    small = [{"name": nm, "n": len(c)} for nm, c in zip(names, cols)
+             if len(c) < 2]
+    min_n = min(len(c) for c in cols) if cols else 0
+    reason = ("one value per group allows description only"
+              if min_n == 1 else "a group has no values")
+    text = (f"P value withheld: {reason} ("
+            + ", ".join(f"{g['name'] or 'unnamed'}: n = {g['n']}"
+                        for g in small)
+            + "). Repeat the experiment independently to test it.")
+    summaries = [{"name": nm, "n": len(c),
+                  "mean": statistics.fmean(float(v) for v in c) if c else None,
+                  "median": (statistics.median(float(v) for v in c)
+                             if c else None)}
+                 for nm, c in zip(names, cols)]
+    return {"analysis": "anova", "kind": kind, "p": None, "table": None,
+            "group_summaries": summaries,
+            "withheld": {"reason": reason, "min_n": min_n, "groups": small,
+                         "text": text, "source": SMALL_N_SOURCE},
+            "warnings": list(warnings) + [text]}
+
+
 def _anova(data, options):
+    """One-way ANOVA (kind "parametric") or Kruskal-Wallis
+    ("nonparametric"). Planned families: options.comparisons_family
+    ("all" | "control" | "pairs", with options.pairs [[i, j], ...]) for
+    sidak / bonferroni / holm_sidak / holm / fisher_lsd; Dunn's test:
+    options.dunn_family ("all" | "control" | "pairs"), options.control
+    (else control_index), options.pairs, options.dunn_correction
+    ("bonferroni" | "holm" | "none"; default from dunn_corrected). A
+    group with one value (ANOVA: among the non-empty groups;
+    Kruskal-Wallis: any group with fewer than two) gives a descriptive
+    result with p null and "withheld". With the smallest n <= 3 the
+    ANOVA result adds "design_sensitivity" (the two smallest groups)."""
     cols, names = _flatten_columns(data)
+    warnings = _nan_warnings(data)
     kind = options.get("kind", "parametric")
     if kind == "nonparametric":
-        return {"analysis": "anova", "kind": kind,
-                **anova.kruskal_wallis(
-                    cols, names,
-                    dunn_corrected=options.get("dunn_corrected", True))}
+        if any(len(c) < 2 for c in cols):
+            return _withheld_groups(kind, cols, names, warnings)
+        result = {"analysis": "anova", "kind": kind,
+                  **anova.kruskal_wallis(
+                      cols, names,
+                      dunn_corrected=options.get("dunn_corrected", True),
+                      dunn_family=options.get("dunn_family", "all"),
+                      control=options.get("control",
+                                          options.get("control_index", 0)),
+                      pairs=options.get("pairs"),
+                      dunn_correction=options.get("dunn_correction"))}
+        if warnings:
+            result["warnings"] = warnings
+        return result
+    nonempty = [c for c in cols if len(c) > 0]
+    if len(nonempty) >= 2 and any(len(c) < 2 for c in nonempty):
+        keep = [i for i, c in enumerate(cols) if len(c) > 0]
+        return _withheld_groups(kind, [cols[i] for i in keep],
+                                [names[i] for i in keep], warnings)
     result = anova.one_way_anova(cols, names)
     method = options.get("comparisons")
     if method:
@@ -315,7 +603,18 @@ def _anova(data, options):
             cols, method, names=names,
             control_index=options.get("control_index", 0),
             ci_level=options.get("ci_level", 0.95),
-            family=options.get("family", "all"))
+            family=options.get("family", "all"),
+            comparisons_family=options.get("comparisons_family"),
+            pairs=options.get("pairs"))
+    ns = sorted(len(c) for c in nonempty)
+    if ns and ns[0] <= 3:
+        result["design_sensitivity"] = _design_sensitivity(
+            ns[0], ns[1], df=sum(ns) - len(ns))
+        result["design_sensitivity"]["scope"] = (
+            "a comparison of the two smallest groups using the ANOVA's "
+            "pooled residual df")
+    if warnings:
+        result["warnings"] = warnings
     return {"analysis": "anova", "kind": "parametric", **result}
 
 
@@ -366,15 +665,32 @@ def _compare_fits(data, options):
 
 
 def _correlation(data, options):
+    """Correlation of two data sets, paired cell by cell (row,
+    subcolumn); pairs with a missing value are left out and listed in
+    incomplete_pairs (0-based row indices) with a warning."""
     cols, names = _flatten_columns(data)
     ia, ib = options.get("dataset_a", 0), options.get("dataset_b", 1)
-    result = correlation.correlate(cols[ia], cols[ib],
+    va, vb, incomplete = _pair_cells(data, ia, ib)
+    result = correlation.correlate(va, vb,
                                    method=options.get("method", "pearson"))
     result["names"] = [names[ia], names[ib]]
+    result["incomplete_pairs"] = incomplete
+    warnings = _nan_warnings(data, {ia, ib})
+    if incomplete:
+        warnings.append(_incomplete_warning(incomplete, "XY pair"))
+    if warnings:
+        result["warnings"] = warnings
     return {"analysis": "correlation", **result}
 
 
 def _contingency(data, options):
+    for r, row in enumerate(data["table"]):
+        for c, v in enumerate(row):
+            if _is_missing(v):
+                raise ValueError(
+                    f"contingency table cell (row {r + 1}, column {c + 1}) "
+                    "is blank: enter 0 for an empty category or remove the "
+                    "row/column")
     result = {"analysis": "contingency",
               **contingency.contingency(data["table"],
                                         yates=options.get("yates", True),
@@ -403,11 +719,15 @@ def _contingency(data, options):
 def _two_way_anova(data, options):
     # cells[row][dataset] = replicate list, straight from the grouped table
     n_rows = max(len(ds["ys"]) for ds in data["datasets"])
+    warnings = _nan_warnings(data)
     cells = []
     for r in range(n_rows):
         row = []
         for ds in data["datasets"]:
-            row.append(ds["ys"][r] if r < len(ds["ys"]) else [])
+            cell = ds["ys"][r] if r < len(ds["ys"]) else []
+            if warnings:  # NaN cells are blanks (reported)
+                cell = [None if _is_missing(v) else v for v in cell]
+            row.append(cell)
         cells.append(row)
     names = [ds.get("name", "") for ds in data["datasets"]]
     result = {"analysis": "two_way_anova",
@@ -426,6 +746,8 @@ def _two_way_anova(data, options):
             direction=options.get("direction", "columns_within_rows"),
             row_names=row_names, col_names=names,
             additive=options.get("model") == "additive")
+    if warnings:
+        result["warnings"] = warnings
     return result
 
 
@@ -456,7 +778,13 @@ def _global_fit(data, options):
         weighting=options.get("weighting", "none"))
     finite_x = [v for v in x_col if v is not None]
     error_bar_kind = options.get("error_bars", "sd")
-    for entry, ds in zip(result["datasets"], data["datasets"]):
+    for entry, ds, gd in zip(result["datasets"], data["datasets"],
+                             gdatasets):
+        flags = rangeflags.range_flags(entry.get("params") or {},
+                                       gd["x"], gd["y"],
+                                       x_is_log=spec.x_is_log)
+        if flags is not None:
+            entry["range_flags"] = flags
         entry["curve"] = doseresponse.curve_points(
             {"model": model, "fitted_values": entry["fitted_values"],
              "x_is_log": spec.x_is_log},
@@ -510,36 +838,200 @@ def _survival(data, options):
     expected, group_names, method}, "gehan_breslow_wilcoxon",
     "hazard_ratio" (two groups)."""
     groups, names = [], []
+    warnings = []
     for ds in data["datasets"]:
         times, events = [], []
-        for row in ds["ys"]:
-            if len(row) >= 2 and row[0] is not None and row[1] is not None:
+        partial = []
+        for r, row in enumerate(ds["ys"]):
+            if len(row) >= 2 and not _is_missing(row[0]) \
+                    and not _is_missing(row[1]):
                 times.append(float(row[0]))
                 events.append(int(row[1]))
+            elif any(not _is_missing(v) for v in (row or [])):
+                partial.append(r)
+        if partial:
+            warnings.append(
+                f"{ds.get('name', '') or 'unnamed group'}: "
+                + _incomplete_warning(partial, "row")
+                + " (each subject needs a time and an event code)")
         if times:
             groups.append((times, events))
             names.append(ds.get("name", ""))
     if not groups:
         raise ValueError("no survival data (need time + event subcolumns)")
+    warnings += survival_extras.few_events_warnings(groups, names)
     if len(groups) == 1:
-        return {"analysis": "survival",
-                "curves": {names[0]: survival.km_curve(*groups[0])}}
-    return {"analysis": "survival",
-            **survival.compare_survival(groups, names)}
+        out = {"analysis": "survival",
+               "curves": {names[0]: survival.km_curve(*groups[0])}}
+    else:
+        out = {"analysis": "survival",
+               **survival.compare_survival(groups, names)}
+    out["warnings"] = warnings
+    return out
+
+
+def _survival_groups(data):
+    """Groups for the survival_* handlers (survival_extras parsing) and
+    a warning per row or group left out."""
+    groups, names, dropped = survival_extras.groups_from_datasets(
+        data["datasets"])
+    warnings = []
+    for d in dropped:
+        where = (f"row {d['row'] + 1}" if d.get("row") is not None
+                 else "group")
+        warnings.append(f"{d['group'] or 'unnamed group'}, {where} left "
+                        f"out: {d['reason']}")
+    if not groups:
+        raise ValueError("no survival data (need time + event subcolumns)")
+    return groups, names, warnings
+
+
+def _survival_pairwise(data, options):
+    """Pairwise log-rank tests with a multiplicity correction, and the
+    log-rank test for trend (survival_extras). Payload as "survival"
+    (datasets = groups, rows [time, event]). options: family ("all" |
+    "control"), control (index, 0), correction ("bonferroni" |
+    "holm_sidak" | "holm" | "sidak" | "none"; default "holm_sidak"),
+    statistic ("peto" (default, the survival result's chi2) |
+    "variance" (R survdiff)), trend_scores ([one per group]; default
+    1..k), ci_level (0.95). Result: {"analysis": "survival_pairwise",
+    "comparisons": [{a, b, a_index, b_index, chi2, df, p_unadjusted,
+    p_adjusted, chi2_peto, p_peto, chi2_variance, p_variance, hr, hr_ci,
+    hr_method, observed, expected, significant_05, family_size,
+    method}], "family_size", "correction", "statistic", "family": {size,
+    method, label}, "trend": {chi2, df, p, scores, ...} | null (fewer
+    than 3 groups), "method", "warnings"}."""
+    groups, names, warnings = _survival_groups(data)
+    res = survival_extras.pairwise_logrank(
+        groups, names, family=options.get("family", "all"),
+        control=int(options.get("control", options.get("control_index",
+                                                        0))),
+        correction=options.get("correction", "holm_sidak"),
+        ci_level=options.get("ci_level", 0.95),
+        statistic=options.get("statistic", "peto"),
+        trend_scores=options.get("trend_scores"))
+    res["warnings"] = (warnings + list(res.get("warnings") or [])
+                       + survival_extras.few_events_warnings(groups, names))
+    return {"analysis": "survival_pairwise", **res}
+
+
+def _survival_at_time(data, options):
+    """Kaplan-Meier survival at chosen times, with the median explained
+    (survival_extras.survival_at_times). Payload as "survival". options:
+    times ([t, ...], required), ci_level (0.95). Result: {"analysis":
+    "survival_at_time", "groups": [{name, n, events, at_times: [{time,
+    survival, se, ci_loglog, at_risk, events_so_far, beyond_last,
+    note?}], explanation: {median_reached, median, fraction_at_last,
+    last_time, events, n, text}}], "ci_level", "columns", "warnings"}."""
+    groups, names, warnings = _survival_groups(data)
+    times = options.get("times")
+    if times is None:
+        raise ValueError("survival_at_time needs options.times")
+    if not isinstance(times, (list, tuple)):
+        times = [times]
+    res = survival_extras.survival_at_times(
+        groups, names, [float(t) for t in times],
+        ci_level=options.get("ci_level", 0.95))
+    res["warnings"] = (warnings + list(res.get("warnings") or [])
+                       + survival_extras.few_events_warnings(groups, names))
+    return {"analysis": "survival_at_time", **res}
+
+
+def _rmst(data, options):
+    """Restricted mean survival time up to tau with SE and CI, and each
+    group's difference and ratio vs the first group (survRM2 method;
+    survival_extras.rmst). Payload as "survival". options: tau (default:
+    the smallest of the groups' largest observed times), ci_level.
+    Result: {"analysis": "rmst", "tau", "tau_rule", "reference",
+    "groups": [{name, rmst, se, ci, tau, n, events, variance}],
+    "difference": [{a, b, reference, label, estimate, se, ci, p}],
+    "ratio": [{a, b, reference, label, estimate, se_log, ci, p}],
+    "ci_level", "method", "warnings"}."""
+    groups, names, warnings = _survival_groups(data)
+    tau = options.get("tau")
+    res = survival_extras.rmst(groups, names,
+                               tau=None if tau is None else float(tau),
+                               ci_level=options.get("ci_level", 0.95))
+    res["warnings"] = (warnings + list(res.get("warnings") or [])
+                       + survival_extras.few_events_warnings(groups, names))
+    return {"analysis": "rmst", **res}
+
+
+def _residuals_column(data, options):
+    """Residual diagnostics for column analyses (residuals.py): QQ-plot
+    points, Shapiro-Wilk on the pooled residuals and n-dependent advice.
+    data: column table {"datasets": [{"name", "ys"}]} (cells row-major,
+    None = blank). options: paired (false; true = residuals of the
+    paired differences of dataset_a minus dataset_b, row by row),
+    dataset_a (0), dataset_b (1). Result: {"analysis":
+    "residuals_column", "points": [{group, group_index, index, value,
+    fitted, residual, standardized, theoretical}], "groups": [{group,
+    group_index, n, fitted, in_qq}], "theoretical_method", "shapiro":
+    {W, p, n} | null, "shapiro_note", "pooled_sd", "df", "n_total",
+    "n_qq", "paired", "difference_direction", "dropped": [{group, index,
+    reason, missing_in?}], "warnings", "note", "advice": {n_total, text,
+    source}}. index = position in the data set's row-major cells (the
+    row index for one subcolumn)."""
+    names = [ds.get("name", "") for ds in data["datasets"]]
+    cols = [[v for row in ds["ys"] for v in (row or [])]
+            for ds in data["datasets"]]
+    if options.get("paired"):
+        ia, ib = options.get("dataset_a", 0), options.get("dataset_b", 1)
+        res = residuals.column_residuals([cols[ia], cols[ib]],
+                                         [names[ia], names[ib]],
+                                         paired=True)
+    else:
+        res = residuals.column_residuals(cols, names)
+    return {"analysis": "residuals_column", **res}
 
 
 def _rm_anova(data, options):
+    """Repeated-measures one-way ANOVA (kind "parametric") or Friedman
+    ("nonparametric"); datasets = treatments, rows = subjects (first
+    subcolumn). Rows with a missing value are left out and listed in
+    incomplete_subjects (0-based) with a warning. The parametric result
+    carries the subject term: table.ss_subject and table.df_subject (the
+    between-subject variation the matching removes). Friedman's Dunn
+    test takes options.dunn_family ("all" | "control" | "pairs"),
+    options.control (else control_index), options.pairs [[i, j], ...]
+    and options.dunn_correction ("bonferroni" | "holm" | "none")."""
     cols, names = _flatten_columns(data)
     # RM analyses need row alignment -> use first subcolumn per dataset
     aligned = [[row[0] if row else None for row in ds["ys"]]
                for ds in data["datasets"]]
     kind = options.get("kind", "parametric")
+    # subjects (rows) with some but not all values are left out (RM
+    # analyses need complete rows): say which
+    n_rows = max((len(a) for a in aligned), default=0)
+    partial = []
+    for r in range(n_rows):
+        vals = [a[r] if r < len(a) else None for a in aligned]
+        missing = [_is_missing(v) for v in vals]
+        if any(missing) and not all(missing):
+            partial.append(r)
+    aligned = [[None if _is_missing(v) else v for v in a] for a in aligned]
+    warnings = []
+    if partial:
+        warnings.append(_incomplete_warning(partial, "subject row")
+                        + " (repeated measures need every treatment per "
+                          "subject; the mixed-model analysis keeps them)")
     if kind == "nonparametric":
-        return {"analysis": "friedman",
-                **repeated.friedman(aligned, names,
-                                    exact=options.get("exact", False))}
-    return {"analysis": "rm_one_way_anova",
-            **repeated.rm_one_way_anova(aligned, names)}
+        result = {"analysis": "friedman",
+                  **repeated.friedman(
+                      aligned, names, exact=options.get("exact", False),
+                      dunn_family=options.get("dunn_family", "all"),
+                      control=options.get("control",
+                                          options.get("control_index", 0)),
+                      pairs=options.get("pairs"),
+                      dunn_correction=options.get("dunn_correction",
+                                                  "bonferroni"))}
+    else:
+        result = {"analysis": "rm_one_way_anova",
+                  **repeated.rm_one_way_anova(aligned, names)}
+    result["incomplete_subjects"] = partial
+    if warnings:
+        result["warnings"] = warnings
+    return result
 
 
 def _rm_two_way(data, options):
@@ -1777,6 +2269,11 @@ def _global_model_fit(data, options):
     grid = [lo + k * (hi - lo) / 199 for k in range(200)]
     error_bar_kind = options.get("error_bars", "sd")
     for i, (entry, ds) in enumerate(zip(result["datasets"], data["datasets"])):
+        flags = rangeflags.range_flags(entry.get("params") or {},
+                                       gdatasets[i]["x"], gdatasets[i]["y"],
+                                       x_is_log=spec.x_is_log)
+        if flags is not None:
+            entry["range_flags"] = flags
         entry["curve"] = {"x": grid,
                           "y": equations.global_curve(model, entry, i, grid)}
         entry["points"] = {
@@ -2568,6 +3065,15 @@ _HANDLERS.update({
     "quantal": _quantal,
     "auc": _auc,
     "pzfx_export": _pzfx_export,
+})
+
+
+# ------------------------------------------- Wave 1: survival extras, residuals
+_HANDLERS.update({
+    "survival_pairwise": _survival_pairwise,
+    "survival_at_time": _survival_at_time,
+    "rmst": _rmst,
+    "residuals_column": _residuals_column,
 })
 
 
