@@ -340,8 +340,22 @@ await val.getByRole("button", { name: "Close" }).last().click();
     return d;
   };
 
-  // (a) Incucyte → XY table of confluence over time per well; saved as a recipe
+  // (0) a long table whose label column reads A … then B (warpbreaks:
+  // wool, tension, breaks) is a long table, not a 6-well plate
   let d = await openRecipes();
+  const WOOL = write("warpbreaks.csv", ["wool,tension,breaks", ...Array.from({ length: 54 }, (_, i) =>
+    `${i < 27 ? "A" : "B"},${"LMH"[Math.floor((i % 27) / 9)]},${10 + ((i * 7) % 45)}`)].join("\n"));
+  await d.getByLabel("Export file to import").setInputFiles(WOOL);
+  await d.locator(".recipe-option.checked", { hasText: "Recognise the file" }).waitFor();
+  expect("warpbreaks-like long table recognised as a long table, not a plate",
+    await d.locator(".recipe-option", { hasText: "Long (tidy) table" }).locator(".recipe-detected").count() === 1
+    && await d.locator(".recipe-option", { hasText: "Plate reader grid" }).locator(".recipe-detected").count() === 0
+    && !(await d.innerText()).includes("well plate found at row"));
+  await d.getByRole("button", { name: "Cancel" }).click();
+  await d.waitFor({ state: "detached", timeout: 10000 });
+
+  // (a) Incucyte → XY table of confluence over time per well; saved as a recipe
+  d = await openRecipes();
   await d.getByLabel("Export file to import").setInputFiles(INCU);
   await d.locator(".recipe-option.checked", { hasText: "Recognise the file" }).waitFor();
   expect("Incucyte export recognised", await d.locator(".recipe-option", { hasText: "Incucyte time series" })

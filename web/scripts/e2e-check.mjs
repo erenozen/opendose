@@ -355,6 +355,18 @@ const interRow = await page.locator(".result-card .results-table tr", { hasText:
   .first().innerText();
 expect("grouped example: two-way interaction F = 41.54",
   interRow.split(/\t/).includes("41.54"), interRow.replace(/\s+/g, " "));
+{
+  // the "No interaction term" note belongs to the main-effects model only
+  const noInter = page.locator(".pane-results .result-card .hint-block", { hasText: "No interaction term" });
+  expect("full two-way model: no 'No interaction term' note", await noInter.count() === 0);
+  const modelSel = page.locator(".controls").getByRole("combobox", { name: /^Model/ });
+  await modelSel.selectOption("additive");
+  expect("main-effects model: the 'No interaction term' note appears", await appears(noInter));
+  await modelSel.selectOption("full");
+  expect("back to the full model: the note is gone", await noInter.first()
+    .waitFor({ state: "detached", timeout: 15000 }).then(() => true, () => false));
+  await page.waitForTimeout(600);
+}
 expect("interleaved bar graph draws one bar trace per dataset",
   await page.locator(".plot .barlayer .trace").count() === 2);
 for (const kind of ["grouped_stacked", "grouped_separated", "grouped_box",

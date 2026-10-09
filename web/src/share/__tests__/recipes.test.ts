@@ -9,7 +9,9 @@ import type { DataTableModel } from "../../project/types.ts";
 import { applyPattern, guessParts, splitName } from "../recipes/pattern.ts";
 import { initialConfig, runPipeline } from "../recipes/pipeline.ts";
 import { findPlateGrid, plateNumber } from "../recipes/plate.ts";
-import { detectRecipe, parseSource, recipeById } from "../recipes/presets.ts";
+import {
+  detectRecipe, looksLongTable, parseSource, plateScore, recipeById,
+} from "../recipes/presets.ts";
 import {
   aggValue, aggregate, hierarchy, makeStaging, pivot, unitsPerGroup,
 } from "../recipes/staging.ts";
@@ -120,6 +122,57 @@ test("plate grid: found below a preamble, same rules as the SRB importer", () =>
   // an unlabelled block of exactly 8 × 12 numbers is a plate too
   const bare = Array.from({ length: 8 }, (_, r) => Array.from({ length: 12 }, (_, c) => String(r * 12 + c)));
   assert.equal(findPlateGrid(bare)?.left, -1);
+});
+
+test("a long table whose label column reads A then B is not a plate", () => {
+  // warpbreaks: wool (A, B) x tension (L, M, H), 9 rows each; the last A
+  // row sits above the first B row, which the grid rule alone reads as
+  // a 2-row (6-well) block at row 28
+  const breaks = [26, 30, 54, 25, 70, 52, 51, 26, 67, 18, 21, 29, 17, 12, 18, 35, 30, 36,
+    36, 21, 24, 18, 10, 43, 28, 15, 26, 27, 14, 29, 19, 29, 31, 41, 20, 44, 42, 26, 19,
+    16, 39, 28, 21, 39, 29, 20, 21, 24, 17, 13, 15, 15, 16, 28];
+  const lines = ["wool,tension,breaks", ...breaks.map((b, i) =>
+    `${i < 27 ? "A" : "B"},${"LMH"[Math.floor((i % 27) / 9)]},${b}`)];
+  const m = parseSource(lines.join("\n"));
+  assert.equal(findPlateGrid(m)?.top, 27, "the grid rule (as plate_io.py) still sees the A/B pair");
+  assert.ok(looksLongTable(m));
+  assert.equal(plateScore(m), 0);
+  const r = detectRecipe(m);
+  assert.equal(r.id, "tidy");
+  const s = r.stage(m);
+  assert.equal(s.staging.rows.length, 54);
+  // an all-numeric long table is not a plate either
+  const xy = parseSource(["dose,signal", ...Array.from({ length: 20 }, (_, i) => `${i},${i * 2}`)].join("\n"));
+  assert.equal(plateScore(xy), 0);
+  assert.equal(detectRecipe(xy).id, "tidy");
+  // nor a column table with a header row and unequal columns (a bare
+  // 19 x 2 block, padded): offered by name only, the header wins
+  const cols = parseSource(["automatic (am=0),manual (am=1)",
+    ...Array.from({ length: 19 }, (_, i) => (i < 13 ? `${20 + i},${25 + i}` : `${20 + i},`))].join("\n"));
+  assert.ok(plateScore(cols) < 0.1);
+  assert.equal(detectRecipe(cols).id, "tidy");
+});
+
+test("plate-shaped blocks are still claimed: labelled 96, bare 8 x 12, labelled 384", () => {
+  const nums = (r: number, c: number) => Array.from({ length: c }, (_, j) => (0.1 + r * 0.01 + j * 0.001).toFixed(3));
+  const labelled = ["Plate 1,,,", "Read: 450 nm", "",
+    ["", ...Array.from({ length: 12 }, (_, j) => String(j + 1))].join(","),
+    ..."ABCDEFGH".split("").map((L, r) => [L, ...nums(r, 12)].join(","))].join("\n");
+  let m = parseSource(labelled);
+  assert.ok(!looksLongTable(m));
+  assert.equal(plateScore(m), 0.95);
+  assert.equal(detectRecipe(m).id, "plate");
+  assert.match(detectRecipe(m).stage(m).notes[0], /^96-well plate found at row 5\./);
+  m = parseSource(Array.from({ length: 8 }, (_, r) => nums(r, 12).join("\t")).join("\n"));
+  assert.equal(detectRecipe(m).id, "plate");
+  m = parseSource([["", ...Array.from({ length: 24 }, (_, j) => String(j + 1))].join(","),
+    ..."ABCDEFGHIJKLMNOP".split("").map((L, r) => [L, ...nums(r, 24)].join(","))].join("\n"));
+  assert.equal(detectRecipe(m).id, "plate");
+  assert.equal(detectRecipe(m).stage(m).staging.rows.length, 384);
+  // a 24-well plate with row letters and numbered columns is claimed too
+  m = parseSource([",1,2,3,4,5,6", ..."ABCD".split("").map((L, r) => [L, ...nums(r, 6)].join(","))].join("\n"));
+  assert.equal(plateScore(m), 0.9);
+  assert.equal(detectRecipe(m).id, "plate");
 });
 
 test("qPCR: technical wells averaged per sample and target, undetermined is missing", () => {

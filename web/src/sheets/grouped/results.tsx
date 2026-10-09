@@ -13,6 +13,7 @@ import {
 import { fmtCI, fmtP, pLabel, stars } from "./format";
 import { rowMeansTable, CALC_TITLE } from "./tables";
 import InteractionBlock from "./interaction";
+import { isAdditiveTwoWay } from "./interactionSummary";
 import { adjustedHeader, familyOf, hasUnadjusted } from "../../report/family";
 import FamilyLine from "../common/FamilyLine";
 import "./grouped.css";
@@ -270,7 +271,7 @@ export function TwoWayResults({ result, options, table }: ResultsProps<TwoWayOpt
         {result.n != null ? `; ${result.n} values` : ""}
         {result.model ? `; ${String(result.model)}` : ""}
       </p>
-      {result.model && (
+      {isAdditiveTwoWay(result) && (
         <p className="hint-block">
           No interaction term: its sum of squares is part of the residual, and
           each factor is tested against that residual (R&apos;s aov(y ~ A + B)).

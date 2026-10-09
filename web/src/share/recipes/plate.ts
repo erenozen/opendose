@@ -57,8 +57,9 @@ export interface PlateGrid {
    *  without labels). */
   top: number;
   left: number;
-  /** Rows the block spans in the sheet (before padding). */
+  /** Rows and columns the block spans in the sheet (before padding). */
   blockRows: number;
+  blockCols: number;
   labelledRows: boolean;
   labelledColumns: boolean;
 }
@@ -278,7 +279,7 @@ export function findPlateGrid(matrix: string[][], requested?: number | null): Pl
     (r < nRows && c < nCols ? plateNumber(cellAt(m, top + r, left + c)) : null)));
   return {
     rows: outRows, cols: outCols, values, format: fmt, warnings,
-    top, left: block.labelledRows ? left - 1 : -1, blockRows: nRows,
+    top, left: block.labelledRows ? left - 1 : -1, blockRows: nRows, blockCols: nCols,
     labelledRows: block.labelledRows, labelledColumns: block.labelledColumns,
   };
 }

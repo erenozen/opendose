@@ -4,7 +4,7 @@
 // table type. Every guess can be changed in the recipe dialog.
 import { findCqHeader, isUndeterminedCq } from "../../sheets/assays/qpcr/headers.ts";
 import { guessDelimiter, guessParts, type NamePattern } from "./pattern.ts";
-import { findPlateGrid, ROW_LABELS } from "./plate.ts";
+import { findPlateGrid, plateNumber, ROW_LABELS } from "./plate.ts";
 import { parseText } from "./source.ts";
 import { incucyteRecipe } from "./incucyte.ts";
 import { labchartRecipe } from "./labchart.ts";
@@ -237,12 +237,53 @@ const qupath: Recipe = {
 
 // ------------------------------------------------------------ plate grid
 
+/** Whether a file reads as a long (tidy) table: a header row of short
+ *  names (none of them a number), then many rows of the header's width
+ *  with at least one numeric column. A small block of letters A, B …
+ *  inside such a file (a "wool" column reading A, then B) is a label
+ *  column, not a plate. */
+export function looksLongTable(m: string[][]): boolean {
+  const rows = m.map((r) => {
+    let n = r.length;
+    while (n > 0 && !r[n - 1]?.trim()) n--;
+    return r.slice(0, n).map((c) => c.trim());
+  }).filter((r) => r.length > 0);
+  const head = rows[0] ?? [];
+  if (head.length < 2 || head.some((c) => !c || c.length > 40 || plateNumber(c) !== null)) return false;
+  const bodyRows = rows.slice(1);
+  if (bodyRows.length < 5) return false;
+  const shaped = bodyRows.filter((r) => r.length === head.length);
+  if (shaped.length < 0.8 * bodyRows.length) return false;
+  return head.some((_, c) => shaped.filter((r) => plateNumber(r[c]) !== null).length >= 0.8 * shaped.length);
+}
+
+/** How surely a file is a plate-reader grid (0 .. 0.95). Only a block of
+ *  exactly 96, 384 or 1536 wells (labelled A–H/A–P with 12/24 columns, or
+ *  a bare 8 × 12 / 16 × 24 block of numbers) is claimed outright. A
+ *  smaller or padded block counts only with at least three labelled rows
+ *  (A, B, C …) in a file that is not a long table, so a long table, or a
+ *  column table with a header row, is never read as a plate. The grid rule itself is plate.ts (as
+ *  engine/opendose/plate_io.py locate_plate). */
+export function plateScore(m: string[][]): number {
+  const g = findPlateGrid(m);
+  if (!g || g.format === null) return 0;
+  const exact = g.blockRows === g.rows && g.blockCols === g.cols;
+  if (exact && g.format >= 96) return 0.95;
+  if (looksLongTable(m)) return 0;
+  if (g.labelledRows && g.blockRows >= 3) {
+    return g.labelledColumns ? (exact ? 0.9 : 0.6) : (exact ? 0.5 : 0.3);
+  }
+  // two labelled rows, or a bare block that is not 8 x 12 / 16 x 24:
+  // offered by name only (any table with a header row wins)
+  return 0.05;
+}
+
 const plate: Recipe = {
   id: "plate",
   label: "Plate reader grid (8 × 12 or 16 × 24)",
   description: "A plate block with row letters A–H (or A–P) and columns 1–12 (or 1–24), "
     + "anywhere in the file. One record per well; columns become groups by default.",
-  detect: (m) => (findPlateGrid(m) ? 0.95 : 0),
+  detect: plateScore,
   stage: (m) => {
     const g = findPlateGrid(m);
     if (!g) throw new Error("No plate block (rows A, B, C … with numbers beside them) was found.");

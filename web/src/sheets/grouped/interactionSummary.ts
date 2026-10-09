@@ -49,6 +49,15 @@ export interface InteractionSummary {
   explainer: string | null;
 }
 
+/** Whether an ordinary two-way ANOVA result is the main-effects
+ *  (additive) model, fitted on request or because there is one value per
+ *  cell. The engine (opendose.twoway) always names its model: "full (with
+ *  interaction)" or "main effects only (additive)". */
+export function isAdditiveTwoWay(result: R | null | undefined): boolean {
+  const model = result?.model;
+  return typeof model === "string" && /additive|main effects/i.test(model);
+}
+
 const num = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
 const pair = (v: unknown): [number, number] | null => (Array.isArray(v) && v.length === 2
   && v.every((x) => typeof x === "number") ? [v[0], v[1]] : null);
