@@ -1,5 +1,5 @@
 import { ANALYSIS_SURVIVAL, GRAPH_SURVIVAL } from "../../project/builtin";
-import { emptyTable, normalizeTable, numericData } from "../../project/table";
+import { emptyTable, normalizeTable } from "../../project/table";
 import DataGrid from "../common/DataGrid";
 import { lazyPart } from "../lazy";
 import { defineAnalysis, defineGraph, type AnalysisDef, type GraphKindDef, type TableTypeDef } from "../types";
@@ -8,6 +8,8 @@ import {
   type CoxOptions, type CoxResult,
 } from "./cox";
 import { SurvivalControls, SurvivalGraph, SurvivalOptions, SurvivalResultsPanel } from "./panels";
+import { DEFAULT_SURVIVAL_OPTIONS, normalizeSurvivalOptions, runSurvival } from "./extras";
+import { SurvivalMethods } from "./extrasPanels";
 
 // Cox regression panels load on first use (sheets/lazy.ts).
 const coxModule = () => import("./coxPanels");
@@ -19,20 +21,23 @@ const CoxCurvesOptions = lazyPart(coxModule, "CoxCurvesOptions");
 const CoxForestPlot = lazyPart(coxModule, "CoxForestPlot");
 const CoxSchoenfeldPlot = lazyPart(coxModule, "CoxSchoenfeldPlot");
 const CoxSchoenfeldOptions = lazyPart(coxModule, "CoxSchoenfeldOptions");
-const CovariateAside = lazyPart(() => import("./CovariateAside"), "default");
+// Entry from counts / dates, the per-group reading and the covariates.
+const SurvivalAside = lazyPart(() => import("./SurvivalAside"), "default");
 
 export const survivalAnalysis = defineAnalysis<unknown, Record<string, unknown>>({
   id: ANALYSIS_SURVIVAL,
   label: "Survival analysis (Kaplan-Meier, log-rank)",
   short: "Survival",
   sheetName: (t) => `Survival of ${t}`,
-  defaultOptions: () => ({}),
-  run: (engine, table) => engine.analyze({
-    analysis: "survival", data: numericData(table), options: {},
-  }) as Record<string, unknown>,
+  // Pairwise log-rank, survival at a time and RMST options (extras.ts);
+  // older sheets store {} and get the defaults.
+  defaultOptions: () => ({ ...DEFAULT_SURVIVAL_OPTIONS }),
+  normalizeOptions: (raw) => normalizeSurvivalOptions(raw),
+  run: (engine, table, options) => runSurvival(engine, table, options),
   defaultGraph: GRAPH_SURVIVAL,
   ControlsPanel: SurvivalControls,
   ResultsPanel: SurvivalResultsPanel,
+  MethodsPanel: SurvivalMethods,
 });
 
 export const survivalGraph = defineGraph({
@@ -143,7 +148,7 @@ export const survivalTable: TableTypeDef = {
   sampleTable: survivalSample,
   sampleName: "Survival example",
   Editor: DataGrid,
-  EditorAside: CovariateAside,
+  EditorAside: SurvivalAside,
   analyses: [survivalAnalysis, coxAnalysis],
   graphs: [survivalGraph, ...coxGraphs],
 };

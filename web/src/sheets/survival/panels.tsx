@@ -5,6 +5,9 @@ import type { ControlsProps, GraphOptionsProps, PlotProps, ResultsProps } from "
 import { OptCheck, OptNote, OptSlider } from "../../components/GraphOptionControls";
 import { useGraphSetting } from "../grouped/plotting";
 import { normalizeSurvivalGraph } from "./graphSettings";
+import { timeUnitOf } from "./entry";
+import { notReachedByGroup } from "./extras";
+import { MedianNotes, SurvivalExtrasBlocks } from "./extrasPanels";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -17,14 +20,20 @@ export function SurvivalControls(_: ControlsProps) {
         <p className="hint-block">
           Each dataset is one group; each row is one subject:
           Y1 = time, Y2 = event code (1 = event, 0 = censored).
+          Counts of animals alive per day, or start and end dates, can be
+          turned into these rows with “Survival data from…” above the table.
         </p>
       </section>
     </div>
   );
 }
 
-export function SurvivalResultsPanel({ result, table }: ResultsProps<unknown, any>) {
-  return <SurvivalResults result={result} table={table} />;
+export function SurvivalResultsPanel(props: ResultsProps<unknown, any>) {
+  const { result, table } = props;
+  return <SurvivalResults result={result} table={table}
+    medianNotes={notReachedByGroup(result?.extras?.at_time, timeUnitOf(table))}
+    afterMedians={<MedianNotes result={result} table={table} />}
+    extras={<SurvivalExtrasBlocks {...props} />} />;
 }
 
 export function SurvivalGraph({ graph, result, titles, scheme, table, format, onFormatChange }:

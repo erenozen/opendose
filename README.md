@@ -185,7 +185,17 @@ example's numbers, regenerate them against a dev server with
 - Survival: Kaplan-Meier with per-group tables (at risk, events, SE, CI;
   Copy / CSV), log-rank in the Peto and the variance (Mantel-Haenszel)
   forms with observed and expected events, Gehan-Breslow-Wilcoxon,
-  hazard ratios, median survival with CIs, number-at-risk tables.
+  hazard ratios, median survival with CIs, number-at-risk tables;
+  "median not reached" explained with the survival at the last
+  follow-up, few-events warnings, survival at a chosen time and the
+  restricted mean survival time (RMST) with differences and CIs; with
+  three or more groups, pairwise log-rank tests (all pairs or against a
+  control, Holm-Šídák or Bonferroni adjusted) and the log-rank test for
+  trend.
+- Survival data entry: "Survival data from…" turns alive (or dead)
+  counts per day, or start and end dates with yes/no event codes, into
+  one row per subject, with a preview of how each subject is read
+  ("death on day 12", "censored on day 30").
 - Parts of whole (fraction of total with Wilson / Clopper-Pearson CIs,
   chi-square goodness of fit with the binomial test); nested t test and
   nested one-way ANOVA as mixed models; multiple-variables tables
