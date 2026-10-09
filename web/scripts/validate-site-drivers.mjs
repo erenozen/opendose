@@ -960,9 +960,10 @@ async function compareModels(u, R, model1, model2, label = "compare fits") {
     ss1: m(1, /^Sum of squares/), ss2: m(2, /^Sum of squares/),
   };
 }
-/** Evidence ratio from the shown AICc difference: exp(|ΔAICc| / 2). */
+/** Evidence ratio for model 2 (the more complex one, as the references
+ *  state it) from the shown AICc difference (2 − 1): exp(−Δ / 2). */
 const evidenceRatio = (delta) => (delta == null ? null
-  : { s: delta, conv: (v) => Math.exp(Math.abs(v) / 2), note: "evidence ratio = exp(|ΔAICc| / 2) from the page's difference in AICc" });
+  : { s: delta, conv: (v) => Math.exp(-v / 2), note: "evidence ratio for model 2 = exp(−ΔAICc / 2) from the page's difference in AICc (2 − 1)" });
 
 def("r-puromycin", async (u, _R) => {
   u.friction("friction", "Pasting replicate columns (treated_1, treated_2, …) names each data set after its first replicate column (\"treated_1\", \"control_1\") instead of the shared stem.");
