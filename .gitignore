@@ -15,3 +15,4 @@ examples/
 .claude/worktrees/
 docs/validation/private/
 docs/validation/site-screens/
+.verify/
