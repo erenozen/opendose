@@ -37,6 +37,7 @@ import EffectSizeCard from "../report/EffectSizeCard";
 import GraphLegend from "../report/GraphLegend";
 import ReportCard from "../report/ReportCard";
 import StatsMethodsCard from "../report/StatsMethodsCard";
+import NotesStrip from "./NotesStrip";
 import ResultsLinks, { ResultsEmptyLinks } from "./ResultsLinks";
 
 /**
@@ -210,6 +211,8 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
                 <ResultsGuide analysisId={resSheet.analysis} tableType={data.table.type}
                   table={data.table} options={options} result={result}
                   dataId={data.id} resultsId={resSheet.id} readOnly={readOnly} />
+                <NotesStrip analysisId={resSheet.analysis} table={data.table} options={options}
+                  result={result} />
                 <ResultsLinks key={resSheet.id} sheet={resSheet} tableName={data.name}
                   options={options} result={result} />
 

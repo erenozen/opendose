@@ -5,11 +5,12 @@ import { useProject } from "../../app/context";
 import { addFamily } from "../../app/factory";
 import { toDelimited } from "../../project/exportTable";
 import { newId } from "../../project/ids";
-import { dropUnfilledDatasets, pasteNeedsImport } from "../../project/importText";
+import { pasteNeedsImport } from "../../project/importText";
+import { pasteWithReport, type PasteReport } from "../../project/pasteReport";
 import {
   addDataset, addRow, allowsSummaryFormat, blockValues, clearBlock, deleteDataset,
   deleteRow, deleteRows, flatColumns, insertDataset, insertRows, insertSeries,
-  isExcluded, moveDataset, normRect, parseCell, parseClipboardGrid, pasteBlock,
+  isExcluded, moveDataset, normRect, parseCell, parseClipboardGrid,
   renameDataset, reverseRows, setCell, setRowTitle, setSubTitle, setSubcolumnCount,
   setVarType, setX, sortRows, tableShape, toggleBlockExcluded, toggleExcluded,
   type CellRect, type CellRef, type SortKey,
@@ -27,10 +28,14 @@ import {
 } from "./EditDialogs";
 import ImportDialog, { type ImportRequest } from "./ImportDialog";
 import MenuButton from "./MenuButton";
+import PasteReportStrip from "./PasteReportStrip";
 import { lazy, Suspense } from "react";
 
 // Wide <-> long (src/share), loaded when first opened.
 const ReshapeDialog = lazy(() => import("../../share/ReshapeDialog"));
+// Convert table to… another type or layout (project/convertType.ts).
+const ConvertTypeDialog = lazy(() => import("./ConvertTypeDialog"));
+const CONVERTIBLE: TableType[] = ["column", "grouped", "xy", "multivariable"];
 import "./grid.css";
 
 // Default subcolumn header when the user has not titled it.
@@ -54,7 +59,7 @@ const HINTS: Partial<Record<TableType, string>> = {
 type Dialog =
   | { kind: "import"; req?: ImportRequest; paste?: { text: string; r: number; c: number } }
   | { kind: "export" } | { kind: "sort" } | { kind: "series" } | { kind: "format" }
-  | { kind: "convert" } | { kind: "reshape" };
+  | { kind: "convert" } | { kind: "reshape" } | { kind: "convertType" };
 
 const mac = typeof navigator !== "undefined" && /Mac|iP(hone|ad)/.test(navigator.platform);
 const MOD = mac ? "⌘" : "Ctrl+";
@@ -105,6 +110,12 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
     && r >= rect.r0 && r <= rect.r1 && c >= rect.c0 && c <= rect.c1;
   const [editing, setEditing] = useState<string | null>(null);
   const [dialog, setDialog] = useState<Dialog | null>(null);
+  // What the last paste / import did to each cell (kept per sheet).
+  const [pasteInfo, setPasteInfo] = useState<{
+    id: string; verb: "Pasted" | "Imported"; report: PasteReport;
+    paste?: { text: string; r: number; c: number };
+  } | null>(null);
+  const shownReport = pasteInfo?.id === sheet.id ? pasteInfo : null;
   const [selecting, setSelecting] = useState(false);
   const dragging = useRef(false);
 
@@ -206,8 +217,20 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
         paste: { text, r: pr, c: pc } });
       return;
     }
+    pasteAt(text, pr, pc);
+  };
+
+  // A direct paste: the block as typed, with its report above the grid.
+  const pasteAt = (text: string, pr: number, pc: number) => {
     const block = parseClipboardGrid(text);
-    onChange((x) => dropUnfilledDatasets(x, pasteBlock(x, pr, pc, block)));
+    const { report } = pasteWithReport(t, pr, pc, block);
+    onChange((x) => pasteWithReport(x, pr, pc, block).table);
+    setPasteInfo({ id: sheet.id, verb: "Pasted", report, paste: { text, r: pr, c: pc } });
+  };
+
+  const jumpTo = (r: number, c: number) => {
+    setSel({ r0: r, c0: c, r1: r, c1: c });
+    requestAnimationFrame(() => focusCell(r, c));
   };
 
   const onCopy = (e: React.ClipboardEvent, cut: boolean) => {
@@ -367,12 +390,26 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
               <button type="button" onClick={() => setDialog({ kind: "convert" })}
                 title="Create a new table of means and errors from this one">Convert…</button>
             )}
+            {CONVERTIBLE.includes(t.type) && (
+              <button type="button" onClick={() => setDialog({ kind: "convertType" })}
+                title="Make a new table of another type or layout with every value, exclusion and pairing kept">
+                Convert table to…</button>
+            )}
             <button type="button" onClick={() => setDialog({ kind: "reshape" })}
               title={t.type === "multivariable" ? "Make a wide table (groups as columns) from this long table"
                 : "Make a long table (one observation per row) from this one"}>Reshape…</button>
           </>
         )}
       </div>
+
+      {shownReport && !readOnly && (
+        <PasteReportStrip verb={shownReport.verb} report={shownReport.report} onJump={jumpTo}
+          onDismiss={() => setPasteInfo(null)}
+          onReimport={shownReport.paste ? () => {
+            const p = shownReport.paste!;
+            setDialog({ kind: "import", req: { text: p.text, mode: "insert", row: p.r, col: p.c } });
+          } : undefined} />
+      )}
 
       <div className={`data-table${readOnly ? " is-readonly" : ""}${selecting ? " selecting" : ""}`}
         ref={wrap} onPointerMove={onPointerMove}
@@ -569,11 +606,14 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
           onClose={() => setDialog(null)}
           onPasteAsIs={dialog.paste ? () => {
             const p = dialog.paste!;
-            onChange((x) => dropUnfilledDatasets(x, pasteBlock(x, p.r, p.c,
-              parseClipboardGrid(p.text))));
+            pasteAt(p.text, p.r, p.c);
             setDialog(null);
           } : undefined}
-          onImport={(fn) => { onChange(fn); setDialog(null); }} />
+          onImport={(fn, report) => {
+            onChange(fn);
+            setDialog(null);
+            if (report) setPasteInfo({ id: sheet.id, verb: "Imported", report });
+          }} />
       )}
       {dialog?.kind === "export" && (
         <ExportDialog table={t} name={sheet.name} onClose={() => setDialog(null)} />
@@ -597,6 +637,12 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
       {dialog?.kind === "reshape" && (
         <Suspense fallback={null}>
           <ReshapeDialog sheet={sheet} onClose={() => setDialog(null)} />
+        </Suspense>
+      )}
+      {dialog?.kind === "convertType" && (
+        <Suspense fallback={null}>
+          <ConvertTypeDialog table={t} name={sheet.name} onClose={() => setDialog(null)}
+            onCreate={createTable} />
         </Suspense>
       )}
       {dialog?.kind === "convert" && (
