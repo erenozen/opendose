@@ -30,6 +30,10 @@ echo "== e2e"
 node -e "import('vite').then(async v=>{const s=await v.createServer({server:{port:$PORT,strictPort:true},logLevel:'silent'});await s.listen();console.log('up');setTimeout(()=>{},1e9)})" >"$S/dev-$PORT.log" 2>&1 &
 DEVPID=$!
 for i in $(seq 1 60); do curl -s -o /dev/null "http://localhost:$PORT/" && break; sleep 1; done
+# Warm the dev server: Vite pre-bundles dependencies on the first request and
+# reloads the page, which interrupts the engine worker's boot in the first
+# suite. Load the app once and wait for live results before any suite runs.
+node -e "import('playwright').then(async ({chromium})=>{const b=await chromium.launch();const p=await b.newPage();await p.goto('http://localhost:$PORT/?example=1',{waitUntil:'domcontentloaded'});await p.waitForSelector('.pane-results[data-live=\"true\"] .results-table',{timeout:300000}).then(()=>console.log('warm-up: live results'),()=>console.log('warm-up: no live results within 300 s'));await b.close();})" 2>&1 | tail -1
 for suite in e2e-check e2e-tiff e2e-export e2e-share e2e-figures e2e-assays; do
   [ -f "scripts/$suite.mjs" ] || continue
   node "scripts/$suite.mjs" "http://localhost:$PORT/" >"$S/$suite.log" 2>&1; rc=$?

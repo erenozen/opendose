@@ -27,6 +27,10 @@ guide: "How to: Multiple t tests", "Options for multiple t tests" and
   "Below threshold?", multiplicity adjusted P per row); see opendose.fdr.
 - Rows where no test can be computed (too few values, zero SD) are
   reported but left out of the family ("What is n?").
+- Each row also carries "p_unadjusted" (that row's own test P, the same
+  as "p"), "family_size" (the number of rows in the family, i.e. tests
+  with a P value) and "method"; the result carries "family" {size,
+  method, label}.
 - Options tab: the direction of the difference (A - B, or B - A with
   swap) and the -log10(P) and -log2(P) ("S value") transforms used by
   the volcano plot.
@@ -59,6 +63,7 @@ import numpy as np
 from scipy import stats
 
 from . import effectsize, fdr, ttests
+from .moretests import comparison_family
 
 UNPAIRED_TESTS = ("welch", "unpaired", "pooled", "lognormal_welch",
                   "lognormal_unpaired", "lognormal_pooled",
@@ -293,6 +298,9 @@ def multiple_t_tests(rows_a, rows_b, *, row_titles=None, names=None,
                             else -math.log10(p) if p > 0 else math.inf)
         e["s_value"] = (None if p is None
                         else -math.log2(p) if p > 0 else math.inf)
+        e["p_unadjusted"] = p
+        e["family_size"] = family["n"]
+        e["method"] = method
 
     flagged = sorted((e for e in rows if e.get("significant")),
                      key=lambda e: e["p"])
@@ -313,6 +321,11 @@ def multiple_t_tests(rows_a, rows_b, *, row_titles=None, names=None,
                    if pooled else None),
         "rows": rows,
         "flagged_rows": [e["index"] for e in flagged],
+        "family": comparison_family(
+            family["n"], method,
+            f"one test per row, {family['n_omitted']} row"
+            f"{'' if family['n_omitted'] == 1 else 's'} left out"
+            if family["n_omitted"] else "one test per row"),
     }
 
 

@@ -40,7 +40,10 @@ difference is sqrt(MS * sum(c^2 / n)) (= sqrt(MS (1/N1 + 1/N2)) when
 balanced). Tests: Tukey (q = |diff| / (SE / sqrt 2), studentized range
 with M = means in the family), Dunnett (control goals; multivariate t),
 Bonferroni, Sidak, Holm-Sidak, Fisher's LSD (no correction), or the
-FDR methods of opendose.fdr applied to Fisher LSD P values.
+FDR methods of opendose.fdr applied to Fisher LSD P values. Each
+comparison also carries "p_unadjusted" (the Fisher LSD P: pooled t with
+MS(Error) and DF(Error)), "family_size" (the comparisons in the goal's
+family) and "method"; the result carries "family" {size, method, label}.
 
 "effect_size" (opendose.effectsize): per effect, partial eta^2 with its
 noncentral-F CI, partial omega^2, partial epsilon^2, Cohen's f and
@@ -56,6 +59,7 @@ import numpy as np
 from scipy import optimize, stats
 
 from . import effectsize, fdr, studentized
+from .moretests import comparison_family
 from .twoway import _effect_columns, _ss_resid
 
 PRISM_LAYOUT = [(0, 0), (0, 1), (1, 0), (1, 1)]  # data sets A, B, C, D
@@ -258,6 +262,18 @@ def compare_means(entries, pairs, ms_error, df_error, method: str, *,
     out = {"method": method, "n_comparisons": K, "n_means": M,
            "ms_error": float(ms_error), "df_error": int(df_error),
            "alpha": alpha, "q": q if method in fdr.FDR_METHODS else None}
+    method_id = "fisher_lsd" if method == "none" else method
+    for r in rows:
+        r["p_unadjusted"] = r["p"]
+        r["family_size"] = K
+        r["method"] = method_id
+    if method == "tukey":
+        scope = f"studentized range over {M} means"
+    elif method == "dunnett":
+        scope = f"each of {K} means vs. a control"
+    else:
+        scope = f"{M} means"
+    out["family"] = comparison_family(K, method_id, scope)
     if K == 0:
         out["comparisons"] = rows
         return out
