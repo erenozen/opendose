@@ -20,6 +20,7 @@ import { describeResult, POSTHOC_NAMES, TEST_NAMES } from "./describe.ts";
 import { effectGroups, primaryEffect, type EffectRow } from "./effects.ts";
 import { formatPValue, type PStyle } from "./pformat.ts";
 import { DEFAULT_REPORT, type ReportPrefs } from "./prefs.ts";
+import { withheldInfo, withheldPhrase, type WithheldInfo } from "../sheets/common/withheld.ts";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type R = Record<string, any>;
@@ -551,6 +552,19 @@ function proportionSentence(r: R, f: Fmt): string {
   return `${cap(props.join(" vs. "))}${d && num(d.value) ? `; difference ${f.n(d.value)}${dc ? `, ${f.ci(dc)}` : ""}` : ""}${num(r.fisher_exact?.p) ? `; Fisher's exact test (two-sided), ${f.p(r.fisher_exact.p)}` : ""}.`;
 }
 
+/** P withheld (fewer than two independent values in a group): the values
+ *  described, labelled exploratory, and why there is no P. */
+function withheldSentence(w: WithheldInfo, f: Fmt): string {
+  const means = w.all.filter((g) => g.mean !== null);
+  const vals = means.map((g) => `${g.name} ${f.n(g.mean as number)}${g.n > 1 ? ` (mean of ${g.n})` : ""}`);
+  const diff = means.length === 2 ? `; difference ${f.n((means[0].mean as number) - (means[1].mean as number))} `
+    + `(${means[0].name} − ${means[1].name})` : "";
+  return `Descriptive results only, exploratory (${withheldPhrase(w)})`
+    + (vals.length ? `: ${list(vals)}${diff}.` : ".")
+    + " No P value was computed: one independent value per group gives no estimate of the "
+    + "variability within groups.";
+}
+
 /**
  * The results sentences of a result (empty when the analysis has nothing
  * to report as a sentence, or failed). `options` is the analysis' options
@@ -562,6 +576,8 @@ export function resultSentences(result: unknown, ctx: SentenceContext = {}): str
   const style = ctx.style ?? DEFAULT_REPORT.pStyle;
   const prefs = ctx.prefs ?? DEFAULT_REPORT;
   const f = makeFmt(style);
+  const wh = withheldInfo(r);
+  if (wh) return [withheldSentence(wh, f)];
   const eff = primaryEffect(effectGroups(r, prefs));
   try {
     switch (r.analysis) {

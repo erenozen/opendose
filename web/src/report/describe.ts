@@ -121,7 +121,7 @@ export function describeResult(result: unknown): TestInfo {
       info.sided = "two-sided";
       info.multiplicity = "single";
       info.exactP = true;
-      const paired = /paired|wilcoxon/.test(String(r.test));
+      const paired = /(^|_)paired|wilcoxon/.test(String(r.test));
       info.repeated = paired;
       if (paired && num(r.n_pairs)) {
         info.groups = names.map((name) => ({ name, n: r.n_pairs }));

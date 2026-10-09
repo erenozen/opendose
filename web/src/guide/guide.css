@@ -275,3 +275,29 @@ main.start-screen { display: block; padding: 20px 24px 32px; width: 100%; }
 .sk-bar2 { fill: var(--warn-hue); opacity: 0.85; }
 .guide-control-links { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 6px 0 0; }
 h3 .learn-more { margin-left: 8px; text-transform: none; letter-spacing: 0; font-weight: 500; }
+
+/* ---------------- n-awareness: unit question, small n, multiplicity ---------------- */
+
+.guide-chip { max-width: 100%; text-align: left; }
+.guide-chip-sources { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 4px 0 !important; }
+.unit-question {
+  border: 1px solid var(--accent-border); border-radius: var(--radius-s);
+  background: var(--accent-soft); padding: 10px 14px; font-size: 13px; color: var(--ink-2);
+}
+.unit-q-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.unit-q-title { margin: 0 0 6px; color: var(--ink); font-weight: 600; font-size: 13.5px; }
+.unit-q-close { padding: 2px 10px; font-size: 12px; }
+.unit-q-options, .unit-q-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.unit-q-options button, .unit-q-actions button { padding: 4px 12px; font-size: 12.5px; }
+.unit-q-step { display: flex; flex-direction: column; gap: 8px; }
+.unit-q-fields { display: flex; flex-wrap: wrap; gap: 8px 16px; }
+.unit-q-hint { margin: 6px 0 0; font-size: 12px; color: var(--muted); }
+.unit-q-preview { margin: 0; color: var(--ink); }
+.withheld-results .withheld-p td { color: var(--ink); }
+.multiplicity-actions p { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+.multiplicity-error { color: var(--danger); }
+.guide-holm { border-collapse: collapse; font-size: 12.5px; margin: 4px 0; }
+.guide-holm th, .guide-holm td {
+  text-align: left; padding: 3px 10px 3px 0; border-bottom: 1px solid var(--border-soft);
+}
+.guide-holm thead th { color: var(--muted); font-weight: 600; }

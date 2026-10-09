@@ -127,6 +127,34 @@ export const SRC = {
   gpGlobalFit: { label: "GraphPad Curve Fitting Guide: Global nonlinear regression example",
     url: `${C}reg_example_global_nonlin.htm` },
 
+  // Data are independent when a random factor affects only one value; an
+  // experiment done once in triplicate is one value, not three (small-n
+  // results, "What does each value represent?"). Read 2026-10-09.
+  gpIndependent: { label: "GraphPad Statistics Guide: The need for independent samples",
+    url: `${S}the_need_for_independent_samples.htm` },
+  // Three comparisons at 0.05 each: 14% chance of at least one false
+  // positive; 13 comparisons: about 50%. Read 2026-10-09.
+  gpMultipleProblem: { label: "GraphPad Statistics Guide: The multiple comparisons problem",
+    url: `${S}beware_of_multiple_comparisons.htm` },
+  // Matching removes subject-to-subject (block) variability; the F test
+  // for matching says whether it helped. Read 2026-10-09.
+  gpRmChecklist: { label: "GraphPad Statistics Guide: Repeated measures one-way ANOVA (analysis checklist)",
+    url: `${S}stat_checklist_1wayanova_rm.htm` },
+  // Not observed power: the power to detect an effect worth detecting,
+  // or the confidence interval. Read 2026-10-09.
+  gpPostHocPower: { label: "GraphPad FAQ 1710: Why post-hoc power analysis is futile",
+    url: "https://www.graphpad.com/support/faq/why-it-is-not-helpful-to-compute-the-power-of-an-experiment-to-detect-the-difference-actually-observed-why-is-post-hoc-power-analysis-futile/" },
+  // Randomised block designs (day, batch, litter as the block) remove
+  // between-block variation and raise power.
+  festing2014: { label: "Festing 2014, Randomized block experimental designs can increase the power and reproducibility of laboratory animal experiments, ILAR J 55:472",
+    url: "https://doi.org/10.1093/ilar/ilu045" },
+  // Pseudoreplication: wells, cells or repeated reads counted as n.
+  lazic2010: { label: "Lazic 2010, The problem of pseudoreplication in neuroscientific studies, BMC Neurosci 11:5",
+    url: "https://pmc.ncbi.nlm.nih.gov/articles/PMC2817684/" },
+  // Holm's step-down procedure (Holm-Šídák: its Šídák form).
+  holm1979: { label: "Holm 1979, A simple sequentially rejective multiple test procedure, Scand J Stat 6:65",
+    url: "https://www.jstor.org/stable/4615733" },
+
   // n = biological replicates; P "using an n of three, not 300".
   lord2020: { label: "Lord et al. 2020, SuperPlots, J Cell Biol 219:e202001064",
     url: "https://pmc.ncbi.nlm.nih.gov/articles/PMC7265319/" },
