@@ -41,45 +41,7 @@ function twoWayAllCells(engine: EngineBridge, table: DataTableModel,
 const sameList = (a: string[], b: string[]) =>
   a.length === b.length && a.every((v) => b.includes(v));
 
-type GridData = ReturnType<typeof numericData>;
 
-/** Paired analyses (paired / ratio paired t, Wilcoxon, correlation) pair
- *  the two columns position by position. The engine reads each column
- *  without its blanks, so one blank on one side would shift every later
- *  pair against the wrong partner. Blank the partner of every incomplete
- *  pair instead: each row is then a whole pair or nothing, and incomplete
- *  pairs are left out (the results' Notes name their rows). */
-export function maskIncompletePairs(data: GridData, a: number, b: number): GridData {
-  const da = data.datasets[a];
-  const db = data.datasets[b];
-  if (!da || !db || a === b) return data;
-  const n = Math.max(da.ys.length, db.ys.length);
-  const ya: (number | null)[][] = [];
-  const yb: (number | null)[][] = [];
-  for (let r = 0; r < n; r++) {
-    const ra = da.ys[r] ?? [];
-    const rb = db.ys[r] ?? [];
-    const w = Math.max(ra.length, rb.length);
-    const pa: (number | null)[] = [];
-    const pb: (number | null)[] = [];
-    for (let s = 0; s < w; s++) {
-      const va = ra[s] ?? null;
-      const vb = rb[s] ?? null;
-      const both = va !== null && vb !== null;
-      pa.push(both ? va : null);
-      pb.push(both ? vb : null);
-    }
-    ya.push(pa);
-    yb.push(pb);
-  }
-  return {
-    ...data,
-    datasets: data.datasets.map((d, i) => (i === a ? { ...d, ys: ya }
-      : i === b ? { ...d, ys: yb } : d)),
-  };
-}
-
-const PAIRED_T = new Set(["paired", "ratio_paired", "wilcoxon"]);
 
 /** Engine payload of a column analysis. Options left at their defaults add
  *  nothing, so the original analyses send exactly what they always did. */
@@ -101,9 +63,7 @@ export function columnPayload(table: DataTableModel, o: ColumnOptionsState):
       } };
   }
   if (o.analysis === "ttest") {
-    const data = PAIRED_T.has(o.ttestKind)
-      ? maskIncompletePairs(base.data, o.datasetA, o.datasetB) : base.data;
-    return { analysis: "ttest", data,
+    return { analysis: "ttest", ...base,
       options: {
         kind: o.ttestKind === "welch" ? "unpaired" : o.ttestKind,
         welch: o.ttestKind === "welch",
@@ -134,7 +94,7 @@ export function columnPayload(table: DataTableModel, o: ColumnOptionsState):
   if (o.analysis === "correlation") {
     // One-sided P values come with every result; corrTails only picks
     // which one the results show.
-    return { analysis: "correlation", data: maskIncompletePairs(base.data, o.datasetA, o.datasetB),
+    return { analysis: "correlation", ...base,
       options: { method: o.corrMethod,
                  dataset_a: o.datasetA, dataset_b: o.datasetB } };
   }

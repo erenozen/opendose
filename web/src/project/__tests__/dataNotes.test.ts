@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { normalizeTable, numericData, toggleExcluded } from "../table.ts";
 import type { DataTableModel } from "../types.ts";
 import { analysisPlan, cellName, dataNotes, engineMessages } from "../dataNotes.ts";
-import { columnPayload, maskIncompletePairs } from "../../sheets/column/run.ts";
+import { columnPayload } from "../../sheets/column/run.ts";
 import { groupedPayload } from "../../sheets/grouped/stats.ts";
 import { DEFAULT_COLUMN_OPTIONS, type ColumnOptionsState } from "../../types.ts";
 
@@ -30,27 +30,28 @@ test("a paired t test with two incomplete pairs: n = 10 pairs; rows 4 and 9 left
   assert.ok(mismatch.notes.some((x) => /used 11 pairs but the table has 10 complete pairs/.test(x.text)));
 });
 
-test("paired payloads never shift a pair: incomplete pairs are blanked on both sides", () => {
+test("paired payloads keep every cell in place, so the engine pairs row by row", () => {
   const a = ["1", "2", "", "4"];
   const b = ["5", "", "7", "8"];
   const t = column([a, b, ["9", "9", "9", "9"]]);
-  for (const kind of ["paired", "ratio_paired", "wilcoxon"] as const) {
-    const p = columnPayload(t, col({ analysis: "ttest", ttestKind: kind })) as {
+  for (const analysis of ["ttest", "correlation"] as const) {
+    const p = columnPayload(t, col({ analysis, ttestKind: "paired" })) as {
       data: { datasets: { ys: (number | null)[][] }[] } };
-    assert.deepEqual(p.data.datasets[0].ys.map((r) => r[0]), [1, null, null, 4], kind);
-    assert.deepEqual(p.data.datasets[1].ys.map((r) => r[0]), [5, null, null, 8], kind);
-    assert.deepEqual(p.data.datasets[2].ys.map((r) => r[0]), [9, 9, 9, 9], kind);
+    // blanks are sent as null at their own row, never compacted away
+    assert.deepEqual(p.data.datasets[0].ys.map((r) => r[0]), [1, 2, null, 4], analysis);
+    assert.deepEqual(p.data.datasets[1].ys.map((r) => r[0]), [5, null, 7, 8], analysis);
   }
-  const corr = columnPayload(t, col({ analysis: "correlation" })) as {
-    data: { datasets: { ys: (number | null)[][] }[] } };
-  assert.deepEqual(corr.data.datasets[1].ys.map((r) => r[0]), [5, null, null, 8]);
-  // unpaired tests keep every value
-  const un = columnPayload(t, col({ analysis: "ttest", ttestKind: "unpaired" })) as {
-    data: { datasets: { ys: (number | null)[][] }[] } };
-  assert.deepEqual(un.data.datasets[0].ys.map((r) => r[0]), [1, 2, null, 4]);
-  // complete pairs are untouched
-  const full = numericData(column([["1", "2"], ["3", "4"]]));
-  assert.deepEqual(maskIncompletePairs(full, 0, 1).datasets, full.datasets);
+  // the engine's incomplete_pairs (0-based rows) is preferred, and its
+  // own warning saying the same is not repeated under the Analysed line
+  const o = col({ analysis: "ttest", ttestKind: "paired" });
+  const n = dataNotes({ analysisId: "column", table: t, options: o,
+    result: { n_pairs: 2, incomplete_pairs: [1, 2], warnings: ["2 incomplete pairs (rows 2, 3) left out"] } });
+  assert.equal(n.analysed, "n = 2 pairs analysed; 2 incomplete pairs (rows 2, 3) left out");
+  assert.equal(n.notes.length, 0);
+  const r = dataNotes({ analysisId: "column", table: t, options: col({ analysis: "correlation" }),
+    result: { n: 2, incomplete_pairs: [1, 2], warnings: ["2 incomplete XY pairs (rows 2, 3) left out"] } });
+  assert.equal(r.analysed, "n = 2 pairs analysed; 2 incomplete pairs (rows 2, 3) left out");
+  assert.equal(r.notes.length, 0);
 });
 
 test("unequal n per group: n per group, blanks and exclusions counted", () => {
@@ -88,11 +89,7 @@ test("column payloads: every dropped text cell is named in the notes", () => {
   for (const analysis of ["column_statistics", "ttest", "anova", "correlation", "outliers"] as const) {
     const o = col({ analysis });
     const p = columnPayload(t, o) as { data: { datasets: { ys: (number | null)[][] }[] } };
-    // paired analyses also blank the partners of dropped cells: those are
-    // incomplete pairs, counted in the Analysed line, not text cells
-    const ys = p.data.datasets.map((d, i) => d.ys.map((row, r) => row.map((v, s) =>
-      v ?? (numericData(t).datasets[i].ys[r][s] === null ? null : 0))));
-    assertNoted(analysis, t, ys, "column", o);
+    assertNoted(analysis, t, p.data.datasets.map((d) => d.ys), "column", o);
   }
   const n = dataNotes({ analysisId: "column", table: t, options: col({ analysis: "ttest" }), result: {} });
   assert.match(n.notes.find((x) => x.tone === "warn")!.text,

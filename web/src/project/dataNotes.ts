@@ -186,19 +186,26 @@ function pairRows(t: DataTableModel, a: number, b: number): { complete: number; 
   return { complete, incomplete };
 }
 
-/** The n the engine reports for a paired analysis, if any. */
-function engineCounts(result: unknown): { n?: number; incomplete?: number } {
+/** The n the engine reports for a paired analysis, if any: n_pairs (t
+ *  tests) or n (correlation), and incomplete_pairs (0-based row indices,
+ *  one per incomplete pair). */
+function engineCounts(result: unknown): { n?: number; incomplete?: number; rows?: number[] } {
   const r = (result && typeof result === "object" ? result : {}) as Record<string, unknown>;
-  const out: { n?: number; incomplete?: number } = {};
+  const out: { n?: number; incomplete?: number; rows?: number[] } = {};
   if (typeof r.n_pairs === "number") out.n = r.n_pairs;
+  else if (typeof r.n === "number" && Array.isArray(r.incomplete_pairs)) out.n = r.n;
   const ip = r.incomplete_pairs;
   if (typeof ip === "number") out.incomplete = ip;
-  else if (Array.isArray(ip)) out.incomplete = ip.length;
-  else if (ip && typeof ip === "object" && typeof (ip as { count?: unknown }).count === "number") {
-    out.incomplete = (ip as { count: number }).count;
+  else if (Array.isArray(ip) && ip.every((v) => typeof v === "number")) {
+    out.incomplete = ip.length;
+    out.rows = [...new Set(ip as number[])].sort((x, y) => x - y);
   }
   return out;
 }
+
+/** The engine's own "2 incomplete pairs (rows 4, 9) left out": the
+ *  Analysed line already says it. */
+const INCOMPLETE_WARNING = /^\d+ incomplete (XY )?pairs? \(rows? [\d, ]+\) left out\.?$/;
 
 /** The "Analysed" line and the notes about the table. */
 function tableNotes(t: DataTableModel, plan: Plan, result: unknown):
@@ -270,10 +277,11 @@ function tableNotes(t: DataTableModel, plan: Plan, result: unknown):
     const { complete, incomplete } = pairRows(t, a, b);
     const eng = engineCounts(result);
     const n = eng.n ?? complete;
-    const nIncomplete = eng.incomplete !== undefined && eng.incomplete > 0
-      && eng.incomplete !== incomplete.length ? eng.incomplete : incomplete.length;
-    const rows = nIncomplete === incomplete.length && incomplete.length
-      ? ` (row${incomplete.length === 1 ? "" : "s"} ${rowList(incomplete)})` : "";
+    // the engine's list when it gives one, else the table's
+    const rowsLeft = eng.rows ?? incomplete;
+    const nIncomplete = eng.incomplete ?? incomplete.length;
+    const rows = rowsLeft.length && (eng.rows || nIncomplete === incomplete.length)
+      ? ` (row${rowsLeft.length === 1 ? "" : "s"} ${rowList(rowsLeft)})` : "";
     const left = nIncomplete
       ? `; ${plural(nIncomplete, "incomplete pair", "incomplete pairs")}${rows} left out`
       : "; no incomplete pairs";
@@ -405,6 +413,7 @@ export function dataNotes(input: { analysisId: string; table: DataTableModel; op
   const r = input.result as { error?: unknown } | null;
   const failed = !!(r && typeof r === "object" && r.error);
   const engine = engineMessages(input.result)
+    .filter((m) => !(plan.kind === "pairs" && analysed && INCOMPLETE_WARNING.test(m.text)))
     .map((m): DataNote => ({ from: "engine", tone: m.warn ? "warn" : "info", text: m.text }));
   return { analysed: failed ? null : analysed, notes: [...engine, ...notes] };
 }
