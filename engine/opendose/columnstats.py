@@ -145,11 +145,22 @@ def _anderson_darling_p(a2: float, n: int) -> float:
     return min(max(p, 0.0), 1.0)
 
 
+# Royston (1995, Appl Stat 44:547, algorithm AS R94) approximates the
+# Shapiro-Wilk P value for 3 <= n <= 5000; larger samples get a note.
+SHAPIRO_MAX_N = 5000
+
+
 def normality_tests(values, tests=None) -> dict:
     """Shapiro-Wilk, D'Agostino-Pearson and Anderson-Darling by default;
     tests = an iterable of names to choose ("shapiro_wilk",
     "dagostino_pearson", "anderson_darling", "kolmogorov_smirnov" / "ks").
+    tests = True selects all four, False the default three.
     """
+    if tests is True:
+        tests = ("shapiro_wilk", "dagostino_pearson", "anderson_darling",
+                 "kolmogorov_smirnov")
+    elif tests is False:
+        tests = None
     if tests is not None:
         wanted = {("kolmogorov_smirnov" if t == "ks" else t) for t in tests}
         full = normality_tests(values)
@@ -166,6 +177,12 @@ def normality_tests(values, tests=None) -> dict:
         w, p = stats.shapiro(arr)
         out["shapiro_wilk"] = {"W": float(w), "p": float(p),
                                "passed_alpha_05": bool(p > 0.05)}
+        if n > SHAPIRO_MAX_N:
+            out["shapiro_wilk"]["note"] = (
+                f"n = {n} exceeds {SHAPIRO_MAX_N}, beyond the range of "
+                "Royston's (1995) approximation of the Shapiro-Wilk P "
+                "value (AS R94, as used by scipy): the P value may be "
+                "inaccurate")
     if n >= 8:  # D'Agostino-Pearson requires n >= 8
         k2, p = stats.normaltest(arr)
         out["dagostino_pearson"] = {"K2": float(k2), "p": float(p),
@@ -338,6 +355,12 @@ def percentile(values, pct: float, *, method: str = "prism") -> float:
     return float(arr[lo - 1] + frac * (arr[lo] - arr[lo - 1]))
 
 
+# Large-data threshold: up to this many values median_ci scans k with
+# scalar binomial CDF calls (the original loop); above it one vectorised
+# call gives the same levels (the loop costs ~n/2 scipy calls).
+MEDIAN_CI_LOOP_MAX_N = 1000
+
+
 def median_ci(values, ci_level: float = 0.95) -> dict:
     """CI of the median from the binomial distribution (Zar): the k-th
     smallest to the k-th largest value, k the largest integer with
@@ -349,12 +372,21 @@ def median_ci(values, ci_level: float = 0.95) -> dict:
     if n < 1:
         return out
     best = None
-    for k in range(1, n // 2 + 1):
-        level = 1.0 - 2.0 * float(stats.binom.cdf(k - 1, n, 0.5))
-        if level >= ci_level - 1e-12:
-            best = (k, level)
-        else:
-            break
+    if n <= MEDIAN_CI_LOOP_MAX_N:
+        for k in range(1, n // 2 + 1):
+            level = 1.0 - 2.0 * float(stats.binom.cdf(k - 1, n, 0.5))
+            if level >= ci_level - 1e-12:
+                best = (k, level)
+            else:
+                break
+    elif n // 2 >= 1:
+        # the same scan with one vectorised binomial CDF call instead of
+        # up to n/2 scalar calls: k runs while the level stays >= ci_level
+        levels = 1.0 - 2.0 * stats.binom.cdf(np.arange(n // 2), n, 0.5)
+        ok = levels >= ci_level - 1e-12
+        stop = int(np.argmin(ok)) if not ok.all() else ok.size
+        if stop > 0:
+            best = (stop, float(levels[stop - 1]))
     if best is None:
         out["note"] = ("too few values for this confidence level "
                        "(the widest interval, minimum to maximum, has "

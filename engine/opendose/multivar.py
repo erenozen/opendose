@@ -60,6 +60,7 @@ Methods follow the GraphPad Prism guides:
 from __future__ import annotations
 
 import math
+from collections import Counter
 
 import numpy as np
 from scipy import stats
@@ -132,12 +133,13 @@ def _by_name(table) -> dict:
 
 def _levels(values, rows=None) -> list:
     """Distinct levels in order of first appearance."""
-    seen = []
+    seen, known = [], set()
     idx = range(len(values)) if rows is None else rows
     for i in idx:
         v = values[i]
-        if v is not None and v not in seen:
+        if v is not None and v not in known:
             seen.append(v)
+            known.add(v)
     return seen
 
 
@@ -162,9 +164,10 @@ def describe_variables(variables, ci_level: float = 0.95) -> dict:
         else:
             present = [v for v in var["values"] if v is not None]
             entry["n"] = len(present)
+            counts = Counter(present)   # one pass, not one per level
             entry["levels"] = [
-                {"level": lev, "count": present.count(lev),
-                 "fraction": present.count(lev) / len(present)}
+                {"level": lev, "count": counts[lev],
+                 "fraction": counts[lev] / len(present)}
                 for lev in _levels(present)]
         out.append(entry)
     return {"n_rows": len(table[0]["values"]) if table else 0,
@@ -193,6 +196,13 @@ def correlation_matrix(variables, *, method: str = "pearson",
     elif missing != "pairwise":
         raise ValueError(f"unknown missing-value handling: {missing}")
     k = len(cols)
+    # each column once as floats (NaN = blank) and a mask of present
+    # cells; a pair's complete cases are then a mask intersection (the
+    # same values, in row order, as filtering the pairs one by one)
+    arrs = [np.array([np.nan if v is None else v for v in c], dtype=float)
+            for c in cols]
+    present = [np.array([v is not None for v in c], dtype=bool)
+               for c in cols]
     r = [[None] * k for _ in range(k)]
     p = [[None] * k for _ in range(k)]
     n = [[0] * k for _ in range(k)]
@@ -203,16 +213,16 @@ def correlation_matrix(variables, *, method: str = "pearson",
         n[i][i] = sum(v is not None for v in cols[i])
         r[i][i] = 1.0
         for j in range(i + 1, k):
-            pairs = [(x, y) for x, y in zip(cols[i], cols[j])
-                     if x is not None and y is not None]
-            n[i][j] = n[j][i] = len(pairs)
-            if len(pairs) < 3:
+            both = present[i] & present[j]
+            n_pairs = int(both.sum())
+            n[i][j] = n[j][i] = n_pairs
+            if n_pairs < 3:
                 continue
-            a = np.array([q[0] for q in pairs])
-            b = np.array([q[1] for q in pairs])
+            a = arrs[i][both]
+            b = arrs[j][both]
             if np.ptp(a) == 0 or np.ptp(b) == 0:
                 continue  # a constant variable has no correlation
-            res = correlation.correlate(a.tolist(), b.tolist(), method=method,
+            res = correlation.correlate(a, b, method=method,
                                         ci_level=ci_level)
             rv, pv = res["r"], res["p_two_tailed"]
             kind = res.get("p_type", "approximate")

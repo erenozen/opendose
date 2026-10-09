@@ -29,13 +29,15 @@
 // power and sample size tool, and the site-validation follow-ups (both
 // log-rank forms and the Kaplan-Meier tables on R's aml, Fisher's exact
 // test on an r x c table, expected counts and residuals, "From long
-// table…" for CMH and quantal data, the quantal upper asymptote), and the
+// table…" for CMH and quantal data, the quantal upper asymptote), the
 // discoverability links (Help me choose…, Plan next experiment, How this is
 // validated, Cox from survival, Compare fits from a fit, Prism files on the
-// start screen and in the Save menu), and the
-// comparisons families (unadjusted P beside the adjusted one, Dunn's test
-// against a control, planned Šídák pairs), residual plots and an IC50
-// reported as "> highest dose".
+// start screen and in the Save menu), survival data from counts per
+// day with the pairwise log-rank table, the test for trend, "median not
+// reached", survival at a time and RMST, and the comparisons families
+// (unadjusted P beside the adjusted one, Dunn's test against a control,
+// planned Šídák pairs), residual plots and an IC50 reported as "> highest
+// dose".
 import { chromium } from "playwright";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -2439,6 +2441,119 @@ expect("compare fits graph draws the separate curves and the shared curve",
   expect("switched to the fitted number: a number with the extrapolated flag",
     fittedOk && /^IC50 \(µM\)\s+\d[\d.,e+]*\s+⚑ extrapolated \(above the range tested\)/.test(icFitted.trim()),
     icFitted.replace(/\s+/g, " "));
+}
+
+// --- Survival entry and extras (needs survival-data-entry,
+// median-survival-explained, pairwise-logrank). Alive mice per day for
+// two groups become one row per mouse with a "read as" preview; the drug
+// group never falls below 50% ("not reached: 80% survived to day 30");
+// RMST up to day 30: Drug minus Vehicle 12.4 (95% CI 3.927 to 20.87).
+// Four dose groups: six pairwise log-rank tests adjusted by Holm-Šídák
+// (Vehicle vs High P 0.001724 -> 1 - (1 - P)^6 = 0.0103) and the
+// log-rank test for trend chi-square 13.80 (P 0.0002035), as the
+// engine's survival_pairwise computes on the same subjects.
+{
+  const newSurvival = async (name, groups) => {
+    await page.getByRole("button", { name: "New data table" }).first().click();
+    const dlg = page.locator(".new-table-dialog");
+    await dlg.locator('input[name="table-type"][value="survival"]').check();
+    await dlg.getByLabel("Table name").fill(name);
+    await dlg.getByLabel("Groups", { exact: true }).fill(String(groups));
+    await dlg.getByLabel("Rows (subjects)").fill("3");
+    await dlg.getByRole("button", { name: "Create table" }).click();
+    await page.waitForSelector(".grid-toolbar");
+  };
+  const fillFromCounts = async (text) => {
+    await page.getByRole("button", { name: "Survival data from…" }).click();
+    const dlg = page.getByRole("dialog", { name: "Survival data from counts or dates" });
+    await dlg.getByLabel("Pasted table").fill(text);
+    return dlg;
+  };
+  const resultsText = () => page.locator(".pane-results").innerText().catch(() => "");
+  const waitResults = (re, timeout = 90000) => page.waitForFunction((src) =>
+    new RegExp(src).test(document.querySelector('.pane-results[data-live="true"]')?.innerText ?? ""),
+  re.source, { timeout }).then(() => true, () => false);
+
+  await newSurvival("Mouse survival", 2);
+  const dlg = await fillFromCounts("Day\tVehicle\tDrug\n0\t5\t5\n4\t4\t5\n12\t2\t5\n20\t1\t4\n30\t1\t4");
+  const preview = dlg.getByLabel("Preview: how each subject is read");
+  const row12 = await preview.locator("tbody tr", { hasText: "Vehicle" }).nth(1).innerText().catch(() => "");
+  expect("survival from alive per day: the preview reads a fall from 4 to 2 as deaths on day 12",
+    /Vehicle\s+12\s+1\s+death on day 12/.test(row12), row12.replace(/\s+/g, " "));
+  const lastDrug = await preview.locator("tbody tr", { hasText: "Drug" }).last().innerText().catch(() => "");
+  expect("survival from alive per day: mice alive at the last day are censored there",
+    /censored on day 30/.test(lastDrug), lastDrug.replace(/\s+/g, " "));
+  expect("survival from alive per day: summary 2 groups, 10 subjects: 5 deaths, 5 censored",
+    /2 groups, 10 subjects: 5 deaths, 5 censored/.test(await dlg.innerText()));
+  await dlg.getByRole("button", { name: "Fill the table" }).click();
+  await dlg.waitFor({ state: "detached", timeout: 10000 }).catch(() => {});
+  const groupsLine = await page.getByRole("list", { name: "How each group is read" }).innerText().catch(() => "");
+  expect("the table holds one row per mouse: Vehicle 4 events, 1 censored; Drug 1 event, 4 censored",
+    /Vehicle: 4 events, 1 censored/.test(groupsLine) && /Drug: 1 event, 4 censored/.test(groupsLine)
+    && await page.locator('.data-table input[aria-label="Vehicle, Time, row 5"]').inputValue() === "30"
+    && await page.locator('.data-table input[aria-label="Drug, Event, row 1"]').inputValue() === "1",
+    groupsLine.replace(/\s+/g, " "));
+  await page.getByLabel("Show how each row is read").check();
+  const readList = await page.getByLabel("Read as: every row").innerText().catch(() => "");
+  expect("Read as list: row 2 of Vehicle is an event on day 12", /row 2\s+event on day 12/.test(readList),
+    readList.replace(/\s+/g, " ").slice(0, 80));
+
+  expect("median not reached is explained: 80% survived to day 30",
+    await waitResults(/not reached: 80% survived to day 30 \(last follow-up\)/));
+  const txt = await resultsText();
+  expect("few-events warning from the engine (5 events in total)", /Only 5 events in total/.test(txt));
+  const rmstDiff = await page.locator(".surv-rmst-diff tr", { hasText: "Drug minus Vehicle" }).innerText().catch(() => "");
+  expect("RMST up to day 30: Drug minus Vehicle 12.4 (95% CI 3.927 to 20.87)",
+    /12\.4\s+3\.927 to 20\.87/.test(rmstDiff), rmstDiff.replace(/\s+/g, " "));
+  await page.getByLabel("Survival at time").fill("12");
+  await page.getByLabel("Survival at time").press("Enter");
+  expect("survival at a chosen time: day 12, Vehicle 40%",
+    await waitResults(/Survival at day 12[^]*Vehicle\s+5\s+40%/));
+
+  await newSurvival("Dose groups", 4);
+  const dlg4 = await fillFromCounts("Day\tVehicle\tLow\tMid\tHigh\n0\t8\t8\t8\t8\n5\t6\t8\t8\t8\n10\t4\t6\t7\t8\n"
+    + "15\t2\t5\t6\t7\n20\t1\t3\t5\t7\n30\t0\t2\t4\t6");
+  await dlg4.getByRole("button", { name: "Fill the table" }).click();
+  expect("four groups: pairwise log-rank header adjusted for 6 comparisons (Holm-Šídák)",
+    await waitResults(/adjusted for 6 comparisons \(Holm-Šídák\)/));
+  const pwTable = page.locator(".surv-block", { hasText: "Pairwise comparisons (log-rank)" }).locator("table.clin-grid");
+  expect("pairwise table: 6 rows (all pairs)", await pwTable.locator("tbody tr").count() === 6);
+  const vh = (await pwTable.locator("tr", { hasText: "Vehicle vs. High" }).innerText().catch(() => ""))
+    .replace(/\s+/g, " ");
+  const nums = vh.match(/High ([\d.]+) 1 ([\d.]+) ([\d.]+)/);
+  const pu = Number(nums?.[2]);
+  const pa = Number(nums?.[3]);
+  expect("Vehicle vs High: unadjusted P 0.001724, Holm-Šídák adjusted 1 - (1 - P)^6 = 0.0103 (>= unadjusted)",
+    !!nums && Math.abs(pu - 0.001724) < 5e-6 && Math.abs(pa - (1 - (1 - pu) ** 6)) < 2e-4
+    && Math.abs(pa - 0.0103) < 1e-4 && pa >= pu, vh);
+  await page.getByLabel("Groups are ordered (e.g. doses): log-rank test for trend").check();
+  expect("log-rank test for trend: chi-square 13.8, P = 0.0002035",
+    await waitResults(/Log-rank test for trend\s+χ² = 13\.8\d*, df 1, P = (0\.000203|2\.035e-4)/));
+  const legend = await page.locator(".methods-text").first().innerText().catch(() => "");
+  expect("methods text names the pairwise tests, the correction and the trend test",
+    /adjusted for 6 comparisons with the Holm-Šídák method/.test(legend) && /log-rank test for trend was used/.test(legend));
+  await page.getByLabel("Compare groups").selectOption("control");
+  expect("each group vs. control: 3 comparisons, adjusted for 3 (Holm-Šídák)",
+    await waitResults(/adjusted for 3 comparisons \(Holm-Šídák\)/)
+    && await pwTable.locator("tbody tr").count() === 3);
+  // axe-core on the survival aside and the extras blocks (labels, names, contrast)
+  const axeFile = createRequire(import.meta.url).resolve("axe-core/axe.min.js");
+  await page.addScriptTag({ path: axeFile }).catch(() => {});
+  const survViolations = await page.evaluate(async () => {
+    const out = [];
+    for (const sel of [".surv-aside", ".surv-extras", ".surv-notes"]) {
+      const el = document.querySelector(sel);
+      if (!el) continue;
+      // eslint-disable-next-line no-undef
+      const r = await axe.run(el, { runOnly: { type: "rule", values: ["select-name", "label",
+        "aria-input-field-name", "button-name", "input-button-name", "aria-required-children",
+        "aria-required-parent", "color-contrast"] } });
+      out.push(...r.violations.flatMap((x) => x.nodes.map((n) => `${sel} ${x.id}: ${n.html.slice(0, 80)}`)));
+    }
+    return out;
+  });
+  expect("axe-core: survival aside and extras have no label / name / contrast violations",
+    survViolations.length === 0, survViolations.join(" | "));
 }
 
 // --- n-awareness (needs small-n-honesty, declare-experimental-unit,
