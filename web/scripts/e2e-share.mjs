@@ -3,7 +3,9 @@
 // read-only with the same LogIC50, and "Make a copy" makes it editable;
 // a single family can be shared; the export bundle holds the expected
 // files (with provenance.json and legends.txt); the FlowJo import recipe aggregates samples by animal into a
-// column table; Reshape turns a table long; the validation page and the
+// column table; Reshape turns a table long; "Apply to new data" replays the
+// project (and the bundle's provenance.json) onto a changed contingency
+// table and logs the P that changed; the validation page and the
 // privacy statement are reachable from the info popover; the Incucyte,
 // LabChart and multi-read plate recipes make XY and grouped tables; a zip
 // of per-image CSVs becomes a SuperPlot-ready column table; a mapping
@@ -14,6 +16,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
+import { createRequire } from "node:module";
 import { unzipSync, strFromU8, strToU8, zipSync } from "fflate";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -199,6 +202,106 @@ await rs.getByRole("button", { name: "Create long table" }).click();
 await page.getByRole("treeitem", { name: "FlowJo statistics (long)", exact: true }).first().waitFor({ timeout: 10000 });
 expect("long table created as multiple variables",
   await page.locator(".var-type").count() === 3, String(await page.locator(".var-type").count()));
+
+// --- Apply to new data: the example project replayed onto a copy of its
+// contingency table with one count changed (15 -> 25 exposed events)
+const navCount = (kind) => page.locator(`.nav-item[data-key^='${kind}:']`).count();
+// axe-core (WCAG 2 A and AA rules) on the open dialog
+const axePath = createRequire(import.meta.url).resolve("axe-core/axe.min.js");
+const axeDialog = async () => {
+  await page.addScriptTag({ path: axePath }).catch(() => {});
+  return page.evaluate(async () => {
+    // eslint-disable-next-line no-undef
+    const r = await axe.run(document.querySelector("dialog[open]"),
+      { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa"] } });
+    return r.violations.flatMap((x) => x.nodes.map((n) => `${x.id}: ${n.html.slice(0, 90)}`));
+  });
+};
+const graphsBefore = await navCount("graph");
+const fisherP = async () => {
+  const row = page.locator(".pane-results .results-table tbody tr",
+    { hasText: "Fisher's exact test, two-sided" }).first();
+  await row.waitFor({ timeout: 60000 });
+  return /P\s*=\s*(\S+)/.exec((await row.innerText()).replace(/\s+/g, " "))?.[1] ?? "";
+};
+await page.getByRole("treeitem", { name: "Contingency example", exact: true }).first()
+  .locator(":scope > .nav-row").click();
+await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 60000 });
+const pBefore = await fisherP();
+const contingencyCsv = Buffer.from(",Event,No event\nExposed,25,85\nNot exposed,5,95\n");
+await saveMenu.click();
+await page.getByRole("menuitem", { name: "Apply to new data…" }).click();
+const rp = page.getByRole("dialog", { name: "Apply to new data" });
+await rp.waitFor({ timeout: 10000 });
+await rp.getByLabel("New data file").setInputFiles({ name: "Contingency example.csv",
+  mimeType: "text/csv", buffer: contingencyCsv });
+const mapped = rp.getByLabel("Table for Contingency example.csv");
+await mapped.waitFor({ timeout: 10000 });
+expect("replay: the new file is matched to its table by name",
+  (await mapped.locator("option:checked").innerText()).startsWith("Contingency example")
+  && (await rp.innerText()).includes("matched by name"));
+const axeSetup = await axeDialog();
+expect("axe-core: no WCAG A/AA violations in Apply to new data", axeSetup.length === 0, axeSetup.join(" | "));
+await rp.getByRole("button", { name: "Apply and re-run" }).click();
+const rlog = page.getByRole("dialog", { name: "Replay log" });
+await rlog.waitFor({ timeout: 180000 });
+const axeLog = await axeDialog();
+expect("axe-core: no WCAG A/AA violations in the replay log", axeLog.length === 0, axeLog.join(" | "));
+const logText = (await rlog.innerText()).replace(/\s+/g, " ");
+const contItem = (await rlog.locator("li", { hasText: "Contingency of Contingency example" }).innerText())
+  .replace(/\s+/g, " ");
+await rlog.getByRole("button", { name: "Keep as an info sheet" }).click();
+await rlog.getByRole("button", { name: "Done" }).click();
+let pAfter = pBefore;
+for (let i = 0; i < 60 && pAfter === pBefore; i++) {
+  await page.waitForTimeout(500);
+  pAfter = await fisherP();
+}
+console.log("replay log:", contItem.slice(0, 240));
+expect("replay log names the new data and the table it went into",
+  logText.includes("Contingency example: new data from Contingency example.csv (2 rows, 2 data sets)")
+  && logText.includes("Dose response: no new data for this table: kept as it was"));
+expect("replay log names the results sheet whose P changed, with both values",
+  pAfter !== pBefore && contItem.includes(`Fisher's exact test P ${pBefore} → ${pAfter}`),
+  `${pBefore} -> ${pAfter}`);
+expect("replay log: the dose-response fit did not change",
+  logText.includes("Nonlin fit of Dose response: no number changed"));
+expect("replay keeps every graph", await navCount("graph") === graphsBefore && graphsBefore >= 2,
+  `${graphsBefore} -> ${await navCount("graph")}`);
+expect("replay log kept as an info sheet",
+  await page.getByRole("treeitem", { name: "Replay log", exact: true }).count() === 1);
+
+// --- the same, with the bundle's provenance.json as the plan
+const provFile = join(tmp, "provenance.json");
+writeFileSync(provFile, entries["provenance.json"]);
+expect("provenance.json carries a replay plan with every sheet",
+  (prov.replay_plan?.sheets ?? []).filter((s) => s.kind === "graph").length === 2
+  && (prov.replay_plan?.sheets ?? []).filter((s) => s.kind === "results").length === 3);
+await saveMenu.click();
+await page.getByRole("menuitem", { name: "Apply to new data…" }).click();
+await rp.waitFor({ timeout: 10000 });
+await rp.getByRole("radio", { name: /A project file or provenance\.json/ }).check();
+await rp.getByLabel("Plan file").setInputFiles(provFile);
+await rp.getByRole("status").filter({ hasText: "provenance.json: 3 tables, 3 analyses, 2 graphs" })
+  .waitFor({ timeout: 10000 });
+await rp.getByLabel("New data file").setInputFiles({ name: "Contingency example.csv",
+  mimeType: "text/csv", buffer: contingencyCsv });
+await rp.getByLabel("Table for Contingency example.csv").waitFor({ timeout: 10000 });
+await rp.getByRole("button", { name: "Apply and re-run" }).click();
+await rlog.waitFor({ timeout: 180000 });
+const provLog = (await rlog.innerText()).replace(/\s+/g, " ");
+await rlog.getByRole("button", { name: "Done" }).click();
+expect("replay from provenance.json rebuilds the analyses and graphs on the new data",
+  provLog.includes("from provenance.json") && provLog.includes("new data from Contingency example.csv")
+  && provLog.includes("Dose response: no new data for this table, and the plan holds no values")
+  && provLog.includes("Contingency of Contingency example: no earlier numbers to compare with")
+  && await navCount("graph") === 2 && await navCount("results") === 3,
+  provLog.slice(0, 200));
+await page.getByRole("treeitem", { name: "Contingency example", exact: true }).first()
+  .locator(":scope > .nav-row").click();
+const pFromPlan = await fisherP();
+expect("the plan from provenance.json gives the same P on the same new data", pFromPlan === pAfter,
+  `${pFromPlan} vs ${pAfter}`);
 
 // --- info popover: privacy, file format, validation page
 await page.getByRole("button", { name: /About OpenDose/ }).click();

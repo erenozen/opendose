@@ -12,11 +12,15 @@ import type { DataSheet, Project } from "../project/types";
 import { analysisDef } from "../sheets/registry";
 import { hasShareLink, locationHash } from "./boot";
 import { useBundleExport } from "./useBundleExport";
+import { usePptxExport } from "../export/usePptxExport";
+import type { PptxScope } from "../export/pptx";
 import { SHARE_EVENT, type RecipeImportRequest, type ShareRequest, type ValidationFor } from "./events";
 import { familyProject, kb, makeFragment, SHARE_LIMIT } from "./link";
 import "./share.css";
 
 const ValidationPage = lazy(() => import("./ValidationPage"));
+const ReplayDialog = lazy(() => import("./ReplayDialog"));
+const PptxDialog = lazy(() => import("../export/PptxDialog"));
 const RecipeDialog = lazy(() => import("./RecipeDialog"));
 
 /** Results-sheet options written out in full, with the sender's
@@ -38,6 +42,8 @@ function withResolvedOptions(p: Project): Project {
 type Dialog =
   | { kind: "link"; dataId?: string }
   | { kind: "validation"; scope?: ValidationFor }
+  | { kind: "pptx"; from?: string | null; scope?: PptxScope }
+  | { kind: "replay"; dataId?: string }
   | RecipeImportRequest;
 
 /**
@@ -53,6 +59,7 @@ export default function ShareHost() {
     (locationHash() === "#validation" ? { kind: "validation" } : null));
   const bundle = useBundleExport();
   const runBundle = bundle.run;
+  const pptx = usePptxExport();
 
   // Data tables as a .pzfx file (all of them, or one table's).
   const savePzfx = useCallback(async (dataId?: string) => {
@@ -136,6 +143,26 @@ export default function ShareHost() {
         <Suspense fallback={null}>
           <ValidationPage onClose={closeValidation} scope={dialog.scope} />
         </Suspense>
+      )}
+      {dialog?.kind === "pptx" && (
+        <Suspense fallback={null}>
+          <PptxDialog from={dialog.from} initial={dialog.scope} onClose={() => setDialog(null)}
+            onExport={(scope, o) => {
+              setDialog(null);
+              void pptx.run(scope, o).then((msg) => { if (msg) ui.notify(msg); });
+            }} />
+        </Suspense>
+      )}
+      {dialog?.kind === "replay" && (
+        <Suspense fallback={null}>
+          <ReplayDialog dataId={dialog.dataId} onClose={() => setDialog(null)} />
+        </Suspense>
+      )}
+      {pptx.host}
+      {pptx.busy && (
+        <div className="share-progress" role="status" aria-live="polite">
+          Preparing the PowerPoint file… {pptx.progress}
+        </div>
       )}
       {dialog?.kind === "recipe" && (
         <Suspense fallback={null}>
