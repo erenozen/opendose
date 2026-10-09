@@ -358,7 +358,7 @@ await page.keyboard.press("Escape");
   expect("window 60 to 120 min: mean per mouse compared, t(10) = -16.65",
     await waitText(".pane-results", "t(10) = -16.65", 60000)
     && (await textOf(".pane-results")).includes("Mean of the values in the window, from 60 to 120"));
-  await page.locator(".mode-switch [role=tab]", { hasText: "AUC per subject" }).click();
+  await page.locator(".mode-switch [role=tab]", { hasText: "Subject AUC" }).click();
   await page.getByRole("button", { name: "Create the AUC column table" }).click();
   expect("the linked AUC column table opens with its t test: 6 mice per diet (12 values)",
     await waitText(".pane-results", "(n=6)", 60000)

@@ -105,7 +105,7 @@ export const tcMixed = defineAnalysis<TcMixedOptions, R>({
 export const tcAuc = defineAnalysis<TcAucOptions, R>({
   id: A_TC_AUC,
   label: "Time course: area under each subject's curve",
-  short: "AUC per subject",
+  short: "Subject AUC",
   description: "Trapezoid area under each subject's curve, compared between groups "
     + "(t test or one-way ANOVA), with a linked column table.",
   sheetName: (t) => `AUC per subject of ${t}`,
