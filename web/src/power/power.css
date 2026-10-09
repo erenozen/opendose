@@ -23,5 +23,17 @@
 .power-curve { height: 280px; border: 1px solid var(--border-soft); border-radius: var(--radius-s); overflow: hidden; }
 .power-curve .plot { width: 100%; height: 100%; }
 .power-list { max-height: 360px; overflow: auto; margin-top: 8px; }
+/* "Plan next experiment": the pilot's SD and the effect to detect. */
+.power-pilot h3 { margin-top: 0; }
+.power-pilot p { margin: 0 0 8px; font-size: 13.5px; line-height: 1.5; max-width: 72ch; }
+.power-pilot-sd strong { font-variant-numeric: tabular-nums; }
+.power-pilot-choice { border: none; margin: 0 0 8px; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.power-pilot-choice legend { font-weight: 600; font-size: 13.5px; margin-bottom: 4px; padding: 0; }
+.power-pilot-choice label { display: flex; gap: 8px; align-items: flex-start; font-size: 13.5px; line-height: 1.45; }
+.power-pilot-choice label input { margin: 3px 0 0; flex: none; }
+.power-pilot-choice label > span { flex: 1; min-width: 0; }
+.power-dialog .power-pilot { margin: 0; flex: none; resize: none; overflow: visible; max-height: none; height: auto; min-height: 0; }
+.power-pilot-choice .constraint-value { margin-left: 26px; width: 140px; max-width: calc(100% - 26px); }
+.power-pilot .field-note { color: var(--muted); font-size: 12.5px; }
 .power-inputs .power-wide { width: 100%; min-width: 0; box-sizing: border-box; }
 .power-inputs .clin-field:has(.power-wide) { flex-wrap: wrap; }

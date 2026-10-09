@@ -62,7 +62,7 @@ for (const type of TYPES) {
   const items = (await page.getByRole("menuitem").allInnerTexts()).map((t) => t.trim());
   await page.keyboard.press("Escape");
   for (const label of items) {
-    if (/Which test|Assay:|Monte Carlo|Simulate/.test(label)) continue;
+    if (/Which test|Help me choose|Assay:|Monte Carlo|Simulate/.test(label)) continue;
     await page.getByRole("button", { name: "Analyze", exact: true }).click();
     const item = page.getByRole("menuitem", { name: label, exact: true }).first();
     if (!(await item.count())) { await page.keyboard.press("Escape"); continue; }
