@@ -134,7 +134,9 @@ export function legendFor(c: LegendContext): string {
   const xyByExp = xy && !!facts && !c.data.report?.unit;
   const xyGroups = xyByExp ? groups.map((g) => ({ ...g, n: facts!.experiments })) : groups;
   const unit = meta.unit ?? (c.result as any)?.unit_words?.plural
-    ?? (longitudinal ? "subjects" : xy ? "replicates per X value" : undefined);
+    ?? (longitudinal ? "subjects" : xy
+      ? (groups.length && groups.every((g) => g.n === 1) ? "replicate per X value" : "replicates per X value")
+      : undefined);
   // Statistics on experiment means with one value per experiment (a flow
   // summary's donors) and the experiment named in Reporting details: n
   // already counts the experiments, so "(3 donors)" and "from 3

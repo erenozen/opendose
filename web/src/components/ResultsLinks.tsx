@@ -71,9 +71,9 @@ export default function ResultsLinks({ sheet, tableName, options, result }: {
           <span className="results-link">
             <button type="button" className="linkish"
               onClick={() => openPowerTool("power", pilot ?? undefined)}>
-              Plan next experiment…</button>
+              Sample size for the next experiment…</button>
             <span className="results-link-note">{pilot
-              ? "sample size for the next study, from this data's SD" : "power and sample size"}</span>
+              ? "from this data's SD (pilot)" : "the power and sample size tool"}</span>
           </span>
         )}
       </nav>
@@ -101,7 +101,7 @@ export function ResultsEmptyLinks() {
       )}
       <li>
         <button type="button" onClick={() => openPowerTool("power")}>
-          Plan an experiment (power)…</button>
+          Sample size (power)…</button>
         <span>How many animals or replicates you need, with a justification sentence.</span>
       </li>
       <li>

@@ -119,6 +119,7 @@
 :root[data-theme="dark"] .import-preview th.role-group, :root[data-theme="dark"] .role-chip.role-group { color: #4cd964; }
 :root[data-theme="dark"] .import-preview th.role-subject, :root[data-theme="dark"] .role-chip.role-subject { color: #ffb340; }
 :root[data-theme="dark"] .import-preview th.role-time, :root[data-theme="dark"] .role-chip.role-time { color: #c48cff; }
+:root[data-theme="dark"] .role-chip.role-value { color: #4aa8ff; } /* 4.5:1 on the inset fill */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .import-preview th.role-group,
   :root:not([data-theme="light"]) .role-chip.role-group { color: #4cd964; }
@@ -126,6 +127,7 @@
   :root:not([data-theme="light"]) .role-chip.role-subject { color: #ffb340; }
   :root:not([data-theme="light"]) .import-preview th.role-time,
   :root:not([data-theme="light"]) .role-chip.role-time { color: #c48cff; }
+  :root:not([data-theme="light"]) .role-chip.role-value { color: #4aa8ff; }
 }
 .import-preview td.dim { color: var(--faint); }
 .agg-steps { display: flex; flex-direction: column; gap: 6px; }

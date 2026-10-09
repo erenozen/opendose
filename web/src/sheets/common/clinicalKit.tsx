@@ -86,7 +86,8 @@ export function Grid({ head, rows, caption, className }: {
   head: ReactNode[]; rows: ReactNode[][]; caption?: string; className?: string;
 }) {
   return (
-    <div className="clin-scroll">
+    // focusable so a table wider than the pane scrolls from the keyboard
+    <div className="clin-scroll" tabIndex={0} role="group" aria-label={caption ?? "Table"}>
       <table className={`results-table clin-grid${className ? ` ${className}` : ""}`}>
         {caption && <caption className="sr-only">{caption}</caption>}
         <thead><tr>{head.map((h, i) => <th key={i} scope="col">{h}</th>)}</tr></thead>

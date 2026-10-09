@@ -124,7 +124,9 @@ test("engine change log: entries after the saving version, relevant ones by anal
   assert.equal(compareVersions("0.10.0", "0.9.1"), 1);
   assert.equal(compareVersions("0.3.0", "0.3"), 0);
   assert.ok(changesBetween("0.2.0", "0.3.0").length >= 8);
-  assert.equal(changesBetween("0.3.0", "0.4.0").length, 0);
+  assert.ok(changesBetween("0.3.0", "0.4.0").length >= 8);
+  assert.ok(changesBetween("0.3.0", "0.4.0").every((c) => c.version === "0.4.0"));
+  assert.ok(changesBetween("0.3.0", "0.4.0", "ttest").some((c) => /blank/.test(c.note)), "the pairing fix explains a changed paired t");
   assert.ok(changesBetween(null, "0.3.0", "dose_response").every((c) => c.analyses.includes("dose_response")));
   assert.equal(changesBetween("0.2.0", "0.3.0", "ttest").length, 0);
   assert.ok(changesBetween("0.3.0", "0.3.0", "survival").length === 1, "a rebuilt engine of one release");

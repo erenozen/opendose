@@ -26,8 +26,9 @@ src/
     manipulate/     cross-type: Transform, Normalize, … (derived tables),
                     user formulas, Simulate data dialog, Monte Carlo
     assays/         assay modules (plate reader, standard curve, qPCR,
-                    densitometry, growth, tumour growth, AUC, synergy,
-                    volcano, clustering); see below
+                    densitometry, flow cytometry, growth, tumour growth,
+                    time course, AUC, synergy, volcano, clustering); see
+                    below
   components/       shell UI: Navigator, Header, FamilyWorkspace, dialogs,
                     plus the existing panels the sheets wrap
   graph/            graph-format layer (Format graph / axes, annotations,
@@ -41,8 +42,8 @@ src/
                     needed), explainers + Help panel, start screen, tour.
                     Pure rules (recommend, paste, checks, banners, differ,
                     entry) are unit-tested in guide/__tests__
-  share/            share links, export bundle, .pzfx, import recipes,
-                    validation page
+  share/            share links, export bundle, .pzfx, import recipes
+                    (share/recipes/, see below), validation page
   power/            power and sample size, randomisation lists
 ```
 
@@ -107,11 +108,15 @@ formats (`project/wand.ts`), and info constants hooked into an analysis'
 `common/DataGrid` is the editor of every table type: toolbar (Import,
 Export, Sort, Insert series, Rows, Columns, Format, Convert), block
 selection, Data Inspector, and the dialogs in `common/`. A table type gets
-all of it by using `DataGrid` as its `Editor`. Above 150 rows the grid
-renders only the rows in view (`common/virtualRows.ts`): count rows with
-`table[data-rows]`, and scroll a row into view before selecting its cell
-in a test. Results sheets get Copy /
-CSV / TSV of their rendered tables from the shell (`common/ResultsExport`).
+all of it by using `DataGrid` as its `Editor`. Convert table to…
+(`common/ConvertTypeDialog`, pure `project/convertType.ts`) writes a new
+table of another type or layout; after a paste or import
+`common/PasteReportStrip` shows `project/pasteReport.ts`'s count of what
+was read; Ctrl/Cmd+E opens `common/ExclusionReasonPrompt`. Above 150
+rows the grid renders only the rows in view (`common/virtualRows.ts`):
+count rows with `table[data-rows]`, and scroll a row into view before
+selecting its cell in a test. Results sheets get Copy / CSV / TSV of
+their rendered tables from the shell (`common/ResultsExport`).
 
 ## The contract
 
@@ -350,6 +355,21 @@ tree on the side away from the column labels; "Dendrograms" option). The
 assay adds other linkages and distances, cluster strips, tree cuts and
 k-means.
 
+## Import recipes (share/recipes)
+
+`presets.ts` lists the recipes (`RECIPES`: FlowJo, CellProfiler, QuPath,
+plate grids, qPCR, Incucyte, LabChart, multi-read plates, per-image
+files, tidy long CSV). Each recognises an export and stages it as long
+records with guessed roles, a name pattern, aggregation steps and a table
+type, all editable in `share/RecipeDialog.tsx`; `pipeline.ts` runs the
+steps. Instrument readers are one file each (`incucyte.ts`,
+`labchart.ts`, `multiRead.ts`, `plate.ts`). `readFiles.ts` and
+`multiFile.ts` stack many files or a zip with a File column and read
+condition / replicate / image from a name template; `replicateOutput.ts`
+writes column or grouped tables with their replicate map. `saved.ts`
+keeps a mapping as a saved recipe (this browser, and `project.recipes`
+through `project/recipes.ts`, so files and share links carry it).
+
 ## Notes on specific analyses
 
 - Curve-fit models come from the engine's `list_models` at boot
@@ -384,7 +404,23 @@ k-means.
   calls `compare_fits` per data set, or fits the pooled data sets (one
   curve) and each data set alone (separate curves) with `dose_response`
   and applies the F test / AICc of `xy/fitStats.ts`. Both draw through
-  the XY plot; extra curves go in a data set's `altCurves`.
+  the XY plot; extra curves go in a data set's `altCurves`. Its
+  "parameter" mode compares one parameter between two data sets
+  (`xy/compareParameter.ts`, `compareParameterPanels.tsx`; the engine's
+  `compare_parameter`). An IC50 / EC50 beyond the tested range is shown
+  as "> 30 µM" by `xy/rangeReport.ts` / `rangeFlags.tsx` from the engine's
+  `range_flags`; no fitted number is changed.
+- Column comparisons: `column/comparisonsFamily.ts` (with
+  `comparisonsPicker.tsx`) sets the family a post test adjusts for (every
+  pair, vs. a control, planned pairs); `common/FamilyLine.tsx` prints it
+  under every comparisons table. `column/rmPosthoc.ts` handles the post
+  hoc after RM one-way ANOVA (engine `rm_posthoc.py`; `mixed_rm_oneway`
+  with missing values), `column/logScale.ts` the `options.log_scale`
+  analysis with geometric-mean ratios, and `column/residualsPanel.tsx`
+  the Residuals section of t tests and ANOVA.
+- The grouped two-way ANOVA's Interaction block (`grouped/interaction.tsx`,
+  data in `interactionSummary.ts`, `interactionPlot.tsx`) shows the
+  engine's interaction contrasts, simple effects and the interaction plot.
 - Survival tables may carry covariate columns for Cox regression: a
   data set's subcolumns are Time, Event and then one subcolumn per
   covariate, named by its subcolumn title (the same position in every

@@ -96,8 +96,7 @@ export const MEANING_SOURCES = {
     url: `${GP_S}f_ratio_and_anova_table_%28one-way_anova%29.htm` },
   // The interaction tests whether the differences between columns are
   // consistent across rows.
-  gpInteraction: { label: "GraphPad Statistics Guide: Interpreting results: Two-way ANOVA",
-    url: `${GP_S}how_to_think_about_results_from_two-way_anova.htm` },
+  gpInteraction: SRC.gpTwoWayResults,
   // r² is the fraction of variance shared; another variable may influence both.
   gpCorrelation: { label: "GraphPad Statistics Guide: Interpreting results: Correlation",
     url: `${GP_S}stat_interpreting_results_correlati.htm` },

@@ -211,15 +211,15 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
                 data-live={resStatus.live ? "true" : "false"}
                 aria-busy={resStatus.pending ? true : undefined}>
                 {engineReady && <AnalysisBusy status={resStatus} engine={engine} />}
+                {/* Order (0.4.0): links, questions and chips first; the key
+                    result; what was analysed under it; then the plain
+                    reading, the exclusions and the sentence together. */}
+                <ResultsLinks key={resSheet.id} sheet={resSheet} tableName={data.name}
+                  options={options} result={result} />
                 <ResultsGuide analysisId={resSheet.analysis} tableType={data.table.type}
                   table={data.table} options={options} result={result}
                   dataId={data.id} resultsId={resSheet.id} readOnly={readOnly} />
-                <NotesStrip analysisId={resSheet.analysis} table={data.table} options={options}
-                  result={result} />
-                <ResultsLinks key={resSheet.id} sheet={resSheet} tableName={data.name}
-                  options={options} result={result} />
                 <PlanCheck key={`plan-${resSheet.id}`} sheet={resSheet} data={data} readOnly={readOnly} />
-                <MeaningLine analysisId={resSheet.analysis} table={data.table} options={options} result={result} />
 
                 <ResultsExport name={resSheet.name}>
                   <Suspense fallback={<Pending />}>
@@ -228,8 +228,12 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
                   {/* Effect sizes of every comparison (src/report). */}
                   <EffectSizeCard result={result} />
                 </ResultsExport>
+                <NotesStrip analysisId={resSheet.analysis} table={data.table} options={options}
+                  result={result} />
                 <DifferNote analysisId={resSheet.analysis} tableType={data.table.type}
                   table={data.table} options={options} result={result} />
+                <MeaningLine analysisId={resSheet.analysis} resultsId={resSheet.id} table={data.table}
+                  options={options} result={result} />
                 <ExclusionsCard sheet={resSheet} table={data.table} options={options} result={result} />
                 <ReportCard sheet={resSheet} table={data.table} options={options} result={result} />
               </div>

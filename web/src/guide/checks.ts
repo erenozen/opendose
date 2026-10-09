@@ -115,14 +115,14 @@ function nChip(groups: GroupCheck[], unit = "group"): Chip | null {
     explainer: "replicates" };
 }
 
-/** Where the residual QQ plot is (results with a Residuals section). */
-const RESIDUAL_KINDS = new Set(["ttest:unpaired", "ttest:welch", "ttest:paired", "anova",
-  "welch_anova", "rm_anova"]);
-const qqWhere = (kind: string) => (RESIDUAL_KINDS.has(kind)
+/** Where the residual QQ plot is: the result's own Residuals section
+ *  when it has one (its advice depends on n, so the chip points there
+ *  instead of repeating it), else the t test and one-way ANOVA results. */
+const qqWhere = (hasResiduals: boolean) => (hasResiduals
   ? "the residual QQ plot (Residuals, under the results)"
   : "a residual QQ plot (with the t test and one-way ANOVA results)");
 
-function normalityChip(groups: GroupCheck[], kind: string): Chip | null {
+function normalityChip(groups: GroupCheck[], kind: string, hasResiduals = false): Chip | null {
   if (RANK.has(kind)) {
     return { id: "normality", label: "Normality not assumed", state: "ok",
       detail: "This rank-based test does not assume Gaussian data. It has less power than "
@@ -146,20 +146,25 @@ function normalityChip(groups: GroupCheck[], kind: string): Chip | null {
       state: "warn",
       detail: `Shapiro-Wilk ${failed.map((g) => `${g.name} ${pText(g.normalityP as number)}`)
         .join(", ")}. `
-        + `Look at ${qqWhere(kind)} first: `
-        + (minN >= 30 ? "with 30 or more values per group the test flags departures too "
-          + "small to matter, and t tests and ANOVA are robust to them. "
-          : "with small groups this test misses real skew and can flag a single unusual "
-          + "value. ")
+        + (hasResiduals
+          ? `Look at ${qqWhere(true)} first: it says how much weight this P deserves with `
+            + "your n. "
+          : `Look at ${qqWhere(false)} first: `
+            + (minN >= 30 ? "with 30 or more values per group the test flags departures too "
+              + "small to matter, and t tests and ANOVA are robust to them. "
+              : "with small groups this test misses real skew and can flag a single unusual "
+              + "value. ")
+            + "Don't switch to a rank-based test on this P value alone. ")
         + "If the spreads differ, use Welch's test; if the values are positive and skewed, "
-        + "analyse log(values). Don't switch to a rank-based test on this P value alone."
+        + "analyse log(values)."
         + paired,
       explainer: "normality" };
   }
   return { id: "normality", label: "Normality: no evidence against", state: "ok",
-    detail: `Shapiro-Wilk P ≥ 0.05 in every group (${tested.length} tested). With small `
-      + "samples this test has little power, so it does not prove the data are Gaussian: "
-      + `${qqWhere(kind)} shows more.`
+    detail: `Shapiro-Wilk P ≥ 0.05 in every group (${tested.length} tested). `
+      + (hasResiduals ? `This does not prove the data are Gaussian: ${qqWhere(true)} shows more.`
+        : "With small samples this test has little power, so it does not prove the data are "
+          + `Gaussian: ${qqWhere(false)} shows more.`)
       + paired, explainer: "normality" };
 }
 
@@ -183,6 +188,22 @@ function equalSdChip(ctx: ResultContext, groups: GroupCheck[], kind: string): Ch
           + "samples this test has little power).", explainer: "equal-sds" };
   }
   if (kind === "ttest:unpaired" || kind === "anova") {
+    // On the log scale the test compares the SDs of the logarithms: the
+    // geometric SD factors' logs (raw SDs that grow with the mean were
+    // the reason to take logs).
+    const gm = Array.isArray(r?.geometric_means) ? r.geometric_means as R[] : [];
+    const logSds = gm.map((g) => (typeof g.geometric_sd_factor === "number" && g.geometric_sd_factor > 1
+      ? Math.log10(g.geometric_sd_factor) : null)).filter((s): s is number => s !== null);
+    if (logSds.length >= 2 && logSds.length === gm.length) {
+      const lr = Math.max(...logSds) / Math.min(...logSds);
+      return lr >= 2
+        ? { id: "sd", label: `SD ratio of the logs ${lr.toFixed(1)}`, state: "warn",
+          detail: `On the log scale the largest SD is ${lr.toFixed(1)}× the smallest. The test `
+            + "assumes equal SDs of the logarithms.", explainer: "equal-sds" }
+        : { id: "sd", label: "Equal SDs of the logs: plausible", state: "ok",
+          detail: `On the log scale the largest SD is ${lr.toFixed(1)}× the smallest.`,
+          explainer: "equal-sds" };
+    }
     const sds = groups.map((g) => g.sd).filter((s): s is number => s !== null && s > 0);
     if (sds.length < 2) return null;
     const ratio = Math.max(...sds) / Math.min(...sds);
@@ -332,7 +353,8 @@ function fitChips(r: R): Chip[] {
         detail: "No parameter is ambiguous: the data determine every fitted value.",
         explainer: "ambiguous" });
   }
-  const extra = fits.filter((f) => f.fit.extrapolation);
+  // "> top dose" IC50s have their own block (sheets/xy/rangeFlags.tsx)
+  const extra = fits.filter((f) => f.fit.extrapolation && !f.fit.range_flags?.report_as);
   if (extra.length) {
     out.push({ id: "extrapolated", label: `IC50 outside the doses: ${extra.map((f) => f.name).join(", ")}`,
       state: "warn", detail: "The midpoint lies beyond the concentrations tested, so it is "
@@ -446,7 +468,13 @@ function survivalChips(ctx: ResultContext): Chip[] {
   }).filter((g) => g.n > 0);
   if (!per.length) return out;
   const fewEvents = per.filter((g) => g.events < 5);
-  out.push(fewEvents.length
+  // The engine's few-events warning, with its rule and sources, is shown
+  // under the medians (sheets/survival/extrasPanels.tsx): no second chip.
+  const r = ctx.result as R | null;
+  const engineWarns = [r?.warnings, r?.extras?.pairwise?.warnings, r?.extras?.at_time?.warnings,
+    r?.extras?.rmst?.warnings].flat()
+    .some((w) => typeof w === "string" && /few events|events in total/i.test(w));
+  if (!engineWarns) out.push(fewEvents.length
     ? { id: "events", label: "Few events", state: "warn",
       detail: `${fewEvents.map((g) => `${g.name}: ${g.events} event${g.events === 1 ? "" : "s"}`)
         .join(", ")}. Survival comparisons draw their power from events, not subjects; with `
@@ -511,7 +539,8 @@ export function resultChips(ctx: ResultContext): Chip[] {
   return [
     ...lead,
     nChip(groups),
-    kind === "outliers" || kind === "rout_column" ? null : normalityChip(groups, kind),
+    kind === "outliers" || kind === "rout_column" ? null
+      : normalityChip(groups, kind, !!r.residual_check && !(r.residual_check as R).unavailable),
     equalSdChip(ctx, groups, kind),
     kind === "rm_anova" ? sphericityChip(r) : null,
     zeroVarianceChip(groups),
