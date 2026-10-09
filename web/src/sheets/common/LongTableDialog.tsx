@@ -14,6 +14,7 @@ const TITLES: Record<LongTarget, string> = {
   roc: "ROC data from a long table",
   quantal: "Quantal dose-response data from a long table",
   xy: "Curves from a long table",
+  nested2: "Nested two-factor data from a long table",
 };
 
 const INTROS: Record<LongTarget, string> = {
@@ -27,6 +28,9 @@ const INTROS: Record<LongTarget, string> = {
     + "control.",
   xy: "One record per point: which data set (curve) it belongs to, X and Y. Each data set "
     + "becomes one Y column; points that share an X sit side by side as replicates.",
+  nested2: "One record per value (a cell, a well, a read): the value, its level of the row factor and "
+    + "of the data-set factor, and the unit it comes from (animal, litter, culture). Each level of "
+    + "the row factor becomes a block of rows and each unit a subcolumn, its values down the block.",
 };
 
 type SrcKind = "paste" | "file" | "table";

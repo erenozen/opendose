@@ -27,6 +27,12 @@ import { runReplicateTwoWay } from "./replicateMeans";
 import { rowMeansTable } from "./tables";
 import { estimationAnalysis, estimationGraph } from "../../report/estimation";
 import { groupedSample } from "./sample";
+import {
+  A_NESTED_TWO_WAY, DEFAULT_NESTED_TWO_WAY, normalizeNestedTwoWay, runNestedTwoWay,
+  type NestedTwoWayOptions,
+} from "./nestedTwoWay";
+import { G_MIXED_NESTED } from "../common/mixedModel";
+import { mixedNestedGraph } from "../common/mixedGraph";
 
 // Panels load on first use (sheets/lazy.ts).
 const controlsModule = () => import("./controls");
@@ -61,6 +67,30 @@ const ThreeWayResults = lazyPart(resultsModule, "ThreeWayResults");
 const TwoWayResults = lazyPart(resultsModule, "TwoWayResults");
 
 type Result = Record<string, unknown>;
+
+const nestedPanels = () => import("./nestedTwoWayPanels");
+const NestedTwoWayControls = lazyPart(nestedPanels, "NestedTwoWayControls");
+const mixedPanels = () => import("../common/mixedPanels");
+const MixedUnitResults = lazyPart(mixedPanels, "MixedUnitResults");
+const MixedUnitMethods = lazyPart(mixedPanels, "MixedUnitMethods");
+
+// Nested two-way ANOVA: a mixed model with the unit (animal) random.
+export const nestedTwoWayAnalysis = defineAnalysis<NestedTwoWayOptions, Result>({
+  id: A_NESTED_TWO_WAY,
+  label: "Nested two-way ANOVA (mixed model: units random)",
+  short: "Nested two-way",
+  description: "Two factors with several values (cells, wells) per animal, litter or "
+    + "culture: a mixed model with the unit as a random intercept, so the df come from "
+    + "the units, not the values.",
+  sheetName: (t) => `Nested two-way ANOVA of ${t}`,
+  defaultOptions: () => ({ ...DEFAULT_NESTED_TWO_WAY }),
+  normalizeOptions: (raw) => normalizeNestedTwoWay(raw),
+  run: runNestedTwoWay,
+  defaultGraph: G_MIXED_NESTED,
+  ControlsPanel: NestedTwoWayControls,
+  ResultsPanel: MixedUnitResults,
+  MethodsPanel: MixedUnitMethods,
+});
 
 export const twoWayAnalysis = defineAnalysis<TwoWayOptions, Result>({
   id: A_TWO_WAY,
@@ -260,6 +290,6 @@ export const groupedTable: TableTypeDef = {
     + "column is a level of the second factor. Replicates go side by side "
     + "in subcolumns.",
   analyses: [twoWayAnalysis, multiTAnalysis, threeWayAnalysis, rowMeansAnalysis,
-    columnStatsAnalysis, repTwoWayAnalysis, estimationAnalysis],
-  graphs: [...groupedGraphs, estimationGraph],
+    columnStatsAnalysis, repTwoWayAnalysis, estimationAnalysis, nestedTwoWayAnalysis],
+  graphs: [...groupedGraphs, estimationGraph, mixedNestedGraph],
 };

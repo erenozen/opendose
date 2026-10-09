@@ -322,6 +322,11 @@ One-file modules (pure parts `*Model.ts`, `*Sample.ts` unit-tested in
   `runTwoWay`, rendered by its `TwoWayResults`), AUC per subject (`auc`
   long mode → linked column table with its t test / ANOVA set up), time
   to endpoint (→ linked survival table).
+- `timecourse/` (folder, no wizard): the tumour module's controls
+  generalised to any measurement over time (`model.ts` reads records
+  through `tumourRecords`): `mixed_timecourse` with a covariance choice
+  and AIC comparison, AUC per subject and a time-window summary (the
+  `auc` handler in long mode) as linked column tables.
 - `synergy`: a grouped table as a combination matrix (row titles = drug 1
   concentrations, data-set titles = drug 2, subcolumns = replicate
   matrices) or long records; landscapes, monotherapy and Fa–CI graphs.
@@ -406,6 +411,13 @@ k-means.
   table's `xUnit` holds its time unit ("days"), used in "day 12"
   wording. `survival/entry.ts` turns counts per day or dates into one
   row per subject ("Survival data from…" above the table).
+- Unit-random mixed models: the grouped table's nested two-way ANOVA
+  (`grouped/nestedTwoWay.ts`, rows sharing a title form a block, each
+  subcolumn one unit) and the multiple-variables grouping-column model
+  (`multivariable/mixedGrouping.ts`) share `common/mixedModel.ts`
+  (options, family header, brackets, words) and `common/mixedPanels.tsx`
+  (results, controls, the `mixed_nested_scatter` graph). The engine
+  result is extended with `unit_words` and `outcome` for the reports.
 - The power and sample size tool (`src/power/`) is a dialog, not a sheet
   kind; "Save to project" writes an info sheet whose constant "Sample
   size justification" holds the sentence (`findSampleSizeJustification`).

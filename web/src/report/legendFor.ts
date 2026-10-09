@@ -8,6 +8,10 @@ import { cellStats } from "../sheets/grouped/stats.ts";
 import { numericData } from "../project/table.ts";
 import { exclusionSentence } from "../project/exclusions.ts";
 import type { DataSheet, DataTableModel, GraphSheet } from "../project/types.ts";
+import { G_MIXED_NESTED, mixedPlotted, nestedBrackets } from "../sheets/common/mixedModel.ts";
+import {
+  G_TC_AUC, G_TC_MEANS, G_TC_WINDOW, SUBJECT_DOTS_PLOTTED, timecoursePlotted,
+} from "../sheets/assays/timecourse/model.ts";
 import type { GroupN } from "./describe.ts";
 import { legendParagraph, whatIsPlotted, type ErrorBars } from "./legend.ts";
 import type { ReportPrefs } from "./prefs.ts";
@@ -82,6 +86,23 @@ export function graphFacts(g: GraphSheet | null | undefined, options: unknown): 
   return { errorBars: null, points: null, starsShown, pShown };
 }
 
+/** Graph kinds of the unit-random mixed models and the time course, which
+ *  describe themselves (sheets/common/mixedModel.ts, assays/timecourse). */
+const OWN_KINDS = new Set([G_MIXED_NESTED, G_TC_MEANS, G_TC_AUC, G_TC_WINDOW]);
+
+function ownPlotted(g: GraphSheet, result: unknown, options: unknown): string | undefined {
+  const r = (result ?? {}) as any;
+  const ci = typeof (options as any)?.ciLevel === "number" ? (options as any).ciLevel : 0.95;
+  if (g.graphType === G_MIXED_NESTED) {
+    return mixedPlotted(r.unit_words ?? { singular: "unit", plural: "units" }, ci);
+  }
+  if (g.graphType === G_TC_MEANS) {
+    const s = (g.settings.timecourse ?? {}) as any;
+    return timecoursePlotted(ci, s.subjects === true, s.ci === "band" || s.ci === "none" ? s.ci : "bars");
+  }
+  return SUBJECT_DOTS_PLOTTED;
+}
+
 export interface LegendContext {
   data: DataSheet;
   table: DataTableModel;
@@ -95,8 +116,12 @@ export interface LegendContext {
 /** The figure legend of a graph (or of the results alone, without one). */
 export function legendFor(c: LegendContext): string {
   const f = graphFacts(c.graph, c.options);
+  // Time courses and unit-random mixed models count subjects / units.
+  const own = !!c.graph && OWN_KINDS.has(c.graph.graphType);
+  const ra = (c.result as { analysis?: string } | null)?.analysis;
+  const longitudinal = ra === "mixed_timecourse" || ra === "subject_auc";
   // XY tables: n is the replicates at each X, not every value of a curve.
-  const xy = c.table.type === "xy";
+  const xy = c.table.type === "xy" && !longitudinal;
   const groups = xy ? numericData(c.table).datasets.map((d) => ({
     name: d.name, n: Math.max(0, ...d.ys.map((r) => r.filter((v) => v !== null).length)),
   })).filter((g) => g.n > 0) : tableGroups(c.table);
@@ -108,7 +133,8 @@ export function legendFor(c: LegendContext): string {
   // XY with repeats inside experiments: the points are experiment means.
   const xyByExp = xy && !!facts && !c.data.report?.unit;
   const xyGroups = xyByExp ? groups.map((g) => ({ ...g, n: facts!.experiments })) : groups;
-  const unit = meta.unit ?? (xy ? "replicates per X value" : undefined);
+  const unit = meta.unit ?? (c.result as any)?.unit_words?.plural
+    ?? (longitudinal ? "subjects" : xy ? "replicates per X value" : undefined);
   // Statistics on experiment means with one value per experiment (a flow
   // summary's donors) and the experiment named in Reporting details: n
   // already counts the experiments, so "(3 donors)" and "from 3
@@ -119,7 +145,8 @@ export function legendFor(c: LegendContext): string {
   const fmt = c.graph ? readFormat(c.graph.settings) : null;
   return legendParagraph({
     graphType: c.graph?.graphType ?? null,
-    plotted: withCompareClause(c.graph ? plottedClause(c.graph, c.table, c.result) : undefined, c.result),
+    plotted: withCompareClause(c.graph ? (own ? ownPlotted(c.graph, c.result, c.options)
+      : plottedClause(c.graph, c.table, c.result)) : undefined, c.result),
     result: c.result,
     groups: xyGroups,
     unit: { unit, experiments: onePer ? null : meta.experiments ?? null,
@@ -127,7 +154,11 @@ export function legendFor(c: LegendContext): string {
     nNote: withinNote(facts, xy) || undefined,
     exclusions: exclusionSentence(c.table) ?? undefined,
     errorBars: f.errorBars, points: f.points ?? undefined,
-    starsShown: f.starsShown, pShown: f.pShown,
+    // the nested scatter draws its brackets until its format says otherwise
+    starsShown: f.starsShown || (c.graph?.graphType === G_MIXED_NESTED && !fmt?.comparisons
+      && (c.graph.settings.mixedNested as any)?.brackets !== false
+      && !!nestedBrackets(c.result)?.set.comparisons.length),
+    pShown: f.pShown,
     style: fmt?.pStyle ?? c.prefs.pStyle,
     hideNs: fmt?.comparisons?.hideNs ?? c.prefs.hideNs, software: c.software,
   });
@@ -147,7 +178,7 @@ function withCompareClause(plotted: string | undefined, result: unknown): string
 
 /** Can the legend say what this graph draws? */
 export function graphDescribed(g: GraphSheet): boolean {
-  return whatIsPlotted(g.graphType, {}) !== null;
+  return OWN_KINDS.has(g.graphType) || whatIsPlotted(g.graphType, {}) !== null;
 }
 
 /** The graph a results sheet's legend describes: the family's graph bound

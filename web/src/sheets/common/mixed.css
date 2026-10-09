@@ -1,0 +1,22 @@
+/* Mixed models with a unit as a random intercept (nested two-way ANOVA,
+   grouping column) and the time-course module. Tokens only. */
+
+.mixed-design-note {
+  margin: 8px 0 12px; padding: 8px 12px; max-width: 80ch;
+  font-size: 14px; font-weight: 600; color: var(--ink);
+  background: var(--accent-soft); border: 1px solid var(--accent-border);
+  border-radius: var(--radius-s);
+}
+.mixed-formula {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12.5px; color: var(--ink-2); overflow-wrap: anywhere;
+}
+.mixed-block { margin: 16px 0 6px; padding-top: 10px; border-top: 1px solid var(--grid); }
+.mixed-block h4 { margin: 0 0 8px; font-size: 14px; color: var(--ink); }
+.mixed-family { margin: 6px 0; font-size: 13px; font-weight: 600; color: var(--ink-2); max-width: 80ch; }
+.mixed-method { max-width: 80ch; margin: 6px 0; }
+.mixed-method cite { font-style: italic; }
+.mixed-best { font-weight: 600; color: var(--accent-ink); }
+.mixed-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0; }
+.mixed-units summary { cursor: pointer; font-size: 13px; color: var(--ink-2); }
+.mixed-units summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }

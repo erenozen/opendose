@@ -259,6 +259,12 @@ example's numbers, regenerate them against a dev server with
   (descriptive statistics, correlation matrix, multiple linear
   regression, simple and multiple logistic regression with ROC, PCA with
   parallel analysis).
+- Nested two-way ANOVA (cells nested in animals in a two-factor design)
+  and a mixed model with a grouping column (animal, litter, cage) on
+  multiple-variables tables: the unit is a random intercept, so the df
+  come from the units, not the values; variance components and ICC, cell
+  means with CIs, comparisons with their family named, a nested scatter of
+  unit means with brackets.
 - Statistics on replicate means (SuperPlots): t tests, Wilcoxon, one-way
   or repeated-measures ANOVA and two-way ANOVA on one value per
   experiment, n = number of experiments. Estimation plots
@@ -319,7 +325,11 @@ sheets that follow the data.
   preprocessing, logistic / Gompertz / Zwietering lag models, doubling
   time with CI); tumour growth and other per-subject time courses (mixed
   model on log volume, AUC per animal, time to endpoint as a survival
-  table); area under the curve; drug-combination synergy (HSA, Bliss,
+  table); time courses of any measurement (a glucose tolerance test,
+  weights: a mixed model with compound symmetry, AR(1), unstructured or
+  random-slope covariance compared by AIC, group means and differences
+  at each time, AUC and a time-window summary per subject as linked
+  column tables); area under the curve; drug-combination synergy (HSA, Bliss,
   Loewe, ZIP, Chou–Talalay; the expected and ZIP-fitted matrices as
   selectable landscapes; combination indices withheld, with the reason,
   when a median-effect fit is invalid); volcano plots from a fold-change / P table;

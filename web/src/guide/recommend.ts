@@ -388,6 +388,25 @@ export function recommend(d: Design, checks: DataChecks | null = null): Recommen
     const target: Target = { tableType: "grouped", analysisId: "grouped_two_way",
       options: { design, comparisons: cmp, direction: "columns_within_rows" },
       layout: rm ? LAYOUT.groupedRm : LAYOUT.grouped };
+    // Cells or repeats within animals in a two-factor design: the nested
+    // two-way mixed model, df from the units (Aarts et al. 2014 Nat
+    // Neurosci 17:491; Lazic 2010).
+    if (nested && !rm) {
+      return { ...base, rule: "nested_two_way", test: "Nested two-way ANOVA (mixed model, units random)",
+        reason: `You have ${unit} within each animal, culture or experiment, and two factors. `
+          + "Counting every value as n gives falsely small P values; a mixed model with the unit "
+          + "as a random intercept tests both factors and their interaction against the "
+          + "variation between units, so the df come from the units (Aarts et al. 2014).",
+        target: { tableType: "grouped", analysisId: "grouped_nested_two_way",
+          options: { comparisons: d.question === "control" ? "dunnett" : cmp },
+          layout: "Grouped table: rows = levels of one factor (a block of rows per level), "
+            + "columns = levels of the other, one subcolumn per animal with its values down the block." },
+        alternatives: [{ test: "Two-way ANOVA on the unit means", when: "equivalent when every "
+          + "unit has the same number of values: average each animal first and enter one value per animal",
+        target: { ...target, options: { design: "none", comparisons: cmp, direction: "columns_within_rows" } } }],
+        postHoc: postHocFor(d, "nested"), sources: src("gpNested", "lazic2010", "lord2020"),
+        explainers: ["replicates", "superplots"] };
+    }
     if (nested) {
       notes.push(`Average the ${unit} within each biological unit first and enter one value `
         + "per animal, culture or experiment as the replicates: the ANOVA's n must be the "
@@ -406,6 +425,12 @@ export function recommend(d: Design, checks: DataChecks | null = null): Recommen
       { test: "Multiple t tests (one per row)",
         when: "only when the rows are separate experiments you are not comparing; correct "
           + "for multiple comparisons (Holm-Šídák or FDR)" },
+      // the same subjects measured over time: the time-course module
+      ...(d.repeated === "one" && !nested ? [{ test: "Time course: mixed model with a covariance choice, AUC per subject",
+        when: "when the repeated factor is time: AR(1), unstructured or random-slope covariance "
+          + "compared by AIC, and each subject's area under the curve compared between groups",
+        target: { tableType: "grouped", analysisId: "assay_timecourse_mixed", options: {},
+          layout: "Grouped table: rows = time points, columns = groups, one subcolumn per subject." } }] : []),
     ];
     if (d.distribution === "lognormal") {
       notes.push("Lognormal data: transform Y = log(Y) (Analyze › Transform) and run the ANOVA "
