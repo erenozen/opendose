@@ -11,6 +11,7 @@ import {
 import type { ColumnOptionsState } from "../../types.ts";
 import { COLUMN_ANALYSIS_LABELS, DEFAULT_NORMALITY_TESTS } from "../../types.ts";
 import { allCellsComparisons } from "../common/allCells.ts";
+import { withWithheld } from "../common/withheld.ts";
 
 export function runColumn(engine: EngineBridge, table: DataTableModel,
   o: ColumnOptionsState): Record<string, unknown> {
@@ -20,7 +21,8 @@ export function runColumn(engine: EngineBridge, table: DataTableModel,
     && o.twoWayComparisons !== "none" && r && !r.error) {
     return { ...r, multiple_comparisons: twoWayAllCells(engine, table, o) };
   }
-  return r;
+  // Fewer than two independent values in a group: no P (common/withheld.ts).
+  return withWithheld(table, o, r);
 }
 
 /** Every cell mean against every other: needs the interaction model. */

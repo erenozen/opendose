@@ -11,6 +11,7 @@
 // stated), SAMPL (state the test and the scale of the asterisks). Pure.
 import { describeResult, type GroupN, type TestInfo } from "./describe.ts";
 import { starScale, type PStyle } from "./pformat.ts";
+import { withheldInfo, withheldPhrase } from "../sheets/common/withheld.ts";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type R = Record<string, any>;
@@ -87,6 +88,11 @@ export interface ReportUnit {
   unit?: string;
   /** Number of independent experiments (biological replicates). */
   experiments?: number | null;
+  /** What each n holds, in parentheses after the unit ("9 wells"): n
+   *  counts experiments, every group has that many values. */
+  within?: string;
+  /** "group" (default) or "X value": what the n is per. */
+  per?: string;
 }
 
 const UNIT_WORDS: Record<NonNullable<TestInfo["nUnit"]>, string> = {
@@ -104,11 +110,16 @@ export function nStatement(groups: GroupN[], info: Pick<TestInfo, "nUnit">,
   const exp = unit.experiments && unit.experiments > 0 && !/experiment/i.test(word)
     ? ` from ${unit.experiments} independent experiment${unit.experiments === 1 ? "" : "s"}` : "";
   const same = g.every((x) => x.n === g[0].n);
+  if (info.nUnit === "pairs" && same && unit.unit?.trim() && unit.within?.trim()) {
+    return `n = ${g[0].n} ${unit.unit.trim()} (${unit.within.trim()}) per group, paired${exp}`;
+  }
   if (info.nUnit === "pairs" && same) {
     return `n = ${g[0].n} ${unit.unit?.trim() ? `${unit.unit.trim()} (paired)` : "pairs"}${exp}`;
   }
   if (same) {
-    return `n = ${g[0].n}${word ? ` ${word}` : ""}${g.length > 1 ? " per group" : ""}${exp}`;
+    const within = unit.within?.trim() ? ` (${unit.within.trim()})` : "";
+    const per = unit.per ? ` per ${unit.per}` : g.length > 1 ? " per group" : "";
+    return `n = ${g[0].n}${word ? ` ${word}` : ""}${within}${per}${exp}`;
   }
   return `n = ${g.map((x) => `${x.n} (${x.name})`).join(", ")}${word ? ` ${word}` : ""}${exp}`;
 }
@@ -147,11 +158,16 @@ export function legendParagraph(i: LegendInput): string {
     estimation: (i.result as R | null)?.analysis === "estimation" ? i.result as R : null,
   });
   if (what) parts.push(what);
-  const groups = info.groups.length ? info.groups : i.groups ?? [];
-  const n = nStatement(groups, info, i.unit);
+  const wh = withheldInfo(i.result);
+  const groups = wh?.all.length ? wh.all.map((g) => ({ name: g.name, n: g.n }))
+    : info.groups.length ? info.groups : i.groups ?? [];
+  const n = nStatement(groups, wh ? { nUnit: wh.matched ? "pairs" : "values" } : info, i.unit);
   if (n) parts.push(`${n}${i.nNote ? ` (${i.nNote})` : ""}.`);
   const est = (i.result as R | null)?.analysis === "estimation";
-  if (est) {
+  if (wh) {
+    parts.push(`Descriptive results only, exploratory (${withheldPhrase(wh)}): no statistical `
+      + "test was performed and no P value is reported.");
+  } else if (est) {
     const many = info.multiplicity === "uncorrected";
     parts.push(`Differences were estimated by bootstrap resampling; P values are from two-sided permutation tests${many ? ", not corrected for multiple comparisons" : ""}.`);
   } else if (info.test) {
@@ -165,8 +181,8 @@ export function legendParagraph(i: LegendInput): string {
     }
     parts.push(`${t} was used.`);
   }
-  if (i.starsShown) parts.push(`${starScale(i.style, i.hideNs ?? false)}.`);
-  if (i.pShown) parts.push("P values shown are exact.");
+  if (i.starsShown && !wh) parts.push(`${starScale(i.style, i.hideNs ?? false)}.`);
+  if (i.pShown && !wh) parts.push("P values shown are exact.");
   parts.push(`Analysed and drawn with ${i.software}.`);
   return parts.join(" ");
 }

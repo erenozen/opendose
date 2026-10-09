@@ -7,6 +7,9 @@ import { formatPValue } from "../report/pformat.ts";
 import { analysisKind, fitAmbiguous, wideParams, type ResultContext } from "./checks.ts";
 import { normalisedControl, missingInRows } from "./stats.ts";
 import { SRC, type Source } from "./sources.ts";
+import { withheldInfo } from "../sheets/common/withheld.ts";
+import { blockBanner, blockRemoved, MATCHED_BY, pairedBlockBanner } from "./blocking.ts";
+import { withheldBanner } from "./smallN.ts";
 
 export interface Banner {
   id: string;
@@ -16,6 +19,8 @@ export interface Banner {
   fixes: string[];
   explainer?: string;
   sources: Source[];
+  /** A one-click follow-up under the banner (the power tool). */
+  action?: "open-power";
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -223,6 +228,16 @@ export function resultBanners(ctx: ResultContext): Banner[] {
   const kind = analysisKind(ctx);
   const out: Banner[] = [];
   if (kind === "nonlin") return fitBanners(ctx, r);
+  // One independent value in a group: P withheld (small-n-honesty).
+  const wh = withheldInfo(r);
+  if (wh) return [withheldBanner(wh, ctx.needed ?? null)];
+  // Matched by experiment / subject: what the matching removed
+  // (experiment-as-block).
+  const byExperiment = (ctx.options as R)[MATCHED_BY] === "experiment";
+  const removed = blockRemoved(r);
+  if (removed) out.push(blockBanner(removed, byExperiment));
+  const pairing = byExperiment && r.analysis === "ttest" ? pairedBlockBanner(r) : null;
+  if (pairing) out.push(pairing);
   if (kind === "normalize") {
     out.push(normalizeBanner(ctx.options));
     return out;

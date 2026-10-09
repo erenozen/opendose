@@ -2291,6 +2291,137 @@ expect("compare fits graph draws the separate curves and the shared curve",
   expect("after a cancel the engine computes again (column statistics)", back);
 }
 
+// --- n-awareness (needs small-n-honesty, declare-experimental-unit,
+// experiment-as-block, multiplicity-by-default) ---
+// Native engine: power t_two_sample, solve effect, n1 = n2 = 3 → d = 3.071,
+// critical t(4) = 2.776 → CI half-width 2.776 × √(2/3) = 2.27 SD; solve n
+// for d = 1 / 1.5 / 2 → 17 / 9 / 6 per group. RM one-way ANOVA of Control
+// 10 14 8 12, A 12 17 9 15, B 15 19 12 18 (rows = days): SS subjects
+// 84.92 of 136.92 (62%). Holm-Šídák of the three t tests vs Control:
+// C 0.002632 → 0.007874.
+{
+  const newColumnPaste = async (text) => {
+    await page.getByRole("button", { name: "New data table" }).click();
+    const nd = page.locator(".new-table-dialog");
+    await nd.locator('input[name="table-type"][value="column"]').check();
+    await nd.getByRole("button", { name: "Create table" }).click();
+    await page.waitForTimeout(500);
+    await page.evaluate((t) => {
+      const el = document.querySelector(".data-table tbody input[data-r='0']:not([aria-label$='title'])");
+      const dt = new DataTransfer();
+      dt.setData("text/plain", t);
+      el.focus();
+      el.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }));
+    }, text);
+    const imp = page.locator(".import-dialog");
+    await imp.waitFor({ timeout: 10000 });
+    await imp.getByRole("button", { name: "Import", exact: true }).click();
+    await imp.waitFor({ state: "detached", timeout: 10000 }).catch(() => {});
+    await page.waitForTimeout(400);
+  };
+  const resultsText = (re, timeout = 60000) => page.waitForFunction((src) =>
+    new RegExp(src).test(document.querySelector(".pane-results")?.innerText ?? ""),
+  re.source, { timeout }).then(() => true, () => false);
+
+  // (a) one pooled value per group: no P, description only
+  await newColumnPaste("Control\tTreated\n10\t14\n");
+  await page.locator(".pane-controls select.analysis-select").selectOption("ttest");
+  expect("n = 1 per group: P withheld, the results are descriptive",
+    await resultsText(/P value\s+withheld: one value per group gives no estimate of the variability/));
+  // the n needed comes from the power engine a moment later
+  await page.waitForFunction(() => document.querySelector('[data-banner="p-withheld"]')?.textContent
+    ?.includes("to detect d = 2"), null, { timeout: 60000 }).catch(() => {});
+  const whBanner = await page.locator('[data-banner="p-withheld"]').innerText().catch(() => "");
+  expect("n = 1 per group: 'one value per group allows description only' with the replication needed",
+    whBanner.includes("No P value: one value per group allows description only")
+    && whBanner.includes("17 to detect d = 1, 9 to detect d = 1.5, 6 to detect d = 2")
+    && whBanner.includes("The need for independent samples"), whBanner.slice(0, 300));
+  const whSentence = await page.locator(".report-sentence p").innerText().catch(() => "");
+  const whLegend = await page.locator(".report-legend p").innerText().catch(() => "");
+  expect("results sentence and legend say exploratory (one value per group), no P",
+    whSentence.startsWith("Descriptive results only, exploratory (one value per group)")
+    && whLegend.includes("exploratory (one value per group)") && !/P = /.test(whSentence + whLegend),
+    `${whSentence} | ${whLegend}`);
+
+  // (b) n = 3 per group: the detectable effect from the power engine
+  await newColumnPaste("Control\tTreated\n10\t14\n11\t15\n12\t17\n");
+  await page.locator(".pane-controls select.analysis-select").selectOption("ttest");
+  expect("n = 3 per group: chip 'can detect only d ≥ 3.07 at 80% power (CI ≈ ±2.27 SD)'",
+    await page.waitForFunction(() => document.querySelector(".guide-chips")?.textContent
+      ?.includes("n = 3 per group: can detect only d ≥ 3.07 at 80% power (CI ≈ ±2.27 SD); plan replication"),
+    null, { timeout: 60000 }).then(() => true, () => false),
+    await page.locator(".guide-chips").innerText().catch(() => ""));
+  await page.locator(".guide-chip", { hasText: "can detect only" }).click();
+  expect("the detectable-effect chip offers the power tool and cites FAQ 1710",
+    await page.locator(".guide-chip-detail").getByRole("button", { name: /power tool/ }).count() === 1
+    && (await page.locator(".guide-chip-detail").innerText()).includes("FAQ 1710"));
+
+  // (c) triplicate wells from three experiments: asked before any P
+  await newColumnPaste("Control\tTreated\n10\t12\n11\t13\n12\t14\n20\t23\n21\t24\n22\t25\n30\t33\n31\t34\n32\t35\n");
+  const uq = page.getByRole("region", { name: "What does each value represent?" });
+  expect("a pasted table of 9 values per group is asked what each value represents",
+    await appears(uq, 30000));
+  await page.getByRole("button", { name: /Each value is: Technical repeat/ }).click();
+  expect("technical repeats: blocks of 3 rows, 3 experiments with 9 wells per group",
+    (await uq.innerText()).includes("3 independent experiments, 9 wells per group"),
+    await uq.innerText());
+  await uq.getByRole("button", { name: "Use these experiments" }).click();
+  expect("the legend reads n = 3 independent experiments (9 wells)",
+    await page.waitForFunction(() => document.querySelector(".report-legend p")?.textContent
+      ?.includes("n = 3 independent experiments (9 wells) per group, paired"), null, { timeout: 60000 })
+      .then(() => true, () => false),
+    await page.locator(".report-legend p").innerText().catch(() => ""));
+  expect("the question is answered once per table",
+    await page.getByRole("region", { name: "What does each value represent?" }).count() === 0);
+
+  // (d) control, A and B once on each of four days: matched by day
+  await newColumnPaste("Control\tA\tB\n10\t12\t15\n14\t17\t19\n8\t9\t12\n12\t15\t18\n");
+  await page.getByRole("button", { name: "Analyze", exact: true }).click();
+  await page.getByRole("menuitem", { name: /Which test/ }).click();
+  const wtb = page.locator("dialog.which-test");
+  await wtb.waitFor({ timeout: 10000 });
+  await wtb.getByRole("group", { name: /run once per experiment, on different days/ })
+    .getByRole("radio", { name: "Yes" }).check();
+  expect("wizard: run once per experiment on different days → repeated-measures ANOVA",
+    (await wtb.locator(".wt-test").innerText()) === "Repeated-measures one-way ANOVA"
+    && (await wtb.locator(".wt-result").innerText()).includes("experiment is a block"));
+  await wtb.getByRole("button", { name: /^Open on/ }).click();
+  const blockNote = await page.locator('[data-banner="block-removed"]').waitFor({ timeout: 60000 })
+    .then(() => page.locator('[data-banner="block-removed"]').innerText(), () => "");
+  expect("RM ANOVA by day: 'Day-to-day (between-experiment) differences removed: SS = 84.92, 62%'",
+    blockNote.includes("Day-to-day (between-experiment) differences removed: SS = 84.92, 62% of the total")
+    && blockNote.includes("Festing 2014"), blockNote.slice(0, 200));
+
+  // (e) three t tests against one control on one table
+  await newColumnPaste("Control\tA\tB\tC\n10\t12\t11\t13\n11\t13\t12\t15\n12\t14\t13\t14\n"
+    + "10.5\t12.5\t14\t16\n11.5\t13.5\t10\t12\n12.5\t11\t12\t14\n");
+  for (const [i, b] of [1, 2, 3].entries()) {
+    if (i > 0) {
+      await page.getByRole("button", { name: "Analyze", exact: true }).click();
+      await page.getByRole("menuitem", { name: /Column analyses/ }).click();
+      await page.waitForTimeout(800);
+    }
+    await page.locator(".pane-controls select.analysis-select").selectOption("ttest");
+    await page.locator(".pane-controls").getByLabel("Group B").selectOption(String(b));
+    await page.waitForTimeout(800);
+  }
+  const mChip = page.locator(".guide-chip", { hasText: "t tests on this table" });
+  expect("three t tests: chip with the familywise error 1−0.95³ = 14% (Bonferroni 15%)",
+    await appears(mChip, 30000) && (await mChip.innerText())
+      .includes("3 t tests on this table: familywise error ≈ 1−0.95³ = 14% (Bonferroni bound 15%)"),
+    await mChip.innerText().catch(() => ""));
+  await mChip.click();
+  await page.getByRole("button", { name: "Adjust these 3 P values (Holm-Šídák)" }).click();
+  const holm = await page.locator(".guide-holm").waitFor({ timeout: 60000 })
+    .then(() => page.locator(".guide-holm").innerText(), () => "");
+  expect("Holm-Šídák across the three: Control vs. C 0.002632 → 0.007874",
+    /Control vs\. C\s+0\.002632\s+0\.007874/.test(holm), holm.replace(/\s+/g, " "));
+  await page.getByRole("button", { name: "One-way ANOVA with Dunnett vs Control" }).click();
+  expect("one click: ordinary one-way ANOVA with Dunnett's comparisons against Control",
+    await resultsText(/Ordinary one-way ANOVA[\s\S]*C vs\. Control/)
+    && await page.locator(".pane-controls").getByLabel("Multiple comparisons").inputValue() === "dunnett");
+}
+
 // --- discoverability (user-needs catalogue, Wave 0): features users look
 // for where they look. "Help me choose…" first in Analyze, worded with the
 // table's own rows, landing on the test with its reason; "Plan next

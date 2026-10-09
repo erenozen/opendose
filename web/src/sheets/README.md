@@ -65,8 +65,13 @@ src/
   table's replicate map (`report/replicates.ts`: `ReplicateMap.unit` and
   the number of experiments), so a SuperPlot table reports "n = 18 cells
   from 3 independent experiments" (or, on replicate means, "n = 3
-  independent experiments per group (54 cells in all)"). Grouped tables
-  count n per row × data set cell.
+  independent experiments (18 cells) per group", or "(54 cells in all)"
+  when the groups differ in size). Grouped tables
+  count n per row × data set cell; XY tables per X value. On experiment
+  means the legend writes "n = 3 independent experiments (9 wells) per
+  group". A t test or one-way ANOVA with fewer than two independent
+  values in a group carries `withheld` and no P (`common/withheld.ts`):
+  panels, sentences and legends describe the values instead.
 
 ## Data model in one paragraph
 

@@ -36,6 +36,11 @@ function pHow(r: R): string {
 
 /** The sentence describing the analysis (without the software sentence). */
 export function columnMethodsSentence(o: ColumnOptionsState, r: R): string {
+  // P withheld (common/withheld.ts): say no test was run.
+  if (r?.withheld) {
+    return "The values were described without a statistical test (exploratory): with fewer "
+      + "than two independent values in a group, no P value can be computed.";
+  }
   switch (o.analysis) {
     case "column_statistics": {
       const tests = (o.normalityTests ?? DEFAULT_NORMALITY_TESTS)

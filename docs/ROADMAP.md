@@ -803,18 +803,22 @@ in brackets; "discoverable" = already built, make it findable):
       layout, replicates and a paired analysis on screen pre-filled
       (`guide/tablePrefill.ts`); questions name the table's data sets and
       first complete row; the results sheet it opens says why.
-- [ ] When any group has fewer than two independent values, withhold P
+- [x] When any group has fewer than two independent values, withhold P
       and show descriptive results labelled exploratory; at n = 2–3 add
       a chip with the detectable effect (from the power engine) and the
-      t-based CI width. [`small-n-honesty`, 99.0, 45 obs]
+      t-based CI width. [`small-n-honesty`, 99.0, 45 obs] Done: web
+      side (`sheets/common/withheld.ts`, `guide/smallN.ts`); reads the
+      engine's `withheld` / `design_sensitivity` blocks when present.
 - [ ] Add a two-way nested mixed model (treatment × genotype with animal
       random) and a 'grouping column' role on multiple-variables tables
       that any comparison fits as a random intercept.
       [`nested-mixed-models`, 98.7, 75 obs]
-- [ ] Ask 'What does each value represent?' (independent experiment /
+- [x] Ask 'What does each value represent?' (independent experiment /
       animal / technical repeat / cell) when a table is created or
       pasted, and extend replicate assignment to XY tables and grouped
-      cells. [`declare-experimental-unit`, 91.0, 69 obs]
+      cells. [`declare-experimental-unit`, 91.0, 69 obs] Done: question
+      strip above the results (`guide/declareUnit.ts`), replicate maps on
+      XY and grouped cells, "n = 3 independent experiments (9 wells)".
 - [x] After every paste or import, show a one-line report ('412 numbers,
       3 blanks kept as missing, 2 text cells in numeric columns: B7,
       C12') and keep text columns as text. [`excel-paste-fidelity`,
@@ -832,11 +836,13 @@ in brackets; "discoverable" = already built, make it findable):
       (`power/pilot.ts`): the pilot SD is filled in, the effect to detect
       is a chosen difference or the pilot difference labelled as such;
       never observed power (FAQ 1710). Also in the empty results pane.
-- [ ] Ask 'Was each condition run once per experiment, on different
+- [x] Ask 'Was each condition run once per experiment, on different
       days?' and, if yes, open the matched analysis (RM ANOVA / paired)
       with experiment as the block, and show the
       experiment-to-experiment variance it removed.
-      [`experiment-as-block`, 67.7, 35 obs]
+      [`experiment-as-block`, 67.7, 35 obs] Done: wizard question
+      (`guide/blocking.ts`), "day-to-day differences removed: SS, % of
+      total" on RM ANOVA, pairing r on the paired t test.
 - [ ] Document and test limits (rows, points per graph), virtualise the
       grid, and switch dense scatters to WebGL above a threshold.
       [`large-data`, 66.1, 43 obs]
@@ -857,6 +863,11 @@ in brackets; "discoverable" = already built, make it findable):
 - [ ] Offer 'Report as > highest dose' for extrapolated IC50s, carried
       into the results table, the results sentence and any ratio, with
       the reason. [`incomplete-curve-flags`, 60.8, 20 obs]
+- [x] Count the t tests run on each table; from the third pair, a chip
+      with the familywise error (1 − 0.95^k, Bonferroni bound) and one
+      click to one-way ANOVA with Dunnett vs the common control, or to
+      Holm-Šídák across those P values. [`multiplicity-by-default`,
+      54.3, 21 obs] Done: `guide/multiplicity.ts`.
 
 Made discoverable outside the top 15 (Wave 0):
 - [x] Cox regression: the stale "not in OpenDose yet" wizard text fixed;
