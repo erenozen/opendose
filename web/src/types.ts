@@ -96,6 +96,10 @@ export interface OptionsState {
    *  the default) or the weighted SS minimised directly with the weights
    *  moving with the parameters ("objective", as R's nls with weights). */
   weightSource?: "predicted" | "objective";
+  /** An IC50 / EC50 beyond the concentrations tested: report it as
+   *  "> highest dose" (absent = "bound") or as the fitted number, flagged
+   *  (sheets/xy/rangeReport.ts). */
+  extrapolatedReport?: "bound" | "fitted";
 }
 
 export const DEFAULT_XY_OPTIONS: OptionsState = {
@@ -368,6 +372,13 @@ export interface ColumnOptionsState {
   corrTails?: "two" | "greater" | "less";
   /** Two-way ANOVA (rows × datasets): full or main-effects-only model. */
   twoWayModel?: TwoWayModel;
+  /** Which comparisons the post test makes (Dunn's after Kruskal-Wallis or
+   *  Friedman; Šídák, Bonferroni, Holm-Šídák, Holm or Fisher's LSD after
+   *  one-way ANOVA): every pair (absent = "all"), each vs. the control
+   *  (controlIndex) or the planned pairs (sheets/column/comparisonsFamily.ts). */
+  comparisonsFamily?: "all" | "control" | "pairs";
+  /** The planned pairs [i, j] of data set indices (comparisonsFamily "pairs"). */
+  plannedPairs?: [number, number][];
 }
 
 export const DEFAULT_COLUMN_OPTIONS: ColumnOptionsState = {

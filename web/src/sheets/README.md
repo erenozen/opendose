@@ -300,6 +300,14 @@ Wizard modules, one folder each (ids `assay_*`):
   Western blot densitometry. `qpcr/headers.ts` resolves Cq-export column
   names across instruments (shared with the qPCR import recipe); when an
   export does not name sample, target and Cq, the wizard asks for them.
+  `qpcr/refs.ts` is the reference-gene check shown before the fold
+  changes (`qpcr_reference_check`; genes set aside stay in the check via
+  `options.referenceCandidates`).
+- `flow`: FlowJo statistics table → `flow_summary` (one value per donor
+  and condition) → a linked column table whose first column holds the
+  donor (replicate map by column); the wizard's finish switches its
+  results to statistics on replicate means and its graph to a SuperPlot
+  (`flow/model.ts setupFlowOutput`).
 
 One-file modules (pure parts `*Model.ts`, `*Sample.ts` unit-tested in
 `assays/__tests__/`; panels load lazily):

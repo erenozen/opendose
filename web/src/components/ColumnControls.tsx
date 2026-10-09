@@ -10,14 +10,17 @@ import type {
   TwoWayComparisons, TwoWayDirection, TwoWayModel, UnequalComparisons,
 } from "../types";
 import { TWO_WAY_ADDITIVE_NOTE as ADDITIVE_NOTE } from "../types";
+import ComparisonsPicker from "../sheets/column/comparisonsPicker";
 
 interface Props {
   options: ColumnOptionsState;
   datasetNames: string[];
   onChange: (o: ColumnOptionsState) => void;
+  /** Data entered as mean / SD / N: planned families are not available. */
+  summaryData?: boolean;
 }
 
-export default function ColumnControls({ options, datasetNames, onChange }: Props) {
+export default function ColumnControls({ options, datasetNames, onChange, summaryData }: Props) {
   const set = (patch: Partial<ColumnOptionsState>) =>
     onChange({ ...options, ...patch });
 
@@ -224,6 +227,10 @@ export default function ColumnControls({ options, datasetNames, onChange }: Prop
               <span>Uncorrected Dunn&apos;s test (no correction for multiple comparisons)</span>
             </label>
           )}
+          {options.anovaKind === "nonparametric" && (
+            <ComparisonsPicker options={options} datasetNames={datasetNames}
+              onChange={onChange} summaryData={summaryData} />
+          )}
           {options.anovaKind === "parametric" && options.anovaSd !== "unequal" && (
             <>
               <label className="check-row">
@@ -240,6 +247,8 @@ export default function ColumnControls({ options, datasetNames, onChange }: Prop
               </label>
               {options.comparisons === "dunnett" &&
                 pickDataset("Control group", options.controlIndex, "controlIndex")}
+              <ComparisonsPicker options={options} datasetNames={datasetNames}
+                onChange={onChange} summaryData={summaryData} />
             </>
           )}
           <p className="guide-control-links">
@@ -394,6 +403,10 @@ export default function ColumnControls({ options, datasetNames, onChange }: Prop
                 onChange={(e) => set({ rmExact: e.target.checked })} />
               <span>Exact P value (small designs; approximate when too large)</span>
             </label>
+          )}
+          {options.rmKind === "nonparametric" && (
+            <ComparisonsPicker options={options} datasetNames={datasetNames}
+              onChange={onChange} summaryData={summaryData} />
           )}
           <p className="hint-block">
             Rows are matched subjects; each dataset is one treatment.
