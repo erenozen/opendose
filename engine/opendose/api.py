@@ -36,6 +36,8 @@ from . import (assay_clustering, assay_densitometry, assay_growth,
 from . import effectsize, estimation, power
 from . import auc, cox, quantal
 from . import rangeflags, residuals, survival_extras
+from . import logscale, rm_posthoc, twoway_contrasts
+from . import compare_params, flow, qpcr_refs
 
 
 def _expand(x_col, replicate_rows):
@@ -477,7 +479,15 @@ def _ttest(data, options):
     With fewer than two values in a group (or fewer than two complete
     pairs) no test is run: p_two_tailed is null and "withheld" says why
     (small-n honesty). With the smallest n <= 3, unpaired / Welch /
-    paired / ratio t tests add "design_sensitivity"."""
+    paired / ratio t tests add "design_sensitivity".
+
+    options.log_scale (unpaired, Welch, paired): the test runs on the
+    logs (options.log_base "log10" | "ln" | "log2"); the result adds
+    "log_scale" {base, values_dropped, n_dropped, pairs_dropped?, note,
+    source}, "geometric_means" [{name, n, mean_log, sd_log,
+    geometric_mean, ci, geometric_sd_factor}], "ratio", "ratio_ci",
+    "ratio_label" (paired: also geometric_mean_ratio / ci_ratio). The
+    plain unpaired test adds "scale_check" (opendose.logscale)."""
     cols, names = _flatten_columns(data)
     ia, ib = options.get("dataset_a", 0), options.get("dataset_b", 1)
     kind = options.get("kind", "unpaired")
@@ -493,6 +503,12 @@ def _ttest(data, options):
     else:
         va, vb = cols[ia], cols[ib]
         n_min = min(len(va), len(vb))
+    log_info = None
+    if options.get("log_scale"):
+        va, vb, log_info = _log_scale_inputs(
+            kind, va, vb, [names[ia], names[ib]], options, warnings)
+        n_min = (len(va) if kind in _PAIRED_KINDS
+                 else min(len(va), len(vb)))
     if n_min < 2:
         result = _withheld_two_groups(kind, [names[ia], names[ib]], va, vb,
                                       paired=kind in _PAIRED_KINDS,
@@ -500,6 +516,8 @@ def _ttest(data, options):
         if incomplete is not None:
             result["incomplete_pairs"] = incomplete
         result["names"] = [names[ia], names[ib]]
+        if log_info is not None:
+            result["log_scale"] = log_info["block"]
         return {"analysis": "ttest", **result}
     if kind == "unpaired":
         result = ttests.unpaired_t(va, vb,
@@ -524,6 +542,11 @@ def _ttest(data, options):
     result["names"] = [names[ia], names[ib]]
     if incomplete is not None:
         result["incomplete_pairs"] = incomplete
+    if log_info is not None:
+        _log_scale_ttest_result(result, va, vb, log_info, options)
+    elif kind == "unpaired":
+        result["scale_check"] = logscale.scale_check(
+            [va, vb], [names[ia], names[ib]])
     if n_min <= 3:
         if kind == "unpaired":
             result["design_sensitivity"] = _design_sensitivity(
@@ -534,6 +557,55 @@ def _ttest(data, options):
     if warnings:
         result["warnings"] = warnings
     return {"analysis": "ttest", **result}
+
+
+def _log_scale_inputs(kind, va, vb, names, options, warnings):
+    """options.log_scale for the t tests: unpaired / Welch and paired t
+    run on the logs (options.log_base "log10" (default) | "ln" | "log2");
+    values <= 0 (paired: pairs with one) are left out with a warning.
+    Rank-based kinds are unchanged by a log transform and ratio_paired
+    already analyses logs: the option is then ignored, with a warning."""
+    if kind not in ("unpaired", "paired"):
+        why = ("the ratio paired t test already analyses the logarithms"
+               if kind == "ratio_paired" else
+               "a rank-based test gives the same result on the logarithms")
+        warnings.append(f"log_scale ignored for {kind}: {why}")
+        return va, vb, None
+    base = options.get("log_base", "log10")
+    if kind == "paired":
+        la, lb, ra, rb, n_drop, w = logscale.log_pairs(va, vb, names, base)
+        warnings.extend(w)
+        block = logscale.log_scale_block(base, {names[0]: n_drop,
+                                                names[1]: n_drop}, n_drop)
+    else:
+        (la, lb), (ra, rb), dropped, w = logscale.log_groups(
+            [va, vb], names, base)
+        warnings.extend(w)
+        block = logscale.log_scale_block(base, dropped)
+    return la, lb, {"base": base, "block": block, "raw": (ra, rb),
+                    "names": names}
+
+
+def _log_scale_ttest_result(result, la, lb, log_info, options):
+    """Back-transformed keys of a log-scale t test (additive)."""
+    base, names = log_info["base"], log_info["names"]
+    ci_level = options.get("ci_level", 0.95)
+    result["log_scale"] = log_info["block"]
+    result["geometric_means"] = logscale.geometric_means(
+        [la, lb], names, base, ci_level)
+    if result.get("test") == "paired_t":
+        diff, ci = result["mean_difference"], result["ci_difference"]
+        label = (f"geometric mean of the ratios {names[0] or 'A'} / "
+                 f"{names[1] or 'B'}")
+    else:
+        diff, ci = result["difference"], result["ci_difference"]
+        label = (f"ratio of geometric means {names[0] or 'A'} / "
+                 f"{names[1] or 'B'}")
+    result.update(logscale.ratio_entry(diff, ci, base))
+    result["ratio_label"] = label
+    if result.get("test") == "paired_t":
+        result["geometric_mean_ratio"] = result["ratio"]
+        result["ci_ratio"] = result["ratio_ci"]
 
 
 def _withheld_groups(kind, cols, names, warnings):
@@ -572,10 +644,29 @@ def _anova(data, options):
     group with one value (ANOVA: among the non-empty groups;
     Kruskal-Wallis: any group with fewer than two) gives a descriptive
     result with p null and "withheld". With the smallest n <= 3 the
-    ANOVA result adds "design_sensitivity" (the two smallest groups)."""
+    ANOVA result adds "design_sensitivity" (the two smallest groups).
+    options.log_scale (parametric): the ANOVA and post tests on the logs;
+    adds "log_scale", "geometric_means" and, per comparison, "ratio",
+    "ratio_ci", "ratio_label" (geometric-mean ratio of the pair). Without
+    it the parametric result adds "scale_check"."""
     cols, names = _flatten_columns(data)
     warnings = _nan_warnings(data)
     kind = options.get("kind", "parametric")
+    log_info = None
+    if options.get("log_scale"):
+        # options.log_scale: the ANOVA and its post tests on the logs
+        # (options.log_base "log10" | "ln" | "log2"), values <= 0 left out
+        # with a warning; geometric means and ratios back-transformed
+        if kind == "nonparametric":
+            warnings.append("log_scale ignored for Kruskal-Wallis: a "
+                            "rank-based test gives the same result on the "
+                            "logarithms")
+        else:
+            base = options.get("log_base", "log10")
+            cols, _, dropped, w = logscale.log_groups(cols, names, base)
+            warnings.extend(w)
+            log_info = {"base": base,
+                        "block": logscale.log_scale_block(base, dropped)}
     if kind == "nonparametric":
         if any(len(c) < 2 for c in cols):
             return _withheld_groups(kind, cols, names, warnings)
@@ -594,8 +685,11 @@ def _anova(data, options):
     nonempty = [c for c in cols if len(c) > 0]
     if len(nonempty) >= 2 and any(len(c) < 2 for c in nonempty):
         keep = [i for i, c in enumerate(cols) if len(c) > 0]
-        return _withheld_groups(kind, [cols[i] for i in keep],
-                                [names[i] for i in keep], warnings)
+        out = _withheld_groups(kind, [cols[i] for i in keep],
+                               [names[i] for i in keep], warnings)
+        if log_info is not None:
+            out["log_scale"] = log_info["block"]
+        return out
     result = anova.one_way_anova(cols, names)
     method = options.get("comparisons")
     if method:
@@ -613,6 +707,15 @@ def _anova(data, options):
         result["design_sensitivity"]["scope"] = (
             "a comparison of the two smallest groups using the ANOVA's "
             "pooled residual df")
+    if log_info is not None:
+        result["log_scale"] = log_info["block"]
+        result["geometric_means"] = logscale.geometric_means(
+            cols, names, log_info["base"], options.get("ci_level", 0.95))
+        if result.get("multiple_comparisons"):
+            logscale.add_ratios_to_comparisons(
+                result["multiple_comparisons"], log_info["base"])
+    else:
+        result["scale_check"] = logscale.scale_check(cols, names)
     if warnings:
         result["warnings"] = warnings
     return {"analysis": "anova", "kind": "parametric", **result}
@@ -737,6 +840,19 @@ def _two_way_anova(data, options):
                   row_factor=options.get("row_factor", "Rows"),
                   col_factor=options.get("col_factor", "Columns"),
                   additive=options.get("model") == "additive")}
+    if options.get("interaction_contrasts", True):
+        # difference of differences per 2 x 2 sub-square and simple
+        # effects (opendose.twoway_contrasts); options.interaction_rows /
+        # interaction_cols restrict the sub-squares to those indices
+        result.update(twoway_contrasts.contrasts_block(
+            cells, result,
+            row_names=options.get("row_names") or [
+                f"Row {i + 1}" for i in range(len(cells))],
+            col_names=[nm or f"Column {j + 1}" for j, nm in
+                       enumerate(names)],
+            ci_level=options.get("ci_level", 0.95),
+            rows=options.get("interaction_rows"),
+            cols=options.get("interaction_cols")))
     method = options.get("comparisons")  # tukey | sidak | bonferroni
     if method:
         row_names = options.get("row_names") or [
@@ -994,7 +1110,11 @@ def _rm_anova(data, options):
     between-subject variation the matching removes). Friedman's Dunn
     test takes options.dunn_family ("all" | "control" | "pairs"),
     options.control (else control_index), options.pairs [[i, j], ...]
-    and options.dunn_correction ("bonferroni" | "holm" | "none")."""
+    and options.dunn_correction ("bonferroni" | "holm" | "none").
+    The parametric analysis takes options.comparisons (a method or
+    {method, control, family, pairs, error, pooled_df}, see
+    _rm_comparison_options) and then adds "comparisons"
+    (opendose.rm_posthoc.rm_comparisons)."""
     cols, names = _flatten_columns(data)
     # RM analyses need row alignment -> use first subcolumn per dataset
     aligned = [[row[0] if row else None for row in ds["ys"]]
@@ -1028,10 +1148,46 @@ def _rm_anova(data, options):
     else:
         result = {"analysis": "rm_one_way_anova",
                   **repeated.rm_one_way_anova(aligned, names)}
+        comp = _rm_comparison_options(options)
+        if comp is not None:
+            # post tests on the matched data (opendose.rm_posthoc)
+            result["comparisons"] = rm_posthoc.rm_comparisons(
+                aligned, names, comp["method"], control=comp["control"],
+                family=comp["family"], pairs=comp["pairs"],
+                error=comp["error"], pooled_df=comp["pooled_df"],
+                ci_level=options.get("ci_level", 0.95))
     result["incomplete_subjects"] = partial
     if warnings:
         result["warnings"] = warnings
     return result
+
+
+def _rm_comparison_options(options):
+    """rm_anova's options.comparisons: a method name or {method,
+    control (index, the baseline for Dunnett), family ("all" |
+    "control" | "pairs"), pairs [[i, j], ...], error ("pooled" |
+    "per_pair"), pooled_df ("uncorrected" | "gg")}; flat options
+    control_index / comparisons_family / pairs / comparisons_error /
+    pooled_df are read when the dict omits them."""
+    raw = options.get("comparisons")
+    if not raw:
+        return None
+    spec = dict(raw) if isinstance(raw, dict) else {"method": raw}
+    method = spec.get("method")
+    if not method:
+        raise ValueError("comparisons needs a method")
+    return {
+        "method": "fisher_lsd" if method == "fisher" else method,
+        "control": spec.get("control", options.get(
+            "control_index", options.get("control", 0))),
+        "family": spec.get("family", options.get("comparisons_family",
+                                                 "all")),
+        "pairs": spec.get("pairs", options.get("pairs")),
+        "error": spec.get("error", options.get("comparisons_error",
+                                               "pooled")),
+        "pooled_df": spec.get("pooled_df", options.get("pooled_df",
+                                                       "uncorrected")),
+    }
 
 
 def _rm_two_way(data, options):
@@ -1195,6 +1351,15 @@ def _ttest_summary(data, options):
             groups[ia], groups[ib], welch=options.get("welch", False),
             ci_level=ci_level, fmt=fmt)
         result["names"] = [names[ia], names[ib]]
+        # as the raw-data ttest: does the SD grow with the mean? (only
+        # the means can be checked for positivity here)
+        stats_ = [{"name": nm, "n": result[f"n_{s}"],
+                   "mean": result[f"mean_{s}"],
+                   "sd": (result[f"sem_{s}"] * result[f"n_{s}"] ** 0.5
+                          if result[f"n_{s}"] >= 2 else None)}
+                  for nm, s in zip(result["names"], ("a", "b"))]
+        result["scale_check"] = logscale.scale_check_from_stats(
+            stats_, all(g["mean"] > 0 for g in stats_))
     elif kind == "one_sample":
         result = summary.one_sample_t_summary(
             groups[ia], float(options.get("hypothetical", 0.0)),
@@ -1248,6 +1413,19 @@ def _two_way_anova_summary(data, options):
               **summary.two_way_anova_summary(
                   cells, row_factor=options.get("row_factor", "Rows"),
                   col_factor=options.get("col_factor", "Columns"), fmt=cfmt)}
+    if options.get("interaction_contrasts", True):
+        # as two_way_anova (opendose.twoway_contrasts), from mean/SD/n
+        means_, ns_, ss_w, df_w = twoway_contrasts.summary_cell_stats(
+            summary._cells(cells, cfmt))
+        result.update(twoway_contrasts.contrasts_from_stats(
+            means_, ns_, ss_w, df_w, result,
+            row_names=options.get("row_names") or [
+                f"Row {i + 1}" for i in range(len(cells))],
+            col_names=[nm or f"Column {j + 1}" for j, nm in
+                       enumerate(names)],
+            ci_level=options.get("ci_level", 0.95),
+            rows=options.get("interaction_rows"),
+            cols=options.get("interaction_cols")))
     method = options.get("comparisons")
     if method:
         row_names = options.get("row_names") or [
@@ -2419,10 +2597,29 @@ def _qpcr(data, options):
         "comparisons", "welch", "ci_level", "groups", "targets"))
     if data.get("standard_curves") and "standard_curves" not in kw:
         kw["standard_curves"] = data["standard_curves"]
-    return assay_qpcr.qpcr_analysis(
+    result = assay_qpcr.qpcr_analysis(
         data.get("records") or [],
         reference_genes=options.get("reference_genes",
                                     options.get("reference")), **kw)
+    if options.get("reference_stability", True):
+        # reference-gene validation before the fold changes
+        # (opendose.qpcr_refs: geNorm M, dCq SD, shift with treatment)
+        try:
+            result["reference_stability"] = \
+                qpcr_refs.reference_stability_from_records(
+                    data.get("records") or [], result["reference_genes"],
+                    efficiencies={g: result["efficiencies"][g]["efficiency"]
+                                  for g in result["reference_genes"]},
+                    calibrator=result["calibrator"],
+                    groups_order=result["groups"],
+                    **_assay_kw(options, (
+                        "max_cq", "max_spread", "undetermined_value",
+                        "exclude_high_cq")))
+        except ValueError as exc:
+            result["reference_stability"] = {"error": str(exc)}
+            result["warnings"].append(
+                f"Reference-gene stability not computed: {exc}")
+    return result
 
 
 def _densitometry(data, options):
@@ -3074,6 +3271,97 @@ _HANDLERS.update({
     "survival_at_time": _survival_at_time,
     "rmst": _rmst,
     "residuals_column": _residuals_column,
+})
+
+
+# ------------------------------------------------ Wave 2: user-needs engine
+def _scale_check(data, options):
+    """Does the SD grow with the mean (opendose.logscale.scale_check)?
+    data: column table {"datasets": [{"name", "ys"}]}. options:
+    r_threshold (0.7), sd_ratio_threshold (3). Returns {"groups": [{name,
+    n, mean, sd, cv}], "pearson_r_sd_mean", "spearman_rho_sd_mean",
+    "sd_ratio_max_min", "all_positive", "suggest_log", "reason", "text",
+    "rule", "source", "warnings"?}."""
+    cols, names = _flatten_columns(data)
+    out = {"analysis": "scale_check",
+           **logscale.scale_check(
+               cols, names,
+               r_threshold=options.get("r_threshold", 0.7),
+               sd_ratio_threshold=options.get("sd_ratio_threshold", 3.0))}
+    warnings = _nan_warnings(data)
+    if warnings:
+        out["warnings"] = warnings
+    return out
+
+
+def _compare_parameter(data, options):
+    """Compare one parameter between two curves (opendose.compare_params).
+    data: as dose_response ({"x", "datasets": [{"name", "ys"}]}).
+    options: model, parameter ("logEC50" | "LogIC50" | "HillSlope" |
+    "Top" | "Bottom" | any model parameter), dataset_a (0), dataset_b
+    (1), constraints, weighting, x_is_log (true), ci_level (0.95)."""
+    model = options.get("model", "log_inhibitor_vs_response_4pl")
+    spec = nlfit.MODELS.get(model)
+    if spec is None:
+        raise ValueError(f"unknown model: {model}")
+    if not options.get("parameter"):
+        raise ValueError("compare_parameter needs options.parameter")
+    x_col = data["x"]
+    if spec.x_is_log and not options.get("x_is_log", True):
+        x_col = transform.transform_list(x_col, "log10")
+    ia, ib = options.get("dataset_a", 0), options.get("dataset_b", 1)
+    sets = []
+    for i in (ia, ib):
+        ds = data["datasets"][i]
+        xs, ys = _expand(x_col, ds["ys"])
+        sets.append({"name": ds.get("name") or f"Data set {i + 1}",
+                     "x": xs, "y": ys})
+    warnings = _nan_warnings(data, {ia, ib})
+    out = compare_params.compare_parameter(
+        sets[0], sets[1], model, options["parameter"],
+        constraints=options.get("constraints") or {},
+        weighting=options.get("weighting", "none"),
+        ci_level=options.get("ci_level", 0.95))
+    out["warnings"] = warnings + out["warnings"]
+    return out
+
+
+def _qpcr_reference_check(data, options):
+    """Reference-gene stability (opendose.qpcr_refs). data: {"records":
+    [{sample, group, target, cq, well?}]} as for qpcr. options:
+    reference_genes (required), efficiencies ({gene: factor or %}),
+    calibrator, groups (order), test ("anova" | "kruskal"), alpha (0.05),
+    shift_threshold (1.0 cycle), m_threshold (1.5), max_cq, max_spread,
+    undetermined_value, exclude_high_cq."""
+    refs = options.get("reference_genes", options.get("reference"))
+    out = qpcr_refs.reference_stability_from_records(
+        data.get("records") or [], refs,
+        groups_order=options.get("groups"),
+        **_assay_kw(options, (
+            "max_cq", "max_spread", "undetermined_value", "exclude_high_cq",
+            "efficiencies", "calibrator", "test", "alpha",
+            "shift_threshold", "m_threshold")))
+    return {"analysis": "qpcr_reference_check", **out}
+
+
+def _flow_summary(data, options):
+    """Flow gate statistics to one value per experiment x condition
+    (opendose.flow). data: {"records": [{sample, experiment | donor,
+    condition, gate, statistic, value}]}. options: statistic, gate,
+    background {kind: "fmo" | "isotype" | "none", condition}, conditions
+    (order), experiments (order)."""
+    return flow.flow_summary(
+        data.get("records") or [], statistic=options.get("statistic"),
+        gate=options.get("gate"), background=options.get("background"),
+        conditions=options.get("conditions"),
+        experiments=options.get("experiments"))
+
+
+_HANDLERS.update({
+    "scale_check": _scale_check,
+    "compare_parameter": _compare_parameter,
+    "qpcr_reference_check": _qpcr_reference_check,
+    "flow_summary": _flow_summary,
 })
 
 
