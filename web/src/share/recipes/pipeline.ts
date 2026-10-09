@@ -1,8 +1,11 @@
 // One recipe run: staging -> name pattern -> roles -> hierarchical
 // aggregation -> pivot to a table type. Pure; the recipe dialog keeps the
 // configuration and shows each stage.
+import type { PlateMap } from "../../sheets/assays/plate/model.ts";
+import { applyPlateMap } from "./multiRead.ts";
 import { applyPattern, type NamePattern } from "./pattern.ts";
-import type { Staged } from "./presets.ts";
+import type { RecipeParams, Staged } from "./presets.ts";
+import { experimentColumn, replicatePivot, valueUnit } from "./replicateOutput.ts";
 import {
   aggregate, pivot, withRoles, type AggFn, type AggStep, type OutputType, type PivotResult,
   type Role, type Staging,
@@ -22,6 +25,14 @@ export interface RecipeConfig {
   keepLower: boolean;
   output: OutputType;
   name: string;
+  /** Column and grouped tables: keep every value and set the replicate
+   *  map from the subject column (experiment = replicate), for SuperPlots
+   *  and statistics on replicate means (replicateOutput.ts). */
+  replicateMap?: boolean;
+  /** Wells grouped by a plate map (recipes that stage a well column). */
+  plateMap?: PlateMap | null;
+  /** The recipe's settings read before staging (LabChart time unit …). */
+  params?: RecipeParams;
 }
 
 export function initialConfig(s: Staged): RecipeConfig {
@@ -33,6 +44,8 @@ export function initialConfig(s: Staged): RecipeConfig {
     keepLower: false,
     output: s.output,
     name: s.name,
+    replicateMap: s.replicateMap ?? false,
+    plateMap: null,
   };
 }
 
@@ -48,6 +61,9 @@ export interface PipelineOutput {
   error: string;
   /** Nested table of the unaggregated values, when asked for. */
   lower: PivotResult | null;
+  /** The replicate map the table carries (column / grouped with
+   *  replicateMap on and an experiment column). */
+  replicates: { experiments: number; column: string; unit: string } | null;
 }
 
 export function resolveSteps(st: Staging, steps: RecipeConfig["steps"]): AggStep[] {
@@ -58,8 +74,9 @@ export function resolveSteps(st: Staging, steps: RecipeConfig["steps"]): AggStep
   })).filter((s, i) => s.level >= 0 || steps[i].level === "");
 }
 
-export function runPipeline(base: Staging, cfg: RecipeConfig): PipelineOutput {
-  const roled = withRoles(base, cfg.roles);
+export function runPipeline(base: Staging, cfg: RecipeConfig,
+  extra: { wellColumn?: number; yTitle?: string } = {}): PipelineOutput {
+  const roled = applyPlateMap(withRoles(base, cfg.roles), extra.wellColumn ?? -1, cfg.plateMap);
   const records = applyPattern(roled, cfg.pattern);
   const steps = cfg.aggregate ? resolveSteps(records, cfg.steps) : [];
   const aggregated = aggregate(records, steps);
@@ -68,8 +85,23 @@ export function runPipeline(base: Staging, cfg: RecipeConfig): PipelineOutput {
     : records.columns.findIndex((c) => c.role === "subject");
   let result: PivotResult | null = null;
   let error = "";
+  let replicates: PipelineOutput["replicates"] = null;
+  const exp = cfg.replicateMap && (cfg.output === "column" || cfg.output === "grouped")
+    ? experimentColumn(records, steps) : -1;
   try {
-    result = pivot(aggregated, cfg.output, { subject });
+    if (exp >= 0) {
+      const unit = valueUnit(records, steps);
+      result = replicatePivot(aggregated, cfg.output as "column" | "grouped", exp, unit);
+      replicates = {
+        experiments: new Set(aggregated.rows.map((r) => r[exp]).filter((x) => x !== "")).size,
+        column: records.columns[exp].name, unit,
+      };
+    } else {
+      result = pivot(aggregated, cfg.output, { subject });
+    }
+    if (result && extra.yTitle && !result.table.yTitle) {
+      result = { ...result, table: { ...result.table, yTitle: extra.yTitle } };
+    }
   } catch (e) {
     error = e instanceof Error ? e.message : String(e);
   }
@@ -77,5 +109,5 @@ export function runPipeline(base: Staging, cfg: RecipeConfig): PipelineOutput {
   if (cfg.keepLower && steps.length && subject >= 0) {
     try { lower = pivot(records, "nested", { subject }); } catch { lower = null; }
   }
-  return { records, aggregated, steps, subject, result, error, lower };
+  return { records, aggregated, steps, subject, result, error, lower, replicates };
 }

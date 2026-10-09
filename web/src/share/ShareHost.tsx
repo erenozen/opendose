@@ -12,11 +12,12 @@ import type { DataSheet, Project } from "../project/types";
 import { analysisDef } from "../sheets/registry";
 import { hasShareLink, locationHash } from "./boot";
 import { useBundleExport } from "./useBundleExport";
-import { SHARE_EVENT, type ShareRequest, type ValidationFor } from "./events";
+import { SHARE_EVENT, type RecipeImportRequest, type ShareRequest, type ValidationFor } from "./events";
 import { familyProject, kb, makeFragment, SHARE_LIMIT } from "./link";
 import "./share.css";
 
 const ValidationPage = lazy(() => import("./ValidationPage"));
+const RecipeDialog = lazy(() => import("./RecipeDialog"));
 
 /** Results-sheet options written out in full, with the sender's
  *  preferences applied, so a link computes the same numbers in a browser
@@ -36,7 +37,8 @@ function withResolvedOptions(p: Project): Project {
 
 type Dialog =
   | { kind: "link"; dataId?: string }
-  | { kind: "validation"; scope?: ValidationFor };
+  | { kind: "validation"; scope?: ValidationFor }
+  | RecipeImportRequest;
 
 /**
  * Sharing, interoperability and trust: answers the commands in
@@ -133,6 +135,11 @@ export default function ShareHost() {
       {dialog?.kind === "validation" && (
         <Suspense fallback={null}>
           <ValidationPage onClose={closeValidation} scope={dialog.scope} />
+        </Suspense>
+      )}
+      {dialog?.kind === "recipe" && (
+        <Suspense fallback={null}>
+          <RecipeDialog initialFiles={dialog.files} fresh={dialog.fresh} onClose={() => setDialog(null)} />
         </Suspense>
       )}
       {bundle.host}
