@@ -14,7 +14,7 @@ import {
   replaceTables, replayLogText, replayPlanOf, usedRows,
 } from "../replay.ts";
 import {
-  describeChange, diffResults, flattenNumbers, fmtNumber, isPKey, keyChanges, labelFor,
+  describeChange, diffResults, keyChanges,
 } from "../replayDiff.ts";
 import { projectProvenance } from "../../report/provenance.ts";
 import { tableP } from "../../report/pformat.ts";
@@ -200,38 +200,29 @@ const fitResult = (logIC50: number, p: number) => ({
   proportions: { p1: 0.15 },
 });
 
-test("P keys are recognised; proportions p1/p2 are not P values", () => {
-  for (const k of ["p", "P", "p_value", "p_adjusted", "p_two_sided", "adjusted_p", "p_logrank"]) {
-    assert.ok(isPKey(k), k);
-  }
-  for (const k of ["p1", "p2", "power", "params", "pct"]) assert.ok(!isPKey(k), k);
-});
-
-test("flattening keys named items by name and skips curves", () => {
-  const f = flattenNumbers(fitResult(-7, 0.03));
-  assert.ok(f.has("datasets[Drug A].fit.params.LogIC50.value"));
-  assert.ok(![...f.keys()].some((k) => k.includes("curve")));
-  assert.equal(labelFor(f.get("datasets[Drug A].fit.params.LogIC50.value")!.segs), "Drug A · LogIC50");
-  assert.equal(labelFor(f.get("datasets[Drug A].fit.params.LogIC50.ci95[0]")!.segs),
-    "Drug A · LogIC50 · 95% CI lower");
-  assert.equal(labelFor(f.get("fisher_exact.p")!.segs), "Fisher's exact · P");
-  assert.equal(labelFor(["effect_size", "ci_cramers_v", "#0"]), "Effect size · Cramér's V CI lower");
-  assert.equal(labelFor(["chi_square_yates", "p"]), "Chi-square (Yates) · P");
-  assert.equal(labelFor(["pairs", "#2", "p_adjusted"]), "Pairs · Row 3 · P (adjusted)");
+test("numbers are compared at the results precision, items named, curves left out", () => {
+  const d = diffResults(fitResult(-7, 0.0317), fitResult(-6.9, 0.0012));
+  assert.deepEqual(d.changed.map((c) => c.label).sort(), [
+    "Drug A · LogIC50", "Drug A · LogIC50 95% CI lower limit", "Drug A · LogIC50 95% CI upper limit",
+    "Fisher's exact test P",
+  ]);
+  assert.ok(!d.changed.some((c) => c.path.includes("curve")));
+  // equal at 4 significant digits: no change
+  assert.equal(diffResults(fitResult(-7, 0.03), fitResult(-7.00001, 0.03)).changed.length, 0);
+  // proportions p1 / p2 are not P values
+  assert.equal(diffResults({ proportions: { p1: 0.1 } }, { proportions: { p1: 0.2 } })
+    .changed[0].kind, "other");
 });
 
 test("the diff lists P first, then fitted parameters, with both values", () => {
   const d = diffResults(fitResult(-7, 0.0317), fitResult(-6.9, 0.0012));
-  assert.equal(d.changed.length, 4);
   const key = keyChanges(d, 2);
   assert.equal(key[0].kind, "p");
-  assert.equal(key[0].label, "Fisher's exact · P");
-  assert.equal(describeChange(key[0]), "0.0317 → 0.0012");
+  assert.equal(key[0].label, "Fisher's exact test P");
+  assert.equal(describeChange(key[0]), `${tableP(0.0317)} → ${tableP(0.0012)}`);
   assert.equal(key[1].kind, "param");
-  assert.equal(describeChange(key[1]), "-7 → -6.9 (+1.4%)");
-  assert.equal(diffResults(fitResult(-7, 0.03), fitResult(-7 + 1e-14, 0.03)).changed.length, 0);
-  assert.equal(fmtNumber(1.0398e-7), "1.04e-7");
-  assert.equal(fmtNumber(null), "none");
+  assert.equal(key[1].label, "Drug A · LogIC50");
+  assert.match(describeChange(key[1]), /^\S+ → \S+ \(\+1\.4%\)$/);
 });
 
 test("errors on either side are reported, not diffed", () => {
@@ -257,14 +248,14 @@ test("the replay log names tables, changed numbers, kept graphs and leftovers", 
     [["Dose response", "kept"], ["Contingency example", "replaced"], ["Knockout", "kept"]]);
   const r2 = log.results.find((r) => r.id === "r2")!;
   assert.equal(r2.status, "changed");
-  assert.deepEqual(r2.changes[0], { label: "Fisher's exact · P", text: `0.0317 → ${tableP(0.00042)}`, kind: "p" });
+  assert.deepEqual(r2.changes[0], { label: "Fisher's exact test P", text: `0.0317 → ${tableP(0.00042)}`, kind: "p" });
   assert.equal(log.results.find((r) => r.id === "r1")!.status, "same");
   assert.equal(log.graphs, 1);
   assert.equal(log.layouts, 1);
   const text = replayLogText(log);
   assert.match(text, /- Contingency example: new data from Contingency example.csv \(2 rows, 2 data sets\)/);
   assert.ok(text.includes("- Contingency of Contingency example: 1 number changed\n"
-    + `    Fisher's exact · P: 0.0317 → ${tableP(0.00042)}`));
+    + `    Fisher's exact test P: 0.0317 → ${tableP(0.00042)}`));
   assert.match(text, /- notes.txt: did not match any table/);
   assert.match(text, /1 graph and 1 page layout kept/);
 });

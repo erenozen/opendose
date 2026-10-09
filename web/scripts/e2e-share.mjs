@@ -120,6 +120,15 @@ expect("bundle has wide and long CSV of every data table",
     .every((s) => has(`data/${s}.csv`) && has(`data/${s}.long.csv`)),
   names.filter((n) => n.startsWith("data/")).join(", "));
 expect("bundle has the dose-response table", has("data/dose-response.csv") && has("data/dose-response.long.csv"));
+{
+  // source data: excluded values are kept and flagged, with their reason
+  const longCsv = strFromU8(entries["data/dose-response.long.csv"] ?? new Uint8Array()).split(/\r?\n/);
+  expect("tidy CSV has excluded and exclusion_reason columns",
+    /,excluded,exclusion_reason$/.test(longCsv[0]) && /,FALSE,$/.test(longCsv[1]), longCsv[0]);
+  const pj = JSON.parse(strFromU8(entries["project.json"]));
+  expect("the bundle's project file records the software that saved it",
+    typeof pj.savedWith?.app === "string", JSON.stringify(pj.savedWith ?? null));
+}
 expect("bundle has the data tables as .pzfx", has("data.pzfx")
   && (strFromU8(entries["data.pzfx"]).match(/<Table /g) ?? []).length === 3);
 const resultsCsv = names.filter((n) => n.startsWith("results/"));
@@ -250,7 +259,7 @@ expect("replay log names the new data and the table it went into",
   logText.includes("Contingency example: new data from Contingency example.csv (2 rows, 2 data sets)")
   && logText.includes("Dose response: no new data for this table: kept as it was"));
 expect("replay log names the results sheet whose P changed, with both values",
-  pAfter !== pBefore && contItem.includes(`Fisher's exact · P ${pBefore} → ${pAfter}`),
+  pAfter !== pBefore && contItem.includes(`Fisher's exact test P ${pBefore} → ${pAfter}`),
   `${pBefore} -> ${pAfter}`);
 expect("replay log: the dose-response fit did not change",
   logText.includes("Nonlin fit of Dose response: no number changed"));

@@ -34,9 +34,15 @@
 // validated, Cox from survival, Compare fits from a fit, Prism files on the
 // start screen and in the Save menu), survival data from counts per
 // day with the pairwise log-rank table, the test for trend, "median not
-// reached", survival at a time and RMST, and the data-entry trust package
+// reached", survival at a time and RMST, the data-entry trust package
 // (paste report, Notes strip with the n analysed, Convert table to…,
-// Describe the experiment).
+// Describe the experiment), exclusions with reasons (n enrolled /
+// analysed in the results, legend and methods; the results with the
+// excluded values included), the reproduction check when a project
+// saved by another version is opened, and the comparisons families
+// (unadjusted P beside the adjusted one, Dunn's test against a control,
+// planned Šídák pairs), residual plots and an IC50 reported as "> highest
+// dose".
 import { chromium } from "playwright";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -2293,6 +2299,323 @@ expect("compare fits graph draws the separate curves and the shared curve",
   expect("after a cancel the engine computes again (column statistics)", back);
 }
 
+// --- multiple-comparisons transparency, Dunn's / planned families,
+// residual plots, IC50 not reached (needs adjusted-vs-raw-labelled,
+// nonparametric-posthoc, planned-comparisons-family,
+// assumption-checks-residuals, incomplete-curve-flags) ------------------
+{
+  const liveText = (re, timeout = 60000) => page.waitForFunction((src) => {
+    const el = document.querySelector('.pane-results[data-live="true"]');
+    return !!el && new RegExp(src).test(el.textContent ?? "");
+  }, re.source, { timeout }).then(() => true, () => false);
+  // (a) Tukey after one-way ANOVA on the column example: unadjusted P
+  // beside the adjusted one, and the family in the header line
+  await newExampleTable("column");
+  await page.waitForSelector(".stat-cols", { timeout: 30000 });
+  await page.locator(".pane-controls select.analysis-select").selectOption("anova");
+  await liveText(/adjusted for 3 comparisons \(Tukey\)/);
+  const famLine = await page.locator(".pane-results .family-line").first().innerText().catch(() => "");
+  expect("Tukey table header: 'P values adjusted for 3 comparisons (Tukey)'",
+    famLine.includes("adjusted for 3 comparisons (Tukey)"), famLine);
+  const heads = await page.locator(".pane-results .comparisons-table").first()
+    .locator("thead th").allInnerTexts();
+  expect("Tukey table has an 'Unadjusted P' column beside 'Adjusted P'",
+    heads.includes("Unadjusted P") && heads.indexOf("Unadjusted P") === heads.indexOf("Adjusted P") + 1,
+    heads.join(" | "));
+  const ps = await page.locator(".pane-results .comparisons-table tbody tr").first()
+    .locator("td[data-p]").evaluateAll((tds) => tds.map((td) => Number(td.getAttribute("data-p"))));
+  expect("first row: the unadjusted P is ≤ the adjusted P", ps.length === 2 && ps[1] <= ps[0],
+    `adjusted ${ps[0]}, unadjusted ${ps[1]}`);
+  // the legend and methods name the family too
+  const methodsA = await page.locator(".methods-text").first().innerText().catch(() => "");
+  expect("methods text: Tukey's correction for 3 comparisons",
+    /Tukey's correction for 3 comparisons/.test(methodsA), methodsA.slice(0, 300));
+
+  const legendOk = await page.waitForFunction(() => /with P values adjusted for 3 comparisons \(Tukey\)/
+    .test(document.querySelector(".report-legend")?.textContent ?? ""), null, { timeout: 30000 })
+    .then(() => true, () => false);
+  expect("figure legend: 'with P values adjusted for 3 comparisons (Tukey)'", legendOk,
+    (await page.locator(".report-legend").first().innerText().catch(() => "")).slice(0, 300));
+
+  // (c) Residuals of the ANOVA: QQ plot and residuals vs. fitted
+  await page.getByRole("button", { name: /Residuals: QQ plot/ }).click();
+  const qqOk = await appears(page.locator('.resid-plot[data-plot="qq"] .scatterlayer .trace'), 30000);
+  const rvOk = await appears(page.locator('.resid-plot[data-plot="resid-fitted"] .scatterlayer .trace'), 30000);
+  const qqTraces = await page.locator('.resid-plot[data-plot="qq"] .scatterlayer .trace').count();
+  expect("Residuals: a QQ plot and a residual-vs-fitted plot, each with traces",
+    qqOk && rvOk && qqTraces === 3, `${qqTraces} QQ traces (one per group)`);
+  const advice = await page.locator(".resid-advice").innerText().catch(() => "");
+  expect("Residuals: the advice depends on n ('With 18 residuals ...') and cites its source",
+    /With 18 residuals/.test(advice) && /Source:/.test(advice), advice.slice(0, 120));
+  const shapiro = await page.locator(".resid-shapiro").innerText().catch(() => "");
+  expect("Residuals: Shapiro-Wilk on the pooled residuals as a secondary line",
+    /Shapiro-Wilk on the 18 pooled residuals: W = /.test(shapiro), shapiro);
+
+  // (b) four groups, Kruskal-Wallis with Dunn's test against the control
+  await page.getByRole("button", { name: "New data table" }).click();
+  const nd = page.locator(".new-table-dialog");
+  await nd.locator('input[name="table-type"][value="column"]').check();
+  await nd.getByLabel("Table name").fill("Four groups");
+  await nd.getByRole("button", { name: "Create table" }).click();
+  await page.waitForSelector(".grid-toolbar");
+  const four = "Control,Dose 1,Dose 2,Dose 3\n" + [
+    [23.1, 28.4, 35.2, 24.2], [25.4, 30.2, 33.9, 26.4], [21.8, 27.1, 37.4, 22.8],
+    [24.9, 31.5, 34.1, 25.9], [22.6, 29.0, 36.6, 23.6], [26.0, 28.8, 35.8, 27.0],
+  ].map((r) => r.join(",")).join("\n");
+  await page.getByRole("button", { name: "Import…", exact: true }).click();
+  const imp = page.locator(".import-dialog");
+  await imp.getByLabel("Pasted text").check();
+  await imp.getByLabel("Text to import").fill(four);
+  const t4 = imp.getByLabel(/holds column titles/);
+  if (!(await t4.isChecked())) await t4.check();
+  await imp.getByRole("tab", { name: "Placement" }).click();
+  await imp.getByLabel(/In place of the table/).check();
+  await imp.getByRole("button", { name: "Import", exact: true }).click();
+  await imp.waitFor({ state: "detached", timeout: 30000 });
+  const ctl = page.locator(".pane-controls");
+  // a select inside its <label> (its name includes the chosen option)
+  const labelled = (text) => ctl.locator("label.check-row", { has: page.locator(`span:text-is("${text}")`) })
+    .locator("select");
+  await ctl.locator("select.analysis-select").selectOption("anova");
+  await labelled("Type").selectOption("nonparametric");
+  await ctl.getByLabel("Comparisons", { exact: true }).selectOption("control");
+  const dunnOk = await liveText(/adjusted for 3 comparisons \(Dunn\)/);
+  const dunnRows = await page.locator(".pane-results .comparisons-table tbody tr").allInnerTexts();
+  expect("Kruskal-Wallis, each vs. control: exactly 3 Dunn's comparisons, adjusted for 3",
+    dunnOk && dunnRows.length === 3 && dunnRows.every((r) => r.includes("vs. Control")),
+    dunnRows.map((r) => r.split("\t")[0]).join("; "));
+  const dunnFam = await page.locator(".pane-results .family-line").first().innerText().catch(() => "");
+  expect("Dunn's header: 'adjusted for 3 comparisons (Dunn)', each vs. the control",
+    dunnFam.includes("adjusted for 3 comparisons (Dunn)") && dunnFam.includes("vs. the control Control"), dunnFam);
+  // one-way ANOVA with Šídák on two planned pairs
+  await labelled("Type").selectOption("parametric");
+  await labelled("Multiple comparisons").selectOption("sidak");
+  await ctl.getByLabel("Comparisons", { exact: true }).selectOption("pairs");
+  await ctl.getByRole("checkbox", { name: "Control vs. Dose 1" }).check();
+  await ctl.getByRole("checkbox", { name: "Control vs. Dose 3" }).check();
+  const plannedOk = await liveText(/adjusted for 2 planned comparisons \(Šídák\)/);
+  const plannedRows = await page.locator(".pane-results .comparisons-table tbody tr").count();
+  expect("Šídák on two ticked pairs: 2 comparisons, adjusted for 2 planned comparisons",
+    plannedOk && plannedRows === 2, `${plannedRows} rows`);
+  const methodsB = await page.waitForFunction(() => [...document.querySelectorAll(".methods-text")]
+    .some((m) => /Šídák correction for 2 planned comparisons/.test(m.textContent ?? "")), null,
+  { timeout: 30000 }).then(() => true, () => false);
+  expect("methods text: 'Šídák correction for 2 planned comparisons'", methodsB,
+    await page.locator(".methods-text").first().innerText().catch(() => ""));
+
+  // (d) a curve that never falls below 60%: IC50 > 30 µM, not 337
+  await page.getByRole("button", { name: "New data table" }).click();
+  const xd = page.locator(".new-table-dialog");
+  await xd.locator('input[name="table-type"][value="xy"]').check();
+  await xd.getByLabel("Table name").fill("Weak inhibitor");
+  await xd.getByLabel("Y datasets", { exact: true }).fill("1");
+  await xd.getByLabel("Replicates per X", { exact: true }).fill("3");
+  await xd.getByLabel("Rows (X values)", { exact: true }).fill("6");
+  await xd.getByRole("button", { name: "Create table" }).click();
+  await page.waitForSelector(".grid-toolbar");
+  const weak = "Concentration (µM),Drug,Drug,Drug\n0.1,100.8,98.9,100.4\n0.3,98.4,100.2,98.7\n"
+    + "1,99.0,97.6,98.7\n3,93.7,95.5,95.9\n10,85.6,84.2,86.1\n30,61.5,62.9,61.0";
+  await page.getByRole("button", { name: "Import…", exact: true }).click();
+  const impX = page.locator(".import-dialog");
+  await impX.getByLabel("Pasted text").check();
+  await impX.getByLabel("Text to import").fill(weak);
+  const tX = impX.getByLabel(/holds column titles/);
+  if (!(await tX.isChecked())) await tX.check();
+  await impX.getByRole("tab", { name: "Placement" }).click();
+  await impX.getByLabel(/In place of the table/).check();
+  await impX.getByRole("button", { name: "Import", exact: true }).click();
+  await impX.waitFor({ state: "detached", timeout: 30000 });
+  const boundOk = await liveText(/not reached in the range tested/, 120000);
+  const icRow = await page.locator(".pane-results .results-table tr", { hasText: /^IC50/ }).first()
+    .innerText().catch(() => "");
+  expect("IC50 cell reads '> 30 (not reached in the range tested)' with µM from the X title",
+    boundOk && /^IC50 \(µM\)\s+> 30 \(not reached in the range tested\)/.test(icRow.trim()),
+    icRow.replace(/\s+/g, " "));
+  expect("the chip says the curve never reaches 50% in the tested range",
+    (await page.locator(".range-chip").innerText().catch(() => "")).includes("never reaches 50% in the tested range"));
+  const sentOk = await page.waitForFunction(() => /IC50 > 30 µM \(not reached in the range tested\)/
+    .test(document.querySelector(".report-sentence p")?.textContent ?? ""), null, { timeout: 30000 })
+    .then(() => true, () => false);
+  const sentence = await page.locator(".report-sentence p").first().innerText().catch(() => "");
+  expect("the results sentence reads 'IC50 > 30 µM (not reached in the range tested)', not 337",
+    sentOk && !/IC50 = 337/.test(sentence), sentence.slice(0, 240));
+  await page.getByLabel("Report extrapolated IC50 as").selectOption("fitted");
+  const fittedOk = await liveText(/⚑ extrapolated/, 60000);
+  const icFitted = await page.locator(".pane-results .results-table tr", { hasText: /^IC50/ }).first()
+    .innerText().catch(() => "");
+  expect("switched to the fitted number: a number with the extrapolated flag",
+    fittedOk && /^IC50 \(µM\)\s+\d[\d.,e+]*\s+⚑ extrapolated \(above the range tested\)/.test(icFitted.trim()),
+    icFitted.replace(/\s+/g, " "));
+}
+
+// axe-core (WCAG 2 A / AA) on parts of a page, for the blocks below.
+const axeOn = async (pg, sel) => {
+  await pg.addScriptTag({ path: createRequire(join(here, "e2e-check.mjs")).resolve("axe-core/axe.min.js") })
+    .catch(() => {});
+  return pg.evaluate(async (s) => {
+    const el = document.querySelector(s);
+    if (!el) return [`${s}: missing`];
+    // eslint-disable-next-line no-undef
+    const r = await axe.run(el, { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa"] } });
+    return r.violations.flatMap((x) => x.nodes.map((n) => `${x.id}: ${n.html.slice(0, 70)}`));
+  }, sel);
+};
+// --- exclusions with reasons (exclusion-log): one mouse of eight excluded
+// for tumour ulceration; the results' Exclusions block, the legend and the
+// methods state n enrolled / analysed with the reason; the results with
+// the excluded value included come as a second block with another P.
+{
+  await page.getByRole("button", { name: "New data table" }).first().click();
+  const dlg = page.locator(".new-table-dialog");
+  await dlg.locator('input[name="table-type"][value="column"]').check();
+  await dlg.getByLabel("Table name").fill("Tumour volume");
+  await dlg.getByLabel("Groups (columns)", { exact: true }).fill("2");
+  await dlg.getByLabel("Rows (values per group)", { exact: true }).fill("8");
+  await dlg.getByRole("button", { name: "Create table" }).click();
+  await page.waitForSelector(".grid-toolbar");
+  const control = ["12", "14", "11", "13", "15", "12", "14", "13"];
+  const treated = ["20", "22", "41", "21", "23", "19", "22", "24"];
+  await page.getByRole("button", { name: "Import…", exact: true }).click();
+  const imp = page.locator(".import-dialog");
+  await imp.getByLabel("Pasted text").check();
+  await imp.getByLabel("Text to import").fill(["Control,Treated",
+    ...control.map((c, i) => `${c},${treated[i]}`)].join("\n"));
+  const titles = imp.getByLabel(/holds column titles/);
+  if (!(await titles.isChecked())) await titles.check();
+  await imp.getByRole("tab", { name: "Placement" }).click();
+  await imp.getByLabel(/In place of the table/).check();
+  await imp.getByRole("button", { name: "Import", exact: true }).click();
+  await imp.waitFor({ state: "detached", timeout: 60000 });
+  await page.locator(".pane-controls select.analysis-select").selectOption("ttest");
+  await page.waitForFunction(() => /t test/i.test(document.querySelector(".pane-results")?.textContent ?? "")
+    && !!document.querySelector('.pane-results[data-live="true"]'), null, { timeout: 120000 });
+  const pOf = (s) => (s.match(/P\s*[=<]\s*([\d.e-]+)/) ?? [])[1] ?? "";
+  const sentenceBefore = await page.locator(".report-sentence p").innerText();
+  // Ctrl+E on Treated, row 3 (the 41): the reason prompt, never blocking
+  const cell = page.locator('.data-table input[aria-label="Treated, row 3"]');
+  await cell.click();
+  await page.keyboard.press("Control+e");
+  const prompt = page.getByRole("region", { name: "Exclusion reason" });
+  expect("Ctrl+E asks for a reason (usual reasons offered, skippable)",
+    await appears(prompt) && await prompt.getByRole("button", { name: "animal welfare endpoint" }).count() === 1
+    && await prompt.getByRole("button", { name: "Skip" }).count() === 1
+    && /Excluded 1 value \(Treated, row 3\)/.test(await prompt.innerText()));
+  const axPrompt = await axeOn(page, ".exclusion-reason");
+  expect("axe-core: the reason prompt passes", axPrompt.length === 0, axPrompt.join(" | "));
+  await prompt.getByLabel("Other reason for excluding").fill("tumour ulceration");
+  await prompt.getByRole("button", { name: "Save reason" }).click();
+  expect("the reason is kept with the value (cell tooltip) and the prompt closes",
+    /Excluded from analyses and graphs: tumour ulceration/.test(await cell.getAttribute("title") ?? "")
+    && await prompt.count() === 0);
+  await page.waitForFunction((before) => {
+    const s = document.querySelector(".report-sentence p")?.textContent ?? "";
+    return s && s !== before && !!document.querySelector('.pane-results[data-live="true"]');
+  }, sentenceBefore, { timeout: 60000 });
+  const card = page.getByRole("region", { name: "Exclusions" });
+  const row = await card.locator(".exc-groups tbody tr", { hasText: "Treated" }).innerText();
+  expect("Exclusions block: Treated 8 entered, 1 excluded, 7 analysed, tumour ulceration",
+    /Treated\s+8\s+1\s+7\s+tumour ulceration/.test(row), row.replace(/\s+/g, " "));
+  const sentence = "Treated, n = 8 enrolled, 7 analysed (1 excluded: tumour ulceration); no exclusions in Control";
+  expect("Exclusions block states the methods / legend sentence",
+    (await card.locator(".exc-sentence").innerText()).trim() === `${sentence}.`);
+  const legend = await page.locator(".report-legend p").innerText();
+  expect("the figure legend states n enrolled, analysed and the reason",
+    legend.includes("n = 8 enrolled, 7 analysed (1 excluded: tumour ulceration)"), legend);
+  const methods = await page.locator(".stats-methods p").innerText();
+  expect("the methods paragraph states the exclusions with n enrolled and analysed",
+    methods.includes(`Exclusions: ${sentence}.`), methods);
+  // one click: the results with the excluded value included, as a second block
+  const pStored = pOf(await page.locator(".report-sentence p").innerText());
+  await card.getByRole("button", { name: "Show results with excluded values included" }).click();
+  const both = card.getByRole("group", { name: "Results with excluded values included" });
+  await both.waitFor({ timeout: 60000 });
+  const asIs = pOf(await both.locator(".exc-as-is").innerText());
+  const all = pOf(await both.locator(".exc-all").innerText());
+  expect("the results with the excluded value included give another P; the stored P is unchanged",
+    !!asIs && !!all && asIs !== all && asIs === pStored
+    && pOf(await page.locator(".report-sentence p").innerText()) === pStored,
+    `as analysed P = ${asIs}, included P = ${all}, stored P = ${pStored}`);
+  const axCard = await axeOn(page, ".exclusions-card");
+  expect("axe-core: the Exclusions block with the comparison passes", axCard.length === 0, axCard.join(" | "));
+  expect("the second block lists the numbers that change (n 7 → 8)",
+    /n \(Treated\): 7 → 8/.test(await both.locator(".exc-changes").innerText()), await both.locator(".exc-changes").innerText());
+  // reasons can be edited from the results; the tidy CSV of the bundle
+  // carries them (share/tidy.ts, unit-tested)
+  await card.getByLabel("Reason for excluding Treated, row 3").fill("tumour ulceration (day 12)");
+  await card.getByLabel("Reason for excluding Treated, row 3").press("Enter");
+  expect("a reason edited in the Exclusions block reaches the methods",
+    await page.waitForFunction(() => (document.querySelector(".stats-methods p")?.textContent ?? "")
+      .includes("(1 excluded: tumour ulceration (day 12))"), null, { timeout: 10000 }).then(() => true, () => false));
+}
+
+// --- reopening a project saved by another version (stable-results-
+// versions): every saved result is recomputed and compared at display
+// precision; the strip says all reproduced, or lists what changed with
+// both values and the engine change log as the why. A fresh page with the
+// example project (deterministic results).
+{
+  const p4 = await browser.newPage({ viewport: { width: 1500, height: 1100 } });
+  p4.on("pageerror", (e) => errors.push(`pageerror (reproduce): ${e.message}`));
+  await p4.goto(url, { waitUntil: "domcontentloaded" });
+  await p4.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 180000 });
+  // save once every result is live (each carries its input fingerprint)
+  let saved = null;
+  for (let i = 0; i < 20 && !saved; i++) {
+    const [dl] = await Promise.all([p4.waitForEvent("download", { timeout: 30000 }),
+      p4.getByRole("button", { name: "Save project" }).click()]);
+    const f = join(tmp, `reproduce-${i}.json`);
+    await dl.saveAs(f);
+    const j = JSON.parse(readFileSync(f, "utf8"));
+    if (j.sheets.filter((s) => s.kind === "results").every((s) => s.cachedKey)) saved = j;
+    else await p4.waitForTimeout(1500);
+  }
+  expect("a saved project records the software that saved it",
+    !!saved && typeof saved.savedWith?.app === "string" && !!saved.savedWith.engine,
+    JSON.stringify(saved?.savedWith ?? null));
+  const nResults = saved.sheets.filter((s) => s.kind === "results").length;
+  const older = { ...saved, savedWith: { ...saved.savedWith, app: "0.2.0" } };
+  const OLD = join(tmp, "saved-with-0.2.0.json");
+  writeFileSync(OLD, JSON.stringify(older));
+  await p4.setInputFiles('.load-btn input[type="file"]', OLD);
+  const strip = p4.getByRole("region", { name: "Reproducing saved results" });
+  await strip.waitFor({ timeout: 30000 });
+  const done = await p4.waitForFunction(() => /reproduced with|changed with/.test(
+    document.querySelector(".reproduce-strip .rs-headline")?.textContent ?? ""), null, { timeout: 180000 })
+    .then(() => true, () => false);
+  const head = done ? await strip.locator(".rs-headline").innerText() : await strip.innerText();
+  const m = head.match(/^All (\d+) results reproduced with OpenDose ([\w.-]+) \(saved with 0\.2\.0\)\.$/);
+  const N = m ? Number(m[1]) : 0;
+  expect(`reopening a file saved with 0.2.0 recomputes the ${nResults} analyses and says all reproduced`,
+    !!m && N > 20, head);
+  await strip.getByRole("button", { name: "History" }).click();
+  const hist = p4.getByRole("dialog", { name: "History" });
+  expect("the History panel records the comparison",
+    await appears(hist.locator(".history-reproduction"))
+    && (await hist.locator(".history-reproduction").first().innerText()).includes(`All ${N} results reproduced`));
+  await hist.getByRole("button", { name: "Close" }).click();
+  // one stored number off: the strip lists it with both values
+  const ct = older.sheets.find((s) => s.kind === "results" && s.cached?.analysis === "contingency");
+  const truth = ct.cached.chi_square.p;
+  ct.cached.chi_square.p = 0.0234;
+  const OLD2 = join(tmp, "saved-with-0.2.0-patched.json");
+  writeFileSync(OLD2, JSON.stringify(older));
+  await p4.setInputFiles('.load-btn input[type="file"]', OLD2);
+  const changed = await p4.waitForFunction(() => /changed with/.test(
+    document.querySelector(".reproduce-strip .rs-headline")?.textContent ?? ""), null, { timeout: 180000 })
+    .then(() => true, () => false);
+  const head2 = changed ? await strip.locator(".rs-headline").innerText() : "";
+  const list = changed ? await strip.getByRole("list", { name: "Changed results" }).innerText() : "";
+  expect("a changed stored number: '1 of N results changed' with that number listed, both values",
+    head2 === `1 of ${N} results changed with OpenDose ${m?.[2]} (saved with 0.2.0).`
+    && list.includes(`chi-square test P (${ct.name}) 0.0234 → ${truth.toPrecision(4)}`)
+    && /Why:/.test(await strip.innerText()), `${head2} | ${list}`);
+  const axStrip = await axeOn(p4, ".reproduce-strip");
+  expect("axe-core: the reproduction strip passes", axStrip.length === 0, axStrip.join(" | "));
+  await strip.getByRole("button", { name: "Dismiss" }).click();
+  expect("the strip is dismissable", await strip.count() === 0);
+  await p4.close();
+}
+
 // --- Survival entry and extras (needs survival-data-entry,
 // median-survival-explained, pairwise-logrank). Alive mice per day for
 // two groups become one row per mouse with a "read as" preview; the drug
@@ -2781,6 +3104,66 @@ expect("compare fits graph draws the separate curves and the shared curve",
   const axeEmpty = await axeViolations(p3, [".results-empty-links"]);
   expect("axe-core: the empty results' entry points pass", axeEmpty.length === 0, axeEmpty.join(" | "));
   await ctx3.close();
+}
+
+// --- Compare a parameter (compare-curves-ec50): the LogIC50 of Control
+// and Treated compared in one step. Engine (compare_parameter, 4PL):
+// LogIC50 -6.983 vs -6.458, IC50 ratio 3.345 (95% CI 2.981 to 3.754),
+// F(1, 10) = 528.9, P < 0.0001 for one shared LogIC50.
+{
+  await page.keyboard.press("Escape");
+  const pX = ["1e-9", "3.162e-9", "1e-8", "3.162e-8", "1e-7", "3.162e-7", "1e-6", "3.162e-6", "1e-5"];
+  const pA = [99.6, 97.6, 92.1, 80.4, 50.3, 23.9, 8.9, 3.2, 1.2];
+  const pB = [100.8, 99.1, 97.3, 91.0, 79.2, 52.4, 24.8, 9.6, 2.9];
+  await xyNew("Potency shift");
+  await xyPaste(["Dose,Control,Treated", ...pX.map((x, i) => `${x},${pA[i]},${pB[i]}`)].join("\n"));
+  await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 60000 });
+  const potencyLink = page.getByRole("button", { name: "Compare a parameter (EC50 ratio)…" });
+  expect("fit results link to Compare a parameter", await appears(potencyLink));
+  await potencyLink.click();
+  await page.locator(".controls").getByRole("combobox", { name: /^Model/ })
+    .selectOption("log_inhibitor_vs_response_4pl");
+  expect("Compare a parameter: the mode is chosen and LogIC50 is the default parameter",
+    await page.getByLabel(/^Compare a parameter/).isChecked()
+    && await page.locator(".controls").getByRole("combobox", { name: /^Parameter/ }).inputValue() === "LogIC50");
+  const ok = await page.waitForFunction(() => /F\(1, 10\) = 528\.9/
+    .test(document.querySelector(".compare-parameter")?.textContent ?? ""), null, { timeout: 60000 })
+    .then(() => true, () => false);
+  const card = (await page.locator(".compare-parameter").innerText().catch(() => "")).replace(/\s+/g, " ");
+  const head = card.match(/IC50 shifted ([\d.]+)-fold \(95% CI ([\d.]+)–([\d.]+)\), P < 0\.0001/);
+  expect("Compare a parameter: IC50 shifted 3.35-fold (95% CI 2.98–3.75), P < 0.0001",
+    ok && !!head && head[1] === "3.35" && head[2] === "2.98" && head[3] === "3.75", card.slice(0, 200));
+  const sep = await page.locator(".compare-parameter .results-table tbody tr").allInnerTexts();
+  const logOf = (name) => Number((sep.find((r) => r.startsWith(name)) ?? "").split("\t")[1]);
+  const shown = 10 ** (logOf("Treated") - logOf("Control"));
+  const tableRatio = Number(card.match(/relative potency ([\d.]+)-fold/)?.[1]);
+  expect("the ratio (3.345) equals 10^(difference of the shown LogIC50s) to 2 significant digits",
+    tableRatio === 3.345 && shown.toPrecision(2) === tableRatio.toPrecision(2),
+    `${logOf("Control")} / ${logOf("Treated")} -> ${shown} vs ${tableRatio}`);
+  expect("F test for one shared LogIC50 and AICc are reported",
+    /F test for one shared LogIC50 F\(1, 10\) = 528\.9, P < 0\.0001/.test(card)
+    && card.includes("AICc favours separate LogIC50 values"));
+  const sentence = await page.locator(".report-sentence p").innerText().catch(() => "");
+  expect("results sentence: the IC50 ratio with its CI and the F test",
+    sentence.includes("The IC50 of Treated was 3.35-fold that of Control (IC50 ratio, 95% CI 2.98 to 3.75")
+    && sentence.includes("F(1, 10) = 528.9, P < 0.0001"), sentence);
+  expect("legend: what was compared and how",
+    (await page.locator(".report-legend p").innerText().catch(() => ""))
+      .includes("LogIC50 was compared between them by the extra-sum-of-squares F test"));
+  await page.addScriptTag({ path: createRequire(import.meta.url).resolve("axe-core/axe.min.js") })
+    .catch(() => {});
+  const axeCp = await page.evaluate(async (sels) => {
+    const out = [];
+    for (const sel of sels) {
+      const el = document.querySelector(sel);
+      if (!el) { out.push(`${sel}: missing`); continue; }
+      // eslint-disable-next-line no-undef
+      const r = await axe.run(el, { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa"] } });
+      out.push(...r.violations.flatMap((x) => x.nodes.map((n) => `${sel} ${x.id}: ${n.html.slice(0, 70)}`)));
+    }
+    return out;
+  }, [".compare-parameter", ".controls"]);
+  expect("axe-core: Compare a parameter passes", axeCp.length === 0, axeCp.join(" | "));
 }
 
 // --- paste report, Notes strip and Analysed line, Convert table to…,

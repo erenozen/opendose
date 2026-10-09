@@ -3,7 +3,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { strFromU8, unzipSync } from "fflate";
-import { emptyTable, setCell } from "../../project/table.ts";
+import { setReasons } from "../../project/exclusions.ts";
+import { emptyTable, setCell, toggleExcluded } from "../../project/table.ts";
 import { bundleFiles, withReplayPlan, zipBundle, type BundleInput } from "../bundle.ts";
 
 function input(): BundleInput {
@@ -49,7 +50,7 @@ test("README names the software versions and each file", () => {
 test("tidy CSV is long, wide CSV is the grid; zip round-trips", () => {
   const files = bundleFiles(input());
   const long = strFromU8(files.find((f) => f.name === "data/dose-response.long.csv")!.data);
-  assert.equal(long, "Group,Replicate,Value\r\nGroup A,1,1.5\r\nGroup B,2,2\r\n");
+  assert.equal(long, "Group,Replicate,Value,excluded,exclusion_reason\r\nGroup A,1,1.5,FALSE,\r\nGroup B,2,2,FALSE,\r\n");
   const wide = strFromU8(files.find((f) => f.name === "data/dose-response.csv")!.data);
   assert.equal(wide, "Row title,Group A,Group B\r\n,1.5,\r\n,,2\r\n");
   const back = unzipSync(zipBundle(files));
@@ -67,4 +68,14 @@ test("provenance.json carries the replay plan when there is one", () => {
   assert.match(strFromU8(files[0].data), /replay_plan re-applies/);
   assert.equal(withReplayPlan("{\"a\":1}"), "{\"a\":1}");
   assert.equal(withReplayPlan("not json", plan), "not json");
+});
+
+test("tidy CSV keeps excluded values with their reason (source data)", () => {
+  const base = input();
+  const ref = { kind: "y", dataset: 1, row: 1, sub: 0 } as const;
+  const t = setReasons(toggleExcluded(base.tables[0].table, ref), [ref], "tumour ulceration, day 12");
+  const files = bundleFiles({ ...base, tables: [{ name: "Dose response", table: t }] });
+  const long = strFromU8(files.find((f) => f.name === "data/dose-response.long.csv")!.data);
+  assert.equal(long, "Group,Replicate,Value,excluded,exclusion_reason\r\n"
+    + "Group A,1,1.5,FALSE,\r\nGroup B,2,2,TRUE,\"tumour ulceration, day 12\"\r\n");
 });

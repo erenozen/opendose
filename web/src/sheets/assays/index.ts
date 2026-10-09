@@ -25,6 +25,7 @@ import type { AnalysisDef, GraphKindDef } from "../types";
 import { aucAssay } from "./auc";
 import { clusterAssay } from "./cluster";
 import { densitometryAssay } from "./densitometry";
+import { flowAssay } from "./flow";
 import { growthAssay } from "./growth";
 import { plateAssay } from "./plate";
 import { qpcrAssay } from "./qpcr";
@@ -87,6 +88,7 @@ export const ASSAYS: AssayModule[] = [
   stdcurveAssay,
   qpcrAssay,
   densitometryAssay,
+  flowAssay,
   growthAssay,
   tumourAssay,
   synergyAssay,

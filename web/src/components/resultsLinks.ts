@@ -16,10 +16,13 @@ export function offersPlanning(analysisId: string, options: unknown): boolean {
  *  slope fixed) when the library has one, and otherwise with the default
  *  simpler model; "global" fits one curve for all data sets against a
  *  separate curve for each, with the fitted model. */
-export function compareFitsOptions(model: string, xIsLog: boolean, mode: "models" | "global",
+export function compareFitsOptions(model: string, xIsLog: boolean, mode: "models" | "global" | "parameter",
   usable: (id: string) => boolean): Record<string, unknown> {
   const own = usable(model) ? model : null;
   if (mode === "global") return { mode, xIsLog, ...(own ? { model1: own } : {}) };
+  // "parameter": the fitted model's midpoint (logEC50 / logIC50) between
+  // the first two data sets (sheets/xy/compareParameter.ts).
+  if (mode === "parameter") return { mode, xIsLog, datasetA: 0, datasetB: 1, ...(own ? { model1: own } : {}) };
   const simpler = own && own.endsWith("_4pl") ? own.replace(/_4pl$/, "_3pl") : null;
   if (own && simpler && usable(simpler)) return { mode, xIsLog, model1: simpler, model2: own };
   // A 3-parameter fit: against its variable-slope (4PL) version.

@@ -6,24 +6,34 @@
 // Cell STAR Methods "Quantification and statistical analysis" and
 // ARRIVE 2.0 item 7 (see checklists.ts).
 import { describeResult } from "./describe.ts";
+import { familyMethodsClause, resultFamily } from "./family.ts";
 import { effectGroups, primaryEffect } from "./effects.ts";
 import { P_STYLES, type PStyle } from "./pformat.ts";
 import type { ReportMeta } from "./meta.ts";
 import type { ReportPrefs } from "./prefs.ts";
+import { compareParameterMethods } from "../sheets/xy/compareParameter.ts";
 
 const FLOOR_TEXT: Record<PStyle, string> = {
   graphpad: "P < 0.0001", apa: "p < .001", nejm: "P<0.001",
 };
 
 export function statsMethodsParagraph(result: unknown, prefs: ReportPrefs,
-  meta: ReportMeta | undefined, opts: { powerJustification?: string | null } = {}): string {
+  meta: ReportMeta | undefined,
+  opts: { powerJustification?: string | null; exclusions?: string | null } = {}): string {
+  const cmp = result as { analysis?: string; mode?: string; compare?: Record<string, unknown>; labels?: string[] } | null;
+  if (cmp?.analysis === "compare_fits" && cmp.mode === "parameter" && cmp.compare) {
+    return compareParameterMethods(cmp.compare, cmp.labels?.[0] ?? "nonlinear regression");
+  }
   const info = describeResult(result);
   if (!info.test) return "";
   const parts: string[] = [];
   const est = (result as { analysis?: string } | null)?.analysis === "estimation";
   let t = est ? "Differences between groups were estimated with bootstrap confidence intervals (estimation statistics), with two-sided permutation tests"
     : `Data were analysed by ${info.test}${info.sided ? " (two-tailed)" : ""}`;
-  if (info.posthoc && info.multiplicity === "corrected") t += `, followed by ${info.posthoc} (${info.correction} adjustment of P values)`;
+  // the family the P values were adjusted for (report/family.ts)
+  const fam = resultFamily(result);
+  if (info.posthoc && info.multiplicity === "corrected" && fam && fam.kind !== "unadjusted") t += `, followed by ${info.posthoc} (${familyMethodsClause(fam, { inParentheses: true })})`;
+  else if (info.posthoc && info.multiplicity === "corrected") t += `, followed by ${info.posthoc} (${info.correction} adjustment of P values)`;
   else if (info.posthoc && info.multiplicity === "uncorrected") t += `, followed by ${info.posthoc} without correction for multiple comparisons`;
   parts.push(`${t}.`);
   if (info.assumptions) parts.push(`Assumptions: ${info.assumptions}.`);
@@ -42,7 +52,15 @@ export function statsMethodsParagraph(result: unknown, prefs: ReportPrefs,
   } else if (meta?.experiments) {
     parts.push(`Data come from ${meta.experiments} independent experiment${meta.experiments === 1 ? "" : "s"}.`);
   }
-  if (meta?.exclusions) parts.push(`Exclusions: ${meta.exclusions.replace(/\.$/, "")}.`);
+  // Typed in Reporting details, and / or counted from the values excluded
+  // in the table with their reasons (project/exclusions.ts, ARRIVE 2.0
+  // item 3b): "n = 8 enrolled, 7 analysed (1 excluded: tumour ulceration)".
+  const counted = opts.exclusions?.trim();
+  if (meta?.exclusions && counted) {
+    parts.push(`Exclusions: ${meta.exclusions.replace(/\.$/, "")}; ${counted}.`);
+  } else if (meta?.exclusions || counted) {
+    parts.push(`Exclusions: ${(meta?.exclusions ?? counted!).replace(/\.$/, "")}.`);
+  }
   const ss = opts.powerJustification ?? meta?.sampleSize;
   if (ss) parts.push(`Sample size: ${ss.replace(/\.$/, "")}.`);
   return parts.join(" ");

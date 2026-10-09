@@ -371,6 +371,9 @@ export interface LogInput {
   after: ReadonlyMap<string, unknown>;
   /** Most changes listed per results sheet. */
   max?: number;
+  /** Significant digits of the results sheets (project preference):
+   *  numbers equal at this precision did not change. */
+  digits?: number;
 }
 
 const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? "" : "s"}`;
@@ -416,7 +419,7 @@ export function buildReplayLog(o: LogInput): ReplayLog {
       results.push({ ...base, status: "new", note: "no earlier numbers to compare with" });
       continue;
     }
-    const d = diffResults(o.before.get(s.id), after);
+    const d = diffResults(o.before.get(s.id), after, o.digits ?? 4);
     if (d.afterError) {
       results.push({ ...base, status: "error", note: `the analysis failed on the new data: ${d.afterError}` });
       continue;
@@ -425,7 +428,7 @@ export function buildReplayLog(o: LogInput): ReplayLog {
     results.push({
       ...base,
       status: d.changed.length ? "changed" : "same",
-      changes: key.map((c) => ({ label: c.label, text: describeChange(c), kind: c.kind })),
+      changes: key.map((c) => ({ label: c.label, text: describeChange(c, o.digits ?? 4), kind: c.kind })),
       more: d.changed.length - key.length,
       ...(d.beforeError ? { note: "the earlier result was an error" } : {}),
     });

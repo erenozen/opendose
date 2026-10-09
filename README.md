@@ -48,7 +48,7 @@ cd web && node scripts/e2e-check.mjs && node scripts/e2e-tiff.mjs
 cd web && node scripts/e2e-export.mjs   # page layouts, PDF/PNG/zip export
 cd web && node scripts/e2e-share.mjs    # share links, export bundle, import recipes
 cd web && node scripts/e2e-figures.mjs  # SuperPlots, legends, P styles, classic theme, CVD check, volcano, heat-map dendrograms
-cd web && node scripts/e2e-assays.mjs   # assay wizards (plate, ELISA, qPCR, blots)
+cd web && node scripts/e2e-assays.mjs   # assay wizards (plate, ELISA, qPCR, flow, blots)
 ```
 
 The dev server needs internet access on first load (Pyodide + SciPy come
@@ -85,7 +85,11 @@ example's numbers, regenerate them against a dev server with
   floating notes and Ctrl/Cmd+K to go to any sheet.
 - Editing: Excel paste, keyboard navigation, project-wide undo / redo,
   excluded values (Ctrl/Cmd+E: struck through, skipped by analyses and
-  graphs), sort, insert series, insert / delete / move rows and columns,
+  graphs, with an optional reason asked for on the spot and kept with
+  the data; results list n entered / excluded / analysed per group with
+  the reasons, the methods and legend say "n = 8 enrolled, 7 analysed
+  (1 excluded: tumour ulceration)", and one click shows the results with
+  the excluded values included beside the stored ones), sort, insert series, insert / delete / move rows and columns,
   decimal places, block select / copy / cut / clear / exclude, and a Data
   Inspector card for the selection. Dates and elapsed times as X (parsed,
   analysed in a chosen unit, graphed as dates or h:mm:ss).
@@ -136,7 +140,10 @@ example's numbers, regenerate them against a dev server with
   and graph like…" another table; one graph's format applied to every
   graph of its kind.
 - Project files (JSON, versioned; every release opens every earlier
-  version), autosave in the browser (the last session reopens on the
+  version; a file records the version that saved it, and opening one
+  saved by another version recomputes every result and says "All 48
+  results reproduced" or lists each changed number with both values and
+  the engine change log, also kept in History), autosave in the browser (the last session reopens on the
   next visit), preferences (default table type, error bars, CI method,
   colour scheme, theme, results precision up to 10 significant digits,
   P-value style with a selectable floor for exact P (0.0001, 1e-6, 1e-10
@@ -162,11 +169,19 @@ example's numbers, regenerate them against a dev server with
   the weighted SS directly (as R's nls with weights). Polynomials to
   tenth order. A new XY table fits on its own only when the data look like
   a dose-response; otherwise it offers linear regression or a curve fit.
+  An IC50 / EC50 beyond the concentrations tested is reported as
+  "IC50 > 30 µM (not reached in the range tested)" in the table and the
+  results sentence, with the reason (or, per results sheet, as the fitted
+  number flagged as extrapolated).
 - Linear regression on XY tables (slope, intercept, X intercept, the
   regression ANOVA table, runs test, bands, optionally through the
   origin with R² about Y = 0); Deming (Model II) regression.
 - Compare fits: two models by the extra-sum-of-squares F test and AICc,
   or one curve for all data sets against a separate curve for each.
+- Compare a parameter between two curves (logEC50, Hill slope, Top …):
+  the EC50 ratio (potency ratio) with its CI, the difference with its
+  t test, and the F test and AICc for one shared value; a ratio involving
+  an IC50 beyond the tested range is reported as undefined.
 
 ### Statistics
 
@@ -184,6 +199,15 @@ example's numbers, regenerate them against a dev server with
   small); Mood's median test; Pearson, Spearman or Kendall correlation
   with one-sided P; Grubbs and ROUT outliers. Results sheets are named
   after the test they show.
+- Every comparisons table (one-way, Dunn's, two- and three-way, multiple
+  t tests, nested) shows the unadjusted P beside the adjusted one and
+  the family it was adjusted for ("adjusted for 6 comparisons (Tukey)"),
+  in the legend and methods too. Dunn's test (Kruskal-Wallis, Friedman)
+  and Šídák, Bonferroni, Holm-Šídák, Holm or Fisher's LSD after one-way
+  ANOVA compare every pair, each group vs. a control or only the planned
+  pairs ticked. t test and ANOVA results have a Residuals section: a QQ
+  plot and residuals vs. fitted, with Shapiro-Wilk as a secondary line
+  and advice that depends on n.
 - Grouped data: two-way ANOVA (ordinary with or without the interaction
   term, repeated measures by rows or both factors, mixed-effects model
   when values are missing, or from mean / SD / N; factor names read from
@@ -267,6 +291,11 @@ sheets that follow the data.
   efficiencies, statistics on ΔCq, fold changes with asymmetric CIs on a
   log2 axis (MIQE 2.0); exports are read whatever the instrument calls
   its sample, target and Cq columns, with a mapping step when unsure.
+  Reference genes are checked before any fold change (Cq per group, the
+  shift with treatment, geNorm M), with one-click choice of references.
+- Flow cytometry (wizard): a FlowJo statistics table to one value per
+  donor and condition (FMO / isotype subtraction), a paired t test or
+  repeated-measures ANOVA with the donor as the block, and a SuperPlot.
 - Western blot densitometry (wizard): ImageJ / Image Lab exports,
   background and loading-control normalisation, fold change within blot,
   ratio paired t test with blot as the pair.
@@ -366,7 +395,8 @@ sheets that follow the data.
 
 - Share links: the project (or one family) compressed into the URL
   fragment, no server; opens read-only with "Make a copy".
-- Export bundle: project file, tidy and wide CSV of every table, results
+- Export bundle: project file, tidy (with `excluded` and
+  `exclusion_reason` columns) and wide CSV of every table, results
   CSV, SVG and PNG graphs, methods, figure legends and results
   sentences, provenance.json, citation and a README with the software
   versions. .pzfx export of XY, column, grouped, contingency and

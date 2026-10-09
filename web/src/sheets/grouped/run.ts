@@ -10,7 +10,7 @@ import type {
 } from "./options.ts";
 import { FDR_METHODS, twoWayFactorNames } from "./options.ts";
 import { groupedPayload, hasMissingRM } from "./stats.ts";
-import { allCellsComparisons } from "../common/allCells.ts";
+import { allCellsComparisons, cellsFamily } from "../common/allCells.ts";
 
 type Result = Record<string, unknown>;
 
@@ -72,11 +72,13 @@ export function runTwoWay(engine: EngineBridge, table: DataTableModel,
     if (c.error || !m) return withNames({ ...r, comparisons_error: c.error ?? null });
     const comps = (m.comparisons as Result[]).map((x) => ({
       family: "All cells", pair: x.pair, difference: x.difference, ci95: x.ci ?? null,
-      statistic: x.statistic, p_adjusted: x.p_adjusted, significant_05: x.significant_05 }));
+      statistic: x.statistic, p_adjusted: x.p_adjusted, significant_05: x.significant_05,
+            p_unadjusted: x.p_unadjusted, family_size: x.family_size, method: x.method }));
     return withNames({ ...r, multiple_comparisons: {
       method: o.comparisons, direction: "all_cells",
       ms_residual: (c.table as Result)?.ms_within, df_residual: (c.table as Result)?.df_within,
-      n_comparisons: comps.length, comparisons: comps } });
+      n_comparisons: comps.length, comparisons: comps,
+      ...(cellsFamily(m.family) ? { family: cellsFamily(m.family) } : {}) } });
   }
   if (o.design === "none") {
     const r = analyze(engine, {

@@ -227,7 +227,7 @@ export default function ReplayDialog({ dataId, onClose }: { dataId?: string; onC
         plan: fromFile ? fromFile.name : "this project",
         project: api.store.project, replaced, incoming: sources,
         unused: sources.map((_, i) => i).filter((i) => !used.has(i)),
-        before, after,
+        before, after, digits: api.store.project.prefs.digits,
       }));
       setStage("log");
     } catch (e) {

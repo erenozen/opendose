@@ -165,6 +165,10 @@ export function CompareFitsLinks({ sheet, table, model, xIsLog }: {
           <button type="button" className="linkish" disabled={readOnly}
             onClick={() => open("compare_fits", compareFitsOptions(model, xIsLog, "global", usable), false)}>
             Compare with another data set…</button>
+          {" · "}
+          <button type="button" className="linkish" disabled={readOnly}
+            onClick={() => open("compare_fits", compareFitsOptions(model, xIsLog, "parameter", usable), false)}>
+            Compare a parameter (EC50 ratio)…</button>
         </>
       )}
     </p>

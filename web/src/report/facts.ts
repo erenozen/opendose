@@ -4,6 +4,7 @@
 import type { ResultsCache } from "../app/analysis";
 import { librariesPhrase, APP_VERSION } from "../export/cite";
 import { getRuntimeVersions } from "../lib/engine";
+import { allReasoned, exclusionSentence } from "../project/exclusions";
 import type { DataSheet, GraphSheet, Project, ResultsSheet } from "../project/types";
 import type { FamilyFacts, GraphFacts, ResultFacts } from "./checklists";
 import { describeResult } from "./describe";
@@ -75,9 +76,15 @@ export function familyFacts(p: Project, data: DataSheet, cache: ResultsCache): F
   }
   const excludedCount = data.table.datasets.reduce((a, d) => a + (d.excluded?.length ?? 0), 0)
     + (data.table.xExcluded?.length ?? 0);
+  // A reason recorded with every excluded value answers the exclusions
+  // item as well as a typed note does (ARRIVE 2.0 item 3b).
+  const meta = { ...metaWithReplicates(data.report, data.table) };
+  if (!meta.exclusions && allReasoned(data.table)) {
+    meta.exclusions = exclusionSentence(data.table) ?? undefined;
+  }
   return {
     dataId: data.id, dataName: data.name, results, graphs,
-    meta: metaWithReplicates(data.report, data.table),
+    meta,
     excludedCount, minN, powerJustification: powerJustification(p, cache),
     software: `OpenDose ${APP_VERSION} with ${librariesPhrase(getRuntimeVersions())}`,
     normalityChecked,
