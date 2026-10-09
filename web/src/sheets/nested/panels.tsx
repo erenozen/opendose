@@ -1,6 +1,8 @@
 // Controls, results sheets and methods text for the nested t test and
 // nested one-way ANOVA (mixed model: groups fixed, subcolumns random).
 import "../common/sheetKit.css";
+import { hasUnadjusted } from "../../report/family";
+import FamilyLine from "../common/FamilyLine";
 import type { ReactNode } from "react";
 import CopyableMethods from "../common/CopyableMethods";
 import { fmtCI, fmtP, formatSig, levelPct, stars } from "../common/statFormat";
@@ -253,13 +255,16 @@ export function NestedResults({ options, result: r }:
         <>
           <h4>{NESTED_COMPARISONS_LABELS[mc.method as NestedComparisons]
             ?.replace(/ \(.*\)$/, "") ?? mc.method} multiple comparisons (df = {mc.df})</h4>
+          <FamilyLine mc={mc} />
           <table className="results-table">
             <thead>
               <tr>
                 <th scope="col">Comparison</th><th scope="col">Mean difference</th>
                 <th scope="col">SE</th><th scope="col">{level} CI</th>
                 <th scope="col">{mc.method === "tukey" ? "q" : "t"}</th>
-                <th scope="col">Adjusted P</th><th scope="col">Summary</th>
+                <th scope="col">Adjusted P</th>
+                {hasUnadjusted(mc.comparisons) && <th scope="col">Unadjusted P</th>}
+                <th scope="col">Summary</th>
               </tr>
             </thead>
             <tbody>
@@ -269,7 +274,9 @@ export function NestedResults({ options, result: r }:
                   <td>{formatSig(c.difference)}</td><td>{formatSig(c.se)}</td>
                   <td>{c.ci ? fmtCI(c.ci) : "n/a"}</td>
                   <td>{formatSig(c.statistic)}</td>
-                  <td>{fmtP(c.p_adjusted)}</td><td>{stars(c.p_adjusted)}</td>
+                  <td>{fmtP(c.p_adjusted)}</td>
+                  {hasUnadjusted(mc.comparisons) && <td>{fmtP(c.p_unadjusted)}</td>}
+                  <td>{stars(c.p_adjusted)}</td>
                 </tr>
               ))}
             </tbody>

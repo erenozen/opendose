@@ -824,9 +824,12 @@ in brackets; "discoverable" = already built, make it findable):
       C12') and keep text columns as text. [`excel-paste-fidelity`,
       81.8, 45 obs] (`project/pasteReport.ts`; Help explainer
       "What happens to pasted cells")
-- [ ] Add a 'Residuals' tab to t-test and ANOVA results with a QQ plot
+- [x] Add a 'Residuals' tab to t-test and ANOVA results with a QQ plot
       and residual-vs-fitted plot, and word the normality chip as advice
       that depends on n. [`assumption-checks-residuals`, 81.5, 38 obs]
+      (Residuals section on unpaired / Welch / paired t, ordinary and
+      Welch ANOVA, RM ANOVA with two treatments; RM ANOVA with more
+      treatments needs subject + treatment residuals from the engine)
 - [ ] Add 'Analyse log(values)' to unpaired t tests and ANOVA, reporting
       geometric-mean ratios with CIs, and a chip that suggests it when
       SDs rise with means. [`log-scale-analysis`, 78.0, 45 obs]
@@ -883,11 +886,16 @@ in brackets; "discoverable" = already built, make it findable):
       [`pairwise-logrank`, 36.8, 16 obs] Done (3+ groups), with the
       family in the methods text and the figure legend. Not offered as
       graph brackets: Kaplan-Meier graphs have no bracket layer.
-- [ ] Add a 'Comparisons to make' picker (all / vs control / ticked
+- [x] Add a 'Comparisons to make' picker (all / vs control / ticked
       pairs) to every post hoc panel; apply Šídák, Holm or Dunn to
       exactly that family and print the family size.
-      [`planned-comparisons-family`, 61.4, 22 obs]
-- [ ] Offer 'Report as > highest dose' for extrapolated IC50s, carried
+      [`planned-comparisons-family`, 61.4, 22 obs] (column one-way
+      ANOVA, Kruskal-Wallis and Friedman; also
+      `nonparametric-posthoc`: Dunn's test each vs. a control)
+- [x] Show the unadjusted P beside the adjusted one and "adjusted for 6
+      comparisons (Tukey)" on every comparisons table, in the legend and
+      the methods. [`adjusted-vs-raw-labelled`, 56.2, 26 obs]
+- [x] Offer 'Report as > highest dose' for extrapolated IC50s, carried
       into the results table, the results sentence and any ratio, with
       the reason. [`incomplete-curve-flags`, 60.8, 20 obs]
 - [x] Count the t tests run on each table; from the third pair, a chip
@@ -909,6 +917,26 @@ Made discoverable outside the top 15 (Wave 0):
       data table, one zip). [`prism-files`]
 - [x] Compare fits reachable from curve-fit results ("Compare with
       another model… / another data set…").
+
+Wave 2 (assays):
+- [x] Compare a parameter (logEC50, Hill slope, Top …) between two data
+      sets: the EC50 ratio (potency / dose ratio) with its CI, the
+      difference with its t test, the F test and AICc for one shared
+      value; "undefined (IC50 > 1e-5 M)" when a curve's IC50 is not
+      reached; results sentence, legend and methods.
+      [`compare-curves-ec50`] (`sheets/xy/compareParameter.ts`)
+- [x] qPCR reference genes checked before any fold change: mean Cq per
+      group with the shift against the calibrator, one-way ANOVA, geNorm
+      M and the SD of ΔCq between references; chips ("ACTB shifts with
+      treatment by 1.4 Cq"), one-click "Use GAPDH only" / "Use both", the
+      reason in the methods. [`qpcr-reference-genes`]
+      (`sheets/assays/qpcr/refs.ts`)
+- [x] Flow cytometry module: FlowJo statistics → one value per donor and
+      condition (FMO / isotype subtraction) → linked column table with
+      donor as the experiment, paired t test or RM one-way ANOVA on the
+      donor values, SuperPlot; example and template.
+      [`flow-stats-to-tests`] (`sheets/assays/flow/`). Open: the RM
+      ANOVA post hoc is not passed by the column analysis on the web yet.
 
 Also shipped from Wave 1 of the improvement plan:
 - [x] "Convert table to…" (column ↔ grouped ↔ multiple variables,

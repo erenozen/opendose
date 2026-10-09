@@ -9,6 +9,7 @@
 // represents", "definition of center and dispersion"), eLife (exact n,
 // replicates defined), JCB / Lord et al. 2020 (independent experiments
 // stated), SAMPL (state the test and the scale of the asterisks). Pure.
+import { familyLegendClause, resultFamily } from "./family.ts";
 import { describeResult, type GroupN, type TestInfo } from "./describe.ts";
 import { starScale, type PStyle } from "./pformat.ts";
 import { withheldInfo, withheldPhrase } from "../sheets/common/withheld.ts";
@@ -178,7 +179,10 @@ export function legendParagraph(i: LegendInput): string {
   } else if (info.test) {
     let t = `${article(info.test)} ${info.test}${info.sided ? ` (${info.sided === "two-sided" ? "two-tailed" : info.sided})` : ""}`;
     if (info.posthoc && info.multiplicity === "corrected") {
-      t += ` followed by ${info.posthoc}, with P values adjusted for multiple comparisons (${info.correction})`;
+      // the family the P values were adjusted for (report/family.ts)
+      const fam = resultFamily(i.result);
+      t += ` followed by ${info.posthoc}, ${fam && fam.kind !== "unadjusted" ? familyLegendClause(fam)
+        : `with P values adjusted for multiple comparisons (${info.correction})`}`;
     } else if (info.posthoc && info.multiplicity === "uncorrected") {
       t += ` followed by ${info.posthoc}, without correction for multiple comparisons`;
     } else if (info.multiplicity === "uncorrected") {

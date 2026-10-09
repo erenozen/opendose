@@ -12,6 +12,7 @@ import type { ControlsProps, ResultsProps } from "../types";
 import {
   comparableModels, preferred, type CompareMethod, type CompareOptions, type CompareRow,
 } from "./compareFits";
+import { ParameterControls, ParameterMethods, ParameterResults } from "./compareParameterPanels";
 import "./xy.css";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -73,28 +74,35 @@ const METHOD_LABELS: Record<CompareMethod, string> = {
   aicc: "The models are not nested: AICc only",
 };
 
-export function CompareControls({ options, onChange, readOnly }: ControlsProps<CompareOptions>) {
+export function CompareControls({ table, options, onChange, readOnly }: ControlsProps<CompareOptions>) {
   const set = (patch: Partial<CompareOptions>) => onChange({ ...options, ...patch });
   const m1 = modelMeta(options.model1), m2 = modelMeta(options.model2);
   const logX = m1.needsLogX || (options.mode === "models" && m2.needsLogX);
+  if (options.mode === "parameter") {
+    return (
+      <div className="controls">
+        <ModeSection options={options} set={set} readOnly={readOnly} />
+        <ParameterControls table={table} options={options} set={set} readOnly={readOnly}
+          model={<>
+            <ModelSelect label="Model" value={options.model1} disabled={readOnly}
+              onChange={(id) => set({ model1: id, constraints1: {}, parameter: "" })} />
+            <HoldConstant which="the model" model={options.model1} value={options.constraints1}
+              disabled={readOnly} onChange={(c) => set({ constraints1: c })} />
+          </>} />
+        {logX && (
+          <label className="check-row">
+            <input type="checkbox" checked={options.xIsLog} disabled={readOnly}
+              onChange={(e) => set({ xIsLog: e.target.checked })} />
+            <span>X values are already log10(concentration)</span>
+          </label>
+        )}
+        <ErrorBarSection options={options} set={set} readOnly={readOnly} />
+      </div>
+    );
+  }
   return (
     <div className="controls">
-      <section>
-        <h3>Compare</h3>
-        <fieldset className="field-radios">
-          <legend className="sr-only">What to compare</legend>
-          <label>
-            <input type="radio" name="compare-mode" checked={options.mode === "models"}
-              disabled={readOnly} onChange={() => set({ mode: "models" })} />
-            Two models, fitted to each data set
-          </label>
-          <label>
-            <input type="radio" name="compare-mode" checked={options.mode === "global"}
-              disabled={readOnly} onChange={() => set({ mode: "global" })} />
-            One curve for all data sets vs. a separate curve for each
-          </label>
-        </fieldset>
-      </section>
+      <ModeSection options={options} set={set} readOnly={readOnly} />
       {options.mode === "models" ? (
         <section>
           <h3>Models</h3>
@@ -149,16 +157,50 @@ export function CompareControls({ options, onChange, readOnly }: ControlsProps<C
           the same data.
         </p>
       </section>
-      <section>
-        <h3>Error bars</h3>
-        <select aria-label="Error bar type" value={options.errorBars} disabled={readOnly}
-          onChange={(e) => set({ errorBars: e.target.value as ErrorBarKind })}>
-          {(Object.keys(ERROR_BAR_LABELS) as ErrorBarKind[]).map((k) => (
-            <option key={k} value={k}>{ERROR_BAR_LABELS[k]}</option>
-          ))}
-        </select>
-      </section>
+      <ErrorBarSection options={options} set={set} readOnly={readOnly} />
     </div>
+  );
+}
+
+type SetOptions = (patch: Partial<CompareOptions>) => void;
+
+function ModeSection({ options, set, readOnly }: { options: CompareOptions; set: SetOptions; readOnly?: boolean }) {
+  return (
+    <section>
+      <h3>Compare</h3>
+      <fieldset className="field-radios">
+        <legend className="sr-only">What to compare</legend>
+        <label>
+          <input type="radio" name="compare-mode" checked={options.mode === "models"}
+            disabled={readOnly} onChange={() => set({ mode: "models" })} />
+          Two models, fitted to each data set
+        </label>
+        <label>
+          <input type="radio" name="compare-mode" checked={options.mode === "global"}
+            disabled={readOnly} onChange={() => set({ mode: "global" })} />
+          One curve for all data sets vs. a separate curve for each
+        </label>
+        <label>
+          <input type="radio" name="compare-mode" checked={options.mode === "parameter"}
+            disabled={readOnly} onChange={() => set({ mode: "parameter" })} />
+          Compare a parameter (logEC50, Hill slope, Top …) between two data sets
+        </label>
+      </fieldset>
+    </section>
+  );
+}
+
+function ErrorBarSection({ options, set, readOnly }: { options: CompareOptions; set: SetOptions; readOnly?: boolean }) {
+  return (
+    <section>
+      <h3>Error bars</h3>
+      <select aria-label="Error bar type" value={options.errorBars} disabled={readOnly}
+        onChange={(e) => set({ errorBars: e.target.value as ErrorBarKind })}>
+        {(Object.keys(ERROR_BAR_LABELS) as ErrorBarKind[]).map((k) => (
+          <option key={k} value={k}>{ERROR_BAR_LABELS[k]}</option>
+        ))}
+      </select>
+    </section>
   );
 }
 
@@ -268,6 +310,7 @@ function Card({ row, method, short }: { row: CompareRow; method: CompareMethod; 
 export function CompareResults({ result }: ResultsProps<CompareOptions, any>) {
   if (!result) return null;
   if (result.error) return <div className="results-error">Analysis failed: {String(result.error)}</div>;
+  if (result.mode === "parameter") return <ParameterResults result={result} />;
   const short = shortNames(result);
   return (
     <div className="results">
@@ -288,6 +331,7 @@ export function CompareResults({ result }: ResultsProps<CompareOptions, any>) {
 
 export function CompareMethods({ options, result }: ResultsProps<CompareOptions, any>) {
   if (!result || result.error) return null;
+  if (result.mode === "parameter") return <ParameterMethods options={options} result={result} />;
   const rows = (result.rows ?? []).filter((r: CompareRow) => r.models);
   if (!rows.length) return null;
   const [l1, l2] = result.labels ?? ["", ""];
