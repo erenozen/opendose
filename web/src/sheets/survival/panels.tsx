@@ -5,6 +5,7 @@ import type { ControlsProps, GraphOptionsProps, PlotProps, ResultsProps } from "
 import { OptCheck, OptNote, OptSlider } from "../../components/GraphOptionControls";
 import { useGraphSetting } from "../grouped/plotting";
 import { normalizeSurvivalGraph } from "./graphSettings";
+import { CoxLink } from "../../components/ResultsLinks";
 import { timeUnitOf } from "./entry";
 import { notReachedByGroup } from "./extras";
 import { MedianNotes, SurvivalExtrasBlocks } from "./extrasPanels";
@@ -29,11 +30,16 @@ export function SurvivalControls(_: ControlsProps) {
 }
 
 export function SurvivalResultsPanel(props: ResultsProps<unknown, any>) {
-  const { result, table } = props;
-  return <SurvivalResults result={result} table={table}
-    medianNotes={notReachedByGroup(result?.extras?.at_time, timeUnitOf(table))}
-    afterMedians={<MedianNotes result={result} table={table} />}
-    extras={<SurvivalExtrasBlocks {...props} />} />;
+  const { sheet, result, table } = props;
+  return (
+    <>
+      <SurvivalResults result={result} table={table}
+        medianNotes={notReachedByGroup(result?.extras?.at_time, timeUnitOf(table))}
+        afterMedians={<MedianNotes result={result} table={table} />}
+        extras={<SurvivalExtrasBlocks {...props} />} />
+      {result && !result.error && <CoxLink sheet={sheet} />}
+    </>
+  );
 }
 
 export function SurvivalGraph({ graph, result, titles, scheme, table, format, onFormatChange }:

@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import Modal from "../components/Modal";
 import manifest from "./validation.json";
+import type { ValidationFor } from "./events";
+import { checksIn, validationScope, validationSentence } from "./validationIndex";
 
 interface Check {
   group: string;
@@ -38,18 +40,49 @@ const GROUP_TITLES: Record<string, string> = {
  * value OpenDose is held to, the reference value, the tolerance and the
  * source.
  */
-export default function ValidationPage({ onClose }: { onClose: () => void }) {
+export default function ValidationPage({ onClose, scope }: {
+  onClose: () => void;
+  /** Opened from a results sheet: its analysis (the page starts filtered
+   *  to that analysis' checks). */
+  scope?: ValidationFor;
+}) {
   const groups = useMemo(() => [...new Set(data.checks.map((c) => c.group))], []);
   const [only, setOnly] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const forAnalysis = useMemo(() => (scope ? validationScope(scope.analysisId, scope.options)
+    : null), [scope]);
+  const mine = useMemo(() => checksIn(data.checks, forAnalysis), [forAnalysis]);
+  // Filtered to this analysis while it has checks, until "Show all".
+  const [scoped, setScoped] = useState(true);
+  const filtering = scoped && mine.length > 0;
   const q = query.trim().toLowerCase();
-  const shown = data.checks.filter((c) => (!only || c.group === only)
+  const pool = filtering ? mine : data.checks;
+  const shown = pool.filter((c) => (!only || c.group === only)
     && (!q || `${c.analysis} ${c.quantity} ${c.source}`.toLowerCase().includes(q)));
   const values = data.checks.reduce((n, c) => n + (c.n_values ?? 1), 0);
 
   return (
     <Modal title="How OpenDose is validated" className="validation-page" onClose={onClose}
       actions={<button type="button" className="btn-primary" onClick={onClose}>Close</button>}>
+      {forAnalysis && (
+        <div className="validation-scope" role="note" aria-label="Checks for this analysis">
+          <h3>Checks for {forAnalysis.title}</h3>
+          {mine.length ? (
+            <p>
+              {validationSentence(mine)}{" "}
+              {filtering ? "Only these are listed below. " : "All checks are listed below. "}
+              <button type="button" className="linkish" onClick={() => setScoped(!filtering)}>
+                {filtering ? `Show all ${data.checks.length} checks` : "Show only these checks"}
+              </button>
+            </p>
+          ) : (
+            <p>
+              No pinned check in this list names {forAnalysis.title} yet. It runs in the
+              same engine and test suite as the analyses below, whose checks are listed in full.
+            </p>
+          )}
+        </div>
+      )}
       <p className="validation-intro">
         Every analysis runs in the same Python engine (NumPy and SciPy) that
         the project&apos;s test suite checks on every change. The checks below
@@ -78,14 +111,14 @@ export default function ValidationPage({ onClose }: { onClose: () => void }) {
       <ul className="validation-summary" aria-label="Filter by kind of reference">
         <li>
           <button type="button" aria-pressed={only === null} onClick={() => setOnly(null)}>
-            All ({data.checks.length})
+            All ({pool.length})
           </button>
         </li>
-        {groups.map((g) => (
+        {groups.filter((g) => !filtering || pool.some((c) => c.group === g)).map((g) => (
           <li key={g}>
             <button type="button" aria-pressed={only === g}
               onClick={() => setOnly(only === g ? null : g)}>
-              {g} ({data.checks.filter((c) => c.group === g).length})
+              {g} ({pool.filter((c) => c.group === g).length})
             </button>
           </li>
         ))}

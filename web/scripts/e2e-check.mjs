@@ -29,15 +29,19 @@
 // power and sample size tool, and the site-validation follow-ups (both
 // log-rank forms and the Kaplan-Meier tables on R's aml, Fisher's exact
 // test on an r x c table, expected counts and residuals, "From long
-// table…" for CMH and quantal data, the quantal upper asymptote), and
-// survival data from counts per day with the pairwise log-rank table,
-// the test for trend, "median not reached", survival at a time and RMST.
+// table…" for CMH and quantal data, the quantal upper asymptote), the
+// discoverability links (Help me choose…, Plan next experiment, How this is
+// validated, Cox from survival, Compare fits from a fit, Prism files on the
+// start screen and in the Save menu), and survival data from counts per
+// day with the pairwise log-rank table, the test for trend, "median not
+// reached", survival at a time and RMST.
 import { chromium } from "playwright";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
+import { strFromU8, unzipSync } from "fflate";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const XLSX = join(here, "..", "..", "engine", "tests", "fixtures",
@@ -1336,7 +1340,7 @@ expect("a chip expands to advice with a Learn more link",
   await page.locator(".guide-chip-detail").getByRole("button", { name: /Learn more/ }).count() === 1);
 const tabsBefore = await page.locator(".mode-switch [role=tab]").count();
 await page.getByRole("button", { name: "Analyze", exact: true }).click();
-await page.getByRole("menuitem", { name: /Which test/ }).click();
+await page.getByRole("menuitem", { name: /Help me choose/ }).click();
 const wt = page.locator("dialog.which-test");
 await wt.waitFor({ timeout: 10000 });
 expect("wizard reads the table: three groups preselected",
@@ -1616,7 +1620,7 @@ expect(".pzfx round trip: the re-imported summary table fits the same (LogIC50 -
 await page.getByRole("button", { name: "More ways to save and share" }).click();
 const [pzAll] = await Promise.all([
   page.waitForEvent("download", { timeout: 30000 }),
-  page.getByRole("menuitem", { name: /Export as \.pzfx/ }).click(),
+  page.getByRole("menuitem", { name: /Export tables as \.pzfx/ }).click(),
 ]);
 const pzAllPath = join(tmp, pzAll.suggestedFilename());
 await pzAll.saveAs(pzAllPath);
@@ -2398,6 +2402,252 @@ expect("compare fits graph draws the separate curves and the shared curve",
   });
   expect("axe-core: survival aside and extras have no label / name / contrast violations",
     survViolations.length === 0, survViolations.join(" | "));
+}
+
+// --- discoverability (user-needs catalogue, Wave 0): features users look
+// for where they look. "Help me choose…" first in Analyze, worded with the
+// table's own rows, landing on the test with its reason; "Plan next
+// experiment" from a pilot t test with the pilot SD filled in (no post
+// hoc power); "How this is validated" on a Dunnett ANOVA; Cox regression
+// from the survival results; Compare fits from a curve fit; the Save
+// menu's .pzfx export and Prism-to-CSV conversion; the start screen's
+// Prism note with a dropped .pzfx file.
+{
+  // axe-core (WCAG 2 A/AA, contrast included) on the new parts of a page.
+  const axeFile = createRequire(join(here, "e2e-check.mjs")).resolve("axe-core/axe.min.js");
+  const axeViolations = async (pg, selectors) => {
+    await pg.addScriptTag({ path: axeFile }).catch(() => {});
+    return pg.evaluate(async (sels) => {
+      const out = [];
+      for (const sel of sels) {
+        const el = document.querySelector(sel);
+        if (!el) { out.push(`${sel}: missing`); continue; }
+        // eslint-disable-next-line no-undef
+        const r = await axe.run(el, { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa"] } });
+        out.push(...r.violations.flatMap((x) => x.nodes.map((n) => `${sel} ${x.id}: ${n.html.slice(0, 70)}`)));
+      }
+      return out;
+    }, selectors);
+  };
+  const pasteInto = async (csv) => {
+    await page.getByRole("button", { name: "Import…", exact: true }).click();
+    const imp = page.locator(".import-dialog");
+    await imp.getByLabel("Pasted text").check();
+    await imp.getByLabel("Text to import").fill(csv);
+    const titles = imp.getByLabel(/holds column titles/);
+    if (!(await titles.isChecked())) await titles.check();
+    await imp.getByRole("tab", { name: "Placement" }).click();
+    await imp.getByLabel(/In place of the table/).check();
+    await imp.getByRole("button", { name: "Import", exact: true }).click();
+    await imp.waitFor({ state: "detached", timeout: 60000 });
+  };
+  // A two-group pilot: Control vs Treated, 6 animals each.
+  await page.getByRole("button", { name: "New data table" }).first().click();
+  const nd = page.locator(".new-table-dialog");
+  await nd.locator('input[name="table-type"][value="column"]').check();
+  await nd.getByLabel("Table name").fill("Pilot");
+  await nd.getByLabel("Groups (columns)", { exact: true }).fill("2");
+  await nd.getByLabel("Rows (values per group)", { exact: true }).fill("6");
+  await nd.getByRole("button", { name: "Create table" }).click();
+  await page.waitForSelector(".grid-toolbar");
+  await pasteInto("Control,Treated\n10.2,13.4\n11.5,14.1\n9.8,12.8\n12.1,15.0\n10.9,13.9\n11.3,14.6");
+  await page.waitForSelector('.pane-results[data-live="true"]', { timeout: 120000 });
+
+  // (a) Help me choose… is the first entry of Analyze; three questions
+  // about the user's own rows; lands on the test with its reason.
+  await page.getByRole("button", { name: "Analyze", exact: true }).click();
+  const firstItem = page.getByRole("menu", { name: "Add an analysis" }).getByRole("menuitem").first();
+  expect("Analyze: Help me choose… is the first entry",
+    (await firstItem.innerText()).startsWith("Help me choose…"), await firstItem.innerText());
+  await firstItem.click();
+  const hm = page.getByRole("dialog", { name: "Help me choose a test" });
+  await hm.waitFor({ timeout: 10000 });
+  expect("Help me choose: two groups pre-filled from the table",
+    await hm.getByRole("radio", { name: "Two", exact: true }).isChecked()
+    && (await hm.innerText()).includes("Your table has 2 data sets: Control and Treated."));
+  const pairQ = "Is row 1 of Control (10.2) the same animal, culture or experiment as row 1 of Treated (13.4)?";
+  const pairGroup = hm.getByRole("group", { name: pairQ });
+  expect("the pairing question uses the table's own first row", await pairGroup.count() === 1);
+  await pairGroup.getByRole("radio", { name: "No" }).check();
+  await hm.getByRole("group", { name: "What is each value in Control?" })
+    .getByRole("radio", { name: "One independent subject or experiment" }).check();
+  await hm.getByRole("group", { name: "Do you expect the groups to have equal SDs?" })
+    .getByRole("radio", { name: "Yes, by design" }).check();
+  const recTest = await hm.locator(".wt-test").innerText();
+  const recReason = await hm.locator(".wt-test + p").innerText();
+  expect("Help me choose recommends the unpaired t test with a one-paragraph reason",
+    recTest === "Unpaired t test" && recReason.length > 80, `${recTest}: ${recReason.slice(0, 80)}`);
+  await hm.getByRole("button", { name: "Open on “Pilot”" }).click();
+  const why = page.getByRole("note", { name: "Why this test" });
+  const whyShown = await why.waitFor({ timeout: 30000 }).then(() => true, () => false);
+  expect("lands on the t test with the reason (Why Unpaired t test.)", whyShown &&
+    (await why.innerText()).startsWith(`Why Unpaired t test. ${recReason.slice(0, 40)}`));
+  await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 60000 });
+
+  // (b) Plan next experiment: the pilot SD (pooled, 0.825) filled in; the
+  // effect to detect is chosen (1 unit): 12 per group for 80% power.
+  await page.getByRole("button", { name: "Plan next experiment…" }).click();
+  const pw = page.locator("dialog.power-dialog");
+  await pw.waitFor({ timeout: 15000 });
+  const sdLine = await pw.locator(".power-pilot-sd").innerText();
+  expect("Plan next experiment: pilot SD 0.825 (pooled SD of Control and Treated, n = 6 per group)",
+    /Pilot SD: 0\.825 \(pooled SD of Control and Treated; unpaired t test, n = 6 per group\)/.test(sdLine),
+    sdLine);
+  expect("the pilot SD is filled in as the common SD",
+    await pw.getByLabel("SD (common)").first().inputValue().catch(() => "") === "0.825"
+    || await pw.locator('input[aria-label="SD (common)"]').first().inputValue() === "0.825");
+  expect("no observed (post hoc) power: the note cites GraphPad FAQ 1710",
+    await pw.getByRole("link", { name: /FAQ 1710/ }).count() === 1);
+  await pw.getByLabel("Difference to detect").fill("1");
+  const just = await page.waitForFunction(() => {
+    const t = document.querySelector("dialog.power-dialog .power-sentence")?.textContent ?? "";
+    return t.includes("12 animals per group (24 in total)") && t.includes("pooled SD of Control and Treated in the pilot experiment “Pilot” (0.825") ? t : null;
+  }, null, { timeout: 60000 }).then((h) => h.jsonValue(), () => "");
+  expect("justification: 12 animals per group for 80% power, citing the pilot SD", !!just, String(just).slice(0, 160));
+  const axePower = await axeViolations(page, ["dialog.power-dialog .power-pilot", ".results-links", ".results-why"]);
+  expect("axe-core: the pilot card and the results links pass WCAG 2 A/AA", axePower.length === 0,
+    axePower.join(" | "));
+  await pw.getByRole("button", { name: "Done" }).click();
+
+  // (d) How this is validated, on a one-way ANOVA with Dunnett's test.
+  await newExampleTable("column");
+  await page.waitForSelector(".stat-cols", { timeout: 30000 });
+  await page.getByRole("button", { name: "Analyze", exact: true }).click();
+  await page.getByRole("menuitem", { name: /Help me choose/ }).click();
+  const hm2 = page.getByRole("dialog", { name: "Help me choose a test" });
+  await hm2.getByText("Each vs a control", { exact: true }).click();
+  await hm2.getByRole("button", { name: /^Open on/ }).click();
+  await page.waitForSelector(".result-card h3:has-text('Ordinary one-way ANOVA')", { timeout: 30000 });
+  const valLink = page.getByRole("navigation", { name: "About these results" });
+  expect("results sheet: How this is validated, with its count sentence",
+    await valLink.getByRole("button", { name: "How this is validated" }).count() === 1
+    && await page.waitForFunction(() => /checked against SciPy, \d published tables?/.test(
+      document.querySelector(".results-links")?.textContent ?? ""), null, { timeout: 15000 })
+      .then(() => true, () => false),
+    await valLink.innerText());
+  await valLink.getByRole("button", { name: "How this is validated" }).click();
+  const val = page.getByRole("dialog", { name: "How OpenDose is validated" });
+  await val.waitFor({ timeout: 15000 });
+  const scopeText = await val.getByRole("note", { name: "Checks for this analysis" }).innerText();
+  const rows = await val.locator(".validation-table tbody tr").allInnerTexts();
+  expect("the validation page opens on the Dunnett checks only (published critical values 2.23, 2.57, 2.76…)",
+    scopeText.includes("Checks for one-way ANOVA with Dunnett's test") && rows.length >= 5
+    && rows.every((r) => r.includes("Dunnett")) && rows.some((r) => r.includes("2.23, 2.57, 2.76"))
+    && rows.some((r) => r.includes("scipy.stats.dunnett")), `${rows.length} rows; ${scopeText.slice(0, 120)}`);
+  const axeVal = await axeViolations(page, [".validation-scope"]);
+  expect("axe-core: the validation page's analysis note passes", axeVal.length === 0, axeVal.join(" | "));
+  await val.getByRole("button", { name: /^Show all \d+ checks$/ }).click();
+  expect("Show all lists every check again",
+    (await val.locator(".validation-table tbody tr").count()) > rows.length + 50);
+  await val.getByRole("button", { name: "Close" }).click();
+
+  // (c) Survival results link to Cox regression on the same table.
+  await newExampleTable("survival");
+  await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 60000 });
+  await page.getByRole("button", { name: "Cox regression (hazard ratios with covariates)" }).click();
+  const coxRow = await cardRow("Cox proportional hazards", "Group: Treated vs Control");
+  // statsmodels PHReg (Efron ties) on the same 20 subjects: HR 0.4513,
+  // 95% CI 0.1510 to 1.348.
+  expect("the Cox link opens Cox regression on the same table: HR 0.4513 (0.151 to 1.348)",
+    await page.getByRole("tab", { name: "Cox" }).count() === 1 && coxRow.includes("0.4513")
+    && coxRow.includes("0.151 to 1.348"), coxRow);
+
+  // (g) Curve-fit results offer Compare fits, set up from the fit.
+  await newExampleTable("xy");
+  await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 60000 });
+  const cmpModel = page.getByRole("button", { name: "Compare with another model…" });
+  expect("fit results show the compare-fits links",
+    await appears(cmpModel) && await page.getByRole("button", { name: "Compare with another data set…" }).count() <= 1);
+  await cmpModel.click();
+  expect("Compare fits opens on the same table (F test and AICc, 3PL vs 4PL)",
+    await page.waitForFunction(() => {
+      const t = document.querySelector(".pane-results")?.textContent ?? "";
+      return /AICc/.test(t) && /is preferred/.test(t);
+    }, null, { timeout: 60000 }).then(() => true, () => false)
+    && await page.getByRole("tab", { name: "Compare fits" }).count() === 1);
+
+  // (f) The Save menu: the .pzfx export by its plain label, and Prism
+  // files converted to CSV (two files, every table, in one zip).
+  await page.getByRole("button", { name: "More ways to save and share" }).click();
+  expect("Save menu lists the .pzfx export plainly",
+    await page.getByRole("menuitem", { name: "Export tables as .pzfx (opens in GraphPad Prism)" }).count() === 1);
+  const PRISMF = join(here, "..", "..", "engine", "tests", "fixtures", "synthetic_project.prism");
+  const [chooser] = await Promise.all([
+    page.waitForEvent("filechooser", { timeout: 10000 }),
+    page.getByRole("menuitem", { name: "Convert Prism files to CSV…" }).click(),
+  ]);
+  const [zipDl] = await Promise.all([
+    page.waitForEvent("download", { timeout: 60000 }),
+    chooser.setFiles([join(here, "..", "e2e-fixtures", "sample.pzfx"), PRISMF]),
+  ]);
+  const zipPath = join(tmp, zipDl.suggestedFilename());
+  await zipDl.saveAs(zipPath);
+  const zip = unzipSync(readFileSync(zipPath));
+  const entries = Object.keys(zip).sort();
+  expect("Prism files to CSV: one folder per file, every data table, a README",
+    zipDl.suggestedFilename() === "prism-tables-csv.zip" && entries.includes("README.txt")
+    && entries.includes("sample/dose-response.csv") && entries.includes("sample/groups.csv")
+    && entries.some((e) => e.startsWith("synthetic-project/")), entries.join(", "));
+  expect("the converted dose-response CSV starts with its titles row",
+    /^X|^log\[Dose\]/.test(strFromU8(zip["sample/dose-response.csv"] ?? new Uint8Array())),
+    strFromU8(zip["sample/dose-response.csv"] ?? new Uint8Array()).split("\n")[0]);
+
+  // (e) and the results empty state: the start screen says Prism files
+  // open here; a .pzfx dropped on it imports every data table.
+  const ctx3 = await browser.newContext({ viewport: { width: 1400, height: 1000 } });
+  const p3 = await ctx3.newPage();
+  p3.on("pageerror", (e) => errors.push(`pageerror (prism drop): ${e.message}`));
+  await p3.goto(baseUrl, { waitUntil: "domcontentloaded" });
+  await p3.locator(".start-screen").waitFor({ timeout: 60000 });
+  const prismNote = await p3.getByRole("region", { name: "GraphPad Prism files (.prism, .pzfx)" }).innerText();
+  expect("start screen: .prism / .pzfx files open here, analyses recomputed",
+    prismNote.includes("Open a .prism or .pzfx file: every data table is imported; analyses are recomputed here")
+    && await p3.getByRole("button", { name: "Convert Prism files to CSV…" }).count() === 1, prismNote.slice(0, 120));
+  const axeStart = await axeViolations(p3, [".start-prism"]);
+  expect("axe-core: the start screen's Prism section passes", axeStart.length === 0, axeStart.join(" | "));
+  const b64 = readFileSync(join(here, "..", "e2e-fixtures", "sample.pzfx")).toString("base64");
+  const dt = await p3.evaluateHandle((b) => {
+    const bin = atob(b);
+    const u = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+    const d = new DataTransfer();
+    d.items.add(new File([u], "sample.pzfx", { type: "application/xml" }));
+    return d;
+  }, b64);
+  await p3.dispatchEvent("main.start-screen", "dragover", { dataTransfer: dt });
+  await p3.dispatchEvent("main.start-screen", "drop", { dataTransfer: dt });
+  const ch = p3.locator(".pzfx-chooser");
+  await ch.waitFor({ timeout: 180000 });
+  expect("dropped .pzfx: the chooser lists both data tables and says analyses are recomputed",
+    (await ch.innerText()).includes("analyses are recomputed here")
+    && await ch.getByRole("button", { name: /Dose response/ }).count() === 1
+    && await ch.getByRole("button", { name: /Groups/ }).count() === 1);
+  await ch.getByRole("button", { name: "Import all" }).click();
+  expect("Import all: every data table arrives, with the recompute note in the status line",
+    await p3.getByRole("treeitem", { name: "Dose response", exact: true }).waitFor({ timeout: 30000 })
+      .then(() => true, () => false)
+    && await p3.getByRole("treeitem", { name: "Groups", exact: true }).count() === 1
+    && (await p3.locator("header .status").innerText()).includes("analyses are recomputed here"));
+  // A table whose results and graphs are deleted lists where to start.
+  const groupsItem = p3.getByRole("treeitem", { name: "Groups", exact: true });
+  for (let i = 0; i < 6; i++) {
+    const kids = groupsItem.getByRole("treeitem");
+    if (!(await kids.count())) break;
+    await kids.first().locator(":scope > .nav-row").click({ button: "right" });
+    await p3.getByRole("menuitem", { name: /Delete/ }).click();
+    await p3.getByRole("alertdialog").getByRole("button", { name: "Delete" })
+      .click({ timeout: 2000 }).catch(() => {});
+    await p3.waitForTimeout(300);
+  }
+  await groupsItem.locator(":scope > .nav-row").click();
+  const empty = p3.getByRole("list", { name: "Where to start" });
+  expect("results empty state lists Help me choose, Plan an experiment and validation",
+    await appears(empty) && (await empty.getByRole("button").allInnerTexts()).join("|")
+      === "Help me choose…|Plan an experiment (power)…|How OpenDose is validated",
+    await empty.innerText().catch(() => ""));
+  const axeEmpty = await axeViolations(p3, [".results-empty-links"]);
+  expect("axe-core: the empty results' entry points pass", axeEmpty.length === 0, axeEmpty.join(" | "));
+  await ctx3.close();
 }
 
 await page.screenshot({

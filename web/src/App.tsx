@@ -129,7 +129,8 @@ function Shell() {
       {files.prismTables && (
         <div className="pzfx-chooser">
           <span>Prism file contains {files.prismTables.length} data tables. Pick
-            one to import, or import them all as separate tables:</span>
+            one to import, or import them all as separate tables (data tables only:
+            analyses are recomputed here):</span>
           {files.prismTables.map((t, i) => (
             <button key={i} onClick={() => files.importTables([t])}>
               {t.title || `Table ${i + 1}`} ({t.table_type})

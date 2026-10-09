@@ -132,7 +132,12 @@ export interface Target {
   layout: string;
 }
 
-export interface Alternative { test: string; when: string }
+export interface Alternative {
+  test: string;
+  when: string;
+  /** Set when OpenDose has this alternative: the wizard offers to open it. */
+  target?: Target;
+}
 
 export interface PostHoc {
   family: "all pairs" | "vs control" | "selected pairs";
@@ -852,7 +857,10 @@ function survival(d: Design, base: Base): Recommendation {
     alternatives: [
       { test: "Gehan-Breslow-Wilcoxon test", when: "if early differences matter more, or the "
         + "hazards are not proportional (it weights early deaths, when more subjects are at risk)" },
-      { test: "Cox regression", when: "to adjust for covariates (not in OpenDose yet)" },
+      { test: "Cox regression", when: "for hazard ratios with confidence intervals adjusted "
+        + "for covariates (age, sex, dose), or a continuous predictor instead of groups",
+      target: { tableType: "survival", analysisId: "cox", options: {}, layout: LAYOUT.survival
+        + " Covariates go in extra subcolumns after Time and Event." } },
     ],
     postHoc: null, sources: src("gpLogrankGehan", "gpHazardRatio", "gpSurvival"), explainers: ["survival"] };
 }

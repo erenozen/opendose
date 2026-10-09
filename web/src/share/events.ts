@@ -7,7 +7,11 @@ export type ShareRequest =
   | { kind: "link"; dataId?: string }      // share the project, or one family
   | { kind: "bundle" }                     // download the export bundle
   | { kind: "pzfx"; dataId?: string }      // data tables as a .pzfx file (all, or one)
-  | { kind: "validation" };                // open the validation page
+  | { kind: "validation"; scope?: ValidationFor };  // open the validation page
+
+/** "How this is validated" on a results sheet: the page opens filtered to
+ *  the checks of this analysis (share/validationIndex.ts). */
+export interface ValidationFor { analysisId: string; options?: unknown }
 
 export function requestShare(req: ShareRequest): void {
   window.dispatchEvent(new CustomEvent<ShareRequest>(SHARE_EVENT, { detail: req }));
@@ -16,4 +20,5 @@ export function requestShare(req: ShareRequest): void {
 export const openShareLink = (dataId?: string) => requestShare({ kind: "link", dataId });
 export const exportBundle = () => requestShare({ kind: "bundle" });
 export const exportPzfxFile = (dataId?: string) => requestShare({ kind: "pzfx", dataId });
-export const openValidation = () => requestShare({ kind: "validation" });
+export const openValidation = (scope?: ValidationFor) =>
+  requestShare(scope ? { kind: "validation", scope } : { kind: "validation" });
