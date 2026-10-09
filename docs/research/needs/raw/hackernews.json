@@ -1,0 +1,2336 @@
+[
+ {
+  "id": "hn-28212043",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=28212043",
+  "date": "2021-08",
+  "role": "biomedical researcher (stated)",
+  "software_named": [
+   "Excel",
+   "Python",
+   "R",
+   "Matlab",
+   "JMP",
+   "GraphPad Prism"
+  ],
+  "workflow": "lab data analysis, choice of tool",
+  "quote": "IMO neither programming languages nor Excel are a great fit for data analysis. Something purpose-made, like JMP or even GraphPad, is probably the better choice in most situations.",
+  "problem": "Neither Excel nor code fits lab data analysis; grad students can't be supported on scripting and Excel has quirks",
+  "need": "A purpose-built analysis tool that keeps the data visible like a spreadsheet but runs proper statistics without requiring programming",
+  "severity": "slows the work",
+  "signal": {
+   "thread_points": 80,
+   "thread_comments": 106
+  },
+  "tags": [
+   "learning-curve",
+   "which-test",
+   "trust-validation"
+  ]
+ },
+ {
+  "id": "hn-42991417",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=42991417",
+  "date": "2025-02",
+  "role": "PI, neurogenetics lab (stated)",
+  "software_named": [
+   "Excel",
+   "R",
+   "Python"
+  ],
+  "workflow": "omics, lightsheet microscopy and MRI data in a small academic lab",
+  "quote": "This grad or postdoc is then charged with running some statistical analyses without any training whatsoever in data science. What is an outlier anyway, what do you mean by “normalize”, what is metadata exactly?",
+  "problem": "Untrained grad students/postdocs are assigned the lab's statistics and do not know what outliers, normalization or metadata mean",
+  "need": "Explain outliers, normalization and metadata in plain language at the point of use, inside the analysis workflow",
+  "severity": "wrong result risk",
+  "signal": {
+   "thread_points": 196,
+   "thread_comments": 86
+  },
+  "tags": [
+   "outliers",
+   "normalization",
+   "learning-curve",
+   "tutorials"
+  ]
+ },
+ {
+  "id": "hn-42991417-2",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=42991417",
+  "date": "2025-02",
+  "role": "PI, neurogenetics lab (stated)",
+  "software_named": [
+   "Excel",
+   "R",
+   "Python"
+  ],
+  "workflow": "small 'mom-and-pop' academic labs",
+  "quote": "So in this context I hope all of you can appreciate that ANY help in bringing some real data science into mom-and-pop laboratories would be a huge huge boon. And please god, let it be FOSS.",
+  "problem": "Small labs have no data-science support and little budget",
+  "need": "A free, open-source analysis tool usable by small labs without dedicated data staff",
+  "severity": "slows the work",
+  "signal": {
+   "thread_points": 196,
+   "thread_comments": 86
+  },
+  "tags": [
+   "price-licence",
+   "learning-curve"
+  ]
+ },
+ {
+  "id": "hn-30989686",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=30989686",
+  "date": "2022-04",
+  "role": "former academic lab researcher (stated)",
+  "software_named": [],
+  "workflow": "curve fitting, data exclusion",
+  "quote": "data they'd collect from experiments would be thrown out selectively so that they could publish better curve-fits.",
+  "problem": "Points are silently dropped to make curve fits look better",
+  "need": "Record every excluded point with a reason and show exclusions on the fit and in the report so selective removal is visible",
+  "severity": "wrong result risk",
+  "signal": {
+   "thread_points": 152,
+   "thread_comments": 72
+  },
+  "tags": [
+   "outliers",
+   "fit-diagnostics",
+   "reproducibility-audit"
+  ]
+ },
+ {
+  "id": "hn-30989686-2",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=30989686",
+  "date": "2022-04",
+  "role": "former academic lab researcher (stated)",
+  "software_named": [],
+  "workflow": "sample analysis order, blinding",
+  "quote": "Another requirement was that samples had to be blindly randomized before we analyzed them, so that nobody could manipulate the analytical process to get their desired result.",
+  "problem": "Analysts who know group labels can steer the analysis",
+  "need": "Offer a blinded mode that hides group labels and randomises sample order until the analysis is locked",
+  "severity": "wrong result risk",
+  "signal": {
+   "thread_points": 152,
+   "thread_comments": 72
+  },
+  "tags": [
+   "randomisation",
+   "reproducibility-audit"
+  ]
+ },
+ {
+  "id": "hn-24263318",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=24263318",
+  "date": "2020-08",
+  "role": "researcher using computers as a research tool (stated)",
+  "software_named": [],
+  "workflow": "experimental + analysis record keeping",
+  "quote": "3. Retain raw data files. 4. Retain files produced in the course of analysis. 5. Retain custom source code. 6. Version control all the above.",
+  "problem": "For mostly physical experiments, what matters is keeping raw data and every analysis file, more than re-running code",
+  "need": "Keep raw data, each analysis step and its outputs together in one versioned project file",
+  "severity": "slows the work",
+  "signal": {
+   "thread_points": 305,
+   "thread_comments": 477
+  },
+  "tags": [
+   "reproducibility-audit"
+  ]
+ },
+ {
+  "id": "hn-24079798",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=24079798",
+  "date": "2020-08",
+  "role": null,
+  "software_named": [
+   "Excel",
+   "R",
+   "Python"
+  ],
+  "workflow": "everyday biology data work",
+  "quote": "there isn't any other software that allows them to easily do whatever they need to do with the data, quickly iterating on the ideas AND then present it nicely.",
+  "problem": "Biologists stay in Excel because no other tool lets them iterate quickly and also present the result nicely",
+  "need": "Combine spreadsheet-speed iteration with publication-ready graphs in one tool",
+  "severity": "slows the work",
+  "signal": {
+   "thread_points": 621,
+   "thread_comments": 506
+  },
+  "tags": [
+   "graph-formatting",
+   "data-entry-table-types"
+  ]
+ },
+ {
+  "id": "hn-28214558",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=28214558",
+  "date": "2021-08",
+  "role": null,
+  "software_named": [
+   "Excel"
+  ],
+  "workflow": "clinical/genetic research data entry",
+  "quote": "there aren't good GUI tools for entering them anyway, and it leads to countless errors that maybe (here I speculate) they just assume will wash out as noise.",
+  "problem": "Clinical researchers hand-type non-tabular data into Excel grids because no GUI exists for structured entry",
+  "need": "Provide structured data-entry tables with typed columns and validation instead of free grids",
+  "severity": "wrong result risk",
+  "signal": {
+   "thread_points": 80,
+   "thread_comments": 106
+  },
+  "tags": [
+   "data-entry-table-types",
+   "missing-values"
+  ]
+ },
+ {
+  "id": "hn-7226272",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=7226272",
+  "date": "2014-02",
+  "role": "PhD student analysing biologists' data (stated)",
+  "software_named": [],
+  "workflow": "presenting results to biologists",
+  "quote": "They insist I give them p-values or something they can present as though they were p-values. ... Then they throw out all the nuance in the data, put one asterisk for p < 0.05, two asterisks for p < 0.01, etc.",
+  "problem": "Results get reduced to asterisks; nuance and effect sizes are lost",
+  "need": "Show exact P values next to effect sizes and confidence intervals by default; make star-only summaries an explicit opt-in",
+  "severity": "wrong result risk",
+  "signal": {
+   "thread_points": 185,
+   "thread_comments": 128
+  },
+  "tags": [
+   "significance-brackets",
+   "exact-p",
+   "effect-size"
+  ]
+ },
+ {
+  "id": "hn-28811111",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=28811111",
+  "date": "2021-10",
+  "role": "clinical haematologist / cancer researcher (stated)",
+  "software_named": [
+   "Excel",
+   "R"
+  ],
+  "workflow": "PhD data analysis",
+  "quote": "My PhD worked on bigger data than could be analysed in the regular biological sciences way (excel + stats software), so I learnt R.",
+  "problem": "The usual Excel + stats package route could not handle the data size",
+  "need": "Handle data sets larger than spreadsheet limits without forcing the user to learn a programming language",
+  "severity": "blocks the analysis",
+  "signal": {
+   "thread_points": 215,
+   "thread_comments": 208
+  },
+  "tags": [
+   "large-data",
+   "learning-curve"
+  ]
+ },
+ {
+  "id": "hn-17307046",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=17307046",
+  "date": "2018-06",
+  "role": "works with biologists (stated)",
+  "software_named": [
+   "RStudio",
+   "R",
+   "Python"
+  ],
+  "workflow": "getting biologists into scripted analysis",
+  "quote": "Compare this to python, where they have to go the unix shell set up the environment, load the libraries. When they come back reset everything and get back to where they started.",
+  "problem": "Environment set-up and session loss make Python hard for biologists",
+  "need": "Zero-install environment that keeps the session and data state between visits",
+  "severity": "slows the work",
+  "signal": {
+   "thread_points": 299,
+   "thread_comments": 225
+  },
+  "tags": [
+   "learning-curve",
+   "offline"
+  ]
+ },
+ {
+  "id": "hn-17528349",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=17528349",
+  "date": "2018-07",
+  "role": "former lab worker (stated)",
+  "software_named": [
+   "Ingres spreadsheet",
+   "AWK"
+  ],
+  "workflow": "lab data reduction",
+  "quote": "I re-wrote the process in AWK, and was able to complete the data-reduction task in about 60 seconds on a DEC 5000 workstation. But my numbers did not match the spreadsheet results, and finding out why was an interesting process.",
+  "problem": "Re-implementing the lab's spreadsheet data reduction gave different numbers",
+  "need": "Document every computation step so results can be reproduced and reconciled across tools",
+  "severity": "wrong result risk",
+  "signal": {
+   "thread_points": 256,
+   "thread_comments": 49
+  },
+  "tags": [
+   "numbers-differ-between-tools",
+   "trust-validation"
+  ]
+ },
+ {
+  "id": "hn-24261336",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=24261336",
+  "date": "2020-08",
+  "role": "microbiologist, mixed wet-lab/dry-lab (stated)",
+  "software_named": [],
+  "workflow": "clustering / binning in microbiology",
+  "quote": "I am more interested in understanding well the specific steps they take computationally and in a sensitivity analysis of their computational portion (if you slightly alter your binning threshold do you still get that fantastic clustering?).",
+  "problem": "Readers can't tell whether results depend on arbitrary analysis thresholds",
+  "need": "Make it easy to re-run an analysis across a range of thresholds/parameters and report how robust the result is",
+  "severity": "wrong result risk",
+  "signal": {
+   "thread_points": 305,
+   "thread_comments": 477
+  },
+  "tags": [
+   "reproducibility-audit",
+   "pca-clustering"
+  ]
+ },
+ {
+  "id": "hn-49378681",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=49378681",
+  "date": "2026-08",
+  "role": "data scientist in life-sciences research (stated)",
+  "software_named": [],
+  "workflow": "analyst serving wet-lab scientists",
+  "quote": "most wet lab scientists treat you more like a resource, a grad student they need to make their pvalue or figure panel pop nicely",
+  "problem": "Wet-lab scientists outsource p-values and figure panels to an analyst",
+  "need": "Let bench scientists produce their own correct statistics and publication figure panels",
+  "severity": "slows the work",
+  "signal": {
+   "thread_points": 342,
+   "thread_comments": 126
+  },
+  "tags": [
+   "layouts-multipanel",
+   "graph-formatting"
+  ]
+ },
+ {
+  "id": "hn-24218042",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=24218042",
+  "date": "2020-08",
+  "role": "former academic lab member (stated)",
+  "software_named": [],
+  "workflow": "bench person presenting statistician's figure",
+  "quote": "And if you were that wet lab person and wanted to present a figure that the statistician generated, you would learn everything about the test used, and all the assumptions made when choosing that method of analysis over others.",
+  "problem": "Wet-lab people present figures without knowing the test and its assumptions",
+  "need": "Attach the test used, its assumptions and why it was chosen to every result and figure",
+  "severity": "wrong result risk",
+  "signal": {
+   "thread_points": 230,
+   "thread_comments": 115
+  },
+  "tags": [
+   "reporting-methods",
+   "which-test"
+  ]
+ },
+ {
+  "id": "hn-964273",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=964273",
+  "date": "2009-11",
+  "role": "PhD student, materials characterization (stated)",
+  "software_named": [
+   "Excel",
+   "Origin",
+   "LabView",
+   "Vim"
+  ],
+  "workflow": "experimental data analysis",
+  "quote": "By learning VIM and unix commands I can do data analysis 1000x quicker on my experimental work than other scientists in my department, just because they are busy fooling around with MS Excel/Origin/LabView.",
+  "problem": "Colleagues lose time in GUI tools for repetitive analysis",
+  "need": "Batch-apply the same analysis to many files without manual clicking",
+  "severity": "slows the work",
+  "signal": {
+   "thread_points": 31,
+   "thread_comments": 38
+  },
+  "tags": [
+   "scripting-batch"
+  ]
+ },
+ {
+  "id": "hn-49475440",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=49475440",
+  "date": "2026-08",
+  "role": "former biophysicist (stated)",
+  "software_named": [
+   "Excel"
+  ],
+  "workflow": "biology data storage",
+  "quote": "the data is stored in a convenient way for humans to read, but impossible to process via a script (think patches of columns in separate excel sheets, sometimes the labels are on the side of the value instead of on top).",
+  "problem": "Lab data is laid out for human reading (scattered column blocks, side labels) and can't be processed",
+  "need": "Import messy human-layout sheets and convert them to a tidy table, or guide entry into an analysable layout from the start",
+  "severity": "blocks the analysis",
+  "signal": {
+   "thread_points": 9,
+   "thread_comments": 9
+  },
+  "tags": [
+   "long-vs-wide",
+   "data-entry-table-types",
+   "excel-paste"
+  ]
+ },
+ {
+  "id": "hn-21260015",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=21260015",
+  "date": "2019-10",
+  "role": "former industry scientist (stated)",
+  "software_named": [],
+  "workflow": "test choice in wet-lab research",
+  "quote": "Example: using a non-parametric \"U\"-test when a parametric \"T\"-test gave a non-significant result. Along with low numbers of replicates.",
+  "problem": "Tests are swapped after the fact to reach significance, with few replicates",
+  "need": "Fix the test choice from the design before results are shown, and log any later change of test",
+  "severity": "wrong result risk",
+  "signal": {
+   "thread_points": 78,
+   "thread_comments": 22
+  },
+  "tags": [
+   "which-test",
+   "nonparametric",
+   "n-definition"
+  ]
+ },
+ {
+  "id": "hn-24547898",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=24547898",
+  "date": "2020-09",
+  "role": "bioinformatics postdoc / medical research data analyst (stated)",
+  "software_named": [],
+  "workflow": "analyst under PI pressure",
+  "quote": "They would never ask us to commit fraud, only perhaps to \"double check\" an analysis 10 times until it shows what they want to see.",
+  "problem": "Analyses are re-run repeatedly until they give the wanted answer",
+  "need": "Keep an analysis history showing how many variants were run, so forking paths are visible",
+  "severity": "wrong result risk",
+  "signal": {
+   "thread_points": 1287,
+   "thread_comments": 835
+  },
+  "tags": [
+   "reproducibility-audit",
+   "multiple-comparisons"
+  ]
+ },
+ {
+  "id": "hn-14652080",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=14652080",
+  "date": "2017-06",
+  "role": "biologist (stated)",
+  "software_named": [
+   "Excel",
+   "Origin",
+   "Python",
+   "Jupyter",
+   "Pandas",
+   "Seaborn"
+  ],
+  "workflow": "growing biology data sets",
+  "quote": "At some point Excel and Origin weren't dealing well with ever increasing data sizes in my field (biology).",
+  "problem": "Excel and Origin could not cope with growing biology data sizes",
+  "need": "Stay responsive with large data sets in a point-and-click tool",
+  "severity": "blocks the analysis",
+  "signal": {
+   "thread_points": 415,
+   "thread_comments": 197
+  },
+  "tags": [
+   "large-data",
+   "performance"
+  ]
+ },
+ {
+  "id": "hn-8655488",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=8655488",
+  "date": "2014-11",
+  "role": "former member of an academic department (stated)",
+  "software_named": [],
+  "workflow": "test shopping",
+  "quote": "One professor used to hunt around for different statistical tests until she found one which gave her the desired p values so she could publish.",
+  "problem": "Test shopping for a desired P value",
+  "need": "Recommend the test from the data design up front and flag when several tests were tried on the same comparison",
+  "severity": "wrong result risk",
+  "signal": {
+   "thread_points": 1079,
+   "thread_comments": 147
+  },
+  "tags": [
+   "which-test",
+   "multiple-comparisons"
+  ]
+ },
+ {
+  "id": "hn-10386345",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=10386345",
+  "date": "2015-10",
+  "role": "works with biologists (stated)",
+  "software_named": [
+   "R",
+   "RStudio",
+   "Excel",
+   "ggplot"
+  ],
+  "workflow": "plots for biologists",
+  "quote": "I think some of it is Rstudio the ide, which shows variables in memory on the side bar, you can click to see them. It makes everything really accessible for those that aren't programmers. It seems to replace excel use for generating plots.",
+  "problem": "Biologists adopt tools that show the data alongside the analysis",
+  "need": "Always show the underlying data table next to the analysis and graph, clickable",
+  "severity": "cosmetic / preference",
+  "signal": {
+   "thread_points": 283,
+   "thread_comments": 195
+  },
+  "tags": [
+   "learning-curve",
+   "graph-formatting"
+  ]
+ },
+ {
+  "id": "hn-19942632",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=19942632",
+  "date": "2019-05",
+  "role": "data analyst on biomedical papers (stated)",
+  "software_named": [],
+  "workflow": "qPCR array, miRNA",
+  "quote": "Just today I am working on a qPCR array (yes people still use those) with one \"housekeeping\" gene replicated 4 times for ddCt normalization. 80 miRs go up, none go down, out of 400. No one sees any problem with this, the data is the data.",
+  "problem": "ddCt normalization against one unstable housekeeping gene produces one-directional changes nobody questions",
+  "need": "For ΔΔCt, check reference-gene stability and warn when nearly all targets shift in the same direction",
+  "severity": "wrong result risk",
+  "signal": {
+   "thread_points": 26,
+   "thread_comments": 39
+  },
+  "tags": [
+   "qpcr-ddct",
+   "normalization",
+   "trust-validation"
+  ]
+ },
+ {
+  "id": "hn-19942157",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=19942157",
+  "date": "2019-05",
+  "role": "postdoc, biomedical research (stated)",
+  "software_named": [],
+  "workflow": "group comparisons with tiny n",
+  "quote": "if a collaborator sends data for analysis where the sample size was too small for the effect, or worse, asked to find statistical differences between 1-2 samples per group, you can't fix that with any amount of algorithmic mumbo-jumbo.",
+  "problem": "Analysts are asked to test differences with 1-2 samples per group",
+  "need": "Warn when n per group is too small for the chosen test and show the power/detectable effect",
+  "severity": "wrong result risk",
+  "signal": {
+   "thread_points": 26,
+   "thread_comments": 39
+  },
+  "tags": [
+   "n-definition",
+   "power-sample-size"
+  ]
+ },
+ {
+  "id": "hn-12282658",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=12282658",
+  "date": "2016-08",
+  "role": "computational biologist (stated)",
+  "software_named": [],
+  "workflow": "experimental design",
+  "quote": "The number one thing that most biologists need (that most scientists need) is a basic understanding of statistics when doing experimental design.",
+  "problem": "Experiments are designed without statistical reasoning; replicates get added late if at all",
+  "need": "Plan replicates and power before the experiment, inside the same tool used for analysis",
+  "severity": "wrong result risk",
+  "signal": {
+   "thread_points": 54,
+   "thread_comments": 22
+  },
+  "tags": [
+   "power-sample-size",
+   "technical-vs-biological-replicates"
+  ]
+ },
+ {
+  "id": "hn-12282658-2",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=12282658",
+  "date": "2016-08",
+  "role": "computational biologist (stated)",
+  "software_named": [],
+  "workflow": "biologist self-service analysis",
+  "quote": "My goal as a computational biologist isn't to do work for or correct biologists who don't understand statistics, it's to get biologists tools to do this kind of work easily on their own and bridge the gap in understanding.",
+  "problem": "Biologists depend on computational staff for routine statistics",
+  "need": "Tools that let biologists do routine statistics correctly on their own, with explanations",
+  "severity": "slows the work",
+  "signal": {
+   "thread_points": 54,
+   "thread_comments": 22
+  },
+  "tags": [
+   "learning-curve",
+   "tutorials"
+  ]
+ },
+ {
+  "id": "hn-17308554",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=17308554",
+  "date": "2018-06",
+  "role": "CS grad working with biologists (stated)",
+  "software_named": [
+   "R",
+   "RStudio",
+   "Python"
+  ],
+  "workflow": "statistics in scientific applications",
+  "quote": "The reason is its strong tendency to fail silently (and, with RStudio, to frequently keep going even when it does fail.) As a result, people get garbage results without realizing",
+  "problem": "Analysis software continues after errors and yields plausible-looking garbage",
+  "need": "Fail loudly: stop and explain when inputs or computations are invalid instead of returning numbers",
+  "severity": "wrong result risk",
+  "signal": {
+   "thread_points": 299,
+   "thread_comments": 225
+  },
+  "tags": [
+   "trust-validation",
+   "missing-values"
+  ]
+ },
+ {
+  "id": "hn-18326230",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=18326230",
+  "date": "2018-10",
+  "role": "computational biologist (stated)",
+  "software_named": [
+   "R",
+   "Excel"
+  ],
+  "workflow": "data transformation records",
+  "quote": "As a computational biologist who uses R I am often frustrated by experimental colleagues who use Excel and often can't remember how they transformed the data months later.",
+  "problem": "Point-and-click transformations leave no record",
+  "need": "Every point-and-click step should generate a visible, saved log or code of what was done",
+  "severity": "wrong result risk",
+  "signal": {
+   "thread_points": 85,
+   "thread_comments": 34
+  },
+  "tags": [
+   "reproducibility-audit",
+   "units-and-transforms"
+  ]
+ },
+ {
+  "id": "hn-36780214",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=36780214",
+  "date": "2023-07",
+  "role": "former grad student (stated)",
+  "software_named": [],
+  "workflow": "life-science statistical analysis",
+  "quote": "If you don’t know what you’re doing, it’s very easy to misapply existing statistical tests",
+  "problem": "Life-science PhD students without maths/code background misapply tests",
+  "need": "Guide test choice from the design and check assumptions automatically",
+  "severity": "wrong result risk",
+  "signal": {
+   "thread_points": 37,
+   "thread_comments": 18
+  },
+  "tags": [
+   "which-test",
+   "learning-curve"
+  ]
+ },
+ {
+  "id": "hn-27982493",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=27982493",
+  "date": "2021-07",
+  "role": null,
+  "software_named": [
+   "GraphPad Prism",
+   "Excel",
+   "Python"
+  ],
+  "workflow": "repetitive life-science analysis",
+  "quote": "I've watched life science people spend months manually clicking boxes in the tools they have, because they don't have a developer embedded in the team to write some 10-liner automation scripts.",
+  "problem": "Life-science teams spend months on manual clicking for repetitive analysis",
+  "need": "Templates/batch re-run so the same analysis applies to new data without re-clicking",
+  "severity": "slows the work",
+  "signal": {
+   "thread_points": 204,
+   "thread_comments": 308
+  },
+  "tags": [
+   "scripting-batch"
+  ]
+ },
+ {
+  "id": "hn-41618613",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=41618613",
+  "date": "2024-09",
+  "role": "consultant to chemical and materials companies (stated)",
+  "software_named": [
+   "PowerBI",
+   "Tableau",
+   "Python",
+   "matplotlib",
+   "JMP",
+   "Origin",
+   "Igor Pro"
+  ],
+  "workflow": "interactive scientific visualisation",
+  "quote": "Things like being able to dynamically re-group/nest variables and recalculate statistical tests, dual axis capabilities, automatic sig fig number reformatting, just all kinds of quality-of-life features",
+  "problem": "BI tools lack scientific interactive plotting; Python needs code maintenance",
+  "need": "Interactive regrouping that recalculates tests, dual axes and automatic significant-figure formatting",
+  "severity": "slows the work",
+  "signal": {
+   "thread_points": 177,
+   "thread_comments": 54
+  },
+  "tags": [
+   "graph-formatting",
+   "units-and-transforms"
+  ]
+ },
+ {
+  "id": "hn-41618613-2",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=41618613",
+  "date": "2024-09",
+  "role": "consultant to chemical and materials companies (stated)",
+  "software_named": [
+   "JMP",
+   "Origin",
+   "Igor Pro"
+  ],
+  "workflow": "scientific plot aesthetics",
+  "quote": "The only programs that really get the aesthetics of scientific plotting right without a ton of customization are JMP, Origin, and Igor Pro (props if you’ve heard of it), but these are all desktop apps",
+  "problem": "Good scientific plot defaults exist only in desktop apps",
+  "need": "Publication-quality scientific plot defaults in a browser tool",
+  "severity": "cosmetic / preference",
+  "signal": {
+   "thread_points": 177,
+   "thread_comments": 54
+  },
+  "tags": [
+   "graph-formatting",
+   "sharing-collaboration"
+  ]
+ },
+ {
+  "id": "hn-39400772",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=39400772",
+  "date": "2024-02",
+  "role": null,
+  "software_named": [],
+  "workflow": "diagnostic comparison with few controls",
+  "quote": "Their main figure lacks errors bars. ... The lack of error bars across the paper make me think they didn’t do any technical replicates, which is also a problem.",
+  "problem": "Figures without error bars hide variability and missing replicates",
+  "need": "Default graphs that show individual points and error bars, and require stating n and replicate type",
+  "severity": "wrong result risk",
+  "signal": {
+   "thread_points": 231,
+   "thread_comments": 125
+  },
+  "tags": [
+   "error-bars-sd-sem",
+   "show-the-points",
+   "technical-vs-biological-replicates"
+  ]
+ },
+ {
+  "id": "hn-36913210",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=36913210",
+  "date": "2023-07",
+  "role": null,
+  "software_named": [
+   "ImageJ",
+   "Fiji"
+  ],
+  "workflow": "scientific image analysis",
+  "quote": "It seems like something that would serve the scientific community by allowing people to program complex processes and handle images procedurally. ... I don't know anybody that likes using ImageJ.",
+  "problem": "ImageJ is disliked; procedural image pipelines are hard",
+  "need": "A friendlier, node/procedure-based image quantification pipeline whose outputs feed the analysis",
+  "severity": "slows the work",
+  "signal": {
+   "thread_points": 171,
+   "thread_comments": 64
+  },
+  "tags": [
+   "image-analysis-exports",
+   "scripting-batch"
+  ]
+ },
+ {
+  "id": "hn-31914212",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=31914212",
+  "date": "2022-06",
+  "role": "modeller working with wet-lab scientists (stated)",
+  "software_named": [
+   "PyTorch"
+  ],
+  "workflow": "EC50 titration curves, many curves at once",
+  "quote": "For example I work with bio folks measuring \"EC50\" values, basically parameters of titration curves in a wet lab. It seems like a simple curve fitting problem with say 5 parameters. But then these wet lab scientists measure hundreds of curves at once",
+  "problem": "Hundreds of EC50 curves are fitted independently though they should share structure",
+  "need": "Fit many dose-response curves together with shared/global parameters and report per-curve EC50s with uncertainty",
+  "severity": "slows the work",
+  "signal": {
+   "thread_points": 371,
+   "thread_comments": 55
+  },
+  "tags": [
+   "ic50-ec50-setup",
+   "compare-curves",
+   "large-data"
+  ]
+ },
+ {
+  "id": "hn-9795547",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=9795547",
+  "date": "2015-06",
+  "role": "runs a nonprofit lab (stated)",
+  "software_named": [
+   "Benchling"
+  ],
+  "workflow": "open lab notebook, HPLC, PCR, gels",
+  "quote": "Sometimes, the lack of tooling to do this makes it harder (ever tried to export an HPLC trace and then convert it to a format so that you can view it on a web page?).",
+  "problem": "Instrument outputs (HPLC traces) are hard to export into viewable formats",
+  "need": "Import common instrument export formats directly and render them",
+  "severity": "slows the work",
+  "signal": {
+   "thread_points": 36,
+   "thread_comments": 5
+  },
+  "tags": [
+   "import-instrument-files",
+   "sharing-collaboration"
+  ]
+ },
+ {
+  "id": "hn-9795547-2",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=9795547",
+  "date": "2015-06",
+  "role": "runs a nonprofit lab (stated)",
+  "software_named": [
+   "Benchling"
+  ],
+  "workflow": "linking runs to experiments",
+  "quote": "Zero friction (which benchling doesn't have yet) reporting is an absolute must. Run a PCR? Ok, that run gets uploaded to the notebook and filed in the correct experiment.",
+  "problem": "Recording each run is high-friction so it gets skipped",
+  "need": "Auto-attach instrument runs and their analysis to the right experiment with no manual filing",
+  "severity": "slows the work",
+  "signal": {
+   "thread_points": 36,
+   "thread_comments": 5
+  },
+  "tags": [
+   "import-instrument-files",
+   "reproducibility-audit"
+  ]
+ },
+ {
+  "id": "hn-47111403",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=47111403",
+  "date": "2026-02",
+  "role": "PhD student, physics lab (stated)",
+  "software_named": [
+   "OriginLab"
+  ],
+  "workflow": "SEM, XRD, PL spectra; Origin projects",
+  "quote": "handle messy data in originlab. Me and (mostly) opus have made some mcp tools for opj files (i hate these) covering batch fitting, peak decomposition, waterfall plots and plot export",
+  "problem": "Origin .opj project files are hard to work with; batch fitting needs custom tooling",
+  "need": "Open/convert Origin project files and batch-fit many spectra",
+  "severity": "slows the work",
+  "signal": {
+   "thread_points": 2,
+   "thread_comments": 1
+  },
+  "tags": [
+   "file-compatibility",
+   "scripting-batch",
+   "kinetics-binding"
+  ]
+ },
+ {
+  "id": "hn-5589313",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=5589313",
+  "date": "2013-04",
+  "role": null,
+  "software_named": [],
+  "workflow": "bar graphs with error bars",
+  "quote": "Those are \"dynamite plots\", a favorite of scientists, but the statisticians I know prefer to use boxplots or dotplots instead.",
+  "problem": "Scientists default to dynamite plots",
+  "need": "Default to dot/box plots with all points; make bar+error a deliberate choice",
+  "severity": "cosmetic / preference",
+  "signal": {
+   "thread_points": 218,
+   "thread_comments": 148
+  },
+  "tags": [
+   "show-the-points",
+   "error-bars-sd-sem"
+  ]
+ },
+ {
+  "id": "hn-41680329",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=41680329",
+  "date": "2024-09",
+  "role": null,
+  "software_named": [],
+  "workflow": "image provenance, ELNs",
+  "quote": "We should have cameras that can establish that published images have not been modified (or at least provide raw and adjusted pairs",
+  "problem": "No way to show a published image was not altered",
+  "need": "Keep raw and adjusted image pairs linked to the quantification",
+  "severity": "wrong result risk",
+  "signal": {
+   "thread_points": 1528,
+   "thread_comments": 820
+  },
+  "tags": [
+   "image-analysis-exports",
+   "reproducibility-audit"
+  ]
+ },
+ {
+  "id": "hn-41680329-2",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=41680329",
+  "date": "2024-09",
+  "role": null,
+  "software_named": [],
+  "workflow": "electronic lab notebooks",
+  "quote": "And electronic notebooks I've used tend to be even more annoying than paper (too rigidly formatted and not adaptive to workflow optimization but it's difficult to explain).",
+  "problem": "ELNs are too rigid for real lab workflows",
+  "need": "Flexible record structure that adapts to the lab's workflow",
+  "severity": "slows the work",
+  "signal": {
+   "thread_points": 1528,
+   "thread_comments": 820
+  },
+  "tags": [
+   "sharing-collaboration",
+   "reproducibility-audit"
+  ]
+ },
+ {
+  "id": "hn-12350014",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=12350014",
+  "date": "2016-08",
+  "role": "programmer helping bioinformatics researchers (stated)",
+  "software_named": [
+   "Excel"
+  ],
+  "workflow": "joining gene lists",
+  "quote": "Apparently I saved hours of retyping for one person who was doing a manual JOIN on gene names between two CSV files. As in ctrl+f name of gene from file A, copy, paste into another window. For thousands of rows.",
+  "problem": "Researchers merge tables by manual find/copy/paste",
+  "need": "Built-in merge/lookup of two tables by an identifier column",
+  "severity": "slows the work",
+  "signal": {
+   "thread_points": 64,
+   "thread_comments": 59
+  },
+  "tags": [
+   "excel-paste",
+   "data-entry-table-types"
+  ]
+ },
+ {
+  "id": "hn-12350717",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=12350717",
+  "date": "2016-08",
+  "role": "describes spouse's hospital virology lab (stated)",
+  "software_named": [
+   "Excel"
+  ],
+  "workflow": "validation and quality-control statistics",
+  "quote": "all their statistics were calculated by hand using approximate equations which were supposed to make it doable using a simple calculator. ... Going back in old records, my wife found that there were a lot of errors in the recorded results.",
+  "problem": "QC statistics done by hand with approximations produced many errors for decades",
+  "need": "Ready-made QC/validation statistics that compute exactly from entered results",
+  "severity": "wrong result risk",
+  "signal": {
+   "thread_points": 64,
+   "thread_comments": 59
+  },
+  "tags": [
+   "trust-validation",
+   "standard-curve-interpolation"
+  ]
+ },
+ {
+  "id": "hn-12352550",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=12352550",
+  "date": "2016-08",
+  "role": "pathology resident (stated)",
+  "software_named": [
+   "SQL",
+   "Python"
+  ],
+  "workflow": "research alongside clinical duties",
+  "quote": "I don't have chunks of time large enough to quiet my mind, frame-shift, and work on my research at the code level.",
+  "problem": "Clinician-researchers lack time blocks to work at code level",
+  "need": "Analysis that can be done in short sessions without coding",
+  "severity": "slows the work",
+  "signal": {
+   "thread_points": 64,
+   "thread_comments": 59
+  },
+  "tags": [
+   "learning-curve"
+  ]
+ },
+ {
+  "id": "hn-18165858",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=18165858",
+  "date": "2018-10",
+  "role": null,
+  "software_named": [
+   "Excel"
+  ],
+  "workflow": "gene lists, pasting data",
+  "quote": "Select all, format cell before pasting data into a sheet should work as expected. However, formatting is ignored as soon as anything is pasted into the spreadsheet.",
+  "problem": "Pre-set text formatting is lost on paste, so gene names still convert",
+  "need": "Pasted data must keep the column type the user set; never auto-convert identifiers",
+  "severity": "wrong result risk",
+  "signal": {
+   "thread_points": 45,
+   "thread_comments": 12
+  },
+  "tags": [
+   "excel-paste",
+   "data-entry-table-types"
+  ]
+ },
+ {
+  "id": "hn-18169270",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=18169270",
+  "date": "2018-10",
+  "role": null,
+  "software_named": [
+   "Excel"
+  ],
+  "workflow": "receiving xlsx gene tables",
+  "quote": "whenever I get an xlsx file, I just learnt to always check for dates, it is sometimes possible to get around this if there are other identifiers or genomic coordinates, but some gene names will be converted to the same date, which leaves it impossible to backtrack the original genename.",
+  "problem": "Date conversion is irreversible when two genes map to the same date",
+  "need": "Detect likely gene-name-to-date conversions on import and warn",
+  "severity": "wrong result risk",
+  "signal": {
+   "thread_points": 45,
+   "thread_comments": 12
+  },
+  "tags": [
+   "file-compatibility",
+   "excel-paste"
+  ]
+ },
+ {
+  "id": "hn-24073099",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=24073099",
+  "date": "2020-08",
+  "role": "partner of a research group member (stated)",
+  "software_named": [
+   "Excel"
+  ],
+  "workflow": "research group data handling",
+  "quote": "They don't want to have a dozen different tools that they have to switch between fifty times an hour, converting data in the meantime, they want to know one or two very well and have the data all there.",
+  "problem": "Switching between many tools and converting data costs time",
+  "need": "One tool holding the data, analysis and graphs together, no export/import loop",
+  "severity": "slows the work",
+  "signal": {
+   "thread_points": 621,
+   "thread_comments": 506
+  },
+  "tags": [
+   "file-compatibility",
+   "learning-curve"
+  ]
+ },
+ {
+  "id": "hn-24071175",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=24071175",
+  "date": "2020-08",
+  "role": null,
+  "software_named": [
+   "Excel"
+  ],
+  "workflow": "opening CSV gene data",
+  "quote": "It is super hard to figure out a way to import data into excel without triggering auto-conversions. ... because Excel is fundamentally untrustworthy.",
+  "problem": "No easy way to import CSV without auto-conversion",
+  "need": "Import that preserves values exactly unless the user asks for a type",
+  "severity": "wrong result risk",
+  "signal": {
+   "thread_points": 621,
+   "thread_comments": 506
+  },
+  "tags": [
+   "excel-paste",
+   "trust-validation"
+  ]
+ },
+ {
+  "id": "hn-24072735",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=24072735",
+  "date": "2020-08",
+  "role": null,
+  "software_named": [
+   "Excel",
+   "Word"
+  ],
+  "workflow": "bench data collection then hand-off",
+  "quote": "the typical result of trying to teach them better tools is the experimentalists just rolling their eyes and saying that they don't have time to learn some nerdy program because they have experiments to run.",
+  "problem": "Bench scientists won't invest time in learning new tools",
+  "need": "Near-zero learning curve: familiar spreadsheet-like entry, results without training",
+  "severity": "slows the work",
+  "signal": {
+   "thread_points": 621,
+   "thread_comments": 506
+  },
+  "tags": [
+   "learning-curve"
+  ]
+ },
+ {
+  "id": "hn-24072762",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=24072762",
+  "date": "2020-08",
+  "role": "worked on statistical methods in biology research (stated)",
+  "software_named": [],
+  "workflow": "publishing statistics",
+  "quote": "I do think that less emphasis on \"fancy\" statistics, and more emphasis on simple data visualizations and common sense analyses would be a good thing.",
+  "problem": "Pressure for fancy statistics beyond biologists' training",
+  "need": "Lead with simple data visualisation and plain analyses before advanced methods",
+  "severity": "wrong result risk",
+  "signal": {
+   "thread_points": 621,
+   "thread_comments": 506
+  },
+  "tags": [
+   "show-the-points",
+   "which-test"
+  ]
+ },
+ {
+  "id": "hn-24072249",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=24072249",
+  "date": "2020-08",
+  "role": "bioinformatician (stated)",
+  "software_named": [
+   "Excel",
+   "LibreOffice"
+  ],
+  "workflow": "sample identifiers in spreadsheets",
+  "quote": "identifiers in the form of \"1E123\" get turned into scientific numbers. ... Those things are sneaky: you can have thousands of rows, and Excel/LO doesn't mind if only the 0.1% matches its rules for smartness. They just change without notice, leaving the others intact.",
+  "problem": "A tiny fraction of IDs silently become numbers",
+  "need": "Treat ID columns as text and report any value that would change on import",
+  "severity": "wrong result risk",
+  "signal": {
+   "thread_points": 621,
+   "thread_comments": 506
+  },
+  "tags": [
+   "excel-paste",
+   "file-compatibility"
+  ]
+ },
+ {
+  "id": "hn-24072249-2",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=24072249",
+  "date": "2020-08",
+  "role": "bioinformatician (stated)",
+  "software_named": [
+   "Excel",
+   "LibreOffice"
+  ],
+  "workflow": "CSV/TSV handling",
+  "quote": "This shit could be avoided if they had a \"scientific mode\" to not be smart with your data, and be the default mode for any file in CSV/TSV mode.",
+  "problem": "Spreadsheets have no 'don't touch my data' mode",
+  "need": "A default mode that never alters imported values",
+  "severity": "wrong result risk",
+  "signal": {
+   "thread_points": 621,
+   "thread_comments": 506
+  },
+  "tags": [
+   "file-compatibility",
+   "excel-paste"
+  ]
+ },
+ {
+  "id": "hn-24070671",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=24070671",
+  "date": "2020-08",
+  "role": "medical services researcher (stated)",
+  "software_named": [
+   "Excel",
+   "R"
+  ],
+  "workflow": "publications and posters",
+  "quote": "I had to use Excel for 100% of my publications and posters in medical services research. ... While I'd love to use only R, most of my collaborators wouldn't be able to use it",
+  "problem": "Collaborators can't open R work, forcing Excel",
+  "need": "Share analyses in a format collaborators can open without installing software",
+  "severity": "slows the work",
+  "signal": {
+   "thread_points": 621,
+   "thread_comments": 506
+  },
+  "tags": [
+   "sharing-collaboration",
+   "file-compatibility"
+  ]
+ },
+ {
+  "id": "hn-24072547",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=24072547",
+  "date": "2020-08",
+  "role": "computer-savvy member of a lab collaboration (stated)",
+  "software_named": [
+   "Excel"
+  ],
+  "workflow": "CSV exchange between locales",
+  "quote": "I send them some data in CSV, that when opened in Excel turned 123.456 into 123456 (it was a problem with locales, some people using \",\" as decimal and some using \".\"). ... A small quantity of numbers bumped up by a factor of 3 could fly under the radar, and distort further measurements.",
+  "problem": "Decimal-separator locale mismatch silently multiplies values by 1000",
+  "need": "Detect decimal/thousands separators explicitly on import and show a preview",
+  "severity": "wrong result risk",
+  "signal": {
+   "thread_points": 621,
+   "thread_comments": 506
+  },
+  "tags": [
+   "language-localisation",
+   "excel-paste"
+  ]
+ },
+ {
+  "id": "hn-24073876",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=24073876",
+  "date": "2020-08",
+  "role": null,
+  "software_named": [
+   "Excel",
+   "R",
+   "Python"
+  ],
+  "workflow": "data entry and browsing",
+  "quote": "I am envisioning something with double-entry data checking, enforcement of data types, and rules to check validity.",
+  "problem": "Spreadsheets lack data-entry validation for science",
+  "need": "Typed columns, double-entry checks and validity rules in the data table",
+  "severity": "wrong result risk",
+  "signal": {
+   "thread_points": 621,
+   "thread_comments": 506
+  },
+  "tags": [
+   "data-entry-table-types",
+   "missing-values"
+  ]
+ },
+ {
+  "id": "hn-37988478",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=37988478",
+  "date": "2023-10",
+  "role": null,
+  "software_named": [
+   "Excel",
+   "Python",
+   "R",
+   "Galaxy"
+  ],
+  "workflow": "PIs/lab techs looking at their data",
+  "quote": "Not every lab tech or PI can or should learn Python/R/your favorite scripting language, and frameworks like Galaxy take time to set up and maintain, etc etc. Our job is to meet the users where they are",
+  "problem": "Lab techs/PIs won't learn scripting; Galaxy is heavy",
+  "need": "A no-setup tool lab techs and PIs can use directly",
+  "severity": "slows the work",
+  "signal": {
+   "thread_points": 45,
+   "thread_comments": 27
+  },
+  "tags": [
+   "learning-curve"
+  ]
+ },
+ {
+  "id": "hn-39826119",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=39826119",
+  "date": "2024-03",
+  "role": "former bioinformatics worker (stated)",
+  "software_named": [
+   "Excel"
+  ],
+  "workflow": "importing gene lists",
+  "quote": "it's easy to miss it's happening when it happens to a really small subset of genes you are importing into an excel sheet.",
+  "problem": "Conversions on few rows go unnoticed",
+  "need": "Highlight changed cells on import",
+  "severity": "wrong result risk",
+  "signal": {
+   "thread_points": 191,
+   "thread_comments": 163
+  },
+  "tags": [
+   "excel-paste"
+  ]
+ },
+ {
+  "id": "hn-12374958",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=12374958",
+  "date": "2016-08",
+  "role": "author of a biochemical journal article (stated)",
+  "software_named": [
+   "Excel"
+  ],
+  "workflow": "96-well assay results",
+  "quote": "we had a 96-element datatable (12x8) and limited space in our biochemical journal article. We were looking to graphically show differences in orders of magnitude to help explain the assay. A 3d column chart fit the bill",
+  "problem": "No compact plate-layout visual for 96-well results spanning orders of magnitude",
+  "need": "Plate-map heatmap view with log colour scale for 96/384-well data",
+  "severity": "cosmetic / preference",
+  "signal": {
+   "thread_points": 78,
+   "thread_comments": 102
+  },
+  "tags": [
+   "plate-reader",
+   "log-axis",
+   "volcano-heatmap"
+  ]
+ },
+ {
+  "id": "hn-16783615",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=16783615",
+  "date": "2018-04",
+  "role": null,
+  "software_named": [
+   "SPSS",
+   "Wizard"
+  ],
+  "workflow": "easy statistics GUIs",
+  "quote": "Just because you can put a dataset in and get values out - even values that look significant, it doesn’t mean they are - did all of the assumptions and requirements of the methods/tests you used hold true/pass with your data?",
+  "problem": "Easy GUIs give results without checking assumptions",
+  "need": "Check and report assumptions for each test automatically, with guardrails",
+  "severity": "wrong result risk",
+  "signal": {
+   "thread_points": 125,
+   "thread_comments": 62
+  },
+  "tags": [
+   "trust-validation",
+   "which-test"
+  ]
+ },
+ {
+  "id": "hn-27801292",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=27801292",
+  "date": "2021-07",
+  "role": null,
+  "software_named": [
+   "Excel",
+   "R"
+  ],
+  "workflow": "checking calculations",
+  "quote": "You can press F2 on a cell and visually see what data is being pulled into the function, and you can easily manually check that that single calculation is accurate by re-creating that calculation by hand",
+  "problem": "Users trust calculations they can trace by hand",
+  "need": "Let users click any result to see the exact inputs and intermediate values",
+  "severity": "cosmetic / preference",
+  "signal": {
+   "thread_points": 241,
+   "thread_comments": 251
+  },
+  "tags": [
+   "trust-validation"
+  ]
+ },
+ {
+  "id": "hn-27802019",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=27802019",
+  "date": "2021-07",
+  "role": null,
+  "software_named": [
+   "Excel"
+  ],
+  "workflow": "pasting TSV data",
+  "quote": "Even if you do specify a column as a text excel WILL assume that it contains dates sometimes. Happened to me multiple times, even when i set each cell as a text. Seems like copypasting a tab separated values resets the cells to their default state.",
+  "problem": "Copy-pasted TSV resets text formatting and dates appear",
+  "need": "Paste must respect the column type already set",
+  "severity": "wrong result risk",
+  "signal": {
+   "thread_points": 241,
+   "thread_comments": 251
+  },
+  "tags": [
+   "excel-paste"
+  ]
+ },
+ {
+  "id": "hn-3285877",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=3285877",
+  "date": "2011-11",
+  "role": null,
+  "software_named": [],
+  "workflow": "academic biology statistics",
+  "quote": "To the majority, the unpaired T-Test is the only test that is needed. Ever. Doesn't matter if you have one or two tails, paired or unpaired trials, normally distributed population or skewed.",
+  "problem": "Unpaired t-test used regardless of design",
+  "need": "Ask about pairing, tails and distribution before suggesting a test",
+  "severity": "wrong result risk",
+  "signal": {
+   "thread_points": 182,
+   "thread_comments": 94
+  },
+  "tags": [
+   "which-test",
+   "nonparametric"
+  ]
+ },
+ {
+  "id": "hn-3285877-2",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=3285877",
+  "date": "2011-11",
+  "role": null,
+  "software_named": [],
+  "workflow": "academic biology statistics",
+  "quote": "In academic biology, statistics is routinely considered an afterthought. In the eyes of many labs/PIs, their results are already real. You just have to do those damn statistical tests so the editor will get off your back.",
+  "problem": "Statistics done only to satisfy editors",
+  "need": "Make the statistics step quick and integrated so it is done properly rather than as an afterthought",
+  "severity": "wrong result risk",
+  "signal": {
+   "thread_points": 182,
+   "thread_comments": 94
+  },
+  "tags": [
+   "reporting-methods",
+   "which-test"
+  ]
+ },
+ {
+  "id": "hn-3285876",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=3285876",
+  "date": "2011-11",
+  "role": null,
+  "software_named": [],
+  "workflow": "neuroscience: comparing effects",
+  "quote": "If in your data you find that A has no statistically significant effect, but B does have a statistically significant effect, this does not automatically show that B has, with statistical significance, more effect than A. To do that you have to do a statistical test on the difference in the effects.",
+  "problem": "Comparing significance labels instead of testing the difference (interaction)",
+  "need": "When two effects are compared, run and report the interaction/difference test, and warn against 'significant vs not significant' comparisons",
+  "severity": "wrong result risk",
+  "signal": {
+   "thread_points": 182,
+   "thread_comments": 94
+  },
+  "tags": [
+   "two-way-anova",
+   "which-test"
+  ]
+ },
+ {
+  "id": "hn-3286408",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=3286408",
+  "date": "2011-11",
+  "role": null,
+  "software_named": [],
+  "workflow": "neuroscience, small effects",
+  "quote": "On the flipside, I've seen experiments where they are showing that one population of neurons is 2% more dynamic than another population, and sometimes you just wonder if that really matters at all (or if you are really sampling the population well enough)",
+  "problem": "Tiny effects reported as findings without considering magnitude or sampling",
+  "need": "Report effect size with CI beside P, and flag small effects",
+  "severity": "wrong result risk",
+  "signal": {
+   "thread_points": 182,
+   "thread_comments": 94
+  },
+  "tags": [
+   "effect-size",
+   "power-sample-size"
+  ]
+ },
+ {
+  "id": "hn-3287214",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=3287214",
+  "date": "2011-11",
+  "role": null,
+  "software_named": [],
+  "workflow": "copying methods from literature",
+  "quote": "Most authors do not test the statistical assumptions made in the literature and copy the statistical techniques used previously.",
+  "problem": "Methods are copied from prior papers without checking assumptions",
+  "need": "Check assumptions on the user's own data even when they pick a 'standard' test",
+  "severity": "wrong result risk",
+  "signal": {
+   "thread_points": 182,
+   "thread_comments": 94
+  },
+  "tags": [
+   "which-test",
+   "trust-validation"
+  ]
+ },
+ {
+  "id": "hn-26351567",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=26351567",
+  "date": "2021-03",
+  "role": null,
+  "software_named": [],
+  "workflow": "quantitative microscopy",
+  "quote": "There are as many quantitative microscopy techniques as there are lab teams in the wild. Everyone builds their own correlations depending on their research dive of interest. ... I think feature richness is key (even if 80% of users only need 20% of counting techniques).",
+  "problem": "Microscopy quantification is idiosyncratic per lab",
+  "need": "Flexible image-quantification exports that drop straight into the analysis tables",
+  "severity": "slows the work",
+  "signal": {
+   "thread_points": 47,
+   "thread_comments": 18
+  },
+  "tags": [
+   "image-analysis-exports"
+  ]
+ },
+ {
+  "id": "hn-24616188",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=24616188",
+  "date": "2020-09",
+  "role": "university lab member (stated)",
+  "software_named": [
+   "LabArchives",
+   "Microsoft Office"
+  ],
+  "workflow": "electronic lab notebook",
+  "quote": "Things like no embedding of vector graphics and no good embedded spreadsheet solution.",
+  "problem": "ELN cannot embed vector graphics or a usable spreadsheet",
+  "need": "Export vector graphics and tables that embed cleanly in ELNs",
+  "severity": "cosmetic / preference",
+  "signal": {
+   "thread_points": 118,
+   "thread_comments": 83
+  },
+  "tags": [
+   "export-vector",
+   "sharing-collaboration"
+  ]
+ },
+ {
+  "id": "hn-24616188-2",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=24616188",
+  "date": "2020-09",
+  "role": "university lab member (stated)",
+  "software_named": [
+   "LabArchives"
+  ],
+  "workflow": "run logs in ELN",
+  "quote": "I ran into the limitation of 64K characters per entry. It’s handled by trimming html off the end then autofixing broken stuff. It works so well that it took me a while to figure out why the number of rows was decreasing as more rows were filled out.",
+  "problem": "ELN silently truncated table rows",
+  "need": "Never drop data silently; warn on any size limit",
+  "severity": "wrong result risk",
+  "signal": {
+   "thread_points": 118,
+   "thread_comments": 83
+  },
+  "tags": [
+   "large-data",
+   "trust-validation"
+  ]
+ },
+ {
+  "id": "hn-38891253",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=38891253",
+  "date": "2024-01",
+  "role": "immunologist (stated)",
+  "software_named": [],
+  "workflow": "keeping up with tools",
+  "quote": "I'm an immunologist, and it feels impossible for me to keep on top of my field of research and just about anything else.",
+  "problem": "No time to learn software practices alongside the science",
+  "need": "Tools that need no maintenance or coding upkeep from the scientist",
+  "severity": "slows the work",
+  "signal": {
+   "thread_points": 230,
+   "thread_comments": 318
+  },
+  "tags": [
+   "learning-curve"
+  ]
+ },
+ {
+  "id": "hn-38890797",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=38890797",
+  "date": "2024-01",
+  "role": "ex-software developer, current scientist (stated)",
+  "software_named": [],
+  "workflow": "scientific analysis code",
+  "quote": "The quality is so bad that I think a huge proportion of published results are plain wrong due to bugs in the analysis.",
+  "problem": "Bugs in ad hoc analysis code produce wrong published results",
+  "need": "Validated, tested analysis routines instead of one-off scripts",
+  "severity": "wrong result risk",
+  "signal": {
+   "thread_points": 230,
+   "thread_comments": 318
+  },
+  "tags": [
+   "trust-validation",
+   "reproducibility-audit"
+  ]
+ },
+ {
+  "id": "hn-3980141",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=3980141",
+  "date": "2012-05",
+  "role": null,
+  "software_named": [
+   "Excel",
+   "MATLAB"
+  ],
+  "workflow": "western blot densitometry",
+  "quote": "The standard solution is this software package that lets you open each .jpg file one by one (there is a folder with hundreds), and you draw little rectangles and it tells you the average brightness inside. You write the number down inside an excel spreadsheet one by one, alt-tabbing back and forth.",
+  "problem": "Blot quantification is manual: open each image, draw a box, retype the number",
+  "need": "Batch densitometry with exported values going straight into the analysis table",
+  "severity": "slows the work",
+  "signal": {
+   "thread_points": 222,
+   "thread_comments": 85
+  },
+  "tags": [
+   "western-blot-densitometry",
+   "scripting-batch",
+   "image-analysis-exports"
+  ]
+ },
+ {
+  "id": "hn-43550712",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=43550712",
+  "date": "2025-04",
+  "role": null,
+  "software_named": [
+   "matplotlib",
+   "seaborn",
+   "Origin",
+   "ChatGPT"
+  ],
+  "workflow": "conference figure with broken axis",
+  "quote": "I simply need the figure in the minimal amount of time and with the least mental bandwidth, so I can focus on the science and catch the conference deadline. Origin is a very \"over-engineered\" piece of software, but hey getting a broken axis is so simple",
+  "problem": "Broken axes need hacks in matplotlib",
+  "need": "One-click broken axis with unequal segment widths",
+  "severity": "slows the work",
+  "signal": {
+   "thread_points": 903,
+   "thread_comments": 406
+  },
+  "tags": [
+   "axis-breaks",
+   "graph-formatting"
+  ]
+ },
+ {
+  "id": "hn-43546843",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=43546843",
+  "date": "2025-04",
+  "role": null,
+  "software_named": [
+   "OriginPro",
+   "matplotlib"
+  ],
+  "workflow": "publication figures, physical science",
+  "quote": "matplotlib is simply too disappointing for making publication quality figures. The most recently encountered problem is how to plot with a broken x-axis, which is one of the most basic need in physical science but requires a non-trivial amount of hacking to get with matplotlib.",
+  "problem": "Free plotting tools make basic publication needs (axis breaks) hard; Origin licence lost after university",
+  "need": "Free tool with built-in axis breaks and publication defaults",
+  "severity": "slows the work",
+  "signal": {
+   "thread_points": 903,
+   "thread_comments": 406
+  },
+  "tags": [
+   "axis-breaks",
+   "price-licence",
+   "graph-formatting"
+  ]
+ },
+ {
+  "id": "hn-43546843-2",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=43546843",
+  "date": "2025-04",
+  "role": null,
+  "software_named": [
+   "OriginPro",
+   "matplotlib"
+  ],
+  "workflow": "plotting experimental samples",
+  "quote": "I have already enough frustration dealing with my samples, so I simply want the least frustration from the software I use to plot.",
+  "problem": "Plotting software adds frustration on top of experimental work",
+  "need": "Minimal-friction plotting with sensible defaults",
+  "severity": "slows the work",
+  "signal": {
+   "thread_points": 903,
+   "thread_comments": 406
+  },
+  "tags": [
+   "graph-formatting",
+   "learning-curve"
+  ]
+ },
+ {
+  "id": "hn-40900712",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=40900712",
+  "date": "2024-07",
+  "role": "former scientist (stated)",
+  "software_named": [
+   "OriginLab",
+   "Python",
+   "Jupyter"
+  ],
+  "workflow": "data analysis and plotting",
+  "quote": "I was relying on OriginLab (a scientific version of Excel) for my data analysis and it was a real pain.",
+  "problem": "Origin painful for exploratory analysis",
+  "need": "Exploratory analysis that is interactive and recordable",
+  "severity": "slows the work",
+  "signal": {
+   "thread_points": 611,
+   "thread_comments": 156
+  },
+  "tags": [
+   "learning-curve",
+   "reproducibility-audit"
+  ]
+ },
+ {
+  "id": "hn-7199398",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=7199398",
+  "date": "2014-02",
+  "role": null,
+  "software_named": [
+   "OriginPro",
+   "Wine"
+  ],
+  "workflow": "reading old data files on Linux",
+  "quote": "2) Extract data from OriginPro worksheet (no viewer for Linux)",
+  "problem": "OriginPro data trapped in a Windows-only format",
+  "need": "Import proprietary analysis project files on any OS",
+  "severity": "blocks the analysis",
+  "signal": {
+   "thread_points": 127,
+   "thread_comments": 88
+  },
+  "tags": [
+   "file-compatibility",
+   "mac-windows"
+  ]
+ },
+ {
+  "id": "hn-13144884",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=13144884",
+  "date": "2016-12",
+  "role": null,
+  "software_named": [
+   "Fiji",
+   "Matlab"
+  ],
+  "workflow": "3D microscopy exploration and presentation",
+  "quote": "But in many cases we don't even have this and people use Fiji to scroll through the z-dimension with a slider. For presentations people often render a movie with Matlab, investing hours to get it right.",
+  "problem": "3D image data explored with a slider; presentation movies take hours",
+  "need": "Easier 3D exploration and export for presentations",
+  "severity": "slows the work",
+  "signal": {
+   "thread_points": 658,
+   "thread_comments": 703
+  },
+  "tags": [
+   "image-analysis-exports",
+   "powerpoint"
+  ]
+ },
+ {
+  "id": "hn-5881534",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=5881534",
+  "date": "2013-06",
+  "role": "biochemist (stated)",
+  "software_named": [
+   "Fiji",
+   "TrackMate",
+   "Mathematica",
+   "Python"
+  ],
+  "workflow": "particle tracking",
+  "quote": "I want to be able to take a stack of 100 TIFs, look for a few white spots on a black background - and track their centroids. That's it.",
+  "problem": "Simple spot tracking requires heavy or outdated tools",
+  "need": "Simple tracking with CSV export into the analysis tool",
+  "severity": "slows the work",
+  "signal": {
+   "thread_points": 93,
+   "thread_comments": 30
+  },
+  "tags": [
+   "image-analysis-exports",
+   "kinetics-binding"
+  ]
+ },
+ {
+  "id": "hn-5881534-2",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=5881534",
+  "date": "2013-06",
+  "role": "biochemist (stated)",
+  "software_named": [
+   "Excel"
+  ],
+  "workflow": "analysing tracked coordinates",
+  "quote": "Most of my peers either use Excel, blindly learn by rote a series of 'voodoo' commands to input into a very specific program running on a dusty old Win98 machine. Get out a calculator.",
+  "problem": "Peers rely on rote steps on old dedicated PCs or calculators",
+  "need": "Accessible, current tool for routine computations on tracked data",
+  "severity": "slows the work",
+  "signal": {
+   "thread_points": 93,
+   "thread_comments": 30
+  },
+  "tags": [
+   "learning-curve",
+   "mac-windows"
+  ]
+ },
+ {
+  "id": "hn-12393911",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=12393911",
+  "date": "2016-08",
+  "role": null,
+  "software_named": [],
+  "workflow": "virology study blinding",
+  "quote": "\"The screening of two subsets of compounds for antiviral activity (Supplementary Fig. 2a and Supplementary Fig. 4b) was performed in a blinded manner, whereas all other experiments were performed in a nonblinded manner.\"",
+  "problem": "Most experiments are analysed unblinded",
+  "need": "Support blinded group labels during analysis",
+  "severity": "wrong result risk",
+  "signal": {
+   "thread_points": 147,
+   "thread_comments": 21
+  },
+  "tags": [
+   "randomisation",
+   "reporting-methods"
+  ]
+ },
+ {
+  "id": "hn-16784092",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=16784092",
+  "date": "2018-04",
+  "role": null,
+  "software_named": [
+   "GraphPad Prism",
+   "Igor Pro",
+   "Origin Pro",
+   "Matlab",
+   "R",
+   "Wizard"
+  ],
+  "workflow": "choosing stats/graphing software",
+  "quote": "Also the pricing puts this program directly at the range of Graphpad's Prism, which is widely-used in academic fields other than the field of statistics, and quite intuitive.",
+  "problem": "Price is a key comparison point for statistics/graphing tools",
+  "need": "Offer Prism-level ease of use at a lower or no price",
+  "severity": "cosmetic / preference",
+  "signal": {
+   "thread_points": 125,
+   "thread_comments": 62
+  },
+  "tags": [
+   "price-licence"
+  ]
+ },
+ {
+  "id": "hn-12350154",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=12350154",
+  "date": "2016-08",
+  "role": "former bioinformatics programmer (stated)",
+  "software_named": [
+   "Excel",
+   "Python"
+  ],
+  "workflow": "manual processing in Excel",
+  "quote": "I did some processing in an afternoon, including writing a python script, that a postdoc had used a month doing manually in Excel.",
+  "problem": "A month of manual Excel work for what a script does in an afternoon",
+  "need": "Automate repetitive transformations without coding",
+  "severity": "slows the work",
+  "signal": {
+   "thread_points": 64,
+   "thread_comments": 59
+  },
+  "tags": [
+   "scripting-batch",
+   "excel-paste"
+  ]
+ },
+ {
+  "id": "hn-24070783",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=24070783",
+  "date": "2020-08",
+  "role": "statistics instructor for biochemists (stated)",
+  "software_named": [
+   "Excel"
+  ],
+  "workflow": "teaching statistics",
+  "quote": "I teach people to be very sceptical of excel in my stats courses, for example (aside from some showstopping bugs and downright dangerous defaults, its RNG is particularly crap).",
+  "problem": "Excel defaults and RNG unreliable for statistics",
+  "need": "Validated statistics with documented methods",
+  "severity": "wrong result risk",
+  "signal": {
+   "thread_points": 621,
+   "thread_comments": 506
+  },
+  "tags": [
+   "trust-validation",
+   "teaching"
+  ]
+ },
+ {
+  "id": "hn-17797448",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=17797448",
+  "date": "2018-08",
+  "role": "former grad student (stated)",
+  "software_named": [
+   "Excel"
+  ],
+  "workflow": "gene lists",
+  "quote": "Some researchers are never going to use anything other than Excel for this even when people like me harp on them to stop treating Excel as a database. It's \"good-enough\", so it gets used more often than it should.",
+  "problem": "Excel is 'good enough' so it stays",
+  "need": "Be as immediate as Excel to win adoption",
+  "severity": "slows the work",
+  "signal": {
+   "thread_points": 115,
+   "thread_comments": 59
+  },
+  "tags": [
+   "learning-curve",
+   "data-entry-table-types"
+  ]
+ },
+ {
+  "id": "hn-46796095",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=46796095",
+  "date": "2026-01",
+  "role": "biologist turned programmer (stated)",
+  "software_named": [
+   "Pandas",
+   "Jupyter",
+   "Excel"
+  ],
+  "workflow": "teaching programming for biologists",
+  "quote": "I offered some \"Programming for Biologists\" courses, to teach people like me to do programming in this way, because it would be much less \"dry\" (pd.read.excel().barplot() and now you're programming). So far, wherever I offered the courses they said they prefer to teach programming \"from the base up\".",
+  "problem": "Teaching starts from abstractions rather than biologists' own tables",
+  "need": "Teach analysis starting from the learner's own spreadsheet and plots",
+  "severity": "cosmetic / preference",
+  "signal": {
+   "thread_points": 271,
+   "thread_comments": 118
+  },
+  "tags": [
+   "teaching",
+   "tutorials"
+  ]
+ },
+ {
+  "id": "hn-11561097",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=11561097",
+  "date": "2016-04",
+  "role": "biologist (stated)",
+  "software_named": [],
+  "workflow": "bioinformatics hypothesis generation",
+  "quote": "It's harder to shy away from a very low p-value, even when you know the sampling may not be appropriate.",
+  "problem": "Very low P values from large data tempt over-interpretation",
+  "need": "Show sampling caveats and effect sizes alongside tiny P values",
+  "severity": "wrong result risk",
+  "signal": {
+   "thread_points": 101,
+   "thread_comments": 19
+  },
+  "tags": [
+   "effect-size",
+   "exact-p"
+  ]
+ },
+ {
+  "id": "hn-24077219",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=24077219",
+  "date": "2020-08",
+  "role": null,
+  "software_named": [
+   "Excel",
+   "R"
+  ],
+  "workflow": "gene list handoff to pathway tool",
+  "quote": "And if the next step is \"yeah, that looks fine - I'll just copy the top 100 genes into this convenient GUI pathway analysis tool\", you're suddenly exposed to whatever Excel did to your data.",
+  "problem": "Copying results via Excel into other GUI tools corrupts data",
+  "need": "Export clean gene lists directly without passing through a spreadsheet",
+  "severity": "wrong result risk",
+  "signal": {
+   "thread_points": 621,
+   "thread_comments": 506
+  },
+  "tags": [
+   "excel-paste",
+   "file-compatibility"
+  ]
+ },
+ {
+  "id": "hn-24077219-2",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=24077219",
+  "date": "2020-08",
+  "role": null,
+  "software_named": [
+   "Excel",
+   "LibreOffice"
+  ],
+  "workflow": "sharing drafts with clinicians",
+  "quote": "Besides, the writing process for papers includes sending drafts and spreadsheets to doctors and pathologists and editors, who are probably on hospital computers with a short whitelist of programs",
+  "problem": "Collaborators on locked-down hospital PCs can only open whitelisted programs",
+  "need": "Browser-based sharing that needs no installation",
+  "severity": "slows the work",
+  "signal": {
+   "thread_points": 621,
+   "thread_comments": 506
+  },
+  "tags": [
+   "sharing-collaboration",
+   "privacy"
+  ]
+ },
+ {
+  "id": "hn-41615635",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=41615635",
+  "date": "2024-09",
+  "role": "former undergraduate research team member (stated)",
+  "software_named": [
+   "OriginLab",
+   "matplotlib",
+   "LaTeX",
+   "SciencePlots"
+  ],
+  "workflow": "plotting for papers",
+  "quote": "At some point, I started using matplotlib + Latex + science plots and it caught on, mostly because there's no need to shift all the data around to a separate programme.",
+  "problem": "Moving data into a separate plotting programme is friction",
+  "need": "Plot where the data and analysis already live",
+  "severity": "slows the work",
+  "signal": {
+   "thread_points": 177,
+   "thread_comments": 54
+  },
+  "tags": [
+   "file-compatibility",
+   "graph-formatting"
+  ]
+ },
+ {
+  "id": "hn-41615635-2",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=41615635",
+  "date": "2024-09",
+  "role": "former undergraduate research team member (stated)",
+  "software_named": [
+   "matplotlib"
+  ],
+  "workflow": "figure colours",
+  "quote": "Colours are one of the subtle things I so often find difficult to get right.",
+  "problem": "Choosing colours is hard",
+  "need": "Good default palettes (colour-blind safe) for scientific figures",
+  "severity": "cosmetic / preference",
+  "signal": {
+   "thread_points": 177,
+   "thread_comments": 54
+  },
+  "tags": [
+   "colour-blind",
+   "graph-formatting"
+  ]
+ },
+ {
+  "id": "hn-7339736",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=7339736",
+  "date": "2014-03",
+  "role": "tool developer in a high-throughput screening lab (stated)",
+  "software_named": [],
+  "workflow": "electronic lab notebooks, protocols",
+  "quote": "After several years of iterations I can say that so far electronic lab notebooks never worked; there are even several commercial software available.",
+  "problem": "ELNs fail in HTS lab practice",
+  "need": "Lightweight records that fit lab practice",
+  "severity": "slows the work",
+  "signal": {
+   "thread_points": 36,
+   "thread_comments": 12
+  },
+  "tags": [
+   "sharing-collaboration"
+  ]
+ },
+ {
+  "id": "hn-16198404",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=16198404",
+  "date": "2018-01",
+  "role": "former Merck lab scientist (stated)",
+  "software_named": [
+   "ELN"
+  ],
+  "workflow": "pharma electronic lab notebook",
+  "quote": "To underscore how terrible ELN was at our site, many managers instructed their reports to keep traditional paper notebooks, photograph each page, and upload to an ELN entry.",
+  "problem": "Pharma ELN so poor that paper was photographed into it",
+  "need": "Fast, reliable record-keeping software",
+  "severity": "slows the work",
+  "signal": {
+   "thread_points": 34,
+   "thread_comments": 28
+  },
+  "tags": [
+   "performance",
+   "crashes"
+  ]
+ },
+ {
+  "id": "hn-3286285",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=3286285",
+  "date": "2011-11",
+  "role": null,
+  "software_named": [],
+  "workflow": "test and subset selection",
+  "quote": "Then they work to find a subset of the data and a statistical test that gives them a significant result. ... Proper statistics, where you decide on the test you'll apply and on what data before doing the experiment, is almost unheard of.",
+  "problem": "Subset and test chosen after seeing results",
+  "need": "Pre-specify the comparison and test before data entry; log deviations",
+  "severity": "wrong result risk",
+  "signal": {
+   "thread_points": 182,
+   "thread_comments": 94
+  },
+  "tags": [
+   "which-test",
+   "multiple-comparisons",
+   "reproducibility-audit"
+  ]
+ },
+ {
+  "id": "hn-24072202",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=24072202",
+  "date": "2020-08",
+  "role": "writes biological data analysis code (stated)",
+  "software_named": [],
+  "workflow": "analysis code bugs",
+  "quote": "I just saw a paper published in Science had to issue a revision because they found a bug in their analysis code after publication that changed most of their downstream analysis.",
+  "problem": "Bug in analysis code changed most downstream results",
+  "need": "Tested analysis routines with cross-checks",
+  "severity": "wrong result risk",
+  "signal": {
+   "thread_points": 621,
+   "thread_comments": 506
+  },
+  "tags": [
+   "trust-validation"
+  ]
+ },
+ {
+  "id": "hn-38003754",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=38003754",
+  "date": "2023-10",
+  "role": null,
+  "software_named": [
+   "Excel"
+  ],
+  "workflow": "browsing tabular data",
+  "quote": "Excel is still the easiest way to look at tabular data, even if it isn’t part of the production workflow. And sadly, even if you save the file as txt, Excel would always mangle certain fields.",
+  "problem": "Even saving as text, Excel mangles fields",
+  "need": "Easy table viewer that never alters values",
+  "severity": "wrong result risk",
+  "signal": {
+   "thread_points": 231,
+   "thread_comments": 155
+  },
+  "tags": [
+   "file-compatibility",
+   "excel-paste"
+  ]
+ },
+ {
+  "id": "hn-30994224",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=30994224",
+  "date": "2022-04",
+  "role": "researcher outside genomics (stated)",
+  "software_named": [
+   "SQLite",
+   "netCDF",
+   "Excel"
+  ],
+  "workflow": "scientific data storage and viewing",
+  "quote": "All the GUIs I have seen are really not up to the task for typical scientific data. They are clunky, heavy, slow, and difficult to use for visualisation.",
+  "problem": "Data GUIs are clunky and slow for scientific data",
+  "need": "Fast spreadsheet-like view with quick visualisation",
+  "severity": "slows the work",
+  "signal": {
+   "thread_points": 191,
+   "thread_comments": 138
+  },
+  "tags": [
+   "performance",
+   "large-data"
+  ]
+ },
+ {
+  "id": "hn-24071832",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=24071832",
+  "date": "2020-08",
+  "role": null,
+  "software_named": [
+   "MATLAB",
+   "Arduino"
+  ],
+  "workflow": "rat olfaction electrophysiology",
+  "quote": "He was looking at the neuronal response to smells that they gave the rats and had a few signals to match up. ... He was having a hard time getting through all the data in his MatLab code",
+  "problem": "Aligning multiple signals in hand-written code overwhelms grad students",
+  "need": "Tools that align/time-sync multiple recorded signals without custom code",
+  "severity": "blocks the analysis",
+  "signal": {
+   "thread_points": 621,
+   "thread_comments": 506
+  },
+  "tags": [
+   "time-series",
+   "learning-curve"
+  ]
+ },
+ {
+  "id": "hn-14568381",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=14568381",
+  "date": "2017-06",
+  "role": "PhD, wet and dry work (stated)",
+  "software_named": [],
+  "workflow": "lab notebook",
+  "quote": "I did wet and dry work in my PhD and before, and found a paper notebook to be incredibly inconvenient. Finding things, referring to things, including data or code - all very laborious if it's even effective.",
+  "problem": "Paper notebooks can't link data, code and figures",
+  "need": "Link raw data, analysis and figures in one searchable record",
+  "severity": "slows the work",
+  "signal": {
+   "thread_points": 93,
+   "thread_comments": 44
+  },
+  "tags": [
+   "reproducibility-audit",
+   "sharing-collaboration"
+  ]
+ },
+ {
+  "id": "hn-36782152",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=36782152",
+  "date": "2023-07",
+  "role": "member of a graduate program (stated)",
+  "software_named": [],
+  "workflow": "statistics teaching",
+  "quote": "One thing we're trying in my program right now is to introduce \"Statistical Thinking\" as a mandatory class for both wet lab and computational students, to cover the why of statistics and try to teach people how to think about what they're doing, before they hit the \"When X, do Y to collect p-value.\" stage.",
+  "problem": "Students learn recipes before reasoning",
+  "need": "Explain why a test applies, not just which button to press",
+  "severity": "wrong result risk",
+  "signal": {
+   "thread_points": 37,
+   "thread_comments": 18
+  },
+  "tags": [
+   "teaching",
+   "which-test"
+  ]
+ },
+ {
+  "id": "hn-9791267",
+  "venue": "news.ycombinator.com",
+  "url": "https://news.ycombinator.com/item?id=9791267",
+  "date": "2015-06",
+  "role": "computational biology PhD student (stated)",
+  "software_named": [],
+  "workflow": "statistics culture across labs",
+  "quote": "my experience is that folks in that field are much more careful with statistics than in, say, molecular biology labs, but it varies from lab to lab. My PI is exceedingly meticulous about stats -- for instance, we don't report p-values, but rather entire distributions",
+  "problem": "Molecular biology labs less careful with statistics",
+  "need": "Show full distributions rather than single P values",
+  "severity": "wrong result risk",
+  "signal": {
+   "thread_points": 156,
+   "thread_comments": 115
+  },
+  "tags": [
+   "show-the-points",
+   "exact-p"
+  ]
+ }
+]

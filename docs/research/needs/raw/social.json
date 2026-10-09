@@ -1,0 +1,1361 @@
+[
+  {
+    "id": "mastodon-genomic.social-114506754117309085",
+    "venue": "genomic.social",
+    "url": "https://genomic.social/api/v1/statuses/114506754117309085",
+    "date": "2025-05-14",
+    "role": "Senior Lecturer in Bioinformatics, University of Sheffield (bio); helping non-coding colleagues",
+    "software_named": [
+      "GraphPad Prism",
+      "R",
+      "Python"
+    ],
+    "workflow": "migrating lab data out of Prism after institutional licence loss",
+    "quote": "I'm trying to help people (with 0 coding experience or desire to gain coding experience) transition out of GraphPad PRISM as our uni has removed our license. Does anyone have any thoughts on the best way to get data out of Prism without a licence?",
+    "problem": "University dropped the Prism licence; non-coders cannot open or move their own Prism data",
+    "need": "Open and import Prism project files (.prism and .pzfx) without a Prism licence, for users who will not code",
+    "severity": "blocks the analysis",
+    "signal": {
+      "favourites": 1,
+      "boosts": 1,
+      "replies": 1
+    },
+    "tags": [
+      "price-licence",
+      "file-compatibility"
+    ]
+  },
+  {
+    "id": "mastodon-genomic.social-114506754634454595",
+    "venue": "genomic.social",
+    "url": "https://genomic.social/api/v1/statuses/114506754634454595",
+    "date": "2025-05-14",
+    "role": "Senior Lecturer in Bioinformatics (bio)",
+    "software_named": [
+      "GraphPad Prism",
+      "R",
+      "Python"
+    ],
+    "workflow": "bulk recovery of years of Prism project files",
+    "quote": "There appear to be both python and R parsers for the old .pzfx files, but not the new .prism ones. I'm talking about over a decade of work in some peoples cases - 100s of files.",
+    "problem": "Hundreds of .prism files per person, a decade of work, with no parser for the new format",
+    "need": "Batch-import a folder of .prism/.pzfx files and recover every data table with its labels",
+    "severity": "blocks the analysis",
+    "signal": {
+      "favourites": 0,
+      "boosts": 0,
+      "replies": 2
+    },
+    "tags": [
+      "file-compatibility",
+      "scripting-batch",
+      "reproducibility-audit"
+    ]
+  },
+  {
+    "id": "mastodon-genomic.social-114506830596065070",
+    "venue": "genomic.social",
+    "url": "https://genomic.social/api/v1/statuses/114506830596065070",
+    "date": "2025-05-14",
+    "role": "Human genetics / bioinformatics researcher (bio)",
+    "software_named": [
+      "GraphPad Prism",
+      "R",
+      "Python"
+    ],
+    "workflow": "Prism file format lock-in",
+    "quote": "What I've seen is that it's completely closed format intended to lock people into the product. ... Hopefully they'll change direction and realize that locking up people's data is just going to drive many people away to use R and Python only.",
+    "problem": "Perceives the new Prism file format as a closed lock-in of users' own data",
+    "need": "Save projects in a documented open format (e.g. zipped CSV + JSON with a published schema) so data stay readable without the vendor",
+    "severity": "slows the work",
+    "signal": {
+      "favourites": 1,
+      "boosts": 0,
+      "replies": 1
+    },
+    "tags": [
+      "file-compatibility",
+      "price-licence"
+    ]
+  },
+  {
+    "id": "mastodon-genomic.social-114506867222722017",
+    "venue": "genomic.social",
+    "url": "https://genomic.social/api/v1/statuses/114506867222722017",
+    "date": "2025-05-14",
+    "role": "Senior Lecturer in Bioinformatics (bio)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "reverse-engineering the Prism project structure",
+    "quote": "I feel like it wouldn't be that hard if I understood PRISM's data model. Like, what's the difference between a sheet and a table and a dataset?",
+    "problem": "The Prism data model (sheet vs table vs dataset) is opaque even to a bioinformatician",
+    "need": "Document the project data model (data tables, analyses, graphs) in plain terms and in the file schema",
+    "severity": "slows the work",
+    "signal": {
+      "favourites": 0,
+      "boosts": 0,
+      "replies": 1
+    },
+    "tags": [
+      "data-entry-table-types",
+      "file-compatibility"
+    ]
+  },
+  {
+    "id": "mastodon-biologists.social-114507592244107884",
+    "venue": "biologists.social",
+    "url": "https://biologists.social/api/v1/statuses/114507592244107884",
+    "date": "2025-05-14",
+    "role": "Professor of cell biology, University of Warwick (bio)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "exporting data from Prism files",
+    "quote": "I have only dealt with the .pzfx files in the past. It sounds like they've tightened up. Is it possible to get a trial version and automate export of data?",
+    "problem": "Only workaround offered for locked files is a trial licence plus scripted export",
+    "need": "Provide a free reader/exporter that batch-exports every table to CSV",
+    "severity": "slows the work",
+    "signal": {
+      "favourites": 0,
+      "boosts": 0,
+      "replies": 0
+    },
+    "tags": [
+      "scripting-batch",
+      "file-compatibility",
+      "price-licence"
+    ]
+  },
+  {
+    "id": "mastodon-ecoevo.social-110469736129269329",
+    "venue": "ecoevo.social",
+    "url": "https://ecoevo.social/api/v1/statuses/110469736129269329",
+    "date": "2023-06-01",
+    "role": "Biologist (bio: 'Biologiste geek'), Linux user",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "running Prism on Linux",
+    "quote": "Please #Prism, I really need support for Linux, I can pay you money",
+    "problem": "Prism has no Linux version; a paying user on Linux cannot run it",
+    "need": "Run in any browser / on Linux with the same features as the desktop app",
+    "severity": "blocks the analysis",
+    "signal": {
+      "favourites": 0,
+      "boosts": 0,
+      "replies": 1
+    },
+    "tags": [
+      "mac-windows",
+      "price-licence"
+    ]
+  },
+  {
+    "id": "mastodon-ecoevo.social-110677979190555740",
+    "venue": "ecoevo.social",
+    "url": "https://ecoevo.social/api/v1/statuses/110677979190555740",
+    "date": "2023-07-08",
+    "role": "Biologist (bio: double master's in biology)",
+    "software_named": [
+      "GraphPad Prism",
+      "Wine",
+      "LabPlot"
+    ],
+    "workflow": "running Prism on Linux for work",
+    "quote": "it is for my job, I ended up having to crack it and using wine but I kind of hate it",
+    "problem": "Needed Prism for work on Linux; ended up with a cracked copy under Wine",
+    "need": "A cross-platform tool that runs natively on Linux, so nobody has to crack or emulate it",
+    "severity": "slows the work",
+    "signal": {
+      "favourites": 0,
+      "boosts": 0,
+      "replies": 0
+    },
+    "tags": [
+      "mac-windows",
+      "price-licence"
+    ]
+  },
+  {
+    "id": "mastodon-mastodon.social-100148566883057939",
+    "venue": "mastodon.social",
+    "url": "https://mastodon.social/api/v1/statuses/100148566883057939",
+    "date": "2018-06-04",
+    "role": "Professor of Structural Microbiology, PI (bio)",
+    "software_named": [
+      "GraphPad Prism",
+      "R"
+    ],
+    "workflow": "choosing a test for lab results",
+    "quote": "Diving deep into #Statistics, #R and #prism to try to figure out whether to use #ANOVA or #ttest to analyse our results. ... It can be a luxury as a busy PI",
+    "problem": "A PI has to research for themselves whether to run ANOVA or t-tests",
+    "need": "A design-first test chooser that asks how many groups and factors there are and explains why it picks ANOVA or a t-test",
+    "severity": "slows the work",
+    "signal": {
+      "favourites": 1,
+      "boosts": 0,
+      "replies": 0
+    },
+    "tags": [
+      "which-test",
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "mastodon-fosstodon.org-117332651449828950",
+    "venue": "fosstodon.org",
+    "url": "https://fosstodon.org/api/v1/statuses/117332651449828950",
+    "date": "2026-09-25",
+    "role": "Bioinformatician working with clinicians (bio)",
+    "software_named": [],
+    "workflow": "multi-omics analysis for a clinical PI",
+    "quote": "we cannot change the statistical test just because you don't like the p-value",
+    "problem": "PI wants to switch tests after seeing the p-value",
+    "need": "Record the test chosen before results are shown and keep an audit trail of any later change",
+    "severity": "wrong result risk",
+    "signal": {
+      "favourites": 4,
+      "boosts": 1,
+      "replies": 3
+    },
+    "tags": [
+      "which-test",
+      "reproducibility-audit"
+    ]
+  },
+  {
+    "id": "mastodon-fosstodon.org-117332651449828950-2",
+    "venue": "fosstodon.org",
+    "url": "https://fosstodon.org/api/v1/statuses/117332651449828950",
+    "date": "2026-09-25",
+    "role": "Bioinformatician working with clinicians (bio)",
+    "software_named": [],
+    "workflow": "gene-level testing in multi-omics",
+    "quote": "multiple-testing correction needs to be done even though your favorite gene becomes insignificant.",
+    "problem": "Pressure to skip multiple-testing correction when a favoured gene loses significance",
+    "need": "Apply multiple-comparison correction by default and show corrected and uncorrected values together",
+    "severity": "wrong result risk",
+    "signal": {
+      "favourites": 4,
+      "boosts": 1,
+      "replies": 3
+    },
+    "tags": [
+      "multiple-comparisons"
+    ]
+  },
+  {
+    "id": "mastodon-fosstodon.org-117332651449828950-3",
+    "venue": "fosstodon.org",
+    "url": "https://fosstodon.org/api/v1/statuses/117332651449828950",
+    "date": "2026-09-25",
+    "role": "Bioinformatician working with clinicians (bio)",
+    "software_named": [],
+    "workflow": "multi-omics experiment design",
+    "quote": "Sample size of N=3 when dealing with multi-omics is *too* small",
+    "problem": "N=3 per group is used for multi-omics",
+    "need": "Warn about low power for the planned N and offer a sample-size calculation before data collection",
+    "severity": "wrong result risk",
+    "signal": {
+      "favourites": 4,
+      "boosts": 1,
+      "replies": 3
+    },
+    "tags": [
+      "power-sample-size",
+      "n-definition"
+    ]
+  },
+  {
+    "id": "mastodon-fosstodon.org-117333061316056667",
+    "venue": "fosstodon.org",
+    "url": "https://fosstodon.org/api/v1/statuses/117333061316056667",
+    "date": "2026-09-25",
+    "role": "Bioinformatician (bio)",
+    "software_named": [],
+    "workflow": "clinical research planning",
+    "quote": "I have rarely seen power calculation and Statistical Analysis Plan done prior to data collection in the university hospitals.",
+    "problem": "Power calculations and analysis plans are rarely done before data collection",
+    "need": "Offer a pre-registration style analysis plan and power calculation that the later analysis is checked against",
+    "severity": "wrong result risk",
+    "signal": {
+      "favourites": 3,
+      "boosts": 0,
+      "replies": 1
+    },
+    "tags": [
+      "power-sample-size",
+      "reproducibility-audit"
+    ]
+  },
+  {
+    "id": "mastodon-mathstodon.xyz-117333598594724198",
+    "venue": "mathstodon.xyz",
+    "url": "https://mathstodon.xyz/api/v1/statuses/117333598594724198",
+    "date": "2026-09-25",
+    "role": "Retired physicist, ML and stats for cancer drug discovery (bio)",
+    "software_named": [],
+    "workflow": "gene-level testing in cancer drug discovery",
+    "quote": "I've faced *exactly* that situation in the past. (Right down to \"change the stat so the p-value is better\", and \"stop with the FDR correction because my favorite gene isn't high enough\".)",
+    "problem": "Pressure from scientists to swap tests and drop FDR correction",
+    "need": "Make FDR correction and the chosen test visible, locked and logged so dropping them is an explicit, recorded act",
+    "severity": "wrong result risk",
+    "signal": {
+      "favourites": 1,
+      "boosts": 0,
+      "replies": 0
+    },
+    "tags": [
+      "multiple-comparisons",
+      "reproducibility-audit"
+    ]
+  },
+  {
+    "id": "mastodon-sfba.social-117332717783484204",
+    "venue": "sfba.social",
+    "url": "https://sfba.social/api/v1/statuses/117332717783484204",
+    "date": "2026-09-25",
+    "role": "Genetic engineer / CS (bio)",
+    "software_named": [],
+    "workflow": "screening assays, plate-based",
+    "quote": "In my experience, the fix is usually to invest in making the N much larger (robots, high throughput, which then teaches people just how much noise they had in the first place) .",
+    "problem": "Small-N biology underestimates noise until high-throughput replication reveals it",
+    "need": "Show replicate-to-replicate and plate-to-plate variability so users see how noisy their assay is",
+    "severity": "wrong result risk",
+    "signal": {
+      "favourites": 1,
+      "boosts": 0,
+      "replies": 1
+    },
+    "tags": [
+      "power-sample-size",
+      "plate-reader"
+    ]
+  },
+  {
+    "id": "mastodon-genomic.social-115865598274212482",
+    "venue": "genomic.social",
+    "url": "https://genomic.social/api/v1/statuses/115865598274212482",
+    "date": "2026-01-09",
+    "role": "Human genetics / bioinformatics researcher (bio)",
+    "software_named": [
+      "Thermo Fisher qPCR software"
+    ],
+    "workflow": "reading raw RT-qPCR run files",
+    "quote": "Anyone know of a good way to examine EDS files from a Thermofisher RT-PCR machine that doesn't require installing the software suite? ... But I fundamentally oppose data locked into a proprietary format for long-term archiving.",
+    "problem": "qPCR instrument output (.eds) cannot be read without the vendor suite",
+    "need": "Import instrument run files (e.g. Thermo .eds) directly and keep an open copy",
+    "severity": "blocks the analysis",
+    "signal": {
+      "favourites": 1,
+      "boosts": 0,
+      "replies": 1
+    },
+    "tags": [
+      "import-instrument-files",
+      "qpcr-ddct",
+      "file-compatibility"
+    ]
+  },
+  {
+    "id": "mastodon-mastodon.social-110769142014694234",
+    "venue": "mastodon.social",
+    "url": "https://mastodon.social/api/v1/statuses/110769142014694234",
+    "date": "2023-07-24",
+    "role": null,
+    "software_named": [
+      "R",
+      "ggplot2",
+      "tidyqpcr",
+      "pcr",
+      "qPCRtools"
+    ],
+    "workflow": "qPCR analysis and plotting in R",
+    "quote": "So, I'm thinking about good R packages to do analyses of #qPCR data. ... Something that gives some really nice and versatile plots or something that could pipe right into #ggplot is really desired.",
+    "problem": "Has to evaluate several R packages to analyse and plot qPCR data",
+    "need": "Built-in qPCR (ΔΔCt) analysis whose results flow straight into flexible plots",
+    "severity": "slows the work",
+    "signal": {
+      "favourites": 0,
+      "boosts": 1,
+      "replies": 0
+    },
+    "tags": [
+      "qpcr-ddct",
+      "graph-formatting"
+    ]
+  },
+  {
+    "id": "mastodon-ecoevo.social-113635240001971348",
+    "venue": "ecoevo.social",
+    "url": "https://ecoevo.social/api/v1/statuses/113635240001971348",
+    "date": "2024-12-11",
+    "role": "Doctoral researcher, forest ecosystem science (bio)",
+    "software_named": [
+      "R"
+    ],
+    "workflow": "reading and reviewing papers",
+    "quote": "Every few days I have the urge to contact authers to tell them, that their p-value being bigger than .05 does NOT mean that there is no effect.",
+    "problem": "Authors read p > 0.05 as 'no effect'",
+    "need": "Report effect sizes with confidence intervals next to p and word non-significant results as 'not detected', not 'no effect'",
+    "severity": "wrong result risk",
+    "signal": {
+      "favourites": 2,
+      "boosts": 3,
+      "replies": 0
+    },
+    "tags": [
+      "effect-size",
+      "reporting-methods"
+    ]
+  },
+  {
+    "id": "mastodon-mathstodon.xyz-117331697045655539",
+    "venue": "mathstodon.xyz",
+    "url": "https://mathstodon.xyz/api/v1/statuses/117331697045655539",
+    "date": "2026-09-25",
+    "role": "Professor, quantitative/computational biology (bio)",
+    "software_named": [],
+    "workflow": "reviewing biology manuscripts",
+    "quote": "It is frustrating to see how biologists, after having spent years with expensive experimental research, misinterpret their own work.",
+    "problem": "Biologists misinterpret their own statistics after years of experiments",
+    "need": "Plain-language interpretation of each result, with common misreadings flagged",
+    "severity": "wrong result risk",
+    "signal": {
+      "favourites": 0,
+      "boosts": 1,
+      "replies": 0
+    },
+    "tags": [
+      "reporting-methods",
+      "trust-validation"
+    ]
+  },
+  {
+    "id": "mastodon-mathstodon.xyz-115977601390005740",
+    "venue": "mathstodon.xyz",
+    "url": "https://mathstodon.xyz/api/v1/statuses/115977601390005740",
+    "date": "2026-01-29",
+    "role": "Group leader, MRC LMB / Professor, Cambridge, neuroscience (bio)",
+    "software_named": [
+      "DABEST"
+    ],
+    "workflow": "multi-group comparisons in biology",
+    "quote": "However, current estimation tools struggle with the complex, multi-group comparisons common in biological research. ... There's institutional-wide need for change in the biological sciences when it comes to statistical handling of data.",
+    "problem": "Estimation (effect-size) tools do not handle shared-control, repeated-measures and two-way designs",
+    "need": "Estimation graphics (mean differences with CIs) for shared-control, repeated-measures and two-way designs",
+    "severity": "slows the work",
+    "signal": {
+      "favourites": 10,
+      "boosts": 9,
+      "replies": 1
+    },
+    "tags": [
+      "effect-size",
+      "multiple-comparisons",
+      "two-way-anova"
+    ]
+  },
+  {
+    "id": "mastodon-mastodon.social-114773280307710791",
+    "venue": "mastodon.social",
+    "url": "https://mastodon.social/api/v1/statuses/114773280307710791",
+    "date": "2025-06-30",
+    "role": "Reader commenting on an immunology preprint (bio: news/books account)",
+    "software_named": [],
+    "workflow": "tumour growth curves, multi-panel figure",
+    "quote": "the use of six tumor growth plots with mismatched Y-axis scales weakens the data’s clarity and scientific integrity.",
+    "problem": "Six tumour growth panels with different y-axis scales mislead comparison",
+    "need": "Lock y-axes across panels of a figure by default and warn when panels that will be compared have different scales",
+    "severity": "wrong result risk",
+    "signal": {
+      "favourites": 0,
+      "boosts": 0,
+      "replies": 0
+    },
+    "tags": [
+      "layouts-multipanel",
+      "growth-curves",
+      "graph-formatting"
+    ]
+  },
+  {
+    "id": "mastodon-mastodon.social-114703376391404539",
+    "venue": "mastodon.social",
+    "url": "https://mastodon.social/api/v1/statuses/114703376391404539",
+    "date": "2025-06-18",
+    "role": "Data visualisation researcher, biology/cancer (bio)",
+    "software_named": [],
+    "workflow": "making figures for papers",
+    "quote": "After students asked for one for years, I have now made a simple figure design checklist. To help all scientists w/o graphic design training create clearer, more accessible, and truthful charts!",
+    "problem": "Students without design training have asked for years for guidance on figures",
+    "need": "A built-in figure checklist that checks clarity, accessibility and honesty before export",
+    "severity": "slows the work",
+    "signal": {
+      "favourites": 53,
+      "boosts": 44,
+      "replies": 2
+    },
+    "tags": [
+      "graph-formatting",
+      "accessibility",
+      "colour-blind"
+    ]
+  },
+  {
+    "id": "mastodon-social.tchncs.de-116137477973935585",
+    "venue": "social.tchncs.de",
+    "url": "https://social.tchncs.de/api/v1/statuses/116137477973935585",
+    "date": "2026-02-26",
+    "role": "Scientist / computer scientist (bio)",
+    "software_named": [],
+    "workflow": "bar charts in papers",
+    "quote": "if your scales don't start at zero: indicate this clearly, not only in text but also visually (especially for bar charts etc)",
+    "problem": "Bar charts with truncated axes are not marked visually",
+    "need": "Force bar charts to start at zero, or draw a visible axis break when they do not",
+    "severity": "wrong result risk",
+    "signal": {
+      "favourites": 0,
+      "boosts": 0,
+      "replies": 0
+    },
+    "tags": [
+      "axis-breaks",
+      "graph-formatting"
+    ]
+  },
+  {
+    "id": "mastodon-social.tchncs.de-116137477973935585-2",
+    "venue": "social.tchncs.de",
+    "url": "https://social.tchncs.de/api/v1/statuses/116137477973935585",
+    "date": "2026-02-26",
+    "role": "Scientist / computer scientist (bio)",
+    "software_named": [],
+    "workflow": "figure export for publication",
+    "quote": "don't just scale down the image (as a scaled down font is _not_ the same as a smaller font size). Oh, and (if the publication allows you to do this): use vector graphics (e.g. directly generated pdf), not bitmap.",
+    "problem": "Figures get scaled down, so fonts shrink unevenly, and are exported as bitmaps",
+    "need": "Set the final figure size and font size in points at export, and export vector PDF/SVG",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "favourites": 0,
+      "boosts": 0,
+      "replies": 0
+    },
+    "tags": [
+      "export-vector",
+      "export-dpi"
+    ]
+  },
+  {
+    "id": "mastodon-fosstodon.org-117365167359453743",
+    "venue": "fosstodon.org",
+    "url": "https://fosstodon.org/api/v1/statuses/117365167359453743",
+    "date": "2026-10-01",
+    "role": "Data visualisation specialist; Open Source in Pharma workshop (bio)",
+    "software_named": [
+      "R",
+      "ggplot2",
+      "ggview"
+    ],
+    "workflow": "saving ggplot2 figures",
+    "quote": "Use {ggview} to preview plots at the same size and resolution as you want to save them with ggsave() to avoid the annoying resizing",
+    "problem": "The on-screen plot differs from the saved file, so figures need repeated resizing",
+    "need": "Show the figure at its true export size and DPI while editing (WYSIWYG export)",
+    "severity": "slows the work",
+    "signal": {
+      "favourites": 16,
+      "boosts": 14,
+      "replies": 1
+    },
+    "tags": [
+      "export-dpi",
+      "graph-formatting"
+    ]
+  },
+  {
+    "id": "mastodon-social.anoxinon.de-113362576978151533",
+    "venue": "social.anoxinon.de",
+    "url": "https://social.anoxinon.de/api/v1/statuses/113362576978151533",
+    "date": "2024-10-24",
+    "role": "Research group in bioanalytics/pharmacology/qPCR (bio)",
+    "software_named": [
+      "R",
+      "PCRedux"
+    ],
+    "workflow": "regression in published papers",
+    "quote": "We are working on a paper where we show that 29 % of papers in top journals like Science, Nature & PNAS were skewed by a single influential data point!",
+    "problem": "A single influential point skews results in many published papers",
+    "need": "Flag influential points (e.g. DFFITS/Cook's distance) on every fit and show the result with and without them",
+    "severity": "wrong result risk",
+    "signal": {
+      "favourites": 4,
+      "boosts": 1,
+      "replies": 0
+    },
+    "tags": [
+      "outliers",
+      "fit-diagnostics",
+      "correlation"
+    ]
+  },
+  {
+    "id": "mastodon-mastodon.social-115995169354646594",
+    "venue": "mastodon.social",
+    "url": "https://mastodon.social/api/v1/statuses/115995169354646594",
+    "date": "2026-02-01",
+    "role": "Computational neuroscientist, DZNE (bio)",
+    "software_named": [
+      "Python",
+      "statsmodels"
+    ],
+    "workflow": "hierarchical neuroscience data",
+    "quote": "Due to a recent discussion with colleagues on whether and when to use #LinearMixedModels (#LMM), I wrote a blog post comparing LMM to other approaches using simulated data.",
+    "problem": "Lab colleagues are unsure when nested/hierarchical data need a mixed model",
+    "need": "Detect nested designs (cells within animals) and offer a mixed model or aggregation, explaining the choice",
+    "severity": "wrong result risk",
+    "signal": {
+      "favourites": 1,
+      "boosts": 1,
+      "replies": 1
+    },
+    "tags": [
+      "technical-vs-biological-replicates",
+      "n-definition",
+      "mixed-model-missing-values"
+    ]
+  },
+  {
+    "id": "mastodon-mastodon.au-109710020351052909",
+    "venue": "mastodon.au",
+    "url": "https://mastodon.au/api/v1/statuses/109710020351052909",
+    "date": "2023-01-18",
+    "role": "Medical researcher, immunology lab head (bio)",
+    "software_named": [
+      "R"
+    ],
+    "workflow": "tSNE/UMAP of flow and mass cytometry",
+    "quote": "Ever use a #tSNE or #UMAP in #scSeq, #flowcytometry or #masscytometry? It doesn't have to be just a pretty picture anymore - we've developed a statistical test to check for differences.",
+    "problem": "Group differences on tSNE/UMAP plots are judged by eye, with no test",
+    "need": "Offer a statistical test for differences between groups in cytometry embeddings that respects biological replicates",
+    "severity": "wrong result risk",
+    "signal": {
+      "favourites": 2,
+      "boosts": 3,
+      "replies": 1
+    },
+    "tags": [
+      "flow-cytometry",
+      "pca-clustering"
+    ]
+  },
+  {
+    "id": "mastodon-mastodon.online-116883668508377648",
+    "venue": "mastodon.online",
+    "url": "https://mastodon.online/api/v1/statuses/116883668508377648",
+    "date": "2026-07-08",
+    "role": "Presentation trainer for researchers (bio)",
+    "software_named": [],
+    "workflow": "showing data graphs in talks",
+    "quote": "30s – which is about how long lots of academics put their horrifically complex graphs up on the screen. Stop it. It dosen't work.",
+    "problem": "Paper figures are reused unchanged in talks and are too complex to read in 30 seconds",
+    "need": "A 'slide version' of a graph: larger fonts, fewer series, builds for presentations",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "favourites": 0,
+      "boosts": 0,
+      "replies": 1
+    },
+    "tags": [
+      "powerpoint",
+      "graph-formatting"
+    ]
+  },
+  {
+    "id": "mastodon-ecoevo.social-110234359746262096",
+    "venue": "ecoevo.social",
+    "url": "https://ecoevo.social/api/v1/statuses/110234359746262096",
+    "date": "2023-04-21",
+    "role": "Bioinformaticist / biostatistician (bio)",
+    "software_named": [],
+    "workflow": "routine biostatistics",
+    "quote": "Although I grumble about the quality of #scientific #software (and there’s a lot to grumble about) I almost always use mostly-reliable packages rather than writing my own.",
+    "problem": "Relies on packages he considers only 'mostly reliable'",
+    "need": "Publish validation of results against reference datasets so users can trust them",
+    "severity": "wrong result risk",
+    "signal": {
+      "favourites": 0,
+      "boosts": 10,
+      "replies": 4
+    },
+    "tags": [
+      "trust-validation"
+    ]
+  },
+  {
+    "id": "mastodon-fediscience.org-117092831216433935",
+    "venue": "fediscience.org",
+    "url": "https://fediscience.org/api/v1/statuses/117092831216433935",
+    "date": "2026-08-14",
+    "role": "Postdoc, applied animal behaviour (bio)",
+    "software_named": [],
+    "workflow": "learning a new statistical method",
+    "quote": "Whenever I learn about a new statistical method: Do I know what I'm doing? - Highly debatable Do I hope for the best? - 100%",
+    "problem": "Runs new methods without confidence they are applied correctly",
+    "need": "Guided analyses with assumption checks and a plain-language explanation of what was run",
+    "severity": "wrong result risk",
+    "signal": {
+      "favourites": 4,
+      "boosts": 0,
+      "replies": 0
+    },
+    "tags": [
+      "learning-curve",
+      "trust-validation"
+    ]
+  },
+  {
+    "id": "mastodon-mastodon.social-112241988991846762",
+    "venue": "mastodon.social",
+    "url": "https://mastodon.social/api/v1/statuses/112241988991846762",
+    "date": "2024-04-09",
+    "role": "Lecturer, psychology (bio)",
+    "software_named": [
+      "R"
+    ],
+    "workflow": "moving analyses to R",
+    "quote": "When moving to #R, one of the first things you need to learn is how to re-do an #ANOVA.",
+    "problem": "Switching to R means re-learning how to run even a within-subject ANOVA",
+    "need": "Point-and-click repeated-measures ANOVA with an exportable script that reproduces it",
+    "severity": "slows the work",
+    "signal": {
+      "favourites": 2,
+      "boosts": 1,
+      "replies": 0
+    },
+    "tags": [
+      "learning-curve",
+      "two-way-anova",
+      "scripting-batch"
+    ]
+  },
+  {
+    "id": "mastodon-mastodon.social-112202624292062000",
+    "venue": "mastodon.social",
+    "url": "https://mastodon.social/api/v1/statuses/112202624292062000",
+    "date": "2024-04-02",
+    "role": "Lecturer, psychology (bio)",
+    "software_named": [],
+    "workflow": "plotting group comparisons",
+    "quote": "I think G-A plots are very nice and provide more info than typical bar plots.",
+    "problem": "Typical bar plots carry less information than Gardner-Altman estimation plots",
+    "need": "Offer Gardner-Altman / estimation plots alongside bar or dot plots",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "favourites": 2,
+      "boosts": 1,
+      "replies": 0
+    },
+    "tags": [
+      "effect-size",
+      "show-the-points"
+    ]
+  },
+  {
+    "id": "mastodon-mastodon.social-113804494582461294",
+    "venue": "mastodon.social",
+    "url": "https://mastodon.social/api/v1/statuses/113804494582461294",
+    "date": "2025-01-10",
+    "role": "Lecturer, psychology (bio)",
+    "software_named": [],
+    "workflow": "choosing tests",
+    "quote": "Little thought is given to the appropriateness of the test and its assumptions.",
+    "problem": "Tests are chosen without checking whether they are appropriate or meet assumptions",
+    "need": "Check assumptions automatically and explain test suitability before reporting p",
+    "severity": "wrong result risk",
+    "signal": {
+      "favourites": 0,
+      "boosts": 0,
+      "replies": 0
+    },
+    "tags": [
+      "which-test",
+      "trust-validation"
+    ]
+  },
+  {
+    "id": "mastodon-scholar.social-99655618416874622",
+    "venue": "scholar.social",
+    "url": "https://scholar.social/api/v1/statuses/99655618416874622",
+    "date": "2018-03-09",
+    "role": "Emergency medicine doctor (bio)",
+    "software_named": [],
+    "workflow": "choosing an analysis in a lab",
+    "quote": "we didn't use this statistical analysis because no one in the lab knows how to work it and I can't learn it fast enough",
+    "problem": "The right analysis was skipped because nobody in the lab could run it",
+    "need": "Guided, step-by-step versions of less common analyses so a lab can run them without a resident expert",
+    "severity": "wrong result risk",
+    "signal": {
+      "favourites": 5,
+      "boosts": 3,
+      "replies": 0
+    },
+    "tags": [
+      "learning-curve",
+      "which-test"
+    ]
+  },
+  {
+    "id": "mastodon-fosstodon.org-116013906772213820",
+    "venue": "fosstodon.org",
+    "url": "https://fosstodon.org/api/v1/statuses/116013906772213820",
+    "date": "2026-02-04",
+    "role": "Computational biologist (bio)",
+    "software_named": [
+      "Microsoft Excel"
+    ],
+    "workflow": "handing wet-lab spreadsheets to bioinformatics",
+    "quote": "Experimental folks in the biological sciences really need to learn how to fill out an Excel sheet. The sheet starts in row 1, column A. ... Plus, you can't keep changing the nomenclature.",
+    "problem": "Wet-lab spreadsheets are messy and inconsistently named, which breaks downstream analysis",
+    "need": "Structured data entry with fixed columns and controlled sample names that exports tidy data",
+    "severity": "slows the work",
+    "signal": {
+      "favourites": 2,
+      "boosts": 0,
+      "replies": 1
+    },
+    "tags": [
+      "data-entry-table-types",
+      "long-vs-wide",
+      "sharing-collaboration"
+    ]
+  },
+  {
+    "id": "mastodon-fediscience.org-114250682695999642",
+    "venue": "fediscience.org",
+    "url": "https://fediscience.org/api/v1/statuses/114250682695999642",
+    "date": "2025-03-30",
+    "role": "Relative asking on behalf of someone handling patient data",
+    "software_named": [
+      "Microsoft Excel",
+      "LibreOffice Calc",
+      "Google Sheets"
+    ],
+    "workflow": "spreadsheet for patient data on Linux",
+    "quote": "My brother needs a spreadsheet program secure enough to use for patient data. Excel is MS and works like shit on Linux.",
+    "problem": "Needs a data tool that is private enough for patient data and works on Linux",
+    "need": "Local-only processing (no upload) that runs on Linux",
+    "severity": "blocks the analysis",
+    "signal": {
+      "favourites": 0,
+      "boosts": 0,
+      "replies": 0
+    },
+    "tags": [
+      "privacy",
+      "mac-windows"
+    ]
+  },
+  {
+    "id": "mastodon-vis.social-110348798219658139",
+    "venue": "vis.social",
+    "url": "https://vis.social/api/v1/statuses/110348798219658139",
+    "date": "2023-05-11",
+    "role": "Postdoctoral researcher, urban geography (bio)",
+    "software_named": [
+      "LaTeX",
+      "Microsoft Word"
+    ],
+    "workflow": "submitting figures in a manuscript",
+    "quote": "Converting .tex/.pdf to .docx is not fun when MS Word does not understand vector graphics, tables or umlaut characters (e.g. äö).",
+    "problem": "Vector figures break when a manuscript has to be converted to Word",
+    "need": "Export figures as Word-compatible vector formats (EMF/SVG) as well as PDF",
+    "severity": "slows the work",
+    "signal": {
+      "favourites": 2,
+      "boosts": 0,
+      "replies": 1
+    },
+    "tags": [
+      "export-vector",
+      "file-compatibility"
+    ]
+  },
+  {
+    "id": "mastodon-biologists.social-114709090932207911",
+    "venue": "biologists.social",
+    "url": "https://biologists.social/api/v1/statuses/114709090932207911",
+    "date": "2025-06-19",
+    "role": "Professor of cell biology (bio)",
+    "software_named": [
+      "ImageJ",
+      "Python"
+    ],
+    "workflow": "image randomisation for blinded analysis",
+    "quote": "We had some code for image randomisation which ran very slowly in ImageJ. Pro: easy to use by labbies Con: very slow, like really slowww",
+    "problem": "Lab-friendly ImageJ tools are very slow",
+    "need": "Keep tools easy for bench users while making them fast enough for large image sets",
+    "severity": "slows the work",
+    "signal": {
+      "favourites": 3,
+      "boosts": 0,
+      "replies": 0
+    },
+    "tags": [
+      "performance",
+      "image-analysis-exports",
+      "randomisation"
+    ]
+  },
+  {
+    "id": "mastodon-biologists.social-114150012770263099",
+    "venue": "biologists.social",
+    "url": "https://biologists.social/api/v1/statuses/114150012770263099",
+    "date": "2025-03-12",
+    "role": "Professor of cell biology, PI (bio)",
+    "software_named": [
+      "ImageJ"
+    ],
+    "workflow": "maintaining lab image-analysis macros",
+    "quote": "I promised myself a while back that I wouldn't write any more #ImageJ Macro code. ... And here I am again in ijm hell!",
+    "problem": "The lab still depends on many ImageJ macros that need constant tweaking",
+    "need": "Reusable, parameterised analysis templates instead of one-off macro scripts",
+    "severity": "slows the work",
+    "signal": {
+      "favourites": 5,
+      "boosts": 2,
+      "replies": 2
+    },
+    "tags": [
+      "scripting-batch",
+      "image-analysis-exports"
+    ]
+  },
+  {
+    "id": "mastodon-fediscience.org-109879542804288063",
+    "venue": "fediscience.org",
+    "url": "https://fediscience.org/api/v1/statuses/109879542804288063",
+    "date": "2023-02-17",
+    "role": "Statistical methodologist, perception/autism research (bio)",
+    "software_named": [
+      "R",
+      "ggplot2",
+      "ggpubr"
+    ],
+    "workflow": "plotting group means with error bars over x levels",
+    "quote": "I've been working on these plots for hours, and can't seem to get from the first image to the second - I want to show each group's mean for each level on the x axis (midpoint of error bars) and then join the means for each group with lines.",
+    "problem": "Hours lost building a grouped mean ± error bar plot with connecting lines",
+    "need": "One-click grouped mean ± SD/SEM/CI plot with lines joining group means and the raw points underneath",
+    "severity": "slows the work",
+    "signal": {
+      "favourites": 2,
+      "boosts": 0,
+      "replies": 1
+    },
+    "tags": [
+      "error-bars-sd-sem",
+      "graph-formatting",
+      "show-the-points"
+    ]
+  },
+  {
+    "id": "mastodon-fediscience.org-109879716472592986",
+    "venue": "fediscience.org",
+    "url": "https://fediscience.org/api/v1/statuses/109879716472592986",
+    "date": "2023-02-17",
+    "role": "Statistical methodologist (bio)",
+    "software_named": [
+      "R",
+      "ggplot2"
+    ],
+    "workflow": "computing summary stats for plots",
+    "quote": "I was wary of putting the summary stats in another dataframe because it seems more likely to introduce errors than letting ggplot figure it out",
+    "problem": "Worries that computing summary statistics separately from the plot introduces errors",
+    "need": "Compute plotted means and error bars from the same raw data and show the numbers behind each bar",
+    "severity": "wrong result risk",
+    "signal": {
+      "favourites": 0,
+      "boosts": 0,
+      "replies": 1
+    },
+    "tags": [
+      "error-bars-sd-sem",
+      "trust-validation"
+    ]
+  },
+  {
+    "id": "mastodon-mastodon.social-111255542507645897",
+    "venue": "mastodon.social",
+    "url": "https://mastodon.social/api/v1/statuses/111255542507645897",
+    "date": "2023-10-18",
+    "role": "Lecturer, psychology (bio)",
+    "software_named": [
+      "SPSS",
+      "JASP",
+      "jamovi",
+      "R"
+    ],
+    "workflow": "ordinal outcome with covariates and repeated measures",
+    "quote": "#SPSS doesn't allow covariates with any analysis for ordinal data i can find. Same for @JASPStats or #jamovi. Or those that do, don't allow repeated measures",
+    "problem": "Point-and-click tools cannot fit ordinal outcomes with covariates and repeated measures",
+    "need": "Ordinal (cumulative link) mixed models with covariates in the point-and-click interface",
+    "severity": "blocks the analysis",
+    "signal": {
+      "favourites": 2,
+      "boosts": 0,
+      "replies": 0
+    },
+    "tags": [
+      "nonparametric",
+      "mixed-model-missing-values"
+    ]
+  },
+  {
+    "id": "mastodon-fediscience.org-117240503307435083",
+    "venue": "fediscience.org",
+    "url": "https://fediscience.org/api/v1/statuses/117240503307435083",
+    "date": "2026-09-09",
+    "role": "Associate Professor of Methodology and Statistics (bio)",
+    "software_named": [
+      "SPSS",
+      "R"
+    ],
+    "workflow": "cross-checking results across packages",
+    "quote": "But that it takes almost 50 seconds to start up SPSS (on a freshly booted Windows machine) is just bonkers.",
+    "problem": "Commercial stats software takes ~50 s just to start",
+    "need": "Open instantly",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "favourites": 2,
+      "boosts": 1,
+      "replies": 1
+    },
+    "tags": [
+      "performance",
+      "numbers-differ-between-tools"
+    ]
+  },
+  {
+    "id": "mastodon-mstdn.social-111880297522128290",
+    "venue": "mstdn.social",
+    "url": "https://mstdn.social/api/v1/statuses/111880297522128290",
+    "date": "2024-02-05",
+    "role": "Digital humanities staff, Stanford (bio)",
+    "software_named": [
+      "SPSS"
+    ],
+    "workflow": "recovering a 1997 SPSS portable file",
+    "quote": "any chance you might have a copy of #SPSS 7.5 that I might be able to get an ISO from in order to rescue some Ukrainian data locked up in an old file?",
+    "problem": "Data are locked in an old proprietary stats file format",
+    "need": "Read legacy and proprietary stats file formats and export to open formats",
+    "severity": "blocks the analysis",
+    "signal": {
+      "favourites": 3,
+      "boosts": 4,
+      "replies": 4
+    },
+    "tags": [
+      "file-compatibility",
+      "reproducibility-audit"
+    ]
+  },
+  {
+    "id": "mastodon-tech.lgbt-112562064737165885",
+    "venue": "tech.lgbt",
+    "url": "https://tech.lgbt/api/v1/statuses/112562064737165885",
+    "date": "2024-06-05",
+    "role": "Survey designer (bio)",
+    "software_named": [
+      "R",
+      "SPSS"
+    ],
+    "workflow": "choosing analysis software for a career",
+    "quote": "I learned #Rstats because I didn't trust a hypothetical future employer to provide access to paid software like #SPSS et al.",
+    "problem": "Paid stats software may not be available at the next job",
+    "need": "Free tool, so skills carry over to any employer",
+    "severity": "slows the work",
+    "signal": {
+      "favourites": 2,
+      "boosts": 0,
+      "replies": 1
+    },
+    "tags": [
+      "price-licence",
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "mastodon-fediscience.org-113117856053679074",
+    "venue": "fediscience.org",
+    "url": "https://fediscience.org/api/v1/statuses/113117856053679074",
+    "date": "2024-09-11",
+    "role": "Parent of a psychology undergraduate (Universidad Autónoma de Madrid)",
+    "software_named": [
+      "SPSS"
+    ],
+    "workflow": "statistics course requiring SPSS",
+    "quote": "A mi hija se lo han pedido ahora para tercero de psicología en la UAM y me ha pedido a mí que lo piratee. ... Los precios en la web de IBM son de 110€ al mes y unos 1180€ al año y, obviamente, no podemos pagar eso.",
+    "problem": "A student's course needs SPSS, which costs €110/month; the family is asked to pirate it",
+    "need": "Free software that courses can require without students paying or pirating",
+    "severity": "blocks the analysis",
+    "signal": {
+      "favourites": 0,
+      "boosts": 0,
+      "replies": 0
+    },
+    "tags": [
+      "price-licence",
+      "teaching"
+    ]
+  },
+  {
+    "id": "mastodon-ecoevo.social-114440041747939117",
+    "venue": "ecoevo.social",
+    "url": "https://ecoevo.social/api/v1/statuses/114440041747939117",
+    "date": "2025-05-02",
+    "role": "Research scientist and lab manager, cell biology PhD (bio)",
+    "software_named": [
+      "Fiji"
+    ],
+    "workflow": "adding scale bars to microscopy images",
+    "quote": "I took images with the same magnification and zoom. I rotated and cropped them in FIJI and added scale bars. The scale bar on one of the images is longer than the others. What is going on. I am literally about to lose it.",
+    "problem": "Image scale is silently lost after rotate/crop, so scale bars come out wrong",
+    "need": "Keep calibration through every transform and warn when it is lost or differs between images in one figure",
+    "severity": "wrong result risk",
+    "signal": {
+      "favourites": 0,
+      "boosts": 0,
+      "replies": 1
+    },
+    "tags": [
+      "image-analysis-exports",
+      "units-and-transforms"
+    ]
+  },
+  {
+    "id": "mastodon-8bitorbust.info-115315620267316809",
+    "venue": "8bitorbust.info",
+    "url": "https://8bitorbust.info/api/v1/statuses/115315620267316809",
+    "date": "2025-10-04",
+    "role": "Senior Lecturer in Imaging & Calcified Tissues (bio)",
+    "software_named": [
+      "ImageJ"
+    ],
+    "workflow": "cropping calibrated images",
+    "quote": "Fighting #ImageJ today. It's losing greyscale calibration when I crop a section from a larger image.",
+    "problem": "Greyscale calibration is lost when an image is cropped",
+    "need": "Carry intensity calibration with the data through crops and exports",
+    "severity": "wrong result risk",
+    "signal": {
+      "favourites": 10,
+      "boosts": 0,
+      "replies": 4
+    },
+    "tags": [
+      "image-analysis-exports",
+      "units-and-transforms"
+    ]
+  },
+  {
+    "id": "mastodon-biologists.social-114415479750505635",
+    "venue": "biologists.social",
+    "url": "https://biologists.social/api/v1/statuses/114415479750505635",
+    "date": "2025-04-28",
+    "role": "Postdoc, cell biology and microscopy (bio)",
+    "software_named": [
+      "Fiji",
+      "Napari",
+      "Python"
+    ],
+    "workflow": "converting proprietary microscope files",
+    "quote": "Image analysts: What is your go to method for batch converting image files from the proprietary format to a tiff file?",
+    "problem": "Proprietary microscope files have to be converted one by one before analysis",
+    "need": "Batch-import vendor instrument formats directly",
+    "severity": "slows the work",
+    "signal": {
+      "favourites": 0,
+      "boosts": 0,
+      "replies": 1
+    },
+    "tags": [
+      "import-instrument-files",
+      "scripting-batch"
+    ]
+  },
+  {
+    "id": "mastodon-fediscience.org-115868153028716998",
+    "venue": "fediscience.org",
+    "url": "https://fediscience.org/api/v1/statuses/115868153028716998",
+    "date": "2026-01-10",
+    "role": "Runs a spatial proteomics facility, University of Oxford (bio)",
+    "software_named": [
+      "ImageJ",
+      "Bio-Formats",
+      "BigWarp",
+      "QuPath"
+    ],
+    "workflow": "aligning large whole-slide fluorescence scans",
+    "quote": "However standard ImageJ (bioformats) file handling doesn’t cope well with such large files.",
+    "problem": "Standard tools choke on 2-4 GB images",
+    "need": "Handle multi-GB inputs (chunked/lazy loading) without crashing",
+    "severity": "blocks the analysis",
+    "signal": {
+      "favourites": 3,
+      "boosts": 1,
+      "replies": 6
+    },
+    "tags": [
+      "large-data",
+      "performance"
+    ]
+  },
+  {
+    "id": "mastodon-mstdn.science-110033513018885906",
+    "venue": "mstdn.science",
+    "url": "https://mstdn.science/api/v1/statuses/110033513018885906",
+    "date": "2023-03-16",
+    "role": "Senior research engineer, biochemist (bio)",
+    "software_named": [
+      "ImageJ",
+      "MicrobeJ"
+    ],
+    "workflow": "comparing bacteria in microscopy images, WT vs mutant",
+    "quote": "This #ImageJ plugin seems perfect for what I want to do, but the documentation on https://microbej.com is not like the interface on my Mac👇, is there a newer manual somewhere?",
+    "problem": "Plugin documentation does not match the interface on Mac",
+    "need": "Documentation and tutorials that match the current interface on every OS",
+    "severity": "slows the work",
+    "signal": {
+      "favourites": 0,
+      "boosts": 0,
+      "replies": 0
+    },
+    "tags": [
+      "tutorials",
+      "mac-windows"
+    ]
+  },
+  {
+    "id": "mastodon-mstdn.science-109783546566069385",
+    "venue": "mstdn.science",
+    "url": "https://mstdn.science/api/v1/statuses/109783546566069385",
+    "date": "2023-01-31",
+    "role": "Postdoctoral fellow, cell biology (bio)",
+    "software_named": [
+      "TrackMate",
+      "Fiji"
+    ],
+    "workflow": "cell tracking analysis",
+    "quote": "is there a way to calculate directionality on TrackMate? Or if not, is there a file that can be used to calculate directionality later on?",
+    "problem": "Cannot find how to get a directionality metric or the export that would allow computing it",
+    "need": "Export per-track tables in a documented format ready for downstream statistics",
+    "severity": "slows the work",
+    "signal": {
+      "favourites": 0,
+      "boosts": 0,
+      "replies": 0
+    },
+    "tags": [
+      "image-analysis-exports"
+    ]
+  },
+  {
+    "id": "mastodon-genomic.social-111632643369774216",
+    "venue": "genomic.social",
+    "url": "https://genomic.social/api/v1/statuses/111632643369774216",
+    "date": "2023-12-24",
+    "role": "PhD candidate, immunology (bio)",
+    "software_named": [
+      "FlowJo",
+      "Julia"
+    ],
+    "workflow": "complex flow cytometry analyses",
+    "quote": "this appears to make a lot of the analyses that our lab has hard-coded into a very nifty interactive web-app!! Really awesome way to make complex #FlowCytometry analysis accessible when built-in tools to #FlowJo don't quite deliver!",
+    "problem": "FlowJo's built-in tools fall short, so the lab hard-codes its own analyses",
+    "need": "Interactive downstream analysis of exported cytometry data (frequencies, MFIs, group stats) without coding",
+    "severity": "slows the work",
+    "signal": {
+      "favourites": 0,
+      "boosts": 0,
+      "replies": 0
+    },
+    "tags": [
+      "flow-cytometry",
+      "scripting-batch"
+    ]
+  },
+  {
+    "id": "mastodon-mastodon.social-113151485600181880",
+    "venue": "mastodon.social",
+    "url": "https://mastodon.social/api/v1/statuses/113151485600181880",
+    "date": "2024-09-17",
+    "role": "Professor, sociology; journal reviewer (bio)",
+    "software_named": [
+      "SPSS"
+    ],
+    "workflow": "reviewing a manuscript's analysis",
+    "quote": "Authors provided data, but \"No code was used as all analysis were performed with SPSS.\"",
+    "problem": "Point-and-click analyses leave no record that reviewers can check",
+    "need": "Log every analysis step automatically and export it as a re-runnable script or report",
+    "severity": "wrong result risk",
+    "signal": {
+      "favourites": 2,
+      "boosts": 0,
+      "replies": 0
+    },
+    "tags": [
+      "reproducibility-audit",
+      "reporting-methods"
+    ]
+  },
+  {
+    "id": "mastodon-mastodon.social-109816897396255021",
+    "venue": "mastodon.social",
+    "url": "https://mastodon.social/api/v1/statuses/109816897396255021",
+    "date": "2023-02-06",
+    "role": "Biologist, evolution of morphogenesis (bio)",
+    "software_named": [
+      "Fiji"
+    ],
+    "workflow": "choosing image LUTs",
+    "quote": "If you use Fiji (ImageJ) I made lookup tables (LUTs) using a color blind friendly color set from Okabe & Ito (2002). It provides a few more options for your image stacks beyond the recommended green/magenta combination.",
+    "problem": "Few colour-blind-safe options beyond green/magenta",
+    "need": "Ship colour-blind-safe palettes (e.g. Okabe-Ito) as defaults",
+    "severity": "cosmetic / preference",
+    "signal": {
+      "favourites": 7,
+      "boosts": 3,
+      "replies": 1
+    },
+    "tags": [
+      "colour-blind",
+      "accessibility"
+    ]
+  },
+  {
+    "id": "mastodon-fediscience.org-109836977506872248",
+    "venue": "fediscience.org",
+    "url": "https://fediscience.org/api/v1/statuses/109836977506872248",
+    "date": "2023-02-09",
+    "role": "Professor of Politics (bio)",
+    "software_named": [
+      "Stata",
+      "R",
+      "SPSS"
+    ],
+    "workflow": "choosing statistics software",
+    "quote": "Leute unserer Generation meistens mit Stata (teuer, schnell, stabil, langweilig), die jungen Menschen mit R (Open Source, echte Programmiersprache, 7 unabhängig entwickelte, fast identische, inkompatible Pakete für dasselbe Problem, sexy)",
+    "problem": "Choice is between an expensive package and R with many incompatible packages for the same task",
+    "need": "One coherent free tool: one validated way to do each standard analysis",
+    "severity": "slows the work",
+    "signal": {
+      "favourites": 0,
+      "boosts": 0,
+      "replies": 1
+    },
+    "tags": [
+      "price-licence",
+      "learning-curve",
+      "numbers-differ-between-tools"
+    ]
+  }
+]

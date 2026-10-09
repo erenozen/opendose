@@ -1,0 +1,3218 @@
+[
+  {
+    "id": "imagesc-13582-1",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/13582",
+    "date": "2013-02",
+    "role": "CellProfiler developer (stated)",
+    "software_named": [
+      "GraphPad Prism",
+      "CellProfiler"
+    ],
+    "workflow": "per-object image measurements exported as CSV, then analysed elsewhere",
+    "quote": "According to our user survey, respondents mentioned that GraphPad Prism was the 2nd-most popular data analysis software used with CellProfiler data.",
+    "problem": "Image-analysis output routinely leaves the image tool and is re-entered into a separate stats/graphing program",
+    "need": "Import per-object CSV exports from image-analysis tools directly, with the header row becoming column titles",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "image-analysis-exports",
+      "import-instrument-files"
+    ]
+  },
+  {
+    "id": "imagesc-13582-2",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/13582",
+    "date": "2013-02",
+    "role": null,
+    "software_named": [
+      "GraphPad Prism",
+      "R"
+    ],
+    "workflow": "classifier-positive vs negative distributions as box plots",
+    "quote": "I think that Prism has better box plots than R for graphing classifier rule +/- distributions. That is why I use it.",
+    "problem": "Chooses the plotting tool for its default box-plot quality rather than for its analysis",
+    "need": "Produce publication-quality box plots by default without scripting",
+    "severity": "cosmetic / preference",
+    "signal": null,
+    "tags": [
+      "graph-formatting",
+      "show-the-points"
+    ]
+  },
+  {
+    "id": "imagesc-47079-1",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/47079",
+    "date": "2020-12",
+    "role": "new CellProfiler user, RWTH Aachen (stated)",
+    "software_named": [
+      "CellProfiler",
+      "GraphPad Prism",
+      "Origin"
+    ],
+    "workflow": "foci per nucleus and nuclear/cytoplasmic intensity ratios per well",
+    "quote": "How to analyse statistical significances? Is it required to learn R, Python etc., to make a proper plot?",
+    "problem": "After generating the measurement spreadsheet the user does not know how to test significance or plot without learning to code",
+    "need": "Take an image-analysis spreadsheet and guide the user from it to a test and a plot without code",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "which-test",
+      "learning-curve",
+      "image-analysis-exports"
+    ]
+  },
+  {
+    "id": "imagesc-47079-2",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/47079",
+    "date": "2020-12",
+    "role": "CellProfiler team member (stated in thread)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "plotting per-object measurements (one row per cell)",
+    "quote": "Prism's stats functions are pretty good in my experience, but some of the older versions can struggle plotting very large numbers of points onto a graph.",
+    "problem": "Per-cell data sets have very many points and the graphing tool slows down or struggles to plot them",
+    "need": "Plot tens of thousands of per-cell points responsively",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "large-data",
+      "performance"
+    ]
+  },
+  {
+    "id": "imagesc-48805-1",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/48805",
+    "date": "2021-02",
+    "role": null,
+    "software_named": [
+      "QuPath"
+    ],
+    "workflow": "whole-slide detections: mean and SD of a nuclear feature per case, 150 cases",
+    "quote": "But I have more than 150 cases which have around 1million data point per case. So when I tried to export the interesting features from detection measurement, it couldn't cope to transfer 150 cases at the same time with csv format.",
+    "problem": "Exporting a million detections per case for 150 cases as CSV fails, so per-case summaries cannot be built",
+    "need": "Accept very large per-object tables and summarise them per case (mean, SD) in batch",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "large-data",
+      "image-analysis-exports",
+      "scripting-batch"
+    ]
+  },
+  {
+    "id": "imagesc-80923-1",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/80923",
+    "date": "2023-05",
+    "role": null,
+    "software_named": [
+      "Icy",
+      "GraphPad Prism",
+      "Excel"
+    ],
+    "workflow": "batch spot-detection results saved for spreadsheet analysis",
+    "quote": "I noticed that all her xml files created or appended by Icy, to store the batch data from Spot Detector, but also for ROI information, are in the GraphPadPrism format, whereas mines are in Excel.",
+    "problem": "Results file written in one program's XML format cannot be opened by a colleague's spreadsheet software",
+    "need": "Read and write open, unambiguous formats (CSV/XLSX) and detect other tools' XML formats on import",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "file-compatibility",
+      "excel-paste"
+    ]
+  },
+  {
+    "id": "imagesc-33993-1",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/33993",
+    "date": "2020-02",
+    "role": null,
+    "software_named": [],
+    "workflow": "autophagy figures per cell, 3 treated cultures each with a control, ~100 cells each",
+    "quote": "Then I decided to pool all treated cells and all controls for a general comparison. The question, more specifically, is: do I have the right, statistically, to do so?",
+    "problem": "Wants to pool ~600 cells from three independent repeats and treat each cell as n",
+    "need": "Ask what the independent unit is (culture/repeat vs cell) and test on per-repeat summaries, showing cells as a SuperPlot",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "n-definition",
+      "technical-vs-biological-replicates",
+      "superplots"
+    ]
+  },
+  {
+    "id": "imagesc-33993-2",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/33993",
+    "date": "2020-02",
+    "role": null,
+    "software_named": [],
+    "workflow": "checking whether three experimental runs can be lumped",
+    "quote": "Is there a statistical means to prove that this assumption is not wrong? I tried the CV. ... you are right, lumping runs is not a good idea.",
+    "problem": "No easy way to check run-to-run (between-experiment) variance before lumping runs; tried comparing CVs",
+    "need": "Include experiment/run as a factor (blocking or nested model) and show the run-to-run variance explicitly",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "two-way-anova",
+      "mixed-model-missing-values",
+      "n-definition"
+    ]
+  },
+  {
+    "id": "imagesc-21802-1",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/21802",
+    "date": "2018-12",
+    "role": null,
+    "software_named": [
+      "CellProfiler"
+    ],
+    "workflow": "96-well plate, 3 wells x 9 images x ~40 cells per condition",
+    "quote": "For each biological replicate I have several technical replicates. How do I calculate an error (or the SD for that matter) for the biological replicates that takes into account the errors of the replicates?",
+    "problem": "Does not know how to compute error bars for biological replicates when each is built from technical replicates",
+    "need": "Aggregate technical replicates to one value per biological replicate and explain which SD/SEM the error bar shows",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "technical-vs-biological-replicates",
+      "error-bars-sd-sem"
+    ]
+  },
+  {
+    "id": "imagesc-56287-1",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/56287",
+    "date": "2021-08",
+    "role": null,
+    "software_named": [
+      "CellProfiler"
+    ],
+    "workflow": "EU incorporation per cell, 3 wells per drug treatment",
+    "quote": "How can I estimate the minimum number of cells we should analyse per well?",
+    "problem": "No way to decide how many cells per well to image/analyse",
+    "need": "Estimate required cells per well (and wells per condition) from pilot variance",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "power-sample-size"
+    ]
+  },
+  {
+    "id": "imagesc-56287-2",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/56287",
+    "date": "2021-08",
+    "role": null,
+    "software_named": [
+      "CellProfiler"
+    ],
+    "workflow": "mean of three well means, each with its own uncertainty",
+    "quote": "how do I calculate the SEM for the average reading of the three replicates (that is, SEM(x..)) bearing in mind that each of the well averages (xi.) also has an uncertainty.",
+    "problem": "Unsure how within-well (cell) and between-well variance combine into the reported SEM",
+    "need": "Compute summary statistics for nested data (cells within wells) and state which level the SEM refers to",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "technical-vs-biological-replicates",
+      "error-bars-sd-sem",
+      "n-definition"
+    ]
+  },
+  {
+    "id": "imagesc-86649-1",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/86649",
+    "date": "2023-09",
+    "role": null,
+    "software_named": [],
+    "workflow": "nuclei per mm2 and % pH3-positive; 3 coverslips x 3 tilescans x 9 sub-tiles per condition",
+    "quote": "It seems inappropriate to put the counts for each of my 9th of a tile. But should I just create an average value for each region? Or for each coverslip? My question is - at what point do you take the mean?",
+    "problem": "Does not know at which level (sub-tile, tilescan, coverslip) to average before graphing",
+    "need": "Ask for the hierarchy (field within coverslip within condition) and average up to the replicate level automatically",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "n-definition",
+      "technical-vs-biological-replicates"
+    ]
+  },
+  {
+    "id": "imagesc-86649-2",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/86649",
+    "date": "2023-09",
+    "role": "experienced forum helper",
+    "software_named": [],
+    "workflow": "subdividing images to raise n",
+    "quote": "Some people divide up subsections of images/coverslip to p-hack the results, but I suspect there are issues with that unless you are aware that there is reason for variation across the coverslip.",
+    "problem": "Splitting images into sub-regions inflates n (pseudoreplication) and can manufacture significance",
+    "need": "Warn when the number of data points exceeds the number of independent samples and test at the sample level",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "n-definition",
+      "outliers"
+    ]
+  },
+  {
+    "id": "imagesc-84094-1",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/84094",
+    "date": "2023-07",
+    "role": null,
+    "software_named": [
+      "QuPath",
+      "R"
+    ],
+    "workflow": "RNAscope in brain regions, 9 vs 9 animals, 3 probes",
+    "quote": "Is the above calculation a good way to get out the num positive per channel and to eventually compare those values across our samples and conditions with an t-test/anova in R?",
+    "problem": "Unsure whether a home-made normalised metric is valid and which test to use across conditions",
+    "need": "Explain what a per-area/per-cell metric is normalised to and suggest the test for 9 vs 9 animals",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "normalization",
+      "which-test"
+    ]
+  },
+  {
+    "id": "imagesc-84094-2",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/84094",
+    "date": "2023-07",
+    "role": null,
+    "software_named": [
+      "QuPath"
+    ],
+    "workflow": "per-sample detection thresholds",
+    "quote": "Unfortunately for whole brain slides we needed to image all the samples separately, therefore for the detection of the probes with qupath we set unbiased different thresholds for each sample.",
+    "problem": "Different thresholds per sample may make counts incomparable between groups",
+    "need": "Record per-sample analysis settings with the data and flag when groups were processed with different parameters",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "reproducibility-audit",
+      "image-analysis-exports"
+    ]
+  },
+  {
+    "id": "imagesc-115935-1",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/115935",
+    "date": "2025-08",
+    "role": null,
+    "software_named": [
+      "Excel",
+      "JMP"
+    ],
+    "workflow": "Jaccard/F1 of several segmentation programs",
+    "quote": "What statistical test(s) should I run to see statistically significant differences in the Jaccard indices and F1 measures among the software tested? My data analysis software acumen is limited to Excel and JMP. I don't know how to use Jupyter notebooks.",
+    "problem": "Needs to compare several methods on the same images but does not know which test and cannot code",
+    "need": "Design-first chooser: same images measured by k methods means repeated-measures / Friedman, no coding",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "which-test",
+      "learning-curve",
+      "nonparametric"
+    ]
+  },
+  {
+    "id": "imagesc-115935-2",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/115935",
+    "date": "2025-08",
+    "role": "pathologist / image analyst (stated)",
+    "software_named": [],
+    "workflow": "comparing automated vs manual segmentation",
+    "quote": "Also consider Bland-Altman agreement analysis. ... It is also very easy to do, you can probably do it in a spreadsheet.",
+    "problem": "Method comparison is being framed as significance testing instead of agreement",
+    "need": "Offer Bland-Altman (and multi-method pairwise Bland-Altman) for method-comparison data",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "bland-altman"
+    ]
+  },
+  {
+    "id": "imagesc-116140-1",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/116140",
+    "date": "2025-08",
+    "role": null,
+    "software_named": [
+      "QuPath"
+    ],
+    "workflow": "YAP IHC H-scores per field, disease vs control",
+    "quote": "Is this method valid for reliably comparing total YAP expression (nuclear + cytoplasmic) and nuclear-specific YAP expression between groups?",
+    "problem": "Unsure whether per-field H-scores from batch scripts are valid for a group comparison",
+    "need": "State the unit of analysis (patient vs field) and the scale of the score before comparing groups",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "trust-validation",
+      "image-analysis-exports",
+      "n-definition"
+    ]
+  },
+  {
+    "id": "imagesc-116140-2",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/116140",
+    "date": "2025-08",
+    "role": "experienced forum helper",
+    "software_named": [
+      "QuPath"
+    ],
+    "workflow": "DAB optical density",
+    "quote": "You can't use optical density means, the values aren't really linear nor are they meaningful on a scale.",
+    "problem": "Users average DAB OD values as if they were linear quantities",
+    "need": "Warn when averaging non-linear units and suggest percentage positive instead",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "units-and-transforms"
+    ]
+  },
+  {
+    "id": "imagesc-118248-1",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/118248",
+    "date": "2025-12",
+    "role": "new to imaging analysis (stated)",
+    "software_named": [
+      "QuPath"
+    ],
+    "workflow": "live-cell MFI, 3 wells per group x 5 FOV, 7 time points",
+    "quote": "I am worried that the second method is pseudoreplication, but the first method feels like I am losing the nuance of the cell-to-cell variability.",
+    "problem": "Torn between N=3 wells and N=15 FOVs (or thousands of cells) for a t-test",
+    "need": "Test at the well level while still displaying every cell (SuperPlot), and explain why",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "n-definition",
+      "superplots",
+      "technical-vs-biological-replicates"
+    ]
+  },
+  {
+    "id": "imagesc-118248-2",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/118248",
+    "date": "2025-12",
+    "role": "new to imaging analysis (stated)",
+    "software_named": [],
+    "workflow": "lab practice for binning cells into data points",
+    "quote": "However, I have seen others in my lab combine all cells from the 3 wells (total of 15 FOVs) and average them into smaller bins (e.g., every 100 cells = 1 data point) or treat every FOV as a separate data point.",
+    "problem": "Lab members inflate n by binning cells or treating FOVs as replicates",
+    "need": "Detect nested structure in the data table and refuse/flag tests that use sub-replicate units as n",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "n-definition"
+    ]
+  },
+  {
+    "id": "imagesc-118790-1",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/118790",
+    "date": "2026-01",
+    "role": null,
+    "software_named": [
+      "Fiji"
+    ],
+    "workflow": "intensity vs distance profiles in CA1",
+    "quote": "The problem is, there is a brightness variability in some samples, even though we took them all under the same conditions.",
+    "problem": "Line profiles from different images differ in baseline brightness so curves are not comparable",
+    "need": "Normalise profiles to a reference region/baseline and rescale distance to a common axis before averaging",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "normalization"
+    ]
+  },
+  {
+    "id": "imagesc-114774-1",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/114774",
+    "date": "2025-07",
+    "role": null,
+    "software_named": [
+      "ImageJ",
+      "QuPath"
+    ],
+    "workflow": "6 markers x 3 conditions, mean grey value with uneven confluence",
+    "quote": "The only method that showed the changes we would expect for each marker was with the DAPI MGV, but I am concerned that this method is not accurately taking into account the confluence issue we have had with these cells.",
+    "problem": "Tried several normalisations and is tempted to keep the one that gives the expected result",
+    "need": "Pre-specify the normalisation and show results under each candidate so the choice is transparent",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "normalization",
+      "trust-validation"
+    ]
+  },
+  {
+    "id": "imagesc-121069-1",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/121069",
+    "date": "2026-05",
+    "role": null,
+    "software_named": [],
+    "workflow": "normalising sample fluorescence to beads",
+    "quote": "So how can their signal say anything meaningful about variability in *my sample*?",
+    "problem": "Unclear what a normalisation reference actually corrects for (instrument vs sample variability)",
+    "need": "Explain what each normalisation removes and what variance remains",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "normalization"
+    ]
+  },
+  {
+    "id": "imagesc-109062-1",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/109062",
+    "date": "2025-02",
+    "role": null,
+    "software_named": [],
+    "workflow": "clustering cells on marker MFIs",
+    "quote": "When I use the Cluster Cells function, select \"Standardize: subtract Mean divide by STD\" and normalize per dataset. How exactly the normalization is done?",
+    "problem": "Does not know how the software standardised the data before clustering",
+    "need": "Document exactly which standardisation is applied (per marker, per dataset, per sample)",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "pca-clustering",
+      "normalization",
+      "reproducibility-audit"
+    ]
+  },
+  {
+    "id": "imagesc-35828-1",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/35828",
+    "date": "2020-04",
+    "role": null,
+    "software_named": [
+      "Fiji"
+    ],
+    "workflow": "GFP normalised to DAPI in fly brain max projections",
+    "quote": "The problem is that I am trying to normalize the GFP to the Dapi, and I have not done this before.",
+    "problem": "PI asks for normalisation to DAPI and the student does not know how to do it",
+    "need": "Guided ratio normalisation (signal/reference channel) with area accounted for",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "normalization",
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "imagesc-23525-1",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/23525",
+    "date": "2019-03",
+    "role": null,
+    "software_named": [
+      "ImageJ"
+    ],
+    "workflow": "thresholding tissue fluorescence across samples",
+    "quote": "I have tried to subtract background, but that doesn't fix my actual problem of normalizing my pictures so I can compare them.",
+    "problem": "Background differs between tissues so one threshold captures signal in one sample and nothing in another",
+    "need": "Normalise background between images before thresholding and report the method",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "normalization",
+      "image-analysis-exports"
+    ]
+  },
+  {
+    "id": "imagesc-46220-1",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/46220",
+    "date": "2020-12",
+    "role": null,
+    "software_named": [],
+    "workflow": "western blot normalisation to loading control",
+    "quote": "Would you please clarify the principle behind each strategy and which one should I follow, as I tried both and got different values!!!",
+    "problem": "Two normalisation orders (normalise loading control first vs divide then normalise) give different numbers",
+    "need": "Implement one documented western-blot normalisation workflow (target/loading control, then relative to control lane)",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "western-blot-densitometry",
+      "normalization"
+    ]
+  },
+  {
+    "id": "imagesc-14618-1",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/14618",
+    "date": "2016-10",
+    "role": null,
+    "software_named": [],
+    "workflow": "nuclear protein intensity normalised to DAPI",
+    "quote": "I have seen papers where they simply divide the intensity for the protein of interest with the nuclear intensity. Is there a good reference that shows that the nuclear and protein intensities co-varies linearly when the potentially confounding factors change?",
+    "problem": "Ratio normalisation is used without checking that the two signals scale linearly",
+    "need": "Plot signal vs reference before normalising and warn when the ratio assumption fails",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "normalization",
+      "trust-validation"
+    ]
+  },
+  {
+    "id": "imagesc-84720-1",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/84720",
+    "date": "2023-08",
+    "role": null,
+    "software_named": [
+      "ImageJ"
+    ],
+    "workflow": "particle tracking in neurons, reviewer response",
+    "quote": "The reviewer asks for normalization of the particle channel to the cytoplasmic fill channel to show that the movement of particles is not caused by the changes in morphology. ... but I can't really say no to a reviewer and expect to have a paper published.",
+    "problem": "A reviewer demands a normalisation the author does not know how to do sensibly",
+    "need": "Offer standard channel-ratio normalisation with a methods text to cite in the response",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "normalization",
+      "reporting-methods"
+    ]
+  },
+  {
+    "id": "imagesc-82471-1",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/82471",
+    "date": "2023-06",
+    "role": "new to Sholl analysis (stated)",
+    "software_named": [
+      "SNT",
+      "Fiji"
+    ],
+    "workflow": "Sholl profiles, control vs experimental group",
+    "quote": "now that i have these 2 graphs how i insert them into one so i can make my comparisons.",
+    "problem": "Group-mean curves end up in two separate plots and cannot be overlaid easily",
+    "need": "Overlay several groups' mean curves with error bands on one XY graph",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "graph-formatting",
+      "compare-curves"
+    ]
+  },
+  {
+    "id": "imagesc-82471-2",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/82471",
+    "date": "2023-06",
+    "role": "new to Sholl analysis (stated)",
+    "software_named": [
+      "SNT"
+    ],
+    "workflow": "comparing Sholl profiles between groups",
+    "quote": "Is it possible to conduct statistical analysis within SNT or do i have to transfer my data to another software?",
+    "problem": "Statistics for comparing profiles are not available where the data was produced",
+    "need": "Compare whole curves between groups (e.g. two-way ANOVA radius x group or curve comparison)",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "compare-curves",
+      "image-analysis-exports"
+    ]
+  },
+  {
+    "id": "imagesc-67360-1",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/67360",
+    "date": "2022-05",
+    "role": null,
+    "software_named": [],
+    "workflow": "comparing area measurements of two scripts on the same images",
+    "quote": "To compare these two scripts, I compare the area data result by using the t-test. So, I am wondering what hypothesis I can make?",
+    "problem": "Uses an unpaired t-test to compare two measurement methods on the same objects",
+    "need": "Recognise method-comparison designs and offer paired analysis plus Bland-Altman agreement",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "bland-altman",
+      "which-test"
+    ]
+  },
+  {
+    "id": "imagesc-68614-1",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/68614",
+    "date": "2022-06",
+    "role": null,
+    "software_named": [
+      "TrackMate",
+      "MATLAB",
+      "msdanalyzer"
+    ],
+    "workflow": "mean MSD curves for several drug conditions",
+    "quote": "I used plotMeanMSD for multiple drug conditions on the same plot. All working great. However, can I do statistical tests for the different conditions? ... I had the same question",
+    "problem": "Can plot mean curves per condition but has no way to test whether the curves differ",
+    "need": "Statistical comparison of curves between conditions (fit parameters or curve-level test)",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "compare-curves",
+      "time-series"
+    ]
+  },
+  {
+    "id": "imagesc-73591-1",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/73591",
+    "date": "2022-11",
+    "role": null,
+    "software_named": [
+      "ImageJ"
+    ],
+    "workflow": "mitochondrial particles within cells within animals within treatment",
+    "quote": "I'm wondering if there is a way that I can leverage the large number of measurements to increase the statistical power of my analysis. ... I'm considering using nested three-factor ANOVA.",
+    "problem": "Many particle measurements nested in cells and animals; risk of treating particles as n",
+    "need": "Nested/mixed model with animal as the unit, available without scripting",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "n-definition",
+      "mixed-model-missing-values",
+      "large-data"
+    ]
+  },
+  {
+    "id": "imagesc-81529-1",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/81529",
+    "date": "2023-05",
+    "role": null,
+    "software_named": [
+      "QuPath",
+      "Excel"
+    ],
+    "workflow": "exporting measurements",
+    "quote": "How to export measurement data to Excel? I can't find any function that allows this.",
+    "problem": "No direct export from the image tool to a spreadsheet",
+    "need": "Accept CSV/TSV exports from image tools directly so no Excel step is needed",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "image-analysis-exports",
+      "excel-paste"
+    ]
+  },
+  {
+    "id": "imagesc-96304-1",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/96304",
+    "date": "2024-05",
+    "role": null,
+    "software_named": [
+      "QuPath"
+    ],
+    "workflow": "multiplex IF positive cells per DAPI vs per tissue area",
+    "quote": "while this two approach statistic way should be same comparison result ,however using the positive cell number /DAPI can reached to more expected data",
+    "problem": "Two normalisations answer different questions; user prefers the one giving the expected result",
+    "need": "Explain what each denominator measures and keep the chosen one fixed before testing",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "normalization",
+      "units-and-transforms"
+    ]
+  },
+  {
+    "id": "imagesc-8665-1",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/8665",
+    "date": "2018-01",
+    "role": null,
+    "software_named": [
+      "Coloc2",
+      "Imaris"
+    ],
+    "workflow": "Pearson/Manders coefficients, ~20 images WT vs mutant",
+    "quote": "So, can I do simple averages on the coefficient values I got out of each image from the set? Or is there something I am missing? ... I do have same problem and have not found clear solution yet.",
+    "problem": "Does not know how to summarise and compare per-image colocalisation coefficients",
+    "need": "Guide from per-image coefficients to a per-sample summary and a two-group test",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "n-definition",
+      "which-test",
+      "correlation"
+    ]
+  },
+  {
+    "id": "imagesc-67143-1",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/67143",
+    "date": "2022-05",
+    "role": null,
+    "software_named": [
+      "ImageJ"
+    ],
+    "workflow": "colocalisation in several slices per individual, two cohorts",
+    "quote": "But then I don't know how to have an average \"coefficient\" for each individuals in order to plot the coefficients for each individuals and then do a t-test between the two groups to see a difference.",
+    "problem": "Needs to aggregate several slices per individual before comparing cohorts",
+    "need": "Aggregate measurements to one value per individual, plot individuals and test between groups",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "n-definition",
+      "show-the-points"
+    ]
+  },
+  {
+    "id": "imagesc-54089-1",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/54089",
+    "date": "2021-06",
+    "role": null,
+    "software_named": [
+      "ImageJ"
+    ],
+    "workflow": "biofilm intensity-time curves, 10 repeats on different days",
+    "quote": "Currently, the difficulty I have is how to scale these experiments (for the 10 days) inorder to get an average intensity-time data for all the repeats",
+    "problem": "Cannot combine repeated time courses from different days into one mean curve",
+    "need": "Average replicate time courses with per-repeat curves shown (time-series SuperPlot) and error bands",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "time-series",
+      "superplots",
+      "normalization"
+    ]
+  },
+  {
+    "id": "imagesc-54089-2",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/54089",
+    "date": "2021-06",
+    "role": "forum helper",
+    "software_named": [
+      "SuperPlotsOfData"
+    ],
+    "workflow": "presenting replicate data",
+    "quote": "There's also the ... corresponding online tool ... that you can use to plot your data if you are not proficient with coding to do it yourself.",
+    "problem": "Users who cannot code are pointed to a separate web tool just to make a SuperPlot",
+    "need": "Built-in SuperPlots (cells coloured by replicate, replicate means overlaid) without code",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "superplots",
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "imagesc-55414-1",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/55414",
+    "date": "2021-07",
+    "role": null,
+    "software_named": [
+      "BiofilmQ"
+    ],
+    "workflow": "3 biological x 3 technical replicates of biofilm z-stacks",
+    "quote": "Is there a way to include a t-test (or sth similar) under method in the visualization? ... regarding the t-test, we currently don´t have anything like this implemented.",
+    "problem": "Image tool has visualisation but no statistics; user must export to R/Python",
+    "need": "Accept the exported replicate table and run the test with technical replicates aggregated",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "which-test",
+      "technical-vs-biological-replicates",
+      "image-analysis-exports"
+    ]
+  },
+  {
+    "id": "imagesc-66731-1",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/66731",
+    "date": "2022-05",
+    "role": null,
+    "software_named": [
+      "QuPath"
+    ],
+    "workflow": "100 multiplex slides, 6 channels, cell classification",
+    "quote": "However, the background for each slide is different, and we cannot use a unified threshold for all slides.",
+    "problem": "Slide-to-slide background prevents a single positivity threshold",
+    "need": "Per-slide normalisation against controls before applying a common threshold",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "normalization",
+      "large-data"
+    ]
+  },
+  {
+    "id": "imagesc-117634-1",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/117634",
+    "date": "2025-11",
+    "role": "amateur with ImageJ (stated)",
+    "software_named": [
+      "ImageJ"
+    ],
+    "workflow": "axon fluorescence, control vs drug",
+    "quote": "I have been thinking of setting a threshold based on a single control image and just normalizing the background of all images. Does this make sense, or are there potential inaccuracies or errors that can occur from this method?",
+    "problem": "Unsure whether a background normalisation will bias the group comparison",
+    "need": "Show the effect of the chosen background correction on the group comparison",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "normalization",
+      "trust-validation"
+    ]
+  },
+  {
+    "id": "imagesc-110190-1",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/110190",
+    "date": "2025-03",
+    "role": "new to protein array analysis (stated)",
+    "software_named": [
+      "ImageJ",
+      "R"
+    ],
+    "workflow": "phospho-antibody array quantified in ImageJ",
+    "quote": "I'm not sure how to convert the .tif images to .gpr format, or how to statistically analyze the results I obtained from ImageJ.",
+    "problem": "Stats packages need a format the user cannot produce; no path from ImageJ numbers to a test",
+    "need": "Accept plain spot-intensity tables and provide normalisation plus testing for antibody arrays",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "file-compatibility",
+      "which-test",
+      "import-instrument-files"
+    ]
+  },
+  {
+    "id": "imagesc-13927-1",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/13927",
+    "date": "2012-11",
+    "role": null,
+    "software_named": [
+      "CellProfiler"
+    ],
+    "workflow": "western blot band intensities",
+    "quote": "I can't seem to get CellProfiler not to split some of the bands into 2 separate objects.",
+    "problem": "Band segmentation splits bands so intensities are wrong",
+    "need": "Lane/band detection designed for blots rather than cell segmentation",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "western-blot-densitometry"
+    ]
+  },
+  {
+    "id": "imagesc-27133-1",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/27133",
+    "date": "2019-06",
+    "role": null,
+    "software_named": [
+      "ImageJ"
+    ],
+    "workflow": "western blot densitometry",
+    "quote": "Can someone quickly tell me where to find easy instructions to performing densitometry on a Western blot? I find the instructions provided to be incomplete and confusing.",
+    "problem": "Cannot find clear densitometry instructions",
+    "need": "Step-by-step guided densitometry from image to normalised values",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "western-blot-densitometry",
+      "tutorials"
+    ]
+  },
+  {
+    "id": "imagesc-1470-1",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/1470",
+    "date": "2016-04",
+    "role": "image analysis expert (stated)",
+    "software_named": [
+      "ImageJ"
+    ],
+    "workflow": "semi-quantitative western blot analysis",
+    "quote": "Everything I have found in the web so far was mostly going a in the wrong direction leading to non-reliable measurements! ... So, even while often suggested, drawing boxes around a band is not the proper way!",
+    "problem": "Online western blot tutorials teach unreliable quantification",
+    "need": "Densitometry workflow that follows published standards (linear range, total-protein normalisation)",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "western-blot-densitometry",
+      "tutorials",
+      "trust-validation"
+    ]
+  },
+  {
+    "id": "imagesc-1470-2",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/1470",
+    "date": "2016-04",
+    "role": "image analysis expert (stated)",
+    "software_named": [
+      "ImageJ"
+    ],
+    "workflow": "western blot analysis tools",
+    "quote": "I would not recommend using ImageJ's Gel Analysis functions for Western Blot quantification because it is not flexible enough and does not allow to follow literature standards in full.",
+    "problem": "The common free tool cannot implement the recommended standards",
+    "need": "Support calibration, linear-range checks and total-protein normalisation for blots",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "western-blot-densitometry",
+      "normalization"
+    ]
+  },
+  {
+    "id": "imagesc-45049-1",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/45049",
+    "date": "2020-11",
+    "role": "research student (stated)",
+    "software_named": [
+      "Fiji"
+    ],
+    "workflow": "collagen density from Masson trichrome",
+    "quote": "In selecting a ROI to measure area, IntDen and RawInDen, am I to say IntDen=colour intensity per that selected area=density of fibres in that selected area?",
+    "problem": "Unsure what the exported intensity columns mean physically",
+    "need": "Explain imported measurement columns and their units before analysis",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "units-and-transforms",
+      "image-analysis-exports"
+    ]
+  },
+  {
+    "id": "imagesc-92513-1",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/92513",
+    "date": "2024-02",
+    "role": "new to scripting (stated)",
+    "software_named": [
+      "QuPath",
+      "Excel"
+    ],
+    "workflow": "annotation measurements across a project",
+    "quote": "My goal is to have one excel file, with all my annotations measurements of each .czi file in my project.",
+    "problem": "Measurements end up per image and must be merged by hand or by script",
+    "need": "Import and stack many per-image result files into one table with an image identifier",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "image-analysis-exports",
+      "scripting-batch",
+      "long-vs-wide"
+    ]
+  },
+  {
+    "id": "imagesc-106295-1",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/106295",
+    "date": "2024-12",
+    "role": "new to image analysis (stated)",
+    "software_named": [
+      "GraphPad Prism"
+    ],
+    "workflow": "line-profile intensities of two channels",
+    "quote": "Now my question is, can I calculate the correlation coefficient (Pearson's r) by using the intensities values obtained from the two channel? I'm trying Graphpad Prism as software for the correlation analysis",
+    "problem": "Unsure whether Pearson correlation of line-profile values is valid",
+    "need": "Correlation with a warning that adjacent profile points are not independent",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "correlation"
+    ]
+  },
+  {
+    "id": "imagesc-86484-1",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/86484",
+    "date": "2023-09",
+    "role": null,
+    "software_named": [
+      "Sciugo",
+      "Excel",
+      "GraphPad Prism"
+    ],
+    "workflow": "testing a web tool for blot figures",
+    "quote": "I felt the operation was very smooth, and slicker than Excel or Graphpad, which is a big plus. ... How is data stored and managed? Specifically, is it stored on a third party cloud-service or handled on your server?",
+    "problem": "Scientists will ask where unpublished data goes before using a web tool",
+    "need": "Process data locally in the browser and say so plainly",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "privacy",
+      "western-blot-densitometry"
+    ]
+  },
+  {
+    "id": "imagesc-60323-1",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/60323",
+    "date": "2021-11",
+    "role": null,
+    "software_named": [
+      "QuPath"
+    ],
+    "workflow": "cell counts per mm2 for a bar graph",
+    "quote": "But the exported data is not normalized in cells per mm2 area, right? How to normalize it in fact I want to plot the bar graph in cells per mm2?",
+    "problem": "Needs a derived density column before graphing",
+    "need": "Compute derived columns (count / area) during import",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "units-and-transforms",
+      "image-analysis-exports"
+    ]
+  },
+  {
+    "id": "imagesc-42706-1",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/42706",
+    "date": "2020-09",
+    "role": "new to CellProfiler (stated)",
+    "software_named": [
+      "CellProfiler",
+      "ImageJ",
+      "GraphPad Prism"
+    ],
+    "workflow": "MitoTracker red/green ratio, 4 treatments x 3 wells",
+    "quote": "Ultimately, I would like to output the data to a spreadsheet where I can perform any remaining calculations that are necessary (such as the ratios) and transfer the data into Graphpad/Prism for statistical analysis.",
+    "problem": "Pipeline needs a spreadsheet step for ratios and then a manual transfer into a stats program",
+    "need": "Compute ratios on import and carry the per-cell table straight into the analysis",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "image-analysis-exports",
+      "excel-paste"
+    ]
+  },
+  {
+    "id": "imagesc-43465-1",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/43465",
+    "date": "2020-09",
+    "role": null,
+    "software_named": [
+      "CellProfiler",
+      "GraphPad Prism"
+    ],
+    "workflow": "per-cell intensity ratios, image within well within treatment",
+    "quote": "This would allow me to calculate the averages at multiple levels (per image, per well/replicate, and per treatment group), while having a large number of individual data points to input into GraphPad/Prism for statistical analysis and to produce a graph.",
+    "problem": "Needs hierarchical summaries (image, well, group) from a per-cell table",
+    "need": "Read hierarchical per-object data and summarise at each level, testing at the replicate level",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "n-definition",
+      "long-vs-wide",
+      "superplots"
+    ]
+  },
+  {
+    "id": "imagesc-114997-1",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/114997",
+    "date": "2025-07",
+    "role": null,
+    "software_named": [
+      "BraiAn",
+      "RStudio"
+    ],
+    "workflow": "whole-brain region statistics and heatmaps",
+    "quote": "I've been trying to get the heatmap function working as demonstrated in your example, but I've found it a bit challenging to navigate the documentation and configuration files—especially without a programming background.",
+    "problem": "Analysis package requires config files and coding the user lacks",
+    "need": "Point-and-click import of a region table and heatmap without configuration files",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "learning-curve",
+      "volcano-heatmap"
+    ]
+  },
+  {
+    "id": "imagesc-121866-1",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/121866",
+    "date": "2026-07",
+    "role": null,
+    "software_named": [
+      "CellProfiler"
+    ],
+    "workflow": "Cell Painting, 3 plate replicates, 2 cell types",
+    "quote": "I'm wondering at what point would it be appropriate to combine measurements from the multiple replicates, i.e. by taking the median or mean.",
+    "problem": "Unclear order of aggregation and normalisation across plate replicates",
+    "need": "Explicit pipeline: aggregate per well, normalise per plate to controls, then combine replicates",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "normalization",
+      "technical-vs-biological-replicates",
+      "plate-reader"
+    ]
+  },
+  {
+    "id": "imagesc-69716-1",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/69716",
+    "date": "2022-07",
+    "role": null,
+    "software_named": [
+      "ImageJ",
+      "MCID"
+    ],
+    "workflow": "receptor autoradiography, OD to fmol/mg",
+    "quote": "The MCID system would measure optical density and then convert the value to fmol/mg of receptor binding. ... The challenge I'm facing with image J is that it measures mean gray value.",
+    "problem": "Replacement tool lacks standard-curve conversion from optical density to binding units",
+    "need": "Fit a standard curve from calibration standards and interpolate unknowns into physical units",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "standard-curve-interpolation",
+      "units-and-transforms",
+      "kinetics-binding"
+    ]
+  },
+  {
+    "id": "imagesc-69716-2",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/69716",
+    "date": "2022-07",
+    "role": null,
+    "software_named": [
+      "MCID"
+    ],
+    "workflow": "legacy autoradiography software",
+    "quote": "I've always used MCID but my computer just died and I'm not sure I can get a new computer that will run the MCID program since it it relatively old.",
+    "problem": "Lab analysis depends on obsolete software that will not run on new computers",
+    "need": "Platform-independent tool that will keep running on new machines",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "file-compatibility",
+      "mac-windows"
+    ]
+  },
+  {
+    "id": "imagesc-122157-1",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/122157",
+    "date": "2026-08",
+    "role": null,
+    "software_named": [
+      "Fiji",
+      "ImageJ",
+      "Inkscape",
+      "Illustrator"
+    ],
+    "workflow": "publication figures with micrographs",
+    "quote": "Is there actually way to export overlays (in particular scale bars) from Fiji/ImageJ to vector formats like EPS, PDF or SVG mentioned above.",
+    "problem": "Overlays and scale bars do not export as vectors for figure assembly",
+    "need": "Export figures as editable vector files with raster parts embedded losslessly",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "export-vector",
+      "illustrator-handoff"
+    ]
+  },
+  {
+    "id": "imagesc-72150-1",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/72150",
+    "date": "2022-09",
+    "role": "image analysis expert (stated)",
+    "software_named": [
+      "ImageJ",
+      "Inkscape",
+      "Illustrator"
+    ],
+    "workflow": "figure export",
+    "quote": "Currently, many publication figures either suffer from JPEG artifacts, are too low in resolution or massively blurred due to interpolation.",
+    "problem": "Published figures are degraded by lossy export and resampling",
+    "need": "Lossless, non-interpolated export at journal resolution",
+    "severity": "cosmetic / preference",
+    "signal": null,
+    "tags": [
+      "export-dpi",
+      "export-vector"
+    ]
+  },
+  {
+    "id": "imagesc-84584-1",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/84584",
+    "date": "2023-08",
+    "role": "image analysis trainer (stated)",
+    "software_named": [
+      "Fiji"
+    ],
+    "workflow": "multi-panel figure of micrographs",
+    "quote": "Is there a (easy) way in Fiji to also do the layout of those images into a combined figure? I am not sure this is needed, one could just copy and paste into some other software.",
+    "problem": "Figure layout requires a separate program",
+    "need": "Arrange several panels into one figure with consistent sizing and export",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "layouts-multipanel"
+    ]
+  },
+  {
+    "id": "imagesc-97188-1",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/97188",
+    "date": "2024-06",
+    "role": "new to CellProfiler (stated)",
+    "software_named": [
+      "CellProfiler",
+      "Fiji"
+    ],
+    "workflow": "pixel-based colocalisation",
+    "quote": "However I would like to generate an additional visual scatter plot (cytofluorogram) to correlate the two co-localization channels ... That's a pity that Cellprofiler does not have this feature",
+    "problem": "Analysis tool computes the coefficient but cannot draw the pixel scatter plot",
+    "need": "Scatter/2D-histogram of paired values with correlation shown",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "correlation",
+      "image-analysis-exports"
+    ]
+  },
+  {
+    "id": "imagesc-115523-1",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/115523",
+    "date": "2025-08",
+    "role": null,
+    "software_named": [
+      "ImageJ",
+      "Excel"
+    ],
+    "workflow": "quartiles of a set of values",
+    "quote": "In ImageJ/Fiji, is it possible to calculate Q1, Q3 and IQR(inter quartile range) for a given set of values stored in an array ... Taking the median of the lower half would actually be more like 30%, so not a quartile.",
+    "problem": "Quartile definitions disagree between methods and tools",
+    "need": "State which quartile definition is used so values match other software",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "numbers-differ-between-tools",
+      "reporting-methods"
+    ]
+  },
+  {
+    "id": "imagesc-50143-1",
+    "venue": "forum.image.sc",
+    "url": "https://forum.image.sc/raw/50143",
+    "date": "2021-03",
+    "role": null,
+    "software_named": [
+      "KNIME"
+    ],
+    "workflow": "violin plots of bacterial intensity",
+    "quote": "Can I get the statistics values as an output of the Violin plot node? Do I have to use another node to calculate the statistics again?",
+    "problem": "Statistics shown on hover in a plot cannot be exported",
+    "need": "Every plotted summary (median, quartiles) available as a table",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "reporting-methods",
+      "show-the-points"
+    ]
+  },
+  {
+    "id": "galaxy-12496-1",
+    "venue": "help.galaxyproject.org",
+    "url": "https://help.galaxyproject.org/raw/12496",
+    "date": "2024-05",
+    "role": null,
+    "software_named": [
+      "limma",
+      "DESeq2"
+    ],
+    "workflow": "RNA-seq, 4 control vs 4 treated",
+    "quote": "I expected to obtain results on the fold change of each of the treated samples in relation to the control sample. Could you please help me to get the fold change for individual samples?",
+    "problem": "Wants per-sample fold changes (to plot replicates) but the tool only gives group-level results",
+    "need": "Give per-replicate fold changes relative to the control mean alongside the group estimate",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "show-the-points",
+      "normalization"
+    ]
+  },
+  {
+    "id": "galaxy-12496-2",
+    "venue": "help.galaxyproject.org",
+    "url": "https://help.galaxyproject.org/raw/12496",
+    "date": "2024-05",
+    "role": null,
+    "software_named": [
+      "limma-voom",
+      "GraphPad Prism"
+    ],
+    "workflow": "time course, logFC per replicate for ANOVA and error bars",
+    "quote": "Without individual sample logFCs I can't really do that statistics. ... I was able to calculate my error bar by > logFC/t and put that in my Prism table.",
+    "problem": "Back-calculates a standard error from logFC/t by hand to get error bars into a graphing program",
+    "need": "Export fold changes with their SE/CI ready for graphing, and per-replicate values for downstream ANOVA",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "error-bars-sd-sem",
+      "time-series",
+      "excel-paste"
+    ]
+  },
+  {
+    "id": "galaxy-5382-1",
+    "venue": "help.galaxyproject.org",
+    "url": "https://help.galaxyproject.org/raw/5382",
+    "date": "2021-02",
+    "role": null,
+    "software_named": [
+      "Galaxy"
+    ],
+    "workflow": "RNA-seq replicate QC",
+    "quote": "What tool can I use in Galaxy to check for variance between my replicates to know if I need to exclude anyone from my analysis?",
+    "problem": "No obvious way to check replicate consistency before deciding to exclude one",
+    "need": "Replicate-agreement view (spread per replicate, correlation) with an explicit, recorded outlier decision",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "outliers",
+      "reproducibility-audit"
+    ]
+  },
+  {
+    "id": "galaxy-5507-1",
+    "venue": "help.galaxyproject.org",
+    "url": "https://help.galaxyproject.org/raw/5507",
+    "date": "2021-03",
+    "role": null,
+    "software_named": [
+      "DESeq2"
+    ],
+    "workflow": "4 time points, 2 biological replicates each sequenced twice",
+    "quote": "I have 2 biological replicates per timepoint, and each of these biological samples was sequenced twice. So for one timepoint I have 4 sequencing files. Do I just group these 4 files together",
+    "problem": "Unsure whether to treat re-sequencing runs as replicates",
+    "need": "Ask which files are technical repeats and collapse them before testing",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "technical-vs-biological-replicates",
+      "n-definition"
+    ]
+  },
+  {
+    "id": "galaxy-6764-1",
+    "venue": "help.galaxyproject.org",
+    "url": "https://help.galaxyproject.org/raw/6764",
+    "date": "2021-10",
+    "role": null,
+    "software_named": [
+      "DESeq2",
+      "featureCounts"
+    ],
+    "workflow": "6 samples x 2 technical replicates, WT vs KO",
+    "quote": "While now I need to combine each replicates into one sample for analysis (i.e. 3WT 3KO). Could anyone help on this? (which join or combine function should I use?)",
+    "problem": "Cannot find how to merge technical replicates into one sample",
+    "need": "One-step 'collapse technical replicates' (sum or mean) keyed by sample ID",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "technical-vs-biological-replicates"
+    ]
+  },
+  {
+    "id": "galaxy-2802-1",
+    "venue": "help.galaxyproject.org",
+    "url": "https://help.galaxyproject.org/raw/2802",
+    "date": "2020-01",
+    "role": null,
+    "software_named": [
+      "DESeq2",
+      "edgeR",
+      "limma"
+    ],
+    "workflow": "patient samples without replicates",
+    "quote": "Can I use these tool without replication? Cause patient sample, for one condition I only run 1 time. ... Punch line: not using replicates produces invalid results",
+    "problem": "Has one sample per condition and expects a statistical test anyway",
+    "need": "Refuse inferential tests with n=1 per group, explain why, and offer descriptive output only",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "n-definition",
+      "power-sample-size"
+    ]
+  },
+  {
+    "id": "galaxy-7022-1",
+    "venue": "help.galaxyproject.org",
+    "url": "https://help.galaxyproject.org/raw/7022",
+    "date": "2021-11",
+    "role": null,
+    "software_named": [
+      "miRDeep2",
+      "DESeq2",
+      "edgeR"
+    ],
+    "workflow": "miRNA control vs treatment without replicates",
+    "quote": "I know, replicate dataset must require for genuine calculation, but I don't have the choice.",
+    "problem": "No replicates, but needs a differential result anyway",
+    "need": "Clear n=1 handling: descriptive fold change, labelled as exploratory",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "n-definition"
+    ]
+  },
+  {
+    "id": "galaxy-9434-1",
+    "venue": "help.galaxyproject.org",
+    "url": "https://help.galaxyproject.org/raw/9434",
+    "date": "2023-02",
+    "role": null,
+    "software_named": [
+      "DESeq2"
+    ],
+    "workflow": "normalising counts for 30 samples of one group",
+    "quote": "I have a matrix of gene counts from 30 samples belonging to the same group. I don't want to get DE genes obviously. I just need to normalize these counts.",
+    "problem": "Normalisation is locked inside a two-group test workflow",
+    "need": "Offer normalisation as a standalone step independent of any comparison",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "normalization"
+    ]
+  },
+  {
+    "id": "galaxy-1027-1",
+    "venue": "help.galaxyproject.org",
+    "url": "https://help.galaxyproject.org/raw/1027",
+    "date": "2019-04",
+    "role": null,
+    "software_named": [
+      "Galaxy Volcano Plot"
+    ],
+    "workflow": "volcano plot with genes of interest",
+    "quote": "I have problem creating volcano plot with labelled genes of interest. I upload the gene list of interest, but it is not recognise in \"file of label\".",
+    "problem": "Cannot label chosen genes on a volcano plot",
+    "need": "Label points from a pasted list of names, matched case-insensitively",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "volcano-heatmap",
+      "legends"
+    ]
+  },
+  {
+    "id": "galaxy-6519-1",
+    "venue": "help.galaxyproject.org",
+    "url": "https://help.galaxyproject.org/raw/6519",
+    "date": "2021-08",
+    "role": null,
+    "software_named": [
+      "DESeq2",
+      "Galaxy Volcano Plot"
+    ],
+    "workflow": "labelling top genes",
+    "quote": "But some dots, even if they are significantly expressed stay unlabeled while some other dots which seem less significant are labeled.",
+    "problem": "Automatic labels do not go to the most significant points",
+    "need": "Label top-N by a stated criterion and show which criterion was used",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "volcano-heatmap",
+      "legends"
+    ]
+  },
+  {
+    "id": "galaxy-8873-1",
+    "venue": "help.galaxyproject.org",
+    "url": "https://help.galaxyproject.org/raw/8873",
+    "date": "2022-10",
+    "role": null,
+    "software_named": [
+      "DESeq2",
+      "Galaxy Volcano Plot"
+    ],
+    "workflow": "volcano plot with p = 0 and NA values",
+    "quote": "Few genes are highly expressed and at the same time have p-value equal to 0; thus, these genes are depicted in the corresponding Volcano at the very top ... Should I exclude these particular genes from the input that I am going to use for the Volcano?",
+    "problem": "p = 0 and NA rows distort the plot and the user considers dropping them",
+    "need": "Cap -log10(p) at the floating-point floor with a marker, and report how many NA rows were omitted",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "exact-p",
+      "volcano-heatmap",
+      "missing-values"
+    ]
+  },
+  {
+    "id": "galaxy-6654-1",
+    "venue": "help.galaxyproject.org",
+    "url": "https://help.galaxyproject.org/raw/6654",
+    "date": "2021-09",
+    "role": null,
+    "software_named": [
+      "DESeq2",
+      "kallisto"
+    ],
+    "workflow": "volcano plot with points at the top",
+    "quote": "there is a lot of genes at the top, what's wrong with it ? ... it seems that some genes show such a low p-value that is considered as 0",
+    "problem": "Points pinned at the top are underflowed p-values; user thinks the plot is broken",
+    "need": "Explain p-value underflow and display such points distinctly",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "exact-p",
+      "volcano-heatmap"
+    ]
+  },
+  {
+    "id": "galaxy-13299-1",
+    "venue": "help.galaxyproject.org",
+    "url": "https://help.galaxyproject.org/raw/13299",
+    "date": "2024-08",
+    "role": null,
+    "software_named": [
+      "Galaxy Volcano Plot"
+    ],
+    "workflow": "volcano x-axis range",
+    "quote": "I tried to adjust the\" Minimum and maximum value for x axis\", but the plot didn't change as my seeing",
+    "problem": "Axis range setting silently has no effect unless both limits are filled",
+    "need": "Axis limits that apply immediately and validate partial input",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "graph-formatting"
+    ]
+  },
+  {
+    "id": "galaxy-4762-1",
+    "venue": "help.galaxyproject.org",
+    "url": "https://help.galaxyproject.org/raw/4762",
+    "date": "2020-11",
+    "role": null,
+    "software_named": [
+      "ggplot2",
+      "Excel"
+    ],
+    "workflow": "scatter plot with log Y axis",
+    "quote": "I do not want to transform my entire data into log2(value) or log10(value) because I get errors when I do. I just want my Y axis to be in logarithmic scale, like in excel.",
+    "problem": "Wants a log axis without transforming the data",
+    "need": "Log-scale axis option separate from data transformation",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "log-axis",
+      "units-and-transforms"
+    ]
+  },
+  {
+    "id": "galaxy-1627-1",
+    "venue": "help.galaxyproject.org",
+    "url": "https://help.galaxyproject.org/raw/1627",
+    "date": "2019-06",
+    "role": null,
+    "software_named": [
+      "DESeq2",
+      "edgeR"
+    ],
+    "workflow": "plots for a manuscript",
+    "quote": "It's very difficult when trying to use them for a manuscript etc if the only output is a pdf that you need to screenshot.",
+    "problem": "Plots only available as PDF; users screenshot them for figures",
+    "need": "Export SVG, TIFF/PNG at chosen DPI and PDF",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "export-vector",
+      "export-dpi"
+    ]
+  },
+  {
+    "id": "galaxy-5787-1",
+    "venue": "help.galaxyproject.org",
+    "url": "https://help.galaxyproject.org/raw/5787",
+    "date": "2021-04",
+    "role": null,
+    "software_named": [
+      "Galaxy"
+    ],
+    "workflow": "reference gene choice for qPCR in leukemic vs stem cells",
+    "quote": "I am analyzing sequences obtained from leukemic cells and I am comparing them with hematopoietic stem cells, but the most used reference genes show a lot of variation",
+    "problem": "Usual qPCR reference genes are not stable between the compared cell types",
+    "need": "Check reference gene stability across groups before ddCt and allow several reference genes",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "qpcr-ddct",
+      "normalization"
+    ]
+  },
+  {
+    "id": "galaxy-2832-1",
+    "venue": "help.galaxyproject.org",
+    "url": "https://help.galaxyproject.org/raw/2832",
+    "date": "2020-01",
+    "role": null,
+    "software_named": [
+      "Cuffdiff"
+    ],
+    "workflow": "differential expression, p vs q",
+    "quote": "After analysis on the galaxy server using CuffDiff, all my data is insignificant based on the q value, even if p-value is significant for all genes showing differential expression. What could be the possible explanation for the same?",
+    "problem": "Does not understand why adjusted q-values are non-significant when raw p-values are significant",
+    "need": "Show raw and adjusted p side by side with a plain explanation of the correction",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "multiple-comparisons"
+    ]
+  },
+  {
+    "id": "galaxy-4179-1",
+    "venue": "help.galaxyproject.org",
+    "url": "https://help.galaxyproject.org/raw/4179",
+    "date": "2020-07",
+    "role": null,
+    "software_named": [
+      "DESeq2",
+      "edgeR",
+      "limma"
+    ],
+    "workflow": "RNA-seq DE with three tools",
+    "quote": "With DESeq2 i have more than 400 DEGs (FDR<0.05) If i use EdgeR or limma-trend, then i have only few DEGs with FDR or adjusted p-values <0.05 So my question is why the number of DEGs are so extreamly different in different tools?",
+    "problem": "Different tools give very different numbers of hits from the same data",
+    "need": "Document the method behind each number so results can be compared across tools",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "numbers-differ-between-tools",
+      "trust-validation"
+    ]
+  },
+  {
+    "id": "galaxy-5241-1",
+    "venue": "help.galaxyproject.org",
+    "url": "https://help.galaxyproject.org/raw/5241",
+    "date": "2021-01",
+    "role": null,
+    "software_named": [
+      "Galaxy"
+    ],
+    "workflow": "reading an MA plot",
+    "quote": "What type of information is represented on each axis of the MA plot? also what do the dots and the colors of the dots represent?",
+    "problem": "Cannot read a standard output plot",
+    "need": "Each output graph explains its axes and colour coding",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "learning-curve",
+      "volcano-heatmap"
+    ]
+  },
+  {
+    "id": "galaxy-5486-1",
+    "venue": "help.galaxyproject.org",
+    "url": "https://help.galaxyproject.org/raw/5486",
+    "date": "2021-03",
+    "role": null,
+    "software_named": [
+      "mothur",
+      "Galaxy"
+    ],
+    "workflow": "16S microbiome, groups by sex or early/late",
+    "quote": "I am interesting in performing additional statistical tests (e.g. ANOVA) to check the significant differences between the samples based on their categories ( sex or early vs. late).",
+    "problem": "Pipeline stops before group statistics on sample categories",
+    "need": "Run group comparisons on sample metadata categories without leaving the tool",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "which-test"
+    ]
+  },
+  {
+    "id": "galaxy-5914-1",
+    "venue": "help.galaxyproject.org",
+    "url": "https://help.galaxyproject.org/raw/5914",
+    "date": "2021-05",
+    "role": null,
+    "software_named": [
+      "LEfSe"
+    ],
+    "workflow": "before/after microbiome comparison",
+    "quote": "Our data shows very few different species for a score>2.0 . (Independent variable is two, before and after.) So I want to adjust the default score. Is there a problem if I do it?",
+    "problem": "Wants to relax a significance threshold after seeing few hits",
+    "need": "Warn when thresholds are changed after viewing results and record the change",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "multiple-comparisons",
+      "reproducibility-audit"
+    ]
+  },
+  {
+    "id": "galaxy-9670-1",
+    "venue": "help.galaxyproject.org",
+    "url": "https://help.galaxyproject.org/raw/9670",
+    "date": "2023-03",
+    "role": null,
+    "software_named": [
+      "DESeq2"
+    ],
+    "workflow": "2x2 factorial: disease x drug",
+    "quote": "DESeq2 in R seems (I think) to have the ability to input a 2x2 factorial design and retrieve differentially expressed genes significant by interaction. I can't seem to figure out how to perform that in Galaxy though.",
+    "problem": "Cannot set up an interaction test for a 2x2 design in the GUI",
+    "need": "2x2 design entry that reports both main effects and the interaction",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "two-way-anova"
+    ]
+  },
+  {
+    "id": "galaxy-15180-1",
+    "venue": "help.galaxyproject.org",
+    "url": "https://help.galaxyproject.org/raw/15180",
+    "date": "2025-04",
+    "role": "online course student (stated)",
+    "software_named": [
+      "Galaxy",
+      "R",
+      "Excel"
+    ],
+    "workflow": "summary statistics for many columns",
+    "quote": "To create summary stats we are using the 'Group' function. For this, the user need to add a new operation to calculate the mean for each column. Very long process.",
+    "problem": "Descriptive statistics must be set up column by column",
+    "need": "One-click descriptive statistics for all columns",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "scripting-batch",
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "galaxy-16018-1",
+    "venue": "help.galaxyproject.org",
+    "url": "https://help.galaxyproject.org/raw/16018",
+    "date": "2025-07",
+    "role": null,
+    "software_named": [
+      "heatmap2"
+    ],
+    "workflow": "expression heatmap, 3 samples x 2 conditions",
+    "quote": "Can anyone tell me what the tool plots as output values to build the colors? Is it z-scores, LogFC or else?",
+    "problem": "Does not know what the colour scale of the heatmap represents",
+    "need": "Label the heatmap scale with the exact transform used (raw, row z-score, log)",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "volcano-heatmap",
+      "reproducibility-audit"
+    ]
+  },
+  {
+    "id": "galaxy-9221-1",
+    "venue": "help.galaxyproject.org",
+    "url": "https://help.galaxyproject.org/raw/9221",
+    "date": "2022-12",
+    "role": null,
+    "software_named": [
+      "Galaxy",
+      "Datamash"
+    ],
+    "workflow": "back-transforming a log matrix with 1306 columns",
+    "quote": "I have a matrix with 1306 columns and the logarithm is taken from all the values of these columns.",
+    "problem": "Cannot apply an inverse log transform to a whole matrix",
+    "need": "Transform whole tables (log, antilog, base choice) in one step",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "units-and-transforms",
+      "large-data"
+    ]
+  },
+  {
+    "id": "galaxy-3412-1",
+    "venue": "help.galaxyproject.org",
+    "url": "https://help.galaxyproject.org/raw/3412",
+    "date": "2020-04",
+    "role": null,
+    "software_named": [
+      "StringTie",
+      "Excel"
+    ],
+    "workflow": "gene abundances from many datasets",
+    "quote": "My only problem is I get my results for each dataset as a single file (gene abundance) and I would like to get one excel (or other formats) with all my results from all my datasets.",
+    "problem": "Results split across many files, merged by copy-paste",
+    "need": "Merge many result files into one table with a sample column",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "long-vs-wide",
+      "scripting-batch",
+      "excel-paste"
+    ]
+  },
+  {
+    "id": "galaxy-6767-1",
+    "venue": "help.galaxyproject.org",
+    "url": "https://help.galaxyproject.org/raw/6767",
+    "date": "2021-10",
+    "role": null,
+    "software_named": [
+      "DESeq2",
+      "Excel"
+    ],
+    "workflow": "replicate counts merged in Excel then uploaded",
+    "quote": "The original featureCounts counts files are tabular, however, the data I uploaded is xlsx. After I uploaded the data, it says binary data.",
+    "problem": "xlsx upload not accepted; the table must be converted to text",
+    "need": "Accept xlsx directly or explain the conversion on upload",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "excel-paste",
+      "file-compatibility"
+    ]
+  },
+  {
+    "id": "galaxy-13546-1",
+    "venue": "help.galaxyproject.org",
+    "url": "https://help.galaxyproject.org/raw/13546",
+    "date": "2024-09",
+    "role": null,
+    "software_named": [
+      "DESeq2"
+    ],
+    "workflow": "three treatment groups, fold change direction",
+    "quote": "So, for example, if I performed DEseq this way, and I got -2 log fold change for a gene, that would mean that that gene was down regulated by 2 log fold in my \"A+B\" group or upregulated by 2 log fold change in my \"A\" group?",
+    "problem": "Direction of the fold change depends on factor order and is unclear",
+    "need": "Always print fold changes as 'X vs Y (reference)' in the output",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "reporting-methods",
+      "units-and-transforms"
+    ]
+  },
+  {
+    "id": "galaxy-16535-1",
+    "venue": "help.galaxyproject.org",
+    "url": "https://help.galaxyproject.org/raw/16535",
+    "date": "2025-12",
+    "role": null,
+    "software_named": [
+      "DESeq2"
+    ],
+    "workflow": "KO vs WT zebrafish, sign of log2FC",
+    "quote": "I am checking this because one of my known marker genes (per2, ENSDARG00000034503) shows higher VST expression in KO samples but the DESeq2 log2FC is negative, suggesting that the direction may be reversed",
+    "problem": "Sign of results appears reversed and the user cannot verify which group was the reference",
+    "need": "Show which group is the reference for each comparison in the saved parameters and output",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "reproducibility-audit",
+      "trust-validation"
+    ]
+  },
+  {
+    "id": "galaxy-18133-1",
+    "venue": "help.galaxyproject.org",
+    "url": "https://help.galaxyproject.org/raw/18133",
+    "date": "2026-06",
+    "role": null,
+    "software_named": [
+      "DESeq2"
+    ],
+    "workflow": "three time points",
+    "quote": "I suppose I would expect 3 different fold change values (ie 2 vs 1, 3 vs 1, 3 vs 2) but instead just get one value for each gene across the 3 factor levels.",
+    "problem": "Expected all pairwise comparisons from a 3-level factor but got one",
+    "need": "For k>2 groups, offer an overall test plus the chosen pairwise comparisons with correction",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "post-hoc-choice",
+      "multiple-comparisons"
+    ]
+  },
+  {
+    "id": "galaxy-17309-1",
+    "venue": "help.galaxyproject.org",
+    "url": "https://help.galaxyproject.org/raw/17309",
+    "date": "2026-01",
+    "role": null,
+    "software_named": [
+      "limma-voom"
+    ],
+    "workflow": "GEO series matrix data",
+    "quote": "I should note that I imported the data from GEO Series Matrix File(s) and I might accidentally logged the processed logFC data in the matrix file. Is there a specific instruction in limma to prevent the \"log of a log\" issue?",
+    "problem": "Data may have been log-transformed twice, giving tiny fold changes",
+    "need": "Detect already-logged input (value range, negatives) and warn before transforming",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "units-and-transforms"
+    ]
+  },
+  {
+    "id": "galaxy-13173-1",
+    "venue": "help.galaxyproject.org",
+    "url": "https://help.galaxyproject.org/raw/13173",
+    "date": "2024-08",
+    "role": null,
+    "software_named": [
+      "DESeq2",
+      "heatmap2"
+    ],
+    "workflow": "heatmap of DEGs as z-scores",
+    "quote": "Could you please help me to understand what type of file should I use, as input, in the Heatmap2 tool in order to produce a heatmap with DEG, presenting as z-scores?",
+    "problem": "Unclear what input and transformation produce a z-score heatmap",
+    "need": "Heatmap from a table with built-in row z-scoring, stated on the legend",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "volcano-heatmap",
+      "normalization"
+    ]
+  },
+  {
+    "id": "galaxy-7364-1",
+    "venue": "help.galaxyproject.org",
+    "url": "https://help.galaxyproject.org/raw/7364",
+    "date": "2022-01",
+    "role": null,
+    "software_named": [
+      "heatmap2"
+    ],
+    "workflow": "heatmap row labels",
+    "quote": "It seems that the labelling is to big, thus resulting in overlapping gene names ... About 30-32 total labels are the maximum before the text begins to overlap.",
+    "problem": "Labels overlap beyond about 30 rows",
+    "need": "Auto-scale label text and spacing to the number of rows",
+    "severity": "cosmetic / preference",
+    "signal": null,
+    "tags": [
+      "graph-formatting",
+      "volcano-heatmap"
+    ]
+  },
+  {
+    "id": "galaxy-15504-1",
+    "venue": "help.galaxyproject.org",
+    "url": "https://help.galaxyproject.org/raw/15504",
+    "date": "2025-05",
+    "role": null,
+    "software_named": [
+      "DESeq2"
+    ],
+    "workflow": "heatmap of own samples with public datasets",
+    "quote": "the heatmap shows the samples belonging to the same dataset as having the same expression profile, while the samples from different datasets seem to have different profiles.",
+    "problem": "Batch (dataset) effects dominate a combined heatmap",
+    "need": "Flag batch structure and offer batch-aware normalisation before combining datasets",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "normalization",
+      "volcano-heatmap"
+    ]
+  },
+  {
+    "id": "galaxy-13601-1",
+    "venue": "help.galaxyproject.org",
+    "url": "https://help.galaxyproject.org/raw/13601",
+    "date": "2024-10",
+    "role": null,
+    "software_named": [
+      "DESeq2",
+      "Galaxy"
+    ],
+    "workflow": "log2(FC) vs logFC naming for a volcano plot",
+    "quote": "Hi, please specify which tool and expression in it I can use to obtain LogFC from Log2(FC) (column 3) in my \"Annotated DESeq2 results\" file",
+    "problem": "Thinks differently named columns hold different quantities and tries to convert them",
+    "need": "Recognise equivalent column names (log2FC, logFC) on import and say what each means",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "units-and-transforms",
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "galaxy-9169-1",
+    "venue": "help.galaxyproject.org",
+    "url": "https://help.galaxyproject.org/raw/9169",
+    "date": "2022-12",
+    "role": null,
+    "software_named": [
+      "limma"
+    ],
+    "workflow": "6 cell lines x normal/stressed",
+    "quote": "Instead of running limma on each possible comparison (66 possible pairwise comparisons, which would be a crazy amount of data to then manually try to find overlaps within).",
+    "problem": "All-pairwise comparisons explode in number and overlaps must be found by hand",
+    "need": "Plan a limited set of comparisons and summarise overlaps in one view",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "multiple-comparisons",
+      "volcano-heatmap"
+    ]
+  },
+  {
+    "id": "galaxy-11043-1",
+    "venue": "help.galaxyproject.org",
+    "url": "https://help.galaxyproject.org/raw/11043",
+    "date": "2023-10",
+    "role": null,
+    "software_named": [
+      "DESeq2",
+      "featureCounts"
+    ],
+    "workflow": "WT vs mutant, one sample each",
+    "quote": "I have two samples, WT and Mutant. ... However, even filtering pvalue<0.001 and a fold change of 2, I still have 19 000 DEGs.",
+    "problem": "With one sample per group the test returns implausibly many hits",
+    "need": "Detect n=1 per group and refuse or flag inferential output",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "n-definition",
+      "trust-validation"
+    ]
+  },
+  {
+    "id": "galaxy-10464-1",
+    "venue": "help.galaxyproject.org",
+    "url": "https://help.galaxyproject.org/raw/10464",
+    "date": "2023-07",
+    "role": null,
+    "software_named": [
+      "DESeq2",
+      "Salmon"
+    ],
+    "workflow": "replicating a published experiment",
+    "quote": "I don't have any significative p-value for 62000 genes. ... I dont think it's normal because im replacting an experience that has a lot of differential results.",
+    "problem": "No significant results after correction and no idea why",
+    "need": "Show the samples' separation (PCA) and the correction applied next to the result",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "multiple-comparisons",
+      "reproducibility-audit"
+    ]
+  },
+  {
+    "id": "galaxy-8767-1",
+    "venue": "help.galaxyproject.org",
+    "url": "https://help.galaxyproject.org/raw/8767",
+    "date": "2022-09",
+    "role": "new to the field (stated)",
+    "software_named": [
+      "Galaxy",
+      "DESeq2",
+      "kallisto"
+    ],
+    "workflow": "reanalysing a published mouse RNA-seq study",
+    "quote": "After reading the web site and following the tutorial on Reference-based RNA-Seq data analysis my results did not match with the results of the paper.",
+    "problem": "Cannot reproduce a paper's results from its raw data",
+    "need": "Record every parameter and version so an analysis can be matched to a paper's methods",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "reproducibility-audit",
+      "numbers-differ-between-tools"
+    ]
+  },
+  {
+    "id": "bioc-7179-1",
+    "venue": "support.bioconductor.org",
+    "url": "https://support.bioconductor.org/p/7179/",
+    "date": "2005-01",
+    "role": "pharma scientist (Aventis address)",
+    "software_named": [
+      "R"
+    ],
+    "workflow": "dose-response across 3 studies, 4-5 doses",
+    "quote": "For the factorial desgin I get 112 genes a with significant dose effect, and for the regression model (dose is the regressor and study stays a factor) I get 280 genes at the same significance level. Can I conclude that the regression model is more sensitive?",
+    "problem": "Dose as category vs continuous gives very different results",
+    "need": "Explain dose-as-factor vs dose-as-regressor and fit dose-response models where appropriate",
+    "severity": "wrong result risk",
+    "signal": {
+      "views": 3000
+    },
+    "tags": [
+      "ic50-ec50-setup",
+      "which-test"
+    ]
+  },
+  {
+    "id": "bioc-7179-2",
+    "venue": "support.bioconductor.org",
+    "url": "https://support.bioconductor.org/p/7179/",
+    "date": "2005-01",
+    "role": "pharma scientist (Aventis address)",
+    "software_named": [
+      "R"
+    ],
+    "workflow": "log-transforming doses including a zero control",
+    "quote": "There a strong difference using un-transformed or log transformed values for dose, and since the control dose is 0.0mM which value to add for the log transformation.",
+    "problem": "Zero-dose control cannot be log-transformed",
+    "need": "Handle the vehicle control in log-dose fits (constrain bottom/top) without inventing an offset",
+    "severity": "wrong result risk",
+    "signal": {
+      "views": 3000
+    },
+    "tags": [
+      "units-and-transforms",
+      "log-axis",
+      "ic50-ec50-setup"
+    ]
+  },
+  {
+    "id": "bioc-87529-1",
+    "venue": "support.bioconductor.org",
+    "url": "https://support.bioconductor.org/p/87529/",
+    "date": "2016-09",
+    "role": null,
+    "software_named": [
+      "TPP"
+    ],
+    "workflow": "thermal proteome profiling dose-response for 3663 proteins",
+    "quote": "Fitting 3663 individual dose response curves to 3663 proteins. ... I want to obtain the curve fitting for all proteins and not only those that met the above criteria , how can I do it?",
+    "problem": "Batch curve fitting fails or skips curves that do not meet a filter",
+    "need": "Fit thousands of dose-response curves in batch and report which fits failed and why",
+    "severity": "blocks the analysis",
+    "signal": {
+      "views": 1800
+    },
+    "tags": [
+      "ic50-ec50-setup",
+      "fit-diagnostics",
+      "large-data"
+    ]
+  },
+  {
+    "id": "bioc-3682-1",
+    "venue": "support.bioconductor.org",
+    "url": "https://support.bioconductor.org/p/3682/",
+    "date": "2004-02",
+    "role": "microarray facility scientist (stated)",
+    "software_named": [
+      "Excel",
+      "marray",
+      "multtest"
+    ],
+    "workflow": "two-colour arrays, WT vs mutant with dye swap",
+    "quote": "In our lab we calculate normalised R and G values (from M and A values)and then do t test in microsof excel to check for differentially expressed genes.",
+    "problem": "Gene-by-gene t-tests in Excel with no multiplicity correction",
+    "need": "Run many tests at once with FDR correction instead of spreadsheet t-tests",
+    "severity": "wrong result risk",
+    "signal": {
+      "views": 1100
+    },
+    "tags": [
+      "excel-paste",
+      "multiple-comparisons",
+      "which-test"
+    ]
+  },
+  {
+    "id": "bioc-12988-1",
+    "venue": "support.bioconductor.org",
+    "url": "https://support.bioconductor.org/p/12988/",
+    "date": "2006-05",
+    "role": null,
+    "software_named": [
+      "R"
+    ],
+    "workflow": "fold change normal vs cancer",
+    "quote": "I wrote a function to compute fold changes. ... While doing this I get error: Warning message: NaNs produced in: log(x, base)",
+    "problem": "Computed 'fold change' by subtraction, then took the log of negative values",
+    "need": "Compute fold change from the stated scale (ratio on raw, difference on log) and refuse log of negatives",
+    "severity": "wrong result risk",
+    "signal": {
+      "views": 1200
+    },
+    "tags": [
+      "units-and-transforms"
+    ]
+  },
+  {
+    "id": "bioc-21239-1",
+    "venue": "support.bioconductor.org",
+    "url": "https://support.bioconductor.org/p/21239/",
+    "date": "2008-02",
+    "role": null,
+    "software_named": [
+      "simpleaffy"
+    ],
+    "workflow": "fold change formula",
+    "quote": "could anyone explain or give me the exactly formula of the fold change calculation? ... By default this is done using the mean of the unlogged values.",
+    "problem": "Fold change is computed from unlogged means by default, unknown to the user",
+    "need": "State whether fold change uses means of raw or log values",
+    "severity": "wrong result risk",
+    "signal": {
+      "views": 1400
+    },
+    "tags": [
+      "numbers-differ-between-tools",
+      "reporting-methods"
+    ]
+  },
+  {
+    "id": "bioc-9161480-1",
+    "venue": "support.bioconductor.org",
+    "url": "https://support.bioconductor.org/p/9161480/",
+    "date": "2025-03",
+    "role": null,
+    "software_named": [
+      "TPP",
+      "Excel"
+    ],
+    "workflow": "melt-curve fitting",
+    "quote": "I noticed not too long ago that the curve fitting might be different between the TPP TR results excel that gets generated and the melt curve pdf with the table of reported values underneath.",
+    "problem": "Two outputs of the same curve fit report different values",
+    "need": "One fit object feeds every table and figure so numbers always agree",
+    "severity": "wrong result risk",
+    "signal": {
+      "views": 681
+    },
+    "tags": [
+      "numbers-differ-between-tools",
+      "fit-diagnostics"
+    ]
+  },
+  {
+    "id": "bioc-79067-1",
+    "venue": "support.bioconductor.org",
+    "url": "https://support.bioconductor.org/p/79067/",
+    "date": "2016-03",
+    "role": "new R user (stated)",
+    "software_named": [
+      "HTqPCR",
+      "Excel",
+      "R"
+    ],
+    "workflow": "qPCR Ct values, ~350 samples",
+    "quote": "I have all my data in an excel sheet (approx. 350 samples and their replicates). Each row is a sample and each column states the gene, treatment, Ct values, etc. How do I load this information into R and make the readCtData function to work.",
+    "problem": "Has a tidy Excel table but the package expects another layout",
+    "need": "Import long-format qPCR tables (sample, gene, Ct) directly",
+    "severity": "blocks the analysis",
+    "signal": {
+      "views": 1300
+    },
+    "tags": [
+      "qpcr-ddct",
+      "excel-paste",
+      "long-vs-wide"
+    ]
+  },
+  {
+    "id": "bioc-10465-1",
+    "venue": "support.bioconductor.org",
+    "url": "https://support.bioconductor.org/p/10465/",
+    "date": "2005-10",
+    "role": null,
+    "software_named": [
+      "prada",
+      "R"
+    ],
+    "workflow": "qPCR ddCt from SDS files",
+    "quote": "Does anyone know of any R-package to work with Q-PCR data that is capable of reading sds files or its exports and use a delta-delta Ct method or any other",
+    "problem": "Needs ddCt analysis that reads instrument files",
+    "need": "Read qPCR instrument exports and run ddCt",
+    "severity": "blocks the analysis",
+    "signal": {
+      "views": 1400
+    },
+    "tags": [
+      "qpcr-ddct",
+      "import-instrument-files"
+    ]
+  },
+  {
+    "id": "bioc-53721-1",
+    "venue": "support.bioconductor.org",
+    "url": "https://support.bioconductor.org/p/53721/",
+    "date": "2013-07",
+    "role": null,
+    "software_named": [
+      "R"
+    ],
+    "workflow": "delta Ct, 7 genes, 2 cell types, linear model",
+    "quote": "When testing the control gene, I am using the Ct values and I am fitting a linear model lm(Ct~cell_type) this gives me a p-value <0.05 ... So these results seem to show that qPCR fits should pass into the origin. Is this true?",
+    "problem": "Dropping the intercept gives the 'expected' p-values; the model is misspecified",
+    "need": "Run the standard dCt group comparison rather than ad-hoc models",
+    "severity": "wrong result risk",
+    "signal": {
+      "views": 1700
+    },
+    "tags": [
+      "qpcr-ddct",
+      "which-test"
+    ]
+  },
+  {
+    "id": "bioc-128662-1",
+    "venue": "support.bioconductor.org",
+    "url": "https://support.bioconductor.org/p/128662/",
+    "date": "2020-02",
+    "role": null,
+    "software_named": [
+      "ddCt"
+    ],
+    "workflow": "qPCR with gene-specific efficiencies",
+    "quote": "Is it possible to use gene specific efficiencies? In the vingnette it is mentioned that it is possible to use them but I have no clue where to change the default parameter",
+    "problem": "Default assumes equal efficiency for every gene",
+    "need": "Accept per-gene primer efficiencies (Pfaffl method)",
+    "severity": "wrong result risk",
+    "signal": {
+      "views": 1200
+    },
+    "tags": [
+      "qpcr-ddct"
+    ]
+  },
+  {
+    "id": "bioc-9147529-1",
+    "venue": "support.bioconductor.org",
+    "url": "https://support.bioconductor.org/p/9147529/",
+    "date": "2022-11",
+    "role": "new to gene expression analysis (stated)",
+    "software_named": [
+      "HTqPCR",
+      "clusterProfiler"
+    ],
+    "workflow": "450 samples x 55 genes, pre/post",
+    "quote": "My data is based on Ct values (cycle threshold) normalized to 3 reference genes (average of them). ... My question is which approach would you find more suitable to cluster the fold change obtained in my genes (PCA, k-means, clusterProfiler..)",
+    "problem": "Overwhelmed by choices for clustering qPCR fold changes",
+    "need": "Multi-reference ddCt followed by a guided PCA/clustering view",
+    "severity": "blocks the analysis",
+    "signal": {
+      "views": 1400
+    },
+    "tags": [
+      "qpcr-ddct",
+      "pca-clustering"
+    ]
+  },
+  {
+    "id": "bioc-9155044-1",
+    "venue": "support.bioconductor.org",
+    "url": "https://support.bioconductor.org/p/9155044/",
+    "date": "2023-11",
+    "role": null,
+    "software_named": [
+      "nondetects"
+    ],
+    "workflow": "qPCR non-detects with technical replicates",
+    "quote": "Can nondetects impute a dataset that includes technical replicates? Or do you just toss the replicates that don't work and use the geometric mean of anything remaining?",
+    "problem": "Unsure how to handle undetermined Ct values across technical replicates",
+    "need": "Explicit rule for undetermined wells (flag, impute or censor) applied before averaging replicates",
+    "severity": "wrong result risk",
+    "signal": {
+      "views": 774
+    },
+    "tags": [
+      "qpcr-ddct",
+      "missing-values",
+      "technical-vs-biological-replicates"
+    ]
+  },
+  {
+    "id": "bioc-9154311-1",
+    "venue": "support.bioconductor.org",
+    "url": "https://support.bioconductor.org/p/9154311/",
+    "date": "2023-09",
+    "role": null,
+    "software_named": [
+      "HTqPCR"
+    ],
+    "workflow": "12 samples x 8 genes x 3 technical replicates on a plate",
+    "quote": "How does HTqPCR handle technical replicates? Suppose I have 4 samples, 8 primer sets, and 3 replicates on a 96 well plate. ... Do I have to make each technical replicate it's own feature?",
+    "problem": "Cannot express technical replicate wells in the expected input layout",
+    "need": "Plate-layout entry where replicate wells are marked and averaged",
+    "severity": "blocks the analysis",
+    "signal": {
+      "views": 1200
+    },
+    "tags": [
+      "qpcr-ddct",
+      "technical-vs-biological-replicates",
+      "data-entry-table-types"
+    ]
+  },
+  {
+    "id": "bioc-36614-1",
+    "venue": "support.bioconductor.org",
+    "url": "https://support.bioconductor.org/p/36614/",
+    "date": "2010-11",
+    "role": null,
+    "software_named": [],
+    "workflow": "before/after treatment swabs, some degraded",
+    "quote": "Therefore I was wondering if I could mix biological replicates for some patients (before and after) and for others biological replicates for before treatment and technical replicates for after treatment.",
+    "problem": "Wants to mix technical and biological replicates in one paired design",
+    "need": "Mark replicate type per sample and refuse to count technical repeats as independent",
+    "severity": "wrong result risk",
+    "signal": {
+      "views": 1000
+    },
+    "tags": [
+      "technical-vs-biological-replicates",
+      "n-definition"
+    ]
+  },
+  {
+    "id": "bioc-7476-1",
+    "venue": "support.bioconductor.org",
+    "url": "https://support.bioconductor.org/p/7476/",
+    "date": "2005-02",
+    "role": null,
+    "software_named": [
+      "Affymetrix"
+    ],
+    "workflow": "5 animals x 2 technical replicates",
+    "quote": "I am trying to compare these technical replicates to ensure they are clean.",
+    "problem": "No standard check of technical replicate agreement",
+    "need": "Technical-replicate agreement plot and CV before averaging",
+    "severity": "slows the work",
+    "signal": {
+      "views": 964
+    },
+    "tags": [
+      "technical-vs-biological-replicates",
+      "outliers"
+    ]
+  },
+  {
+    "id": "bioc-9135173-1",
+    "venue": "support.bioconductor.org",
+    "url": "https://support.bioconductor.org/p/9135173/",
+    "date": "2021-02",
+    "role": "newbie (stated)",
+    "software_named": [
+      "DESeq2"
+    ],
+    "workflow": "averaging 3 biological replicates for heatmaps",
+    "quote": "What alternatives do I have? Is it allowed to do a simple average on the normalized counts of each of the 3 samples converting it into a single normalized count??",
+    "problem": "Unsure whether biological replicates may be averaged for display",
+    "need": "Group means for display while tests use the individual replicates",
+    "severity": "wrong result risk",
+    "signal": {
+      "views": 7600
+    },
+    "tags": [
+      "technical-vs-biological-replicates",
+      "volcano-heatmap"
+    ]
+  },
+  {
+    "id": "bioc-4292-1",
+    "venue": "support.bioconductor.org",
+    "url": "https://support.bioconductor.org/p/4292/",
+    "date": "2004-03",
+    "role": null,
+    "software_named": [
+      "limma"
+    ],
+    "workflow": "technical replicates in arrays",
+    "quote": "The issue of how to deal with technical replicates (such as those obtained when we do dye-swaps of the same biological samples in cDNA arrays) has come up in the BioC list several times. ... tech. reps. are not independent biological reps. which leads to the usual inflation of dfs and deflation of se",
+    "problem": "Treating technical replicates as independent inflates degrees of freedom",
+    "need": "Average technical replicates or model them as a random effect, by default",
+    "severity": "wrong result risk",
+    "signal": {
+      "views": 2500
+    },
+    "tags": [
+      "technical-vs-biological-replicates",
+      "n-definition",
+      "mixed-model-missing-values"
+    ]
+  },
+  {
+    "id": "bioc-84506-1",
+    "venue": "support.bioconductor.org",
+    "url": "https://support.bioconductor.org/p/84506/",
+    "date": "2016-06",
+    "role": null,
+    "software_named": [
+      "ggplot2"
+    ],
+    "workflow": "reproducing a published plot",
+    "quote": "I want to produce a plot like the one attached. But I have no idea how it was made or what you would call it or anything.",
+    "problem": "Cannot name or find the plot type",
+    "need": "Gallery of graph types with example images to start from",
+    "severity": "blocks the analysis",
+    "signal": {
+      "views": 2000
+    },
+    "tags": [
+      "graph-formatting",
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "bioc-125118-1",
+    "venue": "support.bioconductor.org",
+    "url": "https://support.bioconductor.org/p/125118/",
+    "date": "2019-10",
+    "role": null,
+    "software_named": [
+      "flowCore",
+      "ggplot2"
+    ],
+    "workflow": "violin plot from FCS files",
+    "quote": "Hello, I would like to do a violin plot from my fcs files.",
+    "problem": "No direct path from flow files to a violin plot",
+    "need": "Import flow cytometry event data and plot distributions per sample",
+    "severity": "slows the work",
+    "signal": {
+      "views": 1900
+    },
+    "tags": [
+      "flow-cytometry",
+      "show-the-points",
+      "import-instrument-files"
+    ]
+  },
+  {
+    "id": "bioc-28041-1",
+    "venue": "support.bioconductor.org",
+    "url": "https://support.bioconductor.org/p/28041/",
+    "date": "2009-06",
+    "role": null,
+    "software_named": [
+      "R",
+      "Excel"
+    ],
+    "workflow": "chi-squared test, observed 15/5 vs expected 10/10",
+    "quote": "When I tried to use chisq.test or fisher.test in bioconductor, I always got higher p-value than that with other sources. ... Using other sources such as Excel from Microsoft, I got p-value 0.025.",
+    "problem": "Same data give p = 0.025 in Excel and 0.1025 in R because the table was entered as a 2x2 contingency table",
+    "need": "Distinguish goodness-of-fit from contingency tests at data entry",
+    "severity": "wrong result risk",
+    "signal": {
+      "views": 1300
+    },
+    "tags": [
+      "numbers-differ-between-tools",
+      "contingency"
+    ]
+  },
+  {
+    "id": "bioc-25938-1",
+    "venue": "support.bioconductor.org",
+    "url": "https://support.bioconductor.org/p/25938/",
+    "date": "2009-01",
+    "role": "PhD student (stated)",
+    "software_named": [
+      "multtest",
+      "limma"
+    ],
+    "workflow": "control vs two treatments, 3 replicates each",
+    "quote": "Three samples with biological replicates. I wish to do ANOVA.",
+    "problem": "Does not know how to run a one-way ANOVA on the design",
+    "need": "Three-group one-way ANOVA with P values from a simple table",
+    "severity": "blocks the analysis",
+    "signal": {
+      "views": 1400
+    },
+    "tags": [
+      "which-test"
+    ]
+  },
+  {
+    "id": "bioc-35073-1",
+    "venue": "support.bioconductor.org",
+    "url": "https://support.bioconductor.org/p/35073/",
+    "date": "2010-08",
+    "role": null,
+    "software_named": [
+      "limma"
+    ],
+    "workflow": "3 groups of 20, F-test then which pairs",
+    "quote": "My question is how can I get hold on the information on which of the contrast/-s is contributing to the significance? ... Others that have performed similar experiments have used anova and a post-hoc test but I have not been able to find how one should perform a post-hoc test after limmas F-test.",
+    "problem": "Significant overall test but no way to see which groups differ",
+    "need": "Follow an overall test with post-hoc pairwise comparisons, correction stated",
+    "severity": "blocks the analysis",
+    "signal": {
+      "views": 1700
+    },
+    "tags": [
+      "post-hoc-choice",
+      "multiple-comparisons"
+    ]
+  },
+  {
+    "id": "bioc-52436-1",
+    "venue": "support.bioconductor.org",
+    "url": "https://support.bioconductor.org/p/52436/",
+    "date": "2013-05",
+    "role": null,
+    "software_named": [
+      "R"
+    ],
+    "workflow": "two strains x six brain regions, 1000 genes",
+    "quote": "Now that there are more than two groups being analyzed, however, the 1-way ANOVA does not specifically indicate which pair of groups exhibits statistical differences.",
+    "problem": "Needs Tukey-type comparisons after ANOVA across many genes",
+    "need": "Post-hoc tests after ANOVA, run in batch over many variables",
+    "severity": "blocks the analysis",
+    "signal": {
+      "views": 2500
+    },
+    "tags": [
+      "post-hoc-choice",
+      "two-way-anova",
+      "multiple-comparisons"
+    ]
+  },
+  {
+    "id": "bioc-9140988-1",
+    "venue": "support.bioconductor.org",
+    "url": "https://support.bioconductor.org/p/9140988/",
+    "date": "2021-12",
+    "role": "new user (stated)",
+    "software_named": [
+      "Excel",
+      "R"
+    ],
+    "workflow": "45000 probe IDs x 230 samples with duplicate IDs",
+    "quote": "I have certain numbers of duplicates for each Probe ID (approx. 45000) in one column and its samples data values in others 'n' columns(approx.. 230 columns) in excel sheet .",
+    "problem": "Must average duplicate rows in a large spreadsheet",
+    "need": "Collapse duplicate IDs (mean/median) on large tables",
+    "severity": "slows the work",
+    "signal": {
+      "views": 1700
+    },
+    "tags": [
+      "large-data",
+      "excel-paste",
+      "technical-vs-biological-replicates"
+    ]
+  },
+  {
+    "id": "bioc-123962-1",
+    "venue": "support.bioconductor.org",
+    "url": "https://support.bioconductor.org/p/123962/",
+    "date": "2019-08",
+    "role": "new to programming (stated)",
+    "software_named": [
+      "Excel",
+      "R",
+      "Python"
+    ],
+    "workflow": "subtracting a normaliser row from every feature",
+    "quote": "I have tried performing the same operation in the MS Excel, this is very tedious and time consuming. I have many large datasets with several hundred rows and columns",
+    "problem": "Normalising to a reference row is tedious in Excel at scale",
+    "need": "Normalise every row to a chosen reference row/column in one step",
+    "severity": "slows the work",
+    "signal": {
+      "views": 2200
+    },
+    "tags": [
+      "normalization",
+      "excel-paste",
+      "scripting-batch"
+    ]
+  },
+  {
+    "id": "bioc-5534-1",
+    "venue": "support.bioconductor.org",
+    "url": "https://support.bioconductor.org/p/5534/",
+    "date": "2004-07",
+    "role": null,
+    "software_named": [
+      "Excel"
+    ],
+    "workflow": "gene lists in Excel",
+    "quote": "A little detective work traced the problem to default date format conversions and floating-point format conversions in the very useful Excel program package. ... These conversions are irreversible; the original gene names cannot be recovered.",
+    "problem": "Spreadsheet silently converts gene names to dates or numbers",
+    "need": "Import text identifiers as text, never auto-converting them",
+    "severity": "wrong result risk",
+    "signal": {
+      "views": 1000
+    },
+    "tags": [
+      "excel-paste",
+      "file-compatibility"
+    ]
+  },
+  {
+    "id": "bioc-6645-1",
+    "venue": "support.bioconductor.org",
+    "url": "https://support.bioconductor.org/p/6645/",
+    "date": "2004-11",
+    "role": "PhD student (stated)",
+    "software_named": [
+      "limma"
+    ],
+    "workflow": "stimulated vs unstimulated cells, disease vs healthy, 3 replicates",
+    "quote": "I know that there are differences which have been confirmed by qRT-PCR ( and can be demonstarted by analysing data using fold change only) and these genes have the highest ranked p values in the limma analysis (although not significant when adjusted).",
+    "problem": "Known effects vanish after multiplicity correction with n=3",
+    "need": "Show power for the design and the adjusted vs unadjusted results side by side",
+    "severity": "wrong result risk",
+    "signal": {
+      "views": 1500
+    },
+    "tags": [
+      "multiple-comparisons",
+      "power-sample-size"
+    ]
+  },
+  {
+    "id": "bioc-40648-1",
+    "venue": "support.bioconductor.org",
+    "url": "https://support.bioconductor.org/p/40648/",
+    "date": "2011-08",
+    "role": null,
+    "software_named": [
+      "drc"
+    ],
+    "workflow": "IC50s of 4 cell lines in 2 groups",
+    "quote": "I have 4 cell lines, 2 in group A and 2 in group B, for which I calculated IC50. I want to know if there is some difference between the 2 groups: a simple t-test seems to me a not correct test for this case.",
+    "problem": "No clear way to compare IC50s between groups",
+    "need": "Compare fitted IC50s (log scale, with CIs) between groups, or a global fit with a shared/separate parameter test",
+    "severity": "blocks the analysis",
+    "signal": {
+      "views": 1700
+    },
+    "tags": [
+      "compare-curves",
+      "ic50-ec50-setup"
+    ]
+  },
+  {
+    "id": "bioc-45578-1",
+    "venue": "support.bioconductor.org",
+    "url": "https://support.bioconductor.org/p/45578/",
+    "date": "2012-05",
+    "role": null,
+    "software_named": [
+      "grofit"
+    ],
+    "workflow": "growth curves, two cell types x three replicates",
+    "quote": "I want to fit the growth curves for cell cultures. I have three independent replicates for each cell type and I have two cell types. After I want to test if the curves are significantly different.",
+    "problem": "Fitting and comparing growth curves fails in the package used",
+    "need": "Fit growth models per replicate and compare parameters between cell types",
+    "severity": "blocks the analysis",
+    "signal": {
+      "views": 3300
+    },
+    "tags": [
+      "growth-curves",
+      "compare-curves"
+    ]
+  },
+  {
+    "id": "bioc-11240-1",
+    "venue": "support.bioconductor.org",
+    "url": "https://support.bioconductor.org/p/11240/",
+    "date": "2005-12",
+    "role": null,
+    "software_named": [
+      "R",
+      "survival"
+    ],
+    "workflow": "4 Kaplan-Meier curves",
+    "quote": "I am trying to plot 4 survival curve on one graph but this seem hard to do in R.",
+    "problem": "Cannot overlay several survival curves",
+    "need": "Several Kaplan-Meier curves on one graph by default",
+    "severity": "slows the work",
+    "signal": {
+      "views": 3600
+    },
+    "tags": [
+      "survival",
+      "graph-formatting"
+    ]
+  },
+  {
+    "id": "bioc-29017-1",
+    "venue": "support.bioconductor.org",
+    "url": "https://support.bioconductor.org/p/29017/",
+    "date": "2009-08",
+    "role": null,
+    "software_named": [
+      "R"
+    ],
+    "workflow": "stacked bar plots with asterisks",
+    "quote": "However, I haven't figured how to put asterisks on columns based on some extra information",
+    "problem": "Cannot add significance asterisks to chosen bars",
+    "need": "Place significance marks from a results table onto bars",
+    "severity": "slows the work",
+    "signal": {
+      "views": 1600
+    },
+    "tags": [
+      "significance-brackets"
+    ]
+  },
+  {
+    "id": "bioc-123566-1",
+    "venue": "support.bioconductor.org",
+    "url": "https://support.bioconductor.org/p/123566/",
+    "date": "2019-08",
+    "role": null,
+    "software_named": [
+      "Anaquin"
+    ],
+    "workflow": "averaged correlation points across libraries",
+    "quote": "As these are plots of average values we should ideally have standard error bars on each of the points. Unfortunately plotLinear doesn't seem to allow me to add standard error bars",
+    "problem": "Plot of averages cannot show error bars",
+    "need": "Error bars (SD/SEM/CI) on XY points from replicate data",
+    "severity": "slows the work",
+    "signal": {
+      "views": 912
+    },
+    "tags": [
+      "error-bars-sd-sem",
+      "correlation"
+    ]
+  },
+  {
+    "id": "bioc-65804-1",
+    "venue": "support.bioconductor.org",
+    "url": "https://support.bioconductor.org/p/65804/",
+    "date": "2015-03",
+    "role": null,
+    "software_named": [
+      "ddCt",
+      "ViiA7",
+      "QuantStudio"
+    ],
+    "workflow": "qPCR instrument .eds files",
+    "quote": "The instrument used for it is from Applied Biosystems ViiA7 Software v1.2 which gives out .eds file. How can I use to ddCt to analyse my files?",
+    "problem": "Analysis package cannot read the instrument's native file",
+    "need": "Import QuantStudio/ViiA7 exports directly",
+    "severity": "blocks the analysis",
+    "signal": {
+      "views": 3400
+    },
+    "tags": [
+      "import-instrument-files",
+      "qpcr-ddct"
+    ]
+  },
+  {
+    "id": "bioc-54753-1",
+    "venue": "support.bioconductor.org",
+    "url": "https://support.bioconductor.org/p/54753/",
+    "date": "2013-09",
+    "role": "student (stated)",
+    "software_named": [
+      "ddCt",
+      "Bio-Rad",
+      "Excel"
+    ],
+    "workflow": "Bio-Rad qPCR export, ddCt with error propagation and t-test",
+    "quote": "In the laboratory we have a Biorad RT-PCR. I can export the file generated from the Biorad software onto Exel. ... - how can you perform a t-test using the data?",
+    "problem": "Cannot work out file format, reference gene setup or testing in the package",
+    "need": "Guided qPCR flow: import Bio-Rad export, pick reference gene, ddCt with error propagation, then a test",
+    "severity": "blocks the analysis",
+    "signal": {
+      "views": 2100
+    },
+    "tags": [
+      "qpcr-ddct",
+      "import-instrument-files",
+      "learning-curve"
+    ]
+  },
+  {
+    "id": "bioc-98542-1",
+    "venue": "support.bioconductor.org",
+    "url": "https://support.bioconductor.org/p/98542/",
+    "date": "2017-07",
+    "role": null,
+    "software_named": [
+      "ddCt",
+      "StepOnePlus"
+    ],
+    "workflow": "StepOnePlus qPCR raw data",
+    "quote": "Trying to figure out a good way to read in raw data off a StepOnePlus machine into the ddCt package? Or if any other solid suggestions for ddCt-type packages with graphical outputs.",
+    "problem": "Cannot get StepOnePlus output into a ddCt tool with graphs",
+    "need": "Read StepOnePlus exports and produce ddCt bar graphs",
+    "severity": "blocks the analysis",
+    "signal": {
+      "views": 3000
+    },
+    "tags": [
+      "import-instrument-files",
+      "qpcr-ddct"
+    ]
+  },
+  {
+    "id": "bioc-91658-1",
+    "venue": "support.bioconductor.org",
+    "url": "https://support.bioconductor.org/p/91658/",
+    "date": "2017-01",
+    "role": null,
+    "software_named": [
+      "limma"
+    ],
+    "workflow": "50 serum markers by ELISA over treatment cycles",
+    "quote": "Are there any package for the analysis of more than fifty serum markers by elisa.",
+    "problem": "No ELISA analysis workflow for many markers",
+    "need": "ELISA panel analysis (standard curves then group comparisons across markers with correction)",
+    "severity": "blocks the analysis",
+    "signal": {
+      "views": 1400
+    },
+    "tags": [
+      "plate-reader",
+      "multiple-comparisons",
+      "standard-curve-interpolation"
+    ]
+  },
+  {
+    "id": "bioc-9153165-1",
+    "venue": "support.bioconductor.org",
+    "url": "https://support.bioconductor.org/p/9153165/",
+    "date": "2023-07",
+    "role": null,
+    "software_named": [
+      "ssizeRNA"
+    ],
+    "workflow": "RNA-seq sample size",
+    "quote": "However, I am getting really high numbers per group (400+) . I am not sure if I am doing it right and not many people seem to estimate sample sizes prior to RNAseq experiments.",
+    "problem": "Power calculation gives implausible sample sizes; cannot judge whether inputs are right",
+    "need": "Show the inputs behind a power calculation and how n changes with each",
+    "severity": "wrong result risk",
+    "signal": {
+      "views": 2600
+    },
+    "tags": [
+      "power-sample-size"
+    ]
+  },
+  {
+    "id": "bioc-29269-1",
+    "venue": "support.bioconductor.org",
+    "url": "https://support.bioconductor.org/p/29269/",
+    "date": "2009-08",
+    "role": null,
+    "software_named": [
+      "R"
+    ],
+    "workflow": "growth curves with SD bars",
+    "quote": "I need to plot a growth curve (which I already did) with standard deviation bars (which I didn't do yet). I already have the standard deviation values calculated.",
+    "problem": "Cannot add SD bars to a line plot from precomputed SDs",
+    "need": "Accept mean/SD/n columns and draw error bars",
+    "severity": "slows the work",
+    "signal": {
+      "views": 1700
+    },
+    "tags": [
+      "growth-curves",
+      "error-bars-sd-sem",
+      "data-entry-table-types"
+    ]
+  },
+  {
+    "id": "bioc-9161284-1",
+    "venue": "support.bioconductor.org",
+    "url": "https://support.bioconductor.org/p/9161284/",
+    "date": "2025-02",
+    "role": "limited coding skills (stated)",
+    "software_named": [
+      "GRmetrics"
+    ],
+    "workflow": "biphasic dose-response curves",
+    "quote": "As my coding skills are limited, I am unsure whether the offline version supports biphasic curve generation.",
+    "problem": "Biphasic fit available online but not in the offline package",
+    "need": "Biphasic dose-response model offline, without code",
+    "severity": "blocks the analysis",
+    "signal": {
+      "views": 419
+    },
+    "tags": [
+      "ic50-ec50-setup",
+      "learning-curve",
+      "offline"
+    ]
+  },
+  {
+    "id": "bioc-3267-1",
+    "venue": "support.bioconductor.org",
+    "url": "https://support.bioconductor.org/p/3267/",
+    "date": "2003-12",
+    "role": null,
+    "software_named": [
+      "RMA"
+    ],
+    "workflow": "treated vs control cultures, 3 replicates",
+    "quote": "I only have 3 replicates of each. Would you recommend a 2 tailed equal variance t test? I also thought I read that with such few replicates, a fold change would be better than a t test?",
+    "problem": "Unsure whether p-values or fold change are reliable with n=3",
+    "need": "Report effect size with CI next to the p-value, and warn about low power at n=3",
+    "severity": "wrong result risk",
+    "signal": {
+      "views": 8500
+    },
+    "tags": [
+      "which-test",
+      "effect-size",
+      "power-sample-size"
+    ]
+  },
+  {
+    "id": "seqanswers-27515-1",
+    "venue": "seqanswers.com",
+    "url": "https://www.seqanswers.com/forum/bioinformatics/bioinformatics-aa/27515-plotting-replicate-fpkms-in-log10",
+    "date": "2013-07",
+    "role": null,
+    "software_named": [
+      "GraphPad Prism",
+      "R",
+      "Excel"
+    ],
+    "workflow": "replicate-vs-replicate FPKM scatter, log10 axes",
+    "quote": "I know you are going to say \"R\" but I am not very familiar with it. ... Graphpad worked well for me",
+    "problem": "Needed a log-log replicate scatter without learning R",
+    "need": "Log-log XY scatter of replicates with no coding",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "log-axis",
+      "learning-curve",
+      "correlation"
+    ]
+  },
+  {
+    "id": "seqanswers-29451-1",
+    "venue": "seqanswers.com",
+    "url": "https://www.seqanswers.com/forum/applications-forums/rna-sequencing/29451-compare-rna-seq-and-qpcr-results-using-bar-plots-with-error-bars",
+    "date": "2013-10",
+    "role": null,
+    "software_named": [
+      "DESeq"
+    ],
+    "workflow": "RNA-seq vs qPCR log2FC, 3 biological replicates",
+    "quote": "I can use SD for error bars for the qPCR data, however what can I use for the RNA-seq data to get bar plots with error bars?",
+    "problem": "No obvious error estimate for model-based fold changes",
+    "need": "Show fold changes from different methods together, each with its SE or CI",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "error-bars-sd-sem",
+      "qpcr-ddct"
+    ]
+  },
+  {
+    "id": "seqanswers-55757-1",
+    "venue": "seqanswers.com",
+    "url": "https://www.seqanswers.com/forum/general/55757-automatically-place-sample-size-label-above-the-error-bar-for-each-bar",
+    "date": "2016-05",
+    "role": "works in a biology lab (stated)",
+    "software_named": [
+      "Excel",
+      "PowerPoint"
+    ],
+    "workflow": "many bar graphs for publication",
+    "quote": "However, I have to manually create text boxes to put the sample size above the error bar of each bar, and this can be time consuming. Ideally, I would also like the created graph to be editable in powerpoint.",
+    "problem": "Sample-size labels are added by hand in Excel",
+    "need": "Optional automatic n labels above bars and export that stays editable in PowerPoint",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "graph-formatting",
+      "powerpoint",
+      "n-definition"
+    ]
+  },
+  {
+    "id": "seqanswers-55757-2",
+    "venue": "seqanswers.com",
+    "url": "https://www.seqanswers.com/forum/general/55757-automatically-place-sample-size-label-above-the-error-bar-for-each-bar",
+    "date": "2016-05",
+    "role": "works in a biology lab (stated)",
+    "software_named": [
+      "R"
+    ],
+    "workflow": "bar graphs with error and significance bars",
+    "quote": "The graph in that gallery gets me closer to what I am looking for. However, that graph does not have error bars or significance bars.",
+    "problem": "Gallery examples lack error bars and significance bars",
+    "need": "Bar graphs with error bars and significance brackets built in",
+    "severity": "slows the work",
+    "signal": null,
+    "tags": [
+      "significance-brackets",
+      "error-bars-sd-sem"
+    ]
+  },
+  {
+    "id": "seqanswers-45825-1",
+    "venue": "seqanswers.com",
+    "url": "https://www.seqanswers.com/forum/applications-forums/rna-sequencing/45825-rnaseq-validation-with-qpcr-how-to-handle-missing-data",
+    "date": "2015-03",
+    "role": null,
+    "software_named": [],
+    "workflow": "qPCR validation, 10 vs 10, genes undetected in controls",
+    "quote": "Basically, I have the expression data for 9 samples (treatment group) and only for 3-4 of the control. t-test comparison is not giving me any significant difference -but is it the right method to use at all when you have missing data???",
+    "problem": "Undetected values are dropped as missing, biasing the comparison",
+    "need": "Treat non-detects as censored values, not missing, and pick a suitable test",
+    "severity": "wrong result risk",
+    "signal": null,
+    "tags": [
+      "missing-values",
+      "qpcr-ddct",
+      "which-test"
+    ]
+  },
+  {
+    "id": "seqanswers-47027-1",
+    "venue": "seqanswers.com",
+    "url": "https://www.seqanswers.com/forum/bioinformatics/bioinformatics-aa/47027-horizontal-error-bars-overlap",
+    "date": "2015-05",
+    "role": null,
+    "software_named": [
+      "ggplot2",
+      "R"
+    ],
+    "workflow": "horizontal error bars",
+    "quote": "I'm using ggplot with geom_errorbarh() in R, so basically I want to plot horizontal error bars. How do I fix the overlap between them?",
+    "problem": "Overlapping horizontal error bars",
+    "need": "Automatic dodging of overlapping error bars in either direction",
+    "severity": "cosmetic / preference",
+    "signal": null,
+    "tags": [
+      "graph-formatting",
+      "error-bars-sd-sem"
+    ]
+  },
+  {
+    "id": "seqanswers-35099-1",
+    "venue": "seqanswers.com",
+    "url": "https://www.seqanswers.com/forum/applications-forums/rna-sequencing/35099-htseq-to-deseq-edger-to-heatmap",
+    "date": "2014-02",
+    "role": null,
+    "software_named": [
+      "DESeq",
+      "edgeR",
+      "R"
+    ],
+    "workflow": "heatmap of selected genes, 2 replicates per organ",
+    "quote": "Is there anything specific I should do with my output counts file or edgeR and DeSeq output file from Iplant Collaborative to make it ready for creating a heat map via R. Is there normalization step or something like that?",
+    "problem": "Unsure what normalisation a heatmap input needs",
+    "need": "Heatmap from a gene list that states and applies the normalisation",
+    "severity": "blocks the analysis",
+    "signal": null,
+    "tags": [
+      "volcano-heatmap",
+      "normalization"
+    ]
+  }
+]
