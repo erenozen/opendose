@@ -512,9 +512,13 @@ export function withExclusionsBlanked(t: DataTableModel): DataTableModel {
   };
 }
 
+/** A cell's number, or null: blanks, text, spreadsheet errors and
+ *  number-like text with separators are missing, never 0. Only plain
+ *  decimal notation reads (0x10, 0b11 and 1,5 do not). */
 export function parseCell(v: Cell): number | null {
   const t = v.trim();
   if (t === "") return null;
+  if (!/^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/.test(t)) return null;
   const n = Number(t);
   return Number.isFinite(n) ? n : null;
 }

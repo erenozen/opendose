@@ -109,6 +109,21 @@ example's numbers, regenerate them against a dev server with
   summary tables; also dropped on the start screen), and "Convert Prism
   files to CSV…" (several files, every data table, one zip). Export: any
   table as CSV / TSV, results as shown.
+- Paste and import report: after every paste or import a line above the
+  table counts the numbers read and names every other cell by address
+  (blanks and #DIV/0! / #N/A kept as missing, text in a number column
+  read as missing, values marked * excluded) and states that nothing was
+  converted to 0; row titles and categorical columns (gene IDs such as
+  0001234) are kept exactly as typed.
+- Convert table to…: a new Column, Grouped, Multiple variables or
+  re-stacked XY / Grouped table with every value, exclusion and pairing
+  kept (checked against the original); "Describe the experiment" (New
+  data table and start screen) picks the table and its layout from three
+  design questions.
+- Notes on every results sheet: an "Analysed" line (n per group, or
+  "n = 10 pairs analysed; 2 incomplete pairs (rows 4, 9) left out"),
+  every engine warning and note, and every cell skipped because it is
+  not a number. Paired tests and correlation pair row by row.
 - Chains of analyses: Transform (standard functions, pharmacology plots,
   user-defined formulas with live validation), Transform concentrations,
   Remove baseline, Normalize, Transpose, Prune rows and Fraction of total
