@@ -6,6 +6,7 @@ import { legendSpec, plottedClause } from "../graph/legend.ts";
 import { replicateInfo } from "../sheets/common/superplot.ts";
 import { cellStats } from "../sheets/grouped/stats.ts";
 import { numericData } from "../project/table.ts";
+import { exclusionSentence } from "../project/exclusions.ts";
 import type { DataSheet, DataTableModel, GraphSheet } from "../project/types.ts";
 import type { GroupN } from "./describe.ts";
 import { legendParagraph, whatIsPlotted, type ErrorBars } from "./legend.ts";
@@ -123,6 +124,7 @@ export function legendFor(c: LegendContext): string {
     unit: { unit, experiments: onePer ? null : meta.experiments ?? null,
       within: onePer ? undefined : withinPerGroup(facts, xy) || undefined, ...(xyByExp ? { per: "X value" } : {}) },
     nNote: withinNote(facts, xy) || undefined,
+    exclusions: exclusionSentence(c.table) ?? undefined,
     errorBars: f.errorBars, points: f.points ?? undefined,
     starsShown: f.starsShown, pShown: f.pShown,
     style: fmt?.pStyle ?? c.prefs.pStyle,

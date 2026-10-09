@@ -105,6 +105,10 @@ export interface DataColumn {
   rows: Cell[][];          // rows x subcolumns
   subTitles?: string[];    // per subcolumn; "" or missing = automatic label
   excluded?: string[];     // "row:sub" keys of excluded cells
+  /** Why a cell was excluded, by the same "row:sub" key (optional; absent
+   *  = no reason recorded). Kept in step with `excluded` by
+   *  project/exclusions.ts and the row operations in project/table.ts. */
+  exclusionReasons?: Record<string, string>;
   varType?: VarType;       // multivariable tables only
 }
 

@@ -17,7 +17,8 @@ const FLOOR_TEXT: Record<PStyle, string> = {
 };
 
 export function statsMethodsParagraph(result: unknown, prefs: ReportPrefs,
-  meta: ReportMeta | undefined, opts: { powerJustification?: string | null } = {}): string {
+  meta: ReportMeta | undefined,
+  opts: { powerJustification?: string | null; exclusions?: string | null } = {}): string {
   const cmp = result as { analysis?: string; mode?: string; compare?: Record<string, unknown>; labels?: string[] } | null;
   if (cmp?.analysis === "compare_fits" && cmp.mode === "parameter" && cmp.compare) {
     return compareParameterMethods(cmp.compare, cmp.labels?.[0] ?? "nonlinear regression");
@@ -47,7 +48,15 @@ export function statsMethodsParagraph(result: unknown, prefs: ReportPrefs,
   } else if (meta?.experiments) {
     parts.push(`Data come from ${meta.experiments} independent experiment${meta.experiments === 1 ? "" : "s"}.`);
   }
-  if (meta?.exclusions) parts.push(`Exclusions: ${meta.exclusions.replace(/\.$/, "")}.`);
+  // Typed in Reporting details, and / or counted from the values excluded
+  // in the table with their reasons (project/exclusions.ts, ARRIVE 2.0
+  // item 3b): "n = 8 enrolled, 7 analysed (1 excluded: tumour ulceration)".
+  const counted = opts.exclusions?.trim();
+  if (meta?.exclusions && counted) {
+    parts.push(`Exclusions: ${meta.exclusions.replace(/\.$/, "")}; ${counted}.`);
+  } else if (meta?.exclusions || counted) {
+    parts.push(`Exclusions: ${(meta?.exclusions ?? counted!).replace(/\.$/, "")}.`);
+  }
   const ss = opts.powerJustification ?? meta?.sampleSize;
   if (ss) parts.push(`Sample size: ${ss.replace(/\.$/, "")}.`);
   return parts.join(" ");
