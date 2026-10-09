@@ -222,7 +222,7 @@ def compare_survival(groups, names=None, *, ci_level: float = 0.95) -> dict:
         "group_names": list(names),
         "method": ("chi2 / p (= chi2_peto / p_peto): Peto form "
                    "sum((O-E)^2/E), the approximation the engine reports "
-                   "for Prism parity; chi2_variance / p_variance: Mantel-Haenszel "
+                   "as documented in the GraphPad statistics guide; chi2_variance / p_variance: Mantel-Haenszel "
                    "variance form U'V^-1U (hypergeometric variance), the "
                    "exact log-rank statistic R's survdiff and SAS LIFETEST "
                    "report and the Cox score test equals for two groups; "
