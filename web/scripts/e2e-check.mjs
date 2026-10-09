@@ -38,8 +38,11 @@
 // (paste report, Notes strip with the n analysed, Convert table to…,
 // Describe the experiment), exclusions with reasons (n enrolled /
 // analysed in the results, legend and methods; the results with the
-// excluded values included) and the reproduction check when a project
-// saved by another version is opened.
+// excluded values included), the reproduction check when a project
+// saved by another version is opened, and the comparisons families
+// (unadjusted P beside the adjusted one, Dunn's test against a control,
+// planned Šídák pairs), residual plots and an IC50 reported as "> highest
+// dose".
 import { chromium } from "playwright";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -2294,6 +2297,155 @@ expect("compare fits graph draws the separate curves and the shared curve",
   const back = await page.waitForSelector('.pane-results[data-live="true"] .stat-cols', { timeout: 120000 })
     .then(() => true, () => false);
   expect("after a cancel the engine computes again (column statistics)", back);
+}
+
+// --- multiple-comparisons transparency, Dunn's / planned families,
+// residual plots, IC50 not reached (needs adjusted-vs-raw-labelled,
+// nonparametric-posthoc, planned-comparisons-family,
+// assumption-checks-residuals, incomplete-curve-flags) ------------------
+{
+  const liveText = (re, timeout = 60000) => page.waitForFunction((src) => {
+    const el = document.querySelector('.pane-results[data-live="true"]');
+    return !!el && new RegExp(src).test(el.textContent ?? "");
+  }, re.source, { timeout }).then(() => true, () => false);
+  // (a) Tukey after one-way ANOVA on the column example: unadjusted P
+  // beside the adjusted one, and the family in the header line
+  await newExampleTable("column");
+  await page.waitForSelector(".stat-cols", { timeout: 30000 });
+  await page.locator(".pane-controls select.analysis-select").selectOption("anova");
+  await liveText(/adjusted for 3 comparisons \(Tukey\)/);
+  const famLine = await page.locator(".pane-results .family-line").first().innerText().catch(() => "");
+  expect("Tukey table header: 'P values adjusted for 3 comparisons (Tukey)'",
+    famLine.includes("adjusted for 3 comparisons (Tukey)"), famLine);
+  const heads = await page.locator(".pane-results .comparisons-table").first()
+    .locator("thead th").allInnerTexts();
+  expect("Tukey table has an 'Unadjusted P' column beside 'Adjusted P'",
+    heads.includes("Unadjusted P") && heads.indexOf("Unadjusted P") === heads.indexOf("Adjusted P") + 1,
+    heads.join(" | "));
+  const ps = await page.locator(".pane-results .comparisons-table tbody tr").first()
+    .locator("td[data-p]").evaluateAll((tds) => tds.map((td) => Number(td.getAttribute("data-p"))));
+  expect("first row: the unadjusted P is ≤ the adjusted P", ps.length === 2 && ps[1] <= ps[0],
+    `adjusted ${ps[0]}, unadjusted ${ps[1]}`);
+  // the legend and methods name the family too
+  const methodsA = await page.locator(".methods-text").first().innerText().catch(() => "");
+  expect("methods text: Tukey's correction for 3 comparisons",
+    /Tukey's correction for 3 comparisons/.test(methodsA), methodsA.slice(0, 300));
+
+  const legendOk = await page.waitForFunction(() => /with P values adjusted for 3 comparisons \(Tukey\)/
+    .test(document.querySelector(".report-legend")?.textContent ?? ""), null, { timeout: 30000 })
+    .then(() => true, () => false);
+  expect("figure legend: 'with P values adjusted for 3 comparisons (Tukey)'", legendOk,
+    (await page.locator(".report-legend").first().innerText().catch(() => "")).slice(0, 300));
+
+  // (c) Residuals of the ANOVA: QQ plot and residuals vs. fitted
+  await page.getByRole("button", { name: /Residuals: QQ plot/ }).click();
+  const qqOk = await appears(page.locator('.resid-plot[data-plot="qq"] .scatterlayer .trace'), 30000);
+  const rvOk = await appears(page.locator('.resid-plot[data-plot="resid-fitted"] .scatterlayer .trace'), 30000);
+  const qqTraces = await page.locator('.resid-plot[data-plot="qq"] .scatterlayer .trace').count();
+  expect("Residuals: a QQ plot and a residual-vs-fitted plot, each with traces",
+    qqOk && rvOk && qqTraces === 3, `${qqTraces} QQ traces (one per group)`);
+  const advice = await page.locator(".resid-advice").innerText().catch(() => "");
+  expect("Residuals: the advice depends on n ('With 18 residuals ...') and cites its source",
+    /With 18 residuals/.test(advice) && /Source:/.test(advice), advice.slice(0, 120));
+  const shapiro = await page.locator(".resid-shapiro").innerText().catch(() => "");
+  expect("Residuals: Shapiro-Wilk on the pooled residuals as a secondary line",
+    /Shapiro-Wilk on the 18 pooled residuals: W = /.test(shapiro), shapiro);
+
+  // (b) four groups, Kruskal-Wallis with Dunn's test against the control
+  await page.getByRole("button", { name: "New data table" }).click();
+  const nd = page.locator(".new-table-dialog");
+  await nd.locator('input[name="table-type"][value="column"]').check();
+  await nd.getByLabel("Table name").fill("Four groups");
+  await nd.getByRole("button", { name: "Create table" }).click();
+  await page.waitForSelector(".grid-toolbar");
+  const four = "Control,Dose 1,Dose 2,Dose 3\n" + [
+    [23.1, 28.4, 35.2, 24.2], [25.4, 30.2, 33.9, 26.4], [21.8, 27.1, 37.4, 22.8],
+    [24.9, 31.5, 34.1, 25.9], [22.6, 29.0, 36.6, 23.6], [26.0, 28.8, 35.8, 27.0],
+  ].map((r) => r.join(",")).join("\n");
+  await page.getByRole("button", { name: "Import…", exact: true }).click();
+  const imp = page.locator(".import-dialog");
+  await imp.getByLabel("Pasted text").check();
+  await imp.getByLabel("Text to import").fill(four);
+  const t4 = imp.getByLabel(/holds column titles/);
+  if (!(await t4.isChecked())) await t4.check();
+  await imp.getByRole("tab", { name: "Placement" }).click();
+  await imp.getByLabel(/In place of the table/).check();
+  await imp.getByRole("button", { name: "Import", exact: true }).click();
+  await imp.waitFor({ state: "detached", timeout: 30000 });
+  const ctl = page.locator(".pane-controls");
+  // a select inside its <label> (its name includes the chosen option)
+  const labelled = (text) => ctl.locator("label.check-row", { has: page.locator(`span:text-is("${text}")`) })
+    .locator("select");
+  await ctl.locator("select.analysis-select").selectOption("anova");
+  await labelled("Type").selectOption("nonparametric");
+  await ctl.getByLabel("Comparisons", { exact: true }).selectOption("control");
+  const dunnOk = await liveText(/adjusted for 3 comparisons \(Dunn\)/);
+  const dunnRows = await page.locator(".pane-results .comparisons-table tbody tr").allInnerTexts();
+  expect("Kruskal-Wallis, each vs. control: exactly 3 Dunn's comparisons, adjusted for 3",
+    dunnOk && dunnRows.length === 3 && dunnRows.every((r) => r.includes("vs. Control")),
+    dunnRows.map((r) => r.split("\t")[0]).join("; "));
+  const dunnFam = await page.locator(".pane-results .family-line").first().innerText().catch(() => "");
+  expect("Dunn's header: 'adjusted for 3 comparisons (Dunn)', each vs. the control",
+    dunnFam.includes("adjusted for 3 comparisons (Dunn)") && dunnFam.includes("vs. the control Control"), dunnFam);
+  // one-way ANOVA with Šídák on two planned pairs
+  await labelled("Type").selectOption("parametric");
+  await labelled("Multiple comparisons").selectOption("sidak");
+  await ctl.getByLabel("Comparisons", { exact: true }).selectOption("pairs");
+  await ctl.getByRole("checkbox", { name: "Control vs. Dose 1" }).check();
+  await ctl.getByRole("checkbox", { name: "Control vs. Dose 3" }).check();
+  const plannedOk = await liveText(/adjusted for 2 planned comparisons \(Šídák\)/);
+  const plannedRows = await page.locator(".pane-results .comparisons-table tbody tr").count();
+  expect("Šídák on two ticked pairs: 2 comparisons, adjusted for 2 planned comparisons",
+    plannedOk && plannedRows === 2, `${plannedRows} rows`);
+  const methodsB = await page.waitForFunction(() => [...document.querySelectorAll(".methods-text")]
+    .some((m) => /Šídák correction for 2 planned comparisons/.test(m.textContent ?? "")), null,
+  { timeout: 30000 }).then(() => true, () => false);
+  expect("methods text: 'Šídák correction for 2 planned comparisons'", methodsB,
+    await page.locator(".methods-text").first().innerText().catch(() => ""));
+
+  // (d) a curve that never falls below 60%: IC50 > 30 µM, not 337
+  await page.getByRole("button", { name: "New data table" }).click();
+  const xd = page.locator(".new-table-dialog");
+  await xd.locator('input[name="table-type"][value="xy"]').check();
+  await xd.getByLabel("Table name").fill("Weak inhibitor");
+  await xd.getByLabel("Y datasets", { exact: true }).fill("1");
+  await xd.getByLabel("Replicates per X", { exact: true }).fill("3");
+  await xd.getByLabel("Rows (X values)", { exact: true }).fill("6");
+  await xd.getByRole("button", { name: "Create table" }).click();
+  await page.waitForSelector(".grid-toolbar");
+  const weak = "Concentration (µM),Drug,Drug,Drug\n0.1,100.8,98.9,100.4\n0.3,98.4,100.2,98.7\n"
+    + "1,99.0,97.6,98.7\n3,93.7,95.5,95.9\n10,85.6,84.2,86.1\n30,61.5,62.9,61.0";
+  await page.getByRole("button", { name: "Import…", exact: true }).click();
+  const impX = page.locator(".import-dialog");
+  await impX.getByLabel("Pasted text").check();
+  await impX.getByLabel("Text to import").fill(weak);
+  const tX = impX.getByLabel(/holds column titles/);
+  if (!(await tX.isChecked())) await tX.check();
+  await impX.getByRole("tab", { name: "Placement" }).click();
+  await impX.getByLabel(/In place of the table/).check();
+  await impX.getByRole("button", { name: "Import", exact: true }).click();
+  await impX.waitFor({ state: "detached", timeout: 30000 });
+  const boundOk = await liveText(/not reached in the range tested/, 120000);
+  const icRow = await page.locator(".pane-results .results-table tr", { hasText: /^IC50/ }).first()
+    .innerText().catch(() => "");
+  expect("IC50 cell reads '> 30 (not reached in the range tested)' with µM from the X title",
+    boundOk && /^IC50 \(µM\)\s+> 30 \(not reached in the range tested\)/.test(icRow.trim()),
+    icRow.replace(/\s+/g, " "));
+  expect("the chip says the curve never reaches 50% in the tested range",
+    (await page.locator(".range-chip").innerText().catch(() => "")).includes("never reaches 50% in the tested range"));
+  const sentOk = await page.waitForFunction(() => /IC50 > 30 µM \(not reached in the range tested\)/
+    .test(document.querySelector(".report-sentence p")?.textContent ?? ""), null, { timeout: 30000 })
+    .then(() => true, () => false);
+  const sentence = await page.locator(".report-sentence p").first().innerText().catch(() => "");
+  expect("the results sentence reads 'IC50 > 30 µM (not reached in the range tested)', not 337",
+    sentOk && !/IC50 = 337/.test(sentence), sentence.slice(0, 240));
+  await page.getByLabel("Report extrapolated IC50 as").selectOption("fitted");
+  const fittedOk = await liveText(/⚑ extrapolated/, 60000);
+  const icFitted = await page.locator(".pane-results .results-table tr", { hasText: /^IC50/ }).first()
+    .innerText().catch(() => "");
+  expect("switched to the fitted number: a number with the extrapolated flag",
+    fittedOk && /^IC50 \(µM\)\s+\d[\d.,e+]*\s+⚑ extrapolated \(above the range tested\)/.test(icFitted.trim()),
+    icFitted.replace(/\s+/g, " "));
 }
 
 // axe-core (WCAG 2 A / AA) on parts of a page, for the blocks below.

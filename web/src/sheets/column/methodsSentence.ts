@@ -3,6 +3,7 @@
 // Pure; methods.tsx adds the software sentence and the Copy card.
 import type { ColumnOptionsState } from "../../types";
 import { formatPValue } from "../../report/pformat";
+import { familyMethodsClause, familyOf } from "../../report/family";
 import { DEFAULT_NORMALITY_TESTS, NORMALITY_TEST_LABELS, formatSig } from "../../types";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -25,6 +26,13 @@ const POST: Record<string, string> = {
   tamhane_t2: "Tamhane's T2 multiple comparisons test",
   welch_uncorrected: "unpaired t tests with Welch's correction (without correction for multiple comparisons)",
 };
+
+/** ", with Šídák correction for 2 planned comparisons" (report/family.ts),
+ *  or "" when the result carries no family label. */
+function withFamily(mc: unknown, fallback?: string): string {
+  const f = familyOf(mc, fallback);
+  return f ? `, with ${familyMethodsClause(f)}` : "";
+}
 
 const list = (xs: string[]) => (xs.length <= 1 ? xs.join("")
   : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`);
@@ -73,7 +81,7 @@ export function columnMethodsSentence(o: ColumnOptionsState, r: R): string {
       if (o.anovaKind === "nonparametric") {
         return "Groups were compared with the Kruskal-Wallis test"
           + ` (H = ${formatSig(r.H)}, ${P(r.p)})`
-          + (r.dunns ? `, followed by Dunn's multiple comparisons test${r.dunns.corrected === false ? " without correction for multiple comparisons" : ""}` : "")
+          + (r.dunns ? `, followed by Dunn's multiple comparisons test${r.dunns.corrected === false ? " without correction for multiple comparisons" : withFamily(r.dunns, "dunns")}` : "")
           + ".";
       }
       if (r.analysis === "anova_unequal_var") {
@@ -82,13 +90,13 @@ export function columnMethodsSentence(o: ColumnOptionsState, r: R): string {
         return "Group means were compared without assuming equal SDs, by Welch's ANOVA"
           + ` (W(${w.dfn}, ${formatSig(w.dfd)}) = ${formatSig(w.W)}, ${P(w.p)})`
           + ` and the Brown-Forsythe ANOVA (F*(${bf.dfn}, ${formatSig(bf.dfd)}) = ${formatSig(bf.F)}, ${P(bf.p)})`
-          + (mc ? `, followed by ${POST[mc.method] ?? mc.method}${mc.family === "control" ? " against the control group" : ""}` : "")
+          + (mc ? `, followed by ${POST[mc.method] ?? mc.method}${mc.family === "control" ? " against the control group" : ""}${mc.method === "welch_uncorrected" ? "" : withFamily(mc)}` : "")
           + ".";
       }
       const t = r.table ?? {};
       const mc = r.multiple_comparisons;
       return `Group means were compared by ordinary one-way ANOVA (F(${t.df_between}, ${t.df_within}) = ${formatSig(t.F)}, ${P(t.p)})`
-        + (mc ? `, followed by ${POST[mc.method] ?? mc.method}` : "") + ".";
+        + (mc ? `, followed by ${POST[mc.method] ?? mc.method}${mc.method === "fisher_lsd" ? "" : withFamily(mc)}` : "") + ".";
     }
     case "median_test":
       return "Group medians were compared with Mood's median test, counting the values above and not above the grand median"
@@ -96,14 +104,14 @@ export function columnMethodsSentence(o: ColumnOptionsState, r: R): string {
         + (r.fisher_exact ? `; Fisher's exact test on the two-group table gave ${P(r.fisher_exact.p)}` : "") + ".";
     case "rm_anova":
       return o.rmKind === "nonparametric"
-        ? `Matched values were compared with the Friedman test${o.rmExact ? (r.p_method === "exact" ? " (exact P value)" : " (approximate P value; the design is too large for the exact one)") : ""} (${P(r.p)}), followed by Dunn's multiple comparisons test.`
+        ? `Matched values were compared with the Friedman test${o.rmExact ? (r.p_method === "exact" ? " (exact P value)" : " (approximate P value; the design is too large for the exact one)") : ""} (${P(r.p)}), followed by Dunn's multiple comparisons test${r.dunns?.corrected === false ? "" : withFamily(r.dunns, "dunns")}.`
         : "Matched values were compared by repeated-measures one-way ANOVA with the Geisser-Greenhouse correction.";
     case "two_way_anova": {
       const mc = r.multiple_comparisons;
       return `Data were analyzed by two-way ANOVA (rows × data sets${o.twoWayModel === "additive"
         ? "; main effects only, without the interaction term" : ""})`
         + (mc ? `, followed by ${POST[mc.method] ?? mc.method}${mc.direction === "all_cells"
-          ? " comparing every cell mean with every other" : ""}` : "") + ".";
+          ? " comparing every cell mean with every other" : ""}${withFamily(mc)}` : "") + ".";
     }
     case "rm_two_way": return "Data were analyzed by two-way repeated-measures ANOVA.";
     case "correlation": {
