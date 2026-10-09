@@ -33,6 +33,22 @@ Prism statistics guide, "One-way ANOVA (and nonparametric)":
 - Effect sizes (opendose.effectsize), under "effect_size": eta^2 with
   its noncentral-F CI, omega^2, epsilon^2 and Cohen's f for the ANOVA;
   epsilon^2_R and eta^2_H for Kruskal-Wallis.
+- Every comparison also carries p_unadjusted (the unprotected test of
+  that pair: the pooled-variance t with the residual MS and df, or
+  Dunn's z without correction), family_size (the number of comparisons
+  the correction counted) and method (the adjustment), and each
+  comparisons result a "family" {size, method, label}: the statistics
+  guide asks that multiplicity-adjusted P values be labelled as such and
+  the family stated ("Multiple comparisons: The family of comparisons",
+  "Adjusted P values").
+- Planned families ("Planned comparisons" / "Multiple comparisons:
+  Which comparisons?"): comparisons_family "control" (each group vs the
+  control, k - 1 comparisons) or "pairs" (only the listed pairs) for
+  Sidak, Bonferroni, Holm-Sidak, Holm and Fisher's LSD, which correct
+  for exactly the number of planned comparisons; Dunn's test after
+  Kruskal-Wallis takes the same families (Dunn 1964, Technometrics
+  6:241, whose Bonferroni-type bound is the family size), with
+  Bonferroni, Holm (step-down) or no correction.
 """
 
 from __future__ import annotations
@@ -146,11 +162,123 @@ def _pairs_vs_control(k, control):
     return [(i, control) for i in range(k) if i != control]
 
 
+METHOD_LABELS = {
+    "tukey": "Tukey", "dunnett": "Dunnett", "bonferroni": "Bonferroni",
+    "sidak": "\u0160id\u00e1k", "holm_sidak": "Holm-\u0160id\u00e1k",
+    "holm": "Holm", "fisher_lsd": "Fisher's LSD (no correction)",
+    "dunn_bonferroni": "Dunn (Bonferroni)", "dunn_holm": "Dunn (Holm)",
+    "dunn_none": "Dunn (no correction)",
+}
+
+
+def planned_pairs(k: int, family: str = "all", control: int = 0,
+                  pairs=None) -> list[tuple[int, int]]:
+    """The family of comparisons: every pair ("all"), each group vs the
+    control ("control": (i, control), difference = group i - control) or
+    the listed planned pairs ("pairs": [[i, j], ...], difference = i -
+    j)."""
+    if family in (None, "all"):
+        return _pairs_vs_all(k)
+    if family == "control":
+        control = int(control)
+        if not 0 <= control < k:
+            raise ValueError(f"control index {control} is out of range "
+                             f"(0..{k - 1})")
+        return _pairs_vs_control(k, control)
+    if family == "pairs":
+        if not pairs:
+            raise ValueError("comparisons family 'pairs' needs a list of "
+                             "pairs [[i, j], ...]")
+        out, seen = [], set()
+        for pr in pairs:
+            if len(pr) != 2:
+                raise ValueError(f"each planned pair needs two indices: {pr}")
+            i, j = int(pr[0]), int(pr[1])
+            if not (0 <= i < k and 0 <= j < k):
+                raise ValueError(f"planned pair {[i, j]} is out of range "
+                                 f"(0..{k - 1})")
+            if i == j:
+                raise ValueError(f"planned pair {[i, j]} compares a group "
+                                 "with itself")
+            key = (min(i, j), max(i, j))
+            if key in seen:
+                raise ValueError(f"planned pair {[i, j]} is listed twice")
+            seen.add(key)
+            out.append((i, j))
+        return out
+    raise ValueError(f"unknown comparisons family: {family} (use 'all', "
+                     "'control' or 'pairs')")
+
+
+def adjust_p(p_values, correction: str) -> list[float]:
+    """Multiplicity adjustment of a family of P values: "bonferroni"
+    (m p), "sidak" (1 - (1 - p)^m), "holm" (Holm 1979 step-down
+    Bonferroni, R's p.adjust "holm"), "holm_sidak" (step-down Sidak with
+    monotonicity, the guide's Holm-Sidak) or "none"; capped at 1."""
+    m = len(p_values)
+    if correction == "none":
+        return [float(p) for p in p_values]
+    if correction == "bonferroni":
+        return [min(p * m, 1.0) for p in p_values]
+    if correction == "sidak":
+        return [min(1 - (1 - p) ** m, 1.0) for p in p_values]
+    if correction in ("holm", "holm_sidak"):
+        order = sorted(range(m), key=lambda idx: p_values[idx])
+        adj = [0.0] * m
+        running_max = 0.0
+        for rank, idx in enumerate(order):
+            p = p_values[idx]
+            p_adj = ((m - rank) * p if correction == "holm"
+                     else 1 - (1 - p) ** (m - rank))
+            running_max = max(running_max, p_adj)
+            adj[idx] = min(running_max, 1.0)
+        return adj
+    raise ValueError(f"unknown correction: {correction}")
+
+
+def family_block(method: str, size: int, k: int, family: str = "all",
+                 control_name=None) -> dict:
+    """{size, method, label}: the family the adjustment counted, as a
+    phrase for the results table ("Tukey, 6 comparisons (all pairs of 4
+    means)")."""
+    name = METHOD_LABELS.get(method, method)
+    noun = "comparison" if size == 1 else "comparisons"
+    if family == "control":
+        what = (f"each of {k - 1} groups vs. the control"
+                + (f" {control_name}" if control_name else ""))
+    elif family == "pairs":
+        what = "planned pairs only"
+    else:
+        what = f"all pairs of {k} groups"
+    return {"size": int(size), "method": method,
+            "label": f"{name}, {size} {noun} ({what})"}
+
+
+def _label_family(result: dict, method: str, k: int, family: str = "all",
+                  control_name=None) -> dict:
+    """Add family_size and method to each comparison and the family
+    block to the result (additive keys only)."""
+    m = len(result["comparisons"])
+    for c in result["comparisons"]:
+        c.setdefault("family_size", m)
+        c.setdefault("method", method)
+    result["family"] = family_block(method, m, k, family, control_name)
+    return result
+
+
 def multiple_comparisons(datasets, method: str, *, names=None,
                          control_index: int = 0,
                          ci_level: float = 0.95,
-                         family: str = "all") -> dict:
-    """Post-ANOVA pairwise comparisons using pooled residual variance."""
+                         family: str = "all",
+                         comparisons_family: str | None = None,
+                         pairs=None) -> dict:
+    """Post-ANOVA pairwise comparisons using pooled residual variance.
+
+    family applies to the unequal-variance methods (opendose.moretests);
+    comparisons_family ("all" | "control" | "pairs", with pairs [[i, j],
+    ...]) chooses the planned family for Sidak, Bonferroni, Holm-Sidak,
+    Holm and Fisher's LSD, which then correct for exactly that many
+    comparisons."""
     from . import moretests  # local import: moretests is a leaf module
 
     if method in moretests.UNEQUAL_VARIANCE_METHODS:
@@ -167,13 +295,17 @@ def multiple_comparisons(datasets, method: str, *, names=None,
     ms_res = sum(((g - g.mean()) ** 2).sum() for g in groups) / df_res
     return _comparisons_from_stats(means, ns, ms_res, df_res, method,
                                    names=names, control_index=control_index,
-                                   ci_level=ci_level)
+                                   ci_level=ci_level,
+                                   comparisons_family=comparisons_family,
+                                   pairs=pairs)
 
 
 def _comparisons_from_stats(means, ns, ms_res, df_res, method: str, *,
                             names=None, control_index: int = 0,
                             ci_level: float = 0.95,
-                            dunnett_samples=None) -> dict:
+                            dunnett_samples=None,
+                            comparisons_family: str | None = None,
+                            pairs=None) -> dict:
     """Multiple comparisons from group means, n and the pooled residual
     MS/df: every test here depends on the data only through these.
     Dunnett's P values and simultaneous CIs come from the exact
@@ -184,6 +316,20 @@ def _comparisons_from_stats(means, ns, ms_res, df_res, method: str, *,
     names = names or [f"Group {i}" for i in range(k)]
     alpha = 1 - ci_level
     comparisons = []
+    planned = comparisons_family not in (None, "all")
+    if planned and method not in ("bonferroni", "sidak", "holm_sidak",
+                                  "holm", "fisher_lsd"):
+        raise ValueError(
+            f"a planned family ('{comparisons_family}') is available for "
+            "Sidak, Bonferroni, Holm-Sidak, Holm and Fisher's LSD; "
+            f"{method} has its own fixed family")
+
+    def t_unadj(diff, i, j):
+        # the unprotected pooled-variance t test of the pair
+        se_t = math.sqrt(ms_res * (1 / ns[i] + 1 / ns[j]))
+        if se_t > 0:
+            return 2 * float(stats.t.sf(abs(diff) / se_t, df_res))
+        return 0.0 if diff != 0 else math.nan
 
     if method == "dunnett":
         # Each group minus the control: t = diff / SE with the pooled
@@ -211,8 +357,11 @@ def _comparisons_from_stats(means, ns, ms_res, df_res, method: str, *,
                 "statistic": t,
                 "p_adjusted": p_adj,
                 "significant_05": bool(p_adj < 0.05),
+                "p_unadjusted": t_unadj(diff, i, c0),
             })
-        return {"method": method, "df": df_res, "comparisons": comparisons}
+        return _label_family(
+            {"method": method, "df": df_res, "comparisons": comparisons},
+            method, k, "control", names[c0])
 
     if method == "tukey":
         # studentized range: opendose.studentized (deterministic and
@@ -234,11 +383,15 @@ def _comparisons_from_stats(means, ns, ms_res, df_res, method: str, *,
                 "statistic": q,
                 "p_adjusted": min(p_adj, 1.0),
                 "significant_05": bool(p_adj < 0.05),
+                "p_unadjusted": t_unadj(diff, i, j),
             })
-        return {"method": method, "df": df_res, "comparisons": comparisons}
+        return _label_family(
+            {"method": method, "df": df_res, "comparisons": comparisons},
+            method, k)
 
     if method in ("bonferroni", "sidak", "holm_sidak", "holm"):
-        pairs = _pairs_vs_all(k)
+        fam = comparisons_family or "all"
+        pairs = planned_pairs(k, fam, control_index, pairs)
         m = len(pairs)
         raw = []
         for i, j in pairs:
@@ -280,7 +433,7 @@ def _comparisons_from_stats(means, ns, ms_res, df_res, method: str, *,
                          else 1 - (1 - alpha) ** (1 / m))
             tcrit = float(stats.t.ppf(1 - alpha_per / 2, df_res))
 
-        for (i, j, diff, se, t, _), p_adj in zip(raw, adj):
+        for (i, j, diff, se, t, p_unadj), p_adj in zip(raw, adj):
             comparisons.append({
                 "pair": f"{names[i]} vs. {names[j]}",
                 "difference": diff,
@@ -289,14 +442,25 @@ def _comparisons_from_stats(means, ns, ms_res, df_res, method: str, *,
                 "statistic": t,
                 "p_adjusted": p_adj,
                 "significant_05": bool(p_adj < 0.05),
+                "p_unadjusted": p_unadj,
             })
-        return {"method": method, "df": df_res, "comparisons": comparisons}
+            if planned:
+                comparisons[-1].update(a_index=i, b_index=j)
+        out = _label_family(
+            {"method": method, "df": df_res, "comparisons": comparisons},
+            method, k, fam, names[control_index] if fam == "control"
+            and 0 <= control_index < k else None)
+        if planned:
+            out["planned_pairs"] = [[i, j] for i, j in pairs]
+        return out
 
     if method == "fisher_lsd":
         # Unprotected Fisher's LSD: t tests with the pooled residual SD
         # and df, no correction for multiple comparisons.
         tcrit = float(stats.t.ppf(1 - alpha / 2, df_res))
-        for i, j in _pairs_vs_all(k):
+        fam = comparisons_family or "all"
+        lsd_pairs = planned_pairs(k, fam, control_index, pairs)
+        for i, j in lsd_pairs:
             diff = means[i] - means[j]
             se = math.sqrt(ms_res * (1 / ns[i] + 1 / ns[j]))
             t = abs(diff) / se if se > 0 else (math.inf if diff else math.nan)
@@ -308,8 +472,17 @@ def _comparisons_from_stats(means, ns, ms_res, df_res, method: str, *,
                 "statistic": t,
                 "p_adjusted": p,  # individual P (no correction)
                 "significant_05": bool(p < 0.05),
+                "p_unadjusted": p,
             })
-        return {"method": method, "df": df_res, "comparisons": comparisons}
+            if planned:
+                comparisons[-1].update(a_index=i, b_index=j)
+        out = _label_family(
+            {"method": method, "df": df_res, "comparisons": comparisons},
+            method, k, fam, names[control_index] if fam == "control"
+            and 0 <= control_index < k else None)
+        if planned:
+            out["planned_pairs"] = [[i, j] for i, j in lsd_pairs]
+        return out
 
     if method == "newman_keuls":
         from . import moretests
@@ -320,7 +493,17 @@ def _comparisons_from_stats(means, ns, ms_res, df_res, method: str, *,
 
 
 def kruskal_wallis(datasets, names=None, *, dunns: bool = True,
-                   dunn_corrected: bool = True) -> dict:
+                   dunn_corrected: bool = True, dunn_family: str = "all",
+                   control: int = 0, pairs=None,
+                   dunn_correction: str | None = None) -> dict:
+    """Kruskal-Wallis H (tie-corrected) with Dunn's post test.
+
+    dunn_family: "all" pairs, "control" (each group vs groups[control],
+    k - 1 comparisons) or "pairs" (the planned pairs [[i, j], ...]);
+    dunn_correction: "bonferroni" (Dunn 1964; the guide's default),
+    "holm" (step-down, Holm 1979) or "none"; when None it follows
+    dunn_corrected (True = Bonferroni, False = none). The adjustment
+    counts exactly the comparisons in the family."""
     groups = _groups(datasets)
     if len(groups) < 2:
         raise ValueError("Kruskal-Wallis needs at least 2 groups")
@@ -334,16 +517,26 @@ def kruskal_wallis(datasets, names=None, *, dunns: bool = True,
         ],
     }
     if dunns:
-        out["dunns"] = _dunns(groups, names, corrected=dunn_corrected)
+        out["dunns"] = _dunns(groups, names, corrected=dunn_corrected,
+                              family=dunn_family, control=control,
+                              pairs=pairs, correction=dunn_correction)
     out["effect_size"] = effectsize.safe(
         effectsize.kruskal_wallis, float(h), int(sum(g.size for g in groups)),
         len(groups))
     return out
 
 
-def _dunns(groups, names, corrected: bool = True) -> dict:
+def _dunns(groups, names, corrected: bool = True, *, family: str = "all",
+           control: int = 0, pairs=None, correction: str | None = None
+           ) -> dict:
     """Dunn's post test with tie correction; multiplicity-adjusted P via
-    Bonferroni (Prism reports multiplicity-adjusted P values)."""
+    Bonferroni (Prism reports multiplicity-adjusted P values), over the
+    chosen family (all pairs, vs control, or planned pairs)."""
+    if correction is None:
+        correction = "bonferroni" if corrected else "none"
+    if correction not in ("bonferroni", "holm", "none"):
+        raise ValueError(f"unknown Dunn correction: {correction} (use "
+                         "'bonferroni', 'holm' or 'none')")
     all_values = np.concatenate(groups)
     n_total = all_values.size
     ranks = stats.rankdata(all_values)
@@ -356,13 +549,16 @@ def _dunns(groups, names, corrected: bool = True) -> dict:
     # tie correction term
     _, counts = np.unique(all_values, return_counts=True)
     tie_term = float(((counts ** 3 - counts).sum()) / (12 * (n_total - 1)))
-    pairs = _pairs_vs_all(len(groups))
+    k = len(groups)
+    pairs = planned_pairs(k, family or "all", control, pairs)
     m = len(pairs)
     comparisons = []
+    raw = []
     for i, j in pairs:
         se = math.sqrt((n_total * (n_total + 1) / 12 - tie_term)
                        * (1 / groups[i].size + 1 / groups[j].size))
         z = abs(mean_ranks[i] - mean_ranks[j]) / se
+        raw.append(2 * float(stats.norm.sf(z)))
         p_adj = min(2 * float(stats.norm.sf(z)) * (m if corrected else 1),
                     1.0)
         comparisons.append({
@@ -372,7 +568,23 @@ def _dunns(groups, names, corrected: bool = True) -> dict:
             "p_adjusted": p_adj,
             "significant_05": bool(p_adj < 0.05),
         })
-    if not corrected:
-        return {"method": "dunns", "corrected": False,
-                "comparisons": comparisons}
-    return {"method": "dunns", "comparisons": comparisons}
+    if correction == "holm" or (correction == "none") == corrected:
+        # the adjustment asked for differs from the legacy Bonferroni /
+        # uncorrected branch above: recompute p_adjusted for the family
+        for c, p_adj in zip(comparisons, adjust_p(raw, correction)):
+            c["p_adjusted"] = p_adj
+            c["significant_05"] = bool(p_adj < 0.05)
+    meth = f"dunn_{correction}"
+    for (i, j), c, p_raw in zip(pairs, comparisons, raw):
+        c.update(p_unadjusted=p_raw, family_size=m, method=meth,
+                 a_index=i, b_index=j)
+    fam = family or "all"
+    out = {"method": "dunns", "comparisons": comparisons,
+           "family": family_block(meth, m, k, fam,
+                                  names[control] if fam == "control"
+                                  else None)}
+    if fam == "pairs":
+        out["planned_pairs"] = [[i, j] for i, j in pairs]
+    if correction == "none":
+        out["corrected"] = False
+    return out

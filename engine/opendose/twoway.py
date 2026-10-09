@@ -17,6 +17,16 @@ then use its residual.
 "effect_size" (opendose.effectsize): per term, partial eta^2 with its
 noncentral-F CI, partial omega^2, partial epsilon^2, Cohen's f and
 eta^2 = SS / SS_total.
+
+Follow-up comparisons also state their family (GraphPad statistics guide,
+"Multiple comparisons after two-way ANOVA"): each comparison carries
+"p_unadjusted" (the unprotected pooled-variance t test with MS_residual
+and df_residual, i.e. Fisher's LSD P), "family_size" and "method"; the
+result carries "family" {size, method, label, n_families, per_family}
+and "families" (one entry per row/column family). Tukey's studentized
+range is applied within each family (family size = pairs within that
+row or column); Sidak and Bonferroni correct for the total number of
+comparisons, so then the whole table is one family.
 """
 
 from __future__ import annotations
@@ -28,6 +38,7 @@ import numpy as np
 from scipy import stats
 
 from . import effectsize, studentized
+from .moretests import comparison_family
 
 
 def _design(cells):
@@ -250,13 +261,23 @@ def _comparisons_core(base, means, ns, column_marginal, row_marginal, *,
         for _, fam in families)
 
     comparisons = []
+    family_blocks = []
     qcrit_k = {}  # Tukey critical q per family size (one quantile each)
     for fam_label, fam in families:
         entries = [e for e in fam if e[1] is not None and e[2] > 0]
         k = len(entries)
+        fam_pairs = k * (k - 1) // 2
+        fam_size = fam_pairs if method == "tukey" else max(total_comparisons,
+                                                           1)
+        family_blocks.append({"name": fam_label, "n_means": k,
+                              "n_comparisons": fam_pairs,
+                              **comparison_family(
+                                  fam_size, method,
+                                  f"{fam_label}: all pairs of {k} means")})
         for (n1, m1, c1), (n2, m2, c2) in combinations(entries, 2):
             diff = m1 - m2
             se = math.sqrt(ms_resid * (1.0 / c1 + 1.0 / c2))
+            p_unadj = 2.0 * float(stats.t.sf(abs(diff) / se, df_resid))
             if method == "tukey":
                 q = abs(diff) / (se / math.sqrt(2.0))
                 p_adj = studentized.sf(q, k, df_resid)
@@ -288,9 +309,33 @@ def _comparisons_core(base, means, ns, column_marginal, row_marginal, *,
                 "statistic": float(statistic),
                 "p_adjusted": min(float(p_adj), 1.0),
                 "significant_05": bool(p_adj < 0.05),
+                "p_unadjusted": p_unadj,
+                "family_size": fam_size,
+                "method": method,
             })
+
+    n_fam = len(families)
+    if method == "tukey" and n_fam > 1:
+        sizes = sorted({blk["size"] for blk in family_blocks})
+        size_txt = (f"{sizes[0]}" if len(sizes) == 1
+                    else f"{sizes[0]}-{sizes[-1]}")
+        what = "row" if direction == "columns_within_rows" else "column"
+        family = {"size": sizes[-1], "method": method,
+                  "label": (f"Tukey, {size_txt} comparisons within each "
+                            f"{what} ({n_fam} separate families)"),
+                  "n_families": n_fam, "per_family": True}
+    else:
+        if n_fam > 1:
+            scope = f"all {n_fam} families corrected together"
+        else:
+            scope = f"all pairs of {family_blocks[0]['n_means']} means"
+        size = (family_blocks[0]["size"] if method == "tukey"
+                else max(total_comparisons, 1))
+        family = {**comparison_family(size, method, scope),
+                  "n_families": n_fam, "per_family": method == "tukey"}
 
     return {"method": method, "direction": direction,
             "ms_residual": float(ms_resid), "df_residual": int(df_resid),
             "n_comparisons": len(comparisons),
-            "comparisons": comparisons}
+            "comparisons": comparisons,
+            "family": family, "families": family_blocks}

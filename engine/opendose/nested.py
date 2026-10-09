@@ -23,7 +23,9 @@ implements (cited for the method only):
   columns, the same random-effects and subcolumn results, and multiple
   comparisons "done as they are for one-way ANOVA" but from the model
   (Dunnett example: SE of difference from the model, DF = subcolumns -
-  columns).
+  columns). Each comparison carries "p_unadjusted" (Wald t on that df),
+  "family_size" and "method"; the comparisons block carries "family"
+  {size, method, label} (opendose.mixedmodel.compare_estimates).
 - "If P is high, should you pool?": the classical hierarchical ANOVA F
   test of subgroups within groups (MS subgroups / MS within; the guide's
   herd example gives P = 0.1231), reported here as a secondary table.
@@ -273,11 +275,14 @@ def nested_one_way_anova(groups, *, names=None, subgroup_names=None,
         **common,
     }
     if comparisons:
+        comps = mm.compare_estimates(
+            emm, cov, df, comparisons, names=common["names"],
+            control_index=control_index, ci_level=ci_level)
         out["multiple_comparisons"] = {
             "method": comparisons, "df": int(df),
             "n_comparisons_per_family": (k - 1 if comparisons == "dunnett"
                                          else k * (k - 1) // 2),
-            "comparisons": mm.compare_estimates(
-                emm, cov, df, comparisons, names=common["names"],
-                control_index=control_index, ci_level=ci_level)}
+            "comparisons": comps,
+            "family": mm.comparisons_family(
+                comparisons, k, comps, common["names"], control_index)}
     return out
