@@ -11,7 +11,7 @@ import type { GroupN } from "./describe.ts";
 import { legendParagraph, whatIsPlotted, type ErrorBars } from "./legend.ts";
 import type { ReportPrefs } from "./prefs.ts";
 import {
-  hasRepeats, metaWithReplicates, replicateFacts, withinNote, withinPerGroup,
+  metaWithReplicates, replicateFacts, withinNote, withinPerGroup,
 } from "./replicates.ts";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -103,7 +103,7 @@ export function legendFor(c: LegendContext): string {
   const meta = metaWithReplicates(c.data.report, c.table, c.result, { superplot });
   const facts = replicateFacts(c.table, c.result, { superplot });
   // XY with repeats inside experiments: the points are experiment means.
-  const xyByExp = xy && hasRepeats(facts) && !c.data.report?.unit;
+  const xyByExp = xy && !!facts && !c.data.report?.unit;
   const xyGroups = xyByExp ? groups.map((g) => ({ ...g, n: facts!.experiments })) : groups;
   const unit = meta.unit ?? (xy ? "replicates per X value" : undefined);
   // The graph's own P style / "hide ns" override the project's.

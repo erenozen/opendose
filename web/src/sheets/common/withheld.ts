@@ -112,7 +112,10 @@ export function withheldInfo(result: unknown): WithheldInfo | null {
       ? { name: g, n: all.find((x) => x.name === g)?.n ?? 1 }
       : { name: String((g as R)?.name ?? ""), n: typeof (g as R)?.n === "number" ? (g as R).n : 1 }))
     : [];
-  const few = listed.length ? listed : all.filter((g) => g.n < 2).map((g) => ({ name: g.name, n: g.n }));
+  // The engine lists every group (t tests) or only the small ones (ANOVA).
+  const small = listed.filter((g) => g.n < 2);
+  const few = small.length ? small : listed.length ? listed
+    : all.filter((g) => g.n < 2).map((g) => ({ name: g.name, n: g.n }));
   const minN = typeof w.min_n === "number" ? w.min_n
     : few.length ? Math.min(...few.map((g) => g.n)) : 1;
   return {
@@ -124,6 +127,7 @@ export function withheldInfo(result: unknown): WithheldInfo | null {
 /** "one value per group" / "one value in Control" / "one pair", for the
  *  sentence, the legend and the banner. */
 export function withheldPhrase(w: WithheldInfo): string {
+  if (w.minN === 0) return w.matched ? "no complete matched pair" : "a group without values";
   if (w.matched) return w.minN <= 1 ? "one matched set of values" : `${w.minN} matched sets`;
   const ones = w.groups.filter((g) => g.n <= 1);
   const everyGroup = w.all.length > 0 && w.all.every((g) => g.n <= 1);

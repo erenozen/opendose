@@ -2322,6 +2322,9 @@ expect("compare fits graph draws the separate curves and the shared curve",
   await page.locator(".pane-controls select.analysis-select").selectOption("ttest");
   expect("n = 1 per group: P withheld, the results are descriptive",
     await resultsText(/P value\s+withheld: one value per group gives no estimate of the variability/));
+  // the n needed comes from the power engine a moment later
+  await page.waitForFunction(() => document.querySelector('[data-banner="p-withheld"]')?.textContent
+    ?.includes("to detect d = 2"), null, { timeout: 60000 }).catch(() => {});
   const whBanner = await page.locator('[data-banner="p-withheld"]').innerText().catch(() => "");
   expect("n = 1 per group: 'one value per group allows description only' with the replication needed",
     whBanner.includes("No P value: one value per group allows description only")
@@ -2352,7 +2355,7 @@ expect("compare fits graph draws the separate curves and the shared curve",
   const uq = page.getByRole("region", { name: "What does each value represent?" });
   expect("a pasted table of 9 values per group is asked what each value represents",
     await appears(uq, 30000));
-  await page.getByRole("button", { name: "Each value is a technical repeat" }).click();
+  await page.getByRole("button", { name: /Each value is: Technical repeat/ }).click();
   expect("technical repeats: blocks of 3 rows, 3 experiments with 9 wells per group",
     (await uq.innerText()).includes("3 independent experiments, 9 wells per group"),
     await uq.innerText());

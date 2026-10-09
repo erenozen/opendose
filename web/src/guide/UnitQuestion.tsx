@@ -64,15 +64,15 @@ export default function UnitQuestion({ dataId }: { dataId: string }) {
     <section className="unit-question" aria-labelledby={titleId}>
       <div className="unit-q-head">
         <p id={titleId} className="unit-q-title">What does each value represent?</p>
-        <button type="button" className="unit-q-close" aria-label="Dismiss the question about what each value represents"
+        <button type="button" className="unit-q-close"
           onClick={() => commit("dismissed")}>Not now</button>
       </div>
       {!repeats ? (
         <>
           <div className="unit-q-options">
             {VALUE_KINDS.map((v) => (
-              <button key={v.id} type="button" aria-label={v.name} onClick={() => pick(v.id)}>
-                {v.label}</button>
+              <button key={v.id} type="button" onClick={() => pick(v.id)}>
+                <span className="sr-only">Each value is: </span>{v.label}</button>
             ))}
           </div>
           <p className="unit-q-hint">
@@ -118,8 +118,11 @@ export default function UnitQuestion({ dataId }: { dataId: string }) {
           {preview && (
             <p className="unit-q-preview" role="status">
               {preview.experiments} independent experiment{preview.experiments === 1 ? "" : "s"}
-              {same ? `, ${same} ${answer!.unit} per group` : ""}: the test then runs on one value
-              per experiment (n = {preview.experiments}).
+              {same ? `, ${same} ${answer!.unit} per ${data.table.type === "column" ? "group"
+                : data.table.type === "xy" ? "X value" : "cell"}` : ""}
+              {data.table.type === "xy"
+                ? `: the legend counts experiments (n = ${preview.experiments}).`
+                : `: the test then runs on one value per experiment (n = ${preview.experiments}).`}
             </p>
           )}
           <div className="unit-q-actions">

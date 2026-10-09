@@ -281,6 +281,13 @@ test("replicate maps on XY and grouped tables: experiments and values per cell",
   const leg = legendFor({ data, table: m, graph: null, result: null, options: null, prefs: DEFAULT_REPORT,
     software: "OpenDose" });
   assert.match(leg, /n = 3 independent experiments \(9 wells\) per X value\./);
+  // one subcolumn per experiment: n counts experiments, nothing inside
+  const xy3 = normalizeTable({ type: "xy", x: ["1", "10"],
+    datasets: [{ name: "Drug", rows: [["1", "2", "3"], ["4", "5", "6"]] }] });
+  const m3 = mapTable(xy3, { kind: "technical", layout: "subcolumns" });
+  const leg3 = legendFor({ data: makeDataSheet("y", "D", m3), table: m3, graph: null, result: null,
+    options: null, prefs: DEFAULT_REPORT, software: "OpenDose" });
+  assert.match(leg3, /n = 3 independent experiments per X value\./);
   // grouped: values per row × data set cell
   const g = normalizeTable({ type: "grouped", rowTitles: ["WT", "KO"],
     datasets: [{ name: "Vehicle", rows: [["1", "2", "3", "4", "5", "6"], ["1", "2", "3", "4", "5", "6"]] }] });

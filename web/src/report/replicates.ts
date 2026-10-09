@@ -59,14 +59,14 @@ export function hasRepeats(f: ReplicateFacts | null): boolean {
 
 /** The reporting details with the replicate map's unit and experiments
  *  filled in where the user left them blank. On replicate means (and for
- *  XY tables with repeats inside experiments, whose points are means) one
+ *  XY tables with a map, whose points summarise the experiments) one
  *  n is an experiment. */
 export function metaWithReplicates(meta: ReportMeta | undefined, table: DataTableModel,
   result?: unknown, opts: { superplot?: boolean } = {}): ReportMeta {
   const m = meta ?? {};
   const f = replicateFacts(table, result, opts);
   if (!f) return m;
-  const byExperiment = f.onMeans || (table.type === "xy" && hasRepeats(f));
+  const byExperiment = f.onMeans || table.type === "xy";
   return {
     ...m,
     unit: m.unit ?? (byExperiment ? "independent experiments" : f.unit),

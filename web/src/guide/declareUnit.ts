@@ -25,11 +25,11 @@ import { normalizeSuperPlot, replicateInfo } from "../sheets/common/superplot.ts
 
 export type ValueKind = Exclude<ValueIs, "dismissed">;
 
-export const VALUE_KINDS: { id: ValueKind; label: string; name: string }[] = [
-  { id: "experiment", label: "An independent experiment", name: "Each value is an independent experiment" },
-  { id: "animal", label: "An animal or patient", name: "Each value is an animal or patient" },
-  { id: "technical", label: "A technical repeat (well, read)", name: "Each value is a technical repeat" },
-  { id: "cell", label: "A cell or field", name: "Each value is a cell or field" },
+export const VALUE_KINDS: { id: ValueKind; label: string }[] = [
+  { id: "experiment", label: "Independent experiment" },
+  { id: "animal", label: "Animal or patient" },
+  { id: "technical", label: "Technical repeat (well, read)" },
+  { id: "cell", label: "Cell or field" },
 ];
 
 /** Which values share an experiment, for technical repeats and cells. */

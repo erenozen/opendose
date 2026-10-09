@@ -73,7 +73,7 @@ export function sensitivityOfResult(result: unknown): Sensitivity | null {
   if (minN < 2 || minN > 3) return null;
   return { minN, d: s.detectable_d_80,
     ciHalf: typeof s.ci_halfwidth_factor === "number" ? s.ci_halfwidth_factor : null,
-    matched: !!s.matched || /(^|_)paired|wilcoxon/.test(String(r!.test ?? ""))
+    matched: !!s.matched || s.effect === "d_z" || /(^|_)paired|wilcoxon/.test(String(r!.test ?? ""))
       || r!.analysis === "rm_one_way_anova" || r!.analysis === "friedman" };
 }
 
@@ -139,7 +139,7 @@ export function withheldBanner(w: WithheldInfo, needed: NeededN[] | null): Banne
     : null;
   return {
     id: "p-withheld", tone: "warn",
-    title: `No P value: ${phrase} allows description only`,
+    title: w.minN === 0 ? `No P value: ${phrase}` : `No P value: ${phrase} allows description only`,
     body: `${who ? `${who}: ` : ""}a P value compares the difference between groups with the `
       + "variability within them, and one independent value per group (one experiment, one "
       + "animal, or replicates pooled into one sample) gives no estimate of that variability. "
