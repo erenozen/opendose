@@ -1,7 +1,7 @@
 // Commands of the sharing package, callable from anywhere (header, sheet
 // menus, info popover) without threading props: each dispatches a window
 // event that <ShareHost> (mounted once in App) answers.
-import type { PptxScope } from "../export/pptx";
+import type { PptxScope } from "../export/pptx.ts";
 
 export const SHARE_EVENT = "opendose-share";
 
@@ -11,7 +11,8 @@ export type ShareRequest =
   | { kind: "pzfx"; dataId?: string }      // data tables as a .pzfx file (all, or one)
   | { kind: "validation"; scope?: ValidationFor }  // open the validation page
   | { kind: "pptx"; from?: string | null; scope?: PptxScope }  // graphs to PowerPoint
-  | { kind: "replay"; dataId?: string };   // apply the project to new data
+  | { kind: "replay"; dataId?: string }    // apply the project to new data
+  | RecipeImportRequest;                    // import files with a recipe
 
 /** "How this is validated" on a results sheet: the page opens filtered to
  *  the checks of this analysis (share/validationIndex.ts). */
@@ -21,6 +22,12 @@ export function requestShare(req: ShareRequest): void {
   window.dispatchEvent(new CustomEvent<ShareRequest>(SHARE_EVENT, { detail: req }));
 }
 
+/** Files dropped (several CSVs, a zip) to import with a recipe; `fresh`
+ *  starts a new project with the table (the start screen). */
+export interface RecipeImportRequest { kind: "recipe"; files: File[]; fresh?: boolean }
+
+export const openRecipeImport = (files: File[], opts: { fresh?: boolean } = {}) =>
+  requestShare({ kind: "recipe", files, ...opts });
 export const openShareLink = (dataId?: string) => requestShare({ kind: "link", dataId });
 export const exportBundle = () => requestShare({ kind: "bundle" });
 export const exportPzfxFile = (dataId?: string) => requestShare({ kind: "pzfx", dataId });

@@ -6,7 +6,10 @@
 // column table; Reshape turns a table long; "Apply to new data" replays the
 // project (and the bundle's provenance.json) onto a changed contingency
 // table and logs the P that changed; the validation page and the
-// privacy statement are reachable from the info popover.
+// privacy statement are reachable from the info popover; the Incucyte,
+// LabChart and multi-read plate recipes make XY and grouped tables; a zip
+// of per-image CSVs becomes a SuperPlot-ready column table; a mapping
+// saved as a recipe is applied again after a reload.
 // Run with the dev server up: node scripts/e2e-share.mjs http://localhost:5193/
 import { chromium } from "playwright";
 import { fileURLToPath } from "node:url";
@@ -14,7 +17,7 @@ import { dirname, join } from "node:path";
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { createRequire } from "node:module";
-import { unzipSync, strFromU8 } from "fflate";
+import { unzipSync, strFromU8, strToU8, zipSync } from "fflate";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const FLOWJO = join(here, "..", "e2e-fixtures", "flowjo-table.csv");
@@ -317,6 +320,168 @@ expect("validation page includes NIST Longley and Prism pins",
 await val.getByRole("button", { name: "NIST StRD (11)" }).click();
 expect("validation page filters by reference", await val.locator(".validation-table tbody tr").count() === 11);
 await val.getByRole("button", { name: "Close" }).last().click();
+
+// --- instrument recipes (Incucyte, LabChart, multi-read plates), many
+// per-image CSVs in a zip, and a mapping saved as a recipe
+{
+  const write = (name, text) => { const p = join(tmp, name); writeFileSync(p, text); return p; };
+  const incucyte = (vals) => write("incucyte-export.txt", [
+    "Vessel Name: HeLa scratch", "Metric: Phase Object Confluence (Percent)", "Cell Type: HeLa", "",
+    "Date Time\tElapsed\tB2\tB3\tC2\tC2 (Std Err Image)",
+    ...vals.map((r, i) => `01/03/2024 1${i}:00:00\t${i * 2}\t${r.join("\t")}\t0.2`),
+  ].join("\n"));
+  const INCU = incucyte([[5.1, 4.8, 6.0], [7.9, 7.2, 9.5], [12.4, 11.8, 15.1]]);
+  const val = (label) => page.getByLabel(label, { exact: true }).first().inputValue();
+  const openRecipes = async () => {
+    await page.getByRole("button", { name: "Import…" }).click();
+    await page.getByRole("tab", { name: "Recipes" }).click();
+    const d = page.getByRole("dialog", { name: "Import with a recipe" });
+    await d.waitFor({ timeout: 10000 });
+    return d;
+  };
+
+  // (a) Incucyte → XY table of confluence over time per well; saved as a recipe
+  let d = await openRecipes();
+  await d.getByLabel("Export file to import").setInputFiles(INCU);
+  await d.locator(".recipe-option.checked", { hasText: "Recognise the file" }).waitFor();
+  expect("Incucyte export recognised", await d.locator(".recipe-option", { hasText: "Incucyte time series" })
+    .locator(".recipe-detected").count() === 1);
+  expect("Incucyte recipe says which layouts it recognises",
+    await d.locator(".recipe-option", { hasText: "Recognises: Incucyte ZOOM" }).count() === 1);
+  expect("standard-error column left out", (await d.innerText()).includes("1 standard-error column left out"));
+  await d.getByRole("tab", { name: "Table" }).click();
+  expect("XY table chosen for Incucyte", await d.getByRole("radio", { name: /^XY/ }).isChecked());
+  await d.getByLabel("Table name").fill("Confluence per well");
+  await d.getByRole("button", { name: "Save as recipe…" }).click();
+  await d.getByLabel("Recipe name").fill("Incucyte confluence");
+  await d.getByRole("button", { name: "Save recipe" }).click();
+  expect("recipe saved in this browser and the project",
+    (await d.getByRole("region", { name: "Save as recipe" }).innerText())
+      .includes("Saved “Incucyte confluence” in this browser and the project."));
+  await d.getByRole("button", { name: "Create table" }).click();
+  await page.getByRole("treeitem", { name: "Confluence per well", exact: true }).first().waitFor({ timeout: 10000 });
+  const xs = [await val("X, row 1"), await val("X, row 2"), await val("X, row 3")];
+  expect("Incucyte: X = elapsed hours 0, 2, 4", xs.join(",") === "0,2,4", xs.join(","));
+  expect("Incucyte: X title is Elapsed (h)", await page.getByLabel("X column title").inputValue() === "Elapsed (h)");
+  const dsNames = [await val("Dataset 1 title"), await val("Dataset 2 title"), await val("Dataset 3 title")];
+  expect("Incucyte: one data set per well B2, B3, C2", dsNames.join(",") === "B2,B3,C2", dsNames.join(","));
+  expect("Incucyte: C2 at 2 h is 9.5", await val("C2, row 2") === "9.5", await val("C2, row 2"));
+
+  // (b) LabChart → XY table with the channel names, time in ms
+  const LAB = write("labchart.txt", ["Interval=\t0.5 s", "ExcelDateTime=\t4.5352e+04\t01/03/2024 10:00:00",
+    "TimeFormat=\tStartOfBlock", "ChannelTitle=\tPressure\tFlow", "Range=\t10.000 V\t10.000 V",
+    "UnitName=\tmmHg\tml/min", "0\t98.1\t1.20", "0.5\t98.3\t1.21", "1\t99.0\t1.25\t#* Drug added",
+    "1.5\t99.4\t1.30", "2\t99.9\t1.32"].join("\n"));
+  d = await openRecipes();
+  await d.getByLabel("Export file to import").setInputFiles(LAB);
+  await d.locator(".recipe-option.checked", { hasText: "Recognise the file" }).waitFor();
+  expect("LabChart export recognised", await d.locator(".recipe-option", { hasText: "LabChart text export" })
+    .locator(".recipe-detected").count() === 1);
+  await d.getByLabel("Time unit").selectOption("ms");
+  expect("LabChart comment listed", (await d.innerText()).includes("1000 ms: Drug added"));
+  await d.getByRole("button", { name: "Create table" }).click();
+  await page.getByRole("treeitem", { name: "LabChart", exact: true }).first().waitFor({ timeout: 10000 });
+  const lab = [await val("Dataset 1 title"), await val("Dataset 2 title")];
+  expect("LabChart: data sets are the channels with units", lab.join(" | ") === "Pressure (mmHg) | Flow (ml/min)",
+    lab.join(" | "));
+  expect("LabChart: X in ms (row 3 = 1000), Pressure 99", await val("X, row 3") === "1000"
+    && await val("Pressure (mmHg), row 3") === "99", `${await val("X, row 3")} ${await val("Pressure (mmHg), row 3")}`);
+  expect("LabChart: X title Time (ms)", await page.getByLabel("X column title").inputValue() === "Time (ms)");
+
+  // (c) multi-read plate run → grouped table, one row per read
+  const block = (label, f) => [label, "\t1\t2\t3\t4\t5\t6\t7\t8\t9\t10\t11\t12",
+    ..."ABCDEFGH".split("").map((row, r) => [row, ...Array.from({ length: 12 }, (_, c) => f(r, c).toFixed(3))].join("\t")),
+    ""].join("\n");
+  const READS = write("multiread.txt", ["Plate: run 1", "", block("Read 1:450", (r, c) => 0.1 + r * 0.01 + c * 0.001),
+    block("Read 2:620", (r) => 0.05 + r * 0.001)].join("\n"));
+  d = await openRecipes();
+  await d.getByLabel("Export file to import").setInputFiles(READS);
+  await d.locator(".recipe-option.checked", { hasText: "Recognise the file" }).waitFor();
+  expect("multi-read run recognised", await d.locator(".recipe-option", { hasText: "Multi-read plate run" })
+    .locator(".recipe-detected").count() === 1);
+  expect("two reads of a 96-well plate found", (await d.innerText()).includes("2 reads of a 96-well plate: Read 1:450, Read 2:620"));
+  await d.getByRole("tab", { name: "Columns" }).click();
+  expect("plate map editor offered for the wells",
+    await d.getByRole("checkbox", { name: /Group the wells with a plate map/ }).count() === 1);
+  await d.getByRole("button", { name: "Create table" }).click();
+  await page.getByRole("treeitem", { name: "Plate reads", exact: true }).first().waitFor({ timeout: 10000 });
+  const rowsT = [await page.getByLabel("Row 1 title").inputValue(), await page.getByLabel("Row 2 title").inputValue()];
+  expect("multi-read: the reads are the rows", rowsT.join(" | ") === "Read 1:450 | Read 2:620", rowsT.join(" | "));
+  expect("multi-read: B3 at 450 nm is 0.112, at 620 nm 0.051",
+    await val("B3, row 1") === "0.112" && await val("B3, row 2") === "0.051",
+    `${await val("B3, row 1")} ${await val("B3, row 2")}`);
+
+  // (d) a zip of 6 per-image CSVs → condition / replicate / image → SuperPlot-ready column table
+  const files = {};
+  ["ctrl", "drug"].forEach((cond, ci) => [1, 2, 3].forEach((rep) => {
+    const cells = [10 + ci * 5 + rep, 12 + ci * 5 + rep, 14 + ci * 5 + rep];
+    files[`${cond}_rep${rep}_img03.csv`] = strToU8([" ,Area,Mean", ...cells.map((a, i) => `${i + 1},${a},${100 + i}`)].join("\n"));
+  }));
+  const ZIP = join(tmp, "per-image.zip");
+  writeFileSync(ZIP, zipSync(files));
+  await page.getByRole("button", { name: "Import…" }).click();
+  const imp = page.getByRole("dialog", { name: "Import data" });
+  await imp.waitFor({ timeout: 10000 });
+  await imp.getByLabel("File to import").setInputFiles(ZIP);
+  d = page.getByRole("dialog", { name: "Import with a recipe" });
+  await d.waitFor({ timeout: 10000 });
+  await d.getByLabel("Files stacked").waitFor({ timeout: 10000 });
+  expect("6 files stacked with the file name as a column",
+    (await d.getByLabel("Files stacked").innerText()).startsWith("6 files stacked into one table of 18 rows"),
+    await d.getByLabel("Files stacked").innerText());
+  expect("per-image recipe chosen", (await d.locator(".recipe-option.checked").innerText()).includes("Per-image tables"));
+  await d.getByRole("tab", { name: "Columns" }).click();
+  expect("name template fits every file", (await d.getByRole("region", { name: "Name pattern" }).innerText())
+    .includes("6 of 6 names fit"));
+  expect("name preview reads ctrl / 1 / 03",
+    /ctrl_rep1_img03\.csv\s+ctrl\s+1\s+03/.test(await d.getByLabel("How the names split").innerText()));
+  const staged = await d.getByLabel("Staged records").innerText();
+  expect("stacked table has File, Condition, Replicate and Image columns",
+    ["File", "Condition", "Replicate", "Image"].every((h) => staged.includes(h)), staged.slice(0, 200));
+  await d.getByRole("tab", { name: "Table" }).click();
+  expect("column table with the replicate map",
+    await d.getByRole("radio", { name: /^Column/ }).isChecked()
+    && (await d.getByRole("status", { name: "Replicate map" }).innerText()).includes("3 independent experiments (from Replicate); each value is one image"),
+    await d.getByRole("status", { name: "Replicate map" }).innerText().catch(() => ""));
+  await d.getByRole("button", { name: "Create table" }).click();
+  await page.getByRole("treeitem", { name: "Image tables", exact: true }).first().waitFor({ timeout: 10000 });
+  const groups = [await val("Group 1 title"), await val("Group 2 title"), await val("Group 3 title")];
+  expect("2 groups and the experiment labels", groups.join(",") === "ctrl,drug,Experiment", groups.join(","));
+  const nCtrl = await filled("ctrl");
+  const nDrug = await filled("drug");
+  expect("3 values (images) per group", nCtrl === 3 && nDrug === 3, `ctrl ${nCtrl}, drug ${nDrug}`);
+  expect("ctrl rep1 image mean = 13 (mean of 11, 13, 15)", await val("ctrl, row 1") === "13", await val("ctrl, row 1"));
+  expect("experiment labels Replicate 1..3", await val("Experiment, row 3") === "Replicate 3");
+  await page.getByRole("treeitem", { name: "Graph of Image tables", exact: true }).first()
+    .locator(":scope > .nav-row").click();
+  await page.waitForFunction(() => document.querySelector(".plot-card .figure-legend-text")?.textContent
+    ?.includes("independent experiments"), null, { timeout: 60000 }).catch(() => {});
+  const leg = await page.locator(".plot-card .figure-legend-text").innerText().catch(() => "");
+  expect("legend: n = 3 images per group from 3 independent experiments",
+    leg.includes("n = 3 images per group from 3 independent experiments"), leg);
+
+  // (e) the saved recipe after a reload, applied from the Import menu
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 180000 });
+  await page.getByRole("treeitem", { name: "Dose response", exact: true }).first()
+    .locator(":scope > .nav-row").click();
+  await page.getByRole("button", { name: "Import…" }).click();
+  const imp2 = page.getByRole("dialog", { name: "Import data" });
+  await imp2.waitFor({ timeout: 10000 });
+  const pick = imp2.getByLabel("Apply a saved recipe");
+  expect("saved recipe listed in the Import dialog after a reload",
+    (await pick.innerText()).includes("Incucyte confluence (Incucyte time series)"), await pick.innerText());
+  const opt = await pick.locator("option", { hasText: "Incucyte confluence" }).getAttribute("value");
+  await pick.selectOption(opt);
+  d = page.getByRole("dialog", { name: "Import with a recipe" });
+  await d.waitFor({ timeout: 10000 });
+  expect("saved recipe chosen", (await d.locator(".recipe-option.checked").innerText()).includes("Incucyte confluence"));
+  await d.getByLabel("Export file to import").setInputFiles(incucyte([[1, 2, 3], [4, 5, 6]]));
+  await d.getByRole("button", { name: "Create table" }).click();
+  await page.getByRole("treeitem", { name: "Confluence per well", exact: true }).first().waitFor({ timeout: 10000 });
+  expect("saved recipe applied in one click: XY table named by the recipe, C2 at 2 h = 6",
+    await val("C2, row 2") === "6" && await val("X, row 2") === "2", await val("C2, row 2"));
+}
 
 await page.screenshot({ path: join(tmp, "share.png") });
 console.log("files in", tmp);

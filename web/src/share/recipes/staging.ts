@@ -181,7 +181,7 @@ export function requirements(type: OutputType): string {
 
 const cell = (v: string) => (isMissing(v) ? "" : v);
 
-function finish(raw: unknown): PivotResult {
+export function finish(raw: unknown): PivotResult {
   const table = normalizeTable(raw);
   const counts = table.datasets.map((d) => ({
     name: d.name,
@@ -284,7 +284,12 @@ export function pivot(st: Staging, type: OutputType, opts: PivotOptions = {}): P
   const datasets: DataColumn[] = groups.map((g) => {
     const mine = rows.filter((r) => groupLabel(r) === g);
     const subs = subj >= 0 ? distinct(mine.map((r) => r[subj])) : [];
-    const cells = keys.map((k) => mine.filter((r) => r[t] === k));
+    const byKey = new Map<string, string[][]>();
+    for (const r of mine) {
+      const b = byKey.get(r[t]);
+      if (b) b.push(r); else byKey.set(r[t], [r]);
+    }
+    const cells = keys.map((k) => byKey.get(k) ?? []);
     const width = subj >= 0 ? Math.max(1, subs.length)
       : Math.max(1, ...cells.map((c) => c.filter((r) => cell(r[v]) !== "").length));
     const grid = cells.map((c) => {
