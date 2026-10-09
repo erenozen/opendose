@@ -128,14 +128,6 @@ async function xyPaste(u, csv, name, reps = 1, opts = {}) {
   await u.newTable("xy", name ?? u.id, { "Replicates per X": reps, ...(opts.shape ?? {}) });
   return u.paste(csv, { cell: "X, row 1", perDataset: reps > 1 ? reps : undefined, ...opts.paste });
 }
-const readParams = (R, s, names, map = {}) => {
-  const got = {};
-  for (const [q, p] of Object.entries(names)) {
-    got[q] = R.hcell(s, new RegExp(`^${p}$`), /Best-fit/, map);
-    got[`se_${q}`] = R.hcell(s, new RegExp(`^${p}$`), /Std\. Error/, map);
-  }
-  return got;
-};
 const fitStats = (R, s, opts) => ({
   residual_ss: R.cell(s, /^Sum of squares/, 1, opts), sy_x: R.cell(s, /^Sy\.x/, 1, opts),
   df: R.cell(s, /^Degrees of freedom/, 1, opts), r_squared: R.cell(s, /^R squared/, 1, opts),
@@ -425,34 +417,91 @@ def("r-hw-tuna-correlation", async (u, R) => {
 });
 
 // ------------------------------------------------------------ two-way ANOVA
-/** Two-way ANOVA table row: [source, % of total, SS, DF, MS, F, P]. */
+/** A two-way ANOVA table source: SS, DF, MS, F, P and % of total, each read
+ *  from the column whose header names it (0.4.0 added columns elsewhere,
+ *  so positions are not relied on). */
 const twoWayRow = (R, s, re) => {
-  const r = R.row(s, re, { inT: /Source of variation/ });
-  return r ? { pct: r[1], ss: r[2], df: r[3], ms: r[4], F: r[5], p: r[6] } : {};
+  const at = (h) => R.hcell(s, re, h, { inT: /Source of variation/ });
+  return { pct: at(/^% of total/), ss: at(/^SS$/), df: at(/^DF$/), ms: at(/^MS$/), F: at(/^F$/), p: at(/^P value/) };
 };
 const twoWayRead = (R, s, map) => {
   const got = {};
   for (const [key, re] of Object.entries(map)) {
     const r = twoWayRow(R, s, re);
-    for (const k of ["ss", "df", "ms", "F", "p"]) if (r[k] !== undefined) got[`${k}.${key}`] = r[k];
+    for (const k of ["ss", "df", "ms", "F", "p"]) if (r[k] != null) got[`${k}.${key}`] = r[k];
     if (r.pct) got[`percent_variation.${key}`] = { s: r.pct, sig: 3 };
   }
   return got;
 };
-const NO_ADDITIVE = "not available: the two-way ANOVA has no main-effects-only (no interaction) model";
+const reEsc = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+/** The factor names as the controls show them ("Name of the row factor" /
+ *  "Name of the column factor"). Since 0.4.0 a table built from a long
+ *  file carries its factor names into the ANOVA table ("tension", "wool")
+ *  instead of "Row factor" / "Column factor". Returns row-label patterns. */
+async function twoWayFactors(u) {
+  const c = u.page.locator(".controls");
+  const name = async (label) => (await c.getByRole("textbox", { name: label, exact: true }).first().inputValue().catch(() => "")).trim();
+  const [row, col] = [await name("Name of the row factor"), await name("Name of the column factor")];
+  const pat = (n, dflt) => new RegExp(`^(?:${reEsc(dflt)}${n && n !== dflt ? `|${reEsc(n)}` : ""})(?:\\s|$)`, "i");
+  return { row: pat(row, "Row factor"), col: pat(col, "Column factor"), names: [row, col] };
+}
+/** Rows of the multiple-comparisons tables as { header: cell } records
+ *  (Family, Comparison, Difference, 95% CI, P values, Summary). */
+const cmpRecords = (snap) => snap.tables
+  .filter((t) => (t.head.at(-1) ?? []).includes("Comparison"))
+  .flatMap((t) => t.rows.map((r) => Object.fromEntries((t.head.at(-1) ?? []).map((h, i) => [h, r[i]]))));
+/** Tukey (or other) rows "a vs. b" read as a − b, for references named
+ *  a-b: { diff, lower, upper, p } each as a compare() input. */
+const pairwise = (recs, a, b) => {
+  const fwd = recs.find((x) => x.Comparison === `${a} vs. ${b}`);
+  const rev = recs.find((x) => x.Comparison === `${b} vs. ${a}`);
+  const rr = rev ?? fwd;
+  if (!rr) return null;
+  const flip = !!rev; // "b vs. a" = mean(b) − mean(a) = −(a − b)
+  const ci = (rr["95% CI"] ?? "").split(" to ");
+  const conv = (v) => (flip ? -v : v);
+  const pKey = Object.keys(rr).find((k) => /adjusted P|^P value|^Adjusted/i.test(k) && !/^Unadjusted/i.test(k));
+  return { diff: { s: rr.Difference, conv }, lower: { s: flip ? ci[1] : ci[0], conv }, upper: { s: flip ? ci[0] : ci[1], conv },
+    p: pKey ? rr[pKey] : null };
+};
 def("r-warpbreaks", async (u, R) => {
-  u.friction("friction", "Two-way ANOVA results call the factors \"Row factor\" and \"Column factor\" even when the table came from a long file with named factor columns (the recipe knows they are tension and wool); names must be typed again under Factor names.");
   await u.recipe(u.csv(), { roles: { wool: "group", tension: "time", breaks: "value" }, output: "grouped" });
   await u.settle("two-way ANOVA");
+  const f = await twoWayFactors(u);
+  if (!f.names.includes("tension")) {
+    u.friction("friction", "Two-way ANOVA results call the factors \"Row factor\" and \"Column factor\" even when the table came from a long file with named factor columns (the recipe knows they are tension and wool); names must be typed again under Factor names.");
+  }
   const s = await u.snap();
-  const got = twoWayRead(R, s, { interaction: /^Interaction/, tension: /^Row factor|^tension/, wool: /^Column factor|^wool/, residual: /^Residual/ });
-  return { ...got, __why: (q) => (q.startsWith("additive") ? NO_ADDITIVE : null) };
+  const got = twoWayRead(R, s, { interaction: /^Interaction/, tension: f.row, wool: f.col, residual: /^Residual/ });
+  // 0.4.0: Model → "Main effects only (additive, no interaction term)",
+  // R's aov(breaks ~ wool + tension), then Tukey on the tension means.
+  const hasModel = (await u.page.locator(".controls label", { hasText: /^Model/ }).locator("select option[value='additive']").count()) > 0;
+  if (hasModel) {
+    await u.select("Model", "additive", { exact: true });
+    await u.settle("two-way ANOVA, main effects only");
+    const a = await u.snap();
+    const add = twoWayRead(R, a, { tension: f.row, wool: f.col, residual: /^Residual/ });
+    for (const k of ["F.wool", "p.wool", "F.tension", "p.tension", "df.residual", "ms.residual"]) if (add[k] != null) got[`additive.${k}`] = add[k];
+    await u.select("Test", "tukey", { exact: true });
+    await u.select("Compare", "row_means", { exact: true });
+    await u.settle("additive model, Tukey on tension means");
+    const recs = cmpRecords(await u.snap());
+    for (const [a1, b1] of [["M", "H"], ["L", "H"], ["L", "M"]]) {
+      const pw = pairwise(recs, a1, b1);
+      if (!pw) continue;
+      const q = `additive.tukey_tension[${a1}-${b1}]`;
+      Object.assign(got, { [`${q}.diff`]: pw.diff, [`${q}.lower`]: pw.lower, [`${q}.upper`]: pw.upper, [`${q}.p_adj`]: pw.p });
+    }
+  }
+  return { ...got, __why: (q) => (q.startsWith("additive") && !hasModel ? NO_ADDITIVE : null) };
 });
+const NO_ADDITIVE = "not available: the two-way ANOVA has no main-effects-only (no interaction) model";
 def("r-toothgrowth", async (u, R) => {
   await u.recipe(u.csv(), { roles: { supp: "group", dose: "time", len: "value" }, output: "grouped" });
   await u.settle("two-way ANOVA");
+  const f = await twoWayFactors(u);
   const s = await u.snap();
-  const got = twoWayRead(R, s, { interaction: /^Interaction/, dose: /^Row factor/, supp: /^Column factor/, residual: /^Residual/ });
+  const got = twoWayRead(R, s, { interaction: /^Interaction/, dose: f.row, supp: f.col, residual: /^Residual/ });
   for (const k of ["supp", "dose", "interaction", "residual"]) if (got[`ss.${k}`]) got[`ss.${k}_2dp`] = got[`ss.${k}`];
   if (got["F.supp"]) got["F.supp_4dp"] = got["F.supp"];
   if (got["p.interaction"]) got["p.interaction_7dp"] = got["p.interaction"];
@@ -460,20 +509,24 @@ def("r-toothgrowth", async (u, R) => {
   await u.select("Test", "tukey", { exact: true });
   await u.select("Compare", "row_means", { exact: true });
   await u.settle("Tukey, row means");
-  const t = await u.snap();
-  const cmp = t.tables.filter((x) => x.head.some((h) => h.includes("Comparison"))).flatMap((x) => x.rows);
+  const recs = cmpRecords(await u.snap());
   for (const r of u.ref.reference.filter((x) => x.quantity.startsWith("tukey_dose"))) {
     const [, a, b, what] = r.quantity.match(/\[D([\d.]+)-D([\d.]+)\]\.(\w+)/);
-    const fwd = cmp.find((x) => x[1] === `${a} vs. ${b}`);
-    const rev = cmp.find((x) => x[1] === `${b} vs. ${a}`);
-    const rr = rev ?? fwd;
-    if (!rr) continue;
-    const flip = !!rev; // "b vs. a" = mean(b) − mean(a) = −(a − b)
-    const ci = (rr[3] ?? "").split(" to ");
-    const conv = (v) => (flip ? -v : v);
-    if (what === "diff") got[r.quantity] = { s: rr[2], conv };
-    if (what === "lower") got[r.quantity] = { s: flip ? ci[1] : ci[0], conv };
-    if (what === "upper") got[r.quantity] = { s: flip ? ci[0] : ci[1], conv };
+    const pw = pairwise(recs, a, b);
+    if (pw && pw[what]) got[r.quantity] = pw[what];
+  }
+  if (await u.page.locator(".controls label", { hasText: /^Compare/ }).locator("select option[value='all_cells']").count()) {
+    // 0.4.0: "Compare every cell mean with every other cell mean", rows
+    // labelled "<dose>:<supp> vs. <dose>:<supp>" (row title : dataset)
+    await u.select("Compare", "all_cells", { exact: true });
+    await u.settle("Tukey, every cell mean");
+    const cells = cmpRecords(await u.snap());
+    for (const r of u.ref.reference.filter((x) => x.quantity.startsWith("tukey_cells"))) {
+      const [, sa, da, sb, db, what] = r.quantity.match(/\[(\w+):D([\d.]+)-(\w+):D([\d.]+)\]\.(\w+)/);
+      const pw = pairwise(cells, `${da}:${sa}`, `${db}:${sb}`);
+      const k = what === "p_adj" ? "p" : what;
+      if (pw && pw[k]) got[r.quantity] = pw[k];
+    }
   }
   return { ...got, __why: (q) => (q.startsWith("tukey_cells") ? "not available: two-way comparisons offer within rows, within datasets and main-effect means, not all cell means against each other" : null) };
 });
@@ -487,28 +540,29 @@ def("r-morley", async (u, R) => {
   if (/Analysis failed/i.test(t0.text)) {
     u.friction("wrong", `Two-way ANOVA on a grouped table with one value per cell (r-morley, 20 runs × 5 experiments) stops with "${(t0.text.match(/Analysis failed[^\n]*/) ?? [""])[0]}" instead of fitting the main-effects-only model, and there is no option to drop the interaction.`);
   }
+  const f = await twoWayFactors(u);
   const s = await u.snap();
-  const got = twoWayRead(R, s, { run: /^Row factor/, expt: /^Column factor/, residual: /^Residual/ });
+  const got = twoWayRead(R, s, { run: f.row, expt: f.col, residual: /^Residual/ });
   return got;
 });
 def("gp-book-twoway-bonferroni", async (u, R) => {
   await u.newTable("grouped", u.id, { "Datasets (columns)": 2, Replicates: 3, "Rows (levels of the row factor)": 4 });
   await u.paste(u.csv(), { roles: { 1: "rowTitle" }, perDataset: 3 });
   await u.settle("two-way ANOVA");
+  const f = await twoWayFactors(u);
   const s = await u.snap();
-  const got = twoWayRead(R, s, { interaction: /^Interaction/, time: /^Row factor/, treatment: /^Column factor/, residual: /^Residual/ });
+  const got = twoWayRead(R, s, { interaction: /^Interaction/, time: f.row, treatment: f.col, residual: /^Residual/ });
   await u.select("Test", "bonferroni", { exact: true });
   await u.select("Compare", "columns_within_rows", { exact: true });
   await u.settle("Bonferroni within rows");
-  const t = await u.snap();
-  const cmpRows = t.tables.filter((x) => x.head.some((h) => h.includes("Comparison"))).flatMap((x) => x.rows);
+  const recs = cmpRecords(await u.snap());
   for (let i = 1; i <= 4; i++) {
-    const r = cmpRows.find((x) => x[0] === String(i) && / vs\. /.test(x[1] ?? ""));
+    const r = recs.find((x) => x.Family === String(i) && / vs\. /.test(x.Comparison ?? ""));
     if (!r) continue;
-    const flip = /^control/i.test(r[1]); // "control vs. treated" = control − treated
-    const ci = (r[3] ?? "").split(" to ");
+    const flip = /^control/i.test(r.Comparison); // "control vs. treated" = control − treated
+    const ci = (r["95% CI"] ?? "").split(" to ");
     const conv = (v) => (flip ? -v : v);
-    got[`bonferroni[time=${i}].diff_treated_minus_control`] = { s: r[2], conv };
+    got[`bonferroni[time=${i}].diff_treated_minus_control`] = { s: r.Difference, conv };
     got[`bonferroni[time=${i}].ci_lower`] = { s: flip ? ci[1] : ci[0], conv };
     got[`bonferroni[time=${i}].ci_upper`] = { s: flip ? ci[0] : ci[1], conv };
   }
@@ -526,7 +580,7 @@ async function contingency(u, csv, { analysis } = {}) {
 }
 const fisherP = (R, s) => R.rx(R.cell(s, /^Fisher/), /P\s*=\s*([-\d.e+]+|<\s*[\d.]+)/);
 const NO_COND_OR = "not available: only the sample odds ratio (with Baptista-Pike / Woolf CIs) is shown, not the conditional MLE odds ratio of R's fisher.test";
-def("r-fisher-teatasting", async (u, R) => {
+def("r-fisher-teatasting", async (u, _R) => {
   await contingency(u, u.csv());
   return { __why: (q) => (/one_sided/.test(q) ? MISSING_ONE_SIDED : NO_COND_OR) };
 });
@@ -880,9 +934,38 @@ function fits(s) {
 }
 const fitOf = (s, nameRe) => fits(s).find((f) => !nameRe || nameRe.test(f.heading)) ?? { p: {}, stats: {} };
 const ciPart = (ci, k) => ci?.split(" to ")[k] ?? null;
-const NO_COMPARE = "not available: the curve fit has no model comparison (extra-sum-of-squares F test or AICc between two models, or global vs separate fits)";
+const NO_COMPARE = "not read: the comparison of fits sheet (\"Compare with another model…\" under a fit since 0.4.0) offers the F test and AICc, but this comparison needs a set-up the script does not drive yet (a constrained or global model, or R's anova() against the largest model)";
 
-def("r-puromycin", async (u, R) => {
+/** "Compare with another model…" under the fit on screen (0.4.0) opens a
+ *  comparison-of-fits sheet; set its two models (option values are model
+ *  ids) and read the F test and AICc. Model 1 is the simpler one. */
+async function compareModels(u, R, model1, model2, label = "compare fits") {
+  const link = u.page.getByRole("button", { name: "Compare with another model…", exact: true });
+  if (!(await link.count())) return null;
+  u.mark();
+  await link.first().click();
+  await u.page.getByRole("combobox", { name: /^Model 1\b/ }).waitFor({ timeout: 30000 });
+  await u.page.getByRole("combobox", { name: /^Model 1\b/ }).selectOption(model1);
+  await u.page.getByRole("combobox", { name: /^Model 2\b/ }).selectOption(model2);
+  const both = u.page.getByRole("radio", { name: /^Both: the extra-sum-of-squares F test/ });
+  if (await both.count()) await both.check();
+  await u.settle(label, { quiet: 1500 });
+  const s = await u.snap();
+  const f = R.cell(s, /^Extra-sum-of-squares F test/);
+  const m = (k, col) => R.hcell(s, new RegExp(`^${k}\\. `), col);
+  return {
+    s, F: R.rx(f, /=\s*([-\d.e+]+)/), dfn: R.rx(f, /F \((\d+),/), dfd: R.rx(f, /,\s*(\d+)\)/),
+    p: R.cell(s, /^P value/), delta: R.cell(s, /^Difference in AICc/),
+    aicc1: m(1, /^AICc$/), aicc2: m(2, /^AICc$/), prob1: m(1, /^Probability correct/), prob2: m(2, /^Probability correct/),
+    ss1: m(1, /^Sum of squares/), ss2: m(2, /^Sum of squares/),
+  };
+}
+/** Evidence ratio for model 2 (the more complex one, as the references
+ *  state it) from the shown AICc difference (2 − 1): exp(−Δ / 2). */
+const evidenceRatio = (delta) => (delta == null ? null
+  : { s: delta, conv: (v) => Math.exp(-v / 2), note: "evidence ratio for model 2 = exp(−ΔAICc / 2) from the page's difference in AICc (2 − 1)" });
+
+def("r-puromycin", async (u, _R) => {
   u.friction("friction", "Pasting replicate columns (treated_1, treated_2, …) names each data set after its first replicate column (\"treated_1\", \"control_1\") instead of the shared stem.");
   await xyPaste(u, u.csv(), u.id, 2, { shape: { "Y datasets": 2 } });
   await u.model("michaelis", /^Michaelis-Menten$/);
@@ -909,7 +992,7 @@ def("r-puromycin", async (u, R) => {
   }
   return got;
 });
-def("r-dnase-run1", async (u, R) => {
+def("r-dnase-run1", async (u, _R) => {
   await xyPaste(u, u.csv(), u.id, 2);
   await u.model("agonist variable slope four", /^log\(agonist\) vs\. response -- Variable slope/);
   await u.xAlreadyLog(false);
@@ -946,7 +1029,7 @@ def("r-dnase-run1", async (u, R) => {
     "gompertz.sy_x": k.stats.syx, "gompertz.df": k.stats.df });
   return { ...got, __why: (q) => (q.startsWith("logis_vs_fpl") ? NO_COMPARE : null) };
 });
-def("r-loblolly-329", async (u, R) => {
+def("r-loblolly-329", async (u, _R) => {
   u.friction("friction", "A new XY table's automatic first fit is a 4PL with \"X values are already log10(concentration)\" unticked: pasting log-dose X values gives \"not enough data points (0) to fit 4 parameters\" (negative X silently dropped), and pasting non-dose data (time, age, …) starts a long, futile multi-start fit.");
   await xyPaste(u, u.csv());
   await u.model("exponential plateau", /^Exponential plateau/);
@@ -966,7 +1049,7 @@ def("r-loblolly-329", async (u, R) => {
   };
   return { ...got, __why: (q) => (q.startsWith("getInitial") ? "not shown: the initial values the fit started from are not displayed" : null) };
 });
-def("r-indometh-1", async (u, R) => {
+def("r-indometh-1", async (u, _R) => {
   await xyPaste(u, u.csv());
   await u.model("two phase decay", /^Two phase decay$/);
   await u.constrain("Plateau", 0);
@@ -991,7 +1074,7 @@ def("r-indometh-1", async (u, R) => {
   return { ...got, __notes: [`parameters shown: ${Object.keys(p).join(", ")}`],
     __why: (q) => (/^A[12]|se_A/.test(q) ? "not shown: two-phase decay reports Y0, Plateau, PercentFast, KFast, KSlow (and half-lives) but not SpanFast / SpanSlow (R's A1, A2) with SEs" : null) };
 });
-def("r-chickweight-chick1", async (u, R) => {
+def("r-chickweight-chick1", async (u, _R) => {
   await xyPaste(u, u.csv());
   await u.model("boltzmann", /^Boltzmann sigmoid/);
   await u.settle("Boltzmann");
@@ -1020,7 +1103,7 @@ def("growthcurver-a1", async (u, R) => {
     __notes: ["growth assay: blank = minimum of each curve, no log, logistic model"],
   };
 });
-def("r-cars", async (u, R) => {
+def("r-cars", async (u, _R) => {
   await xyPaste(u, u.csv());
   const got = {};
   for (const [deg, re] of [[1, /^First order polynomial/], [2, /^Second order polynomial/], [3, /^Third order polynomial/], [4, /^Fourth order polynomial/]]) {
@@ -1045,7 +1128,7 @@ def("r-cars", async (u, R) => {
     "loglog.se_slope": f.p[slope]?.se, "loglog.sy_x": f.stats.syx, "loglog.df": f.stats.df, "loglog.r_squared": f.stats.r2 });
   return { ...got, __why: (q) => (/poly2_vs_poly1/.test(q) ? NO_COMPARE : /adj_r_squared|loglog\.F|loglog\.p/.test(q) ? NO_LINREG : null) };
 });
-def("r-anscombe", async (u, R) => {
+def("r-anscombe", async (u, _R) => {
   u.friction("friction", "An XY table has one X column shared by every data set, so Anscombe's four (x_i, y_i) pairs need four separate XY tables (or a stacked layout); there is no per-data-set X.");
   const csv = u.csv();
   const got = {};
@@ -1064,7 +1147,7 @@ def("r-anscombe", async (u, R) => {
 });
 
 // ------------------------------------------------------- drc dose-response
-def("drc-ryegrass", async (u, R) => {
+def("drc-ryegrass", async (u, _R) => {
   await xyPaste(u, u.csv(), u.id, 6);
   await u.model("inhibitor variable slope", /^\[Inhibitor\] vs\. response -- Variable slope/);
   await u.constrain("Bottom", 0);
@@ -1081,7 +1164,7 @@ def("drc-ryegrass", async (u, R) => {
     __why: (q) => (/ED5|ED10/.test(q) ? "not available: ECanything (ED5, ED10) is offered only for log(agonist) models, which cannot take the zero-dose control" : /sandwich/.test(q) ? "not available: robust (sandwich) standard errors" : null),
   };
 });
-def("drc-s-alba", async (u, R) => {
+def("drc-s-alba", async (u, _R) => {
   u.friction("friction", "drc's S.alba file has the two herbicides as blocks of rows (herbicide, dose, replicates); a global fit needs them as two XY data sets side by side, which the Import dialog and the recipes cannot produce from that layout (rearranged by hand here).");
   const b = body(u.csv());
   const doses = [...new Set(b.map((r) => Number(r[1])))].sort((x, y) => x - y);
@@ -1117,7 +1200,7 @@ async function quantal(u, rows, nSets) {
   await u.analyze(/Quantal dose-response/);
   await u.settle("quantal dose-response");
 }
-def("drc-earthworms", async (u, R) => {
+def("drc-earthworms", async (u, _R) => {
   const rows = [["dose", "remaining", "total"], ...body(u.csv()).map((r) => [r[0], r[1], r[2]])];
   await quantal(u, rows, 1);
   return { __why: () => "not available: the quantal fit (probit / logit / cloglog with an optional natural response) has no upper limit below 100% (drc's d parameter), so this binomial log-logistic model cannot be reproduced" };
@@ -1128,7 +1211,11 @@ def("drc-selenium", async (u, R) => {
   const types = [...new Set(b.map((r) => r[0]))];
   const concs = [...new Set(b.map((r) => Number(r[1])))].filter((c) => c > 0).sort((x, y) => x - y);
   u.friction("friction", "Quantal dose-response with a log dose transform refuses the zero-dose control rows (\"a dose of 0 or less cannot be log-transformed. Remove the control row …\"), so the controls have to be deleted by hand; drc's LL.2 uses them (p(0) = 0).");
-  const rows = [["conc", ...types.flatMap((t) => [`type ${t}`, `type ${t}`])],
+  // Titles "type 1 dead" / "type 1 total" name the data set "type 1" (the
+  // import names a data set after the shared stem of its titles; two equal
+  // titles "type 1" / "type 1" lose the trailing number and every data set
+  // would be called "type").
+  const rows = [["conc", ...types.flatMap((t) => [`type ${t} dead`, `type ${t} total`])],
     ...concs.map((c) => [c, ...types.flatMap((t) => { const r = b.find((x) => x[0] === t && Number(x[1]) === c); return r ? [r[3], r[2]] : ["", ""]; })])];
   await quantal(u, rows, types.length);
   await u.select("Link", "logit");
@@ -1139,11 +1226,36 @@ def("drc-selenium", async (u, R) => {
   const s = await u.snap();
   const got = {};
   for (const t of types) {
-    const r = R.row(s, /^LD50|^ED50/, { inT: new RegExp(`type ${t}`) });
-    const ci = (r ?? []).join(" ").match(/([-\d.e+]+) to ([-\d.e+]+)/);
-    got[`type${t}.ED50`] = r?.[1];
-    got[`type${t}.ED50_ci_lower`] = ci ? { s: ci[1], explain: "method: the page gives Fieller's CI for the ED50 (no delta-method option); drc prints the delta-method (Wald) CI" } : null;
-    got[`type${t}.ED50_ci_upper`] = ci ? { s: ci[2], explain: "method: the page gives Fieller's CI for the ED50 (no delta-method option); drc prints the delta-method (Wald) CI" } : null;
+    const inT = new RegExp(`type ${t}\\b`);
+    const ed = R.hcell(s, /^LD50|^ED50/, /^Dose$/, { inT });
+    // Fieller's CI, as on 2026-10-04 (0.4.0 also prints a delta-method CI
+    // on the log-dose scale, which is not drc's either)
+    const ci = (R.hcell(s, /^LD50|^ED50/, /CI \(Fieller\)|^95% CI$/, { inT }) ?? "").match(/([-\d.e+]+) to ([-\d.e+]+)/);
+    got[`type${t}.ED50`] = ed;
+    // 0.4.0 prints "log dose ± SE": drc's delta-method SE and Wald CI on
+    // the dose scale are SE(ED50) = ED50 · ln 10 · SE(log10 ED50) and
+    // ED50 ± z · SE(ED50), a re-expression of two shown numbers.
+    const lse = R.rx(R.hcell(s, /^LD50|^ED50/, /^log dose ± SE/, { inT }), /±\s*([-\d.e+]+)/);
+    const edv = ed == null ? null : Number(String(ed).replace(/−/g, "-"));
+    if (lse != null && Number.isFinite(edv)) {
+      const se = edv * LN10 * Number(lse);
+      const z = 1.959963984540054;
+      // half a unit in the last shown digit of each input, propagated
+      const halfOf = (txt) => {
+        const v = Math.abs(Number(txt));
+        const sig = Math.max(String(txt).replace(/^[-+]?0*\.?0*/, "").replace(/[eE].*$/, "").replace(".", "").length, 6);
+        return v ? 0.5 * 10 ** (Math.floor(Math.log10(v)) - (sig - 1)) : 0;
+      };
+      const hEd = halfOf(String(ed).replace(/−/g, "-"));
+      const hSe = se * (hEd / edv + halfOf(lse) / Number(lse));
+      const note = `drc's delta-method value re-expressed from the page's ED50 ${ed} and log dose SE ${lse}: SE(ED50) = ED50 · ln 10 · SE(log ED50), CI = ED50 ± ${z.toFixed(4)} · SE(ED50)`;
+      got[`type${t}.se_ED50`] = { value: se, half: hSe, note };
+      got[`type${t}.ED50_ci_lower`] = { value: edv - z * se, half: hEd + z * hSe, note };
+      got[`type${t}.ED50_ci_upper`] = { value: edv + z * se, half: hEd + z * hSe, note };
+      continue;
+    }
+    got[`type${t}.ED50_ci_lower`] = ci ? { s: ci[1], explain: "method: read from the page's Fieller CI for the ED50; drc prints the delta-method (Wald) CI on the dose scale" } : null;
+    got[`type${t}.ED50_ci_upper`] = ci ? { s: ci[2], explain: "method: read from the page's Fieller CI for the ED50; drc prints the delta-method (Wald) CI on the dose scale" } : null;
   }
   got.__notes = ["control rows (dose 0) removed: the quantal fit cannot log-transform a zero dose"];
   return { ...got, __why: (q) => (/se_ED50/.test(q) ? "not shown: the quantal results give ED50 with a Fieller CI, not its SE" : /loglik|LR/.test(q) ? "not shown: no likelihood-ratio test of a common ED50 (only a parallelism test of slopes)" : null) };
@@ -1239,7 +1351,7 @@ def("deming-arsenate", async (u, R) => {
 });
 
 // ------------------------------------------------------------- synergy
-def("synergy-mathews-block1", async (u, R) => {
+def("synergy-mathews-block1", async (u, _R) => {
   await u.page.getByRole("button", { name: "New data table" }).first().click();
   const dlg = u.page.locator(".new-table-dialog");
   await dlg.getByRole("radio", { name: /Start from an assay/ }).check();
@@ -1292,6 +1404,10 @@ async function powerTool(u) {
   return pw;
 }
 async function powerRun(u, pw, f) {
+  // Since 0.4.0 the dialog opens with a result for its default inputs
+  // already on screen; wait for the output to change after the inputs do
+  // (debounced, in the engine worker) before reading it.
+  const before = await pw.locator(".power-output").innerText().catch(() => "");
   await pw.getByLabel("Test", { exact: true }).selectOption(f.kind);
   await pw.getByLabel("Solve for").selectOption(f.solve);
   await pw.getByLabel("α (significance level)").fill(String(f.alpha ?? 0.05));
@@ -1300,6 +1416,8 @@ async function powerRun(u, pw, f) {
   for (const [lab, v] of Object.entries(f.fields ?? {})) await pw.getByLabel(lab, { exact: true }).fill(String(v));
   for (const [lab, v] of Object.entries(f.selects ?? {})) await pw.getByLabel(lab, { exact: true }).selectOption(String(v));
   u.mark();
+  await u.page.waitForFunction((b) => document.querySelector("dialog.power-dialog .power-output")?.innerText !== b,
+    before, { timeout: 30000 }).catch(() => {});
   await u.settle(`power: ${f.kind} solve ${f.solve}`, { sel: "dialog.power-dialog .power-output", quiet: 900 });
   const text = await pw.locator(".power-output").innerText();
   const line = (re) => text.split("\n").find((l) => re.test(l))?.split("\t").slice(1).join("\t") ?? null;
@@ -1438,8 +1556,14 @@ def("qpcr-livak-table1", async (u, R) => {
     await wz.getByLabel("Paste Cq export").fill(u.csv().replace(/^tissue,replicate,target,Ct/, "Sample,Well,Target,Cq"));
     await wz.getByRole("button", { name: "Read pasted export" }).click();
   }
-  for (let i = 0; i < 4; i++) {
+  // Steps since 0.4.0: Cq data, Reference and calibrator, Efficiencies,
+  // Reference check (new: each reference gene's Cq across groups, geNorm),
+  // QC and statistics; the last button is "Create the ΔCq table".
+  for (let i = 0; i < 8; i++) {
     const txt = await wz.innerText();
+    if (/Checking the reference genes/.test(txt)) {
+      await wz.getByText("Checking the reference genes…").waitFor({ state: "detached", timeout: 60000 }).catch(() => {});
+    }
     if (/Reference gene/.test(txt)) {
       const g = wz.locator("label", { hasText: /^GAPDH$/ }).locator("input");
       if (await g.count() && !(await g.isChecked())) await g.click();
@@ -1450,7 +1574,7 @@ def("qpcr-livak-table1", async (u, R) => {
     u.mark();
     await next.last().click();
     await u.sleep(500);
-    if (!(await wz.count())) break;
+    if (!(await wz.isVisible().catch(() => false))) break;
   }
   await u.settle("qPCR ΔΔCq");
   const s = await u.snap();
@@ -1485,7 +1609,7 @@ const bookParams = (f, map) => {
   }
   return got;
 };
-def("gp-book-ch1-bloodpressure", async (u, R) => {
+def("gp-book-ch1-bloodpressure", async (u, _R) => {
   const s = await bookFit(u, "agonist variable slope four", /^log\(agonist\) vs\. response -- Variable slope/, { reps: 3, constrain: { Bottom: 0 } });
   const f = fitOf(s);
   return { ...bookParams(f, { Top: "Top", LogEC50: /^LogEC50/, HillSlope: "HillSlope" }), df: f.stats.df, R2: f.stats.r2, residual_ss: f.stats.ss, sy_x: f.stats.syx };
@@ -1505,9 +1629,17 @@ async function twoSite(u, R, reps) {
   for (const [k, v] of Object.entries(two)) got[`two.${k}`] = v;
   Object.assign(got, { "two.df": f.stats.df, "two.R2": f.stats.r2, "two.residual_ss": f.stats.ss, "two.sy_x": f.stats.syx });
   got.__notes = [`two-site parameters: ${Object.keys(f.p).join(", ")}`];
+  // one site vs two sites on the comparison-of-fits sheet (0.4.0 link)
+  const c = await compareModels(u, R, "one_site_competition", "two_site_competition", "one site vs two sites");
+  if (c) {
+    Object.assign(got, { F: c.F, F_dfn: c.dfn, F_dfd: c.dfd, p: c.p, AICc_one: c.aicc1, AICc_two: c.aicc2,
+      prob_two_site_percent: c.prob2, evidence_ratio: evidenceRatio(c.delta) });
+  } else {
+    u.friction("missing", "The curve fit cannot compare two models (extra-sum-of-squares F test, AICc / probability, or one global fit against separate fits), so one-site vs two-site, Hill slope vs 1, Schild slope vs 1 and shared-vs-separate dose-response comparisons are unavailable.");
+  }
   return got;
 }
-def("gp-book-twosite-ex1", async (u, R) => (u.friction("missing", "The curve fit cannot compare two models (extra-sum-of-squares F test, AICc / probability, or one global fit against separate fits), so one-site vs two-site, Hill slope vs 1, Schild slope vs 1 and shared-vs-separate dose-response comparisons are unavailable."), { ...(await twoSite(u, R, 1)), __why: (q) => (/^(F|F_dfn|F_dfd|p|AICc_one|AICc_two|prob_two_site_percent|evidence_ratio)$/.test(q) ? NO_COMPARE : null) }));
+def("gp-book-twosite-ex1", async (u, R) => ({ ...(await twoSite(u, R, 1)), __why: (q) => (/^(F|F_dfn|F_dfd|p|AICc_one|AICc_two|prob_two_site_percent|evidence_ratio)$/.test(q) ? NO_COMPARE : null) }));
 def("gp-book-twosite-ex2", async (u, R) => ({ ...(await twoSite(u, R, 3)), __why: (q) => (/^(F|p|AICc_one|AICc_two|evidence_ratio)$/.test(q) ? NO_COMPARE : null) }));
 def("gp-book-hillslope-test", async (u, R) => {
   let s = await bookFit(u, "agonist variable slope four", /^log\(agonist\) vs\. response -- Variable slope/, { reps: 2 });
@@ -1517,21 +1649,25 @@ def("gp-book-hillslope-test", async (u, R) => {
   await u.settle("Hill slope = 1");
   s = await u.snap(); f = fitOf(s);
   got.ss_slope1 = f.stats.ss; got.df_slope1 = f.stats.df;
-  return { ...got, __why: (q) => (/^(F|p|AICc_slope1|AICc_free|evidence_ratio|t_test_p)$/.test(q) ? NO_COMPARE : null) };
+  // Hill slope = 1 (3PL) vs free (4PL): the link's default pair since 0.4.0
+  const c = await compareModels(u, R, "log_agonist_vs_response_3pl", "log_agonist_vs_response_4pl", "Hill slope 1 vs free");
+  if (c) Object.assign(got, { F: c.F, p: c.p, AICc_slope1: c.aicc1, AICc_free: c.aicc2, evidence_ratio: evidenceRatio(c.delta) });
+  return { ...got, __why: (q) => (q === "t_test_p" ? "not shown: the t test of HillSlope = 1 from the 4PL fit's SE is not printed (the F test is)"
+    : /^(F|p|AICc_slope1|AICc_free|evidence_ratio)$/.test(q) ? NO_COMPARE : null) };
 });
-def("gp-book-enzyme-mm", async (u, R) => {
+def("gp-book-enzyme-mm", async (u, _R) => {
   const s = await bookFit(u, "michaelis", /^Michaelis-Menten$/);
   const f = fitOf(s);
   return { ...bookParams(f, { Vmax: "Vmax", Km: "Km" }), residual_ss: f.stats.ss, sy_x: f.stats.syx,
     __why: (q) => (/montecarlo|joint|F_crit|ss_target/.test(q) ? "not shown: joint confidence regions / Monte Carlo CIs of this kind are not part of the fit results (the Monte Carlo tool simulates new data sets instead)" : null) };
 });
-def("gp-book-normalized-2param", async (u, R) => {
+def("gp-book-normalized-2param", async (u, _R) => {
   const s = await bookFit(u, "agonist normalized variable", /^log\(agonist\) vs\. normalized response -- Variable slope/, { reps: 3 });
   const f = fitOf(s);
   return { ...bookParams(f, { LogEC50: /^LogEC50/, HillSlope: "HillSlope" }), residual_ss: f.stats.ss, sy_x: f.stats.syx, df: f.stats.df,
     __why: (q) => (/joint/.test(q) ? "not shown: joint (2-D) confidence region limits" : null) };
 });
-def("gp-book-operational-depletion", async (u, R) => {
+def("gp-book-operational-depletion", async (u, _R) => {
   const s = await bookFit(u, "operational depletion", /^Operational model - Depletion, X is log/, { sets: 2 });
   const all = fits(s);
   const [a, b] = [all[0] ?? { p: {} }, all[1] ?? { p: {} }];
@@ -1541,7 +1677,7 @@ def("gp-book-operational-depletion", async (u, R) => {
   got.logtau_alkylated = b.p[lt(b)]?.v; got.se_logtau_alkylated = b.p[lt(b)]?.se;
   return { ...got, __notes: [`parameters: ${Object.keys(a.p).join(", ")}`] };
 });
-def("gp-book-operational-partial", async (u, R) => {
+def("gp-book-operational-partial", async (u, _R) => {
   const s = await bookFit(u, "operational partial", /^Operational model - Partial agonist, X is log/, { sets: 2 });
   const all = fits(s);
   const [a, b] = [all[0] ?? { p: {} }, all[1] ?? { p: {} }];
@@ -1559,7 +1695,7 @@ def("gp-book-operational-partial", async (u, R) => {
   }
   return { ...got, __notes: [`parameters: ${all.map((f) => Object.keys(f.p).join(",")).join(" | ")}`] };
 });
-def("gp-book-schild-global", async (u, R) => {
+def("gp-book-schild-global", async (u, _R) => {
   const csv = u.csv();
   const concs = header(csv).slice(1).map((h) => Number(h.replace(/^NMS_/, "").replace(/_M$/, "")));
   const s0 = await bookFit(u, "gaddum", /^Gaddum\/Schild EC50 shift, X is log/, { sets: concs.length });
