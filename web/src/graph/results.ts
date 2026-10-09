@@ -56,6 +56,10 @@ export function extractComparisons(result: unknown, names: string[]): Comparison
     return fromTable(r.multiple_comparisons, names, "multiple comparisons");
   }
   if (r.dunns) return fromTable(r.dunns, names, "multiple comparisons");
+  // RM one-way ANOVA: comparisons on the matched data (sheets/column/rmPosthoc.ts)
+  if (r.comparisons && typeof r.comparisons === "object" && Array.isArray(r.comparisons.comparisons)) {
+    return fromTable(r.comparisons, names, "multiple comparisons");
+  }
   if (Array.isArray(r.comparisons)) return fromTable(r, names, "multiple comparisons");
   const p2 = twoGroupP(r);
   if (r.analysis === "ttest" && Array.isArray(r.names) && p2 !== null) {

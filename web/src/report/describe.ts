@@ -109,6 +109,13 @@ function groupsOf(list: unknown): GroupN[] {
     .map((g) => ({ name: String(g.name ?? ""), n: g.n })) : [];
 }
 
+/** " on log10-transformed values" for a result analysed on the log scale
+ *  (sheets/column/logScale.ts), else "". */
+function logClause(r: R): string {
+  return r.log_scale && typeof r.log_scale === "object"
+    ? ` on ${r.log_scale.base === "ln" || r.log_scale.base === "log2" ? r.log_scale.base : "log10"}-transformed values` : "";
+}
+
 /** Describe an engine result (any analysis). */
 export function describeResult(result: unknown): TestInfo {
   const r = result as R | null;
@@ -117,7 +124,7 @@ export function describeResult(result: unknown): TestInfo {
   const names: string[] = Array.isArray(r.names) ? r.names.map(String) : [];
   switch (r.analysis) {
     case "ttest": {
-      info.test = TEST_NAMES[String(r.test)] ?? "two-group test";
+      info.test = (TEST_NAMES[String(r.test)] ?? "two-group test") + logClause(r);
       info.sided = "two-sided";
       info.multiplicity = "single";
       info.exactP = true;
@@ -147,7 +154,7 @@ export function describeResult(result: unknown): TestInfo {
         info.assumptions = "nonparametric (no normality assumption)";
         return withMc(info, r.dunns, "dunns");
       }
-      info.test = "ordinary one-way ANOVA";
+      info.test = `ordinary one-way ANOVA${logClause(r)}`;
       info.statisticWithDf = true;
       info.assumptions = r.brown_forsythe ? "Brown-Forsythe and Bartlett's tests for equal variances" : null;
       return withMc(info, r.multiple_comparisons);
@@ -167,6 +174,19 @@ export function describeResult(result: unknown): TestInfo {
       info.statisticWithDf = true;
       info.repeated = true;
       info.groups = (names.length ? names : []).map((name) => ({ name, n: r.n_subjects }));
+      info.nUnit = "subjects";
+      info.assumptions = "sphericity not assumed (Geisser-Greenhouse)";
+      // the comparisons block of RM one-way ANOVA is `comparisons`
+      return withMc(info, r.multiple_comparisons ?? (Array.isArray(r.comparisons?.comparisons)
+        ? r.comparisons : null));
+    case "mixed_rm_one_way":
+      info.test = "mixed-effects model (REML) for repeated measures (Geisser-Greenhouse corrected)";
+      info.sided = "two-sided";
+      info.exactP = true;
+      info.statisticWithDf = true;
+      info.repeated = true;
+      info.groups = Array.isArray(r.estimated_means) ? r.estimated_means
+        .filter((m: R) => num(m?.n)).map((m: R) => ({ name: String(m.name), n: m.n })) : [];
       info.nUnit = "subjects";
       info.assumptions = "sphericity not assumed (Geisser-Greenhouse)";
       return withMc(info, r.multiple_comparisons);

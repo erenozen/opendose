@@ -13,10 +13,19 @@ import { COLUMN_ANALYSIS_LABELS, DEFAULT_NORMALITY_TESTS } from "../../types.ts"
 import { allCellsComparisons, cellsFamily } from "../common/allCells.ts";
 import { familyOptions } from "./comparisonsFamily.ts";
 import { withWithheld } from "../common/withheld.ts";
+import { logScaleOptions } from "./logScale.ts";
+import { mixedOptions, rmComparisonsSpec, fitsMixedModel } from "./rmPosthoc.ts";
 
 export function runColumn(engine: EngineBridge, table: DataTableModel,
   o: ColumnOptionsState): Record<string, unknown> {
   if (table.subcolumnFormat !== "replicates") return runColumnSummary(engine, table, o);
+  // RM one-way ANOVA with missing values, mixed model chosen: keep the
+  // incomplete subjects (sheets/column/rmPosthoc.ts).
+  if (fitsMixedModel(o, table)) {
+    const data = numericData(table);
+    return engine.analyze({ analysis: "mixed_rm_oneway", data,
+      options: mixedOptions(o, data.datasets.length) }) as Record<string, unknown>;
+  }
   const r = engine.analyze(columnPayload(table, o)) as Record<string, unknown>;
   if (o.analysis === "two_way_anova" && o.twoWayDirection === "all_cells"
     && o.twoWayComparisons !== "none" && r && !r.error) {
@@ -43,7 +52,11 @@ export function runColumn(engine: EngineBridge, table: DataTableModel,
  *  the engine yet), else null. */
 export function residualsPayload(table: DataTableModel, o: ColumnOptionsState):
   Record<string, unknown> | { unavailable: string } | null {
-  const d = numericData(table).datasets;
+  // On the log scale the model's residuals are those of log10(values);
+  // values <= 0 have no logarithm (left out, as the analysis does).
+  const logs = "log_scale" in logScaleOptions(o);
+  const d = numericData(table).datasets.map((ds) => (logs ? { ...ds,
+    ys: ds.ys.map((row) => row.map((v) => (v !== null && v > 0 ? Math.log10(v) : null))) } : ds));
   if (o.analysis === "ttest") {
     const a = d[o.datasetA], b = d[o.datasetB];
     if (!a || !b || o.datasetA === o.datasetB) return null;
@@ -120,6 +133,8 @@ export function columnPayload(table: DataTableModel, o: ColumnOptionsState):
         welch: o.ttestKind === "welch",
         dataset_a: o.datasetA, dataset_b: o.datasetB,
         ...(o.ttestKind === "wilcoxon" ? pratt : {}),
+        // geometric means and their ratio (logScale.ts)
+        ...logScaleOptions(o),
       } };
   }
   if (o.analysis === "anova") {
@@ -141,6 +156,7 @@ export function columnPayload(table: DataTableModel, o: ColumnOptionsState):
           ? { dunn_corrected: false } : {}),
         // each vs. control or planned pairs (comparisonsFamily.ts)
         ...familyOptions(o, base.data.datasets.length),
+        ...logScaleOptions(o),
       } };
   }
   if (o.analysis === "median_test") return { analysis: "median_test", ...base, options: {} };
@@ -168,10 +184,13 @@ export function columnPayload(table: DataTableModel, o: ColumnOptionsState):
       options: { design: o.rmTwoDesign } };
   }
   if (o.analysis === "rm_anova") {
+    // parametric: the post hoc comparisons on the matched data (rmPosthoc.ts)
+    const rmCmp = rmComparisonsSpec(o, base.data.datasets.length);
     return { analysis: "rm_anova", ...base,
       options: { kind: o.rmKind,
         ...(o.rmKind === "nonparametric" && o.rmExact ? { exact: true } : {}),
-        ...familyOptions(o, base.data.datasets.length) } };
+        ...(o.rmKind === "nonparametric" ? familyOptions(o, base.data.datasets.length) : {}),
+        ...(rmCmp ? { comparisons: rmCmp } : {}) } };
   }
   if (o.analysis === "roc") {
     return { analysis: "roc", ...base,

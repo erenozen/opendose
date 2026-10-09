@@ -5,6 +5,8 @@ import type { ColumnOptionsState } from "../../types";
 import { formatPValue } from "../../report/pformat";
 import { familyMethodsClause, familyOf } from "../../report/family";
 import { DEFAULT_NORMALITY_TESTS, NORMALITY_TEST_LABELS, formatSig } from "../../types";
+import { logMethodsSentence } from "./logScale";
+import { rmMethodsSentence } from "./rmPosthoc";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type R = Record<string, any>;
@@ -44,6 +46,13 @@ function pHow(r: R): string {
 
 /** The sentence describing the analysis (without the software sentence). */
 export function columnMethodsSentence(o: ColumnOptionsState, r: R): string {
+  const s = testSentence(o, r);
+  // on the log scale (logScale.ts): how the values were transformed
+  const logs = s ? logMethodsSentence(r) : "";
+  return logs ? `${s} ${logs}` : s;
+}
+
+function testSentence(o: ColumnOptionsState, r: R): string {
   // P withheld (common/withheld.ts): say no test was run.
   if (r?.withheld) {
     return "The values were described without a statistical test (exploratory): with fewer "
@@ -105,7 +114,8 @@ export function columnMethodsSentence(o: ColumnOptionsState, r: R): string {
     case "rm_anova":
       return o.rmKind === "nonparametric"
         ? `Matched values were compared with the Friedman test${o.rmExact ? (r.p_method === "exact" ? " (exact P value)" : " (approximate P value; the design is too large for the exact one)") : ""} (${P(r.p)}), followed by Dunn's multiple comparisons test${r.dunns?.corrected === false ? "" : withFamily(r.dunns, "dunns")}.`
-        : "Matched values were compared by repeated-measures one-way ANOVA with the Geisser-Greenhouse correction.";
+        // with the comparisons and their error term (rmPosthoc.ts)
+        : rmMethodsSentence(r);
     case "two_way_anova": {
       const mc = r.multiple_comparisons;
       return `Data were analyzed by two-way ANOVA (rows × data sets${o.twoWayModel === "additive"

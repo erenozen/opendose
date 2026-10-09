@@ -23,6 +23,9 @@ export function familyTarget(o: ColumnOptionsState, summaryData = false): "dunn"
   if (o.analysis === "rm_anova" && o.rmKind === "nonparametric") return "dunn";
   if (!summaryData && o.analysis === "anova" && o.anovaKind === "parametric"
     && (o.anovaSd ?? "equal") !== "unequal" && PLANNED_METHODS.has(o.comparisons)) return "posthoc";
+  // after RM one-way ANOVA (rmPosthoc.ts builds the engine's block)
+  if (!summaryData && o.analysis === "rm_anova" && o.rmKind === "parametric"
+    && PLANNED_METHODS.has(o.comparisons)) return "posthoc";
   return null;
 }
 

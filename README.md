@@ -202,7 +202,10 @@ example's numbers, regenerate them against a dev server with
   Fligner-Killeen tests of equal variances) with Tukey, Dunnett,
   Bonferroni, Šídák, Holm-Šídák, Holm, Newman-Keuls, Fisher's LSD,
   Games-Howell, Dunnett T3 or Tamhane T2; Kruskal-Wallis with Dunn's;
-  repeated-measures ANOVA (Geisser-Greenhouse) and Friedman (exact when
+  repeated-measures ANOVA (Geisser-Greenhouse) with Tukey, Dunnett vs
+  baseline, Šídák, Bonferroni or Holm comparisons that keep the matching
+  (each pair's own paired differences, or the pooled error), and the
+  mixed-effects model when a subject misses a value; Friedman (exact when
   small); Mood's median test; Pearson, Spearman or Kendall correlation
   with one-sided P; Grubbs and ROUT outliers. Results sheets are named
   after the test they show.
@@ -215,6 +218,12 @@ example's numbers, regenerate them against a dev server with
   pairs ticked. t test and ANOVA results have a Residuals section: a QQ
   plot and residuals vs. fitted, with Shapiro-Wilk as a secondary line
   and advice that depends on n.
+- "Analyse on the log scale" for unpaired / Welch t tests and one-way
+  ANOVA: geometric means with CIs, the ratio of geometric means
+  ("Treated/Control = 2.85-fold (95% CI 1.69–4.8)") and post hoc
+  comparisons as ratios, in the sentence, legend and methods; a chip
+  offers it when the SD grows with the mean, another counts values ≤ 0
+  left out, and one click puts the graph on a log10 Y axis.
 - Grouped data: two-way ANOVA (ordinary with or without the interaction
   term, repeated measures by rows or both factors, mixed-effects model
   when values are missing, or from mean / SD / N; factor names read from

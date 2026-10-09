@@ -39,6 +39,10 @@ export function statsMethodsParagraph(result: unknown, prefs: ReportPrefs,
   else if (info.posthoc && info.multiplicity === "corrected") t += `, followed by ${info.posthoc} (${info.correction} adjustment of P values)`;
   else if (info.posthoc && info.multiplicity === "uncorrected") t += `, followed by ${info.posthoc} without correction for multiple comparisons`;
   parts.push(`${t}.`);
+  // analysed on the log scale (sheets/column/logScale.ts)
+  if ((result as { log_scale?: unknown } | null)?.log_scale) {
+    parts.push("Back-transformed geometric means and ratios of geometric means are reported with 95% confidence intervals.");
+  }
   if (info.assumptions) parts.push(`Assumptions: ${info.assumptions}.`);
   if (info.sided) {
     const gpFloor = prefs.pFloor && prefs.pFloor !== "1e-4" && prefs.pStyle === "graphpad";

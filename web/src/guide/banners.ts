@@ -271,7 +271,7 @@ export function resultBanners(ctx: ResultContext): Banner[] {
       fixes: ["If subjects dropped out because of the treatment, report that: no analysis fully corrects it."],
       explainer: "missing-values", sources: [SRC.gpMixed] });
   }
-  if (kind === "rm_anova" || kind === "friedman") {
+  if ((kind === "rm_anova" || kind === "friedman") && r.analysis !== "mixed_rm_one_way") {
     const m = missingInRows(ctx.table, true);
     if (m.rows) {
       out.push({ id: "rm-dropped", tone: "warn",
@@ -279,7 +279,7 @@ export function resultBanners(ctx: ResultContext): Banner[] {
         body: "Repeated-measures ANOVA and the Friedman test use only rows where every "
           + "condition has a value, so these rows were dropped.",
         fixes: ["Report how many subjects were excluded.",
-          "A mixed-effects model keeps incomplete subjects; OpenDose fits one for two-factor repeated-measures designs (Grouped table, two-way repeated measures)."],
+          "A mixed-effects model keeps incomplete subjects: tick \"Keep the subjects with missing values\" in the RM one-way ANOVA options, or use a Grouped table for two-factor designs."],
         explainer: "missing-values", sources: [SRC.gpMixed] });
     }
   }

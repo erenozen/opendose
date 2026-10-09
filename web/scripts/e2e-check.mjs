@@ -42,11 +42,14 @@
 // saved by another version is opened, the comparisons families
 // (unadjusted P beside the adjusted one, Dunn's test against a control,
 // planned Šídák pairs), residual plots and an IC50 reported as "> highest
-// dose", and the analysis plan (deviation chip and methods text), "Plan an
-// experiment…" (pooled samples are n = 1), the interaction question
-// (difference of differences with its CI on a hand-made 2 × 2) and the
-// nested mixed models (nested two-way ANOVA from a long table, the
-// grouping-column model on a multiple-variables table).
+// dose", the log-scale analysis (geometric-mean ratio from the "SD grows
+// with the mean" chip) and Dunnett vs. baseline after repeated-measures
+// ANOVA (with the mixed-effects model for a missing value), and the
+// analysis plan (deviation chip and methods text), "Plan an experiment…"
+// (pooled samples are n = 1), the interaction question (difference of
+// differences with its CI on a hand-made 2 × 2) and the nested mixed
+// models (nested two-way ANOVA from a long table, the grouping-column
+// model on a multiple-variables table).
 import { chromium } from "playwright";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -3297,6 +3300,142 @@ const axeOn = async (pg, sel) => {
   await nd.getByRole("button", { name: "Cancel" }).click();
   expect("axe-core: the paste report, Notes strip and the convert / design dialogs pass WCAG 2 AA",
     axeFound.length === 0, axeFound.join(" | "));
+}
+
+// --- log-scale analysis and comparisons after repeated-measures ANOVA
+// (needs log-scale-analysis, rm-posthoc). (a) Cytokine concentrations
+// whose SD grows with the mean: the chip "SD grows with the mean (SD
+// ratio 3.6): analyse on the log scale?", one click, then the ratio of
+// geometric means Treated/Control = 2.85-fold (95% CI 1.69–4.8), P =
+// 0.0012 (engine ttest log_scale), "geometric means" in the methods, and
+// the log10 Y axis in one click. (b) The same mice at baseline, day 7 and
+// day 14: RM one-way ANOVA with Dunnett vs. baseline gives exactly two
+// rows "vs. Baseline" with adjusted P (per-pair error: 0.00018 and
+// 0.00019), the family line "adjusted for 2 comparisons (Dunnett)", the
+// methods sentence and two brackets on the graph.
+{
+  const liveText = (re, timeout = 60000) => page.waitForFunction((src) => {
+    const el = document.querySelector('.pane-results[data-live="true"]');
+    return !!el && new RegExp(src).test(el.textContent ?? "");
+  }, re.source, { timeout }).then(() => true, () => false);
+  const importTable = async (name, csv) => {
+    await page.getByRole("button", { name: "New data table" }).first().click();
+    const nd = page.locator(".new-table-dialog");
+    await nd.locator('input[name="table-type"][value="column"]').check();
+    await nd.getByLabel("Table name").fill(name);
+    await nd.getByRole("button", { name: "Create table" }).click();
+    await page.waitForSelector(".grid-toolbar");
+    await page.getByRole("button", { name: "Import…", exact: true }).click();
+    const imp = page.locator(".import-dialog");
+    await imp.getByLabel("Pasted text").check();
+    await imp.getByLabel("Text to import").fill(csv);
+    const titles = imp.getByLabel(/holds column titles/);
+    if (!(await titles.isChecked())) await titles.check();
+    await imp.getByRole("tab", { name: "Placement" }).click();
+    await imp.getByLabel(/In place of the table/).check();
+    await imp.getByRole("button", { name: "Import", exact: true }).click();
+    await imp.waitFor({ state: "detached", timeout: 30000 });
+  };
+  const ctl = page.locator(".pane-controls");
+  const labelled = (text) => ctl.locator("label.check-row", { has: page.locator(`span:text-is("${text}")`) })
+    .locator("select");
+
+  // (a) two groups, SD rising with the mean
+  await importTable("Cytokine IL-6", "Control,Treated\n12,30\n18,55\n9,24\n25,80\n15,41\n11,33");
+  await ctl.locator("select.analysis-select").selectOption("ttest");
+  await labelled("Group A").selectOption({ label: "Treated" });
+  await labelled("Group B").selectOption({ label: "Control" });
+  const chipOk = await liveText(/SD grows with the mean \(SD ratio 3\.6\): analyse on the log scale\?/);
+  const chip = page.locator('.pane-results .log-chip[data-chip="scale-check"]');
+  expect("chip: 'SD grows with the mean (SD ratio 3.6): analyse on the log scale?' with its sources",
+    chipOk && /Bland & Altman 1996/.test(await chip.innerText().catch(() => "")),
+    (await chip.innerText().catch(() => "")).slice(0, 160));
+  const axeLog = await axeOn(page, ".pane-results .log-chips").catch((e) => [String(e)]);
+  await chip.getByRole("button", { name: "Analyse on the log scale" }).click();
+  const foldOk = await liveText(/Treated\/Control = 2\.85-fold \(95% CI 1\.69–4\.8\)/);
+  const fold = await page.locator(".pane-results .log-fold").first().innerText().catch(() => "");
+  expect("one click: the ratio of geometric means Treated/Control = 2.85-fold (95% CI 1.69–4.8)",
+    foldOk && fold === "Treated/Control = 2.85-fold (95% CI 1.69–4.8)", fold);
+  expect("the option is now ticked in the controls",
+    await ctl.getByRole("checkbox", { name: /Analyse on the log scale/ }).isChecked());
+  const pRow = await page.locator(".pane-results tr", { hasText: "test on log10 values" }).first()
+    .innerText().catch(() => "");
+  expect("P of the t test on the logs: 0.00119", /0\.00119/.test(pRow), pRow.replace(/\s+/g, " "));
+  const gmRows = await page.locator(".pane-results .geometric-means tbody tr").count();
+  expect("geometric means with CIs for both groups", gmRows === 2, `${gmRows} rows`);
+  const methodsLog = await page.waitForFunction(() => [...document.querySelectorAll(".methods-text")]
+    .some((m) => /log10-transformed values; back-transformed geometric means and ratios of geometric means/
+      .test(m.textContent ?? "")), null, { timeout: 30000 }).then(() => true, () => false);
+  expect("methods text: analysed on log10-transformed values, geometric means reported", methodsLog,
+    (await page.locator(".methods-text").first().innerText().catch(() => "")).slice(0, 300));
+  const sentOk = await page.waitForFunction(() => /Treated\/Control = 2\.85-fold/
+    .test(document.querySelector(".report-sentence p")?.textContent ?? ""), null, { timeout: 30000 })
+    .then(() => true, () => false);
+  expect("results sentence: 'Treated/Control = 2.85-fold (95% CI 1.69–4.8) ...'", sentOk,
+    (await page.locator(".report-sentence p").first().innerText().catch(() => "")).slice(0, 200));
+  const axisChip = page.locator('.pane-results .log-chip[data-chip="log-axis"]');
+  if (await appears(axisChip, 15000)) {
+    await axisChip.getByRole("button", { name: "Use a log10 Y axis" }).click();
+    await page.waitForTimeout(800);
+  }
+  const yType = await page.evaluate(() => document.querySelector(".plot-card .plot")?.layout?.yaxis?.type ?? "");
+  expect("one click puts the column graph on a log10 Y axis", yType === "log", yType);
+  const axeCtl = await axeOn(page, ".pane-controls").catch((e) => [String(e)]);
+  expect("axe-core: the log-scale chip and the controls pass WCAG 2 AA",
+    [...axeLog, ...axeCtl].length === 0, [...axeLog, ...axeCtl].join(" | "));
+
+  // (b) the same mice at baseline, day 7 and day 14
+  await importTable("Mice over time", "Baseline,Day 7,Day 14\n10,14,18\n12,15,16\n9,12,15\n11,16,19\n13,17,20\n10,13,17");
+  await ctl.locator("select.analysis-select").selectOption("rm_anova");
+  await ctl.getByLabel("Multiple comparisons", { exact: true }).selectOption("dunnett");
+  expect("Dunnett's baseline defaults to the first column",
+    await ctl.getByLabel("Baseline (control)").locator("option:checked").innerText() === "Baseline");
+  const rmOk = await liveText(/adjusted for 2 comparisons \(Dunnett\)/);
+  const rows = await page.locator(".pane-results .rm-comparisons tbody tr").allInnerTexts();
+  const pAdj = await page.locator(".pane-results .rm-comparisons tbody tr td[data-p]:nth-of-type(3)")
+    .evaluateAll((tds) => tds.map((td) => Number(td.getAttribute("data-p"))));
+  expect("RM ANOVA + Dunnett vs. baseline: two rows 'vs. Baseline' with adjusted P (0.00018, 0.00019)",
+    rmOk && rows.length === 2 && rows.every((r) => r.includes("vs. Baseline"))
+    && Math.abs(pAdj[0] - 0.000178) < 2e-6 && Math.abs(pAdj[1] - 0.000190) < 2e-6,
+    `${rows.map((r) => r.split("\t")[0]).join("; ")} | ${pAdj.join(", ")}`);
+  const fam = await page.locator(".pane-results .family-line").first().innerText().catch(() => "");
+  expect("family header: 'adjusted for 2 comparisons (Dunnett)', each vs. Baseline",
+    fam.includes("adjusted for 2 comparisons (Dunnett)") && fam.includes("Baseline"), fam);
+  const head = await page.locator(".pane-results .rm-comparisons").first()
+    .locator("xpath=preceding-sibling::h4[1]").textContent().catch(() => "");
+  expect("the table says each pair uses its own paired differences (Geisser-Greenhouse)",
+    /Dunnett multiple comparisons vs\. Baseline \(each pair's own paired differences/.test(head), head);
+  const methodsRm = await page.waitForFunction(() => [...document.querySelectorAll(".methods-text")]
+    .some((m) => /repeated-measures one-way ANOVA with the Geisser-Greenhouse correction, followed by Dunnett's test vs\. Baseline/
+      .test(m.textContent ?? "")), null, { timeout: 30000 }).then(() => true, () => false);
+  expect("methods: Dunnett's test vs. Baseline after RM one-way ANOVA with the Geisser-Greenhouse correction",
+    methodsRm, (await page.locator(".methods-text").first().innerText().catch(() => "")).slice(0, 300));
+  const pop = await graphSettings();
+  await pop.getByRole("button", { name: "Pairwise comparisons…" }).click();
+  const cd = page.locator("dialog.fmt-dialog");
+  await cd.getByLabel("Show comparison brackets on the graph").check();
+  await cd.getByRole("button", { name: "OK" }).click();
+  await page.waitForTimeout(800);
+  const br = (await plotLayoutOf()).brackets;
+  expect("graph: two brackets from the RM comparisons", br.length === 2, br.join(" "));
+  const legendOk = await page.waitForFunction(() => /with P values adjusted for 2 comparisons \(Dunnett\)/
+    .test(document.querySelector(".report-legend")?.textContent ?? ""), null, { timeout: 30000 })
+    .then(() => true, () => false);
+  expect("figure legend: 'with P values adjusted for 2 comparisons (Dunnett)'", legendOk,
+    (await page.locator(".report-legend").first().innerText().catch(() => "")).slice(0, 300));
+
+  // (c) a mouse missing its day-7 value: the mixed-effects model keeps it
+  await importTable("Mice with a gap", "Baseline,Day 7,Day 14\n10,14,18\n12,15,16\n9,12,15\n11,,19\n13,17,20\n10,13,17");
+  await ctl.locator("select.analysis-select").selectOption("rm_anova");
+  await ctl.getByLabel("Multiple comparisons", { exact: true }).selectOption("dunnett");
+  await ctl.getByRole("checkbox", { name: /Keep the 1 subject with missing values/ }).check();
+  const mixedOk = await liveText(/mixed-effects model[\s\S]*1 missing value of 18/);
+  const mixedRows = await page.locator(".pane-results .rm-comparisons tbody tr").count();
+  expect("missing value: the mixed-effects model keeps all 6 mice, with 2 Dunnett comparisons",
+    mixedOk && mixedRows === 2, `${mixedRows} rows`);
+  const keptOk = await liveText(/n = 6 rows \(subjects\) analysed by the mixed-effects model; 1 incomplete row \(row 4\) kept/);
+  expect("Analysed line: 6 subjects by the mixed-effects model, the incomplete row kept", keptOk,
+    await page.locator(".pane-results .analysed-line").first().innerText().catch(() => ""));
 }
 
 // --- analysis plan, Plan an experiment, the interaction question (needs:
