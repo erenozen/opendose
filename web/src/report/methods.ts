@@ -6,6 +6,7 @@
 // Cell STAR Methods "Quantification and statistical analysis" and
 // ARRIVE 2.0 item 7 (see checklists.ts).
 import { describeResult } from "./describe.ts";
+import { familyMethodsClause, resultFamily } from "./family.ts";
 import { effectGroups, primaryEffect } from "./effects.ts";
 import { P_STYLES, type PStyle } from "./pformat.ts";
 import type { ReportMeta } from "./meta.ts";
@@ -23,7 +24,10 @@ export function statsMethodsParagraph(result: unknown, prefs: ReportPrefs,
   const est = (result as { analysis?: string } | null)?.analysis === "estimation";
   let t = est ? "Differences between groups were estimated with bootstrap confidence intervals (estimation statistics), with two-sided permutation tests"
     : `Data were analysed by ${info.test}${info.sided ? " (two-tailed)" : ""}`;
-  if (info.posthoc && info.multiplicity === "corrected") t += `, followed by ${info.posthoc} (${info.correction} adjustment of P values)`;
+  // the family the P values were adjusted for (report/family.ts)
+  const fam = resultFamily(result);
+  if (info.posthoc && info.multiplicity === "corrected" && fam && fam.kind !== "unadjusted") t += `, followed by ${info.posthoc} (${familyMethodsClause(fam, { inParentheses: true })})`;
+  else if (info.posthoc && info.multiplicity === "corrected") t += `, followed by ${info.posthoc} (${info.correction} adjustment of P values)`;
   else if (info.posthoc && info.multiplicity === "uncorrected") t += `, followed by ${info.posthoc} without correction for multiple comparisons`;
   parts.push(`${t}.`);
   if (info.assumptions) parts.push(`Assumptions: ${info.assumptions}.`);

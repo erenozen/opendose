@@ -1,5 +1,8 @@
 import { formatSig } from "../types";
 import { pLabel, tableP, tableStars } from "../report/pformat";
+import { adjustedHeader, familyOf, hasUnadjusted } from "../report/family";
+import FamilyLine from "../sheets/common/FamilyLine";
+import ResidualsSection from "../sheets/column/residualsPanel";
 
 interface Props {
   result: Record<string, unknown> | null;
@@ -243,48 +246,63 @@ function TTest({ result }: { result: any }) {
   );
 }
 
-function ComparisonsTable({ mc }: { mc: any }) {
+function ComparisonsTable({ mc, fallbackMethod }: { mc: any; fallbackMethod?: string }) {
+  // The family (how many comparisons, which correction) and the
+  // unadjusted P beside the adjusted one (report/family.ts).
+  const fam = familyOf(mc, fallbackMethod);
+  const unadj = hasUnadjusted(mc.comparisons);
   if (mc.method === "newman_keuls") {
     return (
-      <table className="results-table">
+      <>
+        <FamilyLine family={fam} />
+        <table className="results-table comparisons-table">
+          <thead>
+            <tr><th>Comparison</th><th>Difference</th><th>q</th><th>Steps</th>
+              {unadj && <th>Unadjusted P</th>}
+              <th>Significant (P &lt; 0.05)?</th></tr>
+          </thead>
+          <tbody>
+            {mc.comparisons.map((c: any, i: number) => (
+              <tr key={i}>
+                <th>{c.pair}</th>
+                <td>{formatSig(c.difference)}</td>
+                <td>{formatSig(c.statistic)}</td>
+                <td>{c.steps}</td>
+                {unadj && <td>{fmtP(c.p_unadjusted)}</td>}
+                <td>{c.significant ? "Yes" : c.tested === false ? "No (within a non-significant range)" : "No"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </>
+    );
+  }
+  const showUnadj = unadj && fam?.kind !== "unadjusted";
+  return (
+    <>
+      <FamilyLine family={fam} />
+      <table className="results-table comparisons-table">
         <thead>
-          <tr><th>Comparison</th><th>Difference</th><th>q</th><th>Steps</th>
-            <th>Significant (P &lt; 0.05)?</th></tr>
+          <tr>
+            <th>Comparison</th><th>Difference</th><th>CI</th>
+            <th>{adjustedHeader(fam)}</th>{showUnadj && <th>Unadjusted P</th>}<th>Summary</th>
+          </tr>
         </thead>
         <tbody>
           {mc.comparisons.map((c: any, i: number) => (
             <tr key={i}>
               <th>{c.pair}</th>
-              <td>{formatSig(c.difference)}</td>
-              <td>{formatSig(c.statistic)}</td>
-              <td>{c.steps}</td>
-              <td>{c.significant ? "Yes" : c.tested === false ? "No (within a non-significant range)" : "No"}</td>
+              <td>{formatSig(c.difference ?? c.mean_rank_difference)}</td>
+              <td>{fmtCI(c.ci)}</td>
+              <td data-p={c.p_adjusted ?? undefined}>
+                {fmtP(c.p_adjusted ?? (fam?.kind === "unadjusted" ? c.p_unadjusted : null))}</td>
+              {showUnadj && <td data-p={c.p_unadjusted ?? undefined}>{fmtP(c.p_unadjusted)}</td>}
+              <td>{stars(c.p_adjusted ?? (fam?.kind === "unadjusted" ? c.p_unadjusted : null))}</td>
             </tr>
           ))}
         </tbody>
       </table>
-    );
-  }
-  return (
-    <table className="results-table">
-      <thead>
-        <tr>
-          <th>Comparison</th><th>Difference</th><th>CI</th>
-          <th>Adjusted P</th><th>Summary</th>
-        </tr>
-      </thead>
-      <tbody>
-        {mc.comparisons.map((c: any, i: number) => (
-          <tr key={i}>
-            <th>{c.pair}</th>
-            <td>{formatSig(c.difference ?? c.mean_rank_difference)}</td>
-            <td>{fmtCI(c.ci)}</td>
-            <td>{fmtP(c.p_adjusted)}</td>
-            <td>{stars(c.p_adjusted)}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    </>
   );
 }
 
@@ -305,7 +323,7 @@ function Anova({ result }: { result: any }) {
             <h4>{result.dunns.corrected === false
               ? "Uncorrected Dunn's test (P not adjusted for multiple comparisons)"
               : "Dunn's multiple comparisons"}</h4>
-            <ComparisonsTable mc={result.dunns} />
+            <ComparisonsTable mc={result.dunns} fallbackMethod="dunns" />
           </>
         )}
       </div>
@@ -487,11 +505,14 @@ function TwoWayAnova({ result }: { result: any }) {
             {" "}(MS<sub>residual</sub> = {formatSig(result.multiple_comparisons.ms_residual)},
             df = {result.multiple_comparisons.df_residual})
           </h4>
-          <table className="results-table">
+          <FamilyLine mc={result.multiple_comparisons} />
+          <table className="results-table comparisons-table">
             <thead>
               <tr>
                 <th>Family</th><th>Comparison</th><th>Difference</th>
-                <th>95% CI</th><th>Adjusted P</th><th>Summary</th>
+                <th>95% CI</th><th>Adjusted P</th>
+                {hasUnadjusted(result.multiple_comparisons.comparisons) && <th>Unadjusted P</th>}
+                <th>Summary</th>
               </tr>
             </thead>
             <tbody>
@@ -502,6 +523,8 @@ function TwoWayAnova({ result }: { result: any }) {
                   <td>{formatSig(c.difference)}</td>
                   <td>{fmtCI(c.ci95)}</td>
                   <td>{fmtP(c.p_adjusted)}</td>
+                  {hasUnadjusted(result.multiple_comparisons.comparisons)
+                    && <td>{fmtP(c.p_unadjusted)}</td>}
                   <td>{stars(c.p_adjusted)}</td>
                 </tr>
               ))}
@@ -595,7 +618,7 @@ function Friedman({ result }: { result: any }) {
       {result.dunns && (
         <>
           <h4>Dunn's multiple comparisons</h4>
-          <ComparisonsTable mc={result.dunns} />
+          <ComparisonsTable mc={result.dunns} fallbackMethod="dunns" />
         </>
       )}
     </div>
@@ -702,6 +725,8 @@ function AnovaUnequal({ result }: { result: any }) {
   const w = result.welch, bf = result.brown_forsythe;
   const mc = result.multiple_comparisons;
   const statName = mc?.method === "games_howell" ? "q" : "t";
+  const uFam = mc ? familyOf(mc) : null;
+  const uUnadj = !!mc && hasUnadjusted(mc.comparisons) && mc.method !== "welch_uncorrected";
   return (
     <div className="result-card">
       <h3>One-way ANOVA, SDs not assumed equal</h3>
@@ -725,11 +750,13 @@ function AnovaUnequal({ result }: { result: any }) {
         <>
           <h4>{METHOD_NAMES[mc.method] ?? mc.method} multiple comparisons
             ({mc.family === "control" ? "each group vs. control" : "every pair"})</h4>
-          <table className="results-table">
+          <FamilyLine family={uFam} />
+          <table className="results-table comparisons-table">
             <thead>
               <tr><th>Comparison</th><th>Difference</th><th>SE</th><th>{statName}</th>
                 <th>df</th><th>{Math.round(100 * (mc.ci_level ?? 0.95))}% CI</th>
-                <th>{mc.method === "welch_uncorrected" ? "P" : "Adjusted P"}</th><th>Summary</th></tr>
+                <th>{mc.method === "welch_uncorrected" ? "P (not adjusted)" : "Adjusted P"}</th>
+                {uUnadj && <th>Unadjusted P</th>}<th>Summary</th></tr>
             </thead>
             <tbody>
               {mc.comparisons.map((c: any, i: number) => (
@@ -741,6 +768,7 @@ function AnovaUnequal({ result }: { result: any }) {
                   <td>{formatSig(c.df)}</td>
                   <td>{fmtCI(c.ci)}</td>
                   <td>{fmtP(c.p_adjusted)}</td>
+                  {uUnadj && <td>{fmtP(c.p_unadjusted)}</td>}
                   <td>{stars(c.p_adjusted)}</td>
                 </tr>
               ))}
@@ -788,6 +816,15 @@ export default function StatsResults({ result, options }: Props) {
   if (result.error) {
     return <div className="results-error">Analysis failed: {String(result.error)}</div>;
   }
+  const main = mainResults(result, options);
+  // QQ plot and residuals vs. fitted for the t tests and ANOVAs (run.ts)
+  if (main && result.residual_check) {
+    return <>{main}<ResidualsSection data={result.residual_check as Record<string, unknown>} /></>;
+  }
+  return main;
+}
+
+function mainResults(result: Record<string, unknown>, options: Props["options"]) {
   switch (result.analysis) {
     case "column_statistics": return <ColumnStats result={result} />;
     case "ttest": return <TTest result={result} />;

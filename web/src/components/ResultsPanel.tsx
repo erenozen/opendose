@@ -1,5 +1,7 @@
 import type { AnalysisResult, FitResult, ParamEntry } from "../types";
 import { MODELS_META, WEIGHTING_LABELS, formatSig } from "../types";
+import { RangeNote, RangeValueCell } from "../sheets/xy/rangeFlags";
+import { rangeHidesSpread } from "../sheets/xy/rangeReport";
 
 interface Props {
   result: AnalysisResult | null;
@@ -149,19 +151,22 @@ export default function ResultsPanel({ result, xUnit = "M" }: Props) {
                   const label = e.shared ? `${base} (shared)`
                     : (e as { dataset_constant?: boolean }).dataset_constant
                       ? `${base} (data set constant)` : base;
+                  // an IC50 beyond the doses tested: "> 30 (not reached ...)"
+                  const hide = !e.constrained && rangeHidesSpread(name, fit);
                   return (
                     <tr key={name} className={e.derived ? "derived" : ""}>
                       <th>{label}</th>
-                      <td>{e.constrained
-                        ? `= ${formatSig(e.value)}` : formatSig(e.value)}</td>
-                      <td>{e.constrained || e.derived
+                      <RangeValueCell name={name} e={e} fit={fit} fallback={<td>{e.constrained
+                        ? `= ${formatSig(e.value)}` : formatSig(e.value)}</td>} />
+                      <td>{e.constrained || e.derived || hide
                         ? "n/a" : formatSig(e.se)}</td>
-                      <td>{e.constrained ? "(constrained)" : ci(e)}</td>
+                      <td>{e.constrained ? "(constrained)" : hide ? "not reported (extrapolated)" : ci(e)}</td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
+            <RangeNote fit={fit} />
             <table className="results-table goodness">
               <tbody>
                 <tr><th>Degrees of freedom</th><td>{fit.goodness.df}</td></tr>

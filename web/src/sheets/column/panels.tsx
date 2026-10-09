@@ -18,6 +18,7 @@ export function ColumnAnalysisControls({ table, options, onChange }:
   return (
     <ColumnControls options={options}
       datasetNames={table.datasets.map((d) => d.name)}
+      summaryData={table.subcolumnFormat !== "replicates"}
       onChange={onChange} />
   );
 }

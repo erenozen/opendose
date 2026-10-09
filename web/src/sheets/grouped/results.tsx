@@ -12,6 +12,8 @@ import {
 } from "./options";
 import { fmtCI, fmtP, pLabel, stars } from "./format";
 import { rowMeansTable, CALC_TITLE } from "./tables";
+import { adjustedHeader, familyOf, hasUnadjusted } from "../../report/family";
+import FamilyLine from "../common/FamilyLine";
 import "./grouped.css";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -80,6 +82,8 @@ function TwoWayComparisons({ mc, note }: { mc: R; note?: string }) {
   const method = String(mc.method);
   const name = method === "tukey" ? "Tukey" : method === "sidak" ? "Šídák"
     : method.charAt(0).toUpperCase() + method.slice(1);
+  const fam = familyOf(mc);
+  const unadj = hasUnadjusted(mc.comparisons) && fam?.kind !== "unadjusted";
   return (
     <>
       <h4>{name} multiple comparisons{mc.direction === "all_cells"
@@ -93,12 +97,13 @@ function TwoWayComparisons({ mc, note }: { mc: R; note?: string }) {
             ? " (Tukey: the family is all the cell means)" : " (corrected for every pair of cells)"}.
         </p>
       )}
+      <FamilyLine family={fam} />
       <div className="results-scroll">
-        <table className="results-table">
+        <table className="results-table comparisons-table">
           <thead>
             <tr>
               <th>Family</th><th>Comparison</th><th>Difference</th><th>95% CI</th>
-              <th>Adjusted P</th><th>Summary</th>
+              <th>{adjustedHeader(fam)}</th>{unadj && <th>Unadjusted P</th>}<th>Summary</th>
             </tr>
           </thead>
           <tbody>
@@ -109,6 +114,7 @@ function TwoWayComparisons({ mc, note }: { mc: R; note?: string }) {
                 <td>{formatSig(c.difference)}</td>
                 <td>{fmtCI(c.ci95 ?? c.ci)}</td>
                 <td>{fmtP(c.p_adjusted)}</td>
+                {unadj && <td>{fmtP(c.p_unadjusted)}</td>}
                 <td>{stars(c.p_adjusted)}</td>
               </tr>
             ))}
@@ -286,6 +292,8 @@ export function ThreeWayResults({ result }: ResultsProps<ThreeWayOptions, R>) {
   const mc = result.multiple_comparisons as R | undefined;
   const cm = result.cell_means as number[][][];
   const cn = result.cell_n as number[][][];
+  const fam3 = mc ? familyOf(mc) : null;
+  const unadj3 = !!mc && hasUnadjusted(mc.comparisons) && fam3?.kind !== "unadjusted";
   return (
     <div className="result-card">
       <h3>Three-way ANOVA</h3>
@@ -327,12 +335,14 @@ export function ThreeWayResults({ result }: ResultsProps<ThreeWayOptions, R>) {
           {mc.discoveries != null && (
             <p className="summary-line">{mc.discoveries} discoveries at Q = {formatSig((mc.q ?? 0) * 100)}%</p>
           )}
+          <FamilyLine family={fam3} />
           <div className="results-scroll">
-            <table className="results-table">
+            <table className="results-table comparisons-table">
               <thead>
                 <tr>
                   <th>Comparison</th><th>Difference</th><th>95% CI</th>
-                  <th>{mc.q != null ? "q value" : "Adjusted P"}</th>
+                  <th>{mc.q != null ? "q value" : adjustedHeader(fam3)}</th>
+                  {unadj3 && <th>Unadjusted P</th>}
                   <th>{mc.q != null ? "Discovery?" : "Significant?"}</th>
                 </tr>
               </thead>
@@ -343,6 +353,7 @@ export function ThreeWayResults({ result }: ResultsProps<ThreeWayOptions, R>) {
                     <td>{formatSig(cmp.difference)}</td>
                     <td>{fmtCI(cmp.ci)}</td>
                     <td>{fmtP(cmp.p_adjusted)} {mc.q == null ? stars(cmp.p_adjusted) : ""}</td>
+                    {unadj3 && <td>{fmtP(cmp.p_unadjusted)}</td>}
                     <td><Flag on={cmp.significant} /></td>
                   </tr>
                 ))}
@@ -384,6 +395,7 @@ export function MultiTResults({ result, options }: ResultsProps<MultiTOptions, R
         {result.n_true_null_estimate != null
           ? ` Estimated true null hypotheses: ${formatSig(result.n_true_null_estimate)}.` : ""}
       </p>
+      <FamilyLine mc={result} />
       {result.pooled && (
         <table className="results-table goodness">
           <thead><tr><th colSpan={2}>Pooled across rows{result.pooled.scale === "log10"
@@ -400,7 +412,7 @@ export function MultiTResults({ result, options }: ResultsProps<MultiTOptions, R
           <thead>
             <tr>
               <th>Row</th><th>{result.flag_label}</th>
-              <th>P value</th>{adjLabel && <th>{adjLabel}</th>}
+              <th>{adjLabel ? "Unadjusted P" : "P value"}</th>{adjLabel && <th>{adjLabel}</th>}
               <th>{centre} {a}</th><th>{centre} {b}</th>
               <th>{log ? "Ratio" : nonpar && result.test !== "kolmogorov_smirnov"
                 ? "Difference (Hodges-Lehmann)" : "Difference"}</th>

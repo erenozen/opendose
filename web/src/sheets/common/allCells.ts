@@ -46,6 +46,9 @@ export function allCellsComparisons(engine: EngineBridge, g: CellGrid, method: s
     statistic: c.statistic,
     p_adjusted: c.p_adjusted,
     significant_05: c.significant_05,
+    // the family labels (unadjusted P, family size, method)
+    ...(c.p_unadjusted !== undefined ? { p_unadjusted: c.p_unadjusted } : {}),
+    ...(c.family_size !== undefined ? { family_size: c.family_size, method: c.method } : {}),
   }));
   return {
     method,
@@ -55,5 +58,13 @@ export function allCellsComparisons(engine: EngineBridge, g: CellGrid, method: s
     n_comparisons: comparisons.length,
     n_cells: groups,
     comparisons,
+    ...(cellsFamily(mc.family) ? { family: cellsFamily(mc.family) } : {}),
   };
+}
+
+/** The one-way family block, worded for cells ("all pairs of 6 cells"). */
+export function cellsFamily(block: unknown): R | null {
+  if (!block || typeof block !== "object") return null;
+  const b = block as R;
+  return { ...b, label: String(b.label ?? "").replace(/ groups\)$/, " cells)") };
 }

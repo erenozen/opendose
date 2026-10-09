@@ -816,9 +816,12 @@ in brackets; "discoverable" = already built, make it findable):
       3 blanks kept as missing, 2 text cells in numeric columns: B7,
       C12') and keep text columns as text. [`excel-paste-fidelity`,
       81.8, 45 obs]
-- [ ] Add a 'Residuals' tab to t-test and ANOVA results with a QQ plot
+- [x] Add a 'Residuals' tab to t-test and ANOVA results with a QQ plot
       and residual-vs-fitted plot, and word the normality chip as advice
       that depends on n. [`assumption-checks-residuals`, 81.5, 38 obs]
+      (Residuals section on unpaired / Welch / paired t, ordinary and
+      Welch ANOVA, RM ANOVA with two treatments; RM ANOVA with more
+      treatments needs subject + treatment residuals from the engine)
 - [ ] Add 'Analyse log(values)' to unpaired t tests and ANOVA, reporting
       geometric-mean ratios with CIs, and a chip that suggests it when
       SDs rise with means. [`log-scale-analysis`, 78.0, 45 obs]
@@ -843,11 +846,16 @@ in brackets; "discoverable" = already built, make it findable):
       (expand to per-subject rows) and a preview column 'read as: death
       on day 12 / censored on day 30'. [`survival-data-entry`, 61.7, 21
       obs]
-- [ ] Add a 'Comparisons to make' picker (all / vs control / ticked
+- [x] Add a 'Comparisons to make' picker (all / vs control / ticked
       pairs) to every post hoc panel; apply Šídák, Holm or Dunn to
       exactly that family and print the family size.
-      [`planned-comparisons-family`, 61.4, 22 obs]
-- [ ] Offer 'Report as > highest dose' for extrapolated IC50s, carried
+      [`planned-comparisons-family`, 61.4, 22 obs] (column one-way
+      ANOVA, Kruskal-Wallis and Friedman; also
+      `nonparametric-posthoc`: Dunn's test each vs. a control)
+- [x] Show the unadjusted P beside the adjusted one and "adjusted for 6
+      comparisons (Tukey)" on every comparisons table, in the legend and
+      the methods. [`adjusted-vs-raw-labelled`, 56.2, 26 obs]
+- [x] Offer 'Report as > highest dose' for extrapolated IC50s, carried
       into the results table, the results sentence and any ratio, with
       the reason. [`incomplete-curve-flags`, 60.8, 20 obs]
 
