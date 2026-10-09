@@ -60,3 +60,17 @@
   .grouped-btn { min-height: 34px; }
   .factor-names { grid-template-columns: 1fr; }
 }
+
+/* Interaction block (two-way ANOVA): the warning against comparing two
+   separate tests, and the interaction plot. */
+.interaction-block > summary { cursor: pointer; font-weight: 600; color: var(--ink); }
+.interaction-block > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.interaction-warning {
+  border: 1px solid var(--border); border-left: 3px solid var(--warn-hue);
+  border-radius: var(--radius-s); background: var(--surface);
+  padding: 10px 14px; margin: 10px 0; font-size: 13px; color: var(--ink-2);
+}
+.interaction-warning p { margin: 0 0 6px; }
+.interaction-warning .guide-chip-sources { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0; }
+.interaction-plot { margin: 10px 0 0; }
+.interaction-plot .plot { width: 100%; min-height: 280px; }

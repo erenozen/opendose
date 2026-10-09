@@ -378,6 +378,28 @@ export const EXPLAINERS: Explainer[] = [
     sources: [SRC.gpPercentiles, SRC.gpAdjustedP, SRC.gpLogEc50Ci],
     keywords: "reproduce match r spss python excel prism defaults quantile type 6 type 7",
   },
+  {
+    id: "interaction",
+    title: "Significant in one group, not in the other: does the effect differ?",
+    summary: "Only the interaction answers it: the difference between the two effects, with its CI. Two separate tests do not.",
+    body: [
+      "A drug lowers a marker in WT mice (P = 0.01) but not significantly in KO mice "
+        + "(P = 0.20). It is tempting to conclude that the drug works differently in KO. That "
+        + "conclusion is not supported: “significant in one group, not in the other” is not "
+        + "evidence of a difference between the groups. The two effects may be almost the same "
+        + "size, one estimated a little less precisely.",
+      "The question is about the difference between the two effects: (drug − vehicle in KO) − "
+        + "(drug − vehicle in WT), a difference of differences. Two-way ANOVA tests it as the "
+        + "interaction; OpenDose reports it with its 95% CI and the interaction P value, and "
+        + "shows the interaction plot (non-parallel lines are what an interaction looks like).",
+      "Nieuwenhuis and colleagues found the incorrect procedure in as many neuroscience papers "
+        + "as the correct one. If the interaction's CI is wide, the honest conclusion is that "
+        + "the experiment cannot tell whether the effects differ.",
+    ],
+    sources: [SRC.gelmanStern2006, SRC.nieuwenhuis2011, SRC.gpTwoWayResults],
+    keywords: "interaction difference of differences two-way anova genotype treatment wt ko "
+      + "effect differs between groups separate t tests gelman stern nieuwenhuis",
+  },
 ];
 
 export const EXPLAINER_ALIASES: Record<string, string> = { superplots: "replicates" };

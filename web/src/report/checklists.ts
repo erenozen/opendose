@@ -16,6 +16,7 @@
 import type { TestInfo } from "./describe.ts";
 import type { ErrorBars } from "./legend.ts";
 import type { ReportMeta } from "./meta.ts";
+import type { PlanFacts } from "../project/plan.ts";
 
 export interface ResultFacts {
   sheetId: string;
@@ -54,6 +55,8 @@ export interface FamilyFacts {
   software: string;
   /** A column-statistics sheet with normality tests is in the family. */
   normalityChecked: boolean;
+  /** The analysis plan written for this table (project/plan.ts), if any. */
+  plan?: PlanFacts | null;
 }
 
 export type Status = "met" | "unmet" | "na";
@@ -210,6 +213,22 @@ export const RULES: Record<string, Rule> = {
     if (f.meta.sampleSize) return { status: "met", reason: `Stated: “${f.meta.sampleSize}”.` };
     return { status: "unmet", reason: "Say how the sample size was decided (a power analysis, or the reason in Reporting details).", fix: DETAILS("Reporting details: sample size") };
   },
+  plan: (f) => {
+    const pl = f.plan;
+    if (!pl) {
+      return { status: "na", reason: "No analysis plan recorded here. If a protocol with the analysis plan was written before the study, say so and where it was registered (an Analysis plan info sheet records it with the data)." };
+    }
+    if (!pl.locked) {
+      return { status: "unmet", reason: `The analysis plan (written ${pl.written}) is not locked: lock it before the data are analysed.`,
+        fix: { kind: "results", sheetId: pl.sheetId, label: "Open the analysis plan" } };
+    }
+    if (pl.unexplained) {
+      return { status: "unmet", reason: `${pl.unexplained} deviation${pl.unexplained === 1 ? "" : "s"} from the analysis plan without a reason.`,
+        fix: { kind: "results", sheetId: pl.firstUnexplained ?? pl.sheetId, label: "Add a reason" } };
+    }
+    return { status: "met", reason: `Analysis plan written ${pl.written} and locked; ${pl.deviations
+      ? `${pl.deviations} deviation${pl.deviations === 1 ? "" : "s"}, each with its reason, in the methods text` : "no deviations"}.` };
+  },
   mean_sd_format: () => ({ status: "met", reason: "Sentences write mean (SD) / M and SD, never mean ± SEM." }),
   source_data: () => ({ status: "met", reason: "The export bundle (Save menu) holds every table as CSV with the results and provenance." }),
 };
@@ -273,12 +292,13 @@ const DEFS: { id: string; title: string; source: string; items: ItemDef[] }[] = 
     { id: "ci", text: "Report effect sizes with confidence intervals", rules: ["effect_ci"], source: SAMPL },
     { id: "software", text: "Name the statistical software", rules: ["software"], source: SAMPL },
   ] },
-  { id: "arrive", title: "ARRIVE 2.0 Essential 10 (items a statistics tool can check)", source: ARRIVE, items: [
+  { id: "arrive", title: "ARRIVE 2.0 Essential 10 and protocol registration (items a statistics tool can check)", source: ARRIVE, items: [
     { id: "e1", text: "1. Study design: the groups compared and the experimental unit", rules: ["test_named", "n_unit"], source: `${ARRIVE}, item 1` },
     { id: "e2", text: "2. Sample size: exact n per group and how it was decided", rules: ["n_exact", "sample_size"], source: `${ARRIVE}, item 2` },
     { id: "e3", text: "3. Inclusion and exclusion criteria, with exclusions and exact n per analysis", rules: ["exclusions", "n_exact"], source: `${ARRIVE}, item 3` },
     { id: "e7", text: "7. Statistical methods for each analysis, with software and assumption checks", rules: ["test_named", "software", "assumptions"], source: `${ARRIVE}, item 7` },
     { id: "e10", text: "10. Results: summary statistics with variability and the effect size with a confidence interval", rules: ["centre_dispersion", "effect_ci"], source: `${ARRIVE}, item 10` },
+    { id: "r19", text: "19. Protocol registration (Recommended Set): whether a protocol with the analysis plan was prepared before the study", rules: ["plan"], source: "ARRIVE 2.0 Recommended Set, item 19" },
   ] },
 ];
 

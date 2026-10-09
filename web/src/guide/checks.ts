@@ -10,6 +10,7 @@ import type { GroupCheck } from "./recommend.ts";
 import { cellChecks, looksLikeCells, missingInRows, normalisedControl } from "./stats.ts";
 import { withheldInfo } from "../sheets/common/withheld.ts";
 import { multiplicityChip, type MultiplicityFacts } from "./multiplicity.ts";
+import { separateTestsChip, type SeparateTests } from "./interaction.ts";
 import { sensitivityChip, type NeededN, type Sensitivity } from "./smallN.ts";
 import type { Source } from "./sources.ts";
 
@@ -24,7 +25,7 @@ export interface Chip {
   explainer?: string;
   /** A one-click fix offered under the detail: Assign replicates…, the
    *  power tool, or the multiplicity alternatives (ANOVA / Holm-Šídák). */
-  action?: "assign-replicates" | "open-power" | "multiplicity";
+  action?: "assign-replicates" | "open-power" | "multiplicity" | "interaction";
   /** Where the rule comes from, linked under the detail. */
   sources?: Source[];
 }
@@ -44,6 +45,9 @@ export interface ResultContext {
   needed?: NeededN[] | null;
   /** Three or more t tests on this table (project-level count). */
   multiplicity?: MultiplicityFacts | null;
+  /** Separate tests per group read as a difference between the groups
+   *  (guide/interaction.ts). */
+  separate?: SeparateTests | null;
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -471,7 +475,8 @@ export function resultChips(ctx: ResultContext): Chip[] {
     const cells = cellChecks(ctx.table);
     const groups: GroupCheck[] = cells.map((c) => ({ name: `${c.row} / ${c.dataset}`, n: c.s.n,
       mean: c.s.mean, sd: c.s.sd, normalityP: null, allPositive: (c.s.min ?? 0) > 0 }));
-    return [nChip(groups, "cell"), zeroVarianceChip(groups),
+    return [ctx.separate ? separateTestsChip(ctx.separate) : null, nChip(groups, "cell"),
+      zeroVarianceChip(groups),
       kind === "grouped_two_way" ? missingChip(ctx, kind) : null,
       sphericityChip(r)].filter((c): c is Chip => !!c);
   }
@@ -497,6 +502,7 @@ export function resultChips(ctx: ResultContext): Chip[] {
   // small-n-honesty); with P withheld the assumption checks say nothing.
   const lead = [
     ctx.multiplicity ? multiplicityChip(ctx.multiplicity) : null,
+    ctx.separate ? separateTestsChip(ctx.separate) : null,
     ctx.sensitivity ? sensitivityChip(ctx.sensitivity) : null,
   ].filter((c): c is Chip => !!c);
   if (withheldInfo(r)) return lead;
