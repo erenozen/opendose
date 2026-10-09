@@ -99,8 +99,15 @@ example's numbers, regenerate them against a dev server with
   "From long table…" fills CMH, ROC, quantal and multi-curve XY tables
   from long records;
   import recipes for FlowJo, CellProfiler, QuPath, plate-reader grids,
-  qPCR Cq exports and long CSVs (metadata from sample names, aggregation
-  cell → image → animal, pivot to any table type); Reshape between long
+  qPCR Cq exports, Incucyte time series, LabChart text exports,
+  multi-read plate runs (wavelengths or kinetic reads, wells grouped
+  with a plate map) and long CSVs (metadata from sample names,
+  aggregation cell → image → animal, pivot to any table type); many
+  per-image CSVs or a zip at once, stacked with the file name and read
+  with a name template ("{condition}_rep{replicate}_img{image}.csv")
+  into a SuperPlot-ready table with its replicate map; any import
+  mapping saved as a recipe (in this browser and in the project, so a
+  share link carries it) and applied to the next file; Reshape between long
   and wide; .prism and .pzfx files (one or all tables, summary tables as
   summary tables; also dropped on the start screen), and "Convert Prism
   files to CSV…" (several files, every data table, one zip). Export: any

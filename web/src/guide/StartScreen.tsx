@@ -14,6 +14,7 @@ import { setStartScreenEnabled, startScreenEnabled, tourDone } from "./context";
 import { buildTable, parsePasted, suggestTableType } from "./paste";
 import { CARD_TEXT, SKETCHES } from "./sketches";
 import { usePrismBatch } from "../share/usePrismBatch";
+import { takeTableDrop } from "../share/recipes/readFiles";
 import "./startPrism.css";
 
 /** Files the Open button takes: OpenDose projects and Prism files. */
@@ -43,6 +44,7 @@ export default function StartScreen({ onOpenFile, onClose, onTour }: {
     e.preventDefault();
     setDropping(false);
     const files = [...e.dataTransfer.files];
+    if (takeTableDrop(files, onOpenFile, onClose)) return; // several CSVs or a zip: import with a recipe
     const f = files.find((x) => OPENABLE.test(x.name));
     if (!f) {
       setDropNote("That is not a file OpenDose opens here: drop a .prism, .pzfx or OpenDose "

@@ -15,6 +15,10 @@ export interface NamePattern {
   delimiter: string;       // "_", "-", ".", " " (any run of spaces) or any text
   stripExtension: boolean; // drop a trailing file extension (.fcs, .tif, .svs …)
   parts: PatternPart[];    // by position, left to right
+  /** A file-name template such as "{condition}_rep{replicate}_img{image}.csv"
+   *  (see compileTemplate): when set, the parts are the template's fields
+   *  in order and `delimiter` is not used. */
+  template?: string;
 }
 
 export const DELIMITERS: [string, string][] = [
@@ -57,13 +61,105 @@ export function guessParts(names: string[], delimiter: string, stripExtension: b
   });
 }
 
+// ------------------------------------------------------------ templates
+
+/** A name template: literal text with `{field}` placeholders, `{*}` (or
+ *  `{}`) for a part to ignore. "{condition}_rep{replicate}_img{image}.csv"
+ *  reads "ctrl_rep1_img03.csv" as condition "ctrl", replicate "1", image
+ *  "03". Matching ignores case; a template without an extension also
+ *  matches names that have one. */
+export interface CompiledTemplate {
+  /** Field names in order ("" for an ignored part). */
+  fields: string[];
+  re: RegExp;
+  /** The template ends in a file extension (else names are matched
+   *  without theirs first). */
+  ext: boolean;
+}
+
+const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+export function compileTemplate(template: string): CompiledTemplate | null {
+  const t = template.trim();
+  if (!t) return null;
+  const fields: string[] = [];
+  let src = "";
+  let last = 0;
+  const tokens = /\{([^{}]*)\}/g;
+  for (let m = tokens.exec(t); m; m = tokens.exec(t)) {
+    src += escapeRe(t.slice(last, m.index));
+    const f = m[1].trim();
+    fields.push(f === "*" ? "" : f);
+    src += "(.*?)";
+    last = m.index + m[0].length;
+  }
+  if (!fields.length) return null;
+  src += escapeRe(t.slice(last));
+  try {
+    return { fields, re: new RegExp(`^${src}$`, "i"), ext: EXT.test(t) };
+  } catch {
+    return null;
+  }
+}
+
+/** The template's parts of a name, or null when the name does not fit. */
+export function matchTemplate(c: CompiledTemplate, name: string): string[] | null {
+  const n = name.trim();
+  const bare = n.replace(EXT, "");
+  const m = c.ext ? c.re.exec(n) ?? c.re.exec(bare) : c.re.exec(bare) ?? c.re.exec(n);
+  return m ? m.slice(1).map((p) => p.trim()) : null;
+}
+
+const FIELD_ROLES: [RegExp, Role][] = [
+  [/^(condition|cond|group|treatment|treat|genotype|drug|compound|strain|line|cell ?line|construct|sirna|arm)$/i, "group"],
+  [/^(replicate|rep|biorep|experiment|exp|animal|mouse|rat|subject|donor|patient|batch|run)$/i, "subject"],
+  [/^(time|timepoint|time ?point|day|hour|hours|h|t|dose|conc|concentration)$/i, "time"],
+];
+
+/** Role of a template field from its name: condition-like fields are the
+ *  group, replicate-like ones the subject (experimental unit), time-like
+ *  ones the X / row; anything else (image, field, well) is kept as
+ *  metadata. */
+export function fieldRole(field: string): Role {
+  if (!field) return "skip";
+  return FIELD_ROLES.find(([re]) => re.test(field.trim()))?.[1] ?? "meta";
+}
+
+const titleCase = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+/** Pattern parts of a template (one per field). */
+export function templateParts(template: string): PatternPart[] {
+  const c = compileTemplate(template);
+  if (!c) return [];
+  return c.fields.map((f, i) => ({
+    role: fieldRole(f),
+    name: f ? titleCase(f.trim()) : `Part ${i + 1}`,
+  }));
+}
+
+/** Share of the names (0..1) a template fits. */
+export function templateFit(template: string, names: string[]): number {
+  const c = compileTemplate(template);
+  if (!c || !names.length) return 0;
+  return names.filter((n) => matchTemplate(c, n) !== null).length / names.length;
+}
+
+/** The parts of one name under a pattern (template or separator). */
+export function nameParts(name: string, pat: NamePattern): string[] {
+  if (pat.template !== undefined) {
+    const c = compileTemplate(pat.template);
+    return (c && matchTemplate(c, name)) ?? [];
+  }
+  return splitName(name, pat.delimiter, pat.stripExtension);
+}
+
 /** The staging table with the pattern's parts appended as new columns
  *  (skipped parts are not added). */
 export function applyPattern(st: Staging, pat: NamePattern | null): Staging {
   if (!pat || pat.column < 0 || pat.column >= st.columns.length) return st;
   const kept = pat.parts.map((p, i) => ({ p, i })).filter(({ p }) => p.role !== "skip");
   if (!kept.length) return st;
-  const split = st.rows.map((r) => splitName(r[pat.column] ?? "", pat.delimiter, pat.stripExtension));
+  const split = st.rows.map((r) => nameParts(r[pat.column] ?? "", pat));
   const used = new Set(st.columns.map((c) => c.name));
   const columns = kept.map(({ p, i }) => {
     let name = p.name.trim() || `Part ${i + 1}`;

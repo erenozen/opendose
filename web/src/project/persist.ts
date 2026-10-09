@@ -11,6 +11,7 @@ import { parseDerivedLink } from "./derived.ts";
 import { parseReportMeta } from "../report/meta.ts";
 import { reportPrefsOf } from "../report/prefs.ts";
 import { repairGroups } from "./groups.ts";
+import { withLoadedRecipes } from "./recipes.ts";
 import type { IdFactory } from "./ids.ts";
 import { sanitizeLayoutFields } from "./layout.ts";
 import { parseNotes } from "./notes.ts";
@@ -59,6 +60,7 @@ export function serializeProject(p: Project,
     title: p.title,
     prefs: p.prefs,
     ...(p.groups?.length ? { groups: p.groups } : {}),
+    ...(p.recipes?.length ? { recipes: p.recipes } : {}),
     ...(selected ? { selected } : {}),
     sheets,
   }, null, opts.compact ? undefined : 2);
@@ -252,8 +254,8 @@ function normalizeV2(r: Record<string, unknown>, ctx: LoadContext): Project {
     if (s.highlight === undefined) delete s.highlight;
   }
   const migrated = obj(r.prefs).report === undefined ? promoteGraphPStyle(prefs, sheets) : prefs;
-  return repairGroups(repairLinks(makeProject(migrated, sheets, str(r.title) || "Untitled project")),
-    r.groups);
+  return withLoadedRecipes(repairGroups(repairLinks(makeProject(migrated, sheets,
+    str(r.title) || "Untitled project")), r.groups), r.recipes);
 }
 
 /**

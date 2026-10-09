@@ -8,6 +8,8 @@ import {
 } from "../../project/importText";
 import { flatColumns, hasAnyValue, tableShape } from "../../project/table";
 import type { DataTableModel } from "../../project/types";
+import { isTableDrop } from "../../share/recipes/dropKind";
+import type { PlainSpec } from "../../share/recipes/saved";
 
 export interface ImportRequest {
   text?: string;                        // clipboard text to start from
@@ -25,6 +27,8 @@ const TABS: [Tab, string][] = [
 // Instrument-export recipes (src/share): a new table from a FlowJo,
 // CellProfiler, QuPath, plate-reader, qPCR or long-format file.
 const RecipeDialog = lazy(() => import("../../share/RecipeDialog"));
+// Saved recipes: apply one, or save this dialog's settings as one.
+const ImportRecipesBar = lazy(() => import("../../share/recipes/ImportRecipesBar"));
 
 const ENCODINGS: [string, string][] = [
   ["utf-8", "UTF-8 (most files)"],
@@ -66,6 +70,10 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
   const [src, setSrc] = useState<SourceOptions>(DEFAULT_SOURCE);
   const [filter, setFilter] = useState<FilterOptions>(DEFAULT_FILTER);
   const [roleOverride, setRoleOverride] = useState<Record<number, ColumnRole>>({});
+  // Several files or a zip (stacked by the recipe dialog), and a saved
+  // recipe chosen from the list.
+  const [recipeFiles, setRecipeFiles] = useState<File[] | undefined>(undefined);
+  const [savedRecipe, setSavedRecipe] = useState<string | undefined>(undefined);
   const firstY = flatColumns(table).findIndex((c) => c.kind === "y");
   const defaultMode: PlacementOptions["mode"] = initial?.mode
     ?? (hasAnyValue(table) ? "append" : "replace");
@@ -121,6 +129,11 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
     }
   };
 
+  const takeFiles = (list: File[]) => {
+    if (list.length > 1 || isTableDrop(list)) { setRecipeFiles(list); setTab("recipes"); return; }
+    void pickFile(list[0]);
+  };
+
   const readClipboard = async () => {
     try {
       const t = await navigator.clipboard.readText();
@@ -135,7 +148,9 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
     return (
       <Suspense fallback={null}>
         <RecipeDialog initialText={srcKind === "paste" ? pasted : undefined}
-          onBack={() => setTab("source")} onClose={onClose} />
+          initialFiles={recipeFiles} savedId={savedRecipe}
+          onBack={() => { setRecipeFiles(undefined); setSavedRecipe(undefined); setTab("source"); }}
+          onClose={onClose} />
       </Suspense>
     );
   }
@@ -202,7 +217,14 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
 
       {tab === "source" && (
         <div className="dialog-panel" role="tabpanel" id="imp-panel-source"
-          aria-labelledby="imp-tab-source">
+          aria-labelledby="imp-tab-source"
+          onDragOver={(e) => { if ([...e.dataTransfer.types].includes("Files")) e.preventDefault(); }}
+          onDrop={(e) => {
+            if (!e.dataTransfer.files.length) return;
+            e.preventDefault();
+            setSrcKind("file");
+            takeFiles([...e.dataTransfer.files]);
+          }}>
           <fieldset className="field-radios">
             <legend>Read from</legend>
             <label><input type="radio" name="imp-src" checked={srcKind === "file"}
@@ -214,9 +236,9 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
             <div className="field-row">
               <label className="field">
                 <span>File</span>
-                <input type="file" aria-label="File to import"
-                  accept=".csv,.tsv,.txt,.tab,.dat,.prn,.xlsx,text/csv,text/plain"
-                  onChange={(e) => { void pickFile(e.target.files?.[0]); }} />
+                <input type="file" aria-label="File to import" multiple
+                  accept=".csv,.tsv,.txt,.tab,.dat,.prn,.xlsx,.zip,text/csv,text/plain,application/zip"
+                  onChange={(e) => { takeFiles([...(e.target.files ?? [])]); }} />
               </label>
               {sheets && sheets.length > 1 && (
                 <label className="field">
@@ -291,6 +313,25 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
               saved in another encoding: try Windows-1252.
             </p>
           )}
+          <p className="field-note">
+            Several files at once (or a .zip of them), such as one CSV per image, are stacked
+            into one table by the Recipes step, with the file name as a column.
+          </p>
+          <Suspense fallback={null}>
+            <ImportRecipesBar
+              current={(): PlainSpec => ({ kind: "plain", source: effSrc, filter,
+                roles: Object.fromEntries(Object.entries(roleOverride).map(([k, v]) => [String(k), v])),
+                place: { mode: place.mode, perDataset: place.perDataset, useTitles: place.useTitles } })}
+              onPlain={(spec) => {
+                setSrc(spec.source);
+                setTitlesTouched(true);
+                setFilter(spec.filter);
+                setRoleOverride(Object.fromEntries(Object.entries(spec.roles).map(([k, v]) => [Number(k), v])));
+                setPlace({ ...place, mode: spec.place.mode, perDataset: spec.place.perDataset,
+                  useTitles: spec.place.useTitles });
+              }}
+              onRecipe={(id) => { setSavedRecipe(id); setTab("recipes"); }} />
+          </Suspense>
         </div>
       )}
 
