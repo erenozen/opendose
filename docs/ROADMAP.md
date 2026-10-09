@@ -794,275 +794,349 @@ Files: [`CATALOGUE.md`](research/needs/CATALOGUE.md),
 [`needs.json`](research/needs/needs.json) (built by
 `docs/research/needs/build_catalogue.py`).
 
-Top 15 proposals by priority score (need id, score and observation count
-in brackets; "discoverable" = already built, make it findable):
-- [x] Offer "Which test?" inline in the Analyze dialog (a 'Help me
-      choose' first entry, pre-filled from the table) and phrase its
-      pairing question with the user's own first row ('Is A1 the same
-      animal as B1?'). [`design-first-test-chooser`, 100.0, 51 obs]
-      (discoverable) Done: "Help me choose…" first in Analyze; groups,
-      layout, replicates and a paired analysis on screen pre-filled
+The 40 items of the improvement plan, in plan order (plan number, need
+id, what shipped):
+
+Wave 1:
+- [x] #1 Which test fits the design (`design-first-test-chooser`). Done:
+      "Help me choose…" first in Analyze, pre-filled from the table
       (`guide/tablePrefill.ts`); questions name the table's data sets and
       first complete row; the results sheet it opens says why.
-- [x] When any group has fewer than two independent values, withhold P
-      and show descriptive results labelled exploratory; at n = 2–3 add
-      a chip with the detectable effect (from the power engine) and the
-      t-based CI width. [`small-n-honesty`, 99.0, 45 obs] Done: web
-      side (`sheets/common/withheld.ts`, `guide/smallN.ts`); reads the
-      engine's `withheld` / `design_sensitivity` blocks when present.
-- [x] Add a two-way nested mixed model (treatment × genotype with animal
-      random) and a 'grouping column' role on multiple-variables tables
-      that any comparison fits as a random intercept.
-      [`nested-mixed-models`, 98.7, 75 obs] Done: "Nested two-way ANOVA
-      (mixed model: units random)" on grouped tables (block or titled
-      subcolumns, From long table…) and "Mixed model with a grouping
-      column" on multiple-variables tables (row titles allowed), one
-      results panel (design note, variance components and ICC, cell
-      means, comparisons with family header) and the nested scatter with
-      brackets; the wizard routes cells / repeats × two factors there.
-- [x] Ask 'What does each value represent?' (independent experiment /
-      animal / technical repeat / cell) when a table is created or
-      pasted, and extend replicate assignment to XY tables and grouped
-      cells. [`declare-experimental-unit`, 91.0, 69 obs] Done: question
-      strip above the results (`guide/declareUnit.ts`), replicate maps on
-      XY and grouped cells, "n = 3 independent experiments (9 wells)".
-- [x] After every paste or import, show a one-line report ('412 numbers,
-      3 blanks kept as missing, 2 text cells in numeric columns: B7,
-      C12') and keep text columns as text. [`excel-paste-fidelity`,
-      81.8, 45 obs] (`project/pasteReport.ts`; Help explainer
-      "What happens to pasted cells")
-- [x] Add a 'Residuals' tab to t-test and ANOVA results with a QQ plot
-      and residual-vs-fitted plot, and word the normality chip as advice
-      that depends on n. [`assumption-checks-residuals`, 81.5, 38 obs]
-      (Residuals section on unpaired / Welch / paired t, ordinary and
-      Welch ANOVA, RM ANOVA with two treatments; RM ANOVA with more
-      treatments needs subject + treatment residuals from the engine)
-- [x] Add 'Analyse log(values)' to unpaired t tests and ANOVA, reporting
-      geometric-mean ratios with CIs, and a chip that suggests it when
-      SDs rise with means. [`log-scale-analysis`, 78.0, 45 obs] Done
-      (Wave 2, `sheets/column/logScale.ts`): "Analyse on the log scale"
-      for unpaired / Welch t and ordinary one-way ANOVA (paired → ratio
-      paired t), geometric means with CIs, "Treated/Control = 2.85-fold
-      (95% CI 1.69–4.8)", post hoc as ratios, sentence, legend, methods;
-      the scale_check chip with one click, a chip for values ≤ 0 left
-      out, a one-click log10 Y axis. Summary-data entry: not yet.
-- [x] Offer 'Plan the next experiment' from any results sheet,
-      pre-filled with this data's SD and effect. [`power-sample-size`,
-      72.8, 58 obs] (discoverable) Done for t tests and one-way ANOVA
-      (`power/pilot.ts`): the pilot SD is filled in, the effect to detect
-      is a chosen difference or the pilot difference labelled as such;
-      never observed power (FAQ 1710). Also in the empty results pane.
-- [x] Ask 'Was each condition run once per experiment, on different
-      days?' and, if yes, open the matched analysis (RM ANOVA / paired)
-      with experiment as the block, and show the
-      experiment-to-experiment variance it removed.
-      [`experiment-as-block`, 67.7, 35 obs] Done: wizard question
-      (`guide/blocking.ts`), "day-to-day differences removed: SS, % of
-      total" on RM ANOVA, pairing r on the paired t test.
-- [x] Document and test limits (rows, points per graph), virtualise the
-      grid, and switch dense scatters to WebGL above a threshold.
-      [`large-data`, 66.1, 43 obs] Done: the grid renders the rows in
-      view above 150 rows (`sheets/common/virtualRows.ts`; sticky header,
-      keyboard, block selection, paste and undo unchanged); graphs above
-      5,000 points draw markers with WebGL (`graph/dense.ts`; the export
-      panel says when an SVG/PDF embeds them as an image); Help "Limits";
-      e2e pastes 100,000 rows (grid in ~10 s, t test on 2 × 100,000) and
-      the perf probe times paste, scroll frames and memory.
-- [x] Ask for a reason when values are excluded, list exclusions per
-      group in results and methods, and offer a one-click 'results with
-      excluded values included'. [`exclusion-log`, 64.1, 29 obs]
-      Done: skippable reason prompt after Ctrl/Cmd+E
+- [x] #2 What n = 1–3 can show (`small-n-honesty`). Done: no P with one
+      independent value in a group, descriptive results labelled
+      exploratory; at n = 2–3 a chip with the detectable effect and the
+      CI width (`sheets/common/withheld.ts`, `guide/smallN.ts`; engine
+      `withheld` / `design_sensitivity`).
+- [x] #4 The independent unit sets n (`declare-experimental-unit`). Done:
+      "What does each value represent?" strip above the results
+      (`guide/declareUnit.ts`), replicate maps on XY and grouped cells,
+      "n = 3 independent experiments (9 wells)".
+- [x] #5 Exact paste from Excel (`excel-paste-fidelity`). Done: a report
+      line after every paste or import (numbers read, blanks and text
+      cells by address, nothing converted to 0), text and ID columns kept
+      as typed (`project/pasteReport.ts`; Help "What happens to pasted
+      cells").
+- [x] #6 Residual plots, not a gating normality P
+      (`assumption-checks-residuals`). Done: Residuals section (QQ plot,
+      residuals vs fitted, Shapiro-Wilk as a secondary line, advice that
+      depends on n) on unpaired / Welch / paired t, ordinary and Welch
+      ANOVA and RM ANOVA with two treatments
+      (`sheets/column/residualsPanel.tsx`).
+- [x] #8 How many animals or replicates (`power-sample-size`). Done:
+      "Plan next experiment…" on t test and one-way ANOVA results and in
+      the empty results pane opens the power tool with the pilot SD; the
+      effect is chosen by the user, never observed power (FAQ 1710;
+      `power/pilot.ts`).
+- [x] #9 Experiment as a block (`experiment-as-block`). Done: wizard
+      question (`guide/blocking.ts`) opens the matched analysis; RM ANOVA
+      reports "day-to-day differences removed: SS, % of total", the
+      paired t the pairing r.
+- [x] #11 Exclusions with a reason, reported (`exclusion-log`). Done:
+      skippable reason prompt after Ctrl/Cmd+E
       (`DataColumn.exclusionReasons`, `project/exclusions.ts`), an
-      Exclusions block on results sheets, "n = 8 enrolled, 7 analysed
-      (1 excluded: …)" in methods and legends, the side-by-side results
-      with every value included, reasons in History / provenance.json.
-- [x] Reopened projects say whether every saved number came back: files
-      record `savedWith`; opening one saved by another build recomputes
-      and compares at display precision ("All 48 results reproduced …"
-      or each change with both values and the `share/engineChanges.ts`
-      log), kept in History. [`stable-results-versions`, 50.8, 26 obs]
-- [x] Tidy CSV of the export bundle keeps excluded values with
-      `excluded` and `exclusion_reason` columns. [`source-data-export`]
-- [x] Let a provenance file (or a project) be applied to a new data
-      file: same tables, analyses, graphs and layouts, with a diff of
-      what changed. [`analysis-replay`, 63.1, 32 obs] Done: "Apply to
-      new data…" (Save menu, a data table's menu) takes this project, a
-      project file or the bundle's provenance.json (now with a
-      `replay_plan`) and CSV / TSV / pasted / .xlsx / .pzfx data, matches
-      tables by name then shape (a mapping when ambiguous), refills them
-      in their own layout, re-runs, and logs per results sheet which
-      numbers changed, P first (`project/replay.ts`, `replayDiff.ts`).
-      Not yet: re-running an import recipe or a plate-reader mapping
-      (tables do not store how they were imported).
-- [x] Add 'From counts per day' and 'From dates' to the survival table
-      (expand to per-subject rows) and a preview column 'read as: death
-      on day 12 / censored on day 30'. [`survival-data-entry`, 61.7, 21
-      obs] Done: "Survival data from…" above the table (alive or deaths
-      per day, or start / end dates with yes/no codes; preview with a
-      "Read as" column; one undo step), a time unit, per-group "8
-      events, 2 censored" lines with warning chips and a "Read as" list
+      Exclusions block on results, "n = 8 enrolled, 7 analysed (1
+      excluded: …)" in methods and legends, results with every value
+      included side by side, reasons in History / provenance.json and in
+      the tidy CSV's `excluded` / `exclusion_reason` columns
+      (`source-data-export`).
+- [x] #13 Simple survival data entry (`survival-data-entry`). Done:
+      "Survival data from…" (alive or deaths per day, or start / end
+      dates with yes/no codes), a "Read as" preview, one undo step, a
+      time unit, per-group "8 events, 2 censored" lines with chips
       (`sheets/survival/entry.ts`).
-- [x] Explain 'median not reached', warn when few events drive the
-      test, survival at a chosen time and RMST difference with CIs.
-      [`median-survival-explained`, 44.7, 16 obs] Done: "not reached:
-      80% survived to day 30 (last follow-up)", the engine's few-events
-      warnings, survival at time t (Greenwood, log-log CI) and RMST with
-      differences and ratios (survRM2 method) on the survival results.
-- [x] Pairwise log-rank table (all pairs or vs control) with Holm-Šídák
-      / Bonferroni adjusted P, and the log-rank test for trend.
-      [`pairwise-logrank`, 36.8, 16 obs] Done (3+ groups), with the
-      family in the methods text and the figure legend. Not offered as
-      graph brackets: Kaplan-Meier graphs have no bracket layer.
-- [x] Add a 'Comparisons to make' picker (all / vs control / ticked
-      pairs) to every post hoc panel; apply Šídák, Holm or Dunn to
-      exactly that family and print the family size.
-      [`planned-comparisons-family`, 61.4, 22 obs] (column one-way
-      ANOVA, Kruskal-Wallis and Friedman; also
-      `nonparametric-posthoc`: Dunn's test each vs. a control)
-- [x] Show the unadjusted P beside the adjusted one and "adjusted for 6
-      comparisons (Tukey)" on every comparisons table, in the legend and
-      the methods. [`adjusted-vs-raw-labelled`, 56.2, 26 obs]
-- [x] Offer 'Report as > highest dose' for extrapolated IC50s, carried
-      into the results table, the results sentence and any ratio, with
-      the reason. [`incomplete-curve-flags`, 60.8, 20 obs]
-- [x] Count the t tests run on each table; from the third pair, a chip
-      with the familywise error (1 − 0.95^k, Bonferroni bound) and one
-      click to one-way ANOVA with Dunnett vs the common control, or to
-      Holm-Šídák across those P values. [`multiplicity-by-default`,
-      54.3, 21 obs] Done: `guide/multiplicity.ts`.
+- [x] #15 IC50 beyond the tested range as "> top dose"
+      (`incomplete-curve-flags`). Done: "IC50 > 30 µM (not reached in the
+      range tested)" in the table, sentence and any ratio, with the
+      reason, or the fitted number flagged, per results sheet
+      (`sheets/xy/rangeReport.ts`, engine `range_flags`).
+- [x] #16 Table layout from the experiment, changeable later
+      (`table-layout-chooser`). Done: "Convert table to…" (column ↔
+      grouped ↔ multiple variables, stacked ↔ side by side) as a new
+      table keeping every value, exclusion and pairing; "Describe the
+      experiment" picks the table from three design questions
+      (`project/convertType.ts`, `guide/designToTable.ts`).
+- [x] #20 Adjusted or not, and by which method
+      (`adjusted-vs-raw-labelled`). Done: the unadjusted P beside the
+      adjusted one and "adjusted for 6 comparisons (Tukey)" on every
+      comparisons table, in the legend and the methods
+      (`sheets/common/FamilyLine.tsx`).
+- [x] #21 Dunn's after Kruskal-Wallis or Friedman
+      (`nonparametric-posthoc`). Done: Dunn's test for every pair, each
+      vs. a control or planned pairs, with the family printed.
+- [x] #22 Hazard ratios and Cox regression (`hazard-ratio-cox`). Done:
+      the stale "not in OpenDose yet" wizard text fixed; the survival
+      recommendation opens Cox on the same table and survival results
+      link to it.
+- [x] #24 Multiplicity by default (`multiplicity-by-default`). Done: from
+      the third t test on a table, a chip with the familywise error
+      (1 − 0.95^k, Bonferroni bound) and one click to one-way ANOVA with
+      Dunnett vs the common control or to Holm-Šídák
+      (`guide/multiplicity.ts`).
+- [x] #25 Show the validation (`validated-results`). Done: "How this is
+      validated" on every results sheet opens the validation page
+      filtered to that analysis' checks with a count sentence
+      (`share/validationIndex.ts`).
+- [x] #26 Same numbers on reopening (`stable-results-versions`). Done:
+      files record `savedWith`; opening one saved by another build
+      recomputes and compares at display precision ("All 48 results
+      reproduced …" or each change with both values and the
+      `share/engineChanges.ts` log), kept in History.
+- [x] #29 Prism files without a licence (`prism-files`). Done: .prism /
+      .pzfx files open from the start screen (also dropped on it); Save
+      menu "Export tables as .pzfx (opens in GraphPad Prism)" and
+      "Convert Prism files to CSV…" (several files, every data table, one
+      zip).
+- [x] #30 Median survival explained (`median-survival-explained`). Done:
+      "not reached: 80% survived to day 30 (last follow-up)", the
+      engine's few-events warnings, survival at time t (Greenwood,
+      log-log CI) and RMST with differences and ratios (survRM2 method).
+- [x] #32 Never fail silently (`fail-loudly`). Done: a Notes strip on
+      every results sheet with every engine warning and every skipped
+      value, unit-tested over the column, grouped, XY and survival
+      payloads (`project/dataNotes.ts`).
+- [x] #39 Missing values and unequal n (`missing-values-handling`). Done:
+      an "Analysed" line (n per group, pairs or subjects, rows of
+      incomplete pairs left out); paired t / Wilcoxon / correlation
+      payloads pair cell by cell, so a one-sided blank no longer shifts
+      later pairs.
+- [x] #40 Pairwise log-rank and trend (`pairwise-logrank`). Done (3+
+      groups): all pairs or vs control, Holm-Šídák or Bonferroni
+      adjusted, and the log-rank test for trend; the family in the
+      methods and the legend.
 
-- [x] Export graphs and page layouts to PowerPoint (.pptx) and copy
-      results tables for Word. [`office-export`, 43.4, 19 obs] Done: a
-      .pptx written in the browser (`export/pptx.ts`, fflate), one 16:9
-      slide per graph (title, SVG picture with PNG fallback so "Convert
-      to Shape" works, legend in the notes) and per layout (a deck of
-      layouts takes the page size); "Copy for Word" on every results
-      sheet (HTML table + text); "Copy" under a graph puts PNG and SVG on
-      the clipboard. Not checked in PowerPoint itself here (the file is
-      validated by unzipping, XML parsing and python-pptx).
+Wave 2:
+- [x] #7 Log-scale analysis (`log-scale-analysis`). Done
+      (`sheets/column/logScale.ts`): "Analyse on the log scale" for
+      unpaired / Welch t and ordinary one-way ANOVA (paired → ratio
+      paired t), geometric means with CIs, "Treated/Control = 2.85-fold
+      (95% CI 1.69–4.8)", post hoc as ratios in sentence, legend and
+      methods; a chip when the SD grows with the mean, a chip for values
+      ≤ 0 left out, a one-click log10 Y axis.
+- [x] #10 Large data (`large-data`). Done: the grid renders only the rows
+      in view above 150 rows (`sheets/common/virtualRows.ts`); graphs
+      above 5,000 points draw markers with WebGL (`graph/dense.ts`; the
+      export panel says when an SVG / PDF embeds them as an image); Help
+      "Limits"; e2e pastes 100,000 rows (grid in ~10 s, t test on
+      2 × 100,000), the perf probe times paste, scroll frames and memory.
+- [x] #12 Re-runnable analyses (`analysis-replay`). Done: "Apply to new
+      data…" (Save menu, a data table's menu) takes this project, a
+      project file or the bundle's provenance.json (with `replay_plan`)
+      and CSV / TSV / pasted / .xlsx / .pzfx data, matches tables by name
+      then shape, refills them in their own layout, re-runs, and logs
+      per results sheet which numbers changed, P first
+      (`project/replay.ts`, `replayDiff.ts`).
+- [x] #14 Correct for the planned family only
+      (`planned-comparisons-family`). Done: a "Comparisons to make"
+      picker (all / vs control / ticked pairs) on column one-way ANOVA,
+      Kruskal-Wallis, Friedman and RM one-way ANOVA; Šídák, Holm or Dunn
+      adjust exactly that family and print its size
+      (`sheets/column/comparisonsFamily.ts`).
+- [x] #17 Analysis plan fixed before the data (`preregistration-plan`).
+      Done: a lockable plan on an info sheet (outcome, comparison, test,
+      sidedness, n, exclusion rule, α), later changes logged with a
+      reason; a deviation chip on the table's results with Record reason
+      / Revert; the methods text and ARRIVE item 19 state the plan and
+      its deviations (`project/plan.ts`).
+- [x] #19 The interaction question (`interaction-question`). Done: "Are
+      you asking whether the treatment effect differs between groups?"
+      in Help me choose opens two-way ANOVA with the Interaction block
+      first (interaction P, difference of differences with its CI,
+      simple effects, interaction plot, the Gelman & Stern / Nieuwenhuis
+      warning); a chip on one t test per row and on two t tests of
+      disjoint columns (`guide/interaction.ts`,
+      `sheets/grouped/interaction.tsx`).
+- [x] #23 Compare EC50s between conditions (`compare-curves-ec50`).
+      Done: Compare fits › compare a parameter (logEC50, Hill slope, Top
+      …) between two data sets: the EC50 ratio with its CI, the
+      difference with its t test, F test and AICc for one shared value,
+      "undefined (IC50 > 1e-5 M)" when an IC50 is not reached
+      (`sheets/xy/compareParameter.ts`); curve-fit results link to
+      Compare fits ("Compare with another model… / another data set…").
+- [x] #27 Plain-language results (`plain-language-results`, also
+      `nonsig-wording`, `explain-test-choice-in-output`). Done: "What
+      this means" under every result: one sentence in the table's groups
+      and units, the common misreading, the test run and why, with
+      sources; non-significant results read "the data do not show a
+      difference" with the CI (`report/meaning.ts`,
+      `report/MeaningLine.tsx`).
+- [x] #28 qPCR reference-gene stability (`qpcr-reference-genes`). Done:
+      mean Cq per group with the shift against the calibrator, one-way
+      ANOVA, geNorm M and the SD of ΔCq between references, chips ("ACTB
+      shifts with treatment by 1.4 Cq"), one-click "Use GAPDH only" /
+      "Use both", the reason in the methods
+      (`sheets/assays/qpcr/refs.ts`).
+- [x] #31 PowerPoint and Word (`office-export`). Done: a .pptx written in
+      the browser (`export/pptx.ts`), one slide per graph or layout (SVG
+      picture with PNG fallback for "Convert to Shape", legend in the
+      notes); "Copy for Word" on every results sheet; "Copy" under a
+      graph puts PNG and SVG on the clipboard.
+- [x] #33 Instrument exports (`instrument-import`). Done: recipes for
+      Incucyte time series, LabChart text exports and multi-read plate
+      runs (wavelengths or kinetic reads, wells grouped by the plate
+      map); "Save as recipe" in the Import and recipe dialogs (this
+      browser and `project.recipes`, so files and share links carry it),
+      "Apply a saved recipe" (`share/recipes/`).
+- [x] #34 Post hoc after RM ANOVA (`rm-posthoc`). Done: Tukey, Dunnett vs
+      baseline, Šídák, Bonferroni, Holm, Holm-Šídák, Fisher (every pair /
+      vs control / planned), each pair's own paired differences with
+      Geisser-Greenhouse or the pooled error; family line, brackets,
+      methods, legend; the mixed-effects model keeps subjects with
+      missing values (`sheets/column/rmPosthoc.ts`). The flow module's
+      Dunnett vs the control condition runs on it.
+- [x] #36 Per-image tables, many files (`image-table-import`). Done:
+      several per-image CSVs or a zip (Import dialog, start screen),
+      stacked with a File column, condition / replicate / image read
+      from a name template or split at "_", averaged per image, made into
+      a column or grouped table with the replicate map (SuperPlot, "n = 3
+      images per group from 3 independent experiments").
+- [x] #37 FlowJo statistics to tests (`flow-stats-to-tests`). Done: the
+      flow cytometry module (`sheets/assays/flow/`): one value per donor
+      and condition (FMO / isotype subtraction), a linked column table
+      with donor as the experiment, paired t test or RM one-way ANOVA,
+      SuperPlot; example and template.
+- [x] #38 Design checks before the experiment (`design-stage-checks`).
+      Done: "Plan an experiment…" (Analyze, start screen, empty results):
+      the wizard's design questions before data, the planned table and
+      analysis, an a priori n and a sourced design check list (pooled
+      samples, shared cage, technical repeats, controls, randomisation,
+      blinding), saved as an analysis plan (`guide/designChecks.ts`).
 
-Made discoverable outside the top 15 (Wave 0):
-- [x] Cox regression: the stale "not in OpenDose yet" wizard text fixed;
-      the survival recommendation opens Cox on the same table, and the
-      survival results link to it. [`hazard-ratio-cox`]
-- [x] "How this is validated" on every results sheet, opening the
-      validation page filtered to that analysis' checks with a count
-      sentence (`share/validationIndex.ts`). [`validated-results`]
-- [x] Start screen: .prism / .pzfx files open here (also dropped on the
-      screen); Save menu: "Export tables as .pzfx (opens in GraphPad
-      Prism)" and "Convert Prism files to CSV…" (several files, every
-      data table, one zip). [`prism-files`]
-- [x] Compare fits reachable from curve-fit results ("Compare with
-      another model… / another data set…").
-- [x] Time courses: a mixed model with a covariance choice, AUC or a
-      window summary per subject. [`time-course-models`, 58.1, 23 obs]
-      Done: the "Time course" assay (`sheets/assays/timecourse/`):
-      CS / AR(1) / unstructured / random slope with an AIC comparison,
-      group means and differences at each time, AUC per subject and a
-      window summary as linked column tables; GTT example; offered by
-      the wizard for one repeated factor.
-- [ ] Keep the raw, uncropped blot linked to the densitometry numbers.
-      [`raw-image-provenance`, 40.6, 11 obs] Research done:
+Wave 3:
+- [x] #3 Nested and mixed models without code (`nested-mixed-models`).
+      Done: "Nested two-way ANOVA (mixed model: units random)" on grouped
+      tables and "Mixed model with a grouping column" on
+      multiple-variables tables; variance components and ICC, cell
+      means, comparisons with the family header, the nested scatter with
+      brackets; the wizard routes cells / repeats × two factors there
+      (`sheets/grouped/nestedTwoWay.ts`,
+      `sheets/multivariable/mixedGrouping.ts`).
+- [x] #18 Time courses (`time-course-models`). Done: the "Time course"
+      assay (`sheets/assays/timecourse/`): compound symmetry, AR(1),
+      unstructured or random slope compared by AIC, group means and
+      differences at each time, AUC per subject and a window summary as
+      linked column tables; GTT example; offered by the wizard for one
+      repeated factor.
+
+Wave 4:
+- [ ] #35 Raw, uncropped image linked to the numbers
+      (`raw-image-provenance`). Research done:
       `docs/research/needs/raw-image-provenance-design.md` (recommends
       building it, effort M; open questions for Eren).
 
-Wave 2, instrument and image-table import:
-- [x] Recipes for Incucyte "Export Data" time series (XY, X = elapsed
-      hours, wells or plate-map groups as data sets), LabChart text
-      exports (XY, channels as data sets, time unit, every k-th sample,
-      a window, comments listed) and multi-read plate runs (wavelengths
-      or kinetic reads as rows or X; each grid read by the shared plate
-      rule; the plate assay's plate map groups wells); "Save as recipe"
-      in the Import and recipe dialogs (this browser, and
-      `project.recipes` so files and share links carry it), listed under
-      "Apply a saved recipe". [`instrument-import`] Not yet: Thermo .eds
-      (binary) and SoftMax Pro wavelengths laid side by side.
-- [x] Several per-image CSVs or a zip (Import dialog, start screen):
-      stacked with a File column, condition / replicate / image read
-      with a name template ("{condition}_rep{replicate}_img{image}.csv")
-      or by splitting at "_", averaged per image, and made into a column
-      or grouped table with the replicate map set (SuperPlot graph,
-      "n = 3 images per group from 3 independent experiments").
-      [`image-table-import`]
+### Skipped: breaks browser-only
 
-Wave 2 (assays):
-- [x] Compare a parameter (logEC50, Hill slope, Top …) between two data
-      sets: the EC50 ratio (potency / dose ratio) with its CI, the
-      difference with its t test, the F test and AICc for one shared
-      value; "undefined (IC50 > 1e-5 M)" when a curve's IC50 is not
-      reached; results sentence, legend and methods.
-      [`compare-curves-ec50`] (`sheets/xy/compareParameter.ts`)
-- [x] qPCR reference genes checked before any fold change: mean Cq per
-      group with the shift against the calibrator, one-way ANOVA, geNorm
-      M and the SD of ΔCq between references; chips ("ACTB shifts with
-      treatment by 1.4 Cq"), one-click "Use GAPDH only" / "Use both", the
-      reason in the methods. [`qpcr-reference-genes`]
-      (`sheets/assays/qpcr/refs.ts`)
-- [x] Flow cytometry module: FlowJo statistics → one value per donor and
-      condition (FMO / isotype subtraction) → linked column table with
-      donor as the experiment, paired t test or RM one-way ANOVA on the
-      donor values, SuperPlot; example and template.
-      [`flow-stats-to-tests`] (`sheets/assays/flow/`). Its Dunnett vs
-      the control condition now runs (RM post hoc below).
+None: every item in the plan computes in the browser. Image processing
+itself (band detection, background subtraction) stays in ImageJ / Fiji
+and Image Lab by design (#35), not for want of a server.
 
-Wave 2 (statistics):
-- [x] Comparisons after repeated-measures one-way ANOVA: Tukey, Dunnett
-      vs baseline, Šídák, Bonferroni, Holm, Holm-Šídák, Fisher (every
-      pair / vs control / planned pairs), each pair's own paired
-      differences with the Geisser-Greenhouse correction or the pooled
-      error; table with family line, brackets, methods and legend; the
-      mixed-effects model keeps subjects with missing values.
-      [`rm-posthoc`] (`sheets/column/rmPosthoc.ts`)
+### Deferred
 
-Wave 2 (plain-language results):
-- [x] "What this means" under the results of every analysis: one
-      sentence in the user's groups and units (difference with its CI and
-      %, ANOVA vs post hoc, interaction, r, IC50 and Hill slope, hazard /
-      odds ratio and relative risk, medians, nested df), the common
-      misreading, the test run and why it fits, with sources (Greenland et
-      al. 2016, Amrhein et al. 2019, GraphPad "Interpreting results"
-      pages). Non-significant results read "the data do not show a
-      difference" with the CI, never "no difference" or "a trend".
-      [`plain-language-results`, `nonsig-wording`,
-      `explain-test-choice-in-output`] (`report/meaning.ts`,
-      `report/MeaningLine.tsx`)
+What the packages left undone, with the reason:
 
-Also shipped from Wave 1 of the improvement plan:
-- [x] "Convert table to…" (column ↔ grouped ↔ multiple variables,
-      stacked ↔ side by side) as a new table keeping every value,
-      exclusion and pairing, and "Describe the experiment" picking the
-      table from three design questions. [`table-layout-chooser`]
-      (`project/convertType.ts`, `guide/designToTable.ts`)
-- [x] A Notes strip on every results sheet with every engine warning and
-      every skipped value, unit-tested over the column, grouped, XY and
-      survival payloads. [`fail-loudly`] (`project/dataNotes.ts`)
-- [x] An "Analysed" line: n per group, pairs or subjects, and the rows
-      of incomplete pairs left out; paired t / Wilcoxon / correlation
-      payloads no longer shift pairs after a one-sided blank.
-      [`missing-values-handling`]
-
-Shipped from Wave 2 of the improvement plan:
-- [x] Analysis plan on an info sheet (primary outcome and comparison,
-      test and sidedness, n per group, exclusion rule, α), lockable,
-      later changes logged with a reason; results of the table get a
-      deviation chip (test, sidedness, n, exclusions beyond the rule,
-      extra comparisons) with Record reason / Revert, and the methods
-      text and ARRIVE item 19 state the plan and its deviations.
-      [`preregistration-plan`] (`project/plan.ts`)
-- [x] "Plan an experiment…" (Analyze, start screen, empty results): the
-      wizard's design questions before data, the planned table and
-      analysis, an a priori n from the power engine and a sourced design
-      check list (pooled samples = n = 1, shared cage, technical repeats,
-      control, randomisation, blinding), saved as an analysis plan.
-      [`design-stage-checks`] (`guide/designChecks.ts`). The power tool
-      itself opens unfilled: `power/` takes only a pilot result today.
-- [x] "Are you asking whether the treatment effect differs between
-      groups?" in Help me choose: two-way ANOVA with the Interaction
-      block first (interaction P, difference of differences with its CI
-      from the engine, simple effects, interaction plot, the Gelman &
-      Stern / Nieuwenhuis warning); a chip on one-t-test-per-row and on
-      two t tests of disjoint columns. [`interaction-question`]
-      (`guide/interaction.ts`, `sheets/grouped/interaction.tsx`)
+- **Discoverability (Wave 0)**
+  - "Plan next experiment" is on t test and one-way ANOVA results only:
+    rank tests, Welch ANOVA without group SDs and the ratio t open the
+    plain power tool (no pilot SD to fill in).
+  - Cox, Mann-Whitney, Wilcoxon, Kruskal-Wallis, simple linear
+    regression and quantal have no pinned checks in `validation.json`;
+    "How this is validated" shows a note (needs engine-side tests).
+  - Dropping several Prism files on the start screen opens only the
+    first.
+  - The wizard's "Why this test" note lasts for the session only.
+- **Guidance**
+  - "What does each value represent?" appears above the results only,
+    not at paste time.
+  - XY tables get the replicate map, but curve fits still use every
+    value (no fit on experiment means).
+  - The paired t's "day-to-day removed" note shows the pairing r: the
+    engine reports no SS split for the paired t.
+- **Data handling**
+  - Plain grid pastes do not guess decimal commas (the report names
+    those cells; Import… reads them).
+  - Multiple-variables models, contingency, manipulations and assays get
+    notes but no Analysed line.
+- **Integrity**
+  - Reproduction records last for the session (History), not saved in
+    the project.
+  - Autosave restore and share links are not checked for reproduction.
+  - Exclusion reasons apply to Y cells only: excluded X rows have no
+    free-text reason.
+  - Convert table to… drops exclusion reasons when it rebuilds data sets
+    (the exclusions are kept).
+- **Survival**
+  - Pairwise log-rank is not drawn as graph brackets: the Kaplan-Meier
+    graph has no bracket layer.
+  - The difference in survival at a time has no CI: the engine returns
+    none.
+  - Trend scores are fixed at 1..k.
+  - The dates mode of "Survival data from…" is covered by unit tests
+    only.
+- **Comparisons and residuals**
+  - RM ANOVA with more than two treatments has no residual plots: needs
+    a subject + treatment residual model in the engine.
+  - Planned families are not available for mean / SD / N data
+    (`anova_summary` has no family option).
+- **Assays**
+  - Compare a parameter refuses mean / SD / N tables.
+- **Import**
+  - No Thermo .eds reader (a binary format).
+  - SoftMax Pro wavelengths laid side by side in one row band are not
+    split.
+  - Incucyte files without an "Elapsed" column are not recognised.
+- **Export and replay**
+  - Apply to new data does not re-run the plate-reader import or an
+    import recipe: tables do not record how they were imported.
+  - Older provenance files without `replay_plan` get default graph
+    formats and no page layouts.
+  - The .pptx was checked by unzipping, XML parsing and python-pptx, not
+    in PowerPoint itself; "Convert to Shape" on the layout slides
+    (nested SVG) needs a check in PowerPoint.
+- **Planning**
+  - The power tool opens unfilled from the planner: the planner computes
+    its own a priori n; a prefill needs a form field on `PowerRequest`.
+  - OpenDose has no one-tailed t test option, so the sidedness check
+    covers one-sided correlations and declared plans only.
+- **Log scale and RM post hoc**
+  - The log-scale option is not offered for mean / SD / N data: no
+    engine summary handler.
+  - Column graphs on a log axis still plot the arithmetic mean ± SD (the
+    legend says so).
+  - The mixed-model RM path (missing values) takes a method and a
+    control only: no Holm, no planned families.
+  - RM one-way ANOVA now defaults to Tukey comparisons like the ordinary
+    one-way ANOVA; review that default (the overall F and P are
+    unchanged).
+- **Nested and time-course models (Wave 3)**
+  - The wizard route to the nested two-way model is covered by unit
+    tests only.
+  - Comparisons of the data-set factor's marginal means are not drawn as
+    brackets on the nested scatter.
+  - The covariance comparison advises the simpler structure when the AIC
+    difference is under 2 (on the 12-mouse example unstructured has the
+    lower AIC); review.
+  - Raw-image provenance (#35) stays a design note.
+- **Engine (all waves)**
+  - No R was available: RMST, Dunn's (FSA dunnTest values recalled and
+    reproduced), the nested two-way model and AR(1) with a random
+    intercept are pinned to statsmodels, pingouin and hand derivations
+    rather than pasted R output.
+  - The trend test cites Collett ch. 2 without a section number.
+  - No Kenward-Roger or Satterthwaite df: between-within df, stated in
+    the warnings.
+  - AR(1) lags are time-point positions (a warning on unequal spacing).
+  - Per-pair Tukey and Dunnett after RM ANOVA are approximations (noted
+    in the result).
+  - Interaction contrasts are not computed for repeated-measures two-way
+    designs (the wizard says so).
+- **Large data and plain language**
+  - The What-this-means line sits above the results card, not under each
+    key table.
+  - The t test's percentage difference has no CI (the CI is given in the
+    data's units).
+  - 66 `Math.min` / `Math.max` spread calls elsewhere could overflow
+    above ~100,000 values (only the residuals panel's was fixed): audit
+    and replace with loops where a column of values is spread.
+  - Scroll frame times were measured on the dev build.
 
 ## Next up
 
@@ -1072,8 +1146,10 @@ Shipped from Wave 2 of the improvement plan:
 2. Further screenshot validations against the user's Prism install
    (survival, ANOVA sheets, competitive binding, nested and mixed
    models, the new equation library, multiple t tests with FDR)
-3. Mixed-effects models for RM designs with missing values (scheduled in
-   the user-guide review above, nested-models work package)
+3. ~~Mixed-effects models for RM designs with missing values~~ DONE:
+   RM one-way and two-way ANOVA fit the mixed-effects model when a
+   subject misses a value; nested two-way and time-course mixed models
+   landed in 0.4.0
 
 ## Validation protocol
 

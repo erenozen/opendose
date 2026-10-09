@@ -66,7 +66,7 @@ live, until the engine has started); after engine changes that move the
 example's numbers, regenerate them against a dev server with
 `node scripts/gen-sample-results.mjs http://localhost:5173/`.
 
-## Features (v0.3.0)
+## Features (v0.4.0)
 
 ### Data tables and projects
 
@@ -87,12 +87,13 @@ example's numbers, regenerate them against a dev server with
   excluded values (Ctrl/Cmd+E: struck through, skipped by analyses and
   graphs, with an optional reason asked for on the spot and kept with
   the data; results list n entered / excluded / analysed per group with
-  the reasons, the methods and legend say "n = 8 enrolled, 7 analysed
-  (1 excluded: tumour ulceration)", and one click shows the results with
-  the excluded values included beside the stored ones), sort, insert series, insert / delete / move rows and columns,
-  decimal places, block select / copy / cut / clear / exclude, and a Data
-  Inspector card for the selection. Dates and elapsed times as X (parsed,
-  analysed in a chosen unit, graphed as dates or h:mm:ss).
+  the reasons, the methods and legend say "n = 8 enrolled, 7 analysed (1
+  excluded: tumour ulceration)", and one click shows the results with
+  the excluded values included beside the stored ones), sort, insert
+  series, insert / delete / move rows and columns, decimal places, block
+  select / copy / cut / clear / exclude, and a Data Inspector card for
+  the selection. Dates and elapsed times as X (parsed, analysed in a
+  chosen unit, graphed as dates or h:mm:ss).
 - Large data: tested with 100,000 pasted rows (in the grid in about ten
   seconds), 200,000 points in one graph, 50 data sets and a t test on
   2 × 100,000 values. Tables over 150 rows scroll inside their card and
@@ -156,12 +157,13 @@ example's numbers, regenerate them against a dev server with
   version; a file records the version that saved it, and opening one
   saved by another version recomputes every result and says "All 48
   results reproduced" or lists each changed number with both values and
-  the engine change log, also kept in History), autosave in the browser (the last session reopens on the
-  next visit), preferences (default table type, error bars, CI method,
-  colour scheme, theme, results precision up to 10 significant digits,
-  P-value style with a selectable floor for exact P (0.0001, 1e-6, 1e-10
-  or none), effect sizes). Every select in the analysis controls has an
-  accessible name, checked with axe-core (`scripts/a11y-audit.mjs`).
+  the engine change log, also kept in History), autosave in the browser
+  (the last session reopens on the next visit), preferences (default
+  table type, error bars, CI method, colour scheme, theme, results
+  precision up to 10 significant digits, P-value style with a selectable
+  floor for exact P (0.0001, 1e-6, 1e-10 or none), effect sizes). Every
+  select in the analysis controls has an accessible name, checked with
+  axe-core (`scripts/a11y-audit.mjs`).
 
 ### Curve fitting
 
@@ -324,22 +326,23 @@ sheets that follow the data.
 - Flow cytometry (wizard): a FlowJo statistics table to one value per
   donor and condition (FMO / isotype subtraction), a paired t test or
   repeated-measures ANOVA with the donor as the block, and a SuperPlot.
+- Time course: any measurement followed over time in the same subjects
+  (a glucose tolerance test, weights): a mixed model with compound
+  symmetry, AR(1), unstructured or random-slope covariance compared by
+  AIC, group means and differences at each time, AUC and a time-window
+  summary per subject as linked column tables.
 - Western blot densitometry (wizard): ImageJ / Image Lab exports,
   background and loading-control normalisation, fold change within blot,
   ratio paired t test with blot as the pair.
 - From an example or an empty layout: growth curves (blank and log
   preprocessing, logistic / Gompertz / Zwietering lag models, doubling
-  time with CI); tumour growth and other per-subject time courses (mixed
-  model on log volume, AUC per animal, time to endpoint as a survival
-  table); time courses of any measurement (a glucose tolerance test,
-  weights: a mixed model with compound symmetry, AR(1), unstructured or
-  random-slope covariance compared by AIC, group means and differences
-  at each time, AUC and a time-window summary per subject as linked
-  column tables); area under the curve; drug-combination synergy (HSA, Bliss,
-  Loewe, ZIP, Chou–Talalay; the expected and ZIP-fitted matrices as
-  selectable landscapes; combination indices withheld, with the reason,
-  when a median-effect fit is invalid); volcano plots from a fold-change / P table;
-  clustered heat maps with dendrograms, tree cuts and k-means.
+  time with CI); tumour growth (mixed model on log volume, AUC per
+  animal, time to endpoint as a survival table); area under the curve;
+  drug-combination synergy (HSA, Bliss, Loewe, ZIP, Chou–Talalay; the
+  expected and ZIP-fitted matrices as selectable landscapes; combination
+  indices withheld, with the reason, when a median-effect fit is
+  invalid); volcano plots from a fold-change / P table; clustered heat
+  maps with dendrograms, tree cuts and k-means.
 
 ### Graphs and figures
 
