@@ -15,4 +15,6 @@ numbers-differ-between-tools · power-sample-size · randomisation · synergy ·
 growth-curves · kinetics-binding · enzyme-kinetics · pca-clustering · volcano-heatmap ·
 logistic-regression · roc · bland-altman · contingency · correlation · time-series ·
 image-analysis-exports · units-and-transforms · missing-values · language-localisation ·
-accessibility · mobile · offline · privacy
+accessibility · mobile · offline · privacy ·
+repeated-measures · paired-design · assay-validation · limit-of-detection ·
+analysis-templates · vendor-support · custom-equations · area-under-curve
