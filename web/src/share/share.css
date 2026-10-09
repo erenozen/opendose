@@ -137,3 +137,20 @@
   background: var(--inset); color: var(--ink-2); font-variant-numeric: tabular-nums;
 }
 .recipe-counts b { color: var(--ink); font-weight: 650; }
+/* instrument recipes, many files, saved recipes */
+.recipe-option small.recipe-layouts { margin-top: 3px; color: var(--ink-2); }
+.recipe-saved-row { display: flex; gap: 6px; align-items: flex-start; }
+.recipe-saved-row .recipe-option { flex: 1; min-width: 0; }
+.recipe-saved-row .linkish { font-size: 12px; margin-top: 8px; }
+.recipe-save {
+  border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px;
+  background: var(--inset); display: flex; flex-direction: column; gap: 6px;
+}
+.recipe-save-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.import-recipes { display: flex; flex-direction: column; gap: 6px; }
+.import-recipes .linkish { align-self: flex-end; font-size: 12.5px; }
+.recipe-template { flex: 1 1 320px; }
+.recipe-template input { font-family: var(--mono, ui-monospace, monospace); }
+.recipe-platemap { gap: 8px; }
+.recipe-platemap .plate-editor { max-width: 100%; overflow-x: auto; }
+.recipe-replicates { display: flex; flex-direction: column; gap: 4px; }

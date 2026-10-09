@@ -3,8 +3,11 @@ import type { CSSProperties, ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useProject } from "../app/context";
 import { useBatchExport } from "../export/BatchExport";
-import { copyPng, saveBlob } from "../export/download";
-import { graphBlob, graphPngBlob, graphSmallestPt } from "../export/graph";
+import { canCopySvg, copyGraphImage } from "../export/clipboard";
+import { saveBlob } from "../export/download";
+import { graphBlob, graphPngBlob, graphSmallestPt, graphSvg } from "../export/graph";
+import { PPTX_EDIT_HINT } from "../export/officeText";
+import { openPptxExport } from "../share/events";
 import {
   applyPreset, belowFontFloor, DPI_CHOICES, EXTENSIONS, FONT_FLOOR_PT, FORMATS, fileStem,
   fromUnit, isVector, JOURNAL_PRESETS, physicalLabel, rasterSize, supportsTransparency,
@@ -21,7 +24,7 @@ import type { ExportFormat, ExportPrefs } from "../project/types";
  * with the project.
  */
 export default function ExportPanel({
-  filename = "opendose-graph", leading, scheme,
+  filename = "opendose-graph", leading, scheme, graphId,
 }: {
   /** File name without extension (normally from the sheet name). */
   filename?: string;
@@ -29,6 +32,8 @@ export default function ExportPanel({
   leading?: ReactNode;
   /** The graph's colour scheme, for mapping dark-theme colours to print. */
   scheme?: SchemeId;
+  /** The graph sheet shown (for "Export to PowerPoint" of this graph). */
+  graphId?: string;
 }) {
   const { project } = useProject();
   const [settings, setSettings] = useExportSettings();
@@ -158,8 +163,13 @@ export default function ExportPanel({
       setErr("Too large to copy. Lower the DPI or the size.");
       return;
     }
-    const outcome = await copyPng(() => graphPngBlob(gd, png, scheme));
-    if (outcome === "copied") setNote("Copied as PNG.");
+    const svg = canCopySvg();
+    const outcome = await copyGraphImage(() => graphPngBlob(gd, png, scheme),
+      () => graphSvg(gd, { ...eff, format: "svg" }, scheme));
+    if (outcome === "copied") {
+      setNote(svg ? "Copied as PNG and SVG: paste into Word or PowerPoint."
+        : "Copied as PNG: paste into Word or PowerPoint.");
+    }
     else {
       // No image clipboard here (or permission refused): download instead.
       try {
@@ -217,8 +227,15 @@ export default function ExportPanel({
         </span>
       </button>
       <button type="button" onClick={copy} disabled={busy || batch.busy}
-        aria-label="Copy image to clipboard" title="Copy as PNG to the clipboard">
+        aria-label="Copy graph for Word or PowerPoint"
+        title="Copy the graph as a picture (PNG, and SVG where the browser allows) to paste into Word or PowerPoint">
         Copy
+      </button>
+      <button type="button" disabled={busy || batch.busy}
+        onClick={() => openPptxExport(graphId ?? null,
+          graphId ? { kind: "graph", graphId } : { kind: "all" })}
+        aria-label="Export to PowerPoint (.pptx)…" title={`One slide per graph. ${PPTX_EDIT_HINT}`}>
+        PowerPoint
       </button>
       <span className="export-opts" ref={optsRef}>
         <button type="button" ref={optsBtn} className="settings-btn" aria-haspopup="dialog"
@@ -295,6 +312,13 @@ export default function ExportPanel({
                   : `Export all ${graphCount} graph${graphCount === 1 ? "" : "s"} as `
                     + (eff.format === "pdf" && onePdf ? "one PDF" : `${s.format.toUpperCase()} (zip)`)}
               </button>
+            </div>
+            <div className="export-all">
+              <button type="button" disabled={busy || batch.busy || !graphCount}
+                onClick={() => { setOpen(false); openPptxExport(graphId ?? null, { kind: "all" }); }}>
+                Export graphs to PowerPoint (.pptx)…
+              </button>
+              <p className="hint-block">{PPTX_EDIT_HINT}</p>
             </div>
             <details className="export-help">
               <summary>About the formats</summary>

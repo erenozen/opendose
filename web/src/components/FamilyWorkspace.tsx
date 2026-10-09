@@ -383,7 +383,7 @@ function GraphCard({ graph, data, result, options }: {
             onFormatChange={graph.frozen || shared ? undefined : dragFormat} />
         </Suspense>
       ) : <div className="plot empty-hint">No plot available for this graph type.</div>}
-      <ExportPanel filename={fileStem(graph.name, kind?.exportName ?? "graph")}
+      <ExportPanel filename={fileStem(graph.name, kind?.exportName ?? "graph")} graphId={graph.id}
         scheme={graph.settings.scheme} leading={graph.frozen || shared ? undefined : (
         <GraphSettings
           scheme={graph.settings.scheme}
