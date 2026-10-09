@@ -2,7 +2,9 @@
 // LPS + inhibitor) of three biological samples, two targets (IL6, TNF)
 // and two reference genes (GAPDH, ACTB), each in triplicate wells of a
 // 384-well plate; one ACTB well of CON-1 is 0.9 cycles off to show the
-// replicate-spread flag. The e2e test checks the IL6 fold change of LPS
+// replicate-spread flag, and ACTB reads 1.5 cycles higher in LPS +
+// inhibitor (a reference that shifts with treatment: the reference check
+// flags it, ANOVA P = 0.0044). The e2e test checks the IL6 fold change of LPS
 // vs Control (11.71) computed natively by the engine.
 import type { DataTableModel } from "../../../project/types.ts";
 import { longTable } from "../kit/columns.ts";
@@ -83,9 +85,9 @@ const RECORDS: [string, string, string, string, string][] = [
   ["INH-1", "LPS + inhibitor", "GAPDH", "18.59", "D1"],
   ["INH-1", "LPS + inhibitor", "GAPDH", "18.53", "D2"],
   ["INH-1", "LPS + inhibitor", "GAPDH", "18.53", "D3"],
-  ["INH-1", "LPS + inhibitor", "ACTB", "16.88", "D4"],
-  ["INH-1", "LPS + inhibitor", "ACTB", "16.87", "D5"],
-  ["INH-1", "LPS + inhibitor", "ACTB", "16.74", "D6"],
+  ["INH-1", "LPS + inhibitor", "ACTB", "18.38", "D4"],
+  ["INH-1", "LPS + inhibitor", "ACTB", "18.37", "D5"],
+  ["INH-1", "LPS + inhibitor", "ACTB", "18.24", "D6"],
   ["INH-1", "LPS + inhibitor", "IL6", "26.21", "D7"],
   ["INH-1", "LPS + inhibitor", "IL6", "26.22", "D8"],
   ["INH-1", "LPS + inhibitor", "IL6", "26.13", "D9"],
@@ -95,9 +97,9 @@ const RECORDS: [string, string, string, string, string][] = [
   ["INH-2", "LPS + inhibitor", "GAPDH", "17.91", "D13"],
   ["INH-2", "LPS + inhibitor", "GAPDH", "18.03", "D14"],
   ["INH-2", "LPS + inhibitor", "GAPDH", "17.83", "D15"],
-  ["INH-2", "LPS + inhibitor", "ACTB", "17.07", "D16"],
-  ["INH-2", "LPS + inhibitor", "ACTB", "16.86", "D17"],
-  ["INH-2", "LPS + inhibitor", "ACTB", "17.06", "D18"],
+  ["INH-2", "LPS + inhibitor", "ACTB", "18.57", "D16"],
+  ["INH-2", "LPS + inhibitor", "ACTB", "18.36", "D17"],
+  ["INH-2", "LPS + inhibitor", "ACTB", "18.56", "D18"],
   ["INH-2", "LPS + inhibitor", "IL6", "26.26", "D19"],
   ["INH-2", "LPS + inhibitor", "IL6", "26.39", "D20"],
   ["INH-2", "LPS + inhibitor", "IL6", "26.33", "D21"],
@@ -107,9 +109,9 @@ const RECORDS: [string, string, string, string, string][] = [
   ["INH-3", "LPS + inhibitor", "GAPDH", "17.68", "E1"],
   ["INH-3", "LPS + inhibitor", "GAPDH", "17.72", "E2"],
   ["INH-3", "LPS + inhibitor", "GAPDH", "17.66", "E3"],
-  ["INH-3", "LPS + inhibitor", "ACTB", "16.91", "E4"],
-  ["INH-3", "LPS + inhibitor", "ACTB", "16.85", "E5"],
-  ["INH-3", "LPS + inhibitor", "ACTB", "17.06", "E6"],
+  ["INH-3", "LPS + inhibitor", "ACTB", "18.41", "E4"],
+  ["INH-3", "LPS + inhibitor", "ACTB", "18.35", "E5"],
+  ["INH-3", "LPS + inhibitor", "ACTB", "18.56", "E6"],
   ["INH-3", "LPS + inhibitor", "IL6", "26.08", "E7"],
   ["INH-3", "LPS + inhibitor", "IL6", "26.17", "E8"],
   ["INH-3", "LPS + inhibitor", "IL6", "26.09", "E9"],

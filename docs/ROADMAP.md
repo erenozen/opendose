@@ -910,6 +910,26 @@ Made discoverable outside the top 15 (Wave 0):
 - [x] Compare fits reachable from curve-fit results ("Compare with
       another model… / another data set…").
 
+Wave 2 (assays):
+- [x] Compare a parameter (logEC50, Hill slope, Top …) between two data
+      sets: the EC50 ratio (potency / dose ratio) with its CI, the
+      difference with its t test, the F test and AICc for one shared
+      value; "undefined (IC50 > 1e-5 M)" when a curve's IC50 is not
+      reached; results sentence, legend and methods.
+      [`compare-curves-ec50`] (`sheets/xy/compareParameter.ts`)
+- [x] qPCR reference genes checked before any fold change: mean Cq per
+      group with the shift against the calibrator, one-way ANOVA, geNorm
+      M and the SD of ΔCq between references; chips ("ACTB shifts with
+      treatment by 1.4 Cq"), one-click "Use GAPDH only" / "Use both", the
+      reason in the methods. [`qpcr-reference-genes`]
+      (`sheets/assays/qpcr/refs.ts`)
+- [x] Flow cytometry module: FlowJo statistics → one value per donor and
+      condition (FMO / isotype subtraction) → linked column table with
+      donor as the experiment, paired t test or RM one-way ANOVA on the
+      donor values, SuperPlot; example and template.
+      [`flow-stats-to-tests`] (`sheets/assays/flow/`). Open: the RM
+      ANOVA post hoc is not passed by the column analysis on the web yet.
+
 Also shipped from Wave 1 of the improvement plan:
 - [x] "Convert table to…" (column ↔ grouped ↔ multiple variables,
       stacked ↔ side by side) as a new table keeping every value,

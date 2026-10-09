@@ -2954,6 +2954,66 @@ const axeOn = async (pg, sel) => {
   await ctx3.close();
 }
 
+// --- Compare a parameter (compare-curves-ec50): the LogIC50 of Control
+// and Treated compared in one step. Engine (compare_parameter, 4PL):
+// LogIC50 -6.983 vs -6.458, IC50 ratio 3.345 (95% CI 2.981 to 3.754),
+// F(1, 10) = 528.9, P < 0.0001 for one shared LogIC50.
+{
+  await page.keyboard.press("Escape");
+  const pX = ["1e-9", "3.162e-9", "1e-8", "3.162e-8", "1e-7", "3.162e-7", "1e-6", "3.162e-6", "1e-5"];
+  const pA = [99.6, 97.6, 92.1, 80.4, 50.3, 23.9, 8.9, 3.2, 1.2];
+  const pB = [100.8, 99.1, 97.3, 91.0, 79.2, 52.4, 24.8, 9.6, 2.9];
+  await xyNew("Potency shift");
+  await xyPaste(["Dose,Control,Treated", ...pX.map((x, i) => `${x},${pA[i]},${pB[i]}`)].join("\n"));
+  await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 60000 });
+  const potencyLink = page.getByRole("button", { name: "Compare a parameter (EC50 ratio)…" });
+  expect("fit results link to Compare a parameter", await appears(potencyLink));
+  await potencyLink.click();
+  await page.locator(".controls").getByRole("combobox", { name: /^Model/ })
+    .selectOption("log_inhibitor_vs_response_4pl");
+  expect("Compare a parameter: the mode is chosen and LogIC50 is the default parameter",
+    await page.getByLabel(/^Compare a parameter/).isChecked()
+    && await page.locator(".controls").getByRole("combobox", { name: /^Parameter/ }).inputValue() === "LogIC50");
+  const ok = await page.waitForFunction(() => /F\(1, 10\) = 528\.9/
+    .test(document.querySelector(".compare-parameter")?.textContent ?? ""), null, { timeout: 60000 })
+    .then(() => true, () => false);
+  const card = (await page.locator(".compare-parameter").innerText().catch(() => "")).replace(/\s+/g, " ");
+  const head = card.match(/IC50 shifted ([\d.]+)-fold \(95% CI ([\d.]+)–([\d.]+)\), P < 0\.0001/);
+  expect("Compare a parameter: IC50 shifted 3.35-fold (95% CI 2.98–3.75), P < 0.0001",
+    ok && !!head && head[1] === "3.35" && head[2] === "2.98" && head[3] === "3.75", card.slice(0, 200));
+  const sep = await page.locator(".compare-parameter .results-table tbody tr").allInnerTexts();
+  const logOf = (name) => Number((sep.find((r) => r.startsWith(name)) ?? "").split("\t")[1]);
+  const shown = 10 ** (logOf("Treated") - logOf("Control"));
+  const tableRatio = Number(card.match(/relative potency ([\d.]+)-fold/)?.[1]);
+  expect("the ratio (3.345) equals 10^(difference of the shown LogIC50s) to 2 significant digits",
+    tableRatio === 3.345 && shown.toPrecision(2) === tableRatio.toPrecision(2),
+    `${logOf("Control")} / ${logOf("Treated")} -> ${shown} vs ${tableRatio}`);
+  expect("F test for one shared LogIC50 and AICc are reported",
+    /F test for one shared LogIC50 F\(1, 10\) = 528\.9, P < 0\.0001/.test(card)
+    && card.includes("AICc favours separate LogIC50 values"));
+  const sentence = await page.locator(".report-sentence p").innerText().catch(() => "");
+  expect("results sentence: the IC50 ratio with its CI and the F test",
+    sentence.includes("The IC50 of Treated was 3.35-fold that of Control (IC50 ratio, 95% CI 2.98 to 3.75")
+    && sentence.includes("F(1, 10) = 528.9, P < 0.0001"), sentence);
+  expect("legend: what was compared and how",
+    (await page.locator(".report-legend p").innerText().catch(() => ""))
+      .includes("LogIC50 was compared between them by the extra-sum-of-squares F test"));
+  await page.addScriptTag({ path: createRequire(import.meta.url).resolve("axe-core/axe.min.js") })
+    .catch(() => {});
+  const axeCp = await page.evaluate(async (sels) => {
+    const out = [];
+    for (const sel of sels) {
+      const el = document.querySelector(sel);
+      if (!el) { out.push(`${sel}: missing`); continue; }
+      // eslint-disable-next-line no-undef
+      const r = await axe.run(el, { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa"] } });
+      out.push(...r.violations.flatMap((x) => x.nodes.map((n) => `${sel} ${x.id}: ${n.html.slice(0, 70)}`)));
+    }
+    return out;
+  }, [".compare-parameter", ".controls"]);
+  expect("axe-core: Compare a parameter passes", axeCp.length === 0, axeCp.join(" | "));
+}
+
 // --- paste report, Notes strip and Analysed line, Convert table to…,
 // Describe the experiment (needs: excel-paste-fidelity, fail-loudly,
 // missing-values-handling, table-layout-chooser). A pasted block with
