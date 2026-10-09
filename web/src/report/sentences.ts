@@ -447,7 +447,7 @@ function survivalSentence(r: R, f: Fmt): string {
   }
   const curves = r.curves && typeof r.curves === "object" ? r.curves as R : {};
   const meds = Object.entries(curves).map(([name, c]) =>
-    `${num((c as R).median_survival) ? minus(formatSig((c as R).median_survival)) : "undefined"} (${name}, ${(c as R).n_events} events of ${(c as R).n})`);
+    `${num((c as R).median_survival) ? minus(formatSig((c as R).median_survival)) : "not reached"} (${name}, ${(c as R).n_events} events of ${(c as R).n})`);
   if (meds.length) parts.push(`median survival ${meds.join(" and ")}`);
   return parts.length ? `${cap(parts.join("; "))} (two-sided).` : "";
 }

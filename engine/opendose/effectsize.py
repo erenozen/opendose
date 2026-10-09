@@ -745,6 +745,37 @@ def point_biserial(values_a, values_b, *, ci_level: float = 0.95) -> dict:
 
 # ----------------------------------------------------------- nonparametric
 
+# Large-data threshold (n_a x n_b): up to this many pairs the dominance
+# matrix sign(a_i - b_j) is built (the original method); above it every
+# quantity Cliff's delta and its variance need comes from the sorted
+# samples (_dominance_counts), O((n_a + n_b) log n) instead of n_a n_b.
+CLIFF_DIRECT_MAX_PAIRS = 250_000
+
+
+def _dominance_counts(a, b) -> dict:
+    """Row and column means of the dominance matrix d_ij = sign(a_i - b_j)
+    and its counts, by binary search in the sorted samples. Exact: the
+    sign of a computed difference a - b equals the sign of the real
+    difference for finite doubles (gradual underflow), so d_ij > 0 iff
+    a_i > b_j. This is the Mann-Whitney counting identity: n_gt + n_tie/2
+    = U_a, delta = 2 U_a / (n_a n_b) - 1 (Cliff 1993, Psychol Bull
+    114:494; Mann & Whitney 1947)."""
+    sa, sb = np.sort(a), np.sort(b)
+    n1, n2 = a.size, b.size
+    b_lt = np.searchsorted(sb, a, side="left")     # # b < a_i
+    b_le = np.searchsorted(sb, a, side="right")    # # b <= a_i
+    a_lt = np.searchsorted(sa, b, side="left")     # # a < b_j
+    a_le = np.searchsorted(sa, b, side="right")    # # a <= b_j
+    gt_i = b_lt                                    # # j with a_i > b_j
+    lt_i = n2 - b_le                               # # j with a_i < b_j
+    n_gt, n_lt = int(gt_i.sum()), int(lt_i.sum())
+    n = n1 * n2
+    return {"delta": (n_gt - n_lt) / n, "gt": n_gt / n, "lt": n_lt / n,
+            "n_gt": n_gt, "n_lt": n_lt, "n_tie": n - n_gt - n_lt,
+            "di": (gt_i - lt_i) / n2,
+            "dj": ((n1 - a_le) - a_lt) / n1}
+
+
 def cliffs_delta(values_a, values_b, *, ci_level: float = 0.95) -> dict:
     """Cliff's delta = P(A > B) - P(A < B), the probability of
     superiority A = P(A > B) + P(A = B)/2, and their intervals (Cliff
@@ -754,16 +785,30 @@ def cliffs_delta(values_a, values_b, *, ci_level: float = 0.95) -> dict:
     n1, n2 = a.size, b.size
     if n1 < 1 or n2 < 1:
         raise ValueError("each group needs at least 1 value")
-    dom = np.sign(np.subtract.outer(a, b))
-    delta = float(dom.mean())
-    gt, lt = float((dom > 0).mean()), float((dom < 0).mean())
+    if n1 * n2 <= CLIFF_DIRECT_MAX_PAIRS:
+        dom = np.sign(np.subtract.outer(a, b))
+        delta = float(dom.mean())
+        gt, lt = float((dom > 0).mean()), float((dom < 0).mean())
+    else:
+        dom = None
+        dm = _dominance_counts(a, b)
+        delta, gt, lt = dm["delta"], dm["gt"], dm["lt"]
     ci = None
     var = None
     if n1 >= 2 and n2 >= 2:
-        di, dj = dom.mean(1), dom.mean(0)
+        if dom is not None:
+            di, dj = dom.mean(1), dom.mean(0)
+            ss_dom = float(((dom - delta) ** 2).sum())
+        else:
+            di, dj = dm["di"], dm["dj"]
+            # sum over all pairs of (d_ij - delta)^2 from the counts of
+            # d_ij = +1, -1, 0 (no cancellation: every term is >= 0)
+            ss_dom = (dm["n_gt"] * (1 - delta) ** 2
+                      + dm["n_lt"] * (1 + delta) ** 2
+                      + dm["n_tie"] * delta ** 2)
         var = ((n2 ** 2 * float(((di - delta) ** 2).sum())
                 + n1 ** 2 * float(((dj - delta) ** 2).sum())
-                - float(((dom - delta) ** 2).sum()))
+                - ss_dom)
                / (n1 * n2 * (n1 - 1) * (n2 - 1)))
         var = max(var, (1 - delta ** 2) / (n1 * n2 - 1))
         s = math.sqrt(var)

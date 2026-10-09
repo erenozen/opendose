@@ -12,6 +12,7 @@ times those targets so a slow CI machine does not flake.
 
 import csv
 import time
+from functools import lru_cache
 from pathlib import Path
 
 import numpy as np
@@ -113,3 +114,174 @@ def test_studentized_range_far_tail_keeps_relative_accuracy():
     assert 0 < p < 1e-12
     assert studentized.sf(15.0, 2, 180) == pytest.approx(
         2 * stats.t.sf(15 / np.sqrt(2), 180), rel=1e-10)
+
+
+# --- large data: tens of thousands of rows (need "large-data") -------------
+
+# Every request goes through api.analyze on fixed-seed random data. The
+# measured native times in the docstrings are CPython 3.14 / numpy 2 on
+# a WSL2 laptop, after the O(n^2) paths were replaced (opendose.orderstats,
+# effectsize.CLIFF_DIRECT_MAX_PAIRS, correlation.KENDALL_DIRECT_MAX_N,
+# columnstats.MEDIAN_CI_LOOP_MAX_N; test_large_data_paths.py checks they
+# return what the direct methods do). Before, Mann-Whitney took 16 s at
+# 2 x 8,000 values and could not run at 2 x 100,000 (10^10 differences).
+# The bounds are about five times the measured times, never under 5 s.
+
+
+def _col(name, values):
+    return {"name": name, "ys": [[float(v)] for v in values]}
+
+
+@lru_cache(maxsize=None)
+def _two_large_columns():
+    rng = np.random.default_rng(20261009)
+    return {"x": [], "datasets": [_col("A", rng.normal(10.0, 2.0, 100_000)),
+                                  _col("B", rng.normal(10.05, 2.0, 100_000))]}
+
+
+@lru_cache(maxsize=None)
+def _fifty_columns():
+    rng = np.random.default_rng(20261010)
+    return {"x": [], "datasets": [_col(f"C{i}", rng.lognormal(1.0, 0.4,
+                                                              10_000))
+                                  for i in range(50)]}
+
+
+@lru_cache(maxsize=None)
+def _five_groups():
+    rng = np.random.default_rng(20261011)
+    return {"x": [], "datasets": [_col(f"G{i}", rng.normal(5 + 0.02 * i, 1,
+                                                           20_000))
+                                  for i in range(5)]}
+
+
+@lru_cache(maxsize=None)
+def _dose_response_points(distinct):
+    rng = np.random.default_rng(20261012)
+    x = (np.linspace(-9, -4, 5_000) if distinct
+         else np.repeat(np.linspace(-9, -4, 50), 100))
+    y = 10 + 90 / (1 + 10 ** (x + 6.5)) + rng.normal(0, 5, x.size)
+    return {"x": [float(v) for v in x],
+            "datasets": [{"name": "Response", "ys": [[float(v)] for v in y]}]}
+
+
+@lru_cache(maxsize=None)
+def _twenty_variables():
+    rng = np.random.default_rng(20261013)
+    base = rng.normal(size=20_000)
+    return {"variables": [
+        {"name": f"V{i}", "kind": "continuous",
+         "values": [float(v) for v in 0.3 * base + rng.normal(size=20_000)]}
+        for i in range(20)]}
+
+
+def _timed(request):
+    t0 = time.perf_counter()
+    res = api.analyze(request)
+    elapsed = time.perf_counter() - t0
+    assert "error" not in res, res.get("error")
+    return res, elapsed
+
+
+@pytest.mark.parametrize("options,bound", [
+    ({"kind": "unpaired"}, 5.0),
+    ({"kind": "unpaired", "welch": True}, 5.0),
+    ({"kind": "paired"}, 5.0),
+    ({"kind": "mann_whitney"}, 5.0),
+    ({"kind": "wilcoxon"}, 6.0),
+])
+def test_ttest_on_two_columns_of_100000_values(options, bound):
+    """2 x 100,000 values. Measured: unpaired 0.1 s, Welch 0.1 s, paired
+    0.5 s, Mann-Whitney 0.7 s (was O(n^2): 16 s at 2 x 8,000), Wilcoxon
+    0.7 s (was O(n^2): 1.2 s at 8,000 pairs)."""
+    res, elapsed = _timed({"analysis": "ttest", "data": _two_large_columns(),
+                           "options": options})
+    assert res.get("p_two_tailed") is not None
+    if options["kind"] in ("mann_whitney", "wilcoxon"):
+        # large samples: normal approximation, labelled as such
+        assert res["p_method"] == "approximate"
+        ci = (res["ci_hodges_lehmann"] if options["kind"] == "mann_whitney"
+              else res["ci_median"])
+        assert ci[0] < ci[1]
+    assert elapsed < bound
+
+
+@pytest.mark.parametrize("method,bound", [("spearman", 5.0),
+                                          ("kendall", 5.0)])
+def test_correlation_of_100000_pairs(method, bound):
+    """100,000 XY pairs. Measured: Spearman 0.4 s, Kendall 0.6 s (was
+    O(n^2) memory: two n x n sign matrices)."""
+    res, elapsed = _timed({"analysis": "correlation",
+                           "data": _two_large_columns(),
+                           "options": {"method": method}})
+    assert res["n"] == 100_000 and res["p_type"] == "approximate"
+    assert elapsed < bound
+
+
+@pytest.mark.parametrize("options,bound", [
+    ({}, 6.0),
+    ({"normality_tests": ["shapiro_wilk", "dagostino_pearson",
+                          "anderson_darling", "kolmogorov_smirnov"],
+      "extras": True}, 9.0),
+    ({"hypothetical": 2.7}, 20.0),
+])
+def test_column_statistics_of_50_columns_of_10000_values(options, bound):
+    """50 columns x 10,000 values. Measured: default 1.1 s; all four
+    normality tests + extras 1.6 s (the binomial median CI was ~n/2 scipy
+    calls per column); hypothetical value (one-sample t + Wilcoxon) 3.3 s
+    (the Walsh-average CI was O(n^2): 1.5 s at 50 x 800)."""
+    res, elapsed = _timed({"analysis": "column_statistics",
+                           "data": _fifty_columns(), "options": options})
+    assert len(res["datasets"]) == 50
+    ds = res["datasets"][0]
+    if "extras" in options:
+        assert ds["extras"]["median_ci"]["ci"] is not None
+        assert "note" in ds["normality"]["shapiro_wilk"]   # n > 5000
+    if "hypothetical" in options:
+        assert ds["wilcoxon"]["p_method"] == "approximate"
+        assert ds["wilcoxon"]["ci_median"] is not None
+    assert elapsed < bound
+
+
+@pytest.mark.parametrize("options,bound", [
+    ({"kind": "parametric", "comparisons": "tukey"}, 5.0),
+    ({"kind": "nonparametric"}, 5.0),
+])
+def test_anova_on_5_groups_of_20000(options, bound):
+    """5 groups x 20,000 values. Measured: parametric + Tukey 0.2 s,
+    Kruskal-Wallis + Dunn 0.1 s."""
+    res, elapsed = _timed({"analysis": "anova", "data": _five_groups(),
+                           "options": options})
+    if options["kind"] == "parametric":
+        assert res["table"]["p"] is not None
+        assert len(res["multiple_comparisons"]["comparisons"]) == 10
+    else:
+        assert res["p"] is not None and res["dunns"]
+    assert elapsed < bound
+
+
+@pytest.mark.parametrize("distinct,bound", [(False, 5.0), (True, 10.0)])
+def test_dose_response_with_5000_points(distinct, bound):
+    """4PL inhibitor fit, 5,000 points. Measured: 50 doses x 100
+    replicates 0.6 s; 5,000 distinct X 1.6 s (the multistart is capped
+    by nlfit.MULTISTART_*)."""
+    res, elapsed = _timed({"analysis": "dose_response",
+                           "data": _dose_response_points(distinct),
+                           "options": {
+                               "model": "log_inhibitor_vs_response_4pl"}})
+    fit = res["datasets"][0]["fit"]
+    assert fit["status"] == "converged"
+    assert fit["params"]["LogIC50"]["value"] == pytest.approx(-6.5, abs=0.05)
+    assert elapsed < bound
+
+
+@pytest.mark.parametrize("method,bound", [("pearson", 10.0),
+                                          ("spearman", 10.0)])
+def test_correlation_matrix_of_20_variables_of_20000_rows(method, bound):
+    """20 variables x 20,000 rows (190 pairs). Measured: Pearson 1.6 s,
+    Spearman 2.0 s (was ~4 s: complete cases were paired in Python)."""
+    res, elapsed = _timed({"analysis": "correlation_matrix",
+                           "data": _twenty_variables(),
+                           "options": {"method": method}})
+    assert res["n"][0][1] == 20_000 and res["r"][0][1] > 0
+    assert elapsed < bound
