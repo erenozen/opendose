@@ -188,6 +188,22 @@ function equalSdChip(ctx: ResultContext, groups: GroupCheck[], kind: string): Ch
           + "samples this test has little power).", explainer: "equal-sds" };
   }
   if (kind === "ttest:unpaired" || kind === "anova") {
+    // On the log scale the test compares the SDs of the logarithms: the
+    // geometric SD factors' logs (raw SDs that grow with the mean were
+    // the reason to take logs).
+    const gm = Array.isArray(r?.geometric_means) ? r.geometric_means as R[] : [];
+    const logSds = gm.map((g) => (typeof g.geometric_sd_factor === "number" && g.geometric_sd_factor > 1
+      ? Math.log10(g.geometric_sd_factor) : null)).filter((s): s is number => s !== null);
+    if (logSds.length >= 2 && logSds.length === gm.length) {
+      const lr = Math.max(...logSds) / Math.min(...logSds);
+      return lr >= 2
+        ? { id: "sd", label: `SD ratio of the logs ${lr.toFixed(1)}`, state: "warn",
+          detail: `On the log scale the largest SD is ${lr.toFixed(1)}× the smallest. The test `
+            + "assumes equal SDs of the logarithms.", explainer: "equal-sds" }
+        : { id: "sd", label: "Equal SDs of the logs: plausible", state: "ok",
+          detail: `On the log scale the largest SD is ${lr.toFixed(1)}× the smallest.`,
+          explainer: "equal-sds" };
+    }
     const sds = groups.map((g) => g.sd).filter((s): s is number => s !== null && s > 0);
     if (sds.length < 2) return null;
     const ratio = Math.max(...sds) / Math.min(...sds);

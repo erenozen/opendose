@@ -65,6 +65,9 @@ export function analysisPlan(analysisId: string, t: DataTableModel, options: unk
     const d = two(t, A, B);
     return d.length === 2 ? { kind: "pairs", datasets: [d[0], d[1]] } : { kind: "none", datasets: d };
   };
+  // assay modules read their tables their own way (sample names, gene
+  // names and well ids are text by design): nothing to count here
+  if (analysisId.startsWith("assay_")) return { kind: "none", datasets: [] };
   if (t.type === "multivariable" || t.type === "contingency" || t.type === "partsofwhole") {
     return { kind: "none", datasets: all(t) };
   }
@@ -214,7 +217,9 @@ function tableNotes(t: DataTableModel, plan: Plan, result: unknown):
   const summary = t.subcolumnFormat !== "replicates";
   const cells = cellsOf(t, plan.datasets);
   const excluded = cells.filter((c) => excludedKey(t, c) && c.raw.trim() !== "");
-  const notNumbers = cells.filter((c) => !excludedKey(t, c)
+  // multiple-variables tables hold text columns by design (grouping
+  // columns, categorical predictors, sample names)
+  const notNumbers = t.type === "multivariable" ? [] : cells.filter((c) => !excludedKey(t, c)
     && ["text", "localeNumber"].includes(classifyValue(c.raw)));
   const codes = cells.filter((c) => !excludedKey(t, c) && classifyValue(c.raw) === "missing");
   // X: text or unreadable dates / times in XY fits
@@ -401,6 +406,9 @@ export function engineMessages(result: unknown): EngineMessage[] {
     const o = v as Record<string, unknown>;
     const ctx = depth > 0 && typeof o.name === "string" && o.name.trim() ? o.name.trim() : context;
     for (const [k, val] of Object.entries(o)) {
+      // the Residuals section states its own note and warnings
+      // (sheets/column/residualsPanel.tsx): not repeated here
+      if (depth === 0 && k === "residual_check") continue;
       if (WARN_KEYS.has(k)) take(val, ctx, true);
       else if (NOTE_KEYS.has(k)) take(val, ctx, false);
       else if (k.endsWith("_error") && typeof val === "string") add(val, ctx, true);

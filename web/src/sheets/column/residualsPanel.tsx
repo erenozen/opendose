@@ -14,11 +14,12 @@ import { CHROME_DARK, CHROME_LIGHT, PLOT_FONT, seriesStyle } from "../../lib/pal
 import { pLabel } from "../../report/pformat";
 import { formatSig } from "../../types";
 import "./residuals.css";
+import { rowsFromOne } from "./residualsText";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type R = Record<string, any>;
 
-const NORMALITY_GUIDE = "https://www.graphpad.com/guides/prism/latest/statistics/using_a_normality_test_to_choo.htm";
+const NORMALITY_GUIDE ="https://www.graphpad.com/guides/prism/latest/statistics/using_a_normality_test_to_choo.htm";
 
 /** One small Plotly chart (no graph-format layer: a diagnostic, not a figure). */
 function DiagnosticPlot({ traces, layout, label, testId }: {
@@ -172,14 +173,15 @@ export default function ResidualsSection({ data }: { data: R | null | undefined 
                 </span>
               </p>
             )}
-            {Array.isArray(data.warnings) && data.warnings.length > 0 && (
-              <ul className="resid-warnings">
-                {(data.warnings as string[]).map((w, i) => <li key={i}>{w}</li>)}
-              </ul>
-            )}
           </>
         )}
       </div>
+      {/* shown open or closed: the Notes strip leaves them to this section */}
+      {Array.isArray(data.warnings) && data.warnings.length > 0 && (
+        <ul className="resid-warnings">
+          {(data.warnings as string[]).map((w, i) => <li key={i}>{rowsFromOne(String(w))}</li>)}
+        </ul>
+      )}
     </div>
   );
 }

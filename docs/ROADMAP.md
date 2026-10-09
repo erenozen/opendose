@@ -1039,8 +1039,10 @@ What the packages left undone, with the reason:
   - "Sample size for the next experiment" is on t test and one-way ANOVA results only:
     rank tests, Welch ANOVA without group SDs and the ratio t open the
     plain power tool (no pilot SD to fill in).
-  - Cox, Mann-Whitney, Wilcoxon, Kruskal-Wallis, simple linear
-    regression and quantal have no pinned checks in `validation.json`;
+  - The unpaired and Welch t tests, Cox, Mann-Whitney, Wilcoxon,
+    Kruskal-Wallis, simple linear regression and quantal have no pinned
+    checks in `validation.json` (found in the 0.4.0 smoke pass for the t
+    test);
     "How this is validated" shows a note (needs engine-side tests).
   - Dropping several Prism files on the start screen opens only the
     first.
@@ -1133,6 +1135,10 @@ What the packages left undone, with the reason:
 - **Large data and plain language**
   - The What-this-means line is one block under the results (above the
     results sentence), not a line under each key table.
+  - No What-this-means line (and no results sentence) for the nested
+    two-way and grouping-column mixed models, the time-course model and
+    the assay modules (flow, qPCR, standard curve): `report/meaning.ts`
+    has no reader for their results yet (found in the 0.4.0 smoke pass).
   - The t test's percentage difference has no CI (the CI is given in the
     data's units).
   - 66 `Math.min` / `Math.max` spread calls elsewhere could overflow
