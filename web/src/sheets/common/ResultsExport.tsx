@@ -1,9 +1,11 @@
 import { useRef, useState, type ReactNode } from "react";
 import { fileSlug, toDelimited } from "../../project/exportTable";
 import { copyText, downloadText, resultsMatrix } from "./download";
+import { copyHtml, readSections } from "../../export/clipboard";
+import { wordHtml, wordPlain } from "../../export/wordTable";
 import "./grid.css";
 
-/** Copy / CSV / TSV strip above a results sheet. */
+/** Copy / Copy for Word / CSV / TSV strip above a results sheet. */
 export default function ResultsExport({ name, children }: { name: string; children: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   const [note, setNote] = useState("");
@@ -23,6 +25,14 @@ export default function ResultsExport({ name, children }: { name: string; childr
             if (!m.length) { flash("No results to copy yet."); return; }
             flash(await copyText(toDelimited(m, "tsv")) ? "Copied." : "Copy failed.");
           }}>Copy results</button>
+        <button type="button"
+          title="Copy the results as formatted tables that paste into Word, PowerPoint or Google Docs"
+          onClick={async () => {
+            const sections = readSections(ref.current);
+            if (!sections.some((x) => x.rows.length)) { flash("No results to copy yet."); return; }
+            const ok = await copyHtml(wordHtml(sections, name), wordPlain(sections, name));
+            flash(ok ? "Copied as a table: paste into Word or PowerPoint." : "Copy failed.");
+          }}>Copy for Word</button>
         <button type="button" title="Download the results as CSV"
           onClick={() => downloadText(`${slug}.csv`, toDelimited(get(), "csv"),
             "text/csv;charset=utf-8")}>CSV</button>

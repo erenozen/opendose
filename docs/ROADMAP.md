@@ -170,7 +170,8 @@ graphs, layouts, export, project management.
 Windows/Mac differences, installation, firewalls, SSO, command-line
 switches, LabArchives, Prism Cloud, scripts (replaced by project files
 + URL-free static hosting), printing beyond the browser's own print,
-Word/PowerPoint one-click send, EPS/EMF/CMYK output, "Prism Labs".
+Word/PowerPoint one-click send (a .pptx download and "Copy for Word"
+exist since `office-export`), EPS/EMF/CMYK output, "Prism Labs".
 
 ### Already covered
 XY / Column / Contingency / Survival tables; Excel paste; .pzfx and
@@ -864,9 +865,17 @@ in brackets; "discoverable" = already built, make it findable):
       log), kept in History. [`stable-results-versions`, 50.8, 26 obs]
 - [x] Tidy CSV of the export bundle keeps excluded values with
       `excluded` and `exclusion_reason` columns. [`source-data-export`]
-- [ ] Let a provenance file (or a project) be applied to a new data
+- [x] Let a provenance file (or a project) be applied to a new data
       file: same tables, analyses, graphs and layouts, with a diff of
-      what changed. [`analysis-replay`, 63.1, 32 obs]
+      what changed. [`analysis-replay`, 63.1, 32 obs] Done: "Apply to
+      new data…" (Save menu, a data table's menu) takes this project, a
+      project file or the bundle's provenance.json (now with a
+      `replay_plan`) and CSV / TSV / pasted / .xlsx / .pzfx data, matches
+      tables by name then shape (a mapping when ambiguous), refills them
+      in their own layout, re-runs, and logs per results sheet which
+      numbers changed, P first (`project/replay.ts`, `replayDiff.ts`).
+      Not yet: re-running an import recipe or a plate-reader mapping
+      (tables do not store how they were imported).
 - [x] Add 'From counts per day' and 'From dates' to the survival table
       (expand to per-subject rows) and a preview column 'read as: death
       on day 12 / censored on day 30'. [`survival-data-entry`, 61.7, 21
@@ -904,6 +913,16 @@ in brackets; "discoverable" = already built, make it findable):
       Holm-Šídák across those P values. [`multiplicity-by-default`,
       54.3, 21 obs] Done: `guide/multiplicity.ts`.
 
+- [x] Export graphs and page layouts to PowerPoint (.pptx) and copy
+      results tables for Word. [`office-export`, 43.4, 19 obs] Done: a
+      .pptx written in the browser (`export/pptx.ts`, fflate), one 16:9
+      slide per graph (title, SVG picture with PNG fallback so "Convert
+      to Shape" works, legend in the notes) and per layout (a deck of
+      layouts takes the page size); "Copy for Word" on every results
+      sheet (HTML table + text); "Copy" under a graph puts PNG and SVG on
+      the clipboard. Not checked in PowerPoint itself here (the file is
+      validated by unzipping, XML parsing and python-pptx).
+
 Made discoverable outside the top 15 (Wave 0):
 - [x] Cox regression: the stale "not in OpenDose yet" wizard text fixed;
       the survival recommendation opens Cox on the same table, and the
@@ -917,6 +936,25 @@ Made discoverable outside the top 15 (Wave 0):
       data table, one zip). [`prism-files`]
 - [x] Compare fits reachable from curve-fit results ("Compare with
       another model… / another data set…").
+
+Wave 2, instrument and image-table import:
+- [x] Recipes for Incucyte "Export Data" time series (XY, X = elapsed
+      hours, wells or plate-map groups as data sets), LabChart text
+      exports (XY, channels as data sets, time unit, every k-th sample,
+      a window, comments listed) and multi-read plate runs (wavelengths
+      or kinetic reads as rows or X; each grid read by the shared plate
+      rule; the plate assay's plate map groups wells); "Save as recipe"
+      in the Import and recipe dialogs (this browser, and
+      `project.recipes` so files and share links carry it), listed under
+      "Apply a saved recipe". [`instrument-import`] Not yet: Thermo .eds
+      (binary) and SoftMax Pro wavelengths laid side by side.
+- [x] Several per-image CSVs or a zip (Import dialog, start screen):
+      stacked with a File column, condition / replicate / image read
+      with a name template ("{condition}_rep{replicate}_img{image}.csv")
+      or by splitting at "_", averaged per image, and made into a column
+      or grouped table with the replicate map set (SuperPlot graph,
+      "n = 3 images per group from 3 independent experiments").
+      [`image-table-import`]
 
 Wave 2 (assays):
 - [x] Compare a parameter (logEC50, Hill slope, Top …) between two data

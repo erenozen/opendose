@@ -10,6 +10,7 @@ import type { CIMethod, ErrorBarKind } from "../types.ts";
 import type { ReportMeta } from "../report/meta.ts";
 import type { ReportPrefs } from "../report/prefs.ts";
 import type { AnalysisPlan } from "./plan.ts";
+import type { ProjectRecipe } from "./recipes.ts";
 
 export type Cell = string; // raw user input; "" = blank
 
@@ -387,6 +388,8 @@ export interface Project {
   /** User-defined navigator groups, in display order (optional: absent in
    *  older files; repaired on load, see groups.ts). */
   groups?: SheetGroup[];
+  /** Import recipes saved with the project (project/recipes.ts). */
+  recipes?: ProjectRecipe[];
 }
 
 export const SECTION_ORDER: SheetKind[] =
