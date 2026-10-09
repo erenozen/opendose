@@ -20,6 +20,7 @@
 //    mixed-effects model when values are missing.
 import { SRC, type Source } from "./sources.ts";
 import { blockedRecommendation } from "./blocking.ts";
+import { interactionRecommendation } from "./interaction.ts";
 
 export type Outcome = "continuous" | "counts" | "survival" | "curve";
 export type GroupCount = "one" | "two" | "three_plus";
@@ -65,6 +66,9 @@ export interface Design {
   /** Each condition run once per experiment, on different days: the
    *  experiment is a block (guide/blocking.ts). */
   blocked?: boolean;
+  /** "Are you asking whether the treatment effect differs between
+   *  groups?": the interaction is the question (guide/interaction.ts). */
+  differential?: boolean;
 }
 
 export const DEFAULT_DESIGN: Design = {
@@ -243,9 +247,10 @@ function postHocFor(d: Design, kind: "ordinary" | "welch" | "rank" | "twoway" | 
     return { family: fam, method: d.question === "all" ? "Tukey" : "Dunnett",
       why: d.question === "all" ? "Tukey's test compares every condition with every other."
         : "Dunnett's test compares each condition with the control condition.",
-      inOpenDose: "OpenDose's repeated-measures one-way ANOVA reports the overall test only; "
-        + "for pairwise comparisons that keep the matching, run paired t tests on the pairs "
-        + "you need and correct for their number (Šídák)." };
+      inOpenDose: "In the repeated-measures one-way ANOVA controls, choose "
+        + (d.question === "all" ? "Tukey" : "Dunnett (each vs. baseline)")
+        + " under Multiple comparisons: every comparison keeps the matching (each pair's own "
+        + "paired differences with the Geisser-Greenhouse correction)." };
   }
   if (d.question === "all") {
     if (kind === "welch") {
@@ -281,9 +286,8 @@ function postHocFor(d: Design, kind: "ordinary" | "welch" | "rank" | "twoway" | 
       ? "OpenDose opens Dunnett's T3 over every pair; for a few planned pairs, the Šídák "
         + "correction for just those pairs is less conservative."
       : kind === "rm"
-        ? "OpenDose's repeated-measures one-way ANOVA reports the overall test only; for "
-          + "pairwise comparisons, run paired t tests on the planned pairs and correct for "
-          + "their number."
+        ? "In the repeated-measures one-way ANOVA controls, choose Šídák under Multiple "
+          + "comparisons and tick the planned pairs: the correction then counts only those."
         : "OpenDose applies Šídák's correction to every pair in the results; if you planned "
           + "fewer comparisons, the correct adjustment for your family is smaller than the "
           + "one shown." };
@@ -347,6 +351,10 @@ export function recommend(d: Design, checks: DataChecks | null = null): Recommen
   if (d.outcome === "counts") return counts(d, base);
   if (d.outcome === "survival") return survival(d, base);
   if (d.outcome === "curve") return curve(d, base);
+  // Does the treatment effect differ between groups? The interaction.
+  if (d.differential && d.groups !== "one" && d.factors !== "three") {
+    return interactionRecommendation(d, base);
+  }
   // Experiment (day) as the block: the matched analysis by experiment.
   if (d.blocked && d.factors === "one" && d.groups !== "one") {
     return blockedRecommendation(recommend({ ...d, paired: true, blocked: false }, checks));
@@ -857,10 +865,12 @@ function survival(d: Design, base: Base): Recommendation {
     reason: "Time-to-event data with censoring: the log-rank test compares the whole survival "
       + "curves and is most powerful when the hazard ratio is constant over time. The results "
       + "also show the Gehan-Breslow-Wilcoxon test, the median survival per group and"
-      + (d.groups === "two" ? " the hazard ratio." : ", for pairwise comparisons, P values "
-        + "that need correcting for the number of pairs (Bonferroni or Šídák).")
-      + (d.ordered ? " With ordered groups, a log-rank test for trend asks whether survival "
-        + "changes with the order." : ""),
+      + (d.groups === "two" ? " the hazard ratio." : " a pairwise log-rank table (every pair, "
+        + "or each group against a control) with P values adjusted for the number of "
+        + "comparisons by Holm-Šídák, so no correction is needed by hand.")
+      + (d.ordered ? " With ordered groups, tick “Groups are ordered” in the results for the "
+        + "log-rank test for trend, which asks whether survival changes steadily with the order."
+        : ""),
     target,
     alternatives: [
       { test: "Gehan-Breslow-Wilcoxon test", when: "if early differences matter more, or the "
@@ -870,7 +880,16 @@ function survival(d: Design, base: Base): Recommendation {
       target: { tableType: "survival", analysisId: "cox", options: {}, layout: LAYOUT.survival
         + " Covariates go in extra subcolumns after Time and Event." } },
     ],
-    postHoc: null, sources: src("gpLogrankGehan", "gpHazardRatio", "gpSurvival"), explainers: ["survival"] };
+    postHoc: d.groups === "two" ? null : { family: "all pairs", method: "Pairwise log-rank tests, "
+      + "Holm-Šídák adjusted",
+    why: "Each pair of groups gets its own log-rank test; the P values are adjusted together "
+      + "for the size of the family (all pairs, or each group vs the control).",
+    inOpenDose: "The survival results list the pairwise table under “Pairwise comparisons "
+      + "(log-rank)”, where the family and the correction can be changed." },
+    sources: src("gpLogrankGehan", "gpHazardRatio", "gpSurvival",
+      ...(d.groups === "two" ? [] : ["gpSurvivalPairwise"] as const),
+      ...(d.ordered && d.groups !== "two" ? ["gpLogrankTrend"] as const : [])),
+    explainers: ["survival"] };
 }
 
 function curve(d: Design, base: Base): Recommendation {

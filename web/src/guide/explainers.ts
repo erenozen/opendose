@@ -379,12 +379,34 @@ export const EXPLAINERS: Explainer[] = [
     keywords: "reproduce match r spss python excel prism defaults quantile type 6 type 7",
   },
   {
+    id: "interaction",
+    title: "Significant in one group, not in the other: does the effect differ?",
+    summary: "Only the interaction answers it: the difference between the two effects, with its CI. Two separate tests do not.",
+    body: [
+      "A drug lowers a marker in WT mice (P = 0.01) but not significantly in KO mice "
+        + "(P = 0.20). It is tempting to conclude that the drug works differently in KO. That "
+        + "conclusion is not supported: “significant in one group, not in the other” is not "
+        + "evidence of a difference between the groups. The two effects may be almost the same "
+        + "size, one estimated a little less precisely.",
+      "The question is about the difference between the two effects: (drug − vehicle in KO) − "
+        + "(drug − vehicle in WT), a difference of differences. Two-way ANOVA tests it as the "
+        + "interaction; OpenDose reports it with its 95% CI and the interaction P value, and "
+        + "shows the interaction plot (non-parallel lines are what an interaction looks like).",
+      "Nieuwenhuis and colleagues found the incorrect procedure in as many neuroscience papers "
+        + "as the correct one. If the interaction's CI is wide, the honest conclusion is that "
+        + "the experiment cannot tell whether the effects differ.",
+    ],
+    sources: [SRC.gelmanStern2006, SRC.nieuwenhuis2011, SRC.gpTwoWayResults],
+    keywords: "interaction difference of differences two-way anova genotype treatment wt ko "
+      + "effect differs between groups separate t tests gelman stern nieuwenhuis",
+  },
+  {
     id: "limits",
     title: "Limits: how much data OpenDose handles",
     summary: "Tested with 100,000 rows in a table, 200,000 points in a graph and 50 data sets; beyond that it slows but keeps working.",
     body: [
       "Tested sizes: a table of 100,000 rows (pasted in about ten seconds), a graph of 200,000 "
-        + "points, 50 data sets in one table, and a t test on 2 × 50,000 values. A long table "
+        + "points, 50 data sets in one table, and a t test on 2 × 100,000 values. A long table "
         + "scrolls inside its card and draws only the rows in view, so typing and scrolling stay "
         + "fast at any length. Above 5,000 points a graph draws its points with WebGL; an SVG or "
         + "PDF export then holds those points as one embedded image (axes and text stay vector), "

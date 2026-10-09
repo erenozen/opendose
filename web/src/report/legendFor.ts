@@ -15,6 +15,7 @@ import {
   metaWithReplicates, replicateFacts, withinNote, withinPerGroup,
 } from "./replicates.ts";
 import { compareParameterLegend } from "../sheets/xy/compareParameter.ts";
+import { logLegendClause } from "../sheets/column/logScale.ts";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -136,6 +137,9 @@ export function legendFor(c: LegendContext): string {
  *  legend (sheets/xy/compareParameter.ts). */
 function withCompareClause(plotted: string | undefined, result: unknown): string | undefined {
   const r = result as { analysis?: string; mode?: string; compare?: unknown } | null;
+  // a t test / ANOVA on the log scale says so (sheets/column/logScale.ts)
+  const logs = logLegendClause(result);
+  if (logs) return [plotted, logs].filter(Boolean).join(" ") || undefined;
   if (r?.analysis !== "compare_fits" || r.mode !== "parameter" || !r.compare) return plotted;
   const clause = compareParameterLegend(r.compare as Record<string, unknown>);
   return [plotted, clause].filter(Boolean).join(" ") || undefined;

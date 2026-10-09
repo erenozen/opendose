@@ -14,6 +14,9 @@ import {
 } from "./graphSettings";
 import { ANALYSIS_REPLICATE_MEANS } from "./superplotStats";
 import "../../graph/figure.css";
+import { normalizeFormat } from "../../graph/format";
+import { hasLogY, LOG_AXIS_KINDS, withLogY } from "./logAxis";
+import { onLogScale } from "./logScale";
 
 /** "Journals ask to show the points for n < 10", with a one-click fix. */
 export function SmallNAdvice({ n, onShow }: { n: number; onShow: () => void }) {
@@ -33,6 +36,8 @@ export function SmallNAdvice({ n, onShow }: { n: number; onShow: () => void }) {
 
 export function ColumnGraphOptions({ graph, table, result }: GraphOptionsProps) {
   const [s, set] = useGraphSetting(graph, "column", normalizeColumnGraph);
+  // the analysis runs on log10(values): offer the matching axis (logAxis.ts)
+  const [fmt, setFmt] = useGraphSetting(graph, "format", normalizeFormat);
   if (!set) return null;
   const up = (patch: Partial<ColumnGraphSettings>) => set({ ...s, ...patch });
   const kind = graph.graphType;
@@ -60,6 +65,10 @@ export function ColumnGraphOptions({ graph, table, result }: GraphOptionsProps) 
       {raw && pointsDrawn && kind !== "box" && kind !== "violin" && (
         <OptSelect label="Point layout" value={s.spread} options={POINT_SPREADS}
           onChange={(spread) => up({ spread })} />
+      )}
+      {setFmt && onLogScale(result) && LOG_AXIS_KINDS.has(kind) && (
+        <OptCheck label="Log10 Y axis (the analysis is on the log scale)" checked={hasLogY(fmt)}
+          onChange={(on) => setFmt(on ? withLogY(fmt) : { ...fmt, y: { ...fmt.y, scale: "linear" } })} />
       )}
       <OptSelect label="Legend sentence" value={s.caption} options={CAPTION_LABELS}
         onChange={(caption) => up({ caption })}

@@ -2,6 +2,7 @@
 // results (labelled with the number of experiments, the table of
 // replicate means, then the ordinary column-analysis results) and the
 // methods text.
+import { RM_METHOD_LABELS, RM_METHODS } from "./rmPosthoc";
 import type { ReactNode } from "react";
 import StatsResults from "../../components/StatsResults";
 import { softwareSentence } from "../../export/cite";
@@ -78,6 +79,17 @@ export function ReplicateMeansControls({ table, options: o, onChange }:
           </Row>
         )}
         {o.test === "anova" && o.comparisons === "dunnett" && pick("Control", o.controlIndex, "controlIndex")}
+        {o.test === "rm_anova" && (
+          <Row label="Multiple comparisons">
+            <select value={(RM_METHODS as readonly string[]).includes(o.comparisons) ? o.comparisons : "none"}
+              onChange={(e) => set({ comparisons: e.target.value as ComparisonsMethod })}>
+              {(["none", ...RM_METHODS] as const).map((k) => (
+                <option key={k} value={k}>{RM_METHOD_LABELS[k]}</option>
+              ))}
+            </select>
+          </Row>
+        )}
+        {o.test === "rm_anova" && o.comparisons === "dunnett" && pick("Baseline", o.controlIndex, "controlIndex")}
         <p className="hint-block">
           Matched tests pair the groups by experiment: use them when every experiment ran
           all conditions side by side.

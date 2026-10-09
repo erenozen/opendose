@@ -379,6 +379,17 @@ export interface ColumnOptionsState {
   comparisonsFamily?: "all" | "control" | "pairs";
   /** The planned pairs [i, j] of data set indices (comparisonsFamily "pairs"). */
   plannedPairs?: [number, number][];
+  /** Unpaired / Welch t test and ordinary one-way ANOVA on log10(values):
+   *  geometric means and ratios of geometric means (sheets/column/logScale.ts). */
+  logScale?: boolean;
+  /** Comparisons after RM one-way ANOVA (method: `comparisons`, baseline:
+   *  `controlIndex`): each pair's own paired differences (sphericity not
+   *  assumed, the default with the Geisser-Greenhouse correction) or the
+   *  pooled RM ANOVA error (sphericity assumed). sheets/column/rmPosthoc.ts */
+  rmComparisonsError?: "per_pair" | "pooled";
+  /** RM one-way ANOVA with missing values: fit the mixed-effects model
+   *  (keeps incomplete subjects) instead of dropping those rows. */
+  rmMixed?: boolean;
 }
 
 export const DEFAULT_COLUMN_OPTIONS: ColumnOptionsState = {

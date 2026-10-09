@@ -19,7 +19,10 @@ const FLOOR_TEXT: Record<PStyle, string> = {
 
 export function statsMethodsParagraph(result: unknown, prefs: ReportPrefs,
   meta: ReportMeta | undefined,
-  opts: { powerJustification?: string | null; exclusions?: string | null } = {}): string {
+  opts: { powerJustification?: string | null; exclusions?: string | null;
+    /** The analysis plan with its deviations (project/plan.ts
+     *  planMethodsSentence), ARRIVE 2.0 item 19. */
+    plan?: string | null; } = {}): string {
   const cmp = result as { analysis?: string; mode?: string; compare?: Record<string, unknown>; labels?: string[] } | null;
   if (cmp?.analysis === "compare_fits" && cmp.mode === "parameter" && cmp.compare) {
     return compareParameterMethods(cmp.compare, cmp.labels?.[0] ?? "nonlinear regression");
@@ -36,6 +39,10 @@ export function statsMethodsParagraph(result: unknown, prefs: ReportPrefs,
   else if (info.posthoc && info.multiplicity === "corrected") t += `, followed by ${info.posthoc} (${info.correction} adjustment of P values)`;
   else if (info.posthoc && info.multiplicity === "uncorrected") t += `, followed by ${info.posthoc} without correction for multiple comparisons`;
   parts.push(`${t}.`);
+  // analysed on the log scale (sheets/column/logScale.ts)
+  if ((result as { log_scale?: unknown } | null)?.log_scale) {
+    parts.push("Back-transformed geometric means and ratios of geometric means are reported with 95% confidence intervals.");
+  }
   if (info.assumptions) parts.push(`Assumptions: ${info.assumptions}.`);
   if (info.sided) {
     const gpFloor = prefs.pFloor && prefs.pFloor !== "1e-4" && prefs.pStyle === "graphpad";
@@ -63,5 +70,6 @@ export function statsMethodsParagraph(result: unknown, prefs: ReportPrefs,
   }
   const ss = opts.powerJustification ?? meta?.sampleSize;
   if (ss) parts.push(`Sample size: ${ss.replace(/\.$/, "")}.`);
+  if (opts.plan?.trim()) parts.push(opts.plan.trim());
   return parts.join(" ");
 }

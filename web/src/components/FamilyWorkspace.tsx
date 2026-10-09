@@ -41,6 +41,7 @@ import ExclusionsCard from "../report/ExclusionsCard";
 import MeaningLine from "../report/MeaningLine";
 import NotesStrip from "./NotesStrip";
 import ResultsLinks, { ResultsEmptyLinks } from "./ResultsLinks";
+import PlanCheck from "./PlanCheck";
 
 /**
  * The workbench for one family: the data table (left) with the active
@@ -217,6 +218,7 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
                   result={result} />
                 <ResultsLinks key={resSheet.id} sheet={resSheet} tableName={data.name}
                   options={options} result={result} />
+                <PlanCheck key={`plan-${resSheet.id}`} sheet={resSheet} data={data} readOnly={readOnly} />
                 <MeaningLine analysisId={resSheet.analysis} table={data.table} options={options} result={result} />
 
                 <ResultsExport name={resSheet.name}>
