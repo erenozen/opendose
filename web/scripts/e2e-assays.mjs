@@ -9,7 +9,9 @@
 // - standard curve: LLOQ 15.63 pg/mL (the 7.81 standard fails on CV),
 //   S1 at 95.26 pg/mL after the 1:2 dilution, parallelism P 0.659, the
 //   concentrations table, refitting without a standard;
-// - qPCR: IL6 fold change LPS vs Control 11.71, and Livak & Schmittgen
+// - qPCR: the reference check flags ACTB (shifts 1.4 cycles, P = 0.0044;
+//   geNorm M 0.592), "Use GAPDH only" gives IL6 11.88; IL6 fold change
+//   LPS vs Control 11.71 with both references, and Livak & Schmittgen
 //   (2001) Table 1 pasted as a Cq export: kidney vs brain ΔCq 4.365,
 //   fold change 5.6;
 // - densitometry: the example's ratio 2.427 (P = 0.000755), and the
@@ -195,7 +197,17 @@ expect("leaving out the failing standard refits: 7 of 7 levels pass",
   await waitText(".std-results", "7 / 7"));
 
 // --- qPCR ---
+// The example's ACTB is 1.4 cycles higher in LPS + inhibitor (engine
+// qpcr_reference_check: one-way ANOVA P = 0.0044, geNorm M 0.592 for
+// both references), so the reference check flags it before any fold
+// change; GAPDH alone gives IL6 LPS vs Control 11.88 (6.889 to 20.47).
+const ACTB_CHIP = "ACTB shifts with treatment by 1.4 Cq (P = 0.0044): do not normalise to it";
 await startAssay("qPCR (ΔCq / ΔΔCq)");
+await wizard().getByRole("button", { name: /Reference check/ }).click();
+expect("qPCR wizard: the Reference check step flags ACTB before any fold change",
+  await waitText("dialog.assay-wizard .qpcr-refs", ACTB_CHIP, 60000)
+  && (await textOf("dialog.assay-wizard .qpcr-refs")).includes("GAPDH stable (M = 0.59)"),
+  await textOf("dialog.assay-wizard .wizard-body").catch(() => ""));
 await finishWizard();
 await page.waitForSelector(".qpcr-results .qpcr-target", { timeout: 60000 });
 const il6 = (await page.locator(".qpcr-target", { hasText: "IL6" }).locator("tr", { hasText: /^LPS vs\. Control/ })
@@ -206,6 +218,28 @@ expect("qPCR: MIQE 2.0 note on statistics on ΔCq",
   (await textOf(".qpcr-results")).includes("Statistics are computed on ΔCq"));
 expect("qPCR: the flagged ACTB replicate set of CON-1 is listed",
   (await textOf(".qpcr-results")).includes("replicates spread"));
+const refBlock = await textOf(".qpcr-results .qpcr-refs");
+const mOf = async (gene) => (await page.locator(".qpcr-ref-table tr", { hasText: new RegExp(`^${gene}`) })
+  .first().locator("td").nth(4).innerText()).trim();
+expect("qPCR reference genes: shown above the fold changes, geNorm M for each reference",
+  await page.locator(".qpcr-results .qpcr-refs ~ .qpcr-target").count() === 2
+  && await mOf("GAPDH") === "0.592" && await mOf("ACTB") === "0.592", `${await mOf("GAPDH")} / ${await mOf("ACTB")}`);
+expect("qPCR reference genes: ACTB shifts with treatment (chip), GAPDH stable, ACTB in use is warned",
+  refBlock.includes(ACTB_CHIP) && refBlock.includes("GAPDH stable (M = 0.59)")
+  && refBlock.includes("ACTB is in use but shifts with treatment") && refBlock.includes("18.42 (+1.44)"),
+  refBlock.slice(0, 400));
+await page.locator(".qpcr-results .qpcr-refs").getByRole("button", { name: "Use GAPDH only" }).click();
+expect("one click: GAPDH only, IL6 LPS vs Control 11.88 (6.889 to 20.47), ACTB still shown as not used",
+  await page.waitForFunction(() => {
+    const il6Block = [...document.querySelectorAll(".qpcr-target")].find((b) => /^IL6/.test(b.querySelector("h4")?.textContent ?? ""));
+    const row = [...(il6Block?.querySelectorAll("tr") ?? [])].find((r) => /^LPS vs\. Control/.test(r.textContent ?? ""));
+    return /11\.88/.test(row?.textContent ?? "") && /6\.889 to 20\.47/.test(row?.textContent ?? "");
+  }, null, { timeout: 60000 }).then(() => true, () => false)
+  && (await textOf(".qpcr-ref-table")).includes("ACTB")
+  && (await textOf(".qpcr-results .qpcr-refs")).includes("normalised to GAPDH.")
+  && await page.locator(".qpcr-target h4", { hasText: /^ACTB/ }).count() === 0);
+expect("qPCR methods record which references were used and why",
+  await waitText(".pane-methods", "ACTB shifted with treatment (M = 0.59; 1.4 cycles between groups, P = 0.0044) and was not used"));
 
 const livak = { Brain: { "c-myc": [30.72, 30.34, 30.58, 30.34, 30.50, 30.43], GAPDH: [23.70, 23.56, 23.47, 23.65, 23.69, 23.68] },
   Kidney: { "c-myc": [27.06, 27.03, 27.03, 27.10, 26.99, 26.94], GAPDH: [22.76, 22.61, 22.62, 22.60, 22.61, 22.76] } };
