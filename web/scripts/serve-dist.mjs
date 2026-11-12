@@ -1,8 +1,8 @@
-// Serve the production build (web/dist) the way GitHub Pages does: under
-// /opendose/, gzip for text and wasm, a 404 for missing files (no SPA
+// Serve the production build (web/dist) the way the host does: at the
+// root, gzip for text and wasm, a 404 for missing files (no SPA
 // fallback), short cache lifetimes. For measuring a real build locally:
 //   npm run build && node scripts/serve-dist.mjs [port]
-// then open http://localhost:<port>/opendose/ (vite preview serves at /).
+// then open http://localhost:<port>/.
 import { createReadStream, existsSync, statSync } from "node:fs";
 import { createServer } from "node:http";
 import { extname, join, normalize, resolve } from "node:path";
@@ -11,7 +11,7 @@ import { createGzip } from "node:zlib";
 
 const root = resolve(fileURLToPath(new URL("..", import.meta.url)), "dist");
 const port = Number(process.argv[2] ?? 5300);
-const BASE = "/opendose/";
+const BASE = "/";
 const TYPES = {
   ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8",
   ".mjs": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8",
@@ -25,11 +25,6 @@ const GZIP = new Set([".html", ".js", ".mjs", ".css", ".json", ".svg", ".py", ".
 
 createServer((req, res) => {
   const url = new URL(req.url ?? "/", "http://x");
-  if (url.pathname === "/" || url.pathname === "/opendose") {
-    res.writeHead(301, { Location: BASE }).end();
-    return;
-  }
-  if (!url.pathname.startsWith(BASE)) { res.writeHead(404).end("not found"); return; }
   let rel = decodeURIComponent(url.pathname.slice(BASE.length)) || "index.html";
   if (rel.endsWith("/")) rel += "index.html";
   const file = normalize(join(root, rel));

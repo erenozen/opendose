@@ -55,12 +55,12 @@ cd web && node scripts/smoke-0.4.0.mjs http://localhost:5173/ OUT   # screenshot
 
 The dev server needs internet access on first load (Pyodide + SciPy come
 from the jsDelivr CDN, ~30 MB, then cached). The offline cache exists only
-in production builds; to measure one locally the way GitHub Pages serves
-it (under `/opendose/`, gzip):
+in production builds; to measure one locally the way the host serves
+it (gzip):
 
 ```bash
-cd web && npm run build && node scripts/serve-dist.mjs 5300   # http://localhost:5300/opendose/
-node scripts/validate-site.mjs http://localhost:5300/opendose/ --no-data   # performance probe only
+cd web && npm run build && node scripts/serve-dist.mjs 5300   # http://localhost:5300/
+node scripts/validate-site.mjs http://localhost:5300/ --no-data   # performance probe only
 ```
 
 The example project's results ship with the app (shown, marked as not

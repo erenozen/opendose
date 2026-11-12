@@ -5,7 +5,7 @@
 // usability frictions met on the way, and runs a short performance and
 // robustness probe.
 //
-//   node scripts/validate-site.mjs https://erenozen.dev/opendose/
+//   node scripts/validate-site.mjs https://opendose.erenozen.dev/
 //   node scripts/validate-site.mjs <url> --only=nist-misra1a,r-sleep
 //   node scripts/validate-site.mjs <url> --no-perf | --no-data | --dump
 //   node scripts/validate-site.mjs <url> --digits=10   (results precision; default 6)
@@ -26,7 +26,7 @@ const REPO = resolve(here, "..", "..");
 const VAL = join(REPO, "docs", "validation");
 const SCREENS = join(VAL, "site-screens");
 const args = process.argv.slice(2);
-const baseUrl = args.find((a) => !a.startsWith("--")) ?? "https://erenozen.dev/opendose/";
+const baseUrl = args.find((a) => !a.startsWith("--")) ?? "https://opendose.erenozen.dev/";
 const only = (args.find((a) => a.startsWith("--only=")) ?? "").slice(7).split(",").filter(Boolean);
 const skip = (args.find((a) => a.startsWith("--skip=")) ?? "").slice(7).split(",").filter(Boolean);
 const doPerf = !args.includes("--no-perf") && !only.length;

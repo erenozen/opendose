@@ -10,7 +10,7 @@ declare const __BUILD_DATE__: string;
 export const APP_VERSION = typeof __APP_VERSION__ === "string" ? __APP_VERSION__ : "dev";
 export const BUILD_COMMIT = typeof __BUILD_COMMIT__ === "string" ? __BUILD_COMMIT__ : "";
 export const BUILD_DATE = typeof __BUILD_DATE__ === "string" ? __BUILD_DATE__ : "";
-export const SITE_URL = "https://erenozen.dev/opendose/";
+export const SITE_URL = "https://opendose.erenozen.dev/";
 export const AUTHOR = { family: "Ozen", given: "Eren" };
 
 /** "0.0.0 (build 3282bac, 2026-10-03)" */

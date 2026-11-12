@@ -103,11 +103,11 @@ function bootFirst(base: string): Plugin {
 const ENGINE_HASH = engineHash()
 
 // https://vite.dev/config/
-export default defineConfig(({ command }) => ({
-  // GitHub Pages serves the site at /opendose/; dev stays at the root.
-  // Engine fetches already resolve via import.meta.env.BASE_URL.
-  base: command === 'build' ? '/opendose/' : '/',
-  plugins: [react(), serviceWorker(ENGINE_HASH), bootFirst('/opendose/')],
+export default defineConfig({
+  // The site lives at the root of opendose.erenozen.dev, as the dev server.
+  // Engine fetches resolve via import.meta.env.BASE_URL.
+  base: '/',
+  plugins: [react(), serviceWorker(ENGINE_HASH), bootFirst('/')],
   define: {
     __ENGINE_HASH__: JSON.stringify(ENGINE_HASH),
     __PYODIDE_VERSION__: JSON.stringify(pyodideVersion),
@@ -145,4 +145,4 @@ export default defineConfig(({ command }) => ({
     // pyodide loads its own assets from the CDN at runtime; pre-bundling breaks it
     exclude: ['pyodide'],
   },
-}))
+})

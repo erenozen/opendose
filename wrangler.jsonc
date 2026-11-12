@@ -1,0 +1,8 @@
+// opendose.erenozen.dev on Cloudflare: the built web app (web/dist), static
+// files only. Build first: cd web && npm ci && npm run build
+{
+    "name": "opendose",
+    "compatibility_date": "2026-11-01",
+    "assets": { "directory": "web/dist" },
+    "routes": [{ "pattern": "opendose.erenozen.dev", "custom_domain": true }]
+}

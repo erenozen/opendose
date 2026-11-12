@@ -1,8 +1,7 @@
-# Engine tests + web build on every push; deploys web/dist to GitHub
-# Pages, but only once the repository is public (Pages on private repos
-# needs a paid plan) — until then the deploy job is skipped, so CI stays
-# green.
-name: CI & deploy
+# Engine tests + web build on every push. The site is hosted on Cloudflare
+# at opendose.erenozen.dev (wrangler.jsonc); this workflow does not deploy.
+# To publish: cd web && npm ci && npm run build && cd .. && npx wrangler deploy
+name: CI
 
 on:
   push:
@@ -11,8 +10,6 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 jobs:
   test:
@@ -43,18 +40,3 @@ jobs:
           cd web
           npm ci
           npm run build
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: web/dist
-
-  deploy:
-    # Pages needs a public repo (or a paid plan) — skip quietly until then
-    if: ${{ !github.event.repository.private }}
-    needs: [test, build]
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4

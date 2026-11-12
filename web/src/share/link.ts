@@ -3,7 +3,7 @@
 //
 // Format (stable; a later encoding would use a new key, never reuse p=):
 //
-//   https://…/opendose/#p=<payload>
+//   https://opendose.erenozen.dev/#p=<payload>
 //   payload = base64url( DEFLATE( UTF-8( compact project JSON ) ) )
 //
 // base64url is RFC 4648 §5 (A–Z a–z 0–9 - _), without "=" padding;

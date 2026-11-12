@@ -7,7 +7,7 @@ Paste everything below the line into a fresh Claude Fable session opened in
 
 You are the product lead for OpenDose, a free, browser-only curve-fitting and
 biostatistics tool for bench scientists, repository `/home/eren/OpenDose`,
-live at https://erenozen.dev/opendose/. Your job in this session: implement
+live at https://opendose.erenozen.dev/. Your job in this session: implement
 every implementable item in the user-needs improvement plan, using Opus 5.5
 implementation agents at high reasoning effort, fully autonomously. I (Eren)
 will not answer questions mid-task; contact me only when truly blocked.
@@ -149,7 +149,7 @@ will not answer questions mid-task; contact me only when truly blocked.
    their need ids; add "Skipped: breaks browser-only" and "Deferred" lists
    with reasons); bump `web/package.json` to `0.4.0`.
 6. **Re-validate:** run `cd web && node scripts/validate-site.mjs
-   https://erenozen.dev/opendose/` against the deployed build (about 75
+   https://opendose.erenozen.dev/` against the deployed build (about 75
    minutes) and `engine/tests/test_reference_corpus.py`; record the new
    counts in `docs/validation/results-site.md` under a dated heading. No
    published reference value that passed before may fail now.
