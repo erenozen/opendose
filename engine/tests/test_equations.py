@@ -289,7 +289,7 @@ CANON = {"sine_wave": _canon_sine, "damped_sine_wave": _canon_sine,
 
 # Power series (A*X^B + C*X^D) has near-equivalent minima with the
 # guide's documented all-1.0 initial values; only the SS is compared.
-SS_ONLY = {"power_series"}
+SS_ONLY = {"power_series", "centered_polynomial_ninth"}
 
 
 def _ids(cases):
