@@ -505,8 +505,10 @@ class TestModelComparisons:
         groups, means, cov, df = self._one_way()
         ours = mm.compare_estimates(means, cov, df, "dunnett",
                                     control_index=0)
+        # scipy integrates by randomized QMC: unseeded, its P moves by up to
+        # ~2.4e-4 between runs and broke abs=2e-4 about once in 150
         ref = stats.dunnett(*[np.array(g) for g in groups[1:]],
-                            control=np.array(groups[0]))
+                            control=np.array(groups[0]), rng=0)
         ci = ref.confidence_interval(0.95)
         for j, c in enumerate(ours):
             # ours: control - treatment (Prism's direction)
