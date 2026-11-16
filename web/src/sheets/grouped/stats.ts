@@ -2,7 +2,7 @@
 // from entered mean / SD / N), error bars, bar positions and heat-map
 // color mapping. No React, no DOM: unit-tested with node --test
 // (src/sheets/grouped/__tests__).
-import { parseCell } from "../../project/table.ts";
+import { parseCell, withExclusionsBlanked } from "../../project/table.ts";
 import type { DataTableModel, SubcolumnFormat } from "../../project/types.ts";
 
 // ------------------------------------------------------------ distributions
@@ -337,11 +337,14 @@ export function heatStops(palette: HeatPalette, lead: string, second: string,
 
 // ------------------------------------------------------------ engine payloads
 
-/** Grouped payload: row titles plus each dataset's replicate rows. */
-export function groupedPayload(t: DataTableModel): {
+/** Grouped payload: row titles plus each dataset's replicate rows.
+ *  Excluded values are blank (as numericData's): analyses must never see
+ *  them, whichever caller builds the payload. */
+export function groupedPayload(table: DataTableModel): {
   row_titles: string[];
   datasets: { name: string; ys: (number | null)[][] }[];
 } {
+  const t = withExclusionsBlanked(table);
   return {
     row_titles: t.rowTitles.map((r, i) => r.trim() || `Row ${i + 1}`),
     datasets: t.datasets.map((d, i) => ({
