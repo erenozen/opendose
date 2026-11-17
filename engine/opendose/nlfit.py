@@ -1421,9 +1421,14 @@ def robust_fit(x_values, y_values, model: str, *,
 
 def rout_outliers(x_values, y_values, model: str, *, q: float = 0.01,
                   constraints: dict | None = None,
-                  sd=None, n=None, replicates: str = "account") -> dict:
+                  sd=None, n=None, replicates: str = "account",
+                  weighting: str = "none", ci_method: str = "asymptotic",
+                  weight_source: str = "predicted") -> dict:
     """ROUT: robust fit, then FDR-based outlier detection at rate Q,
-    then ordinary fit on the cleaned data (Motulsky & Brown 2006).
+    then a least-squares fit of the cleaned data (Motulsky & Brown 2006).
+    The detection uses the unweighted robust fit; the final fit uses the
+    weighting, weight_source and ci_method asked for (they were dropped
+    before, so ROUT with weighting returned the unweighted fit).
 
     With sd/n (rows entered as mean/SD/n) the robust fit and the outlier
     test see only the row means (robust regression cannot use SD and n;
@@ -1443,7 +1448,7 @@ def rout_outliers(x_values, y_values, model: str, *, q: float = 0.01,
             model, constraints=constraints,
             sd=[summ["sd"][i] for i in keep] if sd is not None else None,
             n=[summ["n"][i] for i in keep] if n is not None else None,
-            replicates=replicates)
+            replicates=replicates, weighting=weighting, ci_method=ci_method)
         return out
     x, y = _clean_xy(x_values, y_values)
     rob = robust_fit(x_values, y_values, model, constraints=constraints)
@@ -1465,7 +1470,8 @@ def rout_outliers(x_values, y_values, model: str, *, q: float = 0.01,
 
     keep = ~is_outlier
     cleaned_fit = fit_model(x[keep].tolist(), y[keep].tolist(), model,
-                            constraints=constraints)
+                            constraints=constraints, weighting=weighting,
+                            ci_method=ci_method, weight_source=weight_source)
     return {
         "method": "rout", "q": q, "rsdr": rob["rsdr"],
         "outliers": [{"x": float(x[i]), "y": float(y[i]),

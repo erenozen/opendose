@@ -105,8 +105,11 @@ def _dose_response(data, options):
             else:
                 xs, ys = _expand(x_col, ds["ys"])
             if rout_q:
-                rout = nlfit.rout_outliers(xs, ys, model, q=float(rout_q),
-                                           constraints=constraints, **s_kw)
+                rout = nlfit.rout_outliers(
+                    xs, ys, model, q=float(rout_q), constraints=constraints,
+                    weighting=weighting, ci_method=ci_method,
+                    weight_source=options.get("weight_source", "predicted"),
+                    **s_kw)
                 fit = rout["fit"]
                 entry["rout"] = {k: rout[k] for k in
                                  ("q", "rsdr", "outliers", "n_outliers")}
