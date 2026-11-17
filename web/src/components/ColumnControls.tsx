@@ -107,6 +107,12 @@ export default function ColumnControls({ options, datasetNames, onChange, summar
               );
             })}
           </div>
+          <label className="check-row">
+            <input type="checkbox" checked={!!options.lognormality}
+              onChange={(e) => set({ lognormality: e.target.checked })} />
+            <span>Also test for lognormality (the same tests on the logarithms) and compare normal
+              with lognormal by likelihood</span>
+          </label>
         </section>
       )}
 

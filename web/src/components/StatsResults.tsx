@@ -53,6 +53,26 @@ function KV({ title, rows }: { title?: string; rows: Row[] }) {
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+/** Rows of normality test results (suffix: " (logarithms)" for the
+ *  lognormality tests). */
+function normalityRows(tests: Record<string, any> | null | undefined, suffix = ""): Row[] {
+  return Object.entries(tests ?? {}).map(([key, v]: [string, any]) => {
+    const label = ({
+      shapiro_wilk: "Shapiro-Wilk",
+      dagostino_pearson: "D'Agostino-Pearson",
+      anderson_darling: "Anderson-Darling",
+      kolmogorov_smirnov: "Kolmogorov-Smirnov",
+    }[key] ?? key) + suffix;
+    if (v?.error) return [label, String(v.error)];
+    const pText = v.p == null && v.p_summary ? v.p_summary.replace("P>", "P > ")
+      : `${pLabel(v.p)}`;
+    const stat = key === "kolmogorov_smirnov" && v.KS != null
+      ? `KS distance = ${formatSig(v.KS)}, ` : "";
+    return [label,
+      `${stat}${pText}, ${v.passed_alpha_05 ? "passed" : "failed"} (α=0.05)`];
+  });
+}
+
 function ColumnStats({ result }: { result: any }) {
   return (
     <>
@@ -77,22 +97,17 @@ function ColumnStats({ result }: { result: any }) {
           ["Kurtosis", formatSig(d.kurtosis)],
           ["Sum", formatSig(d.sum)],
         ];
-        const norm: Row[] = Object.entries(ds.normality ?? {}).map(
-          ([key, v]: [string, any]) => {
-            const label = {
-              shapiro_wilk: "Shapiro-Wilk",
-              dagostino_pearson: "D'Agostino-Pearson",
-              anderson_darling: "Anderson-Darling",
-              kolmogorov_smirnov: "Kolmogorov-Smirnov",
-            }[key] ?? key;
-            if (v?.error) return [label, String(v.error)];
-            const pText = v.p == null && v.p_summary ? v.p_summary.replace("P>", "P > ")
-              : `${pLabel(v.p)}`;
-            const stat = key === "kolmogorov_smirnov" && v.KS != null
-              ? `KS distance = ${formatSig(v.KS)}, ` : "";
-            return [label,
-              `${stat}${pText}, ${v.passed_alpha_05 ? "passed" : "failed"} (α=0.05)`];
-          });
+        const norm: Row[] = normalityRows(ds.normality);
+        const logn = ds.lognormality;
+        const lognRows: Row[] = !logn ? [] : [
+          ...(logn.tests ? normalityRows(logn.tests, " (logarithms)")
+            : [["Lognormality tests", `not run: ${logn.not_run ?? "no test applies"}`] as Row]),
+          logn.comparison?.error
+            ? ["Normal vs lognormal likelihood", `not computed: ${logn.comparison.error}`]
+            : ["Normal vs lognormal likelihood",
+              `normal ${formatSig(100 * logn.comparison.p_normal, 3)}%, `
+              + `lognormal ${formatSig(100 * logn.comparison.p_lognormal, 3)}%`],
+        ];
         const extra: Row[] = [];
         if (ds.one_sample_t) {
           const t = ds.one_sample_t;
@@ -156,6 +171,7 @@ function ColumnStats({ result }: { result: any }) {
               <KV title="Descriptive" rows={rows} />
               <div>
                 <KV title="Normality" rows={norm} />
+                {lognRows.length > 0 && <KV title="Lognormality" rows={lognRows} />}
                 {extra.length > 0 && <KV title="One-sample tests" rows={extra} />}
                 {more.length > 0 && <KV title={`More descriptive statistics${x?.percentile_method === "prism" ? " (percentiles: rank (n + 1)p)" : ""}`} rows={more} />}
               </div>

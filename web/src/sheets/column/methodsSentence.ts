@@ -66,6 +66,11 @@ function testSentence(o: ColumnOptionsState, r: R): string {
       let s = "Descriptive statistics were computed for each data set"
         + (o.percentileMethod === "prism" ? " (percentiles from rank (n + 1)p)" : "");
       if (tests.length) s += `, and normality was assessed with ${list(tests)} test${tests.length > 1 ? "s" : ""} (α = 0.05)`;
+      if (o.lognormality) {
+        s += `${tests.length ? "; lognormality was assessed with the same tests on the logarithms" : ""}`
+          + ", and normal and lognormal distributions were compared by the likelihoods of their maximum-likelihood"
+          + " fits, normalized to sum to 100% (Burnham & Anderson 2002)";
+      }
       if (o.hypothetical.trim()) {
         s += `. Each column was compared with the hypothetical value ${o.hypothetical.trim()} by a one-sample t test and the Wilcoxon signed rank test`
           + (o.zeroMethod === "pratt" ? " (values equal to the hypothetical median handled by Pratt's method)" : "")

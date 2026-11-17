@@ -49,3 +49,10 @@ test("new choices map to the engine's handlers and options", () => {
   assert.deepEqual(columnPayload(table, o({ analysis: "rm_anova", rmKind: "nonparametric", rmExact: true })).options,
     { kind: "nonparametric", exact: true });
 });
+
+test("lognormality is sent only when asked for", () => {
+  const opts = (patch: Partial<ColumnOptionsState>) =>
+    columnPayload(table, o(patch)).options as Record<string, unknown>;
+  assert.equal("lognormality" in opts({}), false);
+  assert.equal(opts({ lognormality: true }).lognormality, true);
+});

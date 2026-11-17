@@ -375,6 +375,9 @@ export interface ColumnOptionsState {
   /** Two-group tests: also show a one-tailed P in a stated direction
    *  ("greater": A larger than B; engine p_greater / p_less). */
   ttestTails?: "two" | "greater" | "less";
+  /** Column statistics: the normality tests on the logarithms and the
+   *  normal vs lognormal likelihood comparison. */
+  lognormality?: boolean;
   /** Two-way ANOVA (rows × datasets): full or main-effects-only model. */
   twoWayModel?: TwoWayModel;
   /** Which comparisons the post test makes (Dunn's after Kruskal-Wallis or
@@ -428,6 +431,7 @@ export const DEFAULT_COLUMN_OPTIONS: ColumnOptionsState = {
   rmExact: false,
   corrTails: "two",
   ttestTails: "two",
+  lognormality: false,
   twoWayModel: "full",
 };
 

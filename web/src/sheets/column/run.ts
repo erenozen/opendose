@@ -123,6 +123,7 @@ export function columnPayload(table: DataTableModel, o: ColumnOptionsState):
         ...(o.percentileMethod === "prism" ? { percentile_method: "prism" } : {}),
         ...(o.descriptiveExtras ? { extras: true, ...(trim !== null ? { trim_k: trim } : {}) } : {}),
         ...(o.ratioT ? { ratio_t: true } : {}),
+        ...(o.lognormality ? { lognormality: true } : {}),
         ...pratt,
       } };
   }

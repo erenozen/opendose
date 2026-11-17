@@ -461,7 +461,8 @@ def _column_statistics(data, options):
                  extras=options.get("extras", False),
                  percentile_method=options.get("percentile_method",
                                                "linear"),
-                 trim_k=options.get("trim_k"))}
+                 trim_k=options.get("trim_k"),
+                 lognormality_tests=options.get("lognormality", False))}
             for name, col in zip(names, cols)
         ],
     }
