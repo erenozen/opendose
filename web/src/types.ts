@@ -356,6 +356,8 @@ export interface ColumnOptionsState {
   unequalFamily?: "all" | "control";
   /** Kruskal-Wallis: Dunn's multiplicity correction (false = uncorrected). */
   dunnCorrected?: boolean;
+  /** Kruskal-Wallis: exact P (small samples, ties included). */
+  kwExact?: boolean;
   /** Wilcoxon tests: values equal to the hypothetical / zero differences
    *  dropped (Wilcoxon) or ranked and ignored (Pratt). */
   zeroMethod?: "wilcox" | "pratt";
@@ -413,6 +415,7 @@ export const DEFAULT_COLUMN_OPTIONS: ColumnOptionsState = {
   unequalComparisons: "games_howell",
   unequalFamily: "all",
   dunnCorrected: true,
+  kwExact: false,
   zeroMethod: "wilcox",
   normalityTests: [...DEFAULT_NORMALITY_TESTS],
   percentileMethod: "linear",

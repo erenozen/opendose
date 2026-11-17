@@ -318,9 +318,10 @@ function Anova({ result }: { result: any }) {
         <KV rows={[
           ["Kruskal-Wallis H", formatSig(result.H)],
           ...(Array.isArray(result.group_summaries) && result.group_summaries.length > 1
+            && result.p_method !== "exact"
             ? [["df (chi-square approximation)", String(result.group_summaries.length - 1)] as Row]
             : []),
-          ["P value", `${fmtP(result.p)} ${stars(result.p)}`],
+          [`P value${pKind(result.p_method)}`, `${fmtP(result.p)} ${stars(result.p)}`],
         ]} />
         {result.dunns && (
           <>

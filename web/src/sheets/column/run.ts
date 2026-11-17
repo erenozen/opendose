@@ -154,6 +154,7 @@ export function columnPayload(table: DataTableModel, o: ColumnOptionsState):
         control_index: o.controlIndex,
         ...(o.anovaKind === "nonparametric" && o.dunnCorrected === false
           ? { dunn_corrected: false } : {}),
+        ...(o.anovaKind === "nonparametric" && o.kwExact ? { exact: true } : {}),
         // each vs. control or planned pairs (comparisonsFamily.ts)
         ...familyOptions(o, base.data.datasets.length),
         ...logScaleOptions(o),

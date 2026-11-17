@@ -229,6 +229,13 @@ export default function ColumnControls({ options, datasetNames, onChange, summar
           )}
           {options.anovaKind === "nonparametric" && (
             <label className="check-row">
+              <input type="checkbox" checked={!!options.kwExact}
+                onChange={(e) => set({ kwExact: e.target.checked })} />
+              <span>Exact P value (small samples, ties included; approximate when too large)</span>
+            </label>
+          )}
+          {options.anovaKind === "nonparametric" && (
+            <label className="check-row">
               <input type="checkbox" checked={options.dunnCorrected === false}
                 onChange={(e) => set({ dunnCorrected: !e.target.checked })} />
               <span>Uncorrected Dunn&apos;s test (no correction for multiple comparisons)</span>

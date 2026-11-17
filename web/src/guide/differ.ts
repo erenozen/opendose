@@ -107,8 +107,11 @@ export function differNotes(ctx: ResultContext): DifferItem[] {
         elsewhere: "R's oneway.test(var.equal = FALSE) gives Welch's W; aov() assumes equal SDs." });
       break;
     case "kruskal":
-      items.push({ topic: "Ties", used: "Kruskal-Wallis H corrected for ties; chi-square approximation for P.",
-        elsewhere: "Exact Kruskal-Wallis P values (some programs, small samples) differ." });
+      items.push({ topic: "Ties", used: "Kruskal-Wallis H corrected for ties; "
+          + (o.kwExact ? "exact P (ties included) when the samples are small enough, else chi-square."
+            : "chi-square approximation for P."),
+        elsewhere: o.kwExact ? "Programs that only use the chi-square approximation differ for small samples."
+          : "Exact Kruskal-Wallis P values (some programs, small samples) differ." });
       items.push({ topic: "Dunn's test", used: o.dunnCorrected === false
         ? "Two-sided P values, not corrected for multiple comparisons."
         : "Two-sided P values multiplied by the number of comparisons (Bonferroni-style), every pair.",

@@ -681,7 +681,8 @@ def _anova(data, options):
                       control=options.get("control",
                                           options.get("control_index", 0)),
                       pairs=options.get("pairs"),
-                      dunn_correction=options.get("dunn_correction"))}
+                      dunn_correction=options.get("dunn_correction"),
+                      exact=options.get("exact", False))}
         if warnings:
             result["warnings"] = warnings
         return result

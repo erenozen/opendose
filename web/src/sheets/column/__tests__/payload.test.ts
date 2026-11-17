@@ -34,6 +34,9 @@ test("new choices map to the engine's handlers and options", () => {
   assert.deepEqual(columnPayload(table, o({ analysis: "anova", anovaKind: "nonparametric",
     dunnCorrected: false })).options,
   { kind: "nonparametric", comparisons: "tukey", control_index: 0, dunn_corrected: false });
+  assert.deepEqual(columnPayload(table, o({ analysis: "anova", anovaKind: "nonparametric",
+    kwExact: true })).options,
+  { kind: "nonparametric", comparisons: "tukey", control_index: 0, exact: true });
   assert.equal(columnPayload(table, o({ analysis: "median_test" })).analysis, "median_test");
   assert.deepEqual(columnPayload(table, o({ analysis: "ttest", ttestKind: "kolmogorov_smirnov" })).options,
     { kind: "kolmogorov_smirnov", welch: false, dataset_a: 0, dataset_b: 1 });

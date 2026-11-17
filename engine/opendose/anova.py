@@ -19,6 +19,11 @@ Prism statistics guide, "One-way ANOVA (and nonparametric)":
     not a Prism option; R's p.adjust "holm"). No CIs for step-down
     methods.
 - Nonparametric: Kruskal-Wallis (tie-corrected H) with Dunn's post test.
+  "Interpreting results: Kruskal-Wallis test": the P value is exact for
+  small samples, ties included, else from the chi-square approximation,
+  and labelled as such. kruskal_wallis(..., exact=True) applies that rule
+  (opendose.exactdist, within a computation budget) and labels p_method;
+  the default keeps the chi-square approximation.
   Dunn's z uses the tie-corrected SE the guide gives ("How the Dunn
   method for nonparametric comparisons works"): sqrt([N(N+1) -
   sum(T^3 - T)/(N - 1)] / 12 * (1/n_i + 1/n_j)); corrected (x number of
@@ -495,9 +500,12 @@ def _comparisons_from_stats(means, ns, ms_res, df_res, method: str, *,
 def kruskal_wallis(datasets, names=None, *, dunns: bool = True,
                    dunn_corrected: bool = True, dunn_family: str = "all",
                    control: int = 0, pairs=None,
-                   dunn_correction: str | None = None) -> dict:
+                   dunn_correction: str | None = None,
+                   exact: bool = False) -> dict:
     """Kruskal-Wallis H (tie-corrected) with Dunn's post test.
 
+    exact: the exact permutation P (ties included) when it fits the
+    computation budget, else the chi-square P; p_method says which.
     dunn_family: "all" pairs, "control" (each group vs groups[control],
     k - 1 comparisons) or "pairs" (the planned pairs [[i, j], ...]);
     dunn_correction: "bonferroni" (Dunn 1964; the guide's default),
@@ -508,6 +516,14 @@ def kruskal_wallis(datasets, names=None, *, dunns: bool = True,
     if len(groups) < 2:
         raise ValueError("Kruskal-Wallis needs at least 2 groups")
     h, p = stats.kruskal(*groups)
+    p_method = None
+    if exact:
+        from . import exactdist
+        p_exact = exactdist.kruskal_wallis_exact_p(groups)
+        if p_exact is None:
+            p_method = "approximate"
+        else:
+            p, p_method = p_exact, "exact"
     names = names or [f"Group {i}" for i in range(len(groups))]
     out = {
         "H": float(h), "p": float(p),
@@ -516,6 +532,8 @@ def kruskal_wallis(datasets, names=None, *, dunns: bool = True,
             for i, g in enumerate(groups)
         ],
     }
+    if p_method is not None:
+        out["p_method"] = p_method
     if dunns:
         out["dunns"] = _dunns(groups, names, corrected=dunn_corrected,
                               family=dunn_family, control=control,

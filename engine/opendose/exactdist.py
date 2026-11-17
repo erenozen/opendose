@@ -22,6 +22,14 @@ GraphPad statistics guide pages whose documented rules these implement:
 - "Interpreting results: Friedman test": exact when (T!)^S <= 10^9 (T
   treatments, S subjects), ties allowed; values are permuted within each
   row. friedman_exact_p() convolves the per-row rank permutations.
+- "Interpreting results: Kruskal-Wallis test": "If your samples are
+  small (even if there are ties), Prism calculates an exact P value",
+  else the chi-square approximation, and the P value is labelled exact
+  or approximate. The guide gives no numeric threshold.
+  kruskal_wallis_exact_p() is the shuffle distribution of the pooled
+  midranks over groups of the observed sizes; it gives up (returns None)
+  when its work exceeds KW_EXACT_STATE_BUDGET, so the cost, not a sample
+  size rule, decides when the approximation is used.
 - "How the Dunnett T3, Games and Howell, and Tamhane T2 tests work":
   Dunnett's T3 takes its P values and critical values from the
   studentized maximum modulus distribution (smm_cdf / smm_ppf).
@@ -263,6 +271,90 @@ def friedman_exact_p(M) -> float:
     p_value = sum(prob for st, prob in states.items()
                   if sum(v * v for v in st) >= obs)
     return float(min(p_value, 1.0))
+
+
+# ----------------------------------------------------------- Kruskal-Wallis
+
+# Most (count, rank sum) states the exact Kruskal-Wallis recursion may hold
+# at once; beyond it the chi-square approximation is used. Measured natively:
+# under 1 s for any design, exact or given up (3-10 groups; e.g. 4 + 6 + 8
+# values without ties, or 5 + 8 + 11 with ties, are still exact); Pyodide is
+# a few times slower.
+KW_EXACT_STATE_BUDGET = 50_000
+
+
+def kruskal_wallis_exact_p(groups, *, state_budget: int = KW_EXACT_STATE_BUDGET
+                           ) -> float | None:
+    """Exact P for the Kruskal-Wallis test, ties included: the fraction of
+    the N! / prod(n_j!) equally likely assignments of the pooled midranks to
+    groups of the observed sizes whose sum(R_j^2 / n_j) is >= the observed
+    one (the tie correction and the other terms of H are the same for every
+    assignment, so this orders the assignments as H does).
+
+    The ranks are dealt out one at a time; a state is the (count, doubled
+    rank sum) of every group, with groups of equal size kept sorted
+    (relabelling them changes nothing). Returns None, without finishing,
+    once more than state_budget states are live."""
+    sizes = [int(np.asarray(g).size) for g in groups]
+    if len(sizes) < 2 or min(sizes) < 1:
+        raise ValueError("Kruskal-Wallis needs at least 2 non-empty groups")
+    if len(sizes) == 2:
+        # H grows with |R - E[R]| of either group: the two-sided exact
+        # Mann-Whitney P, whose rank-sum table is much cheaper
+        if not rank_sum_exact_feasible(min(sizes), max(sizes)):
+            return None
+        return rank_sum_two_sided_p(groups[0], groups[1])
+    r2 = doubled_midranks(np.concatenate([np.asarray(g, float)
+                                          for g in groups])).tolist()
+    # sum(S_j^2 / n_j) scaled by lcm(n) to stay an integer (S_j doubled)
+    lcm = math.lcm(*sizes)
+
+    def score(pairs) -> int:
+        return sum(s * s * (lcm // c) for c, s in pairs)
+
+    start = 0
+    observed = []
+    for n in sizes:
+        observed.append((n, sum(r2[start:start + n])))
+        start += n
+    obs = score(observed)
+
+    caps = sorted(sizes)
+    blocks = []  # [a, b): runs of equal sizes, whose states are kept sorted
+    a = 0
+    while a < len(caps):
+        b = a
+        while b < len(caps) and caps[b] == caps[a]:
+            b += 1
+        blocks.append((a, b))
+        a = b
+
+    def canonical(st):
+        if len(blocks) == len(caps):
+            return tuple(st)
+        out = []
+        for a, b in blocks:
+            out.extend(sorted(st[a:b]))
+        return tuple(out)
+
+    states = {tuple((0, 0) for _ in caps): 1}
+    for r in r2:
+        new = {}
+        for st, ways in states.items():
+            for g, (c, s) in enumerate(st):
+                if c == caps[g]:
+                    continue
+                nxt = list(st)
+                nxt[g] = (c + 1, s + r)
+                key = canonical(nxt)
+                new[key] = new.get(key, 0) + ways
+        if len(new) > state_budget:
+            return None
+        states = new
+    # integer counts throughout, so the P value is exact
+    total = sum(states.values())
+    hits = sum(w for st, w in states.items() if score(st) >= obs)
+    return float(min(hits / total, 1.0))
 
 
 # ------------------------------------- studentized maximum modulus (T3)

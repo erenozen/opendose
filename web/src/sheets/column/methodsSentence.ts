@@ -89,6 +89,8 @@ function testSentence(o: ColumnOptionsState, r: R): string {
     case "anova": {
       if (o.anovaKind === "nonparametric") {
         return "Groups were compared with the Kruskal-Wallis test"
+          + (o.kwExact ? (r.p_method === "exact" ? " (exact P value)"
+            : " (approximate P value; the samples are too large for the exact one)") : "")
           + ` (H = ${formatSig(r.H)}, ${P(r.p)})`
           + (r.dunns ? `, followed by Dunn's multiple comparisons test${r.dunns.corrected === false ? " without correction for multiple comparisons" : withFamily(r.dunns, "dunns")}` : "")
           + ".";
