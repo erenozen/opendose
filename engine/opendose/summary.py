@@ -518,7 +518,17 @@ def one_sample_t_summary(group, hypothetical: float, *,
         "ci_discrepancy": [diff - tcrit * sem, diff + tcrit * sem],
         "r_squared": float(t_stat ** 2 / (t_stat ** 2 + (n - 1))),
         "exact": g["exact"],
+        **_one_sided(diff, sem, n - 1, ci_level),
     }
+
+
+def _one_sided(diff, sem, df, ci_level):
+    """One-tailed P and one-sided bounds of the discrepancy, as
+    columnstats.one_sample_t."""
+    one = ttests.one_sided_t(diff, sem, df, ci_level)
+    return {"p_greater": one["p_greater"], "p_less": one["p_less"],
+            "ci_discrepancy_greater": one["ci_greater"],
+            "ci_discrepancy_less": one["ci_less"]}
 
 
 def _bartlett(sds, ns) -> dict:

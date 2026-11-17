@@ -7,6 +7,7 @@ import { familyMethodsClause, familyOf } from "../../report/family";
 import { DEFAULT_NORMALITY_TESTS, NORMALITY_TEST_LABELS, formatSig } from "../../types";
 import { logMethodsSentence } from "./logScale";
 import { rmMethodsSentence } from "./rmPosthoc";
+import { oneTailedAlternative } from "./tails";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type R = Record<string, any>;
@@ -73,18 +74,15 @@ function testSentence(o: ColumnOptionsState, r: R): string {
       return `${s}.`;
     }
     case "ttest": {
-      const [a, b] = r.names ?? ["A", "B"];
-      const pair = `${a} and ${b}`;
-      switch (o.ttestKind) {
-        case "unpaired": return `${pair} were compared with an unpaired two-tailed t test (t = ${formatSig(r.t)}, df = ${formatSig(r.df)}, ${P(r.p_two_tailed)}).`;
-        case "welch": return `${pair} were compared with an unpaired two-tailed t test with Welch's correction, not assuming equal SDs (t = ${formatSig(r.t)}, df = ${formatSig(r.df)}, ${P(r.p_two_tailed)}).`;
-        case "paired": return `${pair} were compared with a two-tailed paired t test (t = ${formatSig(r.t)}, df = ${r.df}, ${P(r.p_two_tailed)}).`;
-        case "ratio_paired": return `${pair} were compared with a two-tailed ratio paired t test on the logarithms of the paired values; the geometric mean of the ratios was ${formatSig(r.geometric_mean_ratio)} (95% CI ${formatSig(r.ci_ratio?.[0])} to ${formatSig(r.ci_ratio?.[1])}, ${P(r.p_two_tailed)}).`;
-        case "mann_whitney": return `${pair} were compared with the two-tailed Mann-Whitney test${pHow(r)} (U = ${formatSig(r.U)}, ${P(r.p_two_tailed)}); the difference is summarized by the Hodges-Lehmann estimate (${formatSig(r.hodges_lehmann_difference)}).`;
-        case "kolmogorov_smirnov": return `The distributions of ${pair} were compared with the two-sample Kolmogorov-Smirnov test${pHow(r)} (D = ${formatSig(r.D)}, ${P(r.p)}).`;
-        case "wilcoxon": return `${pair} were compared with the two-tailed Wilcoxon matched-pairs signed rank test${pHow(r)}${o.zeroMethod === "pratt" ? ", handling zero differences by Pratt's method" : ""} (W = ${formatSig(r.W)}, ${P(r.p_two_tailed)}).`;
-        default: return "";
-      }
+      const s = ttestSentence(o, r);
+      // the one-tailed P the results card shows (not on the log scale card)
+      const tails = o.ttestTails;
+      if (!s || (tails !== "greater" && tails !== "less") || o.ttestKind === "kolmogorov_smirnov"
+        || r.ratio != null) return s;
+      const p = tails === "greater" ? r.p_greater : r.p_less;
+      if (typeof p !== "number") return s;
+      return `${s} A one-tailed P value was also computed for the direction stated in advance (alternative: `
+        + `${oneTailedAlternative(r, tails)}; ${P(p)}).`;
     }
     case "anova": {
       if (o.anovaKind === "nonparametric") {
@@ -143,3 +141,18 @@ function testSentence(o: ColumnOptionsState, r: R): string {
   }
 }
 
+/** The sentence of a two-group test, two-tailed, by test kind. */
+function ttestSentence(o: ColumnOptionsState, r: R): string {
+  const [a, b] = r.names ?? ["A", "B"];
+  const pair = `${a} and ${b}`;
+  switch (o.ttestKind) {
+    case "unpaired": return `${pair} were compared with an unpaired two-tailed t test (t = ${formatSig(r.t)}, df = ${formatSig(r.df)}, ${P(r.p_two_tailed)}).`;
+    case "welch": return `${pair} were compared with an unpaired two-tailed t test with Welch's correction, not assuming equal SDs (t = ${formatSig(r.t)}, df = ${formatSig(r.df)}, ${P(r.p_two_tailed)}).`;
+    case "paired": return `${pair} were compared with a two-tailed paired t test (t = ${formatSig(r.t)}, df = ${r.df}, ${P(r.p_two_tailed)}).`;
+    case "ratio_paired": return `${pair} were compared with a two-tailed ratio paired t test on the logarithms of the paired values; the geometric mean of the ratios was ${formatSig(r.geometric_mean_ratio)} (95% CI ${formatSig(r.ci_ratio?.[0])} to ${formatSig(r.ci_ratio?.[1])}, ${P(r.p_two_tailed)}).`;
+    case "mann_whitney": return `${pair} were compared with the two-tailed Mann-Whitney test${pHow(r)} (U = ${formatSig(r.U)}, ${P(r.p_two_tailed)}); the difference is summarized by the Hodges-Lehmann estimate (${formatSig(r.hodges_lehmann_difference)}).`;
+    case "kolmogorov_smirnov": return `The distributions of ${pair} were compared with the two-sample Kolmogorov-Smirnov test${pHow(r)} (D = ${formatSig(r.D)}, ${P(r.p)}).`;
+    case "wilcoxon": return `${pair} were compared with the two-tailed Wilcoxon matched-pairs signed rank test${pHow(r)}${o.zeroMethod === "pratt" ? ", handling zero differences by Pratt's method" : ""} (W = ${formatSig(r.W)}, ${P(r.p_two_tailed)}).`;
+    default: return "";
+  }
+}

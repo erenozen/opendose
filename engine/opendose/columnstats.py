@@ -202,6 +202,16 @@ def normality_tests(values, tests=None) -> dict:
     return out
 
 
+def _one_sided_discrepancy(diff, sem, df, ci_level):
+    """One-tailed P (mean above / below the hypothetical value) and the
+    one-sided bounds of the discrepancy (opendose.ttests.one_sided_t)."""
+    from .ttests import one_sided_t
+    one = one_sided_t(diff, sem, df, ci_level)
+    return {"p_greater": one["p_greater"], "p_less": one["p_less"],
+            "ci_discrepancy_greater": one["ci_greater"],
+            "ci_discrepancy_less": one["ci_less"]}
+
+
 def one_sample_t(values, hypothetical: float, ci_level: float = 0.95) -> dict:
     arr = _clean(values)
     n = arr.size
@@ -223,6 +233,7 @@ def one_sample_t(values, hypothetical: float, ci_level: float = 0.95) -> dict:
         "r_squared": float(t_stat ** 2 / (t_stat ** 2 + (n - 1))),
         "effect_size": effectsize.safe(effectsize.one_sample_d, arr,
                                        hypothetical, ci_level=ci_level),
+        **_one_sided_discrepancy(diff, sem, n - 1, ci_level),
     }
 
 
@@ -250,7 +261,7 @@ def wilcoxon_signed_rank(values, hypothetical: float, *,
     }
     out.update({key: res[key] for key in (
         "p_method", "zero_method", "sum_positive_ranks",
-        "sum_negative_ranks", "n_zero_differences")})
+        "sum_negative_ranks", "n_zero_differences", "p_greater", "p_less")})
     ci = walsh_ci(arr, ci_level)
     out.update({"hodges_lehmann_median": ci["hodges_lehmann"],
                 "ci_median": ci["ci_median"],

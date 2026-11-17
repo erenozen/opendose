@@ -104,6 +104,24 @@ def rank_sum_two_sided_p(values_a, values_b) -> float:
     return float(min(dist[mask].sum(), 1.0))
 
 
+def rank_sum_one_sided_p(values_a, values_b) -> tuple[float, float]:
+    """Exact one-tailed permutation P values of the Mann-Whitney test (ties
+    ok) for group a: (P(R_a >= r_a), P(R_a <= r_a)), R_a = a's rank sum.
+    Computed on the smaller group's rank sum (the total is fixed, so a
+    large R_a is a small rank sum of b)."""
+    a = np.asarray(values_a, dtype=float)
+    b = np.asarray(values_b, dtype=float)
+    swap = a.size > b.size
+    small, large = (b, a) if swap else (a, b)
+    r2 = doubled_midranks(np.concatenate([small, large]))
+    obs2 = int(r2[:small.size].sum())
+    dist = rank_sum_null(r2, small.size)
+    s2 = np.arange(dist.size)
+    ge = float(min(dist[s2 >= obs2].sum(), 1.0))
+    le = float(min(dist[s2 <= obs2].sum(), 1.0))
+    return (le, ge) if swap else (ge, le)
+
+
 # ------------------------------------------------------- signed rank (WSR)
 
 def signed_rank_null(ranks2) -> np.ndarray:
@@ -131,6 +149,18 @@ def signed_rank_two_sided_p(ranks2, positive_mask) -> float:
     s = np.arange(dist.size)
     mask = np.abs(2 * s - total) >= abs(2 * t_obs - total)
     return float(min(dist[mask].sum(), 1.0))
+
+
+def signed_rank_one_sided_p(ranks2, positive_mask) -> tuple[float, float]:
+    """Exact one-tailed P values of the signed-rank statistic:
+    (P(T+ >= t+), P(T+ <= t+)), ranks2 = doubled ranks of the nonzero
+    differences."""
+    ranks2 = np.asarray(ranks2, dtype=np.int64)
+    t_obs = int(ranks2[np.asarray(positive_mask, bool)].sum())
+    dist = signed_rank_null(ranks2)
+    s = np.arange(dist.size)
+    return (float(min(dist[s >= t_obs].sum(), 1.0)),
+            float(min(dist[s <= t_obs].sum(), 1.0)))
 
 
 def signed_rank_ci_index(n: int, ci_level: float):

@@ -153,6 +153,24 @@ export default function ColumnControls({ options, datasetNames, onChange, summar
           </select>
           {pickDataset("Group A", options.datasetA, "datasetA")}
           {pickDataset("Group B", options.datasetB, "datasetB")}
+          {options.ttestKind !== "kolmogorov_smirnov" && (
+            <label className="check-row">
+              <span>P value</span>
+              <select value={options.ttestTails ?? "two"}
+                onChange={(e) => set({ ttestTails: e.target.value as "two" | "greater" | "less" })}>
+                <option value="two">Two-tailed</option>
+                <option value="greater">Also one-tailed: Group A larger than Group B expected</option>
+                <option value="less">Also one-tailed: Group A smaller than Group B expected</option>
+              </select>
+            </label>
+          )}
+          {options.ttestKind !== "kolmogorov_smirnov" && (options.ttestTails ?? "two") !== "two" && (
+            <p className="hint-block">
+              Choose the direction before looking at the data; a one-tailed P is
+              half the two-tailed P only when the result goes the expected way.
+              Graphs, legends and report sentences keep the two-tailed P.
+            </p>
+          )}
           <LogScaleOption options={options} onChange={onChange} summaryData={summaryData} />
           {options.ttestKind === "wilcoxon" && (
             <ZeroMethod value={options.zeroMethod ?? "wilcox"}

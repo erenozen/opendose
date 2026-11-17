@@ -372,6 +372,9 @@ export interface ColumnOptionsState {
   /** Correlation: also report a one-sided P (and bound) in the stated
    *  direction (R's cor.test alternative = "greater" / "less"). */
   corrTails?: "two" | "greater" | "less";
+  /** Two-group tests: also show a one-tailed P in a stated direction
+   *  ("greater": A larger than B; engine p_greater / p_less). */
+  ttestTails?: "two" | "greater" | "less";
   /** Two-way ANOVA (rows × datasets): full or main-effects-only model. */
   twoWayModel?: TwoWayModel;
   /** Which comparisons the post test makes (Dunn's after Kruskal-Wallis or
@@ -424,6 +427,7 @@ export const DEFAULT_COLUMN_OPTIONS: ColumnOptionsState = {
   ratioT: false,
   rmExact: false,
   corrTails: "two",
+  ttestTails: "two",
   twoWayModel: "full",
 };
 

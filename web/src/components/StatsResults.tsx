@@ -5,13 +5,14 @@ import FamilyLine from "../sheets/common/FamilyLine";
 import ResidualsSection from "../sheets/column/residualsPanel";
 import { LogAnovaRatios, LogTTest } from "../sheets/column/logScaleResults";
 import { onLogScale } from "../sheets/column/logScale";
+import { oneTailedAlternative } from "../sheets/column/tails";
 import { MixedRmOneWay, RmComparisons } from "../sheets/column/rmPosthocResults";
 import { rmComparisonsOf } from "../sheets/column/rmPosthoc";
 
 interface Props {
   result: Record<string, unknown> | null;
   /** The column analysis' options (which one-sided P to show, ...). */
-  options?: { corrTails?: "two" | "greater" | "less" };
+  options?: { corrTails?: "two" | "greater" | "less"; ttestTails?: "two" | "greater" | "less" };
 }
 
 type Row = [string, string];
@@ -166,13 +167,35 @@ function ColumnStats({ result }: { result: any }) {
   );
 }
 
-function TTest({ result }: { result: any }) {
+type Tails = "two" | "greater" | "less";
+
+/** One-tailed P (and the one-sided 95% bound of t tests) in the direction
+ *  the user chose; the two-tailed P stays above it. */
+function oneTailedRows(result: any, tails: Tails | undefined): Row[] {
+  if (tails !== "greater" && tails !== "less") return [];
+  const p = tails === "greater" ? result.p_greater : result.p_less;
+  if (typeof p !== "number") return [];
+  const [a, b] = result.names ?? ["A", "B"];
+  const rows: Row[] = [[`P value (one-tailed${pKind(result.p_method)}; alternative: ${oneTailedAlternative(result, tails)})`,
+    `${fmtP(p)} ${stars(p)}`]];
+  const ratio = result.test === "ratio_paired_t";
+  const bound = ratio ? result[`ci_ratio_${tails}`] : result[`ci_difference_${tails}`];
+  if (Array.isArray(bound)) {
+    const what = ratio ? `${a}/${b}` : result.test === "paired_t" ? `mean of ${a} − ${b}` : `${a} − ${b}`;
+    rows.push(["One-sided 95% confidence bound", tails === "greater"
+      ? `${what} ≥ ${formatSig(bound[0])}` : `${what} ≤ ${formatSig(bound[1])}`]);
+  }
+  return rows;
+}
+
+function TTest({ result, tails }: { result: any; tails?: Tails }) {
   const [nameA, nameB] = result.names ?? ["A", "B"];
   if (result.test === "kolmogorov_smirnov") return <KSTest result={result} />;
-  if (result.test === "ratio_paired_t") return <RatioPaired result={result} />;
+  if (result.test === "ratio_paired_t") return <RatioPaired result={result} tails={tails} />;
   const rows: Row[] = [];
   rows.push([`P value (two-tailed${pKind(result.p_method)})`,
     `${fmtP(result.p_two_tailed)} ${stars(result.p_two_tailed)}`]);
+  rows.push(...oneTailedRows(result, tails));
   if (result.t !== undefined) {
     // The engine reports |t|; t carries the sign of the difference shown
     // below (A − B, or the mean of the paired differences A − B).
@@ -707,13 +730,14 @@ function KSTest({ result }: { result: any }) {
   );
 }
 
-function RatioPaired({ result }: { result: any }) {
+function RatioPaired({ result, tails }: { result: any; tails?: Tails }) {
   const [a, b] = result.names ?? ["A", "B"];
   return (
     <div className="result-card">
       <h3>Ratio paired t test: {a} / {b}</h3>
       <KV rows={[
         ["P value (two-tailed)", `${fmtP(result.p_two_tailed)} ${stars(result.p_two_tailed)}`],
+        ...oneTailedRows(result, tails),
         ["t, df", `t=${formatSig(result.t)}, df=${result.df}`],
         ["Geometric mean of the ratios", formatSig(result.geometric_mean_ratio)],
         ["95% CI of the ratio", fmtCI(result.ci_ratio)],
@@ -834,7 +858,7 @@ function mainResults(result: Record<string, unknown>, options: Props["options"])
   switch (result.analysis) {
     case "column_statistics": return <ColumnStats result={result} />;
     case "ttest": return onLogScale(result) && result.ratio != null
-      ? <LogTTest result={result} /> : <TTest result={result} />;
+      ? <LogTTest result={result} /> : <TTest result={result} tails={options?.ttestTails} />;
     case "anova": return onLogScale(result) && result.kind !== "nonparametric" && result.table
       ? <><LogAnovaRatios result={result} /><Anova result={result} /></> : <Anova result={result} />;
     case "anova_unequal_var": return <AnovaUnequal result={result} />;
