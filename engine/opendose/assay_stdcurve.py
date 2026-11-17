@@ -53,7 +53,11 @@ the direction of the standards, or the X-is-concentration variable-
 slope form when log_x is False), "5pl" (asymmetrical five parameter),
 "linear" (straight line on X or log X), "loglog" (straight line of
 log10 signal on log10 concentration, the usual "log-log" standard
-curve).
+curve), "quadratic" (second-order polynomial on concentration, common for
+colorimetric protein assays such as BCA; interpolated only within the
+standards' range, and only on the side of its turning point the
+standards are on, since a parabola reads two concentrations for one
+signal past its vertex).
 """
 
 from __future__ import annotations
@@ -66,7 +70,7 @@ from scipy.optimize import brentq
 
 from . import equations, interpolate, nlfit  # noqa: F401 (registers 5PL)
 
-MODELS = ("4pl", "5pl", "linear", "loglog")
+MODELS = ("4pl", "5pl", "linear", "loglog", "quadratic")
 _WEIGHT_ALIASES = {"none": "none", "1/Y": "1/Y", "1/Y2": "1/Y2",
                    "1/Y^2": "1/Y2", "1/y": "1/Y", "1/y2": "1/Y2"}
 
@@ -111,6 +115,23 @@ class _Curve:
         self.x_lo, self.x_hi = lo - pad, hi + pad
         if not self.log_x and kind in ("4pl", "5pl"):
             self.x_lo = max(self.x_lo, 0.0)
+        self.turns_inside = False
+        if kind == "quadratic":
+            # no extrapolation, and never across the vertex: one signal
+            # reads two concentrations there
+            self.x_lo, self.x_hi = lo, hi
+            b1 = fit["fitted_values"]["B1"]
+            b2 = fit["fitted_values"]["B2"]
+            if b2 != 0:
+                xv = -b1 / (2.0 * b2)
+                if lo < xv < hi:
+                    self.turns_inside = True
+                    # keep the side holding most of the standards
+                    below = int(np.sum(np.asarray(x_fit) <= xv))
+                    if below >= len(x_fit) - below:
+                        self.x_hi = xv
+                    else:
+                        self.x_lo = xv
         spec = nlfit.MODELS[fit["model"]]
         f = lambda v: spec.func(np.asarray(v, float), fit["fitted_values"])
         y_lo, y_hi = float(f([self.x_lo])[0]), float(f([self.x_hi])[0])
@@ -198,6 +219,8 @@ def _model_for(kind, log_x, increasing):
                 else ("asymmetric_5pl", "EC50"))
     if kind == "linear":
         return "straight_line", ("Yintercept" if log_x else "Slope")
+    if kind == "quadratic":
+        return "polynomial_second", "B0"
     return "straight_line", "Yintercept"          # loglog
 
 
@@ -257,6 +280,11 @@ def fit_standards(standards, *, model="4pl", weighting="none",
         fit = nlfit.fit_model(xs, ys, model_id, weighting=weighting,
                               constraints=constraints)
     curve = _Curve(model, log_x, fit, location, np.array(xs), np.array(ys))
+    if curve.turns_inside:
+        warnings.append("The quadratic curve turns within the standards' "
+                        "range, so one signal matches two concentrations "
+                        "there; unknowns are read only up to the turning "
+                        "point. Consider a 4PL fit or fewer high standards.")
     if fit.get("status") == "ambiguous":
         warnings.append("The standard-curve fit is ambiguous: some "
                         "parameters are not determined by the standards.")

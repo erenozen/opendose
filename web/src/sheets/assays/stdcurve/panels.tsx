@@ -538,11 +538,13 @@ export function StdMethods({ options: o, result }: ResultsProps<StdOptions, StdR
     "5pl": "a five-parameter asymmetric logistic model",
     linear: o.logX ? "a straight line on log10(concentration)" : "a straight line",
     loglog: "a straight line of log10(signal) on log10(concentration)",
+    quadratic: "a second-order polynomial on concentration, read only within the standards' range",
   };
   const q = res.quantification_range ?? {};
   const text = `Standards${res.blank != null ? " (blank-subtracted)" : ""} were fitted with ${model[o.model]}`
     + `${o.weighting !== "none" ? `, weighted by ${o.weighting === "1/Y" ? "1/Y" : "1/Y²"}` : ""}`
-    + `${o.bottom ? `, Bottom held at ${o.bottom}` : ""}. Calibration acceptance followed ICH M10 (2022): `
+    // the Bottom constant applies to the logistic models only (model.ts)
+    + `${o.bottom && (o.model === "4pl" || o.model === "5pl") ? `, Bottom held at ${o.bottom}` : ""}. Calibration acceptance followed ICH M10 (2022): `
     + `back-calculated standards within ±${o.accuracy}% of nominal (±${o.accuracyEnds}% at the LLOQ and ULOQ) `
     + `with CV ≤ ${o.precision}% (${o.precisionEnds}%), at least ${Math.round(o.minFraction * 100)}% of standards `
     + `and ${o.minLevels} levels passing. The quantification range was ${num(q.lloq) || "undefined"} to `

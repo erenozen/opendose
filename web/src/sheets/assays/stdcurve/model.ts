@@ -38,13 +38,14 @@ export const STD_ROLES: RoleSpec<StdRole>[] = [
 
 const SIGNAL_RE = /^(signal|od|abs|absorbance|rep|replicate|read|rfu|rlu|lum|fluor|mfi|value|response)/i;
 
-export type StdModel = "4pl" | "5pl" | "linear" | "loglog";
+export type StdModel = "4pl" | "5pl" | "linear" | "loglog" | "quadratic";
 
 export const MODEL_LABELS: Record<StdModel, string> = {
   "4pl": "Four-parameter logistic (4PL), X = log(concentration)",
   "5pl": "Five-parameter asymmetric logistic (5PL)",
   linear: "Straight line",
   loglog: "Log-log straight line (log signal vs log concentration)",
+  quadratic: "Quadratic (second-order polynomial), e.g. BCA protein assays",
 };
 
 export type Weighting = "none" | "1/Y" | "1/Y2";
@@ -94,7 +95,7 @@ export function normalizeStdOptions(raw: unknown): StdOptions {
   return {
     columns: o.columns && typeof o.columns === "object" ? { ...(o.columns as ColumnChoice<StdRole>) } : {},
     signals: Array.isArray(o.signals) ? o.signals.filter((x): x is string => typeof x === "string") : [],
-    model: ["4pl", "5pl", "linear", "loglog"].includes(o.model as string) ? o.model as StdModel : d.model,
+    model: ["4pl", "5pl", "linear", "loglog", "quadratic"].includes(o.model as string) ? o.model as StdModel : d.model,
     weighting: ["none", "1/Y", "1/Y2"].includes(o.weighting as string) ? o.weighting as Weighting : d.weighting,
     logX: o.logX !== false,
     blank: o.blank === "none" || o.blank === "value" ? o.blank : "zero_standard",
