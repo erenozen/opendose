@@ -112,6 +112,16 @@ def test_loewe_closed_form_hyperbolic_drugs():
     assert y > 30.0
 
 
+def test_inverse_dose_of_a_shallow_curve_does_not_overflow():
+    # u ** (1 / h) overflowed a float (OverflowError) for |h| near 0
+    p = {"Bottom": 0.0, "Top": 100.0, "EC50": 10.0, "HillSlope": 0.004}
+    assert sy._inverse_dose(99.0, p) == math.inf
+    assert sy._inverse_dose(50.0, p) == pytest.approx(10.0)
+    assert sy.loewe_response(5.0, 5.0, p, {"Bottom": 0.0, "Top": 100.0,
+                                          "EC50": 3.0, "HillSlope": 1.5}) \
+        is not None
+
+
 def _bliss_surface(c1, c2, e1=1.0, h1=1.2, e2=5.0, h2=0.8):
     y1, y2 = _ll4(c1, e1, h1), _ll4(c2, e2, h2)
     return y1[:, None] + y2[None, :] - np.outer(y1, y2) / 100.0

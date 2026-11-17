@@ -236,7 +236,12 @@ def _inverse_dose(y, p):
             return math.inf
         return 0.0
     u = (y - b) / (t - y)
-    return e * u ** (1.0 / h)
+    try:
+        return e * u ** (1.0 / h)
+    except OverflowError:
+        # a shallow slope (small |h|) overflows the float power: a dose
+        # beyond the float range is one the curve never reaches
+        return math.inf
 
 
 def loewe_response(d1, d2, p1, p2):
