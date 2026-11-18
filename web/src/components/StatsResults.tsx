@@ -826,6 +826,57 @@ function AnovaUnequal({ result }: { result: any }) {
   );
 }
 
+const P_STACK_NAMES: Record<string, string> = {
+  bky: "two-stage step-up method of Benjamini, Krieger and Yekutieli",
+  bh: "method of Benjamini and Hochberg", by: "method of Benjamini and Yekutieli",
+  holm_sidak: "Holm-Šídák step-down method", sidak: "Šídák method", bonferroni: "Bonferroni method",
+  holm: "Holm step-down method", none: "no correction",
+};
+
+function PStack({ result }: { result: any }) {
+  const fdr = result.approach === "fdr";
+  const flag = fdr ? "Discovery?" : "Significant?";
+  const rows: Row[] = [
+    ["Method", P_STACK_NAMES[result.method] ?? String(result.method)],
+    fdr ? ["Q (desired false discovery rate)", `${formatSig(100 * result.q)}%`]
+      : ["α (family-wise)", formatSig(result.alpha)],
+    ["P values in the family", String(result.n)],
+    ...(result.n_omitted ? [["Blank or excluded rows (left out)", String(result.n_omitted)] as Row] : []),
+    [fdr ? "Discoveries" : "Significant", `${result.discoveries} of ${result.n}`],
+    ...(result.n_true_null_estimate != null
+      ? [["Estimated true null hypotheses (first stage)", formatSig(result.n_true_null_estimate)] as Row] : []),
+  ];
+  return (
+    <div className="result-card">
+      <h3>Stack of P values</h3>
+      <KV rows={rows} />
+      <table className="results-table">
+        <thead><tr><th>Comparison</th><th>P value</th><th>Rank</th>
+          <th>{fdr ? "q value" : "Adjusted P"}</th>
+          <th>Threshold</th><th>{flag}</th></tr></thead>
+        <tbody>
+          {(result.rows ?? []).map((r: any, i: number) => (
+            <tr key={i}>
+              <td>{r.label}</td>
+              <td>{r.p == null ? "–" : fmtP(r.p)}</td>
+              <td>{r.rank ?? "–"}</td>
+              <td>{r.adjusted == null ? "–" : fmtP(r.adjusted)}</td>
+              <td>{r.threshold == null ? "–" : formatSig(r.threshold, 3)}</td>
+              <td>{r.significant == null ? "left out" : r.significant ? "Yes" : "No"}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="model-line">
+        {fdr ? "A comparison is a discovery when its P value is at or below the threshold for its rank (or "
+          + "any larger-ranked one); its q value is the smallest Q at which it would be one."
+          : "Adjusted P values account for the whole family; a comparison is significant when its adjusted P "
+          + "is at or below α."}
+      </p>
+    </div>
+  );
+}
+
 function MedianTest({ result }: { result: any }) {
   const rows: Row[] = [["Grand median", formatSig(result.grand_median)]];
   if (result.chi_square) {
@@ -879,6 +930,7 @@ function mainResults(result: Record<string, unknown>, options: Props["options"])
       ? <><LogAnovaRatios result={result} /><Anova result={result} /></> : <Anova result={result} />;
     case "anova_unequal_var": return <AnovaUnequal result={result} />;
     case "median_test": return <MedianTest result={result} />;
+    case "fdr_adjust": return <PStack result={result} />;
     case "ks_test": return <KSTest result={result} />;
     case "rm_one_way_anova": return <RMAnova result={result} />;
     case "mixed_rm_one_way": return <MixedRmOneWay result={result} />;

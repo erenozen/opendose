@@ -14,10 +14,15 @@ import { allCellsComparisons, cellsFamily } from "../common/allCells.ts";
 import { familyOptions } from "./comparisonsFamily.ts";
 import { withWithheld } from "../common/withheld.ts";
 import { logScaleOptions } from "./logScale.ts";
+import { pStackPayload } from "./pStack.ts";
 import { mixedOptions, rmComparisonsSpec, fitsMixedModel } from "./rmPosthoc.ts";
 
 export function runColumn(engine: EngineBridge, table: DataTableModel,
   o: ColumnOptionsState): Record<string, unknown> {
+  if (o.analysis === "p_stack") {
+    const ps = pStackPayload(table, o);
+    return "error" in ps ? { error: ps.error } : engine.analyze(ps.payload) as Record<string, unknown>;
+  }
   if (table.subcolumnFormat !== "replicates") return runColumnSummary(engine, table, o);
   // RM one-way ANOVA with missing values, mixed model chosen: keep the
   // incomplete subjects (sheets/column/rmPosthoc.ts).

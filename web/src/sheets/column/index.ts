@@ -46,6 +46,7 @@ export function columnTestLabel(raw: unknown): string {
     case "roc": return "ROC";
     case "bland_altman": return "Bland-Altman";
     case "outliers": return "Outliers";
+    case "p_stack": return "P value stack";
     default: return "Column stats";
   }
 }

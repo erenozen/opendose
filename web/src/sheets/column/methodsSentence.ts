@@ -112,6 +112,16 @@ function testSentence(o: ColumnOptionsState, r: R): string {
       return `Group means were compared by ordinary one-way ANOVA (F(${t.df_between}, ${t.df_within}) = ${formatSig(t.F)}, ${P(t.p)})`
         + (mc ? `, followed by ${POST[mc.method] ?? mc.method}${mc.method === "fisher_lsd" ? "" : withFamily(mc)}` : "") + ".";
     }
+    case "p_stack": {
+      const how = ({ bky: "the two-stage step-up method of Benjamini, Krieger and Yekutieli",
+        bh: "the method of Benjamini and Hochberg", by: "the method of Benjamini and Yekutieli",
+        holm_sidak: "the Holm-Šídák step-down method", sidak: "the Šídák method",
+        bonferroni: "the Bonferroni method", holm: "Holm's step-down method" } as Record<string, string>)[r.method];
+      if (!how) return `${r.n} P values were each compared with α = ${formatSig(r.alpha)}, without correction for multiple comparisons; ${r.discoveries} were below it.`;
+      return r.approach === "fdr"
+        ? `A family of ${r.n} P values was corrected for multiple comparisons by controlling the false discovery rate with ${how} (Q = ${formatSig(100 * r.q)}%); ${r.discoveries} comparison${r.discoveries === 1 ? " was a discovery" : "s were discoveries"}.`
+        : `A family of ${r.n} P values was corrected for multiple comparisons with ${how} (family-wise α = ${formatSig(r.alpha)}); ${r.discoveries} comparison${r.discoveries === 1 ? " was" : "s were"} significant.`;
+    }
     case "median_test":
       return "Group medians were compared with Mood's median test, counting the values above and not above the grand median"
         + (r.chi_square ? ` (chi-square = ${formatSig(r.chi_square.chi2)}, df = ${r.chi_square.df}, ${P(r.chi_square.p)})` : "")

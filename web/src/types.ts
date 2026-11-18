@@ -226,7 +226,8 @@ export type ColumnAnalysisKind =
   | "correlation"
   | "roc"
   | "bland_altman"
-  | "outliers";
+  | "outliers"
+  | "p_stack";
 
 export const COLUMN_ANALYSIS_LABELS: Record<ColumnAnalysisKind, string> = {
   column_statistics: "Column statistics (descriptive + normality)",
@@ -240,6 +241,7 @@ export const COLUMN_ANALYSIS_LABELS: Record<ColumnAnalysisKind, string> = {
   roc: "ROC curve (patients vs controls)",
   bland_altman: "Bland-Altman method comparison",
   outliers: "Identify outliers (Grubbs / ROUT)",
+  p_stack: "Analyze a stack of P values (multiple comparisons)",
 };
 
 export type TwoWayComparisons = "none" | "tukey" | "sidak" | "bonferroni";
@@ -378,6 +380,11 @@ export interface ColumnOptionsState {
   /** Column statistics: the normality tests on the logarithms and the
    *  normal vs lognormal likelihood comparison. */
   lognormality?: boolean;
+  /** Stack of P values: the correction (FDR: bky / bh / by; family-wise:
+   *  holm_sidak / sidak / bonferroni / holm; none), α and Q (%). */
+  pStackMethod?: "bky" | "bh" | "by" | "holm_sidak" | "sidak" | "bonferroni" | "holm" | "none";
+  pStackAlpha?: string;
+  pStackQ?: string;
   /** Two-way ANOVA (rows × datasets): full or main-effects-only model. */
   twoWayModel?: TwoWayModel;
   /** Which comparisons the post test makes (Dunn's after Kruskal-Wallis or
@@ -432,6 +439,9 @@ export const DEFAULT_COLUMN_OPTIONS: ColumnOptionsState = {
   corrTails: "two",
   ttestTails: "two",
   lognormality: false,
+  pStackMethod: "bky",
+  pStackAlpha: "0.05",
+  pStackQ: "5",
   twoWayModel: "full",
 };
 

@@ -13,6 +13,7 @@ import { TWO_WAY_ADDITIVE_NOTE as ADDITIVE_NOTE } from "../types";
 import ComparisonsPicker from "../sheets/column/comparisonsPicker";
 import LogScaleOption from "../sheets/column/logScaleControls";
 import RmPosthocControls from "../sheets/column/rmPosthocControls";
+import { isFdrMethod, P_STACK_METHODS, type PStackMethod } from "../sheets/column/pStack";
 import "../sheets/column/logScale.css";
 
 interface Props {
@@ -293,6 +294,39 @@ export default function ColumnControls({ options, datasetNames, onChange, summar
           <p className="guide-control-links">
             <LearnMore id="posthoc" label="Which comparisons test?" />
             <LearnMore id="equal-sds" label="Equal SDs?" />
+          </p>
+        </section>
+      )}
+
+      {options.analysis === "p_stack" && (
+        <section>
+          <h3>Stack of P values</h3>
+          {pickDataset("P values in", options.datasetA, "datasetA")}
+          <label className="check-row">
+            <span>Correction</span>
+            <select aria-label="Correction" value={options.pStackMethod ?? "bky"}
+              onChange={(e) => set({ pStackMethod: e.target.value as PStackMethod })}>
+              {P_STACK_METHODS.map(([k, label]) => <option key={k} value={k}>{label}</option>)}
+            </select>
+          </label>
+          {isFdrMethod(options.pStackMethod ?? "bky") ? (
+            <label className="check-row">
+              <span>Q (desired false discovery rate, %)</span>
+              <input inputMode="decimal" value={options.pStackQ ?? "5"}
+                onChange={(e) => set({ pStackQ: e.target.value })} />
+            </label>
+          ) : (
+            <label className="check-row">
+              <span>α (family-wise)</span>
+              <input inputMode="decimal" value={options.pStackAlpha ?? "0.05"}
+                onChange={(e) => set({ pStackAlpha: e.target.value })} />
+            </label>
+          )}
+          <p className="hint-block">
+            One P value per row, each from a separate comparison; row titles name them. Blank and
+            excluded cells are left out of the family. Controlling the false discovery rate flags
+            “discoveries” and reports a q value per comparison; the significance methods control the
+            chance of any false positive in the whole family and report multiplicity-adjusted P values.
           </p>
         </section>
       )}
