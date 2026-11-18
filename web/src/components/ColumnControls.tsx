@@ -161,15 +161,18 @@ export default function ColumnControls({ options, datasetNames, onChange, summar
           {pickDataset("Group A", options.datasetA, "datasetA")}
           {pickDataset("Group B", options.datasetB, "datasetB")}
           {options.ttestKind !== "kolmogorov_smirnov" && (
-            <label className="check-row">
-              <span>P value</span>
-              <select value={options.ttestTails ?? "two"}
+            // A <div>, not a <label>: a label's text would include these
+            // options ("…Group B…"), so this select would also answer to
+            // the name "Group B".
+            <div className="check-row">
+              <span aria-hidden="true">P value</span>
+              <select value={options.ttestTails ?? "two"} aria-label="P value"
                 onChange={(e) => set({ ttestTails: e.target.value as "two" | "greater" | "less" })}>
                 <option value="two">Two-tailed</option>
                 <option value="greater">Also one-tailed: Group A larger than Group B expected</option>
                 <option value="less">Also one-tailed: Group A smaller than Group B expected</option>
               </select>
-            </label>
+            </div>
           )}
           {options.ttestKind !== "kolmogorov_smirnov" && (options.ttestTails ?? "two") !== "two" && (
             <p className="hint-block">
