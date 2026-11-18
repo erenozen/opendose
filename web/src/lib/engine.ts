@@ -54,11 +54,9 @@ let modelsApplied = false;
 function onReady() {
   if (modelsApplied) return;
   modelsApplied = true;
-  // The xlsx reader (openpyxl, from PyPI) installs once the engine has
-  // nothing else to do, so the first xlsx import does not wait for it.
-  setTimeout(() => {
-    host.submit({ type: "prepare", what: "xlsx" }, { priority: "background" }).catch(() => {});
-  }, 3000);
+  // The xlsx reader (openpyxl) comes from PyPI, so it installs only when
+  // an .xlsx file is first read (engine.worker.ts ensureOpenpyxl): a visit
+  // that never imports one never contacts PyPI.
   const models = host.info?.models;
   if (!models) return;
   try { applyModelList(JSON.parse(models)); } catch { /* keep the built-in list */ }
