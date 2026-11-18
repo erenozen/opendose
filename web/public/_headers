@@ -1,0 +1,18 @@
+# Security headers for every file the site serves (Cloudflare reads this
+# file at deploy time; scripts/serve-dist.mjs applies it locally too).
+#
+# The Content-Security-Policy is the guarantee that a lab's data stays in
+# the browser: the page, the engine worker and the service worker may
+# only contact the addresses in connect-src, whatever the code does.
+#   - cdn.jsdelivr.net: the Pyodide runtime, NumPy and SciPy (engine.ts).
+#   - pypi.org, files.pythonhosted.org: openpyxl, installed by micropip
+#     the first time an .xlsx file is opened (engine.worker.ts).
+#   - data: and blob: are the page's own in-memory images and exports.
+# 'wasm-unsafe-eval' lets the browser compile WebAssembly (Pyodide);
+# 'unsafe-inline' in style-src is needed by Plotly, which injects its
+# stylesheet at run time. Inline and remote scripts stay blocked.
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; connect-src 'self' data: blob: https://cdn.jsdelivr.net https://pypi.org https://files.pythonhosted.org; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+  Referrer-Policy: no-referrer
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=(), bluetooth=(), browsing-topics=()
+  X-Content-Type-Options: nosniff
