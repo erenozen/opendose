@@ -16,6 +16,9 @@ import { usePptxExport } from "../export/usePptxExport";
 import type { PptxScope } from "../export/pptx";
 import { SHARE_EVENT, type RecipeImportRequest, type ShareRequest, type ValidationFor } from "./events";
 import { familyProject, kb, makeFragment, SHARE_LIMIT } from "./link";
+import {
+  makeProtectedFragment, MIN_PASSWORD, suggestPassword, type ProtectedOutcome,
+} from "./protect";
 import "./share.css";
 
 const ValidationPage = lazy(() => import("./ValidationPage"));
@@ -187,15 +190,40 @@ function ShareDialog({ dataId, onClose }: { dataId?: string; onClose: () => void
   const target = family ?? project;
   const [withResults, setWithResults] = useState(true);
   const [copied, setCopied] = useState<"" | "done" | "failed">("");
+  // Password protection is on by default: a link travels through e-mail,
+  // chat and link scanners, and the data is inside it.
+  const [protect, setProtect] = useState(true);
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [sealed, setSealed] = useState<ProtectedOutcome | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [sealError, setSealError] = useState("");
+  const shareOpts = useMemo(() => ({ keys: results.fingerprints(), selected: selectedId }),
+    [results, selectedId]);
   const current = useMemo(() => makeFragment(withResolvedOptions(target),
-    withResults ? results.snapshot() : undefined, undefined,
-    { keys: results.fingerprints(), selected: selectedId }),
-  [target, withResults, results, selectedId]);
+    withResults ? results.snapshot() : undefined, undefined, shareOpts),
+  [target, withResults, results, shareOpts]);
 
   const base = `${location.origin}${location.pathname}${location.search}`;
-  const url = current.ok ? `${base}${current.fragment}` : "";
+  const outcome = protect ? sealed : current;
+  const url = outcome?.ok ? `${base}${outcome.fragment}` : "";
   const what = family ? `“${family.title}”` : "this project";
+  const tooShort = protect && password.length < MIN_PASSWORD;
+  // Any change makes a new link: the old one no longer matches the dialog.
+  const reset = () => { setSealed(null); setCopied(""); setSealError(""); };
 
+  const seal = async () => {
+    if (tooShort || busy) return;
+    setBusy(true);
+    try {
+      setSealed(await makeProtectedFragment(withResolvedOptions(target), password,
+        withResults ? results.snapshot() : undefined, undefined, shareOpts));
+    } catch (e) {
+      setSealError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
   const copy = async () => setCopied((await copyText(url)) ? "done" : "failed");
   const download = () => {
     const blob = new Blob([serializeProject(target, results.snapshot(),
@@ -206,17 +234,26 @@ function ShareDialog({ dataId, onClose }: { dataId?: string; onClose: () => void
     onClose();
   };
 
+  const tooLarge = !current.ok || (protect && sealed?.ok === false);
+  const needsSeal = protect && !sealed;
+  const submit = tooLarge ? download : needsSeal ? () => { void seal(); } : () => { void copy(); };
+
   return (
     <Modal title={family ? `Share “${family.title}”` : "Share this project"}
-      className="share-dialog" onClose={onClose}
-      onSubmit={current.ok ? () => { void copy(); } : download}
-      actions={current.ok ? (
+      className="share-dialog" onClose={onClose} onSubmit={submit}
+      actions={!tooLarge ? (
         <>
           <button type="button" className="spacer" onClick={download}>Download file instead</button>
           <button type="button" onClick={onClose}>Done</button>
-          <button type="submit" className="btn-primary">
-            {copied === "done" ? "Copied" : "Copy link"}
-          </button>
+          {needsSeal ? (
+            <button type="submit" className="btn-primary" disabled={tooShort || busy}>
+              {busy ? "Locking…" : "Create protected link"}
+            </button>
+          ) : (
+            <button type="submit" className="btn-primary">
+              {copied === "done" ? "Copied" : "Copy link"}
+            </button>
+          )}
         </>
       ) : (
         <>
@@ -224,35 +261,72 @@ function ShareDialog({ dataId, onClose }: { dataId?: string; onClose: () => void
           <button type="submit" className="btn-primary">Download project file</button>
         </>
       )}>
-      {current.ok ? (
+      {!tooLarge ? (
         <>
           <p className="modal-text">
             Anyone with this link can open a read-only copy of {what} in their
-            browser, with no account, and make their own copy to edit. The data
-            travel inside the link itself: nothing is uploaded, and the link
-            does not change when you keep working.
+            browser, with no account, and make their own copy to edit. OpenDose
+            uploads nothing, and the link does not change when you keep working.
           </p>
-          <label className="field">
-            <span>Link</span>
-            <input className="share-url" readOnly value={url} aria-label="Share link"
-              onFocus={(e) => e.currentTarget.select()} />
+          <p className="share-warning" role="note">
+            <strong>The data travel inside the link itself.</strong> Anyone who
+            gets it, and any app it passes through (e-mail, chat, link previews,
+            browser history), can read it{protect ? " without the password" : ""}.
+            {protect
+              ? " Send the password separately: by phone, in person or in another app, never in the same message as the link. A forgotten password cannot be recovered."
+              : " For sensitive data, protect the link with a password, or send the project file through a channel your lab approves."}
+          </p>
+          <label className="field-check">
+            <input type="checkbox" checked={protect}
+              onChange={(e) => { setProtect(e.target.checked); reset(); }} />
+            Protect with a password (recommended)
           </label>
+          {protect && (
+            <div className="share-password-row">
+              <label className="field">
+                <span>Password (at least {MIN_PASSWORD} characters)</span>
+                <input type={showPassword ? "text" : "password"} value={password}
+                  autoComplete="new-password" spellCheck={false} aria-label="Link password"
+                  onChange={(e) => { setPassword(e.target.value); reset(); }} />
+              </label>
+              <button type="button" onClick={() => {
+                setPassword(suggestPassword()); setShowPassword(true); reset();
+              }}>Suggest one</button>
+            </div>
+          )}
+          {protect && (
+            <label className="field-check">
+              <input type="checkbox" checked={showPassword}
+                onChange={(e) => setShowPassword(e.target.checked)} />
+              Show the password
+            </label>
+          )}
+          {url && (
+            <label className="field">
+              <span>{protect ? "Protected link" : "Link"}</span>
+              <input className="share-url" readOnly value={url} aria-label="Share link"
+                onFocus={(e) => e.currentTarget.select()} />
+            </label>
+          )}
           <label className="field-check">
             <input type="checkbox" checked={withResults}
-              onChange={(e) => { setWithResults(e.target.checked); setCopied(""); }} />
+              onChange={(e) => { setWithResults(e.target.checked); reset(); }} />
             Include the computed results (the link opens with numbers shown at once)
           </label>
           <p className="field-note" role="status">
-            {kb(current.length)}{withResults && !current.withResults
+            {outcome?.ok ? kb(outcome.length) : `About ${kb(current.ok ? current.length : 0)}`}
+            {withResults && outcome?.ok && !outcome.withResults
               ? ", without the computed results (they would not fit; they are recomputed on opening)"
               : ""}. Links stay under {kb(SHARE_LIMIT)} so they paste into e-mail and chat intact.
+            {needsSeal && !tooShort && " Press Create protected link to lock it with this password."}
+            {sealError && ` The link could not be locked: ${sealError}.`}
             {copied === "failed" && " The browser did not allow copying: select the link and copy it."}
           </p>
         </>
       ) : (
         <p className="modal-text" role="alert">
           {family ? `“${family.title}”` : "This project"} is too large for a
-          link: about {kb(current.length)}, and links are kept under {kb(current.limit)} so
+          link: about {kb(outcome?.length ?? current.length)}, and links are kept under {kb(SHARE_LIMIT)} so
           they paste into e-mail and chat intact. Send the project file
           instead; it opens in OpenDose with Open, in any browser.
         </p>

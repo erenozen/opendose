@@ -7,11 +7,25 @@ import '@fontsource-variable/inter'
 import './index.css'
 import App from './App.tsx'
 import { registerOfflineCache } from './lib/offline'
+import { hasProtectedLink } from './share/boot'
+import UnlockScreen from './share/UnlockScreen'
 
-createRoot(document.getElementById('root')!).render(
+const root = createRoot(document.getElementById('root')!)
+const renderApp = () => root.render(
   <StrictMode>
     <App />
   </StrictMode>,
 )
+// A password-protected share link ("#e=…") asks for its password first;
+// the app then opens the unlocked project the way it opens a "#p=" link.
+if (hasProtectedLink()) {
+  root.render(
+    <StrictMode>
+      <UnlockScreen onDone={renderApp} />
+    </StrictMode>,
+  )
+} else {
+  renderApp()
+}
 
 registerOfflineCache()

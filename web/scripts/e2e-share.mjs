@@ -57,6 +57,46 @@ await saveMenu.click();
 await page.getByRole("menuitem", { name: "Copy share link…" }).click();
 const shareDlg = page.getByRole("dialog", { name: "Share this project" });
 await shareDlg.waitFor({ timeout: 10000 });
+expect("password protection is on by default, with no link until a password is set",
+  await shareDlg.getByLabel("Protect with a password (recommended)").isChecked()
+  && await shareDlg.getByLabel("Share link").count() === 0);
+expect("the dialog warns that the data travel inside the link",
+  (await shareDlg.innerText()).includes("The data travel inside the link itself."));
+
+// a protected link: locked in the browser, opened only with its password
+await shareDlg.getByRole("button", { name: "Suggest one" }).click();
+const password = await shareDlg.getByLabel("Link password").inputValue();
+expect("a suggested password is five groups of four characters",
+  /^[a-z2-9]{4}(-[a-z2-9]{4}){4}$/.test(password), password);
+await shareDlg.getByRole("button", { name: "Create protected link" }).click();
+const lockedLink = await shareDlg.getByLabel("Share link").inputValue({ timeout: 30000 });
+expect("protected link is the app URL with #e=<base64url>", /^https?:\/\/[^#]+#e=[A-Za-z0-9_-]+$/.test(lockedLink),
+  `${lockedLink.length} characters`);
+{
+  const ctxL = await browser.newContext({ viewport: { width: 1500, height: 1000 } });
+  const locked = await ctxL.newPage();
+  watch(locked, "locked");
+  await locked.goto(lockedLink, { waitUntil: "domcontentloaded" });
+  const pw = locked.getByLabel("Password", { exact: true });
+  await pw.waitFor({ timeout: 30000 });
+  expect("a protected link opens on a password screen, not the project",
+    await locked.locator(".data-table").count() === 0);
+  await pw.fill("not-the-password");
+  await locked.getByRole("button", { name: "Open project" }).click();
+  expect("a wrong password is refused",
+    await locked.getByRole("alert").filter({ hasText: "wrong password" }).waitFor({ timeout: 30000 })
+      .then(() => true, () => false));
+  await pw.fill(password);
+  await locked.getByRole("button", { name: "Open project" }).click();
+  await locked.getByRole("region", { name: "Shared project" }).waitFor({ timeout: 30000 });
+  await locked.locator(".results-table tbody tr", { hasText: "LogIC50" }).first().waitFor({ timeout: 180000 });
+  const lockedRow = await logIC50(locked);
+  expect("with the password the project opens read-only with the same LogIC50", lockedRow === original, lockedRow);
+  await ctxL.close();
+}
+
+// a plain link (protection switched off)
+await shareDlg.getByLabel("Protect with a password (recommended)").uncheck();
 const link = await shareDlg.getByLabel("Share link").inputValue();
 expect("share link is the app URL with #p=<base64url>", /^https?:\/\/[^#]+#p=[A-Za-z0-9_-]+$/.test(link),
   `${link.length} characters`);
@@ -69,6 +109,9 @@ await page.getByRole("treeitem", { name: "Dose response", exact: true }).first()
 await page.getByRole("menuitem", { name: "Share this family…" }).click();
 const famDlg = page.getByRole("dialog", { name: "Share “Dose response”" });
 await famDlg.waitFor({ timeout: 10000 });
+expect("the family dialog shows the same warning",
+  (await famDlg.innerText()).includes("The data travel inside the link itself."));
+await famDlg.getByLabel("Protect with a password (recommended)").uncheck();
 const famLink = await famDlg.getByLabel("Share link").inputValue();
 expect("family link is shorter than the project link", famLink.length < link.length,
   `${famLink.length} vs ${link.length}`);

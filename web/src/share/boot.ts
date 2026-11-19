@@ -1,9 +1,17 @@
 // Opening a share link: when the page loads with "#p=…", the project in
-// the link is what the app starts with, read-only.
+// the link is what the app starts with, read-only. A password-protected
+// link ("#e=…") is first unlocked by UnlockScreen (main.tsx), which hands
+// the project JSON over with setUnlockedShare; it is kept in memory only,
+// never written back into the address.
 import type { IdFactory } from "../project/ids.ts";
 import { projectFromJson } from "../project/persist.ts";
 import type { Project, ProjectPrefs } from "../project/types.ts";
 import { readFragment, sharePayload } from "./link.ts";
+import { protectedPayload } from "./protect.ts";
+
+let unlocked: string | null = null;
+/** The project JSON of a protected link, once its password was given. */
+export function setUnlockedShare(json: string): void { unlocked = json; }
 
 export interface ShareBoot {
   project: Project | null;
@@ -18,14 +26,25 @@ export function locationHash(): string {
 }
 
 export function hasShareLink(hash = locationHash()): boolean {
-  return sharePayload(hash) !== null;
+  return sharePayload(hash) !== null || protectedPayload(hash) !== null;
+}
+
+/** Is the address a password-protected link ("#e=…")? */
+export function hasProtectedLink(hash = locationHash()): boolean {
+  return protectedPayload(hash) !== null;
 }
 
 /** The shared project in the address bar, if any. */
 export function readShareBoot(prefs: ProjectPrefs, ids: IdFactory, hash = locationHash()): ShareBoot {
   if (!hasShareLink(hash)) return { project: null, error: "" };
   try {
-    const raw = readFragment(hash);
+    let raw: unknown;
+    if (protectedPayload(hash) !== null) {
+      if (unlocked === null) return { project: null, error: "" };
+      raw = JSON.parse(unlocked);
+    } else {
+      raw = readFragment(hash);
+    }
     const sel = (raw as { selected?: unknown } | null)?.selected;
     return {
       project: projectFromJson(raw, { prefs, ids }), error: "",
@@ -36,7 +55,7 @@ export function readShareBoot(prefs: ProjectPrefs, ids: IdFactory, hash = locati
   }
 }
 
-/** Drop "#p=…" from the address without reloading (after "Make a copy",
+/** Drop "#p=…" (or "#e=…") from the address without reloading (after "Make a copy",
  *  or when another project replaces the shared one), so a reload opens
  *  the user's own work rather than the link again. */
 export function clearShareLink(): void {

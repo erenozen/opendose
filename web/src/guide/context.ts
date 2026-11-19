@@ -81,8 +81,9 @@ export function exampleRequested(): boolean {
   return v !== null && v !== "0";
 }
 
-/** A share link ("#p=…") opens its project directly: no start screen. */
+/** A share link ("#p=…", or "#e=…" protected) opens its project directly:
+ *  no start screen. */
 export function shareLinkRequested(): boolean {
   if (typeof location === "undefined") return false;
-  return location.hash.startsWith("#p=");
+  return location.hash.startsWith("#p=") || location.hash.startsWith("#e=");
 }

@@ -398,6 +398,7 @@ export async function runPerf({ newSession, appUrl, browser, friction }) {
     await page.getByRole("menuitem", { name: "Copy share link…" }).click();
     const dlg = page.getByRole("dialog", { name: "Share this project" });
     await dlg.waitFor({ timeout: 15000 });
+    await dlg.getByLabel("Protect with a password (recommended)").uncheck().catch(() => {});
     const link = await dlg.getByLabel("Share link").inputValue().catch(() => "");
     const dlgText = await dlg.innerText();
     await dlg.getByRole("button", { name: "Done" }).click().catch(() => page.keyboard.press("Escape"));

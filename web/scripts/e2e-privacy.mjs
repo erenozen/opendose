@@ -197,8 +197,15 @@ await page.getByRole("button", { name: "More ways to save and share" }).click();
 await page.getByRole("menuitem", { name: "Copy share link…" }).click();
 const shareDlg = page.getByRole("dialog", { name: "Share this project" });
 await shareDlg.waitFor({ timeout: 10000 });
+// Protected by default: locked in the browser, nothing sent.
+await shareDlg.getByRole("button", { name: "Suggest one" }).click();
+await shareDlg.getByRole("button", { name: "Create protected link" }).click();
+const locked = await shareDlg.getByLabel("Share link").inputValue({ timeout: 30000 });
+expect("a protected share link is made in the browser",
+  /#e=[A-Za-z0-9_-]+$/.test(locked), `${locked.length} characters`);
+await shareDlg.getByLabel("Protect with a password (recommended)").uncheck();
 const link = await shareDlg.getByLabel("Share link").inputValue();
-expect("share link holds the project in the fragment, which is never sent",
+expect("a plain share link holds the project in the fragment, which is never sent",
   /#p=[A-Za-z0-9_-]+$/.test(link), `${link.length} characters`);
 await page.keyboard.press("Escape");
 
