@@ -53,8 +53,12 @@ cd web && node scripts/a11y-audit.mjs   # axe-core on every analysis' controls
 cd web && node scripts/smoke-0.4.0.mjs http://localhost:5173/ OUT   # screenshots of every 0.4.0 entry point, 1400/390 px, light/dark, with axe-core
 ```
 
-The dev server needs internet access on first load (Pyodide + SciPy come
-from the jsDelivr CDN, ~30 MB, then cached). The offline cache exists only
+The site serves the Python runtime itself: `npm run dev` and `npm run build`
+first run `scripts/sync-pyodide.mjs`, which copies Pyodide from npm and
+downloads NumPy, SciPy and the .xlsx reader (~31 MB, each checked against
+its SHA-256) into `web/public/pyodide/`. Only the first build needs internet
+access; the downloads are cached in `node_modules/.cache`. The browser
+contacts no server but the site. The offline cache exists only
 in production builds; to measure one locally the way the host serves
 it (gzip):
 

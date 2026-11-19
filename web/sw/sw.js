@@ -8,18 +8,19 @@
 // - App files (hashed, immutable) and the engine's Python bundle (URL
 //   versioned by a hash of its content): cache first, one cache per build;
 //   older builds' caches are deleted when this one activates.
-// - The Python runtime and its packages (Pyodide on the CDN, versioned
-//   URLs; openpyxl from PyPI once used): cache first, kept across builds.
+// - The Python runtime and its packages (pyodide/v<version>/ on this
+//   site, versioned URLs, with the .xlsx reader's wheels): cache first,
+//   kept across builds.
 // - The page itself: network first (a new release shows up at once),
 //   the cached copy when offline.
-/* global self, caches, fetch, URL, Response */
+/* global self, caches, fetch, URL */
 const BUILD = "__BUILD__";
 const APP_CACHE = `opendose-app-${BUILD}`;
 const RUNTIME_CACHE = "opendose-runtime";
 const APP_FILES = __APP_FILES__;
-const RUNTIME_FILES = __RUNTIME_FILES__;
-const PYODIDE_PREFIX = "__PYODIDE_PREFIX__";
 const SCOPE = new URL(self.registration.scope);
+const RUNTIME_FILES = __RUNTIME_FILES__.map((f) => new URL(f, SCOPE).href);
+const PYODIDE_PREFIX = new URL("__PYODIDE_PREFIX__", SCOPE).href;
 const INDEX = new URL("index.html", SCOPE).href;
 const appSet = new Set(APP_FILES.map((f) => new URL(f, SCOPE).href));
 
@@ -47,10 +48,14 @@ self.addEventListener("activate", (event) => {
     for (const name of await caches.keys()) {
       if (name.startsWith("opendose-app-") && name !== APP_CACHE) await caches.delete(name);
     }
-    // Runtime files of other Pyodide versions are no longer used.
+    // Runtime files of other Pyodide versions are no longer used, nor are
+    // copies from other hosts (the CDN and PyPI, before the runtime was
+    // served from this site).
     const rt = await caches.open(RUNTIME_CACHE);
     for (const req of await rt.keys()) {
-      if (req.url.includes("/pyodide/v") && !req.url.startsWith(PYODIDE_PREFIX)) await rt.delete(req);
+      const stale = new URL(req.url).origin !== SCOPE.origin
+        || (req.url.includes("/pyodide/v") && !req.url.startsWith(PYODIDE_PREFIX));
+      if (stale) await rt.delete(req);
     }
     await self.clients.claim();
   })());
@@ -91,25 +96,14 @@ self.addEventListener("fetch", (event) => {
     return;
   }
   if (url.origin === SCOPE.origin) {
+    if (url.href.startsWith(PYODIDE_PREFIX)) {
+      event.respondWith(cacheFirst(RUNTIME_CACHE, request));
+      return;
+    }
     const inBuild = appSet.has(url.href)
       || (url.pathname.startsWith(`${SCOPE.pathname}assets/`))
       || (url.pathname.endsWith("/py/opendose/bundle.json") && url.searchParams.has("v"));
     if (inBuild) event.respondWith(cacheFirst(APP_CACHE, request));
     return;
-  }
-  if (url.href.startsWith(PYODIDE_PREFIX) || url.hostname === "files.pythonhosted.org") {
-    event.respondWith(cacheFirst(RUNTIME_CACHE, request));
-    return;
-  }
-  if (url.hostname === "pypi.org") {
-    // The package index: fresh when online, the last copy when offline.
-    event.respondWith(fetch(request).then((resp) => {
-      if (resp.ok) {
-        const copy = resp.clone();
-        caches.open(RUNTIME_CACHE).then((c) => c.put(request, copy)).catch(() => {});
-      }
-      return resp;
-    }, () => caches.open(RUNTIME_CACHE).then((c) => c.match(request))
-      .then((hit) => hit ?? Response.error())));
   }
 });

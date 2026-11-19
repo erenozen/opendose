@@ -12,9 +12,8 @@
 //   (only GET and HEAD; no POST, no beacon);
 // - a local proxy that all of the browser's traffic goes through: it sees
 //   every outside connection, whichever part of the browser opens it, and
-//   only the site itself and cdn.jsdelivr.net (the Python runtime) may be
-//   contacted, plus PyPI during the .xlsx import alone: the xlsx reader
-//   (openpyxl) installs from there on first use, never before.
+//   there may be none: the site serves the Python runtime and the .xlsx
+//   reader itself, so nothing but the site is ever contacted.
 //
 // It also fails when the Content-Security-Policy header is missing from
 // the page, the engine worker or the service worker, and on any CSP
@@ -35,8 +34,6 @@ const baseUrl = process.argv[2] ?? "http://127.0.0.1:5300/";
 const site = new URL(baseUrl);
 const CANARY_DIGITS = "649182";
 const CANARY_LABEL = "CANARY41";
-const ALLOWED_HOSTS = new Set(["cdn.jsdelivr.net"]);
-const XLSX_HOSTS = new Set(["pypi.org", "files.pythonhosted.org"]);
 const XLSX = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "engine", "tests",
   "fixtures", "synthetic_srb_plate.xlsx");
 
@@ -215,7 +212,7 @@ const restored = await page.waitForFunction((d) => [...document.querySelectorAll
 expect("after a reload the session comes back from the browser's own storage", restored);
 await page.waitForTimeout(5000); // let anything late show itself
 
-// --- 7. an .xlsx import: the only step that may reach PyPI ----------------
+// --- 7. an .xlsx import: the reader installs from the site, on first use --
 phase = "xlsx import";
 await page.getByRole("button", { name: "New data table" }).first().click();
 const xd = page.locator(".new-table-dialog");
@@ -232,9 +229,8 @@ await page.keyboard.press("Escape");
 
 // --- verdicts --------------------------------------------------------------
 const appOutside = outside.filter((o) => o.phase !== "self-check");
-const strange = appOutside.filter((o) => o.host !== site.hostname && !ALLOWED_HOSTS.has(o.host)
-  && !(o.phase === "xlsx import" && XLSX_HOSTS.has(o.host)));
-expect("no connection to any host but the site and cdn.jsdelivr.net (PyPI only for the .xlsx import)",
+const strange = appOutside.filter((o) => o.host !== site.hostname);
+expect("no connection to any host but the site itself",
   strange.length === 0,
   strange.length ? JSON.stringify(strange.slice(0, 5)) : `seen: ${[...new Set(appOutside.map((o) => o.host))].join(", ") || "none"}`);
 const appCarried = carried.filter((c) => c.tag === "app");

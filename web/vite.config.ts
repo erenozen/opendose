@@ -34,10 +34,13 @@ function engineHash(): string {
 
 const pyodideVersion: string = JSON.parse(readFileSync(
   new URL('./node_modules/pyodide/package.json', import.meta.url), 'utf8')).version
-const pyodidePrefix = `https://cdn.jsdelivr.net/pyodide/v${pyodideVersion}/full/`
+// Served by the site itself (scripts/sync-pyodide.mjs fills public/pyodide/),
+// relative to the site root.
+const pyodidePrefix = `pyodide/v${pyodideVersion}/`
 
-/** Pyodide files the engine always loads: the runtime and the wheels of
- *  NumPy and SciPy (with their dependencies) named by the lock file. */
+/** Pyodide files the offline cache keeps: the runtime, the wheels of NumPy
+ *  and SciPy (with their dependencies) named by the lock file, and the
+ *  on-demand .xlsx reader's wheels. */
 function pyodideFiles(): string[] {
   const lock = JSON.parse(readFileSync(
     new URL('./node_modules/pyodide/pyodide-lock.json', import.meta.url), 'utf8')) as {
@@ -49,10 +52,13 @@ function pyodideFiles(): string[] {
     names.add(n)
     for (const d of lock.packages[n].depends ?? []) visit(d)
   }
-  ;['numpy', 'scipy', 'micropip'].forEach(visit)
+  ;['numpy', 'scipy'].forEach(visit)
+  const extras = JSON.parse(readFileSync(
+    new URL('./src/lib/pyodideExtras.json', import.meta.url), 'utf8')) as { wheels: { file: string }[] }
   return [
     'pyodide.asm.mjs', 'pyodide.asm.wasm', 'python_stdlib.zip', 'pyodide-lock.json',
     ...[...names].map((n) => lock.packages[n].file_name),
+    ...extras.wheels.map((w) => w.file),
   ].map((f) => pyodidePrefix + f)
 }
 
@@ -142,7 +148,7 @@ export default defineConfig({
   // and dynamic import(): ES module workers.
   worker: { format: 'es' },
   optimizeDeps: {
-    // pyodide loads its own assets from the CDN at runtime; pre-bundling breaks it
+    // pyodide loads its own assets (public/pyodide/) at runtime; pre-bundling breaks it
     exclude: ['pyodide'],
   },
 })

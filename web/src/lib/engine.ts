@@ -34,7 +34,10 @@ export type { EngineState, Priority } from "./engineClient";
 export { EngineCancelled, isCancelled } from "./engineClient";
 export { isEnginePending } from "./engineReplay";
 
-export const PYODIDE_INDEX_URL = `https://cdn.jsdelivr.net/pyodide/v${PYODIDE_VERSION}/full/`;
+// Served by the site itself (scripts/sync-pyodide.mjs): the page needs no
+// other server. Absolute, since the worker resolves it from its own URL.
+export const PYODIDE_INDEX_URL = new URL(`${BASE_URL}pyodide/v${PYODIDE_VERSION}/`,
+  globalThis.location?.href ?? "http://localhost/").href;
 
 const host = new EngineHost(
   () => new Worker(new URL("./engine.worker.ts", import.meta.url),
@@ -54,9 +57,8 @@ let modelsApplied = false;
 function onReady() {
   if (modelsApplied) return;
   modelsApplied = true;
-  // The xlsx reader (openpyxl) comes from PyPI, so it installs only when
-  // an .xlsx file is first read (engine.worker.ts ensureOpenpyxl): a visit
-  // that never imports one never contacts PyPI.
+  // The xlsx reader (openpyxl) installs only when an .xlsx file is first
+  // read (engine.worker.ts ensureOpenpyxl), not on every visit.
   const models = host.info?.models;
   if (!models) return;
   try { applyModelList(JSON.parse(models)); } catch { /* keep the built-in list */ }

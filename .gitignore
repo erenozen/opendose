@@ -5,6 +5,7 @@ __pycache__/
 *.pyc
 .pytest_cache/
 web/public/py/
+web/public/pyodide/
 web/scripts/app.png
 web/scripts/tiff-export.png
 web/scripts/layout.png
