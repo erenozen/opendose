@@ -209,7 +209,7 @@ const navCount = (kind) => page.locator(`.nav-item[data-key^='${kind}:']`).count
 // axe-core (WCAG 2 A and AA rules) on the open dialog
 const axePath = createRequire(import.meta.url).resolve("axe-core/axe.min.js");
 const axeDialog = async () => {
-  await page.addScriptTag({ path: axePath }).catch(() => {});
+  await page.evaluate(readFileSync(axePath, "utf8")).catch(() => {});
   return page.evaluate(async () => {
     // eslint-disable-next-line no-undef
     const r = await axe.run(document.querySelector("dialog[open]"),
