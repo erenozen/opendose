@@ -6,6 +6,7 @@ import ResidualsSection from "../sheets/column/residualsPanel";
 import { LogAnovaRatios, LogTTest } from "../sheets/column/logScaleResults";
 import { onLogScale } from "../sheets/column/logScale";
 import { oneTailedAlternative } from "../sheets/column/tails";
+import { FrequencyResults } from "../sheets/column/frequencyPanel";
 import { MixedRmOneWay, RmComparisons } from "../sheets/column/rmPosthocResults";
 import { rmComparisonsOf } from "../sheets/column/rmPosthoc";
 
@@ -955,6 +956,7 @@ function mainResults(result: Record<string, unknown>, options: Props["options"])
     case "anova_unequal_var": return <AnovaUnequal result={result} />;
     case "median_test": return <MedianTest result={result} />;
     case "fdr_adjust": return <PStack result={result} />;
+    case "frequency_distribution": return <FrequencyResults result={result} />;
     case "ks_test": return <KSTest result={result} />;
     case "rm_one_way_anova": return <RMAnova result={result} />;
     case "mixed_rm_one_way": return <MixedRmOneWay result={result} />;

@@ -33,6 +33,7 @@ from . import equations, userequation
 from . import (assay_clustering, assay_densitometry, assay_growth,
                assay_plate, assay_qpcr, assay_stdcurve, assay_superplot,
                assay_synergy)
+from . import frequency
 from . import effectsize, estimation, power
 from . import auc, cox, quantal
 from . import rangeflags, residuals, survival_extras
@@ -2704,6 +2705,36 @@ def _synergy(data, options):
                               "drug1", "drug2")))
 
 
+def _frequency_distribution(data, options):
+    """Frequency distribution of each data set of a column table
+    (opendose.frequency). options: bin_width (None = automatic, GraphPad
+    FAQ 1660), first_center, upper_limit, cumulative, relative (None |
+    "fraction" | "percent"), exact (exact cumulative, no bins), fit (None |
+    "gaussian" | "cumulative_gaussian"), replicates ("each" value in its
+    bin | "mean" of each row's replicates)."""
+    columns, names = [], []
+    each = options.get("replicates", "each") != "mean"
+    for i, ds in enumerate(data["datasets"]):
+        vals = []
+        for row in ds.get("ys", []):
+            got = [v for v in (row or []) if not _is_missing(v)]
+            if not got:
+                continue
+            if each:
+                vals.extend(float(v) for v in got)
+            else:
+                vals.append(sum(float(v) for v in got) / len(got))
+        columns.append(vals)
+        names.append(ds.get("name") or f"Data set {i + 1}")
+    return frequency.frequency_distribution(
+        columns, names, bin_width=options.get("bin_width"),
+        first_center=options.get("first_center"),
+        upper_limit=options.get("upper_limit"),
+        cumulative=bool(options.get("cumulative", False)),
+        relative=options.get("relative"), exact=bool(options.get("exact")),
+        fit=options.get("fit"))
+
+
 def _cluster_heatmap(data, options):
     """Clustered heat map and k-means (assay_clustering). data:
     {"values": rows x columns, "row_names"?, "column_names"?}. options:
@@ -2763,6 +2794,7 @@ _HANDLERS.update({
     "densitometry": _densitometry,
     "plate_qc": _plate_qc,
     "synergy": _synergy,
+    "frequency_distribution": _frequency_distribution,
     "cluster_heatmap": _cluster_heatmap,
     "superplot": _superplot,
     "growth_transform": _growth_transform,

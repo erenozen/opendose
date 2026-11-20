@@ -15,11 +15,16 @@ import { familyOptions } from "./comparisonsFamily.ts";
 import { withWithheld } from "../common/withheld.ts";
 import { logScaleOptions } from "./logScale.ts";
 import { pStackPayload } from "./pStack.ts";
+import { frequencyPayload } from "./frequency.ts";
 import { correlationXRequests } from "./correlationX.ts";
 import { mixedOptions, rmComparisonsSpec, fitsMixedModel } from "./rmPosthoc.ts";
 
 export function runColumn(engine: EngineBridge, table: DataTableModel,
   o: ColumnOptionsState): Record<string, unknown> {
+  if (o.analysis === "frequency") {
+    const fp = frequencyPayload(table, o);
+    return "error" in fp ? { error: fp.error } : engine.analyze(fp.payload) as Record<string, unknown>;
+  }
   if (o.analysis === "p_stack") {
     const ps = pStackPayload(table, o);
     return "error" in ps ? { error: ps.error } : engine.analyze(ps.payload) as Record<string, unknown>;

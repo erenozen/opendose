@@ -310,6 +310,67 @@ export default function ColumnControls({ options, datasetNames, onChange, summar
         </section>
       )}
 
+      {options.analysis === "frequency" && (
+        <section>
+          <h3>Frequency distribution</h3>
+          <label className="check-row">
+            <span>Bin width (blank = automatic)</span>
+            <input inputMode="decimal" value={options.freqBinWidth ?? ""} placeholder="auto"
+              onChange={(e) => set({ freqBinWidth: e.target.value })} />
+          </label>
+          <label className="check-row">
+            <span>Center of the first bin (blank = automatic)</span>
+            <input inputMode="decimal" value={options.freqFirstCenter ?? ""} placeholder="auto"
+              onChange={(e) => set({ freqFirstCenter: e.target.value })} />
+          </label>
+          <label className="check-row">
+            <span>Leave out values above (blank = none)</span>
+            <input inputMode="decimal" value={options.freqUpper ?? ""}
+              onChange={(e) => set({ freqUpper: e.target.value })} />
+          </label>
+          <label className="check-row">
+            <span>Tabulate</span>
+            <select aria-label="Tabulate" value={options.freqTabulate ?? "counts"}
+              onChange={(e) => set({ freqTabulate: e.target.value as "counts" | "fraction" | "percent" })}>
+              <option value="counts">Number of values</option>
+              <option value="fraction">Relative frequency (fraction)</option>
+              <option value="percent">Relative frequency (percent)</option>
+            </select>
+          </label>
+          <label className="check-row">
+            <span>Cumulative</span>
+            <select aria-label="Cumulative" value={options.freqCumulative ?? "none"}
+              onChange={(e) => set({ freqCumulative: e.target.value as "none" | "binned" | "exact",
+                freqFit: "none" })}>
+              <option value="none">No (histogram)</option>
+              <option value="binned">Cumulative, binned</option>
+              <option value="exact">Cumulative, exact (no bins)</option>
+            </select>
+          </label>
+          <label className="check-row">
+            <span>Fit</span>
+            <select aria-label="Fit" value={options.freqFit ?? "none"}
+              onChange={(e) => set({ freqFit: e.target.value as "none" | "gaussian" | "cumulative_gaussian" })}>
+              <option value="none">None</option>
+              {(options.freqCumulative ?? "none") === "none" && <option value="gaussian">Gaussian (to the histogram)</option>}
+              {options.freqCumulative === "exact" && <option value="cumulative_gaussian">Cumulative Gaussian</option>}
+            </select>
+          </label>
+          <label className="check-row">
+            <span>Replicates in a row</span>
+            <select aria-label="Replicates in a row" value={options.freqReplicates ?? "each"}
+              onChange={(e) => set({ freqReplicates: e.target.value as "each" | "mean" })}>
+              <option value="each">Each value in its bin</option>
+              <option value="mean">Only the mean of the row</option>
+            </select>
+          </label>
+          <p className="hint-block">
+            A value on the border between two bins goes into the higher bin; values below the first bin
+            are left out and counted. The guide recommends the cumulative fit, which needs no bin width.
+          </p>
+        </section>
+      )}
+
       {options.analysis === "p_stack" && (
         <section>
           <h3>Stack of P values</h3>

@@ -113,6 +113,14 @@ function testSentence(o: ColumnOptionsState, r: R): string {
         + (mc ? `, followed by ${POST[mc.method] ?? mc.method}${mc.method === "fisher_lsd" ? "" : withFamily(mc)}` : "") + "."
         + (r.trend && !r.trend.error ? ` A test for linear trend across the columns in the order entered gave a slope of ${formatSig(r.trend.slope)} per column (${P(r.trend.linear.p)}; nonlinear variation ${P(r.trend.nonlinear.p)}).` : "");
     }
+    case "frequency": {
+      if (r.exact) {
+        return `Exact cumulative frequency distributions were computed${r.fits ? " and fitted with a cumulative Gaussian distribution by least squares" : ""}.`;
+      }
+      return `Frequency distributions were tabulated with a bin width of ${formatSig(r.bin_width)}${r.bin_width_auto ? " (chosen automatically: 1 + log2(n) bins, rounded down to a round number)" : ""}`
+        + `${r.cumulative ? ", cumulatively" : ""}${r.relative ? ` as ${r.relative === "percent" ? "percentages" : "fractions"}` : ""}`
+        + `${r.fits ? ", and a Gaussian distribution was fitted to the counts at the bin centers by least squares" : ""}.`;
+    }
     case "p_stack": {
       const how = ({ bky: "the two-stage step-up method of Benjamini, Krieger and Yekutieli",
         bh: "the method of Benjamini and Hochberg", by: "the method of Benjamini and Yekutieli",

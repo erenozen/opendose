@@ -64,3 +64,19 @@ test("the test for trend is sent only for ordinary ANOVA when asked for", () => 
   assert.equal(opts({ anovaTrend: true }).trend, true);
   assert.equal("trend" in opts({ anovaTrend: true, anovaKind: "nonparametric" }), false);
 });
+
+test("frequency distribution payload: options and impossible combinations", async () => {
+  const { frequencyPayload } = await import("../frequency.ts");
+  const ok = frequencyPayload(table, o({ analysis: "frequency", freqBinWidth: "2.5", freqTabulate: "percent",
+    freqCumulative: "binned", freqReplicates: "mean" }));
+  assert.ok("payload" in ok);
+  const opts = (ok as { payload: Record<string, unknown> }).payload.options as Record<string, unknown>;
+  assert.deepEqual(opts, { bin_width: 2.5, cumulative: true, relative: "percent", replicates: "mean" });
+  const auto = frequencyPayload(table, o({ analysis: "frequency" })) as { payload: Record<string, unknown> };
+  assert.deepEqual(auto.payload.options, {});
+  assert.ok("error" in frequencyPayload(table, o({ analysis: "frequency", freqFit: "gaussian", freqCumulative: "exact" })));
+  assert.ok("error" in frequencyPayload(table, o({ analysis: "frequency", freqFit: "cumulative_gaussian" })));
+  assert.ok("error" in frequencyPayload(table, o({ analysis: "frequency", freqBinWidth: "-1" })));
+  const exact = frequencyPayload(table, o({ analysis: "frequency", freqCumulative: "exact", freqFit: "cumulative_gaussian" }));
+  assert.deepEqual((exact as { payload: Record<string, unknown> }).payload.options, { exact: true, fit: "cumulative_gaussian" });
+});

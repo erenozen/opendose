@@ -227,7 +227,8 @@ export type ColumnAnalysisKind =
   | "roc"
   | "bland_altman"
   | "outliers"
-  | "p_stack";
+  | "p_stack"
+  | "frequency";
 
 export const COLUMN_ANALYSIS_LABELS: Record<ColumnAnalysisKind, string> = {
   column_statistics: "Column statistics (descriptive + normality)",
@@ -242,6 +243,7 @@ export const COLUMN_ANALYSIS_LABELS: Record<ColumnAnalysisKind, string> = {
   bland_altman: "Bland-Altman method comparison",
   outliers: "Identify outliers (Grubbs / ROUT)",
   p_stack: "Analyze a stack of P values (multiple comparisons)",
+  frequency: "Frequency distribution (histogram, cumulative, Gaussian fit)",
 };
 
 export type TwoWayComparisons = "none" | "tukey" | "sidak" | "bonferroni";
@@ -391,6 +393,16 @@ export interface ColumnOptionsState {
   /** Ordinary one-way ANOVA: also the test for linear trend (columns in
    *  order, coded 1, 2, ...). */
   anovaTrend?: boolean;
+  /** Frequency distribution: bin width ("" = automatic), center of the
+   *  first bin, upper limit (values above are left out), what to tabulate,
+   *  cumulative (binned / exact), a fit, and replicates (each / row mean). */
+  freqBinWidth?: string;
+  freqFirstCenter?: string;
+  freqUpper?: string;
+  freqTabulate?: "counts" | "fraction" | "percent";
+  freqCumulative?: "none" | "binned" | "exact";
+  freqFit?: "none" | "gaussian" | "cumulative_gaussian";
+  freqReplicates?: "each" | "mean";
   /** Two-way ANOVA (rows × datasets): full or main-effects-only model. */
   twoWayModel?: TwoWayModel;
   /** Which comparisons the post test makes (Dunn's after Kruskal-Wallis or
@@ -450,6 +462,13 @@ export const DEFAULT_COLUMN_OPTIONS: ColumnOptionsState = {
   pStackQ: "5",
   corrWithX: false,
   anovaTrend: false,
+  freqBinWidth: "",
+  freqFirstCenter: "",
+  freqUpper: "",
+  freqTabulate: "counts",
+  freqCumulative: "none",
+  freqFit: "none",
+  freqReplicates: "each",
   twoWayModel: "full",
 };
 
