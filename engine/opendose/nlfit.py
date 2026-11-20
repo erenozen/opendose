@@ -1375,6 +1375,23 @@ def transform_entries(transforms, fitted, free_names, cov, ci_map, tcrit,
 
 # ---------------------------------------------------------------- robust / ROUT
 
+def _fixed_params(model: str, constraints: dict | None) -> dict:
+    """Constraints under the model's own parameter names, as fit_model
+    reads them: LogEC50 / LogIC50 name LogXmid where the model has it, and
+    the 3PL dose-response models hold HillSlope at -1 / +1."""
+    spec = MODELS[model]
+    fixed = {}
+    for name, val in (constraints or {}).items():
+        key = ("LogXmid" if name in ("LogIC50", "LogEC50")
+               and "LogXmid" in spec.params else name)
+        fixed[key] = float(val)
+    if model == "log_inhibitor_vs_response_3pl":
+        fixed.setdefault("HillSlope", -1.0)
+    if model == "log_agonist_vs_response_3pl":
+        fixed.setdefault("HillSlope", 1.0)
+    return fixed
+
+
 def robust_fit(x_values, y_values, model: str, *,
                constraints: dict | None = None) -> dict:
     """Robust nonlinear regression (Motulsky & Brown 2006): Cauchy
@@ -1383,7 +1400,9 @@ def robust_fit(x_values, y_values, model: str, *,
     x, y = _clean_xy(x_values, y_values)
     base = fit_model(x_values, y_values, model, constraints=constraints)
     fitted = dict(base["fitted_values"])
-    fixed = {k: v for k, v in (constraints or {}).items()}
+    # the constraints fit_model applied (renamed LogXmid, 3PL slopes); the
+    # raw names left those parameters free in the robust iterations
+    fixed = _fixed_params(model, constraints)
     for name in spec.data_constants or {}:
         fixed.setdefault(name, fitted[name])
     free_names = [p for p in spec.params if p not in fixed]
@@ -1417,6 +1436,68 @@ def robust_fit(x_values, y_values, model: str, *,
     resid = y - spec.func(x, fitted)
     return {"model": model, "fitted_values": fitted, "rsdr": float(rsdr),
             "residuals": resid.tolist(), "n_points": int(n), "k_params": int(k)}
+
+
+def robust_model_fit(x_values, y_values, model: str, *,
+                     constraints: dict | None = None) -> dict:
+    """Robust nonlinear regression as the fitting method (curve-fitting
+    guide, "Robust nonlinear regression"): the robust_fit best-fit values
+    in fit_model's result layout, with every SE and CI None: robust
+    regression "cannot calculate standard errors or confidence intervals"
+    (nor bands or dependency), the residuals being assumed Lorentzian,
+    not Gaussian. Reports the RSDR and the residual sum of squares; no
+    R^2. fit_method = "robust"."""
+    spec = MODELS[model]
+    rob = robust_fit(x_values, y_values, model, constraints=constraints)
+    fitted = dict(rob["fitted_values"])
+    x, y = _clean_xy(x_values, y_values)
+    fixed = _fixed_params(model, constraints)
+    for name in spec.data_constants or {}:
+        fixed.setdefault(name, fitted[name])
+    free_names = [p for p in spec.params if p not in fixed]
+    params_out = {}
+    for name in spec.params:
+        display = ("LogIC50" if (name == "LogXmid" and "IC50" in spec.equation)
+                   else "LogEC50" if (name == "LogXmid" and "EC50" in spec.equation)
+                   else name)
+        params_out[display] = {"value": fitted[name], "se": None,
+                               "ci95": None, "constrained": name in fixed}
+    derived_out = {}
+    if spec.derived:
+        for dname, entry in spec.derived(fitted, {}).items():
+            derived_out[dname] = {"value": entry["value"], "se": None,
+                                  "ci95": None, "constrained": False,
+                                  "derived": True}
+    if spec.transforms:
+        k = len(free_names)
+        values = transform_entries(spec.transforms, fitted, free_names,
+                                   np.zeros((k, k)), {}, 0.0, curve=spec.func,
+                                   x=x)
+        for dname, entry in values.items():
+            derived_out[dname] = {"value": entry["value"], "se": None,
+                                  "ci95": None, "constrained": False,
+                                  "derived": True}
+    if "Top" in spec.params and "Bottom" in spec.params:
+        derived_out["Span"] = {"value": fitted["Top"] - fitted["Bottom"],
+                               "se": None, "ci95": None,
+                               "constrained": False, "derived": True}
+    resid = y - spec.func(x, fitted)
+    n = int(x.size)
+    return {
+        "model": model, "label": spec.label, "equation": spec.equation,
+        "status": "converged", "fit_method": "robust", "dependency": {},
+        "extrapolation": None, "weighting": "none",
+        "weight_source": "predicted", "ci_method": None,
+        "params": {**params_out, **derived_out},
+        "param_order": list(params_out) + list(derived_out),
+        "goodness": {"df": n - len(free_names), "n_points": n,
+                     "r_squared": None, "ss_res": float(np.sum(resid ** 2)),
+                     "sy_x": None, "rsdr": float(rob["rsdr"])},
+        "fitted_values": fitted, "x_is_log": spec.x_is_log,
+        "note": ("Robust regression: best-fit values only. It cannot give "
+                 "standard errors, confidence intervals or bands (curve-"
+                 "fitting guide, \"Robust nonlinear regression\")."),
+    }
 
 
 def rout_outliers(x_values, y_values, model: str, *, q: float = 0.01,

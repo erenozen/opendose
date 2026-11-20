@@ -245,6 +245,21 @@ export default function ControlsPanel({
       <section>
         <h3>Fitting method</h3>
         <label className="check-row">
+          <span>Method</span>
+          <select aria-label="Fitting method" value={options.fitMethod ?? "least_squares"}
+            onChange={(e) => set({ fitMethod: e.target.value as "least_squares" | "robust" })}>
+            <option value="least_squares">Least squares (default)</option>
+            <option value="robust">Robust regression (resists outliers; best-fit values only)</option>
+          </select>
+        </label>
+        {options.fitMethod === "robust" && (
+          <p className="hint-block">
+            Robust regression assumes Lorentzian scatter, so a few wild points barely move the curve,
+            but it cannot give standard errors, confidence intervals or bands. It is not weighted and
+            not combined with ROUT (which already uses a robust fit to find outliers).
+          </p>
+        )}
+        <label className="check-row">
           <span>Weighting</span>
           <select value={options.weighting}
             onChange={(e) => set({ weighting: e.target.value as WeightingKind })}>

@@ -67,6 +67,12 @@ export function runNonlin(engine: EngineBridge, table: DataTableModel,
     data = { x: data.x, datasets: normalized.datasets };
   }
 
+  // robust regression: library models fitted one curve at a time only
+  if (options.fitMethod === "robust" && (options.model === USER_MODEL_ID || routeFor(options) !== "dose_response")) {
+    return { analysis: "dose_response", datasets: [],
+      error: "Robust regression is available for library models fitted one curve at a time, not for "
+        + "user-defined equations, global fits with shared parameters or the Gaddum/Schild model" };
+  }
   if (options.model === USER_MODEL_ID) {
     return runUserEquation(engine, table, options, data, summaryOptions);
   }
@@ -223,6 +229,7 @@ export function runNonlin(engine: EngineBridge, table: DataTableModel,
       bands: options.bands === "none" ? null : options.bands,
       diagnostics: options.diagnostics,
       interpolate_y: interpY.length ? interpY : null,
+      ...(options.fitMethod === "robust" ? { fit_method: "robust" } : {}),
       ...summaryOptions,
     },
   }) as AnalysisResult;

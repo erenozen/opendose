@@ -55,6 +55,10 @@ export default function MethodsText({ result, options, xUnit }: Props) {
         `datasets (global fit)`);
     }
   }
+  if (options.fitMethod === "robust") {
+    parts.push("by robust nonlinear regression (Lorentzian loss; Motulsky & Brown 2006), which gives "
+      + "best-fit values without standard errors or confidence intervals");
+  }
   if (options.weighting !== "none") {
     const yWeights = options.weighting === "1/Y" || options.weighting === "1/Y2";
     // what the engine did (it reports weight_source with each fit)

@@ -115,6 +115,16 @@ export default function ResultsPanel({ result, xUnit = "M" }: Props) {
             {(fit.weighting && fit.weighting !== "none") && (
               <p className="model-line">{WEIGHTING_LABELS[fit.weighting]}</p>
             )}
+            {fit.fit_method === "robust" && (
+              <p className="model-line">
+                Robust nonlinear regression (Lorentzian): best-fit values only. Robust fitting cannot
+                give standard errors, confidence intervals or bands
+                {typeof fit.goodness?.rsdr === "number" ? `; RSDR = ${formatSig(fit.goodness.rsdr)}` : ""}.
+                {ds.robust_skipped?.length ? ` Not computed: ${ds.robust_skipped.map((k) => ({
+                  bands: "bands", interpolate_y: "interpolation", diagnostics: "diagnostics",
+                  absolute_ic50_level: "absolute IC50" } as Record<string, string>)[k] ?? k).join(", ")}.` : ""}
+              </p>
+            )}
             {ds.rout && (
               <p className="model-line">
                 ROUT (Q = {ds.rout.q * 100}%): {ds.rout.n_outliers} outlier

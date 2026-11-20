@@ -83,6 +83,17 @@ def _dose_response(data, options):
     weighting = options.get("weighting", "none")
     ci_method = options.get("ci_method", "asymptotic")
     rout_q = options.get("rout_q")  # e.g. 0.01 turns on ROUT
+    # fit_method "robust": nlfit.robust_model_fit, best-fit values only
+    fit_method = options.get("fit_method", "least_squares")
+    if fit_method not in ("least_squares", "robust"):
+        raise ValueError(f"unknown fit_method: {fit_method}")
+    robust = fit_method == "robust"
+    if robust and weighting != "none":
+        raise ValueError("robust regression is not weighted: choose no "
+                         "weighting")
+    if robust and rout_q:
+        raise ValueError("ROUT already finds outliers with a robust fit; "
+                         "choose robust regression or ROUT, not both")
     x_col = data["x"]
     if spec.x_is_log and not options.get("x_is_log", True):
         x_col = transform.transform_list(x_col, "log10")
@@ -92,6 +103,9 @@ def _dose_response(data, options):
     summary_fmt = options.get("summary_format")
     if summary_fmt == "replicates":
         summary_fmt = None
+    if robust and summary_fmt:
+        raise ValueError("robust regression needs the individual values, "
+                         "not mean / SD / n")
 
     finite_x = [v for v in x_col if v is not None]
     results = []
@@ -105,7 +119,10 @@ def _dose_response(data, options):
                     options.get("replicates", "account"))
             else:
                 xs, ys = _expand(x_col, ds["ys"])
-            if rout_q:
+            if robust:
+                fit = nlfit.robust_model_fit(xs, ys, model,
+                                             constraints=constraints)
+            elif rout_q:
                 rout = nlfit.rout_outliers(
                     xs, ys, model, q=float(rout_q), constraints=constraints,
                     weighting=weighting, ci_method=ci_method,
@@ -123,6 +140,18 @@ def _dose_response(data, options):
             fit["curve"] = doseresponse.curve_points(
                 fit, min(finite_x), max(finite_x))
             x_lo, x_hi = min(fit["curve"]["x"]), max(fit["curve"]["x"])
+            if robust:
+                # no covariance: no bands, interpolation CIs, absolute IC50
+                # or least-squares diagnostics (the guide: none for robust)
+                skipped = [k for k in ("diagnostics", "bands",
+                                       "interpolate_y", "absolute_ic50_level")
+                           if options.get(k) not in (None, False, [], "")]
+                if skipped:
+                    entry["robust_skipped"] = skipped
+                options = {k: v for k, v in options.items()
+                           if k not in ("diagnostics", "bands",
+                                        "interpolate_y",
+                                        "absolute_ic50_level")}
             if options.get("diagnostics"):
                 entry["diagnostics"] = diagnostics.fit_diagnostics(xs, ys, fit)
                 if summary_fmt:  # replicates test from mean/SD/n (exact)

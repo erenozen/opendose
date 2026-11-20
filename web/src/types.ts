@@ -65,6 +65,9 @@ export interface OptionsState {
   normalize: NormalizeState;
   weighting: WeightingKind;
   ciMethod: CIMethod;
+  /** "robust": robust nonlinear regression, best-fit values only (no SE,
+   *  CI or bands). Absent = least squares. */
+  fitMethod?: "least_squares" | "robust";
   routEnabled: boolean;
   routQ: string; // percent, e.g. "1"
   bands: "none" | "confidence" | "prediction";
@@ -120,6 +123,7 @@ export const DEFAULT_XY_OPTIONS: OptionsState = {
   weighting: "none",
   ciMethod: "asymptotic",
   routEnabled: false,
+  fitMethod: "least_squares",
   routQ: "1",
   bands: "none",
   diagnostics: false,
@@ -159,6 +163,9 @@ export interface FitResult {
   } | null;
   weighting?: WeightingKind;
   ci_method?: CIMethod;
+  /** "robust": best-fit values only (engine nlfit.robust_model_fit). */
+  fit_method?: "least_squares" | "robust";
+  note?: string;
   param_order?: string[];
   params: Record<string, ParamEntry>;
   goodness: {
@@ -170,6 +177,8 @@ export interface FitResult {
     r_squared_uncentered?: number | null;
     ss_res: number;
     sy_x: number;
+    /** Robust fits: robust SD of the residuals. */
+    rsdr?: number;
   };
   curve: { x: number[]; y: number[] };
 }
@@ -199,6 +208,8 @@ export interface DatasetResult {
   name: string;
   fit?: FitResult;
   rout?: RoutInfo;
+  /** Robust fit: requested least-squares extras that were not computed. */
+  robust_skipped?: string[];
   bands?: BandData;
   interpolated_x?: (number | null)[];
   diagnostics?: Record<string, unknown>;
