@@ -13,9 +13,9 @@ import { formatSig } from "../../types";
 import CopyableMethods from "../common/CopyableMethods";
 import { chosenParameter, constraintValues, type CompareOptions } from "./compareFits";
 import {
-  aiccText, comparableParameters, COMPARE_PARAMETER_SOURCE, compareParameterMethods, fTestText,
-  filledDatasets, headline, isMidpoint, linearName, MOTULSKY_2004, potencyText, ratioText,
-  type MidpointFlag,
+  aiccText, chosenSets, comparableParameters, COMPARE_PARAMETER_SOURCE, compareParameterMethods, fTestText,
+  filledDatasets, headline, isMidpoint, isSets, linearName, MOTULSKY_2004, potencyText, ratioText,
+  setsHeadline, type MidpointFlag,
 } from "./compareParameter";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -30,6 +30,7 @@ export function ParameterControls({ table, options, set, readOnly, model }: {
   const params = comparableParameters(meta, constraintValues(meta, options.constraints1));
   const parameter = chosenParameter(options);
   const filled = new Set(filledDatasets(table));
+  const chosen = chosenSets(table, options.parameterSets);
   const dsSelect = (label: string, value: number, key: "datasetA" | "datasetB") => (
     <label className="field">
       <span>{label}</span>
@@ -55,9 +56,43 @@ export function ParameterControls({ table, options, set, readOnly, model }: {
             {params.map((p) => <option key={p} value={p}>{p}</option>)}
           </select>
         </label>
-        {dsSelect("Data set A (reference)", options.datasetA, "datasetA")}
-        {dsSelect("Data set B", options.datasetB, "datasetB")}
-        <p className="hint-block">
+        <label className="field">
+          <span>Compare</span>
+          <select aria-label="Data sets compared" value={options.parameterScope} disabled={readOnly}
+            onChange={(e) => set({ parameterScope: e.target.value as CompareOptions["parameterScope"] })}>
+            <option value="pair">Two data sets (A vs B)</option>
+            <option value="all" disabled={filled.size < 3}>Three or more data sets at once</option>
+          </select>
+        </label>
+        {options.parameterScope === "all" ? (
+          <fieldset className="field">
+            <legend>Data sets</legend>
+            {table.datasets.map((_, i) => (
+              <label key={i} className="check-row">
+                <input type="checkbox" disabled={readOnly || !filled.has(i)}
+                  checked={filled.has(i) && chosen.includes(i)}
+                  onChange={(e) => {
+                    const next = e.target.checked ? [...chosen, i] : chosen.filter((k) => k !== i);
+                    set({ parameterSets: [...filled].filter((k) => next.includes(k)) });
+                  }} />
+                {dsName(table, i)}
+              </label>
+            ))}
+          </fieldset>
+        ) : (
+          <>
+            {dsSelect("Data set A (reference)", options.datasetA, "datasetA")}
+            {dsSelect("Data set B", options.datasetB, "datasetB")}
+          </>
+        )}
+        {options.parameterScope === "all" && (
+          <p className="hint-block">
+            All chosen data sets are fitted with one {parameter || "value"} shared by all of them and with
+            separate values; one F test (and AICc) says whether they differ. Every pair then follows,
+            with P values adjusted for the number of pairs (Holm).
+          </p>
+        )}
+        <p className="hint-block" hidden={options.parameterScope === "all"}>
           Both data sets are fitted with {parameter || "the parameter"} shared and with separate
           values (the other parameters separate in both fits); the extra-sum-of-squares F test
           and AICc say whether one shared value is enough. The ratio is B / A
@@ -97,6 +132,7 @@ function FlagNote({ flags, parameter }: { flags: MidpointFlag[]; parameter: stri
 export function ParameterResults({ result }: { result: any }) {
   const c = result.compare;
   if (!c) return null;
+  if (isSets(c)) return <SetsResults result={result} />;
   const flags: MidpointFlag[] = result.flags ?? [];
   const [a, b] = c.dataset_names ?? ["A", "B"];
   const level = Math.round(100 * (c.ci_level ?? 0.95));
@@ -205,6 +241,124 @@ export function ParameterResults({ result }: { result: any }) {
           Method:{" "}
           <a href={COMPARE_PARAMETER_SOURCE.url} target="_blank" rel="noreferrer">{COMPARE_PARAMETER_SOURCE.label}</a>;
           {" "}{MOTULSKY_2004}. On the graph, each data set has its own fitted curve.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/** Three or more data sets: the F test for one shared value, the shared
+ *  value, every data set's own value, and the Holm-adjusted pairs. */
+function SetsResults({ result }: { result: any }) {
+  const c = result.compare;
+  const flags: MidpointFlag[] = result.flags ?? [];
+  const level = Math.round(100 * (c.ci_level ?? 0.95));
+  const par = String(c.parameter);
+  const lin = linearName(par);
+  const f = c.f_test;
+  return (
+    <div className="results">
+      <div className="result-card compare-parameter">
+        <h3>{par}: {c.n_sets} data sets</h3>
+        <p className="compare-headline"><strong>{setsHeadline(c)}</strong></p>
+        <FlagNote flags={flags} parameter={par} />
+        <table className="results-table goodness compare-parameter-table">
+          <tbody>
+            <tr><th>Null hypothesis</th><td>one {par} for all {c.n_sets} data sets</td></tr>
+            <tr><th>F test for one shared {par}</th>
+              <td>{f ? fTestText(c) : "not computed (no degrees of freedom left)"}</td></tr>
+            {c.aicc && <tr><th>AICc</th><td>{aiccText(c)}</td></tr>}
+            {c.shared_fit?.value && (
+              <tr>
+                <th>Shared {par} (one value for all)</th>
+                <td>{formatSig(c.shared_fit.value.value)} ({level}% CI {ciText(c.shared_fit.value.ci)})</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+        <h4>Separate fits</h4>
+        <div className="compare-table-wrap">
+          <table className="results-table">
+            <thead>
+              <tr>
+                <th scope="col">Data set</th>
+                <th scope="col" className="num">{par}</th>
+                <th scope="col" className="num">SE</th>
+                <th scope="col">{level}% CI</th>
+                {c.potency && <th scope="col">{lin}</th>}
+                <th scope="col" className="num">Points</th>
+                <th scope="col">Fit</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(c.separate ?? []).map((s: any) => {
+                const flag = flags.find((x) => x.name === s.name);
+                return (
+                  <tr key={s.name}>
+                    <th scope="row">{s.name}</th>
+                    <td className="num">{formatSig(s.value)}</td>
+                    <td className="num">{formatSig(s.se)}</td>
+                    <td>{ciText(s.ci)}</td>
+                    {c.potency && (
+                      <td>{flag ? `${flag.text} (not reached)`
+                        : `${formatSig(10 ** s.value)} (${ciText(s.ci?.map((v: number) => 10 ** v))})`}</td>
+                    )}
+                    <td className="num">{s.n_points}</td>
+                    <td>{s.status ?? "converged"}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <h4>Pairs (follow-up)</h4>
+        <div className="compare-table-wrap">
+          <table className="results-table">
+            <thead>
+              <tr>
+                <th scope="col">Pair</th>
+                <th scope="col" className="num">Difference</th>
+                <th scope="col">{level}% CI</th>
+                {c.potency && <th scope="col">{lin} ratio ({level}% CI)</th>}
+                <th scope="col" className="num">P</th>
+                <th scope="col" className="num">P, Holm-adjusted</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(c.pairwise ?? []).map((d: any) => {
+                const involved = flags.some((x) => x.name === d.a || x.name === d.b);
+                return (
+                  <tr key={`${d.a}|${d.b}`}>
+                    <th scope="row">{d.b} − {d.a}</th>
+                    <td className="num">{formatSig(d.value)}</td>
+                    <td>{ciText(d.ci)}</td>
+                    {c.potency && (
+                      <td>{involved ? "undefined (incomplete curve)"
+                        : `${formatSig(d.ratio, 4)} (${ciText(d.ratio_ci)})`}</td>
+                    )}
+                    <td className="num">{formatPValue(d.p)}</td>
+                    <td className="num">{formatPValue(d.p_holm)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <p className="hint-block">
+          The F test is the answer to “do the {c.n_sets} values differ?”. The pairs only say which ones
+          do: each is a t test on the two separate fits (df = df_A + df_B), with P values adjusted for
+          the {(c.pairwise ?? []).length} pairs by Holm's method; the CIs are not adjusted.
+          {c.potency && ` A ratio above 1 means the second data set of the pair needs a higher concentration for the same effect.`}
+        </p>
+        {[...(c.warnings ?? []), ...(c.notes ?? [])].length > 0 && (
+          <div className="result-note">
+            <ul>{[...(c.warnings ?? []), ...(c.notes ?? [])].map((w: string) => <li key={w}>{w}</li>)}</ul>
+          </div>
+        )}
+        <p className="hint-block">
+          Method:{" "}
+          <a href={COMPARE_PARAMETER_SOURCE.url} target="_blank" rel="noreferrer">{COMPARE_PARAMETER_SOURCE.label}</a>;
+          {" "}{MOTULSKY_2004}; Holm 1979 (pairs). On the graph, each data set has its own fitted curve.
         </p>
       </div>
     </div>

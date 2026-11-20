@@ -50,6 +50,12 @@ export interface CompareOptions {
   parameter: string;
   datasetA: number;
   datasetB: number;
+  /** "parameter" mode: two data sets (A vs B) or three or more at once
+   *  (one F test for a value shared by all, then every pair). */
+  parameterScope: "pair" | "all";
+  /** The data sets of the "all" scope (indices; empty = every data set
+   *  with values). */
+  parameterSets: number[];
 }
 
 export const DEFAULT_COMPARE: CompareOptions = {
@@ -58,7 +64,7 @@ export const DEFAULT_COMPARE: CompareOptions = {
   model2: "log_inhibitor_vs_response_4pl",
   constraints1: {}, constraints2: {},
   method: "both", xIsLog: false, errorBars: "sd",
-  parameter: "", datasetA: 0, datasetB: 1,
+  parameter: "", datasetA: 0, datasetB: 1, parameterScope: "pair", parameterSets: [],
 };
 
 const isConstraints = (v: unknown): v is Record<string, ConstraintState> =>
@@ -79,6 +85,9 @@ export function normalizeCompare(raw: unknown): CompareOptions {
     parameter: typeof r.parameter === "string" ? r.parameter : "",
     datasetA: Number.isInteger(r.datasetA) && (r.datasetA as number) >= 0 ? r.datasetA as number : 0,
     datasetB: Number.isInteger(r.datasetB) && (r.datasetB as number) >= 0 ? r.datasetB as number : 1,
+    parameterScope: r.parameterScope === "all" ? "all" : "pair",
+    parameterSets: Array.isArray(r.parameterSets)
+      ? r.parameterSets.filter((i): i is number => Number.isInteger(i) && i >= 0) : [],
   };
 }
 
@@ -323,6 +332,7 @@ function runOneParameter(engine: Engine, table: DataTableModel, o: CompareOption
   return runParameter(engine, table, {
     model: m, held: constraintValues(m, o.constraints1), parameter: chosenParameter(o),
     datasetA: o.datasetA, datasetB: o.datasetB, xIsLog: o.xIsLog, errorBars: o.errorBars,
+    sets: o.parameterScope === "all" ? o.parameterSets : null,
   });
 }
 

@@ -79,16 +79,28 @@ export interface ParameterInput {
   datasetB: number;
   xIsLog: boolean;
   errorBars: string;
+  /** Three or more data sets compared at once (indices; empty = every
+   *  data set with values); null = the pair A / B. */
+  sets?: number[] | null;
+}
+
+/** The data sets of an "all" comparison: the chosen ones that hold values,
+ *  or every data set with values when none is chosen. */
+export function chosenSets(table: DataTableModel, sets: number[]): number[] {
+  const ok = filledDatasets(table);
+  const picked = ok.filter((i) => sets.includes(i));
+  return sets.length ? picked : ok;
 }
 
 /** The engine payload of the comparison. */
 export function compareParameterPayload(table: DataTableModel, i: ParameterInput): R {
+  const pick = i.sets ? { datasets: chosenSets(table, i.sets) }
+    : { dataset_a: i.datasetA, dataset_b: i.datasetB };
   return {
     analysis: "compare_parameter",
     data: numericData(table),
     options: {
-      model: i.model.engineId, parameter: i.parameter, dataset_a: i.datasetA,
-      dataset_b: i.datasetB, constraints: i.held, x_is_log: i.xIsLog,
+      model: i.model.engineId, parameter: i.parameter, ...pick, constraints: i.held, x_is_log: i.xIsLog,
     },
   };
 }
@@ -122,6 +134,7 @@ export function runParameter(engine: Engine, table: DataTableModel, i: Parameter
       + "use “One curve for all data sets vs. a separate curve for each” instead");
   }
   if (!i.parameter) return fail("Choose a parameter to compare");
+  if (i.sets) return runSets(engine, table, i, fail);
   const pair = datasetPair(table, i.datasetA, i.datasetB);
   if (!pair) return fail("Comparing a parameter needs two data sets with values");
   if (pair[0] !== i.datasetA || pair[1] !== i.datasetB) {
@@ -149,7 +162,58 @@ export function runParameter(engine: Engine, table: DataTableModel, i: Parameter
   };
 }
 
+/** Three or more data sets: the engine's one F test for a shared value
+ *  (compare_parameter_sets), and every chosen data set fitted on its own
+ *  for the graph and the incomplete-curve flags. */
+function runSets(engine: Engine, table: DataTableModel, i: ParameterInput, fail: (e: string) => R): R {
+  const idx = chosenSets(table, i.sets ?? []);
+  if (idx.length < 3) {
+    return fail("Comparing all data sets needs three or more data sets with values "
+      + "(for two, choose “Two data sets”)");
+  }
+  const data = numericData(table);
+  const res = engine.analyze(compareParameterPayload(table, i));
+  if (!res || res.error) return fail(String(res?.error ?? "no result"));
+  const sep = engine.analyze({
+    analysis: "dose_response",
+    data: { x: data.x, datasets: idx.map((k) => data.datasets[k]) },
+    options: { model: i.model.engineId, x_is_log: i.xIsLog, error_bars: i.errorBars, constraints: i.held },
+  });
+  const fits: R[] = (sep && !sep.error ? sep.datasets ?? [] : []);
+  const mid = isMidpoint(String(res.parameter_internal ?? res.parameter ?? ""));
+  const flags = mid ? fits.map((d) => midpointFlag(String(d.name), d.fit, table.xUnit ?? ""))
+    .filter((f): f is MidpointFlag => !!f) : [];
+  const label = i.model.label;
+  return {
+    analysis: "compare_fits", mode: "parameter", method: "both", labels: [label, label], rows: [],
+    compare: res, flags, xUnit: table.xUnit ?? "",
+    datasets: fits.filter((d) => d.fit).map((d) => ({
+      name: d.name, points: d.points, fit: { ...d.fit, label: `${label}, fitted to ${d.name}` },
+    })),
+  };
+}
+
 // ------------------------------------------------------------ wording
+
+/** A comparison of three or more data sets (engine mode "sets"). */
+export const isSets = (c: R): boolean => c?.mode === "sets";
+
+/** "LogIC50 differs among the 4 data sets: F(3, 80) = 51.6, P < 0.0001",
+ *  or that one shared value is not rejected. */
+export function setsHeadline(c: R, style?: PStyle): string {
+  const f = c?.f_test;
+  const n = c?.n_sets ?? c?.dataset_names?.length ?? 0;
+  if (!f || !isNum(f.p)) return `${c?.parameter}: the F test could not be computed`;
+  return f.p < 0.05
+    ? `${c.parameter} differs among the ${n} data sets: ${fTestText(c, style)}`
+    : `No evidence that ${c.parameter} differs among the ${n} data sets: ${fTestText(c, style)}`;
+}
+
+/** Pairs whose Holm-adjusted P is below 0.05, as "D1 vs Ctrl". */
+export function setsDifferingPairs(c: R): string[] {
+  return (c?.pairwise ?? []).filter((d: R) => isNum(d.p_holm) && d.p_holm < 0.05)
+    .map((d: R) => `${d.b} vs ${d.a}`);
+}
 
 /** "IC50" for "LogIC50" (the ratio's quantity), else the parameter. */
 export function linearName(parameter: string): string {
@@ -236,6 +300,18 @@ export function potencyText(c: R): string {
 /** The results sentence (results card): the ratio or difference with its
  *  CI and the F test, in the project's P style. */
 export function compareParameterSentence(c: R, flags: MidpointFlag[], style?: PStyle): string {
+  if (isSets(c)) {
+    const f = c.f_test;
+    if (!f || !isNum(f.p)) return "";
+    const pairs = setsDifferingPairs(c);
+    const flagged = flags.length ? ` ${flags.map((x) => `${x.name}: ${x.text}`).join("; ")} `
+      + "(not reached in the concentrations tested), so its value is an extrapolation." : "";
+    return `${f.p < 0.05 ? `One ${c.parameter} shared by all ${c.n_sets} data sets was rejected`
+      : `Separate ${c.parameter} values did not fit significantly better than one shared by all `
+        + `${c.n_sets} data sets`} (extra-sum-of-squares F test, ${fTestText(c, style)}).`
+      + (f.p < 0.05 ? ` Pairs differing after Holm's adjustment: ${pairs.length ? pairs.join(", ") : "none"}.` : "")
+      + flagged;
+  }
   if (!c || !c.difference) return "";
   const [a, b] = c.dataset_names ?? ["A", "B"];
   const level = Math.round(100 * (isNum(c.ci_level) ? c.ci_level : 0.95));
@@ -268,6 +344,11 @@ export function compareParameterSentence(c: R, flags: MidpointFlag[], style?: PS
 /** The legend clause: what was compared and how. */
 export function compareParameterLegend(c: R): string {
   if (!c?.parameter) return "";
+  if (isSets(c)) {
+    return `Curves are fitted to each of ${(c.dataset_names ?? []).join(", ")} separately; ${c.parameter} `
+      + "was compared among them by the extra-sum-of-squares F test (one value shared by all against "
+      + "separate values) and AICc.";
+  }
   const [a, b] = c.dataset_names ?? ["A", "B"];
   return `Curves are fitted to ${a} and ${b} separately; ${c.parameter} was compared between them `
     + "by the extra-sum-of-squares F test (one shared value against separate values) and AICc"
@@ -279,6 +360,17 @@ export function compareParameterLegend(c: R): string {
 /** The methods paragraph (results sheet's Methods). */
 export function compareParameterMethods(c: R, modelLabel: string): string {
   if (!c?.parameter) return "";
+  if (isSets(c)) {
+    return `${(c.dataset_names ?? []).join(", ")} were fitted by nonlinear regression to the `
+      + `“${modelLabel}” model, once with a separate ${c.parameter} for each data set and once with one `
+      + `${c.parameter} shared by all ${c.n_sets} (the other parameters separate in both fits); the two `
+      + "fits were compared with the extra-sum-of-squares F test and with Akaike's information criterion "
+      + "corrected for small samples (AICc), as described in the GraphPad curve-fitting guide and by "
+      + `${MOTULSKY_2004}. As a follow-up, each pair's difference in ${c.parameter} was tested with t = `
+      + "difference / √(SE_A² + SE_B²) on df_A + df_B degrees of freedom from the separate fits, with "
+      + "P values adjusted for the number of pairs by Holm's method"
+      + (c.potency ? `; each pair's ${linearName(String(c.parameter))} ratio is the antilog of the difference.` : ".");
+  }
   const [a, b] = c.dataset_names ?? ["A", "B"];
   const level = Math.round(100 * (isNum(c.ci_level) ? c.ci_level : 0.95));
   const ratio = c.ratio?.kind === "potency_ratio"

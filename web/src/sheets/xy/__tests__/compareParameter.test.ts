@@ -9,9 +9,9 @@ import assert from "node:assert/strict";
 import { normalizeTable } from "../../../project/table.ts";
 import { modelMeta } from "../../../lib/modelLibrary.ts";
 import {
-  aiccText, comparableParameters, compareParameterLegend, compareParameterMethods,
-  compareParameterSentence, datasetPair, defaultParameter, fTestText, headline, isMidpoint,
-  midpointFlag, potencyText, ratioText, runParameter,
+  aiccText, chosenSets, comparableParameters, compareParameterLegend, compareParameterMethods,
+  compareParameterPayload, compareParameterSentence, datasetPair, defaultParameter, fTestText, headline,
+  isMidpoint, midpointFlag, potencyText, ratioText, runParameter, setsDifferingPairs, setsHeadline,
 } from "../compareParameter.ts";
 import { DEFAULT_COMPARE, chosenParameter, normalizeCompare, runCompare } from "../compareFits.ts";
 import { compareFitsOptions } from "../../../components/resultsLinks.ts";
@@ -117,4 +117,52 @@ test("payloads: compare_parameter, then the two data sets alone with their flags
 test("the fit results' link opens the parameter comparison on the fitted model", () => {
   assert.deepEqual(compareFitsOptions("log_agonist_vs_response_4pl", false, "parameter", () => true),
     { mode: "parameter", xIsLog: false, datasetA: 0, datasetB: 1, model1: "log_agonist_vs_response_4pl" });
+});
+
+// Three or more data sets (engine compare_parameter_sets, mode "sets").
+const SETS = {
+  analysis: "compare_parameter", mode: "sets", model: "log_inhibitor_vs_response_4pl",
+  parameter: "LogIC50", parameter_internal: "LogXmid", dataset_names: ["Ctrl", "D1", "D2"], n_sets: 3,
+  potency: true, ci_level: 0.95,
+  f_test: { F: 51.6494, dfn: 2, dfd: 60, p: 9.0e-14 },
+  aicc: { preferred: "separate", probability_1: 1e-9, probability_2: 0.999999999 },
+  pairwise: [
+    { a: "Ctrl", b: "D1", value: 0.6528, p: 4.72e-11, p_holm: 1.42e-10 },
+    { a: "Ctrl", b: "D2", value: 0.0895, p: 0.134, p_holm: 0.134 },
+    { a: "D1", b: "D2", value: -0.5633, p: 5.04e-9, p_holm: 1.01e-8 },
+  ],
+};
+
+test("all-data-sets scope: options, chosen sets and payload", () => {
+  const t = normalizeTable({ type: "xy", x: ["1", "2"], datasets: [
+    { name: "A", rows: [["1"], ["2"]] }, { name: "Empty", rows: [[""], [""]] },
+    { name: "B", rows: [["3"], ["4"]] }, { name: "C", rows: [["5"], ["6"]] }] });
+  assert.equal(normalizeCompare({}).parameterScope, "pair");
+  const o = normalizeCompare({ parameterScope: "all", parameterSets: [0, 1, 3, -1, "x"] });
+  assert.equal(o.parameterScope, "all");
+  assert.deepEqual(o.parameterSets, [0, 1, 3]);
+  assert.deepEqual(chosenSets(t, []), [0, 2, 3]);
+  assert.deepEqual(chosenSets(t, [0, 1, 3]), [0, 3]);
+  const base = { model: modelMeta("log_inhibitor_vs_response_4pl"), held: {}, parameter: "LogIC50",
+    datasetA: 0, datasetB: 2, xIsLog: true, errorBars: "sd" };
+  const p = compareParameterPayload(t, { ...base, sets: [] });
+  assert.deepEqual(p.options.datasets, [0, 2, 3]);
+  assert.equal("dataset_a" in p.options, false);
+  assert.equal(compareParameterPayload(t, base).options.dataset_a, 0);
+  const few = runParameter({ analyze: () => SETS }, t, { ...base, sets: [0, 2] });
+  assert.match(few.error, /three or more/);
+});
+
+test("all-data-sets wording: headline, differing pairs, sentence, legend, methods", () => {
+  assert.equal(setsHeadline(SETS), "LogIC50 differs among the 3 data sets: F(2, 60) = 51.65, P < 0.0001");
+  assert.equal(setsHeadline({ ...SETS, f_test: { ...SETS.f_test, F: 1.2, p: 0.31 } }),
+    "No evidence that LogIC50 differs among the 3 data sets: F(2, 60) = 1.2, P = 0.3100");
+  assert.deepEqual(setsDifferingPairs(SETS), ["D1 vs Ctrl", "D2 vs D1"]);
+  const s = compareParameterSentence(SETS, []);
+  assert.match(s, /One LogIC50 shared by all 3 data sets was rejected/);
+  assert.match(s, /Holm's adjustment: D1 vs Ctrl, D2 vs D1\./);
+  assert.match(compareParameterLegend(SETS), /each of Ctrl, D1, D2 separately/);
+  const m = compareParameterMethods(SETS, "4PL");
+  assert.match(m, /shared by all 3/);
+  assert.match(m, /Holm's method; each pair's IC50 ratio/);
 });

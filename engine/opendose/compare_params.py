@@ -238,3 +238,136 @@ def compare_parameter(set_a, set_b, model: str, parameter: str, *,
         "ci_level": ci_level,
         "warnings": warnings, "notes": notes, "source": SOURCE,
     }
+
+
+def _holm(ps):
+    """Holm (1979) step-down adjusted P values, in the input order."""
+    m = len(ps)
+    order = sorted(range(m), key=lambda i: ps[i])
+    adj = [0.0] * m
+    running = 0.0
+    for rank, i in enumerate(order):
+        running = max(running, min(1.0, (m - rank) * ps[i]))
+        adj[i] = running
+    return adj
+
+
+def compare_parameter_sets(sets, model: str, parameter: str, *,
+                           constraints=None, weighting: str = "none",
+                           ci_level: float = 0.95) -> dict:
+    """One parameter across k >= 2 curves (GraphPad curve-fitting guide,
+    "Compare tab: Do the best-fit values of selected parameters differ
+    between data sets?"): every data set fitted separately (k values) and
+    once with the parameter shared by all of them (one value; the other
+    parameters separate in both fits), compared with the extra
+    sum-of-squares F test (DFn = k - 1) and AICc; the null hypothesis is
+    one value for all data sets. Follow-up (not in the guide): every pair's
+    difference with the separate-fit t test of compare_parameter (df = df_A
+    + df_B), the P values Holm-adjusted over the pairs; for a log-
+    concentration parameter each pair's antilog ratio (unadjusted CI).
+    sets: [{"name", "x", "y"}] (X in the model's units)."""
+    if model not in nlfit.MODELS:
+        raise ValueError(f"unknown model: {model}")
+    if len(sets) < 2:
+        raise ValueError("comparing a parameter needs at least two data sets")
+    spec = nlfit.MODELS[model]
+    internal = resolve_parameter(spec, parameter)
+    fixed = _internal_constraints(spec, model, constraints)
+    if internal in fixed:
+        raise ValueError(f"{_display(spec, internal)} is constrained to a "
+                         "constant: there is nothing to compare")
+    display = _display(spec, internal)
+    names = [s.get("name") or f"Data set {i + 1}" for i, s in enumerate(sets)]
+    if len(set(names)) != len(names):
+        raise ValueError("data sets need distinct names")
+    warnings, notes = [], []
+
+    separate = []
+    for ds, nm in zip(sets, names):
+        fit = nlfit.fit_model(ds["x"], ds["y"], model, constraints=fixed,
+                              weighting=weighting)
+        p = fit["params"].get(display) or fit["params"].get(internal)
+        if p is None or p.get("se") is None:
+            raise ValueError(f"{nm}: {display} has no standard error "
+                             f"(fit status {fit.get('status')})")
+        if fit.get("status") not in (None, "converged"):
+            warnings.append(f"{nm}: the fit is {fit.get('status')}; its "
+                            f"{display} may not be meaningful")
+        separate.append({"name": nm, "value": float(p["value"]),
+                         "se": float(p["se"]),
+                         "ci": [float(v) for v in p["ci95"]],
+                         "df": int(fit["goodness"]["df"]),
+                         "n_points": int(fit["goodness"]["n_points"]),
+                         "ss_res": _wss(fit["goodness"]),
+                         "status": fit.get("status")})
+
+    gsets = [{"name": nm, "x": s["x"], "y": s["y"]}
+             for nm, s in zip(names, sets)]
+    shared_fit = equations.fit_global_model(gsets, model, shared=[internal],
+                                            constraints=fixed,
+                                            weighting=weighting)
+    ss_sep = sum(s["ss_res"] for s in separate)
+    n_total = sum(s["n_points"] for s in separate)
+    k_sep = sum(s["n_points"] - s["df"] for s in separate)
+    df_sep = n_total - k_sep
+    ss_sh = _wss(shared_fit["goodness"])
+    df_sh = int(shared_fit["goodness"]["df"])
+    k_sh = n_total - df_sh
+    if ss_sh < ss_sep * (1 - 1e-9):
+        warnings.append("The shared fit has a smaller sum of squares than "
+                        "the separate fits: a separate fit stopped at a "
+                        "local minimum; the F test is set to F = 0")
+    f_test = None
+    if df_sh > df_sep:
+        f_test = nlfit.compare_fits_f_test(max(ss_sh, ss_sep), df_sh,
+                                           ss_sep, df_sep)
+        f_test.update({"ss_shared": ss_sh, "df_shared": df_sh,
+                       "ss_separate": ss_sep, "df_separate": df_sep,
+                       "null_hypothesis": f"one {display} for all "
+                                          f"{len(sets)} data sets"})
+    aicc = nlfit.compare_fits_aicc(ss_sh, k_sh, ss_sep, k_sep, n_total)
+    aicc.update({"model_1": f"one shared {display}",
+                 "model_2": f"separate {display} values",
+                 "preferred": ("shared" if aicc["prefer"] == 1
+                               else "separate")})
+    sh_entry = None
+    for ds in shared_fit["datasets"]:
+        if internal in ds["params"]:
+            q = ds["params"][internal]
+            sh_entry = {"value": q["value"], "se": q["se"], "ci": q["ci95"]}
+            break
+
+    potency = internal.startswith("Log") and spec.x_is_log
+    pairs = []
+    for i in range(len(separate)):
+        for j in range(i + 1, len(separate)):
+            a, b = separate[i], separate[j]
+            se = math.sqrt(a["se"] ** 2 + b["se"] ** 2)
+            d = _t_block(b["value"] - a["value"], se, a["df"] + b["df"],
+                         ci_level)
+            d.update({"a": a["name"], "b": b["name"]})
+            if potency:
+                d["ratio"] = 10.0 ** d["value"]
+                d["ratio_ci"] = [10.0 ** d["ci"][0], 10.0 ** d["ci"][1]]
+            pairs.append(d)
+    for d, adj in zip(pairs, _holm([d["p"] for d in pairs])):
+        d["p_holm"] = adj
+    if weighting != "none":
+        notes.append(f"Sums of squares are weighted ({weighting}).")
+    return {
+        "analysis": "compare_parameter", "mode": "sets",
+        "model": model, "parameter": display,
+        "parameter_internal": internal,
+        "dataset_names": names, "n_sets": len(sets),
+        "separate": separate,
+        "f_test": f_test, "aicc": aicc,
+        "shared_fit": {"value": sh_entry, "ss_res": ss_sh, "df": df_sh,
+                       "n_parameters": k_sh},
+        "pairwise": pairs,
+        "pairwise_method": ("t = difference / sqrt(SE_A^2 + SE_B^2), df = "
+                            "df_A + df_B (separate fits); P values "
+                            "Holm-adjusted over all pairs; CIs unadjusted"),
+        "potency": potency,
+        "ci_level": ci_level,
+        "warnings": warnings, "notes": notes, "source": SOURCE,
+    }

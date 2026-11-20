@@ -3373,7 +3373,9 @@ def _compare_parameter(data, options):
     data: as dose_response ({"x", "datasets": [{"name", "ys"}]}).
     options: model, parameter ("logEC50" | "LogIC50" | "HillSlope" |
     "Top" | "Bottom" | any model parameter), dataset_a (0), dataset_b
-    (1), constraints, weighting, x_is_log (true), ci_level (0.95)."""
+    (1), constraints, weighting, x_is_log (true), ci_level (0.95);
+    datasets: [3+ indices] instead of a / b compares the parameter across
+    all of them (compare_params.compare_parameter_sets)."""
     model = options.get("model", "log_inhibitor_vs_response_4pl")
     spec = nlfit.MODELS.get(model)
     if spec is None:
@@ -3383,6 +3385,25 @@ def _compare_parameter(data, options):
     x_col = data["x"]
     if spec.x_is_log and not options.get("x_is_log", True):
         x_col = transform.transform_list(x_col, "log10")
+    many = options.get("datasets")
+    if many is not None and len(many) >= 3:
+        # three or more curves: one F test for a parameter shared by all
+        idx = [int(i) for i in many]
+        if len(set(idx)) != len(idx):
+            raise ValueError("each data set can be chosen once")
+        sets = []
+        for i in idx:
+            ds = data["datasets"][i]
+            xs, ys = _expand(x_col, ds["ys"])
+            sets.append({"name": ds.get("name") or f"Data set {i + 1}",
+                         "x": xs, "y": ys})
+        out = compare_params.compare_parameter_sets(
+            sets, model, options["parameter"],
+            constraints=options.get("constraints") or {},
+            weighting=options.get("weighting", "none"),
+            ci_level=options.get("ci_level", 0.95))
+        out["warnings"] = _nan_warnings(data, set(idx)) + out["warnings"]
+        return out
     ia, ib = options.get("dataset_a", 0), options.get("dataset_b", 1)
     sets = []
     for i in (ia, ib):
