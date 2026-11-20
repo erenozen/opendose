@@ -10,7 +10,7 @@ import {
   ANALYSIS_QUANTAL, defaultQuantalOptions, normalizeQuantalOptions, runQuantal,
   type QuantalOptions, type QuantalResult,
 } from "./quantal";
-import { xyGroupedGraphs } from "../grouped";
+import { rowMeansAnalysis, xyGroupedGraphs } from "../grouped";
 import DataGrid from "../common/DataGrid";
 import { defineAnalysis, defineGraph, type TableTypeDef } from "../types";
 import {
@@ -226,7 +226,7 @@ export const xyTable: TableTypeDef = {
   Editor: DataGrid,
   EditorAside: PlateAside,
   analyses: [nonlinAnalysis, linregAnalysis, compareAnalysis, demingAnalysis, quantalAnalysis,
-    columnAnalysis, rocAnalysis, blandAltmanAnalysis],
+    columnAnalysis, rowMeansAnalysis, rocAnalysis, blandAltmanAnalysis],
   graphs: [xyGraph, linregGraph, compareGraph, demingGraph, quantalGraph, ...xyGroupedGraphs,
     ...columnGraphs, rocGraph, blandAltmanGraph],
 };

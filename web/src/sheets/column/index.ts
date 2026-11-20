@@ -14,6 +14,7 @@ import {
   type RocResult,
 } from "./roc";
 import { ColumnMethods } from "./methods";
+import { rowMeansAnalysis } from "../grouped";
 import { ColumnAnalysisControls, ColumnAnalysisResults, ColumnGraph } from "./panels";
 import { runColumn } from "./run";
 import { ColumnGraphOptions } from "./graphOptions";
@@ -192,7 +193,7 @@ export const columnTable: TableTypeDef = {
   sampleTable: columnSample,
   sampleName: "Group comparison",
   Editor: DataGrid,
-  analyses: [columnAnalysis, replicateMeansAnalysis, estimationAnalysis, rocAnalysis,
+  analyses: [columnAnalysis, replicateMeansAnalysis, estimationAnalysis, rowMeansAnalysis, rocAnalysis,
     blandAltmanAnalysis],
   graphs: [...columnGraphs, estimationGraph, rocGraph, blandAltmanGraph],
 };

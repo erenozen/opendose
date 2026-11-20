@@ -174,7 +174,7 @@ export const rowMeansAnalysis = defineAnalysis<RowMeansOptions, Result>({
   // "Make a linked data table" in the results.
   derivedOnDemand: true,
   derivedTable: (result, source) => (result.error || !Array.isArray(result.row_titles)
-    ? null : rowMeansTable(result, source.yTitle.trim())),
+    ? null : rowMeansTable(result, source.yTitle.trim(), source.type === "xy" ? source.x : undefined)),
   derivedName: (t) => `Row means of ${t}`,
 });
 

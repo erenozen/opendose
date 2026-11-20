@@ -12,7 +12,7 @@ export const CALC_TITLE: Record<string, string> = {
 /** The row-means result as a new grouped data table: mean with SD / SEM
  *  / %CV and N where those were computed, otherwise one value per cell.
  *  `name` (what was averaged) goes into the Y title. */
-export function rowMeansTable(result: R, name: string): DataTableModel {
+export function rowMeansTable(result: R, name: string, xCells?: string[]): DataTableModel {
   const err = result.error_type as string;
   const fmt: SubcolumnFormat = result.calculate === "mean" && err === "sd" ? "mean_sd_n"
     : result.calculate === "mean" && err === "sem" ? "mean_sem_n"
@@ -29,10 +29,12 @@ export function rowMeansTable(result: R, name: string): DataTableModel {
   const blocks: { name: string; rows: R[] }[] = result.scope === "dataset"
     ? result.datasets : [{ name: CALC_TITLE[result.calculate] ?? "Value", rows: result.rows }];
   const titles = (result.row_titles as string[]) ?? [];
+  // from an XY table: an XY table keeping the source's X values as typed
+  const xy = Array.isArray(xCells) && xCells.length === titles.length;
   return normalizeTable({
-    type: "grouped",
-    x: titles.map(() => ""),
-    rowTitles: titles,
+    type: xy ? "xy" : "grouped",
+    x: xy ? [...xCells] : titles.map(() => ""),
+    rowTitles: xy ? titles.map(() => "") : titles,
     yTitle: name ? `${CALC_TITLE[result.calculate] ?? "Value"} of ${name}`
       : CALC_TITLE[result.calculate] ?? "Value",
     subcolumnFormat: fmt,

@@ -203,8 +203,11 @@ export function runMultiT(engine: EngineBridge, table: DataTableModel,
 export function runRowMeans(engine: EngineBridge, table: DataTableModel,
   o: RowMeansOptions): Result {
   if (table.subcolumnFormat !== "replicates") return { error: `Row means ${RAW_ONLY}` };
+  const data = groupedPayload(table);
+  // XY tables: each row is labelled by its X value
+  if (table.type === "xy") data.row_titles = table.x.map((x, i) => x.trim() || `Row ${i + 1}`);
   return analyze(engine, {
-    analysis: "row_means", data: groupedPayload(table),
+    analysis: "row_means", data,
     options: {
       calculate: o.calculate, error: o.error, scope: o.scope,
       percentile: numOr(o.percentile, 10),
