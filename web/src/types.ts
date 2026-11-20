@@ -17,7 +17,7 @@ export type { UserEquationDef } from "./lib/userEquation.ts";
  *  "user" (the equation in OptionsState.userEquation). */
 export type ModelId = string;
 
-export type WeightingKind = "none" | "1/Y" | "1/Y2" | "1/X" | "1/X2";
+export type WeightingKind = "none" | "1/Y" | "1/Y2" | "1/X" | "1/X2" | "1/SD2";
 
 export const WEIGHTING_LABELS: Record<WeightingKind, string> = {
   none: "No weighting (ordinary least squares)",
@@ -25,6 +25,7 @@ export const WEIGHTING_LABELS: Record<WeightingKind, string> = {
   "1/Y2": "Weight by 1/Y² (relative distance)",
   "1/X": "Weight by 1/X",
   "1/X2": "Weight by 1/X²",
+  "1/SD2": "Weight by 1/SD² (SD of the replicates at each X)",
 };
 
 export type CIMethod = "asymptotic" | "profile";

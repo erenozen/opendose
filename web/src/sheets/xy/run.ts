@@ -78,6 +78,13 @@ export function runNonlin(engine: EngineBridge, table: DataTableModel,
       error: `Enter ${missing.join(", ")} under Experimental constants` };
   }
   const route = routeFor(options);
+  // the shared-parameter fits (engine globalfit / fit_global_model) weight
+  // only by 1/Y, 1/Y² or 1/X: say so rather than pass an unknown weighting
+  if (options.weighting === "1/SD2" && route !== "dose_response") {
+    return { analysis: "dose_response", datasets: [],
+      error: "Weighting by 1/SD² is available for curves fitted one at a time, not for global fits "
+        + "with shared parameters or the Gaddum/Schild model; choose another weighting" };
+  }
 
   const interpY = options.interpolateY
     .split(/[\n,;\s]+/).map(parseCell)

@@ -60,7 +60,9 @@ export default function MethodsText({ result, options, xUnit }: Props) {
     // what the engine did (it reports weight_source with each fit)
     const direct = result.datasets.some((d) =>
       (d.fit as { weight_source?: string } | undefined)?.weight_source === "objective");
-    parts.push(`using ${options.weighting} weighting` + (!yWeights ? ""
+    parts.push((options.weighting === "1/SD2"
+      ? "weighting each X by 1/SD² of its replicate values"
+      : `using ${options.weighting} weighting`) + (!yWeights ? ""
       : direct
         ? " (the weighted sum of squares, with weights from the fitted curve, minimised directly)"
         : " (weights from the fitted curve, iteratively reweighted)"));

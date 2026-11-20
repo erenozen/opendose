@@ -266,7 +266,11 @@ export default function ControlsPanel({
               </select>
             </label>
             <p className="hint-block">
-              {options.weighting === "1/X" || options.weighting === "1/X2" ? (
+              {options.weighting === "1/SD2" ? (
+                <>Each X is weighted by 1/SD² of its replicates (at least two per X, not all
+                  equal) or by the SD entered with mean / SD / n. The weights do not depend on
+                  the curve, so both choices give the same fit. Not offered for global fits.</>
+              ) : options.weighting === "1/X" || options.weighting === "1/X2" ? (
                 <>These weights do not depend on the curve, so both choices give the same fit.</>
               ) : (
                 <>
