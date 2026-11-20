@@ -1846,7 +1846,15 @@ _reg("two_phase_association", "Two phase association", FAM_EXP,
      transforms=[_half_life("KFast", "HalfLifeFast"),
                  _half_life("KSlow", "HalfLifeSlow"),
                  _tau("KFast", "TauFast"), _tau("KSlow", "TauSlow"),
-                 _diff("Plateau", "Y0", "Span")],
+                 _diff("Plateau", "Y0", "Span"),
+                 # the two spans the equation defines; delta-method CIs
+                 Transform("SpanFast", lambda p: (p["Plateau"] - p["Y0"])
+                           * p["PercentFast"] * 0.01,
+                           ("Plateau", "Y0", "PercentFast"), ci="symmetrical"),
+                 Transform("SpanSlow", lambda p: (p["Plateau"] - p["Y0"])
+                           * (100.0 - p["PercentFast"]) * 0.01,
+                           ("Plateau", "Y0", "PercentFast"),
+                           ci="symmetrical")],
      x_label="Time", multistart="KFast")
 
 

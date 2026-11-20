@@ -424,6 +424,14 @@ def _two_phase_decay_derived(fitted, ci_map):
         if key in ci_map and all(v > 0 for v in ci_map[key]):
             lo, hi = ci_map[key]
             out[label]["ci95"] = [math.log(2) / hi, math.log(2) / lo]
+    # the spans of the two phases, as the equation defines them (curve-
+    # fitting guide, "Equation: Two phase decay"); values only: a CI needs
+    # the covariance, which this legacy hook does not receive
+    span = fitted["Y0"] - fitted["Plateau"]
+    out["SpanFast"] = {"value": span * fitted["PercentFast"] * 0.01,
+                       "ci95": None}
+    out["SpanSlow"] = {"value": span * (100.0 - fitted["PercentFast"])
+                       * 0.01, "ci95": None}
     return out
 
 
