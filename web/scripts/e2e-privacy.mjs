@@ -4,8 +4,9 @@
 // and the label CANARY41 in its titles). While the app is used the way a
 // lab uses it (paste an XY table and fit it, a column t test, a grouped
 // two-way ANOVA, graph exports, save the project, make a share link,
-// reload and let autosave restore it, import an .xlsx file), every
-// request is watched twice:
+// reload and let autosave restore it, import an .xlsx file, switch
+// autosave off, and forget the browser's data), every request is watched
+// twice:
 //
 // - Playwright's request events (page and engine worker): no request may
 //   carry the canary in its URL, headers or body, and none may send data
@@ -233,6 +234,71 @@ expect("an .xlsx file is read (the reader installs on first use)",
     /^9 of 9 rows/.test(document.querySelector(".import-dialog .import-summary")?.textContent ?? ""),
   null, { timeout: 120000 }).then(() => true, () => false));
 await page.keyboard.press("Escape");
+
+// --- 8. autosave off, then "Forget this computer's data" -------------------
+phase = "forget";
+// What OpenDose keeps in this browser. The database is only opened when it
+// exists: opening a missing one would create it without its store.
+const stored = () => page.evaluate(async () => {
+  const keys = Object.keys(localStorage).sort();
+  const dbs = (await indexedDB.databases?.()) ?? [];
+  if (!dbs.some((d) => d.name === "opendose")) return { keys, db: null };
+  const db = await new Promise((res) => {
+    const req = indexedDB.open("opendose");
+    req.onsuccess = () => {
+      const d = req.result;
+      if (!d.objectStoreNames.contains("autosave")) { d.close(); res([]); return; }
+      const all = d.transaction("autosave").objectStore("autosave").getAllKeys();
+      all.onsuccess = () => { d.close(); res(all.result.map(String)); };
+      all.onerror = () => { d.close(); res(["(unreadable)"]); };
+    };
+    req.onerror = () => res(["(unopenable)"]);
+  });
+  return { keys, db };
+});
+const editFirstCell = async (v) => {
+  await page.locator(".data-table tbody input[data-r='0']:not([aria-label$='title'])").first().fill(v);
+  await page.keyboard.press("Tab");
+  await page.waitForTimeout(2000); // autosave debounce
+};
+const openPrefs = async () => {
+  await page.getByRole("button", { name: "Preferences" }).click();
+  return page.getByRole("dialog", { name: "Preferences" });
+};
+
+await page.goto(new URL("?example=1", baseUrl).href, { waitUntil: "domcontentloaded" });
+await page.locator(".data-table").waitFor({ timeout: 60000 });
+let prefsPop = await openPrefs();
+await prefsPop.getByLabel("Autosave my work in this browser").uncheck();
+await page.keyboard.press("Escape");
+await editFirstCell("7.649182");
+const off = await stored();
+expect("with autosave off no session is kept in the browser",
+  !(off.db ?? []).some((k) => k === "current" || k === "previous")
+  && !off.keys.some((k) => k.startsWith("opendose-autosave-")), JSON.stringify(off));
+
+prefsPop = await openPrefs();
+await prefsPop.getByLabel("Autosave my work in this browser").check();
+await page.keyboard.press("Escape");
+await editFirstCell("8.649182");
+await page.evaluate(() => localStorage.setItem("other-app-setting", "kept"));
+const before = await stored();
+expect("with autosave on the session is kept (so there is something to forget)",
+  (before.db ?? []).includes("current") || before.keys.includes("opendose-autosave-current"),
+  JSON.stringify(before));
+
+prefsPop = await openPrefs();
+await prefsPop.getByRole("button", { name: "Forget this computer's data…" }).click();
+await Promise.all([
+  page.waitForNavigation({ timeout: 30000 }),
+  prefsPop.getByRole("button", { name: "Forget and close the project" }).click(),
+]);
+await page.locator(".start-screen").waitFor({ timeout: 60000 });
+const after = await stored();
+const dataKeys = after.keys.filter((k) => /^opendose[-.](autosave|import-recipes|plate-layouts|userEquations|templates|start-screen|tour-done)/.test(k));
+expect("after Forget no session, recipe, layout, equation or setting is left, and OpenDose opens as on a first visit",
+  !(after.db ?? []).length && dataKeys.length === 0, JSON.stringify(after));
+expect("Forget leaves other entries of the same site alone", after.keys.includes("other-app-setting"));
 
 // --- verdicts --------------------------------------------------------------
 const appOutside = outside.filter((o) => o.phase !== "self-check");
