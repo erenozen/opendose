@@ -19,6 +19,20 @@ numbers against independent implementations (statsmodels, pingouin,
 hand-derived formulas) and, where we have access, against results
 produced by commercial software (see `docs/prism-validation.md`).
 
+## Privacy and self-hosting
+
+The page contacts only the server it was loaded from: the Python runtime
+is served by the site itself, a Content-Security-Policy
+(`web/public/_headers`) makes the browser refuse any other address, and CI
+runs `web/scripts/e2e-privacy.mjs` on every push, failing if marked data
+leaves the page or another server is contacted. Share links are
+password-protected by default, and Preferences can switch autosave off or
+forget everything kept in the browser. The app explains this to users at
+`#privacy` ("Your data and privacy" in the info popover).
+
+To run your own copy (on your institution's servers, or on a computer that
+is never online), see [`docs/self-hosting.md`](docs/self-hosting.md).
+
 ## Layout
 
 - `engine/opendose/`: the analysis engine (pure Python). Single source

@@ -22,6 +22,7 @@ import {
 import "./share.css";
 
 const ValidationPage = lazy(() => import("./ValidationPage"));
+const PrivacyPage = lazy(() => import("./PrivacyPage"));
 const ReplayDialog = lazy(() => import("./ReplayDialog"));
 const PptxDialog = lazy(() => import("../export/PptxDialog"));
 const RecipeDialog = lazy(() => import("./RecipeDialog"));
@@ -45,6 +46,7 @@ function withResolvedOptions(p: Project): Project {
 type Dialog =
   | { kind: "link"; dataId?: string }
   | { kind: "validation"; scope?: ValidationFor }
+  | { kind: "privacy" }
   | { kind: "pptx"; from?: string | null; scope?: PptxScope }
   | { kind: "replay"; dataId?: string }
   | RecipeImportRequest;
@@ -58,8 +60,10 @@ type Dialog =
 export default function ShareHost() {
   const api = useProject();
   const ui = useUi();
+  // "#validation" and "#privacy" open those pages directly (linkable).
   const [dialog, setDialog] = useState<Dialog | null>(() =>
-    (locationHash() === "#validation" ? { kind: "validation" } : null));
+    (locationHash() === "#validation" ? { kind: "validation" }
+      : locationHash() === "#privacy" ? { kind: "privacy" } : null));
   const bundle = useBundleExport();
   const runBundle = bundle.run;
   const pptx = usePptxExport();
@@ -92,6 +96,7 @@ export default function ShareHost() {
     const onHash = () => {
       if (hasShareLink()) window.location.reload();
       else if (locationHash() === "#validation") setDialog({ kind: "validation" });
+      else if (locationHash() === "#privacy") setDialog({ kind: "privacy" });
     };
     window.addEventListener(SHARE_EVENT, onReq);
     window.addEventListener("hashchange", onHash);
@@ -103,7 +108,7 @@ export default function ShareHost() {
 
   const closeValidation = () => {
     setDialog(null);
-    if (locationHash() === "#validation") {
+    if (locationHash() === "#validation" || locationHash() === "#privacy") {
       try {
         history.replaceState(history.state, "", `${location.pathname}${location.search}`);
       } catch { /* ignore */ }
@@ -145,6 +150,11 @@ export default function ShareHost() {
       {dialog?.kind === "validation" && (
         <Suspense fallback={null}>
           <ValidationPage onClose={closeValidation} scope={dialog.scope} />
+        </Suspense>
+      )}
+      {dialog?.kind === "privacy" && (
+        <Suspense fallback={null}>
+          <PrivacyPage onClose={closeValidation} />
         </Suspense>
       )}
       {dialog?.kind === "pptx" && (

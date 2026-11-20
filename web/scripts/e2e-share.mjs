@@ -5,8 +5,9 @@
 // files (with provenance.json and legends.txt); the FlowJo import recipe aggregates samples by animal into a
 // column table; Reshape turns a table long; "Apply to new data" replays the
 // project (and the bundle's provenance.json) onto a changed contingency
-// table and logs the P that changed; the validation page and the
-// privacy statement are reachable from the info popover; the Incucyte,
+// table and logs the P that changed; the validation page, the privacy
+// statement and the "Your data and privacy" page (also at #privacy) are
+// reachable from the info popover; the Incucyte,
 // LabChart and multi-read plate recipes make XY and grouped tables; a zip
 // of per-image CSVs becomes a SuperPlot-ready column table; a mapping
 // saved as a recipe is applied again after a reload.
@@ -363,6 +364,33 @@ expect("validation page includes NIST Longley and Prism pins",
 await val.getByRole("button", { name: "NIST StRD (11)" }).click();
 expect("validation page filters by reference", await val.locator(".validation-table tbody tr").count() === 11);
 await val.getByRole("button", { name: "Close" }).last().click();
+
+// --- "Your data and privacy": from the info popover, and at #privacy
+await page.getByRole("button", { name: /About OpenDose/ }).click();
+await page.locator(".info-pop").getByRole("button", { name: "How your data stays private" }).click();
+const priv = page.getByRole("dialog", { name: "Your data and privacy" });
+await priv.waitFor({ timeout: 10000 });
+const privText = await priv.innerText();
+expect("privacy page opens from the info popover and covers what is sent, kept and how to check it",
+  ["In short", "What is sent and received", "Enforced, not just promised", "What stays on this computer",
+    "Sharing", "Check it yourself", "Run your own copy"].every((h) => privText.includes(h)), privText.slice(0, 120));
+expect("privacy page links the test, the policy and the self-hosting guide",
+  await priv.locator('a[href$="web/scripts/e2e-privacy.mjs"]').count() === 1
+  && await priv.locator('a[href$="web/public/_headers"]').count() === 1
+  && await priv.locator('a[href$="docs/self-hosting.md"]').count() === 1);
+const privAxe = await axeDialog();
+expect("axe-core: no WCAG A/AA violations on the privacy page", privAxe.length === 0, privAxe.join(" | "));
+await priv.getByRole("button", { name: "Close" }).last().click();
+{
+  const ctxP = await browser.newContext({ viewport: { width: 1200, height: 900 } });
+  const pp = await ctxP.newPage();
+  watch(pp, "privacy-link");
+  await pp.goto(url.replace(/[?#].*$/, "") + "#privacy", { waitUntil: "domcontentloaded" });
+  expect("#privacy in the address opens the privacy page",
+    await pp.getByRole("dialog", { name: "Your data and privacy" }).waitFor({ timeout: 30000 })
+      .then(() => true, () => false));
+  await ctxP.close();
+}
 
 // --- instrument recipes (Incucyte, LabChart, multi-read plates), many
 // per-image CSVs in a zip, and a mapping saved as a recipe

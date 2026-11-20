@@ -182,3 +182,12 @@
 .share-warning strong { color: var(--ink); }
 .share-password-row { display: flex; gap: 8px; align-items: flex-end; }
 .share-password-row .field { flex: 1 1 auto; min-width: 0; }
+
+/* "Your data and privacy" (PrivacyPage.tsx) */
+.privacy-page { width: min(720px, calc(100vw - 32px)); }
+.privacy-page .modal-body { max-height: calc(100vh - 48px); overflow: auto; }
+.privacy-page section + section { margin-top: 14px; }
+.privacy-page h3 { margin: 0 0 6px; font-size: 14.5px; }
+.privacy-page p, .privacy-page li { font-size: 13.5px; color: var(--ink-2); line-height: 1.5; }
+.privacy-page p { margin: 0; }
+.privacy-page ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }

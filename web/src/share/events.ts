@@ -10,6 +10,7 @@ export type ShareRequest =
   | { kind: "bundle" }                     // download the export bundle
   | { kind: "pzfx"; dataId?: string }      // data tables as a .pzfx file (all, or one)
   | { kind: "validation"; scope?: ValidationFor }  // open the validation page
+  | { kind: "privacy" }                    // open "Your data and privacy"
   | { kind: "pptx"; from?: string | null; scope?: PptxScope }  // graphs to PowerPoint
   | { kind: "replay"; dataId?: string }    // apply the project to new data
   | RecipeImportRequest;                    // import files with a recipe
@@ -33,6 +34,7 @@ export const exportBundle = () => requestShare({ kind: "bundle" });
 export const exportPzfxFile = (dataId?: string) => requestShare({ kind: "pzfx", dataId });
 export const openValidation = (scope?: ValidationFor) =>
   requestShare(scope ? { kind: "validation", scope } : { kind: "validation" });
+export const openPrivacy = () => requestShare({ kind: "privacy" });
 /** "Export graphs to PowerPoint (.pptx)…" (export/PptxDialog). */
 export const openPptxExport = (from?: string | null, scope?: PptxScope) =>
   requestShare({ kind: "pptx", from, scope });

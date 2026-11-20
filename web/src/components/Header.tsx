@@ -12,7 +12,7 @@ import CiteBlock from "./CiteBlock";
 import SaveMenu from "../share/SaveMenu";
 import MenuButton from "../sheets/common/MenuButton";
 import { openPowerTool } from "../power/events";
-import { openValidation } from "../share/events";
+import { openPrivacy, openValidation } from "../share/events";
 import { openChecklist } from "../report/useReport";
 import PreferencesPopover from "./PreferencesPopover";
 import { Logo } from "./WelcomePanel";
@@ -301,7 +301,11 @@ export default function Header({ onOpenFile, onNewProject }: {
                 Autosave stays in this browser&apos;s own storage (Preferences,
                 Privacy on this computer: turn it off, or forget everything).
                 A share link carries the data inside it, so protect it with a
-                password.
+                password.{" "}
+                <button type="button" className="linkish"
+                  onClick={() => { setInfoOpen(false); openPrivacy(); }}>
+                  How your data stays private
+                </button>
               </p>
               <p className="info-format">
                 File format: project files carry a version number, and every

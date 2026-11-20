@@ -235,6 +235,14 @@ expect("an .xlsx file is read (the reader installs on first use)",
   null, { timeout: 120000 }).then(() => true, () => false));
 await page.keyboard.press("Escape");
 
+// --- 8a. the privacy page itself contacts nothing --------------------------
+phase = "privacy page";
+await page.getByRole("button", { name: /About OpenDose/ }).click();
+await page.locator(".info-pop").getByRole("button", { name: "How your data stays private" }).click();
+expect("the privacy page opens", await page.getByRole("dialog", { name: "Your data and privacy" })
+  .waitFor({ timeout: 10000 }).then(() => true, () => false));
+await page.keyboard.press("Escape");
+
 // --- 8. autosave off, then "Forget this computer's data" -------------------
 phase = "forget";
 // What OpenDose keeps in this browser. The database is only opened when it
