@@ -7,7 +7,7 @@ import {
   ciFraction, duplicateNames, mvPayload, num, rearrangePayload,
   regressionPayload, variableInfo,
   type CorrelationOptions, type DescriptiveOptions, type LogisticOptions,
-  type MvVariable, type PcaOptions, type RearrangeOptions, type RegressionOptions,
+  type MvVariable, type PcaOptions, type RearrangeOptions, type RegressionOptions, poissonPayload, type PoissonOptions,
 } from "./model";
 
 // ------------------------------------------------------------ result shapes
@@ -39,6 +39,7 @@ export interface Coefficient {
   name: string; estimate: number; se: number; ci: [number | null, number | null];
   t?: number; z?: number; p: number; vif: number | null;
   odds_ratio?: number; odds_ratio_ci?: [number | null, number | null];
+  rate_ratio?: number; rate_ratio_ci?: [number | null, number | null];
 }
 type Normality = Record<string, { p: number; passed_alpha_05: boolean;
   W?: number; K2?: number; A2?: number }>;
@@ -56,6 +57,24 @@ export interface RegressionResult extends Failure {
   normality_of_residuals: Normality;
   predicted: (number | null)[]; residuals: (number | null)[];
   /** Added here: the options as run (for the graphs). */
+  predictors?: string[];
+}
+
+export interface PoissonResult extends Failure {
+  outcome: string; exposure: string | null;
+  n_rows_analyzed: number; n_rows_skipped: number; total_count: number;
+  n_parameters: number; reference_levels: Record<string, string>;
+  ci_level: number; ci_method: string; coefficients: Coefficient[];
+  log_likelihood: number; null_log_likelihood: number; max_log_likelihood: number;
+  deviance: number; deviance_df: number; deviance_p: number; null_deviance: number;
+  pseudo_r_squared: number | null;
+  dispersion: { pearson_chi2: number; df: number; phi: number; phi_deviance: number };
+  likelihood_ratio_test: { G: number; df: number; p: number | null };
+  model_comparison: Record<"intercept_only" | "selected",
+    { df: number; aic: number; aicc: number | null; log_likelihood: number }>;
+  predicted: (number | null)[]; observed: (number | null)[];
+  warnings: string[];
+  /** Added here: the options as run. */
   predictors?: string[];
 }
 
@@ -180,6 +199,16 @@ export function runLogistic(engine: EngineBridge, table: DataTableModel,
     predictors: p.options.predictors as string[],
     interactions: p.options.interactions as [string, string][],
   };
+}
+
+export function runPoisson(engine: EngineBridge, table: DataTableModel,
+  o: PoissonOptions): PoissonResult {
+  const err = guard(table);
+  if (err) return { error: err } as PoissonResult;
+  const p = poissonPayload(table, o);
+  if ("error" in p) return { error: p.error } as PoissonResult;
+  const r = call<PoissonResult>(engine, "poisson_regression", table, p.options);
+  return r.error ? r : { ...r, predictors: p.options.predictors as string[] };
 }
 
 export function runPca(engine: EngineBridge, table: DataTableModel,

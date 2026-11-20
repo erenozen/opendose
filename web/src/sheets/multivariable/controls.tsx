@@ -5,7 +5,7 @@ import type { ControlsProps } from "../types";
 import {
   FILTER_OP_LABELS, TRANSFORM_LABELS, variableInfo,
   type CorrelationOptions, type DescriptiveOptions, type FilterOp,
-  type LogisticOptions, type PcaOptions, type PcaSelection,
+  type LogisticOptions, type PcaOptions, type PcaSelection, type PoissonOptions,
   type RearrangeOptions, type RegressionOptions, type TransformFunc, type VarInfo,
 } from "./model";
 
@@ -295,6 +295,42 @@ export function LogisticControls({ table, options, onChange }: ControlsProps<Log
         <Field label="Method">
           <select aria-label="Confidence interval method" value={options.ciMethod}
             onChange={(e) => set({ ciMethod: e.target.value as LogisticOptions["ciMethod"] })}>
+            <option value="profile">Profile likelihood (asymmetrical)</option>
+            <option value="wald">Wald (symmetrical)</option>
+          </select>
+        </Field>
+        <CiField value={options.ciLevel} onChange={(ciLevel) => set({ ciLevel })} />
+      </Section>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------ Poisson */
+
+export function PoissonControls({ table, options, onChange }: ControlsProps<PoissonOptions>) {
+  const set = (p: Partial<PoissonOptions>) => onChange({ ...options, ...p });
+  const exposures = variableInfo(table).filter((v) => v.kind === "continuous"
+    && v.name !== options.outcome && !options.predictors.includes(v.name));
+  return (
+    <div className="controls">
+      <ModelSpec table={table} options={options} onChange={onChange}
+        outcomeFilter={(v) => v.kind === "continuous"}
+        outcomeHint="Actual counts (0, 1, 2, ...), not normalized: 985 decays counted in 10 minutes, not 98.5 per minute." />
+      <Section title="Exposure (optional)">
+        <Field label="Counted over"
+          note="Counts gathered over different times, areas or volumes: the model is then for the count per unit, and the rate ratios compare rates.">
+          <select aria-label="Exposure variable"
+            value={exposures.some((v) => v.name === options.exposure) ? options.exposure : ""}
+            onChange={(e) => set({ exposure: e.target.value })}>
+            <option value="">None (equal exposure)</option>
+            {exposures.map((v) => <option key={v.name} value={v.name}>{v.name}</option>)}
+          </select>
+        </Field>
+      </Section>
+      <Section title="Confidence intervals">
+        <Field label="Method">
+          <select aria-label="Confidence interval method" value={options.ciMethod}
+            onChange={(e) => set({ ciMethod: e.target.value as PoissonOptions["ciMethod"] })}>
             <option value="profile">Profile likelihood (asymmetrical)</option>
             <option value="wald">Wald (symmetrical)</option>
           </select>

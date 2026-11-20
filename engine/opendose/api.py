@@ -1742,6 +1742,21 @@ def _logistic_regression(data, options):
                 hl_groups=int(options.get("hl_groups", 10)))}
 
 
+def _poisson_regression(data, options):
+    """data: multiple-variables table. options: {outcome, predictors,
+    interactions?, reference_levels?, exposure? (variable name: its log is
+    an offset), ci_level?, ci_method?: profile|wald}."""
+    return {"analysis": "poisson_regression",
+            **multivar.poisson_regression(
+                _mv_variables(data), options["outcome"],
+                options["predictors"],
+                interactions=options.get("interactions") or (),
+                reference_levels=options.get("reference_levels"),
+                exposure=options.get("exposure") or None,
+                ci_level=options.get("ci_level", 0.95),
+                ci_method=options.get("ci_method", "profile"))}
+
+
 def _pca(data, options):
     """data: multiple-variables table. options: {variables?: [names],
     standardize?: true, selection?: parallel_analysis|kaiser|variance|
@@ -2342,6 +2357,7 @@ _HANDLERS = {
     "correlation_matrix": _correlation_matrix,
     "multiple_regression": _multiple_regression,
     "logistic_regression": _logistic_regression,
+    "poisson_regression": _poisson_regression,
     "pca": _pca,
     "mv_rearrange": _mv_rearrange,
     "chisq_goodness_of_fit": _chisq_goodness_of_fit,

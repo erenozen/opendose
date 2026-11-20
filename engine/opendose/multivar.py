@@ -64,7 +64,7 @@ from collections import Counter
 
 import numpy as np
 from scipy import stats
-from scipy.special import expit
+from scipy.special import expit, gammaln
 
 from . import columnstats, correlation, methodcomp, nlfit
 
@@ -523,18 +523,20 @@ def detect_separation(X: np.ndarray, y: np.ndarray, tol: float = 1e-7):
     return None
 
 
-def _profile_ci(X, y, j, fit, se_j, q):
+def _profile_ci(X, y, j, fit, se_j, q, fitter=None):
     """Profile-likelihood interval for coefficient j: the values b where
     2 * (LL_max - max LL with beta_j fixed at b) equals the chi-square(1)
-    critical value q. None for a side that never reaches q."""
+    critical value q. None for a side that never reaches q. fitter(X, y,
+    offset=, beta0=) defaults to the logistic fit."""
     from scipy.optimize import brentq
 
+    fitter = fitter or _logit_fit
     others = np.delete(X, j, axis=1)
     beta_hat = fit["beta"]
     start = np.delete(beta_hat, j)
 
     def dev(b):
-        sub = _logit_fit(others, y, offset=b * X[:, j], beta0=start)
+        sub = fitter(others, y, offset=b * X[:, j], beta0=start)
         return 2 * (fit["ll"] - sub["ll"]) - q
 
     out = []
@@ -733,6 +735,219 @@ def logistic_regression(variables, outcome: str, predictors, *,
     # Simple logistic regression with one continuous X: X at 50% = -b0/b1
     if k == 2 and len(d["terms"]) == 1 and d["columns"][1] == predictors[0]:
         out["x_at_50_percent"] = float(-beta[0] / beta[1]) if beta[1] else None
+    return out
+
+
+# --------------------------------------------------------- Poisson regression
+
+def _poisson_ll(y, eta):
+    """Full Poisson log-likelihood (with the log y! term, so LLmax, LLfit
+    and LLo are on one scale)."""
+    return float(np.sum(y * eta - np.exp(eta) - gammaln(y + 1)))
+
+
+def _poisson_fit(X, y, *, offset=None, beta0=None, max_iter: int = 200,
+                 tol: float = 1e-10) -> dict:
+    """Newton-Raphson (= IRLS for the canonical log link) with step halving
+    so the log-likelihood never decreases."""
+    n, k = X.shape
+    offset = np.zeros(n) if offset is None else offset
+    if beta0 is None:
+        beta = np.zeros(k)
+        if k:  # start at the mean rate: intercept-only fit
+            rate = max(float(y.sum()) / float(np.exp(offset).sum()), 1e-8)
+            beta[0] = math.log(rate)
+    else:
+        beta = np.array(beta0, dtype=float)
+    ll = _poisson_ll(y, X @ beta + offset)
+    converged = False
+    it = 0
+    for it in range(1, max_iter + 1):
+        mu = np.exp(np.clip(X @ beta + offset, -700, 700))
+        grad = X.T @ (y - mu)
+        hess = X.T @ (X * mu[:, None])
+        try:
+            step = np.linalg.solve(hess, grad)
+        except np.linalg.LinAlgError:
+            step = np.linalg.lstsq(hess, grad, rcond=None)[0]
+        t = 1.0
+        for _ in range(60):
+            cand = beta + t * step
+            ll_new = _poisson_ll(y, np.clip(X @ cand + offset, -700, 700))
+            if ll_new >= ll - 1e-12 * (1 + abs(ll)):
+                break
+            t /= 2
+        delta = float(np.max(np.abs(cand - beta))) if k else 0.0
+        beta, ll = cand, ll_new
+        if delta < tol * (1 + float(np.max(np.abs(beta)))):
+            converged = True
+            break
+    mu = np.exp(X @ beta + offset)
+    hess = X.T @ (X * mu[:, None])
+    return {"beta": beta, "ll": ll, "mu": mu, "hess": hess,
+            "converged": converged, "iterations": it}
+
+
+def poisson_regression(variables, outcome: str, predictors, *,
+                       interactions=(), reference_levels=None,
+                       exposure: str | None = None, ci_level: float = 0.95,
+                       ci_method: str = "profile") -> dict:
+    """Multiple Poisson regression: log(mean count) = b0 + b1 X1 + ...
+    (+ log(exposure) as an offset when an exposure variable is named).
+
+    Curve-fitting guide, "Choosing a model for multiple regression": every
+    Y must be an actual count, "not normalized in any way"; "Goodness of
+    fit from multiple regression": pseudo R2 = (LLfit - LLo) / (LLmax -
+    LLo), deviance D = 2(LLmax - LLfit), and a dispersion ratio phi (well
+    above 1 = overdispersion); "Parameter values from multiple
+    regression": |z| per coefficient. Not stated there and filled in with
+    the usual GLM choices: phi = Pearson chi2 / (n - k) (the deviance-based
+    ratio is also given), Wald z P values, profile-likelihood CIs (the
+    guide's Poisson CIs are "usually asymmetrical"; ci_method='wald' for
+    symmetric ones), the likelihood-ratio test against the intercept-only
+    model, and the exposure offset (Prism has none: there the counts per
+    unit time must be converted back to counts)."""
+    table = parse_table(variables)
+    d = _design(table, outcome, predictors, interactions, reference_levels)
+    X = d["X"]
+    by = _by_name(table)
+    if by[outcome]["kind"] != "continuous":
+        raise ValueError(f"outcome {outcome} must be counts (0, 1, 2, ...)")
+    y = np.array([by[outcome]["values"][i] for i in d["rows"]], float)
+    if np.any(y < 0) or np.any(y != np.round(y)):
+        raise ValueError("Poisson regression needs actual counts (whole "
+                         "numbers, 0 or more), not normalized values")
+    n, k = X.shape
+    offset = np.zeros(n)
+    if exposure:
+        if exposure not in by or by[exposure]["kind"] != "continuous":
+            raise ValueError(f"exposure variable {exposure!r} not found or "
+                             "not numeric")
+        ev = [by[exposure]["values"][i] for i in d["rows"]]
+        if any(_missing(v) for v in ev):
+            raise ValueError("the exposure is missing in an analysed row")
+        ev = np.array(ev, float)
+        if np.any(ev <= 0):
+            raise ValueError("every exposure must be positive")
+        offset = np.log(ev)
+    if n <= k:
+        raise ValueError(f"need more rows ({n}) than parameters ({k})")
+    if y.sum() == 0:
+        raise ValueError("every count is 0")
+
+    # a level of a categorical predictor whose counts are all 0 makes its
+    # coefficient minus infinity: say which one before fitting
+    for term, cols in d["terms"].items():
+        if term not in by or by[term]["kind"] == "continuous":
+            continue
+        dummies = X[:, cols]
+        groups = [(lvl, dummies[:, i] == 1) for i, lvl in enumerate(
+            c.split("[", 1)[1].rstrip("]") for c in
+            (d["columns"][j] for j in cols))]
+        groups.append((d["reference"].get(term), ~np.any(dummies == 1,
+                                                          axis=1)))
+        for lvl, rows in groups:
+            if rows.any() and y[rows].sum() == 0:
+                raise ValueError(
+                    f"every count in {term} = {lvl} is 0, so its "
+                    "coefficient is minus infinity: Poisson regression "
+                    "cannot be fitted (leave that group out)")
+    with np.errstate(over="ignore", invalid="ignore"):
+        fit = _poisson_fit(X, y, offset=offset)
+    beta, ll, mu = fit["beta"], fit["ll"], fit["mu"]
+    if (not fit["converged"] or not np.all(np.isfinite(beta))
+            or not np.isfinite(ll) or np.max(np.abs(X @ beta)) > 50):
+        raise ValueError("Poisson regression did not converge (a group or "
+                         "range of the predictors with only zero counts "
+                         "makes a coefficient infinite)")
+    cov = np.linalg.inv(fit["hess"])
+    se = np.sqrt(np.diag(cov))
+    zcrit = float(stats.norm.ppf((1 + ci_level) / 2))
+    q = float(stats.chi2.ppf(ci_level, 1))
+    vifs = _vifs(X) if k > 2 else [None] + [{"r2_with_others": 0.0, "vif": 1.0}]
+
+    base_offset = offset
+
+    def fitter(Xs, ys, *, offset=None, beta0=None):
+        # the profile's fixed-coefficient term plus the exposure offset
+        extra = 0.0 if offset is None else offset
+        return _poisson_fit(Xs, ys, offset=extra + base_offset, beta0=beta0)
+
+    coefs = []
+    for j, name in enumerate(d["columns"]):
+        # an estimate a billionth of its SE is rounding noise around an
+        # exact 0 (Dobson's treatment effects come out as -2.6e-18): 0
+        b = 0.0 if abs(beta[j]) <= 1e-9 * se[j] else float(beta[j])
+        z = b / se[j]
+        if ci_method == "profile":
+            ci = _profile_ci(X, y, j, fit, se[j], q, fitter=fitter)
+        elif ci_method == "wald":
+            ci = [float(b - zcrit * se[j]), float(b + zcrit * se[j])]
+        else:
+            raise ValueError(f"unknown CI method: {ci_method}")
+        coefs.append({
+            "name": name, "estimate": b, "se": float(se[j]),
+            "ci": ci, "z": float(abs(z)),
+            "p": float(2 * stats.norm.sf(abs(z))),
+            "rate_ratio": float(math.exp(b)),
+            "rate_ratio_ci": [None if c is None else float(math.exp(c))
+                              for c in ci],
+            "vif": None if vifs[j] is None else vifs[j]["vif"],
+        })
+
+    # intercept-only (horizontal line) model, with the same offset
+    rate0 = float(y.sum() / np.exp(offset).sum())
+    ll0 = _poisson_ll(y, math.log(rate0) + offset)
+    # saturated model: every predicted count equals the observed one
+    llmax = float(np.sum(np.where(y > 0, y * np.log(np.where(y > 0, y, 1.0)),
+                                  0.0) - y - gammaln(y + 1)))
+    deviance = 2 * (llmax - ll)
+    null_deviance = 2 * (llmax - ll0)
+    df_res = n - k
+    pearson = float(np.sum((y - mu) ** 2 / mu))
+    g = 2 * (ll - ll0)
+    aic, aicc = _aicc(ll, k, n)
+    aic0, aicc0 = _aicc(ll0, 1, n)
+    phi = pearson / df_res
+    out = {
+        "outcome": outcome,
+        "exposure": exposure,
+        "n_rows_analyzed": n,
+        "n_rows_skipped": d["n_rows"] - n,
+        "total_count": float(y.sum()),
+        "n_parameters": k,
+        "reference_levels": d["reference"],
+        "ci_level": ci_level, "ci_method": ci_method,
+        "coefficients": coefs,
+        "iterations": fit["iterations"],
+        "log_likelihood": ll,
+        "null_log_likelihood": ll0,
+        "max_log_likelihood": llmax,
+        "deviance": deviance, "deviance_df": df_res,
+        "deviance_p": float(stats.chi2.sf(deviance, df_res)),
+        "null_deviance": null_deviance,
+        "pseudo_r_squared": ((ll - ll0) / (llmax - ll0)
+                             if llmax > ll0 else None),
+        "dispersion": {"pearson_chi2": pearson, "df": df_res,
+                       "phi": phi, "phi_deviance": deviance / df_res},
+        "likelihood_ratio_test": {"G": g, "df": k - 1,
+                                  "p": float(stats.chi2.sf(g, k - 1))
+                                  if k > 1 else None},
+        "model_comparison": {
+            "intercept_only": {"df": n - 1, "aic": aic0, "aicc": aicc0,
+                               "log_likelihood": ll0},
+            "selected": {"df": df_res, "aic": aic, "aicc": aicc,
+                         "log_likelihood": ll},
+        },
+        "predicted": _aligned(d["rows"], d["n_rows"], mu),
+        "observed": _aligned(d["rows"], d["n_rows"], y),
+        "warnings": [],
+    }
+    if phi > 1.5 and df_res >= 5:
+        out["warnings"].append(
+            f"Dispersion ratio phi = {phi:.3g}: the counts vary more than a "
+            "Poisson distribution allows (overdispersion), so the standard "
+            "errors, confidence intervals and P values are too small.")
     return out
 
 
