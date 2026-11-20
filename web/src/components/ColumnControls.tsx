@@ -293,6 +293,13 @@ export default function ColumnControls({ options, datasetNames, onChange, summar
                 pickDataset("Control group", options.controlIndex, "controlIndex")}
               <ComparisonsPicker options={options} datasetNames={datasetNames}
                 onChange={onChange} summaryData={summaryData} />
+              {!summaryData && (
+                <label className="check-row">
+                  <input type="checkbox" checked={!!options.anovaTrend}
+                    onChange={(e) => set({ anovaTrend: e.target.checked })} />
+                  <span>Test for linear trend (columns in the order entered)</span>
+                </label>
+              )}
               <LogScaleOption options={options} onChange={onChange} summaryData={summaryData} />
             </>
           )}

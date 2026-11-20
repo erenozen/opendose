@@ -171,6 +171,7 @@ export function columnPayload(table: DataTableModel, o: ColumnOptionsState):
         // each vs. control or planned pairs (comparisonsFamily.ts)
         ...familyOptions(o, base.data.datasets.length),
         ...logScaleOptions(o),
+        ...(o.anovaKind === "parametric" && o.anovaTrend ? { trend: true } : {}),
       } };
   }
   if (o.analysis === "median_test") return { analysis: "median_test", ...base, options: {} };

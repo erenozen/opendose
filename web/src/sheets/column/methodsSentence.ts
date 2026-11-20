@@ -110,7 +110,8 @@ function testSentence(o: ColumnOptionsState, r: R): string {
       const t = r.table ?? {};
       const mc = r.multiple_comparisons;
       return `Group means were compared by ordinary one-way ANOVA (F(${t.df_between}, ${t.df_within}) = ${formatSig(t.F)}, ${P(t.p)})`
-        + (mc ? `, followed by ${POST[mc.method] ?? mc.method}${mc.method === "fisher_lsd" ? "" : withFamily(mc)}` : "") + ".";
+        + (mc ? `, followed by ${POST[mc.method] ?? mc.method}${mc.method === "fisher_lsd" ? "" : withFamily(mc)}` : "") + "."
+        + (r.trend && !r.trend.error ? ` A test for linear trend across the columns in the order entered gave a slope of ${formatSig(r.trend.slope)} per column (${P(r.trend.linear.p)}; nonlinear variation ${P(r.trend.nonlinear.p)}).` : "");
     }
     case "p_stack": {
       const how = ({ bky: "the two-stage step-up method of Benjamini, Krieger and Yekutieli",

@@ -696,6 +696,14 @@ def _anova(data, options):
             out["log_scale"] = log_info["block"]
         return out
     result = anova.one_way_anova(cols, names)
+    if options.get("trend"):
+        # columns in the order entered, coded 1, 2, ... (anova.linear_trend)
+        nonempty_names = [n for n, c in zip(names, cols) if len(c) > 0]
+        try:
+            result["trend"] = anova.linear_trend(
+                [c for c in cols if len(c) > 0], nonempty_names)
+        except ValueError as exc:
+            result["trend"] = {"error": str(exc)}
     method = options.get("comparisons")
     if method:
         result["multiple_comparisons"] = anova.multiple_comparisons(

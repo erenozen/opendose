@@ -118,6 +118,62 @@ def one_way_anova(datasets, names=None) -> dict:
     }
 
 
+def linear_trend(datasets, names=None) -> dict:
+    """Test for linear trend after one-way ANOVA (statistics guide,
+    "Overview: Test for linear trend", "How the test for trend works",
+    "Results from test for trend"): the columns are coded 1, 2, ..., k in
+    the order entered, the between-group SS is split into the part a
+    straight line through the group means explains (1 df) and the rest
+    (nonlinear variation, k - 2 df), each tested with F against the
+    within-group mean square.
+
+    The line is the n-weighted regression of the group means on the codes
+    (Armitage; Altman, Practical Statistics for Medical Research): it is
+    the partition of the between-group SS, and the ordinary regression of
+    the means when the groups are equal in size. slope = change in mean per
+    column; r_squared = SS_linear / SS_total (effect size), r_squared_alerting
+    = SS_linear / SS_between."""
+    groups = [g for g in _groups(datasets) if g.size > 0]
+    k = len(groups)
+    if k < 3:
+        raise ValueError("a test for trend needs at least 3 groups")
+    if any(g.size < 2 for g in groups):
+        raise ValueError("every group needs at least 2 values")
+    ns = np.array([g.size for g in groups], dtype=float)
+    n_total = float(ns.sum())
+    shift = groups[0][0]                       # as one_way_anova
+    means = np.array([float((g - shift).mean()) for g in groups])
+    grand = float((ns * means).sum() / n_total)
+    codes = np.arange(1, k + 1, dtype=float)
+    cbar = float((ns * codes).sum() / n_total)
+    sxx = float((ns * (codes - cbar) ** 2).sum())
+    sxy = float((ns * (codes - cbar) * (means - grand)).sum())
+    slope = sxy / sxx
+    ss_linear = sxy * sxy / sxx
+    ss_between = float((ns * (means - grand) ** 2).sum())
+    ss_within = float(sum(((g - g.mean()) ** 2).sum() for g in groups))
+    ss_total = ss_between + ss_within
+    df_within = int(n_total) - k
+    ms_within = ss_within / df_within
+    ss_nonlin = max(ss_between - ss_linear, 0.0)
+    df_nonlin = k - 2
+    f_lin = ss_linear / ms_within if ms_within > 0 else math.inf
+    f_non = (ss_nonlin / df_nonlin) / ms_within if ms_within > 0 else math.inf
+    return {
+        "codes": codes.tolist(),
+        "names": list(names) if names else [f"Group {i}" for i in range(k)],
+        "slope": slope,
+        "linear": {"ss": ss_linear, "df": 1, "F": f_lin,
+                   "p": float(stats.f.sf(f_lin, 1, df_within))},
+        "nonlinear": {"ss": ss_nonlin, "df": df_nonlin, "F": f_non,
+                      "p": float(stats.f.sf(f_non, df_nonlin, df_within))},
+        "within": {"ss": ss_within, "df": df_within, "ms": ms_within},
+        "r_squared": ss_linear / ss_total if ss_total > 0 else None,
+        "r_squared_alerting": (ss_linear / ss_between if ss_between > 0
+                               else None),
+    }
+
+
 def fligner_killeen(groups) -> dict:
     """Fligner-Killeen (median-centred) test of equal variances."""
     groups = [np.asarray(g, dtype=float) for g in groups]

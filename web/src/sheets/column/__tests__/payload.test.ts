@@ -56,3 +56,11 @@ test("lognormality is sent only when asked for", () => {
   assert.equal("lognormality" in opts({}), false);
   assert.equal(opts({ lognormality: true }).lognormality, true);
 });
+
+test("the test for trend is sent only for ordinary ANOVA when asked for", () => {
+  const opts = (patch: Partial<ColumnOptionsState>) =>
+    columnPayload(table, o({ analysis: "anova", ...patch })).options as Record<string, unknown>;
+  assert.equal("trend" in opts({}), false);
+  assert.equal(opts({ anovaTrend: true }).trend, true);
+  assert.equal("trend" in opts({ anovaTrend: true, anovaKind: "nonparametric" }), false);
+});

@@ -443,7 +443,31 @@ function Anova({ result }: { result: any }) {
           <ComparisonsTable mc={result.multiple_comparisons} />
         </>
       )}
+      {result.trend && <TrendBlock trend={result.trend} />}
     </div>
+  );
+}
+
+/** Test for linear trend after one-way ANOVA (engine anova.linear_trend). */
+function TrendBlock({ trend }: { trend: any }) {
+  if (trend.error) return <p className="result-note">Test for linear trend: {String(trend.error)}</p>;
+  const order = (trend.names ?? []).map((n: string, i: number) => `${n} = ${i + 1}`).join(", ");
+  return (
+    <>
+      <h4>Test for linear trend</h4>
+      <KV rows={[
+        ["Slope (change in mean per column)", formatSig(trend.slope)],
+        ["R squared (effect size)", formatSig(trend.r_squared)],
+        ["Alerting R squared", formatSig(trend.r_squared_alerting)],
+        ["Linear trend: F (DFn, DFd), P",
+          `F(1, ${trend.within.df}) = ${formatSig(trend.linear.F)}, ${pLabel(trend.linear.p)} ${stars(trend.linear.p)}`],
+        ["Nonlinear variation: F (DFn, DFd), P",
+          `F(${trend.nonlinear.df}, ${trend.within.df}) = ${formatSig(trend.nonlinear.F)}, ${pLabel(trend.nonlinear.p)}`],
+      ]} />
+      <p className="model-line">Columns coded in the order entered ({order}). R squared is the share of all
+        the variation the trend explains; the alerting R squared its share of the variation between the
+        column means. A small nonlinear-variation P says the means do not lie on a straight line.</p>
+    </>
   );
 }
 
