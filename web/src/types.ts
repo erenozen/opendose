@@ -385,6 +385,9 @@ export interface ColumnOptionsState {
   pStackMethod?: "bky" | "bh" | "by" | "holm_sidak" | "sidak" | "bonferroni" | "holm" | "none";
   pStackAlpha?: string;
   pStackQ?: string;
+  /** Correlation on an XY table: X against each Y data set (row means of
+   *  replicates), Prism's XY correlation. Off: two Y data sets. */
+  corrWithX?: boolean;
   /** Two-way ANOVA (rows × datasets): full or main-effects-only model. */
   twoWayModel?: TwoWayModel;
   /** Which comparisons the post test makes (Dunn's after Kruskal-Wallis or
@@ -442,6 +445,7 @@ export const DEFAULT_COLUMN_OPTIONS: ColumnOptionsState = {
   pStackMethod: "bky",
   pStackAlpha: "0.05",
   pStackQ: "5",
+  corrWithX: false,
   twoWayModel: "full",
 };
 

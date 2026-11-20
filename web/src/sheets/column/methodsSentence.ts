@@ -145,6 +145,11 @@ function testSentence(o: ColumnOptionsState, r: R): string {
           : "Spearman correlation coefficient";
       const tails = o.corrTails === "greater" ? " and a one-tailed P value (alternative: positive correlation)"
         : o.corrTails === "less" ? " and a one-tailed P value (alternative: negative correlation)" : "";
+      if (r.analysis === "correlation_x") {
+        const n = (r.items ?? []).length;
+        return `X was correlated with each of ${n} Y data set${n === 1 ? "" : "s"} by the ${name} with a two-tailed P value${tails}`
+          + `${r.replicates_averaged ? "; replicate Y values were averaged per row" : ""}.`;
+      }
       return `Correlation was computed as the ${name} with a two-tailed P value${tails}.`;
     }
     case "roc": return "The area under the ROC curve was computed with its SE and confidence interval (DeLong).";

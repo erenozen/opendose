@@ -15,6 +15,7 @@ import { familyOptions } from "./comparisonsFamily.ts";
 import { withWithheld } from "../common/withheld.ts";
 import { logScaleOptions } from "./logScale.ts";
 import { pStackPayload } from "./pStack.ts";
+import { correlationXRequests } from "./correlationX.ts";
 import { mixedOptions, rmComparisonsSpec, fitsMixedModel } from "./rmPosthoc.ts";
 
 export function runColumn(engine: EngineBridge, table: DataTableModel,
@@ -22,6 +23,12 @@ export function runColumn(engine: EngineBridge, table: DataTableModel,
   if (o.analysis === "p_stack") {
     const ps = pStackPayload(table, o);
     return "error" in ps ? { error: ps.error } : engine.analyze(ps.payload) as Record<string, unknown>;
+  }
+  if (o.analysis === "correlation" && o.corrWithX && table.type === "xy") {
+    const cx = correlationXRequests(table, o);
+    if ("error" in cx) return { error: cx.error };
+    return { analysis: "correlation_x", replicates_averaged: cx.replicatesAveraged,
+      items: cx.requests.map((q) => engine.analyze(q.payload)) };
   }
   if (table.subcolumnFormat !== "replicates") return runColumnSummary(engine, table, o);
   // RM one-way ANOVA with missing values, mixed model chosen: keep the

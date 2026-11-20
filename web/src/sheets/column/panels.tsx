@@ -22,6 +22,7 @@ export function ColumnAnalysisControls({ table, options, onChange }:
     <ColumnControls options={options}
       datasetNames={table.datasets.map((d) => d.name)}
       summaryData={table.subcolumnFormat !== "replicates"}
+      xyTable={table.type === "xy"}
       incompleteSubjects={options.analysis === "rm_anova" ? incompleteSubjects(table) : 0}
       onChange={onChange} />
   );

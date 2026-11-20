@@ -939,6 +939,17 @@ function mainResults(result: Record<string, unknown>, options: Props["options"])
     case "rm_two_way_mixed":
     case "rm_two_way_both": return <RMTwoWay result={result} />;
     case "correlation": return <Correlation result={result} tails={options?.corrTails} />;
+    case "correlation_x": return (
+      <>
+        {((result.items ?? []) as any[]).map((it, k) => (it?.error
+          ? <div className="result-card" key={k}><p className="result-note">{String(it.error)}</p></div>
+          : <Correlation key={k} result={it} tails={options?.corrTails} />))}
+        {result.replicates_averaged === true && (
+          <p className="hint-block">Replicate Y values were averaged per row: each correlation uses one point per
+            row (X, mean Y), as Prism does with subcolumns.</p>
+        )}
+      </>
+    );
     case "roc": return <Roc result={result} />;
     case "bland_altman": return <BlandAltman result={result} />;
     case "outliers": return <Outliers result={result} />;

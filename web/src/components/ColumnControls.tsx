@@ -24,10 +24,12 @@ interface Props {
   summaryData?: boolean;
   /** Subjects (rows) missing a treatment: RM ANOVA can fit the mixed model. */
   incompleteSubjects?: number;
+  /** An XY table: correlation can pair X with each Y data set. */
+  xyTable?: boolean;
 }
 
 export default function ColumnControls({ options, datasetNames, onChange, summaryData,
-  incompleteSubjects = 0 }: Props) {
+  incompleteSubjects = 0, xyTable = false }: Props) {
   const set = (patch: Partial<ColumnOptionsState>) =>
     onChange({ ...options, ...patch });
 
@@ -381,8 +383,15 @@ export default function ColumnControls({ options, datasetNames, onChange, summar
               half the two-tailed P only when the result goes the expected way.
             </p>
           )}
-          {pickDataset("Dataset A", options.datasetA, "datasetA")}
-          {pickDataset("Dataset B", options.datasetB, "datasetB")}
+          {xyTable && (
+            <label className="check-row">
+              <input type="checkbox" checked={!!options.corrWithX}
+                onChange={(e) => set({ corrWithX: e.target.checked })} />
+              <span>X against each Y data set (replicate Y values averaged per row)</span>
+            </label>
+          )}
+          {!(xyTable && options.corrWithX) && pickDataset("Dataset A", options.datasetA, "datasetA")}
+          {!(xyTable && options.corrWithX) && pickDataset("Dataset B", options.datasetB, "datasetB")}
         </section>
       )}
 
