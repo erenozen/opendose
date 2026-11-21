@@ -35,3 +35,16 @@ test("data sets: one curve vs separate curves with the fitted model; unknown mod
     { mode: "global", xIsLog: false, model1: "one_site_binding" });
   assert.deepEqual(compareFitsOptions("user", false, "global", usable), { mode: "global", xIsLog: false });
 });
+
+test("the comparison starts with the fit's weighting", () => {
+  assert.deepEqual(compareFitsOptions("log_inhibitor_vs_response_4pl", true, "models", usable,
+    { weighting: "1/Y2" }), {
+    mode: "models", xIsLog: true, model1: "log_inhibitor_vs_response_3pl",
+    model2: "log_inhibitor_vs_response_4pl", weighting: "1/Y2" });
+  assert.deepEqual(compareFitsOptions("one_site_binding", false, "global", usable,
+    { weighting: "1/YK", weightK: 2.5 }),
+    { mode: "global", xIsLog: false, model1: "one_site_binding", weighting: "1/YK", weightK: 2.5 });
+  assert.deepEqual(compareFitsOptions("one_site_binding", false, "parameter", usable,
+    { weighting: "none" }),
+    { mode: "parameter", xIsLog: false, datasetA: 0, datasetB: 1, model1: "one_site_binding" });
+});

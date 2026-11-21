@@ -11,7 +11,7 @@ import type { DataTableModel } from "../../project/types";
 import { formatPValue, pLabel } from "../../report/pformat";
 import { formatSig } from "../../types";
 import CopyableMethods from "../common/CopyableMethods";
-import { chosenParameter, constraintValues, type CompareOptions } from "./compareFits";
+import { chosenParameter, compareWeightingSentence, constraintValues, type CompareOptions } from "./compareFits";
 import {
   aiccText, chosenSets, comparableParameters, COMPARE_PARAMETER_SOURCE, compareParameterMethods, fTestText,
   filledDatasets, headline, isMidpoint, isSets, linearName, MOTULSKY_2004, potencyText, ratioText,
@@ -367,7 +367,8 @@ function SetsResults({ result }: { result: any }) {
 
 export function ParameterMethods({ options, result }: { options: CompareOptions; result: any }) {
   if (!result?.compare) return null;
+  const w = compareWeightingSentence(options);
   const text = `${compareParameterMethods(result.compare, modelMeta(options.model1).label)} `
-    + `${softwareSentence(getRuntimeVersions())}`;
+    + `${w ? `${w} ` : ""}${softwareSentence(getRuntimeVersions())}`;
   return <CopyableMethods text={text} />;
 }

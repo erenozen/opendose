@@ -6,8 +6,8 @@ import assert from "node:assert/strict";
 import { normalizeTable } from "../../../project/table.ts";
 import { aicc, compareAicc, extraSumOfSquaresF } from "../fitStats.ts";
 import {
-  DEFAULT_COMPARE, constraintValues, globalComparison, meanPoints, normalizeCompare, pooledData,
-  preferred, runCompare,
+  DEFAULT_COMPARE, compareWeighting, compareWeightingSentence, constraintValues, fitSS,
+  globalComparison, meanPoints, normalizeCompare, pooledData, preferred, runCompare,
 } from "../compareFits.ts";
 import { modelMeta } from "../../../lib/modelLibrary.ts";
 import { numericData } from "../../../project/table.ts";
@@ -104,4 +104,58 @@ test("payloads: compare_fits per data set; pooled and separate dose_response", (
   assert.match(runCompare(engine, t, { ...o, model2: "log_inhibitor_vs_response_4pl" }).error,
     /read X the same way/);
   assert.match(runCompare(engine, t, { ...o, model2: "straight_line" }).error, /the same/);
+});
+
+test("weighting: kept by normalizeCompare, sent to every fit, weighted SS in the table", () => {
+  assert.equal(normalizeCompare({}).weighting, "none");
+  assert.equal(normalizeCompare({ weighting: "1/Y2" }).weighting, "1/Y2");
+  assert.equal(normalizeCompare({ weighting: "bogus" }).weighting, "none");
+  assert.equal(normalizeCompare({ weighting: "1/YK", weightK: 2.5 }).weightK, 2.5);
+  assert.equal(normalizeCompare({ weighting: "1/YK", weightK: 50 }).weightK, undefined);
+  assert.deepEqual(compareWeighting({ weighting: "none" }), {});
+  assert.deepEqual(compareWeighting({ weighting: "1/SD2" }), { weighting: "1/SD2" });
+  assert.deepEqual(compareWeighting({ weighting: "1/YK", weightK: 2.5 }), { weighting: "1/Y^2.5" });
+  assert.equal(fitSS({ ss_res: 5, ss_res_weighted: 0.2 }), 0.2);
+  assert.equal(fitSS({ ss_res: 5, ss_res_weighted: null }), 5);
+  assert.equal(fitSS({ ss_res: 5 }), 5);
+  assert.equal(compareWeightingSentence({ weighting: "none" }), "");
+  assert.match(compareWeightingSentence({ weighting: "1/Y2" }),
+    /^Every fit was weighted by 1\/Y² \(relative distance\), and the fits were compared on their weighted sums of squares\.$/);
+
+  const t = normalizeTable({ type: "xy", x: ["1", "2", "3", "4"],
+    datasets: [{ name: "A", rows: [["1"], ["2"], ["3"], ["5"]] }, { name: "B", rows: [["2"], ["3"], ["5"], ["8"]] }] });
+  const calls: any[] = [];
+  const fit = (ss: number, w: number, df: number, n: number) => ({
+    goodness: { ss_res: ss, ss_res_weighted: w, df, n_points: n },
+    curve: { x: [1, 4], y: [1, 5] }, params: {} });
+  const engine = { analyze: (p: any) => {
+    calls.push(p);
+    if (p.analysis === "compare_fits") {
+      return { model_1: fit(4, 0.4, 2, 4), model_2: fit(1, 0.1, 1, 4), notes: ["weighted SS used"],
+        f_test: { F: 2, dfn: 1, dfd: 1, p: 0.4, simpler_model: 1 },
+        aicc: { aicc_1: 1, aicc_2: 2, delta: 1, probability_1: 0.6, probability_2: 0.4, prefer: 1 } };
+    }
+    const n = p.data.datasets.length;
+    return { datasets: p.data.datasets.map((d: any) => ({ name: d.name, points: {},
+      fit: n === 1 && d.name === "All data sets" ? fit(10, 1.0, 6, 8) : fit(2, 0.2, 2, 4) })) };
+  } };
+  const o = { ...DEFAULT_COMPARE, model1: "straight_line", model2: "polynomial_second",
+    weighting: "1/Y2" as const };
+  const r = runCompare(engine, t, o);
+  assert.equal(calls[0].options.model_1.weighting, "1/Y2");
+  assert.equal(calls[0].options.model_2.weighting, "1/Y2");
+  assert.deepEqual(r.rows[0].models.map((m: any) => m.ss), [0.4, 0.1]);
+  assert.equal(r.weighted, true);
+  assert.deepEqual(r.notes, ["weighted SS used"]);
+
+  calls.length = 0;
+  const g = runCompare(engine, t, { ...o, mode: "global" });
+  assert.ok(calls.every((c) => c.options.weighting === "1/Y2"));
+  assert.deepEqual(g.rows[0].models.map((m: any) => m.ss), [1.0, 0.4]);
+  assert.equal(g.weighted, true);
+
+  calls.length = 0;
+  const u = runCompare(engine, t, { ...o, weighting: "none" });
+  assert.equal("weighting" in calls[0].options.model_1, false);
+  assert.equal(u.weighted, false);
 });

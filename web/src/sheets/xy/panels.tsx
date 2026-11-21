@@ -153,7 +153,7 @@ export function NonlinResults({ sheet, table, result, options }:
       <ResultsPanel result={result} xUnit={concentrationUnit(table) || "M"} />
       {result && !(result as { error?: unknown }).error && (
         <CompareFitsLinks sheet={sheet} table={table} model={options.model}
-          xIsLog={!!options.xIsLog} />
+          xIsLog={!!options.xIsLog} weighting={options.weighting} weightK={options.weightK} />
       )}
     </>
   );

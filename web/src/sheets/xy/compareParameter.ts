@@ -82,6 +82,8 @@ export interface ParameterInput {
   /** Three or more data sets compared at once (indices; empty = every
    *  data set with values); null = the pair A / B. */
   sets?: number[] | null;
+  /** The engine's weighting ("1/Y2", "1/Y^1.5", ...); absent = none. */
+  weighting?: string;
 }
 
 /** The data sets of an "all" comparison: the chosen ones that hold values,
@@ -101,6 +103,7 @@ export function compareParameterPayload(table: DataTableModel, i: ParameterInput
     data: numericData(table),
     options: {
       model: i.model.engineId, parameter: i.parameter, ...pick, constraints: i.held, x_is_log: i.xIsLog,
+      ...(i.weighting ? { weighting: i.weighting } : {}),
     },
   };
 }
@@ -146,7 +149,8 @@ export function runParameter(engine: Engine, table: DataTableModel, i: Parameter
   const sep = engine.analyze({
     analysis: "dose_response",
     data: { x: data.x, datasets: [data.datasets[i.datasetA], data.datasets[i.datasetB]] },
-    options: { model: i.model.engineId, x_is_log: i.xIsLog, error_bars: i.errorBars, constraints: i.held },
+    options: { model: i.model.engineId, x_is_log: i.xIsLog, error_bars: i.errorBars, constraints: i.held,
+      ...(i.weighting ? { weighting: i.weighting } : {}) },
   });
   const fits: R[] = (sep && !sep.error ? sep.datasets ?? [] : []);
   const mid = isMidpoint(String(res.parameter_internal ?? res.parameter ?? ""));
@@ -177,7 +181,8 @@ function runSets(engine: Engine, table: DataTableModel, i: ParameterInput, fail:
   const sep = engine.analyze({
     analysis: "dose_response",
     data: { x: data.x, datasets: idx.map((k) => data.datasets[k]) },
-    options: { model: i.model.engineId, x_is_log: i.xIsLog, error_bars: i.errorBars, constraints: i.held },
+    options: { model: i.model.engineId, x_is_log: i.xIsLog, error_bars: i.errorBars, constraints: i.held,
+      ...(i.weighting ? { weighting: i.weighting } : {}) },
   });
   const fits: R[] = (sep && !sep.error ? sep.datasets ?? [] : []);
   const mid = isMidpoint(String(res.parameter_internal ?? res.parameter ?? ""));

@@ -149,6 +149,8 @@ test("all-data-sets scope: options, chosen sets and payload", () => {
   assert.deepEqual(p.options.datasets, [0, 2, 3]);
   assert.equal("dataset_a" in p.options, false);
   assert.equal(compareParameterPayload(t, base).options.dataset_a, 0);
+  assert.equal("weighting" in compareParameterPayload(t, base).options, false);
+  assert.equal(compareParameterPayload(t, { ...base, weighting: "1/Y2" }).options.weighting, "1/Y2");
   const few = runParameter({ analyze: () => SETS }, t, { ...base, sets: [0, 2] });
   assert.match(few.error, /three or more/);
 });

@@ -150,11 +150,14 @@ export function CoxLink({ sheet }: { sheet: ResultsSheet }) {
 }
 
 /** Curve-fit results: Compare fits on the same table, set up from this fit. */
-export function CompareFitsLinks({ sheet, table, model, xIsLog }: {
+export function CompareFitsLinks({ sheet, table, model, xIsLog, weighting = "none", weightK }: {
   sheet: ResultsSheet;
   table: DataTableModel;
   model: string;
   xIsLog: boolean;
+  /** The fit's weighting, carried into the comparison. */
+  weighting?: string;
+  weightK?: number;
 }) {
   const { open, readOnly } = useOpenAnalysis(sheet);
   const usable = (id: string) => !!MODELS_META[id] && comparable(MODELS_META[id]);
@@ -163,17 +166,17 @@ export function CompareFitsLinks({ sheet, table, model, xIsLog }: {
     <p className="results-crosslink">
       <span>Compare fits (extra sum-of-squares F test and AICc):</span>{" "}
       <button type="button" className="linkish" disabled={readOnly}
-        onClick={() => open("compare_fits", compareFitsOptions(model, xIsLog, "models", usable), false)}>
+        onClick={() => open("compare_fits", compareFitsOptions(model, xIsLog, "models", usable, { weighting, weightK }), false)}>
         Compare with another model…</button>
       {sets >= 2 && (
         <>
           {" · "}
           <button type="button" className="linkish" disabled={readOnly}
-            onClick={() => open("compare_fits", compareFitsOptions(model, xIsLog, "global", usable), false)}>
+            onClick={() => open("compare_fits", compareFitsOptions(model, xIsLog, "global", usable, { weighting, weightK }), false)}>
             Compare with another data set…</button>
           {" · "}
           <button type="button" className="linkish" disabled={readOnly}
-            onClick={() => open("compare_fits", compareFitsOptions(model, xIsLog, "parameter", usable), false)}>
+            onClick={() => open("compare_fits", compareFitsOptions(model, xIsLog, "parameter", usable, { weighting, weightK }), false)}>
             Compare a parameter (EC50 ratio)…</button>
         </>
       )}
