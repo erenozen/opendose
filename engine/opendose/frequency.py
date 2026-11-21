@@ -170,6 +170,15 @@ def frequency_distribution(columns, names=None, *, bin_width=None,
         c0 = float(first_center)
     start = c0 - w / 2
     n_bins = max(int(math.floor((hi_all - start) / w)) + 1, 1)
+    if upper_limit is not None:
+        # no bin past the upper limit: the bins are the ones whose lower
+        # edge is below it, so a value exactly on the limit that would
+        # open a new bin [limit, limit + w) fits no bin and is left out,
+        # as Prism does since 6.0c (GraphPad FAQ 1822)
+        k = (upper_limit - start) / w
+        if abs(k - round(k)) <= 1e-9 * max(1.0, abs(k)):
+            k = float(round(k))
+        n_bins = max(min(n_bins, int(math.ceil(k))), 1)
     if n_bins > 100000:
         raise ValueError(f"{n_bins} bins: choose a larger bin width")
     # 12 significant figures: 24.2, not 24.200000000000003
@@ -183,6 +192,10 @@ def frequency_distribution(columns, names=None, *, bin_width=None,
             above = int(np.sum(keep > upper_limit))
             keep = keep[keep <= upper_limit]
         idx = np.floor((keep - start) / w).astype(int)  # border -> higher bin
+        if upper_limit is not None:
+            past = idx >= n_bins  # on the limit, at a bin edge
+            above += int(np.sum(past))
+            keep, idx = keep[~past], idx[~past]
         counts = np.bincount(idx, minlength=n_bins)[:n_bins].astype(float)
         n_in = float(counts.sum())
         y = np.cumsum(counts) if cumulative else counts
@@ -196,7 +209,7 @@ def frequency_distribution(columns, names=None, *, bin_width=None,
                      "y": y.tolist()})
     out.update({
         "exact": False, "cumulative": bool(cumulative),
-        "bin_width": w, "bin_width_auto": auto,
+        "bin_width": w, "bin_width_auto": auto, "upper_limit": upper_limit,
         "centers": centers.tolist(),
         "lower_edges": [float(f"{c - w / 2:.12g}") for c in centers],
         "upper_edges": [float(f"{c + w / 2:.12g}") for c in centers],

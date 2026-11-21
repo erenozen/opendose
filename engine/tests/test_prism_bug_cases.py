@@ -1335,12 +1335,7 @@ class TestCase47FrequencyLastBinEdge:
         assert res["centers"] == [5.0, 15.0, 25.0]
         assert res["datasets"][0]["counts"] == [2, 4, 1]
 
-    @pytest.mark.xfail(strict=True, reason=(
-        "#47: frequency.frequency_distribution with upper_limit = 20 (the "
-        "upper edge of the bin centred 15) keeps the value 20 (only values "
-        "> upper_limit are omitted) and adds a third bin [20, 30) centred "
-        "25 for it, the extra-bin result of Prism 6.0; per FAQ 1822 the "
-        "bins should stop at [10, 20) with 20 left out (n_omitted_above)"))
+    # fixed: a value equal to upper_limit opened a bin [20, 30) past it
     def test_value_on_the_upper_limit_does_not_open_an_extra_bin(self):
         res = _run("frequency_distribution",
                    {"datasets": [{"name": "A", "ys": self.VALUES}]},
@@ -1348,6 +1343,44 @@ class TestCase47FrequencyLastBinEdge:
         assert res["centers"] == [5.0, 15.0]
         assert res["datasets"][0]["counts"] == [2, 4]
         assert res["datasets"][0]["n_omitted_above"] == 1
+
+    def _bins(self, values, **opts):
+        return _run("frequency_distribution",
+                    {"datasets": [{"name": "A", "ys": [[v] for v in values]}]},
+                    {"bin_width": 10, "first_center": 5, **opts})
+
+    def test_limit_inside_a_bin(self):
+        res = self._bins([1, 5, 10, 12, 17, 18], upper_limit=17)
+        assert res["centers"] == [5.0, 15.0]
+        assert res["datasets"][0]["counts"] == [2, 3]
+        assert res["datasets"][0]["n_omitted_above"] == 1
+
+    def test_value_on_the_limit_inside_a_bin_is_kept(self):
+        res = self._bins([1, 15, 15], upper_limit=15)
+        assert res["centers"] == [5.0, 15.0]
+        assert res["datasets"][0]["counts"] == [1, 2]
+        assert res["datasets"][0]["n_omitted_above"] == 0
+
+    def test_limit_above_the_data_changes_nothing(self):
+        a = self._bins([1, 5, 12, 19.5], upper_limit=100)
+        b = self._bins([1, 5, 12, 19.5])
+        assert a["centers"] == b["centers"] == [5.0, 15.0]
+        assert a["datasets"][0]["counts"] == b["datasets"][0]["counts"]
+
+    def test_decimal_edges(self):
+        # 0.3 / 0.1 is 2.9999999999999996 in floating point: still 3 bins
+        res = _run("frequency_distribution",
+                   {"datasets": [{"name": "A", "ys": [[0.01], [0.15], [0.25], [0.29]]}]},
+                   {"bin_width": 0.1, "first_center": 0.05, "upper_limit": 0.3})
+        assert res["centers"] == [0.05, 0.15, 0.25]
+        assert res["datasets"][0]["counts"] == [1, 1, 2]
+
+    def test_exact_cumulative_keeps_the_value_on_the_limit(self):
+        res = _run("frequency_distribution",
+                   {"datasets": [{"name": "A", "ys": self.VALUES}]},
+                   {"exact": True, "upper_limit": 20})
+        assert res["datasets"][0]["x"][-1] == 20.0
+        assert res["datasets"][0]["n_omitted_above"] == 0
 
 
 # ================================================================ others

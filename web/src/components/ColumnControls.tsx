@@ -366,7 +366,8 @@ export default function ColumnControls({ options, datasetNames, onChange, summar
           </label>
           <p className="hint-block">
             A value on the border between two bins goes into the higher bin; values below the first bin
-            are left out and counted. The guide recommends the cumulative fit, which needs no bin width.
+            are left out and counted. No bin goes past the upper limit: a value exactly on the limit is
+            also left out when the limit is a bin edge (as in Prism). The guide recommends the cumulative fit, which needs no bin width.
           </p>
         </section>
       )}

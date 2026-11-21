@@ -119,6 +119,7 @@ function testSentence(o: ColumnOptionsState, r: R): string {
       }
       return `Frequency distributions were tabulated with a bin width of ${formatSig(r.bin_width)}${r.bin_width_auto ? " (chosen automatically: 1 + log2(n) bins, rounded down to a round number)" : ""}`
         + `${r.cumulative ? ", cumulatively" : ""}${r.relative ? ` as ${r.relative === "percent" ? "percentages" : "fractions"}` : ""}`
+        + `${typeof r.upper_limit === "number" ? `; values above ${formatSig(r.upper_limit)} were left out (and a value equal to it when it fell on a bin edge, since no bin extends past the limit)` : ""}`
         + `${r.fits ? ", and a Gaussian distribution was fitted to the counts at the bin centers by least squares" : ""}.`;
     }
     case "p_stack": {
