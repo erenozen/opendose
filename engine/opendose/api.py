@@ -32,7 +32,7 @@ from . import deming, moretests, proportions, trend
 from . import equations, userequation
 from . import (assay_clustering, assay_densitometry, assay_growth,
                assay_luciferase, assay_plate, assay_qpcr, assay_stdcurve,
-               assay_superplot, assay_synergy, synergy_multi)
+               assay_superplot, assay_synergy, assay_wound, synergy_multi)
 from . import frequency
 from . import effectsize, estimation, power
 from . import auc, cox, quantal
@@ -2717,6 +2717,23 @@ def _luciferase(data, options):
                               "ci_level")))
 
 
+def _wound_healing(data, options):
+    """Wound-healing (scratch) assay (assay_wound). data: {"x": times,
+    "datasets": [{name, ys: rows x replicates}]} (one data set per
+    condition, one replicate column per well, values the wound area or
+    width). options: window ([start, end] for the rate fit), target
+    (closure %, default 50), rate_basis ("percent" | "absolute"),
+    control_index, test ("auto" | "none"), comparisons, ci_level.
+    Returns {"wells" (closure over time, rate, time to target, flags),
+    "summaries" (per condition, with the mean closure curve),
+    "statistics", "warnings"}."""
+    return assay_wound.wound_healing(
+        data.get("x") or [], data.get("datasets") or [],
+        **_assay_kw(options, ("window", "target", "rate_basis",
+                              "control_index", "test", "comparisons",
+                              "ci_level")))
+
+
 def _plate_qc(data, options):
     """Plate QC and layout (assay_plate). data: {"grid": rows x cols} |
     {"text"} | {"xlsx_b64"}, plus "plate_map" (or options.plate_map):
@@ -2884,6 +2901,7 @@ _HANDLERS.update({
     "qpcr": _qpcr,
     "densitometry": _densitometry,
     "luciferase": _luciferase,
+    "wound_healing": _wound_healing,
     "plate_qc": _plate_qc,
     "synergy": _synergy,
     "frequency_distribution": _frequency_distribution,

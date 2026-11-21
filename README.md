@@ -359,6 +359,11 @@ sheets that follow the data.
   control construct with its CI, low-Renilla wells flagged; tests on the
   log ratios with each experiment (transfection) counted once, or wells as
   the unit when no experiment is recorded (said so on the sheet).
+- Wound healing (scratch assay): wound area or width over time, one
+  replicate column per well: % closure against each wound's own start,
+  the closure rate from a straight-line fit over a chosen window, the
+  time to 50% closure, and the rates compared between conditions
+  (t test or one-way ANOVA with Dunnett's test), wells as the unit.
 - From an example or an empty layout: growth curves (blank and log
   preprocessing, logistic / Gompertz / Zwietering lag models, doubling
   time with CI); tumour growth (mixed model on log volume, AUC per

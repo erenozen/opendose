@@ -35,6 +35,7 @@ import { synergyAssay } from "./synergy";
 import { timecourseAssay } from "./timecourse";
 import { tumourAssay } from "./tumour";
 import { volcanoAssay } from "./volcano";
+import { woundAssay } from "./wound";
 
 /** An example table set up for a module, offered as a built-in template
  *  (New data table › From a template). */
@@ -93,6 +94,7 @@ export const ASSAYS: AssayModule[] = [
   luciferaseAssay,
   flowAssay,
   growthAssay,
+  woundAssay,
   tumourAssay,
   timecourseAssay,
   synergyAssay,

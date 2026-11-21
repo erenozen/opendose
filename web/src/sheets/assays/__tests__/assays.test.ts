@@ -10,6 +10,7 @@ import { groupedSample } from "../../grouped/sample.ts";
 import { aucPayload, DEFAULT_AUC, shadedRegions, trapezoid } from "../aucModel.ts";
 import { DEFAULT_GROWTH, doublingTime, growthTransformPayload, growthYTitle } from "../growthModel.ts";
 import { growthSample } from "../growthSample.ts";
+import { woundSample } from "../wound/sample.ts";
 import {
   endpointRows, groupedFromRecords, guessColumns, normalizeMixed, subjectSeries,
   survivalFromEndpoints, timeFromTitle, transformed, tumourRecords,
@@ -190,7 +191,8 @@ test("clustering: grouped cell means, missing rows dropped, memberships", () => 
 });
 
 test("empty layouts keep the example's columns and drop its values", () => {
-  for (const ex of [growthSample(), tumourSample(), synergySample(), volcanoSample(), clusterSample(), aucSample()]) {
+  for (const ex of [growthSample(), tumourSample(), synergySample(), volcanoSample(), clusterSample(), aucSample(),
+    woundSample()]) {
     const e = emptyLayout(ex);
     assert.equal(e.type, ex.type);
     assert.deepEqual(e.datasets.map((d) => [d.name, d.varType]), ex.datasets.map((d) => [d.name, d.varType]));
