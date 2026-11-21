@@ -33,6 +33,9 @@ export interface SynergyOptions {
   baselineCorrection: "none" | "part" | "all";
   models: Record<SynergyModel, boolean>;
   columns: SynergyColumns;
+  /** P values of replicated matrices by SynergyFinder's resampling (each
+   *  pass refits every curve, so it is slow); off sends p_iterations 0. */
+  replicateP: boolean;
 }
 
 export const DEFAULT_SYNERGY: SynergyOptions = {
@@ -43,6 +46,7 @@ export const DEFAULT_SYNERGY: SynergyOptions = {
   baselineCorrection: "none",
   models: { hsa: true, bliss: true, loewe: true, zip: true },
   columns: { conc1: "", conc2: "", response: "", replicate: "" },
+  replicateP: true,
 };
 
 const CONC1_RE = /^(conc|concentration|dose)[ _]?(1|a)$|^(drug|d)[ _]?1[ _]?(conc|dose)?$|^conc_?r$/i;
@@ -82,6 +86,7 @@ export function normalizeSynergy(raw: unknown, table: DataTableModel): SynergyOp
       conc1: str(c.conc1, guess.conc1), conc2: str(c.conc2, guess.conc2),
       response: str(c.response, guess.response), replicate: str(c.replicate, guess.replicate),
     },
+    replicateP: typeof o.replicateP === "boolean" ? o.replicateP : d.replicateP,
   };
 }
 
@@ -157,6 +162,7 @@ export function synergyPayload(table: DataTableModel, o: SynergyOptions): Record
       baseline_correction: o.baselineCorrection,
       drug1: o.drug1.trim() || "Drug 1",
       drug2: o.drug2.trim() || "Drug 2",
+      ...(o.replicateP ? {} : { p_iterations: 0 }),
     },
   };
 }

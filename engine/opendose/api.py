@@ -2742,12 +2742,16 @@ def _synergy(data, options):
     min_r_squared, min_points, n_computed, note}, "warnings"}. A
     combination's ci is null, with a reason, unless its fa is strictly
     inside (0, 1) and both median-effect fits are valid (m > 0, r^2 >=
-    min_r_squared, at least min_points doses)."""
+    min_r_squared, at least min_points doses). Each model (and
+    "consensus") also carries p_value and most_synergistic_area;
+    "sensitivity" holds {drug1, drug2: {ic50, ic50_capped, ri}, css1,
+    css2, css}. options.p_iterations (default 10; 0 = no P values for
+    replicated matrices, whose resampling refits every curve)."""
     return assay_synergy.synergy(
         data.get("records"), conc1=data.get("conc1"),
         conc2=data.get("conc2"), responses=data.get("responses"),
         **_assay_kw(options, ("response_kind", "baseline_correction",
-                              "drug1", "drug2")))
+                              "drug1", "drug2", "p_iterations")))
 
 
 def _frequency_distribution(data, options):

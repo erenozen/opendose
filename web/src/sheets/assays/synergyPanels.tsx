@@ -5,6 +5,7 @@ import { useProject } from "../../app/context";
 import { updateTable } from "../../project/ops";
 import { formatSig } from "../../types";
 import CopyableMethods from "../common/CopyableMethods";
+import { fmtP } from "../common/statFormat";
 import type { ControlsProps, ResultsProps } from "../types";
 import { Chip } from "./kit/ui";
 import {
@@ -97,6 +98,8 @@ export function SynergyControls({ sheet, table, options: o, onChange, readOnly }
           options={[["none", "None"], ["part", "Negative responses only"], ["all", "All responses"]]}
           onChange={(baselineCorrection) => set({ baselineCorrection })}
           hint="SynergyFinder's correction for a negative response baseline: the lower of the two fitted monotherapy minimums is removed, scaled by (100 − response)/100." />
+        <Check label="P values for replicated matrices (rescores 10 resampled matrices; slower)"
+          checked={o.replicateP} onChange={(replicateP) => set({ replicateP })} />
       </section>
       <section>
         <h3>Models to show</h3>
@@ -121,6 +124,33 @@ function Matrix({ title, m, c1, c2, sig = 3 }: { title: string; m: (number | nul
   );
 }
 
+/** "28.1 at 156–2500 × 3.13–50": the window's mean synergy and its doses. */
+function msaText(a: R | null | undefined): string {
+  if (!a || typeof a.score !== "number") return "n/a (fewer than 3 × 3 combination doses)";
+  const r = (v: number[]) => `${formatSig(v[0])}–${formatSig(v[1])}`;
+  return `${formatSig(a.score)} at ${r(a.conc1)} × ${r(a.conc2)}`;
+}
+
+function Sensitivity({ s, d1, d2, unit }: { s: R; d1: string; d2: string; unit: string }) {
+  const ic = (e: R) => (typeof e?.ic50 !== "number" ? "n/a (monotherapy not fitted)"
+    : `${formatSig(e.ic50)}${e.ic50_capped ? " (capped at the highest dose)" : ""}`);
+  return (
+    <Card title="Sensitivity (SynergyFinder)">
+      <Grid caption="Monotherapy sensitivity" head={["Drug", `Relative IC50${unit}`, "RI (%)",
+        "CSS with the other drug at its IC50 (%)"]}
+        rows={[[d1, s.drug1, s.css1], [d2, s.drug2, s.css2]].map(([n, e, css]) =>
+          [n as string, ic(e as R), f((e as R)?.ri), f(css)])} />
+      <p className="hint-block">
+        CSS (combination sensitivity score) = {f(s.css)}%, the mean of the two. RI is the mean fitted
+        % inhibition of a drug alone over its tested dose range on a log scale (the area under the
+        curve divided by the range); CSS is the same for one drug while the other is held at its
+        relative IC50 (Malyutina et al. 2019). Relative IC50 is the monotherapy fit’s EC50, capped at
+        the highest dose tested.
+      </p>
+    </Card>
+  );
+}
+
 export function SynergyResults({ options, result }: ResultsProps<SynergyOptions, R>) {
   const [view, setView] = useState<MatrixTableChoice>("default");
   if (!result) return null;
@@ -140,19 +170,31 @@ export function SynergyResults({ options, result }: ResultsProps<SynergyOptions,
     <>
       <Card title="Synergy scores">
         <Warnings list={result.warnings} />
-        <Grid caption="Summary synergy scores" head={["Model", "Score", ...(reps > 1 ? ["SD over replicates"] : []), "Reading"]}
-          rows={shown.map((m) => {
-            const e = result.models[m] as R;
-            return [`${MODEL_LABEL[m]} (${MODEL_LONG[m].toLowerCase()})`,
-              <span className="assay-score" key={m}>{f(e.score)}</span>,
-              ...(reps > 1 ? [f(e.score_sd)] : []), scoreReading(e.score)];
-          })} />
+        <Grid caption="Summary synergy scores" head={["Model", "Score", ...(reps > 1 ? ["SD over replicates"] : []),
+          "P value", `Most synergistic area (${d1} × ${d2}${unit})`, "Reading"]}
+          rows={[...shown.map((m) => [`${MODEL_LABEL[m]} (${MODEL_LONG[m].toLowerCase()})`, result.models[m] as R, m] as const),
+            ...(result.consensus ? [["Bliss / Loewe consensus", result.consensus as R, "consensus"] as const] : [])]
+            .map(([label, e, key]) => [label,
+              <span className="assay-score" key={key}>{f(e.score)}</span>,
+              ...(reps > 1 ? [key === "consensus" ? "" : f(e.score_sd)] : []),
+              e.p_value == null ? "n/a" : fmtP(e.p_value),
+              msaText(e.most_synergistic_area), scoreReading(e.score)])} />
         <p className="hint-block">
           Each score is the mean, over the combination cells, of observed minus
           expected % inhibition under that model’s definition of no interaction.
           Above 10: likely synergistic; −10 to 10: likely additive; below −10:
           likely antagonistic (SynergyFinder’s reading).
           {reps > 1 && ` The SD is over the ${reps} replicate matrices, each scored separately.`}
+          {" "}The consensus takes, at each dose pair, the largest of the HSA, Bliss and Loewe
+          expectations, so its synergy is the most conservative of the three. The most synergistic
+          area is the 3 × 3 block of adjacent combination doses with the highest mean synergy.
+        </p>
+        <p className="hint-block">
+          P values follow SynergyFinder: z = |mean| / SD of {result.p_value_basis
+            ? `the ${result.p_value_basis}` : "the resampled summary scores (not computed: turned off)"},
+          P = exp(−0.717z − 0.416z²). Dividing by the SD rather than a standard error makes this a
+          measure of how consistent the synergy is, not a test of the mean; with replicates it is
+          often vanishingly small. Read it beside the score and the landscape.
         </p>
         <h4>Monotherapy fits (four-parameter log-logistic, % inhibition)</h4>
         <Grid caption="Monotherapy fits" head={["Drug", "Bottom", "Top", `EC50${unit}`, "Hill slope", "R²"]}
@@ -160,6 +202,7 @@ export function SynergyResults({ options, result }: ResultsProps<SynergyOptions,
             ...(m.fitted ? [f(m.params.Bottom), f(m.params.Top), f(m.params.EC50), f(m.params.HillSlope), f(m.r_squared)]
               : ["not fitted", "", "", "", ""])])} />
       </Card>
+      {result.sensitivity && <Sensitivity s={result.sensitivity as R} d1={d1} d2={d2} unit={unit} />}
       <Card title="Synergy at each dose pair">
         <Row label="Show">
           <select aria-label="Show matrices" value={view}
@@ -238,8 +281,13 @@ export function SynergyMethods({ options, result }: ResultsProps<SynergyOptions,
   const text = `${options.responseKind === "viability" ? "Viability was converted to % inhibition (100 − viability). " : ""}`
     + `Each drug alone was fitted with a four-parameter log-logistic model. Synergy was scored against `
     + `${joined} reference models as implemented in SynergyFinder (Ianevski et al. 2020); the summary score `
-    + `is the mean synergy over the combination cells.${reps} Combination indices were computed by the `
-    + `Chou-Talalay median-effect method (Chou 2010). Analysis in OpenDose (open-source, built on SciPy).`;
+    + `is the mean synergy over the combination cells, with SynergyFinder's P value (Altman & Bland `
+    + `approximation of z = |mean|/SD${result.n_replicates > 1 ? `, from ${result.p_value_basis ?? "resampled matrices"}` : ""}) `
+    + `and most synergistic area (best 3 × 3 dose window). Relative IC50, relative inhibition (RI) and `
+    + `the combination sensitivity score (CSS) were computed as defined by Malyutina et al. (2019).`
+    + `${reps} Combination indices were computed by the `
+    + `Chou-Talalay median-effect method (Chou 2010). `
+    + `Analysis in OpenDose (open-source, built on SciPy).`;
   return <CopyableMethods text={text} />;
 }
 
