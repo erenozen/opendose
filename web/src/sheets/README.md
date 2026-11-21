@@ -26,7 +26,8 @@ src/
     manipulate/     cross-type: Transform, Normalize, … (derived tables),
                     user formulas, Simulate data dialog, Monte Carlo
     assays/         assay modules (plate reader, standard curve, qPCR,
-                    densitometry, flow cytometry, growth, tumour growth,
+                    densitometry, dual-luciferase, flow cytometry, growth,
+                    tumour growth,
                     time course, AUC, synergy, volcano, clustering); see
                     below
   components/       shell UI: Navigator, Header, FamilyWorkspace, dialogs,
@@ -311,6 +312,10 @@ Wizard modules, one folder each (ids `assay_*`):
   `qpcr/refs.ts` is the reference-gene check shown before the fold
   changes (`qpcr_reference_check`; genes set aside stay in the check via
   `options.referenceCandidates`).
+- `luciferase`: dual-luciferase reporter (no wizard: the column roles
+  are picked in the controls). With an experiment column it reuses the
+  densitometry engine (experiment as the blot); without, wells are the
+  unit and the sheet says so.
 - `flow`: FlowJo statistics table → `flow_summary` (one value per donor
   and condition) → a linked column table whose first column holds the
   donor (replicate map by column); the wizard's finish switches its

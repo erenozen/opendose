@@ -354,6 +354,11 @@ sheets that follow the data.
 - Western blot densitometry (wizard): ImageJ / Image Lab exports,
   background and loading-control normalisation, fold change within blot,
   ratio paired t test with blot as the pair.
+- Dual-luciferase reporter: Firefly and Renilla readings per well,
+  background from mock wells, Firefly / Renilla ratio, fold change vs the
+  control construct with its CI, low-Renilla wells flagged; tests on the
+  log ratios with each experiment (transfection) counted once, or wells as
+  the unit when no experiment is recorded (said so on the sheet).
 - From an example or an empty layout: growth curves (blank and log
   preprocessing, logistic / Gompertz / Zwietering lag models, doubling
   time with CI); tumour growth (mixed model on log volume, AUC per

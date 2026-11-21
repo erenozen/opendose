@@ -27,6 +27,7 @@ import { clusterAssay } from "./cluster";
 import { densitometryAssay } from "./densitometry";
 import { flowAssay } from "./flow";
 import { growthAssay } from "./growth";
+import { luciferaseAssay } from "./luciferase";
 import { plateAssay } from "./plate";
 import { qpcrAssay } from "./qpcr";
 import { stdcurveAssay } from "./stdcurve";
@@ -89,6 +90,7 @@ export const ASSAYS: AssayModule[] = [
   stdcurveAssay,
   qpcrAssay,
   densitometryAssay,
+  luciferaseAssay,
   flowAssay,
   growthAssay,
   tumourAssay,

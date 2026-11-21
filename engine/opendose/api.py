@@ -31,8 +31,8 @@ from . import fdr, letters, rowtests, threeway
 from . import deming, moretests, proportions, trend
 from . import equations, userequation
 from . import (assay_clustering, assay_densitometry, assay_growth,
-               assay_plate, assay_qpcr, assay_stdcurve, assay_superplot,
-               assay_synergy, synergy_multi)
+               assay_luciferase, assay_plate, assay_qpcr, assay_stdcurve,
+               assay_superplot, assay_synergy, synergy_multi)
 from . import frequency
 from . import effectsize, estimation, power
 from . import auc, cox, quantal
@@ -2698,6 +2698,25 @@ def _densitometry(data, options):
                               "groups", "ci_level")))
 
 
+def _luciferase(data, options):
+    """Dual-luciferase reporter assay (assay_luciferase). data:
+    {"records": [{group, firefly, renilla, experiment?, well?}]}.
+    options: control_group, blank_group (mock wells subtracted as
+    background), groups, test ("auto" | "ratio_paired" | "rm_anova" |
+    "unpaired" | "anova" | "none"), comparisons, low_renilla (fraction of
+    the median corrected Renilla below which a well is flagged),
+    ci_level. Returns {"wells" (corrected readings, ratio, fold_change,
+    flags), "unit" ("experiment" | "well"), "statistics",
+    "group_summaries" (geometric mean fold with CI), "graph",
+    "warnings"} plus "per_experiment" / "matched_ratio" with experiments
+    or "ratios_by_group" without."""
+    return assay_luciferase.luciferase(
+        data.get("records") or [],
+        **_assay_kw(options, ("control_group", "blank_group", "groups",
+                              "test", "comparisons", "low_renilla",
+                              "ci_level")))
+
+
 def _plate_qc(data, options):
     """Plate QC and layout (assay_plate). data: {"grid": rows x cols} |
     {"text"} | {"xlsx_b64"}, plus "plate_map" (or options.plate_map):
@@ -2864,6 +2883,7 @@ _HANDLERS.update({
     "stdcurve_qc": _stdcurve_qc,
     "qpcr": _qpcr,
     "densitometry": _densitometry,
+    "luciferase": _luciferase,
     "plate_qc": _plate_qc,
     "synergy": _synergy,
     "frequency_distribution": _frequency_distribution,
