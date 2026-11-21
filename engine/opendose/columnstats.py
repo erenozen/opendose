@@ -63,7 +63,7 @@ import math
 import numpy as np
 from scipy import stats
 
-from . import effectsize
+from . import effectsize, exactdist
 
 
 def _clean(values) -> np.ndarray:
@@ -252,7 +252,8 @@ def wilcoxon_signed_rank(values, hypothetical: float, *,
     from .ttests import signed_rank_test, walsh_ci
 
     arr = _clean(values)
-    diffs = arr - hypothetical
+    # without floating-point noise (exactdist.snap_differences)
+    diffs = exactdist.snap_differences(arr - hypothetical, arr, [hypothetical])
     if not np.any(diffs != 0):
         raise ValueError("all values equal the hypothetical value")
     res = signed_rank_test(diffs, zero_method=zero_method)

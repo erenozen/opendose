@@ -272,7 +272,9 @@ def wilcoxon_matched_pairs(values_a, values_b, *,
                            zero_method: str = "wilcox",
                            ci_level: float = 0.95) -> dict:
     a, b = _pair(values_a, values_b)
-    d = a - b
+    # without floating-point noise, so tied and zero differences are
+    # recognised (exactdist.snap_differences)
+    d = exactdist.snap_differences(a - b, a, b)
     nonzero = d[d != 0]
     if nonzero.size < 1:
         raise ValueError("all paired differences are zero")
@@ -305,7 +307,7 @@ def signed_rank_test(diffs, *, zero_method: str = "wilcox") -> dict:
     ranks (Pratt 1959). Exact P with fewer than 200 ranked values (ties
     included), else the normal approximation with the tie-corrected
     variance sum(r^2)/4 (no continuity correction)."""
-    d = np.asarray(diffs, dtype=float)
+    d = exactdist.snap_differences(diffs)
     if zero_method not in ("wilcox", "pratt"):
         raise ValueError(f"unknown zero_method: {zero_method}")
     n_zero = int(np.sum(d == 0))

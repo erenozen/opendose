@@ -47,6 +47,39 @@ import numpy as np
 from scipy import integrate, optimize, special, stats
 
 
+def snap_differences(diffs, *scale_from) -> np.ndarray:
+    """Differences computed in floating point, with the rounding noise
+    removed so that ties and zeros are recognised as in exact arithmetic.
+
+    0.12 - 0.11 and 0.15 - 0.14 are both 0.01 exactly, but in binary
+    floating point they differ in the 17th digit, so a rank test would
+    rank them apart (GraphPad FAQ "Bug: Wilcoxon test with fractional data
+    can give the wrong result", fixed in Prism 7.01; R's wilcox.test still
+    does this). Differences within TOL of zero become zero, and runs of
+    magnitudes within TOL of each other take the smallest magnitude of the
+    run (signs kept); every other value is returned unchanged. TOL is
+    1e-13 times the largest magnitude among the values the differences
+    were computed from (scale_from; the differences themselves when none
+    are given): about 200 times the rounding error of a subtraction
+    (2.2e-16 of the operands per value), and below any difference that can
+    be typed (15 significant digits)."""
+    d = np.array(diffs, dtype=float)
+    mags = [np.max(np.abs(np.asarray(v, dtype=float)), initial=0.0)
+            for v in (scale_from or (d,))]
+    scale = max(mags + [0.0])
+    if d.size == 0 or not np.isfinite(scale) or scale == 0.0:
+        return d
+    tol = 1e-13 * scale
+    d[np.abs(d) <= tol] = 0.0
+    a = np.abs(d)
+    order = np.argsort(a, kind="stable")
+    s = a[order]
+    start = np.concatenate([[True], np.diff(s) > tol])
+    first = np.maximum.accumulate(np.where(start, np.arange(s.size), 0))
+    a[order] = s[first]
+    return np.copysign(a, d)
+
+
 def doubled_midranks(values) -> np.ndarray:
     """2 x midrank of each value (integers)."""
     return np.rint(2.0 * stats.rankdata(values)).astype(np.int64)

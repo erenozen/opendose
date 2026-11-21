@@ -104,6 +104,8 @@ import math
 import numpy as np
 from scipy import optimize, special, stats
 
+from . import exactdist
+
 # ------------------------------------------------------------ interpretation
 
 SCALES = {
@@ -864,10 +866,10 @@ def rank_biserial_paired(values_a, values_b=None, *,
     Fisher z with SE sqrt((2n^3 + 3n^2 + n)/6) / (n(n + 1)/2), n the
     number of ranked differences."""
     if values_b is None:
-        d = _clean(values_a)
+        d = exactdist.snap_differences(_clean(values_a))
     else:
         a, b = _pair(values_a, values_b)
-        d = a - b
+        d = exactdist.snap_differences(a - b, a, b)
     if zero_method == "wilcox":
         d = d[d != 0]
         ranks = stats.rankdata(np.abs(d))
