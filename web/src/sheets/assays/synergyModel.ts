@@ -36,6 +36,11 @@ export interface SynergyOptions {
   /** P values of replicated matrices by SynergyFinder's resampling (each
    *  pass refits every curve, so it is slow); off sends p_iterations 0. */
   replicateP: boolean;
+  /** Cells more than 20% inhibition from their left-out prediction:
+   *  not checked, flagged, or replaced by the prediction (SynergyFinder 3). */
+  outliers: "none" | "flag" | "replace";
+  /** Fill cells missing in every replicate from the dose-response fits. */
+  impute: boolean;
 }
 
 export const DEFAULT_SYNERGY: SynergyOptions = {
@@ -47,6 +52,8 @@ export const DEFAULT_SYNERGY: SynergyOptions = {
   models: { hsa: true, bliss: true, loewe: true, zip: true },
   columns: { conc1: "", conc2: "", response: "", replicate: "" },
   replicateP: true,
+  outliers: "none",
+  impute: false,
 };
 
 const CONC1_RE = /^(conc|concentration|dose)[ _]?(1|a)$|^(drug|d)[ _]?1[ _]?(conc|dose)?$|^conc_?r$/i;
@@ -87,6 +94,8 @@ export function normalizeSynergy(raw: unknown, table: DataTableModel): SynergyOp
       response: str(c.response, guess.response), replicate: str(c.replicate, guess.replicate),
     },
     replicateP: typeof o.replicateP === "boolean" ? o.replicateP : d.replicateP,
+    outliers: o.outliers === "flag" || o.outliers === "replace" ? o.outliers : d.outliers,
+    impute: typeof o.impute === "boolean" ? o.impute : d.impute,
   };
 }
 
@@ -163,6 +172,8 @@ export function synergyPayload(table: DataTableModel, o: SynergyOptions): Record
       drug1: o.drug1.trim() || "Drug 1",
       drug2: o.drug2.trim() || "Drug 2",
       ...(o.replicateP ? {} : { p_iterations: 0 }),
+      ...(o.outliers !== "none" ? { outliers: o.outliers } : {}),
+      ...(o.impute ? { impute: true } : {}),
     },
   };
 }
@@ -213,6 +224,21 @@ export function isMatrixView(v: unknown): v is MatrixView {
 type Mat = (number | null)[][];
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Res = Record<string, any>;
+
+/** Cells scored at a predicted value (filled because missing, or replaced
+ *  as outliers), as "row,col" keys of the result's matrices: not measured,
+ *  so every table and graph marks them. */
+export function predictedCells(result: Res | null | undefined): Set<string> {
+  const out = new Set<string>();
+  const c1 = result?.conc1 as number[] | undefined;
+  const c2 = result?.conc2 as number[] | undefined;
+  if (!c1 || !c2) return out;
+  for (const c of (result?.filled_cells ?? []) as Res[]) {
+    const i = c1.indexOf(c.conc1), j = c2.indexOf(c.conc2);
+    if (i >= 0 && j >= 0) out.add(`${i},${j}`);
+  }
+  return out;
+}
 
 /** The matrix of a view from the engine's synergy result (null when the
  *  result does not carry it). */

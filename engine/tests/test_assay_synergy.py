@@ -403,3 +403,98 @@ def test_consensus_is_the_smallest_of_hsa_bliss_loewe():
     assert res["consensus"]["score"] <= min(res["scores"][k] for k in
                                             ("hsa", "bliss", "loewe"))
 
+
+# --------------------------------------------- outliers and missing cells
+
+C1_O, C2_O = [0, 0.1, 0.3, 1, 3, 10], [0, 0.5, 1.5, 5, 15, 50]
+
+
+def test_planted_outliers_are_found_and_replaced_exactly():
+    # two outliers on a Bliss-independent surface: each found with its
+    # planted deviation (iterative removal: neither makes a neighbour look
+    # like an outlier), and the replacement is the true response
+    true = _bliss_surface(C1_O, C2_O)
+    M = true.copy()
+    M[3, 2] += 45.0
+    M[4, 4] -= 30.0
+    res = sy.synergy(conc1=C1_O, conc2=C2_O, responses=M.tolist(),
+                     outliers="replace")
+    cells = res["outliers"]["cells"]
+    assert [(c["row"], c["col"]) for c in cells] == [(3, 2), (4, 4)]
+    assert [c["deviation"] for c in cells] == pytest.approx([45.0, -30.0],
+                                                             abs=1e-6)
+    assert res["outliers"]["threshold"] == 20.0
+    for f in res["filled_cells"]:
+        assert f["reason"] == "outlier"
+        i, j = C1_O.index(f["conc1"]), C2_O.index(f["conc2"])
+        assert f["value"] == pytest.approx(true[i, j], abs=1e-6)
+    assert res["scores"]["bliss"] == pytest.approx(0.0, abs=1e-6)
+    assert any("replaced by the prediction" in w for w in res["warnings"])
+
+
+def test_flag_reports_without_changing_the_scores():
+    M = _bliss_surface(C1_O, C2_O)
+    M[0, 3] += 35.0                                   # a monotherapy cell
+    flagged = sy.synergy(conc1=C1_O, conc2=C2_O, responses=M.tolist(),
+                         outliers="flag")
+    plain = sy.synergy(conc1=C1_O, conc2=C2_O, responses=M.tolist())
+    assert [(c["row"], c["col"], c["kind"]) for c in
+            flagged["outliers"]["cells"]] == [(0, 3, "monotherapy")]
+    assert flagged["filled_cells"] == []
+    assert flagged["scores"] == plain["scores"]
+    assert plain["outliers"] is None
+
+
+def test_clean_surface_has_no_outliers():
+    M = _bliss_surface(C1_O, C2_O)
+    assert sy.find_outliers(100.0 - (100.0 - M), C1_O, C2_O) == []
+
+
+def test_steep_point_between_its_neighbours_is_not_flagged():
+    # a step between two doses: the middle point cannot be predicted once
+    # removed, but it lies between its neighbours, so it is not an outlier
+    R = np.zeros((4, 5))
+    R[0, :] = [0, 0, 0, 50, 100]
+    R[:, 0] = [0, 10, 20, 30]
+    R[1:, 1:] = 60.0
+    assert not any(c["row"] == 0 and c["col"] == 3
+                   for c in sy.find_outliers(R, [0, 1, 2, 3],
+                                             [0, 1, 2, 3, 4]))
+    assert sy._between_neighbours(R, 0, 3)
+    assert not sy._between_neighbours(R, 0, 4)       # no right neighbour
+
+
+def test_impute_fills_missing_cells_from_the_fits():
+    true = _bliss_surface(C1_O, C2_O)
+    M = true.copy()
+    M[2, 0] = np.nan                                  # monotherapy dose
+    M[3, 3] = np.nan                                  # combination
+    with pytest.raises(ValueError, match="monotherapy"):
+        sy.synergy(conc1=C1_O, conc2=C2_O, responses=M.tolist())
+    res = sy.synergy(conc1=C1_O, conc2=C2_O, responses=M.tolist(),
+                     impute=True)
+    got = {(f["conc1"], f["conc2"]): f for f in res["filled_cells"]}
+    assert set(got) == {(0.3, 0.0), (1.0, 5.0)}
+    assert got[(0.3, 0.0)]["value"] == pytest.approx(true[2, 0], abs=1e-6)
+    assert got[(1.0, 5.0)]["value"] == pytest.approx(true[3, 3], abs=1e-6)
+    assert all(f["reason"] == "missing" for f in got.values())
+    assert res["scores"]["bliss"] == pytest.approx(0.0, abs=1e-6)
+
+
+def test_api_passes_outlier_and_impute_options():
+    M = _bliss_surface(C1_O, C2_O)
+    M[3, 3] = None
+    res = api.analyze({"analysis": "synergy",
+                       "data": {"conc1": C1_O, "conc2": C2_O,
+                                "responses": [[None if v is None or (
+                                    isinstance(v, float) and math.isnan(v))
+                                    else v for v in row] for row in
+                                    M.tolist()]},
+                       "options": {"impute": True, "outliers": "flag",
+                                   "outlier_threshold": 25}})
+    assert res["outliers"]["threshold"] == 25.0
+    assert [(f["conc1"], f["conc2"]) for f in res["filled_cells"]] == [
+        (1.0, 5.0)]
+    with pytest.raises(ValueError):
+        sy.synergy(conc1=C1_O, conc2=C2_O, responses=M.tolist(),
+                   outliers="drop")

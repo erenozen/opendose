@@ -9,7 +9,7 @@ import { fmtP } from "../common/statFormat";
 import type { ControlsProps, ResultsProps } from "../types";
 import { Chip } from "./kit/ui";
 import {
-  MATRIX_VIEWS, MODEL_LABEL, MODEL_LONG, SYNERGY_MODELS, matricesFor, monotherapyIssues, parseMatrixBlocks,
+  MATRIX_VIEWS, MODEL_LABEL, MODEL_LONG, SYNERGY_MODELS, matricesFor, monotherapyIssues, parseMatrixBlocks, predictedCells,
   scoreReading, scoresVsCi, synergyTable, viewMatrix,
   type MatrixTableChoice, type SynergyColumns, type SynergyModel, type SynergyOptions,
 } from "./synergyModel";
@@ -102,6 +102,16 @@ export function SynergyControls({ sheet, table, options: o, onChange, readOnly }
           checked={o.replicateP} onChange={(replicateP) => set({ replicateP })} />
       </section>
       <section>
+        <h3>Outliers and missing cells</h3>
+        <Select label="Outlier check" value={o.outliers}
+          options={[["none", "Off"], ["flag", "Flag cells (scores unchanged)"],
+            ["replace", "Replace flagged cells by their prediction"]]}
+          onChange={(outliers) => set({ outliers })}
+          hint="A cell is flagged when it is more than 20% inhibition from the response its row and column dose-response fits predict without it (SynergyFinder's cut-off). Refits every curve once per cell, so it takes several seconds." />
+        <Check label="Fill missing cells from the dose-response fits"
+          checked={o.impute} onChange={(impute) => set({ impute })} />
+      </section>
+      <section>
         <h3>Models to show</h3>
         <div className="assay-models">
           {SYNERGY_MODELS.map((m) => (
@@ -114,12 +124,15 @@ export function SynergyControls({ sheet, table, options: o, onChange, readOnly }
   );
 }
 
-function Matrix({ title, m, c1, c2, sig = 3 }: { title: string; m: (number | null)[][]; c1: number[]; c2: number[]; sig?: number }) {
+function Matrix({ title, m, c1, c2, sig = 3, marked }: {
+  title: string; m: (number | null)[][]; c1: number[]; c2: number[]; sig?: number; marked?: Set<string>;
+}) {
   return (
     <>
       <h4>{title}</h4>
       <Grid caption={title} head={["Drug 1 \\ Drug 2", ...c2.map((c) => formatSig(c))]}
-        rows={m.map((row, i) => [formatSig(c1[i]), ...row.map((v) => (v === null ? "–" : formatSig(v, sig)))])} />
+        rows={m.map((row, i) => [formatSig(c1[i]), ...row.map((v, j) => (v === null ? "–"
+          : `${formatSig(v, sig)}${marked?.has(`${i},${j}`) ? "*" : ""}`))])} />
     </>
   );
 }
@@ -129,6 +142,42 @@ function msaText(a: R | null | undefined): string {
   if (!a || typeof a.score !== "number") return "n/a (fewer than 3 × 3 combination doses)";
   const r = (v: number[]) => `${formatSig(v[0])}–${formatSig(v[1])}`;
   return `${formatSig(a.score)} at ${r(a.conc1)} × ${r(a.conc2)}`;
+}
+
+function Checked({ outliers, filled, d1, d2, unit }: {
+  outliers: R | null; filled: R[]; d1: string; d2: string; unit: string;
+}) {
+  const cells = (outliers?.cells ?? []) as R[];
+  const missing = filled.filter((c) => c.reason === "missing");
+  return (
+    <Card title="Outliers and filled cells">
+      {outliers && (cells.length === 0
+        ? <p className="hint-block">No cell is more than {f(outliers.threshold)}% inhibition from its prediction.</p>
+        : <>
+          <Grid caption="Flagged cells" head={[`${d1}${unit}`, `${d2}${unit}`, "Observed (% inhibition)",
+            "Predicted", "Difference", "Cell", "Scored as"]}
+            rows={cells.map((c) => [formatSig(c.conc1), formatSig(c.conc2), f(c.observed), f(c.predicted),
+              f(c.deviation), c.kind, outliers.action === "replace" ? "prediction" : "observed (flag only)"])} />
+          <p className="hint-block">
+            Flagged: more than {f(outliers.threshold)}% inhibition from the response predicted, without the cell,
+            by its row and its column dose-response fits (a combination cell must disagree with both). SynergyFinder
+            predicts with cNMF instead, so its flags can differ. Check the wells before trusting either.
+          </p>
+        </>)}
+      {missing.length > 0 && (
+        <>
+          <Grid caption="Filled missing cells" head={[`${d1}${unit}`, `${d2}${unit}`, "Filled with (% inhibition)"]}
+            rows={missing.map((c) => [formatSig(c.conc1), formatSig(c.conc2), f(c.value)])} />
+          <p className="hint-block">
+            Filled values are estimates from the row and column dose-response fits, scored as if measured.
+            A dose on the steep part of a curve is poorly determined without its own value, and a filled
+            monotherapy dose moves that drug&apos;s IC50, RI and every model that uses its curve: repeat the
+            well when you can.
+          </p>
+        </>
+      )}
+    </Card>
+  );
 }
 
 function Sensitivity({ s, d1, d2, unit }: { s: R; d1: string; d2: string; unit: string }) {
@@ -166,6 +215,7 @@ export function SynergyResults({ options, result }: ResultsProps<SynergyOptions,
   const ct = result.chou_talalay as R;
   const issues = monotherapyIssues(result);
   const contradiction = scoresVsCi(result, shown);
+  const predicted = predictedCells(result);
   return (
     <>
       <Card title="Synergy scores">
@@ -202,6 +252,10 @@ export function SynergyResults({ options, result }: ResultsProps<SynergyOptions,
             ...(m.fitted ? [f(m.params.Bottom), f(m.params.Top), f(m.params.EC50), f(m.params.HillSlope), f(m.r_squared)]
               : ["not fitted", "", "", "", ""])])} />
       </Card>
+      {(result.outliers || (result.filled_cells ?? []).length > 0) && (
+        <Checked outliers={result.outliers as R | null} filled={(result.filled_cells ?? []) as R[]}
+          d1={d1} d2={d2} unit={unit} />
+      )}
       {result.sensitivity && <Sensitivity s={result.sensitivity as R} d1={d1} d2={d2} unit={unit} />}
       <Card title="Synergy at each dose pair">
         <Row label="Show">
@@ -220,8 +274,15 @@ export function SynergyResults({ options, result }: ResultsProps<SynergyOptions,
           matrices shown.</p>
         {matricesFor(view, shown).map((d) => {
           const m = viewMatrix(result, d.key);
-          return m ? <Matrix key={d.key} title={d.label} m={m} c1={c1} c2={c2} /> : null;
+          return m ? <Matrix key={d.key} title={d.label} m={m} c1={c1} c2={c2} marked={predicted} /> : null;
         })}
+        {predicted.size > 0 && (
+          <p className="hint-block">
+            * Not measured: {predicted.size} cell(s) were scored at the response predicted by their row and
+            column dose-response fits (filled because missing, or replaced as outliers; listed under
+            “Outliers and filled cells”). The observed response matrix shows that prediction there.
+          </p>
+        )}
       </Card>
       <Card title={<>Chou-Talalay combination index{issues.length > 0 && (
         <> <Chip tone="warn" title={issues.join("; ")}>Monotherapy fit poor: CIs unreliable</Chip></>
@@ -287,6 +348,11 @@ export function SynergyMethods({ options, result }: ResultsProps<SynergyOptions,
     + `the combination sensitivity score (CSS) were computed as defined by Malyutina et al. (2019).`
     + `${reps} Combination indices were computed by the `
     + `Chou-Talalay median-effect method (Chou 2010). `
+    + (result.outliers ? `Cells more than ${result.outliers.threshold}% inhibition from the response predicted, `
+      + `without the cell, by its row and column dose-response fits were ${result.outliers.action === "replace"
+        ? "replaced by that prediction" : "flagged"} (${(result.outliers.cells ?? []).length} cell(s)). ` : "")
+    + ((result.filled_cells ?? []).some((c: R) => c.reason === "missing")
+      ? "Missing cells were filled with the response predicted by their row and column dose-response fits. " : "")
     + `Analysis in OpenDose (open-source, built on SciPy).`;
   return <CopyableMethods text={text} />;
 }

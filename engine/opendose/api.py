@@ -2746,12 +2746,16 @@ def _synergy(data, options):
     "consensus") also carries p_value and most_synergistic_area;
     "sensitivity" holds {drug1, drug2: {ic50, ic50_capped, ri}, css1,
     css2, css}. options.p_iterations (default 10; 0 = no P values for
-    replicated matrices, whose resampling refits every curve)."""
+    replicated matrices, whose resampling refits every curve); outliers
+    ("none" | "flag" | "replace"), outlier_threshold (% inhibition, default
+    20), impute (fill missing cells). Adds "outliers" ({action, threshold,
+    cells} or null) and "filled_cells"."""
     return assay_synergy.synergy(
         data.get("records"), conc1=data.get("conc1"),
         conc2=data.get("conc2"), responses=data.get("responses"),
         **_assay_kw(options, ("response_kind", "baseline_correction",
-                              "drug1", "drug2", "p_iterations")))
+                              "drug1", "drug2", "p_iterations",
+                              "outliers", "outlier_threshold", "impute")))
 
 
 def _frequency_distribution(data, options):

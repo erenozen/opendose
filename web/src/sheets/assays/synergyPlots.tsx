@@ -12,7 +12,8 @@ import { seriesStyle } from "../../lib/palette";
 import { formatSig } from "../../types";
 import type { GraphOptionsProps, PlotProps } from "../types";
 import {
-  isMatrixView, MATRIX_VIEWS, MODEL_LABEL, SYNERGY_MODELS, viewMatrix, type SynergyOptions,
+  isMatrixView, MATRIX_VIEWS, MODEL_LABEL, SYNERGY_MODELS, predictedCells, viewMatrix,
+  type SynergyOptions,
 } from "./synergyModel";
 import { axis, chromeOf, divergingScale, layoutBase, messageLayout, useDark, useGraphSettings } from "./plotkit";
 
@@ -221,14 +222,26 @@ export function MonoPlot({ options, result, titles, scheme, format, onFormatChan
     const R0 = result.response as (number | null)[][];
     const names = [options?.drug1 || "Drug 1", options?.drug2 || "Drug 2"];
     const traces: Plotly.Data[] = [];
+    const predicted = predictedCells(result);
     [["drug1", c1, R0.map((r) => r[0])], ["drug2", c2, R0[0]]].forEach(([key, conc, resp], i) => {
       const { color, symbol, dash } = seriesStyle(i, dark, scheme);
       const xs: number[] = [];
       const ys: number[] = [];
+      const px: number[] = [];
+      const py: number[] = [];
       (conc as number[]).forEach((c, j) => {
         const v = (resp as (number | null)[])[j];
-        if (c > 0 && v !== null) { xs.push(c); ys.push(v); }
+        if (!(c > 0) || v === null) return;
+        // a filled or replaced dose is a prediction, never drawn as measured
+        if (predicted.has(i === 0 ? `${j},0` : `0,${j}`)) { px.push(c); py.push(v); } else { xs.push(c); ys.push(v); }
       });
+      if (px.length) {
+        traces.push(tagTrace({
+          type: "scatter", mode: "markers", x: px, y: py, name: `${names[i]}: predicted, not measured`,
+          legendgroup: names[i], marker: { color: "rgba(0,0,0,0)", symbol, size: 9, line: { color, width: 1.5 } },
+          hovertemplate: `${names[i]} %{x:.4g}: %{y:.4g}% (predicted, not measured)<extra></extra>`,
+        }, { ds: i, role: "decor" }) as Plotly.Data);
+      }
       const m = result.monotherapy[key as string] as R;
       if (m.fitted) {
         traces.push(tagTrace({
