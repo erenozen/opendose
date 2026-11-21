@@ -391,6 +391,8 @@ test("survival: step value at a time and the graph settings", () => {
   const pts = [{ time: 0, survival: 1 }, { time: 5, survival: 0.8 }, { time: 9, survival: 0.5 }];
   assert.equal(survivalAt(pts, 7), 0.8);
   assert.equal(survivalAt(pts, 9), 0.5);
-  assert.deepEqual(normalizeSurvivalGraph(undefined), { censorMarks: false, nudge: 0 });
-  assert.deepEqual(normalizeSurvivalGraph({ censorMarks: true, nudge: 9 }), { censorMarks: true, nudge: 5 });
+  // the Kaplan-Meier options added later default to the graph as it was
+  const asBefore = { ci: "none", show: "survival", scale: "percent" };
+  assert.deepEqual(normalizeSurvivalGraph(undefined), { censorMarks: false, nudge: 0, ...asBefore });
+  assert.deepEqual(normalizeSurvivalGraph({ censorMarks: true, nudge: 9 }), { censorMarks: true, nudge: 5, ...asBefore });
 });
