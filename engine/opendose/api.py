@@ -187,15 +187,39 @@ def _dose_response(data, options):
             entry["error"] = str(exc)
         results.append(entry)
 
+    raw_x = data["x"]
     for ds, entry in zip(data["datasets"], results):
-        lost = sum(1 for xv, row in zip(x_col, ds.get("ys") or [])
-                   if _is_missing(xv) for v in (row or [])
-                   if not _is_missing(v))
+        rows = ds.get("ys") or []
+        # Y values in rows with no X at all, and in rows whose X was entered
+        # but has no logarithm (X <= 0, e.g. the vehicle / zero dose) when
+        # the model takes log(X): two different things, said apart.
+        lost, nolog = 0, []
+        for xr, xv, row in zip(raw_x, x_col, rows):
+            vals = [v for v in (row or []) if not _is_missing(v)]
+            if summary_fmt:              # rows of mean / SD / n: the mean
+                vals = vals[:1]
+            if _is_missing(xr):
+                lost += len(vals)
+            elif _is_missing(xv):
+                nolog += [(float(xr), float(v)) for v in vals]
         warn = _nan_warnings({"datasets": [ds]})
         if lost:
             warn.append(
                 f"{lost} Y value{'s' if lost != 1 else ''} in rows without "
                 "an X value left out of the fit")
+        if nolog:
+            xs0 = sorted({x for x, _ in nolog})
+            mean0 = sum(y for _, y in nolog) / len(nolog)
+            entry["log_x_dropped"] = {"n_values": len(nolog), "x_values": xs0,
+                                      "mean_y": mean0}
+            at = ("X = 0" if xs0 == [0.0] else
+                  "X = " + ", ".join(f"{x:g}" for x in xs0))
+            warn.append(
+                f"{len(nolog)} Y value{'s' if len(nolog) != 1 else ''} at {at} "
+                f"(mean {mean0:.4g}) left out of the fit: the model uses "
+                "log(X), and zero or negative X has no logarithm. To use the "
+                "zero-dose wells, constrain the plateau they represent to "
+                "their mean, or normalise to them.")
         if warn:
             entry["warnings"] = warn
     error_bar_kind = options.get("error_bars", "sd")

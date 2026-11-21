@@ -9,6 +9,7 @@ import { engineWeighting, formatSig } from "../types";
 import { modelMeta, USER_MODEL_ID } from "../lib/modelLibrary";
 import { sharedParameters } from "../lib/userEquation";
 import { constraintState } from "../sheets/xy/fitOptions";
+import { zeroDosePlan } from "../sheets/xy/zeroDose";
 import CiteBlock, { CopyButton } from "./CiteBlock";
 
 interface Props {
@@ -71,6 +72,12 @@ export default function MethodsText({ result, options, xUnit }: Props) {
       : direct
         ? " (the weighted sum of squares, with weights from the fitted curve, minimised directly)"
         : " (weights from the fitted curve, iteratively reweighted)"));
+  }
+  // a plateau constrained to the zero-dose mean (sheets/xy/ZeroDoseBar)
+  const zero = zeroDosePlan(result, options);
+  if (zero?.constrained && zero.plateau) {
+    parts.push(`${zero.plateau} = ${zero.value} being the mean of the zero-dose wells `
+      + "(X = 0 has no logarithm, so those wells are not points on the curve)");
   }
   if (options.routEnabled) {
     parts.push(`after ROUT outlier elimination (Q = ${options.routQ}%)`);

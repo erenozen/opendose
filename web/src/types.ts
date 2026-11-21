@@ -219,6 +219,8 @@ export interface DatasetResult {
   diagnostics?: Record<string, unknown>;
   error?: string;
   points: { x: (number | null)[]; bars: ErrorBar[] };
+  /** Points a log(X) model left out because X <= 0 has no logarithm. */
+  log_x_dropped?: { n_values: number; x_values: number[]; mean_y: number };
 }
 
 export interface AnalysisResult {

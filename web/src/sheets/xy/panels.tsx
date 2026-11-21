@@ -20,6 +20,7 @@ import { ANALYSIS_LINREG, DEFAULT_LINREG, GRAPH_LINREG } from "./linreg";
 import { chooseModelOf } from "./run";
 import { switchResultsAnalysis } from "./switchAnalysis";
 import { RangeFlagsBar } from "./rangeFlags";
+import { ZeroDoseBar } from "./ZeroDoseBar";
 import { concentrationUnit, displayOf } from "./rangeReport";
 import { CompareFitsLinks } from "../../components/ResultsLinks";
 import "./xy.css";
@@ -148,6 +149,7 @@ export function NonlinResults({ sheet, table, result, options }:
   return (
     <>
       <RangeFlagsBar sheet={sheet} result={result} options={options} />
+      <ZeroDoseBar sheet={sheet} result={result} options={options} />
       <ResultsPanel result={result} xUnit={concentrationUnit(table) || "M"} />
       {result && !(result as { error?: unknown }).error && (
         <CompareFitsLinks sheet={sheet} table={table} model={options.model}
