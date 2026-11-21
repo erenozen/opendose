@@ -150,6 +150,12 @@ def sf_one_factor(c, lam, df) -> float:
     # the single-comparison P is a lower bound for the answer: drop only
     # mass far below it, so tiny P values keep their relative accuracy
     log_p_lb = float(np.log(2.0) + stats.t.logsf(c, df))
+    if not math.isfinite(log_p_lb):
+        # the single-comparison P is below the smallest double (scipy's
+        # t.logsf is log(sf), -inf once sf underflows: t = 40 with df =
+        # 1e4); the answer is at most m times it (Bonferroni), so it is 0
+        # to double precision. (Building the rules from -inf would fail.)
+        return 0.0
     log_keep = max(_LOG_TRUNC, _LOG_TRUNC - log_p_lb)
     z, wz = _z_rule(lam, log_keep)
     s, ws = _s_rule(df, log_p_lb - _LOG_TRUNC)

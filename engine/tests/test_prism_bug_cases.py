@@ -308,13 +308,8 @@ class TestCase20DunnettHugeDf:
             assert comp["p_adjusted"] == pytest.approx(
                 dunnett.sf_one_factor(t, lam, math.inf), rel=1e-3, abs=1e-12)
 
-    @pytest.mark.xfail(strict=True, reason=(
-        "#20: dunnett.sf_one_factor sets log_keep = _LOG_TRUNC - "
-        "log(2 * t.sf(c, df)); when scipy's t.logsf underflows to -inf "
-        "(large df and large t, e.g. t = 40, df = 1e4) log_keep is inf and "
-        "_z_rule raises OverflowError ('cannot convert float infinity to "
-        "integer'), so one-way ANOVA with Dunnett on 3 x 5000 values "
-        "returns an error; the correct adjusted P is ~0 (< 1e-300)"))
+    # fixed: when t.logsf underflowed to -inf, sf_one_factor's integration
+    # rules were built from an infinite range (OverflowError)
     def test_dunnett_with_large_n_and_large_effect(self):
         base = np.tile([-1.5, -0.5, 0.5, 1.5], 1250)          # n = 5000
         data = {"datasets": [{"name": nm, "ys": [[float(v)] for v in base + s]}
@@ -325,6 +320,28 @@ class TestCase20DunnettHugeDf:
         assert comps[0]["p_adjusted"] < 1e-300
         # T2: t = 0.2 / sqrt(MS_res * 2/5000) = 8.94, P about 1e-18
         assert 0 < comps[1]["p_adjusted"] < 1e-15
+
+
+    def test_sf_is_zero_only_when_the_single_p_underflows(self):
+        lam = dunnett.control_lambdas([5000, 5000, 5000], 0)
+        assert dunnett.sf_one_factor(40.0, lam, 1e4) == 0.0
+        assert dunnett.sf_one_factor(80.0, lam, math.inf) == 0.0
+        # representable P values are still computed: between the single
+        # P and the Bonferroni bound
+        for c, df in ((40.0, 1000.0), (30.0, 1e4), (8.94, 1e4)):
+            p1 = 2 * stats.t.sf(c, df)
+            p = dunnett.sf_one_factor(c, lam, df)
+            assert p1 <= p * (1 + 1e-9) and p <= 2 * p1 * (1 + 1e-9), (c, df, p, p1)
+
+    def test_general_sf_used_after_rm_and_mixed_models(self):
+        # dunnett.sf (repeated measures, mixed model) reaches
+        # sf_one_factor for a one-factor correlation
+        lam = dunnett.control_lambdas([5000, 5000, 5000], 0)
+        R = np.outer(lam, lam)
+        np.fill_diagonal(R, 1.0)
+        assert dunnett.sf(40.0, R, 1e4) == 0.0
+        assert dunnett.sf(8.94, R, 1e4) == pytest.approx(
+            dunnett.sf_one_factor(8.94, lam, 1e4), rel=1e-12)
 
 
 # ================================================== FDR "discoveries"
