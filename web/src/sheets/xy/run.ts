@@ -4,7 +4,7 @@
 import type { EngineBridge } from "../../lib/engine";
 import { numericData, parseCell } from "../../project/table";
 import { SUBCOLUMN_FORMAT_ENGINE, type DataTableModel } from "../../project/types";
-import type { AnalysisResult, OptionsState } from "../../types";
+import { engineWeighting, type AnalysisResult, type OptionsState } from "../../types";
 import { modelMeta, USER_MODEL_ID } from "../../lib/modelLibrary";
 import { userEquationPayload } from "../../lib/userEquation";
 import {
@@ -163,7 +163,7 @@ export function runNonlin(engine: EngineBridge, table: DataTableModel,
         constraints,
         ...(shared.length || !meta.globalOnly ? { shared } : {}),
         column_constants: cc.values,
-        weighting: options.weighting,
+        weighting: engineWeighting(options),
         ...summaryOptions,
       },
     }) as Record<string, any>;
@@ -181,7 +181,7 @@ export function runNonlin(engine: EngineBridge, table: DataTableModel,
         error_bars: options.errorBars,
         constraints,
         shared: effectiveShared(meta, options),
-        weighting: options.weighting,
+        weighting: engineWeighting(options),
         ...summaryOptions,
       },
     }) as Record<string, any>;
@@ -221,7 +221,7 @@ export function runNonlin(engine: EngineBridge, table: DataTableModel,
       x_is_log: options.xIsLog,
       error_bars: options.errorBars,
       constraints,
-      weighting: options.weighting,
+      weighting: engineWeighting(options),
       ...weightSourceOption(options, summary),
       ci_method: options.ciMethod,
       rout_q: options.routEnabled
@@ -261,7 +261,7 @@ function runUserEquation(engine: EngineBridge, _table: DataTableModel,
     x_is_log: options.xIsLog,
     error_bars: options.errorBars,
     constraints: fixed.constraints,
-    weighting: options.weighting,
+    weighting: engineWeighting(options),
     ...(Object.keys(cc.values).length ? { column_constants: cc.values } : {}),
     ...summaryOptions,
   };

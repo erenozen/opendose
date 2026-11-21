@@ -17,12 +17,13 @@ export type { UserEquationDef } from "./lib/userEquation.ts";
  *  "user" (the equation in OptionsState.userEquation). */
 export type ModelId = string;
 
-export type WeightingKind = "none" | "1/Y" | "1/Y2" | "1/X" | "1/X2" | "1/SD2";
+export type WeightingKind = "none" | "1/Y" | "1/Y2" | "1/YK" | "1/X" | "1/X2" | "1/SD2";
 
 export const WEIGHTING_LABELS: Record<WeightingKind, string> = {
   none: "No weighting (ordinary least squares)",
   "1/Y": "Weight by 1/Y (Poisson-like)",
   "1/Y2": "Weight by 1/Y² (relative distance)",
+  "1/YK": "Weight by 1/Yᴷ (choose K)",
   "1/X": "Weight by 1/X",
   "1/X2": "Weight by 1/X²",
   "1/SD2": "Weight by 1/SD² (SD of the replicates at each X)",
@@ -100,6 +101,8 @@ export interface OptionsState {
    *  the default) or the weighted SS minimised directly with the weights
    *  moving with the parameters ("objective", as R's nls with weights). */
   weightSource?: "predicted" | "objective";
+  /** K of "Weight by 1/Y^K" (weighting "1/YK"); absent = 1.5. */
+  weightK?: number;
   /** An IC50 / EC50 beyond the concentrations tested: report it as
    *  "> highest dose" (absent = "bound") or as the fitted number, flagged
    *  (sheets/xy/rangeReport.ts). */
@@ -161,7 +164,8 @@ export interface FitResult {
     direction: "above" | "below";
     distance: number;
   } | null;
-  weighting?: WeightingKind;
+  /** As the engine reports it: a WeightingKind or "1/Y^K" ("1/Y^1.5"). */
+  weighting?: string;
   ci_method?: CIMethod;
   /** "robust": best-fit values only (engine nlfit.robust_model_fit). */
   fit_method?: "least_squares" | "robust";
@@ -512,4 +516,27 @@ export function formatSig(
   // (more than 5 significant digits lift the 1e5 limit to 10^digits).
   if (abs >= Math.max(1e5, 10 ** sig) || abs < 1e-3) return v.toExponential(sig - 1);
   return Number(v.toPrecision(sig)).toString();
+}
+
+/** Default K of "Weight by 1/Y^K": halfway between 1/Y (K = 1, Poisson-like
+ *  scatter) and 1/Y² (K = 2, scatter proportional to Y). */
+export const DEFAULT_WEIGHT_K = 1.5;
+
+/** K of a 1/Y^K weighting, kept within the engine's range (0 < K <= 10). */
+export function weightK(options: { weightK?: number }): number {
+  const k = options.weightK;
+  return typeof k === "number" && Number.isFinite(k) && k > 0 && k <= 10 ? k : DEFAULT_WEIGHT_K;
+}
+
+/** The weighting as the engine takes it: "1/YK" becomes "1/Y^1.5" etc. */
+export function engineWeighting(options: { weighting: WeightingKind; weightK?: number }): string {
+  return options.weighting === "1/YK" ? `1/Y^${weightK(options)}` : options.weighting;
+}
+
+/** A weighting as the engine reports it ("1/Y2", "1/Y^1.5"), in words. */
+export function weightingLabel(w: string | undefined): string {
+  if (!w) return "";
+  const k = /^1\/Y\^([0-9.]+)$/.exec(w);
+  if (k) return `Weight by 1/Y^${k[1]}`;
+  return WEIGHTING_LABELS[w as WeightingKind] ?? `Weight by ${w}`;
 }

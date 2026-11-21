@@ -4,7 +4,7 @@ import type {
   CIMethod, ConstraintState, ErrorBarKind, OptionsState,
   WeightingKind,
 } from "../types";
-import { ERROR_BAR_LABELS, WEIGHTING_LABELS } from "../types";
+import { DEFAULT_WEIGHT_K, ERROR_BAR_LABELS, WEIGHTING_LABELS, weightK } from "../types";
 import {
   CONSTANT_LABELS, modelLibraryVersion, modelMeta, shareableParams,
   subscribeModelLibrary, USER_MODEL_ID,
@@ -268,6 +268,24 @@ export default function ControlsPanel({
             ))}
           </select>
         </label>
+        {options.weighting === "1/YK" && (
+          <>
+            <label className="check-row">
+              <span>K</span>
+              <input type="number" min={0.1} max={10} step={0.1} aria-label="Weighting exponent K"
+                key={weightK(options)} defaultValue={weightK(options)}
+                onBlur={(e) => {
+                  const k = Number(e.target.value);
+                  set({ weightK: Number.isFinite(k) && k > 0 && k <= 10 ? k : DEFAULT_WEIGHT_K });
+                }} />
+            </label>
+            <p className="hint-block">
+              Weights are 1/|Y|ᴷ of the fitted curve. K = 1 is 1/Y (scatter like counts), K = 2 is
+              1/Y² (scatter proportional to Y); a K in between suits scatter that grows with Y but
+              more slowly than Y. Default {DEFAULT_WEIGHT_K}; any K from above 0 to 10.
+            </p>
+          </>
+        )}
         {options.weighting !== "none" && (
           <>
             <label className="check-row">

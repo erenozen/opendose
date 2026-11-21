@@ -2467,7 +2467,7 @@ def fit_global_model(datasets, model: str, *, shared=None, constraints=None,
     if model not in nlfit.MODELS:
         raise ValueError(f"unknown model: {model}")
     spec = nlfit.MODELS[model]
-    if weighting not in ("none", "1/Y", "1/Y2", "1/X", "1/X2"):
+    if weighting == "1/SD2" or not nlfit.valid_weighting(weighting):
         raise ValueError(f"unknown weighting: {weighting}")
     shared = list(spec.shared if shared is None else shared)
     constraints = {k: float(v) for k, v in (constraints or {}).items()}
@@ -2569,7 +2569,7 @@ def fit_global_model(datasets, model: str, *, shared=None, constraints=None,
     def weights(theta):
         out = []
         for i, d in enumerate(data):
-            if weighting in ("1/Y", "1/Y2"):
+            if nlfit.y_weighted(weighting):
                 base = spec.func(d["x"], params_for(theta, i))
             else:
                 base = d["x"]
@@ -2600,7 +2600,7 @@ def fit_global_model(datasets, model: str, *, shared=None, constraints=None,
     def run(start):
         # finite-difference scales (lsq module docstring)
         floor = lsq.scale_floor(names, start, all_x, all_y, roles)
-        if weighting in ("1/Y", "1/Y2"):
+        if nlfit.y_weighted(weighting):
             res = solve(start, [np.ones_like(d["x"]) for d in data], floor)
             prev = res.x
             for _ in range(60):

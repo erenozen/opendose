@@ -5,7 +5,8 @@ Prism curve-fitting guide references:
   "Exponential -- One phase decay / association / Two phase decay /
   Exponential growth", "Binding -- saturation", "Lines -- straight line".
 - Weighting ("Unequal weighting"): Prism weights by the PREDICTED Y of the
-  curve (1/Y, 1/Y^2) or by X (1/X, 1/X^2); minimized quantity is the
+  curve (1/Y, 1/Y^2, or 1/Y^K for any K: "Weight by 1/Y^K", written
+  "1/Y^1.5" etc. here) or by X (1/X, 1/X^2); minimized quantity is the
   weighted sum of squares.
 - Asymmetrical (profile-likelihood) CIs (Prism 8+ default): the interval
   where fixing one parameter and re-optimizing the rest raises SS to
@@ -51,6 +52,7 @@ Prism curve-fitting guide references:
 from __future__ import annotations
 
 import math
+import re
 from dataclasses import dataclass, field
 from typing import Callable
 
@@ -504,6 +506,31 @@ register(ModelSpec(
 # ---------------------------------------------------------------- fitting
 
 WEIGHTINGS = ("none", "1/Y", "1/Y2", "1/X", "1/X2", "1/SD2")
+_YK = re.compile(r"^1/Y\^([0-9]*\.?[0-9]+)$")
+
+
+def y_power(weighting):
+    """K of a 1/Y^K weighting ("1/Y" 1, "1/Y2" 2, "1/Y^1.5" 1.5), else
+    None (no weighting, X-based or 1/SD^2)."""
+    if weighting == "1/Y":
+        return 1.0
+    if weighting == "1/Y2":
+        return 2.0
+    m = _YK.match(weighting or "")
+    return float(m.group(1)) if m else None
+
+
+def y_weighted(weighting):
+    """True for weightings computed from Y (Prism: the predicted Y)."""
+    return y_power(weighting) is not None
+
+
+def valid_weighting(weighting):
+    """A known weighting: the fixed names or 1/Y^K with 0 < K <= 10."""
+    if weighting in WEIGHTINGS:
+        return True
+    k = y_power(weighting)
+    return k is not None and 0 < k <= 10
 WEIGHT_SOURCES = ("predicted", "observed_mean", "objective")
 
 # Multistart budget (fit_model). Solver evaluations per start of a
@@ -540,6 +567,9 @@ def _weights(x, ybase, weighting):
         return 1.0 / np.clip(np.abs(ybase), 1e-12, None)
     if weighting == "1/Y2":
         return 1.0 / np.clip(ybase * ybase, 1e-24, None)
+    k = y_power(weighting)
+    if k is not None:              # 1/Y^K (K = 1 and 2 above, unchanged)
+        return 1.0 / np.clip(np.abs(ybase), 1e-12, None) ** k
     if weighting == "1/X":
         return 1.0 / np.clip(np.abs(x), 1e-12, None)
     if weighting == "1/X2":
@@ -706,8 +736,8 @@ def _ols_fit(spec, x, y, free_names, fixed, p0_map, weighting,
         res.floor = floor
         return res
 
-    y_weighted = weighting in ("1/Y", "1/Y2")
-    if weight_source == "objective" and y_weighted and summary is not None:
+    y_weighted_ = y_weighted(weighting)
+    if weight_source == "objective" and y_weighted_ and summary is not None:
         raise ValueError("weight_source 'objective' needs raw replicates "
                          "(not mean/SD/n)")
     if summary is not None:
@@ -718,7 +748,7 @@ def _ols_fit(spec, x, y, free_names, fixed, p0_map, weighting,
     else:
         extra_ss = 0.0
         dof = x.size - len(free_names)
-        if not y_weighted:
+        if not y_weighted_:
             w = _weights(x, x, weighting)  # 'none' or X-based: fixed
             res = solve(np.sqrt(w), p0)
         elif weight_source == "observed_mean":
@@ -799,9 +829,9 @@ def _ols_fit_summary(spec, x, y, free_names, solve, p0, make_params,
     path, with row weights W_i * n_i. Returns (res, the within-row SS
     weighted by the final weights, to be added back to the SS)."""
     counts, within = summary["counts"], summary["within"]
-    y_weighted = weighting in ("1/Y", "1/Y2")
+    y_weighted_ = y_weighted(weighting)
 
-    if not y_weighted:
+    if not y_weighted_:
         w = _replicate_weights(x, x, weighting, summary)
         res = solve(np.sqrt(w * counts), p0)
     elif weight_source == "observed_mean":
@@ -838,13 +868,13 @@ def fit_model(x_values, y_values, model: str, *,
     """
     if model not in MODELS:
         raise ValueError(f"unknown model: {model}")
-    if weighting not in WEIGHTINGS:
+    if not valid_weighting(weighting):
         raise ValueError(f"unknown weighting: {weighting}")
     if weight_source not in WEIGHT_SOURCES:
         raise ValueError(f"unknown weight_source: {weight_source}")
     spec = MODELS[model]
     summary = None
-    if weight_source == "objective" and weighting in ("1/Y", "1/Y2") and (
+    if weight_source == "objective" and y_weighted(weighting) and (
             sd is not None or n is not None):
         raise ValueError("weight_source 'objective' needs raw replicates "
                          "(not mean/SD/n)")

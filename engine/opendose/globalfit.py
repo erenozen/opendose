@@ -19,7 +19,7 @@ import math
 import numpy as np
 from scipy import stats
 from . import lsq
-from .nlfit import MODELS, _clean_xy, _weights
+from .nlfit import MODELS, _clean_xy, _weights, y_weighted
 
 
 def fit_global(datasets, model: str, shared: list[str], *,
@@ -70,7 +70,7 @@ def fit_global(datasets, model: str, shared: list[str], *,
         parts = []
         for i, (_, x, y) in enumerate(data):
             yhat = spec.func(x, params_for(theta, i))
-            w = _weights(x, yhat if weighting in ("1/Y", "1/Y2") else x,
+            w = _weights(x, yhat if y_weighted(weighting) else x,
                          weighting)
             parts.append((y - yhat) * np.sqrt(w))
         return np.concatenate(parts)

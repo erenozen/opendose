@@ -5,7 +5,7 @@ import { findSheet } from "../project/ops";
 import { analysisDef } from "../sheets/registry";
 import type { ResultsProps } from "../sheets/types";
 import type { AnalysisResult, OptionsState } from "../types";
-import { formatSig } from "../types";
+import { engineWeighting, formatSig } from "../types";
 import { modelMeta, USER_MODEL_ID } from "../lib/modelLibrary";
 import { sharedParameters } from "../lib/userEquation";
 import { constraintState } from "../sheets/xy/fitOptions";
@@ -60,13 +60,14 @@ export default function MethodsText({ result, options, xUnit }: Props) {
       + "best-fit values without standard errors or confidence intervals");
   }
   if (options.weighting !== "none") {
-    const yWeights = options.weighting === "1/Y" || options.weighting === "1/Y2";
+    const yWeights = options.weighting === "1/Y" || options.weighting === "1/Y2"
+      || options.weighting === "1/YK";
     // what the engine did (it reports weight_source with each fit)
     const direct = result.datasets.some((d) =>
       (d.fit as { weight_source?: string } | undefined)?.weight_source === "objective");
     parts.push((options.weighting === "1/SD2"
       ? "weighting each X by 1/SD² of its replicate values"
-      : `using ${options.weighting} weighting`) + (!yWeights ? ""
+      : `using ${engineWeighting(options)} weighting`) + (!yWeights ? ""
       : direct
         ? " (the weighted sum of squares, with weights from the fitted curve, minimised directly)"
         : " (weights from the fitted curve, iteratively reweighted)"));
