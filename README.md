@@ -364,6 +364,11 @@ sheets that follow the data.
   the closure rate from a straight-line fit over a chosen window, the
   time to 50% closure, and the rates compared between conditions
   (t test or one-way ANOVA with Dunnett's test), wells as the unit.
+- MIC (broth microdilution): endpoint ODs of two-fold dilution series,
+  one data set per strain: growth vs the growth control (blank
+  subtracted), the MIC of each series and strain (skipped wells handled
+  as CLSI M07, replicates checked for essential agreement), MIC50 /
+  MIC90 across strains (CLSI M39) and an IC50 from a dose-response fit.
 - From an example or an empty layout: growth curves (blank and log
   preprocessing, logistic / Gompertz / Zwietering lag models, doubling
   time with CI); tumour growth (mixed model on log volume, AUC per

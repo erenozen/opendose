@@ -28,6 +28,7 @@ import { densitometryAssay } from "./densitometry";
 import { flowAssay } from "./flow";
 import { growthAssay } from "./growth";
 import { luciferaseAssay } from "./luciferase";
+import { micAssay } from "./mic";
 import { plateAssay } from "./plate";
 import { qpcrAssay } from "./qpcr";
 import { stdcurveAssay } from "./stdcurve";
@@ -95,6 +96,7 @@ export const ASSAYS: AssayModule[] = [
   flowAssay,
   growthAssay,
   woundAssay,
+  micAssay,
   tumourAssay,
   timecourseAssay,
   synergyAssay,

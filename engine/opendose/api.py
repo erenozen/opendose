@@ -31,8 +31,9 @@ from . import fdr, letters, rowtests, threeway
 from . import deming, moretests, proportions, trend
 from . import equations, userequation
 from . import (assay_clustering, assay_densitometry, assay_growth,
-               assay_luciferase, assay_plate, assay_qpcr, assay_stdcurve,
-               assay_superplot, assay_synergy, assay_wound, synergy_multi)
+               assay_luciferase, assay_mic, assay_plate, assay_qpcr,
+               assay_stdcurve, assay_superplot, assay_synergy, assay_wound,
+               synergy_multi)
 from . import frequency
 from . import effectsize, estimation, power
 from . import auc, cox, quantal
@@ -2734,6 +2735,21 @@ def _wound_healing(data, options):
                               "ci_level")))
 
 
+def _mic(data, options):
+    """MIC by broth microdilution (assay_mic). data: {"x": concentrations
+    (0 = growth control), "datasets": [{name, ys: rows x replicates}]}
+    (one data set per strain, one replicate column per dilution series,
+    values the endpoint OD). options: blank, threshold_mode ("percent" |
+    "od"), threshold (% of the growth control), od_cutoff, fit_ic50,
+    ci_level. Returns {"series" (wells with % growth, MIC, skipped
+    wells, flags), "strains" (modal MIC, % growth curve, IC50),
+    "cumulative" (MIC50, MIC90), "warnings"}."""
+    return assay_mic.mic(
+        data.get("x") or [], data.get("datasets") or [],
+        **_assay_kw(options, ("blank", "threshold_mode", "threshold",
+                              "od_cutoff", "fit_ic50", "ci_level")))
+
+
 def _plate_qc(data, options):
     """Plate QC and layout (assay_plate). data: {"grid": rows x cols} |
     {"text"} | {"xlsx_b64"}, plus "plate_map" (or options.plate_map):
@@ -2902,6 +2918,7 @@ _HANDLERS.update({
     "densitometry": _densitometry,
     "luciferase": _luciferase,
     "wound_healing": _wound_healing,
+    "mic": _mic,
     "plate_qc": _plate_qc,
     "synergy": _synergy,
     "frequency_distribution": _frequency_distribution,
