@@ -726,17 +726,28 @@ class TestCase31SharedSlopeEC80:
             assert y == pytest.approx(
                 p["Bottom"] + 0.8 * (p["Top"] - p["Bottom"]), rel=1e-10)
 
-    @pytest.mark.xfail(strict=True, reason=(
-        "#31: equations.fit_global_model marks a derived value 'shared' when "
-        "every parameter in Transform.params is shared; an X[80] "
-        "interpolation has no level parameters, so all([]) is True and "
-        "LogEC80 is flagged shared=True (the results table labels it "
-        "'(shared)') although it depends on each data set's own LogEC50 and "
-        "differs between data sets"))
+    # fixed: an X[80] interpolation lists no parameters, so all([]) marked
+    # it shared although it differs between data sets
     def test_ec80_interpolation_is_not_labelled_shared(self):
         res = self._user_fit()
         for d in res["datasets"]:
             assert d["params"]["LogEC80"]["shared"] is False
+
+    def test_shared_labels_of_derived_values(self):
+        # a function of named parameters (LogEC80f = LogEC50 + log10(4) /
+        # HillSlope) is shared when they all are, not when LogEC50 is per
+        # data set
+        both = _run("global_model_fit", {"x": GF_X, "datasets": _gf_datasets()},
+                    {"user_equation": GF_EQ, "shared": ["LogEC50", "HillSlope"]})
+        for d in both["datasets"]:
+            assert d["params"]["LogEC80f"]["shared"] is True
+            # Bottom and Top are constants here, so every free parameter is
+            # shared and X[80] is one value for all data sets
+            assert d["params"]["LogEC80"]["shared"] is True
+        vals = {round(d["params"]["LogEC80"]["value"], 10) for d in both["datasets"]}
+        assert len(vals) == 1
+        for d in self._user_fit()["datasets"]:
+            assert d["params"]["LogEC80f"]["shared"] is False
 
 
 class TestCase34UserEquations:

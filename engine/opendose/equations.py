@@ -2673,12 +2673,19 @@ def fit_global_model(datasets, model: str, *, shared=None, constraints=None,
             spec.transforms, fitted, free_names, cov, ci_map, tcrit,
             "asymptotic", curve=spec.func, x=d["x"], cov_index=index)
         for dname, entry in derived.items():
-            used = [t for t in spec.transforms if t.name == dname][0].params
+            tr = [t for t in spec.transforms if t.name == dname][0]
+            used = tr.params
             if any(u not in fitted for u in used):
                 continue
-            entry["shared"] = all(index.get(u) is not None
-                                  and layout[index[u]][1] is None
-                                  for u in used if u in index)
+            # an X[...] / Y[...] interpolation reads the whole curve: it is
+            # one value for all data sets only if every free parameter of
+            # this data set is shared; a function of named parameters, if
+            # its free ones are (and it has at least one: a value of
+            # constants only is labelled like a constant, not shared)
+            free = (list(index) if tr.kind != "params"
+                    else [u for u in used if u in index])
+            entry["shared"] = bool(free) and all(
+                layout[index[u]][1] is None for u in free)
             params[dname] = entry
             order.append(dname)
         if "Top" in params and "Bottom" in params:
