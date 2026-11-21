@@ -27,7 +27,7 @@ src/
                     user formulas, Simulate data dialog, Monte Carlo
     assays/         assay modules (plate reader, standard curve, qPCR,
                     densitometry, dual-luciferase, flow cytometry, growth,
-                    wound healing, MIC, tumour growth,
+                    wound healing, MIC, kinetic reads, tumour growth,
                     time course, AUC, synergy, volcano, clustering); see
                     below
   components/       shell UI: Navigator, Header, FamilyWorkspace, dialogs,

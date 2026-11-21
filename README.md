@@ -369,6 +369,13 @@ sheets that follow the data.
   subtracted), the MIC of each series and strain (skipped wells handled
   as CLSI M07, replicates checked for essential agreement), MIC50 /
   MIC90 across strains (CLSI M39) and an IC50 from a dose-response fit.
+- Kinetic plate reads: absorbance or fluorescence over time, one
+  replicate column per well: the initial rate of every well (by default
+  the steepest slope over 5 consecutive reads, as plate-reader software
+  reports "Vmax"; or the longest straight stretch with R² ≥ 0.99, or a
+  time window), a no-enzyme blank subtracted, an optional ε × path
+  conversion, and a substrate-vs-rate table opened with the
+  Michaelis-Menten fit.
 - From an example or an empty layout: growth curves (blank and log
   preprocessing, logistic / Gompertz / Zwietering lag models, doubling
   time with CI); tumour growth (mixed model on log volume, AUC per

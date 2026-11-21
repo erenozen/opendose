@@ -31,7 +31,8 @@ from . import fdr, letters, rowtests, threeway
 from . import deming, moretests, proportions, trend
 from . import equations, userequation
 from . import (assay_clustering, assay_densitometry, assay_growth,
-               assay_luciferase, assay_mic, assay_plate, assay_qpcr,
+               assay_kinetic, assay_luciferase, assay_mic, assay_plate,
+               assay_qpcr,
                assay_stdcurve, assay_superplot, assay_synergy, assay_wound,
                synergy_multi)
 from . import frequency
@@ -2750,6 +2751,23 @@ def _mic(data, options):
                               "od_cutoff", "fit_ic50", "ci_level")))
 
 
+def _kinetic_rates(data, options):
+    """Kinetic plate reads (assay_kinetic). data: {"x": read times,
+    "datasets": [{name, ys: rows x replicates}]} (one data set per
+    sample, one replicate column per well). options: method ("auto" |
+    "window" | "steepest"), min_r2, min_points, window ([start, end]), k
+    (reads in the steepest stretch), blank_index, factor (signal per
+    concentration unit), saturation. Returns {"wells" (rate, SE, R²,
+    window, corrected rate, velocity, flags), "samples" (mean velocity,
+    substrate when the name is a number), "michaelis_menten_ready",
+    "warnings"}."""
+    return assay_kinetic.kinetic_rates(
+        data.get("x") or [], data.get("datasets") or [],
+        **_assay_kw(options, ("method", "min_r2", "min_points", "window",
+                              "k", "blank_index", "factor",
+                              "saturation")))
+
+
 def _plate_qc(data, options):
     """Plate QC and layout (assay_plate). data: {"grid": rows x cols} |
     {"text"} | {"xlsx_b64"}, plus "plate_map" (or options.plate_map):
@@ -2919,6 +2937,7 @@ _HANDLERS.update({
     "luciferase": _luciferase,
     "wound_healing": _wound_healing,
     "mic": _mic,
+    "kinetic_rates": _kinetic_rates,
     "plate_qc": _plate_qc,
     "synergy": _synergy,
     "frequency_distribution": _frequency_distribution,

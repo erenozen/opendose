@@ -27,6 +27,7 @@ import { clusterAssay } from "./cluster";
 import { densitometryAssay } from "./densitometry";
 import { flowAssay } from "./flow";
 import { growthAssay } from "./growth";
+import { kineticAssay } from "./kinetic";
 import { luciferaseAssay } from "./luciferase";
 import { micAssay } from "./mic";
 import { plateAssay } from "./plate";
@@ -97,6 +98,7 @@ export const ASSAYS: AssayModule[] = [
   growthAssay,
   woundAssay,
   micAssay,
+  kineticAssay,
   tumourAssay,
   timecourseAssay,
   synergyAssay,
