@@ -30,6 +30,13 @@ test("outlier check and filling are off by default and sent only when on", () =>
   assert.equal(normalizeSynergy({ outliers: "drop" }, table).outliers, "none");
 });
 
+test("MuSyC is off by default and sent only when on", () => {
+  const off = synergyPayload(table, normalizeSynergy({}, table)) as { options: Record<string, unknown> };
+  assert.equal("musyc" in off.options, false);
+  const on = synergyPayload(table, normalizeSynergy({ musyc: true }, table)) as { options: Record<string, unknown> };
+  assert.equal(on.options.musyc, true);
+});
+
 test("filled and replaced cells are found for marking", () => {
   const cells = predictedCells({ conc1: [0, 1, 3], conc2: [0, 2, 6],
     filled_cells: [{ conc1: 1, conc2: 0, value: 5, reason: "missing" }, { conc1: 3, conc2: 6, value: 9, reason: "outlier" }] });

@@ -112,6 +112,11 @@ export function SynergyControls({ sheet, table, options: o, onChange, readOnly }
           checked={o.impute} onChange={(impute) => set({ impute })} />
       </section>
       <section>
+        <h3>Potency and efficacy</h3>
+        <Check label="Fit MuSyC (separates potency from efficacy synergy; a few seconds)"
+          checked={o.musyc} onChange={(musyc) => set({ musyc })} />
+      </section>
+      <section>
         <h3>Models to show</h3>
         <div className="assay-models">
           {SYNERGY_MODELS.map((m) => (
@@ -176,6 +181,57 @@ function Checked({ outliers, filled, d1, d2, unit }: {
           </p>
         </>
       )}
+    </Card>
+  );
+}
+
+function Musyc({ m, d1, d2, unit }: { m: R; d1: string; d2: string; unit: string }) {
+  const ci = (k: string) => {
+    const c = m.ci95?.[k];
+    return Array.isArray(c) ? `${formatSig(c[0])} to ${formatSig(c[1])}` : "n/a";
+  };
+  // a direction is read only when the 95% interval excludes "no change"
+  const sure = (k: string, v: number): number => {
+    const c = m.ci95?.[k];
+    if (!Array.isArray(c)) return 0;
+    return c[0] > v ? 1 : c[1] < v ? -1 : 0;
+  };
+  const readA = (k: string, by: string, of: string) => {
+    const s = sure(k, 0);
+    return s > 0 ? `${by} makes ${of} more potent` : s < 0 ? `${by} makes ${of} less potent`
+      : `no clear change in ${of}'s potency from ${by}`;
+  };
+  const betaSign = sure("beta", 0);
+  const readB = betaSign > 0 ? "the combination reaches more effect than the better drug alone"
+    : betaSign < 0 ? "the combination reaches less effect than the better drug alone"
+      : "no clear difference from the better drug's maximal effect";
+  const rows: [string, string, string][] = [
+    [`α12: ${d1} changes ${d2}'s potency (fold)`, f(m.alpha12), ci("alpha12")],
+    ["  log10 α12", f(m.log10_alpha12), ci("log10_alpha12")],
+    [`α21: ${d2} changes ${d1}'s potency (fold)`, f(m.alpha21), ci("alpha21")],
+    ["  log10 α21", f(m.log10_alpha21), ci("log10_alpha21")],
+    ["β (efficacy synergy)", f(m.beta), ci("beta")],
+    ["β at the highest doses tested (βobs)", f(m.beta_obs), ci("beta_obs")],
+    ["E0 (no drug, % inhibition)", f(m.E0), ci("E0")],
+    [`E1 (${d1} alone, maximal)`, f(m.E1), ci("E1")],
+    [`E2 (${d2} alone, maximal)`, f(m.E2), ci("E2")],
+    ["E3 (both, maximal)", f(m.E3), ci("E3")],
+    [`EC50 ${d1}${unit}`, f(m.C1), ci("C1")],
+    [`EC50 ${d2}${unit}`, f(m.C2), ci("C2")],
+    [`Hill slope ${d1}`, f(m.h1), ci("h1")],
+    [`Hill slope ${d2}`, f(m.h2), ci("h2")],
+  ];
+  return (
+    <Card title="MuSyC: potency and efficacy synergy">
+      {(m.notes ?? []).length > 0 && <Warnings list={m.notes} />}
+      <Grid caption="MuSyC parameters" head={["Parameter", "Estimate", "95% interval"]} rows={rows} />
+      <p className="hint-block">
+        Read from the 95% intervals: {readA("log10_alpha12", d1, d2)}; {readA("log10_alpha21", d2, d1)} (α &gt; 1
+        is synergistic potency); on efficacy, {readB} (β &gt; 0 is synergistic efficacy). A direction is
+        stated only when its interval excludes no change. R² = {f(m.r_squared, 3)}, RMS = {f(m.rms)}; intervals from {m.n_ci ?? 0} Monte Carlo
+        refits of the fitted surface plus noise (Wooten et al. 2021). Model: MuSyC without cooperativity
+        (Meyer et al. 2019; Wooten et al. 2021), fitted to % inhibition.
+      </p>
     </Card>
   );
 }
@@ -257,6 +313,7 @@ export function SynergyResults({ options, result }: ResultsProps<SynergyOptions,
           d1={d1} d2={d2} unit={unit} />
       )}
       {result.sensitivity && <Sensitivity s={result.sensitivity as R} d1={d1} d2={d2} unit={unit} />}
+      {result.musyc && <Musyc m={result.musyc as R} d1={d1} d2={d2} unit={unit} />}
       <Card title="Synergy at each dose pair">
         <Row label="Show">
           <select aria-label="Show matrices" value={view}
@@ -353,6 +410,8 @@ export function SynergyMethods({ options, result }: ResultsProps<SynergyOptions,
         ? "replaced by that prediction" : "flagged"} (${(result.outliers.cells ?? []).length} cell(s)). ` : "")
     + ((result.filled_cells ?? []).some((c: R) => c.reason === "missing")
       ? "Missing cells were filled with the response predicted by their row and column dose-response fits. " : "")
+    + (result.musyc ? `Potency (α) and efficacy (β) synergy were estimated with MuSyC without cooperativity `
+      + `(Meyer et al. 2019; Wooten et al. 2021), with 95% intervals from ${result.musyc.n_ci ?? 0} Monte Carlo refits. ` : "")
     + `Analysis in OpenDose (open-source, built on SciPy).`;
   return <CopyableMethods text={text} />;
 }

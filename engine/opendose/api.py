@@ -2749,13 +2749,16 @@ def _synergy(data, options):
     replicated matrices, whose resampling refits every curve); outliers
     ("none" | "flag" | "replace"), outlier_threshold (% inhibition, default
     20), impute (fill missing cells). Adds "outliers" ({action, threshold,
-    cells} or null) and "filled_cells"."""
+    cells} or null) and "filled_cells". musyc (fit the MuSyC surface;
+    adds "musyc": parameters, alpha12/alpha21, beta, beta_obs, r_squared,
+    ci95, notes, or null), musyc_ci (Monte Carlo refits, default 100)."""
     return assay_synergy.synergy(
         data.get("records"), conc1=data.get("conc1"),
         conc2=data.get("conc2"), responses=data.get("responses"),
         **_assay_kw(options, ("response_kind", "baseline_correction",
                               "drug1", "drug2", "p_iterations",
-                              "outliers", "outlier_threshold", "impute")))
+                              "outliers", "outlier_threshold", "impute",
+                              "musyc", "musyc_ci")))
 
 
 def _frequency_distribution(data, options):

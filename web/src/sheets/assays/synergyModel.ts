@@ -41,6 +41,8 @@ export interface SynergyOptions {
   outliers: "none" | "flag" | "replace";
   /** Fill cells missing in every replicate from the dose-response fits. */
   impute: boolean;
+  /** Also fit MuSyC (potency and efficacy synergy, with Monte Carlo CIs). */
+  musyc: boolean;
 }
 
 export const DEFAULT_SYNERGY: SynergyOptions = {
@@ -54,6 +56,7 @@ export const DEFAULT_SYNERGY: SynergyOptions = {
   replicateP: true,
   outliers: "none",
   impute: false,
+  musyc: false,
 };
 
 const CONC1_RE = /^(conc|concentration|dose)[ _]?(1|a)$|^(drug|d)[ _]?1[ _]?(conc|dose)?$|^conc_?r$/i;
@@ -96,6 +99,7 @@ export function normalizeSynergy(raw: unknown, table: DataTableModel): SynergyOp
     replicateP: typeof o.replicateP === "boolean" ? o.replicateP : d.replicateP,
     outliers: o.outliers === "flag" || o.outliers === "replace" ? o.outliers : d.outliers,
     impute: typeof o.impute === "boolean" ? o.impute : d.impute,
+    musyc: typeof o.musyc === "boolean" ? o.musyc : d.musyc,
   };
 }
 
@@ -174,6 +178,7 @@ export function synergyPayload(table: DataTableModel, o: SynergyOptions): Record
       ...(o.replicateP ? {} : { p_iterations: 0 }),
       ...(o.outliers !== "none" ? { outliers: o.outliers } : {}),
       ...(o.impute ? { impute: true } : {}),
+      ...(o.musyc ? { musyc: true } : {}),
     },
   };
 }

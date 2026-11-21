@@ -76,7 +76,7 @@ import warnings
 import numpy as np
 from scipy.optimize import brentq
 
-from . import equations, linregress, nlfit
+from . import equations, linregress, musyc as _musyc, nlfit
 from .nlfit import ModelSpec, Transform, register
 
 MODEL = "log_logistic_4pl_conc"
@@ -884,7 +884,8 @@ def synergy(records=None, *, conc1=None, conc2=None, responses=None,
             response_kind="inhibition", baseline_correction="none",
             drug1="Drug 1", drug2="Drug 2", p_iterations=P_ITERATIONS,
             p_seed=P_SEED, outliers="none",
-            outlier_threshold=OUTLIER_THRESHOLD, impute=False) -> dict:
+            outlier_threshold=OUTLIER_THRESHOLD, impute=False,
+            musyc=False, musyc_ci=100) -> dict:
     """HSA, Bliss, Loewe and ZIP synergy landscapes and summary scores,
     each with SynergyFinder's P value and most synergistic area; the Bliss /
     Loewe consensus; SynergyFinder's sensitivity scores (relative IC50, RI,
@@ -896,7 +897,9 @@ def synergy(records=None, *, conc1=None, conc2=None, responses=None,
     inhibition from their left-out prediction are reported) or "replace"
     (and scored at that prediction, as SynergyFinder 3). impute: fill
     cells missing in every replicate with the same prediction (a missing
-    monotherapy dose is otherwise an error)."""
+    monotherapy dose is otherwise an error). musyc: also fit the MuSyC
+    surface (opendose.musyc), with musyc_ci Monte Carlo refits for its 95%
+    intervals."""
     if outliers not in ("none", "flag", "replace"):
         raise ValueError("outliers must be 'none', 'flag' or 'replace'")
     c1, c2, reps = build_matrix(records, conc1=conc1, conc2=conc2,
@@ -1088,6 +1091,9 @@ def synergy(records=None, *, conc1=None, conc2=None, responses=None,
                      {"action": outliers, "threshold": float(
                          outlier_threshold), "cells": outlier_cells}),
         "filled_cells": imputed,
+        "musyc": (_musyc.fit_musyc(R, c1, c2, f1, f2, n_ci=musyc_ci,
+                                    names=(drug1, drug2))
+                  if musyc else None),
         "sensitivity": sensitivity(R, c1, c2, f1, f2),
         "chou_talalay": ct,
         "warnings": warnings,
