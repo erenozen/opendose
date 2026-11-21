@@ -253,27 +253,53 @@ def relative_risk(table, *, method="koopman", ci_level: float = 0.95) -> dict:
 
 # ---------------------------------------------------------------- odds ratio
 
-def _nchg_logpmf(x1, n1, n2, m1, theta):
-    """log f(x | theta) of Fisher's noncentral hypergeometric over the
-    support of x11 (row totals n1, n2; first-column total m1)."""
+def _nchg_support(n1, n2, m1):
+    """The support of x11 and the log of its theta-free coefficients
+    C(n1, x) C(n2, m1 - x): the costly part of the pmf, computed once
+    per table."""
     lo, hi = max(0, m1 - n2), min(n1, m1)
     xs = np.arange(lo, hi + 1)
     logc = (special.gammaln(n1 + 1) - special.gammaln(xs + 1)
             - special.gammaln(n1 - xs + 1) + special.gammaln(n2 + 1)
             - special.gammaln(m1 - xs + 1) - special.gammaln(n2 - m1 + xs + 1))
+    return xs, logc
+
+
+def _nchg_logpmf(x1, n1, n2, m1, theta, support=None):
+    """log f(x | theta) of Fisher's noncentral hypergeometric over the
+    support of x11 (row totals n1, n2; first-column total m1)."""
+    xs, logc = support if support is not None else _nchg_support(n1, n2, m1)
     lw = logc + xs * math.log(theta)
     lw -= special.logsumexp(lw)
     return xs, lw
 
 
-def _bp_pvalue(log_theta, x11, n1, n2, m1, midp):
-    xs, lp = _nchg_logpmf(x11, n1, n2, m1, math.exp(log_theta))
+def _bp_pvalue(log_theta, x11, n1, n2, m1, midp, support=None):
+    if support is None:
+        xs, lp = _nchg_logpmf(x11, n1, n2, m1, math.exp(log_theta))
+    else:
+        # only x within 750 log units of the mode: the rest have exp(lp)
+        # exactly 0 in double precision (below 1e-323), so leaving them
+        # out changes nothing, and saves most of the work for large N
+        xs, logc = support
+        lw = logc + xs * math.log(math.exp(log_theta))
+        keep = np.flatnonzero(lw > lw.max() - 750.0)
+        xs, lw = xs[keep[0]:keep[-1] + 1], lw[keep[0]:keep[-1] + 1]
+        lp = lw - special.logsumexp(lw)
+        if not (xs[0] <= x11 <= xs[-1]):
+            return 0.0  # f(x11) is 0: so is every f <= it
     p = np.exp(lp)
     obs = p[xs == x11][0]
     val = float(p[p <= obs * (1 + 1e-7)].sum())
     if midp:
         val -= 0.5 * obs
     return val
+
+
+# the outward scan stops once P(theta) is this far below alpha: the
+# acceptance set's gaps (small discrete tables) lie just outside its
+# edge, never where P is 1e-10 of alpha
+_BP_STOP_REL = 1e-10
 
 
 def baptista_pike_ci(table, *, ci_level: float = 0.95,
@@ -295,22 +321,27 @@ def baptista_pike_ci(table, *, ci_level: float = 0.95,
         center = math.log(a * d / (b * c))
     else:
         center = 0.0
+    support = _nchg_support(n1, n2, m1)
 
     def f(t):
-        return _bp_pvalue(t, a, n1, n2, m1, midp) - alpha
+        return _bp_pvalue(t, a, n1, n2, m1, midp, support) - alpha
 
     def outer(direction):
         # scan outward on a log grid and keep the outermost theta still
         # inside the acceptance set; P(theta) -> 0 in both tails, so the
-        # scan stops once it has been outside for 10 log units
+        # scan stops once it has been outside for 10 log units, or (past
+        # an accepted value) once P is far below alpha
         step = 0.02
         t = center
         last_in = center if f(center) > 0 else None
         for _ in range(int(80 / step)):
             t += direction * step
-            if f(t) > 0:
+            v = f(t)
+            if v > 0:
                 last_in = t
             elif abs(t - (center if last_in is None else last_in)) > 10:
+                break
+            elif last_in is not None and v + alpha < alpha * _BP_STOP_REL:
                 break
         if last_in is None:
             return None

@@ -1159,13 +1159,10 @@ class TestCase40FisherLargeCounts:
                                              [300000, 310000]]})
         assert 0 < big["fisher_exact"]["p"] < 1e-100
 
-    @pytest.mark.xfail(strict=True, raises=TimeoutError, reason=(
-        "#40: proportions.baptista_pike_ci scans outward in fixed 0.02 "
-        "log-OR steps until 10 log units past the last accepted value "
-        "(~500+ steps per side), each step evaluating the noncentral "
-        "hypergeometric pmf over the whole support (~3e5 values here), so "
-        "the default contingency effect sizes take ~40 s for N ~ 6e5 "
-        "(much longer under Pyodide); the P value itself is fast"))
+    # fixed: baptista_pike_ci recomputed the whole noncentral
+    # hypergeometric (~3e5 values, gammaln included) at each of ~1,000
+    # scan steps (~40 s); now its coefficients are computed once, only the
+    # non-negligible window is summed, and the scan stops once P << alpha
     def test_odds_ratio_ci_for_large_counts_is_fast_and_close_to_woolf(self):
         def _timeout(signum, frame):
             raise TimeoutError("Baptista-Pike CI took more than 3 s")
@@ -1178,6 +1175,22 @@ class TestCase40FisherLargeCounts:
             signal.signal(signal.SIGALRM, old)
         woolf = proportions.odds_ratio(self.TABLE, method="woolf")
         assert bp["ci"] == pytest.approx(woolf["ci"], rel=1e-3)
+
+
+    @pytest.mark.parametrize("table,midp", [
+        ([[3, 1], [1, 3]], False), ([[0, 5], [5, 2]], False),
+        ([[12, 5], [7, 30]], True), ([[250, 40], [180, 77]], False),
+        ([[150000, 149000], [150500, 148000]], False),
+    ])
+    def test_windowed_p_equals_the_full_sum(self, table, midp):
+        # the windowed P (used by the CI search) equals the sum over the
+        # whole support
+        (a, b), (c, d) = table
+        support = proportions._nchg_support(a + b, c + d, a + c)
+        for t in (-3.0, -0.4, 0.0, 0.7, 2.5):
+            fast = proportions._bp_pvalue(t, a, a + b, c + d, a + c, midp, support)
+            full = proportions._bp_pvalue(t, a, a + b, c + d, a + c, midp)
+            assert fast == pytest.approx(full, rel=1e-12, abs=1e-300)
 
 
 # ================================================= one-way ANOVA edges
