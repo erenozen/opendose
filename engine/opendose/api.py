@@ -32,7 +32,7 @@ from . import deming, moretests, proportions, trend
 from . import equations, userequation
 from . import (assay_clustering, assay_densitometry, assay_growth,
                assay_plate, assay_qpcr, assay_stdcurve, assay_superplot,
-               assay_synergy)
+               assay_synergy, synergy_multi)
 from . import frequency
 from . import effectsize, estimation, power
 from . import auc, cox, quantal
@@ -2751,7 +2751,23 @@ def _synergy(data, options):
     20), impute (fill missing cells). Adds "outliers" ({action, threshold,
     cells} or null) and "filled_cells". musyc (fit the MuSyC surface;
     adds "musyc": parameters, alpha12/alpha21, beta, beta_obs, r_squared,
-    ci95, notes, or null), musyc_ci (Monte Carlo refits, default 100)."""
+    ci95, notes, or null), musyc_ci (Monte Carlo refits, default 100).
+
+    Three or more drugs (records carrying conc3, conc4, ...): the
+    higher-order analysis (synergy_multi; "analysis": "synergy_multi"),
+    options response_kind, baseline_correction, p_iterations, and drug
+    names as options.drugs [names] or drug1, drug2, drug3, ..."""
+    records = data.get("records")
+    if records and "conc3" in records[0]:
+        n = 0
+        while f"conc{n + 1}" in records[0]:
+            n += 1
+        drugs = options.get("drugs") or [
+            options.get(f"drug{i + 1}") or f"Drug {i + 1}" for i in range(n)]
+        return synergy_multi.synergy_multi(
+            records, drugs=drugs,
+            **_assay_kw(options, ("response_kind", "baseline_correction",
+                                  "p_iterations")))
     return assay_synergy.synergy(
         data.get("records"), conc1=data.get("conc1"),
         conc2=data.get("conc2"), responses=data.get("responses"),

@@ -43,7 +43,12 @@ export interface SynergyOptions {
   impute: boolean;
   /** Also fit MuSyC (potency and efficacy synergy, with Monte Carlo CIs). */
   musyc: boolean;
+  /** Drugs 3, 4, ... of a long table (one row per well): each one's name
+   *  and the variable holding its concentration. Empty: two drugs. */
+  extraDrugs: ExtraDrug[];
 }
+
+export interface ExtraDrug { name: string; conc: string }
 
 export const DEFAULT_SYNERGY: SynergyOptions = {
   drug1: "Drug 1",
@@ -57,12 +62,37 @@ export const DEFAULT_SYNERGY: SynergyOptions = {
   outliers: "none",
   impute: false,
   musyc: false,
+  extraDrugs: [],
 };
 
 const CONC1_RE = /^(conc|concentration|dose)[ _]?(1|a)$|^(drug|d)[ _]?1[ _]?(conc|dose)?$|^conc_?r$/i;
 const CONC2_RE = /^(conc|concentration|dose)[ _]?(2|b)$|^(drug|d)[ _]?2[ _]?(conc|dose)?$|^conc_?c$/i;
 const RESP_RE = /^(response|viability|inhibition|value|signal|% ?viability|% ?inhibition)$/i;
 const REP_RE = /^(replicate|rep|block|block_id|plate)$/i;
+/** conc3, conc_4, concentration 5, dose3, ...: drugs 3 and up of a long table. */
+const CONC_N_RE = /^(?:conc|concentration|dose)[ _]?(\d+)$/i;
+
+/** Drugs 3, 4, ... of a long table, from variables named conc3, conc4, ... */
+export function guessExtraDrugs(table: DataTableModel): ExtraDrug[] {
+  const names = table.datasets.map((d, i) => d.name.trim() || `Variable ${i + 1}`);
+  return names
+    .map((n) => ({ n, k: Number(CONC_N_RE.exec(n)?.[1] ?? 0) }))
+    .filter((v) => v.k >= 3)
+    .sort((a, b) => a.k - b.k)
+    .map((v) => ({ name: `Drug ${v.k}`, conc: v.n }));
+}
+
+/** More than two drugs: a long table with extra concentration variables. */
+export function isMultiDrug(o: SynergyOptions, table?: DataTableModel): boolean {
+  return o.extraDrugs.length > 0 && (!table || table.type === "multivariable");
+}
+
+/** Every drug's name, in order (drug 1, drug 2, then the extra drugs). */
+export function drugNames(o: SynergyOptions | null | undefined): string[] {
+  if (!o) return ["Drug 1", "Drug 2"];
+  return [o.drug1.trim() || "Drug 1", o.drug2.trim() || "Drug 2",
+    ...o.extraDrugs.map((d, k) => d.name.trim() || `Drug ${k + 3}`)];
+}
 
 export function guessSynergyColumns(table: DataTableModel): SynergyColumns {
   const names = table.datasets.map((d, i) => d.name.trim() || `Variable ${i + 1}`);
@@ -100,6 +130,10 @@ export function normalizeSynergy(raw: unknown, table: DataTableModel): SynergyOp
     outliers: o.outliers === "flag" || o.outliers === "replace" ? o.outliers : d.outliers,
     impute: typeof o.impute === "boolean" ? o.impute : d.impute,
     musyc: typeof o.musyc === "boolean" ? o.musyc : d.musyc,
+    extraDrugs: table.type !== "multivariable" ? []
+      : Array.isArray(o.extraDrugs)
+        ? o.extraDrugs.map((e) => obj(e)).map((e) => ({ name: str(e.name, ""), conc: str(e.conc, "") }))
+        : guessExtraDrugs(table),
   };
 }
 
@@ -124,6 +158,18 @@ export function synergyData(table: DataTableModel, o: SynergyOptions): SynergyPa
     if (i1 < 0 || i2 < 0 || ir < 0) {
       return { error: "Choose the variables holding each drug's concentration and the response" };
     }
+    const ix = o.extraDrugs.map((e) => idx(e.conc));
+    const unset = ix.findIndex((k) => k < 0);
+    if (unset >= 0) {
+      return { error: `Choose the variable holding drug ${unset + 3}'s concentration, or remove that drug` };
+    }
+    // one variable in two roles would read the same numbers twice
+    const used = [i1, i2, ir, ...ix, ...(ip >= 0 ? [ip] : [])];
+    const twice = used.find((k, n) => used.indexOf(k) !== n);
+    if (twice !== undefined) {
+      return { error: `The variable “${names[twice]}” is chosen for two roles; each concentration, the `
+        + "response and the replicate need their own variable" };
+    }
     const cell = (k: number, r: number) => (t.datasets[k]?.rows[r]?.[0] ?? "").trim();
     const records: Record<string, unknown>[] = [];
     const reps = new Set<string>();
@@ -132,11 +178,14 @@ export function synergyData(table: DataTableModel, o: SynergyOptions): SynergyPa
       const c2 = parseCell(cell(i2, r));
       const v = parseCell(cell(ir, r));
       if (c1 === null || c2 === null || v === null) continue;
+      const extra = ix.map((k) => parseCell(cell(k, r)));
+      if (extra.some((c) => c === null)) continue;
       const rec: Record<string, unknown> = { conc1: c1, conc2: c2, response: v };
+      extra.forEach((c, k) => { rec[`conc${k + 3}`] = c; });
       if (ip >= 0 && cell(ip, r)) { rec.replicate = cell(ip, r); reps.add(cell(ip, r)); }
       records.push(rec);
     }
-    if (!records.length) return { error: "No complete rows (both concentrations and the response)" };
+    if (!records.length) return { error: "No complete rows (every concentration and the response)" };
     return { data: { records }, nReplicates: Math.max(1, reps.size) };
   }
   if (t.type !== "grouped") {
@@ -167,6 +216,7 @@ export function synergyData(table: DataTableModel, o: SynergyOptions): SynergyPa
 export function synergyPayload(table: DataTableModel, o: SynergyOptions): Record<string, unknown> | { error: string } {
   const d = synergyData(table, o);
   if ("error" in d) return d;
+  const multi = isMultiDrug(o, table);
   return {
     analysis: "synergy",
     data: d.data,
@@ -176,9 +226,12 @@ export function synergyPayload(table: DataTableModel, o: SynergyOptions): Record
       drug1: o.drug1.trim() || "Drug 1",
       drug2: o.drug2.trim() || "Drug 2",
       ...(o.replicateP ? {} : { p_iterations: 0 }),
-      ...(o.outliers !== "none" ? { outliers: o.outliers } : {}),
-      ...(o.impute ? { impute: true } : {}),
-      ...(o.musyc ? { musyc: true } : {}),
+      // two-drug only: outlier checks, filling and MuSyC (engine synergy_multi)
+      ...(multi ? { drugs: drugNames(o) } : {
+        ...(o.outliers !== "none" ? { outliers: o.outliers } : {}),
+        ...(o.impute ? { impute: true } : {}),
+        ...(o.musyc ? { musyc: true } : {}),
+      }),
     },
   };
 }
@@ -364,4 +417,48 @@ export function synergyTable(conc1: string[], conc2: string[], reps: string[][][
       rows: conc1.map((_, i) => reps.map((m) => m[i]?.[j] ?? "")),
     })),
   });
+}
+
+/** Models of a higher-order result, with the consensus. */
+const MULTI_MODELS = ["hsa", "bliss", "loewe", "zip", "consensus"] as const;
+
+/** One two-drug slice of a higher-order result (engine synergy_multi):
+ *  drug `a` as rows, drug `b` as columns, every other drug at the dose
+ *  index fixed[d]; shaped as a two-drug result (conc1, conc2, response,
+ *  models[m].reference / synergy / fitted, consensus) so the matrix tables
+ *  and heat maps read it unchanged. Synergy is 0 where fewer than two drugs
+ *  are present (as the engine's), unmeasured cells null. */
+export function sliceResult(result: Res, a: number, b: number, fixed: number[]): Res | null {
+  const concs = result?.concs as number[][] | undefined;
+  if (!concs || a === b || !concs[a] || !concs[b]) return null;
+  const at = new Map<string, Res>();
+  for (const cell of (result.cells ?? []) as Res[]) {
+    at.set((cell.concs as number[]).map((c, d) => concs[d].indexOf(c)).join(","), cell);
+  }
+  const get = (i: number, j: number) => {
+    const idx = concs.map((_, d) => (d === a ? i : d === b ? j : fixed[d] ?? 0));
+    return at.get(idx.join(","));
+  };
+  const mat = (f: (c: Res) => number | null) =>
+    concs[a].map((_, i) => concs[b].map((_, j) => { const c = get(i, j); return c ? f(c) : null; }));
+  const models: Res = {};
+  for (const m of MULTI_MODELS) {
+    models[m] = {
+      synergy: mat((c) => (c.n_drugs >= 2 ? c[m]?.synergy ?? null : 0)),
+      reference: mat((c) => (c.n_drugs >= 2 ? c[m]?.expected ?? null : null)),
+      score: result.models?.[m]?.score ?? null,
+      ...(m === "zip" ? { fitted: mat((c) => (c.n_drugs >= 2 ? c.zip?.fitted ?? null : null)) } : {}),
+    };
+  }
+  const names = (result.drugs ?? []) as string[];
+  return {
+    analysis: "synergy_slice", conc1: concs[a], conc2: concs[b],
+    drug1: names[a] ?? `Drug ${a + 1}`, drug2: names[b] ?? `Drug ${b + 1}`,
+    response: mat((c) => c.response), models, consensus: models.consensus,
+  };
+}
+
+/** Default dose index of each drug outside a slice: its highest dose. */
+export function defaultFixed(result: Res): number[] {
+  return ((result?.concs ?? []) as number[][]).map((c) => c.length - 1);
 }

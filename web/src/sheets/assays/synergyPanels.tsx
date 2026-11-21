@@ -11,7 +11,8 @@ import { Chip } from "./kit/ui";
 import {
   MATRIX_VIEWS, MODEL_LABEL, MODEL_LONG, SYNERGY_MODELS, matricesFor, monotherapyIssues, parseMatrixBlocks, predictedCells,
   scoreReading, scoresVsCi, synergyTable, viewMatrix,
-  type MatrixTableChoice, type SynergyColumns, type SynergyModel, type SynergyOptions,
+  defaultFixed, isMultiDrug, sliceResult,
+  type ExtraDrug, type MatrixTableChoice, type SynergyColumns, type SynergyModel, type SynergyOptions,
 } from "./synergyModel";
 import { Card, Check, Grid, Note, Problem, Row, Select, TextIn, Warnings } from "./ui";
 
@@ -53,6 +54,9 @@ function PasteMatrix({ parentId, yTitle }: { parentId: string; yTitle: string })
 export function SynergyControls({ sheet, table, options: o, onChange, readOnly }: ControlsProps<SynergyOptions>) {
   const set = (patch: Partial<SynergyOptions>) => onChange({ ...o, ...patch });
   const names = table.datasets.map((d, i) => d.name.trim() || `Variable ${i + 1}`);
+  const multi = isMultiDrug(o, table);
+  const setExtra = (k: number, patch: Partial<ExtraDrug>) =>
+    set({ extraDrugs: o.extraDrugs.map((e, n) => (n === k ? { ...e, ...patch } : e)) });
   const col = (key: keyof SynergyColumns, label: string, optional = false) => (
     <Row label={label}>
       <select value={o.columns[key]} onChange={(e) => set({ columns: { ...o.columns, [key]: e.target.value } })}>
@@ -69,6 +73,30 @@ export function SynergyControls({ sheet, table, options: o, onChange, readOnly }
           <>
             {col("conc1", "Drug 1 concentration")}
             {col("conc2", "Drug 2 concentration")}
+            {o.extraDrugs.map((e, k) => (
+              <div key={k} className="assay-extra-drug">
+                <Row label={`Drug ${k + 3} concentration`}>
+                  <select value={e.conc} onChange={(ev) => setExtra(k, { conc: ev.target.value })}>
+                    <option value="">Choose…</option>
+                    {names.map((n) => <option key={n} value={n}>{n}</option>)}
+                  </select>
+                </Row>
+                <TextIn label={`Drug ${k + 3} name`} inputMode="text" value={e.name}
+                  onChange={(name) => setExtra(k, { name })} />
+                {!readOnly && (
+                  <button type="button" className="link-button"
+                    onClick={() => set({ extraDrugs: o.extraDrugs.filter((_, n) => n !== k) })}>
+                    Remove drug {k + 3}
+                  </button>
+                )}
+              </div>
+            ))}
+            {!readOnly && (
+              <button type="button" className="link-button"
+                onClick={() => set({ extraDrugs: [...o.extraDrugs, { name: `Drug ${o.extraDrugs.length + 3}`, conc: "" }] })}>
+                Add a drug (three or more in combination)
+              </button>
+            )}
             {col("response", "Response")}
             {col("replicate", "Replicate (block)", true)}
             <p className="hint-block">One row per well, as SynergyFinder's long format.</p>
@@ -83,8 +111,10 @@ export function SynergyControls({ sheet, table, options: o, onChange, readOnly }
             {!readOnly && <PasteMatrix parentId={sheet.parentId} yTitle={table.yTitle || "Viability (%)"} />}
           </>
         )}
-        <TextIn label="Drug 1 (rows)" inputMode="text" value={o.drug1} onChange={(drug1) => set({ drug1 })} />
-        <TextIn label="Drug 2 (columns)" inputMode="text" value={o.drug2} onChange={(drug2) => set({ drug2 })} />
+        <TextIn label={multi ? "Drug 1 name" : "Drug 1 (rows)"} inputMode="text" value={o.drug1}
+          onChange={(drug1) => set({ drug1 })} />
+        <TextIn label={multi ? "Drug 2 name" : "Drug 2 (columns)"} inputMode="text" value={o.drug2}
+          onChange={(drug2) => set({ drug2 })} />
         <TextIn label="Concentration unit" inputMode="text" value={o.unit} width={80}
           onChange={(unit) => set({ unit })} />
       </section>
@@ -101,6 +131,16 @@ export function SynergyControls({ sheet, table, options: o, onChange, readOnly }
         <Check label="P values for replicated matrices (rescores 10 resampled matrices; slower)"
           checked={o.replicateP} onChange={(replicateP) => set({ replicateP })} />
       </section>
+      {multi ? (
+        <section>
+          <h3>Three or more drugs</h3>
+          <p className="hint-block">
+            HSA, Bliss, Loewe, ZIP and the consensus are scored for every combination (SynergyFinder Plus).
+            The outlier check, filling missing cells, MuSyC, CSS, the most synergistic area and Chou-Talalay
+            indices are defined for two drugs only and are not offered here.
+          </p>
+        </section>
+      ) : (<>
       <section>
         <h3>Outliers and missing cells</h3>
         <Select label="Outlier check" value={o.outliers}
@@ -116,6 +156,7 @@ export function SynergyControls({ sheet, table, options: o, onChange, readOnly }
         <Check label="Fit MuSyC (separates potency from efficacy synergy; a few seconds)"
           checked={o.musyc} onChange={(musyc) => set({ musyc })} />
       </section>
+      </>)}
       <section>
         <h3>Models to show</h3>
         <div className="assay-models">
@@ -129,13 +170,14 @@ export function SynergyControls({ sheet, table, options: o, onChange, readOnly }
   );
 }
 
-function Matrix({ title, m, c1, c2, sig = 3, marked }: {
+function Matrix({ title, m, c1, c2, sig = 3, marked, corner = "Drug 1 \\ Drug 2" }: {
   title: string; m: (number | null)[][]; c1: number[]; c2: number[]; sig?: number; marked?: Set<string>;
+  corner?: string;
 }) {
   return (
     <>
       <h4>{title}</h4>
-      <Grid caption={title} head={["Drug 1 \\ Drug 2", ...c2.map((c) => formatSig(c))]}
+      <Grid caption={title} head={[corner, ...c2.map((c) => formatSig(c))]}
         rows={m.map((row, i) => [formatSig(c1[i]), ...row.map((v, j) => (v === null ? "–"
           : `${formatSig(v, sig)}${marked?.has(`${i},${j}`) ? "*" : ""}`))])} />
     </>
@@ -256,10 +298,106 @@ function Sensitivity({ s, d1, d2, unit }: { s: R; d1: string; d2: string; unit: 
   );
 }
 
+/** Results of three or more drugs (engine synergy_multi). */
+function MultiResults({ options, result }: { options: SynergyOptions; result: R }) {
+  const names = result.drugs as string[];
+  const concs = result.concs as number[][];
+  const [pair, setPair] = useState<[number, number]>([0, 1]);
+  const [fixed, setFixed] = useState<number[]>(() => defaultFixed(result));
+  const [view, setView] = useState<MatrixTableChoice>("default");
+  const shown = SYNERGY_MODELS.filter((m) => options.models[m]);
+  const unit = options.unit ? ` ${options.unit}` : "";
+  const reps = result.n_replicates as number;
+  const n = names.length;
+  const [a, b] = pair[0] < n && pair[1] < n && pair[0] !== pair[1] ? pair : [0, 1];
+  const fx = concs.map((c, d) => (fixed[d] !== undefined && fixed[d] < c.length ? fixed[d] : c.length - 1));
+  const sl = sliceResult(result, a, b, fx);
+  const drugOpts = names.map((nm, d) => [String(d), nm] as const);
+  const rows = [...shown.map((m) => [`${MODEL_LABEL[m]} (${MODEL_LONG[m].toLowerCase()})`, m] as const),
+    ["Bliss / Loewe consensus", "consensus"] as const];
+  const others = names.map((nm, d) => (d === a || d === b ? null
+    : `${nm} at ${formatSig(concs[d][fx[d]])}${unit}`)).filter(Boolean).join(", ");
+  const cells = (result.cells ?? []) as R[];
+  return (
+    <>
+      <Card title={`Synergy scores (${n} drugs)`}>
+        <Warnings list={result.warnings} />
+        <Grid caption="Summary synergy scores" head={["Model", "Score (every combination)", `Score (all ${n} drugs)`,
+          ...(reps > 1 ? ["SD over replicates"] : []), "P value", "Reading"]}
+          rows={rows.map(([label, k]) => {
+            const e = result.models[k] as R;
+            return [label, <span className="assay-score" key={k}>{f(e.score)}</span>, f(e.score_all_drugs),
+              ...(reps > 1 ? [f(e.score_sd)] : []), e.p_value == null ? "n/a" : fmtP(e.p_value),
+              scoreReading(e.score)];
+          })} />
+        <p className="hint-block">
+          Each score is the mean, over the combinations, of observed minus expected % inhibition under that
+          model’s definition of no interaction; a combination holding only some of the drugs is scored with the
+          drugs it holds. “Every combination” averages all cells with two or more drugs, “all {n} drugs” only the
+          cells holding every drug. Higher-order HSA, Bliss, Loewe and ZIP as in SynergyFinder Plus (Zheng et al.
+          2022). P values follow SynergyFinder (z = |mean| / SD of {result.p_value_basis
+            ? `the ${result.p_value_basis}` : "the resampled summary scores (not computed: turned off)"}): a measure of
+          consistency, not a test of the mean.
+        </p>
+      </Card>
+      <Card title="Single drugs">
+        <Grid caption="Single-drug fits" head={["Drug", "Bottom", "Top", `EC50${unit}`, "Hill slope", "R²",
+          `Relative IC50${unit}`, "RI (%)"]}
+          rows={(result.monotherapy as R[]).map((m, d) => {
+            const sens = (result.sensitivity as R[])[d] ?? {};
+            return [String(m.drug), ...(m.fitted
+              ? [f(m.params.Bottom), f(m.params.Top), f(m.params.EC50), f(m.params.HillSlope), f(m.r_squared)]
+              : ["not fitted", "", "", "", ""]),
+            typeof sens.ic50 === "number" ? `${formatSig(sens.ic50)}${sens.ic50_capped ? " (capped)" : ""}` : "n/a",
+            f(sens.ri)];
+          })} />
+        <p className="hint-block">Each drug alone (the other drugs at 0), fitted with a four-parameter
+          log-logistic model; RI is the mean fitted % inhibition over its tested doses on a log scale.</p>
+      </Card>
+      <Card title="Two-drug slices">
+        <Select label="Rows" value={String(a)} options={drugOpts}
+          onChange={(v) => setPair([Number(v), Number(v) === b ? a : b])} />
+        <Select label="Columns" value={String(b)} options={drugOpts}
+          onChange={(v) => setPair([Number(v) === a ? b : a, Number(v)])} />
+        {names.map((nm, d) => (d === a || d === b ? null : (
+          <Select key={d} label={`${nm} at${unit}`} value={String(fx[d])}
+            options={concs[d].map((c, k) => [String(k), formatSig(c)] as const)}
+            onChange={(v) => setFixed(fx.map((k, e) => (e === d ? Number(v) : k)))} />
+        )))}
+        <Row label="Show">
+          <select aria-label="Show matrices" value={view}
+            onChange={(e) => setView(e.target.value as MatrixTableChoice)}>
+            <option value="default">Observed response and synergy</option>
+            <option value="all">Every matrix (observed, expected, fitted, synergy)</option>
+            {MATRIX_VIEWS.filter((d) => d.model === null || shown.includes(d.model)).map((d) => (
+              <option key={d.key} value={d.key}>{d.label}</option>
+            ))}
+          </select>
+        </Row>
+        <p className="hint-block">Rows are {names[a]}, columns {names[b]}{unit}{others ? `; ${others}` : ""}.
+          Synergy is 0 where fewer than two drugs are present; “–” marks a combination not measured.</p>
+        {sl && matricesFor(view, shown).map((d) => {
+          const m = viewMatrix(sl, d.key);
+          return m ? <Matrix key={d.key} title={d.label} m={m} c1={concs[a]} c2={concs[b]}
+            corner={`${names[a]} \\ ${names[b]}`} /> : null;
+        })}
+      </Card>
+      <Card title="Every combination">
+        <Grid caption="Every combination" head={[...names.map((nm) => `${nm}${unit}`), "Drugs present",
+          "Response (% inhibition)", ...shown.map((m) => `${MODEL_LABEL[m]} synergy`), "Consensus synergy"]}
+          rows={cells.map((c) => [...(c.concs as number[]).map((v) => formatSig(v)), String(c.n_drugs),
+            f(c.response), ...shown.map((m) => (c.n_drugs >= 2 ? f(c[m]?.synergy) : "")),
+            c.n_drugs >= 2 ? f(c.consensus?.synergy) : ""])} />
+      </Card>
+    </>
+  );
+}
+
 export function SynergyResults({ options, result }: ResultsProps<SynergyOptions, R>) {
   const [view, setView] = useState<MatrixTableChoice>("default");
   if (!result) return null;
   if (result.error) return <Problem result={result} />;
+  if (result.analysis === "synergy_multi") return <MultiResults options={options} result={result} />;
   const shown = SYNERGY_MODELS.filter((m) => options.models[m]);
   const c1 = result.conc1 as number[];
   const c2 = result.conc2 as number[];
@@ -386,6 +524,17 @@ export function SynergyResults({ options, result }: ResultsProps<SynergyOptions,
 
 export function SynergyMethods({ options, result }: ResultsProps<SynergyOptions, R>) {
   if (!result || result.error) return null;
+  if (result.analysis === "synergy_multi") {
+    const names = (result.drugs as string[]).join(", ");
+    const text = `${options.responseKind === "viability" ? "Viability was converted to % inhibition (100 − viability). " : ""}`
+      + `Combinations of ${result.n_drugs} drugs (${names}) were scored against highest single agent, Bliss `
+      + `independence, Loewe additivity and zero interaction potency reference models for higher-order `
+      + `combinations as defined in SynergyFinder Plus (Zheng et al. 2022), each drug alone fitted with a `
+      + `four-parameter log-logistic model. Summary scores are the mean synergy over every combination of two `
+      + `or more drugs and over combinations of all ${result.n_drugs} drugs, with SynergyFinder's P value `
+      + `(Altman & Bland approximation of z = |mean|/SD). Analysis in OpenDose (open-source, built on SciPy).`;
+    return <CopyableMethods text={text} />;
+  }
   const shown = SYNERGY_MODELS.filter((m) => options.models[m]);
   const names: Record<SynergyModel, string> = {
     hsa: "highest single agent (HSA; Berenbaum 1989)",

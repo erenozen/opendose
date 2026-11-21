@@ -12,7 +12,7 @@ import { seriesStyle } from "../../lib/palette";
 import { formatSig } from "../../types";
 import type { GraphOptionsProps, PlotProps } from "../types";
 import {
-  isMatrixView, MATRIX_VIEWS, MODEL_LABEL, SYNERGY_MODELS, predictedCells, viewMatrix,
+  defaultFixed, isMatrixView, MATRIX_VIEWS, MODEL_LABEL, SYNERGY_MODELS, predictedCells, sliceResult, viewMatrix,
   type SynergyOptions,
 } from "./synergyModel";
 import { axis, chromeOf, divergingScale, layoutBase, messageLayout, useDark, useGraphSettings } from "./plotkit";
@@ -23,8 +23,27 @@ type R = Record<string, any>;
 /** `show`: "synergy" (one map per shown model, the default) or one
  *  matrix of the result (observed, an expected or fitted response, one
  *  model's synergy). */
-interface LandscapeSettings { labels: boolean; max: string; show: string }
-const LANDSCAPE_DEFAULTS: LandscapeSettings = { labels: true, max: "", show: "synergy" };
+/** Three or more drugs: `pair` "a,b" (row drug, column drug) and `fixed`
+ *  "i,j,k" (each drug's dose index outside the slice; "" = highest). */
+interface LandscapeSettings { labels: boolean; max: string; show: string; pair: string; fixed: string }
+const LANDSCAPE_DEFAULTS: LandscapeSettings = { labels: true, max: "", show: "synergy", pair: "0,1", fixed: "" };
+
+/** The two-drug slice a higher-order result's graph shows. */
+function slicePick(result: R, s: LandscapeSettings) {
+  const n = (result.concs as number[][]).length;
+  const [pa, pb] = s.pair.split(",").map(Number);
+  const a = Number.isInteger(pa) && pa >= 0 && pa < n ? pa : 0;
+  const b = Number.isInteger(pb) && pb >= 0 && pb < n && pb !== a ? pb : (a === 0 ? 1 : 0);
+  const fixed = defaultFixed(result);
+  s.fixed.split(",").forEach((v, d) => {
+    const k = Number(v);
+    if (v !== "" && Number.isInteger(k) && k >= 0 && k < (result.concs[d]?.length ?? 0)) fixed[d] = k;
+  });
+  const names = result.drugs as string[];
+  const caption = names.map((nm, d) => (d === a || d === b ? null
+    : `${nm} at ${formatSig(result.concs[d][fixed[d]])}`)).filter(Boolean).join(", ");
+  return { a, b, fixed, caption, sliced: sliceResult(result, a, b, fixed) };
+}
 
 /** Pale to dark blue (ColorBrewer Blues) for responses in % inhibition. */
 function sequentialScale(dark: boolean): [number, string][] {
@@ -43,18 +62,36 @@ export function LandscapePlot({ graph, options, result, titles, scheme, format, 
   PlotProps<SynergyOptions, R>) {
   const dark = useDark();
   const [s] = useGraphSettings(graph, "synergy", LANDSCAPE_DEFAULTS);
+  // three or more drugs: one two-drug slice, drawn as a two-drug result
+  const pick = useMemo(() => (result?.analysis === "synergy_multi" && !result.error
+    ? slicePick(result, s) : null), [result, s]);
+  const res = pick ? pick.sliced : result;
+  const unit = options?.unit ? ` (${options.unit})` : "";
+  const opt = useMemo(() => (pick?.sliced ? { ...options, drug1: pick.sliced.drug1, drug2: pick.sliced.drug2 }
+    : options) as SynergyOptions | null, [pick, options]);
+  const tx = pick?.sliced ? `${pick.sliced.drug2}${unit}` : titles.x;
+  const ty = pick?.sliced ? `${pick.sliced.drug1}${unit}` : titles.y;
   const fig = useMemo(() => {
     const chrome = chromeOf(dark);
-    if (!result || result.error || !result.models) {
+    if (!res || res.error || !res.models) {
       return { traces: [] as Plotly.Data[], layout: messageLayout(chrome,
-        result?.error ? "No landscape: the analysis did not run" : "Scoring the matrix…") };
+        res?.error ? "No landscape: the analysis did not run" : "Scoring the matrix…") };
     }
-    const shown = SYNERGY_MODELS.filter((m) => options?.models?.[m] ?? true);
+    const shown = SYNERGY_MODELS.filter((m) => opt?.models?.[m] ?? true);
     const models = shown.length ? shown : SYNERGY_MODELS;
-    const c1 = result.conc1 as number[];
-    const c2 = result.conc2 as number[];
-    if (isMatrixView(s.show)) return singleMap(result, s, c1, c2, options, { x: titles.x, y: titles.y }, dark);
-    const all = models.flatMap((m) => (result.models[m].synergy as (number | null)[][]).flat())
+    const c1 = res.conc1 as number[];
+    const c2 = res.conc2 as number[];
+    if (isMatrixView(s.show)) {
+      const one = singleMap(res, s, c1, c2, opt, { x: tx, y: ty }, dark);
+      if (pick) {
+        one.layout.annotations = [...(one.layout.annotations ?? []), { xref: "paper", yref: "paper", x: 0,
+          xanchor: "left", y: 1.08, yanchor: "bottom", showarrow: false, text: `Slice: ${pick.caption}`,
+          font: { size: 11, color: chrome.muted } }];
+        one.layout.margin = { ...(one.layout.margin ?? {}), t: 56 };
+      }
+      return one;
+    }
+    const all = models.flatMap((m) => (res.models[m].synergy as (number | null)[][]).flat())
       .filter((v): v is number => typeof v === "number");
     const auto = Math.max(1, ...all.map((v) => Math.abs(v)));
     const M = (parseCell(s.max) ?? 0) > 0 ? parseCell(s.max)! : Math.ceil(auto / 5) * 5;
@@ -76,14 +113,14 @@ export function LandscapePlot({ graph, options, result, titles, scheme, format, 
       const ax = k === 0 ? "" : String(k + 1);
       const x0 = col * (w + gx);
       const y1 = 1 - row * (h + gy);
-      const z = result.models[m].synergy as (number | null)[][];
+      const z = res.models[m].synergy as (number | null)[][];
       traces.push({
         type: "heatmap", z, x: c2.map((_, j) => j), y: c1.map((_, i) => i),
         xaxis: `x${ax}`, yaxis: `y${ax}`,
         zmin: -M, zmax: M, zauto: false, colorscale: scale,
         xgap: 1, ygap: 1,
-        text: z.map((r, i) => r.map((v, j) => `${options?.drug1 ?? "Drug 1"} ${formatSig(c1[i])}, `
-          + `${options?.drug2 ?? "Drug 2"} ${formatSig(c2[j])}: ${v === null ? "no value" : formatSig(v, 3)}`)),
+        text: z.map((r, i) => r.map((v, j) => `${opt?.drug1 ?? "Drug 1"} ${formatSig(c1[i])}, `
+          + `${opt?.drug2 ?? "Drug 2"} ${formatSig(c2[j])}: ${v === null ? "no value" : formatSig(v, 3)}`)),
         hovertemplate: `${MODEL_LABEL[m]}<br>%{text}<extra></extra>`,
         showscale: k === 0,
         colorbar: {
@@ -101,28 +138,33 @@ export function LandscapePlot({ graph, options, result, titles, scheme, format, 
             font: { size: 10, color: inkFor(t, dark) } });
         }));
       }
-      const score = result.models[m].score;
+      const score = res.models[m].score;
       annotations.push({ xref: "paper", yref: "paper", x: x0 + w / 2, y: y1, yanchor: "bottom",
         xanchor: "center", showarrow: false,
         text: `<b>${MODEL_LABEL[m]}</b>  score ${typeof score === "number" ? formatSig(score, 3) : "n/a"}`,
         font: { size: 12, color: chrome.ink } });
       layout[`xaxis${ax}`] = {
-        ...axis(chrome, row === rows - 1 ? titles.x : "", {
+        ...axis(chrome, row === rows - 1 ? tx : "", {
           domain: [x0, x0 + w], anchor: `y${ax}` as never, tickvals: c2.map((_, j) => j),
           ticktext: c2.map((c) => formatSig(c, 3)), showgrid: false, ticks: "", showline: false,
           tickangle: -45,
         }),
       };
       layout[`yaxis${ax}`] = {
-        ...axis(chrome, col === 0 ? titles.y : "", {
+        ...axis(chrome, col === 0 ? ty : "", {
           domain: [y1 - h, y1], anchor: `x${ax}` as never, tickvals: c1.map((_, i) => i),
           ticktext: c1.map((c) => formatSig(c, 3)), showgrid: false, ticks: "", showline: false,
         }),
       };
     });
+    if (pick) {
+      annotations.push({ xref: "paper", yref: "paper", x: 0, xanchor: "left", y: 1.08, yanchor: "bottom",
+        showarrow: false, text: `Slice: ${pick.caption}`, font: { size: 11, color: chrome.muted } });
+      layout.margin = { ...(layout.margin ?? {}), t: 56 };
+    }
     layout.annotations = annotations;
     return { traces, layout };
-  }, [result, options, s, dark, titles.x, titles.y]);
+  }, [res, opt, s, dark, tx, ty, pick]);
   const ctx = useMemo(() => ({ dark, scheme, datasets: [] as string[] }), [dark, scheme]);
   return (
     <FormattedPlot traces={fig.traces} layout={fig.layout} format={format}
@@ -191,11 +233,29 @@ function singleMap(result: R, s: LandscapeSettings, c1: number[], c2: number[],
 export function LandscapeOptions({ graph, result, options }: GraphOptionsProps<SynergyOptions, R>) {
   const [s, set] = useGraphSettings(graph, "synergy", LANDSCAPE_DEFAULTS);
   if (!set) return null;
+  const multi = result?.analysis === "synergy_multi" && !result.error;
+  const pick = multi ? slicePick(result, s) : null;
   const shown = SYNERGY_MODELS.filter((m) => options?.models?.[m] ?? true);
+  const shownResult = pick ? pick.sliced : result;
   const views = MATRIX_VIEWS.filter((d) => (d.model === null || shown.includes(d.model))
-    && (!result || viewMatrix(result, d.key) !== null));
+    && (!shownResult || viewMatrix(shownResult, d.key) !== null));
+  const names = multi ? (result.drugs as string[]) : [];
+  const drugOpts = names.map((n, d) => [String(d), n] as const);
   return (
     <>
+      {pick && (
+        <>
+          <OptSelect label="Rows" value={String(pick.a)} options={drugOpts}
+            onChange={(v) => set({ pair: `${v},${Number(v) === pick.b ? pick.a : pick.b}` })} />
+          <OptSelect label="Columns" value={String(pick.b)} options={drugOpts}
+            onChange={(v) => set({ pair: `${Number(v) === pick.a ? pick.b : pick.a},${v}` })} />
+          {names.map((n, d) => (d === pick.a || d === pick.b ? null : (
+            <OptSelect key={d} label={`${n} at`} value={String(pick.fixed[d])}
+              options={((result?.concs?.[d] ?? []) as number[]).map((c, k) => [String(k), formatSig(c)] as const)}
+              onChange={(v) => set({ fixed: pick.fixed.map((k, e) => (e === d ? v : String(k))).join(",") })} />
+          )))}
+        </>
+      )}
       <OptSelect label="Show" value={isMatrixView(s.show) ? s.show : "synergy"}
         options={[["synergy", "Synergy scores (one map per model)"],
           ...views.map((d) => [d.key, d.label] as const)]}
@@ -208,6 +268,43 @@ export function LandscapeOptions({ graph, result, options }: GraphOptionsProps<S
   );
 }
 
+/** Single-drug curves of a higher-order result: each drug's observed
+ *  doses (the other drugs at 0) and its fitted curve. */
+function multiMono(result: R, titles: { x: string; y: string }, dark: boolean, scheme: Parameters<typeof seriesStyle>[2]) {
+  const chrome = chromeOf(dark);
+  const traces: Plotly.Data[] = [];
+  const names = (result.monotherapy as R[]).map((m) => String(m.drug));
+  (result.monotherapy as R[]).forEach((m, i) => {
+    const { color, symbol, dash } = seriesStyle(i, dark, scheme);
+    if (m.fitted) {
+      traces.push(tagTrace({
+        type: "scatter", mode: "lines", x: m.curve.x, y: m.curve.y, name: names[i], legendgroup: names[i],
+        line: { color, width: 2, dash }, hoverinfo: "skip",
+      }, { ds: i, role: "fit" }) as Plotly.Data);
+    }
+    const xs: number[] = [];
+    const ys: number[] = [];
+    (m.observed?.conc ?? []).forEach((c: number, k: number) => {
+      const v = m.observed.response[k];
+      if (c > 0 && typeof v === "number") { xs.push(c); ys.push(v); }
+    });
+    traces.push(tagTrace({
+      type: "scatter", mode: "markers", x: xs, y: ys, name: names[i], legendgroup: names[i],
+      showlegend: !m.fitted, marker: { color, symbol, size: 9, line: { color: chrome.surface, width: 1.5 } },
+      hovertemplate: `${names[i]} %{x:.4g}: %{y:.4g}%<extra></extra>`,
+    }, { ds: i, role: "points" }) as Plotly.Data);
+  });
+  const layout = layoutBase(chrome, {
+    xaxis: axis(chrome, titles.x, { type: "log" }),
+    yaxis: axis(chrome, titles.y),
+    showlegend: true,
+    legend: { orientation: "h", x: 0, y: 1.02, yanchor: "bottom", font: { color: chrome.ink } },
+    annotations: [{ xref: "paper", yref: "paper", x: 1, xanchor: "right", y: 0, yanchor: "bottom",
+      showarrow: false, text: "each drug alone; zero dose not shown (log axis)", font: { size: 11, color: chrome.muted } }],
+  });
+  return { traces, layout, names };
+}
+
 export function MonoPlot({ options, result, titles, scheme, format, onFormatChange }:
   PlotProps<SynergyOptions, R>) {
   const dark = useDark();
@@ -217,6 +314,7 @@ export function MonoPlot({ options, result, titles, scheme, format, onFormatChan
       return { traces: [] as Plotly.Data[], layout: messageLayout(chrome,
         result?.error ? "No graph: the analysis did not run" : "Fitting…"), names: [] as string[] };
     }
+    if (result.analysis === "synergy_multi") return multiMono(result, { x: titles.x, y: titles.y }, dark, scheme);
     const c1 = result.conc1 as number[];
     const c2 = result.conc2 as number[];
     const R0 = result.response as (number | null)[][];
@@ -278,6 +376,10 @@ export function FaCiPlot({ options, result, titles, scheme, format, onFormatChan
   const dark = useDark();
   const fig = useMemo(() => {
     const chrome = chromeOf(dark);
+    if (result?.analysis === "synergy_multi") {
+      return { traces: [] as Plotly.Data[], layout: messageLayout(chrome,
+        "Chou-Talalay combination indices are computed for two drugs only") };
+    }
     const combos = ((result?.chou_talalay?.combinations ?? []) as R[]).filter((c) => c.ci != null);
     if (!result || result.error || !combos.length) {
       const ct = result?.chou_talalay;
