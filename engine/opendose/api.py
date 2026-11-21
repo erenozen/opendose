@@ -668,6 +668,46 @@ def _log_scale_ttest_result(result, la, lb, log_info, options):
         result["ci_ratio"] = result["ratio_ci"]
 
 
+def _drop_empty_groups(cols, names, options, empty, kind):
+    """One-way ANOVA / Kruskal-Wallis: leave out groups with no values,
+    renumbering the control and planned pairs to the groups kept. Returns
+    (cols, names, options, {"warnings": [...]} or {"error": ...})."""
+    label = lambda i: names[i] or f"Group {i + 1}"  # noqa: E731
+    keep = [i for i in range(len(cols)) if i not in empty]
+    new = {old: k for k, old in enumerate(keep)}
+    gone = ", ".join(label(i) for i in empty)
+    many = len(empty) > 1
+    warnings = [f"{gone} {'have' if many else 'has'} no values and "
+                f"{'were' if many else 'was'} left out of the analysis and of "
+                "the comparisons."]
+    options = dict(options)
+    uses_control = (options.get("comparisons") == "dunnett"
+                    or options.get("family") == "control"
+                    or options.get("comparisons_family") == "control"
+                    or (kind == "nonparametric"
+                        and options.get("dunn_family") == "control"))
+    for key in ("control_index", "control"):
+        c = options.get(key)
+        if isinstance(c, bool) or not isinstance(c, int):
+            continue
+        if c in empty:
+            if uses_control:
+                return cols, names, options, {
+                    "error": f"The control group ({label(c)}) has no values: "
+                             "choose another control or enter its data."}
+            c = 0
+        options[key] = new.get(c, 0)
+    if options.get("pairs"):
+        kept = [[new[a], new[b]] for a, b in options["pairs"]
+                if a in new and b in new]
+        if len(kept) < len(options["pairs"]):
+            warnings.append("Planned comparisons involving "
+                            f"{gone} were dropped.")
+        options["pairs"] = kept
+    return ([cols[i] for i in keep], [names[i] for i in keep], options,
+            {"warnings": warnings})
+
+
 def _withheld_groups(kind, cols, names, warnings):
     """One-way ANOVA / Kruskal-Wallis with a group of fewer than two
     values: descriptive results only, P withheld."""
@@ -727,6 +767,17 @@ def _anova(data, options):
             warnings.extend(w)
             log_info = {"base": base,
                         "block": logscale.log_scale_block(base, dropped)}
+    # A group with no values at all (an empty or fully excluded column)
+    # is left out of the analysis and of the comparison family, and every
+    # other group keeps its name (Prism's fix: GraphPad FAQ 1399). Control
+    # and planned-pair indices are renumbered to the groups kept.
+    empty = [i for i, c in enumerate(cols) if len(c) == 0]
+    if empty and len(empty) < len(cols):
+        cols, names, options, msg = _drop_empty_groups(cols, names, options,
+                                                       empty, kind)
+        if msg.get("error"):
+            return {"analysis": "anova", "kind": kind, "error": msg["error"]}
+        warnings.extend(msg["warnings"])
     if kind == "nonparametric":
         if any(len(c) < 2 for c in cols):
             return _withheld_groups(kind, cols, names, warnings)

@@ -1161,24 +1161,16 @@ class TestCase45AllBlankGroup:
         assert a["F"] == pytest.approx(b["F"]) and a["p"] == pytest.approx(
             b["p"])
 
-    @pytest.mark.xfail(strict=True, reason=(
-        "#45: anova.one_way_anova drops empty groups but then labels the "
-        "remaining ones with names[i] of the filtered index, so with B "
-        "blank the summaries read 'B' (n 3, mean 5.17 = C's data) and 'C' "
-        "(D's data), and D disappears"))
     def test_group_summaries_keep_their_names(self):
+        # fixed: was 'B' with C's data, 'C' with D's, D missing
         got = [(g["name"], g["n"], g["mean"]) for g in
                _run("anova", BLANK_GROUP)["group_summaries"]]
         assert got == [("A", 3, 2.0), ("C", 3, pytest.approx(31 / 6)),
                        ("D", 3, pytest.approx(17 / 6))]
 
-    @pytest.mark.xfail(strict=True, reason=(
-        "#45: with an all-blank group, api._anova passes every column "
-        "(blank one included) to anova.multiple_comparisons, which raises "
-        "'every group needs at least 2 values', so the whole analysis "
-        "returns an error instead of post tests among A, C and D"))
     @pytest.mark.parametrize("method", ["tukey", "bonferroni", "dunnett"])
     def test_post_tests_drop_the_blank_group(self, method):
+        # fixed: the blank column used to reach multiple_comparisons
         got = _run("anova", BLANK_GROUP, {"comparisons": method})
         want = _run("anova", WITHOUT_BLANK, {"comparisons": method})
         g, w = got["multiple_comparisons"], want["multiple_comparisons"]
@@ -1187,6 +1179,39 @@ class TestCase45AllBlankGroup:
         assert g["family"]["size"] == w["family"]["size"]
         for x, y in zip(g["comparisons"], w["comparisons"]):
             assert x["p_adjusted"] == pytest.approx(y["p_adjusted"])
+
+
+    def test_the_results_say_which_group_was_left_out(self):
+        w = _run("anova", BLANK_GROUP)["warnings"]
+        assert any("B has no values and was left out of the analysis" in x
+                   for x in w)
+
+    def test_kruskal_wallis_drops_the_blank_group(self):
+        got = _run("anova", BLANK_GROUP, {"kind": "nonparametric"})
+        want = _run("anova", WITHOUT_BLANK, {"kind": "nonparametric"})
+        assert got["p"] is not None and got["p"] == pytest.approx(want["p"])
+        assert got["H"] == pytest.approx(want["H"])
+
+    def test_a_control_after_the_blank_group_is_renumbered(self):
+        # control D is index 3 with B present, index 2 without
+        got = _run("anova", BLANK_GROUP, {"comparisons": "dunnett", "control_index": 3})
+        want = _run("anova", WITHOUT_BLANK, {"comparisons": "dunnett", "control_index": 2})
+        assert [c["pair"] for c in got["multiple_comparisons"]["comparisons"]] == \
+            [c["pair"] for c in want["multiple_comparisons"]["comparisons"]]
+        assert all(c["pair"].endswith("vs. D") for c in got["multiple_comparisons"]["comparisons"])
+
+    def test_a_blank_control_group_is_an_error_not_a_silent_switch(self):
+        res = api.analyze({"analysis": "anova", "data": BLANK_GROUP,
+                           "options": {"comparisons": "dunnett", "control_index": 1}})
+        assert "control group (B) has no values" in res["error"]
+
+    def test_planned_pairs_are_renumbered_and_pairs_with_the_blank_dropped(self):
+        # pairs by the original indices: A-B (B blank) and C-D
+        got = _run("anova", BLANK_GROUP, {"comparisons": "sidak", "comparisons_family": "pairs",
+                                          "pairs": [[0, 1], [2, 3]]})
+        pairs = [c["pair"] for c in got["multiple_comparisons"]["comparisons"]]
+        assert pairs == ["C vs. D"]
+        assert any("Planned comparisons involving B were dropped" in x for x in got["warnings"])
 
 
 class TestCase46DunnLargeN:

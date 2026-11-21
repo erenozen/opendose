@@ -76,7 +76,13 @@ def _groups(datasets) -> list[np.ndarray]:
 
 
 def one_way_anova(datasets, names=None) -> dict:
-    groups = [g for g in _groups(datasets) if g.size > 0]
+    all_groups = _groups(datasets)
+    names = list(names) if names else [f"Group {i}" for i in
+                                       range(len(all_groups))]
+    # an empty group is left out together with its own name, so every
+    # other group keeps its label
+    names = [n for n, g in zip(names, all_groups) if g.size > 0]
+    groups = [g for g in all_groups if g.size > 0]
     if len(groups) < 2:
         raise ValueError("one-way ANOVA needs at least 2 non-empty groups")
     if any(g.size < 2 for g in groups):
