@@ -872,18 +872,32 @@ def _compare_fits(data, options):
         fits.append(entry["fit"])
         results[key] = entry["fit"]
     g1, g2 = fits[0]["goodness"], fits[1]["goodness"]
+    # Weighted fits are compared on the sums of squares they minimised
+    # (the weighted SS), as Prism does and as compare_params already did;
+    # comparing their unweighted SS could prefer the wrong model.
+    w1, w2 = g1.get("ss_res_weighted"), g2.get("ss_res_weighted")
+    if (w1 is None) != (w2 is None):
+        raise ValueError("the two models must be fitted with the same "
+                         "weighting to be compared")
+    weighted = w1 is not None
+    ss = [float(w1), float(w2)] if weighted else [g1["ss_res"], g2["ss_res"]]
     k1 = g1["n_points"] - g1["df"]
     k2 = g2["n_points"] - g2["df"]
     simple, complex_ = (0, 1) if k1 <= k2 else (1, 0)
     gs, gc = fits[simple]["goodness"], fits[complex_]["goodness"]
     f_test = None
     if gs["df"] > gc["df"]:
-        f_test = nlfit.compare_fits_f_test(gs["ss_res"], gs["df"],
-                                           gc["ss_res"], gc["df"])
+        f_test = nlfit.compare_fits_f_test(ss[simple], gs["df"],
+                                           ss[complex_], gc["df"])
         f_test["simpler_model"] = simple + 1
     results["f_test"] = f_test
     results["aicc"] = nlfit.compare_fits_aicc(
-        g1["ss_res"], k1, g2["ss_res"], k2, g1["n_points"])
+        ss[0], k1, ss[1], k2, g1["n_points"])
+    results["sum_of_squares"] = "weighted" if weighted else "unweighted"
+    if weighted:
+        results["notes"] = ["Both fits are weighted, so the F test and AICc "
+                            "use the weighted sums of squares (the quantity "
+                            "each fit minimised)."]
     return {"analysis": "compare_fits", **results}
 
 

@@ -586,13 +586,8 @@ class TestCase29WeightingWithRoutAndComparison:
         assert plain["params"]["LogEC50"]["value"] != pytest.approx(
             unweighted["params"]["LogEC50"]["value"], rel=1e-4)
 
-    @pytest.mark.xfail(strict=True, reason=(
-        "#29: api._compare_fits builds the extra-sum-of-squares F test and "
-        "the AICc from goodness['ss_res'], the UNWEIGHTED sum of squares, "
-        "even when both fits are weighted; it should use "
-        "goodness['ss_res_weighted'] (as compare_params._wss already does). "
-        "Here (3PL vs 4PL) F = 0.759 instead of 0.233 with 1/SD^2 (mean/SD/n "
-        "data) and 1.207 instead of 0.284 with 1/Y^2"))
+    # fixed: api._compare_fits used the unweighted SS (F 0.759 instead of
+    # 0.233 with 1/SD^2, 1.207 instead of 0.284 with 1/Y^2)
     @pytest.mark.parametrize("weighting", ["1/SD2", "1/Y2"])
     def test_model_comparison_uses_the_weighted_sum_of_squares(
             self, weighting):
@@ -638,6 +633,39 @@ GF_EQ = {"text": "Y=Bottom + (Top-Bottom)/(1+10^((LogEC50-X)*HillSlope))",
          "transforms": [{"name": "LogEC80", "expr": "X[80]"},
                         {"name": "LogEC80f",
                          "expr": "LogEC50 + log(80/20)/HillSlope"}]}
+
+
+class TestCase29ComparisonBasis:
+    """After the #29 fix: unweighted comparisons are unchanged, a weighted
+    and an unweighted fit are not compared, and the result says which sums
+    of squares were used."""
+
+    X = [-9.0, -8.5, -8.0, -7.5, -7.0, -6.5, -6.0, -5.5]
+    Y = [[98, 101], [97, 95], [88, 90], [70, 66], [41, 45], [20, 23], [9, 8], [5, 6]]
+
+    def _cmp(self, w1=None, w2=None):
+        o1 = {"model": "log_inhibitor_vs_response_3pl", **({"weighting": w1} if w1 else {})}
+        o2 = {"model": "log_inhibitor_vs_response_4pl", **({"weighting": w2} if w2 else {})}
+        return api.analyze({"analysis": "compare_fits",
+                            "data": {"x": self.X, "datasets": [{"name": "A", "ys": self.Y}]},
+                            "options": {"x_is_log": True, "model_1": o1, "model_2": o2}})
+
+    def test_unweighted_comparison_uses_the_ordinary_ss(self):
+        r = self._cmp()
+        assert r["sum_of_squares"] == "unweighted"
+        g1, g2 = r["model_1"]["goodness"], r["model_2"]["goodness"]
+        ref = nlfit.compare_fits_f_test(g1["ss_res"], g1["df"], g2["ss_res"], g2["df"])
+        assert r["f_test"]["F"] == pytest.approx(ref["F"])
+        assert "notes" not in r
+
+    def test_weighted_comparison_says_so(self):
+        r = self._cmp("1/Y2", "1/Y2")
+        assert r["sum_of_squares"] == "weighted"
+        assert any("weighted sums of squares" in n for n in r["notes"])
+
+    def test_mixed_weighting_is_refused(self):
+        r = self._cmp("1/Y2", None)
+        assert "same weighting" in r["error"]
 
 
 class TestCase31SharedSlopeEC80:
