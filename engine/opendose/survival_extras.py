@@ -59,7 +59,7 @@ import numpy as np
 from scipy import stats
 
 from . import fdr
-from .survival import _weighted_logrank, compare_survival
+from .survival import _quantile_time, _weighted_logrank, compare_survival
 
 CORRECTIONS = ("bonferroni", "holm_sidak", "holm", "sidak", "none")
 
@@ -373,18 +373,22 @@ def logrank_trend(groups, names=None, *, scores=None):
 
 def _explanation(rows, n, n_events):
     surv = [r["surv"] for r in rows]
-    median = None
-    for r in rows:
-        if r["n_event"] > 0 and r["surv"] <= 0.5:
-            median = r["time"]
-            break
+    ev = [r for r in rows if r["n_event"] > 0]
+    median = _quantile_time([0.0] + [r["time"] for r in ev],
+                            [1.0] + [r["surv"] for r in ev])
     last_time = rows[-1]["time"]
     s_last = surv[-1]
     if median is not None:
-        # the same rule as survival.km_curve's median_survival (first
-        # time S <= 0.5), so the text matches the survival result
+        # the same rule as survival.km_curve's median_survival (R's: the
+        # first time S <= 0.5, or the midpoint where S is flat at exactly
+        # 0.5 until a later event), so the text matches the result
+        flat = any(abs(r["surv"] - 0.5) <= 1e-8 for r in ev)
         text = (f"median survival {_fmt(median)} (time units): the "
-                "Kaplan-Meier curve reaches 50% at that time")
+                "Kaplan-Meier curve reaches 50% at that time"
+                if not flat or median in [r["time"] for r in ev] else
+                f"median survival {_fmt(median)} (time units): the "
+                "Kaplan-Meier curve stays at exactly 50% between two "
+                "event times, and the median is their midpoint (as R)")
     else:
         text = (f"median not reached: {s_last:.0%} still event-free at the "
                 f"last follow-up (time {_fmt(last_time)}); the Kaplan-Meier "
