@@ -129,7 +129,7 @@ export default function Header({ onOpenFile, onNewProject }: {
   // Phone widths: the secondary actions (about, theme, help, preferences,
   // tools, new project) fold into a "More" panel so the primary ones
   // (undo, redo, save, open) stay on one row. On wider screens the panel
-  // is `display: contents` and the button is hidden (App.css).
+  // is `display: contents` and the button is hidden (components/header.css).
   const [moreOpen, setMoreOpen] = useState(false);
   const moreRef = useRef<HTMLSpanElement>(null);
   const moreBtnRef = useRef<HTMLButtonElement>(null);
@@ -179,7 +179,7 @@ export default function Header({ onOpenFile, onNewProject }: {
       {data && (
         <div className="analysis-bar">
           {tabs.length > 0 && (
-            <nav className="mode-switch" role="tablist" ref={tablistRef}
+            <nav className="mode-switch" role="tablist" ref={tablistRef} data-still
               aria-label={`Analyses of ${data.name}`} onKeyDown={onTabKey}>
               <span className="seg-thumb" aria-hidden="true" style={{
                 width: thumb ? `${thumb.w}px` : 0,
@@ -211,7 +211,7 @@ export default function Header({ onOpenFile, onNewProject }: {
               Analyze
             </button>
             {analyzeOpen && tdef && (
-              <div className="sheet-menu analyze-menu" role="menu" aria-label="Add an analysis"
+              <div className="sheet-menu analyze-menu" role="menu" aria-label="Add an analysis" data-still
                 onKeyDown={(e) => {
                   const items = [...(analyzeRef.current?.querySelectorAll<HTMLElement>("[role=menuitem]") ?? [])];
                   const i = items.indexOf(document.activeElement as HTMLElement);
@@ -302,7 +302,7 @@ export default function Header({ onOpenFile, onNewProject }: {
                 Privacy on this computer: turn it off, or forget everything).
                 A share link carries the data inside it, so protect it with a
                 password.{" "}
-                <button type="button" className="linkish"
+                <button type="button" data-still className="linkish"
                   onClick={() => { setInfoOpen(false); openPrivacy(); }}>
                   How your data stays private
                 </button>
@@ -320,12 +320,12 @@ export default function Header({ onOpenFile, onNewProject }: {
               </p>
               <p className="info-version">
                 Version {versionLabel()} ·{" "}
-                <button type="button" className="linkish"
+                <button type="button" data-still className="linkish"
                   onClick={() => { setInfoOpen(false); openValidation(); }}>
                   How OpenDose is validated
                 </button>
                 {" · "}
-                <button type="button" className="linkish"
+                <button type="button" data-still className="linkish"
                   onClick={() => { setInfoOpen(false); openChecklist(data?.id); }}>
                   Journal checklists
                 </button>

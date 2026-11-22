@@ -73,7 +73,7 @@
 /* ---- results */
 .manip-summary, .mc-summary { margin: 0 0 6px; color: var(--ink-2); }
 .manip-preview { overflow-x: auto; max-width: 100%; margin-top: 8px; }
-.manip-preview:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.manip-preview:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 .manip-preview .results-table { width: auto; min-width: 60%; }
 .manip-preview .results-table th, .manip-preview .results-table td { white-space: nowrap; padding-right: 14px; }
 .manip-output { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; }

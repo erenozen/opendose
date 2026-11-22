@@ -123,7 +123,7 @@ export default function WhichTest({ onClose }: { onClose: () => void }) {
     if (!a.target) return null;
     const here = fitsTable(data, a.target) && data;
     return (
-      <button type="button" className="linkish wt-alt-open"
+      <button type="button" data-still className="linkish wt-alt-open"
         onClick={() => openTarget(a.target!, a.test, `${a.test}: ${a.when}.`)}>
         {here ? `Open ${a.test} on “${data.name}”` : `Create a table for ${a.test}`}
       </button>

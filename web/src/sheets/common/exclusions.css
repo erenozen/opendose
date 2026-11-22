@@ -20,6 +20,3 @@
 .exclusion-reason .er-why { color: var(--ink-2); font-size: 12px; }
 .exclusion-reason a { color: var(--accent); }
 
-@media (prefers-reduced-motion: reduce) {
-  .exclusion-reason { transition: none; }
-}

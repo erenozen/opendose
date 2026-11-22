@@ -1,0 +1,23 @@
+/* The app's global stylesheet, in cascade order: the Inter font faces,
+   tokens, base, then each area's rules. Feature sheets imported by their
+   own components load after this file. */
+
+@import "@fontsource-variable/inter";
+@import "./tokens.css";
+@import "./base.css";
+@import "../components/header.css";
+@import "./layout.css";
+@import "./cards.css";
+@import "../sheets/common/table.css";
+@import "./controls.css";
+@import "../components/plotCard.css";
+@import "../components/results.css";
+@import "../components/welcome.css";
+@import "../components/plateImport.css";
+@import "../components/banners.css";
+@import "../components/navigator.css";
+@import "../components/menu.css";
+@import "../components/modal.css";
+@import "../components/newTable.css";
+@import "../components/workbench.css";
+@import "../components/infoSheet.css";

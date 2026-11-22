@@ -1,6 +1,6 @@
 /* "Apply to new data…" and its replay log (share/ReplayDialog.tsx) */
 .replay-dialog { width: min(680px, calc(100vw - 32px)); }
-.replay-dialog .modal-body { max-height: calc(100vh - 48px); overflow: auto; }
+.replay-dialog .modal-body { max-height: calc(100dvh - 48px); overflow: auto; }
 .replay-dialog input[type="file"] { font: inherit; font-size: 12.5px; color: var(--ink-2); max-width: 100%; }
 .replay-data { display: flex; flex-direction: column; gap: 10px; }
 .replay-data textarea {

@@ -1,0 +1,23 @@
+/* Modal dialogs */
+.modal {
+  border: none; border-radius: var(--radius-dialog); padding: 0;
+  background: var(--float); color: var(--ink);
+  box-shadow: var(--elev-dialog);
+  width: min(460px, calc(100vw - 32px));
+  max-height: calc(100dvh - 48px);
+  overscroll-behavior: contain;
+  transition: opacity var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out);
+  opacity: 1; transform: scale(1);
+  @starting-style { opacity: 0; transform: scale(0.97); }
+}
+.modal::backdrop { background: var(--scrim); }
+.modal-wide { width: min(880px, calc(100vw - 32px)); }
+.modal-body { display: flex; flex-direction: column; gap: 14px; padding: 20px 22px 18px; }
+.modal-title { margin: 0; font-size: var(--text-title); font-weight: var(--weight-semibold); letter-spacing: -0.015em; }
+.modal-text { margin: 0; color: var(--ink-2); font-size: var(--text-body); }
+.modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+/* Text on the danger fill reads its own token: >= 4.5:1 in both themes */
+.btn-danger {
+  background: var(--danger-fill); color: var(--danger-ink-on-fill);
+  font-weight: var(--weight-semibold);
+}

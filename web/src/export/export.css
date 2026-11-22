@@ -1,17 +1,17 @@
 /* Export strip extras, the cite block, and the off-screen export stage.
-   Uses the design tokens from App.css. */
+   Uses the design tokens from styles/tokens.css. */
 
 .export-opts { position: relative; display: inline-flex; }
 /* Positioned (fixed) by ExportPanel next to its Options button. */
 .export-pop {
-  position: fixed; z-index: 1300;
+  position: fixed; z-index: var(--z-popover);
   width: min(360px, calc(100vw - 16px));
   overflow-y: auto; overscroll-behavior: contain;
   display: flex; flex-direction: column; gap: 12px;
   background: var(--surface);
   border: 1px solid var(--border-soft);
   border-radius: var(--radius);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18);
+  box-shadow: var(--elev-float);
   padding: 14px 16px;
   font-size: 12.5px; color: var(--ink-2); text-align: left;
   transition: opacity 160ms var(--ease-out), transform 160ms var(--ease-out);
@@ -75,4 +75,4 @@
   white-space: pre-wrap; overflow-wrap: anywhere; color: var(--ink-2);
 }
 .info-pop .info-version { color: var(--muted); font-variant-numeric: tabular-nums; }
-.info-pop { max-height: calc(100vh - 90px); overflow-y: auto; }
+.info-pop { max-height: calc(100dvh - 90px); overflow-y: auto; }

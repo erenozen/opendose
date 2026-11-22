@@ -18,6 +18,7 @@ import { setReportPrefs } from "../report/pformat";
 import { reportPrefsOf } from "../report/prefs";
 import { clearShareLink, readShareBoot } from "../share/boot";
 import { ResultsCache } from "./analysis";
+import { applyTheme, watchSystemScheme } from "./theme";
 import { sampleProject } from "./factory";
 import { primeSampleResults } from "./sampleResults";
 import { Ctx, type ProjectApi } from "./context";
@@ -154,13 +155,14 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   setReportPrefs(reportPrefsOf(project.prefs));
 
   // Theme: "auto" follows the OS; light/dark force it. The data-theme
-  // attribute drives the CSS tokens, and the event tells the Plotly
-  // components to re-read their chrome colors.
+  // attribute picks the CSS color-scheme (index.html already set it before
+  // the first paint), the swap never animates (app/theme.ts), and the
+  // event tells the Plotly components to re-read their chrome colors.
   useEffect(() => {
-    if (prefs.theme === "auto") delete document.documentElement.dataset.theme;
-    else document.documentElement.dataset.theme = prefs.theme;
+    applyTheme(prefs.theme);
     window.dispatchEvent(new Event("opendose-theme"));
   }, [prefs.theme]);
+  useEffect(() => watchSystemScheme(), []);
 
   // ---- engine (a worker started by boot.ts before React rendered)
   const [shareError] = useState(shareBoot.error);

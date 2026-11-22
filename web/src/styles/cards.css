@@ -1,0 +1,43 @@
+/* Card chrome shared by the table, controls, results, plot and welcome
+   islands. */
+
+/* ============================ cards ============================ */
+
+/* Flat panes on the page: one depth cue, the hairline (ruling 6) */
+.data-table, .controls, .result-card, .plot-card, .welcome {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pane);
+}
+.controls, .result-card { padding: 16px 18px; }
+.controls { display: flex; flex-direction: column; gap: 16px; }
+
+.controls h3, .plate-import > .section-toggle, .result-card h4 {
+  margin: 0; font-size: var(--text-label); text-transform: uppercase;
+  letter-spacing: 0.07em; color: var(--muted); font-weight: var(--weight-semibold);
+}
+.controls h3 { margin-bottom: 8px; }
+.result-card h4 { margin: 16px 0 6px; }
+
+.result-card h3 {
+  margin: 0 0 4px; font-size: var(--text-lead); font-weight: var(--weight-semibold);
+  letter-spacing: -0.01em;
+}
+
+/* Islands resize vertically via the native corner handle; contents
+   scroll inside. Width is governed by the column splitter. */
+.data-table, .controls, .result-card, .welcome {
+  resize: both; overflow: auto; min-height: 40px;
+  min-width: 160px; max-width: 100%;
+}
+
+.plot-card {
+  overflow: hidden; resize: both; min-height: 200px;
+  min-width: 240px; max-width: 100%;
+  display: flex; flex-direction: column;
+}
+
+@media (max-width: 760px) {
+  /* Corner-handle resizing is a pointer affordance; off on touch layouts */
+  .data-table, .controls, .result-card, .welcome, .plot-card { resize: none; }
+}

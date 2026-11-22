@@ -140,7 +140,7 @@ export default function StartScreen({ onOpenFile, onClose, onTour }: {
           </p>
           <p>
             Several files?{" "}
-            <button type="button" className="linkish" disabled={batch.busy} onClick={batch.pick}>
+            <button type="button" data-still className="linkish" disabled={batch.busy} onClick={batch.pick}>
               Convert Prism files to CSV…</button>{" "}
             saves every data table of each file as a CSV, in one zip.
           </p>

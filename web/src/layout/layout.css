@@ -1,4 +1,4 @@
-/* Page-layout composer. Uses the design tokens from App.css. */
+/* Page-layout composer. Uses the design tokens from styles/tokens.css. */
 
 main.layout-main {
   display: flex; flex-direction: column; align-items: stretch; gap: 12px;
@@ -34,7 +34,7 @@ main.layout-main {
   display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; align-items: start;
 }
 .layout-scroll {
-  overflow: auto; min-width: 0; max-height: calc(100vh - 190px);
+  overflow: auto; min-width: 0; max-height: calc(100dvh - 190px);
   background: var(--inset); border-radius: var(--radius); padding: 16px;
 }
 .layout-stage { position: relative; margin: 0 auto; }
@@ -95,7 +95,7 @@ main.layout-main {
 .layout-inspector {
   background: var(--surface); border: 1px solid var(--border-soft);
   border-radius: var(--radius); box-shadow: var(--shadow);
-  max-height: calc(100vh - 190px); overflow-y: auto;
+  max-height: calc(100dvh - 190px); overflow-y: auto;
 }
 .layout-fieldset { border: none; margin: 0; padding: 0; min-width: 0; }
 .layout-section {
@@ -133,7 +133,4 @@ main.layout-main {
   main.layout-main { padding: 14px; }
   .layout-group button, .mini-field select, .layout-seg button { min-height: 36px; }
   .mini-field input { min-height: 34px; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .layout-item::after { transition: none; }
 }

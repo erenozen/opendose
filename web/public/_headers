@@ -9,9 +9,11 @@
 # in-memory images and exports.
 # 'wasm-unsafe-eval' lets the browser compile WebAssembly (Pyodide);
 # 'unsafe-inline' in style-src is needed by Plotly, which injects its
-# stylesheet at run time. Inline and remote scripts stay blocked.
+# stylesheet at run time. Remote scripts stay blocked, and so do inline
+# ones except the pre-paint theme script in index.html, allowed by its
+# hash (lib/__tests__/chrome.test.ts fails when the two disagree).
 /*
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval' 'sha256-KRaJhEcPVoPjgOmL+0EdrSLLOX2VgYeCD+zOF8BU/aI='; connect-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
   Referrer-Policy: no-referrer
   Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=(), bluetooth=(), browsing-topics=()
   X-Content-Type-Options: nosniff

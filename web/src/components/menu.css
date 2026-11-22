@@ -1,0 +1,65 @@
+/* Sheet / Analyze menus. Menus opt out of the press scale with
+   data-still on the container (base.css). */
+.sheet-menu {
+  position: fixed; z-index: var(--z-popover);
+  min-width: 210px; max-width: min(360px, calc(100vw - 16px));
+  /* long sheet menus scroll */
+  max-height: calc(100dvh - 16px); overflow-y: auto; overscroll-behavior: contain;
+  padding: 5px;
+  background: var(--float);
+  border-radius: var(--radius-menu);
+  box-shadow: var(--elev-float);
+  display: flex; flex-direction: column;
+  transform-origin: top left;
+  transition: opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+  opacity: 1; transform: scale(1);
+  @starting-style { opacity: 0; transform: scale(0.97); }
+}
+.analyze-wrap { position: relative; display: inline-flex; }
+.analyze-menu {
+  position: absolute; top: calc(100% + 6px); left: 0;
+  /* long lists (assay modules at the end) scroll instead of leaving the screen */
+  max-height: calc(100dvh - 72px); overflow-y: auto; overscroll-behavior: contain;
+}
+/* Narrow screens: Analyze sits at the right end of its row, so its menu
+   opens leftwards and stays on screen. */
+@media (max-width: 760px) {
+  .analyze-menu { left: auto; right: 0; max-width: calc(100vw - 20px); }
+}
+.menu-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  width: 100%; text-align: left; border-radius: var(--radius-control); padding: 5px 9px;
+  background: transparent; font-size: var(--text-body-s); font-weight: var(--weight-regular);
+  /* never squeezed by a scrolling menu (min-height on phones would let it) */
+  flex-shrink: 0;
+}
+@media (hover: hover) and (pointer: fine) {
+  .menu-item:hover { background: var(--accent-fill); color: var(--accent-ink); }
+  .menu-item:hover .menu-desc, .menu-item:hover kbd { color: inherit; }
+}
+.menu-item:focus-visible { outline: none; background: var(--accent-fill); color: var(--accent-ink); }
+.menu-item:focus-visible .menu-desc, .menu-item:focus-visible kbd { color: inherit; }
+.menu-item[aria-disabled="true"] { opacity: 0.45; }
+.menu-item.danger { color: var(--danger); }
+.menu-item-2line { flex-direction: column; align-items: flex-start; gap: 1px; }
+.menu-desc { color: var(--muted); font-size: var(--text-caption); line-height: 1.35; }
+.menu-item kbd, .shortcuts kbd {
+  font: inherit; font-size: var(--text-caption); color: var(--muted);
+}
+.menu-sep { height: 1px; margin: 4px 6px; background: var(--line); }
+.menu-colors { display: flex; gap: 6px; padding: 5px 8px 4px; }
+.swatch {
+  width: 18px; height: 18px; min-height: 0; padding: 0; border-radius: 50%;
+  background: var(--hl); border: 2px solid transparent;
+}
+.swatch[aria-checked="true"] { box-shadow: 0 0 0 2px var(--float), 0 0 0 4px var(--hl, var(--axis)); }
+.swatch-none {
+  background: transparent; border: 1.5px solid var(--axis);
+  background-image: linear-gradient(135deg, transparent 45%, var(--axis) 45%, var(--axis) 55%, transparent 55%);
+}
+.swatch:focus-visible { outline-offset: 2px; border-radius: 50%; }
+
+@media (max-width: 760px) {
+  .menu-item { min-height: 40px; }
+  .swatch { min-height: 0; width: 26px; height: 26px; }
+}

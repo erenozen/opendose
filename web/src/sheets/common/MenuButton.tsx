@@ -60,7 +60,7 @@ export default function MenuButton({ label, items, align = "left", title }: {
       </button>
       {open && (
         <div className={`sheet-menu grid-menu${align === "right" ? " align-right" : ""}`}
-          role="menu" onKeyDown={onKey}>
+          role="menu" data-still onKeyDown={onKey}>
           {items.map((it, i) => it === "sep" ? (
             <div key={`sep${i}`} className="menu-sep" role="separator" />
           ) : (

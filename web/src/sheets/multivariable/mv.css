@@ -1,4 +1,4 @@
-/* Multiple-variables sheets. Uses the app's tokens only (App.css). */
+/* Multiple-variables sheets. Uses the app's tokens only (styles/tokens.css). */
 
 /* ---- a message in place of a graph */
 .mv-plot-message { display: flex; align-items: center; justify-content: center; }
@@ -68,8 +68,5 @@ button.mv-remove {
 @media (hover: hover) and (pointer: fine) {
   .mv-seg button:hover { background: transparent; color: var(--ink); }
   .mv-seg button.active:hover { background: var(--seg-thumb); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .mv-seg button { transition: none; }
 }
 

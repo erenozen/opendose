@@ -1,57 +1,8 @@
 /* Project organisation: navigator groups and note rows, floating notes,
    templates, "analyze like", go to sheet. Colours come from the tokens in
-   App.css; note colours have their own light / dark pairs below. */
+   styles/tokens.css. */
 
-:root {
-  --note-ink: #1d1d1f;
-  --note-yellow: #fff4c2; --note-yellow-edge: #e0b400;
-  --note-blue: #dcecff;   --note-blue-edge: #3b82f6;
-  --note-green: #dcf5e2;  --note-green-edge: #2fa84f;
-  --note-pink: #ffe0ea;   --note-pink-edge: #e0457b;
-  --note-purple: #ece2ff; --note-purple-edge: #8b5cf6;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --note-ink: #f5f5f7;
-    --note-yellow: #3d3519; --note-yellow-edge: #e6c34a;
-    --note-blue: #1c2c44;   --note-blue-edge: #6aa5ff;
-    --note-green: #1b3424;  --note-green-edge: #5fd17f;
-    --note-pink: #42202c;   --note-pink-edge: #ff7aa6;
-    --note-purple: #2e2446; --note-purple-edge: #b597ff;
-  }
-}
-:root[data-theme="dark"] {
-  --note-ink: #f5f5f7;
-  --note-yellow: #3d3519; --note-yellow-edge: #e6c34a;
-  --note-blue: #1c2c44;   --note-blue-edge: #6aa5ff;
-  --note-green: #1b3424;  --note-green-edge: #5fd17f;
-  --note-pink: #42202c;   --note-pink-edge: #ff7aa6;
-  --note-purple: #2e2446; --note-purple-edge: #b597ff;
-}
-.note-yellow { --note-bg: var(--note-yellow); --note-edge: var(--note-yellow-edge); }
-.note-blue   { --note-bg: var(--note-blue);   --note-edge: var(--note-blue-edge); }
-.note-green  { --note-bg: var(--note-green);  --note-edge: var(--note-green-edge); }
-.note-pink   { --note-bg: var(--note-pink);   --note-edge: var(--note-pink-edge); }
-.note-purple { --note-bg: var(--note-purple); --note-edge: var(--note-purple-edge); }
-
-/* ---------------------------------------------------------------- workbench */
-
-.workbench { position: relative; min-width: 0; }
-.workbench > main { min-width: 0; }
-
-.notes-layer { display: contents; }
-.notes-bar {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
-  padding: 16px 24px 0;
-}
-.note-chip {
-  display: inline-flex; align-items: center; gap: 6px; max-width: 240px;
-  padding: 4px 11px 4px 9px; font-size: 12.5px; font-weight: 500;
-  background: var(--note-bg); color: var(--note-ink);
-  border: 1px solid color-mix(in srgb, var(--note-edge) 45%, transparent);
-}
-.note-chip[aria-expanded="false"] { opacity: 0.85; }
-.note-chip-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Note colours (--note-*) live in styles/tokens.css. */
 .note-dot {
   flex: none; width: 8px; height: 8px; border-radius: 50%;
   background: var(--note-edge);
@@ -59,14 +10,14 @@
 .note-add { padding: 4px 11px; font-size: 12.5px; color: var(--muted); background: transparent; }
 
 .floating-note {
-  position: absolute; z-index: 30;
+  position: absolute; z-index: var(--z-raised);
   width: 230px;
   display: flex; flex-direction: column;
   background: var(--note-bg); color: var(--note-ink);
   border: 1px solid color-mix(in srgb, var(--note-edge) 55%, transparent);
   border-top: 3px solid var(--note-edge);
   border-radius: 10px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.14);
+  box-shadow: var(--elev-float);
   transition: opacity 140ms var(--ease-out), transform 140ms var(--ease-out);
   opacity: 1; transform: none;
   @starting-style { opacity: 0; transform: translateY(-4px) scale(0.98); }
@@ -78,7 +29,7 @@
   background: transparent; color: var(--note-ink);
 }
 .note-grip { cursor: grab; touch-action: none; }
-.note-grip:active { cursor: grabbing; transform: none; }
+.note-grip:active { cursor: grabbing; }
 .note-colors { display: flex; gap: 4px; margin-right: auto; padding-left: 2px; }
 .note-swatch {
   width: 16px; height: 16px; min-height: 0; padding: 0; border-radius: 50%;
@@ -91,7 +42,7 @@
   min-height: 72px; padding: 6px 10px 10px; border-radius: 0 0 10px 10px;
 }
 .floating-note textarea::placeholder { color: color-mix(in srgb, var(--note-ink) 55%, transparent); }
-.floating-note textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.floating-note textarea:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
 @media (hover: hover) and (pointer: fine) {
   .note-grip:hover, .note-btn:hover { background: color-mix(in srgb, var(--note-ink) 10%, transparent); color: var(--note-ink); }
   .note-chip:hover { background: color-mix(in srgb, var(--note-bg) 80%, var(--note-edge)); color: var(--note-ink); }
@@ -101,7 +52,7 @@
 
 /* The navigator's menus open over the workbench (and its notes). */
 @media (min-width: 901px) {
-  .navigator { z-index: 40; }
+  .navigator { z-index: var(--z-sticky); }
 }
 .nav-search-row { display: flex; gap: 4px; align-items: center; }
 .nav-search-row .nav-search { flex: 1 1 auto; min-width: 0; }
@@ -140,7 +91,7 @@
 }
 .new-mode label.checked { background: var(--seg-thumb); color: var(--ink); box-shadow: var(--seg-shadow); }
 .new-mode input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
-.new-mode label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 1px; }
+.new-mode label:has(input:focus-visible) { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
 .template-heading {
   margin: 6px 0 0; font-size: 11.5px; font-weight: 600; color: var(--muted);
 }
@@ -163,7 +114,7 @@
   border: 1px solid var(--border); border-radius: var(--radius-s);
   padding: 6px 9px; resize: vertical;
 }
-.wand-list { max-height: 40vh; overflow-y: auto; }
+.wand-list { max-height: 40svh; overflow-y: auto; }
 .group-new { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .group-new input:not([type="radio"]) {
   font: inherit; color: var(--ink); background: var(--inset);
@@ -178,7 +129,7 @@
 }
 .goto-list {
   list-style: none; margin: 0; padding: 0;
-  max-height: min(50vh, 380px); overflow-y: auto;
+  max-height: min(50svh, 380px); overflow-y: auto;
   display: flex; flex-direction: column; gap: 1px;
 }
 .goto-option {
@@ -219,9 +170,6 @@
   .goto-option { min-height: 40px; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .floating-note { transition: none; }
-}
 
 @media print {
   .notes-layer, .notes-bar, .floating-note { display: none !important; }

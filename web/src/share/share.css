@@ -27,10 +27,11 @@
 
 /* Bundle progress chip, bottom right */
 .share-progress {
-  position: fixed; right: 18px; bottom: 18px; z-index: 1400;
+  position: fixed; right: calc(18px + var(--safe-right)); bottom: calc(18px + var(--safe-bottom));
+  z-index: var(--z-toast);
   padding: 8px 14px; border-radius: var(--radius-pill);
   background: var(--surface); color: var(--ink-2); font-size: 12.5px;
-  border: 1px solid var(--border-soft); box-shadow: 0 6px 24px rgba(0, 0, 0, 0.14);
+  border: 1px solid var(--border-soft); box-shadow: var(--elev-float);
 }
 
 /* Off-screen results panels for the bundle: visible (innerText of a
@@ -39,11 +40,11 @@
 
 /* Header: Share / export menu next to Save project */
 .save-menu .menu-wrap > button { padding-inline: 8px; }
-.save-menu .grid-menu { min-width: 250px; z-index: 1300; }
+.save-menu .grid-menu { min-width: 250px; z-index: var(--z-popover); }
 
 /* ---- Validation page */
 .validation-page { width: min(1080px, calc(100vw - 32px)); }
-.validation-page .modal-body { max-height: calc(100vh - 48px); overflow: auto; }
+.validation-page .modal-body { max-height: calc(100dvh - 48px); overflow: auto; }
 .validation-intro { margin: 0; color: var(--ink-2); font-size: 13.5px; line-height: 1.6; max-width: 72ch; }
 .validation-summary {
   display: flex; flex-wrap: wrap; gap: 6px 8px; margin: 0; padding: 0; list-style: none;
@@ -75,7 +76,7 @@
 
 /* ---- Recipe and reshape dialogs */
 .recipe-dialog { width: min(1040px, calc(100vw - 32px)); }
-.recipe-dialog .modal-body { max-height: calc(100vh - 48px); overflow: auto; }
+.recipe-dialog .modal-body { max-height: calc(100dvh - 48px); overflow: auto; }
 .recipe-list {
   display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 6px;
   border: none; margin: 0; padding: 0;
@@ -90,7 +91,7 @@
   transition: border-color 140ms ease, background-color 140ms ease;
 }
 .recipe-option.checked { border-color: var(--accent); background: var(--accent-soft); }
-.recipe-option:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 1px; }
+.recipe-option:has(input:focus-visible) { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
 .recipe-option input { margin-top: 3px; }
 .recipe-option b { font-size: 13px; font-weight: 600; color: var(--ink); display: block; }
 .recipe-option small { color: var(--muted); font-size: 11.5px; line-height: 1.35; display: block; }
@@ -112,23 +113,10 @@
   display: inline-block; font-size: 10.5px; font-weight: 600; border-radius: 999px;
   padding: 0 6px; margin-left: 4px; background: var(--inset); color: var(--muted);
 }
-.import-preview th.role-group, .role-chip.role-group { color: #0a7d32; }
-.import-preview th.role-subject, .role-chip.role-subject { color: #8a4b00; }
+.import-preview th.role-group, .role-chip.role-group { color: var(--success); }
+.import-preview th.role-subject, .role-chip.role-subject { color: var(--warn-ink); }
 .import-preview th.role-value, .role-chip.role-value { color: var(--accent); }
-.import-preview th.role-time, .role-chip.role-time { color: #7a3fb0; }
-:root[data-theme="dark"] .import-preview th.role-group, :root[data-theme="dark"] .role-chip.role-group { color: #4cd964; }
-:root[data-theme="dark"] .import-preview th.role-subject, :root[data-theme="dark"] .role-chip.role-subject { color: #ffb340; }
-:root[data-theme="dark"] .import-preview th.role-time, :root[data-theme="dark"] .role-chip.role-time { color: #c48cff; }
-:root[data-theme="dark"] .role-chip.role-value { color: #4aa8ff; } /* 4.5:1 on the inset fill */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .import-preview th.role-group,
-  :root:not([data-theme="light"]) .role-chip.role-group { color: #4cd964; }
-  :root:not([data-theme="light"]) .import-preview th.role-subject,
-  :root:not([data-theme="light"]) .role-chip.role-subject { color: #ffb340; }
-  :root:not([data-theme="light"]) .import-preview th.role-time,
-  :root:not([data-theme="light"]) .role-chip.role-time { color: #c48cff; }
-  :root:not([data-theme="light"]) .role-chip.role-value { color: #4aa8ff; }
-}
+.import-preview th.role-time, .role-chip.role-time { color: var(--role-time); }
 .import-preview td.dim { color: var(--faint); }
 .agg-steps { display: flex; flex-direction: column; gap: 6px; }
 .agg-step { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; font-size: 13px; color: var(--ink-2); }
@@ -159,7 +147,7 @@
 
 /* Password screen of a protected share link (UnlockScreen.tsx) */
 .unlock-screen {
-  min-height: 100vh; display: grid; place-items: center; padding: 24px 16px;
+  min-height: 100dvh; display: grid; place-items: center; padding: 24px 16px;
   background: var(--page);
 }
 .unlock-card {
@@ -185,7 +173,7 @@
 
 /* "Your data and privacy" (PrivacyPage.tsx) */
 .privacy-page { width: min(720px, calc(100vw - 32px)); }
-.privacy-page .modal-body { max-height: calc(100vh - 48px); overflow: auto; }
+.privacy-page .modal-body { max-height: calc(100dvh - 48px); overflow: auto; }
 .privacy-page section + section { margin-top: 14px; }
 .privacy-page h3 { margin: 0 0 6px; font-size: 14.5px; }
 .privacy-page p, .privacy-page li { font-size: 13.5px; color: var(--ink-2); line-height: 1.5; }

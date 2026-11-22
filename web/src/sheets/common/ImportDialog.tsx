@@ -270,7 +270,7 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
                 placeholder={"Dose;Response\n0,1;98,5\n1;50,2"}
                 onChange={(e) => { setPasted(e.target.value); setRoleOverride({}); }} />
               <span className="field-note">
-                Paste here, or <button type="button" className="linkish"
+                Paste here, or <button type="button" data-still className="linkish"
                   onClick={() => { void readClipboard(); }}>read the clipboard</button>.
               </span>
             </label>

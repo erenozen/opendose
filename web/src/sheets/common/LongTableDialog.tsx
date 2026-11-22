@@ -146,7 +146,7 @@ export default function LongTableDialog({ target, sheet, onClose }: {
             placeholder={"stratum,exposure,outcome,count\nA,yes,case,12\n…"}
             onChange={(e) => { setText(e.target.value); reset(); }} />
           <span className="field-note">
-            Paste here, or <button type="button" className="linkish"
+            Paste here, or <button type="button" data-still className="linkish"
               onClick={() => { void readClipboard(); }}>read the clipboard</button>.
           </span>
         </label>

@@ -51,7 +51,4 @@
 @media (max-width: 760px) {
   .reproduce-strip { margin: 10px 12px 0; }
 }
-@media (prefers-reduced-motion: reduce) {
-  .reproduce-strip { transition: none; }
-}
 @media print { .reproduce-strip { display: none; } }

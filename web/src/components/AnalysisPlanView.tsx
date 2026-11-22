@@ -159,7 +159,7 @@ export default function AnalysisPlanView({ sheet }: { sheet: InfoSheet & { plan:
           <ul className="plan-log" aria-label="Deviations in the results">
             {devs.map((d) => (
               <li key={`${d.sheetId}:${d.key}`}>
-                <button type="button" className="linkish" onClick={() => select(d.sheetId)}>
+                <button type="button" data-still className="linkish" onClick={() => select(d.sheetId)}>
                   {d.text.replace(/^./, (c) => c.toUpperCase())}</button>
                 {d.reason ? ` (reason: ${d.reason})` : " (no reason recorded)"}
               </li>

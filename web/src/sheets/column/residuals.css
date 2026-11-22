@@ -7,7 +7,9 @@
   font: inherit; font-size: 15px; font-weight: 650; color: var(--ink);
   letter-spacing: -0.01em;
 }
-.resid-toggle:hover { color: var(--accent); }
+@media (hover: hover) and (pointer: fine) {
+  .resid-toggle:hover { color: var(--accent); }
+}
 .resid-caret { width: 1em; color: var(--muted); }
 .resid-grid {
   display: grid; gap: 16px; margin-top: 8px;

@@ -1,0 +1,20 @@
+/* ============================ plate import ============================ */
+
+.section-toggle {
+  border: none; background: transparent; text-align: left;
+  color: var(--muted); padding: 2px 0; cursor: pointer;
+}
+@media (hover: hover) and (pointer: fine) {
+  .section-toggle:hover { color: var(--accent); }
+}
+.plate-form {
+  display: flex; flex-direction: column; gap: 10px; margin-top: 10px;
+  transition: opacity var(--dur-enter) var(--ease-out), transform var(--dur-enter) var(--ease-out);
+  opacity: 1; transform: translateY(0);
+  @starting-style { opacity: 0; transform: translateY(-4px); }
+}
+.plate-form label {
+  display: flex; flex-direction: column; gap: 4px;
+  color: var(--ink-2); font-size: var(--text-body-s);
+}
+.plate-grid-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; }

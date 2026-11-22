@@ -70,7 +70,7 @@ function serviceWorker(hash: string): Plugin {
     apply: 'build',
     generateBundle(_options, bundle) {
       const app = [
-        './', 'index.html', 'favicon.svg', 'icons.svg', `py/opendose/bundle.json?v=${hash}`,
+        './', 'index.html', 'favicon.svg', `py/opendose/bundle.json?v=${hash}`,
         ...Object.keys(bundle).filter((f) => !f.endsWith('.map') && f !== 'index.html'),
       ]
       const build = createHash('sha256').update(JSON.stringify(app)).digest('hex').slice(0, 12)
@@ -106,6 +106,29 @@ function bootFirst(base: string): Plugin {
   }
 }
 
+/** Preload the Latin Inter file in the built page: the font is otherwise
+ *  found only after the stylesheet loads and the first text renders, and
+ *  its swap from the fallback reflows every line (BEF-03). Other subsets
+ *  (Cyrillic, Greek, ...) still load on demand through unicode-range. */
+function fontPreload(base: string): Plugin {
+  return {
+    name: 'opendose-font-preload',
+    apply: 'build',
+    transformIndexHtml: {
+      order: 'post',
+      handler(_html, ctx) {
+        const font = Object.keys(ctx.bundle ?? {}).find((f) =>
+          /inter-latin-wght-normal-[\w-]+\.woff2$/.test(f))
+        if (!font) throw new Error('fontPreload: the Inter latin woff2 is not in the bundle')
+        return [{
+          tag: 'link', injectTo: 'head',
+          attrs: { rel: 'preload', href: `${base}${font}`, as: 'font', type: 'font/woff2', crossorigin: true },
+        }]
+      },
+    },
+  }
+}
+
 const ENGINE_HASH = engineHash()
 
 // https://vite.dev/config/
@@ -113,7 +136,7 @@ export default defineConfig({
   // The site lives at the root of opendose.erenozen.dev, as the dev server.
   // Engine fetches resolve via import.meta.env.BASE_URL.
   base: '/',
-  plugins: [react(), serviceWorker(ENGINE_HASH), bootFirst('/')],
+  plugins: [react(), serviceWorker(ENGINE_HASH), bootFirst('/'), fontPreload('/')],
   define: {
     __ENGINE_HASH__: JSON.stringify(ENGINE_HASH),
     __PYODIDE_VERSION__: JSON.stringify(pyodideVersion),

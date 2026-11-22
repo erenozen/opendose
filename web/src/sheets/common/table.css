@@ -1,0 +1,70 @@
+/* The data table island: cells, headers, row tools. */
+
+/* ============================ data table ============================ */
+
+.data-table { padding: 10px; }
+.data-table table { border-collapse: collapse; width: 100%; }
+.data-table th, .data-table td { border: 1px solid var(--grid); padding: 0; }
+.data-table thead th {
+  background: var(--inset); color: var(--ink-2); font-weight: var(--weight-semibold);
+  font-size: var(--text-caption); padding: 5px 6px;
+}
+.data-table .subhead th { font-weight: var(--weight-regular); color: var(--muted); }
+.data-table .rownum {
+  width: 28px; text-align: center; color: var(--muted);
+  font-size: var(--text-caption); border: none; background: transparent;
+  font-variant-numeric: tabular-nums;
+}
+.data-table .rowtools { border: none; background: transparent; width: 26px; }
+.data-table .rowtools button, .ds-tools button {
+  border: none; background: transparent; color: var(--muted);
+  cursor: pointer; font-size: var(--text-caption); padding: 5px 7px; border-radius: var(--radius-control);
+}
+@media (hover: hover) and (pointer: fine) {
+  .data-table .rowtools button:hover, .ds-tools button:hover {
+    color: var(--ink); background: var(--grid);
+  }
+}
+.data-table input {
+  /* Wide enough for scientific notation ("3.162e-9") plus padding */
+  width: 100%; min-width: 80px; border: none; background: transparent;
+  color: var(--ink); padding: 6px 7px; font: inherit;
+  font-variant-numeric: tabular-nums; text-align: right;
+}
+.group-head { white-space: nowrap; }
+.ds-name {
+  border: none; background: transparent; color: var(--ink);
+  font: inherit; font-weight: var(--weight-semibold); width: 9ch; text-align: center;
+}
+.data-table .row-label { background: var(--inset); padding: 0 4px; }
+.data-table .row-label .ds-name { width: 13ch; text-align: left; }
+.table-actions {
+  display: flex; gap: 8px; align-items: center; padding: 10px 4px 2px;
+  flex-wrap: wrap;
+}
+.table-actions .hint { color: var(--muted); font-size: var(--text-caption); }
+
+/* Data grid additions */
+.data-table .row-label-head { min-width: 13ch; }
+.data-table .xhead { white-space: nowrap; }
+.x-format-tag {
+  display: block; font-size: var(--text-caption); font-weight: var(--weight-medium); color: var(--muted);
+}
+.data-table td.excluded input {
+  color: var(--muted); text-decoration: line-through;
+  font-style: italic;
+}
+.data-table input.text-cell { text-align: left; }
+.data-table .sub-title {
+  min-width: 0; text-align: center; padding: 0; font-weight: var(--weight-regular);
+  color: var(--muted); font-size: var(--text-caption);
+}
+.data-table .sub-title::placeholder { color: var(--muted); opacity: 1; }
+.data-table .var-type {
+  font-size: var(--text-caption); padding: 2px 4px; border-radius: var(--radius-control); width: 100%;
+}
+.data-table.is-readonly input { cursor: default; }
+
+@media (max-width: 760px) {
+  .data-table .rowtools button, .ds-tools button { min-height: 32px; }
+}

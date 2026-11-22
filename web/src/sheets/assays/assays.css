@@ -1,5 +1,5 @@
 /* Assay modules (growth, tumour growth, AUC, synergy, volcano, clustered
-   heat maps). Tokens only (index.css / App.css). */
+   heat maps). Tokens only (styles/tokens.css). */
 
 .assay-card h4 { margin-top: 14px; }
 .assay-kv { max-width: 560px; }

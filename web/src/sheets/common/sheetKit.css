@@ -1,5 +1,5 @@
 /* Shared by the parts-of-whole and nested sheets: notes in results
-   sheets and the small editable column used for expected values. Tokens only (index.css / App.css). */
+   sheets and the small editable column used for expected values. Tokens only (styles/tokens.css). */
 
 .result-note {
   margin: 8px 0 10px; padding: 8px 12px; font-size: 13px;

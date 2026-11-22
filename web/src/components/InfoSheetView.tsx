@@ -36,7 +36,7 @@ export default function InfoSheetView({ sheet }: { sheet: InfoSheet }) {
     <main className="info-main">
       {sheet.plan ? <AnalysisPlanView sheet={{ ...sheet, plan: sheet.plan }} /> : !ro && (
         <p className="plan-strip">
-          <button type="button" className="linkish" onClick={writePlan}>Write an analysis plan on this sheet</button>{" "}
+          <button type="button" data-still className="linkish" onClick={writePlan}>Write an analysis plan on this sheet</button>{" "}
           <span>primary comparison, test, n per group, exclusion rule and α, written before the
             data; results of the linked table are checked against it.</span>
         </p>

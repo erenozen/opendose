@@ -53,7 +53,7 @@
 
 /* journal checklists */
 .checklist-modal { width: min(860px, 96vw); }
-.checklist-modal .modal-body { max-height: 82vh; overflow-y: auto; }
+.checklist-modal .modal-body { max-height: 82svh; overflow-y: auto; }
 .checklist-summary { color: var(--muted); font-size: 13px; margin: 0 0 8px; }
 .checklist-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0 10px; }
 .checklist-tabs button[aria-selected="true"] { color: var(--accent); border-color: var(--accent); }
@@ -73,7 +73,7 @@
 
 /* history (provenance) */
 .history-modal { width: min(900px, 96vw); }
-.history-modal .modal-body { max-height: 82vh; overflow-y: auto; }
+.history-modal .modal-body { max-height: 82svh; overflow-y: auto; }
 .history-step { border: 1px solid var(--border-soft); border-radius: var(--radius-s); padding: 8px 12px; margin: 8px 0; }
 .history-step h3 { margin: 0 0 4px; font-size: 13.5px; color: var(--ink); }
 .history-step .hs-meta { color: var(--muted); font-size: 12px; margin: 0 0 6px; overflow-wrap: anywhere; }

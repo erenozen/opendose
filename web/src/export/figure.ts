@@ -8,9 +8,11 @@
 // size and the plot area grows or shrinks around it.
 import type Plotly from "plotly.js-dist-min";
 import { loadPlotly } from "../lib/plotly";
+import { isDarkMode, SCHEMES, type SchemeId } from "../lib/palette";
 import {
-  CHROME_DARK, CHROME_LIGHT, isDarkMode, SCHEMES, type SchemeId,
-} from "../lib/palette";
+  EXPORT_CHROME_DARK, EXPORT_CHROME_LIGHT, SCREEN_CHROME_DARK, SCREEN_CHROME_LIGHT,
+  type Chrome,
+} from "../lib/chrome";
 import { CSS_DPI } from "./settings";
 
 export interface ExportLook {
@@ -53,12 +55,29 @@ export async function waitForPlot(root: ParentNode, timeout = 20000): Promise<Pl
   }
 }
 
+const key = (c: string) => c.toLowerCase().replace(/\s+/g, "");
+
+/** Screen chrome -> the pinned export chrome. On screen, plots follow the
+ *  app's tokens; a file keeps the chrome exports have always had (ruling
+ *  10), whatever the tokens are retuned to. Light screen colours always
+ *  map to the light (paper) export chrome; dark ones to the dark export
+ *  chrome, or to paper when `paper` is set. */
+function chromeMap(paper: boolean): Map<string, string> {
+  const m = new Map<string, string>();
+  const add = (from: Chrome, to: Chrome) => {
+    for (const k of Object.keys(from) as (keyof Chrome)[]) {
+      if (!m.has(key(from[k]))) m.set(key(from[k]), to[k]);
+    }
+  };
+  add(SCREEN_CHROME_DARK, paper ? EXPORT_CHROME_LIGHT : EXPORT_CHROME_DARK);
+  add(SCREEN_CHROME_LIGHT, EXPORT_CHROME_LIGHT);
+  if (paper) add(EXPORT_CHROME_DARK, EXPORT_CHROME_LIGHT);
+  return m;
+}
+
 /** Dark-theme colour -> light-theme colour, for the chrome and the scheme. */
 function paperMap(scheme: SchemeId | undefined): Map<string, string> {
-  const m = new Map<string, string>();
-  for (const k of Object.keys(CHROME_DARK) as (keyof typeof CHROME_DARK)[]) {
-    m.set(CHROME_DARK[k].toLowerCase(), CHROME_LIGHT[k]);
-  }
+  const m = chromeMap(true);
   const ids = scheme ? [scheme] : (Object.keys(SCHEMES) as SchemeId[]);
   for (const id of ids) {
     const s = SCHEMES[id];
@@ -69,10 +88,15 @@ function paperMap(scheme: SchemeId | undefined): Map<string, string> {
   return m;
 }
 
-/** Replace #rrggbb (and #rrggbbaa) colours in any JSON-able value. */
+/** Replace #rrggbb (and #rrggbbaa) colours, and rgba() strings the map
+ *  names, in any JSON-able value. */
 export function remapColours<T>(value: T, map: Map<string, string>): T {
-  const json = JSON.stringify(value).replace(/#[0-9a-f]{6}(?=(?:[0-9a-f]{2})?")/gi,
-    (hex) => map.get(hex.toLowerCase()) ?? hex);
+  const json = JSON.stringify(value)
+    .replace(/#[0-9a-f]{6}(?=(?:[0-9a-f]{2})?")/gi, (hex) => map.get(hex.toLowerCase()) ?? hex)
+    .replace(/"(rgba?\([^"]*\))"/g, (whole, c: string) => {
+      const to = map.get(key(c));
+      return to ? JSON.stringify(to) : whole;
+    });
   return JSON.parse(json) as T;
 }
 
@@ -90,11 +114,9 @@ export function wantsPaper(look: ExportLook): boolean {
 export function exportFigure(gd: PlotDiv, look: ExportLook): Figure {
   let data = (gd.data ?? []) as Plotly.Data[];
   let layout = { ...(gd.layout ?? {}) } as Partial<Plotly.Layout>;
-  if (wantsPaper(look)) {
-    const map = paperMap(look.scheme);
-    data = remapColours(data, map);
-    layout = remapColours(layout, map);
-  }
+  const map = wantsPaper(look) ? paperMap(look.scheme) : chromeMap(false);
+  data = remapColours(data, map);
+  layout = remapColours(layout, map);
   if (look.transparent) {
     layout.paper_bgcolor = TRANSPARENT;
     layout.plot_bgcolor = TRANSPARENT;

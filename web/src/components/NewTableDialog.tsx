@@ -180,7 +180,7 @@ export default function NewTableDialog({ defaultType, defaultName, onCancel, onC
       <div className="new-table-grid">
         <fieldset className="type-list">
           <legend>Table format</legend>
-          <button type="button" className="linkish design-entry" onClick={() => setDesignOpen(true)}>
+          <button type="button" data-still className="linkish design-entry" onClick={() => setDesignOpen(true)}>
             Not sure? Describe the experiment…</button>
           {TABLE_ORDER.map((t) => {
             const d = REGISTRY[t];

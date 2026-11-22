@@ -1,5 +1,5 @@
 /* Data grid tools: toolbar, block selection, Data Inspector, and the
-   import / export / table dialogs. Uses the design tokens of App.css. */
+   import / export / table dialogs. Uses the design tokens of styles/tokens.css. */
 
 .grid-editor { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 
@@ -15,7 +15,6 @@
   width: 1px; align-self: stretch; margin: 3px 2px; background: var(--border);
 }
 .grid-toolbar button:disabled { opacity: 0.45; cursor: default; }
-.grid-toolbar button:disabled:active { transform: none; }
 .menu-wrap { position: relative; display: inline-flex; }
 .grid-menu { position: absolute; top: calc(100% + 4px); left: 0; }
 .grid-menu.align-right { left: auto; right: 0; }
@@ -109,7 +108,7 @@
   overflow: hidden; text-overflow: ellipsis;
 }
 .import-preview thead th {
-  position: sticky; top: 0; background: var(--surface); z-index: 1;
+  position: sticky; top: 0; background: var(--surface); z-index: var(--z-base);
   text-align: center; font-weight: 600; color: var(--ink-2);
 }
 .import-preview thead tr + tr th { top: 30px; }
@@ -136,7 +135,6 @@ button.linkish {
   color: var(--accent); font: inherit; font-size: inherit; cursor: pointer;
   text-decoration: underline; text-underline-offset: 2px;
 }
-button.linkish:active { transform: none; }
 @media (hover: hover) and (pointer: fine) {
   button.linkish:hover { background: none; color: var(--accent); text-decoration-thickness: 2px; }
 }
@@ -155,9 +153,9 @@ button.linkish:active { transform: none; }
 
 /* ---- long tables (virtualRows.ts): the table scrolls inside its card,
    only the rows in view are rendered, and the header stays in view. */
-.data-table.virtual { max-height: max(420px, 85vh); overscroll-behavior: contain; }
+.data-table.virtual { max-height: max(420px, 85svh); overscroll-behavior: contain; }
 .data-table.virtual thead {
-  position: sticky; top: -10px; z-index: 2; background: var(--surface);
+  position: sticky; top: -10px; z-index: calc(var(--z-base) + 1); background: var(--surface);
 }
 /* --inset is translucent: layer it on the card colour so rows scrolling
    under the header do not show through. */
