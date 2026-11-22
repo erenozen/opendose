@@ -138,6 +138,69 @@ def _gg_epsilon(M):
     return float(min(max(num / den, 1.0 / (k - 1)), 1.0))
 
 
+def rm_linear_trend(datasets, names=None) -> dict:
+    """Test for linear trend after repeated-measures one-way ANOVA: the
+    treatments are coded 1, 2, ..., k in the order entered and the
+    treatment SS is split into the part a straight line through the
+    treatment means explains (1 df) and the rest (nonlinear variation,
+    k - 2 df), each tested with F against the RM ANOVA's residual mean
+    square (subject x treatment), as the trend test after ordinary one-way
+    ANOVA uses the within-group mean square (Maxwell & Delaney 2004, ch.
+    11, trend analysis in within-subject designs; R: summary(aov(y ~ treat
+    + Error(subject / treat)), split = list(treat = list(linear = 1)))
+    with polynomial contrasts). The pooled residual assumes sphericity;
+    per_subject is the test that does not: each subject's linear score
+    sum_j c_j y_ij (c centred codes) tested against 0 by a one-sample t
+    test on n - 1 df (t^2 = F). Only complete subjects are used, as in
+    rm_one_way_anova."""
+    M = _complete_matrix(datasets)
+    n, k = M.shape
+    if k < 3:
+        raise ValueError("a test for trend needs at least 3 treatments")
+    if n < 2:
+        raise ValueError("a test for trend needs at least 2 complete subjects")
+    grand = M.mean()
+    means = M.mean(axis=0)
+    codes = np.arange(1, k + 1, dtype=float)
+    c = codes - codes.mean()
+    scc = float((c * c).sum())
+    slope = float((c * (means - grand)).sum() / scc)
+    ss_linear = float(n * ((c * means).sum()) ** 2 / scc)
+    ss_treat = float(n * ((means - grand) ** 2).sum())
+    ss_subject = float(k * ((M.mean(axis=1) - grand) ** 2).sum())
+    ss_total = float(((M - grand) ** 2).sum())
+    ss_error = ss_total - ss_treat - ss_subject
+    df_error = (n - 1) * (k - 1)
+    ms_error = ss_error / df_error
+    ss_nonlin = max(ss_treat - ss_linear, 0.0)
+    df_nonlin = k - 2
+    f_lin = ss_linear / ms_error if ms_error > 0 else math.inf
+    f_non = (ss_nonlin / df_nonlin) / ms_error if ms_error > 0 else math.inf
+    scores = M @ c
+    sd = float(scores.std(ddof=1))
+    t = float(scores.mean() / (sd / math.sqrt(n))) if sd > 0 else math.inf
+    return {
+        "codes": codes.tolist(),
+        "names": list(names) if names else [f"Treatment {i}" for i in range(k)],
+        "n_subjects": int(n),
+        "slope": slope,
+        "linear": {"ss": ss_linear, "df": 1, "F": f_lin,
+                   "p": float(stats.f.sf(f_lin, 1, df_error))},
+        "nonlinear": {"ss": ss_nonlin, "df": df_nonlin, "F": f_non,
+                      "p": float(stats.f.sf(f_non, df_nonlin, df_error))},
+        "within": {"ss": ss_error, "df": df_error, "ms": ms_error,
+                   "label": "residual (subject x treatment)"},
+        "per_subject": {"t": t, "df": n - 1, "F": t * t,
+                        "p": float(2 * stats.t.sf(abs(t), n - 1)),
+                        "mean_score": float(scores.mean()), "sd_score": sd},
+        # variation within subjects that the line explains
+        "r_squared": (ss_linear / (ss_treat + ss_error)
+                      if ss_treat + ss_error > 0 else None),
+        "r_squared_alerting": ss_linear / ss_treat if ss_treat > 0 else None,
+        "repeated": True,
+    }
+
+
 def rm_one_way_anova(datasets, names=None) -> dict:
     M = _complete_matrix(datasets)
     n, k = M.shape  # subjects, treatments

@@ -566,6 +566,13 @@ export default function ColumnControls({ options, datasetNames, onChange, summar
             <RmPosthocControls options={options} datasetNames={datasetNames}
               onChange={onChange} incomplete={incompleteSubjects} />
           )}
+          {options.rmKind === "parametric" && !summaryData && (
+            <label className="check-row">
+              <input type="checkbox" checked={!!options.anovaTrend}
+                onChange={(e) => set({ anovaTrend: e.target.checked })} />
+              <span>Test for linear trend (treatments in the order entered)</span>
+            </label>
+          )}
           <p className="hint-block">
             Rows are matched subjects; each dataset is one treatment.
             First subcolumn of each dataset is used.

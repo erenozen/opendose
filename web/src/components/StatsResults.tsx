@@ -453,21 +453,33 @@ function Anova({ result }: { result: any }) {
 function TrendBlock({ trend }: { trend: any }) {
   if (trend.error) return <p className="result-note">Test for linear trend: {String(trend.error)}</p>;
   const order = (trend.names ?? []).map((n: string, i: number) => `${n} = ${i + 1}`).join(", ");
+  const rm = !!trend.repeated;
+  const ps = trend.per_subject;
   return (
     <>
       <h4>Test for linear trend</h4>
       <KV rows={[
-        ["Slope (change in mean per column)", formatSig(trend.slope)],
+        [rm ? "Slope (change in mean per treatment)" : "Slope (change in mean per column)", formatSig(trend.slope)],
         ["R squared (effect size)", formatSig(trend.r_squared)],
         ["Alerting R squared", formatSig(trend.r_squared_alerting)],
         ["Linear trend: F (DFn, DFd), P",
           `F(1, ${trend.within.df}) = ${formatSig(trend.linear.F)}, ${pLabel(trend.linear.p)} ${stars(trend.linear.p)}`],
         ["Nonlinear variation: F (DFn, DFd), P",
           `F(${trend.nonlinear.df}, ${trend.within.df}) = ${formatSig(trend.nonlinear.F)}, ${pLabel(trend.nonlinear.p)}`],
+        ...(rm && ps ? [["Linear trend, sphericity not assumed: t (df), P",
+          `t(${ps.df}) = ${formatSig(ps.t)}, ${pLabel(ps.p)} ${stars(ps.p)}`] as [string, string]] : []),
       ]} />
-      <p className="model-line">Columns coded in the order entered ({order}). R squared is the share of all
-        the variation the trend explains; the alerting R squared its share of the variation between the
-        column means. A small nonlinear-variation P says the means do not lie on a straight line.</p>
+      {rm ? (
+        <p className="model-line">Treatments coded in the order entered ({order}); {trend.n_subjects} complete
+          subjects. The F tests use the RM ANOVA residual (subject × treatment), which assumes
+          sphericity; the t test uses each subject&apos;s own linear score, so it does not. R squared is
+          the share of the within-subject variation the trend explains; the alerting R squared its share
+          of the variation between the treatment means.</p>
+      ) : (
+        <p className="model-line">Columns coded in the order entered ({order}). R squared is the share of all
+          the variation the trend explains; the alerting R squared its share of the variation between the
+          column means. A small nonlinear-variation P says the means do not lie on a straight line.</p>
+      )}
     </>
   );
 }
@@ -669,6 +681,7 @@ function RMAnova({ result }: { result: any }) {
         ["R squared", formatSig(result.r_squared)],
       ]} />
       {rmComparisonsOf(result) && <RmComparisons mc={rmComparisonsOf(result)} names={result.names} />}
+      {result.trend && <TrendBlock trend={result.trend} />}
     </div>
   );
 }

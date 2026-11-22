@@ -1287,6 +1287,12 @@ def _rm_anova(data, options):
     else:
         result = {"analysis": "rm_one_way_anova",
                   **repeated.rm_one_way_anova(aligned, names)}
+        if options.get("trend"):
+            # columns in the order entered, coded 1, 2, ...
+            try:
+                result["trend"] = repeated.rm_linear_trend(aligned, names)
+            except ValueError as exc:
+                result["trend"] = {"error": str(exc)}
         comp = _rm_comparison_options(options)
         if comp is not None:
             # post tests on the matched data (opendose.rm_posthoc)

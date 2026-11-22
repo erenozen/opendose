@@ -210,7 +210,9 @@ export function columnPayload(table: DataTableModel, o: ColumnOptionsState):
       options: { kind: o.rmKind,
         ...(o.rmKind === "nonparametric" && o.rmExact ? { exact: true } : {}),
         ...(o.rmKind === "nonparametric" ? familyOptions(o, base.data.datasets.length) : {}),
-        ...(rmCmp ? { comparisons: rmCmp } : {}) } };
+        ...(rmCmp ? { comparisons: rmCmp } : {}),
+        // test for linear trend (treatments in the order entered)
+        ...(o.rmKind === "parametric" && o.anovaTrend ? { trend: true } : {}) } };
   }
   if (o.analysis === "roc") {
     return { analysis: "roc", ...base,

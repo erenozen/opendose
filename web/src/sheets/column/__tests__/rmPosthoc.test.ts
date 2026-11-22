@@ -112,3 +112,17 @@ test("methods sentence names the test, the baseline and the error term", () => {
   assert.match(rmMethodsSentence(mixed), /mixed-effects model .* 2 missing values, 6 subjects/);
   assert.match(rmMethodsSentence(mixed), /Tukey's multiple comparisons test; each comparison used the model's estimated means/);
 });
+
+test("test for linear trend after RM ANOVA: payload and Methods", async () => {
+  const { columnPayload } = await import("../run.ts");
+  const t = normalizeTable({ type: "column", datasets: [
+    { name: "A", rows: [["1"], ["2"], ["3"]] }, { name: "B", rows: [["2"], ["3"], ["5"]] },
+    { name: "C", rows: [["4"], ["4"], ["6"]] }] });
+  const p = columnPayload(t, o({ analysis: "rm_anova", rmKind: "parametric", anovaTrend: true })) as { options: Record<string, unknown> };
+  assert.equal(p.options.trend, true);
+  const f = columnPayload(t, o({ analysis: "rm_anova", rmKind: "nonparametric", anovaTrend: true })) as { options: Record<string, unknown> };
+  assert.equal("trend" in f.options, false);
+  const s = rmMethodsSentence({ analysis: "rm_one_way_anova", trend: { slope: 1.5, linear: { F: 20 }, nonlinear: { F: 1, df: 1 },
+    within: { df: 4 }, per_subject: { t: 4.2, df: 2 } } });
+  assert.match(s, /A test for linear trend .* slope of 1\.5 per treatment \(F\(1, 4\) = 20 .* t\(2\) = 4\.2/);
+});

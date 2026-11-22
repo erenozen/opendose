@@ -14,6 +14,7 @@
 import { numericData } from "../../project/table.ts";
 import type { DataTableModel } from "../../project/types.ts";
 import type { ColumnOptionsState } from "../../types.ts";
+import { formatSig } from "../../types.ts";
 import { effectiveFamily, PLANNED_METHODS, validPairs } from "./comparisonsFamily.ts";
 import { ddfMethodsSentence, ddfName, ddfOf } from "../common/ddf.ts";
 
@@ -157,7 +158,10 @@ export function rmMethodsSentence(result: unknown): string {
   const test = mixed
     ? `a mixed-effects model (restricted maximum likelihood, random subject intercept; ${r.n_missing ?? "some"} missing value${r.n_missing === 1 ? "" : "s"}, ${r.n_subjects} subjects)${ddf === "containment" ? " with the Geisser-Greenhouse correction" : `, ${ddfName(ddf)} degrees of freedom`}`
     : "repeated-measures one-way ANOVA with the Geisser-Greenhouse correction";
-  if (!mc) return `Matched values were compared by ${test}.${tail}`;
+  const tr = r.trend && !r.trend.error
+    ? ` A test for linear trend across the treatments in the order entered gave a slope of ${formatSig(r.trend.slope)} per treatment (F(1, ${r.trend.within.df}) = ${formatSig(r.trend.linear.F)} against the RM ANOVA residual; nonlinear variation F(${r.trend.nonlinear.df}, ${r.trend.within.df}) = ${formatSig(r.trend.nonlinear.F)}; without assuming sphericity, t(${r.trend.per_subject.df}) = ${formatSig(r.trend.per_subject.t)} on the subjects' linear scores).`
+    : "";
+  if (!mc) return `Matched values were compared by ${test}.${tr}${tail}`;
   const m = String(mc.method ?? "");
   const names: string[] = Array.isArray(mc.names) ? mc.names : Array.isArray(r.names) ? r.names : [];
   const baseline = m === "dunnett" ? baselineName(mc, names) : null;
@@ -167,7 +171,7 @@ export function rmMethodsSentence(result: unknown): string {
       : "the pooled residual mean square of the RM ANOVA (sphericity assumed)";
   const size = typeof mc.family?.size === "number" ? mc.family.size : mc.comparisons.length;
   const adj = m === "fisher_lsd" || m === "fisher" ? "" : `, P values adjusted for ${size} comparison${size === 1 ? "" : "s"}`;
-  return `Matched values were compared by ${test}, followed by ${phrase}; each comparison used ${err}${adj}.${tail}`;
+  return `Matched values were compared by ${test}, followed by ${phrase}; each comparison used ${err}${adj}.${tr}${tail}`;
 }
 
 /** The baseline a Dunnett family compares with ("Baseline"), from the
