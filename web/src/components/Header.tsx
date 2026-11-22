@@ -19,6 +19,8 @@ import Menu from "./ui/Menu";
 import Popover from "./ui/Popover";
 import Tooltip from "./ui/Tooltip";
 import { Logo } from "./WelcomePanel";
+import { FileButton } from "./ui/Button";
+import { OPEN_ACCEPT } from "../app/useFileOpen";
 
 /**
  * App header: navigator toggle, brand, the analysis tabs of the current
@@ -29,7 +31,7 @@ export default function Header({ onOpenFile, onNewProject }: {
   onNewProject: () => void;
 }) {
   const api = useProject();
-  const { project, selectedId, select, prefs, setPrefs, status, history } = api;
+  const { project, selectedId, select, prefs, setPrefs, history } = api;
   const ui = useUi();
   const cmd = useCommands();
   const guide = useGuideOptional();
@@ -345,16 +347,10 @@ export default function Header({ onOpenFile, onNewProject }: {
           <span className="label-short" aria-hidden="true">Save</span>
         </button>
         <SaveMenu onSave={cmd.save} />
-        <label className="load-btn">
-          Open
-          <input type="file" accept=".json,.pzfx,.prism,.zip" hidden
-            aria-label="Open an OpenDose project or a Prism file"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) onOpenFile(f);
-              e.target.value = "";
-            }} />
-        </label>
+        <FileButton variant="ghost" className="open-btn" accept={OPEN_ACCEPT}
+          inputLabel="Open an OpenDose project or a Prism file"
+          title={`Open a project or a Prism file (${modKey}O)`} onFile={onOpenFile}>
+          Open</FileButton>
         <button ref={moreBtnRef} type="button" className="theme-btn hdr-more-btn"
           aria-label="More actions" aria-expanded={moreOpen} aria-controls="header-secondary"
           title="More: about, theme, help, preferences, tools, new project"
@@ -363,9 +359,6 @@ export default function Header({ onOpenFile, onNewProject }: {
             <circle cx="3.5" cy="8" r="1.4" /><circle cx="8" cy="8" r="1.4" /><circle cx="12.5" cy="8" r="1.4" />
           </svg>
         </button>
-        <span className="status" role="status" aria-live="polite">
-          {status}
-        </span>
       </span>
     </header>
   );

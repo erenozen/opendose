@@ -6,6 +6,7 @@ import {
   coarsePointer, containTab, lastInputWasKeyboard, lockScroll, prefersReducedMotion, useMergedRefs,
   pushLayer, triggerOf,
 } from "./useDismiss.ts";
+import { Button, type ButtonProps } from "./Button";
 import "./Dialog.css";
 
 /*
@@ -220,10 +221,10 @@ function Actions({ className = "", ...props }: ComponentProps<"div">) {
   return <div className={`modal-actions ${className}`} {...props} />;
 }
 
-/** A button that closes the dialog (Cancel, Close). */
-function Close({ onClick, ...props }: ComponentProps<"button">) {
+/** A button that closes the dialog (Cancel, Close): a secondary Button. */
+function Close({ onClick, ...props }: ButtonProps) {
   const { setOpen } = useDialog();
-  return <button type="button" {...props}
+  return <Button {...props}
     onClick={(e) => { onClick?.(e); if (!e.defaultPrevented) setOpen(false); }} />;
 }
 

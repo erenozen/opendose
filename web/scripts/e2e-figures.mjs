@@ -91,7 +91,7 @@ writeFileSync(SUPER, JSON.stringify({
         column: { spread: "swarm", caption: "below" } } },
   ],
 }));
-await page.setInputFiles('.load-btn input[type="file"]', SUPER);
+await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]', SUPER);
 await page.waitForFunction(() => document.querySelector(".plot-card .plot")?.data?.length > 0,
   { timeout: 60000 });
 await page.waitForTimeout(600);
@@ -307,7 +307,7 @@ await shot("classic");
           grouped: { superplot: { on: true }, caption: "below" } } },
     ],
   }));
-  await page.setInputFiles('.load-btn input[type="file"]', GROUPED);
+  await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]', GROUPED);
   await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
     .some((t) => t.meta?.superplotMeans), { timeout: 60000 });
   await page.waitForTimeout(500);
@@ -446,7 +446,7 @@ await shot("classic");
         settings: { titles: { x: "", y: "" }, scheme: "colorblind", column: { caption: "below" } } },
     ],
   }));
-  await page.setInputFiles('.load-btn input[type="file"]', CELLS);
+  await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]', CELLS);
   await page.waitForSelector(".guide-chip", { timeout: 60000 });
   const chip = page.locator(".guide-chip", { hasText: "n might be cells" });
   expect("the n-might-be-cells chip fires on 60 values per group", await chip.count() === 1);

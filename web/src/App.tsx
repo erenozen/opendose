@@ -29,6 +29,7 @@ import { GuideProvider } from "./guide/GuideProvider";
 import ReportHost from "./report/ReportHost";
 import ReproduceStrip from "./report/ReproduceStrip";
 import PowerHost from "./power/PowerHost";
+import { Banner, Button, ToastProvider } from "./components/ui";
 import { lazy, Suspense, useEffect } from "react";
 
 // The page-layout composer is loaded the first time a layout sheet opens.
@@ -38,13 +39,15 @@ const StartScreen = lazy(() => import("./guide/StartScreen"));
 
 export default function App() {
   return (
-    <ProjectProvider>
-      <UiProvider>
-        <GuideProvider>
-          <Shell />
-        </GuideProvider>
-      </UiProvider>
-    </ProjectProvider>
+    <ToastProvider>
+      <ProjectProvider>
+        <UiProvider>
+          <GuideProvider>
+            <Shell />
+          </GuideProvider>
+        </UiProvider>
+      </ProjectProvider>
+    </ToastProvider>
   );
 }
 
@@ -52,7 +55,7 @@ function Shell() {
   const { project, selectedId, replace, store } = useProject();
   const ui = useUi();
   const guide = useGuide();
-  const files = useFileOpen();
+  const files = useFileOpen(guide.hideStart);
   const autosave = useAutosave();
   useShortcuts();
   useDerivedSync();
@@ -84,7 +87,7 @@ function Shell() {
     replace(p);
     guide.hideStart();
   };
-  const openFile = (f: File) => { guide.hideStart(); files.open(f); };
+  const openFile = (f: File) => { void files.open(f); };
 
   const sheet = findSheet(project, selectedId);
   const root = sheet ? findSheet(project, familyRootId(project, sheet.id)) : undefined;
@@ -115,35 +118,53 @@ function Shell() {
   return (
     <div className={`app${guide.startOpen ? " start-open" : ""}`}>
       <Header onOpenFile={openFile} onNewProject={newProject} />
-      <ShareHost />
+      {/* Conditions about the whole project, under the header (one
+          Banner each, DECISIONS 6). */}
+      <div className="banner-region">
+        <ShareHost />
+        <ReproduceStrip />
+        <Banner tone="info" className="restore-banner"
+          open={!!autosave.offer && !guide.startPending}>
+          {autosave.offer && (
+            <>
+              <Banner.Title>Restore your last session?</Banner.Title>
+              <Banner.Detail>
+                “{autosave.offer.title}”, {autosave.offer.sheets}{" "}
+                sheet{autosave.offer.sheets === 1 ? "" : "s"}, saved{" "}
+                {new Date(autosave.offer.savedAt).toLocaleString()}.
+              </Banner.Detail>
+              <Banner.Actions>
+                <Button variant="primary"
+                  onClick={() => { autosave.restore(); guide.hideStart(); }}>Restore</Button>
+                <Button onClick={autosave.dismiss}>Dismiss</Button>
+              </Banner.Actions>
+            </>
+          )}
+        </Banner>
+        <Banner tone="info" className="pzfx-chooser" open={!!files.prismTables} announce>
+          {files.prismTables && (
+            <>
+              <Banner.Title>
+                The Prism file has {files.prismTables.length} data tables. Import one, or all of them.
+              </Banner.Title>
+              <Banner.Detail>
+                Each becomes a data table of its own; data tables only, analyses are recomputed here.
+              </Banner.Detail>
+              <Banner.Actions>
+                <Button variant="primary" onClick={() => files.importTables(files.prismTables!)}>
+                  Import all</Button>
+                {files.prismTables.map((t, i) => (
+                  <Button key={i} onClick={() => files.importTables([t])}>
+                    {t.title || `Table ${i + 1}`} ({t.table_type})
+                  </Button>
+                ))}
+                <Button variant="ghost" onClick={files.dismissPrism}>Cancel</Button>
+              </Banner.Actions>
+            </>
+          )}
+        </Banner>
+      </div>
       <ReportHost />
-      <ReproduceStrip />
-      {autosave.offer && !guide.startPending && (
-        <div className="restore-banner" role="region" aria-label="Restore last session">
-          <span>
-            Restore your last session? “{autosave.offer.title}”, {autosave.offer.sheets}{" "}
-            sheet{autosave.offer.sheets === 1 ? "" : "s"}, saved{" "}
-            {new Date(autosave.offer.savedAt).toLocaleString()}.
-          </span>
-          <button className="btn-primary"
-            onClick={() => { autosave.restore(); guide.hideStart(); }}>Restore</button>
-          <button className="dismiss" onClick={autosave.dismiss}>Dismiss</button>
-        </div>
-      )}
-      {files.prismTables && (
-        <div className="pzfx-chooser">
-          <span>Prism file contains {files.prismTables.length} data tables. Pick
-            one to import, or import them all as separate tables (data tables only:
-            analyses are recomputed here):</span>
-          {files.prismTables.map((t, i) => (
-            <button key={i} onClick={() => files.importTables([t])}>
-              {t.title || `Table ${i + 1}`} ({t.table_type})
-            </button>
-          ))}
-          <button onClick={() => files.importTables(files.prismTables!)}>Import all</button>
-          <button className="dismiss" onClick={files.dismissPrism}>Cancel</button>
-        </div>
-      )}
       {guide.startPending ? (
         <main className="info-main" aria-busy="true" aria-label="Opening OpenDose" />
       ) : guide.startOpen ? (

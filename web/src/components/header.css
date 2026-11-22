@@ -70,14 +70,8 @@ header[data-scrolled="true"] { border-bottom-color: var(--line-solid); }
 }
 .theme-btn svg { display: block; }
 
-.status {
-  color: var(--accent); font-size: var(--text-body-s); font-weight: var(--weight-medium);
-  animation: pulse 1.2s ease-in-out infinite alternate;
-}
+/* Loading pulse, used by the welcome panel (welcome.css). */
 @keyframes pulse { from { opacity: 0.55; } to { opacity: 1; } }
-@media (prefers-reduced-motion: reduce) {
-  .status { animation: none; }
-}
 
 /* Info and preferences popovers (ui/Popover places and animates them) */
 .info-wrap { display: inline-flex; }
@@ -146,12 +140,9 @@ header[data-scrolled="true"] { border-bottom-color: var(--line-solid); }
 @media (max-width: 760px) {
   /* One row: navigator, logo, then undo, redo, save, open and More. */
   .project-actions {
-    /* basis 0: a long status line wraps inside, not the whole group */
     flex: 1 1 0; flex-wrap: wrap; justify-content: flex-end;
     margin-left: auto; gap: var(--space-6); min-width: 0;
   }
-  .project-actions .status { flex-basis: 100%; text-align: right; }
-  .project-actions .status:empty { display: none; }
   .hdr-more-btn { display: inline-flex; }
   .hdr-secondary { display: none; }
   .hdr-secondary[data-open="true"] {

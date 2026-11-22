@@ -69,7 +69,8 @@ export default function PlanCheck({ sheet, data, readOnly }: {
         options: sheet.options }, data.table, now(), label);
       apply((p) => addSheets(p, [{ ...makeInfoSheet(id, uniqueName(p, `Analysis plan: ${data.name}`), data.id),
         constants: [], plan }]));
-      ui.notify(`Analysis plan written for “${data.name}”: lock it before the data are analysed.`);
+      ui.notify(`Analysis plan written for “${data.name}”: lock it before the data are analysed.`,
+        { tone: "success" });
     };
     return (
       <p className="plan-strip">

@@ -1,25 +1,50 @@
-/* Engine status: boot progress and the per-sheet busy line
-   (EngineStatus.tsx). Non-blocking by design. */
-.engine-progress { display: flex; flex-direction: column; gap: var(--space-6); min-width: 0; }
-.engine-progress-text {
-  display: flex; gap: 10px; justify-content: space-between; flex-wrap: wrap;
-  font-size: var(--text-body-s); font-weight: var(--weight-medium); color: var(--accent);
+/* Engine status (EngineStatus.tsx): the boot slot, the boot banner's
+   additions and the per-sheet busy line. Non-blocking by design. */
+
+/* The boot slot (DECISIONS 4): fixed 340 x 34 wherever it renders, so a
+   phase change, a byte count or the end of the boot moves nothing. */
+.engine-slot {
+  position: relative;
+  display: flex; align-items: center; gap: var(--space-8);
+  width: min(340px, 100%); height: 34px; padding-bottom: 2px;
+  font-size: var(--text-body-s); color: var(--ink-2);
 }
-.engine-progress-bytes {
-  color: var(--muted); font-weight: var(--weight-regular); font-variant-numeric: tabular-nums;
+.engine-slot-dot {
+  flex: none; width: 8px; height: 8px; border-radius: var(--radius-round);
+  background: var(--accent);
 }
-.engine-progress progress {
-  width: 100%; height: 6px; accent-color: var(--accent);
+.engine-slot[data-engine-phase="ready"] .engine-slot-dot { background: var(--success); }
+.engine-slot[data-engine-phase="failed"] .engine-slot-dot { background: var(--danger); }
+.engine-slot-words {
+  flex: 1 1 auto; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-weight: var(--weight-medium); color: var(--ink);
 }
-.engine-progress.compact .engine-progress-text { font-size: var(--text-body-s); }
-.welcome .engine-progress { margin-top: var(--space-24); padding-top: var(--space-16); border-top: 1px solid var(--line); }
-.engine-boot-note {
-  display: flex; flex-direction: column; gap: var(--space-8);
-  margin: 0 0 10px; padding: 9px var(--space-12);
-  border: 1px solid var(--accent-border); border-radius: var(--radius-control);
-  background: var(--accent-soft); color: var(--ink-2); font-size: var(--text-body-s);
+.engine-slot-bytes {
+  flex: none; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap;
 }
-.engine-boot-note p { margin: 0; }
+.engine-slot-retry { flex: none; }
+.engine-slot-bar {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 2px;
+  background: var(--line); overflow: hidden; border-radius: 1px;
+  transition: opacity var(--dur-enter) var(--ease-out);
+}
+.engine-slot-fill {
+  display: block; height: 100%; background: var(--accent);
+  transform-origin: left center;
+  transition: transform var(--dur-enter) var(--ease-out);
+}
+/* Done or stopped: the bar has nothing more to say. */
+.engine-slot[data-engine-phase="ready"] .engine-slot-bar,
+.engine-slot[data-engine-phase="failed"] .engine-slot-bar { opacity: 0; }
+
+/* Several texts in one cell, the tallest setting the height. */
+.same-height { display: inline-grid; }
+.same-height-item { grid-area: 1 / 1; }
+.same-height-item[data-shown="false"] { visibility: hidden; }
+
+.welcome .engine-slot { margin-top: var(--space-24); }
+.engine-boot-slot { margin-top: var(--space-4); }
 .analysis-busy {
   display: flex; align-items: center; gap: var(--space-8); flex-wrap: wrap;
   margin: 0 0 10px; padding: var(--space-6) 10px;

@@ -29,7 +29,7 @@ import { GenericMethodsText } from "./MethodsText";
 import HSplitter from "./HSplitter";
 import { SnowflakeIcon } from "./SheetIcon";
 import WelcomePanel from "./WelcomePanel";
-import { AnalysisBusy, EngineBootNote } from "./EngineStatus";
+import { AnalysisBusy, EngineBootBanner } from "./EngineStatus";
 import { useGuideOptional } from "../guide/context";
 import EntryGuide from "../guide/EntryGuide";
 import { DifferNote, ResultsGuide } from "../guide/ResultsGuide";
@@ -53,7 +53,7 @@ import { useDarkMode } from "../graph/useDarkMode";
  */
 export default function FamilyWorkspace({ data }: { data: DataSheet }) {
   const api = useProject();
-  const { project, apply, engineReady, status, engineError, bootEngine, engine } = api;
+  const { project, apply, engineReady, engineError, bootEngine, engine } = api;
   const cmd = useCommands();
   const guide = useGuideOptional();
   const mainRef = useRef<HTMLElement>(null);
@@ -184,20 +184,21 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
       </div>
       <ColumnSplitter mainRef={mainRef} />
       <div className="right">
-        {!engineReady && (engineError || result == null) ? (
+        {/* No result to show yet (or only the failed engine's error): the
+            welcome panel. Saved results stay visible, with the boot banner
+            above them, even if the engine fails (DECISIONS 4). */}
+        {!engineReady && (result == null
+          || (!!engineError && !!(result as { error?: unknown }).error)) ? (
           <div className="pane pane-plot">
-            <WelcomePanel status={status} error={engineError} onRetry={bootEngine}
+            <WelcomePanel error={engineError} onRetry={bootEngine}
               engine={engine} />
           </div>
         ) : (
           <>
             {/* Saved (or bundled example) results show at once; the live
                 engine replaces them when it is up. */}
-            {!engineReady && (
-              <div className="pane pane-boot">
-                <EngineBootNote engine={engine} live={resStatus.live} />
-              </div>
-            )}
+            <EngineBootBanner engine={engine} ready={engineReady} live={resStatus.live}
+              onRetry={bootEngine} />
             {graph && (
               <>
                 <div className={`pane pane-plot${reveal}`}>

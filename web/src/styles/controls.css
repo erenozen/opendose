@@ -4,7 +4,7 @@
 
 /* ============================ buttons & inputs ============================ */
 
-button, .load-btn {
+button {
   font: inherit; font-size: var(--text-body); font-weight: var(--weight-medium); color: var(--ink);
   background: var(--inset);
   border: none; border-radius: var(--radius-control);
@@ -12,13 +12,10 @@ button, .load-btn {
   transition: transform var(--dur-base) var(--ease-out),
     background-color var(--dur-base) var(--ease-out);
 }
-/* A <label> styled as a button: centre its text like a real button (it
-   used to sit high once touch layouts gave buttons a min-height). */
-.load-btn { display: inline-flex; align-items: center; justify-content: center; }
 
 /* Hover styles only where a real pointer exists (touch taps must not stick) */
 @media (hover: hover) and (pointer: fine) {
-  button:hover, .load-btn:hover {
+  button:hover {
     background: color-mix(in srgb, var(--ink) 12%, transparent);
     color: var(--ink);
   }
@@ -128,7 +125,7 @@ input[type="radio"] { accent-color: var(--accent); }
 
 @media (max-width: 760px) {
   /* comfortable touch targets */
-  button, .load-btn, select {
+  button, select {
     min-height: 40px;
   }
 }

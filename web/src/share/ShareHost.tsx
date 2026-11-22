@@ -5,6 +5,7 @@ import { resolveOptions } from "../app/analysis";
 import { useProject } from "../app/context";
 import { useUi } from "../app/ui";
 import Modal from "../components/Modal";
+import { Banner, Button } from "../components/ui";
 import { copyText, saveBlob } from "../export/download";
 import { findSheet } from "../project/ops";
 import { serializeProject } from "../project/persist";
@@ -71,17 +72,17 @@ export default function ShareHost() {
   // Data tables as a .pzfx file (all of them, or one table's).
   const savePzfx = useCallback(async (dataId?: string) => {
     if (!api.engineReady) {
-      ui.notify("The analysis engine is still starting; try again in a moment.");
+      ui.notify("The analysis engine is still starting; try again in a moment.", { tone: "info" });
       return;
     }
     const p = api.store.project;
     const sel = pzfxSelection(p, dataId);
     const r = await runEngine((engine) => exportPzfx(engine, sel), { priority: "user" });
-    if ("error" in r) { ui.notify(r.error); return; }
+    if ("error" in r) { ui.notify(r.error, { tone: "error" }); return; }
     const one = dataId ? findSheet(p, dataId)?.name : undefined;
     saveBlob(new Blob([r.xml], { type: "application/xml" }), pzfxFileName(one ?? p.title));
     ui.notify(`Saved ${sel.tables.length} table${sel.tables.length === 1 ? "" : "s"} as .pzfx`
-      + (r.messages.length ? `. ${r.messages.join(". ")}.` : "."));
+      + (r.messages.length ? `. ${r.messages.join(". ")}.` : "."), { tone: "success" });
   }, [api, ui]);
 
   useEffect(() => {
@@ -119,31 +120,33 @@ export default function ShareHost() {
     // A new object, so the copy counts as a change and autosaves at once.
     const p = { ...api.store.project };
     api.replace(p, api.selectedId);
-    ui.notify("Copied into this browser: edits now autosave here. The link stays as it was.");
+    ui.notify("Copied into this browser: edits now autosave here. The link stays as it was.",
+      { tone: "success" });
   };
 
   return (
     <>
-      {api.readOnly && (
-        <div className="share-banner" role="region" aria-label="Shared project">
+      <Banner tone="info" className="share-banner" open={api.readOnly}
+        icon={(
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor"
             strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M6.5 9.5a3 3 0 0 0 4.24 0l2.12-2.12a3 3 0 0 0-4.24-4.24l-.7.7" />
             <path d="M9.5 6.5a3 3 0 0 0-4.24 0L3.14 8.62a3 3 0 0 0 4.24 4.24l.7-.7" />
           </svg>
-          <span>
-            <strong>Shared project. Make a copy to edit.</strong>{" "}
-            “{api.project.title}” opened from a link and is read-only; nothing
-            from it is stored in this browser until you copy it.
-          </span>
-          <button type="button" className="btn-primary" onClick={makeCopy}>Make a copy</button>
-          <button type="button" className="dismiss"
-            title="Leave the shared project and return to your own work"
+        )}>
+        <Banner.Title>Shared project. Make a copy to edit.</Banner.Title>
+        <Banner.Detail>
+          “{api.project.title}” opened from a link and is read-only; nothing
+          from it is stored in this browser until you copy it.
+        </Banner.Detail>
+        <Banner.Actions>
+          <Button variant="primary" onClick={makeCopy}>Make a copy</Button>
+          <Button title="Leave the shared project and return to your own work"
             onClick={() => window.location.assign(`${location.pathname}${location.search}`)}>
             Close
-          </button>
-        </div>
-      )}
+          </Button>
+        </Banner.Actions>
+      </Banner>
       {dialog?.kind === "link" && (
         <ShareDialog dataId={dialog.dataId} onClose={() => setDialog(null)} />
       )}
@@ -162,7 +165,9 @@ export default function ShareHost() {
           <PptxDialog from={dialog.from} initial={dialog.scope} onClose={() => setDialog(null)}
             onExport={(scope, o) => {
               setDialog(null);
-              void pptx.run(scope, o).then((msg) => { if (msg) ui.notify(msg); });
+              void pptx.run(scope, o).then((msg) => {
+                if (msg) ui.notify(msg, { tone: msg.startsWith("Saved") ? "success" : "error" });
+              });
             }} />
         </Suspense>
       )}

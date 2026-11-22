@@ -1,6 +1,7 @@
 // The simulation settings, shared by the "Simulate data" dialog and the
 // Monte Carlo analysis.
 import { useId } from "react";
+import { NumberField } from "../../components/ui/NumberField";
 import { datasetLetter } from "../../project/table";
 import { MODEL_FAMILIES, MODELS_META } from "../../types";
 import {
@@ -15,15 +16,12 @@ interface FormProps<F> {
   readOnly?: boolean;
 }
 
-function Num({ label, value, onChange, readOnly, wide }: {
-  label: string; value: string; onChange: (v: string) => void; readOnly?: boolean; wide?: boolean;
+function Num({ label, value, onChange, readOnly }: {
+  label: string; value: string; onChange: (v: string) => void; readOnly?: boolean;
 }) {
   return (
-    <label className={`field field-num${wide ? " field-wide" : ""}`}>
-      <span>{label}</span>
-      <input inputMode="decimal" value={value} readOnly={readOnly}
-        onChange={(e) => onChange(e.target.value)} />
-    </label>
+    <NumberField label={label} value={value} readOnly={readOnly} fieldClassName="field-num"
+      onValueChange={onChange} />
   );
 }
 

@@ -1,5 +1,5 @@
 import type { EngineState } from "../lib/engine";
-import { EngineProgress } from "./EngineStatus";
+import { EngineSlot } from "./EngineStatus";
 
 export function Logo() {
   // Dose-response sigmoid in a rounded tile: the OpenDose mark.
@@ -16,7 +16,7 @@ export function Logo() {
 }
 
 export default function WelcomePanel({ status, error, onRetry, engine }: {
-  status: string;
+  status?: string;
   error?: string | null;
   onRetry?: () => void;
   /** Boot progress of the engine (a progress bar instead of a spinner). */
@@ -47,8 +47,8 @@ export default function WelcomePanel({ status, error, onRetry, engine }: {
           <button className="retry-btn" onClick={onRetry}>Try again</button>
         </div>
       ) : engine ? (
-        <div role="status">
-          <EngineProgress engine={engine} />
+        <div>
+          <EngineSlot engine={engine} />
           <p className="welcome-loading-note">
             The first visit downloads the scientific runtime (about 30 MB);
             it is kept on this device for quick, offline-capable starts after
