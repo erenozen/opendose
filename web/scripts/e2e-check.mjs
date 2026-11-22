@@ -609,7 +609,7 @@ await page.getByRole("button", { name: "New data table" }).click();
 const mvDialog = page.locator(".new-table-dialog");
 await mvDialog.locator('input[name="table-type"][value="multivariable"]').check();
 await mvDialog.getByText("Example data").click();
-await mvDialog.locator('input[aria-label="Table name"]').fill("Dose study");
+await mvDialog.getByLabel("Table name", { exact: true }).fill("Dose study");
 await mvDialog.getByRole("button", { name: "Create table" }).click();
 await page.waitForSelector(".mv-results h3:has-text('Descriptive statistics')", { timeout: 60000 });
 const mvCard = () => page.locator(".result-card.mv-results").first();

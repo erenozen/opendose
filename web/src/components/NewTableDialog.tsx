@@ -37,6 +37,9 @@ const SHAPE_LABELS: Record<TableType, { datasets: string; subcolumns: string | n
   nested: { datasets: "Groups", subcolumns: "Subgroups per group", rows: "Replicates (rows)" },
 };
 
+// The largest table the dialog makes (clampInt below applies the same caps).
+const SHAPE_MAX = { datasets: 52, subcolumns: 24, rows: 5000 } as const;
+
 const clampInt = (v: string, lo: number, hi: number, d: number) => {
   const n = Math.round(Number(v));
   return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : d;
@@ -119,9 +122,9 @@ export default function NewTableDialog({ defaultType, defaultName, onCancel, onC
       name: name.trim() || defaultName,
       sample: sample && !!def.sampleTable,
       init: {
-        datasets: clampInt(shape.datasets, 1, 52, d.datasets),
-        subcolumns: clampInt(shape.subcolumns, 1, 24, d.subcolumns),
-        rows: clampInt(shape.rows, 1, 5000, d.rows),
+        datasets: clampInt(shape.datasets, 1, SHAPE_MAX.datasets, d.datasets),
+        subcolumns: clampInt(shape.subcolumns, 1, SHAPE_MAX.subcolumns, d.subcolumns),
+        rows: clampInt(shape.rows, 1, SHAPE_MAX.rows, d.rows),
         subcolumnFormat: allowsSummary ? summary : "replicates",
         xFormat: type === "xy" ? xFormat : "numbers",
       },
@@ -129,7 +132,8 @@ export default function NewTableDialog({ defaultType, defaultName, onCancel, onC
   };
 
   const num = (key: keyof typeof shape, label: string) => (
-    <NumberField label={label} fieldClassName="field-num" integer min={1} value={shape[key]}
+    <NumberField label={label} fieldClassName="field-num" integer min={1}
+      max={SHAPE_MAX[key]} value={shape[key]}
       disabled={sample} onValueChange={(v) => setShape({ ...shape, [key]: v })} />
   );
 
