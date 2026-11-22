@@ -942,7 +942,7 @@ await page.locator(".plot-card").getByRole("button", { name: "Settings" }).click
 await page.getByRole("button", { name: "Format axes…" }).click();
 await fmt.getByLabel("Minimum").fill("10");
 await fmt.getByLabel("Maximum").fill("100");
-await fmt.getByLabel("Scale").selectOption("log10");
+await fmt.getByLabel("Scale", { exact: true }).selectOption("log10");
 await fmt.getByLabel("Format", { exact: true }).selectOption("power10");
 await fmt.getByRole("button", { name: "OK" }).click();
 await page.waitForTimeout(500);
@@ -1321,9 +1321,10 @@ expect("volcano from a table (BH-adjusted P < 0.05, |log2FC| ≥ 1): 19 up, 12 d
     const t = document.querySelector(".pane-results")?.textContent ?? "";
     return t.includes("Up19") && t.includes("Down12");
   }, null, { timeout: 60000 }).then(() => true, () => false));
+// the graph redraws after the results pane: wait for its labels
 expect("volcano labels the top ten hits",
-  await page.evaluate(() => (document.querySelector(".plot-card .plot")?.layout?.annotations ?? [])
-    .filter((a) => a.showarrow).length === 10));
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.layout?.annotations ?? [])
+    .filter((a) => a.showarrow).length === 10, null, { timeout: 30000 }).then(() => true, () => false));
 await page.getByRole("button", { name: "Create a table of the hits" }).click();
 expect("volcano: linked table of the 31 hits",
   await page.waitForFunction(() => Number(document.querySelector(".data-table table")?.dataset.rows) >= 31,
@@ -3734,8 +3735,10 @@ const axeOn = async (pg, sel) => {
   const geno = await anovaRow("Genotype");
   expect("nested two-way: Genotype F = 6.308 on (1, 8), P = 0.0363 (hand-written nested ANOVA)",
     /F\(1, 8\) = 6\.308 0\.036(28|3)\b/.test(geno), geno);
-  expect("nested two-way: interaction F(1, 8) = 1.035, tested against mice",
-    /F\(1, 8\) = 1\.035 0\.3387 ns mice \(8 df\)/.test(await anovaRow("Genotype × Treatment")),
+  // New sheets use Kenward-Roger df (sheets/common/ddf.ts); with complete,
+  // balanced data they equal the containment df checked further down.
+  expect("nested two-way: interaction F(1, 8) = 1.035, Kenward-Roger df from the mice",
+    /F\(1, 8\) = 1\.035 0\.3387 ns Kenward-Roger df \(mice\)/.test(await anovaRow("Genotype × Treatment")),
     await anovaRow("Genotype × Treatment"));
   const res = (await page.locator(".pane-results").innerText()).replace(/\s+/g, " ");
   expect("variance components: ICC 0.749 with the design-effect sentence (Aarts 2014)",
@@ -3756,9 +3759,23 @@ const axeOn = async (pg, sel) => {
   expect("nested scatter: 12 mouse means and a bracket per genotype from the comparisons",
     brackets && unitPoints === 12, String(unitPoints));
   const legendText = await page.locator(".methods-text").first().innerText().catch(() => "");
-  expect("methods text: mouse as a random intercept, df from the 12 mice",
-    legendText.includes("mouse as a random intercept") && legendText.includes("12 mice − 4 cells = 8 df"),
-    legendText.slice(0, 160));
+  expect("methods text: mouse as a random intercept, Kenward-Roger df from the 12 mice",
+    legendText.includes("mouse as a random intercept")
+    && legendText.includes("denominator degrees of freedom were computed by the Kenward-Roger method from the 12 mice and 48 individual values")
+    && legendText.includes("Denominator degrees of freedom and standard errors were computed by the Kenward-Roger method (Kenward & Roger 1997)"),
+    legendText.slice(0, 400));
+  // The containment method (Prism's Legacy) stays available and gives the
+  // hand-written nested ANOVA's df: 12 mice − 4 cells.
+  await page.getByLabel("Degrees of freedom (mixed model)").selectOption("containment");
+  expect("containment df: interaction F(1, 8) = 1.035, tested against mice (8 df)",
+    await resultsHas(/Genotype × Treatment\s+F\(1, 8\) = 1\.035\s+0\.3387\s+ns\s+mice \(8 df\)/),
+    await anovaRow("Genotype × Treatment"));
+  await page.waitForFunction(() => document.querySelector(".methods-text")?.innerText.includes("containment method"),
+    null, { timeout: 30000 }).catch(() => {});
+  const legendContainment = await page.locator(".methods-text").first().innerText().catch(() => "");
+  expect("containment df: methods text, mouse as a random intercept, df from the 12 mice",
+    legendContainment.includes("mouse as a random intercept") && legendContainment.includes("12 mice − 4 cells = 8 df"),
+    legendContainment.slice(0, 400));
   const axeNested = await axeOn([".mixed-results", ".pane-controls .controls"]);
   expect("axe-core: nested two-way results and controls pass", axeNested.length === 0, axeNested.join(" | "));
 

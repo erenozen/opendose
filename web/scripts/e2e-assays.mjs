@@ -408,8 +408,21 @@ expect("the linked matched table opens with the column ratio paired t test (Trea
 await page.getByRole("button", { name: "New data table" }).click();
 const pick = page.locator(".new-table-dialog");
 await pick.getByRole("radio", { name: "Start from an assay" }).check();
-const nModules = await pick.locator('input[name="assay-module"]').count();
-expect("Start from an assay lists all twelve modules", nModules === 12, String(nModules));
+// The sixteen modules of the registry (sheets/assays/index.ts ASSAYS), in
+// display order: the first twelve plus luciferase, wound healing, MIC and
+// kinetic reads.
+const moduleNames = await pick.locator('label:has(input[name="assay-module"]) .type-option-name').allInnerTexts();
+const expectedModules = [
+  "Plate reader → dose-response", "Standard curve / ELISA", "qPCR (ΔCq / ΔΔCq)",
+  "Western blot densitometry", "Dual-luciferase reporter",
+  "Flow cytometry (FlowJo statistics → per-donor tests)", "Growth curves (OD600, counts)",
+  "Wound healing (scratch assay)", "MIC (broth microdilution)", "Kinetic plate reads (initial rates)",
+  "Tumour growth and longitudinal studies", "Time course (the same subjects measured over time)",
+  "Drug combination synergy", "Area under the curve", "Volcano plot from a table", "Clustered heat map",
+];
+expect("Start from an assay lists all sixteen modules, in registry order",
+  await pick.locator('input[name="assay-module"]').count() === 16
+  && JSON.stringify(moduleNames) === JSON.stringify(expectedModules), moduleNames.join(" | "));
 await pick.getByRole("radio", { name: /^Area under the curve/ }).check();
 expect("a module without a wizard says so", !(await pick.locator(".field-note").innerText()).includes("wizard"));
 await pick.getByRole("button", { name: "Start assay" }).click();
@@ -451,8 +464,19 @@ await page.keyboard.press("Escape");
     rows.length === 3 && /^Group\s+F\(1, 10\) = 223\.5\s+< 0\.0001/.test(rows[0])
     && /^Time\s+F\(5, 50\) = 1950\s/.test(rows[1]) && /^Group × Time\s+F\(5, 50\) = 99\.85\s+< 0\.0001/.test(rows[2]),
     rows.join(" | ").replace(/\s+/g, " "));
-  expect("time course: the df note names the between-within method",
-    (await textOf(".pane-results")).includes("Denominator df by the between-within method: Group is tested on 10 df between subjects (12 subjects − 2 groups)"));
+  // New sheets default to Kenward-Roger df (Prism 11.2's default for mixed
+  // models); between-within stays available in the controls and is what
+  // sheets saved before the setting existed keep.
+  expect("time course: the df note names the Kenward-Roger method (the default)",
+    (await textOf(".pane-results")).includes("Denominator df by the Kenward-Roger method, computed from the "
+      + "fitted covariance: each test and comparison has its own df, and the standard errors are adjusted for small samples."));
+  await page.getByLabel("Degrees of freedom", { exact: true }).selectOption("between_within");
+  expect("time course: the df note names the between-within method when it is chosen",
+    await waitText('.pane-results[data-live="true"]', "Denominator df by the between-within method: Group is tested "
+      + "on 10 df between subjects (12 subjects − 2 groups), Time and Group × Time on 50 df within subjects", 90000));
+  await page.getByLabel("Degrees of freedom", { exact: true }).selectOption("kenward_roger");
+  expect("time course: back to Kenward-Roger",
+    await waitText('.pane-results[data-live="true"]', "Denominator df by the Kenward-Roger method", 90000));
   await page.getByRole("button", { name: "Compare covariance structures (AIC)" }).click();
   expect("covariance comparison: four structures listed",
     await page.waitForFunction(() => document.querySelectorAll(".mixed-aic tbody tr").length === 4, null,
