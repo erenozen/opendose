@@ -2,50 +2,50 @@
    Uses the design tokens from styles/tokens.css. */
 
 .export-opts { position: relative; display: inline-flex; }
-/* Positioned (fixed) by ExportPanel next to its Options button. */
+/* Positioned (fixed) by ExportPanel next to its Options button. A floating
+   layer like the Settings popover: one depth cue, the elevation stack. */
 .export-pop {
   position: fixed; z-index: var(--z-popover);
   width: min(360px, calc(100vw - 16px));
   overflow-y: auto; overscroll-behavior: contain;
-  display: flex; flex-direction: column; gap: 12px;
-  background: var(--surface);
-  border: 1px solid var(--border-soft);
-  border-radius: var(--radius);
+  display: flex; flex-direction: column; gap: var(--space-12);
+  background: var(--float);
+  border-radius: var(--radius-menu);
   box-shadow: var(--elev-float);
-  padding: 14px 16px;
-  font-size: 12.5px; color: var(--ink-2); text-align: left;
-  transition: opacity 160ms var(--ease-out), transform 160ms var(--ease-out);
+  padding: 14px var(--space-16);
+  font-size: var(--text-body-s); color: var(--ink-2); text-align: left;
+  transition: opacity var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out);
   opacity: 1; transform: scale(1); transform-origin: top right;
   @starting-style { opacity: 0; transform: scale(0.97); }
 }
 .export-pop button {
-  padding: 4px 9px; border: 1px solid var(--border); border-radius: 6px;
-  background: var(--surface); color: inherit; font-size: 12.5px;
+  padding: var(--space-4) 9px; border: 1px solid var(--line-strong); border-radius: var(--radius-control);
+  background: var(--surface); color: inherit; font-size: var(--text-body-s);
 }
 @media (hover: hover) and (pointer: fine) {
   .export-pop button:hover { border-color: var(--accent); color: var(--accent); }
 }
 .export-pop .check-row { flex-wrap: nowrap; align-items: flex-start; }
-.export-pop .check-row input { flex: none; margin-top: 2px; }
+.export-pop .check-row input { flex: none; margin-top: var(--space-2); }
 .export-fieldset {
   border: none; margin: 0; padding: 0;
-  display: flex; flex-direction: column; gap: 4px;
+  display: flex; flex-direction: column; gap: var(--space-4);
 }
-.export-fieldset legend { font-weight: 600; padding: 0; margin-bottom: 4px; }
-.export-presets { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0; }
+.export-fieldset legend { font-weight: var(--weight-semibold); padding: 0; margin-bottom: var(--space-4); }
+.export-presets { display: flex; flex-wrap: wrap; gap: var(--space-6); margin: var(--space-2) 0; }
 
 .export-presets button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
-.export-sub { color: var(--muted); font-weight: 400; }
+.export-sub { color: var(--muted); font-weight: var(--weight-regular); }
 .export-all {
-  display: flex; flex-direction: column; gap: 6px;
-  border-top: 1px solid var(--border-soft); padding-top: 10px;
+  display: flex; flex-direction: column; gap: var(--space-6);
+  border-top: 1px solid var(--line); padding-top: 10px;
 }
 .export-all button { align-self: flex-start; }
 .export-help summary { cursor: pointer; color: var(--accent); }
-.export-help p { margin: 6px 0 0; color: var(--muted); line-height: 1.5; }
+.export-help p { margin: var(--space-6) 0 0; color: var(--muted); line-height: 1.5; }
 .export-unit { color: var(--muted); }
-.export-note { color: var(--muted); font-size: 12px; }
-.export-warn { color: var(--warn-ink); font-size: 12px; font-weight: 500; }
+.export-note { color: var(--muted); font-size: var(--text-caption); }
+.export-warn { color: var(--warn-ink); font-size: var(--text-caption); font-weight: var(--weight-medium); }
 
 /* Off-screen stage for "export all graphs": laid out (Plotly needs a
    size) but never visible or focusable. */
@@ -57,21 +57,23 @@
 
 /* ---- How to cite */
 .cite-block {
-  margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border-soft);
-  display: flex; flex-direction: column; gap: 6px;
+  margin-top: var(--space-12); padding-top: 10px; border-top: 1px solid var(--line);
+  display: flex; flex-direction: column; gap: var(--space-6);
 }
-.cite-head { margin: 0; font-size: 12.5px; font-weight: 650; color: var(--ink-2); }
+.cite-head {
+  margin: 0; font-size: var(--text-body-s); font-weight: var(--weight-semibold); color: var(--ink-2);
+}
 .cite-text, .methods-text .cite-text {
-  margin: 0; font-size: 12.5px; color: var(--ink-2); line-height: 1.5; user-select: text;
+  margin: 0; font-size: var(--text-body-s); color: var(--ink-2); line-height: 1.5; user-select: text;
 }
-.cite-actions { display: flex; flex-wrap: wrap; gap: 6px; }
-.cite-actions .copy-btn { font-size: 12.5px; padding: 5px 11px; }
+.cite-actions { display: flex; flex-wrap: wrap; gap: var(--space-6); }
+.cite-actions .copy-btn { font-size: var(--text-body-s); padding: 5px 11px; }
 /* Reserve the widest of the label and "Copied ✓" so the pill never resizes */
 .cite-actions .copy-btn::after { content: attr(data-label); }
-.cite-bibtex summary { cursor: pointer; font-size: 12px; color: var(--accent); }
+.cite-bibtex summary { cursor: pointer; font-size: var(--text-caption); color: var(--accent); }
 .cite-bibtex pre {
-  margin: 6px 0 0; padding: 8px 10px; border-radius: var(--radius-s);
-  background: var(--inset); font-size: 11.5px; line-height: 1.45;
+  margin: var(--space-6) 0 0; padding: var(--space-8) 10px; border-radius: var(--radius-control);
+  background: var(--inset); font-size: var(--text-caption); line-height: var(--leading-body);
   white-space: pre-wrap; overflow-wrap: anywhere; color: var(--ink-2);
 }
 .info-pop .info-version { color: var(--muted); font-variant-numeric: tabular-nums; }
