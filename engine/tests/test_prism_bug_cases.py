@@ -1029,14 +1029,8 @@ class TestCase32InterpolationBeyondTheCurve:
         assert got[1] == pytest.approx(kd * 50 / (bmax - 50), rel=1e-6)
         assert got[2] is None                 # below 0: no X >= 0
 
-    @pytest.mark.xfail(strict=True, reason=(
-        "#32 (latent): interpolate._crossings takes every sign change of "
-        "curve - level on a 512-point grid as a root and refines it with "
-        "brentq, so a pole (Bmax*X/(Kd+X) at X = -Kd) counts as a crossing. "
-        "When the search range spans the pole, Y = 50 returns X = -Kd "
-        "(-5.0039, the first 'root') instead of 5.0038. Not reachable "
-        "through dose_response (range = data range) or the standard-curve "
-        "assay (range clipped at 0), only through interpolate_x directly"))
+    # fixed (latent: the app's ranges never span the pole): a sign change
+    # across the pole at X = -Kd was taken for a crossing
     def test_a_pole_is_not_an_interpolated_x(self):
         fit = nlfit.fit_model(self.X, self.Y, "saturation_binding")
         bmax = fit["params"]["Bmax"]["value"]
@@ -1044,6 +1038,17 @@ class TestCase32InterpolationBeyondTheCurve:
         # the standards' range extended by half its width each way
         got = interpolate.interpolate_x(fit, [50.0], -30.5, 95.5)
         assert got[0] == pytest.approx(kd * 50 / (bmax - 50), rel=1e-6)
+
+    def test_a_crossing_beside_the_pole_is_still_found(self):
+        fit = nlfit.fit_model(self.X, self.Y, "saturation_binding")
+        bmax = fit["params"]["Bmax"]["value"]
+        kd = fit["params"]["Kd"]["value"]
+        # left of the pole the curve is above Bmax: Y = 2 Bmax at X = -2 Kd
+        got = interpolate.interpolate_x(fit, [2 * bmax], -30.5, 95.5)
+        assert got[0] == pytest.approx(-2 * kd, rel=1e-6)
+        # right of it, Y = 50 as before; a level the curve never reaches
+        # on either side has no X
+        assert interpolate.interpolate_x(fit, [bmax], -30.5, 95.5) == [None]
 
 
 class TestCase33EC50Shift:

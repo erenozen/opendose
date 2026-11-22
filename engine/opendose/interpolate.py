@@ -61,14 +61,27 @@ def _crossings(fit, level: float, x_lo: float, x_hi: float,
                curve_of=None) -> list[float]:
     f = curve_of or (lambda v: float(_curve(fit, [v])[0]))
     xs = np.linspace(x_lo, x_hi, 512)
-    ys = np.array([f(v) for v in xs]) - level
+    with np.errstate(all="ignore"):
+        ys = np.array([f(v) for v in xs], dtype=float) - level
+    finite = np.isfinite(ys)
     out = []
     for i in range(len(xs) - 1):
+        if not (finite[i] and finite[i + 1]):
+            continue
         if ys[i] == 0.0:
             out.append(float(xs[i]))
         elif ys[i] * ys[i + 1] < 0:
-            out.append(float(brentq(lambda v: f(v) - level,
-                                    xs[i], xs[i + 1], maxiter=100)))
+            r = float(brentq(lambda v: f(v) - level,
+                             xs[i], xs[i + 1], maxiter=100))
+            with np.errstate(all="ignore"):
+                fr = f(r)
+            # a sign change is a crossing only if the curve is ~0 there
+            # compared with the two grid values around it; a pole
+            # (Bmax*X/(Kd+X) at X = -Kd) also changes sign, but the curve
+            # is larger there than at its neighbours, not smaller
+            near = max(abs(ys[i]), abs(ys[i + 1]))
+            if math.isfinite(fr) and abs(fr - level) <= 1e-6 * near:
+                out.append(r)
     return out
 
 
