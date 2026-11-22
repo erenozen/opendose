@@ -134,20 +134,22 @@
 /* ---------------- help panel ---------------- */
 
 .help-panel {
-  position: fixed; top: calc(64px + var(--safe-top)); right: max(12px, var(--safe-right));
+  position: fixed; top: calc(var(--header-h, 44px) + var(--space-12)); right: max(var(--space-12), var(--safe-right));
   bottom: calc(12px + var(--safe-bottom)); z-index: var(--z-drawer);
   width: min(400px, calc(100vw - 24px));
   display: flex; flex-direction: column;
   background: var(--float); color: var(--ink);
   border-radius: var(--radius-dialog);
   box-shadow: var(--elev-dialog);
-  transition: opacity 180ms var(--ease-out), transform 180ms var(--ease-out);
+  transition: opacity var(--dur-enter) var(--ease-out), transform var(--dur-enter) var(--ease-out);
   opacity: 1; transform: translateX(0);
   @starting-style { opacity: 0; transform: translateX(12px); }
 }
 .help-head { display: flex; align-items: center; justify-content: space-between; padding: var(--space-12) 14px var(--space-6); }
 .help-head h2 { margin: 0; font-size: var(--text-lead); }
-.help-close { width: 30px; height: 30px; padding: 0; font-size: var(--text-title); line-height: 1; }
+.help-panel[data-instant] { transition: none; }
+.help-head h2:focus { outline: none; }
+.help-head h2:focus-visible { outline: 2px solid var(--focus-ring); }
 .help-body { overflow: auto; padding: var(--space-4) 14px 14px; font-size: var(--text-body-s); }
 .help-body p { color: var(--ink-2); margin: 0 0 var(--space-8); }
 .help-search input {
@@ -155,7 +157,7 @@
   background: var(--inset); border: 1px solid var(--line-strong); border-radius: var(--radius-control);
 }
 .help-actions { display: flex; flex-wrap: wrap; gap: var(--space-6); margin: 10px 0 var(--space-4); }
-.help-section { font-size: var(--text-label); text-transform: uppercase; letter-spacing: 0.04em;
+.help-section { font-size: var(--text-label); font-weight: var(--weight-semibold);
   color: var(--muted); margin: 14px 0 var(--space-6); }
 .help-topics { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
 .help-topics button {
@@ -167,7 +169,7 @@
 }
 .help-topic-name { font-weight: var(--weight-semibold); color: var(--ink); }
 .help-topic-sum { font-size: var(--text-caption); color: var(--muted); font-weight: var(--weight-regular); }
-.help-back { padding: var(--space-4) 10px; font-size: var(--text-body-s); margin-bottom: var(--space-8); }
+.help-back { align-self: flex-start; margin-bottom: var(--space-8); }
 .help-topic-title { margin: var(--space-4) 0 var(--space-4); font-size: var(--text-lead); }
 .help-topic-title:focus { outline: none; }
 .help-topic-title:focus-visible { outline: 2px solid var(--focus-ring); }

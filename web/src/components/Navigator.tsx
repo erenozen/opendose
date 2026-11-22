@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { DRAWER_QUERY, useMedia } from "../app/breakpoints";
 import { useCommands } from "../app/commands";
 import { focusNote } from "../app/noteFocus";
 import { useProject } from "../app/context";
@@ -21,10 +22,12 @@ import SheetMenu, { type MenuAction } from "./SheetMenu";
 import { printSheet } from "../app/usePrint";
 import { exportPzfxFile, openPptxExport, openReplay, openShareLink } from "../share/events";
 import { PZFX_TYPES } from "../share/pzfx";
+import { IconButton } from "./ui/IconButton";
+import Tooltip from "./ui/Tooltip";
+import { containTab, lockScroll, restoreFocus, useDismiss } from "./ui/useDismiss";
 
 const mac = typeof navigator !== "undefined" && /Mac|iP(hone|ad)/.test(navigator.platform);
 const printKey = mac ? "⌘P" : "Ctrl+P";
-const goKey = mac ? "⌘K" : "Ctrl+K";
 
 type NodeKind = "section" | "group" | "sheet" | "notes" | "note";
 
@@ -57,16 +60,21 @@ function saveSet(key: string, s: Set<string>) {
 }
 
 /**
- * The project navigator: every sheet, grouped into the five sections, with
- * each data table's info sheets, results and graphs nested under it (its
- * family), user-defined groups inside the Data tables / Results / Graphs
- * sections, and the project's floating notes under Info.
+ * The project navigator: every sheet once (DECISIONS 5). Data tables with
+ * their family nested under them (info sheets, results, graphs and the
+ * tables derived from them), user-defined groups, the info sheets of no
+ * table and the project's floating notes under Info, and layouts. The
+ * Results and Graphs sections appear only for what the family tree cannot
+ * show: groups made in them, and sheets whose table is gone.
+ * At 900px and below it is a drawer and a modal dialog: the page behind is
+ * inert (App.tsx), Tab stays inside, Escape and a press on the scrim close
+ * it and focus returns to the toggle.
  * Keyboard: arrows move, Right/Left expand/collapse, Enter selects, F2
  * renames, Delete deletes, Alt+Up/Down reorders, Shift+F10 opens the menu,
  * * expands everything and - collapses everything.
  */
 export default function Navigator() {
-  const { project, selectedId, select, apply, store } = useProject();
+  const { project, selectedId, select, apply, store, readOnly } = useProject();
   const cmd = useCommands();
   const ui = useUi();
   const [query, setQuery] = useState("");
@@ -84,15 +92,30 @@ export default function Navigator() {
   const q = query.trim().toLowerCase();
   const matches = useCallback((s: Sheet) => !q || s.name.toLowerCase().includes(q)
     || notesOf(s).some((n) => n.text.toLowerCase().includes(q)), [q]);
-  const family = useMemo(() => new Set(selectedId ? familyIds(project, selectedId) : []),
+  const inFamily = useMemo(() => new Set(selectedId ? familyIds(project, selectedId) : []),
     [project, selectedId]);
 
+  // Each data table's info sheets, results and graphs, read once per
+  // project change (not per row and per keystroke, BEF-28).
+  const family = useMemo(() => {
+    const infoOf = new Map<string, Sheet[]>();
+    const ids = new Set(project.sheets.map((s) => s.id));
+    for (const s of project.sheets) {
+      if (s.kind === "info" && s.parentId && ids.has(s.parentId)) {
+        infoOf.set(s.parentId, [...(infoOf.get(s.parentId) ?? []), s]);
+      }
+    }
+    return { infoOf, ids };
+  }, [project]);
   const nodes = useMemo<Node[]>(() => {
     const out: Node[] = [];
     const kidsOf = (s: Sheet): Sheet[] => (s.kind === "data" ? [
-      ...project.sheets.filter((x) => x.kind === "info" && x.parentId === s.id),
+      ...(family.infoOf.get(s.id) ?? []),
       ...familyChildren(project, s.id), ...derivedFrom(project, s.id),
     ] : []);
+    // Listed under its table already: a family member whose table exists.
+    const nested = (s: Sheet) => (s.kind === "results" || s.kind === "graph"
+      || (s.kind === "info" && !!s.parentId)) && family.ids.has(s.parentId!);
     const pushSheet = (s: Sheet, level: 2 | 3, parentKey: string, section: SheetKind) => {
       const key = `${section}:${s.id}`;
       // A family lists its info sheets, results and graphs, then the
@@ -115,10 +138,15 @@ export default function Navigator() {
     };
     for (const section of SECTION_ORDER) {
       const sheets = project.sheets.filter((s) => s.kind === section);
-      const visible = section === "data"
-        ? sheets.filter((s) => matches(s) || kidsOf(s).some(matches))
-        : sheets.filter(matches);
       const groups = isGroupSection(section) ? groupsOf(project, section) : [];
+      const grouped = new Set(groups.map((g) => g.id));
+      // A family member is listed under its table; in its own section only
+      // inside a group the user made there.
+      const own = sheets.filter((s) => !nested(s) || (!!s.groupId && grouped.has(s.groupId)));
+      const visible = section === "data"
+        ? own.filter((s) => matches(s) || kidsOf(s).some(matches))
+        : own.filter(matches);
+      if ((section === "results" || section === "graph") && !own.length && !groups.length) continue;
       const notes = section === "info" ? allNotes(project).filter(({ sheet, note }) => !q
         || note.text.toLowerCase().includes(q) || sheet.name.toLowerCase().includes(q)) : [];
       const any = visible.length > 0 || (!q && groups.length > 0) || notes.length > 0;
@@ -161,7 +189,7 @@ export default function Navigator() {
       }
     }
     return out;
-  }, [project, q, matches, collapsedSections, collapsedFamilies, notesOpen]);
+  }, [project, family, q, matches, collapsedSections, collapsedFamilies, notesOpen]);
 
   // Roving focus target: the focused row if still visible, else the
   // selected sheet's first row, else the first row.
@@ -450,23 +478,36 @@ export default function Navigator() {
     return list;
   };
 
-  // Drawer (narrow screens): focus moves into it on open; Escape closes it.
-  const drawerOpen = ui.drawerOpen;
+  // Drawer (narrow screens): a modal dialog. Focus moves into it on open;
+  // Escape (topmost layer only: an open row menu closes first) and a press
+  // outside close it, and focus goes back to the toggle. A rename in
+  // progress keeps Escape for itself.
+  const narrow = useMedia(DRAWER_QUERY);
+  const modal = narrow && ui.drawerOpen;
+  const self = useRef<HTMLElement>(null);
+  const navToggle = () => document.querySelector<HTMLElement>("header .nav-toggle");
   const focusRef = useRef<() => void>(() => {});
   focusRef.current = () => focusNode(tabKey);
   useEffect(() => {
-    if (drawerOpen) focusRef.current();
-  }, [drawerOpen]);
-  useEffect(() => {
-    if (!drawerOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape" || menu || renaming) return;
-      ui.setDrawerOpen(false);
-      document.querySelector<HTMLElement>(".nav-toggle")?.focus();
+    if (modal) focusRef.current();
+  }, [modal]);
+  useDismiss({
+    open: modal && !renaming, layer: self,
+    onDismiss: () => ui.setDrawerOpen(false),
+  });
+  useLayoutEffect(() => {
+    if (!modal) return;
+    const unlock = lockScroll();
+    const node = self.current;
+    return () => {
+      unlock();
+      restoreFocus(navToggle(), node);
     };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [drawerOpen, menu, renaming, ui]);
+  }, [modal]);
+  // Leaving the narrow layout with the drawer open closes it.
+  useEffect(() => {
+    if (!narrow && ui.drawerOpen) ui.setDrawerOpen(false);
+  }, [narrow, ui]);
 
   // Keep the selected sheet visible: expand its section and family.
   useEffect(() => {
@@ -488,8 +529,19 @@ export default function Navigator() {
     if (g?.collapsed) unfoldRef.current(g.id, false);
   }, [selectedId, store]);
 
+  // Rows by parent, and the counts the section and group rows show,
+  // computed once per render (BEF-28).
+  const byParent = new Map<string | undefined, Node[]>();
+  for (const n of nodes) byParent.set(n.parentKey, [...(byParent.get(n.parentKey) ?? []), n]);
+  const counts = new Map<string, number>();
+  for (const x of project.sheets) {
+    counts.set(x.kind, (counts.get(x.kind) ?? 0) + 1);
+    if (x.groupId) counts.set(`grp:${x.groupId}`, (counts.get(`grp:${x.groupId}`) ?? 0) + 1);
+  }
+  const noteTotal = allNotes(project).length;
+
   const renderRows = (parent: string | undefined): React.ReactNode[] =>
-    nodes.filter((n) => n.parentKey === parent).map((n) => {
+    (byParent.get(parent) ?? []).map((n) => {
       const s = n.sheet;
       const g = n.group;
       const selected = !!s && !n.note && s.id === selectedId;
@@ -504,7 +556,7 @@ export default function Navigator() {
         ? s.name.slice(0, -(` of ${ownerName}`).length) : s.name) : "";
       const typeTag = s?.kind === "data" ? REGISTRY[s.table.type].short : undefined;
       const noteCount = s ? notesOf(s).length : 0;
-      const memberCount = g ? project.sheets.filter((x) => x.groupId === g.id).length : 0;
+      const memberCount = g ? counts.get(`grp:${g.id}`) ?? 0 : 0;
       const label = s ? `${s.name}${s.frozen ? " (frozen)" : ""}${
         s.kind === "data" && s.derived ? " (linked)" : ""}`
         : g ? `${g.name} (group)`
@@ -523,7 +575,7 @@ export default function Navigator() {
           tabIndex={n.key === tabKey ? 0 : -1}
           className={`nav-item level-${n.level} nk-${n.kind}${n.child ? " nav-child" : ""}${
             selected ? " selected" : ""}${
-            s && family.has(s.id) && !selected ? " in-family" : ""}`}
+            s && inFamily.has(s.id) && !selected ? " in-family" : ""}`}
           onFocus={(e) => { if (e.target === e.currentTarget) setFocusKey(n.key); }}
           onKeyDown={onKeyDown}>
           <div className={`nav-row${s?.highlight ? ` hl-row hl-${s.highlight}` : ""}${
@@ -589,12 +641,12 @@ export default function Navigator() {
             )}
             {n.kind === "section" && (
               <span className="nav-count" aria-hidden="true">
-                {project.sheets.filter((x) => x.kind === n.section).length || ""}
+                {counts.get(n.section) || ""}
               </span>
             )}
             {(g || n.kind === "notes") && (
               <span className="nav-count" aria-hidden="true">
-                {g ? memberCount : allNotes(project).length}
+                {g ? memberCount : noteTotal}
               </span>
             )}
             {n.note && <span className={`note-dot note-${n.note.note.color}`} aria-hidden="true" />}
@@ -610,9 +662,13 @@ export default function Navigator() {
               </span>
             )}
             {hasMenu && (
-              <button type="button" className="nav-more" tabIndex={-1}
+              <IconButton size="sm" className="nav-more" tabIndex={-1} data-still
                 aria-label={`Actions for ${s?.name ?? g?.name ?? (n.note ? "note" : SECTION_LABELS[n.section])}`}
-                onClick={(e) => { e.stopPropagation(); openMenu(n); }}>⋯</button>
+                onClick={(e) => { e.stopPropagation(); openMenu(n); }}>
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" aria-hidden="true">
+                  <circle cx="3" cy="7" r="1.2" /><circle cx="7" cy="7" r="1.2" /><circle cx="11" cy="7" r="1.2" />
+                </svg>
+              </IconButton>
             )}
           </div>
           {kids.length > 0 && <ul role="group">{kids}</ul>}
@@ -628,50 +684,46 @@ export default function Navigator() {
       );
     });
 
-  const selected = findSheet(project, selectedId);
-
   return (
-    <aside className={`navigator${ui.navOpen ? "" : " nav-collapsed"}${ui.drawerOpen ? " drawer-open" : ""}`}
-      aria-label="Project navigator">
+    <aside ref={self}
+      className={`navigator${ui.navOpen ? "" : " nav-collapsed"}${ui.drawerOpen ? " drawer-open" : ""}`}
+      aria-label="Project navigator" role={modal ? "dialog" : undefined}
+      aria-modal={modal || undefined}
+      onKeyDown={modal ? (e) => { if (self.current) containTab(e, self.current); } : undefined}>
+      {/* The drawer's head: the project title (the header shows it on wide
+          screens) and the close button. */}
       <div className="nav-head">
-        <input className="nav-title" value={project.title}
-          aria-label="Project title"
+        <input className="nav-title" value={project.title} aria-label="Project title"
+          readOnly={readOnly} spellCheck={false}
           onChange={(e) => apply((p) => setTitle(p, e.target.value), "title")} />
-        <button type="button" className="nav-close" aria-label="Close navigator"
-          onClick={() => ui.setDrawerOpen(false)}>✕</button>
-      </div>
-      <div className="nav-tools">
-        <button type="button" className="btn-primary nav-new" aria-label="New data table"
-          onClick={cmd.newTable}>+ Table</button>
-        <button type="button" aria-label="New info sheet" onClick={cmd.addInfo}>+ Info</button>
-        <button type="button" aria-label="New layout" onClick={cmd.addLayout}>+ Layout</button>
-        <button type="button" aria-label="Add a floating note to the selected sheet"
-          title="Add a floating note to the selected sheet" disabled={!selected}
-          onClick={() => {
-            if (!selected) return;
-            const id = cmd.addNote(selected.id);
-            if (id) focusNote(id);
-          }}>+ Note</button>
+        <IconButton className="nav-close" aria-label="Close navigator"
+          onClick={() => ui.setDrawerOpen(false)}>
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor"
+            strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+            <path d="M3.5 3.5l7 7M10.5 3.5l-7 7" />
+          </svg>
+        </IconButton>
       </div>
       <div className="nav-search-row">
         <input className="nav-search" type="search" placeholder="Search sheets"
           aria-label="Search sheets and notes" value={query}
-          title={`${goKey} jumps to any sheet`}
           onChange={(e) => setQuery(e.target.value)} />
-        <button type="button" className="nav-icon-btn" aria-label="Collapse all"
-          title="Collapse all (−)" onClick={() => setAll(false)}>
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor"
-            strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M4 2.5 7 5.5l3-3M4 11.5 7 8.5l3 3" />
-          </svg>
-        </button>
-        <button type="button" className="nav-icon-btn" aria-label="Expand all"
-          title="Expand all (*)" onClick={() => setAll(true)}>
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor"
-            strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M4 5.5 7 2.5l3 3M4 8.5l3 3 3-3" />
-          </svg>
-        </button>
+        <Tooltip content="Collapse all" shortcut="−">
+          <IconButton size="sm" aria-label="Collapse all" onClick={() => setAll(false)}>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor"
+              strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M4 2.5 7 5.5l3-3M4 11.5 7 8.5l3 3" />
+            </svg>
+          </IconButton>
+        </Tooltip>
+        <Tooltip content="Expand all" shortcut="*">
+          <IconButton size="sm" aria-label="Expand all" onClick={() => setAll(true)}>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor"
+              strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M4 5.5 7 2.5l3 3M4 8.5l3 3 3-3" />
+            </svg>
+          </IconButton>
+        </Tooltip>
       </div>
       <ul className="nav-tree" role="tree" aria-label="Sheets" ref={treeRef}>
         {renderRows(undefined)}

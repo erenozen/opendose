@@ -20,6 +20,12 @@ import { tmpdir } from "node:os";
 import { createRequire } from "node:module";
 import { unzipSync, strFromU8, strToU8, zipSync } from "fflate";
 
+// The header's View menu (DECISIONS 5): open it, pick an item.
+const viewMenu = async (p, item) => {
+  await p.locator("header").getByRole("button", { name: "View", exact: true }).click();
+  await p.getByRole("menuitem", { name: item }).click();
+};
+
 const here = dirname(fileURLToPath(import.meta.url));
 const FLOWJO = join(here, "..", "e2e-fixtures", "flowjo-table.csv");
 const url = process.argv[2] ?? "http://localhost:5173/";
@@ -53,7 +59,7 @@ const original = await logIC50(page);
 console.log("example LogIC50 row:", original);
 
 // --- share link of the whole project
-const saveMenu = page.getByRole("button", { name: "More ways to save and share" });
+const saveMenu = page.locator("header").getByRole("button", { name: "File", exact: true });
 await saveMenu.click();
 await page.getByRole("menuitem", { name: "Copy share link…" }).click();
 const shareDlg = page.getByRole("dialog", { name: "Share this project" });
@@ -348,7 +354,7 @@ expect("the plan from provenance.json gives the same P on the same new data", pF
   `${pFromPlan} vs ${pAfter}`);
 
 // --- info popover: privacy, file format, validation page
-await page.getByRole("button", { name: /About OpenDose/ }).click();
+await viewMenu(page, "About OpenDose…");
 const pop = page.locator(".info-pop");
 expect("privacy statement in the info popover",
   (await pop.innerText()).includes("no data is sent anywhere"));
@@ -366,7 +372,7 @@ expect("validation page filters by reference", await val.locator(".validation-ta
 await val.getByRole("button", { name: "Close" }).last().click();
 
 // --- "Your data and privacy": from the info popover, and at #privacy
-await page.getByRole("button", { name: /About OpenDose/ }).click();
+await viewMenu(page, "About OpenDose…");
 await page.locator(".info-pop").getByRole("button", { name: "How your data stays private" }).click();
 const priv = page.getByRole("dialog", { name: "Your data and privacy" });
 await priv.waitFor({ timeout: 10000 });

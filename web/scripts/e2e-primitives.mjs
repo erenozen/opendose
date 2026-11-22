@@ -49,15 +49,25 @@ const focused = (page) => page.evaluate(() => {
 });
 const focusIs = (page, locator) => locator.evaluate((el) => el === document.activeElement);
 const settle = (page, ms = 250) => page.waitForTimeout(ms);
+// The header's File and View menus (DECISIONS 5).
+const headerMenu = (page, name) => page.locator("header").getByRole("button", { name, exact: true });
+const fileMenu = async (page, item) => {
+  await headerMenu(page, "File").click();
+  await page.getByRole("menuitem", { name: item }).click();
+};
 
 // ---------------------------------------------------------------- dialogs
 {
   const { ctx, page } = await openApp();
-  const newProject = page.getByRole("button", { name: "New project" });
+  // New project… is an item of the File menu: once the menu has closed,
+  // the dialog's opener is the menu's trigger.
+  const newProject = headerMenu(page, "File");
   const confirm = page.getByRole("alertdialog", { name: "Start a new project?" });
 
   // Escape, opened from the keyboard
   await newProject.focus();
+  await page.keyboard.press("Enter");
+  await page.getByRole("menuitem", { name: "New project…" }).waitFor();
   await page.keyboard.press("Enter");
   await confirm.waitFor();
   expect("a keyboard-opened dialog skips its entrance (data-instant)",
@@ -68,7 +78,7 @@ const settle = (page, ms = 250) => page.waitForTimeout(ms);
     await focused(page));
 
   // Cancel, opened with the pointer
-  await newProject.click();
+  await fileMenu(page, "New project…");
   await confirm.waitFor();
   expect("a pointer-opened dialog animates in",
     !(await confirm.evaluate((d) => d.hasAttribute("data-instant"))));
@@ -80,8 +90,7 @@ const settle = (page, ms = 250) => page.waitForTimeout(ms);
     await page.locator(".dialog-ghost").count() === 0);
 
   // Tab stays inside the open dialog
-  const newTable = page.getByRole("button", { name: "New data table" });
-  await newTable.click();
+  await fileMenu(page, "New data table…");
   const nt = page.locator("dialog[open]");
   await nt.waitFor();
   let outside = 0;
@@ -100,7 +109,7 @@ const settle = (page, ms = 250) => page.waitForTimeout(ms);
     (await focused(page)) !== "BODY", await focused(page));
 
   // Backdrop: a press that starts inside the dialog and ends outside does not close it
-  await newProject.click();
+  await fileMenu(page, "New project…");
   await confirm.waitFor();
   const box = await confirm.boundingBox();
   await page.mouse.move(box.x + box.width / 2, box.y + 10);
@@ -217,8 +226,8 @@ const settle = (page, ms = 250) => page.waitForTimeout(ms);
   expect("SheetMenu: Escape returns focus to the sheet's row",
     await page.evaluate(() => !!document.activeElement?.closest(".nav-tree")), await focused(page));
 
-  // MenuButton (Tools) and its right-aligned origin
-  const tools = page.getByRole("button", { name: /^Tools/ });
+  // The header's File menu and its right-aligned origin
+  const tools = headerMenu(page, "File");
   await tools.click();
   const toolsMenu = page.locator(".sheet-menu:popover-open").first();
   await toolsMenu.waitFor();
@@ -230,7 +239,7 @@ const settle = (page, ms = 250) => page.waitForTimeout(ms);
     Math.abs(mb.x + ox - (tb.x + tb.width / 2)) < tb.width, `${origin}`);
   await page.keyboard.press("Escape");
   await settle(page);
-  expect("MenuButton: Escape returns focus to its button", await focusIs(page, tools));
+  expect("File menu: Escape returns focus to its button", await focusIs(page, tools));
   await ctx.close();
 }
 
@@ -270,28 +279,35 @@ const settle = (page, ms = 250) => page.waitForTimeout(ms);
   await settle(page, 400);
   expect("Graph settings: a click outside closes it", !(await gs.isVisible()));
 
-  const prefs = page.getByRole("button", { name: "Preferences" });
-  await prefs.click();
+  // Preferences: a popover opened from View, anchored to it
+  const view = headerMenu(page, "View");
+  await view.click();
+  await page.getByRole("menuitem", { name: "Preferences…" }).click();
   const pp = page.getByRole("dialog", { name: "Preferences" });
   await pp.waitFor();
+  const [pb, vb] = [await pp.boundingBox(), await view.boundingBox()];
+  expect("Preferences: placed under the View menu that opened it",
+    !!pb && !!vb && pb.y >= vb.y + vb.height && pb.x + pb.width >= vb.x, JSON.stringify([pb, vb]));
   await page.keyboard.press("Escape");
   await settle(page);
-  expect("Preferences: Escape returns focus to its button", await focusIs(page, prefs));
+  expect("Preferences: Escape returns focus to View", await focusIs(page, view), await focused(page));
+  expect("Preferences: Escape closes it", !(await pp.isVisible()));
   expect("no tooltip pops up over the button that got focus back",
     await page.locator("[role=tooltip]:popover-open").count() === 0);
 
-  const info = page.getByRole("button", { name: /^About OpenDose/ });
-  await info.click();
-  await page.locator(".info-pop").waitFor();
-  await info.click();
-  await settle(page);
-  expect("About: a second click on its button closes it", !(await page.locator(".info-pop").isVisible()));
-  await info.focus();
+  // About: a dialog opened from View
+  await view.focus();
   await page.keyboard.press("Enter");
-  await page.locator(".info-pop").waitFor();
+  await page.getByRole("menu", { name: "View" }).waitFor();
+  await page.keyboard.press("End");
+  await page.keyboard.press("Enter");
+  const about = page.getByRole("dialog", { name: "About OpenDose" });
+  await about.waitFor();
+  expect("About: the dialog holds the privacy statement",
+    (await about.innerText()).includes("no data is sent anywhere"));
   await page.keyboard.press("Escape");
   await settle(page);
-  expect("About: Escape returns focus to its button", await focusIs(page, info));
+  expect("About: Escape returns focus to View", await focusIs(page, view), await focused(page));
 
   // Escape inside a popover inside a dialog closes only the popover
   // (covered by the stack; the header popovers are enough here)
@@ -302,20 +318,20 @@ const settle = (page, ms = 250) => page.waitForTimeout(ms);
 {
   const { ctx, page } = await openApp({ live: true });
   const open = page.locator("[role=tooltip]:popover-open");
-  const theme = page.getByRole("button", { name: /^Color theme/ });
-  const help = page.getByRole("button", { name: /^Help:/ });
+  const theme = page.getByRole("button", { name: "Collapse all" });
+  const help = page.getByRole("button", { name: "Expand all" });
   await theme.hover();
   await page.waitForTimeout(150);
   const early = await open.count();
   await page.waitForTimeout(600);
   const late = await open.count();
   expect("Tooltip: waits before it opens on hover", early === 0 && late === 1, `${early}, ${late}`);
-  expect("Tooltip: it names the theme in words",
-    /^Theme: /.test(await open.first().innerText()), await open.first().innerText());
+  expect("Tooltip: it names the button in words",
+    /^Collapse all/.test(await open.first().innerText()), await open.first().innerText());
   await help.hover();
   await page.waitForTimeout(150);
   expect("Tooltip: the next one opens at once while warm (no second wait)",
-    await open.count() === 1 && /^Help/.test(await open.first().innerText()));
+    await open.count() === 1 && /^Expand all/.test(await open.first().innerText()));
   await page.mouse.move(700, 600);
   await page.waitForTimeout(500);
   expect("Tooltip: it closes when the pointer leaves", await open.count() === 0);
@@ -344,7 +360,7 @@ const settle = (page, ms = 250) => page.waitForTimeout(ms);
       if (e.target.matches?.("dialog")) window.__runs.push(e.propertyName + e.pseudoElement);
     }, true);
   });
-  await page.getByRole("button", { name: "New project" }).click();
+  await fileMenu(page, "New project…");
   const d = page.getByRole("alertdialog", { name: "Start a new project?" });
   await d.waitFor({ state: "attached" });
   await page.waitForTimeout(50);

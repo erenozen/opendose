@@ -10,6 +10,16 @@ import { join } from "node:path";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 
+// The header's File and View menus (DECISIONS 5): open one, pick an item.
+const fileMenu = async (p, item) => {
+  await p.locator("header").getByRole("button", { name: "File", exact: true }).click();
+  await p.getByRole("menuitem", { name: item }).click();
+};
+const viewMenu = async (p, item) => {
+  await p.locator("header").getByRole("button", { name: "View", exact: true }).click();
+  await p.getByRole("menuitem", { name: item }).click();
+};
+
 const baseUrl = process.argv[2] ?? "http://localhost:5173/";
 // ?example=1 opens the example project directly (no start screen, no tour).
 const url = (() => {
@@ -223,7 +233,7 @@ await shot("superplot");
     before.brackets.length > 0 && before.brackets.every((b) => /^P [=<] 0\.\d+$/.test(b)),
     before.brackets.join(" | "));
   await closeSettings();
-  await page.getByRole("button", { name: "Preferences" }).click();
+  await viewMenu(page, "Preferences…");
   await page.getByLabel("P-value style (tables, sentences, legends)").selectOption("apa");
   await page.keyboard.press("Escape");
   await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.layout?.annotations ?? [])
@@ -236,7 +246,7 @@ await shot("superplot");
   const table = await page.locator(".pane-results .results-table tbody tr", { hasText: /P value/ }).first()
     .innerText().catch(() => "");
   expect("results table follows the same project style", /(< \.001|\s\.\d{3})/.test(table) && !/0\.\d{4}/.test(table), table.replace(/\s+/g, " ").slice(0, 400));
-  await page.getByRole("button", { name: "Preferences" }).click();
+  await viewMenu(page, "Preferences…");
   await page.getByLabel("P-value style (tables, sentences, legends)").selectOption("graphpad");
   await page.keyboard.press("Escape");
 }
@@ -330,7 +340,7 @@ await shot("classic");
 
 // --- volcano plot on the multiple-variables example ---
 {
-  await page.getByRole("button", { name: "New data table" }).click();
+  await fileMenu(page, "New data table…");
   const dlg = page.locator(".new-table-dialog");
   await dlg.locator('input[name="table-type"][value="multivariable"]').check();
   await dlg.getByText("Example data").click();
@@ -354,7 +364,7 @@ await shot("classic");
 
 // --- heat map: z-scores and clustering through the engine ---
 {
-  await page.getByRole("button", { name: "New data table" }).click();
+  await fileMenu(page, "New data table…");
   const dlg = page.locator(".new-table-dialog");
   await dlg.locator('input[name="table-type"][value="grouped"]').check();
   await dlg.getByText("Example data").click();
@@ -399,7 +409,7 @@ await shot("classic");
 
 // --- a new survival graph marks censored subjects ---
 {
-  await page.getByRole("button", { name: "New data table" }).click();
+  await fileMenu(page, "New data table…");
   const dlg = page.locator(".new-table-dialog");
   await dlg.locator('input[name="table-type"][value="survival"]').check();
   await dlg.getByText("Example data").click();

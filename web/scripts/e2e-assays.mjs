@@ -29,6 +29,12 @@ import { chromium } from "playwright";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 
+// The header's File menu (DECISIONS 5): open it, pick an item.
+const fileMenu = async (p, item) => {
+  await p.locator("header").getByRole("button", { name: "File", exact: true }).click();
+  await p.getByRole("menuitem", { name: item }).click();
+};
+
 // ?example=1 opens the example project directly (no start screen, no tour).
 const url = (() => {
   const u = new URL(process.argv[2] ?? "http://localhost:5173/");
@@ -74,7 +80,7 @@ const axeViolations = async (selectors) => {
 
 const wizard = () => page.locator("dialog.assay-wizard");
 async function startAssay(label, { sample = true, name } = {}) {
-  await page.getByRole("button", { name: "New data table" }).click();
+  await fileMenu(page, "New data table…");
   const dlg = page.locator(".new-table-dialog");
   await dlg.getByRole("radio", { name: "Start from an assay" }).check();
   const re = new RegExp(`^${label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`);
@@ -405,7 +411,7 @@ expect("the linked matched table opens with the column ratio paired t test (Trea
 // GTT example, one subcolumn per mouse: trapezoid areas (numpy) chow
 // 20602.5, 19290, 21952.5, 20092.5 (mean 20484.375), high-fat diet mean
 // 33110.625; unpaired t test t(6) = 10.15, P = 5.31e-5 (scipy).
-await page.getByRole("button", { name: "New data table" }).click();
+await fileMenu(page, "New data table…");
 const pick = page.locator(".new-table-dialog");
 await pick.getByRole("radio", { name: "Start from an assay" }).check();
 // The sixteen modules of the registry (sheets/assays/index.ts ASSAYS), in
@@ -454,7 +460,7 @@ await page.keyboard.press("Escape");
 // high-fat diet 32915, unpaired t(10) = -15.60 (scipy); mean of 60-120 min
 // per mouse: t(10) = -16.65 (scipy).
 {
-  await page.getByRole("button", { name: "New data table" }).click();
+  await fileMenu(page, "New data table…");
   const nd = page.locator(".new-table-dialog");
   await nd.getByRole("radio", { name: "Start from an assay" }).check();
   await nd.getByRole("radio", { name: /^Time course/ }).check();
