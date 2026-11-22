@@ -4,12 +4,16 @@
 //
 // The card is a Popover anchored to the step's target (top layer, Escape,
 // focus kept inside and handed back on close); presses outside do not
-// close it, because step 1 asks the user to edit a cell. The ring around
-// the target is placed with transform and sized without a transition, so
-// nothing relayouts while the page scrolls (GF-04, MO-10).
+// close it, because step 1 asks the user to edit a cell. The dim and the
+// accent ring around the target are full-screen layers cut with
+// clip-path, so following the target while the page scrolls lays nothing
+// out (GF-04, MO-10). After a pointer press on Next or Back the ring and
+// card glide to the new target (200 ms, --ease-in-out); a key press and
+// reduced motion jump (motion plan 010).
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
-import { announce, Button, Popover } from "../components/ui";
+import { announce, Button, lastInputWasKeyboard, Popover } from "../components/ui";
 import { belowStickyHeader } from "../components/ui/Popover.anchor";
+import { prefersReducedMotion } from "../components/ui/useDismiss";
 
 const mac = typeof navigator !== "undefined" && /Mac|iP(hone|ad)/.test(navigator.platform);
 const MOD = mac ? "⌘" : "Ctrl+";
@@ -42,8 +46,25 @@ const TOUR_STEPS: TourStep[] = [
  *  viewport edges (px). */
 const GAP = 12;
 const EDGE = 16;
-/** The ring sits this far outside its target. */
+/** The ring sits this far outside its target, and is this thick. */
 const RING = 6;
+const STROKE = 2;
+
+/** A rounded rectangle as clockwise path commands. Every rectangle has
+ *  the same commands, so clip-path can interpolate between two of them. */
+function roundRect(x: number, y: number, w: number, h: number, r: number) {
+  const k = Math.max(0, Math.min(r, w / 2, h / 2));
+  const n = (v: number) => Math.round(v * 10) / 10;
+  return `M${n(x + k)} ${n(y)}H${n(x + w - k)}A${n(k)} ${n(k)} 0 0 1 ${n(x + w)} ${n(y + k)}`
+    + `V${n(y + h - k)}A${n(k)} ${n(k)} 0 0 1 ${n(x + w - k)} ${n(y + h)}`
+    + `H${n(x + k)}A${n(k)} ${n(k)} 0 0 1 ${n(x)} ${n(y + h - k)}`
+    + `V${n(y + k)}A${n(k)} ${n(k)} 0 0 1 ${n(x + k)} ${n(y)}Z`;
+}
+
+/** A motion or radius token from tokens.css, for WAAPI and timers. */
+function token(name: string) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
 
 function findAnchor(step: TourStep): HTMLElement | null {
   for (const sel of step.anchor) {
@@ -82,7 +103,13 @@ export default function Tour({ onDone }: { onDone: () => void }) {
   // panel loaded late), so the card is placed again.
   const [moved, setMoved] = useState(0);
   const cardRef = useRef<HTMLDivElement>(null);
+  const tourRef = useRef<HTMLDivElement>(null);
+  const dimRef = useRef<HTMLDivElement>(null);
   const ringRef = useRef<HTMLDivElement>(null);
+  // Set by a pointer press on Next or Back: the next step glides there.
+  const glideFrom = useRef<DOMRect | null>(null);
+  // Started from the keyboard: the dim appears at once, like the card.
+  const [instant] = useState(lastInputWasKeyboard);
   const nextRef = useRef<HTMLButtonElement>(null);
   // The control that opened the tour, to hand focus back to (GF-03).
   const [opener] = useState(() => (document.activeElement instanceof HTMLElement
@@ -91,25 +118,46 @@ export default function Tour({ onDone }: { onDone: () => void }) {
   const step = TOUR_STEPS[i];
   const last = i === TOUR_STEPS.length - 1;
 
-  // The ring follows its target: written straight to the element (no
-  // React render per scroll frame), on scroll, resize and a slow poll for
-  // targets that appear late or move without scrolling.
+  // The dim and ring follow their target: written straight to the
+  // elements (no React render per scroll frame), on scroll, resize and a
+  // slow poll for targets that appear late or move without scrolling.
+  // Only the first placement after a pointer-pressed step change
+  // transitions (data-moving); every other one lands at once.
   useLayoutEffect(() => {
     let box = "";
     let frame = 0;
+    let settle = 0;
+    const tourEl = tourRef.current;
     const measure = () => {
-      const ring = ringRef.current;
+      const tour = tourRef.current, dim = dimRef.current, ring = ringRef.current;
       const el = findAnchor(step);
       const r = el?.getBoundingClientRect();
       const next = r ? `${r.left},${r.top},${r.width},${r.height}` : "";
-      if (next === box || !ring) return;
+      if (next === box || !tour || !dim || !ring) return;
       const first = box === "";
       box = next;
-      if (!r) { ring.hidden = true; return; }
-      ring.hidden = false;
-      ring.style.width = `${r.width + 2 * RING}px`;
-      ring.style.height = `${r.height + 2 * RING}px`;
-      ring.style.transform = `translate(${r.left - RING}px, ${r.top - RING}px)`;
+      dim.hidden = ring.hidden = !r;
+      if (!r) return;
+      const glide = first && !!glideFrom.current;
+      if (glide) tour.setAttribute("data-moving", "");
+      const radius = Number.parseFloat(token("--radius-dialog")) || 8;
+      const x = r.left - RING, y = r.top - RING, w = r.width + 2 * RING, h = r.height + 2 * RING;
+      const hole = roundRect(x, y, w, h, radius);
+      dim.style.clipPath = `path(evenodd, "M0 0H100000V100000H0Z${hole}")`;
+      ring.style.clipPath = `path(evenodd, "${hole}${roundRect(x + STROKE, y + STROKE,
+        w - 2 * STROKE, h - 2 * STROKE, radius - STROKE)}")`;
+      // The glide ends with its transitions (or at once if none started);
+      // a scroll that retargets it ends it too, so the ring snaps to its
+      // target instead of trailing it.
+      if (glide) {
+        cancelAnimationFrame(settle);
+        settle = requestAnimationFrame(() => {
+          const runs = ring.getAnimations();
+          const done = () => tour.removeAttribute("data-moving");
+          if (!runs.length) done();
+          else Promise.all(runs.map((a) => a.finished)).then(done, done);
+        });
+      }
       if (!first) setMoved((m) => m + 1);
     };
     const schedule = () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(measure); };
@@ -120,11 +168,37 @@ export default function Tour({ onDone }: { onDone: () => void }) {
     window.addEventListener("scroll", schedule, { capture: true, passive: true });
     return () => {
       cancelAnimationFrame(frame);
+      cancelAnimationFrame(settle);
+      tourEl?.removeAttribute("data-moving");
       clearInterval(poll);
       window.removeEventListener("resize", schedule);
       window.removeEventListener("scroll", schedule, { capture: true });
     };
   }, [step]);
+
+  // The card moves from where it was to its new place by transform (a
+  // FLIP), after the Popover has placed it for the new step.
+  useLayoutEffect(() => {
+    const card = cardRef.current, was = glideFrom.current;
+    glideFrom.current = null;
+    if (!card || !was) return;
+    const now = card.getBoundingClientRect();
+    const dx = Math.round(was.left - now.left), dy = Math.round(was.top - now.top);
+    if (!dx && !dy) return;
+    card.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "none" }], {
+      duration: Number.parseFloat(token("--dur-enter")) || 200,
+      easing: token("--ease-in-out") || "ease-in-out",
+    });
+  }, [i]);
+
+  // Back and Next. The next target is scrolled into view first, so the
+  // card is placed once, where it will stay.
+  const go = (n: number) => {
+    const glide = !lastInputWasKeyboard() && !prefersReducedMotion();
+    glideFrom.current = glide ? cardRef.current?.getBoundingClientRect() ?? null : null;
+    findAnchor(TOUR_STEPS[n])?.scrollIntoView?.({ block: "nearest", inline: "nearest" });
+    setI(n);
+  };
 
   // A new step: focus its primary action and say which step it is.
   const firstStep = useRef(true);
@@ -153,7 +227,8 @@ export default function Tour({ onDone }: { onDone: () => void }) {
   }), []);
 
   return (
-    <div className="tour" data-step={i + 1}>
+    <div ref={tourRef} className="tour" data-step={i + 1} data-instant={instant || undefined}>
+      <div ref={dimRef} className="tour-dim" aria-hidden="true" hidden />
       <div ref={ringRef} className="tour-ring" aria-hidden="true" hidden />
       <Popover open onOpenChange={(o) => { if (!o) finish(); }}>
         <Popover.Content ref={cardRef} className="tour-card" aria-labelledby={titleId}
@@ -166,9 +241,9 @@ export default function Tour({ onDone }: { onDone: () => void }) {
             <Button size="sm" className="tour-skip" onClick={finish}>
               {last ? "Close" : "Skip tour"}</Button>
             <span className="tour-spacer" />
-            {i > 0 && <Button size="sm" onClick={() => setI(i - 1)}>Back</Button>}
+            {i > 0 && <Button size="sm" onClick={() => go(i - 1)}>Back</Button>}
             <Button ref={nextRef} size="sm" variant="primary" className="tour-next"
-              onClick={() => (last ? finish() : setI(i + 1))}>{last ? "Done" : "Next"}</Button>
+              onClick={() => (last ? finish() : go(i + 1))}>{last ? "Done" : "Next"}</Button>
           </div>
         </Popover.Content>
       </Popover>

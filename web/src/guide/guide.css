@@ -151,16 +151,26 @@
 
 /* ---------------- tour ---------------- */
 
-/* The ring dims the page around the step's target (the same scrim as a
-   dialog) and is moved by transform, never by top/left (GF-04). The card
-   is a Popover (top layer); its surface is set here. */
+/* The dim (the same scrim as a dialog) and the 2px accent ring are
+   full-screen layers cut by clip-path paths that Tour.tsx writes: a hole
+   6px outside the step's target, its corner the target's 4px plus that
+   gap, rounded to the 8px step. No layout while they follow the target
+   (GF-04). They fade in with the card (unless the tour was started from
+   the keyboard) and glide between targets only while data-moving is set,
+   after a pointer press on Next or Back; reduced motion drops the glide
+   (base.css). The card is a Popover (top layer); its surface is set here. */
 .tour { position: fixed; inset: 0; z-index: var(--z-dialog); pointer-events: none; }
-/* The ring sits 6px outside its target, so its corner is the target's
-   4px plus that gap, rounded to the 8px step. */
-.tour-ring {
-  position: fixed; top: 0; left: 0;
-  border-radius: var(--radius-dialog); border: 2px solid var(--accent-fill);
-  box-shadow: 0 0 0 100vmax var(--scrim);
+.tour-dim, .tour-ring {
+  position: fixed; inset: 0;
+  transition: opacity var(--dur-enter) var(--ease-out);
+}
+@starting-style {
+  .tour:not([data-instant]) :is(.tour-dim, .tour-ring) { opacity: 0; }
+}
+.tour-dim { background: var(--scrim); }
+.tour-ring { background: var(--accent-fill); }
+.tour[data-moving] :is(.tour-dim, .tour-ring) {
+  transition: opacity var(--dur-enter) var(--ease-out), clip-path var(--dur-enter) var(--ease-in-out);
 }
 .ui-layer.tour-card {
   width: min(340px, calc(100vw - 32px)); pointer-events: auto;
