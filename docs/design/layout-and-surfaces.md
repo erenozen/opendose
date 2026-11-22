@@ -1,0 +1,113 @@
+# Layout and surfaces
+
+Source: [layout.css](../../web/src/styles/layout.css),
+[cards.css](../../web/src/styles/cards.css), the elevation and radius
+tokens in [tokens.css](../../web/src/styles/tokens.css). Direction:
+DECISIONS section 2 ("Instrument") and ruling 6.
+
+## Panes and seams
+
+The target: the workbench is a set of tiled panes (table, controls, plot,
+results, welcome) on `--surface`, divided by the splitters. The splitters
+are the seams: a 1px line with a ±4px hit area from `::before`, an `--axis`
+indicator on hover, drag or focus. Panes do not float: no shadow, no
+gap of `--page` showing between them, no resize corner (the splitters
+already resize).
+
+Today in the code: panes are still cards in
+[cards.css](../../web/src/styles/cards.css) with a 1px `--line` border,
+`resize: both` corners, and 20px splitter gutters in layout.css. Phase 4
+moves them to seams. Until then, a new pane copies the card rule in
+cards.css exactly; never invent a third treatment.
+
+Inside a pane: section labels are `--text-label` (12px, 600, `--muted`)
+in sentence case, never uppercase; padding is `--space-16`; groups sit
+`--space-16` apart, related controls `--space-8`.
+
+## One depth cue per surface
+
+```
+Does the surface hold or separate data (pane, table, grid, input, banner)?
+ ├── Yes → a 1px border (--line-solid for seams and rules, --line-strong for
+ │         control edges). No shadow.
+ └── No: it floats above the page (menu, popover, dialog, toast, tooltip, drawer,
+     floating note, the layout sheet's page)
+      ├── Dialog or drawer → box-shadow: var(--elev-dialog)
+      └── Everything else → box-shadow: var(--elev-float)
+      In both: no border. The token already holds the 1px ring (and in dark
+      mode the ring is white at 0.09, which is what separates the layer there).
+```
+
+Never a border plus a shadow, and never a shadow on a pane: two depth cues
+read as a card on a card, and a shadow on data makes the grid look like it
+floats. `--elev-seg` is for the segmented control's thumb only.
+
+```css
+/* Correct: components/menu.css:4 */
+.sheet-menu {
+  background: var(--float);
+  border-radius: var(--radius-menu);
+  box-shadow: var(--elev-float);
+}
+
+/* Incorrect: app/organise.css:12. Border, a 3px top rule and a shadow: three cues. */
+.floating-note {
+  border: 1px solid color-mix(in srgb, var(--note-edge) 55%, transparent);
+  border-top: 3px solid var(--note-edge);
+  box-shadow: var(--elev-float);
+}
+```
+
+## Radius per role
+
+Controls and panes 4px (`--radius-control`, `--radius-pane`), menus,
+popovers and toasts 6px (`--radius-menu`), dialogs 8px
+(`--radius-dialog`). Something inside a rounded container takes the next
+step down (a menu item in a 6px menu is 4px), so corners stay concentric.
+`--radius-round` is for the segmented control and status dots; never a
+pill button (DECISIONS section 1 removed them).
+
+## Widths
+
+| Width | What changes (layout.css, Banner.css) |
+| --- | --- |
+| ≤ 1100px | the workbench is one column; the column splitter hides |
+| ≤ 900px | the navigator leaves the grid |
+| ≤ 760px | phone layout: panes stack in the order import, table, plot, controls, results, methods; corner resize is off |
+| ≤ 620px of banner | Banner actions wrap under the text (container query) |
+
+Use a container query when a component's own width decides its layout
+(Banner); use the breakpoints above only for the shell. Wide tables
+scroll inside their pane; the page never scrolls sideways at 390px.
+
+## Phones and touch
+
+- **Viewport.** `web/index.html` sets `viewport-fit=cover` and
+  `interactive-widget=resizes-content`. Never change either.
+- **Height.** `dvh` for full-height layouts, `svh` for a cap that must
+  not jump when the URL bar moves. Never `100vh`: on iOS it is taller
+  than the visible screen. design-counts counts it.
+- **Safe areas.** Anything fixed to an edge adds the matching
+  `--safe-*` token. Side padding uses `max(var(--space-24), var(--safe-left))`
+  so content clears the notch in landscape.
+- **Targets.** Every tap target is at least 44 x 44px on coarse pointers.
+  Button does it: `md` grows to 44px, `sm` and IconButton get an invisible
+  44px `::before`. A raw element needs the same `::before` pattern from
+  Button.css.
+- **Hover.** Every `:hover` rule sits inside
+  `@media (hover: hover) and (pointer: fine)`, or a tap leaves it stuck on.
+  design-counts counts ungated ones.
+- **Text fields.** 16px on coarse pointers, enforced in base.css
+  ([forms.md](forms.md#text-size-on-touch)).
+- **Scrolling layers.** A menu, popover or dialog that scrolls sets
+  `overscroll-behavior: contain`, so its end does not scroll the page.
+
+```css
+/* Correct: components/ui/Toast.css:11 */
+right: calc(var(--space-16) + var(--safe-right));
+bottom: calc(var(--space-16) + var(--safe-bottom));
+
+/* Incorrect: styles/controls.css, the phone rule for raw buttons. 40px is
+   under the 44px floor. */
+@media (max-width: 760px) { button, select { min-height: 40px; } }
+```
