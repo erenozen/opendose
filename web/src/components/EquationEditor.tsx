@@ -15,7 +15,7 @@ import {
 } from "../lib/userEquation";
 import Modal from "./Modal";
 import {
-  Button, IconButton, notify, SwapLabel, useLabelSwap, useValidationTiming,
+  Button, IconButton, notify, SwapLabel, useLabelSwap,
 } from "./ui";
 import { CloseIcon } from "./ui/feedbackIcons";
 import "./modelPicker.css";
@@ -115,10 +115,19 @@ export default function EquationEditor({ initial, onApply, onClose }: {
   // Reward early, punish late (AD-24): the engine checks as you type, but
   // a problem shows only once the field is left or "Use this equation" is
   // pressed; from then on it follows each change and clears once fixed.
-  const textTiming = useValidationTiming(textErrors.length ? "invalid" : null, attempts);
-  const itemTiming = useValidationTiming(itemErrors.length ? "invalid" : null, attempts);
-  const showText = !!textTiming.problem;
-  const showItems = !!itemTiming.problem;
+  // The engine answers after the blur, so leaving a part (or a submit
+  // attempt) arms it until the check comes back clean.
+  const [leftText, setLeftText] = useState(false);
+  const [leftItems, setLeftItems] = useState(false);
+  const checkedClean = !!validation && !textErrors.length && !itemErrors.length;
+  useEffect(() => {
+    if (!validation) return;
+    if (!textErrors.length) setLeftText(false);
+    if (!itemErrors.length) setLeftItems(false);
+  }, [validation, textErrors.length, itemErrors.length]);
+  useEffect(() => { if (attempts) { setLeftText(true); setLeftItems(true); } }, [attempts]);
+  const showText = leftText && textErrors.length > 0 && !checkedClean;
+  const showItems = leftItems && itemErrors.length > 0;
   const verdict = !def.text.trim() || validation === null ? ""
     : textErrors.length ? (showText ? (textErrors.length === 1 ? "The equation has a problem:"
       : `The equation has ${textErrors.length} problems:`) : "")
@@ -175,7 +184,7 @@ export default function EquationEditor({ initial, onApply, onClose }: {
               rows={Math.min(12, Math.max(4, lines.length + 1))}
               value={def.text} placeholder="Y = Bottom + (Top-Bottom)/(1+10^((LogEC50-X)*HillSlope))"
               aria-invalid={showText || undefined} aria-describedby={`${id}-status`}
-              onBlur={textTiming.onBlur}
+              onBlur={() => setLeftText(true)}
               onChange={(e) => set({ text: e.target.value })} />
             <div id={`${id}-status`} className="eq-status">
               {/* The one spoken line: the verdict, never each keystroke's details. */}
@@ -211,7 +220,7 @@ export default function EquationEditor({ initial, onApply, onClose }: {
             </label>
           </div>
 
-          <div className="eq-field" onBlur={itemTiming.onBlur}>
+          <div className="eq-field" onBlur={() => setLeftItems(true)}>
             <span className="eq-section-title" id={`${id}-params`}>Parameters</span>
             {params.length === 0 ? (
               <p className="hint-block">Parameters appear here as you write the equation.</p>

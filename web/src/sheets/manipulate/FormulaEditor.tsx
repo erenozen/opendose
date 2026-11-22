@@ -12,7 +12,7 @@ import {
   FORMULA_BASICS, FORMULA_EXAMPLES, FUNCTION_DOCS, FUNCTION_GROUPS,
 } from "./functions";
 import type { NamedValue, TransformOptions } from "./run";
-import { Button, IconButton, useValidationTiming } from "../../components/ui";
+import { Button, IconButton } from "../../components/ui";
 import { CloseIcon } from "../../components/ui/feedbackIcons";
 
 interface Problem { message: string; line: number | null; column: number | null }
@@ -72,8 +72,11 @@ function FormulaField({ label, target, value, onChange, known, readOnly, onFocus
   const problems = useValidation(value, target, known);
   // Reward early, punish late (AD-24): a problem waits until the field is
   // left, then follows every keystroke and clears once the formula parses.
-  const timing = useValidationTiming(problems?.length ? "invalid" : null);
-  const bad = !!timing.problem && !!problems?.length;
+  // The engine answers after the blur, so leaving arms the field until the
+  // formula is checked valid (Field.timing's rule, for an async check).
+  const [left, setLeft] = useState(false);
+  useEffect(() => { if (problems && !problems.length) setLeft(false); }, [problems]);
+  const bad = left && !!problems?.length;
   const lines = value.split("\n");
   return (
     <div className="formula-field">
@@ -84,7 +87,7 @@ function FormulaField({ label, target, value, onChange, known, readOnly, onFocus
         aria-invalid={bad || undefined}
         aria-describedby={`${id}-status`}
         onFocus={(e) => onFocusField(e.currentTarget)}
-        onBlur={timing.onBlur}
+        onBlur={() => setLeft(true)}
         onChange={(e) => onChange(e.target.value)} />
       {/* One short spoken line; the details are the field's description. */}
       <p className="sr-only" role="status">

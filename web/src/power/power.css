@@ -13,12 +13,11 @@
 /* Fields: label left, control right, note and error under both. A wide
    field (a list, a sentence) puts its control under its label. */
 .power-inputs .ui-field {
-  display: grid; grid-template-columns: minmax(12ch, 1fr) minmax(0, auto);
+  display: grid; grid-template-columns: minmax(0, 1fr) 168px;
   align-items: center; column-gap: var(--space-8); row-gap: var(--space-4);
 }
 .power-inputs .ui-field > :not(.ui-field-label):not(input):not(select) { grid-column: 1 / -1; }
-.power-inputs .ui-field input { width: 120px; }
-.power-inputs .ui-field select { max-width: 100%; }
+.power-inputs .ui-field input, .power-inputs .ui-field select { width: 100%; min-width: 0; }
 .power-inputs .ui-field.power-wide { grid-template-columns: minmax(0, 1fr); }
 .power-inputs .ui-field.power-wide input, .power-inputs .ui-field.power-wide select,
 .power-inputs .ui-field.power-wide textarea { width: 100%; }

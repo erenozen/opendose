@@ -193,7 +193,7 @@ function PowerTool({ pilot }: { pilot?: PilotData }) {
     <div className="power-grid">
       <div className="controls power-inputs">
         <section>
-          <h3>Test</h3>
+          <h3>Calculation</h3>
           <Field id={`${testId}-test`} label="Test" className="power-wide">
             <select id={`${testId}-test`} value={k} onChange={(e) => set({ kind: e.target.value as PowerKind })}>
               {FAMILIES.map((fam) => (
