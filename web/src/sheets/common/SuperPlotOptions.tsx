@@ -5,6 +5,7 @@
 // the SuperPlot.
 import { useProject } from "../../app/context";
 import { OptCheck, OptNote, OptSelect } from "../../components/GraphOptionControls";
+import { Button } from "../../components/ui";
 import { readFormat, withField } from "../../graph/format";
 import { newId } from "../../project/ids";
 import {
@@ -94,11 +95,11 @@ export default function SuperPlotOptions({ graph, table, result, s, on, onChange
             onChange={(link) => set({ link })} />
           <div className="gopt-actions">
             {bound && boundSheet ? (
-              <button type="button" onClick={() => select(boundSheet.id)}>
-                Open “{boundSheet.name}”</button>
+              <Button size="sm" onClick={() => select(boundSheet.id)}>
+                Open “{boundSheet.name}”</Button>
             ) : (
-              <button type="button" disabled={info.names.length < 2 || graph.frozen}
-                onClick={addStats}>Statistics on replicate means</button>
+              <Button size="sm" disabled={info.names.length < 2 || graph.frozen}
+                onClick={addStats}>Statistics on replicate means</Button>
             )}
           </div>
           {!bound && (

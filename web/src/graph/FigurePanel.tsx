@@ -136,7 +136,7 @@ function CvdTable({ drawn, rows, scheme, onRefresh }: {
         Simulated with the Machado et al. (2009) matrices; ΔE00 is the CIEDE2000 colour
         difference (below 5: the same to the eye as small marks; 5 to 10: similar).
         {drawn.symbols ? " These series also differ by symbol, which keeps them apart in grayscale." : ""}
-        {" "}<button type="button" className="link-btn" onClick={onRefresh}>Check again</button>
+        {" "}<button type="button" className="linkish" data-still onClick={onRefresh}>Check again</button>
       </p>
     </div>
   );

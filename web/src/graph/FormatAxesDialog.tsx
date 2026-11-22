@@ -3,12 +3,14 @@
 // same titles as in the Settings panel.
 import { useState } from "react";
 import Modal from "../components/Modal";
+import { Button } from "../components/ui";
 import {
   withField, type AxisFormat, type GraphFormat, type NumberFormat, type ScaleKind,
 } from "./format";
 import {
   CheckField, DialogActions, NumField, Section, SelectField, Tabs, TextField,
 } from "./controls";
+import { useDiscardGuard } from "./useDiscardGuard";
 
 type AxisKey = "x" | "y" | "y2";
 type Titles = { x: string; y: string };
@@ -39,13 +41,14 @@ export default function FormatAxesDialog({
   const setAxis = (k: AxisKey, a: AxisFormat) => setDraft((d) => withField(d, k, clean(a)));
 
   const dirty = JSON.stringify([draft, tTitles]) !== JSON.stringify([applied.f, applied.t]);
+  const requestClose = useDiscardGuard(dirty, onClose);
   const apply = () => { onApply(draft, tTitles); setApplied({ f: draft, t: tTitles }); };
   const tabs: [AxisKey | "frame", string][] = [["x", "X axis"], ["y", "Left Y axis"]];
   if (hasY2) tabs.push(["y2", "Right Y axis"]);
   tabs.push(["frame", "Frame and origin"]);
 
   return (
-    <Modal title="Format axes" className="modal-wide fmt-dialog" onClose={onClose}
+    <Modal title="Format axes" className="modal-wide fmt-dialog" onClose={requestClose}
       onSubmit={() => { if (dirty) onApply(draft, tTitles); onClose(); }}
       actions={<DialogActions onCancel={onClose} onApply={apply} dirty={dirty} />}>
       <Tabs label="Axes" value={tab} onChange={setTab} tabs={tabs} />
@@ -193,12 +196,12 @@ function AxisEditor({ which, value: a, onChange, categorical, title, titlePlaceh
               <CheckField label="Grid line" checked={!!t.grid}
                 onChange={(v) => set({ extraTicks: extra.map((e, j) =>
                   (j === i ? { ...e, grid: v || undefined } : e)) })} />
-              <button type="button" className="fmt-mini" aria-label={`Remove tick at ${t.value}`}
-                onClick={() => set({ extraTicks: extra.filter((_, j) => j !== i) })}>Remove</button>
+              <Button size="sm" aria-label={`Remove tick at ${t.value}`}
+                onClick={() => set({ extraTicks: extra.filter((_, j) => j !== i) })}>Remove</Button>
             </div>
           ))}
-          <button type="button" className="fmt-add" onClick={() =>
-            set({ extraTicks: [...extra, { value: 0, label: "" }] })}>Add a tick</button>
+          <Button size="sm" className="fmt-add" onClick={() =>
+            set({ extraTicks: [...extra, { value: 0, label: "" }] })}>Add a tick</Button>
         </fieldset>
       )}
     </>

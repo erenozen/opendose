@@ -1,55 +1,64 @@
 /* Graph-format dialogs (Format graph, Format axes, Annotations, Pairwise
-   comparisons). Built on the shared .modal / .field styles and tokens. */
+   comparisons). Built on the shared .modal / .field styles and tokens:
+   sections are sentence-case labels over a 1px rule, not boxes. */
 
 .fmt-dialog { overflow-y: auto; overscroll-behavior: contain; }
-.fmt-dialog .modal-body { gap: var(--space-12); }
+.fmt-dialog .modal-body { gap: var(--space-16); }
 /* Keep Cancel / Apply / OK reachable in long dialogs. The negative
-   margins cancel .modal-body's 20/22/18px padding. */
+   margins cancel .modal-body's padding (components/modal.css). */
 .fmt-dialog .modal-actions {
   position: sticky; bottom: 0; z-index: var(--z-base);
-  margin: var(--space-4) -22px -18px; padding: 10px 22px 14px;
-  background: var(--float); border-top: 1px solid var(--line);
+  margin: var(--space-4) -22px -18px; padding: var(--space-12) 22px var(--space-16);
+  background: var(--float); border-top: 1px solid var(--line-solid);
 }
-.fmt-dialog .modal-actions button:disabled { opacity: 0.45; cursor: default; }
 
-/* Tabs: the segmented-control look of the header switch, as real tabs. */
+/* Tabs: the segmented control of the header switch, as real tabs. The
+   selected tab keeps the weight of the others (GL-10): the thumb and the
+   ink mark it, and the row never reflows. */
 .fmt-tabs {
   display: inline-flex; align-self: flex-start; flex-wrap: wrap; gap: var(--space-2);
   background: var(--seg-track); border-radius: var(--radius-round); padding: var(--space-2);
 }
 .fmt-tabs button {
-  border: none; background: transparent; border-radius: var(--radius-round);
-  padding: 5px var(--space-12); font-size: var(--text-body-s);
+  min-height: 28px; border: none; background: transparent; border-radius: var(--radius-round);
+  padding: var(--space-4) var(--space-12); font-size: var(--text-body-s);
   font-weight: var(--weight-medium); color: var(--ink-2);
 }
 .fmt-tabs button.active {
-  background: var(--seg-thumb); color: var(--ink); font-weight: var(--weight-semibold);
+  background: var(--seg-thumb); color: var(--ink);
   box-shadow: var(--elev-seg);
 }
-.fmt-panel { display: flex; flex-direction: column; gap: var(--space-12); }
+@media (pointer: coarse) {
+  .fmt-tabs button { min-height: 44px; }
+}
+.fmt-panel { display: flex; flex-direction: column; gap: var(--space-16); }
 
+/* A section: its label (the legend, floated out of the fieldset border
+   so it sits above the rule rather than in it) and a grid of fields. */
 .fmt-section {
-  border: 1px solid var(--line); border-radius: var(--radius-pane);
-  margin: 0; padding: var(--space-8) var(--space-12) var(--space-12); min-width: 0;
+  border: none; border-top: 1px solid var(--line);
+  margin: 0; padding: var(--space-12) 0 0; min-width: 0;
 }
 .fmt-section > legend {
-  font-size: var(--text-label); text-transform: uppercase; letter-spacing: 0.07em;
-  color: var(--muted); font-weight: var(--weight-semibold); padding: 0 var(--space-4);
+  float: left; width: 100%; padding: 0; margin-bottom: var(--space-8);
+  font-size: var(--text-label); font-weight: var(--weight-semibold); color: var(--muted);
 }
+.fmt-section > legend + * { clear: both; }
 .fmt-grid {
-  display: grid; gap: 10px 14px; align-items: start;
+  display: grid; gap: var(--space-12) var(--space-16); align-items: start;
   grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
 }
 .fmt-grid .field input:not([type="checkbox"]):not([type="radio"]):not([type="color"]),
 .fmt-grid .field select, .fmt-grid .field textarea { width: 100%; min-width: 0; }
 .fmt-section .field textarea, .fmt-text textarea {
   font: inherit; color: var(--ink); background: var(--inset); resize: vertical;
-  border: 1px solid var(--line-strong); border-radius: var(--radius-control); padding: var(--space-6) 9px;
+  border: 1px solid var(--line-strong); border-radius: var(--radius-control);
+  padding: var(--space-6) var(--space-8);
 }
 .fmt-dialog .field > label:first-child { font-weight: var(--weight-medium); }
 .fmt-num input { font-variant-numeric: tabular-nums; }
 .fmt-check { font-size: var(--text-body-s); }
-.fmt-grid > .fmt-check { align-self: end; min-height: 34px; }
+.fmt-grid > .fmt-check { align-self: end; min-height: 32px; }
 .fmt-span { grid-column: 1 / -1; margin: 0; }
 
 .fmt-color-row { display: flex; align-items: center; gap: var(--space-8); }
@@ -60,23 +69,17 @@
 .fmt-auto { color: var(--muted); font-size: var(--text-caption); }
 .fmt-warn { color: var(--warn-ink); font-size: var(--text-caption); }
 
-button.fmt-mini {
-  padding: 3px 9px; font-size: var(--text-caption); border-radius: var(--radius-control);
-  border: 1px solid var(--line-strong); background: var(--surface);
-}
-button.fmt-mini:disabled { opacity: 0.4; cursor: default; }
-button.fmt-add { padding: 5px var(--space-12); font-size: var(--text-body-s); }
-.fmt-add-row { display: flex; flex-wrap: wrap; gap: var(--space-6); }
+.fmt-add { align-self: flex-start; }
 
 .fmt-target {
-  display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: flex-start;
+  display: flex; flex-wrap: wrap; gap: var(--space-12) var(--space-24); align-items: flex-start;
 }
 .fmt-target > .field { min-width: 200px; }
-.fmt-apply-to { flex-direction: row; flex-wrap: wrap; gap: var(--space-4) 14px; }
+.fmt-apply-to { flex-direction: row; flex-wrap: wrap; gap: var(--space-4) var(--space-16); }
 .fmt-apply-to legend { flex-basis: 100%; }
 .fmt-picks {
-  border: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--space-2) 14px;
-  flex-basis: 100%;
+  border: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap;
+  gap: var(--space-2) var(--space-16); flex-basis: 100%;
 }
 
 .fmt-order { margin: 0; padding: 0 0 0 var(--space-20); display: flex; flex-direction: column;
@@ -90,7 +93,8 @@ button.fmt-add { padding: 5px var(--space-12); font-size: var(--text-body-s); }
 }
 .fmt-row .fmt-num input { width: 100px; }
 
-.fmt-ann-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.fmt-ann-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column;
+  gap: var(--space-12); }
 .fmt-ann-head {
   display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-8);
   font-size: var(--text-body-s);
@@ -113,12 +117,14 @@ button.fmt-add { padding: 5px var(--space-12); font-size: var(--text-body-s); }
   font-size: var(--text-body-s);
 }
 .format-actions .axis-titles-label { flex-basis: 100%; }
-button.format-action { padding: var(--space-4) 11px; font-size: var(--text-body-s); }
 
+/* Touch: fields are 44px targets (buttons already are). */
+@media (pointer: coarse) {
+  .fmt-dialog .field input, .fmt-dialog .field select { min-height: 44px; }
+  .fmt-grid > .fmt-check { min-height: 44px; }
+}
 @media (max-width: 700px) {
   .fmt-grid { grid-template-columns: 1fr 1fr; }
-  button.fmt-mini, button.fmt-add, button.format-action { min-height: 34px; }
-  .fmt-dialog .field input, .fmt-dialog .field select { min-height: 34px; }
 }
 @media (max-width: 420px) {
   .fmt-grid { grid-template-columns: 1fr; }

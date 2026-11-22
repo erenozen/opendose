@@ -17,6 +17,7 @@ import {
   NonlinControls, NonlinMethods, NonlinResults, PlateAside, XYPlot,
 } from "./panels";
 import { runNonlinGated, xyAutoTitles } from "./run";
+import { concentrationUnit } from "./rangeReport";
 import {
   ANALYSIS_LINREG, DEFAULT_LINREG, GRAPH_LINREG, normalizeLinreg, runLinreg, type LinregOptions,
 } from "./linreg";
@@ -168,7 +169,7 @@ export const compareGraph = defineGraph<CompareOptions, AnalysisResult>({
     const o = options ? normalizeCompare(options) : DEFAULT_COMPARE;
     const meta = modelMeta(o.model1);
     if (table.xFormat !== "numbers" || !meta.needsLogX) return tableTitles(table);
-    return { x: `${meta.xLabel}, ${table.xUnit || "M"}`, y: table.yTitle || "Response" };
+    return { x: `${meta.xLabel}, ${concentrationUnit(table) || "M"}`, y: table.yTitle || "Response" };
   },
   exportName: "compare-fits",
   PlotPanel: XYPlot as never,

@@ -3,6 +3,7 @@
 // spacing, reference lines, title, legend, fonts, number at risk).
 import { useState } from "react";
 import Modal from "../components/Modal";
+import { IconButton } from "../components/ui";
 import {
   CHROME_DARK, CHROME_LIGHT, isDarkMode, seriesStyle, type SchemeId,
 } from "../lib/palette";
@@ -14,6 +15,7 @@ import {
 import {
   CheckField, ColorField, DialogActions, NumField, Section, SelectField, Tabs, TextField,
 } from "./controls";
+import { useDiscardGuard } from "./useDiscardGuard";
 
 type Target = "this" | "all" | "selected";
 
@@ -76,9 +78,10 @@ export default function FormatGraphDialog({
 
   const apply = () => { onApply(draft); setApplied(draft); };
   const dirty = JSON.stringify(draft) !== JSON.stringify(applied);
+  const requestClose = useDiscardGuard(dirty, onClose);
 
   return (
-    <Modal title="Format graph" className="modal-wide fmt-dialog" onClose={onClose}
+    <Modal title="Format graph" className="modal-wide fmt-dialog" onClose={requestClose}
       onSubmit={() => { if (dirty) onApply(draft); onClose(); }}
       actions={<DialogActions onCancel={onClose} onApply={apply} dirty={dirty} />}>
       {!features.noDatasets && (
@@ -244,10 +247,12 @@ export default function FormatGraphDialog({
                 {order.map((ds, k) => (
                   <li key={ds}>
                     <span>{names[ds]}</span>
-                    <button type="button" className="fmt-mini" disabled={k === 0}
-                      aria-label={`Move ${names[ds]} earlier`} onClick={() => move(k, -1)}>↑</button>
-                    <button type="button" className="fmt-mini" disabled={k === order.length - 1}
-                      aria-label={`Move ${names[ds]} later`} onClick={() => move(k, 1)}>↓</button>
+                    <IconButton size="sm" variant="secondary" disabled={k === 0}
+                      aria-label={`Move ${names[ds]} earlier`} onClick={() => move(k, -1)}>
+                      <ArrowIcon up /></IconButton>
+                    <IconButton size="sm" variant="secondary" disabled={k === order.length - 1}
+                      aria-label={`Move ${names[ds]} later`} onClick={() => move(k, 1)}>
+                      <ArrowIcon /></IconButton>
                   </li>
                 ))}
               </ol>
@@ -346,4 +351,14 @@ function clean<T extends object>(o: T): T | undefined {
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(o)) if (v !== undefined) out[k] = v;
   return Object.keys(out).length ? out as T : undefined;
+}
+
+/** Up or down arrow for the plotting-order buttons. */
+function ArrowIcon({ up = false }: { up?: boolean }) {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true" fill="none"
+      stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d={up ? "M7 11.5v-9M3.5 6 7 2.5 10.5 6" : "M7 2.5v9M3.5 8 7 11.5 10.5 8"} />
+    </svg>
+  );
 }

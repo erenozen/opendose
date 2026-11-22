@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 import SchemePicker from "./SchemePicker";
 import type { SchemeId } from "../lib/palette";
 import type { FormatAction } from "../graph/useFormatDialogs";
+import { Button } from "./ui";
 import Popover from "./ui/Popover";
 import { belowStickyHeader } from "./ui/Popover.anchor";
 
@@ -49,7 +50,9 @@ export default function GraphSettings({
   return (
     <div className="graph-settings">
       <Popover open={open} onOpenChange={setOpen}>
-        <Popover.Trigger className="settings-btn">
+        {/* A toolbar command: the ghost Button look (settings-btn is the
+            tour's anchor, not a style). */}
+        <Popover.Trigger variant="ghost" className="settings-btn">
           Settings
           {edited && <span className="settings-badge">{edited}</span>}
         </Popover.Trigger>
@@ -97,8 +100,8 @@ export default function GraphSettings({
             <div className="format-actions" role="group" aria-label="Format the graph">
               <span className="axis-titles-label">Format</span>
               {actions.map((a) => (
-                <button key={a.id} type="button" className="format-action"
-                  onClick={() => { setOpen(false); a.onClick(); }}>{a.label}</button>
+                <Button key={a.id} size="sm"
+                  onClick={() => { setOpen(false); a.onClick(); }}>{a.label}</Button>
               ))}
             </div>
           )}
