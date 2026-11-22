@@ -105,9 +105,12 @@ function NoteCard({ sheetId, note, readOnly }: { sheetId: string; note: Floating
   const endDrag = (commit: boolean) => {
     const d = drag.current;
     drag.current = null;
-    if (card.current) card.current.style.transform = "";
-    card.current?.removeAttribute("data-dragging");
+    const el = card.current;
     if (commit && d && (d.dx || d.dy)) move(note.x + d.dx, note.y + d.dy, `note:${note.id}:drag`);
+    // The new left/top and the cleared transform land in the same frame;
+    // transitions come back only after it, so nothing slides twice.
+    if (el) el.style.transform = "";
+    requestAnimationFrame(() => el?.removeAttribute("data-dragging"));
   };
 
   return (

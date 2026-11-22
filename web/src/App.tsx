@@ -115,7 +115,7 @@ function Shell() {
         <div className="result-card empty-hint">
           This project has no sheets. Create a data table to begin.
           <div className="table-actions" style={{ justifyContent: "center" }}>
-            <button className="btn-primary" onClick={ui.openNewTable}>New data table</button>
+            <Button variant="primary" onClick={ui.openNewTable}>New data table</Button>
           </div>
         </div>
       </main>
@@ -125,7 +125,11 @@ function Shell() {
   return (
     <div className={`app${guide.startOpen ? " start-open" : ""}`}>
       {!guide.startOpen && !guide.startPending && (
-        <a className="skip-link" href="#sheet">Skip to the sheet</a>
+        // The hash would replace a share link's: focus the sheet directly.
+        <a className="skip-link" href="#sheet" onClick={(e) => {
+          e.preventDefault();
+          document.getElementById("sheet")?.focus();
+        }}>Skip to the sheet</a>
       )}
       <Header onOpenFile={openFile} onNewProject={newProject} inert={behindDrawer} />
       {/* Conditions about the whole project, under the header (one

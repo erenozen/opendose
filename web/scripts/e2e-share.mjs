@@ -255,7 +255,8 @@ expect("long table created as multiple variables",
 
 // --- Apply to new data: the example project replayed onto a copy of its
 // contingency table with one count changed (15 -> 25 exposed events)
-const navCount = (kind) => page.locator(`.nav-item[data-key^='${kind}:']`).count();
+// Sheets of a kind listed in the navigator (each once, under its table).
+const navCount = (kind) => page.locator(`.nav-item[data-kind='${kind}']`).count();
 // axe-core (WCAG 2 A and AA rules) on the open dialog
 const axePath = createRequire(import.meta.url).resolve("axe-core/axe.min.js");
 const axeDialog = async () => {

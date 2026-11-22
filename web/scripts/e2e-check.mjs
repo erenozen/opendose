@@ -531,8 +531,8 @@ await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism 
 await page.waitForSelector(".result-card h3:has-text('Legacy drug')", { timeout: 60000 });
 expect("v1 file opens as one data table + results + graph",
   await page.locator(".nav-item.level-2[data-key^='data:']").count() === 1
-  && await page.locator(".nav-item.level-2[data-key^='results:']").count() === 1
-  && await page.locator(".nav-item.level-2[data-key^='graph:']").count() === 1);
+  && await page.locator(".nav-item[data-kind='results']").count() === 1
+  && await page.locator(".nav-item[data-kind='graph']").count() === 1);
 
 // --- second data table: Grouped, via the New data table dialog ---
 await fileMenu(page, "New data table…");

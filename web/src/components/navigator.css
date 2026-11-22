@@ -170,11 +170,11 @@
   }
   .nav-head, .nav-close { display: flex; }
 }
-@media (max-width: 760px) {
-  .nav-row { min-height: 40px; }
-}
-/* Touch: the ⋯ menu and the twisty keep a 44px hit area (SH-04). */
+/* Touch: rows are 44px, the ⋯ menu and the twisty keep a 44px hit area
+   (SH-04). */
 @media (pointer: coarse) {
+  .nav-row { min-height: 44px; }
+  .nav-search-row { gap: var(--space-20); }
   .nav-more::before, .twisty::after {
     content: ""; position: absolute;
     inset: min(0px, calc((100% - 44px) / 2));

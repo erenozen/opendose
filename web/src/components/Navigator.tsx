@@ -45,6 +45,8 @@ interface Node {
   parentKey?: string;
   expandable: boolean;
   expanded: boolean;
+  /** Section rows: how many sheets the section lists itself. */
+  count?: number;
 }
 
 type Renaming = { key: string; id: string; group?: boolean };
@@ -102,7 +104,8 @@ export default function Navigator() {
     const ids = new Set(project.sheets.map((s) => s.id));
     for (const s of project.sheets) {
       if (s.kind === "info" && s.parentId && ids.has(s.parentId)) {
-        infoOf.set(s.parentId, [...(infoOf.get(s.parentId) ?? []), s]);
+        const list = infoOf.get(s.parentId);
+        if (list) list.push(s); else infoOf.set(s.parentId, [s]);
       }
     }
     return { infoOf, ids };
@@ -153,7 +156,7 @@ export default function Navigator() {
       if (q && !any) continue;
       const skey = `sec:${section}`;
       const expanded = !!q || !collapsedSections.has(section);
-      out.push({ key: skey, level: 1, section, kind: "section", expandable: any, expanded });
+      out.push({ key: skey, level: 1, section, kind: "section", expandable: any, expanded, count: own.length });
       if (!expanded) continue;
       const groupIds = new Set(groups.map((g) => g.id));
       for (const g of groups) {
@@ -532,10 +535,12 @@ export default function Navigator() {
   // Rows by parent, and the counts the section and group rows show,
   // computed once per render (BEF-28).
   const byParent = new Map<string | undefined, Node[]>();
-  for (const n of nodes) byParent.set(n.parentKey, [...(byParent.get(n.parentKey) ?? []), n]);
+  for (const n of nodes) {
+    const list = byParent.get(n.parentKey);
+    if (list) list.push(n); else byParent.set(n.parentKey, [n]);
+  }
   const counts = new Map<string, number>();
   for (const x of project.sheets) {
-    counts.set(x.kind, (counts.get(x.kind) ?? 0) + 1);
     if (x.groupId) counts.set(`grp:${x.groupId}`, (counts.get(`grp:${x.groupId}`) ?? 0) + 1);
   }
   const noteTotal = allNotes(project).length;
@@ -567,7 +572,7 @@ export default function Navigator() {
       const dropMode = drop?.key === n.key ? drop.mode : null;
       const hasMenu = n.kind !== "notes";
       return (
-        <li key={n.key} role="treeitem" data-key={n.key}
+        <li key={n.key} role="treeitem" data-key={n.key} data-kind={s?.kind}
           aria-level={n.level}
           aria-expanded={n.expandable ? n.expanded : undefined}
           aria-selected={s ? selected : undefined}
@@ -641,7 +646,7 @@ export default function Navigator() {
             )}
             {n.kind === "section" && (
               <span className="nav-count" aria-hidden="true">
-                {counts.get(n.section) || ""}
+                {n.count || ""}
               </span>
             )}
             {(g || n.kind === "notes") && (

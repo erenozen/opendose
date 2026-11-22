@@ -18,7 +18,7 @@ main.workspace .pane-plot { padding: 0; }
 main.workspace :is(.data-table, .controls, .result-card, .plot-card, .welcome) {
   border: none; border-radius: 0;
 }
-main.workspace :is(.data-table, .controls, .result-card) { padding: 0; }
+main.workspace :is(.controls, .result-card) { padding: 0; }
 main.workspace .result-card + .result-card {
   margin-top: var(--space-16); padding-top: var(--space-16); border-top: 1px solid var(--line);
 }

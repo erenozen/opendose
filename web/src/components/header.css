@@ -146,12 +146,20 @@ header {
   .project-actions { gap: 0; }
   .hdr-menu { padding: 0 var(--space-8); }
 }
-/* Touch: the icon-sized find button keeps a 44px hit area. */
+/* Touch: the find button and the analysis tabs are 44px to hit. */
 @media (pointer: coarse) {
-  .hdr-find { min-height: 44px; }
+  .hdr-find, .hdr-title { min-height: 44px; }
+  .mode-switch button { min-height: 40px; }
+  .mode-switch button::before {
+    content: ""; position: absolute; inset: min(0px, calc((100% - 44px) / 2)) 0;
+  }
 }
 @media (pointer: coarse) and (max-width: 760px) {
   .hdr-find { width: 44px; }
+}
+/* Touch: neighbouring icon buttons keep their 44px hit areas apart. */
+@media (pointer: coarse) {
+  .project-actions { gap: var(--space-12); }
 }
 
 /* ============================ about, preferences ============================ */

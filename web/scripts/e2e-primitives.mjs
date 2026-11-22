@@ -337,7 +337,8 @@ const fileMenu = async (page, item) => {
   expect("Tooltip: it closes when the pointer leaves", await open.count() === 0);
   const described = await theme.evaluate((b) => {
     const ids = (b.getAttribute("aria-describedby") ?? "").split(" ").filter(Boolean);
-    return ids.length > 0 && ids.every((id) => document.getElementById(id)?.getAttribute("role") === "tooltip");
+    // The tooltip, or its shortcut when the tooltip repeats the name.
+    return ids.length > 0 && ids.every((id) => !!document.getElementById(id)?.closest("[role=tooltip]"));
   });
   expect("Tooltip: the button is described by its tooltip (aria-describedby)", described);
   expect("Tooltip: no title attribute duplicates it",

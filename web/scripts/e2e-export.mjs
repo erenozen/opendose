@@ -134,7 +134,7 @@ await page.keyboard.press("Escape");
 
 // --- every graph to PowerPoint: one slide per graph sheet, each graph an
 // SVG picture (svgBlip) with a PNG fallback, the figure legend in the notes
-const graphSheets = await page.locator(".nav-item[data-key^='graph:']").count();
+const graphSheets = await page.locator(".nav-item[data-kind='graph']").count();
 const legendShown = ((await page.locator(".figure-legend-text").first().textContent()) ?? "").trim();
 await page.locator("header").getByRole("button", { name: "File", exact: true }).click();
 await page.getByRole("menuitem", { name: "Export graphs to PowerPoint (.pptx)…" }).click();

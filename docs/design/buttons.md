@@ -113,12 +113,9 @@ square) and `sm` (26px square, 44px hit area on touch).
   <CloseIcon />
 </IconButton>
 
-// Incorrect: components/Header.tsx:221. A raw button with a bespoke class:
-// no touch hit area, nothing forces the label.
-<button className="theme-btn" aria-label="Undo"
-  disabled={!history.past.length} onClick={api.undo}>
-  <svg …/>
-</button>
+// Incorrect: a raw button with a bespoke class (the header's old
+// .theme-btn): no touch hit area, nothing forces the label.
+<button className="theme-btn" aria-label="Undo" onClick={api.undo}><svg …/></button>
 ```
 
 ## FileButton
@@ -131,19 +128,20 @@ browser). Takes every Button prop plus `accept`, `onFile(file)` and
 Picking the same file twice fires twice.
 
 ```tsx
-// Correct: components/Header.tsx:350
-<FileButton variant="ghost" className="open-btn" accept={OPEN_ACCEPT}
-  inputLabel="Open an OpenDose project or a Prism file"
-  title={`Open a project or a Prism file (${modKey}O)`} onFile={onOpenFile}>
-  Open</FileButton>
+// Correct: guide/StartScreen.tsx:100
+<FileButton className="start-open" accept={OPEN_ACCEPT}
+  inputLabel="Open a project or Prism file" onFile={(f) => { onOpenFile(f); onClose(); }}>
+  Open a project or Prism file…</FileButton>
 
 // Incorrect: share/ReplayDialog.tsx:301. The browser's own file control.
 <input type="file" accept=".json,application/json" aria-label="Plan file"
   onChange={(e) => void loadPlan(e.target.files?.[0])} />
 ```
 
-## Not built yet
+## Menu and popover triggers
 
-`Menu.Trigger` and `Popover.Trigger` take no `variant`; each is styled by
-its own class (`.settings-btn`, `.analyze-btn`). Reuse the nearest one,
-never add another, and name it in your report.
+`Menu.Trigger` and `Popover.Trigger` take `variant` and `size` and then
+render as that Button (`buttonClass` in `ui/buttonClass.ts`): ghost in the
+header or a toolbar (File, View), secondary for the bar's one keycap
+(Analyze). Without `variant` they are plain buttons styled by an older
+class (`.settings-btn`); give a new trigger a variant, never a class.
