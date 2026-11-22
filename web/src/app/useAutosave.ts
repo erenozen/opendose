@@ -6,6 +6,7 @@ import { newId } from "../project/ids";
 import { parseProjectFile, savedSelection, serializeProject } from "../project/persist";
 import type { Project } from "../project/types";
 import { notify } from "../components/ui/Toast.store";
+import { requestShell } from "./commandRegistry";
 import { useProject } from "./context";
 
 const DELAY_MS = 800;
@@ -71,7 +72,14 @@ export function useAutosave() {
       replace(p, savedSelection(offer.json));
       if (opts.auto) notify(`Reopened your last session, “${offer.title}”.`, { tone: "info" });
     } catch (e) {
-      notify(`Could not restore: ${e instanceof Error ? e.message : e}`, { tone: "error" });
+      // Object, reason, next step (content.md): the saved copy is unreadable,
+      // so the way back is the project file, if one was saved.
+      notify(`Could not restore your last session, “${offer.title}”: `
+        + `${String(e instanceof Error ? e.message : e).replace(/\.$/, "")}. `
+        + "Open its project file if you saved one.", {
+        tone: "error",
+        action: { label: "Open a project file", onAction: () => requestShell("open") },
+      });
     }
     setOffer(null);
     void deleteSlot("previous");

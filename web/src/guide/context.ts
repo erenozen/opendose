@@ -1,5 +1,6 @@
 // Guidance services (provided by GuideProvider): the "Which test?" wizard,
-// the Help panel with explainers, the guided tour and the start screen.
+// the Help panel with explainers, the guided tour, and whether the app
+// is still deciding where to open (the last session or the example).
 import { createContext, useContext } from "react";
 
 export interface GuideApi {
@@ -11,16 +12,11 @@ export interface GuideApi {
   closeHelp: () => void;
   helpOpen: boolean;
   startTour: () => void;
-  /** Start screen shown instead of the workbench. */
-  startOpen: boolean;
-  /** Waiting to learn whether a last session exists (default start mode):
-   *  neither the start screen nor the workbench is shown yet. */
+  /** Waiting to learn whether a last session exists: the workbench is not
+   *  shown yet (a first visit then lands on the example, DECISIONS 4). */
   startPending: boolean;
-  /** The autosave was checked: a last session opens directly, none shows
-   *  the start screen. */
-  resolveStart: (hasSession: boolean) => void;
-  showStart: () => void;
-  hideStart: () => void;
+  /** The autosave was checked: the workbench shows. */
+  resolveStart: () => void;
 }
 
 export const GuideCtx = createContext<GuideApi | null>(null);
@@ -37,7 +33,6 @@ export function useGuide(): GuideApi {
 }
 
 const TOUR_KEY = "opendose-tour-done";
-const START_KEY = "opendose-start-screen";
 
 export function tourDone(): boolean {
   try { return localStorage.getItem(TOUR_KEY) === "1"; } catch { return false; }
@@ -46,43 +41,29 @@ export function setTourDone(): void {
   try { localStorage.setItem(TOUR_KEY, "1"); } catch { /* private mode */ }
 }
 
-/** When the start screen shows as the app opens. "auto" (the default):
- *  on the first visit and whenever no autosaved session exists; otherwise
- *  the last session opens directly. "always": every time (the "Show this
- *  screen when OpenDose opens" box ticked). "never": a choice made in
- *  builds before 0.3.0, when the box was ticked by default. */
-export type StartMode = "auto" | "always" | "never";
+/** Earlier builds had a start screen and a "Show this screen when
+ *  OpenDose opens" box, stored under this key. There is no start screen
+ *  now: a first visit lands on the example and a returning one in its last
+ *  session, which is what the box unticked did; ticked, it also kept the
+ *  last session behind a restore banner instead of reopening it. That
+ *  difference was not worth a preference of its own, so the stored choice
+ *  is dropped once (DECISIONS 4). */
+const OLD_START_KEY = "opendose-start-screen";
 
-export function startScreenMode(): StartMode {
-  try {
-    const v = localStorage.getItem(START_KEY);
-    return v === "on" ? "always" : v === "off" ? "never" : "auto";
-  } catch { return "auto"; }
+export function dropStartScreenPref(): void {
+  try { localStorage.removeItem(OLD_START_KEY); } catch { /* private mode */ }
 }
 
-/** The "Show this screen when OpenDose opens" box: ticked = every time. */
-export function startScreenEnabled(): boolean {
-  return startScreenMode() === "always";
-}
-/** Ticked: every time. Unticked: the default (first visit, or no session
- *  to reopen). */
-export function setStartScreenEnabled(on: boolean): void {
-  try {
-    if (on) localStorage.setItem(START_KEY, "on");
-    else localStorage.removeItem(START_KEY);
-  } catch { /* ignore */ }
-}
-
-/** `?example=1` opens the example project directly, without the start
- *  screen or the tour (links, demos and the end-to-end checks use it). */
+/** `?example=1` opens the example project directly, without looking for
+ *  the last session (links, demos and the end-to-end checks use it). */
 export function exampleRequested(): boolean {
   if (typeof location === "undefined") return false;
   const v = new URLSearchParams(location.search).get("example");
   return v !== null && v !== "0";
 }
 
-/** A share link ("#p=…", or "#e=…" protected) opens its project directly:
- *  no start screen. */
+/** A share link ("#p=…", or "#e=…" protected) opens its project directly,
+ *  without looking for the last session. */
 export function shareLinkRequested(): boolean {
   if (typeof location === "undefined") return false;
   return location.hash.startsWith("#p=") || location.hash.startsWith("#e=");

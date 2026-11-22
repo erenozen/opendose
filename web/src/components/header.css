@@ -193,5 +193,3 @@ header {
 .prefs-confirm-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: var(--space-8); }
 .shortcuts .results-table th { white-space: nowrap; }
 
-/* Loading pulse, used by the welcome panel (welcome.css). */
-@keyframes pulse { from { opacity: 0.55; } to { opacity: 1; } }

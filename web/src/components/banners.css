@@ -11,4 +11,15 @@
   .banner-region > .banner .banner-grid { padding-left: var(--space-12); }
 }
 
+/* The Prism chooser's tables: a checklist that scrolls after about six
+   rows, so a file with 74 tables keeps the banner short. */
+.pzfx-list {
+  margin: var(--space-6) 0 0; padding: var(--space-4) var(--space-8);
+  border: 1px solid var(--line-solid); border-radius: var(--radius-control);
+  background: var(--surface); color: var(--ink);
+  display: flex; flex-direction: column;
+  max-height: 12.5rem; overflow-y: auto; overscroll-behavior: contain;
+}
+.pzfx-list .check-row { padding: var(--space-4) 0; font-size: var(--text-body-s); }
+
 @media print { .banner-region { display: none; } }

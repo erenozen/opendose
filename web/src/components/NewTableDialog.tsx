@@ -17,6 +17,7 @@ import Modal from "./Modal";
 import { ExplainerDetails } from "../guide/LearnMore";
 import DesignDialog from "../guide/DesignDialog";
 import type { TableRecommendation } from "../guide/designToTable";
+import { CARD_TEXT, SKETCHES } from "../guide/sketches";
 
 export interface NewTableRequest {
   type: TableType;
@@ -203,6 +204,12 @@ export default function NewTableDialog({ defaultType, defaultName, onCancel, onC
           })}
         </fieldset>
         <div className="new-table-options">
+          {/* The chosen format's shape and the graph it makes, with what it
+              analyses (the start screen's catalogue card, DECISIONS 4). */}
+          <figure className="type-preview">
+            <div className="type-preview-sketch">{SKETCHES[type].table}{SKETCHES[type].graph}</div>
+            <figcaption>{CARD_TEXT[type].analyses}</figcaption>
+          </figure>
           <Field label="Table name">
             <Input value={name} autoComplete="off" onChange={(e) => setName(e.target.value)} />
           </Field>

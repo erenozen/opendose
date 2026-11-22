@@ -3,6 +3,7 @@ import { dismissToast, notify } from "../components/ui/Toast.store";
 import { analyzeAsync } from "../lib/engine";
 import { newId } from "../project/ids";
 import { parseProjectFile, savedSelection } from "../project/persist";
+import type { Project } from "../project/types";
 import { useProject } from "./context";
 import { prepareReproduceCheck } from "./reproduceCheck";
 import { prismTableToFamily, type PrismTable } from "./factory";
@@ -24,18 +25,22 @@ const TOAST_ID = "open-file";
  * `onOpen` runs as a file starts opening (the shell closes the start
  * screen).
  */
-export function useFileOpen(onOpen?: () => void) {
+/** `into`: the project imported Prism tables go into (the open one when
+ *  not given). */
+export function useFileOpen(onOpen?: () => void, into?: (p: Project) => Project) {
   const { apply, replace, select, store, engineReady } = useProject();
   const [prismTables, setPrismTables] = useState<PrismTable[] | null>(null);
   const engineReadyRef = useRef(engineReady);
   engineReadyRef.current = engineReady;
   const onOpenRef = useRef(onOpen);
   onOpenRef.current = onOpen;
+  const intoRef = useRef(into);
+  intoRef.current = into;
 
   const importTables = useCallback((tables: PrismTable[]) => {
     let first = "";
     apply((p) => {
-      let next = p;
+      let next = intoRef.current ? intoRef.current(p) : p;
       for (const t of tables) {
         const r = prismTableToFamily(next, t, newId);
         next = r.project;

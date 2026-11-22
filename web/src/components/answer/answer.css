@@ -120,9 +120,12 @@
 .checks-body > :empty { display: none; }
 .pane-answer .guide-callout { margin-top: var(--space-12); }
 
-/* Phones: the answer comes first in the column (DECISIONS 3). */
+/* Phones: the answer comes first in the column (DECISIONS 3), and its
+   card reaches past the bottom of the screen even while it holds the
+   skeleton, so the result's arrival moves nothing in view (DECISIONS 4). */
 @media (max-width: 760px) {
   .pane-answer { order: 0; }
+  .pane-answer .answer { min-height: 75svh; }
 }
 
 /* Printing keeps its pinned look (ruling 10): the sheet prints its tables. */

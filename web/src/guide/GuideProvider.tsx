@@ -1,13 +1,14 @@
 // Provides the guidance services (guide/context.ts) and renders their
 // overlays: the "Which test?" wizard, the Help panel (Ctrl/Cmd+/) and the
-// guided tour. The start screen is rendered by the shell, which owns file
-// opening; this provider only says whether it is showing.
+// guided tour. It also says whether the shell is still looking for the
+// last session before it shows the workbench.
 import "./guide.css";
 import {
   lazy, Suspense, useCallback, useEffect, useMemo, useState, type ReactNode,
 } from "react";
+import { requestShell } from "../app/commandRegistry";
 import {
-  exampleRequested, shareLinkRequested, GuideCtx, setTourDone, startScreenMode, type GuideApi,
+  dropStartScreenPref, exampleRequested, shareLinkRequested, GuideCtx, setTourDone, type GuideApi,
 } from "./context";
 
 // The overlays load on first use.
@@ -22,26 +23,24 @@ export function GuideProvider({ children }: { children: ReactNode }) {
   const [help, setHelp] = useState<{ topic: string | null } | null>(null);
   const [tour, setTour] = useState(false);
   // `?example=1` and share links open their project directly. Otherwise
-  // the start mode decides; in the default mode the shell checks the
-  // autosave first (resolveStart).
-  const [boot] = useState(() => (exampleRequested() || shareLinkRequested() ? "never"
-    : startScreenMode()));
-  const [startOpen, setStartOpen] = useState(boot === "always");
-  const [startPending, setStartPending] = useState(boot === "auto");
-  const resolveStart = useCallback((hasSession: boolean) => {
-    setStartPending(false);
-    setStartOpen(!hasSession);
-  }, []);
+  // the shell checks the autosave first (resolveStart): the last session
+  // reopens, and a first visit lands on the example (DECISIONS 4).
+  const [startPending, setStartPending] = useState(() => {
+    dropStartScreenPref();
+    return !exampleRequested() && !shareLinkRequested();
+  });
+  const resolveStart = useCallback(() => setStartPending(false), []);
 
   const openWizard = useCallback(() => { setHelp(null); setWizard(true); }, []);
   const openPlanner = useCallback(() => { setHelp(null); setPlanner(true); }, []);
   const openHelp = useCallback((id?: string) => setHelp({ topic: id ?? null }), []);
   const closeHelp = useCallback(() => setHelp(null), []);
-  const startTour = useCallback(() => { setHelp(null); setStartOpen(false); setTour(true); }, []);
-  const showStart = useCallback(() => {
-    setHelp(null); setTour(false); setStartPending(false); setStartOpen(true);
+  const startTour = useCallback(() => { setHelp(null); setTour(true); }, []);
+  // Help's "Open the example project": the shell asks before it replaces
+  // the open project.
+  const openExample = useCallback(() => {
+    setHelp(null); setTour(false); requestShell("example");
   }, []);
-  const hideStart = useCallback(() => { setStartPending(false); setStartOpen(false); }, []);
 
   // Ctrl/Cmd+/ toggles the Help panel from anywhere (also inside fields:
   // the combination types nothing).
@@ -58,10 +57,9 @@ export function GuideProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const api = useMemo<GuideApi>(() => ({
-    openWizard, openPlanner, openHelp, closeHelp, helpOpen: !!help, startTour, startOpen, showStart,
-    hideStart, startPending, resolveStart,
-  }), [openWizard, openPlanner, openHelp, closeHelp, help, startTour, startOpen, showStart, hideStart,
-    startPending, resolveStart]);
+    openWizard, openPlanner, openHelp, closeHelp, helpOpen: !!help, startTour, startPending,
+    resolveStart,
+  }), [openWizard, openPlanner, openHelp, closeHelp, help, startTour, startPending, resolveStart]);
 
   return (
     <GuideCtx.Provider value={api}>
@@ -71,7 +69,7 @@ export function GuideProvider({ children }: { children: ReactNode }) {
         {planner && <PlanExperiment onClose={() => setPlanner(false)} />}
         {help && (
           <HelpPanel initial={help.topic} onClose={closeHelp} onWizard={openWizard}
-            onTour={startTour} onStart={showStart} />
+            onTour={startTour} onExample={openExample} />
         )}
         {tour && <Tour onDone={() => { setTour(false); setTourDone(); }} />}
       </Suspense>

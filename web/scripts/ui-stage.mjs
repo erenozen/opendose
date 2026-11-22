@@ -18,7 +18,7 @@
 //
 // Usage: node scripts/ui-stage.mjs <baseUrl> <OUT> [scene,prefix-*] [--motion] [--jobs=N]
 //   e.g. node scripts/ui-stage.mjs http://localhost:5201/ ../.design/baseline
-//        node scripts/ui-stage.mjs http://localhost:5201/ /tmp/shots "grid-*,first-start"
+//        node scripts/ui-stage.mjs http://localhost:5201/ /tmp/shots "grid-*,first-landing"
 // Reduced motion is emulated unless --motion is given. Each scene runs in a
 // fresh browser context per width (state is built at that width), then is
 // shot in light and dark through the emulated colour scheme; the app's own
@@ -82,10 +82,23 @@ async function open(s, params = {}) {
   await s.page.goto(url(params), { waitUntil: "domcontentloaded" });
   await s.page.locator("header").waitFor({ timeout: 60000 });
 }
-/** The start screen of a first visit (no autosave, no project). */
+/** A first visit (no autosave): the workspace on the example, with its
+ *  shipped results (DECISIONS 4). */
 async function start(s) {
   await open(s);
-  await s.page.locator(".start-screen").waitFor({ timeout: 60000 });
+  await s.page.locator(".shell").waitFor({ timeout: 60000 });
+}
+/** Ctrl/Cmd+V outside a field: the clipboard text replaces the example. */
+const PASTED = "Dose (µM)\tRep 1\tRep 2\tRep 3\n0.01\t98.2\t97.1\t99.0\n0.1\t96.0\t88.4\t#DIV/0!\n"
+  + "1\t71.3\t66.0\t69.5\n10\t30.2\t35.1\t28.4\n100\t5.6\t8.1\t6.3\n";
+async function pasteOnPage(s, text = PASTED) {
+  await s.page.evaluate((t) => {
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    const dt = new DataTransfer();
+    dt.setData("text/plain", t);
+    document.body.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }));
+  }, text);
+  await s.page.locator(".paste-banner").waitFor({ timeout: 10000 });
 }
 /** The bundled example project with its live results. */
 async function example(s, { live = true } = {}) {
@@ -173,23 +186,29 @@ async function newTableDialog(s) {
 
 const scenes = [
   // ---- first run
-  { name: "first-start", full: true, setup: start },
-  { name: "first-start-paste", setup: async (s) => {
+  // The landing of a first visit: the example with its shipped results,
+  // the "Example data" banner and the paste line (DECISIONS 4).
+  { name: "first-landing", full: true, setup: async (s) => {
     await start(s);
-    await s.page.locator(".start-paste textarea").fill(
-      "Dose (µM)\tVehicle\tβ-12\n0.1\t98.2\t97.1\n1\t96.0\t88.4\n10\t95.1\t51.3\n100\t94.8\t12.9");
-    await s.page.locator(".start-suggest").waitFor({ timeout: 10000 });
-    await into(s, ".start-suggest", "center");
+    await s.page.locator(".example-banner").waitFor({ timeout: 30000 });
+  } },
+  { name: "first-paste-confirm", setup: async (s) => {
+    await start(s);
+    await pasteOnPage(s);
+    await into(s, ".paste-banner", "center");
+  } },
+  { name: "first-paste-result", setup: async (s) => {
+    await start(s);
+    await pasteOnPage(s);
+    await waitLive(s);
   } },
   { name: "first-engine-booting", setup: async (s) => {
     await holdEngine(s);
     await start(s);
-    await click(s, s.page.getByRole("button", { name: /^New empty XY/ }));
-    await s.page.locator(".welcome .engine-slot").waitFor({ timeout: 60000 });
+    await pasteOnPage(s);
     await s.page.waitForFunction(() => /[1-9]/.test(
-      document.querySelector(".welcome .engine-slot-bytes")?.textContent?.split(" of ")[0] ?? ""), null,
-    { timeout: 60000 });
-    await into(s, ".welcome", "center");
+      document.querySelector(".engine-boot-note .engine-slot-bytes")?.textContent?.split(" of ")[0] ?? ""),
+    null, { timeout: 60000 });
   } },
   { name: "first-engine-booting-example", setup: async (s) => {
     await holdEngine(s);
@@ -199,9 +218,15 @@ const scenes = [
   { name: "first-engine-failed", setup: async (s) => {
     await failEngine(s);
     await start(s);
-    await click(s, s.page.getByRole("button", { name: /^New empty XY/ }));
-    await button(s, "Try again").waitFor({ timeout: 120000 });
-    await into(s, ".welcome-error", "center");
+    await pasteOnPage(s);
+    await s.page.locator(".engine-boot-note").getByRole("button", { name: "Try again" })
+      .waitFor({ timeout: 120000 });
+  } },
+  { name: "first-engine-failed-example", setup: async (s) => {
+    await failEngine(s);
+    await start(s);
+    await s.page.locator(".engine-boot-note").getByRole("button", { name: "Try again" })
+      .waitFor({ timeout: 120000 });
   } },
   { name: "first-example", setup: example },
 
@@ -442,7 +467,7 @@ const scenes = [
   } },
   { name: "guided-describe", setup: async (s) => {
     await start(s);
-    await click(s, s.page.getByRole("button", { name: /Describe your experiment/ }));
+    await headerMenu(s, "File", "Describe your experiment…");
     await s.page.locator(".design-dialog").waitFor();
   } },
   { name: "guided-assay-wizard", setup: async (s) => {

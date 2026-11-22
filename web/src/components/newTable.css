@@ -30,6 +30,12 @@
 }
 .type-option-desc { color: var(--muted); font-size: var(--text-body-s); line-height: 1.4; }
 .new-table-options { display: flex; flex-direction: column; gap: var(--space-16); }
+/* The chosen format: its table and graph sketches (guide/sketches.tsx,
+   styled in guide.css) and the analyses it allows. */
+.type-preview { margin: 0; display: flex; flex-direction: column; gap: var(--space-6); }
+.type-preview-sketch { display: flex; gap: var(--space-8); color: var(--muted); }
+.type-preview-sketch svg { background: var(--inset); border-radius: var(--radius-control); }
+.type-preview figcaption { font-size: var(--text-caption); color: var(--muted); line-height: var(--leading-body); }
 .shape-fields { display: flex; flex-wrap: wrap; gap: var(--space-8) var(--space-16); }
 .shape-fields .field { margin: 0; }
 /* A status tag, not a selection: neutral, the accent is kept for state. */

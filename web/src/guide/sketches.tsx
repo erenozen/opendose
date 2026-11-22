@@ -1,4 +1,4 @@
-// Tiny inline sketches for the start screen's table-type cards: the shape
+// Tiny inline sketches for the New table dialog's table formats: the shape
 // of the table (left) and the graph it typically makes (right). Drawn in
 // currentColor / CSS tokens so they follow the theme; decorative.
 import type { ReactNode } from "react";
