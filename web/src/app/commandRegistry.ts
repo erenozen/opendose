@@ -26,7 +26,9 @@ import { PZFX_TYPES } from "../share/pzfx";
 
 export const SHELL_EVENT = "opendose-shell";
 export type ShellRequest =
-  | "open" | "new-project" | "about" | "preferences" | "prism-csv" | "help" | "which-test";
+  | "open" | "new-project" | "about" | "preferences" | "prism-csv" | "help" | "which-test"
+  // answered by the shell (App.tsx): the first-run catalogue moved here
+  | "example" | "describe" | "plan";
 
 export function requestShell(kind: ShellRequest): void {
   window.dispatchEvent(new CustomEvent<ShellRequest>(SHELL_EVENT, { detail: kind }));
@@ -92,6 +94,8 @@ export function useCommandRegistry(): Command[] {
         keywords: "start again blank clear", run: () => requestShell("new-project") },
       { id: "open", label: "Open…", group: "file", shortcut: modKey("O"),
         keywords: "project file prism pzfx import load", run: () => requestShell("open") },
+      { id: "example", label: "Open the example project…", group: "file",
+        keywords: "sample demo dose response contingency survival", run: () => requestShell("example") },
       { id: "save", label: "Save project", group: "file", shortcut: modKey("S"),
         keywords: "download project file json keep", run: cmd.save },
       { id: "print", label: "Print…", group: "file", shortcut: modKey("P"),
@@ -100,6 +104,12 @@ export function useCommandRegistry(): Command[] {
       // ---- new
       { id: "new-table", label: "New data table…", group: "new",
         keywords: "add create sheet xy column grouped", disabled: readOnly, run: cmd.newTable },
+      { id: "describe", label: "Describe your experiment…", group: "new",
+        keywords: "which table type design not sure", disabled: readOnly,
+        run: () => requestShell("describe") },
+      { id: "plan", label: "Plan an experiment…", group: "new",
+        keywords: "design sample size before data power checks", disabled: readOnly,
+        run: () => requestShell("plan") },
       { id: "new-info", label: "New info sheet", group: "new",
         keywords: "add create notes constants", disabled: readOnly, run: cmd.addInfo },
       { id: "new-layout", label: "New layout", group: "new",

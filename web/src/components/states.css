@@ -1,0 +1,19 @@
+/* ============================ loading and empty states ============================ */
+
+/* The spinner of a running job (EngineStatus.tsx, AnalysisBusy). */
+.spinner {
+  flex: none; width: 18px; height: 18px; border-radius: 50%;
+  border: 2.5px solid var(--inset);
+  border-top-color: var(--accent);
+  animation: spin 700ms linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  /* Loops stop: a static ring reads better than a spinning one, and the
+     words beside it carry the state */
+  .spinner { animation: none; border-top-color: var(--inset); }
+}
+.empty-hint {
+  padding: 28px var(--space-24); color: var(--muted); font-size: var(--text-body);
+  text-align: center;
+}

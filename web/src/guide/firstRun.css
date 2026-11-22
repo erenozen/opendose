@@ -1,0 +1,21 @@
+/* First run (FirstRun.tsx): the example and paste banners at the top of
+   the data pane, the example chips and the "Read as" select. Tokens only. */
+
+.pane-table > .first-banner { margin: 0 0 var(--space-12); }
+.example-banner .banner-detail { max-width: 65ch; }
+.paste-banner .banner-detail { display: flex; flex-direction: column; gap: var(--space-4); }
+.paste-banner .paste-error-note { color: var(--ink-2); }
+
+/* The example chips: keycaps; the shown example is the selected one. */
+.example-chips .btn[aria-pressed="true"] {
+  background: var(--accent-soft); color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent-border);
+}
+
+.paste-read-as { display: flex; align-items: center; gap: var(--space-8); margin-top: var(--space-4); }
+.paste-read-as label { font-size: var(--text-label); font-weight: var(--weight-semibold); color: var(--muted); }
+.paste-read-as select { background: var(--surface); }
+
+@media (max-width: 760px) {
+  .pane-table > .first-banner { margin: 0; }
+}

@@ -4,8 +4,10 @@ import "./layout/layout.css";
 import "./app/organise.css";
 import "./app/print.css";
 import { useProject } from "./app/context";
-import { blankProject } from "./app/factory";
+import { onShellRequest } from "./app/commandRegistry";
+import { blankProject, defaultTableName, sampleProject } from "./app/factory";
 import { ProjectProvider } from "./app/ProjectContext";
+import { primeSampleResults } from "./app/sampleResults";
 import { useUi } from "./app/ui";
 import { UiProvider } from "./app/UiProvider";
 import { useAutosave } from "./app/useAutosave";
@@ -23,21 +25,30 @@ import Header from "./components/Header";
 import InfoSheetView from "./components/InfoSheetView";
 import Navigator from "./components/Navigator";
 import { newId } from "./project/ids";
-import { familyRootId, findSheet } from "./project/ops";
+import { familyRootId, findSheet, makeProject } from "./project/ops";
+import type { Project } from "./project/types";
+import type { PrismTable } from "./app/factory";
+import { tableDef } from "./sheets/registry";
 import { SimulateHost } from "./sheets/manipulate/SimulateDialog";
 import ShareHost from "./share/ShareHost";
+import { takeTableDrop } from "./share/recipes/readFiles";
 import { useGuide } from "./guide/context";
 import { GuideProvider } from "./guide/GuideProvider";
+import { projectWithTable } from "./guide/actions";
+import DesignDialog from "./guide/DesignDialog";
+import { isExampleProject, markExample } from "./guide/firstRun";
+import { usePasteAnywhere } from "./guide/usePasteAnywhere";
 import ReportHost from "./report/ReportHost";
 import ReproduceStrip from "./report/ReproduceStrip";
 import PowerHost from "./power/PowerHost";
-import { Banner, Button, ToastProvider } from "./components/ui";
-import { lazy, Suspense, useEffect } from "react";
+import { Banner, Button, notify, ToastProvider } from "./components/ui";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 
 // The page-layout composer is loaded the first time a layout sheet opens.
 const LayoutSheetView = lazy(() => import("./components/LayoutSheetView"));
-// The start screen is a chunk of its own too.
-const StartScreen = lazy(() => import("./guide/StartScreen"));
+
+/** Files Open takes, also by dropping them on the page. */
+const OPENABLE = /\.(json|pzfx|prism|zip)$/i;
 
 export default function App() {
   return (
@@ -55,27 +66,38 @@ export default function App() {
   );
 }
 
+/** Tables imported from a Prism file go into the open project, unless it
+ *  is still the first-run example: then they take its place. */
+const importInto = (p: Project) => (isExampleProject(p)
+  ? makeProject(p.prefs, [], "Untitled project") : p);
+
 function Shell() {
-  const { project, selectedId, replace, store } = useProject();
+  const { project, selectedId, replace, store, apply, select, readOnly, results } = useProject();
   const ui = useUi();
   const guide = useGuide();
-  const files = useFileOpen(guide.hideStart);
+  const files = useFileOpen(undefined, importInto);
   const autosave = useAutosave();
   useShortcuts();
   useDerivedSync();
   useCalculatedSync();
   useBackgroundRefresh();
   usePrintSetup();
+  usePasteAnywhere();
+  useDropOpen(files.open);
 
-  // Default start mode: once the autosave has been looked at, a last
-  // session opens directly; with none (first visit, or after "New
-  // project") the start screen shows.
+  // The project the app opens with is the example (unless a share link
+  // brought one): its tables are labelled "Example data" and a paste
+  // replaces it (DECISIONS 4).
+  useState(() => { if (!readOnly) markExample(store.project); return null; });
+
+  // Once the autosave has been looked at, a last session reopens directly;
+  // with none (a first visit, or after "New project") the example stays.
   const { startPending, resolveStart } = guide;
   const { checked: autosaveChecked, offer, restore } = autosave;
   useEffect(() => {
     if (!startPending || !autosaveChecked) return;
     if (offer) restore({ auto: true });
-    resolveStart(!!offer);
+    resolveStart();
   }, [startPending, autosaveChecked, offer, restore, resolveStart]);
 
   const newProject = async () => {
@@ -89,9 +111,36 @@ function Shell() {
     autosave.markClean(p);
     autosave.forgetCurrent();
     replace(p);
-    guide.hideStart();
   };
-  const openFile = (f: File) => { void files.open(f); };
+
+  // The start screen's catalogue lives in the File menu now: the example
+  // project, "Describe your experiment" and "Plan an experiment".
+  const [describing, setDescribing] = useState(false);
+  const shell = useRef({ openExample: async () => {}, plan: () => {} });
+  shell.current = {
+    openExample: async () => {
+      if (isExampleProject(store.project)) return;
+      const ok = await ui.confirm({
+        title: "Open the example project?",
+        body: "The open project is closed. Save it first if you want to keep it as a file.",
+        confirmLabel: "Open the example",
+      });
+      if (!ok) return;
+      const p = sampleProject(store.project.prefs, newId);
+      // Not written over the last session until the example is changed.
+      autosave.markClean(p);
+      markExample(p);
+      replace(p);
+      primeSampleResults(p, results);
+    },
+    plan: guide.openPlanner,
+  };
+  useEffect(() => onShellRequest((kind) => {
+    if (kind === "example") void shell.current.openExample();
+    else if (kind === "describe") setDescribing(true);
+    else if (kind === "plan") shell.current.plan();
+  }), []);
+
   // At 900px and below the open navigator drawer is a modal dialog:
   // everything behind it is inert (DECISIONS 5, K4).
   const behindDrawer = useMedia(DRAWER_QUERY) && ui.drawerOpen;
@@ -123,15 +172,15 @@ function Shell() {
   }
 
   return (
-    <div className={`app${guide.startOpen ? " start-open" : ""}`}>
-      {!guide.startOpen && !guide.startPending && (
+    <div className="app">
+      {!guide.startPending && (
         // The hash would replace a share link's: focus the sheet directly.
         <a className="skip-link" href="#sheet" onClick={(e) => {
           e.preventDefault();
           document.getElementById("sheet")?.focus();
         }}>Skip to the sheet</a>
       )}
-      <Header onOpenFile={openFile} onNewProject={newProject} inert={behindDrawer} />
+      <Header onOpenFile={(f) => { void files.open(f); }} onNewProject={newProject} inert={behindDrawer} />
       {/* Conditions about the whole project, under the header (one
           Banner each, DECISIONS 6). */}
       <div className="banner-region" inert={behindDrawer}>
@@ -148,8 +197,7 @@ function Shell() {
                 {new Date(autosave.offer.savedAt).toLocaleString()}.
               </Banner.Detail>
               <Banner.Actions>
-                <Button variant="primary"
-                  onClick={() => { autosave.restore(); guide.hideStart(); }}>Restore</Button>
+                <Button variant="primary" onClick={() => autosave.restore()}>Restore</Button>
                 <Button onClick={autosave.dismiss}>Dismiss</Button>
               </Banner.Actions>
             </>
@@ -157,34 +205,14 @@ function Shell() {
         </Banner>
         <Banner tone="info" className="pzfx-chooser" open={!!files.prismTables} announce>
           {files.prismTables && (
-            <>
-              <Banner.Title>
-                The Prism file has {files.prismTables.length} data tables. Import one, or all of them.
-              </Banner.Title>
-              <Banner.Detail>
-                Each becomes a data table of its own; data tables only, analyses are recomputed here.
-              </Banner.Detail>
-              <Banner.Actions>
-                <Button variant="primary" onClick={() => files.importTables(files.prismTables!)}>
-                  Import all</Button>
-                {files.prismTables.map((t, i) => (
-                  <Button key={i} onClick={() => files.importTables([t])}>
-                    {t.title || `Table ${i + 1}`} ({t.table_type})
-                  </Button>
-                ))}
-                <Button variant="ghost" onClick={files.dismissPrism}>Cancel</Button>
-              </Banner.Actions>
-            </>
+            <PrismChooser tables={files.prismTables} onImport={files.importTables}
+              onCancel={files.dismissPrism} />
           )}
         </Banner>
       </div>
       <ReportHost />
       {guide.startPending ? (
         <main className="info-main" aria-busy="true" aria-label="Opening OpenDose" />
-      ) : guide.startOpen ? (
-        <Suspense fallback={<main className="info-main" aria-busy="true" />}>
-          <StartScreen onOpenFile={files.open} onClose={guide.hideStart} onTour={guide.startTour} />
-        </Suspense>
       ) : (
       <div className={`shell${ui.navOpen ? "" : " nav-hidden"}`}>
         {/* Always mounted, so it fades out with the drawer (BEF-15); a press
@@ -197,8 +225,99 @@ function Shell() {
         </div>
       </div>
       )}
+      {describing && (
+        <DesignDialog action="Create this table" onClose={() => setDescribing(false)}
+          onPick={(r) => {
+            setDescribing(false);
+            const table = tableDef(r.type).defaultTable(r.init);
+            let dataId = "";
+            apply((p) => {
+              const made = projectWithTable(p, table, defaultTableName(p), newId, isExampleProject(p));
+              dataId = made.dataId;
+              return made.project;
+            });
+            if (dataId) select(dataId);
+          }} />
+      )}
       <SimulateHost />
       <PowerHost />
     </div>
   );
+}
+
+/** The Prism file's data tables as a checklist (all ticked), so a file
+ *  with 74 tables is a scrolling list and one Import button, not 74
+ *  buttons. */
+function PrismChooser({ tables, onImport, onCancel }: {
+  tables: PrismTable[];
+  onImport: (t: PrismTable[]) => void;
+  onCancel: () => void;
+}) {
+  const [picked, setPicked] = useState<ReadonlySet<number>>(() => new Set(tables.map((_, i) => i)));
+  const n = picked.size;
+  const toggle = (i: number) => setPicked((s) => {
+    const next = new Set(s);
+    if (next.has(i)) next.delete(i); else next.add(i);
+    return next;
+  });
+  return (
+    <>
+      <Banner.Title>
+        The Prism file has {tables.length} data tables. Choose the ones to import.
+      </Banner.Title>
+      <Banner.Detail>
+        <p>Each becomes a data table of its own; data tables only, analyses are recomputed here.</p>
+        <fieldset className="pzfx-list">
+          <legend className="sr-only">Data tables to import</legend>
+          {tables.map((t, i) => (
+            <label key={i} className="check-row">
+              <input type="checkbox" checked={picked.has(i)} onChange={() => toggle(i)} />
+              <span>{t.title || `Table ${i + 1}`} ({t.table_type})</span>
+            </label>
+          ))}
+        </fieldset>
+      </Banner.Detail>
+      <Banner.Actions>
+        <Button variant="primary" disabled={n === 0}
+          onClick={() => onImport(tables.filter((_, i) => picked.has(i)))}>
+          {n === tables.length ? "Import all" : `Import ${n} table${n === 1 ? "" : "s"}`}
+        </Button>
+        <Button onClick={onCancel}>Cancel</Button>
+      </Banner.Actions>
+    </>
+  );
+}
+
+/** A project or Prism file dropped anywhere on the page opens, as Open
+ *  does (the start screen used to take drops); several CSV files, or a
+ *  zip of them, go to the table import. Drops a pane handles itself (the
+ *  navigator, the import dialog) are left to it. */
+function useDropOpen(open: (f: File) => void) {
+  const openRef = useRef(open);
+  openRef.current = open;
+  useEffect(() => {
+    const hasFiles = (e: DragEvent) => !!e.dataTransfer && [...e.dataTransfer.types].includes("Files");
+    const onOver = (e: DragEvent) => {
+      if (!e.defaultPrevented && hasFiles(e) && !document.querySelector("dialog[open]")) e.preventDefault();
+    };
+    const onDrop = (e: DragEvent) => {
+      if (e.defaultPrevented || !hasFiles(e) || document.querySelector("dialog[open]")) return;
+      e.preventDefault();
+      const list = [...(e.dataTransfer?.files ?? [])];
+      if (takeTableDrop(list, (f) => openRef.current(f), () => {})) return;
+      const f = list.find((x) => OPENABLE.test(x.name));
+      if (f) openRef.current(f);
+      else if (list[0]) {
+        notify(`Could not open “${list[0].name}”: OpenDose opens its own project files (.json) `
+          + "and Prism files (.prism, .pzfx). To use a spreadsheet, copy its cells and paste them "
+          + "on this page.", { tone: "error" });
+      }
+    };
+    window.addEventListener("dragover", onOver);
+    window.addEventListener("drop", onDrop);
+    return () => {
+      window.removeEventListener("dragover", onOver);
+      window.removeEventListener("drop", onDrop);
+    };
+  }, []);
 }

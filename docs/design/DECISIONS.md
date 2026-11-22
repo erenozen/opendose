@@ -275,6 +275,38 @@ own data, and layout shift (CLS) during the engine boot.
   test".
 - **Inter is preloaded** (it removed 0.005 to 0.026 of font-swap shift).
 
+As built (phase 4, territory E):
+- **The start screen is gone, not hidden.** `StartScreen.tsx` and its
+  "Show this screen when OpenDose opens" box were removed. Unticked, the
+  box gave what every visit now gets (the last session, or the example on
+  a first visit); ticked, it also put the last session behind a restore
+  banner. That one difference did not earn a preference, so the stored
+  choice is dropped once on boot (`guide/context.ts`, `dropStartScreenPref`).
+  `?example=1` still opens the example without looking for the last
+  session; the restore banner still offers it there.
+- **The paste banner** sits at the top of the data pane (decision 6). The
+  paste builds the table and runs the default analysis at once (the one
+  action); the banner then says what it was read as and why, counts the
+  Excel error values, and offers "Read as" with the type's verb as the
+  primary button: on the guessed type the verb confirms and closes the
+  banner, on another type it reads the text again. The select does not
+  apply on change (arrow keys would rebuild the table on every step).
+  Undo goes back to the project before the paste (the example).
+- **A paste on a project that is not the example** (or a block pasted on a
+  returning visitor's page) adds a table with the same banner instead of
+  replacing anything. A paste inside any field other than the example's
+  grid, or of text that is not a block of numbers, is left alone.
+- **The catalogue:** File gets "Open the example project…", "Describe your
+  experiment…" and "Plan an experiment…"; New table shows the chosen
+  format's table and graph sketches with the analyses it allows; a project
+  or Prism file can be dropped anywhere on the page. Prism tables imported
+  while the example is open replace it.
+- **The welcome panel is gone:** a table with no result during the boot
+  keeps the shape of a result (skeletons, "Waiting for the analysis
+  engine.") under the boot banner, so the arrival of the result moves
+  nothing above it; a failed boot keeps saved results and says "Nothing
+  could be fitted" only when there are none.
+
 Bugs the prototype found, assigned to phase 4 (both hurt link 2, trust):
 - `web/src/guide/paste.ts` buildTable reads a header "Rep 1, Rep 2, Rep 3"
   as three data sets, so a pasted triplicate gives three IC50s instead of

@@ -30,12 +30,13 @@ const SHORTCUTS: [string, string][] = [
   ["F2", "Rename the selected sheet"],
 ];
 
-export default function HelpPanel({ initial, onClose, onWizard, onTour, onStart }: {
+export default function HelpPanel({ initial, onClose, onWizard, onTour, onExample }: {
   initial: string | null;
   onClose: () => void;
   onWizard: () => void;
   onTour: () => void;
-  onStart: () => void;
+  /** Open the example project (the shell asks first). */
+  onExample: () => void;
 }) {
   const [query, setQuery] = useState("");
   const [current, setCurrent] = useState<string | null>(initial);
@@ -106,7 +107,7 @@ export default function HelpPanel({ initial, onClose, onWizard, onTour, onStart 
             <div className="help-actions">
               <Button variant="primary" onClick={onWizard}>Help me choose a test…</Button>
               <Button onClick={onTour}>Take the tour</Button>
-              <Button onClick={onStart}>Start screen</Button>
+              <Button onClick={onExample}>Open the example project…</Button>
             </div>
           )}
           <h3 className="help-section">Explainers</h3>

@@ -68,7 +68,7 @@ notify(`Could not open “${file.name}”: ${e instanceof Error ? e.message : e}
   action: { label: "Choose another file", onAction: () => pickRef.current() },
 });
 
-// Incorrect: app/useAutosave.ts:74. No object, no next step.
+// Incorrect: no object, no next step (useAutosave.ts before phase 4).
 notify(`Could not restore: ${e instanceof Error ? e.message : e}`, { tone: "error" });
 ```
 

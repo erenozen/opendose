@@ -1,11 +1,11 @@
-/* The content of the panes: the table, controls, results, plot and
-   welcome blocks. */
+/* The content of the panes: the table, controls, results and plot
+   blocks. */
 
 /* ============================ cards ============================ */
 
 /* Outside the workbench (info sheets, empty states) a block is a flat
    tile: one depth cue, the hairline (ruling 6). */
-.data-table, .controls, .result-card, .plot-card, .welcome {
+.data-table, .controls, .result-card, .plot-card {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius-pane);
@@ -15,7 +15,7 @@
    (DECISIONS 2). Two blocks stacked in one pane share a soft divider. */
 main.workspace .pane { padding: var(--space-12) var(--space-16); }
 main.workspace .pane-plot { padding: 0; }
-main.workspace :is(.data-table, .controls, .result-card, .plot-card, .welcome) {
+main.workspace :is(.data-table, .controls, .result-card, .plot-card) {
   border: none; border-radius: 0;
 }
 main.workspace :is(.controls, .result-card) { padding: 0; }
@@ -40,7 +40,7 @@ main.workspace .result-card + .result-card {
 
 /* Contents scroll inside a block; the splitters set its height (no
    corner handle, GR-12: the seams already resize). */
-.data-table, .controls, .result-card, .welcome {
+.data-table, .controls, .result-card {
   overflow: auto; min-height: 40px; min-width: 0; max-width: 100%;
 }
 

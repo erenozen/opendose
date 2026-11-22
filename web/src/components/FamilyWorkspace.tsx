@@ -28,9 +28,10 @@ import GraphSettings from "./GraphSettings";
 import { GenericMethodsText } from "./MethodsText";
 import HSplitter from "./HSplitter";
 import { SnowflakeIcon } from "./SheetIcon";
-import WelcomePanel from "./WelcomePanel";
 import { AnalysisBusy, EngineBootBanner } from "./EngineStatus";
 import { useGuideOptional } from "../guide/context";
+import { FirstRunBanner } from "../guide/FirstRun";
+import { Button } from "./ui";
 import EntryGuide from "../guide/EntryGuide";
 import { DifferNote } from "../guide/ResultsGuide";
 import EffectSizeCard from "../report/EffectSizeCard";
@@ -132,6 +133,9 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
           </>
         )}
         <div className={`pane pane-table${largeTable ? " large-table" : ""}`}>
+          {/* First run: "Example data" with the paste line, or what a
+              paste was read as (DECISIONS 4). */}
+          <FirstRunBanner data={data} />
           {data.frozen && (
             <FrozenNote what="data table" onUnfreeze={() => cmd.toggleFreeze(data.id)} />
           )}
@@ -170,9 +174,7 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
                       Use Analyze in the toolbar to add one; its results and graph
                       appear next to this table.
                     </p>
-                    {guide && (
-                      <button type="button" onClick={guide.openWizard}>Help me choose…</button>
-                    )}
+                    {guide && <Button onClick={guide.openWizard}>Help me choose…</Button>}
                   </section>
                 </div>
               )}
@@ -183,90 +185,81 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
       </div>
       <ColumnSplitter mainRef={mainRef} />
       <div className="right">
-        {/* No result to show yet (or only the failed engine's error): the
-            welcome panel. Saved results stay visible, with the boot banner
-            above them, even if the engine fails (DECISIONS 4). */}
-        {!engineReady && (result == null
-          || (!!engineError && !!(result as { error?: unknown }).error)) ? (
-          <div className="pane pane-plot">
-            <WelcomePanel error={engineError} onRetry={bootEngine}
-              engine={engine} />
-          </div>
-        ) : (
+        {/* Saved (or bundled example) results show at once; the live
+            engine replaces them when it is up. Without any, the panes keep
+            the shape of a result (skeletons) while the boot banner says
+            what is happening, so its arrival moves nothing (DECISIONS 4);
+            saved results stay visible, relabelled, if the engine fails. */}
+        <EngineBootBanner engine={engine} ready={engineReady} live={resStatus.live}
+          hasResult={result != null && !(engineError && (result as { error?: unknown }).error)}
+          fitted={data.table.type === "xy"} onRetry={bootEngine} />
+        {/* The answer first (DECISIONS 3): the key figures, the plain
+            reading and the Checks row, above the graph and the table. */}
+        {resSheet && Results && (
           <>
-            {/* Saved (or bundled example) results show at once; the live
-                engine replaces them when it is up. */}
-            <EngineBootBanner engine={engine} ready={engineReady} live={resStatus.live}
-              onRetry={bootEngine} />
-            {/* The answer first (DECISIONS 3): the key figures, the plain
-                reading and the Checks row, above the graph and the table. */}
-            {resSheet && Results && (
-              <>
-                <ResultsAnswer sheet={resSheet} data={data} result={result} options={options}
-                  status={resStatus} readOnly={readOnly} />
-                <HSplitter />
-              </>
-            )}
-            {graph && (
-              <>
-                <div className={`pane pane-plot${reveal}`}>
-                  <GraphCard graph={graph} data={graphData}
-                    result={graph.resultsId === resSheet?.id ? result : other.result}
-                    options={graph.resultsId === resSheet?.id ? options : other.options} />
-                </div>
-                <HSplitter />
-              </>
-            )}
-            {resSheet && Results && (
-              <div className={`pane pane-results${reveal}`}
-                data-live={resStatus.live ? "true" : "false"}
-                aria-busy={resStatus.pending ? true : undefined}>
-                {engineReady && <AnalysisBusy status={resStatus} engine={engine} />}
-                {/* The full results (the headline and the guidance are in the
-                    answer pane above the graph); what was analysed under
-                    them; then the exclusions and the sentence. */}
-                <ResultsExport name={resSheet.name}>
-                  {result == null ? <ResultsSkeleton /> : (
-                    <Suspense fallback={<Pending />}>
-                      <Results sheet={resSheet} table={data.table} options={options} result={result} />
-                    </Suspense>
-                  )}
-                  {/* Effect sizes of every comparison (src/report). */}
-                  <EffectSizeCard result={result} />
-                </ResultsExport>
-                <NotesStrip analysisId={resSheet.analysis} table={data.table} options={options}
-                  result={result} />
-                <DifferNote analysisId={resSheet.analysis} tableType={data.table.type}
-                  table={data.table} options={options} result={result} />
-                <ExclusionsCard sheet={resSheet} table={data.table} options={options} result={result} />
-                <ReportCard sheet={resSheet} table={data.table} options={options} result={result} />
-              </div>
-            )}
-            {resSheet && Methods && (
-              <>
-                <HSplitter />
-                <div className="pane pane-methods">
-                  <Suspense fallback={null}>
-                    <Methods sheet={resSheet} table={data.table} options={options} result={result} />
-                  </Suspense>
-
-                  <StatsMethodsCard sheet={resSheet} result={result} />
-                </div>
-              </>
-            )}
-            {entryOnly ? (
-              <div className={`pane pane-results${reveal}`}>
-                <PlaceholderPanel label={def.label} hint={def.entryHint} />
-              </div>
-            ) : !graph && !resSheet && (
-              <div className="pane pane-results">
-                <div className="empty-hint result-card">
-                  No results or graphs for this table yet. Use Analyze in the toolbar, or:
-                  <ResultsEmptyLinks />
-                </div>
-              </div>
-            )}
+            <ResultsAnswer sheet={resSheet} data={data} result={result} options={options}
+              status={resStatus} readOnly={readOnly} />
+            <HSplitter />
           </>
+        )}
+        {graph && (
+          <>
+            <div className={`pane pane-plot${reveal}`}>
+              <GraphCard graph={graph} data={graphData}
+                result={graph.resultsId === resSheet?.id ? result : other.result}
+                options={graph.resultsId === resSheet?.id ? options : other.options} />
+            </div>
+            <HSplitter />
+          </>
+        )}
+        {resSheet && Results && (
+          <div className={`pane pane-results${reveal}`}
+            data-live={resStatus.live ? "true" : "false"}
+            aria-busy={resStatus.pending ? true : undefined}>
+            {engineReady && <AnalysisBusy status={resStatus} engine={engine} />}
+            {/* The full results (the headline and the guidance are in the
+                answer pane above the graph); what was analysed under
+                them; then the exclusions and the sentence. */}
+            <ResultsExport name={resSheet.name}>
+              {result == null ? <ResultsSkeleton /> : (
+                <Suspense fallback={<Pending />}>
+                  <Results sheet={resSheet} table={data.table} options={options} result={result} />
+                </Suspense>
+              )}
+              {/* Effect sizes of every comparison (src/report). */}
+              <EffectSizeCard result={result} />
+            </ResultsExport>
+            <NotesStrip analysisId={resSheet.analysis} table={data.table} options={options}
+              result={result} />
+            <DifferNote analysisId={resSheet.analysis} tableType={data.table.type}
+              table={data.table} options={options} result={result} />
+            <ExclusionsCard sheet={resSheet} table={data.table} options={options} result={result} />
+            <ReportCard sheet={resSheet} table={data.table} options={options} result={result} />
+          </div>
+        )}
+        {resSheet && Methods && (
+          <>
+            <HSplitter />
+            <div className="pane pane-methods">
+              <Suspense fallback={null}>
+                <Methods sheet={resSheet} table={data.table} options={options} result={result} />
+              </Suspense>
+
+              <StatsMethodsCard sheet={resSheet} result={result} />
+            </div>
+          </>
+        )}
+        {entryOnly ? (
+          <div className={`pane pane-results${reveal}`}>
+            <PlaceholderPanel label={def.label} hint={def.entryHint} />
+          </div>
+        ) : !graph && !resSheet && (
+          <div className="pane pane-results">
+            <div className="empty-hint result-card">
+              No results or graphs for this table yet. Use Analyze in the toolbar, or:
+              <ResultsEmptyLinks />
+            </div>
+          </div>
         )}
       </div>
     </main>
@@ -317,7 +310,7 @@ function FrozenNote({ what, onUnfreeze }: { what: string; onUnfreeze: () => void
     <div className="frozen-note" role="note">
       <SnowflakeIcon />
       <span>This {what} is frozen and does not change.</span>
-      <button type="button" onClick={onUnfreeze}>Unfreeze</button>
+      <Button size="sm" onClick={onUnfreeze}>Unfreeze</Button>
     </div>
   );
 }

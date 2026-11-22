@@ -18,7 +18,7 @@ import { IconButton } from "./ui/IconButton";
 import Menu from "./ui/Menu";
 import Tooltip from "./ui/Tooltip";
 import { lastInputWasKeyboard } from "./ui/useDismiss";
-import { Logo } from "./WelcomePanel";
+import { Logo } from "./Logo";
 import { OPEN_ACCEPT } from "../app/useFileOpen";
 
 /**

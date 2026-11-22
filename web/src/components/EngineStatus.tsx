@@ -78,20 +78,27 @@ function SameHeight({ shown, items }: { shown: number; items: ReactNode[] }) {
   );
 }
 
-/** Above results that are not (yet) the live engine's while it loads
- *  (BEF-02). It stays mounted once the engine is up and swaps to
- *  "Results are live" at the same height, so the plot and the results
- *  below do not jump while they are read. Shown only when the workspace
- *  opened before the engine was ready; gone on the next family. */
-export function EngineBootBanner({ engine, ready, live, onRetry }: {
+/** Above the results while the engine loads (BEF-02): saved results that
+ *  are not (yet) the live engine's, or none yet for a new or pasted table.
+ *  It stays mounted once the engine is up and swaps to "Results are live"
+ *  at the same height, so the plot and the results below do not jump
+ *  while they are read. Shown only when the workspace opened before the
+ *  engine was ready; gone on the next family. */
+export function EngineBootBanner({ engine, ready, live, hasResult, fitted, onRetry }: {
   engine: EngineState;
   /** The workspace's own "engine is up" (results are recomputed). */
   ready: boolean;
   /** The saved results are for exactly this data (a saved project). */
   live: boolean;
+  /** Saved results are on screen (else the panes hold skeletons). */
+  hasResult: boolean;
+  /** The table's analysis is a curve fit ("Nothing could be fitted"). */
+  fitted?: boolean;
   onRetry: () => void;
 }) {
   const [booting] = useState(!ready);
+  // The wording is chosen once, so the banner keeps one height.
+  const [saved] = useState(hasResult);
   const [open, setOpen] = useState(true);
   if (!booting) return null;
   const failed = !ready && engine.phase === "failed";
@@ -103,7 +110,17 @@ export function EngineBootBanner({ engine, ready, live, onRetry }: {
     <Banner className="pane pane-boot engine-boot-note" aria-label="Analysis engine" open={open}
       tone={failed ? "error" : ready ? "success" : "info"}
       onDismiss={() => setOpen(false)} dismissLabel="Dismiss the engine note">
-      {failed ? (
+      {failed && !hasResult ? (
+        // Nothing on screen to keep: the result area says so (DECISIONS 4).
+        <>
+          <Banner.Title>
+            Nothing could be {fitted ? "fitted" : "analysed"}: the analysis engine did not load.
+          </Banner.Title>
+          <Banner.Detail>
+            Your table is kept. Check the connection, then try again.
+          </Banner.Detail>
+        </>
+      ) : failed ? (
         <>
           <Banner.Title>
             The analysis engine did not load{stopped ? `: the download stopped at ${stopped}` : ""}.
@@ -117,14 +134,18 @@ export function EngineBootBanner({ engine, ready, live, onRetry }: {
         <>
           <Banner.Title>
             <SameHeight shown={ready ? 1 : 0} items={[
-              live ? "Saved results for this exact data." : "Saved results for this example.",
+              !saved ? "Your table is analysed as soon as the engine has loaded."
+                : live ? "Saved results for this exact data." : "Saved results for this example.",
               "Results are live.",
             ]} />
           </Banner.Title>
           <Banner.Detail>
             <SameHeight shown={ready ? 1 : 0} items={[
-              live ? "The live engine is loading." : "The live engine is loading and will recompute them.",
-              "Recomputed on this device. Edits are analysed as you type.",
+              !saved ? "The first visit downloads it once (about 30 MB); later visits start "
+                + "from this device. You can edit the table meanwhile."
+                : live ? "The live engine is loading." : "The live engine is loading and will recompute them.",
+              saved ? "Recomputed on this device. Edits are analysed as you type."
+                : "Computed on this device. Edits are analysed as you type.",
             ]} />
           </Banner.Detail>
         </>

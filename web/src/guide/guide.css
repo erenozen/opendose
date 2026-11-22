@@ -160,57 +160,7 @@
 .tour-actions { display: flex; gap: var(--space-8); align-items: center; }
 .tour-spacer { flex: 1; }
 
-/* ---------------- start screen ---------------- */
-
-.app.start-open .analysis-bar { display: none; }
-main.start-screen { display: block; padding: var(--space-20) var(--space-24) var(--space-32); width: 100%; }
-.start-inner { max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
-.start-hero { display: flex; gap: 14px; align-items: flex-start; }
-.start-hero svg { width: 40px; height: 40px; flex: none; }
-.start-hero h2 { margin: 0; font-size: var(--text-heading); letter-spacing: -0.02em; }
-.start-lede { margin: var(--space-4) 0 0; color: var(--ink-2); font-size: var(--text-body); max-width: 70ch; }
-.start-top { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 14px; }
-.start-example, .start-paste {
-  background: var(--surface); border-radius: var(--radius-pane); padding: var(--space-16) 18px;
-display: flex; flex-direction: column; gap: var(--space-8);
-}
-.start-example h3, .start-paste h3 { margin: 0; font-size: var(--text-lead); }
-.start-example p { margin: 0; color: var(--ink-2); font-size: var(--text-body-s); }
-.start-row { display: flex; flex-wrap: wrap; gap: var(--space-8); align-items: center; }
-.start-paste textarea {
-  width: 100%; resize: vertical; font: var(--text-body-s)/1.45 var(--font-mono);
-  color: var(--ink); background: var(--inset); border: 1px solid var(--line-strong);
-  border-radius: var(--radius-control); padding: var(--space-8) 10px;
-}
-.start-suggest p { margin: 0 0 var(--space-8); font-size: var(--text-body-s); color: var(--ink-2); }
-.start-suggest strong { color: var(--ink); }
-.start-type { display: inline-flex; gap: var(--space-8); align-items: center; font-size: var(--text-body-s); }
-.start-section { margin: var(--space-4) 0 10px; font-size: var(--text-lead); }
-.start-cards {
-  list-style: none; margin: 0; padding: 0;
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: var(--space-12);
-}
-.start-card {
-  background: var(--surface); border-radius: var(--radius-pane); padding: 14px var(--space-16);
-display: flex; flex-direction: column; gap: var(--space-6);
-  border: 1px solid var(--line);
-}
-.start-card h4 { margin: 0; font-size: var(--text-body); }
-.start-sketch { display: flex; gap: 10px; color: var(--muted); }
-.start-sketch svg { background: var(--page); border-radius: var(--radius-control); }
-.start-what { margin: 0; font-size: var(--text-body-s); color: var(--ink-2); }
-.start-analyses { margin: 0; font-size: var(--text-caption); color: var(--muted); flex: 1; }
-.start-card-actions { display: flex; gap: var(--space-6); margin-top: var(--space-4); }
-.start-card-actions button { padding: 5px var(--space-12); font-size: var(--text-body-s); }
-.start-foot { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; font-size: var(--text-body-s); }
-.start-status { color: var(--muted); flex: 1 1 16ch; }
-.start-skip { padding: 5px var(--space-12); font-size: var(--text-body-s); }
-@media (max-width: 860px) {
-  .start-top { grid-template-columns: 1fr; }
-  main.start-screen { padding: 14px var(--space-16) var(--space-24); }
-}
-
-/* sketches */
+/* Table-type sketches (sketches.tsx), drawn in the New table dialog. */
 .sk-cell { fill: var(--surface); stroke: var(--axis); stroke-width: 0.6; }
 .sk-head { fill: var(--grid); stroke: var(--axis); stroke-width: 0.6; }
 .sk-x { fill: var(--accent-soft); stroke: var(--axis); stroke-width: 0.6; }

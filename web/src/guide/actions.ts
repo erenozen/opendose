@@ -1,12 +1,13 @@
 // Project edits the guidance performs: open a recommended analysis on the
-// current table (pre-configured), create a table of the right type, the
-// guided example project, and projects started from the start screen.
+// current table (pre-configured), create a table of the right type, and
+// the first-run projects (a pasted table, a table from "Describe your
+// experiment") that take the example's place.
 // Pure apart from ids (injected).
-import { addFamily, analysisSheets, sampleProject } from "../app/factory";
+import { addFamily, analysisSheets } from "../app/factory";
 import type { IdFactory } from "../project/ids";
 import { derivedFrom } from "../project/derived";
 import {
-  addSheets, familyChildren, findSheet, makeProject, updateResultsOptions,
+  addSheets, familyChildren, findSheet, makeProject,
 } from "../project/ops";
 import type {
   DataSheet, DataTableModel, Project, ProjectPrefs, ResultsSheet, TableType,
@@ -49,26 +50,8 @@ export function addTargetTable(p: Project, target: Target, name: string, ids: Id
   return { project: r.project, dataId, resultsId: r.resultsId };
 }
 
-/** The example project of the start screen and the tour: the classic
- *  example families (XY dose-response, contingency, survival) plus a
- *  three-group column comparison analysed by one-way ANOVA with Tukey's
- *  comparisons, which the tour walks through. */
-export function guidedExampleProject(prefs: ProjectPrefs, ids: IdFactory):
-  { project: Project; dataId: string } {
-  const base = sampleProject(prefs, ids);
-  const col = tableDef("column");
-  const { project, dataId } = addFamily(base, col.sampleTable!(), col.sampleName ?? "Group comparison",
-    ids);
-  const res = familyChildren(project, dataId).find((s): s is ResultsSheet => s.kind === "results");
-  const p = res ? updateResultsOptions(project, res.id, (o) => ({
-    ...(o as Record<string, unknown>), analysis: "anova", anovaKind: "parametric", anovaSd: "equal",
-    comparisons: "tukey",
-  })) : project;
-  return { project: { ...p, title: "Getting started" }, dataId };
-}
-
-/** A fresh project holding one table (from a start-screen card or a
- *  paste): with example data, the type's example table. */
+/** A fresh project holding one table: with example data, the type's
+ *  example table. */
 export function singleTableProject(prefs: ProjectPrefs, ids: IdFactory, type: TableType,
   opts: { example?: boolean; table?: DataTableModel; name?: string } = {}):
   { project: Project; dataId: string } {
@@ -89,4 +72,14 @@ export function dataSheetOf(p: Project, id: string | null): DataSheet | null {
     return d?.kind === "data" ? d : null;
   }
   return null;
+}
+
+/** A new table for `p`: when `p` is still the first-run example, a fresh
+ *  project holding only that table takes its place (DECISIONS 4: the
+ *  visitor's numbers replace the example); any other project gets it as a
+ *  new family. One edit, so Undo brings the example back. */
+export function projectWithTable(p: Project, table: DataTableModel, name: string, ids: IdFactory,
+  replaceExample: boolean): { project: Project; dataId: string } {
+  if (!replaceExample) return addFamily(p, table, name, ids);
+  return singleTableProject(p.prefs, ids, table.type, { table, name });
 }

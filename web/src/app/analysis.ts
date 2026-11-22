@@ -2,7 +2,7 @@
 // computed results that lives outside undo history.
 import { APP_VERSION, BUILD_COMMIT } from "../export/cite";
 import { ENGINE_HASH } from "../lib/buildInfo";
-import { isCancelled, runEngine, type EngineBridge, type Priority } from "../lib/engine";
+import { engineState, isCancelled, runEngine, type EngineBridge, type Priority } from "../lib/engine";
 import type { ResultsSheet, DataTableModel, ProjectPrefs } from "../project/types";
 import type { AnalysisDef } from "../sheets/types";
 
@@ -177,7 +177,10 @@ export class ResultsCache {
     this.notify(id);
     runEngine(fn, { signal: ctl.signal, priority }).then(
       (result): CacheEntry | null => ({ key, result, live: true }),
-      (e): CacheEntry | null => (isCancelled(e) ? null
+      // The engine did not load: not a result of this input. Whatever was
+      // shown (saved or shipped results) stays, and the run is asked for
+      // again once the engine is up (DECISIONS 4).
+      (e): CacheEntry | null => (isCancelled(e) || engineState().phase === "failed" ? null
         : { key, result: { error: e instanceof Error ? e.message : String(e) }, live: true }),
     ).then((entry) => {
       if (this.pend.get(id) !== run) return;

@@ -58,5 +58,4 @@
 
 .type-list .design-entry { display: block; align-self: flex-start; text-align: start; margin: 0 0 var(--space-8); font-size: var(--text-body-s); }
 .design-chosen strong { color: var(--ink); }
-.describe-experiment { margin: 0 var(--space-8) var(--space-12) 0; }
 
