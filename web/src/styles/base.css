@@ -1,0 +1,42 @@
+/* Reset, root and body, focus, and the global motion gates. */
+
+html { -webkit-text-size-adjust: 100%; }
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font-family: "Inter Variable", "Inter", system-ui, -apple-system,
+    "Segoe UI", sans-serif;
+  /* rem so the browser's text-size setting scales the app */
+  font-size: 0.875rem;
+  line-height: 1.45;
+  font-optical-sizing: auto;
+  /* soften OS light/dark switches instead of hard-cutting brightness */
+  transition: background-color 300ms ease, color 300ms ease;
+}
+
+/* Focus: one visible ring everywhere */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.data-table input:focus-visible {
+  outline-offset: -2px; border-radius: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}

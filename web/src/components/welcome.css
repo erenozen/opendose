@@ -1,0 +1,80 @@
+/* ============================ welcome / empty states ============================ */
+
+/* Once-per-session onboarding: gentle entrance + short bullet stagger */
+.welcome {
+  padding: 36px 32px;
+  transition: opacity 300ms var(--ease-out), transform 300ms var(--ease-out);
+  opacity: 1; transform: translateY(0);
+  @starting-style { opacity: 0; transform: translateY(6px); }
+}
+.welcome li {
+  opacity: 0; transform: translateY(6px);
+  animation: welcome-item 350ms var(--ease-out) forwards;
+}
+.welcome li:nth-child(1) { animation-delay: 120ms; }
+.welcome li:nth-child(2) { animation-delay: 170ms; }
+.welcome li:nth-child(3) { animation-delay: 220ms; }
+@keyframes welcome-item {
+  to { opacity: 1; transform: translateY(0); }
+}
+.welcome .welcome-head { display: flex; align-items: center; gap: 12px; }
+.welcome h2 {
+  margin: 0; font-size: 20px; font-weight: 650; letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+.welcome .welcome-tagline {
+  margin: 10px 0 0; color: var(--ink-2); font-size: 14px; max-width: 52ch;
+}
+.welcome ul {
+  margin: 18px 0 0; padding: 0; list-style: none;
+  display: flex; flex-direction: column; gap: 10px;
+  color: var(--ink-2); font-size: 13.5px;
+}
+.welcome li { display: flex; gap: 10px; align-items: baseline; }
+.welcome li::before {
+  content: ""; flex: none; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent); transform: translateY(-2px);
+}
+.spinner {
+  flex: none; width: 18px; height: 18px; border-radius: 50%;
+  border: 2.5px solid var(--inset);
+  border-top-color: var(--accent);
+  animation: spin 700ms linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  /* The global rule freezes animations mid-frame; a static ring reads
+     better than a stuck spinner, and the status text still pulses */
+  .spinner { animation: none; border-top-color: var(--inset); }
+}
+.welcome-error p { margin: 0 0 10px; color: var(--danger); font-weight: 500; }
+.retry-btn {
+  background: var(--accent-fill); color: var(--accent-ink);
+  border-color: transparent;
+}
+.welcome .welcome-loading {
+  display: flex; gap: 12px; align-items: flex-start;
+  margin-top: 24px; padding-top: 16px;
+  border-top: 1px solid var(--border-soft);
+  color: var(--accent); font-size: 13px; font-weight: 500;
+}
+.welcome .welcome-loading > div {
+  animation: pulse 1.2s ease-in-out infinite alternate;
+}
+.welcome .welcome-error {
+  margin-top: 24px; padding-top: 16px;
+  border-top: 1px solid var(--border-soft);
+  font-size: 13px;
+}
+.welcome .welcome-loading-note {
+  color: var(--muted); font-weight: 400; animation: none;
+  margin-top: 4px; font-size: 12.5px;
+}
+.empty-hint {
+  padding: 28px 24px; color: var(--muted); font-size: 13.5px;
+  text-align: center;
+}
+
+@media (max-width: 760px) {
+  .welcome { padding: 24px 18px; }
+}

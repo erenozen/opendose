@@ -1,0 +1,101 @@
+/* Design tokens: every raw colour and size lives here and nowhere else.
+   Components read the semantic custom properties below. */
+
+:root {
+  color-scheme: light;
+  --page: #f2f2f7;            /* systemGroupedBackground */
+  --surface: #ffffff;
+  --inset: rgba(118, 118, 128, 0.1);   /* tertiarySystemFill */
+  --ink: #1d1d1f;
+  --ink-2: #424245;
+  --muted: #636368;          /* 4.5:1 on the tinted strips (WCAG AA) */
+  --faint: #86868b;          /* decorative only: placeholders, dividers */
+  --grid: #e5e5ea;            /* systemGray5 */
+  --axis: #c7c7cc;            /* systemGray3 */
+  --border: rgba(0, 0, 0, 0.1);
+  --border-soft: rgba(0, 0, 0, 0.05);
+  --accent: #0066cc;          /* link/tint blue */
+  --accent-fill: #0071e3;     /* solid button blue */
+  --accent-strong: #0066cc;   /* fill hover */
+  --accent-ink: #ffffff;
+  --accent-soft: rgba(0, 113, 227, 0.07);
+  --accent-border: rgba(0, 113, 227, 0.35);
+  --seg-track: rgba(118, 118, 128, 0.12);
+  --seg-thumb: #ffffff;
+  --danger: #d70015;
+  --warn-ink: #8a5000;
+  --warn-hue: #ff9500;
+  --radius: 12px;
+  --radius-s: 8px;
+  --radius-pill: 980px;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  --seg-shadow: 0 1px 2.5px rgba(0, 0, 0, 0.16);
+}
+/* Dark tokens apply in two ways: via the OS preference (unless the
+   user forced light in the app) and via the in-app theme toggle. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #000000;
+    --surface: #1c1c1e;
+    --inset: rgba(118, 118, 128, 0.24);
+    --ink: #f5f5f7;
+    --ink-2: #aeaeb5;
+    --muted: #a1a1a8;
+    --faint: #6e6e73;
+    --grid: #38383a;
+    --axis: #48484a;
+    --border: rgba(255, 255, 255, 0.14);
+    --border-soft: rgba(255, 255, 255, 0.07);
+    --accent: #2997ff;
+    --accent-fill: #0071e3;
+    --accent-strong: #0066cc;
+    --accent-ink: #ffffff;
+    --accent-soft: rgba(41, 151, 255, 0.12);
+    --accent-border: rgba(41, 151, 255, 0.4);
+    --seg-track: rgba(118, 118, 128, 0.24);
+    --seg-thumb: #636366;
+    --danger: #ff6961;
+    --warn-ink: #ffb340;
+    --shadow: none;
+    --seg-shadow: 0 1px 2.5px rgba(0, 0, 0, 0.4);
+  }
+}
+:root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #000000;
+    --surface: #1c1c1e;
+    --inset: rgba(118, 118, 128, 0.24);
+    --ink: #f5f5f7;
+    --ink-2: #aeaeb5;
+    --muted: #a1a1a8;
+    --faint: #6e6e73;
+    --grid: #38383a;
+    --axis: #48484a;
+    --border: rgba(255, 255, 255, 0.14);
+    --border-soft: rgba(255, 255, 255, 0.07);
+    --accent: #2997ff;
+    --accent-fill: #0071e3;
+    --accent-strong: #0066cc;
+    --accent-ink: #ffffff;
+    --accent-soft: rgba(41, 151, 255, 0.12);
+    --accent-border: rgba(41, 151, 255, 0.4);
+    --seg-track: rgba(118, 118, 128, 0.24);
+    --seg-thumb: #636366;
+    --danger: #ff6961;
+    --warn-ink: #ffb340;
+    --shadow: none;
+    --seg-shadow: 0 1px 2.5px rgba(0, 0, 0, 0.4);
+}
+
+:root {
+  --nav-w: 280px;
+  --hl-red: #ff3b30;
+  --hl-orange: #ff9500;
+  --hl-yellow: #ffcc00;
+  --hl-green: #34c759;
+  --hl-blue: #007aff;
+  --hl-purple: #af52de;
+}

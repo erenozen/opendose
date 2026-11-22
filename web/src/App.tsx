@@ -1,4 +1,4 @@
-import "./App.css";
+import "./styles/index.css";
 import "./export/export.css";
 import "./layout/layout.css";
 import "./app/organise.css";

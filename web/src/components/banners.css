@@ -1,0 +1,19 @@
+/* ============================ pzfx chooser ============================ */
+
+.pzfx-chooser, .restore-banner {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  margin: 16px 24px 0; padding: 10px 14px;
+  border: 1px solid var(--accent-border); border-radius: var(--radius-s);
+  background: var(--accent-soft);
+  font-size: 13px;
+  max-width: 1632px;
+  /* Rare event (file import), so an entrance is earned */
+  transition: opacity 200ms var(--ease-out), transform 200ms var(--ease-out);
+  opacity: 1; transform: translateY(0);
+  @starting-style { opacity: 0; transform: translateY(-6px); }
+}
+.pzfx-chooser button, .restore-banner button {
+  padding: 4px 10px; background: var(--surface);
+}
+.restore-banner .btn-primary { background: var(--accent-fill); }
+.pzfx-chooser button.dismiss, .restore-banner button.dismiss { opacity: 0.75; }

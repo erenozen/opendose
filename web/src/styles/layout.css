@@ -1,0 +1,84 @@
+/* App shell: the page column, the navigator + workbench grid, the
+   two-column workbench and its splitters. */
+
+.app { min-height: 100vh; display: flex; flex-direction: column; }
+
+/* ============================ layout ============================ */
+
+main {
+  /* --split is the draggable left-column width; the 20px middle track is
+     the splitter itself, doubling as the column gutter. Full width: no
+     max-width, so wide monitors get all of it. */
+  display: grid;
+  grid-template-columns: minmax(380px, var(--split, 41.7%)) 20px minmax(0, 1fr);
+  row-gap: 20px; padding: 20px 24px; align-items: start;
+  width: 100%;
+}
+.splitter {
+  align-self: stretch; position: relative;
+  cursor: col-resize; touch-action: none; border-radius: 4px;
+}
+/* Grab indicator: a centered hairline that materializes on hover/drag */
+.splitter::after {
+  content: ""; position: absolute; top: 0; bottom: 0;
+  left: 50%; width: 2px; margin-left: -1px; border-radius: 1px;
+  background: transparent; transition: background-color 150ms ease;
+}
+.splitter:hover::after, .splitter:active::after,
+.splitter:focus-visible::after { background: var(--axis); }
+/* Row gaps between islands ARE the h-splitters (gap stays 0) */
+.left, .right { display: flex; flex-direction: column; gap: 0; min-width: 0; }
+.h-splitter {
+  flex: none; height: 20px; position: relative;
+  cursor: row-resize; touch-action: none; border-radius: 4px;
+}
+.h-splitter::after {
+  content: ""; position: absolute; left: 0; right: 0; top: 50%;
+  height: 2px; margin-top: -1px; border-radius: 1px;
+  background: transparent; transition: background-color 150ms ease;
+}
+.h-splitter:hover::after, .h-splitter:active::after,
+.h-splitter:focus-visible::after { background: var(--axis); }
+/* Engine still loading: the editor column is inert (no focus, no input);
+   the dim communicates it, and its release reads as "ready" */
+.left { transition: opacity 300ms var(--ease-out); }
+.left[inert] { opacity: 0.5; }
+
+@media (max-width: 1100px) {
+  main { grid-template-columns: 1fr; }
+  .splitter { display: none; }
+}
+
+@media (max-width: 760px) {
+  main, .shell > main { padding: 14px; gap: 14px; display: flex; flex-direction: column; }
+  .left, .right { display: contents; }
+  .pane { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+  .pane-import { order: 1; }
+  .pane-table { order: 2; }
+  .pane-plot { order: 3; }
+  .pane-controls { order: 4; }
+  .pane-results { order: 5; }
+  .pane-methods { order: 6; }
+  .h-splitter { display: none; }
+}
+
+/* Navigator column + workbench. The navigator is a card that stays in
+   view while the workbench scrolls. */
+.shell {
+  display: grid; grid-template-columns: var(--nav-w) minmax(0, 1fr);
+  align-items: start; width: 100%;
+}
+.shell.nav-hidden { grid-template-columns: minmax(0, 1fr); }
+.shell > main { min-width: 0; }
+
+@media (max-width: 900px) {
+  .shell, .shell.nav-hidden { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 760px) {
+  /* Panes take the column width; wide tables scroll inside their card
+     instead of widening the page. */
+  .shell > main { align-items: stretch; }
+  .pane { max-width: 100%; }
+  .pane > * { max-width: 100%; }
+}
