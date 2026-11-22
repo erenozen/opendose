@@ -20,7 +20,7 @@ import {
   calibratorOf, dcqSettings, dcqTable, QPCR_ROLES, readQpcr, referenceGenes, runQpcr,
   tableFromStaging, TEST_LABELS, type PostTest, type QpcrOptions, type QpcrResult, type QTest,
 } from "./model";
-import { Button } from "../../../components/ui";
+import { Button, FileButton } from "../../../components/ui";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -327,12 +327,10 @@ function CqImport({ onTable }: { onTable: (t: DataTableModel) => void }) {
         are recognised; otherwise you choose the columns. Undetermined wells are kept as missing.
       </p>
       <div className="wizard-row">
-        <label className="field">
+        <div className="field">
           <span>Cq export (.csv, .txt or .xlsx)</span>
-          <input type="file" accept=".csv,.tsv,.txt,.xlsx,text/csv,text/plain" aria-label="Cq export file"
-            onChange={async (e) => {
-              const f = e.target.files?.[0];
-              if (!f) return;
+          <FileButton size="sm" accept=".csv,.tsv,.txt,.xlsx,text/csv,text/plain" inputLabel="Cq export file"
+            onFile={async (f) => {
               try {
                 const bytes = new Uint8Array(await f.arrayBuffer());
                 if (/\.xlsx$/i.test(f.name)) {
@@ -342,8 +340,9 @@ function CqImport({ onTable }: { onTable: (t: DataTableModel) => void }) {
               } catch (err) {
                 setMsg(`Could not read the file: ${err instanceof Error ? err.message : String(err)}`);
               }
-            }} />
-        </label>
+            }}>
+            Choose the Cq export file…</FileButton>
+        </div>
         <label className="check-row">
           <input type="checkbox" checked={fromName} onChange={(e) => setFromName(e.target.checked)} />
           Group = sample name without its trailing number (when the export has no group column)

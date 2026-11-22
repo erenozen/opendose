@@ -23,7 +23,7 @@ import {
   type FlowResult, type PartRole,
 } from "./model";
 import "./flow.css";
-import { Button } from "../../../components/ui";
+import { Button, FileButton } from "../../../components/ui";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -383,12 +383,10 @@ function FlowJoImport({ onTable }: { onTable: (t: DataTableModel) => void }) {
         statistic such as “Lymphocytes/…/CD69+ | Freq. of Parent”) and paste or open it here, or type it
         into the table.
       </p>
-      <label className="field">
+      <div className="field">
         <span>FlowJo table (.csv, .txt or .xlsx)</span>
-        <input type="file" accept={ACCEPT} aria-label="FlowJo table file"
-          onChange={async (e) => {
-            const f = e.target.files?.[0];
-            if (!f) return;
+        <FileButton size="sm" accept={ACCEPT} inputLabel="FlowJo table file"
+          onFile={async (f) => {
             try {
               const bytes = new Uint8Array(await f.arrayBuffer());
               if (/\.xlsx$/i.test(f.name)) {
@@ -399,8 +397,9 @@ function FlowJoImport({ onTable }: { onTable: (t: DataTableModel) => void }) {
             } catch (err) {
               setMsg(`Could not read the file: ${err instanceof Error ? err.message : String(err)}`);
             }
-          }} />
-      </label>
+          }}>
+            Choose the FlowJo table…</FileButton>
+      </div>
       <label className="field">
         <span>…or paste it</span>
         <textarea className="wizard-paste" value={text} aria-label="Paste FlowJo table"

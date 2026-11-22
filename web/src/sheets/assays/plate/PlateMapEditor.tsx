@@ -12,6 +12,7 @@ import {
 } from "./model";
 import { allTemplates, deleteTemplate, saveTemplate } from "./templates";
 import "./plate.css";
+import { Button } from "../../../components/ui";
 
 const ROLE_TEXT: Record<WellRole, string> = {
   blank: "Blank", negative: "Vehicle", positive: "Kill / positive", sample: "Compound", empty: "Empty",
@@ -253,8 +254,9 @@ export default function PlateMapEditor({ format, wells, unit, values, onChange }
                 : "Each selected column is one replicate."}
             </span>
           </label>
-          <button type="button" className="btn-primary" disabled={!sel || !spec.compound.trim()}
-            onClick={applySeries}>Assign series to selection</button>
+          {/* Secondary: the wizard's one primary is Next. */}
+          <Button disabled={!sel || !spec.compound.trim()}
+            onClick={applySeries}>Assign series to selection</Button>
         </div>
       </div>
 
