@@ -171,21 +171,6 @@ export default function ExportPanel({
   return (
     <div className="export-panel" ref={panelRef}>
       {leading}
-      <div className="export-fields" role="group" aria-label="Export graph">
-        <span className="export-title" aria-hidden="true">Export</span>
-        <select value={s.format} aria-label="Export format"
-          onChange={(e) => setFormat(e.target.value as ExportFormat)}>
-          {FORMATS.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
-        </select>
-        <NumberField label="Width" unit={s.unit} value={width} onValueChange={setWidth}
-          fieldClassName="export-num" />
-        <NumberField label="Height" unit={s.unit} value={height} onValueChange={setHeight}
-          fieldClassName="export-num" />
-        {!vector && (
-          <NumberField label="DPI" aria-label="Resolution (DPI)" integer value={dpi}
-            onValueChange={setDpi} fieldClassName="export-num" />
-        )}
-      </div>
       <div className="export-actions">
         <Button onClick={download} disabled={batch.busy} busy={busy} busyLabel="Exporting…">
           <SwapLabel swapped={downloaded.swapped} done="Downloaded">Download</SwapLabel>
@@ -299,6 +284,21 @@ export default function ExportPanel({
             </details>
           </Popover.Content>
         </Popover>
+      </div>
+      <div className="export-fields" role="group" aria-label="Export graph">
+        <span className="export-title" aria-hidden="true">Export</span>
+        <select value={s.format} aria-label="Export format"
+          onChange={(e) => setFormat(e.target.value as ExportFormat)}>
+          {FORMATS.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
+        </select>
+        <NumberField label="Width" unit={s.unit} value={width} onValueChange={setWidth}
+          fieldClassName="export-num" />
+        <NumberField label="Height" unit={s.unit} value={height} onValueChange={setHeight}
+          fieldClassName="export-num" />
+        {!vector && (
+          <NumberField label="DPI" aria-label="Resolution (DPI)" integer value={dpi}
+            onValueChange={setDpi} fieldClassName="export-num" />
+        )}
       </div>
       <div className="export-notes">
         <span className="export-hint">

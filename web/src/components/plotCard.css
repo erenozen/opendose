@@ -31,7 +31,10 @@
   border-top: 1px solid var(--line-solid);
   font-size: var(--text-body-s); color: var(--ink-2);
 }
+/* Two rows: the commands (Settings at the start, Download, Copy and
+   Options at the end), then the format and size fields. */
 .export-fields {
+  flex-basis: 100%;
   display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8) var(--space-12);
   min-width: 0;
 }
@@ -40,8 +43,8 @@
 }
 /* Width, height and DPI: the label beside the field, not above it. */
 .export-num.ui-field { flex-direction: row; align-items: center; gap: var(--space-6); }
-.export-num .ui-number input { width: 64px; }
-.export-num .ui-number[data-unit] input { width: calc(64px + var(--unit-ch, 2ch)); }
+.export-num.ui-number-field .ui-number input { width: 64px; }
+.export-num.ui-number-field .ui-number[data-unit] input { width: calc(56px + var(--unit-ch, 2ch)); }
 .export-actions {
   display: flex; align-items: center; gap: var(--space-4); margin-left: auto;
 }

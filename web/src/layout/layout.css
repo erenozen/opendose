@@ -27,8 +27,8 @@ main.layout-main {
 .layout-times { color: var(--muted); }
 /* Rows, columns and DPI: small number fields with the label beside them. */
 .mini-field.ui-field { flex-direction: row; align-items: center; gap: var(--space-6); }
-.mini-field .ui-number input { width: 48px; }
-.layout-dpi .ui-number input { width: 72px; }
+.mini-field.ui-number-field .ui-number input { width: 48px; }
+.layout-dpi.ui-number-field .ui-number input { width: 72px; }
 .mini-field .ui-field-error { flex-basis: 100%; }
 .layout-zoom {
   display: inline-flex; align-items: center; gap: var(--space-6);
@@ -147,8 +147,8 @@ main.layout-main {
   padding: var(--space-6) var(--space-8);
 }
 .layout-row { display: flex; flex-wrap: wrap; gap: var(--space-8) var(--space-12); align-items: flex-end; }
-.layout-row .field-num .ui-number input { width: 72px; }
-.layout-geom .field-num .ui-number input { width: 60px; }
+.layout-row .field-num.ui-number-field .ui-number input { width: 72px; }
+.layout-geom .field-num.ui-number-field .ui-number input { width: 60px; }
 .field-unit { font-weight: var(--weight-regular); color: var(--muted); }
 .field-color input[type="color"] {
   width: 44px; height: 30px; padding: var(--space-2); border: 1px solid var(--line-strong);
