@@ -1,34 +1,34 @@
 /* Grouped table: layout table, buttons, flags. Tokens only. */
 
 /* Three-way layout editor */
-.tw-layout { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.tw-layout { width: 100%; border-collapse: collapse; font-size: var(--text-body-s); }
 .tw-layout th, .tw-layout td {
-  text-align: left; padding: 4px 6px 4px 0;
+  text-align: left; padding: var(--space-4) var(--space-6) var(--space-4) 0;
   border-bottom: 1px solid var(--grid);
 }
-.tw-layout thead th { color: var(--muted); font-weight: 500; font-size: 12px; }
-.tw-layout select { padding: 3px 6px; }
-.factor-names { display: grid; grid-template-columns: auto 1fr 1fr; gap: 6px 8px; align-items: center; }
-.factor-names > span { color: var(--muted); font-size: 12px; }
+.tw-layout thead th { color: var(--muted); font-weight: var(--weight-medium); font-size: var(--text-caption); }
+.tw-layout select { padding: 3px var(--space-6); }
+.factor-names { display: grid; grid-template-columns: auto 1fr 1fr; gap: var(--space-6) var(--space-8); align-items: center; }
+.factor-names > span { color: var(--muted); font-size: var(--text-caption); }
 .factor-names input {
   font: inherit; color: var(--ink); background: var(--inset);
-  border: 1px solid var(--border); border-radius: var(--radius-s);
-  padding: 5px 8px; min-width: 0; width: 100%;
+  border: 1px solid var(--line-strong); border-radius: var(--radius-control);
+  padding: 5px var(--space-8); min-width: 0; width: 100%;
 }
 .factor-names input:focus-visible, .text-option:focus-visible {
   outline: 2px solid var(--focus-ring); outline-offset: 1px; border-color: transparent;
 }
 .text-option {
   font: inherit; color: var(--ink); background: var(--inset);
-  border: 1px solid var(--border); border-radius: var(--radius-s);
-  padding: 5px 8px; min-width: 0; flex: 1 1 140px;
+  border: 1px solid var(--line-strong); border-radius: var(--radius-control);
+  padding: 5px var(--space-8); min-width: 0; flex: 1 1 140px;
 }
 .grouped-btn {
   align-self: flex-start;
-  font: inherit; font-size: 12.5px; padding: 5px 10px;
-  border: 1px solid var(--border); border-radius: var(--radius-s);
+  font: inherit; font-size: var(--text-body-s); padding: 5px 10px;
+  border: 1px solid var(--line-strong); border-radius: var(--radius-control);
   background: var(--surface); color: var(--ink-2); cursor: pointer;
-  transition: transform 160ms var(--ease-out), border-color 160ms ease;
+  transition: transform var(--dur-base) var(--ease-out), border-color var(--dur-base) var(--ease-out);
 }
 .grouped-btn:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
 @media (hover: hover) and (pointer: fine) {
@@ -38,18 +38,18 @@
 /* Results */
 .results-scroll { overflow-x: auto; max-width: 100%; }
 .flag-yes {
-  display: inline-block; padding: 0 7px; border-radius: 999px;
-  font-size: 11.5px; font-weight: 650; line-height: 18px;
+  display: inline-block; padding: 0 7px; border-radius: var(--radius-control);
+  font-size: var(--text-caption); font-weight: var(--weight-semibold); line-height: 18px;
   color: var(--accent); background: var(--accent-soft);
   border: 1px solid var(--accent-border);
 }
 .flag-no { color: var(--muted); }
-.results-table tr.row-flagged th { font-weight: 600; color: var(--ink); }
+.results-table tr.row-flagged th { font-weight: var(--weight-semibold); color: var(--ink); }
 .multi-t-table th, .multi-t-table td:last-child { white-space: nowrap; }
-.summary-line { margin: 0 0 10px; color: var(--ink-2); font-size: 13px; }
+.summary-line { margin: 0 0 10px; color: var(--ink-2); font-size: var(--text-body-s); }
 .summary-line strong { color: var(--ink); }
 .omitted-note { color: var(--muted); font-style: italic; }
-.copy-table-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 4px; }
+.copy-table-row { display: flex; flex-wrap: wrap; gap: var(--space-8); align-items: center; margin-top: var(--space-4); }
 .copy-table-row .hint-block { margin: 0; }
 
 @media (max-width: 700px) {
@@ -59,14 +59,14 @@
 
 /* Interaction block (two-way ANOVA): the warning against comparing two
    separate tests, and the interaction plot. */
-.interaction-block > summary { cursor: pointer; font-weight: 600; color: var(--ink); }
+.interaction-block > summary { cursor: pointer; font-weight: var(--weight-semibold); color: var(--ink); }
 .interaction-block > summary:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 .interaction-warning {
-  border: 1px solid var(--border); border-left: 3px solid var(--warn-hue);
-  border-radius: var(--radius-s); background: var(--surface);
-  padding: 10px 14px; margin: 10px 0; font-size: 13px; color: var(--ink-2);
+  border: 1px solid var(--line-strong); border-left: 3px solid var(--warn);
+  border-radius: var(--radius-control); background: var(--surface);
+  padding: 10px 14px; margin: 10px 0; font-size: var(--text-body-s); color: var(--ink-2);
 }
-.interaction-warning p { margin: 0 0 6px; }
-.interaction-warning .guide-chip-sources { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0; }
+.interaction-warning p { margin: 0 0 var(--space-6); }
+.interaction-warning .guide-chip-sources { display: flex; flex-wrap: wrap; gap: var(--space-4) 14px; margin: 0; }
 .interaction-plot { margin: 10px 0 0; }
 .interaction-plot .plot { width: 100%; min-height: 280px; }

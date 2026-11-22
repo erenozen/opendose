@@ -2,7 +2,7 @@
 
 .plate-editor { display: flex; flex-direction: column; gap: 10px; }
 .plate-editor-main {
-  display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, 280px); gap: 16px;
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, 280px); gap: var(--space-16);
   align-items: start;
 }
 @media (max-width: 760px) {
@@ -14,19 +14,19 @@
 }
 .plate-grid-384 { gap: 1px; }
 .plate-head, .plate-corner {
-  border: 0; background: none; color: var(--muted); font: inherit; font-size: 11.5px;
-  font-weight: 600; padding: 0 2px; cursor: pointer; border-radius: 4px; min-height: 18px;
+  border: 0; background: none; color: var(--muted); font: inherit; font-size: var(--text-caption);
+  font-weight: var(--weight-semibold); padding: 0 var(--space-2); cursor: pointer; border-radius: var(--radius-control); min-height: 18px;
 }
 @media (hover: hover) and (pointer: fine) {
   .plate-head:hover, .plate-corner:hover { background: var(--inset); color: var(--ink); }
 }
 .plate-well {
   aspect-ratio: 1; min-width: 0; padding: 0; border-radius: 50%;
-  border: 1px solid var(--border); background: var(--surface); color: var(--ink);
-  font: inherit; font-size: 10px; line-height: 1; cursor: crosshair; overflow: hidden;
+  border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink);
+  font: inherit; font-size: var(--text-caption); line-height: 1; cursor: crosshair; overflow: hidden;
   display: grid; place-items: center;
 }
-.plate-grid-384 .plate-well { border-radius: 3px; }
+.plate-grid-384 .plate-well { border-radius: var(--radius-control); }
 .plate-well.well-blank, .well-swatch.well-blank {
   background: repeating-linear-gradient(135deg, var(--inset) 0 3px, transparent 3px 6px);
   color: var(--muted);
@@ -34,11 +34,11 @@
 /* Controls: a plain well with a heavy ring (compounds are filled), so
    they never read as a compound colour. */
 .plate-well.well-negative, .well-swatch.well-negative {
-  background: var(--surface); color: var(--ink); font-weight: 700;
+  background: var(--surface); color: var(--ink); font-weight: var(--weight-bold);
   box-shadow: inset 0 0 0 2.5px var(--ink-2);
 }
 .plate-well.well-positive, .well-swatch.well-positive {
-  background: var(--surface); color: var(--danger); font-weight: 700;
+  background: var(--surface); color: var(--danger); font-weight: var(--weight-bold);
   box-shadow: inset 0 0 0 2.5px var(--danger);
 }
 .plate-mini .plate-well { border-radius: 50%; }
@@ -46,26 +46,26 @@
   outline: 2px solid var(--accent-fill); outline-offset: 1px; z-index: var(--z-base);
 }
 .plate-well:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
-.plate-actions { display: flex; flex-direction: column; gap: 8px; }
-.plate-actions h4 { margin: 4px 0 0; }
-.plate-sel { margin: 0; font-size: 13px; color: var(--ink); font-weight: 600; min-height: 1.4em; }
+.plate-actions { display: flex; flex-direction: column; gap: var(--space-8); }
+.plate-actions h4 { margin: var(--space-4) 0 0; }
+.plate-sel { margin: 0; font-size: var(--text-body-s); color: var(--ink); font-weight: var(--weight-semibold); min-height: 1.4em; }
 .plate-role-btns { display: flex; flex-direction: column; gap: 5px; }
-.plate-role-btns button { display: flex; align-items: center; gap: 8px; text-align: left; font-size: 12.5px; padding: 5px 10px; }
+.plate-role-btns button { display: flex; align-items: center; gap: var(--space-8); text-align: left; font-size: var(--text-body-s); padding: 5px 10px; }
 .well-swatch {
   display: inline-grid; place-items: center; width: 16px; height: 16px; flex: none;
-  border-radius: 50%; border: 1px solid var(--border); font-size: 9.5px; font-weight: 650;
+  border-radius: 50%; border: 1px solid var(--line-strong); font-size: var(--text-caption); font-weight: var(--weight-semibold);
   background: var(--surface);
 }
 .plate-conc-mode { display: flex; gap: 14px; flex-direction: row; }
-.plate-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12.5px; color: var(--ink-2); }
-.plate-legend-compound { display: inline-flex; align-items: center; gap: 6px; }
+.plate-legend { display: flex; flex-wrap: wrap; gap: var(--space-6) 14px; font-size: var(--text-body-s); color: var(--ink-2); }
+.plate-legend-compound { display: inline-flex; align-items: center; gap: var(--space-6); }
 .plate-mini { display: grid; gap: 1px; max-width: 260px; }
-.plate-mini span { aspect-ratio: 1; border-radius: 50%; border: 1px solid var(--border-soft); }
+.plate-mini span { aspect-ratio: 1; border-radius: 50%; border: 1px solid var(--line); }
 .plate-mini span.well-blank { background: var(--inset); }
 /* What the reader could not read exactly as found (shown at QC). */
 .plate-read-warnings {
-  margin: 10px 0; padding: 8px 12px; font-size: 12.5px; color: var(--ink-2);
-  border: 1px solid var(--warn-ink); border-radius: var(--radius-s);
+  margin: 10px 0; padding: var(--space-8) var(--space-12); font-size: var(--text-body-s); color: var(--ink-2);
+  border: 1px solid var(--warn-ink); border-radius: var(--radius-control);
 }
-.plate-read-warnings h4 { margin: 0 0 4px; }
+.plate-read-warnings h4 { margin: 0 0 var(--space-4); }
 .plate-read-warnings ul { margin: 0; padding-left: 18px; }

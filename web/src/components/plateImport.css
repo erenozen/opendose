@@ -2,7 +2,7 @@
 
 .section-toggle {
   border: none; background: transparent; text-align: left;
-  color: var(--muted); padding: 2px 0; cursor: pointer;
+  color: var(--muted); padding: var(--space-2) 0; cursor: pointer;
 }
 @media (hover: hover) and (pointer: fine) {
   .section-toggle:hover { color: var(--accent); }
@@ -14,7 +14,7 @@
   @starting-style { opacity: 0; transform: translateY(-4px); }
 }
 .plate-form label {
-  display: flex; flex-direction: column; gap: 4px;
+  display: flex; flex-direction: column; gap: var(--space-4);
   color: var(--ink-2); font-size: var(--text-body-s);
 }
-.plate-grid-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; }
+.plate-grid-opts { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-8) var(--space-12); }

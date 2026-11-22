@@ -7,7 +7,7 @@
 .data-table th, .data-table td { border: 1px solid var(--grid); padding: 0; }
 .data-table thead th {
   background: var(--inset); color: var(--ink-2); font-weight: var(--weight-semibold);
-  font-size: var(--text-caption); padding: 5px 6px;
+  font-size: var(--text-caption); padding: 5px var(--space-6);
 }
 .data-table .subhead th { font-weight: var(--weight-regular); color: var(--muted); }
 .data-table .rownum {
@@ -28,7 +28,7 @@
 .data-table input {
   /* Wide enough for scientific notation ("3.162e-9") plus padding */
   width: 100%; min-width: 80px; border: none; background: transparent;
-  color: var(--ink); padding: 6px 7px; font: inherit;
+  color: var(--ink); padding: var(--space-6) 7px; font: inherit;
   font-variant-numeric: tabular-nums; text-align: right;
 }
 .group-head { white-space: nowrap; }
@@ -36,10 +36,10 @@
   border: none; background: transparent; color: var(--ink);
   font: inherit; font-weight: var(--weight-semibold); width: 9ch; text-align: center;
 }
-.data-table .row-label { background: var(--inset); padding: 0 4px; }
+.data-table .row-label { background: var(--inset); padding: 0 var(--space-4); }
 .data-table .row-label .ds-name { width: 13ch; text-align: left; }
 .table-actions {
-  display: flex; gap: 8px; align-items: center; padding: 10px 4px 2px;
+  display: flex; gap: var(--space-8); align-items: center; padding: 10px var(--space-4) var(--space-2);
   flex-wrap: wrap;
 }
 .table-actions .hint { color: var(--muted); font-size: var(--text-caption); }
@@ -61,7 +61,7 @@
 }
 .data-table .sub-title::placeholder { color: var(--muted); opacity: 1; }
 .data-table .var-type {
-  font-size: var(--text-caption); padding: 2px 4px; border-radius: var(--radius-control); width: 100%;
+  font-size: var(--text-caption); padding: var(--space-2) var(--space-4); border-radius: var(--radius-control); width: 100%;
 }
 .data-table.is-readonly input { cursor: default; }
 
