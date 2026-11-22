@@ -423,7 +423,10 @@ class TestMixedRmTwoWay:
         for c in mc["comparisons"]:
             p = 1 - (1 - c["p_unadjusted"]) ** 3
             assert c["p_adjusted"] == pytest.approx(min(p, 1.0), rel=1e-9)
-            assert c["df"] == res["fixed_effects"]["interaction"]["df_den"]
+            # groups compared at one time: within-cells df, df_subjects +
+            # df_residual (GraphPad FAQ 1106), not the residual df alone
+            assert c["df"] == (res["fixed_effects"]["column_factor"]["df_den"]
+                               + res["fixed_effects"]["interaction"]["df_den"])
         marg = mm.mixed_rm_two_way(cells, comparisons="tukey",
                                    direction="row_means")
         assert marg["multiple_comparisons"]["comparisons"][0]["df"] == \

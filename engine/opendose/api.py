@@ -1965,7 +1965,8 @@ def _mixed_rm_oneway(data, options):
     subjects, first subcolumn used, None = missing. options: method
     ("mixed" always | "auto" = RM ANOVA unless values are missing |
     "anova"), comparisons, control_index, ci_level, negative_variance
-    ("allow" | "remove")."""
+    ("allow" | "remove"), ddf ("containment" | "kenward_roger" |
+    "satterthwaite": denominator df, opendose.ddfm)."""
     names = [ds.get("name", "") for ds in data["datasets"]]
     aligned = [[row[0] if row else None for row in ds["ys"]]
                for ds in data["datasets"]]
@@ -1976,7 +1977,8 @@ def _mixed_rm_oneway(data, options):
                   "control_index": options.get("control_index", 0),
                   "ci_level": options.get("ci_level", 0.95),
                   "negative_variance": options.get("negative_variance",
-                                                   "allow")}
+                                                   "allow"),
+                  "ddf": options.get("ddf", "containment")}
     result = mixedmodel.rm_one_way(aligned, names, method=method, **kwargs)
     return {"analysis": result.get("analysis", "rm_one_way_anova"), **result}
 
@@ -1988,7 +1990,7 @@ def _mixed_rm_twoway(data, options):
     design ("mixed" | "both"), row_names, method ("mixed" | "auto" |
     "anova"), comparisons, direction (columns_within_rows |
     rows_within_columns | column_means | row_means), control_index,
-    ci_level, negative_variance."""
+    ci_level, negative_variance, ddf (as mixed_rm_oneway)."""
     names = [ds.get("name", "") for ds in data["datasets"]]
     n_rows = max(len(ds["ys"]) for ds in data["datasets"])
     cells = [[ds["ys"][r] if r < len(ds["ys"]) else []
@@ -2004,7 +2006,8 @@ def _mixed_rm_twoway(data, options):
                   "control_index": options.get("control_index", 0),
                   "ci_level": options.get("ci_level", 0.95),
                   "negative_variance": options.get("negative_variance",
-                                                   "allow")}
+                                                   "allow"),
+                  "ddf": options.get("ddf", "containment")}
     return mixedmodel.rm_two_way(
         cells, design=options.get("design", "mixed"), method=method,
         row_names=row_names, col_names=names, **kwargs)

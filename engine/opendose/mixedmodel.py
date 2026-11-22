@@ -57,7 +57,7 @@ from itertools import combinations, product
 import numpy as np
 from scipy import optimize, stats
 
-from . import dunnett, studentized
+from . import ddfm, dunnett, studentized
 from .moretests import METHOD_NAMES, comparison_family
 
 _LN2PI = math.log(2.0 * math.pi)
@@ -557,7 +557,10 @@ def compare_estimates(est, cov, df, method: str, *, names=None,
     est, cov: estimated marginal means and their covariance (L C L').
     pairs: list of (i, j) index pairs (default: all pairs, or each vs
     control_index for Dunnett). Every difference is est[i] - est[j] with
-    SE sqrt(l' cov l), t on the model df.
+    SE sqrt(l' cov l), t on the model df. df: a number, or a function of
+    the contrast c over est (c[i] = 1, c[j] = -1) giving each
+    comparison's own df (Kenward-Roger / Satterthwaite); the adjustment
+    of each comparison then uses its own df, as R's emmeans does.
 
     method: tukey (studentized range on q = |diff| / (SE/sqrt 2), Prism's
     q, family size = number of means), dunnett (multivariate t with the
@@ -591,18 +594,23 @@ def compare_estimates(est, cov, df, method: str, *, names=None,
         var = float(cov[i, i] + cov[j, j] - 2 * cov[i, j])
         se = math.sqrt(max(var, 0.0))
         t = abs(diff) / se if se > 0 else math.inf
+        if callable(df):
+            c = np.zeros(k)
+            c[i], c[j] = 1.0, -1.0
+            dfr = float(df(c))
+        else:
+            dfr = float(df)
         rows.append({"i": i, "j": j, "diff": diff, "se": se, "t": t,
-                     "p_raw": 2.0 * float(stats.t.sf(t, df))})
+                     "df": dfr, "p_raw": 2.0 * float(stats.t.sf(t, dfr))})
     m_total = n_family_total or m
 
     if method == "tukey":
-        qcrit = studentized.ppf(ci_level, k, df)
-        p_all = studentized.sf(np.array([r["t"] * math.sqrt(2.0)
-                                         for r in rows]), k, df)
-        for r, p_adj in zip(rows, p_all):
+        for r in rows:
             q = r["t"] * math.sqrt(2.0)
             r["stat"] = q
-            r["p_adj"] = min(float(p_adj), 1.0)
+            r["p_adj"] = min(float(studentized.sf(np.array([q]), k,
+                                                  r["df"])[0]), 1.0)
+            qcrit = studentized.ppf(ci_level, k, r["df"])
             r["half"] = qcrit * r["se"] / math.sqrt(2.0)
     elif method == "dunnett":
         # correlation of the contrasts from the model covariance
@@ -617,37 +625,41 @@ def compare_estimates(est, cov, df, method: str, *, names=None,
         # correlation has that form, else fixed-seed quasi-Monte Carlo
         for r in rows:
             r["stat"] = r["t"]
-            r["p_adj"] = (dunnett.sf(r["t"], R, df)
+            r["p_adj"] = (dunnett.sf(r["t"], R, r["df"])
                           if math.isfinite(r["t"]) else 0.0)
-        ccrit = dunnett.critical_value(ci_level, R, df)
+        crit = {}
         for r in rows:
-            r["half"] = ccrit * r["se"]
+            if r["df"] not in crit:
+                crit[r["df"]] = dunnett.critical_value(ci_level, R, r["df"])
+            r["half"] = crit[r["df"]] * r["se"]
     elif method in ("bonferroni", "sidak", "holm_sidak", "fisher"):
         for r in rows:
             r["stat"] = r["t"]
         if method == "fisher":
             for r in rows:
                 r["p_adj"] = r["p_raw"]
-            tcrit = float(stats.t.ppf(1 - alpha / 2, df))
+            q_two = 1 - alpha / 2
         elif method == "bonferroni":
             for r in rows:
                 r["p_adj"] = min(r["p_raw"] * m_total, 1.0)
-            tcrit = float(stats.t.ppf(1 - alpha / (2 * m_total), df))
+            q_two = 1 - alpha / (2 * m_total)
         elif method == "sidak":
             for r in rows:
                 r["p_adj"] = min(1.0 - (1.0 - r["p_raw"]) ** m_total, 1.0)
             a_per = 1.0 - (1.0 - alpha) ** (1.0 / m_total)
-            tcrit = float(stats.t.ppf(1 - a_per / 2, df))
+            q_two = 1 - a_per / 2
         else:
+            q_two = None
             order = sorted(range(m), key=lambda a: rows[a]["p_raw"])
             running = 0.0
             for rank, a in enumerate(order):
                 p_adj = 1.0 - (1.0 - rows[a]["p_raw"]) ** (m_total - rank)
                 running = max(running, p_adj)
                 rows[a]["p_adj"] = min(running, 1.0)
-            tcrit = None  # step-down: no simultaneous CIs (as anova.py)
+            # step-down: no simultaneous CIs (as anova.py)
         for r in rows:
-            r["half"] = tcrit * r["se"] if tcrit is not None else None
+            r["half"] = (float(stats.t.ppf(q_two, r["df"])) * r["se"]
+                         if q_two is not None else None)
     else:
         raise ValueError(f"unknown multiple-comparisons method: {method}")
 
@@ -662,7 +674,7 @@ def compare_estimates(est, cov, df, method: str, *, names=None,
             "difference": r["diff"], "se": r["se"],
             "ci": ([r["diff"] - half, r["diff"] + half]
                    if half is not None else None),
-            "statistic": float(r["stat"]), "df": float(df),
+            "statistic": float(r["stat"]), "df": float(r["df"]),
             "p_unadjusted": float(r["p_raw"]),
             "p_adjusted": float(r["p_adj"]),
             "significant_05": _p_summary(r["p_adj"]),
@@ -694,6 +706,23 @@ def comparisons_family(method: str, k: int, comps: list, names=None,
 
 
 # ---------------------------------------------------------- RM one-way
+
+_NO_GG_NOTE = (
+    "The mixed model assumes compound symmetry. Kenward-Roger and "
+    "Satterthwaite df are computed from the fitted model; the Geisser-"
+    "Greenhouse correction belongs to the repeated-measures ANOVA (its "
+    "epsilon multiplies the containment df) and is not applied to them.")
+
+
+def _ddf_test(D, ddf, L) -> dict:
+    """F test of the rows of L by Kenward-Roger or Satterthwaite."""
+    res = D.test(ddf, L)
+    out = {"F": float(res["F"]), "df_num": int(res["df_num"]),
+           "df_den": float(res["df_den"]), "p": res["p"]}
+    if "scale" in res:
+        out["F_scale"] = float(res["scale"])
+    return out
+
 
 def _summary_components(fit, labels):
     out = []
@@ -735,14 +764,21 @@ def _fit_with_negative_policy(y, X, random_effects, negative_variance):
 
 def mixed_rm_one_way(datasets, names=None, *, comparisons=None,
                      control_index: int = 0, ci_level: float = 0.95,
-                     negative_variance: str = "allow") -> dict:
+                     negative_variance: str = "allow",
+                     ddf: str = "containment") -> dict:
     """Repeated-measures one-way design fitted as a mixed model (random
     subject intercept, compound symmetry, REML), allowing missing values.
 
     datasets: one value list per treatment (column); index = subject
     (row). None marks a missing value. Subjects with no values are
     ignored; subjects with one value still inform the fit.
+
+    ddf: denominator df of the F test, the means' CIs and the multiple
+    comparisons: "containment" (the residual df N - rank[X Z], = RM
+    ANOVA's for complete data; Prism's "Legacy"), "kenward_roger" or
+    "satterthwaite" (opendose.ddfm; each comparison gets its own df).
     """
+    ddf = ddfm.method_of(ddf)
     k = len(datasets)
     if k < 2:
         raise ValueError("need at least 2 treatments")
@@ -774,19 +810,31 @@ def mixed_rm_one_way(datasets, names=None, *, comparisons=None,
 
     S = pairwise_cov(M)
     eps = gg_epsilon(S, orthonormal_contrasts(k))
-    test = wald_f(fit, range(1, k), df_den,
-                  epsilon=eps if math.isfinite(eps) else None)
-
     L = np.array([np.concatenate([[1.0], effect_row(t, k)])
                   for t in range(k)])
-    emm, emm_cov = estimate(fit, L)
     names = names or [f"Treatment {i}" for i in range(k)]
-    tcrit = float(stats.t.ppf(0.5 + ci_level / 2, df_den))
-    means = [{"name": names[t], "mean": float(emm[t]),
-              "se": math.sqrt(emm_cov[t, t]),
-              "ci": [float(emm[t] - tcrit * math.sqrt(emm_cov[t, t])),
-                     float(emm[t] + tcrit * math.sqrt(emm_cov[t, t]))],
-              "n": int((treat == t).sum())} for t in range(k)]
+    if ddf == "containment":
+        test = wald_f(fit, range(1, k), df_den,
+                      epsilon=eps if math.isfinite(eps) else None)
+        emm, emm_cov = estimate(fit, L)
+        mean_df = [float(df_den)] * k
+        cmp_df = df_den
+    else:
+        D = ddfm.Ddf(fit)
+        test = _ddf_test(D, ddf, np.eye(X.shape[1])[1:])
+        emm, emm_cov = L @ D.beta, L @ D.cov(ddf) @ L.T
+        mean_df = [D.contrast(ddf, L[t])[1] for t in range(k)]
+
+        def cmp_df(c):
+            return D.contrast(ddf, c @ L)[1]
+    means = []
+    for t in range(k):
+        se = math.sqrt(emm_cov[t, t])
+        tc = float(stats.t.ppf(0.5 + ci_level / 2, mean_df[t]))
+        means.append({"name": names[t], "mean": float(emm[t]), "se": se,
+                      "ci": [float(emm[t] - tc * se), float(emm[t] + tc * se)],
+                      "df": float(mean_df[t]),
+                      "n": int((treat == t).sum())})
 
     out = {
         "analysis": "mixed_rm_one_way",
@@ -807,18 +855,24 @@ def mixed_rm_one_way(datasets, names=None, *, comparisons=None,
         "estimated_means": means,
         "n_treatments": k, "n_subjects": n_subjects,
         "n_missing": n_missing, "n_values": int(y.size),
-        "df_method": "containment (residual df N - rank[X Z])",
+        "ddf": ddf,
+        "df_method": ("containment (residual df N - rank[X Z])"
+                      if ddf == "containment" else ddfm.LABELS[ddf]),
         "names": names,
     }
+    if ddf != "containment":
+        out["sphericity_note"] = _NO_GG_NOTE
     if comparisons:
         if comparisons not in _METHODS:
             raise ValueError(f"unknown multiple-comparisons method: "
                              f"{comparisons}")
         comps = compare_estimates(
-            emm, emm_cov, df_den, comparisons, names=names,
+            emm, emm_cov, cmp_df, comparisons, names=names,
             control_index=control_index, ci_level=ci_level)
         out["multiple_comparisons"] = {
-            "method": comparisons, "df": float(df_den),
+            "method": comparisons,
+            "df": float(df_den) if ddf == "containment" else None,
+            "ddf": ddf,
             "comparisons": comps,
             "family": comparisons_family(comparisons, k, comps, names,
                                          control_index)}
@@ -860,7 +914,8 @@ def mixed_rm_two_way(cells, *, design: str = "mixed", row_names=None,
                      col_names=None, comparisons=None,
                      direction: str = "columns_within_rows",
                      control_index: int = 0, ci_level: float = 0.95,
-                     negative_variance: str = "allow") -> dict:
+                     negative_variance: str = "allow",
+                     ddf: str = "containment") -> dict:
     """Two-way repeated measures fitted as a mixed model (REML), allowing
     missing values. cells[row][col] = subject values (subcolumn index =
     subject), None for missing.
@@ -872,7 +927,14 @@ def mixed_rm_two_way(cells, *, design: str = "mixed", row_names=None,
     subject x row and subject x column effects (Prism FAQ 2104: RANDOM
     Int A B / SUBJECT=S); each factor tested against its subject x factor
     df, the interaction against the residual df.
+
+    ddf: "containment" (above), "kenward_roger" or "satterthwaite"
+    (opendose.ddfm: every F test and comparison gets its own df). With
+    containment, comparisons between groups at each row of the 'mixed'
+    design use df_subjects + df_residual, the within-cells df of GraphPad
+    FAQ 1106 (the SE is the within-cells mean square's).
     """
+    ddf = ddfm.method_of(ddf)
     if design not in ("mixed", "both"):
         raise ValueError("design must be 'mixed' or 'both'")
     y, ri, ci, si, a, b, keys = _two_way_long(cells, design)
@@ -940,7 +1002,11 @@ def mixed_rm_two_way(cells, *, design: str = "mixed", row_names=None,
     eps = {key: (val if val is not None and math.isfinite(val) else None)
            for key, val in eps.items()}
 
+    D = ddfm.Ddf(fit) if ddf != "containment" else None
+
     def src(cols, df_den, key):
+        if D is not None:
+            return _ddf_test(D, ddf, np.eye(X.shape[1])[list(cols)])
         return wald_f(fit, cols, df_den, epsilon=eps.get(key))
 
     row_names = row_names or [f"Row {i + 1}" for i in range(a)]
@@ -952,7 +1018,7 @@ def mixed_rm_two_way(cells, *, design: str = "mixed", row_names=None,
         return np.concatenate([[1.0], ar, br, np.outer(ar, br).ravel()])
 
     Lcell = np.array([cell_L(i, j) for i in range(a) for j in range(b)])
-    cell_est, cell_cov = estimate(fit, Lcell)
+    cell_est = Lcell @ fit["beta"]
     Lrow = np.array([Lcell[i * b:(i + 1) * b].mean(axis=0) for i in range(a)])
     Lcol = np.array([Lcell[j::b].mean(axis=0) for j in range(b)])
 
@@ -982,8 +1048,12 @@ def mixed_rm_two_way(cells, *, design: str = "mixed", row_names=None,
                              for v in cell if v is None)),
         "rows": a, "cols": b,
         "row_names": row_names, "col_names": col_names,
-        "df_method": "containment",
+        "ddf": ddf,
+        "df_method": ("containment" if ddf == "containment"
+                      else ddfm.LABELS[ddf]),
     }
+    if D is not None:
+        out["sphericity_note"] = _NO_GG_NOTE
 
     if comparisons:
         if comparisons not in _METHODS:
@@ -991,9 +1061,13 @@ def mixed_rm_two_way(cells, *, design: str = "mixed", row_names=None,
                              f"{comparisons}")
         families = []
         if direction == "columns_within_rows":
+            # groups at one row of the 'mixed' design differ between
+            # subjects and within them: the within-cells df (FAQ 1106)
+            df_wc = (contain("Subject") + df_res if design == "mixed"
+                     else df_int)
             for i in range(a):
                 idx = [i * b + j for j in range(b)]
-                families.append((row_names[i], Lcell[idx], col_names, df_int))
+                families.append((row_names[i], Lcell[idx], col_names, df_wc))
         elif direction == "rows_within_columns":
             for j in range(b):
                 idx = [i * b + j for i in range(a)]
@@ -1012,7 +1086,13 @@ def mixed_rm_two_way(cells, *, design: str = "mixed", row_names=None,
         comps = []
         fam_blocks = []
         for fam, Lf, nm, dfx in families:
-            est, cov = estimate(fit, Lf)
+            if D is None:
+                est, cov = estimate(fit, Lf)
+            else:
+                est, cov = Lf @ D.beta, Lf @ D.cov(ddf) @ Lf.T
+
+                def dfx(c, Lf=Lf):
+                    return D.contrast(ddf, c @ Lf)[1]
             part = compare_estimates(
                 est, cov, dfx, comparisons, names=nm,
                 control_index=control_index, ci_level=ci_level,
@@ -1046,7 +1126,7 @@ def mixed_rm_two_way(cells, *, design: str = "mixed", row_names=None,
             family = {**comparison_family(total, method_id, scope),
                       "n_families": len(families), "per_family": False}
         out["multiple_comparisons"] = {
-            "method": comparisons, "direction": direction,
+            "method": comparisons, "direction": direction, "ddf": ddf,
             "n_comparisons": len(comps), "comparisons": comps,
             "family": family, "families": fam_blocks}
     return out

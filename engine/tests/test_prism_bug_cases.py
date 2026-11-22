@@ -112,13 +112,7 @@ class TestCase18RMTwoWayPostTests:
             assert x["se"] == pytest.approx(se_expected, rel=1e-7)
             assert x["family_size"] == y["family_size"]
 
-    @pytest.mark.xfail(strict=True, reason=(
-        "#18: mixedmodel.mixed_rm_two_way tests the between-group simple "
-        "effects at each row (direction columns_within_rows) on df_int = "
-        "the residual df (containment, here 27) instead of the within-cells "
-        "df_subj + df_res (here 36) that GraphPad FAQ 1106 gives and the "
-        "ordinary two-way ANOVA uses, so the P values and CIs differ (e.g. "
-        "Sidak G0 vs G2 at row 1: 0.3973 vs 0.3794) although the SE is right"))
+    # fixed: the between-group simple effects used the residual df (27)
     @pytest.mark.parametrize("method", METHODS)
     def test_between_group_df_and_p_equal_ordinary_two_way(self, method):
         rm, ordinary = self._pair(method)
