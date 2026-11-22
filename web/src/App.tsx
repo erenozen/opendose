@@ -15,6 +15,8 @@ import { useCalculatedSync } from "./app/useCalculatedSync";
 import { useBackgroundRefresh } from "./app/useBackgroundRefresh";
 import { usePrintSetup } from "./app/usePrint";
 import { useShortcuts } from "./app/useShortcuts";
+import { DRAWER_QUERY, useMedia } from "./app/breakpoints";
+import ErrorBoundary from "./components/ErrorBoundary";
 import FamilyWorkspace from "./components/FamilyWorkspace";
 import FloatingNotes from "./components/FloatingNotes";
 import Header from "./components/Header";
@@ -43,7 +45,9 @@ export default function App() {
       <ProjectProvider>
         <UiProvider>
           <GuideProvider>
-            <Shell />
+            <ErrorBoundary>
+              <Shell />
+            </ErrorBoundary>
           </GuideProvider>
         </UiProvider>
       </ProjectProvider>
@@ -88,6 +92,9 @@ function Shell() {
     guide.hideStart();
   };
   const openFile = (f: File) => { void files.open(f); };
+  // At 900px and below the open navigator drawer is a modal dialog:
+  // everything behind it is inert (DECISIONS 5, K4).
+  const behindDrawer = useMedia(DRAWER_QUERY) && ui.drawerOpen;
 
   const sheet = findSheet(project, selectedId);
   const root = sheet ? findSheet(project, familyRootId(project, sheet.id)) : undefined;
@@ -108,7 +115,7 @@ function Shell() {
         <div className="result-card empty-hint">
           This project has no sheets. Create a data table to begin.
           <div className="table-actions" style={{ justifyContent: "center" }}>
-            <button className="btn-primary" onClick={ui.openNewTable}>New data table</button>
+            <Button variant="primary" onClick={ui.openNewTable}>New data table</Button>
           </div>
         </div>
       </main>
@@ -117,10 +124,17 @@ function Shell() {
 
   return (
     <div className={`app${guide.startOpen ? " start-open" : ""}`}>
-      <Header onOpenFile={openFile} onNewProject={newProject} />
+      {!guide.startOpen && !guide.startPending && (
+        // The hash would replace a share link's: focus the sheet directly.
+        <a className="skip-link" href="#sheet" onClick={(e) => {
+          e.preventDefault();
+          document.getElementById("sheet")?.focus();
+        }}>Skip to the sheet</a>
+      )}
+      <Header onOpenFile={openFile} onNewProject={newProject} inert={behindDrawer} />
       {/* Conditions about the whole project, under the header (one
           Banner each, DECISIONS 6). */}
-      <div className="banner-region">
+      <div className="banner-region" inert={behindDrawer}>
         <ShareHost />
         <ReproduceStrip />
         <Banner tone="info" className="restore-banner"
@@ -173,11 +187,11 @@ function Shell() {
         </Suspense>
       ) : (
       <div className={`shell${ui.navOpen ? "" : " nav-hidden"}`}>
-        {ui.drawerOpen && (
-          <div className="nav-scrim" aria-hidden="true" onClick={() => ui.setDrawerOpen(false)} />
-        )}
+        {/* Always mounted, so it fades out with the drawer (BEF-15); a press
+            on it closes the drawer (Navigator's light dismiss). */}
+        <div className="nav-scrim" aria-hidden="true" data-open={behindDrawer || undefined} />
         <Navigator />
-        <div className="workbench">
+        <div className="workbench" id="sheet" tabIndex={-1} inert={behindDrawer}>
           {sheet && <FloatingNotes sheet={sheet} />}
           {view}
         </div>

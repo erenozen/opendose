@@ -10,6 +10,12 @@ import { dirname, join } from "node:path";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 
+// The header's File menu (DECISIONS 5): open it, pick an item.
+const fileMenu = async (p, item) => {
+  await p.locator("header").getByRole("button", { name: "File", exact: true }).click();
+  await p.getByRole("menuitem", { name: item }).click();
+};
+
 const here = dirname(fileURLToPath(import.meta.url));
 const baseUrl = process.argv[2] ?? "http://localhost:5173/";
 const withParams = (params) => {
@@ -60,19 +66,26 @@ await page.goto(EXAMPLE, { waitUntil: "domcontentloaded" });
 await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 300000 });
 await page.waitForTimeout(500);
 
-// --- Open is a real button: reachable with Tab, opens the picker on Enter
+// --- Open is a real button: File is reachable with Tab, and its Open…
+// item opens the picker from the keyboard (DECISIONS 5)
 {
-  const open = page.getByRole("button", { name: "Open", exact: true });
+  const file = page.locator("header").getByRole("button", { name: "File", exact: true });
   await page.locator("body").focus();
   let reached = false;
   for (let i = 0; i < 60 && !reached; i++) {
     await page.keyboard.press("Tab");
-    reached = await open.evaluate((el) => el === document.activeElement);
+    reached = await file.evaluate((el) => el === document.activeElement);
   }
-  expect("header Open is reachable with Tab", reached);
+  expect("header File menu is reachable with Tab", reached);
+  await page.keyboard.press("Enter");
+  const open = page.getByRole("menuitem", { name: /^Open…/ });
+  await open.waitFor();
+  for (let i = 0; i < 10 && !(await open.evaluate((el) => el === document.activeElement)); i++) {
+    await page.keyboard.press("ArrowDown");
+  }
   const chooser = page.waitForEvent("filechooser", { timeout: 5000 }).then(() => true, () => false);
   await page.keyboard.press("Enter");
-  expect("Enter on Open opens the file picker", await chooser);
+  expect("Enter on File › Open… opens the file picker", await chooser);
   const inTabOrder = await page.locator(OPEN_INPUT).evaluate((el) => el.tabIndex);
   expect("the file input itself stays out of the tab order", inTabOrder === -1, String(inTabOrder));
   const chooser2 = page.waitForEvent("filechooser", { timeout: 5000 }).then(() => true, () => false);
@@ -265,7 +278,7 @@ await ctx.close();
   watch(p, "simulate");
   await p.goto(EXAMPLE, { waitUntil: "domcontentloaded" });
   await p.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 300000 });
-  await p.getByRole("button", { name: "New data table" }).click();
+  await fileMenu(p, "New data table…");
   await p.getByRole("button", { name: "Simulate data…" }).click();
   const dlg = p.locator(".simulate-dialog");
   const seed = dlg.getByLabel("Random seed");

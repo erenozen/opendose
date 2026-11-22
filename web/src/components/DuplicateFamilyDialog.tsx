@@ -25,7 +25,7 @@ export default function DuplicateFamilyDialog({ tableName, childCount, onCancel,
       </p>
       <label className="field">
         <span>Name of the new data table</span>
-        <input autoFocus value={name} onChange={(e) => setName(e.target.value)}
+        <input value={name} onChange={(e) => setName(e.target.value)}
           onFocus={(e) => e.currentTarget.select()} />
       </label>
       <fieldset className="field-radios">

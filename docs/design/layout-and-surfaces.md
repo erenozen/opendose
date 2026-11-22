@@ -7,18 +7,21 @@ DECISIONS section 2 ("Instrument") and ruling 6.
 
 ## Panes and seams
 
-The target: the workbench is a set of tiled panes (table, controls, plot,
-results, welcome) on `--surface`, divided by the splitters. The splitters
-are the seams: a 1px line with a ±4px hit area from `::before`, an `--axis`
-indicator on hover, drag or focus. Panes do not float: no shadow, no
-gap of `--page` showing between them, no resize corner (the splitters
-already resize).
+The workbench (`main.workspace`, FamilyWorkspace.tsx) is a set of tiled
+panes (import, table, controls, plot, results, methods) on `--surface`,
+divided by the splitters. The splitters are the seams: a 1px
+`--line-solid` line with a ±4px hit area from `::before`, a 3px `--axis`
+indicator on hover, drag or focus. Panes do not float: no shadow, no gap
+of `--page` between them, no resize corner. A pane pads its content
+`--space-12` `--space-16`; the blocks inside it (`.controls`,
+`.result-card`, `.data-table`, `.plot-card`) lose their border there, and
+two stacked blocks share a `--line` divider. Outside the workbench (info
+sheets, empty states) a block keeps the 1px `--line` tile of cards.css.
 
-Today in the code: panes are still cards in
-[cards.css](../../web/src/styles/cards.css) with a 1px `--line` border,
-`resize: both` corners, and 20px splitter gutters in layout.css. Phase 4
-moves them to seams. Until then, a new pane copies the card rule in
-cards.css exactly; never invent a third treatment.
+The header is one 44px bar (52px on touch) on a 1px seam; the navigator
+is a ruled sidebar pinned under it (`--header-h`, measured in Header.tsx,
+also sets `scroll-padding-top`). Splitter and note drags write through
+refs and CSS variables once per frame, never React state per move.
 
 Inside a pane: section labels are `--text-label` (12px, 600, `--muted`)
 in sentence case, never uppercase; padding is `--space-16`; groups sit
@@ -73,11 +76,13 @@ pill button (DECISIONS section 1 removed them).
 | --- | --- |
 | ≤ 1100px | the workbench is one column; the column splitter hides |
 | ≤ 900px | the navigator leaves the grid |
-| ≤ 760px | phone layout: panes stack in the order import, table, plot, controls, results, methods; corner resize is off |
+| ≤ 760px | phone layout: panes stack in the order import, table, plot, controls, results, methods, each closed by a seam; the title moves into the drawer |
 | ≤ 620px of banner | Banner actions wrap under the text (container query) |
 
 Use a container query when a component's own width decides its layout
-(Banner); use the breakpoints above only for the shell. Wide tables
+(Banner); use the breakpoints above only for the shell. Scripts read them
+from `app/breakpoints.ts` (`BREAKPOINTS`, `DRAWER_QUERY`, `useMedia`);
+never another literal 900 in a component. Wide tables
 scroll inside their pane; the page never scrolls sideways at 390px.
 
 ## Phones and touch
@@ -107,7 +112,8 @@ scroll inside their pane; the page never scrolls sideways at 390px.
 right: calc(var(--space-16) + var(--safe-right));
 bottom: calc(var(--space-16) + var(--safe-bottom));
 
-/* Incorrect: styles/controls.css, the phone rule for raw buttons. 40px is
-   under the 44px floor. */
+/* Incorrect: a width rule for touch sizes, and 40px is under the floor.
+   A tablet wider than 760px is as coarse as a phone (styles/controls.css
+   now gates on pointer: coarse at 44px). */
 @media (max-width: 760px) { button, select { min-height: 40px; } }
 ```

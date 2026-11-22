@@ -7,6 +7,8 @@ import {
   useDismiss, usePresence, useTopLayer,
 } from "./useDismiss.ts";
 import { boxOf, useAnchoredPosition, type AnchorOptions } from "./Popover.anchor.ts";
+import { buttonClass } from "./buttonClass";
+import type { TriggerProps } from "./Menu";
 import "./Popover.css";
 
 /*
@@ -30,7 +32,7 @@ import "./Popover.css";
 interface Ctx {
   open: boolean;
   setOpen: (open: boolean) => void;
-  trigger: RefObject<HTMLButtonElement | null>;
+  trigger: RefObject<HTMLElement | null>;
   contentId: string;
 }
 const PopoverContext = createContext<Ctx | null>(null);
@@ -40,33 +42,40 @@ const usePopover = () => {
   return c;
 };
 
-function Popover({ open: openProp, defaultOpen = false, onOpenChange, children }: {
+function Popover({ open: openProp, defaultOpen = false, onOpenChange, anchor, children }: {
   open?: boolean;
   defaultOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
+  /** A control outside the popover that it is placed against and gives
+   *  focus back to, when there is no Popover.Trigger: the menu trigger
+   *  whose item opened it (View › Preferences…). */
+  anchor?: RefObject<HTMLElement | null>;
   children: ReactNode;
 }) {
   const [inner, setInner] = useState(defaultOpen);
   const controlled = openProp !== undefined;
   const open = controlled ? openProp : inner;
-  const trigger = useRef<HTMLButtonElement>(null);
+  const own = useRef<HTMLElement>(null);
+  const trigger = anchor ?? own;
   const contentId = useId();
   const setOpen = useCallback((o: boolean) => {
     if (!controlled) setInner(o);
     onOpenChange?.(o);
   }, [controlled, onOpenChange]);
   const value = useMemo(() => ({ open, setOpen, trigger, contentId }),
-    [open, setOpen, contentId]);
+    [open, setOpen, trigger, contentId]);
   return <PopoverContext.Provider value={value}>{children}</PopoverContext.Provider>;
 }
 
-/** The button that opens and closes the popover (a second click closes it). */
-function Trigger({ ref, onClick, ...props }: ComponentProps<"button">) {
+/** The button that opens and closes the popover (a second click closes
+ *  it). `variant` and `size` make it a Button, as on Menu.Trigger. */
+function Trigger({ ref, onClick, variant, size, className, ...props }: TriggerProps) {
   const { open, setOpen, trigger, contentId } = usePopover();
-  const setRef = useMergedRefs(trigger, ref);
+  const setRef = useMergedRefs(trigger as RefObject<HTMLButtonElement | null>, ref);
   return (
     <button type="button" aria-haspopup="dialog" aria-expanded={open}
       aria-controls={open ? contentId : undefined} {...props}
+      className={variant ? buttonClass(variant, size, className) : className}
       ref={setRef}
       onClick={(e) => { onClick?.(e); if (!e.defaultPrevented) setOpen(!open); }} />
   );

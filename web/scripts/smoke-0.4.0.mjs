@@ -13,6 +13,12 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { strToU8, zipSync } from "fflate";
 
+// The header's File menu (DECISIONS 5): open it, pick an item.
+const fileMenu = async (p, item) => {
+  await p.locator("header").getByRole("button", { name: "File", exact: true }).click();
+  await p.getByRole("menuitem", { name: item }).click();
+};
+
 const AXE = createRequire(import.meta.url).resolve("axe-core/axe.min.js");
 const baseUrl = process.argv[2] ?? "http://localhost:5214/";
 const OUT = process.argv[3] ?? mkdtempSync(join(tmpdir(), "opendose-smoke-"));
@@ -107,7 +113,7 @@ async function shoot(name, { target = ".pane-results", axe = "main, dialog[open]
 // ------------------------------------------------------------ helpers
 
 async function newTable(type, name, fields = {}, example = false) {
-  await page.getByRole("button", { name: "New data table" }).first().click();
+  await fileMenu(page, "New data table…");
   const dlg = page.locator(".new-table-dialog");
   await dlg.locator(`input[name="table-type"][value="${type}"]`).check();
   if (name) await dlg.getByLabel("Table name").fill(name);
@@ -148,7 +154,7 @@ async function column(name, csv, analysis = "ttest") {
 }
 const wizard = () => page.locator("dialog.assay-wizard");
 async function startAssay(label, { sample = true } = {}) {
-  await page.getByRole("button", { name: "New data table" }).first().click();
+  await fileMenu(page, "New data table…");
   const dlg = page.locator(".new-table-dialog");
   await dlg.getByRole("radio", { name: "Start from an assay" }).check();
   await dlg.getByRole("radio", { name: new RegExp(`^${label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`) }).check();
@@ -320,7 +326,7 @@ const scenes = {
 
   async interaction() {
     await fresh();
-    await page.getByRole("button", { name: "New data table" }).first().click();
+    await fileMenu(page, "New data table…");
     const dlg = page.locator(".new-table-dialog");
     await dlg.locator('input[name="table-type"][value="grouped"]').check();
     await dlg.getByLabel("Table name").fill("Drug by genotype");
@@ -462,13 +468,13 @@ const scenes = {
 
   async save() {
     await fresh();
-    await page.getByRole("button", { name: "More ways to save and share" }).click();
+    await page.locator("header").getByRole("button", { name: "File", exact: true }).click();
     await shoot("save-menu", { target: "viewport", axe: "[role=menu]" });
     await page.getByRole("menuitem", { name: "Export graphs to PowerPoint (.pptx)…" }).click();
     await appears(page.getByRole("dialog", { name: "Export graphs to PowerPoint" }));
     await shoot("pptx", { target: "viewport", axe: "dialog[open]" });
     await page.keyboard.press("Escape");
-    await page.getByRole("button", { name: "More ways to save and share" }).click();
+    await page.locator("header").getByRole("button", { name: "File", exact: true }).click();
     await page.getByRole("menuitem", { name: "Apply to new data…" }).click();
     const rp = page.getByRole("dialog", { name: "Apply to new data" });
     await rp.getByLabel("New data file").setInputFiles({ name: "Contingency example.csv", mimeType: "text/csv",
@@ -497,7 +503,7 @@ const scenes = {
     let saved = null;
     for (let i = 0; i < 20 && !saved; i++) {
       const [dl] = await Promise.all([page.waitForEvent("download", { timeout: 30000 }),
-        page.getByRole("button", { name: "Save project" }).click()]);
+        fileMenu(page, "Save project")]);
       const f = join(OUT, "reproduce.json");
       await dl.saveAs(f);
       const j = JSON.parse(readFileSync(f, "utf8"));

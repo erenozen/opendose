@@ -11,10 +11,9 @@
 // is happening: "Simulating…"); both labels share one grid cell, so the
 // button keeps the width of the wider and nothing beside it moves.
 import { useRef, type ButtonHTMLAttributes, type ReactNode, type Ref } from "react";
-import "./Button.css";
+import { buttonClass, type ButtonSize, type ButtonVariant } from "./buttonClass";
 
-export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
-export type ButtonSize = "sm" | "md";
+export type { ButtonSize, ButtonVariant } from "./buttonClass";
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
@@ -24,12 +23,6 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   /** What the button says while busy ("Simulating…"). */
   busyLabel?: string;
   ref?: Ref<HTMLButtonElement>;
-}
-
-function buttonClass(variant: ButtonVariant = "secondary", size: ButtonSize = "md",
-  extra?: string): string {
-  return ["btn", `btn--${variant}`, size === "sm" ? "btn--sm" : "", extra ?? ""]
-    .filter(Boolean).join(" ");
 }
 
 export function Button({
