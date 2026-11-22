@@ -4,9 +4,10 @@
 // last session before it shows the workbench.
 import "./guide.css";
 import {
-  lazy, Suspense, useCallback, useEffect, useMemo, useState, type ReactNode,
+  lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode,
 } from "react";
 import { requestShell } from "../app/commandRegistry";
+import { usePresence } from "../components/ui/useDismiss";
 import {
   dropStartScreenPref, exampleRequested, shareLinkRequested, GuideCtx, setTourDone, type GuideApi,
 } from "./context";
@@ -21,6 +22,12 @@ export function GuideProvider({ children }: { children: ReactNode }) {
   const [wizard, setWizard] = useState(false);
   const [planner, setPlanner] = useState(false);
   const [help, setHelp] = useState<{ topic: string | null } | null>(null);
+  // The panel stays mounted for its exit (a pointer close); a keyboard
+  // close removes it at once. While it leaves it shows the last topic.
+  const helpEl = useRef<HTMLElement>(null);
+  const helpPresence = usePresence(!!help, helpEl);
+  const [shownHelp, setShownHelp] = useState(help);
+  if (help && help !== shownHelp) setShownHelp(help);
   const [tour, setTour] = useState(false);
   // `?example=1` and share links open their project directly. Otherwise
   // the shell checks the autosave first (resolveStart): the last session
@@ -67,8 +74,9 @@ export function GuideProvider({ children }: { children: ReactNode }) {
       <Suspense fallback={null}>
         {wizard && <WhichTest onClose={() => setWizard(false)} />}
         {planner && <PlanExperiment onClose={() => setPlanner(false)} />}
-        {help && (
-          <HelpPanel initial={help.topic} onClose={closeHelp} onWizard={openWizard}
+        {helpPresence.mounted && shownHelp && (
+          <HelpPanel ref={helpEl} open={!!help} instant={helpPresence.instant}
+            initial={shownHelp.topic} onClose={closeHelp} onWizard={openWizard}
             onTour={startTour} onExample={openExample} />
         )}
         {tour && <Tour onDone={() => { setTour(false); setTourDone(); }} />}
