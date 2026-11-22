@@ -436,12 +436,14 @@ expect("AUC example: one area per mouse, chow 20480 (SD 1118), high-fat diet 331
 expect("AUC example: areas compared by the unpaired t test, t(6) = -10.15",
   (await textOf(".pane-results")).includes("t(6) = -10.15"));
 await page.getByRole("button", { name: "Analyze", exact: true }).click();
-expect("the Analyze menu has one Assays divider",
-  await page.locator('.analyze-menu [role=separator][aria-label="Assays"]').count() === 1);
+const assayGroup = page.getByRole("menu", { name: "Add an analysis" })
+  .getByRole("group", { name: "Assays" });
+expect("the Analyze menu has one Assays group",
+  await assayGroup.count() === 1);
 expect("both halves' assays are listed under it on an XY table",
-  await page.getByRole("menuitem", { name: /^Assay: Standard curve/ }).count() === 1
-  && await page.getByRole("menuitem", { name: /^Assay: Growth curves/ }).count() === 1
-  && await page.getByRole("menuitem", { name: /^Assay: Area under the curve/ }).count() === 1);
+  await assayGroup.getByRole("menuitem", { name: /^Assay: Standard curve/ }).count() === 1
+  && await assayGroup.getByRole("menuitem", { name: /^Assay: Growth curves/ }).count() === 1
+  && await assayGroup.getByRole("menuitem", { name: /^Assay: Area under the curve/ }).count() === 1);
 await page.keyboard.press("Escape");
 
 // --- time course (need time-course-models): the GTT example with six mice

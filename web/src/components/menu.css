@@ -1,34 +1,19 @@
-/* Sheet / Analyze menus. Menus opt out of the press scale with
-   data-still on the container (base.css). */
+/* Menus (ui/Menu): the surface and the item look. Placement, motion and
+   the top layer come from ui/Popover.css. Menus opt out of the press
+   scale with data-still on the container (base.css). */
 .sheet-menu {
-  position: fixed; z-index: var(--z-popover);
   min-width: 210px; max-width: min(360px, calc(100vw - 16px));
-  /* long sheet menus scroll */
+  /* long menus scroll; the placement caps max-height to the room left */
   max-height: calc(100dvh - 16px); overflow-y: auto; overscroll-behavior: contain;
   padding: 5px;
   background: var(--float);
   border-radius: var(--radius-menu);
   box-shadow: var(--elev-float);
   display: flex; flex-direction: column;
-  transform-origin: top left;
-  transition: opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
-  opacity: 1; transform: scale(1);
-  @starting-style { opacity: 0; transform: scale(0.97); }
-}
-.analyze-wrap { position: relative; display: inline-flex; }
-.analyze-menu {
-  position: absolute; top: calc(100% + 6px); left: 0;
-  /* long lists (assay modules at the end) scroll instead of leaving the screen */
-  max-height: calc(100dvh - 72px); overflow-y: auto; overscroll-behavior: contain;
-}
-/* Narrow screens: Analyze sits at the right end of its row, so its menu
-   opens leftwards and stays on screen. */
-@media (max-width: 760px) {
-  .analyze-menu { left: auto; right: 0; max-width: calc(100vw - 20px); }
 }
 .menu-item {
   display: flex; align-items: center; justify-content: space-between; gap: var(--space-16);
-  width: 100%; text-align: left; border-radius: var(--radius-control); padding: 5px 9px;
+  width: 100%; min-height: 28px; text-align: left; border-radius: var(--radius-control); padding: 5px 9px;
   background: transparent; font-size: var(--text-body-s); font-weight: var(--weight-regular);
   /* never squeezed by a scrolling menu (min-height on phones would let it) */
   flex-shrink: 0;
@@ -59,7 +44,8 @@
 }
 .swatch:focus-visible { outline-offset: 2px; border-radius: 50%; }
 
-@media (max-width: 760px) {
-  .menu-item { min-height: 40px; }
+/* Touch: 44px rows (DECISIONS 5) and larger swatches. */
+@media (pointer: coarse) {
+  .menu-item { min-height: 44px; }
   .swatch { min-height: 0; width: 26px; height: 26px; }
 }

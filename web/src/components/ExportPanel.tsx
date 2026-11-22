@@ -1,6 +1,5 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import type { CSSProperties, ReactNode } from "react";
-import { createPortal } from "react-dom";
+import { useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { useProject } from "../app/context";
 import { useBatchExport } from "../export/BatchExport";
 import { canCopySvg, copyGraphImage } from "../export/clipboard";
@@ -17,6 +16,8 @@ import { useExportSettings } from "../export/useExportSettings";
 import { DENSE_POINTS, hasWebglTraces } from "../graph/dense";
 import type { SchemeId } from "../lib/palette";
 import type { ExportFormat, ExportPrefs } from "../project/types";
+import Popover from "./ui/Popover";
+import { belowStickyHeader } from "./ui/Popover.anchor";
 
 /**
  * Export strip under a graph: format, size, resolution, Download and
@@ -49,9 +50,6 @@ export default function ExportPanel({
   const [onePdf, setOnePdf] = useState(true);
   const [minPt, setMinPt] = useState<number | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
-  const optsRef = useRef<HTMLSpanElement>(null);
-  const optsBtn = useRef<HTMLButtonElement>(null);
-  const popRef = useRef<HTMLDivElement>(null);
   const batch = useBatchExport();
 
   // Effective settings: what is typed now, falling back to the stored values.
@@ -84,53 +82,6 @@ export default function ExportPanel({
     const gd = target();
     setMinPt(gd ? graphSmallestPt(gd, { ...s, width: ew, height: eh, scaleText }) : null);
   }, [ew, eh, scaleText, open, busy]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Options popover: drawn in a portal with fixed positioning (the graph
-  // card clips its overflow), opening down or up, whichever has room.
-  const [pos, setPos] = useState<CSSProperties>({});
-  useLayoutEffect(() => {
-    if (!open) return;
-    const place = () => {
-      const r = optsBtn.current?.getBoundingClientRect();
-      if (!r) return;
-      const top = 72; // keep clear of the sticky header
-      const below = window.innerHeight - r.bottom - 16;
-      const above = r.top - top - 8;
-      const right = Math.max(8, window.innerWidth - r.right);
-      setPos(below >= 360 || below >= above
-        ? { top: r.bottom + 8, right, maxHeight: below }
-        : { bottom: window.innerHeight - r.top + 8, right, maxHeight: above });
-    };
-    place();
-    requestAnimationFrame(() => popRef.current
-      ?.querySelector<HTMLElement>("input:not(:disabled), button")?.focus());
-    window.addEventListener("resize", place);
-    window.addEventListener("scroll", place, true);
-    return () => {
-      window.removeEventListener("resize", place);
-      window.removeEventListener("scroll", place, true);
-    };
-  }, [open]);
-
-  // Escape / outside click close it.
-  useEffect(() => {
-    if (!open) return;
-    const onDown = (e: PointerEvent) => {
-      const t = e.target as Node;
-      if (!optsRef.current?.contains(t) && !popRef.current?.contains(t)) setOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
-      setOpen(false);
-      optsBtn.current?.focus();
-    };
-    document.addEventListener("pointerdown", onDown);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("pointerdown", onDown);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [open]);
 
   const download = async () => {
     const gd = target();
@@ -244,14 +195,13 @@ export default function ExportPanel({
         aria-label="Export to PowerPoint (.pptx)…" title={`One slide per graph. ${PPTX_EDIT_HINT}`}>
         PowerPoint
       </button>
-      <span className="export-opts" ref={optsRef}>
-        <button type="button" ref={optsBtn} className="settings-btn" aria-haspopup="dialog"
-          aria-expanded={open} onClick={() => setOpen((v) => !v)}>
-          Options
-        </button>
-        {open && createPortal(
-          <div className="export-pop" role="dialog" aria-label="Export options" ref={popRef}
-            style={pos}>
+      {/* Options: a popover in the top layer (the graph card clips its
+          overflow), below the button or above it, whichever has room. */}
+      <span className="export-opts">
+        <Popover open={open} onOpenChange={setOpen}>
+          <Popover.Trigger className="settings-btn">Options</Popover.Trigger>
+          <Popover.Content className="export-pop" aria-label="Export options"
+            side="bottom" align="end" collisionPadding={belowStickyHeader}>
             <fieldset className="export-fieldset">
               <legend>Size unit</legend>
               {(["px", "mm", "in"] as const).map((u) => (
@@ -344,7 +294,8 @@ export default function ExportPanel({
                 equivalent; use SVG when that matters.
               </p>
             </details>
-          </div>, document.body)}
+          </Popover.Content>
+        </Popover>
       </span>
       {!err && (
         <span className="export-hint">

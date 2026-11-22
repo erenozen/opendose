@@ -1,0 +1,13 @@
+/* Tooltip (ui/Tooltip): a small label on the float surface, one depth
+   cue (the elevation stack). Faster than other layers: 120 ms. */
+.ui-tooltip {
+  display: flex; align-items: baseline; gap: var(--space-6);
+  max-width: 260px; padding: var(--space-4) var(--space-8);
+  border-radius: var(--radius-control);
+  background: var(--float); color: var(--ink); box-shadow: var(--elev-float);
+  font-size: var(--text-caption); font-weight: var(--weight-medium); line-height: 1.4;
+  white-space: normal; text-align: left;
+}
+.ui-tooltip:not(:popover-open) { display: none; }
+.ui-tooltip kbd { font: inherit; color: var(--muted); font-variant-numeric: tabular-nums; }
+.ui-layer.ui-tooltip[popover] { transition-duration: var(--dur-fast); }

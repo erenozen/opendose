@@ -2,10 +2,9 @@
    Uses the design tokens from styles/tokens.css. */
 
 .export-opts { position: relative; display: inline-flex; }
-/* Positioned (fixed) by ExportPanel next to its Options button. A floating
+/* The Options popover (ui/Popover places and animates it). A floating
    layer like the Settings popover: one depth cue, the elevation stack. */
 .export-pop {
-  position: fixed; z-index: var(--z-popover);
   width: min(360px, calc(100vw - 16px));
   overflow-y: auto; overscroll-behavior: contain;
   display: flex; flex-direction: column; gap: var(--space-12);
@@ -14,9 +13,6 @@
   box-shadow: var(--elev-float);
   padding: 14px var(--space-16);
   font-size: var(--text-body-s); color: var(--ink-2); text-align: left;
-  transition: opacity var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out);
-  opacity: 1; transform: scale(1); transform-origin: top right;
-  @starting-style { opacity: 0; transform: scale(0.97); }
 }
 .export-pop button {
   padding: var(--space-4) 9px; border: 1px solid var(--line-strong); border-radius: var(--radius-control);

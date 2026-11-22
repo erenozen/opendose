@@ -29,10 +29,11 @@ export default function GoToSheet({ project, recent, onGo, onClose }: {
     document.getElementById(optId(i))?.scrollIntoView({ block: "nearest" }));
 
   return (
-    <Modal title="Go to sheet" className="modal-narrow goto-dialog" onClose={onClose}
+    <Modal title="Go to sheet" className="modal-narrow goto-dialog" onClose={onClose} instant
       onSubmit={() => { const s = list[cur]; if (s) onGo(s.id); }}
       actions={<button type="button" onClick={onClose}>Close</button>}>
-      <input className="goto-input" autoFocus value={query}
+      {/* The dialog's first control: focused on open, except on touch screens. */}
+      <input className="goto-input" value={query}
         role="combobox" aria-expanded="true" aria-controls="goto-list"
         aria-activedescendant={list.length ? optId(cur) : undefined}
         aria-autocomplete="list" aria-label="Sheet name"

@@ -1,0 +1,28 @@
+/* Anchored layers in the top layer: Popover, Menu, Tooltip (components/ui).
+   The positioning hook writes left/top and --ui-origin; these rules undo
+   the UA's centred [popover] box and own the motion. Surface (background,
+   padding, radius, elevation) comes from the caller's class. */
+
+.ui-layer[popover] {
+  position: fixed; inset: auto; margin: 0; border: 0;
+  transform-origin: var(--ui-origin, top left);
+  /* entrance 200 ms, exit 150 ms, one curve (never ease-in) */
+  transition: opacity var(--dur-enter) var(--ease-out), transform var(--dur-enter) var(--ease-out);
+}
+/* Zero specificity: the caller's class sets these when it wants to. */
+:where(.ui-layer[popover]) {
+  color: inherit; background: var(--float); padding: 0; overflow: auto;
+}
+:where(.ui-layer[popover]):focus { outline: none; }
+
+/* Scale from 0.97 and fade in; a keyboard-opened layer (data-instant)
+   appears in the frame the key went down. Reduced motion keeps the fade
+   (base.css drops the scale). */
+@starting-style {
+  .ui-layer[popover]:popover-open:not([data-instant]) { opacity: 0; transform: scale(0.97); }
+}
+.ui-layer[popover][data-state="closed"] {
+  opacity: 0; transform: scale(0.97);
+  pointer-events: none;
+  transition-duration: var(--dur-exit);
+}
