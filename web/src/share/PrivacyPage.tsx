@@ -4,6 +4,7 @@
 // web/public/_headers, web/scripts/e2e-privacy.mjs, src/project/forget.ts
 // and docs/self-hosting.md.
 import Modal from "../components/Modal";
+import { Button } from "../components/ui";
 
 const REPO = "https://github.com/erenozen/opendose";
 const file = (path: string) => `${REPO}/blob/main/${path}`;
@@ -15,7 +16,7 @@ function Source({ path, children }: { path: string; children: string }) {
 export default function PrivacyPage({ onClose }: { onClose: () => void }) {
   return (
     <Modal title="Your data and privacy" className="privacy-page" onClose={onClose}
-      actions={<button type="button" className="btn-primary" onClick={onClose}>Close</button>}>
+      actions={<Button onClick={onClose}>Close</Button>}>
       <section aria-labelledby="pp-short">
         <h3 id="pp-short">In short</h3>
         <p>
