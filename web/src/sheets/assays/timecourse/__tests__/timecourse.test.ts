@@ -106,3 +106,21 @@ test("graph series, notes and methods text", () => {
   assert.equal(col.type, "column");
   assert.deepEqual(col.datasets[0].rows, [["1.5"], ["2"]]);
 });
+
+test("the df setting: saved sheets between-within, a choice is kept and sent", async () => {
+  const m = await import("../model.ts");
+  const t = timecourseSample();
+  const saved = m.normalizeTcMixed({}, t);
+  assert.equal("mixedDdf" in saved, false);
+  const kr = m.normalizeTcMixed({ mixedDdf: "kenward_roger" }, t);
+  assert.equal(kr.mixedDdf, "kenward_roger");
+  assert.equal(m.normalizeTcMixed({ mixedDdf: "junk" }, t).mixedDdf, "between_within");
+  const p = m.prepare(t, kr);
+  assert.equal((m.mixedPayload(p, kr).options as { ddf: string }).ddf, "kenward_roger");
+  assert.equal((m.mixedPayload(p, saved).options as { ddf: string }).ddf, "between_within");
+  assert.match(m.dfNote({ ddf: "kenward_roger" }), /Kenward-Roger method.*own df.*small samples/);
+  assert.match(m.dfNote({ ddf: "between_within", df: { between_subjects: 10, within_subjects: 50 },
+    groups: ["a", "b"], n_subjects: 12 }), /between-within method/);
+  const text = m.tcMethodsText({ ddf: "satterthwaite", covariance: { kind: "ar1" } }, kr, "glucose");
+  assert.match(text, /denominator degrees of freedom by the Satterthwaite method\./);
+});

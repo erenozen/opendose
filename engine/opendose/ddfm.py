@@ -53,8 +53,108 @@ LABELS = {
 }
 
 
-class Ddf:
-    """Kenward-Roger / Satterthwaite quantities of one fitted model."""
+class _DdfBase:
+    """Kenward-Roger / Satterthwaite from Phi, beta, P_i, Q_ij, R_ij (None
+    when V is linear in theta), the expected information W and the
+    observed covariance A of theta; subclasses compute them."""
+
+    R = None
+    _phi_a = None
+
+    # ------------------------------------------------------- Kenward-Roger
+    def phi_adjusted(self) -> np.ndarray:
+        if self._phi_a is None:
+            Phi, P, Q, Wm, R = self.Phi, self.P, self.Q, self.W_expected, self.R
+            nth = len(P)
+            S = np.zeros_like(Phi)
+            for i in range(nth):
+                for j in range(nth):
+                    if Wm[i, j] != 0.0:
+                        term = Q[i][j] - P[i] @ Phi @ P[j]
+                        if R is not None:
+                            term = term - 0.25 * R[i][j]
+                        S += Wm[i, j] * term
+            Pa = Phi + 2.0 * Phi @ S @ Phi
+            self._phi_a = (Pa + Pa.T) / 2.0
+        return self._phi_a
+
+    def kenward_roger(self, L) -> dict:
+        """F test of L b = 0: {F, df_num, df_den, scale, p}."""
+        L = np.atleast_2d(np.asarray(L, float))
+        ell = int(np.linalg.matrix_rank(L))
+        Phi, Pa = self.Phi, self.phi_adjusted()
+        b = L @ self.beta
+        F = float(b @ np.linalg.solve(L @ Pa @ L.T, b)) / ell
+        Theta = L.T @ np.linalg.solve(L @ Phi @ L.T, L)
+        M = [Theta @ Phi @ Pi @ Phi for Pi in self.P]
+        tr = np.array([float(np.trace(Mi)) for Mi in M])
+        Wm = self.W_expected
+        nth = len(M)
+        A1 = float(tr @ Wm @ tr)
+        A2 = 0.0
+        for i in range(nth):
+            for j in range(nth):
+                A2 += Wm[i, j] * float(np.sum(M[i] * M[j].T))
+        df_den, lam = _kr_df(ell, A1, A2)
+        Fs = lam * F
+        p = float(stats.f.sf(Fs, ell, df_den)) if df_den > 0 else None
+        return {"F": Fs, "F_unscaled": F, "scale": lam, "df_num": ell,
+                "df_den": df_den, "p": p}
+
+    def kenward_roger_1d(self, l) -> tuple[float, float]:
+        """(SE from Phi_A, df) of the contrast l' b."""
+        l = np.asarray(l, float)
+        var = float(l @ self.phi_adjusted() @ l)
+        res = self.kenward_roger(l[None, :])
+        return math.sqrt(max(var, 0.0)), res["df_den"]
+
+    # ------------------------------------------------------- Satterthwaite
+    def _satt_1d(self, l) -> float:
+        l = np.asarray(l, float)
+        v = float(l @ self.Phi @ l)
+        pl = self.Phi @ l
+        g = np.array([float(pl @ Pi @ pl) for Pi in self.P])
+        den = float(g @ self.A_observed @ g)
+        return 2.0 * v * v / den if den > 0 else math.inf
+
+    def satterthwaite(self, L) -> dict:
+        L = np.atleast_2d(np.asarray(L, float))
+        b = L @ self.beta
+        C = L @ self.Phi @ L.T
+        q = int(np.linalg.matrix_rank(L))
+        F = float(b @ np.linalg.solve(C, b)) / q
+        if q == 1:
+            ddf = self._satt_1d(L[0])
+        else:
+            d, U = np.linalg.eigh((C + C.T) / 2.0)
+            keep = d > d.max() * 1e-10
+            nus = [self._satt_1d(U[:, m] @ L) for m in np.flatnonzero(keep)]
+            E = sum(nu / (nu - 2.0) for nu in nus if nu > 2.0)
+            ddf = 2.0 * E / (E - q) if E > q else math.nan
+        p = (float(stats.f.sf(F, q, ddf))
+             if ddf > 0 and math.isfinite(ddf) else None)
+        return {"F": F, "df_num": q, "df_den": ddf, "p": p}
+
+    def satterthwaite_1d(self, l) -> tuple[float, float]:
+        l = np.asarray(l, float)
+        return math.sqrt(max(float(l @ self.Phi @ l), 0.0)), self._satt_1d(l)
+
+    # --------------------------------------------------------- dispatch
+    def test(self, method: str, L) -> dict:
+        return (self.kenward_roger(L) if method == "kenward_roger"
+                else self.satterthwaite(L))
+
+    def contrast(self, method: str, l) -> tuple[float, float]:
+        return (self.kenward_roger_1d(l) if method == "kenward_roger"
+                else self.satterthwaite_1d(l))
+
+    def cov(self, method: str) -> np.ndarray:
+        return self.phi_adjusted() if method == "kenward_roger" else self.Phi
+
+
+class Ddf(_DdfBase):
+    """Kenward-Roger / Satterthwaite quantities of one fitted model of
+    opendose.mixedmodel (variance components: V linear in theta)."""
 
     def __init__(self, fit):
         prof = fit["_profile"]
@@ -137,94 +237,6 @@ class Ddf:
             self.A_observed = 2.0 * np.linalg.pinv(H)
         self._phi_a = None
 
-    # ------------------------------------------------------- Kenward-Roger
-    def phi_adjusted(self) -> np.ndarray:
-        if self._phi_a is None:
-            Phi, P, Q, Wm = self.Phi, self.P, self.Q, self.W_expected
-            nth = len(P)
-            S = np.zeros_like(Phi)
-            for i in range(nth):
-                for j in range(nth):
-                    if Wm[i, j] != 0.0:
-                        S += Wm[i, j] * (Q[i][j] - P[i] @ Phi @ P[j])
-            Pa = Phi + 2.0 * Phi @ S @ Phi
-            self._phi_a = (Pa + Pa.T) / 2.0
-        return self._phi_a
-
-    def kenward_roger(self, L) -> dict:
-        """F test of L b = 0: {F, df_num, df_den, scale, p}."""
-        L = np.atleast_2d(np.asarray(L, float))
-        ell = int(np.linalg.matrix_rank(L))
-        Phi, Pa = self.Phi, self.phi_adjusted()
-        b = L @ self.beta
-        F = float(b @ np.linalg.solve(L @ Pa @ L.T, b)) / ell
-        Theta = L.T @ np.linalg.solve(L @ Phi @ L.T, L)
-        M = [Theta @ Phi @ Pi @ Phi for Pi in self.P]
-        tr = np.array([float(np.trace(Mi)) for Mi in M])
-        Wm = self.W_expected
-        nth = len(M)
-        A1 = float(tr @ Wm @ tr)
-        A2 = 0.0
-        for i in range(nth):
-            for j in range(nth):
-                A2 += Wm[i, j] * float(np.sum(M[i] * M[j].T))
-        df_den, lam = _kr_df(ell, A1, A2)
-        Fs = lam * F
-        p = float(stats.f.sf(Fs, ell, df_den)) if df_den > 0 else None
-        return {"F": Fs, "F_unscaled": F, "scale": lam, "df_num": ell,
-                "df_den": df_den, "p": p}
-
-    def kenward_roger_1d(self, l) -> tuple[float, float]:
-        """(SE from Phi_A, df) of the contrast l' b."""
-        l = np.asarray(l, float)
-        var = float(l @ self.phi_adjusted() @ l)
-        res = self.kenward_roger(l[None, :])
-        return math.sqrt(max(var, 0.0)), res["df_den"]
-
-    # ------------------------------------------------------- Satterthwaite
-    def _satt_1d(self, l) -> float:
-        l = np.asarray(l, float)
-        v = float(l @ self.Phi @ l)
-        pl = self.Phi @ l
-        g = np.array([float(pl @ Pi @ pl) for Pi in self.P])
-        den = float(g @ self.A_observed @ g)
-        return 2.0 * v * v / den if den > 0 else math.inf
-
-    def satterthwaite(self, L) -> dict:
-        L = np.atleast_2d(np.asarray(L, float))
-        b = L @ self.beta
-        C = L @ self.Phi @ L.T
-        q = int(np.linalg.matrix_rank(L))
-        F = float(b @ np.linalg.solve(C, b)) / q
-        if q == 1:
-            ddf = self._satt_1d(L[0])
-        else:
-            d, U = np.linalg.eigh((C + C.T) / 2.0)
-            keep = d > d.max() * 1e-10
-            nus = [self._satt_1d(U[:, m] @ L) for m in np.flatnonzero(keep)]
-            E = sum(nu / (nu - 2.0) for nu in nus if nu > 2.0)
-            ddf = 2.0 * E / (E - q) if E > q else math.nan
-        p = (float(stats.f.sf(F, q, ddf))
-             if ddf > 0 and math.isfinite(ddf) else None)
-        return {"F": F, "df_num": q, "df_den": ddf, "p": p}
-
-    def satterthwaite_1d(self, l) -> tuple[float, float]:
-        l = np.asarray(l, float)
-        return math.sqrt(max(float(l @ self.Phi @ l), 0.0)), self._satt_1d(l)
-
-    # --------------------------------------------------------- dispatch
-    def test(self, method: str, L) -> dict:
-        return (self.kenward_roger(L) if method == "kenward_roger"
-                else self.satterthwaite(L))
-
-    def contrast(self, method: str, l) -> tuple[float, float]:
-        return (self.kenward_roger_1d(l) if method == "kenward_roger"
-                else self.satterthwaite_1d(l))
-
-    def cov(self, method: str) -> np.ndarray:
-        return self.phi_adjusted() if method == "kenward_roger" else self.Phi
-
-
 def _kr_df(ell: int, A1: float, A2: float) -> tuple[float, float]:
     """Kenward & Roger (1997) section 4: (m, lambda) from A1, A2."""
     B = (A1 + 6.0 * A2) / (2.0 * ell)
@@ -244,3 +256,149 @@ def method_of(options_value) -> str:
     if v not in METHODS:
         raise ValueError(f"ddf must be one of {', '.join(METHODS)}")
     return v
+
+
+class BlockDdf(_DdfBase):
+    """Kenward-Roger / Satterthwaite for block-diagonal V: subject s's
+    block is Sigma(theta) at its observed time positions (the models of
+    opendose.mixed_timecourse). dSigma[i] = dSigma/dtheta_i and d2Sigma
+    {(i, j): d2Sigma/dtheta_i dtheta_j} (only the non-zero ones; AR(1)'s
+    rho enters non-linearly, so Kenward & Roger's R_ij term is kept).
+    Everything is computed block by block (m_s x m_s per subject).
+
+    REML information as in Ddf; the observed Hessian of the REML deviance
+    adds tr(P V_ij) - y'P V_ij P y for the non-linear parameters."""
+
+    def __init__(self, y, X, subjects, positions, Sigma, dSigma, d2Sigma=None):
+        y = np.asarray(y, float)
+        X = np.asarray(X, float)
+        subjects = np.asarray(subjects)
+        positions = np.asarray(positions, int)
+        Sigma = np.asarray(Sigma, float)
+        nth = len(dSigma)
+        d2Sigma = d2Sigma or {}
+        blocks = []
+        for s in np.unique(subjects):
+            idx = np.flatnonzero(subjects == s)
+            pos = positions[idx]
+            V = Sigma[np.ix_(pos, pos)]
+            Vi = np.linalg.inv(V)
+            blocks.append((idx, pos, (Vi + Vi.T) / 2.0))
+        XtVX = sum(X[i].T @ Vi @ X[i] for i, _, Vi in blocks)
+        Phi = np.linalg.inv(XtVX)
+        self.Phi = (Phi + Phi.T) / 2.0
+        self.beta = self.Phi @ sum(X[i].T @ Vi @ y[i] for i, _, Vi in blocks)
+        self.theta = None
+        D = [np.asarray(d, float) for d in dSigma]
+        pairs = {}
+        for (i, j), M in d2Sigma.items():
+            pairs[(i, j)] = pairs[(j, i)] = np.asarray(M, float)
+        P = [np.zeros_like(self.Phi) for _ in range(nth)]
+        Q = [[np.zeros_like(self.Phi) for _ in range(nth)] for _ in range(nth)]
+        R = ([[np.zeros_like(self.Phi) for _ in range(nth)] for _ in range(nth)]
+             if pairs else None)
+        T1 = np.zeros((nth, nth))   # sum_s tr(Vi D_i Vi D_j)
+        TV2 = np.zeros((nth, nth))  # sum_s tr(Vi D_ij)
+        ev = np.zeros((nth, nth))   # e' V_ij e
+        r = y - X @ self.beta
+        u_all = [[] for _ in range(nth)]   # (idx, D_i e_s) per subject
+        g = [np.zeros(X.shape[1]) for _ in range(nth)]
+        for idx, pos, Vi in blocks:
+            A = Vi @ X[idx]                              # V_s^-1 X_s
+            e = Vi @ r[idx]                              # (P y)_s
+            Ds = [d[np.ix_(pos, pos)] for d in D]
+            ViD = [Vi @ d for d in Ds]
+            for a in range(nth):
+                P[a] += A.T @ Ds[a] @ A
+                u = Ds[a] @ e
+                u_all[a].append((Vi, u))
+                g[a] += A.T @ u
+                for b in range(nth):
+                    Q[a][b] += A.T @ Ds[a] @ Vi @ Ds[b] @ A
+                    T1[a, b] += float(np.sum(ViD[a] * ViD[b].T))
+                    M2 = pairs.get((a, b))
+                    if M2 is not None:
+                        M2s = M2[np.ix_(pos, pos)]
+                        R[a][b] += A.T @ M2s @ A
+                        TV2[a, b] += float(np.sum(Vi * M2s.T))
+                        ev[a, b] += float(e @ M2s @ e)
+        self.P = [(Pi + Pi.T) / 2.0 for Pi in P]
+        self.Q = Q
+        self.R = R
+        Phi = self.Phi
+        trPVPV = np.zeros((nth, nth))
+        H = np.zeros((nth, nth))
+        for a in range(nth):
+            for b in range(nth):
+                trPVPV[a, b] = (T1[a, b] - 2.0 * float(np.sum(Phi * Q[a][b].T))
+                                + float(np.sum((Phi @ self.P[a]) * (Phi @ self.P[b]).T)))
+                # (V_a e)' P (V_b e)
+                quad = sum(float(ua @ Vi @ ub) for (Vi, ua), (_, ub)
+                           in zip(u_all[a], u_all[b])) - float(g[a] @ Phi @ g[b])
+                H[a, b] = -trPVPV[a, b] + 2.0 * quad
+                if R is not None and (a, b) in pairs:
+                    H[a, b] += (TV2[a, b] - float(np.sum(Phi * R[a][b].T))) - ev[a, b]
+        self.trPVPV = (trPVPV + trPVPV.T) / 2.0
+        self.W_expected = 2.0 * np.linalg.pinv(self.trPVPV)
+        self.H_observed = (H + H.T) / 2.0
+        try:
+            self.A_observed = 2.0 * np.linalg.inv(self.H_observed)
+        except np.linalg.LinAlgError:
+            self.A_observed = 2.0 * np.linalg.pinv(self.H_observed)
+        self._phi_a = None
+
+
+def structure_derivatives(kind, T, Sigma_params, *, level_times=None,
+                          random_intercept=True):
+    """Sigma(theta) and its derivatives in natural units for the
+    structures of opendose.mixed_timecourse:
+    cs (subject variance, residual variance); ar1 ([subject variance,]
+    residual variance, rho): Sigma = s_s^2 J + s^2 rho^|i-j|;
+    unstructured (each sigma_ij, i <= j); random_slope (G11, G12, G22,
+    residual variance): Sigma = Z G Z' + s^2 I, Z = [1, time].
+    Returns (Sigma, dSigma list, d2Sigma dict, names)."""
+    I = np.eye(T)
+    J = np.ones((T, T))
+    lag = np.abs(np.subtract.outer(np.arange(T), np.arange(T))).astype(float)
+    p = Sigma_params
+    if kind == "cs":
+        Sigma = p["subject_variance"] * J + p["residual_variance"] * I
+        return Sigma, [J, I], {}, ["subject variance", "residual variance"]
+    if kind == "ar1":
+        rho, s2 = p["rho"], p["residual_variance"]
+        Rm = rho ** lag
+        dR = np.where(lag > 0, lag * np.power(rho, np.maximum(lag - 1, 0)), 0.0)
+        d2R = np.where(lag > 1, lag * (lag - 1) * np.power(rho, np.maximum(lag - 2, 0)), 0.0)
+        Sigma = s2 * Rm
+        dS, names, d2 = [], [], {}
+        off = 0
+        if random_intercept:
+            Sigma = Sigma + p["subject_variance"] * J
+            dS.append(J)
+            names.append("subject variance")
+            off = 1
+        dS += [Rm, s2 * dR]
+        names += ["residual variance", "rho"]
+        d2[(off, off + 1)] = dR          # d2 / d s2 d rho
+        d2[(off + 1, off + 1)] = s2 * d2R
+        return Sigma, dS, d2, names
+    if kind == "unstructured":
+        Sigma = np.asarray(p["covariance"], float)
+        dS, names = [], []
+        for i in range(T):
+            for j in range(i + 1):
+                E = np.zeros((T, T))
+                E[i, j] = E[j, i] = 1.0
+                dS.append(E)
+                names.append(f"sigma[{i + 1},{j + 1}]")
+        return Sigma, dS, {}, names
+    if kind == "random_slope":
+        z0 = np.ones(T)
+        z1 = np.asarray(level_times, float)
+        G = np.asarray(p["G"], float)
+        Z = np.column_stack([z0, z1])
+        Sigma = Z @ G @ Z.T + p["residual_variance"] * I
+        dS = [np.outer(z0, z0), np.outer(z0, z1) + np.outer(z1, z0), np.outer(z1, z1), I]
+        return Sigma, dS, {}, ["intercept variance", "intercept-slope covariance",
+                               "slope variance", "residual variance"]
+    raise ValueError(f"unknown covariance structure: {kind}")

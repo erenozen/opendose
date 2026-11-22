@@ -17,7 +17,8 @@ import { TumourAucMethods, TumourAucResults } from "../tumourPanels";
 import type { TumourBase, TumourColumns } from "../tumourModel";
 import { Card, Check, Grid, KV, LinkedTable, Note, Problem, Row, Select, TextIn } from "../ui";
 import {
-  A_TC_AUC, A_TC_MIXED, A_TC_WINDOW, COVARIANCE_LABELS, dfNote, TC_COMPARISON_LABELS, tcMethodsText,
+  A_TC_AUC, A_TC_MIXED, A_TC_WINDOW, COVARIANCE_LABELS, dfNote, TC_COMPARISON_LABELS, TC_DDF_LABELS,
+  type TcDdf, tcMethodsText,
   tcColumnTable, WINDOW_LABELS, type Covariance, type TcAucOptions, type TcComparisons, type TcMixedOptions,
   type TcWindowOptions, type WindowSummary,
 } from "./model";
@@ -164,6 +165,10 @@ export function TcControls({ sheet, table, options, onChange, readOnly }: Contro
               onChange={(timeAs) => set({ timeAs })} />
             <Check label="Adjust for the first time point (baseline as a covariate)"
               checked={m.baselineCovariate} onChange={(baselineCovariate) => set({ baselineCovariate })} />
+            <Select label="Degrees of freedom" value={m.mixedDdf ?? "between_within"}
+              options={(Object.keys(TC_DDF_LABELS) as TcDdf[]).map((k) => [k, TC_DDF_LABELS[k]] as const)}
+              onChange={(mixedDdf) => set({ mixedDdf })}
+              hint="Kenward-Roger and Satterthwaite compute each test's df from the fitted covariance (AR(1), unstructured and random slopes included); between-within counts subjects and measurements." />
           </section>
           <section>
             <h3>Group differences at each time</h3>
@@ -333,7 +338,7 @@ export function TcMixedResults({ sheet, table, options, result }: ResultsProps<T
                 <th scope="col">P value</th><th scope="col">Summary</th></tr></thead>
               <tbody>
                 {anova.map((x) => (
-                  <tr key={x.term}><th scope="row">{x.term}</th><td>F({x.dfn}, {x.dfd}) = {f(x.f, 4)}</td>
+                  <tr key={x.term}><th scope="row">{x.term}</th><td>F({x.dfn}, {f(x.dfd)}) = {f(x.f, 4)}</td>
                     <td>{fmtP(x.p)}</td><td>{stars(x.p)}</td></tr>
                 ))}
               </tbody>
