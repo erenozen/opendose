@@ -53,6 +53,19 @@
 .btn-swap-label { grid-area: 1 / 1; text-align: center; }
 .btn-swap-label[data-shown="false"] { visibility: hidden; }
 
+/* Inline action: a word inside a sentence of prose ("Paste here, or
+   choose a file"), <button type="button" className="linkish" data-still>.
+   Not a Button variant: it has no box, no size and no press scale, it
+   reads as a link because it sits in running text (buttons.md). */
+button.linkish {
+  background: none; border: none; padding: 0; border-radius: var(--radius-control);
+  color: var(--accent); font: inherit; font-size: inherit; cursor: pointer;
+  text-decoration: underline; text-underline-offset: 2px;
+}
+@media (hover: hover) and (pointer: fine) {
+  button.linkish:hover { background: none; color: var(--accent); text-decoration-thickness: 2px; }
+}
+
 /* Icon-only buttons (IconButton.tsx): square, the icon centred. */
 .btn--icon { width: 32px; padding: 0; }
 .btn--icon.btn--sm { width: 26px; }

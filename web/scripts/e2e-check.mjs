@@ -98,6 +98,12 @@ const graphSettings = async () => {
   return page.getByRole("dialog", { name: "Graph settings" });
 };
 const closeGraphSettings = () => page.keyboard.press("Escape");
+// Grid toolbar commands past Import, Export, Rows and Columns live in its
+// "More" menu (DECISIONS 5).
+const tableCommand = async (name) => {
+  await page.locator(".grid-toolbar").getByRole("button", { name: "More", exact: true }).click();
+  await page.getByRole("menuitem", { name }).click();
+};
 // Panels load on first use (sheets/lazy.ts): wait for a control to appear.
 const appears = (locator, timeout = 15000) => locator.first().waitFor({ timeout })
   .then(() => true, () => false);
@@ -827,13 +833,13 @@ expect("CSV import: X, names, decimal commas", imported.join("|") === "3.162e-9|
 expect("fit of the imported table: LogIC50 -6.983", await waitLogIC50("-6.983"));
 
 // sort by X, descending then ascending
-await page.getByRole("button", { name: "Sort…" }).click();
+await tableCommand("Sort…");
 await page.getByLabel("Sort by").selectOption({ label: "X values" });
 await page.getByLabel(/Descending/).check();
 await page.getByRole("button", { name: "Sort", exact: true }).click();
 const sortedTop = `${await teCellValue("X, row 1")} ${await teCellValue("Drug A, Y3, row 1")}`;
 expect("sort rows by X descending keeps rows together", sortedTop === "1e-5 2.1", sortedTop);
-await page.getByRole("button", { name: "Sort…" }).click();
+await tableCommand("Sort…");
 await page.getByRole("button", { name: "Sort", exact: true }).click();
 expect("sort ascending restores the order", await teCellValue("X, row 1") === "1e-9");
 
@@ -874,7 +880,7 @@ expect("results CSV holds the rendered LogIC50 row",
   readFileSync(resPath, "utf8").split(/\r?\n/).some((l) => l.startsWith("LogIC50,-6.983")));
 
 // replicates -> Mean, SD, N as a new table (engine summary_convert)
-await page.getByRole("button", { name: "Convert…" }).click();
+await tableCommand("Convert…");
 await page.getByLabel("New table holds").selectOption("mean_sd_n");
 await page.getByRole("button", { name: "Create table" }).click();
 await page.waitForFunction(() => document.querySelector(
@@ -884,7 +890,7 @@ expect("fit of the converted Mean/SD/N table: LogIC50 -6.983", await waitLogIC50
 
 // switch the imported table itself to Mean, SD, N and type the summaries
 await navRow("Imported CSV").click();
-await page.getByRole("button", { name: "Format…" }).click();
+await tableCommand("Format…");
 await page.getByRole("combobox", { name: "Y values entered as" }).selectOption("mean_sd_n");
 await page.getByRole("button", { name: "Apply" }).click();
 for (let r = 0; r < REF_ROWS.length; r++) {
@@ -903,14 +909,14 @@ await teDlg.locator('input[name="table-type"][value="xy"]').check();
 await teDlg.getByLabel("Table name").fill("Series test");
 await teDlg.getByRole("button", { name: "Create table" }).click();
 await page.locator(".data-table input[aria-label='X, row 1']").click();
-await page.getByRole("button", { name: "Insert series…" }).click();
+await tableCommand("Insert series…");
 await page.getByLabel("First value").fill("0");
 await page.getByRole("textbox", { name: "Increment" }).fill("0.5");
 await page.getByLabel("Number of values").fill("12");
 await page.getByRole("button", { name: "Insert series", exact: true }).click();
 expect("insert series fills X and adds rows",
   await teCellValue("X, row 5") === "2" && await teCellValue("X, row 12") === "5.5");
-await page.getByRole("button", { name: "Format…" }).click();
+await tableCommand("Format…");
 await page.getByRole("combobox", { name: "X values are" }).selectOption("dates");
 await page.getByRole("button", { name: "Apply" }).click();
 await page.locator(".data-table input[aria-label='X, row 1']").fill("5 Mar 2024");
@@ -3279,7 +3285,7 @@ const axeOn = async (pg, sel) => {
     /[-−]0\.47/.test(meanDiff), meanDiff.split("\n").find((l) => /difference/i.test(l)) ?? "");
 
   // (b) Convert table to… grouped, same rows: values and pairing kept
-  await page.getByRole("button", { name: "Convert table to…" }).click();
+  await tableCommand("Convert table to…");
   const conv = page.locator(".convert-type-dialog");
   await conv.getByLabel("Grouped table, same rows").check();
   const checkLine = await conv.locator(".convert-check").innerText();

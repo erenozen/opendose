@@ -1,13 +1,16 @@
-/* The data table island: cells, headers, row tools. */
+/* The data table island: cells, headers, row tools. Instrument surface
+   (DECISIONS 2): solid 1px data lines, tabular numerals, sentence-case
+   heads. */
 
 /* ============================ data table ============================ */
 
-.data-table { padding: 10px; }
+/* The splitters resize the pane; no second, native corner handle (GR-12). */
+.data-table { padding: var(--space-8); resize: none; }
 .data-table table { border-collapse: collapse; width: 100%; }
-.data-table th, .data-table td { border: 1px solid var(--grid); padding: 0; }
+.data-table th, .data-table td { border: 1px solid var(--line-solid); padding: 0; }
 .data-table thead th {
   background: var(--inset); color: var(--ink-2); font-weight: var(--weight-semibold);
-  font-size: var(--text-caption); padding: 5px var(--space-6);
+  font-size: var(--text-caption); padding: var(--space-4) var(--space-6);
 }
 .data-table .subhead th { font-weight: var(--weight-regular); color: var(--muted); }
 .data-table .rownum {
@@ -16,19 +19,12 @@
   font-variant-numeric: tabular-nums;
 }
 .data-table .rowtools { border: none; background: transparent; width: 26px; }
-.data-table .rowtools button, .ds-tools button {
-  border: none; background: transparent; color: var(--muted);
-  cursor: pointer; font-size: var(--text-caption); padding: 5px 7px; border-radius: var(--radius-control);
-}
-@media (hover: hover) and (pointer: fine) {
-  .data-table .rowtools button:hover, .ds-tools button:hover {
-    color: var(--ink); background: var(--grid);
-  }
-}
+.data-table .rowtools .btn, .ds-tools .btn { color: var(--muted); }
+.ds-tools { display: inline-flex; gap: var(--space-2); vertical-align: middle; }
 .data-table input {
   /* Wide enough for scientific notation ("3.162e-9") plus padding */
   width: 100%; min-width: 80px; border: none; background: transparent;
-  color: var(--ink); padding: var(--space-6) 7px; font: inherit;
+  color: var(--ink); padding: var(--space-6) var(--space-8); font: inherit;
   font-variant-numeric: tabular-nums; text-align: right;
 }
 .group-head { white-space: nowrap; }
@@ -39,10 +35,10 @@
 .data-table .row-label { background: var(--inset); padding: 0 var(--space-4); }
 .data-table .row-label .ds-name { width: 13ch; text-align: left; }
 .table-actions {
-  display: flex; gap: var(--space-8); align-items: center; padding: 10px var(--space-4) var(--space-2);
-  flex-wrap: wrap;
+  display: flex; gap: var(--space-4) var(--space-8); align-items: center;
+  padding: var(--space-8) 0 0; flex-wrap: wrap;
 }
-.table-actions .hint { color: var(--muted); font-size: var(--text-caption); }
+.table-actions .hint { color: var(--muted); font-size: var(--text-caption); max-width: 65ch; }
 
 /* Data grid additions */
 .data-table .row-label-head { min-width: 13ch; }
@@ -65,6 +61,16 @@
 }
 .data-table.is-readonly input { cursor: default; }
 
-@media (max-width: 760px) {
-  .data-table .rowtools button, .ds-tools button { min-height: 32px; }
+/* Touch: every cell is a tap target, so rows are 44px; the row's delete
+   button fills its own cell (44 wide, the row's height) and never
+   reaches into the last value or the next row (C-13). Header tools sit
+   far enough apart that their 44px hit areas do not overlap. */
+@media (pointer: coarse) {
+  .data-table tbody input { min-height: 44px; }
+  .data-table .rowtools { width: 44px; position: relative; }
+  .data-table .rowtools .btn {
+    position: absolute; inset: 0; width: 100%; height: 100%; min-height: 0;
+  }
+  .data-table .rowtools .btn::before { inset: 0; }
+  .ds-tools { gap: var(--space-20); }
 }

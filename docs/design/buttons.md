@@ -10,7 +10,7 @@ Source: [ui/Button.tsx](../../web/src/components/ui/Button.tsx),
 Use for any action. Something that goes to a URL is an `<a>`, not a
 Button. An action that is a word inside a sentence of prose is a
 `<button type="button" className="linkish" data-still>` (styled in
-`sheets/common/grid.css`), not a Button. A row never holds more than
+`components/ui/Button.css`, its one place), not a Button. A row never holds more than
 four buttons: keep the four used most and put the rest behind one
 [Menu](overlays.md#menu) (the grid toolbar rule, DECISIONS section 5),
 because a fifth button wraps the row on a phone.
