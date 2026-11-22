@@ -1,9 +1,12 @@
-// "Paste data and suggest a table type" (start screen): read a pasted
-// block, guess which of the eight table types it fits, say why, and build
-// the table for whichever type the user settles on. Pure; unit-tested.
+// "Paste data and suggest a table type": read a pasted block, guess which
+// of the eight table types it fits, say why, and build the table for
+// whichever type the user settles on. readPaste() is the one call for a
+// paste outside the grid (clipboard text in; table, guess, reason and
+// error-value note out). Pure; unit-tested.
 import {
   detectDecimal, detectDelimiter, normalizeNumber, splitDelimited,
 } from "../project/importText.ts";
+import { isSpreadsheetError } from "../project/pasteReport.ts";
 import { normalizeTable } from "../project/table.ts";
 import type { DataTableModel, TableType } from "../project/types.ts";
 
@@ -13,6 +16,9 @@ export interface PastedBlock {
   /** Data rows x columns, numbers normalised to a dot decimal. */
   rows: string[][];
   width: number;
+  /** Spreadsheet error values (#DIV/0!, #N/A, #VALUE!, …) read as empty
+   *  cells, and the distinct codes seen. */
+  errors: { count: number; codes: string[] };
 }
 
 export interface Suggestion {
@@ -28,6 +34,15 @@ export function parsePasted(text: string): PastedBlock | null {
   const delim = detectDelimiter(body);
   let m = splitDelimited(body, delim).filter((r) => r.some((c) => c.trim() !== ""));
   if (!m.length) return null;
+  // An Excel error value holds no number: an empty cell, counted for the note.
+  let errorCount = 0;
+  const codes = new Set<string>();
+  m = m.map((r) => r.map((c) => {
+    if (!isSpreadsheetError(c)) return c;
+    errorCount++;
+    codes.add(c.trim().toUpperCase());
+    return "";
+  }));
   const decimal = detectDecimal(m);
   m = m.map((r) => r.map((c) => normalizeNumber(c.trim(), decimal)));
   const width = Math.max(...m.map((r) => r.length));
@@ -38,7 +53,17 @@ export function parsePasted(text: string): PastedBlock | null {
   const firstText = first.filter((c) => c !== "" && !isNum(c)).length;
   const restNums = rest.some((r) => r.some(isNum));
   const titled = m.length > 1 && restNums && firstText >= Math.max(1, Math.ceil(width / 2));
-  return { titles: titled ? first : null, rows: titled ? rest : m, width };
+  return { titles: titled ? first : null, rows: titled ? rest : m, width,
+    errors: { count: errorCount, codes: [...codes] } };
+}
+
+/** The note for error values read as empty cells, or null when there
+ *  are none: "2 Excel error values (#DIV/0!, #N/A) read as empty cells." */
+export function errorValueNote(b: PastedBlock | null): string | null {
+  const n = b?.errors.count ?? 0;
+  if (!b || !n) return null;
+  return `${n} Excel error ${n === 1 ? "value" : "values"} (${b.errors.codes.join(", ")}) `
+    + `read as ${n === 1 ? "an empty cell" : "empty cells"}.`;
 }
 
 /** Values of column c (blank cells dropped). */
@@ -83,8 +108,79 @@ function spacing(vals: number[]): "linear" | "log" | "uneven" {
   return "uneven";
 }
 
+// ------------------------------------------------------------ replicates
+
+/** Adjacent Y columns that make one data set: a run of titles that share
+ *  a stem and count up from 1 ("Rep 1, Rep 2, Rep 3", "WT_1, WT_2",
+ *  "A1, A2"), or a single column. `name` is the data set's name, "" when
+ *  the stem only says "replicate". */
+export interface ColumnGroup { name: string; cols: number[] }
+
+const REP_TITLE = /^(.*?)[\s_\-.:#(]*(\d{1,3})\)?$/;
+/** Stems that say "a replicate" and nothing about the data set. */
+const REPLICATE_STEM = /^(rep|reps|repl|replicate|replicates|r|n|run|trial|repeat|y|value|values|measurement|meas|well|technical replicate|biological replicate)?$/i;
+
+function parseRepTitle(t: string): { stem: string; n: number } | null {
+  const m = REP_TITLE.exec(t.trim());
+  return m ? { stem: m[1].trim(), n: Number(m[2]) } : null;
+}
+
+/** The Y columns from `from` on, grouped into data sets. A run of
+ *  replicate titles becomes one data set when it cannot be levels of a
+ *  factor: its stem only says "replicate" (Rep 1, Rep 2), or the columns
+ *  hold two or more runs (WT 1, WT 2, KO 1, KO 2), or, in an XY table
+ *  (whose Y columns are never factor levels), one run covers every Y
+ *  column. Anything else stays one data set per column. */
+export function replicateGroups(b: PastedBlock, from: number, type: TableType): ColumnGroup[] {
+  const W = b.width;
+  const titles = Array.from({ length: W }, (_, c) => (b.titles?.[c] ?? "").trim());
+  const runs: { stem: string; cols: number[] }[] = [];
+  for (let c = from; c < W;) {
+    const head = b.titles ? parseRepTitle(titles[c]) : null;
+    const cols = [c];
+    if (head && head.n === 1) {
+      for (let next = c + 1; next < W; next++) {
+        const t = parseRepTitle(titles[next]);
+        if (!t || t.stem.toLowerCase() !== head.stem.toLowerCase() || t.n !== cols.length + 1) break;
+        cols.push(next);
+      }
+    }
+    runs.push({ stem: head && cols.length > 1 ? head.stem : "", cols });
+    c += cols.length;
+  }
+  const multi = runs.filter((r) => r.cols.length > 1).length;
+  const keep = (stem: string) => REPLICATE_STEM.test(stem) || multi >= 2
+    || (type === "xy" && runs.length === 1);
+  return runs.flatMap((r) => (r.cols.length > 1 && keep(r.stem)
+    ? [{ name: REPLICATE_STEM.test(r.stem) ? "" : r.stem, cols: r.cols }]
+    : r.cols.map((c) => ({ name: titles[c], cols: [c] }))));
+}
+
+/** "Rep 1 to Rep 3 read as 3 replicates of one data set.", or null. */
+function replicateReason(b: PastedBlock, from: number, type: TableType): string | null {
+  const reps = replicateGroups(b, from, type).filter((g) => g.cols.length > 1);
+  if (!reps.length) return null;
+  const t = (c: number) => (b.titles?.[c] ?? "").trim();
+  const spans = reps.map((g) => `${t(g.cols[0])} to ${t(g.cols[g.cols.length - 1])}`);
+  if (reps.length === 1) {
+    return `${spans[0]} read as ${reps[0].cols.length} replicates of one data set.`;
+  }
+  const same = reps.every((g) => g.cols.length === reps[0].cols.length);
+  return `${spans.slice(0, -1).join(", ")} and ${spans[spans.length - 1]} read as `
+    + `${reps.length} data sets with `
+    + `${same ? `${reps[0].cols.length} replicates each` : "their replicates side by side"}.`;
+}
+
 /** The guess, with the reason shown next to it. */
 export function suggestTableType(b: PastedBlock | null): Suggestion {
+  const s = guessType(b);
+  if (!b || (s.type !== "xy" && s.type !== "grouped")) return s;
+  const from = s.type === "xy" || (textCol(b, 0) && b.width > 1) ? 1 : 0;
+  const reps = replicateReason(b, from, s.type);
+  return reps ? { ...s, reason: `${s.reason} ${reps}` } : s;
+}
+
+function guessType(b: PastedBlock | null): Suggestion {
   if (!b || !b.rows.length) {
     return { type: "column", reason: "Nothing to read yet: paste a block copied from a spreadsheet." };
   }
@@ -157,6 +253,15 @@ const title = (b: PastedBlock, c: number, fallback: string) =>
   (b.titles?.[c] ?? "").trim() || fallback;
 const letter = (i: number) => String.fromCharCode(65 + (i % 26));
 
+/** One data set from a column group: replicates side by side, their
+ *  source titles kept as subcolumn titles. */
+function replicateDataset(b: PastedBlock, g: ColumnGroup, i: number) {
+  const rows = b.rows.map((r) => g.cols.map((c) => r[c] ?? ""));
+  const name = g.name || `Data set ${letter(i)}`;
+  if (g.cols.length === 1) return { name, rows };
+  return { name, rows, subTitles: g.cols.map((c) => (b.titles?.[c] ?? "").trim()) };
+}
+
 /** The pasted block as a table of `type`. */
 export function buildTable(b: PastedBlock, type: TableType): DataTableModel {
   const W = b.width;
@@ -171,8 +276,7 @@ export function buildTable(b: PastedBlock, type: TableType): DataTableModel {
     case "xy": {
       const x = b.rows.map((r) => r[0] ?? "");
       return normalizeTable({ type, x, xTitle: title(b, 0, "X"),
-        datasets: yCols(1).map((c, i) => ({ name: title(b, c, `Data set ${letter(i)}`),
-          rows: b.rows.map((_, r) => [cell(r, c)]) })) });
+        datasets: replicateGroups(b, 1, type).map((g, i) => replicateDataset(b, g, i)) });
     }
     case "survival": {
       const starts = cols.filter((c) => c + 1 < W && numericCol(b, c) && binaryCol(b, c + 1));
@@ -196,11 +300,43 @@ export function buildTable(b: PastedBlock, type: TableType): DataTableModel {
       return normalizeTable({ type, rowTitles,
         datasets: yCols(firstText ? 1 : 0).map((c, i) => ({ name: title(b, c, `Group ${letter(i)}`),
           rows: b.rows.map((_, r) => [cell(r, c)]) })) });
-    default: // grouped, contingency, partsofwhole: row titles + one column each
+    case "grouped":
+      return normalizeTable({ type,
+        rowTitles: rowTitles ?? Array.from({ length: nRows }, (_, r) => `Row ${r + 1}`),
+        datasets: replicateGroups(b, firstText ? 1 : 0, type)
+          .map((g, i) => replicateDataset(b, g, i)) });
+    default: // contingency, partsofwhole: row titles + one column each
       return normalizeTable({ type,
         rowTitles: rowTitles ?? Array.from({ length: nRows }, (_, r) => `Row ${r + 1}`),
         datasets: yCols(firstText ? 1 : 0).map((c, i) => ({
           name: title(b, c, type === "contingency" ? `Outcome ${i + 1}` : `Data set ${letter(i)}`),
           rows: b.rows.map((_, r) => [cell(r, c)]) })) });
   }
+}
+
+// ------------------------------------------------------------ one call
+
+export interface ReadPaste {
+  block: PastedBlock;
+  /** The guessed type and why (shown next to a "Read as" select). */
+  suggestion: Suggestion;
+  /** The type the table is built as: `as` when given, else the guess. */
+  type: TableType;
+  table: DataTableModel;
+  /** Excel error values read as empty cells (0 when none). */
+  errorValues: number;
+  /** errorValueNote(): the counted note, or null. */
+  errorNote: string | null;
+}
+
+/** Clipboard text to a table: parse it, guess the table type with its
+ *  reason, and build the table as the guess (or as `as`, the user's
+ *  "Read as" choice). Null when the text holds no cells. */
+export function readPaste(text: string, as?: TableType): ReadPaste | null {
+  const block = parsePasted(text);
+  if (!block) return null;
+  const suggestion = suggestTableType(block);
+  const type = as ?? suggestion.type;
+  return { block, suggestion, type, table: buildTable(block, type),
+    errorValues: block.errors.count, errorNote: errorValueNote(block) };
 }

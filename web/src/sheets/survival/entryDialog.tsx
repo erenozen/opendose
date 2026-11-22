@@ -4,6 +4,7 @@
 // (one undo step).
 import { useMemo, useState } from "react";
 import Modal from "../../components/Modal";
+import { Button } from "../../components/ui";
 import type { DataTableModel, DateOrder } from "../../project/types";
 import { localeDateOrder } from "../../project/xformat";
 import {
@@ -81,8 +82,8 @@ export default function SurvivalEntryDialog({ table, onApply, onClose, initialMo
       onClose={onClose} onSubmit={submit}
       actions={
         <>
-          <button type="button" onClick={onClose}>Cancel</button>
-          <button type="submit" className="btn-primary" disabled={!ok}>Fill the table</button>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button type="submit" variant="primary" disabled={!ok}>Fill the table</Button>
         </>
       }>
       <p className="modal-text">

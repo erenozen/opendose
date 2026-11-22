@@ -26,7 +26,7 @@
 .surv-aside-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-6) var(--space-12); }
 .surv-aside-row .surv-aside-label { font-weight: var(--weight-semibold); color: var(--ink); }
 .surv-aside select { font: inherit; }
-.surv-aside .surv-entry-btn { font-size: var(--text-body-s); padding: var(--space-4) var(--space-12); }
+
 .surv-group-line {
   display: inline-flex; align-items: center; gap: var(--space-4); padding: 1px var(--space-8);
   border: 1px solid var(--line-strong); border-radius: var(--radius-control); background: var(--surface);

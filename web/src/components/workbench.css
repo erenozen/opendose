@@ -1,15 +1,17 @@
-/* Workbench details */
+/* Workbench details. The frozen note is a condition, drawn like a
+   neutral Banner (inset tile, solid line); the accent is kept for state,
+   so the snowflake and the chip are ink, not blue. */
 .frozen-note {
   display: flex; align-items: center; gap: var(--space-8); flex-wrap: wrap;
-  margin-bottom: 10px; padding: 7px var(--space-12);
-  border: 1px solid var(--accent-border); border-radius: var(--radius-control);
-  background: var(--accent-soft); color: var(--ink-2); font-size: var(--text-body-s);
+  margin-bottom: var(--space-8); padding: var(--space-6) var(--space-12);
+  border: 1px solid var(--line-solid); border-radius: var(--radius-pane);
+  background: var(--inset); color: var(--ink-2); font-size: var(--text-body-s);
 }
-.frozen-note svg { color: var(--accent); }
-.frozen-note button { padding: 3px 10px; font-size: var(--text-body-s); margin-left: auto; }
+.frozen-note svg { color: var(--muted); }
+.frozen-note button { padding: var(--space-2) var(--space-8); font-size: var(--text-body-s); margin-left: auto; }
 .frozen-chip {
   display: inline-flex; align-items: center; gap: var(--space-4);
-  font-size: var(--text-caption); font-weight: var(--weight-semibold); color: var(--accent);
+  font-size: var(--text-caption); font-weight: var(--weight-semibold); color: var(--ink-2);
 }
 .controls-wrap { display: flex; flex-direction: column; }
 .controls-wrap[inert] { opacity: 0.6; }

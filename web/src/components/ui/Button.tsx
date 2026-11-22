@@ -58,7 +58,11 @@ export interface FileButtonProps extends Omit<ButtonProps, "onClick" | "onChange
   accept: string;
   /** Called with the chosen file; the input is reset, so picking the
    *  same file again fires again. */
-  onFile: (file: File) => void;
+  onFile?: (file: File) => void;
+  /** With `multiple`: called with every chosen file. */
+  onFiles?: (files: File[]) => void;
+  /** The picker takes several files at once. */
+  multiple?: boolean;
   /** Accessible name of the file input itself (scripts set files on it). */
   inputLabel: string;
   children: ReactNode;
@@ -67,17 +71,21 @@ export interface FileButtonProps extends Omit<ButtonProps, "onClick" | "onChange
 /** A real button that opens the file picker: keyboard reachable, unlike
  *  a label wrapped around a hidden input (K2). The input stays in the
  *  DOM, visually hidden and out of the tab order. */
-export function FileButton({ accept, onFile, inputLabel, children, ...props }: FileButtonProps) {
+export function FileButton({
+  accept, onFile, onFiles, multiple, inputLabel, children, ...props
+}: FileButtonProps) {
   const input = useRef<HTMLInputElement>(null);
   return (
     <>
       <Button {...props} onClick={() => input.current?.click()}>{children}</Button>
-      <input ref={input} type="file" accept={accept} className="sr-only" tabIndex={-1}
-        aria-hidden="true" aria-label={inputLabel}
+      <input ref={input} type="file" accept={accept} multiple={multiple} className="sr-only"
+        tabIndex={-1} aria-hidden="true" aria-label={inputLabel}
         onChange={(e) => {
-          const f = e.target.files?.[0];
+          const files = [...(e.target.files ?? [])];
           e.target.value = "";
-          if (f) onFile(f);
+          if (!files.length) return;
+          onFiles?.(files);
+          onFile?.(files[0]);
         }} />
     </>
   );

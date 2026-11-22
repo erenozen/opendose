@@ -238,7 +238,8 @@ const nKO = await filled("KO");
 expect("column table has n = 4 (WT) and n = 3 (KO)", nWT === 4 && nKO === 3, `WT ${nWT}, KO ${nKO}`);
 
 // --- Reshape: the new column table to long
-await page.getByRole("button", { name: "Reshape…" }).click();
+await page.locator(".grid-toolbar").getByRole("button", { name: "More", exact: true }).click();
+await page.getByRole("menuitem", { name: "Reshape…" }).click();
 const rs = page.getByRole("dialog", { name: /Reshape .* to a long table/ });
 await rs.waitFor({ timeout: 10000 });
 expect("reshape previews 7 observations", (await rs.getByRole("status").innerText()).startsWith("7 observations"));
@@ -507,7 +508,7 @@ await priv.getByRole("button", { name: "Close" }).last().click();
   await page.getByRole("button", { name: "Import…" }).click();
   const imp = page.getByRole("dialog", { name: "Import data" });
   await imp.waitFor({ timeout: 10000 });
-  await imp.getByLabel("File to import").setInputFiles(ZIP);
+  await imp.locator('input[aria-label="File to import"]').setInputFiles(ZIP);
   d = page.getByRole("dialog", { name: "Import with a recipe" });
   await d.waitFor({ timeout: 10000 });
   await d.getByLabel("Files stacked").waitFor({ timeout: 10000 });

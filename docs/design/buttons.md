@@ -10,7 +10,7 @@ Source: [ui/Button.tsx](../../web/src/components/ui/Button.tsx),
 Use for any action. Something that goes to a URL is an `<a>`, not a
 Button. An action that is a word inside a sentence of prose is a
 `<button type="button" className="linkish" data-still>` (styled in
-`sheets/common/grid.css`), not a Button. A row never holds more than
+`components/ui/Button.css`, its one place), not a Button. A row never holds more than
 four buttons: keep the four used most and put the rest behind one
 [Menu](overlays.md#menu) (the grid toolbar rule, DECISIONS section 5),
 because a fifth button wraps the row on a phone.
@@ -126,7 +126,7 @@ square) and `sm` (26px square, 44px hit area on touch).
 Use for "Open…" and "Import…": a real Button that opens the file picker,
 keyboard reachable. Never a `<label>` around a hidden input, and never a
 bare visible `<input type="file">` (its look and words come from the
-browser). Takes every Button prop plus `accept`, `onFile(file)` and
+browser). Takes every Button prop plus `accept`, `onFile(file)` (or `multiple` and `onFiles(files)`) and
 `inputLabel` (the hidden input's name; e2e scripts set files on it).
 Picking the same file twice fires twice.
 

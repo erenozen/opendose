@@ -56,6 +56,11 @@ select option {
   color: var(--ink-2); flex-wrap: wrap;
 }
 input[type="checkbox"] { accent-color: var(--accent); width: 15px; height: 15px; }
+/* Touch: a bigger box, and the whole label row is a 44px target (C-20). */
+@media (pointer: coarse) {
+  input[type="checkbox"] { width: 20px; height: 20px; }
+  .check-row { min-height: 44px; }
+}
 /* A long label after a checkbox wraps beside it, not onto a line of its
    own (which left the box alone above its text). */
 .check-row:has(> input[type="checkbox"]:first-child + span) { align-items: flex-start; }
