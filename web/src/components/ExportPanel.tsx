@@ -90,8 +90,10 @@ export default function ExportPanel({
   }, [ew, eh, scaleText, open, busy]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const file = (ext: string) => `${filename}.${ext}`;
+  // Failures name the graph as the user named it (the sheet), not its file.
+  const graphName = project.sheets.find((x) => x.id === graphId)?.name ?? filename;
   const failed = (verb: string, why: string) =>
-    notify(`Could not ${verb} “${filename}”: ${why}`, { tone: "error" });
+    notify(`Could not ${verb} “${graphName}”: ${why}`, { tone: "error" });
 
   const download = async () => {
     const gd = target();
