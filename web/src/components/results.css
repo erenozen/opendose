@@ -1,6 +1,6 @@
 /* ============================ results ============================ */
 
-.results { display: flex; flex-direction: column; gap: 12px; }
+.results { display: flex; flex-direction: column; gap: var(--space-12); }
 .model-line { margin: 0 0 10px; color: var(--ink-2); font-size: var(--text-body-s); }
 .model-line code {
   font-size: var(--text-caption); color: var(--muted);
@@ -20,11 +20,11 @@
   border-top: 2px solid var(--axis); font-weight: var(--weight-semibold);
   background: var(--accent-soft);
 }
-.results-table .derived th { padding-left: 6px; }
+.results-table .derived th { padding-left: var(--space-6); }
 .results-table.goodness { max-width: 400px; }
 .results-table.goodness th { font-weight: var(--weight-regular); color: var(--ink-2); }
-.hint-block { color: var(--muted); font-size: var(--text-body-s); margin: 4px 0; }
-.stat-cols { display: flex; gap: 24px; flex-wrap: wrap; }
+.hint-block { color: var(--muted); font-size: var(--text-body-s); margin: var(--space-4) 0; }
+.stat-cols { display: flex; gap: var(--space-24); flex-wrap: wrap; }
 .stat-cols > * { flex: 1 1 260px; min-width: 0; }
 .methods-text p {
   color: var(--ink-2); font-size: var(--text-body-s); line-height: var(--leading-prose);
@@ -52,12 +52,12 @@
    differ only in hue: ambiguity is about the parameters, extrapolation is
    about the dose range. A fit can carry either, or both. */
 .badge-ambiguous, .badge-extrapolated {
-  margin-left: 8px; vertical-align: middle;
+  margin-left: var(--space-8); vertical-align: middle;
   font-size: var(--text-caption); font-weight: var(--weight-semibold); letter-spacing: 0.03em;
   color: var(--warn-ink);
   background: color-mix(in srgb, var(--warn) 18%, var(--surface));
   border: 1px solid color-mix(in srgb, var(--warn) 45%, transparent);
-  border-radius: var(--radius-control); padding: 2px 9px;
+  border-radius: var(--radius-control); padding: var(--space-2) 9px;
 }
 .badge-extrapolated {
   color: var(--accent);
