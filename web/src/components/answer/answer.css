@@ -79,6 +79,7 @@
 .answer-skeleton span:nth-child(1) { height: 12px; width: 9rem; }
 .answer-skeleton span:nth-child(2) { height: 36px; width: 12rem; max-width: 100%; }
 .answer-skeleton span:nth-child(3) { height: 14px; width: 16rem; max-width: 100%; }
+.answer-skeleton span:nth-child(4) { height: 14px; width: 9rem; }
 
 /* ---- the Checks row ---- */
 .checks { border-top: 1px solid var(--line); padding-top: var(--space-12); }

@@ -39,9 +39,9 @@ font-size: var(--text-label); font-weight: var(--weight-semibold); color: var(--
 - No exclamation marks. No "Oops", "Successfully", "Please".
 
 ```ts
-// Incorrect: components/ResultsPanel.tsx:37 (an em dash in a results sentence)
+// Incorrect: an em dash in a results sentence (was ResultsPanel.tsx:37)
 `(${lo} to ${hi}) — about ${fold}x past ${edge}.`
-// Correct: same meaning, a colon
+// Correct: same meaning, a colon (ResultsPanel.tsx, extrapolationNote)
 `(${lo} to ${hi}): about ${fold}x past ${edge}.`
 ```
 

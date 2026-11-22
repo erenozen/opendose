@@ -95,7 +95,7 @@ export default function ResultsAnswer({ sheet, data, result, options, status, re
         {!hasResult ? (
           // The shape of a headline, so its arrival moves nothing (BEF-23).
           <div className="answer-skeleton" aria-hidden="true">
-            <span /><span /><span />
+            <span /><span /><span /><span />
           </div>
         ) : facts?.kind === "error" ? (
           <div className="answer-failed" role="alert">

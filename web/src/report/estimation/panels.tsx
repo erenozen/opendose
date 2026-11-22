@@ -170,6 +170,13 @@ function NumberOption({ label, value, min, max, step, onCommit }: {
   onCommit: (v: number) => void;
 }) {
   const [text, setText] = useState(String(value));
+  // an outside change (undo, another window) shows; the user's own
+  // half-typed entry for the same value stays as typed
+  const [seen, setSeen] = useState(value);
+  if (value !== seen) {
+    setSeen(value);
+    if (Number(text) !== value) setText(String(value));
+  }
   return (
     <NumberField label={label} fieldClassName="field-num" integer min={min} max={max} step={step}
       value={text} onValueChange={(v) => {

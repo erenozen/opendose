@@ -96,15 +96,24 @@ export function useScrollRegions(ref: RefObject<HTMLElement | null>) {
           const scrolls = el.scrollWidth > el.clientWidth + 1;
           if (scrolls === el.hasAttribute("data-scrolls")) continue;
           el.toggleAttribute("data-scrolls", scrolls);
+          // a card that already has a role (a note) keeps it and its name;
+          // only what is added here is taken away again
+          const named = !el.hasAttribute("role") || el.hasAttribute("data-scroll-named");
           if (scrolls) {
-            const title = el.querySelector("h3")?.textContent?.trim();
             el.tabIndex = 0;
-            el.setAttribute("role", "region");
-            el.setAttribute("aria-label", title ? `${title} (scrolls sideways)` : "Results (scrolls sideways)");
+            if (named) {
+              const title = el.querySelector("h3")?.textContent?.trim();
+              el.setAttribute("data-scroll-named", "");
+              el.setAttribute("role", "region");
+              el.setAttribute("aria-label", title ? `${title} (scrolls sideways)` : "Results (scrolls sideways)");
+            }
           } else {
             el.removeAttribute("tabindex");
-            el.removeAttribute("role");
-            el.removeAttribute("aria-label");
+            if (el.hasAttribute("data-scroll-named")) {
+              el.removeAttribute("data-scroll-named");
+              el.removeAttribute("role");
+              el.removeAttribute("aria-label");
+            }
           }
         }
       });
