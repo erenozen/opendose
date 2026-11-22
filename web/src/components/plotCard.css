@@ -3,10 +3,10 @@
 /* ============================ plot card ============================ */
 
 .plot-card .export-panel { flex: none; }
-.plot { flex: 1 1 420px; min-height: 220px; padding: 8px; }
+.plot { flex: 1 1 420px; min-height: 220px; padding: var(--space-8); }
 /* Holds the plot's place while its code loads (sheets/lazy.ts). */
 .plot-pending { flex: 1 1 420px; min-height: 220px; }
-.pane-pending { margin: 12px 16px; }
+.pane-pending { margin: var(--space-12) var(--space-16); }
 .plot-card .export-panel {
   border-top: 1px solid var(--line);
   background: var(--inset);
@@ -15,17 +15,17 @@
 }
 .export-panel {
   display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
-  padding: 8px 14px; font-size: var(--text-body-s); color: var(--ink-2);
+  padding: var(--space-8) 14px; font-size: var(--text-body-s); color: var(--ink-2);
 }
 .export-panel .export-title { font-weight: var(--weight-semibold); color: var(--ink-2); }
 .export-panel label { display: flex; align-items: center; gap: 5px; }
 .export-panel input {
-  width: 56px; padding: 4px 6px; border: 1px solid var(--line-strong);
+  width: 56px; padding: var(--space-4) var(--space-6); border: 1px solid var(--line-strong);
   border-radius: var(--radius-control); background: var(--surface); color: inherit;
   font-variant-numeric: tabular-nums;
 }
 .export-panel select, .export-panel button {
-  padding: 4px 8px; border: 1px solid var(--line-strong); border-radius: var(--radius-control);
+  padding: var(--space-4) var(--space-8); border: 1px solid var(--line-strong); border-radius: var(--radius-control);
   background: var(--surface); color: inherit; cursor: pointer; font-size: var(--text-body-s);
 }
 @media (hover: hover) and (pointer: fine) {
@@ -41,8 +41,8 @@
    middle of the card. */
 .graph-settings { position: relative; display: flex; align-items: center; }
 .settings-btn {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 4px 10px; border: 1px solid var(--line-strong); border-radius: var(--radius-control);
+  display: inline-flex; align-items: center; gap: var(--space-6);
+  padding: var(--space-4) 10px; border: 1px solid var(--line-strong); border-radius: var(--radius-control);
   background: var(--surface); color: inherit; cursor: pointer;
   font: inherit; font-size: var(--text-body-s);
   transition: transform var(--dur-base) var(--ease-out), border-color var(--dur-base) var(--ease-out);
@@ -57,14 +57,14 @@
 /* Opens upward: the strip sits at the bottom of a card that clips its own
    overflow, so the plot area is the only room available. */
 .settings-pop {
-  position: absolute; bottom: calc(100% + 8px); left: 0; z-index: var(--z-popover);
+  position: absolute; bottom: calc(100% + var(--space-8)); left: 0; z-index: var(--z-popover);
   width: min(340px, calc(100vw - 40px));
   max-height: 60svh; overflow-y: auto; overscroll-behavior: contain;
-  display: flex; flex-direction: column; gap: 12px;
+  display: flex; flex-direction: column; gap: var(--space-12);
   background: var(--float);
   border-radius: var(--radius-menu);
   box-shadow: var(--elev-float);
-  padding: 14px 16px;
+  padding: 14px var(--space-16);
   text-align: left; cursor: default;
   transform-origin: bottom left;
   transition: opacity var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out);
@@ -82,13 +82,13 @@
 .gopt-row { display: contents; }
 .gopt-row > label { color: var(--ink-2); }
 .gopt-row select, .gopt-input input:not([type="range"]):not([type="color"]) {
-  width: 100%; min-width: 0; padding: 4px 8px;
+  width: 100%; min-width: 0; padding: var(--space-4) var(--space-8);
   border: 1px solid var(--line-strong); border-radius: var(--radius-control);
   background: var(--surface); color: inherit; font: inherit; font-size: var(--text-body-s);
 }
-.gopt-input { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.gopt-input { display: flex; align-items: center; gap: var(--space-6); min-width: 0; }
 .gopt-input input[type="range"] { flex: 1 1 auto; min-width: 0; accent-color: var(--accent); }
-.gopt-input input[type="color"] { width: 40px; height: 26px; padding: 1px 2px;
+.gopt-input input[type="color"] { width: 40px; height: 26px; padding: 1px var(--space-2);
   border: 1px solid var(--line-strong); border-radius: var(--radius-control); background: var(--surface); }
 .gopt-input output { flex: none; min-width: 7ch; color: var(--muted); font-variant-numeric: tabular-nums; }
 .gopt-check {
@@ -107,17 +107,17 @@
   .gopt-check { min-height: 30px; }
 }
 .scheme-picker, .axis-titles {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8);
   font-size: var(--text-body-s); color: var(--ink-2);
 }
 .axis-titles-label, .scheme-picker > label:first-child {
   font-weight: var(--weight-semibold); color: var(--ink-2);
 }
-.axis-titles { border-top: 1px solid var(--line); padding-top: 12px; }
-.graph-opts-section + .scheme-picker { border-top: 1px solid var(--line); padding-top: 12px; }
+.axis-titles { border-top: 1px solid var(--line); padding-top: var(--space-12); }
+.graph-opts-section + .scheme-picker { border-top: 1px solid var(--line); padding-top: var(--space-12); }
 .axis-titles label { display: flex; align-items: center; gap: 5px; }
 .axis-titles input {
-  width: 100%; min-width: 0; padding: 5px 8px;
+  width: 100%; min-width: 0; padding: 5px var(--space-8);
   border: 1px solid var(--line-strong); border-radius: var(--radius-control);
   background: var(--surface); color: inherit; font: inherit; font-size: var(--text-body-s);
 }
@@ -133,7 +133,7 @@
 }
 .scheme-picker label { display: flex; align-items: center; gap: 5px; }
 .scheme-picker select {
-  padding: 4px 8px; border: 1px solid var(--line-strong); border-radius: var(--radius-control);
+  padding: var(--space-4) var(--space-8); border: 1px solid var(--line-strong); border-radius: var(--radius-control);
   background: var(--surface); color: inherit; cursor: pointer;
   font-size: var(--text-body-s);
 }
