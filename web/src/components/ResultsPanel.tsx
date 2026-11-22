@@ -55,7 +55,7 @@ function Diagnostics({ diag }: { diag: any }) {
   return (
     <table className="results-table goodness">
       <tbody>
-        {rows.map(([k, v]) => <tr key={k}><th>{k}</th><td>{v}</td></tr>)}
+        {rows.map(([k, v]) => <tr key={k}><th scope="row">{k}</th><td>{v}</td></tr>)}
       </tbody>
     </table>
   );

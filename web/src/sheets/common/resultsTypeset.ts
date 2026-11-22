@@ -3,7 +3,9 @@
 // ~45 results panels render plain <td>s, so the alignment is read from
 // the cells' own text once they are on screen: a cell is numeric when it
 // holds a digit and no word ("−6.983", "< 0.0001 ****", "9.694e-8 to
-// 1.115e-7", "F(2, 12) = 4.5"; not "not reported (extrapolated)"). Only
+// 1.115e-7", "F(2, 12) = 4.5"; not "not reported (extrapolated)"). A
+// column that is mostly numbers aligns right as a whole, its short words
+// ("n/a", "0 to (very wide)") with it; a sentence stays left. Only
 // a data attribute is added: the text, and so copy, CSV and the e2e
 // reads, never changes (ruling 10).
 import { useEffect, type RefObject } from "react";
@@ -18,28 +20,34 @@ export function numericCell(text: string): boolean | null {
   return /\d/.test(t) && !/\p{L}{3,}/u.test(t.replace(WORDLESS, ""));
 }
 
+/** Longer than this, a cell is a sentence and keeps to the left. */
+const SENTENCE = 40;
+
 function typeset(root: HTMLElement) {
   for (const table of root.querySelectorAll<HTMLTableElement>("table.results-table")) {
     const votes: { num: number; text: number }[] = [];
+    const cells: { cell: HTMLTableCellElement; col: number; num: boolean | null; len: number }[] = [];
     for (const body of table.tBodies) {
       for (const row of body.rows) {
         let col = 0;
         for (const cell of row.cells) {
           const span = Math.max(1, cell.colSpan);
           if (cell.tagName === "TD") {
-            const n = numericCell(cell.textContent ?? "");
-            if (n === null) cell.removeAttribute("data-num");
-            else {
-              cell.toggleAttribute("data-num", n);
-              if (span === 1) {
-                const v = (votes[col] ??= { num: 0, text: 0 });
-                v[n ? "num" : "text"]++;
-              }
+            const text = (cell.textContent ?? "").trim();
+            const n = numericCell(text);
+            cells.push({ cell, col: span === 1 ? col : -1, num: n, len: text.length });
+            if (n !== null && span === 1) {
+              const v = (votes[col] ??= { num: 0, text: 0 });
+              v[n ? "num" : "text"]++;
             }
           }
           col += span;
         }
       }
+    }
+    const numericCol = (c: number) => c >= 0 && !!votes[c] && votes[c].num > votes[c].text;
+    for (const { cell, col, num, len } of cells) {
+      cell.toggleAttribute("data-num", num === true || (num === false && len <= SENTENCE && numericCol(col)));
     }
     // a header sits over its column's numbers
     if (!table.tHead) continue;

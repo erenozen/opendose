@@ -356,7 +356,7 @@ function CqImport({ onTable }: { onTable: (t: DataTableModel) => void }) {
       </label>
       <div className="assay-setup">
         <Button disabled={!text.trim()} onClick={() => take(parseSource(text))}>Read pasted export</Button>
-        {msg && <span className="hint-block" role="status">{msg}</span>}
+        <span className="hint-block" role="status">{msg}</span>
       </div>
       {src && map && (
         <div className="cq-mapping">

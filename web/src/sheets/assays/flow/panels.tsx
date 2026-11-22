@@ -408,7 +408,7 @@ function FlowJoImport({ onTable }: { onTable: (t: DataTableModel) => void }) {
       </label>
       <div className="assay-setup">
         <Button disabled={!text.trim()} onClick={() => take(text)}>Read pasted table</Button>
-        {msg && <span className="hint-block" role="status">{msg}</span>}
+        <span className="hint-block" role="status">{msg}</span>
       </div>
     </>
   );

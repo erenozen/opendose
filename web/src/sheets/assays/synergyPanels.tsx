@@ -46,7 +46,7 @@ function PasteMatrix({ parentId, yTitle }: { parentId: string; yTitle: string })
         onChange={(e) => setText(e.target.value)} />
       <div className="inline-actions">
         <Button disabled={!text.trim()} onClick={fill}>Fill the table</Button>
-        {msg && <span className="field-note" role="status">{msg}</span>}
+        <span className="field-note" role="status">{msg}</span>
       </div>
     </details>
   );

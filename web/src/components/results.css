@@ -64,6 +64,8 @@
   .results-table .derived th { padding-left: 0; color: var(--ink); }
 
   .results-table.goodness { border-top: 1px solid var(--line-solid); border-bottom: none; }
+  /* a key's label keeps a readable width beside a long value */
+  .results-table.goodness tbody th { min-width: 14ch; }
   .results-table.goodness thead tr:last-child th { border-bottom: none; }
 }
 

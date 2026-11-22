@@ -264,7 +264,7 @@ function ExportImport({ onTable }: { onTable: (t: DataTableModel) => void }) {
       </label>
       <div className="assay-setup">
         <Button disabled={!text.trim()} onClick={() => load(parseSource(text))}>Read pasted export</Button>
-        {msg && <span className="hint-block" role="status">{msg}</span>}
+        <span className="hint-block" role="status">{msg}</span>
       </div>
       {src && map && (
         <>

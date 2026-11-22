@@ -382,7 +382,7 @@ function ImportStep({ table, format, onFormat, onTable }: {
         <Button disabled={!text.trim() || busy} onClick={() => take([parseSource(text)])}>
           Read pasted plates
         </Button>
-        {msg && <span className="hint-block" role="status">{msg}</span>}
+        <span className="hint-block" role="status">{msg}</span>
       </div>
     </>
   );
