@@ -102,11 +102,12 @@ async function fixture(s, file, { live = false } = {}) {
   await waitEngine(s);
   if (live) await waitLive(s);
 }
-/** The engine is up: no boot progress anywhere, no boot words in the
- *  header status. */
-const waitEngine = (s) => s.page.waitForFunction(() => !document.querySelector(".engine-progress, .engine-boot-note")
-  && !/runtime|NumPy|engine…|Starting/i.test(document.querySelector("header .status")?.textContent ?? ""),
-null, { timeout: 240000, polling: 500 });
+/** The engine is up: every engine boot slot on the page says ready (the
+ *  slot stays mounted after the boot, DECISIONS 4). */
+const waitEngine = (s) => s.page.waitForFunction(
+  () => !document.querySelector('[data-engine-phase]:not([data-engine-phase="ready"])')
+    && globalThis.__opendoseEngine?.state.phase === "ready",
+  null, { timeout: 240000, polling: 500 });
 const waitLive = (s, timeout = 240000) =>
   s.page.locator('.pane-results[data-live="true"]').first().waitFor({ timeout });
 const settle = async (s, ms = 700) => {
@@ -189,9 +190,9 @@ const scenes = [
     await holdEngine(s);
     await start(s);
     await click(s, s.page.getByRole("button", { name: /^New empty XY/ }));
-    await s.page.locator(".engine-progress").waitFor({ timeout: 60000 });
+    await s.page.locator(".welcome .engine-slot").waitFor({ timeout: 60000 });
     await s.page.waitForFunction(() => /[1-9]/.test(
-      document.querySelector(".engine-progress-bytes")?.textContent?.split(" of ")[0] ?? ""), null,
+      document.querySelector(".welcome .engine-slot-bytes")?.textContent?.split(" of ")[0] ?? ""), null,
     { timeout: 60000 });
     await into(s, ".welcome", "center");
   } },
@@ -315,7 +316,7 @@ const scenes = [
   { name: "shell-status-import", setup: async (s) => {
     await fixture(s, join(FIXTURES, "sample.pzfx"));
     await s.page.locator(".pzfx-chooser").getByRole("button", { name: "Import all" }).click({ timeout: 240000 });
-    await s.page.waitForFunction(() => /Imported/.test(document.querySelector("header .status")?.textContent ?? ""),
+    await s.page.waitForFunction(() => /Imported/.test(document.querySelector(".toast-region")?.textContent ?? ""),
       null, { timeout: 60000 });
   } },
   { name: "shell-status-error", setup: async (s) => {
@@ -323,7 +324,7 @@ const scenes = [
     writeFileSync(bad, "{ \"this is\": \"not an OpenDose project\" }");
     await example(s); // engine up first: its boot messages share the status line
     await s.page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]', bad);
-    await s.page.waitForFunction(() => /Could not load/.test(document.querySelector("header .status")?.textContent ?? ""),
+    await s.page.waitForFunction(() => /Could not open/.test(document.querySelector(".toast-region")?.textContent ?? ""),
       null, { timeout: 30000 });
   } },
 

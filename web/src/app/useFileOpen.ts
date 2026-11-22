@@ -1,4 +1,5 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { dismissToast, notify } from "../components/ui/Toast.store";
 import { analyzeAsync } from "../lib/engine";
 import { newId } from "../project/ids";
 import { parseProjectFile, savedSelection } from "../project/persist";
@@ -6,14 +7,30 @@ import { useProject } from "./context";
 import { prepareReproduceCheck } from "./reproduceCheck";
 import { prismTableToFamily, type PrismTable } from "./factory";
 
+/** Files Open takes: OpenDose projects and Prism files. */
+export const OPEN_ACCEPT = ".json,.pzfx,.prism,.zip";
+const PRISM = /\.(pzfx|prism|prism\.zip|zip)$/i;
+/** One toast follows an open from "Opening…" to its outcome. */
+const TOAST_ID = "open-file";
+
 /**
  * Open button: an OpenDose project (.json, v1 or v2) replaces the project;
  * a Prism file (.pzfx / .prism) adds its data tables to the project as new
  * families (one picked from a chooser, or all of them).
+ *
+ * Feedback (DECISIONS 6): a progress toast while the file is read (Prism
+ * files wait for the engine), resolved in place; a failure is an error
+ * toast with "Choose another file". Ctrl/Cmd+O opens the file picker.
+ * `onOpen` runs as a file starts opening (the shell closes the start
+ * screen).
  */
-export function useFileOpen() {
-  const { apply, replace, select, setStatus, store } = useProject();
+export function useFileOpen(onOpen?: () => void) {
+  const { apply, replace, select, store, engineReady } = useProject();
   const [prismTables, setPrismTables] = useState<PrismTable[] | null>(null);
+  const engineReadyRef = useRef(engineReady);
+  engineReadyRef.current = engineReady;
+  const onOpenRef = useRef(onOpen);
+  onOpenRef.current = onOpen;
 
   const importTables = useCallback((tables: PrismTable[]) => {
     let first = "";
@@ -28,9 +45,9 @@ export function useFileOpen() {
     });
     setPrismTables(null);
     if (first) select(first);
-    setStatus(`Imported ${tables.length} data table${tables.length === 1 ? "" : "s"} from the `
-      + "Prism file; analyses are recomputed here.");
-  }, [apply, select, setStatus]);
+    notify(`Imported ${tables.length} data table${tables.length === 1 ? "" : "s"} from the `
+      + "Prism file; analyses are recomputed here.", { tone: "success", id: TOAST_ID });
+  }, [apply, select]);
 
   const openPrism = useCallback(async (file: File) => {
     // Sent as bytes for both formats: a .prism file is a zip archive, and
@@ -49,12 +66,24 @@ export function useFileOpen() {
       throw new Error(res.error ?? "no tables found");
     }
     if (res.tables.length === 1) importTables(res.tables);
-    else setPrismTables(res.tables);
+    else {
+      // The chooser banner is the next step; it says what to do.
+      dismissToast(TOAST_ID);
+      setPrismTables(res.tables);
+    }
   }, [importTables]);
 
+  // `pick` and `open` refer to each other ("Choose another file").
+  const pickRef = useRef<() => void>(() => {});
+
   const open = useCallback(async (file: File) => {
+    onOpenRef.current?.();
+    const prism = PRISM.test(file.name);
+    notify(prism && !engineReadyRef.current
+      ? `Opening “${file.name}” once the analysis engine has loaded…`
+      : `Opening “${file.name}”…`, { tone: "progress", id: TOAST_ID });
     try {
-      if (/\.(pzfx|prism|prism\.zip|zip)$/i.test(file.name)) {
+      if (prism) {
         await openPrism(file);
         return;
       }
@@ -62,11 +91,40 @@ export function useFileOpen() {
       const project = parseProjectFile(text, { prefs: store.project.prefs, ids: newId });
       // Saved by another build: recompute and compare (stable-results-versions).
       replace(prepareReproduceCheck(text, project, file.name), savedSelection(text));
-      setStatus("");
+      notify(`Opened “${file.name}”.`, { tone: "success", id: TOAST_ID });
     } catch (e) {
-      setStatus(`Could not load file: ${e instanceof Error ? e.message : e}`);
+      notify(`Could not open “${file.name}”: ${e instanceof Error ? e.message : e}`, {
+        tone: "error", id: TOAST_ID,
+        action: { label: "Choose another file", onAction: () => pickRef.current() },
+      });
     }
-  }, [openPrism, replace, setStatus, store]);
+  }, [openPrism, replace, store]);
 
-  return { open, prismTables, importTables, dismissPrism: () => setPrismTables(null) };
+  /** Opens the system file picker; the chosen file is opened. */
+  const pick = useCallback(() => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = OPEN_ACCEPT;
+    input.addEventListener("change", () => {
+      const f = input.files?.[0];
+      if (f) void open(f);
+    }, { once: true });
+    input.click();
+  }, [open]);
+  pickRef.current = pick;
+
+  // Ctrl/Cmd+O: Open, as in every desktop app.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.defaultPrevented || !(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey) return;
+      if (e.key.toLowerCase() !== "o") return;
+      if ((e.target as HTMLElement)?.closest?.("dialog")) return;
+      e.preventDefault();
+      pickRef.current();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  return { open, pick, prismTables, importTables, dismissPrism: () => setPrismTables(null) };
 }

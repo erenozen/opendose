@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useProject } from "../../app/context";
 import { addFamily } from "../../app/factory";
 import Modal from "../../components/Modal";
+import { Button, Field, Input, useValidationTiming } from "../../components/ui";
 import { runEngine } from "../../lib/engine";
 import { newId } from "../../project/ids";
 import { findSheet, nextNumberedName, updateSheet } from "../../project/ops";
@@ -38,21 +39,28 @@ function SimulateDialog({ req, onClose }: { req: Request; onClose: () => void })
   const [name, setName] = useState(() => editing?.name ?? nextNumberedName(project, "Simulated data"));
   const [seed, setSeed] = useState(spec ? String(spec.seed) : "");
   const [runError, setRunError] = useState<string | null>(null);
+  const [running, setRunning] = useState(false);
+  // Problems show after a field is left or a submit is tried, and clear
+  // as soon as they are fixed (reward early, punish late).
+  const [attempts, setAttempts] = useState(0);
   const form = forms[kind];
 
+  const seedProblem = seed.trim() && !/^\d+$/.test(seed.trim()) ? "Enter a whole number, or leave it blank" : null;
   const problem = useMemo(() => {
     try {
       simOptions(kind, form);
-      if (seed.trim() && !/^\d+$/.test(seed.trim())) return "The seed must be a whole number";
       return null;
     } catch (e) {
       return e instanceof Error ? e.message : String(e);
     }
-  }, [kind, form, seed]);
+  }, [kind, form]);
+  const shown = useValidationTiming(problem, attempts);
 
   const submit = async () => {
-    if (problem || !engineReady) return;
+    if (running || !engineReady) return;
+    if (problem || seedProblem) { setAttempts((n) => n + 1); return; }
     const s = seed.trim() ? Number(seed.trim()) : randomSeed();
+    setRunning(true);
     try {
       const table = await runEngine((engine) => simulateTable(engine, kind, form, s), { priority: "user" });
       if (editing) {
@@ -71,6 +79,8 @@ function SimulateDialog({ req, onClose }: { req: Request; onClose: () => void })
       onClose();
     } catch (e) {
       setRunError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setRunning(false);
     }
   };
 
@@ -79,13 +89,14 @@ function SimulateDialog({ req, onClose }: { req: Request; onClose: () => void })
       className="modal-wide simulate-dialog" onClose={onClose} onSubmit={submit}
       actions={
         <>
-          <button type="button" onClick={onClose}>Cancel</button>
-          <button type="submit" className="btn-primary" disabled={!!problem || !engineReady}>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button type="submit" variant="primary" disabled={!engineReady} busy={running}
+            busyLabel="Simulating…">
             {editing ? "Simulate" : "Create table"}
-          </button>
+          </Button>
         </>
       }>
-      <div className="simulate-body">
+      <div className="simulate-body" onBlur={shown.onBlur}>
         <div className="field-row">
           {!editing && (
             <fieldset className="field-radios sim-kind">
@@ -98,16 +109,14 @@ function SimulateDialog({ req, onClose }: { req: Request; onClose: () => void })
               ))}
             </fieldset>
           )}
-          <label className="field">
-            <span>Name</span>
-            <input value={name} onChange={(e) => setName(e.target.value)} aria-label="Table name" />
-          </label>
-          <label className="field field-num">
-            <span>Random seed</span>
-            <input inputMode="numeric" value={seed} placeholder="new"
+          <Field label="Table name">
+            <Input value={name} onChange={(e) => setName(e.target.value)} />
+          </Field>
+          <Field label="Random seed" className="field-num" error={seedProblem} submitCount={attempts}>
+            <Input inputMode="numeric" value={seed} placeholder="new" autoComplete="off"
               onChange={(e) => setSeed(e.target.value)}
               aria-describedby="sim-seed-note" />
-          </label>
+          </Field>
         </div>
         <p className="field-note" id="sim-seed-note">
           Leave the seed blank for fresh random numbers; the same seed and
@@ -117,7 +126,7 @@ function SimulateDialog({ req, onClose }: { req: Request; onClose: () => void })
           onChange={(f) => { setForms((m) => ({ ...m, [kind]: f })); setRunError(null); }} />
         <p className="sim-status" role="status" aria-live="polite">
           {!engineReady ? "The analysis engine is still loading…"
-            : problem ?? runError ?? ""}
+            : shown.problem ?? runError ?? ""}
         </p>
       </div>
     </Modal>

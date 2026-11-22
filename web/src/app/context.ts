@@ -35,8 +35,6 @@ export interface ProjectApi {
   engineError: string | null;
   /** Boot progress and busy state of the engine worker. */
   engine: EngineState;
-  status: string;
-  setStatus: (s: string) => void;
   bootEngine: () => void;
 
   results: ResultsCache;

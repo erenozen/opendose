@@ -1,10 +1,13 @@
-// The engine's state where the results are: a progress bar while the
-// engine boots, and a busy line ("Computing… 3.2 s" with Cancel) while a
-// results sheet's analysis runs. Neither blocks anything: the engine runs
-// in a worker, so the grid stays editable throughout.
-import { useEffect, useState } from "react";
+// The engine's state where the results are: a fixed slot with the boot
+// phase (DECISIONS 4), the boot banner above saved results, and a busy
+// line ("Computing… 3.2 s" with Cancel) while a results sheet's analysis
+// runs. None of them blocks anything: the engine runs in a worker, so the
+// grid stays editable throughout.
+import { useEffect, useState, type ReactNode } from "react";
 import type { AnalysisStatus } from "../app/useAnalysisResult";
 import type { EngineState } from "../lib/engine";
+import { Banner } from "./ui/Banner";
+import { Button } from "./ui/Button";
 import "./engineStatus.css";
 
 /** A job running this long is called out, with Cancel kept at hand. */
@@ -16,41 +19,125 @@ function mb(n: number): string {
   return (n / 1e6).toFixed(n >= 1e7 ? 0 : 1);
 }
 
-/** Download / start-up progress of the engine (null when it is up). */
-export function EngineProgress({ engine, compact = false }: {
-  engine: EngineState;
-  compact?: boolean;
-}) {
+type EnginePhaseKey = "download" | "start" | "restart" | "ready" | "failed";
+
+/** The phase in words: what the slot's live region says. Bytes are not
+ *  part of it, so each phase is spoken once and the counter never. */
+function enginePhase(engine: EngineState): { key: EnginePhaseKey; words: string } {
+  if (engine.phase === "ready") return { key: "ready", words: "Ready: analyses run on this device" };
+  if (engine.phase === "failed") return { key: "failed", words: "The analysis engine did not load" };
+  if (engine.phase === "restarting") return { key: "restart", words: "Restarting the analysis engine" };
+  if (!engine.progress || engine.progress.phase === "download") {
+    return { key: "download", words: "Downloading the analysis engine" };
+  }
+  return { key: "start", words: "Starting the analysis engine" };
+}
+
+/** "9.4 of 31 MB" while the runtime is (or was, when it failed)
+ *  downloading, else null. */
+function engineBytes(engine: EngineState): string | null {
   const p = engine.progress;
-  const frac = p && p.total > 0 ? Math.min(1, p.loaded / p.total) : 0;
-  const downloading = p?.phase === "download" || (p && p.loaded < p.total * 0.995);
-  const label = p?.message ?? (engine.phase === "restarting"
-    ? "Restarting the analysis engine…" : "Starting the analysis engine…");
+  if (!p || p.total <= 0 || p.loaded >= p.total * 0.995) return null;
+  return `${mb(p.loaded)} of ${mb(p.total)} MB`;
+}
+
+/** The engine boot slot (DECISIONS 4): always mounted at a fixed size
+ *  (340 x 34), so the boot and its end move nothing. A dot, the phase
+ *  words (the only live region), the bytes in tabular figures (hidden
+ *  from screen readers), Try again after a failure, and a 2px bar drawn
+ *  with transform: scaleX. */
+export function EngineSlot({ engine, onRetry }: { engine: EngineState; onRetry?: () => void }) {
+  const { key, words } = enginePhase(engine);
+  const p = engine.progress;
+  const frac = key === "ready" ? 1 : p && p.total > 0 ? Math.min(1, p.loaded / p.total) : 0;
+  const bytes = key === "download" ? engineBytes(engine) : null;
   return (
-    <div className={`engine-progress${compact ? " compact" : ""}`}>
-      <div className="engine-progress-text">
-        <span>{label}</span>
-        {p && p.total > 0 && downloading && (
-          <span className="engine-progress-bytes">{mb(p.loaded)} of {mb(p.total)} MB</span>
-        )}
-      </div>
-      <progress max={1} value={p && p.total > 0 ? frac : undefined}
-        aria-label="Loading the analysis engine" />
+    <div className="engine-slot" data-engine-phase={key}>
+      <span className="engine-slot-dot" aria-hidden="true" />
+      <span className="engine-slot-words" role="status">{words}</span>
+      {bytes && <span className="engine-slot-bytes" aria-hidden="true">{bytes}</span>}
+      {key === "failed" && onRetry && (
+        <Button size="sm" className="engine-slot-retry" onClick={onRetry}>Try again</Button>
+      )}
+      <span className="engine-slot-bar" aria-hidden="true">
+        <span className="engine-slot-fill" style={{ transform: `scaleX(${frac})` }} />
+      </span>
     </div>
   );
 }
 
-/** Shown above results that are not (yet) the live engine's, while it loads. */
-export function EngineBootNote({ engine, live }: { engine: EngineState; live: boolean }) {
+/** Several texts in one cell: the cell keeps the height of the tallest,
+ *  so swapping between them moves nothing below. */
+function SameHeight({ shown, items }: { shown: number; items: ReactNode[] }) {
   return (
-    <div className="engine-boot-note" role="note">
-      <p>
-        {live
-          ? "Saved results for this exact data. The live engine is loading."
-          : "Results computed earlier for this example. The live engine is loading and will recompute them."}
-      </p>
-      <EngineProgress engine={engine} compact />
-    </div>
+    <span className="same-height">
+      {items.map((c, i) => (
+        <span key={i} className="same-height-item" data-shown={i === shown}>{c}</span>
+      ))}
+    </span>
+  );
+}
+
+/** Above results that are not (yet) the live engine's while it loads
+ *  (BEF-02). It stays mounted once the engine is up and swaps to
+ *  "Results are live" at the same height, so the plot and the results
+ *  below do not jump while they are read. Shown only when the workspace
+ *  opened before the engine was ready; gone on the next family. */
+export function EngineBootBanner({ engine, ready, live, onRetry }: {
+  engine: EngineState;
+  /** The workspace's own "engine is up" (results are recomputed). */
+  ready: boolean;
+  /** The saved results are for exactly this data (a saved project). */
+  live: boolean;
+  onRetry: () => void;
+}) {
+  const [booting] = useState(!ready);
+  const [open, setOpen] = useState(true);
+  if (!booting) return null;
+  const failed = !ready && engine.phase === "failed";
+  const stopped = engineBytes(engine);
+  // Dismissable in every phase, so the dismiss button's column is there
+  // from the start and the swap to "Results are live" rewraps nothing.
+  // The banner is the pane itself, so dismissing it leaves no empty pane.
+  return (
+    <Banner className="pane pane-boot engine-boot-note" aria-label="Analysis engine" open={open}
+      tone={failed ? "error" : ready ? "success" : "info"}
+      onDismiss={() => setOpen(false)} dismissLabel="Dismiss the engine note">
+      {failed ? (
+        <>
+          <Banner.Title>
+            The analysis engine did not load{stopped ? `: the download stopped at ${stopped}` : ""}.
+          </Banner.Title>
+          <Banner.Detail>
+            These are saved results; edits are not analysed until it loads. Check the
+            connection, then try again.
+          </Banner.Detail>
+        </>
+      ) : (
+        <>
+          <Banner.Title>
+            <SameHeight shown={ready ? 1 : 0} items={[
+              live ? "Saved results for this exact data." : "Saved results for this example.",
+              "Results are live.",
+            ]} />
+          </Banner.Title>
+          <Banner.Detail>
+            <SameHeight shown={ready ? 1 : 0} items={[
+              live ? "The live engine is loading." : "The live engine is loading and will recompute them.",
+              "Recomputed on this device. Edits are analysed as you type.",
+            ]} />
+          </Banner.Detail>
+        </>
+      )}
+      <Banner.Detail className="engine-boot-slot">
+        <EngineSlot engine={engine} />
+      </Banner.Detail>
+      {failed && (
+        <Banner.Actions>
+          <Button variant="primary" onClick={onRetry}>Try again</Button>
+        </Banner.Actions>
+      )}
+    </Banner>
   );
 }
 

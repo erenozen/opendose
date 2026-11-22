@@ -1,19 +1,14 @@
-/* ============================ pzfx chooser ============================ */
+/* Where app-level banners sit (App.tsx): conditions about the whole
+   project (restore the last session, the Prism table chooser, a shared
+   read-only project, a reproduce check) stack under the header as
+   full-width tiles on a 1px seam. The Banner itself is
+   components/ui/Banner.css. */
 
-.pzfx-chooser, .restore-banner {
-  display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8);
-  margin: var(--space-16) var(--space-24) 0; padding: 10px 14px;
-  border: 1px solid var(--accent-border); border-radius: var(--radius-control);
-  background: var(--accent-soft);
-  font-size: var(--text-body-s);
-  max-width: 1632px;
-  /* Rare event (file import), so an entrance is earned */
-  transition: opacity var(--dur-enter) var(--ease-out), transform var(--dur-enter) var(--ease-out);
-  opacity: 1; transform: translateY(0);
-  @starting-style { opacity: 0; transform: translateY(-6px); }
+.banner-region { display: flex; flex-direction: column; }
+.banner-region > .banner { border-width: 0 0 1px; border-radius: 0; }
+.banner-region > .banner .banner-grid { padding-left: var(--space-24); }
+@media (max-width: 760px) {
+  .banner-region > .banner .banner-grid { padding-left: var(--space-12); }
 }
-.pzfx-chooser button, .restore-banner button {
-  padding: var(--space-4) 10px; background: var(--surface);
-}
-.restore-banner .btn-primary { background: var(--accent-fill); }
-.pzfx-chooser button.dismiss, .restore-banner button.dismiss { opacity: 0.75; }
+
+@media print { .banner-region { display: none; } }

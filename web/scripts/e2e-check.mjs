@@ -290,7 +290,7 @@ expect("nested t test: t = 2.771, df = 4, P = 0.05026",
 
 // --- .pzfx import via the header Open button ---
 const PZFX = join(here, "..", "e2e-fixtures", "sample.pzfx");
-await page.setInputFiles('.load-btn input[type="file"]', PZFX);
+await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]', PZFX);
 await page.waitForSelector(".pzfx-chooser", { timeout: 30000 });
 await page.locator(".pzfx-chooser button", { hasText: "Dose response" }).click();
 await page.waitForSelector(".results-table", { timeout: 60000 });
@@ -306,7 +306,7 @@ console.log("pzfx-imported fit midpoint row:", pzfxRow.replace(/\s+/g, " "));
 // sheet should arrive, so this loads without showing the table chooser.
 const PRISM = join(here, "..", "..", "engine", "tests", "fixtures",
   "synthetic_project.prism");
-await page.setInputFiles('.load-btn input[type="file"]', PRISM);
+await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]', PRISM);
 await page.waitForFunction(
   () => document.querySelectorAll(".dataset-card, .result-card").length > 0,
   { timeout: 30000 },
@@ -329,7 +329,7 @@ for (const card of await page.locator(".result-card:has(.derived)").all()) {
 // A Prism "TwoWay" table imports as a grouped table and runs two-way
 // ANOVA. statsmodels anova_lm(typ=3) on the fixture: datasets factor
 // F(1, 8) = 270.75 (SS 270.75, MS residual 8 / 8 = 1).
-await page.setInputFiles('.load-btn input[type="file"]',
+await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]',
   join(here, "..", "e2e-fixtures", "grouped.pzfx"));
 await page.waitForSelector(".result-card h3:has-text('Two-way ANOVA')", { timeout: 60000 });
 await page.waitForTimeout(600);
@@ -517,7 +517,7 @@ writeFileSync(V1, JSON.stringify({
   options: { model: "log_inhibitor_vs_response_4pl" }, xUnit: "M",
   scheme: "default", titles: { xy: { x: "", y: "Viability" } },
 }));
-await page.setInputFiles('.load-btn input[type="file"]', V1);
+await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]', V1);
 await page.waitForSelector(".result-card h3:has-text('Legacy drug')", { timeout: 60000 });
 expect("v1 file opens as one data table + results + graph",
   await page.locator(".nav-item.level-2[data-key^='data:']").count() === 1
@@ -571,7 +571,7 @@ await navRow("Two-factor data").click({ button: "right" });
 await page.getByRole("menuitem", { name: /Delete/ }).click();
 await page.getByRole("alertdialog").getByRole("button", { name: "Delete" }).click();
 expect("delete removes the sheet", await navRow("Two-factor data").count() === 0);
-await page.setInputFiles('.load-btn input[type="file"]', SAVED);
+await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]', SAVED);
 await page.waitForTimeout(500);
 expect("saved project reopens with the grouped table",
   await navRow("Two-factor data").count() === 1
@@ -1091,7 +1091,7 @@ expect("the saved project holds the group and the note",
 // reopen the saved file, then reload the page and restore the session
 await navRow("Org target").click({ button: "right" });
 await page.getByRole("menuitem", { name: "Remove from group" }).click();
-await page.setInputFiles('.load-btn input[type="file"]', orgSaved.path);
+await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]', orgSaved.path);
 await page.waitForTimeout(500);
 await navRow("Org source").click();
 expect("reopened file: group and note are back",
@@ -1506,7 +1506,7 @@ expect("ambiguous fit banner with concrete fixes for a flat dataset",
   await p3.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 180000 });
   const tops = await p3.evaluate(() => ["Undo", "Save project", "More actions"].map((n) =>
     Math.round(document.querySelector(`header [aria-label="${n}"]`)?.getBoundingClientRect().top ?? -99))
-    .concat(Math.round(document.querySelector("header .load-btn").getBoundingClientRect().top)));
+    .concat(Math.round(document.querySelector("header .open-btn").getBoundingClientRect().top)));
   expect("phone header: undo, save, open and More on one row",
     tops.every((t) => t >= 0 && Math.abs(t - tops[0]) <= 4), tops.join(", "));
   expect("phone header: secondary actions folded away",
@@ -1640,7 +1640,7 @@ const pzOneXml = readFileSync(pzOnePath, "utf8");
 expect("table exported as .pzfx with the Mean/SD/N format",
   pzOne.suggestedFilename() === "imported-csv.pzfx" && pzOneXml.includes('YFormat="SDN"')
   && pzOneXml.includes("<Title>Imported CSV</Title>"), pzOne.suggestedFilename());
-await page.setInputFiles('.load-btn input[type="file"]', pzOnePath);
+await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]', pzOnePath);
 await page.waitForFunction(() => document.querySelector(
   ".data-table input[aria-label='Drug A, Mean, row 1']"), null, { timeout: 30000 });
 expect(".pzfx round trip: the re-imported table is a Mean/SD/N table named after the export",
@@ -1656,7 +1656,7 @@ const [pzAll] = await Promise.all([
 ]);
 const pzAllPath = join(tmp, pzAll.suggestedFilename());
 await pzAll.saveAs(pzAllPath);
-await page.setInputFiles('.load-btn input[type="file"]', pzAllPath);
+await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]', pzAllPath);
 await page.waitForSelector(".pzfx-chooser", { timeout: 30000 });
 const chooser = await page.locator(".pzfx-chooser").innerText();
 expect(".pzfx project export lists its tables on re-import (contingency stays contingency)",
@@ -2600,7 +2600,7 @@ const axeOn = async (pg, sel) => {
   const older = { ...saved, savedWith: { ...saved.savedWith, app: "0.2.0" } };
   const OLD = join(tmp, "saved-with-0.2.0.json");
   writeFileSync(OLD, JSON.stringify(older));
-  await p4.setInputFiles('.load-btn input[type="file"]', OLD);
+  await p4.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]', OLD);
   const strip = p4.getByRole("region", { name: "Reproducing saved results" });
   await strip.waitFor({ timeout: 30000 });
   const done = await p4.waitForFunction(() => /reproduced with|changed with/.test(
@@ -2623,7 +2623,7 @@ const axeOn = async (pg, sel) => {
   ct.cached.chi_square.p = 0.0234;
   const OLD2 = join(tmp, "saved-with-0.2.0-patched.json");
   writeFileSync(OLD2, JSON.stringify(older));
-  await p4.setInputFiles('.load-btn input[type="file"]', OLD2);
+  await p4.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]', OLD2);
   const changed = await p4.waitForFunction(() => /changed with/.test(
     document.querySelector(".reproduce-strip .rs-headline")?.textContent ?? ""), null, { timeout: 180000 })
     .then(() => true, () => false);
@@ -3103,11 +3103,11 @@ const axeOn = async (pg, sel) => {
     && await ch.getByRole("button", { name: /Dose response/ }).count() === 1
     && await ch.getByRole("button", { name: /Groups/ }).count() === 1);
   await ch.getByRole("button", { name: "Import all" }).click();
-  expect("Import all: every data table arrives, with the recompute note in the status line",
+  expect("Import all: every data table arrives, with the recompute note in a toast",
     await p3.getByRole("treeitem", { name: "Dose response", exact: true }).waitFor({ timeout: 30000 })
       .then(() => true, () => false)
     && await p3.getByRole("treeitem", { name: "Groups", exact: true }).count() === 1
-    && (await p3.locator("header .status").innerText()).includes("analyses are recomputed here"));
+    && (await p3.getByRole("region", { name: "Notifications (F6)" }).innerText()).includes("analyses are recomputed here"));
   // A table whose results and graphs are deleted lists where to start.
   const groupsItem = p3.getByRole("treeitem", { name: "Groups", exact: true });
   for (let i = 0; i < 6; i++) {

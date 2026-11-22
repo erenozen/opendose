@@ -4,6 +4,7 @@ import {
   templateShape, useSavedTemplates,
 } from "../app/templates";
 import { newId } from "../project/ids";
+import { FileButton } from "./ui/Button";
 import { TABLE_TOKEN, type SheetTemplate } from "../project/templates";
 import type { ProjectPrefs } from "../project/types";
 import { REGISTRY } from "../sheets/registry";
@@ -126,16 +127,9 @@ export default function TemplatePicker({ prefs, defaultName, onChange }: {
             )}
           </>
         )}
-        <label className="load-btn template-import">
-          Import template file…
-          <input type="file" accept=".json,application/json" hidden
-            aria-label="Import a template file"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) void onImport(f);
-              e.target.value = "";
-            }} />
-        </label>
+        <FileButton className="template-import" accept=".json,application/json"
+          inputLabel="Import a template file" onFile={(f) => void onImport(f)}>
+          Import template file…</FileButton>
         {importMsg && <p className="field-note" role="status">{importMsg}</p>}
         {error && <p className="field-note" role="alert">{error}</p>}
       </div>

@@ -1,0 +1,26 @@
+/* Field and NumberField (Field.tsx, NumberField.tsx). They build on the
+   shared .field look in styles/controls.css (label above, 13px, inset
+   input); this adds the label weight, the error line, the invalid edge
+   and the unit suffix. Touch screens get 16px text from the global rule
+   in base.css. */
+
+.ui-field-label { font-weight: var(--weight-medium); }
+.ui-field-error {
+  margin: 0; color: var(--danger);
+  font-size: var(--text-caption); line-height: var(--leading-body);
+}
+.ui-field-error[hidden] { display: none; }
+.ui-field[data-invalid] input { border-color: var(--danger); }
+
+/* A field that takes one number: narrow, tabular figures. */
+.ui-number { position: relative; display: inline-flex; align-items: center; max-width: 100%; }
+.ui-number-field .ui-number input {
+  width: 90px; font-variant-numeric: tabular-nums;
+}
+/* The unit sits inside the field's edge; clicks fall through to the
+   input. Room is made by padding, sized to the unit's length. */
+.ui-number[data-unit] input { padding-right: calc(9px + var(--unit-ch, 2ch)); width: calc(90px + var(--unit-ch, 2ch)); }
+.ui-number-unit {
+  position: absolute; right: 9px; top: 50%; transform: translateY(-50%);
+  color: var(--muted); font-size: var(--text-body-s); pointer-events: none;
+}

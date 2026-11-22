@@ -8,7 +8,7 @@ import type Plotly from "plotly.js-dist-min";
 import { useProject } from "../app/context";
 import { useUi } from "../app/ui";
 import Modal from "../components/Modal";
-import { saveBlob } from "../export/download";
+import { copyText, saveBlob } from "../export/download";
 import { analyzeAsync, isCancelled } from "../lib/engine";
 import { DEFAULT_SCHEME, seriesStyle } from "../lib/palette";
 import { newId } from "../project/ids";
@@ -133,7 +133,7 @@ function PowerTool({ pilot }: { pilot?: PilotData }) {
       return addSheets(p, [sheet]);
     });
     select(id);
-    ui.notify("Saved as the info sheet “Sample size justification”.");
+    ui.notify("Saved as the info sheet “Sample size justification”.", { tone: "success" });
   };
 
   const k = form.kind;
@@ -199,9 +199,11 @@ function PowerTool({ pilot }: { pilot?: PilotData }) {
             <h3>Sample-size justification</h3>
             <p className="power-sentence">{result.justification.text}</p>
             <div className="inline-actions">
-              <button type="button" onClick={() => {
-                void navigator.clipboard?.writeText(result.justification!.text);
-                ui.notify("Justification copied.");
+              <button type="button" onClick={async () => {
+                // copyText says whether the clipboard took it (GF-07).
+                const ok = await copyText(result.justification!.text);
+                ui.notify(ok ? "Justification copied." : "Copy failed: select the sentence and copy it.",
+                  { tone: ok ? "success" : "error" });
               }}>Copy</button>
               <button type="button" className="btn-primary" disabled={readOnly} onClick={save}>
                 Save to project
