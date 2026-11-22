@@ -3,6 +3,9 @@ import { updateSheet } from "../project/ops";
 import type { InfoConstant, InfoSheet, Sheet } from "../project/types";
 import { emptyPlan, planFromResults, resultsOf } from "../project/plan";
 import AnalysisPlanView from "./AnalysisPlanView";
+import { Button, IconButton } from "./ui";
+import { CloseIcon } from "./ui/feedbackIcons";
+import { ArrowDownIcon, ArrowUpIcon, PlusIcon } from "../sheets/common/gridIcons";
 
 /**
  * Info sheet: a table of named constants on the left (experiment date,
@@ -50,7 +53,7 @@ export default function InfoSheetView({ sheet }: { sheet: InfoSheet }) {
           </p>
           <table className="info-table">
             <thead>
-              <tr><th scope="col">Name</th><th scope="col">Value</th><th aria-hidden="true" /></tr>
+              <tr><th scope="col">Name</th><th scope="col">Value</th><td /></tr>
             </thead>
             <tbody>
               {c.map((row, i) => (
@@ -68,22 +71,22 @@ export default function InfoSheetView({ sheet }: { sheet: InfoSheet }) {
                   <td className="info-row-tools">
                     {!ro && (
                       <>
-                        <button type="button" aria-label={`Move ${row.name || "row"} up`}
+                        <IconButton size="sm" aria-label={`Move ${row.name || "row"} up`}
                           disabled={i === 0}
                           onClick={() => {
                             const next = [...c];
                             [next[i - 1], next[i]] = [next[i], next[i - 1]];
                             setConstants(next);
-                          }}>↑</button>
-                        <button type="button" aria-label={`Move ${row.name || "row"} down`}
+                          }}><ArrowUpIcon /></IconButton>
+                        <IconButton size="sm" aria-label={`Move ${row.name || "row"} down`}
                           disabled={i === c.length - 1}
                           onClick={() => {
                             const next = [...c];
                             [next[i + 1], next[i]] = [next[i], next[i + 1]];
                             setConstants(next);
-                          }}>↓</button>
-                        <button type="button" aria-label={`Delete ${row.name || "row"}`}
-                          onClick={() => setConstants(c.filter((_, j) => j !== i))}>✕</button>
+                          }}><ArrowDownIcon /></IconButton>
+                        <IconButton size="sm" aria-label={`Delete ${row.name || "row"}`}
+                          onClick={() => setConstants(c.filter((_, j) => j !== i))}><CloseIcon /></IconButton>
                       </>
                     )}
                   </td>
@@ -92,9 +95,10 @@ export default function InfoSheetView({ sheet }: { sheet: InfoSheet }) {
             </tbody>
           </table>
           {!ro && (
-            <div className="table-actions">
-              <button type="button"
-                onClick={() => setConstants([...c, { name: "", value: "" }])}>+ Constant</button>
+            <div className="table-actions" data-still>
+              <Button variant="ghost" size="sm"
+                onClick={() => setConstants([...c, { name: "", value: "" }])}>
+                <PlusIcon />Add constant</Button>
             </div>
           )}
           <label className="field info-link">

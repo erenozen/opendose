@@ -2,37 +2,28 @@
    sheets, and the "Convert table to…" / "Describe the experiment"
    dialogs. Tokens only (styles/tokens.css). */
 
-.paste-report {
-  display: flex; align-items: flex-start; gap: var(--space-8);
-  margin: var(--space-6) var(--space-2) var(--space-2); padding: var(--space-6) var(--space-8) var(--space-6) var(--space-12);
-  font-size: var(--text-body-s); line-height: 1.5; color: var(--ink-2);
-  background: var(--inset); border-radius: var(--radius-control);
+/* The grid note (a Banner, PasteReportStrip.tsx): the report line is the
+   body text, the cells in it are links to the cell. */
+.paste-report-line {
+  margin: 0; font-size: var(--text-body-s); line-height: var(--leading-body); color: var(--ink-2);
+  overflow-wrap: anywhere;
 }
-.paste-report-warn {
-  background: color-mix(in srgb, var(--warn) 10%, var(--surface));
-  border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent);
-}
-.paste-report-line { margin: 0; flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .paste-report-line strong { color: var(--ink); font-weight: var(--weight-semibold); }
 .paste-report-part.tone-warn { color: var(--warn-ink); font-weight: var(--weight-medium); }
 .paste-report-sep { color: var(--muted); }
 .paste-report button.linkish.cell-ref { color: var(--ink); font-weight: var(--weight-semibold); font-variant-numeric: tabular-nums; }
-.paste-report-actions { display: flex; gap: var(--space-6); align-items: center; flex-shrink: 0; }
-.paste-report-actions button { padding: 3px 9px; font-size: var(--text-caption); }
-.paste-report-close { min-width: 26px; }
 
 /* Notes strip on results sheets */
+/* Notes on the data analysed, under the results: plain text on a
+   hairline (the results pane's one tinted callout is in its headline). */
 .notes-strip {
-  margin: 0 0 10px; padding: var(--space-8) var(--space-12); font-size: var(--text-body-s); line-height: 1.5;
-  color: var(--ink-2); background: var(--inset); border-radius: var(--radius-control);
+  margin: 0 0 var(--space-12); padding: var(--space-8) 0 0; font-size: var(--text-body-s);
+  line-height: var(--leading-body); color: var(--ink-2); border-top: 1px solid var(--line);
 }
-.notes-strip.has-warn {
-  background: color-mix(in srgb, var(--warn) 8%, var(--surface));
-  border: 1px solid color-mix(in srgb, var(--warn) 30%, transparent);
-}
+.notes-strip p, .notes-strip ul { max-width: 72ch; }
 .notes-strip h3 {
-  margin: 0 0 var(--space-2); font-size: var(--text-label); font-weight: var(--weight-semibold); letter-spacing: 0.02em;
-  text-transform: uppercase; color: var(--muted);
+  margin: 0 0 var(--space-2); font-size: var(--text-label); font-weight: var(--weight-semibold);
+  color: var(--muted);
 }
 .notes-strip .analysed-line { margin: 0; color: var(--ink); }
 .notes-strip ul { margin: var(--space-4) 0 0; padding-left: 18px; }
@@ -65,11 +56,7 @@
 .design-examples { display: flex; flex-wrap: wrap; gap: var(--space-6); margin: var(--space-4) 0 var(--space-8); }
 .design-examples button { padding: var(--space-4) 10px; font-size: var(--text-body-s); }
 
-.type-list .design-entry { display: block; margin: 0 0 var(--space-8); font-size: var(--text-body-s); }
+.type-list .design-entry { display: block; align-self: flex-start; text-align: start; margin: 0 0 var(--space-8); font-size: var(--text-body-s); }
 .design-chosen strong { color: var(--ink); }
 .describe-experiment { margin: 0 var(--space-8) var(--space-12) 0; }
 
-@media (max-width: 640px) {
-  .paste-report { flex-direction: column; }
-  .paste-report-actions { align-self: flex-end; }
-}

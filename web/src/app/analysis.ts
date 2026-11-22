@@ -144,6 +144,15 @@ export class ResultsCache {
     this.notify(id);
   }
 
+  /** Drop the result of `id` so it is computed again ("Run again" after
+   *  a failed run: a failure is cached like any result). */
+  forget(id: string) {
+    if (this.pend.has(id)) return;
+    this.map.delete(id);
+    this.cancelled.delete(id);
+    this.notify(id);
+  }
+
   /**
    * Compute a results sheet's result in the engine. A newer run for the
    * same sheet cancels this one (typing on: only the latest input

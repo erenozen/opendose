@@ -4,12 +4,15 @@ import type { CellRect } from "../../project/table";
 import type { DataTableModel } from "../../project/types";
 import { formatSig } from "../../types";
 
-/** Small card under the grid: descriptive numbers for the selected cells
- *  (or, with one cell selected, for its whole column). */
-export default function DataInspector({ table, rect, scope }: {
+/** Under the grid while cells are selected: descriptive numbers for the
+ *  selected cells (or, with one cell selected, for its whole column), and
+ *  that cell's exclusion with its reason. */
+export default function DataInspector({ table, rect, scope, cellNote }: {
   table: DataTableModel;
   rect: CellRect;
   scope: string;           // what the numbers describe, e.g. "Drug A: Y1"
+  /** The selected cell's exclusion ("This value is excluded: …"). */
+  cellNote?: string;
 }) {
   const s = useMemo(() => selectionStats(table, rect), [table, rect]);
   const f = (v: number | null) => (v === null ? "–" : formatSig(v));
@@ -32,6 +35,7 @@ export default function DataInspector({ table, rect, scope }: {
           <div key={k}><dt>{k}</dt><dd data-stat={k}>{v}</dd></div>
         ))}
       </dl>
+      {cellNote && <p className="inspector-note">{cellNote}</p>}
     </section>
   );
 }

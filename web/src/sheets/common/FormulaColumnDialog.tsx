@@ -3,6 +3,7 @@
 // syntax), and the column's values are filled by app/useCalculatedSync.
 import { useEffect, useState } from "react";
 import Modal from "../../components/Modal";
+import { Button, Field, Input } from "../../components/ui";
 import { analyzeAsync } from "../../lib/engine";
 import { isCalculated, letterOf } from "../../project/calculated";
 import type { DataTableModel } from "../../project/types";
@@ -21,6 +22,7 @@ export default function FormulaColumnDialog({ table, dataset, isNew, onSave, onS
   const [formula, setFormula] = useState(d?.formula ?? "");
   const [name, setName] = useState(d?.name ?? "");
   const [problem, setProblem] = useState<string | null>(null);
+  const [attempts, setAttempts] = useState(0);
   // what the formula may use: the other columns by letter and name, and X
   const refs = table.datasets.map((c, i) => ({ i, c })).filter(({ i }) => i !== dataset)
     .map(({ i, c }) => ({ letter: letterOf(i), name: c.name.trim(), calc: isCalculated(c) && i < dataset,
@@ -48,27 +50,31 @@ export default function FormulaColumnDialog({ table, dataset, isNew, onSave, onS
   const braced = (n: string) => (/^[A-Za-z_][A-Za-z0-9_]*$/.test(n) ? n : `{${n}}`);
   return (
     <Modal title={isNew ? "New calculated column" : "Calculated column"} onClose={onClose}
-      onSubmit={() => { if (formula.trim() && !problem) onSave(formula.trim(), name.trim() || d?.name || ""); }}
+      onSubmit={() => {
+        // A problem shows under the formula on a submit attempt (forms.md).
+        if (!formula.trim() || problem) { setAttempts((n) => n + 1); return; }
+        onSave(formula.trim(), name.trim() || d?.name || "");
+      }}
       actions={
         <>
-          {onStop && <button type="button" onClick={onStop}
-            title="The column keeps its current values as ordinary typed values">Stop calculating</button>}
-          <button type="button" onClick={onClose}>Cancel</button>
-          <button type="submit" className="btn-primary" disabled={!formula.trim() || !!problem}>
-            {isNew ? "Add column" : "Save"}</button>
+          {onStop && <Button onClick={onStop}
+            title="The column keeps its current values as ordinary typed values">Stop calculating</Button>}
+          <Button onClick={onClose}>Cancel</Button>
+          <Button type="submit" variant="primary">{isNew ? "Add column" : "Save"}</Button>
         </>
       }>
-      <label className="field">
-        <span>Column name</span>
-        <input value={name} onChange={(e) => setName(e.target.value)} aria-label="Calculated column name" />
-      </label>
-      <label className="field">
-        <span>Formula (column {letterOf(dataset)} =)</span>
-        <input className="formula-input" value={formula} autoFocus spellCheck={false}
-          aria-label="Formula of the calculated column" placeholder="e.g. A + B"
+      {/* The formula is what the user came to type: first, so the dialog
+          focuses it on a mouse (no autoFocus: the keyboard would cover
+          the dialog on a phone). */}
+      <Field label={`Formula (column ${letterOf(dataset)} =)`} submitCount={attempts}
+        error={!formula.trim() ? "Enter a formula, such as A + B" : problem}>
+        <Input className="formula-input" value={formula} spellCheck={false} autoComplete="off"
+          autoCorrect="off" autoCapitalize="off" placeholder="e.g. A + B"
           onChange={(e) => setFormula(e.target.value)} />
-      </label>
-      {problem && <p className="results-error" role="alert">{problem}</p>}
+      </Field>
+      <Field label="Column name">
+        <Input value={name} autoComplete="off" onChange={(e) => setName(e.target.value)} />
+      </Field>
       <p className="hint-block">
         Use the other columns by letter or by name
         {refs.length > 0 && <>: {refs.filter((r) => !r.later).map((r) => (

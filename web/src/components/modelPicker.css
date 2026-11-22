@@ -19,22 +19,23 @@
 .mp-button-label { font-weight: var(--weight-medium); color: var(--ink); }
 .mp-button-family { font-size: var(--text-caption); color: var(--muted); font-weight: var(--weight-regular); }
 
+/* The list, in a Popover (ui/Popover): its motion and placement come
+   from the primitive; this sets the floating surface. */
 .mp-panel {
   display: flex; flex-direction: column; gap: var(--space-6);
-  border: 1px solid var(--line-strong); border-radius: var(--radius-control);
-  background: var(--surface); padding: var(--space-8);
-  transition: opacity var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out);
-  @starting-style { opacity: 0; transform: translateY(-3px); }
+  width: min(30rem, calc(100vw - var(--space-16)));
+  background: var(--float); border-radius: var(--radius-menu); box-shadow: var(--elev-float);
+  padding: var(--space-8); overscroll-behavior: contain;
 }
 .mp-search {
   font: inherit; color: var(--ink); background: var(--inset);
   border: 1px solid var(--line-strong); border-radius: var(--radius-control);
   padding: var(--space-6) 9px; width: 100%;
 }
-.mp-list { max-height: 320px; overflow-y: auto; overscroll-behavior: contain; }
+.mp-list { max-height: min(320px, 50svh); overflow-y: auto; overscroll-behavior: contain; }
 .mp-group {
-  position: sticky; top: 0; z-index: var(--z-base); background: var(--surface);
-  font-size: var(--text-label); text-transform: uppercase; letter-spacing: 0.06em;
+  position: sticky; top: 0; z-index: var(--z-base); background: var(--float);
+  font-size: var(--text-label);
   color: var(--muted); font-weight: var(--weight-semibold); padding: var(--space-8) var(--space-6) 3px;
 }
 .mp-option {
@@ -48,8 +49,9 @@
   font-size: var(--text-caption); color: var(--muted);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.mp-tools { display: flex; gap: var(--space-6); align-items: center; flex-wrap: wrap; }
-.mp-tools .hint-block { margin-right: auto; }
+.mp-tools { display: flex; gap: var(--space-4); align-items: center; flex-wrap: wrap; }
+.mp-count { margin-right: auto; font-size: var(--text-caption); color: var(--muted); }
+.mp-note { margin: 0; }
 
 .mp-summary { display: flex; flex-direction: column; gap: var(--space-4); align-items: flex-start; }
 .mp-equation {
@@ -66,7 +68,7 @@
 .eq-main { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 .eq-field { display: flex; flex-direction: column; gap: var(--space-4); }
 .eq-label, .eq-section-title {
-  font-size: var(--text-label); text-transform: uppercase; letter-spacing: 0.07em;
+  font-size: var(--text-label);
   color: var(--muted); font-weight: var(--weight-semibold);
 }
 .eq-name {
@@ -110,8 +112,8 @@
   max-height: 70svh; overflow: auto;
 }
 .eq-help h3 {
-  margin: 0 0 var(--space-6); font-size: var(--text-label); text-transform: uppercase;
-  letter-spacing: 0.06em; color: var(--muted);
+  margin: 0 0 var(--space-6); font-size: var(--text-label); font-weight: var(--weight-semibold);
+  color: var(--muted);
 }
 .eq-help ul { margin: 0 0 10px; padding-left: var(--space-16); }
 .eq-help li { margin: var(--space-2) 0; }

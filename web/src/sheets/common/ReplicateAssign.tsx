@@ -11,6 +11,7 @@ import "./sheetKit.css";
 import { useProject } from "../../app/context";
 import { OptCheck, OptInput, OptNote } from "../../components/GraphOptionControls";
 import Modal from "../../components/Modal";
+import { Button } from "../../components/ui";
 import { updateSheet, updateTable } from "../../project/ops";
 import type { DataSheet, GraphSheet, ReplicateMap, Sheet } from "../../project/types";
 import { labelDataset, normalizeSuperPlot, UNIT_CHOICES } from "./superplot";
@@ -70,8 +71,8 @@ export default function AssignReplicatesDialog({ dataId, onClose }: {
       onSubmit={readOnly ? undefined : save}
       actions={(
         <>
-          <button type="button" onClick={onClose}>Cancel</button>
-          <button type="submit" className="primary" disabled={readOnly}>Save</button>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button type="submit" variant="primary" disabled={readOnly}>Save</Button>
         </>
       )}>
       <div className="replicate-assign">

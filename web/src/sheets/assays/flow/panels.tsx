@@ -23,6 +23,7 @@ import {
   type FlowResult, type PartRole,
 } from "./model";
 import "./flow.css";
+import { Button } from "../../../components/ui";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -93,8 +94,8 @@ export function FlowControls({ sheet, table, options: o, readOnly }: ControlsPro
       <section>
         <h3>Flow cytometry summary</h3>
         <div className="assay-setup">
-          <button type="button" className="btn-primary" disabled={readOnly}
-            onClick={() => setWizardAt(0)}>Open setup wizard…</button>
+          <Button variant="primary" disabled={readOnly}
+            onClick={() => setWizardAt(0)}>Open setup wizard…</Button>
         </div>
         <p className="hint-block">
           {d.samples.length} samples: {d.experiments.length} {o.unit} × {d.conditions.length} conditions.
@@ -406,8 +407,8 @@ function FlowJoImport({ onTable }: { onTable: (t: DataTableModel) => void }) {
           placeholder={",CD4+/CD69+ | Freq. of Parent\nD1_Unstim_001.fcs,2.1\n…"} onChange={(e) => setText(e.target.value)} />
       </label>
       <div className="assay-setup">
-        <button type="button" disabled={!text.trim()} onClick={() => take(text)}>Read pasted table</button>
-        {msg && <span className="hint-block" role="status">{msg}</span>}
+        <Button disabled={!text.trim()} onClick={() => take(text)}>Read pasted table</Button>
+        <span className="hint-block" role="status">{msg}</span>
       </div>
     </>
   );

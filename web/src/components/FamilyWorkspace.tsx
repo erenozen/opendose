@@ -32,16 +32,15 @@ import WelcomePanel from "./WelcomePanel";
 import { AnalysisBusy, EngineBootBanner } from "./EngineStatus";
 import { useGuideOptional } from "../guide/context";
 import EntryGuide from "../guide/EntryGuide";
-import { DifferNote, ResultsGuide } from "../guide/ResultsGuide";
+import { DifferNote } from "../guide/ResultsGuide";
 import EffectSizeCard from "../report/EffectSizeCard";
 import GraphLegend from "../report/GraphLegend";
 import ReportCard from "../report/ReportCard";
 import StatsMethodsCard from "../report/StatsMethodsCard";
 import ExclusionsCard from "../report/ExclusionsCard";
-import MeaningLine from "../report/MeaningLine";
 import NotesStrip from "./NotesStrip";
-import ResultsLinks, { ResultsEmptyLinks } from "./ResultsLinks";
-import PlanCheck from "./PlanCheck";
+import { ResultsEmptyLinks } from "./ResultsLinks";
+import ResultsAnswer from "./ResultsAnswer";
 import { nameColorIndex, stripNameColors, withNameColors } from "../graph/nameColors";
 import { useDarkMode } from "../graph/useDarkMode";
 
@@ -199,6 +198,15 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
                 engine replaces them when it is up. */}
             <EngineBootBanner engine={engine} ready={engineReady} live={resStatus.live}
               onRetry={bootEngine} />
+            {/* The answer first (DECISIONS 3): the key figures, the plain
+                reading and the Checks row, above the graph and the table. */}
+            {resSheet && Results && (
+              <>
+                <ResultsAnswer sheet={resSheet} data={data} result={result} options={options}
+                  status={resStatus} readOnly={readOnly} />
+                <HSplitter />
+              </>
+            )}
             {graph && (
               <>
                 <div className={`pane pane-plot${reveal}`}>
@@ -214,20 +222,15 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
                 data-live={resStatus.live ? "true" : "false"}
                 aria-busy={resStatus.pending ? true : undefined}>
                 {engineReady && <AnalysisBusy status={resStatus} engine={engine} />}
-                {/* Order (0.4.0): links, questions and chips first; the key
-                    result; what was analysed under it; then the plain
-                    reading, the exclusions and the sentence together. */}
-                <ResultsLinks key={resSheet.id} sheet={resSheet} tableName={data.name}
-                  options={options} result={result} />
-                <ResultsGuide analysisId={resSheet.analysis} tableType={data.table.type}
-                  table={data.table} options={options} result={result}
-                  dataId={data.id} resultsId={resSheet.id} readOnly={readOnly} />
-                <PlanCheck key={`plan-${resSheet.id}`} sheet={resSheet} data={data} readOnly={readOnly} />
-
+                {/* The full results (the headline and the guidance are in the
+                    answer pane above the graph); what was analysed under
+                    them; then the exclusions and the sentence. */}
                 <ResultsExport name={resSheet.name}>
-                  <Suspense fallback={<Pending />}>
-                    <Results sheet={resSheet} table={data.table} options={options} result={result} />
-                  </Suspense>
+                  {result == null ? <ResultsSkeleton /> : (
+                    <Suspense fallback={<Pending />}>
+                      <Results sheet={resSheet} table={data.table} options={options} result={result} />
+                    </Suspense>
+                  )}
                   {/* Effect sizes of every comparison (src/report). */}
                   <EffectSizeCard result={result} />
                 </ResultsExport>
@@ -235,8 +238,6 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
                   result={result} />
                 <DifferNote analysisId={resSheet.analysis} tableType={data.table.type}
                   table={data.table} options={options} result={result} />
-                <MeaningLine analysisId={resSheet.analysis} resultsId={resSheet.id} table={data.table}
-                  options={options} result={result} />
                 <ExclusionsCard sheet={resSheet} table={data.table} options={options} result={result} />
                 <ReportCard sheet={resSheet} table={data.table} options={options} result={result} />
               </div>
@@ -293,6 +294,17 @@ function useSettledTable(table: DataTableModel): DataTableModel {
     return () => clearTimeout(t);
   }, [large, table, settled]);
   return settled;
+}
+
+/** The shape of a results card (a title and a six-row table) while the
+ *  first result is computed, so its arrival moves nothing (BEF-23). */
+function ResultsSkeleton() {
+  return (
+    <div className="result-card result-skeleton" aria-hidden="true">
+      <span className="result-skeleton-title" />
+      {Array.from({ length: 6 }, (_, i) => <span key={i} className="result-skeleton-row" />)}
+    </div>
+  );
 }
 
 /** Shown while a panel's code loads (sheets/lazy.ts): usually a moment. */

@@ -76,14 +76,15 @@ open; Tab stays inside. The caller's class sets `--float`,
 ## Menu
 
 Use for commands (Analyze, File, View, sheet actions) and one choice from
-a small set (`Menu.RadioGroup`); a list filtered by typing is the palette. Parts: `Menu.Trigger` (`variant` and `size` make it
-that Button: ghost in the header or a toolbar, secondary as a keycap),
-`Menu.Content`, `Menu.Item` (`onSelect`, `description`, `shortcut`,
-`danger`), `Menu.Group`, `Menu.Separator`, `Menu.RadioGroup` +
-`Menu.RadioItem`. Keys all work; never add a key handler. An item that
-opens a dialog ends with "…". A project-level command goes in
-`app/commandRegistry.ts`, not in a menu's JSX: File, View and the palette
-are built from it.
+a small set (`Menu.RadioGroup`); a list filtered by typing is the palette
+or a combobox in a Popover (`components/ModelPicker.tsx`). Parts:
+`Menu.Trigger` (`variant` and `size` make it that Button: ghost in the
+header or a toolbar, secondary as a keycap), `Menu.Content`, `Menu.Item`
+(`onSelect`, `description`, `shortcut`, `danger`), `Menu.Group`,
+`Menu.Separator`, `Menu.RadioGroup` + `Menu.RadioItem`. Keys all work;
+never add a key handler. An item that opens a dialog ends with "…". A
+project-level command goes in `app/commandRegistry.ts`, not in a menu's
+JSX: File, View and the palette are built from it.
 
 ```tsx
 // Correct: components/Header.tsx
@@ -145,5 +146,4 @@ a key leaves at once. Never add an entrance that ignores `[data-instant]`.
   behind `inert` (App.tsx), Tab contained, Escape and the scrim close it,
   focus returns to the toggle. **Help panel**: not modal; Escape through
   the layer stack, focus back to its opener.
-- Not built yet: a combobox outside the palette (`ModelPicker.tsx` is
-  hand-rolled).
+- Not built yet: a shared combobox (ModelPicker builds its own).

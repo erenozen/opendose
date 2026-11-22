@@ -13,8 +13,8 @@
 .clin-sub select, .clin-sub input { font-size: var(--text-body-s); }
 .clin-varlist { border: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
 .clin-varlist > legend {
-  padding: 0; margin-bottom: var(--space-8); font-size: var(--text-label); text-transform: uppercase;
-  letter-spacing: 0.07em; color: var(--muted); font-weight: var(--weight-semibold);
+  padding: 0; margin-bottom: var(--space-8); font-size: var(--text-label);
+  color: var(--muted); font-weight: var(--weight-semibold);
 }
 .clin-tag {
   font-size: var(--text-caption); color: var(--muted); border: 1px solid var(--line-strong);
@@ -26,8 +26,8 @@
 
 /* Survival table: covariate columns above the grid */
 .cov-aside {
-  display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-6) 10px;
-  margin: 0 0 10px; font-size: var(--text-body-s); color: var(--ink-2);
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-6) var(--space-8);
+  margin: 0 0 var(--space-8); font-size: var(--text-body-s); color: var(--ink-2);
 }
 .cov-aside .cov-label { font-weight: var(--weight-semibold); color: var(--ink); }
 .cov-aside .cov-chip {
@@ -38,12 +38,5 @@
   width: 11ch; font: inherit; border: none; background: transparent; color: var(--ink);
   padding: var(--space-2) 0;
 }
-.cov-aside .cov-chip button {
-  border: none; background: transparent; color: var(--muted); padding: 0 var(--space-6);
-  font-size: var(--text-body-s); line-height: 1.4; border-radius: var(--radius-control);
-}
-@media (hover: hover) and (pointer: fine) {
-  .cov-aside .cov-chip button:hover { color: var(--danger); background: transparent; }
-}
-.cov-aside .cov-add { font-size: var(--text-body-s); padding: var(--space-4) var(--space-12); }
+.cov-aside .cov-chip .btn { color: var(--muted); }
 .cov-aside .cov-none { color: var(--muted); }

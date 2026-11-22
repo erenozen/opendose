@@ -96,7 +96,7 @@ raw `font-size`.
 | `--text-lead` | 16 | card titles |
 | `--text-title` | 18 | dialog titles, the brand |
 | `--text-heading` | 22 | page headings |
-| `--text-figure` | 30 | the results headline number only |
+| `--text-figure` | 30 | the results headline number only; `--text-figure-quiet` (0.66 of it) when demoted |
 | `--text-input-min` | 16px | text fields on coarse pointers (base.css applies it) |
 
 Weights: `--weight-regular` 400, `--weight-medium` 500 (buttons, field

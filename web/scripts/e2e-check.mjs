@@ -108,9 +108,23 @@ const graphSettings = async () => {
   return page.getByRole("dialog", { name: "Graph settings" });
 };
 const closeGraphSettings = () => page.keyboard.press("Escape");
+// Grid toolbar commands past Import, Export, Rows and Columns live in its
+// "More" menu (DECISIONS 5).
+const tableCommand = async (name) => {
+  await page.locator(".grid-toolbar").getByRole("button", { name: "More", exact: true }).click();
+  await page.getByRole("menuitem", { name }).click();
+};
 // Panels load on first use (sheets/lazy.ts): wait for a control to appear.
 const appears = (locator, timeout = 15000) => locator.first().waitFor({ timeout })
   .then(() => true, () => false);
+// The results guidance (chips, notes, the unit question, the links, the
+// plan check) sits in the Checks row of the results headline, a <details>
+// (DECISIONS 3): open it before using what is inside.
+const openChecks = async (p = page) => {
+  const d = p.locator(".pane-answer details.checks").first();
+  await d.waitFor({ state: "attached", timeout: 60000 }).catch(() => {});
+  if (await d.count() && !(await d.evaluate((e) => e.open))) await d.locator("summary").click();
+};
 const plotLayoutOf = () => page.evaluate(() => {
   const l = document.querySelector(".plot-card .plot")?.layout ?? {};
   return {
@@ -138,7 +152,7 @@ await page.setInputFiles('.plate-form input[type="file"]', XLSX);
 await page
   .getByPlaceholder("e.g. Control, Resistant")
   .fill("Line S, Line R");
-await page.getByRole("button", { name: /Import → data table/ }).click();
+await page.getByRole("button", { name: "Import into the table" }).click();
 await page.waitForFunction(
   () => document.querySelectorAll(".result-card .derived").length >= 2,
   { timeout: 60000 },
@@ -613,7 +627,7 @@ await fileMenu(page, "New data table…");
 const mvDialog = page.locator(".new-table-dialog");
 await mvDialog.locator('input[name="table-type"][value="multivariable"]').check();
 await mvDialog.getByText("Example data").click();
-await mvDialog.locator('input[aria-label="Table name"]').fill("Dose study");
+await mvDialog.getByLabel("Table name", { exact: true }).fill("Dose study");
 await mvDialog.getByRole("button", { name: "Create table" }).click();
 await page.waitForSelector(".mv-results h3:has-text('Descriptive statistics')", { timeout: 60000 });
 const mvCard = () => page.locator(".result-card.mv-results").first();
@@ -809,7 +823,7 @@ await page.waitForSelector(".grid-toolbar");
 // xlsx through the Import dialog's file source (read by the Python runtime)
 await page.getByRole("button", { name: "Import…", exact: true }).click();
 const imp = page.locator(".import-dialog");
-await imp.getByLabel("File to import").setInputFiles(XLSX);
+await imp.locator('input[aria-label="File to import"]').setInputFiles(XLSX);
 // the workbook is read in the engine worker: wait for its preview (not a
 // preview of whatever the dialog showed before)
 await page.waitForFunction(() =>
@@ -837,13 +851,13 @@ expect("CSV import: X, names, decimal commas", imported.join("|") === "3.162e-9|
 expect("fit of the imported table: LogIC50 -6.983", await waitLogIC50("-6.983"));
 
 // sort by X, descending then ascending
-await page.getByRole("button", { name: "Sort…" }).click();
+await tableCommand("Sort…");
 await page.getByLabel("Sort by").selectOption({ label: "X values" });
 await page.getByLabel(/Descending/).check();
 await page.getByRole("button", { name: "Sort", exact: true }).click();
 const sortedTop = `${await teCellValue("X, row 1")} ${await teCellValue("Drug A, Y3, row 1")}`;
 expect("sort rows by X descending keeps rows together", sortedTop === "1e-5 2.1", sortedTop);
-await page.getByRole("button", { name: "Sort…" }).click();
+await tableCommand("Sort…");
 await page.getByRole("button", { name: "Sort", exact: true }).click();
 expect("sort ascending restores the order", await teCellValue("X, row 1") === "1e-9");
 
@@ -884,7 +898,7 @@ expect("results CSV holds the rendered LogIC50 row",
   readFileSync(resPath, "utf8").split(/\r?\n/).some((l) => l.startsWith("LogIC50,-6.983")));
 
 // replicates -> Mean, SD, N as a new table (engine summary_convert)
-await page.getByRole("button", { name: "Convert…" }).click();
+await tableCommand("Convert…");
 await page.getByLabel("New table holds").selectOption("mean_sd_n");
 await page.getByRole("button", { name: "Create table" }).click();
 await page.waitForFunction(() => document.querySelector(
@@ -894,7 +908,7 @@ expect("fit of the converted Mean/SD/N table: LogIC50 -6.983", await waitLogIC50
 
 // switch the imported table itself to Mean, SD, N and type the summaries
 await navRow("Imported CSV").click();
-await page.getByRole("button", { name: "Format…" }).click();
+await tableCommand("Format…");
 await page.getByRole("combobox", { name: "Y values entered as" }).selectOption("mean_sd_n");
 await page.getByRole("button", { name: "Apply" }).click();
 for (let r = 0; r < REF_ROWS.length; r++) {
@@ -913,14 +927,14 @@ await teDlg.locator('input[name="table-type"][value="xy"]').check();
 await teDlg.getByLabel("Table name").fill("Series test");
 await teDlg.getByRole("button", { name: "Create table" }).click();
 await page.locator(".data-table input[aria-label='X, row 1']").click();
-await page.getByRole("button", { name: "Insert series…" }).click();
+await tableCommand("Insert series…");
 await page.getByLabel("First value").fill("0");
 await page.getByRole("textbox", { name: "Increment" }).fill("0.5");
 await page.getByLabel("Number of values").fill("12");
 await page.getByRole("button", { name: "Insert series", exact: true }).click();
 expect("insert series fills X and adds rows",
   await teCellValue("X, row 5") === "2" && await teCellValue("X, row 12") === "5.5");
-await page.getByRole("button", { name: "Format…" }).click();
+await tableCommand("Format…");
 await page.getByRole("combobox", { name: "X values are" }).selectOption("dates");
 await page.getByRole("button", { name: "Apply" }).click();
 await page.locator(".data-table input[aria-label='X, row 1']").fill("5 Mar 2024");
@@ -1376,6 +1390,7 @@ expect("results chips render on a results sheet (n per group, normality)",
     const t = document.querySelector(".guide-chips")?.textContent ?? "";
     return t.includes("n = 6 per group") && t.includes("Normality");
   }, null, { timeout: 30000 }).then(() => true, () => false));
+await openChecks();
 await page.locator(".guide-chip", { hasText: "n = 6 per group" }).click();
 expect("a chip expands to advice with a Learn more link",
   await page.locator(".guide-chip-detail").getByRole("button", { name: /Learn more/ }).count() === 1);
@@ -1425,6 +1440,7 @@ expect("a flat response waits for a model (Choose a model)",
   await appears(page.locator(".choose-model")));
 await page.locator(".choose-model").getByRole("button", { name: "Fit a curve" }).click();
 await page.keyboard.press("Escape");
+await openChecks();
 expect("ambiguous fit banner with concrete fixes for a flat dataset",
   await page.waitForSelector("[data-banner='fit-ambiguous']", { timeout: 60000 })
     .then(async (b) => (await b.innerText()).includes("Constrain the plateau"), () => false));
@@ -2836,6 +2852,7 @@ const axeOn = async (pg, sel) => {
       ?.includes("n = 3 per group: can detect only d ≥ 3.07 at 80% power (CI ≈ ±2.27 SD); plan replication"),
     null, { timeout: 60000 }).then(() => true, () => false),
     await page.locator(".guide-chips").innerText().catch(() => ""));
+  await openChecks();
   await page.locator(".guide-chip", { hasText: "can detect only" }).click();
   expect("the detectable-effect chip offers the power tool and cites FAQ 1710",
     await page.locator(".guide-chip-detail").getByRole("button", { name: /power tool/ }).count() === 1
@@ -2843,6 +2860,7 @@ const axeOn = async (pg, sel) => {
 
   // (c) triplicate wells from three experiments: asked before any P
   await newColumnPaste("Control\tTreated\n10\t12\n11\t13\n12\t14\n20\t23\n21\t24\n22\t25\n30\t33\n31\t34\n32\t35\n");
+  await openChecks();
   const uq = page.getByRole("region", { name: "What does each value represent?" });
   expect("a pasted table of 9 values per group is asked what each value represents",
     await appears(uq, 30000));
@@ -2871,6 +2889,7 @@ const axeOn = async (pg, sel) => {
     (await wtb.locator(".wt-test").innerText()) === "Repeated-measures one-way ANOVA"
     && (await wtb.locator(".wt-result").innerText()).includes("experiment is a block"));
   await wtb.getByRole("button", { name: /^Open on/ }).click();
+  await openChecks();
   const blockNote = await page.locator('[data-banner="block-removed"]').waitFor({ timeout: 60000 })
     .then(() => page.locator('[data-banner="block-removed"]').innerText(), () => "");
   expect("RM ANOVA by day: 'Day-to-day (between-experiment) differences removed: SS = 84.92, 62%'",
@@ -2890,6 +2909,7 @@ const axeOn = async (pg, sel) => {
     await page.locator(".pane-controls").getByLabel("Group B").selectOption(String(b));
     await page.waitForTimeout(800);
   }
+  await openChecks();
   const mChip = page.locator(".guide-chip", { hasText: "t tests on this table" });
   expect("three t tests: chip with the familywise error 1−0.95³ = 14% (Bonferroni 15%)",
     await appears(mChip, 30000) && (await mChip.innerText())
@@ -2981,6 +3001,7 @@ const axeOn = async (pg, sel) => {
   expect("Help me choose recommends the unpaired t test with a one-paragraph reason",
     recTest === "Unpaired t test" && recReason.length > 80, `${recTest}: ${recReason.slice(0, 80)}`);
   await hm.getByRole("button", { name: "Open on “Pilot”" }).click();
+  await openChecks();
   const why = page.getByRole("note", { name: "Why this test" });
   const whyShown = await why.waitFor({ timeout: 30000 }).then(() => true, () => false);
   expect("lands on the t test with the reason (Why Unpaired t test.)", whyShown &&
@@ -3021,6 +3042,7 @@ const axeOn = async (pg, sel) => {
   await hm2.getByText("Each vs a control", { exact: true }).click();
   await hm2.getByRole("button", { name: /^Open on/ }).click();
   await page.waitForSelector(".result-card h3:has-text('Ordinary one-way ANOVA')", { timeout: 30000 });
+  await openChecks();
   const valLink = page.getByRole("navigation", { name: "About these results" });
   expect("results sheet: How this is validated, with its count sentence",
     await valLink.getByRole("button", { name: "How this is validated" }).count() === 1
@@ -3302,7 +3324,7 @@ const axeOn = async (pg, sel) => {
     /[-−]0\.47/.test(meanDiff), meanDiff.split("\n").find((l) => /difference/i.test(l)) ?? "");
 
   // (b) Convert table to… grouped, same rows: values and pairing kept
-  await page.getByRole("button", { name: "Convert table to…" }).click();
+  await tableCommand("Convert table to…");
   const conv = page.locator(".convert-type-dialog");
   await conv.getByLabel("Grouped table, same rows").check();
   const checkLine = await conv.locator(".convert-check").innerText();
@@ -3532,7 +3554,8 @@ const axeOn = async (pg, sel) => {
   };
   const planChip = page.getByRole("region", { name: "Analysis plan check" }).locator(".plan-chip");
   const chipSays = (re) => page.waitForFunction((src) => new RegExp(src).test(
-    document.querySelector('.pane-results[data-live="true"] .plan-chip')?.textContent ?? ""), re.source,
+    (document.querySelector('.pane-results[data-live="true"]')
+      && document.querySelector(".pane-answer .plan-chip")?.textContent) || ""), re.source,
   { timeout: 60000 }).then(() => true, () => false);
 
   // (a) the plan: two-tailed Welch t test, Treated vs Control, n = 8
@@ -3544,6 +3567,7 @@ const axeOn = async (pg, sel) => {
   await page.locator(".pane-controls select.analysis-select").selectOption("ttest");
   await page.locator(".pane-controls").getByLabel("Test", { exact: true }).selectOption("welch");
   await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 60000 });
+  await openChecks();
   await page.getByRole("button", { name: "Make this the plan" }).click();
   expect("Make this the plan: the results read “As planned: two-tailed Welch t test, n = 8 per group.”",
     await chipSays(/^✓\s*(OK: |Note: )?As planned: two-tailed Welch t test, n = 8 per group\.$/),
@@ -3846,7 +3870,7 @@ const axeOn = async (pg, sel) => {
   };
   const live = () => page.waitForSelector('.pane-results[data-live="true"]', { timeout: 240000 });
   const meaningText = async () => {
-    const m = page.locator(".pane-results .meaning-line").first();
+    const m = page.locator(".pane-answer .meaning-line").first();
     return (await appears(m, 60000)) ? (await m.innerText()).replace(/\s+/g, " ") : "";
   };
   const newColumn = async (name, example) => {
@@ -3865,7 +3889,7 @@ const axeOn = async (pg, sel) => {
   await page.locator(".analysis-select").first().selectOption("ttest");
   await page.waitForTimeout(400);
   await live();
-  await page.waitForFunction(() => /Treated A/.test(document.querySelector(".pane-results .meaning-line")?.textContent ?? ""),
+  await page.waitForFunction(() => /Treated A/.test(document.querySelector(".pane-answer .meaning-line")?.textContent ?? ""),
     null, { timeout: 60000 }).catch(() => {});
   const tMeaning = await meaningText();
   expect("What this means under the t test: the groups, the difference with its 95% CI, what P means",
@@ -3875,7 +3899,7 @@ const axeOn = async (pg, sel) => {
     /Often misread as/i.test(tMeaning) && /not the probability that there is none/.test(tMeaning)
     && /Unpaired t test: compares the means of two independent groups/.test(tMeaning)
     && /Greenland et al\. 2016/.test(tMeaning), tMeaning);
-  const axeMeaning = await axeOn(".pane-results .meaning-line");
+  const axeMeaning = await axeOn(".pane-answer .meaning-line");
   expect("axe-core: the What this means line passes WCAG 2 AA", axeMeaning.length === 0, axeMeaning.join(" | "));
 
   // (b) the survival example: a hazard ratio in the user's own groups

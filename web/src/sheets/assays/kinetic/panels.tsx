@@ -18,6 +18,7 @@ import {
   blankIndexOf, K_METHOD_LABELS, michaelisSettings, rateTable, rateUnit, runKinetic, timeUnit,
   type KineticOptions, type KineticResult, type KMethod,
 } from "./model";
+import { NumberField } from "../../../components/ui";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -65,28 +66,17 @@ export function KineticControls({ sheet, table, options: o, readOnly }: Controls
         </label>
         <div className="wizard-row">
           {o.method === "steepest" && (
-            <label className="field field-num">
-              <span>Consecutive reads</span>
-              <input type="number" min={2} step={1} defaultValue={o.k} disabled={readOnly} aria-label="Reads in the stretch"
-                onBlur={(e) => { const v = Number(e.target.value); if (Number.isInteger(v) && v >= 2) set({ k: v }); }} />
-            </label>
+            <NumberField label="Consecutive reads" fieldClassName="field-num" min={2} step={1} defaultValue={String(o.k)} disabled={readOnly}
+                onBlur={(e) => { const v = Number(e.currentTarget.value); if (Number.isInteger(v) && v >= 2) set({ k: v }); }} />
           )}
           {o.method === "auto" && (
             <>
-              <label className="field field-num">
-                <span>R² at least</span>
-                <input type="number" min={0.5} max={1} step={0.001} defaultValue={o.minR2} disabled={readOnly}
-                  aria-label="R² threshold" onBlur={(e) => {
-                    const v = Number(e.target.value); if (v > 0 && v <= 1) set({ minR2: v });
+              <NumberField label="R² at least" fieldClassName="field-num" min={0.5} max={1} step={0.001} defaultValue={String(o.minR2)} disabled={readOnly} onBlur={(e) => {
+                    const v = Number(e.currentTarget.value); if (v > 0 && v <= 1) set({ minR2: v });
                   }} />
-              </label>
-              <label className="field field-num">
-                <span>Reads at least</span>
-                <input type="number" min={3} step={1} defaultValue={o.minPoints} disabled={readOnly}
-                  aria-label="Minimum reads" onBlur={(e) => {
-                    const v = Number(e.target.value); if (Number.isInteger(v) && v >= 3) set({ minPoints: v });
+              <NumberField label="Reads at least" fieldClassName="field-num" min={3} step={1} defaultValue={String(o.minPoints)} disabled={readOnly} onBlur={(e) => {
+                    const v = Number(e.currentTarget.value); if (Number.isInteger(v) && v >= 3) set({ minPoints: v });
                   }} />
-              </label>
             </>
           )}
           {o.method === "window" && (

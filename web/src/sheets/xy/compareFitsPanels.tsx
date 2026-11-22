@@ -15,6 +15,7 @@ import {
 } from "./compareFits";
 import { ParameterControls, ParameterMethods, ParameterResults } from "./compareParameterPanels";
 import "./xy.css";
+import { NumberField } from "../../components/ui";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -204,15 +205,13 @@ function WeightingSection({ options, set, readOnly }: { options: CompareOptions;
         ))}
       </select>
       {options.weighting === "1/YK" && (
-        <label className="check-row">
-          <span>K</span>
-          <input type="number" min={0.1} max={10} step={0.1} aria-label="Weighting exponent K"
-            disabled={readOnly} key={weightK(options)} defaultValue={weightK(options)}
-            onBlur={(e) => {
-              const k = Number(e.target.value);
-              set({ weightK: Number.isFinite(k) && k > 0 && k <= 10 ? k : DEFAULT_WEIGHT_K });
-            }} />
-        </label>
+        <NumberField label="Weighting exponent K" fieldClassName="field-num"
+          disabled={readOnly} key={weightK(options)} defaultValue={String(weightK(options))}
+          min={0.1} max={10} step={0.1}
+          onBlur={(e) => {
+            const k = Number(e.currentTarget.value.replace(",", "."));
+            set({ weightK: Number.isFinite(k) && k > 0 && k <= 10 ? k : DEFAULT_WEIGHT_K });
+          }} />
       )}
       <p className="hint-block">
         Every fit in the comparison uses this weighting; weighted fits are compared on their

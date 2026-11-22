@@ -7,6 +7,7 @@
 import { lazy, Suspense, useMemo, useState } from "react";
 import type { AsideProps } from "../types";
 import CovariateAside from "./CovariateAside";
+import { Button } from "../../components/ui";
 import { readTable, timeUnitOf, TIME_UNITS, type TimeUnit } from "./entry";
 import "./survival.css";
 
@@ -22,10 +23,10 @@ export default function SurvivalAside(props: AsideProps) {
   return (
     <div className="surv-aside">
       <div className="surv-aside-row" role="group" aria-label="Survival data entry">
-        <button type="button" className="surv-entry-btn" disabled={readOnly} onClick={() => setOpen(true)}
+        <Button size="sm" className="surv-entry-btn" disabled={readOnly} onClick={() => setOpen(true)}
           title="Fill the table from alive (or dead) counts per day, or from start and end dates">
           Survival data from…
-        </button>
+        </Button>
         <label className="surv-aside-row">
           <span className="surv-aside-label">Time unit</span>
           <select aria-label="Time unit of the table" value={unit} disabled={readOnly}

@@ -13,6 +13,7 @@ import {
 } from "../project/plan";
 import type { InfoSheet } from "../project/types";
 import "./planCheck.css";
+import { Button, Field, Input } from "./ui";
 
 /** Tests a plan can name (analysis id + the options that define it). */
 const PLAN_TESTS: { id: string; analysisId: string; options: Record<string, unknown> }[] = [
@@ -85,8 +86,8 @@ export default function AnalysisPlanView({ sheet }: { sheet: InfoSheet & { plan:
           {plan.locked ? `Locked${plan.lockedAt ? ` ${plan.lockedAt.slice(0, 10)}` : ""}` : "Draft"}</span>
         <span>Written {plan.writtenAt.slice(0, 10)}{data ? <> for “{data.name}”</> : " (link it to a data table below)"}.</span>
         {!plan.locked && !ro && (
-          <button type="button" className="btn-primary" onClick={() => apply((p) => setPlan(p, sheet.id, lockPlan(plan, now())))}>
-            Lock the plan</button>
+          <Button variant="primary" onClick={() => apply((p) => setPlan(p, sheet.id, lockPlan(plan, now())))}>
+            Lock the plan</Button>
         )}
       </div>
       <p className="hint-block">
@@ -95,46 +96,46 @@ export default function AnalysisPlanView({ sheet }: { sheet: InfoSheet & { plan:
           : "Write the plan before collecting or looking at the data, then lock it. Results of the linked table are checked against it."}
       </p>
       <div className="plan-fields">
-        <label className="field" htmlFor={ids.out}><span>Primary outcome</span>
-          <input id={ids.out} value={v.primaryOutcome} readOnly={ro} placeholder="e.g. tumour volume at day 21 (mm³)"
-            onChange={(e) => change({ primaryOutcome: e.target.value }, "out")} /></label>
-        <label className="field" htmlFor={ids.groups}><span>Groups</span>
-          <input id={ids.groups} value={groups.join(", ")} readOnly={ro} placeholder="Control, Treated"
-            onChange={(e) => change({ groups: e.target.value.split(",").map((g) => g.trim()) }, "groups")} /></label>
-        <label className="field" htmlFor={ids.a}><span>Primary comparison: reference group</span>
+        <Field label="Primary outcome">
+          <Input value={v.primaryOutcome} readOnly={ro} placeholder="e.g. tumour volume at day 21 (mm³)"
+            onChange={(e) => change({ primaryOutcome: e.target.value }, "out")} /></Field>
+        <Field label="Groups">
+          <Input value={groups.join(", ")} readOnly={ro} placeholder="Control, Treated"
+            onChange={(e) => change({ groups: e.target.value.split(",").map((g) => g.trim()) }, "groups")} /></Field>
+        <Field label="Primary comparison: reference group" id={ids.a}>
           <select id={ids.a} value={v.comparison?.a ?? ""} disabled={ro}
             onChange={(e) => change({ comparison: e.target.value
               ? { a: e.target.value, b: v.comparison?.b ?? groups.find((g) => g !== e.target.value) ?? "" } : null }, "cmp")}>
             <option value="">(no single comparison)</option>
             {groups.filter(Boolean).map((g) => <option key={g} value={g}>{g}</option>)}
-          </select></label>
-        <label className="field" htmlFor={ids.b}><span>Primary comparison: compared group</span>
+          </select></Field>
+        <Field label="Primary comparison: compared group" id={ids.b}>
           <select id={ids.b} value={v.comparison?.b ?? ""} disabled={ro || !v.comparison}
             onChange={(e) => v.comparison && change({ comparison: { a: v.comparison.a, b: e.target.value } }, "cmp")}>
             <option value="">(choose)</option>
             {groups.filter((g) => g && g !== v.comparison?.a).map((g) => <option key={g} value={g}>{g}</option>)}
-          </select></label>
-        <label className="field" htmlFor={ids.test}><span>Test</span>
+          </select></Field>
+        <Field label="Test" id={ids.test}>
           <select id={ids.test} value={testId} disabled={ro} onChange={(e) => setTest(e.target.value)}>
             {testId === "current" && <option value="current">{v.test.label}</option>}
             {PLAN_TESTS.map((t) => <option key={t.id} value={t.id}>{testLabel(t.analysisId, t.options)}</option>)}
-          </select></label>
-        <label className="field" htmlFor={ids.tails}><span>P values</span>
+          </select></Field>
+        <Field label="P values" id={ids.tails}>
           <select id={ids.tails} value={v.test.tails} disabled={ro}
             onChange={(e) => change({ test: { ...v.test, tails: e.target.value === "one" ? "one" : "two" } }, "tails")}>
             <option value="two">Two-tailed</option>
             <option value="one">One-tailed (direction stated now, before the data)</option>
-          </select></label>
-        <label className="field" htmlFor={ids.n}><span>n per group (independent units)</span>
-          <input id={ids.n} inputMode="numeric" value={v.nPerGroup ?? ""} readOnly={ro}
-            onChange={(e) => { const x = num(e.target.value); change({ nPerGroup: x !== null && x > 0 ? Math.round(x) : null }, "n"); }} /></label>
-        <label className="field" htmlFor={ids.alpha}><span>α (significance level)</span>
-          <input id={ids.alpha} inputMode="decimal" value={v.alpha} readOnly={ro}
-            onChange={(e) => { const x = num(e.target.value); if (x !== null && x > 0 && x < 1) change({ alpha: x }, "alpha"); }} /></label>
-        <label className="field plan-wide" htmlFor={ids.excl}><span>Exclusion rule (blank: no exclusions)</span>
+          </select></Field>
+        <Field label="n per group (independent units)">
+          <Input inputMode="numeric" value={v.nPerGroup ?? ""} readOnly={ro}
+            onChange={(e) => { const x = num(e.target.value); change({ nPerGroup: x !== null && x > 0 ? Math.round(x) : null }, "n"); }} /></Field>
+        <Field label="α (significance level)">
+          <Input inputMode="decimal" value={v.alpha} readOnly={ro}
+            onChange={(e) => { const x = num(e.target.value); if (x !== null && x > 0 && x < 1) change({ alpha: x }, "alpha"); }} /></Field>
+        <Field label="Exclusion rule (blank: no exclusions)" id={ids.excl} className="plan-wide">
           <textarea id={ids.excl} rows={2} value={v.exclusionRule} readOnly={ro}
             placeholder="e.g. animals reaching the humane endpoint before day 21; wells flagged by the plate reader"
-            onChange={(e) => change({ exclusionRule: e.target.value }, "excl")} /></label>
+            onChange={(e) => change({ exclusionRule: e.target.value }, "excl")} /></Field>
       </div>
       {v.test.tails === "one" && (
         <p className="hint-block">
@@ -145,11 +146,11 @@ export default function AnalysisPlanView({ sheet }: { sheet: InfoSheet & { plan:
       )}
       {plan.locked && dirty && !ro && (
         <div className="plan-reason">
-          <label className="field" htmlFor={ids.reason}><span>Reason for the change (required: the plan is locked)</span>
-            <input id={ids.reason} value={reason} onChange={(e) => setReason(e.target.value)} /></label>
-          <button type="button" className="btn-primary" disabled={!reason.trim()} onClick={saveChange}>
-            Save the change</button>
-          <button type="button" onClick={() => { setDraft(plan); setReason(""); setError(null); }}>Discard</button>
+          <Field label="Reason for the change (required: the plan is locked)">
+            <Input value={reason} onChange={(e) => setReason(e.target.value)} /></Field>
+          <Button variant="primary" disabled={!reason.trim()} onClick={saveChange}>
+            Save the change</Button>
+          <Button onClick={() => { setDraft(plan); setReason(""); setError(null); }}>Discard</Button>
           {error && <p className="plan-error" role="alert">{error}</p>}
         </div>
       )}

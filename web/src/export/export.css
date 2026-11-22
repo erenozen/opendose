@@ -63,9 +63,6 @@
   margin: 0; font-size: var(--text-body-s); color: var(--ink-2); line-height: 1.5; user-select: text;
 }
 .cite-actions { display: flex; flex-wrap: wrap; gap: var(--space-6); }
-.cite-actions .copy-btn { font-size: var(--text-body-s); padding: 5px 11px; }
-/* Reserve the widest of the label and "Copied ✓" so the pill never resizes */
-.cite-actions .copy-btn::after { content: attr(data-label); }
 .cite-bibtex summary { cursor: pointer; font-size: var(--text-caption); color: var(--accent); }
 .cite-bibtex pre {
   margin: var(--space-6) 0 0; padding: var(--space-8) 10px; border-radius: var(--radius-control);

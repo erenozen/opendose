@@ -15,10 +15,9 @@
 }
 .exclusions-card .exc-sentence { color: var(--ink-2); font-size: var(--text-body-s); margin: var(--space-4) 0 var(--space-6); }
 .exclusions-card .exc-compare { margin-top: 10px; }
-.exclusions-card .exc-compare > button { font-size: var(--text-body-s); }
 .exclusions-card .exc-results {
-  margin-top: var(--space-8); padding: 10px var(--space-12); border: 1px dashed var(--accent-border);
-  border-radius: var(--radius-pane); background: var(--accent-soft);
+  margin-top: var(--space-8); padding: var(--space-8) 0 0 var(--space-12);
+  border-inline-start: 2px solid var(--line-solid);
 }
 .exclusions-card .exc-cols {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-12);

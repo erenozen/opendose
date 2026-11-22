@@ -3,22 +3,13 @@
 
 .grid-editor { display: flex; flex-direction: column; gap: var(--space-8); min-width: 0; }
 
-/* ---- toolbar */
-.grid-toolbar {
-  display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-4) var(--space-6);
-  padding: var(--space-2) var(--space-2) 0;
-}
-.grid-toolbar > button, .grid-toolbar .menu-wrap > button {
-  padding: 5px 11px; font-size: var(--text-body-s);
-}
-.grid-toolbar .tb-sep {
-  width: 1px; align-self: stretch; margin: 3px var(--space-2); background: var(--line-strong);
-}
-.grid-toolbar button:disabled { opacity: 0.45; cursor: default; }
-.menu-wrap { position: relative; display: inline-flex; }
-.grid-menu { position: absolute; top: calc(100% + 4px); left: 0; }
-.grid-menu.align-right { left: auto; right: 0; }
+/* ---- toolbar: one bar of ghost commands (DECISIONS 5), the rest under
+   "More". */
+.grid-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.grid-toolbar .btn { padding-inline: var(--space-8); }
+.menu-wrap { display: inline-flex; }
 .caret { font-size: var(--text-caption); margin-left: var(--space-4); color: var(--muted); }
+.btn .caret { margin-left: 0; }
 
 /* ---- block selection */
 .data-table td.sel, .data-table th.row-label.sel {
@@ -36,24 +27,25 @@
   letter-spacing: 0.01em;
 }
 
-/* ---- Data Inspector */
+
+/* ---- Data Inspector: under the grid only while cells are selected */
 .data-inspector {
-  background: var(--surface); border: 1px solid var(--line);
+  background: var(--surface); border: 1px solid var(--line-solid);
   border-radius: var(--radius-pane);
-  padding: 10px 14px var(--space-12);
+  padding: var(--space-12) var(--space-16);
 }
 .data-inspector h3 {
-  margin: 0 0 var(--space-6); font-size: var(--text-label); text-transform: uppercase;
-  letter-spacing: 0.07em; color: var(--muted); font-weight: var(--weight-semibold);
+  margin: 0 0 var(--space-8); font-size: var(--text-label); color: var(--muted);
+  font-weight: var(--weight-semibold);
   display: flex; gap: var(--space-8); align-items: baseline; flex-wrap: wrap;
 }
 .data-inspector h3 .inspector-scope {
-  text-transform: none; letter-spacing: 0; font-weight: var(--weight-medium); color: var(--ink-2);
-  font-size: var(--text-caption);
+  font-weight: var(--weight-medium); color: var(--ink-2); font-size: var(--text-caption);
+  font-variant-numeric: tabular-nums;
 }
 .inspector-stats {
   display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
-  gap: var(--space-6) 14px; margin: 0;
+  gap: var(--space-8) var(--space-16); margin: 0;
 }
 .inspector-stats div { display: flex; flex-direction: column; min-width: 0; }
 .inspector-stats dt { font-size: var(--text-caption); color: var(--muted); }
@@ -61,22 +53,27 @@
   margin: 0; font-size: var(--text-body-s); color: var(--ink); font-weight: var(--weight-semibold);
   font-variant-numeric: tabular-nums; overflow-wrap: anywhere;
 }
+.inspector-note { margin: var(--space-8) 0 0; font-size: var(--text-caption); color: var(--ink-2); }
 
 /* ---- dialogs */
+/* Step tabs: a segmented control. The selected step keeps the weight of
+   the others, so the labels never shift (SH-08). */
 .dialog-tabs {
   display: inline-flex; gap: var(--space-2); padding: var(--space-2); align-self: flex-start;
   background: var(--seg-track); border-radius: var(--radius-dialog); flex-wrap: wrap;
 }
 .dialog-tabs button {
-  background: transparent; border-radius: var(--radius-menu); padding: 5px 14px;
-  font-size: var(--text-body-s); color: var(--ink-2);
+  background: transparent; border-radius: var(--radius-menu); padding: var(--space-4) var(--space-12);
+  min-height: 28px; font-size: var(--text-body-s); font-weight: var(--weight-medium); color: var(--ink-2);
 }
 .dialog-tabs button[aria-selected="true"] {
   background: var(--seg-thumb); color: var(--ink); box-shadow: var(--elev-seg);
-  font-weight: var(--weight-semibold);
+}
+@media (pointer: coarse) {
+  .dialog-tabs button { min-height: 44px; }
 }
 .dialog-panel { display: flex; flex-direction: column; gap: var(--space-12); }
-.field-row { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: flex-end; }
+.field-row { display: flex; flex-wrap: wrap; gap: var(--space-8) var(--space-16); align-items: flex-end; }
 .field-check {
   display: flex; gap: var(--space-8); align-items: baseline; font-size: var(--text-body-s); color: var(--ink-2);
 }
@@ -85,59 +82,45 @@
   font: inherit; font-family: var(--font-mono);
   font-size: var(--text-body-s); color: var(--ink); background: var(--inset);
   border: 1px solid var(--line-strong); border-radius: var(--radius-control);
-  padding: 7px 9px; resize: vertical; min-height: 96px; max-width: 100%;
+  padding: var(--space-6) var(--space-8); resize: vertical; min-height: 96px; max-width: 100%;
 }
 .field input[type="file"] { background: transparent; border: none; padding: var(--space-2) 0; }
+
+/* Import preview: data lines solid, one sticky header (both rows stick
+   together, so no row offset is guessed: GR-14). */
 .import-preview {
-  max-height: 300px; overflow: auto; border: 1px solid var(--grid);
-  border-radius: var(--radius-control);
+  max-height: 300px; overflow: auto; border: 1px solid var(--line-solid);
+  border-radius: var(--radius-control); overscroll-behavior: contain;
 }
 .import-preview table { border-collapse: collapse; font-size: var(--text-body-s); width: max-content; min-width: 100%; }
 .import-preview th, .import-preview td {
-  border: 1px solid var(--grid); padding: 3px 7px; text-align: right;
+  border: 1px solid var(--line-solid); padding: var(--space-2) var(--space-8); text-align: right;
   font-variant-numeric: tabular-nums; white-space: nowrap; max-width: 18ch;
   overflow: hidden; text-overflow: ellipsis;
 }
+.import-preview thead { position: sticky; top: 0; z-index: var(--z-base); }
 .import-preview thead th {
-  position: sticky; top: 0; background: var(--surface); z-index: var(--z-base);
+  background: var(--surface); box-shadow: inset 0 -1px 0 var(--line-solid);
   text-align: center; font-weight: var(--weight-semibold); color: var(--ink-2);
 }
-.import-preview thead tr + tr th { top: 30px; }
 .import-preview select { font: inherit; font-size: var(--text-caption); padding: var(--space-2) var(--space-4); border-radius: var(--radius-control); }
-.import-preview td.role-ignore { color: var(--faint); }
+.import-preview td.role-ignore { color: var(--muted); }
 .import-preview td.role-x { background: var(--inset); }
 .import-preview .rn { color: var(--muted); text-align: center; background: transparent; }
 .import-summary { margin: 0; font-size: var(--text-body-s); color: var(--ink-2); }
+.import-empty { padding: var(--space-8) var(--space-12); color: var(--muted); }
+.import-file-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8); min-width: 0; }
+.import-file-name {
+  min-width: 0; max-width: 32ch; font-size: var(--text-body-s); color: var(--muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 .import-error { color: var(--danger); font-size: var(--text-body-s); margin: 0; }
 .modal-actions .spacer { margin-right: auto; }
 
 /* Results export strip */
-.results-export-wrap { display: flex; flex-direction: column; gap: var(--space-8); min-width: 0; }
-.results-export {
-  display: flex; gap: var(--space-6); justify-content: flex-end; flex-wrap: wrap;
-  align-items: center;
-}
-.results-export button { padding: var(--space-4) 11px; font-size: var(--text-body-s); }
-.results-export .hint { color: var(--muted); font-size: var(--text-caption); margin-right: auto; }
-
-/* inline text button inside notes */
-button.linkish {
-  background: none; border: none; padding: 0; border-radius: var(--radius-control);
-  color: var(--accent); font: inherit; font-size: inherit; cursor: pointer;
-  text-decoration: underline; text-underline-offset: 2px;
-}
-@media (hover: hover) and (pointer: fine) {
-  button.linkish:hover { background: none; color: var(--accent); text-decoration-thickness: 2px; }
-}
-
-@media (max-width: 640px) {
-  .grid-toolbar > button, .grid-toolbar .menu-wrap > button { min-height: 36px; }
-  .dialog-tabs button { padding: 7px var(--space-12); }
-}
 
 /* "From long table…" entry in analysis controls, per-table Copy / CSV */
 .long-table-entry { margin: var(--space-6) 0 var(--space-2); }
-.long-table-entry button { padding: var(--space-4) 11px; font-size: var(--text-body-s); }
 .table-copy { margin: var(--space-2) 0 var(--space-4); }
 .long-table-dialog .field-row > .field { min-width: 12ch; }
 .long-table-error { color: var(--danger); }
@@ -146,16 +129,17 @@ button.linkish {
    only the rows in view are rendered, and the header stays in view. */
 .data-table.virtual { max-height: max(420px, 85svh); overscroll-behavior: contain; }
 .data-table.virtual thead {
-  position: sticky; top: -10px; z-index: calc(var(--z-base) + 1); background: var(--surface);
+  position: sticky; top: calc(-1 * var(--space-8)); z-index: calc(var(--z-base) + 1);
+  background: var(--surface);
 }
 /* --inset is translucent: layer it on the card colour so rows scrolling
    under the header do not show through. */
 .data-table.virtual thead th {
   background: linear-gradient(var(--inset), var(--inset)), var(--surface);
   /* collapsed borders stay where the header was laid out: draw them here */
-  box-shadow: 0 0 0 1px var(--grid);
+  box-shadow: 0 0 0 1px var(--line-solid);
 }
-.data-table.virtual thead th.rownum, .data-table.virtual thead th.rowtools {
+.data-table.virtual thead .rownum, .data-table.virtual thead .rowtools {
   background: var(--surface); box-shadow: 0 0 0 1px var(--surface);
 }
 .data-table tr.grid-gap td { padding: 0; border: none; background: transparent; }

@@ -11,7 +11,7 @@
   font-family: var(--font-mono);
   font-size: var(--text-body-s); color: var(--ink-2); overflow-wrap: anywhere;
 }
-.mixed-block { margin: var(--space-16) 0 var(--space-6); padding-top: 10px; border-top: 1px solid var(--grid); }
+.mixed-block { margin: var(--space-16) 0 var(--space-6); padding-top: 10px; border-top: 1px solid var(--line-solid); }
 .mixed-block h4 { margin: 0 0 var(--space-8); font-size: var(--text-body); color: var(--ink); }
 .mixed-family { margin: var(--space-6) 0; font-size: var(--text-body-s); font-weight: var(--weight-semibold); color: var(--ink-2); max-width: 80ch; }
 .mixed-method { max-width: 80ch; margin: var(--space-6) 0; }

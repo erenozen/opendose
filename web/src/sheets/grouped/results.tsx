@@ -18,6 +18,7 @@ import { adjustedHeader, familyOf, hasUnadjusted } from "../../report/family";
 import FamilyLine from "../common/FamilyLine";
 import { ddfName, ddfOf } from "../common/ddf";
 import "./grouped.css";
+import { Button } from "../../components/ui";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type R = Record<string, any>;
@@ -509,15 +510,15 @@ function LinkedTableRow({ result, sheet, table }: { result: R; sheet: ResultsShe
   return (
     <div className="copy-table-row">
       {linked.outputs.map((d) => (
-        <button key={d.id} type="button" className="grouped-btn" onClick={() => select(d.id)}>
+        <Button key={d.id} onClick={() => select(d.id)}>
           Open “{d.name}”
-        </button>
+        </Button>
       ))}
-      <button type="button" className="grouped-btn" onClick={() => linked.create(
+      <Button onClick={() => linked.create(
         rowMeansTable(result, table.yTitle.trim()),
         `${CALC_TITLE[result.calculate] ?? "Row values"} of ${parentName}`)}>
         Make a linked data table
-      </button>
+      </Button>
       <span className="hint-block">
         A grouped table of these values that follows the data and these
         settings; unlink it to edit it as ordinary data.

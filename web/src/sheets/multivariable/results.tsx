@@ -14,6 +14,8 @@ import type {
   RearrangeResult, RegressionResult,
 } from "./run";
 import { pLabel, tableP, tableStars } from "../../report/pformat";
+import { CopyButton } from "../../components/CiteBlock";
+import { Button } from "../../components/ui";
 
 /* ------------------------------------------------------------ formatting */
 
@@ -76,20 +78,11 @@ function Problem({ result }: { result: { error?: string } | null }) {
 }
 
 function Methods({ text }: { text: string }) {
-  const [copied, setCopied] = useState(false);
   return (
     <div className="result-card methods-text">
       <h3>Methods text</h3>
       <p>{text}</p>
-      <button className="copy-btn" onClick={() => {
-        void navigator.clipboard?.writeText(text);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1500);
-      }}>
-        <span className="swap-label" key={copied ? "copied" : "copy"}>
-          {copied ? "Copied ✓" : "Copy"}
-        </span>
-      </button>
+      <CopyButton text={text} what="the methods text" />
     </div>
   );
 }
@@ -567,14 +560,14 @@ export function RearrangeResults({ sheet, table, options, result }:
       </p>
       <div className="mv-actions">
         {linked.outputs.map((d) => (
-          <button key={d.id} type="button" onClick={() => select(d.id)}>
+          <Button key={d.id} onClick={() => select(d.id)}>
             Open “{d.name}”
-          </button>
+          </Button>
         ))}
-        <button type="button" className={linked.outputs.length ? undefined : "btn-primary"}
+        <Button variant={linked.outputs.length ? "secondary" : "primary"}
           disabled={!nOut || !result.variables.length} onClick={make}>
           Create data table “{name}”
-        </button>
+        </Button>
       </div>
       <p className="hint-block">
         The new table is linked: it follows edits to this table and to these

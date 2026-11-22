@@ -11,6 +11,7 @@ import {
   type CmhOptions, type ContingencyOptions, type DiffCI, type KappaOptions, type ORCI,
   type PropCI, type ProportionOptions, type RRCI,
 } from "./run";
+import { Button } from "../../components/ui";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -415,7 +416,7 @@ export function ContingencyResults({ sheet, table, options, result }: ResultsPro
               : "The quick budget keeps every edit fast; the extended budget usually finishes in a few seconds."}
           </p>
           {canAsk && options?.fisherRxc !== "large" && (
-            <button type="button" onClick={askLarge}>Compute the exact P (may take ~10 s)</button>
+            <Button onClick={askLarge}>Compute the exact P (may take ~10 s)</Button>
           )}
         </div>
       )}

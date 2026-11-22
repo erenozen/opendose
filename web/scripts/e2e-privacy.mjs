@@ -238,7 +238,7 @@ await xd.locator('input[name="table-type"][value="xy"]').check();
 await xd.getByRole("button", { name: "Create table" }).click();
 await page.waitForSelector(".grid-toolbar");
 await page.getByRole("button", { name: "Import…", exact: true }).click();
-await page.locator(".import-dialog").getByLabel("File to import").setInputFiles(XLSX);
+await page.locator(".import-dialog").locator('input[aria-label="File to import"]').setInputFiles(XLSX);
 expect("an .xlsx file is read (the reader installs on first use)",
   await page.waitForFunction(() =>
     /^9 of 9 rows/.test(document.querySelector(".import-dialog .import-summary")?.textContent ?? ""),
