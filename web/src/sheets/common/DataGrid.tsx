@@ -688,6 +688,8 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
                     readOnly={readOnly}
                     autoCorrect="off" autoCapitalize="off" spellCheck={false} autoComplete="off"
                     aria-label={`${shape.datasetNoun} ${di + 1} title`}
+                    // a long name is cut at the column's edge: the full name on hover
+                    title={d.name || undefined}
                     onChange={(e) => onChange((x) => renameDataset(x, di, e.target.value),
                       key(`ds:${di}`))}
                   />

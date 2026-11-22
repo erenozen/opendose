@@ -126,7 +126,7 @@ square) and `sm` (26px square, 44px hit area on touch).
 Use for "Open…" and "Import…": a real Button that opens the file picker,
 keyboard reachable. Never a `<label>` around a hidden input, and never a
 bare visible `<input type="file">` (its look and words come from the
-browser). Takes every Button prop plus `accept`, `onFile(file)` and
+browser). Takes every Button prop plus `accept`, `onFile(file)` (or `multiple` and `onFiles(files)`) and
 `inputLabel` (the hidden input's name; e2e scripts set files on it).
 Picking the same file twice fires twice.
 

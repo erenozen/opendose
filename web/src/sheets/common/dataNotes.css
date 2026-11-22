@@ -57,7 +57,7 @@
 .design-examples { display: flex; flex-wrap: wrap; gap: var(--space-6); margin: var(--space-4) 0 var(--space-8); }
 .design-examples button { padding: var(--space-4) 10px; font-size: var(--text-body-s); }
 
-.type-list .design-entry { display: block; margin: 0 0 var(--space-8); font-size: var(--text-body-s); }
+.type-list .design-entry { display: block; align-self: flex-start; text-align: start; margin: 0 0 var(--space-8); font-size: var(--text-body-s); }
 .design-chosen strong { color: var(--ink); }
 .describe-experiment { margin: 0 var(--space-8) var(--space-12) 0; }
 

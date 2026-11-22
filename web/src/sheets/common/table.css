@@ -31,7 +31,7 @@
 /* The data set's name and its tools share the head: the name takes what
    the tools leave, so the tools never spill past the column's edge. */
 .group-title { display: flex; align-items: center; gap: var(--space-2); }
-.data-table .group-title .ds-name { flex: 1 1 auto; width: auto; min-width: 6ch; }
+.data-table .group-title .ds-name { flex: 1 1 9ch; width: 9ch; min-width: 6ch; }
 .ds-name {
   border: none; background: transparent; color: var(--ink);
   font: inherit; font-weight: var(--weight-semibold); width: 9ch; text-align: center;
