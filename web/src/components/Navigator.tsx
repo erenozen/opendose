@@ -504,7 +504,9 @@ export default function Navigator() {
     const node = self.current;
     return () => {
       unlock();
-      restoreFocus(navToggle(), node);
+      // After this commit has taken inert off the header, or the toggle
+      // cannot take focus yet.
+      requestAnimationFrame(() => restoreFocus(navToggle(), node));
     };
   }, [modal]);
   // Leaving the narrow layout with the drawer open closes it.

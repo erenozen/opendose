@@ -1877,7 +1877,7 @@ expect("the sample-size justification is saved as an info sheet",
   }, null, { timeout: 30000 }).then(() => true, () => false);
   expect("one-way ANOVA prints its table (SS, DF, MS, F) and the residual SD", anovaOk);
   expect("switching the test renames the results sheet (One-way ANOVA of …) and its tab",
-    await page.locator(".nav-name", { hasText: /^One-way ANOVA of / }).count() >= 1
+    await page.locator(".nav-item[aria-label^='One-way ANOVA of ']").count() >= 1
     && await page.getByRole("tab", { name: "One-way ANOVA" }).count() >= 1);
 }
 
