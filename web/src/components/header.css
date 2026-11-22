@@ -73,10 +73,9 @@ header[data-scrolled="true"] { border-bottom-color: var(--line-solid); }
 /* Loading pulse, used by the welcome panel (welcome.css). */
 @keyframes pulse { from { opacity: 0.55; } to { opacity: 1; } }
 
-/* Info popover: privacy + non-affiliation note, anchored to its trigger */
-.info-wrap { position: relative; display: inline-flex; }
+/* Info and preferences popovers (ui/Popover places and animates them) */
+.info-wrap { display: inline-flex; }
 .info-pop {
-  position: absolute; top: calc(100% + 8px); right: 0; z-index: var(--z-popover);
   width: min(360px, calc(100vw - 28px));
   background: var(--float);
   border-radius: var(--radius-menu);
@@ -84,10 +83,6 @@ header[data-scrolled="true"] { border-bottom-color: var(--line-solid); }
   padding: 14px var(--space-16);
   color: var(--muted); font-size: var(--text-body-s); line-height: 1.6;
   text-align: left; cursor: default;
-  transform-origin: top right;
-  transition: opacity var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out);
-  opacity: 1; transform: scale(1);
-  @starting-style { opacity: 0; transform: scale(0.97); }
 }
 .info-pop p { margin: 0 0 var(--space-8); }
 .info-pop p:last-child { margin-bottom: 0; }
@@ -157,11 +152,6 @@ header[data-scrolled="true"] { border-bottom-color: var(--line-solid); }
     border-radius: var(--radius-menu);
     box-shadow: var(--elev-float);
   }
-  /* Popovers opened from the panel anchor to the panel (full width), not
-     to their small trigger, so they stay on screen. */
-  .hdr-secondary .info-wrap, .hdr-secondary .menu-wrap { position: static; }
-  .hdr-secondary .info-pop { top: calc(100% + 6px); right: 0; }
-  .hdr-secondary .sheet-menu { top: calc(100% + 6px); right: 0; left: auto; }
   .label-full { display: none; }
   .label-short { display: inline; }
 }

@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useCommands } from "../app/commands";
 import { useProject } from "../app/context";
 import { useUi } from "../app/ui";
@@ -15,6 +15,9 @@ import { openPowerTool } from "../power/events";
 import { openPrivacy, openValidation } from "../share/events";
 import { openChecklist } from "../report/useReport";
 import PreferencesPopover from "./PreferencesPopover";
+import Menu from "./ui/Menu";
+import Popover from "./ui/Popover";
+import Tooltip from "./ui/Tooltip";
 import { Logo } from "./WelcomePanel";
 import { FileButton } from "./ui/Button";
 import { OPEN_ACCEPT } from "../app/useFileOpen";
@@ -67,56 +70,21 @@ export default function Header({ onOpenFile, onNewProject }: {
   }, [active?.id, tabs.length, project]);
 
   const onTabKey = (e: React.KeyboardEvent) => {
-    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+    if (!["ArrowRight", "ArrowLeft", "Home", "End"].includes(e.key)) return;
     e.preventDefault();
     const i = tabs.findIndex((t) => t.id === active?.id);
-    const next = tabs[(i + (e.key === "ArrowRight" ? 1 : tabs.length - 1)) % tabs.length];
+    const next = e.key === "Home" ? tabs[0] : e.key === "End" ? tabs[tabs.length - 1]
+      : tabs[(i + (e.key === "ArrowRight" ? 1 : tabs.length - 1)) % tabs.length];
     if (!next) return;
     select(next.id);
     requestAnimationFrame(() => tablistRef.current
       ?.querySelector<HTMLElement>(`[data-tab="${next.id}"]`)?.focus());
   };
 
-  // ---- Analyze menu
-  const [analyzeOpen, setAnalyzeOpen] = useState(false);
-  const analyzeRef = useRef<HTMLSpanElement>(null);
-  useEffect(() => {
-    if (!analyzeOpen) return;
-    const onDown = (e: PointerEvent) => {
-      if (!analyzeRef.current?.contains(e.target as Node)) setAnalyzeOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setAnalyzeOpen(false); };
-    document.addEventListener("pointerdown", onDown);
-    document.addEventListener("keydown", onKey);
-    requestAnimationFrame(() => analyzeRef.current
-      ?.querySelector<HTMLElement>("[role=menuitem]")?.focus());
-    return () => {
-      document.removeEventListener("pointerdown", onDown);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [analyzeOpen]);
-
-  // ---- info popover (privacy + non-affiliation note): hover on pointer
-  // devices, click/focus everywhere; Escape and outside-click dismiss.
-  const hoverCapable = () =>
-    window.matchMedia("(hover: hover) and (pointer: fine)").matches;
-  const [infoOpen, setInfoOpen] = useState(false);
-  const infoRef = useRef<HTMLSpanElement>(null);
-  useEffect(() => {
-    if (!infoOpen) return;
-    const onDown = (e: PointerEvent) => {
-      if (!infoRef.current?.contains(e.target as Node)) setInfoOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setInfoOpen(false);
-    };
-    document.addEventListener("pointerdown", onDown);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("pointerdown", onDown);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [infoOpen]);
+  // Analyze lists the standard analyses, then the assay modules under
+  // their own heading.
+  const plain = tdef?.analyses.filter((a) => !isAssayAnalysis(a.id)) ?? [];
+  const assays = tdef?.analyses.filter((a) => isAssayAnalysis(a.id)) ?? [];
 
   // Floating chrome: the header hairline/shadow appear only once content
   // actually scrolls underneath it.
@@ -204,99 +172,87 @@ export default function Header({ onOpenFile, onNewProject }: {
               })}
             </nav>
           )}
-          <span className="analyze-wrap" ref={analyzeRef}>
-            <button className="analyze-btn" aria-haspopup="menu" aria-expanded={analyzeOpen}
+          <Menu>
+            <Menu.Trigger className="analyze-btn"
               disabled={!tdef?.analyses.length || api.readOnly}
               title={tdef?.analyses.length ? `Add an analysis of ${data.name}`
-                : "Analyses for this table type arrive in the next release"}
-              onClick={() => setAnalyzeOpen((o) => !o)}>
+                : "Analyses for this table type arrive in the next release"}>
               Analyze
-            </button>
-            {analyzeOpen && tdef && (
-              <div className="sheet-menu analyze-menu" role="menu" aria-label="Add an analysis" data-still
-                onKeyDown={(e) => {
-                  const items = [...(analyzeRef.current?.querySelectorAll<HTMLElement>("[role=menuitem]") ?? [])];
-                  const i = items.indexOf(document.activeElement as HTMLElement);
-                  if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-                    e.preventDefault();
-                    items[(i + (e.key === "ArrowDown" ? 1 : items.length - 1)) % items.length]?.focus();
-                  }
-                }}>
+            </Menu.Trigger>
+            {tdef && (
+              <Menu.Content className="analyze-menu" aria-label="Add an analysis">
                 {guide && (
-                  // the first item is in the tab order (roving tabindex), so
-                  // the scrollable menu can be reached from the keyboard
-                  <button type="button" role="menuitem" tabIndex={0}
-                    className="menu-item menu-item-2line menu-item-guide"
-                    onClick={() => { setAnalyzeOpen(false); guide.openWizard(); }}>
-                    <span>Help me choose…</span>
-                    <span className="menu-desc">
-                      {`Which test? A few questions about ${data.name} and its rows; get the `
-                        + "recommended test with its reason, set up here."}</span>
-                  </button>
+                  <Menu.Item className="menu-item-guide" onSelect={() => guide.openWizard()}
+                    description={`Which test? A few questions about ${data.name} and its rows; get the `
+                      + "recommended test with its reason, set up here."}>
+                    Help me choose…
+                  </Menu.Item>
                 )}
                 {guide && (
-                  <button type="button" role="menuitem" tabIndex={-1}
-                    className="menu-item menu-item-2line menu-item-guide"
-                    onClick={() => { setAnalyzeOpen(false); guide.openPlanner(); }}>
-                    <span>Plan an experiment…</span>
-                    <span className="menu-desc">Before the data: the table, the analysis, n and a design check list, saved as an analysis plan.</span>
-                  </button>
+                  <Menu.Item className="menu-item-guide" onSelect={() => guide.openPlanner()}
+                    description="Before the data: the table, the analysis, n and a design check list, saved as an analysis plan.">
+                    Plan an experiment…
+                  </Menu.Item>
                 )}
-                                {tdef.analyses.map((a, i) => (
-                  <Fragment key={a.id}>
-                    {/* assay modules (sheets/assays) under their own heading */}
-                    {isAssayAnalysis(a.id) && !tdef.analyses.slice(0, i).some((x) => isAssayAnalysis(x.id)) && (
-                      <div className="menu-sep" role="separator" aria-label="Assays" />
-                    )}
-                    <button type="button" role="menuitem" tabIndex={!guide && i === 0 ? 0 : -1}
-                      className="menu-item menu-item-2line"
-                      onClick={() => { setAnalyzeOpen(false); cmd.addAnalysis(data.id, a.id); }}>
-                      <span>{isAssayAnalysis(a.id) ? `Assay: ${a.label}` : a.label}</span>
-                      {a.description && <span className="menu-desc">{a.description}</span>}
-                    </button>
-                  </Fragment>
+                {plain.map((a) => (
+                  <Menu.Item key={a.id} description={a.description}
+                    onSelect={() => cmd.addAnalysis(data.id, a.id)}>
+                    {a.label}
+                  </Menu.Item>
                 ))}
-              </div>
+                {assays.length > 0 && <>
+                  <Menu.Separator />
+                  <Menu.Group label="Assays">
+                    {assays.map((a) => (
+                      <Menu.Item key={a.id} description={a.description}
+                        onSelect={() => cmd.addAnalysis(data.id, a.id)}>
+                        {`Assay: ${a.label}`}
+                      </Menu.Item>
+                    ))}
+                  </Menu.Group>
+                </>}
+              </Menu.Content>
             )}
-          </span>
+          </Menu>
         </div>
       )}
       <span className="project-actions">
-        <button className="theme-btn" aria-label="Undo" title={`Undo (${modKey}Z)`}
+        <Tooltip content="Undo" shortcut={`${modKey}Z`}>
+        <button className="theme-btn" aria-label="Undo"
           disabled={!history.past.length} onClick={api.undo}>
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor"
             strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M5.5 3.5 2.5 6.5l3 3" /><path d="M2.5 6.5h7a4 4 0 0 1 0 8H7" />
           </svg>
         </button>
-        <button className="theme-btn" aria-label="Redo" title={`Redo (${modKey}Shift+Z)`}
+        </Tooltip>
+        <Tooltip content="Redo" shortcut={`${modKey}Shift+Z`}>
+        <button className="theme-btn" aria-label="Redo"
           disabled={!history.future.length} onClick={api.redo}>
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor"
             strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="m10.5 3.5 3 3-3 3" /><path d="M13.5 6.5h-7a4 4 0 0 0 0 8H9" />
           </svg>
         </button>
+        </Tooltip>
         <span className="hdr-secondary" id="header-secondary" ref={moreRef}
           data-open={moreOpen ? "true" : "false"}>
-        {/* Hover open/close only on hover-capable pointers; touch taps
-            synthesize mouseenter/leave pairs that would instantly undo
-            the open. Touch relies on the click + outside-tap path. */}
-        <span className="info-wrap" ref={infoRef}
-          onMouseEnter={() => { if (hoverCapable()) setInfoOpen(true); }}
-          onMouseLeave={() => { if (hoverCapable()) setInfoOpen(false); }}>
-          <button className="theme-btn info-btn"
-            aria-label="About OpenDose: privacy, non-affiliation and how to cite"
-            aria-expanded={infoOpen}
-            onClick={() => setInfoOpen(true)}>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"
-              stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
-              <circle cx="8" cy="8" r="6.25" />
-              <path d="M8 7.4v3.8" strokeLinecap="round" />
-              <circle cx="8" cy="4.8" r="0.9" fill="currentColor" stroke="none" />
-            </svg>
-          </button>
-          {infoOpen && (
-            <div className="info-pop" role="note">
+        {/* About: privacy, non-affiliation and how to cite. A click opens it
+            and a second click closes it; on hover the tooltip names it. */}
+        <span className="info-wrap">
+          <Popover>
+            <Tooltip content="About OpenDose">
+              <Popover.Trigger className="theme-btn info-btn"
+                aria-label="About OpenDose: privacy, non-affiliation and how to cite">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"
+                  stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+                  <circle cx="8" cy="8" r="6.25" />
+                  <path d="M8 7.4v3.8" strokeLinecap="round" />
+                  <circle cx="8" cy="4.8" r="0.9" fill="currentColor" stroke="none" />
+                </svg>
+              </Popover.Trigger>
+            </Tooltip>
+            <Popover.Content className="info-pop" aria-label="About OpenDose" align="end">
               <p className="info-privacy">
                 Privacy: all computation runs in your browser and no data is
                 sent anywhere; the page contacts no server but this one.
@@ -304,10 +260,9 @@ export default function Header({ onOpenFile, onNewProject }: {
                 Privacy on this computer: turn it off, or forget everything).
                 A share link carries the data inside it, so protect it with a
                 password.{" "}
-                <button type="button" data-still className="linkish"
-                  onClick={() => { setInfoOpen(false); openPrivacy(); }}>
+                <Popover.Close data-still className="linkish" onClick={() => openPrivacy()}>
                   How your data stays private
-                </button>
+                </Popover.Close>
               </p>
               <p className="info-format">
                 File format: project files carry a version number, and every
@@ -322,22 +277,20 @@ export default function Header({ onOpenFile, onNewProject }: {
               </p>
               <p className="info-version">
                 Version {versionLabel()} ·{" "}
-                <button type="button" data-still className="linkish"
-                  onClick={() => { setInfoOpen(false); openValidation(); }}>
+                <Popover.Close data-still className="linkish" onClick={() => openValidation()}>
                   How OpenDose is validated
-                </button>
+                </Popover.Close>
                 {" · "}
-                <button type="button" data-still className="linkish"
-                  onClick={() => { setInfoOpen(false); openChecklist(data?.id); }}>
+                <Popover.Close data-still className="linkish" onClick={() => openChecklist(data?.id)}>
                   Journal checklists
-                </button>
+                </Popover.Close>
               </p>
               <CiteBlock />
-            </div>
-          )}
+            </Popover.Content>
+          </Popover>
         </span>
+        <Tooltip content={`Theme: ${theme === "auto" ? "match system" : theme}`}>
         <button className="theme-btn" onClick={cycleTheme}
-          title={`Theme: ${theme === "auto" ? "match system" : theme}`}
           aria-label={`Color theme: ${theme}. Click to change`}>
           {theme === "light" ? (
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none"
@@ -361,13 +314,15 @@ export default function Header({ onOpenFile, onNewProject }: {
             </svg>
           )}
         </button>
+        </Tooltip>
         {guide && (
+          <Tooltip content="Help" shortcut={`${modKey}/`}>
           <button className="theme-btn help-btn" onClick={() => {
             setMoreOpen(false);
             if (guide.helpOpen) guide.closeHelp(); else guide.openHelp();
           }}
             aria-label="Help: explainers, tour and keyboard shortcuts"
-            aria-expanded={guide.helpOpen} title={`Help (${modKey}/)`}>
+            aria-expanded={guide.helpOpen}>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor"
               strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
               <circle cx="8" cy="8" r="6.25" />
@@ -375,6 +330,7 @@ export default function Header({ onOpenFile, onNewProject }: {
               <circle cx="8" cy="11.6" r="0.8" fill="currentColor" stroke="none" />
             </svg>
           </button>
+          </Tooltip>
         )}
         <PreferencesPopover />
         <span className="save-menu tools-menu">

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useProject } from "../app/context";
 import { SCHEME_LIST, type SchemeId } from "../lib/palette";
 import { autosaveEnabled, setAutosaveEnabled } from "../project/autosave";
@@ -10,6 +10,8 @@ import {
   P_FLOOR_LABELS, P_STYLE_LABELS, SMD_LABELS, VARIANCE_LABELS, reportPrefsOf,
   type PFloor, type PStyle, type ReportPrefs, type SmdPref, type VariancePref,
 } from "../report/prefs";
+import Popover from "./ui/Popover";
+import Tooltip from "./ui/Tooltip";
 
 /** Every keyboard binding in the app, by where it works. Keep in sync
  *  with useShortcuts, the navigator, the data grid, the layout canvas,
@@ -58,7 +60,6 @@ const SHORTCUTS: { area: string; keys: [string, string][] }[] = [
 /** Preferences: kept in this browser and copied into the open project. */
 export default function PreferencesPopover() {
   const { prefs, setPrefs } = useProject();
-  const [open, setOpen] = useState(false);
   // Privacy on this computer: the autosave switch and "Forget".
   const [autosaveOn, setAutosaveOn] = useState(autosaveEnabled);
   const [forget, setForget] = useState<"" | "confirm" | "busy" | "blocked">("");
@@ -69,46 +70,25 @@ export default function PreferencesPopover() {
     // Start again as on a first visit: no share link, no example.
     location.replace(location.pathname);
   };
-  const wrap = useRef<HTMLSpanElement>(null);
-  const btn = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const onDown = (e: PointerEvent) => {
-      if (!wrap.current?.contains(e.target as Node)) setOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
-      setOpen(false);
-      btn.current?.focus();
-    };
-    document.addEventListener("pointerdown", onDown);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("pointerdown", onDown);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [open]);
-
   const set = <K extends keyof Prefs>(k: K, v: Prefs[K]) => setPrefs({ ...prefs, [k]: v });
   // Reporting (src/report): P-value style, "ns", default effect sizes.
   const report = reportPrefsOf(prefs);
   const setReport = (patch: Partial<ReportPrefs>) => set("report", { ...report, ...patch });
 
   return (
-    <span className="info-wrap" ref={wrap}>
-      <button ref={btn} className="theme-btn" aria-label="Preferences"
-        title="Preferences" aria-expanded={open} aria-haspopup="dialog"
-        onClick={() => setOpen((o) => !o)}>
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"
-          stroke="currentColor" strokeWidth="1.4" aria-hidden="true">
-          <circle cx="8" cy="8" r="2.2" />
-          <path d="M8 1.6v1.8M8 12.6v1.8M1.6 8h1.8M12.6 8h1.8M3.5 3.5l1.3 1.3M11.2 11.2l1.3 1.3M12.5 3.5l-1.3 1.3M4.8 11.2l-1.3 1.3"
-            strokeLinecap="round" />
-        </svg>
-      </button>
-      {open && (
-        <div className="info-pop prefs-pop" role="dialog" aria-label="Preferences">
+    <span className="info-wrap">
+      <Popover>
+        <Tooltip content="Preferences">
+          <Popover.Trigger className="theme-btn" aria-label="Preferences">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"
+              stroke="currentColor" strokeWidth="1.4" aria-hidden="true">
+              <circle cx="8" cy="8" r="2.2" />
+              <path d="M8 1.6v1.8M8 12.6v1.8M1.6 8h1.8M12.6 8h1.8M3.5 3.5l1.3 1.3M11.2 11.2l1.3 1.3M12.5 3.5l-1.3 1.3M4.8 11.2l-1.3 1.3"
+                strokeLinecap="round" />
+            </svg>
+          </Popover.Trigger>
+        </Tooltip>
+        <Popover.Content className="info-pop prefs-pop" aria-label="Preferences" align="end">
           <h2 className="prefs-title">Preferences</h2>
           <label className="field">
             <span>New data tables start as</span>
@@ -276,8 +256,8 @@ export default function PreferencesPopover() {
               ))}
             </section>
           </details>
-        </div>
-      )}
+        </Popover.Content>
+      </Popover>
     </span>
   );
 }
