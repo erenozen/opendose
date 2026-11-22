@@ -59,13 +59,28 @@ function Diagnostics({ diag }: { diag: any }) {
     rows.push(["Residual normality (Shapiro-Wilk)",
       `P=${formatSig(n.p)}, ${n.passed_alpha_05 ? "passed" : "failed"}`]);
   }
+  const hs = diag.hougaard_skewness?.parameters as Record<string, { skewness: number; interpretation: string | null }> | undefined;
+  if (hs) {
+    for (const [name, v] of Object.entries(hs)) {
+      rows.push([`Hougaard's skewness: ${name}`,
+        `${formatSig(v.skewness, 3)}${v.interpretation ? ` (${v.interpretation})` : ""}`]);
+    }
+  }
   if (!rows.length) return null;
   return (
-    <table className="results-table goodness">
-      <tbody>
-        {rows.map(([k, v]) => <tr key={k}><th>{k}</th><td>{v}</td></tr>)}
-      </tbody>
-    </table>
+    <>
+      <table className="results-table goodness">
+        <tbody>
+          {rows.map(([k, v]) => <tr key={k}><th>{k}</th><td>{v}</td></tr>)}
+        </tbody>
+      </table>
+      {hs && (
+        <p className="hint-block">Hougaard&apos;s skewness says how far a parameter&apos;s estimate is from the
+          symmetric distribution its asymptotic CI assumes: below 0.1 it behaves as in a
+          linear model, 0.1–0.25 reasonably close, above 0.25 the CI is less trustworthy (consider profile
+          likelihood CIs or a reparameterization, e.g. log K), above 1 very skewed (Ratkowsky 1990).</p>
+      )}
+    </>
   );
 }
 

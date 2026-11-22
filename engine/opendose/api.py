@@ -156,6 +156,9 @@ def _dose_response(data, options):
                                         "absolute_ic50_level")}
             if options.get("diagnostics"):
                 entry["diagnostics"] = diagnostics.fit_diagnostics(xs, ys, fit)
+                hs = diagnostics.hougaard_skewness(xs, ys, fit)
+                if hs is not None:
+                    entry["diagnostics"]["hougaard_skewness"] = hs
                 if summary_fmt:  # replicates test from mean/SD/n (exact)
                     rx, ry = summary.replicate_view(x_col, ds, summary_fmt)
                     entry["diagnostics"]["replicates_test"] = (
