@@ -1,8 +1,14 @@
-// The step-by-step dialog every assay module opens: numbered steps along
-// the top (any step can be revisited), the current step's form, and
-// Back / Next / Finish. Presentational: the module owns the draft state.
-import { useEffect, useState, type ReactNode } from "react";
+// The step-by-step dialog every assay module opens: a stepper along the
+// top (any step done or reachable can be revisited), the current step's
+// heading and form, and Back / Next / Finish with one primary. The
+// module owns the draft state; this is presentational.
+//
+// A step change says where the user is (GF-09): picking a step in the
+// stepper moves focus to that step's heading; Next keeps focus on the
+// Next button and the new step is announced ("Step 2 of 4: …").
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import Modal from "../../../components/Modal";
+import { announce, Button, lastInputWasKeyboard } from "../../../components/ui";
 import { wizardShown } from "./create";
 import "./assays.css";
 
@@ -28,39 +34,62 @@ export default function Wizard({ title, steps, start = 0, finishLabel = "Finish"
   const step = steps[at];
   const last = at === steps.length - 1;
   const blocked = !!step.blocker;
+  const heading = useRef<HTMLHeadingElement>(null);
+  // How the step changed: from the stepper (focus the heading), or by
+  // Back / Next (focus stays on the button; the step is announced).
+  const via = useRef<"stepper" | "button" | null>(null);
+  const [instant, setInstant] = useState(false);
+  const go = (to: number, how: "stepper" | "button") => {
+    via.current = how;
+    setInstant(lastInputWasKeyboard());
+    setAt(to);
+  };
+  useLayoutEffect(() => {
+    const how = via.current;
+    if (!how) return;
+    via.current = null;
+    if (how === "stepper") heading.current?.focus({ preventScroll: true });
+    announce(`Step ${at + 1} of ${steps.length}: ${steps[at].title}`);
+  }, [at, steps]);
   const next = () => {
     if (blocked) return;
     if (last) onFinish();
-    else setAt(at + 1);
+    else go(at + 1, "button");
   };
   return (
     <Modal title={title} className="modal-wide assay-wizard" onClose={onClose} onSubmit={next}
       actions={
         <>
-          <button type="button" onClick={onClose}>Cancel</button>
-          <button type="button" disabled={at === 0} onClick={() => setAt(at - 1)}>Back</button>
-          <button type="submit" className="btn-primary" disabled={blocked}>
+          <Button onClick={onClose}>Cancel</Button>
+          {at > 0 && <Button onClick={() => go(at - 1, "button")}>Back</Button>}
+          <Button type="submit" variant="primary" className="wizard-next" disabled={blocked}>
             {last ? finishLabel : "Next"}
-          </button>
+          </Button>
         </>
       }>
-      <ol className="wizard-steps" aria-label="Steps">
+      <ol className="wizard-steps" aria-label="Steps" data-still>
         {steps.map((s, i) => (
           <li key={s.id}>
             <button type="button" aria-current={i === at ? "step" : undefined}
-              className={i === at ? "current" : i < at ? "done" : ""}
+              data-state={i === at ? "current" : i < at ? "done" : "todo"}
               disabled={i > at && steps.slice(at, i).some((x) => !!x.blocker)}
-              onClick={() => setAt(i)}>
+              onClick={() => { if (i !== at) go(i, "stepper"); }}>
               <span className="wizard-step-n" aria-hidden="true">{i + 1}</span>
-              {s.title}
+              <span className="wizard-step-name">{s.title}</span>
+              {i < at && <span className="sr-only"> (done)</span>}
             </button>
           </li>
         ))}
       </ol>
-      <div className="wizard-body" key={step.id}>
+      <div className="wizard-body" key={step.id} data-instant={instant || undefined}>
+        <h3 ref={heading} tabIndex={-1} className="wizard-step-title">
+          <span className="wizard-step-count">Step {at + 1} of {steps.length}<span className="sr-only">: </span></span>
+          {step.title}
+        </h3>
         {step.render()}
       </div>
-      {step.blocker && <p className="wizard-blocker" role="status">{step.blocker}</p>}
+      {/* Mounted with the dialog, so a new reason is announced (AD-16). */}
+      <p className="wizard-blocker" role="status">{step.blocker ?? ""}</p>
     </Modal>
   );
 }

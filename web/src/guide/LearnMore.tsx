@@ -37,7 +37,7 @@ export default function LearnMore({ id, label }: { id: string; label?: string })
   if (!e) return null;
   if (!guide) return <ExplainerDetails id={id} />;
   return (
-    <button type="button" className="learn-more" title={e.summary}
+    <button type="button" className="linkish learn-more" data-still title={e.summary}
       onClick={() => guide.openHelp(e.id)}>
       {label ?? "Learn more"}<span className="sr-only">: {e.title}</span>
     </button>

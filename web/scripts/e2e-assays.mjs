@@ -98,7 +98,7 @@ async function finishWizard() {
     await next.click();
     await page.waitForTimeout(250);
   }
-  await wizard().locator(".modal-actions .btn-primary").click();
+  await wizard().locator(".modal-actions .wizard-next").click();
   await wizard().waitFor({ state: "detached", timeout: 10000 });
 }
 

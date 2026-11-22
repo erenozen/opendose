@@ -2100,7 +2100,7 @@ for (let i = 0; i < 6; i++) {
   await next.click();
   await page.waitForTimeout(250);
 }
-await qwz.locator(".modal-actions .btn-primary").click();
+await qwz.locator(".modal-actions .wizard-next").click();
 await qwz.waitFor({ state: "detached", timeout: 10000 }).catch(() => {});
 await page.waitForSelector(".qpcr-results .qpcr-target", { timeout: 60000 }).catch(() => {});
 const qkid = (await page.locator(".qpcr-target tr", { hasText: /^Kidney/ }).first().innerText().catch(() => "")).replace(/\s+/g, " ");

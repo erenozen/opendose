@@ -1,7 +1,8 @@
 // Small pieces the assay panels share: pass/fail chips, key-value tables,
 // notes, the column-role picker and the list of linked output tables.
-import type { ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 import { useProject } from "../../../app/context";
+import { Button, Field } from "../../../components/ui";
 import type { DataSheet, DataTableModel } from "../../../project/types";
 import { columnNames, type ColumnChoice, type ColumnIndex, type RoleSpec } from "./columns";
 import "./assays.css";
@@ -57,22 +58,23 @@ export function ColumnPicker<K extends string>({ table, specs, choice, resolved,
   readOnly?: boolean;
 }) {
   const names = columnNames(table);
+  const base = useId();
   return (
     <div className="column-picker">
       {specs.map((s) => {
         const i = resolved[s.key];
         const value = i >= 0 ? names[i] : "";
+        const id = `${base}-${s.key}`;
         return (
-          <label key={s.key} className="field">
-            <span>{s.label}{s.required ? "" : " (optional)"}</span>
-            <select value={value} disabled={readOnly}
+          <Field key={s.key} id={id} label={`${s.label}${s.required ? "" : " (optional)"}`}
+            description={s.hint}>
+            <select id={id} value={value} disabled={readOnly}
               aria-invalid={s.required && i < 0 ? true : undefined}
               onChange={(e) => onChange({ ...choice, [s.key]: e.target.value })}>
               <option value="">{s.required ? "Choose a column" : "None"}</option>
               {names.map((n, j) => <option key={`${n}-${j}`} value={n}>{n}</option>)}
             </select>
-            {s.hint && <span className="field-note">{s.hint}</span>}
-          </label>
+          </Field>
         );
       })}
     </div>
@@ -90,12 +92,12 @@ export function LinkedOutputs({ outputs, onMake, makeLabel = "Make the linked ta
   return (
     <div className="assay-outputs">
       {outputs.map((d) => (
-        <button key={d.id} type="button" className="assay-link-btn" onClick={() => select(d.id)}>
+        <Button key={d.id} size="sm" onClick={() => select(d.id)}>
           Open “{d.name}”
-        </button>
+        </Button>
       ))}
       {onMake && (
-        <button type="button" className="assay-link-btn" onClick={onMake}>{makeLabel}</button>
+        <Button size="sm" onClick={onMake}>{makeLabel}</Button>
       )}
       {hint && <span className="hint-block">{hint}</span>}
     </div>

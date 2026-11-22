@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { explainer, searchExplainers } from "./explainers";
 import { ExplainerBody } from "./LearnMore";
+import { Button } from "../components/ui";
 
 const mac = typeof navigator !== "undefined" && /Mac|iP(hone|ad)/.test(navigator.platform);
 const MOD = mac ? "⌘" : "Ctrl+";
@@ -67,8 +68,8 @@ export default function HelpPanel({ initial, onClose, onWizard, onTour, onStart 
       </div>
       {e ? (
         <div className="help-body">
-          <button type="button" className="help-back" onClick={() => setCurrent(null)}>
-            ← All topics</button>
+          <Button size="sm" className="help-back" onClick={() => setCurrent(null)}>
+            All topics</Button>
           <h3 ref={heading} tabIndex={-1} className="help-topic-title">{e.title}</h3>
           <p className="help-summary">{e.summary}</p>
           <ExplainerBody e={e} />
@@ -82,9 +83,9 @@ export default function HelpPanel({ initial, onClose, onWizard, onTour, onStart 
           </label>
           {!query && (
             <div className="help-actions">
-              <button type="button" className="btn-primary" onClick={onWizard}>Help me choose a test…</button>
-              <button type="button" onClick={onTour}>Take the tour</button>
-              <button type="button" onClick={onStart}>Start screen</button>
+              <Button variant="primary" onClick={onWizard}>Help me choose a test…</Button>
+              <Button onClick={onTour}>Take the tour</Button>
+              <Button onClick={onStart}>Start screen</Button>
             </div>
           )}
           <h3 className="help-section">Explainers</h3>

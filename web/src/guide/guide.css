@@ -5,42 +5,18 @@
    ============================================================ */
 
 
-.learn-more {
-  background: none; padding: 0; border-radius: var(--radius-control);
-  color: var(--accent); font-size: var(--text-body-s); font-weight: var(--weight-medium);
-  text-decoration: underline; text-underline-offset: 2px;
-}
-@media (hover: hover) and (pointer: fine) {
-  .learn-more:hover { background: none; color: var(--accent); text-decoration-thickness: 2px; }
-}
+/* "Learn more": an inline link-style button (button.linkish). */
+.learn-more { font-weight: var(--weight-medium); }
 
-/* ---------------- results: banners, chips, differ note ---------------- */
+/* ---------------- results: chip actions, sources ---------------- */
 
-.guide-banner {
-  border: 1px solid var(--line-strong); border-left: 3px solid var(--accent);
-  border-radius: var(--radius-control); background: var(--surface);
-  padding: 10px 14px; font-size: var(--text-body-s); color: var(--ink-2);
-}
-.guide-banner p { margin: 0 0 var(--space-6); }
-.guide-banner ul { margin: 0 0 var(--space-6); padding-left: 18px; }
-.guide-banner li { margin: var(--space-2) 0; }
-.guide-banner.banner-warn { border-left-color: var(--warn); }
-.guide-banner-title { color: var(--ink); font-weight: var(--weight-semibold); font-size: var(--text-body); }
-.guide-banner-sub { font-weight: var(--weight-semibold); color: var(--ink); font-size: var(--text-body-s); }
-.guide-banner-foot {
-  display: flex; flex-wrap: wrap; gap: var(--space-6) 14px; align-items: center; margin: 0 !important;
-}
 .guide-source { font-size: var(--text-caption); color: var(--muted); }
-.guide-banner-foot button { padding: var(--space-4) var(--space-12); font-size: var(--text-body-s); }
-
 .guide-chip-action button { font-size: var(--text-body-s); }
-
-
-.results-empty-actions { display: flex; flex-wrap: wrap; gap: var(--space-8); justify-content: center; margin-top: 10px; }
 
 /* ---------------- data-entry hints ---------------- */
 
-.entry-guide { display: flex; flex-direction: column; gap: var(--space-6); margin-bottom: var(--space-8); }
+.entry-guide { display: flex; flex-direction: column; gap: var(--space-8); margin-bottom: var(--space-8); }
+.entry-guide:empty { display: none; }
 
 /* ---------------- which-test wizard ---------------- */
 
@@ -118,7 +94,11 @@
 }
 .help-head { display: flex; align-items: center; justify-content: space-between; padding: var(--space-12) 14px var(--space-6); }
 .help-head h2 { margin: 0; font-size: var(--text-lead); }
-.help-close { width: 30px; height: 30px; padding: 0; font-size: var(--text-title); line-height: 1; }
+.help-close { position: relative; width: 32px; height: 32px; padding: 0; font-size: var(--text-title); line-height: 1; }
+/* A 44px hit area on touch (GF-05), the Button.css pattern. */
+@media (pointer: coarse) {
+  .help-close::before { content: ""; position: absolute; inset: -6px; }
+}
 .help-body { overflow: auto; padding: var(--space-4) 14px 14px; font-size: var(--text-body-s); }
 .help-body p { color: var(--ink-2); margin: 0 0 var(--space-8); }
 .help-search input {
@@ -126,8 +106,8 @@
   background: var(--inset); border: 1px solid var(--line-strong); border-radius: var(--radius-control);
 }
 .help-actions { display: flex; flex-wrap: wrap; gap: var(--space-6); margin: 10px 0 var(--space-4); }
-.help-section { font-size: var(--text-label); text-transform: uppercase; letter-spacing: 0.04em;
-  color: var(--muted); margin: 14px 0 var(--space-6); }
+.help-section { font-size: var(--text-label); font-weight: var(--weight-semibold);
+  color: var(--muted); margin: var(--space-16) 0 var(--space-6); }
 .help-topics { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
 .help-topics button {
   display: flex; flex-direction: column; align-items: flex-start; gap: 1px; width: 100%;
@@ -138,7 +118,7 @@
 }
 .help-topic-name { font-weight: var(--weight-semibold); color: var(--ink); }
 .help-topic-sum { font-size: var(--text-caption); color: var(--muted); font-weight: var(--weight-regular); }
-.help-back { padding: var(--space-4) 10px; font-size: var(--text-body-s); margin-bottom: var(--space-8); }
+.help-back { margin-bottom: var(--space-8); }
 .help-topic-title { margin: var(--space-4) 0 var(--space-4); font-size: var(--text-lead); }
 .help-topic-title:focus { outline: none; }
 .help-topic-title:focus-visible { outline: 2px solid var(--focus-ring); }
