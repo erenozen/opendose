@@ -3,7 +3,9 @@ import { emptyTable, normalizeTable } from "../../project/table";
 import type { DataTableModel } from "../../project/types";
 import type { EngineBridge } from "../../lib/engine";
 import DataGrid from "../common/DataGrid";
-import { defineAnalysis, type TableTypeDef } from "../types";
+import { defineAnalysis, defineGraph, type TableTypeDef } from "../types";
+import { CT_GRAPH_LABELS, ctAutoTitles, GRAPH_CT_GROUPED, GRAPH_CT_PERCENT, GRAPH_CT_STACKED, outcomeNames } from "./bars";
+import { CtOptions, CtPlot } from "./plot";
 import {
   CmhMethods, ContingencyMethods, KappaMethods, McNemarMethods, ProportionMethods,
 } from "./methods";
@@ -126,6 +128,21 @@ function contingencySample() {
   });
 }
 
+// One bar per group (row), the outcomes (columns) as segments (bars.ts).
+export const contingencyGraphs = [GRAPH_CT_PERCENT, GRAPH_CT_STACKED, GRAPH_CT_GROUPED].map((id) => defineGraph({
+  id,
+  label: CT_GRAPH_LABELS[id],
+  group: "contingency",
+  analysis: null,
+  autoTitles: ctAutoTitles(id),
+  showXTitle: false,
+  exportName: "contingency",
+  PlotPanel: CtPlot,
+  OptionsPanel: CtOptions,
+  formatDatasets: (table) => outcomeNames(table),
+  formatFeatures: { bars: true, categoryX: true },
+}));
+
 export const contingencyTable: TableTypeDef = {
   type: "contingency",
   label: "Contingency",
@@ -139,5 +156,5 @@ export const contingencyTable: TableTypeDef = {
   sampleName: "Contingency example",
   Editor: DataGrid,
   analyses: [contingencyAnalysis, mcnemarAnalysis, cmhAnalysis, kappaAnalysis, proportionAnalysis],
-  graphs: [],
+  graphs: contingencyGraphs,
 };
