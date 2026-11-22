@@ -11,6 +11,7 @@ import type {
 import { FDR_METHODS, twoWayFactorNames } from "./options.ts";
 import { groupedPayload, hasMissingRM } from "./stats.ts";
 import { allCellsComparisons, cellsFamily } from "../common/allCells.ts";
+import { ddfOf } from "../common/ddf.ts";
 
 type Result = Record<string, unknown>;
 
@@ -103,7 +104,7 @@ export function runTwoWay(engine: EngineBridge, table: DataTableModel,
       analysis: "mixed_rm_twoway", data,
       options: {
         design, row_names: rowNames, method: "mixed", comparisons,
-        direction,
+        direction, ddf: ddfOf(o.mixedDdf),
       },
     });
     return { ...r, factor_names: [factors.row_factor, factors.col_factor], missing };

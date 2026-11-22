@@ -441,6 +441,10 @@ export interface ColumnOptionsState {
   /** RM one-way ANOVA with missing values: fit the mixed-effects model
    *  (keeps incomplete subjects) instead of dropping those rows. */
   rmMixed?: boolean;
+  /** The mixed model's denominator df (sheets/common/ddf.ts); absent =
+   *  containment, as computed before the setting existed. New sheets
+   *  start with Kenward-Roger. */
+  mixedDdf?: "kenward_roger" | "satterthwaite" | "containment";
 }
 
 export const DEFAULT_COLUMN_OPTIONS: ColumnOptionsState = {

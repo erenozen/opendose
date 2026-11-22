@@ -5,6 +5,7 @@ import { formatSig } from "../../types";
 import type { ResultsProps } from "../types";
 import { pLabel } from "./format";
 import { isAdditiveTwoWay } from "./interactionSummary";
+import { ddfMethodsSentence, ddfOf } from "../common/ddf";
 import {
   CORRECTION_LABEL, FDR_METHODS, ROW_TEST_LABEL, type ColumnStatsOptions,
   type MultiTOptions, type RowMeansOptions, type ThreeWayOptions, type TwoWayOptions,
@@ -73,11 +74,16 @@ export function TwoWayMethods({ result, options: o }: ResultsProps<TwoWayOptions
       effect(`${fA} × ${fB} interaction`, fe.interaction),
       effect(fA, fe.row_factor), effect(fB, fe.column_factor),
     ].filter(Boolean);
+    const ddf = ddfOf(result.ddf);
     text = `Data were analyzed with a mixed-effects model (restricted maximum likelihood, `
       + `subject as a random effect) for two-way repeated measures (${fA} × ${fB}`
-      + `${result.n_missing ? `; ${result.n_missing} missing value(s)` : ""}), with `
-      + `Geisser-Greenhouse correction of the repeated-measures effects, using ${TOOL}. `
-      + parts.join("; ") + ".";
+      + `${result.n_missing ? `; ${result.n_missing} missing value(s)` : ""}), `
+      + (ddf === "containment"
+        ? "with Geisser-Greenhouse correction of the repeated-measures effects, "
+        : "")
+      + `using ${TOOL}. `
+      + parts.join("; ") + "."
+      + (ddf === "containment" ? "" : ` ${ddfMethodsSentence(ddf)}`);
   } else if (String(result.analysis).startsWith("rm_two_way")) {
     const src = result.sources ?? {};
     // Each effect's denominator: its own error term (both factors

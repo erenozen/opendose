@@ -74,10 +74,12 @@ test("missing values: the mixed-effects model when chosen", () => {
   assert.equal(fitsMixedModel(o({}), table), false);
   assert.equal(fitsMixedModel(o({ rmMixed: true }), table), true);
   assert.equal(fitsMixedModel(o({ rmMixed: true, rmKind: "nonparametric" }), table), false);
+  // saved sheets without the setting: containment df
   assert.deepEqual(mixedOptions(o({ comparisons: "dunnett", controlIndex: 2 }), 3),
-    { method: "mixed", comparisons: "dunnett", control_index: 2 });
+    { method: "mixed", comparisons: "dunnett", control_index: 2, ddf: "containment" });
   assert.deepEqual(mixedOptions(o({ comparisons: "fisher_lsd" }), 3),
-    { method: "mixed", comparisons: "fisher", control_index: 0 });
+    { method: "mixed", comparisons: "fisher", control_index: 0, ddf: "containment" });
+  assert.equal(mixedOptions(o({ mixedDdf: "kenward_roger" }), 3).ddf, "kenward_roger");
   assert.equal(mixedOptions(o({ comparisons: "holm" }), 3).comparisons, null);
   assert.match(mixedLimitations(o({ comparisons: "holm" }), 3), /Holm/);
   assert.equal(mixedLimitations(o({ comparisons: "tukey" }), 3), "");

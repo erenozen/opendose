@@ -179,8 +179,9 @@ export function describeResult(result: unknown): TestInfo {
       // the comparisons block of RM one-way ANOVA is `comparisons`
       return withMc(info, r.multiple_comparisons ?? (Array.isArray(r.comparisons?.comparisons)
         ? r.comparisons : null));
-    case "mixed_rm_one_way":
-      info.test = "mixed-effects model (REML) for repeated measures (Geisser-Greenhouse corrected)";
+    case "mixed_rm_one_way": {
+      const kr = r.ddf === "kenward_roger" ? "Kenward-Roger" : r.ddf === "satterthwaite" ? "Satterthwaite" : null;
+      info.test = `mixed-effects model (REML) for repeated measures (${kr ? `${kr} df` : "Geisser-Greenhouse corrected"})`;
       info.sided = "two-sided";
       info.exactP = true;
       info.statisticWithDf = true;
@@ -188,8 +189,9 @@ export function describeResult(result: unknown): TestInfo {
       info.groups = Array.isArray(r.estimated_means) ? r.estimated_means
         .filter((m: R) => num(m?.n)).map((m: R) => ({ name: String(m.name), n: m.n })) : [];
       info.nUnit = "subjects";
-      info.assumptions = "sphericity not assumed (Geisser-Greenhouse)";
+      info.assumptions = kr ? "compound symmetry (mixed model)" : "sphericity not assumed (Geisser-Greenhouse)";
       return withMc(info, r.multiple_comparisons);
+    }
     case "friedman":
       info.test = "Friedman test";
       info.sided = "two-sided";

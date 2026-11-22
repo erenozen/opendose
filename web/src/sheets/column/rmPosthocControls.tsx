@@ -3,6 +3,7 @@
 // term, and the mixed-effects model for subjects with missing values.
 import type { ColumnOptionsState, ComparisonsMethod } from "../../types";
 import ComparisonsPicker from "./comparisonsPicker";
+import DdfSelect from "../common/DdfSelect";
 import { RM_POSTHOC_SOURCES } from "./logScaleSources";
 import {
   mixedLimitations, RM_METHOD_LABELS, RM_METHODS, rmBaseline, rmError, rmMethod,
@@ -75,6 +76,9 @@ export default function RmPosthocControls({ options, datasetNames, onChange, inc
           <span>Keep the {incomplete} subject{incomplete === 1 ? "" : "s"} with missing values
             (mixed-effects model)</span>
         </label>
+      )}
+      {mixed && (
+        <DdfSelect value={options.mixedDdf} onChange={(m) => set({ mixedDdf: m })} />
       )}
       {limits && <p className="hint-block">{limits}</p>}
     </div>

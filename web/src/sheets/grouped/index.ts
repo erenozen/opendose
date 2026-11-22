@@ -4,6 +4,7 @@
 // t tests one per row, row means / totals, column statistics. Graphs:
 // interleaved / stacked / separated bars, grouped scatter, box plots,
 // connected lines, the two-panel three-way graph, heat map, volcano plot.
+import { DDF_NEW_SHEET } from "../common/ddf";
 import { emptyTable } from "../../project/table";
 import type { DataTableModel } from "../../project/types";
 import DataGrid from "../common/DataGrid";
@@ -99,7 +100,8 @@ export const twoWayAnalysis = defineAnalysis<TwoWayOptions, Result>({
   description: "Rows × datasets, ordinary or repeated measures; a mixed-effects "
     + "model when repeated values are missing. Tukey, Šídák or Bonferroni comparisons.",
   sheetName: (t) => `Two-way ANOVA of ${t}`,
-  defaultOptions: () => ({ ...DEFAULT_TWO_WAY }),
+  // new sheets: Kenward-Roger df for the mixed model (sheets/common/ddf.ts)
+  defaultOptions: () => ({ ...DEFAULT_TWO_WAY, mixedDdf: DDF_NEW_SHEET }),
   normalizeOptions: (raw) => normalizeTwoWay(raw),
   run: runTwoWay,
   defaultGraph: G_INTERLEAVED,

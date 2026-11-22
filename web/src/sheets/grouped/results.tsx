@@ -16,6 +16,7 @@ import InteractionBlock from "./interaction";
 import { isAdditiveTwoWay } from "./interactionSummary";
 import { adjustedHeader, familyOf, hasUnadjusted } from "../../report/family";
 import FamilyLine from "../common/FamilyLine";
+import { ddfName, ddfOf } from "../common/ddf";
 import "./grouped.css";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -86,6 +87,8 @@ function TwoWayComparisons({ mc, note }: { mc: R; note?: string }) {
     : method.charAt(0).toUpperCase() + method.slice(1);
   const fam = familyOf(mc);
   const unadj = hasUnadjusted(mc.comparisons) && fam?.kind !== "unadjusted";
+  // Kenward-Roger / Satterthwaite: each comparison has its own df
+  const ownDf = ddfOf(mc.ddf) !== "containment";
   return (
     <>
       <h4>{name} multiple comparisons{mc.direction === "all_cells"
@@ -105,6 +108,7 @@ function TwoWayComparisons({ mc, note }: { mc: R; note?: string }) {
           <thead>
             <tr>
               <th>Family</th><th>Comparison</th><th>Difference</th><th>95% CI</th>
+              {ownDf && <th>df</th>}
               <th>{adjustedHeader(fam)}</th>{unadj && <th>Unadjusted P</th>}<th>Summary</th>
             </tr>
           </thead>
@@ -115,6 +119,7 @@ function TwoWayComparisons({ mc, note }: { mc: R; note?: string }) {
                 <th>{c.pair}</th>
                 <td>{formatSig(c.difference)}</td>
                 <td>{fmtCI(c.ci95 ?? c.ci)}</td>
+                {ownDf && <td>{formatSig(c.df)}</td>}
                 <td>{fmtP(c.p_adjusted)}</td>
                 {unadj && <td>{fmtP(c.p_unadjusted)}</td>}
                 <td>{stars(c.p_adjusted)}</td>
@@ -134,19 +139,22 @@ function MixedTwoWay({ result, factors }: { result: R; factors: [string, string]
     column_factor: result.design === "both" ? `${factors[1]} (repeated)` : factors[1],
   };
   const fe = Object.entries(result.fixed_effects ?? {}) as [string, R][];
+  const ddf = ddfOf(result.ddf);
+  const gg = ddf === "containment";
   return (
     <div className="result-card">
       <h3>Mixed-effects model: two-way repeated measures</h3>
       <p className="model-line">
         {result.method}; {result.n_subjects} subjects, {result.n_values} values
-        {result.n_missing ? `, ${result.n_missing} missing` : ""}.
+        {result.n_missing ? `, ${result.n_missing} missing` : ""}; denominator df:{" "}
+        {gg ? "containment" : ddfName(ddf)}.
       </p>
       <h4>Fixed effects (type III)</h4>
       <div className="results-scroll">
         <table className="results-table">
           <thead>
             <tr><th>Effect</th><th>F (DFn, DFd)</th><th>P value</th>
-              <th>Geisser-Greenhouse ε</th><th>P (GG corrected)</th></tr>
+              {gg && <><th>Geisser-Greenhouse ε</th><th>P (GG corrected)</th></>}</tr>
           </thead>
           <tbody>
             {fe.map(([k, f]) => (
@@ -154,8 +162,8 @@ function MixedTwoWay({ result, factors }: { result: R; factors: [string, string]
                 <th>{label[k] ?? k}</th>
                 <td>F({formatSig(f.df_num, 3)}, {formatSig(f.df_den, 3)}) = {formatSig(f.F)}</td>
                 <td>{fmtP(f.p)} {stars(f.p)}</td>
-                <td>{f.epsilon != null ? formatSig(f.epsilon) : "n/a"}</td>
-                <td>{f.p_geisser_greenhouse != null ? fmtP(f.p_geisser_greenhouse) : "n/a"}</td>
+                {gg && <td>{f.epsilon != null ? formatSig(f.epsilon) : "n/a"}</td>}
+                {gg && <td>{f.p_geisser_greenhouse != null ? fmtP(f.p_geisser_greenhouse) : "n/a"}</td>}
               </tr>
             ))}
           </tbody>

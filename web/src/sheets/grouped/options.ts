@@ -1,5 +1,6 @@
 // Option objects of the grouped-table analyses and graphs, with defaults
 // and normalizers for options read from older files. Pure (no React).
+import { ddfOf, type DdfMethod } from "../common/ddf.ts";
 import type { TwoWayComparisons, TwoWayDirection, TwoWayModel } from "../../types.ts";
 import type { ErrorKind, HeatPalette } from "./stats.ts";
 import { isPointSpread, type PointSpread } from "../../graph/swarm.ts";
@@ -54,6 +55,9 @@ export interface TwoWayOptions {
   /** Show the Interaction block first ("Is the treatment effect different
    *  between groups?", guide/interaction.ts). Absent = after the ANOVA. */
   interactionFocus?: boolean;
+  /** The mixed model's denominator df (sheets/common/ddf.ts); absent =
+   *  containment (sheets saved before the setting). */
+  mixedDdf?: DdfMethod;
 }
 
 export const DEFAULT_TWO_WAY: TwoWayOptions = {
@@ -93,6 +97,7 @@ export function normalizeTwoWay(raw: unknown): TwoWayOptions {
       "column_means", "row_means", "all_cells"] as const, d.direction),
     model: pick(o.model, ["full", "additive"] as const, d.model),
     ...(o.interactionFocus === true ? { interactionFocus: true } : {}),
+    ...(o.mixedDdf === undefined ? {} : { mixedDdf: ddfOf(o.mixedDdf) }),
   };
 }
 

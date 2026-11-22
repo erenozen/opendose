@@ -14,6 +14,7 @@ import {
   type ThreeWayMethod, type ThreeWayOptions, type TwoWayDesign, type TwoWayOptions,
 } from "./options";
 import { groupedPayload, hasMissingRM } from "./stats";
+import DdfSelect from "../common/DdfSelect";
 import "./grouped.css";
 
 const dsName = (t: DataTableModel, i: number) =>
@@ -105,6 +106,9 @@ export function TwoWayControls({ table, options: o, onChange }: ControlsProps<Tw
                 Some subjects are missing values, so the mixed-effects model
                 (REML) is fitted; it uses every value that is there.
               </p>
+            )}
+            {(missing || o.rmFit === "mixed") && (
+              <DdfSelect value={o.mixedDdf} onChange={(m) => set({ mixedDdf: m })} />
             )}
           </>
         )}
