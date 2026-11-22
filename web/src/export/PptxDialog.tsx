@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useProject } from "../app/context";
 import Modal from "../components/Modal";
+import { Button } from "../components/ui";
 import { findSheet } from "../project/ops";
 import { PPTX_EDIT_HINT } from "./officeText";
 import { pptxSheets, type PptxScope } from "./pptx";
@@ -57,8 +58,8 @@ export default function PptxDialog({ from, initial, onClose, onExport }: {
       onSubmit={() => { if (!empty) onExport(chosen, { notes }); }}
       actions={(
         <>
-          <button type="button" onClick={onClose}>Cancel</button>
-          <button type="submit" className="btn-primary" disabled={empty}>Export .pptx</button>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button type="submit" variant="primary" disabled={empty}>Export .pptx</Button>
         </>
       )}>
       <fieldset className="field-radios">

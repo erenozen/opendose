@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import type Plotly from "plotly.js-dist-min";
-import { loadPlotly, plotlyNow } from "../lib/plotly";
+import { plotlyNow } from "../lib/plotly";
+import { PlotStatus } from "../graph/PlotStatus";
+import { usePlotLoad } from "../graph/usePlotLoad";
 import { graphPStyle } from "../graph/significance";
 import { densify } from "../graph/dense";
 import type { AnalysisResult } from "../types";
@@ -43,6 +45,7 @@ export default function PlotPanel({
   const el = useRef<HTMLDivElement>(null);
   const [dark, setDark] = useState(isDarkMode());
   const { rev, attach } = usePlotEdits(format, onFormatChange);
+  const { load, attempt, drawn, draw, purge, retry } = usePlotLoad();
 
   useEffect(() => onThemeChange(() => setDark(isDarkMode())), []);
 
@@ -65,6 +68,12 @@ export default function PlotPanel({
     ro.observe(div);
     return () => { ro.disconnect(); cancelAnimationFrame(raf); };
   }, []);
+
+  // A failed analysis leaves nothing to draw: clear the previous curve
+  // rather than show it beside "Analysis failed" (BEF-25).
+  useEffect(() => {
+    if (el.current && result?.error) purge(el.current);
+  }, [result, purge]);
 
   useEffect(() => {
     if (!el.current || !result || result.error) return;
@@ -194,7 +203,8 @@ export default function PlotPanel({
         font: { color: chrome.ink },
       },
       hovermode: "closest",
-      // Hand-drag pans without changing zoom; wheel zooms; the view
+      // Hand-drag pans without changing zoom; Ctrl/Cmd+wheel zooms (a
+      // plain wheel scrolls the page: graph/plotInput.ts); the view
       // survives re-fits (uirevision) and double-click resets it.
       dragmode: "pan",
       uirevision: "keep",
@@ -215,13 +225,23 @@ export default function PlotPanel({
       results: resultBlocks(result, graphPStyle(format)), editRevision: rev,
     });
     const div = el.current;
-    void loadPlotly().then((P) => P.react(div, densify(out.traces).traces as Plotly.Data[], out.layout, plotConfig({
-      responsive: true,
-      scrollZoom: true,
-      displaylogo: false,
-      toImageButtonOptions: { format: "svg", filename: "dose-response" },
-    }, format, !!onFormatChange))).then(() => attach(div));
-  }, [result, dark, xTitle, yTitle, scheme, xTickFormat, format, rev, rowTitles, onFormatChange, attach]);
+    void draw(async (P) => {
+      await P.react(div, densify(out.traces).traces as Plotly.Data[], out.layout, plotConfig({
+        responsive: true,
+        scrollZoom: true,
+        displaylogo: false,
+        toImageButtonOptions: { format: "svg", filename: "dose-response" },
+      }, format, !!onFormatChange));
+      attach(div);
+    });
+  }, [result, dark, xTitle, yTitle, scheme, xTickFormat, format, rev, rowTitles, onFormatChange,
+    attach, draw, attempt]);
 
-  return <div className="plot" ref={el} />;
+  return (
+    <div className="plot" ref={el}>
+      {!drawn && (
+        <PlotStatus load={load} failed={!!result?.error} pending={!result} onRetry={retry} />
+      )}
+    </div>
+  );
 }

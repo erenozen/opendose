@@ -1,76 +1,94 @@
-/* Plot card: the plot area, the export strip and graph settings. */
+/* Plot card: the plot area, the export strip and graph settings
+   (DECISIONS 2, Instrument: the strip is a tool row on the card's
+   surface below a 1px seam; the popovers float on the elevation stack). */
 
 /* ============================ plot card ============================ */
 
-.plot-card .export-panel { flex: none; }
 .plot { flex: 1 1 420px; min-height: 220px; padding: var(--space-8); }
 /* Holds the plot's place while its code loads (sheets/lazy.ts). */
 .plot-pending { flex: 1 1 420px; min-height: 220px; }
 .pane-pending { margin: var(--space-12) var(--space-16); }
-.plot-card .export-panel {
-  border-top: 1px solid var(--line);
-  background: var(--inset);
-  margin: 0; border-left: none; border-right: none; border-bottom: none;
-  border-radius: 0;
+
+/* What an empty plot box says (graph/PlotStatus.tsx): over the box,
+   which keeps its size, so nothing moves when the graph arrives. */
+.plot:has(> .plot-status) { position: relative; }
+.plot-status {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: var(--space-8); padding: var(--space-16); text-align: center;
+  color: var(--muted); font-size: var(--text-body-s);
 }
+.plot-status p { margin: 0; max-width: 44ch; text-wrap: pretty; }
+/* In a page layout the plot ignores the pointer (the item drags); its
+   Try again must not. */
+.plot-status .btn { pointer-events: auto; }
+
+/* ---- export strip */
 .export-panel {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
-  padding: var(--space-8) 14px; font-size: var(--text-body-s); color: var(--ink-2);
+  flex: none;
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8) var(--space-12);
+  padding: var(--space-8) var(--space-16);
+  border-top: 1px solid var(--line-solid);
+  font-size: var(--text-body-s); color: var(--ink-2);
 }
-.export-panel .export-title { font-weight: var(--weight-semibold); color: var(--ink-2); }
-.export-panel label { display: flex; align-items: center; gap: 5px; }
-.export-panel input {
-  width: 56px; padding: var(--space-4) var(--space-6); border: 1px solid var(--line-strong);
-  border-radius: var(--radius-control); background: var(--surface); color: inherit;
-  font-variant-numeric: tabular-nums;
+.export-fields {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8) var(--space-12);
+  min-width: 0;
 }
-.export-panel select, .export-panel button {
-  padding: var(--space-4) var(--space-8); border: 1px solid var(--line-strong); border-radius: var(--radius-control);
-  background: var(--surface); color: inherit; cursor: pointer; font-size: var(--text-body-s);
+.export-title {
+  font-size: var(--text-label); font-weight: var(--weight-semibold); color: var(--muted);
 }
-@media (hover: hover) and (pointer: fine) {
-  .export-panel button:hover { border-color: var(--accent); color: var(--accent); }
+/* Width, height and DPI: the label beside the field, not above it. */
+.export-num.ui-field { flex-direction: row; align-items: center; gap: var(--space-6); }
+.export-num .ui-number input { width: 64px; }
+.export-num .ui-number[data-unit] input { width: calc(64px + var(--unit-ch, 2ch)); }
+.export-actions {
+  display: flex; align-items: center; gap: var(--space-4); margin-left: auto;
 }
-.export-hint {
-  color: var(--muted); font-size: var(--text-caption); font-variant-numeric: tabular-nums;
+.export-notes {
+  flex-basis: 100%; display: flex; flex-wrap: wrap; gap: var(--space-4) var(--space-12);
+  font-size: var(--text-caption);
 }
+.export-notes:empty { display: none; }
+.export-hint { color: var(--muted); font-variant-numeric: tabular-nums; }
 .export-err { color: var(--danger); font-size: var(--text-caption); }
 
-/* Graph settings live behind one button in the export strip. The button is
-   the popover's anchor, so the panel scales out of it rather than the
-   middle of the card. */
-.graph-settings { position: relative; display: flex; align-items: center; }
-.settings-btn {
-  display: inline-flex; align-items: center; gap: var(--space-6);
-  padding: var(--space-4) 10px; border: 1px solid var(--line-strong); border-radius: var(--radius-control);
-  background: var(--surface); color: inherit; cursor: pointer;
-  font: inherit; font-size: var(--text-body-s);
-  transition: transform var(--dur-base) var(--ease-out), border-color var(--dur-base) var(--ease-out);
+/* A popover trigger in the strip stays marked while its panel is open. */
+.export-panel .btn--ghost[aria-expanded="true"] {
+  background: color-mix(in srgb, var(--ink) 7%, transparent); color: var(--ink);
 }
-.settings-btn[aria-expanded="true"] { border-color: var(--accent); }
+
+/* ---- graph settings: behind one button at the start of the strip */
+.graph-settings { display: flex; align-items: center; }
 /* Which titles are overridden, kept legible while the panel is shut. */
 .settings-badge {
-  padding: 0 5px; border-radius: var(--radius-control); background: var(--accent-fill);
-  color: var(--accent-ink); font-size: var(--text-caption); font-weight: var(--weight-semibold); line-height: 15px;
+  padding: 0 var(--space-4); border-radius: var(--radius-control);
+  background: var(--seg-track); color: var(--ink-2);
+  font-size: var(--text-caption); font-weight: var(--weight-semibold);
+  line-height: var(--leading-body);
 }
 
 /* The Settings popover (ui/Popover places it above its button, in the top
    layer, and animates it). */
 .settings-pop {
-  width: min(340px, calc(100vw - 40px));
+  width: min(340px, calc(100vw - var(--space-40)));
   max-height: 60svh; overflow-y: auto; overscroll-behavior: contain;
   display: flex; flex-direction: column; gap: var(--space-12);
   background: var(--float);
   border-radius: var(--radius-menu);
   box-shadow: var(--elev-float);
-  padding: 14px var(--space-16);
+  padding: var(--space-16);
   text-align: left; cursor: default;
 }
 /* A graph kind's own options (GraphOptionControls), first in the panel. */
-.settings-pop.has-options { width: min(380px, calc(100vw - 40px)); }
+.settings-pop.has-options { width: min(380px, calc(100vw - var(--space-40))); }
+/* Section labels: sentence case, 12px semibold, muted (DECISIONS 2). */
+.axis-titles-label, .scheme-picker > label:first-child {
+  font-size: var(--text-label); font-weight: var(--weight-semibold); color: var(--muted);
+}
 .graph-opts-section {
   display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
-  align-items: center; gap: 7px 10px;
+  align-items: center; gap: var(--space-8) var(--space-12);
   font-size: var(--text-body-s); color: var(--ink-2);
 }
 .graph-opts-section > .axis-titles-label { grid-column: 1 / -1; }
@@ -79,7 +97,7 @@
 .gopt-row select, .gopt-input input:not([type="range"]):not([type="color"]) {
   width: 100%; min-width: 0; padding: var(--space-4) var(--space-8);
   border: 1px solid var(--line-strong); border-radius: var(--radius-control);
-  background: var(--surface); color: inherit; font: inherit; font-size: var(--text-body-s);
+  background: var(--inset); color: var(--ink); font: inherit; font-size: var(--text-body-s);
 }
 .gopt-input { display: flex; align-items: center; gap: var(--space-6); min-width: 0; }
 .gopt-input input[type="range"] { flex: 1 1 auto; min-width: 0; accent-color: var(--accent); }
@@ -87,61 +105,43 @@
   border: 1px solid var(--line-strong); border-radius: var(--radius-control); background: var(--surface); }
 .gopt-input output { flex: none; min-width: 7ch; color: var(--muted); font-variant-numeric: tabular-nums; }
 .gopt-check {
-  grid-column: 1 / -1; display: flex; align-items: center; gap: 7px; cursor: pointer;
+  grid-column: 1 / -1; display: flex; align-items: center; gap: var(--space-8); cursor: pointer;
 }
-/* The panel sits inside .export-panel, whose input rule must not reach here. */
 .graph-opts-section .gopt-check input {
   accent-color: var(--accent); margin: 0; width: 15px; height: 15px; padding: 0; flex: none;
 }
 .gopt-note { grid-column: 1 / -1; margin: 0; color: var(--muted); font-size: var(--text-caption); }
-.graph-opts-section :is(select, input):focus-visible {
-  outline: 2px solid var(--focus-ring); outline-offset: 1px; border-color: transparent;
-}
-@media (max-width: 700px) {
-  .gopt-row select, .gopt-input input:not([type="range"]) { min-height: 34px; }
-  .gopt-check { min-height: 30px; }
-}
 .scheme-picker, .axis-titles {
   display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8);
   font-size: var(--text-body-s); color: var(--ink-2);
 }
-.axis-titles-label, .scheme-picker > label:first-child {
-  font-weight: var(--weight-semibold); color: var(--ink-2);
-}
 .axis-titles { border-top: 1px solid var(--line); padding-top: var(--space-12); }
 .graph-opts-section + .scheme-picker { border-top: 1px solid var(--line); padding-top: var(--space-12); }
-.axis-titles label { display: flex; align-items: center; gap: 5px; }
+.axis-titles label { display: flex; flex: 1 1 100%; align-items: center; gap: var(--space-6); }
 .axis-titles input {
-  width: 100%; min-width: 0; padding: 5px var(--space-8);
+  width: 100%; min-width: 0; padding: var(--space-4) var(--space-8);
   border: 1px solid var(--line-strong); border-radius: var(--radius-control);
-  background: var(--surface); color: inherit; font: inherit; font-size: var(--text-body-s);
-}
-.axis-titles label { flex: 1 1 100%; }
-.axis-titles input:focus-visible {
-  outline: 2px solid var(--focus-ring); outline-offset: 1px;
-  border-color: transparent;
+  background: var(--inset); color: var(--ink); font: inherit; font-size: var(--text-body-s);
 }
 .axis-titles-hint { flex: 1 1 100%; color: var(--muted); font-size: var(--text-caption); }
-@media (max-width: 700px) {
-  .settings-btn { min-height: 34px; }
-  .axis-titles input { min-height: 34px; }
-}
-.scheme-picker label { display: flex; align-items: center; gap: 5px; }
+.scheme-picker label { display: flex; align-items: center; gap: var(--space-6); }
 .scheme-picker select {
-  padding: var(--space-4) var(--space-8); border: 1px solid var(--line-strong); border-radius: var(--radius-control);
-  background: var(--surface); color: inherit; cursor: pointer;
-  font-size: var(--text-body-s);
+  flex: 1 1 auto; min-width: 0;
+  padding: var(--space-4) var(--space-8); font-size: var(--text-body-s);
 }
-.scheme-picker select { flex: 1 1 auto; min-width: 0; }
 .scheme-swatches { display: block; flex: none; }
 /* Inside the panel the note has room on its own line, so it stays on
    narrow screens where the old inline strip had to drop it. */
 .scheme-note { flex: 1 1 100%; color: var(--muted); font-size: var(--text-caption); }
-@media (max-width: 700px) {
-  .scheme-picker select { min-height: 34px; }
-}
 
+/* Touch: every field in the strip and the panel is a 44px target. */
+@media (pointer: coarse) {
+  .export-panel select, .export-num input, .gopt-row select,
+  .gopt-input input:not([type="range"]), .axis-titles input, .scheme-picker select {
+    min-height: 44px;
+  }
+  .gopt-check { min-height: 44px; }
+}
 @media (max-width: 760px) {
-  .export-panel button, .export-panel select { min-height: 34px; }
   .plot { min-height: 320px; }
 }

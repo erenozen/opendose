@@ -26,6 +26,8 @@ const ValidationPage = lazy(() => import("./ValidationPage"));
 const PrivacyPage = lazy(() => import("./PrivacyPage"));
 const ReplayDialog = lazy(() => import("./ReplayDialog"));
 const PptxDialog = lazy(() => import("../export/PptxDialog"));
+/** The PowerPoint export's progress toast, resolved in place. */
+const PPTX_TOAST = "pptx-export";
 const RecipeDialog = lazy(() => import("./RecipeDialog"));
 
 /** Results-sheet options written out in full, with the sender's
@@ -165,8 +167,15 @@ export default function ShareHost() {
           <PptxDialog from={dialog.from} initial={dialog.scope} onClose={() => setDialog(null)}
             onExport={(scope, o) => {
               setDialog(null);
+              // A progress toast that resolves in place (DECISIONS 6). An
+              // export already running answers "" and keeps its own toast.
+              if (!pptx.busy) {
+                ui.notify("Preparing the PowerPoint file…", { tone: "progress", id: PPTX_TOAST });
+              }
               void pptx.run(scope, o).then((msg) => {
-                if (msg) ui.notify(msg, { tone: msg.startsWith("Saved") ? "success" : "error" });
+                if (msg) {
+                  ui.notify(msg, { tone: msg.startsWith("Saved") ? "success" : "error", id: PPTX_TOAST });
+                }
               });
             }} />
         </Suspense>
@@ -177,22 +186,12 @@ export default function ShareHost() {
         </Suspense>
       )}
       {pptx.host}
-      {pptx.busy && (
-        <div className="share-progress" role="status" aria-live="polite">
-          Preparing the PowerPoint file… {pptx.progress}
-        </div>
-      )}
       {dialog?.kind === "recipe" && (
         <Suspense fallback={null}>
           <RecipeDialog initialFiles={dialog.files} fresh={dialog.fresh} onClose={() => setDialog(null)} />
         </Suspense>
       )}
       {bundle.host}
-      {bundle.busy && (
-        <div className="share-progress" role="status" aria-live="polite">
-          Preparing the export bundle… {bundle.progress}
-        </div>
-      )}
     </>
   );
 }

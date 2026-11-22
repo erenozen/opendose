@@ -6,15 +6,6 @@
   font-size: var(--text-caption) !important;
 }
 
-/* Bundle progress chip, bottom right */
-.share-progress {
-  position: fixed; right: calc(18px + var(--safe-right)); bottom: calc(18px + var(--safe-bottom));
-  z-index: var(--z-toast);
-  padding: var(--space-8) 14px; border-radius: var(--radius-control);
-  background: var(--float); color: var(--ink-2); font-size: var(--text-body-s);
-  box-shadow: var(--elev-float);
-}
-
 /* Off-screen results panels for the bundle: visible (innerText of a
    hidden element is empty), just far away. */
 .export-host.bundle-host { visibility: visible; width: 960px; }

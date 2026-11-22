@@ -193,8 +193,13 @@ expect("Copy for Word also puts plain text on the clipboard",
   (clip["text/plain"] ?? "").includes(firstShown) && (clip["text/plain"] ?? "").includes("\t"));
 
 // --- "Copy graph for Word or PowerPoint": a PNG picture on the clipboard
-await panel.getByRole("button", { name: "Copy graph for Word or PowerPoint" }).click();
-await panel.getByRole("status").filter({ hasText: /^Copied as PNG/ }).waitFor({ timeout: 30000 });
+// The button says it worked (its label swaps to "Copied", DECISIONS 6)
+// and the outcome is spoken once through the app's live region.
+const copyGraph = panel.getByRole("button", { name: "Copy graph for Word or PowerPoint" });
+await copyGraph.click();
+await copyGraph.getByText("Copied", { exact: true }).waitFor({ timeout: 30000 });
+await page.locator("[data-announcer] [role=status] > p").filter({ hasText: /^Copied as PNG/ }).first()
+  .waitFor({ state: "attached", timeout: 5000 });
 const imgTypes = await page.evaluate(async () => (await navigator.clipboard.read()).flatMap((i) => i.types));
 expect("Copy graph puts a PNG on the clipboard", imgTypes.includes("image/png"), imgTypes.join(", "));
 
@@ -223,7 +228,8 @@ const letters = await page.locator(".layout-letters text").allTextContents();
 expect("panels lettered A, B", letters.join(",") === "A,B", letters.join(","));
 
 // master legend collects both graphs' series
-await page.getByRole("button", { name: "+ Master legend" }).click();
+await page.getByRole("group", { name: "Add to page" }).getByRole("button", { name: "Add…" }).click();
+await page.getByRole("menuitem", { name: "Master legend" }).click();
 await page.waitForFunction(
   () => document.querySelectorAll(".kind-legend text").length >= 2, { timeout: 10000 });
 const legendText = await page.locator(".kind-legend text").allTextContents();

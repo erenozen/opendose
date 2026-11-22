@@ -5,7 +5,9 @@
 // (usePlotEdits) and purges Plotly on unmount.
 import { useEffect, useRef } from "react";
 import type Plotly from "plotly.js-dist-min";
-import { loadPlotly, plotlyNow } from "../lib/plotly";
+import { plotlyNow } from "../lib/plotly";
+import { PlotStatus } from "./PlotStatus";
+import { usePlotLoad } from "./usePlotLoad";
 import { applyFormat, type FormatContext } from "./apply";
 import { densify } from "./dense";
 import { plotConfig } from "./edits";
@@ -25,7 +27,8 @@ export interface FormattedPlotProps {
   filename: string;
   /** Accessible name of the graph. */
   label?: string;
-  /** Wheel zoom (off for pie charts and heat maps). */
+  /** Ctrl/Cmd+wheel zoom (off for pie charts and heat maps; a plain
+   *  wheel always scrolls the page, graph/plotInput.ts). */
   scrollZoom?: boolean;
   /** Called after every draw and resize (e.g. to measure the plot area). */
   onDrawn?: (div: HTMLDivElement) => void;
@@ -39,6 +42,7 @@ export default function FormattedPlot({
   const drawnRef = useRef(onDrawn);
   useEffect(() => { drawnRef.current = onDrawn; }, [onDrawn]);
   const { rev, attach } = usePlotEdits(format, onFormatChange);
+  const { load, attempt, drawn, draw, retry } = usePlotLoad();
 
   // Redraw when the card or column is resized (splitter drag, the card's
   // resize handle); Plotly's own listener only covers the window.
@@ -69,14 +73,22 @@ export default function FormattedPlot({
     const div = el.current;
     if (!div) return;
     const out = applyFormat(traces as never, layout, format, { ...ctx, editRevision: rev });
-    void loadPlotly().then((P) => P.react(div, densify(out.traces).traces as Plotly.Data[], out.layout, plotConfig({
-      responsive: true, scrollZoom, displaylogo: false,
-      toImageButtonOptions: { format: "svg", filename },
-    }, format, !!onFormatChange))).then(() => {
+    void draw(async (P) => {
+      await P.react(div, densify(out.traces).traces as Plotly.Data[], out.layout, plotConfig({
+        responsive: true, scrollZoom, displaylogo: false,
+        toImageButtonOptions: { format: "svg", filename },
+      }, format, !!onFormatChange));
       attach(div);
       drawnRef.current?.(div);
     });
-  }, [traces, layout, format, ctx, rev, filename, scrollZoom, onFormatChange, attach]);
+  }, [traces, layout, format, ctx, rev, filename, scrollZoom, onFormatChange, attach, draw,
+    attempt]);
 
-  return <div className="plot" ref={el} role={label ? "img" : undefined} aria-label={label} />;
+  return (
+    // An image has no interactive children: not while it offers Try again.
+    <div className="plot" ref={el} role={label && load !== "failed" ? "img" : undefined}
+      aria-label={load !== "failed" ? label : undefined}>
+      {!drawn && <PlotStatus load={load} onRetry={retry} />}
+    </div>
+  );
 }
