@@ -21,6 +21,11 @@ export type { Politeness } from "./Announcer.store";
 export { Banner } from "./Banner";
 export type { BannerProps, BannerTone } from "./Banner";
 
+// ---- results (p4-results): copy feedback and numbers in prose
+export { SwapLabel } from "./LabelSwap";
+export { useLabelSwap, SWAP_MS } from "./useLabelSwap";
+export { Num, NumText } from "./Num";
+
 // ---- overlays (p3-overlays): Dialog, Popover, Menu, Tooltip on one
 // dismiss/focus layer (useDismiss)
 export { default as Dialog } from "./Dialog";

@@ -11,6 +11,7 @@ import { parseReportMeta } from "./meta";
 import { replicateFacts } from "./replicates";
 import { openAssignReplicates } from "./useReport";
 import "./report.css";
+import { Button, NumberField } from "../components/ui";
 
 export default function DetailsDialog({ dataId, onClose }: { dataId: string; onClose: () => void }) {
   const { project, apply, readOnly } = useProject();
@@ -42,8 +43,8 @@ export default function DetailsDialog({ dataId, onClose }: { dataId: string; onC
     <Modal title={`Reporting details: ${data.name}`} onClose={onClose} onSubmit={readOnly ? undefined : save}
       actions={(
         <>
-          <button type="button" onClick={onClose}>Cancel</button>
-          <button type="submit" className="primary" disabled={readOnly}>Save</button>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button variant="primary" type="submit" disabled={readOnly}>Save</Button>
         </>
       )}>
       <div className="details-form">
@@ -63,16 +64,13 @@ export default function DetailsDialog({ dataId, onClose }: { dataId: string; onC
           <input value={unit} onChange={(e) => setUnit(e.target.value)}
             placeholder={rep ? rep.unit : "mice, wells, patients, cells"} maxLength={60} />
         </label>
-        <label>
-          Independent experiments (biological replicates)
-          <input type="number" min={1} step={1} value={experiments}
-            onChange={(e) => setExperiments(e.target.value)}
-            placeholder={rep ? String(rep.experiments) : "e.g. 3"} />
-        </label>
+        <NumberField label="Independent experiments (biological replicates)" integer min={1} step={1}
+          value={experiments} onValueChange={setExperiments}
+          placeholder={rep ? String(rep.experiments) : "e.g. 3"} />
         {canAssign && (
           <p className="details-assign">
-            <button type="button" onClick={() => { onClose(); openAssignReplicates(data.id); }}>
-              {rep ? "Change replicate assignment…" : "Assign replicates…"}</button>
+            <Button onClick={() => { onClose(); openAssignReplicates(data.id); }}>
+              {rep ? "Change replicate assignment…" : "Assign replicates…"}</Button>
           </p>
         )}
         <label>

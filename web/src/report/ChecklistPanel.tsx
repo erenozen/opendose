@@ -8,6 +8,7 @@ import { checklistSummary, evaluateChecklists, type ChecklistItem, type FixTarge
 import { familyFacts } from "./facts";
 import { openReportingDetails } from "./useReport";
 import "./report.css";
+import { Button } from "../components/ui";
 
 const MARK: Record<ChecklistItem["status"], string> = { met: "✓", unmet: "✗", na: "–" };
 const WORD: Record<ChecklistItem["status"], string> = { met: "Met", unmet: "Not met", na: "Not applicable" };
@@ -33,7 +34,7 @@ export default function ChecklistPanel({ dataId, onClose }: { dataId?: string; o
 
   return (
     <Modal title="Journal checklists" onClose={onClose} className="checklist-modal"
-      actions={<button type="button" onClick={onClose}>Close</button>}>
+      actions={<Button onClick={onClose}>Close</Button>}>
       {datas.length > 1 && (
         <label className="field">
           <span>Data table</span>

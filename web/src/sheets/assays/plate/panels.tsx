@@ -19,6 +19,7 @@ import {
 } from "./model";
 import PlateMapEditor from "./PlateMapEditor";
 import "./plate.css";
+import { Button } from "../../../components/ui";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -52,9 +53,9 @@ export function PlateControls({ sheet, table, options, readOnly }: ControlsProps
       <section>
         <h3>Plate reader → dose-response</h3>
         <div className="assay-setup">
-          <button type="button" className="btn-primary" disabled={readOnly}
-            onClick={() => setWizardAt(0)}>Open setup wizard…</button>
-          <button type="button" disabled={readOnly} onClick={() => setWizardAt(1)}>Edit plate map…</button>
+          <Button variant="primary" disabled={readOnly}
+            onClick={() => setWizardAt(0)}>Open setup wizard…</Button>
+          <Button disabled={readOnly} onClick={() => setWizardAt(1)}>Edit plate map…</Button>
         </div>
         <p className="hint-block">
           {plates.length} plate{plates.length === 1 ? "" : "s"} of {o.format} wells in the table;
@@ -378,10 +379,10 @@ function ImportStep({ table, format, onFormat, onTable }: {
           onChange={(e) => setText(e.target.value)} />
       </label>
       <div className="assay-setup">
-        <button type="button" disabled={!text.trim() || busy} onClick={() => take([parseSource(text)])}>
+        <Button disabled={!text.trim() || busy} onClick={() => take([parseSource(text)])}>
           Read pasted plates
-        </button>
-        {msg && <span className="hint-block" role="status">{msg}</span>}
+        </Button>
+        <span className="hint-block" role="status">{msg}</span>
       </div>
     </>
   );

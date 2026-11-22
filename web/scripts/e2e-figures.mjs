@@ -28,6 +28,15 @@ const expect = (label, ok, detail = "") => {
   if (!ok) fail.push(label);
 };
 page.on("pageerror", (e) => errors.push(`pageerror: ${e.message}`));
+// The results guidance (chips, notes, the unit question, the links, the
+// plan check) sits in the Checks row of the results headline, a <details>
+// (DECISIONS 3): open it before using what is inside.
+const openChecks = async (p = page) => {
+  const d = p.locator(".pane-answer details.checks").first();
+  await d.waitFor({ state: "attached", timeout: 60000 }).catch(() => {});
+  if (await d.count() && !(await d.evaluate((e) => e.open))) await d.locator("summary").click();
+};
+
 page.on("console", (m) => { if (m.type() === "error") errors.push(`console: ${m.text()}`); });
 const tmp = mkdtempSync(join(tmpdir(), "opendose-fig-"));
 const graphSettings = async () => {
@@ -447,6 +456,7 @@ await shot("classic");
     ],
   }));
   await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]', CELLS);
+  await openChecks();
   await page.waitForSelector(".guide-chip", { timeout: 60000 });
   const chip = page.locator(".guide-chip", { hasText: "n might be cells" });
   expect("the n-might-be-cells chip fires on 60 values per group", await chip.count() === 1);

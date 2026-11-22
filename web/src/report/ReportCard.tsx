@@ -12,6 +12,7 @@ import { resultSentence } from "./sentences";
 import { snippetsFor } from "./snippets";
 import { openChecklist, openHistory, openReportingDetails, softwareLabel, useReportPrefs } from "./useReport";
 import "./report.css";
+import { Button } from "../components/ui";
 
 export default function ReportCard({ sheet, table, options, result }: {
   sheet: ResultsSheet; table: DataTableModel; options: unknown; result: unknown;
@@ -46,9 +47,9 @@ export default function ReportCard({ sheet, table, options, result }: {
       )}
       <Snippets result={result} options={options} table={table} />
       <div className="report-actions">
-        <button type="button" onClick={() => openChecklist(sheet.parentId)}>Journal checklists</button>
-        <button type="button" onClick={() => openHistory(sheet.parentId)}>History</button>
-        {data && <button type="button" onClick={() => openReportingDetails(data.id)}>Reporting details…</button>}
+        <Button onClick={() => openChecklist(sheet.parentId)}>Journal checklists</Button>
+        <Button onClick={() => openHistory(sheet.parentId)}>History</Button>
+        {data && <Button onClick={() => openReportingDetails(data.id)}>Reporting details…</Button>}
       </div>
     </section>
   );

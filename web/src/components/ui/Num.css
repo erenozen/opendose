@@ -1,0 +1,2 @@
+/* Num (Num.tsx): a number in prose stays on one line. */
+.num { white-space: nowrap; }

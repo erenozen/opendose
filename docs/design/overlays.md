@@ -80,7 +80,7 @@ const onKey = (e: KeyboardEvent) => {
 
 Use for commands (Analyze, Save, sheet actions) and one choice from a
 small set (`Menu.RadioGroup`); a list filtered by typing is a combobox
-(not built). Parts: `Menu.Trigger`, `Menu.Content`, `Menu.Item`
+in a Popover (`components/ModelPicker.tsx`). Parts: `Menu.Trigger`, `Menu.Content`, `Menu.Item`
 (`onSelect`, `description`, `shortcut`, `danger`), `Menu.Group`,
 `Menu.Separator`, `Menu.RadioGroup` + `Menu.RadioItem`. Keys all work;
 never add a key handler. An item that opens a dialog ends with "…".
@@ -145,5 +145,5 @@ fastest user. Never add an entrance that ignores `[data-instant]`.
 
 ## Not built yet
 
-A combobox (search plus list): `ModelPicker.tsx` is hand-rolled. The
-navigator drawer at 900px and below as a modal Dialog (DECISIONS 5).
+A shared combobox primitive (ModelPicker builds its own on Popover);
+the navigator drawer at 900px and below as a modal Dialog (DECISIONS 5).

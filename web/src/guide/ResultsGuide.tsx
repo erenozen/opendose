@@ -1,51 +1,24 @@
 // Guidance around a results sheet: the "What does each value represent?"
-// question, plain-language banners and the assumption checklist chips
-// above the results, the "Why your number may differ" note below them.
-// Everything is advice; nothing blocks. (A P value withheld at one value
-// per group is the analysis' own result: sheets/common/withheld.ts.)
+// question, plain-language notes and the assumption checklist chips (all
+// in the Checks row of the results headline, components/ResultsChecks.tsx,
+// the most severe note as the pane's one callout), and the "Why your
+// number may differ" note under the results. Everything is advice;
+// nothing blocks. (A P value withheld at one value per group is the
+// analysis' own result: sheets/common/withheld.ts.)
 import { useId, useMemo, useState } from "react";
-import { useProject } from "../app/context";
-import type { DataTableModel, TableType } from "../project/types";
+import { Banner as BannerBox, Button } from "../components/ui";
 import { openPowerTool } from "../power/events";
-import { resultBanners, type Banner } from "./banners";
-import { resultChips, type Chip, type ResultContext } from "./checks";
+import type { Banner } from "./banners";
+import type { Chip } from "./checks";
 import { differNotes } from "./differ";
 import LearnMore from "./LearnMore";
 import MultiplicityActions from "./MultiplicityActions";
-import { multiplicityFacts, type MultiplicityFacts } from "./multiplicity";
+import type { MultiplicityFacts } from "./multiplicity";
 import { InteractionAction } from "./InteractionAction";
-import { useSeparateTests } from "./useSeparateTests";
 import { openAssignReplicates } from "../report/useReport";
 import type { Source } from "./sources";
-import UnitQuestion from "./UnitQuestion";
-import { useGroupChecks } from "./useGroupChecks";
-import { useSmallN } from "./useSmallN";
-
-interface Props {
-  analysisId: string;
-  tableType: TableType;
-  table: DataTableModel;
-  options: unknown;
-  result: unknown;
-  /** The data sheet, for one-click fixes (absent or read-only: none). */
-  dataId?: string;
-  /** The results sheet shown (for the count of t tests on its table). */
-  resultsId?: string;
-  readOnly?: boolean;
-}
-
-function useContextFor(p: Props, extra: Partial<ResultContext> = {}): ResultContext | null {
-  // Normality per group only matters to the column analyses' chips.
-  const groups = useGroupChecks(p.table, !!p.result && p.analysisId === "column");
-  const { sensitivity, needed, multiplicity, separate } = extra;
-  return useMemo(() => (p.result && typeof p.result === "object" ? {
-    tableType: p.tableType, analysisId: p.analysisId, table: p.table, groups,
-    options: (p.options && typeof p.options === "object" ? p.options : {}) as Record<string, unknown>,
-    result: p.result as Record<string, unknown>,
-    sensitivity, needed, multiplicity, separate,
-  } : null), [p.tableType, p.analysisId, p.table, p.options, p.result, groups,
-    sensitivity, needed, multiplicity, separate]);
-}
+import { useContextFor, type ResultsGuideProps } from "./useResultsGuidance";
+import "./resultsGuide.css";
 
 const ICON: Record<Chip["state"], string> = { ok: "✓", warn: "!", bad: "×", info: "i" };
 
@@ -61,7 +34,7 @@ function Sources({ sources }: { sources?: Source[] }) {
   );
 }
 
-function Chips({ chips, dataId, multiplicity, readOnly }: {
+export function Chips({ chips, dataId, multiplicity, readOnly }: {
   chips: Chip[]; dataId?: string; multiplicity: MultiplicityFacts | null; readOnly?: boolean;
 }) {
   const [open, setOpen] = useState<string | null>(null);
@@ -72,14 +45,16 @@ function Chips({ chips, dataId, multiplicity, readOnly }: {
       <ul className="guide-chips" aria-label="Assumption checklist">
         {chips.map((c) => (
           <li key={c.id}>
-            <button type="button" className={`guide-chip chip-${c.state}`}
+            <Button size="sm" className={`guide-chip chip-${c.state}`}
               aria-expanded={open === c.id} aria-controls={detailId}
               onClick={() => setOpen(open === c.id ? null : c.id)}>
               <span className="chip-icon" aria-hidden="true">{ICON[c.state]}</span>
-              <span className="sr-only">{c.state === "ok" ? "OK: " : c.state === "info" ? "Note: "
-                : "Check: "}</span>
-              {c.label}
-            </button>
+              <span>
+                <span className="sr-only">{c.state === "ok" ? "OK: " : c.state === "info" ? "Note: "
+                  : "Check: "}</span>
+                {c.label}
+              </span>
+            </Button>
           </li>
         ))}
       </ul>
@@ -89,14 +64,14 @@ function Chips({ chips, dataId, multiplicity, readOnly }: {
           <p>{cur.detail}</p>
           {cur.action === "assign-replicates" && dataId && (
             <p className="guide-chip-action">
-              <button type="button" onClick={() => openAssignReplicates(dataId)}>
-                Assign replicates…</button>
+              <Button size="sm" onClick={() => openAssignReplicates(dataId)}>
+                Assign replicates…</Button>
             </p>
           )}
           {cur.action === "open-power" && (
             <p className="guide-chip-action">
-              <button type="button" onClick={() => openPowerTool("power")}>
-                Plan replication with the power tool…</button>
+              <Button size="sm" onClick={() => openPowerTool("power")}>
+                Plan replication with the power tool…</Button>
             </p>
           )}
           {cur.action === "multiplicity" && multiplicity && <MultiplicityActions facts={multiplicity} />}
@@ -109,67 +84,62 @@ function Chips({ chips, dataId, multiplicity, readOnly }: {
   );
 }
 
-function BannerView({ b }: { b: Banner }) {
+function NoteBody({ b }: { b: Banner }) {
   return (
-    <div className={`guide-banner banner-${b.tone}`} role="note" data-banner={b.id}>
-      <p className="guide-banner-title">{b.title}</p>
+    <>
       <p>{b.body}</p>
       {b.fixes.length > 0 && (
         <>
-          <p className="guide-banner-sub">What to try</p>
+          <p className="guide-note-sub">What to try</p>
           <ul>{b.fixes.map((f, i) => <li key={i}>{f}</li>)}</ul>
         </>
       )}
-      <p className="guide-banner-foot">
-        {b.action === "open-power" && (
-          <button type="button" onClick={() => openPowerTool("power")}>
-            Plan replication with the power tool…</button>
-        )}
-        {b.explainer && <LearnMore id={b.explainer} />}
-        {b.sources.map((s) => (
-          <a key={s.url} href={s.url} target="_blank" rel="noreferrer" className="guide-source">
-            {s.label}</a>
-        ))}
-      </p>
-    </div>
+    </>
   );
 }
 
-/** Mixed models with the unit (grouped / multiple variables) or the
- *  subject (time course) as a random effect. */
-const UNIT_MODELLED = /^(grouped_nested_two_way|mv_mixed_grouping|assay_timecourse_)/;
-
-/** The question, banners and chips, shown above the results. */
-export function ResultsGuide(p: Props) {
-  const { project } = useProject();
-  const { sensitivity, needed } = useSmallN(p.result);
-  const multiplicity = useMemo(() => {
-    if (!p.dataId || !p.resultsId || p.analysisId !== "column") return null;
-    const f = multiplicityFacts(project, p.dataId);
-    return f && f.runs.some((t) => t.sheetId === p.resultsId) ? f : null;
-  }, [project, p.dataId, p.resultsId, p.analysisId]);
-  const separate = useSeparateTests(p.dataId, p.resultsId, p.result);
-  const ctx = useContextFor(p, { sensitivity, needed, multiplicity, separate });
-  const banners = useMemo(() => (ctx ? resultBanners(ctx) : []), [ctx]);
-  const chips = useMemo(() => (ctx ? resultChips(ctx) : []), [ctx]);
-  // analyses that model the unit or the subject themselves do not ask
-  const question = p.dataId && !p.readOnly && !UNIT_MODELLED.test(p.analysisId)
-    ? <UnitQuestion dataId={p.dataId} /> : null;
-  if (!banners.length && !chips.length) {
-    return question ? <div className="results-guide">{question}</div> : null;
-  }
+function NoteFoot({ b }: { b: Banner }) {
+  if (!b.explainer && !b.sources.length) return null;
   return (
-    <div className="results-guide">
-      {question}
-      {banners.map((b) => <BannerView key={b.id} b={b} />)}
-      {chips.length > 0 && <Chips chips={chips} dataId={p.readOnly ? undefined : p.dataId}
-        multiplicity={p.readOnly ? null : multiplicity} readOnly={p.readOnly} />}
-    </div>
+    <p className="guide-note-foot">
+      {b.explainer && <LearnMore id={b.explainer} />}
+      {b.sources.map((s) => (
+        <a key={s.url} href={s.url} target="_blank" rel="noreferrer" className="guide-source">
+          {s.label}</a>
+      ))}
+    </p>
+  );
+}
+
+/** One plain-language note about the result. `callout`: the pane's one
+ *  tinted callout (the Banner primitive); otherwise a plain block inside
+ *  the Checks row. */
+export function GuideNote({ b, callout }: { b: Banner; callout?: boolean }) {
+  const power = b.action === "open-power" && (
+    <Button size="sm" onClick={() => openPowerTool("power")}>Plan replication with the power tool…</Button>
+  );
+  if (callout) {
+    return (
+      <BannerBox tone={b.tone} className="guide-callout" data-banner={b.id}>
+        <BannerBox.Title>{b.title}</BannerBox.Title>
+        <BannerBox.Detail><NoteBody b={b} /><NoteFoot b={b} /></BannerBox.Detail>
+        {power && <BannerBox.Actions>{power}</BannerBox.Actions>}
+      </BannerBox>
+    );
+  }
+  const titleId = `guide-note-${b.id}`;
+  return (
+    <section className="guide-note" data-banner={b.id} data-tone={b.tone} aria-labelledby={titleId}>
+      <p id={titleId} className="guide-note-title">{b.title}</p>
+      <NoteBody b={b} />
+      {power && <p className="guide-chip-action">{power}</p>}
+      <NoteFoot b={b} />
+    </section>
   );
 }
 
 /** "Why your number may differ", collapsed, under the results. */
-export function DifferNote(p: Props) {
+export function DifferNote(p: ResultsGuideProps) {
   const ctx = useContextFor(p);
   const items = useMemo(() => (ctx ? differNotes(ctx) : []), [ctx]);
   if (!items.length) return null;

@@ -14,14 +14,13 @@
 .paste-report button.linkish.cell-ref { color: var(--ink); font-weight: var(--weight-semibold); font-variant-numeric: tabular-nums; }
 
 /* Notes strip on results sheets */
+/* Notes on the data analysed, under the results: plain text on a
+   hairline (the results pane's one tinted callout is in its headline). */
 .notes-strip {
-  margin: 0 0 10px; padding: var(--space-8) var(--space-12); font-size: var(--text-body-s); line-height: 1.5;
-  color: var(--ink-2); background: var(--inset); border-radius: var(--radius-control);
+  margin: 0 0 var(--space-12); padding: var(--space-8) 0 0; font-size: var(--text-body-s);
+  line-height: var(--leading-body); color: var(--ink-2); border-top: 1px solid var(--line);
 }
-.notes-strip.has-warn {
-  background: color-mix(in srgb, var(--warn) 8%, var(--surface));
-  border: 1px solid color-mix(in srgb, var(--warn) 30%, transparent);
-}
+.notes-strip p, .notes-strip ul { max-width: 72ch; }
 .notes-strip h3 {
   margin: 0 0 var(--space-2); font-size: var(--text-label); font-weight: var(--weight-semibold);
   color: var(--muted);

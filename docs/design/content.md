@@ -39,9 +39,9 @@ font-size: var(--text-label); font-weight: var(--weight-semibold); color: var(--
 - No exclamation marks. No "Oops", "Successfully", "Please".
 
 ```ts
-// Incorrect: components/ResultsPanel.tsx:37 (an em dash in a results sentence)
+// Incorrect: an em dash in a results sentence (was ResultsPanel.tsx:37)
 `(${lo} to ${hi}) — about ${fold}x past ${edge}.`
-// Correct: same meaning, a colon
+// Correct: same meaning, a colon (ResultsPanel.tsx, extrapolationNote)
 `(${lo} to ${hi}): about ${fold}x past ${edge}.`
 ```
 
@@ -98,13 +98,12 @@ string today; keep it that way.
   headline figure keeps proportional figures.
 - A number never breaks across lines: not at the e-notation hyphen
   (`1.04e-7`), not between a value and its unit (`31 MB`), not inside a
-  range (`0.8 to 1.2`). Wrap such a number in prose in an element with
-  `white-space: nowrap`. No shared class exists yet (see "Not built yet").
+  range (`0.8 to 1.2`). In prose, wrap a value in `<Num>` or a whole
+  sentence in `<NumText text={…} />` (`components/ui/Num.tsx`): each
+  number, comparator (`P < 0.0001`) and range becomes a no-wrap span and
+  the text is unchanged. Results tables align numbers right and keep them
+  on one line themselves (`sheets/common/resultsTypeset.ts`).
 - Units follow the number with a space (`9.4 of 31 MB`, `20 µM`).
 - Ranges in words read `0.8 to 1.2`, not `0.8-1.2`: a hyphen next to
   negative numbers reads as a minus.
 
-## Not built yet
-
-The no-wrap span for numbers in prose (DECISIONS section 3) has no shared
-class or component; phase 4 adds it with the results pane.

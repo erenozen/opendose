@@ -16,7 +16,6 @@
 
 /* ---------------- results: banners, chips, differ note ---------------- */
 
-.results-guide { display: flex; flex-direction: column; gap: var(--space-8); margin-bottom: 10px; }
 .guide-banner {
   border: 1px solid var(--line-strong); border-left: 3px solid var(--accent);
   border-radius: var(--radius-control); background: var(--surface);
@@ -34,43 +33,8 @@
 .guide-source { font-size: var(--text-caption); color: var(--muted); }
 .guide-banner-foot button { padding: var(--space-4) var(--space-12); font-size: var(--text-body-s); }
 
-.guide-chips-wrap { display: flex; flex-direction: column; gap: var(--space-6); }
-.guide-chips { display: flex; flex-wrap: wrap; gap: var(--space-6); list-style: none; margin: 0; padding: 0; }
-.guide-chip {
-  display: inline-flex; align-items: center; gap: var(--space-6);
-  padding: 3px 10px 3px var(--space-4); font-size: var(--text-caption); font-weight: var(--weight-medium);
-  background: var(--surface); border: 1px solid var(--line-strong);
-  color: var(--ink);
-}
-.guide-chip[aria-expanded="true"] { border-color: var(--accent-border); background: var(--accent-soft); }
-.chip-icon {
-  display: inline-grid; place-items: center; width: 17px; height: 17px;
-  border-radius: 50%; font-size: var(--text-caption); font-weight: var(--weight-bold); line-height: 1;
-  color: var(--surface);
-}
-.chip-ok .chip-icon { background: var(--success); }
-.chip-warn .chip-icon { background: var(--warn-ink); }
-.chip-bad .chip-icon { background: var(--danger); }
-.chip-info .chip-icon { background: var(--accent); }
-.guide-chip-detail {
-  font-size: var(--text-body-s); color: var(--ink-2); background: var(--inset);
-  border-radius: var(--radius-control); padding: var(--space-8) var(--space-12);
-}
-.guide-chip-detail p { margin: 0 0 var(--space-4); }
-.guide-chip-detail .guide-chip-action { margin: var(--space-6) 0; }
 .guide-chip-action button { font-size: var(--text-body-s); }
 
-.guide-differ {
-  margin-top: 10px; font-size: var(--text-body-s); color: var(--ink-2);
-  border-top: 1px solid var(--line); padding-top: var(--space-8);
-}
-.guide-differ > summary { cursor: pointer; color: var(--muted); font-weight: var(--weight-medium); }
-.guide-differ > summary:focus-visible { outline-offset: 2px; }
-.guide-differ dl { margin: var(--space-8) 0; display: grid; gap: var(--space-6); }
-.guide-differ-row { display: grid; grid-template-columns: minmax(110px, 0.32fr) 1fr; gap: 10px; }
-.guide-differ dt { font-weight: var(--weight-semibold); color: var(--ink); }
-.guide-differ dd { margin: 0; display: flex; flex-direction: column; gap: var(--space-2); }
-.guide-differ-else { color: var(--muted); }
 
 .results-empty-actions { display: flex; flex-wrap: wrap; gap: var(--space-8); justify-content: center; margin-top: 10px; }
 
@@ -278,22 +242,7 @@ h3 .learn-more { margin-left: var(--space-8); text-transform: none; letter-spaci
 
 /* ---------------- n-awareness: unit question, small n, multiplicity ---------------- */
 
-.guide-chip { max-width: 100%; text-align: left; }
 .guide-chip-sources { display: flex; flex-wrap: wrap; gap: var(--space-4) 14px; margin: var(--space-4) 0 !important; }
-.unit-question {
-  border: 1px solid var(--accent-border); border-radius: var(--radius-control);
-  background: var(--accent-soft); padding: 10px 14px; font-size: var(--text-body-s); color: var(--ink-2);
-}
-.unit-q-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
-.unit-q-title { margin: 0 0 var(--space-6); color: var(--ink); font-weight: var(--weight-semibold); font-size: var(--text-body); }
-.unit-q-close { padding: var(--space-2) 10px; font-size: var(--text-caption); }
-.unit-q-options, .unit-q-actions { display: flex; flex-wrap: wrap; gap: var(--space-6); }
-.unit-q-options button, .unit-q-actions button { padding: var(--space-4) var(--space-12); font-size: var(--text-body-s); }
-.unit-q-step { display: flex; flex-direction: column; gap: var(--space-8); }
-.unit-q-fields { display: flex; flex-wrap: wrap; gap: var(--space-8) var(--space-16); }
-.unit-q-hint { margin: var(--space-6) 0 0; font-size: var(--text-caption); color: var(--muted); }
-.unit-q-preview { margin: 0; color: var(--ink); }
-.withheld-results .withheld-p td { color: var(--ink); }
 .multiplicity-actions p { display: flex; flex-wrap: wrap; gap: var(--space-6); margin: var(--space-6) 0; }
 .multiplicity-error { color: var(--danger); }
 .guide-holm { border-collapse: collapse; font-size: var(--text-body-s); margin: var(--space-4) 0; }

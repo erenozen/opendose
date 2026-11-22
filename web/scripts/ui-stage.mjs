@@ -365,27 +365,27 @@ const scenes = [
     await into(s, ".paste-report");
   } },
 
-  // ---- results
+  // ---- results (the headline pane first: DECISIONS 3)
   { name: "results-example", setup: async (s) => {
     await example(s);
-    await into(s, ".pane-results");
+    await into(s, ".pane-answer");
   } },
   { name: "results-failed-fit", setup: async (s) => {
     await fixture(s, "failures.json", { live: true });
     await s.page.locator(".pane-results").getByText(/Ambiguous|could not|not converge/i).first().waitFor({ timeout: 60000 });
-    await into(s, ".pane-results");
+    await into(s, ".pane-answer");
   } },
   { name: "results-error", setup: async (s) => {
     await fixture(s, "failures.json");
     await selectSheet(s, "Too few points: two doses");
     await s.page.getByText("A fit could not be computed").first().waitFor({ timeout: 240000 });
-    await into(s, ".pane-results");
+    await into(s, ".pane-answer");
   } },
   { name: "results-withheld", setup: async (s) => {
     await fixture(s, "failures.json");
     await selectSheet(s, "One value per group");
     await waitLive(s);
-    await into(s, ".pane-results");
+    await into(s, ".pane-answer");
   } },
   { name: "results-no-data", setup: async (s) => {
     await fixture(s, "empty-states.json");

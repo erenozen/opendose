@@ -1,18 +1,19 @@
-/* "What this means" (MeaningLine.tsx). Tokens only (styles/tokens.css). */
+/* "What this means" (MeaningLine.tsx), in the results headline: the
+   sentence at the reading size and a 65ch measure, the misreading and
+   the test quieter below it. Plain text, no tint (RS-05). Tokens only. */
 .meaning-line {
-  margin: 0 0 10px; padding: 9px var(--space-12) var(--space-8);
-  font-size: var(--text-body-s); line-height: 1.5; color: var(--ink-2);
-  background: var(--accent-soft); border: 1px solid var(--accent-border);
-  border-radius: var(--radius-pane);
+  display: flex; flex-direction: column; gap: var(--space-6);
+  margin: 0; font-size: var(--text-body-s); line-height: var(--leading-body); color: var(--ink-2);
 }
-.meaning-line p { margin: 0; overflow-wrap: anywhere; }
-.meaning-line p + p { margin-top: var(--space-4); }
-.meaning-sentence { color: var(--ink); font-size: var(--text-body); }
+.meaning-line p { margin: 0; max-width: 65ch; overflow-wrap: break-word; }
+.meaning-sentence {
+  color: var(--ink); font-size: var(--text-body); line-height: var(--leading-prose);
+  text-wrap: pretty;
+}
 .meaning-label {
-  font-size: var(--text-label); font-weight: var(--weight-semibold); letter-spacing: 0.02em;
-  text-transform: uppercase; color: var(--ink-2); margin-right: var(--space-2);
+  font-size: var(--text-label); font-weight: var(--weight-semibold); color: var(--muted);
+  margin-inline-end: var(--space-4);
 }
-.meaning-sentence .meaning-label { color: var(--accent); }
-.meaning-misread, .meaning-test { font-size: var(--text-body-s); }
-.meaning-sources { font-size: var(--text-caption); color: var(--ink-2); }
-.meaning-sources a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+.meaning-sentence .meaning-label { display: block; margin-bottom: var(--space-2); }
+.meaning-sources { font-size: var(--text-caption); color: var(--muted); }
+.meaning-sources a { color: var(--ink-2); text-decoration: underline; text-underline-offset: 2px; }
