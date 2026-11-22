@@ -128,10 +128,10 @@ browser). Takes every Button prop plus `accept`, `onFile(file)` (or `multiple` a
 Picking the same file twice fires twice.
 
 ```tsx
-// Correct: guide/StartScreen.tsx:100
-<FileButton className="start-open" accept={OPEN_ACCEPT}
-  inputLabel="Open a project or Prism file" onFile={(f) => { onOpenFile(f); onClose(); }}>
-  Open a project or Prism file…</FileButton>
+// Correct: components/TemplatePicker.tsx
+<FileButton className="template-import" accept=".json,application/json"
+  inputLabel="Import a template file" onFile={(f) => void onImport(f)}>
+  Import template file…</FileButton>
 
 // Incorrect: share/ReplayDialog.tsx:301. The browser's own file control.
 <input type="file" accept=".json,application/json" aria-label="Plan file"

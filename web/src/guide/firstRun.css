@@ -1,7 +1,7 @@
 /* First run (FirstRun.tsx): the example and paste banners at the top of
    the data pane, the example chips and the "Read as" select. Tokens only. */
 
-.pane-table > .first-banner { margin: var(--space-12) var(--space-16) 0; }
+.pane-table > .first-banner { margin: 0 0 var(--space-12); }
 .example-banner .banner-detail { max-width: 65ch; }
 .paste-banner .banner-detail { display: flex; flex-direction: column; gap: var(--space-4); }
 .paste-banner .paste-error-note { color: var(--ink-2); }

@@ -48,6 +48,13 @@ export function usePasteActions() {
       beforeSelected: prev ? prev.beforeSelected : selRef.current,
       replacedExample: made.replacedExample, refocus: !!prev,
     });
+    // A paste into the grid on a phone happens below the result card
+    // (results come first there): bring the new result's card into view.
+    if (!prev) requestAnimationFrame(() => requestAnimationFrame(() => {
+      const answer = document.querySelector(".pane-answer");
+      const header = document.querySelector("header")?.getBoundingClientRect().bottom ?? 0;
+      if (answer && answer.getBoundingClientRect().top < header) answer.scrollIntoView({ block: "start" });
+    }));
     return true;
   }, [store, apply, undo, select, readOnly]);
 

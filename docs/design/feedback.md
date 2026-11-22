@@ -117,9 +117,11 @@ banners the user did not cause), `icon` (null for none).
 ## EngineSlot
 
 The engine's boot state, in a fixed 340 x 34 slot that is always mounted,
-so the boot and its end move nothing. It already renders on the start
-screen and the welcome panel. Never show boot progress anywhere else, and
-never unmount the slot when the engine is ready.
+so the boot and its end move nothing. It renders inside the boot banner
+at the top of the results column (`EngineBootBanner`), which also says
+what the boot means for the table on screen: saved results, none yet,
+or a failed load with Try again. Never show boot progress anywhere else,
+and never unmount the slot when the engine is ready.
 
 ## announce and live regions
 

@@ -141,7 +141,7 @@ example's numbers, regenerate them against a dev server with
   mapping saved as a recipe (in this browser and in the project, so a
   share link carries it) and applied to the next file; Reshape between long
   and wide; .prism and .pzfx files (one or all tables, summary tables as
-  summary tables; also dropped on the start screen), and "Convert Prism
+  summary tables; also dropped anywhere on the page), and "Convert Prism
   files to CSV…" (several files, every data table, one zip). Export: any
   table as CSV / TSV, results as shown.
 - Paste and import report: after every paste or import a line above the
@@ -153,7 +153,7 @@ example's numbers, regenerate them against a dev server with
 - Convert table to…: a new Column, Grouped, Multiple variables or
   re-stacked XY / Grouped table with every value, exclusion and pairing
   kept (checked against the original); "Describe the experiment" (New
-  data table and start screen) picks the table and its layout from three
+  data table and the File menu) picks the table and its layout from three
   design questions.
 - Notes on every results sheet: an "Analysed" line (n per group, or
   "n = 10 pairs analysed; 2 incomplete pairs (rows 4, 9) left out"),
@@ -447,10 +447,15 @@ sheets that follow the data.
 
 ### Guidance
 
-- A start screen (on the first visit, or when there is no session to
-  reopen) with picture cards for the eight table types, "paste data and
-  get a table type", templates and the example project with a five-step
-  tour; `?example=1` opens the example project directly.
+- No start screen: a first visit opens the workspace on the example
+  project with its results already on screen, labelled "Example data",
+  with chips for its dose-response, contingency and survival tables. A
+  block pasted anywhere on the page (or into the example's table)
+  replaces it with the visitor's data: the table type is guessed and
+  shown with its reason, a "Read as" choice and Undo, and the default
+  analysis runs. Returning visits reopen the last session; `?example=1`
+  opens the example project directly, and Help opens it and the
+  five-step tour.
 - A "Which test?" wizard ("Help me choose…", first in Analyze) that reads
   the table, asks about the design in terms of the user's own rows ("Is
   row 1 of Control the same animal as row 1 of Treated?"), runs the data

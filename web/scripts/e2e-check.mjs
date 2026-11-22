@@ -316,7 +316,9 @@ expect("nested t test: t = 2.771, df = 4, P = 0.05026",
 const PZFX = join(here, "..", "e2e-fixtures", "sample.pzfx");
 await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]', PZFX);
 await page.waitForSelector(".pzfx-chooser", { timeout: 30000 });
-await page.locator(".pzfx-chooser button", { hasText: "Dose response" }).click();
+// The chooser ticks every table; keep only Dose response.
+await page.locator(".pzfx-chooser").getByRole("checkbox", { name: /Groups/ }).uncheck();
+await page.locator(".pzfx-chooser").getByRole("button", { name: "Import 1 table" }).click();
 await page.waitForSelector(".results-table", { timeout: 60000 });
 await page.waitForTimeout(1200);
 const pzfxRow = await page
