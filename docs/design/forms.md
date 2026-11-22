@@ -124,7 +124,7 @@ before the user has read it. `Modal` has no `initialFocus`; order its
 fields so the first is the one to type in, or use `Dialog` directly.
 
 ```tsx
-// Incorrect: components/DuplicateFamilyDialog.tsx:28
+// Incorrect: was components/DuplicateFamilyDialog.tsx
 <input autoFocus value={name} onChange={(e) => setName(e.target.value)}
   onFocus={(e) => e.currentTarget.select()} />
 ```

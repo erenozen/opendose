@@ -137,7 +137,7 @@ Picking the same file twice fires twice.
   title={`Open a project or a Prism file (${modKey}O)`} onFile={onOpenFile}>
   Open</FileButton>
 
-// Incorrect: share/ReplayDialog.tsx:301. The browser's own file control.
+// Incorrect: was share/ReplayDialog.tsx. The browser's own file control.
 <input type="file" accept=".json,application/json" aria-label="Plan file"
   onChange={(e) => void loadPlan(e.target.files?.[0])} />
 ```

@@ -59,7 +59,8 @@ export options, About). Commands go in a Menu; blocking goes in a Dialog.
 Parts: `Popover.Trigger`, `Popover.Content` (`side` top/bottom/left/right,
 `align` start/center/end, `collisionPadding`, always an `aria-label`),
 `Popover.Close`. Focus moves in on open; Tab stays inside. The caller's
-class sets `--float`, `--radius-menu` and `--elev-float`.
+class sets `--float`, `--radius-menu` and `--elev-float`. A coach mark
+(Tour.tsx) adds `anchor`, `anchorKey` and `closeOnOutsidePress={false}`.
 
 ```tsx
 // Correct: components/ExportPanel.tsx:201
@@ -139,9 +140,8 @@ above. `useDismiss` (Escape on the topmost layer, press outside),
 
 ## Keyboard-opened means instant
 
-A layer opened by a key appears in the same frame (`data-instant`); one
-closed by a key leaves at once. Motion on a keyboard action slows the
-fastest user. Never add an entrance that ignores `[data-instant]`.
+A layer opened by a key appears in the same frame (`data-instant`); one closed
+by a key leaves at once. Never add an entrance that ignores `[data-instant]`.
 
 ## Not built yet
 
