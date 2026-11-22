@@ -22,7 +22,7 @@ button {
   .plate-form .primary:hover {
     background: var(--accent-fill-hover); color: var(--accent-ink);
   }
-  .advanced > summary:hover { color: var(--accent); }
+  .advanced > summary:hover { color: var(--ink); }
 }
 .plate-form .primary {
   background: var(--accent-fill); color: var(--accent-ink);
@@ -77,7 +77,7 @@ input[type="checkbox"] { accent-color: var(--accent); width: 15px; height: 15px;
 .advanced { border-top: 1px solid var(--line); padding-top: 4px; }
 .advanced > summary {
   cursor: pointer; list-style: none;
-  font-size: var(--text-label); text-transform: uppercase; letter-spacing: 0.07em;
+  font-size: var(--text-label);
   color: var(--muted); font-weight: var(--weight-semibold);
   padding: 6px 0; user-select: none;
   display: flex; align-items: center; gap: 6px;

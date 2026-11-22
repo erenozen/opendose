@@ -1,0 +1,111 @@
+// Typesetting of the results tables (DECISIONS 3, RS-03): numeric and
+// range cells align right, and each header aligns with its column. The
+// ~45 results panels render plain <td>s, so the alignment is read from
+// the cells' own text once they are on screen: a cell is numeric when it
+// holds a digit and no word ("−6.983", "< 0.0001 ****", "9.694e-8 to
+// 1.115e-7", "F(2, 12) = 4.5"; not "not reported (extrapolated)"). Only
+// a data attribute is added: the text, and so copy, CSV and the e2e
+// reads, never changes (ruling 10).
+import { useEffect, type RefObject } from "react";
+
+const WORDLESS = /\b(?:to|n\/a|NaN|inf)\b/gi;
+
+/** Is this cell's text a number, a range or a statistic? null: empty. */
+export function numericCell(text: string): boolean | null {
+  const t = text.trim();
+  if (!t) return null;
+  if (/^(?:n\/a|—|–|NaN)$/i.test(t)) return true;
+  return /\d/.test(t) && !/\p{L}{3,}/u.test(t.replace(WORDLESS, ""));
+}
+
+function typeset(root: HTMLElement) {
+  for (const table of root.querySelectorAll<HTMLTableElement>("table.results-table")) {
+    const votes: { num: number; text: number }[] = [];
+    for (const body of table.tBodies) {
+      for (const row of body.rows) {
+        let col = 0;
+        for (const cell of row.cells) {
+          const span = Math.max(1, cell.colSpan);
+          if (cell.tagName === "TD") {
+            const n = numericCell(cell.textContent ?? "");
+            if (n === null) cell.removeAttribute("data-num");
+            else {
+              cell.toggleAttribute("data-num", n);
+              if (span === 1) {
+                const v = (votes[col] ??= { num: 0, text: 0 });
+                v[n ? "num" : "text"]++;
+              }
+            }
+          }
+          col += span;
+        }
+      }
+    }
+    // a header sits over its column's numbers
+    if (!table.tHead) continue;
+    for (const row of table.tHead.rows) {
+      let col = 0;
+      for (const cell of row.cells) {
+        const span = Math.max(1, cell.colSpan);
+        const v = votes[col];
+        cell.toggleAttribute("data-num", span === 1 && !!v && v.num > v.text);
+        col += span;
+      }
+    }
+  }
+}
+
+/** Keeps the tables under `ref` typeset as results arrive and change. */
+export function useTypesetTables(ref: RefObject<HTMLElement | null>) {
+  useEffect(() => {
+    const root = ref.current;
+    if (!root) return;
+    let frame = 0;
+    const run = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => typeset(root));
+    };
+    typeset(root);
+    // attributes are not observed: typesetting does not trigger itself
+    const mo = new MutationObserver(run);
+    mo.observe(root, { childList: true, subtree: true, characterData: true });
+    return () => { mo.disconnect(); cancelAnimationFrame(frame); };
+  }, [ref]);
+}
+
+/** A results card wider than its pane scrolls sideways inside itself;
+ *  while it does, it is a named, focusable region so a keyboard can
+ *  scroll it too (axe scrollable-region-focusable, at 390px). */
+export function useScrollRegions(ref: RefObject<HTMLElement | null>) {
+  useEffect(() => {
+    const root = ref.current;
+    if (!root) return;
+    let frame = 0;
+    const check = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        for (const el of root.querySelectorAll<HTMLElement>(".result-card")) {
+          const scrolls = el.scrollWidth > el.clientWidth + 1;
+          if (scrolls === el.hasAttribute("data-scrolls")) continue;
+          el.toggleAttribute("data-scrolls", scrolls);
+          if (scrolls) {
+            const title = el.querySelector("h3")?.textContent?.trim();
+            el.tabIndex = 0;
+            el.setAttribute("role", "region");
+            el.setAttribute("aria-label", title ? `${title} (scrolls sideways)` : "Results (scrolls sideways)");
+          } else {
+            el.removeAttribute("tabindex");
+            el.removeAttribute("role");
+            el.removeAttribute("aria-label");
+          }
+        }
+      });
+    };
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(root);
+    const mo = new MutationObserver(check);
+    mo.observe(root, { childList: true, subtree: true });
+    return () => { ro.disconnect(); mo.disconnect(); cancelAnimationFrame(frame); };
+  }, [ref]);
+}

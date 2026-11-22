@@ -34,7 +34,7 @@
 .mp-list { max-height: 320px; overflow-y: auto; overscroll-behavior: contain; }
 .mp-group {
   position: sticky; top: 0; z-index: var(--z-base); background: var(--surface);
-  font-size: var(--text-label); text-transform: uppercase; letter-spacing: 0.06em;
+  font-size: var(--text-label);
   color: var(--muted); font-weight: var(--weight-semibold); padding: var(--space-8) var(--space-6) 3px;
 }
 .mp-option {
@@ -66,7 +66,7 @@
 .eq-main { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 .eq-field { display: flex; flex-direction: column; gap: var(--space-4); }
 .eq-label, .eq-section-title {
-  font-size: var(--text-label); text-transform: uppercase; letter-spacing: 0.07em;
+  font-size: var(--text-label);
   color: var(--muted); font-weight: var(--weight-semibold);
 }
 .eq-name {
@@ -110,8 +110,8 @@
   max-height: 70svh; overflow: auto;
 }
 .eq-help h3 {
-  margin: 0 0 var(--space-6); font-size: var(--text-label); text-transform: uppercase;
-  letter-spacing: 0.06em; color: var(--muted);
+  margin: 0 0 var(--space-6); font-size: var(--text-label); font-weight: var(--weight-semibold);
+  color: var(--muted);
 }
 .eq-help ul { margin: 0 0 10px; padding-left: var(--space-16); }
 .eq-help li { margin: var(--space-2) 0; }

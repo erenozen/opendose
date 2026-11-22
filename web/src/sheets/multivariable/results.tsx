@@ -14,6 +14,7 @@ import type {
   RearrangeResult, RegressionResult,
 } from "./run";
 import { pLabel, tableP, tableStars } from "../../report/pformat";
+import { CopyButton } from "../../components/CiteBlock";
 
 /* ------------------------------------------------------------ formatting */
 
@@ -76,20 +77,11 @@ function Problem({ result }: { result: { error?: string } | null }) {
 }
 
 function Methods({ text }: { text: string }) {
-  const [copied, setCopied] = useState(false);
   return (
     <div className="result-card methods-text">
       <h3>Methods text</h3>
       <p>{text}</p>
-      <button className="copy-btn" onClick={() => {
-        void navigator.clipboard?.writeText(text);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1500);
-      }}>
-        <span className="swap-label" key={copied ? "copied" : "copy"}>
-          {copied ? "Copied ✓" : "Copy"}
-        </span>
-      </button>
+      <CopyButton text={text} what="the methods text" />
     </div>
   );
 }

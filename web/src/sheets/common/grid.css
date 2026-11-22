@@ -112,13 +112,6 @@
 .modal-actions .spacer { margin-right: auto; }
 
 /* Results export strip */
-.results-export-wrap { display: flex; flex-direction: column; gap: var(--space-8); min-width: 0; }
-.results-export {
-  display: flex; gap: var(--space-6); justify-content: flex-end; flex-wrap: wrap;
-  align-items: center;
-}
-.results-export button { padding: var(--space-4) 11px; font-size: var(--text-body-s); }
-.results-export .hint { color: var(--muted); font-size: var(--text-caption); margin-right: auto; }
 
 /* inline text button inside notes */
 button.linkish {

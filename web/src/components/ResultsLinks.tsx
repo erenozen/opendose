@@ -18,6 +18,8 @@ import { pilotFromResult } from "../power/pilot";
 import { openValidation } from "../share/events";
 import { checksIn, validationScope, validationSentence } from "../share/validationIndex";
 import { compareFitsOptions, offersPlanning } from "./resultsLinks";
+import { Button, IconButton } from "./ui";
+import { CloseIcon } from "./ui/feedbackIcons";
 import "./resultsLinks.css";
 
 type CheckList = { group: string; analysis: string }[];
@@ -36,7 +38,9 @@ function useChecks(): CheckList | null {
   return checks;
 }
 
-/** Under the results chips of every results sheet. */
+/** In the Checks row of every results sheet: why this test was chosen
+ *  (when Help me choose picked it), how it is validated, and planning
+ *  the next experiment. */
 export default function ResultsLinks({ sheet, tableName, options, result }: {
   sheet: ResultsSheet;
   tableName: string;
@@ -55,8 +59,8 @@ export default function ResultsLinks({ sheet, tableName, options, result }: {
       {chosen && (
         <div className="results-why" role="note" aria-label="Why this test">
           <p><strong>Why {chosen.test}.</strong> {chosen.reason}</p>
-          <button type="button" className="dismiss" aria-label="Dismiss why this test"
-            onClick={() => { forgetChoice(sheet.id); setChosen(null); }}>×</button>
+          <IconButton size="sm" aria-label="Dismiss why this test"
+            onClick={() => { forgetChoice(sheet.id); setChosen(null); }}><CloseIcon /></IconButton>
         </div>
       )}
       <nav className="results-links" aria-label="About these results">
@@ -88,24 +92,22 @@ export function ResultsEmptyLinks() {
     <ul className="results-empty-links" aria-label="Where to start">
       {guide && (
         <li>
-          <button type="button" className="btn-primary" onClick={guide.openWizard}>
-            Help me choose…</button>
+          <Button variant="primary" onClick={guide.openWizard}>Help me choose…</Button>
           <span>Answer a few questions about this table; get a test with its reason.</span>
         </li>
       )}
       {guide && (
         <li>
-          <button type="button" onClick={guide.openPlanner}>Plan an experiment…</button>
+          <Button onClick={guide.openPlanner}>Plan an experiment…</Button>
           <span>Before the data: the table, the analysis, n and design checks, saved as an analysis plan.</span>
         </li>
       )}
       <li>
-        <button type="button" onClick={() => openPowerTool("power")}>
-          Sample size (power)…</button>
+        <Button onClick={() => openPowerTool("power")}>Sample size (power)…</Button>
         <span>How many animals or replicates you need, with a justification sentence.</span>
       </li>
       <li>
-        <button type="button" onClick={() => openValidation()}>How OpenDose is validated</button>
+        <Button onClick={() => openValidation()}>How OpenDose is validated</Button>
         <span>Every pinned cross-check against reference software and published examples.</span>
       </li>
     </ul>

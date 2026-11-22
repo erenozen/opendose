@@ -13,8 +13,8 @@
 .controls { display: flex; flex-direction: column; gap: 16px; }
 
 .controls h3, .plate-import > .section-toggle, .result-card h4 {
-  margin: 0; font-size: var(--text-label); text-transform: uppercase;
-  letter-spacing: 0.07em; color: var(--muted); font-weight: var(--weight-semibold);
+  margin: 0; font-size: var(--text-label);
+  color: var(--muted); font-weight: var(--weight-semibold);
 }
 .controls h3 { margin-bottom: 8px; }
 .result-card h4 { margin: 16px 0 6px; }

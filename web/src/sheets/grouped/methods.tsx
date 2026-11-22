@@ -1,6 +1,5 @@
 // Methods text for the grouped-table analyses: one paragraph ready to
 // paste into a manuscript, generated from the options and the result.
-import { useState } from "react";
 import { formatSig } from "../../types";
 import type { ResultsProps } from "../types";
 import { pLabel } from "./format";
@@ -10,6 +9,7 @@ import {
   CORRECTION_LABEL, FDR_METHODS, ROW_TEST_LABEL, type ColumnStatsOptions,
   type MultiTOptions, type RowMeansOptions, type ThreeWayOptions, type TwoWayOptions,
 } from "./options";
+import { CopyButton } from "../../components/CiteBlock";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type R = Record<string, any>;
@@ -31,21 +31,12 @@ const ROW_TEST_METHOD: Record<string, string> = {
 };
 
 function MethodsCard({ text }: { text: string | null }) {
-  const [copied, setCopied] = useState(false);
   if (!text) return null;
   return (
     <div className="result-card methods-text">
       <h3>Methods text</h3>
       <p>{text}</p>
-      <button className="copy-btn" onClick={() => {
-        navigator.clipboard?.writeText(text);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1500);
-      }}>
-        <span className="swap-label" key={copied ? "copied" : "copy"}>
-          {copied ? "Copied ✓" : "Copy"}
-        </span>
-      </button>
+      <CopyButton text={text} what="the methods text" />
     </div>
   );
 }

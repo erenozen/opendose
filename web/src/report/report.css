@@ -28,8 +28,8 @@
   letter-spacing: -0.01em;
 }
 .report-card h4 {
-  margin: var(--space-12) 0 var(--space-4); font-size: var(--text-label); text-transform: uppercase;
-  letter-spacing: 0.07em; color: var(--muted); font-weight: var(--weight-semibold);
+  margin: var(--space-12) 0 var(--space-4); font-size: var(--text-label);
+  color: var(--muted); font-weight: var(--weight-semibold);
 }
 .report-card h4 .report-style-note { text-transform: none; letter-spacing: 0; font-weight: var(--weight-medium); }
 @media print { .report-card { box-shadow: none; border: none; break-inside: avoid; } }
@@ -112,8 +112,8 @@
 
 /* Preferences popover: the Reporting section */
 .prefs-subtitle {
-  margin: var(--space-6) 0 0; font-size: var(--text-label); text-transform: uppercase;
-  letter-spacing: 0.07em; color: var(--muted); font-weight: var(--weight-semibold);
+  margin: var(--space-6) 0 0; font-size: var(--text-label);
+  color: var(--muted); font-weight: var(--weight-semibold);
 }
 .field.field-check { flex-direction: row; align-items: center; gap: var(--space-8); }
 .field.field-check input { width: auto; padding: 0; }

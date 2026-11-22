@@ -1,5 +1,5 @@
 // Controls / results / methods panels for the data manipulations.
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { useProject } from "../../app/context";
 import { newId } from "../../project/ids";
 import { addSheets, findSheet, uniqueName } from "../../project/ops";
@@ -16,6 +16,7 @@ import {
   type NormalizeOptions, type PruneOptions, type TransformOptions, type TransposeOptions,
 } from "./run";
 import "./manipulate.css";
+import { CopyButton } from "../../components/CiteBlock";
 
 // ------------------------------------------------------------ helpers
 
@@ -589,20 +590,11 @@ export function FractionExtra({ result: r }: { result: ManipResult }) {
 }
 
 export function MethodsCard({ text, title = "Methods text" }: { text: string; title?: string }) {
-  const [copied, setCopied] = useState(false);
   return (
     <div className="result-card methods-text">
       <h3>{title}</h3>
       <p>{text}</p>
-      <button type="button" className="copy-btn" onClick={() => {
-        void navigator.clipboard?.writeText(text);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1500);
-      }}>
-        <span className="swap-label" key={copied ? "copied" : "copy"}>
-          {copied ? "Copied ✓" : "Copy"}
-        </span>
-      </button>
+      <CopyButton text={text} what="the methods text" />
     </div>
   );
 }

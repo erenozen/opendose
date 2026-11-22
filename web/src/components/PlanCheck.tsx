@@ -17,6 +17,7 @@ import {
 import type { DataSheet, ResultsSheet } from "../project/types";
 import { isAssayAnalysis } from "../sheets/assays";
 import { analysisDef } from "../sheets/registry";
+import { Button } from "./ui";
 
 /** Tables whose tests a plan names (curve fits and assays plan elsewhere). */
 const PLANNABLE = new Set(["column", "grouped", "nested", "contingency", "survival"]);
@@ -38,8 +39,8 @@ function DeviationRow({ d, onReason, readOnly }: {
           <label htmlFor={id} className="sr-only">Reason for: {d.text}</label>
           <input id={id} value={text} placeholder="Why the analysis departs from the plan"
             onChange={(e) => setText(e.target.value)} />
-          <button type="button" disabled={!text.trim() || text.trim() === d.reason}
-            onClick={() => onReason(text)}>{d.reason ? "Update reason" : "Record reason"}</button>
+          <Button size="sm" disabled={!text.trim() || text.trim() === d.reason}
+            onClick={() => onReason(text)}>{d.reason ? "Update reason" : "Record reason"}</Button>
         </span>
       )}
     </li>
@@ -96,12 +97,11 @@ export default function PlanCheck({ sheet, data, readOnly }: {
   });
   return (
     <div className="plan-check" role="region" aria-label="Analysis plan check">
-      <button type="button" className={`guide-chip chip-${state} plan-chip`} aria-expanded={open}
+      <Button size="sm" className={`guide-chip chip-${state} plan-chip`} aria-expanded={open}
         aria-controls={detailId} onClick={() => setOpen(!open)}>
         <span className="chip-icon" aria-hidden="true">{state === "warn" ? "!" : state === "ok" ? "✓" : "i"}</span>
-        <span className="sr-only">{state === "warn" ? "Check: " : "Note: "}</span>
-        {text}
-      </button>
+        <span><span className="sr-only">{state === "warn" ? "Check: " : "Note: "}</span>{text}</span>
+      </Button>
       {open && (
         <div id={detailId} className={`guide-chip-detail chip-${state} plan-detail`}>
           <p>
@@ -118,13 +118,13 @@ export default function PlanCheck({ sheet, data, readOnly }: {
           )}
           <p className="guide-chip-action">
             {revertible && !readOnly && (
-              <button type="button" onClick={() => apply((p) => renameForOptions(
+              <Button size="sm" onClick={() => apply((p) => renameForOptions(
                 updateResultsOptions(p, sheet.id, () => ({ ...plan.test.options })), sheet.id,
-                sheet.options, analysisDef))}>Revert to the plan</button>
+                sheet.options, analysisDef))}>Revert to the plan</Button>
             )}{" "}
             {!plan.locked && !readOnly && (
-              <button type="button" onClick={() => apply((p) => setPlan(p, ps.id, lockPlan(plan, now())))}>
-                Lock the plan</button>
+              <Button size="sm" onClick={() => apply((p) => setPlan(p, ps.id, lockPlan(plan, now())))}>
+                Lock the plan</Button>
             )}{" "}
             <button type="button" data-still className="linkish" onClick={() => select(ps.id)}>Open the analysis plan</button>
           </p>
