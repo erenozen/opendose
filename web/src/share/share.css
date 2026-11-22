@@ -149,7 +149,10 @@ border: 1px solid var(--line);
   color: var(--ink-2); font-size: var(--text-body-s);
 }
 .share-warning strong { color: var(--ink); }
-.share-password-row { display: flex; gap: var(--space-8); align-items: flex-end; }
+.share-password-row { display: flex; gap: var(--space-8); align-items: flex-start; }
+/* Level with the input: below the label's one line and the field's gap,
+   so a problem shown under the input does not move the button. */
+.share-password-row > .btn { margin-top: calc(var(--text-body-s) * var(--leading-body) + var(--space-4)); }
 .share-password-row .field { flex: 1 1 auto; min-width: 0; }
 
 /* "Your data and privacy" (PrivacyPage.tsx) */

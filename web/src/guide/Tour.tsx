@@ -25,7 +25,8 @@ const TOUR_STEPS: TourStep[] = [
     body: "Analyze adds another analysis of this table. Not sure which one? “Help me choose…” at "
       + "the top of the menu asks about your design, checks the data and recommends a test, "
       + "with its reason and the alternatives." },
-  { anchor: [".pane-results .checks-toggle", ".pane-results"], title: "Check the assumptions",
+  { anchor: [".pane-answer .checks-toggle", ".checks-toggle", ".pane-answer", ".pane-results"],
+    title: "Check the assumptions",
     body: "The Checks row under each result counts the checks: n per group, normality, equal "
       + "SDs and more. Open it for advice and a Learn more link. The checks advise; they never "
       + "block." },
@@ -148,6 +149,9 @@ export default function Tour({ onDone }: { onDone: () => void }) {
 
   const finish = useCallback(() => onDone(), [onDone]);
   const anchor = useCallback(() => cardPoint(findAnchor(step), cardRef.current), [step]);
+  const clearance = useCallback(() => ({
+    top: belowStickyHeader().top, right: EDGE, bottom: EDGE, left: EDGE,
+  }), []);
 
   return (
     <div className="tour" data-step={i + 1}>
@@ -155,7 +159,7 @@ export default function Tour({ onDone }: { onDone: () => void }) {
       <Popover open onOpenChange={(o) => { if (!o) finish(); }}>
         <Popover.Content ref={cardRef} className="tour-card" aria-labelledby={titleId}
           anchor={anchor} anchorKey={`${i}-${moved}`} side="bottom" align="start"
-          sideOffset={0} collisionPadding={() => ({ top: belowStickyHeader().top, right: EDGE, bottom: EDGE, left: EDGE })} closeOnOutsidePress={false}>
+          sideOffset={0} collisionPadding={clearance} closeOnOutsidePress={false}>
           <p className="tour-count">Step {i + 1} of {TOUR_STEPS.length}</p>
           <h2 id={titleId} className="tour-title">{step.title}</h2>
           <p className="tour-body">{step.body}</p>
