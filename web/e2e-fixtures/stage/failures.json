@@ -1,0 +1,285 @@
+{
+ "opendose_project": 2,
+ "version": 2,
+ "title": "Failures",
+ "prefs": {
+  "defaultTableType": "xy",
+  "errorBars": "sd",
+  "ciMethod": "asymptotic",
+  "scheme": "default",
+  "digits": 4
+ },
+ "selected": "d001",
+ "sheets": [
+  {
+   "id": "d001",
+   "kind": "data",
+   "name": "No sigmoid: bell-shaped response",
+   "table": {
+    "type": "xy",
+    "x": [
+     "1e-9",
+     "3.162e-9",
+     "1e-8",
+     "3.162e-8",
+     "1e-7",
+     "3.162e-7",
+     "1e-6",
+     "3.162e-6",
+     "1e-5"
+    ],
+    "xTitle": "Dose",
+    "xFormat": "numbers",
+    "xUnit": "M",
+    "yTitle": "",
+    "rowTitles": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "datasets": [
+     {
+      "name": "Response",
+      "rows": [
+       [
+        "26.3",
+        "20.4",
+        "13.5"
+       ],
+       [
+        "17.0",
+        "14.6",
+        "19.5"
+       ],
+       [
+        "27.6",
+        "31.8",
+        "30.5"
+       ],
+       [
+        "56.7",
+        "66.9",
+        "68.9"
+       ],
+       [
+        "90.6",
+        "79.1",
+        "90.3"
+       ],
+       [
+        "52.8",
+        "65.2",
+        "74.0"
+       ],
+       [
+        "26.6",
+        "31.8",
+        "28.5"
+       ],
+       [
+        "34.5",
+        "19.1",
+        "19.5"
+       ],
+       [
+        "21.4",
+        "17.8",
+        "2.5"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "d004",
+   "kind": "data",
+   "name": "Too few points: two doses",
+   "table": {
+    "type": "xy",
+    "x": [
+     "1e-8",
+     "1e-6"
+    ],
+    "xTitle": "Dose",
+    "xFormat": "numbers",
+    "xUnit": "M",
+    "yTitle": "",
+    "rowTitles": [
+     "",
+     ""
+    ],
+    "datasets": [
+     {
+      "name": "Response",
+      "rows": [
+       [
+        "95"
+       ],
+       [
+        "12"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "d006",
+   "kind": "data",
+   "name": "One value per group",
+   "table": {
+    "type": "column",
+    "x": [
+     ""
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "",
+    "rowTitles": [
+     ""
+    ],
+    "datasets": [
+     {
+      "name": "Control",
+      "rows": [
+       [
+        "10"
+       ]
+      ]
+     },
+     {
+      "name": "Treated",
+      "rows": [
+       [
+        "14"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "d008",
+   "kind": "data",
+   "name": "Text instead of numbers",
+   "table": {
+    "type": "column",
+    "x": [
+     "",
+     "",
+     ""
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "",
+    "rowTitles": [
+     "",
+     "",
+     ""
+    ],
+    "datasets": [
+     {
+      "name": "Control",
+      "rows": [
+       [
+        "n/a"
+       ],
+       [
+        "low"
+       ],
+       [
+        "#DIV/0!"
+       ]
+      ]
+     },
+     {
+      "name": "Treated",
+      "rows": [
+       [
+        "high"
+       ],
+       [
+        "?"
+       ],
+       [
+        "—"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "r002",
+   "kind": "results",
+   "parentId": "d001",
+   "analysis": "nonlin",
+   "options": {
+    "model": "log_inhibitor_vs_response_4pl"
+   },
+   "name": "Failed fit: 4PL on a bell curve"
+  },
+  {
+   "id": "r005",
+   "kind": "results",
+   "parentId": "d004",
+   "analysis": "nonlin",
+   "options": {
+    "model": "log_inhibitor_vs_response_4pl"
+   },
+   "name": "Fit that errors: 4PL on two points"
+  },
+  {
+   "id": "r007",
+   "kind": "results",
+   "parentId": "d006",
+   "analysis": "column",
+   "options": {
+    "analysis": "ttest"
+   },
+   "name": "t test with one value per group"
+  },
+  {
+   "id": "r009",
+   "kind": "results",
+   "parentId": "d008",
+   "analysis": "column",
+   "options": {
+    "analysis": "ttest"
+   },
+   "name": "t test of text cells"
+  },
+  {
+   "id": "g003",
+   "kind": "graph",
+   "parentId": "d001",
+   "resultsId": "r002",
+   "graphType": "xy",
+   "settings": {
+    "titles": {
+     "x": "",
+     "y": ""
+    },
+    "scheme": "default"
+   },
+   "name": "Graph of the failed fit"
+  }
+ ]
+}
