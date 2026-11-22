@@ -27,7 +27,7 @@
   .analyze-menu { left: auto; right: 0; max-width: calc(100vw - 20px); }
 }
 .menu-item {
-  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-16);
   width: 100%; text-align: left; border-radius: var(--radius-control); padding: 5px 9px;
   background: transparent; font-size: var(--text-body-s); font-weight: var(--weight-regular);
   /* never squeezed by a scrolling menu (min-height on phones would let it) */
@@ -46,8 +46,8 @@
 .menu-item kbd, .shortcuts kbd {
   font: inherit; font-size: var(--text-caption); color: var(--muted);
 }
-.menu-sep { height: 1px; margin: 4px 6px; background: var(--line); }
-.menu-colors { display: flex; gap: 6px; padding: 5px 8px 4px; }
+.menu-sep { height: 1px; margin: var(--space-4) var(--space-6); background: var(--line); }
+.menu-colors { display: flex; gap: var(--space-6); padding: 5px var(--space-8) var(--space-4); }
 .swatch {
   width: 18px; height: 18px; min-height: 0; padding: 0; border-radius: 50%;
   background: var(--hl); border: 2px solid transparent;

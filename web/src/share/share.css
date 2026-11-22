@@ -3,35 +3,35 @@
 /* Read-only banner of a project opened from a share link: the same
    family as the restore banner, so it reads as app chrome. */
 .share-banner {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px;
-  margin: 16px 24px 0; padding: 10px 14px;
-  border: 1px solid var(--accent-border); border-radius: var(--radius-s);
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8) 10px;
+  margin: var(--space-16) var(--space-24) 0; padding: 10px 14px;
+  border: 1px solid var(--accent-border); border-radius: var(--radius-control);
   background: var(--accent-soft); color: var(--ink-2);
-  font-size: 13px; max-width: 1632px;
+  font-size: var(--text-body-s); max-width: 1632px;
   transition: opacity 200ms var(--ease-out), transform 200ms var(--ease-out);
   opacity: 1; transform: translateY(0);
   @starting-style { opacity: 0; transform: translateY(-6px); }
 }
 .share-banner svg { color: var(--accent); flex: none; }
 .share-banner span { flex: 1 1 320px; min-width: 0; }
-.share-banner strong { color: var(--ink); font-weight: 650; }
-.share-banner button { padding: 4px 12px; background: var(--surface); }
+.share-banner strong { color: var(--ink); font-weight: var(--weight-semibold); }
+.share-banner button { padding: var(--space-4) var(--space-12); background: var(--surface); }
 .share-banner .btn-primary { background: var(--accent-fill); color: var(--accent-ink); }
 .share-banner .dismiss { opacity: 0.8; }
 
 .share-dialog { width: min(560px, calc(100vw - 32px)); }
 .share-url {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 12px !important;
+  font-family: var(--font-mono);
+  font-size: var(--text-caption) !important;
 }
 
 /* Bundle progress chip, bottom right */
 .share-progress {
   position: fixed; right: calc(18px + var(--safe-right)); bottom: calc(18px + var(--safe-bottom));
   z-index: var(--z-toast);
-  padding: 8px 14px; border-radius: var(--radius-pill);
-  background: var(--surface); color: var(--ink-2); font-size: 12.5px;
-  border: 1px solid var(--border-soft); box-shadow: var(--elev-float);
+  padding: var(--space-8) 14px; border-radius: var(--radius-control);
+  background: var(--float); color: var(--ink-2); font-size: var(--text-body-s);
+  box-shadow: var(--elev-float);
 }
 
 /* Off-screen results panels for the bundle: visible (innerText of a
@@ -39,143 +39,143 @@
 .export-host.bundle-host { visibility: visible; width: 960px; }
 
 /* Header: Share / export menu next to Save project */
-.save-menu .menu-wrap > button { padding-inline: 8px; }
+.save-menu .menu-wrap > button { padding-inline: var(--space-8); }
 .save-menu .grid-menu { min-width: 250px; z-index: var(--z-popover); }
 
 /* ---- Validation page */
 .validation-page { width: min(1080px, calc(100vw - 32px)); }
 .validation-page .modal-body { max-height: calc(100dvh - 48px); overflow: auto; }
-.validation-intro { margin: 0; color: var(--ink-2); font-size: 13.5px; line-height: 1.6; max-width: 72ch; }
+.validation-intro { margin: 0; color: var(--ink-2); font-size: var(--text-body); line-height: 1.6; max-width: 72ch; }
 .validation-summary {
-  display: flex; flex-wrap: wrap; gap: 6px 8px; margin: 0; padding: 0; list-style: none;
+  display: flex; flex-wrap: wrap; gap: var(--space-6) var(--space-8); margin: 0; padding: 0; list-style: none;
 }
 .validation-summary button {
-  padding: 3px 10px; font-size: 12px; border-radius: var(--radius-pill);
+  padding: 3px 10px; font-size: var(--text-caption); border-radius: var(--radius-control);
   background: var(--inset); color: var(--ink-2);
 }
 .validation-summary button[aria-pressed="true"] {
   background: var(--accent-fill); color: var(--accent-ink);
 }
-.validation-group { display: flex; flex-direction: column; gap: 6px; }
-.validation-group h3 { margin: 6px 0 0; font-size: 14px; font-weight: 650; color: var(--ink); }
-.validation-group > p { margin: 0; color: var(--muted); font-size: 12.5px; }
-.validation-table-wrap { overflow-x: auto; border: 1px solid var(--grid); border-radius: var(--radius-s); }
-.validation-table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+.validation-group { display: flex; flex-direction: column; gap: var(--space-6); }
+.validation-group h3 { margin: var(--space-6) 0 0; font-size: var(--text-body); font-weight: var(--weight-semibold); color: var(--ink); }
+.validation-group > p { margin: 0; color: var(--muted); font-size: var(--text-body-s); }
+.validation-table-wrap { overflow-x: auto; border: 1px solid var(--grid); border-radius: var(--radius-pane); }
+.validation-table { border-collapse: collapse; width: 100%; font-size: var(--text-body-s); }
 .validation-table th, .validation-table td {
-  padding: 5px 8px; border-bottom: 1px solid var(--grid); text-align: left; vertical-align: top;
+  padding: 5px var(--space-8); border-bottom: 1px solid var(--grid); text-align: left; vertical-align: top;
 }
 .validation-table thead th {
-  position: sticky; top: 0; background: var(--surface); color: var(--ink-2); font-weight: 600;
+  position: sticky; top: 0; background: var(--surface); color: var(--ink-2); font-weight: var(--weight-semibold);
   white-space: nowrap;
 }
 .validation-table td.num { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; min-width: 9ch; }
 .validation-table td.src { color: var(--muted); min-width: 22ch; }
-.validation-table code { font-size: 11.5px; color: var(--muted); overflow-wrap: anywhere; }
+.validation-table code { font-size: var(--text-caption); color: var(--muted); overflow-wrap: anywhere; }
 .validation-table tr:last-child td { border-bottom: none; }
-.validation-note { display: block; color: var(--muted); font-size: 11.5px; margin-top: 2px; }
+.validation-note { display: block; color: var(--muted); font-size: var(--text-caption); margin-top: var(--space-2); }
 
 /* ---- Recipe and reshape dialogs */
 .recipe-dialog { width: min(1040px, calc(100vw - 32px)); }
 .recipe-dialog .modal-body { max-height: calc(100dvh - 48px); overflow: auto; }
 .recipe-list {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 6px;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: var(--space-6);
   border: none; margin: 0; padding: 0;
 }
 .recipe-list legend {
-  font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.07em;
-  color: var(--muted); font-weight: 650; margin-bottom: 6px; padding: 0;
+  font-size: var(--text-label); text-transform: uppercase; letter-spacing: 0.07em;
+  color: var(--muted); font-weight: var(--weight-semibold); margin-bottom: var(--space-6); padding: 0;
 }
 .recipe-option {
-  display: flex; gap: 8px; align-items: flex-start; cursor: pointer;
-  border: 1px solid var(--border); border-radius: 10px; padding: 7px 10px;
+  display: flex; gap: var(--space-8); align-items: flex-start; cursor: pointer;
+  border: 1px solid var(--line-strong); border-radius: var(--radius-control); padding: 7px 10px;
   transition: border-color 140ms ease, background-color 140ms ease;
 }
 .recipe-option.checked { border-color: var(--accent); background: var(--accent-soft); }
 .recipe-option:has(input:focus-visible) { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
 .recipe-option input { margin-top: 3px; }
-.recipe-option b { font-size: 13px; font-weight: 600; color: var(--ink); display: block; }
-.recipe-option small { color: var(--muted); font-size: 11.5px; line-height: 1.35; display: block; }
-.recipe-detected { font-size: 10.5px; color: var(--accent); font-weight: 600; margin-left: 4px; }
-.recipe-roles { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px 12px; }
+.recipe-option b { font-size: var(--text-body-s); font-weight: var(--weight-semibold); color: var(--ink); display: block; }
+.recipe-option small { color: var(--muted); font-size: var(--text-caption); line-height: 1.35; display: block; }
+.recipe-detected { font-size: var(--text-caption); color: var(--accent); font-weight: var(--weight-semibold); margin-left: var(--space-4); }
+.recipe-roles { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--space-8) var(--space-12); }
 .recipe-roles .field span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pattern-tokens { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; }
+.pattern-tokens { display: flex; flex-wrap: wrap; gap: var(--space-8); align-items: flex-end; }
 .pattern-token {
-  display: flex; flex-direction: column; gap: 4px; padding: 6px 8px;
-  border: 1px solid var(--border); border-radius: var(--radius-s); background: var(--inset);
-  font-size: 12px; color: var(--ink-2); min-width: 110px;
+  display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-6) var(--space-8);
+  border: 1px solid var(--line-strong); border-radius: var(--radius-control); background: var(--inset);
+  font-size: var(--text-caption); color: var(--ink-2); min-width: 110px;
 }
-.pattern-token code { font-size: 12.5px; color: var(--ink); font-weight: 600; }
+.pattern-token code { font-size: var(--text-body-s); color: var(--ink); font-weight: var(--weight-semibold); }
 .pattern-token select, .pattern-token input {
-  font: inherit; font-size: 12px; padding: 2px 4px; border-radius: 5px;
-  border: 1px solid var(--border); background: var(--surface); color: var(--ink);
+  font: inherit; font-size: var(--text-caption); padding: var(--space-2) var(--space-4); border-radius: var(--radius-control);
+  border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink);
 }
 .role-chip {
-  display: inline-block; font-size: 10.5px; font-weight: 600; border-radius: 999px;
-  padding: 0 6px; margin-left: 4px; background: var(--inset); color: var(--muted);
+  display: inline-block; font-size: var(--text-caption); font-weight: var(--weight-semibold); border-radius: var(--radius-control);
+  padding: 0 var(--space-6); margin-left: var(--space-4); background: var(--inset); color: var(--muted);
 }
 .import-preview th.role-group, .role-chip.role-group { color: var(--success); }
 .import-preview th.role-subject, .role-chip.role-subject { color: var(--warn-ink); }
 .import-preview th.role-value, .role-chip.role-value { color: var(--accent); }
 .import-preview th.role-time, .role-chip.role-time { color: var(--role-time); }
 .import-preview td.dim { color: var(--faint); }
-.agg-steps { display: flex; flex-direction: column; gap: 6px; }
-.agg-step { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; font-size: 13px; color: var(--ink-2); }
-.agg-step select { font: inherit; font-size: 12.5px; padding: 3px 6px; border-radius: 6px; }
-.recipe-counts { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.agg-steps { display: flex; flex-direction: column; gap: var(--space-6); }
+.agg-step { display: flex; flex-wrap: wrap; gap: var(--space-8) var(--space-12); align-items: center; font-size: var(--text-body-s); color: var(--ink-2); }
+.agg-step select { font: inherit; font-size: var(--text-body-s); padding: 3px var(--space-6); border-radius: var(--radius-control); }
+.recipe-counts { display: flex; flex-wrap: wrap; gap: var(--space-6); margin: 0; padding: 0; list-style: none; }
 .recipe-counts li {
-  font-size: 12px; padding: 2px 9px; border-radius: var(--radius-pill);
+  font-size: var(--text-caption); padding: var(--space-2) 9px; border-radius: var(--radius-control);
   background: var(--inset); color: var(--ink-2); font-variant-numeric: tabular-nums;
 }
-.recipe-counts b { color: var(--ink); font-weight: 650; }
+.recipe-counts b { color: var(--ink); font-weight: var(--weight-semibold); }
 /* instrument recipes, many files, saved recipes */
 .recipe-option small.recipe-layouts { margin-top: 3px; color: var(--ink-2); }
-.recipe-saved-row { display: flex; gap: 6px; align-items: flex-start; }
+.recipe-saved-row { display: flex; gap: var(--space-6); align-items: flex-start; }
 .recipe-saved-row .recipe-option { flex: 1; min-width: 0; }
-.recipe-saved-row .linkish { font-size: 12px; margin-top: 8px; }
+.recipe-saved-row .linkish { font-size: var(--text-caption); margin-top: var(--space-8); }
 .recipe-save {
-  border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px;
-  background: var(--inset); display: flex; flex-direction: column; gap: 6px;
+  border: 1px solid var(--line-strong); border-radius: var(--radius-pane); padding: 10px var(--space-12);
+  background: var(--inset); display: flex; flex-direction: column; gap: var(--space-6);
 }
-.recipe-save-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.import-recipes { display: flex; flex-direction: column; gap: 6px; }
-.import-recipes .linkish { align-self: flex-end; font-size: 12.5px; }
+.recipe-save-actions { display: flex; flex-wrap: wrap; gap: var(--space-8); align-items: center; }
+.import-recipes { display: flex; flex-direction: column; gap: var(--space-6); }
+.import-recipes .linkish { align-self: flex-end; font-size: var(--text-body-s); }
 .recipe-template { flex: 1 1 320px; }
-.recipe-template input { font-family: var(--mono, ui-monospace, monospace); }
-.recipe-platemap { gap: 8px; }
+.recipe-template input { font-family: var(--font-mono); }
+.recipe-platemap { gap: var(--space-8); }
 .recipe-platemap .plate-editor { max-width: 100%; overflow-x: auto; }
-.recipe-replicates { display: flex; flex-direction: column; gap: 4px; }
+.recipe-replicates { display: flex; flex-direction: column; gap: var(--space-4); }
 
 /* Password screen of a protected share link (UnlockScreen.tsx) */
 .unlock-screen {
-  min-height: 100dvh; display: grid; place-items: center; padding: 24px 16px;
+  min-height: 100dvh; display: grid; place-items: center; padding: var(--space-24) var(--space-16);
   background: var(--page);
 }
 .unlock-card {
-  width: min(440px, 100%); display: flex; flex-direction: column; gap: 12px;
-  background: var(--surface); border-radius: var(--radius); padding: 24px;
-  box-shadow: var(--shadow); border: 1px solid var(--border-soft);
+  width: min(440px, 100%); display: flex; flex-direction: column; gap: var(--space-12);
+  background: var(--surface); border-radius: var(--radius-pane); padding: var(--space-24);
+border: 1px solid var(--line);
 }
 .unlock-card svg { color: var(--accent); }
-.unlock-card h1 { margin: 0; font-size: 19px; letter-spacing: -0.01em; }
-.unlock-card p { margin: 0; color: var(--ink-2); font-size: 13.5px; }
+.unlock-card h1 { margin: 0; font-size: var(--text-title); letter-spacing: -0.01em; }
+.unlock-card p { margin: 0; color: var(--ink-2); font-size: var(--text-body); }
 .unlock-card .unlock-error { color: var(--danger); }
-.unlock-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
+.unlock-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: var(--space-8); }
 
 /* Share dialog: the warning and the password option */
 .share-warning {
-  margin: 0; padding: 10px 12px; border-radius: var(--radius-s);
-  border: 1px solid var(--border-soft); background: var(--page);
-  color: var(--ink-2); font-size: 13px;
+  margin: 0; padding: 10px var(--space-12); border-radius: var(--radius-control);
+  border: 1px solid var(--line); background: var(--page);
+  color: var(--ink-2); font-size: var(--text-body-s);
 }
 .share-warning strong { color: var(--ink); }
-.share-password-row { display: flex; gap: 8px; align-items: flex-end; }
+.share-password-row { display: flex; gap: var(--space-8); align-items: flex-end; }
 .share-password-row .field { flex: 1 1 auto; min-width: 0; }
 
 /* "Your data and privacy" (PrivacyPage.tsx) */
 .privacy-page { width: min(720px, calc(100vw - 32px)); }
 .privacy-page .modal-body { max-height: calc(100dvh - 48px); overflow: auto; }
 .privacy-page section + section { margin-top: 14px; }
-.privacy-page h3 { margin: 0 0 6px; font-size: 14.5px; }
-.privacy-page p, .privacy-page li { font-size: 13.5px; color: var(--ink-2); line-height: 1.5; }
+.privacy-page h3 { margin: 0 0 var(--space-6); font-size: var(--text-body); }
+.privacy-page p, .privacy-page li { font-size: var(--text-body); color: var(--ink-2); line-height: 1.5; }
 .privacy-page p { margin: 0; }
-.privacy-page ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
+.privacy-page ul { margin: 0; padding-left: var(--space-20); display: flex; flex-direction: column; gap: var(--space-4); }
