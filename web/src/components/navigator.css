@@ -81,8 +81,9 @@
 .twisty::before {
   content: ""; border-left: 5px solid currentColor;
   border-top: 4px solid transparent; border-bottom: 4px solid transparent;
-  transition: transform var(--dur-base) var(--ease-out);
 }
+/* No rotation tween: folding is a many-times-a-minute action, often by
+   arrow key, and the rows change in one frame (motion.md). */
 .twisty.open::before { transform: rotate(90deg); }
 .sheet-icon { flex: none; color: var(--muted); }
 .nav-item.selected > .nav-row .sheet-icon { color: var(--accent); }
