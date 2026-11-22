@@ -699,9 +699,12 @@ def _ols_fit(spec, x, y, free_names, fixed, p0_map, weighting,
 
     box = _free_bounds(spec, free_names)
     p0 = [p0_map[n] for n in free_names]
-    # finite-difference scale of each parameter (lsq module docstring)
-    floor = lsq.scale_floor(free_names, p0, x, y,
-                            getattr(spec, "param_roles", None))
+    # finite-difference scale of each parameter (lsq module docstring),
+    # from the start the solver uses: moved inside the range constraints
+    # first, so a start far outside them (K = 1e6 for 0 <= K <= 1) does not
+    # make the steps far too coarse for the range
+    floor = lsq.scale_floor(free_names, p0 if box is None else _inside(p0, box),
+                            x, y, getattr(spec, "param_roles", None))
 
     jac_idx = ([spec.params.index(n) for n in free_names]
                if spec.jac is not None else None)

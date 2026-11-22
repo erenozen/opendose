@@ -513,14 +513,9 @@ class TestCase28Bounds:
     a parameter constrained > 0 (or < 0) whose best fit is very close to
     0. https://www.graphpad.com/updates/prism-801-release-notes"""
 
-    @pytest.mark.parametrize("init", [5.0, -3.0, pytest.param(
-        1e6, marks=pytest.mark.xfail(strict=True, reason=(
-            "#28: nlfit._ols_fit computes the finite-difference scale floor "
-            "(lsq.scale_floor) from the raw initial values before _inside "
-            "moves the start into the box, so K's step scale is ~1e6 times "
-            "the box width; the bounded fit stops early: K = 0.4008216 vs "
-            "0.4008160 (SS 0.48088742 vs 0.48088721) while status says "
-            "'converged'")))])
+    # 1e6 fixed: the step scale came from the raw start before it was moved
+    # into the box (K = 0.4008216 vs 0.4008160, SS 0.48088742 vs 0.48088721)
+    @pytest.mark.parametrize("init", [5.0, -3.0, 1e6, -1e6])
     def test_initial_value_outside_the_range(self, init):
         x, y = _decay_xy()
         free = ue.fit_user_equation(x.tolist(), y.tolist(), ue.UserEquation(
@@ -535,6 +530,33 @@ class TestCase28Bounds:
             free["fitted_values"]["Y0"], rel=1e-7)
         assert fit["goodness"]["r_squared"] == pytest.approx(
             free["goodness"]["r_squared"], rel=1e-10)
+
+    @pytest.mark.parametrize("init", [1e6, 5.0])
+    def test_global_fit_initial_value_outside_the_range(self, init):
+        # the same start far outside 0 <= K <= 1 in a global fit
+        x, y = _decay_xy()
+        y2 = 30 * np.exp(-0.25 * x) + np.array(
+            [0.2, -0.1, 0.3, -0.2, 0.1, -0.3, 0.2, 0.05, -0.1, 0.15, -0.05])
+        sets = [{"name": "A", "ys": [[v] for v in y.tolist()]},
+                {"name": "B", "ys": [[v] for v in y2.tolist()]}]
+        base = {"text": "Y=Y0*exp(-K*X)", "rules": {"Y0": "YATXMIN", "K": 0.5}}
+        free = _run("global_model_fit", {"x": x.tolist(), "datasets": sets},
+                    {"user_equation": base, "shared": []})
+        boxed = _run("global_model_fit", {"x": x.tolist(), "datasets": sets},
+                     {"user_equation": {**base, "rules": {"Y0": "YATXMIN", "K": init},
+                                        "constraints": {"K": "between 0 and 1"}},
+                      "shared": []})
+        for a, b in zip(boxed["datasets"], free["datasets"]):
+            assert a["params"]["K"]["value"] == pytest.approx(
+                b["params"]["K"]["value"], rel=1e-7)
+
+    def test_start_inside_the_range_is_unchanged(self):
+        # the step scale of a start already inside the box is the same as
+        # before: _inside leaves it where it is
+        from opendose import nlfit
+        box = (np.array([0.0, -np.inf]), np.array([1.0, np.inf]))
+        p0 = [0.5, 48.0]
+        assert np.array_equal(nlfit._inside(p0, box), np.array(p0))
 
     @pytest.mark.parametrize("init", [5.0, 0.5])
     def test_true_value_at_the_bound(self, init):

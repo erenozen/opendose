@@ -2598,8 +2598,11 @@ def fit_global_model(datasets, model: str, *, shared=None, constraints=None,
         return res
 
     def run(start):
-        # finite-difference scales (lsq module docstring)
-        floor = lsq.scale_floor(names, start, all_x, all_y, roles)
+        # finite-difference scales (lsq module docstring), from the start
+        # moved inside the range constraints (as solve() moves it)
+        floor = lsq.scale_floor(
+            names, start if box is None else nlfit._inside(start, box),
+            all_x, all_y, roles)
         if nlfit.y_weighted(weighting):
             res = solve(start, [np.ones_like(d["x"]) for d in data], floor)
             prev = res.x
