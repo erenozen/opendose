@@ -31,7 +31,7 @@
 }
 .formula-input[aria-invalid="true"] { border-color: var(--danger); }
 .formula-status { min-height: 18px; font-size: var(--text-body-s); }
-.formula-ok { color: var(--accent); }
+.formula-ok { color: var(--success); }
 .formula-ok::before { content: "✓ "; }
 .formula-error { color: var(--danger); }
 .formula-caret {

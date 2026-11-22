@@ -734,6 +734,8 @@ expect("derived table is read-only and linked",
 await page.locator(".origin-note").getByRole("button", { name: "Settings" }).click();
 await page.getByLabel("User-defined formulas").check();
 await page.getByLabel("Y formula").fill("Y = Y*2 +");
+// a problem shows once the field is left (reward early, punish late)
+await page.getByLabel("Y formula").blur();
 await page.waitForSelector(".formula-error", { timeout: 10000 });
 expect("formula validation reports the error position",
   /column 10/.test(await page.locator(".formula-error").first().innerText()));

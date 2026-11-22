@@ -14,6 +14,10 @@ import {
   type TransformCI, type UserEquationDef,
 } from "../lib/userEquation";
 import Modal from "./Modal";
+import {
+  Button, IconButton, notify, SwapLabel, useLabelSwap, useValidationTiming,
+} from "./ui";
+import { CloseIcon } from "./ui/feedbackIcons";
 import "./modelPicker.css";
 
 interface Problem {
@@ -93,13 +97,14 @@ export default function EquationEditor({ initial, onApply, onClose }: {
   onClose: () => void;
 }) {
   const [def, setDef] = useState<UserEquationDef>(initial);
-  const [savedNote, setSavedNote] = useState("");
+  const [attempts, setAttempts] = useState(0);
+  const savedSwap = useLabelSwap();
   const saved = useSyncExternalStore(subscribeEquations, savedEquations);
   const id = useId();
   const guessed = useMemo(() => guessParameters(def.text), [def.text]);
   const validation = useValidation(def, guessed);
   const params = validation?.ok && validation.parameters ? validation.parameters : guessed;
-  const set = (patch: Partial<UserEquationDef>) => { setDef((d) => ({ ...d, ...patch })); setSavedNote(""); };
+  const set = (patch: Partial<UserEquationDef>) => setDef((d) => ({ ...d, ...patch }));
   const full = materialize(def, params);
   const lines = def.text.split("\n");
   const textErrors = (validation?.errors ?? []).filter((e) => !e.where || e.where === "equation");
@@ -107,6 +112,17 @@ export default function EquationEditor({ initial, onApply, onClose }: {
   const errorFor = (where: string, item: string) => itemErrors.find((e) => e.where === where
     && e.item != null && sameName(String(e.item), item));
   const valid = !!validation?.ok && !!def.text.trim();
+  // Reward early, punish late (AD-24): the engine checks as you type, but
+  // a problem shows only once the field is left or "Use this equation" is
+  // pressed; from then on it follows each change and clears once fixed.
+  const textTiming = useValidationTiming(textErrors.length ? "invalid" : null, attempts);
+  const itemTiming = useValidationTiming(itemErrors.length ? "invalid" : null, attempts);
+  const showText = !!textTiming.problem;
+  const showItems = !!itemTiming.problem;
+  const verdict = !def.text.trim() || validation === null ? ""
+    : textErrors.length ? (showText ? (textErrors.length === 1 ? "The equation has a problem:"
+      : `The equation has ${textErrors.length} problems:`) : "")
+      : itemErrors.length ? (showItems ? "Fix the rows marked below." : "") : "Equation is valid";
   const isSaved = !!def.id && saved.some((e) => e.id === def.id);
 
   const setRule = (p: string, r: Partial<InitialRule>) =>
@@ -116,25 +132,32 @@ export default function EquationEditor({ initial, onApply, onClose }: {
 
   return (
     <Modal title="User-defined equation" className="modal-xwide" onClose={onClose}
-      onSubmit={() => { if (valid) onApply(full); }}
+      onSubmit={() => { if (valid) onApply(full); else setAttempts((n) => n + 1); }}
       actions={(
         <>
           <span className="eq-actions-left">
-            <button type="button" disabled={!def.text.trim()} onClick={() => {
+            <Button disabled={!def.text.trim()} onClick={() => {
               const s = saveEquation(full);
               setDef(s);
-              setSavedNote(`Saved to my equations as “${s.name.trim() || "Untitled equation"}”`);
-            }}>{isSaved ? "Update in my equations" : "Save to my equations"}</button>
+              savedSwap.flash(`Saved to my equations as “${s.name.trim() || "Untitled equation"}”`);
+            }}>
+              <SwapLabel swapped={savedSwap.swapped} done="Saved">
+                {isSaved ? "Update in my equations" : "Save to my equations"}</SwapLabel>
+            </Button>
             {isSaved && (
-              <button type="button" className="btn-danger" onClick={() => {
+              <Button onClick={() => {
+                const gone = full;
                 deleteEquation(def.id);
                 set({ id: "" });
-                setSavedNote("Removed from my equations");
-              }}>Remove from my equations</button>
+                notify(`Removed “${gone.name.trim() || "Untitled equation"}” from my equations.`, {
+                  tone: "success",
+                  action: { label: "Undo", onAction: () => setDef(saveEquation(gone)) },
+                });
+              }}>Remove from my equations</Button>
             )}
           </span>
-          <button type="button" onClick={onClose}>Cancel</button>
-          <button type="submit" className="btn-primary" disabled={!valid}>Use this equation</button>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button type="submit" variant="primary" disabled={!def.text.trim()}>Use this equation</Button>
         </>
       )}>
       <div className="eq-editor">
@@ -151,19 +174,23 @@ export default function EquationEditor({ initial, onApply, onClose }: {
               autoCapitalize="off" autoComplete="off"
               rows={Math.min(12, Math.max(4, lines.length + 1))}
               value={def.text} placeholder="Y = Bottom + (Top-Bottom)/(1+10^((LogEC50-X)*HillSlope))"
-              aria-invalid={textErrors.length > 0} aria-describedby={`${id}-status`}
+              aria-invalid={showText || undefined} aria-describedby={`${id}-status`}
+              onBlur={textTiming.onBlur}
               onChange={(e) => set({ text: e.target.value })} />
-            <div id={`${id}-status`} className="eq-status" aria-live="polite">
+            <div id={`${id}-status`} className="eq-status">
+              {/* The one spoken line: the verdict, never each keystroke's details. */}
+              <p role="status" className={verdict === "Equation is valid" ? "eq-ok" : "eq-error"}>
+                {verdict}</p>
               {!def.text.trim() ? (
                 <span className="hint-block">
                   Write Y as a function of X.{" "}
-                  <button type="button" className="chip-btn" onClick={() => set({
+                  <Button size="sm" onClick={() => set({
                     text: FOUR_PL_TEXT, xIsLog: true,
                     name: def.name || "Four-parameter logistic (my copy)",
-                  })}>Start from the four-parameter logistic</button>
+                  })}>Start from the four-parameter logistic</Button>
                 </span>
               ) : validation === null ? <span className="hint-block">Checking…</span>
-                : textErrors.length ? textErrors.map((p, i) => {
+                : textErrors.length ? showText && textErrors.map((p, i) => {
                   const src = p.line ? lines[p.line - 1] ?? "" : "";
                   return (
                     <div key={i} className="eq-error">
@@ -175,8 +202,7 @@ export default function EquationEditor({ initial, onApply, onClose }: {
                       )}
                     </div>
                   );
-                }) : itemErrors.length ? <span className="eq-error">Fix the rows marked below.</span>
-                  : <span className="eq-ok">Equation is valid</span>}
+                }) : null}
             </div>
             <label className="check-row">
               <input type="checkbox" checked={def.xIsLog}
@@ -185,7 +211,7 @@ export default function EquationEditor({ initial, onApply, onClose }: {
             </label>
           </div>
 
-          <div className="eq-field">
+          <div className="eq-field" onBlur={itemTiming.onBlur}>
             <span className="eq-section-title" id={`${id}-params`}>Parameters</span>
             {params.length === 0 ? (
               <p className="hint-block">Parameters appear here as you write the equation.</p>
@@ -199,7 +225,7 @@ export default function EquationEditor({ initial, onApply, onClose }: {
                   {params.map((p) => {
                     const r = full.rules[p];
                     const c = full.constraints[p] ?? noConstraint();
-                    const bad = errorFor("rules", p) || errorFor("constraints", p);
+                    const bad = showItems && (errorFor("rules", p) || errorFor("constraints", p));
                     return (
                       <tr key={p} className={bad ? "eq-row-bad" : ""}>
                         <th scope="row">{p}</th>
@@ -256,7 +282,7 @@ export default function EquationEditor({ initial, onApply, onClose }: {
                 </tbody>
               </table>
             )}
-            {itemErrors.filter((e) => e.where !== "transforms").map((e, i) => (
+            {showItems && itemErrors.filter((e) => e.where !== "transforms").map((e, i) => (
               <p key={i} className="eq-error">{e.item ? `${e.item}: ` : ""}{e.message}</p>
             ))}
             {(validation?.warnings ?? []).filter((w) => !/no initial-value rule/.test(w.message))
@@ -273,7 +299,7 @@ export default function EquationEditor({ initial, onApply, onClose }: {
                 </thead>
                 <tbody>
                   {def.transforms.map((t, i) => {
-                    const bad = errorFor("transforms", t.name);
+                    const bad = showItems && errorFor("transforms", t.name);
                     const setT = (patch: Partial<typeof t>) => set({
                       transforms: def.transforms.map((x, j) => (j === i ? { ...x, ...patch } : x)),
                     });
@@ -292,8 +318,9 @@ export default function EquationEditor({ initial, onApply, onClose }: {
                           </select>
                         </td>
                         <td>
-                          <button type="button" className="icon-btn" aria-label={`Remove value ${t.name || i + 1}`}
-                            onClick={() => set({ transforms: def.transforms.filter((_, j) => j !== i) })}>✕</button>
+                          <IconButton size="sm" aria-label={`Remove value ${t.name || i + 1}`}
+                            onClick={() => set({ transforms: def.transforms.filter((_, j) => j !== i) })}>
+                            <CloseIcon /></IconButton>
                         </td>
                       </tr>
                     );
@@ -301,16 +328,15 @@ export default function EquationEditor({ initial, onApply, onClose }: {
                 </tbody>
               </table>
             )}
-            {itemErrors.filter((e) => e.where === "transforms").map((e, i) => (
+            {showItems && itemErrors.filter((e) => e.where === "transforms").map((e, i) => (
               <p key={i} className="eq-error">{e.item ? `${e.item}: ` : ""}{e.message}</p>
             ))}
             <div>
-              <button type="button" className="chip-btn" onClick={() => set({
+              <Button size="sm" onClick={() => set({
                 transforms: [...def.transforms, { name: "", expr: "", ci: "asymmetrical" }],
-              })}>Add a value to report</button>
+              })}>Add a value to report</Button>
             </div>
           </div>
-          <p className="hint-block" role="status" aria-live="polite">{savedNote}</p>
         </div>
         <HelpPanel />
       </div>

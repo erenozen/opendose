@@ -7,6 +7,7 @@ import {
   useDismiss, usePresence, useTopLayer,
 } from "./useDismiss.ts";
 import { boxOf, useAnchoredPosition, type AnchorOptions } from "./Popover.anchor.ts";
+import type { Box } from "./Popover.place.ts";
 import "./Popover.css";
 
 /*
@@ -75,23 +76,36 @@ function Trigger({ ref, onClick, ...props }: ComponentProps<"button">) {
 type ContentProps = Omit<ComponentProps<"div">, "popover"> & AnchorOptions & {
   /** Move focus into the panel on open (default true). */
   autoFocus?: boolean;
+  /** Place the panel against this element (or viewport box) instead of
+   *  Popover.Trigger: a coach mark pointing at part of the page. */
+  anchor?: () => Element | Box | null;
+  /** A new value places the panel again (the anchor changed). */
+  anchorKey?: string;
+  /** Close on a press outside (default true). False for a panel the user
+   *  works beside, such as a tour step that asks them to edit a cell. */
+  closeOnOutsidePress?: boolean;
 };
 
 /** The floating panel. `role="dialog"` by default; name it with aria-label. */
 function Content({
   ref, side = "bottom", align = "start", sideOffset = 8, collisionPadding, collisionBoundary,
-  autoFocus = true, className = "", children, onKeyDown, ...props
+  autoFocus = true, anchor, anchorKey, closeOnOutsidePress = true, className = "", children,
+  onKeyDown, ...props
 }: ContentProps) {
   const { open, setOpen, trigger, contentId } = usePopover();
   const el = useRef<HTMLDivElement>(null);
   const setRef = useMergedRefs(el, ref);
   const { mounted, state, instant } = usePresence(open, el);
   useTopLayer(el, mounted);
-  useAnchoredPosition(el, mounted, () => boxOf(trigger.current),
-    { side, align, sideOffset, collisionPadding, collisionBoundary });
+  useAnchoredPosition(el, mounted, () => {
+    const a = anchor ? anchor() : trigger.current;
+    return a instanceof Element ? boxOf(a) : a;
+  },
+    { side, align, sideOffset, collisionPadding, collisionBoundary }, anchorKey);
   useDismiss({
     open, layer: el, trigger,
     onDismiss: (reason) => {
+      if (reason === "outside" && !closeOnOutsidePress) return;
       setOpen(false);
       // A press outside moves focus after this runs: check again once it has.
       if (reason === "outside") setTimeout(() => restoreFocus(trigger.current, el.current));

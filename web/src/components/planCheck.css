@@ -44,9 +44,8 @@
 .plan-exp .plan-n { font-size: var(--text-body-s); color: var(--ink-2); }
 .plan-exp .plan-n strong { color: var(--ink); }
 .plan-exp .plan-numbers { display: flex; flex-wrap: wrap; gap: 8px 14px; }
-.plan-exp .plan-numbers .wt-field { flex: 1 1 160px; }
-.plan-exp .wt-field { flex-direction: column; align-items: stretch; gap: 4px; }
-.plan-exp .wt-field input { width: 100%; }
+.plan-exp .plan-numbers .ui-field { flex: 1 1 160px; }
+.plan-exp .wt-questions .ui-field:not(.ui-number-field) input { width: 100%; }
 /* The detail sits on --inset: links in --ink-2 / --ink keep AA contrast. */
 .plan-detail a, .plan-detail .guide-source { color: var(--ink-2); }
 .plan-detail .linkish { color: var(--ink); text-decoration: underline; }
