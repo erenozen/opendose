@@ -19,13 +19,12 @@ button {
     background: color-mix(in srgb, var(--ink) 12%, transparent);
     color: var(--ink);
   }
-  .btn-primary:hover, .plate-form .primary:hover {
+  .plate-form .primary:hover {
     background: var(--accent-fill-hover); color: var(--accent-ink);
   }
-  .btn-danger:hover { background: var(--danger-fill-hover); color: var(--danger-ink-on-fill); }
   .advanced > summary:hover { color: var(--accent); }
 }
-.btn-primary, .plate-form .primary {
+.plate-form .primary {
   background: var(--accent-fill); color: var(--accent-ink);
   font-weight: var(--weight-semibold);
 }

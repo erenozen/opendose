@@ -18,7 +18,7 @@ import "./Dialog.css";
  *       …fields…
  *       <Dialog.Actions>
  *         <Dialog.Close>Cancel</Dialog.Close>
- *         <button type="submit" className="btn-primary">Rename</button>
+ *         <Button type="submit" variant="primary">Rename</Button>
  *       </Dialog.Actions>
  *     </Dialog.Body>
  *   </Dialog>
