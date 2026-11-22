@@ -1,10 +1,10 @@
 /* ============================ results ============================ */
 
 .results { display: flex; flex-direction: column; gap: 12px; }
-.model-line { margin: 0 0 10px; color: var(--ink-2); font-size: 13px; }
+.model-line { margin: 0 0 10px; color: var(--ink-2); font-size: var(--text-body-s); }
 .model-line code {
-  font-size: 12px; color: var(--muted);
-  font-family: ui-monospace, "Cascadia Code", monospace;
+  font-size: var(--text-caption); color: var(--muted);
+  font-family: var(--font-mono);
 }
 .results-table {
   border-collapse: collapse; width: 100%; margin-bottom: 10px;
@@ -12,22 +12,22 @@
 }
 .results-table th, .results-table td {
   text-align: left; padding: 5px 10px 5px 0;
-  border-bottom: 1px solid var(--grid); font-weight: 400;
+  border-bottom: 1px solid var(--grid); font-weight: var(--weight-regular);
 }
-.results-table thead th { color: var(--muted); font-size: 12px; }
+.results-table thead th { color: var(--muted); font-size: var(--text-caption); }
 .results-table tbody th { color: var(--ink-2); }
 .results-table .derived th, .results-table .derived td {
-  border-top: 2px solid var(--axis); font-weight: 650;
+  border-top: 2px solid var(--axis); font-weight: var(--weight-semibold);
   background: var(--accent-soft);
 }
 .results-table .derived th { padding-left: 6px; }
 .results-table.goodness { max-width: 400px; }
-.results-table.goodness th { font-weight: 400; color: var(--ink-2); }
-.hint-block { color: var(--muted); font-size: 12.5px; margin: 4px 0; }
+.results-table.goodness th { font-weight: var(--weight-regular); color: var(--ink-2); }
+.hint-block { color: var(--muted); font-size: var(--text-body-s); margin: 4px 0; }
 .stat-cols { display: flex; gap: 24px; flex-wrap: wrap; }
 .stat-cols > * { flex: 1 1 260px; min-width: 0; }
 .methods-text p {
-  color: var(--ink-2); font-size: 13px; line-height: 1.55;
+  color: var(--ink-2); font-size: var(--text-body-s); line-height: var(--leading-prose);
   user-select: all;
 }
 /* Morphing button feedback: a keyed label blur-crossfades between
@@ -43,7 +43,7 @@
   content: "Exporting…"; height: 0; visibility: hidden; overflow: hidden;
 }
 .swap-label {
-  transition: opacity 200ms ease, filter 200ms ease;
+  transition: opacity var(--dur-enter) var(--ease-out), filter var(--dur-enter) var(--ease-out);
   opacity: 1; filter: blur(0);
   @starting-style { opacity: 0; filter: blur(2px); }
 }
@@ -53,27 +53,27 @@
    about the dose range. A fit can carry either, or both. */
 .badge-ambiguous, .badge-extrapolated {
   margin-left: 8px; vertical-align: middle;
-  font-size: 11px; font-weight: 600; letter-spacing: 0.03em;
+  font-size: var(--text-caption); font-weight: var(--weight-semibold); letter-spacing: 0.03em;
   color: var(--warn-ink);
-  background: color-mix(in srgb, var(--warn-hue) 18%, var(--surface));
-  border: 1px solid color-mix(in srgb, var(--warn-hue) 45%, transparent);
-  border-radius: 999px; padding: 2px 9px;
+  background: color-mix(in srgb, var(--warn) 18%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--warn) 45%, transparent);
+  border-radius: var(--radius-control); padding: 2px 9px;
 }
 .badge-extrapolated {
   color: var(--accent);
   background: color-mix(in srgb, var(--accent) 12%, var(--surface));
-  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  border: 1px solid var(--accent-border);
   cursor: help;
 }
 .badge-ambiguous { cursor: help; }
 
 .results-error {
   color: var(--danger);
-  background: color-mix(in srgb, var(--danger) 8%, var(--surface));
+  background: var(--danger-soft);
   border: 1px solid color-mix(in srgb, var(--danger) 30%, transparent);
-  border-radius: var(--radius-s); padding: 10px 14px;
+  border-radius: var(--radius-control); padding: 10px 14px;
   /* Fast entrance: errors get a bridge, never decoration */
-  transition: opacity 150ms var(--ease-out), transform 150ms var(--ease-out);
+  transition: opacity var(--dur-exit) var(--ease-out), transform var(--dur-exit) var(--ease-out);
   opacity: 1; transform: scale(1);
   @starting-style { opacity: 0; transform: scale(0.98); }
 }
@@ -86,3 +86,6 @@
   @starting-style { opacity: 0; transform: translateY(8px); }
 }
 .pane-results.reveal { transition-delay: 80ms; }
+@media (prefers-reduced-motion: reduce) {
+  .pane.reveal { transition-duration: var(--dur-enter); }
+}

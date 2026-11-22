@@ -3,12 +3,12 @@
 .pzfx-chooser, .restore-banner {
   display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
   margin: 16px 24px 0; padding: 10px 14px;
-  border: 1px solid var(--accent-border); border-radius: var(--radius-s);
+  border: 1px solid var(--accent-border); border-radius: var(--radius-control);
   background: var(--accent-soft);
-  font-size: 13px;
+  font-size: var(--text-body-s);
   max-width: 1632px;
   /* Rare event (file import), so an entrance is earned */
-  transition: opacity 200ms var(--ease-out), transform 200ms var(--ease-out);
+  transition: opacity var(--dur-enter) var(--ease-out), transform var(--dur-enter) var(--ease-out);
   opacity: 1; transform: translateY(0);
   @starting-style { opacity: 0; transform: translateY(-6px); }
 }

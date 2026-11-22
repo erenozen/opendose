@@ -1,7 +1,8 @@
-/* The app's global stylesheet, in cascade order: tokens, base, then each
-   area's rules. Feature sheets imported by their own components load
-   after this file. */
+/* The app's global stylesheet, in cascade order: the Inter font faces,
+   tokens, base, then each area's rules. Feature sheets imported by their
+   own components load after this file. */
 
+@import "@fontsource-variable/inter";
 @import "./tokens.css";
 @import "./base.css";
 @import "../components/header.css";

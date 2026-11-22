@@ -1,4 +1,4 @@
-/* "What this means" (MeaningLine.tsx). Tokens only (index.css / App.css). */
+/* "What this means" (MeaningLine.tsx). Tokens only (styles/tokens.css). */
 .meaning-line {
   margin: 0 0 10px; padding: 9px 12px 8px;
   font-size: 13px; line-height: 1.5; color: var(--ink-2);

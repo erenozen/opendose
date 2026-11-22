@@ -244,7 +244,7 @@ export function TableFormatDialog({ table, onApply, onConvert, onClose }: {
             <p className="field-note">
               Values stay where they are; only the subcolumn headings change.
               To compute means and SDs from replicates instead,{" "}
-              <button type="button" className="linkish" onClick={onConvert}>
+              <button type="button" data-still className="linkish" onClick={onConvert}>
                 convert into a new table
               </button>.
             </p>

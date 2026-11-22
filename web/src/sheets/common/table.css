@@ -6,19 +6,19 @@
 .data-table table { border-collapse: collapse; width: 100%; }
 .data-table th, .data-table td { border: 1px solid var(--grid); padding: 0; }
 .data-table thead th {
-  background: var(--inset); color: var(--ink-2); font-weight: 600;
-  font-size: 12px; padding: 5px 6px;
+  background: var(--inset); color: var(--ink-2); font-weight: var(--weight-semibold);
+  font-size: var(--text-caption); padding: 5px 6px;
 }
-.data-table .subhead th { font-weight: 450; color: var(--muted); }
+.data-table .subhead th { font-weight: var(--weight-regular); color: var(--muted); }
 .data-table .rownum {
   width: 28px; text-align: center; color: var(--muted);
-  font-size: 11px; border: none; background: transparent;
+  font-size: var(--text-caption); border: none; background: transparent;
   font-variant-numeric: tabular-nums;
 }
 .data-table .rowtools { border: none; background: transparent; width: 26px; }
 .data-table .rowtools button, .ds-tools button {
   border: none; background: transparent; color: var(--muted);
-  cursor: pointer; font-size: 11px; padding: 5px 7px; border-radius: 4px;
+  cursor: pointer; font-size: var(--text-caption); padding: 5px 7px; border-radius: var(--radius-control);
 }
 @media (hover: hover) and (pointer: fine) {
   .data-table .rowtools button:hover, .ds-tools button:hover {
@@ -34,7 +34,7 @@
 .group-head { white-space: nowrap; }
 .ds-name {
   border: none; background: transparent; color: var(--ink);
-  font: inherit; font-weight: 600; width: 9ch; text-align: center;
+  font: inherit; font-weight: var(--weight-semibold); width: 9ch; text-align: center;
 }
 .data-table .row-label { background: var(--inset); padding: 0 4px; }
 .data-table .row-label .ds-name { width: 13ch; text-align: left; }
@@ -42,13 +42,13 @@
   display: flex; gap: 8px; align-items: center; padding: 10px 4px 2px;
   flex-wrap: wrap;
 }
-.table-actions .hint { color: var(--muted); font-size: 12px; }
+.table-actions .hint { color: var(--muted); font-size: var(--text-caption); }
 
 /* Data grid additions */
 .data-table .row-label-head { min-width: 13ch; }
 .data-table .xhead { white-space: nowrap; }
 .x-format-tag {
-  display: block; font-size: 10.5px; font-weight: 500; color: var(--muted);
+  display: block; font-size: var(--text-caption); font-weight: var(--weight-medium); color: var(--muted);
 }
 .data-table td.excluded input {
   color: var(--muted); text-decoration: line-through;
@@ -56,12 +56,12 @@
 }
 .data-table input.text-cell { text-align: left; }
 .data-table .sub-title {
-  min-width: 0; text-align: center; padding: 0; font-weight: 450;
-  color: var(--muted); font-size: 12px;
+  min-width: 0; text-align: center; padding: 0; font-weight: var(--weight-regular);
+  color: var(--muted); font-size: var(--text-caption);
 }
 .data-table .sub-title::placeholder { color: var(--muted); opacity: 1; }
 .data-table .var-type {
-  font-size: 11.5px; padding: 2px 4px; border-radius: 5px; width: 100%;
+  font-size: var(--text-caption); padding: 2px 4px; border-radius: var(--radius-control); width: 100%;
 }
 .data-table.is-readonly input { cursor: default; }
 

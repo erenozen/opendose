@@ -6,7 +6,7 @@ main.info-main { display: block; }
 }
 .info-table { border-collapse: collapse; width: 100%; margin-top: 10px; }
 .info-table th {
-  text-align: left; font-size: 12px; color: var(--muted); font-weight: 600;
+  text-align: left; font-size: var(--text-caption); color: var(--muted); font-weight: var(--weight-semibold);
   padding: 4px 6px;
 }
 .info-table td { border-bottom: 1px solid var(--grid); padding: 0; }
@@ -16,15 +16,15 @@ main.info-main { display: block; }
 }
 .info-row-tools { white-space: nowrap; text-align: right; }
 .info-row-tools button {
-  padding: 3px 7px; background: transparent; color: var(--muted); font-size: 12px;
+  padding: 3px 7px; background: transparent; color: var(--muted); font-size: var(--text-caption);
 }
 .info-row-tools button:disabled { opacity: 0.3; }
 .info-link { margin-top: 14px; max-width: 320px; }
 .info-notes textarea {
   width: 100%; min-height: 320px; resize: vertical; margin-top: 10px;
   font: inherit; color: var(--ink); background: var(--inset);
-  border: 1px solid var(--border); border-radius: var(--radius-s); padding: 10px 12px;
-  line-height: 1.55;
+  border: 1px solid var(--line-strong); border-radius: var(--radius-control); padding: 10px 12px;
+  line-height: var(--leading-prose);
 }
 .layout-card { max-width: 720px; }
 .layout-grid-fields { display: flex; gap: 14px; margin: 12px 0; }

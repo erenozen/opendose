@@ -1,6 +1,6 @@
 /* Tools → Power and sample size / Randomisation list. Tokens only. */
 .power-dialog { width: min(1080px, calc(100vw - 32px)); }
-.power-dialog .modal-body { max-height: calc(100vh - 48px); overflow: auto; }
+.power-dialog .modal-body { max-height: calc(100dvh - 48px); overflow: auto; }
 .power-tabs { margin: 0; align-self: flex-start; }
 .power-grid {
   display: grid; grid-template-columns: minmax(0, 340px) minmax(0, 1fr); gap: 18px;

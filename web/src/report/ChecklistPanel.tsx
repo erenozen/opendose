@@ -69,7 +69,7 @@ export default function ChecklistPanel({ dataId, onClose }: { dataId?: string; o
                     <span className="ck-reason">{it.reason}</span>
                     <span className="ck-source">{it.source}</span>
                     {it.status === "unmet" && it.fix && (
-                      <button type="button" className="linkish ck-fix" onClick={() => fix(it.fix!)}>
+                      <button type="button" data-still className="linkish ck-fix" onClick={() => fix(it.fix!)}>
                         {it.fix.label}
                       </button>
                     )}

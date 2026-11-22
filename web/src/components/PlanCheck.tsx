@@ -73,7 +73,7 @@ export default function PlanCheck({ sheet, data, readOnly }: {
     };
     return (
       <p className="plan-strip">
-        <button type="button" className="linkish" onClick={make}>Make this the plan</button>{" "}
+        <button type="button" data-still className="linkish" onClick={make}>Make this the plan</button>{" "}
         <span>record this test, its sidedness, n per group and α as the analysis plan of
           “{data.name}”; later results are checked against it.</span>
       </p>
@@ -125,7 +125,7 @@ export default function PlanCheck({ sheet, data, readOnly }: {
               <button type="button" onClick={() => apply((p) => setPlan(p, ps.id, lockPlan(plan, now())))}>
                 Lock the plan</button>
             )}{" "}
-            <button type="button" className="linkish" onClick={() => select(ps.id)}>Open the analysis plan</button>
+            <button type="button" data-still className="linkish" onClick={() => select(ps.id)}>Open the analysis plan</button>
           </p>
           <p className="guide-chip-sources">
             {[SRC.gpDontPHack, SRC.motulsky2014, SRC.arriveProtocol].map((s) => (

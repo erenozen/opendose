@@ -71,7 +71,7 @@ export default function ValidationPage({ onClose, scope }: {
             <p>
               {validationSentence(mine)}{" "}
               {filtering ? "Only these are listed below. " : "All checks are listed below. "}
-              <button type="button" className="linkish" onClick={() => setScoped(!filtering)}>
+              <button type="button" data-still className="linkish" onClick={() => setScoped(!filtering)}>
                 {filtering ? `Show all ${data.checks.length} checks` : "Show only these checks"}
               </button>
             </p>

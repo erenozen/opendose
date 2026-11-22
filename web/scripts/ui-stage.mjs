@@ -515,8 +515,13 @@ async function axe(s, scene, theme) {
 async function themeCheck(s, scene, theme) {
   const probe = () => {
     // the page background (body: var(--page)) and the CSS color-scheme
-    const c = getComputedStyle(document.body).backgroundColor;
-    const [r, g, b] = (c.match(/[\d.]+/g) ?? ["255", "255", "255"]).map(Number);
+    // resolved to sRGB bytes through a canvas: the tokens are oklch()
+    const cv = document.createElement("canvas");
+    cv.width = cv.height = 1;
+    const cx = cv.getContext("2d");
+    cx.fillStyle = getComputedStyle(document.body).backgroundColor;
+    cx.fillRect(0, 0, 1, 1);
+    const [r, g, b] = cx.getImageData(0, 0, 1, 1).data;
     return { lum: (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255, attr: document.documentElement.dataset.theme ?? "",
       scheme: getComputedStyle(document.documentElement).colorScheme };
   };

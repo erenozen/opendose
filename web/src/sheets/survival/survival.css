@@ -1,5 +1,5 @@
 /* Survival results extras and the survival entry aside / dialog.
-   Tokens only (index.css / App.css). */
+   Tokens only (styles/tokens.css). */
 
 .surv-notes { margin: 8px 0 4px; }
 .surv-notes .result-note { max-width: 80ch; }

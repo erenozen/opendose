@@ -3,25 +3,24 @@
 
 /* ============================ cards ============================ */
 
-/* Flat grouped cards: white on gray, hairline only in dark mode */
+/* Flat panes on the page: one depth cue, the hairline (ruling 6) */
 .data-table, .controls, .result-card, .plot-card, .welcome {
   background: var(--surface);
-  border: 1px solid var(--border-soft);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pane);
 }
 .controls, .result-card { padding: 16px 18px; }
 .controls { display: flex; flex-direction: column; gap: 16px; }
 
 .controls h3, .plate-import > .section-toggle, .result-card h4 {
-  margin: 0; font-size: 11.5px; text-transform: uppercase;
-  letter-spacing: 0.07em; color: var(--muted); font-weight: 650;
+  margin: 0; font-size: var(--text-label); text-transform: uppercase;
+  letter-spacing: 0.07em; color: var(--muted); font-weight: var(--weight-semibold);
 }
 .controls h3 { margin-bottom: 8px; }
 .result-card h4 { margin: 16px 0 6px; }
 
 .result-card h3 {
-  margin: 0 0 4px; font-size: 15px; font-weight: 650;
+  margin: 0 0 4px; font-size: var(--text-lead); font-weight: var(--weight-semibold);
   letter-spacing: -0.01em;
 }
 

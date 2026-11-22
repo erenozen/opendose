@@ -197,7 +197,7 @@ export default function PlanExperiment({ onClose }: { onClose: () => void }) {
                   : "Use the power tool for this design."}
           </p>
           <p className="guide-chip-action">
-            <button type="button" className="linkish" onClick={() => openPowerTool("power")}>
+            <button type="button" data-still className="linkish" onClick={() => openPowerTool("power")}>
               Open the power tool…</button>{" "}
             <span className="wt-hint">planned from a difference that matters, never from the
               effect a finished experiment observed.</span>
@@ -209,11 +209,11 @@ export default function PlanExperiment({ onClose }: { onClose: () => void }) {
                 <p className="plan-check-title">{c.title}</p>
                 <p>{c.detail}</p>
                 {c.action === "random" && (
-                  <button type="button" className="linkish" onClick={() => openPowerTool("random")}>
+                  <button type="button" data-still className="linkish" onClick={() => openPowerTool("random")}>
                     Make a randomisation list…</button>
                 )}
                 {c.action === "power" && (
-                  <button type="button" className="linkish" onClick={() => openPowerTool("power")}>
+                  <button type="button" data-still className="linkish" onClick={() => openPowerTool("power")}>
                     Open the power tool…</button>
                 )}
                 <p className="wt-sources">

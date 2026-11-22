@@ -319,7 +319,7 @@ export default function RecipeDialog({ initialText, initialFiles, savedId, stage
                     onChange={() => setChoice(`saved:${e.recipe.id}`)}
                     label={e.recipe.name} desc={e.description}
                     badge={e.inProject ? "in project" : "this browser"} />
-                  <button type="button" className="linkish" aria-label={`Delete saved recipe ${e.recipe.name}`}
+                  <button type="button" data-still className="linkish" aria-label={`Delete saved recipe ${e.recipe.name}`}
                     onClick={() => {
                       if (choice === `saved:${e.recipe.id}`) setChoice("auto");
                       saved.remove(e.recipe.id);

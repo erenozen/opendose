@@ -54,8 +54,8 @@ function sequentialScale(dark: boolean): [number, string][] {
 
 function inkFor(t: number, dark: boolean): string {
   // strong colours at both ends take white text, the pale middle dark text
-  if (dark) return "#f5f5f7";
-  return Math.abs(t - 0.5) > 0.32 ? "#ffffff" : "#1d1d1f";
+  if (dark) return chromeOf(true).ink;
+  return Math.abs(t - 0.5) > 0.32 ? "#ffffff" : chromeOf(false).ink;
 }
 
 export function LandscapePlot({ graph, options, result, titles, scheme, format, onFormatChange }:
@@ -196,7 +196,8 @@ function singleMap(result: R, s: LandscapeSettings, c1: number[], c2: number[],
   const ink = (v: number) => {
     const t = (v - lo) / (hi - lo || 1);
     if (def.kind === "synergy") return inkFor(t, dark);
-    return dark ? (t > 0.6 ? "#1d1d1f" : "#f5f5f7") : (t > 0.55 ? "#ffffff" : "#1d1d1f");
+    const [lightInk, darkInk] = [chromeOf(false).ink, chromeOf(true).ink];
+    return dark ? (t > 0.6 ? lightInk : darkInk) : (t > 0.55 ? "#ffffff" : lightInk);
   };
   const traces: Plotly.Data[] = [{
     type: "heatmap", z, x: c2.map((_, j) => j), y: c1.map((_, i) => i),

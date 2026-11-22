@@ -17,18 +17,23 @@
 @keyframes welcome-item {
   to { opacity: 1; transform: translateY(0); }
 }
+/* Reduced motion: no slide, a short fade that still ends visible */
+@media (prefers-reduced-motion: reduce) {
+  .welcome { transition-duration: var(--dur-enter); }
+  .welcome li { transform: none; animation-name: fade-in; animation-duration: var(--dur-enter); }
+}
 .welcome .welcome-head { display: flex; align-items: center; gap: 12px; }
 .welcome h2 {
-  margin: 0; font-size: 20px; font-weight: 650; letter-spacing: -0.02em;
-  line-height: 1.2;
+  margin: 0; font-size: var(--text-heading); font-weight: var(--weight-semibold); letter-spacing: -0.02em;
+  line-height: var(--leading-tight);
 }
 .welcome .welcome-tagline {
-  margin: 10px 0 0; color: var(--ink-2); font-size: 14px; max-width: 52ch;
+  margin: 10px 0 0; color: var(--ink-2); font-size: var(--text-body); max-width: 52ch;
 }
 .welcome ul {
   margin: 18px 0 0; padding: 0; list-style: none;
   display: flex; flex-direction: column; gap: 10px;
-  color: var(--ink-2); font-size: 13.5px;
+  color: var(--ink-2); font-size: var(--text-body);
 }
 .welcome li { display: flex; gap: 10px; align-items: baseline; }
 .welcome li::before {
@@ -43,11 +48,12 @@
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) {
-  /* The global rule freezes animations mid-frame; a static ring reads
-     better than a stuck spinner, and the status text still pulses */
+  /* Loops stop: a static ring reads better than a spinning one, and the
+     loading words carry the state */
   .spinner { animation: none; border-top-color: var(--inset); }
+  .welcome .welcome-loading > div { animation: none; }
 }
-.welcome-error p { margin: 0 0 10px; color: var(--danger); font-weight: 500; }
+.welcome-error p { margin: 0 0 10px; color: var(--danger); font-weight: var(--weight-medium); }
 .retry-btn {
   background: var(--accent-fill); color: var(--accent-ink);
   border-color: transparent;
@@ -55,23 +61,23 @@
 .welcome .welcome-loading {
   display: flex; gap: 12px; align-items: flex-start;
   margin-top: 24px; padding-top: 16px;
-  border-top: 1px solid var(--border-soft);
-  color: var(--accent); font-size: 13px; font-weight: 500;
+  border-top: 1px solid var(--line);
+  color: var(--accent); font-size: var(--text-body-s); font-weight: var(--weight-medium);
 }
 .welcome .welcome-loading > div {
   animation: pulse 1.2s ease-in-out infinite alternate;
 }
 .welcome .welcome-error {
   margin-top: 24px; padding-top: 16px;
-  border-top: 1px solid var(--border-soft);
-  font-size: 13px;
+  border-top: 1px solid var(--line);
+  font-size: var(--text-body-s);
 }
 .welcome .welcome-loading-note {
-  color: var(--muted); font-weight: 400; animation: none;
-  margin-top: 4px; font-size: 12.5px;
+  color: var(--muted); font-weight: var(--weight-regular); animation: none;
+  margin-top: 4px; font-size: var(--text-body-s);
 }
 .empty-hint {
-  padding: 28px 24px; color: var(--muted); font-size: 13.5px;
+  padding: 28px 24px; color: var(--muted); font-size: var(--text-body);
   text-align: center;
 }
 

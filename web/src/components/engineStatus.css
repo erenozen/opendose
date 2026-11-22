@@ -35,12 +35,9 @@
 /* Results that are not the live engine's for the current input: kept
    readable, set back a little until the new ones arrive. */
 .pane-results[data-live="false"] .result-card { opacity: 0.78; transition: opacity 160ms var(--ease-out); }
-@media (prefers-reduced-motion: reduce) {
-  .pane-results[data-live="false"] .result-card { transition: none; }
-}
 
 /* Large tables scroll inside their card (FamilyWorkspace): with
    thousands of inputs, a card as tall as its table made every keystroke
    re-composite all of them (tens of seconds); scrolling inside keeps
    the work to the rows in view. */
-.pane-table.large-table .data-table { max-height: max(420px, 85vh); }
+.pane-table.large-table .data-table { max-height: max(420px, 85svh); }

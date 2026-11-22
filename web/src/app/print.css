@@ -1,13 +1,15 @@
 /* Print stylesheet: Ctrl/Cmd+P (or Print in a sheet's menu) prints the
    selected sheet only, on white paper, without the app's chrome.
    `data-print-kind` on <html> is set by usePrintSetup. Loaded after
-   App.css, so its token overrides win over the dark-theme ones. */
+   styles/index.css, so its token overrides win. */
 
 @media print {
   :root, :root[data-theme] {
     --page: #ffffff; --surface: #ffffff; --inset: #f2f2f7; --ink: #000000;
     --ink-2: #1d1d1f; --muted: #424245; --grid: #d1d1d6; --axis: #8e8e93;
     --border: rgba(0, 0, 0, 0.2); --border-soft: rgba(0, 0, 0, 0.12);
+    --line-strong: rgba(0, 0, 0, 0.2); --line-solid: rgba(0, 0, 0, 0.2);
+    --line: rgba(0, 0, 0, 0.12); --float: #ffffff;
   }
   body { background: #ffffff; color: #000000; transition: none; }
   header, .navigator, .nav-scrim, .restore-banner, .pzfx-chooser, .splitter,

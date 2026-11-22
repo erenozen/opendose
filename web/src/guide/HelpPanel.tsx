@@ -89,7 +89,7 @@ export default function HelpPanel({ initial, onClose, onWizard, onTour, onStart 
           )}
           <h3 className="help-section">Explainers</h3>
           {list.length ? (
-            <ul className="help-topics">
+            <ul className="help-topics" data-still>
               {list.map((x) => (
                 <li key={x.id}>
                   <button type="button" onClick={() => setCurrent(x.id)}>

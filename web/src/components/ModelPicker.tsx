@@ -125,7 +125,7 @@ export default function ModelPicker({
 
   return (
     <div className="model-picker">
-      <button ref={btnRef} type="button" className="mp-button" disabled={readOnly}
+      <button ref={btnRef} type="button" className="mp-button" data-still disabled={readOnly}
         aria-haspopup="listbox" aria-expanded={open}
         onClick={() => (open ? close() : openList())}>
         <span className="sr-only">Model: </span>

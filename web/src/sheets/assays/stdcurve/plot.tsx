@@ -57,7 +57,7 @@ export function StdCurvePlot({ graph, options, result, titles, scheme, format, o
         shapes.push({
           // shapes take data values on a log axis (annotations take log10)
           type: "rect", xref: "x", yref: "paper", x0: q.lloq, x1: q.uloq, y0: 0, y1: 1, line: { width: 0 },
-          fillcolor: dark ? "rgba(41,151,255,0.10)" : "rgba(0,113,227,0.07)", layer: "below",
+          fillcolor: chrome.accentSoft, layer: "below",
         });
         for (const [name, v] of [["LLOQ", q.lloq], ["ULOQ", q.uloq]] as const) {
           const x = logX ? Math.log10(v) : v;
@@ -81,7 +81,7 @@ export function StdCurvePlot({ graph, options, result, titles, scheme, format, o
         traces.push(tagTrace({
           type: "scatter", mode: "markers", name: "Failing or left-out standards", x: fx, y: fy,
           // open symbols take their colour from marker.color
-          marker: { color: dark ? "#ff6961" : "#d70015", symbol: "circle-open", size: 11, line: { width: 2 } },
+          marker: { color: chrome.danger, symbol: "circle-open", size: 11, line: { width: 2 } },
           hovertemplate: "%{x} " + unit + ": %{y}<extra>failing / left out</extra>",
         }, { ds: 0, role: "outliers" }) as Plotly.Data);
       }

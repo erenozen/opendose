@@ -624,7 +624,7 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
           } : undefined} />
       )}
 
-      <div className={`data-table${readOnly ? " is-readonly" : ""}${selecting ? " selecting" : ""}${virtual ? " virtual" : ""}`}
+      <div data-still className={`data-table${readOnly ? " is-readonly" : ""}${selecting ? " selecting" : ""}${virtual ? " virtual" : ""}`}
         ref={wrap} onPointerMove={onPointerMove}
         onCopy={(e) => onCopy(e, false)} onCut={(e) => onCopy(e, true)}>
         <table data-rows={nRows} aria-rowcount={virtual ? nRows + headRows : undefined}>

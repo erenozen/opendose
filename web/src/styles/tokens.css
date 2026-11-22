@@ -1,101 +1,191 @@
-/* Design tokens: every raw colour and size lives here and nowhere else.
-   Components read the semantic custom properties below. */
+/* Design tokens: the one place raw colour and size values live.
+   Components read the semantic names below, never a literal.
+
+   Theme: every colour is written once as light-dark(light, dark). The
+   used scheme comes from `color-scheme`: the OS by default, or the
+   in-app choice that the pre-paint script in index.html (and
+   app/theme.ts afterwards) writes to data-theme. No dark block exists
+   anywhere else, so OS-dark and toggled-dark cannot drift apart.
+
+   Surface direction "Instrument" (docs/design/DECISIONS.md section 2):
+   OKLCH neutrals on hue 255 with chroma <= 0.012, accent = plot series 1,
+   neutral ink focus ring. Contrast (WCAG 2 / APCA Lc) is measured in the
+   phase 2 report; ink >= 14:1 and muted >= 5.4:1 on every surface. */
+
+:root { color-scheme: light dark; }
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }
 
 :root {
-  color-scheme: light;
-  --page: #f2f2f7;            /* systemGroupedBackground */
-  --surface: #ffffff;
-  --inset: rgba(118, 118, 128, 0.1);   /* tertiarySystemFill */
-  --ink: #1d1d1f;
-  --ink-2: #424245;
-  --muted: #636368;          /* 4.5:1 on the tinted strips (WCAG AA) */
-  --faint: #86868b;          /* decorative only: placeholders, dividers */
-  --grid: #e5e5ea;            /* systemGray5 */
-  --axis: #c7c7cc;            /* systemGray3 */
-  --border: rgba(0, 0, 0, 0.1);
-  --border-soft: rgba(0, 0, 0, 0.05);
-  --accent: #0066cc;          /* link/tint blue */
-  --accent-fill: #0071e3;     /* solid button blue */
-  --accent-strong: #0066cc;   /* fill hover */
-  --accent-ink: #ffffff;
-  --accent-soft: rgba(0, 113, 227, 0.07);
-  --accent-border: rgba(0, 113, 227, 0.35);
-  --seg-track: rgba(118, 118, 128, 0.12);
-  --seg-thumb: #ffffff;
-  --danger: #d70015;
-  --warn-ink: #8a5000;
-  --warn-hue: #ff9500;
-  --radius: 12px;
-  --radius-s: 8px;
-  --radius-pill: 980px;
+  /* ---- neutrals */
+  --page: light-dark(oklch(0.935 0.006 255), oklch(0.15 0.008 255));
+  --surface: light-dark(oklch(0.995 0.002 255), oklch(0.2 0.01 255));
+  --float: light-dark(oklch(1 0 0), oklch(0.25 0.01 255));
+  --inset: light-dark(oklch(0.955 0.005 255), oklch(0.245 0.01 255));
+  --line: light-dark(oklch(0.2 0.012 255 / 0.1), oklch(1 0 0 / 0.09));     /* soft divider, any surface */
+  --line-solid: light-dark(oklch(0.86 0.008 255), oklch(0.29 0.01 255));    /* seams, data separators */
+  --line-strong: light-dark(oklch(0.82 0.008 255), oklch(0.43 0.01 255));   /* control edges */
+  --grid: light-dark(oklch(0.9 0.006 255), oklch(0.29 0.01 255));
+  --axis: light-dark(oklch(0.8 0.008 255), oklch(0.43 0.01 255));
+  --ink: light-dark(oklch(0.2 0.012 255), oklch(0.96 0.004 255));
+  --ink-2: light-dark(oklch(0.36 0.012 255), oklch(0.84 0.008 255));
+  --muted: light-dark(oklch(0.48 0.012 255), oklch(0.74 0.01 255));
+  --faint: light-dark(oklch(0.6 0.01 255), oklch(0.56 0.01 255));          /* placeholders, decoration */
+
+  /* ---- accent: plot series 1's hue, marks state only */
+  --accent: light-dark(oklch(0.5 0.18 258), oklch(0.73 0.14 258));         /* text, links */
+  --accent-fill: light-dark(oklch(0.5 0.18 258), oklch(0.52 0.18 258));
+  --accent-fill-hover: light-dark(oklch(0.45 0.17 258), oklch(0.47 0.17 258));
+  --accent-ink: oklch(1 0 0);                                                /* text on accent-fill */
+  --accent-soft: light-dark(oklch(0.5 0.18 258 / 0.08), oklch(0.73 0.14 258 / 0.14));
+  --accent-border: light-dark(oklch(0.5 0.18 258 / 0.35), oklch(0.73 0.14 258 / 0.4));
+
+  /* ---- status */
+  --danger: light-dark(oklch(0.52 0.2 27), oklch(0.72 0.16 25));          /* text, icons */
+  --danger-fill: oklch(0.52 0.2 27);
+  --danger-fill-hover: oklch(0.47 0.19 27);
+  --danger-ink-on-fill: oklch(1 0 0);
+  --danger-soft: light-dark(oklch(0.52 0.2 27 / 0.07), oklch(0.72 0.16 25 / 0.12));
+  --warn: oklch(0.765 0.175 62.6);                                           /* tint hue for badges */
+  --warn-ink: light-dark(oklch(0.488 0.11 64.2), oklch(0.82 0.152 73.2));
+  --success: light-dark(oklch(0.5 0.13 150), oklch(0.76 0.14 150));
+  --info: light-dark(oklch(0.5 0.18 258), oklch(0.73 0.14 258));
+  --role-time: light-dark(oklch(0.497 0.174 304.9), oklch(0.74 0.169 305.1));
+
+  /* ---- focus, scrim, segmented control */
+  --focus-ring: var(--ink);
+  --scrim: light-dark(oklch(0.2 0.012 255 / 0.32), oklch(0 0 0 / 0.55));
+  --seg-track: light-dark(oklch(0.2 0.012 255 / 0.07), oklch(1 0 0 / 0.08));
+  --seg-thumb: light-dark(oklch(1 0 0), oklch(0.34 0.01 255));
+
+  /* ---- navigator highlight labels (user data: same in both themes) */
+  --hl-red: oklch(0.654 0.232 28.7);
+  --hl-orange: oklch(0.765 0.175 62.6);
+  --hl-yellow: oklch(0.865 0.177 90.4);
+  --hl-green: oklch(0.73 0.194 147.4);
+  --hl-blue: oklch(0.603 0.218 257.4);
+  --hl-purple: oklch(0.615 0.213 312.4);
+
+  /* ---- floating notes */
+  --note-ink: light-dark(oklch(0.232 0.004 286.1), oklch(0.971 0.003 286.4));
+  --note-yellow: light-dark(oklch(0.964 0.065 97.1), oklch(0.33 0.045 93.8));
+  --note-yellow-edge: light-dark(oklch(0.787 0.161 91), oklch(0.826 0.142 92.7));
+  --note-blue: light-dark(oklch(0.937 0.031 252.7), oklch(0.291 0.049 258.3));
+  --note-blue-edge: light-dark(oklch(0.623 0.188 259.8), oklch(0.721 0.146 258.6));
+  --note-green: light-dark(oklch(0.947 0.036 152.8), oklch(0.299 0.043 154.8));
+  --note-green-edge: light-dark(oklch(0.646 0.166 148.1), oklch(0.774 0.157 150.4));
+  --note-pink: light-dark(oklch(0.935 0.036 356.3), oklch(0.294 0.055 358.5));
+  --note-pink-edge: light-dark(oklch(0.625 0.195 3.5), oklch(0.746 0.167 1.1));
+  --note-purple: light-dark(oklch(0.929 0.04 301.3), oklch(0.289 0.061 295.9));
+  --note-purple-edge: light-dark(oklch(0.606 0.219 292.7), oklch(0.745 0.149 295.9));
+
+  /* ---- elevation: floating layers only (ruling 6). Light: a ring and
+     two soft shadows; dark: a 1px white ring at 0.09 plus the shadow. */
+  --elev-float:
+    0 0 0 1px light-dark(oklch(0.2 0.012 255 / 0.08), oklch(1 0 0 / 0.09)),
+    0 2px 4px light-dark(oklch(0.2 0.012 255 / 0.05), oklch(0 0 0 / 0.3)),
+    0 8px 24px -4px light-dark(oklch(0.2 0.012 255 / 0.14), oklch(0 0 0 / 0.5));
+  --elev-dialog:
+    0 0 0 1px light-dark(oklch(0.2 0.012 255 / 0.08), oklch(1 0 0 / 0.09)),
+    0 4px 8px light-dark(oklch(0.2 0.012 255 / 0.06), oklch(0 0 0 / 0.3)),
+    0 20px 48px -8px light-dark(oklch(0.2 0.012 255 / 0.22), oklch(0 0 0 / 0.6));
+  --elev-seg: 0 1px 2.5px light-dark(oklch(0 0 0 / 0.16), oklch(0 0 0 / 0.4));
+
+  /* ---- type: Inter, a closed scale named by role (floor 12px) */
+  --font-sans: "Inter Variable", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, "Cascadia Code", monospace;
+  --text-caption: 0.75rem;   /* 12: notes, hints, badges */
+  --text-label: 0.75rem;     /* 12/600: section labels, table heads */
+  --text-body-s: 0.8125rem;  /* 13: dense UI, menus, secondary text */
+  --text-body: 0.875rem;     /* 14: the app's body size */
+  --text-lead: 1rem;         /* 16: card titles, coarse-pointer inputs */
+  --text-title: 1.125rem;    /* 18: dialog and brand titles */
+  --text-heading: 1.375rem;  /* 22: page headings */
+  --text-figure: 1.875rem;   /* 30: the results headline number */
+  --text-input-min: 16px;    /* iOS zooms into fields below this, in CSS px */
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+  --leading-tight: 1.2;
+  --leading-body: 1.45;
+  --leading-prose: 1.55;
+
+  /* ---- space: 4px base */
+  --space-2: 2px;
+  --space-4: 4px;
+  --space-6: 6px;
+  --space-8: 8px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-20: 20px;
+  --space-24: 24px;
+  --space-32: 32px;
+  --space-40: 40px;
+  --space-48: 48px;
+
+  /* ---- radius: no pills except the segmented control's track */
+  --radius-control: 4px;
+  --radius-pane: 4px;
+  --radius-menu: 6px;
+  --radius-dialog: 8px;
+  --radius-round: 999px;
+
+  /* ---- stacking: small integers, one scale */
+  --z-base: 1;
+  --z-raised: 5;     /* floating notes over the workbench */
+  --z-sticky: 10;    /* the pinned navigator */
+  --z-header: 20;
+  --z-drawer: 30;    /* the scrim sits one below */
+  --z-popover: 40;
+  --z-dialog: 50;
+  --z-toast: 60;
+  --z-tooltip: 70;
+
+  /* ---- motion: never ease-in; exits 20-30% faster than entrances */
+  --dur-fast: 120ms;
+  --dur-base: 160ms;
+  --dur-enter: 200ms;
+  --dur-exit: 150ms;
+  --dur-drawer: 260ms;
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-  --seg-shadow: 0 1px 2.5px rgba(0, 0, 0, 0.16);
-}
-/* Dark tokens apply in two ways: via the OS preference (unless the
-   user forced light in the app) and via the in-app theme toggle. */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    color-scheme: dark;
-    --page: #000000;
-    --surface: #1c1c1e;
-    --inset: rgba(118, 118, 128, 0.24);
-    --ink: #f5f5f7;
-    --ink-2: #aeaeb5;
-    --muted: #a1a1a8;
-    --faint: #6e6e73;
-    --grid: #38383a;
-    --axis: #48484a;
-    --border: rgba(255, 255, 255, 0.14);
-    --border-soft: rgba(255, 255, 255, 0.07);
-    --accent: #2997ff;
-    --accent-fill: #0071e3;
-    --accent-strong: #0066cc;
-    --accent-ink: #ffffff;
-    --accent-soft: rgba(41, 151, 255, 0.12);
-    --accent-border: rgba(41, 151, 255, 0.4);
-    --seg-track: rgba(118, 118, 128, 0.24);
-    --seg-thumb: #636366;
-    --danger: #ff6961;
-    --warn-ink: #ffb340;
-    --shadow: none;
-    --seg-shadow: 0 1px 2.5px rgba(0, 0, 0, 0.4);
-  }
-}
-:root[data-theme="dark"] {
-    color-scheme: dark;
-    --page: #000000;
-    --surface: #1c1c1e;
-    --inset: rgba(118, 118, 128, 0.24);
-    --ink: #f5f5f7;
-    --ink-2: #aeaeb5;
-    --muted: #a1a1a8;
-    --faint: #6e6e73;
-    --grid: #38383a;
-    --axis: #48484a;
-    --border: rgba(255, 255, 255, 0.14);
-    --border-soft: rgba(255, 255, 255, 0.07);
-    --accent: #2997ff;
-    --accent-fill: #0071e3;
-    --accent-strong: #0066cc;
-    --accent-ink: #ffffff;
-    --accent-soft: rgba(41, 151, 255, 0.12);
-    --accent-border: rgba(41, 151, 255, 0.4);
-    --seg-track: rgba(118, 118, 128, 0.24);
-    --seg-thumb: #636366;
-    --danger: #ff6961;
-    --warn-ink: #ffb340;
-    --shadow: none;
-    --seg-shadow: 0 1px 2.5px rgba(0, 0, 0, 0.4);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+
+  /* ---- safe areas (non-zero once viewport-fit=cover is set) */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+
+  /* ---- layout */
+  --nav-w: 280px;
 }
 
+/* Reduced motion (ruling 1): entrances and exits shorten to fades of
+   150 ms or less; base.css drops movement and scale. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-base: 120ms;
+    --dur-enter: 150ms;
+    --dur-exit: 120ms;
+    --dur-drawer: 150ms;
+  }
+}
+
+/* Legacy names, kept so every feature sheet follows the new values until
+   the token-adoption pass maps it to the semantic names above. New code
+   never reads these. */
 :root {
-  --nav-w: 280px;
-  --hl-red: #ff3b30;
-  --hl-orange: #ff9500;
-  --hl-yellow: #ffcc00;
-  --hl-green: #34c759;
-  --hl-blue: #007aff;
-  --hl-purple: #af52de;
+  --border: var(--line-strong);
+  --border-soft: var(--line);
+  --accent-strong: var(--accent-fill-hover);
+  --warn-hue: var(--warn);
+  --guide-ok: var(--success);
+  --assay-pass: var(--success);
+  --radius: var(--radius-pane);
+  --radius-s: var(--radius-control);
+  --radius-pill: var(--radius-control);
+  --shadow: none;
+  --seg-shadow: var(--elev-seg);
 }

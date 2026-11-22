@@ -81,7 +81,7 @@ function NoteCard({ sheetId, note, readOnly }: { sheetId: string; note: Floating
     <section className={`floating-note note-${note.color}`} data-note={note.id}
       style={{ left: pos.x, top: pos.y }} aria-label={`Note: ${title}`}>
       <div className="note-head">
-        <button type="button" className="note-grip"
+        <button type="button" className="note-grip" data-still
           aria-label="Move note (arrow keys)" title="Drag to move"
           onPointerDown={(e) => {
             if (e.button !== 0) return;

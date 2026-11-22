@@ -72,7 +72,7 @@ export default function SheetMenu({ sheet, label, at, actions, onHighlight, onCl
   };
 
   return (
-    <div ref={ref} className="sheet-menu" role="menu"
+    <div ref={ref} className="sheet-menu" role="menu" data-still
       aria-label={`Actions for ${sheet?.name ?? label ?? "item"}`}
       style={{ left: pos.x, top: pos.y }} onKeyDown={onKeyDown}>
       {actions.map((a, i) => a === "sep" ? (

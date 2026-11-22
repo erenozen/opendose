@@ -2,6 +2,9 @@
 // (FigurePanel): one entry per distinct colour, labelled by the trace that
 // uses it first, with whether any fill is see-through.
 import type { SeriesColor } from "./cvd";
+import {
+  EXPORT_CHROME_DARK, EXPORT_CHROME_LIGHT, SCREEN_CHROME_DARK, SCREEN_CHROME_LIGHT,
+} from "../lib/chrome.ts";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -32,8 +35,10 @@ export function drawnColors(gd: any): Drawn | null {
   const data: any[] = gd?.data;
   if (!Array.isArray(data)) return null;
   const bg = parseColor(gd.layout?.plot_bgcolor)?.hex ?? "#ffffff";
-  const ink = new Set(["#000000", "#1d1d1f", "#f5f5f7", "#424245", "#aeaeb5", "#6e6e73",
-    "#98989f", bg]);
+  // Text-coloured marks (means, medians, reference lines) are chrome, not
+  // data: the plot inks of every chrome set, on screen and in exports.
+  const ink = new Set(["#000000", bg, ...[SCREEN_CHROME_LIGHT, SCREEN_CHROME_DARK,
+    EXPORT_CHROME_LIGHT, EXPORT_CHROME_DARK].flatMap((c) => [c.ink, c.inkSecondary, c.muted])]);
   const seen = new Map<string, SeriesColor & { label: string; symbol?: string }>();
   let transparent = false;
   const symbols = new Set<string>();

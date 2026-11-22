@@ -61,7 +61,7 @@ export default function ResultsLinks({ sheet, tableName, options, result }: {
       )}
       <nav className="results-links" aria-label="About these results">
         <span className="results-link">
-          <button type="button" className="linkish"
+          <button type="button" data-still className="linkish"
             onClick={() => openValidation({ analysisId: sheet.analysis, options })}>
             How this is validated</button>
           {sentence && <span className="results-link-note">{sentence.replace(/^Checked/, "checked")
@@ -69,7 +69,7 @@ export default function ResultsLinks({ sheet, tableName, options, result }: {
         </span>
         {plan && (
           <span className="results-link">
-            <button type="button" className="linkish"
+            <button type="button" data-still className="linkish"
               onClick={() => openPowerTool("power", pilot ?? undefined)}>
               Sample size for the next experiment…</button>
             <span className="results-link-note">{pilot
@@ -139,7 +139,7 @@ export function CoxLink({ sheet }: { sheet: ResultsSheet }) {
   const { open, readOnly } = useOpenAnalysis(sheet);
   return (
     <p className="results-crosslink">
-      <button type="button" className="linkish" disabled={readOnly}
+      <button type="button" data-still className="linkish" disabled={readOnly}
         onClick={() => open("cox", {}, true)}>
         Cox regression (hazard ratios with covariates)</button>{" "}
       <span>on the same table: hazard ratios with confidence intervals adjusted for
@@ -165,17 +165,17 @@ export function CompareFitsLinks({ sheet, table, model, xIsLog, weighting = "non
   return (
     <p className="results-crosslink">
       <span>Compare fits (extra sum-of-squares F test and AICc):</span>{" "}
-      <button type="button" className="linkish" disabled={readOnly}
+      <button type="button" data-still className="linkish" disabled={readOnly}
         onClick={() => open("compare_fits", compareFitsOptions(model, xIsLog, "models", usable, { weighting, weightK }), false)}>
         Compare with another model…</button>
       {sets >= 2 && (
         <>
           {" · "}
-          <button type="button" className="linkish" disabled={readOnly}
+          <button type="button" data-still className="linkish" disabled={readOnly}
             onClick={() => open("compare_fits", compareFitsOptions(model, xIsLog, "global", usable, { weighting, weightK }), false)}>
             Compare with another data set…</button>
           {" · "}
-          <button type="button" className="linkish" disabled={readOnly}
+          <button type="button" data-still className="linkish" disabled={readOnly}
             onClick={() => open("compare_fits", compareFitsOptions(model, xIsLog, "parameter", usable, { weighting, weightK }), false)}>
             Compare a parameter (EC50 ratio)…</button>
         </>

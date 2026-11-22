@@ -1,6 +1,6 @@
 /* Paste / import report above the grid, the Notes strip on results
    sheets, and the "Convert table to…" / "Describe the experiment"
-   dialogs. Tokens only (index.css / App.css). */
+   dialogs. Tokens only (styles/tokens.css). */
 
 .paste-report {
   display: flex; align-items: flex-start; gap: 8px;

@@ -1,12 +1,6 @@
 /* Assay modules: wizard, QC chips, column picker, linked outputs.
-   Tokens only (App.css), plus a pass green defined here in both themes
-   (#1f7a36 light, #30d158 dark: WCAG AA on their surfaces). */
+   Tokens only (styles/tokens.css); a passed check is --success. */
 
-:root { --assay-pass: #1f7a36; }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) { --assay-pass: #30d158; }
-}
-:root[data-theme="dark"] { --assay-pass: #30d158; }
 
 /* ---------------------------------------------------------- wizard */
 .assay-wizard { width: min(980px, calc(100vw - 32px)); }
@@ -35,7 +29,7 @@
 .wizard-steps button.done .wizard-step-n { background: var(--accent-soft); color: var(--accent); }
 .wizard-body {
   display: flex; flex-direction: column; gap: 12px;
-  max-height: min(64vh, 680px); overflow: auto; padding: 2px 2px 4px;
+  max-height: min(64svh, 680px); overflow: auto; padding: 2px 2px 4px;
   transition: opacity 150ms var(--ease-out);
   opacity: 1;
   @starting-style { opacity: 0; }
@@ -62,9 +56,9 @@
   border: 1px solid transparent;
 }
 .qc-pass {
-  color: var(--assay-pass);
-  background: color-mix(in srgb, var(--assay-pass) 10%, var(--surface));
-  border-color: color-mix(in srgb, var(--assay-pass) 35%, transparent);
+  color: var(--success);
+  background: color-mix(in srgb, var(--success) 10%, var(--surface));
+  border-color: color-mix(in srgb, var(--success) 35%, transparent);
 }
 .qc-fail {
   color: var(--danger);
@@ -82,7 +76,7 @@
   background: color-mix(in srgb, var(--danger) 6%, var(--surface));
 }
 .results-table tr.qc-row-pass td.qc-cell, .results-table td.qc-cell-pass {
-  color: var(--assay-pass); font-weight: 600;
+  color: var(--success); font-weight: 600;
 }
 .results-table td.qc-cell-fail { color: var(--danger); font-weight: 600; }
 .results-table td.flags { white-space: normal; min-width: 120px; }

@@ -5,7 +5,7 @@
 .fmt-dialog .modal-body { gap: 12px; }
 /* Keep Cancel / Apply / OK reachable in long dialogs. */
 .fmt-dialog .modal-actions {
-  position: sticky; bottom: 0; z-index: 1;
+  position: sticky; bottom: 0; z-index: var(--z-base);
   margin: 4px -22px -18px; padding: 10px 22px 14px;
   background: var(--surface); border-top: 1px solid var(--border-soft);
 }
@@ -119,7 +119,4 @@ button.format-action { padding: 4px 11px; font-size: 12.5px; }
 }
 @media (max-width: 420px) {
   .fmt-grid { grid-template-columns: 1fr; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .fmt-tabs button { transition: none; }
 }

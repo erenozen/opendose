@@ -21,7 +21,7 @@ export default function PasteReportStrip({ verb, report, onJump, onDismiss, onRe
   const parts = reportParts(report);
   const warn = parts.some((p) => p.tone === "warn");
   const cellButton = (c: CellNote) => (
-    <button key={c.addr} type="button" className="linkish cell-ref"
+    <button key={c.addr} type="button" data-still className="linkish cell-ref"
       title={c.text ? `“${c.text}”${c.to ? ` read as ${c.to}` : ""}` : "blank"}
       aria-label={`Go to cell ${c.addr}${c.text ? `, “${c.text}”` : ", blank"}`}
       onClick={() => onJump(c.row, c.col)}>{c.addr}</button>

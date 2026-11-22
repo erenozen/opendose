@@ -120,32 +120,12 @@ export function seriesColor(
   return seriesStyle(index, dark, scheme).color;
 }
 
-export interface Chrome {
-  surface: string;
-  ink: string;
-  inkSecondary: string;
-  muted: string;
-  grid: string;
-  axis: string;
-}
-
-export const CHROME_LIGHT: Chrome = {
-  surface: "#ffffff",
-  ink: "#1d1d1f",
-  inkSecondary: "#424245",
-  muted: "#6e6e73",
-  grid: "#e5e5ea",
-  axis: "#c7c7cc",
-};
-
-export const CHROME_DARK: Chrome = {
-  surface: "#1c1c1e",
-  ink: "#f5f5f7",
-  inkSecondary: "#aeaeb5",
-  muted: "#98989f",
-  grid: "#38383a",
-  axis: "#48484a",
-};
+// Plot chrome on screen follows the app's tokens (lib/chrome.ts, checked
+// against styles/tokens.css); exports map it to their pinned chrome.
+export type { Chrome } from "./chrome.ts";
+export {
+  SCREEN_CHROME_LIGHT as CHROME_LIGHT, SCREEN_CHROME_DARK as CHROME_DARK,
+} from "./chrome.ts";
 
 export const PLOT_FONT =
   '"Inter Variable", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif';

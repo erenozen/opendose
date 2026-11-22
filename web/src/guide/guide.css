@@ -1,15 +1,9 @@
 /* ============================================================
    Guidance: which-test wizard, results chips and banners, help
    panel, guided tour, start screen, data-entry hints.
-   Uses the app tokens (App.css); adds one "ok" hue whose text
-   meets WCAG AA on both surfaces.
+   Uses the app tokens (styles/tokens.css); the "ok" hue is --success.
    ============================================================ */
 
-:root { --guide-ok: #1b7f3b; }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) { --guide-ok: #4ad66d; }
-}
-:root[data-theme="dark"] { --guide-ok: #4ad66d; }
 
 .learn-more {
   background: none; padding: 0; border-radius: 4px;
@@ -54,7 +48,7 @@
   border-radius: 50%; font-size: 11px; font-weight: 700; line-height: 1;
   color: var(--surface);
 }
-.chip-ok .chip-icon { background: var(--guide-ok); }
+.chip-ok .chip-icon { background: var(--success); }
 .chip-warn .chip-icon { background: var(--warn-ink); }
 .chip-bad .chip-icon { background: var(--danger); }
 .chip-info .chip-icon { background: var(--accent); }
@@ -87,7 +81,7 @@
 /* ---------------- which-test wizard ---------------- */
 
 .which-test { width: min(1040px, calc(100vw - 32px)); }
-.which-test .modal-body { max-height: calc(100vh - 48px); overflow: auto; padding-bottom: 0; }
+.which-test .modal-body { max-height: calc(100dvh - 48px); overflow: auto; padding-bottom: 0; }
 .which-test .modal-actions {
   position: sticky; bottom: 0; background: var(--surface);
   padding: 10px 0 16px; margin-top: 0; border-top: 1px solid var(--border-soft);
@@ -104,7 +98,7 @@
 }
 .wt-options label.checked { border-color: var(--accent-border); background: var(--accent-soft); color: var(--ink); }
 .wt-options input { margin: 0; accent-color: var(--accent-fill); }
-.wt-options label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.wt-options label:has(input:focus-visible) { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 .wt-hint { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
 .wt-check { display: flex; gap: 8px; align-items: center; font-size: 13px; }
 .wt-field { display: flex; gap: 8px; align-items: center; font-size: 13px; }
@@ -140,12 +134,13 @@
 /* ---------------- help panel ---------------- */
 
 .help-panel {
-  position: fixed; top: 64px; right: 12px; bottom: 12px; z-index: 1300;
+  position: fixed; top: calc(64px + var(--safe-top)); right: max(12px, var(--safe-right));
+  bottom: calc(12px + var(--safe-bottom)); z-index: var(--z-drawer);
   width: min(400px, calc(100vw - 24px));
   display: flex; flex-direction: column;
   background: var(--surface); color: var(--ink);
   border: 1px solid var(--border); border-radius: var(--radius);
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.18);
+  box-shadow: var(--elev-dialog);
   transition: opacity 180ms var(--ease-out), transform 180ms var(--ease-out);
   opacity: 1; transform: translateX(0);
   @starting-style { opacity: 0; transform: translateX(12px); }
@@ -167,7 +162,6 @@
   display: flex; flex-direction: column; align-items: flex-start; gap: 1px; width: 100%;
   text-align: left; background: none; border-radius: var(--radius-s); padding: 7px 8px;
 }
-.help-topics button:active { transform: none; }
 @media (hover: hover) and (pointer: fine) {
   .help-topics button:hover { background: var(--inset); }
 }
@@ -176,7 +170,7 @@
 .help-back { padding: 4px 10px; font-size: 12.5px; margin-bottom: 8px; }
 .help-topic-title { margin: 4px 0 4px; font-size: 16px; }
 .help-topic-title:focus { outline: none; }
-.help-topic-title:focus-visible { outline: 2px solid var(--accent); }
+.help-topic-title:focus-visible { outline: 2px solid var(--focus-ring); }
 .help-summary { font-weight: 500; color: var(--ink) !important; }
 .help-keys { border-collapse: collapse; width: 100%; font-size: 12.5px; }
 .help-keys th { text-align: left; font-weight: 400; padding: 4px 8px 4px 0; white-space: nowrap; vertical-align: top; }
@@ -185,12 +179,15 @@
   font: inherit; font-size: 11.5px; background: var(--inset); border-radius: 5px; padding: 1px 6px;
 }
 @media (max-width: 760px) {
-  .help-panel { top: auto; left: 8px; right: 8px; bottom: 8px; width: auto; max-height: 80vh; }
+  .help-panel {
+    top: auto; left: max(8px, var(--safe-left)); right: max(8px, var(--safe-right));
+    bottom: calc(8px + var(--safe-bottom)); width: auto; max-height: 80svh;
+  }
 }
 
 /* ---------------- tour ---------------- */
 
-.tour { position: fixed; inset: 0; z-index: 1400; pointer-events: none; }
+.tour { position: fixed; inset: 0; z-index: var(--z-toast); pointer-events: none; }
 .tour-ring {
   position: fixed; border-radius: 12px; border: 2px solid var(--accent-fill);
   box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.22);
@@ -201,7 +198,7 @@
   position: fixed; pointer-events: auto; width: min(340px, calc(100vw - 32px));
   background: var(--surface); color: var(--ink);
   border: 1px solid var(--border); border-radius: var(--radius);
-  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.28); padding: 14px 16px 12px;
+  box-shadow: var(--elev-dialog); padding: 14px 16px 12px;
   transition: top 220ms var(--ease-out), left 220ms var(--ease-out), opacity 160ms ease;
 }
 .tour-count { margin: 0; font-size: 11.5px; color: var(--muted); font-weight: 600; }

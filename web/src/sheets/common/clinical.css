@@ -1,5 +1,5 @@
 /* Clinical-statistics panels (Cox, ROC, Bland-Altman, quantal) and the
-   power tool. Tokens only (index.css / App.css). */
+   power tool. Tokens only (styles/tokens.css). */
 
 .clin-field > span:first-child { min-width: 12ch; }
 .clin-field .field-note { flex-basis: 100%; }

@@ -2,8 +2,29 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fcfdff" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#13161b" />
+    <!-- Pre-paint theme: the stored light or dark choice is set before any
+         CSS loads, so a reload never flashes the other theme. public/_headers
+         allows this script by its sha256 (checked by lib/__tests__/chrome.test.ts). -->
+    <script>
+      (function () {
+        try {
+          var t = null;
+          try { t = JSON.parse(localStorage.getItem("opendose-prefs") || "null"); t = t && t.theme; } catch (e) { t = null; }
+          if (t !== "light" && t !== "dark" && t !== "auto") t = localStorage.getItem("opendose-theme");
+          if (t !== "light" && t !== "dark") return;
+          var root = document.documentElement;
+          root.setAttribute("data-theme", t);
+          root.style.colorScheme = t;
+          var metas = document.querySelectorAll('meta[name="theme-color"]');
+          for (var i = 0; i < metas.length; i++) metas[i].setAttribute("content", t === "dark" ? "#13161b" : "#fcfdff");
+        } catch (e) {}
+      })();
+    </script>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>OpenDose: curve fitting &amp; biostatistics in your browser</title>
   </head>
   <body>
