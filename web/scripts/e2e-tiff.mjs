@@ -142,8 +142,10 @@ if (distinct.size < 3) fail.push("image looks blank");
 // --- oversized request is refused up front, not by a browser crash ---
 await panel.locator("input").nth(2).fill("2400");
 await panel.getByRole("button", { name: /Download/ }).click();
-await page.waitForSelector(".export-err", { timeout: 5000 });
-console.log("ok   oversize guard:", await panel.locator(".export-err").innerText());
+// The refusal is an error toast (DECISIONS 6) naming the size it refused.
+const guard = page.locator('.toast[data-tone="error"] .toast-message', { hasText: /too large to render/ });
+await guard.waitFor({ timeout: 5000 });
+console.log("ok   oversize guard:", await guard.innerText());
 
 console.log("file:", file, `(${(buf.length / 1024).toFixed(0)} KB)`);
 console.log("errors:", errors.length ? errors : "none");

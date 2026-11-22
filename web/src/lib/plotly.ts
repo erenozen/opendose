@@ -4,6 +4,7 @@
 // loadPlotly() in their draw effect; code that runs only after a graph
 // exists (resize, purge) uses plotlyNow().
 import type PlotlyType from "plotly.js-dist-min";
+import { gatePlotInput } from "../graph/plotInput";
 
 export type Plotly = typeof PlotlyType;
 
@@ -12,6 +13,7 @@ let pending: Promise<Plotly> | null = null;
 
 export function loadPlotly(): Promise<Plotly> {
   pending ??= import("plotly.js-dist-min").then((m) => {
+    gatePlotInput();
     mod = ((m as unknown as { default?: Plotly }).default ?? m) as Plotly;
     return mod;
   }).catch((e) => {

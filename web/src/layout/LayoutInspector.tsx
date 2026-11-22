@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useId, useState, type ReactNode } from "react";
+import { Button, NumberField } from "../components/ui";
 import { findSheet } from "../project/ops";
 import { DEFAULT_PAGE, MIN_ITEM_MM, PAGE_SIZES, pageDims, type ResolvedLayout } from "../project/layout";
 import type {
@@ -18,7 +19,8 @@ export interface InspectorProps {
   pickerRef: React.RefObject<HTMLSelectElement | null>;
 }
 
-/** A number field that only commits valid values. */
+/** A number field that only commits valid values (NumberField shows the
+ *  range problem late, as forms.md asks). */
 function NumField({ label, value, onCommit, min, max, step = 1, unit, disabled }: {
   label: string; value: number; onCommit: (v: number) => void;
   min: number; max: number; step?: number; unit?: string; disabled?: boolean;
@@ -26,19 +28,46 @@ function NumField({ label, value, onCommit, min, max, step = 1, unit, disabled }
   const [text, setText] = useState<string | null>(null);
   const shown = text ?? String(Math.round(value * 10) / 10);
   return (
-    <label className="field field-num">
-      <span>{label}{unit && <span className="field-unit"> ({unit})</span>}</span>
-      <input type="number" inputMode="decimal" value={shown} min={min} max={max} step={step}
-        disabled={disabled}
-        onChange={(e) => {
-          setText(e.target.value);
-          const v = Number(e.target.value);
-          if (e.target.value.trim() !== "" && Number.isFinite(v) && v >= min && v <= max) onCommit(v);
-        }}
-        onBlur={() => setText(null)} />
-    </label>
+    <NumberField fieldClassName="field-num"
+      label={<>{label}{unit && <span className="field-unit"> ({unit})</span>}</>}
+      value={shown} min={min} max={max} step={step} disabled={disabled}
+      onValueChange={(t) => {
+        setText(t);
+        const v = Number(t.trim().replace(",", "."));
+        if (t.trim() !== "" && Number.isFinite(v) && v >= min && v <= max) onCommit(v);
+      }}
+      onBlur={() => setText(null)} />
   );
 }
+
+/** One choice of a few, as a segmented control built on real radios, so
+ *  arrow keys move the choice and it is one Tab stop (GL-07). */
+function Segmented<T extends string>({ label, value, options, onChange }: {
+  label: string;
+  value: T | null;
+  options: readonly (readonly [T, ReactNode])[];
+  onChange: (v: T) => void;
+}) {
+  const name = useId();
+  return (
+    <fieldset className="layout-seg-field">
+      <legend>{label}</legend>
+      <div className="layout-seg" data-still>
+        {options.map(([v, l]) => (
+          <label key={v}>
+            <input type="radio" name={name} value={v} checked={value === v}
+              onChange={() => onChange(v)} />
+            <span>{l}</span>
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
+
+/** Panel letter styles: the label shown, then the case and the format. */
+const LETTER_STYLES = [["A", "upper", "plain"], ["(A)", "upper", "paren"], ["A.", "upper", "period"],
+  ["a", "lower", "plain"], ["(a)", "lower", "paren"]] as const;
 
 /**
  * Side panel of the layout composer: the selected item's settings, the
@@ -84,10 +113,10 @@ export default function LayoutInspector(p: InspectorProps) {
                   Hide this graph&apos;s own legend (use the master legend)
                 </label>
                 {it.graphId && (
-                  <button type="button" onClick={() => p.onUnlink(it.id)}
+                  <Button className="layout-action" onClick={() => p.onUnlink(it.id)}
                     title="Replace the live graph by a static copy that no longer follows the data">
                     Make unlinked picture
-                  </button>
+                  </Button>
                 )}
               </>
             )}
@@ -113,14 +142,9 @@ export default function LayoutInspector(p: InspectorProps) {
                     Bold
                   </label>
                 </div>
-                <div className="layout-seg" role="radiogroup" aria-label="Alignment">
-                  {(["left", "center", "right"] as const).map((a) => (
-                    <button key={a} type="button" role="radio" aria-checked={it.align === a}
-                      onClick={() => p.editItem(it.id, { align: a })}>
-                      {a[0].toUpperCase() + a.slice(1)}
-                    </button>
-                  ))}
-                </div>
+                <Segmented label="Alignment" value={it.align}
+                  options={[["left", "Left"], ["center", "Center"], ["right", "Right"]]}
+                  onChange={(align) => p.editItem(it.id, { align })} />
               </>
             )}
             {it.kind === "legend" && (
@@ -146,9 +170,10 @@ export default function LayoutInspector(p: InspectorProps) {
                   onCommit={(v) => p.editItem(it.id, { [k]: v }, `geom:${it.id}:${k}`)} />
               ))}
             </div>
-            <button type="button" className="btn-danger-ghost" onClick={() => p.onRemove(it.id)}>
+            {/* Undoable, so a keycap rather than a danger fill (buttons.md). */}
+            <Button className="layout-action" onClick={() => p.onRemove(it.id)}>
               Remove from page
-            </button>
+            </Button>
           </section>
         ) : (
           <section className="layout-section">
@@ -173,8 +198,8 @@ export default function LayoutInspector(p: InspectorProps) {
               <option value="">First graph</option>
               {graphs.map((g) => <option key={g.id} value={g.id}>{graphLabel(g)}</option>)}
             </select>
-            <button type="button" onClick={() => p.onFill(fillFrom || null)}
-              disabled={!graphs.length}>Fill</button>
+            <Button onClick={() => p.onFill(fillFrom || null)}
+              disabled={!graphs.length}>Fill</Button>
           </div>
         </section>
 
@@ -201,14 +226,9 @@ export default function LayoutInspector(p: InspectorProps) {
                 onCommit={(v) => setPage({ height: v }, "page:h")} />
             </div>
           )}
-          <div className="layout-seg" role="radiogroup" aria-label="Orientation">
-            {(["portrait", "landscape"] as const).map((o) => (
-              <button key={o} type="button" role="radio" aria-checked={page.orientation === o}
-                onClick={() => setPage({ orientation: o })}>
-                {o === "portrait" ? "Portrait" : "Landscape"}
-              </button>
-            ))}
-          </div>
+          <Segmented label="Orientation" value={page.orientation}
+            options={[["portrait", "Portrait"], ["landscape", "Landscape"]]}
+            onChange={(orientation) => setPage({ orientation })} />
           <div className="layout-row">
             <NumField label="Margins" unit="mm" value={page.margin} min={0} max={100}
               onCommit={(v) => setPage({ margin: v }, "page:m")} />
@@ -236,14 +256,14 @@ export default function LayoutInspector(p: InspectorProps) {
           </label>
           {layout.letters.show && (
             <>
-              <div className="layout-seg" role="radiogroup" aria-label="Letter style">
-                {([["upper", "plain", "A"], ["upper", "paren", "(A)"], ["upper", "period", "A."],
-                  ["lower", "plain", "a"], ["lower", "paren", "(a)"]] as const).map(([st, f, l]) => (
-                  <button key={l} type="button" role="radio"
-                    aria-checked={layout.letters.style === st && layout.letters.format === f}
-                    onClick={() => setLetters({ style: st, format: f })}>{l}</button>
-                ))}
-              </div>
+              <Segmented label="Letter style"
+                value={LETTER_STYLES.find(([, st, f]) => layout.letters.style === st
+                  && layout.letters.format === f)?.[0] ?? null}
+                options={LETTER_STYLES.map(([l]) => [l, l] as const)}
+                onChange={(l) => {
+                  const [, style, format] = LETTER_STYLES.find(([k]) => k === l)!;
+                  setLetters({ style, format });
+                }} />
               <div className="layout-row">
                 <NumField label="Size" unit="pt" value={layout.letters.fontSize} min={4} max={72}
                   onCommit={(v) => setLetters({ fontSize: v }, "letters:size")} />
@@ -253,21 +273,12 @@ export default function LayoutInspector(p: InspectorProps) {
                   Bold
                 </label>
               </div>
-              <div className="layout-seg" role="radiogroup" aria-label="Letter font">
-                {(["sans", "serif"] as const).map((f) => (
-                  <button key={f} type="button" role="radio" aria-checked={layout.letters.font === f}
-                    onClick={() => setLetters({ font: f })}>{f === "sans" ? "Sans serif" : "Serif"}</button>
-                ))}
-              </div>
-              <div className="layout-seg" role="radiogroup" aria-label="Letter position">
-                {(["inside", "outside"] as const).map((pos) => (
-                  <button key={pos} type="button" role="radio"
-                    aria-checked={layout.letters.position === pos}
-                    onClick={() => setLetters({ position: pos })}>
-                    {pos === "inside" ? "Inside, top left" : "Above, top left"}
-                  </button>
-                ))}
-              </div>
+              <Segmented label="Letter font" value={layout.letters.font}
+                options={[["sans", "Sans serif"], ["serif", "Serif"]]}
+                onChange={(font) => setLetters({ font })} />
+              <Segmented label="Letter position" value={layout.letters.position}
+                options={[["inside", "Inside, top left"], ["outside", "Above, top left"]]}
+                onChange={(position) => setLetters({ position })} />
             </>
           )}
         </section>

@@ -43,6 +43,9 @@ const frames = () => new Promise((r) => requestAnimationFrame(() => requestAnima
  * graphs are drawn off screen one at a time (as "Export all graphs"
  * does) and read back exactly as the app shows them.
  */
+/** The bundle's progress toast, resolved in place (DECISIONS 6). */
+const BUNDLE_TOAST = "bundle-export";
+
 export function useBundleExport() {
   const api = useProject();
   const ui = useUi();
@@ -91,6 +94,7 @@ export function useBundleExport() {
     };
     setIndex(0);
     setJob({ steps, input, settings });
+    ui.notify("Preparing the export bundle…", { tone: "progress", id: BUNDLE_TOAST });
   }, [job, api, ui]);
 
   const step = job?.steps[index];
@@ -106,7 +110,7 @@ export function useBundleExport() {
         `${stem(job.input.title, "opendose-project")}-bundle.zip`);
       ui.notify(`Export bundle saved: ${files.length} files`
         + (job.input.skipped.length ? `; not included: ${job.input.skipped.join(", ")}` : "") + ".",
-      { tone: "success" });
+      { tone: "success", id: BUNDLE_TOAST });
       setJob(null);
     };
     const go = async () => {
@@ -162,8 +166,8 @@ export function useBundleExport() {
       else finish();
     };
     go().catch(() => {
-      ui.notify("The export bundle could not be made. Try again, or export the parts one by one.",
-        { tone: "error" });
+      ui.notify("Could not make the export bundle. Try again, or export the parts one by one.",
+        { tone: "error", id: BUNDLE_TOAST });
       setJob(null);
     });
     return () => { live = false; };
