@@ -309,7 +309,7 @@ function ShareDialog({ dataId, onClose }: { dataId?: string; onClose: () => void
           </label>
           {protect && (
             <div className="share-password-row">
-              <Field label={`Link password (at least ${MIN_PASSWORD} characters)`}
+              <Field label="Link password" description={`At least ${MIN_PASSWORD} characters.`}
                 error={tooShort ? `Enter at least ${MIN_PASSWORD} characters` : null}
                 submitCount={attempts}>
                 <Input type={showPassword ? "text" : "password"} value={password}

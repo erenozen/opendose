@@ -1,6 +1,8 @@
 /* Sharing, interoperability and trust (src/share) */
 
 .share-dialog { width: min(560px, calc(100vw - 32px)); }
+/* Four actions do not fit a phone's width on one line. */
+.share-dialog .modal-actions { flex-wrap: wrap; }
 .share-url { font-family: var(--font-mono); font-size: var(--text-caption); }
 
 /* Bundle progress chip, bottom right */
