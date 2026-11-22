@@ -112,6 +112,13 @@ export interface DataColumn {
    *  project/exclusions.ts and the row operations in project/table.ts. */
   exclusionReasons?: Record<string, string>;
   varType?: VarType;       // multivariable tables only
+  /** A calculated column: its values come from this formula over the
+   *  other columns (project/calculated.ts) and are rewritten whenever
+   *  they change. Absent = typed values. */
+  formula?: string;
+  /** Why the formula could not be calculated (set by the sync; cells
+   *  then keep their last values). */
+  formulaError?: string;
 }
 
 /** The generic grid every table type is stored in. */

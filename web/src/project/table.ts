@@ -168,6 +168,8 @@ export function normalizeTable(raw: unknown, fallbackType: TableType = "xy"):
     if (o.varType === "categorical" || o.varType === "continuous") {
       col.varType = o.varType;
     } else if (type === "multivariable") col.varType = "continuous";
+    if (typeof o.formula === "string" && o.formula.trim()) col.formula = o.formula;
+    if (typeof o.formulaError === "string" && o.formulaError) col.formulaError = o.formulaError;
     return col;
   });
   if (!datasets.length) datasets = emptyTable(type).datasets;

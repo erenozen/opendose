@@ -31,6 +31,8 @@ import MenuButton from "./MenuButton";
 import ExclusionReasonPrompt, { type ReasonAsk } from "./ExclusionReasonPrompt";
 import { newlyExcluded, reasonAt } from "../../project/exclusions";
 import PasteReportStrip from "./PasteReportStrip";
+import FormulaColumnDialog from "./FormulaColumnDialog";
+import { calcCell, evalCellExpression, isCalculated } from "../../project/calculated";
 import {
   DEFAULT_ROW_PX, INITIAL_ROWS, rowSegments, sameRange, scrollTopFor, shouldVirtualise,
   visibleRange, type RowRange,
@@ -65,7 +67,22 @@ const HINTS: Partial<Record<TableType, string>> = {
 type Dialog =
   | { kind: "import"; req?: ImportRequest; paste?: { text: string; r: number; c: number } }
   | { kind: "export" } | { kind: "sort" } | { kind: "series" } | { kind: "format" }
-  | { kind: "convert" } | { kind: "reshape" } | { kind: "convertType" };
+  | { kind: "convert" } | { kind: "reshape" } | { kind: "convertType" }
+  | { kind: "formula"; dataset: number; isNew: boolean };
+
+/** Set (or, with formula null, remove) a column's formula; a calculated
+ *  column's values are filled by app/useCalculatedSync. */
+function withFormula(t: DataTableModel, di: number, formula: string | null, name?: string): DataTableModel {
+  const datasets = t.datasets.map((d, i) => {
+    if (i !== di) return d;
+    const next: DataColumn = { ...d, ...(name ? { name } : {}) };
+    delete next.formulaError;
+    if (formula) next.formula = formula;
+    else delete next.formula;
+    return next;
+  });
+  return { ...t, datasets };
+}
 
 const mac = typeof navigator !== "undefined" && /Mac|iP(hone|ad)/.test(navigator.platform);
 const MOD = mac ? "⌘" : "Ctrl+";
@@ -385,23 +402,32 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
   const cellInput = (r: number, c: number, value: string,
     set: (v: string) => void,
     opts: { excluded?: boolean; text?: boolean; label: string; isX?: boolean; invalid?: boolean;
-      reason?: string }) => (
+      reason?: string; calc?: string }) => (
       <input
         data-r={r} data-c={c}
         inputMode={opts.text ? "text" : "decimal"}
-        className={opts.text ? "text-cell" : undefined}
+        className={[opts.text && "text-cell", opts.calc !== undefined && "calc-cell"]
+          .filter(Boolean).join(" ") || undefined}
         value={shown(r, c, value, !!opts.isX, !opts.text)}
-        readOnly={readOnly}
+        readOnly={readOnly || opts.calc !== undefined}
         aria-label={opts.label}
         aria-invalid={opts.invalid || undefined}
-        title={opts.excluded ? `Excluded from analyses and graphs${opts.reason ? `: ${opts.reason}` : ""} (${MOD}E to include)`
+        title={opts.calc !== undefined ? `Calculated: = ${opts.calc} (edit the formula in the column title)`
+          : opts.excluded ? `Excluded from analyses and graphs${opts.reason ? `: ${opts.reason}` : ""} (${MOD}E to include)`
           : opts.invalid ? (t.xFormat === "dates"
             ? "Not read as a date; treated as blank" : "Not read as a time; treated as blank")
             : undefined}
         onChange={(e) => set(e.target.value)}
         onKeyDown={onKeyDown}
         onFocus={() => onCellFocus(r, c)}
-        onBlur={() => setEditing((k) => (k === `${r}:${c}` ? null : k))}
+        onBlur={() => {
+          setEditing((k) => (k === `${r}:${c}` ? null : k));
+          // "=2*3+1" typed in a number cell: its value
+          if (!opts.text && opts.calc === undefined && value.trim().startsWith("=")) {
+            const v = evalCellExpression(value);
+            if (v !== null) set(calcCell(v));
+          }
+        }}
         onPointerDown={(e) => onCellPointerDown(e, r, c)}
         onPaste={(e) => onPaste(e, r, c)}
       />
@@ -502,6 +528,7 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
                   excluded: ex,
                   reason: ex ? reasonAt(t, { kind: "y", dataset: di, row: r, sub: s }) : undefined,
                   text: !numeric && d.varType === "categorical",
+                  calc: isCalculated(d) ? d.formula : undefined,
                   label: `${d.name}, ${subCount(d) > 1
                     ? `${d.subTitles?.[s] || subLabel(t.type, di, s)}, ` : ""}row ${r + 1}`,
                 })}
@@ -548,6 +575,13 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
                 onSelect: () => edit((x) => insertDataset(x, Math.max(0, curDs))) },
               { label: `Insert ${noun} to the right`,
                 onSelect: () => edit((x) => insertDataset(x, curDs >= 0 ? curDs + 1 : x.datasets.length)) },
+              "sep",
+              { label: "New calculated column…",
+                onSelect: () => setDialog({ kind: "formula", dataset: t.datasets.length, isNew: true }) },
+              ...(curDs >= 0 && isCalculated(t.datasets[curDs]) ? [
+                { label: `Edit the formula of ${t.datasets[curDs].name || noun}…`,
+                  onSelect: () => setDialog({ kind: "formula", dataset: curDs, isNew: false }) },
+              ] : []),
               "sep",
               { label: "Move left", disabled: curDs <= 0,
                 onSelect: () => edit((x) => moveDataset(x, curDs, curDs - 1)) },
@@ -647,6 +681,15 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
                   )}
                   {summary && di === 0 && (
                     <span className="format-tag">{SUBCOLUMN_FORMAT_LABELS[t.subcolumnFormat]}</span>
+                  )}
+                  {isCalculated(d) && (
+                    <button type="button" className={`formula-chip${d.formulaError ? " has-error" : ""}`}
+                      disabled={readOnly}
+                      title={d.formulaError ? `Not calculated: ${d.formulaError}` : "Calculated column: edit the formula"}
+                      aria-label={`Formula of ${d.name}: ${d.formula}${d.formulaError ? ` (error: ${d.formulaError})` : ""}`}
+                      onClick={() => setDialog({ kind: "formula", dataset: di, isNew: false })}>
+                      = {d.formula}{d.formulaError ? " ⚠" : ""}
+                    </button>
                   )}
                 </th>
               ))}
@@ -748,6 +791,20 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
         <SortDialog table={t} initialKey={sortKey} onClose={() => setDialog(null)}
           onReverse={() => { edit(reverseRows); setDialog(null); }}
           onSort={(k, dir) => { edit((x) => sortRows(x, k, dir)); setDialog(null); }} />
+      )}
+      {dialog?.kind === "formula" && (
+        <FormulaColumnDialog table={t} dataset={dialog.dataset} isNew={dialog.isNew}
+          onClose={() => setDialog(null)}
+          onStop={dialog.isNew ? undefined : () => {
+            edit((x) => withFormula(x, dialog.dataset, null));
+            setDialog(null);
+          }}
+          onSave={(formula, name) => {
+            const di = dialog.dataset;
+            edit((x) => withFormula(dialog.isNew ? insertDataset(x, x.datasets.length, name || "Calculated")
+              : x, di, formula, name));
+            setDialog(null);
+          }} />
       )}
       {dialog?.kind === "series" && (
         <SeriesDialog table={t} row={curRect.r0} col={cur.c0}

@@ -11,6 +11,7 @@ import { UiProvider } from "./app/UiProvider";
 import { useAutosave } from "./app/useAutosave";
 import { useFileOpen } from "./app/useFileOpen";
 import { useDerivedSync } from "./app/useDerivedSync";
+import { useCalculatedSync } from "./app/useCalculatedSync";
 import { useBackgroundRefresh } from "./app/useBackgroundRefresh";
 import { usePrintSetup } from "./app/usePrint";
 import { useShortcuts } from "./app/useShortcuts";
@@ -55,6 +56,7 @@ function Shell() {
   const autosave = useAutosave();
   useShortcuts();
   useDerivedSync();
+  useCalculatedSync();
   useBackgroundRefresh();
   usePrintSetup();
 
