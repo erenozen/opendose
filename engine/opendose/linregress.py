@@ -52,6 +52,75 @@ def runs_test(signs) -> dict:
             "p": min(float(p), 1.0)}
 
 
+def x_intercept_ci(a, b, var_a, var_b, cov_ab, tcrit):
+    """Fieller confidence interval of X0 = -a / b, where the line a + b X
+    crosses Y = 0: the X values at which the confidence band of the line
+    crosses 0, i.e. the roots of (b^2 - t^2 var_b) X^2 + 2 (a b - t^2
+    cov_ab) X + (a^2 - t^2 var_a) = 0 (Draper & Smith 1998, section 3.2,
+    inverse prediction). None when the slope is not clearly non-zero
+    (b^2 <= t^2 var_b: the band never leaves Y = 0 on one side, so the
+    interval is unbounded)."""
+    A = b * b - tcrit * tcrit * var_b
+    B = 2.0 * (a * b - tcrit * tcrit * cov_ab)
+    C = a * a - tcrit * tcrit * var_a
+    if A <= 0:
+        return None
+    disc = B * B - 4.0 * A * C
+    if disc < 0:
+        return None
+    r = math.sqrt(disc)
+    lo, hi = sorted(((-B - r) / (2.0 * A), (-B + r) / (2.0 * A)))
+    return [float(lo), float(hi)]
+
+
+def linear_regression_through_point(x_values, y_values, x0: float, y0: float, *,
+                                    ci_level: float = 0.95) -> dict:
+    """Line forced through (x0, y0): Y - y0 = Slope (X - x0), one free
+    parameter, df = n - 1, SE(Slope) = Sy.x / sqrt(sum (X - x0)^2), and the
+    confidence band t Sy.x |X - x0| / sqrt(sum (X - x0)^2), zero width at
+    the point (R: lm(I(y - y0) ~ 0 + I(x - x0))). R squared is 1 - SS res
+    / SS about the mean, so it can be negative when the point is far from
+    the data."""
+    x, y = _pairs(x_values, y_values)
+    n = int(x.size)
+    if n < 2:
+        raise ValueError("a line through a point needs at least 2 XY pairs")
+    u = x - x0
+    suu = float(np.sum(u * u))
+    if suu == 0:
+        raise ValueError("every X value equals the X of the point")
+    slope = float(np.sum(u * (y - y0)) / suu)
+    resid = y - (y0 + slope * u)
+    ss_res = float(np.sum(resid ** 2))
+    ss_tot = float(np.sum((y - y.mean()) ** 2))
+    df = n - 1
+    sy_x = math.sqrt(ss_res / df) if df > 0 else math.nan
+    se = sy_x / math.sqrt(suu)
+    tcrit = float(stats.t.ppf((1 + ci_level) / 2, df))
+    a = y0 - slope * x0
+    var_b = se * se
+    t = slope / se if se > 0 else math.inf
+    p = float(2 * stats.t.sf(abs(t), df))
+    return {
+        "analysis": "linear_regression", "through_point": [float(x0), float(y0)],
+        "equation": "Y = Slope*X + Yintercept, through the point",
+        "n": n,
+        "slope": {"value": slope, "se": se, "ci95": [slope - tcrit * se, slope + tcrit * se]},
+        "y_intercept": {"value": a, "se": abs(x0) * se,
+                        "ci95": sorted([a - tcrit * abs(x0) * se, a + tcrit * abs(x0) * se]),
+                        "derived": True},
+        "x_intercept": (-a / slope) if slope != 0 else None,
+        "x_intercept_ci": x_intercept_ci(a, slope, x0 * x0 * var_b, var_b, -x0 * var_b, tcrit),
+        "one_over_slope": (1.0 / slope) if slope != 0 else None,
+        "r_squared": 1 - ss_res / ss_tot if ss_tot > 0 else None,
+        "sy_x": sy_x,
+        "f_nonzero_slope": {"F": float(t * t), "dfn": 1, "dfd": df, "p": p},
+        "runs_test": runs_test(np.sign(resid).tolist()),
+        "df": df,
+        "ss_res": ss_res,
+    }
+
+
 def linear_regression(x_values, y_values, *, ci_level: float = 0.95) -> dict:
     x, y = _pairs(x_values, y_values)
     n = int(x.size)
@@ -85,6 +154,9 @@ def linear_regression(x_values, y_values, *, ci_level: float = 0.95) -> dict:
                         "ci95": [intercept - tcrit * se_intercept,
                                  intercept + tcrit * se_intercept]},
         "x_intercept": (-intercept / slope) if slope != 0 else None,
+        "x_intercept_ci": x_intercept_ci(
+            intercept, slope, se_intercept ** 2, se_slope ** 2,
+            -x.mean() * sy_x ** 2 / sxx, tcrit),
         "one_over_slope": (1.0 / slope) if slope != 0 else None,
         "r_squared": 1 - ss_res / ss_tot if ss_tot > 0 else None,
         "sy_x": sy_x,
@@ -96,9 +168,24 @@ def linear_regression(x_values, y_values, *, ci_level: float = 0.95) -> dict:
 
 
 def linear_bands(x_values, y_values, xs, *, kind: str = "confidence",
-                 ci_level: float = 0.95) -> dict:
-    """Closed-form confidence/prediction band for simple linear regression."""
+                 ci_level: float = 0.95, through=None) -> dict:
+    """Closed-form confidence/prediction band for simple linear regression
+    (through = (x0, y0): the line forced through that point)."""
     x, y = _pairs(x_values, y_values)
+    if through is not None:
+        x0, y0 = through
+        fit = linear_regression_through_point(x_values, y_values, x0, y0, ci_level=ci_level)
+        u = x - x0
+        suu = float(np.sum(u * u))
+        tcrit = float(stats.t.ppf((1 + ci_level) / 2, fit["df"]))
+        xs = np.asarray(xs, float)
+        yc = y0 + fit["slope"]["value"] * (xs - x0)
+        core = (xs - x0) ** 2 / suu
+        if kind == "prediction":
+            core = core + 1.0
+        half = tcrit * fit["sy_x"] * np.sqrt(core)
+        return {"x": xs.tolist(), "y": yc.tolist(),
+                "lower": (yc - half).tolist(), "upper": (yc + half).tolist()}
     n = x.size
     fit = linear_regression(x_values, y_values, ci_level=ci_level)
     slope, intercept = fit["slope"]["value"], fit["y_intercept"]["value"]

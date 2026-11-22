@@ -24,6 +24,9 @@ export interface LinregOptions {
   runsTest: boolean;
   /** Y values to read X from on the line ("" = none). */
   xAtY: string;
+  /** Force the line through this point (X, Y as typed); absent = free
+   *  intercept. Ignored when throughOrigin is set. */
+  throughPoint?: { x: string; y: string };
 }
 
 export const DEFAULT_LINREG: LinregOptions = {
@@ -37,7 +40,17 @@ export function normalizeLinreg(raw: unknown): LinregOptions {
     bands: r.bands === "confidence" || r.bands === "prediction" ? r.bands : "none",
     runsTest: typeof r.runsTest === "boolean" ? r.runsTest : DEFAULT_LINREG.runsTest,
     xAtY: typeof r.xAtY === "string" ? r.xAtY : "",
+    ...(r.throughPoint && typeof r.throughPoint === "object"
+      ? { throughPoint: { x: String((r.throughPoint as { x?: unknown }).x ?? ""),
+        y: String((r.throughPoint as { y?: unknown }).y ?? "") } } : {}),
   };
+}
+
+/** The point the line is forced through, when one is set and valid. */
+export function forcedPoint(o: LinregOptions): [number, number] | null {
+  if (o.throughOrigin || !o.throughPoint) return null;
+  const x = parseCell(o.throughPoint.x), y = parseCell(o.throughPoint.y);
+  return x === null || y === null ? null : [x, y];
 }
 
 type Payload = { analysis: string; data: unknown; options: Record<string, unknown> };
@@ -55,7 +68,12 @@ export function linregPayload(table: DataTableModel, o: LinregOptions): Payload 
       ...(bands ? { bands } : {}), diagnostics: o.runsTest,
     } };
   }
-  return { analysis: "linear_regression", data, options: bands ? { bands } : {} };
+  if (o.throughPoint && !forcedPoint(o)) {
+    return { error: "Enter both the X and the Y of the point the line goes through" };
+  }
+  const pt = forcedPoint(o);
+  return { analysis: "linear_regression", data, options: {
+    ...(bands ? { bands } : {}), ...(pt ? { through_point: pt } : {}) } };
 }
 
 export interface Estimate { value: number; se: number | null; ci95: [number, number] | null }
@@ -69,6 +87,11 @@ export interface LinregBlock {
   /** null when the line is forced through the origin. */
   intercept: Estimate | null;
   xIntercept: number | null;
+  /** 95% CI of the X intercept (where the confidence band crosses Y = 0);
+   *  null when unbounded (slope not clearly non-zero) or not computed. */
+  xInterceptCI?: [number, number] | null;
+  /** The point the line was forced through, if any. */
+  throughPoint?: [number, number] | null;
   oneOverSlope: number | null;
   /** Centred R² (1 - SS res / SS about the mean), or, through the origin,
    *  the uncentred R² (1 - SS res / sum of Y squared). */
@@ -146,7 +169,10 @@ export function linregBlock(raw: any, o: LinregOptions, sums?: { sumY2: number; 
   const ft = f.f_nonzero_slope ?? {};
   return {
     throughOrigin: false, n: f.n, df: f.df, slope, intercept,
-    xIntercept: f.x_intercept ?? null, oneOverSlope: f.one_over_slope ?? null,
+    xIntercept: f.x_intercept ?? null,
+    xInterceptCI: Array.isArray(f.x_intercept_ci) ? [f.x_intercept_ci[0], f.x_intercept_ci[1]] : null,
+    throughPoint: Array.isArray(f.through_point) ? [f.through_point[0], f.through_point[1]] : null,
+    oneOverSlope: f.one_over_slope ?? null,
     r2: f.r_squared ?? null, syx: f.sy_x, ssRes: f.ss_res,
     anova: anovaCentred(ft.F, ft.p, f.ss_res, ft.dfd ?? f.df),
     runs: o.runsTest && f.runs_test ? { n_runs: f.runs_test.n_runs, p: f.runs_test.p ?? null } : null,
@@ -182,7 +208,7 @@ export function linregResult(raw: any, table: DataTableModel, o: LinregOptions):
       const order = ["Slope"];
       if (b.intercept) {
         params["Y intercept"] = { ...b.intercept, constrained: false };
-        params["X intercept"] = derived(b.xIntercept);
+        params["X intercept"] = { ...derived(b.xIntercept), ci95: b.xInterceptCI ?? null };
         order.push("Y intercept", "X intercept");
       }
       params["1/slope"] = derived(b.oneOverSlope);
@@ -193,7 +219,9 @@ export function linregResult(raw: any, table: DataTableModel, o: LinregOptions):
         ...(bands ? { bands } : {}),
         fit: {
           model: o.throughOrigin ? "line_through_origin" : "linear_regression",
-          label: o.throughOrigin ? "Linear regression through the origin" : "Simple linear regression",
+          label: o.throughOrigin ? "Linear regression through the origin"
+            : b.throughPoint ? `Linear regression through (${formatSig(b.throughPoint[0])}, ${formatSig(b.throughPoint[1])})`
+              : "Simple linear regression",
           equation: b.equation, status: "converged", dependency: {},
           params, param_order: order,
           goodness: { df: b.df, n_points: b.n, r_squared: b.r2, ss_res: b.ssRes, sy_x: b.syx },

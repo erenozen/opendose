@@ -33,6 +33,35 @@ export function LinregControls({ options, onChange, readOnly }: ControlsProps<Li
             rather than about the mean.
           </p>
         )}
+        <label className="check-row">
+          <input type="checkbox" checked={!!options.throughPoint && !options.throughOrigin}
+            disabled={readOnly || options.throughOrigin}
+            onChange={(e) => set({ throughPoint: e.target.checked ? { x: "", y: "" } : undefined })} />
+          <span>Force the line through a point</span>
+        </label>
+        {options.throughPoint && !options.throughOrigin && (
+          <>
+            <div className="field-row">
+              <label className="field field-num">
+                <span>X</span>
+                <input inputMode="decimal" aria-label="X of the point the line goes through"
+                  disabled={readOnly} value={options.throughPoint.x}
+                  onChange={(e) => set({ throughPoint: { ...options.throughPoint!, x: e.target.value } })} />
+              </label>
+              <label className="field field-num">
+                <span>Y</span>
+                <input inputMode="decimal" aria-label="Y of the point the line goes through"
+                  disabled={readOnly} value={options.throughPoint.y}
+                  onChange={(e) => set({ throughPoint: { ...options.throughPoint!, y: e.target.value } })} />
+              </label>
+            </div>
+            <p className="hint-block">
+              Only the slope is fitted (Y − Y₀ = Slope·(X − X₀)), on n − 1 df; the confidence
+              band narrows to zero at the point. R² is 1 − SS residual / SS about the mean, so it
+              can be negative when the point lies away from the data.
+            </p>
+          </>
+        )}
       </section>
       <section>
         <h3>Output</h3>
@@ -118,7 +147,9 @@ function Card({ ds }: { ds: any }) {
     <div className="result-card">
       <h3>{ds.name}</h3>
       <p className="model-line">
-        {b.throughOrigin ? "Linear regression through the origin" : "Simple linear regression"}
+        {b.throughOrigin ? "Linear regression through the origin"
+          : b.throughPoint ? `Linear regression forced through (${formatSig(b.throughPoint[0])}, ${formatSig(b.throughPoint[1])})`
+            : "Simple linear regression"}
         <br />
         <code>{b.equation}</code>
       </p>
@@ -128,8 +159,15 @@ function Card({ ds }: { ds: any }) {
         </thead>
         <tbody>
           {row("Slope", b.slope)}
-          {b.intercept && row("Y intercept", b.intercept)}
-          {b.intercept && derived("X intercept", b.xIntercept)}
+          {b.intercept && (b.throughPoint ? derived("Y intercept", b.intercept.value)
+            : row("Y intercept", b.intercept))}
+          {b.intercept && (
+            <tr key="X intercept">
+              <th>X intercept</th><td>{formatSig(b.xIntercept)}</td><td>n/a</td>
+              <td title="Where the confidence band of the line crosses Y = 0 (Fieller)">
+                {b.xInterceptCI ? fmtCI(b.xInterceptCI) : b.xIntercept === null ? "n/a" : "unbounded"}</td>
+            </tr>
+          )}
           {derived("1/slope", b.oneOverSlope)}
         </tbody>
       </table>
@@ -197,15 +235,23 @@ export function LinregMethods({ options, result }: ResultsProps<LinregOptions, a
     const b = d.linreg as LinregBlock;
     return `${d.name}: slope ${formatSig(b.slope.value)} (95% CI ${fmtCI(b.slope.ci95)})`
       + (b.intercept ? `, Y intercept ${formatSig(b.intercept.value)}` : "")
+      + (b.intercept && b.xIntercept !== null ? `, X intercept ${formatSig(b.xIntercept)}`
+        + ` (95% CI ${b.xInterceptCI ? fmtCI(b.xInterceptCI) : "unbounded"})` : "")
       + `, R² ${formatSig(b.r2)}${b.throughOrigin ? " (about Y = 0)" : ""}, `
       + `F(${b.anova.dfn}, ${b.anova.dfd}) = ${formatSig(b.anova.F)}, ${formatPValue(b.anova.p)}`;
   }).join("; ");
+  const pt = fits.map((d: any) => (d.linreg as LinregBlock).throughPoint).find(Boolean) as [number, number] | undefined;
+  const ciNote = fits.some((d: any) => (d.linreg as LinregBlock).intercept)
+    ? " The confidence interval of the X intercept is the range of X where the confidence band "
+      + "of the line includes Y = 0 (Fieller's method; Draper & Smith 1998)." : "";
   const text = `Data were analysed by ${options.throughOrigin
     ? "linear regression constrained through the origin (least squares; R² and the regression "
       + "ANOVA computed about Y = 0)"
-    : "simple linear regression (least squares)"}, each data set fitted separately with `
+    : pt ? `linear regression constrained through X = ${formatSig(pt[0])}, Y = ${formatSig(pt[1])} `
+      + "(least squares, slope only, n − 1 degrees of freedom)"
+      : "simple linear regression (least squares)"}, each data set fitted separately with `
     + `replicates as individual points; the slope was tested against zero by the regression F test`
-    + `${options.runsTest ? ", and departure from linearity by the runs test" : ""}. ${each}. `
+    + `${options.runsTest ? ", and departure from linearity by the runs test" : ""}. ${each}.${ciNote} `
     + softwareSentence(getRuntimeVersions());
   return <CopyableMethods text={text} />;
 }

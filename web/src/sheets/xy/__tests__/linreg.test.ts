@@ -111,3 +111,22 @@ test("options and payloads", () => {
   assert.ok("error" in linregPayload({ ...t, subcolumnFormat: "mean_sd_n" }, DEFAULT_LINREG));
   assert.equal(equationText(2, 0.5), "Y = 2*X + 0.5");
 });
+
+test("a line through a point: payload, validation, and the X-intercept CI", async () => {
+  const m = await import("../linreg.ts");
+  const { normalizeTable } = await import("../../../project/table.ts");
+  const t = normalizeTable({ type: "xy", x: ["1", "2", "3"], datasets: [{ name: "A", rows: [["1"], ["2"], ["4"]] }] });
+  const o = m.normalizeLinreg({ throughPoint: { x: "2", y: "1" } });
+  const p = m.linregPayload(t, o) as { options: Record<string, unknown> };
+  assert.deepEqual(p.options.through_point, [2, 1]);
+  assert.match((m.linregPayload(t, { ...o, throughPoint: { x: "2", y: "" } }) as { error: string }).error, /both the X and the Y/);
+  // the origin option wins over a point
+  assert.equal(m.forcedPoint({ ...o, throughOrigin: true }), null);
+  const raw = { fit: { slope: { value: 2, se: 0.1, ci95: [1.7, 2.3] }, y_intercept: { value: -1, se: 0.2, ci95: [-1.6, -0.4] },
+    x_intercept: 0.5, x_intercept_ci: [0.3, 0.7], through_point: [2, 3], one_over_slope: 0.5, n: 3, df: 2,
+    r_squared: 0.9, sy_x: 0.3, ss_res: 0.18, f_nonzero_slope: { F: 400, p: 0.002, dfd: 2 } } };
+  const b = m.linregBlock(raw, o)!;
+  assert.deepEqual(b.xInterceptCI, [0.3, 0.7]);
+  assert.deepEqual(b.throughPoint, [2, 3]);
+  assert.equal(m.linregBlock({ fit: { ...raw.fit, x_intercept_ci: null } }, o)!.xInterceptCI, null);
+});

@@ -1056,10 +1056,15 @@ def _linear_regression(data, options):
         xs, ys = _expand(x_col, ds["ys"])
         entry = {"name": ds.get("name", "")}
         try:
-            fit = linregress.linear_regression(xs, ys)
+            through = options.get("through_point")
+            through = (float(through[0]), float(through[1])) if through else None
+            fit = (linregress.linear_regression_through_point(xs, ys, *through)
+                   if through else linregress.linear_regression(xs, ys))
             finite = [v for v in xs if v is not None]
-            grid = [min(finite) + i * (max(finite) - min(finite)) / 199
-                    for i in range(200)]
+            lo, hi = min(finite), max(finite)
+            if through:  # draw the line to the point
+                lo, hi = min(lo, through[0]), max(hi, through[0])
+            grid = [lo + i * (hi - lo) / 199 for i in range(200)]
             fit["curve"] = {
                 "x": grid,
                 "y": [fit["slope"]["value"] * v + fit["y_intercept"]["value"]
@@ -1067,7 +1072,7 @@ def _linear_regression(data, options):
             }
             if options.get("bands"):
                 fit["bands"] = linregress.linear_bands(
-                    xs, ys, grid, kind=options["bands"])
+                    xs, ys, grid, kind=options["bands"], through=through)
             entry["fit"] = fit
         except Exception as exc:
             entry["error"] = str(exc)
