@@ -317,7 +317,7 @@ export function MixedUnitResults({ options, result: r }: ResultsProps<MixedUnitO
               {cells.map((c, i) => (
                 <tr key={i}>
                   <th scope="row">{c.a}</th>{b && <td>{c.b}</td>}
-                  <td>{f(c.mean)}</td><td>{f(c.se)}</td><td>{fmtCI(c.ci)}</td><td>{c.df}</td>
+                  <td>{f(c.mean)}</td><td>{f(c.se)}</td><td>{fmtCI(c.ci)}</td><td>{f(c.df)}</td>
                   <td>{c.n_units}</td><td>{c.n_values}</td>
                 </tr>
               ))}

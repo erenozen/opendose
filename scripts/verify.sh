@@ -34,8 +34,17 @@ for i in $(seq 1 60); do curl -s -o /dev/null "http://localhost:$PORT/" && break
 # reloads the page, which interrupts the engine worker's boot in the first
 # suite. Load the app once and wait for live results before any suite runs.
 node -e "import('playwright').then(async ({chromium})=>{const b=await chromium.launch();const p=await b.newPage();await p.goto('http://localhost:$PORT/?example=1',{waitUntil:'domcontentloaded'});await p.waitForSelector('.pane-results[data-live=\"true\"] .results-table',{timeout:300000}).then(()=>console.log('warm-up: live results'),()=>console.log('warm-up: no live results within 300 s'));await b.close();})" 2>&1 | tail -1
-for suite in e2e-check e2e-tiff e2e-export e2e-share e2e-figures e2e-assays; do
+# e2e-privacy runs last: it checks the security headers (public/_headers)
+# that only the production build is served with, so the dev server is
+# swapped for scripts/serve-dist.mjs on the same port first.
+for suite in e2e-check e2e-tiff e2e-export e2e-share e2e-figures e2e-assays e2e-privacy; do
   [ -f "scripts/$suite.mjs" ] || continue
+  if [ "$suite" = e2e-privacy ]; then
+    kill $DEVPID 2>/dev/null; wait $DEVPID 2>/dev/null
+    node scripts/serve-dist.mjs "$PORT" >"$S/dist-$PORT.log" 2>&1 &
+    DEVPID=$!
+    for i in $(seq 1 30); do curl -s -o /dev/null "http://localhost:$PORT/" && break; sleep 1; done
+  fi
   node "scripts/$suite.mjs" "http://localhost:$PORT/" >"$S/$suite.log" 2>&1; rc=$?
   echo "$suite exit=$rc"; [ $rc -eq 0 ] || { fail=1; grep -E "^FAIL|FAILURES|Error" "$S/$suite.log" | head -5; }
 done
