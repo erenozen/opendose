@@ -1445,71 +1445,98 @@ expect("ambiguous fit banner with concrete fixes for a flat dataset",
   await page.waitForSelector("[data-banner='fit-ambiguous']", { timeout: 60000 })
     .then(async (b) => (await b.innerText()).includes("Constrain the plateau"), () => false));
 
-// --- start screen, paste-and-suggest, guided tour (fresh browser state) ---
+// --- first run: the example, paste anywhere, the last session, the tour (fresh browser state) ---
 {
   const ctx2 = await browser.newContext({ viewport: { width: 1400, height: 1000 } });
   const p2 = await ctx2.newPage();
-  p2.on("pageerror", (e) => errors.push(`pageerror (start): ${e.message}`));
+  p2.on("pageerror", (e) => errors.push(`pageerror (first run): ${e.message}`));
   await p2.goto(baseUrl, { waitUntil: "domcontentloaded" });
-  expect("first visit opens the start screen with eight table cards",
-    await p2.locator(".start-screen").waitFor({ timeout: 60000 }).then(() => true, () => false)
-    && await p2.locator(".start-card").count() === 8);
-  await p2.getByRole("textbox", { name: "Paste data and get a table type" }).fill(
-    "Conc\tRep 1\tRep 2\n0.001\t98\t101\n0.01\t95\t97\n0.1\t70\t66\n1\t30\t35\n10\t5\t8");
-  expect("pasted dose series is suggested as an XY table, with a reason",
-    (await p2.locator(".start-suggest").innerText()).includes("Suggested: XY table"));
-  await p2.getByRole("button", { name: "Create XY table" }).click();
-  await p2.locator(".data-table").waitFor({ timeout: 60000 });
-  expect("the pasted XY table is created",
-    await p2.getByRole("treeitem", { name: "Pasted data", exact: true }).count() === 1
+  const exampleBanner = p2.locator(".example-banner");
+  expect("a first visit lands on the example with its shipped result, labelled Example data",
+    await exampleBanner.waitFor({ timeout: 60000 }).then(() => true, () => false)
+    && (await exampleBanner.innerText()).includes("Example data")
+    && (await exampleBanner.innerText()).includes("Paste a block from Excel anywhere on this page.")
+    && await p2.locator(".answer-figure").first().isVisible()
+    && await p2.locator(".start-screen").count() === 0);
+  expect("at 1400 x 1000 the IC50 is on screen without scrolling",
+    await p2.locator(".answer-figure").first().evaluate((el) => el.getBoundingClientRect().bottom <= innerHeight));
+  const chips = p2.getByRole("group", { name: "Examples" });
+  await chips.getByRole("button", { name: "Contingency" }).click();
+  expect("an example chip switches to that example",
+    await p2.getByRole("group", { name: "Examples" }).getByRole("button", { name: "Contingency" })
+      .getAttribute("aria-pressed") === "true"
+    && await p2.getByRole("treeitem", { name: "Contingency example", exact: true })
+      .getAttribute("aria-selected") === "true");
+  await p2.getByRole("group", { name: "Examples" }).getByRole("button", { name: "Dose-response" }).click();
+  // Ctrl/Cmd+V outside a field: a "Rep" header and an Excel error value.
+  const pasteOnPage = (t) => p2.evaluate((text) => {
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    const dt = new DataTransfer();
+    dt.setData("text/plain", text);
+    document.body.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }));
+  }, t);
+  await pasteOnPage("Conc\tRep 1\tRep 2\tRep 3\n0.001\t98\t101\t99\n0.01\t95\t97\t#DIV/0!\n"
+    + "0.1\t70\t66\t72\n1\t30\t35\t28\n10\t5\t8\t6\n");
+  const pasteBanner = p2.locator(".paste-banner");
+  const pasteText = await pasteBanner.waitFor({ timeout: 10000 }).then(() => pasteBanner.innerText(), () => "");
+  expect("a paste outside a field replaces the example: read as XY, with the reason and the replicates",
+    pasteText.includes("5 rows pasted, read as an XY table.") && pasteText.includes("equal fold steps")
+    && pasteText.includes("Rep 1 to Rep 3 read as 3 replicates of one data set")
+    && await p2.getByRole("treeitem", { name: "Pasted data", exact: true }).count() === 1
+    && await p2.getByRole("treeitem", { name: "Contingency example", exact: true }).count() === 0,
+    pasteText.slice(0, 200));
+  expect("the paste banner counts the Excel error value read as an empty cell",
+    pasteText.includes("1 Excel error value (#DIV/0!) read as an empty cell.")
+    && await p2.locator('.data-table input[aria-label="Data set A, Rep 3, row 2"]').inputValue() === "",
+    pasteText);
+  expect("the paste banner's primary action names the analysis (Fit the curve)",
+    await pasteBanner.getByRole("button", { name: "Fit the curve" }).count() === 1);
+  await pasteBanner.getByRole("button", { name: "Undo, restore the example" }).click();
+  expect("Undo restores the example",
+    await exampleBanner.waitFor({ timeout: 10000 }).then(() => true, () => false)
+    && await p2.getByRole("treeitem", { name: "Pasted data", exact: true }).count() === 0
+    && await p2.getByRole("treeitem", { name: "Survival example", exact: true }).count() === 1);
+  // The same dose series pasted into the example's grid, read as Column,
+  // then back as XY and confirmed.
+  await p2.evaluate((text) => {
+    const el = document.querySelector('.data-table input[aria-label="X, row 1"]');
+    el.focus();
+    const dt = new DataTransfer();
+    dt.setData("text/plain", text);
+    el.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }));
+  }, "Conc\tRep 1\tRep 2\n0.001\t98\t101\n0.01\t95\t97\n0.1\t70\t66\n1\t30\t35\n10\t5\t8");
+  await pasteBanner.waitFor({ timeout: 10000 });
+  await pasteBanner.getByLabel("Read as").selectOption("column");
+  await pasteBanner.getByRole("button", { name: "Compare the groups" }).click();
+  expect("a block pasted into the example's grid replaces it; Read as reads it again (Column)",
+    (await pasteBanner.innerText()).includes("read as a Column table")
+    && await p2.getByRole("treeitem", { name: "Pasted data", exact: true }).count() === 1
+    && await p2.getByRole("treeitem", { name: "Dose response", exact: true }).count() === 0);
+  await pasteBanner.getByLabel("Read as").selectOption("xy");
+  await pasteBanner.getByRole("button", { name: "Fit the curve" }).click();
+  await pasteBanner.getByRole("button", { name: "Fit the curve" }).click();
+  expect("the verb on the guessed type confirms it and closes the banner",
+    await pasteBanner.waitFor({ state: "detached", timeout: 5000 }).then(() => true, () => false)
     && await p2.locator('.data-table input[aria-label="X, row 3"]').inputValue() === "0.1");
   // live results first (the engine has booted), then the autosave debounce
   await p2.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 180000 });
   await p2.waitForTimeout(1500);
-  // With a session saved, the next visit reopens it directly (default
-  // start mode): no start screen, no restore banner.
+  // With a session saved, the next visit reopens it directly: no example,
+  // no restore banner.
   await p2.reload({ waitUntil: "domcontentloaded" });
   await p2.locator(".data-table").waitFor({ timeout: 60000 });
   expect("a later visit reopens the last session directly",
     await p2.getByRole("treeitem", { name: "Pasted data", exact: true }).count() === 1
-    && await p2.locator(".start-screen").count() === 0
+    && await p2.locator(".example-banner").count() === 0
     && await p2.locator(".restore-banner").count() === 0);
-  // "Show this screen when OpenDose opens" ticked: the start screen every
-  // time, with the restore banner offering the last session.
+  // Help › Open the example project asks first, then opens it.
   await p2.keyboard.press("Control+/");
-  await p2.getByRole("complementary", { name: "Help" }).getByRole("button", { name: "Start screen" }).click();
-  await p2.locator(".start-screen").waitFor({ timeout: 30000 });
-  expect("the start-screen preference is unticked by default",
-    !(await p2.getByLabel("Show this screen when OpenDose opens").isChecked()));
-  await p2.getByLabel("Show this screen when OpenDose opens").check();
-  await p2.reload({ waitUntil: "domcontentloaded" });
-  await p2.locator(".start-screen").waitFor({ timeout: 60000 });
-  expect("ticked, the start screen shows with the restore banner",
-    await p2.locator(".restore-banner").waitFor({ timeout: 30000 }).then(() => true, () => false));
-  await p2.getByLabel("Show this screen when OpenDose opens").uncheck();
-  await p2.getByRole("button", { name: "Open the example project" }).click();
-  expect("the tour starts with the example project",
-    await p2.locator(".tour-card").waitFor({ timeout: 10000 }).then(() => true, () => false)
-    && (await p2.locator(".tour-count").innerText()) === "Step 1 of 5");
-  await p2.locator(".tour-next").click();
-  expect("tour Next moves to step 2 (Analyze)",
-    (await p2.locator(".tour-count").innerText()) === "Step 2 of 5");
-  await p2.getByRole("button", { name: "Skip tour" }).click();
-  expect("Skip closes the tour", await p2.locator(".tour-card").count() === 0);
-  // The example session is autosaved; a reload reopens it directly, and
-  // the tour does not come back.
-  await p2.waitForTimeout(1500);
-  await p2.reload({ waitUntil: "domcontentloaded" });
-  await p2.locator(".data-table").waitFor({ timeout: 60000 });
-  expect("the example session reopens directly",
-    await p2.locator(".start-screen").count() === 0 && await p2.locator(".tour-card").count() === 0);
-  await p2.keyboard.press("Control+/");
-  await p2.getByRole("complementary", { name: "Help" }).getByRole("button", { name: "Start screen" }).click();
-  await p2.locator(".start-screen").waitFor({ timeout: 30000 });
-  await p2.getByRole("button", { name: "Open the example project" }).click();
-  await p2.waitForTimeout(1500);
-  expect("the tour does not come back after it was dismissed",
-    await p2.locator(".tour-card").count() === 0 && await p2.locator(".data-table").count() === 1);
+  await p2.getByRole("complementary", { name: "Help" })
+    .getByRole("button", { name: "Open the example project…" }).click();
+  await p2.getByRole("alertdialog").getByRole("button", { name: "Open the example" }).click();
+  expect("Help opens the example project after asking",
+    await exampleBanner.waitFor({ timeout: 10000 }).then(() => true, () => false)
+    && await p2.getByRole("treeitem", { name: "Pasted data", exact: true }).count() === 0);
   await p2.keyboard.press("Control+/");
   const help = p2.getByRole("complementary", { name: "Help" });
   await help.getByRole("searchbox", { name: "Search help" }).fill("hazard");
@@ -1517,9 +1544,14 @@ expect("ambiguous fit banner with concrete fixes for a flat dataset",
     (await help.locator(".help-topics li").first().innerText()).includes("Log-rank"));
   await help.getByRole("searchbox", { name: "Search help" }).fill("");
   await help.getByRole("button", { name: "Take the tour" }).click();
-  expect("Help replays the tour",
-    await p2.locator(".tour-card").waitFor({ timeout: 10000 }).then(() => true, () => false));
-  await p2.keyboard.press("Escape");
+  expect("Help starts the tour",
+    await p2.locator(".tour-card").waitFor({ timeout: 10000 }).then(() => true, () => false)
+    && (await p2.locator(".tour-count").innerText()) === "Step 1 of 5");
+  await p2.locator(".tour-next").click();
+  expect("tour Next moves to step 2 (Analyze)",
+    (await p2.locator(".tour-count").innerText()) === "Step 2 of 5");
+  await p2.getByRole("button", { name: "Skip tour" }).click();
+  expect("Skip closes the tour", await p2.locator(".tour-card").count() === 0);
   await ctx2.close();
 }
 
@@ -3117,19 +3149,20 @@ const axeOn = async (pg, sel) => {
     /^X|^log\[Dose\]/.test(strFromU8(zip["sample/dose-response.csv"] ?? new Uint8Array())),
     strFromU8(zip["sample/dose-response.csv"] ?? new Uint8Array()).split("\n")[0]);
 
-  // (e) and the results empty state: the start screen says Prism files
-  // open here; a .pzfx dropped on it imports every data table.
+  // (e) and the results empty state: a .pzfx dropped anywhere on the
+  // first visit's page offers its data tables as a checklist; importing
+  // them replaces the example.
   const ctx3 = await browser.newContext({ viewport: { width: 1400, height: 1000 } });
   const p3 = await ctx3.newPage();
   p3.on("pageerror", (e) => errors.push(`pageerror (prism drop): ${e.message}`));
   await p3.goto(baseUrl, { waitUntil: "domcontentloaded" });
-  await p3.locator(".start-screen").waitFor({ timeout: 60000 });
-  const prismNote = await p3.getByRole("region", { name: "GraphPad Prism files (.prism, .pzfx)" }).innerText();
-  expect("start screen: .prism / .pzfx files open here, analyses recomputed",
-    prismNote.includes("Open a .prism or .pzfx file: every data table is imported; analyses are recomputed here")
-    && await p3.getByRole("button", { name: "Convert Prism files to CSV…" }).count() === 1, prismNote.slice(0, 120));
-  const axeStart = await axeViolations(p3, [".start-prism"]);
-  expect("axe-core: the start screen's Prism section passes", axeStart.length === 0, axeStart.join(" | "));
+  await p3.locator(".example-banner").waitFor({ timeout: 60000 });
+  await p3.locator("header").getByRole("button", { name: "File", exact: true }).click();
+  const fileItems = (await p3.getByRole("menuitem").allInnerTexts()).join("|");
+  await p3.keyboard.press("Escape");
+  expect("File menu: Open, the example, Describe and Plan, Convert Prism files to CSV",
+    ["Open…", "Open the example project…", "Describe your experiment…", "Plan an experiment…",
+      "Convert Prism files to CSV…"].every((x) => fileItems.includes(x)), fileItems);
   const b64 = readFileSync(join(here, "..", "e2e-fixtures", "sample.pzfx")).toString("base64");
   const dt = await p3.evaluateHandle((b) => {
     const bin = atob(b);
@@ -3139,19 +3172,26 @@ const axeOn = async (pg, sel) => {
     d.items.add(new File([u], "sample.pzfx", { type: "application/xml" }));
     return d;
   }, b64);
-  await p3.dispatchEvent("main.start-screen", "dragover", { dataTransfer: dt });
-  await p3.dispatchEvent("main.start-screen", "drop", { dataTransfer: dt });
+  await p3.dispatchEvent("main.workspace", "dragover", { dataTransfer: dt });
+  await p3.dispatchEvent("main.workspace", "drop", { dataTransfer: dt });
   const ch = p3.locator(".pzfx-chooser");
   await ch.waitFor({ timeout: 180000 });
-  expect("dropped .pzfx: the chooser lists both data tables and says analyses are recomputed",
+  expect("dropped .pzfx: the chooser lists both data tables, ticked, and says analyses are recomputed",
     (await ch.innerText()).includes("analyses are recomputed here")
-    && await ch.getByRole("button", { name: /Dose response/ }).count() === 1
-    && await ch.getByRole("button", { name: /Groups/ }).count() === 1);
+    && await ch.getByRole("checkbox", { name: /Dose response/ }).isChecked()
+    && await ch.getByRole("checkbox", { name: /Groups/ }).isChecked());
+  const axeChooser = await axeViolations(p3, [".pzfx-chooser"]);
+  expect("axe-core: the Prism chooser passes", axeChooser.length === 0, axeChooser.join(" | "));
+  await ch.getByRole("checkbox", { name: /Groups/ }).uncheck();
+  expect("unticking a table changes the import to a count",
+    await ch.getByRole("button", { name: "Import 1 table" }).count() === 1);
+  await ch.getByRole("checkbox", { name: /Groups/ }).check();
   await ch.getByRole("button", { name: "Import all" }).click();
-  expect("Import all: every data table arrives, with the recompute note in a toast",
-    await p3.getByRole("treeitem", { name: "Dose response", exact: true }).waitFor({ timeout: 30000 })
+  expect("Import all: every data table arrives in place of the example, with the recompute note in a toast",
+    await p3.getByRole("treeitem", { name: "Groups", exact: true }).waitFor({ timeout: 30000 })
       .then(() => true, () => false)
-    && await p3.getByRole("treeitem", { name: "Groups", exact: true }).count() === 1
+    && await p3.getByRole("treeitem", { name: "Dose response", exact: true }).count() === 1
+    && await p3.getByRole("treeitem", { name: "Survival example", exact: true }).count() === 0
     && (await p3.getByRole("region", { name: "Notifications (F6)" }).innerText()).includes("analyses are recomputed here"));
   // A table whose results and graphs are deleted lists where to start.
   const groupsItem = p3.getByRole("treeitem", { name: "Groups", exact: true });

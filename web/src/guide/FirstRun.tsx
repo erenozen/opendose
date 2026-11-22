@@ -42,7 +42,7 @@ function ExampleBanner({ data, ids }: { data: DataSheet; ids: ReadonlySet<string
   const { project, select } = useProject();
   const tables = project.sheets.filter((s): s is DataSheet => s.kind === "data" && ids.has(s.id));
   return (
-    <Banner className="first-banner example-banner" icon={null}>
+    <Banner className="first-banner example-banner">
       <Banner.Title>Example data</Banner.Title>
       <Banner.Detail>{PASTE_LINE}</Banner.Detail>
       {tables.length > 1 && (

@@ -187,6 +187,9 @@ writeFileSync(bad, "{ \"this is\": \"not an OpenDose project\" }");
   expect("the Prism chooser does not take focus", await grid.evaluate((el) => el === document.activeElement));
   expect("one filled primary: Import all", await chooser.locator(".btn--primary").count() === 1
     && (await chooser.locator(".btn--primary").innerText()).trim() === "Import all");
+  expect("the chooser lists its tables as ticked checkboxes; Cancel is a keycap",
+    await chooser.getByRole("checkbox").count() === 2
+    && await chooser.getByRole("button", { name: "Cancel" }).evaluate((b) => b.classList.contains("btn--secondary")));
   await chooser.getByRole("button", { name: "Cancel" }).click();
   await page.waitForTimeout(400);
   expect("Cancel closes the chooser", await page.locator(".pzfx-chooser").count() === 0);
@@ -252,22 +255,83 @@ await ctx.close();
   await c.close();
 }
 
-// ------------------------------------------------------------ the start screen
+// ------------------------------------------------------------ first visit during the engine stall
+// No start screen: the example with its shipped result, the boot in the
+// banner's fixed slot. Layout shift is measured with a PerformanceObserver
+// while the runtime download is held (DECISIONS 4: CLS 0), then a paste
+// during the boot, then a failed boot with a pasted table.
 {
   const c = await browser.newContext({ viewport: { width: 1400, height: 900 } });
+  await c.route(/\/pyodide\/|cdn\.jsdelivr\.net/, (route) => {
+    if (/scipy-[^/]*\.whl/.test(route.request().url())) return; // held for good
+    return route.continue();
+  });
+  await c.addInitScript(() => {
+    globalThis.__shifts = [];
+    new PerformanceObserver((l) => {
+      for (const e of l.getEntries()) if (!e.hadRecentInput) globalThis.__shifts.push(e.value);
+    }).observe({ type: "layout-shift", buffered: true });
+  });
   const p = await c.newPage();
-  watch(p, "start");
+  watch(p, "first visit");
   await p.goto(baseUrl, { waitUntil: "domcontentloaded" });
-  await p.locator(".start-screen").waitFor({ timeout: 60000 });
-  const open = p.getByRole("button", { name: "Open a project or Prism file…" });
-  await p.getByRole("button", { name: "Open the example project" }).focus();
-  await p.keyboard.press("Tab");
-  expect("start screen: Tab from the example button reaches Open", await open.evaluate((el) => el === document.activeElement));
-  const chooser = p.waitForEvent("filechooser", { timeout: 5000 }).then(() => true, () => false);
-  await p.keyboard.press("Enter");
-  expect("start screen: Enter on Open opens the picker", await chooser);
-  expect("start screen shows the engine slot",
-    await p.locator(".start-foot .engine-slot [role=status]").count() === 1);
+  await p.locator(".example-banner").waitFor({ timeout: 60000 });
+  await p.waitForFunction(() => /[1-9]/.test(
+    document.querySelector(".engine-boot-note .engine-slot-bytes")?.textContent?.split(" of ")[0] ?? "")
+    || document.querySelector('.engine-boot-note [data-engine-phase="start"]'), null, { timeout: 60000 });
+  await p.waitForTimeout(3000);
+  const shifts = await p.evaluate(() => globalThis.__shifts);
+  expect("first visit: from the first paint through the engine download nothing shifts (CLS 0)",
+    shifts.reduce((a, b) => a + b, 0) === 0, JSON.stringify(shifts));
+  expect("first visit: the shipped result is on screen, said to be computed when this version was built",
+    (await p.locator(".answer-provenance").first().innerText()).startsWith("Computed when this version was built")
+    && await p.locator(".answer-figure").first().isVisible());
+  await p.evaluate((t) => {
+    const dt = new DataTransfer();
+    dt.setData("text/plain", t);
+    document.body.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }));
+  }, "Conc\tRep 1\tRep 2\n0.001\t98\t101\n0.01\t95\t97\n0.1\t70\t66\n1\t30\t35\n10\t5\t8\n");
+  const pasted = p.getByRole("region", { name: /pasted, read as an XY table/ });
+  await pasted.waitFor({ timeout: 10000 });
+  expect("the paste banner is a region named by its title and does not take focus",
+    await pasted.count() === 1 && await p.evaluate(() => document.activeElement === document.body));
+  expect("the paste banner has one filled primary, the verb, and a keycap Undo",
+    await pasted.locator(".btn--primary").count() === 1
+    && (await pasted.locator(".btn--primary").innerText()).trim() === "Fit the curve"
+    && await pasted.getByRole("button", { name: /^Undo/ }).evaluate((b) => b.classList.contains("btn--secondary")));
+  const boot = p.getByRole("region", { name: "Analysis engine" });
+  expect("pasted during the boot: the boot banner says when it is analysed; the headline waits",
+    (await boot.innerText()).includes("Your table is analysed as soon as the engine has loaded.")
+    && (await p.locator(".answer-provenance").first().innerText()) === "Waiting for the analysis engine.");
+  await c.close();
+}
+{
+  const c = await browser.newContext({ viewport: { width: 1400, height: 900 } });
+  await c.route(/\/pyodide\/|cdn\.jsdelivr\.net/, (route) => route.abort("connectionrefused"));
+  const p = await c.newPage();
+  // Refused downloads log console errors by design: page errors only.
+  p.on("pageerror", (e) => errors.push(`pageerror (failed boot): ${e.message}`));
+  await p.goto(baseUrl, { waitUntil: "domcontentloaded" });
+  await p.locator(".example-banner").waitFor({ timeout: 60000 });
+  const boot = p.getByRole("region", { name: "Analysis engine" });
+  await boot.getByRole("button", { name: "Try again" }).waitFor({ timeout: 120000 });
+  expect("failed boot on the example: the shipped result stays on screen, relabelled",
+    (await boot.innerText()).includes("These are saved results")
+    && await p.locator(".answer-figure").first().isVisible());
+  await p.evaluate((t) => {
+    const dt = new DataTransfer();
+    dt.setData("text/plain", t);
+    document.body.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }));
+  }, "Conc\tRep 1\tRep 2\n0.001\t98\t101\n0.01\t95\t97\n0.1\t70\t66\n1\t30\t35\n10\t5\t8\n");
+  await p.locator(".paste-banner").waitFor({ timeout: 10000 });
+  await p.waitForTimeout(1000);
+  const text = await boot.innerText();
+  expect("failed boot with a pasted table: what failed, that the table is kept, the next step, a primary Try again",
+    text.includes("Nothing could be fitted: the analysis engine did not load.")
+    && text.includes("Your table is kept. Check the connection, then try again.")
+    && (await boot.locator(".btn--primary").innerText()).trim() === "Try again"
+    && (await p.locator(".answer-provenance").first().innerText()) === "No result: the analysis engine did not load.",
+    text);
   await c.close();
 }
 

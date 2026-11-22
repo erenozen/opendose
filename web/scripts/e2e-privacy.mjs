@@ -143,17 +143,20 @@ const pasteInto = (selector, text) => page.evaluate(([sel, t]) => {
   el.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }));
 }, [selector, text]);
 
-// --- 1. start screen: paste an XY table, the fit runs --------------------
+// --- 1. first visit: paste an XY table over the example, the fit runs ----
 phase = "boot + XY fit";
 await page.goto(baseUrl, { waitUntil: "domcontentloaded" });
-await page.locator(".start-screen").waitFor({ timeout: 60000 });
-await page.getByRole("textbox", { name: "Paste data and get a table type" }).fill(
-  `Conc\t${CANARY_LABEL} rep 1\t${CANARY_LABEL} rep 2\n`
+await page.locator(".example-banner").waitFor({ timeout: 60000 });
+await page.evaluate((t) => {
+  const dt = new DataTransfer();
+  dt.setData("text/plain", t);
+  document.body.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }));
+}, `Conc\t${CANARY_LABEL} rep 1\t${CANARY_LABEL} rep 2\n`
   + "0.001\t98.649182\t101.2\n0.01\t95.1\t97.649182\n0.1\t70.649182\t66.3\n"
   + "1\t30.2\t35.649182\n10\t5.649182\t8.1\n");
-await page.getByRole("button", { name: "Create XY table" }).click();
+await page.locator(".paste-banner").waitFor({ timeout: 10000 });
 await page.locator(".data-table").waitFor({ timeout: 60000 });
-expect("XY table pasted from the start screen is fitted",
+expect("XY table pasted on the first visit's page is fitted",
   await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 180000 })
     .then(() => true, () => false));
 
@@ -311,7 +314,7 @@ await Promise.all([
   page.waitForNavigation({ timeout: 30000 }),
   prefsPop.getByRole("button", { name: "Forget and close the project" }).click(),
 ]);
-await page.locator(".start-screen").waitFor({ timeout: 60000 });
+await page.locator(".example-banner").waitFor({ timeout: 60000 });
 const after = await stored();
 const dataKeys = after.keys.filter((k) => /^opendose[-.](autosave|import-recipes|plate-layouts|userEquations|templates|start-screen|tour-done)/.test(k));
 expect("after Forget no session, recipe, layout, equation or setting is left, and OpenDose opens as on a first visit",
