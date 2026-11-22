@@ -1,0 +1,71 @@
+/* Button (Button.tsx): one base, four variants, two sizes. The
+   .btn-primary and .btn-danger classes still used by untouched call
+   sites are aliases of the same rules, so they already look like
+   <Button variant="primary|danger">. Class selectors here outrank the
+   element-level `button` defaults in styles/controls.css. */
+
+.btn, .btn-primary, .btn-danger {
+  position: relative;
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--space-6);
+  min-height: 32px; padding: 0 var(--space-12);
+  font: inherit; font-size: var(--text-body-s); font-weight: var(--weight-medium);
+  line-height: var(--leading-tight); white-space: nowrap;
+  color: var(--ink); background: transparent;
+  border: none; border-radius: var(--radius-control);
+  cursor: pointer;
+  transition: transform var(--dur-base) var(--ease-out),
+    background-color var(--dur-base) var(--ease-out),
+    box-shadow var(--dur-base) var(--ease-out);
+}
+.btn--sm { min-height: 26px; padding: 0 var(--space-8); }
+
+/* Variants */
+.btn--secondary { box-shadow: inset 0 0 0 1px var(--line-strong); }
+.btn--ghost { color: var(--ink-2); }
+.btn--primary, .btn-primary {
+  background: var(--accent-fill); color: var(--accent-ink); font-weight: var(--weight-semibold);
+}
+.btn--danger, .btn-danger {
+  background: var(--danger-fill); color: var(--danger-ink-on-fill); font-weight: var(--weight-semibold);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .btn--secondary:hover:not(:disabled), .btn--ghost:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--ink) 7%, transparent); color: var(--ink);
+  }
+  .btn--primary:hover:not(:disabled), .btn-primary:hover:not(:disabled) {
+    background: var(--accent-fill-hover); color: var(--accent-ink);
+  }
+  .btn--danger:hover:not(:disabled), .btn-danger:hover:not(:disabled) {
+    background: var(--danger-fill-hover); color: var(--danger-ink-on-fill);
+  }
+}
+
+.btn:disabled, .btn-primary:disabled, .btn-danger:disabled { opacity: 0.45; cursor: default; }
+/* Busy says what is happening: keep the words readable. */
+.btn[data-busy] { opacity: 0.75; cursor: progress; }
+/* No press feedback while it refuses the press. */
+.btn[data-busy]:active { transform: none; }
+
+/* Busy label swap: both labels in one cell, the hidden one keeps the
+   width (and stays out of the accessible name: visibility hidden). */
+.btn-swap { display: inline-grid; }
+.btn-swap-label { grid-area: 1 / 1; text-align: center; }
+.btn-swap-label[data-shown="false"] { visibility: hidden; }
+
+/* Icon-only buttons (IconButton.tsx): square, the icon centred. */
+.btn--icon { width: 32px; padding: 0; }
+.btn--icon.btn--sm { width: 26px; }
+.btn--icon svg { display: block; flex: none; }
+
+/* Touch: at least 44px to hit. A md button grows to 44px; a small or
+   icon button keeps its look and gets an invisible 44px hit area. */
+@media (pointer: coarse) {
+  .btn, .btn-primary, .btn-danger { min-height: 44px; }
+  .btn--sm, .btn--icon { min-height: 32px; }
+  .btn--icon { width: 32px; }
+  .btn--sm::before, .btn--icon::before {
+    content: ""; position: absolute;
+    inset: min(0px, calc((100% - 44px) / 2));
+  }
+}

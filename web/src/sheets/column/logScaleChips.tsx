@@ -9,6 +9,7 @@ import { readFormat } from "../../graph/format";
 import { findSheet, updateResultsOptions, updateSheet } from "../../project/ops";
 import type { ResultsSheet, Sheet } from "../../project/types";
 import { legendGraph } from "../../report/legendFor";
+import { Banner, Button } from "../../components/ui";
 import type { ColumnOptionsState } from "../../types";
 import { hasLogY, LOG_AXIS_KINDS, withLogY } from "./logAxis";
 import { droppedValues, logScaleApplies, onLogScale, scaleSuggestion } from "./logScale";
@@ -50,57 +51,58 @@ export default function LogScaleChips({ sheet, result, options }: {
   return (
     <div className="log-chips">
       {suggest && (
-        <div className="log-chip chip-info" role="note" data-chip="scale-check">
-          <p className="log-chip-title">
-            <span className="chip-icon" aria-hidden="true">i</span>
-            {suggest.label}
-          </p>
-          <p>
-            Values such as concentrations, titres and expression levels often vary by a factor
-            rather than by an amount: here {suggest.reason}. A t test or ANOVA on such data has
-            wide confidence intervals and little power; on log10(values) the scatter is even, and
-            the result is a ratio of geometric means (a fold change) with its CI.{" "}
-            <Sources />
-          </p>
-          {editable && (
-            <p className="log-chip-actions">
-              <button type="button" onClick={switchOn}>Analyse on the log scale</button>
-            </p>
-          )}
-        </div>
-      )}
-      {dropped && (
-        <div className="log-chip chip-warn" role="note" data-chip="log-dropped">
-          <p className="log-chip-title">
-            <span className="chip-icon" aria-hidden="true">!</span>
-            {dropped.label}
-            {dropped.groups.length > 0 && ` (${dropped.groups.map(([g, n]) => `${g}: ${n}`).join(", ")})`}
-          </p>
-          <button type="button" className="log-chip-more" aria-expanded={open}
-            onClick={() => setOpen(!open)}>{open ? "Less" : "What to consider"}</button>
-          {open && (
+        <Banner tone="info" className="log-chip" data-chip="scale-check">
+          <Banner.Title>{suggest.label}</Banner.Title>
+          <Banner.Detail>
             <p>
-              Zero and negative values have no logarithm, so the log-scale analysis cannot use
-              them. If they are real results (below the detection limit, no response), leaving
-              them out raises the geometric mean of that group: report how many there were, and
-              consider a rank-based test (Mann-Whitney or Kruskal-Wallis), which uses every value
-              without a transform, or analyse the values as they are.{" "}
+              Values such as concentrations, titres and expression levels often vary by a factor
+              rather than by an amount: here {suggest.reason}. A t test or ANOVA on such data has
+              wide confidence intervals and little power; on log10(values) the scatter is even, and
+              the result is a ratio of geometric means (a fold change) with its CI.{" "}
               <Sources />
             </p>
+          </Banner.Detail>
+          {editable && (
+            <Banner.Actions>
+              <Button onClick={switchOn}>Analyse on the log scale</Button>
+            </Banner.Actions>
           )}
-        </div>
+        </Banner>
+      )}
+      {dropped && (
+        <Banner tone="warn" className="log-chip" data-chip="log-dropped">
+          <Banner.Title>
+            {dropped.label}
+            {dropped.groups.length > 0 && ` (${dropped.groups.map(([g, n]) => `${g}: ${n}`).join(", ")})`}
+          </Banner.Title>
+          {open && (
+            <Banner.Detail>
+              <p>
+                Zero and negative values have no logarithm, so the log-scale analysis cannot use
+                them. If they are real results (below the detection limit, no response), leaving
+                them out raises the geometric mean of that group: report how many there were, and
+                consider a rank-based test (Mann-Whitney or Kruskal-Wallis), which uses every value
+                without a transform, or analyse the values as they are.{" "}
+                <Sources />
+              </p>
+            </Banner.Detail>
+          )}
+          <Banner.Actions>
+            <Button variant="ghost" aria-expanded={open}
+              onClick={() => setOpen(!open)}>{open ? "Less" : "What to consider"}</Button>
+          </Banner.Actions>
+        </Banner>
       )}
       {offerAxis && (
-        <div className="log-chip chip-info" role="note" data-chip="log-axis">
-          <p className="log-chip-title">
-            <span className="chip-icon" aria-hidden="true">i</span>
+        <Banner tone="info" className="log-chip" data-chip="log-axis">
+          <Banner.Title>
             The analysis is on the log scale; the graph{dataName ? ` of ${dataName}` : ""} has a
             linear Y axis.
-          </p>
-          <p className="log-chip-actions">
-            <button type="button" onClick={logAxis}>Use a log10 Y axis</button>
-          </p>
-        </div>
+          </Banner.Title>
+          <Banner.Actions>
+            <Button onClick={logAxis}>Use a log10 Y axis</Button>
+          </Banner.Actions>
+        </Banner>
       )}
     </div>
   );

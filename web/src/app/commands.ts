@@ -174,7 +174,7 @@ export function useCommands() {
       for (const g of sources) targets.delete(g.id);
       if (!sources.length) return;
       if (!targets.size) {
-        ui.notify("No other graph of the same kind to restyle.");
+        ui.notify("No other graph of the same kind to restyle.", { tone: "info" });
         return;
       }
       const kinds = [...new Set(sources.map((g) => {
@@ -196,7 +196,7 @@ export function useCommands() {
         n = r.changed;
         return r.project;
       });
-      ui.notify(`Restyled ${n} graph${n === 1 ? "" : "s"}.`);
+      ui.notify(`Restyled ${n} graph${n === 1 ? "" : "s"}.`, { tone: "success" });
     };
 
     return {

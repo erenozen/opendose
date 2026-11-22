@@ -21,7 +21,8 @@ export function usePrismBatch() {
   const convert = async (list: File[]) => {
     if (!list.length) return;
     setBusy(true);
-    ui.notify(`Converting ${list.length} Prism file${list.length === 1 ? "" : "s"} to CSV…`);
+    const toast = ui.notify(`Converting ${list.length} Prism file${list.length === 1 ? "" : "s"} to CSV…`,
+      { tone: "progress" });
     try {
       // The zip code loads on first use.
       const { base64Of, prismCsvZip } = await import("./prismBatch");
@@ -53,7 +54,11 @@ export function usePrismBatch() {
         ? `Saved ${out.tables} table${out.tables === 1 ? "" : "s"} from ${out.files} file`
           + `${out.files === 1 ? "" : "s"} as CSV (prism-tables-csv.zip)`
           + (out.failed.length ? `; not converted: ${out.failed.join("; ")}.` : ".")
-        : `No data tables converted: ${out.failed.join("; ")}.`);
+        : `No data tables converted: ${out.failed.join("; ")}.`,
+      { tone: out.tables ? "success" : "error", id: toast });
+    } catch (e) {
+      ui.notify(`Could not convert the Prism files: ${e instanceof Error ? e.message : e}`,
+        { tone: "error", id: toast });
     } finally {
       setBusy(false);
     }

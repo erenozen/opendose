@@ -53,7 +53,7 @@ export function useBundleExport() {
   const run = useCallback(async () => {
     if (job) return;
     if (!api.engineReady) {
-      ui.notify("The analysis engine is still starting; try again in a moment.");
+      ui.notify("The analysis engine is still starting; try again in a moment.", { tone: "info" });
       return;
     }
     const p = api.store.project;
@@ -105,7 +105,8 @@ export function useBundleExport() {
       saveBlob(new Blob([zip as Uint8Array<ArrayBuffer>], { type: "application/zip" }),
         `${stem(job.input.title, "opendose-project")}-bundle.zip`);
       ui.notify(`Export bundle saved: ${files.length} files`
-        + (job.input.skipped.length ? `; not included: ${job.input.skipped.join(", ")}` : "") + ".");
+        + (job.input.skipped.length ? `; not included: ${job.input.skipped.join(", ")}` : "") + ".",
+      { tone: "success" });
       setJob(null);
     };
     const go = async () => {
@@ -161,7 +162,8 @@ export function useBundleExport() {
       else finish();
     };
     go().catch(() => {
-      ui.notify("The export bundle could not be made. Try again, or export the parts one by one.");
+      ui.notify("The export bundle could not be made. Try again, or export the parts one by one.",
+        { tone: "error" });
       setJob(null);
     });
     return () => { live = false; };

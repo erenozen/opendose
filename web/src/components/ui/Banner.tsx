@@ -1,0 +1,131 @@
+// Banner: one primitive for conditions (DECISIONS 6), placed at the top
+// of the pane it concerns: restore the last session, pick Prism tables,
+// a shared read-only project, the engine boot, a reproduce check, a
+// results chip. Compound parts, so each banner says what it needs:
+//
+//   <Banner tone="info" open={!!offer} onDismiss={dismiss}>
+//     <Banner.Title>Restore your last session?</Banner.Title>
+//     <Banner.Detail>“Assay 3”, 4 sheets, saved 21 Nov.</Banner.Detail>
+//     <Banner.Actions>
+//       <Button variant="primary" onClick={restore}>Restore</Button>
+//     </Banner.Actions>
+//   </Banner>
+//
+// The root is a region named by its title (or by aria-label). A banner
+// never takes focus; `announce` speaks its title once when it appears.
+// Closing (open=false) plays a 150 ms exit before unmounting; the content
+// below then closes the gap at once (no height animation).
+import {
+  createContext, useContext, useEffect, useId, useRef, useState,
+  type HTMLAttributes, type ReactNode, type Ref,
+} from "react";
+import { announce } from "./Announcer.store";
+import { CloseIcon, ToneIcon } from "./feedbackIcons";
+import { IconButton } from "./IconButton";
+import "./Banner.css";
+
+export type BannerTone = "neutral" | "info" | "warn" | "error" | "success";
+
+const EXIT_MS = 150;
+const Ctx = createContext<{ titleId: string } | null>(null);
+
+export interface BannerProps extends Omit<HTMLAttributes<HTMLElement>, "title"> {
+  tone?: BannerTone;
+  /** Shown or not. Leaving plays the exit, then unmounts. Default true. */
+  open?: boolean;
+  /** Replaces the tone's icon; null for none. */
+  icon?: ReactNode | null;
+  /** Adds a dismiss button ("Dismiss" unless dismissLabel says more). */
+  onDismiss?: () => void;
+  dismissLabel?: string;
+  /** Speak the title once when the banner appears. */
+  announce?: boolean;
+  ref?: Ref<HTMLElement>;
+}
+
+function usePresence(open: boolean): { mounted: boolean; closing: boolean } {
+  const [mounted, setMounted] = useState(open);
+  const [closing, setClosing] = useState(false);
+  // Derived during render: opening mounts at once.
+  if (open && !mounted) setMounted(true);
+  if (open && closing) setClosing(false);
+  if (!open && mounted && !closing) setClosing(true);
+  useEffect(() => {
+    if (!closing) return;
+    const t = setTimeout(() => { setMounted(false); setClosing(false); }, EXIT_MS);
+    return () => clearTimeout(t);
+  }, [closing]);
+  return { mounted, closing };
+}
+
+export function Banner({
+  tone = "neutral", open = true, icon, onDismiss, dismissLabel = "Dismiss",
+  announce: speak = false, className, children, ref, ...props
+}: BannerProps) {
+  const titleId = useId();
+  const { mounted, closing } = usePresence(open);
+  // While leaving, show what was there (callers often clear the content
+  // together with `open`).
+  const last = useRef(children);
+  if (open) last.current = children;
+  const root = useRef<HTMLElement | null>(null);
+  const spoken = useRef(false);
+  useEffect(() => {
+    if (!mounted) { spoken.current = false; return; }
+    if (!speak || spoken.current) return;
+    spoken.current = true;
+    const title = root.current?.querySelector(".banner-title")?.textContent ?? "";
+    announce(title, tone === "error" ? "assertive" : "polite");
+  }, [mounted, speak, tone]);
+  if (!mounted) return null;
+  const labelled = props["aria-label"] || props["aria-labelledby"];
+  return (
+    <section
+      ref={(el) => {
+        root.current = el;
+        if (typeof ref === "function") ref(el);
+        else if (ref) ref.current = el;
+      }}
+      className={`banner${className ? ` ${className}` : ""}`}
+      data-tone={tone} data-closing={closing ? "" : undefined}
+      aria-labelledby={labelled ? undefined : titleId} {...props}
+      // Leaving: out of the accessibility tree and inert while it fades.
+      aria-hidden={closing || undefined} inert={closing || undefined}>
+      <div className="banner-grid">
+        {icon !== null && <span className="banner-icon">{icon ?? <ToneIcon tone={tone} />}</span>}
+        <Ctx.Provider value={{ titleId }}>
+          <div className="banner-body">{open ? children : last.current}</div>
+        </Ctx.Provider>
+        {onDismiss && (
+          <IconButton size="sm" className="banner-dismiss" aria-label={dismissLabel}
+            onClick={onDismiss}>
+            <CloseIcon />
+          </IconButton>
+        )}
+      </div>
+    </section>
+  );
+}
+
+export function BannerTitle({ children, className, ...props }: HTMLAttributes<HTMLParagraphElement>) {
+  const ctx = useContext(Ctx);
+  return (
+    <p id={ctx?.titleId} className={`banner-title${className ? ` ${className}` : ""}`} {...props}>
+      {children}
+    </p>
+  );
+}
+
+export function BannerDetail({ children, className, ...props }: HTMLAttributes<HTMLDivElement>) {
+  return <div className={`banner-detail${className ? ` ${className}` : ""}`} {...props}>{children}</div>;
+}
+
+/** Keycaps, at most one filled primary. Wraps under the text below
+ *  620px of banner width. */
+export function BannerActions({ children, className, ...props }: HTMLAttributes<HTMLDivElement>) {
+  return <div className={`banner-actions${className ? ` ${className}` : ""}`} {...props}>{children}</div>;
+}
+
+Banner.Title = BannerTitle;
+Banner.Detail = BannerDetail;
+Banner.Actions = BannerActions;

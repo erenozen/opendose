@@ -242,7 +242,7 @@ export default function ReplayDialog({ dataId, onClose }: { dataId?: string; onC
     api.apply((p) => addSheets(p, [{ ...makeInfoSheet(newId(), uniqueName(p, "Replay log")),
       notes: text, constants: [] }]), null);
     setKept(true);
-    ui.notify("The replay log is now an info sheet in the project.");
+    ui.notify("The replay log is now an info sheet in the project.", { tone: "success" });
   };
 
   if (stage === "log" && log) {
@@ -251,7 +251,11 @@ export default function ReplayDialog({ dataId, onClose }: { dataId?: string; onC
         actions={(
           <>
             <button type="button" className="spacer"
-              onClick={async () => ui.notify(await copyText(replayLogText(log)) ? "Replay log copied." : "Copy failed.")}>
+              onClick={async () => {
+                const ok = await copyText(replayLogText(log));
+                ui.notify(ok ? "Replay log copied." : "Copy failed: select the log and copy it.",
+                  { tone: ok ? "success" : "error" });
+              }}>
               Copy log
             </button>
             <button type="button" onClick={keepLog} disabled={kept}>

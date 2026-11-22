@@ -507,7 +507,7 @@ const scenes = {
     const older = { ...saved, savedWith: { ...saved.savedWith, app: "0.3.0" } };
     const ct = older.sheets.find((s) => s.kind === "results" && s.cached?.analysis === "contingency");
     if (ct) ct.cached.chi_square.p = 0.0234;
-    await page.setInputFiles('.load-btn input[type="file"]', write("saved-0.3.0.json", JSON.stringify(older)));
+    await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]', write("saved-0.3.0.json", JSON.stringify(older)));
     await page.waitForFunction(() => /reproduced with|changed with/.test(
       document.querySelector(".reproduce-strip .rs-headline")?.textContent ?? ""), null, { timeout: 180000 }).catch(() => {});
     await shoot("reproduce", { target: ".reproduce-strip" });

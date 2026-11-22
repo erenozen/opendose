@@ -6,6 +6,9 @@
 import { useId, useMemo, useState, type DragEvent } from "react";
 import { useProject } from "../app/context";
 import { Logo } from "../components/WelcomePanel";
+import { EngineSlot } from "../components/EngineStatus";
+import { FileButton } from "../components/ui/Button";
+import { OPEN_ACCEPT } from "../app/useFileOpen";
 import { newId } from "../project/ids";
 import type { TableType } from "../project/types";
 import { TABLE_ORDER, tableDef } from "../sheets/registry";
@@ -26,7 +29,7 @@ export default function StartScreen({ onOpenFile, onClose, onTour }: {
   onClose: () => void;
   onTour: () => void;
 }) {
-  const { replace, store, status, engineReady, engineError } = useProject();
+  const { replace, store, engine, bootEngine } = useProject();
   const guide = useGuideOptional();
   const prefs = store.project.prefs;
   const [text, setText] = useState("");
@@ -94,16 +97,10 @@ export default function StartScreen({ onOpenFile, onClose, onTour }: {
             <div className="start-row">
               <button type="button" className="btn-primary" onClick={example}>
                 Open the example project</button>
-              <label className="load-btn start-open">
-                Open a project or Prism file…
-                <input type="file" accept=".json,.pzfx,.prism,.zip" hidden
-                  aria-label="Open a project or Prism file"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) { onOpenFile(f); onClose(); }
-                    e.target.value = "";
-                  }} />
-              </label>
+              <FileButton className="start-open" accept={OPEN_ACCEPT}
+                inputLabel="Open a project or Prism file"
+                onFile={(f) => { onOpenFile(f); onClose(); }}>
+                Open a project or Prism file…</FileButton>
             </div>
           </section>
 
@@ -189,10 +186,9 @@ export default function StartScreen({ onOpenFile, onClose, onTour }: {
               onChange={(e) => { setRemember(e.target.checked); setStartScreenEnabled(e.target.checked); }} />
             <span>Show this screen when OpenDose opens</span>
           </label>
-          <span className="start-status" role="status">
-            {engineError ? `Analysis engine failed to load: ${engineError}`
-              : engineReady ? "Analysis engine ready." : status || "Loading the analysis engine…"}
-          </span>
+          <div className="start-status">
+            <EngineSlot engine={engine} onRetry={bootEngine} />
+          </div>
           <button type="button" className="start-skip" onClick={onClose}>
             Skip to the workbench</button>
         </div>

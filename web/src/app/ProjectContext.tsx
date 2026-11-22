@@ -17,6 +17,7 @@ import { setDisplayDigits } from "../types";
 import { setReportPrefs } from "../report/pformat";
 import { reportPrefsOf } from "../report/prefs";
 import { clearShareLink, readShareBoot } from "../share/boot";
+import { notify } from "../components/ui/Toast.store";
 import { ResultsCache } from "./analysis";
 import { applyTheme, watchSystemScheme } from "./theme";
 import { sampleProject } from "./factory";
@@ -38,7 +39,6 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   const [isSample] = useState(() => !shareBoot.project);
   const [readOnly, setReadOnly] = useState(!!shareBoot.project);
   const readOnlyRef = useRef(readOnly);
-  const [status, setStatus] = useState("Starting Python runtime…");
   const history = useSyncExternalStore(store.subscribe, store.getSnapshot);
   const project = history.present;
   const [results] = useState(() => {
@@ -121,7 +121,9 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   // A shared project is read-only until copied: edits are refused.
   const apply = useCallback((fn: (p: Project) => Project, key: string | null = null) => {
     if (readOnlyRef.current) {
-      setStatus("This shared project is read-only. Make a copy to edit it.");
+      // One toast however many edits are refused (same id).
+      notify("This shared project is read-only. Make a copy to edit it.",
+        { tone: "info", id: "read-only" });
       return store.project;
     }
     return store.apply((p) => syncInfoLinks(fn(p)), key);
@@ -169,20 +171,15 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   const engine: EngineState = useSyncExternalStore(subscribeEngine, engineState);
   const [engineReady, setEngineReady] = useState(engine.phase === "ready");
   const engineError = engine.phase === "failed" ? engine.error : null;
+  // Boot progress and failure show in the engine slot (EngineStatus.tsx),
+  // never as messages.
   const bootEngine = useCallback(() => {
-    startEngine()
-      .then(() => {
-        setEngineReady(true);
-        setStatus(shareError ? `Could not open the share link: ${shareError}` : "");
-      })
-      .catch(() => { setStatus(""); });
-  }, [shareError]);
+    startEngine().then(() => setEngineReady(true)).catch(() => {});
+  }, []);
   useEffect(() => { bootEngine(); }, [bootEngine]);
-  // Loading messages while the engine boots.
-  const bootMessage = engine.progress?.message;
   useEffect(() => {
-    if (!engineReady && bootMessage) setStatus(bootMessage);
-  }, [engineReady, bootMessage]);
+    if (shareError) notify(`Could not open the share link: ${shareError}`, { tone: "error", id: "share-link" });
+  }, [shareError]);
   // For the e2e and performance scripts.
   useEffect(() => {
     (globalThis as { __opendose?: unknown }).__opendose = { store, results };
@@ -193,10 +190,10 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     apply, undo: store.undo, redo: store.redo, replace,
     selectedId, select, activeResults, activeGraph, switchedRef,
     prefs, setPrefs,
-    engineReady, engineError, status, setStatus, bootEngine, engine,
+    engineReady, engineError, bootEngine, engine,
     results, readOnly,
   }), [store, history, project, apply, replace, selectedId, select, activeResults,
-    activeGraph, prefs, setPrefs, engineReady, engineError, status, bootEngine, engine,
+    activeGraph, prefs, setPrefs, engineReady, engineError, bootEngine, engine,
     results, readOnly]);
 
   return <Ctx.Provider value={api}>{children}</Ctx.Provider>;
