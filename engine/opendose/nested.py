@@ -47,6 +47,7 @@ import math
 import numpy as np
 from scipy import stats
 
+from . import ddfm
 from . import mixedmodel as mm
 
 
@@ -138,7 +139,8 @@ def _hierarchical_anova(groups):
     }
 
 
-def _common(groups_raw, names, subgroup_names, negative_variance, ci_level):
+def _common(groups_raw, names, subgroup_names, negative_variance, ci_level,
+            ddf="containment"):
     groups = _clean_groups(groups_raw)
     m = _fit(groups, negative_variance)
     fit, k, df = m["fit"], m["k"], m["df"]
@@ -146,12 +148,21 @@ def _common(groups_raw, names, subgroup_names, negative_variance, ci_level):
 
     L = np.array([np.concatenate([[1.0], mm.effect_row(t, k)])
                   for t in range(k)])
-    emm, emm_cov = mm.estimate(fit, L)
-    tcrit = float(stats.t.ppf(0.5 + ci_level / 2, df))
+    m["L"] = L
+    if ddf == "containment":
+        emm, emm_cov = mm.estimate(fit, L)
+        m["D"] = None
+        mean_df = [float(df)] * k
+    else:
+        D = m["D"] = ddfm.Ddf(fit)
+        emm, emm_cov = L @ D.beta, L @ D.cov(ddf) @ L.T
+        mean_df = [D.contrast(ddf, L[t])[1] for t in range(k)]
     means = []
     for t in range(k):
         se = math.sqrt(emm_cov[t, t])
+        tcrit = float(stats.t.ppf(0.5 + ci_level / 2, mean_df[t]))
         means.append({"name": names[t], "mean": float(emm[t]), "se": se,
+                      "df": float(mean_df[t]),
                       "ci": [float(emm[t] - tcrit * se),
                              float(emm[t] + tcrit * se)],
                       "n_subcolumns": len(groups[t]),
@@ -211,7 +222,9 @@ def _common(groups_raw, names, subgroup_names, negative_variance, ci_level):
             "residual": [float(v) for v in fit["residuals"]]},
         "data_analyzed": {"n_treatments": k, "n_subcolumns": m["n_sub"],
                           "n_values": int(m["y"].size)},
-        "df_method": "containment (subcolumns - columns)",
+        "ddf": ddf,
+        "df_method": ("containment (subcolumns - columns)"
+                      if ddf == "containment" else ddfm.LABELS[ddf]),
         "names": names,
     }
     return m, emm, emm_cov, common
@@ -219,21 +232,29 @@ def _common(groups_raw, names, subgroup_names, negative_variance, ci_level):
 
 def nested_t_test(groups, *, names=None, subgroup_names=None,
                   ci_level: float = 0.95, swap: bool = False,
-                  negative_variance: str = "allow") -> dict:
+                  negative_variance: str = "allow",
+                  ddf: str = "containment") -> dict:
     """Nested t test: two groups, each with subcolumns of replicates.
 
     groups: [[subcol values, ...], [subcol values, ...]].
     Difference reported as B - A (swap=True gives A - B), with SEM,
-    t, df, two-tailed P, F (= t^2, DFn 1) and the CI.
+    t, df, two-tailed P, F (= t^2, DFn 1) and the CI. ddf: "containment"
+    (subcolumns - columns), "kenward_roger" or "satterthwaite"
+    (opendose.ddfm).
     """
+    ddf = ddfm.method_of(ddf)
     if len(groups) != 2:
         raise ValueError("the nested t test compares exactly 2 groups")
     m, emm, cov, common = _common(groups, names, subgroup_names,
-                                  negative_variance, ci_level)
+                                  negative_variance, ci_level, ddf)
     df = m["df"]
     a, b = (1, 0) if swap else (0, 1)
     diff = float(emm[b] - emm[a])
     se = math.sqrt(cov[0, 0] + cov[1, 1] - 2 * cov[0, 1])
+    if m["D"] is not None:
+        c = np.zeros(2)
+        c[b], c[a] = 1.0, -1.0
+        df = m["D"].contrast(ddf, c @ m["L"])[1]
     t = diff / se
     p = float(2 * stats.t.sf(abs(t), df))
     tcrit = float(stats.t.ppf(0.5 + ci_level / 2, df))
@@ -241,8 +262,10 @@ def nested_t_test(groups, *, names=None, subgroup_names=None,
     return {
         "analysis": "nested_t_test",
         "comparison": f"{names[b]} - {names[a]}",
-        "t": float(abs(t)), "df": int(df),
-        "F": float(t * t), "df_num": 1, "df_den": int(df),
+        "t": float(abs(t)),
+        "df": int(df) if ddf == "containment" else float(df),
+        "F": float(t * t), "df_num": 1,
+        "df_den": int(df) if ddf == "containment" else float(df),
         "p": p, "significant_05": bool(p < 0.05),
         "tails": "two",
         "difference": diff, "se_difference": se,
@@ -255,31 +278,42 @@ def nested_t_test(groups, *, names=None, subgroup_names=None,
 def nested_one_way_anova(groups, *, names=None, subgroup_names=None,
                          comparisons=None, control_index: int = 0,
                          ci_level: float = 0.95,
-                         negative_variance: str = "allow") -> dict:
+                         negative_variance: str = "allow",
+                         ddf: str = "containment") -> dict:
     """Nested one-way ANOVA: three or more groups with subcolumns.
 
     comparisons: None | tukey | dunnett | bonferroni | sidak | holm_sidak
     | fisher, on the model's estimated group means with the model's SE of
     each difference and df = subcolumns - columns.
     """
+    ddf = ddfm.method_of(ddf)
     if len(groups) < 2:
         raise ValueError("need at least 2 groups")
     m, emm, cov, common = _common(groups, names, subgroup_names,
-                                  negative_variance, ci_level)
+                                  negative_variance, ci_level, ddf)
     k, df = m["k"], m["df"]
-    test = mm.wald_f(m["fit"], range(1, k), df, epsilon=None)
+    D = m["D"]
+    if D is None:
+        test = mm.wald_f(m["fit"], range(1, k), df, epsilon=None)
+        cmp_df = df
+    else:
+        test = mm._ddf_test(D, ddf, np.eye(k)[1:])
+
+        def cmp_df(c):
+            return D.contrast(ddf, c @ m["L"])[1]
     out = {
         "analysis": "nested_one_way_anova",
-        "F": test["F"], "df_num": test["df_num"], "df_den": int(df),
+        "F": test["F"], "df_num": test["df_num"],
+        "df_den": int(df) if D is None else float(test["df_den"]),
         "p": test["p"], "significant_05": bool(test["p"] < 0.05),
         **common,
     }
     if comparisons:
         comps = mm.compare_estimates(
-            emm, cov, df, comparisons, names=common["names"],
+            emm, cov, cmp_df, comparisons, names=common["names"],
             control_index=control_index, ci_level=ci_level)
         out["multiple_comparisons"] = {
-            "method": comparisons, "df": int(df),
+            "method": comparisons, "df": int(df) if D is None else None,
             "n_comparisons_per_family": (k - 1 if comparisons == "dunnett"
                                          else k * (k - 1) // 2),
             "comparisons": comps,

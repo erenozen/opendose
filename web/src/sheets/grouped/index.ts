@@ -84,7 +84,7 @@ export const nestedTwoWayAnalysis = defineAnalysis<NestedTwoWayOptions, Result>(
     + "culture: a mixed model with the unit as a random intercept, so the df come from "
     + "the units, not the values.",
   sheetName: (t) => `Nested two-way ANOVA of ${t}`,
-  defaultOptions: () => ({ ...DEFAULT_NESTED_TWO_WAY }),
+  defaultOptions: () => ({ ...DEFAULT_NESTED_TWO_WAY, mixedDdf: DDF_NEW_SHEET }),
   normalizeOptions: (raw) => normalizeNestedTwoWay(raw),
   run: runNestedTwoWay,
   defaultGraph: G_MIXED_NESTED,

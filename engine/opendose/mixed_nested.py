@@ -58,6 +58,7 @@ from itertools import product
 import numpy as np
 from scipy import stats
 
+from . import ddfm
 from . import mixedmodel as mm
 from .moretests import METHOD_NAMES, comparison_family
 
@@ -125,14 +126,17 @@ def _holm(entries):
 
 
 def family_comparisons(fit, families, method: str, *, ci_level=0.95,
-                       control_index: int = 0, scope_label: str = "") -> dict:
+                       control_index: int = 0, scope_label: str = "",
+                       D=None, ddf: str = "containment") -> dict:
     """Comparisons of model-estimated means in one or several families.
 
     families: list of (family name, L rows (k x p), mean names, df).
     tukey / dunnett adjust within each family; bonferroni, sidak,
     holm_sidak, holm and fisher count every comparison in every family
     (as mixedmodel.mixed_rm_two_way does, following Prism's two-way
-    convention). Returns {method, scope, n_comparisons, comparisons,
+    convention). D (an opendose.ddfm.Ddf) and ddf: Kenward-Roger or
+    Satterthwaite SEs and df for each comparison instead of the families'
+    containment df. Returns {method, scope, n_comparisons, comparisons,
     family, families}."""
     if method not in COMPARISON_METHODS:
         raise ValueError(f"unknown multiple-comparisons method: {method}")
@@ -145,7 +149,13 @@ def family_comparisons(fit, families, method: str, *, ci_level=0.95,
     for name, L, names, df in families:
         if L.shape[0] < 2:
             continue
-        est, cov = mm.estimate(fit, L)
+        if D is None:
+            est, cov = mm.estimate(fit, L)
+        else:
+            est, cov = L @ D.beta, L @ D.cov(ddf) @ L.T
+
+            def df(c, L=L):
+                return D.contrast(ddf, c @ L)[1]
         part = mm.compare_estimates(
             est, cov, df, base, names=names, control_index=control_index,
             ci_level=ci_level, n_family_total=total, family=name)
@@ -153,7 +163,8 @@ def family_comparisons(fit, families, method: str, *, ci_level=0.95,
         blk = mm.comparisons_family(base, L.shape[0], part, names,
                                     control_index)
         blocks.append({"name": name, "n_means": int(L.shape[0]),
-                       "n_comparisons": len(part), "df": float(df), **blk})
+                       "n_comparisons": len(part),
+                       "df": None if callable(df) else float(df), **blk})
     if method == "holm":
         _holm(comps)
         for blk in blocks:
@@ -190,14 +201,18 @@ def fit_unit_model(y, factors, units, *, unit_names=None,
                    negative_variance: str = "allow",
                    ci_level: float = 0.95, comparisons=None,
                    comparison_scope=None, control_index: int = 0,
-                   unit_word: str = "units") -> dict:
+                   unit_word: str = "units",
+                   ddf: str = "containment") -> dict:
     """Fit value ~ factors (one or two, with interaction) + (1 | unit).
 
     y: values; factors: list of (name, codes (0-based int array), level
     names); units: unit codes (0-based int array, one per value; unit
     labels are taken as given: the same code is the same unit wherever it
     appears). Factors with a single level are left out of the model.
+    ddf: "containment" (below), "kenward_roger" or "satterthwaite"
+    (opendose.ddfm: each test, mean and comparison gets its own df).
     """
+    ddf = ddfm.method_of(ddf)
     if negative_variance not in ("allow", "zero"):
         raise ValueError("negative_variance must be 'allow' or 'zero'")
     y = np.asarray(y, dtype=float)
@@ -263,6 +278,7 @@ def fit_unit_model(y, factors, units, *, unit_names=None,
                          "variation cannot be estimated)")
     fit = mm.fit_reml(y, X, [("Unit", units)],
                       allow_negative=negative_variance == "allow")
+    D = ddfm.Ddf(fit) if ddf != "containment" else None
 
     # containment: is each unit within a single level of each factor?
     nested_in = {}
@@ -281,9 +297,14 @@ def fit_unit_model(y, factors, units, *, unit_names=None,
         contained = all(nested_in[f] for f in t["factors"])
         t["df"] = df_unit if contained else df_res
         t["contained"] = contained
-        w = mm.wald_f(fit, t["cols"], t["df"])
+        if D is None:
+            w = mm.wald_f(fit, t["cols"], t["df"])
+            dfd = int(t["df"])
+        else:
+            w = mm._ddf_test(D, ddf, np.eye(X.shape[1])[t["cols"]])
+            dfd = float(w["df_den"])
         anova.append({"term": t["name"], "f": w["F"], "dfn": w["df_num"],
-                      "dfd": int(t["df"]), "p": w["p"],
+                      "dfd": dfd, "p": w["p"],
                       "significant_05": bool(w["p"] is not None
                                              and w["p"] < 0.05),
                       "error_term": (f"{unit_word} within cells"
@@ -300,16 +321,27 @@ def fit_unit_model(y, factors, units, *, unit_names=None,
     cells = list(product(*[range(len(lv)) for lv in levels]))
     Lcell = np.array([cell_row(c) for c in cells])
     cell_df = terms[-1]["df"]
-    est, cov = mm.estimate(fit, Lcell)
-    tcrit = float(stats.t.ppf(0.5 + ci_level / 2, cell_df))
+
+    def est_cov(L):
+        if D is None:
+            return mm.estimate(fit, L)
+        return L @ D.beta, L @ D.cov(ddf) @ L.T
+
+    def row_df(L, k, containment_df):
+        return (float(containment_df) if D is None
+                else D.contrast(ddf, L[k])[1])
+
+    est, cov = est_cov(Lcell)
     cell_means = []
     codes_all = [c for _, c, _ in active]
     for k, cell in enumerate(cells):
         sel = np.all([codes_all[f] == i for f, i in enumerate(cell)], axis=0)
         se = math.sqrt(max(cov[k, k], 0.0))
+        dfk = row_df(Lcell, k, cell_df)
+        tcrit = float(stats.t.ppf(0.5 + ci_level / 2, dfk))
         entry = {"mean": float(est[k]), "se": se,
                  "ci": [float(est[k] - tcrit * se), float(est[k] + tcrit * se)],
-                 "df": int(cell_df),
+                 "df": int(dfk) if D is None else dfk,
                  "n_units": int(np.unique(units[sel]).size),
                  "n_values": int(sel.sum()),
                  "raw_mean": float(y[sel].mean())}
@@ -326,14 +358,16 @@ def fit_unit_model(y, factors, units, *, unit_names=None,
             rows.append(Lcell[idx].mean(axis=0))
         Lm = np.array(rows)
         marg_L.append(Lm)
-        e, c = mm.estimate(fit, Lm)
-        dfm = terms[f]["df"]
-        tq = float(stats.t.ppf(0.5 + ci_level / 2, dfm))
-        marginal[name] = [{"level": lv[i], "mean": float(e[i]),
-                           "se": math.sqrt(max(c[i, i], 0.0)),
-                           "ci": [float(e[i] - tq * math.sqrt(max(c[i, i], 0))),
-                                  float(e[i] + tq * math.sqrt(max(c[i, i], 0)))],
-                           "df": int(dfm)} for i in range(len(lv))]
+        e, c = est_cov(Lm)
+        marginal[name] = []
+        for i in range(len(lv)):
+            dfm = row_df(Lm, i, terms[f]["df"])
+            tq = float(stats.t.ppf(0.5 + ci_level / 2, dfm))
+            se = math.sqrt(max(c[i, i], 0.0))
+            marginal[name].append({
+                "level": lv[i], "mean": float(e[i]), "se": se,
+                "ci": [float(e[i] - tq * se), float(e[i] + tq * se)],
+                "df": int(dfm) if D is None else dfm})
 
     # variance components, ICC, design effect (Aarts et al. 2014)
     var_u = fit["variance_components"][0]["variance"]
@@ -396,9 +430,10 @@ def fit_unit_model(y, factors, units, *, unit_names=None,
             "log_likelihood": fit["log_likelihood"],
             "aic": fit["aic"], "bic": fit["bic"],
             "converged": fit["converged"]},
+        "ddf": ddf,
         "df_method": ("containment: terms nested in units use the units' "
                       "rank contribution (units - cells), others the "
-                      "residual df"),
+                      "residual df" if D is None else ddfm.LABELS[ddf]),
         "factor_names": [nm for nm, _, _ in active],
         "levels": {nm: list(lv) for nm, _, lv in active},
         "comparisons": None,
@@ -433,7 +468,7 @@ def fit_unit_model(y, factors, units, *, unit_names=None,
             raise ValueError(f"unknown comparison_scope: {scope}")
         out["comparisons"] = family_comparisons(
             fit, fams, comparisons, ci_level=ci_level,
-            control_index=control_index, scope_label=scope)
+            control_index=control_index, scope_label=scope, D=D, ddf=ddf)
     out["warnings"] = warnings
     out["_fit"] = fit
     return out
@@ -585,7 +620,7 @@ def mixed_nested_two_way(data, options=None) -> dict:
         comparisons=options.get("comparisons"),
         comparison_scope=options.get("comparison_scope"),
         control_index=options.get("control_index", 0),
-        unit_word=unit_word)
+        unit_word=unit_word, ddf=options.get("ddf", "containment"))
     active = res["factor_names"]
     formula = (f"value ~ {' * '.join(active)} + (1 | unit)")
     out = {"analysis": "mixed_nested_two_way",
@@ -662,7 +697,7 @@ def mixed_grouping(variables, outcome, factors, grouping, options=None
         comparisons=options.get("comparisons"),
         comparison_scope=options.get("comparison_scope"),
         control_index=options.get("control_index", 0),
-        unit_word=unit_word)
+        unit_word=unit_word, ddf=options.get("ddf", "containment"))
     out = {"analysis": "mixed_grouping",
            "method": ("Linear mixed model, REML, random intercept per "
                       "group; Type III Wald F tests"),

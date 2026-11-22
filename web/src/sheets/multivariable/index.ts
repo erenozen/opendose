@@ -26,6 +26,7 @@ import {
   ANALYSIS_MV_MIXED_GROUPING, defaultMixedGrouping, normalizeMixedGrouping, runMixedGrouping,
   type MixedGroupingOptions,
 } from "./mixedGrouping";
+import { DDF_NEW_SHEET } from "../common/ddf";
 
 // Panels load on first use (sheets/lazy.ts).
 const controlsModule = () => import("./controls");
@@ -222,7 +223,8 @@ export const mvMixedGrouping = defineAnalysis<MixedGroupingOptions, Record<strin
   description: "An outcome, one or two factors and a grouping column (animal, litter, "
     + "cage) fitted as a random intercept: the df come from the groups, not the rows.",
   sheetName: (t) => `Mixed model of ${t}`,
-  defaultOptions: ({ table }) => defaultMixedGrouping(table),
+  // new sheets: Kenward-Roger df (sheets/common/ddf.ts)
+  defaultOptions: ({ table }) => ({ ...defaultMixedGrouping(table), mixedDdf: DDF_NEW_SHEET }),
   normalizeOptions: (raw, { table }) => normalizeMixedGrouping(raw, table),
   run: runMixedGrouping,
   defaultGraph: G_MIXED_NESTED,

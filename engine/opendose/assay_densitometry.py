@@ -81,7 +81,7 @@ def _geo_summary(values, ci_level):
 
 def densitometry(records, *, control_group=None, control_lanes=None,
                  saturation_limit=None, test="auto", comparisons=None,
-                 groups=None, ci_level=0.95) -> dict:
+                 groups=None, ci_level=0.95, ddf="containment") -> dict:
     """records: [{blot, lane, sample?, group, target, reference,
     background?, reference_background?}]. control_lanes: {blot: lane}
     to normalise each blot to one designated lane instead of the mean
@@ -230,10 +230,13 @@ def densitometry(records, *, control_group=None, control_lanes=None,
                      for v in mat[g]] for g in ordered]
             method = comparisons or "dunnett"
             complete = all(all(v is not None for v in col) for col in logs)
+            # ddf matters only with missing blots (the mixed model is
+            # then the test); with every blot complete all df methods
+            # give the RM ANOVA's numbers
             mm = mixedmodel.mixed_rm_one_way(logs, ordered,
                                              comparisons=method,
                                              control_index=0,
-                                             ci_level=ci_level)
+                                             ci_level=ci_level, ddf=ddf)
             if complete:
                 result = repeated.rm_one_way_anova(logs, ordered)
                 result["test"] = "rm_one_way_anova_log10"

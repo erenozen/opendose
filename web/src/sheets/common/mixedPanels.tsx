@@ -14,6 +14,8 @@ import { CHROME_DARK, CHROME_LIGHT, PLOT_FONT, seriesStyle } from "../../lib/pal
 import { formatSig } from "../../types";
 import CopyableMethods from "./CopyableMethods";
 import TableCopy from "./TableCopy";
+import DdfSelect from "./DdfSelect";
+import { ddfName, ddfOf } from "./ddf";
 import { asRecord, useGraphOptions } from "./graphOptions";
 import {
   adjustedText, bracketX, CELL_GAP, cellX, factorsOf, iccSentence, MIXED_COMPARISON_LABELS,
@@ -174,9 +176,10 @@ export function UnitControls<O extends MixedUnitOptions>({ o, set, a, b, la, lb 
             </select>
           </label>
         )}
-        <p className="hint-block">Comparisons use the model-estimated means and the same df as
-          the F tests. Tukey and Dunnett adjust within each family; Šídák, Bonferroni and Holm
-          count every comparison of every family.</p>
+        <p className="hint-block">Comparisons use the model-estimated means and the df of the
+          chosen method (containment: the F tests&apos; df; Kenward-Roger or Satterthwaite: each
+          comparison its own). Tukey and Dunnett adjust within each family; Šídák, Bonferroni and
+          Holm count every comparison of every family.</p>
       </section>
       <section>
         <h3>Options</h3>
@@ -195,6 +198,7 @@ export function UnitControls<O extends MixedUnitOptions>({ o, set, a, b, la, lb 
             <option value="zero">Constrain to zero</option>
           </select>
         </label>
+        <DdfSelect value={o.mixedDdf} onChange={(m) => set({ mixedDdf: m } as Partial<O>)} />
       </section>
     </>
   );
@@ -252,9 +256,11 @@ export function MixedUnitResults({ options, result: r }: ResultsProps<MixedUnitO
               {anova.map((x) => (
                 <tr key={x.term}>
                   <th scope="row">{x.term}</th>
-                  <td>F({x.dfn}, {x.dfd}) = {f(x.f, 4)}</td>
+                  <td>F({x.dfn}, {formatSig(x.dfd)}) = {f(x.f, 4)}</td>
                   <td>{fmtP(x.p)}</td><td>{stars(x.p)}</td>
-                  <td>{x.error_term === "residual" ? "residual (varies within units)" : `${words.plural} (${x.dfd} df)`}</td>
+                  <td>{ddfOf(r.ddf) !== "containment"
+                    ? `${ddfName(ddfOf(r.ddf))} df (${x.error_term === "residual" ? "varies within units" : words.plural})`
+                    : x.error_term === "residual" ? "residual (varies within units)" : `${words.plural} (${x.dfd} df)`}</td>
                 </tr>
               ))}
             </tbody>

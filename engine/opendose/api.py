@@ -1942,7 +1942,8 @@ def _nested_ttest(data, options):
         groups, names=names, subgroup_names=sub_names,
         ci_level=options.get("ci_level", 0.95),
         swap=options.get("swap", False),
-        negative_variance=options.get("negative_variance", "allow"))
+        negative_variance=options.get("negative_variance", "allow"),
+        ddf=options.get("ddf", "containment"))
 
 
 def _nested_anova(data, options):
@@ -1956,7 +1957,8 @@ def _nested_anova(data, options):
         comparisons=options.get("comparisons"),
         control_index=options.get("control_index", 0),
         ci_level=options.get("ci_level", 0.95),
-        negative_variance=options.get("negative_variance", "allow"))
+        negative_variance=options.get("negative_variance", "allow"),
+        ddf=options.get("ddf", "containment"))
 
 
 def _mixed_rm_oneway(data, options):
@@ -2780,7 +2782,8 @@ def _densitometry(data, options):
     [{blot, lane, sample?, group, target, reference, background?,
     reference_background?}]}. options: control_group, control_lanes
     ({blot: lane}), saturation_limit, test ("auto" | "ratio_paired" |
-    "one_sample" | "rm_anova" | "none"), comparisons, groups, ci_level.
+    "one_sample" | "rm_anova" | "none"), comparisons, groups, ci_level,
+    ddf (the mixed model's df with missing blots, as mixed_rm_oneway).
     Returns {"lanes" (corrected, normalized, fold_change, flags),
     "per_blot", "matched_fold_change", "statistics", "group_summaries"
     (geometric mean fold with CI), "graph" (points, paired lines per
@@ -2789,7 +2792,7 @@ def _densitometry(data, options):
         data.get("records") or [],
         **_assay_kw(options, ("control_group", "control_lanes",
                               "saturation_limit", "test", "comparisons",
-                              "groups", "ci_level")))
+                              "groups", "ci_level", "ddf")))
 
 
 def _luciferase(data, options):

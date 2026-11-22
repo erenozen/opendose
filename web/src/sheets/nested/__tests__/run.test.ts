@@ -28,7 +28,7 @@ test("groups = datasets, subgroups = non-empty subcolumns, names aligned", () =>
       { name: "Group B", subgroups: [[5, 6], [7, 8], [9]],
         subgroup_names: ["B1", "Dish 2", "B3"] },
     ] },
-    options: { ci_level: 0.95, swap: false, negative_variance: "allow" },
+    options: { ci_level: 0.95, swap: false, negative_variance: "allow", ddf: "containment" },
   });
 });
 
@@ -39,7 +39,7 @@ test("excluded values are left out; dunnett control index passes through", () =>
   const p = b.payload as { data: { groups: { subgroups: number[][] }[] }; options: unknown };
   assert.deepEqual(p.data.groups[1].subgroups, [[5, 6], [7, 8]]);
   assert.deepEqual(p.options, { comparisons: "dunnett", control_index: 1,
-    ci_level: 0.95, negative_variance: "allow" });
+    ci_level: 0.95, negative_variance: "allow", ddf: "containment" });
   const none = nestedAnovaPayload(t, { ...DEFAULT_NESTED_ANOVA, comparisons: "none" });
   assert.equal((none.payload as { options: { comparisons: unknown } }).options.comparisons, null);
 });
@@ -56,4 +56,10 @@ test("friendly errors before the engine is asked", () => {
     /two or more subcolumns/);
   assert.deepEqual(normalizeNestedAnova({ comparisons: "bogus", ciLevel: 0.99 }),
     { ...DEFAULT_NESTED_ANOVA, ciLevel: 0.99 });
+});
+
+test("the df method: absent = containment, a saved choice is kept and sent", async () => {
+  const { normalizeNestedT, normalizeNestedAnova } = await import("../run.ts");
+  assert.equal("mixedDdf" in normalizeNestedT({}), false);
+  assert.equal(normalizeNestedAnova({ mixedDdf: "satterthwaite" }).mixedDdf, "satterthwaite");
 });
