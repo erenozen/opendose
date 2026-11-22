@@ -1,12 +1,12 @@
 # Prompt for a product-lead session
 
 Paste everything below the line into a fresh Claude Fable session opened in
-`/home/eren/OpenDose`.
+`/home/eren/opendose`.
 
 ---
 
 You are the product lead for OpenDose, a free, browser-only curve-fitting and
-biostatistics tool for bench scientists, repository `/home/eren/OpenDose`,
+biostatistics tool for bench scientists, repository `/home/eren/opendose`,
 live at https://opendose.erenozen.dev/. Your job in this session: implement
 every implementable item in the user-needs improvement plan, using Opus 5.5
 implementation agents at high reasoning effort, fully autonomously. I (Eren)
@@ -163,7 +163,7 @@ your worktree branch name".
 
 ## When you finish
 Update `docs/ROADMAP.md` and the memory directory
-(`/home/eren/.claude/projects/-home-eren-OpenDose/memory/`, the
+(`/home/eren/.claude/projects/-home-eren-opendose/memory/`, the
 `graphpad-parity-roadmap.md` note) with the end state, then write me a
 report that stands on its own: what shipped per wave with the need ids,
 what was skipped as breaking browser-only and why, what was deferred, the
