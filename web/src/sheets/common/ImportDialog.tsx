@@ -445,7 +445,7 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
 
       <div className="import-preview" tabIndex={0} aria-label="Preview of the data to import">
         {empty ? (
-          <p className="import-summary" style={{ padding: "10px 12px" }}>
+          <p className="import-summary" style={{ padding: "10px var(--space-12)" }}>
             {busy ? "Reading the workbook…" : "Nothing to preview yet."}
           </p>
         ) : (

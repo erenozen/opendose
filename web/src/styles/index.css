@@ -3,6 +3,10 @@
    own components load after this file. */
 
 @import "@fontsource-variable/inter";
+/* The italic faces (Latin file 52 kB), fetched only once italic text
+   renders: excluded grid cells, citations, <em>. With font-synthesis:
+   none the browser would otherwise draw them upright. Not preloaded. */
+@import "@fontsource-variable/inter/wght-italic.css";
 @import "./tokens.css";
 @import "./base.css";
 @import "../components/header.css";

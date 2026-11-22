@@ -10,34 +10,34 @@
   display: flex; flex-direction: column; gap: 0;
 }
 .mv-varlist > legend {
-  padding: 0; margin-bottom: 8px; font-size: 11.5px; text-transform: uppercase;
-  letter-spacing: 0.07em; color: var(--muted); font-weight: 650;
+  padding: 0; margin-bottom: var(--space-8); font-size: var(--text-label); text-transform: uppercase;
+  letter-spacing: 0.07em; color: var(--muted); font-weight: var(--weight-semibold);
 }
 .mv-kind {
-  font-size: 11px; color: var(--muted); border: 1px solid var(--border);
-  border-radius: var(--radius-pill); padding: 0 7px;
+  font-size: var(--text-caption); color: var(--muted); border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control); padding: 0 7px;
 }
 .mv-pred { display: flex; flex-direction: column; }
-.mv-ref { padding-left: 24px; font-size: 12.5px; }
-.mv-ref select { font-size: 12.5px; padding: 3px 7px; }
+.mv-ref { padding-left: var(--space-24); font-size: var(--text-body-s); }
+.mv-ref select { font-size: var(--text-body-s); padding: 3px 7px; }
 .mv-field > span:first-child { min-width: 12ch; }
 .mv-field .field-note { flex-basis: 100%; }
 .mv-wide { width: 100%; }
 .mv-rule-list {
-  list-style: none; margin: 0 0 8px; padding: 0;
-  display: flex; flex-direction: column; gap: 6px;
+  list-style: none; margin: 0 0 var(--space-8); padding: 0;
+  display: flex; flex-direction: column; gap: var(--space-6);
 }
 .mv-rule-list > li {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-6);
   color: var(--ink-2);
 }
 .mv-rule select { max-width: 14ch; }
 .mv-name-input { width: 12ch; }
-.mv-rule-add { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.mv-rule-add { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-6); }
 .mv-rule-add select { max-width: 14ch; }
 button.mv-remove {
-  font-size: 12px; padding: 4px 10px; color: var(--muted); background: transparent;
-  border: 1px solid var(--border);
+  font-size: var(--text-caption); padding: var(--space-4) 10px; color: var(--muted); background: transparent;
+  border: 1px solid var(--line-strong);
 }
 @media (hover: hover) and (pointer: fine) {
   button.mv-remove:hover { color: var(--danger); background: transparent; }
@@ -47,23 +47,23 @@ button.mv-remove {
 /* ---- results */
 .mv-scroll { overflow-x: auto; max-width: 100%; }
 .mv-grid th, .mv-grid td { white-space: nowrap; padding-right: 14px; }
-.mv-grid tbody th { font-weight: 500; }
+.mv-grid tbody th { font-weight: var(--weight-medium); }
 .mv-equation { font-variant-numeric: tabular-nums; }
-.mv-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 4px; }
+.mv-actions { display: flex; flex-wrap: wrap; gap: var(--space-8); margin: 10px 0 var(--space-4); }
 .mv-actions .btn-primary:disabled { opacity: 0.5; cursor: default; }
 
 .mv-seg {
-  display: inline-flex; flex-wrap: wrap; gap: 0; margin: 8px 0 10px;
-  background: var(--seg-track); border-radius: 9px; padding: 2px;
+  display: inline-flex; flex-wrap: wrap; gap: 0; margin: var(--space-8) 0 10px;
+  background: var(--seg-track); border-radius: var(--radius-dialog); padding: var(--space-2);
 }
 .mv-seg button {
-  border: none; background: transparent; border-radius: 7px;
-  padding: 5px 12px; font-size: 12.5px; color: var(--ink-2);
-  transition: background-color 160ms ease, color 160ms ease;
+  border: none; background: transparent; border-radius: var(--radius-menu);
+  padding: 5px var(--space-12); font-size: var(--text-body-s); color: var(--ink-2);
+  transition: background-color var(--dur-base) var(--ease-out), color var(--dur-base) var(--ease-out);
 }
 .mv-seg button.active {
-  background: var(--seg-thumb); color: var(--ink); font-weight: 600;
-  box-shadow: var(--seg-shadow);
+  background: var(--seg-thumb); color: var(--ink); font-weight: var(--weight-semibold);
+  box-shadow: var(--elev-seg);
 }
 @media (hover: hover) and (pointer: fine) {
   .mv-seg button:hover { background: transparent; color: var(--ink); }
