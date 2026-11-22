@@ -12,10 +12,10 @@
 }
 .modal::backdrop { background: var(--scrim); }
 .modal-wide { width: min(880px, calc(100vw - 32px)); }
-.modal-body { display: flex; flex-direction: column; gap: 14px; padding: 20px 22px 18px; }
+.modal-body { display: flex; flex-direction: column; gap: 14px; padding: var(--space-20) 22px 18px; }
 .modal-title { margin: 0; font-size: var(--text-title); font-weight: var(--weight-semibold); letter-spacing: -0.015em; }
 .modal-text { margin: 0; color: var(--ink-2); font-size: var(--text-body); }
-.modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+.modal-actions { display: flex; justify-content: flex-end; gap: var(--space-8); margin-top: var(--space-4); }
 /* Text on the danger fill reads its own token: >= 4.5:1 in both themes */
 .btn-danger {
   background: var(--danger-fill); color: var(--danger-ink-on-fill);
