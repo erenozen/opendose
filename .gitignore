@@ -18,3 +18,4 @@ docs/validation/private/
 docs/validation/site-screens/
 .verify/
 .wrangler/
+.design/

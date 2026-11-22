@@ -6,7 +6,7 @@
 # Usage: scripts/verify.sh          (PORT=5190 by default; override with PORT=…)
 # Logs: .verify/ (gitignored). Exit status 0 only when everything passes.
 set -u
-ROOT=/home/eren/OpenDose
+ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 S=$ROOT/.verify; mkdir -p "$S"
 VT=$ROOT/.claude/worktrees/verify
 PORT=${PORT:-5190}

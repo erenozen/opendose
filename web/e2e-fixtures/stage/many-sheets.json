@@ -1,0 +1,2794 @@
+{
+ "opendose_project": 2,
+ "version": 2,
+ "title": "Sixty-plus sheets",
+ "prefs": {
+  "defaultTableType": "xy",
+  "errorBars": "sd",
+  "ciMethod": "asymptotic",
+  "scheme": "default",
+  "digits": 4
+ },
+ "groups": [
+  {
+   "id": "gA",
+   "section": "data",
+   "name": "Experiment 1: dose response"
+  },
+  {
+   "id": "gB",
+   "section": "data",
+   "name": "Experiment 2: viability"
+  },
+  {
+   "id": "gC",
+   "section": "data",
+   "name": "Archived pilot runs",
+   "collapsed": true
+  },
+  {
+   "id": "gR",
+   "section": "results",
+   "name": "Fits to report"
+  },
+  {
+   "id": "gG",
+   "section": "graph",
+   "name": "Figure 3 panels"
+  }
+ ],
+ "selected": "d001",
+ "sheets": [
+  {
+   "id": "d001",
+   "kind": "data",
+   "name": "Dose response 1: compound A",
+   "table": {
+    "type": "xy",
+    "x": [
+     "1e-9",
+     "3.162e-9",
+     "1e-8",
+     "3.162e-8",
+     "1e-7",
+     "3.162e-7",
+     "1e-6",
+     "3.162e-6",
+     "1e-5"
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "M",
+    "yTitle": "",
+    "rowTitles": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "datasets": [
+     {
+      "name": "Drug",
+      "rows": [
+       [
+        "95.6",
+        "95.9",
+        "98.4"
+       ],
+       [
+        "100.6",
+        "96.2",
+        "104.1"
+       ],
+       [
+        "90.2",
+        "91.0",
+        "98.1"
+       ],
+       [
+        "73.7",
+        "73.7",
+        "75.0"
+       ],
+       [
+        "49.3",
+        "49.2",
+        "45.1"
+       ],
+       [
+        "26.0",
+        "24.4",
+        "24.3"
+       ],
+       [
+        "14.4",
+        "7.8",
+        "8.3"
+       ],
+       [
+        "13.2",
+        "7.2",
+        "3.8"
+       ],
+       [
+        "1.6",
+        "1.7",
+        "8.3"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   },
+   "groupId": "gA",
+   "highlight": "red"
+  },
+  {
+   "id": "r002",
+   "kind": "results",
+   "parentId": "d001",
+   "analysis": "nonlin",
+   "options": {
+    "model": "log_inhibitor_vs_response_4pl"
+   },
+   "name": "Nonlin fit of Dose response 1: compound A",
+   "groupId": "gR"
+  },
+  {
+   "id": "g003",
+   "kind": "graph",
+   "parentId": "d001",
+   "resultsId": "r002",
+   "graphType": "xy",
+   "settings": {
+    "titles": {
+     "x": "",
+     "y": ""
+    },
+    "scheme": "default"
+   },
+   "name": "Graph of Dose response 1: compound A",
+   "groupId": "gG"
+  },
+  {
+   "id": "d004",
+   "kind": "data",
+   "name": "Viability 2: donor 4",
+   "table": {
+    "type": "column",
+    "x": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "",
+    "rowTitles": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "datasets": [
+     {
+      "name": "Control",
+      "rows": [
+       [
+        "106.9"
+       ],
+       [
+        "105.2"
+       ],
+       [
+        "98.9"
+       ],
+       [
+        "108.7"
+       ],
+       [
+        "92.6"
+       ],
+       [
+        "100.5"
+       ]
+      ]
+     },
+     {
+      "name": "Low",
+      "rows": [
+       [
+        "91.9"
+       ],
+       [
+        "86.9"
+       ],
+       [
+        "81.9"
+       ],
+       [
+        "90.2"
+       ],
+       [
+        "89.0"
+       ],
+       [
+        "92.7"
+       ]
+      ]
+     },
+     {
+      "name": "High",
+      "rows": [
+       [
+        "79.4"
+       ],
+       [
+        "75.8"
+       ],
+       [
+        "79.8"
+       ],
+       [
+        "72.7"
+       ],
+       [
+        "81.6"
+       ],
+       [
+        "76.3"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   },
+   "groupId": "gA"
+  },
+  {
+   "id": "r005",
+   "kind": "results",
+   "parentId": "d004",
+   "analysis": "column",
+   "options": {
+    "analysis": "anova"
+   },
+   "name": "One-way ANOVA of Viability 2: donor 4",
+   "groupId": "gR"
+  },
+  {
+   "id": "g006",
+   "kind": "graph",
+   "parentId": "d004",
+   "resultsId": "r005",
+   "graphType": "scatter",
+   "settings": {
+    "titles": {
+     "x": "",
+     "y": ""
+    },
+    "scheme": "default"
+   },
+   "name": "Graph of Viability 2: donor 4",
+   "groupId": "gG"
+  },
+  {
+   "id": "r007",
+   "kind": "results",
+   "parentId": "d004",
+   "analysis": "column",
+   "options": {
+    "analysis": "column_statistics"
+   },
+   "name": "Descriptive statistics of Viability 2: donor 4"
+  },
+  {
+   "id": "r008",
+   "kind": "results",
+   "parentId": "d004",
+   "analysis": "column",
+   "options": {
+    "analysis": "ttest"
+   },
+   "name": "t test of Viability 2: donor 4"
+  },
+  {
+   "id": "d009",
+   "kind": "data",
+   "name": "Dose response 3: compound C",
+   "table": {
+    "type": "xy",
+    "x": [
+     "1e-9",
+     "3.162e-9",
+     "1e-8",
+     "3.162e-8",
+     "1e-7",
+     "3.162e-7",
+     "1e-6",
+     "3.162e-6",
+     "1e-5"
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "M",
+    "yTitle": "",
+    "rowTitles": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "datasets": [
+     {
+      "name": "Drug",
+      "rows": [
+       [
+        "104.1",
+        "96.2",
+        "100.5"
+       ],
+       [
+        "91.6",
+        "99.5",
+        "99.8"
+       ],
+       [
+        "86.9",
+        "90.5",
+        "93.7"
+       ],
+       [
+        "78.4",
+        "78.2",
+        "76.4"
+       ],
+       [
+        "56.6",
+        "57.0",
+        "59.7"
+       ],
+       [
+        "25.6",
+        "31.1",
+        "26.8"
+       ],
+       [
+        "11.1",
+        "7.2",
+        "17.3"
+       ],
+       [
+        "4.0",
+        "6.2",
+        "8.7"
+       ],
+       [
+        "2.8",
+        "1.4",
+        "1.8"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   },
+   "groupId": "gA"
+  },
+  {
+   "id": "r010",
+   "kind": "results",
+   "parentId": "d009",
+   "analysis": "nonlin",
+   "options": {
+    "model": "log_inhibitor_vs_response_4pl"
+   },
+   "name": "Nonlin fit of Dose response 3: compound C",
+   "groupId": "gR"
+  },
+  {
+   "id": "g011",
+   "kind": "graph",
+   "parentId": "d009",
+   "resultsId": "r010",
+   "graphType": "xy",
+   "settings": {
+    "titles": {
+     "x": "",
+     "y": ""
+    },
+    "scheme": "default"
+   },
+   "name": "Graph of Dose response 3: compound C",
+   "groupId": "gG"
+  },
+  {
+   "id": "d012",
+   "kind": "data",
+   "name": "Viability 4: donor 6",
+   "table": {
+    "type": "column",
+    "x": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "",
+    "rowTitles": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "datasets": [
+     {
+      "name": "Control",
+      "rows": [
+       [
+        "105.9"
+       ],
+       [
+        "95.7"
+       ],
+       [
+        "98.1"
+       ],
+       [
+        "109.7"
+       ],
+       [
+        "103.3"
+       ],
+       [
+        "93.3"
+       ]
+      ]
+     },
+     {
+      "name": "Low",
+      "rows": [
+       [
+        "88.5"
+       ],
+       [
+        "89.6"
+       ],
+       [
+        "91.4"
+       ],
+       [
+        "92.3"
+       ],
+       [
+        "88.2"
+       ],
+       [
+        "95.1"
+       ]
+      ]
+     },
+     {
+      "name": "High",
+      "rows": [
+       [
+        "72.0"
+       ],
+       [
+        "72.6"
+       ],
+       [
+        "80.3"
+       ],
+       [
+        "67.4"
+       ],
+       [
+        "79.3"
+       ],
+       [
+        "67.8"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   },
+   "groupId": "gA"
+  },
+  {
+   "id": "r013",
+   "kind": "results",
+   "parentId": "d012",
+   "analysis": "column",
+   "options": {
+    "analysis": "anova"
+   },
+   "name": "One-way ANOVA of Viability 4: donor 6",
+   "groupId": "gR"
+  },
+  {
+   "id": "g014",
+   "kind": "graph",
+   "parentId": "d012",
+   "resultsId": "r013",
+   "graphType": "scatter",
+   "settings": {
+    "titles": {
+     "x": "",
+     "y": ""
+    },
+    "scheme": "default"
+   },
+   "name": "Graph of Viability 4: donor 6",
+   "groupId": "gG"
+  },
+  {
+   "id": "d015",
+   "kind": "data",
+   "name": "Dose response 5: compound E",
+   "table": {
+    "type": "xy",
+    "x": [
+     "1e-9",
+     "3.162e-9",
+     "1e-8",
+     "3.162e-8",
+     "1e-7",
+     "3.162e-7",
+     "1e-6",
+     "3.162e-6",
+     "1e-5"
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "M",
+    "yTitle": "",
+    "rowTitles": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "datasets": [
+     {
+      "name": "Drug",
+      "rows": [
+       [
+        "101.5",
+        "99.9",
+        "97.4"
+       ],
+       [
+        "103.7",
+        "98.4",
+        "94.6"
+       ],
+       [
+        "92.6",
+        "94.6",
+        "94.9"
+       ],
+       [
+        "81.3",
+        "77.7",
+        "82.1"
+       ],
+       [
+        "58.9",
+        "60.4",
+        "60.8"
+       ],
+       [
+        "30.8",
+        "30.9",
+        "27.0"
+       ],
+       [
+        "11.7",
+        "10.8",
+        "11.2"
+       ],
+       [
+        "8.0",
+        "6.0",
+        "5.8"
+       ],
+       [
+        "4.9",
+        "8.7",
+        "6.9"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   },
+   "groupId": "gA"
+  },
+  {
+   "id": "r016",
+   "kind": "results",
+   "parentId": "d015",
+   "analysis": "nonlin",
+   "options": {
+    "model": "log_inhibitor_vs_response_4pl"
+   },
+   "name": "Nonlin fit of Dose response 5: compound E"
+  },
+  {
+   "id": "g017",
+   "kind": "graph",
+   "parentId": "d015",
+   "resultsId": "r016",
+   "graphType": "xy",
+   "settings": {
+    "titles": {
+     "x": "",
+     "y": ""
+    },
+    "scheme": "default"
+   },
+   "name": "Graph of Dose response 5: compound E"
+  },
+  {
+   "id": "d018",
+   "kind": "data",
+   "name": "Viability 6: donor 8",
+   "table": {
+    "type": "column",
+    "x": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "",
+    "rowTitles": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "datasets": [
+     {
+      "name": "Control",
+      "rows": [
+       [
+        "97.2"
+       ],
+       [
+        "94.0"
+       ],
+       [
+        "101.9"
+       ],
+       [
+        "108.7"
+       ],
+       [
+        "99.6"
+       ],
+       [
+        "95.2"
+       ]
+      ]
+     },
+     {
+      "name": "Low",
+      "rows": [
+       [
+        "90.1"
+       ],
+       [
+        "92.7"
+       ],
+       [
+        "83.6"
+       ],
+       [
+        "97.0"
+       ],
+       [
+        "86.4"
+       ],
+       [
+        "82.9"
+       ]
+      ]
+     },
+     {
+      "name": "High",
+      "rows": [
+       [
+        "74.2"
+       ],
+       [
+        "82.3"
+       ],
+       [
+        "78.0"
+       ],
+       [
+        "77.6"
+       ],
+       [
+        "74.4"
+       ],
+       [
+        "73.6"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   },
+   "groupId": "gA",
+   "highlight": "purple"
+  },
+  {
+   "id": "r019",
+   "kind": "results",
+   "parentId": "d018",
+   "analysis": "column",
+   "options": {
+    "analysis": "anova"
+   },
+   "name": "One-way ANOVA of Viability 6: donor 8"
+  },
+  {
+   "id": "g020",
+   "kind": "graph",
+   "parentId": "d018",
+   "resultsId": "r019",
+   "graphType": "scatter",
+   "settings": {
+    "titles": {
+     "x": "",
+     "y": ""
+    },
+    "scheme": "default"
+   },
+   "name": "Graph of Viability 6: donor 8"
+  },
+  {
+   "id": "d021",
+   "kind": "data",
+   "name": "Dose response 7: compound G",
+   "table": {
+    "type": "xy",
+    "x": [
+     "1e-9",
+     "3.162e-9",
+     "1e-8",
+     "3.162e-8",
+     "1e-7",
+     "3.162e-7",
+     "1e-6",
+     "3.162e-6",
+     "1e-5"
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "M",
+    "yTitle": "",
+    "rowTitles": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "datasets": [
+     {
+      "name": "Drug",
+      "rows": [
+       [
+        "98.4",
+        "101.2",
+        "102.1"
+       ],
+       [
+        "96.2",
+        "93.3",
+        "92.6"
+       ],
+       [
+        "95.6",
+        "98.1",
+        "95.8"
+       ],
+       [
+        "85.3",
+        "81.3",
+        "80.6"
+       ],
+       [
+        "68.0",
+        "61.5",
+        "64.5"
+       ],
+       [
+        "39.3",
+        "34.3",
+        "32.3"
+       ],
+       [
+        "13.7",
+        "17.6",
+        "13.1"
+       ],
+       [
+        "4.1",
+        "5.6",
+        "5.4"
+       ],
+       [
+        "0.2",
+        "0.6",
+        "-3.3"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   },
+   "groupId": "gA"
+  },
+  {
+   "id": "r022",
+   "kind": "results",
+   "parentId": "d021",
+   "analysis": "nonlin",
+   "options": {
+    "model": "log_inhibitor_vs_response_4pl"
+   },
+   "name": "Nonlin fit of Dose response 7: compound G"
+  },
+  {
+   "id": "g023",
+   "kind": "graph",
+   "parentId": "d021",
+   "resultsId": "r022",
+   "graphType": "xy",
+   "settings": {
+    "titles": {
+     "x": "",
+     "y": ""
+    },
+    "scheme": "default"
+   },
+   "name": "Graph of Dose response 7: compound G"
+  },
+  {
+   "id": "d024",
+   "kind": "data",
+   "name": "Viability 8: donor 10",
+   "table": {
+    "type": "column",
+    "x": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "",
+    "rowTitles": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "datasets": [
+     {
+      "name": "Control",
+      "rows": [
+       [
+        "99.0"
+       ],
+       [
+        "93.8"
+       ],
+       [
+        "106.8"
+       ],
+       [
+        "99.2"
+       ],
+       [
+        "101.0"
+       ],
+       [
+        "86.1"
+       ]
+      ]
+     },
+     {
+      "name": "Low",
+      "rows": [
+       [
+        "74.8"
+       ],
+       [
+        "91.3"
+       ],
+       [
+        "89.7"
+       ],
+       [
+        "93.8"
+       ],
+       [
+        "97.4"
+       ],
+       [
+        "83.0"
+       ]
+      ]
+     },
+     {
+      "name": "High",
+      "rows": [
+       [
+        "69.5"
+       ],
+       [
+        "81.5"
+       ],
+       [
+        "76.1"
+       ],
+       [
+        "67.5"
+       ],
+       [
+        "87.7"
+       ],
+       [
+        "80.9"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   },
+   "groupId": "gA"
+  },
+  {
+   "id": "r025",
+   "kind": "results",
+   "parentId": "d024",
+   "analysis": "column",
+   "options": {
+    "analysis": "anova"
+   },
+   "name": "One-way ANOVA of Viability 8: donor 10"
+  },
+  {
+   "id": "g026",
+   "kind": "graph",
+   "parentId": "d024",
+   "resultsId": "r025",
+   "graphType": "scatter",
+   "settings": {
+    "titles": {
+     "x": "",
+     "y": ""
+    },
+    "scheme": "default"
+   },
+   "name": "Graph of Viability 8: donor 10"
+  },
+  {
+   "id": "d027",
+   "kind": "data",
+   "name": "Dose response 9: compound I",
+   "table": {
+    "type": "xy",
+    "x": [
+     "1e-9",
+     "3.162e-9",
+     "1e-8",
+     "3.162e-8",
+     "1e-7",
+     "3.162e-7",
+     "1e-6",
+     "3.162e-6",
+     "1e-5"
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "M",
+    "yTitle": "",
+    "rowTitles": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "datasets": [
+     {
+      "name": "Drug",
+      "rows": [
+       [
+        "99.0",
+        "102.9",
+        "102.3"
+       ],
+       [
+        "104.3",
+        "101.4",
+        "102.6"
+       ],
+       [
+        "96.2",
+        "100.1",
+        "93.0"
+       ],
+       [
+        "90.6",
+        "84.4",
+        "82.1"
+       ],
+       [
+        "64.3",
+        "64.3",
+        "62.5"
+       ],
+       [
+        "39.1",
+        "36.0",
+        "35.5"
+       ],
+       [
+        "15.1",
+        "15.0",
+        "15.7"
+       ],
+       [
+        "4.3",
+        "7.5",
+        "9.5"
+       ],
+       [
+        "6.5",
+        "-2.3",
+        "3.4"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   },
+   "groupId": "gB"
+  },
+  {
+   "id": "r028",
+   "kind": "results",
+   "parentId": "d027",
+   "analysis": "nonlin",
+   "options": {
+    "model": "log_inhibitor_vs_response_4pl"
+   },
+   "name": "Nonlin fit of Dose response 9: compound I"
+  },
+  {
+   "id": "g029",
+   "kind": "graph",
+   "parentId": "d027",
+   "resultsId": "r028",
+   "graphType": "xy",
+   "settings": {
+    "titles": {
+     "x": "",
+     "y": ""
+    },
+    "scheme": "default"
+   },
+   "name": "Graph of Dose response 9: compound I"
+  },
+  {
+   "id": "d030",
+   "kind": "data",
+   "name": "Viability 10: donor 12",
+   "table": {
+    "type": "column",
+    "x": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "",
+    "rowTitles": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "datasets": [
+     {
+      "name": "Control",
+      "rows": [
+       [
+        "107.2"
+       ],
+       [
+        "93.1"
+       ],
+       [
+        "100.9"
+       ],
+       [
+        "92.1"
+       ],
+       [
+        "101.7"
+       ],
+       [
+        "93.6"
+       ]
+      ]
+     },
+     {
+      "name": "Low",
+      "rows": [
+       [
+        "93.2"
+       ],
+       [
+        "87.4"
+       ],
+       [
+        "81.2"
+       ],
+       [
+        "92.1"
+       ],
+       [
+        "93.9"
+       ],
+       [
+        "81.0"
+       ]
+      ]
+     },
+     {
+      "name": "High",
+      "rows": [
+       [
+        "74.0"
+       ],
+       [
+        "71.2"
+       ],
+       [
+        "74.6"
+       ],
+       [
+        "74.7"
+       ],
+       [
+        "77.5"
+       ],
+       [
+        "70.8"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   },
+   "groupId": "gB"
+  },
+  {
+   "id": "r031",
+   "kind": "results",
+   "parentId": "d030",
+   "analysis": "column",
+   "options": {
+    "analysis": "anova"
+   },
+   "name": "One-way ANOVA of Viability 10: donor 12"
+  },
+  {
+   "id": "g032",
+   "kind": "graph",
+   "parentId": "d030",
+   "resultsId": "r031",
+   "graphType": "scatter",
+   "settings": {
+    "titles": {
+     "x": "",
+     "y": ""
+    },
+    "scheme": "default"
+   },
+   "name": "Graph of Viability 10: donor 12"
+  },
+  {
+   "id": "d033",
+   "kind": "data",
+   "name": "Dose response 11: compound K",
+   "table": {
+    "type": "xy",
+    "x": [
+     "1e-9",
+     "3.162e-9",
+     "1e-8",
+     "3.162e-8",
+     "1e-7",
+     "3.162e-7",
+     "1e-6",
+     "3.162e-6",
+     "1e-5"
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "M",
+    "yTitle": "",
+    "rowTitles": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "datasets": [
+     {
+      "name": "Drug",
+      "rows": [
+       [
+        "101.1",
+        "100.4",
+        "99.0"
+       ],
+       [
+        "98.1",
+        "97.0",
+        "94.5"
+       ],
+       [
+        "92.5",
+        "92.1",
+        "100.8"
+       ],
+       [
+        "81.5",
+        "90.3",
+        "86.1"
+       ],
+       [
+        "65.9",
+        "62.3",
+        "66.5"
+       ],
+       [
+        "43.6",
+        "37.5",
+        "41.6"
+       ],
+       [
+        "18.9",
+        "17.8",
+        "13.9"
+       ],
+       [
+        "9.6",
+        "10.0",
+        "8.9"
+       ],
+       [
+        "1.9",
+        "5.1",
+        "5.1"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   },
+   "groupId": "gB",
+   "highlight": "blue"
+  },
+  {
+   "id": "r034",
+   "kind": "results",
+   "parentId": "d033",
+   "analysis": "nonlin",
+   "options": {
+    "model": "log_inhibitor_vs_response_4pl"
+   },
+   "name": "Nonlin fit of Dose response 11: compound K"
+  },
+  {
+   "id": "g035",
+   "kind": "graph",
+   "parentId": "d033",
+   "resultsId": "r034",
+   "graphType": "xy",
+   "settings": {
+    "titles": {
+     "x": "",
+     "y": ""
+    },
+    "scheme": "default"
+   },
+   "name": "Graph of Dose response 11: compound K"
+  },
+  {
+   "id": "d036",
+   "kind": "data",
+   "name": "Viability 12: donor 14",
+   "table": {
+    "type": "column",
+    "x": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "",
+    "rowTitles": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "datasets": [
+     {
+      "name": "Control",
+      "rows": [
+       [
+        "105.6"
+       ],
+       [
+        "104.1"
+       ],
+       [
+        "101.0"
+       ],
+       [
+        "99.8"
+       ],
+       [
+        "100.8"
+       ],
+       [
+        "99.8"
+       ]
+      ]
+     },
+     {
+      "name": "Low",
+      "rows": [
+       [
+        "84.7"
+       ],
+       [
+        "80.7"
+       ],
+       [
+        "91.8"
+       ],
+       [
+        "80.1"
+       ],
+       [
+        "87.6"
+       ],
+       [
+        "80.2"
+       ]
+      ]
+     },
+     {
+      "name": "High",
+      "rows": [
+       [
+        "72.3"
+       ],
+       [
+        "71.3"
+       ],
+       [
+        "71.0"
+       ],
+       [
+        "68.4"
+       ],
+       [
+        "83.1"
+       ],
+       [
+        "83.3"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   },
+   "groupId": "gB"
+  },
+  {
+   "id": "r037",
+   "kind": "results",
+   "parentId": "d036",
+   "analysis": "column",
+   "options": {
+    "analysis": "anova"
+   },
+   "name": "One-way ANOVA of Viability 12: donor 14"
+  },
+  {
+   "id": "g038",
+   "kind": "graph",
+   "parentId": "d036",
+   "resultsId": "r037",
+   "graphType": "scatter",
+   "settings": {
+    "titles": {
+     "x": "",
+     "y": ""
+    },
+    "scheme": "default"
+   },
+   "name": "Graph of Viability 12: donor 14"
+  },
+  {
+   "id": "d039",
+   "kind": "data",
+   "name": "Dose response 13: compound M",
+   "table": {
+    "type": "xy",
+    "x": [
+     "1e-9",
+     "3.162e-9",
+     "1e-8",
+     "3.162e-8",
+     "1e-7",
+     "3.162e-7",
+     "1e-6",
+     "3.162e-6",
+     "1e-5"
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "M",
+    "yTitle": "",
+    "rowTitles": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "datasets": [
+     {
+      "name": "Drug",
+      "rows": [
+       [
+        "96.7",
+        "98.8",
+        "97.7"
+       ],
+       [
+        "97.5",
+        "99.3",
+        "95.9"
+       ],
+       [
+        "97.7",
+        "87.1",
+        "96.5"
+       ],
+       [
+        "85.6",
+        "86.1",
+        "91.3"
+       ],
+       [
+        "69.3",
+        "72.6",
+        "62.8"
+       ],
+       [
+        "40.9",
+        "44.6",
+        "44.7"
+       ],
+       [
+        "16.5",
+        "21.2",
+        "16.4"
+       ],
+       [
+        "9.8",
+        "5.3",
+        "10.6"
+       ],
+       [
+        "5.8",
+        "1.0",
+        "6.3"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   },
+   "groupId": "gB"
+  },
+  {
+   "id": "r040",
+   "kind": "results",
+   "parentId": "d039",
+   "analysis": "nonlin",
+   "options": {
+    "model": "log_inhibitor_vs_response_4pl"
+   },
+   "name": "Nonlin fit of Dose response 13: compound M"
+  },
+  {
+   "id": "g041",
+   "kind": "graph",
+   "parentId": "d039",
+   "resultsId": "r040",
+   "graphType": "xy",
+   "settings": {
+    "titles": {
+     "x": "",
+     "y": ""
+    },
+    "scheme": "default"
+   },
+   "name": "Graph of Dose response 13: compound M"
+  },
+  {
+   "id": "d042",
+   "kind": "data",
+   "name": "Viability 14: donor 16",
+   "table": {
+    "type": "column",
+    "x": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "",
+    "rowTitles": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "datasets": [
+     {
+      "name": "Control",
+      "rows": [
+       [
+        "102.5"
+       ],
+       [
+        "95.7"
+       ],
+       [
+        "111.1"
+       ],
+       [
+        "93.9"
+       ],
+       [
+        "99.5"
+       ],
+       [
+        "103.7"
+       ]
+      ]
+     },
+     {
+      "name": "Low",
+      "rows": [
+       [
+        "88.3"
+       ],
+       [
+        "94.5"
+       ],
+       [
+        "88.7"
+       ],
+       [
+        "100.1"
+       ],
+       [
+        "85.0"
+       ],
+       [
+        "88.4"
+       ]
+      ]
+     },
+     {
+      "name": "High",
+      "rows": [
+       [
+        "70.7"
+       ],
+       [
+        "69.7"
+       ],
+       [
+        "75.5"
+       ],
+       [
+        "72.4"
+       ],
+       [
+        "68.2"
+       ],
+       [
+        "78.6"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   },
+   "groupId": "gB"
+  },
+  {
+   "id": "r043",
+   "kind": "results",
+   "parentId": "d042",
+   "analysis": "column",
+   "options": {
+    "analysis": "anova"
+   },
+   "name": "One-way ANOVA of Viability 14: donor 16"
+  },
+  {
+   "id": "g044",
+   "kind": "graph",
+   "parentId": "d042",
+   "resultsId": "r043",
+   "graphType": "scatter",
+   "settings": {
+    "titles": {
+     "x": "",
+     "y": ""
+    },
+    "scheme": "default"
+   },
+   "name": "Graph of Viability 14: donor 16"
+  },
+  {
+   "id": "d045",
+   "kind": "data",
+   "name": "Dose response 15: compound O",
+   "table": {
+    "type": "xy",
+    "x": [
+     "1e-9",
+     "3.162e-9",
+     "1e-8",
+     "3.162e-8",
+     "1e-7",
+     "3.162e-7",
+     "1e-6",
+     "3.162e-6",
+     "1e-5"
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "M",
+    "yTitle": "",
+    "rowTitles": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "datasets": [
+     {
+      "name": "Drug",
+      "rows": [
+       [
+        "103.9",
+        "99.8",
+        "102.9"
+       ],
+       [
+        "101.6",
+        "93.0",
+        "104.9"
+       ],
+       [
+        "97.4",
+        "101.0",
+        "90.7"
+       ],
+       [
+        "90.1",
+        "93.3",
+        "82.5"
+       ],
+       [
+        "69.8",
+        "71.4",
+        "72.9"
+       ],
+       [
+        "44.0",
+        "41.8",
+        "44.6"
+       ],
+       [
+        "23.8",
+        "16.6",
+        "19.1"
+       ],
+       [
+        "8.4",
+        "11.4",
+        "11.4"
+       ],
+       [
+        "4.2",
+        "8.3",
+        "8.4"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "r046",
+   "kind": "results",
+   "parentId": "d045",
+   "analysis": "nonlin",
+   "options": {
+    "model": "log_inhibitor_vs_response_4pl"
+   },
+   "name": "Nonlin fit of Dose response 15: compound O"
+  },
+  {
+   "id": "g047",
+   "kind": "graph",
+   "parentId": "d045",
+   "resultsId": "r046",
+   "graphType": "xy",
+   "settings": {
+    "titles": {
+     "x": "",
+     "y": ""
+    },
+    "scheme": "default"
+   },
+   "name": "Graph of Dose response 15: compound O"
+  },
+  {
+   "id": "d048",
+   "kind": "data",
+   "name": "Viability 16: donor 18",
+   "table": {
+    "type": "column",
+    "x": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "",
+    "rowTitles": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "datasets": [
+     {
+      "name": "Control",
+      "rows": [
+       [
+        "102.0"
+       ],
+       [
+        "105.6"
+       ],
+       [
+        "103.8"
+       ],
+       [
+        "100.4"
+       ],
+       [
+        "93.0"
+       ],
+       [
+        "103.9"
+       ]
+      ]
+     },
+     {
+      "name": "Low",
+      "rows": [
+       [
+        "84.3"
+       ],
+       [
+        "95.0"
+       ],
+       [
+        "89.9"
+       ],
+       [
+        "81.5"
+       ],
+       [
+        "86.9"
+       ],
+       [
+        "84.0"
+       ]
+      ]
+     },
+     {
+      "name": "High",
+      "rows": [
+       [
+        "80.8"
+       ],
+       [
+        "87.3"
+       ],
+       [
+        "78.0"
+       ],
+       [
+        "74.2"
+       ],
+       [
+        "77.8"
+       ],
+       [
+        "84.4"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   },
+   "highlight": "green"
+  },
+  {
+   "id": "r049",
+   "kind": "results",
+   "parentId": "d048",
+   "analysis": "column",
+   "options": {
+    "analysis": "anova"
+   },
+   "name": "One-way ANOVA of Viability 16: donor 18"
+  },
+  {
+   "id": "g050",
+   "kind": "graph",
+   "parentId": "d048",
+   "resultsId": "r049",
+   "graphType": "scatter",
+   "settings": {
+    "titles": {
+     "x": "",
+     "y": ""
+    },
+    "scheme": "default"
+   },
+   "name": "Graph of Viability 16: donor 18"
+  },
+  {
+   "id": "d051",
+   "kind": "data",
+   "name": "Dose response 17: compound Q",
+   "table": {
+    "type": "xy",
+    "x": [
+     "1e-9",
+     "3.162e-9",
+     "1e-8",
+     "3.162e-8",
+     "1e-7",
+     "3.162e-7",
+     "1e-6",
+     "3.162e-6",
+     "1e-5"
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "M",
+    "yTitle": "",
+    "rowTitles": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "datasets": [
+     {
+      "name": "Drug",
+      "rows": [
+       [
+        "96.6",
+        "101.0",
+        "101.3"
+       ],
+       [
+        "94.0",
+        "100.5",
+        "97.9"
+       ],
+       [
+        "98.4",
+        "95.5",
+        "92.4"
+       ],
+       [
+        "84.6",
+        "85.4",
+        "91.9"
+       ],
+       [
+        "73.3",
+        "71.9",
+        "69.5"
+       ],
+       [
+        "44.0",
+        "48.5",
+        "42.7"
+       ],
+       [
+        "18.4",
+        "21.2",
+        "25.1"
+       ],
+       [
+        "9.6",
+        "8.7",
+        "5.5"
+       ],
+       [
+        "11.5",
+        "10.7",
+        "8.5"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "r052",
+   "kind": "results",
+   "parentId": "d051",
+   "analysis": "nonlin",
+   "options": {
+    "model": "log_inhibitor_vs_response_4pl"
+   },
+   "name": "Nonlin fit of Dose response 17: compound Q"
+  },
+  {
+   "id": "g053",
+   "kind": "graph",
+   "parentId": "d051",
+   "resultsId": "r052",
+   "graphType": "xy",
+   "settings": {
+    "titles": {
+     "x": "",
+     "y": ""
+    },
+    "scheme": "default"
+   },
+   "name": "Graph of Dose response 17: compound Q"
+  },
+  {
+   "id": "d054",
+   "kind": "data",
+   "name": "Viability 18: donor 20",
+   "table": {
+    "type": "column",
+    "x": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "",
+    "rowTitles": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "datasets": [
+     {
+      "name": "Control",
+      "rows": [
+       [
+        "98.4"
+       ],
+       [
+        "109.2"
+       ],
+       [
+        "107.6"
+       ],
+       [
+        "103.5"
+       ],
+       [
+        "98.5"
+       ],
+       [
+        "96.4"
+       ]
+      ]
+     },
+     {
+      "name": "Low",
+      "rows": [
+       [
+        "95.4"
+       ],
+       [
+        "89.9"
+       ],
+       [
+        "84.2"
+       ],
+       [
+        "93.2"
+       ],
+       [
+        "90.6"
+       ],
+       [
+        "91.0"
+       ]
+      ]
+     },
+     {
+      "name": "High",
+      "rows": [
+       [
+        "79.6"
+       ],
+       [
+        "75.3"
+       ],
+       [
+        "73.3"
+       ],
+       [
+        "71.6"
+       ],
+       [
+        "75.7"
+       ],
+       [
+        "71.7"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "r055",
+   "kind": "results",
+   "parentId": "d054",
+   "analysis": "column",
+   "options": {
+    "analysis": "anova"
+   },
+   "name": "One-way ANOVA of Viability 18: donor 20"
+  },
+  {
+   "id": "g056",
+   "kind": "graph",
+   "parentId": "d054",
+   "resultsId": "r055",
+   "graphType": "scatter",
+   "settings": {
+    "titles": {
+     "x": "",
+     "y": ""
+    },
+    "scheme": "default"
+   },
+   "name": "Graph of Viability 18: donor 20"
+  },
+  {
+   "id": "d057",
+   "kind": "data",
+   "name": "Dose response 19: compound S",
+   "table": {
+    "type": "xy",
+    "x": [
+     "1e-9",
+     "3.162e-9",
+     "1e-8",
+     "3.162e-8",
+     "1e-7",
+     "3.162e-7",
+     "1e-6",
+     "3.162e-6",
+     "1e-5"
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "M",
+    "yTitle": "",
+    "rowTitles": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "datasets": [
+     {
+      "name": "Drug",
+      "rows": [
+       [
+        "97.0",
+        "98.1",
+        "104.5"
+       ],
+       [
+        "98.0",
+        "98.9",
+        "97.5"
+       ],
+       [
+        "102.3",
+        "95.6",
+        "97.8"
+       ],
+       [
+        "89.2",
+        "86.8",
+        "81.5"
+       ],
+       [
+        "72.2",
+        "77.2",
+        "73.5"
+       ],
+       [
+        "49.8",
+        "53.1",
+        "52.5"
+       ],
+       [
+        "18.6",
+        "22.3",
+        "20.8"
+       ],
+       [
+        "7.9",
+        "13.6",
+        "9.4"
+       ],
+       [
+        "8.0",
+        "2.9",
+        "5.2"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   },
+   "groupId": "gC"
+  },
+  {
+   "id": "r058",
+   "kind": "results",
+   "parentId": "d057",
+   "analysis": "nonlin",
+   "options": {
+    "model": "log_inhibitor_vs_response_4pl"
+   },
+   "name": "Nonlin fit of Dose response 19: compound S"
+  },
+  {
+   "id": "g059",
+   "kind": "graph",
+   "parentId": "d057",
+   "resultsId": "r058",
+   "graphType": "xy",
+   "settings": {
+    "titles": {
+     "x": "",
+     "y": ""
+    },
+    "scheme": "default"
+   },
+   "name": "Graph of Dose response 19: compound S"
+  },
+  {
+   "id": "d060",
+   "kind": "data",
+   "name": "Viability 20: donor 22",
+   "table": {
+    "type": "column",
+    "x": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "",
+    "rowTitles": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "datasets": [
+     {
+      "name": "Control",
+      "rows": [
+       [
+        "102.2"
+       ],
+       [
+        "100.5"
+       ],
+       [
+        "98.9"
+       ],
+       [
+        "102.6"
+       ],
+       [
+        "105.1"
+       ],
+       [
+        "92.0"
+       ]
+      ]
+     },
+     {
+      "name": "Low",
+      "rows": [
+       [
+        "76.9"
+       ],
+       [
+        "93.2"
+       ],
+       [
+        "94.1"
+       ],
+       [
+        "76.6"
+       ],
+       [
+        "88.0"
+       ],
+       [
+        "90.5"
+       ]
+      ]
+     },
+     {
+      "name": "High",
+      "rows": [
+       [
+        "76.6"
+       ],
+       [
+        "83.5"
+       ],
+       [
+        "79.8"
+       ],
+       [
+        "84.0"
+       ],
+       [
+        "73.9"
+       ],
+       [
+        "76.8"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   },
+   "groupId": "gC"
+  },
+  {
+   "id": "r061",
+   "kind": "results",
+   "parentId": "d060",
+   "analysis": "column",
+   "options": {
+    "analysis": "anova"
+   },
+   "name": "One-way ANOVA of Viability 20: donor 22"
+  },
+  {
+   "id": "g062",
+   "kind": "graph",
+   "parentId": "d060",
+   "resultsId": "r061",
+   "graphType": "scatter",
+   "settings": {
+    "titles": {
+     "x": "",
+     "y": ""
+    },
+    "scheme": "default"
+   },
+   "name": "Graph of Viability 20: donor 22"
+  },
+  {
+   "id": "d063",
+   "kind": "data",
+   "name": "Dose response 21: compound U",
+   "table": {
+    "type": "xy",
+    "x": [
+     "1e-9",
+     "3.162e-9",
+     "1e-8",
+     "3.162e-8",
+     "1e-7",
+     "3.162e-7",
+     "1e-6",
+     "3.162e-6",
+     "1e-5"
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "M",
+    "yTitle": "",
+    "rowTitles": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "datasets": [
+     {
+      "name": "Drug",
+      "rows": [
+       [
+        "95.0",
+        "101.5",
+        "100.8"
+       ],
+       [
+        "97.7",
+        "93.2",
+        "98.5"
+       ],
+       [
+        "91.9",
+        "94.1",
+        "96.3"
+       ],
+       [
+        "92.9",
+        "90.6",
+        "90.2"
+       ],
+       [
+        "77.0",
+        "78.6",
+        "76.5"
+       ],
+       [
+        "47.5",
+        "49.0",
+        "56.3"
+       ],
+       [
+        "23.1",
+        "17.7",
+        "22.8"
+       ],
+       [
+        "12.1",
+        "15.3",
+        "13.0"
+       ],
+       [
+        "5.4",
+        "5.1",
+        "2.5"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   },
+   "groupId": "gC",
+   "highlight": "yellow"
+  },
+  {
+   "id": "r064",
+   "kind": "results",
+   "parentId": "d063",
+   "analysis": "nonlin",
+   "options": {
+    "model": "log_inhibitor_vs_response_4pl"
+   },
+   "name": "Nonlin fit of Dose response 21: compound U"
+  },
+  {
+   "id": "g065",
+   "kind": "graph",
+   "parentId": "d063",
+   "resultsId": "r064",
+   "graphType": "xy",
+   "settings": {
+    "titles": {
+     "x": "",
+     "y": ""
+    },
+    "scheme": "default"
+   },
+   "name": "Graph of Dose response 21: compound U"
+  },
+  {
+   "id": "d066",
+   "kind": "data",
+   "name": "Viability 22: donor 24",
+   "table": {
+    "type": "column",
+    "x": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "",
+    "rowTitles": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "datasets": [
+     {
+      "name": "Control",
+      "rows": [
+       [
+        "94.5"
+       ],
+       [
+        "103.0"
+       ],
+       [
+        "92.7"
+       ],
+       [
+        "101.2"
+       ],
+       [
+        "101.8"
+       ],
+       [
+        "106.2"
+       ]
+      ]
+     },
+     {
+      "name": "Low",
+      "rows": [
+       [
+        "96.4"
+       ],
+       [
+        "95.9"
+       ],
+       [
+        "96.1"
+       ],
+       [
+        "84.0"
+       ],
+       [
+        "90.8"
+       ],
+       [
+        "92.0"
+       ]
+      ]
+     },
+     {
+      "name": "High",
+      "rows": [
+       [
+        "71.7"
+       ],
+       [
+        "68.2"
+       ],
+       [
+        "75.8"
+       ],
+       [
+        "79.2"
+       ],
+       [
+        "80.7"
+       ],
+       [
+        "72.1"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   },
+   "groupId": "gC"
+  },
+  {
+   "id": "r067",
+   "kind": "results",
+   "parentId": "d066",
+   "analysis": "column",
+   "options": {
+    "analysis": "anova"
+   },
+   "name": "One-way ANOVA of Viability 22: donor 24"
+  },
+  {
+   "id": "g068",
+   "kind": "graph",
+   "parentId": "d066",
+   "resultsId": "r067",
+   "graphType": "scatter",
+   "settings": {
+    "titles": {
+     "x": "",
+     "y": ""
+    },
+    "scheme": "default"
+   },
+   "name": "Graph of Viability 22: donor 24"
+  },
+  {
+   "id": "i069",
+   "kind": "info",
+   "name": "Project notes",
+   "parentId": null,
+   "notes": "Shared protocol notes.",
+   "constants": []
+  },
+  {
+   "id": "i070",
+   "kind": "info",
+   "name": "Plate maps",
+   "parentId": null,
+   "notes": "Plate 1 to 8.",
+   "constants": []
+  },
+  {
+   "id": "i071",
+   "kind": "info",
+   "name": "Reagent lot numbers",
+   "parentId": null,
+   "notes": "Lot 2026-11.",
+   "constants": []
+  },
+  {
+   "id": "l072",
+   "kind": "layout",
+   "name": "Figure 1",
+   "graphIds": [
+    "g003",
+    "g006",
+    "g011",
+    "g014"
+   ],
+   "grid": {
+    "rows": 2,
+    "cols": 2
+   }
+  },
+  {
+   "id": "l073",
+   "kind": "layout",
+   "name": "Figure 2",
+   "graphIds": [
+    "g017",
+    "g020",
+    "g023",
+    "g026"
+   ],
+   "grid": {
+    "rows": 2,
+    "cols": 2
+   }
+  },
+  {
+   "id": "l074",
+   "kind": "layout",
+   "name": "Supplementary figure",
+   "graphIds": [
+    "g029",
+    "g032",
+    "g035",
+    "g038",
+    "g041",
+    "g044"
+   ],
+   "grid": {
+    "rows": 3,
+    "cols": 2
+   }
+  }
+ ]
+}

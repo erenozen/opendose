@@ -65,6 +65,7 @@ cd web && node scripts/e2e-figures.mjs  # SuperPlots, legends, P styles, classic
 cd web && node scripts/e2e-assays.mjs   # assay wizards (plate, ELISA, qPCR, flow, blots)
 cd web && node scripts/a11y-audit.mjs   # axe-core on every analysis' controls
 cd web && node scripts/smoke-0.4.0.mjs http://localhost:5173/ OUT   # screenshots of every 0.4.0 entry point, 1400/390 px, light/dark, with axe-core
+cd web && node scripts/ui-stage.mjs http://localhost:5173/ OUT ["grid-*,first-start"]   # stage: every surface and hard state (engine booting/failed, failed fit, 40x1200 grid, long names) from e2e-fixtures/stage/, 1400/390 px, light/dark, axe-core, contact sheet OUT/index.html
 ```
 
 The site serves the Python runtime itself: `npm run dev` and `npm run build`
