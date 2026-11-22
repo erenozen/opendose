@@ -1321,9 +1321,10 @@ expect("volcano from a table (BH-adjusted P < 0.05, |log2FC| ≥ 1): 19 up, 12 d
     const t = document.querySelector(".pane-results")?.textContent ?? "";
     return t.includes("Up19") && t.includes("Down12");
   }, null, { timeout: 60000 }).then(() => true, () => false));
+// the graph redraws after the results pane: wait for its labels
 expect("volcano labels the top ten hits",
-  await page.evaluate(() => (document.querySelector(".plot-card .plot")?.layout?.annotations ?? [])
-    .filter((a) => a.showarrow).length === 10));
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.layout?.annotations ?? [])
+    .filter((a) => a.showarrow).length === 10, null, { timeout: 30000 }).then(() => true, () => false));
 await page.getByRole("button", { name: "Create a table of the hits" }).click();
 expect("volcano: linked table of the 31 hits",
   await page.waitForFunction(() => Number(document.querySelector(".data-table table")?.dataset.rows) >= 31,
