@@ -50,6 +50,14 @@
   border: 1px solid var(--line); border-radius: var(--radius-control);
   background: var(--surface); color: var(--ink-2); font-size: var(--text-body-s);
 }
+/* It appears after a second of computing, over results the user is
+   reading: a fade, no movement (it sits in the column's flow). The
+   cancelled line replaces it in place, in the frame Cancel is pressed. */
+.analysis-busy:not(.cancelled) {
+  opacity: 1;
+  transition: opacity var(--dur-enter) var(--ease-out);
+  @starting-style { opacity: 0; }
+}
 .analysis-busy .spinner { width: 14px; height: 14px; border-width: 2px; }
 .analysis-busy-time { font-variant-numeric: tabular-nums; color: var(--muted); }
 .analysis-busy button { margin-left: auto; padding: 3px 10px; font-size: var(--text-body-s); }
