@@ -145,8 +145,10 @@ const settle = (page, ms = 250) => page.waitForTimeout(ms);
   await page.keyboard.type(labels[target][0]);
   expect(`type-ahead "${labels[target][0]}" moves to "${labels[target]}"`,
     await focusIs(page, items.nth(target)), await focused(page));
-  await page.keyboard.type(labels[target].slice(1, 4), { delay: 40 });
-  expect("type-ahead keeps the item while the typed prefix matches",
+  await page.keyboard.press("Home");
+  await page.waitForTimeout(600); // the buffer resets after 500 ms
+  await page.keyboard.type(labels[target].slice(0, 4), { delay: 30 });
+  expect("type-ahead matches a typed prefix",
     await focusIs(page, items.nth(target)), await focused(page));
   const tabbable = await menu.evaluate((m) => m.querySelectorAll("[tabindex='0']").length);
   expect("roving tabindex: exactly one item is in the tab order", tabbable === 1, String(tabbable));
