@@ -173,19 +173,3 @@
   }
 }
 
-/* Legacy names, kept so every feature sheet follows the new values until
-   the token-adoption pass maps it to the semantic names above. New code
-   never reads these. */
-:root {
-  --border: var(--line-strong);
-  --border-soft: var(--line);
-  --accent-strong: var(--accent-fill-hover);
-  --warn-hue: var(--warn);
-  --guide-ok: var(--success);
-  --assay-pass: var(--success);
-  --radius: var(--radius-pane);
-  --radius-s: var(--radius-control);
-  --radius-pill: var(--radius-control);
-  --shadow: none;
-  --seg-shadow: var(--elev-seg);
-}
