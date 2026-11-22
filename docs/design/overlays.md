@@ -145,5 +145,6 @@ a key leaves at once. Never add an entrance that ignores `[data-instant]`.
 - **Navigator drawer** (≤ 900px): `role="dialog"`, `aria-modal`, the page
   behind `inert` (App.tsx), Tab contained, Escape and the scrim close it,
   focus returns to the toggle. **Help panel**: not modal; Escape through
-  the layer stack, focus back to its opener.
+  the layer stack, focus back to its opener as it closes; it leaves
+  through `usePresence` (GuideProvider), at once after a keyboard close.
 - Not built yet: a shared combobox (ModelPicker builds its own).
