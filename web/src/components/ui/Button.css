@@ -58,6 +58,8 @@
    Not a Button variant: it has no box, no size and no press scale, it
    reads as a link because it sits in running text (buttons.md). */
 button.linkish {
+  /* inline in a line of text: no control height (WCAG 2.5.8 inline exception) */
+  min-height: 0;
   background: none; border: none; padding: 0; border-radius: var(--radius-control);
   color: var(--accent); font: inherit; font-size: inherit; cursor: pointer;
   text-decoration: underline; text-underline-offset: 2px;

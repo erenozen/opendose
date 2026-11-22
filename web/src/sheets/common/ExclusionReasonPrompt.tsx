@@ -10,6 +10,7 @@ import {
 } from "../../project/exclusions";
 import { isExcluded, type CellRef } from "../../project/table";
 import type { DataTableModel } from "../../project/types";
+import { announce, Button } from "../../components/ui";
 import "./exclusions.css";
 
 export interface ReasonAsk { sheetId: string; refs: CellRef[] }
@@ -45,6 +46,12 @@ export default function ExclusionReasonPrompt({ table, refs, onSave, onClose }: 
   // Included again (Ctrl/Cmd+E, undo): nothing left to explain.
   const gone = live.length === 0;
   useEffect(() => { if (gone) onClose(); }, [gone, onClose]);
+  // The prompt appears with its words: speak them once (a status region
+  // mounted with its text is often not announced, AD-16).
+  const count = live.length;
+  useEffect(() => {
+    if (count) announce(`Excluded ${count === 1 ? "1 value" : `${count} values`}. Reason for excluding?`, "polite");
+  }, [count]);
   if (gone) return null;
   const save = (reason: string) => {
     if (reason.trim()) onSave((t) => setReasons(t, live, reason));
@@ -52,23 +59,23 @@ export default function ExclusionReasonPrompt({ table, refs, onSave, onClose }: 
   };
   return (
     <section className="exclusion-reason" aria-label="Exclusion reason" ref={box}>
-      <p className="er-what" role="status">
+      <p className="er-what">
         Excluded {live.length === 1 ? "1 value" : `${live.length} values`} ({where(table, live)}).
         {" "}Reason for excluding (kept with the data):
       </p>
       <div className="er-presets" role="group" aria-label="Usual reasons">
         {PRESET_REASONS.map((r) => (
-          <button key={r} type="button" onClick={() => save(r)}>{r}</button>
+          <Button key={r} size="sm" onClick={() => save(r)}>{r}</Button>
         ))}
       </div>
       <form className="er-other" onSubmit={(e) => { e.preventDefault(); save(text); }}
         onKeyDown={(e) => { if (e.key === "Escape") { e.preventDefault(); close(); } }}>
         <label htmlFor={`${id}-r`}>Other reason for excluding</label>
         <input id={`${id}-r`} type="text" value={text} maxLength={MAX_REASON_LENGTH}
-          placeholder="e.g. tumour ulceration"
+          placeholder="e.g. tumour ulceration" autoComplete="off"
           onChange={(e) => setText(e.target.value)} />
-        <button type="submit" className="btn-primary" disabled={!text.trim()}>Save reason</button>
-        <button type="button" className="dismiss" onClick={close}>Skip</button>
+        <Button type="submit" size="sm" variant="primary" disabled={!text.trim()}>Save reason</Button>
+        <Button size="sm" onClick={close}>Skip</Button>
       </form>
       <p className="er-why">
         Excluded values stay in the table and are left out of analyses and graphs; the

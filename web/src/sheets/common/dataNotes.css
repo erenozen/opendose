@@ -23,8 +23,8 @@
   border: 1px solid color-mix(in srgb, var(--warn) 30%, transparent);
 }
 .notes-strip h3 {
-  margin: 0 0 var(--space-2); font-size: var(--text-label); font-weight: var(--weight-semibold); letter-spacing: 0.02em;
-  text-transform: uppercase; color: var(--muted);
+  margin: 0 0 var(--space-2); font-size: var(--text-label); font-weight: var(--weight-semibold);
+  color: var(--muted);
 }
 .notes-strip .analysed-line { margin: 0; color: var(--ink); }
 .notes-strip ul { margin: var(--space-4) 0 0; padding-left: 18px; }

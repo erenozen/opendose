@@ -2,6 +2,9 @@
 // Each covariate is one more subcolumn in every group, after Time and
 // Event; its title is its name.
 import "../common/clinical.css";
+import { Button, IconButton } from "../../components/ui";
+import { CloseIcon } from "../../components/ui/feedbackIcons";
+import { PlusIcon } from "../common/gridIcons";
 import type { AsideProps } from "../types";
 import {
   addSurvivalCovariate, removeSurvivalCovariate, renameSurvivalCovariate,
@@ -20,15 +23,15 @@ export default function CovariateAside({ table, readOnly, onChange }: AsideProps
           <input value={table.datasets[0]?.subTitles?.[2 + k] ?? n} disabled={readOnly}
             aria-label={`Name of covariate ${k + 1}`}
             onChange={(e) => onChange((t) => renameSurvivalCovariate(t, k, e.target.value), `cov:${k}`)} />
-          <button type="button" disabled={readOnly} aria-label={`Remove covariate ${n}`}
+          <IconButton size="sm" disabled={readOnly} aria-label={`Remove covariate ${n}`}
             title={`Remove ${n} from every group`}
-            onClick={() => onChange((t) => removeSurvivalCovariate(t, k))}>×</button>
+            onClick={() => onChange((t) => removeSurvivalCovariate(t, k))}><CloseIcon /></IconButton>
         </span>
       ))}
-      <button type="button" className="cov-add" disabled={readOnly} onClick={add}
+      <Button variant="ghost" size="sm" className="cov-add" disabled={readOnly} onClick={add}
         title="One more column per subject (age, sex, dose…) in every group. Kaplan-Meier and the log-rank test ignore covariates.">
-        Add covariate
-      </button>
+        <PlusIcon />Add covariate
+      </Button>
     </div>
   );
 }

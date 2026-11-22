@@ -108,6 +108,12 @@
 .import-preview td.role-x { background: var(--inset); }
 .import-preview .rn { color: var(--muted); text-align: center; background: transparent; }
 .import-summary { margin: 0; font-size: var(--text-body-s); color: var(--ink-2); }
+.import-empty { padding: var(--space-8) var(--space-12); color: var(--muted); }
+.import-file-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8); min-width: 0; }
+.import-file-name {
+  min-width: 0; max-width: 32ch; font-size: var(--text-body-s); color: var(--muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 .import-error { color: var(--danger); font-size: var(--text-body-s); margin: 0; }
 .modal-actions .spacer { margin-right: auto; }
 

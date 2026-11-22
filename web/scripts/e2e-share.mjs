@@ -508,7 +508,7 @@ await priv.getByRole("button", { name: "Close" }).last().click();
   await page.getByRole("button", { name: "Import…" }).click();
   const imp = page.getByRole("dialog", { name: "Import data" });
   await imp.waitFor({ timeout: 10000 });
-  await imp.getByLabel("File to import").setInputFiles(ZIP);
+  await imp.locator('input[aria-label="File to import"]').setInputFiles(ZIP);
   d = page.getByRole("dialog", { name: "Import with a recipe" });
   await d.waitFor({ timeout: 10000 });
   await d.getByLabel("Files stacked").waitFor({ timeout: 10000 });

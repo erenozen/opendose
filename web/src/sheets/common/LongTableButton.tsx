@@ -3,6 +3,7 @@ import { useProject } from "../../app/context";
 import { findSheet } from "../../project/ops";
 import type { ResultsSheet } from "../../project/types";
 import type { LongTarget } from "./longTable";
+import { Button } from "../../components/ui";
 import "./grid.css";
 
 const LongTableDialog = lazy(() => import("./LongTableDialog"));
@@ -26,9 +27,9 @@ export default function LongTableButton({ target, sheet }: { target: LongTarget;
   }
   return (
     <div className="long-table-entry">
-      <button type="button" onClick={() => setOpen(true)} title={HINTS[target]}>
+      <Button size="sm" onClick={() => setOpen(true)} title={HINTS[target]}>
         From long table…
-      </button>
+      </Button>
       {open && (
         <Suspense fallback={null}>
           <LongTableDialog target={target} sheet={sheet} onClose={() => setOpen(false)} />

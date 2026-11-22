@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Button, IconButton } from "../../components/ui";
 import { CloseIcon } from "../../components/ui/feedbackIcons";
+import { MinusIcon, PlusIcon } from "./gridIcons";
 import { useProject } from "../../app/context";
 // factory -> registry -> this grid is a module cycle; addFamily is only
 // called from an event handler, never while modules evaluate.
@@ -66,23 +67,6 @@ const EMPTY_HINTS: Partial<Record<TableType, string>> = {
   multivariable: "Paste a block from Excel or type: one row per observation, one column per variable.",
   nested: "Paste a block from Excel or type: one subcolumn per subgroup (such as one animal) under its group, values down the rows.",
 };
-
-function PlusIcon() {
-  return (
-    <svg width={14} height={14} viewBox="0 0 14 14" fill="none" stroke="currentColor"
-      strokeWidth={1.5} strokeLinecap="round" aria-hidden="true">
-      <path d="M7 3v8M3 7h8" />
-    </svg>
-  );
-}
-function MinusIcon() {
-  return (
-    <svg width={14} height={14} viewBox="0 0 14 14" fill="none" stroke="currentColor"
-      strokeWidth={1.5} strokeLinecap="round" aria-hidden="true">
-      <path d="M3 7h8" />
-    </svg>
-  );
-}
 
 type Dialog =
   | { kind: "import"; req?: ImportRequest; paste?: { text: string; r: number; c: number } }
@@ -697,6 +681,7 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
               )}
               {t.datasets.map((d, di) => (
                 <th key={di} colSpan={subCount(d)} className="group-head">
+                  <div className="group-title">
                   <input
                     className="ds-name"
                     value={d.name}
@@ -712,22 +697,23 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
                         && t.type !== "column" && (
                         <>
                           <IconButton size="sm" title="Remove a subcolumn"
-                            aria-label={`Remove a subcolumn from ${d.name}`}
+                            aria-label={`Remove a subcolumn from ${d.name || `${noun} ${di + 1}`}`}
                             onClick={() => onChange((x) => setSubcolumnCount(x, di, subCount(d) - 1))}>
                             <MinusIcon /></IconButton>
                           <IconButton size="sm" title="Add a subcolumn"
-                            aria-label={`Add a subcolumn to ${d.name}`}
+                            aria-label={`Add a subcolumn to ${d.name || `${noun} ${di + 1}`}`}
                             onClick={() => onChange((x) => setSubcolumnCount(x, di, subCount(d) + 1))}>
                             <PlusIcon /></IconButton>
                         </>
                       )}
                       {t.datasets.length > 1 && (
                         <IconButton size="sm" title={`Delete ${noun}`}
-                          aria-label={`Delete ${d.name}`}
+                          aria-label={`Delete ${d.name || `${noun} ${di + 1}`}`}
                           onClick={() => onChange((x) => deleteDataset(x, di))}><CloseIcon /></IconButton>
                       )}
                     </span>
                   )}
+                  </div>
                   {summary && di === 0 && (
                     <span className="format-tag">{SUBCOLUMN_FORMAT_LABELS[t.subcolumnFormat]}</span>
                   )}

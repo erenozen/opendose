@@ -134,7 +134,7 @@ await page.setInputFiles('.plate-form input[type="file"]', XLSX);
 await page
   .getByPlaceholder("e.g. Control, Resistant")
   .fill("Line S, Line R");
-await page.getByRole("button", { name: /Import → data table/ }).click();
+await page.getByRole("button", { name: "Import into the table" }).click();
 await page.waitForFunction(
   () => document.querySelectorAll(".result-card .derived").length >= 2,
   { timeout: 60000 },
@@ -805,7 +805,7 @@ await page.waitForSelector(".grid-toolbar");
 // xlsx through the Import dialog's file source (read by the Python runtime)
 await page.getByRole("button", { name: "Import…", exact: true }).click();
 const imp = page.locator(".import-dialog");
-await imp.getByLabel("File to import").setInputFiles(XLSX);
+await imp.locator('input[aria-label="File to import"]').setInputFiles(XLSX);
 // the workbook is read in the engine worker: wait for its preview (not a
 // preview of whatever the dialog showed before)
 await page.waitForFunction(() =>

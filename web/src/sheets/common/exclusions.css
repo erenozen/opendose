@@ -1,22 +1,25 @@
-/* Reason prompt after Ctrl/Cmd+E (ExclusionReasonPrompt.tsx) */
+/* Reason prompt after Ctrl/Cmd+E (ExclusionReasonPrompt.tsx): a neutral
+   tile on --inset with a solid line, like a Banner. Opened by a key, so it
+   appears at once (overlays.md: keyboard-opened means instant, MO-02). */
 .exclusion-reason {
-  margin: 0 0 var(--space-8); padding: var(--space-8) var(--space-12);
-  border: 1px solid var(--accent-border); border-radius: var(--radius-control);
-  background: var(--accent-soft);
+  margin: 0; padding: var(--space-8) var(--space-12);
+  border: 1px solid var(--line-solid); border-radius: var(--radius-pane);
+  background: var(--inset);
   font-size: var(--text-body-s); color: var(--ink);
-  display: grid; gap: var(--space-6);
-  transition: opacity var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out);
-  opacity: 1; transform: translateY(0);
-  @starting-style { opacity: 0; transform: translateY(-4px); }
+  display: grid; gap: var(--space-8);
 }
 .exclusion-reason p { margin: 0; }
 .exclusion-reason .er-presets { display: flex; flex-wrap: wrap; gap: var(--space-6); }
-.exclusion-reason .er-presets button { padding: 3px 10px; background: var(--surface); font-size: var(--text-body-s); }
 .exclusion-reason .er-other { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-6); }
 .exclusion-reason .er-other label { font-size: var(--text-body-s); color: var(--ink-2); }
-.exclusion-reason .er-other input { flex: 1 1 180px; min-width: 0; padding: var(--space-4) var(--space-8); }
-.exclusion-reason .er-other button { padding: 3px 10px; }
-.exclusion-reason .er-other button.dismiss { background: var(--surface); }
+.exclusion-reason .er-other input {
+  flex: 1 1 180px; min-width: 0; padding: var(--space-4) var(--space-8);
+  font: inherit; color: var(--ink); background: var(--surface);
+  border: 1px solid var(--line-strong); border-radius: var(--radius-control);
+}
 .exclusion-reason .er-why { color: var(--ink-2); font-size: var(--text-caption); }
 .exclusion-reason a { color: var(--accent); }
-
+@media (pointer: coarse) {
+  /* sm keycaps carry a 44px hit area: keep the presets' areas apart */
+  .exclusion-reason .er-presets, .exclusion-reason .er-other { gap: var(--space-12); }
+}

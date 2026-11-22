@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useId, useState } from "react";
+import { Button, Field, Input, NumberField } from "./ui";
 import { useProject } from "../app/context";
 import TemplatePicker, { type TemplatePick } from "./TemplatePicker";
 import { allowsSummaryFormat, defaultInit, type NewTableInit } from "../project/table";
@@ -50,6 +51,7 @@ export default function NewTableDialog({ defaultType, defaultName, onCancel, onC
   onCreateFromTemplate?: (t: TemplatePick["template"], name: string, withData: boolean) => void;
 }) {
   const { project, apply, select } = useProject();
+  const uid = useId();
   const [mode, setMode] = useState<"format" | "template" | "assay">("format");
   const [assay, setAssay] = useState<AssayPick | null>(() => (ASSAYS[0]
     ? { module: ASSAYS[0], name: ASSAYS[0].tableName, sample: true } : null));
@@ -127,11 +129,8 @@ export default function NewTableDialog({ defaultType, defaultName, onCancel, onC
   };
 
   const num = (key: keyof typeof shape, label: string) => (
-    <label className="field field-num">
-      <span>{label}</span>
-      <input inputMode="numeric" value={shape[key]} disabled={sample}
-        onChange={(e) => setShape({ ...shape, [key]: e.target.value })} />
-    </label>
+    <NumberField label={label} fieldClassName="field-num" integer min={1} value={shape[key]}
+      disabled={sample} onValueChange={(v) => setShape({ ...shape, [key]: v })} />
   );
 
   return (
@@ -139,18 +138,16 @@ export default function NewTableDialog({ defaultType, defaultName, onCancel, onC
       onClose={onCancel} onSubmit={submit}
       actions={
         <>
-          <button type="button" className="simulate-entry"
+          <Button className="simulate-entry"
             title="Make an XY, Column or Contingency table of simulated data"
-            onClick={() => { onCancel(); openSimulate(); }}>Simulate data…</button>
-          <button type="button" onClick={onCancel}>Cancel</button>
+            onClick={() => { onCancel(); openSimulate(); }}>Simulate data…</Button>
+          <Button onClick={onCancel}>Cancel</Button>
           {mode === "format" ? (
-            <button type="submit" className="btn-primary">Create table</button>
+            <Button type="submit" variant="primary">Create table</Button>
           ) : mode === "assay" ? (
-            <button type="submit" className="btn-primary" disabled={!assay}>Start assay</button>
+            <Button type="submit" variant="primary" disabled={!assay}>Start assay</Button>
           ) : (
-            <button type="submit" className="btn-primary" disabled={!pick}>
-              Create from template
-            </button>
+            <Button type="submit" variant="primary" disabled={!pick}>Create from template</Button>
           )}
         </>
       }>
@@ -202,11 +199,9 @@ export default function NewTableDialog({ defaultType, defaultName, onCancel, onC
           })}
         </fieldset>
         <div className="new-table-options">
-          <label className="field">
-            <span>Name</span>
-            <input value={name} onChange={(e) => setName(e.target.value)}
-              aria-label="Table name" />
-          </label>
+          <Field label="Table name">
+            <Input value={name} autoComplete="off" onChange={(e) => setName(e.target.value)} />
+          </Field>
           {def.sampleTable && (
             <fieldset className="field-radios">
               <legend>Start with</legend>
@@ -223,9 +218,11 @@ export default function NewTableDialog({ defaultType, defaultName, onCancel, onC
             {num("rows", labels.rows)}
           </div>
           {allowsSummary && (
-            <label className="field">
-              <span>Y values entered as</span>
-              <select value={summary} disabled={sample} aria-label="Y values entered as"
+            <Field label="Y values entered as" id={`${uid}-summary`}
+              description={summary === "replicates" ? undefined : SUBCOLUMN_FORMAT_HAS_N[summary]
+                ? "Mean and error computed elsewhere, with N: curve fits, t tests and ANOVA use them as they would the raw values."
+                : "Without N the errors are drawn as entered, but analyses can use only the means."}>
+              <select id={`${uid}-summary`} value={summary} disabled={sample}
                 onChange={(e) => {
                   const f = e.target.value as SubcolumnFormat;
                   setSummary(f);
@@ -238,32 +235,20 @@ export default function NewTableDialog({ defaultType, defaultName, onCancel, onC
                   <option key={f} value={f}>{SUBCOLUMN_FORMAT_LABELS[f]}</option>
                 ))}
               </select>
-              {summary !== "replicates" && (
-                <span className="field-note">
-                  {SUBCOLUMN_FORMAT_HAS_N[summary]
-                    ? "Mean and error computed elsewhere, with N: curve fits, t tests and ANOVA use them as they would the raw values."
-                    : "Without N the errors are drawn as entered, but analyses can use only the means."}
-                </span>
-              )}
-            </label>
+            </Field>
           )}
           {type === "xy" && (
-            <label className="field">
-              <span>X values are</span>
-              <select value={xFormat} disabled={sample}
+            <Field label="X values are" id={`${uid}-xformat`}
+              description={xFormat === "numbers" ? undefined : xFormat === "dates"
+                ? "Analyzed as days since the earliest date (other units under Format); graphs label X with dates."
+                : "Type h:mm:ss, h:mm or hours; analyzed in seconds (other units under Format)."}>
+              <select id={`${uid}-xformat`} value={xFormat} disabled={sample}
                 onChange={(e) => setXFormat(e.target.value as XFormat)}>
                 <option value="numbers">Numbers</option>
                 <option value="dates">Dates</option>
                 <option value="elapsed">Elapsed times</option>
               </select>
-              {xFormat !== "numbers" && (
-                <span className="field-note">
-                  {xFormat === "dates"
-                    ? "Analyzed as days since the earliest date (other units under Format); graphs label X with dates."
-                    : "Type h:mm:ss, h:mm or hours; analyzed in seconds (other units under Format)."}
-                </span>
-              )}
-            </label>
+            </Field>
           )}
           {design?.type === type && (
             <p className="field-note design-chosen" role="status">
