@@ -32,6 +32,8 @@ import ExclusionReasonPrompt, { type ReasonAsk } from "./ExclusionReasonPrompt";
 import { newlyExcluded, reasonAt } from "../../project/exclusions";
 import PasteReportStrip from "./PasteReportStrip";
 import FormulaColumnDialog from "./FormulaColumnDialog";
+import ExcludeByIdDialog from "./ExcludeByIdDialog";
+import { findInTable } from "../../project/findInTable";
 import { calcCell, evalCellExpression, isCalculated } from "../../project/calculated";
 import {
   DEFAULT_ROW_PX, INITIAL_ROWS, rowSegments, sameRange, scrollTopFor, shouldVirtualise,
@@ -68,7 +70,8 @@ type Dialog =
   | { kind: "import"; req?: ImportRequest; paste?: { text: string; r: number; c: number } }
   | { kind: "export" } | { kind: "sort" } | { kind: "series" } | { kind: "format" }
   | { kind: "convert" } | { kind: "reshape" } | { kind: "convertType" }
-  | { kind: "formula"; dataset: number; isNew: boolean };
+  | { kind: "formula"; dataset: number; isNew: boolean }
+  | { kind: "excludeIds" };
 
 /** Set (or, with formula null, remove) a column's formula; a calculated
  *  column's values are filled by app/useCalculatedSync. */
@@ -347,6 +350,35 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
     requestAnimationFrame(() => focusCell(r, c));
   };
 
+  // ---- find (Ctrl/Cmd+F while in the table)
+  const [findText, setFindText] = useState("");
+  const [findAt, setFindAt] = useState(0);
+  const findRef = useRef<HTMLInputElement>(null);
+  const hits = useMemo(() => findInTable(t, findText), [t, findText]);
+  // the match shown (outlined while the find box has text)
+  const curHit = findText.trim() && hits.length ? hits[Math.min(findAt, hits.length - 1)] : null;
+  const isHit = (r: number, c: number) => !!curHit && curHit.r === r && curHit.c === c;
+  const showHit = (i: number) => {
+    if (!hits.length) return;
+    const k = ((i % hits.length) + hits.length) % hits.length;
+    setFindAt(k);
+    const h = hits[k];
+    setSel({ r0: h.r, c0: h.c, r1: h.r, c1: h.c });
+    // keep typing in the find box: scroll the cell into view without focusing it
+    requestAnimationFrame(() => {
+      const el = wrap.current?.querySelector(`[data-r="${h.r}"][data-c="${h.c}"]`) as HTMLElement | null;
+      if (el) el.scrollIntoView({ block: "nearest", inline: "nearest" });
+      else focusCell(h.r, h.c);
+    });
+  };
+  const onGridKeyDown = (e: React.KeyboardEvent) => {
+    if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === "f") {
+      e.preventDefault();
+      findRef.current?.focus();
+      findRef.current?.select();
+    }
+  };
+
   const onCopy = (e: React.ClipboardEvent, cut: boolean) => {
     if (!multi || !rect) return;
     e.preventDefault();
@@ -485,7 +517,7 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
     <tr key={r} data-row={r} aria-rowindex={virtual ? r + headRows + 1 : undefined}>
       <td className="rownum">{r + 1}</td>
       {shape.hasRowTitles && (
-        <th className={`row-label${inSel(r, rowTitleCol) ? " sel" : ""}`}>
+        <th className={`row-label${inSel(r, rowTitleCol) ? " sel" : ""}${isHit(r, rowTitleCol) ? " find-hit" : ""}`}>
           <input className="ds-name" value={t.rowTitles[r] ?? ""}
             data-r={r} data-c={rowTitleCol}
             readOnly={readOnly}
@@ -502,7 +534,7 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
       {shape.hasX && (() => {
         const ex = isExcluded(t, { kind: "x", row: r });
         const bad = t.xFormat !== "numbers" && xInvalid(t, t.x[r]);
-        const cls = [ex && "excluded", bad && "x-invalid", inSel(r, xCol) && "sel"]
+        const cls = [ex && "excluded", bad && "x-invalid", inSel(r, xCol) && "sel", isHit(r, xCol) && "find-hit"]
           .filter(Boolean).join(" ");
         return (
           <td className={cls || undefined}>
@@ -518,7 +550,7 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
         d.rows[r]?.map((v, s) => {
           const ex = isExcluded(t, { kind: "y", dataset: di, row: r, sub: s });
           const c = dsBase[di] + s;
-          const cls = [ex && "excluded", inSel(r, c) && "sel"].filter(Boolean).join(" ");
+          const cls = [ex && "excluded", inSel(r, c) && "sel", isHit(r, c) && "find-hit"].filter(Boolean).join(" ");
           return (
             <td key={`${di}-${s}`} className={cls || undefined}>
               {cellInput(r, c, v,
@@ -547,7 +579,7 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
   const summary = t.subcolumnFormat !== "replicates";
 
   return (
-    <div className="grid-editor">
+    <div className="grid-editor" onKeyDown={onGridKeyDown}>
       <div className="grid-toolbar" role="group" aria-label="Data table tools">
         {!readOnly && (
           <button type="button" onClick={() => setDialog({ kind: "import" })}
@@ -555,12 +587,39 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
         )}
         <button type="button" onClick={() => setDialog({ kind: "export" })}
           title="Download as CSV or tab-separated text, or copy">Export…</button>
+        <span className="grid-find">
+          <input ref={findRef} type="search" className="grid-find-input" placeholder={`Find (${MOD}F)`}
+            aria-label="Find in this table" value={findText}
+            onChange={(e) => { setFindText(e.target.value); setFindAt(0); }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") { e.preventDefault(); showHit(e.shiftKey ? findAt - 1 : (sel ? findAt + 1 : findAt)); }
+              if (e.key === "Escape") {
+                e.preventDefault();
+                setFindText("");
+                const h = hits[findAt];
+                if (h) jumpTo(h.r, h.c);
+              }
+            }} />
+          {findText.trim() && (
+            <>
+              <span className="grid-find-count" role="status">
+                {hits.length ? `${Math.min(findAt, hits.length - 1) + 1} of ${hits.length}` : "no match"}</span>
+              <button type="button" aria-label="Previous match" disabled={!hits.length}
+                onClick={() => showHit(findAt - 1)}>▲</button>
+              <button type="button" aria-label="Next match" disabled={!hits.length}
+                onClick={() => showHit(findAt + 1)}>▼</button>
+            </>
+          )}
+        </span>
         {!readOnly && (
           <>
             <span className="tb-sep" aria-hidden="true" />
             <button type="button" onClick={() => setDialog({ kind: "sort" })}>Sort…</button>
             <button type="button" onClick={() => setDialog({ kind: "series" })}
               title="Fill a column with an arithmetic or geometric series">Insert series…</button>
+            <button type="button" onClick={() => setDialog({ kind: "excludeIds" })}
+              title="Exclude every value of the rows whose IDs you paste (row titles or an ID column)">
+              Exclude by ID…</button>
             <MenuButton label="Rows" items={[
               { label: "Insert row above", onSelect: () => edit((x) => insertRows(x, curRect.r0, 1)) },
               { label: "Insert row below", hint: `${MOD}⇧↵`,
@@ -805,6 +864,9 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
               : x, di, formula, name));
             setDialog(null);
           }} />
+      )}
+      {dialog?.kind === "excludeIds" && (
+        <ExcludeByIdDialog table={t} onClose={() => setDialog(null)} onApply={(fn) => edit(fn)} />
       )}
       {dialog?.kind === "series" && (
         <SeriesDialog table={t} row={curRect.r0} col={cur.c0}
