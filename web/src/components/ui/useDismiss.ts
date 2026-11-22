@@ -18,16 +18,21 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type Ref, type R
 // ------------------------------------------------------------ modality
 
 let modality: "keyboard" | "pointer" = "pointer";
+let lastKey = "";
 const MODIFIERS = new Set(["Shift", "Control", "Alt", "Meta", "CapsLock"]);
 if (typeof window !== "undefined") {
   window.addEventListener("keydown", (e) => {
-    if (!MODIFIERS.has(e.key)) modality = "keyboard";
+    if (!MODIFIERS.has(e.key)) { modality = "keyboard"; lastKey = e.key; }
   }, true);
   window.addEventListener("pointerdown", () => { modality = "pointer"; }, true);
 }
 
 /** True when the most recent user input was a key press, not a pointer. */
 export const lastInputWasKeyboard = () => modality === "keyboard";
+
+/** True when the last input was Tab: focus moved by the user, not handed
+ *  back by a closing layer (Escape, Enter on an item). */
+export const lastKeyWasTab = () => modality === "keyboard" && lastKey === "Tab";
 
 /** Touch-first device: no autofocus into text fields, no tooltips. */
 export const coarsePointer = () =>

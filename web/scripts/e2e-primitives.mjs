@@ -275,6 +275,8 @@ const settle = (page, ms = 250) => page.waitForTimeout(ms);
   await page.keyboard.press("Escape");
   await settle(page);
   expect("Preferences: Escape returns focus to its button", await focusIs(page, prefs));
+  expect("no tooltip pops up over the button that got focus back",
+    await page.locator("[role=tooltip]:popover-open").count() === 0);
 
   const info = page.getByRole("button", { name: /^About OpenDose/ });
   await info.click();

@@ -2,7 +2,7 @@ import {
   Children, cloneElement, useEffect, useId, useLayoutEffect, useRef, useState,
   type FocusEvent, type PointerEvent, type ReactElement, type Ref,
 } from "react";
-import { useMergedRefs, useTopLayer } from "./useDismiss.ts";
+import { lastKeyWasTab, useMergedRefs, useTopLayer } from "./useDismiss.ts";
 import { boxOf, useAnchoredPosition } from "./Popover.anchor.ts";
 import type { Align, Side } from "./Popover.place.ts";
 import "./Popover.css";
@@ -117,7 +117,8 @@ export default function Tooltip({ content, shortcut, side = "bottom", align = "c
         onPointerDown: (e) => { p.onPointerDown?.(e); hide(); },
         onFocus: (e) => {
           p.onFocus?.(e);
-          if (canHover() && e.currentTarget.matches(":focus-visible")) show(true);
+          // Tabbed to, not focus handed back by a closing popover.
+          if (canHover() && lastKeyWasTab()) show(true);
         },
         onBlur: (e) => { p.onBlur?.(e); hide(); },
       })}
