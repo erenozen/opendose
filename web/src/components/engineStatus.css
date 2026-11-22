@@ -33,8 +33,9 @@
 .analysis-busy.long [role="status"] { color: var(--warn-ink); font-weight: var(--weight-semibold); }
 .analysis-busy.cancelled { border-style: dashed; }
 /* Results that are not the live engine's for the current input: kept
-   readable, set back a little until the new ones arrive. */
-.pane-results[data-live="false"] .result-card { opacity: 0.78; transition: opacity 160ms var(--ease-out); }
+   readable, set back a little until the new ones arrive. 0.88 is the
+   lowest opacity at which --muted table heads still pass 4.5:1. */
+.pane-results[data-live="false"] .result-card { opacity: 0.88; transition: opacity 160ms var(--ease-out); }
 
 /* Large tables scroll inside their card (FamilyWorkspace): with
    thousands of inputs, a card as tall as its table made every keystroke
