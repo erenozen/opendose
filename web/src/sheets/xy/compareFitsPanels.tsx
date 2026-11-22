@@ -5,12 +5,13 @@ import {
   modelLibraryVersion, modelMeta, subscribeModelLibrary,
 } from "../../lib/modelLibrary";
 import { formatPValue, pLabel, tableP } from "../../report/pformat";
-import type { ConstraintState, ErrorBarKind } from "../../types";
-import { ERROR_BAR_LABELS, formatSig } from "../../types";
+import type { ConstraintState, ErrorBarKind, WeightingKind } from "../../types";
+import { DEFAULT_WEIGHT_K, ERROR_BAR_LABELS, formatSig, WEIGHTING_LABELS, weightK } from "../../types";
 import CopyableMethods from "../common/CopyableMethods";
 import type { ControlsProps, ResultsProps } from "../types";
 import {
-  comparableModels, preferred, type CompareMethod, type CompareOptions, type CompareRow,
+  comparableModels, compareWeightingSentence, preferred, type CompareMethod, type CompareOptions,
+  type CompareRow,
 } from "./compareFits";
 import { ParameterControls, ParameterMethods, ParameterResults } from "./compareParameterPanels";
 import "./xy.css";
@@ -96,6 +97,7 @@ export function CompareControls({ table, options, onChange, readOnly }: Controls
             <span>X values are already log10(concentration)</span>
           </label>
         )}
+        <WeightingSection options={options} set={set} readOnly={readOnly} />
         <ErrorBarSection options={options} set={set} readOnly={readOnly} />
       </div>
     );
@@ -157,6 +159,7 @@ export function CompareControls({ table, options, onChange, readOnly }: Controls
           the same data.
         </p>
       </section>
+      <WeightingSection options={options} set={set} readOnly={readOnly} />
       <ErrorBarSection options={options} set={set} readOnly={readOnly} />
     </div>
   );
@@ -186,6 +189,35 @@ function ModeSection({ options, set, readOnly }: { options: CompareOptions; set:
           Compare a parameter (logEC50, Hill slope, Top …) between two data sets
         </label>
       </fieldset>
+    </section>
+  );
+}
+
+function WeightingSection({ options, set, readOnly }: { options: CompareOptions; set: SetOptions; readOnly?: boolean }) {
+  return (
+    <section>
+      <h3>Weighting</h3>
+      <select aria-label="Weighting" value={options.weighting} disabled={readOnly}
+        onChange={(e) => set({ weighting: e.target.value as WeightingKind })}>
+        {(Object.keys(WEIGHTING_LABELS) as WeightingKind[]).map((w) => (
+          <option key={w} value={w}>{WEIGHTING_LABELS[w]}</option>
+        ))}
+      </select>
+      {options.weighting === "1/YK" && (
+        <label className="check-row">
+          <span>K</span>
+          <input type="number" min={0.1} max={10} step={0.1} aria-label="Weighting exponent K"
+            disabled={readOnly} key={weightK(options)} defaultValue={weightK(options)}
+            onBlur={(e) => {
+              const k = Number(e.target.value);
+              set({ weightK: Number.isFinite(k) && k > 0 && k <= 10 ? k : DEFAULT_WEIGHT_K });
+            }} />
+        </label>
+      )}
+      <p className="hint-block">
+        Every fit in the comparison uses this weighting; weighted fits are compared on their
+        weighted sums of squares. Opened from a curve fit, it starts as that fit&apos;s weighting.
+      </p>
     </section>
   );
 }
@@ -243,7 +275,9 @@ function shortNames(result: any): [string, string] {
     : ["model 1", "model 2"];
 }
 
-function Card({ row, method, short }: { row: CompareRow; method: CompareMethod; short: [string, string] }) {
+function Card({ row, method, short, weighted }: {
+  row: CompareRow; method: CompareMethod; short: [string, string]; weighted?: boolean;
+}) {
   if (row.error || !row.models) {
     return (
       <div className="result-card">
@@ -263,7 +297,7 @@ function Card({ row, method, short }: { row: CompareRow; method: CompareMethod; 
           <thead>
             <tr>
               <th>Model</th>
-              <th className="num">Sum of squares</th>
+              <th className="num">{weighted ? "Weighted sum of squares" : "Sum of squares"}</th>
               <th className="num">DF</th>
               <th className="num">Parameters</th>
               {showA && <th className="num">AICc</th>}
@@ -323,11 +357,13 @@ export function CompareResults({ result }: ResultsProps<CompareOptions, any>) {
           are solid and the one curve for all data sets is dotted.</p>
       )}
       {(result.rows ?? []).map((row: CompareRow, i: number) => (
-        <Card key={i} row={row} method={result.method} short={short} />
+        <Card key={i} row={row} method={result.method} short={short} weighted={!!result.weighted} />
       ))}
     </div>
   );
 }
+
+const withSpace = (s: string) => (s ? `${s} ` : "");
 
 export function CompareMethods({ options, result }: ResultsProps<CompareOptions, any>) {
   if (!result || result.error) return null;
@@ -358,6 +394,7 @@ export function CompareMethods({ options, result }: ResultsProps<CompareOptions,
   }).join("; ");
   const text = `${what}; ${how}, as described in the GraphPad Prism curve-fitting guide and by `
     + `Motulsky and Christopoulos (Fitting models to biological data using linear and nonlinear `
-    + `regression, 2004). ${each}. ${softwareSentence(getRuntimeVersions())}`;
+    + `regression, 2004). ${each}. ${withSpace(compareWeightingSentence(options))}`
+    + `${softwareSentence(getRuntimeVersions())}`;
   return <CopyableMethods text={text} />;
 }

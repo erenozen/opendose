@@ -17,6 +17,15 @@ export function offersPlanning(analysisId: string, options: unknown): boolean {
  *  simpler model; "global" fits one curve for all data sets against a
  *  separate curve for each, with the fitted model. */
 export function compareFitsOptions(model: string, xIsLog: boolean, mode: "models" | "global" | "parameter",
+  usable: (id: string) => boolean, fitWeighting?: { weighting: string; weightK?: number }): Record<string, unknown> {
+  // the comparison is weighted as the fit it was opened from (1/SD² is
+  // carried over too; the comparison says so if the data cannot give it)
+  const w = fitWeighting && fitWeighting.weighting !== "none"
+    ? { weighting: fitWeighting.weighting, ...(fitWeighting.weightK ? { weightK: fitWeighting.weightK } : {}) } : {};
+  return { ...compareFitsOptionsBase(model, xIsLog, mode, usable), ...w };
+}
+
+function compareFitsOptionsBase(model: string, xIsLog: boolean, mode: "models" | "global" | "parameter",
   usable: (id: string) => boolean): Record<string, unknown> {
   const own = usable(model) ? model : null;
   if (mode === "global") return { mode, xIsLog, ...(own ? { model1: own } : {}) };

@@ -18,7 +18,7 @@ export interface RuntimeVersions {
 }
 
 export interface BootConfig {
-  /** Pyodide distribution folder (CDN), ending in "/". */
+  /** Pyodide distribution folder on this site (public/pyodide/), ending in "/". */
   indexURL: string;
   /** The engine's Python files as one JSON document
    *  ({ files: { "api.py": "…", … } }), written by scripts/sync-py.mjs. */

@@ -121,6 +121,15 @@ def test_three_groups_rm_anova_on_logs():
     # a missing lane switches to the mixed model
     res2 = dn.densitometry(recs[:-1])
     assert res2["statistics"]["test"] == "mixed_rm_one_way_log10"
+    # ... whose df follow the chosen method; complete blots do not depend
+    # on it
+    kr = dn.densitometry(recs[:-1], ddf="kenward_roger")["statistics"]
+    assert kr["ddf"] == "kenward_roger"
+    assert kr["fixed_effect"]["df_den"] != res2["statistics"]["fixed_effect"]["df_den"]
+    full = dn.densitometry(recs, ddf="kenward_roger")["statistics"]
+    assert full["table"]["F"] == pytest.approx(st["table"]["F"])
+    assert [c["p_adjusted"] for c in full["comparisons"]] == pytest.approx(
+        [c["p_adjusted"] for c in st["comparisons"]], rel=1e-6)
 
 
 def test_api_densitometry():

@@ -5,6 +5,7 @@
 // the analysis select. Prints each violation once with where it was seen.
 // Usage: node scripts/a11y-audit.mjs http://localhost:5202/
 import { chromium } from "playwright";
+import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
@@ -23,7 +24,7 @@ await page.waitForSelector(".results-table", { timeout: 180000 });
 
 const found = new Map(); // key -> {rule, html, where:Set}
 async function audit(where) {
-  await page.addScriptTag({ path: AXE }).catch(() => {});
+  await page.evaluate(readFileSync(AXE, "utf8")).catch(() => {});
   const res = await page.evaluate(async (rules) => {
     const root = document.querySelector(".pane-controls");
     if (!root) return [];

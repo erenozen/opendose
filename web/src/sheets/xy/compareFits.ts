@@ -17,7 +17,8 @@
 // `altCurves`). Pure: unit-tested with node --test.
 import { numericData } from "../../project/table.ts";
 import { SUBCOLUMN_FORMAT_ENGINE, type DataTableModel } from "../../project/types.ts";
-import type { ConstraintState, ErrorBarKind } from "../../types.ts";
+import { engineWeighting, WEIGHTING_LABELS, weightingLabel } from "../../types.ts";
+import type { ConstraintState, ErrorBarKind, WeightingKind } from "../../types.ts";
 import { MODELS_META, modelMeta, modelsByFamily, type ModelMeta } from "../../lib/modelLibrary.ts";
 import {
   compareAicc, extraSumOfSquaresF, type AiccComparison, type FTest,
@@ -50,6 +51,17 @@ export interface CompareOptions {
   parameter: string;
   datasetA: number;
   datasetB: number;
+  /** "parameter" mode: two data sets (A vs B) or three or more at once
+   *  (one F test for a value shared by all, then every pair). */
+  parameterScope: "pair" | "all";
+  /** The data sets of the "all" scope (indices; empty = every data set
+   *  with values). */
+  parameterSets: number[];
+  /** Weighting of every fit in the comparison (the same for both models),
+   *  carried over from the curve fit the comparison was opened from. */
+  weighting: WeightingKind;
+  /** K of 1/Y^K weighting. */
+  weightK?: number;
 }
 
 export const DEFAULT_COMPARE: CompareOptions = {
@@ -58,7 +70,8 @@ export const DEFAULT_COMPARE: CompareOptions = {
   model2: "log_inhibitor_vs_response_4pl",
   constraints1: {}, constraints2: {},
   method: "both", xIsLog: false, errorBars: "sd",
-  parameter: "", datasetA: 0, datasetB: 1,
+  parameter: "", datasetA: 0, datasetB: 1, parameterScope: "pair", parameterSets: [],
+  weighting: "none",
 };
 
 const isConstraints = (v: unknown): v is Record<string, ConstraintState> =>
@@ -79,8 +92,31 @@ export function normalizeCompare(raw: unknown): CompareOptions {
     parameter: typeof r.parameter === "string" ? r.parameter : "",
     datasetA: Number.isInteger(r.datasetA) && (r.datasetA as number) >= 0 ? r.datasetA as number : 0,
     datasetB: Number.isInteger(r.datasetB) && (r.datasetB as number) >= 0 ? r.datasetB as number : 1,
+    parameterScope: r.parameterScope === "all" ? "all" : "pair",
+    parameterSets: Array.isArray(r.parameterSets)
+      ? r.parameterSets.filter((i): i is number => Number.isInteger(i) && i >= 0) : [],
+    weighting: typeof r.weighting === "string" && r.weighting in WEIGHTING_LABELS
+      ? r.weighting as WeightingKind : "none",
+    ...(typeof r.weightK === "number" && r.weightK > 0 && r.weightK <= 10 ? { weightK: r.weightK } : {}),
   };
 }
+
+/** The engine's weighting option for this comparison ({} = unweighted). */
+export function compareWeighting(o: Pick<CompareOptions, "weighting" | "weightK">): { weighting?: string } {
+  return o.weighting === "none" ? {} : { weighting: engineWeighting(o) };
+}
+
+/** The Methods sentence on weighting ("" when unweighted). */
+export function compareWeightingSentence(o: Pick<CompareOptions, "weighting" | "weightK">): string {
+  if (o.weighting === "none") return "";
+  const how = weightingLabel(engineWeighting(o)).replace(/^Weight by /, "");
+  return `Every fit was weighted by ${how}, and the fits were compared on their weighted sums of squares.`;
+}
+
+/** A fit's sum of squares as the comparison uses it: the weighted one when
+ *  the fit is weighted (the quantity it minimised), else the ordinary one. */
+export const fitSS = (g: { ss_res: number; ss_res_weighted?: number | null }): number =>
+  (typeof g.ss_res_weighted === "number" ? g.ss_res_weighted : g.ss_res);
 
 /** Library models this comparison can fit to one data set at a time
  *  (not global-only models, nor models needing typed-in constants). */
@@ -222,14 +258,17 @@ function runModels(engine: Engine, table: DataTableModel, o: CompareOptions): an
   const pts = meanPoints(table, m1.needsLogX && !o.xIsLog, o.errorBars);
   const rows: CompareRow[] = [];
   const datasets: any[] = [];
+  // the engine's notes (e.g. "the F test and AICc use the weighted sums of
+  // squares"), once each, for the Notes strip
+  const notes = new Set<string>();
   data.datasets.forEach((ds, i) => {
     const r = engine.analyze({
       analysis: "compare_fits",
       data,
       options: {
         dataset: i, x_is_log: o.xIsLog,
-        model_1: { model: m1.engineId, constraints: c1, ...extra },
-        model_2: { model: m2.engineId, constraints: c2, ...extra },
+        model_1: { model: m1.engineId, constraints: c1, ...extra, ...compareWeighting(o) },
+        model_2: { model: m2.engineId, constraints: c2, ...extra, ...compareWeighting(o) },
       },
     });
     const out: any = { name: ds.name, points: pts[i] };
@@ -238,6 +277,7 @@ function runModels(engine: Engine, table: DataTableModel, o: CompareOptions): an
       datasets.push({ ...out, error: String(r?.error ?? "no result") });
       return;
     }
+    (Array.isArray(r.notes) ? r.notes : []).forEach((n: unknown) => { if (typeof n === "string") notes.add(n); });
     const g1 = r.model_1.goodness, g2 = r.model_2.goodness;
     const f = r.f_test ? { F: r.f_test.F, dfn: r.f_test.dfn, dfd: r.f_test.dfd, p: r.f_test.p,
       simpler: r.f_test.simpler_model as 1 | 2 } : null;
@@ -247,8 +287,8 @@ function runModels(engine: Engine, table: DataTableModel, o: CompareOptions): an
     rows.push({
       name: ds.name, n: g1.n_points,
       models: [
-        { label: label1, ss: g1.ss_res, df: g1.df, k: kOf(g1) },
-        { label: label2, ss: g2.ss_res, df: g2.df, k: kOf(g2) },
+        { label: label1, ss: fitSS(g1), df: g1.df, k: kOf(g1) },
+        { label: label2, ss: fitSS(g2), df: g2.df, k: kOf(g2) },
       ],
       f, aicc: a,
     });
@@ -260,7 +300,8 @@ function runModels(engine: Engine, table: DataTableModel, o: CompareOptions): an
     });
   });
   return { analysis: ANALYSIS_COMPARE, mode: "models", method: o.method,
-    labels: [label1, label2], rows, datasets };
+    labels: [label1, label2], rows, datasets, weighted: o.weighting !== "none",
+    ...(notes.size ? { notes: [...notes] } : {}) };
 }
 
 /** The table with its data sets stacked into one (X repeated per data
@@ -284,7 +325,7 @@ function runGlobal(engine: Engine, table: DataTableModel, o: CompareOptions): an
   const c = constraintValues(m, o.constraints1);
   const options = {
     model: m.engineId, x_is_log: o.xIsLog, error_bars: o.errorBars, constraints: c,
-    ...summaryOptions(table),
+    ...summaryOptions(table), ...compareWeighting(o),
   };
   const sep = engine.analyze({ analysis: "dose_response", data: { x: data.x, datasets: withData }, options });
   if (!sep || sep.error) return fail(String(sep?.error ?? "no result"));
@@ -297,13 +338,13 @@ function runGlobal(engine: Engine, table: DataTableModel, o: CompareOptions): an
   const pfit = pool?.datasets?.[0]?.fit;
   if (!pfit) return fail(`Could not fit one curve to all data sets: ${pool?.error ?? pool?.datasets?.[0]?.error ?? "no fit"}`);
   const cmp = globalComparison(
-    { ss: pfit.goodness.ss_res, df: pfit.goodness.df, n: pfit.goodness.n_points },
-    sep.datasets.map((d: any) => ({ ss: d.fit.goodness.ss_res, df: d.fit.goodness.df, n: d.fit.goodness.n_points })));
+    { ss: fitSS(pfit.goodness), df: pfit.goodness.df, n: pfit.goodness.n_points },
+    sep.datasets.map((d: any) => ({ ss: fitSS(d.fit.goodness), df: d.fit.goodness.df, n: d.fit.goodness.n_points })));
   const label = modelLabel(m, c);
   const row: CompareRow = { name: "All data sets", ...cmp };
   return {
     analysis: ANALYSIS_COMPARE, mode: "global", method: o.method, labels: [label, label],
-    rows: [row], pooled: pfit,
+    rows: [row], pooled: pfit, weighted: o.weighting !== "none",
     datasets: sep.datasets.map((d: any, i: number) => ({
       name: d.name, points: d.points, fit: { ...d.fit, label: `${label}, fitted to ${d.name} alone` },
       ...(i === 0 ? { altCurves: [{ label: "One curve for all data sets", curve: pfit.curve, ink: true }] } : {}),
@@ -323,6 +364,8 @@ function runOneParameter(engine: Engine, table: DataTableModel, o: CompareOption
   return runParameter(engine, table, {
     model: m, held: constraintValues(m, o.constraints1), parameter: chosenParameter(o),
     datasetA: o.datasetA, datasetB: o.datasetB, xIsLog: o.xIsLog, errorBars: o.errorBars,
+    sets: o.parameterScope === "all" ? o.parameterSets : null,
+    ...compareWeighting(o),
   });
 }
 

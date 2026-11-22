@@ -112,6 +112,16 @@ def test_loewe_closed_form_hyperbolic_drugs():
     assert y > 30.0
 
 
+def test_inverse_dose_of_a_shallow_curve_does_not_overflow():
+    # u ** (1 / h) overflowed a float (OverflowError) for |h| near 0
+    p = {"Bottom": 0.0, "Top": 100.0, "EC50": 10.0, "HillSlope": 0.004}
+    assert sy._inverse_dose(99.0, p) == math.inf
+    assert sy._inverse_dose(50.0, p) == pytest.approx(10.0)
+    assert sy.loewe_response(5.0, 5.0, p, {"Bottom": 0.0, "Top": 100.0,
+                                          "EC50": 3.0, "HillSlope": 1.5}) \
+        is not None
+
+
 def _bliss_surface(c1, c2, e1=1.0, h1=1.2, e2=5.0, h2=0.8):
     y1, y2 = _ll4(c1, e1, h1), _ll4(c2, e2, h2)
     return y1[:, None] + y2[None, :] - np.outer(y1, y2) / 100.0
@@ -280,3 +290,211 @@ def test_chou_talalay_withholds_cells_with_fa_at_the_bounds():
         assert by[key]["ci"] is None
         assert "strictly between 0 and 1" in by[key]["reason"]
     assert ct["n_computed"] == len(ct["combinations"]) - 2
+
+
+# ------------------------------------- SynergyFinder statistics (P, RI, CSS)
+
+def test_synergy_p_formula():
+    # mean 2, SD 1 -> z = 2; Altman & Bland: P = exp(-0.717 z - 0.416 z^2)
+    assert sy.synergy_p([1.0, 2.0, 3.0]) == pytest.approx(
+        math.exp(-0.717 * 2 - 0.416 * 4), rel=1e-12)
+    assert sy.synergy_p([-1.0, -2.0, -3.0]) == sy.synergy_p([1.0, 2.0, 3.0])
+    assert sy.synergy_p([0.0, 0.0, 0.0]) is None          # SD 0
+    assert sy.synergy_p([5.0]) is None
+    assert sy.synergy_p([1.0, None, 3.0, float("nan")]) == pytest.approx(
+        math.exp(-0.717 * 2 / math.sqrt(2) - 0.416 * 2), rel=1e-12)
+
+
+def test_p_without_replicates_uses_the_combination_cells():
+    res = _mathews()
+    assert res["p_value_basis"] == "synergy of the combination cells"
+    for name in ("hsa", "bliss", "loewe", "zip"):
+        cells = np.array(res["models"][name]["synergy"], float)[1:, 1:]
+        assert res["models"][name]["p_value"] == pytest.approx(
+            sy.synergy_p(cells.ravel().tolist()), rel=1e-12)
+    # no synergy at all -> no P value (SD of the cells is 0)
+    c1, c2 = [0, 0.1, 0.3, 1, 3, 10], [0, 0.5, 1.5, 5, 15, 50]
+    flat = sy.synergy(conc1=c1, conc2=c2,
+                      responses=_bliss_surface(c1, c2).tolist())
+    assert flat["models"]["bliss"]["p_value"] is None
+
+
+def test_p_with_replicates_is_seeded_resampling():
+    rng = np.random.default_rng(4)
+    c1, c2 = [0, 0.3, 1, 3], [0, 1.5, 5, 15]
+    base = _bliss_surface(c1, c2)
+    base[1:, 1:] += 8.0
+    reps = [(base + rng.normal(0, 2, base.shape)).tolist() for _ in range(3)]
+    a = sy.synergy(conc1=c1, conc2=c2, responses=reps, p_iterations=4)
+    b = sy.synergy(conc1=c1, conc2=c2, responses=reps, p_iterations=4)
+    assert "4 resampled matrices" in a["p_value_basis"]
+    for name in ("hsa", "bliss", "loewe", "zip"):
+        assert a["models"][name]["p_value"] == b["models"][name]["p_value"]
+    assert 0 <= a["models"]["bliss"]["p_value"] < 0.05     # +8 everywhere
+    off = sy.synergy(conc1=c1, conc2=c2, responses=reps, p_iterations=0)
+    assert off["models"]["bliss"]["p_value"] is None
+    assert off["p_value_basis"] is None
+
+
+def test_relative_inhibition_closed_form():
+    # an exact LL.4 over doses symmetric (in log) about its EC50: mean 50
+    doses = [0, 0.01, 0.1, 1, 10, 100]
+    y = _ll4(doses, 1.0, 1.3)
+    ri = sy.relative_inhibition(doses, y)
+    assert ri["fitted"] and ri["ri"] == pytest.approx(50.0, abs=1e-6)
+    assert ri["dose_range"] == [0.01, 100.0]
+    # an asymmetric range against numerical integration over log10 dose
+    from scipy.integrate import quad
+    p = {"Bottom": 5.0, "Top": 90.0, "LogEC50": 0.3, "HillSlope": 1.7}
+    want = quad(lambda u: sy._ll4_func(10.0 ** u, p), -1.0, 2.0)[0] / 3.0
+    assert sy._ll4_mean_log_dose(p, 0.1, 100.0) == pytest.approx(want,
+                                                                  rel=1e-10)
+    flat = dict(p, HillSlope=0.0)
+    assert sy._ll4_mean_log_dose(flat, 0.1, 100.0) == pytest.approx(47.5)
+    assert sy.relative_inhibition([0, 3], [0, 42.0])["ri"] == 42.0
+
+
+def test_css_of_bliss_independent_drugs():
+    # Bliss drugs with Top = 100: holding drug 2 at its IC50 adds 50%
+    # inhibition, y = 50 + y1/2, so CSS1 = 50 + RI1/2 (and CSS2 likewise)
+    c1, c2 = [0, 0.1, 0.3, 1, 3, 10], [0, 0.5, 1.5, 5, 15, 50]
+    res = sy.synergy(conc1=c1, conc2=c2,
+                     responses=_bliss_surface(c1, c2).tolist())
+    s = res["sensitivity"]
+    assert s["drug1"]["ic50"] == pytest.approx(1.0, rel=1e-5)
+    assert s["drug2"]["ic50"] == pytest.approx(5.0, rel=1e-5)
+    ri1 = sy.relative_inhibition(c1, _ll4(c1, 1.0, 1.2))["ri"]
+    ri2 = sy.relative_inhibition(c2, _ll4(c2, 5.0, 0.8))["ri"]
+    assert s["drug1"]["ri"] == pytest.approx(ri1, abs=1e-6)
+    assert s["css1"] == pytest.approx(50 + ri1 / 2, abs=1e-4)
+    assert s["css2"] == pytest.approx(50 + ri2 / 2, abs=1e-4)
+    assert s["css"] == pytest.approx((s["css1"] + s["css2"]) / 2)
+
+
+def test_ic50_capped_at_highest_dose():
+    c1, c2 = [0, 0.1, 0.3, 1, 3, 10], [0, 0.5, 1.5, 5, 15, 50]
+    resp = _bliss_surface(c1, c2, e2=500.0)          # drug 2 EC50 beyond 50
+    s = sy.synergy(conc1=c1, conc2=c2, responses=resp.tolist())["sensitivity"]
+    assert s["drug2"]["ic50"] == 50.0 and s["drug2"]["ic50_capped"]
+    assert not s["drug1"]["ic50_capped"]
+
+
+def test_most_synergistic_area_is_the_best_3x3_window():
+    rng = np.random.default_rng(11)
+    syn = np.zeros((6, 7))
+    syn[1:, 1:] = rng.normal(0, 10, (5, 6))
+    c1, c2 = list(range(6)), list(range(7))
+    got = sy.most_synergistic_area(syn, c1, c2)
+    best = max((syn[1 + i:4 + i, 1 + j:4 + j].mean(), i, j)
+               for i in range(3) for j in range(4))
+    assert got["score"] == pytest.approx(best[0])
+    assert got["conc1"] == [c1[1 + best[1]], c1[3 + best[1]]]
+    assert got["conc2"] == [c2[1 + best[2]], c2[3 + best[2]]]
+    assert sy.most_synergistic_area(syn[:3, :], c1[:3], c2) is None
+
+
+def test_consensus_is_the_smallest_of_hsa_bliss_loewe():
+    res = _mathews()
+    stack = np.array([res["models"][k]["synergy"] for k in
+                      ("hsa", "bliss", "loewe")], float)[:, 1:, 1:]
+    cons = np.array(res["consensus"]["synergy"], float)[1:, 1:]
+    np.testing.assert_allclose(cons, np.nanmin(stack, axis=0), atol=1e-9)
+    assert res["consensus"]["score"] == pytest.approx(float(cons.mean()))
+    assert res["consensus"]["score"] <= min(res["scores"][k] for k in
+                                            ("hsa", "bliss", "loewe"))
+
+
+# --------------------------------------------- outliers and missing cells
+
+C1_O, C2_O = [0, 0.1, 0.3, 1, 3, 10], [0, 0.5, 1.5, 5, 15, 50]
+
+
+def test_planted_outliers_are_found_and_replaced_exactly():
+    # two outliers on a Bliss-independent surface: each found with its
+    # planted deviation (iterative removal: neither makes a neighbour look
+    # like an outlier), and the replacement is the true response
+    true = _bliss_surface(C1_O, C2_O)
+    M = true.copy()
+    M[3, 2] += 45.0
+    M[4, 4] -= 30.0
+    res = sy.synergy(conc1=C1_O, conc2=C2_O, responses=M.tolist(),
+                     outliers="replace")
+    cells = res["outliers"]["cells"]
+    assert [(c["row"], c["col"]) for c in cells] == [(3, 2), (4, 4)]
+    assert [c["deviation"] for c in cells] == pytest.approx([45.0, -30.0],
+                                                             abs=1e-6)
+    assert res["outliers"]["threshold"] == 20.0
+    for f in res["filled_cells"]:
+        assert f["reason"] == "outlier"
+        i, j = C1_O.index(f["conc1"]), C2_O.index(f["conc2"])
+        assert f["value"] == pytest.approx(true[i, j], abs=1e-6)
+    assert res["scores"]["bliss"] == pytest.approx(0.0, abs=1e-6)
+    assert any("replaced by the prediction" in w for w in res["warnings"])
+
+
+def test_flag_reports_without_changing_the_scores():
+    M = _bliss_surface(C1_O, C2_O)
+    M[0, 3] += 35.0                                   # a monotherapy cell
+    flagged = sy.synergy(conc1=C1_O, conc2=C2_O, responses=M.tolist(),
+                         outliers="flag")
+    plain = sy.synergy(conc1=C1_O, conc2=C2_O, responses=M.tolist())
+    assert [(c["row"], c["col"], c["kind"]) for c in
+            flagged["outliers"]["cells"]] == [(0, 3, "monotherapy")]
+    assert flagged["filled_cells"] == []
+    assert flagged["scores"] == plain["scores"]
+    assert plain["outliers"] is None
+
+
+def test_clean_surface_has_no_outliers():
+    M = _bliss_surface(C1_O, C2_O)
+    assert sy.find_outliers(100.0 - (100.0 - M), C1_O, C2_O) == []
+
+
+def test_steep_point_between_its_neighbours_is_not_flagged():
+    # a step between two doses: the middle point cannot be predicted once
+    # removed, but it lies between its neighbours, so it is not an outlier
+    R = np.zeros((4, 5))
+    R[0, :] = [0, 0, 0, 50, 100]
+    R[:, 0] = [0, 10, 20, 30]
+    R[1:, 1:] = 60.0
+    assert not any(c["row"] == 0 and c["col"] == 3
+                   for c in sy.find_outliers(R, [0, 1, 2, 3],
+                                             [0, 1, 2, 3, 4]))
+    assert sy._between_neighbours(R, 0, 3)
+    assert not sy._between_neighbours(R, 0, 4)       # no right neighbour
+
+
+def test_impute_fills_missing_cells_from_the_fits():
+    true = _bliss_surface(C1_O, C2_O)
+    M = true.copy()
+    M[2, 0] = np.nan                                  # monotherapy dose
+    M[3, 3] = np.nan                                  # combination
+    with pytest.raises(ValueError, match="monotherapy"):
+        sy.synergy(conc1=C1_O, conc2=C2_O, responses=M.tolist())
+    res = sy.synergy(conc1=C1_O, conc2=C2_O, responses=M.tolist(),
+                     impute=True)
+    got = {(f["conc1"], f["conc2"]): f for f in res["filled_cells"]}
+    assert set(got) == {(0.3, 0.0), (1.0, 5.0)}
+    assert got[(0.3, 0.0)]["value"] == pytest.approx(true[2, 0], abs=1e-6)
+    assert got[(1.0, 5.0)]["value"] == pytest.approx(true[3, 3], abs=1e-6)
+    assert all(f["reason"] == "missing" for f in got.values())
+    assert res["scores"]["bliss"] == pytest.approx(0.0, abs=1e-6)
+
+
+def test_api_passes_outlier_and_impute_options():
+    M = _bliss_surface(C1_O, C2_O)
+    M[3, 3] = None
+    res = api.analyze({"analysis": "synergy",
+                       "data": {"conc1": C1_O, "conc2": C2_O,
+                                "responses": [[None if v is None or (
+                                    isinstance(v, float) and math.isnan(v))
+                                    else v for v in row] for row in
+                                    M.tolist()]},
+                       "options": {"impute": True, "outliers": "flag",
+                                   "outlier_threshold": 25}})
+    assert res["outliers"]["threshold"] == 25.0
+    assert [(f["conc1"], f["conc2"]) for f in res["filled_cells"]] == [
+        (1.0, 5.0)]
+    with pytest.raises(ValueError):
+        sy.synergy(conc1=C1_O, conc2=C2_O, responses=M.tolist(),
+                   outliers="drop")

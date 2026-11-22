@@ -11,6 +11,7 @@
 // byte counts drive the loading screen's progress bar. openpyxl (xlsx
 // import only) is installed the first time an xlsx file is read.
 import { loadPyodide, version as pyodideVersion } from "pyodide";
+import pyodideExtras from "./pyodideExtras.json";
 import type {
   BootConfig, BootPhase, RuntimeVersions, WorkerRequest, WorkerResponse,
 } from "./engineProtocol";
@@ -173,9 +174,12 @@ async function fetchEngine(url: string): Promise<Record<string, string>> {
 
 type Py = Awaited<ReturnType<typeof loadPyodide>>;
 let py: Py | null = null;
+/** The Pyodide folder on this site (BootConfig.indexURL). */
+let indexURL = "";
 let analyzeJson: ((s: string) => string) | null = null;
 
 async function boot(cfg: BootConfig) {
+  indexURL = cfg.indexURL;
   const t0 = performance.now();
   setPhase("download", "Downloading the scientific runtime…");
   const engineFiles = fetchEngine(cfg.engineURL);
@@ -197,7 +201,11 @@ async function boot(cfg: BootConfig) {
   // -OO: SciPy skips building ~100 distribution docstrings at import
   // (about a fifth of the engine's start-up). Only docstrings and asserts
   // are affected; the engine's native test suite passes under -OO.
-  const runtime = await loadPyodide({ indexURL: cfg.indexURL, env: { PYTHONOPTIMIZE: "2" } });
+  // packageBaseUrl too: without it Pyodide's loader falls back to its CDN
+  // for packages; everything comes from this site.
+  const runtime = await loadPyodide({
+    indexURL: cfg.indexURL, packageBaseUrl: cfg.indexURL, env: { PYTHONOPTIMIZE: "2" },
+  });
   mark("python started");
   setPhase("packages", "Loading NumPy + SciPy…");
   await runtime.loadPackage(cfg.packages, { messageCallback: () => {} });
@@ -236,12 +244,12 @@ async function boot(cfg: BootConfig) {
 
 let openpyxl: Promise<void> | null = null;
 /** openpyxl is pure Python and not part of the Pyodide distribution;
- *  only xlsx reading needs it, so it is installed on first use. */
+ *  only xlsx reading needs it, so it is installed on first use, from the
+ *  wheels this site serves next to Pyodide (pyodideExtras.json). */
 function ensureOpenpyxl(runtime: Py): Promise<void> {
   openpyxl ??= (async () => {
-    await runtime.loadPackage("micropip", { messageCallback: () => {} });
-    const micropip = runtime.pyimport("micropip");
-    try { await micropip.install("openpyxl"); } finally { micropip.destroy?.(); }
+    await runtime.loadPackage(pyodideExtras.wheels.map((w) => indexURL + w.file),
+      { messageCallback: () => {} });
   })().catch((e) => {
     openpyxl = null;
     throw new Error(`could not install the xlsx reader (${e instanceof Error ? e.message : e})`);

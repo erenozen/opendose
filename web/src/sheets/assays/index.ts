@@ -27,6 +27,9 @@ import { clusterAssay } from "./cluster";
 import { densitometryAssay } from "./densitometry";
 import { flowAssay } from "./flow";
 import { growthAssay } from "./growth";
+import { kineticAssay } from "./kinetic";
+import { luciferaseAssay } from "./luciferase";
+import { micAssay } from "./mic";
 import { plateAssay } from "./plate";
 import { qpcrAssay } from "./qpcr";
 import { stdcurveAssay } from "./stdcurve";
@@ -34,6 +37,7 @@ import { synergyAssay } from "./synergy";
 import { timecourseAssay } from "./timecourse";
 import { tumourAssay } from "./tumour";
 import { volcanoAssay } from "./volcano";
+import { woundAssay } from "./wound";
 
 /** An example table set up for a module, offered as a built-in template
  *  (New data table › From a template). */
@@ -89,8 +93,12 @@ export const ASSAYS: AssayModule[] = [
   stdcurveAssay,
   qpcrAssay,
   densitometryAssay,
+  luciferaseAssay,
   flowAssay,
   growthAssay,
+  woundAssay,
+  micAssay,
+  kineticAssay,
   tumourAssay,
   timecourseAssay,
   synergyAssay,

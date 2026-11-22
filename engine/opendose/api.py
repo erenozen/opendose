@@ -31,8 +31,11 @@ from . import fdr, letters, rowtests, threeway
 from . import deming, moretests, proportions, trend
 from . import equations, userequation
 from . import (assay_clustering, assay_densitometry, assay_growth,
-               assay_plate, assay_qpcr, assay_stdcurve, assay_superplot,
-               assay_synergy)
+               assay_kinetic, assay_luciferase, assay_mic, assay_plate,
+               assay_qpcr,
+               assay_stdcurve, assay_superplot, assay_synergy, assay_wound,
+               synergy_multi)
+from . import frequency
 from . import effectsize, estimation, power
 from . import auc, cox, quantal
 from . import rangeflags, residuals, survival_extras
@@ -82,6 +85,17 @@ def _dose_response(data, options):
     weighting = options.get("weighting", "none")
     ci_method = options.get("ci_method", "asymptotic")
     rout_q = options.get("rout_q")  # e.g. 0.01 turns on ROUT
+    # fit_method "robust": nlfit.robust_model_fit, best-fit values only
+    fit_method = options.get("fit_method", "least_squares")
+    if fit_method not in ("least_squares", "robust"):
+        raise ValueError(f"unknown fit_method: {fit_method}")
+    robust = fit_method == "robust"
+    if robust and weighting != "none":
+        raise ValueError("robust regression is not weighted: choose no "
+                         "weighting")
+    if robust and rout_q:
+        raise ValueError("ROUT already finds outliers with a robust fit; "
+                         "choose robust regression or ROUT, not both")
     x_col = data["x"]
     if spec.x_is_log and not options.get("x_is_log", True):
         x_col = transform.transform_list(x_col, "log10")
@@ -91,6 +105,9 @@ def _dose_response(data, options):
     summary_fmt = options.get("summary_format")
     if summary_fmt == "replicates":
         summary_fmt = None
+    if robust and summary_fmt:
+        raise ValueError("robust regression needs the individual values, "
+                         "not mean / SD / n")
 
     finite_x = [v for v in x_col if v is not None]
     results = []
@@ -104,9 +121,15 @@ def _dose_response(data, options):
                     options.get("replicates", "account"))
             else:
                 xs, ys = _expand(x_col, ds["ys"])
-            if rout_q:
-                rout = nlfit.rout_outliers(xs, ys, model, q=float(rout_q),
-                                           constraints=constraints, **s_kw)
+            if robust:
+                fit = nlfit.robust_model_fit(xs, ys, model,
+                                             constraints=constraints)
+            elif rout_q:
+                rout = nlfit.rout_outliers(
+                    xs, ys, model, q=float(rout_q), constraints=constraints,
+                    weighting=weighting, ci_method=ci_method,
+                    weight_source=options.get("weight_source", "predicted"),
+                    **s_kw)
                 fit = rout["fit"]
                 entry["rout"] = {k: rout[k] for k in
                                  ("q", "rsdr", "outliers", "n_outliers")}
@@ -119,6 +142,18 @@ def _dose_response(data, options):
             fit["curve"] = doseresponse.curve_points(
                 fit, min(finite_x), max(finite_x))
             x_lo, x_hi = min(fit["curve"]["x"]), max(fit["curve"]["x"])
+            if robust:
+                # no covariance: no bands, interpolation CIs, absolute IC50
+                # or least-squares diagnostics (the guide: none for robust)
+                skipped = [k for k in ("diagnostics", "bands",
+                                       "interpolate_y", "absolute_ic50_level")
+                           if options.get(k) not in (None, False, [], "")]
+                if skipped:
+                    entry["robust_skipped"] = skipped
+                options = {k: v for k, v in options.items()
+                           if k not in ("diagnostics", "bands",
+                                        "interpolate_y",
+                                        "absolute_ic50_level")}
             if options.get("diagnostics"):
                 entry["diagnostics"] = diagnostics.fit_diagnostics(xs, ys, fit)
                 if summary_fmt:  # replicates test from mean/SD/n (exact)
@@ -152,15 +187,39 @@ def _dose_response(data, options):
             entry["error"] = str(exc)
         results.append(entry)
 
+    raw_x = data["x"]
     for ds, entry in zip(data["datasets"], results):
-        lost = sum(1 for xv, row in zip(x_col, ds.get("ys") or [])
-                   if _is_missing(xv) for v in (row or [])
-                   if not _is_missing(v))
+        rows = ds.get("ys") or []
+        # Y values in rows with no X at all, and in rows whose X was entered
+        # but has no logarithm (X <= 0, e.g. the vehicle / zero dose) when
+        # the model takes log(X): two different things, said apart.
+        lost, nolog = 0, []
+        for xr, xv, row in zip(raw_x, x_col, rows):
+            vals = [v for v in (row or []) if not _is_missing(v)]
+            if summary_fmt:              # rows of mean / SD / n: the mean
+                vals = vals[:1]
+            if _is_missing(xr):
+                lost += len(vals)
+            elif _is_missing(xv):
+                nolog += [(float(xr), float(v)) for v in vals]
         warn = _nan_warnings({"datasets": [ds]})
         if lost:
             warn.append(
                 f"{lost} Y value{'s' if lost != 1 else ''} in rows without "
                 "an X value left out of the fit")
+        if nolog:
+            xs0 = sorted({x for x, _ in nolog})
+            mean0 = sum(y for _, y in nolog) / len(nolog)
+            entry["log_x_dropped"] = {"n_values": len(nolog), "x_values": xs0,
+                                      "mean_y": mean0}
+            at = ("X = 0" if xs0 == [0.0] else
+                  "X = " + ", ".join(f"{x:g}" for x in xs0))
+            warn.append(
+                f"{len(nolog)} Y value{'s' if len(nolog) != 1 else ''} at {at} "
+                f"(mean {mean0:.4g}) left out of the fit: the model uses "
+                "log(X), and zero or negative X has no logarithm. To use the "
+                "zero-dose wells, constrain the plateau they represent to "
+                "their mean, or normalise to them.")
         if warn:
             entry["warnings"] = warn
     error_bar_kind = options.get("error_bars", "sd")
@@ -458,7 +517,8 @@ def _column_statistics(data, options):
                  extras=options.get("extras", False),
                  percentile_method=options.get("percentile_method",
                                                "linear"),
-                 trim_k=options.get("trim_k"))}
+                 trim_k=options.get("trim_k"),
+                 lognormality_tests=options.get("lognormality", False))}
             for name, col in zip(names, cols)
         ],
     }
@@ -608,6 +668,46 @@ def _log_scale_ttest_result(result, la, lb, log_info, options):
         result["ci_ratio"] = result["ratio_ci"]
 
 
+def _drop_empty_groups(cols, names, options, empty, kind):
+    """One-way ANOVA / Kruskal-Wallis: leave out groups with no values,
+    renumbering the control and planned pairs to the groups kept. Returns
+    (cols, names, options, {"warnings": [...]} or {"error": ...})."""
+    label = lambda i: names[i] or f"Group {i + 1}"  # noqa: E731
+    keep = [i for i in range(len(cols)) if i not in empty]
+    new = {old: k for k, old in enumerate(keep)}
+    gone = ", ".join(label(i) for i in empty)
+    many = len(empty) > 1
+    warnings = [f"{gone} {'have' if many else 'has'} no values and "
+                f"{'were' if many else 'was'} left out of the analysis and of "
+                "the comparisons."]
+    options = dict(options)
+    uses_control = (options.get("comparisons") == "dunnett"
+                    or options.get("family") == "control"
+                    or options.get("comparisons_family") == "control"
+                    or (kind == "nonparametric"
+                        and options.get("dunn_family") == "control"))
+    for key in ("control_index", "control"):
+        c = options.get(key)
+        if isinstance(c, bool) or not isinstance(c, int):
+            continue
+        if c in empty:
+            if uses_control:
+                return cols, names, options, {
+                    "error": f"The control group ({label(c)}) has no values: "
+                             "choose another control or enter its data."}
+            c = 0
+        options[key] = new.get(c, 0)
+    if options.get("pairs"):
+        kept = [[new[a], new[b]] for a, b in options["pairs"]
+                if a in new and b in new]
+        if len(kept) < len(options["pairs"]):
+            warnings.append("Planned comparisons involving "
+                            f"{gone} were dropped.")
+        options["pairs"] = kept
+    return ([cols[i] for i in keep], [names[i] for i in keep], options,
+            {"warnings": warnings})
+
+
 def _withheld_groups(kind, cols, names, warnings):
     """One-way ANOVA / Kruskal-Wallis with a group of fewer than two
     values: descriptive results only, P withheld."""
@@ -667,6 +767,17 @@ def _anova(data, options):
             warnings.extend(w)
             log_info = {"base": base,
                         "block": logscale.log_scale_block(base, dropped)}
+    # A group with no values at all (an empty or fully excluded column)
+    # is left out of the analysis and of the comparison family, and every
+    # other group keeps its name (Prism's fix: GraphPad FAQ 1399). Control
+    # and planned-pair indices are renumbered to the groups kept.
+    empty = [i for i, c in enumerate(cols) if len(c) == 0]
+    if empty and len(empty) < len(cols):
+        cols, names, options, msg = _drop_empty_groups(cols, names, options,
+                                                       empty, kind)
+        if msg.get("error"):
+            return {"analysis": "anova", "kind": kind, "error": msg["error"]}
+        warnings.extend(msg["warnings"])
     if kind == "nonparametric":
         if any(len(c) < 2 for c in cols):
             return _withheld_groups(kind, cols, names, warnings)
@@ -678,7 +789,8 @@ def _anova(data, options):
                       control=options.get("control",
                                           options.get("control_index", 0)),
                       pairs=options.get("pairs"),
-                      dunn_correction=options.get("dunn_correction"))}
+                      dunn_correction=options.get("dunn_correction"),
+                      exact=options.get("exact", False))}
         if warnings:
             result["warnings"] = warnings
         return result
@@ -691,6 +803,14 @@ def _anova(data, options):
             out["log_scale"] = log_info["block"]
         return out
     result = anova.one_way_anova(cols, names)
+    if options.get("trend"):
+        # columns in the order entered, coded 1, 2, ... (anova.linear_trend)
+        nonempty_names = [n for n, c in zip(names, cols) if len(c) > 0]
+        try:
+            result["trend"] = anova.linear_trend(
+                [c for c in cols if len(c) > 0], nonempty_names)
+        except ValueError as exc:
+            result["trend"] = {"error": str(exc)}
     method = options.get("comparisons")
     if method:
         result["multiple_comparisons"] = anova.multiple_comparisons(
@@ -752,18 +872,32 @@ def _compare_fits(data, options):
         fits.append(entry["fit"])
         results[key] = entry["fit"]
     g1, g2 = fits[0]["goodness"], fits[1]["goodness"]
+    # Weighted fits are compared on the sums of squares they minimised
+    # (the weighted SS), as Prism does and as compare_params already did;
+    # comparing their unweighted SS could prefer the wrong model.
+    w1, w2 = g1.get("ss_res_weighted"), g2.get("ss_res_weighted")
+    if (w1 is None) != (w2 is None):
+        raise ValueError("the two models must be fitted with the same "
+                         "weighting to be compared")
+    weighted = w1 is not None
+    ss = [float(w1), float(w2)] if weighted else [g1["ss_res"], g2["ss_res"]]
     k1 = g1["n_points"] - g1["df"]
     k2 = g2["n_points"] - g2["df"]
     simple, complex_ = (0, 1) if k1 <= k2 else (1, 0)
     gs, gc = fits[simple]["goodness"], fits[complex_]["goodness"]
     f_test = None
     if gs["df"] > gc["df"]:
-        f_test = nlfit.compare_fits_f_test(gs["ss_res"], gs["df"],
-                                           gc["ss_res"], gc["df"])
+        f_test = nlfit.compare_fits_f_test(ss[simple], gs["df"],
+                                           ss[complex_], gc["df"])
         f_test["simpler_model"] = simple + 1
     results["f_test"] = f_test
     results["aicc"] = nlfit.compare_fits_aicc(
-        g1["ss_res"], k1, g2["ss_res"], k2, g1["n_points"])
+        ss[0], k1, ss[1], k2, g1["n_points"])
+    results["sum_of_squares"] = "weighted" if weighted else "unweighted"
+    if weighted:
+        results["notes"] = ["Both fits are weighted, so the F test and AICc "
+                            "use the weighted sums of squares (the quantity "
+                            "each fit minimised)."]
     return {"analysis": "compare_fits", **results}
 
 
@@ -1699,6 +1833,21 @@ def _logistic_regression(data, options):
                 hl_groups=int(options.get("hl_groups", 10)))}
 
 
+def _poisson_regression(data, options):
+    """data: multiple-variables table. options: {outcome, predictors,
+    interactions?, reference_levels?, exposure? (variable name: its log is
+    an offset), ci_level?, ci_method?: profile|wald}."""
+    return {"analysis": "poisson_regression",
+            **multivar.poisson_regression(
+                _mv_variables(data), options["outcome"],
+                options["predictors"],
+                interactions=options.get("interactions") or (),
+                reference_levels=options.get("reference_levels"),
+                exposure=options.get("exposure") or None,
+                ci_level=options.get("ci_level", 0.95),
+                ci_method=options.get("ci_method", "profile"))}
+
+
 def _pca(data, options):
     """data: multiple-variables table. options: {variables?: [names],
     standardize?: true, selection?: parallel_analysis|kaiser|variance|
@@ -1793,7 +1942,8 @@ def _nested_ttest(data, options):
         groups, names=names, subgroup_names=sub_names,
         ci_level=options.get("ci_level", 0.95),
         swap=options.get("swap", False),
-        negative_variance=options.get("negative_variance", "allow"))
+        negative_variance=options.get("negative_variance", "allow"),
+        ddf=options.get("ddf", "containment"))
 
 
 def _nested_anova(data, options):
@@ -1807,7 +1957,8 @@ def _nested_anova(data, options):
         comparisons=options.get("comparisons"),
         control_index=options.get("control_index", 0),
         ci_level=options.get("ci_level", 0.95),
-        negative_variance=options.get("negative_variance", "allow"))
+        negative_variance=options.get("negative_variance", "allow"),
+        ddf=options.get("ddf", "containment"))
 
 
 def _mixed_rm_oneway(data, options):
@@ -1816,7 +1967,8 @@ def _mixed_rm_oneway(data, options):
     subjects, first subcolumn used, None = missing. options: method
     ("mixed" always | "auto" = RM ANOVA unless values are missing |
     "anova"), comparisons, control_index, ci_level, negative_variance
-    ("allow" | "remove")."""
+    ("allow" | "remove"), ddf ("containment" | "kenward_roger" |
+    "satterthwaite": denominator df, opendose.ddfm)."""
     names = [ds.get("name", "") for ds in data["datasets"]]
     aligned = [[row[0] if row else None for row in ds["ys"]]
                for ds in data["datasets"]]
@@ -1827,7 +1979,8 @@ def _mixed_rm_oneway(data, options):
                   "control_index": options.get("control_index", 0),
                   "ci_level": options.get("ci_level", 0.95),
                   "negative_variance": options.get("negative_variance",
-                                                   "allow")}
+                                                   "allow"),
+                  "ddf": options.get("ddf", "containment")}
     result = mixedmodel.rm_one_way(aligned, names, method=method, **kwargs)
     return {"analysis": result.get("analysis", "rm_one_way_anova"), **result}
 
@@ -1839,7 +1992,7 @@ def _mixed_rm_twoway(data, options):
     design ("mixed" | "both"), row_names, method ("mixed" | "auto" |
     "anova"), comparisons, direction (columns_within_rows |
     rows_within_columns | column_means | row_means), control_index,
-    ci_level, negative_variance."""
+    ci_level, negative_variance, ddf (as mixed_rm_oneway)."""
     names = [ds.get("name", "") for ds in data["datasets"]]
     n_rows = max(len(ds["ys"]) for ds in data["datasets"])
     cells = [[ds["ys"][r] if r < len(ds["ys"]) else []
@@ -1855,7 +2008,8 @@ def _mixed_rm_twoway(data, options):
                   "control_index": options.get("control_index", 0),
                   "ci_level": options.get("ci_level", 0.95),
                   "negative_variance": options.get("negative_variance",
-                                                   "allow")}
+                                                   "allow"),
+                  "ddf": options.get("ddf", "containment")}
     return mixedmodel.rm_two_way(
         cells, design=options.get("design", "mixed"), method=method,
         row_names=row_names, col_names=names, **kwargs)
@@ -2299,6 +2453,7 @@ _HANDLERS = {
     "correlation_matrix": _correlation_matrix,
     "multiple_regression": _multiple_regression,
     "logistic_regression": _logistic_regression,
+    "poisson_regression": _poisson_regression,
     "pca": _pca,
     "mv_rearrange": _mv_rearrange,
     "chisq_goodness_of_fit": _chisq_goodness_of_fit,
@@ -2627,7 +2782,8 @@ def _densitometry(data, options):
     [{blot, lane, sample?, group, target, reference, background?,
     reference_background?}]}. options: control_group, control_lanes
     ({blot: lane}), saturation_limit, test ("auto" | "ratio_paired" |
-    "one_sample" | "rm_anova" | "none"), comparisons, groups, ci_level.
+    "one_sample" | "rm_anova" | "none"), comparisons, groups, ci_level,
+    ddf (the mixed model's df with missing blots, as mixed_rm_oneway).
     Returns {"lanes" (corrected, normalized, fold_change, flags),
     "per_blot", "matched_fold_change", "statistics", "group_summaries"
     (geometric mean fold with CI), "graph" (points, paired lines per
@@ -2636,7 +2792,75 @@ def _densitometry(data, options):
         data.get("records") or [],
         **_assay_kw(options, ("control_group", "control_lanes",
                               "saturation_limit", "test", "comparisons",
-                              "groups", "ci_level")))
+                              "groups", "ci_level", "ddf")))
+
+
+def _luciferase(data, options):
+    """Dual-luciferase reporter assay (assay_luciferase). data:
+    {"records": [{group, firefly, renilla, experiment?, well?}]}.
+    options: control_group, blank_group (mock wells subtracted as
+    background), groups, test ("auto" | "ratio_paired" | "rm_anova" |
+    "unpaired" | "anova" | "none"), comparisons, low_renilla (fraction of
+    the median corrected Renilla below which a well is flagged),
+    ci_level. Returns {"wells" (corrected readings, ratio, fold_change,
+    flags), "unit" ("experiment" | "well"), "statistics",
+    "group_summaries" (geometric mean fold with CI), "graph",
+    "warnings"} plus "per_experiment" / "matched_ratio" with experiments
+    or "ratios_by_group" without."""
+    return assay_luciferase.luciferase(
+        data.get("records") or [],
+        **_assay_kw(options, ("control_group", "blank_group", "groups",
+                              "test", "comparisons", "low_renilla",
+                              "ci_level")))
+
+
+def _wound_healing(data, options):
+    """Wound-healing (scratch) assay (assay_wound). data: {"x": times,
+    "datasets": [{name, ys: rows x replicates}]} (one data set per
+    condition, one replicate column per well, values the wound area or
+    width). options: window ([start, end] for the rate fit), target
+    (closure %, default 50), rate_basis ("percent" | "absolute"),
+    control_index, test ("auto" | "none"), comparisons, ci_level.
+    Returns {"wells" (closure over time, rate, time to target, flags),
+    "summaries" (per condition, with the mean closure curve),
+    "statistics", "warnings"}."""
+    return assay_wound.wound_healing(
+        data.get("x") or [], data.get("datasets") or [],
+        **_assay_kw(options, ("window", "target", "rate_basis",
+                              "control_index", "test", "comparisons",
+                              "ci_level")))
+
+
+def _mic(data, options):
+    """MIC by broth microdilution (assay_mic). data: {"x": concentrations
+    (0 = growth control), "datasets": [{name, ys: rows x replicates}]}
+    (one data set per strain, one replicate column per dilution series,
+    values the endpoint OD). options: blank, threshold_mode ("percent" |
+    "od"), threshold (% of the growth control), od_cutoff, fit_ic50,
+    ci_level. Returns {"series" (wells with % growth, MIC, skipped
+    wells, flags), "strains" (modal MIC, % growth curve, IC50),
+    "cumulative" (MIC50, MIC90), "warnings"}."""
+    return assay_mic.mic(
+        data.get("x") or [], data.get("datasets") or [],
+        **_assay_kw(options, ("blank", "threshold_mode", "threshold",
+                              "od_cutoff", "fit_ic50", "ci_level")))
+
+
+def _kinetic_rates(data, options):
+    """Kinetic plate reads (assay_kinetic). data: {"x": read times,
+    "datasets": [{name, ys: rows x replicates}]} (one data set per
+    sample, one replicate column per well). options: method ("auto" |
+    "window" | "steepest"), min_r2, min_points, window ([start, end]), k
+    (reads in the steepest stretch), blank_index, factor (signal per
+    concentration unit), saturation. Returns {"wells" (rate, SE, R²,
+    window, corrected rate, velocity, flags), "samples" (mean velocity,
+    substrate when the name is a number), "michaelis_menten_ready",
+    "warnings"}."""
+    return assay_kinetic.kinetic_rates(
+        data.get("x") or [], data.get("datasets") or [],
+        **_assay_kw(options, ("method", "min_r2", "min_points", "window",
+                              "k", "blank_index", "factor",
+                              "saturation")))
 
 
 def _plate_qc(data, options):
@@ -2683,12 +2907,69 @@ def _synergy(data, options):
     min_r_squared, min_points, n_computed, note}, "warnings"}. A
     combination's ci is null, with a reason, unless its fa is strictly
     inside (0, 1) and both median-effect fits are valid (m > 0, r^2 >=
-    min_r_squared, at least min_points doses)."""
+    min_r_squared, at least min_points doses). Each model (and
+    "consensus") also carries p_value and most_synergistic_area;
+    "sensitivity" holds {drug1, drug2: {ic50, ic50_capped, ri}, css1,
+    css2, css}. options.p_iterations (default 10; 0 = no P values for
+    replicated matrices, whose resampling refits every curve); outliers
+    ("none" | "flag" | "replace"), outlier_threshold (% inhibition, default
+    20), impute (fill missing cells). Adds "outliers" ({action, threshold,
+    cells} or null) and "filled_cells". musyc (fit the MuSyC surface;
+    adds "musyc": parameters, alpha12/alpha21, beta, beta_obs, r_squared,
+    ci95, notes, or null), musyc_ci (Monte Carlo refits, default 100).
+
+    Three or more drugs (records carrying conc3, conc4, ...): the
+    higher-order analysis (synergy_multi; "analysis": "synergy_multi"),
+    options response_kind, baseline_correction, p_iterations, and drug
+    names as options.drugs [names] or drug1, drug2, drug3, ..."""
+    records = data.get("records")
+    if records and "conc3" in records[0]:
+        n = 0
+        while f"conc{n + 1}" in records[0]:
+            n += 1
+        drugs = options.get("drugs") or [
+            options.get(f"drug{i + 1}") or f"Drug {i + 1}" for i in range(n)]
+        return synergy_multi.synergy_multi(
+            records, drugs=drugs,
+            **_assay_kw(options, ("response_kind", "baseline_correction",
+                                  "p_iterations")))
     return assay_synergy.synergy(
         data.get("records"), conc1=data.get("conc1"),
         conc2=data.get("conc2"), responses=data.get("responses"),
         **_assay_kw(options, ("response_kind", "baseline_correction",
-                              "drug1", "drug2")))
+                              "drug1", "drug2", "p_iterations",
+                              "outliers", "outlier_threshold", "impute",
+                              "musyc", "musyc_ci")))
+
+
+def _frequency_distribution(data, options):
+    """Frequency distribution of each data set of a column table
+    (opendose.frequency). options: bin_width (None = automatic, GraphPad
+    FAQ 1660), first_center, upper_limit, cumulative, relative (None |
+    "fraction" | "percent"), exact (exact cumulative, no bins), fit (None |
+    "gaussian" | "cumulative_gaussian"), replicates ("each" value in its
+    bin | "mean" of each row's replicates)."""
+    columns, names = [], []
+    each = options.get("replicates", "each") != "mean"
+    for i, ds in enumerate(data["datasets"]):
+        vals = []
+        for row in ds.get("ys", []):
+            got = [v for v in (row or []) if not _is_missing(v)]
+            if not got:
+                continue
+            if each:
+                vals.extend(float(v) for v in got)
+            else:
+                vals.append(sum(float(v) for v in got) / len(got))
+        columns.append(vals)
+        names.append(ds.get("name") or f"Data set {i + 1}")
+    return frequency.frequency_distribution(
+        columns, names, bin_width=options.get("bin_width"),
+        first_center=options.get("first_center"),
+        upper_limit=options.get("upper_limit"),
+        cumulative=bool(options.get("cumulative", False)),
+        relative=options.get("relative"), exact=bool(options.get("exact")),
+        fit=options.get("fit"))
 
 
 def _cluster_heatmap(data, options):
@@ -2748,8 +3029,13 @@ _HANDLERS.update({
     "stdcurve_qc": _stdcurve_qc,
     "qpcr": _qpcr,
     "densitometry": _densitometry,
+    "luciferase": _luciferase,
+    "wound_healing": _wound_healing,
+    "mic": _mic,
+    "kinetic_rates": _kinetic_rates,
     "plate_qc": _plate_qc,
     "synergy": _synergy,
+    "frequency_distribution": _frequency_distribution,
     "cluster_heatmap": _cluster_heatmap,
     "superplot": _superplot,
     "growth_transform": _growth_transform,
@@ -3299,7 +3585,9 @@ def _compare_parameter(data, options):
     data: as dose_response ({"x", "datasets": [{"name", "ys"}]}).
     options: model, parameter ("logEC50" | "LogIC50" | "HillSlope" |
     "Top" | "Bottom" | any model parameter), dataset_a (0), dataset_b
-    (1), constraints, weighting, x_is_log (true), ci_level (0.95)."""
+    (1), constraints, weighting, x_is_log (true), ci_level (0.95);
+    datasets: [3+ indices] instead of a / b compares the parameter across
+    all of them (compare_params.compare_parameter_sets)."""
     model = options.get("model", "log_inhibitor_vs_response_4pl")
     spec = nlfit.MODELS.get(model)
     if spec is None:
@@ -3309,6 +3597,25 @@ def _compare_parameter(data, options):
     x_col = data["x"]
     if spec.x_is_log and not options.get("x_is_log", True):
         x_col = transform.transform_list(x_col, "log10")
+    many = options.get("datasets")
+    if many is not None and len(many) >= 3:
+        # three or more curves: one F test for a parameter shared by all
+        idx = [int(i) for i in many]
+        if len(set(idx)) != len(idx):
+            raise ValueError("each data set can be chosen once")
+        sets = []
+        for i in idx:
+            ds = data["datasets"][i]
+            xs, ys = _expand(x_col, ds["ys"])
+            sets.append({"name": ds.get("name") or f"Data set {i + 1}",
+                         "x": xs, "y": ys})
+        out = compare_params.compare_parameter_sets(
+            sets, model, options["parameter"],
+            constraints=options.get("constraints") or {},
+            weighting=options.get("weighting", "none"),
+            ci_level=options.get("ci_level", 0.95))
+        out["warnings"] = _nan_warnings(data, set(idx)) + out["warnings"]
+        return out
     ia, ib = options.get("dataset_a", 0), options.get("dataset_b", 1)
     sets = []
     for i in (ia, ib):

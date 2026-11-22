@@ -7,7 +7,7 @@ import { defineAnalysis, defineGraph, type GraphKindDef } from "../types";
 import type { AssayModule } from "./index";
 import { emptyLayout } from "./kit/columns";
 import {
-  A_SYNERGY, G_SYN_FACI, G_SYN_LANDSCAPE, G_SYN_MONO, normalizeSynergy, synergyPayload,
+  A_SYNERGY, drugNames, G_SYN_FACI, G_SYN_LANDSCAPE, G_SYN_MONO, normalizeSynergy, synergyPayload,
   type SynergyOptions,
 } from "./synergyModel";
 import { synergySample } from "./synergySample";
@@ -29,8 +29,8 @@ export const synergyAnalysis = defineAnalysis<SynergyOptions, R>({
   label: "Drug combination synergy (Bliss, HSA, Loewe, ZIP, Chou-Talalay)",
   short: "Synergy",
   description: "A combination matrix (drug 1 as rows, drug 2 as columns, replicate "
-    + "matrices as subcolumns): monotherapy fits, synergy landscapes and scores, "
-    + "combination indices.",
+    + "matrices as subcolumns) or a long table (one row per well, two or more drugs): "
+    + "monotherapy fits, synergy landscapes and scores, combination indices.",
   sheetName: (t) => `Synergy of ${t}`,
   defaultOptions: ({ table }) => normalizeSynergy({}, table),
   normalizeOptions: (raw, { table }) => normalizeSynergy(raw, table),
@@ -65,7 +65,7 @@ const graphs: GraphKindDef[] = [
     exportName: "monotherapy-curves",
     PlotPanel: MonoPlot,
     formatFeatures: { points: true, lines: true },
-    formatDatasets: (_t, _g, o) => [o?.drug1 || "Drug 1", o?.drug2 || "Drug 2"],
+    formatDatasets: (_t, _g, o) => drugNames(o),
   }),
   defineGraph<SynergyOptions, R>({
     id: G_SYN_FACI, label: "Fa-CI plot (Chou-Talalay)",

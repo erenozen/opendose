@@ -4,7 +4,7 @@
 import type { EngineBridge } from "../../lib/engine";
 import { numericData, parseCell } from "../../project/table";
 import { SUBCOLUMN_FORMAT_ENGINE, type DataTableModel } from "../../project/types";
-import type { AnalysisResult, OptionsState } from "../../types";
+import { engineWeighting, type AnalysisResult, type OptionsState } from "../../types";
 import { modelMeta, USER_MODEL_ID } from "../../lib/modelLibrary";
 import { userEquationPayload } from "../../lib/userEquation";
 import {
@@ -67,6 +67,12 @@ export function runNonlin(engine: EngineBridge, table: DataTableModel,
     data = { x: data.x, datasets: normalized.datasets };
   }
 
+  // robust regression: library models fitted one curve at a time only
+  if (options.fitMethod === "robust" && (options.model === USER_MODEL_ID || routeFor(options) !== "dose_response")) {
+    return { analysis: "dose_response", datasets: [],
+      error: "Robust regression is available for library models fitted one curve at a time, not for "
+        + "user-defined equations, global fits with shared parameters or the Gaddum/Schild model" };
+  }
   if (options.model === USER_MODEL_ID) {
     return runUserEquation(engine, table, options, data, summaryOptions);
   }
@@ -78,6 +84,13 @@ export function runNonlin(engine: EngineBridge, table: DataTableModel,
       error: `Enter ${missing.join(", ")} under Experimental constants` };
   }
   const route = routeFor(options);
+  // the shared-parameter fits (engine globalfit / fit_global_model) weight
+  // only by 1/Y, 1/Y² or 1/X: say so rather than pass an unknown weighting
+  if (options.weighting === "1/SD2" && route !== "dose_response") {
+    return { analysis: "dose_response", datasets: [],
+      error: "Weighting by 1/SD² is available for curves fitted one at a time, not for global fits "
+        + "with shared parameters or the Gaddum/Schild model; choose another weighting" };
+  }
 
   const interpY = options.interpolateY
     .split(/[\n,;\s]+/).map(parseCell)
@@ -150,7 +163,7 @@ export function runNonlin(engine: EngineBridge, table: DataTableModel,
         constraints,
         ...(shared.length || !meta.globalOnly ? { shared } : {}),
         column_constants: cc.values,
-        weighting: options.weighting,
+        weighting: engineWeighting(options),
         ...summaryOptions,
       },
     }) as Record<string, any>;
@@ -168,7 +181,7 @@ export function runNonlin(engine: EngineBridge, table: DataTableModel,
         error_bars: options.errorBars,
         constraints,
         shared: effectiveShared(meta, options),
-        weighting: options.weighting,
+        weighting: engineWeighting(options),
         ...summaryOptions,
       },
     }) as Record<string, any>;
@@ -208,7 +221,7 @@ export function runNonlin(engine: EngineBridge, table: DataTableModel,
       x_is_log: options.xIsLog,
       error_bars: options.errorBars,
       constraints,
-      weighting: options.weighting,
+      weighting: engineWeighting(options),
       ...weightSourceOption(options, summary),
       ci_method: options.ciMethod,
       rout_q: options.routEnabled
@@ -216,6 +229,7 @@ export function runNonlin(engine: EngineBridge, table: DataTableModel,
       bands: options.bands === "none" ? null : options.bands,
       diagnostics: options.diagnostics,
       interpolate_y: interpY.length ? interpY : null,
+      ...(options.fitMethod === "robust" ? { fit_method: "robust" } : {}),
       ...summaryOptions,
     },
   }) as AnalysisResult;
@@ -247,7 +261,7 @@ function runUserEquation(engine: EngineBridge, _table: DataTableModel,
     x_is_log: options.xIsLog,
     error_bars: options.errorBars,
     constraints: fixed.constraints,
-    weighting: options.weighting,
+    weighting: engineWeighting(options),
     ...(Object.keys(cc.values).length ? { column_constants: cc.values } : {}),
     ...summaryOptions,
   };

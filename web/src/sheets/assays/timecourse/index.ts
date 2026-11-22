@@ -93,7 +93,8 @@ export const tcMixed = defineAnalysis<TcMixedOptions, R>({
     + "compound symmetry, AR(1), unstructured or random-slope covariance (compared by AIC), "
     + "group means and group differences at each time.",
   sheetName: (t) => `Time course model of ${t}`,
-  defaultOptions: ({ table }) => normalizeTcMixed({}, table),
+  // new sheets: Kenward-Roger df; saved sheets keep between-within
+  defaultOptions: ({ table }) => ({ ...normalizeTcMixed({}, table), mixedDdf: "kenward_roger" as const }),
   normalizeOptions: (raw, { table }) => normalizeTcMixed(raw, table),
   run: runTcMixed,
   defaultGraph: G_TC_MEANS,

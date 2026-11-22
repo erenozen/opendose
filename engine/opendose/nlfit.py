@@ -5,7 +5,8 @@ Prism curve-fitting guide references:
   "Exponential -- One phase decay / association / Two phase decay /
   Exponential growth", "Binding -- saturation", "Lines -- straight line".
 - Weighting ("Unequal weighting"): Prism weights by the PREDICTED Y of the
-  curve (1/Y, 1/Y^2) or by X (1/X, 1/X^2); minimized quantity is the
+  curve (1/Y, 1/Y^2, or 1/Y^K for any K: "Weight by 1/Y^K", written
+  "1/Y^1.5" etc. here) or by X (1/X, 1/X^2); minimized quantity is the
   weighted sum of squares.
 - Asymmetrical (profile-likelihood) CIs (Prism 8+ default): the interval
   where fixing one parameter and re-optimizing the rest raises SS to
@@ -51,6 +52,7 @@ Prism curve-fitting guide references:
 from __future__ import annotations
 
 import math
+import re
 from dataclasses import dataclass, field
 from typing import Callable
 
@@ -424,6 +426,14 @@ def _two_phase_decay_derived(fitted, ci_map):
         if key in ci_map and all(v > 0 for v in ci_map[key]):
             lo, hi = ci_map[key]
             out[label]["ci95"] = [math.log(2) / hi, math.log(2) / lo]
+    # the spans of the two phases, as the equation defines them (curve-
+    # fitting guide, "Equation: Two phase decay"); values only: a CI needs
+    # the covariance, which this legacy hook does not receive
+    span = fitted["Y0"] - fitted["Plateau"]
+    out["SpanFast"] = {"value": span * fitted["PercentFast"] * 0.01,
+                       "ci95": None}
+    out["SpanSlow"] = {"value": span * (100.0 - fitted["PercentFast"])
+                       * 0.01, "ci95": None}
     return out
 
 
@@ -496,6 +506,31 @@ register(ModelSpec(
 # ---------------------------------------------------------------- fitting
 
 WEIGHTINGS = ("none", "1/Y", "1/Y2", "1/X", "1/X2", "1/SD2")
+_YK = re.compile(r"^1/Y\^([0-9]*\.?[0-9]+)$")
+
+
+def y_power(weighting):
+    """K of a 1/Y^K weighting ("1/Y" 1, "1/Y2" 2, "1/Y^1.5" 1.5), else
+    None (no weighting, X-based or 1/SD^2)."""
+    if weighting == "1/Y":
+        return 1.0
+    if weighting == "1/Y2":
+        return 2.0
+    m = _YK.match(weighting or "")
+    return float(m.group(1)) if m else None
+
+
+def y_weighted(weighting):
+    """True for weightings computed from Y (Prism: the predicted Y)."""
+    return y_power(weighting) is not None
+
+
+def valid_weighting(weighting):
+    """A known weighting: the fixed names or 1/Y^K with 0 < K <= 10."""
+    if weighting in WEIGHTINGS:
+        return True
+    k = y_power(weighting)
+    return k is not None and 0 < k <= 10
 WEIGHT_SOURCES = ("predicted", "observed_mean", "objective")
 
 # Multistart budget (fit_model). Solver evaluations per start of a
@@ -532,6 +567,9 @@ def _weights(x, ybase, weighting):
         return 1.0 / np.clip(np.abs(ybase), 1e-12, None)
     if weighting == "1/Y2":
         return 1.0 / np.clip(ybase * ybase, 1e-24, None)
+    k = y_power(weighting)
+    if k is not None:              # 1/Y^K (K = 1 and 2 above, unchanged)
+        return 1.0 / np.clip(np.abs(ybase), 1e-12, None) ** k
     if weighting == "1/X":
         return 1.0 / np.clip(np.abs(x), 1e-12, None)
     if weighting == "1/X2":
@@ -661,9 +699,12 @@ def _ols_fit(spec, x, y, free_names, fixed, p0_map, weighting,
 
     box = _free_bounds(spec, free_names)
     p0 = [p0_map[n] for n in free_names]
-    # finite-difference scale of each parameter (lsq module docstring)
-    floor = lsq.scale_floor(free_names, p0, x, y,
-                            getattr(spec, "param_roles", None))
+    # finite-difference scale of each parameter (lsq module docstring),
+    # from the start the solver uses: moved inside the range constraints
+    # first, so a start far outside them (K = 1e6 for 0 <= K <= 1) does not
+    # make the steps far too coarse for the range
+    floor = lsq.scale_floor(free_names, p0 if box is None else _inside(p0, box),
+                            x, y, getattr(spec, "param_roles", None))
 
     jac_idx = ([spec.params.index(n) for n in free_names]
                if spec.jac is not None else None)
@@ -698,8 +739,8 @@ def _ols_fit(spec, x, y, free_names, fixed, p0_map, weighting,
         res.floor = floor
         return res
 
-    y_weighted = weighting in ("1/Y", "1/Y2")
-    if weight_source == "objective" and y_weighted and summary is not None:
+    y_weighted_ = y_weighted(weighting)
+    if weight_source == "objective" and y_weighted_ and summary is not None:
         raise ValueError("weight_source 'objective' needs raw replicates "
                          "(not mean/SD/n)")
     if summary is not None:
@@ -710,7 +751,7 @@ def _ols_fit(spec, x, y, free_names, fixed, p0_map, weighting,
     else:
         extra_ss = 0.0
         dof = x.size - len(free_names)
-        if not y_weighted:
+        if not y_weighted_:
             w = _weights(x, x, weighting)  # 'none' or X-based: fixed
             res = solve(np.sqrt(w), p0)
         elif weight_source == "observed_mean":
@@ -791,9 +832,9 @@ def _ols_fit_summary(spec, x, y, free_names, solve, p0, make_params,
     path, with row weights W_i * n_i. Returns (res, the within-row SS
     weighted by the final weights, to be added back to the SS)."""
     counts, within = summary["counts"], summary["within"]
-    y_weighted = weighting in ("1/Y", "1/Y2")
+    y_weighted_ = y_weighted(weighting)
 
-    if not y_weighted:
+    if not y_weighted_:
         w = _replicate_weights(x, x, weighting, summary)
         res = solve(np.sqrt(w * counts), p0)
     elif weight_source == "observed_mean":
@@ -830,13 +871,13 @@ def fit_model(x_values, y_values, model: str, *,
     """
     if model not in MODELS:
         raise ValueError(f"unknown model: {model}")
-    if weighting not in WEIGHTINGS:
+    if not valid_weighting(weighting):
         raise ValueError(f"unknown weighting: {weighting}")
     if weight_source not in WEIGHT_SOURCES:
         raise ValueError(f"unknown weight_source: {weight_source}")
     spec = MODELS[model]
     summary = None
-    if weight_source == "objective" and weighting in ("1/Y", "1/Y2") and (
+    if weight_source == "objective" and y_weighted(weighting) and (
             sd is not None or n is not None):
         raise ValueError("weight_source 'objective' needs raw replicates "
                          "(not mean/SD/n)")
@@ -1375,6 +1416,23 @@ def transform_entries(transforms, fitted, free_names, cov, ci_map, tcrit,
 
 # ---------------------------------------------------------------- robust / ROUT
 
+def _fixed_params(model: str, constraints: dict | None) -> dict:
+    """Constraints under the model's own parameter names, as fit_model
+    reads them: LogEC50 / LogIC50 name LogXmid where the model has it, and
+    the 3PL dose-response models hold HillSlope at -1 / +1."""
+    spec = MODELS[model]
+    fixed = {}
+    for name, val in (constraints or {}).items():
+        key = ("LogXmid" if name in ("LogIC50", "LogEC50")
+               and "LogXmid" in spec.params else name)
+        fixed[key] = float(val)
+    if model == "log_inhibitor_vs_response_3pl":
+        fixed.setdefault("HillSlope", -1.0)
+    if model == "log_agonist_vs_response_3pl":
+        fixed.setdefault("HillSlope", 1.0)
+    return fixed
+
+
 def robust_fit(x_values, y_values, model: str, *,
                constraints: dict | None = None) -> dict:
     """Robust nonlinear regression (Motulsky & Brown 2006): Cauchy
@@ -1383,7 +1441,9 @@ def robust_fit(x_values, y_values, model: str, *,
     x, y = _clean_xy(x_values, y_values)
     base = fit_model(x_values, y_values, model, constraints=constraints)
     fitted = dict(base["fitted_values"])
-    fixed = {k: v for k, v in (constraints or {}).items()}
+    # the constraints fit_model applied (renamed LogXmid, 3PL slopes); the
+    # raw names left those parameters free in the robust iterations
+    fixed = _fixed_params(model, constraints)
     for name in spec.data_constants or {}:
         fixed.setdefault(name, fitted[name])
     free_names = [p for p in spec.params if p not in fixed]
@@ -1419,11 +1479,78 @@ def robust_fit(x_values, y_values, model: str, *,
             "residuals": resid.tolist(), "n_points": int(n), "k_params": int(k)}
 
 
+def robust_model_fit(x_values, y_values, model: str, *,
+                     constraints: dict | None = None) -> dict:
+    """Robust nonlinear regression as the fitting method (curve-fitting
+    guide, "Robust nonlinear regression"): the robust_fit best-fit values
+    in fit_model's result layout, with every SE and CI None: robust
+    regression "cannot calculate standard errors or confidence intervals"
+    (nor bands or dependency), the residuals being assumed Lorentzian,
+    not Gaussian. Reports the RSDR and the residual sum of squares; no
+    R^2. fit_method = "robust"."""
+    spec = MODELS[model]
+    rob = robust_fit(x_values, y_values, model, constraints=constraints)
+    fitted = dict(rob["fitted_values"])
+    x, y = _clean_xy(x_values, y_values)
+    fixed = _fixed_params(model, constraints)
+    for name in spec.data_constants or {}:
+        fixed.setdefault(name, fitted[name])
+    free_names = [p for p in spec.params if p not in fixed]
+    params_out = {}
+    for name in spec.params:
+        display = ("LogIC50" if (name == "LogXmid" and "IC50" in spec.equation)
+                   else "LogEC50" if (name == "LogXmid" and "EC50" in spec.equation)
+                   else name)
+        params_out[display] = {"value": fitted[name], "se": None,
+                               "ci95": None, "constrained": name in fixed}
+    derived_out = {}
+    if spec.derived:
+        for dname, entry in spec.derived(fitted, {}).items():
+            derived_out[dname] = {"value": entry["value"], "se": None,
+                                  "ci95": None, "constrained": False,
+                                  "derived": True}
+    if spec.transforms:
+        k = len(free_names)
+        values = transform_entries(spec.transforms, fitted, free_names,
+                                   np.zeros((k, k)), {}, 0.0, curve=spec.func,
+                                   x=x)
+        for dname, entry in values.items():
+            derived_out[dname] = {"value": entry["value"], "se": None,
+                                  "ci95": None, "constrained": False,
+                                  "derived": True}
+    if "Top" in spec.params and "Bottom" in spec.params:
+        derived_out["Span"] = {"value": fitted["Top"] - fitted["Bottom"],
+                               "se": None, "ci95": None,
+                               "constrained": False, "derived": True}
+    resid = y - spec.func(x, fitted)
+    n = int(x.size)
+    return {
+        "model": model, "label": spec.label, "equation": spec.equation,
+        "status": "converged", "fit_method": "robust", "dependency": {},
+        "extrapolation": None, "weighting": "none",
+        "weight_source": "predicted", "ci_method": None,
+        "params": {**params_out, **derived_out},
+        "param_order": list(params_out) + list(derived_out),
+        "goodness": {"df": n - len(free_names), "n_points": n,
+                     "r_squared": None, "ss_res": float(np.sum(resid ** 2)),
+                     "sy_x": None, "rsdr": float(rob["rsdr"])},
+        "fitted_values": fitted, "x_is_log": spec.x_is_log,
+        "note": ("Robust regression: best-fit values only. It cannot give "
+                 "standard errors, confidence intervals or bands (curve-"
+                 "fitting guide, \"Robust nonlinear regression\")."),
+    }
+
+
 def rout_outliers(x_values, y_values, model: str, *, q: float = 0.01,
                   constraints: dict | None = None,
-                  sd=None, n=None, replicates: str = "account") -> dict:
+                  sd=None, n=None, replicates: str = "account",
+                  weighting: str = "none", ci_method: str = "asymptotic",
+                  weight_source: str = "predicted") -> dict:
     """ROUT: robust fit, then FDR-based outlier detection at rate Q,
-    then ordinary fit on the cleaned data (Motulsky & Brown 2006).
+    then a least-squares fit of the cleaned data (Motulsky & Brown 2006).
+    The detection uses the unweighted robust fit; the final fit uses the
+    weighting, weight_source and ci_method asked for (they were dropped
+    before, so ROUT with weighting returned the unweighted fit).
 
     With sd/n (rows entered as mean/SD/n) the robust fit and the outlier
     test see only the row means (robust regression cannot use SD and n;
@@ -1443,7 +1570,7 @@ def rout_outliers(x_values, y_values, model: str, *, q: float = 0.01,
             model, constraints=constraints,
             sd=[summ["sd"][i] for i in keep] if sd is not None else None,
             n=[summ["n"][i] for i in keep] if n is not None else None,
-            replicates=replicates)
+            replicates=replicates, weighting=weighting, ci_method=ci_method)
         return out
     x, y = _clean_xy(x_values, y_values)
     rob = robust_fit(x_values, y_values, model, constraints=constraints)
@@ -1465,7 +1592,8 @@ def rout_outliers(x_values, y_values, model: str, *, q: float = 0.01,
 
     keep = ~is_outlier
     cleaned_fit = fit_model(x[keep].tolist(), y[keep].tolist(), model,
-                            constraints=constraints)
+                            constraints=constraints, weighting=weighting,
+                            ci_method=ci_method, weight_source=weight_source)
     return {
         "method": "rout", "q": q, "rsdr": rob["rsdr"],
         "outliers": [{"x": float(x[i]), "y": float(y[i]),

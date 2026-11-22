@@ -11,6 +11,7 @@ import type { ComparisonSet } from "../../graph/results.ts";
 import { pEquals } from "../../report/pformat.ts";
 import { formatSig } from "../../types.ts";
 import { SRC } from "../../guide/sources.ts";
+import { ddfMethodsSentence, ddfName, ddfOf, type DdfMethod } from "./ddf.ts";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type R = Record<string, any>;
@@ -105,6 +106,8 @@ export interface MixedUnitOptions {
   controlIndex: number;
   ciLevel: number;
   negativeVariance: NegativeVariance;
+  /** Denominator df (./ddf.ts); absent = containment. */
+  mixedDdf?: DdfMethod;
 }
 
 export const DEFAULT_MIXED_UNIT: MixedUnitOptions = {
@@ -126,6 +129,7 @@ export function normalizeMixedUnit(raw: unknown): MixedUnitOptions {
     controlIndex: Number.isInteger(o.controlIndex) && o.controlIndex >= 0 ? o.controlIndex : 0,
     ciLevel: typeof o.ciLevel === "number" && o.ciLevel > 0.5 && o.ciLevel < 1 ? o.ciLevel : 0.95,
     negativeVariance: o.negativeVariance === "zero" ? "zero" : "allow",
+    ...(o.mixedDdf === undefined ? {} : { mixedDdf: ddfOf(o.mixedDdf) }),
   };
 }
 
@@ -138,6 +142,7 @@ export function engineUnitOptions(o: MixedUnitOptions): R {
     comparisons: o.comparisons === "none" ? null : o.comparisons,
     comparison_scope: o.scope,
     control_index: o.controlIndex,
+    ddf: ddfOf(o.mixedDdf),
   };
 }
 
@@ -281,15 +286,19 @@ export function mixedMethodsText(r: R, words: UnitWords, outcome: string): strin
   const formula = String(r.formula ?? "").replace(/\(1 \| unit\)/, `(1 | ${words.singular})`);
   const nUnits = r.n_units;
   const nested = r.unit_nested_in ? Object.values(r.unit_nested_in).every(Boolean) : true;
+  const ddf = ddfOf(r.ddf);
   let t = `${cap(outcome)} was analysed with a linear mixed model with ${factorPhrase(names)} as `
     + `fixed effects and ${words.singular} as a random intercept (${formula}), fitted by restricted `
     + "maximum likelihood (REML). Fixed effects were tested with Type III Wald F tests whose "
-    + `denominator degrees of freedom come from the ${nUnits} ${words.plural}, not from the `
-    + `${r.n_values} individual values (containment method: ${nUnits} ${words.plural} − `
-    + `${r.n_cells} cells = ${r.df?.units} df${nested ? "" : `; factors varying within ${words.plural} on the residual ${r.df?.residual} df`}). `;
+    + (ddf === "containment"
+      ? `denominator degrees of freedom come from the ${nUnits} ${words.plural}, not from the `
+        + `${r.n_values} individual values (containment method: ${nUnits} ${words.plural} − `
+        + `${r.n_cells} cells = ${r.df?.units} df${nested ? "" : `; factors varying within ${words.plural} on the residual ${r.df?.residual} df`}). `
+      : `denominator degrees of freedom were computed by the ${ddfName(ddf)} method from the `
+        + `${nUnits} ${words.plural} and ${r.n_values} individual values. ${ddfMethodsSentence(ddf)} `);
   const rows: R[] = Array.isArray(r.anova) ? r.anova : [];
   if (rows.length) {
-    t += rows.map((x) => `${x.term}: F(${x.dfn}, ${x.dfd}) = ${formatSig(x.f)}, P ${pEquals(x.p)}`)
+    t += rows.map((x) => `${x.term}: F(${x.dfn}, ${formatSig(x.dfd)}) = ${formatSig(x.f)}, P ${pEquals(x.p)}`)
       .join("; ") + ". ";
   }
   const cmp = r.comparisons;

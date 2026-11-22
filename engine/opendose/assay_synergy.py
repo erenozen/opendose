@@ -39,6 +39,25 @@ Method sources:
   drugs), DRI_i = Dx_i/d_i; CI < 1 synergism, = 1 additive, > 1
   antagonism, with Chou's descriptive ranges.
 
+- SynergyFinder 3's statistics (Ianevski et al. 2022 NAR 50:W739; R
+  package synergyfinder, CalculateSynergy / CalculateSensitivity;
+  reimplemented from the published definitions, no code copied):
+  P value of each summary score = exp(-0.717 z - 0.416 z^2) (Altman &
+  Bland 2011 BMJ 343:d2304) with z = |mean| / SD of the combination
+  cells' synergies, or, with replicates, of the summary scores of
+  p_iterations resampled matrices (per cell, the mean of n normal draws
+  with that cell's replicate mean and SD). z is the mean over the SD, not
+  over a standard error: a description of how consistent the synergy is,
+  not a test of the mean. Most synergistic area = the 3 x 3 window of
+  adjacent combination doses with the highest mean synergy. Bliss /
+  Loewe consensus: expected = the largest of the HSA, Bliss and Loewe
+  expectations. Sensitivity (Malyutina et al. 2019 PLoS Comput Biol
+  15:e1006752): relative IC50 = the monotherapy EC50 capped at the
+  highest dose; RI = mean fitted % inhibition over log10 dose between the
+  lowest and highest non-zero doses; CSS1 = RI of drug 1's curve with
+  drug 2 held at its IC50 (each row's LL.4 fit read there), CSS2 the
+  reverse, CSS their mean.
+
 Monotherapy and ZIP fits run through nlfit with the model registered
 here, "Log-logistic (four parameters), X is concentration": Y = Bottom +
 (Top - Bottom)/(1 + 10^((LogEC50 - log10 X)*HillSlope)), X the
@@ -52,11 +71,12 @@ surface has several minima.
 from __future__ import annotations
 
 import math
+import warnings
 
 import numpy as np
 from scipy.optimize import brentq
 
-from . import equations, linregress, nlfit
+from . import equations, linregress, musyc as _musyc, nlfit
 from .nlfit import ModelSpec, Transform, register
 
 MODEL = "log_logistic_4pl_conc"
@@ -236,7 +256,12 @@ def _inverse_dose(y, p):
             return math.inf
         return 0.0
     u = (y - b) / (t - y)
-    return e * u ** (1.0 / h)
+    try:
+        return e * u ** (1.0 / h)
+    except OverflowError:
+        # a shallow slope (small |h|) overflows the float power: a dose
+        # beyond the float range is one the curve never reaches
+        return math.inf
 
 
 def loewe_response(d1, d2, p1, p2):
@@ -377,6 +402,359 @@ def _scores(R, c1, c2):
     return out
 
 
+# ------------------------------------------------- SynergyFinder statistics
+
+#: Resampling passes and seed for the P value of a replicated matrix
+#: (SynergyFinder's CalculateSynergy defaults: iteration = 10, seed = 123;
+#: numpy's generator, so the draws differ from R's).
+P_ITERATIONS = 10
+P_SEED = 123
+
+
+def synergy_p(values):
+    """SynergyFinder's P value for a summary synergy score: z = |mean| / SD
+    of `values` (SD with n - 1), P = exp(-0.717 z - 0.416 z^2), the normal
+    approximation of Altman & Bland (2011, BMJ 343:d2304). `values` are the
+    combination cells' synergies (no replicates) or the resampled matrices'
+    summary scores (replicates). z is the mean over its SD, not over its
+    standard error. None when fewer than 2 finite values or the SD is 0."""
+    v = np.asarray([x for x in values if x is not None], dtype=float)
+    v = v[np.isfinite(v)]
+    if v.size < 2:
+        return None
+    sd = float(np.std(v, ddof=1))
+    if not sd > 0:
+        return None
+    z = abs(float(np.mean(v))) / sd
+    return float(math.exp(-0.717 * z - 0.416 * z * z))
+
+
+def _combination_cells(m):
+    comb = np.asarray(m, dtype=float)[1:, 1:]
+    return comb[np.isfinite(comb)]
+
+
+def _resampled(reps, rng):
+    """One SynergyFinder-style resampled response matrix: per cell, the
+    mean of n normal draws with that cell's replicate mean and SD (n = its
+    number of replicates; a single replicate is kept as it is)."""
+    with np.errstate(all="ignore"):
+        n = np.sum(np.isfinite(reps), axis=0)
+        mean = np.nanmean(reps, axis=0)
+        sd = np.nanstd(reps, axis=0, ddof=1)
+    out = np.full(mean.shape, np.nan)
+    for idx in np.ndindex(mean.shape):
+        k = int(n[idx])
+        if k == 0:
+            continue
+        if k == 1 or not np.isfinite(sd[idx]):
+            out[idx] = mean[idx]
+        else:
+            out[idx] = float(np.mean(rng.normal(mean[idx], sd[idx], k)))
+    return out
+
+
+def relative_inhibition(doses, responses):
+    """Relative inhibition (RI; Malyutina et al. 2019, PLoS Comput Biol
+    15:e1006752, as SynergyFinder's CalculateRI): the mean of the fitted
+    four-parameter log-logistic curve (% inhibition) over log10 dose, from
+    the lowest to the highest non-zero dose tested, i.e. the area under the
+    curve on the log-dose axis divided by the width of that axis. Zero
+    doses are left out of the fit; one dose gives its response. Returns
+    {"ri", "fitted", "dose_range"} or None when the curve cannot be fitted."""
+    x = np.asarray(doses, dtype=float)
+    y = np.asarray(responses, dtype=float)
+    keep = (x > 0) & np.isfinite(y)
+    x, y = x[keep], y[keep]
+    if x.size == 0:
+        return None
+    lo, hi = float(np.min(x)), float(np.max(x))
+    if x.size == 1 or lo == hi:
+        return {"ri": float(np.mean(y)), "fitted": False,
+                "dose_range": [lo, hi]}
+    if np.ptp(y) == 0:
+        return {"ri": float(y[0]), "fitted": False, "dose_range": [lo, hi]}
+    f = _fit_ll4(x, y)
+    if f is None:
+        return None
+    return {"ri": _ll4_mean_log_dose(f["params"], lo, hi), "fitted": True,
+            "dose_range": [lo, hi]}
+
+
+def _ll4_mean_log_dose(p, lo, hi):
+    """Mean of Bottom + (Top - Bottom) / (1 + 10^((LogEC50 - u) h)) over
+    u = log10 dose in [log10 lo, log10 hi], in closed form:
+    the integral of 1/(1 + 10^(h (m - u))) du is softplus(h ln10 (u - m))
+    / (h ln10)."""
+    a, b = math.log10(lo), math.log10(hi)
+    bottom, top = float(p["Bottom"]), float(p["Top"])
+    m, h = float(p["LogEC50"]), float(p["HillSlope"])
+    k = h * math.log(10.0)
+    if abs(k) < 1e-12:
+        frac = 0.5
+    else:
+        frac = float((np.logaddexp(0.0, k * (b - m))
+                      - np.logaddexp(0.0, k * (a - m))) / (k * (b - a)))
+    return bottom + (top - bottom) * frac
+
+
+def _fixed_dose_curve(R, conc_vary, conc_fixed, fixed_at, vary_axis):
+    """Responses along `conc_vary` (non-zero doses) with the other drug at
+    `fixed_at`: per dose, the observed response when the other drug has one
+    non-zero dose, else the slice's LL.4 fit at fixed_at (SynergyFinder's
+    CalculateCSS). A slice that cannot be fitted is read by linear
+    interpolation on log10 dose (zero dose at the left end), clamped to its
+    range."""
+    out = []
+    for i in range(1, len(conc_vary)):
+        sl = R[i, :] if vary_axis == 0 else R[:, i]
+        ok = np.isfinite(sl)
+        xs, ys = np.asarray(conc_fixed, float)[ok], sl[ok]
+        if xs.size < 2:
+            out.append(np.nan)
+            continue
+        if np.count_nonzero(xs > 0) == 1:
+            out.append(float(ys[xs > 0][0]))
+            continue
+        f = _fit_ll4(xs, ys)
+        if f is not None:
+            out.append(float(_ll4([fixed_at], f["params"])[0]))
+            continue
+        pos = xs > 0
+        lx = np.log10(xs[pos])
+        order = np.argsort(lx)
+        out.append(float(np.interp(math.log10(fixed_at), lx[order],
+                                   ys[pos][order])))
+    return np.asarray(out, float)
+
+
+def sensitivity(R, c1, c2, mono1, mono2):
+    """SynergyFinder's sensitivity scores (Malyutina et al. 2019; Zheng et
+    al. 2022 synergyfinder CalculateSensitivity): relative IC50 per drug
+    (the monotherapy fit's EC50, capped at the highest dose tested), RI per
+    drug, and the combination sensitivity score CSS = the mean of CSS1 (RI
+    of drug 1's curve with drug 2 fixed at its IC50) and CSS2 (likewise)."""
+    R = np.asarray(R, float)
+    out = {"drug1": {}, "drug2": {}, "css": None, "css1": None, "css2": None}
+    ic50 = []
+    for key, f, conc, resp in (("drug1", mono1, c1, R[:, 0]),
+                               ("drug2", mono2, c2, R[0, :])):
+        top = float(max(conc))
+        ec = None if f is None else float(f["params"]["EC50"])
+        ic = None if ec is None or not math.isfinite(ec) else min(ec, top)
+        ri = relative_inhibition(conc, resp)
+        out[key] = {"ic50": ic, "ic50_capped": bool(ec is not None
+                                                    and ic is not None
+                                                    and ec > top),
+                    "ri": None if ri is None else ri["ri"]}
+        ic50.append(ic)
+    if ic50[1] is not None:
+        curve = _fixed_dose_curve(R, c1, c2, ic50[1], 0)
+        ri = relative_inhibition(c1[1:], curve)
+        out["css1"] = None if ri is None else ri["ri"]
+    if ic50[0] is not None:
+        curve = _fixed_dose_curve(R, c2, c1, ic50[0], 1)
+        ri = relative_inhibition(c2[1:], curve)
+        out["css2"] = None if ri is None else ri["ri"]
+    parts = [v for v in (out["css1"], out["css2"]) if v is not None]
+    out["css"] = float(np.mean(parts)) if len(parts) == 2 else None
+    return out
+
+
+def most_synergistic_area(syn, c1, c2, size: int = 3):
+    """The size x size window of adjacent combination doses with the highest
+    mean synergy (SynergyFinder's "most synergistic area"). None when the
+    combination part of the matrix is smaller than the window."""
+    comb = np.asarray(syn, float)[1:, 1:]
+    n1, n2 = comb.shape
+    if n1 < size or n2 < size:
+        return None
+    best = None
+    for i in range(n1 - size + 1):
+        for j in range(n2 - size + 1):
+            win = comb[i:i + size, j:j + size]
+            if not np.isfinite(win).all():
+                continue
+            v = float(win.mean())
+            if best is None or v > best[0]:
+                best = (v, i, j)
+    if best is None:
+        return None
+    v, i, j = best
+    return {"score": v,
+            "conc1": [float(c1[1 + i]), float(c1[i + size])],
+            "conc2": [float(c2[1 + j]), float(c2[j + size])],
+            "size": size}
+
+
+# --------------------------------------------- outliers and missing cells
+
+#: SynergyFinder's outlier cut-off: a response more than this many %
+#: inhibition from its predicted value (Ianevski et al. 2020 NAR 48:W488).
+OUTLIER_THRESHOLD = 20.0
+
+
+def _slice_predict(x, y, at, extrapolate=True):
+    """A slice's response at dose `at` from the LL.4 fit of its other
+    points (y NaN where left out); if it cannot be fitted, linear
+    interpolation between the neighbouring tested doses by position
+    (dose series are usually geometric), which beyond the last point
+    holds the nearest response when extrapolate is True and gives None
+    otherwise. None when nothing is left."""
+    x = np.asarray(x, float)
+    y = np.asarray(y, float)
+    ok = np.isfinite(y)
+    if not ok.any():
+        return None
+    f = _fit_ll4(x[ok], y[ok])
+    if f is not None:
+        v = float(_ll4([at], f["params"])[0])
+        if math.isfinite(v):
+            return v
+    pos = np.arange(x.size, dtype=float)
+    k = float(np.searchsorted(x, at))
+    if not extrapolate and not (pos[ok].min() < k < pos[ok].max()):
+        return None
+    return float(np.interp(k, pos[ok], y[ok]))
+
+
+def _slice_predictions(R, c1, c2, i, j, extrapolate=True):
+    """Cell (i, j) predicted, with the cell itself left out, from each of
+    its slices: a combination cell from its row (drug 2's doses at drug 1
+    = c1[i]) and its column (drug 1's doses at drug 2 = c2[j]); a
+    monotherapy cell from that drug's monotherapy curve; the untreated
+    cell from both monotherapy curves at dose 0. extrapolate: see
+    _slice_predict (False for outlier checks)."""
+    R = np.array(R, dtype=float)
+    R[i, j] = np.nan
+    if i == 0 and j == 0:
+        preds = [_slice_predict(c1, R[:, 0], 0.0, extrapolate),
+                 _slice_predict(c2, R[0, :], 0.0, extrapolate)]
+    elif j == 0:
+        preds = [_slice_predict(c1, R[:, 0], c1[i], extrapolate)]
+    elif i == 0:
+        preds = [_slice_predict(c2, R[0, :], c2[j], extrapolate)]
+    else:
+        preds = [_slice_predict(c2, R[i, :], c2[j], extrapolate),
+                 _slice_predict(c1, R[:, j], c1[i], extrapolate)]
+    return [p for p in preds if p is not None]
+
+
+def predict_cell(R, c1, c2, i, j):
+    """The mean of the cell's left-out slice predictions (None if none)."""
+    preds = _slice_predictions(R, c1, c2, i, j)
+    return float(np.mean(preds)) if preds else None
+
+
+def _g(v):
+    return f"{v:.4g}"
+
+
+def _slices_of(i, j):
+    """The dose-response slices a cell's prediction uses: ("row", i) runs
+    along drug 2 at drug 1 = c1[i], ("col", j) along drug 1."""
+    if j == 0:
+        return [("col", 0)]
+    if i == 0:
+        return [("row", 0)]
+    return [("row", i), ("col", j)]
+
+
+def _between_neighbours(R, i, j):
+    """True when, on every slice of the cell where it has a tested dose on
+    each side, its response lies between those two neighbours' responses
+    (any monotone dose-response passes through it there)."""
+    judged = False
+    for kind, k in _slices_of(i, j):
+        line = R[k, :] if kind == "row" else R[:, k]
+        pos = j if kind == "row" else i
+        left = [v for v in line[:pos] if math.isfinite(v)]
+        right = [v for v in line[pos + 1:] if math.isfinite(v)]
+        if not left or not right:
+            continue
+        judged = True
+        lo, hi = sorted((left[-1], right[0]))
+        if not lo <= R[i, j] <= hi:
+            return False
+    return judged
+
+
+def find_outliers(R, c1, c2, threshold=OUTLIER_THRESHOLD,
+                  max_fraction=0.25):
+    """Cells whose response is more than `threshold` % inhibition from
+    their left-out prediction (SynergyFinder's 20% rule, Ianevski et al.
+    2020 NAR 48:W488; SynergyFinder predicts with cNMF, Ianevski et al.
+    2019 Nat Mach Intell 1:568, a randomised ensemble; here each cell is
+    predicted deterministically by predict_cell).
+
+    A combination cell is flagged only when it disagrees with both its
+    row's and its column's prediction: agreeing with either curve clears
+    it (a very potent drug leaves a slice with no points on its rising
+    part once a cell is removed, so that slice cannot predict it). Found
+    one at a time: the cell deviating most (from the mean prediction) is
+    set aside and the cells sharing its row or column are predicted again
+    without it, so one outlier does not make its neighbours look like
+    outliers. A cell lying between its neighbouring doses' responses on
+    each of its slices is not flagged: a steep curve cannot be predicted
+    from the points left once its middle is removed, and any monotone
+    curve passes there. The untreated cell is not checked; at most
+    max_fraction of the cells are flagged."""
+    work = np.array(R, dtype=float)
+    cells = [(i, j) for i, j in np.ndindex(work.shape)
+             if not (i == 0 and j == 0) and math.isfinite(work[i, j])]
+    cap = max(1, int(max_fraction * len(cells)))
+    pred = {}
+    out = []
+    while len(out) < cap:
+        for ij in cells:
+            if ij not in pred and math.isfinite(work[ij]):
+                pred[ij] = _slice_predictions(work, c1, c2, *ij,
+                                               extrapolate=False)
+        worst = None
+        for ij in cells:
+            preds = pred.get(ij)
+            if not preds or not math.isfinite(work[ij]):
+                continue
+            if any(abs(work[ij] - q) <= threshold for q in preds):
+                continue
+            p = float(np.mean(preds))
+            dev = float(work[ij] - p)
+            if not _between_neighbours(work, *ij):
+                if worst is None or abs(dev) > abs(worst[1]):
+                    worst = (ij, dev, p)
+        if worst is None:
+            break
+        (i, j), dev, p = worst
+        out.append({"row": i, "col": j, "conc1": float(c1[i]),
+                    "conc2": float(c2[j]), "observed": float(work[i, j]),
+                    "predicted": p, "deviation": dev,
+                    "kind": "combination" if i and j else "monotherapy"})
+        work[i, j] = np.nan
+        hit = set(_slices_of(i, j)) | {("row", i), ("col", j)}
+        for ij in list(pred):
+            if set(_slices_of(*ij)) & hit:
+                del pred[ij]
+    return out
+
+
+def _consensus(R, scored):
+    """Bliss / Loewe consensus (SynergyFinder 3, Ianevski et al. 2022 NAR
+    50:W739): the expected response is the largest of the HSA, Bliss and
+    Loewe expectations at each dose pair, so its synergy is the smallest of
+    the three."""
+    refs = np.stack([scored[k]["reference"] for k in ("hsa", "bliss",
+                                                      "loewe")])
+    with np.errstate(all="ignore"), warnings.catch_warnings():
+        warnings.simplefilter("ignore", RuntimeWarning)  # all-NaN cells
+        ref = np.nanmax(refs, axis=0)
+    syn = R - ref
+    syn[0, :] = 0.0
+    syn[:, 0] = 0.0
+    comb = syn[1:, 1:]
+    score = float(np.nanmean(comb)) if np.isfinite(comb).any() else None
+    return {"reference": ref, "synergy": syn, "score": score}
+
+
 #: Minimum r^2 of a monotherapy median-effect regression for its
 #: combination indices to be computed: r >= 0.90, Chou's (2006,
 #: Pharmacol Rev 58:621, "Conformity of data to the mass-action law")
@@ -504,9 +882,26 @@ def _jsonable(M):
 
 def synergy(records=None, *, conc1=None, conc2=None, responses=None,
             response_kind="inhibition", baseline_correction="none",
-            drug1="Drug 1", drug2="Drug 2") -> dict:
+            drug1="Drug 1", drug2="Drug 2", p_iterations=P_ITERATIONS,
+            p_seed=P_SEED, outliers="none",
+            outlier_threshold=OUTLIER_THRESHOLD, impute=False,
+            musyc=False, musyc_ci=100) -> dict:
     """HSA, Bliss, Loewe and ZIP synergy landscapes and summary scores,
-    and Chou-Talalay combination indices, from a dose-response matrix."""
+    each with SynergyFinder's P value and most synergistic area; the Bliss /
+    Loewe consensus; SynergyFinder's sensitivity scores (relative IC50, RI,
+    CSS); and Chou-Talalay combination indices, from a dose-response
+    matrix. With replicates the P values come from p_iterations resampled
+    matrices (seed p_seed), as SynergyFinder's CalculateSynergy.
+
+    outliers: "none", "flag" (cells more than outlier_threshold %
+    inhibition from their left-out prediction are reported) or "replace"
+    (and scored at that prediction, as SynergyFinder 3). impute: fill
+    cells missing in every replicate with the same prediction (a missing
+    monotherapy dose is otherwise an error). musyc: also fit the MuSyC
+    surface (opendose.musyc), with musyc_ci Monte Carlo refits for its 95%
+    intervals."""
+    if outliers not in ("none", "flag", "replace"):
+        raise ValueError("outliers must be 'none', 'flag' or 'replace'")
     c1, c2, reps = build_matrix(records, conc1=conc1, conc2=conc2,
                                 responses=responses,
                                 response_kind=response_kind)
@@ -516,10 +911,54 @@ def synergy(records=None, *, conc1=None, conc2=None, responses=None,
     warnings = []
     with np.errstate(all="ignore"):
         mean = np.nanmean(reps, axis=0)
+    outlier_cells = None
+    to_fill = []
+    if outliers != "none":
+        outlier_cells = find_outliers(mean, c1, c2, outlier_threshold)
+        if outlier_cells:
+            where = "; ".join(
+                f"{drug1} {_g(o['conc1'])} + {drug2} {_g(o['conc2'])}: "
+                f"{_g(o['observed'])} vs {_g(o['predicted'])} predicted"
+                for o in outlier_cells)
+            warnings.append(
+                f"{len(outlier_cells)} cell(s) differ from their predicted "
+                f"response by more than {_g(outlier_threshold)}% inhibition"
+                f" ({where})"
+                + ("; they were replaced by the prediction." if outliers ==
+                   "replace" else "; they are flagged, not changed."))
+        if outliers == "replace":
+            to_fill += [(o["row"], o["col"]) for o in outlier_cells]
+    if impute:
+        to_fill += [tuple(int(v) for v in ij)
+                    for ij in np.argwhere(np.isnan(mean))]
+    imputed = []
+    if to_fill:
+        # predict every cell from the matrix without any of them, so one
+        # filled value never feeds another
+        holed = mean.copy()
+        for i, j in to_fill:
+            holed[i, j] = np.nan
+        for i, j in to_fill:
+            p = predict_cell(holed, c1, c2, i, j)
+            if p is None:
+                continue
+            reps[:, i, j] = p
+            imputed.append({"conc1": float(c1[i]), "conc2": float(c2[j]),
+                            "value": p,
+                            "reason": ("outlier" if math.isfinite(mean[i, j])
+                                       else "missing")})
+        n_missing = sum(c["reason"] == "missing" for c in imputed)
+        if n_missing:
+            warnings.append(f"{n_missing} missing cell(s) were filled with "
+                            "the response predicted from their row and "
+                            "column dose-response fits.")
+    with np.errstate(all="ignore"):
+        mean = np.nanmean(reps, axis=0)
         sd = (np.nanstd(reps, axis=0, ddof=1) if reps.shape[0] > 1
               else np.full(mean.shape, np.nan))
     if np.isnan(mean[:, 0]).any() or np.isnan(mean[0, :]).any():
-        raise ValueError("every monotherapy dose needs a response")
+        raise ValueError("every monotherapy dose needs a response (or turn "
+                         "on filling missing cells)")
     if np.isnan(mean).any():
         warnings.append("Some combination cells are missing; HSA and Bliss "
                         "are reported there as missing and the summaries "
@@ -527,6 +966,35 @@ def synergy(records=None, *, conc1=None, conc2=None, responses=None,
     R, base = _baseline_correct(mean, c1, c2, baseline_correction)
     main = _scores(R, c1, c2)
     f1, f2, fit1, fit2 = main.pop("_mono")
+    main["consensus"] = _consensus(R, main)
+    named = ("hsa", "bliss", "loewe", "zip", "consensus")
+    n_rep = reps.shape[0]
+    if n_rep > 1 and not p_iterations:
+        # resampling turned off (each pass refits every curve: slow)
+        p_values = {k: None for k in named}
+        p_basis = None
+    elif n_rep > 1:
+        # SynergyFinder: score resampled matrices, P from their summaries
+        rng = np.random.default_rng(p_seed)
+        resampled = {k: [] for k in named}
+        for _ in range(int(p_iterations)):
+            Rb = _resampled(reps, rng)
+            if np.isnan(Rb[:, 0]).any() or np.isnan(Rb[0, :]).any():
+                continue
+            Rb, _ = _baseline_correct(Rb, c1, c2, baseline_correction)
+            sb = _scores(Rb, c1, c2)
+            sb.pop("_mono")
+            sb["consensus"] = _consensus(Rb, sb)
+            for k in named:
+                resampled[k].append(sb[k]["score"])
+        p_values = {k: synergy_p(resampled[k]) for k in named}
+        p_basis = (f"summary scores of {int(p_iterations)} resampled "
+                   f"matrices (normal draws with each cell's replicate mean "
+                   f"and SD, seed {p_seed})")
+    else:
+        p_values = {k: synergy_p(_combination_cells(main[k]["synergy"]))
+                    for k in named}
+        p_basis = "synergy of the combination cells"
     if f1 is None or f2 is None:
         warnings.append("A monotherapy curve could not be fitted; Loewe "
                         "and ZIP use fallbacks (observed responses).")
@@ -537,7 +1005,6 @@ def synergy(records=None, *, conc1=None, conc2=None, responses=None,
                         "there (SynergyFinder's fallback).")
 
     per_rep = []
-    n_rep = reps.shape[0]
     if n_rep > 1:
         for k in range(n_rep):
             Rk = reps[k]
@@ -552,7 +1019,9 @@ def synergy(records=None, *, conc1=None, conc2=None, responses=None,
         m = main[name]
         entry = {"reference": _jsonable(m["reference"]),
                  "synergy": _jsonable(m["synergy"]),
-                 "score": m["score"]}
+                 "score": m["score"], "p_value": p_values[name],
+                 "most_synergistic_area": most_synergistic_area(
+                     m["synergy"], c1, c2)}
         if name == "zip":
             entry["fitted"] = _jsonable(m["fitted"])
             entry["n_fallback_observed"] = m["n_fallback_observed"]
@@ -610,6 +1079,22 @@ def synergy(records=None, *, conc1=None, conc2=None, responses=None,
         "models": models,
         "scores": {k: v["score"] for k, v in models.items()},
         "landscapes": {k: v["synergy"] for k, v in models.items()},
+        "consensus": {
+            "reference": _jsonable(main["consensus"]["reference"]),
+            "synergy": _jsonable(main["consensus"]["synergy"]),
+            "score": main["consensus"]["score"],
+            "p_value": p_values["consensus"],
+            "most_synergistic_area": most_synergistic_area(
+                main["consensus"]["synergy"], c1, c2)},
+        "p_value_basis": p_basis,
+        "outliers": (None if outlier_cells is None else
+                     {"action": outliers, "threshold": float(
+                         outlier_threshold), "cells": outlier_cells}),
+        "filled_cells": imputed,
+        "musyc": (_musyc.fit_musyc(R, c1, c2, f1, f2, n_ci=musyc_ci,
+                                    names=(drug1, drug2))
+                  if musyc else None),
+        "sensitivity": sensitivity(R, c1, c2, f1, f2),
         "chou_talalay": ct,
         "warnings": warnings,
     }

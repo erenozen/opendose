@@ -126,6 +126,13 @@ export interface LogisticOptions extends RegressionOptions {
   hlGroups: string;
 }
 
+export interface PoissonOptions extends RegressionOptions {
+  /** Variable whose log is an offset (counting time, area, volume): the
+   *  model is then for the count per unit of it. "" = none. */
+  exposure: string;
+  ciMethod: "profile" | "wald";
+}
+
 export type PcaSelection =
   | "parallel_analysis" | "kaiser" | "variance" | "all" | "number";
 export interface PcaOptions {
@@ -233,6 +240,26 @@ export function defaultLogistic(t: DataTableModel): LogisticOptions {
   };
 }
 
+/** Poisson starts from the last continuous variable holding only whole
+ *  numbers >= 0 with more than two distinct values (counts), else the
+ *  regression default; the other variables are the predictors. */
+export function defaultPoisson(t: DataTableModel): PoissonOptions {
+  const base = defaultRegression(t);
+  const counts = mvVariables(t).filter((v) => {
+    if (v.kind !== "continuous") return false;
+    const nums = v.values.filter((x): x is number => typeof x === "number");
+    return nums.length > 0 && nums.every((x) => x >= 0 && Number.isInteger(x)) && new Set(nums).size > 2;
+  });
+  const outcome = counts[counts.length - 1]?.name;
+  if (!outcome || outcome === base.outcome) return { ...base, exposure: "", ciMethod: "profile" };
+  const info = variableInfo(t);
+  return {
+    ...base, outcome,
+    predictors: info.filter((v) => v.name !== outcome && !(v.kind === "continuous" && v.binary)).map((v) => v.name),
+    exposure: "", ciMethod: "profile",
+  };
+}
+
 export function defaultPca(): PcaOptions {
   return {
     variables: [], standardize: true, selection: "parallel_analysis",
@@ -292,6 +319,23 @@ export function regressionPayload(t: DataTableModel, o: RegressionOptions):
       reference_levels: referenceLevels, ci_level: ciFraction(o.ciLevel),
     },
   };
+}
+
+/** Engine options for poisson_regression: the regression model plus the
+ *  exposure (dropped when unknown, not continuous, or also the outcome or
+ *  a predictor) and the CI method. */
+export function poissonPayload(t: DataTableModel, o: PoissonOptions):
+  { error: string } | { options: Record<string, unknown> } {
+  const p = regressionPayload(t, o);
+  if ("error" in p) return p;
+  const info = variableInfo(t);
+  const out = info.find((v) => v.name === o.outcome);
+  if (out?.kind !== "continuous") return { error: `${o.outcome} must be counts (0, 1, 2, ...)` };
+  const preds = p.options.predictors as string[];
+  const exp = info.find((v) => v.name === o.exposure);
+  const exposure = exp?.kind === "continuous" && exp.name !== o.outcome && !preds.includes(exp.name)
+    ? exp.name : null;
+  return { options: { ...p.options, exposure, ci_method: o.ciMethod } };
 }
 
 export function rearrangePayload(t: DataTableModel, o: RearrangeOptions):

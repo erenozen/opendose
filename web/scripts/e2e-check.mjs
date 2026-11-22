@@ -1832,7 +1832,7 @@ expect("the sample-size justification is saved as an info sheet",
     "rm_anova", "median_test", "outliers"]) {
     await page.locator(".pane-controls select.analysis-select").selectOption(kind);
     await page.waitForTimeout(500);
-    await page.addScriptTag({ path: axePath }).catch(() => {});
+    await page.evaluate(readFileSync(axePath, "utf8")).catch(() => {});
     const v = await page.evaluate(async () => {
       // eslint-disable-next-line no-undef
       const r = await axe.run(document.querySelector(".pane-controls"),
@@ -2473,7 +2473,7 @@ expect("compare fits graph draws the separate curves and the shared curve",
 
 // axe-core (WCAG 2 A / AA) on parts of a page, for the blocks below.
 const axeOn = async (pg, sel) => {
-  await pg.addScriptTag({ path: createRequire(join(here, "e2e-check.mjs")).resolve("axe-core/axe.min.js") })
+  await pg.evaluate(readFileSync(createRequire(join(here, "e2e-check.mjs")).resolve("axe-core/axe.min.js"), "utf8"))
     .catch(() => {});
   return pg.evaluate(async (s) => {
     const el = document.querySelector(s);
@@ -2734,7 +2734,7 @@ const axeOn = async (pg, sel) => {
     && await pwTable.locator("tbody tr").count() === 3);
   // axe-core on the survival aside and the extras blocks (labels, names, contrast)
   const axeFile = createRequire(import.meta.url).resolve("axe-core/axe.min.js");
-  await page.addScriptTag({ path: axeFile }).catch(() => {});
+  await page.evaluate(readFileSync(axeFile, "utf8")).catch(() => {});
   const survViolations = await page.evaluate(async () => {
     const out = [];
     for (const sel of [".surv-aside", ".surv-extras", ".surv-notes"]) {
@@ -2895,7 +2895,7 @@ const axeOn = async (pg, sel) => {
   // axe-core (WCAG 2 A/AA, contrast included) on the new parts of a page.
   const axeFile = createRequire(join(here, "e2e-check.mjs")).resolve("axe-core/axe.min.js");
   const axeViolations = async (pg, selectors) => {
-    await pg.addScriptTag({ path: axeFile }).catch(() => {});
+    await pg.evaluate(readFileSync(axeFile, "utf8")).catch(() => {});
     return pg.evaluate(async (sels) => {
       const out = [];
       for (const sel of sels) {
@@ -3173,7 +3173,7 @@ const axeOn = async (pg, sel) => {
   expect("legend: what was compared and how",
     (await page.locator(".report-legend p").innerText().catch(() => ""))
       .includes("LogIC50 was compared between them by the extra-sum-of-squares F test"));
-  await page.addScriptTag({ path: createRequire(import.meta.url).resolve("axe-core/axe.min.js") })
+  await page.evaluate(readFileSync(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8"))
     .catch(() => {});
   const axeCp = await page.evaluate(async (sels) => {
     const out = [];
@@ -3201,7 +3201,7 @@ const axeOn = async (pg, sel) => {
   // axe-core (WCAG 2 A / AA, contrast included) on one part of the page
   const axeOn = async (selector) => {
     const req = createRequire(import.meta.url);
-    await page.addScriptTag({ path: req.resolve("axe-core/axe.min.js") }).catch(() => {});
+    await page.evaluate(readFileSync(req.resolve("axe-core/axe.min.js"), "utf8")).catch(() => {});
     return page.evaluate(async (sel) => {
       // eslint-disable-next-line no-undef
       const r = await axe.run(document.querySelector(sel), { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa"] } });
@@ -3471,7 +3471,7 @@ const axeOn = async (pg, sel) => {
 {
   const axeAt = async (selector) => {
     const req = createRequire(import.meta.url);
-    await page.addScriptTag({ path: req.resolve("axe-core/axe.min.js") }).catch(() => {});
+    await page.evaluate(readFileSync(req.resolve("axe-core/axe.min.js"), "utf8")).catch(() => {});
     return page.evaluate(async (sel) => {
       const el = document.querySelector(sel);
       if (!el) return [`${sel}: missing`];
@@ -3697,7 +3697,7 @@ const axeOn = async (pg, sel) => {
     .replace(/\s+/g, " ");
   const axeOn = async (selectors) => {
     const axeFile = createRequire(import.meta.url).resolve("axe-core/axe.min.js");
-    await page.addScriptTag({ path: axeFile }).catch(() => {});
+    await page.evaluate(readFileSync(axeFile, "utf8")).catch(() => {});
     return page.evaluate(async (sels) => {
       const out = [];
       for (const sel of sels) {
@@ -3797,7 +3797,7 @@ const axeOn = async (pg, sel) => {
 {
   const req = createRequire(import.meta.url);
   const axeOn = async (selector) => {
-    await page.addScriptTag({ path: req.resolve("axe-core/axe.min.js") }).catch(() => {});
+    await page.evaluate(readFileSync(req.resolve("axe-core/axe.min.js"), "utf8")).catch(() => {});
     return page.evaluate(async (sel) => {
       // eslint-disable-next-line no-undef
       const r = await axe.run(document.querySelector(sel), { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa"] } });

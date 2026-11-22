@@ -2,9 +2,11 @@ import { useMemo } from "react";
 import { SurvivalPlot, SurvivalResults } from "../../components/SurvivalView";
 import { riskSetsFromTable } from "../../graph";
 import type { ControlsProps, GraphOptionsProps, PlotProps, ResultsProps } from "../types";
-import { OptCheck, OptNote, OptSlider } from "../../components/GraphOptionControls";
+import { OptCheck, OptNote, OptSelect, OptSlider } from "../../components/GraphOptionControls";
 import { useGraphSetting } from "../grouped/plotting";
-import { normalizeSurvivalGraph } from "./graphSettings";
+import {
+  normalizeSurvivalGraph, survivalYTitle, type SurvivalCi, type SurvivalScale, type SurvivalShow,
+} from "./graphSettings";
 import { CoxLink } from "../../components/ResultsLinks";
 import { timeUnitOf } from "./entry";
 import { notReachedByGroup } from "./extras";
@@ -47,18 +49,33 @@ export function SurvivalGraph({ graph, result, titles, scheme, table, format, on
   const riskSets = useMemo(() => riskSetsFromTable(table.datasets), [table.datasets]);
   const raw = graph.settings.survival;
   const s = useMemo(() => normalizeSurvivalGraph(raw), [raw]);
+  // the automatic title follows survival / death and percent / fraction;
+  // a title the user typed is kept
+  const yTitle = titles.y === "Percent survival" ? survivalYTitle(s) : titles.y;
   return <SurvivalPlot result={result} scheme={scheme}
-    xTitle={titles.x} yTitle={titles.y} format={format} onFormatChange={onFormatChange}
+    xTitle={titles.x} yTitle={yTitle} format={format} onFormatChange={onFormatChange}
     riskSets={riskSets.length ? riskSets : undefined} censorMarks={s.censorMarks}
-    nudge={s.nudge} />;
+    nudge={s.nudge} ci={s.ci} show={s.show} scale={s.scale} />;
 }
 
-/** Survival graph options: censor ticks and nudging overlapping curves. */
+/** Survival graph options: survival or death, percent or fraction, the
+ *  confidence interval, censor ticks and nudging overlapping curves. */
 export function SurvivalOptions({ graph }: GraphOptionsProps) {
   const [s, set] = useGraphSetting(graph, "survival", normalizeSurvivalGraph);
   if (!set) return null;
   return (
     <>
+      <OptSelect label="Plot" value={s.show}
+        options={[["survival", "Survival"], ["death", "Death (1 − survival)"]] as const}
+        onChange={(show) => set({ ...s, show: show as SurvivalShow })} />
+      <OptSelect label="Y axis" value={s.scale}
+        options={[["percent", "Percent (0 to 100)"], ["fraction", "Fraction (0 to 1)"]] as const}
+        onChange={(scale) => set({ ...s, scale: scale as SurvivalScale })} />
+      <OptSelect label="95% confidence interval" value={s.ci}
+        options={[["none", "Not shown"], ["band", "Shaded band"], ["lines", "Dotted lines"]] as const}
+        onChange={(ci) => set({ ...s, ci: ci as SurvivalCi })} />
+      <OptNote>The interval is each curve's pointwise CI from the Kaplan-Meier table (log-log
+        transform, as Prism). For death it is 1 − the survival limits.</OptNote>
       <OptCheck label="Mark censored subjects (ticks)" checked={s.censorMarks}
         onChange={(censorMarks) => set({ ...s, censorMarks })} />
       <OptSlider label="Nudge curves apart" value={s.nudge} min={0} max={3} step={0.25}

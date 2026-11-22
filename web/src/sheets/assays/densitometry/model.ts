@@ -4,6 +4,7 @@
 // the ImageJ / Image Lab import with a column picker. Pure, unit-tested.
 import { normalizeTable } from "../../../project/table.ts";
 import type { DataTableModel } from "../../../project/types.ts";
+import { ddfOf, type DdfMethod } from "../../common/ddf.ts";
 import {
   cellOf, distinctValues, longTable, numberColumn, resolveColumns, textColumn,
   type ColumnChoice, type ColumnIndex, type RoleSpec,
@@ -51,6 +52,9 @@ export interface DensOptions {
   comparisons: "dunnett" | "tukey" | "bonferroni" | "sidak";
   ciLevel: number;
   output?: string;
+  /** Denominator df of the mixed model fitted when blots are missing
+   *  (sheets/common/ddf.ts); absent = containment. */
+  mixedDdf?: DdfMethod;
 }
 
 export const DEFAULT_DENS_OPTIONS: DensOptions = {
@@ -77,6 +81,7 @@ export function normalizeDensOptions(raw: unknown): DensOptions {
       ? o.comparisons as DensOptions["comparisons"] : "dunnett",
     ciLevel: typeof o.ciLevel === "number" ? o.ciLevel : 0.95,
     ...(typeof o.output === "string" ? { output: o.output } : {}),
+    ...(o.mixedDdf === undefined ? {} : { mixedDdf: ddfOf(o.mixedDdf) }),
   };
 }
 
@@ -131,6 +136,7 @@ export type DensResult = Record<string, any> & { error?: string };
 export function densPayload(d: DensData, o: DensOptions): unknown {
   const options: Record<string, unknown> = {
     control_group: controlOf(o, d.groups), test: o.test, comparisons: o.comparisons, ci_level: o.ciLevel,
+    ddf: ddfOf(o.mixedDdf),
   };
   const sat = Number(o.saturation);
   if (o.saturation.trim() !== "" && Number.isFinite(sat) && sat > 0) options.saturation_limit = sat;

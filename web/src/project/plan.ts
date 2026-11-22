@@ -173,14 +173,16 @@ export function testLabel(analysisId: string, options: unknown, fallback = analy
   return fallback;
 }
 
-/** Every P OpenDose reports is two-sided, except a correlation asked for
- *  a one-sided P in a stated direction; a future `tails` option is read
- *  too. */
+/** Every P OpenDose reports is two-sided, except a correlation or a
+ *  two-group test asked for a one-sided P in a stated direction; a future
+ *  `tails` option is read too. */
 export function sidedness(analysisId: string, options: unknown): "two" | "one" {
   const o = obj(options);
   if (o.tails === "one" || o.tails === 1 || o.tails === "1") return "one";
   if (analysisId === "column" && o.analysis === "correlation"
     && (o.corrTails === "greater" || o.corrTails === "less")) return "one";
+  if (analysisId === "column" && o.analysis === "ttest" && o.ttestKind !== "kolmogorov_smirnov"
+    && (o.ttestTails === "greater" || o.ttestTails === "less")) return "one";
   return "two";
 }
 

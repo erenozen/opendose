@@ -205,6 +205,13 @@ export function generateTicks(a: AxisFormat, lo: number, hi: number): GeneratedT
       minor: minor.length ? minor : undefined,
     };
   }
+  if (scale === "linear" && a.scaleFactor && numbers !== "antilog" && numbers !== "date") {
+    // labels divided by 10^k: ticks at nice steps of the scaled values
+    const f = 10 ** a.scaleFactor;
+    const step = a.majorStep && a.majorStep > 0 ? a.majorStep : niceStep(hi - lo);
+    const vals = ticksBetween(lo, hi, step);
+    return { tickvals: vals, ticktext: vals.map((v) => fmtNumber(Number((v / f).toPrecision(12)), a)) };
+  }
   if (scale === "linear" && numbers === "elapsed") {
     const unit = a.elapsedUnit ?? "h";
     const step = a.majorStep && a.majorStep > 0 ? a.majorStep : elapsedStep(hi - lo, unit);

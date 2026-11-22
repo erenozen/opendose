@@ -5,10 +5,11 @@ import { findSheet } from "../project/ops";
 import { analysisDef } from "../sheets/registry";
 import type { ResultsProps } from "../sheets/types";
 import type { AnalysisResult, OptionsState } from "../types";
-import { formatSig } from "../types";
+import { engineWeighting, formatSig } from "../types";
 import { modelMeta, USER_MODEL_ID } from "../lib/modelLibrary";
 import { sharedParameters } from "../lib/userEquation";
 import { constraintState } from "../sheets/xy/fitOptions";
+import { zeroDosePlan } from "../sheets/xy/zeroDose";
 import CiteBlock, { CopyButton } from "./CiteBlock";
 
 interface Props {
@@ -55,15 +56,28 @@ export default function MethodsText({ result, options, xUnit }: Props) {
         `datasets (global fit)`);
     }
   }
+  if (options.fitMethod === "robust") {
+    parts.push("by robust nonlinear regression (Lorentzian loss; Motulsky & Brown 2006), which gives "
+      + "best-fit values without standard errors or confidence intervals");
+  }
   if (options.weighting !== "none") {
-    const yWeights = options.weighting === "1/Y" || options.weighting === "1/Y2";
+    const yWeights = options.weighting === "1/Y" || options.weighting === "1/Y2"
+      || options.weighting === "1/YK";
     // what the engine did (it reports weight_source with each fit)
     const direct = result.datasets.some((d) =>
       (d.fit as { weight_source?: string } | undefined)?.weight_source === "objective");
-    parts.push(`using ${options.weighting} weighting` + (!yWeights ? ""
+    parts.push((options.weighting === "1/SD2"
+      ? "weighting each X by 1/SD² of its replicate values"
+      : `using ${engineWeighting(options)} weighting`) + (!yWeights ? ""
       : direct
         ? " (the weighted sum of squares, with weights from the fitted curve, minimised directly)"
         : " (weights from the fitted curve, iteratively reweighted)"));
+  }
+  // a plateau constrained to the zero-dose mean (sheets/xy/ZeroDoseBar)
+  const zero = zeroDosePlan(result, options);
+  if (zero?.constrained && zero.plateau) {
+    parts.push(`${zero.plateau} = ${zero.value} being the mean of the zero-dose wells `
+      + "(X = 0 has no logarithm, so those wells are not points on the curve)");
   }
   if (options.routEnabled) {
     parts.push(`after ROUT outlier elimination (Q = ${options.routQ}%)`);

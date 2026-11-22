@@ -14,7 +14,30 @@ export interface AutosaveRecord {
 
 export type Slot = "current" | "previous";
 
-const DB_NAME = "opendose";
+// The "Autosave my work in this browser" switch (Preferences): on unless
+// set to "off". Off: nothing is written to the slots and both are deleted.
+const SWITCH_KEY = "opendose-autosave";
+export function autosaveEnabled(): boolean {
+  try { return localStorage.getItem(SWITCH_KEY) !== "off"; } catch { return true; }
+}
+export async function setAutosaveEnabled(on: boolean): Promise<void> {
+  try {
+    if (on) localStorage.removeItem(SWITCH_KEY);
+    else localStorage.setItem(SWITCH_KEY, "off");
+  } catch { /* storage unavailable: autosave stays as it was */ }
+  if (!on) {
+    await deleteSlot("current");
+    await deleteSlot("previous");
+  }
+}
+
+// Set by forget.ts while it erases this browser's data: no write may land
+// after the erase (a debounced autosave, a template save) and before the
+// page reloads.
+let frozen = false;
+export function freezeStorage(): void { frozen = true; }
+
+export const DB_NAME = "opendose";
 const STORE = "autosave";
 const lsKey = (slot: Slot) => `opendose-autosave-${slot}`;
 
@@ -38,6 +61,14 @@ function openDb(): Promise<IDBDatabase | null> {
     });
   }
   return dbPromise;
+}
+
+/** Close this page's connection to the database (forget.ts deletes it;
+ *  an open connection would hold the deletion back). */
+export async function closeDb(): Promise<void> {
+  const p = dbPromise;
+  dbPromise = null;
+  try { (await p)?.close(); } catch { /* ignore */ }
 }
 
 function idb<T>(mode: IDBTransactionMode,
@@ -75,6 +106,7 @@ export async function readSlot(slot: Slot): Promise<AutosaveRecord | null> {
 }
 
 export async function writeSlot(slot: Slot, rec: AutosaveRecord): Promise<boolean> {
+  if (frozen || !autosaveEnabled()) return false;
   try {
     await idb("readwrite", (s) => s.put(rec, slot));
     try { localStorage.removeItem(lsKey(slot)); } catch { /* ignore */ }
@@ -123,6 +155,7 @@ export async function readValue(key: string): Promise<unknown> {
 }
 
 export async function writeValue(key: string, value: unknown): Promise<boolean> {
+  if (frozen) return false;
   try {
     await idb("readwrite", (s) => s.put(value, key));
     try { localStorage.removeItem(lsOther(key)); } catch { /* ignore */ }

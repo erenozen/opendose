@@ -19,7 +19,7 @@ import math
 import numpy as np
 import pytest
 
-from opendose import (api, columnstats, correlation, effectsize, multivar,
+from opendose import (api, columnstats, correlation, effectsize, exactdist, multivar,
                       orderstats, ttests)
 
 
@@ -151,7 +151,10 @@ def test_walsh_ci_fast_path_equals_direct(seed, monkeypatch,
             assert fast == direct
         if x.size == y.size or x.size > y.size:
             d = x[:y.size]
-            if np.any(d - y != 0):
+            # differences that are only rounding noise (the values one
+            # ulp apart) count as zero, as in exact arithmetic
+            # (exactdist.snap_differences): the test needs one that is not
+            if np.any(exactdist.snap_differences(d - y, d, y) != 0):
                 direct = ttests.wilcoxon_matched_pairs(d, y)
                 monkeypatch.setattr(ttests, "PAIRWISE_DIRECT_MAX", 0)
                 fast = ttests.wilcoxon_matched_pairs(d, y)

@@ -42,6 +42,8 @@ import MeaningLine from "../report/MeaningLine";
 import NotesStrip from "./NotesStrip";
 import ResultsLinks, { ResultsEmptyLinks } from "./ResultsLinks";
 import PlanCheck from "./PlanCheck";
+import { nameColorIndex, stripNameColors, withNameColors } from "../graph/nameColors";
+import { useDarkMode } from "../graph/useDarkMode";
 
 /**
  * The workbench for one family: the data table (left) with the active
@@ -356,6 +358,16 @@ function GraphCard({ graph, data, result, options }: {
   const ownDatasets = kind?.formatDatasets;
   const datasetNames = useMemo(() => (ownDatasets ? ownDatasets(table, graph, opts)
     : table.datasets.map((d) => d.name)), [ownDatasets, table, graph, opts]);
+  // "Same colour for a group on every graph" (graph/nameColors.ts): only
+  // in the format the graph is drawn with; drags save without it.
+  const byName = !!project.prefs.colorByName;
+  const nameIndex = useMemo(() => (byName ? nameColorIndex(project) : null), [byName, project]);
+  const dark = useDarkMode();
+  const plotFormat = useMemo(() => (nameIndex
+    ? withNameColors(format, datasetNames, nameIndex, dark, graph.settings.scheme) : format),
+  [nameIndex, format, datasetNames, dark, graph.settings.scheme]);
+  const plotDrag = useCallback((f: GraphFormat) => dragFormat(nameIndex ? stripNameColors(f, format) : f),
+    [dragFormat, nameIndex, format]);
   const ownComparisons = kind?.comparisons;
   const comparisons = useMemo(() => (ownComparisons ? ownComparisons(res, table, opts) : undefined),
     [ownComparisons, res, table, opts]);
@@ -387,8 +399,8 @@ function GraphCard({ graph, data, result, options }: {
       {Plot ? (
         <Suspense fallback={<div className="plot-pending" aria-busy="true" />}>
           <Plot graph={graph} table={table} options={opts} result={res}
-            titles={resolved} scheme={graph.settings.scheme} format={format}
-            onFormatChange={graph.frozen || shared ? undefined : dragFormat} />
+            titles={resolved} scheme={graph.settings.scheme} format={plotFormat}
+            onFormatChange={graph.frozen || shared ? undefined : plotDrag} />
         </Suspense>
       ) : <div className="plot empty-hint">No plot available for this graph type.</div>}
       <ExportPanel filename={fileStem(graph.name, kind?.exportName ?? "graph")} graphId={graph.id}

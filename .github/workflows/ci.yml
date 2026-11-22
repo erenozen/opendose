@@ -40,3 +40,31 @@ jobs:
           cd web
           npm ci
           npm run build
+
+  # Network-silence check: the built site, served with its real security
+  # headers (web/public/_headers), is used with canary data in Chromium;
+  # fails if the data leaves the browser or a host outside the allowed
+  # list is contacted (web/scripts/e2e-privacy.mjs).
+  privacy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Build web app
+        run: |
+          cd web
+          npm ci
+          npm run build
+      - name: Install Chromium for Playwright
+        run: cd web && npx playwright install --with-deps --only-shell chromium
+      - name: Check that no data leaves the browser
+        run: |
+          cd web
+          node scripts/serve-dist.mjs 5300 &
+          for i in $(seq 1 30); do curl -sf -o /dev/null http://127.0.0.1:5300/ && break; sleep 1; done
+          node scripts/e2e-privacy.mjs http://127.0.0.1:5300/

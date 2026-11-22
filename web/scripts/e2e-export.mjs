@@ -132,7 +132,7 @@ const pptDlg = page.getByRole("dialog", { name: "Export graphs to PowerPoint" })
 await pptDlg.waitFor({ timeout: 10000 });
 expect("PowerPoint dialog explains how to edit a graph (Convert to Shape)",
   (await pptDlg.innerText()).includes("Convert to Shape"));
-await page.addScriptTag({ path: createRequire(import.meta.url).resolve("axe-core/axe.min.js") })
+await page.evaluate(readFileSync(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8"))
   .catch(() => {});
 const axePptx = await page.evaluate(async () => {
   // eslint-disable-next-line no-undef

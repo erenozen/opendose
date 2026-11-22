@@ -3,6 +3,7 @@
 // normalisation, fold change within blot, ratio paired t test or RM ANOVA
 // on logs with blot as the unit); output: a linked matched table.
 import { lazyPart } from "../../lazy";
+import { DDF_NEW_SHEET } from "../../common/ddf";
 import { defineAnalysis, defineGraph } from "../../types";
 import type { AssayModule } from "../index";
 import {
@@ -24,7 +25,7 @@ export const densitometryAnalysis = defineAnalysis<DensOptions, DensResult>({
   description: "Background and loading-control normalisation, fold change vs the control lanes "
     + "of each blot, ratio paired t test with blot as the pair.",
   sheetName: (t) => `Densitometry of ${t}`,
-  defaultOptions: () => ({ ...DEFAULT_DENS_OPTIONS }),
+  defaultOptions: () => ({ ...DEFAULT_DENS_OPTIONS, mixedDdf: DDF_NEW_SHEET }),
   normalizeOptions: (raw) => normalizeDensOptions(raw),
   run: (engine, table, options) => runDens((p) => engine.analyze(p), table, options),
   defaultGraph: GRAPH_ASSAY_DENSITOMETRY,

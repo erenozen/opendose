@@ -124,6 +124,12 @@ function AxisEditor({ which, value: a, onChange, categorical, title, titlePlaceh
             <TextField label="Date format" value={a.dateFormat} placeholder="%Y-%m-%d"
               onChange={(v) => set({ dateFormat: v })} />
           )}
+          {(a.scale ?? "linear") === "linear" && numbers !== "antilog" && numbers !== "date" && (
+            <SelectField label="Scale factor" value={String(a.scaleFactor ?? 0)}
+              options={[["0", "None"], ...[3, 6, 9, -3, -6, -9].map((k) =>
+                [String(k), `Labels ÷ 10^${k}, title (×10^${k})`] as [string, string])]}
+              onChange={(v) => set({ scaleFactor: Number(v) || undefined })} />
+          )}
           {numbers === "antilog" && (
             <p className="field-note fmt-span">
               For an axis that holds log10 values (log concentrations): ticks

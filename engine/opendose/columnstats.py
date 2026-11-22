@@ -37,6 +37,15 @@ Additions from the guide's descriptive-statistics pages (all opt-in):
   method is only accurate with small P values, Prism simply reports
   P>0.10 for large P values"; needs n >= 5 ("Q&A: Normality tests").
   normality_tests(..., tests=[..., "kolmogorov_smirnov"]).
+- "Testing for lognormality" and "Comparing normal and lognormal
+  distributions": the normality tests run on the logarithms (not run when
+  a value is zero or negative: such data cannot be lognormal), and the
+  normal and lognormal distributions fitted by maximum likelihood with
+  their likelihoods normalised to sum to 1 (Burnham & Anderson 2002, sec.
+  6.7.2; equivalent to comparing their AIC, both having two parameters).
+  The lognormal likelihood is the density of the values themselves, so it
+  carries the Jacobian 1/x of the log transform. lognormality(),
+  normal_vs_lognormal(); column_statistics(..., lognormality=True).
 - "Interpreting results: One-sample ratio t test": t test of log10
   values against log10(hypothetical); reports the geometric mean, the
   ratio geometric mean / hypothetical with CI, and the geometric SD of
@@ -54,7 +63,7 @@ import math
 import numpy as np
 from scipy import stats
 
-from . import effectsize
+from . import effectsize, exactdist
 
 
 def _clean(values) -> np.ndarray:
@@ -202,6 +211,16 @@ def normality_tests(values, tests=None) -> dict:
     return out
 
 
+def _one_sided_discrepancy(diff, sem, df, ci_level):
+    """One-tailed P (mean above / below the hypothetical value) and the
+    one-sided bounds of the discrepancy (opendose.ttests.one_sided_t)."""
+    from .ttests import one_sided_t
+    one = one_sided_t(diff, sem, df, ci_level)
+    return {"p_greater": one["p_greater"], "p_less": one["p_less"],
+            "ci_discrepancy_greater": one["ci_greater"],
+            "ci_discrepancy_less": one["ci_less"]}
+
+
 def one_sample_t(values, hypothetical: float, ci_level: float = 0.95) -> dict:
     arr = _clean(values)
     n = arr.size
@@ -223,6 +242,7 @@ def one_sample_t(values, hypothetical: float, ci_level: float = 0.95) -> dict:
         "r_squared": float(t_stat ** 2 / (t_stat ** 2 + (n - 1))),
         "effect_size": effectsize.safe(effectsize.one_sample_d, arr,
                                        hypothetical, ci_level=ci_level),
+        **_one_sided_discrepancy(diff, sem, n - 1, ci_level),
     }
 
 
@@ -232,7 +252,8 @@ def wilcoxon_signed_rank(values, hypothetical: float, *,
     from .ttests import signed_rank_test, walsh_ci
 
     arr = _clean(values)
-    diffs = arr - hypothetical
+    # without floating-point noise (exactdist.snap_differences)
+    diffs = exactdist.snap_differences(arr - hypothetical, arr, [hypothetical])
     if not np.any(diffs != 0):
         raise ValueError("all values equal the hypothetical value")
     res = signed_rank_test(diffs, zero_method=zero_method)
@@ -250,7 +271,7 @@ def wilcoxon_signed_rank(values, hypothetical: float, *,
     }
     out.update({key: res[key] for key in (
         "p_method", "zero_method", "sum_positive_ranks",
-        "sum_negative_ranks", "n_zero_differences")})
+        "sum_negative_ranks", "n_zero_differences", "p_greater", "p_less")})
     ci = walsh_ci(arr, ci_level)
     out.update({"hodges_lehmann_median": ci["hodges_lehmann"],
                 "ci_median": ci["ci_median"],
@@ -467,16 +488,58 @@ def descriptive_extras(values, ci_level: float = 0.95, *,
     return out
 
 
+def normal_vs_lognormal(values) -> dict:
+    """Maximum-likelihood normal and lognormal fits of positive values and
+    each one's share of the summed likelihood: {"loglik_normal",
+    "loglik_lognormal", "p_normal", "p_lognormal", "n"} or {"error"}."""
+    arr = _clean(values)
+    n = arr.size
+    if n < 3:
+        return {"error": "needs at least 3 values"}
+    if np.any(arr <= 0):
+        return {"error": "a value is zero or negative, so the data cannot "
+                         "be lognormal"}
+    sd = float(arr.std(ddof=0))                  # maximum-likelihood SD
+    logs = np.log(arr)
+    sd_log = float(logs.std(ddof=0))
+    if not (sd > 0 and sd_log > 0):
+        return {"error": "every value is the same"}
+    ll_norm = float(np.sum(stats.norm.logpdf(arr, arr.mean(), sd)))
+    # density of x under the lognormal: normal density of ln x times 1/x
+    ll_logn = float(np.sum(stats.norm.logpdf(logs, logs.mean(), sd_log))
+                    - logs.sum())
+    p_logn = float(1.0 / (1.0 + math.exp(min(ll_norm - ll_logn, 700.0))))
+    return {"loglik_normal": ll_norm, "loglik_lognormal": ll_logn,
+            "p_normal": 1.0 - p_logn, "p_lognormal": p_logn, "n": int(n)}
+
+
+def lognormality(values, tests=None) -> dict:
+    """The normality tests (tests as normality_tests) on log10 of the
+    values, and the normal vs lognormal likelihood comparison; the tests
+    are not run when a value is zero or negative."""
+    arr = _clean(values)
+    out = {"comparison": normal_vs_lognormal(arr)}
+    if arr.size and np.any(arr <= 0):
+        out["tests"] = None
+        out["not_run"] = ("a value is zero or negative, so the data cannot "
+                          "be lognormal")
+    else:
+        out["tests"] = normality_tests(np.log10(arr), tests)
+    return out
+
+
 def column_statistics(values, *, hypothetical=None, ci_level=0.95,
                       normality=None, zero_method: str = "wilcox",
                       ratio_t: bool = False, extras: bool = False,
                       percentile_method: str = "linear",
-                      trim_k=None) -> dict:
+                      trim_k=None, lognormality_tests: bool = False) -> dict:
     """Full Prism Column Statistics for one dataset column. Optional
     (default off, so the original output is unchanged): normality = list
     of normality tests (adds "kolmogorov_smirnov"), zero_method for the
     Wilcoxon signed rank test, ratio_t (one-sample ratio t test),
-    extras (descriptive_extras), percentile_method for the quartiles."""
+    extras (descriptive_extras), percentile_method for the quartiles,
+    lognormality_tests (lognormality(): the same tests on the logarithms
+    and the normal vs lognormal comparison)."""
     out = {"descriptive": describe(values, ci_level,
                                    percentile_method=percentile_method),
            "normality": normality_tests(values, normality)}
@@ -494,6 +557,8 @@ def column_statistics(values, *, hypothetical=None, ci_level=0.95,
                     values, hypothetical, ci_level)
             except ValueError as exc:
                 out["one_sample_ratio_t"] = {"error": str(exc)}
+    if lognormality_tests:
+        out["lognormality"] = lognormality(values, normality)
     if extras:
         out["extras"] = descriptive_extras(
             values, ci_level,

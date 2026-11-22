@@ -7,10 +7,10 @@ import { formatSig } from "../../types";
 import type { ResultsProps } from "../types";
 import {
   rowLabel, tableFromRearranged, type CorrelationOptions, type DescriptiveOptions,
-  type LogisticOptions, type PcaOptions, type RearrangeOptions, type RegressionOptions,
+  type LogisticOptions, type PcaOptions, type PoissonOptions, type RearrangeOptions, type RegressionOptions,
 } from "./model";
 import type {
-  Coefficient, CorrelationResult, DescriptiveResult, LogisticResult, PcaResult,
+  Coefficient, CorrelationResult, DescriptiveResult, LogisticResult, PcaResult, PoissonResult,
   RearrangeResult, RegressionResult,
 } from "./run";
 import { pLabel, tableP, tableStars } from "../../report/pformat";
@@ -398,6 +398,80 @@ export function LogisticMethods({ result }: ResultsProps<LogisticOptions, Logist
     + `${pLabel(result.likelihood_ratio_test.p)}; `
     + `Tjur's R² = ${f(result.pseudo_r_squared.tjur)}; area under the ROC curve ${f(result.roc.auc.value)}. `
     + `${ors.join("; ")}.`} />;
+}
+
+/* ------------------------------------------------------------ Poisson */
+
+export function PoissonResults({ result }: ResultsProps<PoissonOptions, PoissonResult>) {
+  if (!result) return null;
+  if (result.error) return <Problem result={result} />;
+  const lr = result.likelihood_ratio_test;
+  const d = result.dispersion;
+  const mc = result.model_comparison;
+  const unit = result.exposure ? `per unit of ${result.exposure}` : "";
+  return (
+    <Card title={`Poisson regression of ${result.outcome}`}>
+      {result.warnings.map((w) => <p key={w} className="result-note">{w}</p>)}
+      <p className="hint-block">
+        log(mean count{result.exposure ? ` / ${result.exposure}` : ""}) = β0 + β1·X1 + …
+        {" "}{result.n_rows_analyzed} rows analyzed ({f(result.total_count)} counts in all),
+        {" "}{result.n_rows_skipped} skipped.
+        {result.exposure && ` ${result.exposure} enters as an offset (its log, coefficient fixed at 1).`}
+      </p>
+      <h4>Parameter estimates</h4>
+      <Grid caption="Parameter estimates"
+        head={["Parameter", "Estimate", "SE", `${lvl(result.ci_level)} CI`, "|z|", "P value", "",
+          "Rate ratio", `${lvl(result.ci_level)} CI of rate ratio`]}
+        rows={result.coefficients.map((k, i) => [
+          i === 0 ? "β0 (Intercept)" : `β${i}: ${k.name}`, f(k.estimate), f(k.se), ci(k.ci), f(k.z),
+          fmtP(k.p), summaryStars(k.p), f(k.rate_ratio), ci(k.rate_ratio_ci ?? null),
+        ])} />
+      <p className="hint-block">
+        A rate ratio is the factor by which the mean count{unit ? ` ${unit}` : ""} changes per unit of a continuous
+        predictor, or relative to the reference level of a categorical one; exp(β0) is the mean count
+        {unit ? ` ${unit}` : ""} when every predictor is 0 (or at its reference level).
+        {" "}{result.ci_method === "profile" ? "Profile-likelihood" : "Wald"} confidence intervals; P values from Wald z.
+        {Object.keys(result.reference_levels).length > 0 && ` Reference levels: ${
+          Object.entries(result.reference_levels).map(([k, v]) => `${k} = ${v}`).join("; ")}.`}
+      </p>
+      <div className="stat-cols">
+        <KV title="Goodness of fit" rows={[
+          ["Pseudo R squared", f(result.pseudo_r_squared)],
+          ["Deviance (G²)", f(result.deviance)],
+          ["Degrees of freedom", String(result.deviance_df)],
+          ["Dispersion ratio φ (Pearson χ² / df)", f(d.phi)],
+          ["Deviance / df", f(d.phi_deviance)],
+          ["Log likelihood", f(result.log_likelihood)],
+        ]} />
+        <KV title="Likelihood ratio test (vs intercept only)" rows={[
+          ["G (likelihood ratio)", f(lr.G)],
+          ["Degrees of freedom", String(lr.df)],
+          ["P value", lr.p === null ? "n/a" : `${fmtP(lr.p)} ${summaryStars(lr.p)}`],
+          ["AICc, intercept only", f(mc.intercept_only.aicc)],
+          ["AICc, this model", f(mc.selected.aicc)],
+        ]} />
+      </div>
+      <p className="hint-block">
+        Pseudo R² = (LLfit − LL0) / (LLmax − LL0), deviance = 2(LLmax − LLfit) (GraphPad curve-fitting guide).
+        φ well above 1 means the counts vary more than a Poisson distribution allows (overdispersion): the SEs,
+        CIs and P values are then too small.
+      </p>
+    </Card>
+  );
+}
+
+export function PoissonMethods({ result }: ResultsProps<PoissonOptions, PoissonResult>) {
+  if (!result || result.error) return null;
+  const rrs = result.coefficients.slice(1).map((k) =>
+    `${k.name}: rate ratio ${f(k.rate_ratio)} (${lvl(result.ci_level)} CI ${ci(k.rate_ratio_ci ?? null)})`);
+  return <Methods text={`${result.outcome} (counts) was modeled by Poisson regression with a log link `
+    + `(maximum likelihood) on ${list(result.predictors ?? [])}`
+    + (result.exposure ? `, with log(${result.exposure}) as an offset` : "")
+    + `, with ${result.ci_method === "profile" ? "profile-likelihood" : "Wald"} confidence intervals, using ${TOOL} `
+    + `(${result.n_rows_analyzed} rows). Likelihood ratio test against the intercept-only model: `
+    + `G = ${f(result.likelihood_ratio_test.G)}, df = ${result.likelihood_ratio_test.df}, `
+    + `${pLabel(result.likelihood_ratio_test.p)}; pseudo R² = ${f(result.pseudo_r_squared)}; `
+    + `dispersion ratio φ = ${f(result.dispersion.phi)}. ${rrs.join("; ")}.`} />;
 }
 
 /* ------------------------------------------------------------ PCA */

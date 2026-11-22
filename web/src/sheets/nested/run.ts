@@ -11,6 +11,7 @@
 import { extractComparisons, type ComparisonSet } from "../../graph/results.ts";
 import { parseCell, withExclusionsBlanked } from "../../project/table.ts";
 import type { DataTableModel } from "../../project/types.ts";
+import { ddfOf, type DdfMethod } from "../common/ddf.ts";
 
 /** The slice of EngineBridge the analyses need. */
 export interface Engine { analyze: (payload: unknown) => unknown }
@@ -40,6 +41,8 @@ export interface NestedTOptions {
   swap: boolean;
   ciLevel: number;
   negativeVariance: NegativeVariance;
+  /** Denominator df (sheets/common/ddf.ts); absent = containment. */
+  mixedDdf?: DdfMethod;
 }
 
 export interface NestedAnovaOptions {
@@ -47,7 +50,10 @@ export interface NestedAnovaOptions {
   controlIndex: number;
   ciLevel: number;
   negativeVariance: NegativeVariance;
+  mixedDdf?: DdfMethod;
 }
+
+const keepDdf = (v: unknown) => (v === undefined ? {} : { mixedDdf: ddfOf(v) });
 
 export const DEFAULT_NESTED_T: NestedTOptions = {
   groupA: 0, groupB: 1, swap: false, ciLevel: 0.95, negativeVariance: "allow",
@@ -68,6 +74,7 @@ export function normalizeNestedT(raw: unknown): NestedTOptions {
   return {
     groupA: idx(o.groupA, 0), groupB: idx(o.groupB, 1), swap: o.swap === true,
     ciLevel: level(o.ciLevel), negativeVariance: negVar(o.negativeVariance),
+    ...keepDdf(o.mixedDdf),
   };
 }
 
@@ -78,6 +85,7 @@ export function normalizeNestedAnova(raw: unknown): NestedAnovaOptions {
       ? o.comparisons : DEFAULT_NESTED_ANOVA.comparisons,
     controlIndex: idx(o.controlIndex, 0),
     ciLevel: level(o.ciLevel), negativeVariance: negVar(o.negativeVariance),
+    ...keepDdf(o.mixedDdf),
   };
 }
 
@@ -154,7 +162,8 @@ export function nestedTPayload(t: DataTableModel, o: NestedTOptions): Built {
     payload: {
       analysis: "nested_ttest",
       data: groupsData(groups),
-      options: { ci_level: o.ciLevel, swap: o.swap, negative_variance: o.negativeVariance },
+      options: { ci_level: o.ciLevel, swap: o.swap, negative_variance: o.negativeVariance,
+        ddf: ddfOf(o.mixedDdf) },
     },
   };
 }
@@ -173,6 +182,7 @@ export function nestedAnovaPayload(t: DataTableModel, o: NestedAnovaOptions): Bu
         control_index: Math.min(o.controlIndex, groups.length - 1),
         ci_level: o.ciLevel,
         negative_variance: o.negativeVariance,
+        ddf: ddfOf(o.mixedDdf),
       },
     },
   };

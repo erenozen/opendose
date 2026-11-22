@@ -49,7 +49,6 @@ def km_curve(times, events, ci_level: float = 0.95) -> dict:
     table = []  # R's summary.survfit rows (event times only)
     s = 1.0
     greenwood = 0.0
-    median = None
     at_risk = n
     i = 0
     while i < n:
@@ -81,13 +80,18 @@ def km_curve(times, events, ci_level: float = 0.95) -> dict:
                           "censored": c, "survival": s, "se": se_s,
                           "lower": lower, "upper": upper,
                           "lower_log": lo_l, "upper_log": hi_l})
-            if median is None and s <= 0.5:
-                median = t
         at_risk -= m
         i += m
 
     n_events = sum(e for _, e in pairs)
     times_ = [pt["time"] for pt in points]
+    # the first time S reaches 0.5; where the curve is flat at exactly 0.5
+    # until a later event, the midpoint of the two times (R's
+    # quantile.survfit). A curve that ends flat at 0.5 gives the time it
+    # reached 0.5, as R does (Prism takes the midpoint with the last
+    # follow-up there: GraphPad FAQ "median survival can be incorrect when
+    # a curve ends at 50% survival").
+    median = _quantile_time(times_, [pt["survival"] for pt in points])
     median_ci = {
         # the band is undefined where S = 0 (as the log band)
         "lower": _quantile_time(times_, [pt["lower"] if pt["survival"] > 0

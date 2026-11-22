@@ -34,6 +34,9 @@ test("new choices map to the engine's handlers and options", () => {
   assert.deepEqual(columnPayload(table, o({ analysis: "anova", anovaKind: "nonparametric",
     dunnCorrected: false })).options,
   { kind: "nonparametric", comparisons: "tukey", control_index: 0, dunn_corrected: false });
+  assert.deepEqual(columnPayload(table, o({ analysis: "anova", anovaKind: "nonparametric",
+    kwExact: true })).options,
+  { kind: "nonparametric", comparisons: "tukey", control_index: 0, exact: true });
   assert.equal(columnPayload(table, o({ analysis: "median_test" })).analysis, "median_test");
   assert.deepEqual(columnPayload(table, o({ analysis: "ttest", ttestKind: "kolmogorov_smirnov" })).options,
     { kind: "kolmogorov_smirnov", welch: false, dataset_a: 0, dataset_b: 1 });
@@ -45,4 +48,35 @@ test("new choices map to the engine's handlers and options", () => {
     percentile_method: "prism", extras: true, trim_k: 1 });
   assert.deepEqual(columnPayload(table, o({ analysis: "rm_anova", rmKind: "nonparametric", rmExact: true })).options,
     { kind: "nonparametric", exact: true });
+});
+
+test("lognormality is sent only when asked for", () => {
+  const opts = (patch: Partial<ColumnOptionsState>) =>
+    columnPayload(table, o(patch)).options as Record<string, unknown>;
+  assert.equal("lognormality" in opts({}), false);
+  assert.equal(opts({ lognormality: true }).lognormality, true);
+});
+
+test("the test for trend is sent only for ordinary ANOVA when asked for", () => {
+  const opts = (patch: Partial<ColumnOptionsState>) =>
+    columnPayload(table, o({ analysis: "anova", ...patch })).options as Record<string, unknown>;
+  assert.equal("trend" in opts({}), false);
+  assert.equal(opts({ anovaTrend: true }).trend, true);
+  assert.equal("trend" in opts({ anovaTrend: true, anovaKind: "nonparametric" }), false);
+});
+
+test("frequency distribution payload: options and impossible combinations", async () => {
+  const { frequencyPayload } = await import("../frequency.ts");
+  const ok = frequencyPayload(table, o({ analysis: "frequency", freqBinWidth: "2.5", freqTabulate: "percent",
+    freqCumulative: "binned", freqReplicates: "mean" }));
+  assert.ok("payload" in ok);
+  const opts = (ok as { payload: Record<string, unknown> }).payload.options as Record<string, unknown>;
+  assert.deepEqual(opts, { bin_width: 2.5, cumulative: true, relative: "percent", replicates: "mean" });
+  const auto = frequencyPayload(table, o({ analysis: "frequency" })) as { payload: Record<string, unknown> };
+  assert.deepEqual(auto.payload.options, {});
+  assert.ok("error" in frequencyPayload(table, o({ analysis: "frequency", freqFit: "gaussian", freqCumulative: "exact" })));
+  assert.ok("error" in frequencyPayload(table, o({ analysis: "frequency", freqFit: "cumulative_gaussian" })));
+  assert.ok("error" in frequencyPayload(table, o({ analysis: "frequency", freqBinWidth: "-1" })));
+  const exact = frequencyPayload(table, o({ analysis: "frequency", freqCumulative: "exact", freqFit: "cumulative_gaussian" }));
+  assert.deepEqual((exact as { payload: Record<string, unknown> }).payload.options, { exact: true, fit: "cumulative_gaussian" });
 });

@@ -12,7 +12,7 @@ import CiteBlock from "./CiteBlock";
 import SaveMenu from "../share/SaveMenu";
 import MenuButton from "../sheets/common/MenuButton";
 import { openPowerTool } from "../power/events";
-import { openValidation } from "../share/events";
+import { openPrivacy, openValidation } from "../share/events";
 import { openChecklist } from "../report/useReport";
 import PreferencesPopover from "./PreferencesPopover";
 import { Logo } from "./WelcomePanel";
@@ -297,9 +297,15 @@ export default function Header({ onOpenFile, onNewProject }: {
             <div className="info-pop" role="note">
               <p className="info-privacy">
                 Privacy: all computation runs in your browser and no data is
-                sent anywhere. Autosave stays in this browser&apos;s own
-                storage. A share link puts the data in the link itself, so
-                only the people you give it to can open it.
+                sent anywhere; the page contacts no server but this one.
+                Autosave stays in this browser&apos;s own storage (Preferences,
+                Privacy on this computer: turn it off, or forget everything).
+                A share link carries the data inside it, so protect it with a
+                password.{" "}
+                <button type="button" className="linkish"
+                  onClick={() => { setInfoOpen(false); openPrivacy(); }}>
+                  How your data stays private
+                </button>
               </p>
               <p className="info-format">
                 File format: project files carry a version number, and every

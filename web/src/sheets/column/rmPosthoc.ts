@@ -15,6 +15,7 @@ import { numericData } from "../../project/table.ts";
 import type { DataTableModel } from "../../project/types.ts";
 import type { ColumnOptionsState } from "../../types.ts";
 import { effectiveFamily, PLANNED_METHODS, validPairs } from "./comparisonsFamily.ts";
+import { ddfMethodsSentence, ddfName, ddfOf } from "../common/ddf.ts";
 
 /** Methods the RM post hoc offers (engine rm_posthoc.METHODS). */
 export const RM_METHODS = ["tukey", "dunnett", "sidak", "bonferroni", "holm", "holm_sidak",
@@ -101,7 +102,8 @@ export function fitsMixedModel(o: ColumnOptionsState, table: DataTableModel): bo
 export function mixedOptions(o: ColumnOptionsState, k: number): Record<string, unknown> {
   const m = rmMethod(o);
   const cmp = m ? MIXED_METHODS[m] ?? null : null;
-  return { method: "mixed", comparisons: cmp, control_index: rmBaseline(o, k) };
+  return { method: "mixed", comparisons: cmp, control_index: rmBaseline(o, k),
+    ddf: ddfOf(o.mixedDdf) };
 }
 
 /** What the mixed model cannot do of the chosen comparisons, or "". */
@@ -150,10 +152,12 @@ export function rmMethodsSentence(result: unknown): string {
   if (!r) return "";
   const mc = rmComparisonsOf(r);
   const mixed = r.analysis === "mixed_rm_one_way";
+  const ddf = ddfOf(r.ddf);
+  const tail = mixed && ddf !== "containment" ? ` ${ddfMethodsSentence(ddf)}` : "";
   const test = mixed
-    ? `a mixed-effects model (restricted maximum likelihood, random subject intercept; ${r.n_missing ?? "some"} missing value${r.n_missing === 1 ? "" : "s"}, ${r.n_subjects} subjects) with the Geisser-Greenhouse correction`
+    ? `a mixed-effects model (restricted maximum likelihood, random subject intercept; ${r.n_missing ?? "some"} missing value${r.n_missing === 1 ? "" : "s"}, ${r.n_subjects} subjects)${ddf === "containment" ? " with the Geisser-Greenhouse correction" : `, ${ddfName(ddf)} degrees of freedom`}`
     : "repeated-measures one-way ANOVA with the Geisser-Greenhouse correction";
-  if (!mc) return `Matched values were compared by ${test}.`;
+  if (!mc) return `Matched values were compared by ${test}.${tail}`;
   const m = String(mc.method ?? "");
   const names: string[] = Array.isArray(mc.names) ? mc.names : Array.isArray(r.names) ? r.names : [];
   const baseline = m === "dunnett" ? baselineName(mc, names) : null;
@@ -163,7 +167,7 @@ export function rmMethodsSentence(result: unknown): string {
       : "the pooled residual mean square of the RM ANOVA (sphericity assumed)";
   const size = typeof mc.family?.size === "number" ? mc.family.size : mc.comparisons.length;
   const adj = m === "fisher_lsd" || m === "fisher" ? "" : `, P values adjusted for ${size} comparison${size === 1 ? "" : "s"}`;
-  return `Matched values were compared by ${test}, followed by ${phrase}; each comparison used ${err}${adj}.`;
+  return `Matched values were compared by ${test}, followed by ${phrase}; each comparison used ${err}${adj}.${tail}`;
 }
 
 /** The baseline a Dunnett family compares with ("Baseline"), from the

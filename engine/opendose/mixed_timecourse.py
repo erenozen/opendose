@@ -71,6 +71,7 @@ import math
 import numpy as np
 from scipy import optimize, stats
 
+from . import ddfm
 from . import mixedmodel as mm
 from .mixed_nested import _label, _missing, _num, family_comparisons
 
@@ -608,9 +609,13 @@ def mixed_timecourse(data, options=None) -> dict:
     compare_covariances (false), comparisons ("sidak" | "holm_sidak" |
     "holm" | "bonferroni" | "tukey" | "fisher" | "dunnett" | null),
     control_index, ci_level (0.95), include_auc (false), auc_baseline
-    ("zero" | "first").
+    ("zero" | "first"), ddf ("between_within" (default) | "kenward_roger"
+    | "satterthwaite": opendose.ddfm.BlockDdf, REML only).
     """
     options = options or {}
+    ddf = options.get("ddf") or "between_within"
+    if ddf not in ("between_within", "kenward_roger", "satterthwaite"):
+        raise ValueError("ddf must be between_within, kenward_roger or satterthwaite")
     kind = _ALIASES.get(str(options.get("covariance", "cs")).lower())
     if kind is None:
         raise ValueError(f"unknown covariance: {options.get('covariance')}")
@@ -778,7 +783,23 @@ def mixed_timecourse(data, options=None) -> dict:
         warnings.append("The random-slope variance is estimated at zero: "
                         "subjects' slopes do not vary beyond the residual "
                         "scatter.")
-    if kind != "cs":
+    D = None
+    if ddf != "between_within":
+        if method != "reml":
+            raise ValueError("Kenward-Roger and Satterthwaite df need the "
+                             "REML fit (method='reml')")
+        params = {**fit["params"], "residual_variance": fit["sigma2"]}
+        Sig, dS, d2, _ = ddfm.structure_derivatives(
+            kind, T, params, level_times=level_times, random_intercept=ri)
+        D = ddfm.BlockDdf(d["y"], X, d["subject"], d["time_index"], Sig, dS, d2)
+        corr = fit["params"].get("intercept_slope_correlation") if kind == "random_slope" else None
+        if ddf == "satterthwaite" and corr is not None and abs(corr) > 0.999:
+            warnings.append(
+                "The intercept-slope correlation is at the boundary (±1, a "
+                "singular fit): Satterthwaite df then depend on how the "
+                "variances are parameterised and can differ from other "
+                "programs' (R lmerTest); Kenward-Roger df are not affected.")
+    elif kind != "cs":
         warnings.append("Denominator df by the between-within method; "
                         "Kenward-Roger or Satterthwaite df (R lmerTest, "
                         "SAS DDFM=KR) would differ for this covariance "
@@ -786,9 +807,14 @@ def mixed_timecourse(data, options=None) -> dict:
 
     anova = []
     for t in terms:
-        w = mm.wald_f(fit, t["cols"], t["df"])
+        if D is None:
+            w = mm.wald_f(fit, t["cols"], t["df"])
+            dfd = int(t["df"])
+        else:
+            w = mm._ddf_test(D, ddf, np.eye(X.shape[1])[t["cols"]])
+            dfd = float(w["df_den"])
         anova.append({"term": t["name"], "f": w["F"], "dfn": w["df_num"],
-                      "dfd": int(t["df"]), "p": w["p"],
+                      "dfd": dfd, "p": w["p"],
                       "significant_05": bool(w["p"] is not None
                                              and w["p"] < 0.05)})
 
@@ -812,17 +838,24 @@ def mixed_timecourse(data, options=None) -> dict:
         return np.concatenate(parts)
 
     Ls = {(g, ti): row_L(g, ti) for ti in range(T) for g in range(G)}
-    tq = float(stats.t.ppf(0.5 + ci_level / 2, inter_df))
     gat = []
     for ti in range(T):
         for g in range(G):
-            e, c = mm.estimate(fit, Ls[(g, ti)])
-            se = math.sqrt(max(c[0, 0], 0.0))
+            if D is None:
+                e, c = mm.estimate(fit, Ls[(g, ti)])
+                se = math.sqrt(max(c[0, 0], 0.0))
+                mdf = inter_df
+            else:
+                lv = Ls[(g, ti)]
+                e = np.atleast_1d(lv @ D.beta)
+                se, mdf = D.contrast(ddf, lv)
+            tq = float(stats.t.ppf(0.5 + ci_level / 2, mdf))
             sel = (d["group"] == g) & (d["time_index"] == ti)
             gat.append({"time": tnames[ti], "group": d["groups"][g],
                         "mean": float(e[0]), "se": se,
                         "ci": [float(e[0] - tq * se), float(e[0] + tq * se)],
-                        "df": int(inter_df), "n": int(sel.sum()),
+                        "df": int(mdf) if D is None else float(mdf),
+                        "n": int(sel.sum()),
                         "raw_mean": (float(d["y"][sel].mean())
                                      if sel.any() else None)})
 
@@ -835,7 +868,7 @@ def mixed_timecourse(data, options=None) -> dict:
         diffs = family_comparisons(
             fit, fams, comp_method, ci_level=ci_level,
             control_index=options.get("control_index", 0),
-            scope_label="groups compared at each time point")
+            scope_label="groups compared at each time point", D=D, ddf=ddf)
         for cmp in diffs["comparisons"]:
             cmp["time"] = cmp["family"][len("Time "):]
 
@@ -874,9 +907,11 @@ def mixed_timecourse(data, options=None) -> dict:
         "n_subjects": S, "n_values": int(d["y"].size),
         "n_missing": int(n_cells - d["y"].size),
         "df": {"between_subjects": int(df_b), "within_subjects": int(df_w)},
-        "df_method": ("between-within (SAS DDFM=BETWITHIN)"
-                      + ("; unstructured: between-subject df for every term"
-                         if kind == "unstructured" else "")),
+        "ddf": ddf,
+        "df_method": (("between-within (SAS DDFM=BETWITHIN)"
+                       + ("; unstructured: between-subject df for every term"
+                          if kind == "unstructured" else ""))
+                      if D is None else ddfm.LABELS[ddf]),
         "warnings": warnings,
     }
     if baseline_note:

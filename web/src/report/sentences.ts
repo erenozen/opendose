@@ -332,9 +332,11 @@ function rmSentences(r: R, f: Fmt, eff: EffectRow | null): string[] {
 /** RM one-way design fitted as a mixed-effects model (values missing). */
 function mixedRmSentences(r: R, f: Fmt): string[] {
   const fe = r.fixed_effect ?? {};
-  const p = num(fe.p_geisser_greenhouse) ? fe.p_geisser_greenhouse : fe.p;
+  // Kenward-Roger / Satterthwaite df: no Geisser-Greenhouse correction
+  const ddf = r.ddf === "kenward_roger" ? "Kenward-Roger" : r.ddf === "satterthwaite" ? "Satterthwaite" : null;
+  const p = !ddf && num(fe.p_geisser_greenhouse) ? fe.p_geisser_greenhouse : fe.p;
   const stat = fStat(f, fe.F, fe.df_num, fe.df_den);
-  const head = `A mixed-effects model for repeated measures (${r.n_subjects} subjects, ${r.n_missing} missing value${r.n_missing === 1 ? "" : "s"}; Geisser-Greenhouse corrected) gave ${join([stat, num(p) ? f.p(p) : null])}.`;
+  const head = `A mixed-effects model for repeated measures (${r.n_subjects} subjects, ${r.n_missing} missing value${r.n_missing === 1 ? "" : "s"}; ${ddf ? `${ddf} df` : "Geisser-Greenhouse corrected"}) gave ${join([stat, num(p) ? f.p(p) : null])}.`;
   return [head, posthocSentence(r.multiple_comparisons, f)].filter(Boolean) as string[];
 }
 

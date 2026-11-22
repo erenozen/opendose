@@ -4,7 +4,7 @@ import type {
   CIMethod, ConstraintState, ErrorBarKind, OptionsState,
   WeightingKind,
 } from "../types";
-import { ERROR_BAR_LABELS, WEIGHTING_LABELS } from "../types";
+import { DEFAULT_WEIGHT_K, ERROR_BAR_LABELS, WEIGHTING_LABELS, weightK } from "../types";
 import {
   CONSTANT_LABELS, modelLibraryVersion, modelMeta, shareableParams,
   subscribeModelLibrary, USER_MODEL_ID,
@@ -245,6 +245,21 @@ export default function ControlsPanel({
       <section>
         <h3>Fitting method</h3>
         <label className="check-row">
+          <span>Method</span>
+          <select aria-label="Fitting method" value={options.fitMethod ?? "least_squares"}
+            onChange={(e) => set({ fitMethod: e.target.value as "least_squares" | "robust" })}>
+            <option value="least_squares">Least squares (default)</option>
+            <option value="robust">Robust regression (resists outliers; best-fit values only)</option>
+          </select>
+        </label>
+        {options.fitMethod === "robust" && (
+          <p className="hint-block">
+            Robust regression assumes Lorentzian scatter, so a few wild points barely move the curve,
+            but it cannot give standard errors, confidence intervals or bands. It is not weighted and
+            not combined with ROUT (which already uses a robust fit to find outliers).
+          </p>
+        )}
+        <label className="check-row">
           <span>Weighting</span>
           <select value={options.weighting}
             onChange={(e) => set({ weighting: e.target.value as WeightingKind })}>
@@ -253,6 +268,24 @@ export default function ControlsPanel({
             ))}
           </select>
         </label>
+        {options.weighting === "1/YK" && (
+          <>
+            <label className="check-row">
+              <span>K</span>
+              <input type="number" min={0.1} max={10} step={0.1} aria-label="Weighting exponent K"
+                key={weightK(options)} defaultValue={weightK(options)}
+                onBlur={(e) => {
+                  const k = Number(e.target.value);
+                  set({ weightK: Number.isFinite(k) && k > 0 && k <= 10 ? k : DEFAULT_WEIGHT_K });
+                }} />
+            </label>
+            <p className="hint-block">
+              Weights are 1/|Y|ᴷ of the fitted curve. K = 1 is 1/Y (scatter like counts), K = 2 is
+              1/Y² (scatter proportional to Y); a K in between suits scatter that grows with Y but
+              more slowly than Y. Default {DEFAULT_WEIGHT_K}; any K from above 0 to 10.
+            </p>
+          </>
+        )}
         {options.weighting !== "none" && (
           <>
             <label className="check-row">
@@ -266,7 +299,11 @@ export default function ControlsPanel({
               </select>
             </label>
             <p className="hint-block">
-              {options.weighting === "1/X" || options.weighting === "1/X2" ? (
+              {options.weighting === "1/SD2" ? (
+                <>Each X is weighted by 1/SD² of its replicates (at least two per X, not all
+                  equal) or by the SD entered with mean / SD / n. The weights do not depend on
+                  the curve, so both choices give the same fit. Not offered for global fits.</>
+              ) : options.weighting === "1/X" || options.weighting === "1/X2" ? (
                 <>These weights do not depend on the curve, so both choices give the same fit.</>
               ) : (
                 <>

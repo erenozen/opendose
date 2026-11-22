@@ -465,6 +465,77 @@ class TestFriedmanExact:
             sps.friedmanchisquare(*M.T).pvalue)
 
 
+# --------------------------------------------------- Kruskal-Wallis exact
+
+def _kw_enumerated_p(groups):
+    """P by listing every distinct relabelling of the pooled values."""
+    pooled = np.concatenate([np.asarray(g, float) for g in groups])
+    labels = [j for j, g in enumerate(groups) for _ in g]
+    obs = sps.kruskal(*groups).statistic
+    hits = tot = 0
+    for lab in set(permutations(labels)):
+        lab = np.array(lab)
+        h = sps.kruskal(*[pooled[lab == j]
+                          for j in range(len(groups))]).statistic
+        tot += 1
+        hits += h >= obs - 1e-9
+    return hits / tot
+
+
+class TestKruskalWallisExact:
+    @pytest.mark.parametrize("groups", [
+        ([1.2, 3.4, 0.5], [2.2, 5.1, 4.4], [6.0, 3.9]),          # no ties
+        ([0, 1, 1, 2], [2, 3], [1, 3]),                           # ties
+        ([1, 1, 2], [2, 2, 3], [3, 3, 1]),                        # many ties
+        ([4.0, 1.0], [3.0, 2.5, 7.0, 6.0], [5.5, 0.2, 9.0]),     # unequal
+        ([1.0, 2.0], [3.0, 4.0], [5.0, 6.0], [7.0, 8.0]),        # 4 groups
+    ])
+    def test_matches_enumeration(self, groups):
+        res = anova.kruskal_wallis([list(map(float, g)) for g in groups],
+                                   exact=True, dunns=False)
+        assert res["p_method"] == "exact"
+        assert res["p"] == pytest.approx(_kw_enumerated_p(groups), abs=1e-12)
+        assert res["H"] == pytest.approx(sps.kruskal(*groups).statistic)
+
+    def test_complete_separation_3x3(self):
+        # ranks 1-3 / 4-6 / 7-9 give the largest H (7.2); only the 3!
+        # relabellings of the groups reach it, of 9!/(3!)^3 = 1680
+        res = anova.kruskal_wallis([[1, 2, 3], [4, 5, 6], [7, 8, 9]],
+                                   exact=True, dunns=False)
+        assert res["H"] == pytest.approx(7.2)
+        assert res["p"] == pytest.approx(6 / 1680, abs=1e-15)
+
+    def test_two_groups_is_exact_mann_whitney(self):
+        a, b = [1.0, 3.0, 3.0, 7.5, 2.0], [4.0, 3.0, 9.0, 8.0]
+        res = anova.kruskal_wallis([a, b], exact=True, dunns=False)
+        assert res["p_method"] == "exact"
+        assert res["p"] == pytest.approx(_kw_enumerated_p([a, b]), abs=1e-12)
+        assert res["p"] == pytest.approx(
+            exactdist.rank_sum_two_sided_p(a, b), abs=1e-15)
+
+    def test_budget_falls_back_to_chi_square(self):
+        g = [RNG.normal(size=n).tolist() for n in (2, 4, 6, 8)]
+        assert exactdist.kruskal_wallis_exact_p(g, state_budget=1000) is None
+        res = anova.kruskal_wallis(g, exact=True, dunns=False)
+        assert res["p_method"] == "approximate"
+        assert res["p"] == pytest.approx(sps.kruskal(*g).pvalue)
+
+    def test_default_keeps_chi_square(self):
+        g = [RNG.normal(size=4).tolist() for _ in range(3)]
+        res = anova.kruskal_wallis(g)
+        assert "p_method" not in res
+        assert res["p"] == pytest.approx(sps.kruskal(*g).pvalue)
+
+    def test_api_option(self):
+        groups = ([1.2, 3.4, 0.5], [2.2, 5.1, 4.4], [6.0, 3.9])
+        data = {"datasets": [{"name": n, "ys": [[v] for v in g]}
+                             for n, g in zip("ABC", groups)]}
+        r = analyze({"analysis": "anova", "data": data,
+                     "options": {"kind": "nonparametric", "exact": True}})
+        assert r["p_method"] == "exact"
+        assert r["p"] == pytest.approx(_kw_enumerated_p(groups), abs=1e-12)
+
+
 # --------------------------------------------------------------- ratio t
 
 class TestRatioTTests:

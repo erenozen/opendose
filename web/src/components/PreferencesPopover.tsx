@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useProject } from "../app/context";
 import { SCHEME_LIST, type SchemeId } from "../lib/palette";
+import { autosaveEnabled, setAutosaveEnabled } from "../project/autosave";
+import { forgetBrowserData } from "../project/forget";
 import type { Prefs, TableType } from "../project/types";
 import { REGISTRY, TABLE_ORDER } from "../sheets/registry";
 import { ERROR_BAR_LABELS, type ErrorBarKind } from "../types";
@@ -57,6 +59,16 @@ const SHORTCUTS: { area: string; keys: [string, string][] }[] = [
 export default function PreferencesPopover() {
   const { prefs, setPrefs } = useProject();
   const [open, setOpen] = useState(false);
+  // Privacy on this computer: the autosave switch and "Forget".
+  const [autosaveOn, setAutosaveOn] = useState(autosaveEnabled);
+  const [forget, setForget] = useState<"" | "confirm" | "busy" | "blocked">("");
+  const forgetNow = async () => {
+    setForget("busy");
+    const r = await forgetBrowserData();
+    if (r.database === "blocked") { setForget("blocked"); return; }
+    // Start again as on a first visit: no share link, no example.
+    location.replace(location.pathname);
+  };
   const wrap = useRef<HTMLSpanElement>(null);
   const btn = useRef<HTMLButtonElement>(null);
 
@@ -145,6 +157,12 @@ export default function PreferencesPopover() {
               {[3, 4, 5, 6, 7, 8, 9, 10].map((d) => <option key={d} value={d}>{d}</option>)}
             </select>
           </label>
+          <label className="field field-check">
+            <input type="checkbox" checked={!!prefs.colorByName}
+              onChange={(e) => set("colorByName", e.target.checked || undefined)} />
+            <span>Same colour for a group on every graph, by its name (a colour set on a
+              graph still wins)</span>
+          </label>
           <h3 className="prefs-subtitle">Reporting</h3>
           <label className="field">
             <span>P-value style (tables, sentences, legends)</span>
@@ -188,6 +206,61 @@ export default function PreferencesPopover() {
               ))}
             </select>
           </label>
+          <h3 className="prefs-subtitle">Privacy on this computer</h3>
+          <label className="field field-check">
+            <input type="checkbox" checked={autosaveOn}
+              onChange={(e) => {
+                const on = e.target.checked;
+                setAutosaveOn(on);
+                void setAutosaveEnabled(on);
+              }} />
+            <span>Autosave my work in this browser</span>
+          </label>
+          <p className="prefs-note">
+            {autosaveOn
+              ? "Your work is kept in this browser, so a closed tab loses nothing; the next person at this computer could reopen it."
+              : "Nothing is kept: save the project as a file before you close the tab. Saved sessions were deleted."}
+          </p>
+          {forget === "" && (
+            <button type="button" className="prefs-forget" onClick={() => setForget("confirm")}>
+              Forget this computer&apos;s data…
+            </button>
+          )}
+          {(forget === "confirm" || forget === "busy") && (
+            <div className="prefs-confirm" role="group" aria-label="Forget this computer's data">
+              <p>
+                <strong>Deleted from this browser:</strong> autosaved sessions, saved
+                templates, import recipes, plate layouts, your equations and all
+                settings. The open project closes: save it as a file first if you
+                need it. Close other OpenDose tabs too.
+              </p>
+              <p>
+                <strong>Kept:</strong> project files you saved (delete those yourself)
+                and the offline copy of the app, which holds no data.
+              </p>
+              <div className="prefs-confirm-actions">
+                <button type="button" onClick={() => setForget("")} disabled={forget === "busy"}>
+                  Cancel
+                </button>
+                <button type="button" className="btn-danger" onClick={() => { void forgetNow(); }}
+                  disabled={forget === "busy"}>
+                  {forget === "busy" ? "Forgetting…" : "Forget and close the project"}
+                </button>
+              </div>
+            </div>
+          )}
+          {forget === "blocked" && (
+            <div className="prefs-confirm" role="alert">
+              <p>
+                Settings and recipes are gone. The saved sessions are deleted as
+                soon as every other OpenDose tab is closed: close them, then reload.
+              </p>
+              <div className="prefs-confirm-actions">
+                <button type="button" className="btn-primary"
+                  onClick={() => location.replace(location.pathname)}>Reload</button>
+              </div>
+            </div>
+          )}
           <details className="advanced shortcuts">
             <summary>Keyboard shortcuts</summary>
             <section>

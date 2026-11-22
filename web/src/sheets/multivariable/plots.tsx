@@ -28,7 +28,7 @@ import {
 } from "./chart";
 import { PlotMessage, PlotlyChart } from "./plotkit";
 import type {
-  CorrelationResult, LogisticResult, PcaResult, RegressionResult,
+  CorrelationResult, LogisticResult, PoissonResult, PcaResult, RegressionResult,
 } from "./run";
 
 /* ------------------------------------------------------------ helpers */
@@ -461,11 +461,13 @@ interface ForestSettings { intercept: boolean }
 
 const FOREST_DEFAULTS: ForestSettings = { intercept: false };
 
-function Forest({ graph, coefs, ratio, level, titles, filename, scheme, format,
+function Forest({ graph, coefs, ratio, ratioLabel = "Odds ratio", level, titles, filename, scheme, format,
   onFormatChange }: {
   graph: PlotProps["graph"];
   coefs: { name: string; value: number; lo: number | null; hi: number | null; p: number }[];
   ratio: boolean;
+  /** Axis title of a ratio plot ("Odds ratio", "Rate ratio"). */
+  ratioLabel?: string;
   level: number;
   titles: { x: string; y: string };
   filename: string;
@@ -494,7 +496,7 @@ function Forest({ graph, coefs, ratio, level, titles, filename, scheme, format,
       hoverinfo: "text",
     } as Plotly.Data];
     const layout = baseLayout(chrome,
-      titles.x || `${ratio ? "Odds ratio" : "Coefficient"} (${Math.round(level * 100)}% CI)`, titles.y, {
+      titles.x || `${ratio ? ratioLabel : "Coefficient"} (${Math.round(level * 100)}% CI)`, titles.y, {
         showlegend: false,
         margin: { l: 120, r: 24, t: 12, b: 52 },
         shapes: [{ type: "line", xref: "x", yref: "paper", x0: ref, x1: ref, y0: 0, y1: 1,
@@ -504,7 +506,7 @@ function Forest({ graph, coefs, ratio, level, titles, filename, scheme, format,
     layout.yaxis = { ...layout.yaxis, autorange: "reversed", showgrid: false,
       tickfont: { color: chrome.ink } };
     return { traces, layout };
-  }, [coefs, s, ratio, level, dark, titles]);
+  }, [coefs, s, ratio, ratioLabel, level, dark, titles]);
   return fig ? <PlotlyChart data={fig.traces} layout={fig.layout} filename={filename}
     label={ratio ? "Odds ratios with confidence intervals" : "Coefficients with confidence intervals"}
     format={format} onFormatChange={onFormatChange} dark={dark} scheme={scheme} />
@@ -540,6 +542,16 @@ export function LogitOddsPlot({ graph, result, titles, scheme, format, onFormatC
     filename="odds-ratios" scheme={scheme} format={format} onFormatChange={onFormatChange}
     coefs={result.coefficients.map((c) => ({ name: c.name, value: c.odds_ratio ?? Math.exp(c.estimate),
       lo: c.odds_ratio_ci?.[0] ?? null, hi: c.odds_ratio_ci?.[1] ?? null, p: c.p }))} />;
+}
+
+export function PoissonRatePlot({ graph, result, titles, scheme, format, onFormatChange }:
+  PlotProps<unknown, PoissonResult>) {
+  const wait = pending(result);
+  if (wait || !result) return wait;
+  return <Forest graph={graph} titles={titles} ratio ratioLabel="Rate ratio" level={result.ci_level}
+    filename="rate-ratios" scheme={scheme} format={format} onFormatChange={onFormatChange}
+    coefs={result.coefficients.map((c) => ({ name: c.name, value: c.rate_ratio ?? Math.exp(c.estimate),
+      lo: c.rate_ratio_ci?.[0] ?? null, hi: c.rate_ratio_ci?.[1] ?? null, p: c.p }))} />;
 }
 
 const LOGIT_SERIES = ["Fit and observations"];

@@ -1,0 +1,13 @@
+{
+ "opendose_project": 2,
+ "version": 2,
+ "title": "Empty project",
+ "prefs": {
+  "defaultTableType": "xy",
+  "errorBars": "sd",
+  "ciMethod": "asymptotic",
+  "scheme": "default",
+  "digits": 4
+ },
+ "sheets": []
+}

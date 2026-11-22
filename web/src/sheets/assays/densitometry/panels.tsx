@@ -7,6 +7,7 @@ import { readXlsx } from "../../../lib/engine";
 import type { DataTableModel } from "../../../project/types";
 import { parseSource } from "../../../share/recipes/presets";
 import CopyableMethods from "../../common/CopyableMethods";
+import { DDF_LABELS, DDF_METHODS, ddfMethodsSentence, ddfOf } from "../../common/ddf";
 import type { ControlsProps, ResultsProps } from "../../types";
 import { takeWizardRequest } from "../kit/create";
 import { interval, num, pValue, testSummary } from "../kit/format";
@@ -154,6 +155,13 @@ function DTestFields({ o, set, readOnly }: {
           <option value="tukey">Tukey: every pair</option>
           <option value="bonferroni">Bonferroni</option>
           <option value="sidak">Šidák</option>
+        </select>
+      </label>
+      <label className="field">
+        <span>Degrees of freedom (missing blots: mixed model)</span>
+        <select value={ddfOf(o.mixedDdf)} disabled={readOnly} aria-label="Degrees of freedom (mixed model)"
+          onChange={(e) => set({ mixedDdf: ddfOf(e.target.value) })}>
+          {DDF_METHODS.map((m) => <option key={m} value={m}>{DDF_LABELS[m]}</option>)}
         </select>
       </label>
     </div>
@@ -434,6 +442,8 @@ export function DensMethods({ options: o, result: r }: ResultsProps<DensOptions,
     + (name ? `Groups were compared with a ${name.toLowerCase()} with blot as the pairing unit `
       + `(${r.n_blots_used} blots), reporting the geometric mean ratio with its ${Math.round(o.ciLevel * 100)}% `
       + `confidence interval. ` : "")
+    + (st?.test === "mixed_rm_one_way_log10" && ddfMethodsSentence(ddfOf(st.ddf))
+      ? `${ddfMethodsSentence(ddfOf(st.ddf))} ` : "")
     + `Fold changes are shown with the control at 1 on a log2 axis. Analysed in OpenDose.`;
   return <CopyableMethods text={text} />;
 }

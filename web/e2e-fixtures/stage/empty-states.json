@@ -1,0 +1,223 @@
+{
+ "opendose_project": 2,
+ "version": 2,
+ "title": "Empty states",
+ "prefs": {
+  "defaultTableType": "xy",
+  "errorBars": "sd",
+  "ciMethod": "asymptotic",
+  "scheme": "default",
+  "digits": 4
+ },
+ "selected": "d001",
+ "sheets": [
+  {
+   "id": "d001",
+   "kind": "data",
+   "name": "Empty XY table",
+   "table": {
+    "type": "xy",
+    "x": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "M",
+    "yTitle": "",
+    "rowTitles": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "datasets": [
+     {
+      "name": "",
+      "rows": [
+       [
+        "",
+        "",
+        ""
+       ],
+       [
+        "",
+        "",
+        ""
+       ],
+       [
+        "",
+        "",
+        ""
+       ],
+       [
+        "",
+        "",
+        ""
+       ],
+       [
+        "",
+        "",
+        ""
+       ],
+       [
+        "",
+        "",
+        ""
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "d002",
+   "kind": "data",
+   "name": "Table with no analysis",
+   "table": {
+    "type": "column",
+    "x": [
+     "",
+     "",
+     "",
+     ""
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "",
+    "rowTitles": [
+     "",
+     "",
+     "",
+     ""
+    ],
+    "datasets": [
+     {
+      "name": "Control",
+      "rows": [
+       [
+        "10.1"
+       ],
+       [
+        "11.4"
+       ],
+       [
+        "9.6"
+       ],
+       [
+        "10.8"
+       ]
+      ]
+     },
+     {
+      "name": "Treated",
+      "rows": [
+       [
+        "13.9"
+       ],
+       [
+        "15.2"
+       ],
+       [
+        "12.8"
+       ],
+       [
+        "14.4"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "d003",
+   "kind": "data",
+   "name": "Results with no data",
+   "table": {
+    "type": "column",
+    "x": [
+     "",
+     "",
+     ""
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "",
+    "rowTitles": [
+     "",
+     "",
+     ""
+    ],
+    "datasets": [
+     {
+      "name": "Control",
+      "rows": [
+       [
+        ""
+       ],
+       [
+        ""
+       ],
+       [
+        ""
+       ]
+      ]
+     },
+     {
+      "name": "Treated",
+      "rows": [
+       [
+        ""
+       ],
+       [
+        ""
+       ],
+       [
+        ""
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "r004",
+   "kind": "results",
+   "parentId": "d003",
+   "analysis": "column",
+   "options": {
+    "analysis": "ttest"
+   },
+   "name": "t test of an empty table"
+  },
+  {
+   "id": "g005",
+   "kind": "graph",
+   "parentId": "d003",
+   "resultsId": "r004",
+   "graphType": "scatter",
+   "settings": {
+    "titles": {
+     "x": "",
+     "y": ""
+    },
+    "scheme": "default"
+   },
+   "name": "Graph of an empty table"
+  }
+ ]
+}

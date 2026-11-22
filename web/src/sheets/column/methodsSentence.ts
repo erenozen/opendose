@@ -7,6 +7,7 @@ import { familyMethodsClause, familyOf } from "../../report/family";
 import { DEFAULT_NORMALITY_TESTS, NORMALITY_TEST_LABELS, formatSig } from "../../types";
 import { logMethodsSentence } from "./logScale";
 import { rmMethodsSentence } from "./rmPosthoc";
+import { oneTailedAlternative } from "./tails";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type R = Record<string, any>;
@@ -65,6 +66,11 @@ function testSentence(o: ColumnOptionsState, r: R): string {
       let s = "Descriptive statistics were computed for each data set"
         + (o.percentileMethod === "prism" ? " (percentiles from rank (n + 1)p)" : "");
       if (tests.length) s += `, and normality was assessed with ${list(tests)} test${tests.length > 1 ? "s" : ""} (α = 0.05)`;
+      if (o.lognormality) {
+        s += `${tests.length ? "; lognormality was assessed with the same tests on the logarithms" : ""}`
+          + ", and normal and lognormal distributions were compared by the likelihoods of their maximum-likelihood"
+          + " fits, normalized to sum to 100% (Burnham & Anderson 2002)";
+      }
       if (o.hypothetical.trim()) {
         s += `. Each column was compared with the hypothetical value ${o.hypothetical.trim()} by a one-sample t test and the Wilcoxon signed rank test`
           + (o.zeroMethod === "pratt" ? " (values equal to the hypothetical median handled by Pratt's method)" : "")
@@ -73,22 +79,21 @@ function testSentence(o: ColumnOptionsState, r: R): string {
       return `${s}.`;
     }
     case "ttest": {
-      const [a, b] = r.names ?? ["A", "B"];
-      const pair = `${a} and ${b}`;
-      switch (o.ttestKind) {
-        case "unpaired": return `${pair} were compared with an unpaired two-tailed t test (t = ${formatSig(r.t)}, df = ${formatSig(r.df)}, ${P(r.p_two_tailed)}).`;
-        case "welch": return `${pair} were compared with an unpaired two-tailed t test with Welch's correction, not assuming equal SDs (t = ${formatSig(r.t)}, df = ${formatSig(r.df)}, ${P(r.p_two_tailed)}).`;
-        case "paired": return `${pair} were compared with a two-tailed paired t test (t = ${formatSig(r.t)}, df = ${r.df}, ${P(r.p_two_tailed)}).`;
-        case "ratio_paired": return `${pair} were compared with a two-tailed ratio paired t test on the logarithms of the paired values; the geometric mean of the ratios was ${formatSig(r.geometric_mean_ratio)} (95% CI ${formatSig(r.ci_ratio?.[0])} to ${formatSig(r.ci_ratio?.[1])}, ${P(r.p_two_tailed)}).`;
-        case "mann_whitney": return `${pair} were compared with the two-tailed Mann-Whitney test${pHow(r)} (U = ${formatSig(r.U)}, ${P(r.p_two_tailed)}); the difference is summarized by the Hodges-Lehmann estimate (${formatSig(r.hodges_lehmann_difference)}).`;
-        case "kolmogorov_smirnov": return `The distributions of ${pair} were compared with the two-sample Kolmogorov-Smirnov test${pHow(r)} (D = ${formatSig(r.D)}, ${P(r.p)}).`;
-        case "wilcoxon": return `${pair} were compared with the two-tailed Wilcoxon matched-pairs signed rank test${pHow(r)}${o.zeroMethod === "pratt" ? ", handling zero differences by Pratt's method" : ""} (W = ${formatSig(r.W)}, ${P(r.p_two_tailed)}).`;
-        default: return "";
-      }
+      const s = ttestSentence(o, r);
+      // the one-tailed P the results card shows (not on the log scale card)
+      const tails = o.ttestTails;
+      if (!s || (tails !== "greater" && tails !== "less") || o.ttestKind === "kolmogorov_smirnov"
+        || r.ratio != null) return s;
+      const p = tails === "greater" ? r.p_greater : r.p_less;
+      if (typeof p !== "number") return s;
+      return `${s} A one-tailed P value was also computed for the direction stated in advance (alternative: `
+        + `${oneTailedAlternative(r, tails)}; ${P(p)}).`;
     }
     case "anova": {
       if (o.anovaKind === "nonparametric") {
         return "Groups were compared with the Kruskal-Wallis test"
+          + (o.kwExact ? (r.p_method === "exact" ? " (exact P value)"
+            : " (approximate P value; the samples are too large for the exact one)") : "")
           + ` (H = ${formatSig(r.H)}, ${P(r.p)})`
           + (r.dunns ? `, followed by Dunn's multiple comparisons test${r.dunns.corrected === false ? " without correction for multiple comparisons" : withFamily(r.dunns, "dunns")}` : "")
           + ".";
@@ -105,7 +110,27 @@ function testSentence(o: ColumnOptionsState, r: R): string {
       const t = r.table ?? {};
       const mc = r.multiple_comparisons;
       return `Group means were compared by ordinary one-way ANOVA (F(${t.df_between}, ${t.df_within}) = ${formatSig(t.F)}, ${P(t.p)})`
-        + (mc ? `, followed by ${POST[mc.method] ?? mc.method}${mc.method === "fisher_lsd" ? "" : withFamily(mc)}` : "") + ".";
+        + (mc ? `, followed by ${POST[mc.method] ?? mc.method}${mc.method === "fisher_lsd" ? "" : withFamily(mc)}` : "") + "."
+        + (r.trend && !r.trend.error ? ` A test for linear trend across the columns in the order entered gave a slope of ${formatSig(r.trend.slope)} per column (${P(r.trend.linear.p)}; nonlinear variation ${P(r.trend.nonlinear.p)}).` : "");
+    }
+    case "frequency": {
+      if (r.exact) {
+        return `Exact cumulative frequency distributions were computed${r.fits ? " and fitted with a cumulative Gaussian distribution by least squares" : ""}.`;
+      }
+      return `Frequency distributions were tabulated with a bin width of ${formatSig(r.bin_width)}${r.bin_width_auto ? " (chosen automatically: 1 + log2(n) bins, rounded down to a round number)" : ""}`
+        + `${r.cumulative ? ", cumulatively" : ""}${r.relative ? ` as ${r.relative === "percent" ? "percentages" : "fractions"}` : ""}`
+        + `${typeof r.upper_limit === "number" ? `; values above ${formatSig(r.upper_limit)} were left out (and a value equal to it when it fell on a bin edge, since no bin extends past the limit)` : ""}`
+        + `${r.fits ? ", and a Gaussian distribution was fitted to the counts at the bin centers by least squares" : ""}.`;
+    }
+    case "p_stack": {
+      const how = ({ bky: "the two-stage step-up method of Benjamini, Krieger and Yekutieli",
+        bh: "the method of Benjamini and Hochberg", by: "the method of Benjamini and Yekutieli",
+        holm_sidak: "the Holm-Šídák step-down method", sidak: "the Šídák method",
+        bonferroni: "the Bonferroni method", holm: "Holm's step-down method" } as Record<string, string>)[r.method];
+      if (!how) return `${r.n} P values were each compared with α = ${formatSig(r.alpha)}, without correction for multiple comparisons; ${r.discoveries} were below it.`;
+      return r.approach === "fdr"
+        ? `A family of ${r.n} P values was corrected for multiple comparisons by controlling the false discovery rate with ${how} (Q = ${formatSig(100 * r.q)}%); ${r.discoveries} comparison${r.discoveries === 1 ? " was a discovery" : "s were discoveries"}.`
+        : `A family of ${r.n} P values was corrected for multiple comparisons with ${how} (family-wise α = ${formatSig(r.alpha)}); ${r.discoveries} comparison${r.discoveries === 1 ? " was" : "s were"} significant.`;
     }
     case "median_test":
       return "Group medians were compared with Mood's median test, counting the values above and not above the grand median"
@@ -130,6 +155,11 @@ function testSentence(o: ColumnOptionsState, r: R): string {
           : "Spearman correlation coefficient";
       const tails = o.corrTails === "greater" ? " and a one-tailed P value (alternative: positive correlation)"
         : o.corrTails === "less" ? " and a one-tailed P value (alternative: negative correlation)" : "";
+      if (r.analysis === "correlation_x") {
+        const n = (r.items ?? []).length;
+        return `X was correlated with each of ${n} Y data set${n === 1 ? "" : "s"} by the ${name} with a two-tailed P value${tails}`
+          + `${r.replicates_averaged ? "; replicate Y values were averaged per row" : ""}.`;
+      }
       return `Correlation was computed as the ${name} with a two-tailed P value${tails}.`;
     }
     case "roc": return "The area under the ROC curve was computed with its SE and confidence interval (DeLong).";
@@ -141,3 +171,18 @@ function testSentence(o: ColumnOptionsState, r: R): string {
   }
 }
 
+/** The sentence of a two-group test, two-tailed, by test kind. */
+function ttestSentence(o: ColumnOptionsState, r: R): string {
+  const [a, b] = r.names ?? ["A", "B"];
+  const pair = `${a} and ${b}`;
+  switch (o.ttestKind) {
+    case "unpaired": return `${pair} were compared with an unpaired two-tailed t test (t = ${formatSig(r.t)}, df = ${formatSig(r.df)}, ${P(r.p_two_tailed)}).`;
+    case "welch": return `${pair} were compared with an unpaired two-tailed t test with Welch's correction, not assuming equal SDs (t = ${formatSig(r.t)}, df = ${formatSig(r.df)}, ${P(r.p_two_tailed)}).`;
+    case "paired": return `${pair} were compared with a two-tailed paired t test (t = ${formatSig(r.t)}, df = ${r.df}, ${P(r.p_two_tailed)}).`;
+    case "ratio_paired": return `${pair} were compared with a two-tailed ratio paired t test on the logarithms of the paired values; the geometric mean of the ratios was ${formatSig(r.geometric_mean_ratio)} (95% CI ${formatSig(r.ci_ratio?.[0])} to ${formatSig(r.ci_ratio?.[1])}, ${P(r.p_two_tailed)}).`;
+    case "mann_whitney": return `${pair} were compared with the two-tailed Mann-Whitney test${pHow(r)} (U = ${formatSig(r.U)}, ${P(r.p_two_tailed)}); the difference is summarized by the Hodges-Lehmann estimate (${formatSig(r.hodges_lehmann_difference)}).`;
+    case "kolmogorov_smirnov": return `The distributions of ${pair} were compared with the two-sample Kolmogorov-Smirnov test${pHow(r)} (D = ${formatSig(r.D)}, ${P(r.p)}).`;
+    case "wilcoxon": return `${pair} were compared with the two-tailed Wilcoxon matched-pairs signed rank test${pHow(r)}${o.zeroMethod === "pratt" ? ", handling zero differences by Pratt's method" : ""} (W = ${formatSig(r.W)}, ${P(r.p_two_tailed)}).`;
+    default: return "";
+  }
+}

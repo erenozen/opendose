@@ -5,6 +5,7 @@ import { COLUMN_GRAPH_LABELS, DEFAULT_COLUMN_OPTIONS } from "../../types";
 import DataGrid from "../common/DataGrid";
 import { lazyPart } from "../lazy";
 import { defineAnalysis, defineGraph, type TableTypeDef } from "../types";
+import { DDF_NEW_SHEET } from "../common/ddf";
 import {
   ANALYSIS_BLAND_ALTMAN, defaultBaOptions, normalizeBaOptions, runBa, type BaOptions,
   type BaResult,
@@ -14,6 +15,7 @@ import {
   type RocResult,
 } from "./roc";
 import { ColumnMethods } from "./methods";
+import { rowMeansAnalysis } from "../grouped";
 import { ColumnAnalysisControls, ColumnAnalysisResults, ColumnGraph } from "./panels";
 import { runColumn } from "./run";
 import { ColumnGraphOptions } from "./graphOptions";
@@ -46,6 +48,8 @@ export function columnTestLabel(raw: unknown): string {
     case "roc": return "ROC";
     case "bland_altman": return "Bland-Altman";
     case "outliers": return "Outliers";
+    case "p_stack": return "P value stack";
+    case "frequency": return "Frequency distribution";
     default: return "Column stats";
   }
 }
@@ -60,7 +64,9 @@ export const columnAnalysis = defineAnalysis<ColumnOptionsState, Record<string, 
   sheetName: (t) => `Column stats of ${t}`,
   sheetNameFor: (t, o) => `${columnTestLabel(o)} of ${t}`,
   tabLabel: (o) => columnTestLabel(o),
-  defaultOptions: () => ({ ...DEFAULT_COLUMN_OPTIONS }),
+  // new sheets: Kenward-Roger df for the mixed model (sheets/common/ddf.ts);
+  // saved sheets without the setting keep containment
+  defaultOptions: () => ({ ...DEFAULT_COLUMN_OPTIONS, mixedDdf: DDF_NEW_SHEET }),
   normalizeOptions: (raw) => ({
     ...DEFAULT_COLUMN_OPTIONS,
     ...(raw && typeof raw === "object" ? raw as Partial<ColumnOptionsState> : {}),
@@ -190,7 +196,7 @@ export const columnTable: TableTypeDef = {
   sampleTable: columnSample,
   sampleName: "Group comparison",
   Editor: DataGrid,
-  analyses: [columnAnalysis, replicateMeansAnalysis, estimationAnalysis, rocAnalysis,
+  analyses: [columnAnalysis, replicateMeansAnalysis, estimationAnalysis, rowMeansAnalysis, rocAnalysis,
     blandAltmanAnalysis],
   graphs: [...columnGraphs, estimationGraph, rocGraph, blandAltmanGraph],
 };

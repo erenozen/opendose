@@ -47,7 +47,7 @@ re.source, { timeout }).then(() => true, () => false);
 const appears = (loc, timeout = 15000) => loc.first().waitFor({ timeout }).then(() => true, () => false);
 
 async function axeRun(label, selector) {
-  await page.addScriptTag({ path: AXE }).catch(() => {});
+  await page.evaluate(readFileSync(AXE, "utf8")).catch(() => {});
   const v = await page.evaluate(async (sel) => {
     const roots = [...document.querySelectorAll(sel)];
     if (!roots.length) return [];

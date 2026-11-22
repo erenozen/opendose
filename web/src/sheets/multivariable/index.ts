@@ -4,7 +4,7 @@ import { lazyPart } from "../lazy";
 import { defineAnalysis, defineGraph, type TableTypeDef } from "../types";
 import "./mv.css";
 import {
-  defaultCorrelation, defaultDescriptive, defaultLogistic, defaultPca,
+  defaultCorrelation, defaultDescriptive, defaultLogistic, defaultPca, defaultPoisson, type PoissonOptions,
   defaultRearrange, defaultRegression, mergeOptions, tableFromRearranged,
   type CorrelationOptions, type DescriptiveOptions, type LogisticOptions,
   type PcaOptions, type RearrangeOptions, type RegressionOptions,
@@ -13,9 +13,9 @@ import {
   biplotFormatDatasets, mvCatFormatDatasets, mvXYFormatDatasets,
 } from "./graphSettings";
 import {
-  runCorrelation, runDescriptive, runLogistic, runPca, runRearrange,
+  runCorrelation, runDescriptive, runLogistic, runPca, runPoisson, runRearrange,
   runRegression, type CorrelationResult, type DescriptiveResult,
-  type LogisticResult, type PcaResult, type RearrangeResult, type RegressionResult,
+  type LogisticResult, type PcaResult, type PoissonResult, type RearrangeResult, type RegressionResult,
 } from "./run";
 import { multivariableSample } from "./sample";
 import { VOLCANO_GROUPS } from "./volcanoModel";
@@ -26,12 +26,14 @@ import {
   ANALYSIS_MV_MIXED_GROUPING, defaultMixedGrouping, normalizeMixedGrouping, runMixedGrouping,
   type MixedGroupingOptions,
 } from "./mixedGrouping";
+import { DDF_NEW_SHEET } from "../common/ddf";
 
 // Panels load on first use (sheets/lazy.ts).
 const controlsModule = () => import("./controls");
 const CorrelationControls = lazyPart(controlsModule, "CorrelationControls");
 const DescriptiveControls = lazyPart(controlsModule, "DescriptiveControls");
 const LogisticControls = lazyPart(controlsModule, "LogisticControls");
+const PoissonControls = lazyPart(controlsModule, "PoissonControls");
 const PcaControls = lazyPart(controlsModule, "PcaControls");
 const RearrangeControls = lazyPart(controlsModule, "RearrangeControls");
 const RegressionControls = lazyPart(controlsModule, "RegressionControls");
@@ -48,6 +50,7 @@ const LoadingsOptions = lazyPart(plotsModule, "LoadingsOptions");
 const LoadingsPlot = lazyPart(plotsModule, "LoadingsPlot");
 const LogitCurvePlot = lazyPart(plotsModule, "LogitCurvePlot");
 const LogitOddsPlot = lazyPart(plotsModule, "LogitOddsPlot");
+const PoissonRatePlot = lazyPart(plotsModule, "PoissonRatePlot");
 const LogitRocPlot = lazyPart(plotsModule, "LogitRocPlot");
 const MvCatOptions = lazyPart(plotsModule, "MvCatOptions");
 const MvCategoricalPlot = lazyPart(plotsModule, "MvCategoricalPlot");
@@ -64,6 +67,8 @@ const DescriptiveMethods = lazyPart(resultsModule, "DescriptiveMethods");
 const DescriptiveResults = lazyPart(resultsModule, "DescriptiveResults");
 const LogisticMethods = lazyPart(resultsModule, "LogisticMethods");
 const LogisticResults = lazyPart(resultsModule, "LogisticResults");
+const PoissonMethods = lazyPart(resultsModule, "PoissonMethods");
+const PoissonResults = lazyPart(resultsModule, "PoissonResults");
 const PcaMethods = lazyPart(resultsModule, "PcaMethods");
 const PcaResults = lazyPart(resultsModule, "PcaResults");
 const RearrangeResults = lazyPart(resultsModule, "RearrangeResults");
@@ -75,6 +80,7 @@ export const ANALYSIS_MV_DESCRIPTIVE = "mv_descriptive";
 export const ANALYSIS_MV_CORRELATION = "mv_correlation";
 export const ANALYSIS_MV_REGRESSION = "mv_regression";
 export const ANALYSIS_MV_LOGISTIC = "mv_logistic";
+export const ANALYSIS_MV_POISSON = "mv_poisson";
 export const ANALYSIS_MV_PCA = "mv_pca";
 export const ANALYSIS_MV_REARRANGE = "mv_rearrange";
 export const ANALYSIS_MV_COX = "mv_cox";
@@ -148,6 +154,23 @@ export const mvLogistic = defineAnalysis<LogisticOptions, LogisticResult>({
   MethodsPanel: LogisticMethods,
 });
 
+export const mvPoisson = defineAnalysis<PoissonOptions, PoissonResult>({
+  id: ANALYSIS_MV_POISSON,
+  label: "Poisson regression (counts)",
+  short: "Poisson",
+  description: "Count outcome (cells, colonies, events): rate ratios, "
+    + "likelihood ratio test, pseudo R², deviance and the dispersion ratio; "
+    + "an optional exposure (time, area) as offset.",
+  sheetName: (t) => `Poisson regression of ${t}`,
+  defaultOptions: ({ table }) => defaultPoisson(table),
+  normalizeOptions: (raw, { table }) => mergeOptions(defaultPoisson(table), raw),
+  run: runPoisson,
+  defaultGraph: "mv_poisson_rates",
+  ControlsPanel: PoissonControls,
+  ResultsPanel: PoissonResults,
+  MethodsPanel: PoissonMethods,
+});
+
 export const mvPca = defineAnalysis<PcaOptions, PcaResult>({
   id: ANALYSIS_MV_PCA,
   label: "Principal component analysis (PCA)",
@@ -200,7 +223,8 @@ export const mvMixedGrouping = defineAnalysis<MixedGroupingOptions, Record<strin
   description: "An outcome, one or two factors and a grouping column (animal, litter, "
     + "cage) fitted as a random intercept: the df come from the groups, not the rows.",
   sheetName: (t) => `Mixed model of ${t}`,
-  defaultOptions: ({ table }) => defaultMixedGrouping(table),
+  // new sheets: Kenward-Roger df (sheets/common/ddf.ts)
+  defaultOptions: ({ table }) => ({ ...defaultMixedGrouping(table), mixedDdf: DDF_NEW_SHEET }),
   normalizeOptions: (raw, { table }) => normalizeMixedGrouping(raw, table),
   run: runMixedGrouping,
   defaultGraph: G_MIXED_NESTED,
@@ -277,6 +301,12 @@ export const mvGraphs = [
     PlotPanel: LogitOddsPlot, OptionsPanel: ForestOptions,
     formatFeatures: { noDatasets: true },
   }),
+  defineGraph<PoissonOptions, PoissonResult>({
+    id: "mv_poisson_rates", label: "Rate ratios with CIs (forest plot)", group: "mv_poisson",
+    analysis: ANALYSIS_MV_POISSON, autoTitles: none, exportName: "rate-ratios",
+    PlotPanel: PoissonRatePlot, OptionsPanel: ForestOptions,
+    formatFeatures: { noDatasets: true },
+  }),
   defineGraph<PcaOptions, PcaResult>({
     id: "mv_pca_scree", label: "Scree plot", group: "mv_pca",
     analysis: ANALYSIS_MV_PCA, autoTitles: none, exportName: "scree-plot",
@@ -312,7 +342,7 @@ export const multivariableTable: TableTypeDef = {
   entryHint: "Each row is one observation (subject, sample); each column one "
     + "variable. Set a column to categorical for text levels such as "
     + "\"male\" / \"female\". Row titles can hold subject IDs.",
-  analyses: [mvDescriptive, mvCorrelation, mvRegression, mvLogistic, mvCox.analysis, mvPca,
+  analyses: [mvDescriptive, mvCorrelation, mvRegression, mvLogistic, mvPoisson, mvCox.analysis, mvPca,
     mvRearrange, mvMixedGrouping],
   graphs: [...mvGraphs, ...mvCox.graphs, mixedNestedGraph],
 };

@@ -170,3 +170,14 @@ button.linkish:active { transform: none; }
   background: var(--surface); box-shadow: 0 0 0 1px var(--surface);
 }
 .data-table tr.grid-gap td { padding: 0; border: none; background: transparent; }
+
+/* calculated columns (project/calculated.ts) */
+.data-table input.calc-cell { color: var(--muted); font-style: italic; }
+.formula-chip {
+  display: block; margin-top: 2px; max-width: 100%; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; font: 11px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace;
+  border: 1px solid var(--border); border-radius: var(--radius-s); padding: 0 4px;
+  background: var(--surface); color: inherit; cursor: pointer; text-align: left;
+}
+.formula-chip.has-error { border-color: var(--danger); color: var(--danger); }
+.formula-input { width: 100%; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }

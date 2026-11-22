@@ -11,6 +11,7 @@ import type {
 import { FDR_METHODS, twoWayFactorNames } from "./options.ts";
 import { groupedPayload, hasMissingRM } from "./stats.ts";
 import { allCellsComparisons, cellsFamily } from "../common/allCells.ts";
+import { ddfOf } from "../common/ddf.ts";
 
 type Result = Record<string, unknown>;
 
@@ -103,7 +104,7 @@ export function runTwoWay(engine: EngineBridge, table: DataTableModel,
       analysis: "mixed_rm_twoway", data,
       options: {
         design, row_names: rowNames, method: "mixed", comparisons,
-        direction,
+        direction, ddf: ddfOf(o.mixedDdf),
       },
     });
     return { ...r, factor_names: [factors.row_factor, factors.col_factor], missing };
@@ -203,8 +204,11 @@ export function runMultiT(engine: EngineBridge, table: DataTableModel,
 export function runRowMeans(engine: EngineBridge, table: DataTableModel,
   o: RowMeansOptions): Result {
   if (table.subcolumnFormat !== "replicates") return { error: `Row means ${RAW_ONLY}` };
+  const data = groupedPayload(table);
+  // XY tables: each row is labelled by its X value
+  if (table.type === "xy") data.row_titles = table.x.map((x, i) => x.trim() || `Row ${i + 1}`);
   return analyze(engine, {
-    analysis: "row_means", data: groupedPayload(table),
+    analysis: "row_means", data,
     options: {
       calculate: o.calculate, error: o.error, scope: o.scope,
       percentile: numOr(o.percentile, 10),

@@ -58,7 +58,19 @@ export interface TcMixedOptions extends TumourBase {
   /** The first time point enters as a covariate. */
   baselineCovariate: boolean;
   ciLevel: number;
+  /** Denominator df (engine ddfm.BlockDdf); absent = between-within, as
+   *  computed before the setting existed. New sheets: Kenward-Roger. */
+  mixedDdf?: TcDdf;
 }
+
+export type TcDdf = "kenward_roger" | "satterthwaite" | "between_within";
+export const TC_DDF_LABELS: Record<TcDdf, string> = {
+  kenward_roger: "Kenward-Roger (Prism 11.2 default for mixed models)",
+  satterthwaite: "Satterthwaite",
+  between_within: "Between-within (SAS's default for repeated measures)",
+};
+const ddfOfTc = (v: unknown): TcDdf =>
+  (v === "kenward_roger" || v === "satterthwaite" ? v : "between_within");
 
 export type TcAucOptions = TumourAucOptions;
 
@@ -104,6 +116,7 @@ export function normalizeTcMixed(raw: unknown, table: DataTableModel): TcMixedOp
     compareCovariances: bool(o.compareCovariances, false),
     baselineCovariate: bool(o.baselineCovariate, false),
     ciLevel: ci,
+    ...(o.mixedDdf === undefined ? {} : { mixedDdf: ddfOfTc(o.mixedDdf) }),
   };
 }
 
@@ -175,6 +188,7 @@ export function mixedPayload(p: Prepared, o: TcMixedOptions): Record<string, unk
       compare_covariances: o.compareCovariances,
       baseline_covariate: o.baselineCovariate,
       ci_level: o.ciLevel,
+      ddf: ddfOfTc(o.mixedDdf),
     },
   };
 }
@@ -270,6 +284,11 @@ export const SUBJECT_DOTS_PLOTTED = "Points show one value per subject; horizont
 /** "between-within df: Group on 10 df between subjects (12 subjects − 2
  *  groups), Time and Group × Time on 50 df within subjects". */
 export function dfNote(r: Record<string, unknown>): string {
+  if (r.ddf === "kenward_roger" || r.ddf === "satterthwaite") {
+    return `Denominator df by the ${r.ddf === "kenward_roger" ? "Kenward-Roger" : "Satterthwaite"} `
+      + "method, computed from the fitted covariance: each test and comparison has its own df"
+      + (r.ddf === "kenward_roger" ? ", and the standard errors are adjusted for small samples." : ".");
+  }
   const df = (r.df ?? {}) as { between_subjects?: number; within_subjects?: number };
   const groups = Array.isArray(r.groups) ? r.groups.length : 0;
   const un = (r.covariance as { kind?: string } | undefined)?.kind === "unstructured";
@@ -296,7 +315,8 @@ export function tcMethodsText(r: Record<string, unknown>, o: TcMixedOptions, val
     + `a linear mixed model with group, ${time} and their interaction as fixed effects and `
     + `${phrase[cov] ?? cov}, fitted by restricted maximum likelihood (REML), using every available `
     + "measurement of each subject. Fixed effects were tested with Type III Wald F tests with "
-    + "denominator degrees of freedom by the between-within method. ";
+    + `denominator degrees of freedom by the ${r.ddf === "kenward_roger" ? "Kenward-Roger method (Kenward & Roger 1997)"
+      : r.ddf === "satterthwaite" ? "Satterthwaite method" : "between-within method"}. `;
   const mc = r.model_comparison as { rows?: unknown[] } | undefined;
   if (mc && Array.isArray(mc.rows) && mc.rows.length > 1) {
     t += `The covariance structure was chosen among ${mc.rows.length} candidates by Akaike's `

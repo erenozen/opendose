@@ -3,6 +3,8 @@
 import "../common/sheetKit.css";
 import { hasUnadjusted } from "../../report/family";
 import FamilyLine from "../common/FamilyLine";
+import DdfSelect from "../common/DdfSelect";
+import { ddfMethodsSentence, ddfName, ddfOf } from "../common/ddf";
 import type { ReactNode } from "react";
 import CopyableMethods from "../common/CopyableMethods";
 import { fmtCI, fmtP, formatSig, levelPct, stars } from "../common/statFormat";
@@ -90,6 +92,7 @@ export function NestedTControls({ table, options: o, onChange }: ControlsProps<N
         <LevelSelect value={o.ciLevel} onChange={(v) => set({ ciLevel: v })} />
         <NegVarSelect value={o.negativeVariance}
           onChange={(v) => set({ negativeVariance: v })} />
+        <DdfSelect value={o.mixedDdf} onChange={(m) => set({ mixedDdf: m })} />
         <p className="hint-block">{LAYOUT_HINT}</p>
       </section>
     </div>
@@ -120,6 +123,7 @@ export function NestedAnovaControls({ table, options: o, onChange }:
         <LevelSelect value={o.ciLevel} onChange={(v) => set({ ciLevel: v })} />
         <NegVarSelect value={o.negativeVariance}
           onChange={(v) => set({ negativeVariance: v })} />
+        <DdfSelect value={o.mixedDdf} onChange={(m) => set({ mixedDdf: m })} />
         <p className="hint-block">{LAYOUT_HINT}</p>
       </section>
     </div>
@@ -151,8 +155,8 @@ function TestBlock({ r }: { r: any }) {
         ["Significantly different (P < 0.05)?", r.p < 0.05 ? "Yes" : "No"],
         // the engine reports |t|; t takes the sign of the difference above
         ["t, df", `t = ${formatSig(typeof r.difference === "number" && r.difference < 0
-          ? -Math.abs(r.t) : r.t)}, df = ${r.df}`],
-        ["F (DFn, DFd)", `F(${r.df_num}, ${r.df_den}) = ${formatSig(r.F)}`],
+          ? -Math.abs(r.t) : r.t)}, df = ${formatSig(r.df)}`],
+        ["F (DFn, DFd)", `F(${r.df_num}, ${formatSig(r.df_den)}) = ${formatSig(r.F)}`],
         ["Difference between means ± SEM",
           `${formatSig(r.difference)} ± ${formatSig(r.se_difference)}`],
         [`${levelPct(r.ci_level)} CI of difference`, fmtCI(r.ci)],
@@ -161,7 +165,7 @@ function TestBlock({ r }: { r: any }) {
   }
   return (
     <KV rows={[
-      ["F (DFn, DFd)", `F(${r.df_num}, ${r.df_den}) = ${formatSig(r.F)}`],
+      ["F (DFn, DFd)", `F(${r.df_num}, ${formatSig(r.df_den)}) = ${formatSig(r.F)}`],
       ["P value", `${fmtP(r.p)} ${stars(r.p)}`],
       ["Do the group means differ (P < 0.05)?", r.p < 0.05 ? "Yes" : "No"],
     ]} />
@@ -187,7 +191,8 @@ export function NestedResults({ options, result: r }:
       <h3>{isT ? "Nested t test" : "Nested one-way ANOVA"}</h3>
       <p className="model-line">
         Mixed model: groups fixed, subcolumns (subgroups) random; REML fit,
-        df by containment (subcolumns − groups). {da.n_treatments} groups,
+        {ddfOf(r.ddf) === "containment" ? " df by containment (subcolumns − groups)."
+          : ` ${ddfName(ddfOf(r.ddf))} df.`} {da.n_treatments} groups,
         {" "}{da.n_subcolumns} subcolumns, {da.n_values} values.
       </p>
       <TestBlock r={r} />
@@ -254,7 +259,8 @@ export function NestedResults({ options, result: r }:
       {mc && (
         <>
           <h4>{NESTED_COMPARISONS_LABELS[mc.method as NestedComparisons]
-            ?.replace(/ \(.*\)$/, "") ?? mc.method} multiple comparisons (df = {mc.df})</h4>
+            ?.replace(/ \(.*\)$/, "") ?? mc.method} multiple comparisons
+            {mc.df != null ? ` (df = ${mc.df})` : " (each with its own df)"}</h4>
           <FamilyLine mc={mc} />
           <table className="results-table">
             <thead>
@@ -262,6 +268,7 @@ export function NestedResults({ options, result: r }:
                 <th scope="col">Comparison</th><th scope="col">Mean difference</th>
                 <th scope="col">SE</th><th scope="col">{level} CI</th>
                 <th scope="col">{mc.method === "tukey" ? "q" : "t"}</th>
+                {mc.df == null && <th scope="col">df</th>}
                 <th scope="col">Adjusted P</th>
                 {hasUnadjusted(mc.comparisons) && <th scope="col">Unadjusted P</th>}
                 <th scope="col">Summary</th>
@@ -274,6 +281,7 @@ export function NestedResults({ options, result: r }:
                   <td>{formatSig(c.difference)}</td><td>{formatSig(c.se)}</td>
                   <td>{c.ci ? fmtCI(c.ci) : "n/a"}</td>
                   <td>{formatSig(c.statistic)}</td>
+                  {mc.df == null && <td>{formatSig(c.df)}</td>}
                   <td>{fmtP(c.p_adjusted)}</td>
                   {hasUnadjusted(mc.comparisons) && <td>{fmtP(c.p_unadjusted)}</td>}
                   <td>{stars(c.p_adjusted)}</td>
@@ -371,17 +379,19 @@ export function NestedMethods({ options, result: r }:
     : `The ${da.n_treatments} groups were compared by a nested one-way ANOVA`}, `
     + "fitted as a linear mixed model with group as a fixed effect and "
     + "subgroups (subcolumns) nested within groups as a random effect, by "
-    + "restricted maximum likelihood (REML), with denominator degrees of "
-    + "freedom equal to the number of subgroups minus the number of groups"
+    + "restricted maximum likelihood (REML), with "
+    + (ddfOf(r.ddf) === "containment"
+      ? "denominator degrees of freedom equal to the number of subgroups minus the number of groups"
+      : `${ddfName(ddfOf(r.ddf))} denominator degrees of freedom`)
     + (options.negativeVariance === "zero"
       ? " and the subgroup variance constrained to be non-negative" : ""));
   let text = parts.join("") + ` (${da.n_subcolumns} subgroups, ${da.n_values} values). `;
   if (isT) {
     text += `${minus(String(r.comparison))}: difference ${formatSig(r.difference)} `
-      + `(${levelPct(r.ci_level)} CI ${fmtCI(r.ci)}), t(${r.df}) = ${formatSig(r.t)}, `
+      + `(${levelPct(r.ci_level)} CI ${fmtCI(r.ci)}), t(${formatSig(r.df)}) = ${formatSig(r.t)}, `
       + `P ${pText(r.p)}. `;
   } else {
-    text += `F(${r.df_num}, ${r.df_den}) = ${formatSig(r.F)}, P ${pText(r.p)}. `;
+    text += `F(${r.df_num}, ${formatSig(r.df_den)}) = ${formatSig(r.F)}, P ${pText(r.p)}. `;
     if (r.multiple_comparisons) {
       const m = NESTED_COMPARISONS_LABELS[r.multiple_comparisons.method as NestedComparisons]
         ?.replace(/ \(.*\)$/, "") ?? r.multiple_comparisons.method;
@@ -396,6 +406,8 @@ export function NestedMethods({ options, result: r }:
       + `χ²(${r.subcolumns_differ.df}) = ${formatSig(r.subcolumns_differ.chi_square)}, `
       + `P ${pText(r.subcolumns_differ.p)}). `;
   }
+  const ddfText = ddfMethodsSentence(ddfOf(r.ddf));
+  if (ddfText) text += `${ddfText} `;
   text += "Analyses were performed with OpenDose (open-source, built on SciPy).";
   return <CopyableMethods text={text} />;
 }

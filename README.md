@@ -19,6 +19,20 @@ numbers against independent implementations (statsmodels, pingouin,
 hand-derived formulas) and, where we have access, against results
 produced by commercial software (see `docs/prism-validation.md`).
 
+## Privacy and self-hosting
+
+The page contacts only the server it was loaded from: the Python runtime
+is served by the site itself, a Content-Security-Policy
+(`web/public/_headers`) makes the browser refuse any other address, and CI
+runs `web/scripts/e2e-privacy.mjs` on every push, failing if marked data
+leaves the page or another server is contacted. Share links are
+password-protected by default, and Preferences can switch autosave off or
+forget everything kept in the browser. The app explains this to users at
+`#privacy` ("Your data and privacy" in the info popover).
+
+To run your own copy (on your institution's servers, or on a computer that
+is never online), see [`docs/self-hosting.md`](docs/self-hosting.md).
+
 ## Layout
 
 - `engine/opendose/`: the analysis engine (pure Python). Single source
@@ -51,10 +65,15 @@ cd web && node scripts/e2e-figures.mjs  # SuperPlots, legends, P styles, classic
 cd web && node scripts/e2e-assays.mjs   # assay wizards (plate, ELISA, qPCR, flow, blots)
 cd web && node scripts/a11y-audit.mjs   # axe-core on every analysis' controls
 cd web && node scripts/smoke-0.4.0.mjs http://localhost:5173/ OUT   # screenshots of every 0.4.0 entry point, 1400/390 px, light/dark, with axe-core
+cd web && node scripts/ui-stage.mjs http://localhost:5173/ OUT ["grid-*,first-start"]   # stage: every surface and hard state (engine booting/failed, failed fit, 40x1200 grid, long names) from e2e-fixtures/stage/, 1400/390 px, light/dark, axe-core, contact sheet OUT/index.html
 ```
 
-The dev server needs internet access on first load (Pyodide + SciPy come
-from the jsDelivr CDN, ~30 MB, then cached). The offline cache exists only
+The site serves the Python runtime itself: `npm run dev` and `npm run build`
+first run `scripts/sync-pyodide.mjs`, which copies Pyodide from npm and
+downloads NumPy, SciPy and the .xlsx reader (~31 MB, each checked against
+its SHA-256) into `web/public/pyodide/`. Only the first build needs internet
+access; the downloads are cached in `node_modules/.cache`. The browser
+contacts no server but the site. The offline cache exists only
 in production builds; to measure one locally the way the host serves
 it (gzip):
 
@@ -336,6 +355,28 @@ sheets that follow the data.
 - Western blot densitometry (wizard): ImageJ / Image Lab exports,
   background and loading-control normalisation, fold change within blot,
   ratio paired t test with blot as the pair.
+- Dual-luciferase reporter: Firefly and Renilla readings per well,
+  background from mock wells, Firefly / Renilla ratio, fold change vs the
+  control construct with its CI, low-Renilla wells flagged; tests on the
+  log ratios with each experiment (transfection) counted once, or wells as
+  the unit when no experiment is recorded (said so on the sheet).
+- Wound healing (scratch assay): wound area or width over time, one
+  replicate column per well: % closure against each wound's own start,
+  the closure rate from a straight-line fit over a chosen window, the
+  time to 50% closure, and the rates compared between conditions
+  (t test or one-way ANOVA with Dunnett's test), wells as the unit.
+- MIC (broth microdilution): endpoint ODs of two-fold dilution series,
+  one data set per strain: growth vs the growth control (blank
+  subtracted), the MIC of each series and strain (skipped wells handled
+  as CLSI M07, replicates checked for essential agreement), MIC50 /
+  MIC90 across strains (CLSI M39) and an IC50 from a dose-response fit.
+- Kinetic plate reads: absorbance or fluorescence over time, one
+  replicate column per well: the initial rate of every well (by default
+  the steepest slope over 5 consecutive reads, as plate-reader software
+  reports "Vmax"; or the longest straight stretch with R² ≥ 0.99, or a
+  time window), a no-enzyme blank subtracted, an optional ε × path
+  conversion, and a substrate-vs-rate table opened with the
+  Michaelis-Menten fit.
 - From an example or an empty layout: growth curves (blank and log
   preprocessing, logistic / Gompertz / Zwietering lag models, doubling
   time with CI); tumour growth (mixed model on log volume, AUC per

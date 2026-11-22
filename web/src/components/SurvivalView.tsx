@@ -12,7 +12,10 @@ import {
   applyFormat, EMPTY_FORMAT, plotConfig, resultBlocks, riskSetsFromResult, tagTrace,
   usePlotEdits, type GraphFormat, type RiskSet,
 } from "../graph";
-import { survivalAt } from "../sheets/survival/graphSettings";
+import {
+  nudgeOnScale, plotLimits, plotValue, survivalAt, survivalYRange,
+  type SurvivalCi, type SurvivalScale, type SurvivalShow,
+} from "../sheets/survival/graphSettings";
 import { kmRowsFromEngine, kmTable, survivalGroups, type KmRow } from "../sheets/survival/kmTable";
 import TableCopy from "../sheets/common/TableCopy";
 import type { DataTableModel } from "../project/types";
@@ -35,6 +38,13 @@ interface PlotProps {
   /** Vertical offset between curves in percentage points, so curves that
    *  overlap (all start at 100%) stay visible; 0 = none. */
   nudge?: number;
+  /** Each curve's pointwise CI (the engine's log-log limits): none, a
+   *  shaded band or dotted step lines. */
+  ci?: SurvivalCi;
+  /** Survival S(t) or death 1 − S(t). */
+  show?: SurvivalShow;
+  /** Y in percent (0-100) or as a fraction (0-1). */
+  scale?: SurvivalScale;
 }
 
 
@@ -43,6 +53,7 @@ export function SurvivalPlot({
   result, scheme = DEFAULT_SCHEME,
   xTitle = "Time", yTitle = "Percent survival", format = EMPTY_FORMAT,
   onFormatChange, riskSets, censorMarks = false, nudge = 0,
+  ci = "none", show = "survival", scale = "percent",
 }: PlotProps) {
   const el = useRef<HTMLDivElement>(null);
   const [dark, setDark] = useState(isDarkMode());
@@ -77,7 +88,10 @@ export function SurvivalPlot({
     const entries = Object.entries(result.curves);
     entries.forEach(([name, curve]: [string, any], i) => {
       const { color, dash } = seriesStyle(i, dark, scheme);
-      const off = nudge ? ((entries.length - 1) / 2 - i) * nudge : 0;
+      const view = { show, scale };
+      const off = nudge ? ((entries.length - 1) / 2 - i) * nudgeOnScale(nudge, view) : 0;
+      const shown = (p: any) => plotValue(p.survival, view);
+      const pct = scale === "percent" ? ".1f" : ".3f";
       const set = censorMarks ? riskSets?.find((r) => r.name === name) : undefined;
       // With censor ticks, the curve runs on to the last subject followed
       // (a tick after the last event then sits on the line).
@@ -87,22 +101,39 @@ export function SurvivalPlot({
         ...set.times.filter((_, k) => set.events[k] === 0)) : -Infinity;
       if (last && lastCensor > last.time) pts = [...pts, { ...last, time: lastCensor }];
       const xs = pts.map((p: any) => p.time);
-      const ys = pts.map((p: any) => p.survival * 100 + off);
+      const ys = pts.map((p: any) => shown(p) + off);
+      const unit = scale === "percent" ? "%" : "";
+      // the CI first, so the curve draws over it (older results have no limits)
+      if (ci !== "none" && pts.every((p: any) => typeof p.lower === "number" && typeof p.upper === "number")) {
+        const lim = pts.map((p: any) => plotLimits(p.lower, p.upper, view));
+        const lo = lim.map((l) => l[0] + off);
+        const hi = lim.map((l) => l[1] + off);
+        const band = ci === "band";
+        traces.push(tagTrace({
+          x: xs, y: hi, mode: "lines", name: `${name} CI`, legendgroup: name, showlegend: false,
+          line: { color, width: band ? 0 : 1.2, shape: "hv", dash: "dot" }, hoverinfo: "skip",
+        }, { ds: i, role: "band" }) as Plotly.Data);
+        traces.push(tagTrace({
+          x: xs, y: lo, mode: "lines", name: `${name} CI`, legendgroup: name, showlegend: false,
+          line: { color, width: band ? 0 : 1.2, shape: "hv", dash: "dot" }, hoverinfo: "skip",
+          ...(band ? { fill: "tonexty", fillcolor: `${color}26` } : {}),
+        }, { ds: i, role: "band" }) as Plotly.Data);
+      }
       traces.push(tagTrace({
         x: xs, y: ys,
         mode: "lines",
         line: { color, width: 2, shape: "hv", dash },
-        name,
-        ...(off ? { customdata: pts.map((p: any) => p.survival * 100),
-          hovertemplate: `${name}<br>t=%{x}: %{customdata:.1f}%<extra></extra>` }
-          : { hovertemplate: `${name}<br>t=%{x}: %{y:.1f}%<extra></extra>` }),
+        name, legendgroup: name,
+        ...(off ? { customdata: pts.map(shown),
+          hovertemplate: `${name}<br>t=%{x}: %{customdata:${pct}}${unit}<extra></extra>` }
+          : { hovertemplate: `${name}<br>t=%{x}: %{y:${pct}}${unit}<extra></extra>` }),
       }, { ds: i, role: "line" }) as Plotly.Data);
       if (set) {
         const cx: number[] = [], cy: number[] = [];
         set.times.forEach((t, k) => {
           if (set.events[k] !== 0) return;
           const sv = survivalAt(curve.points, t);
-          if (sv !== null) { cx.push(t); cy.push(sv * 100 + off); }
+          if (sv !== null) { cx.push(t); cy.push(plotValue(sv, view) + off); }
         });
         if (cx.length) {
           traces.push(tagTrace({
@@ -128,7 +159,7 @@ export function SurvivalPlot({
       },
       yaxis: {
         title: { text: yTitle, font: { color: chrome.inkSecondary } },
-        range: [0, 105], gridcolor: chrome.grid, zeroline: false,
+        range: survivalYRange({ scale }), gridcolor: chrome.grid, zeroline: false,
         linecolor: chrome.axis, tickfont: { color: chrome.muted },
       },
       legend: { orientation: "h", y: 1.02, yanchor: "bottom", x: 0,
@@ -147,7 +178,7 @@ export function SurvivalPlot({
         toImageButtonOptions: { format: "svg", filename: "survival" } },
       format, !!onFormatChange))).then(() => attach(div));
   }, [result, dark, scheme, xTitle, yTitle, format, rev, riskSets, onFormatChange, attach,
-    censorMarks, nudge]);
+    censorMarks, nudge, ci, show, scale]);
 
   return <div className="plot" ref={el} />;
 }

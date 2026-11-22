@@ -1846,7 +1846,15 @@ _reg("two_phase_association", "Two phase association", FAM_EXP,
      transforms=[_half_life("KFast", "HalfLifeFast"),
                  _half_life("KSlow", "HalfLifeSlow"),
                  _tau("KFast", "TauFast"), _tau("KSlow", "TauSlow"),
-                 _diff("Plateau", "Y0", "Span")],
+                 _diff("Plateau", "Y0", "Span"),
+                 # the two spans the equation defines; delta-method CIs
+                 Transform("SpanFast", lambda p: (p["Plateau"] - p["Y0"])
+                           * p["PercentFast"] * 0.01,
+                           ("Plateau", "Y0", "PercentFast"), ci="symmetrical"),
+                 Transform("SpanSlow", lambda p: (p["Plateau"] - p["Y0"])
+                           * (100.0 - p["PercentFast"]) * 0.01,
+                           ("Plateau", "Y0", "PercentFast"),
+                           ci="symmetrical")],
      x_label="Time", multistart="KFast")
 
 
@@ -2459,7 +2467,7 @@ def fit_global_model(datasets, model: str, *, shared=None, constraints=None,
     if model not in nlfit.MODELS:
         raise ValueError(f"unknown model: {model}")
     spec = nlfit.MODELS[model]
-    if weighting not in ("none", "1/Y", "1/Y2", "1/X", "1/X2"):
+    if weighting == "1/SD2" or not nlfit.valid_weighting(weighting):
         raise ValueError(f"unknown weighting: {weighting}")
     shared = list(spec.shared if shared is None else shared)
     constraints = {k: float(v) for k, v in (constraints or {}).items()}
@@ -2561,7 +2569,7 @@ def fit_global_model(datasets, model: str, *, shared=None, constraints=None,
     def weights(theta):
         out = []
         for i, d in enumerate(data):
-            if weighting in ("1/Y", "1/Y2"):
+            if nlfit.y_weighted(weighting):
                 base = spec.func(d["x"], params_for(theta, i))
             else:
                 base = d["x"]
@@ -2590,9 +2598,12 @@ def fit_global_model(datasets, model: str, *, shared=None, constraints=None,
         return res
 
     def run(start):
-        # finite-difference scales (lsq module docstring)
-        floor = lsq.scale_floor(names, start, all_x, all_y, roles)
-        if weighting in ("1/Y", "1/Y2"):
+        # finite-difference scales (lsq module docstring), from the start
+        # moved inside the range constraints (as solve() moves it)
+        floor = lsq.scale_floor(
+            names, start if box is None else nlfit._inside(start, box),
+            all_x, all_y, roles)
+        if nlfit.y_weighted(weighting):
             res = solve(start, [np.ones_like(d["x"]) for d in data], floor)
             prev = res.x
             for _ in range(60):
@@ -2665,12 +2676,19 @@ def fit_global_model(datasets, model: str, *, shared=None, constraints=None,
             spec.transforms, fitted, free_names, cov, ci_map, tcrit,
             "asymptotic", curve=spec.func, x=d["x"], cov_index=index)
         for dname, entry in derived.items():
-            used = [t for t in spec.transforms if t.name == dname][0].params
+            tr = [t for t in spec.transforms if t.name == dname][0]
+            used = tr.params
             if any(u not in fitted for u in used):
                 continue
-            entry["shared"] = all(index.get(u) is not None
-                                  and layout[index[u]][1] is None
-                                  for u in used if u in index)
+            # an X[...] / Y[...] interpolation reads the whole curve: it is
+            # one value for all data sets only if every free parameter of
+            # this data set is shared; a function of named parameters, if
+            # its free ones are (and it has at least one: a value of
+            # constants only is labelled like a constant, not shared)
+            free = (list(index) if tr.kind != "params"
+                    else [u for u in used if u in index])
+            entry["shared"] = bool(free) and all(
+                layout[index[u]][1] is None for u in free)
             params[dname] = entry
             order.append(dname)
         if "Top" in params and "Bottom" in params:

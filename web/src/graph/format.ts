@@ -110,6 +110,9 @@ export interface AxisFormat {
   /** Title (right Y axis only; X and Y titles live in settings.titles). */
   title?: string;
   titleSize?: number;
+  /** Scale factor k (linear axes): tick labels show value / 10^k and the
+   *  title gets "(×10^k)"; the data are unchanged. */
+  scaleFactor?: number;
 }
 
 export type LegendPosition =
@@ -184,7 +187,8 @@ export interface ComparisonsFormat {
   show: boolean;
   /** Pair keys (`pairKey`) the user unticked. New pairs show by default. */
   hidden?: string[];
-  display?: "stars" | "p";
+  /** "mixed": asterisks when significant, the exact P when not. */
+  display?: "stars" | "p" | "mixed";
   prefix?: "P = " | "p = " | "";
   /** Only draw pairs with P below this (null/absent = all, ns included). */
   threshold?: number | null;
@@ -332,6 +336,10 @@ function axisFormat(r: Raw): AxisFormat {
     dateFormat: str(r.dateFormat, 40),
     title: str(r.title, 300),
     titleSize: num(r.titleSize, 4, 72),
+    scaleFactor: (() => {
+      const k = num(r.scaleFactor, -15, 15);
+      return k === undefined || Math.round(k) === 0 ? undefined : Math.round(k);
+    })(),
   });
 }
 
@@ -383,7 +391,7 @@ export function normalizeFormat(raw: unknown): GraphFormat {
     show: c.show !== false,
     hidden: Array.isArray(c.hidden)
       ? c.hidden.filter((h): h is string => typeof h === "string") : undefined,
-    display: oneOf(c.display, ["stars", "p"] as const),
+    display: oneOf(c.display, ["stars", "p", "mixed"] as const),
     prefix: oneOf(c.prefix, ["P = ", "p = ", ""] as const),
     threshold: c.threshold === null ? null : num(c.threshold, 0, 1),
     style: oneOf(c.style, ["bracket", "line", "tall"] as const),

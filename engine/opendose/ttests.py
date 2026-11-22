@@ -33,6 +33,16 @@ Hodges-Lehmann difference (Mann-Whitney) and of the median difference
 averages (Sheskin; Klotz), at the closest confidence level not below the
 one requested, which is reported as ci_actual_level.
 
+One-tailed results (every test here; Prism's "Options tab: t tests" offers
+one- or two-tailed P): "p_greater" is the one-tailed P for the
+alternative that A is larger than B (the difference A - B, the mean of the
+paired differences, or the ratio A/B above 1; Mann-Whitney: A tends to be
+larger; Wilcoxon: the differences A - B tend to be positive), "p_less" for
+the opposite; R's alternative = "greater" / "less". The t tests also give
+one-sided confidence bounds ("..._greater" = [lower, null], "..._less" =
+[null, upper]). Rank tests follow the same exact / approximate rule as their
+two-tailed P (p_method). The two-tailed P is unchanged.
+
 Every result also carries "effect_size" (opendose.effectsize): Cohen's d
 and Hedges' g with noncentral-t CIs (pooled SD; Welch: the average-
 variance standardizer), d_z and d_av for paired data, Cliff's delta /
@@ -67,6 +77,25 @@ def _pair(values_a, values_b):
              if a is not None and b is not None]
     return (np.array([p[0] for p in pairs], dtype=float),
             np.array([p[1] for p in pairs], dtype=float))
+
+
+def one_sided_t(est: float, se: float, df: float, ci_level: float = 0.95
+                ) -> dict:
+    """One-tailed P values of t = est / se with df degrees of freedom and
+    the one-sided confidence bounds of est: {"p_greater", "p_less",
+    "ci_greater": [lower, None], "ci_less": [None, upper]} (R's t.test with
+    alternative = "greater" / "less"). se = 0: P 0 / 1 by the sign of est,
+    None when est is 0 as well."""
+    if se > 0:
+        t_stat = est / se
+        p_g, p_l = float(stats.t.sf(t_stat, df)), float(stats.t.cdf(t_stat, df))
+    elif est != 0:
+        p_g, p_l = (0.0, 1.0) if est > 0 else (1.0, 0.0)
+    else:
+        p_g = p_l = None
+    q = float(stats.t.ppf(ci_level, df))
+    return {"p_greater": p_g, "p_less": p_l,
+            "ci_greater": [est - q * se, None], "ci_less": [None, est + q * se]}
 
 
 def unpaired_t(values_a, values_b, *, welch: bool = False,
@@ -121,6 +150,10 @@ def _unpaired_from_stats(mean_a, var_a, na, mean_b, var_b, nb, *,
         "f_test_variances": {"F": f, "dfn": dfn, "dfd": dfd,
                              "p": min(p_f, 1.0)},
     }
+    one = one_sided_t(diff, se, df, ci_level)
+    out.update(p_greater=one["p_greater"], p_less=one["p_less"],
+               ci_difference_greater=one["ci_greater"],
+               ci_difference_less=one["ci_less"])
     es = effectsize.safe(effectsize.d_from_stats, mean_a, var_a, na, mean_b,
                          var_b, nb, standardizer="average" if welch
                          else "pooled", ci_level=ci_level)
@@ -153,6 +186,10 @@ def paired_t(values_a, values_b, *, ci_level: float = 0.95,
         "r_squared": t_stat ** 2 / (t_stat ** 2 + df) if math.isfinite(t_stat) else 1.0,
         "pairing_correlation": {"r": float(r_pair), "p": float(p_pair)},
     }
+    one = one_sided_t(mean_d, se, df, ci_level)
+    out.update(p_greater=one["p_greater"], p_less=one["p_less"],
+               ci_difference_greater=one["ci_greater"],
+               ci_difference_less=one["ci_less"])
     if effect_size:
         out["effect_size"] = effectsize.safe(effectsize.paired_d, a, b,
                                              ci_level=ci_level)
@@ -178,15 +215,22 @@ def mann_whitney(values_a, values_b, *, ci_level: float = 0.95) -> dict:
         res = stats.mannwhitneyu(a, b, alternative="two-sided",
                                  method="exact")
         p = float(res.pvalue)
+        p_g, p_l = (float(stats.mannwhitneyu(a, b, alternative=alt,
+                                             method="exact").pvalue)
+                    for alt in ("greater", "less"))
     elif n_small <= 100 and exactdist.rank_sum_exact_feasible(n_small,
                                                               n_large):
         res = stats.mannwhitneyu(a, b, alternative="two-sided",
                                  method="asymptotic")
         p = exactdist.rank_sum_two_sided_p(a, b)
+        p_g, p_l = exactdist.rank_sum_one_sided_p(a, b)
     else:
         res = stats.mannwhitneyu(a, b, alternative="two-sided",
                                  method="asymptotic")
         p = float(res.pvalue)
+        p_g, p_l = (float(stats.mannwhitneyu(a, b, alternative=alt,
+                                             method="asymptotic").pvalue)
+                    for alt in ("greater", "less"))
         p_method = "approximate"
     u1 = float(res.statistic)
     ranks = stats.rankdata(pooled)
@@ -207,6 +251,7 @@ def mann_whitney(values_a, values_b, *, ci_level: float = 0.95) -> dict:
         "test": "mann_whitney",
         "U": u1,
         "p_two_tailed": p,
+        "p_greater": p_g, "p_less": p_l,
         "median_a": float(np.median(a)), "median_b": float(np.median(b)),
         "hodges_lehmann_difference": hl,
         "n_a": int(a.size), "n_b": int(b.size),
@@ -227,7 +272,9 @@ def wilcoxon_matched_pairs(values_a, values_b, *,
                            zero_method: str = "wilcox",
                            ci_level: float = 0.95) -> dict:
     a, b = _pair(values_a, values_b)
-    d = a - b
+    # without floating-point noise, so tied and zero differences are
+    # recognised (exactdist.snap_differences)
+    d = exactdist.snap_differences(a - b, a, b)
     nonzero = d[d != 0]
     if nonzero.size < 1:
         raise ValueError("all paired differences are zero")
@@ -243,7 +290,7 @@ def wilcoxon_matched_pairs(values_a, values_b, *,
     }
     out.update({key: res[key] for key in (
         "p_method", "zero_method", "sum_positive_ranks",
-        "sum_negative_ranks", "n_zero_differences")})
+        "sum_negative_ranks", "n_zero_differences", "p_greater", "p_less")})
     out.update(walsh_ci(d, ci_level))
     out["effect_size"] = effectsize.safe(
         effectsize.rank_biserial_paired, d, zero_method=zero_method,
@@ -260,7 +307,7 @@ def signed_rank_test(diffs, *, zero_method: str = "wilcox") -> dict:
     ranks (Pratt 1959). Exact P with fewer than 200 ranked values (ties
     included), else the normal approximation with the tie-corrected
     variance sum(r^2)/4 (no continuity correction)."""
-    d = np.asarray(diffs, dtype=float)
+    d = exactdist.snap_differences(diffs)
     if zero_method not in ("wilcox", "pratt"):
         raise ValueError(f"unknown zero_method: {zero_method}")
     n_zero = int(np.sum(d == 0))
@@ -280,18 +327,26 @@ def signed_rank_test(diffs, *, zero_method: str = "wilcox") -> dict:
                                             and n_zero > 0)
     if n_used < 200 and not tied and n_zero == 0:
         p = float(stats.wilcoxon(d, method="exact").pvalue)
+        p_g, p_l = (float(stats.wilcoxon(d, alternative=alt,
+                                         method="exact").pvalue)
+                    for alt in ("greater", "less"))
         p_method = "exact"
     elif n_used < 200:
         r2 = np.rint(2 * ranks).astype(np.int64)
         p = exactdist.signed_rank_two_sided_p(r2, pos)
+        p_g, p_l = exactdist.signed_rank_one_sided_p(r2, pos)
         p_method = "exact"
     else:
         mean = ranks.sum() / 2.0
         sd = math.sqrt(float((ranks ** 2).sum()) / 4.0)
         p = (float(2 * stats.norm.sf(abs(r_plus - mean) / sd))
              if sd > 0 else 1.0)
+        z = (r_plus - mean) / sd if sd > 0 else 0.0
+        p_g, p_l = ((float(stats.norm.sf(z)), float(stats.norm.cdf(z)))
+                    if sd > 0 else (1.0, 1.0))
         p_method = "approximate"
     return {"p": min(p, 1.0), "p_method": p_method,
+            "p_greater": min(p_g, 1.0), "p_less": min(p_l, 1.0),
             "zero_method": zero_method,
             "sum_positive_ranks": r_plus, "sum_negative_ranks": -r_minus,
             "sum_signed_ranks": r_plus - r_minus,
@@ -349,6 +404,10 @@ def ratio_paired_t(values_a, values_b, *, ci_level: float = 0.95) -> dict:
         "se_log10_ratio": res["se_difference"],
         "ci_log10_ratio": [lo, hi],
         "t": res["t"], "df": res["df"], "p_two_tailed": res["p_two_tailed"],
+        # one-tailed: the ratio A/B above 1 ("greater") or below it
+        "p_greater": res["p_greater"], "p_less": res["p_less"],
+        "ci_ratio_greater": [10.0 ** res["ci_difference_greater"][0], None],
+        "ci_ratio_less": [None, 10.0 ** res["ci_difference_less"][1]],
         "r_squared": res["r_squared"],
         "geometric_mean_a": float(10.0 ** np.log10(a).mean()),
         "geometric_mean_b": float(10.0 ** np.log10(b).mean()),

@@ -5,9 +5,10 @@
   "type": "module",
   "scripts": {
     "sync-py": "node scripts/sync-py.mjs",
-    "predev": "npm run sync-py",
+    "sync-pyodide": "node scripts/sync-pyodide.mjs",
+    "predev": "npm run sync-py && npm run sync-pyodide",
     "dev": "vite",
-    "prebuild": "npm run sync-py",
+    "prebuild": "npm run sync-py && npm run sync-pyodide",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "test:unit": "node --test 'src/**/__tests__/*.test.ts'",

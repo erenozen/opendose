@@ -26,6 +26,7 @@
 //   graph, AUC per mouse and a 60-120 min window summary.
 // Usage: node scripts/e2e-assays.mjs http://localhost:5196/
 import { chromium } from "playwright";
+import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 
 // ?example=1 opens the example project directly (no start screen, no tour).
@@ -57,7 +58,7 @@ const waitCell = (label, test, timeout = 20000) => page.waitForFunction(([l, src
 }, [label, test], { timeout }).then(() => true, () => false);
 // axe-core (WCAG 2 A/AA, contrast included) on parts of the page.
 const axeViolations = async (selectors) => {
-  await page.addScriptTag({ path: createRequire(import.meta.url).resolve("axe-core/axe.min.js") }).catch(() => {});
+  await page.evaluate(readFileSync(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8")).catch(() => {});
   return page.evaluate(async (sels) => {
     const out = [];
     for (const sel of sels) {

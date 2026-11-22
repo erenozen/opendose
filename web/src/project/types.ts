@@ -112,6 +112,13 @@ export interface DataColumn {
    *  project/exclusions.ts and the row operations in project/table.ts. */
   exclusionReasons?: Record<string, string>;
   varType?: VarType;       // multivariable tables only
+  /** A calculated column: its values come from this formula over the
+   *  other columns (project/calculated.ts) and are rewritten whenever
+   *  they change. Absent = typed values. */
+  formula?: string;
+  /** Why the formula could not be calculated (set by the sync; cells
+   *  then keep their last values). */
+  formulaError?: string;
 }
 
 /** The generic grid every table type is stored in. */
@@ -355,6 +362,9 @@ export interface Prefs {
   theme: "auto" | "light" | "dark";
   /** Significant digits shown in results tables. */
   digits: number;
+  /** The same colour for a group on every graph, by its name
+   *  (graph/nameColors.ts). Absent = colours follow the data set order. */
+  colorByName?: boolean;
   /** Last image-export settings (see export/settings.ts); travel with
    *  the project, outside undo history. */
   export?: ExportPrefs;

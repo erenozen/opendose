@@ -4,7 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { emptyTable, setCell, toggleExcluded } from "../../../project/table.ts";
 import {
-  ciFraction, convexHull, dataEllipse, defaultLogistic, defaultRegression,
+  ciFraction, convexHull, dataEllipse, defaultLogistic, defaultPoisson, defaultRegression, poissonPayload,
   duplicateNames, mergeOptions, mvVariables, pcaScores, rearrangePayload,
   regressionPayload, tableFromRearranged, variableInfo,
 } from "../model.ts";
@@ -134,4 +134,31 @@ test("PCA scores from eigenvectors", () => {
   assert.equal(scores.length, 30);
   assert.ok(Math.abs(scores[0]![0] - (0 - 3.6)) < 1e-12);
   assert.ok(Math.abs(scores[0]![1] - (249 - 240) / 10) < 1e-12);
+});
+
+test("Poisson payload: exposure kept only when it is a separate continuous variable", () => {
+  const t = multivariableSample();
+  const base = { ...defaultPoisson(t), outcome: "Response", predictors: ["Dose", "Sex"] };
+  const ok = poissonPayload(t, { ...base, exposure: "Weight", ciMethod: "wald" });
+  assert.ok("options" in ok);
+  const o = (ok as { options: Record<string, unknown> }).options;
+  assert.equal(o.exposure, "Weight");
+  assert.equal(o.ci_method, "wald");
+  assert.deepEqual(o.predictors, ["Dose", "Sex"]);
+  // a predictor, a categorical variable or a missing name is not an exposure
+  for (const exposure of ["Dose", "Sex", "Nope", ""]) {
+    const r = poissonPayload(t, { ...base, exposure }) as { options: Record<string, unknown> };
+    assert.equal(r.options.exposure, null);
+  }
+  assert.ok("error" in poissonPayload(t, { ...base, outcome: "Sex", predictors: ["Dose"] }));
+});
+
+test("Poisson starts from the last column of whole counts", () => {
+  let t = emptyTable("multivariable", { datasets: 3, rows: 5 });
+  const cols = [["3", "0", "7", "2", "5"], ["0.5", "1.2", "2.2", "0.1", "3.3"], ["1.5", "2", "1", "2.5", "1.2"]];
+  cols.forEach((c, d) => c.forEach((v, r) => { t = setCell(t, d, r, 0, v); }));
+  const o = defaultPoisson(t);
+  assert.equal(o.outcome, variableInfo(t)[0].name);
+  assert.deepEqual(o.predictors, variableInfo(t).slice(1).map((v) => v.name));
+  assert.equal(o.exposure, "");
 });

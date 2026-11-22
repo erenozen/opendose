@@ -1,5 +1,5 @@
 import type { AnalysisResult, FitResult, ParamEntry } from "../types";
-import { MODELS_META, WEIGHTING_LABELS, formatSig } from "../types";
+import { MODELS_META, formatSig, weightingLabel } from "../types";
 import { RangeNote, RangeValueCell } from "../sheets/xy/rangeFlags";
 import { rangeHidesSpread } from "../sheets/xy/rangeReport";
 
@@ -113,7 +113,17 @@ export default function ResultsPanel({ result, xUnit = "M" }: Props) {
               <code>{fit.equation}</code>
             </p>
             {(fit.weighting && fit.weighting !== "none") && (
-              <p className="model-line">{WEIGHTING_LABELS[fit.weighting]}</p>
+              <p className="model-line">{weightingLabel(fit.weighting)}</p>
+            )}
+            {fit.fit_method === "robust" && (
+              <p className="model-line">
+                Robust nonlinear regression (Lorentzian): best-fit values only. Robust fitting cannot
+                give standard errors, confidence intervals or bands
+                {typeof fit.goodness?.rsdr === "number" ? `; RSDR = ${formatSig(fit.goodness.rsdr)}` : ""}.
+                {ds.robust_skipped?.length ? ` Not computed: ${ds.robust_skipped.map((k) => ({
+                  bands: "bands", interpolate_y: "interpolation", diagnostics: "diagnostics",
+                  absolute_ic50_level: "absolute IC50" } as Record<string, string>)[k] ?? k).join(", ")}.` : ""}
+              </p>
             )}
             {ds.rout && (
               <p className="model-line">

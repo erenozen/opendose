@@ -5,13 +5,15 @@ import FamilyLine from "../sheets/common/FamilyLine";
 import ResidualsSection from "../sheets/column/residualsPanel";
 import { LogAnovaRatios, LogTTest } from "../sheets/column/logScaleResults";
 import { onLogScale } from "../sheets/column/logScale";
+import { oneTailedAlternative } from "../sheets/column/tails";
+import { FrequencyResults } from "../sheets/column/frequencyPanel";
 import { MixedRmOneWay, RmComparisons } from "../sheets/column/rmPosthocResults";
 import { rmComparisonsOf } from "../sheets/column/rmPosthoc";
 
 interface Props {
   result: Record<string, unknown> | null;
   /** The column analysis' options (which one-sided P to show, ...). */
-  options?: { corrTails?: "two" | "greater" | "less" };
+  options?: { corrTails?: "two" | "greater" | "less"; ttestTails?: "two" | "greater" | "less" };
 }
 
 type Row = [string, string];
@@ -52,6 +54,26 @@ function KV({ title, rows }: { title?: string; rows: Row[] }) {
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+/** Rows of normality test results (suffix: " (logarithms)" for the
+ *  lognormality tests). */
+function normalityRows(tests: Record<string, any> | null | undefined, suffix = ""): Row[] {
+  return Object.entries(tests ?? {}).map(([key, v]: [string, any]) => {
+    const label = ({
+      shapiro_wilk: "Shapiro-Wilk",
+      dagostino_pearson: "D'Agostino-Pearson",
+      anderson_darling: "Anderson-Darling",
+      kolmogorov_smirnov: "Kolmogorov-Smirnov",
+    }[key] ?? key) + suffix;
+    if (v?.error) return [label, String(v.error)];
+    const pText = v.p == null && v.p_summary ? v.p_summary.replace("P>", "P > ")
+      : `${pLabel(v.p)}`;
+    const stat = key === "kolmogorov_smirnov" && v.KS != null
+      ? `KS distance = ${formatSig(v.KS)}, ` : "";
+    return [label,
+      `${stat}${pText}, ${v.passed_alpha_05 ? "passed" : "failed"} (α=0.05)`];
+  });
+}
+
 function ColumnStats({ result }: { result: any }) {
   return (
     <>
@@ -76,22 +98,17 @@ function ColumnStats({ result }: { result: any }) {
           ["Kurtosis", formatSig(d.kurtosis)],
           ["Sum", formatSig(d.sum)],
         ];
-        const norm: Row[] = Object.entries(ds.normality ?? {}).map(
-          ([key, v]: [string, any]) => {
-            const label = {
-              shapiro_wilk: "Shapiro-Wilk",
-              dagostino_pearson: "D'Agostino-Pearson",
-              anderson_darling: "Anderson-Darling",
-              kolmogorov_smirnov: "Kolmogorov-Smirnov",
-            }[key] ?? key;
-            if (v?.error) return [label, String(v.error)];
-            const pText = v.p == null && v.p_summary ? v.p_summary.replace("P>", "P > ")
-              : `${pLabel(v.p)}`;
-            const stat = key === "kolmogorov_smirnov" && v.KS != null
-              ? `KS distance = ${formatSig(v.KS)}, ` : "";
-            return [label,
-              `${stat}${pText}, ${v.passed_alpha_05 ? "passed" : "failed"} (α=0.05)`];
-          });
+        const norm: Row[] = normalityRows(ds.normality);
+        const logn = ds.lognormality;
+        const lognRows: Row[] = !logn ? [] : [
+          ...(logn.tests ? normalityRows(logn.tests, " (logarithms)")
+            : [["Lognormality tests", `not run: ${logn.not_run ?? "no test applies"}`] as Row]),
+          logn.comparison?.error
+            ? ["Normal vs lognormal likelihood", `not computed: ${logn.comparison.error}`]
+            : ["Normal vs lognormal likelihood",
+              `normal ${formatSig(100 * logn.comparison.p_normal, 3)}%, `
+              + `lognormal ${formatSig(100 * logn.comparison.p_lognormal, 3)}%`],
+        ];
         const extra: Row[] = [];
         if (ds.one_sample_t) {
           const t = ds.one_sample_t;
@@ -155,6 +172,7 @@ function ColumnStats({ result }: { result: any }) {
               <KV title="Descriptive" rows={rows} />
               <div>
                 <KV title="Normality" rows={norm} />
+                {lognRows.length > 0 && <KV title="Lognormality" rows={lognRows} />}
                 {extra.length > 0 && <KV title="One-sample tests" rows={extra} />}
                 {more.length > 0 && <KV title={`More descriptive statistics${x?.percentile_method === "prism" ? " (percentiles: rank (n + 1)p)" : ""}`} rows={more} />}
               </div>
@@ -166,13 +184,35 @@ function ColumnStats({ result }: { result: any }) {
   );
 }
 
-function TTest({ result }: { result: any }) {
+type Tails = "two" | "greater" | "less";
+
+/** One-tailed P (and the one-sided 95% bound of t tests) in the direction
+ *  the user chose; the two-tailed P stays above it. */
+function oneTailedRows(result: any, tails: Tails | undefined): Row[] {
+  if (tails !== "greater" && tails !== "less") return [];
+  const p = tails === "greater" ? result.p_greater : result.p_less;
+  if (typeof p !== "number") return [];
+  const [a, b] = result.names ?? ["A", "B"];
+  const rows: Row[] = [[`P value (one-tailed${pKind(result.p_method)}; alternative: ${oneTailedAlternative(result, tails)})`,
+    `${fmtP(p)} ${stars(p)}`]];
+  const ratio = result.test === "ratio_paired_t";
+  const bound = ratio ? result[`ci_ratio_${tails}`] : result[`ci_difference_${tails}`];
+  if (Array.isArray(bound)) {
+    const what = ratio ? `${a}/${b}` : result.test === "paired_t" ? `mean of ${a} − ${b}` : `${a} − ${b}`;
+    rows.push(["One-sided 95% confidence bound", tails === "greater"
+      ? `${what} ≥ ${formatSig(bound[0])}` : `${what} ≤ ${formatSig(bound[1])}`]);
+  }
+  return rows;
+}
+
+function TTest({ result, tails }: { result: any; tails?: Tails }) {
   const [nameA, nameB] = result.names ?? ["A", "B"];
   if (result.test === "kolmogorov_smirnov") return <KSTest result={result} />;
-  if (result.test === "ratio_paired_t") return <RatioPaired result={result} />;
+  if (result.test === "ratio_paired_t") return <RatioPaired result={result} tails={tails} />;
   const rows: Row[] = [];
   rows.push([`P value (two-tailed${pKind(result.p_method)})`,
     `${fmtP(result.p_two_tailed)} ${stars(result.p_two_tailed)}`]);
+  rows.push(...oneTailedRows(result, tails));
   if (result.t !== undefined) {
     // The engine reports |t|; t carries the sign of the difference shown
     // below (A − B, or the mean of the paired differences A − B).
@@ -318,9 +358,10 @@ function Anova({ result }: { result: any }) {
         <KV rows={[
           ["Kruskal-Wallis H", formatSig(result.H)],
           ...(Array.isArray(result.group_summaries) && result.group_summaries.length > 1
+            && result.p_method !== "exact"
             ? [["df (chi-square approximation)", String(result.group_summaries.length - 1)] as Row]
             : []),
-          ["P value", `${fmtP(result.p)} ${stars(result.p)}`],
+          [`P value${pKind(result.p_method)}`, `${fmtP(result.p)} ${stars(result.p)}`],
         ]} />
         {result.dunns && (
           <>
@@ -403,7 +444,31 @@ function Anova({ result }: { result: any }) {
           <ComparisonsTable mc={result.multiple_comparisons} />
         </>
       )}
+      {result.trend && <TrendBlock trend={result.trend} />}
     </div>
+  );
+}
+
+/** Test for linear trend after one-way ANOVA (engine anova.linear_trend). */
+function TrendBlock({ trend }: { trend: any }) {
+  if (trend.error) return <p className="result-note">Test for linear trend: {String(trend.error)}</p>;
+  const order = (trend.names ?? []).map((n: string, i: number) => `${n} = ${i + 1}`).join(", ");
+  return (
+    <>
+      <h4>Test for linear trend</h4>
+      <KV rows={[
+        ["Slope (change in mean per column)", formatSig(trend.slope)],
+        ["R squared (effect size)", formatSig(trend.r_squared)],
+        ["Alerting R squared", formatSig(trend.r_squared_alerting)],
+        ["Linear trend: F (DFn, DFd), P",
+          `F(1, ${trend.within.df}) = ${formatSig(trend.linear.F)}, ${pLabel(trend.linear.p)} ${stars(trend.linear.p)}`],
+        ["Nonlinear variation: F (DFn, DFd), P",
+          `F(${trend.nonlinear.df}, ${trend.within.df}) = ${formatSig(trend.nonlinear.F)}, ${pLabel(trend.nonlinear.p)}`],
+      ]} />
+      <p className="model-line">Columns coded in the order entered ({order}). R squared is the share of all
+        the variation the trend explains; the alerting R squared its share of the variation between the
+        column means. A small nonlinear-variation P says the means do not lie on a straight line.</p>
+    </>
   );
 }
 
@@ -706,13 +771,14 @@ function KSTest({ result }: { result: any }) {
   );
 }
 
-function RatioPaired({ result }: { result: any }) {
+function RatioPaired({ result, tails }: { result: any; tails?: Tails }) {
   const [a, b] = result.names ?? ["A", "B"];
   return (
     <div className="result-card">
       <h3>Ratio paired t test: {a} / {b}</h3>
       <KV rows={[
         ["P value (two-tailed)", `${fmtP(result.p_two_tailed)} ${stars(result.p_two_tailed)}`],
+        ...oneTailedRows(result, tails),
         ["t, df", `t=${formatSig(result.t)}, df=${result.df}`],
         ["Geometric mean of the ratios", formatSig(result.geometric_mean_ratio)],
         ["95% CI of the ratio", fmtCI(result.ci_ratio)],
@@ -785,6 +851,57 @@ function AnovaUnequal({ result }: { result: any }) {
   );
 }
 
+const P_STACK_NAMES: Record<string, string> = {
+  bky: "two-stage step-up method of Benjamini, Krieger and Yekutieli",
+  bh: "method of Benjamini and Hochberg", by: "method of Benjamini and Yekutieli",
+  holm_sidak: "Holm-Šídák step-down method", sidak: "Šídák method", bonferroni: "Bonferroni method",
+  holm: "Holm step-down method", none: "no correction",
+};
+
+function PStack({ result }: { result: any }) {
+  const fdr = result.approach === "fdr";
+  const flag = fdr ? "Discovery?" : "Significant?";
+  const rows: Row[] = [
+    ["Method", P_STACK_NAMES[result.method] ?? String(result.method)],
+    fdr ? ["Q (desired false discovery rate)", `${formatSig(100 * result.q)}%`]
+      : ["α (family-wise)", formatSig(result.alpha)],
+    ["P values in the family", String(result.n)],
+    ...(result.n_omitted ? [["Blank or excluded rows (left out)", String(result.n_omitted)] as Row] : []),
+    [fdr ? "Discoveries" : "Significant", `${result.discoveries} of ${result.n}`],
+    ...(result.n_true_null_estimate != null
+      ? [["Estimated true null hypotheses (first stage)", formatSig(result.n_true_null_estimate)] as Row] : []),
+  ];
+  return (
+    <div className="result-card">
+      <h3>Stack of P values</h3>
+      <KV rows={rows} />
+      <table className="results-table">
+        <thead><tr><th>Comparison</th><th>P value</th><th>Rank</th>
+          <th>{fdr ? "q value" : "Adjusted P"}</th>
+          <th>Threshold</th><th>{flag}</th></tr></thead>
+        <tbody>
+          {(result.rows ?? []).map((r: any, i: number) => (
+            <tr key={i}>
+              <td>{r.label}</td>
+              <td>{r.p == null ? "–" : fmtP(r.p)}</td>
+              <td>{r.rank ?? "–"}</td>
+              <td>{r.adjusted == null ? "–" : fmtP(r.adjusted)}</td>
+              <td>{r.threshold == null ? "–" : formatSig(r.threshold, 3)}</td>
+              <td>{r.significant == null ? "left out" : r.significant ? "Yes" : "No"}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="model-line">
+        {fdr ? "A comparison is a discovery when its P value is at or below the threshold for its rank (or "
+          + "any larger-ranked one); its q value is the smallest Q at which it would be one."
+          : "Adjusted P values account for the whole family; a comparison is significant when its adjusted P "
+          + "is at or below α."}
+      </p>
+    </div>
+  );
+}
+
 function MedianTest({ result }: { result: any }) {
   const rows: Row[] = [["Grand median", formatSig(result.grand_median)]];
   if (result.chi_square) {
@@ -833,11 +950,13 @@ function mainResults(result: Record<string, unknown>, options: Props["options"])
   switch (result.analysis) {
     case "column_statistics": return <ColumnStats result={result} />;
     case "ttest": return onLogScale(result) && result.ratio != null
-      ? <LogTTest result={result} /> : <TTest result={result} />;
+      ? <LogTTest result={result} /> : <TTest result={result} tails={options?.ttestTails} />;
     case "anova": return onLogScale(result) && result.kind !== "nonparametric" && result.table
       ? <><LogAnovaRatios result={result} /><Anova result={result} /></> : <Anova result={result} />;
     case "anova_unequal_var": return <AnovaUnequal result={result} />;
     case "median_test": return <MedianTest result={result} />;
+    case "fdr_adjust": return <PStack result={result} />;
+    case "frequency_distribution": return <FrequencyResults result={result} />;
     case "ks_test": return <KSTest result={result} />;
     case "rm_one_way_anova": return <RMAnova result={result} />;
     case "mixed_rm_one_way": return <MixedRmOneWay result={result} />;
@@ -846,6 +965,17 @@ function mainResults(result: Record<string, unknown>, options: Props["options"])
     case "rm_two_way_mixed":
     case "rm_two_way_both": return <RMTwoWay result={result} />;
     case "correlation": return <Correlation result={result} tails={options?.corrTails} />;
+    case "correlation_x": return (
+      <>
+        {((result.items ?? []) as any[]).map((it, k) => (it?.error
+          ? <div className="result-card" key={k}><p className="result-note">{String(it.error)}</p></div>
+          : <Correlation key={k} result={it} tails={options?.corrTails} />))}
+        {result.replicates_averaged === true && (
+          <p className="hint-block">Replicate Y values were averaged per row: each correlation uses one point per
+            row (X, mean Y), as Prism does with subcolumns.</p>
+        )}
+      </>
+    );
     case "roc": return <Roc result={result} />;
     case "bland_altman": return <BlandAltman result={result} />;
     case "outliers": return <Outliers result={result} />;

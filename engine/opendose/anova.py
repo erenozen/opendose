@@ -19,6 +19,11 @@ Prism statistics guide, "One-way ANOVA (and nonparametric)":
     not a Prism option; R's p.adjust "holm"). No CIs for step-down
     methods.
 - Nonparametric: Kruskal-Wallis (tie-corrected H) with Dunn's post test.
+  "Interpreting results: Kruskal-Wallis test": the P value is exact for
+  small samples, ties included, else from the chi-square approximation,
+  and labelled as such. kruskal_wallis(..., exact=True) applies that rule
+  (opendose.exactdist, within a computation budget) and labels p_method;
+  the default keeps the chi-square approximation.
   Dunn's z uses the tie-corrected SE the guide gives ("How the Dunn
   method for nonparametric comparisons works"): sqrt([N(N+1) -
   sum(T^3 - T)/(N - 1)] / 12 * (1/n_i + 1/n_j)); corrected (x number of
@@ -71,7 +76,13 @@ def _groups(datasets) -> list[np.ndarray]:
 
 
 def one_way_anova(datasets, names=None) -> dict:
-    groups = [g for g in _groups(datasets) if g.size > 0]
+    all_groups = _groups(datasets)
+    names = list(names) if names else [f"Group {i}" for i in
+                                       range(len(all_groups))]
+    # an empty group is left out together with its own name, so every
+    # other group keeps its label
+    names = [n for n, g in zip(names, all_groups) if g.size > 0]
+    groups = [g for g in all_groups if g.size > 0]
     if len(groups) < 2:
         raise ValueError("one-way ANOVA needs at least 2 non-empty groups")
     if any(g.size < 2 for g in groups):
@@ -110,6 +121,62 @@ def one_way_anova(datasets, names=None) -> dict:
         "bartlett": {"statistic": float(bart_stat), "p": float(bart_p)},
         "effect_size": effectsize.safe(effectsize.one_way, ss_between,
                                        k - 1, ss_within, n_total - k),
+    }
+
+
+def linear_trend(datasets, names=None) -> dict:
+    """Test for linear trend after one-way ANOVA (statistics guide,
+    "Overview: Test for linear trend", "How the test for trend works",
+    "Results from test for trend"): the columns are coded 1, 2, ..., k in
+    the order entered, the between-group SS is split into the part a
+    straight line through the group means explains (1 df) and the rest
+    (nonlinear variation, k - 2 df), each tested with F against the
+    within-group mean square.
+
+    The line is the n-weighted regression of the group means on the codes
+    (Armitage; Altman, Practical Statistics for Medical Research): it is
+    the partition of the between-group SS, and the ordinary regression of
+    the means when the groups are equal in size. slope = change in mean per
+    column; r_squared = SS_linear / SS_total (effect size), r_squared_alerting
+    = SS_linear / SS_between."""
+    groups = [g for g in _groups(datasets) if g.size > 0]
+    k = len(groups)
+    if k < 3:
+        raise ValueError("a test for trend needs at least 3 groups")
+    if any(g.size < 2 for g in groups):
+        raise ValueError("every group needs at least 2 values")
+    ns = np.array([g.size for g in groups], dtype=float)
+    n_total = float(ns.sum())
+    shift = groups[0][0]                       # as one_way_anova
+    means = np.array([float((g - shift).mean()) for g in groups])
+    grand = float((ns * means).sum() / n_total)
+    codes = np.arange(1, k + 1, dtype=float)
+    cbar = float((ns * codes).sum() / n_total)
+    sxx = float((ns * (codes - cbar) ** 2).sum())
+    sxy = float((ns * (codes - cbar) * (means - grand)).sum())
+    slope = sxy / sxx
+    ss_linear = sxy * sxy / sxx
+    ss_between = float((ns * (means - grand) ** 2).sum())
+    ss_within = float(sum(((g - g.mean()) ** 2).sum() for g in groups))
+    ss_total = ss_between + ss_within
+    df_within = int(n_total) - k
+    ms_within = ss_within / df_within
+    ss_nonlin = max(ss_between - ss_linear, 0.0)
+    df_nonlin = k - 2
+    f_lin = ss_linear / ms_within if ms_within > 0 else math.inf
+    f_non = (ss_nonlin / df_nonlin) / ms_within if ms_within > 0 else math.inf
+    return {
+        "codes": codes.tolist(),
+        "names": list(names) if names else [f"Group {i}" for i in range(k)],
+        "slope": slope,
+        "linear": {"ss": ss_linear, "df": 1, "F": f_lin,
+                   "p": float(stats.f.sf(f_lin, 1, df_within))},
+        "nonlinear": {"ss": ss_nonlin, "df": df_nonlin, "F": f_non,
+                      "p": float(stats.f.sf(f_non, df_nonlin, df_within))},
+        "within": {"ss": ss_within, "df": df_within, "ms": ms_within},
+        "r_squared": ss_linear / ss_total if ss_total > 0 else None,
+        "r_squared_alerting": (ss_linear / ss_between if ss_between > 0
+                               else None),
     }
 
 
@@ -495,9 +562,12 @@ def _comparisons_from_stats(means, ns, ms_res, df_res, method: str, *,
 def kruskal_wallis(datasets, names=None, *, dunns: bool = True,
                    dunn_corrected: bool = True, dunn_family: str = "all",
                    control: int = 0, pairs=None,
-                   dunn_correction: str | None = None) -> dict:
+                   dunn_correction: str | None = None,
+                   exact: bool = False) -> dict:
     """Kruskal-Wallis H (tie-corrected) with Dunn's post test.
 
+    exact: the exact permutation P (ties included) when it fits the
+    computation budget, else the chi-square P; p_method says which.
     dunn_family: "all" pairs, "control" (each group vs groups[control],
     k - 1 comparisons) or "pairs" (the planned pairs [[i, j], ...]);
     dunn_correction: "bonferroni" (Dunn 1964; the guide's default),
@@ -508,6 +578,14 @@ def kruskal_wallis(datasets, names=None, *, dunns: bool = True,
     if len(groups) < 2:
         raise ValueError("Kruskal-Wallis needs at least 2 groups")
     h, p = stats.kruskal(*groups)
+    p_method = None
+    if exact:
+        from . import exactdist
+        p_exact = exactdist.kruskal_wallis_exact_p(groups)
+        if p_exact is None:
+            p_method = "approximate"
+        else:
+            p, p_method = p_exact, "exact"
     names = names or [f"Group {i}" for i in range(len(groups))]
     out = {
         "H": float(h), "p": float(p),
@@ -516,6 +594,8 @@ def kruskal_wallis(datasets, names=None, *, dunns: bool = True,
             for i, g in enumerate(groups)
         ],
     }
+    if p_method is not None:
+        out["p_method"] = p_method
     if dunns:
         out["dunns"] = _dunns(groups, names, corrected=dunn_corrected,
                               family=dunn_family, control=control,

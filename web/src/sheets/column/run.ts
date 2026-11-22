@@ -14,10 +14,27 @@ import { allCellsComparisons, cellsFamily } from "../common/allCells.ts";
 import { familyOptions } from "./comparisonsFamily.ts";
 import { withWithheld } from "../common/withheld.ts";
 import { logScaleOptions } from "./logScale.ts";
+import { pStackPayload } from "./pStack.ts";
+import { frequencyPayload } from "./frequency.ts";
+import { correlationXRequests } from "./correlationX.ts";
 import { mixedOptions, rmComparisonsSpec, fitsMixedModel } from "./rmPosthoc.ts";
 
 export function runColumn(engine: EngineBridge, table: DataTableModel,
   o: ColumnOptionsState): Record<string, unknown> {
+  if (o.analysis === "frequency") {
+    const fp = frequencyPayload(table, o);
+    return "error" in fp ? { error: fp.error } : engine.analyze(fp.payload) as Record<string, unknown>;
+  }
+  if (o.analysis === "p_stack") {
+    const ps = pStackPayload(table, o);
+    return "error" in ps ? { error: ps.error } : engine.analyze(ps.payload) as Record<string, unknown>;
+  }
+  if (o.analysis === "correlation" && o.corrWithX && table.type === "xy") {
+    const cx = correlationXRequests(table, o);
+    if ("error" in cx) return { error: cx.error };
+    return { analysis: "correlation_x", replicates_averaged: cx.replicatesAveraged,
+      items: cx.requests.map((q) => engine.analyze(q.payload)) };
+  }
   if (table.subcolumnFormat !== "replicates") return runColumnSummary(engine, table, o);
   // RM one-way ANOVA with missing values, mixed model chosen: keep the
   // incomplete subjects (sheets/column/rmPosthoc.ts).
@@ -123,6 +140,7 @@ export function columnPayload(table: DataTableModel, o: ColumnOptionsState):
         ...(o.percentileMethod === "prism" ? { percentile_method: "prism" } : {}),
         ...(o.descriptiveExtras ? { extras: true, ...(trim !== null ? { trim_k: trim } : {}) } : {}),
         ...(o.ratioT ? { ratio_t: true } : {}),
+        ...(o.lognormality ? { lognormality: true } : {}),
         ...pratt,
       } };
   }
@@ -154,9 +172,11 @@ export function columnPayload(table: DataTableModel, o: ColumnOptionsState):
         control_index: o.controlIndex,
         ...(o.anovaKind === "nonparametric" && o.dunnCorrected === false
           ? { dunn_corrected: false } : {}),
+        ...(o.anovaKind === "nonparametric" && o.kwExact ? { exact: true } : {}),
         // each vs. control or planned pairs (comparisonsFamily.ts)
         ...familyOptions(o, base.data.datasets.length),
         ...logScaleOptions(o),
+        ...(o.anovaKind === "parametric" && o.anovaTrend ? { trend: true } : {}),
       } };
   }
   if (o.analysis === "median_test") return { analysis: "median_test", ...base, options: {} };

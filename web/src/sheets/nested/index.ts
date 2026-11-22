@@ -1,5 +1,6 @@
 import { emptyTable, normalizeTable } from "../../project/table";
 import DataGrid from "../common/DataGrid";
+import { DDF_NEW_SHEET } from "../common/ddf";
 import { defineAnalysis, defineGraph, type TableTypeDef } from "../types";
 import {
   NestedAnovaControls, NestedMethods, NestedResults, NestedTControls,
@@ -16,7 +17,7 @@ export const nestedAnovaAnalysis = defineAnalysis<NestedAnovaOptions, Record<str
   description: "Two or more groups whose replicates sit within subgroups; "
     + "mixed model with multiple comparisons.",
   sheetName: (t) => `Nested ANOVA of ${t}`,
-  defaultOptions: () => ({ ...DEFAULT_NESTED_ANOVA }),
+  defaultOptions: () => ({ ...DEFAULT_NESTED_ANOVA, mixedDdf: DDF_NEW_SHEET }),
   normalizeOptions: (raw) => normalizeNestedAnova(raw),
   run: runNestedAnova,
   defaultGraph: GRAPH_NESTED,
@@ -32,7 +33,7 @@ export const nestedTAnalysis = defineAnalysis<NestedTOptions, Record<string, unk
   description: "Two groups whose replicates sit within subgroups; mixed "
     + "model with a random subgroup effect.",
   sheetName: (t) => `Nested t test of ${t}`,
-  defaultOptions: () => ({ ...DEFAULT_NESTED_T }),
+  defaultOptions: () => ({ ...DEFAULT_NESTED_T, mixedDdf: DDF_NEW_SHEET }),
   normalizeOptions: (raw) => normalizeNestedT(raw),
   run: runNestedT,
   defaultGraph: GRAPH_NESTED,

@@ -13,6 +13,7 @@ import { TWO_WAY_ADDITIVE_NOTE as ADDITIVE_NOTE } from "../types";
 import ComparisonsPicker from "../sheets/column/comparisonsPicker";
 import LogScaleOption from "../sheets/column/logScaleControls";
 import RmPosthocControls from "../sheets/column/rmPosthocControls";
+import { isFdrMethod, P_STACK_METHODS, type PStackMethod } from "../sheets/column/pStack";
 import "../sheets/column/logScale.css";
 
 interface Props {
@@ -23,10 +24,12 @@ interface Props {
   summaryData?: boolean;
   /** Subjects (rows) missing a treatment: RM ANOVA can fit the mixed model. */
   incompleteSubjects?: number;
+  /** An XY table: correlation can pair X with each Y data set. */
+  xyTable?: boolean;
 }
 
 export default function ColumnControls({ options, datasetNames, onChange, summaryData,
-  incompleteSubjects = 0 }: Props) {
+  incompleteSubjects = 0, xyTable = false }: Props) {
   const set = (patch: Partial<ColumnOptionsState>) =>
     onChange({ ...options, ...patch });
 
@@ -107,6 +110,12 @@ export default function ColumnControls({ options, datasetNames, onChange, summar
               );
             })}
           </div>
+          <label className="check-row">
+            <input type="checkbox" checked={!!options.lognormality}
+              onChange={(e) => set({ lognormality: e.target.checked })} />
+            <span>Also test for lognormality (the same tests on the logarithms) and compare normal
+              with lognormal by likelihood</span>
+          </label>
         </section>
       )}
 
@@ -153,6 +162,27 @@ export default function ColumnControls({ options, datasetNames, onChange, summar
           </select>
           {pickDataset("Group A", options.datasetA, "datasetA")}
           {pickDataset("Group B", options.datasetB, "datasetB")}
+          {options.ttestKind !== "kolmogorov_smirnov" && (
+            // A <div>, not a <label>: a label's text would include these
+            // options ("…Group B…"), so this select would also answer to
+            // the name "Group B".
+            <div className="check-row">
+              <span aria-hidden="true">P value</span>
+              <select value={options.ttestTails ?? "two"} aria-label="P value"
+                onChange={(e) => set({ ttestTails: e.target.value as "two" | "greater" | "less" })}>
+                <option value="two">Two-tailed</option>
+                <option value="greater">Also one-tailed: Group A larger than Group B expected</option>
+                <option value="less">Also one-tailed: Group A smaller than Group B expected</option>
+              </select>
+            </div>
+          )}
+          {options.ttestKind !== "kolmogorov_smirnov" && (options.ttestTails ?? "two") !== "two" && (
+            <p className="hint-block">
+              Choose the direction before looking at the data; a one-tailed P is
+              half the two-tailed P only when the result goes the expected way.
+              Graphs, legends and report sentences keep the two-tailed P.
+            </p>
+          )}
           <LogScaleOption options={options} onChange={onChange} summaryData={summaryData} />
           {options.ttestKind === "wilcoxon" && (
             <ZeroMethod value={options.zeroMethod ?? "wilcox"}
@@ -229,6 +259,13 @@ export default function ColumnControls({ options, datasetNames, onChange, summar
           )}
           {options.anovaKind === "nonparametric" && (
             <label className="check-row">
+              <input type="checkbox" checked={!!options.kwExact}
+                onChange={(e) => set({ kwExact: e.target.checked })} />
+              <span>Exact P value (small samples, ties included; approximate when too large)</span>
+            </label>
+          )}
+          {options.anovaKind === "nonparametric" && (
+            <label className="check-row">
               <input type="checkbox" checked={options.dunnCorrected === false}
                 onChange={(e) => set({ dunnCorrected: !e.target.checked })} />
               <span>Uncorrected Dunn&apos;s test (no correction for multiple comparisons)</span>
@@ -256,12 +293,114 @@ export default function ColumnControls({ options, datasetNames, onChange, summar
                 pickDataset("Control group", options.controlIndex, "controlIndex")}
               <ComparisonsPicker options={options} datasetNames={datasetNames}
                 onChange={onChange} summaryData={summaryData} />
+              {!summaryData && (
+                <label className="check-row">
+                  <input type="checkbox" checked={!!options.anovaTrend}
+                    onChange={(e) => set({ anovaTrend: e.target.checked })} />
+                  <span>Test for linear trend (columns in the order entered)</span>
+                </label>
+              )}
               <LogScaleOption options={options} onChange={onChange} summaryData={summaryData} />
             </>
           )}
           <p className="guide-control-links">
             <LearnMore id="posthoc" label="Which comparisons test?" />
             <LearnMore id="equal-sds" label="Equal SDs?" />
+          </p>
+        </section>
+      )}
+
+      {options.analysis === "frequency" && (
+        <section>
+          <h3>Frequency distribution</h3>
+          <label className="check-row">
+            <span>Bin width (blank = automatic)</span>
+            <input inputMode="decimal" value={options.freqBinWidth ?? ""} placeholder="auto"
+              onChange={(e) => set({ freqBinWidth: e.target.value })} />
+          </label>
+          <label className="check-row">
+            <span>Center of the first bin (blank = automatic)</span>
+            <input inputMode="decimal" value={options.freqFirstCenter ?? ""} placeholder="auto"
+              onChange={(e) => set({ freqFirstCenter: e.target.value })} />
+          </label>
+          <label className="check-row">
+            <span>Leave out values above (blank = none)</span>
+            <input inputMode="decimal" value={options.freqUpper ?? ""}
+              onChange={(e) => set({ freqUpper: e.target.value })} />
+          </label>
+          <label className="check-row">
+            <span>Tabulate</span>
+            <select aria-label="Tabulate" value={options.freqTabulate ?? "counts"}
+              onChange={(e) => set({ freqTabulate: e.target.value as "counts" | "fraction" | "percent" })}>
+              <option value="counts">Number of values</option>
+              <option value="fraction">Relative frequency (fraction)</option>
+              <option value="percent">Relative frequency (percent)</option>
+            </select>
+          </label>
+          <label className="check-row">
+            <span>Cumulative</span>
+            <select aria-label="Cumulative" value={options.freqCumulative ?? "none"}
+              onChange={(e) => set({ freqCumulative: e.target.value as "none" | "binned" | "exact",
+                freqFit: "none" })}>
+              <option value="none">No (histogram)</option>
+              <option value="binned">Cumulative, binned</option>
+              <option value="exact">Cumulative, exact (no bins)</option>
+            </select>
+          </label>
+          <label className="check-row">
+            <span>Fit</span>
+            <select aria-label="Fit" value={options.freqFit ?? "none"}
+              onChange={(e) => set({ freqFit: e.target.value as "none" | "gaussian" | "cumulative_gaussian" })}>
+              <option value="none">None</option>
+              {(options.freqCumulative ?? "none") === "none" && <option value="gaussian">Gaussian (to the histogram)</option>}
+              {options.freqCumulative === "exact" && <option value="cumulative_gaussian">Cumulative Gaussian</option>}
+            </select>
+          </label>
+          <label className="check-row">
+            <span>Replicates in a row</span>
+            <select aria-label="Replicates in a row" value={options.freqReplicates ?? "each"}
+              onChange={(e) => set({ freqReplicates: e.target.value as "each" | "mean" })}>
+              <option value="each">Each value in its bin</option>
+              <option value="mean">Only the mean of the row</option>
+            </select>
+          </label>
+          <p className="hint-block">
+            A value on the border between two bins goes into the higher bin; values below the first bin
+            are left out and counted. No bin goes past the upper limit: a value exactly on the limit is
+            also left out when the limit is a bin edge (as in Prism). The guide recommends the cumulative fit, which needs no bin width.
+          </p>
+        </section>
+      )}
+
+      {options.analysis === "p_stack" && (
+        <section>
+          <h3>Stack of P values</h3>
+          {pickDataset("P values in", options.datasetA, "datasetA")}
+          <label className="check-row">
+            <span>Correction</span>
+            <select aria-label="Correction" value={options.pStackMethod ?? "bky"}
+              onChange={(e) => set({ pStackMethod: e.target.value as PStackMethod })}>
+              {P_STACK_METHODS.map(([k, label]) => <option key={k} value={k}>{label}</option>)}
+            </select>
+          </label>
+          {isFdrMethod(options.pStackMethod ?? "bky") ? (
+            <label className="check-row">
+              <span>Q (desired false discovery rate, %)</span>
+              <input inputMode="decimal" value={options.pStackQ ?? "5"}
+                onChange={(e) => set({ pStackQ: e.target.value })} />
+            </label>
+          ) : (
+            <label className="check-row">
+              <span>α (family-wise)</span>
+              <input inputMode="decimal" value={options.pStackAlpha ?? "0.05"}
+                onChange={(e) => set({ pStackAlpha: e.target.value })} />
+            </label>
+          )}
+          <p className="hint-block">
+            One P value per row, each from a separate comparison; row titles name them. Blank and
+            excluded cells are left out of the family. Controlling the false discovery rate flags
+            “discoveries” and reports a q value per comparison; the significance methods control the
+            chance of any false positive in the whole family and report multiplicity-adjusted P values.
           </p>
         </section>
       )}
@@ -313,8 +452,15 @@ export default function ColumnControls({ options, datasetNames, onChange, summar
               half the two-tailed P only when the result goes the expected way.
             </p>
           )}
-          {pickDataset("Dataset A", options.datasetA, "datasetA")}
-          {pickDataset("Dataset B", options.datasetB, "datasetB")}
+          {xyTable && (
+            <label className="check-row">
+              <input type="checkbox" checked={!!options.corrWithX}
+                onChange={(e) => set({ corrWithX: e.target.checked })} />
+              <span>X against each Y data set (replicate Y values averaged per row)</span>
+            </label>
+          )}
+          {!(xyTable && options.corrWithX) && pickDataset("Dataset A", options.datasetA, "datasetA")}
+          {!(xyTable && options.corrWithX) && pickDataset("Dataset B", options.datasetB, "datasetB")}
         </section>
       )}
 

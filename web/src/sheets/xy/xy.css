@@ -15,6 +15,8 @@
 
 /* Incomplete curves: IC50 reported as "> highest dose" (rangeFlags.tsx). */
 .range-flags { border-color: color-mix(in srgb, var(--warn-hue) 45%, transparent); }
+.zero-dose { border-color: color-mix(in srgb, var(--warn-hue) 45%, transparent); }
+.zero-dose-actions { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
 .range-chip { margin: 0 0 6px; color: var(--ink); font-size: 13px; }
 .range-chip strong { color: var(--warn-ink); }
 .range-mode select { max-width: 100%; }
