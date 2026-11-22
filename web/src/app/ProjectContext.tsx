@@ -7,6 +7,7 @@ import {
 } from "../lib/engine";
 import { newId } from "../project/ids";
 import { syncInfoLinks } from "../project/infoLinks";
+import { setInfoConstants } from "../project/infoRefs";
 import { familyChildren, familyRootId, findSheet } from "../project/ops";
 import { loadPrefs, projectPrefs, savePrefs } from "../project/prefs";
 import { ProjectStore } from "../project/store";
@@ -151,6 +152,8 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
 
   // Results precision and the P-value style follow the open project.
   setDisplayDigits(project.prefs.digits);
+  // "@Name" in analysis options reads these (project/infoRefs.ts)
+  setInfoConstants(project);
   setReportPrefs(reportPrefsOf(project.prefs));
 
   // Theme: "auto" follows the OS; light/dark force it. The data-theme

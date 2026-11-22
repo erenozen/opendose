@@ -5,9 +5,13 @@ import { ENGINE_HASH } from "../lib/buildInfo";
 import { isCancelled, runEngine, type EngineBridge, type Priority } from "../lib/engine";
 import type { ResultsSheet, DataTableModel, ProjectPrefs } from "../project/types";
 import type { AnalysisDef } from "../sheets/types";
+import { resolveInfoRefs } from "../project/infoRefs";
 
-export function resolveOptions(def: AnalysisDef | undefined, raw: unknown,
-  table: DataTableModel, prefs: ProjectPrefs): unknown {
+export function resolveOptions(def: AnalysisDef | undefined, rawIn: unknown,
+  table: DataTableModel, prefs: ProjectPrefs, { infoRefs = true } = {}): unknown {
+  // "@Name": an Info-sheet constant (project/infoRefs.ts). The settings
+  // panel shows the options as typed (infoRefs: false).
+  const raw = infoRefs ? resolveInfoRefs(rawIn) : rawIn;
   if (!def) return raw;
   const ctx = { table, prefs };
   if (def.normalizeOptions) return def.normalizeOptions(raw, ctx);

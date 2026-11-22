@@ -62,7 +62,7 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
   const graph = api.activeGraph(data.id);
   const aDef = resSheet ? analysisDef(data.table.type, resSheet.analysis) : undefined;
 
-  const { result, options, status: resStatus } = useAnalysisResult(resSheet, data.table);
+  const { result, options, formOptions, status: resStatus } = useAnalysisResult(resSheet, data.table);
   // A graph may draw from a results sheet other than the active one.
   const graphRes = graph?.resultsId && graph.resultsId !== resSheet?.id
     ? findSheet(project, graph.resultsId) as ResultsSheet | undefined : undefined;
@@ -152,7 +152,7 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
                   )}
                   <div className="controls-wrap" inert={!!resSheet.frozen || shared}>
                     <Suspense fallback={<Pending />}>
-                      <Controls sheet={resSheet} table={data.table} options={options}
+                      <Controls sheet={resSheet} table={data.table} options={formOptions}
                         readOnly={!!resSheet.frozen || shared}
                         onChange={(o) => apply((p) => {
                           const prev = findSheet(p, resSheet.id);
@@ -446,8 +446,10 @@ function ConstantsList({ constants }: { constants: { sheet: string; name: string
       <summary>Info constants ({constants.length})</summary>
       <section>
         <p className="hint-block">
-          From the project&apos;s info sheets. A user-formula Transform can
-          use one as a constant (“Use an info constant…”) and follows its value.
+          From the project&apos;s info sheets. Type <code>@Name</code> in any number box of an
+          analysis (a hypothetical mean, a constraint, a point to read) to use one; spaces in a
+          name become underscores (<code>@Dilution_factor</code>). The analysis follows the
+          constant&apos;s value. A user-formula Transform can also use one as a constant.
         </p>
         <table className="results-table">
           <tbody>

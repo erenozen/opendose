@@ -4,6 +4,7 @@ import type { DataTableModel, ResultsSheet } from "../project/types";
 import { analysisDef } from "../sheets/registry";
 import { resolveOptions, resultKey, sheetRunner, type PendingRun } from "./analysis";
 import { useProject } from "./context";
+import { infoSignature } from "../project/infoRefs";
 
 /** What the results view knows about the computation behind a result. */
 export interface AnalysisStatus {
@@ -32,12 +33,21 @@ const IDLE: AnalysisStatus = { live: false, pending: null, cancelled: false, ret
  */
 export function useAnalysisResult(sheet: ResultsSheet | null,
   table: DataTableModel | null, priority: Priority = "visible"):
-  { result: unknown; options: unknown; status: AnalysisStatus } {
+  { result: unknown; options: unknown; formOptions: unknown; status: AnalysisStatus } {
   const { results, project } = useProject();
   const def = sheet && table ? analysisDef(table.type, sheet.analysis) : undefined;
   const prefs = project.prefs;
+  // Info constants used as "@Name" (project/infoRefs.ts): re-resolve when
+  // they change
+  const info = infoSignature();
   const options = useMemo(
     () => (sheet && table ? resolveOptions(def, sheet.options, table, prefs) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [sheet, def, table, prefs, info],
+  );
+  // as typed, "@Name" kept: what the settings panel edits
+  const formOptions = useMemo(
+    () => (sheet && table ? resolveOptions(def, sheet.options, table, prefs, { infoRefs: false }) : null),
     [sheet, def, table, prefs],
   );
   const key = useMemo(() => (sheet && def && table
@@ -67,13 +77,14 @@ export function useAnalysisResult(sheet: ResultsSheet | null,
   // `cancelled` and `current` re-arm the effect after Retry / a newer run.
   }, [key, sheet, def, table, options, prefs, results, priority, cancelled, current]);
 
-  if (!sheet) return { result: null, options: null, status: IDLE };
+  if (!sheet) return { result: null, options: null, formOptions: null, status: IDLE };
   if (sheet.frozen) {
-    return { result: sheet.cached ?? null, options, status: { ...IDLE, live: true } };
+    return { result: sheet.cached ?? null, options, formOptions, status: { ...IDLE, live: true } };
   }
   return {
     result: entry?.result ?? null,
     options,
+    formOptions,
     status: {
       live: current,
       pending: pending && pending.key === key ? pending : null,
