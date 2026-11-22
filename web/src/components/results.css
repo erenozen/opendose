@@ -136,7 +136,7 @@
 
 /* A results card wider than the pane scrolls inside itself; while it
    does it is a focusable region (resultsTypeset.ts), so show its focus. */
-.result-card[data-scrolls]:focus-visible { outline-offset: -2px; }
+[data-scrolls]:focus-visible { outline-offset: -2px; }
 
 /* While the first result is computed: a card's shape, still (BEF-23). */
 .result-skeleton { display: flex; flex-direction: column; gap: var(--space-8); }

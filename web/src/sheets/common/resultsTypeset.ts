@@ -81,9 +81,15 @@ export function useTypesetTables(ref: RefObject<HTMLElement | null>) {
   }, [ref]);
 }
 
-/** A results card wider than its pane scrolls sideways inside itself;
- *  while it does, it is a named, focusable region so a keyboard can
- *  scroll it too (axe scrollable-region-focusable, at 390px). */
+// What scrolls sideways in a results sheet: the cards, and the wrappers
+// some panels put around a wide table.
+const SCROLLERS = ".result-card, .compare-table-wrap, .anova-table-wrap, .results-scroll, "
+  + ".clin-scroll, .mv-scroll";
+
+/** A results card (or a table's wrapper) wider than its pane scrolls
+ *  sideways; while it does, it is a named, focusable region so a
+ *  keyboard can scroll it too (axe scrollable-region-focusable). Numbers
+ *  never wrap, so a wide table scrolls rather than breaking a value. */
 export function useScrollRegions(ref: RefObject<HTMLElement | null>) {
   useEffect(() => {
     const root = ref.current;
@@ -92,7 +98,7 @@ export function useScrollRegions(ref: RefObject<HTMLElement | null>) {
     const check = () => {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
-        for (const el of root.querySelectorAll<HTMLElement>(".result-card")) {
+        for (const el of root.querySelectorAll<HTMLElement>(SCROLLERS)) {
           const scrolls = el.scrollWidth > el.clientWidth + 1;
           if (scrolls === el.hasAttribute("data-scrolls")) continue;
           el.toggleAttribute("data-scrolls", scrolls);
@@ -102,7 +108,7 @@ export function useScrollRegions(ref: RefObject<HTMLElement | null>) {
           if (scrolls) {
             el.tabIndex = 0;
             if (named) {
-              const title = el.querySelector("h3")?.textContent?.trim();
+              const title = (el.closest(".result-card") ?? el).querySelector("h3, h4")?.textContent?.trim();
               el.setAttribute("data-scroll-named", "");
               el.setAttribute("role", "region");
               el.setAttribute("aria-label", title ? `${title} (scrolls sideways)` : "Results (scrolls sideways)");
