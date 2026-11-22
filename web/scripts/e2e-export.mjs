@@ -14,6 +14,16 @@ import { createRequire } from "node:module";
 import { inflateSync } from "node:zlib";
 import { strFromU8, unzipSync } from "fflate";
 
+// The header's File and View menus (DECISIONS 5): open one, pick an item.
+const fileMenu = async (p, item) => {
+  await p.locator("header").getByRole("button", { name: "File", exact: true }).click();
+  await p.getByRole("menuitem", { name: item }).click();
+};
+const viewMenu = async (p, item) => {
+  await p.locator("header").getByRole("button", { name: "View", exact: true }).click();
+  await p.getByRole("menuitem", { name: item }).click();
+};
+
 const here = dirname(fileURLToPath(import.meta.url));
 const baseUrl = process.argv[2] ?? "http://localhost:5173/";
 // ?example=1 opens the example project directly (no start screen, no tour).
@@ -124,9 +134,9 @@ await page.keyboard.press("Escape");
 
 // --- every graph to PowerPoint: one slide per graph sheet, each graph an
 // SVG picture (svgBlip) with a PNG fallback, the figure legend in the notes
-const graphSheets = await page.locator(".nav-item[data-key^='graph:']").count();
+const graphSheets = await page.locator(".nav-item[data-kind='graph']").count();
 const legendShown = ((await page.locator(".figure-legend-text").first().textContent()) ?? "").trim();
-await page.getByRole("button", { name: "More ways to save and share" }).click();
+await page.locator("header").getByRole("button", { name: "File", exact: true }).click();
 await page.getByRole("menuitem", { name: "Export graphs to PowerPoint (.pptx)…" }).click();
 const pptDlg = page.getByRole("dialog", { name: "Export graphs to PowerPoint" });
 await pptDlg.waitFor({ timeout: 10000 });
@@ -204,13 +214,13 @@ expect("methods text carries the version stamp", /OpenDose version \S+/.test(met
 expect("methods text names the numerical libraries with versions",
   /SciPy \d+\.\d+[\d.]* and NumPy \d+\.\d+/.test(methods));
 expect("methods text has a citation block", methods.includes("How to cite OpenDose"));
-await page.getByRole("button", { name: /About OpenDose/ }).click();
+await viewMenu(page, "About OpenDose…");
 expect("info popover has How to cite",
   await page.locator(".info-pop").getByText("How to cite OpenDose").count() === 1);
 await page.keyboard.press("Escape");
 
 // --- layout with the sample project's graphs ---
-await page.getByRole("button", { name: "New layout" }).click();
+await fileMenu(page, "New layout");
 await page.waitForSelector(".layout-page", { timeout: 10000 });
 await page.getByRole("button", { name: "Fill with graphs" }).click();
 await page.waitForFunction(

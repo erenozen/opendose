@@ -81,7 +81,7 @@
 /* ---------------- help panel ---------------- */
 
 .help-panel {
-  position: fixed; top: calc(64px + var(--safe-top)); right: max(12px, var(--safe-right));
+  position: fixed; top: calc(var(--header-h, 44px) + var(--space-12)); right: max(var(--space-12), var(--safe-right));
   bottom: calc(12px + var(--safe-bottom)); z-index: var(--z-drawer);
   width: min(400px, calc(100vw - 24px));
   display: flex; flex-direction: column;
@@ -94,11 +94,9 @@
 }
 .help-head { display: flex; align-items: center; justify-content: space-between; padding: var(--space-12) 14px var(--space-6); }
 .help-head h2 { margin: 0; font-size: var(--text-lead); }
-.help-close { position: relative; width: 32px; height: 32px; padding: 0; font-size: var(--text-title); line-height: 1; }
-/* A 44px hit area on touch (GF-05), the Button.css pattern. */
-@media (pointer: coarse) {
-  .help-close::before { content: ""; position: absolute; inset: -6px; }
-}
+.help-panel[data-instant] { transition: none; }
+.help-head h2:focus { outline: none; }
+.help-head h2:focus-visible { outline: 2px solid var(--focus-ring); }
 .help-body { overflow: auto; padding: var(--space-4) 14px 14px; font-size: var(--text-body-s); }
 .help-body p { color: var(--ink-2); margin: 0 0 var(--space-8); }
 .help-search input {
@@ -118,7 +116,7 @@
 }
 .help-topic-name { font-weight: var(--weight-semibold); color: var(--ink); }
 .help-topic-sum { font-size: var(--text-caption); color: var(--muted); font-weight: var(--weight-regular); }
-.help-back { margin-bottom: var(--space-8); }
+.help-back { align-self: flex-start; margin-bottom: var(--space-8); }
 .help-topic-title { margin: var(--space-4) 0 var(--space-4); font-size: var(--text-lead); }
 .help-topic-title:focus { outline: none; }
 .help-topic-title:focus-visible { outline: 2px solid var(--focus-ring); }

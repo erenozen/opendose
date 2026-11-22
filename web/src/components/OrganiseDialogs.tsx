@@ -35,7 +35,7 @@ export function SaveTemplateDialog({ tableName, childCount, onCancel, onSave }: 
       </p>
       <label className="field">
         <span>Template name</span>
-        <input autoFocus value={name} onChange={(e) => setName(e.target.value)}
+        <input value={name} onChange={(e) => setName(e.target.value)}
           onFocus={(e) => e.currentTarget.select()} />
       </label>
       <label className="field">

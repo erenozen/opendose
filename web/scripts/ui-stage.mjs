@@ -115,18 +115,10 @@ const settle = async (s, ms = 700) => {
   await s.page.waitForTimeout(ms);
 };
 
-/** Makes `loc` visible: at phone width the header's secondary actions sit
- *  behind "More actions" and the navigator in a drawer. */
+/** Makes `loc` visible: at phone width the navigator sits in a drawer. */
 async function reveal(s, loc) {
   const first = loc.first();
   if (await first.isVisible().catch(() => false)) return first;
-  const more = s.page.getByRole("button", { name: "More actions" });
-  if (await more.isVisible().catch(() => false) && await more.getAttribute("aria-expanded") !== "true") {
-    await more.click();
-    await s.page.waitForTimeout(300);
-    if (await first.isVisible().catch(() => false)) return first;
-    await more.click();
-  }
   const nav = s.page.getByRole("button", { name: "Show or hide the sheet navigator" });
   if (await nav.isVisible().catch(() => false)) {
     await nav.click();
@@ -144,10 +136,13 @@ async function analyzeItem(s, item) {
   await click(s, button(s, "Analyze"));
   await s.page.getByRole("menuitem", { name: item }).click();
 }
-async function saveMenu(s, item) {
-  await click(s, button(s, "More ways to save and share"));
-  if (item) await s.page.getByRole("menuitem", { name: item, exact: true }).click();
+/** The header's File or View menu (DECISIONS 5), and one of its items. */
+async function headerMenu(s, menu, item) {
+  await click(s, s.page.locator("header").getByRole("button", { name: menu, exact: true }));
+  await s.page.getByRole("menu", { name: menu }).waitFor();
+  if (item) await s.page.getByRole("menuitem", { name: item }).click();
 }
+const saveMenu = (s, item) => headerMenu(s, "File", item);
 const dialog = (s, name) => s.page.getByRole("dialog", { name });
 /** Brings an element into view inside whatever scrolls it. */
 const into = (s, selector, block = "start") => s.page.evaluate(([sel, b]) => {
@@ -166,7 +161,7 @@ async function pasteInto(s, cellLabel, text) {
   }, [cellLabel, text]);
 }
 async function newTableDialog(s) {
-  await click(s, button(s, "New data table"));
+  await saveMenu(s, "New data table…");
   const dlg = s.page.locator("dialog.new-table-dialog");
   await dlg.waitFor({ timeout: 10000 });
   return dlg;
@@ -224,25 +219,24 @@ const scenes = [
   } },
   { name: "shell-preferences", setup: async (s) => {
     await example(s);
-    await click(s, button(s, "Preferences"));
+    await headerMenu(s, "View", "Preferences…");
     await dialog(s, "Preferences").waitFor();
   } },
   { name: "shell-about", setup: async (s) => {
     await example(s);
-    await click(s, button(s, "About OpenDose: privacy, non-affiliation and how to cite"));
-    await s.page.locator(".info-pop").first().waitFor();
+    await headerMenu(s, "View", "About OpenDose…");
+    await dialog(s, "About OpenDose").waitFor();
   } },
   { name: "shell-help", setup: async (s) => {
     await example(s);
-    await click(s, button(s, "Help: explainers, tour and keyboard shortcuts"));
+    await headerMenu(s, "View", "Help and tour");
     await button(s, "Take the tour").waitFor();
   } },
-  { name: "shell-tools-menu", setup: async (s) => {
+  { name: "shell-view-menu", setup: async (s) => {
     await example(s);
-    await click(s, s.page.getByRole("button", { name: /^Tools/ }));
-    await s.page.getByRole("menuitem", { name: "Power and sample size…" }).waitFor();
+    await headerMenu(s, "View");
   } },
-  { name: "shell-save-menu", setup: async (s) => {
+  { name: "shell-file-menu", setup: async (s) => {
     await example(s);
     await saveMenu(s);
     await s.page.getByRole("menuitem", { name: "Copy share link…" }).waitFor();
@@ -272,7 +266,7 @@ const scenes = [
     await fixture(s, "many-sheets.json");
     await s.page.locator(".nav-tree").first().waitFor({ state: "attached" });
     await s.page.keyboard.press("Control+k");
-    const dlg = dialog(s, "Go to sheet");
+    const dlg = dialog(s, "Find a command or sheet");
     await dlg.waitFor();
     await s.page.keyboard.type("graph");
   } },
@@ -289,7 +283,7 @@ const scenes = [
   } },
   { name: "shell-new-project-confirm", setup: async (s) => {
     await example(s);
-    await click(s, button(s, "New project"));
+    await saveMenu(s, "New project…");
     await s.page.getByRole("alertdialog", { name: "Start a new project?" }).waitFor();
   } },
   { name: "shell-nav-drawer", setup: async (s) => {
@@ -297,9 +291,11 @@ const scenes = [
     if (s.phone) await click(s, button(s, "Show or hide the sheet navigator"));
     await s.page.locator(".navigator").waitFor();
   } },
-  { name: "shell-more-actions", setup: async (s) => {
+  // the command palette before anything is typed: Suggested, Recent sheets
+  { name: "shell-palette", setup: async (s) => {
     await example(s);
-    if (s.phone) await click(s, button(s, "More actions"));
+    await click(s, button(s, "Find a command or sheet"));
+    await dialog(s, "Find a command or sheet").waitFor();
   } },
   { name: "shell-navigator-many", setup: async (s) => {
     await fixture(s, "many-sheets.json");
@@ -467,7 +463,7 @@ const scenes = [
   } },
   { name: "guided-tour", setup: async (s) => {
     await example(s);
-    await click(s, button(s, "Help: explainers, tour and keyboard shortcuts"));
+    await headerMenu(s, "View", "Help and tour");
     await button(s, "Take the tour").click();
     await s.page.locator(".tour-card").waitFor();
     await s.page.locator(".tour-next").click();
@@ -477,8 +473,7 @@ const scenes = [
   } },
   { name: "guided-power", setup: async (s) => {
     await example(s);
-    await click(s, s.page.getByRole("button", { name: /^Tools/ }));
-    await s.page.getByRole("menuitem", { name: "Power and sample size…" }).click();
+    await saveMenu(s, "Power and sample size…");
     await s.page.locator("dialog[open]").first().waitFor();
   } },
 ];

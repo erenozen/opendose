@@ -121,8 +121,7 @@ is how a reduced-motion user sees that something changed.
 
 ## Still raw in the code
 
-Phase 5 owns these; do not copy them. `components/navigator.css:148`
-slides the drawer at a raw 240ms on `--ease-out` (should be
-`--dur-drawer` on `--ease-drawer`); `components/welcome.css` and
-`components/results.css` use 300 to 350ms; `components/header.css:38`
-transitions `width`.
+Phase 5 owns these; do not copy them. `components/welcome.css` and
+`components/results.css` use 300 to 350ms. The header's segmented thumb
+moves by `clip-path` (no layout) and skips its transition when the switch
+came from the keyboard; phase 5 tunes its timing.

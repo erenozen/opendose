@@ -134,14 +134,13 @@ export default function Tour({ onDone }: { onDone: () => void }) {
     announce(`Step ${i + 1} of ${TOUR_STEPS.length}: ${step.title}`);
   }, [i, step.title]);
 
-  // Focus goes back where it was when the tour began (the Help button
-  // when the tour was started from the Help panel, which has closed).
+  // Focus goes back where it was when the tour began (started from the
+  // Help panel, that is where the panel handed it back: its opener).
   // After the card has left the top layer, so the check sees where focus
   // really ended up.
   useEffect(() => () => {
     setTimeout(() => {
-      const back = opener?.isConnected && opener !== document.body ? opener
-        : document.querySelector<HTMLElement>("header button[aria-label^='Help']");
+      const back = opener?.isConnected && opener !== document.body ? opener : null;
       const a = document.activeElement;
       if (back && (!a || a === document.body || !a.isConnected)) back.focus({ preventScroll: true });
     });
@@ -158,8 +157,8 @@ export default function Tour({ onDone }: { onDone: () => void }) {
       <div ref={ringRef} className="tour-ring" aria-hidden="true" hidden />
       <Popover open onOpenChange={(o) => { if (!o) finish(); }}>
         <Popover.Content ref={cardRef} className="tour-card" aria-labelledby={titleId}
-          anchor={anchor} anchorKey={`${i}-${moved}`} side="bottom" align="start"
-          sideOffset={0} collisionPadding={clearance} closeOnOutsidePress={false}>
+          placeAt={anchor} anchorKey={`${i}-${moved}`} side="bottom" align="start"
+          sideOffset={0} collisionPadding={clearance} closeOnOutsidePress={false} trapFocus={false}>
           <p className="tour-count">Step {i + 1} of {TOUR_STEPS.length}</p>
           <h2 id={titleId} className="tour-title">{step.title}</h2>
           <p className="tour-body">{step.body}</p>
