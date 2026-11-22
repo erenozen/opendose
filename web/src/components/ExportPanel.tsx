@@ -183,7 +183,7 @@ export default function ExportPanel({
         {/* Options: a popover in the top layer (the graph card clips its
             overflow), below the button or above it, whichever has room. */}
         <Popover open={open} onOpenChange={setOpen}>
-          <Popover.Trigger className="btn btn--ghost">Options</Popover.Trigger>
+          <Popover.Trigger variant="ghost">Options</Popover.Trigger>
           <Popover.Content className="export-pop" aria-label="Export options"
             side="bottom" align="end" collisionPadding={belowStickyHeader}>
             <fieldset className="field-radios export-fieldset">

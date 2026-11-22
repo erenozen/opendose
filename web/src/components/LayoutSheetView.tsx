@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { BREAKPOINTS } from "../app/breakpoints";
 import { useCommands } from "../app/commands";
 import { useProject } from "../app/context";
 import { saveBlob } from "../export/download";
@@ -69,7 +70,8 @@ export default function LayoutSheetView({ sheet }: { sheet: LayoutSheet }) {
     const measure = () => {
       const byW = (el.clientWidth - 32) / pageW;
       const room = window.innerHeight - el.getBoundingClientRect().top + window.scrollY - 56;
-      const byH = window.matchMedia("(max-width: 1100px)").matches ? byW : room / pageH;
+      const byH = window.matchMedia(`(max-width: ${BREAKPOINTS.columns}px)`).matches
+        ? byW : room / pageH;
       setFitZoom(Math.min(1.5, Math.max(0.2, Math.min(byW, byH))));
     };
     measure();
@@ -239,7 +241,7 @@ export default function LayoutSheetView({ sheet }: { sheet: LayoutSheet }) {
         </div>
         <div className="layout-group" role="group" aria-label="Add to page">
           <Menu>
-            <Menu.Trigger className="btn btn--ghost" disabled={readOnly}>Add…</Menu.Trigger>
+            <Menu.Trigger variant="ghost" disabled={readOnly}>Add…</Menu.Trigger>
             <Menu.Content className="sheet-menu" aria-label="Add to the page">
               <Menu.Item onSelect={() => add("graph")}
                 description="An empty frame to bind a graph to">Graph placeholder</Menu.Item>

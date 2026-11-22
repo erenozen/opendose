@@ -52,7 +52,7 @@ export default function GraphSettings({
       <Popover open={open} onOpenChange={setOpen}>
         {/* A toolbar command: the ghost Button look (settings-btn is the
             tour's anchor, not a style). */}
-        <Popover.Trigger className="btn btn--ghost settings-btn">
+        <Popover.Trigger variant="ghost" className="settings-btn">
           Settings
           {edited && <span className="settings-badge">{edited}</span>}
         </Popover.Trigger>

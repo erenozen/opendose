@@ -54,7 +54,7 @@ export default function AnnotationsDialog({ format, results, paperOnly, onApply,
       {/* Five shapes and the results blocks: one menu, not a row of
           buttons that wraps on a phone (buttons.md: four at most). */}
       <Menu>
-        <Menu.Trigger className="btn fmt-add">Add an annotation…</Menu.Trigger>
+        <Menu.Trigger variant="secondary" className="fmt-add">Add an annotation…</Menu.Trigger>
         <Menu.Content className="sheet-menu" aria-label="Add an annotation">
           <Menu.Item onSelect={() => add({ kind: "text", text: "Text", x: 0.5, y: 0.92, ref: "paper" })}>
             Text</Menu.Item>

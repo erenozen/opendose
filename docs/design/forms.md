@@ -135,3 +135,11 @@ fields so the first is the one to type in, or use `Dialog` directly.
 the submit button is `<Button type="submit" variant="primary">`. Never
 wire Enter by hand with `onKeyDown`. A long-running submit uses `busy`
 (buttons.md), which also refuses a second submit.
+
+## Leaving with unapplied edits
+
+A long dialog whose edits apply only on Apply or OK (the graph format
+dialogs) asks "Discard your changes?" before Escape or a press outside
+drops them: give its Modal `onClose={useDiscardGuard(dirty, onClose)}`
+(`graph/useDiscardGuard.ts`). Cancel closes without asking, since
+pressing it is the choice.
