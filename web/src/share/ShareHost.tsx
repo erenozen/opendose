@@ -5,7 +5,9 @@ import { resolveOptions } from "../app/analysis";
 import { useProject } from "../app/context";
 import { useUi } from "../app/ui";
 import Modal from "../components/Modal";
-import { Banner, Button } from "../components/ui";
+import {
+  Banner, Button, Field, Input, notify, SwapLabel, useLabelSwap,
+} from "../components/ui";
 import { copyText, saveBlob } from "../export/download";
 import { findSheet } from "../project/ops";
 import { serializeProject } from "../project/persist";
@@ -203,7 +205,9 @@ function ShareDialog({ dataId, onClose }: { dataId?: string; onClose: () => void
   const family = useMemo(() => (dataId ? familyProject(project, dataId) : null), [project, dataId]);
   const target = family ?? project;
   const [withResults, setWithResults] = useState(true);
-  const [copied, setCopied] = useState<"" | "done" | "failed">("");
+  const copied = useLabelSwap();
+  // Submit attempts, so a too-short password shows its problem (forms.md).
+  const [attempts, setAttempts] = useState(0);
   // Password protection is on by default: a link travels through e-mail,
   // chat and link scanners, and the data is inside it.
   const [protect, setProtect] = useState(true);
@@ -224,10 +228,11 @@ function ShareDialog({ dataId, onClose }: { dataId?: string; onClose: () => void
   const what = family ? `“${family.title}”` : "this project";
   const tooShort = protect && password.length < MIN_PASSWORD;
   // Any change makes a new link: the old one no longer matches the dialog.
-  const reset = () => { setSealed(null); setCopied(""); setSealError(""); };
+  const reset = () => { setSealed(null); setSealError(""); };
 
   const seal = async () => {
-    if (tooShort || busy) return;
+    if (tooShort) { setAttempts((n) => n + 1); return; }
+    if (busy) return;
     setBusy(true);
     try {
       setSealed(await makeProtectedFragment(withResolvedOptions(target), password,
@@ -238,7 +243,13 @@ function ShareDialog({ dataId, onClose }: { dataId?: string; onClose: () => void
       setBusy(false);
     }
   };
-  const copy = async () => setCopied((await copyText(url)) ? "done" : "failed");
+  const copy = async () => {
+    if (await copyText(url)) copied.flash("Link copied");
+    else {
+      notify("Could not copy the link: the browser refused the clipboard. Select the link and copy it.",
+        { tone: "error" });
+    }
+  };
   const download = () => {
     const blob = new Blob([serializeProject(target, results.snapshot(),
       { keys: results.fingerprints(), selected: selectedId })], { type: "application/json" });
@@ -257,22 +268,22 @@ function ShareDialog({ dataId, onClose }: { dataId?: string; onClose: () => void
       className="share-dialog" onClose={onClose} onSubmit={submit}
       actions={!tooLarge ? (
         <>
-          <button type="button" className="spacer" onClick={download}>Download file instead</button>
-          <button type="button" onClick={onClose}>Done</button>
+          <Button className="spacer" onClick={download}>Download file instead</Button>
+          <Button onClick={onClose}>Done</Button>
           {needsSeal ? (
-            <button type="submit" className="btn-primary" disabled={tooShort || busy}>
-              {busy ? "Locking…" : "Create protected link"}
-            </button>
+            <Button type="submit" variant="primary" busy={busy} busyLabel="Locking…">
+              Create protected link
+            </Button>
           ) : (
-            <button type="submit" className="btn-primary">
-              {copied === "done" ? "Copied" : "Copy link"}
-            </button>
+            <Button type="submit" variant="primary">
+              <SwapLabel swapped={copied.swapped} done="Copied">Copy link</SwapLabel>
+            </Button>
           )}
         </>
       ) : (
         <>
-          <button type="button" onClick={onClose}>Cancel</button>
-          <button type="submit" className="btn-primary">Download project file</button>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button type="submit" variant="primary">Download project file</Button>
         </>
       )}>
       {!tooLarge ? (
@@ -297,15 +308,16 @@ function ShareDialog({ dataId, onClose }: { dataId?: string; onClose: () => void
           </label>
           {protect && (
             <div className="share-password-row">
-              <label className="field">
-                <span>Password (at least {MIN_PASSWORD} characters)</span>
-                <input type={showPassword ? "text" : "password"} value={password}
-                  autoComplete="new-password" spellCheck={false} aria-label="Link password"
+              <Field label="Link password" description={`At least ${MIN_PASSWORD} characters.`}
+                error={tooShort ? `Enter at least ${MIN_PASSWORD} characters` : null}
+                submitCount={attempts}>
+                <Input type={showPassword ? "text" : "password"} value={password}
+                  autoComplete="new-password" spellCheck={false}
                   onChange={(e) => { setPassword(e.target.value); reset(); }} />
-              </label>
-              <button type="button" onClick={() => {
+              </Field>
+              <Button onClick={() => {
                 setPassword(suggestPassword()); setShowPassword(true); reset();
-              }}>Suggest one</button>
+              }}>Suggest one</Button>
             </div>
           )}
           {protect && (
@@ -316,11 +328,11 @@ function ShareDialog({ dataId, onClose }: { dataId?: string; onClose: () => void
             </label>
           )}
           {url && (
-            <label className="field">
-              <span>{protect ? "Protected link" : "Link"}</span>
-              <input className="share-url" readOnly value={url} aria-label="Share link"
+            <Field label="Share link"
+              description={protect ? "Locked with the password above." : undefined}>
+              <Input className="share-url" readOnly value={url}
                 onFocus={(e) => e.currentTarget.select()} />
-            </label>
+            </Field>
           )}
           <label className="field-check">
             <input type="checkbox" checked={withResults}
@@ -333,8 +345,7 @@ function ShareDialog({ dataId, onClose }: { dataId?: string; onClose: () => void
               ? ", without the computed results (they would not fit; they are recomputed on opening)"
               : ""}. Links stay under {kb(SHARE_LIMIT)} so they paste into e-mail and chat intact.
             {needsSeal && !tooShort && " Press Create protected link to lock it with this password."}
-            {sealError && ` The link could not be locked: ${sealError}.`}
-            {copied === "failed" && " The browser did not allow copying: select the link and copy it."}
+            {sealError && ` Could not lock the link: ${sealError}. Try again, or download the file instead.`}
           </p>
         </>
       ) : (

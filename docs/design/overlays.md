@@ -1,8 +1,7 @@
 # Overlays
 
-Source: `web/src/components/ui/` Dialog.tsx, Popover.tsx, Menu.tsx,
-Tooltip.tsx, all on useDismiss.ts. `components/Modal.tsx` and
-`components/ConfirmDialog.tsx` wrap Dialog.
+Source: `web/src/components/ui/` Dialog, Popover, Menu, Tooltip, all on
+useDismiss.ts; `components/Modal.tsx` and `ConfirmDialog.tsx` wrap Dialog.
 
 These four are the only overlays. Each renders in the top layer (no
 z-index, no clipping by `overflow: hidden`), closes on Escape (topmost
@@ -59,8 +58,9 @@ Dialog. Parts: `Popover.Trigger`, `Popover.Content` (`side`, `align`,
 `collisionPadding`, always an `aria-label`), `Popover.Close`. Opened from
 a menu item there is no Trigger: pass `anchor` (a ref to the menu's
 trigger), which places the popover and gets focus back. Focus moves in on
-open; Tab stays inside. The caller's class sets `--float`,
-`--radius-menu` and `--elev-float`.
+open; Tab stays inside. The caller's class sets `--float`, `--radius-menu`
+and `--elev-float`. A coach mark (Tour.tsx) adds `placeAt`, `anchorKey`,
+`closeOnOutsidePress` and `trapFocus`.
 
 ```tsx
 // Correct: components/ExportPanel.tsx:201

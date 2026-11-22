@@ -27,6 +27,18 @@ Inside a pane: section labels are `--text-label` (12px, 600, `--muted`)
 in sentence case, never uppercase; padding is `--space-16`; groups sit
 `--space-16` apart, related controls `--space-8`.
 
+## Tabs and steppers
+
+Use [ui/Tabs](../../web/src/components/ui/Tabs.tsx) for views of one
+thing shown one at a time (the power tool's two modes): `Tabs`
+(`value`, `onValueChange`), `Tabs.List` (always an `aria-label`),
+`Tabs.Tab`, `Tabs.Panel`. Tab reaches the selected tab only; arrows,
+Home and End move and select. The selected tab keeps the others' weight.
+Never a `role="tablist"` by hand. Steps that build on each other (an
+assay setup) are a wizard, not tabs: `sheets/assays/kit/Wizard.tsx`
+shows a stepper, a "Step 2 of 4" heading that takes focus when a step is
+picked, and one primary (Next, then the finish verb).
+
 ## One depth cue per surface
 
 ```

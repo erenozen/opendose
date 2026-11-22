@@ -26,6 +26,9 @@ export { SwapLabel } from "./LabelSwap";
 export { useLabelSwap, SWAP_MS } from "./useLabelSwap";
 export { Num, NumText } from "./Num";
 
+// ---- guided flows (p4-guided): roving tabs
+export { default as Tabs } from "./Tabs";
+
 // ---- overlays (p3-overlays): Dialog, Popover, Menu, Tooltip on one
 // dismiss/focus layer (useDismiss)
 export { default as Dialog } from "./Dialog";

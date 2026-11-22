@@ -10,6 +10,7 @@
   font-size: var(--text-caption); line-height: var(--leading-body);
 }
 .ui-field-error[hidden] { display: none; }
+.ui-field-description { margin: 0; }
 .ui-field[data-invalid] input { border-color: var(--danger); }
 
 /* A field that takes one number: narrow, tabular figures. */

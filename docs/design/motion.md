@@ -72,7 +72,7 @@ Was it started from the keyboard?
 }
 .banner[data-closing] { opacity: 0; transform: translateY(-6px); transition-duration: var(--dur-exit); }
 
-/* Incorrect: guide/guide.css:197. Layout properties, a raw duration. */
+/* Incorrect: the old tour ring (was guide/guide.css). Layout properties, a raw duration. */
 transition: top 220ms var(--ease-out), left 220ms var(--ease-out),
   width 220ms var(--ease-out), height 220ms var(--ease-out);
 ```

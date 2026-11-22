@@ -4,6 +4,7 @@ import { useProject } from "../app/context";
 // is only called from an event handler, never while modules evaluate.
 import { addFamily } from "../app/factory";
 import Modal from "../components/Modal";
+import { Button, FileButton, notify } from "../components/ui";
 import { SRC } from "../guide/sources";
 import { readXlsx, type XlsxSheet } from "../lib/engine";
 import { DEFAULT_EXPORT, tableMatrix } from "../project/exportTable";
@@ -222,15 +223,15 @@ export default function RecipeDialog({ initialText, initialFiles, savedId, stage
       onClose={onClose} onSubmit={create}
       actions={
         <>
-          {onBack && <button type="button" className="spacer" onClick={onBack}>Back to plain import</button>}
+          {onBack && <Button className="spacer" onClick={onBack}>Back to plain import</Button>}
           {!given && (
-            <button type="button" className={onBack ? undefined : "spacer"} disabled={!staged}
-              aria-expanded={saving} onClick={() => setSaving(!saving)}>Save as recipe…</button>
+            <Button className={onBack ? undefined : "spacer"} disabled={!staged}
+              aria-expanded={saving} onClick={() => setSaving(!saving)}>Save as recipe…</Button>
           )}
-          <button type="button" onClick={onClose}>Cancel</button>
-          <button type="submit" className="btn-primary" disabled={!out?.result || busy}>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button type="submit" variant="primary" disabled={!out?.result || busy}>
             Create table
-          </button>
+          </Button>
         </>
       }>
       <div className="dialog-tabs" role="tablist" aria-label="Recipe steps">
@@ -266,12 +267,15 @@ export default function RecipeDialog({ initialText, initialFiles, savedId, stage
           </fieldset>
           {srcKind === "file" ? (
             <div className="field-row">
-              <label className="field">
+              <div className="field">
                 <span>File (or several)</span>
-                <input type="file" aria-label="Export file to import" multiple
+                <FileButton size="sm" multiple inputLabel="Export file to import" busy={busy}
+                  busyLabel="Reading…"
                   accept=".csv,.tsv,.txt,.tab,.dat,.xlsx,.zip,text/csv,text/plain,application/zip"
-                  onChange={(e) => { void pickFiles([...(e.target.files ?? [])]); }} />
-              </label>
+                  onFiles={(files) => { void pickFiles(files); }}>
+                  {matrix.length ? "Choose other files…" : "Choose files…"}
+                </FileButton>
+              </div>
               {sheets && sheets.length > 1 && (
                 <label className="field">
                   <span>Worksheet</span>
@@ -321,8 +325,13 @@ export default function RecipeDialog({ initialText, initialFiles, savedId, stage
                     badge={e.inProject ? "in project" : "this browser"} />
                   <button type="button" data-still className="linkish" aria-label={`Delete saved recipe ${e.recipe.name}`}
                     onClick={() => {
+                      // Undo instead of a question (GF-08): the recipe comes back as it was.
                       if (choice === `saved:${e.recipe.id}`) setChoice("auto");
                       saved.remove(e.recipe.id);
+                      notify(`Deleted the recipe “${e.recipe.name}”.`, {
+                        tone: "success",
+                        action: { label: "Undo", onAction: () => saved.restore(e) },
+                      });
                     }}>Delete</button>
                 </div>
               ))}

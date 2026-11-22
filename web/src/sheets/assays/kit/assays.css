@@ -5,45 +5,76 @@
 /* ---------------------------------------------------------- wizard */
 .assay-wizard { width: min(980px, calc(100vw - 32px)); }
 .assay-wizard .modal-body { gap: var(--space-12); }
+/* Stepper: numbered steps joined by a rule. The current step is marked by
+   its filled number and its tint, done steps by a quiet tick colour; the
+   weight never changes, so the row does not reflow (GF-12). */
 .wizard-steps {
-  display: flex; flex-wrap: wrap; gap: var(--space-6); margin: 0 0 var(--space-4); padding: 0;
-  list-style: none;
+  display: flex; flex-wrap: wrap; gap: var(--space-4); margin: 0; padding: 0;
+  list-style: none; counter-reset: none;
+}
+.wizard-steps li { display: flex; align-items: center; gap: var(--space-4); }
+.wizard-steps li + li::before {
+  content: ""; width: var(--space-12); height: 1px; background: var(--line-solid); flex: none;
 }
 .wizard-steps button {
-  display: inline-flex; align-items: center; gap: 7px;
-  padding: 5px var(--space-12) 5px var(--space-6); border-radius: var(--radius-control);
-  border: 1px solid var(--line-strong); background: var(--surface);
-  color: var(--ink-2); font: inherit; font-size: var(--text-body-s); cursor: pointer;
+  display: inline-flex; align-items: center; gap: var(--space-8);
+  min-height: 28px; padding: var(--space-2) var(--space-12) var(--space-2) var(--space-4);
+  border: 0; border-radius: var(--radius-control); background: transparent;
+  color: var(--ink-2); font: inherit; font-size: var(--text-body-s);
+  font-weight: var(--weight-medium); cursor: pointer;
+  transition: background-color var(--dur-base) var(--ease-out), color var(--dur-base) var(--ease-out);
 }
-.wizard-steps button.current {
-  border-color: var(--accent-border); background: var(--accent-soft); color: var(--ink);
-  font-weight: var(--weight-semibold);
+.wizard-steps button[data-state="current"] { background: var(--accent-soft); color: var(--ink); }
+.wizard-steps button:disabled { color: var(--muted); cursor: default; }
+@media (hover: hover) and (pointer: fine) {
+  .wizard-steps button:not(:disabled):not([data-state="current"]):hover { background: var(--inset); color: var(--ink); }
 }
-.wizard-steps button:disabled { opacity: 0.5; cursor: default; }
+@media (pointer: coarse) {
+  .wizard-steps button { min-height: 44px; }
+}
+/* Wrapped rows on a phone: no joining rule at the start of a row. */
+@media (max-width: 760px) {
+  .wizard-steps li + li::before { display: none; }
+}
 .wizard-step-n {
-  display: inline-grid; place-items: center; width: 20px; height: 20px;
-  border-radius: 50%; background: var(--inset); color: var(--ink-2);
-  font-size: var(--text-caption); font-weight: var(--weight-semibold); font-variant-numeric: tabular-nums;
+  display: inline-grid; place-items: center; width: 22px; height: 22px; flex: none;
+  border-radius: var(--radius-round); box-shadow: inset 0 0 0 1px var(--line-strong);
+  color: var(--ink-2); font-size: var(--text-caption); font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
 }
-.wizard-steps button.current .wizard-step-n { background: var(--accent-fill); color: var(--accent-ink); }
-.wizard-steps button.done .wizard-step-n { background: var(--accent-soft); color: var(--accent); }
+.wizard-steps button[data-state="current"] .wizard-step-n {
+  background: var(--accent-fill); color: var(--accent-ink); box-shadow: none;
+}
+.wizard-steps button[data-state="done"] .wizard-step-n { background: var(--inset); box-shadow: none; color: var(--ink); }
 .wizard-body {
   display: flex; flex-direction: column; gap: var(--space-12);
-  max-height: min(64svh, 680px); overflow: auto; padding: var(--space-2) var(--space-2) var(--space-4);
+  max-height: min(64svh, 680px); overflow: auto; overscroll-behavior: contain;
+  padding: var(--space-2) var(--space-2) var(--space-4);
   transition: opacity var(--dur-base) var(--ease-out);
   opacity: 1;
   @starting-style { opacity: 0; }
 }
+/* A step reached from the keyboard appears at once (motion.md). */
+.wizard-body[data-instant] { transition: none; }
+/* Two classes: the dialog can sit inside .controls, whose h3 rule is a label. */
+.wizard-body .wizard-step-title {
+  display: flex; flex-direction: column; gap: var(--space-2);
+  margin: 0; font-size: var(--text-lead); font-weight: var(--weight-semibold); color: var(--ink);
+}
+.wizard-step-title:focus { outline: none; }
+.wizard-step-title:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.wizard-step-count { font-size: var(--text-caption); font-weight: var(--weight-medium); color: var(--muted); }
+/* Section labels inside a step: 12px, 600, muted, sentence case. */
 .wizard-body h4 {
-  margin: var(--space-6) 0 0; font-size: var(--text-label); text-transform: uppercase;
-  letter-spacing: 0.07em; color: var(--muted); font-weight: var(--weight-semibold);
+  margin: var(--space-6) 0 0; font-size: var(--text-label);
+  color: var(--muted); font-weight: var(--weight-semibold);
 }
 .wizard-body p { margin: 0; }
 .wizard-blocker { margin: 0; color: var(--warn-ink); font-size: var(--text-body-s); }
 .wizard-row { display: flex; flex-wrap: wrap; gap: var(--space-12); align-items: flex-end; }
 .wizard-row .field { min-width: 150px; }
 .wizard-explain {
-  margin: 0; padding: 10px var(--space-12); font-size: var(--text-body-s); color: var(--ink-2);
+  margin: 0; padding: var(--space-8) var(--space-12); font-size: var(--text-body-s); color: var(--ink-2);
   background: var(--inset); border-radius: var(--radius-control);
 }
 .wizard-explain strong { color: var(--ink); }
@@ -99,7 +130,7 @@
   background: var(--surface); color: var(--ink-2); font: inherit; font-size: var(--text-body-s); cursor: pointer;
 }
 .assay-tabs button[aria-pressed="true"] {
-  border-color: var(--accent-border); background: var(--accent-soft); color: var(--ink); font-weight: var(--weight-semibold);
+  border-color: var(--accent-border); background: var(--accent-soft); color: var(--ink);
 }
 .assay-cite { color: var(--muted); font-size: var(--text-caption); margin: var(--space-6) 0 0; }
 
@@ -109,9 +140,7 @@
 }
 .column-picker select[aria-invalid="true"] { border-color: var(--danger); }
 .assay-outputs { display: flex; flex-wrap: wrap; gap: var(--space-8); align-items: center; }
-.assay-link-btn { font-size: var(--text-body-s); padding: 5px var(--space-12); }
 .assay-setup { display: flex; flex-wrap: wrap; gap: var(--space-8); align-items: center; }
-.assay-setup .btn-primary { font-size: var(--text-body-s); }
 .assay-chips { display: flex; flex-wrap: wrap; gap: var(--space-6); }
 .gene-picks { display: flex; flex-wrap: wrap; gap: var(--space-4) 14px; }
 .gene-picks label { display: inline-flex; align-items: center; gap: var(--space-6); color: var(--ink-2); }

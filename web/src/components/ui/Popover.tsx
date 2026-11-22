@@ -7,6 +7,7 @@ import {
   useDismiss, usePresence, useTopLayer,
 } from "./useDismiss.ts";
 import { boxOf, useAnchoredPosition, type AnchorOptions } from "./Popover.anchor.ts";
+import type { Box } from "./Popover.place.ts";
 import { buttonClass } from "./buttonClass";
 import type { TriggerProps } from "./Menu";
 import "./Popover.css";
@@ -84,23 +85,40 @@ function Trigger({ ref, onClick, variant, size, className, ...props }: TriggerPr
 type ContentProps = Omit<ComponentProps<"div">, "popover"> & AnchorOptions & {
   /** Move focus into the panel on open (default true). */
   autoFocus?: boolean;
+  /** Place the panel against this element (or viewport box) instead of
+   *  Popover.Trigger: a coach mark pointing at part of the page. */
+  placeAt?: () => Element | Box | null;
+  /** A new value places the panel again (what placeAt points at changed). */
+  anchorKey?: string;
+  /** Keep Tab inside the panel (default true). False for a panel the user
+   *  works beside: a tour step that asks them to edit a cell. */
+  trapFocus?: boolean;
+  /** Close on a press outside (default true). False for a panel the user
+   *  works beside, such as a tour step that asks them to edit a cell. */
+  closeOnOutsidePress?: boolean;
 };
 
 /** The floating panel. `role="dialog"` by default; name it with aria-label. */
 function Content({
   ref, side = "bottom", align = "start", sideOffset = 8, collisionPadding, collisionBoundary,
-  autoFocus = true, className = "", children, onKeyDown, ...props
+  autoFocus = true, placeAt, anchorKey, closeOnOutsidePress = true, trapFocus = true,
+  className = "", children,
+  onKeyDown, ...props
 }: ContentProps) {
   const { open, setOpen, trigger, contentId } = usePopover();
   const el = useRef<HTMLDivElement>(null);
   const setRef = useMergedRefs(el, ref);
   const { mounted, state, instant } = usePresence(open, el);
   useTopLayer(el, mounted);
-  useAnchoredPosition(el, mounted, () => boxOf(trigger.current),
-    { side, align, sideOffset, collisionPadding, collisionBoundary });
+  useAnchoredPosition(el, mounted, () => {
+    const a = placeAt ? placeAt() : trigger.current;
+    return a instanceof Element ? boxOf(a) : a;
+  },
+    { side, align, sideOffset, collisionPadding, collisionBoundary }, anchorKey);
   useDismiss({
     open, layer: el, trigger,
     onDismiss: (reason) => {
+      if (reason === "outside" && !closeOnOutsidePress) return;
       setOpen(false);
       // A press outside moves focus after this runs: check again once it has.
       if (reason === "outside") setTimeout(() => restoreFocus(trigger.current, el.current));
@@ -117,7 +135,7 @@ function Content({
       data-instant={instant || undefined}
       onKeyDown={(e) => {
         onKeyDown?.(e);
-        if (!e.defaultPrevented && el.current) containTab(e, el.current);
+        if (trapFocus && !e.defaultPrevented && el.current) containTab(e, el.current);
       }}>
       {children}
     </div>

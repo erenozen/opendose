@@ -2,6 +2,7 @@
 // the input table, start empty or with the example; the module's wizard
 // opens on the new family.
 import { useState } from "react";
+import { Field, Input } from "../../../components/ui";
 import { ASSAYS, type AssayModule } from "../index";
 import "./assays.css";
 
@@ -42,11 +43,10 @@ export default function AssayPicker({ onChange }: { onChange: (p: AssayPick | nu
         ))}
       </fieldset>
       <div className="new-table-options">
-        <label className="field">
-          <span>Name</span>
-          <input value={name} aria-label="Assay table name"
+        <Field label="Assay table name">
+          <Input value={name} autoComplete="off"
             onChange={(e) => { setName(e.target.value); setNamed(true); emit({ name: e.target.value }); }} />
-        </label>
+        </Field>
         <fieldset className="field-radios">
           <legend>Start with</legend>
           <label><input type="radio" name="assay-start" checked={sample}

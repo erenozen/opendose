@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Button } from "../components/ui";
 import DesignDialog from "./DesignDialog";
 import type { TableRecommendation } from "./designToTable";
 
@@ -10,8 +11,8 @@ export default function DescribeExperimentButton({ onPick }: {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <button type="button" className="describe-experiment" onClick={() => setOpen(true)}>
-        Not sure? Describe your experiment…</button>
+      <Button className="describe-experiment" onClick={() => setOpen(true)}>
+        Not sure? Describe your experiment…</Button>
       {open && (
         <DesignDialog action="Create this table" onClose={() => setOpen(false)}
           onPick={(r) => { setOpen(false); onPick(r); }} />

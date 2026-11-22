@@ -744,6 +744,8 @@ expect("derived table is read-only and linked",
 await page.locator(".origin-note").getByRole("button", { name: "Settings" }).click();
 await page.getByLabel("User-defined formulas").check();
 await page.getByLabel("Y formula").fill("Y = Y*2 +");
+// a problem shows once the field is left (reward early, punish late)
+await page.getByLabel("Y formula").blur();
 await page.waitForSelector(".formula-error", { timeout: 10000 });
 expect("formula validation reports the error position",
   /column 10/.test(await page.locator(".formula-error").first().innerText()));
@@ -2121,7 +2123,7 @@ for (let i = 0; i < 6; i++) {
   await next.click();
   await page.waitForTimeout(250);
 }
-await qwz.locator(".modal-actions .btn-primary").click();
+await qwz.locator(".modal-actions .wizard-next").click();
 await qwz.waitFor({ state: "detached", timeout: 10000 }).catch(() => {});
 await page.waitForSelector(".qpcr-results .qpcr-target", { timeout: 60000 }).catch(() => {});
 const qkid = (await page.locator(".qpcr-target tr", { hasText: /^Kidney/ }).first().innerText().catch(() => "")).replace(/\s+/g, " ");

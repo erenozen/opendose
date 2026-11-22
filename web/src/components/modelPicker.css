@@ -83,7 +83,8 @@
 }
 .eq-text[aria-invalid="true"] { border-color: var(--danger); }
 .eq-status { min-height: 18px; font-size: var(--text-body-s); }
-.eq-ok { color: var(--accent); }
+.eq-status > p { margin: 0; }
+.eq-ok { color: var(--success); }
 .eq-ok::before { content: "✓ "; }
 .eq-error { color: var(--danger); }
 .eq-warning { color: var(--warn-ink); }

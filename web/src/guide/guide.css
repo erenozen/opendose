@@ -5,85 +5,68 @@
    ============================================================ */
 
 
-.learn-more {
-  background: none; padding: 0; border-radius: var(--radius-control);
-  color: var(--accent); font-size: var(--text-body-s); font-weight: var(--weight-medium);
-  text-decoration: underline; text-underline-offset: 2px;
-}
-@media (hover: hover) and (pointer: fine) {
-  .learn-more:hover { background: none; color: var(--accent); text-decoration-thickness: 2px; }
-}
+/* "Learn more": an inline link-style button (button.linkish). */
+.learn-more { font-weight: var(--weight-medium); }
 
-/* ---------------- results: banners, chips, differ note ---------------- */
+/* ---------------- results: chip actions, sources ---------------- */
 
-.guide-banner {
-  border: 1px solid var(--line-strong); border-left: 3px solid var(--accent);
-  border-radius: var(--radius-control); background: var(--surface);
-  padding: 10px 14px; font-size: var(--text-body-s); color: var(--ink-2);
-}
-.guide-banner p { margin: 0 0 var(--space-6); }
-.guide-banner ul { margin: 0 0 var(--space-6); padding-left: 18px; }
-.guide-banner li { margin: var(--space-2) 0; }
-.guide-banner.banner-warn { border-left-color: var(--warn); }
-.guide-banner-title { color: var(--ink); font-weight: var(--weight-semibold); font-size: var(--text-body); }
-.guide-banner-sub { font-weight: var(--weight-semibold); color: var(--ink); font-size: var(--text-body-s); }
-.guide-banner-foot {
-  display: flex; flex-wrap: wrap; gap: var(--space-6) 14px; align-items: center; margin: 0 !important;
-}
 .guide-source { font-size: var(--text-caption); color: var(--muted); }
-.guide-banner-foot button { padding: var(--space-4) var(--space-12); font-size: var(--text-body-s); }
-
 .guide-chip-action button { font-size: var(--text-body-s); }
-
-
-.results-empty-actions { display: flex; flex-wrap: wrap; gap: var(--space-8); justify-content: center; margin-top: 10px; }
 
 /* ---------------- data-entry hints ---------------- */
 
-.entry-guide { display: flex; flex-direction: column; gap: var(--space-6); margin-bottom: var(--space-8); }
+.entry-guide { display: flex; flex-direction: column; gap: var(--space-8); margin-bottom: var(--space-8); }
+.entry-guide:empty { display: none; }
 
 /* ---------------- which-test wizard ---------------- */
 
 .which-test { width: min(1040px, calc(100vw - 32px)); }
-.which-test .modal-body { max-height: calc(100dvh - 48px); overflow: auto; padding-bottom: 0; }
+.which-test .modal-body { max-height: calc(100dvh - 48px); overflow: auto; overscroll-behavior: contain; padding-bottom: 0; }
 .which-test .modal-actions {
-  position: sticky; bottom: 0; background: var(--surface);
-  padding: 10px 0 var(--space-16); margin-top: 0; border-top: 1px solid var(--line);
+  position: sticky; bottom: 0; background: var(--float);
+  padding: var(--space-12) 0 var(--space-16); margin-top: 0; border-top: 1px solid var(--line);
 }
-.wt-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; align-items: start; }
-.wt-questions { display: flex; flex-direction: column; gap: 10px; }
+.wt-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-20); align-items: start; }
+.wt-questions { display: flex; flex-direction: column; gap: var(--space-12); }
 .wt-q { border: none; margin: 0; padding: 0; min-width: 0; }
-.wt-q legend { font-weight: var(--weight-semibold); font-size: var(--text-body-s); margin-bottom: 5px; padding: 0; }
-.wt-options { display: flex; flex-wrap: wrap; gap: 5px; }
+.wt-q legend { font-weight: var(--weight-semibold); font-size: var(--text-body-s); color: var(--ink); margin-bottom: var(--space-6); padding: 0; }
+/* Answers: radio keycaps. The chosen one is marked by its fill and its
+   radio, never by weight, so the row does not reflow. */
+.wt-options { display: flex; flex-wrap: wrap; gap: var(--space-6); }
 .wt-options label {
   display: inline-flex; align-items: center; gap: var(--space-6); cursor: pointer;
-  border: 1px solid var(--line-strong); border-radius: var(--radius-control);
-  padding: var(--space-4) 11px var(--space-4) var(--space-8); font-size: var(--text-body-s); background: var(--surface);
+  min-height: 28px; padding: var(--space-4) var(--space-12) var(--space-4) var(--space-8);
+  border-radius: var(--radius-control); box-shadow: inset 0 0 0 1px var(--line-strong);
+  font-size: var(--text-body-s); color: var(--ink-2); background: transparent;
 }
-.wt-options label.checked { border-color: var(--accent-border); background: var(--accent-soft); color: var(--ink); }
+.wt-options label.checked { box-shadow: inset 0 0 0 1px var(--accent-border); background: var(--accent-soft); color: var(--ink); }
 .wt-options input { margin: 0; accent-color: var(--accent-fill); }
 .wt-options label:has(input:focus-visible) { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+@media (hover: hover) and (pointer: fine) {
+  .wt-options label:not(.checked):hover { color: var(--ink); background: var(--inset); }
+}
+@media (pointer: coarse) {
+  .wt-options label { min-height: 44px; }
+}
 .wt-hint { margin: var(--space-4) 0 0; font-size: var(--text-caption); color: var(--muted); }
 .wt-check { display: flex; gap: var(--space-8); align-items: center; font-size: var(--text-body-s); }
-.wt-field { display: flex; gap: var(--space-8); align-items: center; font-size: var(--text-body-s); }
-.wt-field input {
-  font: inherit; width: 90px; padding: 5px var(--space-8); color: var(--ink); background: var(--inset);
-  border: 1px solid var(--line-strong); border-radius: var(--radius-control);
+@media (pointer: coarse) {
+  .wt-check { min-height: 44px; }
 }
 .wt-result {
   position: sticky; top: 0;
-  background: var(--page); border-radius: var(--radius-pane); padding: 14px var(--space-16);
+  background: var(--inset); border-radius: var(--radius-pane); padding: var(--space-16);
   font-size: var(--text-body-s); color: var(--ink-2);
 }
 .wt-result p { margin: 0 0 var(--space-8); }
-.wt-result h4 { margin: 10px 0 var(--space-4); font-size: var(--text-body-s); color: var(--ink); }
-.wt-result ul { margin: 0 0 var(--space-8); padding-left: 18px; }
-.wt-eyebrow { font-size: var(--text-label); font-weight: var(--weight-semibold); text-transform: uppercase; letter-spacing: 0.04em;
-  color: var(--muted); margin-bottom: var(--space-2) !important; }
+.wt-result h4 { margin: var(--space-12) 0 var(--space-4); font-size: var(--text-body-s); color: var(--ink); }
+.wt-result ul { margin: 0 0 var(--space-8); padding-left: var(--space-20); }
+/* A section label (12px, 600, muted, sentence case). */
+.wt-eyebrow { font-size: var(--text-label); font-weight: var(--weight-semibold); color: var(--muted); margin-bottom: var(--space-2) !important; }
 .wt-test { margin: 0 0 var(--space-6); font-size: var(--text-title); color: var(--ink); letter-spacing: -0.01em; }
-.wt-checks { background: var(--surface); border-radius: var(--radius-control); padding: var(--space-6) 10px; margin-bottom: var(--space-8); }
+.wt-checks { background: var(--surface); border-radius: var(--radius-control); padding: var(--space-6) var(--space-12); margin-bottom: var(--space-8); }
 .wt-checks h4 { margin-top: var(--space-2); }
-.wt-notes li { margin: 3px 0; }
+.wt-notes li { margin: var(--space-2) 0; }
 .wt-tails, .wt-table-note { color: var(--muted); font-size: var(--text-body-s); }
 .wt-sources { font-size: var(--text-caption); color: var(--muted); }
 .explainer-inline { font-size: var(--text-body-s); margin: var(--space-4) 0; }
@@ -122,7 +105,7 @@
 }
 .help-actions { display: flex; flex-wrap: wrap; gap: var(--space-6); margin: 10px 0 var(--space-4); }
 .help-section { font-size: var(--text-label); font-weight: var(--weight-semibold);
-  color: var(--muted); margin: 14px 0 var(--space-6); }
+  color: var(--muted); margin: var(--space-16) 0 var(--space-6); }
 .help-topics { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
 .help-topics button {
   display: flex; flex-direction: column; align-items: flex-start; gap: 1px; width: 100%;
@@ -153,29 +136,29 @@
 
 /* ---------------- tour ---------------- */
 
-.tour { position: fixed; inset: 0; z-index: var(--z-toast); pointer-events: none; }
+/* The ring dims the page around the step's target (the same scrim as a
+   dialog) and is moved by transform, never by top/left (GF-04). The card
+   is a Popover (top layer); its surface is set here. */
+.tour { position: fixed; inset: 0; z-index: var(--z-dialog); pointer-events: none; }
 /* The ring sits 6px outside its target, so its corner is the target's
-   4px plus that gap, rounded to the 8px step; the page dims with the
-   same scrim as a dialog. */
+   4px plus that gap, rounded to the 8px step. */
 .tour-ring {
-  position: fixed; border-radius: var(--radius-dialog); border: 2px solid var(--accent-fill);
-  box-shadow: 0 0 0 9999px var(--scrim);
-  transition: top 220ms var(--ease-out), left 220ms var(--ease-out),
-    width 220ms var(--ease-out), height 220ms var(--ease-out);
+  position: fixed; top: 0; left: 0;
+  border-radius: var(--radius-dialog); border: 2px solid var(--accent-fill);
+  box-shadow: 0 0 0 100vmax var(--scrim);
 }
-.tour-card {
-  position: fixed; pointer-events: auto; width: min(340px, calc(100vw - 32px));
+.ui-layer.tour-card {
+  width: min(340px, calc(100vw - 32px)); pointer-events: auto;
   background: var(--float); color: var(--ink);
-  border-radius: var(--radius-dialog);
-  box-shadow: var(--elev-dialog); padding: 14px var(--space-16) var(--space-12);
-  transition: top 220ms var(--ease-out), left 220ms var(--ease-out), opacity 160ms ease;
+  border-radius: var(--radius-dialog); box-shadow: var(--elev-dialog);
+  padding: var(--space-12) var(--space-16);
+  overscroll-behavior: contain;
 }
 .tour-count { margin: 0; font-size: var(--text-caption); color: var(--muted); font-weight: var(--weight-semibold); }
 .tour-title { margin: var(--space-2) 0 var(--space-6); font-size: var(--text-lead); }
 .tour-body { margin: 0 0 var(--space-12); font-size: var(--text-body-s); color: var(--ink-2); }
-.tour-actions { display: flex; gap: var(--space-6); align-items: center; }
+.tour-actions { display: flex; gap: var(--space-8); align-items: center; }
 .tour-spacer { flex: 1; }
-.tour-skip { background: none; color: var(--muted); padding: var(--space-6) var(--space-8); }
 
 /* ---------------- start screen ---------------- */
 

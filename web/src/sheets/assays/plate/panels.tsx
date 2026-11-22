@@ -19,7 +19,7 @@ import {
 } from "./model";
 import PlateMapEditor from "./PlateMapEditor";
 import "./plate.css";
-import { Button } from "../../../components/ui";
+import { Button, FileButton } from "../../../components/ui";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -347,12 +347,10 @@ function ImportStep({ table, format, onFormat, onTable }: {
             <option value={384}>384 wells (16 × 24)</option>
           </select>
         </label>
-        <label className="field">
+        <div className="field">
           <span>Reader file (.csv, .txt or .xlsx)</span>
-          <input type="file" accept=".csv,.tsv,.txt,.xlsx,text/csv,text/plain" aria-label="Reader file"
-            onChange={async (e) => {
-              const f = e.target.files?.[0];
-              if (!f) return;
+          <FileButton size="sm" accept=".csv,.tsv,.txt,.xlsx,text/csv,text/plain" inputLabel="Reader file"
+            onFile={async (f) => {
               setBusy(true);
               try {
                 const bytes = new Uint8Array(await f.arrayBuffer());
@@ -365,8 +363,9 @@ function ImportStep({ table, format, onFormat, onTable }: {
               } catch (err) {
                 setMsg(`Could not read the file: ${err instanceof Error ? err.message : String(err)}`);
               } finally { setBusy(false); }
-            }} />
-        </label>
+            }}>
+            Choose the reader file…</FileButton>
+        </div>
         <label className="check-row">
           <input type="checkbox" checked={append} onChange={(e) => setAppend(e.target.checked)} />
           Add to the plates already in the table

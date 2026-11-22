@@ -12,6 +12,8 @@ import {
   FORMULA_BASICS, FORMULA_EXAMPLES, FUNCTION_DOCS, FUNCTION_GROUPS,
 } from "./functions";
 import type { NamedValue, TransformOptions } from "./run";
+import { Button, IconButton } from "../../components/ui";
+import { CloseIcon } from "../../components/ui/feedbackIcons";
 
 interface Problem { message: string; line: number | null; column: number | null }
 
@@ -68,7 +70,13 @@ function FormulaField({ label, target, value, onChange, known, readOnly, onFocus
 }) {
   const id = useId();
   const problems = useValidation(value, target, known);
-  const bad = !!problems?.length;
+  // Reward early, punish late (AD-24): a problem waits until the field is
+  // left, then follows every keystroke and clears once the formula parses.
+  // The engine answers after the blur, so leaving arms the field until the
+  // formula is checked valid (Field.timing's rule, for an async check).
+  const [left, setLeft] = useState(false);
+  useEffect(() => { if (problems && !problems.length) setLeft(false); }, [problems]);
+  const bad = left && !!problems?.length;
   const lines = value.split("\n");
   return (
     <div className="formula-field">
@@ -76,13 +84,19 @@ function FormulaField({ label, target, value, onChange, known, readOnly, onFocus
       <textarea id={id} className="formula-input" rows={Math.min(6, Math.max(2, lines.length))}
         spellCheck={false} autoCapitalize="off" autoComplete="off"
         value={value} readOnly={readOnly} placeholder={placeholder}
-        aria-invalid={bad}
+        aria-invalid={bad || undefined}
         aria-describedby={`${id}-status`}
         onFocus={(e) => onFocusField(e.currentTarget)}
+        onBlur={() => setLeft(true)}
         onChange={(e) => onChange(e.target.value)} />
-      <div id={`${id}-status`} className={`formula-status${bad ? " bad" : ""}`} aria-live="polite">
+      {/* One short spoken line; the details are the field's description. */}
+      <p className="sr-only" role="status">
+        {!value.trim() || problems === null ? "" : bad ? `The ${target} formula has a problem.`
+          : problems.length ? "" : `${target} formula is valid.`}
+      </p>
+      <div id={`${id}-status`} className={`formula-status${bad ? " bad" : ""}`}>
         {!value.trim() ? <span className="hint-block">Leave blank to keep {target} as it is.</span>
-          : problems === null ? null
+          : problems === null || (problems.length > 0 && !bad) ? null
             : bad ? problems.map((p, i) => {
               const src = p.line ? lines[p.line - 1] ?? "" : lines.length === 1 ? lines[0] : "";
               return (
@@ -178,12 +192,12 @@ export function FormulaEditor({ table, options, set, readOnly }: {
         <div className="formula-examples" role="group" aria-label="Examples">
           <span className="hint-block">Examples:</span>
           {FORMULA_EXAMPLES.filter((e) => isXY || !e.x).map((e) => (
-            <button key={e.label} type="button" className="chip-btn" disabled={readOnly}
+            <Button key={e.label} size="sm" disabled={readOnly}
               title={[e.x, e.y].filter(Boolean).join("; ")}
               onClick={() => set({ ...(e.x !== undefined ? { xFormula: e.x } : {}),
                 ...(e.y !== undefined ? { yFormula: e.y } : {}) })}>
               {e.label}
-            </button>
+            </Button>
           ))}
         </div>
       </section>
@@ -207,30 +221,30 @@ export function FormulaEditor({ table, options, set, readOnly }: {
                     title={c.info ? `From the info constant “${c.info}”` : undefined}
                     onChange={(e) => setConst(i, { value: e.target.value })} />
                   {c.info && (
-                    <button type="button" className="chip-btn const-hook" disabled={readOnly}
+                    <Button size="sm" className="const-hook" disabled={readOnly}
                       title={`Follows the info constant “${c.info}”. Click to type a value instead.`}
                       aria-label={`Unhook ${c.name} from the info constant ${c.info}`}
                       onClick={() => set({ constants: options.constants.map((x, j) => (j === i
-                        ? { name: x.name, value: x.value } : x)) })}>info</button>
+                        ? { name: x.name, value: x.value } : x)) })}>info</Button>
                   )}
                 </td>
                 <td>
-                  <button type="button" className="icon-btn" disabled={readOnly}
+                  <IconButton size="sm" disabled={readOnly}
                     aria-label={`Remove constant ${c.name || i + 1}`}
                     onClick={() => set({
                       constants: options.constants.filter((_, j) => j !== i),
                       constantValues: options.constantValues.map((row) => row.filter((_, j) => j !== i)),
-                    })}>✕</button>
+                    })}><CloseIcon /></IconButton>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-        <button type="button" className="chip-btn" disabled={readOnly}
+        <Button size="sm" disabled={readOnly}
           onClick={() => set({ constants: [...options.constants,
             { name: nextConstName(options.constants), value: "1" }] })}>
-          + Add a constant
-        </button>
+          Add a constant
+        </Button>
         {infoConsts.length > 0 && (
           <select className="const-info-pick" value="" disabled={readOnly}
             aria-label="Use a constant from an info sheet"

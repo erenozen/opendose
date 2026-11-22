@@ -18,7 +18,7 @@ import {
   controlOf, D_TEST_LABELS, DENS_ROLES, guessImport, matchedSettings, matchedTable, readLanes,
   runDens, tableFromExport, type DensOptions, type DensResult, type DRole, type DTest, type ImportMap,
 } from "./model";
-import { Button } from "../../../components/ui";
+import { Button, FileButton } from "../../../components/ui";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -241,12 +241,10 @@ function ExportImport({ onTable }: { onTable: (t: DataTableModel) => void }) {
         export, then say which column is which; or type the lanes into the table.
       </p>
       <div className="wizard-row">
-        <label className="field">
+        <div className="field">
           <span>Export (.csv, .txt or .xlsx)</span>
-          <input type="file" accept=".csv,.tsv,.txt,.xls,.xlsx,text/csv,text/plain" aria-label="Densitometry export"
-            onChange={async (e) => {
-              const f = e.target.files?.[0];
-              if (!f) return;
+          <FileButton size="sm" accept=".csv,.tsv,.txt,.xls,.xlsx,text/csv,text/plain" inputLabel="Densitometry export"
+            onFile={async (f) => {
               try {
                 const bytes = new Uint8Array(await f.arrayBuffer());
                 if (/\.xlsx$/i.test(f.name)) {
@@ -254,8 +252,9 @@ function ExportImport({ onTable }: { onTable: (t: DataTableModel) => void }) {
                   load((sheets[0]?.rows as unknown[][] ?? []).map((r) => r.map((c) => (c == null ? "" : String(c)))));
                 } else load(parseSource(new TextDecoder("utf-8").decode(bytes)));
               } catch (err) { setMsg(`Could not read the file: ${err instanceof Error ? err.message : String(err)}`); }
-            }} />
-        </label>
+            }}>
+            Choose the densitometry export…</FileButton>
+        </div>
       </div>
       <label className="field">
         <span>…or paste it</span>

@@ -1,0 +1,24 @@
+/* Tabs (Tabs.tsx): a segmented track, the selected tab a raised thumb.
+   Every tab keeps the same weight, so selecting one moves nothing. */
+.ui-tabs {
+  display: inline-flex; flex-wrap: wrap; gap: var(--space-2); padding: var(--space-2);
+  align-self: flex-start; max-width: 100%;
+  background: var(--seg-track); border-radius: var(--radius-dialog);
+}
+.ui-tab {
+  min-height: 28px; padding: var(--space-4) var(--space-12);
+  border: 0; border-radius: var(--radius-menu); background: transparent;
+  color: var(--ink-2); font: inherit; font-size: var(--text-body-s);
+  font-weight: var(--weight-medium); cursor: pointer;
+  transition: background-color var(--dur-base) var(--ease-out), color var(--dur-base) var(--ease-out);
+}
+.ui-tab[aria-selected="true"] {
+  background: var(--seg-thumb); color: var(--ink); box-shadow: var(--elev-seg);
+}
+@media (hover: hover) and (pointer: fine) {
+  .ui-tab:hover { color: var(--ink); }
+}
+@media (pointer: coarse) {
+  .ui-tab { min-height: 44px; }
+}
+.ui-tab-panel { display: flex; flex-direction: column; gap: var(--space-12); min-width: 0; }

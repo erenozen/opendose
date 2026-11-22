@@ -3,18 +3,21 @@
 // correlation, chi-square and log-rank tests, with effect-size helpers,
 // power curves and the ARRIVE-style justification sentence (saved to the
 // project as an info sheet); and a randomisation list generator.
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
 import type Plotly from "plotly.js-dist-min";
 import { useProject } from "../app/context";
 import { useUi } from "../app/ui";
 import Modal from "../components/Modal";
+import {
+  Button, Field, Input, notify, SwapLabel, Tabs, useLabelSwap,
+} from "../components/ui";
 import { copyText, saveBlob } from "../export/download";
 import { analyzeAsync, isCancelled } from "../lib/engine";
 import { DEFAULT_SCHEME, seriesStyle } from "../lib/palette";
 import { newId } from "../project/ids";
 import { addSheets, makeInfoSheet, uniqueName } from "../project/ops";
 import { formatSig } from "../types";
-import { Field, Grid, KV, Select, TextNum } from "../sheets/common/clinicalKit";
+import { Grid, KV } from "../sheets/common/clinicalKit";
 import { baseLayout, chromeFor, useDark } from "../sheets/multivariable/chart";
 import { PlotlyChart } from "../sheets/multivariable/plotkit";
 import {
@@ -45,6 +48,39 @@ const EFFECT_LABEL: Record<PowerKind, string> = {
   correlation: "ρ", logrank: "Hazard ratio (treated vs control)", chi_square: "Cohen's w",
 };
 
+/* Labelled controls on ui/Field (forms.md): the label beside the control
+   in this dense two-column tool (power.css), the note under it. */
+
+function Select<T extends string>({ label, value, options, onChange }: {
+  label: string; value: T; options: readonly (readonly [T, string])[]; onChange: (v: T) => void;
+}) {
+  const id = useId();
+  return (
+    <Field id={id} label={label}>
+      <select id={id} value={value} onChange={(e) => onChange(e.target.value as T)}>
+        {options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+      </select>
+    </Field>
+  );
+}
+
+/** A value typed as text: numbers keep what was typed ("1e-3", "0,05"). */
+function TextNum({ label, value, onChange, placeholder, note, text, wide }: {
+  label: string; value: string; onChange: (v: string) => void;
+  placeholder?: string; note?: ReactNode;
+  /** Words, not a number (no number pad on phones). */
+  text?: boolean;
+  /** Spans the whole column (a list of values, a sentence). */
+  wide?: boolean;
+}) {
+  return (
+    <Field label={label} description={note} className={wide ? "power-wide" : undefined}>
+      <Input inputMode={text ? undefined : "decimal"} autoComplete="off" spellCheck={false}
+        placeholder={placeholder} value={value} onChange={(e) => onChange(e.target.value)} />
+    </Field>
+  );
+}
+
 export default function PowerDialog({ initial, pilot, onClose }: {
   initial: Tab; pilot?: PilotData; onClose: () => void;
 }) {
@@ -52,14 +88,15 @@ export default function PowerDialog({ initial, pilot, onClose }: {
   return (
     <Modal title={tab === "power" ? "Power and sample size" : "Randomisation list"}
       className="modal-wide power-dialog" onClose={onClose}
-      actions={<button type="button" className="btn-primary" onClick={onClose}>Done</button>}>
-      <div className="mv-seg power-tabs" role="tablist" aria-label="Tool">
-        <button type="button" role="tab" aria-selected={tab === "power"} className={tab === "power" ? "active" : ""}
-          onClick={() => setTab("power")}>Power and sample size</button>
-        <button type="button" role="tab" aria-selected={tab === "random"} className={tab === "random" ? "active" : ""}
-          onClick={() => setTab("random")}>Randomisation list</button>
-      </div>
-      {tab === "power" ? <PowerTool pilot={pilot} /> : <RandomTool />}
+      actions={<Button onClick={onClose}>Done</Button>}>
+      <Tabs value={tab} onValueChange={setTab}>
+        <Tabs.List aria-label="Tool" className="power-tabs">
+          <Tabs.Tab value="power">Power and sample size</Tabs.Tab>
+          <Tabs.Tab value="random">Randomisation list</Tabs.Tab>
+        </Tabs.List>
+        <Tabs.Panel value="power"><PowerTool pilot={pilot} /></Tabs.Panel>
+        <Tabs.Panel value="random"><RandomTool /></Tabs.Panel>
+      </Tabs>
     </Modal>
   );
 }
@@ -69,6 +106,7 @@ export default function PowerDialog({ initial, pilot, onClose }: {
 function PowerTool({ pilot }: { pilot?: PilotData }) {
   const { apply, select, readOnly } = useProject();
   const ui = useUi();
+  const copied = useLabelSwap();
   const [form, setForm] = useState<PowerForm>(() => (pilot ? pilotForm(defaultForm(), pilot)
     : defaultForm()));
   // "Plan next experiment": no effect yet until the user picks one.
@@ -139,6 +177,15 @@ function PowerTool({ pilot }: { pilot?: PilotData }) {
   const k = form.kind;
   const solvingEffect = form.solve === "effect";
   const two = k === "t_two_sample" || k === "two_proportions" || k === "logrank";
+  const testId = useId();
+  // The one spoken line (GF-02): the answer the calculation solved for,
+  // not the whole output with its tables on every keystroke.
+  const spoken = error && effectChosen ? ""
+    : !result ? ""
+      : result.solve === "power" ? `Power achieved: ${pct(result.power)}`
+        : result.solve === "effect" ? `Detectable effect: ${result.effect.name} = ${f(result.effect.value)}`
+          : result.n_per_group?.length ? `n per group: ${result.n_per_group.join(" and ")}`
+            : result.n_total ? `${nLabel(form)}: ${result.n_total}` : "";
   return (
     <>
     {/* "Plan next experiment": first, so a phone shows it before the inputs. */}
@@ -146,9 +193,9 @@ function PowerTool({ pilot }: { pilot?: PilotData }) {
     <div className="power-grid">
       <div className="controls power-inputs">
         <section>
-          <h3>Test</h3>
-          <Field label="Test family and kind">
-            <select aria-label="Test" value={k} onChange={(e) => set({ kind: e.target.value as PowerKind })}>
+          <h3>Calculation</h3>
+          <Field id={`${testId}-test`} label="Test" className="power-wide">
+            <select id={`${testId}-test`} value={k} onChange={(e) => set({ kind: e.target.value as PowerKind })}>
               {FAMILIES.map((fam) => (
                 <optgroup key={fam.label} label={fam.label}>
                   {fam.kinds.map((x) => <option key={x} value={x}>{KIND_LABELS[x]}</option>)}
@@ -181,17 +228,16 @@ function PowerTool({ pilot }: { pilot?: PilotData }) {
         </section>
         <section>
           <h3>Justification</h3>
-          <TextNum label="Unit" value={form.unit} onChange={(unit) => set({ unit })}
+          <TextNum label="Unit" text value={form.unit} onChange={(unit) => set({ unit })}
             note="What n counts: animals, mice, patients, wells…" />
           <TextNum label="Expected attrition (%)" value={form.attrition} placeholder="0"
             onChange={(attrition) => set({ attrition })} />
-          <Field label="Effect size based on">
-            <input className="constraint-value power-wide" aria-label="Effect size based on" value={form.effectSource} placeholder="e.g. a pilot study (ref.)"
-              onChange={(e) => set({ effectSource: e.target.value })} />
-          </Field>
+          <TextNum label="Effect size based on" text wide value={form.effectSource}
+            placeholder="e.g. a pilot study (ref.)" onChange={(effectSource) => set({ effectSource })} />
         </section>
       </div>
-      <div className="power-output" aria-live="polite">
+      <p className="sr-only" role="status">{spoken}</p>
+      <div className="power-output">
         {error && effectChosen && <div className="results-error" role="alert">{error}</div>}
         {result && <PowerSummary r={result} form={form} />}
         {result?.justification && (
@@ -199,15 +245,18 @@ function PowerTool({ pilot }: { pilot?: PilotData }) {
             <h3>Sample-size justification</h3>
             <p className="power-sentence">{result.justification.text}</p>
             <div className="inline-actions">
-              <button type="button" onClick={async () => {
-                // copyText says whether the clipboard took it (GF-07).
-                const ok = await copyText(result.justification!.text);
-                ui.notify(ok ? "Justification copied." : "Copy failed: select the sentence and copy it.",
-                  { tone: ok ? "success" : "error" });
-              }}>Copy</button>
-              <button type="button" className="btn-primary" disabled={readOnly} onClick={save}>
+              <Button onClick={async () => {
+                // copyText says whether the clipboard took it (GF-07); the
+                // button says it worked, a failure is an error toast.
+                if (await copyText(result.justification!.text)) copied.flash("Justification copied");
+                else {
+                  notify("Could not copy the justification: the browser refused the clipboard. "
+                    + "Select the sentence and copy it.", { tone: "error" });
+                }
+              }}><SwapLabel swapped={copied.swapped} done="Copied">Copy</SwapLabel></Button>
+              <Button variant="primary" disabled={readOnly} onClick={save}>
                 Save to project
-              </button>
+              </Button>
               <span className="field-note">
                 Saved as an info sheet, so reports can cite the a priori calculation (ARRIVE 2.0 item 2b).
               </span>
@@ -243,10 +292,10 @@ function EffectInputs({ form, set, solvingEffect }: {
             <TextNum label={k === "t_paired" ? "SD of the differences" : "SD (common)"} value={form.sd}
               onChange={(sd) => set({ sd })} />
             <div className="inline-actions">
-              <button type="button" disabled={d === null || !Number.isFinite(d)}
+              <Button size="sm" disabled={d === null || !Number.isFinite(d)}
                 onClick={() => d !== null && set({ d: String(Number(d.toPrecision(4))) })}>
                 Use d = {d !== null && Number.isFinite(d) ? f(d) : "…"}
-              </button>
+              </Button>
             </div>
           </details>
         )}
@@ -268,7 +317,7 @@ function EffectInputs({ form, set, solvingEffect }: {
               <TextNum label={k === "t_paired" ? "SD of the differences" : "SD (common)"} value={form.sd}
                 placeholder="optional" onChange={(sd) => set({ sd })} />
             )}
-            <TextNum label="Measurement unit" value={form.measureUnit} placeholder="e.g. mmol/L"
+            <TextNum label="Measurement unit" text value={form.measureUnit} placeholder="e.g. mmol/L"
               onChange={(measureUnit) => set({ measureUnit })} />
           </div>
         )}
@@ -286,16 +335,14 @@ function EffectInputs({ form, set, solvingEffect }: {
         {!solvingEffect && (
           <details className="power-helper">
             <summary>Compute f from group means</summary>
-            <Field label="Group means">
-              <input className="constraint-value power-wide" aria-label="Group means" value={form.groupMeans} placeholder="e.g. 10, 12, 15"
-                onChange={(e) => set({ groupMeans: e.target.value })} />
-            </Field>
+            <TextNum label="Group means" wide value={form.groupMeans} placeholder="e.g. 10, 12, 15"
+              onChange={(groupMeans) => set({ groupMeans })} />
             <TextNum label="SD within groups" value={form.groupSd} onChange={(groupSd) => set({ groupSd })} />
             <div className="inline-actions">
-              <button type="button" disabled={fv === null}
+              <Button size="sm" disabled={fv === null}
                 onClick={() => fv !== null && set({ f: String(Number(fv.toPrecision(4))), k: String(means.length) })}>
                 Use f = {fv !== null ? f(fv) : "…"}{fv !== null ? ` (k = ${means.length})` : ""}
-              </button>
+              </Button>
             </div>
           </details>
         )}
@@ -304,7 +351,7 @@ function EffectInputs({ form, set, solvingEffect }: {
             <p className="hint-block">To see the detectable spread of the group means in the measurement’s own units, give the SD:</p>
             <TextNum label="SD within groups" value={form.groupSd} placeholder="optional"
               onChange={(groupSd) => set({ groupSd })} />
-            <TextNum label="Measurement unit" value={form.measureUnit} placeholder="e.g. mmol/L"
+            <TextNum label="Measurement unit" text value={form.measureUnit} placeholder="e.g. mmol/L"
               onChange={(measureUnit) => set({ measureUnit })} />
           </div>
         )}
@@ -370,9 +417,9 @@ function EffectInputs({ form, set, solvingEffect }: {
         )}
         {!solvingEffect && hr !== null && Number.isFinite(hr) && (
           <div className="inline-actions">
-            <button type="button" onClick={() => set({ hr: String(Number(hr.toPrecision(4))) })}>
+            <Button size="sm" onClick={() => set({ hr: String(Number(hr.toPrecision(4))) })}>
               Use HR = {f(hr)} from the medians
-            </button>
+            </Button>
           </div>
         )}
         <TextNum label="Accrual period" value={form.accrual} placeholder="0" onChange={(accrual) => set({ accrual })} />
@@ -478,29 +525,38 @@ function RandomTool() {
   const [form, setForm] = useState<RandomForm>(defaultRandomForm);
   const [result, setResult] = useState<RandomResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const downloaded = useLabelSwap();
   const set = (p: Partial<RandomForm>) => setForm((x) => ({ ...x, ...p }));
+  const strataId = useId();
   const generate = async () => {
     const o = randomOptions(form);
     if ("error" in o) { setError(o.error); return; }
-    const r = await analyzeAsync({ analysis: "randomize", data: {}, options: o.options },
-      { priority: "user" }) as RandomResult;
-    if (r.error) { setError(String(r.error)); setResult(null); return; }
-    setError(null);
-    setResult(r);
-    if (!form.seed.trim()) set({ seed: String(r.seed) });
+    setBusy(true);
+    try {
+      const r = await analyzeAsync({ analysis: "randomize", data: {}, options: o.options },
+        { priority: "user" }) as RandomResult;
+      if (r.error) { setError(String(r.error)); setResult(null); return; }
+      setError(null);
+      setResult(r);
+      if (!form.seed.trim()) set({ seed: String(r.seed) });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
   };
   const download = () => {
     if (!result) return;
     saveBlob(new Blob([randomCsv(result)], { type: "text/csv" }), `randomisation-${result.method}-seed-${result.seed}.csv`);
+    downloaded.flash("Allocation list downloaded");
   };
   return (
     <div className="power-grid">
       <div className="controls power-inputs">
         <section>
           <h3>Design</h3>
-          <Field label="Groups">
-            <input className="constraint-value power-wide" aria-label="Groups" value={form.groups} onChange={(e) => set({ groups: e.target.value })} />
-          </Field>
+          <TextNum label="Groups" text wide value={form.groups} onChange={(groups) => set({ groups })} />
           <TextNum label="Allocation ratio" value={form.ratio} onChange={(ratio) => set({ ratio })}
             note="One whole number per group, e.g. 1, 1 or 2, 1." />
           <Select label="Method" value={form.method}
@@ -512,20 +568,20 @@ function RandomTool() {
               note="Several sizes are mixed at random so the next allocation cannot be guessed." />
           )}
           {form.method === "stratified" ? (
-            <Field label="Strata (name: n, one per line)">
-              <textarea className="constraint-value power-wide" aria-label="Strata" rows={3} value={form.strata} onChange={(e) => set({ strata: e.target.value })} />
+            <Field id={`${strataId}-strata`} label="Strata (name: n, one per line)" className="power-wide">
+              <textarea id={`${strataId}-strata`} rows={3} value={form.strata}
+                onChange={(e) => set({ strata: e.target.value })} />
             </Field>
           ) : (
             <TextNum label="Number of units" value={form.n} onChange={(v) => set({ n: v })} />
           )}
-          <Field label="ID prefix">
-            <input className="constraint-value" aria-label="ID prefix" value={form.idPrefix} onChange={(e) => set({ idPrefix: e.target.value })} />
-          </Field>
+          <TextNum label="ID prefix" text value={form.idPrefix} onChange={(idPrefix) => set({ idPrefix })} />
           <TextNum label="Seed" value={form.seed} placeholder="new random seed" onChange={(seed) => set({ seed })}
             note="Keep the seed to regenerate the same list." />
           <div className="inline-actions">
-            <button type="button" className="btn-primary" onClick={() => void generate()}>Generate list</button>
-            <button type="button" onClick={() => { set({ seed: "" }); setResult(null); }}>New seed</button>
+            <Button variant="primary" busy={busy} busyLabel="Generating…"
+              onClick={() => void generate()}>Generate list</Button>
+            <Button onClick={() => { set({ seed: "" }); setResult(null); }}>New seed</Button>
           </div>
         </section>
       </div>
@@ -540,7 +596,9 @@ function RandomTool() {
               {" "}Counts: {Object.entries(result.counts).map(([g, c]) => `${g} ${c}`).join(", ")}.
             </p>
             <div className="inline-actions">
-              <button type="button" className="btn-primary" onClick={download}>Download CSV</button>
+              <Button onClick={download}>
+                <SwapLabel swapped={downloaded.swapped} done="Downloaded">Download CSV</SwapLabel>
+              </Button>
               <span className="field-note">
                 For blinding, keep the list away from whoever allocates, treats or
                 assesses the units, and code the groups (A, B) on the cages or samples.
