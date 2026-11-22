@@ -23,7 +23,8 @@ interface Job {
  * "Export all graphs": draws each graph of the project off screen, one at
  * a time, at the export size, and saves them as a zip (or, for PDF, as
  * one multi-page file). Graphs whose results never arrive are skipped and
- * reported.
+ * reported. Resolves with the sentence to show; a failure starts with
+ * "Could not".
  */
 export function useBatchExport() {
   const { project } = useProject();
@@ -78,13 +79,17 @@ export function useBatchExport() {
           saveBlob(await zipFiles(files), `${job.archive}.zip`);
         }
       }
-      const msg = `${done.length} graph${done.length === 1 ? "" : "s"} exported`
-        + (skipped.current.length ? `; skipped (not drawn in time): ${skipped.current.join(", ")}` : "");
+      const skips = skipped.current.length
+        ? `; skipped (not drawn in time): ${skipped.current.join(", ")}` : "";
+      const msg = done.length
+        ? `Exported ${done.length} graph${done.length === 1 ? "" : "s"}${skips}.`
+        : `Could not export the graphs: none was drawn in time (${skipped.current.join(", ")}). `
+          + "Try again once the results are live.";
       job.resolve(msg);
       setJob(null);
     };
     step().catch(() => {
-      job.resolve("Export failed. Try a smaller size or another format.");
+      job.resolve("Could not export the graphs: one did not render. Try a smaller size or another format.");
       setJob(null);
     });
     return () => { live = false; };

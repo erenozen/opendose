@@ -1,4 +1,4 @@
-import { Suspense, useMemo } from "react";
+import { memo, Suspense, useMemo } from "react";
 import { useProject } from "../app/context";
 import { useAnalysisResult } from "../app/useAnalysisResult";
 import { findSheet } from "../project/ops";
@@ -11,9 +11,12 @@ import { readFormat } from "../graph";
  * A graph sheet drawn by its own plot panel (looked up in the sheets
  * registry, exactly as the workbench does), with its results computed if
  * nobody has yet. Used by layout placeholders and by batch export, which
- * size the surrounding box; the panel's `.plot` fills it.
+ * size the surrounding box; the panel's `.plot` fills it. Memoised: a
+ * layout re-render (selection, another item's edit) does not redraw it.
  */
-export default function LiveGraph({ graph }: { graph: GraphSheet }) {
+export default memo(LiveGraph);
+
+function LiveGraph({ graph }: { graph: GraphSheet }) {
   const { project } = useProject();
   const data = findSheet(project, graph.parentId) as DataSheet | undefined;
   const res = findSheet(project, graph.resultsId) as ResultsSheet | undefined;

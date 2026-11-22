@@ -77,21 +77,6 @@
   max-width: 72ch;
 }
 
-/* The graph export's Download button (components/ExportPanel.tsx) still
-   crossfades a keyed label; a ghost ::after reserves the widest label.
-   Copy buttons use the label swap of components/ui/LabelSwap.tsx. */
-.export-btn {
-  display: inline-flex; flex-direction: column; align-items: center;
-}
-.export-btn::after {
-  content: "Exporting…"; height: 0; visibility: hidden; overflow: hidden;
-}
-.swap-label {
-  transition: opacity var(--dur-enter) var(--ease-out), filter var(--dur-enter) var(--ease-out);
-  opacity: 1; filter: blur(0);
-  @starting-style { opacity: 0; filter: blur(2px); }
-}
-
 /* Copy / Copy for Word / CSV / TSV above the results (ResultsExport). */
 .results-export-wrap { display: flex; flex-direction: column; gap: var(--space-8); min-width: 0; }
 .results-export {

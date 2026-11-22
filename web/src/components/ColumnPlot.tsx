@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import type Plotly from "plotly.js-dist-min";
-import { loadPlotly, plotlyNow } from "../lib/plotly";
+import { plotlyNow } from "../lib/plotly";
+import { PlotStatus } from "../graph/PlotStatus";
+import { usePlotLoad } from "../graph/usePlotLoad";
 import type { ColumnGraphType, DatasetState } from "../types";
 import { parseCell } from "../types";
 import {
@@ -48,6 +50,7 @@ export default function ColumnPlot({
   const el = useRef<HTMLDivElement>(null);
   const [dark, setDark] = useState(isDarkMode());
   const { rev, attach } = usePlotEdits(format, onFormatChange);
+  const { load, attempt, drawn, draw, retry } = usePlotLoad();
   const [area, measure] = usePlotArea();
   const spreadRef = useRef(spread);
   useEffect(() => { spreadRef.current = spread; }, [spread]);
@@ -233,16 +236,21 @@ export default function ColumnPlot({
       rowTitles, comparisons, results, editRevision: rev, caption,
     });
     const div = el.current;
-    void loadPlotly().then((P) => P.react(div, densify(out.traces).traces as Plotly.Data[], out.layout, plotConfig({
-      responsive: true, scrollZoom: true, displaylogo: false,
-      toImageButtonOptions: { format: "svg", filename: "column-graph" },
-    }, format, !!onFormatChange))).then(() => {
+    void draw(async (P) => {
+      await P.react(div, densify(out.traces).traces as Plotly.Data[], out.layout, plotConfig({
+        responsive: true, scrollZoom: true, displaylogo: false,
+        toImageButtonOptions: { format: "svg", filename: "column-graph" },
+      }, format, !!onFormatChange));
       attach(div);
       if (spread !== "jitter") measure(div);
     });
   }, [datasets, dark, xTitle, yTitle, graphType, scheme, format, rev, rowTitles,
     comparisons, results, onFormatChange, attach, summary, spread, points, caption, area,
-    measure]);
+    measure, draw, attempt]);
 
-  return <div className="plot" ref={el} />;
+  return (
+    <div className="plot" ref={el}>
+      {!drawn && <PlotStatus load={load} onRetry={retry} />}
+    </div>
+  );
 }

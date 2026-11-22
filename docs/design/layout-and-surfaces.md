@@ -106,6 +106,10 @@ scroll inside their pane; the page never scrolls sideways at 390px.
   ([forms.md](forms.md#text-size-on-touch)).
 - **Scrolling layers.** A menu, popover or dialog that scrolls sets
   `overscroll-behavior: contain`, so its end does not scroll the page.
+- **Graphs never trap scrolling.** A plain wheel over a plot scrolls the
+  page (Ctrl/Cmd+wheel or a pinch zooms it) and a swipe that starts on a
+  plot scrolls too (`graph/plotInput.ts`, installed with Plotly). Only a
+  selected layout item claims the finger (`touch-action: none`).
 
 ```css
 /* Correct: components/ui/Toast.css:11 */
