@@ -362,6 +362,9 @@ export interface Prefs {
   theme: "auto" | "light" | "dark";
   /** Significant digits shown in results tables. */
   digits: number;
+  /** The same colour for a group on every graph, by its name
+   *  (graph/nameColors.ts). Absent = colours follow the data set order. */
+  colorByName?: boolean;
   /** Last image-export settings (see export/settings.ts); travel with
    *  the project, outside undo history. */
   export?: ExportPrefs;

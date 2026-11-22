@@ -157,6 +157,12 @@ export default function PreferencesPopover() {
               {[3, 4, 5, 6, 7, 8, 9, 10].map((d) => <option key={d} value={d}>{d}</option>)}
             </select>
           </label>
+          <label className="field field-check">
+            <input type="checkbox" checked={!!prefs.colorByName}
+              onChange={(e) => set("colorByName", e.target.checked || undefined)} />
+            <span>Same colour for a group on every graph, by its name (a colour set on a
+              graph still wins)</span>
+          </label>
           <h3 className="prefs-subtitle">Reporting</h3>
           <label className="field">
             <span>P-value style (tables, sentences, legends)</span>

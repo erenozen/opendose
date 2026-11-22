@@ -29,6 +29,8 @@ export function sanitizePrefs(raw: unknown, base: Prefs = DEFAULT_PREFS): Prefs 
     theme: r.theme === "light" || r.theme === "dark" || r.theme === "auto" ? r.theme : base.theme,
     digits: typeof r.digits === "number" && r.digits >= 2 && r.digits <= 10
       ? Math.round(r.digits) : base.digits,
+    ...((r.colorByName === undefined ? base.colorByName : r.colorByName === true)
+      ? { colorByName: true } : {}),
     ...(r.export !== undefined ? { export: sanitizeExport(r.export) }
       : base.export ? { export: base.export } : {}),
     ...(r.report !== undefined ? { report: sanitizeReport(r.report) }

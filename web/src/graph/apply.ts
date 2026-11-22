@@ -634,7 +634,12 @@ function extent(traces: Trace[], which: "x" | "y" | "y2"): Extent {
   const values: number[] = [];
   for (const t of traces) {
     if (which !== "x" && yOf(t) !== which) continue;
-    for (const v of valuesOf(t, which === "x" ? "x" : "y")) {
+    const vals = valuesOf(t, which === "x" ? "x" : "y");
+    // vertical bars (and fills to zero) start at 0, so a range computed
+    // here includes it, as Plotly's own automatic range does
+    if (which !== "x" && vals.length && ((t.type === "bar" && t.orientation !== "h")
+      || t.fill === "tozeroy")) vals.push(0);
+    for (const v of vals) {
       if (v < min) min = v;
       if (v > max) max = v;
       values.push(v);
@@ -687,7 +692,8 @@ function needsRange(a: AxisFormat | undefined): boolean {
   if (!a) return false;
   const s = a.scale ?? "linear";
   return s === "log2" || s === "ln" || s === "probability"
-    || a.numbers === "antilog" || a.numbers === "elapsed" || !!a.gap;
+    || a.numbers === "antilog" || a.numbers === "elapsed" || !!a.gap
+    || (s === "linear" && !!a.scaleFactor);
 }
 
 /** Highest point (axis units, primary Y) between two X positions. */
@@ -743,6 +749,13 @@ function transformTrace(t: Trace, which: "x" | "y", m: AxisMap) {
 
 // ============================================================ axes
 
+/** "(×10³)", "(×10⁻⁶)": the title tag of an axis scale factor. */
+export function scaleTag(k: number): string {
+  const sup: Record<string, string> = { "-": "⁻", 0: "⁰", 1: "¹", 2: "²", 3: "³", 4: "⁴",
+    5: "⁵", 6: "⁶", 7: "⁷", 8: "⁸", 9: "⁹" };
+  return `(×10${String(k).split("").map((ch) => sup[ch] ?? ch).join("")})`;
+}
+
 function formatAxis(axIn: Layout, a: AxisFormat, m: AxisMap, range: [number, number] | null,
   chrome: Chrome): Layout {
   const ax: Layout = { ...axIn };
@@ -755,6 +768,13 @@ function formatAxis(axIn: Layout, a: AxisFormat, m: AxisMap, range: [number, num
     ax.autorange = false;
   }
   const gen = range ? generateTicks(a, Math.min(...range), Math.max(...range)) : null;
+  if (gen && a.scaleFactor && (a.scale ?? "linear") === "linear") {
+    // the factor in the title: "Counts (×10³)"
+    const tag = scaleTag(a.scaleFactor);
+    const t = ax.title;
+    const text = typeof t === "string" ? t : t && typeof t === "object" ? String(t.text ?? "") : "";
+    ax.title = { ...(t && typeof t === "object" ? t : {}), text: text ? `${text} ${tag}` : tag };
+  }
   if (gen) {
     ax.tickmode = "array";
     ax.tickvals = gen.tickvals;
@@ -843,10 +863,14 @@ function drawBrackets(layout: Layout, format: GraphFormat, comparisons: Comparis
     .filter((e) => e.p0 && e.p1 && e.p0.xref === e.p1.xref && e.p0.x !== e.p1.x)
     .map((e) => ({
       key: pairKey(e.cmp), x0: e.p0!.x, x1: e.p1!.x, xref: e.p0!.xref,
-      label: c.display === "p" ? formatPStyle(e.cmp.p, style, c.prefix ?? (style === "apa" ? "p = " : "P = "))
+      label: c.display === "p" || (c.display === "mixed" && isNs(e.cmp.p, style))
+        ? formatPStyle(e.cmp.p, style, c.prefix ?? (style === "apa" ? "p = " : "P = "))
         : starsFor(e.cmp.p, style),
+      isP: c.display === "p" || (c.display === "mixed" && isNs(e.cmp.p, style)),
     }));
   if (!items.length) return;
+  // exact-P labels (smaller, raised a little) by pair key
+  const pLabels = new Set(items.filter((i) => i.isP).map((i) => i.key));
   // One tier must clear a label (~16 px) on a plot a few hundred px tall.
   const step = span * 0.1;
   // Each X axis (panel) stacks its own brackets.
@@ -866,9 +890,9 @@ function drawBrackets(layout: Layout, format: GraphFormat, comparisons: Comparis
       }
     }
     layout.annotations.push({ xref: b.xref, yref: "y", x: (b.lo + b.hi) / 2, y: b.y,
-      yanchor: "bottom", yshift: c.display === "p" ? 2 : -1, showarrow: false,
+      yanchor: "bottom", yshift: pLabels.has(b.key) ? 2 : -1, showarrow: false,
       text: b.label, name: "bracket-label",
-      font: { size: c.textSize ?? (c.display === "p" ? 11 : 14), color } });
+      font: { size: c.textSize ?? (pLabels.has(b.key) ? 11 : 14), color } });
   }
 }
 

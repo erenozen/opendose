@@ -128,9 +128,10 @@ export default function ComparisonsDialog({
               onChange={(v) => setDraft((d) => withField(d, "pStyle", v === "" ? undefined : v))} />
             <SelectField label="Label" value={c.display ?? "stars"}
               options={[["stars", pStyle === "graphpad" ? "Asterisks (ns, *, **, ***, ****)"
-                : "Asterisks (ns, *, **, ***)"], ["p", "Exact P value"]]}
+                : "Asterisks (ns, *, **, ***)"], ["p", "Exact P value"],
+                ["mixed", "Asterisks when significant, exact P when not"]]}
               onChange={(v) => setC({ display: v === "stars" ? undefined : v })} />
-            {c.display === "p" && (
+            {(c.display === "p" || c.display === "mixed") && (
               <SelectField label="P value prefix" value={c.prefix ?? "P = "}
                 options={[["P = ", "P = "], ["p = ", "p = "], ["", "None"]]}
                 onChange={(v) => setC({ prefix: v === "P = " ? undefined : v })} />
