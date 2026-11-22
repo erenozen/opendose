@@ -156,16 +156,13 @@ export function containTab(e: KeyboardEvent | React.KeyboardEvent, root: Element
   }
 }
 
-/** First focus inside a newly opened layer: its first control, except
- *  text fields on touch devices (the keyboard would cover the layer), in
- *  which case the layer itself. */
+/** First focus inside a newly opened panel. Opened from the keyboard: its
+ *  first control, so typing goes on at once. Opened with a pointer: the
+ *  panel itself (Tab then reaches the first control), so no focus ring
+ *  lands on a field nobody chose and no software keyboard pops up. */
 export function focusInside(root: HTMLElement) {
-  const first = tabbables(root)[0];
-  const typing = first && (first.matches("textarea, [contenteditable='true']")
-    || (first instanceof HTMLInputElement
-      && !["checkbox", "radio", "button", "submit", "range", "color", "file"].includes(first.type)));
-  if (first && !(typing && coarsePointer())) first.focus({ preventScroll: true });
-  else root.focus({ preventScroll: true });
+  const first = lastInputWasKeyboard() ? tabbables(root)[0] : undefined;
+  (first ?? root).focus({ preventScroll: true });
 }
 
 /**
