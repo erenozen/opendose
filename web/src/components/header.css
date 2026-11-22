@@ -43,7 +43,10 @@ header {
 
 /* Segmented control: the one rounded track. The thumb is a full-width
    layer cut to the active tab with clip-path (Header.tsx sets --thumb-x
-   and --thumb-w), so a switch moves no layout. */
+   and --thumb-w), so a switch moves no layout. The clip would cut a
+   box-shadow, so the wrapper draws the thumb's depth as a drop-shadow of
+   the clipped shape. The glide follows a pointer press on a tab only
+   (data-instant otherwise); reduced motion drops it (base.css). */
 .mode-switch {
   position: relative;
   display: flex; gap: 0; align-self: center; min-width: 0;
@@ -51,13 +54,17 @@ header {
 }
 .seg-thumb {
   position: absolute; top: var(--space-2); bottom: var(--space-2); left: 0;
+  filter: drop-shadow(var(--elev-seg));
+  pointer-events: none;
+}
+.seg-thumb-fill {
+  position: absolute; inset: 0;
   background: var(--seg-thumb);
   clip-path: inset(0 calc(100% - var(--thumb-x, 0px) - var(--thumb-w, 0px)) 0 var(--thumb-x, 0px)
     round var(--radius-round));
   transition: clip-path var(--dur-enter) var(--ease-in-out);
-  pointer-events: none;
 }
-.seg-thumb[data-instant] { transition: none; }
+.seg-thumb-fill[data-instant] { transition: none; }
 .mode-switch button {
   position: relative;
   border: none; background: transparent; cursor: pointer;

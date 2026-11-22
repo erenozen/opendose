@@ -79,18 +79,30 @@ export default function Header({ onOpenFile, onNewProject, inert }: {
 
   // The segmented thumb is placed through CSS variables (no React state
   // per switch) and drawn with clip-path, so a switch never lays out.
+  // It glides only after a pointer press on a tab; a key, a table switch,
+  // a new analysis, a resize, the font swap and the first paint move it
+  // at once (motion plan 001: keyboard and frequent actions never animate).
   const tablistRef = useRef<HTMLElement>(null);
   const thumbRef = useRef<HTMLSpanElement>(null);
+  const glide = useRef(false);
   useLayoutEffect(() => {
     const measure = () => {
-      const t = thumbRef.current;
+      const fill = thumbRef.current;
+      const t = fill?.parentElement;
       const list = tablistRef.current;
       const el = list?.querySelector<HTMLElement>("button.active");
-      if (!t || !list) return;
-      // A switch from the keyboard lands at once (keyboard actions never animate).
-      t.toggleAttribute("data-instant", lastInputWasKeyboard());
-      t.style.setProperty("--thumb-x", `${el?.offsetLeft ?? 0}px`);
-      t.style.setProperty("--thumb-w", `${el?.offsetWidth ?? 0}px`);
+      if (!fill || !t || !list) return;
+      const x = `${el?.offsetLeft ?? 0}px`;
+      const w = `${el?.offsetWidth ?? 0}px`;
+      // Unchanged (a re-render, a resize that moved nothing): leave a
+      // glide that is under way alone.
+      if (fill.style.getPropertyValue("--thumb-x") !== x
+        || fill.style.getPropertyValue("--thumb-w") !== w) {
+        fill.toggleAttribute("data-instant", !glide.current);
+        fill.style.setProperty("--thumb-x", x);
+        fill.style.setProperty("--thumb-w", w);
+      }
+      glide.current = false;
       // The whole track, scrolled part included (phones scroll the tabs).
       t.style.width = `${list.scrollWidth}px`;
       t.style.opacity = el ? "1" : "0";
@@ -171,7 +183,9 @@ export default function Header({ onOpenFile, onNewProject, inert }: {
           {tabs.length > 0 && (
             <nav className="mode-switch" role="tablist" ref={tablistRef} data-still
               aria-label={`Analyses of ${data.name}`} onKeyDown={onTabKey}>
-              <span className="seg-thumb" ref={thumbRef} aria-hidden="true" />
+              <span className="seg-thumb" aria-hidden="true">
+                <span className="seg-thumb-fill" ref={thumbRef} />
+              </span>
               {tabs.map((t) => {
                 const on = t.id === active?.id;
                 const label = labelFor(t);
@@ -180,7 +194,7 @@ export default function Header({ onOpenFile, onNewProject, inert }: {
                     aria-selected={on} tabIndex={on ? 0 : -1}
                     title={t.name}
                     className={on ? "active" : ""}
-                    onClick={() => select(t.id)}>
+                    onClick={() => { glide.current = !on && !lastInputWasKeyboard(); select(t.id); }}>
                     <span className="tab-label tab-label-full" data-label={label}>{label}</span>
                     <span className="tab-label tab-label-short" data-label={label}>{label}</span>
                   </button>
