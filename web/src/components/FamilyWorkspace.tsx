@@ -118,7 +118,7 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
     : { ...data, table: settledTable }), [data, settledTable]);
 
   return (
-    <main ref={mainRef}>
+    <main ref={mainRef} className="workspace">
       {/* The engine runs in a worker: the editor works while it loads and
           while it computes; analyses queue until it is ready. */}
       <div className="left">

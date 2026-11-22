@@ -18,6 +18,7 @@ import {
 } from "../project/types";
 import { wandCopy, wandSources } from "../project/wand";
 import { tableDef } from "../sheets/registry";
+import { DRAWER_QUERY } from "./breakpoints";
 import { useProject } from "./context";
 import { addDerivedOutputs, addFamily, defaultTableName } from "./factory";
 import { addTemplateFamily, downloadTemplate, makeTemplate, saveTemplate } from "./templates";
@@ -48,7 +49,7 @@ export function UiProvider({ children }: { children: ReactNode }) {
   }, []);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const toggleNav = useCallback(() => {
-    const narrow = window.matchMedia("(max-width: 900px)").matches;
+    const narrow = window.matchMedia(DRAWER_QUERY).matches;
     if (narrow) setDrawerOpen((o) => !o);
     else setNavOpen(!navOpen);
   }, [navOpen, setNavOpen]);

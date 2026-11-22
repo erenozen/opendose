@@ -127,9 +127,10 @@ input[type="checkbox"] { accent-color: var(--accent); width: 15px; height: 15px;
 .field-radios label { display: flex; gap: 8px; align-items: baseline; }
 input[type="radio"] { accent-color: var(--accent); }
 
-@media (max-width: 760px) {
-  /* comfortable touch targets */
-  button, select {
-    min-height: 40px;
+/* Touch: every raw button and select is at least 44px tall, at any
+   width (a tablet is as coarse as a phone). Button does its own. */
+@media (pointer: coarse) {
+  button:where(:not(.linkish)), select {
+    min-height: 44px;
   }
 }

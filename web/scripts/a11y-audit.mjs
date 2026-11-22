@@ -8,6 +8,12 @@ import { chromium } from "playwright";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 
+// The header's File menu (DECISIONS 5): open it, pick an item.
+const fileMenu = async (p, item) => {
+  await p.locator("header").getByRole("button", { name: "File", exact: true }).click();
+  await p.getByRole("menuitem", { name: item }).click();
+};
+
 const require = createRequire(import.meta.url);
 const AXE = require.resolve("axe-core/axe.min.js");
 const RULES = ["select-name", "label", "aria-input-field-name", "button-name", "input-button-name"];
@@ -51,7 +57,7 @@ const closeOverlays = async () => {
 };
 
 for (const type of TYPES) {
-  await page.getByRole("button", { name: "New data table" }).click();
+  await fileMenu(page, "New data table…");
   const dlg = page.locator(".new-table-dialog");
   await dlg.locator(`input[name="table-type"][value="${type}"]`).check();
   const ex = dlg.getByLabel("Example data");

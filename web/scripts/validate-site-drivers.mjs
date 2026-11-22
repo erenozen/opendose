@@ -8,6 +8,12 @@
 // wide-only analysis, say), the driver rearranges the text the way a
 // user would in a spreadsheet and records that as a friction.
 
+// The header's File menu (DECISIONS 5): open it, pick an item.
+const fileMenu = async (p, item) => {
+  await p.locator("header").getByRole("button", { name: "File", exact: true }).click();
+  await p.getByRole("menuitem", { name: item }).click();
+};
+
 export const DRIVERS = new Map();
 
 /** Known reasons a reference cannot match exactly, each backed by an
@@ -1352,7 +1358,7 @@ def("deming-arsenate", async (u, R) => {
 
 // ------------------------------------------------------------- synergy
 def("synergy-mathews-block1", async (u, _R) => {
-  await u.page.getByRole("button", { name: "New data table" }).first().click();
+  await fileMenu(u.page, "New data table…");
   const dlg = u.page.locator(".new-table-dialog");
   await dlg.getByRole("radio", { name: /Start from an assay/ }).check();
   await dlg.getByText("Drug combination synergy").first().click();
@@ -1533,7 +1539,7 @@ def("bland-altman-pefr", async (u, R) => {
   };
 });
 def("qpcr-livak-table1", async (u, R) => {
-  await u.page.getByRole("button", { name: "New data table" }).first().click();
+  await fileMenu(u.page, "New data table…");
   const dlg = u.page.locator(".new-table-dialog");
   await dlg.getByRole("radio", { name: /Start from an assay/ }).check();
   await dlg.getByText("qPCR (ΔCq / ΔΔCq)").first().click();

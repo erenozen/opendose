@@ -1,6 +1,11 @@
 // Help panel (Ctrl/Cmd+/): searchable explainers, the guided tour, the
 // "Which test?" wizard, the start screen and the keyboard shortcuts.
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Button } from "../components/ui/Button";
+import { IconButton } from "../components/ui/IconButton";
+import {
+  coarsePointer, lastInputWasKeyboard, pushLayer, restoreFocus,
+} from "../components/ui/useDismiss";
 import { explainer, searchExplainers } from "./explainers";
 import { ExplainerBody } from "./LearnMore";
 
@@ -9,7 +14,9 @@ const MOD = mac ? "⌘" : "Ctrl+";
 
 const SHORTCUTS: [string, string][] = [
   [`${MOD}/`, "Open or close this help panel"],
-  [`${MOD}K`, "Go to a sheet by name"],
+  [`${MOD}K`, "Find a command or sheet"],
+  [`${MOD}S`, "Save the project file"],
+  [`${MOD}O`, "Open a project or a Prism file"],
   [`${MOD}Z`, "Undo"],
   [`${MOD}Shift+Z or ${MOD}Y`, "Redo"],
   [`${MOD}P`, "Print the current sheet"],
@@ -35,6 +42,7 @@ export default function HelpPanel({ initial, onClose, onWizard, onTour, onStart 
   useEffect(() => { setCurrent(initial); }, [initial]);
   const search = useRef<HTMLInputElement>(null);
   const heading = useRef<HTMLHeadingElement>(null);
+  const title = useRef<HTMLHeadingElement>(null);
   const panel = useRef<HTMLElement>(null);
   const list = useMemo(() => searchExplainers(query), [query]);
   const shortcuts = useMemo(() => {
@@ -43,32 +51,46 @@ export default function HelpPanel({ initial, onClose, onWizard, onTour, onStart 
   }, [query]);
   const e = current ? explainer(current) : undefined;
 
+  // First focus: the topic's heading, or the search field, except on touch
+  // screens, where the panel's own heading takes it so no keyboard covers
+  // the panel before anyone chose to search (GF-10).
   useEffect(() => {
     if (e) heading.current?.focus();
+    else if (coarsePointer()) title.current?.focus();
     else search.current?.focus();
   }, [e]);
-  useEffect(() => {
-    const onKey = (ev: KeyboardEvent) => {
-      if (ev.key === "Escape" && !document.querySelector("dialog[open]")) {
-        ev.preventDefault();
-        onClose();
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  // Escape closes the panel when it is the topmost layer (a menu or dialog
+  // above it closes first), through the shared layer stack.
+  const close = useRef(onClose);
+  useLayoutEffect(() => { close.current = onClose; });
+  useEffect(() => pushLayer({
+    kind: "custom", contains: (n) => !!panel.current?.contains(n), escape: () => close.current(),
+  }), []);
+  // Opened from the keyboard (Ctrl/Cmd+/): no entrance. Closed by any
+  // route: focus goes back to where it was when the panel opened (GF-03).
+  const [instant] = useState(lastInputWasKeyboard);
+  useLayoutEffect(() => {
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const node = panel.current;
+    return () => restoreFocus(opener, node);
+  }, []);
 
   return (
-    <aside className="help-panel" ref={panel} role="complementary" aria-label="Help">
+    <aside className="help-panel" ref={panel} role="complementary" aria-label="Help"
+      data-instant={instant || undefined}>
       <div className="help-head">
-        <h2>Help</h2>
-        <button type="button" className="help-close" onClick={onClose}
-          aria-label="Close help">×</button>
+        <h2 ref={title} tabIndex={-1}>Help</h2>
+        <IconButton aria-label="Close help" onClick={onClose}>
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor"
+            strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+            <path d="M3.5 3.5l7 7M10.5 3.5l-7 7" />
+          </svg>
+        </IconButton>
       </div>
       {e ? (
         <div className="help-body">
-          <button type="button" className="help-back" onClick={() => setCurrent(null)}>
-            ← All topics</button>
+          <Button variant="ghost" size="sm" className="help-back" onClick={() => setCurrent(null)}>
+            ← All topics</Button>
           <h3 ref={heading} tabIndex={-1} className="help-topic-title">{e.title}</h3>
           <p className="help-summary">{e.summary}</p>
           <ExplainerBody e={e} />
@@ -82,9 +104,9 @@ export default function HelpPanel({ initial, onClose, onWizard, onTour, onStart 
           </label>
           {!query && (
             <div className="help-actions">
-              <button type="button" className="btn-primary" onClick={onWizard}>Help me choose a test…</button>
-              <button type="button" onClick={onTour}>Take the tour</button>
-              <button type="button" onClick={onStart}>Start screen</button>
+              <Button variant="primary" onClick={onWizard}>Help me choose a test…</Button>
+              <Button onClick={onTour}>Take the tour</Button>
+              <Button onClick={onStart}>Start screen</Button>
             </div>
           )}
           <h3 className="help-section">Explainers</h3>

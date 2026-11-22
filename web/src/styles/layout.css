@@ -1,68 +1,96 @@
 /* App shell: the page column, the navigator + workbench grid, the
-   two-column workbench and its splitters. */
+   two-column workbench and its splitters. The workbench is tiled panes
+   meeting at 1px seams (DECISIONS 2, Instrument): the splitters are the
+   seams, a 1px line with a ±4px hit area. Widths: 1100 (one column),
+   900 (navigator drawer), 760 (phone); app/breakpoints.ts holds them for
+   scripts. */
 
 .app { min-height: 100dvh; display: flex; flex-direction: column; }
 
+/* Focus moved by the keyboard (or a field the keyboard scrolls to) never
+   lands under the sticky header; --header-h is measured (App.tsx). */
+html { scroll-padding-top: var(--header-h, 0px); }
+
+/* "Skip to the sheet": the first stop of the tab order, shown on focus. */
+.skip-link {
+  position: fixed; top: calc(var(--space-8) + var(--safe-top)); left: max(var(--space-8), var(--safe-left));
+  z-index: var(--z-drawer);
+  display: inline-flex; align-items: center; min-height: 32px; padding: 0 var(--space-12);
+  font-size: var(--text-body-s); font-weight: var(--weight-medium); color: var(--ink);
+  background: var(--float); border-radius: var(--radius-control); box-shadow: var(--elev-float);
+  text-decoration: none;
+}
+.skip-link:not(:focus) {
+  width: 1px; height: 1px; min-height: 0; padding: 0; margin: -1px; overflow: hidden;
+  clip-path: inset(50%); white-space: nowrap;
+}
+#sheet:focus { outline: none; }
+
 /* ============================ layout ============================ */
 
+/* Pages that are not the workbench (info and layout sheets, the start
+   screen) keep a padded column. */
 main {
-  /* --split is the draggable left-column width; the 20px middle track is
-     the splitter itself, doubling as the column gutter. Full width: no
-     max-width, so wide monitors get all of it. */
-  display: grid;
-  grid-template-columns: minmax(380px, var(--split, 41.7%)) 20px minmax(0, 1fr);
-  row-gap: 20px; align-items: start;
-  padding: 20px max(24px, var(--safe-right)) 20px max(24px, var(--safe-left));
   width: 100%;
+  padding: var(--space-20) max(var(--space-24), var(--safe-right)) var(--space-20) max(var(--space-24), var(--safe-left));
 }
-.splitter {
-  align-self: stretch; position: relative;
-  cursor: col-resize; touch-action: none; border-radius: var(--radius-control);
+
+/* The workbench: --split is the draggable left-column width; the 1px
+   middle track is the column splitter, the seam between the columns. */
+main.workspace {
+  display: grid;
+  grid-template-columns: minmax(380px, var(--split, 41.7%)) 1px minmax(0, 1fr);
+  align-items: stretch;
+  min-height: calc(100dvh - var(--header-h, 0px));
+  padding: 0 var(--safe-right) 0 0;
+  background: var(--surface);
 }
-/* Grab indicator: a centered hairline that materializes on hover/drag */
-.splitter::after {
-  content: ""; position: absolute; top: 0; bottom: 0;
-  left: 50%; width: 2px; margin-left: -1px;
+.splitter, .h-splitter {
+  position: relative; flex: none;
+  background: var(--line-solid); touch-action: none;
+}
+.splitter { cursor: col-resize; }
+.h-splitter { height: 1px; cursor: row-resize; }
+/* The hit area: 4px either side of the seam. */
+.splitter::before, .h-splitter::before { content: ""; position: absolute; z-index: var(--z-base); }
+.splitter::before { inset: 0 -4px; }
+.h-splitter::before { inset: -4px 0; }
+/* The grab indicator: a 3px --axis line over the seam on hover, drag or focus. */
+.splitter::after, .h-splitter::after {
+  content: ""; position: absolute; z-index: var(--z-base);
   background: transparent; transition: background-color var(--dur-fast) var(--ease-out);
 }
+.splitter::after { top: 0; bottom: 0; left: -1px; width: 3px; }
+.h-splitter::after { left: 0; right: 0; top: -1px; height: 3px; }
 @media (hover: hover) and (pointer: fine) {
-  .splitter:hover::after { background: var(--axis); }
+  .splitter:hover::after, .h-splitter:hover::after { background: var(--axis); }
 }
-.splitter:active::after,
-.splitter:focus-visible::after { background: var(--axis); }
-/* Row gaps between islands ARE the h-splitters (gap stays 0) */
+.splitter[data-dragging]::after, .h-splitter[data-dragging]::after,
+.splitter:focus-visible::after, .h-splitter:focus-visible::after { background: var(--axis); }
+.splitter:focus-visible, .h-splitter:focus-visible { outline-offset: 0; }
 .left, .right { display: flex; flex-direction: column; gap: 0; min-width: 0; }
-.h-splitter {
-  flex: none; height: 20px; position: relative;
-  cursor: row-resize; touch-action: none; border-radius: var(--radius-control);
-}
-.h-splitter::after {
-  content: ""; position: absolute; left: 0; right: 0; top: 50%;
-  height: 2px; margin-top: -1px;
-  background: transparent; transition: background-color var(--dur-fast) var(--ease-out);
-}
-@media (hover: hover) and (pointer: fine) {
-  .h-splitter:hover::after { background: var(--axis); }
-}
-.h-splitter:active::after,
-.h-splitter:focus-visible::after { background: var(--axis); }
+.pane { min-width: 0; }
 /* Engine still loading: the editor column is inert (no focus, no input);
    the dim communicates it, and its release reads as "ready" */
 .left { transition: opacity var(--dur-enter) var(--ease-out); }
 .left[inert] { opacity: 0.5; }
 
 @media (max-width: 1100px) {
-  main { grid-template-columns: 1fr; }
+  main.workspace { grid-template-columns: minmax(0, 1fr); }
   .splitter { display: none; }
+  /* The two columns stack; the seam between them is the right column's top. */
+  .right { border-top: 1px solid var(--line-solid); }
 }
 
 @media (max-width: 760px) {
-  main, .shell > main {
-    padding: 14px max(14px, var(--safe-right)) 14px max(14px, var(--safe-left));
-    gap: 14px; display: flex; flex-direction: column;
+  /* Phone: one column of panes, each closed by a seam, in the order
+     import, table, plot, controls, results, methods. */
+  main.workspace { display: flex; flex-direction: column; }
+  main:not(.workspace) {
+    padding: var(--space-12) max(var(--space-12), var(--safe-right)) var(--space-12) max(var(--space-12), var(--safe-left));
   }
   .left, .right { display: contents; }
-  .pane { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+  .pane { display: flex; flex-direction: column; gap: var(--space-12); border-bottom: 1px solid var(--line-solid); }
   .pane-import { order: 1; }
   .pane-table { order: 2; }
   .pane-plot { order: 3; }
@@ -70,25 +98,26 @@ main {
   .pane-results { order: 5; }
   .pane-methods { order: 6; }
   .h-splitter { display: none; }
+  /* Panes take the column width; wide tables scroll inside their pane
+     instead of widening the page. */
+  .pane, .pane > * { max-width: 100%; }
 }
 
-/* Navigator column + workbench. The navigator is a card that stays in
-   view while the workbench scrolls. */
+/* Navigator column + workbench. The navigator is a ruled sidebar pinned
+   under the header (components/navigator.css). */
 .shell {
   display: grid; grid-template-columns: var(--nav-w) minmax(0, 1fr);
   align-items: start; width: 100%;
 }
 .shell.nav-hidden { grid-template-columns: minmax(0, 1fr); }
-.shell > main { min-width: 0; }
+.workbench { min-width: 0; }
 
 @media (max-width: 900px) {
   .shell, .shell.nav-hidden { grid-template-columns: minmax(0, 1fr); }
 }
 
-@media (max-width: 760px) {
-  /* Panes take the column width; wide tables scroll inside their card
-     instead of widening the page. */
-  .shell > main { align-items: stretch; }
-  .pane { max-width: 100%; }
-  .pane > * { max-width: 100%; }
-}
+/* The error boundary's page (components/ErrorBoundary.tsx). */
+main.crash { max-width: 65ch; margin: var(--space-48) auto; display: flex; flex-direction: column; gap: var(--space-12); }
+.crash h1 { margin: 0; font-size: var(--text-heading); font-weight: var(--weight-semibold); }
+.crash p { margin: 0; color: var(--ink-2); line-height: var(--leading-prose); }
+.crash-actions { display: flex; flex-wrap: wrap; gap: var(--space-8); }

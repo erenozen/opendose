@@ -7,6 +7,7 @@ import {
 } from "./useDismiss.ts";
 import { boxOf, pointBox, useAnchoredPosition, type AnchorOptions } from "./Popover.anchor.ts";
 import { isTypeaheadKey, moveIndex, typeahead, TYPEAHEAD_RESET_MS } from "./Menu.keys.ts";
+import { buttonClass, type ButtonSize, type ButtonVariant } from "./buttonClass";
 import "./Popover.css";
 import "./Menu.css";
 
@@ -86,13 +87,18 @@ function Menu({
   return <MenuContext.Provider value={value}>{children}</MenuContext.Provider>;
 }
 
+/** Trigger props: a plain button, or with `variant` a Button of that
+ *  variant and size (ghost in a toolbar or the header, a keycap alone). */
+export type TriggerProps = ComponentProps<"button"> & { variant?: ButtonVariant; size?: ButtonSize };
+
 /** The menu button. ArrowDown opens on the first item, ArrowUp on the last. */
-function Trigger({ ref, onClick, onKeyDown, ...props }: ComponentProps<"button">) {
+function Trigger({ ref, onClick, onKeyDown, variant, size, className, ...props }: TriggerProps) {
   const { open, setOpen, trigger, triggerId, menuId, entry } = useMenu();
   const setRef = useMergedRefs(trigger, ref);
   return (
     <button type="button" id={triggerId} aria-haspopup="menu" aria-expanded={open}
       aria-controls={open ? menuId : undefined} {...props} ref={setRef}
+      className={variant ? buttonClass(variant, size, className) : className}
       onClick={(e) => {
         onClick?.(e);
         if (e.defaultPrevented) return;

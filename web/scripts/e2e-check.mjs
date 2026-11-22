@@ -61,6 +61,16 @@ import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { strFromU8, unzipSync } from "fflate";
 
+// The header's File and View menus (DECISIONS 5): open one, pick an item.
+const fileMenu = async (p, item) => {
+  await p.locator("header").getByRole("button", { name: "File", exact: true }).click();
+  await p.getByRole("menuitem", { name: item }).click();
+};
+const viewMenu = async (p, item) => {
+  await p.locator("header").getByRole("button", { name: "View", exact: true }).click();
+  await p.getByRole("menuitem", { name: item }).click();
+};
+
 const here = dirname(fileURLToPath(import.meta.url));
 const XLSX = join(here, "..", "..", "engine", "tests", "fixtures",
   "synthetic_srb_plate.xlsx");
@@ -209,7 +219,7 @@ console.log("survival:", logrankLine
 // (Control G1/S/G2-M = 412/188/100): 412/700 = 58.86%, Wilson/Brown 95% CI
 // 55.17% to 62.44%; chi-square vs. equal expected = 221.8, df 2.
 const newExampleTable = async (type) => {
-  await page.getByRole("button", { name: "New data table" }).click();
+  await fileMenu(page, "New data table…");
   const dlg = page.locator(".new-table-dialog");
   await dlg.locator(`input[name="table-type"][value="${type}"]`).check();
   await dlg.getByLabel("Example data").check();
@@ -357,7 +367,7 @@ expect("two-way ANOVA on the imported table: dataset F = 270.8",
   pzfxDsRow.split(/\t/).includes("270.8"), pzfxDsRow.replace(/\s+/g, " "));
 
 // Example grouped table (tumour volume, 3 days x 2 arms x 3 animals).
-await page.getByRole("button", { name: "New data table" }).click();
+await fileMenu(page, "New data table…");
 const gdialog = page.locator(".new-table-dialog");
 await gdialog.locator('input[name="table-type"][value="grouped"]').check();
 await gdialog.getByText("Example data").click();
@@ -477,7 +487,7 @@ TW.forEach((row, i) => row.forEach((cell, d) => {
   ssRes += cell.reduce((a, v) => a + (v - mean(cell)) ** 2, 0);
 }));
 const nativeF3 = ((3 * L * L) / 8) / (ssRes / 16);
-await page.getByRole("button", { name: "New data table" }).click();
+await fileMenu(page, "New data table…");
 const tdialog = page.locator(".new-table-dialog");
 await tdialog.locator('input[name="table-type"][value="grouped"]').check();
 const shapeInputs = tdialog.locator(".field-num input");
@@ -535,11 +545,11 @@ await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism 
 await page.waitForSelector(".result-card h3:has-text('Legacy drug')", { timeout: 60000 });
 expect("v1 file opens as one data table + results + graph",
   await page.locator(".nav-item.level-2[data-key^='data:']").count() === 1
-  && await page.locator(".nav-item.level-2[data-key^='results:']").count() === 1
-  && await page.locator(".nav-item.level-2[data-key^='graph:']").count() === 1);
+  && await page.locator(".nav-item[data-kind='results']").count() === 1
+  && await page.locator(".nav-item[data-kind='graph']").count() === 1);
 
 // --- second data table: Grouped, via the New data table dialog ---
-await page.getByRole("button", { name: "New data table" }).click();
+await fileMenu(page, "New data table…");
 const dialog = page.locator(".new-table-dialog");
 await dialog.locator('input[name="table-type"][value="grouped"]').check();
 await dialog.getByRole("button", { name: "Create table" }).click();
@@ -569,7 +579,7 @@ expect("redo renames again", await navRow("Two-factor data").count() === 1);
 // --- save project JSON (v2) ---
 const [download] = await Promise.all([
   page.waitForEvent("download", { timeout: 30000 }),
-  page.getByRole("button", { name: "Save project" }).click(),
+  fileMenu(page, "Save project"),
 ]);
 const SAVED = join(tmp, download.suggestedFilename());
 await download.saveAs(SAVED);
@@ -613,7 +623,7 @@ await page.waitForTimeout(800);
 // analysis (1000 sets, seed 0, 95th percentile 1.6729 / 1.2588) keeps one
 // PC; Responder ~ Dose gives OR = 1.319196 and Dose at 50% = 5.193526;
 // Pearson r(Dose, Response) = 0.920204. Shown with 4 significant digits.
-await page.getByRole("button", { name: "New data table" }).click();
+await fileMenu(page, "New data table…");
 const mvDialog = page.locator(".new-table-dialog");
 await mvDialog.locator('input[name="table-type"][value="multivariable"]').check();
 await mvDialog.getByText("Example data").click();
@@ -705,7 +715,7 @@ expect("a linked table says it is read-only instead of the paste hint",
 
 // --- chains of analyses: Transform produces a linked, derived table ---
 // The XY example data is the reference table (X from 1e-9 M).
-await page.getByRole("button", { name: "New data table" }).click();
+await fileMenu(page, "New data table…");
 const newDlg = page.locator(".new-table-dialog");
 await newDlg.locator('input[name="table-type"][value="xy"]').check();
 await newDlg.getByLabel("Table name").fill("Reference");
@@ -758,7 +768,7 @@ expect("editing the source re-runs the chain (100 -> 200)",
   await waitCell("Drug A, Y1, row 1", "200"));
 
 // --- simulate an XY table ---
-await page.getByRole("button", { name: "New data table" }).click();
+await fileMenu(page, "New data table…");
 await page.getByRole("button", { name: "Simulate data…" }).click();
 const simDlg = page.locator(".simulate-dialog");
 await simDlg.getByLabel("Table name").fill("Simulated curve");
@@ -803,7 +813,7 @@ const waitLogIC50 = (v) => page.waitForFunction((want) => [...document
 v, { timeout: 60000 }).then(() => true, () => false);
 const teCellValue = (label) => page.locator(`.data-table input[aria-label='${label}']`).inputValue();
 
-await page.getByRole("button", { name: "New data table" }).click();
+await fileMenu(page, "New data table…");
 const teDlg = page.locator(".new-table-dialog");
 await teDlg.locator('input[name="table-type"][value="xy"]').check();
 await teDlg.getByLabel("Table name").fill("Imported CSV");
@@ -912,7 +922,7 @@ for (let r = 0; r < REF_ROWS.length; r++) {
 expect("Mean/SD/N entry fits like the replicates: LogIC50 -6.983", await waitLogIC50("-6.983"));
 
 // insert series into a new table's X, then show X as dates
-await page.getByRole("button", { name: "New data table" }).click();
+await fileMenu(page, "New data table…");
 await teDlg.locator('input[name="table-type"][value="xy"]').check();
 await teDlg.getByLabel("Table name").fill("Series test");
 await teDlg.getByRole("button", { name: "Create table" }).click();
@@ -933,7 +943,7 @@ expect("dates in X display in a standard form",
   await teCellValue("X, row 1") === "2024-03-05");
 
 // --- graph formatting: Format Axes, pairwise brackets, undo, save ---
-await page.getByRole("button", { name: "New data table" }).click();
+await fileMenu(page, "New data table…");
 const colDialog = page.locator(".new-table-dialog");
 await colDialog.locator('input[name="table-type"][value="column"]').check();
 await colDialog.getByLabel("Example data").check();
@@ -983,7 +993,7 @@ expect("redo brings them back", (await plotLayout()).brackets.length === 3);
 
 const [fmtDownload] = await Promise.all([
   page.waitForEvent("download", { timeout: 30000 }),
-  page.getByRole("button", { name: "Save project" }).click(),
+  fileMenu(page, "Save project"),
 ]);
 const FMT_SAVED = join(tmp, `formatted-${fmtDownload.suggestedFilename()}`);
 await fmtDownload.saveAs(FMT_SAVED);
@@ -996,7 +1006,7 @@ expect("graph format is saved with the project",
 // formats, sheet groups, floating notes; saved and reloaded ---------------
 const orgDlg = page.locator(".new-table-dialog");
 const orgNewXY = async (name) => {
-  await page.getByRole("button", { name: "New data table" }).click();
+  await fileMenu(page, "New data table…");
   await orgDlg.locator('input[name="table-type"][value="xy"]').check();
   await orgDlg.getByLabel("Table name").fill(name);
   await orgDlg.getByText("Example data").click();
@@ -1009,7 +1019,7 @@ const orgHasLogIC50 = (want) => page.waitForFunction((w) => [...document
 const orgSave = async (stem) => {
   const [dl] = await Promise.all([
     page.waitForEvent("download", { timeout: 30000 }),
-    page.getByRole("button", { name: "Save project" }).click(),
+    fileMenu(page, "Save project"),
   ]);
   const path = join(tmp, `${stem}-${dl.suggestedFilename()}`);
   await dl.saveAs(path);
@@ -1048,7 +1058,7 @@ await page.getByRole("menuitem", { name: "Save family as template…" }).click()
 await tplDlg.getByLabel("Template name").fill("Org IC50 template");
 await tplDlg.getByRole("radio", { name: /With all the data/ }).check();
 await tplDlg.getByRole("button", { name: "Save template" }).click();
-await page.getByRole("button", { name: "New data table" }).click();
+await fileMenu(page, "New data table…");
 await orgDlg.getByRole("radio", { name: "From a template" }).check();
 await orgDlg.getByRole("radio", { name: /Org IC50 template/ }).check();
 await orgDlg.getByLabel("Table name").fill("Org from template");
@@ -1083,7 +1093,7 @@ expect("the table is listed inside its group", await orgInGroup() === 1);
 
 // floating note on Org source
 await navRow("Org source").click();
-await page.getByRole("button", { name: "Add a floating note to the selected sheet" }).click();
+await fileMenu(page, "New floating note");
 await page.locator(".floating-note textarea").first().waitFor({ state: "visible" });
 await page.keyboard.type("Check the top plateau");
 expect("the note shows as a chip above the sheet",
@@ -1120,14 +1130,14 @@ await navRow("Org source").click();
 expect("after a page reload the restored session keeps the group and the note",
   await orgInGroup() === 1
   && (await page.locator(".note-chip").first().innerText()).includes("Check the top plateau"));
-await page.getByRole("button", { name: "New data table" }).click();
+await fileMenu(page, "New data table…");
 await orgDlg.getByRole("radio", { name: "From a template" }).check();
 expect("saved templates outlive the page (kept in this browser)",
   await orgDlg.getByRole("radio", { name: /Org IC50 template/ }).count() === 1);
 await orgDlg.getByRole("button", { name: "Cancel" }).click();
 // Ctrl/Cmd+K: go to a sheet by typing part of its name
 await page.keyboard.press("Control+k");
-await page.getByRole("combobox", { name: "Sheet name" }).fill("org targ");
+await page.getByRole("combobox", { name: "Find a command or sheet" }).fill("org targ");
 await page.keyboard.press("Enter");
 expect("go to sheet opens the match",
   await page.locator(".nav-item.selected[aria-label='Org target']").count() >= 1);
@@ -1181,7 +1191,7 @@ expect("Games-Howell Control vs. Treated A: adjusted P 6.337e-4", ghRow.includes
 // --- chi-square test for trend on a 6 x 2 table ---
 // Altman (1991) shoe size vs. Caesarean section, as in
 // engine/tests/test_contingency_extras.py: chi-square for trend 8.024.
-await page.getByRole("button", { name: "New data table" }).click();
+await fileMenu(page, "New data table…");
 const ctDlg = page.locator(".new-table-dialog");
 await ctDlg.locator('input[name="table-type"][value="contingency"]').check();
 await ctDlg.getByLabel("Table name").fill("Shoe size");
@@ -1203,7 +1213,7 @@ expect("chi-square for trend 8.024, df 1", trendRow.includes("8.024, 1"), trendR
 
 // --- Deming regression on a small XY table ---
 // Native (and the closed form for lambda = 1): slope 1.991, Y intercept 0.067.
-await page.getByRole("button", { name: "New data table" }).click();
+await fileMenu(page, "New data table…");
 const dmDlg = page.locator(".new-table-dialog");
 await dmDlg.locator('input[name="table-type"][value="xy"]').check();
 await dmDlg.getByLabel("Table name").fill("Method comparison");
@@ -1229,7 +1239,7 @@ expect("Deming graph draws the points and the line",
 // vignette block 1 Bliss summary 10.86; trapezoid area 7 of (0,0) (1,2)
 // (2,4) (3,2); average-linkage leaf order A, C, B, D / Z, X, Y (scipy).
 const assayTemplate = async (tpl, name) => {
-  await page.getByRole("button", { name: "New data table" }).click();
+  await fileMenu(page, "New data table…");
   const dlg = page.locator(".new-table-dialog");
   await dlg.getByRole("radio", { name: "From a template" }).check();
   await dlg.getByRole("radio", { name: new RegExp(tpl) }).check();
@@ -1270,7 +1280,7 @@ expect("synergy: Fa-CI plot draws the combinations or says why they are withheld
     .some((a) => /withheld/.test(a.text ?? "")), null, { timeout: 15000 }).then(() => true, () => false));
 
 // AUC by trapezoid on a tiny XY table
-await page.getByRole("button", { name: "New data table" }).click();
+await fileMenu(page, "New data table…");
 const aucDlg = page.locator(".new-table-dialog");
 await aucDlg.locator('input[name="table-type"][value="xy"]').check();
 await aucDlg.getByLabel("Table name").fill("Tiny curve");
@@ -1295,7 +1305,7 @@ expect("AUC graph shades the area and draws the baseline",
   }));
 
 // Clustering leaf order on a 4 × 3 grouped matrix
-await page.getByRole("button", { name: "New data table" }).click();
+await fileMenu(page, "New data table…");
 const clDlg = page.locator(".new-table-dialog");
 await clDlg.locator('input[name="table-type"][value="grouped"]').check();
 await clDlg.getByLabel("Table name").fill("Cluster 4x3");
@@ -1411,7 +1421,7 @@ expect("why-your-number-may-differ note under the results",
   (await page.locator(".guide-differ summary").innerText()).includes("Why your number may differ"));
 
 // A flat response defines no curve: the fit banner says so in plain words.
-await page.getByRole("button", { name: "New data table" }).click();
+await fileMenu(page, "New data table…");
 const flatDlg = page.locator(".new-table-dialog");
 await flatDlg.locator('input[name="table-type"][value="xy"]').check();
 await flatDlg.getByLabel("Table name").fill("Flat response");
@@ -1520,29 +1530,44 @@ expect("ambiguous fit banner with concrete fixes for a flat dataset",
   p3.on("pageerror", (e) => errors.push(`pageerror (phone): ${e.message}`));
   await p3.goto(url, { waitUntil: "domcontentloaded" });
   await p3.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 180000 });
-  const tops = await p3.evaluate(() => ["Undo", "Save project", "More actions"].map((n) =>
+  const tops = await p3.evaluate(() => ["Find a command or sheet", "Undo", "Redo"].map((n) =>
     Math.round(document.querySelector(`header [aria-label="${n}"]`)?.getBoundingClientRect().top ?? -99))
-    .concat(Math.round(document.querySelector("header .open-btn").getBoundingClientRect().top)));
-  expect("phone header: undo, save, open and More on one row",
-    tops.every((t) => t >= 0 && Math.abs(t - tops[0]) <= 4), tops.join(", "));
-  expect("phone header: secondary actions folded away",
-    !(await p3.getByRole("button", { name: "Preferences" }).isVisible()));
-  await p3.getByRole("button", { name: "More actions" }).click();
-  await p3.getByRole("button", { name: "Preferences" }).click();
+    .concat([...document.querySelectorAll("header .hdr-menu")]
+      .map((b) => Math.round(b.getBoundingClientRect().top))));
+  expect("phone header: find, undo, redo, File and View on one row",
+    tops.length === 5 && tops.every((t) => t >= 0 && Math.abs(t - tops[0]) <= 4), tops.join(", "));
+  await viewMenu(p3, "Preferences…");
   const prefsBox = await p3.getByRole("dialog", { name: "Preferences" }).boundingBox();
-  expect("phone: Preferences open from More and stay on screen",
+  expect("phone: Preferences open from View and stay on screen",
     !!prefsBox && prefsBox.x >= 0 && prefsBox.x + prefsBox.width <= 390, JSON.stringify(prefsBox));
   await p3.keyboard.press("Escape");
   await p3.mouse.click(200, 700);
-  // a table created from the navigator drawer closes the drawer
-  await p3.getByRole("button", { name: "Show or hide the sheet navigator" }).click();
-  await p3.getByRole("button", { name: "New data table" }).first().click();
+  // the navigator drawer is a modal dialog: the page behind is inert,
+  // Escape closes it and gives focus back to the toggle
+  const navToggle = p3.getByRole("button", { name: "Show or hide the sheet navigator" });
+  await navToggle.click();
+  const drawer = p3.getByRole("dialog", { name: "Project navigator" });
+  await drawer.waitFor();
+  expect("phone: the open drawer makes the header and the sheet inert",
+    await p3.locator("header[inert]").count() === 1 && await p3.locator(".workbench[inert]").count() === 1);
+  await p3.keyboard.press("Escape");
+  await p3.waitForTimeout(400);
+  expect("phone: Escape closes the drawer and focus returns to its toggle",
+    await p3.locator(".navigator.drawer-open").count() === 0
+    && await navToggle.evaluate((el) => el === document.activeElement));
+  // choosing a sheet in the drawer closes the drawer
+  await navToggle.click();
+  await drawer.waitFor();
+  await drawer.locator(".nav-item.nk-sheet > .nav-row").first().click();
+  await p3.waitForTimeout(800);
+  expect("phone: choosing a sheet closes the navigator drawer",
+    await p3.locator(".navigator.drawer-open").count() === 0);
+  await fileMenu(p3, "New data table…");
   const pdlg = p3.locator(".new-table-dialog");
   await pdlg.locator('input[name="table-type"][value="grouped"]').check();
   await pdlg.getByLabel("Example data").check();
   await pdlg.getByRole("button", { name: "Create table" }).click();
   await p3.waitForTimeout(800);
-  expect("phone: creating a table closes the navigator drawer", await p3.locator(".nav-scrim").count() === 0);
   // grouped legend: n per cell (3), as the chip says
   await p3.waitForSelector(".report-legend p", { timeout: 60000 });
   const gLegend = await p3.locator(".report-legend p").innerText();
@@ -1627,7 +1652,7 @@ expect("Gardner-Altman plot: difference axis overlays the data axis", true);
 const gaRows = (await page.locator(".estimation-results tbody tr").allInnerTexts()).join(" ");
 expect("Gardner-Altman CI matches the native run", gaRows.includes("3.533 to 6.917"), gaRows.replace(/\s+/g, " "));
 // P-value style: APA everywhere (tables and sentences), then back
-await page.getByRole("button", { name: "Preferences" }).click();
+await viewMenu(page, "Preferences…");
 await page.getByLabel("P-value style (tables, sentences, legends)").selectOption("apa");
 await page.keyboard.press("Escape");
 // The column analysis' tab is named after its test (here a t test).
@@ -1638,7 +1663,7 @@ const pRow = await page.locator(".results-table tr", { hasText: "P value (two-ta
 expect("APA style: sentence and results table follow the preference",
   apa.includes("t(10) = 5.60, p < .001") && apa.includes("d = 3.23, 95% CI [1.40, 5.00]") && pRow.includes("< .001"),
   `${apa.slice(0, 120)} | ${pRow.replace(/\s+/g, " ")}`);
-await page.getByRole("button", { name: "Preferences" }).click();
+await viewMenu(page, "Preferences…");
 await page.getByLabel("P-value style (tables, sentences, legends)").selectOption("graphpad");
 await page.keyboard.press("Escape");
 
@@ -1665,7 +1690,7 @@ expect(".pzfx round trip: the re-imported table is a Mean/SD/N table named after
 expect(".pzfx round trip: the re-imported summary table fits the same (LogIC50 -6.983)",
   await waitLogIC50("-6.983"));
 // the whole project from Save project ▾
-await page.getByRole("button", { name: "More ways to save and share" }).click();
+await page.locator("header").getByRole("button", { name: "File", exact: true }).click();
 const [pzAll] = await Promise.all([
   page.waitForEvent("download", { timeout: 30000 }),
   page.getByRole("menuitem", { name: /Export tables as \.pzfx/ }).click(),
@@ -1682,7 +1707,7 @@ await page.locator(".pzfx-chooser button", { hasText: "Cancel" }).click();
 
 // --- clinical statistics, from the built-in templates ---
 const fromTemplate = async (re, name) => {
-  await page.getByRole("button", { name: "New data table" }).click();
+  await fileMenu(page, "New data table…");
   const dlg = page.locator(".new-table-dialog");
   await dlg.getByRole("radio", { name: "From a template" }).check();
   await dlg.getByRole("radio", { name: re }).check();
@@ -1762,8 +1787,7 @@ expect("quantal graph: proportions and fitted curves", (await page.evaluate(() =
 
 // Power: Faul et al. (2007), the G*Power example: d = 0.5, one-sided
 // alpha 0.05, power 0.95 -> 88 per group, 176 in total.
-await page.getByRole("button", { name: "Tools" }).click();
-await page.getByRole("menuitem", { name: /Power and sample size/ }).click();
+await fileMenu(page, /Power and sample size/);
 const pw = page.locator("dialog.power-dialog");
 await pw.getByLabel("Tails").selectOption("1");
 await pw.getByLabel("Power (1 − β)").fill("0.95");
@@ -1804,7 +1828,7 @@ expect("the sample-size justification is saved as an info sheet",
 // paired t test prints t with its sign and direction (R: t = -4.0621,
 // df = 9 for drug1 - drug2), and the column controls pass axe-core.
 {
-  await page.getByRole("button", { name: "New data table" }).click();
+  await fileMenu(page, "New data table…");
   const nd = page.locator(".new-table-dialog");
   await nd.locator('input[name="table-type"][value="column"]').check();
   await nd.getByRole("button", { name: "Create table" }).click();
@@ -1869,7 +1893,7 @@ expect("the sample-size justification is saved as an info sheet",
   }, null, { timeout: 30000 }).then(() => true, () => false);
   expect("one-way ANOVA prints its table (SS, DF, MS, F) and the residual SD", anovaOk);
   expect("switching the test renames the results sheet (One-way ANOVA of …) and its tab",
-    await page.locator(".nav-name", { hasText: /^One-way ANOVA of / }).count() >= 1
+    await page.locator(".nav-item[aria-label^='One-way ANOVA of ']").count() >= 1
     && await page.getByRole("tab", { name: "One-way ANOVA" }).count() >= 1);
 }
 
@@ -1883,7 +1907,7 @@ expect("the sample-size justification is saved as an info sheet",
     Maintained: [[9, 1], [13, 1], [13, 0], [18, 1], [23, 1], [28, 0], [31, 1], [34, 1], [45, 0], [48, 1], [161, 0]],
     Nonmaintained: [[5, 1], [5, 1], [8, 1], [8, 1], [12, 1], [16, 0], [23, 1], [27, 1], [30, 1], [33, 1], [43, 1], [45, 1]],
   };
-  await page.getByRole("button", { name: "New data table" }).click();
+  await fileMenu(page, "New data table…");
   const svDlg = page.locator(".new-table-dialog");
   await svDlg.locator('input[name="table-type"][value="survival"]').check();
   await svDlg.getByLabel("Table name").fill("AML");
@@ -1932,7 +1956,7 @@ expect("the sample-size justification is saved as an info sheet",
 // (beyond the quick budget); expected counts and residuals on a toggle.
 {
   const JOB = [[1, 3, 10, 6], [2, 3, 10, 7], [1, 6, 14, 12], [0, 1, 9, 11]];
-  await page.getByRole("button", { name: "New data table" }).click();
+  await fileMenu(page, "New data table…");
   const jbDlg = page.locator(".new-table-dialog");
   await jbDlg.locator('input[name="table-type"][value="contingency"]').check();
   await jbDlg.getByLabel("Table name").fill("Job satisfaction");
@@ -1965,7 +1989,7 @@ expect("the sample-size justification is saved as an info sheet",
 // "From long table…": CMH strata from long records (stratum, row, column,
 // count) become blocks of rows titled "Stratum: level".
 {
-  await page.getByRole("button", { name: "New data table" }).click();
+  await fileMenu(page, "New data table…");
   const lgDlg = page.locator(".new-table-dialog");
   await lgDlg.locator('input[name="table-type"][value="contingency"]').check();
   await lgDlg.getByLabel("Table name").fill("Long CMH");
@@ -2008,7 +2032,7 @@ expect("the sample-size justification is saved as an info sheet",
 // upper asymptote, as drc's LL.3 binomial model (Ritz et al. 2015): d =
 // 0.6049 (SE 0.0858, observed information), ED50 0.2924.
 {
-  await page.getByRole("button", { name: "New data table" }).click();
+  await fileMenu(page, "New data table…");
   const qDlg = page.locator(".new-table-dialog");
   await qDlg.locator('input[name="table-type"][value="xy"]').check();
   await qDlg.getByLabel("Table name").fill("Earthworms");
@@ -2044,8 +2068,7 @@ expect("the sample-size justification is saved as an info sheet",
 // detectable d for two groups of 20 (power 0.8, two-sided) is 0.9091,
 // and with SDs 1.2 and 1.4 the pooled SD is √1.7 = 1.304, so the
 // detectable difference is 1.185.
-await page.getByRole("button", { name: "Tools" }).click();
-await page.getByRole("menuitem", { name: /Power and sample size/ }).click();
+await fileMenu(page, /Power and sample size/);
 const pwv = page.locator("dialog.power-dialog");
 await pwv.getByLabel("Test", { exact: true }).selectOption("anova_oneway");
 await pwv.getByLabel("Groups (k)").fill("4");
@@ -2078,7 +2101,7 @@ for (const [tissue, genes] of Object.entries(livakCt)) {
   for (const [gene, cts] of Object.entries(genes)) for (const c of cts) qcsv.push(`${tissue},${gene},${c}`);
 }
 qcsv.push("Kidney,c-myc,Undetermined");
-await page.getByRole("button", { name: "New data table" }).click();
+await fileMenu(page, "New data table…");
 const qdlg = page.locator(".new-table-dialog");
 await qdlg.getByRole("radio", { name: "Start from an assay" }).check();
 await qdlg.getByRole("radio", { name: /^qPCR/ }).check();
@@ -2138,7 +2161,7 @@ expect("synergy results: a warning chip flags the poor monotherapy fit next to t
 // table of non-dose data waits for "Choose a model" instead of fitting a
 // 4PL; compare fits reports the F test and AICc.
 const xyNew = async (name) => {
-  await page.getByRole("button", { name: "New data table" }).click();
+  await fileMenu(page, "New data table…");
   const d = page.locator(".new-table-dialog");
   await d.locator('input[name="table-type"][value="xy"]').check();
   await d.getByLabel("Table name").fill(name);
@@ -2215,7 +2238,7 @@ expect("compare fits graph draws the separate curves and the shared curve",
 // Cancel, Cancel stops it (the worker is replaced) and the engine goes
 // on working afterwards.
 {
-  await page.getByRole("button", { name: "New data table" }).first().click();
+  await fileMenu(page, "New data table…");
   const dlg = page.locator(".new-table-dialog");
   await dlg.locator('input[name="table-type"][value="column"]').check();
   await dlg.getByLabel("Table name").fill("Nine groups");
@@ -2274,7 +2297,7 @@ expect("compare fits graph draws the separate curves and the shared curve",
 // lines over a wide range fitted with the automatic sigmoid: every
 // multi-start runs to its time budget, several seconds in all.
 {
-  await page.getByRole("button", { name: "New data table" }).first().click();
+  await fileMenu(page, "New data table…");
   const dlg = page.locator(".new-table-dialog");
   await dlg.locator('input[name="table-type"][value="xy"]').check();
   await dlg.getByLabel("Table name").fill("Twelve lines");
@@ -2392,7 +2415,7 @@ expect("compare fits graph draws the separate curves and the shared curve",
     /Shapiro-Wilk on the 18 pooled residuals: W = /.test(shapiro), shapiro);
 
   // (b) four groups, Kruskal-Wallis with Dunn's test against the control
-  await page.getByRole("button", { name: "New data table" }).click();
+  await fileMenu(page, "New data table…");
   const nd = page.locator(".new-table-dialog");
   await nd.locator('input[name="table-type"][value="column"]').check();
   await nd.getByLabel("Table name").fill("Four groups");
@@ -2444,7 +2467,7 @@ expect("compare fits graph draws the separate curves and the shared curve",
     await page.locator(".methods-text").first().innerText().catch(() => ""));
 
   // (d) a curve that never falls below 60%: IC50 > 30 µM, not 337
-  await page.getByRole("button", { name: "New data table" }).click();
+  await fileMenu(page, "New data table…");
   const xd = page.locator(".new-table-dialog");
   await xd.locator('input[name="table-type"][value="xy"]').check();
   await xd.getByLabel("Table name").fill("Weak inhibitor");
@@ -2505,7 +2528,7 @@ const axeOn = async (pg, sel) => {
 // methods state n enrolled / analysed with the reason; the results with
 // the excluded value included come as a second block with another P.
 {
-  await page.getByRole("button", { name: "New data table" }).first().click();
+  await fileMenu(page, "New data table…");
   const dlg = page.locator(".new-table-dialog");
   await dlg.locator('input[name="table-type"][value="column"]').check();
   await dlg.getByLabel("Table name").fill("Tumour volume");
@@ -2602,7 +2625,7 @@ const axeOn = async (pg, sel) => {
   let saved = null;
   for (let i = 0; i < 20 && !saved; i++) {
     const [dl] = await Promise.all([p4.waitForEvent("download", { timeout: 30000 }),
-      p4.getByRole("button", { name: "Save project" }).click()]);
+      fileMenu(p4, "Save project")]);
     const f = join(tmp, `reproduce-${i}.json`);
     await dl.saveAs(f);
     const j = JSON.parse(readFileSync(f, "utf8"));
@@ -2667,7 +2690,7 @@ const axeOn = async (pg, sel) => {
 // engine's survival_pairwise computes on the same subjects.
 {
   const newSurvival = async (name, groups) => {
-    await page.getByRole("button", { name: "New data table" }).first().click();
+    await fileMenu(page, "New data table…");
     const dlg = page.locator(".new-table-dialog");
     await dlg.locator('input[name="table-type"][value="survival"]').check();
     await dlg.getByLabel("Table name").fill(name);
@@ -2779,7 +2802,7 @@ const axeOn = async (pg, sel) => {
 // C 0.002632 → 0.007874.
 {
   const newColumnPaste = async (text) => {
-    await page.getByRole("button", { name: "New data table" }).click();
+    await fileMenu(page, "New data table…");
     const nd = page.locator(".new-table-dialog");
     await nd.locator('input[name="table-type"][value="column"]').check();
     await nd.getByRole("button", { name: "Create table" }).click();
@@ -2942,7 +2965,7 @@ const axeOn = async (pg, sel) => {
     await imp.waitFor({ state: "detached", timeout: 60000 });
   };
   // A two-group pilot: Control vs Treated, 6 animals each.
-  await page.getByRole("button", { name: "New data table" }).first().click();
+  await fileMenu(page, "New data table…");
   const nd = page.locator(".new-table-dialog");
   await nd.locator('input[name="table-type"][value="column"]').check();
   await nd.getByLabel("Table name").fill("Pilot");
@@ -3070,7 +3093,7 @@ const axeOn = async (pg, sel) => {
 
   // (f) The Save menu: the .pzfx export by its plain label, and Prism
   // files converted to CSV (two files, every table, in one zip).
-  await page.getByRole("button", { name: "More ways to save and share" }).click();
+  await page.locator("header").getByRole("button", { name: "File", exact: true }).click();
   expect("Save menu lists the .pzfx export plainly",
     await page.getByRole("menuitem", { name: "Export tables as .pzfx (opens in GraphPad Prism)" }).count() === 1);
   const PRISMF = join(here, "..", "..", "engine", "tests", "fixtures", "synthetic_project.prism");
@@ -3241,7 +3264,7 @@ const axeOn = async (pg, sel) => {
   }, [label, text]);
   const cellVal = (label) => page.locator(`.data-table input[aria-label='${label}']`).inputValue();
   const newColumnTable = async (name) => {
-    await page.getByRole("button", { name: "New data table" }).first().click();
+    await fileMenu(page, "New data table…");
     const dlg = page.locator(".new-table-dialog");
     await dlg.locator('input[name="table-type"][value="column"]').check();
     await dlg.getByLabel("Table name").fill(name);
@@ -3320,7 +3343,7 @@ const axeOn = async (pg, sel) => {
       === "Group A,Group B", placed.join("|"));
 
   // Describe the experiment -> the table and its layout
-  await page.getByRole("button", { name: "New data table" }).first().click();
+  await fileMenu(page, "New data table…");
   const nd = page.locator(".new-table-dialog");
   await nd.getByRole("button", { name: "Not sure? Describe the experiment…" }).click();
   const dd = page.locator(".design-dialog");
@@ -3357,7 +3380,7 @@ const axeOn = async (pg, sel) => {
     return !!el && new RegExp(src).test(el.textContent ?? "");
   }, re.source, { timeout }).then(() => true, () => false);
   const importTable = async (name, csv) => {
-    await page.getByRole("button", { name: "New data table" }).first().click();
+    await fileMenu(page, "New data table…");
     const nd = page.locator(".new-table-dialog");
     await nd.locator('input[name="table-type"][value="column"]').check();
     await nd.getByLabel("Table name").fill(name);
@@ -3515,7 +3538,7 @@ const axeOn = async (pg, sel) => {
     el.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }));
   }, [label, text]);
   const newTable = async (type, name, shape) => {
-    await page.getByRole("button", { name: "New data table" }).first().click();
+    await fileMenu(page, "New data table…");
     const dlg = page.locator(".new-table-dialog");
     await dlg.locator(`input[name="table-type"][value="${type}"]`).check();
     await dlg.getByLabel("Table name").fill(name);
@@ -3738,7 +3761,7 @@ const axeOn = async (pg, sel) => {
   };
 
   // (a) grouped table, nested two-way ANOVA, filled from long records
-  await page.getByRole("button", { name: "New data table" }).click();
+  await fileMenu(page, "New data table…");
   const nd = page.locator(".new-table-dialog");
   await nd.locator('input[name="table-type"][value="grouped"]').check();
   await nd.getByLabel("Table name").fill("Soma nested");
@@ -3804,7 +3827,7 @@ const axeOn = async (pg, sel) => {
   expect("axe-core: nested two-way results and controls pass", axeNested.length === 0, axeNested.join(" | "));
 
   // (b) the same records on a multiple-variables table, mouse as grouping
-  await page.getByRole("button", { name: "New data table" }).click();
+  await fileMenu(page, "New data table…");
   const nm = page.locator(".new-table-dialog");
   await nm.locator('input[name="table-type"][value="multivariable"]').check();
   await nm.getByLabel("Table name").fill("Soma long");
@@ -3851,7 +3874,7 @@ const axeOn = async (pg, sel) => {
     return (await appears(m, 60000)) ? (await m.innerText()).replace(/\s+/g, " ") : "";
   };
   const newColumn = async (name, example) => {
-    await page.getByRole("button", { name: "New data table" }).first().click();
+    await fileMenu(page, "New data table…");
     const dlg = page.locator(".new-table-dialog");
     await dlg.locator('input[name="table-type"][value="column"]').check();
     await dlg.getByLabel("Table name").fill(name);
@@ -3880,7 +3903,7 @@ const axeOn = async (pg, sel) => {
   expect("axe-core: the What this means line passes WCAG 2 AA", axeMeaning.length === 0, axeMeaning.join(" | "));
 
   // (b) the survival example: a hazard ratio in the user's own groups
-  await page.getByRole("button", { name: "New data table" }).first().click();
+  await fileMenu(page, "New data table…");
   const sdlg = page.locator(".new-table-dialog");
   await sdlg.locator('input[name="table-type"][value="survival"]').check();
   await sdlg.getByLabel("Table name").fill("Meaning survival");

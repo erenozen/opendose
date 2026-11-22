@@ -1,41 +1,63 @@
-import { useEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef } from "react";
 
-// Draggable horizontal gutter between stacked islands: dragging resizes
-// the island above it (content below reflows). The sibling above may be
-// a .pane wrapper (workbench columns) or the island itself.
+const MIN = 40;
+
+/** Writes the separator's value: the height of the section above, in px. */
+function writeValue(sep: HTMLElement | null, h: number) {
+  const shown = Math.max(MIN, Math.round(h));
+  sep?.setAttribute("aria-valuenow", String(shown));
+  sep?.setAttribute("aria-valuemax", String(Math.max(shown, 4000)));
+  sep?.setAttribute("aria-valuetext", `section above ${shown} px high`);
+}
+
+// The seam between two stacked panes (DECISIONS 2): a 1px line with a
+// ±4px hit area. Dragging resizes the pane above it 1:1 with the pointer,
+// written to its style once per frame (no React render per move, SH-16);
+// content below reflows. The sibling above may be a .pane wrapper
+// (workbench columns) or the block itself. Arrow keys nudge it.
 export default function HSplitter() {
-  const drag = useRef<{ el: HTMLElement; h0: number; y0: number } | null>(
-    null);
   const self = useRef<HTMLDivElement>(null);
-  // the height of the section above, in px (aria-valuenow)
-  const [now, setNow] = useState(0);
+  const drag = useRef<{ el: HTMLElement; h0: number; y0: number; y: number; frame: number } | null>(null);
 
   const islandAbove = (splitter: HTMLElement): HTMLElement | null => {
     const prev = splitter.previousElementSibling as HTMLElement | null;
     if (!prev) return null;
     if (!prev.classList.contains("pane")) return prev;
-    // Single island: size the card itself (plot cards must shrink/grow).
-    // Multi-card panes (per-dataset results) scroll as one section.
+    // Single block: size the block itself (plot cards must shrink/grow).
+    // Multi-block panes (per-dataset results) scroll as one section.
     if (prev.childElementCount === 1) {
       return prev.firstElementChild as HTMLElement | null;
     }
     prev.style.overflow = "auto";
     return prev;
   };
+  const resize = (el: HTMLElement, h: number) => {
+    const next = Math.max(MIN, h);
+    el.style.height = `${next}px`;
+    writeValue(self.current, next);
+  };
+  const end = () => {
+    const d = drag.current;
+    if (!d) return;
+    cancelAnimationFrame(d.frame);
+    resize(d.el, d.h0 + d.y - d.y0);
+    drag.current = null;
+    document.body.style.userSelect = "";
+    self.current?.removeAttribute("data-dragging");
+  };
 
-  useEffect(() => {
-    // measured without islandAbove (which makes a multi-card pane scroll)
+  // Measured without islandAbove (which makes a multi-block pane scroll).
+  useLayoutEffect(() => {
     const el = self.current?.previousElementSibling;
-    if (el) setNow(Math.round(el.getBoundingClientRect().height));
+    if (el) writeValue(self.current, el.getBoundingClientRect().height);
   }, []);
-  const shown = Math.max(40, now);
 
   return (
     <div className="h-splitter" role="separator" ref={self}
       aria-orientation="horizontal" aria-label="Resize section" tabIndex={0}
-      aria-valuemin={40} aria-valuemax={Math.max(shown, 4000)} aria-valuenow={shown}
-      aria-valuetext={`section above ${shown} px high`}
+      aria-valuemin={MIN}
       onPointerDown={(e) => {
+        if (e.button !== 0) return;
         const el = islandAbove(e.currentTarget);
         if (!el) return;
         e.preventDefault();
@@ -43,30 +65,25 @@ export default function HSplitter() {
         // preventDefault on pointerdown does not reliably stop native
         // text selection while the pointer sweeps over content
         document.body.style.userSelect = "none";
-        drag.current = {
-          el, h0: el.getBoundingClientRect().height, y0: e.clientY,
-        };
+        e.currentTarget.setAttribute("data-dragging", "");
+        drag.current = { el, h0: el.getBoundingClientRect().height, y0: e.clientY, y: e.clientY, frame: 0 };
       }}
       onPointerMove={(e) => {
-        if (!drag.current) return;
-        const { el, h0, y0 } = drag.current;
-        const h = Math.max(40, h0 + e.clientY - y0);
-        el.style.height = `${h}px`;
-        setNow(Math.round(h));
+        const d = drag.current;
+        if (!d) return;
+        d.y = e.clientY;
+        cancelAnimationFrame(d.frame);
+        d.frame = requestAnimationFrame(() => resize(d.el, d.h0 + d.y - d.y0));
       }}
-      onPointerUp={() => {
-        drag.current = null;
-        document.body.style.userSelect = "";
-      }}
+      onPointerUp={end}
+      onPointerCancel={end}
+      onLostPointerCapture={end}
       onKeyDown={(e) => {
         if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
         const el = islandAbove(e.currentTarget);
         if (!el) return;
         e.preventDefault();
-        const h = el.getBoundingClientRect().height;
-        const next = Math.max(40, h + (e.key === "ArrowDown" ? 24 : -24));
-        el.style.height = `${next}px`;
-        setNow(Math.round(next));
+        resize(el, el.getBoundingClientRect().height + (e.key === "ArrowDown" ? 24 : -24));
       }} />
   );
 }

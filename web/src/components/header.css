@@ -1,51 +1,70 @@
-/* Header: brand, analysis tabs, project actions, the info and
-   preferences popovers, and the narrow-screen More panel. */
+/* Header: the one bar (DECISIONS 5). Navigator toggle, logo, project
+   title, analysis tabs and Analyze, then the find field, undo, redo and
+   the File and View menus. Its menus and popovers are the ui/ primitives. */
 
 /* ============================ header ============================ */
 
-/* An opaque bar (no glass, DECISIONS 2). Its seam appears once content
-   scrolls under it. With viewport-fit=cover it pads itself clear of the
-   notch and the rounded corners. */
+/* An opaque bar on a fixed 1px seam (Instrument, DECISIONS 2): 44px, 52px
+   on touch. With viewport-fit=cover it pads itself clear of the notch and
+   the rounded corners. Its height is published as --header-h (App.tsx)
+   for the pinned navigator and scroll-padding. */
 header {
   position: sticky; top: 0; z-index: var(--z-header);
-  display: flex; align-items: center; gap: var(--space-20); flex-wrap: wrap;
-  padding: calc(10px + var(--safe-top)) max(var(--space-24), var(--safe-right))
-    10px max(24px, var(--safe-left));
+  display: flex; align-items: center; gap: var(--space-8); flex-wrap: wrap;
+  min-height: calc(44px + var(--safe-top));
+  padding: var(--safe-top) max(var(--space-12), var(--safe-right)) 0 max(var(--space-12), var(--safe-left));
   background: var(--surface);
-  border-bottom: 1px solid transparent;
-  transition: border-color var(--dur-enter) var(--ease-out);
+  border-bottom: 1px solid var(--line-solid);
 }
-header[data-scrolled="true"] { border-bottom-color: var(--line-solid); }
+@media (pointer: coarse) { header { min-height: calc(52px + var(--safe-top)); } }
 @media (prefers-contrast: more) {
   header { border-bottom-color: var(--ink); }
 }
-.brand { display: flex; align-items: center; gap: 10px; }
+.brand { display: flex; align-items: center; gap: var(--space-8); flex: none; }
 .brand svg { display: block; }
 .brand h1 {
-  margin: 0; font-size: var(--text-title); font-weight: var(--weight-semibold); letter-spacing: -0.015em;
+  margin: 0; font-size: var(--text-lead); font-weight: var(--weight-semibold); letter-spacing: -0.015em;
 }
 
-/* Segmented control with a sliding thumb: the one rounded track */
+/* The project title: an input that reads as text until hovered or focused. */
+.hdr-title {
+  field-sizing: content; min-width: 8ch; max-width: 300px; flex: 0 1 auto;
+  font: inherit; font-size: var(--text-body-s); font-weight: var(--weight-semibold); color: var(--ink);
+  background: transparent; text-overflow: ellipsis;
+  border: none; border-radius: var(--radius-control);
+  box-shadow: inset 0 0 0 1px transparent;
+  min-height: 32px; padding: 0 var(--space-8);
+  transition: box-shadow var(--dur-base) var(--ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  .hdr-title:hover:not(:read-only) { box-shadow: inset 0 0 0 1px var(--line-strong); }
+}
+.hdr-title:focus-visible { outline-offset: 0; }
+
+/* Segmented control: the one rounded track. The thumb is a full-width
+   layer cut to the active tab with clip-path (Header.tsx sets --thumb-x
+   and --thumb-w), so a switch moves no layout. */
 .mode-switch {
   position: relative;
-  display: flex; gap: 0; align-self: center;
+  display: flex; gap: 0; align-self: center; min-width: 0;
   background: var(--seg-track); border-radius: var(--radius-round); padding: var(--space-2);
 }
 .seg-thumb {
-  position: absolute; top: 2px; bottom: 2px; left: 0;
-  background: var(--seg-thumb); border-radius: var(--radius-round);
-  box-shadow: var(--elev-seg);
-  transition: transform 250ms var(--ease-out), width 250ms var(--ease-out);
-  will-change: transform;
+  position: absolute; top: var(--space-2); bottom: var(--space-2); left: 0;
+  background: var(--seg-thumb);
+  clip-path: inset(0 calc(100% - var(--thumb-x, 0px) - var(--thumb-w, 0px)) 0 var(--thumb-x, 0px)
+    round var(--radius-round));
+  transition: clip-path var(--dur-enter) var(--ease-in-out);
   pointer-events: none;
 }
+.seg-thumb[data-instant] { transition: none; }
 .mode-switch button {
   position: relative;
   border: none; background: transparent; cursor: pointer;
-  padding: var(--space-6) 14px; margin: 0;
+  min-height: 28px; padding: 0 var(--space-12); margin: 0;
   color: var(--ink-2); font-size: var(--text-body-s); font-weight: var(--weight-medium);
   border-radius: var(--radius-round); white-space: nowrap;
-  display: inline-flex; flex-direction: column; align-items: center;
+  display: inline-flex; flex-direction: column; align-items: center; justify-content: center;
 }
 /* Invisible bold ghost reserves the active width, so the layout
    never shifts when the selected tab gains weight. */
@@ -63,45 +82,109 @@ header[data-scrolled="true"] { border-bottom-color: var(--line-solid); }
   .mode-switch button:hover { color: var(--ink); }
 }
 
-.project-actions { display: flex; gap: var(--space-8); align-items: center; margin-left: auto; }
-.theme-btn {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 34px; padding: var(--space-6) 0; color: var(--ink-2);
+.analysis-bar { display: flex; align-items: center; gap: var(--space-8); min-width: 0; flex: 0 1 auto; }
+.analyze-btn { flex: none; }
+
+/* Right of the bar: find, undo, redo, File, View. */
+.project-actions { display: flex; gap: var(--space-4); align-items: center; margin-left: auto; flex: 0 1 auto; min-width: 0; }
+
+/* The find field: a button dressed as a field (inset fill, the ⌘K keycap)
+   that opens the command palette. A search icon alone on phones. */
+.hdr-find {
+  position: relative;
+  display: inline-flex; align-items: center; gap: var(--space-8);
+  flex: 0 1 280px; min-width: 0; min-height: 32px; padding: 0 var(--space-6) 0 var(--space-8);
+  margin-right: var(--space-8);
+  font: inherit; font-size: var(--text-body-s); color: var(--muted); text-align: left;
+  background: var(--inset); border: none; border-radius: var(--radius-control);
+  box-shadow: inset 0 0 0 1px var(--line); cursor: text;
+  transition: box-shadow var(--dur-base) var(--ease-out);
 }
-.theme-btn svg { display: block; }
+.hdr-find svg { flex: none; display: block; }
+.hdr-find-label { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hdr-find kbd {
+  flex: none; font: inherit; font-size: var(--text-caption); color: var(--muted);
+  padding: 0 var(--space-4); border-radius: var(--radius-control);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+@media (hover: hover) and (pointer: fine) {
+  .hdr-find:hover { box-shadow: inset 0 0 0 1px var(--line-strong); }
+}
 
-/* Loading pulse, used by the welcome panel (welcome.css). */
-@keyframes pulse { from { opacity: 0.55; } to { opacity: 1; } }
+/* ============================ narrow ============================ */
 
-/* Info and preferences popovers (ui/Popover places and animates them) */
-.info-wrap { display: inline-flex; }
-.info-pop {
-  width: min(360px, calc(100vw - 28px));
+/* The word mark gives its room to the bar (the logo stays; the name is
+   still read out). */
+@media (max-width: 1100px) {
+  .brand h1 {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+  .hdr-find { flex-basis: 200px; }
+}
+
+@media (max-width: 760px) {
+  header { gap: var(--space-4); }
+  /* The title moves into the navigator drawer (Navigator.tsx). */
+  .hdr-title { display: none; }
+  /* The analysis tabs take a row of their own under the bar. */
+  .analysis-bar { order: 10; flex-basis: 100%; padding-bottom: var(--space-6); }
+  .mode-switch {
+    flex: 1 1 auto;
+    overflow-x: auto; scrollbar-width: none;
+  }
+  .mode-switch::-webkit-scrollbar { display: none; }
+  .mode-switch button { flex: 1 1 auto; padding: 0 var(--space-8); }
+  /* Compact-width text variants keep all four tabs visible */
+  .tab-label-full { display: none; }
+  .tab-label-short { display: inline-flex; }
+  .hdr-find {
+    flex: none; width: 32px; padding: 0; margin-right: 0; justify-content: center;
+    background: transparent; box-shadow: none; color: var(--ink-2);
+  }
+  .hdr-find-label, .hdr-find kbd { display: none; }
+  .project-actions { gap: 0; }
+  .hdr-menu { padding: 0 var(--space-8); }
+}
+/* Touch: the find button and the analysis tabs are 44px to hit. */
+@media (pointer: coarse) {
+  .hdr-find, .hdr-title { min-height: 44px; }
+  .mode-switch button { min-height: 40px; }
+  .mode-switch button::before {
+    content: ""; position: absolute; inset: min(0px, calc((100% - 44px) / 2)) 0;
+  }
+}
+@media (pointer: coarse) and (max-width: 760px) {
+  .hdr-find { width: 44px; }
+}
+/* Touch: neighbouring icon buttons keep their 44px hit areas apart. */
+@media (pointer: coarse) {
+  .project-actions { gap: var(--space-12); }
+}
+
+/* ============================ about, preferences ============================ */
+
+.about-dialog .info-pop { color: var(--ink-2); font-size: var(--text-body-s); line-height: var(--leading-prose); }
+.info-pop p { margin: 0 0 var(--space-8); }
+.info-pop p:last-child { margin-bottom: 0; }
+.info-pop .info-privacy { color: var(--ink); }
+
+/* The Preferences popover (ui/Popover places and animates it) */
+.prefs-pop {
+  width: min(360px, calc(100vw - var(--space-24)));
   background: var(--float);
   border-radius: var(--radius-menu);
   box-shadow: var(--elev-float);
-  padding: 14px var(--space-16);
-  color: var(--muted); font-size: var(--text-body-s); line-height: 1.6;
+  padding: var(--space-12) var(--space-16);
+  display: flex; flex-direction: column; gap: var(--space-12);
+  color: var(--ink-2); font-size: var(--text-body-s); line-height: var(--leading-body);
   text-align: left; cursor: default;
 }
-.info-pop p { margin: 0 0 var(--space-8); }
-.info-pop p:last-child { margin-bottom: 0; }
-.info-pop .info-privacy { color: var(--ink-2); font-weight: var(--weight-medium); }
-
-/* Header additions */
-.nav-toggle { flex: none; }
-.analysis-bar { display: flex; align-items: center; gap: var(--space-8); min-width: 0; }
-.analyze-btn { padding: var(--space-6) var(--space-12); font-size: var(--text-body-s); }
-.analyze-btn:disabled { opacity: 0.45; cursor: default; }
-.theme-btn:disabled { opacity: 0.35; cursor: default; }
-
-/* Prefs popover reuses the info popover chrome */
-.prefs-pop { display: flex; flex-direction: column; gap: 10px; color: var(--ink-2); }
 .prefs-title { margin: 0; font-size: var(--text-body); font-weight: var(--weight-semibold); color: var(--ink); }
-.prefs-note { margin: -4px 0 0; font-size: var(--text-caption); color: var(--muted); }
+.prefs-note { margin: calc(-1 * var(--space-4)) 0 0; font-size: var(--text-caption); color: var(--muted); }
 .prefs-forget { align-self: flex-start; }
 .prefs-confirm {
-  display: flex; flex-direction: column; gap: var(--space-8); padding: 10px var(--space-12);
+  display: flex; flex-direction: column; gap: var(--space-8); padding: var(--space-8) var(--space-12);
   border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--page);
   font-size: var(--text-body-s);
 }
@@ -110,63 +193,5 @@ header[data-scrolled="true"] { border-bottom-color: var(--line-solid); }
 .prefs-confirm-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: var(--space-8); }
 .shortcuts .results-table th { white-space: nowrap; }
 
-@media (max-width: 760px) {
-  header {
-    gap: 10px;
-    padding: calc(10px + var(--safe-top)) max(14px, var(--safe-right))
-      10px max(14px, var(--safe-left));
-  }
-  .brand h1 { font-size: var(--text-lead); }
-  .brand { flex: none; }
-  .analysis-bar { order: 10; flex-basis: 100%; }
-  .mode-switch {
-    flex: 1 1 auto; min-width: 0;
-    overflow-x: auto; scrollbar-width: none;
-  }
-  .mode-switch::-webkit-scrollbar { display: none; }
-  .mode-switch button { flex: 1 1 auto; padding: var(--space-8) 10px; }
-  /* Compact-width text variants keep all four tabs visible */
-  .tab-label-full { display: none; }
-  .tab-label-short { display: inline-flex; }
-  .project-actions { margin-left: auto; }
-  .analyze-btn { flex: none; }
-}
-
-.label-short { display: none; }
-/* Header "More" panel (Header.tsx): on wide screens its children sit in
-   the row as before and the More button is hidden. */
-.hdr-secondary { display: contents; }
-.hdr-more-btn { display: none; }
-@media (max-width: 760px) {
-  /* One row: navigator, logo, then undo, redo, save, open and More. */
-  .project-actions {
-    flex: 1 1 0; flex-wrap: wrap; justify-content: flex-end;
-    margin-left: auto; gap: var(--space-6); min-width: 0;
-  }
-  .hdr-more-btn { display: inline-flex; }
-  .hdr-secondary { display: none; }
-  .hdr-secondary[data-open="true"] {
-    display: flex; flex-wrap: wrap; gap: var(--space-6); align-items: center;
-    position: absolute; top: calc(100% - 4px); left: 10px; right: 10px; z-index: var(--z-popover);
-    padding: 10px; background: var(--float);
-    border-radius: var(--radius-menu);
-    box-shadow: var(--elev-float);
-  }
-  .label-full { display: none; }
-  .label-short { display: inline; }
-}
-
-/* Phone widths: the word mark gives its room to the header actions (the
-   logo stays; the name is still read out). */
-@media (max-width: 480px) {
-  .brand h1 {
-    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
-    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
-  }
-  header {
-    gap: var(--space-8);
-    padding: calc(var(--space-8) + var(--safe-top)) max(10px, var(--safe-right))
-      8px max(10px, var(--safe-left));
-  }
-  .project-actions { gap: var(--space-4); }
-}
+/* Loading pulse, used by the welcome panel (welcome.css). */
+@keyframes pulse { from { opacity: 0.55; } to { opacity: 1; } }

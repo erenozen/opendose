@@ -6,6 +6,12 @@
 // plate through the plate wizard. Every step is timed from the user's
 // action to the result on screen; anything slower than 5 s is flagged.
 
+// The header's File menu (DECISIONS 5): open it, pick an item.
+const fileMenu = async (p, item) => {
+  await p.locator("header").getByRole("button", { name: "File", exact: true }).click();
+  await p.getByRole("menuitem", { name: item }).click();
+};
+
 const SLOW = 5000;
 
 export async function runPerf({ newSession, appUrl, browser, friction }) {
@@ -28,7 +34,7 @@ export async function runPerf({ newSession, appUrl, browser, friction }) {
     await page.waitForSelector(".grid-toolbar");
   };
   const newTable = async (page, type, name, shape = {}) => {
-    await page.getByRole("button", { name: "New data table" }).first().click();
+    await fileMenu(page, "New data table…");
     const dlg = page.locator(".new-table-dialog");
     await dlg.locator(`input[name="table-type"][value="${type}"]`).check();
     await dlg.getByLabel("Table name").fill(name);
@@ -394,7 +400,7 @@ export async function runPerf({ newSession, appUrl, browser, friction }) {
 
   // 7. share link round trip -----------------------------------------------
   await guard("share link round trip", async () => {
-    await page.getByRole("button", { name: "More ways to save and share" }).click();
+    await page.locator("header").getByRole("button", { name: "File", exact: true }).click();
     await page.getByRole("menuitem", { name: "Copy share link…" }).click();
     const dlg = page.getByRole("dialog", { name: "Share this project" });
     await dlg.waitFor({ timeout: 15000 });
@@ -429,7 +435,7 @@ export async function runPerf({ newSession, appUrl, browser, friction }) {
   // 8. 384-well plate through the plate wizard ------------------------------
   await guard("384-well plate through the plate wizard", async () => {
     await newProject(page);
-    await page.getByRole("button", { name: "New data table" }).first().click();
+    await fileMenu(page, "New data table…");
     const dlg = page.locator(".new-table-dialog");
     await dlg.getByRole("radio", { name: /Start from an assay/ }).check();
     await dlg.getByText("Plate reader → dose-response").first().click();

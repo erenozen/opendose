@@ -1,52 +1,68 @@
 /* Project organisation: navigator groups and note rows, floating notes,
-   templates, "analyze like", go to sheet. Colours come from the tokens in
+   templates, "analyze like", the command palette. Colours come from the tokens in
    styles/tokens.css. */
 
-/* Note colours (--note-*) live in styles/tokens.css. */
+/* Note colours (--note-*) live in styles/tokens.css. They are user
+   data: the same hue in both themes, never chrome. */
 .note-dot {
-  flex: none; width: 8px; height: 8px; border-radius: 50%;
+  flex: none; width: 8px; height: 8px; border-radius: var(--radius-round);
   background: var(--note-edge);
 }
-.note-add { padding: var(--space-4) 11px; font-size: var(--text-body-s); color: var(--muted); background: transparent; }
+/* The chips of the sheet's notes (ghost Buttons) and "New note". */
+.notes-bar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-4);
+  padding: var(--space-6) var(--space-12);
+  background: var(--surface); border-bottom: 1px solid var(--line-solid);
+}
+.note-chip { max-width: 240px; }
+.note-chip-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.note-chip[aria-expanded="true"] { color: var(--ink); background: var(--inset); }
 
+/* A floating note: one depth cue, the float shadow (ruling 6); its
+   colour is its fill. */
 .floating-note {
   position: absolute; z-index: var(--z-raised);
   width: 230px;
   display: flex; flex-direction: column;
   background: var(--note-bg); color: var(--note-ink);
-  border: 1px solid color-mix(in srgb, var(--note-edge) 55%, transparent);
-  border-top: 3px solid var(--note-edge);
   border-radius: var(--radius-menu);
   box-shadow: var(--elev-float);
-  transition: opacity 140ms var(--ease-out), transform 140ms var(--ease-out);
-  opacity: 1; transform: none;
+  transition: opacity var(--dur-enter) var(--ease-out), transform var(--dur-enter) var(--ease-out);
+  opacity: 1;
   @starting-style { opacity: 0; transform: translateY(-4px) scale(0.98); }
 }
+/* While its grip is dragged the card follows by transform, at once. */
+.floating-note[data-dragging] { transition: none; will-change: transform; }
 .note-head { display: flex; align-items: center; gap: var(--space-4); padding: var(--space-4) var(--space-4) 0; }
-.note-grip, .note-btn {
-  flex: none; display: inline-flex; align-items: center; justify-content: center;
-  width: 26px; height: 24px; padding: 0; border-radius: var(--radius-control);
-  background: transparent; color: var(--note-ink);
-}
+.floating-note .note-grip, .floating-note .note-btn { color: var(--note-ink); }
 .note-grip { cursor: grab; touch-action: none; }
 .note-grip:active { cursor: grabbing; }
 .note-colors { display: flex; gap: var(--space-4); margin-right: auto; padding-left: var(--space-2); }
 .note-swatch {
-  width: 16px; height: 16px; min-height: 0; padding: 0; border-radius: 50%;
+  position: relative;
+  width: 16px; height: 16px; min-height: 0; padding: 0; border-radius: var(--radius-round);
   background: var(--note-bg); border: 2px solid var(--note-edge);
 }
-.note-swatch[aria-checked="true"] { box-shadow: 0 0 0 2px var(--surface), 0 0 0 3.5px var(--note-edge); }
+.note-swatch[aria-checked="true"] { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--note-edge); }
 .floating-note textarea {
-  font: inherit; font-size: var(--text-body-s); line-height: 1.45; color: var(--note-ink);
+  font: inherit; font-size: var(--text-body-s); line-height: var(--leading-body); color: var(--note-ink);
   background: transparent; border: none; resize: vertical;
-  min-height: 72px; padding: var(--space-6) 10px 10px;
+  min-height: 72px; padding: var(--space-6) var(--space-8) var(--space-8);
   border-end-start-radius: var(--radius-menu); border-end-end-radius: var(--radius-menu);
 }
 .floating-note textarea::placeholder { color: color-mix(in srgb, var(--note-ink) 55%, transparent); }
 .floating-note textarea:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
 @media (hover: hover) and (pointer: fine) {
-  .note-grip:hover, .note-btn:hover { background: color-mix(in srgb, var(--note-ink) 10%, transparent); color: var(--note-ink); }
-  .note-chip:hover { background: color-mix(in srgb, var(--note-bg) 80%, var(--note-edge)); color: var(--note-ink); }
+  .floating-note .note-grip:hover, .floating-note .note-btn:hover {
+    background: color-mix(in srgb, var(--note-ink) 10%, transparent); color: var(--note-ink);
+  }
+}
+/* Touch: the swatches keep apart and get a taller hit area that does not
+   overlap its neighbours; fold and delete grow to 44px. */
+@media (pointer: coarse) {
+  .note-colors { gap: var(--space-12); }
+  .note-swatch::before { content: ""; position: absolute; inset: -14px -6px; }
+  .note-head { gap: var(--space-20); }
 }
 
 /* --------------------------------------------------------------- navigator */
@@ -55,19 +71,10 @@
 @media (min-width: 901px) {
   .navigator { z-index: var(--z-sticky); }
 }
-.nav-search-row { display: flex; gap: var(--space-4); align-items: center; }
-.nav-search-row .nav-search { flex: 1 1 auto; min-width: 0; }
-.nav-icon-btn {
-  flex: none; display: inline-flex; align-items: center; justify-content: center;
-  width: 30px; height: 30px; padding: 0; border-radius: var(--radius-control);
-  background: transparent; color: var(--muted);
-}
-.nav-tools button:disabled { opacity: 0.45; cursor: default; }
-.level-4 > .nav-row { padding-left: 50px; font-size: var(--text-body-s); }
 /* Sheets inside a group keep sheet-row type size; family members shrink. */
 .nav-item.level-3:not(.nav-child):not(.nk-note) > .nav-row { font-size: var(--text-body-s); }
 .nk-group > .nav-row .nav-name { font-weight: var(--weight-semibold); color: var(--ink); }
-.nk-group > .nav-row .sheet-icon, .nk-notes > .nav-row .sheet-icon { color: var(--accent); }
+.nk-group > .nav-row .sheet-icon, .nk-notes > .nav-row .sheet-icon { color: var(--muted); }
 .nav-empty-group { padding-left: var(--space-48); }
 .nav-notes { flex: none; display: inline-flex; color: var(--muted); }
 .nav-notes .sheet-icon { width: 12px; height: 12px; }
@@ -123,29 +130,54 @@
   padding: 3px var(--space-8); min-width: 0; flex: 1 1 140px;
 }
 
-.goto-input {
-  font: inherit; font-size: var(--text-lead); color: var(--ink); background: var(--inset);
-  border: 1px solid var(--line-strong); border-radius: var(--radius-control);
-  padding: 9px 11px; width: 100%;
-}
-.goto-list {
-  list-style: none; margin: 0; padding: 0;
-  max-height: min(50svh, 380px); overflow-y: auto;
-  display: flex; flex-direction: column; gap: 1px;
-}
-.goto-option {
+/* The command palette (GoToSheet.tsx): a field and one listbox. */
+.palette { width: min(560px, calc(100vw - var(--space-32))); align-self: start; margin-top: 12dvh; }
+.palette-body { gap: var(--space-8); padding: var(--space-12); }
+.palette-field {
   display: flex; align-items: center; gap: var(--space-8);
-  padding: var(--space-6) 9px; border-radius: var(--radius-control); cursor: pointer; font-size: var(--text-body);
+  padding: 0 var(--space-12); min-height: 40px;
+  background: var(--inset); border-radius: var(--radius-control);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+  color: var(--muted);
 }
-.goto-option.active { background: var(--accent-fill); color: var(--accent-ink); }
-.goto-option.active .sheet-icon, .goto-option.active .goto-owner,
-.goto-option.active .goto-kind { color: inherit; }
-.goto-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.goto-owner { color: var(--muted); font-size: var(--text-caption); max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.goto-kind { flex: none; color: var(--muted); font-size: var(--text-caption); }
-.goto-hint kbd, .goto-dialog kbd {
-  font: inherit; font-size: var(--text-caption); padding: 0 var(--space-4);
-  border: 1px solid var(--line-strong); border-radius: var(--radius-control);
+.palette-field:focus-within { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.palette-search-icon { flex: none; }
+.palette-input {
+  flex: 1 1 auto; min-width: 0;
+  font: inherit; font-size: var(--text-lead); color: var(--ink);
+  background: transparent; border: none; padding: var(--space-8) 0;
+}
+.palette-input:focus-visible { outline: none; }
+.palette-list {
+  max-height: min(50svh, 400px); overflow-y: auto; overscroll-behavior: contain;
+  display: flex; flex-direction: column; gap: var(--space-8);
+}
+.palette-group { display: flex; flex-direction: column; gap: 1px; }
+.palette-group-label {
+  padding: var(--space-4) var(--space-8) var(--space-2);
+  font-size: var(--text-label); font-weight: var(--weight-semibold); color: var(--muted);
+}
+.palette-option {
+  display: flex; align-items: center; gap: var(--space-8);
+  min-height: 32px; padding: var(--space-4) var(--space-8);
+  border-radius: var(--radius-control); cursor: pointer; font-size: var(--text-body-s);
+}
+.palette-option.active { background: var(--accent-soft); color: var(--ink); }
+.palette-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.palette-hint {
+  color: var(--muted); font-size: var(--text-caption); max-width: 40%;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.palette-kind { flex: none; color: var(--muted); font-size: var(--text-caption); }
+.palette kbd {
+  font: inherit; font-size: var(--text-caption); color: var(--muted); padding: 0 var(--space-4);
+  border-radius: var(--radius-control); box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+.palette-empty { margin: 0; padding: var(--space-8); }
+.palette-hint-line { margin: 0; padding: 0 var(--space-4); }
+@media (pointer: coarse) {
+  .palette-option { min-height: 44px; }
+  .palette-hint-line { display: none; }
 }
 
 .const-hook { margin-left: var(--space-4); padding: var(--space-2) var(--space-8); font-size: var(--text-caption); color: var(--accent); }
@@ -161,14 +193,11 @@
 /* --------------------------------------------------------------- narrow */
 
 @media (max-width: 760px) {
-  .notes-bar { padding: var(--space-12) 14px 0; }
   .notes-layer { display: flex; flex-direction: column; gap: var(--space-8); }
   /* No free placement on small screens: notes stack under their chips. */
-  .floating-note { position: static; width: auto; margin: 0 14px; }
+  .floating-note { position: static; width: auto; margin: 0 var(--space-12); }
   .workbench > main { align-items: stretch; }
   .note-grip { display: none; }
-  .nav-icon-btn { width: 40px; height: 40px; }
-  .goto-option { min-height: 40px; }
 }
 
 
