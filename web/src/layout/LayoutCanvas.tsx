@@ -57,12 +57,15 @@ function itemLabel(it: LayoutItem, project: Project): string {
   return "Master legend";
 }
 
-/** Puts a dragged item back under React's own left/top/width/height. */
-function release(d: Pick<Drag, "el" | "letter">) {
+/** Hands a dragged item back to React: drops the transform and puts the
+ *  size React rendered (`at`, the item's rectangle now) back in place. */
+function release(d: Drag, at: LayoutRect | undefined) {
   d.el.style.transform = "";
-  d.el.style.removeProperty("width");
-  d.el.style.removeProperty("height");
   d.letter?.removeAttribute("transform");
+  if (d.mode === "resize" && at) {
+    d.el.style.width = `${px(at.w)}px`;
+    d.el.style.height = `${px(at.h)}px`;
+  }
 }
 
 /**
@@ -84,11 +87,14 @@ export default function LayoutCanvas(props: CanvasProps) {
   const drag = useRef<Drag | null>(null);
   // A released drag waits for React to draw the committed rectangle
   // before its inline transform is dropped, so nothing flashes back.
-  const settling = useRef<Pick<Drag, "el" | "letter"> | null>(null);
+  const settling = useRef<Drag | null>(null);
   const letters = panelLetters(layout.items, layout.letters);
 
   useLayoutEffect(() => {
-    if (settling.current) { release(settling.current); settling.current = null; }
+    const d = settling.current;
+    if (!d) return;
+    settling.current = null;
+    release(d, layout.items.find((i) => i.id === d.id));
   }, [layout]);
 
   const begin = (e: React.PointerEvent, it: LayoutItem, mode: Drag["mode"]) => {
@@ -143,7 +149,7 @@ export default function LayoutCanvas(props: CanvasProps) {
     if (d.rect && !same(d.rect, d.start)) {
       settling.current = d;
       props.onRect(d.id, d.rect, null);
-    } else release(d);
+    } else release(d, d.start);
   };
 
   const onKey = (e: React.KeyboardEvent, it: LayoutItem) => {
