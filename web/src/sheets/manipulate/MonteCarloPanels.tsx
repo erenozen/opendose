@@ -20,6 +20,8 @@ import {
   defaultForm, randomSeed, simulationSentence, type SimForm,
 } from "./simulate";
 import "./manipulate.css";
+import { Button, IconButton } from "../../components/ui";
+import { CloseIcon } from "../../components/ui/feedbackIcons";
 
 /** The simulation a Monte Carlo sheet uses: its own, or its table's. */
 function useSimulation(sheet: ResultsSheet, table: DataTableModel, o: MonteCarloOptions) {
@@ -189,9 +191,9 @@ export function MonteCarloControls({ sheet, table, options: o, onChange, readOnl
               <input value={t.label} aria-label={`Name for ${t.path}`} readOnly={readOnly || busy}
                 onChange={(e) => e.target.value.trim() && renameTab(i, e.target.value)} />
               <code className="mc-path" title={t.path}>{t.path}</code>
-              <button type="button" className="icon-btn" disabled={readOnly || busy}
+              <IconButton size="sm" disabled={readOnly || busy}
                 aria-label={`Stop tabulating ${t.label}`}
-                onClick={() => set({ tabulate: o.tabulate.filter((_, j) => j !== i) })}>✕</button>
+                onClick={() => set({ tabulate: o.tabulate.filter((_, j) => j !== i) })}><CloseIcon /></IconButton>
             </li>
           ))}
         </ul>
@@ -276,17 +278,19 @@ export function MonteCarloControls({ sheet, table, options: o, onChange, readOnl
         </div>
         {!nOk && <p className="field-note">Enter a whole number from 1 to {MAX_REPEATS}.</p>}
         <div className="mc-run">
+          <span className="sr-only" role="status">{busy ? "Running the simulations…" : ""}</span>
           {busy ? (
             <>
               <progress max={progress.total} value={progress.done}
                 aria-label="Monte Carlo progress" />
-              <span className="mc-count" aria-live="polite">{progress.done} of {progress.total}</span>
-              <button type="button" onClick={() => { stop.current = true; }}>Stop</button>
+              {/* the count is seen, not spoken: the status below says the phase */}
+              <span className="mc-count" aria-hidden="true">{progress.done} of {progress.total}</span>
+              <Button onClick={() => { stop.current = true; }}>Stop</Button>
             </>
           ) : (
-            <button type="button" className="btn-primary mc-run-btn"
+            <Button variant="primary" className="mc-run-btn"
               disabled={readOnly || !engineReady || !nOk || !o.tabulate.length}
-              onClick={run}>{o.output ? "Run again" : "Run simulations"}</button>
+              onClick={run}>{o.output ? "Run again" : "Run simulations"}</Button>
           )}
         </div>
         <p className="hint-block">Each repeat simulates a fresh data set and analyzes it. Leave the seed blank for a new sequence every run.</p>

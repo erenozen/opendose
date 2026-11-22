@@ -20,6 +20,7 @@ import {
   calibratorOf, dcqSettings, dcqTable, QPCR_ROLES, readQpcr, referenceGenes, runQpcr,
   tableFromStaging, TEST_LABELS, type PostTest, type QpcrOptions, type QpcrResult, type QTest,
 } from "./model";
+import { Button } from "../../../components/ui";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -51,8 +52,8 @@ export function QpcrControls({ sheet, table, options: o, readOnly }: ControlsPro
       <section>
         <h3>qPCR relative quantification</h3>
         <div className="assay-setup">
-          <button type="button" className="btn-primary" disabled={readOnly}
-            onClick={() => setWizardAt(0)}>Open setup wizard…</button>
+          <Button variant="primary" disabled={readOnly}
+            onClick={() => setWizardAt(0)}>Open setup wizard…</Button>
         </div>
         <p className="hint-block">
           {d.records.length} wells, {new Set(d.records.map((r) => r.sample)).size} samples,
@@ -354,7 +355,7 @@ function CqImport({ onTable }: { onTable: (t: DataTableModel) => void }) {
           placeholder={"Well,Sample,Target,Cq\nA1,Ctrl 1,GAPDH,18.2\n…"} onChange={(e) => setText(e.target.value)} />
       </label>
       <div className="assay-setup">
-        <button type="button" disabled={!text.trim()} onClick={() => take(parseSource(text))}>Read pasted export</button>
+        <Button disabled={!text.trim()} onClick={() => take(parseSource(text))}>Read pasted export</Button>
         {msg && <span className="hint-block" role="status">{msg}</span>}
       </div>
       {src && map && (
@@ -373,12 +374,12 @@ function CqImport({ onTable }: { onTable: (t: DataTableModel) => void }) {
             ))}
           </div>
           <div className="assay-setup">
-            <button type="button" className="btn-primary" disabled={!ready}
+            <Button variant="primary" disabled={!ready}
               onClick={() => {
                 if (!map) return;
                 build(src.headers, src.rows, map);
                 setSrc(null); setMap(null);
-              }}>Use these columns</button>
+              }}>Use these columns</Button>
             {!ready && <span className="hint-block">Choose the sample, target and Cq columns.</span>}
           </div>
         </div>

@@ -17,6 +17,7 @@ import {
 } from "./run";
 import "./manipulate.css";
 import { CopyButton } from "../../components/CiteBlock";
+import { Button } from "../../components/ui";
 
 // ------------------------------------------------------------ helpers
 
@@ -480,16 +481,16 @@ export function ManipResultsView({ sheet, table, result, outputName, extra }:
         )}
         <div className="manip-output">
           {outs.length ? outs.map((o) => (
-            <button key={o.id} type="button" className="btn-primary manip-open"
+            <Button variant="primary" key={o.id} className="manip-open"
               onClick={() => select(o.id)}>
               <LinkIcon /> Open {o.name}
-            </button>
+            </Button>
           )) : (
             <>
               <span className="hint-block">This analysis has no output table.</span>
-              <button type="button" onClick={create} disabled={!!sheet.frozen}>
+              <Button onClick={create} disabled={!!sheet.frozen}>
                 Create the output table
-              </button>
+              </Button>
             </>
           )}
         </div>

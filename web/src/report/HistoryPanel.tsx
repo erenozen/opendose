@@ -5,6 +5,7 @@
 import { useMemo, useState } from "react";
 import { useProject } from "../app/context";
 import Modal from "../components/Modal";
+import { Button, SwapLabel, notify, useLabelSwap } from "../components/ui";
 import { copyText } from "../export/download";
 import type { DataSheet } from "../project/types";
 import { projectProvenance, type ProvenanceStep } from "./provenance";
@@ -95,7 +96,7 @@ export default function HistoryPanel({ dataId, onClose }: { dataId?: string; onC
   const [id, setId] = useState(() => dataId && datas.some((d) => d.id === dataId) ? dataId : datas[0]?.id);
   const doc = useMemo(() => projectProvenance(project, provenanceDeps(results), provenanceEnv(),
     id ? [id] : undefined), [project, results, id]);
-  const [note, setNote] = useState("");
+  const copied = useLabelSwap();
   const fam = doc.families[0];
   // Projects reopened in this session from a file saved by another build:
   // every saved result recomputed and compared (app/reproduceCheck.ts).
@@ -105,11 +106,16 @@ export default function HistoryPanel({ dataId, onClose }: { dataId?: string; onC
     <Modal title="History" onClose={onClose} className="history-modal"
       actions={(
         <>
-          <span className="hint" role="status">{note}</span>
-          <button type="button" onClick={async () => setNote(await copyText(json) ? "Copied." : "Copy failed.")}>
-            Copy as JSON
-          </button>
-          <button type="button" onClick={onClose}>Close</button>
+          <Button onClick={async () => {
+            if (await copyText(json)) copied.flash("History copied as JSON");
+            else {
+              notify("Could not copy the history: the browser refused the clipboard. Select the "
+                + "text and copy it with Ctrl+C (⌘C on a Mac).", { tone: "error" });
+            }
+          }}>
+            <SwapLabel swapped={copied.swapped} done="Copied">Copy as JSON</SwapLabel>
+          </Button>
+          <Button onClick={onClose}>Close</Button>
         </>
       )}>
       {datas.length > 1 && (

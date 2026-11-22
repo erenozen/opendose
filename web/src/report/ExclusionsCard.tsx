@@ -24,6 +24,7 @@ import { resultSentence } from "./sentences";
 import { useReportPrefs } from "./useReport";
 import "./report.css";
 import "./integrity.css";
+import { Button } from "../components/ui";
 
 const isError = (r: unknown) => !r || typeof r !== "object" || "error" in (r as object);
 
@@ -114,10 +115,10 @@ export default function ExclusionsCard({ sheet, table, options, result }: {
       )}
       {def && (
         <div className="exc-compare">
-          <button type="button" aria-pressed={showAll}
+          <Button aria-pressed={showAll}
             onClick={() => setAskedFor(showAll ? null : sheet.id)}>
             {showAll ? "Hide results with excluded values included" : "Show results with excluded values included"}
-          </button>
+          </Button>
           {showAll && (
             <Comparison result={result} alt={current} digits={api.project.prefs.digits}
               style={prefs.pStyle} prefs={prefs} />

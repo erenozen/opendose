@@ -58,7 +58,7 @@
 .answer-facts { font-size: var(--text-body-s); line-height: var(--leading-body); color: var(--muted); }
 /* A figure the app says should not be reported: the reason first, the
    number small and quiet, never the loudest thing on the screen. */
-.is-demoted .answer-figure { font-size: calc(var(--text-figure) * 0.66); color: var(--ink-2); }
+.is-demoted .answer-figure { font-size: var(--text-figure-quiet); color: var(--ink-2); }
 .answer-reason {
   font-size: var(--text-body-s); line-height: var(--leading-body);
   font-weight: var(--weight-medium); color: var(--warn-ink); max-width: 65ch;

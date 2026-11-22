@@ -14,6 +14,7 @@ import type { ControlsProps, PlotProps, ResultsProps } from "../../types";
 import { interval, num } from "../kit/format";
 import { Chip, KV, Note, Warnings } from "../kit/ui";
 import { concUnit, type MicOptions, type MicResult } from "./model";
+import { NumberField } from "../../../components/ui";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -50,15 +51,10 @@ export function MicControls({ table, options: o, onChange, readOnly }: ControlsP
             </select>
           </label>
           {o.thresholdMode === "percent" ? (
-            <label className="field field-num">
-              <span>Growth at most (% of control)</span>
-              <input type="number" min={0} max={99} step={1} defaultValue={o.threshold} disabled={readOnly}
-                aria-label="Growth threshold" onBlur={(e) => {
-                  const v = Number(e.target.value);
+            <NumberField label="Growth at most (% of control)" description="10 = at least 90% inhibition; 20 = 80%; 50 = 50%" fieldClassName="field-num" min={0} max={99} step={1} defaultValue={String(o.threshold)} disabled={readOnly} onBlur={(e) => {
+                  const v = Number(e.currentTarget.value);
                   if (Number.isFinite(v) && v >= 0 && v < 100) set({ threshold: v });
                 }} />
-              <span className="field-note">10 = at least 90% inhibition; 20 = 80%; 50 = 50%</span>
-            </label>
           ) : (
             <label className="field field-num">
               <span>OD cut-off</span>

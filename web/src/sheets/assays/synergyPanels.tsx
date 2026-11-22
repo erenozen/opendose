@@ -15,6 +15,7 @@ import {
   type ExtraDrug, type MatrixTableChoice, type SynergyColumns, type SynergyModel, type SynergyOptions,
 } from "./synergyModel";
 import { Card, Check, Grid, Note, Problem, Row, Select, TextIn, Warnings } from "./ui";
+import { Button } from "../../components/ui";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type R = Record<string, any>;
@@ -44,7 +45,7 @@ function PasteMatrix({ parentId, yTitle }: { parentId: string; yTitle: string })
         placeholder={"\t0\t0.2\t0.8\t3.1\n0\t100\t96\t88\t70\n10\t85\t70\t51\t30"}
         onChange={(e) => setText(e.target.value)} />
       <div className="inline-actions">
-        <button type="button" disabled={!text.trim()} onClick={fill}>Fill the table</button>
+        <Button disabled={!text.trim()} onClick={fill}>Fill the table</Button>
         {msg && <span className="field-note" role="status">{msg}</span>}
       </div>
     </details>

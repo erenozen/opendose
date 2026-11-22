@@ -11,6 +11,7 @@ import {
   type CIMethodPow, type DivideBy, type ExpectedAs, type FractionOptions,
   type GofOptions,
 } from "./run";
+import { Button } from "../../components/ui";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -255,9 +256,9 @@ export function GofControls({ table, options: o, onChange }: ControlsProps<GofOp
             </tbody>
           </table>
           <div className="inline-actions">
-            <button type="button" onClick={() => set({ expected: equalExpected(table, o) })}>
+            <Button onClick={() => set({ expected: equalExpected(table, o) })}>
               Fill equal
-            </button>
+            </Button>
             {entered.length > 0 && (
               <span className="field-note">
                 Sum {formatSig(sum)}

@@ -2,10 +2,13 @@
 // opens a searchable list grouped by family (the engine's equation
 // library), the user's saved equations ("My equations", stored in this
 // browser, importable / exportable as JSON) and "Enter your own
-// equation…". Keyboard: type to filter, arrows move, Enter picks, Escape
-// closes. Below the button: the equation and parameters of the choice.
+// "Enter your own equation…". The list is a combobox (a search field over
+// a listbox) in a Popover anchored to the button (docs/design/
+// overlays.md): type to filter, arrows, Home and End move, Enter picks;
+// Escape and a press outside close it and focus returns to the button.
+// Below the button: the equation and parameters of the choice.
 import {
-  useEffect, useId, useMemo, useRef, useState, useSyncExternalStore,
+  useEffect, useId, useMemo, useState, useSyncExternalStore,
   type KeyboardEvent, type ReactNode,
 } from "react";
 import {
@@ -17,6 +20,7 @@ import {
   type UserEquationDef,
 } from "../lib/userEquation";
 import { downloadText } from "../sheets/common/download";
+import { Button, FileButton, Popover } from "./ui";
 import "./modelPicker.css";
 
 type Item =
@@ -44,10 +48,6 @@ export default function ModelPicker({
   const [active, setActive] = useState(0);
   const [note, setNote] = useState("");
   const uid = useId();
-  const btnRef = useRef<HTMLButtonElement>(null);
-  const searchRef = useRef<HTMLInputElement>(null);
-  const listRef = useRef<HTMLDivElement>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
 
   const isUser = value === USER_MODEL_ID;
   const meta = isUser ? null : MODELS_META[value] ?? null;
@@ -65,19 +65,17 @@ export default function ModelPicker({
   const activeIdx = Math.min(active, items.length - 1);
   const optId = (i: number) => `${uid}-opt-${i}`;
 
-  useEffect(() => {
-    if (open) searchRef.current?.focus();
-  }, [open]);
   const activeId = optId(activeIdx);
   useEffect(() => {
     if (!open) return;
     document.getElementById(activeId)?.scrollIntoView({ block: "nearest" });
   }, [open, activeId]);
 
-  const close = (refocus = true) => {
+  // The Popover returns focus to the button when it closes.
+  const close = () => {
     setOpen(false);
     setQuery("");
-    if (refocus) requestAnimationFrame(() => btnRef.current?.focus());
+    setNote("");
   };
   const choose = (it: Item) => {
     if (it.kind === "model") onPickModel(it.meta.id);
@@ -98,7 +96,6 @@ export default function ModelPicker({
     else if (e.key === "Home") { e.preventDefault(); setActive(0); }
     else if (e.key === "End") { e.preventDefault(); setActive(items.length - 1); }
     else if (e.key === "Enter") { e.preventDefault(); if (items[activeIdx]) choose(items[activeIdx]); }
-    else if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); close(); }
   };
 
   let idx = -1;
@@ -125,26 +122,20 @@ export default function ModelPicker({
 
   return (
     <div className="model-picker">
-      <button ref={btnRef} type="button" className="mp-button" data-still disabled={readOnly}
-        aria-haspopup="listbox" aria-expanded={open}
-        onClick={() => (open ? close() : openList())}>
-        <span className="sr-only">Model: </span>
-        <span className="mp-button-label">{label}</span>
-        <span className="mp-button-family">{family}</span>
-      </button>
-
-      {open && (
-        <div className="mp-panel" onKeyDown={onKey}
-          onBlur={(e) => {
-            if (!e.currentTarget.contains(e.relatedTarget as Node | null)
-              && e.relatedTarget !== btnRef.current) close(false);
-          }}>
-          <input ref={searchRef} type="search" className="mp-search"
+      <Popover open={open} onOpenChange={(o) => (o ? openList() : close())}>
+        <Popover.Trigger className="mp-button" data-still disabled={readOnly}>
+          <span className="sr-only">Model: </span>
+          <span className="mp-button-label">{label}</span>
+          <span className="mp-button-family">{family}</span>
+        </Popover.Trigger>
+        <Popover.Content className="mp-panel" aria-label="Choose a model" side="bottom" align="start"
+          onKeyDown={onKey}>
+          <input type="search" className="mp-search"
             role="combobox" aria-expanded="true" aria-autocomplete="list"
             aria-controls={`${uid}-list`} aria-activedescendant={optId(activeIdx)}
             aria-label="Search models" placeholder="Search by name, family or parameter…"
             value={query} onChange={(e) => { setQuery(e.target.value); setActive(0); }} />
-          <div ref={listRef} id={`${uid}-list`} role="listbox" aria-label="Models"
+          <div id={`${uid}-list`} role="listbox" aria-label="Models"
             className="mp-list" tabIndex={-1}>
             {groups.map((g) => (
               <div key={g.family} role="group" aria-labelledby={`${uid}-g-${g.family}`}>
@@ -168,40 +159,35 @@ export default function ModelPicker({
             </div>
           </div>
           <div className="mp-tools">
-            <span className="hint-block">
+            <span className="mp-count">
               {items.length - 1} match{items.length - 1 === 1 ? "" : "es"}
             </span>
-            <button type="button" className="chip-btn" disabled={!saved.length}
+            <Button size="sm" variant="ghost" disabled={!saved.length}
               onClick={() => downloadText("my-equations.json", exportEquations(), "application/json")}>
               Export my equations
-            </button>
-            <button type="button" className="chip-btn" onClick={() => fileRef.current?.click()}>
-              Import…
-            </button>
-            <input ref={fileRef} type="file" accept=".json,application/json" hidden
-              onChange={async (e) => {
-                const f = e.target.files?.[0];
-                e.target.value = "";
-                if (!f) return;
+            </Button>
+            <FileButton size="sm" variant="ghost" accept=".json,application/json"
+              inputLabel="Import saved equations (JSON)"
+              onFile={async (f) => {
                 try {
                   const n = importEquations(await f.text());
-                  setNote(`${n} equation${n === 1 ? "" : "s"} imported`);
+                  setNote(`Imported ${n} equation${n === 1 ? "" : "s"}.`);
                 } catch (err) {
-                  setNote(`Could not import: ${(err as Error).message}`);
+                  setNote(`Could not import “${f.name}”: ${(err as Error).message}`);
                 }
-                searchRef.current?.focus();
-              }} />
+              }}>
+              Import…
+            </FileButton>
           </div>
-          <p className="hint-block" role="status" aria-live="polite">{note}</p>
-        </div>
-      )}
+          {/* Always mounted, so the import's outcome is announced. */}
+          <p className="hint-block mp-note" role="status">{note}</p>
+        </Popover.Content>
+      </Popover>
 
       {isUser ? (
         <div className="mp-summary">
           <pre className="mp-equation">{userEquation?.text || "No equation entered yet"}</pre>
-          <button type="button" className="chip-btn" disabled={readOnly} onClick={onEditEquation}>
-            Edit equation…
-          </button>
+          <Button size="sm" disabled={readOnly} onClick={onEditEquation}>Edit equation…</Button>
         </div>
       ) : meta && (
         <div className="mp-summary">

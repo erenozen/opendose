@@ -1,4 +1,5 @@
 // Controls, results sheet and methods text of the estimation analysis.
+import { useState } from "react";
 import "../../sheets/common/sheetKit.css";
 import "../report.css";
 import CopyableMethods from "../../sheets/common/CopyableMethods";
@@ -11,6 +12,7 @@ import {
   DESIGN_LABELS, EFFECT_LABELS, type EstimationDesign, type EstimationEffect,
   type EstimationOptions,
 } from "./run";
+import { NumberField } from "../../components/ui";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -78,16 +80,10 @@ export function EstimationControls({ table, options: o, onChange }: ControlsProp
             {LEVELS.map((l) => <option key={l} value={l}>{Math.round(l * 100)}%</option>)}
           </select>
         </label>
-        <label className="check-row">
-          <span>Bootstrap resamples</span>
-          <input type="number" aria-label="Bootstrap resamples" min={200} max={100000} step={1000}
-            value={o.nBoot} onChange={(e) => set({ nBoot: Number(e.target.value) || 5000 })} />
-        </label>
-        <label className="check-row">
-          <span>Random seed</span>
-          <input type="number" aria-label="Random seed" min={0} step={1} value={o.seed}
-            onChange={(e) => set({ seed: Number(e.target.value) || 0 })} />
-        </label>
+        <NumberOption label="Bootstrap resamples" value={o.nBoot} min={200} max={100000} step={1000}
+          onCommit={(nBoot) => set({ nBoot })} />
+        <NumberOption label="Random seed" value={o.seed} min={0} step={1}
+          onCommit={(seed) => set({ seed })} />
         <p className="hint-block">
           The same seed gives the same interval on every run, so a reported
           CI can be reproduced exactly.
@@ -164,4 +160,23 @@ export function EstimationMethods({ result }: ResultsProps<EstimationOptions, an
     + `(${result.n_permutations} reshuffles, or every arrangement when there are fewer) and are not corrected for multiple comparisons. `
     + softwareSentence(getRuntimeVersions());
   return <CopyableMethods text={text} />;
+}
+
+/** A whole-number option: typed text is kept as typed, and only a valid
+ *  value is stored (a blank or out-of-range entry is never replaced by a
+ *  default behind the user's back; the field says what to enter). */
+function NumberOption({ label, value, min, max, step, onCommit }: {
+  label: string; value: number; min?: number; max?: number; step?: number;
+  onCommit: (v: number) => void;
+}) {
+  const [text, setText] = useState(String(value));
+  return (
+    <NumberField label={label} fieldClassName="field-num" integer min={min} max={max} step={step}
+      value={text} onValueChange={(v) => {
+        setText(v);
+        const n = Number(v);
+        if (v.trim() && Number.isInteger(n) && (min === undefined || n >= min)
+          && (max === undefined || n <= max)) onCommit(n);
+      }} />
+  );
 }
