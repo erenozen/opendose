@@ -23,6 +23,10 @@ GraphPad Prism user guide references (publicly documented behaviour):
   * GAUSS/RND and the whole-variable aggregates MEAN, STDEV, STDERR,
     COUNT, CENTER, STANDARDIZE and single-argument MAX/MIN/SUM broadcast
     over the variable (transforms / in-table formulas only).
+- Prism 11.2 release notes (Nov 2026) added functions that work within
+  groups and conditional aggregates; their names and argument order are
+  not documented in the public guide yet, so OpenDose's are its own
+  (spreadsheet-style, listed below as extensions).
 - "Transform" (user-guide/using_transform.htm), user-defined transforms:
   multi-line programs, IF(condition, if_true, if_false), conditions joined
   with AND/OR/NOT, ``Y = IF(Y<0, Y/0, Y)`` blanks a value (division by
@@ -34,7 +38,17 @@ mistaken for documented behaviour): constants ``PI`` and ``E``; ``FRAC(x)``
 (fractional part, x - INT(x)); ``==`` / ``!=`` accepted as aliases of
 ``=`` / ``<>``; row references ``NAME[i]`` (1-based row i of a column,
 broadcast to every row); ``{any name}`` to reference a column whose title
-is not a plain identifier.  Unary minus binds looser than ``^`` (so
+is not a plain identifier.  Group-wise and conditional functions, each
+broadcast to its rows (a blank value or group gives a blank):
+``GROUPMEAN / GROUPSUM / GROUPCOUNT / GROUPSTDEV / GROUPSTDERR /
+GROUPMEDIAN / GROUPMIN / GROUPMAX (x, group)``; ``GROUPFIRST(x, group)``
+(the group's first non-blank value in row order: a subject's baseline);
+``CUMSUM(x[, group])`` and ``MOVAVG(x, k[, group])`` (running sum, and the
+mean of the last k non-blank values, down the rows); ``RANK(x[, group])``
+(1 = smallest, ties averaged); ``ZSCORE(x[, group])`` ((x - mean) / SD,
+SD with n - 1); ``MEANIF / SUMIF (x, condition)`` and
+``COUNTIF(condition)`` (over the rows where the condition is true).
+Percent of the group total is ``100 * x / GROUPSUM(x, group)``.  Unary minus binds looser than ``^`` (so
 ``-2^2 = -4``) and ``^`` is right-associative (``2^3^2 = 512``).
 
 Not implemented: CONCATENATE results are text and are converted back to
@@ -647,6 +661,24 @@ FUNCTIONS: dict[str, tuple] = {
     "COUNT": (1, 1, None, "agg"),
     "CENTER": (1, 1, None, "agg"),
     "STANDARDIZE": (1, 1, None, "agg"),
+    # within groups (a second argument: the grouping column) and running /
+    # conditional statistics, each broadcast to its rows
+    "GROUPMEAN": (2, 2, None, "group"),
+    "GROUPSUM": (2, 2, None, "group"),
+    "GROUPCOUNT": (2, 2, None, "group"),
+    "GROUPSTDEV": (2, 2, None, "group"),
+    "GROUPSTDERR": (2, 2, None, "group"),
+    "GROUPMEDIAN": (2, 2, None, "group"),
+    "GROUPMIN": (2, 2, None, "group"),
+    "GROUPMAX": (2, 2, None, "group"),
+    "GROUPFIRST": (2, 2, None, "group"),
+    "CUMSUM": (1, 2, None, "group"),
+    "MOVAVG": (2, 3, None, "group"),
+    "RANK": (1, 2, None, "group"),
+    "ZSCORE": (1, 2, None, "group"),
+    "MEANIF": (2, 2, None, "group"),
+    "SUMIF": (2, 2, None, "group"),
+    "COUNTIF": (1, 1, None, "group"),
     # gamma / beta / bessel / hypergeometric
     "GAMMA": (1, 1, _gamma, "raw"),
     "GAMMALN": (1, 1, _safe(special.gammaln), "math"),
@@ -781,6 +813,129 @@ def _aggregate(name, v):
     raise AssertionError(name)
 
 
+def _group_keys(g, shape):
+    """Group labels broadcast to `shape` as hashable keys; None = blank."""
+    arr = np.broadcast_to(np.asarray(g, dtype=object), shape)
+    out = np.empty(shape, dtype=object)
+    for idx, v in np.ndenumerate(arr):
+        if v is None or (isinstance(v, float) and math.isnan(v)) or \
+                (isinstance(v, str) and not v.strip()):
+            out[idx] = None
+        elif isinstance(v, str):
+            out[idx] = ("s", v.strip().casefold())
+        else:
+            out[idx] = ("n", float(v))
+    return out
+
+
+def _ranks(vals):
+    """Average ranks (ties share the mean rank), 1 = smallest."""
+    return stats.rankdata(vals, method="average")
+
+
+def _group_call(name, args):
+    """GROUPxxx(x, group), CUMSUM(x[, group]), MOVAVG(x, k[, group]),
+    RANK(x[, group]), ZSCORE(x[, group]), MEANIF / SUMIF(x, condition),
+    COUNTIF(condition). Rows are taken in table order (down the rows;
+    each subcolumn on its own for the running functions). A blank value
+    or a blank group gives a blank result."""
+    if name == "COUNTIF":
+        c = _num(args[0])
+        n = float(np.sum((c != 0) & ~np.isnan(c)))
+        return np.where(np.isnan(c), np.nan, n) if c.ndim else np.asarray(n)
+    if name in ("MEANIF", "SUMIF"):
+        x = _num(args[0])
+        c = np.broadcast_to(_num(args[1]), np.broadcast_shapes(x.shape, _num(args[1]).shape))
+        x = np.broadcast_to(x, c.shape)
+        sel = x[(c != 0) & ~np.isnan(c) & ~np.isnan(x)]
+        val = (float(sel.mean()) if sel.size else math.nan) if name == "MEANIF" \
+            else float(sel.sum())
+        return np.where(np.isnan(x), np.nan, val) if x.ndim else np.asarray(val)
+    x = _num(args[0])
+    k = None
+    if name == "MOVAVG":
+        kk = _num(args[1])
+        if kk.ndim or math.isnan(float(kk)) or float(kk) < 1 or float(kk) != int(kk):
+            raise FormulaError("MOVAVG window must be a whole number >= 1")
+        k = int(kk)
+        g = args[2] if len(args) > 2 else None
+    elif name in ("CUMSUM", "RANK", "ZSCORE"):
+        g = args[1] if len(args) > 1 else None
+    else:
+        g = args[1]
+    shape = x.shape if g is None else np.broadcast_shapes(x.shape, np.shape(g))
+    x = np.broadcast_to(x, shape).astype(float)
+    keys = (np.full(shape, ("all",), dtype=object) if g is None
+            else _group_keys(g, shape))
+    out = np.full(shape, np.nan)
+    if x.ndim == 0:
+        x, keys, out = x[None], keys[None], out[None]
+    cols = x.reshape(x.shape[0], -1) if x.ndim > 1 else x[:, None]
+    kcols = keys.reshape(cols.shape)
+    res = out.reshape(cols.shape)
+    groups = {}
+    for idx, key in np.ndenumerate(kcols):
+        if key is not None:
+            groups.setdefault(key, []).append(idx)
+    for key, idxs in groups.items():
+        vals = np.array([cols[i] for i in idxs])
+        ok = ~np.isnan(vals)
+        v = vals[ok]
+        if name in ("CUMSUM", "MOVAVG"):
+            # running statistics: per subcolumn, down the rows
+            by_col = {}
+            for i in idxs:
+                by_col.setdefault(i[1], []).append(i)
+            for seq in by_col.values():
+                seq.sort()
+                run, window = 0.0, []
+                for i in seq:
+                    xv = cols[i]
+                    if math.isnan(xv):
+                        continue
+                    if name == "CUMSUM":
+                        run += xv
+                        res[i] = run
+                    else:
+                        window.append(xv)
+                        window = window[-k:]
+                        res[i] = float(np.mean(window))
+            continue
+        if name == "RANK":
+            r = _ranks(v)
+            for j, i in enumerate([i for i, o in zip(idxs, ok) if o]):
+                res[i] = r[j]
+            continue
+        if name == "GROUPFIRST":
+            first = next((cols[i] for i in sorted(idxs) if not math.isnan(cols[i])), math.nan)
+            val = first
+        elif name == "ZSCORE":
+            m = float(v.mean()) if v.size else math.nan
+            sd = float(v.std(ddof=1)) if v.size > 1 else math.nan
+            for i in idxs:
+                res[i] = (cols[i] - m) / sd if sd and sd > 0 else math.nan
+            continue
+        else:
+            n = v.size
+            val = {
+                "GROUPMEAN": lambda: float(v.mean()) if n else math.nan,
+                "GROUPSUM": lambda: float(v.sum()),
+                "GROUPCOUNT": lambda: float(n),
+                "GROUPSTDEV": lambda: float(v.std(ddof=1)) if n > 1 else math.nan,
+                "GROUPSTDERR": lambda: float(v.std(ddof=1) / math.sqrt(n)) if n > 1 else math.nan,
+                "GROUPMEDIAN": lambda: float(np.median(v)) if n else math.nan,
+                "GROUPMIN": lambda: float(v.min()) if n else math.nan,
+                "GROUPMAX": lambda: float(v.max()) if n else math.nan,
+            }[name]()
+        for i in idxs:
+            # GROUPCOUNT and GROUPFIRST fill every row of the group; the
+            # others leave a blank value blank
+            if name in ("GROUPCOUNT", "GROUPFIRST") or not math.isnan(cols[i]):
+                res[i] = val
+    out = res.reshape(shape) if shape else res.reshape(())
+    return out
+
+
 def _eval(node, ctx: _Context):
     kind = node[0]
     if kind == "num":
@@ -859,6 +1014,8 @@ def _call(node, ctx: _Context):
     try:
         if fkind == "agg" or (name in ("MAX", "MIN", "SUM") and len(args) == 1):
             return _aggregate(name, args[0])
+        if fkind == "group":
+            return _group_call(name, args)
         if fkind == "rand":
             p1, p2 = _num(args[0]), _num(args[1])
             shape = np.broadcast_shapes(ctx.shape, p1.shape, p2.shape)
