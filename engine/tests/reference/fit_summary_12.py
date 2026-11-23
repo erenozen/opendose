@@ -78,8 +78,14 @@ def project(t: dict) -> dict:
 def main() -> None:
     t = table()
     res = json.loads(json.dumps(engine_result(t), default=float))
+    # the summary reads the fits only: the drawn curves, points and
+    # residual plots stay out of the fixture
+    for d in res["datasets"]:
+        for key in ("points", "residual_check"):
+            d.pop(key, None)
+        d["fit"].pop("curve", None)
     out = ROOT / "web/src/sheets/xy/__tests__/fitSummary.fixture.json"
-    out.write_text(json.dumps({"table": t, "result": res}, indent=1) + "\n")
+    out.write_text(json.dumps({"table": t, "result": res}) + "\n")
     for path in ("web/e2e-fixtures/fit-summary-12.json",
                  "web/e2e-fixtures/stage/fit-summary.json"):
         (ROOT / path).write_text(
