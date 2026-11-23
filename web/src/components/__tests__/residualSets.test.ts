@@ -14,8 +14,10 @@ test("one residual set per fitted data set, titled by its name", () => {
   assert.equal(sets[0].data.n_qq, 27);
 });
 
-test("column tests keep theirs under the results", () => {
+test("a model's residuals come once, untitled; column tests keep theirs", () => {
+  assert.deepEqual(residualSets({ analysis: "two_way_anova", residual_diagnostics: { kind: "model" } })
+    .map((s) => s.key), ["model"]);
   assert.deepEqual(residualSets({ analysis: "ttest", residual_check: { points: [] } }), []);
-  assert.deepEqual(residualSets({ error: "x", datasets: [{ residual_check: {} }] }), []);
+  assert.deepEqual(residualSets({ error: "x", residual_diagnostics: {} }), []);
   assert.deepEqual(residualSets(null), []);
 });

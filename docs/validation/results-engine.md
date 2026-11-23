@@ -662,3 +662,49 @@ The plan's acceptance test speaks of 24 points; the shipped
 dose-response example has 9 doses × 3 replicates = 27, and the e2e
 test (`web/scripts/e2e-results.mjs`) asserts 27 points in each of the
 three plots and W = 0.9764 in the Checks row.
+
+### P-11 residual plots of two-way, three-way, repeated-measures, nested and mixed models
+
+`residuals.model_residuals` gives these models the same residual block
+(`kind: "model"`, with the name of the fitted value). Two-way ANOVA
+with interaction: value minus its cell mean; main effects only (asked
+for, or forced by one value per cell): value minus the fitted row +
+column effects (least squares on dummies, so unbalanced tables are
+right); three-way: value minus its cell mean; repeated-measures one-way
+with any number of treatments: value minus subject mean minus treatment
+mean plus grand mean, on the complete subjects (the "not computed yet"
+note for three or more treatments is gone); the mixed model for RM with
+missing values and the nested t test / one-way ANOVA: conditional
+residuals (value minus fixed effects minus the predicted random effect)
+standardized by the model's residual SD. OLS residuals are standardized
+by √MS residual. A value alone in its cell (residual 0 by construction)
+is shown but left out of the QQ plot and Shapiro-Wilk, as for the
+column tests. Two-way, three-way and nested results show the section in
+the Checks row; RM and the mixed RM model keep it under the results
+like the other column tests.
+
+Reference: `engine/tests/reference/anova_residuals.py` (statsmodels
+`ols(...).resid` / `.resid_pearson`, `MixedLM` by REML `.resid` /
+√scale), tested in `engine/tests/test_anova_residuals.py`:
+
+| Model | n | residual df / SD | first residual | first standardized | engine |
+| --- | --- | --- | --- | --- | --- |
+| Two-way 2 × 3 × 4, `y ~ A * B` | 24 | df 18 | −0.45 | −0.501118 | 1e-9 |
+| Two-way, `y ~ A + B` | 24 | df 20 | 0.666667 | 0.415176 | 1e-8 |
+| Two-way unbalanced, `y ~ A * B` | 21 | df 15 | −0.333333 | −0.3739 | 1e-8 |
+| Two-way unbalanced, `y ~ A + B` | 21 | df 17 | 0.996226 | 0.59792 | 1e-8 |
+| Three-way 2 × 2 × 2 × 3 | 24 | df 16 | −0.1 | −0.211407 | 1e-8 |
+| RM one-way, 6 subjects × 4, `y ~ subject + treatment` | 24 | df 15 | −0.6125 | −0.61105 | 1e-8 |
+| Mixed RM (one value missing), MixedLM | 23 | SD 1.03766 | −0.596629 | −0.574977 | 1e-4 (REML optimum) |
+| Nested, 2 groups × 3 subcolumns, MixedLM | 22 | SD 0.940818 | −0.779965 | −0.829028 | 1e-4 (REML optimum) |
+
+The REML residual SDs agree to 2.4e-5 relative: two optimizers, the
+same optimum to that precision, so the mixed-model values are pinned at
+1e-4. Edge cases: one value per cell (additive fallback, df 4 on a 3 × 3
+table), a single-value cell, every residual 0, units ×1e-12 and ×1e12,
+reordering the data sets (the same residuals, the same W). The plan's
+acceptance test (2 × 3, 4 replicates: 24 cell-mean residuals) runs in
+`web/scripts/e2e-results.mjs`, with W = 0.9744 (scipy Shapiro-Wilk on
+the statsmodels residuals). Found on the way, not changed: two-way
+ANOVA on a table whose cells have no scatter at all (every residual 0)
+stops with "float division by zero" instead of a sentence.

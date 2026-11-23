@@ -93,6 +93,15 @@ def _fit_residual_check(res, name, *, robust=False, rout=False):
     return out
 
 
+def _model_residuals(build):
+    """residual diagnostics of an ANOVA model, or {"unavailable": why}:
+    they must never cost the analysis."""
+    try:
+        return build()
+    except Exception as exc:
+        return {"unavailable": f"Residuals could not be computed: {exc}."}
+
+
 def _dose_response(data, options):
     """Nonlinear regression for any registered model. For models whose X
     is log10(concentration), x_is_log=False means the engine applies
@@ -1081,6 +1090,14 @@ def _two_way_anova(data, options):
             direction=options.get("direction", "columns_within_rows"),
             row_names=row_names, col_names=names,
             additive=options.get("model") == "additive")
+    # residual plots in the Checks row (residuals.two_way_residuals)
+    result["residual_diagnostics"] = _model_residuals(
+        lambda: residuals.two_way_residuals(
+            cells, additive=result["model"].startswith("main effects"),
+            df=result["sources"]["residual"]["df"],
+            row_names=options.get("row_names") or [
+                f"Row {i + 1}" for i in range(len(cells))],
+            col_names=[nm or f"Column {j + 1}" for j, nm in enumerate(names)]))
     if warnings:
         result["warnings"] = warnings
     return result
@@ -1319,6 +1336,13 @@ def _residuals_column(data, options):
     names = [ds.get("name", "") for ds in data["datasets"]]
     cols = [[v for row in ds["ys"] for v in (row or [])]
             for ds in data["datasets"]]
+    if options.get("rm"):
+        # repeated measures: the subject + treatment model on the first
+        # subcolumn of each data set (rows = subjects), as rm_anova
+        aligned = [[row[0] if row else None for row in ds["ys"]]
+                   for ds in data["datasets"]]
+        return {"analysis": "residuals_column",
+                **residuals.rm_residuals(aligned, names)}
     if options.get("paired"):
         ia, ib = options.get("dataset_a", 0), options.get("dataset_b", 1)
         res = residuals.column_residuals([cols[ia], cols[ib]],
@@ -2031,6 +2055,26 @@ def _nested_groups(data):
             [g.get("subgroup_names") for g in groups])
 
 
+def _nested_residuals(result):
+    """The nested result with its conditional residuals as residual plots
+    for the Checks row (residuals.mixed_residuals)."""
+    res = result.get("residuals")
+    if not res:
+        return result
+    names = result.get("names") or []
+    sd = (result.get("random_effects") or {}).get("within_subcolumns", {}).get("sd")
+    result["residual_diagnostics"] = _model_residuals(
+        lambda: residuals.mixed_residuals(
+            {"value": res["value"], "fitted": res["fitted"],
+             "group": res["group"]},
+            scale=sd, group_names=names,
+            labels=[f"{names[g]}, subcolumn {s + 1}"
+                    for g, s in zip(res["group"], res["subcolumn"])],
+            fitted_label="Fitted value (group mean + subcolumn effect)",
+            what="its group mean and its subcolumn's predicted effect"))
+    return result
+
+
 def _nested_ttest(data, options):
     """Nested t test (mixed model, random subcolumn effect).
     data = {"groups": [{"name": str, "subgroups": [[values...], ...],
@@ -2038,12 +2082,12 @@ def _nested_ttest(data, options):
     options: ci_level (0.95), swap (False -> difference is B - A),
     negative_variance ("allow" | "zero")."""
     groups, names, sub_names = _nested_groups(data)
-    return nested.nested_t_test(
+    return _nested_residuals(nested.nested_t_test(
         groups, names=names, subgroup_names=sub_names,
         ci_level=options.get("ci_level", 0.95),
         swap=options.get("swap", False),
         negative_variance=options.get("negative_variance", "allow"),
-        ddf=options.get("ddf", "containment"))
+        ddf=options.get("ddf", "containment")))
 
 
 def _nested_anova(data, options):
@@ -2052,13 +2096,13 @@ def _nested_anova(data, options):
     holm_sidak | fisher), control_index (Dunnett), ci_level,
     negative_variance."""
     groups, names, sub_names = _nested_groups(data)
-    return nested.nested_one_way_anova(
+    return _nested_residuals(nested.nested_one_way_anova(
         groups, names=names, subgroup_names=sub_names,
         comparisons=options.get("comparisons"),
         control_index=options.get("control_index", 0),
         ci_level=options.get("ci_level", 0.95),
         negative_variance=options.get("negative_variance", "allow"),
-        ddf=options.get("ddf", "containment"))
+        ddf=options.get("ddf", "containment")))
 
 
 def _mixed_rm_oneway(data, options):
@@ -2082,7 +2126,21 @@ def _mixed_rm_oneway(data, options):
                                                    "allow"),
                   "ddf": options.get("ddf", "containment")}
     result = mixedmodel.rm_one_way(aligned, names, method=method, **kwargs)
-    return {"analysis": result.get("analysis", "rm_one_way_anova"), **result}
+    out = {"analysis": result.get("analysis", "rm_one_way_anova"), **result}
+    res = out.pop("residuals", None)
+    # residual plots under the results, as the other column tests
+    # (residuals.mixed_residuals; RM ANOVA: residuals.rm_residuals)
+    out["residual_check"] = _model_residuals(
+        lambda: residuals.mixed_residuals(
+            {"value": res["value"], "fitted": res["fitted"],
+             "group": res["treatment"]},
+            scale=res["residual_sd"], group_names=out["names"],
+            labels=[f"Subject {s + 1}, {out['names'][t]}"
+                    for s, t in zip(res["subject"], res["treatment"])],
+            fitted_label="Fitted value (treatment mean + subject effect)",
+            what="its treatment mean and its subject's predicted effect")
+        if res is not None else residuals.rm_residuals(aligned, names))
+    return out
 
 
 def _mixed_rm_twoway(data, options):
@@ -2268,6 +2326,9 @@ def _three_way_anova(data, options):
     out = {"analysis": "three_way_anova", **result, "row_titles": titles,
            "b_level_names": b_names, "c_level_names": c_names,
            "cell_labels": labels}
+    out["residual_diagnostics"] = _model_residuals(
+        lambda: _three_way_residuals(cells, labels, b_names, c_names,
+                                     result["sources"]["residual"]["df"]))
     method = options.get("comparisons")
     if method:
         out["multiple_comparisons"] = threeway.three_way_comparisons(
@@ -2279,6 +2340,40 @@ def _three_way_anova(data, options):
             b_names=b_names, c_names=c_names, cell_labels=labels,
             anova=result)
     return out
+
+
+def _three_way_residuals(cells, labels, b_names, c_names, df):
+    """Residuals of the full three-way model: each value minus its cell
+    mean (R's residuals(aov(y ~ A * B * C))), coloured by the B x C
+    combination (the data set)."""
+    y, codes, lab, grp = [], [], [], []
+    nb, nc = len(cells[0]), len(cells[0][0])
+    for i, row in enumerate(cells):
+        for j in range(nb):
+            for k in range(nc):
+                m = 0
+                for v in row[j][k]:
+                    if _is_missing(v):
+                        continue
+                    m += 1
+                    y.append(float(v))
+                    codes.append((i, j, k))
+                    lab.append(f"{labels[i][j][k]}, value {m}")
+                    grp.append(j * nc + k)
+    ci = [[c[d] for c in codes] for d in range(3)]
+    fitted = residuals.linear_model_fitted(y, ci, interaction=True)
+    count = {}
+    for c in codes:
+        count[c] = count.get(c, 0) + 1
+    return residuals.model_residuals(
+        y, fitted, df=df, group_index=grp,
+        group_names=[f"{b_names[j]}, {c_names[k]}" for j in range(nb)
+                     for k in range(nc)],
+        labels=lab, single=[count[c] == 1 for c in codes],
+        fitted_label="Fitted value (cell mean)",
+        note=("Residuals of the three-way ANOVA: each value minus its cell "
+              "mean; standardized by the square root of the residual mean "
+              "square."))
 
 
 def _compact_letters(data, options):

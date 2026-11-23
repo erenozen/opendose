@@ -95,6 +95,53 @@ await page.waitForSelector('.pane-results[data-live="true"] .results-table', { t
       && !/nonparametric/i.test(advice), advice.slice(0, 100));
 }
 
+// --- P-11: residuals of two-way ANOVA (2 x 3, 4 replicates) --------------
+{
+  // engine/tests/reference/anova_residuals.py, TWO_WAY
+  const TWO_WAY = [
+    [[12.1, 13.4, 11.8, 12.9], [15.2, 14.8, 16.1, 15.5], [18.4, 17.2, 19.0, 18.1]],
+    [[10.2, 11.5, 9.8, 10.9], [14.9, 13.1, 15.8, 14.0], [22.3, 20.8, 23.5, 21.1]],
+  ];
+  await fileMenu("New data table…");
+  const dlg = page.locator(".new-table-dialog");
+  await dlg.locator('input[name="table-type"][value="grouped"]').check();
+  const shape = dlg.locator(".field-num input");
+  await shape.nth(0).fill("3");
+  await shape.nth(1).fill("4");
+  await shape.nth(2).fill("2");
+  await dlg.getByRole("button", { name: "Create table" }).click();
+  await page.waitForSelector(".data-table", { timeout: 10000 });
+  for (let r = 0; r < 2; r++) {
+    for (let d = 0; d < 3; d++) {
+      for (let s = 0; s < 4; s++) {
+        await page.locator(`.data-table input[aria-label='Dataset ${"ABC"[d]}, Y${s + 1}, row ${r + 1}']`)
+          .fill(String(TWO_WAY[r][d][s]));
+      }
+    }
+  }
+  await page.keyboard.press("Tab");
+  const ready = await liveResults(/Interaction/);
+  await openChecks();
+  const toggle = page.locator(".pane-answer").getByRole("button", { name: "Residuals: QQ plot and residuals vs. fitted" });
+  expect("P-11 two-way: the Checks row has a Residuals section", ready && await appears(toggle));
+  await toggle.click();
+  await appears(page.locator('.pane-answer .resid-plot[data-plot="qq"] .scatterlayer .point'));
+  // a full redraw settles after the last cell edit
+  await page.waitForFunction(() => document.querySelectorAll(
+    '.pane-answer .resid-plot[data-plot="qq"] .scatterlayer .point').length === 24, null, { timeout: 30000 })
+    .catch(() => {});
+  const nq = await points("qq"), nf = await points("resid-fitted");
+  expect("P-11 two-way: a QQ plot of 24 cell-mean residuals (and 24 against the fitted cell means)",
+    nq === 24 && nf === 24, `${nq} / ${nf}`);
+  const axis = await page.evaluate(() => document.querySelector(
+    '.pane-answer .resid-plot[data-plot="resid-fitted"]')?.layout?.xaxis?.title?.text ?? "");
+  expect("P-11 two-way: fitted values are the cell means", axis === "Fitted value (cell mean)", axis);
+  // statsmodels ols("y ~ C(A) * C(B)").resid, Shapiro-Wilk W = 0.97441
+  const sw = await page.locator(".pane-answer .resid-shapiro").first().innerText().catch(() => "");
+  expect("P-11 two-way: Shapiro-Wilk on the 24 pooled residuals, W = 0.9744 (statsmodels reference)",
+    /Shapiro-Wilk on the 24 pooled residuals: W = 0\.9744/.test(sw), sw);
+}
+
 // ------------------------------------------------------------------------
 await browser.close();
 if (errors.length) console.log(errors.slice(0, 10).join("\n"));
