@@ -558,25 +558,29 @@ await page.waitForSelector('.pane-results[data-live="true"] .results-table', { t
   await fileMenu("New data table…");
   await page.getByRole("button", { name: "Simulate data…" }).click();
   const sim = page.locator(".simulate-dialog");
-  await sim.getByLabel("Model", { exact: true }).selectOption({ label: "Decay" });
+  // the label wraps the select, so its name includes the options: find it by its caption
+  const simSelect = (caption) => sim.locator("label.field")
+    .filter({ has: page.locator("span", { hasText: new RegExp(`^${caption}$`) }) }).locator("select");
+  await simSelect("Model").selectOption({ label: "Decay" });
   await sim.getByLabel("A", { exact: true }).fill("100");
   await sim.getByLabel("k", { exact: true }).fill("0.3");
-  await sim.getByLabel("First X").fill("0");
-  await sim.getByLabel("Step").fill("0.5");
-  await sim.getByLabel("Last X").fill("5");
-  await sim.getByLabel("Replicates").fill("1");
-  await sim.getByLabel("Kind").selectOption("none");
+  await sim.getByLabel("First X", { exact: true }).fill("0");
+  await sim.getByLabel("Step", { exact: true }).fill("0.5");
+  await sim.getByLabel("Last X", { exact: true }).fill("5");
+  await sim.getByLabel("Replicates", { exact: true }).fill("1");
+  await simSelect("Kind").selectOption("none");
   await sim.getByLabel(/ideal values/).check();
-  await sim.getByLabel("Table name").fill("Simulated decay");
+  await sim.getByLabel("Table name", { exact: true }).fill("Simulated decay");
   await sim.getByLabel("Random seed").fill("7");
   await sim.getByRole("button", { name: "Create table" }).click();
   await page.waitForSelector(".origin-note", { timeout: 30000 });
   const cells = await page.evaluate(() => [...document.querySelectorAll(".data-table input")]
-    .filter((i) => /\(ideal\), Y1, row \d+$/.test(i.getAttribute("aria-label") ?? ""))
+    .filter((i) => /\(ideal\)(, Y1)?, row \d+$/.test(i.getAttribute("aria-label") ?? ""))
     .map((i) => Number(i.value)));
   const want = Array.from({ length: 11 }, (_, i) => 100 * Math.exp(-0.3 * i * 0.5));
   expect("P-51 acceptance: the ideal column equals A·exp(-k·X) at all 11 X values",
     cells.length === 11 && cells.every((v, i) => Math.abs(v - want[i]) <= 1e-9 * want[i]), cells.join(", "));
+  await page.locator(".origin-note").getByRole("button", { name: "Methods" }).click();
   const origin = await page.locator(".origin-note").first().innerText().catch(() => "");
   expect("P-51 the table's note names the equation",
     origin.includes("the user-defined equation “Decay” (Y = A*exp(-k*X))"), origin.slice(0, 200));

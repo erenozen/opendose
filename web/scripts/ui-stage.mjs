@@ -782,7 +782,8 @@ const scenes = [
     const nd = await newTableDialog(s);
     await nd.getByRole("button", { name: "Simulate data…" }).click();
     const sim = s.page.locator(".simulate-dialog");
-    await sim.getByLabel("Model", { exact: true }).selectOption({ label: "Decay" });
+    await sim.locator("label.field").filter({ has: s.page.locator("span", { hasText: /^Model$/ }) })
+      .locator("select").selectOption({ label: "Decay" });
     await sim.getByLabel("A", { exact: true }).fill("100");
     await sim.getByLabel("k", { exact: true }).fill("0.3");
     await settle(s, 500);
