@@ -36,12 +36,28 @@ def replicates_test(x, y, fit) -> dict | None:
     spec = MODELS[fit["model"]]
     yhat = spec.func(x, fit["fitted_values"])
 
+    # Groups of equal X as contiguous runs of a stable sort, so each group
+    # holds its Y values in entry order, exactly as y[x == xv] does, in
+    # O(n log n) rather than one pass over all of X per distinct value.
+    # (No X, or a missing X (NaN), keeps the original loop: np.unique makes
+    # all NaNs one value whose mask x == nan selects nothing.)
     ss_pe = 0.0
-    n_distinct = 0
-    for xv in np.unique(x):
-        grp = y[x == xv]
-        n_distinct += 1
-        if grp.size > 1:
+    if x.size == 0 or np.isnan(x).any():
+        n_distinct = 0
+        for xv in np.unique(x):
+            grp = y[x == xv]
+            n_distinct += 1
+            if grp.size > 1:
+                ss_pe += float(np.sum((grp - grp.mean()) ** 2))
+    else:
+        order = np.argsort(x, kind="stable")
+        xs, ys = x[order], y[order]
+        starts = np.flatnonzero(np.concatenate(([True], xs[1:] != xs[:-1])))
+        ends = np.append(starts[1:], xs.size)
+        n_distinct = int(starts.size)
+        many = ends - starts > 1
+        for a, b in zip(starts[many], ends[many]):
+            grp = ys[a:b]
             ss_pe += float(np.sum((grp - grp.mean()) ** 2))
     n = x.size
     k_params = n - fit["goodness"]["df"]

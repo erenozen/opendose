@@ -35,53 +35,78 @@ export const DELIMITER_LABELS: Record<DelimiterChar, string> = {
 /** Split delimited text into rows of fields. Fields may be quoted with
  *  double quotes (which may contain the delimiter, newlines and "" for a
  *  literal quote). With the space delimiter, runs of spaces count as one.
- *  A trailing empty line is dropped. */
+ *  A trailing empty line is dropped.
+ *
+ *  An unquoted field is one slice of the text, not built a character at
+ *  a time: 500,000 pasted rows parse in a fraction of the time and
+ *  memory, with the same fields. */
 export function splitDelimited(text: string, delim: DelimiterChar): string[][] {
   const src = text.replace(/^﻿/, "").replace(/\r\n?/g, "\n");
   const rows: string[][] = [];
   let row: string[] = [];
-  let field = "";
+  let field = "";     // what quoted parts gave (and the plain text before them)
+  let start = 0;      // the plain run src[start, i) follows `field`
   let quoted = false;
   let wasQuoted = false;
-  const endField = () => {
-    row.push(field);
+  const spaces = delim === " ";
+  const sep = delim.charCodeAt(0);
+  const QUOTE = 34, NL = 10, SPACE = 32, TAB = 9;
+  const endField = (i: number) => {
+    row.push(start < i ? field + src.slice(start, i) : field);
     field = "";
     wasQuoted = false;
   };
-  for (let i = 0; i < src.length; i++) {
-    const ch = src[i];
+  const n = src.length;
+  for (let i = 0; i < n; i++) {
+    const ch = src.charCodeAt(i);
     if (quoted) {
-      if (ch === '"') {
-        if (src[i + 1] === '"') { field += '"'; i++; } else quoted = false;
-      } else field += ch;
+      if (ch === QUOTE) {
+        if (src.charCodeAt(i + 1) === QUOTE) { field += '"'; i++; } else quoted = false;
+      } else field += src[i];
+      start = i + 1;
       continue;
     }
-    if (ch === '"' && field.trim() === "" && !wasQuoted) {
-      quoted = true; wasQuoted = true; field = ""; continue;
+    if (ch === QUOTE && !wasQuoted && (field + src.slice(start, i)).trim() === "") {
+      quoted = true; wasQuoted = true; field = ""; start = i + 1; continue;
     }
-    if (ch === "\n") { endField(); rows.push(row); row = []; continue; }
-    if (delim === " " ? ch === " " || ch === "\t" : ch === delim) {
-      if (delim === " " && field === "" && !wasQuoted) {
+    if (ch === NL) { endField(i); rows.push(row); row = []; start = i + 1; continue; }
+    if (spaces ? ch === SPACE || ch === TAB : ch === sep) {
+      if (spaces && field === "" && start === i && !wasQuoted) {
         // collapse runs of spaces (and ignore leading ones)
-        if (row.length === 0 || src[i - 1] === " " || src[i - 1] === "\t") continue;
+        const prev = src.charCodeAt(i - 1);
+        if (row.length === 0 || prev === SPACE || prev === TAB) { start = i + 1; continue; }
       }
-      endField();
-      continue;
+      endField(i);
+      start = i + 1;
     }
-    field += ch;
   }
-  if (field !== "" || wasQuoted || row.length) { endField(); rows.push(row); }
+  if (field !== "" || start < n || wasQuoted || row.length) { endField(n); rows.push(row); }
   if (delim === " ") {
     for (const r of rows) while (r.length > 1 && r[r.length - 1] === "") r.pop();
   }
   return rows;
 }
 
+/** The first `max` lines of the text that are not blank, carriage returns
+ *  removed: what splitting it into lines and filtering gives, read one
+ *  line at a time so a large paste is not split into all its lines. */
+export function firstLines(text: string, max: number): string[] {
+  const lines: string[] = [];
+  for (let at = 0; lines.length < max;) {
+    const nl = text.indexOf("\n", at);
+    const line = text.slice(at, nl < 0 ? text.length : nl).replace(/\r/g, "");
+    if (line.trim()) lines.push(line);
+    if (nl < 0) break;
+    at = nl + 1;
+  }
+  return lines;
+}
+
 /** Guess the delimiter from the first lines: the candidate that splits
  *  them into the same number (> 1) of fields most consistently. Ties go
  *  to tab, then semicolon, then comma, then space. */
 export function detectDelimiter(text: string): DelimiterChar {
-  const lines = text.replace(/\r/g, "").split("\n").filter((l) => l.trim()).slice(0, 25);
+  const lines = firstLines(text, 25);
   if (!lines.length) return "\t";
   const sample = lines.join("\n");
   let best: DelimiterChar = "\t";
@@ -191,11 +216,35 @@ export interface ImportPreview {
  *  except that text cells still get the decimal treatment). */
 export function prepareImport(source: string | string[][], s: SourceOptions,
   f: FilterOptions): ImportPreview {
+  return prepareFromMatrix(sourceMatrix(source, s), s, f);
+}
+
+/** The text after its first `n` lines: what splitting on line breaks,
+ *  dropping n lines and joining again gives, without those copies. */
+function afterLines(text: string, n: number): string {
+  let at = 0;
+  for (let i = 0; i < n; i++) {
+    const nl = text.indexOf("\n", at);
+    if (nl < 0) return "";
+    at = nl + 1;
+  }
+  return at ? text.slice(at) : text;
+}
+
+/** The Source step's parse: the rows of fields after the skipped lines,
+ *  trailing blank rows dropped, and the delimiter used (null for a
+ *  spreadsheet matrix). The costly part of prepareImport: the Import
+ *  dialog keeps it while the other settings change, so a large paste is
+ *  split once. `m` is shared: read it, never change it. */
+export interface SourceMatrix { delimiter: DelimiterChar | null; m: string[][] }
+
+export function sourceMatrix(source: string | string[][],
+  s: Pick<SourceOptions, "delimiter" | "skipLines">): SourceMatrix {
   let delimiter: DelimiterChar | null = null;
   let m: string[][];
   if (typeof source === "string") {
-    const body = source.replace(/^﻿/, "").replace(/\r\n?/g, "\n")
-      .split("\n").slice(Math.max(0, s.skipLines)).join("\n");
+    const body = afterLines(source.replace(/^﻿/, "").replace(/\r\n?/g, "\n"),
+      Math.max(0, s.skipLines));
     delimiter = s.delimiter === "auto" ? detectDelimiter(body) : DELIM_CHAR[s.delimiter];
     m = splitDelimited(body, delimiter);
   } else {
@@ -203,6 +252,16 @@ export function prepareImport(source: string | string[][], s: SourceOptions,
   }
   // drop trailing blank rows
   while (m.length && m[m.length - 1].every((c) => c.trim() === "")) m.pop();
+  return { delimiter, m };
+}
+
+/** prepareImport on a source sourceMatrix has parsed (with the same
+ *  delimiter and lines to skip). `limit` keeps only the first kept rows
+ *  (the titles check reads 201); everything else is as without it. */
+export function prepareFromMatrix(sm: SourceMatrix, s: SourceOptions, f: FilterOptions,
+  limit = Infinity): ImportPreview {
+  const { delimiter } = sm;
+  let m = sm.m;
   if (s.transpose) m = transpose(m);
   let titles: string[] | null = null;
   if (s.titlesRow && m.length) { titles = m[0].map((c) => c.trim()); m = m.slice(1); }
@@ -230,12 +289,16 @@ export function prepareImport(source: string | string[][], s: SourceOptions,
   const rows: string[][] = [];
   const raw: string[][] = [];
   const keptRows: string[][] = [];
-  for (let r = r0; r <= r1; r++) {
+  for (let r = r0; r <= r1 && rows.length < limit; r++) {
     if ((r - r0) % k !== 0) continue;
     const src = m[r - 1];
     keptRows.push(src);
-    rows.push(columns.map((c) => cellAt(src, c)));
-    raw.push(columns.map((c) => rawAt(src, c)));
+    const cells = columns.map((c) => cellAt(src, c));
+    const typed = columns.map((c) => rawAt(src, c));
+    // a row stored as typed (plain numbers) shares one array: half the
+    // arrays of a large paste
+    rows.push(cells);
+    raw.push(typed.every((v, i) => v === cells[i]) ? cells : typed);
   }
   if (f.unstack && f.unstack.dataCol >= 1 && f.unstack.groupCol >= 1) {
     // one column per group id: numeric ids in ascending order, text ids
@@ -525,7 +588,12 @@ export function applyImportWithCells(t: DataTableModel, p: ImportPreview, roles:
  *  cell is text, and no such column starts with a number. Columns of text
  *  (group labels) say nothing either way. */
 export function detectTitlesRow(source: string | string[][], s: SourceOptions): boolean {
-  const p = prepareImport(source, { ...s, titlesRow: false }, DEFAULT_FILTER);
+  return detectTitlesRowIn(sourceMatrix(source, s), s);
+}
+
+/** detectTitlesRow on a source sourceMatrix has parsed. */
+export function detectTitlesRowIn(sm: SourceMatrix, s: SourceOptions): boolean {
+  const p = prepareFromMatrix(sm, { ...s, titlesRow: false }, DEFAULT_FILTER, 201);
   if (p.rows.length < 2) return false;
   const body = p.rows.slice(1, 201);
   let textOverNumbers = 0;
@@ -602,10 +670,25 @@ export function dropUnfilledDatasets(before: DataTableModel, after: DataTableMod
   return { ...after, datasets: after.datasets.slice(0, keep) };
 }
 
+/** Pasted text longer than this is not put in the Import dialog's text
+ *  box: a text box of 200,000 lines takes about 1 GB of browser memory
+ *  (measured in Chromium), the parse itself a small part of that. */
+export const LARGE_PASTE_CHARS = 200_000;
+
+/** The number of lines of a pasted text too long for the Import dialog's
+ *  text box, or null when it fits. A final line break ends the last line;
+ *  it does not start another. */
+export function largePasteLines(text: string): number | null {
+  if (text.length <= LARGE_PASTE_CHARS) return null;
+  let lines = 1;
+  for (let i = text.indexOf("\n"); i >= 0; i = text.indexOf("\n", i + 1)) lines++;
+  return text.endsWith("\n") ? lines - 1 : lines;
+}
+
 /** Heuristic for the grid: a paste big or odd enough that the Import
  *  dialog (delimiter, decimal comma, skipping rows) is worth offering. */
 export function pasteNeedsImport(text: string): boolean {
-  const lines = text.replace(/\r/g, "").split("\n").filter((l) => l.trim());
+  const lines = firstLines(text, 60);
   if (lines.length < 2) return false;
   if (lines.length >= 60) return true;
   const hasTab = lines.some((l) => l.includes("\t"));

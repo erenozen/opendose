@@ -12,6 +12,7 @@ import math
 
 import numpy as np
 from scipy import stats
+from scipy.special import logsumexp
 
 
 def _pairs(x_values, y_values):
@@ -20,10 +21,66 @@ def _pairs(x_values, y_values):
     return (np.array([p[0] for p in pairs]), np.array([p[1] for p in pairs]))
 
 
+# Up to this many nonzero residuals the runs test sums the exact
+# distribution in big integers (the original computation, whose cost
+# grows about as n^2.8: 0.04 s at 2,000, 0.55 s at 5,000, 24.5 s at
+# 20,000 natively); above it the same distribution is summed in floating
+# point (_runs_p_float), agreeing to about 1e-12 relative.
+RUNS_EXACT_INT_MAX_N = 2000
+
+
+def _runs_p_float(n1: int, n2: int, runs: int) -> float:
+    """P(R <= runs) from the exact null distribution of the number of runs
+    R in a random arrangement of n1 positive and n2 negative signs
+    (Wald & Wolfowitz 1940; Bradley 1968, Distribution-Free Statistical
+    Tests, ch. 11):
+
+        P(R = 2k)   = 2 C(n1-1, k-1) C(n2-1, k-1) / C(N, n1)
+        P(R = 2k+1) = [C(n1-1, k) C(n2-1, k-1) + C(n1-1, k-1) C(n2-1, k)]
+                      / C(N, n1),
+
+    evaluated in logarithms: log C(n-1, k) as running sums of
+    log((n - k) / k) outward from k = n1 n2 / N, where the probability
+    sits (so the sums stay small there and keep their digits), and the
+    denominator as the log-sum of every term (the probabilities sum to
+    1), so no factorial of N is formed. O(N) work; agrees with exact
+    rational arithmetic to about 1e-12 relative (see
+    engine/tests/reference/large_tables.py)."""
+    centre = n1 * n2 // (n1 + n2)
+
+    def log_comb_row(n):  # log C(n - 1, k) - log C(n - 1, c), k = 0 .. n - 1
+        c = min(centre, n - 1)
+        k = np.arange(1, n, dtype=float)
+        step = np.log((n - k) / k)          # step[j - 1] = L[j] - L[j - 1]
+        out = np.zeros(n)
+        out[c + 1:] = np.cumsum(step[c:])
+        out[:c] = -np.cumsum(step[:c][::-1])[::-1]
+        return out
+
+    a, b = log_comb_row(n1), log_comb_row(n2)
+    m = min(n1, n2)
+    k = np.arange(1, m + 1)                     # even R = 2k
+    even = math.log(2.0) + a[k - 1] + b[k - 1]
+    kk = np.arange(1, m + (1 if n1 != n2 else 0))  # odd R = 2k + 1
+    a_k = a[np.minimum(kk, n1 - 1)]
+    b_k = b[np.minimum(kk, n2 - 1)]
+    odd = np.logaddexp(np.where(kk <= n1 - 1, a_k + b[kk - 1], -np.inf),
+                       np.where(kk <= n2 - 1, a[kk - 1] + b_k, -np.inf))
+    r_even, r_odd = 2 * k, 2 * kk + 1
+    log_all = np.concatenate((even, odd))
+    log_low = np.concatenate((even[r_even <= runs], odd[r_odd <= runs]))
+    if log_low.size == 0:
+        return 0.0
+    return min(float(np.exp(logsumexp(log_low) - logsumexp(log_all))), 1.0)
+
+
 def runs_test(signs) -> dict:
     """Exact runs test (Prism's test for departure from linearity):
     P = probability of observing this few runs or fewer given n1 positive
-    and n2 negative residuals (Bradley 1968)."""
+    and n2 negative residuals (Bradley 1968). Up to RUNS_EXACT_INT_MAX_N
+    nonzero residuals the distribution is summed in big integers
+    (p_method "exact"); above it, the same distribution in floating point
+    (p_method "exact_float", _runs_p_float)."""
     signs = [s for s in signs if s != 0]
     n1 = sum(1 for s in signs if s > 0)
     n2 = sum(1 for s in signs if s < 0)
@@ -31,6 +88,9 @@ def runs_test(signs) -> dict:
         if signs else 0
     if n1 == 0 or n2 == 0:
         return {"n_runs": runs, "n_positive": n1, "n_negative": n2, "p": None}
+    if n1 + n2 > RUNS_EXACT_INT_MAX_N:
+        return {"n_runs": runs, "n_positive": n1, "n_negative": n2,
+                "p": _runs_p_float(n1, n2, runs), "p_method": "exact_float"}
 
     from math import comb
     total = comb(n1 + n2, n1)
@@ -49,7 +109,7 @@ def runs_test(signs) -> dict:
 
     p = count_runs_leq(runs) / total
     return {"n_runs": runs, "n_positive": n1, "n_negative": n2,
-            "p": min(float(p), 1.0)}
+            "p": min(float(p), 1.0), "p_method": "exact"}
 
 
 def x_intercept_ci(a, b, var_a, var_b, cov_ab, tcrit):

@@ -125,8 +125,13 @@ export function composeLegend(spec: LegendSpec): string {
 
 // ------------------------------------------------------------ from a graph
 
-const countValues = (rows: string[][]) =>
-  rows.reduce((n, row) => n + row.filter((c) => parseCell(c) !== null).length, 0);
+// A loop, not a filter per row: the legend is recomputed on renders, and
+// with 500,000 rows the filtered copies came to gigabytes (P-10).
+const countValues = (rows: string[][]) => {
+  let n = 0;
+  for (const row of rows) for (const c of row) if (parseCell(c) !== null) n++;
+  return n;
+};
 
 /** Asterisks drawn on this graph: the P style to state, else null. */
 function starsOf(graph: Pick<GraphSheet, "settings">): PStyle | null {

@@ -2,6 +2,7 @@
 // preferences, the software label, and the commands that open the
 // checklist, history and reporting-details dialogs (answered by
 // <ReportHost>, mounted once in App).
+import { useMemo } from "react";
 import { useProject } from "../app/context";
 import { APP_VERSION } from "../export/cite";
 import { getRuntimeVersions } from "../lib/engine";
@@ -9,7 +10,10 @@ import { reportPrefsOf, type ReportPrefs } from "./prefs";
 
 export function useReportPrefs(): ReportPrefs {
   const { project } = useProject();
-  return reportPrefsOf(project.prefs);
+  // one object while the preferences stay the same, so the legends and
+  // sentences memoised on it are not rebuilt on every render (with
+  // 500,000 rows each rebuild walks the whole table; P-10)
+  return useMemo(() => reportPrefsOf(project.prefs), [project.prefs]);
 }
 
 /** "OpenDose 0.2.0 (SciPy 1.14.1, NumPy 2.0.2)" for legends. */

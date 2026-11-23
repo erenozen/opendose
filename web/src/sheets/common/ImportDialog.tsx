@@ -1,10 +1,10 @@
-import { lazy, Suspense, useId, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useId, useMemo, useRef, useState } from "react";
 import Modal from "../../components/Modal";
 import { Button, Field, FileButton, Input, NumberField, Tabs } from "../../components/ui";
 import { readXlsx, type XlsxSheet } from "../../lib/engine";
 import {
-  applyImport, applyImportWithCells, DEFAULT_FILTER, DEFAULT_SOURCE, defaultRoles, DELIMITER_LABELS, detectTitlesRow,
-  importWidth, prepareImport, type ColumnRole, type DecimalChoice,
+  applyImport, applyImportWithCells, DEFAULT_FILTER, DEFAULT_SOURCE, defaultRoles, DELIMITER_LABELS, detectTitlesRowIn,
+  importWidth, largePasteLines, prepareFromMatrix, sourceMatrix, type ColumnRole, type DecimalChoice,
   type DelimiterChoice, type FilterOptions, type PlacementOptions, type SourceOptions,
 } from "../../project/importText";
 import { flatColumns, hasAnyValue, tableShape } from "../../project/table";
@@ -79,6 +79,13 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
   const uid = useId();
   const [srcKind, setSrcKind] = useState<"file" | "paste">(initial?.text ? "paste" : "file");
   const [pasted, setPasted] = useState(initial?.text ?? "");
+  const largeLines = useMemo(() => largePasteLines(pasted), [pasted]);
+  // "Clear the text" asks to type: the text box it brings back takes focus
+  const textBox = useRef<HTMLTextAreaElement>(null);
+  const [typeNext, setTypeNext] = useState(false);
+  useEffect(() => {
+    if (typeNext && largeLines === null) { textBox.current?.focus(); setTypeNext(false); }
+  }, [typeNext, largeLines]);
   const [file, setFile] = useState<{ name: string; bytes: Uint8Array } | null>(null);
   const [encoding, setEncoding] = useState("auto");
   const [sheets, setSheets] = useState<XlsxSheet[] | null>(null);
@@ -121,10 +128,15 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
   // "First row holds column titles" follows the data until the user
   // ticks or unticks it: text above columns of numbers is a titles row.
   const [titlesTouched, setTitlesTouched] = useState(false);
-  const detectedTitles = useMemo(() => detectTitlesRow(source, src), [source, src]);
+  // The source is split into fields once per text, delimiter and lines to
+  // skip; the titles check and the preview both read that one parse.
+  const matrix = useMemo(
+    () => sourceMatrix(source, { delimiter: src.delimiter, skipLines: src.skipLines }),
+    [source, src.delimiter, src.skipLines]);
+  const detectedTitles = useMemo(() => detectTitlesRowIn(matrix, src), [matrix, src]);
   const effSrc = useMemo(() => (titlesTouched ? src : { ...src, titlesRow: detectedTitles }),
     [src, titlesTouched, detectedTitles]);
-  const preview = useMemo(() => prepareImport(source, effSrc, filter), [source, effSrc, filter]);
+  const preview = useMemo(() => prepareFromMatrix(matrix, effSrc, filter), [matrix, effSrc, filter]);
   const defaults = useMemo(() => defaultRoles(table, preview), [table, preview]);
   const roles: ColumnRole[] = preview.columns.map((c, i) => roleOverride[c] ?? defaults[i]);
   const empty = preview.rows.length === 0 || preview.columns.length === 0;
@@ -185,7 +197,9 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
     if (empty) { setError("Nothing to import: these settings leave no rows or columns. Check the Source and Filter tabs."); return; }
     const f = { skipBlankX: filter.skipBlankX, asteriskExcluded: filter.asteriskExcluded };
     const res = applyImportWithCells(table, preview, roles, place, f);
-    onImport((t) => applyImport(t, preview, roles, place, f),
+    // the table built for the report is the edit's result whenever the
+    // table has not changed since (a large import is built once, not twice)
+    onImport((t) => (t === table ? res.table : applyImport(t, preview, roles, place, f)),
       pasteReport(placedCells(res.table, res.written)));
   };
 
@@ -274,15 +288,32 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
             </div>
           ) : (
             <div className="field">
-              <label className="ui-field-label" htmlFor={`${uid}-text`}>Text to import</label>
-              <textarea id={`${uid}-text`} rows={6} value={pasted} spellCheck={false}
-                autoCorrect="off" autoCapitalize="off"
-                placeholder={"Dose;Response\n0,1;98,5\n1;50,2"}
-                onChange={(e) => { setPasted(e.target.value); setRoleOverride({}); }} />
-              <span className="field-note">
-                Paste here, or <button type="button" data-still className="linkish"
-                  onClick={() => { void readClipboard(); }}>read the clipboard</button>.
-              </span>
+              {largeLines !== null ? (
+                // A text box of this much text would take gigabytes of
+                // browser memory (LARGE_PASTE_CHARS): say what is there.
+                <>
+                  <span className="ui-field-label">Text to import</span>
+                  <p className="field-note" data-part="large-paste">
+                    {largeLines.toLocaleString("en")} lines of text, too long to show here: the
+                    preview below shows the first rows, and all of them are imported.{" "}
+                    <button type="button" data-still className="linkish"
+                      onClick={() => { setPasted(""); setRoleOverride({}); setTypeNext(true); }}>Clear the text</button>
+                    {" "}to paste or type other text.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <label className="ui-field-label" htmlFor={`${uid}-text`}>Text to import</label>
+                  <textarea ref={textBox} id={`${uid}-text`} rows={6} value={pasted} spellCheck={false}
+                    autoCorrect="off" autoCapitalize="off"
+                    placeholder={"Dose;Response\n0,1;98,5\n1;50,2"}
+                    onChange={(e) => { setPasted(e.target.value); setRoleOverride({}); }} />
+                  <span className="field-note">
+                    Paste here, or <button type="button" data-still className="linkish"
+                      onClick={() => { void readClipboard(); }}>read the clipboard</button>.
+                  </span>
+                </>
+              )}
               {initial?.fullValues && pasted === initial.text && (
                 <p className="field-note" role="status" data-part="rounded">
                   {initial.fullValues.rounded === 1 ? "1 cell was" : `${initial.fullValues.rounded} cells were`}

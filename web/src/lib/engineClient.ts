@@ -14,7 +14,9 @@
 //   the cache), so this is never slower than restarting at once, and a
 //   short cancelled job costs nothing. A spare is started once a job has
 //   run long enough that a cancel is plausible, at every cancel, and after
-//   every restart, so the next cancel is instant.
+//   every restart, so the next cancel is instant; not for a job on a very
+//   large table (SPARE_MAX_PAYLOAD), where memory matters more than the
+//   wait.
 //
 // No React and no DOM here, apart from the Worker constructor, which is
 // injected so the queue logic can be unit-tested with a fake worker.
@@ -99,6 +101,14 @@ export interface SubmitOptions {
 
 /** A job running longer than this makes a cancel plausible: warm a spare. */
 const SPARE_AFTER_MS = 1500;
+/** An analysis request longer than this (JSON characters; about 250,000
+ *  values) warms no spare, neither while it runs nor when it is
+ *  cancelled: a second runtime working beside one that holds a table this
+ *  large can take the page past the browser's memory (P-10). Cancelled,
+ *  such a job is left to finish on its worker, then the queue goes on. */
+export const SPARE_MAX_PAYLOAD = 4_000_000;
+const tooLargeForSpare = (job: Job) =>
+  job.request.type === "analyze" && job.request.payload.length > SPARE_MAX_PAYLOAD;
 /** A background job younger than this is left to finish. */
 const PREEMPT_AFTER_MS = 500;
 
@@ -210,7 +220,7 @@ export class EngineHost {
       this.restart();
     } else {
       this.orphan = job;
-      this.warmSpare();
+      if (!tooLargeForSpare(job)) this.warmSpare();
     }
     this.pump();
   }
@@ -370,7 +380,7 @@ export class EngineHost {
     if (this.spareTimer) clearTimeout(this.spareTimer);
     this.spareTimer = setTimeout(() => {
       this.spareTimer = null;
-      if (this.running === job) this.warmSpare();
+      if (this.running === job && !tooLargeForSpare(job)) this.warmSpare();
     }, SPARE_AFTER_MS);
     this.changed();
   }
