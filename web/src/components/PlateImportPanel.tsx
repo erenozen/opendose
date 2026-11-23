@@ -160,7 +160,14 @@ export default function PlateImportPanel({ onImport }: Props) {
       </button>
       {open && (
         <form id={formId} className="plate-form" noValidate
-          onSubmit={(e) => { e.preventDefault(); if (!busy) void runImport(); }}>
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (busy) return;
+            void runImport();
+            // A field the submit left invalid takes focus, so its error is heard.
+            const form = e.currentTarget;
+            requestAnimationFrame(() => form.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus());
+          }}>
           <div className="plate-file">
             <FileButton accept=".xlsx" inputLabel="Plate file (.xlsx)" onFile={setFile}>
               Choose a plate file…</FileButton>

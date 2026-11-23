@@ -45,7 +45,7 @@ function ConstraintRow({ label, state, onChange }: {
       <span>{label} = constant</span>
       <input
         className="constraint-value"
-        inputMode="decimal"
+        inputMode="text"
         aria-label={`${label} constant value`}
         disabled={!state.enabled}
         value={state.value}
@@ -163,7 +163,7 @@ export default function ControlsPanel({
           {constants.map((c) => (
             <label key={c} className="check-row">
               <span>{CONSTANT_LABELS[c] ?? c}</span>
-              <input className="constraint-value" inputMode="decimal"
+              <input className="constraint-value" inputMode="text"
                 value={options.modelConstants[c] ?? ""}
                 placeholder="required"
                 aria-label={CONSTANT_LABELS[c] ?? c}
@@ -189,7 +189,7 @@ export default function ControlsPanel({
             return (
               <label key={`${p}-${i}`} className="check-row">
                 <span>{p} for {name || `data set ${i + 1}`}</span>
-                <input className="constraint-value" inputMode="decimal" value={typed}
+                <input className="constraint-value" inputMode="text" value={typed}
                   aria-label={`${p} for ${name || `data set ${i + 1}`}`}
                   placeholder={fromTitle !== null ? String(fromTitle) : "required"}
                   onChange={(e) => {
@@ -333,7 +333,7 @@ export default function ControlsPanel({
           <input type="checkbox" checked={options.routEnabled}
             onChange={(e) => set({ routEnabled: e.target.checked })} />
           <span>Detect and eliminate outliers (ROUT), Q =</span>
-          <input className="constraint-value" inputMode="decimal"
+          <input className="constraint-value" inputMode="decimal" aria-label="ROUT Q (%)"
             disabled={!options.routEnabled}
             value={options.routQ}
             onChange={(e) => set({ routQ: e.target.value })} />
@@ -409,7 +409,7 @@ export default function ControlsPanel({
                 <option value="value">this value:</option>
               </select>
               {norm.zeroMode === "value" && (
-                <input className="constraint-value" inputMode="decimal"
+                <input className="constraint-value" inputMode="text" aria-label="Value for 0%"
                   value={norm.zeroValue}
                   onChange={(e) => setNorm({ zeroValue: e.target.value })} />
               )}
@@ -424,7 +424,7 @@ export default function ControlsPanel({
                 <option value="value">this value:</option>
               </select>
               {norm.hundredMode === "value" && (
-                <input className="constraint-value" inputMode="decimal"
+                <input className="constraint-value" inputMode="text" aria-label="Value for 100%"
                   value={norm.hundredValue}
                   onChange={(e) => setNorm({ hundredValue: e.target.value })} />
               )}
