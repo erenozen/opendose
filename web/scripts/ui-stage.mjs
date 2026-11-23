@@ -888,6 +888,16 @@ const scenes = [
     await into(s, ".pane-answer details.checks", "center");
     await settle(s, 800);
   } },
+  // a new Normalize output's graph: Y title and legend "% of vehicle (mean)" (P-55)
+  { name: "graphs-normalize-title", setup: async (s) => {
+    await fixture(s, "normalize-title.json");
+    await s.page.waitForFunction(() => {
+      const t = document.querySelector(".plot-card .plot")?.layout?.yaxis?.title;
+      return (typeof t === "string" ? t : t?.text) === "% of vehicle (mean)";
+    }, null, { timeout: 120000 });
+    await into(s, ".plot-card", "start");
+    await settle(s, 1200);
+  } },
   // rows F and M: the Checks row asks whether they are sex (P-62)
   { name: "results-sex-question", setup: async (s) => {
     await fixture(s, "sex-factor.json", { live: true });

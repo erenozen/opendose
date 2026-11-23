@@ -1,0 +1,182 @@
+{
+ "opendose_project": 2,
+ "version": 2,
+ "title": "Normalize titles",
+ "prefs": {
+  "defaultTableType": "xy",
+  "errorBars": "sd",
+  "ciMethod": "asymptotic",
+  "scheme": "default",
+  "digits": 4
+ },
+ "selected": "g116",
+ "sheets": [
+  {
+   "id": "d113",
+   "kind": "data",
+   "name": "Viability",
+   "table": {
+    "type": "grouped",
+    "x": [
+     "",
+     "",
+     ""
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "Luminescence (RLU)",
+    "rowTitles": [
+     "10 nM",
+     "1 µM",
+     "vehicle"
+    ],
+    "datasets": [
+     {
+      "name": "WT",
+      "rows": [
+       [
+        "20",
+        "22",
+        "21"
+       ],
+       [
+        "55",
+        "60",
+        "58"
+       ],
+       [
+        "98",
+        "101",
+        "100"
+       ]
+      ]
+     },
+     {
+      "name": "KO",
+      "rows": [
+       [
+        "30",
+        "33",
+        "31"
+       ],
+       [
+        "70",
+        "66",
+        "68"
+       ],
+       [
+        "99",
+        "97",
+        "103"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "r114",
+   "kind": "results",
+   "parentId": "d113",
+   "analysis": "normalize",
+   "options": {
+    "zeroMode": "smallest",
+    "zeroValue": "0",
+    "hundredMode": "last",
+    "hundredValue": "100",
+    "asPercent": true,
+    "subcolumns": "mean",
+    "namedTitle": true
+   },
+   "name": "Normalize of Viability"
+  },
+  {
+   "id": "d115",
+   "kind": "data",
+   "name": "Normalized Viability",
+   "table": {
+    "type": "grouped",
+    "x": [
+     "",
+     "",
+     ""
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "",
+    "rowTitles": [
+     "10 nM",
+     "1 µM",
+     "vehicle"
+    ],
+    "datasets": [
+     {
+      "name": "WT",
+      "rows": [
+       [
+        "",
+        "",
+        ""
+       ],
+       [
+        "",
+        "",
+        ""
+       ],
+       [
+        "",
+        "",
+        ""
+       ]
+      ]
+     },
+     {
+      "name": "KO",
+      "rows": [
+       [
+        "",
+        "",
+        ""
+       ],
+       [
+        "",
+        "",
+        ""
+       ],
+       [
+        "",
+        "",
+        ""
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   },
+   "derived": {
+    "sourceId": "d113",
+    "resultsId": "r114"
+   }
+  },
+  {
+   "id": "g116",
+   "kind": "graph",
+   "parentId": "d115",
+   "resultsId": null,
+   "graphType": "grouped_interleaved",
+   "settings": {
+    "titles": {
+     "x": "",
+     "y": ""
+    },
+    "scheme": "default"
+   },
+   "name": "Graph of Normalized Viability"
+  }
+ ]
+}

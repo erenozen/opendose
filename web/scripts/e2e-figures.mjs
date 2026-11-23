@@ -1093,6 +1093,73 @@ const fitLegendText = () => page.locator(".plot-card .figure-legend-text").textC
   await page.getByRole("menuitemradio", { name: "Light" }).click();
 }
 
+// --- P-55: Normalize names a new output from its settings ("% of vehicle
+// (mean)") on the table, the graph's Y title and the legend; an output
+// saved before keeps "Normalized response (%)" (ruling 10: new outputs only).
+{
+  const NORM = join(tmp, "normalize.json");
+  const tbl = () => ({ type: "grouped", x: ["", "", ""], xTitle: "", xFormat: "numbers", xUnit: "",
+    yTitle: "Luminescence (RLU)", rowTitles: ["10 nM", "1 µM", "vehicle"],
+    datasets: [
+      { name: "WT", rows: [["20", "22", "21"], ["55", "60", "58"], ["98", "101", "100"]] },
+      { name: "KO", rows: [["30", "33", "31"], ["70", "66", "68"], ["99", "97", "103"]] }],
+    subcolumnFormat: "replicates", replicateLayout: "side_by_side" });
+  const oldOptions = { zeroMode: "smallest", zeroValue: "0", hundredMode: "last", hundredValue: "100",
+    asPercent: true, subcolumns: "mean" };
+  writeFileSync(NORM, JSON.stringify({ version: 2, title: "Normalize titles",
+    prefs: { defaultTableType: "grouped", errorBars: "sd", ciMethod: "asymptotic", scheme: "default", digits: 4 },
+    sheets: [
+      { id: "od", kind: "data", name: "Old assay", table: tbl() },
+      { id: "or", kind: "results", parentId: "od", name: "Normalize of Old assay", analysis: "normalize",
+        options: oldOptions },
+      { id: "on", kind: "data", name: "Normalized Old assay", table: { ...tbl(), yTitle: "Normalized response (%)" },
+        derived: { sourceId: "od", resultsId: "or" } },
+      { id: "og", kind: "graph", parentId: "on", resultsId: null, graphType: "grouped_interleaved",
+        name: "Graph of Normalized Old assay", settings: { titles: { x: "", y: "" }, scheme: "default" } },
+      { id: "nd", kind: "data", name: "New assay", table: tbl() },
+    ] }));
+  await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]', NORM);
+  const yTitle = () => page.evaluate(() => {
+    const t = document.querySelector(".plot-card .plot")?.layout?.yaxis?.title;
+    return typeof t === "string" ? t : t?.text ?? null;
+  });
+  // the legend under the graph, or the results sheet's Report card
+  const legend = () => page.evaluate(() => [...document.querySelectorAll(".figure-legend-text, .report-legend p")]
+    .map((e) => e.textContent ?? "").join(" | "));
+  await page.getByRole("treeitem", { name: "Graph of Normalized Old assay", exact: true }).first()
+    .locator(":scope > .nav-row").click();
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? []).length > 0, null,
+    { timeout: 60000 });
+  // the chain re-runs on open: give it time to rewrite the old output
+  await page.waitForTimeout(2500);
+  const oldTitle = await yTitle();
+  const oldLegend = await legend();
+  expect("an output saved before P-55 keeps its Y title “Normalized response (%)”, legend unchanged",
+    oldTitle === "Normalized response (%)" && !/Values are/.test(oldLegend), `${oldTitle}; ${oldLegend.slice(0, 120)}`);
+  // a new Normalize: 0% = smallest mean (the default), 100% = the vehicle row's mean
+  await page.getByRole("treeitem", { name: "New assay", exact: true }).first().locator(":scope > .nav-row").click();
+  await page.getByRole("button", { name: "Analyze", exact: true }).click();
+  await page.getByRole("menuitem", { name: /^Normalize/ }).click();
+  await page.locator(".manip-controls").getByLabel("100% is").selectOption("last");
+  await page.locator(".manip-open").first().click();
+  await page.waitForFunction(() => document.querySelector(".origin-note") !== null, null, { timeout: 15000 });
+  await page.getByRole("button", { name: "Analyze", exact: true }).click();
+  await page.getByRole("menuitem", { name: /^Two-way ANOVA \(or mixed model\)/ }).click();
+  await page.waitForFunction(() => {
+    const t = document.querySelector(".plot-card .plot")?.layout?.yaxis?.title;
+    return (typeof t === "string" ? t : t?.text) === "% of vehicle (mean)";
+  }, null, { timeout: 60000 }).catch(() => {});
+  const newTitle = await yTitle();
+  await page.waitForFunction(() => [...document.querySelectorAll(".figure-legend-text, .report-legend p")]
+    .some((e) => /Values are % of vehicle \(mean\)\./.test(e.textContent ?? "")), null, { timeout: 30000 })
+    .catch(() => {});
+  const newLegend = await legend();
+  expect("a new Normalize output with 100% = the vehicle mean: the graph's Y title reads “% of vehicle (mean)”",
+    newTitle === "% of vehicle (mean)", String(newTitle));
+  expect("the figure legend states the same phrase", /Values are % of vehicle \(mean\)\./.test(newLegend),
+    newLegend.slice(0, 200));
+}
+
 console.log(errors.length ? errors.join("\n") : "no page errors");
 await browser.close();
 if (fail.length || errors.length) {

@@ -32,6 +32,7 @@
 //                      and a saved reproduction record (P-58)
 //   study-design.json  a study design record on the info sheet of a t test (P-61)
 //   sex-factor.json    rows F and M of a grouped table under multiple t tests (P-62)
+//   normalize-title.json a new Normalize output and its graph, titled "% of vehicle (mean)" (P-55)
 //   many-sheets.json   74 sheets: 22 families, navigator groups (one
 //                      collapsed), highlights, info sheets and layouts
 import { readFileSync, writeFileSync } from "node:fs";
@@ -505,4 +506,23 @@ const longData = (name, names, rows, categorical) => data(name, {
     ] }));
   const r = results(t, "grouped_multiple_t", {}, "Multiple t tests of Body weight by sex");
   write("sex-factor.json", project("Sex as a variable", [t, r], { selected: r.id }));
+}
+
+// normalize-title.json: a Normalize made since P-55 (100% = the vehicle
+// row's mean), its output table filled by the chain on open, and a graph
+// of the output: the Y title and the legend read "% of vehicle (mean)".
+{
+  const rows = ["10 nM", "1 µM", "vehicle"];
+  const src = table("grouped", { yTitle: "Luminescence (RLU)", rowTitles: rows, datasets: [
+    { name: "WT", rows: [["20", "22", "21"], ["55", "60", "58"], ["98", "101", "100"]] },
+    { name: "KO", rows: [["30", "33", "31"], ["70", "66", "68"], ["99", "97", "103"]] },
+  ] });
+  const t = data("Viability", src);
+  const r = results(t, "normalize", { zeroMode: "smallest", zeroValue: "0", hundredMode: "last",
+    hundredValue: "100", asPercent: true, subcolumns: "mean", namedTitle: true }, "Normalize of Viability");
+  const out = data("Normalized Viability", { ...src, yTitle: "",
+    datasets: src.datasets.map((d) => ({ ...d, rows: d.rows.map((row) => row.map(() => "")) })) },
+  { derived: { sourceId: t.id, resultsId: r.id } });
+  const g = graph(out, null, "grouped_interleaved", "Graph of Normalized Viability");
+  write("normalize-title.json", project("Normalize titles", [t, r, out, g], { selected: g.id }));
 }

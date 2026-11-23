@@ -5,8 +5,10 @@
 // otherwise. The "what is plotted" clause is the figure package's legend
 // sentence (graph/legend.ts), so the two never disagree.
 import { useMemo } from "react";
+import { useProject } from "../app/context";
 import { CopyButton } from "../components/CiteBlock";
 import type { DataSheet, DataTableModel, GraphSheet } from "../project/types";
+import { normalizedPhrase } from "../sheets/manipulate/normalizeTitle";
 import { legendFor } from "./legendFor";
 import { softwareLabel, useReportPrefs } from "./useReport";
 import "./report.css";
@@ -15,10 +17,12 @@ export default function GraphLegend({ graph, data, table, result, options }: {
   graph: GraphSheet; data: DataSheet; table: DataTableModel; result: unknown; options: unknown;
 }) {
   const prefs = useReportPrefs();
+  const { project } = useProject();
+  const valuesAre = normalizedPhrase(project, data);
   const text = useMemo(() => legendFor({
     data, table, graph, result: graph.resultsId ? result : null, options, prefs,
-    software: softwareLabel(),
-  }), [data, table, graph, result, options, prefs]);
+    software: softwareLabel(), valuesAre,
+  }), [data, table, graph, result, options, prefs, valuesAre]);
   const open = captionBelow(graph);
   if (!text) return null;
   return (

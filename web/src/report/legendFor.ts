@@ -114,6 +114,9 @@ export interface LegendContext {
   options: unknown;
   prefs: ReportPrefs;
   software: string;
+  /** What the values are, for a named Normalize output ("% of vehicle
+   *  (mean)", sheets/manipulate/normalizeTitle.ts normalizedPhrase). */
+  valuesAre?: string | null;
 }
 
 /** The figure legend of a graph (or of the results alone, without one). */
@@ -154,6 +157,7 @@ export function legendFor(c: LegendContext): string {
     graphType: c.graph?.graphType ?? null,
     plotted: xyFit ?? withCompareClause(c.graph ? (own ? ownPlotted(c.graph, c.result, c.options)
       : plottedClause(c.graph, c.table, c.result, c.options)) : undefined, c.result),
+    valuesAre: c.valuesAre ?? undefined,
     result: c.result,
     groups: xyGroups,
     unit: { unit, experiments: onePer ? null : meta.experiments ?? null,

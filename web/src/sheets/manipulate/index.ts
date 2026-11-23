@@ -57,6 +57,9 @@ const derivedTable = (r: ManipResult | null, source: DataTableModel) =>
 function manipulation<O>(def: {
   id: string; label: string; short: string; description: string;
   verb: string; output: (t: string) => string; defaults: O;
+  /** Options of a new sheet, when they differ from what an older saved
+   *  sheet without them means (`defaults`). */
+  fresh?: Partial<O>;
   run: AnalysisDef<O, ManipResult>["run"];
   Controls: AnalysisDef<O, ManipResult>["ControlsPanel"];
   methods: (o: O, t: DataTableModel) => string;
@@ -68,7 +71,7 @@ function manipulation<O>(def: {
     short: def.short,
     description: def.description,
     sheetName: (t) => `${def.verb} of ${t}`,
-    defaultOptions: () => ({ ...def.defaults }),
+    defaultOptions: () => ({ ...def.defaults, ...def.fresh }),
     normalizeOptions: merge(def.defaults),
     run: def.run,
     defaultGraph: null,
@@ -116,7 +119,8 @@ export const normalizeAnalysis = manipulation({
   short: "Normalize",
   description: "Rescale each data set so a chosen 0% and 100% become 0 and 100.",
   verb: "Normalize", output: (t) => `Normalized ${t}`,
-  defaults: DEFAULT_NORMALIZE, run: runNormalize, Controls: NormalizeControls,
+  // new outputs are titled from the settings (P-55; normalizeTitle.ts)
+  defaults: DEFAULT_NORMALIZE, fresh: { namedTitle: true }, run: runNormalize, Controls: NormalizeControls,
   methods: (o) => normalizeMethods(o),
 });
 

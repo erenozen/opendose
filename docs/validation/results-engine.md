@@ -1398,3 +1398,28 @@ study design record decides (both sexes: not met; one sex: met, with
 "say why in the methods"); otherwise not applicable. Sources cited in the
 UI: SAGER (Heidari et al. 2016, Res Integr Peer Rev 1:2) and NIH SABV
 (Clayton & Collins 2014, Nature 509:282). No numbers are computed.
+
+### P-55 normalised outputs named from their settings
+
+A Normalize sheet made since P-55 (`namedTitle` in its options, set only
+on new sheets) titles its output table's Y from the settings
+(`web/src/sheets/manipulate/normalizeTitle.ts`, unit-tested in
+`__tests__/normalizeTitle.test.ts`): 100% = the last row gives "% of" the
+row's title ("% of vehicle (mean)"; an XY table without row titles gives
+"% of value at X = 10"; when the data sets' last rows differ, "% of last
+row"); 100% = the largest value gives "% of largest mean" or "% of
+largest value"; the sum gives "% of total"; "(mean)" is added when 0%
+and 100% come from row means of replicates; fractions read "Fraction
+of ...". A 100% typed as a value keeps "Normalized response (%)", since
+a number alone names nothing. The figure legend of a graph of a named
+output adds "Values are % of vehicle (mean).", on screen, in PowerPoint
+and in the export bundle. The normalised numbers are unchanged (the
+engine is not called differently).
+
+Ruling 10: sheets saved before P-55 have no `namedTitle`, so their
+output keeps "Normalized response (%)" and their legend is unchanged;
+pinned in e2e-figures, which opens such a project and checks the graph's
+Y title, then makes a new Normalize (0% = the smallest mean, 100% = the
+vehicle row's mean) and checks "% of vehicle (mean)" on the graph and in
+the legend. A graph title the user typed lives in the graph's own
+settings and is never rewritten.
