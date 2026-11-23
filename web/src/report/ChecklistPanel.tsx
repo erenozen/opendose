@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 import { useProject } from "../app/context";
 import Modal from "../components/Modal";
+import { newId } from "../project/ids";
+import { startDesign } from "../project/studyDesign";
 import type { DataSheet } from "../project/types";
 import { checklistSummary, evaluateChecklists, type ChecklistItem, type FixTarget } from "./checklists";
 import { familyFacts } from "./facts";
@@ -31,6 +33,17 @@ export default function ChecklistPanel({ dataId, onClose }: { dataId?: string; o
     if (f.kind === "details") { onClose(); openReportingDetails(data.id); return; }
     if (f.kind === "analyze") { onClose(); api.select(data.id); return; }
     if (f.kind === "bundle") { onClose(); exportBundle(); return; }
+    if (f.kind === "design" && !f.sheetId) {
+      let goTo = "";
+      api.apply((p) => {
+        const r = startDesign(p, data.id, newId);
+        goTo = r.sheetId;
+        return r.project;
+      });
+      onClose();
+      if (goTo) api.select(goTo);
+      return;
+    }
     if (f.sheetId) { onClose(); api.select(f.sheetId); }
   };
 

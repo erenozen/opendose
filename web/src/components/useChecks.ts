@@ -8,6 +8,7 @@ import { planCheckState } from "./planState";
 import { legendGraph } from "../report/legendFor";
 import { barAxisChip } from "../sheets/column/barAxis";
 import { equivalenceChip } from "../report/equivalence";
+import { findSexFactor, sexChip } from "../guide/sex";
 
 export interface Counts { ok: number; warn: number; info: number; questions: number }
 
@@ -25,9 +26,12 @@ export function useChecks({ sheet, data, result, options, readOnly }: {
     const chip = graph && result ? barAxisChip(graph) : null;
     // the equivalence margin, and when it was chosen (report/equivalence.ts)
     const margin = equivalenceChip(result);
-    const extra = [chip, margin].filter((c) => c !== null);
+    // rows, data sets or a column that look like sex: asked, not assumed (guide/sex.ts)
+    const sf = result ? findSexFactor(data.table) : null;
+    const sex = sf ? sexChip(sf, data.table, sheet.analysis, options) : null;
+    const extra = [chip, margin, sex].filter((c) => c !== null);
     return extra.length ? { ...base, chips: [...base.chips, ...extra] } : base;
-  }, [base, graph, result]);
+  }, [base, graph, result, data.table, sheet.analysis, options]);
   const plan = useMemo(() => planCheckState(project, sheet, data), [project, sheet, data]);
   // The callout: the first warning note (resultBanners lists them by
   // severity within each kind of result).

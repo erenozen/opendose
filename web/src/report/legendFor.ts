@@ -117,6 +117,9 @@ export interface LegendContext {
   options: unknown;
   prefs: ReportPrefs;
   software: string;
+  /** What the values are, for a named Normalize output ("% of vehicle
+   *  (mean)", sheets/manipulate/normalizeTitle.ts normalizedPhrase). */
+  valuesAre?: string | null;
   /** The family's t test with an equivalence margin (estimation graphs:
    *  report/estimation/margins.ts), if any. */
   equivalence?: EquivalenceLink | null;
@@ -169,6 +172,7 @@ export function legendFor(c: LegendContext): string {
     graphType: c.graph?.graphType ?? null,
     plotted: xyFit ?? ctPlotted ?? estPlotted ?? withCompareClause(c.graph ? (own ? ownPlotted(c.graph, c.result, c.options)
       : plottedClause(c.graph, c.table, c.result, c.options)) : undefined, c.result),
+    valuesAre: c.valuesAre ?? undefined,
     result: c.result,
     groups: xyGroups,
     unit: { unit, experiments: onePer ? null : meta.experiments ?? null,

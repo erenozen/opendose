@@ -167,6 +167,9 @@ export interface LegendInput {
   hideNs?: boolean;
   /** "OpenDose 0.2.0 (SciPy 1.14.1, NumPy 2.0.2)". */
   software: string;
+  /** What the plotted values are: a named Normalize output's Y title
+   *  ("% of vehicle (mean)"), stated after what is plotted. */
+  valuesAre?: string;
 }
 
 /** The figure-legend paragraph. */
@@ -178,6 +181,7 @@ export function legendParagraph(i: LegendInput): string {
     estimation: (i.result as R | null)?.analysis === "estimation" ? i.result as R : null,
   });
   if (what) parts.push(what);
+  if (i.valuesAre?.trim()) parts.push(`Values are ${i.valuesAre.trim()}.`);
   const wh = withheldInfo(i.result);
   const groups = wh?.all.length ? wh.all.map((g) => ({ name: g.name, n: g.n }))
     : info.groups.length ? info.groups : i.groups ?? [];

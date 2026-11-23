@@ -239,6 +239,14 @@ const scenes = [
     await pasteOnPage(s);
     await into(s, ".paste-banner", "center");
   } },
+  // a pasted block with a Sex column: the banner asks about it (P-62)
+  { name: "first-paste-sex", setup: async (s) => {
+    await start(s);
+    await pasteOnPage(s, "Sex\tWeight (g)\tDose (mg/kg)\nF\t20.1\t0\nM\t26.4\t0\nF\t21.9\t10\nM\t27.0\t10\n"
+      + "F\t19.7\t30\nM\t25.8\t30\n");
+    await s.page.locator(".paste-sex-note").waitFor({ timeout: 10000 });
+    await into(s, ".paste-banner", "center");
+  } },
   { name: "first-paste-result", setup: async (s) => {
     await start(s);
     await pasteOnPage(s);
@@ -877,6 +885,23 @@ const scenes = [
     await d.getByRole("tab", { name: /eLife/ }).click();
     await d.locator(".checklist li").filter({ hasText: "Source data available" }).scrollIntoViewIfNeeded();
   } },
+  // the study design record on an info sheet (P-61): blinding of data
+  // analysis not stated, a long criteria text
+  { name: "info-study-design", setup: async (s) => {
+    await fixture(s, "study-design.json");
+    await s.page.locator(".design-sheet").waitFor({ timeout: 30000 });
+    await into(s, ".design-sheet", "start");
+  } },
+  // ARRIVE items 4 and 8 met from the record, item 5 not (one stage open)
+  { name: "results-checklist-arrive", setup: async (s) => {
+    await fixture(s, "study-design.json");
+    await selectSheet(s, "t test of Tumour volume");
+    await waitLive(s);
+    await click(s, button(s, "Journal checklists"));
+    const d = dialog(s, "Journal checklists");
+    await d.getByRole("tab", { name: /ARRIVE/ }).click();
+    await d.locator(".checklist li").filter({ hasText: "4. Randomisation" }).scrollIntoViewIfNeeded();
+  } },
   // an Info constant used as "@Expected_weight" in the one-sample value
   { name: "results-info-constant", setup: async (s) => {
     await fixture(s, "row-ids.json");
@@ -967,6 +992,26 @@ const scenes = [
     await click(s, checks.locator("summary"));
     await click(s, s.page.getByRole("button", { name: /Bars without zero/ }));
     await s.page.getByRole("region", { name: "Bars without zero" }).waitFor();
+    await into(s, ".pane-answer details.checks", "center");
+    await settle(s, 800);
+  } },
+  // a new Normalize output's graph: Y title and legend "% of vehicle (mean)" (P-55)
+  { name: "graphs-normalize-title", setup: async (s) => {
+    await fixture(s, "normalize-title.json");
+    await s.page.waitForFunction(() => {
+      const t = document.querySelector(".plot-card .plot")?.layout?.yaxis?.title;
+      return (typeof t === "string" ? t : t?.text) === "% of vehicle (mean)";
+    }, null, { timeout: 120000 });
+    await into(s, ".plot-card", "start");
+    await settle(s, 1200);
+  } },
+  // rows F and M: the Checks row asks whether they are sex (P-62)
+  { name: "results-sex-question", setup: async (s) => {
+    await fixture(s, "sex-factor.json", { live: true });
+    const checks = s.page.locator(".pane-answer details.checks").first();
+    await click(s, checks.locator("summary"));
+    await click(s, s.page.getByRole("button", { name: /Are rows F and M sex\?/ }));
+    await s.page.getByRole("region", { name: /Are rows F and M sex\?/ }).waitFor();
     await into(s, ".pane-answer details.checks", "center");
     await settle(s, 800);
   } },

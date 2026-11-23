@@ -24,6 +24,7 @@ import { resultsMatrix } from "../sheets/common/download";
 import { analysisDef } from "../sheets/registry";
 import { bundleFiles, stem, zipBundle, type BundleInput } from "./bundle";
 import { legendFor } from "../report/legendFor";
+import { normalizedPhrase } from "../sheets/manipulate/normalizeTitle";
 import { familyEquivalence } from "../report/estimation/margins";
 import { reportPrefsOf } from "../report/prefs";
 import { projectProvenance } from "../report/provenance";
@@ -145,6 +146,7 @@ export function useBundleExport() {
             data, table: data.table, graph: sheet as GraphSheet, result,
             options: bound?.kind === "results" ? bound.options : null,
             prefs: reportPrefsOf(api.project.prefs), software: softwareLabel(),
+            valuesAre: normalizedPhrase(api.project, data),
             equivalence: familyEquivalence(api.project.sheets, sheet as GraphSheet,
               (s) => api.results.get(s.id)?.result),
           }) });

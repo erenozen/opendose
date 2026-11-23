@@ -5,6 +5,7 @@ import { useProject } from "../app/context";
 import { CopyButton } from "../components/CiteBlock";
 import { exclusionSentence } from "../project/exclusions";
 import { currentChoice } from "../guide/choice";
+import { designMethodsSentence, designSheetFor } from "../project/studyDesign";
 import type { DataSheet, ResultsSheet } from "../project/types";
 import { powerJustification } from "./facts";
 import { usePlanSentence } from "../components/usePlanSentence";
@@ -18,6 +19,7 @@ export default function StatsMethodsCard({ sheet, result }: { sheet: ResultsShee
   const prefs = useReportPrefs();
   const data = project.sheets.find((s) => s.id === sheet.parentId) as DataSheet | undefined;
   const plan = usePlanSentence(sheet.parentId);
+  const designSheet = designSheetFor(project, sheet.parentId);
   if (!result || (typeof result === "object" && (result as { error?: unknown }).error)) return null;
   // Unit of n and experiments: typed in Reporting details, else from the
   // table's replicate map (replicates.ts).
@@ -25,6 +27,7 @@ export default function StatsMethodsCard({ sheet, result }: { sheet: ResultsShee
   const text = statsMethodsParagraph(result, prefs, meta,
     { powerJustification: powerJustification(project, results),
       exclusions: data ? exclusionSentence(data.table) : null, plan,
+      design: designSheet ? designMethodsSentence(designSheet.design) : null,
       chosen: currentChoice(sheet) });
   if (!text) return null;
   return (

@@ -35,6 +35,9 @@
 //   schild.json        the EC50-shift example with its Schild plot (P-49)
 //   why-history.json   a t test with Help me choose's saved reason (P-32)
 //                      and a saved reproduction record (P-58)
+//   study-design.json  a study design record on the info sheet of a t test (P-61)
+//   sex-factor.json    rows F and M of a grouped table under multiple t tests (P-62)
+//   normalize-title.json a new Normalize output and its graph, titled "% of vehicle (mean)" (P-55)
 //   many-sheets.json   74 sheets: 22 families, navigator groups (one
 //                      collapsed), highlights, info sheets and layouts
 import { readFileSync, writeFileSync } from "node:fs";
@@ -519,4 +522,57 @@ const longData = (name, names, rows, categorical) => data(name, {
   g.settings.xy = { dropLines: true, dropLabel: true };
   g.settings.format = { y: { gap: { from: 15, to: 35 } } };
   write("fit-split-axis.json", project("Fit graph, broken axis", [t, r, g], { selected: g.id }));
+}
+
+// study-design.json: a t test whose table has a study design record on
+// its info sheet (P-61): randomised with a method and seed, blinding
+// stated for three of the four stages (item 5 still open), the animals.
+{
+  const t = data("Tumour volume", table("column", { yTitle: "Tumour volume (mm³)", datasets: [
+    col("Vehicle", [412, 388, 455, 430, 401, 397, 446, 420]),
+    col("Drug", [318, 352, 301, 340, 365, 322, 310, 337]),
+  ] }));
+  const r = results(t, "column", { analysis: "ttest", ttestKind: "welch" }, "t test of Tumour volume");
+  const i = { ...info("Study design: Tumour volume", "Pilot cohort 2.", [], t.id), design: {
+    randomised: "yes",
+    randomisationMethod: "block randomisation (blocks of 4), stratified by sex, from OpenDose's randomisation list",
+    seed: "20261123",
+    blinding: { allocation: "blinded", conduct: "aware", outcome: "blinded" },
+    exclusionCriteria: "Set before the study: animals reaching the humane endpoint (tumour volume over "
+      + "1500 mm³ or 20 % weight loss) before day 21 are excluded, and tumours that ulcerate are "
+      + "measured but not analysed.",
+    sex: "both", strain: "BALB/c nude mice (CAnN.Cg-Foxn1nu/Crl)", age: "6 to 8 weeks at implantation",
+  } };
+  write("study-design.json", project("Xenograft study", [t, r, i], { selected: i.id }));
+}
+
+// sex-factor.json: a grouped table whose rows are F and M under multiple
+// t tests (P-62): the Checks row asks whether the rows are sex.
+{
+  const t = data("Body weight by sex", table("grouped", { yTitle: "Body weight (g)", rowTitles: ["F", "M"],
+    datasets: [
+      { name: "Vehicle", rows: [["20.1", "21.4", "19.8"], ["26.2", "27.5", "25.9"]] },
+      { name: "Drug", rows: [["22.9", "23.6", "24.1"], ["30.4", "31.2", "29.8"]] },
+    ] }));
+  const r = results(t, "grouped_multiple_t", {}, "Multiple t tests of Body weight by sex");
+  write("sex-factor.json", project("Sex as a variable", [t, r], { selected: r.id }));
+}
+
+// normalize-title.json: a Normalize made since P-55 (100% = the vehicle
+// row's mean), its output table filled by the chain on open, and a graph
+// of the output: the Y title and the legend read "% of vehicle (mean)".
+{
+  const rows = ["10 nM", "1 µM", "vehicle"];
+  const src = table("grouped", { yTitle: "Luminescence (RLU)", rowTitles: rows, datasets: [
+    { name: "WT", rows: [["20", "22", "21"], ["55", "60", "58"], ["98", "101", "100"]] },
+    { name: "KO", rows: [["30", "33", "31"], ["70", "66", "68"], ["99", "97", "103"]] },
+  ] });
+  const t = data("Viability", src);
+  const r = results(t, "normalize", { zeroMode: "smallest", zeroValue: "0", hundredMode: "last",
+    hundredValue: "100", asPercent: true, subcolumns: "mean", namedTitle: true }, "Normalize of Viability");
+  const out = data("Normalized Viability", { ...src, yTitle: "",
+    datasets: src.datasets.map((d) => ({ ...d, rows: d.rows.map((row) => row.map(() => "")) })) },
+  { derived: { sourceId: t.id, resultsId: r.id } });
+  const g = graph(out, null, "grouped_interleaved", "Graph of Normalized Viability");
+  write("normalize-title.json", project("Normalize titles", [t, r, out, g], { selected: g.id }));
 }

@@ -1,0 +1,77 @@
+{
+ "opendose_project": 2,
+ "version": 2,
+ "title": "Sex as a variable",
+ "prefs": {
+  "defaultTableType": "xy",
+  "errorBars": "sd",
+  "ciMethod": "asymptotic",
+  "scheme": "default",
+  "digits": 4
+ },
+ "selected": "r122",
+ "sheets": [
+  {
+   "id": "d121",
+   "kind": "data",
+   "name": "Body weight by sex",
+   "table": {
+    "type": "grouped",
+    "x": [
+     "",
+     ""
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "Body weight (g)",
+    "rowTitles": [
+     "F",
+     "M"
+    ],
+    "datasets": [
+     {
+      "name": "Vehicle",
+      "rows": [
+       [
+        "20.1",
+        "21.4",
+        "19.8"
+       ],
+       [
+        "26.2",
+        "27.5",
+        "25.9"
+       ]
+      ]
+     },
+     {
+      "name": "Drug",
+      "rows": [
+       [
+        "22.9",
+        "23.6",
+        "24.1"
+       ],
+       [
+        "30.4",
+        "31.2",
+        "29.8"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "r122",
+   "kind": "results",
+   "parentId": "d121",
+   "analysis": "grouped_multiple_t",
+   "options": {},
+   "name": "Multiple t tests of Body weight by sex"
+  }
+ ]
+}

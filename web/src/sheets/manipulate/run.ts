@@ -5,6 +5,7 @@ import type { EngineBridge } from "../../lib/engine";
 import { normalizeTable, numericData, parseCell } from "../../project/table";
 import type { DataTableModel, TableType } from "../../project/types";
 import { maxOf } from "../../lib/extent.ts";
+import { outputTitle } from "./normalizeTitle.ts";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -388,6 +389,10 @@ export interface NormalizeOptions {
   hundredValue: string;
   asPercent: boolean;
   subcolumns: "mean" | "separate";
+  /** Name the output's Y title from the settings ("% of vehicle (mean)",
+   *  normalizeTitle.ts). Set on sheets made since P-55; absent on older
+   *  ones, which keep "Normalized response (%)". */
+  namedTitle?: boolean;
 }
 
 export const DEFAULT_NORMALIZE: NormalizeOptions = {
@@ -412,7 +417,7 @@ export function runNormalize(engine: EngineBridge, table: DataTableModel,
       },
     });
     return { x: data.x, datasets: r.datasets, notes: [],
-      yTitle: o.asPercent ? "Normalized response (%)" : "Normalized response" };
+      yTitle: outputTitle(o, table) };
   });
 }
 

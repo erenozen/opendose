@@ -3765,6 +3765,97 @@ written nor added on import.
 Manual check left for Eren (docs/prism-validation.md): open the exported
 file in Prism and confirm the Info sheet shows "Cell line = HeLa" and the
 notes.
+
+## Feature validation: study design, sex as a variable, normalised titles (2026-11-23)
+
+These three features compute no numbers; they record what the user
+states, read it into the methods text and the journal checklists, and
+name outputs. The engine is not changed.
+
+### P-61 the study design record and ARRIVE 2.0 items 4, 5 and 8
+
+An info sheet can hold a study design record (`InfoSheet.design`,
+`web/src/project/studyDesign.ts`): whether units were allocated to groups
+at random, the method and the seed; for each of the four stages ARRIVE
+2.0 item 5 names (allocation, the conduct of the experiment, outcome
+assessment, data analysis) whether the people were blinded; the
+inclusion and exclusion criteria (item 3a); the animals' species and
+strain, sex and age (item 8a). Source: Percie du Sert et al. 2020, PLoS
+Biol 18:e3000410, and the item pages on arriveguidelines.org (items 3, 4,
+5 and 8, read 2026-11-23).
+
+Checklist rules (`web/src/report/checklists.ts`, unit-tested in
+`web/src/project/__tests__/studyDesign.test.ts`): item 4 is met when
+randomisation is stated as used with a method (the seed is named in the
+reason, or "no seed recorded"), or stated as not used; item 5 when every
+one of the four stages is answered; item 8 when strain, sex and age are
+all given. Without a record each of the three is not met and offers to
+start one on the table's info sheet. The methods paragraph adds, for
+example, "Experimental units were allocated to groups at random (block
+randomisation (blocks of 4); seed 20261123)." (asserted in e2e-check).
+
+Data model: the key is optional. A project saved before it existed
+(`web/e2e-fixtures/stage/row-ids.json`) opens, saves and reopens
+unchanged and validates against `docs/project-file.schema.json`; a record
+survives save and open; the schema refuses an unknown `randomised` value.
+.pzfx export writes the record into the Info sheet's notes as text (Prism
+has no such record), so the .pzfx round trip of P-59 is unchanged.
+
+### P-62 sex as a biological variable
+
+Detection (`web/src/guide/sex.ts`, unit-tested in
+`web/src/guide/__tests__/sex.test.ts`) asks, never assumes, and is tight:
+a column or data set is taken to look like sex only when its header is
+"sex" or "gender" (a multiple-variables column, "Sex (F/M)" allowed), or
+when every non-blank label is exactly F, M, female or male (any case,
+plurals allowed) and both sexes occur. Rows, data sets of column and
+grouped tables and multiple-variables columns are checked; XY,
+contingency and survival tables are not. False positives tested and not
+fired: "M" next to "Control", "1 M" and "10 M" (molar), "M1, M2, F1",
+"M" alone or "M, M", letters "M, N, O", combined "WT F, WT M", a column
+"M, F, X".
+
+When it fires, the Checks row of every result on the table carries a
+chip that starts with the question ("Are rows F and M the sex of the
+animals or subjects? If so, ..."): on a grouped table, two-way ANOVA
+with sex and the interaction, one click away (Sex as the row or column
+factor, the interaction shown first, Šídák comparisons of the treatment
+within each sex); on a two-way analysis the chip says sex is a factor
+(and warns when the main-effects-only model leaves out the interaction);
+on a multiple-variables table, Sex as a predictor with its interaction.
+The paste guide asks the same question about a pasted Sex column. The
+ARRIVE tab of the journal checklists gains "Sex as a biological
+variable": not met while the table looks like it has sex and no analysis
+has it as a factor, met once one does; without sex in the table the
+study design record decides (both sexes: not met; one sex: met, with
+"say why in the methods"); otherwise not applicable. Sources cited in the
+UI: SAGER (Heidari et al. 2016, Res Integr Peer Rev 1:2) and NIH SABV
+(Clayton & Collins 2014, Nature 509:282). No numbers are computed.
+
+### P-55 normalised outputs named from their settings
+
+A Normalize sheet made since P-55 (`namedTitle` in its options, set only
+on new sheets) titles its output table's Y from the settings
+(`web/src/sheets/manipulate/normalizeTitle.ts`, unit-tested in
+`__tests__/normalizeTitle.test.ts`): 100% = the last row gives "% of" the
+row's title ("% of vehicle (mean)"; an XY table without row titles gives
+"% of value at X = 10"; when the data sets' last rows differ, "% of last
+row"); 100% = the largest value gives "% of largest mean" or "% of
+largest value"; the sum gives "% of total"; "(mean)" is added when 0%
+and 100% come from row means of replicates; fractions read "Fraction
+of ...". A 100% typed as a value keeps "Normalized response (%)", since
+a number alone names nothing. The figure legend of a graph of a named
+output adds "Values are % of vehicle (mean).", on screen, in PowerPoint
+and in the export bundle. The normalised numbers are unchanged (the
+engine is not called differently).
+
+Ruling 10: sheets saved before P-55 have no `namedTitle`, so their
+output keeps "Normalized response (%)" and their legend is unchanged;
+pinned in e2e-figures, which opens such a project and checks the graph's
+Y title, then makes a new Normalize (0% = the smallest mean, 100% = the
+vehicle row's mean) and checks "% of vehicle (mean)" on the graph and in
+the legend. A graph title the user typed lives in the graph's own
+settings and is never rewritten.
 """
 
 

@@ -1820,8 +1820,8 @@ const unmetReason = await ck.locator(".checklist li.unmet .ck-reason").first().i
 expect("checklist shows ticked and unticked items with reasons", met >= 1 && unmet >= 1 && unmetReason.length > 10,
   `${met} met, ${unmet} not met; "${unmetReason}"`);
 await ck.getByRole("tab", { name: /ARRIVE/ }).click();
-expect("ARRIVE Essential 10 items and protocol registration (item 19) listed",
-  (await ck.locator(".checklist li").count()) === 6);
+expect("ARRIVE Essential 10 items (1 to 5, 7, 8, 10), sex as a biological variable and protocol registration (item 19) listed",
+  (await ck.locator(".checklist li").count()) === 10);
 // P-09: the bundle has each table as CSV, not source data per figure, so
 // eLife "Source data available" is not met and links to the bundle
 await ck.getByRole("tab", { name: /eLife/ }).click();
@@ -4246,6 +4246,124 @@ const axeOn = async (pg, sel) => {
     && await sepDetail.getByRole("button", { name: /^Open “/ }).count() === 1);
   await sepDetail.getByRole("button", { name: /^Open “/ }).click();
   expect("one click back to the Interaction block", await appears(page.locator(".pane-results .interaction-test"), 30000));
+
+  // (d) P-61: the study design record (ARRIVE 2.0 items 4, 5 and 8)
+  const arriveItem = (dlg, n) => dlg.locator(".checklist li")
+    .filter({ has: page.locator(".ck-text", { hasText: new RegExp(`^${n}\\. `) }) });
+  const openArrive = async () => {
+    await navRow("Planned mice").click();
+    await page.getByRole("button", { name: "Journal checklists" }).click();
+    const dlg = page.getByRole("dialog", { name: "Journal checklists" });
+    await dlg.waitFor({ timeout: 15000 });
+    await dlg.getByRole("tab", { name: /ARRIVE/ }).click();
+    return dlg;
+  };
+  let ck2 = await openArrive();
+  expect("ARRIVE items 4, 5 and 8 are not met without a study design record, and say so",
+    await arriveItem(ck2, 4).getAttribute("data-status") === "unmet"
+    && await arriveItem(ck2, 5).getAttribute("data-status") === "unmet"
+    && await arriveItem(ck2, 8).getAttribute("data-status") === "unmet"
+    && /No study design recorded/.test(await arriveItem(ck2, 4).innerText()));
+  await arriveItem(ck2, 4).getByRole("button", { name: "Record the study design" }).click();
+  const design = page.locator(".design-sheet");
+  expect("Record the study design: the record opens on the table's analysis plan sheet",
+    await appears(design) && await page.locator(".plan-sheet").count() === 1);
+  await design.getByRole("radio", { name: "At random", exact: true }).check();
+  await design.getByLabel("Randomisation method").fill("block randomisation (blocks of 4)");
+  await design.getByLabel("Seed", { exact: true }).fill("20261123");
+  for (const [stage, v] of [["Allocation to groups", "Blinded"], ["Conduct of the experiment", "Not blinded"],
+    ["Outcome assessment", "Blinded"], ["Data analysis", "Blinded"]]) {
+    await design.getByRole("group", { name: stage, exact: true }).getByRole("radio", { name: v, exact: true }).check();
+  }
+  await design.getByRole("group", { name: "Sex", exact: true }).getByRole("radio", { name: "Female and male", exact: true }).check();
+  await design.getByLabel("Species and strain").fill("C57BL/6J mice");
+  await design.getByLabel("Age", { exact: true }).fill("8 to 10 weeks");
+  const randomSentence = "Experimental units were allocated to groups at random (block randomisation (blocks of 4); seed 20261123).";
+  expect("the record's methods preview names the method and the seed",
+    (await design.locator(".plan-methods").innerText()).startsWith(randomSentence),
+    await design.locator(".plan-methods").innerText());
+  axeHits.push(...await axeAt(".design-sheet"));
+  ck2 = await openArrive();
+  expect("ARRIVE items 4, 5 and 8 are met from the record",
+    await arriveItem(ck2, 4).getAttribute("data-status") === "met"
+    && await arriveItem(ck2, 5).getAttribute("data-status") === "met"
+    && await arriveItem(ck2, 8).getAttribute("data-status") === "met"
+    && /block randomisation \(blocks of 4\), seed 20261123/.test(await arriveItem(ck2, 4).innerText()),
+    (await arriveItem(ck2, 4).innerText()).replace(/\s+/g, " "));
+  await ck2.getByRole("button", { name: "Close" }).last().click();
+  const designMethods = await page.waitForFunction((want) => {
+    const t = document.querySelector(".stats-methods p")?.textContent ?? "";
+    return t.includes(want) ? t : null;
+  }, randomSentence, { timeout: 30000 }).then((h) => h.jsonValue(), () => "");
+  expect("the methods paragraph names the randomisation method and seed, and the animals", !!designMethods
+    && designMethods.includes("Animals: C57BL/6J mice; sex female and male; age 8 to 10 weeks."),
+    String(designMethods || await page.locator(".stats-methods p").innerText().catch(() => "")).slice(0, 300));
+
+  // (e) P-62: rows F and M of a grouped table are asked about as sex
+  await newTable("grouped", "Body weight by sex", [2, 3, 2]);
+  await pasteAt("Row 1 title", "F\t20\t21\t22\t23\t24\t25\nM\t26\t27\t28\t30\t31\t32\n");
+  await page.locator('input[aria-label="Dataset 1 title"]').fill("Vehicle");
+  await page.locator('input[aria-label="Dataset 2 title"]').fill("Drug");
+  await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 60000 });
+  const sexItem = async () => {
+    await page.getByRole("button", { name: "Journal checklists" }).click();
+    const dlg = page.getByRole("dialog", { name: "Journal checklists" });
+    await dlg.getByRole("tab", { name: /ARRIVE/ }).click();
+    const li = dlg.locator(".checklist li").filter({ has: page.locator(".ck-text", { hasText: /^Sex as a biological variable/ }) });
+    const out = { status: await li.getAttribute("data-status"), text: (await li.innerText()).replace(/\s+/g, " ") };
+    await dlg.getByRole("button", { name: "Close" }).last().click();
+    return out;
+  };
+  // the table's own two-way ANOVA has the rows as a factor
+  await openChecks();
+  expect("on the two-way ANOVA the chip says sex is a factor",
+    await appears(page.getByRole("button", { name: /Sex is a factor of this analysis/ }), 60000));
+  const withTwoWay = await sexItem();
+  expect("the checklist gains a sex item, met while a two-way ANOVA has sex as a factor",
+    withTwoWay.status === "met" && /Rows F and M look like sex, and “Two-way ANOVA/.test(withTwoWay.text),
+    withTwoWay.text.slice(0, 200));
+  // without it, the item is not met and other analyses ask the question
+  const twoWayName = withTwoWay.text.match(/“(Two-way ANOVA[^”]*)”/)?.[1] ?? "";
+  await navRow(twoWayName).click({ button: "right" });
+  await page.getByRole("menuitem", { name: /Delete/ }).click();
+  await page.getByRole("alertdialog").getByRole("button", { name: "Delete" }).click();
+  await page.getByRole("button", { name: "Analyze", exact: true }).click();
+  await page.getByRole("menuitem", { name: /Multiple t tests/ }).click();
+  await page.waitForSelector(".result-card h3:has-text('Multiple t tests')", { timeout: 30000 });
+  await openChecks();
+  const sexChipBtn = page.getByRole("button", { name: /Are rows F and M sex\? Include sex as a factor/ });
+  expect("rows F and M: the Checks row asks whether they are sex", await appears(sexChipBtn, 60000));
+  await sexChipBtn.click();
+  const sexDetail = page.getByRole("region", { name: /Are rows F and M sex\?/ });
+  const sexText = (await sexDetail.innerText().catch(() => "")).replace(/\s+/g, " ");
+  expect("the question suggests two-way ANOVA with sex and the interaction, cites SAGER and NIH SABV",
+    /^Are rows F and M the sex of the animals or subjects\? If so, analyse sex as a factor: two-way ANOVA with sex and the interaction/.test(sexText)
+    && await sexDetail.getByRole("link", { name: /Heidari et al\. 2016/ }).count() === 1
+    && await sexDetail.getByRole("link", { name: /Clayton & Collins 2014/ }).count() === 1
+    && await sexDetail.getByRole("button", { name: "Two-way ANOVA with sex and the interaction" }).count() === 1,
+    sexText.slice(0, 200));
+  axeHits.push(...await axeAt(".pane-answer .checks"));
+  const before = await sexItem();
+  expect("the sex item is not met while no analysis has sex as a factor",
+    before.status === "unmet" && /Rows F and M look like sex\. If they are, analyse with sex as a factor/.test(before.text),
+    before.text.slice(0, 200));
+  await openChecks();
+  if (!(await sexDetail.count())) await sexChipBtn.click();
+  await sexDetail.getByRole("button", { name: "Two-way ANOVA with sex and the interaction" }).click();
+  await page.waitForSelector('.pane-results[data-live="true"] .interaction-test', { timeout: 60000 });
+  expect("one click: two-way ANOVA, interaction first, with Sex as the row factor",
+    /Sex/.test(await page.locator(".pane-results .interaction-block").innerText()),
+    (await page.locator(".pane-results .interaction-test").innerText()).slice(0, 120));
+  const after = await sexItem();
+  expect("the sex item is met again", after.status === "met", after.text.slice(0, 200));
+  // an unrelated grouped table (rows Vehicle and Drug) is never asked
+  await navRow("Drug by genotype").click();
+  await page.waitForSelector('.pane-results[data-live="true"]', { timeout: 60000 });
+  await openChecks();
+  expect("rows Vehicle and Drug: no sex question",
+    await page.locator(".pane-answer details.checks").getByRole("button", { name: /\bsex\b/i }).count() === 0
+    && await page.locator(".pane-answer details.checks").count() > 0);
+
   expect("axe-core: the plan chip, the plan sheet, Plan an experiment and the Interaction block pass WCAG 2 AA",
     axeHits.length === 0, axeHits.join(" | "));
 }

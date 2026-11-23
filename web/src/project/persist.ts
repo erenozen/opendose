@@ -2,6 +2,7 @@
 // single-table app) is migrated on open into one data sheet + its results
 // sheet + its graph.
 import { parsePlan } from "./plan.ts";
+import { parseStudyDesign } from "./studyDesign.ts";
 import { parseChosen } from "../guide/choice.ts";
 import { parseReproductions } from "./reproduce.ts";
 import { isSchemeId } from "../lib/palette.ts";
@@ -241,6 +242,7 @@ function normalizeV2(r: Record<string, unknown>, ctx: LoadContext): Project {
       }
       case "info": {
         const plan = parsePlan(s.plan);
+        const design = parseStudyDesign(s.design);
         sheets.push({
           ...common, kind: "info", parentId: str(s.parentId) || null,
           notes: str(s.notes),
@@ -248,6 +250,7 @@ function normalizeV2(r: Record<string, unknown>, ctx: LoadContext): Project {
             ? s.constants.map((c) => ({ name: str(obj(c).name), value: str(obj(c).value) }))
             : [],
           ...(plan ? { plan } : {}),
+          ...(design ? { design } : {}),
         });
         break;
       }

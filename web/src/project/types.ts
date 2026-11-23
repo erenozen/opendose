@@ -12,6 +12,7 @@ import type { ReportPrefs } from "../report/prefs.ts";
 import type { AnalysisPlan } from "./plan.ts";
 import type { ProjectRecipe } from "./recipes.ts";
 import type { ReproductionReport } from "./reproduce.ts";
+import type { StudyDesign } from "./studyDesign.ts";
 
 export type Cell = string; // raw user input; "" = blank
 
@@ -273,6 +274,9 @@ export interface InfoSheet extends SheetBase {
   constants: InfoConstant[];
   /** An analysis plan written before the data (project/plan.ts). */
   plan?: AnalysisPlan;
+  /** The study design record: randomisation, blinding, criteria, animals
+   *  (project/studyDesign.ts). Absent in files saved before it existed. */
+  design?: StudyDesign;
 }
 
 export interface ResultsSheet extends SheetBase {

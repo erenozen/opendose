@@ -10,6 +10,7 @@ import { isSpreadsheetError } from "../project/pasteReport.ts";
 import { normalizeTable } from "../project/table.ts";
 import type { DataTableModel, TableType } from "../project/types.ts";
 import { maxOf } from "../lib/extent.ts";
+import { sexPasteNote } from "./sex.ts";
 
 export interface PastedBlock {
   /** Column titles (from a first row of text), or null. */
@@ -339,6 +340,8 @@ export interface ReadPaste {
   errorValues: number;
   /** errorValueNote(): the counted note, or null. */
   errorNote: string | null;
+  /** A column that looks like sex: the question to ask (guide/sex.ts). */
+  sexNote: string | null;
 }
 
 /** Clipboard text to a table: parse it, guess the table type with its
@@ -350,5 +353,5 @@ export function readPaste(text: string, as?: TableType): ReadPaste | null {
   const suggestion = suggestTableType(block);
   const type = as ?? suggestion.type;
   return { block, suggestion, type, table: buildTable(block, type),
-    errorValues: block.errors.count, errorNote: errorValueNote(block) };
+    errorValues: block.errors.count, errorNote: errorValueNote(block), sexNote: sexPasteNote(block) };
 }
