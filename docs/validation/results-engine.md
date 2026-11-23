@@ -476,3 +476,45 @@ quantities are features the engine does not have (listed below).
 ## Timings
 
 Whole corpus: 13.6 s (one process, every dataset fitted once). Slowest datasets: `r-fisher-job` 2.01 s, `r-fisher-mp6` 1.86 s, `synergy-mathews-block1` 1.83 s, `nist-thurber` 1.55 s, `growthcurver-a1` 1.00 s.
+
+## Feature validation: potency across experiments (2026-11-23)
+
+FEATURE-PLAN P-08. With a replicate map on an XY table, `dose_response`
+takes `options.experiments` and also fits each experiment on its own
+(`api._experiments`, the same `nlfit` path, model, constraints and
+weighting), then `potency.potency_summary` summarises the log potencies
+on n = experiments: mean logIC50, SD, the t interval on n - 1 df,
+10^mean (geometric-mean IC50) with the antilogged CI, and pIC50 when the
+unit is molar. Experiments whose fit failed, is ambiguous or is
+extrapolated are named and left out; with fewer than two left the SD and
+CI are withheld. The fit of all the values is unchanged (tested
+byte-for-byte).
+
+Reference: `engine/tests/reference/potency_across_experiments.py`, an
+independent implementation (scipy.optimize.curve_fit on the 4PL in log10
+concentration per experiment, scipy.stats.t for the interval,
+cross-checked against scipy.stats.ttest_1samp and pingouin.ttest; R and
+drc are not installed). Dataset: 8 concentrations (1e-9 to 3e-6 M),
+3 experiments x 3 wells, true IC50 50, 100 and 200 nM, noise SD 4,
+numpy default_rng(808), one decimal.
+
+| quantity | engine | reference | tolerance |
+|---|---|---|---|
+| logIC50, experiments 1-3 | -7.345, -6.994, -6.764 | -7.3452, -6.9941, -6.7644 | abs 1e-6 |
+| mean logIC50 (SD) | -7.035 (0.2925) | -7.0346 (0.2925) | abs 1e-6 |
+| 95% CI of mean logIC50 (t = 4.303, 2 df) | -7.761 to -6.308 | -7.7613 to -6.3079 | abs 1e-6 |
+| mean pIC50, 95% CI | 7.035, 6.308 to 7.761 | 7.0346, 6.3079 to 7.7613 | abs 1e-6 |
+| geometric-mean IC50, 95% CI (M) | 9.235e-8, 1.733e-8 to 4.922e-7 | 9.235e-8, 1.733e-8 to 4.922e-7 | rel 1e-5 |
+| two experiments: 95% CI (t = 12.71, 1 df) | -9.400 to -4.939 | -9.400 to -4.939 | abs 1e-5 |
+| one well edited (row 5, Y7 = 5.0): pIC50, 95% CI | 7.12, 6.634 to 7.606 | 7.12, 6.634 to 7.606 | abs 1e-5 |
+
+Hand derivation (test_potency.py): logs -7.2, -7.0, -6.8 give mean -7,
+SD 0.2, t(0.975, 2) = 4.302653, CI -7.496828 to -6.503172; in uM the
+pIC50 is 13 (12.503 to 13.497). Invariance: permuting the experiments
+leaves the summary identical (1e-9); doses written in nM (x 1e9) shift
+the mean logIC50 by 9 and leave the SD, the CI width and the pIC50
+unchanged (1e-5). Edge cases tested: n = 0, 1, 2; a failed, a flat
+(ambiguous) and an extrapolated experiment; fewer than two left;
+unequal blocks with missing wells; all-equal logIC50 values; a model
+without a logIC50; a replicate map naming no experiment for a
+subcolumn.
