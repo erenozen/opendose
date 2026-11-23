@@ -5,6 +5,7 @@
 import { useMemo, useState } from "react";
 import { useProject } from "../app/context";
 import { CopyButton } from "../components/CiteBlock";
+import { Tabs } from "../components/ui";
 import type { DataSheet, DataTableModel, ResultsSheet } from "../project/types";
 import { legendFor, legendGraph } from "./legendFor";
 import { P_STYLES } from "./pformat";
@@ -66,12 +67,18 @@ function Snippets({ result, options, table }: { result: unknown; options: unknow
         <summary>Equivalent R and Python code</summary>
         {s && (s.r || s.python) ? (
           <>
-            <div className="snippet-tabs" role="tablist" aria-label="Language">
-              <button type="button" role="tab" aria-selected={lang === "r"} onClick={() => setLang("r")}>R</button>
-              <button type="button" role="tab" aria-selected={lang === "python"} onClick={() => setLang("python")}>Python</button>
-              <CopyButton text={lang === "r" ? s.r : s.python} label={`Copy ${lang === "r" ? "R" : "Python"} code`} />
-            </div>
-            <pre role="tabpanel" aria-label={lang === "r" ? "R code" : "Python code"}><code>{lang === "r" ? s.r : s.python}</code></pre>
+            <Tabs value={lang} onValueChange={setLang}>
+              <div className="snippet-tabs">
+                <Tabs.List aria-label="Language">
+                  <Tabs.Tab value="r">R</Tabs.Tab>
+                  <Tabs.Tab value="python">Python</Tabs.Tab>
+                </Tabs.List>
+                <CopyButton text={lang === "r" ? s.r : s.python} label={`Copy ${lang === "r" ? "R" : "Python"} code`} />
+              </div>
+              <Tabs.Panel value={lang}>
+                <pre><code>{lang === "r" ? s.r : s.python}</code></pre>
+              </Tabs.Panel>
+            </Tabs>
             {s.caveats.length > 0 && (
               <ul aria-label="Where the defaults differ">
                 {s.caveats.map((c) => <li key={c}>{c}</li>)}

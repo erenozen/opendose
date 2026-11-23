@@ -155,9 +155,21 @@ function NoteCard({ sheetId, note, readOnly }: { sheetId: string; note: Floating
             <circle cx="4" cy="9" r="1" /><circle cx="8" cy="9" r="1" />
           </svg>
         </IconButton>
-        <div className="note-colors" role="radiogroup" aria-label="Note colour">
+        {/* A radio group: one Tab stop (the chosen colour), arrow keys
+            move and choose. */}
+        <div className="note-colors" role="radiogroup" aria-label="Note colour"
+          onKeyDown={(e) => {
+            const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
+            if (!step || readOnly) return;
+            e.preventDefault();
+            const at = NOTE_COLORS.indexOf(note.color);
+            const to = NOTE_COLORS[(at + step + NOTE_COLORS.length) % NOTE_COLORS.length];
+            cmd.editNote(sheetId, note.id, { color: to });
+            e.currentTarget.querySelector<HTMLElement>(`.note-${to}`)?.focus();
+          }}>
           {NOTE_COLORS.map((c) => (
             <button key={c} type="button" role="radio" aria-checked={note.color === c}
+              tabIndex={note.color === c ? 0 : -1}
               aria-label={c} className={`note-swatch note-${c}`} disabled={readOnly}
               onClick={() => cmd.editNote(sheetId, note.id, { color: c })} />
           ))}
