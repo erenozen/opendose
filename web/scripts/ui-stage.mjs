@@ -815,6 +815,23 @@ const scenes = [
     await into(s, ".qpcr-lod");
     await settle(s);
   } },
+  // P-30: NTC and no-RT controls, on the results sheet and in the QC step
+  { name: "guided-qpcr-controls", setup: async (s) => {
+    await fixture(s, "qpcr-controls.json", { live: true });
+    await s.page.locator(".qpcr-controls").first().waitFor({ timeout: 120000 });
+    await into(s, ".qpcr-results .qpcr-controls");
+    await settle(s);
+  } },
+  { name: "guided-qpcr-controls-step", setup: async (s) => {
+    await fixture(s, "qpcr-controls.json", { live: true });
+    await s.page.locator(".qpcr-controls").first().waitFor({ timeout: 120000 });
+    await click(s, button(s, "Open setup wizard…"));
+    const wiz = s.page.locator("dialog.assay-wizard");
+    await wiz.waitFor();
+    await wiz.getByRole("button", { name: /QC and statistics/ }).click();
+    await wiz.locator(".qpcr-controls").waitFor({ timeout: 60000 });
+    await settle(s, 1000);
+  } },
   { name: "guided-tour", setup: async (s) => {
     await example(s);
     await headerMenu(s, "View", "Help and tour");

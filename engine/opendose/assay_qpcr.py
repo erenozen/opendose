@@ -32,6 +32,17 @@ Method sources:
   detected in 95% of wells with Fieller's CI, as Forootan et al. (2017,
   Biomol Detect Quantif 12:1) determine a qPCR LoD; MIQE (Bustin et al.
   2009) asks for the LoD to be reported.
+- No-template (NTC) and no-reverse-transcription (no-RT) controls,
+  MIQE (Bustin et al. 2009, Clin Chem 55:611, items on NTC and no-RT
+  controls): wells named as controls (or marked "control": "ntc" |
+  "no_rt") are taken out of the quantification and checked. A control
+  well with a Cq (below an optional, editable limit) has amplified; each
+  sample of that target is listed with its Cq difference to the control,
+  and is "affected" when the difference is under an editable number of
+  cycles (default 5: contamination then makes up more than 2^-5, about
+  3%, of the sample's template at 100% efficiency). A no-RT control is
+  compared with the sample its name points to ("CON-1 no-RT" with
+  "CON-1"), else with every sample of the target.
 - GraphPad FAQ "Graphing data expressed as fold changes": test the
   logs (here dCq) and show fold changes on a log2 axis with the control
   at 1.
@@ -48,6 +59,7 @@ fold change 2^-difference and its CI [2^-upper, 2^-lower].
 from __future__ import annotations
 
 import math
+import re
 
 import numpy as np
 from scipy import stats
@@ -108,6 +120,90 @@ def efficiency_from_dilution(quantities, cqs, ci_level=0.95) -> dict:
             "efficiency_ci": ci,
             "efficiency_pct_ci": ([100.0 * (c - 1.0) for c in ci]
                                   if ci else None)}
+
+
+# Water is not read as an NTC name: a water-treated (vehicle) group is
+# common, and taking it out of the quantification would be wrong.
+_NTC_RE = re.compile(r"^\s*(ntc|no[\s_-]*template([\s_-]*control)?)([\s_-]*\d+)?\s*$",
+                     re.I)
+_NO_RT_RE = re.compile(
+    r"(?:(?:^|[\s_(-])(?:no[\s_-]*rt|nrt|minus[\s_-]*rt|"
+    r"no[\s_-]*reverse[\s_-]*transcriptase)|-\s*rt|(?:^|[\s_(])rt\s*-)"
+    r"(?=$|[\s_)\d-])", re.I)
+
+
+def control_kind(sample, group=None, explicit=None):
+    """'ntc', 'no_rt' or None: an explicit record field first, then the
+    sample name, then the group name."""
+    if explicit in ("ntc", "no_rt"):
+        return explicit
+    for name in (sample, group):
+        if name is None:
+            continue
+        s = str(name)
+        if _NTC_RE.match(s):
+            return "ntc"
+        if _NO_RT_RE.search(s):
+            return "no_rt"
+    return None
+
+
+def split_controls(records):
+    """(sample records, control records with their "kind")."""
+    samples, controls = [], []
+    for r in records:
+        kind = control_kind(r.get("sample"), r.get("group"), r.get("control"))
+        if kind:
+            controls.append(dict(r, control=kind))
+        else:
+            samples.append(r)
+    return samples, controls
+
+
+def control_checks(controls, replicates, *, max_cq=None, min_delta=5.0):
+    """NTC and no-RT control wells (from split_controls) against the
+    averaged sample replicates (average_replicates). A control has
+    amplified when a well has a Cq (below max_cq, when given)."""
+    if min_delta is None or not min_delta >= 0:
+        raise ValueError("min_delta must be 0 or more cycles")
+    by_target = {}
+    for r in replicates:
+        by_target.setdefault(r["target"], []).append(r)
+    groups = {}
+    for c in controls:
+        key = (c["control"], str(c.get("sample")), str(c.get("target")))
+        groups.setdefault(key, []).append(c)
+    flags, clean, wells = [], [], []
+    for (kind, name, target), ws in groups.items():
+        cqs = [parse_cq(w.get("cq", w.get("ct"))) for w in ws]
+        wells.extend({"kind": kind, "sample": name, "target": target,
+                      "cq": v, "well": w.get("well")} for v, w in zip(cqs, ws))
+        hits = [v for v in cqs if v is not None
+                and (max_cq is None or v < float(max_cq))]
+        if not hits:
+            clean.append({"kind": kind, "control": name, "target": target,
+                          "n_wells": len(ws)})
+            continue
+        first = min(hits)
+        pool = [r for r in by_target.get(target, [])
+                if r["mean_cq"] is not None]
+        if kind == "no_rt":
+            base = _NO_RT_RE.sub(" ", name).strip(" _-()")
+            matched = [r for r in pool if r["sample"].strip() == base]
+            if matched:
+                pool = matched
+        samples = [{"sample": r["sample"], "group": r["group"],
+                    "mean_cq": r["mean_cq"], "delta": first - r["mean_cq"],
+                    "affected": first - r["mean_cq"] < min_delta}
+                   for r in pool]
+        flags.append({"kind": kind, "control": name, "target": target,
+                      "cq": first, "n_wells": len(ws), "n_amplified": len(hits),
+                      "samples": samples,
+                      "n_affected": sum(s["affected"] for s in samples)})
+    return {"max_cq": max_cq, "min_delta": min_delta,
+            "source": "MIQE, Bustin et al. 2009, Clin Chem 55:611",
+            "n_wells": len(wells), "wells": wells, "flags": flags,
+            "clean": clean}
 
 
 def lod95_from_series(points, *, ci_level=0.95):
@@ -365,7 +461,8 @@ def qpcr_analysis(records, *, reference_genes, calibrator=None,
                   max_spread=0.5, undetermined_value=None,
                   exclude_high_cq=False, test="auto", comparisons=None,
                   welch=False, ci_level=0.95, groups=None,
-                  targets=None) -> dict:
+                  targets=None, control_max_cq=None,
+                  control_min_delta=5.0) -> dict:
     """Relative quantification (efficiency-weighted ddCq) with QC flags,
     statistics on dCq and fold changes with asymmetric CIs.
 
@@ -374,7 +471,10 @@ def qpcr_analysis(records, *, reference_genes, calibrator=None,
     calibrator: the reference group (fold change 1); default the first
     group. efficiencies: {target: factor or %}. standard_curves:
     {target: [{"quantity", "cq"}]} (overrides efficiencies for that
-    target)."""
+    target). NTC and no-RT control wells (control_kind) are left out of
+    the quantification and checked (control_checks, with
+    control_max_cq and control_min_delta) into "controls"."""
+    records, controls = split_controls(records)
     if isinstance(reference_genes, str):
         reference_genes = [reference_genes]
     reference_genes = [str(r) for r in (reference_genes or [])]
@@ -404,6 +504,16 @@ def qpcr_analysis(records, *, reference_genes, calibrator=None,
     if calibrator not in group_order:
         raise ValueError(f"calibrator group {calibrator!r} not found")
     warnings = []
+    checks = None
+    if controls:
+        checks = control_checks(controls, reps, max_cq=control_max_cq,
+                                min_delta=control_min_delta)
+        for f in checks["flags"]:
+            who = "NTC" if f["kind"] == "ntc" else "No-RT control"
+            warnings.append(
+                f"{who} amplified for {f['target']} (Cq {round(f['cq'], 2):g}, "
+                f"{f['control']}): {f['n_affected']} of {len(f['samples'])} "
+                f"{f['target']} samples within {control_min_delta:g} cycles.")
 
     # efficiencies
     eff = {}
@@ -535,6 +645,7 @@ def qpcr_analysis(records, *, reference_genes, calibrator=None,
         "qc": {"max_cq": max_cq, "max_spread": max_spread,
                "exclude_high_cq": exclude_high_cq,
                "undetermined_value": undetermined_value},
+        "controls": checks,
         "results": table,
         "per_target": per_target,
         "method": ("efficiency-weighted dCq = log2(E_target)*Cq_target - "

@@ -3302,6 +3302,36 @@ between two quantities, no fit), fewer than 3 quantities, an empty
 series, a hit rate that falls with the quantity, an LoD95 outside the
 quantities tested (flagged). Quantity units scale the LoD95 and its CI;
 well order does not matter.
+
+### P-30 qPCR no-template and no-RT control checks
+
+`assay_qpcr.control_checks`: wells whose sample (or group) is named
+NTC / "no template (control)" (with an optional number) are no-template
+controls, names with no-RT, NRT, -RT, RT- or "minus RT" are no-RT
+controls (water is not read as an NTC: a water-treated group is
+common), or a record says `"control": "ntc" | "no_rt"`. They are taken
+out of the quantification, the reference-gene check and the group list,
+and checked as MIQE asks (Bustin et al. 2009, Clin Chem 55:611): a
+control well with a Cq (below an editable limit; blank = any Cq) has
+amplified; each sample of that target is listed with its Cq difference
+to the control and is affected when the difference is under an editable
+number of cycles (default 5: the contamination is then more than 2^-5,
+about 3%, of the sample's template at 100% efficiency). A no-RT control
+is compared with the sample its name points to ("CON-1 no-RT" with
+"CON-1"), else with every sample of its target.
+
+Validation: hand-built plates, every expected number a hand subtraction
+(`engine/tests/test_qpcr_controls.py`). The plan's acceptance plate:
+GAPDH sample means 18.0, 17.1, 18.1, 17.5 and one NTC well at Cq 34 (the
+other undetermined) give the chip "NTC amplified for GAPDH (Cq 34)" with
+the four samples 16.0, 16.9, 15.9 and 16.5 cycles before it (none
+affected); "CON-1 no-RT" at Cq 21 is 3 cycles after CON-1 (affected);
+"LPS-2-RT" at 33 is 8.7 cycles after LPS-2. The fold changes with and
+without control wells are identical (2^3.2 for LPS vs CON, by hand). A
+Cq limit of 33 stops counting the NTC at 34; a margin of 16.6 cycles
+makes CON-1, LPS-1 and LPS-2 affected. Name rules are pinned on the
+same 19 names in the engine and web unit tests (the web reads the
+controls only to keep them out of the group and target lists).
 """
 
 

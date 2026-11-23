@@ -2974,11 +2974,15 @@ def _qpcr(data, options):
     target: dcq, ddcq, relative_quantity, log2_fold_change),
     "per_target": [{target, groups: [{group, n, mean_dcq, fold_change,
     fold_change_ci}], statistics: {..., comparisons: [{pair,
-    fold_change, fold_change_ci, p_adjusted}]}, graph}], "warnings"}."""
+    fold_change, fold_change_ci, p_adjusted}]}, graph}], "warnings"}.
+    NTC and no-RT wells (by name, or a record's "control": "ntc" |
+    "no_rt") are left out and checked into "controls" (options
+    control_max_cq, control_min_delta; assay_qpcr.control_checks)."""
     kw = _assay_kw(options, (
         "calibrator", "efficiencies", "standard_curves", "max_cq",
         "max_spread", "undetermined_value", "exclude_high_cq", "test",
-        "comparisons", "welch", "ci_level", "groups", "targets"))
+        "comparisons", "welch", "ci_level", "groups", "targets",
+        "control_max_cq", "control_min_delta"))
     if data.get("standard_curves") and "standard_curves" not in kw:
         kw["standard_curves"] = data["standard_curves"]
     result = assay_qpcr.qpcr_analysis(
@@ -2995,7 +2999,8 @@ def _qpcr(data, options):
         try:
             result["reference_stability"] = \
                 qpcr_refs.reference_stability_from_records(
-                    data.get("records") or [], result["reference_genes"],
+                    assay_qpcr.split_controls(data.get("records") or [])[0],
+                    result["reference_genes"],
                     efficiencies={g: result["efficiencies"][g]["efficiency"]
                                   for g in result["reference_genes"]},
                     calibrator=result["calibrator"],
@@ -3885,7 +3890,7 @@ def _qpcr_reference_check(data, options):
     undetermined_value, exclude_high_cq."""
     refs = options.get("reference_genes", options.get("reference"))
     out = qpcr_refs.reference_stability_from_records(
-        data.get("records") or [], refs,
+        assay_qpcr.split_controls(data.get("records") or [])[0], refs,
         groups_order=options.get("groups"),
         **_assay_kw(options, (
             "max_cq", "max_spread", "undetermined_value", "exclude_high_cq",

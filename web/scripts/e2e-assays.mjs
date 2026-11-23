@@ -655,6 +655,7 @@ const OPEN_INPUT = 'input[aria-label="Open an OpenDose project or a Prism file"]
   await wizard().getByRole("button", { name: "Cancel" }).click();
   await wizard().waitFor({ state: "detached", timeout: 10000 });
 }
+
 // --- P-29, qPCR: a labelled LoD95 from a hit-rate dilution series
 // (e2e-fixtures/stage/qpcr-lod.json: IL6 at 8 quantities × 12 wells).
 // Reference (engine/tests/reference/lod95_probit.py, statsmodels GLM
@@ -668,6 +669,51 @@ const OPEN_INPUT = 'input[aria-label="Open an OpenDose project or a Prism file"]
   expect("P-29 qPCR: the method and its source are stated",
     (await textOf(".qpcr-lod")).includes("Forootan et al. (2017, Biomol Detect Quantif 12:1)")
     && await waitText(".pane-methods", "IL6 26.17 (95% CI 15 to 76.6)"));
+}
+
+// --- P-30: NTC and no-RT control checks (e2e-fixtures/stage/
+// qpcr-controls.json, engine/tests/test_qpcr_controls.py): one NTC well
+// for GAPDH at Cq 34 (the other undetermined), an undetermined NTC for
+// IL6, and "CON-1 no-RT" for GAPDH at Cq 21. Hand: GAPDH sample means
+// 18.0, 17.1, 18.1, 17.5, so the NTC is 16.0, 16.9, 15.9, 16.5 cycles
+// later (clear of 5); the no-RT is 3 cycles after CON-1 (affected).
+{
+  await page.setInputFiles(OPEN_INPUT, `${STAGE}qpcr-controls.json`);
+  await page.waitForSelector(".qpcr-results .qpcr-target", { timeout: 120000 });
+  await page.getByRole("button", { name: "Open setup wizard…" }).click();
+  await wizard().waitFor();
+  await wizard().getByRole("button", { name: /QC and statistics/ }).click();
+  const ctl = "dialog.assay-wizard .qpcr-controls";
+  expect("P-30: the QC step shows the chip “NTC amplified for GAPDH (Cq 34)”",
+    await waitText(ctl, "NTC amplified for GAPDH (Cq 34)", 60000), await textOf(ctl).catch(() => ""));
+  const ntcRows = await page.locator(`${ctl} table`, { hasText: "GAPDH samples against NTC amplified" })
+    .locator("tbody tr").allInnerTexts();
+  expect("P-30: the QC step lists the four GAPDH samples with their cycles to the NTC",
+    ntcRows.length === 4 && /^CON-1\s+CON\s+18\s+16\s+clear/.test(ntcRows[0]) && /^LPS-2\s+LPS\s+17\.5\s+16\.5\s+clear/.test(ntcRows[3]),
+    ntcRows.join(" | ").replace(/\s+/g, " "));
+  expect("P-30: the no-RT well of CON-1 flags CON-1 (3 cycles, within 5) and the IL6 NTC is clean",
+    (await textOf(ctl)).includes("No-RT control “CON-1 no-RT” amplified for GAPDH (Cq 21)")
+    && (await textOf(ctl)).includes("CON-1 CON 18 3 within 5 cycles")
+    && (await textOf(ctl)).includes("NTC clean for IL6"));
+  expect("P-30: the rule cites MIQE (Bustin et al. 2009)",
+    (await textOf(ctl)).includes("MIQE (Bustin et al. 2009, Clin Chem 55:611)"));
+  // the thresholds are editable: counting only Cq below 33 clears the NTC
+  await wizard().getByLabel("Count control amplification below Cq").fill("33");
+  expect("P-30: a Cq limit of 33 no longer counts the NTC at 34",
+    await page.waitForFunction((sel) => {
+      const t = document.querySelector(sel)?.textContent ?? "";
+      return t.includes("NTC clean for GAPDH") && !t.includes("NTC amplified for GAPDH");
+    }, ctl, { timeout: 60000 }).then(() => true, () => false), await textOf(ctl).catch(() => ""));
+  await wizard().getByRole("button", { name: "Cancel" }).click();
+  await wizard().waitFor({ state: "detached", timeout: 10000 });
+  const res = await textOf(".qpcr-results .qpcr-controls");
+  expect("P-30: the results sheet shows the same checks before the fold changes",
+    res.includes("NTC amplified for GAPDH (Cq 34)")
+    && await page.locator(".qpcr-results .qpcr-controls ~ .qpcr-target").count() === 1, res.slice(0, 200));
+  const groupsShown = await page.locator(".qpcr-results .qpcr-target tbody th").allInnerTexts();
+  expect("P-30: the controls are not a group: IL6 rows are CON and LPS only",
+    groupsShown.slice(0, 2).join("|") === "CON (calibrator)|LPS" && !groupsShown.some((g) => /NTC|no-RT/.test(g)),
+    groupsShown.join(" | "));
 }
 console.log(errors.length ? `errors:\n${errors.join("\n")}` : "errors: none");
 await browser.close();

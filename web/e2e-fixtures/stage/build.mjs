@@ -349,6 +349,27 @@ const longData = (name, names, rows, categorical) => data(name, {
   write("detection-limits.json", project("Detection limits", [t, r], { selected: r.id }));
 }
 
+// qpcr-controls.json: a hand-built qPCR plate (engine/tests/
+// test_qpcr_controls.py) with an NTC well for GAPDH at Cq 34, a clean
+// NTC for IL6 and a no-RT well of CON-1 at Cq 21 (FEATURE-PLAN P-30)
+{
+  const block = {
+    GAPDH: { "CON-1": [17.9, 18.0, 18.1], "CON-2": [17.0, 17.1, 17.2], "LPS-1": [18.0, 18.1, 18.2], "LPS-2": [17.4, 17.5, 17.6] },
+    IL6: { "CON-1": [27.3, 27.3, 27.3], "CON-2": [27.0, 27.0, 27.0], "LPS-1": [24.1, 24.1, 24.1], "LPS-2": [24.3, 24.3, 24.3] },
+  };
+  const rows = [];
+  for (const [target, samples] of Object.entries(block)) {
+    for (const [s, cqs] of Object.entries(samples)) for (const c of cqs) rows.push([s, s.split("-")[0], target, String(c)]);
+  }
+  rows.push(["NTC", "", "GAPDH", "34"], ["NTC", "", "GAPDH", "Undetermined"], ["NTC", "", "IL6", "Undetermined"],
+    ["CON-1 no-RT", "CON", "GAPDH", "21"]);
+  rows.forEach((r, i) => r.push(`${"ABCDEFGH"[Math.floor(i / 12)]}${(i % 12) + 1}`));
+  const t = longData("qPCR controls", ["Sample", "Group", "Target", "Cq", "Well"], rows,
+    ["Sample", "Group", "Target", "Well"]);
+  const r = results(t, "assay_qpcr", { referenceGenes: ["GAPDH"], calibrator: "CON" }, "qPCR of qPCR controls");
+  write("qpcr-controls.json", project("qPCR controls", [t, r], { selected: r.id }));
+}
+
 // qpcr-lod.json: a qPCR plate with an IL6 hit-rate dilution series, 8
 // quantities x 12 wells (engine/tests/reference/lod95_probit.py,
 // FEATURE-PLAN P-29): the LoD95 by probit, 26.17 copies (15 to 76.6)

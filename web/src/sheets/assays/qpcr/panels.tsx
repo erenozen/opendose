@@ -14,8 +14,10 @@ import { interval, num, pValue, testSummary } from "../kit/format";
 import { Chip, ColumnPicker, KV, LinkedOutputs, Note, Warnings } from "../kit/ui";
 import { useAssay, type SpecsFor } from "../kit/useAssay";
 import { RefCheck, WizardRefCheck } from "./refPanels";
+import { ControlChecks, ControlStep } from "./controlPanels";
 import { lodMethods } from "./lod";
 import { Lod95 } from "./lodPanels";
+import { controlChip } from "./controls";
 import { referenceMethods } from "./refs";
 import Wizard from "../kit/Wizard";
 import { findCqHeader, guessCqMapping, isUndeterminedCq, resolveCqHeaders, type CqRole } from "./headers";
@@ -264,6 +266,8 @@ function QpcrWizard({ start, table, options, hasOutputs, onClose, onFinish }: {
                   Leave out wells above the Cq limit
                 </label>
               </div>
+              <ControlStep table={t} o={o} set={set} controls={d.controls} />
+              <h4>Statistics</h4>
               <TestFields o={o} set={set} />
               <p className="wizard-explain">{MIQE_NOTE}</p>
             </>
@@ -428,6 +432,12 @@ export function QpcrResults({ sheet, options: o, result: r }: ResultsProps<QpcrO
         readOnly={sheet.frozen}
         onChoose={(act, cands) => a.save({ ...o, referenceGenes: act.genes, referenceCandidates: cands })} />
       <Note>{MIQE_NOTE}</Note>
+      {r.controls && (
+        <>
+          <h4>No-template and no-RT controls</h4>
+          <ControlChecks c={r.controls} />
+        </>
+      )}
 
       {(r.per_target ?? []).map((pt: any) => {
         const st = pt.statistics;
@@ -542,6 +552,19 @@ export function QpcrResults({ sheet, options: o, result: r }: ResultsProps<QpcrO
 
 // ------------------------------------------------------------ methods
 
+/** The control sentence of the methods ("" without NTC or no-RT wells). */
+function controlMethods(c: any): string {
+  if (!c) return "";
+  const flags: any[] = c.flags ?? [];
+  const found = flags.length
+    ? flags.map((f) => `${controlChip(f)}: ${f.n_affected} of ${(f.samples ?? []).length} ${f.target} samples within `
+      + `${c.min_delta} cycles`).join("; ")
+    : "no control amplified";
+  return `No-template and no-RT controls (${c.n_wells} wells) were checked as MIQE asks (Bustin et al. 2009): a `
+    + `control well with a Cq${c.max_cq != null ? ` below ${c.max_cq}` : ""} counted as amplified, and a sample less `
+    + `than ${c.min_delta} cycles before it as affected (${found}). `;
+}
+
 export function QpcrMethods({ options: o, result: r }: ResultsProps<QpcrOptions, QpcrResult>) {
   if (!r || r.error) return null;
   const effs = Object.entries(r.efficiencies ?? {}) as [string, any][];
@@ -560,7 +583,7 @@ export function QpcrMethods({ options: o, result: r }: ResultsProps<QpcrOptions,
       + `${st?.multiple_comparisons ? `, ${o.comparisons === "dunnett" ? "Dunnett's" : o.comparisons} post test` : ""})` : ""}; `
     + `fold changes are shown with ${Math.round(o.ciLevel * 100)}% confidence intervals back-transformed `
     + `from the ΔCq scale (asymmetric), following MIQE 2.0 (Bustin et al. 2025). `
-    + `${referenceMethods(r.reference_stability, r.reference_genes ?? [])} ${lodMethods(r.lod95, `${Math.round(o.ciLevel * 100)}%`)}Analysed in OpenDose.`
+    + `${referenceMethods(r.reference_stability, r.reference_genes ?? [])} ${controlMethods(r.controls)}${lodMethods(r.lod95, `${Math.round(o.ciLevel * 100)}%`)}Analysed in OpenDose.`
       .replace(/^ /, "");
   return <CopyableMethods text={text} />;
 }
