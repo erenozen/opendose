@@ -6,7 +6,8 @@
 // comparing regression lines (P-13), pairs of rows of a contingency table
 // (P-14) and two event rates (P-47); and the fit models of wave 1: Weibull
 // and hormesis models (P-19), range constraints (P-20), initial values and
-// the fit report (P-21) and simulating a user-defined equation (P-51).
+// the fit report (P-21) and simulating a user-defined equation (P-51);
+// quasi-Poisson (P-46).
 // Each number asserted here is pinned in the engine tests from an
 // independent reference (engine/tests/reference/).
 // Usage: node scripts/e2e-results.mjs [http://localhost:5173/]
@@ -726,6 +727,47 @@ await page.waitForSelector('.pane-results[data-live="true"] .results-table', { t
     /does not say whether subjects with higher pH have higher PaCO2/.test(scope), scope);
   expect("P-27 with the Subject role set, the chip is gone",
     await page.locator(".pane-answer").getByRole("button", { name: /Subjects ignored/ }).count() === 0);
+}
+
+// --- P-46: quasi-Poisson for overdispersed counts --------------------------
+{
+  // engine/tests/reference/quasi_poisson.py (statsmodels GLM Poisson,
+  // scale="X2", use_t=True): Ames TA98 revertants (Margolin et al. 1981),
+  // phi = 3.085 on 15 df; SE of log(Dose + 10) 0.05700 (Poisson) grows to
+  // 0.1001, P 0.006030; F(2, 15) = 5.615, P 0.01512
+  const ref = JSON.parse(readFileSync(join(here, "../../engine/tests/reference/quasi_poisson.json"), "utf8"));
+  await pastedTable("multivariable", "Ames TA98", "Dose\tlog(Dose + 10)\tRevertants\n"
+    + ref.data.dose.map((d, i) => `${d}\t${ref.data.log_dose_plus_10[i]}\t${ref.data.revertants[i]}`).join("\n")
+    + "\n");
+  await page.getByRole("button", { name: "Analyze", exact: true }).click();
+  await page.getByRole("menuitem", { name: /^Poisson regression/ }).click();
+  await liveResults(/Poisson regression of Revertants/);
+  const row = async (label) => (await page.locator(".pane-results tr", { hasText: label }).first()
+    .innerText().catch(() => "")).replace(/\s+/g, " ").trim();
+  const before = await row("log(Dose + 10)");
+  await openChecks();
+  const chip = page.locator(".pane-answer").getByRole("button", { name: "Check: Counts are overdispersed (φ = 3.085)" });
+  expect("P-46 acceptance: the Checks chip says the counts are overdispersed (φ = 3.085)", await appears(chip));
+  await chip.click();
+  await page.locator(".pane-answer").getByRole("button", { name: "Use quasi-Poisson standard errors" }).click();
+  await liveResults(/Quasi-Poisson regression of Revertants/);
+  const after = await row("log(Dose + 10)");
+  const seOf = (text) => Number(text.split(" ")[5]);
+  expect("P-46 acceptance: the SE of log(Dose + 10) grows by √φ = 1.756 (0.057 to 0.1001), |t| 3.195, P 0.00603",
+    /^β2: log\(Dose \+ 10\) 0\.3198 0\.057 /.test(before)
+      && after === "β2: log(Dose + 10) 0.3198 0.1001 0.1064 to 0.5332 3.195 0.00603 ** 1.377 1.112 to 1.704",
+    `${before} → ${after} (ratio ${(seOf(after) / seOf(before)).toFixed(3)})`);
+  const fTest = (await page.locator(".pane-results .mv-kv", { hasText: "F test (vs intercept only)" }).first()
+    .innerText().catch(() => "")).replace(/\s+/g, " ").trim();
+  expect("P-46 the overall test is F(2, 15) = 5.615, P 0.01512 (no AICc under quasi-Poisson)",
+    fTest === "F test (vs intercept only) F 5.615 Degrees of freedom 2, 15 P value 0.01512 *"
+      && !(await page.locator(".pane-results").innerText()).includes("AICc"), fTest);
+  const methods = await page.locator(".methods-text p").first().innerText().catch(() => "");
+  expect("P-46 acceptance: the methods name quasi-Poisson and φ = 3.085",
+    /modeled by quasi-Poisson regression/.test(methods) && /φ = Pearson χ² \/ df = 3\.085/.test(methods)
+      && /F\(2, 15\) = 5\.615/.test(methods), methods.slice(0, 200));
+  const okChip = page.locator(".pane-answer").getByRole("button", { name: "OK: Quasi-Poisson SEs (φ = 3.085)" });
+  expect("P-46 the chip now says quasi-Poisson is in use and offers the way back", await appears(okChip));
 }
 
 // ------------------------------------------------------------------------

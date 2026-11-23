@@ -2151,7 +2151,8 @@ def _logistic_regression(data, options):
 def _poisson_regression(data, options):
     """data: multiple-variables table. options: {outcome, predictors,
     interactions?, reference_levels?, exposure? (variable name: its log is
-    an offset), ci_level?, ci_method?: profile|wald}."""
+    an offset), ci_level?, ci_method?: profile|wald, quasi?: false
+    (quasi-Poisson: SEs times sqrt(phi), t tests, Wald t CIs, F test)}."""
     variables = _mv_variables(data)
     return _with_analysed_rows(
         {"analysis": "poisson_regression",
@@ -2162,7 +2163,8 @@ def _poisson_regression(data, options):
              reference_levels=options.get("reference_levels"),
              exposure=options.get("exposure") or None,
              ci_level=options.get("ci_level", 0.95),
-             ci_method=options.get("ci_method", "profile"))},
+             ci_method=options.get("ci_method", "profile"),
+             quasi=bool(options.get("quasi", False)))},
         variables, [options["outcome"], *options["predictors"]])
 
 

@@ -28,8 +28,9 @@ export interface Chip {
   /** A one-click fix offered under the detail: Assign replicates…, the
    *  power tool, or the multiplicity alternatives (ANOVA / Holm-Šídák). */
   action?: "assign-replicates" | "open-power" | "multiplicity" | "interaction" | "bar-axis"
-    | "sex-two-way";
-  /** The sheet a one-click fix changes (the bar graph of "bar-axis"). */
+    | "sex-two-way" | "quasi-poisson";
+  /** The sheet a one-click fix changes (the bar graph of "bar-axis", the
+   *  results sheet of "quasi-poisson"). */
   target?: string;
   /** Where the rule comes from, linked under the detail. */
   sources?: Source[];

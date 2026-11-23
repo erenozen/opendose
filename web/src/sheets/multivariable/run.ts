@@ -68,9 +68,14 @@ export interface PoissonResult extends Failure {
   log_likelihood: number; null_log_likelihood: number; max_log_likelihood: number;
   deviance: number; deviance_df: number; deviance_p: number; null_deviance: number;
   pseudo_r_squared: number | null;
-  dispersion: { pearson_chi2: number; df: number; phi: number; phi_deviance: number };
+  dispersion: { pearson_chi2: number; df: number; phi: number; phi_deviance: number; se_factor?: number };
   likelihood_ratio_test: { G: number; df: number; p: number | null };
-  model_comparison: Record<"intercept_only" | "selected",
+  /** "quasipoisson": SEs × √φ, t tests on n − k df, Wald t CIs (P-46). */
+  family?: "poisson" | "quasipoisson";
+  /** Quasi-Poisson only: the overall F test (G / (k − 1) / φ). */
+  f_test?: { F: number | null; df1: number; df2: number; p: number | null };
+  /** Absent under quasi-Poisson (no likelihood, no AIC). */
+  model_comparison?: Record<"intercept_only" | "selected",
     { df: number; aic: number; aicc: number | null; log_likelihood: number }>;
   predicted: (number | null)[]; observed: (number | null)[];
   warnings: string[];
