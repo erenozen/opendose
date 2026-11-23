@@ -298,9 +298,11 @@ export const TWO_WAY_ADDITIVE_NOTE = "The additive model leaves out the interact
 
 export type ColumnGraphType = "scatter" | "bar" | "box" | "violin" | "raincloud";
 
+/** Neutral words: the centre and error bars are the graph's own choice
+ *  (the graph-type select says which, sheets/column/kindLabel.ts). */
 export const COLUMN_GRAPH_LABELS: Record<ColumnGraphType, string> = {
-  scatter: "Scatter (points + mean ± SD)",
-  bar: "Bar (mean ± SD + points)",
+  scatter: "Scatter (points + summary)",
+  bar: "Bar (summary + points)",
   box: "Box & whiskers",
   violin: "Violin",
   raincloud: "Raincloud (half violin, box and points)",

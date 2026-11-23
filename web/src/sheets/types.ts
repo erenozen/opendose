@@ -129,6 +129,11 @@ export interface AnalysisDef<O = unknown, R = unknown> {
 export interface GraphKindDef<O = unknown, R = unknown> {
   id: string;
   label: string;
+  /** The graph-type select's words for this kind when the graph `graph`
+   *  (with its settings and bound analysis) would draw it, where `label`
+   *  cannot say it (the column graphs' centre). Default: `label`. */
+  optionLabel?: (graph: GraphSheet, table: DataTableModel, result: R | null,
+    options: O | null) => string;
   /** Kinds in the same group can be switched between in the graph header. */
   group: string;
   /** Analysis whose result the plot draws, or null if it plots the table. */

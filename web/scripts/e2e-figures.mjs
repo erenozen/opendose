@@ -800,6 +800,9 @@ const fitLegendText = () => page.locator(".plot-card .figure-legend-text").textC
   const legend = await page.locator(".plot-card .figure-legend-text").innerText().catch(() => "");
   expect("the legend names the geometric summary",
     legend.startsWith("Geometric mean ×/÷ geometric SD (bars), with individual values."), legend);
+  const barKind = await page.locator(".plot-card").getByLabel("Graph type").locator('option[value="bar"]').textContent();
+  expect("the graph type names the geometric summary: 'Bar (geometric mean ×/÷ geometric SD + points)'",
+    barKind === "Bar (geometric mean ×/÷ geometric SD + points)", barKind);
   await openChecks();
   const chip = page.getByRole("button", { name: /Bars on a log axis/ });
   expect("Checks: bars on a log axis are flagged", await chip.count() === 1);
@@ -879,9 +882,15 @@ const fitLegendText = () => page.locator(".plot-card .figure-legend-text").textC
   await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
     .some((t) => t.meta?.odTag?.role === "summary"), null, { timeout: 120000 });
   await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 120000 });
+  // the graph-type select says what the scatter draws (it used to read
+  // "Scatter (points + mean ± SD)" whatever the centre)
+  const kindText = (v) => page.locator(".plot-card").getByLabel("Graph type")
+    .locator(`option[value="${v}"]`).textContent();
   let sm = await summaries();
   expect("t test: the new graph shows mean ± SD (Control mean 23.967)",
     sm.length === 3 && Math.abs(sm[0][1] - 23.966666666666665) < 1e-9, JSON.stringify(sm[0]));
+  expect("t test: the graph type reads 'Scatter (points + mean ± SD)'",
+    await kindText("scatter") === "Scatter (points + mean ± SD)", await kindText("scatter"));
   expect("no rank line for a t test", await page.locator(".pane-answer .answer-rank").count() === 0);
   await chooseMannWhitney();
   await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
@@ -897,6 +906,11 @@ const fitLegendText = () => page.locator(".plot-card .figure-legend-text").textC
   expect("the legend says median with IQR",
     (await page.locator(".plot-card .figure-legend-text").innerText().catch(() => ""))
       .startsWith("Median with IQR, with individual values."));
+  expect("Mann-Whitney: the graph type reads 'Scatter (points + median with IQR)', and the bar option too",
+    await kindText("scatter") === "Scatter (points + median with IQR)"
+      && await kindText("bar") === "Bar (median with IQR + points)"
+      && await page.locator(".plot-card").getByLabel("Graph type").inputValue() === "scatter",
+    `${await kindText("scatter")} | ${await kindText("bar")}`);
   await shot("rank-median-iqr");
 
   // a graph saved before keeps what it draws
@@ -910,6 +924,8 @@ const fitLegendText = () => page.locator(".plot-card .figure-legend-text").textC
     sm.length === 3 && Math.abs(sm[0][1] - 23.966666666666665) < 1e-9
       && oldLine.includes("compares distributions (ranks); the graph shows mean ± SD."),
     `${JSON.stringify(sm[0])} / ${oldLine}`);
+  expect("a graph saved before: the graph type still reads mean ± SD under Mann-Whitney",
+    await kindText("scatter") === "Scatter (points + mean ± SD)", await kindText("scatter"));
 }
 
 // --- raincloud plots and violins with a stated bandwidth (P-53). The

@@ -314,3 +314,25 @@ the estimation plot and reads the two lines, the CI ends (to 5e-5) and
 the legend; a paired t test against the unpaired plot draws nothing and
 says why. `scripts/e2e-export.mjs` finds the margin labels and the dashed
 lines in the SVG export.
+
+## The graph-type select says what a column graph draws (P-25, P-26)
+
+The graph-type select read "Scatter (points + mean ± SD)" and "Bar (mean
+± SD + points)" whatever the centre drawn. It now names the centre the
+graph's own setting and the bound test give
+(`sheets/column/kindLabel.ts`, through the graph kind's `optionLabel`):
+"Scatter (points + median with IQR)" under a rank test with "Follow the
+test", "Bar (geometric mean ×/÷ geometric SD + points)", "Bar (mean with
+95% CI)" when bars hide the points. Summary data (entered means) and
+SuperPlots keep the neutral labels "Scatter (points + summary)" and "Bar
+(summary + points)", as do the other places that list the kinds. Only
+words change: no setting is written. No e2e step selected these options
+by their text (all select by value), so no selector changed.
+
+`kindLabel.test.ts` covers a graph saved before (mean ± SD), "Follow the
+test" under a t test and under Mann-Whitney, each chosen centre, bars
+without points, and the neutral cases. `scripts/e2e-figures.mjs` reads
+the option text in the P-25 and P-26 steps: "Scatter (points + mean ±
+SD)" under the t test, "Scatter (points + median with IQR)" and "Bar
+(median with IQR + points)" under Mann-Whitney (the selected kind still
+"scatter"), mean ± SD for the graph saved before, and the geometric bar.
