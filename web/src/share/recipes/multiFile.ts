@@ -10,6 +10,7 @@
 // replicate map set so SuperPlots and statistics on replicate means work.
 // Pure (fflate's unzip is synchronous and runs in node).
 import { unzipSync } from "fflate";
+import { textOf } from "../../lib/fileText.ts";
 import { cellNumber } from "../tidy.ts";
 import { TABLE_FILE } from "./dropKind.ts";
 import {
@@ -32,14 +33,6 @@ export const DEFAULT_TEMPLATE = "{condition}_rep{replicate}_img{image}.csv";
 export const FILE_COLUMN = "File";
 export const FOLDER_COLUMN = "Folder";
 
-/** Text of a file's bytes: UTF-8 (a byte-order mark dropped), UTF-16 when
- *  the file starts with its byte-order mark. */
-export function decodeText(bytes: Uint8Array): string {
-  if (bytes[0] === 0xff && bytes[1] === 0xfe) return new TextDecoder("utf-16le").decode(bytes.subarray(2));
-  if (bytes[0] === 0xfe && bytes[1] === 0xff) return new TextDecoder("utf-16be").decode(bytes.subarray(2));
-  return new TextDecoder("utf-8").decode(bytes).replace(/^﻿/, "");
-}
-
 /** Whether a zip entry is worth reading: a table file, not a folder or
  *  the resource forks macOS adds (__MACOSX/, ._name). */
 export function isTableEntry(path: string): boolean {
@@ -51,7 +44,7 @@ export function isTableEntry(path: string): boolean {
 /** The table files inside a zip, in natural name order. */
 export function unzipTables(bytes: Uint8Array): NamedText[] {
   const entries = unzipSync(bytes, { filter: (f) => isTableEntry(f.name) });
-  return sortNatural(Object.entries(entries).map(([name, data]) => ({ name, text: decodeText(data) })));
+  return sortNatural(Object.entries(entries).map(([name, data]) => ({ name, text: textOf(data) })));
 }
 
 export function baseName(path: string): string {

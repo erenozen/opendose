@@ -13,7 +13,9 @@
 //    and column / grouped tables get "Statistics on replicate means", so
 //    the test's n is the experiments and the legend reads "n = 3
 //    independent experiments (9 wells) per group". XY tables get the map
-//    (the legend counts experiments; curve fits keep every value).
+//    (the legend counts experiments); a curve fit keeps its fit of every
+//    value and adds one fit per experiment with their potencies
+//    summarised on n = experiments (sheets/xy/experiments.ts).
 // Pure apart from ids (injected); unit-tested.
 import type { IdFactory } from "../project/ids.ts";
 import { findSheet, updateSheet, updateTable } from "../project/ops.ts";

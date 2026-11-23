@@ -141,6 +141,46 @@ test("linkDerived refuses cycles and producers on other tables", () => {
   assert.deepEqual((findSheet(linked, "d9") as DataSheet).derived, { sourceId: "d1", resultsId: "r1" });
 });
 
+test("a project saved before DerivedLink.output opens and saves unchanged (P-08)", () => {
+  // as serializeProject wrote it before the field existed: a Transform
+  // chain and a grouped Row-means linked table
+  const old = JSON.stringify({
+    version: 2, title: "Saved 2026-11-01",
+    sheets: [
+      { id: "d1", kind: "data", name: "Raw", table: table(["1", "2"]) },
+      { id: "r1", kind: "results", parentId: "d1", analysis: "transform", options: {}, name: "Transform of Raw" },
+      { id: "d2", kind: "data", name: "Transformed Raw", table: table(["0", "0.301"]),
+        derived: { sourceId: "d1", resultsId: "r1" } },
+    ],
+    prefs,
+  });
+  const p = parseProjectFile(old, { prefs, ids: sequentialIds("o") });
+  const d2 = findSheet(p, "d2") as DataSheet;
+  assert.deepEqual(d2.derived, { sourceId: "d1", resultsId: "r1" });
+  assert.ok(!("output" in d2.derived!));
+  assert.deepEqual(derivedOutputs(p, "r1").map((s) => s.id), ["d2"]);
+  // saving it again writes the link exactly as it was read
+  const again = JSON.parse(serializeProject(p));
+  assert.deepEqual(again.sheets.find((s: { id: string }) => s.id === "d2").derived,
+    { sourceId: "d1", resultsId: "r1" });
+});
+
+test("a named output survives save and open; junk outputs are dropped", () => {
+  const p = makeProject(prefs, [
+    makeDataSheet("d1", "Dose response", table(["1", "2"])),
+    makeResultsSheet("r1", "d1", "nonlin", {}, "Nonlin fit of Dose response"),
+    makeDerivedSheet("d2", "LogIC50 per experiment", table(["", ""]),
+      { sourceId: "d1", resultsId: "r1", output: "potency" }),
+  ]);
+  const back = parseProjectFile(serializeProject(p), { prefs, ids: sequentialIds("x") });
+  assert.deepEqual((findSheet(back, "d2") as DataSheet).derived,
+    { sourceId: "d1", resultsId: "r1", output: "potency" });
+  const raw = JSON.parse(serializeProject(p));
+  raw.sheets[2].derived.output = 42;
+  const junk = parseProjectFile(JSON.stringify(raw), { prefs, ids: sequentialIds("y") });
+  assert.deepEqual((findSheet(junk, "d2") as DataSheet).derived, { sourceId: "d1", resultsId: "r1" });
+});
+
 test("derived links and simulation specs survive save and open", () => {
   const p = chain();
   p.sheets[0] = { ...(p.sheets[0] as DataSheet), simulation: { kind: "xy", seed: 42, form: { model: "m" } } };

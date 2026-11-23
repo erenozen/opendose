@@ -521,6 +521,81 @@ await page.keyboard.press("Escape");
     && await page.locator(".data-table tbody tr").count() >= 6);
 }
 
+
+// --- file pickers decode bytes the same way (P-07). One ImageJ results
+// file ("Area (µm²)", "37 °C") as UTF-8, UTF-8 with a BOM, UTF-16LE and
+// Windows-1252, and a StepOne export headed "Cт" (Cyrillic te) as UTF-16LE
+// and UTF-8 (e2e-fixtures/encodings/make_fixtures.py): the densitometry
+// picker, the qPCR picker and the Import dialog read identical tables with
+// the symbols intact; a .xls in the densitometry picker is refused with
+// "Save it as .xlsx or .csv".
+{
+  const ENC = new URL("../e2e-fixtures/encodings/", import.meta.url).pathname;
+  // the picker's own status line (the step's blocker is another status)
+  const status = async () => (await wizard().locator(".assay-setup [role=status]").first().innerText()).trim();
+  await startAssay("Western blot densitometry", { sample: false, name: "Encodings" });
+  const densRead = [];
+  for (const enc of ["utf16le", "cp1252", "utf8-bom", "utf8"]) {
+    await wizard().locator('input[aria-label="Densitometry export"]').setInputFiles(`${ENC}imagej-results.${enc}.csv`);
+    await page.waitForFunction(() => /rows read/.test(document.querySelector("dialog.assay-wizard")?.textContent ?? ""),
+      null, { timeout: 10000 }).catch(() => {});
+    const opts = await wizard().locator(".column-picker select").first().locator("option").allInnerTexts();
+    densRead.push({ enc, st: await status(), opts: opts.join("|") });
+  }
+  expect("densitometry picker: the ImageJ file reads the same in UTF-16LE, cp1252, UTF-8 with and without BOM, µm² intact",
+    densRead.every((r) => r.st === "6 rows read: check the columns, then use them." && r.opts === densRead[0].opts)
+    && densRead[0].opts.includes("Area (µm²)"), JSON.stringify(densRead));
+  await wizard().locator('input[aria-label="Densitometry export"]').setInputFiles(`${ENC}densitometry.xls`);
+  const xls = await status();
+  expect("densitometry picker: a .xls is refused with the next step, not read as garbage",
+    xls === "Could not read “densitometry.xls”: OpenDose reads .xlsx workbooks, not .xls files. Save it as .xlsx or .csv, then choose it again.",
+    xls);
+  const accept = await wizard().locator('input[aria-label="Densitometry export"]').getAttribute("accept");
+  expect("densitometry picker no longer offers .xls", !/\.xls(,|$)/.test(accept ?? ""), accept);
+  await wizard().getByRole("button", { name: "Cancel" }).click();
+  await wizard().waitFor({ state: "detached", timeout: 10000 });
+
+  await startAssay("qPCR (ΔCq / ΔΔCq)", { sample: false, name: "StepOne encodings" });
+  const qRead = [];
+  for (const enc of ["utf16le", "utf8"]) {
+    await wizard().locator('input[aria-label="Cq export file"]').setInputFiles(`${ENC}stepone-cq.${enc}.txt`);
+    await page.waitForFunction(() => /Read \d+ wells/.test(document.querySelector("dialog.assay-wizard")?.textContent ?? ""),
+      null, { timeout: 10000 }).catch(() => {});
+    qRead.push({ enc, st: await status() });
+  }
+  // the header row is found by its "Cт": bytes read in the wrong encoding have none
+  expect("qPCR picker: StepOne's Cт column is found in UTF-16LE and UTF-8 alike (8 wells)",
+    qRead.every((r) => r.st.startsWith("Read 8 wells.")), JSON.stringify(qRead));
+  await wizard().getByRole("button", { name: "Cancel" }).click();
+  await wizard().waitFor({ state: "detached", timeout: 10000 });
+
+  // the Import dialog: detects the encoding, keeps the manual override
+  await fileMenu(page, "New data table…");
+  const nd = page.locator(".new-table-dialog");
+  await nd.locator('input[name="table-type"][value="column"]').check();
+  await nd.getByLabel("Table name").fill("Encoded import");
+  await nd.getByRole("button", { name: "Create table" }).click();
+  await page.waitForSelector(".grid-toolbar");
+  await page.getByRole("button", { name: "Import…", exact: true }).click();
+  const imp = page.locator(".import-dialog");
+  const impRead = [];
+  for (const enc of ["utf16le", "cp1252"]) {
+    await imp.locator('input[aria-label="File to import"]').setInputFiles(`${ENC}imagej-results.${enc}.csv`);
+    await page.waitForFunction(() => document.querySelectorAll(".import-preview tbody tr").length > 0, null, { timeout: 10000 }).catch(() => {});
+    const heads = await imp.locator(".import-preview thead tr:nth-child(2) th").allInnerTexts();
+    const detected = await imp.getByLabel("Text encoding").locator("option:checked").innerText();
+    impRead.push({ enc, detected, heads: heads.join("|"), rows: await imp.locator(".import-preview tbody tr").count() });
+  }
+  expect("Import dialog: UTF-16LE and cp1252 detected, identical columns with Area (µm²)",
+    impRead[0].detected === "Detect (UTF-16)" && impRead[1].detected === "Detect (Windows-1252)"
+    && impRead[0].heads === impRead[1].heads && impRead[0].heads.includes("Area (µm²)") && impRead[0].rows === 6,
+    JSON.stringify(impRead));
+  await imp.getByLabel("Text encoding").selectOption("utf-8");
+  const forced = (await imp.locator(".import-preview thead tr:nth-child(2) th").allInnerTexts()).join("|");
+  expect("Import dialog: the manual encoding still overrides (cp1252 read as UTF-8 loses µ²)",
+    !forced.includes("µm²") && forced.includes("�"), forced);
+  await imp.getByRole("button", { name: "Cancel" }).click();
+}
 console.log(errors.length ? `errors:\n${errors.join("\n")}` : "errors: none");
 await browser.close();
 if (fail.length || errors.length) {

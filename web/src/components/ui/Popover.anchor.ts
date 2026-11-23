@@ -55,6 +55,9 @@ export function useAnchoredPosition(ref: RefObject<HTMLElement | null>, mounted:
       if (!a || !el.isConnected) return;
       const { side = "bottom", align = "start", sideOffset = 6, collisionPadding,
         collisionBoundary } = latest.current.opts;
+      // Measured at its natural size; a layer scrolled inside keeps its
+      // place (clearing max-height clamps scrollTop to 0).
+      const scrolled = el.scrollTop;
       el.style.maxHeight = "";
       el.style.maxWidth = "";
       const pad = typeof collisionPadding === "function" ? collisionPadding() : collisionPadding;
@@ -78,14 +81,17 @@ export function useAnchoredPosition(ref: RefObject<HTMLElement | null>, mounted:
       if (p.maxWidth !== undefined) el.style.maxWidth = `${p.maxWidth}px`;
       el.style.setProperty("--ui-origin", `${Math.round(p.originX)}px ${Math.round(p.originY)}px`);
       el.dataset.side = p.side;
+      if (scrolled) el.scrollTop = scrolled;
     };
     update();
     let frame = 0;
-    const schedule = () => {
+    const schedule = (e?: Event) => {
+      // Scrolling inside the layer does not move its anchor.
+      if (e?.type === "scroll" && e.target instanceof Node && el.contains(e.target)) return;
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(update);
     };
-    const ro = new ResizeObserver(schedule);
+    const ro = new ResizeObserver(() => schedule());
     ro.observe(el);
     window.addEventListener("resize", schedule);
     window.addEventListener("scroll", schedule, { capture: true, passive: true });

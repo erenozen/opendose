@@ -2,10 +2,11 @@
 // table files they hold, for the multi-file recipe. Everything stays in
 // the browser.
 import { unzipSync } from "fflate";
+import { textOf } from "../../lib/fileText.ts";
 import { openRecipeImport } from "../events.ts";
 import { isTableDrop, ZIP_FILE } from "./dropKind.ts";
 import {
-  decodeText, isTableEntry, sortNatural, TABLE_FILE, unzipTables, type NamedText,
+  isTableEntry, sortNatural, TABLE_FILE, unzipTables, type NamedText,
 } from "./multiFile.ts";
 
 const ZIP = ZIP_FILE;
@@ -53,7 +54,7 @@ export async function readTableFiles(files: File[]): Promise<{ files: NamedText[
       try { inside = unzipTables(bytes); } catch { inside = []; }
       if (inside.length) out.push(...inside); else skipped.push(f.name);
     } else if (TABLE_FILE.test(f.name)) {
-      out.push({ name: f.name, text: decodeText(bytes) });
+      out.push({ name: f.name, text: textOf(bytes) });
     } else {
       skipped.push(f.name);
     }

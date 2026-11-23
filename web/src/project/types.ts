@@ -244,10 +244,15 @@ export interface DataSheet extends SheetBase {
 }
 
 /** A derived table's provenance: the data sheet it is computed from and
- *  the results sheet (on that data sheet) whose analysis produces it. */
+ *  the results sheet (on that data sheet) whose analysis produces it.
+ *  `output` names which of the analysis' tables it is when one analysis
+ *  makes several (AnalysisDef.derivedTable), e.g. "potency" for a curve
+ *  fit's per-experiment logIC50 values; absent (every file saved before
+ *  it existed) = the analysis' one table. */
 export interface DerivedLink {
   sourceId: string;
   resultsId: string;
+  output?: string;
 }
 
 /** How a simulated table was made. `form` is the simulation dialog's

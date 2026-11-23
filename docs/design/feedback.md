@@ -103,10 +103,10 @@ a 44px hit area), `announce` (speak the title once on appear: use it for
 banners the user did not cause), `icon` (null for none).
 
 ```tsx
-// Correct: App.tsx:126
-<Banner tone="info" className="restore-banner" open={!!autosave.offer && !guide.startPending}>
+// Correct: components/SessionBanners.tsx
+<Banner tone="info" className="restore-banner" open={offers.length > 0 && !pending} onDismiss={hide}>
   <Banner.Title>Restore your last session?</Banner.Title>
-  <Banner.Detail>“{autosave.offer.title}”, {autosave.offer.sheets} sheets, saved ….</Banner.Detail>
+  <Banner.Detail>{describe(single)}.</Banner.Detail>
   <Banner.Actions><Button variant="primary" onClick={…}>Restore</Button></Banner.Actions>
 </Banner>
 

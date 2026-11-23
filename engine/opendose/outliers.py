@@ -8,7 +8,8 @@ the critical value uses the t distribution:
     G_crit = ((n-1)/sqrt(n)) * sqrt(t^2 / (n - 2 + t^2)),
     t = t_ppf(1 - alpha/(2n), n-2)
 
-ROUT for column data is on the roadmap (requires robust regression).
+ROUT for column data (robust median / P68 scale, then the FDR test of
+Motulsky & Brown 2006) is `methodcomp.rout_column`.
 """
 
 from __future__ import annotations
