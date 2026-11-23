@@ -161,6 +161,11 @@ export const SRC = {
   // 2026-11-23 (PMC record; the full text is page images).
   arunlakshana1959: { label: "Arunlakshana & Schild 1959, Some quantitative uses of drug antagonists, Br J Pharmacol Chemother 14:48",
     url: "https://pmc.ncbi.nlm.nih.gov/articles/PMC1481829/" },
+  // Inverse prediction (calibration): the inversion interval of an
+  // unknown read off a fitted curve, with the scatter of its own reading
+  // (P-22). Loaded 2026-11-24 (the article page, Sections 2.1 and 3.1).
+  greenwell2014: { label: "Greenwell & Schubert Kabban 2014, investr: an R package for inverse estimation, R Journal 6(1):90",
+    url: "https://journal.r-project.org/articles/RJ-2014-009/" },
   // Holm's step-down procedure (Holm-Šídák: its Šídák form).
   holm1979: { label: "Holm 1979, A simple sequentially rejective multiple test procedure, Scand J Stat 6:65",
     url: "https://www.jstor.org/stable/4615733" },

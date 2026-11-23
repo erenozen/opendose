@@ -6,9 +6,12 @@
 // of a multiple-variables table, and censor marks on a new survival graph.
 //   node scripts/e2e-figures.mjs http://localhost:5194/
 import { chromium } from "playwright";
-import { join } from "node:path";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
+import { fileURLToPath } from "node:url";
+
+const here = dirname(fileURLToPath(import.meta.url));
 
 // The header's File and View menus (DECISIONS 5): open one, pick an item.
 const fileMenu = async (p, item) => {
@@ -748,6 +751,92 @@ const fitLegendText = () => page.locator(".plot-card .figure-legend-text").textC
   await shot("fit-legend-caption");
 }
 
+// --- interpolated unknowns drawn on the curve (P-22). Reference:
+// engine/tests/reference/interpolate_unknowns.py (BCA quadratic, statsmodels
+// OLS; X of each unknown and its 95% CI from investr's inversion interval).
+{
+  const REF = JSON.parse(readFileSync(join(here, "../../engine/tests/reference/interpolate_unknowns.json"), "utf8"));
+  await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]',
+    join(here, "..", "e2e-fixtures", "stage", "interpolation.json"));
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+    .some((t) => String(t.name ?? "").endsWith("(unknowns)")), null, { timeout: 120000 }).catch(() => {});
+  const m = await page.evaluate(() => {
+    const gd = document.querySelector(".plot-card .plot");
+    const t = (gd?.data ?? []).find((d) => String(d.name ?? "").endsWith("(unknowns)"));
+    const fit = (gd?.data ?? []).find((d) => d.meta?.odTag?.role === "fit");
+    return t ? { x: [...t.x], y: [...t.y], plus: [...(t.error_x?.array ?? [])],
+      minus: [...(t.error_x?.arrayminus ?? [])], symbol: t.marker?.symbol, fill: t.marker?.color,
+      edge: t.marker?.line?.color, fitColor: fit?.line?.color,
+      curve: fit ? { x: [...fit.x], y: [...fit.y] } : null } : null;
+  });
+  const R = REF.bca.results.slice(0, 3);
+  expect("P-22 three unknown markers at each interpolated X (reference to 1e-6) and its Y",
+    m?.x.length === 3 && m.x.every((x, i) => Math.abs(x / R[i].x - 1) < 1e-6) && m.y.every((y, i) => y === R[i].y),
+    JSON.stringify(m && { x: m.x, y: m.y }));
+  expect("P-22 each marker lies on the drawn curve",
+    m?.curve && m.x.every((x, i) => Math.abs(curveAt(m.curve, x) - m.y[i]) < 2e-3),
+    m?.curve && m.x.map((x) => curveAt(m.curve, x)).join(","));
+  expect("P-22 horizontal bars span each unknown's 95% CI",
+    m && m.x.every((x, i) => Math.abs(x - m.minus[i] - R[i].ci[0]) < 1e-3 * R[i].x
+      && Math.abs(x + m.plus[i] - R[i].ci[1]) < 1e-3 * R[i].x), JSON.stringify(m && [m.minus, m.plus]));
+  expect("P-22 hollow diamonds in the data set's colour",
+    m?.symbol === "diamond" && m.edge === m.fitColor && m.fill !== m.fitColor, JSON.stringify(m && [m.symbol, m.fill, m.edge]));
+  await shot("fit-unknowns");
+}
+
+// --- the drawn curve's X range (P-52). Reference: the model's equation
+// written out here (Y = Bottom + (Top - Bottom) / (1 + 10^((LogIC50 - X)
+// HillSlope))) at each drawn X, with the fitted values the engine
+// returned; engine/tests/test_curve_range.py does the same in Python.
+{
+  const CRV = join(tmp, "curve-range.json");
+  writeFileSync(CRV, JSON.stringify({
+    version: 2, title: "Curve range check",
+    prefs: { defaultTableType: "xy", errorBars: "sd", ciMethod: "asymptotic", scheme: "default", digits: 4 },
+    sheets: fitFamily("crv", "Curve range", {}, { format: { datasets: { 0: { lineDash: "dash" } } } }),
+  }));
+  await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]', CRV);
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+    .some((t) => t.meta?.odTag?.role === "fit"), null, { timeout: 120000 });
+  const fits = () => page.evaluate(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+    .filter((t) => t.meta?.odTag?.role === "fit")
+    .map((t) => ({ name: t.name, x: [...t.x], y: [...t.y], dash: t.line?.dash })));
+  const before = await fits();
+  expect("P-52 by default one curve, as before (no part beyond the data)",
+    before.length === 1 && Math.abs(before[0].x[0] - -9.5) < 1e-9 && before[0].x.length === 200,
+    JSON.stringify(before.map((f) => [f.name, f.x[0], f.x.length])));
+  const fold = page.locator(".pane-controls details.curve-range");
+  await fold.locator("summary").click();
+  await page.getByRole("textbox", { name: "Start at X" }).fill("-11");
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+    .some((t) => t.meta?.odTag?.role === "fit" && t.x[0] === -11), null, { timeout: 60000 }).catch(() => {});
+  const after = await fits();
+  const main = after.find((f) => f.name === "Drug A");
+  const ext = after.filter((f) => f.name.endsWith("(beyond the data)"));
+  expect("P-52 acceptance: the curve draws from -11",
+    ext[0]?.x[0] === -11 && Math.min(...after.flatMap((f) => f.x)) === -11, JSON.stringify(ext.map((f) => f.x.slice(0, 2))));
+  expect("P-52 within the data (-9 to -5) the curve keeps its own style; beyond it, dotted",
+    main && Math.abs(main.x[0] - -9) < 1e-9 && Math.abs(main.x.at(-1) - -5) < 1e-9 && main.dash === "dash"
+    && ext.length === 2 && ext.every((f) => f.dash === "dot"),
+    JSON.stringify(after.map((f) => [f.name, f.x[0], f.x.at(-1), f.dash])));
+  const fv = await page.evaluate(() => globalThis.__opendose.results.snapshot().get("crvr")?.datasets?.[0]?.fit?.fitted_values);
+  const model = (x) => fv.Bottom + (fv.Top - fv.Bottom) / (1 + 10 ** ((fv.LogXmid - x) * fv.HillSlope));
+  const worst = fv ? Math.max(...after.flatMap((f) => f.x.map((x, i) => Math.abs(f.y[i] - model(x)) / Math.abs(model(x))))) : NaN;
+  expect("P-52 acceptance: each drawn y equals the model at its x (hand evaluation, 1e-9)",
+    worst < 1e-9, `worst relative difference ${worst}`);
+  expect("P-52 the figure legend says what the dots are",
+    (await fitLegendText()).includes("Beyond the X values tested the curve is dotted: there it is the "
+      + "model's extrapolation, not a measurement."), await fitLegendText());
+  await page.getByRole("textbox", { name: "Points on the curve" }).fill("1000");
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+    .filter((t) => t.meta?.odTag?.role === "fit").reduce((n, t) => n + t.x.length, 0) > 1000, null,
+  { timeout: 60000 }).catch(() => {});
+  const fine = await fits();
+  expect("P-52 resolution: 1000 points (plus the data's two ends, each shared by two parts)",
+    fine.reduce((n, f) => n + f.x.length, 0) === 1002 + 2, String(fine.reduce((n, f) => n + f.x.length, 0)));
+  await shot("fit-curve-range");
+}
+
 // --- drop lines on a discontinuous Y axis (P-23 follow-up). Before: no
 // lines on a broken axis, while the legend still said they marked the
 // IC50. Reference as above (fit_graph.py): LogIC50 -6.98304 at response
@@ -1257,6 +1346,53 @@ const fitLegendText = () => page.locator(".plot-card .figure-legend-text").textC
     await gPop.getByText("No brackets for the pairs of rows: grouped bars show each row").count() === 1
       && await gPop.getByRole("button", { name: "Pairwise comparisons…" }).count() === 0);
   await closeSettings();
+}
+
+// --- a new contingency table comes with its graph (Wave 1 follow-up to
+// P-14). Before: contingency analyses had no default graph, so a new
+// table got none and the brackets were reachable only from saved files.
+// The example project keeps the sheets it had (no contingency graph).
+{
+  await fileMenu(page, "New data table…");
+  const dlg = page.locator(".new-table-dialog");
+  await dlg.locator('input[name="table-type"][value="contingency"]').check();
+  await dlg.getByText("Example data").click();
+  await dlg.getByRole("button", { name: "Create table" }).click();
+  await page.waitForFunction(() => {
+    const p = globalThis.__opendose.store.project;
+    const d = p.sheets.filter((x) => x.kind === "data" && x.table.type === "contingency").at(-1);
+    return d && p.sheets.some((x) => x.kind === "graph" && x.parentId === d.id);
+  }, null, { timeout: 30000 }).catch(() => {});
+  const fam = await page.evaluate(() => {
+    const p = globalThis.__opendose.store.project;
+    const d = p.sheets.filter((x) => x.kind === "data" && x.table.type === "contingency").at(-1);
+    const r = p.sheets.find((x) => x.kind === "results" && x.parentId === d.id);
+    const g = p.sheets.filter((x) => x.kind === "graph" && x.parentId === d.id);
+    return { analysis: r?.analysis, graphs: g.map((x) => [x.graphType, x.resultsId === r?.id, x.name]) };
+  });
+  expect("a new contingency table gets the \"% of each row\" stacked graph, bound to its analysis",
+    fam.analysis === "contingency" && fam.graphs.length === 1 && fam.graphs[0][0] === "contingency_stacked_percent"
+      && fam.graphs[0][1] === true, JSON.stringify(fam));
+  await page.getByRole("treeitem", { name: fam.graphs[0]?.[2], exact: true }).first().locator(":scope > .nav-row").click();
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+    .some((t) => t.type === "bar"), null, { timeout: 60000 }).catch(() => {});
+  const bars = await page.evaluate(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+    .filter((t) => t.type === "bar").map((t) => [t.name, [...t.y].map((v) => Math.round(v * 10) / 10)]));
+  expect("its graph draws each row's outcomes as % of the row (Exposed 15 / 85, Not exposed 5 / 95)",
+    JSON.stringify(bars) === '[["Event",[15,5]],["No event",[85,95]]]', JSON.stringify(bars));
+  await shot("contingency-new-table");
+  const ex = await browser.newPage({ viewport: { width: 1200, height: 900 } });
+  await ex.goto(url, { waitUntil: "domcontentloaded" });
+  await ex.waitForFunction(() => !!globalThis.__opendose?.store?.project, null, { timeout: 120000 });
+  const kinds = await ex.evaluate(() => {
+    const p = globalThis.__opendose.store.project;
+    return p.sheets.filter((x) => x.kind === "data").map((d) => [d.table.type,
+      p.sheets.filter((x) => x.parentId === d.id).map((x) => x.kind).join("+")]);
+  });
+  expect("the example project keeps its sheets (no graph added to its contingency table)",
+    JSON.stringify(kinds) === '[["xy","results+graph"],["contingency","results"],["survival","results+graph"]]',
+    JSON.stringify(kinds));
+  await ex.close();
 }
 
 // --- the equivalence margin on the estimation plot (P-12). The P-12 e2e

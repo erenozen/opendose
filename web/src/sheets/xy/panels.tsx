@@ -22,6 +22,8 @@ import { switchResultsAnalysis } from "./switchAnalysis";
 import { RangeFlagsBar } from "./rangeFlags";
 import { ZeroDoseBar } from "./ZeroDoseBar";
 import { ExperimentsResults } from "./ExperimentsCard";
+import { FitSummaryCard } from "./FitSummaryCard";
+import { InterpolationCard } from "./InterpolationCard";
 import { SchildResults } from "./SchildCard";
 import { dropPoints, normalizeXYGraph } from "./fitGraph";
 import { fitCaption } from "./fitLegend";
@@ -155,6 +157,8 @@ export function NonlinResults({ sheet, table, result, options }:
     <>
       <RangeFlagsBar sheet={sheet} result={result} options={options} />
       <ZeroDoseBar sheet={sheet} result={result} options={options} />
+      <FitSummaryCard sheet={sheet} result={result} xUnit={concentrationUnit(table) || "M"} />
+      <InterpolationCard result={result} table={table} xUnit={concentrationUnit(table) || "M"} />
       <ResultsPanel result={result} xUnit={concentrationUnit(table) || "M"} options={options} />
       <ExperimentsResults sheet={sheet} result={result} xUnit={concentrationUnit(table) || "M"} />
       <SchildResults sheet={sheet} result={result} />

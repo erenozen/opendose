@@ -16,7 +16,7 @@ import { newGraphSettings } from "../sheets/common/figureDefaults";
 
 /** Data sheet + (optionally) one results sheet + its default graph. */
 export function familySheets(p: Project, table: DataTableModel, name: string,
-  ids: IdFactory, opts: { analysis?: string | null } = {}): Sheet[] {
+  ids: IdFactory, opts: { analysis?: string | null; graph?: boolean } = {}): Sheet[] {
   const def = tableDef(table.type);
   const dataId = ids();
   const dataName = uniqueName(p, name);
@@ -25,7 +25,7 @@ export function familySheets(p: Project, table: DataTableModel, name: string,
   const a = opts.analysis === null ? undefined
     : opts.analysis ? def.analyses.find((x) => x.id === opts.analysis) : def.analyses[0];
   if (a) {
-    const more = analysisSheets(acc, dataId, a.id, ids);
+    const more = analysisSheets(acc, dataId, a.id, ids, { graph: opts.graph });
     acc = addSheets(acc, more);
     out.push(...more);
   }
@@ -33,9 +33,10 @@ export function familySheets(p: Project, table: DataTableModel, name: string,
 }
 
 /** A results sheet for `analysisId` on data sheet `dataId`, plus the
- *  analysis' default graph bound to it. */
+ *  analysis' default graph bound to it (unless `graph` is false). */
 export function analysisSheets(p: Project, dataId: string, analysisId: string,
-  ids: IdFactory, options?: Record<string, unknown>): Sheet[] {
+  ids: IdFactory, opts: { graph?: boolean; options?: Record<string, unknown> } = {}): Sheet[] {
+  const options = opts.options;
   const data = findSheet(p, dataId) as DataSheet | undefined;
   if (!data || data.kind !== "data") return [];
   const a = analysisDef(data.table.type, analysisId);
@@ -53,7 +54,7 @@ export function analysisSheets(p: Project, dataId: string, analysisId: string,
       a.derivedName?.(data.name) ?? `${a.short} of ${data.name}`),
     clearValues(data.table), { sourceId: dataId, resultsId: rid }));
   }
-  if (a.defaultGraph) {
+  if (a.defaultGraph && opts.graph !== false) {
     const withResults = addSheets(p, [results]);
     const kind = graphDef(data.table.type, a.defaultGraph);
     out.push(makeGraphSheet(ids(), dataId, rid, a.defaultGraph,
@@ -106,7 +107,7 @@ export function addLinkedTable(p: Project, resultsId: string, table: DataTableMo
 }
 
 export function addFamily(p: Project, table: DataTableModel, name: string,
-  ids: IdFactory, opts?: { analysis?: string | null }): { project: Project; dataId: string } {
+  ids: IdFactory, opts?: { analysis?: string | null; graph?: boolean }): { project: Project; dataId: string } {
   const sheets = familySheets(p, table, name, ids, opts);
   return { project: addSheets(p, sheets), dataId: sheets[0].id };
 }
@@ -117,7 +118,10 @@ export function sampleProject(prefs: ProjectPrefs, ids: IdFactory): Project {
   let p = makeProject(prefs, [], "Getting started");
   for (const type of ["xy", "contingency", "survival"] as const) {
     const def = tableDef(type);
-    p = addFamily(p, def.sampleTable!(), def.sampleName ?? def.label, ids).project;
+    // the example's contingency family keeps the sheets it had before a
+    // contingency analysis came with a graph (its saved results match them)
+    p = addFamily(p, def.sampleTable!(), def.sampleName ?? def.label, ids,
+      { graph: type !== "contingency" }).project;
   }
   const info = makeInfoSheet(ids(), "Project info");
   info.notes = "Example project. Each data table in the navigator has its "

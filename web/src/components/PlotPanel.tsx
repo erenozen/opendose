@@ -17,6 +17,8 @@ import {
 } from "../graph";
 import { maxOf, minOf } from "../lib/extent";
 import { addDropLines, type DropPoint } from "../sheets/xy/fitGraph";
+import { unknownMarkers } from "../sheets/xy/interpolation";
+import { splitCurve } from "../sheets/xy/curveRange";
 
 /** An extra fitted curve drawn with a data set (`altCurves` on a data
  *  set of the result): dotted, in the data set's colour or in ink. */
@@ -86,6 +88,8 @@ export default function PlotPanel({
     if (!el.current || !result || result.error) return;
     const chrome = dark ? CHROME_DARK : CHROME_LIGHT;
     const traces: Plotly.Data[] = [];
+    // interpolated unknowns (P-22): drawn on their data set's curve
+    const unknowns = unknownMarkers(result);
 
     result.datasets.forEach((ds, i) => {
       const { color, symbol, dash } = seriesStyle(i, dark, scheme);
@@ -120,15 +124,33 @@ export default function PlotPanel({
         }, { ds: i, role: "band" }) as Plotly.Data);
       }
       if (ds.fit) {
+        // a curve range set (P-52): the part beyond the data, dotted (drop
+        // lines are dashed)
+        const parts = splitCurve(ds.fit.curve);
         traces.push(tagTrace({
-          x: ds.fit.curve.x,
-          y: ds.fit.curve.y,
+          x: parts.within.x,
+          y: parts.within.y,
           mode: "lines",
           line: { color, width: 2, dash },
           name: ds.name,
           legendgroup: ds.name,
           hoverinfo: "skip",
         }, { ds: i, role: "fit" }) as Plotly.Data);
+        for (const part of parts.beyond) {
+          const t = tagTrace({
+            x: part.x,
+            y: part.y,
+            mode: "lines",
+            line: { color, width: 2, dash: dash === "dot" ? "dash" : "dot" },
+            name: `${ds.name} (beyond the data)`,
+            legendgroup: ds.name,
+            showlegend: false,
+            hoverinfo: "skip",
+          }, { ds: i, role: "fit" }) as Plotly.Data & { meta: Record<string, unknown> };
+          // keeps its dots when Format graph sets the curve's dash (graph/apply.ts)
+          t.meta.beyondData = true;
+          traces.push(t);
+        }
       }
       // Other curves drawn with this data set (comparison of fits: model 2,
       // or one curve for all data sets), dotted.
@@ -143,6 +165,26 @@ export default function PlotPanel({
           legendgroup: `${ds.name} ${a.label}`,
           hoverinfo: "skip",
         }, a.ink ? { ds: -1, role: "decor" } : { ds: i, role: "fit" }) as Plotly.Data);
+      }
+      const mine = unknowns.filter((u) => u.ds === i);
+      if (mine.length) {
+        const hasCi = mine.some((u) => u.minus > 0 || u.plus > 0);
+        traces.push(tagTrace({
+          x: mine.map((u) => u.x),
+          y: mine.map((u) => u.y),
+          text: mine.map((u) => `${u.label}${u.extrapolated ? " (extrapolated)" : ""}`),
+          mode: "markers",
+          // hollow: an unknown is read off the curve, not measured at its X
+          marker: { color: chrome.surface, symbol: "diamond", size: 11, line: { color, width: 2 } },
+          error_x: hasCi ? {
+            type: "data", symmetric: false, array: mine.map((u) => u.plus),
+            arrayminus: mine.map((u) => u.minus), color, thickness: 1.5, width: 4, visible: true,
+          } : undefined,
+          name: `${ds.name} (unknowns)`,
+          legendgroup: ds.name,
+          showlegend: false,
+          hovertemplate: `${ds.name}: %{text}<br>X = %{x:.4g}<br>Y = %{y:.4g}<extra></extra>`,
+        }, { ds: i, role: "decor" }) as Plotly.Data);
       }
       if (ds.rout && ds.rout.outliers.length > 0) {
         traces.push(tagTrace({

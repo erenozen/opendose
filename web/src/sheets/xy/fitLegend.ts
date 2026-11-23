@@ -2,8 +2,8 @@
 // and error bars are, it names, in this order, the model, what was fitted
 // (every replicate value, or the means) and its weighting, what the
 // shaded band is (95% confidence or prediction band) and the points ROUT
-// removed, then the IC50 / EC50 drop lines (fitGraph.ts) and why any are
-// missing. Journals ask the legend to define what every mark on a figure
+// removed, the interpolated unknowns (P-22), then the IC50 / EC50 drop
+// lines (fitGraph.ts) and why any are missing. Journals ask the legend to define what every mark on a figure
 // is (Nature reporting summary, Cell STAR Methods; report/legend.ts).
 // Statistical wording is scientific output (ruling 10): e2e-figures and
 // __tests__/fitLegend.test.ts pin it. Pure.
@@ -13,6 +13,8 @@ import type { DataTableModel } from "../../project/types.ts";
 import { formatSig } from "../../types.ts";
 import { maxOf } from "../../lib/extent.ts";
 import { dropLegend, type XYGraphSettings } from "./fitGraph.ts";
+import { unknownMarkers } from "./interpolation.ts";
+import { beyondData } from "./curveRange.ts";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type R = Record<string, any>;
@@ -70,6 +72,11 @@ export function fitLegendClause(table: DataTableModel, result: unknown, options:
     curve += "; the shaded band is its 95% confidence band";
   }
   parts.push(`${curve}.`);
+  // a curve range beyond the data (P-52)
+  if (sets.some((d) => beyondData(d.fit?.curve))) {
+    parts.push("Beyond the X values tested the curve is dotted: there it is the model's "
+      + "extrapolation, not a measurement.");
+  }
   const routs = sets.filter((d) => d.rout);
   if (routs.length) {
     const q = Number(routs[0].rout.q) * 100;
@@ -79,6 +86,14 @@ export function fitLegendClause(table: DataTableModel, result: unknown, options:
       ? `ROUT (Q = ${formatSig(q)}%) removed ${plural(out.length, "point", "points")} from the fit, `
         + `drawn as × (${out.join("; ")}).`
       : `ROUT (Q = ${formatSig(q)}%) found no outliers.`);
+  }
+  // interpolated unknowns (P-22): the hollow diamonds and their bars
+  const unknowns = unknownMarkers(result);
+  if (unknowns.length) {
+    const ext = unknowns.filter((u) => u.extrapolated).length;
+    parts.push(`Open diamonds mark ${plural(unknowns.length, "unknown", "unknowns")} read off the curve `
+      + `at their measured Y, with horizontal bars for the 95% CI of X`
+      + `${ext ? ` (${ext} beyond the standards, extrapolated)` : ""}.`);
   }
   const drop = dropLegend(result, settings, yGap);
   if (drop) parts.push(drop);

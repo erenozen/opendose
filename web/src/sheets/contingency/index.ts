@@ -47,7 +47,9 @@ export const contingencyAnalysis = defineAnalysis<ContingencyOptions, Result>({
   defaultOptions: () => ({ ...DEFAULT_CONTINGENCY }),
   normalizeOptions: (raw) => normalizeContingency(raw),
   run: runWith(contingencyPayload),
-  defaultGraph: null,
+  // a new contingency analysis comes with the "% of each row" stacked
+  // bars, bound to it so its pairs of rows can be drawn as brackets (P-14)
+  defaultGraph: GRAPH_CT_PERCENT,
   ControlsPanel: ContingencyControls,
   ResultsPanel: ContingencyResults,
   MethodsPanel: ContingencyMethods,

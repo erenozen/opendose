@@ -3,8 +3,8 @@ import type { AnalysisResult, DatasetResult, FitResult, OptionsState } from "../
 import { MODELS_META, formatSig, weightingLabel } from "../types";
 import { RangeNote, RangeValueCell } from "../sheets/xy/rangeFlags";
 import { FitStarts } from "../sheets/xy/FitStarts";
-import { rangeHidesSpread } from "../sheets/xy/rangeReport";
-import { paramCI, paramLabel } from "./answer/keyFacts";
+import { AMBIGUOUS_NOTE, ciText, extrapolationNote, seText } from "../sheets/xy/fitCells";
+import { paramLabel } from "./answer/keyFacts";
 import { Button, NumText } from "./ui";
 
 interface Props {
@@ -12,31 +12,6 @@ interface Props {
   xUnit?: string;
   /** The fit's options: the fit report states range reasons from them. */
   options?: OptionsState;
-}
-
-// A parameter on its range limit: the SE and CI assume it could move
-// both ways (curve-fitting guide, "Constraining parameters").
-const AT_BOUND_SE = "at its constraint: SE not reliable";
-
-const AMBIGUOUS_NOTE = "Some parameters are not defined by the data (dependency > 0.9999), so the "
-  + "fit is ambiguous. Consider constraining parameters.";
-
-// Every model that can report this fits against log10(dose), so the stored
-// x values are logs and read back as concentrations.
-function extrapolationNote(
-  e: NonNullable<FitResult["extrapolation"]>,
-): string {
-  const at = formatSig(10 ** e.value);
-  const lo = formatSig(10 ** e.x_min);
-  const hi = formatSig(10 ** e.x_max);
-  const edge = e.direction === "above" ? hi : lo;
-  const fold = formatSig(10 ** e.distance, 2);
-  const name = e.param.replace("Log", "");
-  return `The fitted ${name} (${at}) falls ${e.direction} every dose tested `
-    + `(${lo} to ${hi}): about ${fold}x past ${edge}. The curve does not `
-    + `reach its midpoint inside your data, so this value is read off the `
-    + `model's tail rather than measured, which is why its confidence `
-    + `interval is wide. Doses beyond ${edge} are what would pin it down.`;
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -150,7 +125,8 @@ function FitCard({ ds, xUnit, options }: { ds: DatasetResult; xUnit: string; opt
                     .join(", ")}`}
               </p>
             )}
-            {ds.interpolated_x && (
+            {/* the unknowns' table (InterpolationCard) replaces this line */}
+            {ds.interpolated_x && !ds.interpolation && (
               <p className="model-line">
                 Interpolated X: {ds.interpolated_x
                   .map((v) => (v === null ? "out of range" : formatSig(v)))
@@ -174,16 +150,13 @@ function FitCard({ ds, xUnit, options }: { ds: DatasetResult; xUnit: string; opt
                   if (!e) return null;
                   const label = paramLabel(name, e, xUnit);
                   // an IC50 beyond the doses tested: "> 30 (not reached ...)"
-                  const hide = !e.constrained && rangeHidesSpread(name, fit);
                   return (
                     <tr key={name} className={e.derived ? "derived" : ""}>
                       <th scope="row">{label}</th>
                       <RangeValueCell name={name} e={e} fit={fit} fallback={<td>{e.constrained
                         ? `= ${formatSig(e.value)}` : formatSig(e.value)}</td>} />
-                      <td>{e.at_bound ? AT_BOUND_SE : e.constrained || e.derived || hide
-                        ? "n/a" : formatSig(e.se)}</td>
-                      <td>{e.constrained ? "(constrained)" : e.at_bound ? "not reported (at its constraint)"
-                        : hide ? "not reported (extrapolated)" : paramCI(e)}</td>
+                      <td>{seText(name, e, fit)}</td>
+                      <td>{ciText(name, e, fit)}</td>
                     </tr>
                   );
                 })}

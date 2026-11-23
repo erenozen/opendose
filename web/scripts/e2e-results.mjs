@@ -6,14 +6,16 @@
 // comparing regression lines (P-13), pairs of rows of a contingency table
 // (P-14) and two event rates (P-47); and the fit models of wave 1: Weibull
 // and hormesis models (P-19), range constraints (P-20), initial values and
-// the fit report (P-21) and simulating a user-defined equation (P-51);
-// and method comparison and reliability: Passing-Bablok (P-42), Lin's
-// CCC (P-43) and the reliability ICC (P-44).
+// the fit report (P-21) and simulating a user-defined equation (P-51); the
+// fit summary and its table of parameters (P-17); interpolated unknowns
+// with their CIs (P-22); and method comparison and reliability:
+// Passing-Bablok (P-42), Lin's CCC (P-43) and the reliability ICC (P-44).
 // Each number asserted here is pinned in the engine tests from an
 // independent reference (engine/tests/reference/).
 // Usage: node scripts/e2e-results.mjs [http://localhost:5173/]
 import { chromium } from "playwright";
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -811,6 +813,137 @@ const analyzeWith = async (re) => {
   expect("P-44 choosing ICC(3,1) moves the headline and its explainer",
     await answerText(/ICC\(3,1\)\s*0\.7148\s*95% CI 0\.3425 to 0\.9459/)
       && /constant offset between them does not matter/.test(await page.locator(".pane-controls").innerText()));
+}
+
+// --- P-17: the fit summary above the cards and the table of parameters ----
+{
+  // engine/tests/reference/fit_summary_12.py: twelve compounds, one 4PL each;
+  // Compound L never reaches its bottom plateau (IC50 > 30 µM)
+  const FX = JSON.parse(readFileSync(join(here, "../src/sheets/xy/__tests__/fitSummary.fixture.json"), "utf8"));
+  const sig4 = (v) => (Math.abs(v) < 1e-3 ? v.toExponential(3) : String(Number(v.toPrecision(4))));
+  const pg = await browser.newPage({ viewport: { width: 1400, height: 1000 } });
+  pg.on("pageerror", (e) => errors.push(`pageerror: ${e.message}`));
+  await pg.goto(url, { waitUntil: "domcontentloaded" });
+  await pg.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 180000 });
+  await pg.keyboard.press("Escape");
+  await pg.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]',
+    join(here, "..", "e2e-fixtures", "fit-summary-12.json"));
+  const summary = pg.locator('.pane-results[data-live="true"] .fit-summary-table');
+  expect("P-17 a typeset summary table sits above the per-curve cards", await appears(summary, 120000));
+  const rows = summary.locator("tbody tr");
+  const n = await rows.count();
+  expect("P-17 acceptance: the summary lists 12 rows, one per compound", n === 12, String(n));
+  const cell = async (loc) => (await loc.innerText()).replace(/\s+/g, " ").trim();
+  const mismatched = [];
+  for (let i = 0; i < n; i++) {
+    const name = await cell(rows.nth(i).locator("th"));
+    const tds = rows.nth(i).locator("td");
+    const card = pg.locator(".pane-results .result-card").filter({ has: pg.locator("h3", { hasText: new RegExp(`^${name}`) }) })
+      .filter({ hasNot: pg.locator(".fit-summary-table") }).first();
+    const cardRow = async (label) => cell(card.locator("tbody tr").filter({ has: pg.locator(`th:text-is("${label}")`) }).first());
+    const want = [`IC50 (µM) ${await cell(tds.nth(0))} n/a ${await cell(tds.nth(1))}`,
+      `HillSlope ${await cell(tds.nth(2))}`, `Top ${await cell(tds.nth(3))}`, `Bottom ${await cell(tds.nth(4))}`];
+    const got = [await cardRow("IC50 (µM)"), await cardRow("HillSlope"), await cardRow("Top"), await cardRow("Bottom")];
+    if (!want.every((w, k) => got[k].startsWith(w))) mismatched.push(`${name}: ${want.join(" | ")} vs ${got.join(" | ")}`);
+    if (await cell(tds.nth(5)) !== await cardRow("R squared").then((t) => t.replace("R squared ", ""))) mismatched.push(`${name} R²`);
+  }
+  expect("P-17 each summary row equals its data set's card (IC50, CI, HillSlope, Top, Bottom, R²)",
+    mismatched.length === 0, mismatched.slice(0, 2).join("; "));
+  const a = FX.result.datasets[0].fit.params.IC50.value;
+  expect(`P-17 Compound A's IC50 reads ${sig4(a)} µM (the engine's value)`,
+    await cell(rows.nth(0).locator("td").nth(0)) === sig4(a), await cell(rows.nth(0).locator("td").nth(0)));
+  const lRow = await cell(rows.nth(11));
+  const reasons = await cell(pg.locator(".fit-summary-reasons"));
+  expect("P-17 acceptance: the incomplete compound is flagged Extrapolated with its reason",
+    lRow.startsWith("Compound L > 30 (not reached in the range tested)") && lRow.endsWith(" Extrapolated")
+    && reasons.startsWith("Compound L, extrapolated: IC50 > 30 µM (not reached in the range tested): ")
+    && reasons.includes("the bottom plateau is not defined by the data"), `${lRow} | ${reasons.slice(0, 300)}`);
+  const others = [];
+  for (let i = 0; i < 11; i++) others.push((await cell(rows.nth(i).locator("td").last())));
+  expect("P-17 the eleven complete curves carry no flag", others.every((t) => t === "None"), others.join(","));
+  await pg.locator(".fit-summary").getByLabel("Sort rows by").selectOption({ label: "IC50 (µM), highest first" });
+  const order = await summary.locator("tbody th").allInnerTexts();
+  const byIc = FX.result.datasets.map((d) => d.name)
+    .sort((x, y) => FX.result.datasets.find((d) => d.name === y).fit.params.IC50.value
+      - FX.result.datasets.find((d) => d.name === x).fit.params.IC50.value);
+  expect("P-17 sorting by IC50, highest first, orders the rows by the fitted IC50",
+    order.join(",") === byIc.join(",")
+    && await summary.locator('th[aria-sort="descending"]').innerText() === "IC50 (µM)", order.join(","));
+  await pg.getByRole("button", { name: "Make a table of parameters" }).click();
+  await pg.waitForSelector(".grid-toolbar", { timeout: 30000 });
+  const sel = await pg.locator('[role=treeitem][aria-selected="true"]').first().getAttribute("aria-label");
+  expect("P-17 acceptance: \"Make a table of parameters\" makes the linked table and selects it",
+    (sel ?? "").startsWith("Parameters of Twelve compounds"), sel);
+  const titles = [];
+  for (let r = 1; r <= 12; r++) titles.push(await pg.locator(`.data-table input[aria-label="Row ${r} title"]`).inputValue());
+  const ic = [];
+  for (let r = 1; r <= 12; r++) ic.push(await pg.locator(`.data-table input[aria-label="IC50 (µM), row ${r}"]`).inputValue());
+  expect("P-17 the linked table has the same 12 rows",
+    titles.join(",") === FX.result.datasets.map((d) => d.name).join(","), titles.join(","));
+  expect("P-17 its IC50 column holds each fitted IC50, empty for Compound L (reported as > 30 µM)",
+    // the browser engine's BLAS differs from the fixture's in the last bits
+    ic.slice(0, 11).every((v, i) => Math.abs(Number(v) / FX.result.datasets[i].fit.params.IC50.value - 1) < 1e-9)
+    && ic[11] === "",
+    ic.join(","));
+  await pg.close();
+}
+
+
+// --- P-22: interpolated unknowns with their CIs ---------------------------
+{
+  // engine/tests/reference/interpolate_unknowns.py: a BCA standard curve
+  // (7 standards, quadratic, statsmodels OLS) and investr's inversion
+  // intervals computed independently; X, CI and prediction interval
+  const REF = JSON.parse(readFileSync(join(here, "../../engine/tests/reference/interpolate_unknowns.json"), "utf8"));
+  const sig4 = (v) => (Math.abs(v) < 1e-3 ? v.toExponential(3) : String(Number(v.toPrecision(4))));
+  const proj = JSON.parse(readFileSync(join(here, "..", "e2e-fixtures", "stage", "interpolation.json"), "utf8"));
+  proj.sheets.find((s) => s.kind === "results").options.interpolateUnknowns = false;
+  const file = join(mkdtempSync(join(tmpdir(), "opendose-interp-")), "bca.json");
+  writeFileSync(file, JSON.stringify(proj));
+  const pg = await browser.newPage({ viewport: { width: 1400, height: 1000 } });
+  pg.on("pageerror", (e) => errors.push(`pageerror: ${e.message}`));
+  await pg.goto(url, { waitUntil: "domcontentloaded" });
+  await pg.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 180000 });
+  await pg.keyboard.press("Escape");
+  await pg.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]', file);
+  await pg.waitForFunction(() => /Second order polynomial/.test(
+    document.querySelector('.pane-results[data-live="true"]')?.textContent ?? ""), null, { timeout: 120000 });
+  expect("P-22 off by default: no unknowns table",
+    await pg.locator(".interpolation-table").count() === 0);
+  const adv = pg.locator(".pane-controls details.advanced").first();
+  if (!(await adv.evaluate((e) => e.open))) await adv.locator("summary").click();
+  await pg.getByRole("checkbox", { name: "Y values in rows with no X are unknowns" }).check();
+  const table = pg.locator('.pane-results[data-live="true"] .interpolation-table');
+  expect("P-22 ticking the option shows the interpolated unknowns", await appears(table, 120000));
+  const rowText = async (i) => (await table.locator("tbody tr").nth(i).innerText()).replace(/\s+/g, " ").trim();
+  const want = REF.bca.results.slice(0, 3).map((u, i) => `Lysate ${i + 1} ${u.y} ${sig4(u.x)} `
+    + `${sig4(u.ci[0])} to ${sig4(u.ci[1])} ${sig4(u.pi[0])} to ${sig4(u.pi[1])} None`);
+  const got = [await rowText(0), await rowText(1), await rowText(2)];
+  expect(`P-22 acceptance: each unknown's X with its 95% CI (${want.join(" | ")})`,
+    got.every((g, i) => g === want[i]), got.join(" | "));
+  const plotted = await pg.evaluate(() => {
+    const t = (document.querySelector(".plot-card .plot")?.data ?? [])
+      .find((d) => String(d.name ?? "").endsWith("(unknowns)"));
+    return t ? { x: [...t.x], y: [...t.y] } : null;
+  });
+  expect("P-22 acceptance: three markers on the curve, at each unknown's X and Y",
+    plotted?.x.length === 3 && plotted.x.every((x, i) => Math.abs(x / REF.bca.results[i].x - 1) < 1e-6)
+    && plotted.y.every((y, i) => y === REF.bca.results[i].y), JSON.stringify(plotted));
+  // typed Y values beyond the standards: flagged, never a plain number
+  const typed = pg.getByRole("textbox", { name: "Interpolate unknowns from the curve" });
+  await typed.fill(REF.bca.edges.join(", "));
+  await pg.waitForFunction(() => document.querySelectorAll(
+    '.pane-results[data-live="true"] .interpolation-table tbody tr').length === 6, null, { timeout: 60000 }).catch(() => {});
+  const [up, down, none] = [await rowText(3), await rowText(4), await rowText(5)];
+  const [ru, rd] = REF.bca.results.slice(3);
+  expect(`P-22 Y above the top standard: X ${sig4(ru.x)} flagged extrapolated`,
+    up.startsWith(`Typed Y 1 1.55 ${sig4(ru.x)} ${sig4(ru.ci[0])} to ${sig4(ru.ci[1])}`)
+    && up.includes("Extrapolated: X lies outside the standards (0 to 2000)"), up);
+  expect(`P-22 Y below the blank: X ${sig4(rd.x)} flagged extrapolated`,
+    down.startsWith(`Typed Y 2 0.05 ${sig4(rd.x)}`) && down.includes("Extrapolated:"), down);
+  expect("P-22 a Y the curve never reaches has no X",
+    none === "Typed Y 3 3 — — — Not reached: Y is above every value the curve takes, so it has no X.", none);
+  await pg.close();
 }
 
 // ------------------------------------------------------------------------

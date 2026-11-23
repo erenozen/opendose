@@ -3,6 +3,7 @@
 // Schild EC50-shift model. Moved verbatim from the single-table app.
 import type { EngineBridge } from "../../lib/engine";
 import { numericData, parseCell } from "../../project/table";
+import { curveOptions } from "./curveRange";
 import { SUBCOLUMN_FORMAT_ENGINE, type DataTableModel } from "../../project/types";
 import { engineWeighting, type AnalysisResult, type OptionsState } from "../../types";
 import { modelMeta, USER_MODEL_ID } from "../../lib/modelLibrary";
@@ -250,6 +251,10 @@ export function runNonlin(engine: EngineBridge, table: DataTableModel,
       bands: options.bands === "none" ? null : options.bands,
       diagnostics: options.diagnostics,
       interpolate_y: interpY.length ? interpY : null,
+      // Y values in rows with no X read as unknowns (P-22)
+      ...(options.interpolateUnknowns ? { interpolate_unknowns: true } : {}),
+      // the drawn curve's range and resolution (P-52)
+      ...curveOptions(options),
       ...(options.fitMethod === "robust" ? { fit_method: "robust" } : {}),
       ...summaryOptions,
       // a replicate map: also one fit per experiment and their summary
@@ -307,6 +312,8 @@ function runUserEquation(engine: EngineBridge, _table: DataTableModel,
       bands: options.bands === "none" ? null : options.bands,
       diagnostics: options.diagnostics,
       interpolate_y: interpY.length ? interpY : null,
+      ...(options.interpolateUnknowns ? { interpolate_unknowns: true } : {}),
+      ...curveOptions(options),
     },
   }) as AnalysisResult;
 }

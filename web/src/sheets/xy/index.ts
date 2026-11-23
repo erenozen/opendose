@@ -19,6 +19,7 @@ import {
 } from "./panels";
 import { runNonlinGated, xyAutoTitles } from "./run";
 import { POTENCY_OUTPUT, potencyTable } from "./experiments";
+import { PARAMETERS_OUTPUT, parametersTable } from "./fitSummary";
 import { SCHILD_OUTPUT, schildTable } from "./schild";
 import { SchildPlot } from "./SchildPlot";
 import { concentrationUnit } from "./rangeReport";
@@ -71,11 +72,14 @@ export const nonlinAnalysis = defineAnalysis<OptionsState, AnalysisResult>({
   ResultsPanel: NonlinResults,
   MethodsPanel: NonlinMethods,
   // "Make a linked table of logIC50 values" in the results (replicate map:
-  // one fit per experiment, sheets/xy/experiments.ts)
+  // one fit per experiment, sheets/xy/experiments.ts) and "Make a table of
+  // parameters" under the fit summary (sheets/xy/fitSummary.ts)
   derivedOnDemand: true,
-  derivedTable: (result, _source, _options, output) =>
+  derivedTable: (result, source, _options, output) =>
     (output === POTENCY_OUTPUT ? potencyTable(result)
-      : output === SCHILD_OUTPUT ? schildTable(result) : null),
+      : output === SCHILD_OUTPUT ? schildTable(result)
+        : output === PARAMETERS_OUTPUT ? parametersTable(result, concentrationUnit(source) || "M")
+          : null),
 });
 
 // The Schild plot of an EC50-shift fit (P-49): a display beside the

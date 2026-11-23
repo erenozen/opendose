@@ -78,7 +78,8 @@ export function paramCI(entry: ParamEntry | undefined): string {
 // The parameter a reader of each model looks for first, in this order.
 const KEY_PARAM = /^(IC50|EC50|ED50|AbsoluteIC50|Ki|Km|Kd|HalfLife|DoublingTime|IC50_\w+|EC50\w*)$/;
 
-function keyParam(fit: FitResult): string | null {
+/** The parameter a reader of this fit looks for first (IC50, EC50, Km...). */
+export function keyParam(fit: FitResult): string | null {
   const order = (fit.param_order ?? Object.keys(fit.params)).filter((n) => fit.params[n]);
   return order.find((n) => KEY_PARAM.test(n))
     ?? order.find((n) => fit.params[n].derived && n !== "Span") ?? null;

@@ -108,7 +108,28 @@ def _model_residuals(build):
 def _dose_response(data, options):
     """Nonlinear regression for any registered model. For models whose X
     is log10(concentration), x_is_log=False means the engine applies
-    X = log10(X) first (Prism's 'transform concentrations to logs')."""
+    X = log10(X) first (Prism's 'transform concentrations to logs').
+
+    options.interpolate_unknowns (bool): every Y value in a row with no
+    X is an unknown read off its data set's curve; with interpolate_y
+    (typed Y values) the data set gets "interpolation": {"ci_level",
+    "x_is_log", "data_range", "search_range", "prediction", "items":
+    [{"source": "row" (with "row", "sub") | "typed" (with "index"), "y",
+    "m", "x", "position" ("within" | "extrapolated" | "none"), "side",
+    "crossings", "ci", "pi", and "x_conc" / "ci_conc" / "pi_conc" for
+    log-X models}]} (interpolate.interpolate_unknown). The prediction
+    interval is left out (pi None, "prediction": false) for weighted and
+    summary-data fits.
+
+    options.curve_range [start, end] (the fit's X units: log10 of the
+    concentration for log-X models; either None for the default) and
+    options.curve_points (10 to 5000, default 200): the drawn curve
+    ("curve") spans that range with that many points plus the ends of the
+    data, and carries "data_range" and "x_range" so the part beyond the
+    data can be drawn apart (doseresponse.curve_points). Bands follow the
+    drawn curve; interpolation and the absolute IC50 keep their range.
+    Settings that cannot be drawn keep the default curve, with a warning
+    ("Curve range not used: ...")."""
     if options.get("user_equation"):
         return _user_equation_dose_response(data, options)
     model = options.get("model", "log_inhibitor_vs_response_4pl")
@@ -148,6 +169,7 @@ def _dose_response(data, options):
                          "not mean / SD / n")
 
     finite_x = [v for v in x_col if v is not None]
+    curve_opt, curve_bad = _curve_option(options)
     # options.experiments: {"of": [experiment of each subcolumn], "names":
     # [...], "log10_molar": exponent of the unit in mol/L or None}: each
     # experiment is also fitted on its own and its potencies summarised
@@ -156,6 +178,7 @@ def _dose_response(data, options):
     results = []
     for ds in data["datasets"]:
         entry = {"name": ds.get("name", "")}
+        curve_problem = curve_bad
         try:
             s_kw = {}
             if summary_fmt:
@@ -188,18 +211,34 @@ def _dose_response(data, options):
             fit["curve"] = doseresponse.curve_points(
                 fit, min(finite_x), max(finite_x))
             x_lo, x_hi = min(fit["curve"]["x"]), max(fit["curve"]["x"])
+            if curve_opt:
+                # P-52: the drawn curve's range and resolution; x_lo / x_hi
+                # above (interpolation, absolute IC50) stay as they were. A
+                # range that cannot be drawn keeps the default curve and
+                # says why: a drawing option never costs the fit.
+                try:
+                    fit["curve"] = doseresponse.curve_points(
+                        fit, min(finite_x), max(finite_x), n=curve_opt["n"],
+                        x_range=curve_opt["range"],
+                        data_range=(min(xs), max(xs)))
+                except ValueError as exc:
+                    curve_problem = f"Curve range not used: {exc}"
+            if curve_problem:
+                entry["curve_warning"] = curve_problem
             if robust:
                 # no covariance: no bands, interpolation CIs, absolute IC50
                 # or least-squares diagnostics (the guide: none for robust)
                 skipped = [k for k in ("diagnostics", "bands",
-                                       "interpolate_y", "absolute_ic50_level")
+                                       "interpolate_y", "absolute_ic50_level",
+                                       "interpolate_unknowns")
                            if options.get(k) not in (None, False, [], "")]
                 if skipped:
                     entry["robust_skipped"] = skipped
                 options = {k: v for k, v in options.items()
                            if k not in ("diagnostics", "bands",
                                         "interpolate_y",
-                                        "absolute_ic50_level")}
+                                        "absolute_ic50_level",
+                                        "interpolate_unknowns")}
             if options.get("diagnostics"):
                 entry["diagnostics"] = diagnostics.fit_diagnostics(xs, ys, fit)
                 hs = diagnostics.hougaard_skewness(xs, ys, fit)
@@ -219,6 +258,16 @@ def _dose_response(data, options):
             if interp_y:
                 entry["interpolated_x"] = interpolate.interpolate_x(
                     fit, interp_y, x_lo, x_hi)
+            # options.interpolate_unknowns: each Y value in a row with no X
+            # is an unknown, read off the curve with its CI and prediction
+            # interval (interpolate.interpolate_unknown); typed
+            # interpolate_y values get the same, next to interpolated_x
+            unknowns = (_unknown_readings(data["x"], ds, summary_fmt)
+                        if options.get("interpolate_unknowns") else [])
+            if unknowns or interp_y:
+                entry["interpolation"] = _interpolation(
+                    fit, xs, unknowns, interp_y or [], x_is_log=spec.x_is_log,
+                    prediction=(weighting == "none" and not summary_fmt))
             abs_level = options.get("absolute_ic50_level")
             if abs_level is not None:
                 fit["params"]["AbsoluteIC50"] = _abs_ic50_entry(
@@ -264,7 +313,15 @@ def _dose_response(data, options):
             elif _is_missing(xv):
                 nolog += [(float(xr), float(v)) for v in vals]
         warn = _nan_warnings({"datasets": [ds]})
-        if lost:
+        if entry.get("curve_warning"):
+            warn.append(entry.pop("curve_warning"))
+        if lost and options.get("interpolate_unknowns") \
+                and "interpolation" in entry:
+            warn.append(
+                f"{lost} Y value{'s' if lost != 1 else ''} in rows without "
+                "an X value read as unknowns: interpolated from the curve, "
+                "not part of the fit")
+        elif lost:
             warn.append(
                 f"{lost} Y value{'s' if lost != 1 else ''} in rows without "
                 "an X value left out of the fit")
@@ -294,6 +351,86 @@ def _dose_response(data, options):
         }
     return {"analysis": "dose_response", "x_is_log_output": True,
             "datasets": results}
+
+
+CURVE_POINTS = (10, 5000)
+
+
+def _curve_option(options):
+    """options.curve_range [start, end] (the fit's X units, either None
+    for the default) and options.curve_points (n): (the drawn curve's
+    settings for doseresponse.curve_points or None, and the reason they
+    cannot be used or None). Unusable settings keep the default curve."""
+    rng = options.get("curve_range")
+    n = options.get("curve_points")
+    if rng is None and n is None:
+        return None, None
+    if rng is not None:
+        if (not isinstance(rng, (list, tuple)) or len(rng) != 2
+                or any(v is not None and not isinstance(v, (int, float))
+                       for v in rng)):
+            return None, "Curve range not used: enter a start and an end X"
+        rng = [None if v is None else float(v) for v in rng]
+        if rng[0] is None and rng[1] is None:
+            rng = None
+    if n is None:
+        n = 200
+    if (not isinstance(n, (int, float)) or n != int(n)
+            or not CURVE_POINTS[0] <= n <= CURVE_POINTS[1]):
+        return None, (f"Curve range not used: enter a whole number of points "
+                      f"from {CURVE_POINTS[0]} to {CURVE_POINTS[1]}")
+    if rng is not None and None not in rng and rng[0] >= rng[1]:
+        return None, (f"Curve range not used: the curve's start (X = "
+                      f"{rng[0]:g}) must be below its end (X = {rng[1]:g})")
+    return {"range": rng or (None, None), "n": int(n)}, None
+
+
+def _unknown_readings(raw_x, ds, summary_fmt):
+    """[(row, subcolumn, Y)] of every Y value in a row with no X (the
+    unknowns of a standard curve); for rows of mean / SD / n, the mean."""
+    out = []
+    for r, (xr, row) in enumerate(zip(raw_x, ds.get("ys") or [])):
+        if not _is_missing(xr):
+            continue
+        for k, v in enumerate((row or [])[:1] if summary_fmt else row or []):
+            if not _is_missing(v):
+                out.append((r, k, float(v)))
+    return out
+
+
+def _interpolation(fit, xs, unknowns, typed, *, x_is_log, prediction):
+    """The unknowns of one fitted data set read off its curve
+    (interpolate.interpolate_unknown), each with its 95% CI and 95%
+    prediction interval, in the fit's X units and, for log-X models, as
+    concentrations (10^X). The standards' range is the X range fitted."""
+    lo, hi = float(min(xs)), float(max(xs))
+
+    def conc(v):
+        return None if v is None else 10.0 ** v
+
+    def one(y, extra):
+        res = interpolate.interpolate_unknown(fit, [y], lo, hi,
+                                              prediction=prediction)
+        res.update(extra)
+        if x_is_log:
+            res["x_conc"] = conc(res.get("x"))
+            for k in ("ci", "pi"):
+                if res.get(k):
+                    res[f"{k}_conc"] = [conc(v) for v in res[k]]
+        return res
+
+    items = [one(y, {"source": "row", "row": r, "sub": k})
+             for r, k, y in unknowns]
+    items += [one(float(y), {"source": "typed", "index": i})
+              for i, y in enumerate(typed) if y is not None]
+    return {
+        "ci_level": 0.95, "x_is_log": bool(x_is_log),
+        "data_range": [lo, hi],
+        "search_range": [lo - interpolate.SEARCH_FRACTION * (hi - lo),
+                         hi + interpolate.SEARCH_FRACTION * (hi - lo)],
+        "prediction": bool(prediction),
+        "items": items,
+    }
 
 
 def _experiments(x_col, ds, exp_opt, model, spec, *, constraints, weighting,

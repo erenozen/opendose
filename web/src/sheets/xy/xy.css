@@ -42,3 +42,18 @@
 .schild-actions { display: flex; flex-wrap: wrap; gap: var(--space-8); align-items: center; margin-top: var(--space-8); }
 .schild-scroll { overflow-x: auto; max-width: 100%; }
 .schild-scroll th[scope="row"] { white-space: nowrap; }
+
+/* The fit summary and the interpolated unknowns above the per-curve cards
+   (FitSummaryCard.tsx, InterpolationCard.tsx); the cards follow on a divider. */
+main.workspace :is(.fit-summary, .interpolation-card) + :is(.results, .result-card) {
+  margin-top: var(--space-16); padding-top: var(--space-16); border-top: 1px solid var(--line);
+}
+.fit-summary-sort { margin-bottom: var(--space-8); }
+.fit-summary-sort select { max-width: 100%; }
+.fit-summary-scroll { overflow-x: auto; max-width: 100%; }
+.fit-summary-table th[scope="row"], .interpolation-table th[scope="row"] { white-space: nowrap; }
+.results-table td.fit-summary-flagged { color: var(--warn-ink); font-weight: var(--weight-semibold); }
+.fit-summary-reasons { margin-top: var(--space-8); }
+.fit-summary .copy-table-row { margin-top: var(--space-12); }
+.results-table td.interp-note { min-width: 24ch; color: var(--ink-2); font-size: var(--text-caption); }
+.interpolation-table tr:is(.interp-extrapolated, .interp-none) td.interp-note { color: var(--warn-ink); }

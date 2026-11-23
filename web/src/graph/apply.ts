@@ -469,7 +469,8 @@ function styleTrace(t: Trace, tag: TraceTag, f: DatasetFormat, orig: string, bas
   if (role === "band" && isNum(alpha)) t.fillcolor = rgba(base, alpha);
   if (role === "fit" || role === "line") {
     t.line = { ...(t.line ?? {}) };
-    if (f.lineDash) t.line.dash = f.lineDash;
+    // a fitted curve beyond the data (P-52) stays dashed
+    if (f.lineDash && !t.meta?.beyondData) t.line.dash = f.lineDash;
     if (isNum(f.lineWidth)) t.line.width = f.lineWidth;
   }
 
