@@ -62,6 +62,14 @@ def fit_ec50_shift(datasets, antagonist, *, constraints=None) -> dict:
     n_total = sum(x.size for _, x, _, _ in data)
 
     free = [p for p in PARAMS if p not in constraints]
+    if "SchildSlope" in free and len({b for *_, b in data if b > 0}) < 2:
+        # one dose ratio is one point on the Schild plot: pA2 and the
+        # slope trade off exactly, and the fit runs off to an overflow
+        raise ValueError(
+            "One antagonist concentration cannot define a free Schild "
+            "slope: a single dose ratio fits any slope with a matching "
+            "pA2. Fix the Schild slope at 1, or add curves at two or more "
+            "antagonist concentrations.")
     df = n_total - len(free)
     if df < 1:
         raise ValueError("not enough data points for the free parameters")
