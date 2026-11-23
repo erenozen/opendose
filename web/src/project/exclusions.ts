@@ -272,12 +272,16 @@ export function exclusionGroups(t: DataTableModel): GroupExclusions[] | null {
       groups.push(g);
       return;
     }
+    // (no cell key is built when nothing is excluded: with 500,000 rows
+    // those keys came to hundreds of megabytes per render; P-10)
+    const anyOut = xOut.size > 0 || !!d.excluded?.length;
     const cellGroup = (rows: number[], label: string) => {
       const g: GroupExclusions = { name: label, entered: 0, excluded: 0, analysed: 0, reasons: [] };
       for (const r of rows) {
         (d.rows[r] ?? []).forEach((v, s) => {
           if (!filled(v)) return;
           g.entered += 1;
+          if (!anyOut) return;
           if (xOut.has(r)) { g.excluded += 1; addReason(g.reasons, X_ROW_REASON); }
           else if (isExcl(d, `${r}:${s}`)) { g.excluded += 1; addReason(g.reasons, reasonOf(r, s)); }
         });

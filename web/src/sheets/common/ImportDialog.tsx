@@ -1,4 +1,4 @@
-import { lazy, Suspense, useId, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useId, useMemo, useRef, useState } from "react";
 import Modal from "../../components/Modal";
 import { Button, Field, FileButton, Input, NumberField, Tabs } from "../../components/ui";
 import { readXlsx, type XlsxSheet } from "../../lib/engine";
@@ -80,6 +80,12 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
   const [srcKind, setSrcKind] = useState<"file" | "paste">(initial?.text ? "paste" : "file");
   const [pasted, setPasted] = useState(initial?.text ?? "");
   const largeLines = useMemo(() => largePasteLines(pasted), [pasted]);
+  // "Clear the text" asks to type: the text box it brings back takes focus
+  const textBox = useRef<HTMLTextAreaElement>(null);
+  const [typeNext, setTypeNext] = useState(false);
+  useEffect(() => {
+    if (typeNext && largeLines === null) { textBox.current?.focus(); setTypeNext(false); }
+  }, [typeNext, largeLines]);
   const [file, setFile] = useState<{ name: string; bytes: Uint8Array } | null>(null);
   const [encoding, setEncoding] = useState("auto");
   const [sheets, setSheets] = useState<XlsxSheet[] | null>(null);
@@ -291,14 +297,14 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
                     {largeLines.toLocaleString("en")} lines of text, too long to show here: the
                     preview below shows the first rows, and all of them are imported.{" "}
                     <button type="button" data-still className="linkish"
-                      onClick={() => { setPasted(""); setRoleOverride({}); }}>Clear the text</button>
+                      onClick={() => { setPasted(""); setRoleOverride({}); setTypeNext(true); }}>Clear the text</button>
                     {" "}to paste or type other text.
                   </p>
                 </>
               ) : (
                 <>
                   <label className="ui-field-label" htmlFor={`${uid}-text`}>Text to import</label>
-                  <textarea id={`${uid}-text`} rows={6} value={pasted} spellCheck={false}
+                  <textarea ref={textBox} id={`${uid}-text`} rows={6} value={pasted} spellCheck={false}
                     autoCorrect="off" autoCapitalize="off"
                     placeholder={"Dose;Response\n0,1;98,5\n1;50,2"}
                     onChange={(e) => { setPasted(e.target.value); setRoleOverride({}); }} />

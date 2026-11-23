@@ -52,7 +52,12 @@ const filled = (c: string | undefined) => (c ?? "").trim() !== "";
 
 /** Values in each data set (all subcolumns). */
 function perGroup(t: DataTableModel): number[] {
-  return t.datasets.map((d) => d.rows.reduce((a, r) => a + r.filter(filled).length, 0));
+  // a loop, not a filtered copy of every row: it runs on renders (P-10)
+  return t.datasets.map((d) => {
+    let n = 0;
+    for (const r of d.rows) for (const c of r) if (filled(c)) n++;
+    return n;
+  });
 }
 
 /** Does this data sheet get the question? */
