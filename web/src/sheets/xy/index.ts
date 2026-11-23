@@ -17,6 +17,7 @@ import {
   NonlinControls, NonlinMethods, NonlinResults, PlateAside, XYPlot,
 } from "./panels";
 import { runNonlinGated, xyAutoTitles } from "./run";
+import { POTENCY_OUTPUT, potencyTable } from "./experiments";
 import { concentrationUnit } from "./rangeReport";
 import {
   ANALYSIS_LINREG, DEFAULT_LINREG, GRAPH_LINREG, normalizeLinreg, runLinreg, type LinregOptions,
@@ -65,6 +66,11 @@ export const nonlinAnalysis = defineAnalysis<OptionsState, AnalysisResult>({
   ControlsPanel: NonlinControls,
   ResultsPanel: NonlinResults,
   MethodsPanel: NonlinMethods,
+  // "Make a linked table of logIC50 values" in the results (replicate map:
+  // one fit per experiment, sheets/xy/experiments.ts)
+  derivedOnDemand: true,
+  derivedTable: (result, _source, _options, output) =>
+    (output === POTENCY_OUTPUT ? potencyTable(result) : null),
 });
 
 export const xyGraph = defineGraph<OptionsState, AnalysisResult>({
