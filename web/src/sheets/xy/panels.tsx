@@ -22,6 +22,8 @@ import { switchResultsAnalysis } from "./switchAnalysis";
 import { RangeFlagsBar } from "./rangeFlags";
 import { ZeroDoseBar } from "./ZeroDoseBar";
 import { ExperimentsResults } from "./ExperimentsCard";
+import { dropPoints, normalizeXYGraph } from "./fitGraph";
+import { fitCaption } from "./fitLegend";
 import { concentrationUnit, displayOf } from "./rangeReport";
 import { CompareFitsLinks } from "../../components/ResultsLinks";
 import "./xy.css";
@@ -179,7 +181,7 @@ export function NonlinMethods({ table, result, options }:
   );
 }
 
-export function XYPlot({ table, result, titles, scheme, format, onFormatChange }:
+export function XYPlot({ graph, table, result, options, titles, scheme, format, onFormatChange }:
   PlotProps<OptionsState, AnalysisResult>) {
   // Dates / elapsed times: X ticks read as dates or h:mm:ss.
   const xTickFormat = useMemo(() => xTickFormatter(table) ?? undefined, [table]);
@@ -188,10 +190,22 @@ export function XYPlot({ table, result, titles, scheme, format, onFormatChange }
     const choose = chooseModelOf(result);
     return choose ? { ...(result as AnalysisResult), datasets: choose.preview } : result;
   }, [result]);
+  // The curve-fit graph's own options (sheets/xy/fitGraph.ts); the Deming,
+  // linear-regression and compare-fits graphs share this panel without them.
+  const raw = graph.graphType === GRAPH_XY ? graph.settings.xy : undefined;
+  const xs = useMemo(() => normalizeXYGraph(raw), [raw]);
+  const unit = concentrationUnit(table) || "M";
+  const drop = useMemo(() => (xs.dropLines
+    ? { points: dropPoints(shown), label: xs.dropLabel, unit } : undefined),
+  [xs.dropLines, xs.dropLabel, shown, unit]);
+  // "In the figure": the legend sentence drawn into the figure (exports
+  // carry it); "Under the graph" opens the legend card instead.
+  const caption = useMemo(() => (xs.caption === "figure"
+    ? fitCaption(table, shown, options, xs) || undefined : undefined), [xs, table, shown, options]);
   return (
     <PlotPanel result={shown} scheme={scheme} xTitle={titles.x} yTitle={titles.y}
       xTickFormat={xTickFormat} format={format} onFormatChange={onFormatChange}
-      rowTitles={table.rowTitles} />
+      rowTitles={table.rowTitles} drop={drop} caption={caption} />
   );
 }
 

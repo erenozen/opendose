@@ -12,7 +12,7 @@
 import type { DataTableModel, GraphSheet } from "../project/types.ts";
 import { parseCell } from "../project/table.ts";
 import {
-  normalizeColumnGraph, type ColumnSummary,
+  geoRefused, normalizeColumnGraph, type ColumnSummary,
 } from "../sheets/column/graphSettings.ts";
 import {
   replicateCounts, replicateInfo, replicateSummary, superPlotOn, type SuperCenter, type SuperError,
@@ -23,6 +23,7 @@ import {
 } from "../sheets/grouped/options.ts";
 import { cellStats, type ErrorKind } from "../sheets/grouped/stats.ts";
 import { readFormat } from "./format.ts";
+import { resolveSummary } from "../sheets/column/rankSummary.ts";
 import type { WhiskerRule } from "./boxStats.ts";
 import { graphHideNs, graphPStyle, starScale, type PStyle } from "./significance.ts";
 
@@ -50,6 +51,8 @@ export interface LegendSpec {
   stars?: PStyle | null;
   /** Non-significant pairs are left out (the scale says so). */
   hideNs?: boolean;
+  /** Groups whose geometric summary is not drawn (a value of 0 or less). */
+  refused?: string[];
 }
 
 const PHRASE: Record<LegendSummary, string> = {
@@ -57,6 +60,8 @@ const PHRASE: Record<LegendSummary, string> = {
   mean_sem: "Mean ± SEM",
   mean_ci: "Mean with 95% CI",
   median_iqr: "Median with IQR",
+  geo_sd: "Geometric mean ×/÷ geometric SD",
+  geo_ci: "Geometric mean with 95% CI (from the logarithms)",
   mean_range: "Mean with range",
   mean: "Mean",
   none: "Mean",
@@ -114,6 +119,9 @@ export function composeLegend(spec: LegendSpec): string {
     default:
       parts.push(`${PHRASE[spec.summary]}${pts}`);
   }
+  if (spec.refused?.length) {
+    parts.push(`No geometric mean for ${spec.refused.join(", ")}: a value of 0 or less has no logarithm`);
+  }
   const n = nPhrase(spec.groups, spec.display === "superplot" ? "experiments" : spec.unit ?? "");
   if (n) {
     parts.push(spec.display === "superplot" && spec.superplot?.values
@@ -162,8 +170,10 @@ function enteredN(rows: string[][], fmt: DataTableModel["subcolumnFormat"]): num
 }
 
 function columnSpec(graph: Pick<GraphSheet, "graphType" | "settings">, table: DataTableModel,
-  result: unknown): LegendSpec | null {
+  result: unknown, options: unknown): LegendSpec | null {
   const s = normalizeColumnGraph(graph.settings.column);
+  // "Follow the test": median with IQR under a rank test (rankSummary.ts)
+  const summary = resolveSummary(s.summary, options);
   const kind = graph.graphType;
   const display = kind === "bar" ? "bar" : kind === "box" ? "box"
     : kind === "violin" ? "violin" : "scatter";
@@ -187,8 +197,10 @@ function columnSpec(graph: Pick<GraphSheet, "graphType" | "settings">, table: Da
   }
   return {
     display, stars,
-    summary: s.summary,
+    summary,
     points: display === "bar" ? s.points : true,
+    ...(geoRefused(table, summary).length && (display === "bar" || display === "scatter")
+      ? { refused: geoRefused(table, summary) } : {}),
     whiskers: s.whiskers,
     groups: table.datasets.map((d) => ({ name: d.name, n: countValues(d.rows) })),
   };
@@ -252,18 +264,18 @@ function groupedSpec(graph: Pick<GraphSheet, "graphType" | "settings">, table: D
  * unless the graph turned it off).
  */
 export function legendSentence(graph: Pick<GraphSheet, "graphType" | "settings">,
-  table: DataTableModel, result?: unknown): string {
-  const spec = legendSpec(graph, table, result);
+  table: DataTableModel, result?: unknown, options?: unknown): string {
+  const spec = legendSpec(graph, table, result, options);
   return spec && spec.groups.length ? composeLegend(spec) : "";
 }
 
 /** The plain description of what a graph draws (null for kinds the
  *  legend sentence does not describe). */
 export function legendSpec(graph: Pick<GraphSheet, "graphType" | "settings">,
-  table: DataTableModel, result?: unknown): LegendSpec | null {
+  table: DataTableModel, result?: unknown, options?: unknown): LegendSpec | null {
   const columnKind = ["scatter", "bar", "box", "violin"].includes(graph.graphType);
   const spec = table.type === "column" || (table.type === "xy" && columnKind)
-    ? columnSpec(graph, table, result)
+    ? columnSpec(graph, table, result, options)
     : table.type === "grouped" ? groupedSpec(graph, table, result) : null;
   return spec ? { ...spec, hideNs: hideNsOf(graph) } : null;
 }
@@ -272,8 +284,8 @@ export function legendSpec(graph: Pick<GraphSheet, "graphType" | "settings">,
  *  error bars and the points are ("Mean ± SD (bars), with individual
  *  values."). The reporting legend (report/legend.ts) opens with it. */
 export function plottedClause(graph: Pick<GraphSheet, "graphType" | "settings">,
-  table: DataTableModel, result?: unknown): string {
-  const spec = legendSpec(graph, table, result);
+  table: DataTableModel, result?: unknown, options?: unknown): string {
+  const spec = legendSpec(graph, table, result, options);
   if (!spec) return "";
   return composeLegend({ ...spec, groups: [], stars: null });
 }

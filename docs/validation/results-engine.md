@@ -615,3 +615,75 @@ agrees with `runs_test` p_method "exact_float" to at most 7.2e-10
 relative, including P = 1.657e-178 at N = 20,000 and P = 0.94543216 at
 N = 500,000. The committed reference stays
 engine/tests/reference/large_tables.py.
+
+## Feature validation: curve-fit graph drop lines (2026-11-23)
+
+FEATURE-PLAN P-23. No engine change: the curve-fit graph's IC50 / EC50
+drop lines read their point from the fit the results report. For the 19
+relative dose-response models listed in `web/src/sheets/xy/fitGraph.ts`
+(`RELATIVE_MODELS`) the point is the range flags' `midpoint` and
+`half_response` ((Top + Bottom) / 2, or 50 for normalised models); for
+the two absolute IC50 models it is (LogAbsoluteIC50 or AbsoluteIC50,
+(Top + Baseline) / 2). `engine/tests/test_fit_graph.py` reads that list
+from the TypeScript file and checks, for each model, that its own
+equation (`equations.py`, `nlfit.py`) at the midpoint equals that
+response to 1e-12 relative over 20 random parameter sets (seed 23); the
+5PL qualifies because its equation places LogXb so that the EC50 is the
+half-way point. A fit the results flag (ambiguous, or a midpoint beyond
+the concentrations tested) gets no lines and a legend sentence instead.
+
+Reference: `engine/tests/reference/fit_graph.py` (engine fits of the
+example table, and each model's equation evaluated at the midpoint).
+Values pinned: relative 4PL LogIC50 -6.98304, response 50.4181 (the
+equation at that x: 50.418145487472, the range flags' half response
+50.418145487472); absolute IC50 with Baseline 0: LogAbsoluteIC50
+-6.97524, response 49.9281. e2e-figures turns the lines on, reads the
+shapes (x equals the LogIC50 the results table shows, y equals the drawn
+curve interpolated at x to 0.05 and the reference to 5e-5), changes a Y
+value (51.2 to 30 at 1e-7 M: LogIC50 -7.056, the line follows) and
+checks the absolute model.
+
+## Feature validation: geometric summaries on column graphs (2026-11-23)
+
+FEATURE-PLAN P-25. No engine change: the column scatter and bar graphs
+gain "Geometric mean ×/÷ geometric SD" and "Geometric mean with 95% CI"
+(`web/src/sheets/column/graphSettings.ts summaryOf`). On l = ln(x):
+g = exp(mean(l)), s* = exp(SD(l)) with n - 1, bar ends g / s* and g × s*
+(Limpert & Stahel 2011, PLoS ONE 6:e21403, the "×/" notation); the CI is
+exp(mean(l) ± t(0.975, n - 1) SD(l) / √n). A group with a value of 0 or
+less gets no geometric summary (no logarithm): the points stay, and the
+graph options and the legend name the group.
+
+Reference: `web/src/sheets/column/__tests__/reference/geo_summary.py`
+(numpy, scipy.stats.gmean and gstd, scipy.stats.t; R is not installed).
+Fold changes 0.5, 1, 2, 4: g = 1.414213562373095, s* = 2.4469666667017522,
+ends 0.5779455771170363 and 3.4605334467245026, 95% CI 0.34050 to 5.87366.
+Unit tests also cover n = 1, all values equal (s* = 1), 1e-12 and 1e12
+magnitudes, a ×10 unit change (g scales, s* does not) and group order.
+e2e-figures reads the bar ends from the drawn trace on a log axis (to
+1e-12 relative) and checks the Checks row note for bars on a log axis or
+on an axis starting at 1 (source: Healy, Data Visualization, ch. 1, "bar
+charts should generally include a zero baseline ... given that bars
+encode their variables as lengths").
+
+## Feature validation: median with IQR under a rank test (2026-11-23)
+
+FEATURE-PLAN P-26. No engine change. Column graphs created from now on
+start with the centre "Follow the test": mean ± SD, or median with IQR
+while the bound analysis is Mann-Whitney, Wilcoxon, Kolmogorov-Smirnov,
+Kruskal-Wallis, Friedman or the median test
+(`web/src/sheets/column/rankSummary.ts`). A graph whose centre the user
+chose, and every graph saved before (no "auto"), keeps what it draws. The
+median and IQR now come from `graph/boxStats.ts percentileOf` with the
+column statistics' percentile method, as the box plots do (before: an
+own linear interpolation, equal to it except in the last bit). The
+results headline adds one line on what the test compares (Hart 2001, BMJ
+323:391: the Mann-Whitney test "is a test of both location and shape").
+
+Reference: `web/src/sheets/column/__tests__/reference/geo_summary.py`,
+numpy.percentile with method "linear" (H&F 7) and "weibull" (H&F 6, the
+"prism" method) on the example column table: Control 22.725 / 24.0 /
+25.275 (type 7) and 22.4 / 24.0 / 25.55 (type 6); Treated A 28.5 / 28.9 /
+29.9; Treated B 34.375 / 35.5 / 36.4. e2e-figures chooses Mann-Whitney
+and reads the drawn medians and IQR ends (to 1e-9), the results line and
+the legend, and checks that a graph saved before keeps mean ± SD.

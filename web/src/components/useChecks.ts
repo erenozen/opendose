@@ -5,6 +5,8 @@ import { useProject } from "../app/context";
 import type { DataSheet, ResultsSheet } from "../project/types";
 import { useResultsGuidance } from "../guide/useResultsGuidance";
 import { planCheckState } from "./planState";
+import { legendGraph } from "../report/legendFor";
+import { barAxisChip } from "../sheets/column/barAxis";
 
 export interface Counts { ok: number; warn: number; info: number; questions: number }
 
@@ -12,8 +14,16 @@ export function useChecks({ sheet, data, result, options, readOnly }: {
   sheet: ResultsSheet; data: DataSheet; result: unknown; options: unknown; readOnly: boolean;
 }) {
   const { project } = useProject();
-  const g = useResultsGuidance({ analysisId: sheet.analysis, tableType: data.table.type,
+  const base = useResultsGuidance({ analysisId: sheet.analysis, tableType: data.table.type,
     table: data.table, options, result, dataId: data.id, resultsId: sheet.id, readOnly });
+  // The bar graph bound to these results, when its value axis hides zero
+  // (sheets/column/barAxis.ts).
+  const graph = useMemo(() => legendGraph(project.sheets, sheet.id, data.id),
+    [project.sheets, sheet.id, data.id]);
+  const g = useMemo(() => {
+    const chip = graph && result ? barAxisChip(graph) : null;
+    return chip ? { ...base, chips: [...base.chips, chip] } : base;
+  }, [base, graph, result]);
   const plan = useMemo(() => planCheckState(project, sheet, data), [project, sheet, data]);
   // The callout: the first warning note (resultBanners lists them by
   // severity within each kind of result).

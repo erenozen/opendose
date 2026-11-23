@@ -16,6 +16,14 @@
 //   row-ids.json       animal IDs as row titles (Find, Exclude by ID), an
 //                      Info constant used as "@Name", a contingency graph
 //   box-plot.json      a column box plot (rank (n + 1)p quartiles, an outlier)
+//   fit-graph.json     the example dose-response with IC50 drop lines and
+//                      their value label on its curve-fit graph
+//   fit-legend.json    a weighted 4PL with a confidence band and one ROUT
+//                      outlier, its legend sentence drawn in the figure
+//   bar-axis.json      fold changes as bars of geometric means ×/÷ geometric
+//                      SD on an axis starting at 1 (the Checks note)
+//   rank-test.json     the example column table under Mann-Whitney, its new
+//                      graph following the test (median with IQR)
 //   many-sheets.json   74 sheets: 22 families, navigator groups (one
 //                      collapsed), highlights, info sheets and layouts
 import { writeFileSync } from "node:fs";
@@ -246,4 +254,62 @@ function write(name, p, compact = false) {
   const g = graph(t, r, "box", "Box plot");
   g.settings.column = { caption: "below" };
   write("box-plot.json", project("Box plot", [t, r, g], { selected: g.id }));
+}
+
+// fit-graph.json: the example dose-response with the IC50 drop lines and
+// their label on (sheets/xy/fitGraph.ts)
+{
+  const reps = [["98.2", "101.5", "99.1"], ["97.0", "95.8", "99.9"], ["93.4", "90.1", "92.7"],
+    ["78.9", "82.3", "80.0"], ["51.2", "48.7", "50.9"], ["22.1", "25.6", "24.0"],
+    ["8.9", "10.2", "7.5"], ["3.1", "4.4", "2.2"], ["1.0", "0.5", "2.1"]];
+  const t = data("Dose response", table("xy", { x: doses, xTitle: "[Conc.]", xUnit: "M",
+    yTitle: "Response", datasets: [{ name: "Drug A", subTitles: ["", "", ""], rows: reps }] }));
+  const r = results(t, "nonlin", { model: "log_inhibitor_vs_response_4pl", errorBars: "sd",
+    autoFit: "requested" }, "Nonlin fit of Dose response");
+  const g = graph(t, r, "xy", "Graph of Dose response");
+  g.settings.xy = { dropLines: true, dropLabel: true };
+  write("fit-graph.json", project("Fit graph", [t, r, g], { selected: g.id }));
+}
+
+// fit-legend.json: the curve-fit legend in the figure (sheets/xy/fitLegend.ts)
+{
+  const reps = [["98.2", "101.5", "99.1"], ["97.0", "95.8", "99.9"], ["93.4", "90.1", "92.7"],
+    ["78.9", "82.3", "80.0"], ["30.0", "48.7", "50.9"], ["22.1", "25.6", "24.0"],
+    ["8.9", "10.2", "7.5"], ["3.1", "4.4", "2.2"], ["1.0", "0.5", "2.1"]];
+  const t = data("ROUT fit", table("xy", { x: doses, xTitle: "[Conc.]", xUnit: "M",
+    yTitle: "Response", datasets: [{ name: "Drug A", subTitles: ["", "", ""], rows: reps }] }));
+  const r = results(t, "nonlin", { model: "log_inhibitor_vs_response_4pl", errorBars: "sd",
+    autoFit: "requested", weighting: "1/Y2", routEnabled: true, routQ: "1", bands: "confidence" },
+  "Nonlin fit of ROUT fit");
+  const g = graph(t, r, "xy", "Graph of ROUT fit");
+  g.settings.xy = { caption: "figure" };
+  write("fit-legend.json", project("Fit legend", [t, r, g], { selected: g.id }));
+}
+
+// bar-axis.json: geometric means of fold changes as bars on an axis that
+// starts at 1 (sheets/column/barAxis.ts, the Checks row note)
+{
+  const t = data("Fold changes", table("column", { yTitle: "Fold change", datasets: [
+    col("Vehicle", [0.8, 1.1, 0.9, 1.2]), col("Drug", [0.5, 1, 2, 4]), col("Drug + inhibitor", [1, 2, 4, 8]),
+  ] }));
+  const r = results(t, "column", { analysis: "column_statistics" }, "Column stats of Fold changes");
+  const g = graph(t, r, "bar", "Graph of Fold changes");
+  g.settings.column = { caption: "below", summary: "geo_sd" };
+  g.settings.format = { y: { min: 0.4 } };
+  write("bar-axis.json", project("Bar axis", [t, r, g], { selected: r.id }));
+}
+
+// rank-test.json: Mann-Whitney on the example column table; the graph's
+// centre follows the test (sheets/column/rankSummary.ts)
+{
+  const t = data("Group comparison", table("column", { datasets: [
+    col("Control", [23.1, 25.4, 21.8, 24.9, 22.6, 26.0]),
+    col("Treated A", [28.4, 30.2, 27.1, 31.5, 29.0, 28.8]),
+    col("Treated B", [35.2, 33.9, 37.4, 34.1, 36.6, 35.8]),
+  ] }));
+  const r = results(t, "column", { analysis: "ttest", ttestKind: "mann_whitney" },
+    "Mann-Whitney of Group comparison");
+  const g = graph(t, r, "scatter", "Graph of Group comparison");
+  g.settings.column = { spread: "symmetric", caption: "below", summary: "auto" };
+  write("rank-test.json", project("Rank test", [t, r, g], { selected: r.id }));
 }

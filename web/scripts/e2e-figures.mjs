@@ -597,6 +597,321 @@ await shot("classic");
     (await legendText()).includes("1.5 × IQR (Tukey) (whiskers)"), await legendText());
 }
 
+// --- IC50 / EC50 drop lines on the curve-fit graph (P-23). Reference
+// values: engine/tests/reference/fit_graph.py (the engine's fit of the
+// example table and the model's own equation at the midpoint): relative
+// IC50 at LogIC50 -6.98304, response 50.4181 = (Top + Bottom) / 2;
+// absolute IC50 (Baseline 0) at LogAbsoluteIC50 -6.97524, response
+// 49.9281 = (Top + Baseline) / 2. Off by default: no shape before.
+const FIT_X = ["1e-9", "3.162e-9", "1e-8", "3.162e-8", "1e-7", "3.162e-7", "1e-6", "3.162e-6", "1e-5"];
+const FIT_Y = [["98.2", "101.5", "99.1"], ["97.0", "95.8", "99.9"], ["93.4", "90.1", "92.7"],
+  ["78.9", "82.3", "80.0"], ["51.2", "48.7", "50.9"], ["22.1", "25.6", "24.0"],
+  ["8.9", "10.2", "7.5"], ["3.1", "4.4", "2.2"], ["1.0", "0.5", "2.1"]];
+const fitTable = (rows) => ({ type: "xy", x: FIT_X, xTitle: "[Conc.]", xFormat: "numbers", xUnit: "M",
+  yTitle: "Response", rowTitles: FIT_X.map(() => ""), subcolumnFormat: "replicates",
+  replicateLayout: "side_by_side", datasets: [{ name: "Drug A", subTitles: ["", "", ""], rows }] });
+const fitFamily = (id, name, options, graph = {}, rows = FIT_Y) => [
+  { id: `${id}d`, kind: "data", name, table: fitTable(rows.map((r) => [...r])) },
+  { id: `${id}r`, kind: "results", parentId: `${id}d`, name: `Nonlin fit of ${name}`,
+    analysis: "nonlin", options: { model: "log_inhibitor_vs_response_4pl", errorBars: "sd",
+      autoFit: "requested", ...options } },
+  { id: `${id}g`, kind: "graph", parentId: `${id}d`, resultsId: `${id}r`, graphType: "xy",
+    name: `Graph of ${name}`, settings: { titles: { x: "", y: "" }, scheme: "default", ...graph } },
+];
+const dropShapes = () => page.evaluate(() => {
+  const gd = document.querySelector(".plot-card .plot");
+  const sh = (gd?.layout?.shapes ?? []).filter((s) => String(s.name ?? "").startsWith("drop:"));
+  const fit = (gd?.data ?? []).find((t) => t.meta?.odTag?.role === "fit");
+  const label = (gd?.layout?.annotations ?? []).find((a) => String(a.name ?? "").startsWith("drop:"));
+  return { n: sh.length, v: sh.find((s) => s.name.endsWith(":v")), h: sh.find((s) => s.name.endsWith(":h")),
+    curve: fit ? { x: [...fit.x], y: [...fit.y] } : null, label: label?.text ?? null };
+});
+const curveAt = (c, x) => {
+  for (let i = 0; i + 1 < c.x.length; i++) {
+    if (c.x[i] <= x && x <= c.x[i + 1]) {
+      return c.y[i] + (c.y[i + 1] - c.y[i]) * (x - c.x[i]) / (c.x[i + 1] - c.x[i]);
+    }
+  }
+  return NaN;
+};
+const paramCell = (name) => page.evaluate((n) => {
+  const tr = [...document.querySelectorAll(".pane-results tr")]
+    .find((r) => r.cells[0]?.textContent?.trim() === n);
+  return tr ? tr.cells[1]?.textContent?.trim() : null;
+}, name);
+const fitLegendText = () => page.locator(".plot-card .figure-legend-text").textContent().catch(() => "");
+{
+  const FIT = join(tmp, "fit.json");
+  writeFileSync(FIT, JSON.stringify({
+    version: 2, title: "Fit graph check",
+    prefs: { defaultTableType: "xy", errorBars: "sd", ciMethod: "asymptotic", scheme: "default", digits: 4 },
+    sheets: [
+      ...fitFamily("rel", "Relative IC50", {}),
+      ...fitFamily("abs", "Absolute IC50", { model: "absolute_ic50_log", modelConstants: { Baseline: "0" } },
+        { xy: { dropLines: true } }),
+      // P-24: 4PL, weighting 1/Y², confidence band, ROUT (Q = 1%) removes
+      // the 30.0 at 1e-7 M (engine/tests/reference/fit_graph.py legend_4pl)
+      ...fitFamily("leg", "ROUT fit", { weighting: "1/Y2", routEnabled: true, routQ: "1",
+        bands: "confidence" }, {}, FIT_Y.map((r, i) => (i === 4 ? ["30.0", "48.7", "50.9"] : r))),
+    ],
+  }));
+  await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]', FIT);
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+    .some((t) => t.meta?.odTag?.role === "fit"), null, { timeout: 120000 });
+  await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 120000 });
+  expect("drop lines are off by default (no shape)", (await dropShapes()).n === 0);
+  const pop = await graphSettings();
+  await pop.getByRole("checkbox", { name: "Show IC50 drop lines" }).check();
+  await pop.getByRole("checkbox", { name: "Write the IC50 next to the point" }).check();
+  await closeSettings();
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.layout?.shapes ?? [])
+    .some((s) => s.name === "drop:0:v"), null, { timeout: 30000 }).catch(() => {});
+  let d = await dropShapes();
+  const shown = await paramCell("LogIC50");
+  expect("Show IC50: the vertical line's x is the reported LogIC50 (-6.98304; table -6.983)",
+    d.v && Math.abs(d.v.x0 - -6.98304) < 5e-6 && Number(shown) === Number(d.v.x0.toPrecision(4)),
+    `${d.v?.x0} / table ${shown}`);
+  expect("its y is the curve at that x: 50.4181 = (Top + Bottom) / 2",
+    d.v && Math.abs(d.v.y0 - 50.4181) < 5e-5 && Math.abs(curveAt(d.curve, d.v.x0) - d.v.y0) < 0.05,
+    `${d.v?.y0} / curve ${d.curve && curveAt(d.curve, d.v?.x0)}`);
+  expect("the lines reach both axes (plot edge) and are dashed",
+    d.v?.y1 === 0 && JSON.stringify(d.v?.yref) === '["y","y domain"]' && d.h?.x1 === 0
+      && d.h?.y0 === d.v?.y0 && d.v?.line?.dash === "dash", JSON.stringify(d.h));
+  expect("the value label reads IC50 = 1.040e-7 M", d.label === "IC50 = 1.040e-7 M", d.label);
+  expect("the legend says what the lines mark",
+    (await fitLegendText()).includes("Dashed lines mark the IC50 (the concentration giving a response "
+      + "half-way between the fitted Top and Bottom)."), await fitLegendText());
+  // changing a Y value moves the lines with the fit
+  await page.locator(".data-table input[aria-label='Drug A, Y1, row 5']").fill("30");
+  await page.keyboard.press("Enter");
+  await page.waitForFunction((x) => {
+    const s = (document.querySelector(".plot-card .plot")?.layout?.shapes ?? []).find((v) => v.name === "drop:0:v");
+    return s && Math.abs(s.x0 - x) > 1e-4;
+  }, d.v.x0, { timeout: 60000 }).catch(() => {});
+  await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 60000 });
+  const before = d.v.x0;
+  d = await dropShapes();
+  const moved = await paramCell("LogIC50");
+  expect("changing a Y value moves the line with the reported LogIC50",
+    d.v && Math.abs(d.v.x0 - before) > 1e-4 && Number(moved) === Number(d.v.x0.toPrecision(4))
+      && Math.abs(curveAt(d.curve, d.v.x0) - d.v.y0) < 0.05, `${before} -> ${d.v?.x0} / table ${moved}`);
+  await shot("fit-drop-lines");
+
+  // the absolute IC50 (Baseline 0): its own level, (Top + Baseline) / 2
+  await page.getByRole("treeitem", { name: "Absolute IC50", exact: true }).first()
+    .locator(":scope > .nav-row").click();
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.layout?.shapes ?? [])
+    .some((s) => s.name === "drop:0:v"), null, { timeout: 120000 }).catch(() => {});
+  await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 60000 });
+  d = await dropShapes();
+  const abs = await paramCell("LogAbsoluteIC50");
+  expect("absolute IC50: x is the reported LogAbsoluteIC50 (-6.97524), y 49.9281 = (Top + Baseline) / 2",
+    d.v && Math.abs(d.v.x0 - -6.97524) < 5e-6 && Math.abs(d.v.y0 - 49.9281) < 5e-5
+      && Number(abs) === Number(d.v.x0.toPrecision(4)) && Math.abs(curveAt(d.curve, d.v.x0) - d.v.y0) < 0.05,
+    `${d.v?.x0}, ${d.v?.y0} / table ${abs}`);
+  expect("the absolute IC50 legend names its level",
+    (await fitLegendText()).includes("Dashed lines mark the absolute IC50 (where the curve crosses "
+      + "(Top + Baseline) / 2)."), await fitLegendText());
+}
+
+
+// --- the curve-fit legend names the model, what was fitted and its
+// weighting, the band and the ROUT exclusions, in that order (P-24).
+// Before: "Points show the mean of the replicates with error bars showing
+// the standard deviation (SD); the curve is the fitted model."
+{
+  const LEGEND = "Points show the mean of the replicates with error bars showing the standard "
+    + "deviation (SD). The curve is the log(inhibitor) vs. response, variable slope (four "
+    + "parameters) model fitted to every replicate value, weighted by 1/Y²; the shaded band is its "
+    + "95% confidence band. ROUT (Q = 1%) removed 1 point from the fit, drawn as × "
+    + "(Drug A, X = -7, Y = 30).";
+  await page.getByRole("treeitem", { name: "ROUT fit", exact: true }).first()
+    .locator(":scope > .nav-row").click();
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+    .some((t) => t.meta?.odTag?.role === "outliers"), null, { timeout: 120000 }).catch(() => {});
+  await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 60000 });
+  await page.waitForFunction(() => document.querySelector(".plot-card .figure-legend-text")?.textContent
+    ?.includes("ROUT"), null, { timeout: 30000 }).catch(() => {});
+  const leg = await fitLegendText();
+  expect("fit legend: model, fitted to every replicate weighted by 1/Y², confidence band, ROUT point",
+    leg.startsWith(`${LEGEND} n = 3 replicates per X value.`), leg);
+  const pop = await graphSettings();
+  await pop.getByLabel("Legend sentence").selectOption("figure");
+  await closeSettings();
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.layout?.annotations ?? [])
+    .some((a) => a.name === "caption"), null, { timeout: 30000 }).catch(() => {});
+  const cap = await page.evaluate(() => (document.querySelector(".plot-card .plot")?.layout?.annotations ?? [])
+    .find((a) => a.name === "caption")?.text ?? "");
+  const capText = cap.split("<br>").join(" ").replace(/&amp;/g, "&");
+  expect("in-figure caption: the same sentence and n", capText === `${LEGEND} n = 3 replicates per X value.`,
+    capText);
+  await shot("fit-legend-caption");
+}
+
+// --- geometric mean ×/÷ geometric SD on a log axis, and the Checks note
+// for bars on a log axis or an axis cut above zero (P-25). Reference:
+// src/sheets/column/__tests__/reference/geo_summary.py (numpy, scipy
+// gmean / gstd): 0.5, 1, 2, 4 -> g = 1.41421, s* = 2.44697, ends 3.46053
+// and 0.577946; 1, 2, 4, 8 -> g = 2.82843, the same s*.
+{
+  const GEO = join(tmp, "geo.json");
+  const folds = (vals) => vals.map((v) => [String(v)]);
+  const colTable = { type: "column", x: Array(4).fill(""), xTitle: "", xFormat: "numbers", xUnit: "",
+    yTitle: "Fold change", rowTitles: Array(4).fill(""), subcolumnFormat: "replicates",
+    replicateLayout: "side_by_side",
+    datasets: [{ name: "Fold A", rows: folds([0.5, 1, 2, 4]) }, { name: "Fold B", rows: folds([1, 2, 4, 8]) }] };
+  writeFileSync(GEO, JSON.stringify({
+    version: 2, title: "Geometric check",
+    prefs: { defaultTableType: "column", errorBars: "sd", ciMethod: "asymptotic", scheme: "default", digits: 4 },
+    sheets: [
+      { id: "q1", kind: "data", name: "Folds", table: colTable },
+      { id: "q2", kind: "results", parentId: "q1", name: "Column stats of Folds",
+        analysis: "column", options: { analysis: "column_statistics" } },
+      { id: "q3", kind: "graph", parentId: "q1", resultsId: "q2", graphType: "bar", name: "Graph of Folds",
+        settings: { titles: { x: "", y: "" }, scheme: "default", column: { caption: "below" },
+          format: { y: { scale: "log10" } } } },
+      { id: "q4", kind: "data", name: "Folds cut", table: colTable },
+      { id: "q5", kind: "results", parentId: "q4", name: "Column stats of Folds cut",
+        analysis: "column", options: { analysis: "column_statistics" } },
+      { id: "q6", kind: "graph", parentId: "q4", resultsId: "q5", graphType: "scatter",
+        name: "Graph of Folds cut", settings: { titles: { x: "", y: "" }, scheme: "default",
+          column: { caption: "below" }, format: { y: { min: 1 } } } },
+    ],
+  }));
+  await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]', GEO);
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+    .some((t) => t.type === "bar"), null, { timeout: 120000 });
+  await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 120000 });
+  const pop = await graphSettings();
+  await pop.getByLabel("Bars and error bars").selectOption("geo_sd");
+  await closeSettings();
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+    .some((t) => t.type === "bar" && Math.abs(t.y[0] - Math.SQRT2) < 1e-9), null, { timeout: 30000 })
+    .catch(() => {});
+  const bars = await page.evaluate(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+    .filter((t) => t.type === "bar").map((t) => ({ y: t.y[0], hi: t.error_y?.array?.[0],
+      lo: t.error_y?.arrayminus?.[0] })));
+  const ends = bars.map((b) => [b.y - b.lo, b.y, b.y + b.hi]);
+  const near = (a, b) => Math.abs(a - b) <= 1e-12 * Math.abs(b);
+  expect("geometric mean ×/÷ geometric SD: bar ends g / s* and g × s* (numpy: 0.577946, 1.41421, 3.46053)",
+    ends.length === 2 && near(ends[0][0], 0.5779455771170363) && near(ends[0][1], 1.414213562373095)
+      && near(ends[0][2], 3.4605334467245026) && near(ends[1][1], 2 * 1.414213562373095)
+      && near(ends[1][2], 2 * 3.4605334467245026), JSON.stringify(ends));
+  const legend = await page.locator(".plot-card .figure-legend-text").innerText().catch(() => "");
+  expect("the legend names the geometric summary",
+    legend.startsWith("Geometric mean ×/÷ geometric SD (bars), with individual values."), legend);
+  await openChecks();
+  const chip = page.getByRole("button", { name: /Bars on a log axis/ });
+  expect("Checks: bars on a log axis are flagged", await chip.count() === 1);
+  await shot("geo-log-bars");
+
+  // the same groups with Y starting at 1: switch the scatter graph to bars
+  await page.getByRole("treeitem", { name: "Folds cut", exact: true }).first()
+    .locator(":scope > .nav-row").click();
+  await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 120000 });
+  await page.locator(".plot-card").getByLabel("Graph type").selectOption("bar");
+  await openChecks();
+  const cut = page.getByRole("button", { name: /Bars without zero/ });
+  await cut.waitFor({ timeout: 30000 }).catch(() => {});
+  expect("bars with Y starting at 1: the Checks note appears", await cut.count() === 1);
+  await cut.click();
+  const detail = page.getByRole("region", { name: "Bars without zero" });
+  const text = await detail.innerText().catch(() => "");
+  expect("the note offers points or an axis break and cites its source",
+    await detail.getByRole("button", { name: "Show points instead" }).count() === 1
+      && await detail.getByRole("button", { name: "Start at 0 with a break" }).count() === 1
+      && text.includes("starts at 1, not at 0") && text.includes("Healy, Data Visualization"), text);
+  await detail.getByRole("button", { name: "Start at 0 with a break" }).click();
+  await page.waitForFunction(() => !!document.querySelector(".plot-card .plot")?.layout?.yaxis3,
+    null, { timeout: 30000 }).catch(() => {});
+  const split = await page.evaluate(() => {
+    const l = document.querySelector(".plot-card .plot")?.layout ?? {};
+    return { lo: l.yaxis?.range, hi: l.yaxis3?.range };
+  });
+  expect("Start at 0 with a break: the axis shows 0 to 0.2, then from 1; the note goes",
+    split.lo?.[0] === 0 && split.lo?.[1] === 0.2 && split.hi?.[0] === 1
+      && await page.getByRole("button", { name: /Bars without zero/ }).count() === 0, JSON.stringify(split));
+  await shot("geo-axis-break");
+}
+
+// --- a rank test: the graph follows the test (P-26). The example column
+// table; a new graph's centre is "Follow the test" (summary "auto").
+// Reference: src/sheets/column/__tests__/reference/geo_summary.py (numpy
+// percentile, method "linear" = the column statistics' default):
+// Control median 24.0, IQR 22.725 to 25.275; Treated A 28.9, 28.5 to 29.9.
+// A graph saved before (no "auto") keeps mean ± SD.
+{
+  const RANK = join(tmp, "rank.json");
+  const exampleTable = { type: "column", x: Array(6).fill(""), xTitle: "", xFormat: "numbers", xUnit: "",
+    yTitle: "", rowTitles: Array(6).fill(""), subcolumnFormat: "replicates", replicateLayout: "side_by_side",
+    datasets: [
+      { name: "Control", rows: [["23.1"], ["25.4"], ["21.8"], ["24.9"], ["22.6"], ["26.0"]] },
+      { name: "Treated A", rows: [["28.4"], ["30.2"], ["27.1"], ["31.5"], ["29.0"], ["28.8"]] },
+      { name: "Treated B", rows: [["35.2"], ["33.9"], ["37.4"], ["34.1"], ["36.6"], ["35.8"]] }] };
+  const fam = (id, name, column) => [
+    { id: `${id}d`, kind: "data", name, table: exampleTable },
+    { id: `${id}r`, kind: "results", parentId: `${id}d`, name: `t test of ${name}`,
+      analysis: "column", options: { analysis: "ttest", ttestKind: "unpaired" } },
+    { id: `${id}g`, kind: "graph", parentId: `${id}d`, resultsId: `${id}r`, graphType: "scatter",
+      name: `Graph of ${name}`, settings: { titles: { x: "", y: "" }, scheme: "default", column } },
+  ];
+  writeFileSync(RANK, JSON.stringify({
+    version: 2, title: "Rank check",
+    prefs: { defaultTableType: "column", errorBars: "sd", ciMethod: "asymptotic", scheme: "default", digits: 4 },
+    sheets: [
+      ...fam("new", "Group comparison", { spread: "symmetric", caption: "below", summary: "auto" }),
+      ...fam("old", "Saved before", { spread: "symmetric", caption: "below" }),
+    ],
+  }));
+  const summaries = () => page.evaluate(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+    .filter((t) => t.meta?.odTag?.role === "summary")
+    .map((t) => { const c = t.y[0], e = t.error_y ?? {};
+      return [c - (e.arrayminus?.[0] ?? e.array?.[0] ?? 0), c, c + (e.array?.[0] ?? 0)]; }));
+  const close = (a, b) => Math.abs(a - b) < 1e-9;
+  const chooseMannWhitney = async () => {
+    await page.locator(".pane-controls").getByLabel("Analysis", { exact: true }).selectOption("ttest");
+    await page.locator(".pane-controls").getByLabel("Test", { exact: true }).selectOption("mann_whitney");
+    await page.waitForFunction(() => document.querySelector(".pane-answer .answer-rank")?.textContent
+      ?.includes("Mann-Whitney"), null, { timeout: 60000 }).catch(() => {});
+    await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 60000 });
+  };
+  await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]', RANK);
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+    .some((t) => t.meta?.odTag?.role === "summary"), null, { timeout: 120000 });
+  await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 120000 });
+  let sm = await summaries();
+  expect("t test: the new graph shows mean ± SD (Control mean 23.967)",
+    sm.length === 3 && Math.abs(sm[0][1] - 23.966666666666665) < 1e-9, JSON.stringify(sm[0]));
+  expect("no rank line for a t test", await page.locator(".pane-answer .answer-rank").count() === 0);
+  await chooseMannWhitney();
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+    .some((t) => t.meta?.odTag?.role === "summary" && Math.abs(t.y[0] - 24) < 1e-9), null, { timeout: 30000 })
+    .catch(() => {});
+  sm = await summaries();
+  expect("Mann-Whitney: the graph switches to median with IQR (numpy: 22.725, 24.0, 25.275; 28.5, 28.9, 29.9)",
+    sm.length === 3 && close(sm[0][0], 22.725) && close(sm[0][1], 24) && close(sm[0][2], 25.275)
+      && close(sm[1][0], 28.5) && close(sm[1][1], 28.9) && close(sm[1][2], 29.9), JSON.stringify(sm));
+  const line = await page.locator(".pane-answer .answer-rank").innerText().catch(() => "");
+  expect("the results say what the test compares",
+    line.includes("compares distributions (ranks), shown as median and IQR"), line);
+  expect("the legend says median with IQR",
+    (await page.locator(".plot-card .figure-legend-text").innerText().catch(() => ""))
+      .startsWith("Median with IQR, with individual values."));
+  await shot("rank-median-iqr");
+
+  // a graph saved before keeps what it draws
+  await page.getByRole("treeitem", { name: "Saved before", exact: true }).first()
+    .locator(":scope > .nav-row").click();
+  await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 120000 });
+  await chooseMannWhitney();
+  sm = await summaries();
+  const oldLine = await page.locator(".pane-answer .answer-rank").innerText().catch(() => "");
+  expect("a graph saved before keeps mean ± SD under Mann-Whitney, and the line says so",
+    sm.length === 3 && Math.abs(sm[0][1] - 23.966666666666665) < 1e-9
+      && oldLine.includes("compares distributions (ranks); the graph shows mean ± SD."),
+    `${JSON.stringify(sm[0])} / ${oldLine}`);
+}
+
 console.log(errors.length ? errors.join("\n") : "no page errors");
 await browser.close();
 if (fail.length || errors.length) {

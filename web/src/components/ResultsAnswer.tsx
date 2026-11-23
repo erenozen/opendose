@@ -16,6 +16,7 @@ import { ANALYSIS_COLUMN, ANALYSIS_NONLIN } from "../project/builtin";
 import { concentrationUnit } from "../sheets/xy/rangeReport";
 import { keyFacts, type KeyItem } from "./answer/keyFacts";
 import AcrossExperiments from "./answer/AcrossExperiments";
+import RankLine from "./answer/RankLine";
 import { potencySummaries } from "../sheets/xy/experiments";
 import ResultsChecks from "./ResultsChecks";
 import { useChecks } from "./useChecks";
@@ -188,6 +189,7 @@ export default function ResultsAnswer({ sheet, data, result, options, status, re
             )}
           </>
         )}
+        <RankLine sheet={sheet} data={data} options={options} result={result} />
         <MeaningLine analysisId={sheet.analysis} resultsId={sheet.id} table={data.table}
           options={options} result={result} />
         <ResultsChecks sheet={sheet} data={data} result={result} options={options}

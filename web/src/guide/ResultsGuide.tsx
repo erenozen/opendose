@@ -15,6 +15,7 @@ import LearnMore from "./LearnMore";
 import MultiplicityActions from "./MultiplicityActions";
 import type { MultiplicityFacts } from "./multiplicity";
 import { InteractionAction } from "./InteractionAction";
+import { BarAxisAction } from "./BarAxisAction";
 import { openAssignReplicates } from "../report/useReport";
 import type { Source } from "./sources";
 import { useContextFor, type ResultsGuideProps } from "./useResultsGuidance";
@@ -76,6 +77,7 @@ export function Chips({ chips, dataId, multiplicity, readOnly }: {
           )}
           {cur.action === "multiplicity" && multiplicity && <MultiplicityActions facts={multiplicity} />}
           {cur.action === "interaction" && dataId && !readOnly && <InteractionAction dataId={dataId} />}
+          {cur.action === "bar-axis" && cur.target && !readOnly && <BarAxisAction graphId={cur.target} />}
           <Sources sources={cur.sources} />
           {cur.explainer && <LearnMore id={cur.explainer} />}
         </div>

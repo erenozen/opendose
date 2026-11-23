@@ -1,6 +1,7 @@
 // Settings a graph sheet created from now on starts with: the figure
 // conventions journals ask for (points spread symmetrically, the legend
-// sentence under the graph, censor marks on survival curves). Graphs saved
+// sentence under the graph, censor marks on survival curves, column
+// centres that follow the test: sheets/column/rankSummary.ts). Graphs saved
 // before these existed lack the keys and keep drawing exactly as before.
 import type { TableType } from "../../project/types.ts";
 import { NEW_COLUMN_GRAPH } from "../column/graphSettings.ts";

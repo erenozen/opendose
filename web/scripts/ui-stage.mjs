@@ -607,6 +607,40 @@ const scenes = [
     await click(s, s.page.locator(".plot-card").getByRole("button", { name: "Settings", exact: true }));
     await dialog(s, "Graph settings").getByLabel("Whiskers").waitFor();
   } },
+  { name: "graphs-fit-figure", setup: async (s) => {
+    await fixture(s, "fit-graph.json", { live: true });
+    await s.page.locator(".js-plotly-plot").first().waitFor();
+    await into(s, ".plot-card", "center");
+    await settle(s, 1200);
+  } },
+  { name: "graphs-bar-axis-note", setup: async (s) => {
+    await fixture(s, "bar-axis.json", { live: true });
+    const checks = s.page.locator(".pane-answer details.checks").first();
+    await click(s, checks.locator("summary"));
+    await click(s, s.page.getByRole("button", { name: /Bars without zero/ }));
+    await s.page.getByRole("region", { name: "Bars without zero" }).waitFor();
+    await into(s, ".pane-answer details.checks", "center");
+    await settle(s, 800);
+  } },
+  { name: "results-rank-line", setup: async (s) => {
+    await fixture(s, "rank-test.json", { live: true });
+    await s.page.locator(".pane-answer .answer-rank").waitFor();
+    await s.page.locator(".js-plotly-plot").first().waitFor();
+    await settle(s, 1200);
+  } },
+  { name: "graphs-fit-legend", setup: async (s) => {
+    await fixture(s, "fit-legend.json", { live: true });
+    await s.page.locator(".js-plotly-plot").first().waitFor();
+    await into(s, ".plot-card", "center");
+    await settle(s, 1200);
+  } },
+  { name: "graphs-fit-drop-lines", setup: async (s) => {
+    await fixture(s, "fit-graph.json", { live: true });
+    await s.page.locator(".js-plotly-plot").first().waitFor();
+    await into(s, ".plot-card", "center");
+    await click(s, s.page.locator(".plot-card").getByRole("button", { name: "Settings", exact: true }));
+    await dialog(s, "Graph settings").getByRole("checkbox", { name: "Show IC50 drop lines" }).waitFor();
+  } },
   { name: "graphs-export-options", setup: async (s) => {
     await example(s);
     await into(s, ".plot-card", "center");

@@ -30,8 +30,10 @@ export default function GraphLegend({ graph, data, table, result, options }: {
   );
 }
 
-/** The graph asks for its legend under it (column and grouped graphs). */
+/** The graph asks for its legend under it (column, grouped and curve-fit
+ *  graphs). */
 function captionBelow(g: GraphSheet): boolean {
-  const own = (g.settings.column ?? g.settings.grouped) as { caption?: unknown } | undefined;
+  const own = (g.settings.column ?? g.settings.grouped ?? g.settings.xy) as
+    { caption?: unknown } | undefined;
   return own?.caption === "below";
 }
