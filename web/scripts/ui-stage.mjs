@@ -320,6 +320,23 @@ const scenes = [
       await d.locator(".workbook-report").filter({ hasText: re }).waitFor({ timeout: 120000 });
     },
   })),
+  // one table file dropped on the page (P-33): the Import dialog for a new
+  // table, its guessed type and why; plate-reader.csv adds the recipe hint
+  ...[["shell-import-drop", ["import", "dose-response.csv"], null],
+    ["shell-import-drop-recipe", ["plate-reader.csv"], "[data-part='recipe-hint']"]].map(([name, file, wait]) => ({
+    name, setup: async (s) => {
+      await example(s);
+      const b64 = readFileSync(join(here, "..", "e2e-fixtures", ...file)).toString("base64");
+      await s.page.evaluate(([n, data]) => {
+        const dt = new DataTransfer();
+        dt.items.add(new File([Uint8Array.from(atob(data), (c) => c.charCodeAt(0))], n));
+        document.body.dispatchEvent(new DragEvent("drop", { dataTransfer: dt, bubbles: true, cancelable: true }));
+      }, [file.at(-1), b64]);
+      const d = dialog(s, "Import data");
+      await d.locator(".import-preview tbody tr").first().waitFor({ timeout: 30000 });
+      if (wait) await d.locator(wait).waitFor({ timeout: 10000 });
+    },
+  })),
   { name: "shell-goto", setup: async (s) => {
     await fixture(s, "many-sheets.json");
     await s.page.locator(".nav-tree").first().waitFor({ state: "attached" });

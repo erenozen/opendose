@@ -12,6 +12,7 @@ import { useUi } from "./app/ui";
 import { UiProvider } from "./app/UiProvider";
 import { useAutosave } from "./app/useAutosave";
 import { OPENABLE, useFileOpen } from "./app/useFileOpen";
+import { TABLE_OPEN } from "./app/tableFile";
 import { useDerivedSync } from "./app/useDerivedSync";
 import { useCalculatedSync } from "./app/useCalculatedSync";
 import { useBackgroundRefresh } from "./app/useBackgroundRefresh";
@@ -31,6 +32,7 @@ import type { Project } from "./project/types";
 import type { PrismTable } from "./app/factory";
 import { tableDef } from "./sheets/registry";
 import { SimulateHost } from "./sheets/manipulate/SimulateDialog";
+import TableFileImport from "./sheets/common/TableFileImport";
 import ShareHost from "./share/ShareHost";
 import { takeTableDrop } from "./share/recipes/readFiles";
 import { useGuide } from "./guide/context";
@@ -232,6 +234,7 @@ function Shell() {
           }} />
       )}
       <SimulateHost />
+      <TableFileImport />
       <PowerHost />
     </div>
   );
@@ -281,7 +284,9 @@ function PrismChooser({ tables, onImport, onCancel }: {
 }
 
 /** A project or Prism file dropped anywhere on the page opens, as Open
- *  does; several CSV files, or a zip of them, go to the table import.
+ *  does; one table file (CSV, TSV, text, .xlsx) opens the Import dialog
+ *  for a new table; several CSV files, or a zip of them, go to the
+ *  recipe import.
  *  Drops a pane handles itself (the navigator, the import dialog) are
  *  left to it. */
 function useDropOpen(open: (f: File) => void) {
@@ -298,12 +303,13 @@ function useDropOpen(open: (f: File) => void) {
       e.preventDefault();
       const list = [...e.dataTransfer.files];
       if (takeTableDrop(list, (f) => openRef.current(f), () => {})) return;
-      const f = list.find((x) => OPENABLE.test(x.name));
+      // a project or Prism file first; else one table file (the Import dialog)
+      const f = list.find((x) => OPENABLE.test(x.name)) ?? list.find((x) => TABLE_OPEN.test(x.name));
       if (f) openRef.current(f);
       else if (list[0]) {
-        notify(`Could not open “${list[0].name}”: OpenDose opens its own project files (.json) `
-          + "and Prism files (.prism, .pzfx). To use a spreadsheet, copy its cells and paste them "
-          + "on this page.", { tone: "error" });
+        notify(`Could not open “${list[0].name}”: OpenDose opens its own project files (.json), `
+          + "Prism files (.prism, .pzfx) and tables (.csv, .tsv, .txt, .xlsx). Save the sheet as "
+          + "one of these, or copy its cells and paste them on this page.", { tone: "error" });
       }
     };
     window.addEventListener("dragover", onOver);

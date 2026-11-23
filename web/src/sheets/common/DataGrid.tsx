@@ -41,6 +41,7 @@ import FormulaColumnDialog from "./FormulaColumnDialog";
 import ExcludeByIdDialog from "./ExcludeByIdDialog";
 import GridFindBar from "./GridFindBar";
 import { onGridFind } from "../../app/gridFind";
+import { takeReport } from "../../app/tableFile";
 import { findInTable } from "../../project/findInTable";
 import { calcCell, evalCellExpression, isCalculated } from "../../project/calculated";
 import {
@@ -163,6 +164,12 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
     paste?: Pasted;
   } | null>(null);
   const shownReport = pasteInfo?.id === sheet.id ? pasteInfo : null;
+  // A table just made from a file dropped on the page or opened
+  // (app/tableFile.ts) shows its import report as the toolbar's Import does.
+  useEffect(() => {
+    const handed = takeReport(sheet.id);
+    if (handed) setPasteInfo({ id: sheet.id, verb: "Imported", report: handed });
+  }, [sheet.id]);
   const [selecting, setSelecting] = useState(false);
   const dragging = useRef(false);
 

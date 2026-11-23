@@ -8,9 +8,11 @@ import { isExampleProject } from "../guide/firstRun";
 import { useProject } from "./context";
 import { prepareReproduceCheck } from "./reproduceCheck";
 import { prismTableToFamily, type PrismTable } from "./factory";
+import { openTableFile, TABLE_OPEN, TABLE_OPEN_ACCEPT } from "./tableFile";
 
-/** Files Open takes: OpenDose projects and Prism files. */
-export const OPEN_ACCEPT = ".json,.pzfx,.prism,.zip";
+/** Files Open takes: OpenDose projects, Prism files and one table file
+ *  (CSV, TSV, text, .xlsx), which goes to the Import dialog. */
+export const OPEN_ACCEPT = `.json,.pzfx,.prism,.zip,${TABLE_OPEN_ACCEPT}`;
 export const OPENABLE = /\.(json|pzfx|prism|zip)$/i;
 const PRISM = /\.(pzfx|prism|prism\.zip|zip)$/i;
 /** One toast follows an open from "Opening…" to its outcome. */
@@ -19,7 +21,8 @@ const TOAST_ID = "open-file";
 /**
  * Open button: an OpenDose project (.json, v1 or v2) replaces the project;
  * a Prism file (.pzfx / .prism) adds its data tables to the project as new
- * families (one picked from a chooser, or all of them).
+ * families (one picked from a chooser, or all of them); a table file
+ * (CSV, TSV, text, .xlsx) opens the Import dialog for a new table.
  *
  * Feedback (DECISIONS 6): a progress toast while the file is read (Prism
  * files wait for the engine), resolved in place; a failure is an error
@@ -80,6 +83,7 @@ export function useFileOpen(into?: (p: Project) => Project) {
   const pickRef = useRef<() => void>(() => {});
 
   const open = useCallback(async (file: File) => {
+    if (TABLE_OPEN.test(file.name)) { openTableFile(file); return; }
     const prism = PRISM.test(file.name);
     notify(prism && !engineReadyRef.current
       ? `Opening “${file.name}” once the analysis engine has loaded…`

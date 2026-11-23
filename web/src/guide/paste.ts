@@ -157,6 +157,17 @@ export function replicateGroups(b: PastedBlock, from: number, type: TableType): 
     : r.cols.map((c) => ({ name: titles[c], cols: [c] }))));
 }
 
+/** Replicates per data set in the guess for `type` (the size of its
+ *  replicate runs, when every data set has the same), else 1: what the
+ *  Import dialog's "Y columns per dataset" starts at for a new table. */
+export function replicatesPerSet(b: PastedBlock, type: TableType): number {
+  if (type !== "xy" && type !== "grouped") return 1;
+  const from = type === "xy" || (textCol(b, 0) && b.width > 1) ? 1 : 0;
+  const groups = replicateGroups(b, from, type);
+  const k = groups[0]?.cols.length ?? 1;
+  return groups.every((g) => g.cols.length === k) ? k : 1;
+}
+
 /** "Rep 1 to Rep 3 read as 3 replicates of one data set.", or null. */
 function replicateReason(b: PastedBlock, from: number, type: TableType): string | null {
   const reps = replicateGroups(b, from, type).filter((g) => g.cols.length > 1);
