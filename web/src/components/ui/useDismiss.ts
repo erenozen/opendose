@@ -207,24 +207,22 @@ export type DismissReason = "escape" | "outside";
  * press inside the layer, its trigger or a layer opened above it (a
  * dialog, a nested menu) does not count as outside.
  */
-export function useDismiss({ open, layer, trigger, onDismiss, kind = "custom" }: {
+export function useDismiss({ open, layer, trigger, onDismiss }: {
   open: boolean;
   layer: RefObject<HTMLElement | null>;
   trigger?: RefObject<HTMLElement | null>;
   onDismiss: (reason: DismissReason) => void;
-  kind?: Layer["kind"];
 }) {
   const latest = useRef(onDismiss);
   useLayoutEffect(() => { latest.current = onDismiss; });
   useEffect(() => {
     if (!open) return;
     const entry: Layer = {
-      kind,
+      kind: "custom",
       contains: (n) => !!layer.current?.contains(n),
       escape: () => latest.current("escape"),
     };
     const remove = pushLayer(entry);
-    if (kind === "native") return remove;
     const onDown = (e: PointerEvent) => {
       const t = e.target as Node;
       if (layer.current?.contains(t) || trigger?.current?.contains(t) || above(entry, t)) return;
@@ -235,7 +233,7 @@ export function useDismiss({ open, layer, trigger, onDismiss, kind = "custom" }:
       remove();
       document.removeEventListener("pointerdown", onDown, true);
     };
-  }, [open, kind, layer, trigger]);
+  }, [open, layer, trigger]);
 }
 
 // ------------------------------------------------------------ presence

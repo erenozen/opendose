@@ -586,7 +586,7 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
           title="Download as CSV or tab-separated text, or copy">Export…</Button>
         {!readOnly && (
           <>
-            <MenuButton label="Rows" variant="ghost" items={[
+            <MenuButton label="Rows" items={[
               { label: "Insert row above", onSelect: () => edit((x) => insertRows(x, curRect.r0, 1)) },
               { label: "Insert row below", hint: `${MOD}⇧↵`,
                 onSelect: () => edit((x) => insertRows(x, curRect.r1 + 1, 1)) },
@@ -596,7 +596,7 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
               onSelect: () => { edit((x) => deleteRows(x, curRect.r0, rowsSelected)); setSel(null); } },
             ]} />
             <MenuButton label={shape.datasetNoun === "Dataset" ? "Columns" : `${shape.datasetNoun}s`}
-              variant="ghost" items={[
+              items={[
               { label: `Insert ${noun} to the left`,
                 onSelect: () => edit((x) => insertDataset(x, Math.max(0, curDs))) },
               { label: `Insert ${noun} to the right`,
@@ -618,7 +618,7 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
                 danger: true, disabled: curDs < 0 || t.datasets.length <= 1,
                 onSelect: () => edit((x) => deleteDataset(x, curDs)) },
             ]} />
-            <MenuButton label="More" variant="ghost" items={[
+            <MenuButton label="More" items={[
               { label: "Sort…", onSelect: () => setDialog({ kind: "sort" }) },
               { label: "Insert series…", description: "Fill a column with an arithmetic or geometric series",
                 onSelect: () => setDialog({ kind: "series" }) },

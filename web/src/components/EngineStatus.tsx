@@ -44,9 +44,8 @@ function engineBytes(engine: EngineState): string | null {
 /** The engine boot slot (DECISIONS 4): always mounted at a fixed size
  *  (340 x 34), so the boot and its end move nothing. A dot, the phase
  *  words (the only live region), the bytes in tabular figures (hidden
- *  from screen readers), Try again after a failure, and a 2px bar drawn
- *  with transform: scaleX. */
-function EngineSlot({ engine, onRetry }: { engine: EngineState; onRetry?: () => void }) {
+ *  from screen readers), and a 2px bar drawn with transform: scaleX. */
+function EngineSlot({ engine }: { engine: EngineState }) {
   const { key, words } = enginePhase(engine);
   const p = engine.progress;
   const frac = key === "ready" ? 1 : p && p.total > 0 ? Math.min(1, p.loaded / p.total) : 0;
@@ -56,9 +55,6 @@ function EngineSlot({ engine, onRetry }: { engine: EngineState; onRetry?: () => 
       <span className="engine-slot-dot" aria-hidden="true" />
       <span className="engine-slot-words" role="status">{words}</span>
       {bytes && <span className="engine-slot-bytes" aria-hidden="true">{bytes}</span>}
-      {key === "failed" && onRetry && (
-        <Button size="sm" className="engine-slot-retry" onClick={onRetry}>Try again</Button>
-      )}
       <span className="engine-slot-bar" aria-hidden="true">
         <span className="engine-slot-fill" style={{ transform: `scaleX(${frac})` }} />
       </span>

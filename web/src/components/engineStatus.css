@@ -23,7 +23,6 @@
 .engine-slot-bytes {
   flex: none; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap;
 }
-.engine-slot-retry { flex: none; }
 .engine-slot-bar {
   position: absolute; left: 0; right: 0; bottom: 0; height: 2px;
   background: var(--line); overflow: hidden; border-radius: 1px;

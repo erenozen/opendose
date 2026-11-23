@@ -192,8 +192,6 @@ export function useBundleExport() {
   }
   return {
     run,
-    busy: !!job,
-    progress: job ? `${Math.min(index + 1, job.steps.length)} of ${job.steps.length}` : "",
     host: content ? createPortal(content, document.body) : null,
   };
 }

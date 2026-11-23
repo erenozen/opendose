@@ -75,7 +75,7 @@ function Shell() {
   const { project, selectedId, replace, store, apply, select, readOnly, results } = useProject();
   const ui = useUi();
   const guide = useGuide();
-  const files = useFileOpen(undefined, importInto);
+  const files = useFileOpen(importInto);
   const autosave = useAutosave();
   useShortcuts();
   useDerivedSync();

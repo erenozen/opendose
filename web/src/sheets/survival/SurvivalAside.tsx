@@ -23,7 +23,7 @@ export default function SurvivalAside(props: AsideProps) {
   return (
     <div className="surv-aside">
       <div className="surv-aside-row" role="group" aria-label="Survival data entry">
-        <Button size="sm" className="surv-entry-btn" disabled={readOnly} onClick={() => setOpen(true)}
+        <Button size="sm" disabled={readOnly} onClick={() => setOpen(true)}
           title="Fill the table from alive (or dead) counts per day, or from start and end dates">
           Survival data from…
         </Button>

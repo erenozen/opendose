@@ -225,7 +225,7 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
           </fieldset>
           {srcKind === "file" ? (
             <div className="field-row">
-              <div className="field import-file">
+              <div className="field">
                 <span className="ui-field-label">File</span>
                 <span className="import-file-row">
                   <FileButton multiple inputLabel="File to import" onFiles={takeFiles}
