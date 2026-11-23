@@ -23,6 +23,7 @@ import { logLegendClause } from "../sheets/column/logScale.ts";
 import { maxOf } from "../lib/extent.ts";
 import { dropLegend, normalizeXYGraph } from "../sheets/xy/fitGraph.ts";
 import { fitLegendClause } from "../sheets/xy/fitLegend.ts";
+import { ctBracketLegend, ctBracketsDrawn } from "../sheets/contingency/brackets.ts";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -150,9 +151,13 @@ export function legendFor(c: LegendContext): string {
   const fmt = c.graph ? readFormat(c.graph.settings) : null;
   const xyFit = c.graph?.graphType === "xy"
     ? xyFitPlotted(c.graph, c.table, c.result, c.options, f.errorBars) : undefined;
+  // contingency graphs: the brackets for pairs of rows, or why there are none
+  const ct = !!c.graph && c.table.type === "contingency";
+  const ctDrawn = ct && ctBracketsDrawn(c.graph!, c.table, c.result);
+  const ctPlotted = ct ? ctBracketLegend(c.graph!, c.table, c.result) ?? undefined : undefined;
   return legendParagraph({
     graphType: c.graph?.graphType ?? null,
-    plotted: xyFit ?? withCompareClause(c.graph ? (own ? ownPlotted(c.graph, c.result, c.options)
+    plotted: xyFit ?? ctPlotted ?? withCompareClause(c.graph ? (own ? ownPlotted(c.graph, c.result, c.options)
       : plottedClause(c.graph, c.table, c.result, c.options)) : undefined, c.result),
     result: c.result,
     groups: xyGroups,
@@ -162,10 +167,10 @@ export function legendFor(c: LegendContext): string {
     exclusions: exclusionSentence(c.table) ?? undefined,
     errorBars: f.errorBars, points: f.points ?? undefined,
     // the nested scatter draws its brackets until its format says otherwise
-    starsShown: f.starsShown || (c.graph?.graphType === G_MIXED_NESTED && !fmt?.comparisons
-      && (c.graph.settings.mixedNested as any)?.brackets !== false
+    starsShown: ct ? f.starsShown && ctDrawn : f.starsShown || (c.graph?.graphType === G_MIXED_NESTED
+      && !fmt?.comparisons && (c.graph.settings.mixedNested as any)?.brackets !== false
       && !!nestedBrackets(c.result)?.set.comparisons.length),
-    pShown: f.pShown,
+    pShown: ct ? f.pShown && ctDrawn : f.pShown,
     style: fmt?.pStyle ?? c.prefs.pStyle,
     hideNs: fmt?.comparisons?.hideNs ?? c.prefs.hideNs, software: c.software,
   });

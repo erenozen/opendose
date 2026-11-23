@@ -1093,6 +1093,104 @@ const fitLegendText = () => page.locator(".plot-card .figure-legend-text").textC
   await page.getByRole("menuitemradio", { name: "Light" }).click();
 }
 
+// --- brackets for the pairs of rows on the contingency graphs (P-14).
+// The plan's acceptance data, WT 18/20, Het 15/20, KO 5/20 positive;
+// engine/tests/reference/pairwise_proportions.py (scipy per pair,
+// statsmodels multipletests "holm"): Holm-adjusted 0.4075 (WT vs. Het),
+// 3.719e-4 (WT vs. KO), 0.008853 (Het vs. KO). Before: the contingency
+// graphs drew no brackets (no comparisons reached them).
+{
+  const CT = join(tmp, "contingency.json");
+  const ctTable = { type: "contingency", x: ["", "", ""], xTitle: "", xFormat: "numbers", xUnit: "", yTitle: "",
+    rowTitles: ["WT", "Het", "KO"], subcolumnFormat: "replicates", replicateLayout: "side_by_side",
+    datasets: [{ name: "Positive", rows: [["18"], ["15"], ["5"]] }, { name: "Negative", rows: [["2"], ["5"], ["15"]] }] };
+  const ctGraph = (id, graphType, name, comparisons) => ({ id, kind: "graph", parentId: "c1", resultsId: "c2",
+    graphType, name, settings: { titles: { x: "", y: "" }, scheme: "default", format: { comparisons } } });
+  writeFileSync(CT, JSON.stringify({
+    version: 2, title: "Contingency brackets",
+    prefs: { defaultTableType: "contingency", errorBars: "sd", ciMethod: "asymptotic", scheme: "default", digits: 4 },
+    sheets: [
+      { id: "c1", kind: "data", name: "Genotypes", table: ctTable },
+      { id: "c2", kind: "results", parentId: "c1", name: "Chi-square of Genotypes", analysis: "contingency",
+        options: { pairwise: "holm" } },
+      ctGraph("c3", "contingency_stacked_percent", "Percent of each row", { show: true }),
+      ctGraph("c4", "contingency_stacked_counts", "Counts of each row", { show: true, display: "p" }),
+      ctGraph("c5", "contingency_grouped_counts", "Grouped counts", { show: true }),
+    ],
+  }));
+  const brackets = () => page.evaluate(() => {
+    const gd = document.querySelector(".plot-card .plot");
+    const shapes = (gd?.layout?.shapes ?? []).filter((s) => s.name === "bracket" && s.y0 === s.y1);
+    return { lines: shapes.map((s) => [s.x0, s.x1, Math.round(s.y0 * 1e9) / 1e9]),
+      labels: (gd?.layout?.annotations ?? []).filter((a) => a.name === "bracket-label").map((a) => a.text),
+      top: gd?._fullLayout?.yaxis?.range?.[1], ticks: gd?.layout?.yaxis?.tickvals ?? null };
+  });
+  const openGraph = async (name, labelled) => {
+    await page.getByRole("treeitem", { name, exact: true }).first().locator(":scope > .nav-row").click();
+    await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 120000 });
+    if (labelled) {
+      await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.layout?.annotations ?? [])
+        .some((a) => a.name === "bracket-label"), null, { timeout: 30000 }).catch(() => {});
+    } else await page.waitForTimeout(800);
+  };
+  await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]', CT);
+  await openGraph("Percent of each row", true);
+  const adj = (await page.locator(".pane-results .pairwise-table tbody tr").allInnerTexts())
+    .map((t) => t.split("\t").map((c) => c.trim())[4]);
+  expect("P-14: the results' Holm-adjusted P are 0.4075, 3.719e-4, 0.008853 (statsmodels reference)",
+    JSON.stringify(adj) === JSON.stringify(["0.4075", "3.719e-4", "0.008853"]), JSON.stringify(adj));
+  let b = await brackets();
+  expect("percent graph: a bracket per pair of rows, joining the rows' stacks (WT 0, Het 1, KO 2)",
+    JSON.stringify(b.lines.map((l) => [l[0], l[1]])) === "[[0,1],[1,2],[0,2]]", JSON.stringify(b.lines));
+  expect("percent graph: brackets clear the 100% stack tops (110, 120, 130) and the axis grows to hold them",
+    JSON.stringify(b.lines.map((l) => l[2])) === "[110,120,130]" && b.top > 130, `${JSON.stringify(b.lines)} top ${b.top}`);
+  expect("percent graph: its ticks still stop at 100%", JSON.stringify(b.ticks) === "[0,20,40,60,80,100]",
+    JSON.stringify(b.ticks));
+  expect("percent graph: asterisks from the Holm-adjusted P (ns, **, ***)",
+    JSON.stringify(b.labels) === '["ns","**","***"]', JSON.stringify(b.labels));
+  const legend = await page.locator(".plot-card .figure-legend-text").textContent().catch(() => "");
+  expect("the legend names the pairs, the test per pair, the family, where the exact P are, and the star scale",
+    legend.startsWith("Brackets compare pairs of rows, each tested by Fisher's exact test when any expected "
+      + "count was below 5 and otherwise by the chi-square test, with P values adjusted for 3 comparisons "
+      + "(Holm). The exact adjusted P values are in the results (Pairs of rows).")
+      && legend.includes("* P ≤ 0.05, ** P ≤ 0.01, *** P ≤ 0.001, **** P ≤ 0.0001; ns, not significant: P > 0.05."),
+    legend);
+  const pop = await graphSettings();
+  await pop.getByRole("button", { name: "Pairwise comparisons…" }).click();
+  const dlg = page.getByRole("dialog", { name: "Pairwise comparisons" });
+  const pairs = (await dlg.locator(".fmt-pair").allInnerTexts()).map((t) => t.replace(/\s+/g, " ").trim());
+  expect("the dialog lists the pairs of rows with their adjusted P, from the contingency results",
+    JSON.stringify(pairs) === JSON.stringify(["WT vs. Het P = 0.4075 ns", "WT vs. KO P = 0.00037 ***",
+      "Het vs. KO P = 0.0089 **"])
+      && (await dlg.locator(".modal-text").first().innerText()).startsWith("From: pairs of rows, adjusted P (Holm)."),
+    JSON.stringify(pairs));
+  expect("no compact letters for rows (they are not the graph's data sets)",
+    await dlg.getByRole("tab", { name: "Compact letters" }).count() === 0);
+  await dlg.getByRole("button", { name: "Cancel" }).click();
+  await shot("contingency-brackets");
+
+  await openGraph("Counts of each row", true);
+  b = await brackets();
+  expect("counts graph: exact adjusted P above the row totals (20): 22, 24, 26",
+    JSON.stringify(b.labels) === '["P = 0.4075","P = 0.0089","P = 0.00037"]'
+      && JSON.stringify(b.lines.map((l) => l[2])) === "[22,24,26]", JSON.stringify(b));
+  expect("counts graph: the legend says the P values shown are exact",
+    (await page.locator(".plot-card .figure-legend-text").textContent().catch(() => "")).includes("P values shown are exact."));
+
+  await openGraph("Grouped counts", false);
+  b = await brackets();
+  const gLegend = await page.locator(".plot-card .figure-legend-text").textContent().catch(() => "");
+  expect("grouped bars: no brackets, and the legend says why (no star scale)",
+    b.lines.length === 0 && gLegend.startsWith("No brackets between rows: grouped bars show each row as a "
+      + "cluster of bars, so a bracket between two rows has no single bar to join; the stacked bar graphs "
+      + "draw them.") && !gLegend.includes("* P ≤ 0.05"), gLegend);
+  const gPop = await graphSettings();
+  expect("grouped bars: the graph options say why, and offer no Pairwise comparisons dialog",
+    await gPop.getByText("No brackets for the pairs of rows: grouped bars show each row").count() === 1
+      && await gPop.getByRole("button", { name: "Pairwise comparisons…" }).count() === 0);
+  await closeSettings();
+}
+
 console.log(errors.length ? errors.join("\n") : "no page errors");
 await browser.close();
 if (fail.length || errors.length) {

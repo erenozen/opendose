@@ -130,7 +130,12 @@ columns, brackets and letters for free when `categorical` is set and
 dataset i sits at x = i. Grouped graphs (several groups per category)
 should pass `groupX` so brackets and letters land on the right bar;
 comparisons with a `family` (two-way, within one row) are only drawn
-when `groupX` places them. `groupX` may return `{ x, xref }` for a bar
+when `groupX` places them. Brackets clear what is drawn: on a category X axis (`type:
+"category"`, the contingency graphs) a category sits at its index, and
+bars stacked by `barmode` count up to the sum of their segments
+(`measureTraces`); the contingency graphs pass `groupX` for their rows
+and a `ComparisonSet` with `letters: false` (no compact letters for
+rows). `groupX` may return `{ x, xref }` for a bar
 on another X axis (the second panel of the three-way graph, `"x2"`):
 each axis stacks its own brackets, and a pair across two axes is not
 drawn. `groupHalf` (default 0.45) is how far either side of a group the

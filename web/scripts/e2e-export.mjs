@@ -8,7 +8,7 @@
 import { chromium } from "playwright";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { mkdtempSync, readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { createRequire } from "node:module";
 import { inflateSync } from "node:zlib";
@@ -672,6 +672,50 @@ expect("layout duplicated",
   await page.locator(".nav-item[data-key^='layout:']").count() === 2);
 
 await page.screenshot({ path: join(here, "layout.png") });
+
+// --- figure items the export carries: a project opened from a file, each
+// graph exported as SVG from its own export panel
+const openProject = async (name, sheets) => {
+  const file = join(tmp, name);
+  writeFileSync(file, JSON.stringify({ version: 2, title: name, prefs: { defaultTableType: "xy",
+    errorBars: "sd", ciMethod: "asymptotic", scheme: "default", digits: 4 }, sheets }));
+  await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]', file);
+};
+const openSheet = async (name) => {
+  await page.getByRole("treeitem", { name, exact: true }).first().locator(":scope > .nav-row").click();
+  await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 120000 });
+};
+const graphExport = async (format) => {
+  const p = page.locator(".plot-card .export-panel");
+  await p.getByLabel("Export format").selectOption(format);
+  return save(() => p.getByRole("button", { name: "Download" }).click());
+};
+const svgTexts = (buf) => page.evaluate((s) => [...new DOMParser().parseFromString(s, "image/svg+xml")
+  .querySelectorAll("text")].map((t) => t.textContent.trim()).filter(Boolean), buf.toString("utf8"));
+
+// brackets for the pairs of rows of a contingency table (P-14): the
+// Holm-adjusted P of engine/tests/reference/pairwise_proportions.py
+// (0.4075, 3.719e-4, 0.008853) as ns, ***, ** above the stacks
+{
+  const ctTable = { type: "contingency", x: ["", "", ""], xTitle: "", xFormat: "numbers", xUnit: "", yTitle: "",
+    rowTitles: ["WT", "Het", "KO"], subcolumnFormat: "replicates", replicateLayout: "side_by_side",
+    datasets: [{ name: "Positive", rows: [["18"], ["15"], ["5"]] }, { name: "Negative", rows: [["2"], ["5"], ["15"]] }] };
+  await openProject("contingency-brackets.json", [
+    { id: "c1", kind: "data", name: "Genotypes", table: ctTable },
+    { id: "c2", kind: "results", parentId: "c1", name: "Chi-square of Genotypes", analysis: "contingency",
+      options: { pairwise: "holm" } },
+    { id: "c3", kind: "graph", parentId: "c1", resultsId: "c2", graphType: "contingency_stacked_percent",
+      name: "Percent of each row", settings: { titles: { x: "", y: "" }, scheme: "default",
+        format: { comparisons: { show: true } } } },
+  ]);
+  await openSheet("Percent of each row");
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.layout?.annotations ?? [])
+    .filter((a) => a.name === "bracket-label").length === 3, null, { timeout: 30000 }).catch(() => {});
+  const texts = await svgTexts((await graphExport("svg")).buf);
+  expect("contingency SVG export carries the bracket labels ns, **, *** above the rows WT, Het, KO",
+    ["ns", "**", "***", "WT", "Het", "KO"].every((t) => texts.includes(t)), JSON.stringify(texts));
+}
+
 console.log("files in", tmp);
 console.log("errors:", errors.length ? errors : "none");
 await browser.close();

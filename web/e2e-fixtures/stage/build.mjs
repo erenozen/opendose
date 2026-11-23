@@ -18,6 +18,8 @@
 //   box-plot.json      a column box plot (rank (n + 1)p quartiles, an outlier)
 //   fit-graph.json     the example dose-response with IC50 drop lines and
 //                      their value label on its curve-fit graph
+//   contingency-brackets.json  pairs of rows (Holm) as brackets on a
+//                      stacked percent contingency graph (P-14)
 //   fit-legend.json    a weighted 4PL with a confidence band and one ROUT
 //                      outlier, its legend sentence drawn in the figure
 //   bar-axis.json      fold changes as bars of geometric means ×/÷ geometric
@@ -469,4 +471,18 @@ const longData = (name, names, rows, categorical) => data(name, {
     ],
   }];
   write("why-history.json", project("Pilot study", [t, r, g], { selected: r.id, reproductions }));
+}
+
+// contingency-brackets.json: the P-14 acceptance table (WT 18/20, Het
+// 15/20, KO 5/20) with Holm pairs of rows drawn as brackets on its
+// stacked percent graph (sheets/contingency/brackets.ts). Last, so the
+// ids of the files above stay as they were.
+{
+  const t = data("Genotypes", table("contingency", { rowTitles: ["WT", "Het", "KO"],
+    datasets: [{ name: "Positive", rows: [["18"], ["15"], ["5"]] },
+      { name: "Negative", rows: [["2"], ["5"], ["15"]] }] }));
+  const r = results(t, "contingency", { pairwise: "holm" }, "Chi-square of Genotypes");
+  const g = graph(t, r, "contingency_stacked_percent", "Graph of Genotypes");
+  g.settings.format = { comparisons: { show: true } };
+  write("contingency-brackets.json", project("Pairs of rows", [t, r, g], { selected: g.id }));
 }

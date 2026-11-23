@@ -241,3 +241,40 @@ and `.svg`, the README lines, and opens the three PDFs with two readers:
 pypdf (one page each with text; the layout page 595.28 pt wide, A4) and
 pdf.js 5.3.31 (`PDFJS` names a pdfjs-dist folder; it is not a dependency
 of the app, so the step says "skip" without it).
+
+## Brackets for pairs of rows on the contingency graphs (P-14)
+
+The pairs of rows of an r x c table (`contingency.pairwise_rows`, its
+engine validation is in `results-engine.md`) are drawn as brackets on the
+stacked contingency graphs (% of each row, counts), one bracket per pair
+joining the two rows' stacks, labelled with the adjusted P (a q value
+under Benjamini-Hochberg) the results table shows, in the analysis's P
+style; asterisks or the exact P are chosen in Pairwise comparisons, and
+the legend states the test per pair, the family ("with P values
+adjusted for 3 comparisons (Holm)"), the star scale and where the exact
+values are (`sheets/contingency/brackets.ts`). The bracket layer
+measures a category X axis by category index and stacked bars by the sum
+of their segments (`graph/apply.ts measureTraces`); other graphs measure
+exactly as before (the same traces). The percent axis grows above 100%
+to hold the brackets and keeps its ticks at 0 to 100%. Grouped bars draw
+a cluster per row, where a bracket between rows has no single bar to
+join: they draw none, and the graph options and the legend say why; so
+do rows that share a name. Compact letters are not offered for rows.
+
+Reference: the plan's acceptance data, WT 18/20, Het 15/20, KO 5/20
+positive (`engine/tests/reference/pairwise_proportions.py`: scipy per
+pair, statsmodels `multipletests("holm")`): Holm-adjusted P 0.4075 (WT
+vs. Het), 3.719e-4 (WT vs. KO), 0.008853 (Het vs. KO).
+
+`brackets.test.ts` checks the comparisons (adjusted P, the q-value
+label, a pair without a test counted as unmatched), the refusals, the
+measured stack tops (row totals 20), the bracket positions on the
+percent graph (WT 0, Het 1, KO 2; heights 110, 120, 130; labels P =
+0.4075, P = 0.0089, P = 0.00037) and on the counts graph (22, 24, 26),
+and the legend in its four forms. `scripts/e2e-figures.mjs` opens the
+three graphs bound to a Holm contingency analysis and checks the results'
+adjusted P (0.4075, 3.719e-4, 0.008853), the brackets and their labels
+(ns, **, ***; and the exact P), the axis top above 130 with ticks to
+100%, the dialog's list and its missing letters tab, the legend, and the
+grouped graph's refusal. `scripts/e2e-export.mjs` finds the three labels
+in the SVG export.

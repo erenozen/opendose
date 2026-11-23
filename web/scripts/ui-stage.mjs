@@ -824,6 +824,14 @@ const scenes = [
     await into(s, ".plot-card", "center");
     await settle(s, 1000);
   } },
+  // pairs of rows (Holm) as brackets on the stacked percent graph (P-14)
+  { name: "graphs-contingency-brackets", setup: async (s) => {
+    await fixture(s, "contingency-brackets.json", { live: true });
+    await s.page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.layout?.annotations ?? [])
+      .some((a) => a.name === "bracket-label"), null, { timeout: 120000 });
+    await into(s, ".plot-card", "center");
+    await settle(s, 1000);
+  } },
   { name: "graphs-graph-sheet", setup: async (s) => {
     await example(s);
     await selectSheet(s, "Graph of Dose response");
