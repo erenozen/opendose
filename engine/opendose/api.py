@@ -3912,11 +3912,75 @@ def _flow_summary(data, options):
         experiments=options.get("experiments"))
 
 
+def _flow_events(data, options):
+    """Flow cytometry event counts (FEATURE-PLAN P-50). Counting is a
+    Poisson process, so r positive events have a CV of 1/sqrt(r)
+    (Roederer 2008, Cytometry A 73:384, "How many events is enough? Are
+    you positive?"): a target CV needs r = 1/CV^2 positive events and,
+    at an expected frequency f, r / f events in all (10% CV at 0.1%:
+    100 positive events, 100,000 in all). An observed gated percentage
+    k of n gets the Wilson score CI (partsofwhole.proportion_ci).
+    data: {"target_cv"?: %, "frequency"?: %, "positive"?: k,
+    "total"?: n}; options: ci_level (0.95). Returns {"plan": {...} |
+    None, "observed": {...} | None}, each with "error" when its inputs
+    cannot give a number."""
+    import math
+
+    def _num(v):
+        try:
+            v = float(v)
+        except (TypeError, ValueError):
+            return None
+        return v if math.isfinite(v) else None
+
+    level = float(options.get("ci_level", 0.95))
+    out = {"analysis": "flow_events", "ci_level": level,
+           "source": "Roederer 2008, Cytometry A 73:384 (Poisson CV); "
+                     "Wilson 1927 score interval",
+           "plan": None, "observed": None}
+    cv, f = _num(data.get("target_cv")), _num(data.get("frequency"))
+    if cv is not None or f is not None:
+        if cv is None or not 0 < cv < 100:
+            out["plan"] = {"error": "Enter a target CV above 0% and below 100%."}
+        elif f is None or not 0 < f <= 100:
+            out["plan"] = {"error": "Enter an expected frequency above 0% and "
+                                    "at most 100%."}
+        else:
+            # round before the ceiling: 1/0.1^2 is 99.99999999999998 in floats
+            pos = math.ceil(round(1.0 / (cv / 100.0) ** 2, 6))
+            out["plan"] = {"target_cv_pct": cv, "frequency_pct": f,
+                           "positive_events": pos,
+                           "total_events": math.ceil(round(pos / (f / 100.0), 6)),
+                           "achieved_cv_pct": 100.0 / math.sqrt(pos)}
+    k, n = _num(data.get("positive")), _num(data.get("total"))
+    if k is not None or n is not None:
+        if n is None or n < 1 or n != int(n):
+            out["observed"] = {"error": "Enter the events in the parent gate "
+                                        "as a whole number of 1 or more."}
+        elif k is None or k < 0 or k != int(k) or k > n:
+            out["observed"] = {"error": "Enter the positive events as a whole "
+                                        "number from 0 to the parent's events."}
+        else:
+            k, n = int(k), int(n)
+            lo, hi = partsofwhole.proportion_ci(k, n, method="wilson",
+                                                ci_level=level)
+            # the Wilson limits at k = 0 and k = n are exactly 0 and 1
+            # (rounding leaves about 1e-17 otherwise)
+            lo, hi = (0.0 if k == 0 else lo), (1.0 if k == n else hi)
+            out["observed"] = {
+                "positive": k, "total": n, "percent": 100.0 * k / n,
+                "ci_pct": [100.0 * lo, 100.0 * hi], "method": "wilson",
+                # Poisson CV of the positive count; none without events
+                "count_cv_pct": 100.0 / math.sqrt(k) if k > 0 else None}
+    return out
+
+
 _HANDLERS.update({
     "scale_check": _scale_check,
     "compare_parameter": _compare_parameter,
     "qpcr_reference_check": _qpcr_reference_check,
     "flow_summary": _flow_summary,
+    "flow_events": _flow_events,
 })
 
 

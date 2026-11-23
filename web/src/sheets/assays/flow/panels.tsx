@@ -23,6 +23,7 @@ import {
   tableFromFlowJo, unitSingular, type BackgroundKind, type FlowData, type FlowOptions,
   type FlowResult, type PartRole,
 } from "./model";
+import { openFlowEvents } from "./eventsModel";
 import "./flow.css";
 import { Button, FileButton } from "../../../components/ui";
 
@@ -226,6 +227,11 @@ function FlowWizard({ start, table, options, hasOutputs, onClose, onFinish }: {
                   First values: {d.samples.slice(0, 4).map((s) => `${s.sample} = ${s.value || "blank"}`).join("; ")}.
                 </p>
               )}
+              <p className="hint-block">
+                How many events to acquire for a rare population, or how precise a gated percentage is:{" "}
+                <button type="button" className="linkish" data-still onClick={() => openFlowEvents()}>
+                  Flow cytometry event counts…</button>
+              </p>
             </>
           ),
         },

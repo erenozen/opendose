@@ -18,6 +18,7 @@ import { familyChildren, familyRootId, findSheet } from "../project/ops";
 import type { Sheet } from "../project/types";
 import { analysisDef, tableDef } from "../sheets/registry";
 import { openPowerTool } from "../power/events";
+import { openFlowEvents } from "../sheets/assays/flow/eventsModel";
 import {
   exportBundle, exportPzfxFile, openPptxExport, openReplay, openShareLink,
 } from "../share/events";
@@ -139,6 +140,9 @@ export function useCommandRegistry(): Command[] {
         keywords: "n sample size calculator", run: () => openPowerTool("power") },
       { id: "random", label: "Randomisation list…", group: "tools",
         keywords: "randomization allocation blinding", run: () => openPowerTool("random") },
+      { id: "flow-events", label: "Flow cytometry event counts…", group: "tools",
+        keywords: "flow cytometry events acquire rare population cv poisson gated percentage confidence interval wilson facs",
+        run: () => openFlowEvents() },
       // ---- view
       ...(["auto", "light", "dark"] as const).map((t): Command => ({
         id: `theme-${t}`, group: "theme", checked: prefs.theme === t,

@@ -723,6 +723,50 @@ const OPEN_INPUT = 'input[aria-label="Open an OpenDose project or a Prism file"]
     groupsShown.slice(0, 2).join("|") === "CON (calibrator)|LPS" && !groupsShown.some((g) => /NTC|no-RT/.test(g)),
     groupsShown.join(" | "));
 }
+
+// --- P-50: flow event counts, from the Cmd+K palette and the flow wizard.
+// Reference (engine/tests/reference/flow_events.py): Roederer 2008, CV
+// 1/sqrt(r): 10% CV needs 100 positive events, 100,000 in all at 0.1%;
+// 120 of 50,000 = 0.24%, Wilson 95% CI 0.2008% to 0.2869% (statsmodels
+// and scipy agree).
+{
+  const calc = page.getByRole("dialog", { name: "Flow cytometry event counts" });
+  await page.keyboard.press("Control+k");
+  await page.getByRole("combobox", { name: "Find a command or sheet" }).fill("flow event counts");
+  await page.keyboard.press("Enter");
+  await calc.waitFor({ timeout: 30000 });
+  const out = (i) => calc.locator(".flow-events-out").nth(i).innerText().then((t) => t.replace(/\s+/g, " "));
+  expect("P-50: the palette opens the calculator; 10% CV at 0.1% needs 100 positive events, 100,000 in all",
+    await page.waitForFunction(() => /Events to acquire in the parent gate\s*100,000/
+      .test(document.querySelector(".flow-events .flow-events-out")?.textContent ?? ""), null, { timeout: 60000 })
+      .then(() => true, () => false) && (await out(0)).includes("Positive events needed 100 "), await out(0));
+  await calc.getByLabel("Positive events", { exact: true }).fill("120");
+  await calc.getByLabel("Events in the parent gate").fill("50000");
+  expect("P-50: 120 of 50,000 is 0.24% with its Wilson 95% CI 0.2008% to 0.2869%",
+    await page.waitForFunction(() => /0\.24%[^]*95% CI \(Wilson\)\s*0\.2008% to 0\.2869%/
+      .test(document.querySelectorAll(".flow-events .flow-events-out")[1]?.textContent ?? ""), null, { timeout: 60000 })
+      .then(() => true, () => false), await out(1));
+  await calc.getByLabel("Events in the parent gate").fill("100");
+  expect("P-50: more positive events than in the parent gate says what to enter",
+    await page.waitForFunction(() => /Enter the positive events as a whole number from 0 to the parent/
+      .test(document.querySelectorAll(".flow-events .flow-events-out")[1]?.textContent ?? ""), null, { timeout: 60000 })
+      .then(() => true, () => false), await out(1));
+  await page.waitForTimeout(500);
+  const axeCalc = await axeViolations([".flow-events"]);
+  expect("axe-core: the calculator passes", axeCalc.length === 0, axeCalc.join(" | "));
+  await calc.getByRole("button", { name: "Close" }).click();
+  await calc.waitFor({ state: "detached", timeout: 10000 });
+  // the flow wizard's Statistic step links to it
+  await startAssay("Flow cytometry");
+  await wizard().getByRole("button", { name: /Statistic/ }).click();
+  await wizard().getByRole("button", { name: "Flow cytometry event counts…" }).click();
+  await calc.waitFor({ timeout: 30000 });
+  expect("P-50: the flow wizard opens the calculator above it", await calc.isVisible() && await wizard().count() === 1);
+  await page.keyboard.press("Escape");
+  await calc.waitFor({ state: "detached", timeout: 10000 });
+  expect("P-50: closing the calculator returns to the wizard", await wizard().isVisible());
+  await wizard().getByRole("button", { name: "Cancel" }).click();
+}
 console.log(errors.length ? `errors:\n${errors.join("\n")}` : "errors: none");
 await browser.close();
 if (fail.length || errors.length) {

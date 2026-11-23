@@ -832,6 +832,18 @@ const scenes = [
     await wiz.locator(".qpcr-controls").waitFor({ timeout: 60000 });
     await settle(s, 1000);
   } },
+  // P-50: the flow event-count calculator, both parts filled
+  { name: "guided-flow-events", setup: async (s) => {
+    await example(s);
+    await headerMenu(s, "File", "Flow cytometry event counts…");
+    const dlg = dialog(s, "Flow cytometry event counts");
+    await dlg.waitFor();
+    await dlg.getByLabel("Positive events", { exact: true }).fill("120");
+    await dlg.getByLabel("Events in the parent gate").fill("50000");
+    await s.page.waitForFunction(() => /Wilson/.test(document.querySelectorAll(".flow-events .flow-events-out")[1]
+      ?.textContent ?? ""), null, { timeout: 60000 });
+    await settle(s);
+  } },
   { name: "guided-tour", setup: async (s) => {
     await example(s);
     await headerMenu(s, "View", "Help and tour");

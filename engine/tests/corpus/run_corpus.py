@@ -3332,6 +3332,34 @@ Cq limit of 33 stops counting the NTC at 34; a margin of 16.6 cycles
 makes CON-1, LPS-1 and LPS-2 affected. Name rules are pinned on the
 same 19 names in the engine and web unit tests (the web reads the
 controls only to keep them out of the group and target lists).
+
+### P-50 flow event counts and the CI of a gated percentage
+
+`api.py flow_events`: counting events is a Poisson process, so r
+positive events have a CV of 1/sqrt(r) (Roederer 2008, Cytometry A
+73:384): a target CV needs ceil(1/CV^2) positive events and, at an
+expected frequency f, ceil(r / f) events in the parent gate (rounded to
+six decimals before the ceiling, since 1/0.1^2 is 99.99999999999998 in
+floating point). An observed k of n gets the Wilson score interval
+(`partsofwhole.proportion_ci`, method "wilson"; exactly 0 at k = 0 and
+100% at k = n) and the Poisson CV of k.
+
+Reference: `engine/tests/reference/flow_events.py` (the counts in exact
+fractions; the Wilson interval from statsmodels proportion_confint and
+scipy binomtest().proportion_ci, which agree to 1e-12).
+`engine/tests/test_flow_events.py`:
+
+| Input | Reference | Engine tolerance |
+|---|---|---|
+| CV 10% at 0.1% (the plan's test) | 100 positive, 100,000 in all | exact |
+| CV 5% at 1%; 1% at 0.01%; 3% at 2.5% | 400 / 40,000; 10,000 / 100,000,000; 1,112 / 44,480 | exact |
+| 120 of 50,000 (the plan's test) | 0.24%, 95% CI 0.200765% to 0.286880% | 1e-10 relative |
+| 0 of 1,000; 50 of 50; 7 of 20 at 99% | 0 to 0.38268%; 92.865% to 100%; 14.639% to 62.834% | 1e-10 absolute |
+
+Invalid inputs (CV 0 or 100%, a missing or zero frequency, a parent
+count of 0 or not whole, more positives than the parent, text) each
+say what to enter. Halving the frequency doubles the events; 1e6 of
+1e12 events keeps a tight interval around 1e-4%.
 """
 
 
