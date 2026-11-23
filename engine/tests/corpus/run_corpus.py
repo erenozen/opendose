@@ -4042,6 +4042,18 @@ r = 1, P = 0 and no CI.
   now says so and to fix the slope at 1 or add concentrations; with the
   slope fixed the same data fit (pA2 7.45 for a simulated 7.5).
   `engine/tests/test_schild_single_antagonist.py`.
+
+Independent check (2026-11-24, by the lead, own numpy code from the
+reference inputs): the double-centred covariance of the 10 x 4 RM table
+gives GG epsilon 0.38969 and Huynh-Feldt 0.41250 (for one group the
+Lecoutre correction (N - g + 1) equals N, so it is the 1976 value);
+Mauchly's W from orthonormal contrasts 0.012532, chi-square P 2.6e-6
+with Bartlett's first-order factor (the engine's second-order P 3.32e-6;
+both < 0.0001 as shown). Jonckheere-Terpstra by pair counting: J = 140,
+null mean 75, SD 14.860. Cochran's Q from its formula: 11.556 on 2 df,
+P = 0.0030956. Repeated-measures correlation as a common-slope ANCOVA on
+subject-centred pH and PaCO2: r_rm = -0.50677 on 38 df, Fisher-z 95% CI
+-0.70672 to -0.23186, P = 0.00084711. All equal the engine.
 """
 
 
