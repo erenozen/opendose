@@ -1348,6 +1348,53 @@ const fitLegendText = () => page.locator(".plot-card .figure-legend-text").textC
   await closeSettings();
 }
 
+// --- a new contingency table comes with its graph (Wave 1 follow-up to
+// P-14). Before: contingency analyses had no default graph, so a new
+// table got none and the brackets were reachable only from saved files.
+// The example project keeps the sheets it had (no contingency graph).
+{
+  await fileMenu(page, "New data table…");
+  const dlg = page.locator(".new-table-dialog");
+  await dlg.locator('input[name="table-type"][value="contingency"]').check();
+  await dlg.getByText("Example data").click();
+  await dlg.getByRole("button", { name: "Create table" }).click();
+  await page.waitForFunction(() => {
+    const p = globalThis.__opendose.store.project;
+    const d = p.sheets.filter((x) => x.kind === "data" && x.table.type === "contingency").at(-1);
+    return d && p.sheets.some((x) => x.kind === "graph" && x.parentId === d.id);
+  }, null, { timeout: 30000 }).catch(() => {});
+  const fam = await page.evaluate(() => {
+    const p = globalThis.__opendose.store.project;
+    const d = p.sheets.filter((x) => x.kind === "data" && x.table.type === "contingency").at(-1);
+    const r = p.sheets.find((x) => x.kind === "results" && x.parentId === d.id);
+    const g = p.sheets.filter((x) => x.kind === "graph" && x.parentId === d.id);
+    return { analysis: r?.analysis, graphs: g.map((x) => [x.graphType, x.resultsId === r?.id, x.name]) };
+  });
+  expect("a new contingency table gets the \"% of each row\" stacked graph, bound to its analysis",
+    fam.analysis === "contingency" && fam.graphs.length === 1 && fam.graphs[0][0] === "contingency_stacked_percent"
+      && fam.graphs[0][1] === true, JSON.stringify(fam));
+  await page.getByRole("treeitem", { name: fam.graphs[0]?.[2], exact: true }).first().locator(":scope > .nav-row").click();
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+    .some((t) => t.type === "bar"), null, { timeout: 60000 }).catch(() => {});
+  const bars = await page.evaluate(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+    .filter((t) => t.type === "bar").map((t) => [t.name, [...t.y].map((v) => Math.round(v * 10) / 10)]));
+  expect("its graph draws each row's outcomes as % of the row (Exposed 15 / 85, Not exposed 5 / 95)",
+    JSON.stringify(bars) === '[["Event",[15,5]],["No event",[85,95]]]', JSON.stringify(bars));
+  await shot("contingency-new-table");
+  const ex = await browser.newPage({ viewport: { width: 1200, height: 900 } });
+  await ex.goto(url, { waitUntil: "domcontentloaded" });
+  await ex.waitForFunction(() => !!globalThis.__opendose?.store?.project, null, { timeout: 120000 });
+  const kinds = await ex.evaluate(() => {
+    const p = globalThis.__opendose.store.project;
+    return p.sheets.filter((x) => x.kind === "data").map((d) => [d.table.type,
+      p.sheets.filter((x) => x.parentId === d.id).map((x) => x.kind).join("+")]);
+  });
+  expect("the example project keeps its sheets (no graph added to its contingency table)",
+    JSON.stringify(kinds) === '[["xy","results+graph"],["contingency","results"],["survival","results+graph"]]',
+    JSON.stringify(kinds));
+  await ex.close();
+}
+
 // --- the equivalence margin on the estimation plot (P-12). The P-12 e2e
 // data (A = 10.8 ... 9.9, B = A - 0.2); engine/tests/reference/
 // equivalence_tost.py (statsmodels ttost_ind), margin ±1: A − B = 0.2,
