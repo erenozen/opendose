@@ -3506,6 +3506,31 @@ equal their registered rules exactly. A start for a parameter held
 constant, an unknown parameter or a non-finite value gives a sentence
 saying what to fix; a start outside a range is moved inside it.
 
+### P-51 simulating from a user-defined equation
+
+`simulate.simulate_xy(user_equation=...)` (options `user_equation` of
+`simulate_xy`, and of a Monte Carlo analysis's simulation): the equation
+is compiled and registered exactly as a fit of it registers it (one
+model per data set, since <A> and <~A> lines can differ), its constant
+defaults fill parameters not given, and the ideal Y is that model's
+function at every X. The Simulate dialog and the Monte Carlo analysis
+list the saved equations under "User-defined equations"; a table
+simulated from one gets a curve fit of the same equation, and a Monte
+Carlo run fits the equation itself.
+
+Validation is identity (`engine/tests/test_simulate_user_equation.py`):
+for Y = A·exp(-k·X) with A = 100, k = 0.3 at X = 0 to 5 in steps of 0.5,
+the simulated ideal Y equals the compiled equation evaluated by nlfit
+bit for bit and 100·exp(-0.3·X) to 1e-15; with no error every replicate
+is the ideal value, and fitting that table with the same equation gives
+A = 100 and k = 0.3 to 1e-8. Gaussian scatter (SD 2, 200 replicates) is
+reproduced by the same seed and centred on the curve (residual mean
+within 0.1, SD 1.9 to 2.1). Per-data-set lines and values, constant
+defaults, a missing parameter value ("missing parameter value(s) for
+“Decay”: k") and an equation that does not parse are covered; a Monte
+Carlo run of 40 repeats recovers k (mean within 0.01 of 0.3) with every
+repeat fitted.
+
 """
 
 

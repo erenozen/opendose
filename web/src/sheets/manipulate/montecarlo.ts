@@ -7,7 +7,9 @@ import { parseCell } from "../../project/table";
 import type { DataTableModel } from "../../project/types";
 import type { OptionsState } from "../../types";
 import { MODELS_META } from "../../types";
-import { simModel, simOptions, type SimForm, type SimKind, type XYSimForm } from "./simulate";
+import { simOptions, xyModel, type SimForm, type SimKind, type XYSimForm } from "./simulate";
+import { USER_MODEL_ID } from "../../lib/modelLibrary";
+import { userEquationPayload } from "../../lib/userEquation";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -90,6 +92,19 @@ export function analysisTemplate(o: MonteCarloOptions, kind: SimKind, form: SimF
   fit: OptionsState | null): { analysis: string; options: Record<string, unknown> } {
   if (o.analysis === "dose_response") {
     const f = form as XYSimForm;
+    // a user-defined equation (P-51) is fitted with itself, from its rules
+    if (kind === "xy" && f.model === USER_MODEL_ID && f.userEquation) {
+      return {
+        analysis: "dose_response",
+        options: {
+          user_equation: userEquationPayload(f.userEquation),
+          // simulated X is in the equation's own units
+          x_is_log: true,
+          weighting: "none",
+          ci_method: fit?.ciMethod ?? "asymptotic",
+        },
+      };
+    }
     const model = kind === "xy" ? f.model : fit?.model ?? "log_inhibitor_vs_response_4pl";
     const meta = MODELS_META[model];
     const constraints: Record<string, number> = {};
@@ -193,7 +208,7 @@ export function defaultTabulate(analysis: McAnalysis, paths: string[], form: Sim
   const pick = (re: RegExp, n = 1) => paths.filter((p) => re.test(p)).slice(0, n);
   const tab = (list: string[]) => list.map((path) => ({ label: pathLabel(path), path }));
   if (analysis === "dose_response") {
-    const m = kind === "xy" && form ? simModel((form as XYSimForm).model) : null;
+    const m = kind === "xy" && form ? xyModel(form as XYSimForm) : null;
     const first = m?.params.find((p) => p.name.startsWith("Log")) ?? m?.params[0];
     const pname = first?.label ?? "";
     const base = `datasets.0.fit.params.${pname}`;

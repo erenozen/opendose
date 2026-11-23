@@ -1,11 +1,13 @@
 // The simulation settings, shared by the "Simulate data" dialog and the
 // Monte Carlo analysis.
-import { useId } from "react";
+import { useId, useSyncExternalStore } from "react";
 import { NumberField } from "../../components/ui/NumberField";
+import { USER_MODEL_ID } from "../../lib/modelLibrary";
+import { savedEquations, subscribeEquations, type UserEquationDef } from "../../lib/userEquation";
 import { datasetLetter } from "../../project/table";
 import { MODEL_FAMILIES, MODELS_META } from "../../types";
 import {
-  defaultXYForm, SIM_MODELS, simModel,
+  defaultXYForm, SIM_MODELS, xyModel,
   type ColumnSimForm, type ContingencySimForm, type ErrorForm, type SimForm, type SimKind,
   type XYSimForm,
 } from "./simulate";
@@ -76,21 +78,36 @@ export function ErrorFields({ error, onChange, readOnly, allowPoisson = true }: 
   );
 }
 
+/** The user equations a simulation can use (P-51): the form's own (so a
+ *  saved simulation reopens with it) and the saved equation library. */
+function userEquationChoices(f: XYSimForm, saved: UserEquationDef[]): UserEquationDef[] {
+  const own = f.model === USER_MODEL_ID && f.userEquation ? [f.userEquation] : [];
+  return [...own, ...saved.filter((e) => !own.some((o) => o.id === e.id && o.text === e.text))];
+}
+
+const equationLabel = (e: UserEquationDef) => e.name.trim() || e.text.split(/\r?\n/)[0];
+
 export function XYSimFields({ form: f, onChange, readOnly }: FormProps<XYSimForm>) {
   const set = (p: Partial<XYSimForm>) => onChange({ ...f, ...p });
-  const m = simModel(f.model);
+  const saved = useSyncExternalStore(subscribeEquations, savedEquations);
+  const equations = userEquationChoices(f, saved);
+  const m = xyModel(f);
   const n = Math.max(1, Math.min(26, Math.round(Number(f.nDatasets)) || 1));
   const meta = MODELS_META[m.id];
+  const user = m.id === USER_MODEL_ID;
   return (
     <>
       <fieldset className="sim-group">
         <legend>Curve</legend>
         <label className="field">
           <span>Model</span>
-          <select value={f.model} disabled={readOnly}
+          <select value={user ? "user:0" : f.model} disabled={readOnly}
             onChange={(e) => {
-              const next = defaultXYForm(e.target.value);
-              onChange({ ...next, nDatasets: f.nDatasets, replicates: f.replicates, ideal: f.ideal });
+              const v = e.target.value;
+              const def = v.startsWith("user:") ? equations[Number(v.slice(5))] : undefined;
+              const next = def ? defaultXYForm(USER_MODEL_ID, def) : defaultXYForm(v);
+              onChange({ ...next, model: def ? USER_MODEL_ID : next.model,
+                nDatasets: f.nDatasets, replicates: f.replicates, ideal: f.ideal });
             }}>
             {MODEL_FAMILIES.map((fam) => {
               const ms = SIM_MODELS.filter((s) => MODELS_META[s.id]?.family === fam);
@@ -100,8 +117,24 @@ export function XYSimFields({ form: f, onChange, readOnly }: FormProps<XYSimForm
                 </optgroup>
               ) : null;
             })}
+            {equations.length > 0 && (
+              <optgroup label="User-defined equations">
+                {equations.map((e, i) => (
+                  <option key={`${e.id}-${i}`} value={`user:${i}`}>{equationLabel(e)}</option>
+                ))}
+              </optgroup>
+            )}
           </select>
         </label>
+        {user && f.userEquation && (
+          <p className="hint-block sim-equation"><code>{f.userEquation.text}</code></p>
+        )}
+        {!equations.length && (
+          <p className="hint-block">
+            To simulate from your own equation, save it in a curve fit&apos;s equation editor: saved
+            equations are listed here.
+          </p>
+        )}
         <div className="field-row">
           {m.params.map((p) => (
             <Num key={p.name} label={p.label} value={f.params[p.name] ?? String(p.value)}

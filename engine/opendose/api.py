@@ -1939,7 +1939,8 @@ def _simulate_xy(data, options):
     "start", "increment"|"factor", "stop"|"count"}, "n_datasets",
     "replicates", "error": {"kind": "none"|"gaussian"|"relative"|"t"|
     "poisson"|"binomial", "sd"|"percent"|"df"|"n", "outliers"?}, "seed",
-    "source": "model"|"table"}. source "table" uses the row means of
+    "source": "model"|"table", "user_equation"?: a user-defined equation
+    to simulate from instead of "model" (simulate.simulate_xy)}. source "table" uses the row means of
     data.datasets (at data.x) as ideal Y. Returns an API table {"x",
     "datasets": [{"name", "ys", "ideal"}], "seed", ...}."""
     ideal, x = None, options.get("x")
@@ -1953,7 +1954,9 @@ def _simulate_xy(data, options):
         options.get("model"), options.get("params"), x=x,
         n_datasets=options.get("n_datasets", 1),
         replicates=options.get("replicates", 1), error=options.get("error"),
-        ideal=ideal, names=options.get("names"), seed=options.get("seed"))}
+        ideal=ideal, names=options.get("names"), seed=options.get("seed"),
+        user_equation=(options.get("user_equation")
+                       if options.get("source") != "table" else None))}
 
 
 def _simulate_column(data, options):
