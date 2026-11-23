@@ -30,7 +30,11 @@ normalised = corrected target / corrected reference. Per blot: lanes of
 one group are averaged; fold change = normalised / mean normalised of
 the control group in that blot (or of a designated control lane).
 Negative or zero corrected values, saturated raw intensities (at or
-above saturation_limit) and blots without a control are reported.
+above saturation_limit) and blots without a control are reported. When
+a loading control is given for some lanes, a lane without one is left
+out of the ratios (flag no_reference): its target alone is not on the
+ratio scale. With no loading control in any lane, every lane is
+normalised by its corrected target alone.
 """
 
 from __future__ import annotations
@@ -90,6 +94,14 @@ def densitometry(records, *, control_group=None, control_lanes=None,
                     "none"):
         raise ValueError(f"unknown test: {test}")
     lanes, warnings = [], []
+    # A loading control is in use when any lane has a value for it. Then a
+    # lane without one cannot be a ratio, and its target alone is on a
+    # different scale from the other lanes' ratios: it is left out of the
+    # ratios and the statistics. With no loading control at all, every
+    # lane is normalised by its target alone (one scale).
+    has_reference = any(
+        _num(r.get("reference", r.get("reference_signal"))) is not None
+        for r in records)
     for r in records:
         blot, group = r.get("blot"), r.get("group")
         t_raw = _num(r.get("target", r.get("target_signal")))
@@ -112,7 +124,7 @@ def densitometry(records, *, control_group=None, control_lanes=None,
             flags.append("reference_not_above_background")
         norm = None
         if ref_raw is None:
-            norm = tc if tc > 0 else None
+            norm = tc if tc > 0 and not has_reference else None
             flags.append("no_reference")
         elif tc > 0 and rc > 0:
             norm = tc / rc
@@ -143,6 +155,13 @@ def densitometry(records, *, control_group=None, control_lanes=None,
         if n_neg:
             warnings.append(f"{n_neg} lane(s) not above background were left "
                             "out of the ratios.")
+        n_noref = sum("no_reference" in l["flags"] for l in lanes) \
+            if has_reference else 0
+        if n_noref:
+            warnings.append(f"{n_noref} lane(s) without a loading-control "
+                            "value were left out of the ratios: a target "
+                            "signal alone is not on the scale of the "
+                            "target/loading-control ratios.")
 
     control_lanes = {str(k): v for k, v in (control_lanes or {}).items()}
     per_blot = {}
