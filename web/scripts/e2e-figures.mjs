@@ -1273,8 +1273,15 @@ const fitLegendText = () => page.locator(".plot-card .figure-legend-text").textC
     rowTitles: A.map(() => ""), subcolumnFormat: "replicates", replicateLayout: "side_by_side",
     datasets: [{ name: "A", rows: A.map((v) => [v]) },
       { name: "B", rows: A.map((v) => [String(+(Number(v) - 0.2).toFixed(2))]) }] };
+  // The paired family needs scatter in its differences: B = A - 0.2
+  // exactly makes every paired difference 0.2, and a paired t test on
+  // differences with no scatter is undefined (engine/tests/
+  // test_zero_scatter_matched.py), so it would report no equivalence.
+  const jitter = [0.03, -0.02, 0.01, -0.04, 0.02, 0, -0.01, 0.05];
+  const pairedTable = { ...eqTable, datasets: [eqTable.datasets[0],
+    { name: "B", rows: A.map((v, i) => [String(+(Number(v) - 0.2 + jitter[i]).toFixed(2))]) }] };
   const fam = (p, name, ttestKind) => [
-    { id: `${p}d`, kind: "data", name, table: eqTable },
+    { id: `${p}d`, kind: "data", name, table: ttestKind === "paired" ? pairedTable : eqTable },
     { id: `${p}t`, kind: "results", parentId: `${p}d`, name: `t test of ${name}`, analysis: "column",
       options: { analysis: "ttest", ttestKind, equivalence: "equivalence", equivalenceMargin: "1" } },
     { id: `${p}e`, kind: "results", parentId: `${p}d`, name: `Estimation of ${name}`, analysis: "estimation",
