@@ -4166,10 +4166,10 @@ const axeOn = async (pg, sel) => {
   expect(`one Y value edited: the summary updates to pIC50 ${sig4(EP.p_mean)}, 95% CI ${sig4(EP.p_ci95[0])} to ${sig4(EP.p_ci95[1])}`,
     updated && acrossNow.includes(`95% CI ${sig4(EP.p_ci95[0])} to ${sig4(EP.p_ci95[1])} (t, 2 df)`), acrossNow);
   await linkedRow.click();
-  await page.waitForFunction(([l, want]) => {
+  await page.waitForFunction((want) => {
     const el = document.querySelector(`.data-table input[aria-label^="Compound A"][aria-label$="row 3"]`);
     return !!el && Math.abs(Number(el.value) - want) < 1e-4;
-  }, [linkedName, ED.experiment_3.log_ic50], { timeout: 60000 }).then(() => true, () => false)
+  }, ED.experiment_3.log_ic50, { timeout: 60000 }).then(() => true, () => false)
     .then((ok) => expect(`the linked table follows: experiment 3 logIC50 ${sig4(ED.experiment_3.log_ic50)}`, ok));
 }
 
