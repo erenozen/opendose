@@ -201,7 +201,7 @@ export default function PlateMapEditor({ format, wells, unit, values, onChange }
           <button type="button" className="plate-corner" aria-label="Select all wells"
             onClick={() => { setAnchor([0, 0]); setSel({ r0: 0, c0: 0, r1: nr - 1, c1: nc - 1 }); }} />
           {Array.from({ length: nc }, (_, c) => (
-            <button key={`c${c}`} type="button" className="plate-head"
+            <button key={`c${c}`} type="button" className="plate-head plate-col-head"
               aria-label={`Select column ${c + 1}`}
               onClick={(e) => {
                 if (e.shiftKey && anchor) setSel({ r0: 0, c0: anchor[1], r1: nr - 1, c1: c });
