@@ -605,6 +605,64 @@ def rm_two_way_both(cells, *, row_names=None, col_names=None) -> dict:
     }
 
 
+def page_trend(datasets, names=None) -> dict:
+    """Page's test for a monotone trend across matched treatments in the
+    order entered (Page 1963, JASA 58:216): values ranked within each
+    subject (midranks for ties), L = sum_j j R_j with R_j the rank sum of
+    column j. Large L: values increase from the first column to the last.
+
+    P: exact when Page's tables cover the design (exactdist.
+    page_exact_feasible: k <= 8 and n <= 12, or n <= 20 with k = 3),
+    from the permutation distribution of the ranks within each row
+    (exactdist.page_null; conditional on ties, like the Friedman test's
+    exact P); otherwise normal with E(L) = n k (k + 1)^2 / 4 and the
+    permutation variance sum_rows k (k^2 - 1) / 12 * sum_j (r_ij -
+    rbar)^2 / (k - 1), which is n k^2 (k + 1) (k^2 - 1) / 144 without
+    ties (Neuhauser 2012, Nonparametric Statistical Tests, p. 151). Both
+    one-sided P values and the two-sided P (twice the smaller, capped at
+    1) are reported. Only complete subjects are used, as in friedman."""
+    M = _complete_matrix(datasets)
+    n, k = M.shape
+    if k < 3:
+        raise ValueError("Page's test for trend needs at least 3 treatments")
+    ranks = np.apply_along_axis(stats.rankdata, 1, M)
+    w = np.arange(1, k + 1, dtype=float)
+    L = float((ranks.sum(axis=0) * w).sum())
+    mean = n * k * (k + 1) ** 2 / 4.0
+    row_ss = ((ranks - (k + 1) / 2.0) ** 2).sum(axis=1)
+    var = float((k * (k * k - 1) / 12.0 * row_ss / (k - 1)).sum())
+    if not var > 0:
+        raise ValueError("Page's test is undefined: every subject has the "
+                         "same value at every treatment")
+    sd = math.sqrt(var)
+    z = (L - mean) / sd
+    from . import exactdist
+    if exactdist.page_exact_feasible(n, k):
+        dist, offset = exactdist.page_null(np.rint(2 * ranks).astype(int))
+        idx = int(round(2 * L)) - offset
+        p_inc = float(min(dist[idx:].sum(), 1.0))
+        p_dec = float(min(dist[:idx + 1].sum(), 1.0))
+        p_method = "exact"
+    else:
+        p_inc, p_dec = float(stats.norm.sf(z)), float(stats.norm.cdf(z))
+        p_method = "normal approximation"
+    ties = bool(np.any(ranks != np.round(ranks)) or any(
+        len(np.unique(r)) < k for r in M))
+    return {
+        "test": "page", "L": L, "mean": mean, "sd": sd, "z": float(z),
+        "p": float(min(1.0, 2 * min(p_inc, p_dec))),
+        "p_increasing": p_inc, "p_decreasing": p_dec, "p_method": p_method,
+        "ties": ties, "n_subjects": int(n), "k": int(k),
+        "rank_sums": [float(v) for v in ranks.sum(axis=0)],
+        "direction": ("increasing" if L > mean else
+                      "decreasing" if L < mean else "none"),
+        "order": list(names) if names else [f"Treatment {i}"
+                                            for i in range(k)],
+        "note": ("The treatments are tested in the order of the columns, "
+                 "first to last; that order is the hypothesis."),
+    }
+
+
 def _friedman_p(M, exact):
     """(statistic, P, p_method): the chi-square P, or with exact=True the
     exact P when (k!)^n is within the guide's limit."""

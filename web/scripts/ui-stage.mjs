@@ -995,6 +995,23 @@ const scenes = [
       .evaluate((el) => el.scrollIntoView({ block: "start" }));
     await settle(s, 800);
   } },
+  { name: "results-ordered-trend", setup: async (s) => {
+    // P-41: Jonckheere-Terpstra after Kruskal-Wallis, its order in the controls
+    await fixture(s, "rm-reporting.json", { live: true });
+    await selectSheet(s, "Kruskal-Wallis of Four doses");
+    const h = s.page.locator(".pane-results h4", { hasText: "Trend across ordered columns" });
+    await h.waitFor({ timeout: 240000 });
+    await h.first().evaluate((el) => el.scrollIntoView({ block: "start" }));
+    await settle(s, 800);
+  } },
+  { name: "results-page-trend", setup: async (s) => {
+    await fixture(s, "rm-reporting.json", { live: true });
+    await selectSheet(s, "Friedman of Teaching methods");
+    const h = s.page.locator(".pane-results h4", { hasText: "Page's test" });
+    await h.waitFor({ timeout: 240000 });
+    await h.first().evaluate((el) => el.scrollIntoView({ block: "start" }));
+    await settle(s, 800);
+  } },
   { name: "graphs-schild", setup: async (s) => {
     await fixture(s, "schild.json", { live: true });
     await selectSheet(s, /^Schild plot of EC50 shift/);

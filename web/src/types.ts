@@ -441,6 +441,10 @@ export interface ColumnOptionsState {
   /** Ordinary one-way ANOVA: also the test for linear trend (columns in
    *  order, coded 1, 2, ...). */
   anovaTrend?: boolean;
+  /** Kruskal-Wallis and Friedman: also the rank test for a monotone trend
+   *  across the columns in the order entered (Jonckheere-Terpstra, Page;
+   *  sheets/column/orderedTrend.ts). */
+  rankTrend?: boolean;
   /** Frequency distribution: bin width ("" = automatic), center of the
    *  first bin, upper limit (values above are left out), what to tabulate,
    *  cumulative (binned / exact), a fit, and replicates (each / row mean). */
@@ -520,6 +524,7 @@ export const DEFAULT_COLUMN_OPTIONS: ColumnOptionsState = {
   pStackQ: "5",
   corrWithX: false,
   anovaTrend: false,
+  rankTrend: false,
   freqBinWidth: "",
   freqFirstCenter: "",
   freqUpper: "",

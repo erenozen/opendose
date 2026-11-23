@@ -1530,3 +1530,55 @@ for 5 conditions (no W, HF undefined, GG P still given), the mixed model
 with complete data (same values) and with a missing value (no
 Mauchly), invariance of the epsilons, W and partial omega2 to units and
 to the order of the conditions, and the GG epsilon unchanged.
+
+### P-41 Trend across ordered groups: Jonckheere-Terpstra and Page
+
+Kruskal-Wallis and Friedman take `options.trend` (the app's "test for
+trend across ordered columns / treatments" option) and add
+`jonckheere` (`moretests.jonckheere_terpstra`) or `page`
+(`repeated.page_trend`): the statistic, its null mean and SD, z, the
+two-sided P (twice the smaller one-sided P, capped at 1), both one-sided
+P values, the direction and the order tested (the columns as entered:
+the hypothesis, named in the controls and the results).
+
+- Jonckheere-Terpstra (Jonckheere 1954; Terpstra 1952): J counts the
+  pairs from an earlier and a later group in increasing order (ties
+  1/2). Exact P without ties and with at most 100 values (R clinfun's
+  rule): `exactdist.jt_null`, the convolution of the Mann-Whitney
+  distributions of each group against the groups before it. Otherwise
+  the normal approximation with Hollander & Wolfe's (1999, eq. 6.19)
+  tie-corrected variance, no continuity correction.
+- Page (1963): L = sum of j times the rank sum of column j, ranks within
+  each subject. Exact P when Page's tables cover the design (k <= 8 and
+  n <= 12, or n <= 20 with k = 3; scipy's rule), from the permutations of
+  each subject's ranks (with ties: conditional on them, as the Friedman
+  test's exact P); otherwise normal with the permutation variance, which
+  is n k^2 (k + 1)(k^2 - 1) / 144 without ties.
+
+Reference: `engine/tests/reference/ordered_trend.py` (R is not
+installed): exact JT P from arrangement counts in Python integers (a
+dynamic programme independent of the engine's convolution, checked
+against full enumeration of 4,200 arrangements); the permutation mean
+and variance of a tied 3 x 3 design by enumeration (1,680 assignments);
+scipy.stats.page_trend_test; the Hicks (2009) example's published
+L = 133.5 (as quoted by scipy and Statext); Page's (1963) table value for
+k = 3, n = 10 (critical L = 128 at 0.05, as quoted by Wikipedia). Page's
+own 1963 example could not be obtained and is not pinned.
+`engine/tests/test_ordered_trend.py`:
+
+| Input | Reference | Engine tolerance |
+|---|---|---|
+| 4 doses x 5, no ties (the plan's test) | J = 140 (E 75), exact P increasing 4.4465e-7, two-sided 8.8931e-7 (of 11,732,745,024 arrangements) | 1e-9 |
+| 3, 3, 4 values | J = 29, P increasing 0.0085714, two-sided 0.017143 (enumerated) | 1e-12 |
+| tied 3 x 3 x 3 | permutation mean 13.5, variance 18.803571 = Hollander & Wolfe's | 1e-12 |
+| the 4 doses rounded (ties) | J = 140, SD 14.8139, z 4.38777, two-sided P 1.1452e-5 | 1e-9 |
+| Hicks (2009) teaching methods, 10 x 3 with ties | L = 133.5 (published); exact P given the ties: increasing 3.8421e-4, decreasing 0.99978 (equal to full enumeration of 1.9 million tables; scipy's untied-null exact P is 0.001819) | 1e-9 |
+| 8 x 4 untied | L = 234, exact P 1.1204e-6 (scipy exact), reversed columns 0.99999965 | 1e-9 |
+| the 8 x 4 rows to 21 subjects | normal P equal to scipy's asymptotic | 1e-9 |
+| Page's table, k = 3, n = 10 | P(L >= 128) = 0.046639 <= 0.05 < P(L >= 127) = 0.073805 | 1e-9 |
+
+Also tested: J and P unchanged by units and shifts (1e-9, 1e9),
+reversing the groups mirrors the one-sided P values, the exact and
+normal P agree for 4 x 30 values, Kruskal-Wallis itself unchanged by
+the option; two groups, an empty group, all values equal and two
+treatments each give a sentence instead of a result.

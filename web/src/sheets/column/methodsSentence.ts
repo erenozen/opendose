@@ -8,6 +8,7 @@ import { DEFAULT_NORMALITY_TESTS, NORMALITY_TEST_LABELS, formatSig } from "../..
 import { logMethodsSentence } from "./logScale";
 import { rmMethodsSentence } from "./rmPosthoc";
 import { oneTailedAlternative } from "./tails";
+import { trendSentence } from "./orderedTrend";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type R = Record<string, any>;
@@ -96,7 +97,7 @@ function testSentence(o: ColumnOptionsState, r: R): string {
             : " (approximate P value; the samples are too large for the exact one)") : "")
           + ` (H = ${formatSig(r.H)}, ${P(r.p)})`
           + (r.dunns ? `, followed by Dunn's multiple comparisons test${r.dunns.corrected === false ? " without correction for multiple comparisons" : withFamily(r.dunns, "dunns")}` : "")
-          + ".";
+          + "." + trendSentence(r.jonckheere, P);
       }
       if (r.analysis === "anova_unequal_var") {
         const w = r.welch, bf = r.brown_forsythe;
@@ -138,7 +139,7 @@ function testSentence(o: ColumnOptionsState, r: R): string {
         + (r.fisher_exact ? `; Fisher's exact test on the two-group table gave ${P(r.fisher_exact.p)}` : "") + ".";
     case "rm_anova":
       return o.rmKind === "nonparametric"
-        ? `Matched values were compared with the Friedman test${o.rmExact ? (r.p_method === "exact" ? " (exact P value)" : " (approximate P value; the design is too large for the exact one)") : ""} (${P(r.p)}), followed by Dunn's multiple comparisons test${r.dunns?.corrected === false ? "" : withFamily(r.dunns, "dunns")}.`
+        ? `Matched values were compared with the Friedman test${o.rmExact ? (r.p_method === "exact" ? " (exact P value)" : " (approximate P value; the design is too large for the exact one)") : ""} (${P(r.p)}), followed by Dunn's multiple comparisons test${r.dunns?.corrected === false ? "" : withFamily(r.dunns, "dunns")}.${trendSentence(r.page, P)}`
         // with the comparisons and their error term (rmPosthoc.ts)
         : rmMethodsSentence(r);
     case "two_way_anova": {

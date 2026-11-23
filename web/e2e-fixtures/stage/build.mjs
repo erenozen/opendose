@@ -489,5 +489,20 @@ const longData = (name, names, rows, categorical) => data(name, {
       rows: both.cells.map((row) => row[j].map(String)) })) }));
   const r2 = results(t2, "grouped_two_way", { design: "rm_both", rowFactor: "Metric",
     colFactor: "Time" }, "Two-way RM ANOVA of Metric by time");
-  write("rm-reporting.json", project("RM reporting", [t, r, t2, r2], { selected: r.id }));
+  // P-41 (engine/tests/reference/ordered_trend.py): four doses under
+  // Kruskal-Wallis with the Jonckheere-Terpstra test, the Hicks teaching
+  // methods under Friedman with Page's test
+  const tr = JSON.parse(readFileSync(join(here, "../../../engine/tests/reference",
+    "ordered_trend.json"), "utf8"));
+  const t3 = data("Four doses", table("column", { datasets: tr.jt_untied.names.map((nm, j) =>
+    col(nm, tr.jt_untied.data[j])) }));
+  const r3 = results(t3, "column", { analysis: "anova", anovaKind: "nonparametric",
+    rankTrend: true }, "Kruskal-Wallis of Four doses");
+  const hk = tr.page_hicks;
+  const t4 = data("Teaching methods", table("column", { datasets: hk.names.map((nm, j) =>
+    col(nm, hk.data.map((row) => row[j]))) }));
+  const r4 = results(t4, "column", { analysis: "rm_anova", rmKind: "nonparametric",
+    rankTrend: true }, "Friedman of Teaching methods");
+  write("rm-reporting.json", project("RM reporting", [t, r, t2, r2, t3, r3, t4, r4],
+    { selected: r.id }));
 }

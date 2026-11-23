@@ -201,6 +201,8 @@ export function columnPayload(table: DataTableModel, o: ColumnOptionsState):
         ...familyOptions(o, base.data.datasets.length),
         ...logScaleOptions(o),
         ...(o.anovaKind === "parametric" && o.anovaTrend ? { trend: true } : {}),
+        // Jonckheere-Terpstra after Kruskal-Wallis (orderedTrend.ts)
+        ...(o.anovaKind === "nonparametric" && o.rankTrend ? { trend: true } : {}),
       } };
   }
   if (o.analysis === "median_test") return { analysis: "median_test", ...base, options: {} };
@@ -236,7 +238,9 @@ export function columnPayload(table: DataTableModel, o: ColumnOptionsState):
         ...(o.rmKind === "nonparametric" ? familyOptions(o, base.data.datasets.length) : {}),
         ...(rmCmp ? { comparisons: rmCmp } : {}),
         // test for linear trend (treatments in the order entered)
-        ...(o.rmKind === "parametric" && o.anovaTrend ? { trend: true } : {}) } };
+        ...(o.rmKind === "parametric" && o.anovaTrend ? { trend: true } : {}),
+        // Page's test after Friedman (orderedTrend.ts)
+        ...(o.rmKind === "nonparametric" && o.rankTrend ? { trend: true } : {}) } };
   }
   if (o.analysis === "roc") {
     return { analysis: "roc", ...base,

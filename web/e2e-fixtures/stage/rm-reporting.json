@@ -321,6 +321,285 @@
     "colFactor": "Time"
    },
    "name": "Two-way RM ANOVA of Metric by time"
+  },
+  {
+   "id": "d112",
+   "kind": "data",
+   "name": "Four doses",
+   "table": {
+    "type": "column",
+    "x": [
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "",
+    "rowTitles": [
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "datasets": [
+     {
+      "name": "0 mg/kg",
+      "rows": [
+       [
+        "41.2"
+       ],
+       [
+        "38.5"
+       ],
+       [
+        "44"
+       ],
+       [
+        "39.7"
+       ],
+       [
+        "42.3"
+       ]
+      ]
+     },
+     {
+      "name": "1 mg/kg",
+      "rows": [
+       [
+        "43.1"
+       ],
+       [
+        "45.6"
+       ],
+       [
+        "40.8"
+       ],
+       [
+        "46.2"
+       ],
+       [
+        "44.9"
+       ]
+      ]
+     },
+     {
+      "name": "3 mg/kg",
+      "rows": [
+       [
+        "47.3"
+       ],
+       [
+        "44.4"
+       ],
+       [
+        "49.8"
+       ],
+       [
+        "46.9"
+       ],
+       [
+        "48.1"
+       ]
+      ]
+     },
+     {
+      "name": "10 mg/kg",
+      "rows": [
+       [
+        "50.2"
+       ],
+       [
+        "47.7"
+       ],
+       [
+        "52.6"
+       ],
+       [
+        "49.1"
+       ],
+       [
+        "53.4"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "r113",
+   "kind": "results",
+   "parentId": "d112",
+   "analysis": "column",
+   "options": {
+    "analysis": "anova",
+    "anovaKind": "nonparametric",
+    "rankTrend": true
+   },
+   "name": "Kruskal-Wallis of Four doses"
+  },
+  {
+   "id": "d114",
+   "kind": "data",
+   "name": "Teaching methods",
+   "table": {
+    "type": "column",
+    "x": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "",
+    "rowTitles": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "datasets": [
+     {
+      "name": "Tutorial",
+      "rows": [
+       [
+        "3"
+       ],
+       [
+        "2"
+       ],
+       [
+        "3"
+       ],
+       [
+        "1"
+       ],
+       [
+        "2"
+       ],
+       [
+        "2"
+       ],
+       [
+        "1"
+       ],
+       [
+        "3"
+       ],
+       [
+        "2"
+       ],
+       [
+        "1"
+       ]
+      ]
+     },
+     {
+      "name": "Lecture",
+      "rows": [
+       [
+        "4"
+       ],
+       [
+        "2"
+       ],
+       [
+        "3"
+       ],
+       [
+        "3"
+       ],
+       [
+        "3"
+       ],
+       [
+        "4"
+       ],
+       [
+        "2"
+       ],
+       [
+        "4"
+       ],
+       [
+        "4"
+       ],
+       [
+        "3"
+       ]
+      ]
+     },
+     {
+      "name": "Seminar",
+      "rows": [
+       [
+        "3"
+       ],
+       [
+        "4"
+       ],
+       [
+        "5"
+       ],
+       [
+        "2"
+       ],
+       [
+        "2"
+       ],
+       [
+        "5"
+       ],
+       [
+        "4"
+       ],
+       [
+        "4"
+       ],
+       [
+        "5"
+       ],
+       [
+        "4"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "r115",
+   "kind": "results",
+   "parentId": "d114",
+   "analysis": "column",
+   "options": {
+    "analysis": "rm_anova",
+    "rmKind": "nonparametric",
+    "rankTrend": true
+   },
+   "name": "Friedman of Teaching methods"
   }
  ]
 }

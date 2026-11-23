@@ -15,6 +15,7 @@ import LogScaleOption from "../sheets/column/logScaleControls";
 import EquivalenceControls from "../sheets/common/EquivalenceControls";
 import { equivalenceApplies, equivalenceScale } from "../sheets/column/run";
 import RmPosthocControls from "../sheets/column/rmPosthocControls";
+import { OrderedTrendOption } from "../sheets/column/OrderedTrend";
 import { isFdrMethod, P_STACK_METHODS, type PStackMethod } from "../sheets/column/pStack";
 import "../sheets/column/logScale.css";
 
@@ -286,6 +287,10 @@ export default function ColumnControls({ options, datasetNames, onChange, summar
           {options.anovaKind === "nonparametric" && (
             <ComparisonsPicker options={options} datasetNames={datasetNames}
               onChange={onChange} summaryData={summaryData} />
+          )}
+          {options.anovaKind === "nonparametric" && !summaryData && (
+            <OrderedTrendOption options={options} datasetNames={datasetNames}
+              onChange={onChange} repeated={false} />
           )}
           {options.anovaKind === "parametric" && options.anovaSd !== "unequal" && (
             <>
@@ -573,6 +578,10 @@ export default function ColumnControls({ options, datasetNames, onChange, summar
           {options.rmKind === "nonparametric" && (
             <ComparisonsPicker options={options} datasetNames={datasetNames}
               onChange={onChange} summaryData={summaryData} />
+          )}
+          {options.rmKind === "nonparametric" && !summaryData && (
+            <OrderedTrendOption options={options} datasetNames={datasetNames}
+              onChange={onChange} repeated />
           )}
           {options.rmKind === "parametric" && !summaryData && (
             <RmPosthocControls options={options} datasetNames={datasetNames}

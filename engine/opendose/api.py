@@ -930,7 +930,10 @@ def _anova(data, options):
     options.log_scale (parametric): the ANOVA and post tests on the logs;
     adds "log_scale", "geometric_means" and, per comparison, "ratio",
     "ratio_ci", "ratio_label" (geometric-mean ratio of the pair). Without
-    it the parametric result adds "scale_check"."""
+    it the parametric result adds "scale_check". options.trend: the
+    linear trend (parametric, "trend") or the Jonckheere-Terpstra test
+    across the columns in the order entered (Kruskal-Wallis,
+    "jonckheere"; moretests.jonckheere_terpstra)."""
     cols, names = _flatten_columns(data)
     warnings = _nan_warnings(data)
     kind = options.get("kind", "parametric")
@@ -973,6 +976,13 @@ def _anova(data, options):
                       pairs=options.get("pairs"),
                       dunn_correction=options.get("dunn_correction"),
                       exact=options.get("exact", False))}
+        if options.get("trend"):
+            # Jonckheere-Terpstra, the groups in the order entered
+            try:
+                result["jonckheere"] = moretests.jonckheere_terpstra(
+                    cols, names)
+            except ValueError as exc:
+                result["jonckheere"] = {"error": str(exc)}
         if warnings:
             result["warnings"] = warnings
         return result
@@ -1480,7 +1490,9 @@ def _rm_anova(data, options):
     The parametric analysis takes options.comparisons (a method or
     {method, control, family, pairs, error, pooled_df}, see
     _rm_comparison_options) and then adds "comparisons"
-    (opendose.rm_posthoc.rm_comparisons)."""
+    (opendose.rm_posthoc.rm_comparisons). options.trend: the linear
+    trend (parametric, "trend") or Page's test across the treatments in
+    the order entered (Friedman, "page"; repeated.page_trend)."""
     cols, names = _flatten_columns(data)
     # RM analyses need row alignment -> use first subcolumn per dataset
     aligned = [[row[0] if row else None for row in ds["ys"]]
@@ -1511,6 +1523,12 @@ def _rm_anova(data, options):
                       pairs=options.get("pairs"),
                       dunn_correction=options.get("dunn_correction",
                                                   "bonferroni"))}
+        if options.get("trend"):
+            # Page's test, the treatments in the order entered
+            try:
+                result["page"] = repeated.page_trend(aligned, names)
+            except ValueError as exc:
+                result["page"] = {"error": str(exc)}
     else:
         result = {"analysis": "rm_one_way_anova",
                   **repeated.rm_one_way_anova(aligned, names)}

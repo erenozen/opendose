@@ -624,6 +624,49 @@ await page.waitForSelector('.pane-results[data-live="true"] .results-table', { t
     /^Partial ω²\s*0\.5257\s*(n\/a|—)?/.test(omega) && !/to/.test(omega), omega);
 }
 
+// --- P-41: trend across ordered columns (Jonckheere-Terpstra, Page) -------
+{
+  // engine/tests/reference/ordered_trend.py: 4 doses x 5, no ties: J = 140
+  // of a possible 150, E = 75, SD 14.86, exact two-sided P 8.9e-7
+  await pastedTable("column", "Four doses", "0 mg/kg\t1 mg/kg\t3 mg/kg\t10 mg/kg\n"
+    + "41.2\t43.1\t47.3\t50.2\n38.5\t45.6\t44.4\t47.7\n44.0\t40.8\t49.8\t52.6\n"
+    + "39.7\t46.2\t46.9\t49.1\n42.3\t44.9\t48.1\t53.4\n");
+  const controls = page.locator(".pane-controls");
+  // the "Type" select sits in a label whose text includes its options
+  const typeSelect = () => controls.locator("label.check-row", {
+    has: page.locator("span", { hasText: /^Type$/ }) }).locator("select");
+  await controls.locator("select.analysis-select").selectOption("anova");
+  await typeSelect().selectOption("nonparametric");
+  await controls.getByLabel("Jonckheere-Terpstra test for trend across ordered columns").check();
+  const hint = await controls.locator(".hint-block", { hasText: "Tested in the order of the columns" })
+    .innerText().catch(() => "");
+  expect("P-41 the controls name the order tested (the dose order is the hypothesis)",
+    hint.includes("first to last: 0 mg/kg, then 1 mg/kg, then 3 mg/kg, then 10 mg/kg"), hint);
+  await liveResults(/Jonckheere-Terpstra J/);
+  const row = async (label) => (await page.locator(".pane-results tr", { hasText: label }).first()
+    .innerText().catch(() => "")).replace(/\s+/g, " ").trim();
+  const head = await page.locator(".pane-results h4", { hasText: "Trend across ordered columns" })
+    .count();
+  const [j, e, p2] = [await row("Jonckheere-Terpstra J"), await row("Expected under no trend"),
+    await row("P value, two-sided")];
+  expect("P-41 acceptance: “Trend across ordered columns” with J = 140 (E 75, SD 14.86) and exact P < 0.0001",
+    head === 1 && j === "Jonckheere-Terpstra J 140" && e === "Expected under no trend (SD) 75 (14.86)"
+      && p2 === "P value, two-sided (exact) < 0.0001", [j, e, p2].join(" | "));
+  // Hicks (2009) teaching methods, published L = 133.5; exact P given the
+  // ties 3.842e-4 one-sided (full enumeration of 1.9 million tables)
+  await pastedTable("column", "Teaching methods", "Tutorial\tLecture\tSeminar\n"
+    + "3\t4\t3\n2\t2\t4\n3\t3\t5\n1\t3\t2\n2\t3\t2\n2\t4\t5\n1\t2\t4\n3\t4\t4\n2\t4\t5\n1\t3\t4\n");
+  await controls.locator("select.analysis-select").selectOption("rm_anova");
+  await typeSelect().selectOption("nonparametric");
+  await controls.getByLabel("Page's test for trend across ordered treatments").check();
+  await liveResults(/Page's L/);
+  const [l, inc, two] = [await row("Page's L"), await row("P value, one-sided: increasing"),
+    await row("P value, two-sided")];
+  expect("P-41 acceptance: the Friedman results gain a Page line, L = 133.5 (published), P 3.842e-4 one-sided",
+    l === "Page's L 133.5" && inc === "P value, one-sided: increasing 3.842e-4"
+      && two === "P value, two-sided (exact, given the ties) 7.684e-4", [l, inc, two].join(" | "));
+}
+
 // ------------------------------------------------------------------------
 await browser.close();
 if (errors.length) console.log(errors.slice(0, 10).join("\n"));

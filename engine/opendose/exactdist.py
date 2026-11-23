@@ -601,3 +601,78 @@ def smm_ppf(q: float, m: int, df: float) -> float:
         hi *= 2.0
     return float(optimize.brentq(lambda c: smm_cdf(c, m, df) - q, 1e-9, hi,
                                  xtol=1e-12))
+
+
+# ------------------------------------------- trend across ordered groups
+
+#: the exact Jonckheere-Terpstra null is used without ties up to this many
+#: values (R clinfun::jonckheere.test's rule); otherwise the normal
+#: approximation with the tie-corrected variance
+JT_EXACT_MAX_N = 100
+
+
+def mann_whitney_u_null(m: int, n: int) -> np.ndarray:
+    """P(U = u), u = 0..m n, for U = the number of (x, y) pairs with x
+    from a sample of m below y from a sample of n, no ties, under H0: the
+    recurrence p(u; a, b) = b/(a+b) p(u - a; a, b - 1) + a/(a+b)
+    p(u; a - 1, b) (Mann & Whitney 1947, Ann Math Stat 18:50), carried in
+    probabilities so large samples do not overflow."""
+    size = m * n + 1
+    unit = np.zeros(size)
+    unit[0] = 1.0
+    prev = [unit] * (n + 1)  # pmf for (a - 1, b), b = 0..n
+    for a in range(1, m + 1):
+        cur = [unit]
+        for b in range(1, n + 1):
+            shifted = np.zeros(size)
+            shifted[a:] = cur[b - 1][:size - a]
+            cur.append((a / (a + b)) * prev[b] + (b / (a + b)) * shifted)
+        prev = cur
+    return prev[n]
+
+
+def jt_null(sizes) -> np.ndarray:
+    """Exact null distribution of the Jonckheere-Terpstra statistic J
+    without ties: P(J = j), j = 0..sum_{i<j} n_i n_j. J is the sum over
+    groups j of U_j, the pairs (earlier-group value < group-j value);
+    under H0 the U_j are independent Mann-Whitney counts for (n_1 + ... +
+    n_{j-1}, n_j), so the null is their convolution (Hollander & Wolfe
+    1999, Nonparametric Statistical Methods, sec. 6.2)."""
+    sizes = [int(s) for s in sizes]
+    dist = np.array([1.0])
+    before = sizes[0]
+    for n_j in sizes[1:]:
+        dist = np.convolve(dist, mann_whitney_u_null(before, n_j))
+        before += n_j
+    return dist / dist.sum()
+
+
+def page_exact_feasible(n_rows: int, k: int) -> bool:
+    """When Page's L gets an exact P: Page's (1963) tables, the rule of
+    scipy.stats.page_trend_test's 'auto' (k <= 8 columns and n <= 12
+    rows, or n <= 20 rows with 3 columns)."""
+    return not (k > 8 or (n_rows > 12 and k > 3) or n_rows > 20)
+
+
+def page_null(ranks2) -> tuple[np.ndarray, int]:
+    """Exact permutation null of 2L = sum_j j (doubled rank in column j),
+    the values permuted within each row; with ties the row's midranks are
+    permuted, so the distribution is conditional on the ties, as the
+    Friedman test's exact P (friedman_exact_p). Returns (pmf of 2L -
+    offset, offset)."""
+    ranks2 = np.asarray(ranks2, dtype=np.int64)
+    k = ranks2.shape[1]
+    w = np.arange(1, k + 1)
+    cache: dict = {}
+    dist, offset = np.array([1.0]), 0
+    for row in ranks2:
+        key = tuple(sorted(int(v) for v in row))
+        if key not in cache:
+            vals = np.array([int(np.dot(w, p)) for p in permutations(key)])
+            lo = int(vals.min())
+            pmf = np.bincount(vals - lo).astype(float)
+            cache[key] = (pmf / pmf.sum(), lo)
+        pmf, lo = cache[key]
+        dist = np.convolve(dist, pmf)
+        offset += lo
+    return dist / dist.sum(), offset

@@ -12,6 +12,7 @@ import { FrequencyResults } from "../sheets/column/frequencyPanel";
 import { MixedRmOneWay, RmComparisons } from "../sheets/column/rmPosthocResults";
 import { rmComparisonsOf } from "../sheets/column/rmPosthoc";
 import SphericityTable from "../sheets/common/SphericityTable";
+import { OrderedTrendResults } from "../sheets/column/OrderedTrend";
 
 interface Props {
   result: Record<string, unknown> | null;
@@ -433,6 +434,7 @@ function Anova({ result }: { result: any }) {
             <ComparisonsTable mc={result.dunns} fallbackMethod="dunns" />
           </>
         )}
+        <OrderedTrendResults block={result.jonckheere} />
       </div>
     );
   }
@@ -790,6 +792,7 @@ function Friedman({ result }: { result: any }) {
           <ComparisonsTable mc={result.dunns} fallbackMethod="dunns" />
         </>
       )}
+      <OrderedTrendResults block={result.page} />
     </div>
   );
 }
