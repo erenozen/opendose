@@ -473,7 +473,7 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
     }
     // Ctrl+H (the browser's history outside the table), ⌘⇧H on a Mac
     // (⌘H hides the browser there)
-    if (!e.altKey && k === "h" && ((e.ctrlKey && !e.metaKey && !e.shiftKey) || (e.metaKey && e.shiftKey))) {
+    if (!e.altKey && k === "h" && (mac ? e.metaKey && e.shiftKey : e.ctrlKey && !e.metaKey && !e.shiftKey)) {
       e.preventDefault();
       openReplace();
     }

@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useId, useMemo, useRef, useState } from "react";
 import Modal from "../../components/Modal";
-import { Button, Field, FileButton, Input, NumberField, Tabs } from "../../components/ui";
+import { announce, Button, Field, FileButton, Input, NumberField, Tabs } from "../../components/ui";
 import { readWorkbook, type XlsxSheet } from "../../lib/engine";
 import {
   applyImport, applyImportWithCells, DEFAULT_FILTER, DEFAULT_SOURCE, defaultRoles, DELIMITER_LABELS, detectTitlesRowIn,
@@ -197,7 +197,12 @@ export default function ImportDialog({ table: given, file: givenFile, initial, o
   useEffect(() => {
     let live = true;
     void recipeHint(srcKind === "file" ? matrix.m.slice(0, 400) : [])
-      .then((h) => { if (live) setHint(h); }, () => { if (live) setHint(null); });
+      .then((h) => {
+        if (!live) return;
+        setHint(h);
+        // it arrives after the file is read, with no action of the user's
+        if (h) announce(`The import recipe “${h.label}” recognises this file.`, "polite");
+      }, () => { if (live) setHint(null); });
     return () => { live = false; };
   }, [matrix, srcKind]);
   const defaults = useMemo(() => defaultRoles(table, preview), [table, preview]);
