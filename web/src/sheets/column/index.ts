@@ -18,6 +18,9 @@ import {
   ANALYSIS_METHOD_REGRESSION, defaultMethodRegOptions, GRAPH_METHOD_REGRESSION,
   normalizeMethodRegOptions, runMethodReg, type MethodRegOptions, type MethodRegResult,
 } from "./methodRegression";
+import {
+  ANALYSIS_ICC, defaultIccOptions, normalizeIccOptions, runIcc, type IccOptions, type IccResult,
+} from "./icc";
 import { ColumnMethods } from "./methods";
 import { rowMeansAnalysis } from "../grouped";
 import { ColumnAnalysisControls, ColumnAnalysisResults, ColumnGraph } from "./panels";
@@ -213,6 +216,25 @@ export const methodRegressionGraph = defineGraph<MethodRegOptions, MethodRegResu
   formatFeatures: { points: true, lines: true },
 });
 
+// Reliability ICC (P-44): one column per rater, one row per target.
+const iccModule = () => import("./iccPanels");
+
+export const iccAnalysis = defineAnalysis<IccOptions, IccResult>({
+  id: ANALYSIS_ICC,
+  label: "Agreement (ICC): intraclass correlation between raters",
+  short: "ICC",
+  description: "Reliability of raters or instruments: the six Shrout-Fleiss intraclass "
+    + "correlations with F-based confidence intervals (columns = raters, rows = targets).",
+  sheetName: (t) => `ICC of ${t}`,
+  defaultOptions: () => defaultIccOptions(),
+  normalizeOptions: (raw) => normalizeIccOptions(raw),
+  run: runIcc,
+  defaultGraph: null,
+  ControlsPanel: lazyPart(iccModule, "IccControls"),
+  ResultsPanel: lazyPart(iccModule, "IccResults"),
+  MethodsPanel: lazyPart(iccModule, "IccMethods"),
+});
+
 function columnSample() {
   return normalizeTable({
     type: "column",
@@ -236,6 +258,6 @@ export const columnTable: TableTypeDef = {
   sampleName: "Group comparison",
   Editor: DataGrid,
   analyses: [columnAnalysis, replicateMeansAnalysis, estimationAnalysis, rowMeansAnalysis, rocAnalysis,
-    blandAltmanAnalysis, methodRegressionAnalysis],
+    blandAltmanAnalysis, methodRegressionAnalysis, iccAnalysis],
   graphs: [...columnGraphs, estimationGraph, rocGraph, blandAltmanGraph, methodRegressionGraph],
 };

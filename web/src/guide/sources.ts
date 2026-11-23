@@ -279,6 +279,10 @@ export const SRC = {
   // DOI checked against Crossref on 2026-11-24.
   passingBablok1983: { label: "Passing & Bablok 1983, A new biometrical procedure for testing the equality of measurements from two different analytical methods, J Clin Chem Clin Biochem 21:709",
     url: "https://doi.org/10.1515/cclm.1983.21.11.709" },
+  // Reliability ICC (P-44): the six forms and which question each answers.
+  // DOI checked against Crossref on 2026-11-24.
+  shroutFleiss1979: { label: "Shrout & Fleiss 1979, Intraclass correlations: uses in assessing rater reliability, Psychol Bull 86:420",
+    url: "https://doi.org/10.1037/0033-2909.86.2.420" },
 } satisfies Record<string, Source>;
 
 export type SourceKey = keyof typeof SRC;

@@ -235,6 +235,23 @@ function methodRegFacts(r: R): KeyFacts {
   }) };
 }
 
+/** Reliability ICC (sheets/column/icc.ts): the chosen form with its CI. */
+function iccFacts(r: R): KeyFacts {
+  const forms = (r.forms ?? []) as R[];
+  const want = r.options?.form ?? r.default ?? "ICC2";
+  const c = forms.find((x) => x.form === want);
+  if (!c || typeof c.value !== "number") return null;
+  const k = r.k_raters;
+  const name = { ICC1: "ICC(1,1)", ICC2: "ICC(2,1)", ICC3: "ICC(3,1)", ICC1k: `ICC(1,${k})`,
+    ICC2k: `ICC(2,${k})`, ICC3k: `ICC(3,${k})` }[String(want)] ?? String(want);
+  const pct = `${Number(((r.ci_level ?? 0.95) * 100).toPrecision(4))}%`;
+  return { kind: "figures", items: [{ title: `${r.n_targets} targets, ${k} raters`, figure: {
+    name, value: formatSig(c.value),
+    ci: Array.isArray(c.ci) ? `${pct} CI ${formatSig(c.ci[0])} to ${formatSig(c.ci[1])}` : undefined,
+    facts: [`F(${c.df1}, ${c.df2}) = ${formatSig(c.F)}`, pLabel(c.p)],
+  } }] };
+}
+
 /** The headline facts of a result, or null for "show the table first". */
 export function keyFacts(result: unknown, opts: { xUnit?: string } = {}): KeyFacts {
   if (!result || typeof result !== "object") return null;
@@ -242,6 +259,7 @@ export function keyFacts(result: unknown, opts: { xUnit?: string } = {}): KeyFac
   if (r.error) return { kind: "error", message: `Analysis failed: ${String(r.error)}` };
   if (withheldInfo(r)) return withheldFacts(r);
   if (r.analysis === "method_regression") return methodRegFacts(r);
+  if (r.analysis === "icc") return iccFacts(r);
   if (Array.isArray(r.datasets)) return fitFacts(r, opts.xUnit || "M");
   if (r.analysis === "ttest" && !r.test?.toString().match(/kolmogorov|ratio_paired/)) return ttestFacts(r);
   if (r.analysis === "anova") return anovaFacts(r);

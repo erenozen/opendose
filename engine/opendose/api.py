@@ -29,7 +29,7 @@ from . import summary
 from . import mixedmodel, nested
 from . import fdr, letters, rowtests, threeway
 from . import deming, moretests, proportions, trend
-from . import methodreg
+from . import icc, methodreg
 from . import equations, userequation
 from . import (assay_clustering, assay_densitometry, assay_growth,
                assay_kinetic, assay_luciferase, assay_mic, assay_plate,
@@ -3981,6 +3981,35 @@ def _method_regression(data, options):
             "comparisons": out}
 
 
+def _icc(data, options):
+    """Intraclass correlation (icc.icc), the six Shrout-Fleiss forms with
+    McGraw-Wong F-based CIs. data: a column table, datasets = raters (or
+    instruments), rows = targets, one value per cell (first subcolumn; a
+    second value in a cell is refused). Rows missing a rating are left
+    out with a warning. options: ci_level (0.95). Result: {"analysis":
+    "icc", "n_targets", "k_raters", "forms": [{form, value, ci, model,
+    type, unit, F, df1, df2, p}], "default": "ICC2", "mean_squares",
+    "names", "incomplete_rows", "warnings"?}."""
+    dss = data["datasets"]
+    for ds in dss:
+        for row in ds.get("ys", []):
+            if row and any(not _is_missing(v) for v in row[1:]):
+                raise ValueError("the ICC takes one rating per cell: enter "
+                                 "each rater's rating in one subcolumn")
+    cols = [_aligned_first(ds) for ds in dss]
+    n_rows = max((len(c) for c in cols), default=0)
+    matrix = [[(c[i] if i < len(c) and not _is_missing(c[i]) else None)
+               for c in cols] for i in range(n_rows)]
+    res = icc.icc(matrix, ci_level=options.get("ci_level", 0.95))
+    res["names"] = [ds.get("name", "") or f"Rater {j + 1}"
+                    for j, ds in enumerate(dss)]
+    if res["incomplete_rows"]:
+        res["warnings"] = [_incomplete_warning(res["incomplete_rows"],
+                                               "target row")
+                           + " (the ICC needs every rater's rating)"]
+    return res
+
+
 def _quantal(data, options):
     """Quantal (probit / logit / cloglog) dose-response. data: {"dose",
     "n", "responders"} for one line; {"groups": [{"name", "dose", "n",
@@ -4095,6 +4124,7 @@ _HANDLERS.update({
     "roc_cutoff": _roc_cutoff,
     "bland_altman_extras": _bland_altman_extras,
     "method_regression": _method_regression,
+    "icc": _icc,
     "quantal": _quantal,
     "auc": _auc,
     "pzfx_export": _pzfx_export,
