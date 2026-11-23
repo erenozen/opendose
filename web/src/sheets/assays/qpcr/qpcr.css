@@ -12,3 +12,11 @@
 .qpcr-ref-n { color: var(--muted); font-size: var(--text-caption); white-space: nowrap; }
 .qpcr-ref-actions { display: flex; flex-wrap: wrap; gap: var(--space-8); }
 .qpcr-ref-source { font-size: var(--text-body-s); }
+
+/* NTC and no-RT control checks (controlPanels.tsx). Tokens only. */
+.qpcr-controls { display: flex; flex-direction: column; gap: var(--space-8); margin: var(--space-4) 0 var(--space-12); }
+.qpcr-controls .qc-chip { white-space: normal; line-height: 1.4; }
+.qpcr-control-samples caption {
+  caption-side: top; text-align: start; padding-bottom: var(--space-4);
+  font-size: var(--text-label); font-weight: var(--weight-semibold); color: var(--muted);
+}

@@ -13,7 +13,10 @@ export interface BundleInput {
   projectJson: string;
   tables: { name: string; table: DataTableModel }[];
   results: { name: string; analysis: string; data: string; matrix: string[][] }[];
-  graphs: { name: string; svg: string | null; png: Uint8Array | null }[];
+  /** Each graph as SVG, PNG and (vector, fonts embedded) PDF. */
+  graphs: { name: string; svg: string | null; png: Uint8Array | null; pdf?: Uint8Array | null }[];
+  /** Each page layout as a one-page PDF and an SVG (layout/pageExport.ts). */
+  layouts?: { name: string; svg: string | null; pdf: Uint8Array | null }[];
   methods: { name: string; text: string }[];
   citation: { plain: string; bibtex: string };
   /** "OpenDose 0.2.0 (build abc123, 2026-10-04)" */
@@ -95,6 +98,23 @@ export function bundleFiles(b: BundleInput): BundleFile[] {
   b.graphs.forEach((g, i) => {
     if (g.svg) files.push({ name: `graphs/${gStems[i]}.svg`, text: g.svg, about: `"${g.name}" (vector).` });
     if (g.png) files.push({ name: `graphs/${gStems[i]}.png`, bytes: g.png, about: `"${g.name}" (bitmap).` });
+    if (g.pdf) {
+      files.push({ name: `graphs/${gStems[i]}.pdf`, bytes: g.pdf,
+        about: `"${g.name}" as a vector PDF (text in embedded fonts).` });
+    }
+  });
+
+  const layouts = b.layouts ?? [];
+  const lStems = uniq(layouts.map((l) => stem(l.name, "layout")));
+  layouts.forEach((l, i) => {
+    if (l.pdf) {
+      files.push({ name: `layouts/${lStems[i]}.pdf`, bytes: l.pdf,
+        about: `Page layout "${l.name}" as a vector PDF (one page at its paper size).` });
+    }
+    if (l.svg) {
+      files.push({ name: `layouts/${lStems[i]}.svg`, text: l.svg,
+        about: `Page layout "${l.name}" as SVG.` });
+    }
   });
 
   const methods = b.methods.length
@@ -144,7 +164,7 @@ export function readmeText(b: BundleInput, list: { name: string; about: string }
     `Numerical libraries: ${b.libraries}`,
     "",
     "Every file here is an open format: CSV (UTF-8, comma-separated, first row",
-    "holds the column titles), SVG, PNG, JSON and plain text. Nothing needs",
+    "holds the column titles), SVG, PNG, PDF, JSON and plain text. Nothing needs",
     "OpenDose to be read; project.json reopens the whole project in it.",
     "",
     "Contents",
@@ -165,6 +185,6 @@ export function readmeText(b: BundleInput, list: { name: string; about: string }
 /** The bundle as a zip: text deflated, PNG stored. */
 export function zipBundle(files: BundleFile[]): Uint8Array {
   const entries: Record<string, [Uint8Array, { level: 0 | 6 }]> = {};
-  for (const f of files) entries[f.name] = [f.data, { level: f.name.endsWith(".png") ? 0 : 6 }];
+  for (const f of files) entries[f.name] = [f.data, { level: /\.(png|pdf)$/.test(f.name) ? 0 : 6 }];
   return zipSync(entries);
 }

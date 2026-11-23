@@ -60,14 +60,34 @@ export interface QpcrOptions {
   test: QTest;
   comparisons: PostTest;
   ciLevel: number;
+  /** NTC / no-RT wells count as amplified only below this Cq ("" = any Cq). */
+  controlMaxCq: string;
+  /** A sample within this many cycles of an amplified control is affected. */
+  controlMinDelta: number;
   output?: string;
 }
 
 export const DEFAULT_QPCR_OPTIONS: QpcrOptions = {
   columns: {}, referenceGenes: [], referenceCandidates: [], calibrator: "", efficiencyMode: "assumed", efficiencies: {},
   maxCq: 35, maxSpread: 0.5, excludeHighCq: false, undetermined: "", test: "auto",
-  comparisons: "dunnett", ciLevel: 0.95,
+  comparisons: "dunnett", ciLevel: 0.95, controlMaxCq: "", controlMinDelta: 5,
 };
+
+// NTC and no-RT controls by name, as the engine reads them
+// (assay_qpcr.control_kind; the same names are pinned on both sides).
+// Water is not read as an NTC: a water-treated group is common.
+const NTC_RE = /^\s*(ntc|no[\s_-]*template([\s_-]*control)?)([\s_-]*\d+)?\s*$/i;
+const NO_RT_RE = /(?:(?:^|[\s_(-])(?:no[\s_-]*rt|nrt|minus[\s_-]*rt|no[\s_-]*reverse[\s_-]*transcriptase)|-\s*rt|(?:^|[\s_(])rt\s*-)(?=$|[\s_)\d-])/i;
+
+/** "ntc", "no_rt" or null, from the sample name, then the group name. */
+export function controlKind(sample: string, group = ""): "ntc" | "no_rt" | null {
+  for (const name of [sample, group]) {
+    if (!name) continue;
+    if (NTC_RE.test(name)) return "ntc";
+    if (NO_RT_RE.test(name)) return "no_rt";
+  }
+  return null;
+}
 
 export function normalizeQpcrOptions(raw: unknown): QpcrOptions {
   const o = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
@@ -94,6 +114,8 @@ export function normalizeQpcrOptions(raw: unknown): QpcrOptions {
     comparisons: ["dunnett", "tukey", "bonferroni", "sidak"].includes(o.comparisons as string)
       ? o.comparisons as PostTest : "dunnett",
     ciLevel: num(o.ciLevel, d.ciLevel),
+    controlMaxCq: typeof o.controlMaxCq === "string" ? o.controlMaxCq : "",
+    controlMinDelta: typeof o.controlMinDelta === "number" && o.controlMinDelta >= 0 ? o.controlMinDelta : d.controlMinDelta,
     ...(typeof o.output === "string" ? { output: o.output } : {}),
   };
 }
@@ -109,13 +131,15 @@ export interface QData {
   curves: Record<string, { quantity: number; cq: string }[]>;
   targets: string[];
   groups: string[];
+  /** NTC and no-RT wells (controlKind). */
+  controls: number;
   problem: string | null;
 }
 
 export function readQpcr(t: DataTableModel, o: QpcrOptions): QData {
   const idx = resolveColumns(t, QPCR_ROLES, o.columns);
   const missing = QPCR_ROLES.filter((r) => r.required && idx[r.key] < 0).map((r) => r.label);
-  const empty: QData = { idx, records: [], curves: {}, targets: [], groups: [], problem: null };
+  const empty: QData = { idx, records: [], curves: {}, targets: [], groups: [], controls: 0, problem: null };
   if (missing.length) return { ...empty, problem: `Choose the column for: ${missing.join(", ")}.` };
   const col = (k: QRole) => textColumn(t, idx[k]);
   const sample = col("sample"); const group = col("group"); const target = col("target");
@@ -132,10 +156,12 @@ export function readQpcr(t: DataTableModel, o: QpcrOptions): QData {
     if (!cq[r] && !sample[r]) continue;
     records.push({ sample: sample[r], group: group[r], target: target[r], cq: cq[r], well: well[r], pair: pair[r] });
   }
-  const targets = distinctValues(records.map((x) => x.target));
-  const groups = distinctValues(records.map((x) => x.group));
+  // NTC and no-RT wells are checked, not quantified: not a group or a target
+  const samples = records.filter((x) => !controlKind(x.sample, x.group));
+  const targets = distinctValues(samples.map((x) => x.target));
+  const groups = distinctValues(samples.map((x) => x.group));
   return {
-    idx, records, curves, targets, groups,
+    idx, records, curves, targets, groups, controls: records.length - samples.length,
     problem: records.length ? null : "No Cq records yet: each row needs a sample, a target and a Cq.",
   };
 }
@@ -165,6 +191,11 @@ export function qpcrPayload(d: QData, o: QpcrOptions): unknown {
     max_cq: o.maxCq, max_spread: o.maxSpread, exclude_high_cq: o.excludeHighCq,
     test: o.test, comparisons: o.comparisons, ci_level: o.ciLevel,
   };
+  if (d.controls) {
+    options.control_min_delta = o.controlMinDelta;
+    const lim = Number(o.controlMaxCq.replace(",", "."));
+    if (o.controlMaxCq.trim() !== "" && Number.isFinite(lim) && lim > 0) options.control_max_cq = lim;
+  }
   // A reference gene set aside by the reference check is not a target.
   const aside = referenceCandidates(refs, o.referenceCandidates, d.targets).filter((g) => !refs.includes(g));
   if (aside.length) options.targets = d.targets.filter((g) => !refs.includes(g) && !aside.includes(g));
@@ -188,7 +219,18 @@ export function qpcrPayload(d: QData, o: QpcrOptions): unknown {
     data.standard_curves = Object.fromEntries(Object.entries(d.curves)
       .filter(([, pts]) => pts.length >= 3));
   }
+  // A dilution series with wells that gave no Cq is a hit-rate series:
+  // the engine fits its LoD95 (assay_qpcr.lod95_by_target).
+  const hitRate = Object.entries(d.curves).filter(([, pts]) => pts.some((p) => !hasCq(p.cq)));
+  if (hitRate.length) data.dilution_series = Object.fromEntries(hitRate);
   return { analysis: "qpcr", data, options };
+}
+
+/** A well's Cq is a positive number (else undetermined, as the engine's
+ *  parse_cq reads it). */
+function hasCq(cq: string): boolean {
+  const v = Number(cq.trim().replace(",", "."));
+  return cq.trim() !== "" && Number.isFinite(v) && v > 0;
 }
 
 export function runQpcr(analyze: (p: unknown) => unknown, t: DataTableModel, o: QpcrOptions): QpcrResult {

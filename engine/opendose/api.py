@@ -1582,7 +1582,10 @@ def _rm_two_way(data, options):
 
 def _ec50_shift(data, options):
     """Gaddum/Schild EC50 shift: one curve per dataset, each with its
-    antagonist concentration from options.antagonist (linear units)."""
+    antagonist concentration from options.antagonist (linear units).
+    `schild_plot` adds the Schild plot (schild.schild_plot: each curve's
+    EC50, dose ratios, log(DR - 1) on log[B] with the slope's CI), or an
+    `error` inside it when it cannot be drawn; the fit is unaffected."""
     x_col = data["x"]
     if not options.get("x_is_log", True):
         x_col = transform.transform_list(x_col, "log10")
@@ -1597,6 +1600,10 @@ def _ec50_shift(data, options):
     result = schild.fit_ec50_shift(
         gdatasets, [float(b) for b in antagonist],
         constraints=options.get("constraints") or {})
+    # the Schild plot (a display; pA2 and KB stay the global fit's)
+    result["schild_plot"] = schild.schild_plot(
+        gdatasets, [float(b) for b in antagonist], result["fitted_values"],
+        options.get("constraints") or {})
     finite_x = [v for v in x_col if v is not None]
     lo, hi = min(finite_x) - 0.5, max(finite_x) + 0.5
     grid = [lo + i * (hi - lo) / 199 for i in range(200)]
@@ -3097,20 +3104,26 @@ def _stdcurve_qc(data, options):
     "quantification_range": {lloq, uloq, dynamic_range_fold},
     "unknowns": [{name, dilution, concentration, concentration_ci,
     corrected, corrected_ci, status, flags, reportable}], "samples",
-    "parallelism", "warnings"}."""
+    "parallelism", "warnings"}. With data "lod_blanks" (blank signals as
+    read) or "lod_samples" ([{"name", "signals"}] low-level samples as
+    read) it adds "detection_limits" (LoB, LoD and LoQ, CLSI EP17-A2;
+    options lod_c_beta, loq_cv_limit)."""
     return assay_stdcurve.standard_curve_qc(
         data.get("standards") or [], data.get("unknowns") or [],
+        lod_blanks=data.get("lod_blanks"), lod_samples=data.get("lod_samples"),
         **_assay_kw(options, (
             "model", "weighting", "log_x", "blank", "accuracy_limit",
             "accuracy_limit_ends", "precision_limit", "precision_limit_ends",
             "min_fraction", "min_levels", "cv_limit", "cv_basis",
-            "parallelism_cv_limit", "ci_level", "constraints")))
+            "parallelism_cv_limit", "ci_level", "constraints",
+            "lod_c_beta", "loq_cv_limit")))
 
 
 def _qpcr(data, options):
     """Relative qPCR quantification (assay_qpcr). data: {"records":
     [{sample, group, target, cq, well?, pair?}], "standard_curves"?:
-    {target: [{quantity, cq}]}}. options: reference_genes (required),
+    {target: [{quantity, cq}]}, "dilution_series"?: {target: [{quantity,
+    cq}]} (a hit-rate series gives "lod95")}. options: reference_genes (required),
     calibrator (group), efficiencies ({target: factor or %}), max_cq
     (35), max_spread (0.5), undetermined_value, exclude_high_cq, test
     ("auto" | "unpaired" | "welch" | "paired" | "anova" | "rm_anova" |
@@ -3120,24 +3133,33 @@ def _qpcr(data, options):
     target: dcq, ddcq, relative_quantity, log2_fold_change),
     "per_target": [{target, groups: [{group, n, mean_dcq, fold_change,
     fold_change_ci}], statistics: {..., comparisons: [{pair,
-    fold_change, fold_change_ci, p_adjusted}]}, graph}], "warnings"}."""
+    fold_change, fold_change_ci, p_adjusted}]}, graph}], "warnings"}.
+    NTC and no-RT wells (by name, or a record's "control": "ntc" |
+    "no_rt") are left out and checked into "controls" (options
+    control_max_cq, control_min_delta; assay_qpcr.control_checks)."""
     kw = _assay_kw(options, (
         "calibrator", "efficiencies", "standard_curves", "max_cq",
         "max_spread", "undetermined_value", "exclude_high_cq", "test",
-        "comparisons", "welch", "ci_level", "groups", "targets"))
+        "comparisons", "welch", "ci_level", "groups", "targets",
+        "control_max_cq", "control_min_delta"))
     if data.get("standard_curves") and "standard_curves" not in kw:
         kw["standard_curves"] = data["standard_curves"]
     result = assay_qpcr.qpcr_analysis(
         data.get("records") or [],
         reference_genes=options.get("reference_genes",
                                     options.get("reference")), **kw)
+    if data.get("dilution_series"):
+        # LoD95 of every hit-rate dilution series (assay_qpcr.lod95_by_target)
+        result["lod95"] = assay_qpcr.lod95_by_target(
+            data["dilution_series"], ci_level=options.get("ci_level", 0.95))
     if options.get("reference_stability", True):
         # reference-gene validation before the fold changes
         # (opendose.qpcr_refs: geNorm M, dCq SD, shift with treatment)
         try:
             result["reference_stability"] = \
                 qpcr_refs.reference_stability_from_records(
-                    data.get("records") or [], result["reference_genes"],
+                    assay_qpcr.split_controls(data.get("records") or [])[0],
+                    result["reference_genes"],
                     efficiencies={g: result["efficiencies"][g]["efficiency"]
                                   for g in result["reference_genes"]},
                     calibrator=result["calibrator"],
@@ -4027,7 +4049,7 @@ def _qpcr_reference_check(data, options):
     undetermined_value, exclude_high_cq."""
     refs = options.get("reference_genes", options.get("reference"))
     out = qpcr_refs.reference_stability_from_records(
-        data.get("records") or [], refs,
+        assay_qpcr.split_controls(data.get("records") or [])[0], refs,
         groups_order=options.get("groups"),
         **_assay_kw(options, (
             "max_cq", "max_spread", "undetermined_value", "exclude_high_cq",
@@ -4049,11 +4071,75 @@ def _flow_summary(data, options):
         experiments=options.get("experiments"))
 
 
+def _flow_events(data, options):
+    """Flow cytometry event counts (FEATURE-PLAN P-50). Counting is a
+    Poisson process, so r positive events have a CV of 1/sqrt(r)
+    (Roederer 2008, Cytometry A 73:384, "How many events is enough? Are
+    you positive?"): a target CV needs r = 1/CV^2 positive events and,
+    at an expected frequency f, r / f events in all (10% CV at 0.1%:
+    100 positive events, 100,000 in all). An observed gated percentage
+    k of n gets the Wilson score CI (partsofwhole.proportion_ci).
+    data: {"target_cv"?: %, "frequency"?: %, "positive"?: k,
+    "total"?: n}; options: ci_level (0.95). Returns {"plan": {...} |
+    None, "observed": {...} | None}, each with "error" when its inputs
+    cannot give a number."""
+    import math
+
+    def _num(v):
+        try:
+            v = float(v)
+        except (TypeError, ValueError):
+            return None
+        return v if math.isfinite(v) else None
+
+    level = float(options.get("ci_level", 0.95))
+    out = {"analysis": "flow_events", "ci_level": level,
+           "source": "Roederer 2008, Cytometry A 73:384 (Poisson CV); "
+                     "Wilson 1927 score interval",
+           "plan": None, "observed": None}
+    cv, f = _num(data.get("target_cv")), _num(data.get("frequency"))
+    if cv is not None or f is not None:
+        if cv is None or not 0 < cv < 100:
+            out["plan"] = {"error": "Enter a target CV above 0% and below 100%."}
+        elif f is None or not 0 < f <= 100:
+            out["plan"] = {"error": "Enter an expected frequency above 0% and "
+                                    "at most 100%."}
+        else:
+            # round before the ceiling: 1/0.1^2 is 99.99999999999998 in floats
+            pos = math.ceil(round(1.0 / (cv / 100.0) ** 2, 6))
+            out["plan"] = {"target_cv_pct": cv, "frequency_pct": f,
+                           "positive_events": pos,
+                           "total_events": math.ceil(round(pos / (f / 100.0), 6)),
+                           "achieved_cv_pct": 100.0 / math.sqrt(pos)}
+    k, n = _num(data.get("positive")), _num(data.get("total"))
+    if k is not None or n is not None:
+        if n is None or n < 1 or n != int(n):
+            out["observed"] = {"error": "Enter the events in the parent gate "
+                                        "as a whole number of 1 or more."}
+        elif k is None or k < 0 or k != int(k) or k > n:
+            out["observed"] = {"error": "Enter the positive events as a whole "
+                                        "number from 0 to the parent's events."}
+        else:
+            k, n = int(k), int(n)
+            lo, hi = partsofwhole.proportion_ci(k, n, method="wilson",
+                                                ci_level=level)
+            # the Wilson limits at k = 0 and k = n are exactly 0 and 1
+            # (rounding leaves about 1e-17 otherwise)
+            lo, hi = (0.0 if k == 0 else lo), (1.0 if k == n else hi)
+            out["observed"] = {
+                "positive": k, "total": n, "percent": 100.0 * k / n,
+                "ci_pct": [100.0 * lo, 100.0 * hi], "method": "wilson",
+                # Poisson CV of the positive count; none without events
+                "count_cv_pct": 100.0 / math.sqrt(k) if k > 0 else None}
+    return out
+
+
 _HANDLERS.update({
     "scale_check": _scale_check,
     "compare_parameter": _compare_parameter,
     "qpcr_reference_check": _qpcr_reference_check,
     "flow_summary": _flow_summary,
+    "flow_events": _flow_events,
 })
 
 

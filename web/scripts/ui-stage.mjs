@@ -289,6 +289,15 @@ const scenes = [
     await headerMenu(s, "View", "Preferences…");
     await dialog(s, "Preferences").waitFor();
   } },
+  { name: "shell-preferences-pins", setup: async (s) => {
+    await fixture(s, "pins.json");
+    await s.page.locator(".js-plotly-plot").first().waitFor();
+    await headerMenu(s, "View", "Preferences…");
+    const pins = dialog(s, "Preferences").getByRole("region", { name: "Colours pinned to groups" });
+    await pins.locator(".pins-warnings p").first().waitFor();
+    await pins.evaluate((el) => el.scrollIntoView({ block: "center" }));
+    await settle(s, 400);
+  } },
   { name: "shell-about", setup: async (s) => {
     await example(s);
     await headerMenu(s, "View", "About OpenDose…");
@@ -880,6 +889,38 @@ const scenes = [
     await s.page.locator(".js-plotly-plot").first().waitFor();
     await settle(s, 1200);
   } },
+  { name: "graphs-format-axes-pt", setup: async (s) => {
+    await example(s);
+    await into(s, ".plot-card", "center");
+    await click(s, s.page.locator(".plot-card").getByRole("button", { name: "Settings", exact: true }));
+    await click(s, dialog(s, "Graph settings").getByRole("button", { name: "Format axes…" }));
+    const fmt = s.page.locator("dialog.fmt-dialog");
+    await click(s, fmt.getByLabel("Points (pt, 1/72 inch"));
+    await fmt.getByLabel("Axis line width (pt)").fill("1");
+    await settle(s, 500);
+  } },
+  { name: "results-schild", setup: async (s) => {
+    await fixture(s, "schild.json", { live: true });
+    const card = s.page.locator(".schild-card");
+    await card.waitFor({ timeout: 240000 });
+    await card.evaluate((el) => el.scrollIntoView({ block: "start" }));
+    await settle(s, 600);
+  } },
+  { name: "graphs-schild", setup: async (s) => {
+    await fixture(s, "schild.json", { live: true });
+    await selectSheet(s, /^Schild plot of EC50 shift/);
+    await s.page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+      .some((t) => t.meta?.odTag?.role === "fit"), null, { timeout: 240000 });
+    await into(s, ".plot-card", "center");
+    await settle(s, 800);
+  } },
+  { name: "graphs-raincloud", setup: async (s) => {
+    await fixture(s, "raincloud.json", { live: true });
+    await s.page.locator(".js-plotly-plot").first().waitFor();
+    await into(s, ".plot-card", "center");
+    await click(s, s.page.locator(".plot-card").getByRole("button", { name: "Settings", exact: true }));
+    await dialog(s, "Graph settings").getByLabel("Whiskers").waitFor();
+  } },
   { name: "graphs-fit-legend", setup: async (s) => {
     await fixture(s, "fit-legend.json", { live: true });
     await s.page.locator(".js-plotly-plot").first().waitFor();
@@ -937,6 +978,60 @@ const scenes = [
       await s.page.waitForTimeout(400);
     }
     await settle(s, 1500);
+  } },
+  // P-29: an ELISA with 20 blank and 20 low-sample wells: LoB, LoD, LoQ
+  // on the results sheet, and the wizard's Blanks and low samples step
+  { name: "guided-std-limits", setup: async (s) => {
+    await fixture(s, "detection-limits.json", { live: true });
+    await s.page.locator(".std-limits").first().waitFor({ timeout: 120000 });
+    await into(s, ".std-results .plate-qc-grid");
+    await settle(s);
+  } },
+  { name: "guided-std-limits-step", setup: async (s) => {
+    await fixture(s, "detection-limits.json", { live: true });
+    await s.page.locator(".std-limits").first().waitFor({ timeout: 120000 });
+    await click(s, button(s, "Open setup wizard…"));
+    const wiz = s.page.locator("dialog.assay-wizard");
+    await wiz.waitFor();
+    await wiz.getByRole("button", { name: /Blanks and low samples/ }).click();
+    await wiz.locator(".assay-preview").waitFor({ timeout: 60000 });
+    await settle(s, 1000);
+  } },
+  // P-29, qPCR: the LoD95 of a hit-rate dilution series
+  { name: "guided-qpcr-lod", setup: async (s) => {
+    await fixture(s, "qpcr-lod.json", { live: true });
+    await s.page.locator(".qpcr-lod").first().waitFor({ timeout: 120000 });
+    await into(s, ".qpcr-lod");
+    await settle(s);
+  } },
+  // P-30: NTC and no-RT controls, on the results sheet and in the QC step
+  { name: "guided-qpcr-controls", setup: async (s) => {
+    await fixture(s, "qpcr-controls.json", { live: true });
+    await s.page.locator(".qpcr-controls").first().waitFor({ timeout: 120000 });
+    await into(s, ".qpcr-results .qpcr-controls");
+    await settle(s);
+  } },
+  { name: "guided-qpcr-controls-step", setup: async (s) => {
+    await fixture(s, "qpcr-controls.json", { live: true });
+    await s.page.locator(".qpcr-controls").first().waitFor({ timeout: 120000 });
+    await click(s, button(s, "Open setup wizard…"));
+    const wiz = s.page.locator("dialog.assay-wizard");
+    await wiz.waitFor();
+    await wiz.getByRole("button", { name: /QC and statistics/ }).click();
+    await wiz.locator(".qpcr-controls").waitFor({ timeout: 60000 });
+    await settle(s, 1000);
+  } },
+  // P-50: the flow event-count calculator, both parts filled
+  { name: "guided-flow-events", setup: async (s) => {
+    await example(s);
+    await headerMenu(s, "File", "Flow cytometry event counts…");
+    const dlg = dialog(s, "Flow cytometry event counts");
+    await dlg.waitFor();
+    await dlg.getByLabel("Positive events", { exact: true }).fill("120");
+    await dlg.getByLabel("Events in the parent gate").fill("50000");
+    await s.page.waitForFunction(() => /Wilson/.test(document.querySelectorAll(".flow-events .flow-events-out")[1]
+      ?.textContent ?? ""), null, { timeout: 60000 });
+    await settle(s);
   } },
   { name: "guided-tour", setup: async (s) => {
     await example(s);

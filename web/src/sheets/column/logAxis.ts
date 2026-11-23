@@ -4,7 +4,7 @@
 import type { GraphFormat } from "../../graph/format.ts";
 
 /** Column graph kinds whose Y axis shows the analysed values. */
-export const LOG_AXIS_KINDS: ReadonlySet<string> = new Set(["scatter", "bar", "box", "violin"]);
+export const LOG_AXIS_KINDS: ReadonlySet<string> = new Set(["scatter", "bar", "box", "violin", "raincloud"]);
 
 /** The format already draws Y on a log10 scale. */
 export function hasLogY(f: GraphFormat): boolean {

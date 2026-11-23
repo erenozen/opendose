@@ -37,3 +37,8 @@
 .fit-starts { margin-top: var(--space-12); }
 .fit-starts > table, .fit-starts > p { margin-top: var(--space-8); }
 .fit-report-actions { display: flex; flex-wrap: wrap; gap: var(--space-8); margin-top: var(--space-8); }
+
+/* Schild plot results (SchildCard.tsx): the linked table and graph actions. */
+.schild-actions { display: flex; flex-wrap: wrap; gap: var(--space-8); align-items: center; margin-top: var(--space-8); }
+.schild-scroll { overflow-x: auto; max-width: 100%; }
+.schild-scroll th[scope="row"] { white-space: nowrap; }

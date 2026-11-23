@@ -1,0 +1,124 @@
+{
+ "opendose_project": 2,
+ "version": 2,
+ "title": "Pinned colours",
+ "prefs": {
+  "defaultTableType": "xy",
+  "errorBars": "sd",
+  "ciMethod": "asymptotic",
+  "scheme": "default",
+  "digits": 4
+ },
+ "selected": "g094",
+ "groupColors": [
+  {
+   "name": "KO",
+   "color": "#e69f00"
+  },
+  {
+   "name": "WT",
+   "color": "#0072b2"
+  }
+ ],
+ "sheets": [
+  {
+   "id": "d093",
+   "kind": "data",
+   "name": "Knockout study",
+   "table": {
+    "type": "column",
+    "x": [
+     "",
+     "",
+     "",
+     ""
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "",
+    "rowTitles": [
+     "",
+     "",
+     "",
+     ""
+    ],
+    "datasets": [
+     {
+      "name": "WT",
+      "rows": [
+       [
+        "10.2"
+       ],
+       [
+        "11.5"
+       ],
+       [
+        "9.8"
+       ],
+       [
+        "10.9"
+       ]
+      ]
+     },
+     {
+      "name": "KO",
+      "rows": [
+       [
+        "14.1"
+       ],
+       [
+        "15.3"
+       ],
+       [
+        "13.8"
+       ],
+       [
+        "14.9"
+       ]
+      ]
+     },
+     {
+      "name": "Het",
+      "rows": [
+       [
+        "12"
+       ],
+       [
+        "12.8"
+       ],
+       [
+        "11.7"
+       ],
+       [
+        "12.4"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "g094",
+   "kind": "graph",
+   "parentId": "d093",
+   "resultsId": null,
+   "graphType": "scatter",
+   "settings": {
+    "titles": {
+     "x": "",
+     "y": ""
+    },
+    "scheme": "default",
+    "column": {
+     "spread": "symmetric",
+     "caption": "below",
+     "summary": "auto"
+    }
+   },
+   "name": "Graph of Knockout study"
+  }
+ ]
+}

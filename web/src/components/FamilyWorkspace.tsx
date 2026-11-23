@@ -44,7 +44,9 @@ import ExclusionsCard from "../report/ExclusionsCard";
 import NotesStrip from "./NotesStrip";
 import { ResultsEmptyLinks } from "./ResultsLinks";
 import ResultsAnswer from "./ResultsAnswer";
-import { nameColorIndex, stripNameColors, withNameColors } from "../graph/nameColors";
+import {
+  nameColorIndex, pinIndex, stripNameColors, withNameColors, withPinnedColors,
+} from "../graph/nameColors";
 import { useDarkMode } from "../graph/useDarkMode";
 
 /**
@@ -385,11 +387,14 @@ function GraphCard({ graph, data, result, options }: {
   const byName = !!project.prefs.colorByName;
   const nameIndex = useMemo(() => (byName ? nameColorIndex(project) : null), [byName, project]);
   const dark = useDarkMode();
-  const plotFormat = useMemo(() => (nameIndex
-    ? withNameColors(format, datasetNames, nameIndex, dark, graph.settings.scheme) : format),
-  [nameIndex, format, datasetNames, dark, graph.settings.scheme]);
-  const plotDrag = useCallback((f: GraphFormat) => dragFormat(nameIndex ? stripNameColors(f, format) : f),
-    [dragFormat, nameIndex, format]);
+  // Colours pinned to group names (P-56) come first; a graph's own wins.
+  const pins = useMemo(() => pinIndex(project.groupColors), [project.groupColors]);
+  const plotFormat = useMemo(() => {
+    const pinned = withPinnedColors(format, datasetNames, pins);
+    return nameIndex ? withNameColors(pinned, datasetNames, nameIndex, dark, graph.settings.scheme) : pinned;
+  }, [pins, nameIndex, format, datasetNames, dark, graph.settings.scheme]);
+  const plotDrag = useCallback((f: GraphFormat) => dragFormat(nameIndex || pins.size
+    ? stripNameColors(f, format) : f), [dragFormat, nameIndex, pins, format]);
   const ownComparisons = kind?.comparisons;
   const comparisons = useMemo(() => (ownComparisons ? ownComparisons(res, table, opts) : undefined),
     [ownComparisons, res, table, opts]);

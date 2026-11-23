@@ -104,6 +104,23 @@ export function parseStatHeader(name: string, index = 0): StatColumn {
   return { index, name, gate, statistic, label: last ? `${last} · ${statistic}` : statistic, kind };
 }
 
+/** The gate with its full FlowJo path, for the methods and the results
+ *  line: "CD69+ of Lymphocytes/Single Cells/Live/CD4+" (the last gate of
+ *  its parents), the gate alone at the top level, "" without a gate. */
+export function gatePath(c: Pick<StatColumn, "gate">): string {
+  const parts = c.gate.split("/").map((s) => s.trim()).filter(Boolean);
+  if (!parts.length) return "";
+  const last = parts.pop()!;
+  return parts.length ? `${last} of ${parts.join("/")}` : last;
+}
+
+/** The statistic as the methods name it: "CD69+ of Lymphocytes/Single
+ *  Cells/Live/CD4+, Freq. of Parent". */
+export function statWithPath(c: Pick<StatColumn, "gate" | "statistic">): string {
+  const path = gatePath(c);
+  return path ? `${path}, ${c.statistic}` : c.statistic;
+}
+
 /** Y-axis title of a statistic: "% CD69+ (Freq. of Parent)", "CD69+ Median (BV421-A)". */
 export function statTitle(c: StatColumn): string {
   const last = c.gate.split("/").map((s) => s.trim()).filter(Boolean).pop() ?? "";
@@ -255,7 +272,7 @@ export function runFlow(analyze: (p: unknown) => unknown, t: DataTableModel, o: 
   }
   const r = analyze(flowPayload(d, o)) as FlowResult;
   if (!r || r.error) return r ?? { error: "no result" };
-  return { ...r, stat_label: d.stat!.label, y_title: statTitle(d.stat!), unit: o.unit, sample_column: columnNames(t)[d.sampleIndex] };
+  return { ...r, stat_label: d.stat!.label, stat_path: statWithPath(d.stat!), y_title: statTitle(d.stat!), unit: o.unit, sample_column: columnNames(t)[d.sampleIndex] };
 }
 
 // ------------------------------------------------------------ output

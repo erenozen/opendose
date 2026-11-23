@@ -153,6 +153,53 @@ function readPdf(buf) {
   return { runs, fonts: [...fonts.values()] };
 }
 
+// --- PDF geometry: each text run's font size and each stroke's width as
+// printed, in pt: the Tf size (or line width w) times the scale of the
+// text and graphics matrices in force (cm, Tm, q/Q), as a PDF reader
+// draws them. Enough of the content-stream language for jsPDF's output.
+function pdfGeometry(buf) {
+  const src = buf.toString("latin1");
+  const out = { texts: [], strokes: [] };
+  const mul = (a, b) => [a[0] * b[0] + a[1] * b[2], a[0] * b[1] + a[1] * b[3], a[2] * b[0] + a[3] * b[2],
+    a[2] * b[1] + a[3] * b[3], a[4] * b[0] + a[5] * b[2] + b[4], a[4] * b[1] + a[5] * b[3] + b[5]];
+  const scale = (m) => Math.sqrt(Math.abs(m[0] * m[3] - m[1] * m[2]));
+  for (const m of src.matchAll(/(\d+) 0 obj\s*([\s\S]*?)endobj/g)) {
+    const s = /stream\r?\n([\s\S]*?)\r?\nendstream/.exec(m[2]);
+    if (!s) continue;
+    const raw = Buffer.from(s[1], "latin1");
+    let text;
+    try { text = /\/FlateDecode/.test(m[2].slice(0, s.index)) ? inflateSync(raw).toString("latin1") : s[1]; } catch { continue; }
+    // the page content streams (as readPdf reads them, so text runs align)
+    if (!/Tf/.test(text)) continue;
+    let ctm = [1, 0, 0, 1, 0, 0], tm = [1, 0, 0, 1, 0, 0], tf = 0, w = 1;
+    const stack = [];
+    const nums = [];
+    for (const t of text.matchAll(/<[0-9a-fA-F]*>|\((?:\\.|[^\\)])*\)|\[[^\]]*\]|\/[^\s/<>[\]()]+|-?\d*\.?\d+(?:e-?\d+)?|[A-Za-z'"*]+/g)) {
+      const tok = t[0];
+      if (/^-?\d*\.?\d+/.test(tok)) { nums.push(Number(tok)); continue; }
+      if (tok[0] === "/" || tok[0] === "[" || tok[0] === "<" || tok[0] === "(") {
+        if (tok[0] === "<" || tok[0] === "(") out.texts.push({ size: tf * scale(mul(tm, ctm)), raw: tok });
+        if (tok[0] !== "/") nums.length = 0;
+        continue;
+      }
+      const a = nums.splice(0);
+      switch (tok) {
+        case "q": stack.push([ctm, w]); break;
+        case "Q": [ctm, w] = stack.pop() ?? [ctm, w]; break;
+        case "cm": ctm = mul(a.slice(-6), ctm); break;
+        case "BT": tm = [1, 0, 0, 1, 0, 0]; break;
+        case "Tm": tm = a.slice(-6); break;
+        case "Tf": tf = a[a.length - 1]; break;
+        case "w": w = a[a.length - 1]; break;
+        case "S": case "s": case "B": case "b": case "B*": case "b*":
+          out.strokes.push(w * scale(ctm)); break;
+        default: break;
+      }
+    }
+  }
+  return out;
+}
+
 await page.goto(url, { waitUntil: "domcontentloaded" });
 await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 180000 });
 await page.waitForSelector(".plot-card .plot.js-plotly-plot", { timeout: 30000 });
@@ -334,6 +381,73 @@ for (const label of WIDTH_LABELS) {
   }
 }
 console.log(`graph PDF size ${(pdf.buf.length / 1024).toFixed(1)} KB`);
+
+// --- sizes in points at the exported size (P-54): axis lines 1 pt and
+// tick labels 7 pt, exported as a PDF 89 mm wide: every stroke of an
+// axis line prints 1 pt wide and every tick label at Tf 7 (Tf times the
+// matrices in force). Stored as px at 96 to the inch: 4/3 and 28/3.
+{
+  const fmtDlg = page.locator("dialog.fmt-dialog");
+  const settings = async () => {
+    await page.locator(".plot-card").getByRole("button", { name: "Settings" }).click();
+    return page.getByRole("dialog", { name: "Graph settings" });
+  };
+  await (await settings()).getByRole("button", { name: "Format axes…" }).click();
+  await fmtDlg.getByLabel("Points (pt, 1/72 inch").check();
+  await fmtDlg.getByLabel("Axis line width (pt)").fill("1");
+  await fmtDlg.getByRole("tab", { name: "X axis" }).click();
+  await fmtDlg.getByLabel("Axis line width (pt)").fill("1");
+  await fmtDlg.getByRole("button", { name: "Apply and close" }).click();
+  await (await settings()).getByRole("button", { name: "Format graph…" }).click();
+  expect("Format graph remembers the unit: sizes in pt", await fmtDlg.getByLabel("Points (pt, 1/72 inch").isChecked());
+  await fmtDlg.getByRole("tab", { name: "Whole graph" }).click();
+  await fmtDlg.getByLabel("Axis number size (pt)").fill("7");
+  await fmtDlg.getByRole("button", { name: "Apply and close" }).click();
+  await page.waitForFunction(() => {
+    const l = document.querySelector(".plot-card .plot")?.layout;
+    return l?.yaxis?.linewidth > 1.3 && l?.xaxis?.tickfont?.size > 9;
+  }, null, { timeout: 15000 }).catch(() => {});
+  const lay = await page.evaluate(() => {
+    const l = document.querySelector(".plot-card .plot").layout;
+    return { xw: l.xaxis.linewidth, yw: l.yaxis.linewidth, ytw: l.yaxis.tickwidth, xs: l.xaxis.tickfont?.size,
+      ys: l.yaxis.tickfont?.size, ticks: [...document.querySelectorAll(".plot-card .plot .ytick text, .plot-card .plot .xtick text")]
+        .map((t) => t.textContent) };
+  });
+  expect("1 pt axis lines and 7 pt tick labels are stored as 4/3 px and 28/3 px (96 per inch)",
+    lay.xw === 4 / 3 && lay.yw === 4 / 3 && lay.ytw === 4 / 3 && lay.xs === 28 / 3 && lay.ys === 28 / 3,
+    JSON.stringify(lay));
+  await panel.getByRole("button", { name: "Options" }).click();
+  await page.getByRole("dialog", { name: "Export options" }).getByLabel("Millimetres").check();
+  await page.keyboard.press("Escape");
+  await panel.getByLabel("Export format").selectOption("pdf");
+  await panel.getByLabel(/^Width/).fill("89");
+  const ptPdf = await save(() => panel.getByRole("button", { name: "Download" }).click());
+  const geo = pdfGeometry(ptPdf.buf);
+  const runs = readPdf(ptPdf.buf).runs;
+  // the tick labels, in the order the PDF draws its text (runs and texts align)
+  expect("PDF geometry reads the same text runs as the text reader", geo.texts.length === runs.length,
+    `${geo.texts.length} vs ${runs.length}`);
+  const sizes = geo.texts.map((t) => Math.round(t.size * 1000) / 1000);
+  const tickSizes = runs.map((r, i) => (lay.ticks.includes(r.text) ? sizes[i] : null)).filter((v) => v !== null);
+  expect(`PDF at 89 mm: every tick label is set at 7 pt (${tickSizes.length} labels)`,
+    tickSizes.length >= 6 && tickSizes.every((s) => Math.abs(s - 7) < 1e-3), JSON.stringify(tickSizes));
+  const widths = geo.strokes.map((w) => Math.round(w * 1000) / 1000);
+  const onePt = widths.filter((w) => Math.abs(w - 1) < 1e-3).length;
+  expect("PDF at 89 mm: the axis lines and their ticks are stroked 1 pt wide",
+    onePt >= 2 + tickSizes.length, `${onePt} strokes of 1 pt; widths ${[...new Set(widths)].join(", ")}`);
+  const page1 = /\/MediaBox\s*\[\s*0 0 ([\d.]+) ([\d.]+)\]/.exec(ptPdf.buf.toString("latin1"));
+  expect("the PDF page is 89 mm wide (252.28 pt)", page1 && Math.abs(Number(page1[1]) - 89 / 25.4 * 72) < 0.05,
+    page1?.[1]);
+  // back to the earlier settings for the steps below
+  await panel.getByRole("button", { name: "Options" }).click();
+  await page.getByRole("dialog", { name: "Export options" }).getByLabel("Pixels (96 per inch)").check();
+  await page.keyboard.press("Escape");
+  for (let i = 0; i < 2; i++) await page.locator("header").getByRole("button", { name: "Undo" }).click();
+  await page.waitForFunction(() => !document.querySelector(".plot-card .plot")?.layout?.yaxis?.linewidth
+    || document.querySelector(".plot-card .plot").layout.yaxis.linewidth !== 4 / 3, null, { timeout: 15000 })
+    .catch(() => {});
+  await page.evaluate(() => localStorage.removeItem("opendose-size-unit"));
+}
 
 // --- graph as transparent PNG at a stated resolution ---
 await panel.getByLabel("Export format").selectOption("png");

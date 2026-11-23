@@ -4,8 +4,8 @@
 //
 // Input layouts:
 // - the module's own multiple-variables table, one row per standard
-//   level, blank or unknown sample dilution: Type (Standard / Blank /
-//   Unknown), Name, Group, Concentration, Dilution, Plate and one column
+//   level, blank, low-level sample or unknown sample dilution: Type
+//   (Standard / Blank / Low / Unknown), Name, Group, Concentration, Dilution, Plate and one column
 //   per replicate signal (Signal 1, Signal 2 ...);
 // - an XY table as a curve fit would take it: X = concentration of the
 //   standards (0 = blank), rows without X are unknowns named by their
@@ -21,7 +21,7 @@ import {
 export type StdRole = "type" | "name" | "group" | "conc" | "dilution" | "plate";
 
 export const STD_ROLES: RoleSpec<StdRole>[] = [
-  { key: "type", label: "Row type (Standard / Blank / Unknown)", required: false,
+  { key: "type", label: "Row type (Standard / Blank / Low / Unknown)", required: false,
     patterns: [/^(type|row type|kind|role|sample type|well type)$/i],
     hint: "Without it, rows with a concentration are standards." },
   { key: "name", label: "Sample name", required: false,
@@ -76,6 +76,11 @@ export interface StdOptions {
   /** Standard concentrations left out of the fit (ICH M10: a failing
    *  standard inside the range is rejected and the curve refitted). */
   excludeLevels: number[];
+  /** LoD: EP17-A2's c_beta small-sample multiplier instead of 1.645. */
+  lodCBeta: boolean;
+  /** LoQ precision goal: CV (%) of a low sample's back-calculated
+   *  concentrations. */
+  loqCv: number;
   output?: string;
 }
 
@@ -84,7 +89,7 @@ export const DEFAULT_STD_OPTIONS: StdOptions = {
   blank: "zero_standard", blankValue: "", bottom: "",
   accuracy: 20, accuracyEnds: 25, precision: 20, precisionEnds: 25,
   minFraction: 0.75, minLevels: 6, cvLimit: 20, cvBasis: "concentration",
-  parallelismCv: 30, unit: "pg/mL", excludeLevels: [],
+  parallelismCv: 30, unit: "pg/mL", excludeLevels: [], lodCBeta: false, loqCv: 20,
 };
 
 export function normalizeStdOptions(raw: unknown): StdOptions {
@@ -106,13 +111,15 @@ export function normalizeStdOptions(raw: unknown): StdOptions {
     parallelismCv: n("parallelismCv"), unit: s("unit"),
     excludeLevels: Array.isArray(o.excludeLevels)
       ? o.excludeLevels.filter((x): x is number => typeof x === "number" && Number.isFinite(x)) : [],
+    lodCBeta: o.lodCBeta === true, loqCv: n("loqCv"),
     ...(typeof o.output === "string" ? { output: o.output } : {}),
   };
 }
 
 // ------------------------------------------------------------ reading the table
 
-export type RowKind = "standard" | "blank" | "unknown";
+/** "low": a low-level sample for the LoD and LoQ (CLSI EP17-A2). */
+export type RowKind = "standard" | "blank" | "low" | "unknown";
 
 export interface StdRow {
   kind: RowKind;
@@ -127,6 +134,7 @@ export interface StdRow {
 export function kindOf(type: string, conc: number | null): RowKind | null {
   const t = type.trim().toLowerCase();
   if (/^(blank|zero|bkg|background|b0|nsb)/.test(t)) return "blank";
+  if (/^(low|lod)\b/.test(t)) return "low";
   if (/^(std|standard|cal|calibrator)/.test(t)) return conc === 0 ? "blank" : "standard";
   if (/^(unk|unknown|sample|test|qc|smp)/.test(t)) return "unknown";
   if (/^(skip|exclude|empty|ignore)/.test(t)) return null;
@@ -164,7 +172,8 @@ export function readRows(t: DataTableModel, o: StdOptions): { rows: StdRow[]; pr
     if (!kind) continue;
     rows.push({
       kind, conc: conc[r], plate: plate[r],
-      name: name[r] || (kind === "unknown" ? `Sample ${r + 1}` : kind === "blank" ? "Blank" : `Std ${conc[r]}`),
+      name: name[r] || (kind === "unknown" ? `Sample ${r + 1}` : kind === "blank" ? "Blank"
+        : kind === "low" ? "Low" : `Std ${conc[r]}`),
       group: group[r], dilution: dil[r] && dil[r]! > 0 ? dil[r]! : 1, signals: s,
     });
   }
@@ -233,6 +242,18 @@ export function stdPayloads(rows: StdRow[], o: StdOptions): { plate: string; pay
     const unknowns = mine.filter((r) => r.kind === "unknown").map((r) => ({
       name: r.name, signals: r.signals.filter((v) => v !== null), dilution: r.dilution,
     }));
+    // Detection limits (CLSI EP17-A2) only when the table has low-level
+    // samples: the blanks as read and each low sample's replicates.
+    const lows = mine.filter((r) => r.kind === "low");
+    const lod: Record<string, unknown> = {};
+    if (lows.length) {
+      const byName = new Map<string, number[]>();
+      for (const r of lows) {
+        byName.set(r.name, [...(byName.get(r.name) ?? []), ...r.signals.filter((v): v is number => v !== null)]);
+      }
+      lod.lod_blanks = blanks.filter((v) => v !== null);
+      lod.lod_samples = [...byName.entries()].map(([name, signals]) => ({ name, signals }));
+    }
     const bottom = o.bottom.trim() === "" ? null : Number(o.bottom);
     const options: Record<string, unknown> = {
       model: o.model, weighting: o.weighting, blank,
@@ -241,11 +262,12 @@ export function stdPayloads(rows: StdRow[], o: StdOptions): { plate: string; pay
       min_fraction: o.minFraction, min_levels: o.minLevels, cv_limit: o.cvLimit,
       cv_basis: o.cvBasis, parallelism_cv_limit: o.parallelismCv,
     };
+    if (lows.length) Object.assign(options, { lod_c_beta: o.lodCBeta, loq_cv_limit: o.loqCv });
     if (o.model === "linear") options.log_x = o.logX;
     if (bottom !== null && Number.isFinite(bottom) && (o.model === "4pl" || o.model === "5pl")) {
       options.constraints = { Bottom: bottom };
     }
-    return { plate, payload: { analysis: "stdcurve_qc", data: { standards, unknowns }, options }, note };
+    return { plate, payload: { analysis: "stdcurve_qc", data: { standards, unknowns, ...lod }, options }, note };
   });
 }
 

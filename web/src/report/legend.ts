@@ -52,6 +52,14 @@ export function whatIsPlotted(graphType: string | null | undefined,
     case "violin":
       return "Violins show a kernel density estimate of the values with a line at the mean; "
         + "points show individual values.";
+    case "schild_plot":
+      return "Schild plot: log(dose ratio − 1) against log[antagonist], with each curve's EC50 "
+        + "from a fit with Top, Bottom and Hill slope shared; the line is the least-squares fit, "
+        + "and its slope is shown with its 95% confidence interval (Arunlakshana & Schild 1959). "
+        + "pA2 and KB are reported from the global Gaddum/Schild fit.";
+    case "raincloud":
+      return "Rainclouds show a kernel density estimate of the values (half violin), a box with "
+        + "the median and interquartile range, and the individual values beside it.";
     case "estimation": {
       const e = opts.estimation;
       const ci = e?.ci_type === "percentile" ? "percentile" : "bias-corrected and accelerated (BCa)";

@@ -1,4 +1,4 @@
-import { ANALYSIS_NONLIN, GRAPH_XY } from "../../project/builtin";
+import { ANALYSIS_NONLIN, GRAPH_SCHILD, GRAPH_XY } from "../../project/builtin";
 import { emptyTable } from "../../project/table";
 import type { AnalysisResult, OptionsState } from "../../types";
 import { DEFAULT_XY_OPTIONS } from "../../types";
@@ -18,6 +18,8 @@ import {
 } from "./panels";
 import { runNonlinGated, xyAutoTitles } from "./run";
 import { POTENCY_OUTPUT, potencyTable } from "./experiments";
+import { SCHILD_OUTPUT, schildTable } from "./schild";
+import { SchildPlot } from "./SchildPlot";
 import { concentrationUnit } from "./rangeReport";
 import {
   ANALYSIS_LINREG, DEFAULT_LINREG, GRAPH_LINREG, normalizeLinreg, runLinreg, type LinregOptions,
@@ -71,7 +73,22 @@ export const nonlinAnalysis = defineAnalysis<OptionsState, AnalysisResult>({
   // one fit per experiment, sheets/xy/experiments.ts)
   derivedOnDemand: true,
   derivedTable: (result, _source, _options, output) =>
-    (output === POTENCY_OUTPUT ? potencyTable(result) : null),
+    (output === POTENCY_OUTPUT ? potencyTable(result)
+      : output === SCHILD_OUTPUT ? schildTable(result) : null),
+});
+
+// The Schild plot of an EC50-shift fit (P-49): a display beside the
+// global Gaddum/Schild fit, which stays the estimator of pA2 and KB.
+export const schildGraph = defineGraph<OptionsState, AnalysisResult>({
+  id: GRAPH_SCHILD,
+  label: "Schild plot: log(DR − 1) against log[antagonist]",
+  group: "xy",
+  analysis: ANALYSIS_NONLIN,
+  autoTitles: () => ({ x: "log[Antagonist]", y: "log(DR − 1)" }),
+  exportName: "schild-plot",
+  PlotPanel: SchildPlot,
+  formatDatasets: () => ["log(DR − 1)"],
+  formatFeatures: { points: true, lines: true },
 });
 
 export const xyGraph = defineGraph<OptionsState, AnalysisResult>({
@@ -236,6 +253,6 @@ export const xyTable: TableTypeDef = {
   EditorAside: PlateAside,
   analyses: [nonlinAnalysis, linregAnalysis, compareAnalysis, demingAnalysis, quantalAnalysis,
     columnAnalysis, rowMeansAnalysis, rocAnalysis, blandAltmanAnalysis],
-  graphs: [xyGraph, linregGraph, compareGraph, demingGraph, quantalGraph, ...xyGroupedGraphs,
+  graphs: [xyGraph, schildGraph, linregGraph, compareGraph, demingGraph, quantalGraph, ...xyGroupedGraphs,
     ...columnGraphs, rocGraph, blandAltmanGraph],
 };

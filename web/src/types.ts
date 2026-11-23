@@ -256,6 +256,8 @@ export interface AnalysisResult {
   error?: string;
   /** User-defined equation fits: the engine's reading of the equation. */
   user_equation?: Record<string, unknown>;
+  /** EC50-shift (Gaddum/Schild) fits: the Schild plot (sheets/xy/schild.ts). */
+  schild_plot?: Record<string, unknown>;
 }
 
 // --- column-table statistics ---
@@ -321,13 +323,14 @@ export const TWO_WAY_ADDITIVE_NOTE = "The additive model leaves out the interact
   + "when an interaction is implausible, or with one value per cell (where the "
   + "full model has no residual). Comparing every cell mean needs the full model.";
 
-export type ColumnGraphType = "scatter" | "bar" | "box" | "violin";
+export type ColumnGraphType = "scatter" | "bar" | "box" | "violin" | "raincloud";
 
 export const COLUMN_GRAPH_LABELS: Record<ColumnGraphType, string> = {
   scatter: "Scatter (points + mean ± SD)",
   bar: "Bar (mean ± SD + points)",
   box: "Box & whiskers",
   violin: "Violin",
+  raincloud: "Raincloud (half violin, box and points)",
 };
 
 export type TTestKind =

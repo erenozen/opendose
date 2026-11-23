@@ -11,9 +11,14 @@ import SuperPlotOptions from "../common/SuperPlotOptions";
 import { useGraphSetting } from "../grouped/plotting";
 import {
   AUTO_SUMMARY_LABEL, CAPTION_LABELS, COLUMN_SUMMARY_LABELS, geoRefused, normalizeColumnGraph,
-  smallestN,
+  smallestN, VIOLIN_LOOKS,
   type ColumnGraphSettings, type ColumnSummary,
 } from "./graphSettings";
+
+/** What the density of a violin or raincloud is (graph/kde.ts). */
+const DENSITY_NOTE = "Density: Gaussian kernel, bandwidth by Silverman's rule of thumb as R's "
+  + "bw.nrd0 (Silverman 1986, Density Estimation), stated per group in the legend. Quartiles as "
+  + "the column statistics compute them.";
 import { ANALYSIS_REPLICATE_MEANS } from "./superplotStats";
 import "../../graph/figure.css";
 import { normalizeFormat } from "../../graph/format";
@@ -48,7 +53,8 @@ export function ColumnGraphOptions({ graph, table, result, options }: GraphOptio
   const raw = table.subcolumnFormat === "replicates";
   const superOn = raw && superPlotOn(s.superplot, result);
   const summaryKinds = kind === "scatter" || kind === "bar";
-  const pointsDrawn = kind === "scatter" || (kind === "bar" && s.points) || superOn;
+  const pointsDrawn = kind === "scatter" || kind === "violin" || kind === "raincloud"
+    || (kind === "bar" && s.points) || superOn;
   const n = smallestN(table);
   const refused = geoRefused(table, resolveSummary(s.summary, options));
   return (
@@ -74,14 +80,21 @@ export function ColumnGraphOptions({ graph, table, result, options }: GraphOptio
       {raw && kind === "bar" && !s.points && !superOn && n > 0 && n < 10 && (
         <SmallNAdvice n={n} onShow={() => up({ points: true })} />
       )}
-      {raw && kind === "box" && !superOn && (
+      {raw && (kind === "box" || kind === "raincloud") && !superOn && (
         <>
           <OptSelect label="Whiskers" value={s.whiskers} options={WHISKER_RULES}
             onChange={(whiskers) => up({ whiskers })} />
           <OptNote>{WHISKER_NOTE}</OptNote>
         </>
       )}
-      {raw && pointsDrawn && kind !== "box" && kind !== "violin" && (
+      {raw && kind === "violin" && !superOn && (
+        <OptSelect label="Violin" value={s.violin} options={VIOLIN_LOOKS}
+          onChange={(violin) => up({ violin })} />
+      )}
+      {raw && (kind === "raincloud" || (kind === "violin" && s.violin === "quartiles")) && !superOn && (
+        <OptNote>{DENSITY_NOTE}</OptNote>
+      )}
+      {raw && pointsDrawn && kind !== "box" && (kind !== "violin" || s.violin === "quartiles") && (
         <OptSelect label="Point layout" value={s.spread} options={POINT_SPREADS}
           onChange={(spread) => up({ spread })} />
       )}
