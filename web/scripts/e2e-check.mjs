@@ -212,7 +212,7 @@ const kmText = await page
 const logrankLine = kmText.split("\n").find((l) => l.includes("Log-rank"));
 console.log("survival:", logrankLine
   ? logrankLine.replace(/\t/g, " ").slice(0, 70)
-  : `NO LOGRANK LINE — card was: ${kmText.replace(/\s+/g, " ").slice(0, 120)}`);
+  : `NO LOGRANK LINE; card was: ${kmText.replace(/\s+/g, " ").slice(0, 120)}`);
 
 // --- parts of whole: example table from the New data table dialog ---
 // Expected numbers come from the native engine on the same counts
@@ -251,7 +251,7 @@ expect("pie chart draws three slices",
   await fg.getByLabel("Show on graph").uncheck();
   await fg.getByRole("tab", { name: "Whole graph" }).click();
   await fg.getByLabel("Graph title", { exact: true }).fill("Cell cycle");
-  await fg.getByRole("button", { name: "OK" }).click();
+  await fg.getByRole("button", { name: "Apply and close" }).click();
   await page.waitForTimeout(400);
   expect("pie: Format graph sets the title and hides a part",
     (await plotLayoutOf()).title === "Cell cycle" && await page.locator(".plot .slice").count() === 2,
@@ -417,7 +417,7 @@ await page.waitForTimeout(800);
   await pop.getByRole("button", { name: "Pairwise comparisons…" }).click();
   const cd = page.locator("dialog.fmt-dialog");
   await cd.getByLabel("Show comparison brackets on the graph").check();
-  await cd.getByRole("button", { name: "OK" }).click();
+  await cd.getByRole("button", { name: "Apply and close" }).click();
   await page.waitForTimeout(500);
   const br = (await plotLayoutOf()).brackets;
   expect("grouped bars: a bracket per row from the two-way comparisons",
@@ -526,7 +526,7 @@ await page.waitForTimeout(800);
   await pop.getByRole("button", { name: "Pairwise comparisons…" }).click();
   const cd = page.locator("dialog.fmt-dialog");
   await cd.getByLabel("Show comparison brackets on the graph").check();
-  await cd.getByRole("button", { name: "OK" }).click();
+  await cd.getByRole("button", { name: "Apply and close" }).click();
   await page.waitForTimeout(500);
   const br = (await plotLayoutOf()).brackets;
   expect("three-way graph: brackets on both panels",
@@ -648,7 +648,7 @@ expect("MV example: 30 observations with row titles",
   const fg = page.locator("dialog.fmt-dialog");
   await fg.getByLabel("Data set to format").selectOption({ index: 0 });
   await fg.getByLabel("Size (px)").fill("14");
-  await fg.getByRole("button", { name: "OK" }).click();
+  await fg.getByRole("button", { name: "Apply and close" }).click();
   await page.waitForTimeout(400);
   const size = await page.evaluate(() => document.querySelector(".plot-card .plot")
     ?.data?.find((t) => t.meta?.odTag?.role === "points")?.marker?.size);
@@ -972,7 +972,7 @@ await fmt.getByLabel("Minimum").fill("10");
 await fmt.getByLabel("Maximum").fill("100");
 await fmt.getByLabel("Scale", { exact: true }).selectOption("log10");
 await fmt.getByLabel("Format", { exact: true }).selectOption("power10");
-await fmt.getByRole("button", { name: "OK" }).click();
+await fmt.getByRole("button", { name: "Apply and close" }).click();
 await page.waitForTimeout(500);
 const axes = (await plotLayout()).yaxis;
 expect("Format Axes: manual log10 Y range with power-of-ten numbering",
@@ -983,7 +983,7 @@ expect("Format Axes: manual log10 Y range with power-of-ten numbering",
 await page.locator(".plot-card").getByRole("button", { name: "Settings" }).click();
 await page.getByRole("button", { name: "Pairwise comparisons…" }).click();
 await fmt.getByLabel("Show comparison brackets on the graph").check();
-await fmt.getByRole("button", { name: "OK" }).click();
+await fmt.getByRole("button", { name: "Apply and close" }).click();
 await page.waitForTimeout(500);
 const brackets = (await plotLayout()).brackets;
 expect("comparison brackets drawn with asterisks",
@@ -1038,7 +1038,7 @@ await page.getByRole("button", { name: "Format axes…" }).click();
 const orgFmt = page.locator("dialog.fmt-dialog");
 await orgFmt.getByLabel("Minimum").fill("-10");
 await orgFmt.getByLabel("Maximum").fill("120");
-await orgFmt.getByRole("button", { name: "OK" }).click();
+await orgFmt.getByRole("button", { name: "Apply and close" }).click();
 await page.waitForTimeout(300);
 
 // save it as a template (with its data), then create a table from it
@@ -3519,7 +3519,7 @@ const axeOn = async (pg, sel) => {
   await pop.getByRole("button", { name: "Pairwise comparisons…" }).click();
   const cd = page.locator("dialog.fmt-dialog");
   await cd.getByLabel("Show comparison brackets on the graph").check();
-  await cd.getByRole("button", { name: "OK" }).click();
+  await cd.getByRole("button", { name: "Apply and close" }).click();
   await page.waitForTimeout(800);
   const br = (await plotLayoutOf()).brackets;
   expect("graph: two brackets from the RM comparisons", br.length === 2, br.join(" "));

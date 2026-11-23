@@ -178,7 +178,8 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   }, []);
   useEffect(() => { bootEngine(); }, [bootEngine]);
   useEffect(() => {
-    if (shareError) notify(`Could not open the share link: ${shareError}`, { tone: "error", id: "share-link" });
+    if (shareError) notify(`Could not open the share link: ${shareError}. Ask the sender to copy the link again.`,
+      { tone: "error", id: "share-link" });
   }, [shareError]);
   // For the e2e and performance scripts.
   useEffect(() => {

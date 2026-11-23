@@ -161,7 +161,7 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
   }
 
   const submit = () => {
-    if (empty) { setError("Nothing to import with these settings."); return; }
+    if (empty) { setError("Nothing to import: these settings leave no rows or columns. Check the Source and Filter tabs."); return; }
     const f = { skipBlankX: filter.skipBlankX, asteriskExcluded: filter.asteriskExcluded };
     const res = applyImportWithCells(table, preview, roles, place, f);
     onImport((t) => applyImport(t, preview, roles, place, f),

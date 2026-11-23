@@ -98,7 +98,7 @@ export function useFileOpen(onOpen?: () => void, into?: (p: Project) => Project)
       replace(prepareReproduceCheck(text, project, file.name), savedSelection(text));
       notify(`Opened “${file.name}”.`, { tone: "success", id: TOAST_ID });
     } catch (e) {
-      notify(`Could not open “${file.name}”: ${e instanceof Error ? e.message : e}`, {
+      notify(`Could not open “${file.name}”: ${String(e instanceof Error ? e.message : e).replace(/\.$/, "")}.`, {
         tone: "error", id: TOAST_ID,
         action: { label: "Choose another file", onAction: () => pickRef.current() },
       });

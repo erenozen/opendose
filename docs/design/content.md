@@ -62,8 +62,8 @@ Could not <verb> “<object>”: <reason>. + an action with the next step
 ```
 
 ```ts
-// Correct: app/useFileOpen.ts:96
-notify(`Could not open “${file.name}”: ${e instanceof Error ? e.message : e}`, {
+// Correct: app/useFileOpen.ts:101
+notify(`Could not open “${file.name}”: ${String(e instanceof Error ? e.message : e).replace(/\.$/, "")}.`, {
   tone: "error", id: TOAST_ID,
   action: { label: "Choose another file", onAction: () => pickRef.current() },
 });

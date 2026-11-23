@@ -51,7 +51,7 @@ export default function UnlockScreen({ onDone }: { onDone: () => void }) {
             value={password} aria-invalid={error ? true : undefined}
             onChange={(e) => { setPassword(e.target.value); setError(""); }} />
         </Field>
-        {error && <p className="unlock-error" role="alert">Could not open it: {error}.</p>}
+        {error && <p className="unlock-error" role="alert">Could not open the shared project: {error}.</p>}
         <div className="unlock-actions">
           <Button onClick={skip}>Open OpenDose without it</Button>
           <Button type="submit" variant="primary" disabled={!password} busy={busy}

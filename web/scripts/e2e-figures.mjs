@@ -212,7 +212,7 @@ await shot("superplot");
   const cd = page.locator("dialog.fmt-dialog");
   await cd.getByLabel("P value style").selectOption("apa");
   await cd.getByLabel("Label", { exact: true }).selectOption("p");
-  await cd.getByRole("button", { name: "OK" }).click();
+  await cd.getByRole("button", { name: "Apply and close" }).click();
   await page.waitForTimeout(500);
   const p = await plot();
   expect("APA style P values on the brackets (no leading zero)",
@@ -220,7 +220,7 @@ await shot("superplot");
   const pop2 = await graphSettings();
   await pop2.getByRole("button", { name: "Pairwise comparisons…" }).click();
   await cd.getByLabel("Hide non-significant (ns) pairs").check();
-  await cd.getByRole("button", { name: "OK" }).click();
+  await cd.getByRole("button", { name: "Apply and close" }).click();
   await page.waitForTimeout(500);
   const q = await plot();
   const ns = p.brackets.filter((b) => Number(b.replace(/^p [=<] /, "")) >= 0.05).length;
@@ -235,7 +235,7 @@ await shot("superplot");
   await pop.getByRole("button", { name: "Pairwise comparisons…" }).click();
   const cd = page.locator("dialog.fmt-dialog");
   await cd.getByLabel("P value style").selectOption("");
-  await cd.getByRole("button", { name: "OK" }).click();
+  await cd.getByRole("button", { name: "Apply and close" }).click();
   await page.waitForTimeout(400);
   const before = await plot();
   expect("without its own style the graph draws GraphPad P values (project default)",

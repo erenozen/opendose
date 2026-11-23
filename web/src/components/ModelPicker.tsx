@@ -173,7 +173,8 @@ export default function ModelPicker({
                   const n = importEquations(await f.text());
                   setNote(`Imported ${n} equation${n === 1 ? "" : "s"}.`);
                 } catch (err) {
-                  setNote(`Could not import “${f.name}”: ${(err as Error).message}`);
+                  setNote(`Could not import “${f.name}”: ${(err as Error).message}. `
+                    + "Choose a file saved with Export my equations.");
                 }
               }}>
               Import…
