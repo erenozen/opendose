@@ -1921,16 +1921,30 @@ def _correlation_matrix(data, options):
                 tails=int(options.get("tails", 2)))}
 
 
+def _with_analysed_rows(result, variables, used):
+    """The result with "analysed_rows" (multivar.analysed_rows: n used of
+    the table's rows, and each dropped row with the variables blank or
+    not a number in it) in place of the internal rows_used."""
+    rows = result.pop("rows_used", None)
+    if rows is not None:
+        result["analysed_rows"] = multivar.analysed_rows(variables, used, rows)
+    return result
+
+
 def _multiple_regression(data, options):
     """data: multiple-variables table. options: {outcome: name,
     predictors: [names], interactions?: [[a, b]], reference_levels?:
-    {variable: level}, ci_level?}."""
-    return {"analysis": "multiple_regression",
-            **multivar.multiple_regression(
-                _mv_variables(data), options["outcome"], options["predictors"],
-                interactions=options.get("interactions") or (),
-                reference_levels=options.get("reference_levels"),
-                ci_level=options.get("ci_level", 0.95))}
+    {variable: level}, ci_level?}. The result's analysed_rows says which
+    rows were used and why the others were dropped."""
+    variables = _mv_variables(data)
+    return _with_analysed_rows(
+        {"analysis": "multiple_regression",
+         **multivar.multiple_regression(
+             variables, options["outcome"], options["predictors"],
+             interactions=options.get("interactions") or (),
+             reference_levels=options.get("reference_levels"),
+             ci_level=options.get("ci_level", 0.95))},
+        variables, [options["outcome"], *options["predictors"]])
 
 
 def _logistic_regression(data, options):
@@ -1945,31 +1959,36 @@ def _logistic_regression(data, options):
         variables = [{"name": "X", "values": data["x"]},
                      {"name": "Y", "values": data["y"]}]
         outcome, predictors = "Y", ["X"]
-    return {"analysis": "logistic_regression",
-            **multivar.logistic_regression(
-                variables, outcome, predictors,
-                interactions=options.get("interactions") or (),
-                reference_levels=options.get("reference_levels"),
-                outcome_positive=options.get("outcome_positive"),
-                ci_level=options.get("ci_level", 0.95),
-                ci_method=options.get("ci_method", "profile"),
-                cutoff=options.get("cutoff", 0.5),
-                hl_groups=int(options.get("hl_groups", 10)))}
+    return _with_analysed_rows(
+        {"analysis": "logistic_regression",
+         **multivar.logistic_regression(
+             variables, outcome, predictors,
+             interactions=options.get("interactions") or (),
+             reference_levels=options.get("reference_levels"),
+             outcome_positive=options.get("outcome_positive"),
+             ci_level=options.get("ci_level", 0.95),
+             ci_method=options.get("ci_method", "profile"),
+             cutoff=options.get("cutoff", 0.5),
+             hl_groups=int(options.get("hl_groups", 10)))},
+        variables, [outcome, *predictors])
 
 
 def _poisson_regression(data, options):
     """data: multiple-variables table. options: {outcome, predictors,
     interactions?, reference_levels?, exposure? (variable name: its log is
     an offset), ci_level?, ci_method?: profile|wald}."""
-    return {"analysis": "poisson_regression",
-            **multivar.poisson_regression(
-                _mv_variables(data), options["outcome"],
-                options["predictors"],
-                interactions=options.get("interactions") or (),
-                reference_levels=options.get("reference_levels"),
-                exposure=options.get("exposure") or None,
-                ci_level=options.get("ci_level", 0.95),
-                ci_method=options.get("ci_method", "profile"))}
+    variables = _mv_variables(data)
+    return _with_analysed_rows(
+        {"analysis": "poisson_regression",
+         **multivar.poisson_regression(
+             variables, options["outcome"],
+             options["predictors"],
+             interactions=options.get("interactions") or (),
+             reference_levels=options.get("reference_levels"),
+             exposure=options.get("exposure") or None,
+             ci_level=options.get("ci_level", 0.95),
+             ci_method=options.get("ci_method", "profile"))},
+        variables, [options["outcome"], *options["predictors"]])
 
 
 def _pca(data, options):
@@ -3525,11 +3544,21 @@ def _cox(data, options):
         categorical += [n for n in names
                         if cols[n].get("kind") == "categorical"]
         strata = cols[sname]["values"] if sname else None
+        table = data["variables"]
+        used = [tname, ename, *names, *([sname] if sname else [])]
     else:
         time, event = data["time"], data["event"]
         covariates = data["covariates"]
         strata = data.get("strata")
-    return cox.cox_regression(
+        tname, ename = "Time", "Event"
+        table = [{"name": tname, "values": time, "kind": "continuous"},
+                 {"name": ename, "values": event, "kind": "continuous"},
+                 *({"name": n, "values": v} for n, v in covariates.items()),
+                 *([{"name": "Stratum", "values": strata, "kind": "categorical"}]
+                   if strata is not None else [])]
+        used = [tname, ename, *covariates, *(["Stratum"] if strata is not None else [])]
+    # the rows used and why the others were dropped (multivar.analysed_rows)
+    return _with_analysed_rows(cox.cox_regression(
         time, event, covariates, categorical=categorical,
         reference=options.get("reference"), levels=options.get("levels"),
         strata=strata, ties=options.get("ties", "efron"),
@@ -3537,7 +3566,7 @@ def _cox(data, options):
         ph_transform=options.get("ph_transform", "km"),
         curves_at=options.get("curves_at"),
         hazard_method=options.get("hazard_method"),
-        ci_method=options.get("ci_method", "wald"))
+        ci_method=options.get("ci_method", "wald")), table, used)
 
 
 def _roc_compare(data, options):

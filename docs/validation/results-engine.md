@@ -739,3 +739,22 @@ reach P < 0.05") cites the GraphPad statistics guide page "Nonparametric
 tests with small and large samples" and FAQ 1721 "Analyzing ratios with
 logs", and links the "Rank tests with few values" explainer.
 
+### P-16 the Analysed line of regression, Cox and contingency results
+
+Multiple, logistic and Poisson regression and Cox regression now return
+`analysed_rows` (multivar.analysed_rows): the rows used, the rows of the
+table that hold any value, and each dropped row (numbered as the grid
+numbers it) with the model's variables that are blank in it or hold text
+that is not a number. The Notes strip reads it per kind: "Analysed: 26
+of 30 rows; 4 dropped for a blank in Age (rows 3, 9, 17, 22)." (Cox on a
+survival table counts subjects, whose order is not the grid's);
+contingency tables say n is the sum of the counts. Assay modules keep no
+Analysed line: each reads its table its own way (see the report).
+
+Reference: `engine/tests/reference/analysed_rows.py` (statsmodels OLS,
+GLM binomial and Poisson, PHReg, all with `missing = "drop"`): nobs 26
+of 30 for every model with Age, 25 with "n/a" typed in Dose row 27 (named
+"not a number"), 30 for a model without Age; the dropped rows equal
+pandas' missing rows. Edge cases: trailing blank rows, a row with values
+only in unused columns, no complete row (an error, not 0), the table
+upside down (the same count, the rows renumbered).

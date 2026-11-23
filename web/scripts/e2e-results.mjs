@@ -6,6 +6,11 @@
 // engine tests from an independent reference (engine/tests/reference/).
 // Usage: node scripts/e2e-results.mjs [http://localhost:5173/]
 import { chromium } from "playwright";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const here = dirname(fileURLToPath(import.meta.url));
 
 const baseUrl = process.argv[2] ?? "http://localhost:5173/";
 const url = (() => {
@@ -172,6 +177,25 @@ await page.waitForSelector('.pane-results[data-live="true"] .results-table', { t
   await liveResults(/Mann-Whitney/);
   expect("P-15: 4 vs 4 can reach P < 0.05, so no note",
     await page.locator('[data-banner="rank-floor"]').count() === 0);
+}
+
+// --- P-16: the Analysed line of a multiple regression --------------------
+{
+  // engine/tests/reference/analysed_rows.py: 30 rows, Age blank in rows
+  // 3, 9, 17 and 22; statsmodels OLS(missing = "drop").nobs = 26
+  const ref = JSON.parse(readFileSync(join(here, "..", "..", "engine", "tests", "reference",
+    "analysed_rows.json"), "utf8"));
+  const t = ref.table;
+  const tsv = "Age\tDose\tY\n" + t.Y.map((_, i) => [t.Age[i] ?? "", t.Dose[i], t.Y[i]].join("\t")).join("\n");
+  await pastedTable("multivariable", "Thirty rows", tsv);
+  await page.getByRole("button", { name: "Analyze", exact: true }).click();
+  await page.getByRole("menuitem", { name: /Multiple linear regression/ }).click();
+  const line = page.locator(".notes-strip .analysed-line");
+  const want = `Analysed: ${ref.multiple.nobs} of 30 rows; 4 dropped for a blank in Age (rows ${ref.multiple.dropped_rows.join(", ")}).`;
+  const ok = await page.waitForFunction((w) => document.querySelector(".notes-strip .analysed-line")
+    ?.textContent === w, want, { timeout: 60000 }).then(() => true, () => false);
+  expect("P-16 multiple regression: 'Analysed: 26 of 30 rows; 4 dropped for a blank in Age (rows 3, 9, 17, 22).'",
+    ok, await line.first().innerText().catch(() => ""));
 }
 
 // ------------------------------------------------------------------------

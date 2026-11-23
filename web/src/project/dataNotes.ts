@@ -10,7 +10,7 @@
 // by row and leave out incomplete pairs; repeated-measures one-way ANOVA
 // leaves out incomplete rows (subjects). Where the engine reports the
 // count itself (n_pairs, incomplete_pairs) its number is preferred.
-import { ANALYSIS_COLUMN, ANALYSIS_NONLIN, ANALYSIS_SURVIVAL } from "./builtin.ts";
+import { ANALYSIS_COLUMN, ANALYSIS_CONTINGENCY, ANALYSIS_NONLIN, ANALYSIS_SURVIVAL } from "./builtin.ts";
 import { classifyValue } from "./pasteReport.ts";
 import { parseCell } from "./table.ts";
 import type { DataTableModel } from "./types.ts";
@@ -26,8 +26,9 @@ export interface DataNote {
 
 export interface DataNotes {
   /** "n = 10 pairs analysed; 2 incomplete pairs (rows 4, 9) left out",
-   *  or null when the analysis has no simple n (contingency counts,
-   *  multiple-variables models, manipulations, summary data). */
+   *  "26 of 30 rows; 4 dropped for a blank in Age (rows 3, 9, 17, 22)"
+   *  (regression and Cox models, from the engine), or null when the
+   *  analysis has no simple n (assays, PCA, manipulations, summary data). */
   analysed: string | null;
   notes: DataNote[];
 }
@@ -40,6 +41,11 @@ const COMPARE_FITS = "compare_fits";
 const NESTED = new Set(["nested_ttest", "nested_anova"]);
 const GROUPED = new Set(["grouped_two_way", "grouped_three_way", "grouped_column_stats"]);
 const GROUPED_MULTI_T = "grouped_multiple_t";
+/** Models of a multiple-variables table that drop incomplete rows
+ *  (listwise): the engine says which (analysed_rows). */
+const ROW_MODELS = new Set(["mv_regression", "mv_logistic", "mv_poisson", "mv_cox"]);
+/** Cox on a survival table: the engine counts subjects, not grid rows. */
+const SURVIVAL_COX = "cox";
 
 /** How an analysis reads the table, for counting n. */
 type Plan =
@@ -48,6 +54,9 @@ type Plan =
   | { kind: "subjects"; datasets: number[] }
   | { kind: "points"; datasets: number[] }
   | { kind: "survival"; datasets: number[] }
+  | { kind: "rows"; datasets: number[] }
+  | { kind: "subjectsUsed"; datasets: number[] }
+  | { kind: "counts"; datasets: number[] }
   | { kind: "none"; datasets: number[] };
 
 type Opts = Record<string, unknown>;
@@ -68,6 +77,11 @@ export function analysisPlan(analysisId: string, t: DataTableModel, options: unk
   // assay modules read their tables their own way (sample names, gene
   // names and well ids are text by design): nothing to count here
   if (analysisId.startsWith("assay_")) return { kind: "none", datasets: [] };
+  // each kind its own reader: regression models drop incomplete rows
+  // (the engine names them), a contingency table is counted whole
+  if (t.type === "multivariable" && ROW_MODELS.has(analysisId)) return { kind: "rows", datasets: all(t) };
+  if (t.type === "survival" && analysisId === SURVIVAL_COX) return { kind: "subjectsUsed", datasets: all(t) };
+  if (t.type === "contingency" && analysisId === ANALYSIS_CONTINGENCY) return { kind: "counts", datasets: all(t) };
   if (t.type === "multivariable" || t.type === "contingency" || t.type === "partsofwhole") {
     return { kind: "none", datasets: all(t) };
   }
@@ -210,6 +224,44 @@ function engineCounts(result: unknown): { n?: number; incomplete?: number; rows?
  *  Analysed line already says it. */
 const INCOMPLETE_WARNING = /^\d+ incomplete (XY )?pairs? \(rows? [\d, ]+\) left out\.?$/;
 
+const listAnd = (xs: string[]) => (xs.length <= 1 ? xs.join("")
+  : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`);
+
+/** The engine's analysed_rows (multivar.analysed_rows) as the Analysed
+ *  line: "26 of 30 rows; 4 dropped for a blank in Age (rows 3, 9, 17,
+ *  22)". Rows are numbered as the grid numbers them; withRows false
+ *  (Cox on a survival table, whose subjects are not grid rows) counts
+ *  subjects only. */
+export function analysedRowsLine(result: unknown, withRows = true): string | null {
+  const b = (result as { analysed_rows?: Record<string, unknown> } | null)?.analysed_rows;
+  if (!b || typeof b.n_used !== "number" || typeof b.n_rows !== "number") return null;
+  const unit = withRows ? ["row", "rows"] : ["subject", "subjects"];
+  const head = `${b.n_used} of ${plural(b.n_rows, unit[0], unit[1])}`;
+  const dropped = (Array.isArray(b.dropped) ? b.dropped : []) as
+    { row: number; blank?: string[]; not_number?: string[] }[];
+  if (!dropped.length) return `${head}; none dropped`;
+  const reasonOf = (d: typeof dropped[number]) => [
+    d.blank?.length ? `a blank in ${listAnd(d.blank)}` : "",
+    d.not_number?.length ? `text that is not a number in ${listAnd(d.not_number)}` : "",
+  ].filter(Boolean).join(" and ") || "a missing value";
+  const groups = new Map<string, number[]>();
+  for (const d of dropped) groups.set(reasonOf(d), [...(groups.get(reasonOf(d)) ?? []), d.row]);
+  const where = (rows: number[]) => (withRows
+    ? ` (row${rows.length === 1 ? "" : "s"} ${rowList(rows.map((r) => r - 1), 12)})` : "");
+  const parts = [...groups].map(([why, rows]) => ({ why, rows }));
+  if (parts.length === 1) return `${head}; ${dropped.length} dropped for ${parts[0].why}${where(parts[0].rows)}`;
+  return `${head}; ${dropped.length} dropped: `
+    + parts.map((g) => `${g.rows.length} for ${g.why}${where(g.rows)}`).join("; ");
+}
+
+/** A contingency table's Analysed line: the counts are the data, so the
+ *  total is n ("n = 120, the sum of the 2 × 2 counts"). */
+export function countsLine(result: unknown): string | null {
+  const r = result as { total?: unknown; rows?: unknown; cols?: unknown } | null;
+  if (!r || typeof r.total !== "number" || typeof r.rows !== "number" || typeof r.cols !== "number") return null;
+  return `n = ${r.total}, the sum of the ${r.rows} × ${r.cols} counts`;
+}
+
 /** The "Analysed" line and the notes about the table. */
 function tableNotes(t: DataTableModel, plan: Plan, result: unknown):
   { analysed: string | null; notes: DataNote[] } {
@@ -265,6 +317,10 @@ function tableNotes(t: DataTableModel, plan: Plan, result: unknown):
       + `row${xMissing.length === 1 ? "" : "s"} ${rowList(xMissing)}.` });
   }
 
+  if (plan.kind === "rows" || plan.kind === "subjectsUsed") {
+    return { analysed: analysedRowsLine(result, plan.kind === "rows"), notes };
+  }
+  if (plan.kind === "counts") return { analysed: countsLine(result), notes };
   if (summary || plan.kind === "none" || !plan.datasets.length) return { analysed: null, notes };
 
   const extras = (blanks: number) => {
