@@ -6,6 +6,7 @@
 // (engine/opendose/api.py, methodreg.py).
 import { numericData } from "../../project/table.ts";
 import type { DataTableModel } from "../../project/types.ts";
+import type { CccResult } from "../common/ccc.ts";
 
 export const ANALYSIS_METHOD_REGRESSION = "method_regression";
 export const GRAPH_METHOD_REGRESSION = "method_regression_plot";
@@ -94,6 +95,8 @@ export interface MethodComparison {
   passing_bablok: PbFit;
   theil_sen: TsFit;
   deming: DemingFit;
+  /** Lin's CCC of the same pairs (P-43). */
+  ccc?: CccResult;
 }
 
 export interface MethodRegResult {

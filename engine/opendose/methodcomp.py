@@ -728,3 +728,64 @@ def bland_altman_repeated(subjects, values_a, values_b, *,
                           "mean_b": float(mean_b[j]),
                           "difference": float(mean_a[i] - mean_b[j])}
                          for s, i, j in zip(subs, ia, ib)]}
+
+
+# ------------------------------------------------ Lin's concordance (CCC)
+# Lin LI (1989), "A concordance correlation coefficient to evaluate
+# reproducibility", Biometrics 45:255-268, with the correction of Lin
+# (2000), Biometrics 56:324-325: rho_c = 2 s_xy / (s_x^2 + s_y^2 +
+# (mean_x - mean_y)^2) with moments of divisor n; the CI is taken on
+# Fisher's z = atanh(rho_c) with
+# var(rho_c) = [(1 - r^2) rho_c^2 (1 - rho_c^2) / r^2
+#               + 2 rho_c^3 (1 - rho_c) u^2 / r - rho_c^4 u^4 / (2 r^2)]
+#              / (n - 2),  u = (mean_y - mean_x) / (s_x s_y)^(1/2),
+# SE(z) = SE(rho_c) / (1 - rho_c^2), as epiR::epi.ccc and DescTools::CCC
+# (ci = "z-transform"). rho_c = r C_b: Pearson's r (precision) times the
+# bias correction factor C_b (accuracy, the departure from the line of
+# identity), so a CCC mixes both.
+
+def lin_ccc(x, y, *, ci_level: float = 0.95) -> dict:
+    """Lin's concordance correlation coefficient of paired x, y with its
+    CI (see the comment above). Pairs missing either value are left
+    out."""
+    pairs = [(float(a), float(b)) for a, b in zip(x, y)
+             if a is not None and b is not None
+             and math.isfinite(float(a)) and math.isfinite(float(b))]
+    n = len(pairs)
+    if n < 3:
+        raise ValueError("Lin's concordance correlation needs at least 3 "
+                         "pairs")
+    xa = np.array([p[0] for p in pairs])
+    ya = np.array([p[1] for p in pairs])
+    mx, my = float(xa.mean()), float(ya.mean())
+    sxx = float(np.mean((xa - mx) ** 2))
+    syy = float(np.mean((ya - my) ** 2))
+    sxy = float(np.mean((xa - mx) * (ya - my)))
+    if sxx == 0 or syy == 0:
+        raise ValueError("one method gives the same value for every sample, "
+                         "so the concordance correlation is not defined")
+    rho = 2 * sxy / (sxx + syy + (mx - my) ** 2)
+    r = sxy / math.sqrt(sxx * syy)
+    u = (my - mx) / (sxx * syy) ** 0.25
+    out = {"analysis": "lin_ccc", "n": n, "ccc": float(rho),
+           "pearson_r": float(r),
+           "bias_correction": float(rho / r) if r != 0 else None,
+           "location_shift": float(u),
+           "scale_shift": float(math.sqrt(syy / sxx)),
+           "ci_level": ci_level, "ci": None, "se_z": None}
+    if r == 0 or abs(rho) >= 1:
+        out["ci_note"] = ("the two methods agree exactly" if abs(rho) >= 1
+                          else "Pearson's r is 0, so the CI is not defined")
+        return out
+    var = ((1 - r * r) * rho * rho * (1 - rho * rho) / (r * r)
+           + 2 * rho ** 3 * (1 - rho) * u * u / r
+           - rho ** 4 * u ** 4 / (2 * r * r)) / (n - 2)
+    if not var > 0:
+        out["ci_note"] = "the variance of the estimate is not positive"
+        return out
+    se_z = math.sqrt(var) / (1 - rho * rho)
+    z = math.atanh(rho)
+    q = float(stats.norm.ppf((1 + ci_level) / 2))
+    out["se_z"] = se_z
+    out["ci"] = [math.tanh(z - q * se_z), math.tanh(z + q * se_z)]
+    return out

@@ -22,6 +22,7 @@ import { maxOf, minOf } from "../../lib/extent";
 import { useCommands } from "../../app/commands";
 import { useProject } from "../../app/context";
 import { ANALYSIS_METHOD_REGRESSION } from "./methodRegression";
+import { CCC_LABEL, cccCaveat, cccText } from "../common/ccc";
 
 const f = (v: number | null | undefined, sig?: number) => formatSig(v ?? null, sig);
 const ciTxt = (c: [number, number] | undefined | null) => (c ? `${f(c[0])} to ${f(c[1])}` : "n/a");
@@ -164,6 +165,12 @@ export function BaResults({ sheet, table, result }: ResultsProps<BaOptions, BaRe
         [`${agr} limits of agreement`, `${f(block.loa_lower)} to ${f(block.loa_upper)}`],
         ...(lci ? [[`${lvl} CI of the lower limit`, ciTxt(lci.lower)], [`${lvl} CI of the upper limit`, ciTxt(lci.upper)]] as [string, string][] : []),
       ]} />
+      {result.ccc && (
+        <>
+          <KV className="kv-wide" rows={[[CCC_LABEL, cccText(result.ccc)!]]} />
+          {cccCaveat(result.ccc) && <p className="hint-block">{cccCaveat(result.ccc)}</p>}
+        </>
+      )}
       <p className="hint-block">Limit CIs: {methodLabel}. A bias CI that excludes 0 means a systematic difference between the methods.</p>
       <div className="stat-cols">
         {pb && (
@@ -225,6 +232,9 @@ export function BaMethods({ result }: ResultsProps<BaOptions, BaResult>) {
       + ".";
     const sw = result.normality?.shapiro_wilk;
     if (sw) text += ` Normality of the differences: Shapiro-Wilk ${pLabel(sw.p)}.`;
+    if (result.ccc && !result.ccc.error) {
+      text += ` Lin's concordance correlation coefficient (Lin 1989) was ${cccText(result.ccc)}.`;
+    }
     if (pb) {
       text += ` Proportional bias was examined by regressing the differences on the averages (slope ${f(pb.slope)}, ${pLabel(pb.slope_p)})`
         + (result.options.regression ? "; regression-based limits of agreement were derived from the absolute residuals (Bland & Altman 1999)." : ".");

@@ -2836,6 +2836,8 @@ def _deming(data, options):
                                   + fit["y_intercept"]["value"]
                                   for v in grid]}
             entry["fit"] = fit
+            entry["ccc"] = _ccc_or_error(xs, ys,
+                                         options.get("ci_level", 0.95))
         except Exception as exc:
             entry["error"] = str(exc)
         results.append(entry)
@@ -3913,13 +3915,23 @@ def _bland_altman_extras(data, options):
         regression=options.get("regression", True), z=options.get("z"),
         mover_mean=options.get("mover_mean", "t"))
     res["names"] = [ds[ia].get("name", ""), ds[ib].get("name", "")]
+    res["ccc"] = _ccc_or_error(_aligned_first(ds[ia]), _aligned_first(ds[ib]),
+                               options.get("ci_level", 0.95))
     return res
+
+
+def _ccc_or_error(a, b, ci_level):
+    """Lin's CCC (methodcomp.lin_ccc) of row-paired values, or {"error"}."""
+    try:
+        return methodcomp.lin_ccc(a, b, ci_level=ci_level)
+    except ValueError as exc:
+        return {"error": str(exc)}
 
 
 def _method_regression(data, options):
     """Nonparametric method-comparison regression (methodreg): Passing-
-    Bablok and Theil-Sen, with Deming (equal error variances) on the same
-    pairs for comparison.
+    Bablok and Theil-Sen, with Deming (equal error variances) and Lin's
+    CCC on the same pairs for comparison.
 
     data: an XY table {"x", "datasets": [{"name", "ys"}]} (method 1 = X,
     method 2 = each data set; replicates pair with their row's X), or two
@@ -3929,7 +3941,7 @@ def _method_regression(data, options):
     "x_name", "n", "points": {"x", "y"}, "passing_bablok": {slope:
     {value, ci}, intercept: {value, ci}, kendall, cusum: {H, p, linear,
     max_cusum, n_above, n_below}, ...} | {"error"}, "theil_sen", "deming":
-    {slope, intercept: {value, se, ci}} | {"error"}}]}."""
+    {slope, intercept: {value, se, ci}} | {"error"}, "ccc" | {"error"}}]}."""
     level = options.get("ci_level", 0.95)
     if "a" in data:
         names = data.get("names") or ["A", "B"]
@@ -3963,6 +3975,7 @@ def _method_regression(data, options):
             "theil_sen": attempt(lambda: methodreg.theil_sen(
                 xs, ys, ci_level=level)),
             "deming": attempt(dem),
+            "ccc": _ccc_or_error(xs, ys, level),
         })
     return {"analysis": "method_regression", "ci_level": level,
             "comparisons": out}

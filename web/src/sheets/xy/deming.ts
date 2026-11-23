@@ -104,6 +104,7 @@ export function demingResult(raw: any, table: DataTableModel): any {
       return {
         ...out,
         deming: f,
+        ...(ds.ccc ? { ccc: ds.ccc } : {}),
         fit: {
           model: "deming", label: "Deming (Model II) linear regression",
           equation: f.equation, status: "converged", dependency: {},
