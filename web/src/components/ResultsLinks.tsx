@@ -3,7 +3,7 @@
 // the next experiment (power, pre-filled with this data's SD), the reason
 // "Help me choose…" gave for the test, Cox regression from a survival
 // analysis and Compare fits from a curve fit.
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useProject } from "../app/context";
 import { newId } from "../project/ids";
 import { familyChildren, findSheet } from "../project/ops";
@@ -18,7 +18,7 @@ import { pilotFromResult } from "../power/pilot";
 import { openValidation } from "../share/events";
 import { checksIn, validationScope, validationSentence } from "../share/validationIndex";
 import { compareFitsOptions, offersPlanning } from "./resultsLinks";
-import { Button, IconButton } from "./ui";
+import { Button, IconButton, notify } from "./ui";
 import { CloseIcon } from "./ui/feedbackIcons";
 import "./resultsLinks.css";
 
@@ -55,21 +55,30 @@ export default function ResultsLinks({ sheet, tableName, options, result }: {
     : null), [plan, sheet.analysis, options, result, tableName]);
   // Saved with the sheet; gone once an option the chooser set is changed.
   const chosen = currentChoice(sheet);
-  const { apply, readOnly } = useProject();
+  const { apply, undo, readOnly } = useProject();
+  const firstLink = useRef<HTMLButtonElement>(null);
+  // Removing edits the saved project and its methods paragraph: say so,
+  // offer Undo, and keep focus in the row (the button itself goes away).
+  const removeWhy = () => {
+    apply((p) => withoutChoice(p, sheet.id));
+    firstLink.current?.focus();
+    notify("Removed why this test from this sheet and its methods paragraph.",
+      { tone: "success", action: { label: "Undo", onAction: undo } });
+  };
   return (
     <>
       {chosen && (
         <div className="results-why" role="note" aria-label="Why this test">
           <p><strong>Why {chosen.test}.</strong> {chosen.reason}</p>
           {!readOnly && (
-            <IconButton size="sm" aria-label="Remove why this test"
-              onClick={() => apply((p) => withoutChoice(p, sheet.id))}><CloseIcon /></IconButton>
+            <IconButton size="sm" aria-label="Remove why this test" onClick={removeWhy}>
+              <CloseIcon /></IconButton>
           )}
         </div>
       )}
       <nav className="results-links" aria-label="About these results">
         <span className="results-link">
-          <button type="button" data-still className="linkish"
+          <button type="button" data-still className="linkish" ref={firstLink}
             onClick={() => openValidation({ analysisId: sheet.analysis, options })}>
             How this is validated</button>
           {sentence && <span className="results-link-note">{sentence.replace(/^Checked/, "checked")

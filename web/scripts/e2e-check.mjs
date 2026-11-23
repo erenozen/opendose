@@ -3346,6 +3346,17 @@ const axeOn = async (pg, sel) => {
   await openChecks();
   expect("P-32: after reopening the file the methods text still includes the reason, and the note is back",
     await methodsHas() && await appears(page.getByRole("note", { name: "Why this test" })));
+  // Removing the reason takes it out of the methods too, says so, and
+  // Undo brings it back.
+  await page.getByRole("button", { name: "Remove why this test" }).click();
+  const whyGone = await page.getByRole("note", { name: "Why this test" })
+    .waitFor({ state: "detached", timeout: 10000 }).then(() => true, () => false);
+  expect("P-32: Remove why this test drops the note and the methods sentence, with a toast",
+    whyGone && !(await page.locator(".stats-methods p").first().innerText()).includes("Choice of test")
+    && await appears(page.getByText("Removed why this test from this sheet and its methods paragraph.")));
+  await page.getByRole("button", { name: "Undo", exact: true }).first().click();
+  expect("P-32: Undo brings the reason back", await methodsHas()
+    && await appears(page.getByRole("note", { name: "Why this test" })));
 
   // (b) Plan next experiment: the pilot SD (pooled, 0.825) filled in; the
   // effect to detect is chosen (1 unit): 12 per group for 80% power.
