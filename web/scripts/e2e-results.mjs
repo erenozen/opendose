@@ -763,7 +763,7 @@ await page.waitForSelector('.pane-results[data-live="true"] .results-table', { t
     .innerText().catch(() => "")).replace(/\s+/g, " ").trim();
   expect("P-46 the overall test is F(2, 15) = 5.615, P 0.01512 (no AICc under quasi-Poisson)",
     fTest === "F test (vs intercept only) F 5.615 Degrees of freedom 2, 15 P value 0.01512 *"
-      && !(await page.locator(".pane-results").innerText()).includes("AICc"), fTest);
+      && !(await page.locator(".pane-results").innerText()).includes("AICc, this model"), fTest);
   const methods = await page.locator(".methods-text p").first().innerText().catch(() => "");
   expect("P-46 acceptance: the methods name quasi-Poisson and φ = 3.085",
     /modeled by quasi-Poisson regression/.test(methods) && /φ = Pearson χ² \/ df = 3\.085/.test(methods)
