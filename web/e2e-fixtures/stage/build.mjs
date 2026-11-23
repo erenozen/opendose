@@ -38,6 +38,9 @@
 //   study-design.json  a study design record on the info sheet of a t test (P-61)
 //   sex-factor.json    rows F and M of a grouped table under multiple t tests (P-62)
 //   normalize-title.json a new Normalize output and its graph, titled "% of vehicle (mean)" (P-55)
+//   method-comparison.json Passing-Bablok of Giavarina's Table 1 with its graph
+//                      (P-42), Bland-Altman of the ejection fractions with
+//                      Lin's CCC (P-43), Shrout & Fleiss's ICC table (P-44)
 //   many-sheets.json   74 sheets: 22 families, navigator groups (one
 //                      collapsed), highlights, info sheets and layouts
 import { readFileSync, writeFileSync } from "node:fs";
@@ -626,4 +629,29 @@ const longData = (name, names, rows, categorical) => data(name, {
     "Correlation of pH and PaCO2");
   write("rm-reporting.json", project("RM reporting",
     [t, r, t2, r2, t3, r3, t4, r4, t5, r5, t6, r6], { selected: r.id }));
+}
+
+// method-comparison.json: P-42 Passing-Bablok on Giavarina (2015) Table 1
+// as an XY table (engine/tests/reference/method_regression.py), P-43
+// Bland-Altman of the ejection fractions with Lin's CCC (lin_ccc.py),
+// P-44 the reliability ICC of Shrout & Fleiss's 6 x 4 (icc_reliability.py)
+{
+  const mr = JSON.parse(readFileSync(join(here, "../../../engine/tests/reference",
+    "method_regression.json"), "utf8"));
+  const g = mr.giavarina;
+  const t1 = data("Giavarina", table("xy", { x: g.x.map(String), xTitle: "Method A",
+    datasets: [col("Method B", g.y)] }));
+  const r1 = results(t1, "method_regression", { datasetA: 0, datasetB: 1, ciLevel: "95" },
+    "Passing-Bablok of Giavarina");
+  const g1 = graph(t1, r1, "method_regression_plot", "Graph of Giavarina");
+  const e = mr.ejection;
+  const t2 = data("Ejection", table("column", { datasets: [col("RV", e.x), col("IC", e.y)] }));
+  const r2 = results(t2, "bland_altman", {}, "Bland-Altman of Ejection");
+  const ic = JSON.parse(readFileSync(join(here, "../../../engine/tests/reference",
+    "icc_reliability.json"), "utf8")).shrout_fleiss.matrix;
+  const t3 = data("Shrout-Fleiss", table("column", { datasets: [0, 1, 2, 3].map((j) =>
+    col(`Judge ${j + 1}`, ic.map((r) => r[j]))) }));
+  const r3 = results(t3, "icc", { form: "ICC2", ciLevel: "95" }, "ICC of Shrout-Fleiss");
+  write("method-comparison.json", project("Method comparison",
+    [t1, r1, g1, t2, r2, t3, r3], { selected: r1.id }));
 }

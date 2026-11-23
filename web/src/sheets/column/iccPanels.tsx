@@ -71,10 +71,6 @@ export function IccResults({ result }: ResultsProps<IccOptions, IccResult>) {
         <Note warn>{formName(chosen.form, k)} is negative: the ratings vary more within a target than between
           targets, so the raters show no reliability; report it as it is, not as 0.</Note>
       )}
-      {result.n_targets < 5 && (
-        <Note warn>Only {result.n_targets} targets: the confidence intervals are wide, so the ICC is estimated
-          imprecisely.</Note>
-      )}
       <div className="stat-cols">
         <KV title="Two-way ANOVA (targets × raters)" rows={[
           ["Mean square, targets", `${f(ms.between_targets)} (df ${result.df.targets})`],
