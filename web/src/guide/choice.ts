@@ -2,8 +2,12 @@
 // analysis it opened, kept on that results sheet (ResultsSheet.chosen) so
 // it travels in the project file and share links: the results sheet says
 // why this test (components/ResultsLinks) and so does the methods
-// paragraph (report/methods.ts). Pure.
+// paragraph (report/methods.ts). The reason is saved in the methods
+// wording (./methodsWording.ts); a file saved before that holds the
+// chooser's on-screen words, which are read as the methods wording.
+// Pure.
 import type { ChosenTest, Project, ResultsSheet } from "../project/types.ts";
+import { legacyMethodsReason } from "./methodsWording.ts";
 
 export type { ChosenTest };
 
@@ -50,12 +54,16 @@ export function currentChoice(sheet: Pick<ResultsSheet, "analysis" | "options" |
 
 const text = (v: unknown) => (typeof v === "string" ? v.trim() : "");
 
-/** A saved reason, checked (null when absent or malformed). */
+/** A saved reason, checked (null when absent or malformed), in the
+ *  methods wording: a reason saved in the chooser's on-screen words (the
+ *  second person, files from before the methods wording) is replaced by
+ *  that outcome's methods wording. */
 export function parseChosen(v: unknown): ChosenTest | null {
   if (!v || typeof v !== "object" || Array.isArray(v)) return null;
   const o = v as Record<string, unknown>;
   const test = text(o.test);
-  const reason = text(o.reason);
+  const saved = text(o.reason);
+  const reason = saved && test ? legacyMethodsReason(saved, test) ?? saved : saved;
   const analysis = text(o.analysis);
   if (!test || !reason || !analysis) return null;
   const options = o.options && typeof o.options === "object" && !Array.isArray(o.options)

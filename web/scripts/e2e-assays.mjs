@@ -62,6 +62,16 @@ const waitCell = (label, test, timeout = 20000) => page.waitForFunction(([l, src
   const v = document.querySelector(`.data-table input[aria-label="${l}"]`)?.value;
   return v !== undefined && new Function("v", `return ${src}`)(v);
 }, [label, test], { timeout }).then(() => true, () => false);
+// The Notes strip's "Analysed" line under the results (P-16), found by its
+// region's name; waits until it holds `text` (a substring), then returns it.
+const notesRegion = () => page.getByRole("region", { name: "Notes on the data analysed" });
+const analysedLine = async (text, timeout = 60000) => {
+  const line = notesRegion().locator(".analysed-line").filter({ hasText: text }).first();
+  if (!(await line.waitFor({ timeout }).then(() => true, () => false))) {
+    return notesRegion().locator(".analysed-line").first().innerText().catch(() => "no Analysed line");
+  }
+  return (await line.innerText()).replace(/\s+/g, " ").trim();
+};
 // axe-core (WCAG 2 A/AA, contrast included) on parts of the page.
 const axeViolations = async (selectors) => {
   await page.evaluate(readFileSync(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8")).catch(() => {});
@@ -132,6 +142,10 @@ const plateQc = await textOf(".plate-results");
 expect("plate QC: Z′ 0.849 (excellent), plate passes", plateQc.includes("Z′ 0.849 excellent")
   && plateQc.includes("Plate passes QC"), plateQc.slice(0, 160));
 expect("plate QC: robust Z′ 0.864 and S/B 12.7", plateQc.includes("0.864") && plateQc.includes("12.7"));
+// P-16: the Analysed line counts the mapped wells read (engine plate_qc wells)
+const plateLine = await analysedLine("mapped wells read");
+expect("P-16 plate: Analysed: 96 of 96 mapped wells read (72 sample, 24 control).",
+  plateLine === "Analysed: 96 of 96 mapped wells read (72 sample, 24 control).", plateLine);
 await page.locator(".plate-results").getByRole("button", { name: "Open “Dose-response of Plate”" }).click();
 await page.waitForSelector(".results-table tr:has-text('LogIC50')", { timeout: 60000 });
 await page.waitForTimeout(800);
@@ -150,6 +164,13 @@ await page.waitForTimeout(400);
 await navRow("Dose-response of Plate (linked)").click();
 expect("editing a reading flows into the linked table (≈ 100% of control)",
   await waitCell("Drug A, Y1, row 1", "Math.abs(Number(v) - 100) < 0.01"));
+// P-16: a cleared reading is named by its well and why
+await navRow("Plate").click();
+await cell("4, row 1").fill("");
+await page.keyboard.press("Tab");
+const plateDrop = await analysedLine("1 well left out");
+expect("P-16 plate: a blank well is left out by name (A4, blank)",
+  plateDrop === "Analysed: 95 of 96 mapped wells read (71 sample, 24 control); 1 well left out: A4 (blank).", plateDrop);
 
 // two plates pasted, one XY table per plate
 await navRow("Plate").click();
@@ -215,6 +236,12 @@ expect("S7 is reported as > ULOQ and flagged extrapolated, not as a number",
   s7.includes(">ULOQ") && s7.includes("extrapolated") && !s7.includes("2499"), s7);
 expect("parallelism of the QC pool: CV 3.24%, F test P 0.659, parallel",
   std.includes("3.24%") && std.includes("P = 0.659") && std.includes("parallel"));
+// P-16: replicates in the fit (engine standards), reportable unknowns and
+// the ones out of range by name and row
+const stdLine = await analysedLine("replicates at 8 levels");
+expect("P-16 standard curve: 16 replicates at 8 levels, 10 of 12 dilutions reportable, S8 < LLOQ and S7 > ULOQ by row",
+  stdLine === "Analysed: standards: 16 replicates at 8 levels in the fit, blank subtracted (2 replicates); unknowns: "
+    + "10 of 12 dilutions reportable, 1 below the LLOQ (S8 1:2, row 21), 1 above the ULOQ (S7 1:2, row 20).", stdLine);
 await page.locator(".std-results").getByRole("button", { name: "Open “Concentrations of ELISA”" }).click();
 expect("concentrations table: Control S1 mean 95.27 pg/mL",
   await waitCell("Control, row 1", "v.startsWith('95.266')"), await cell("Control, row 1").inputValue());
@@ -225,6 +252,10 @@ await page.waitForSelector(".std-results", { timeout: 30000 });
 await page.getByLabel("Use the 7.81 standard in the fit").uncheck();
 expect("leaving out the failing standard refits: 7 of 7 levels pass",
   await waitText(".std-results", "7 / 7"));
+expect("P-16 standard curve: the standard left out is said, with its rows; 14 replicates at 7 levels",
+  (await analysedLine("14 replicates at 7 levels")).startsWith("Analysed: standards: 14 replicates at 7 levels in the fit")
+  && await notesRegion().getByText("The 7.81 pg/mL standard was left out of the fit: excluded by the user (row 8).")
+    .waitFor({ timeout: 30000 }).then(() => true, () => false));
 
 // --- qPCR ---
 // The example's ACTB is 1.4 cycles higher in LPS + inhibitor (engine
@@ -244,6 +275,9 @@ const il6 = (await page.locator(".qpcr-target", { hasText: "IL6" }).locator("tr"
   .first().innerText()).replace(/\s+/g, " ");
 expect("qPCR: IL6 fold change LPS vs Control 11.71 (CI 8.218 to 16.69)",
   il6.includes("11.71") && il6.includes("8.218 to 16.69"), il6);
+const qLine = await analysedLine("sample wells used");
+expect("P-16 qPCR: 108 of 108 sample wells used, 3 samples per group",
+  qLine === "Analysed: 108 of 108 sample wells used; samples per group: Control 3, LPS 3, LPS + inhibitor 3.", qLine);
 expect("qPCR: MIQE 2.0 note on statistics on ΔCq",
   (await textOf(".qpcr-results")).includes("Statistics are computed on ΔCq"));
 expect("qPCR: the flagged ACTB replicate set of CON-1 is listed",
@@ -273,6 +307,17 @@ expect("one click: GAPDH only, IL6 LPS vs Control 11.88 (6.889 to 20.47), ACTB s
   && await page.locator(".qpcr-target h4", { hasText: /^ACTB/ }).count() === 0);
 expect("qPCR methods record which references were used and why",
   await waitText(".pane-methods", "ACTB shifted with treatment (M = 0.59; 1.4 cycles between groups, P = 0.0044) and was not used"));
+const asideLine = await analysedLine("set aside");
+expect("P-16 qPCR: GAPDH only, ACTB's 27 wells set aside and not counted",
+  asideLine === "Analysed: 81 of 81 sample wells used; ACTB (27 wells) set aside by the reference check, not used; "
+    + "samples per group: Control 3, LPS 3, LPS + inhibitor 3.", asideLine);
+// an undetermined well is named by sample, target and well
+await navRow("qPCR").click();
+await cell("Cq, row 1").fill("Undetermined");
+await page.keyboard.press("Tab");
+const undet = await analysedLine("without a Cq");
+expect("P-16 qPCR: an Undetermined Cq is left out by name (CON-1 GAPDH A1)",
+  undet.startsWith("Analysed: 80 of 81 sample wells used; 1 well without a Cq left out: CON-1 GAPDH A1 (“Undetermined”);"), undet);
 
 const livak = { Brain: { "c-myc": [30.72, 30.34, 30.58, 30.34, 30.50, 30.43], GAPDH: [23.70, 23.56, 23.47, 23.65, 23.69, 23.68] },
   Kidney: { "c-myc": [27.06, 27.03, 27.03, 27.10, 26.99, 26.94], GAPDH: [22.76, 22.61, 22.62, 22.60, 22.61, 22.76] } };
@@ -357,6 +402,9 @@ expect("mapped columns give the same kidney ΔCq 4.365", kid2.includes("4.365"),
     await waitText(".pane-methods", "Gate statistics (CD69+ of Lymphocytes/Single Cells/Live/CD4+, Freq. of Parent) "
       + "were exported from FlowJo and summarised to one value per donor and condition"),
     await textOf(".pane-methods").catch(() => ""));
+  const flowLine = await analysedLine("rows:");
+  expect("P-16 flow: 12 of 12 rows, 3 donors × 4 conditions",
+    flowLine === "Analysed: 12 of 12 rows: 3 donors × 4 conditions, one value per donor and condition.", flowLine);
   expect("P-31: the results line names the full gate path too",
     (await textOf(".flow-results .model-line")).startsWith("CD69+ of Lymphocytes/Single Cells/Live/CD4+, Freq. of Parent: one value per donor"));
   const linkedBtn = page.locator(".flow-results").getByRole("button", { name: "Open “Per donor of CD69 flow”" });
@@ -378,7 +426,21 @@ expect("mapped columns give the same kidney ΔCq 4.365", kid2.includes("4.365"),
     (await textOf(".pane-results")).slice(0, 300));
   const legend = await page.locator(".report-legend p").innerText().catch(() => "");
   expect("flow: the legend counts n = 3 donors", legend.includes("n = 3 donors per group."), legend);
+  // P-31 follow-up (ruling 10, legend wording pinned): the legend names the
+  // statistic with its full gate path, as the methods do; before, it named
+  // no statistic ("… large symbols the mean of each experiment. n = 3
+  // donors per group. …")
+  const valuesAre = "Values are the FlowJo gate statistic CD69+ of Lymphocytes/Single Cells/Live/CD4+, "
+    + "Freq. of Parent. n = 3 donors per group.";
+  expect("P-31: the linked results' legend names the statistic and the full gate path",
+    legend.includes(valuesAre), legend);
   await navRow("Graph of Per donor of CD69 flow").click();
+  const figLegend = page.locator(".figure-legend");
+  await figLegend.waitFor({ timeout: 30000 });
+  if (!(await figLegend.evaluate((e) => e.open))) await figLegend.locator("summary").click();
+  const figText = await page.locator(".figure-legend-text").innerText().catch(() => "");
+  expect("P-31: the linked graph's figure legend names the statistic and the full gate path",
+    figText.includes(valuesAre), figText);
   await page.locator(".plot-card").getByRole("button", { name: "Settings" }).click();
   const settings = page.getByRole("dialog", { name: "Graph settings" });
   expect("flow: the graph is a SuperPlot (donor-coloured points, donor means joined)",
@@ -395,6 +457,9 @@ const dens = await textOf(".dens-results");
 expect("densitometry example: ratio paired t test, ratio 2.427, P 7.552e-4",
   dens.includes("Ratio paired t test") && dens.includes("2.427") && dens.includes("7.552e-4"), dens.slice(0, 300));
 expect("the ratio t test is explained", dens.includes("consistently different from 1"));
+const densLine = await analysedLine("lanes on");
+expect("P-16 densitometry: 16 of 16 lanes on 4 blots, n = 4 blots",
+  densLine === "Analysed: 16 of 16 lanes on 4 blots in the ratios; n = 4 blots.", densLine);
 
 const gp = ["Blot,Lane,Group,Target,Reference",
   "B1,1,Control,4.2,1", "B1,2,Treated,8.7,1", "B2,1,Control,2.5,1", "B2,2,Treated,4.9,1",

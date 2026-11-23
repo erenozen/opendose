@@ -21,6 +21,7 @@
 import { SRC, type Source } from "./sources.ts";
 import { blockedRecommendation } from "./blocking.ts";
 import { interactionRecommendation } from "./interaction.ts";
+import { METHODS } from "./methodsWording.ts";
 
 export type Outcome = "continuous" | "counts" | "survival" | "curve";
 export type GroupCount = "one" | "two" | "three_plus";
@@ -160,7 +161,11 @@ export interface Recommendation {
   /** Stable rule id (tests and analytics-free logging). */
   rule: string;
   test: string;
+  /** Why, to the user (second person, on screen). */
   reason: string;
+  /** Why, in the third person for a methods paragraph: saved with the
+   *  results sheet it opens (ResultsSheet.chosen; ./methodsWording.ts). */
+  methods: string;
   target: Target | null;
   alternatives: Alternative[];
   postHoc: PostHoc | null;
@@ -315,8 +320,19 @@ const LAYOUT = {
     + "by side.",
 };
 
+/** A recommendation before its methods wording (./methodsWording.ts),
+ *  which most rules take from their rule id. */
+type Draft = Omit<Recommendation, "methods"> & { methods?: string };
+
 /** The recommendation for a design, refined by the data checks. */
 export function recommend(d: Design, checks: DataChecks | null = null): Recommendation {
+  const r = draft(d, checks);
+  const methods = r.methods ?? METHODS[r.rule]?.({
+    unit: d.replicates === "cells" ? "cells" : "technical replicates", agonist: d.agonist });
+  return { ...r, methods: methods ?? `${r.test} was chosen.` };
+}
+
+function draft(d: Design, checks: DataChecks | null): Draft {
   const k = deriveChecks(checks);
   const notes: string[] = [];
   if (k) {
@@ -466,7 +482,7 @@ export function recommend(d: Design, checks: DataChecks | null = null): Recommen
         + "animals, cultures or experiments, not the number of measurements.");
     }
     if (ratio) {
-      return { ...base, rule: "one_sample_log",
+      return { ...base, rule: "one_sample_log", methods: METHODS.one_sample_log({ hv }),
         test: `One-sample t test on the logs (ratio t test against ${hv})`,
         reason: `Values expressed relative to a control (fold change, % of control) are `
           + "ratios: they are bounded below by zero and usually skewed. Testing log(value) "
@@ -488,6 +504,7 @@ export function recommend(d: Design, checks: DataChecks | null = null): Recommen
     }
     if (rank.use) {
       return { ...base, rule: "wilcoxon_signed_rank", test: "Wilcoxon signed-rank test",
+        methods: METHODS.wilcoxon_signed_rank({ hv }),
         reason: `The values do not look Gaussian, so the median is compared with ${hv} using `
           + "ranks of the differences rather than the mean.",
         target: { tableType: COLUMN, analysisId: A_COLUMN,
@@ -498,6 +515,7 @@ export function recommend(d: Design, checks: DataChecks | null = null): Recommen
         explainers: ["tails"] };
     }
     return { ...base, rule: "one_sample_t", test: `One-sample t test against ${hv}`,
+      methods: METHODS.one_sample_t({ hv }),
       reason: `One group compared with a theoretical value (${hv}): the one-sample t test `
         + "asks whether the mean differs from it, with a confidence interval of the "
         + "difference.",
@@ -786,7 +804,7 @@ export function recommend(d: Design, checks: DataChecks | null = null): Recommen
 
 type Base = { notes: string[]; tails: string };
 
-function counts(d: Design, base: Base): Recommendation {
+function counts(d: Design, base: Base): Draft {
   if (d.replicates !== "independent") {
     return { ...base, rule: "proportion_per_unit",
       test: "Proportion per biological replicate, then a t test or ANOVA",
@@ -875,7 +893,7 @@ function counts(d: Design, base: Base): Recommendation {
     postHoc: null, sources: src("gpContingency"), explainers: [] };
 }
 
-function survival(d: Design, base: Base): Recommendation {
+function survival(d: Design, base: Base): Draft {
   const target: Target = { tableType: "survival", analysisId: "survival", options: {},
     layout: LAYOUT.survival };
   if (d.groups === "one") {
@@ -917,7 +935,7 @@ function survival(d: Design, base: Base): Recommendation {
     explainers: ["survival"] };
 }
 
-function curve(d: Design, base: Base): Recommendation {
+function curve(d: Design, base: Base): Draft {
   const model = d.agonist ? "log_agonist_vs_response_4pl" : "log_inhibitor_vs_response_4pl";
   const name = d.agonist ? "log(agonist) vs. response, variable slope (4PL)"
     : "log(inhibitor) vs. response, variable slope (4PL)";

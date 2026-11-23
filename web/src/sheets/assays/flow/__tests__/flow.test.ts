@@ -6,13 +6,14 @@ import assert from "node:assert/strict";
 import { makeDataSheet, makeGraphSheet, makeProject, makeResultsSheet } from "../../../../project/ops.ts";
 import { DEFAULT_PREFS, projectPrefs } from "../../../../project/prefs.ts";
 import {
-  conditionOrder, DEFAULT_FLOW_OPTIONS, flowPayload, flowStatsOptions, flowTable, gatePath, guessBackground,
+  ANALYSIS_ASSAY_FLOW, conditionOrder, DEFAULT_FLOW_OPTIONS, flowPayload, flowStatsOptions, flowTable, gatePath, guessBackground,
   guessPartRoles, normalizeFlowOptions, parseStatHeader, readFlow, runFlow, setupFlowOutput,
   statTitle, statWithPath, tableFromFlowJo, unitSingular,
 } from "../model.ts";
 import { FLOW_EXAMPLE_CSV, flowSample } from "../sample.ts";
 import { legendFor } from "../../../../report/legendFor.ts";
 import { DEFAULT_REPORT } from "../../../../report/prefs.ts";
+import { valuesPhrase } from "../../../../report/valuesAre.ts";
 
 test("FlowJo headers: gate path and statistic", () => {
   const c = parseStatHeader("Lymphocytes/Single Cells/Live/CD4+/CD69+ | Freq. of Parent", 1);
@@ -127,6 +128,31 @@ test("legend: n counts donors once on donor means", () => {
     software: "OpenDose", result: { analysis: "rm_one_way_anova", superplot: { n: 3, replicates: ["D1", "D2", "D3"] } } });
   assert.match(legend, /n = 3 donors per group\./);
   assert.doesNotMatch(legend, /independent experiments/);
+});
+
+test("legend of the linked table names the statistic with its full gate path (P-31)", () => {
+  const src = makeDataSheet("f", "CD69 flow", flowSample());
+  const flow = makeResultsSheet("fr", "f", ANALYSIS_ASSAY_FLOW, { ...DEFAULT_FLOW_OPTIONS }, "Flow summary");
+  const linked = { ...makeDataSheet("t", "Per donor of CD69 flow", flowTable(RESULT)!),
+    derived: { sourceId: "f", resultsId: "fr" }, report: { unit: "donors" } };
+  const p = makeProject(projectPrefs(DEFAULT_PREFS), [src, flow, linked]);
+  const phrase = valuesPhrase(p, linked);
+  assert.equal(phrase, "the FlowJo gate statistic CD69+ of Lymphocytes/Single Cells/Live/CD4+, Freq. of Parent");
+  const legend = legendFor({ data: linked, table: linked.table, graph: null, options: {}, prefs: DEFAULT_REPORT,
+    software: "OpenDose", valuesAre: phrase,
+    result: { analysis: "rm_one_way_anova", superplot: { n: 3, replicates: ["D1", "D2", "D3"] } } });
+  assert.match(legend, /Values are the FlowJo gate statistic CD69\+ of Lymphocytes\/Single Cells\/Live\/CD4\+, Freq\. of Parent\. n = 3 donors per group\./);
+  // the statistic the analysis was set to, and the background when subtracted
+  const median = { ...flow, options: { ...DEFAULT_FLOW_OPTIONS,
+    statistic: "Lymphocytes/Single Cells/Live/CD4+/CD69+ | Median (BV421-A)",
+    background: { kind: "fmo", condition: "Unstim" } } };
+  assert.equal(valuesPhrase(makeProject(projectPrefs(DEFAULT_PREFS), [src, median, linked]), linked),
+    "the FlowJo gate statistic CD69+ of Lymphocytes/Single Cells/Live/CD4+, Median (BV421-A), "
+      + "with the FMO control (Unstim) of each donor subtracted");
+  // any other table: no phrase
+  assert.equal(valuesPhrase(p, src), null);
+  const other = { ...flow, analysis: "column" };
+  assert.equal(valuesPhrase(makeProject(projectPrefs(DEFAULT_PREFS), [src, other, linked]), linked), null);
 });
 
 test("import: a pasted FlowJo table becomes the input layout", () => {

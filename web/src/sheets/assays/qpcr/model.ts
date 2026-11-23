@@ -127,6 +127,8 @@ export interface QRecord { sample: string; group: string; target: string; cq: st
 export interface QData {
   idx: ColumnIndex<QRole>;
   records: QRecord[];
+  /** The table row (0-based) of each record. */
+  rows: number[];
   /** target -> dilution-series points */
   curves: Record<string, { quantity: number; cq: string }[]>;
   targets: string[];
@@ -139,13 +141,15 @@ export interface QData {
 export function readQpcr(t: DataTableModel, o: QpcrOptions): QData {
   const idx = resolveColumns(t, QPCR_ROLES, o.columns);
   const missing = QPCR_ROLES.filter((r) => r.required && idx[r.key] < 0).map((r) => r.label);
-  const empty: QData = { idx, records: [], curves: {}, targets: [], groups: [], controls: 0, problem: null };
+  const empty: QData = { idx, records: [], rows: [], curves: {}, targets: [], groups: [], controls: 0,
+    problem: null };
   if (missing.length) return { ...empty, problem: `Choose the column for: ${missing.join(", ")}.` };
   const col = (k: QRole) => textColumn(t, idx[k]);
   const sample = col("sample"); const group = col("group"); const target = col("target");
   const cq = col("cq"); const well = col("well"); const pair = col("pair");
   const qty = numberColumn(t, idx.quantity);
   const records: QRecord[] = [];
+  const rows: number[] = [];
   const curves: QData["curves"] = {};
   for (let r = 0; r < t.x.length; r++) {
     if (!target[r] || (!sample[r] && qty[r] === null)) continue;
@@ -155,13 +159,14 @@ export function readQpcr(t: DataTableModel, o: QpcrOptions): QData {
     }
     if (!cq[r] && !sample[r]) continue;
     records.push({ sample: sample[r], group: group[r], target: target[r], cq: cq[r], well: well[r], pair: pair[r] });
+    rows.push(r);
   }
   // NTC and no-RT wells are checked, not quantified: not a group or a target
   const samples = records.filter((x) => !controlKind(x.sample, x.group));
   const targets = distinctValues(samples.map((x) => x.target));
   const groups = distinctValues(samples.map((x) => x.group));
   return {
-    idx, records, curves, targets, groups, controls: records.length - samples.length,
+    idx, records, rows, curves, targets, groups, controls: records.length - samples.length,
     problem: records.length ? null : "No Cq records yet: each row needs a sample, a target and a Cq.",
   };
 }

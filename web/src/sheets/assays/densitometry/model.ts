@@ -90,6 +90,8 @@ export function normalizeDensOptions(raw: unknown): DensOptions {
 export interface DensData {
   idx: ColumnIndex<DRole>;
   records: Record<string, unknown>[];
+  /** The table row (0-based) of each record. */
+  rows: number[];
   blots: string[];
   groups: string[];
   problem: string | null;
@@ -99,15 +101,18 @@ export function readLanes(t: DataTableModel, o: DensOptions): DensData {
   const idx = resolveColumns(t, DENS_ROLES, o.columns);
   const missing = DENS_ROLES.filter((r) => r.required && idx[r.key] < 0).map((r) => r.label);
   if (missing.length) {
-    return { idx, records: [], blots: [], groups: [], problem: `Choose the column for: ${missing.join(", ")}.` };
+    return { idx, records: [], rows: [], blots: [], groups: [],
+      problem: `Choose the column for: ${missing.join(", ")}.` };
   }
   const blot = textColumn(t, idx.blot); const lane = textColumn(t, idx.lane);
   const sample = textColumn(t, idx.sample); const group = textColumn(t, idx.group);
   const target = numberColumn(t, idx.target); const ref = numberColumn(t, idx.reference);
   const bg = numberColumn(t, idx.background); const rbg = numberColumn(t, idx.refBackground);
   const records: Record<string, unknown>[] = [];
+  const rows: number[] = [];
   for (let r = 0; r < t.x.length; r++) {
     if (!blot[r] || !group[r] || target[r] === null) continue;
+    rows.push(r);
     records.push({
       blot: blot[r], lane: lane[r] || String(r + 1), group: group[r],
       ...(sample[r] ? { sample: sample[r] } : {}),
@@ -117,7 +122,7 @@ export function readLanes(t: DataTableModel, o: DensOptions): DensData {
     });
   }
   return {
-    idx, records,
+    idx, records, rows,
     blots: distinctValues(records.map((x) => String(x.blot))),
     groups: distinctValues(records.map((x) => String(x.group))),
     problem: records.length ? null : "No lanes yet: each row needs a blot, a group and a target signal.",

@@ -38,6 +38,7 @@
 //   study-design.json  a study design record on the info sheet of a t test (P-61)
 //   sex-factor.json    rows F and M of a grouped table under multiple t tests (P-62)
 //   normalize-title.json a new Normalize output and its graph, titled "% of vehicle (mean)" (P-55)
+//   assay-analysed.json a qPCR plate whose Notes strip names the wells left out (P-16)
 //   many-sheets.json   74 sheets: 22 families, navigator groups (one
 //                      collapsed), highlights, info sheets and layouts
 import { readFileSync, writeFileSync } from "node:fs";
@@ -626,4 +627,27 @@ const longData = (name, names, rows, categorical) => data(name, {
     "Correlation of pH and PaCO2");
   write("rm-reporting.json", project("RM reporting",
     [t, r, t2, r2, t3, r3, t4, r4, t5, r5, t6, r6], { selected: r.id }));
+}
+
+// assay-analysed.json: a qPCR plate whose Notes strip names what was left
+// out (P-16): an "Undetermined" IL6 well, a blank one, an excluded GAPDH
+// well, a row without a target, and an NTC
+{
+  const block = {
+    GAPDH: { "CON-1": [17.9, 18.0, 18.1], "CON-2": [17.0, 17.1, 17.2], "LPS-1": [18.0, 18.1, 18.2], "LPS-2": [17.4, 17.5, 17.6] },
+    IL6: { "CON-1": [27.3, 27.3, 27.3], "CON-2": [27.0, 27.0, 27.0], "LPS-1": [24.1, 24.1, 24.1], "LPS-2": [24.3, 24.3, 24.3] },
+  };
+  const rows = [];
+  for (const [target, samples] of Object.entries(block)) {
+    for (const [s, cqs] of Object.entries(samples)) for (const c of cqs) rows.push([s, s.split("-")[0], target, String(c)]);
+  }
+  rows[12][3] = "Undetermined";
+  rows[13][3] = "";
+  rows.push(["NTC", "", "GAPDH", "Undetermined"], ["LPS-2", "LPS", "", "24.2"]);
+  rows.forEach((r, i) => r.push(`${"ABCDEFGH"[Math.floor(i / 12)]}${(i % 12) + 1}`));
+  const t = longData("qPCR plate 7", ["Sample", "Group", "Target", "Cq", "Well"], rows,
+    ["Sample", "Group", "Target", "Well"]);
+  t.table.datasets[3].excluded = ["4:0"];
+  const r = results(t, "assay_qpcr", { referenceGenes: ["GAPDH"], calibrator: "CON" }, "qPCR of qPCR plate 7");
+  write("assay-analysed.json", project("qPCR plate 7", [t, r], { selected: r.id }));
 }

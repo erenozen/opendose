@@ -129,6 +129,8 @@ export interface StdRow {
   dilution: number;
   plate: string;
   signals: (number | null)[];
+  /** The table row (0-based). */
+  row: number;
 }
 
 export function kindOf(type: string, conc: number | null): RowKind | null {
@@ -174,7 +176,7 @@ export function readRows(t: DataTableModel, o: StdOptions): { rows: StdRow[]; pr
       kind, conc: conc[r], plate: plate[r],
       name: name[r] || (kind === "unknown" ? `Sample ${r + 1}` : kind === "blank" ? "Blank"
         : kind === "low" ? "Low" : `Std ${conc[r]}`),
-      group: group[r], dilution: dil[r] && dil[r]! > 0 ? dil[r]! : 1, signals: s,
+      group: group[r], dilution: dil[r] && dil[r]! > 0 ? dil[r]! : 1, signals: s, row: r,
     });
   }
   return { rows, problem: rows.some((x) => x.kind === "standard") ? null : "No standards: rows need a concentration." };
@@ -193,7 +195,7 @@ function readXY(t: DataTableModel): { rows: StdRow[]; problem: string | null } {
     const dil = dIdx >= 0 ? parseCell(b.datasets[dIdx].rows[r]?.[0] ?? "") : null;
     const kind: RowKind = conc === null ? "unknown" : conc === 0 ? "blank" : "standard";
     rows.push({
-      kind, conc, group: "", plate: "", signals, dilution: dil && dil > 0 ? dil : 1,
+      kind, conc, group: "", plate: "", signals, dilution: dil && dil > 0 ? dil : 1, row: r,
       name: b.rowTitles[r]?.trim() || (kind === "unknown" ? `Sample ${r + 1}` : `Std ${conc}`),
     });
   }

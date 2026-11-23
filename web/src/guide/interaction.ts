@@ -10,6 +10,7 @@
 // tests); Gelman & Stern 2006; Nieuwenhuis et al. 2011. Pure; unit-tested.
 import type { Project, ResultsSheet } from "../project/types.ts";
 import type { Chip } from "./checks.ts";
+import { METHODS } from "./methodsWording.ts";
 import { tTestRuns, type TTestRun } from "./multiplicity.ts";
 import type { Design, Recommendation, Target } from "./recommend.ts";
 import { SRC } from "./sources.ts";
@@ -51,6 +52,7 @@ export function interactionRecommendation(d: Design,
   }
   return { ...base, notes,
     rule: rm ? "two_way_interaction_rm" : "two_way_interaction",
+    methods: METHODS[rm ? "two_way_interaction_rm" : "two_way_interaction"](),
     test: rm ? "Two-way repeated-measures ANOVA, interaction first" : "Two-way ANOVA, interaction first",
     reason: "You are asking whether the treatment effect is different in one group than in "
       + "another (for example, is the drug effect bigger in KO than in WT?). That question is "

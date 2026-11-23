@@ -72,6 +72,8 @@ export function normalizeLucOptions(raw: unknown): LucOptions {
 export interface LucData {
   idx: ColumnIndex<LRole>;
   records: Record<string, unknown>[];
+  /** The table row (0-based) of each record. */
+  rows: number[];
   /** Every group in the table, blank group included. */
   groups: string[];
   experiments: string[];
@@ -82,21 +84,24 @@ export function readWells(t: DataTableModel, o: LucOptions): LucData {
   const idx = resolveColumns(t, LUC_ROLES, o.columns);
   const missing = LUC_ROLES.filter((r) => r.required && idx[r.key] < 0).map((r) => r.label);
   if (missing.length) {
-    return { idx, records: [], groups: [], experiments: [], problem: `Choose the column for: ${missing.join(", ")}.` };
+    return { idx, records: [], rows: [], groups: [], experiments: [],
+      problem: `Choose the column for: ${missing.join(", ")}.` };
   }
   const exp = textColumn(t, idx.experiment); const well = textColumn(t, idx.well);
   const group = textColumn(t, idx.group);
   const ff = numberColumn(t, idx.firefly); const rl = numberColumn(t, idx.renilla);
   const records: Record<string, unknown>[] = [];
+  const rows: number[] = [];
   for (let r = 0; r < t.x.length; r++) {
     if (!group[r] || (ff[r] === null && rl[r] === null)) continue;
+    rows.push(r);
     records.push({
       group: group[r], firefly: ff[r], renilla: rl[r], well: well[r] || String(r + 1),
       ...(idx.experiment >= 0 && exp[r] ? { experiment: exp[r] } : {}),
     });
   }
   return {
-    idx, records,
+    idx, records, rows,
     groups: distinctValues(records.map((x) => String(x.group))),
     experiments: distinctValues(records.map((x) => String(x.experiment ?? "")).filter(Boolean)),
     problem: records.length ? null : "No wells yet: each row needs a group and the Firefly and Renilla readings.",
