@@ -52,19 +52,19 @@ export default function SurvivalAside(props: AsideProps) {
                 {g.name}: {g.events} event{g.events === 1 ? "" : "s"}, {g.censored} censored
               </span>
               {g.events === 0 && g.censored > 0 && (
-                <span className="surv-chip-warn" title="With no events the curve stays at 100%: no median, and the log-rank test has little to compare.">
+                <span className="surv-chip-warn">
                   no events in {g.name}
                 </span>
               )}
               {g.otherCodes.length > 0 && (
-                <span className="surv-chip-warn" title="Event codes must be 1 (event) or 0 (censored); these rows are left out of the analysis.">
+                <span className="surv-chip-warn">
                   event code{g.otherCodes.length === 1 ? "" : "s"}{" "}
                   {[...new Set(g.otherCodes.map((c) => `“${c.code}”`))].join(", ")} (row
                   {g.otherCodes.length === 1 ? "" : "s"} {g.otherCodes.map((c) => c.row).join(", ")}): use 1 = event, 0 = censored
                 </span>
               )}
               {g.incomplete > 0 && (
-                <span className="surv-chip-warn" title="Each subject needs a time and an event code.">
+                <span className="surv-chip-warn">
                   {g.incomplete} incomplete row{g.incomplete === 1 ? "" : "s"} left out
                 </span>
               )}
@@ -72,6 +72,13 @@ export default function SurvivalAside(props: AsideProps) {
           ))}
         </div>
       )}
+      {/* What the chips above mean, in text every reader sees (a hover
+          title reaches neither touch nor keyboard). */}
+      {used.some((g) => g.events === 0 && g.censored > 0) && (
+        <p className="hint-block">With no events the curve stays at 100%: no median, and the log-rank test has little to compare.</p>
+      )}
+      {used.some((g) => g.otherCodes.length > 0) && <p className="hint-block">Event codes must be 1 (event) or 0 (censored); these rows are left out of the analysis.</p>}
+      {used.some((g) => g.incomplete > 0) && <p className="hint-block">Each subject needs a time and an event code.</p>}
       {showRows && used.length > 0 && (
         <div className="surv-readas" tabIndex={0} aria-label="Read as: every row">
           {used.map((g) => (

@@ -261,11 +261,13 @@ export default function NewTableDialog({ defaultType, defaultName, onCancel, onC
               </select>
             </Field>
           )}
-          {design?.type === type && (
-            <p className="field-note design-chosen" role="status">
-              <strong>{design.title}.</strong> {design.layout}
-            </p>
-          )}
+          <div className="status-slot" role="status">
+            {design?.type === type && (
+              <p className="field-note design-chosen">
+                <strong>{design.title}.</strong> {design.layout}
+              </p>
+            )}
+          </div>
           {(type === "column" || type === "xy" || type === "grouped") && (
             <div className="new-table-guide">
               <p className="field-note">

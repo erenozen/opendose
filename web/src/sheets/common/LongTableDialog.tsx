@@ -201,9 +201,11 @@ export default function LongTableDialog({ target, sheet, onClose }: {
           </table>
         </div>
       )}
+      <div className="status-slot" role="status">
+        {fill && "table" in fill && <p className="import-summary">{fill.summary}</p>}
+      </div>
       {fill && "table" in fill && (
         <>
-          <p className="import-summary" role="status">{fill.summary}</p>
           {fill.notes.map((n) => <p key={n} className="field-note">{n}</p>)}
           <p className="field-note">
             This replaces the values in “{parent?.name}”; Undo restores them.

@@ -204,8 +204,9 @@ export default function ConvertTypeDialog({ table, name, onCreate, onClose }: {
         <input value={newName} placeholder={defaultName} aria-label="New table name"
           onChange={(e) => setNewName(e.target.value)} />
       </label>
+      <div className="status-slot" role="status">
       {check && (
-        <p className={`convert-check${check.ok ? "" : " bad"}`} role="status">
+        <p className={`convert-check${check.ok ? "" : " bad"}`}>
           {check.ok
             ? `All ${check.values} value${check.values === 1 ? "" : "s"}${check.excluded
               ? ` and ${check.excluded} exclusion${check.excluded === 1 ? "" : "s"}` : ""} carried over.`
@@ -215,6 +216,7 @@ export default function ConvertTypeDialog({ table, name, onCreate, onClose }: {
           {pairing && ` ${pairing}`}
         </p>
       )}
+      </div>
       {preview && (
         <div className="convert-preview" tabIndex={0} aria-label="Preview of the new table">
           <table>

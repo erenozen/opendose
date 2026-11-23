@@ -123,11 +123,13 @@ export default function GoToSheet({ project, recent, onGo, onClose }: {
             </div>
           ))}
         </div>
-        {!flat.length && (
-          <p className="field-note palette-empty" role="status">
-            {q ? `No command or sheet matches “${q}”.` : "Type part of a command or a sheet name."}
-          </p>
-        )}
+        <div className="status-slot" role="status">
+          {!flat.length && (
+            <p className="field-note palette-empty">
+              {q ? `No command or sheet matches “${q}”.` : "Type part of a command or a sheet name."}
+            </p>
+          )}
+        </div>
         <p className="field-note palette-hint-line" aria-hidden="true">
           <kbd>↑</kbd> <kbd>↓</kbd> to choose, <kbd>Enter</kbd> to run, <kbd>Esc</kbd> to close
         </p>

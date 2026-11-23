@@ -185,9 +185,11 @@ export default function SurvivalEntryDialog({ table, onApply, onClose, initialMo
         </div>
       )}
       {fill && "error" in fill && <p className="field-note long-table-error" role="alert">{fill.error}</p>}
+      <div className="status-slot" role="status">
+        {ok && <p className="import-summary">{ok.summary}</p>}
+      </div>
       {ok && (
         <>
-          <p className="import-summary" role="status">{ok.summary}</p>
           {ok.notes.map((n) => <p key={n} className="field-note">{n}</p>)}
           <div className="surv-entry-preview" tabIndex={0} aria-label="Preview: how each subject is read">
             <table>

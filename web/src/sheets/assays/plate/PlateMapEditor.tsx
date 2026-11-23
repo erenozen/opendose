@@ -325,7 +325,7 @@ export default function PlateMapEditor({ format, wells, unit, values, onChange }
             setTemplates(allTemplates());
             setTplMsg(ok ? `Saved “${tplName.trim()}” in this browser.` : "This browser would not store the template.");
           }}>Save template</button>
-        {tplMsg && <span className="hint-block" role="status">{tplMsg}</span>}
+        <span className="status-slot" role="status">{tplMsg && <span className="hint-block">{tplMsg}</span>}</span>
       </div>
     </div>
   );

@@ -304,11 +304,13 @@ export default function LayoutSheetView({ sheet }: { sheet: LayoutSheet }) {
               Export page waits for the analysis engine, which is still loading.
             </span>
           )}
-          {belowFontFloor(minPt) && (
-            <span className="export-warn" role="status">
-              Smallest text on the page is {minPt} pt; journals usually want at least {FONT_FLOOR_PT} pt.
-            </span>
-          )}
+          <span className="status-slot" role="status">
+            {belowFontFloor(minPt) && (
+              <span className="export-warn">
+                Smallest text on the page is {minPt} pt; journals usually want at least {FONT_FLOOR_PT} pt.
+              </span>
+            )}
+          </span>
           {dark && settings.paper && (
             <span className="export-note">Shown in dark-theme colours; exports and prints use print colours.</span>
           )}

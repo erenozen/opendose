@@ -279,8 +279,9 @@ export default function RecipeDialog({ initialText, initialFiles, savedId, stage
                 onChange={(e) => setPasted(e.target.value)} />
             </label>
           )}
+          <div className="status-slot" role="status" aria-label="Files stacked">
           {isMulti && multi && (
-            <p className="field-note" role="status" aria-label="Files stacked">
+            <p className="field-note">
               {multi.stack.files} files stacked into one table of {multi.stack.matrix.length - 1} rows,
               with the file name in a “File” column.
               {multi.stack.empty.length > 0 && ` ${multi.stack.empty.length} file(s) had no rows: `
@@ -290,6 +291,7 @@ export default function RecipeDialog({ initialText, initialFiles, savedId, stage
               {multi.skipped.length > 0 && ` Not read (not a table file): ${multi.skipped.slice(0, 4).join(", ")}.`}
             </p>
           )}
+          </div>
           <fieldset className="recipe-list">
             <legend>Recipe</legend>
             <RecipeOption checked={choice === "auto"} onChange={() => setChoice("auto")}
@@ -432,8 +434,9 @@ export default function RecipeDialog({ initialText, initialFiles, savedId, stage
                   Keep every value and mark which experiment it comes from (replicate map for
                   SuperPlots and statistics on replicate means)
                 </label>
+                <div className="status-slot" role="status" aria-label="Replicate map">
                 {cfg.replicateMap && (
-                  <p className="field-note" role="status" aria-label="Replicate map">
+                  <p className="field-note">
                     {out?.replicates
                       ? <>Replicate map: {out.replicates.experiments} independent experiments
                         (from {out.replicates.column}); each value is one {singular(out.replicates.unit)}.
@@ -443,6 +446,7 @@ export default function RecipeDialog({ initialText, initialFiles, savedId, stage
                     <a href={SRC.lord2020.url} target="_blank" rel="noreferrer">{SRC.lord2020.label}</a>
                   </p>
                 )}
+                </div>
               </div>
             )}
             <label className="field">
