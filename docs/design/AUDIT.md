@@ -570,3 +570,52 @@ Three seams where nothing animates today; full recipes in Opportunities below: t
 #### Part 3: Verdict
 
 OpenDose needs very little new motion. Its existing motion is already restrained and mostly well tuned (strong ease-out tokens, `@starting-style` entrances, nothing on the grid). The work is corrective (MO-01 to MO-10), not additive. Of the additions, O-03 (the Toast's enter and exit) has the highest leverage because every save, copy and error passes through it. It belongs in the phase 3 Toast primitive. To turn any row into a plan, run `improve-animations plan <row>`.
+
+## Phase 7: the ship check (2026-11-23)
+
+emil-prep-for-prod ran again over the finished overhaul with its four lane
+agents (A+D, B+E+F, C, G+H+I); a central agent applied the fixes by file.
+Lane files with every row and its status: `.design/audit7/` (gitignored
+working files); the fix report's lane tables are summarised here.
+
+**Verdict: Ship.** Before: "Not yet", 26 blocker rows in 10 root causes.
+After the sweep: 1 new blocker found (the answer pane's skeleton let the
+graph jump up to 526px when the first result landed) and fixed; every
+should-fix row fixed or listed below with the exact change.
+
+| Lane | Phase 0 rows still open after phase 6 | Phase 7 findings (B / S / P) | Open after the fixes |
+|---|---|---|---|
+| A. Accessibility, D. Forms | 5 of 58 | 0 / 18 / 7 | A7D-09 (truncated tab names), human |
+| B. Performance, E. States, F. Motion | 5 | 1 / 9 / 6 | B7-11 (long comparison lists), B7-14 (note entrance), human |
+| C. Mobile | 6 | 0 / 14 / 3 | C7-01 remainder (78 raw decimal fields), C7-06 (plate row letters), C7-17 (breakpoints), human |
+| G. Theming, H. Content, I. Marketing | 4 | 0 / 1 / 11 | og:image, typographic apostrophes, typed engine payloads, citation block placement, human |
+
+Measured after the sweep: axe 0 violation nodes on all 55 ui-stage scenes
+(baseline 34); no sideways scroll at 390 or 360px; no text field under
+16px on touch; first-paste CLS at most 0.005 (was up to 0.16); lint 0
+warnings; every e2e suite green, e2e-motion also on the production build.
+
+### Needs a device
+- Screen reader (VoiceOver, NVDA): toast Undo is spoken and reachable
+  with F6, also inside a dialog; status lines announce once; the plate map
+  is one Tab stop; menu item names are short with the description after.
+- iPhone: grid cells and signed number fields show the text keyboard
+  (minus and "e" typeable); the last menu item clears the home indicator;
+  modals and menus clear the notch in landscape; presses dim under Reduce
+  Motion; plots show no zoom or pan tools; on iOS older than 17.5 menus and
+  dialogs show the light fallback.
+- Android: mis-taps on New data table radios, menu swatches, summaries,
+  the row delete and the plate row letters; the Describe dialog at 360px;
+  typing and scrolling on the 1,200-row table.
+- Windows High Contrast and 200% zoom: focus ring, field edges.
+- Slack, iMessage and X link previews (summary card).
+
+### Needs a human
+- og:image (1200 x 630), then `twitter:card` back to `summary_large_image`.
+- The 78 remaining raw `inputMode="decimal"` fields: NumberField with
+  `min`, or the text keyboard for signed values.
+- Cap the comparison list at 200 rows with "Show all N" (exports keep
+  every row).
+- Typographic apostrophes in 42 files (e2e selectors change with them).
+- Analyze / analysed spelling; "next release" placeholder wording.
+- Panes filling the workspace height on long pages.
