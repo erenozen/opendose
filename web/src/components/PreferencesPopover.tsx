@@ -11,6 +11,7 @@ import {
   type PFloor, type PStyle, type ReportPrefs, type SmdPref, type VariancePref,
 } from "../report/prefs";
 import { Button, Popover } from "./ui";
+import StorageNote from "./StorageNote";
 
 /** Every keyboard binding in the app, by where it works. Keep in sync
  *  with useShortcuts, the navigator, the data grid, the layout canvas,
@@ -198,6 +199,7 @@ export default function PreferencesPopover({ open, onOpenChange, anchor }: {
               ? "Your work is kept in this browser, so a closed tab loses nothing; the next person at this computer could reopen it."
               : "Nothing is kept: save the project as a file before you close the tab. Saved sessions were deleted."}
           </p>
+          <StorageNote autosaveOn={autosaveOn} />
           {forget === "" && (
             <button type="button" className="prefs-forget" onClick={() => setForget("confirm")}>
               Forget this computer&apos;s data…

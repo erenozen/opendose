@@ -24,6 +24,7 @@ import FloatingNotes from "./components/FloatingNotes";
 import Header from "./components/Header";
 import InfoSheetView from "./components/InfoSheetView";
 import Navigator from "./components/Navigator";
+import SessionBanners from "./components/SessionBanners";
 import { newId } from "./project/ids";
 import { familyRootId, findSheet, makeProject } from "./project/ops";
 import type { Project } from "./project/types";
@@ -73,7 +74,7 @@ function Shell() {
   const ui = useUi();
   const guide = useGuide();
   const files = useFileOpen(importInto);
-  const autosave = useAutosave();
+  const autosave = useAutosave({ autoOpen: guide.startPending });
   useShortcuts();
   useDerivedSync();
   useCalculatedSync();
@@ -87,26 +88,15 @@ function Shell() {
   // replaces it (DECISIONS 4).
   useState(() => { if (!readOnly) markExample(store.project); return null; });
 
-  // Once the autosave has been looked at, a last session reopens directly;
-  // with none (a first visit, or after "New project") the example stays.
+  // Once the autosave has been looked at (a reloaded tab's own session, or
+  // the one session of a closed tab, has reopened by then), the workbench
+  // shows; with none (a first visit, or after "New project") the example
+  // stays, and several kept sessions are offered in the restore banner.
   const { startPending, resolveStart } = guide;
-  const { checked: autosaveChecked, offer, restore } = autosave;
+  const autosaveChecked = autosave.checked;
   useEffect(() => {
-    if (!startPending || !autosaveChecked) return;
-    if (offer) restore({ auto: true });
-    resolveStart();
-  }, [startPending, autosaveChecked, offer, restore, resolveStart]);
-
-  // Dismiss deletes the saved session for good: say so, and ask.
-  const discardLastSession = async () => {
-    const ok = await ui.confirm({
-      title: "Discard your last session?",
-      body: "The autosaved project is deleted from this browser and cannot be restored.",
-      confirmLabel: "Discard",
-      danger: true,
-    });
-    if (ok) autosave.dismiss();
-  };
+    if (startPending && autosaveChecked) resolveStart();
+  }, [startPending, autosaveChecked, resolveStart]);
 
   const newProject = async () => {
     const ok = await ui.confirm({
@@ -203,23 +193,7 @@ function Shell() {
       <div className="banner-region" inert={behindDrawer}>
         <ShareHost />
         <ReproduceStrip />
-        <Banner tone="info" className="restore-banner"
-          open={!!autosave.offer && !guide.startPending}>
-          {autosave.offer && (
-            <>
-              <Banner.Title>Restore your last session?</Banner.Title>
-              <Banner.Detail>
-                “{autosave.offer.title}”, {autosave.offer.sheets}{" "}
-                sheet{autosave.offer.sheets === 1 ? "" : "s"}, saved{" "}
-                {new Date(autosave.offer.savedAt).toLocaleString()}.
-              </Banner.Detail>
-              <Banner.Actions>
-                <Button variant="primary" onClick={() => autosave.restore()}>Restore</Button>
-                <Button onClick={discardLastSession}>Discard last session</Button>
-              </Banner.Actions>
-            </>
-          )}
-        </Banner>
+        <SessionBanners autosave={autosave} pending={guide.startPending} />
         <Banner tone="info" className="pzfx-chooser" open={!!files.prismTables} announce>
           {files.prismTables && (
             <PrismChooser tables={files.prismTables} onImport={files.importTables}

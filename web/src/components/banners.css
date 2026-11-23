@@ -22,4 +22,20 @@
 }
 .pzfx-list .check-row { padding: var(--space-4) 0; font-size: var(--text-body-s); }
 
+/* The restore banner's kept sessions (components/SessionBanners.tsx): one
+   row each, Restore and Discard on the right (under the words on a
+   phone); it scrolls past about six rows (at most ten are kept). */
+.banner-detail .session-list {
+  list-style: none; margin: var(--space-6) 0 0; padding: 0; max-width: 44rem;
+  display: flex; flex-direction: column;
+  max-height: 15rem; overflow-y: auto; overscroll-behavior: contain;
+}
+.session-row {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: var(--space-4) var(--space-12); padding: var(--space-4) 0;
+  border-top: 1px solid var(--line);
+}
+.session-row:first-child { border-top: 0; }
+.session-row-actions { display: flex; gap: var(--space-8); }
+
 @media print { .banner-region { display: none; } }
