@@ -221,6 +221,21 @@ export const SRC = {
   // inflate false positives; use the unit or a multilevel model.
   aarts2014: { label: "Aarts et al. 2014, A solution to dependency: using multilevel analysis to accommodate nested data, Nat Neurosci 17:491",
     url: "https://doi.org/10.1038/nn.3648" },
+
+  // Graphs (P-25, P-26); each read on 2026-11-23.
+  // "Bar charts should generally include a zero baseline (or equivalent)
+  // given that bars encode their variables as lengths" (ch. 1, Problems
+  // of honesty and good judgment; online second-edition draft).
+  healyZeroBaseline: { label: "Healy, Data Visualization: A Practical Introduction, ch. 1, Problems of honesty and good judgment",
+    url: "https://socviz.co/01-look-at-data.html" },
+  // The geometric mean and the multiplicative standard deviation s*,
+  // written x̄* ×/ s* ("times-divide"), back-transformed from the logs.
+  limpertStahel2011: { label: "Limpert & Stahel 2011, Problems with using the normal distribution – and ways to improve quality and efficiency of data analysis, PLoS ONE 6:e21403",
+    url: "https://doi.org/10.1371/journal.pone.0021403" },
+  // "The Mann-Whitney test is a test of both location and shape": it
+  // compares whole distributions (ranks), not medians.
+  hart2001: { label: "Hart 2001, Mann-Whitney test is not just a test of medians: differences in spread can be important, BMJ 323:391",
+    url: "https://pmc.ncbi.nlm.nih.gov/articles/PMC1120984/" },
 } satisfies Record<string, Source>;
 
 export type SourceKey = keyof typeof SRC;

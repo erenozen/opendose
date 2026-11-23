@@ -10,6 +10,7 @@ import { SRC, type Source } from "./sources.ts";
 import { withheldInfo } from "../sheets/common/withheld.ts";
 import { blockBanner, blockRemoved, MATCHED_BY, pairedBlockBanner } from "./blocking.ts";
 import { withheldBanner } from "./smallN.ts";
+import { rankFloorBanner } from "./rankFloor.ts";
 
 export interface Banner {
   id: string;
@@ -233,6 +234,10 @@ export function resultBanners(ctx: ResultContext): Banner[] {
   // One independent value in a group: P withheld (small-n-honesty).
   const wh = withheldInfo(r);
   if (wh) return [withheldBanner(wh, ctx.needed ?? null)];
+  // A rank test this design cannot make significant (P-15): first, so it
+  // is the pane's callout.
+  const floor = rankFloorBanner(r, (ctx.options as R).ttestTails);
+  if (floor) out.push(floor);
   // Matched by experiment / subject: what the matching removed
   // (experiment-as-block).
   const byExperiment = (ctx.options as R)[MATCHED_BY] === "experiment";

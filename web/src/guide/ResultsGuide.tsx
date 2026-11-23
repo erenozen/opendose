@@ -6,7 +6,7 @@
 // nothing blocks. (A P value withheld at one value per group is the
 // analysis' own result: sheets/common/withheld.ts.)
 import { useId, useMemo, useState } from "react";
-import { Banner as BannerBox, Button } from "../components/ui";
+import { Banner as BannerBox, Button, NumText } from "../components/ui";
 import { openPowerTool } from "../power/events";
 import type { Banner } from "./banners";
 import type { Chip } from "./checks";
@@ -15,6 +15,7 @@ import LearnMore from "./LearnMore";
 import MultiplicityActions from "./MultiplicityActions";
 import type { MultiplicityFacts } from "./multiplicity";
 import { InteractionAction } from "./InteractionAction";
+import { BarAxisAction } from "./BarAxisAction";
 import { openAssignReplicates } from "../report/useReport";
 import type { Source } from "./sources";
 import { useContextFor, type ResultsGuideProps } from "./useResultsGuidance";
@@ -76,6 +77,7 @@ export function Chips({ chips, dataId, multiplicity, readOnly }: {
           )}
           {cur.action === "multiplicity" && multiplicity && <MultiplicityActions facts={multiplicity} />}
           {cur.action === "interaction" && dataId && !readOnly && <InteractionAction dataId={dataId} />}
+          {cur.action === "bar-axis" && cur.target && !readOnly && <BarAxisAction graphId={cur.target} />}
           <Sources sources={cur.sources} />
           {cur.explainer && <LearnMore id={cur.explainer} />}
         </div>
@@ -87,11 +89,11 @@ export function Chips({ chips, dataId, multiplicity, readOnly }: {
 function NoteBody({ b }: { b: Banner }) {
   return (
     <>
-      <p>{b.body}</p>
+      <p><NumText text={b.body} /></p>
       {b.fixes.length > 0 && (
         <>
           <p className="guide-note-sub">What to try</p>
-          <ul>{b.fixes.map((f, i) => <li key={i}>{f}</li>)}</ul>
+          <ul>{b.fixes.map((f, i) => <li key={i}><NumText text={f} /></li>)}</ul>
         </>
       )}
     </>

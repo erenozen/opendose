@@ -1,6 +1,7 @@
 import { formatSig } from "../types";
 import { pLabel, tableP, tableStars } from "../report/pformat";
 import { adjustedHeader, familyOf, hasUnadjusted } from "../report/family";
+import { FIELLER_SOURCE, ratioText } from "../report/ratioToControl";
 import FamilyLine from "../sheets/common/FamilyLine";
 import ResidualsSection from "../sheets/column/residualsPanel";
 import { LogAnovaRatios, LogTTest } from "../sheets/column/logScaleResults";
@@ -37,6 +38,53 @@ function pKind(method: unknown): string {
 function fmtAchievedCI(ci: unknown, level: unknown): string {
   const lvl = typeof level === "number" ? ` (actual confidence ${formatSig(100 * level, 4)}%)` : "";
   return `${fmtCI(ci)}${lvl}`;
+}
+
+/** The ratio to control rows of an unpaired t test (report/ratioToControl.ts). */
+function ratioRows(r: any): Row[] {
+  if (!r) return [];
+  const t = ratioText(r, String(r.denominator ?? "A"));
+  if (!t) return [];
+  const level = typeof r.ci_level === "number" ? Math.round(r.ci_level * 100) : 95;
+  return [[`Ratio ${r.numerator ?? "B"}/${r.denominator ?? "A"}`, t.value],
+    [`${level}% CI of ratio (Fieller)`, t.ci]];
+}
+
+/** Each Dunnett comparison's mean over the control mean, with
+ *  simultaneous Fieller intervals (engine anova._dunnett_ratios). */
+function DunnettRatios({ mc }: { mc: any }) {
+  const rows = (mc.comparisons as any[]).filter((c) => c.ratio && typeof c.ratio.value === "number");
+  if (mc.method !== "dunnett" || !rows.length) return null;
+  const control = String(rows[0].ratio.denominator ?? "the control");
+  return (
+    <>
+      <h4>Ratio to control</h4>
+      <table className="results-table ratio-table">
+        <thead>
+          <tr><th>Comparison</th><th>Ratio</th><th>% of {control}</th><th>95% CI (Fieller, simultaneous)</th></tr>
+        </thead>
+        <tbody>
+          {rows.map((c, i) => {
+            const t = ratioText(c.ratio, control);
+            return (
+              <tr key={i}>
+                <th scope="row">{c.pair}</th>
+                <td>{t?.ratio}</td>
+                <td>{t?.percent}</td>
+                <td>{t?.ci}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      <p className="model-line">
+        Each group&apos;s mean divided by the control&apos;s, with confidence intervals that
+        hold for the family of comparisons together (Dunnett&apos;s critical value in
+        Fieller&apos;s formula, the plug-in method of Dilba, Bretz &amp; Guiard 2006, J Stat
+        Plan Inference 136:2640; {FIELLER_SOURCE}).
+      </p>
+    </>
+  );
 }
 
 function KV({ title, rows }: { title?: string; rows: Row[] }) {
@@ -244,6 +292,7 @@ function TTest({ result, tails }: { result: any; tails?: Tails }) {
        `${formatSig(result.difference)} ± ${formatSig(result.se_difference)}`],
       ["95% CI of difference", fmtCI(result.ci_difference)],
     );
+    rows.push(...ratioRows(result.ratio_to_control));
   }
   if (result.mean_difference !== undefined) {
     rows.push(
@@ -286,6 +335,12 @@ function TTest({ result, tails }: { result: any; tails?: Tails }) {
     <div className="result-card">
       <h3>{nameA} vs. {nameB}</h3>
       <KV rows={rows} />
+      {result.ratio_to_control?.value != null && (
+        <p className="model-line">
+          Ratio: the mean of {nameB} over the mean of {nameA} (the first data set is the
+          control), with Fieller&apos;s interval on the pooled SD ({FIELLER_SOURCE}).
+        </p>
+      )}
     </div>
   );
 }
@@ -346,6 +401,7 @@ function ComparisonsTable({ mc, fallbackMethod }: { mc: any; fallbackMethod?: st
           ))}
         </tbody>
       </table>
+      <DunnettRatios mc={mc} />
     </>
   );
 }

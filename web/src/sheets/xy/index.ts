@@ -35,6 +35,7 @@ import {
 } from "./deming";
 import { DemingControls, DemingMethods, DemingResults } from "./demingPanels";
 import { xySample } from "./sample";
+import { XYGraphOptions } from "./fitGraphOptions";
 
 export const nonlinAnalysis = defineAnalysis<OptionsState, AnalysisResult>({
   id: ANALYSIS_NONLIN,
@@ -81,6 +82,7 @@ export const xyGraph = defineGraph<OptionsState, AnalysisResult>({
   autoTitles: xyAutoTitles,
   exportName: "dose-response",
   PlotPanel: XYPlot,
+  OptionsPanel: XYGraphOptions,
   formatFeatures: { points: true, lines: true, connect: true, errorBars: true, xError: true },
 });
 

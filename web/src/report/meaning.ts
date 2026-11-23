@@ -28,6 +28,7 @@ import { formatSig } from "../types.ts";
 import { formatPValue, type PStyle } from "./pformat.ts";
 import { DEFAULT_REPORT } from "./prefs.ts";
 import { POSTHOC_NAMES } from "./describe.ts";
+import { ratioClause } from "./ratioToControl.ts";
 import { withheldInfo } from "../sheets/common/withheld.ts";
 import { SRC, type Source } from "../guide/sources.ts";
 
@@ -217,8 +218,12 @@ function ttestMeaning(r: R, t: MeaningTable | null | undefined, style: PStyle): 
       const x = bMinusA(r.difference, r.ci_difference, r.mean_a, r.mean_b);
       if (!x) return null;
       const dir = x.d >= 0 ? "higher" : "lower";
-      const rel = num(r.mean_a) && num(r.mean_b) && r.mean_a > 0 && r.mean_b > 0
-        ? `, ${pct(Math.abs(100 * x.d / r.mean_a))} ${dir}` : "";
+      // the ratio to control with its Fieller CI when the engine gives one
+      // (unpaired t test, P-18), else the bare percentage
+      const ratio = ratioClause(r.ratio_to_control, b, a);
+      const rel = ratio ? `; ${ratio}`
+        : num(r.mean_a) && num(r.mean_b) && r.mean_a > 0 && r.mean_b > 0
+          ? `, ${pct(Math.abs(100 * x.d / r.mean_a))} ${dir}` : "";
       const means = num(r.mean_a) && num(r.mean_b) ? ` (mean ${fmt(r.mean_b)} vs. ${fmt(r.mean_a)}${rel})` : "";
       const test = r.test === "welch_t"
         ? "Unpaired t test with Welch's correction: compares the means of two independent groups without assuming equal SDs."

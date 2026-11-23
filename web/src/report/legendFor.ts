@@ -21,6 +21,8 @@ import {
 import { compareParameterLegend } from "../sheets/xy/compareParameter.ts";
 import { logLegendClause } from "../sheets/column/logScale.ts";
 import { maxOf } from "../lib/extent.ts";
+import { dropLegend, normalizeXYGraph } from "../sheets/xy/fitGraph.ts";
+import { fitLegendClause } from "../sheets/xy/fitLegend.ts";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -146,10 +148,12 @@ export function legendFor(c: LegendContext): string {
     && facts.values.every((g) => g.n <= facts.experiments);
   // The graph's own P style / "hide ns" override the project's.
   const fmt = c.graph ? readFormat(c.graph.settings) : null;
+  const xyFit = c.graph?.graphType === "xy"
+    ? xyFitPlotted(c.graph, c.table, c.result, c.options, f.errorBars) : undefined;
   return legendParagraph({
     graphType: c.graph?.graphType ?? null,
-    plotted: withCompareClause(c.graph ? (own ? ownPlotted(c.graph, c.result, c.options)
-      : plottedClause(c.graph, c.table, c.result)) : undefined, c.result),
+    plotted: xyFit ?? withCompareClause(c.graph ? (own ? ownPlotted(c.graph, c.result, c.options)
+      : plottedClause(c.graph, c.table, c.result, c.options)) : undefined, c.result),
     result: c.result,
     groups: xyGroups,
     unit: { unit, experiments: onePer ? null : meta.experiments ?? null,
@@ -165,6 +169,18 @@ export function legendFor(c: LegendContext): string {
     style: fmt?.pStyle ?? c.prefs.pStyle,
     hideNs: fmt?.comparisons?.hideNs ?? c.prefs.hideNs, software: c.software,
   });
+}
+
+/** The curve-fit graph: the points, the model and how it was fitted, the
+ *  band and ROUT (sheets/xy/fitLegend.ts), then the IC50 / EC50 drop
+ *  lines; without a fitted curve, the points and the drop lines alone. */
+function xyFitPlotted(g: GraphSheet, table: DataTableModel, result: unknown, options: unknown,
+  errorBars: ErrorBars | null): string | undefined {
+  const s = normalizeXYGraph(g.settings.xy);
+  const fit = fitLegendClause(table, result, options, s);
+  if (fit) return fit;
+  const drop = dropLegend(result, s);
+  return drop ? `${whatIsPlotted("xy", { errorBars })} ${drop}` : undefined;
 }
 
 /** A "Compare a parameter" result adds what was compared and how to the

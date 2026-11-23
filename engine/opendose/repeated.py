@@ -466,6 +466,21 @@ def rm_two_way_both(cells, *, row_names=None, col_names=None) -> dict:
     }
 
 
+def _friedman_p(M, exact):
+    """(statistic, P, p_method): the chi-square P, or with exact=True the
+    exact P when (k!)^n is within the guide's limit."""
+    n, k = M.shape
+    stat, p = stats.friedmanchisquare(*[M[:, j] for j in range(k)])
+    p_method = None
+    if exact:
+        from . import exactdist
+        if exactdist.friedman_exact_feasible(n, k):
+            p, p_method = exactdist.friedman_exact_p(M), "exact"
+        else:
+            p_method = "approximate"
+    return stat, p, p_method
+
+
 def friedman(datasets, names=None, *, dunns: bool = True,
              exact: bool = False, dunn_family: str = "all", control=0,
              pairs=None, dunn_correction: str = "bonferroni") -> dict:
@@ -478,14 +493,7 @@ def friedman(datasets, names=None, *, dunns: bool = True,
                          f"(use 'bonferroni', 'holm' or 'none')")
     M = _complete_matrix(datasets)
     n, k = M.shape
-    stat, p = stats.friedmanchisquare(*[M[:, j] for j in range(k)])
-    p_method = None
-    if exact:
-        from . import exactdist
-        if exactdist.friedman_exact_feasible(n, k):
-            p, p_method = exactdist.friedman_exact_p(M), "exact"
-        else:
-            p_method = "approximate"
+    stat, p, p_method = _friedman_p(M, exact)
     names = names or [f"Treatment {i}" for i in range(k)]
     ranks = np.apply_along_axis(stats.rankdata, 1, M)
     rank_sums = ranks.sum(axis=0)
@@ -498,6 +506,16 @@ def friedman(datasets, names=None, *, dunns: bool = True,
     }
     if p_method is not None:
         out["p_method"] = p_method
+    # the smallest P this design can give, by the same method
+    # (exactdist.min_p_friedman)
+    from . import exactdist
+    try:
+        floor = exactdist.min_p_friedman(M, lambda m: _friedman_p(m, exact)[1])
+    except ValueError:
+        floor = None
+    out["min_attainable_p"] = exactdist.min_p_block(
+        floor, "exact" if p_method == "exact" else "chi-square approximation",
+        [n, k])
     out["effect_size"] = effectsize.safe(effectsize.kendalls_w, float(stat),
                                          int(n), int(k))
     if dunns:

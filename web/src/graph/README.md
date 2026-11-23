@@ -260,6 +260,40 @@ below 5 (look the same) or 10 (similar) and marks below 3:1 contrast on
 the background. It warns when transparent fills meet the colour-blind
 scheme. The built-in schemes stay validated offline (lib/palette.ts).
 
+### Curve-fit graph options (sheets/xy/fitGraph.ts)
+
+`settings.xy` of a graph of kind `xy`: `dropLines` draws dashed lines
+from the curve at the IC50 / EC50 to both axes, `dropLabel` writes the
+value beside the point (absent = off, today's figure). Each line is a
+shape with one end in axis units and one at the plot edge (`yref:
+["y", "y domain"]`, Plotly 3 per-end references), so it reaches the
+axis at any zoom and takes no part in autorange; names `drop:<ds>:v` /
+`drop:<ds>:h`. Relative models use the range flags' midpoint and half
+response, the absolute IC50 models (Top + Baseline) / 2; a fit the
+results flag (ambiguous, beyond the doses tested) gets a legend sentence
+instead (`dropLegend`).
+
+`caption` ("below" / "figure" / absent = folded) places the curve-fit
+legend, `sheets/xy/fitLegend.ts fitLegendClause`: the points and error
+bars, then in this order the model, what was fitted (every replicate
+value, or the means) and its weighting, the band (95% confidence or
+prediction), the points ROUT removed (named, drawn as ×), and the drop
+lines. `report/legendFor.ts` uses it as the "what is plotted" clause of
+every XY curve-fit graph, so the card and the in-figure caption agree.
+
+### Column centres: geometric, and following the test
+
+`settings.column.summary` also takes `geo_sd` (geometric mean ×/÷
+geometric SD) and `geo_ci` (the back-transformed CI of the logs); a group
+with a value of 0 or less gets no geometric summary and the legend names
+it (`geoRefused`). New column graphs store `"auto"` ("Follow the test",
+`sheets/column/rankSummary.ts resolveSummary`): median with IQR, from
+`boxStats.percentileOf` with the column statistics' method, while the
+bound analysis is a rank test, else mean ± SD. `legendSpec` /
+`plottedClause` / `legendSentence` take the bound options for it. Bars
+on a log axis or an axis cut above zero add a Checks chip
+(`sheets/column/barAxis.ts`).
+
 ### SuperPlots
 
 Trace role `replicate` (new): data marks coloured by replicate, which

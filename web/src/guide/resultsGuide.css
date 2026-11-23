@@ -24,6 +24,7 @@
 }
 .guide-chip-detail p { margin: 0 0 var(--space-4); }
 .guide-chip-detail .guide-chip-action { margin: var(--space-8) 0; }
+.guide-chip-detail .guide-chip-actions { display: flex; flex-wrap: wrap; gap: var(--space-8); }
 
 /* ---- notes: one per condition, plain text on a hairline ---- */
 .guide-note {

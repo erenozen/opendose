@@ -74,6 +74,9 @@ test("residuals payload for the tests that assume Gaussian residuals", () => {
   assert.equal((residualsPayload(four, o({ analysis: "anova" })) as Record<string, any>).data.datasets.length, 4);
   assert.ok((residualsPayload(four, o({ analysis: "anova", anovaSd: "unequal" })) as Record<string, any>).data);
   assert.equal(residualsPayload(four, o({ analysis: "anova", anovaKind: "nonparametric" })), null);
-  assert.ok("unavailable" in (residualsPayload(four, o({ analysis: "rm_anova" })) as object));
+  // RM ANOVA with four treatments: the subject + treatment model
+  const rm = residualsPayload(four, o({ analysis: "rm_anova" })) as Record<string, any>;
+  assert.deepEqual(rm.options, { rm: true });
+  assert.equal(rm.data.datasets.length, 4);
   assert.equal(residualsPayload(four, o({ analysis: "column_statistics" })), null);
 });

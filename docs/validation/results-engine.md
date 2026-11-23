@@ -649,3 +649,294 @@ and 1e12, an empty sheet, a file that is not a spreadsheet).
 `web/scripts/e2e-import.mjs`: the three files through File › Open give
 the same preview cells as the reference and identical tables; xlrd is
 fetched only once an .xls is read.
+
+## Feature validation: curve-fit graph drop lines (2026-11-23)
+
+FEATURE-PLAN P-23. No engine change: the curve-fit graph's IC50 / EC50
+drop lines read their point from the fit the results report. For the 19
+relative dose-response models listed in `web/src/sheets/xy/fitGraph.ts`
+(`RELATIVE_MODELS`) the point is the range flags' `midpoint` and
+`half_response` ((Top + Bottom) / 2, or 50 for normalised models); for
+the two absolute IC50 models it is (LogAbsoluteIC50 or AbsoluteIC50,
+(Top + Baseline) / 2). `engine/tests/test_fit_graph.py` reads that list
+from the TypeScript file and checks, for each model, that its own
+equation (`equations.py`, `nlfit.py`) at the midpoint equals that
+response to 1e-12 relative over 20 random parameter sets (seed 23); the
+5PL qualifies because its equation places LogXb so that the EC50 is the
+half-way point. A fit the results flag (ambiguous, or a midpoint beyond
+the concentrations tested) gets no lines and a legend sentence instead.
+
+Reference: `engine/tests/reference/fit_graph.py` (engine fits of the
+example table, and each model's equation evaluated at the midpoint).
+Values pinned: relative 4PL LogIC50 -6.98304, response 50.4181 (the
+equation at that x: 50.418145487472, the range flags' half response
+50.418145487472); absolute IC50 with Baseline 0: LogAbsoluteIC50
+-6.97524, response 49.9281. e2e-figures turns the lines on, reads the
+shapes (x equals the LogIC50 the results table shows, y equals the drawn
+curve interpolated at x to 0.05 and the reference to 5e-5), changes a Y
+value (51.2 to 30 at 1e-7 M: LogIC50 -7.056, the line follows) and
+checks the absolute model.
+
+## Feature validation: geometric summaries on column graphs (2026-11-23)
+
+FEATURE-PLAN P-25. No engine change: the column scatter and bar graphs
+gain "Geometric mean ×/÷ geometric SD" and "Geometric mean with 95% CI"
+(`web/src/sheets/column/graphSettings.ts summaryOf`). On l = ln(x):
+g = exp(mean(l)), s* = exp(SD(l)) with n - 1, bar ends g / s* and g × s*
+(Limpert & Stahel 2011, PLoS ONE 6:e21403, the "×/" notation); the CI is
+exp(mean(l) ± t(0.975, n - 1) SD(l) / √n). A group with a value of 0 or
+less gets no geometric summary (no logarithm): the points stay, and the
+graph options and the legend name the group.
+
+Reference: `web/src/sheets/column/__tests__/reference/geo_summary.py`
+(numpy, scipy.stats.gmean and gstd, scipy.stats.t; R is not installed).
+Fold changes 0.5, 1, 2, 4: g = 1.414213562373095, s* = 2.4469666667017522,
+ends 0.5779455771170363 and 3.4605334467245026, 95% CI 0.34050 to 5.87366.
+Unit tests also cover n = 1, all values equal (s* = 1), 1e-12 and 1e12
+magnitudes, a ×10 unit change (g scales, s* does not) and group order.
+e2e-figures reads the bar ends from the drawn trace on a log axis (to
+1e-12 relative) and checks the Checks row note for bars on a log axis or
+on an axis starting at 1 (source: Healy, Data Visualization, ch. 1, "bar
+charts should generally include a zero baseline ... given that bars
+encode their variables as lengths").
+
+Independent check (2026-11-23, by the lead): for 0.5, 1, 2, 4 the logs
+have mean 0.34657 (g = 1.41421) and SD on n - 1 of 0.89487
+(s* = 2.44697), so the bar ends are 0.57795 and 3.46053, as asserted.
+
+## Feature validation: median with IQR under a rank test (2026-11-23)
+
+FEATURE-PLAN P-26. No engine change. Column graphs created from now on
+start with the centre "Follow the test": mean ± SD, or median with IQR
+while the bound analysis is Mann-Whitney, Wilcoxon, Kolmogorov-Smirnov,
+Kruskal-Wallis, Friedman or the median test
+(`web/src/sheets/column/rankSummary.ts`). A graph whose centre the user
+chose, and every graph saved before (no "auto"), keeps what it draws. The
+median and IQR now come from `graph/boxStats.ts percentileOf` with the
+column statistics' percentile method, as the box plots do (before: an
+own linear interpolation, equal to it except in the last bit). The
+results headline adds one line on what the test compares (Hart 2001, BMJ
+323:391: the Mann-Whitney test "is a test of both location and shape").
+
+Reference: `web/src/sheets/column/__tests__/reference/geo_summary.py`,
+numpy.percentile with method "linear" (H&F 7) and "weibull" (H&F 6, the
+"prism" method) on the example column table: Control 22.725 / 24.0 /
+25.275 (type 7) and 22.4 / 24.0 / 25.55 (type 6); Treated A 28.5 / 28.9 /
+29.9; Treated B 34.375 / 35.5 / 36.4. e2e-figures chooses Mann-Whitney
+and reads the drawn medians and IQR ends (to 1e-9), the results line and
+the legend, and checks that a graph saved before keeps mean ± SD.
+## Feature validation: results honesty, wave 1 (2026-11-23)
+
+R is not installed on the build machine; every reference below is a
+Python oracle (scipy, statsmodels in `/home/eren/opendose/.venv`), a
+hand derivation, or a brute-force enumeration, and the script that
+produced each pinned value is committed next to its test.
+
+### P-11 residual plots of curve fits and linear regression
+
+`nlfit.fit_model` now keeps the points it fitted with their fitted
+values and final weights (internal `_residuals`, dropped from the
+answer); `residuals.fit_residuals` turns them into the residual block
+each fitted data set carries (`residual_check`): the raw residual
+Y − Ŷ (R's `residuals(nls)`), the plotted residual (the weighted
+residual √w (Y − Ŷ) when the fit is weighted, else the raw one), the
+standardized residual = plotted / Sy.x (R's `residuals(nls, type =
+"pearson")`, statsmodels' `resid_pearson`), the Filliben normal
+quantile of each residual's rank (as `scipy.stats.probplot`) and
+Shapiro-Wilk on the plotted residuals. Robust fits (Lorentzian scatter)
+and fits of means with SD and n say why they have none.
+
+Reference: `engine/tests/reference/fit_residuals.py` (scipy
+`curve_fit` from NIST Start 2, statsmodels WLS and OLS), tested in
+`engine/tests/test_fit_residuals.py`:
+
+| Problem | n | Sy.x (reference) | first raw residual | first standardized | engine |
+| --- | --- | --- | --- | --- | --- |
+| NIST Misra1a | 14 | 0.101879 | 0.0837336 | 0.821895 | equal to 1e-5 relative |
+| NIST MGH09 | 11 | 0.00662792 | 0.00130638 | 0.197102 | equal to 1e-5 relative |
+| Dose-response example, 4PL | 27 | 1.6095 | −1.07155 | −0.665762 | equal to 1e-5; W = 0.97639 |
+| Line, 1/X² weights (WLS) | 10 | 0.0920879 | 0.0286853 | 0.311499 | equal to 1e-6 |
+| Line (OLS) | 10 | 0.736135 | −0.00764331 | −0.010383 | equal to 1e-9 |
+
+The weighted SS of the plotted residuals equals the fit's weighted SS
+(1/X²: 1e-9; 1/Y² from the predicted Y, iterated: 1e-6). Edge cases: a
+curve through every point (standardized residuals undefined, said so),
+no residual df, more than 50,000 points (points withheld, Shapiro-Wilk
+kept), ROUT (the removed outliers are not among the residuals), units
+×1e-12 and ×1e12 (residuals scale, standardized residuals and QQ
+positions unchanged), permuting the points (residuals permute, W
+unchanged).
+
+The plan's acceptance test speaks of 24 points; the shipped
+dose-response example has 9 doses × 3 replicates = 27, and the e2e
+test (`web/scripts/e2e-results.mjs`) asserts 27 points in each of the
+three plots and W = 0.9764 in the Checks row.
+
+### P-11 residual plots of two-way, three-way, repeated-measures, nested and mixed models
+
+`residuals.model_residuals` gives these models the same residual block
+(`kind: "model"`, with the name of the fitted value). Two-way ANOVA
+with interaction: value minus its cell mean; main effects only (asked
+for, or forced by one value per cell): value minus the fitted row +
+column effects (least squares on dummies, so unbalanced tables are
+right); three-way: value minus its cell mean; repeated-measures one-way
+with any number of treatments: value minus subject mean minus treatment
+mean plus grand mean, on the complete subjects (the "not computed yet"
+note for three or more treatments is gone); the mixed model for RM with
+missing values and the nested t test / one-way ANOVA: conditional
+residuals (value minus fixed effects minus the predicted random effect)
+standardized by the model's residual SD. OLS residuals are standardized
+by √MS residual. A value alone in its cell (residual 0 by construction)
+is shown but left out of the QQ plot and Shapiro-Wilk, as for the
+column tests. Two-way, three-way and nested results show the section in
+the Checks row; RM and the mixed RM model keep it under the results
+like the other column tests.
+
+Reference: `engine/tests/reference/anova_residuals.py` (statsmodels
+`ols(...).resid` / `.resid_pearson`, `MixedLM` by REML `.resid` /
+√scale), tested in `engine/tests/test_anova_residuals.py`:
+
+| Model | n | residual df / SD | first residual | first standardized | engine |
+| --- | --- | --- | --- | --- | --- |
+| Two-way 2 × 3 × 4, `y ~ A * B` | 24 | df 18 | −0.45 | −0.501118 | 1e-9 |
+| Two-way, `y ~ A + B` | 24 | df 20 | 0.666667 | 0.415176 | 1e-8 |
+| Two-way unbalanced, `y ~ A * B` | 21 | df 15 | −0.333333 | −0.3739 | 1e-8 |
+| Two-way unbalanced, `y ~ A + B` | 21 | df 17 | 0.996226 | 0.59792 | 1e-8 |
+| Three-way 2 × 2 × 2 × 3 | 24 | df 16 | −0.1 | −0.211407 | 1e-8 |
+| RM one-way, 6 subjects × 4, `y ~ subject + treatment` | 24 | df 15 | −0.6125 | −0.61105 | 1e-8 |
+| Mixed RM (one value missing), MixedLM | 23 | SD 1.03766 | −0.596629 | −0.574977 | 1e-4 (REML optimum) |
+| Nested, 2 groups × 3 subcolumns, MixedLM | 22 | SD 0.940818 | −0.779965 | −0.829028 | 1e-4 (REML optimum) |
+
+The REML residual SDs agree to 2.4e-5 relative: two optimizers, the
+same optimum to that precision, so the mixed-model values are pinned at
+1e-4. Edge cases: one value per cell (additive fallback, df 4 on a 3 × 3
+table), a single-value cell, every residual 0, units ×1e-12 and ×1e12,
+reordering the data sets (the same residuals, the same W). The plan's
+acceptance test (2 × 3, 4 replicates: 24 cell-mean residuals) runs in
+`web/scripts/e2e-results.mjs`, with W = 0.9744 (scipy Shapiro-Wilk on
+the statsmodels residuals). Found on the way, not changed: two-way
+ANOVA on a table whose cells have no scatter at all (every residual 0)
+stops with "float division by zero" instead of a sentence.
+
+### P-15 the smallest P a rank test can reach
+
+Mann-Whitney, the Wilcoxon matched-pairs test, Kruskal-Wallis and
+Friedman now carry `min_attainable_p` (exactdist.min_p_*): the P value
+the test itself gives for the most extreme arrangement of the values
+entered (one group entirely below the other; every difference of the
+same sign; groups as contiguous blocks of ranks in the order of sizes
+that maximises H; every subject ranking the treatments the same way),
+by the method the test used (exact, exact with ties, or its chi-square /
+normal approximation), two-sided and, for the two-group tests,
+one-sided. The exact rank-sum case with ties reads the mass at the
+extreme rank sums from the null distribution the P value was computed
+from (cached, so the main P value now builds it once instead of twice:
+100 vs 100 values with ties, 1.6 s natively before, 0.9 s with the
+floor). Every existing P value is unchanged.
+
+References (`engine/tests/test_rank_floor.py`, computed inside the
+test): the hand derivations without ties, 2 / C(n1 + n2, n1)
+(Mann-Whitney; 3 vs 3: 0.10, the plan's acceptance test), 2 / 2^n
+(Wilcoxon), (k!)^(1 − n) (Friedman), and 6 / 90 for Kruskal-Wallis
+with 2, 2 and 2 values; scipy `mannwhitneyu(method = "exact")` and
+`wilcoxon(method = "exact")` on the extreme data; brute-force
+enumeration (itertools) of every relabelling with ties for
+Mann-Whitney, Kruskal-Wallis and Friedman; the chi-square
+approximation at the largest H. The Checks row note ("With 3 and 3
+values the smallest possible two-sided P is 0.10, so this design cannot
+reach P < 0.05") cites the GraphPad statistics guide page "Nonparametric
+tests with small and large samples" and FAQ 1721 "Analyzing ratios with
+logs", and links the "Rank tests with few values" explainer.
+
+### P-16 the Analysed line of regression, Cox and contingency results
+
+Multiple, logistic and Poisson regression and Cox regression now return
+`analysed_rows` (multivar.analysed_rows): the rows used, the rows of the
+table that hold any value, and each dropped row (numbered as the grid
+numbers it) with the model's variables that are blank in it or hold text
+that is not a number. The Notes strip reads it per kind: "Analysed: 26
+of 30 rows; 4 dropped for a blank in Age (rows 3, 9, 17, 22)." (Cox on a
+survival table counts subjects, whose order is not the grid's);
+contingency tables say n is the sum of the counts. Assay modules keep no
+Analysed line: each reads its table its own way (see the report).
+
+Reference: `engine/tests/reference/analysed_rows.py` (statsmodels OLS,
+GLM binomial and Poisson, PHReg, all with `missing = "drop"`): nobs 26
+of 30 for every model with Age, 25 with "n/a" typed in Dose row 27 (named
+"not a number"), 30 for a model without Age; the dropped rows equal
+pandas' missing rows. Edge cases: trailing blank rows, a row with values
+only in unused columns, no complete row (an error, not 0), the table
+upside down (the same count, the rows renumbered).
+
+### P-18 ratio to control with a Fieller CI
+
+The unpaired t test (pooled SD) now returns `ratio_to_control`: the mean
+of the second data set over the mean of the first (the first is the
+control, as Dunnett's default) with Fieller's (1954) interval on the
+pooled SD and df = n1 + n2 − 2, which is what R's
+`mratios::ttestratio(var.equal = TRUE)` computes (`ttests.
+ratio_to_control`, through `compare_params.fieller_ratio`). Each
+Dunnett comparison carries `ratio` with simultaneous Fieller intervals:
+Dunnett's critical value of the ratio statistics, whose correlations
+λᵢλⱼ (λᵢ = ρᵢ / √(n₀/nᵢ + ρᵢ²)) are evaluated at the estimated ratios
+(the "plug-in" method of Dilba, Bretz & Guiard 2006, J Stat Plan
+Inference 136:2640; `mratios::sci.ratio(method = "Plug")`), in
+Fieller's formula. When the control mean is not clearly different from
+zero (g = c² SE₀² / mean₀² ≥ 1) the interval is unbounded and the
+results say so in words. Welch's t test and the paired tests get no
+ratio (the pooled-SD interval does not apply). Every existing number
+is unchanged; the typeset table adds "Ratio Treated/Control" and "95%
+CI of ratio (Fieller)", and "What this means" for the unpaired t test
+replaces the bare percentage with the ratio and its CI (ruling 10:
+pinned below and in `web/scripts/e2e-results.mjs`).
+
+Reference: `engine/tests/reference/fieller_ratio.py` (Fieller's
+quadratic solved by `np.roots`, not the engine's closed form; Dunnett's
+plug-in critical value by nested adaptive quadrature with
+`scipy.integrate.quad`, not `opendose.dunnett`'s trapezoidal rule),
+tested in `engine/tests/test_ratio_to_control.py`:
+
+| Case | Ratio | 95% CI (reference) | engine |
+| --- | --- | --- | --- |
+| Control 100, 95, 105, 98, 102; treated 60, 70, 65, 55, 75 | 0.65 | 0.57615 to 0.72919 | 1e-10 relative |
+| Control 3, −4, 6, −2, 1; treated 10, 14, 9, 12, 15 | 15 | unbounded | unbounded (g ≥ 1) |
+| Dunnett, Low / Control (c = 2.599035) | 0.924 | 0.84907 to 1.00498 | 1e-9 |
+| Dunnett, Mid / Control | 0.80667 | 0.73956 to 0.87905 | 1e-9 |
+| Dunnett, High / Control | 0.65 | 0.58386 to 0.72040 | 1e-9 |
+
+Coverage: 2,000 seeded data sets (n = 5 + 5, SD 5, true ratio 0.65):
+the hand interval and the engine's both cover 1,910 times (95.5%;
+binomial tolerance ±1.46 points). Dunnett, 1,000 seeded data sets of a
+control and three groups (true ratios 0.9, 0.8, 0.65): the three
+engine intervals cover together 946 times (94.6%; tolerance ±2.07 points).
+Units ×1e-9 leave the ratio and its CI unchanged; swapping the groups
+inverts the ratio and its limits.
+
+### Wave 0 follow-up: linear regression's runs test in order of X
+
+The runs test of linear regression (and of the line through a point)
+read the residual signs in the order the rows were entered, so a table
+typed unsorted got a different number of runs and a wrong P. It now
+orders the residuals by X first (a stable sort: residuals at the same X
+keep their entry order, stated in `runs_test.order`), as the curve-fit
+diagnostics already did. `engine/tests/test_linregress_runs_order.py`:
+shuffling the rows leaves the runs test unchanged; on an 8-point line
+whose residuals run −, −, +, +, +, +, −, − along X, 3 runs and P = 8/70
+by enumerating all 70 sign arrangements (entry order 1, 3, 2, 4, 7, 5,
+8, 6 gave 8 runs before the fix). No existing pin moved: every engine
+test passes, and the 500,000-row table of e2e-large is entered sorted
+by X.
+
+Independent check (2026-11-23, by the lead, who did not write the code):
+Fieller (1954) solved directly as a quadratic with numpy on the P-18
+example (control 100, 95, 105, 98, 102; treated 60, 70, 65, 55, 75;
+pooled SD, t(0.975, 8)) gives ratio 0.65, 95% CI 0.5762 to 0.7292, as
+the engine. For Dunnett, the plug-in critical value of Dilba, Bretz &
+Guiard (2006) recomputed from the ratio-dependent correlation matrix
+with scipy.stats.multivariate_t (equicoordinate 95% quantile, df 17) is
+c = 2.599, and the simultaneous intervals are Low 0.924 (0.8491 to
+1.005), Mid 0.8067 (0.7396 to 0.8791), High 0.65 (0.5839 to 0.7204), as
+the engine to four digits. (Dunnett's critical value for differences,
+2.573 from scipy.stats.dunnett, gives slightly narrower intervals; it is
+not the method used.) The rank-test floor for 3 vs 3 values is
+2 / C(6, 3) = 0.10 by hand.

@@ -193,6 +193,26 @@ async function seedSessions(s, sessions) {
     db.close();
   }, [sessions, json]);
 }
+/** A new table of `type` from pasted text (first line: column titles),
+ *  through the Import dialog, as the e2e suites make one. */
+async function pastedTable(s, type, name, text) {
+  await example(s);
+  const nd = await newTableDialog(s);
+  await nd.locator(`input[name="table-type"][value="${type}"]`).check();
+  await nd.getByLabel("Table name").fill(name);
+  await nd.getByRole("button", { name: "Create table" }).click();
+  await s.page.locator(".grid-toolbar").waitFor();
+  await click(s, s.page.getByRole("button", { name: "Import…", exact: true }));
+  const imp = s.page.locator(".import-dialog");
+  await imp.getByLabel("Pasted text").check();
+  await imp.getByLabel("Text to import").fill(text);
+  const titles = imp.getByLabel(/holds column titles/);
+  if (!(await titles.isChecked())) await titles.check();
+  await imp.getByRole("tab", { name: "Placement" }).click();
+  await imp.getByLabel(/In place of the table/).check();
+  await imp.getByRole("button", { name: "Import", exact: true }).click();
+  await imp.waitFor({ state: "detached", timeout: 30000 });
+}
 async function newTableDialog(s) {
   await headerMenu(s, "File", "New data table…");
   const dlg = s.page.locator("dialog.new-table-dialog");
@@ -595,6 +615,52 @@ const scenes = [
     await s.page.locator(".guide-chip", { hasText: "CI counts wells, not experiments" }).click();
     await into(s, ".guide-chip-detail", "center");
   } },
+  // results honesty (wave 1): a fit's residual plots in the Checks row
+  // (P-11), a rank test that cannot reach P < 0.05 (P-15), the Analysed
+  // line of a regression (P-16), the ratio to control (P-18)
+  { name: "results-residuals-fit", setup: async (s) => {
+    await example(s);
+    const d = s.page.locator(".pane-answer details.checks").first();
+    if (!(await d.evaluate((e) => e.open))) await d.locator("summary").click();
+    await click(s, s.page.locator(".pane-answer").getByRole("button", { name: "Residuals of “Drug A”" }));
+    await s.page.locator('.pane-answer .resid-plot[data-plot="qq"] .scatterlayer .point').first().waitFor();
+    await settle(s, 1200);
+    await into(s, ".pane-answer .residuals-card");
+  } },
+  { name: "results-rank-floor", setup: async (s) => {
+    await pastedTable(s, "column", "Three and three", "A\tB\n1\t4\n2\t5\n3\t6\n");
+    await s.page.locator(".pane-controls select.analysis-select").selectOption("ttest");
+    await s.page.locator(".pane-controls").getByRole("combobox", { name: "Test", exact: true })
+      .selectOption("mann_whitney");
+    await s.page.locator('.pane-answer [data-banner="rank-floor"]').first().waitFor({ timeout: 120000 });
+    await into(s, ".pane-answer");
+  } },
+  { name: "results-analysed-rows", setup: async (s) => {
+    const rows = Array.from({ length: 12 }, (_, i) => [[3, 7, 10].includes(i + 1) ? "" : String(30 + 3 * i),
+      (1 + 0.7 * i + ((i * 7) % 5) * 0.3).toFixed(1), (4 + 0.8 * i + (i % 3) * 0.6).toFixed(2)].join("\t"));
+    await pastedTable(s, "multivariable", "Dose study with blanks", `Age\tDose\tY\n${rows.join("\n")}\n`);
+    await click(s, button(s, "Analyze"));
+    await click(s, s.page.getByRole("menuitem", { name: /Multiple linear regression/ }));
+    await s.page.locator(".notes-strip .analysed-line").first().waitFor({ timeout: 120000 });
+    await settle(s, 2000);
+    await into(s, ".pane-results .notes-strip", "center");
+  } },
+  { name: "results-ratio-ttest", setup: async (s) => {
+    await pastedTable(s, "column", "Control and treated",
+      "Control\tTreated\n100\t60\n95\t70\n105\t65\n98\t55\n102\t75\n");
+    await s.page.locator(".pane-controls select.analysis-select").selectOption("ttest");
+    await s.page.locator(".pane-results tr", { hasText: "CI of ratio (Fieller)" }).first().waitFor({ timeout: 120000 });
+    await into(s, ".pane-results .result-card", "start");
+  } },
+  { name: "results-ratio-dunnett", setup: async (s) => {
+    await pastedTable(s, "column", "Dose groups",
+      "Control\tLow\tMid\tHigh\n100\t92\t80\t60\n95\t88\t76\t70\n105\t97\t85\t65\n98\t90\t79\t55\n102\t95\t83\t75\n");
+    await s.page.locator(".pane-controls select.analysis-select").selectOption("anova");
+    await s.page.locator(".pane-controls label.check-row", { has: s.page.locator('span:text-is("Multiple comparisons")') })
+      .locator("select").selectOption("dunnett");
+    await s.page.locator(".pane-results .ratio-table").first().waitFor({ timeout: 120000 });
+    await into(s, ".pane-results .ratio-table", "center");
+  } },
   // the eLife checklist on the example: source data per figure is not met
   // and links to the export bundle (P-09)
   { name: "results-checklist-elife", setup: async (s) => {
@@ -644,6 +710,40 @@ const scenes = [
     await into(s, ".plot-card", "center");
     await click(s, s.page.locator(".plot-card").getByRole("button", { name: "Settings", exact: true }));
     await dialog(s, "Graph settings").getByLabel("Whiskers").waitFor();
+  } },
+  { name: "graphs-fit-figure", setup: async (s) => {
+    await fixture(s, "fit-graph.json", { live: true });
+    await s.page.locator(".js-plotly-plot").first().waitFor();
+    await into(s, ".plot-card", "center");
+    await settle(s, 1200);
+  } },
+  { name: "graphs-bar-axis-note", setup: async (s) => {
+    await fixture(s, "bar-axis.json", { live: true });
+    const checks = s.page.locator(".pane-answer details.checks").first();
+    await click(s, checks.locator("summary"));
+    await click(s, s.page.getByRole("button", { name: /Bars without zero/ }));
+    await s.page.getByRole("region", { name: "Bars without zero" }).waitFor();
+    await into(s, ".pane-answer details.checks", "center");
+    await settle(s, 800);
+  } },
+  { name: "results-rank-line", setup: async (s) => {
+    await fixture(s, "rank-test.json", { live: true });
+    await s.page.locator(".pane-answer .answer-rank").waitFor();
+    await s.page.locator(".js-plotly-plot").first().waitFor();
+    await settle(s, 1200);
+  } },
+  { name: "graphs-fit-legend", setup: async (s) => {
+    await fixture(s, "fit-legend.json", { live: true });
+    await s.page.locator(".js-plotly-plot").first().waitFor();
+    await into(s, ".plot-card", "center");
+    await settle(s, 1200);
+  } },
+  { name: "graphs-fit-drop-lines", setup: async (s) => {
+    await fixture(s, "fit-graph.json", { live: true });
+    await s.page.locator(".js-plotly-plot").first().waitFor();
+    await into(s, ".plot-card", "center");
+    await click(s, s.page.locator(".plot-card").getByRole("button", { name: "Settings", exact: true }));
+    await dialog(s, "Graph settings").getByRole("checkbox", { name: "Show IC50 drop lines" }).waitFor();
   } },
   { name: "graphs-export-options", setup: async (s) => {
     await example(s);

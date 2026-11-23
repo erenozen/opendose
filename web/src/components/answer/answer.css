@@ -27,6 +27,13 @@
   color: var(--muted); min-height: 2lh; max-width: 65ch;
 }
 
+/* ---- a rank test: what it compares (sheets/column/rankSummary.ts) ---- */
+.answer-rank {
+  margin: 0; max-width: 65ch; font-size: var(--text-body); line-height: var(--leading-prose);
+  color: var(--ink-2);
+}
+.answer-rank a { color: var(--ink-2); text-decoration: underline; text-underline-offset: 2px; }
+
 /* ---- key figures: up to three side by side, then "Show all" ---- */
 .answer-items {
   margin: 0;

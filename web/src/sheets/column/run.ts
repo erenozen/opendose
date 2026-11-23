@@ -64,9 +64,9 @@ export function runColumn(engine: EngineBridge, table: DataTableModel,
 
 /** The residuals_column payload for analyses whose model assumes Gaussian
  *  residuals (unpaired / Welch / paired t test, ordinary and Welch one-way
- *  ANOVA, RM ANOVA with two treatments), {unavailable} for RM ANOVA with
- *  more treatments (the subject + treatment residuals are not computed by
- *  the engine yet), else null. */
+ *  ANOVA, RM ANOVA: the paired differences of two treatments, the
+ *  subject + treatment model of more), else null. The mixed model for RM
+ *  with missing values returns its own (engine mixed_rm_oneway). */
 export function residualsPayload(table: DataTableModel, o: ColumnOptionsState):
   Record<string, unknown> | { unavailable: string } | null {
   // On the log scale the model's residuals are those of log10(values);
@@ -96,10 +96,10 @@ export function residualsPayload(table: DataTableModel, o: ColumnOptionsState):
         data: { datasets: d.map((x) => ({ name: x.name, ys: x.ys.map((row) => [row[0] ?? null]) })) },
         options: { paired: true, dataset_a: 0, dataset_b: 1 } };
     }
-    return { unavailable: "Residual plots for repeated measures with more than two "
-      + "treatments need the residuals of the subject + treatment model, which this "
-      + "version does not compute yet. Check the matched values on a before-after graph, "
-      + "or analyse the paired differences of two treatments with a paired t test." };
+    // three or more: the subject + treatment model (engine rm_residuals)
+    return { analysis: "residuals_column",
+      data: { datasets: d.map((x) => ({ name: x.name, ys: x.ys.map((row) => [row[0] ?? null]) })) },
+      options: { rm: true } };
   }
   return null;
 }

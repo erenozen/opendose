@@ -1,0 +1,128 @@
+{
+ "opendose_project": 2,
+ "version": 2,
+ "title": "Bar axis",
+ "prefs": {
+  "defaultTableType": "xy",
+  "errorBars": "sd",
+  "ciMethod": "asymptotic",
+  "scheme": "default",
+  "digits": 4
+ },
+ "selected": "r085",
+ "sheets": [
+  {
+   "id": "d084",
+   "kind": "data",
+   "name": "Fold changes",
+   "table": {
+    "type": "column",
+    "x": [
+     "",
+     "",
+     "",
+     ""
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "Fold change",
+    "rowTitles": [
+     "",
+     "",
+     "",
+     ""
+    ],
+    "datasets": [
+     {
+      "name": "Vehicle",
+      "rows": [
+       [
+        "0.8"
+       ],
+       [
+        "1.1"
+       ],
+       [
+        "0.9"
+       ],
+       [
+        "1.2"
+       ]
+      ]
+     },
+     {
+      "name": "Drug",
+      "rows": [
+       [
+        "0.5"
+       ],
+       [
+        "1"
+       ],
+       [
+        "2"
+       ],
+       [
+        "4"
+       ]
+      ]
+     },
+     {
+      "name": "Drug + inhibitor",
+      "rows": [
+       [
+        "1"
+       ],
+       [
+        "2"
+       ],
+       [
+        "4"
+       ],
+       [
+        "8"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "r085",
+   "kind": "results",
+   "parentId": "d084",
+   "analysis": "column",
+   "options": {
+    "analysis": "column_statistics"
+   },
+   "name": "Column stats of Fold changes"
+  },
+  {
+   "id": "g086",
+   "kind": "graph",
+   "parentId": "d084",
+   "resultsId": "r085",
+   "graphType": "bar",
+   "settings": {
+    "titles": {
+     "x": "",
+     "y": ""
+    },
+    "scheme": "default",
+    "column": {
+     "caption": "below",
+     "summary": "geo_sd"
+    },
+    "format": {
+     "y": {
+      "min": 0.4
+     }
+    }
+   },
+   "name": "Graph of Fold changes"
+  }
+ ]
+}
