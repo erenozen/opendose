@@ -351,6 +351,14 @@ expect("mapped columns give the same kidney ΔCq 4.365", kid2.includes("4.365"),
   await page.waitForTimeout(800);
   const axeFlow = await axeViolations([".flow-results"]);
   expect("axe-core: the flow results pass", axeFlow.length === 0, axeFlow.join(" | "));
+  // P-31 (ruling 10, methods wording pinned): the full FlowJo gate path,
+  // not the last gate; before: "Gate statistics (CD69+ · Freq. of Parent)"
+  expect("P-31: the methods name the full gate path, CD69+ of Lymphocytes/Single Cells/Live/CD4+",
+    await waitText(".pane-methods", "Gate statistics (CD69+ of Lymphocytes/Single Cells/Live/CD4+, Freq. of Parent) "
+      + "were exported from FlowJo and summarised to one value per donor and condition"),
+    await textOf(".pane-methods").catch(() => ""));
+  expect("P-31: the results line names the full gate path too",
+    (await textOf(".flow-results .model-line")).startsWith("CD69+ of Lymphocytes/Single Cells/Live/CD4+, Freq. of Parent: one value per donor"));
   const linkedBtn = page.locator(".flow-results").getByRole("button", { name: "Open “Per donor of CD69 flow”" });
   await linkedBtn.waitFor({ timeout: 60000 });
   await linkedBtn.click();
@@ -607,6 +615,158 @@ await page.keyboard.press("Escape");
   expect("Import dialog: the manual encoding still overrides (cp1252 read as UTF-8 loses µ²)",
     !forced.includes("µm²") && forced.includes("�"), forced);
   await imp.getByRole("button", { name: "Cancel" }).click();
+}
+
+// --- P-29: limits of blank, detection and quantification. The plan's
+// acceptance data (e2e-fixtures/stage/detection-limits.json): an ELISA
+// curve, 20 blank wells and 20 low-sample wells. Reference
+// (engine/tests/reference/detection_limits.py, statistics module and an
+// independent scipy 4PL): LoB = 0.06115 + 1.645 × 0.005743 = 0.07060
+// (2.005 pg/mL), LoD = LoB + 1.645 × 0.005899 = 0.08030 (2.972 pg/mL),
+// LoQ 6.674 pg/mL (CV 8.26%).
+const STAGE = new URL("../e2e-fixtures/stage/", import.meta.url).pathname;
+const OPEN_INPUT = 'input[aria-label="Open an OpenDose project or a Prism file"]';
+{
+  await page.setInputFiles(OPEN_INPUT, `${STAGE}detection-limits.json`);
+  await page.waitForSelector(".std-results .std-limits", { timeout: 120000 });
+  const lim = (name) => page.locator(".std-limits-table tr", { hasText: new RegExp(`^${name}`) }).first()
+    .innerText().then((t) => t.replace(/\s+/g, " "));
+  const lob = await lim("LoB");
+  const lod = await lim("LoD");
+  const loq = await lim("LoQ");
+  expect("P-29: LoB = mean_blank + 1.645 SD_blank in signal (0.0706) and concentration (2.005 pg/mL)",
+    lob.includes("0.0706 2.005") && lob.includes("20 blank replicates: mean 0.06115 + 1.645 × SD 0.005743"), lob);
+  expect("P-29: LoD = LoB + 1.645 SD_low in signal (0.0803) and concentration (2.972 pg/mL)",
+    lod.includes("0.0803 2.972") && lod.includes("LoB + 1.645 × pooled SD 0.005899 of 20 low-sample replicates"), lod);
+  expect("P-29: LoQ 6.674 pg/mL, below the lowest standard and said so", loq.includes("6.674")
+    && loq.includes("below the lowest standard"), loq);
+  const tiles = await textOf(".std-results .plate-qc-grid");
+  expect("P-29: LoB, LoD and LoQ next to the LLOQ and ULOQ",
+    tiles.includes("LLOQ (pg/mL) 7.81") && tiles.includes("LoB (pg/mL) 2.005") && tiles.includes("LoD (pg/mL) 2.972")
+    && tiles.includes("LoQ (pg/mL) 6.674"), tiles);
+  expect("P-29: the method (parametric) and the replicates CLSI asks for sit next to the result",
+    (await textOf(".std-limits")).includes("Method: parametric, CLSI EP17-A2")
+    && (await textOf(".std-limits")).includes("at least 60 blank and 60 low-sample replicates"));
+  expect("P-29: the methods text states LoB and LoD with their source",
+    await waitText(".pane-methods", "LoB = mean + 1.645 SD of 20 blank replicates (signal 0.0706, 2.005 pg/mL)"));
+  await page.getByRole("button", { name: "Open setup wizard…" }).click();
+  await wizard().waitFor();
+  await wizard().getByRole("button", { name: /Blanks and low samples/ }).click();
+  expect("P-29 wizard: the Blanks and low samples step counts 20 + 20 replicates and previews the limits",
+    (await wizard().innerText()).includes("Read 20 blank and 20 low-level replicates (1 sample).")
+    && await waitText("dialog.assay-wizard .assay-preview", "LoB 2.005 pg/mL, LoD 2.972 pg/mL", 60000));
+  await wizard().getByLabel(/LoD multiplier/).check();
+  // reference: c_beta = 1.645 / (1 - 1/76) = 1.6669, LoD 0.08043 (2.985 pg/mL)
+  expect("P-29 wizard: the c_beta multiplier (EP17-A2) moves the LoD to 2.985 pg/mL",
+    await waitText("dialog.assay-wizard .assay-preview", "LoD 2.985 pg/mL", 60000),
+    await textOf("dialog.assay-wizard .assay-preview").catch(() => ""));
+  await wizard().getByRole("button", { name: "Cancel" }).click();
+  await wizard().waitFor({ state: "detached", timeout: 10000 });
+}
+
+// --- P-29, qPCR: a labelled LoD95 from a hit-rate dilution series
+// (e2e-fixtures/stage/qpcr-lod.json: IL6 at 8 quantities × 12 wells).
+// Reference (engine/tests/reference/lod95_probit.py, statsmodels GLM
+// probit and Fieller by hand): LoD95 26.17, 95% CI 15.00 to 76.60.
+{
+  await page.setInputFiles(OPEN_INPUT, `${STAGE}qpcr-lod.json`);
+  await page.waitForSelector(".qpcr-results .qpcr-lod", { timeout: 120000 });
+  const row = (await page.locator(".qpcr-lod-table tr", { hasText: /^IL6/ }).first().innerText()).replace(/\s+/g, " ");
+  expect("P-29 qPCR: LoD95 26.17 (95% CI 15 to 76.6, Fieller) from the IL6 hit rates",
+    row.includes("26.17 15 to 76.6") && row.includes("5: 6/12") && row.includes("within the series"), row);
+  expect("P-29 qPCR: the method and its source are stated",
+    (await textOf(".qpcr-lod")).includes("Forootan et al. (2017, Biomol Detect Quantif 12:1)")
+    && await waitText(".pane-methods", "IL6 26.17 (95% CI 15 to 76.6)"));
+}
+
+// --- P-30: NTC and no-RT control checks (e2e-fixtures/stage/
+// qpcr-controls.json, engine/tests/test_qpcr_controls.py): one NTC well
+// for GAPDH at Cq 34 (the other undetermined), an undetermined NTC for
+// IL6, and "CON-1 no-RT" for GAPDH at Cq 21. Hand: GAPDH sample means
+// 18.0, 17.1, 18.1, 17.5, so the NTC is 16.0, 16.9, 15.9, 16.5 cycles
+// later (clear of 5); the no-RT is 3 cycles after CON-1 (affected).
+{
+  await page.setInputFiles(OPEN_INPUT, `${STAGE}qpcr-controls.json`);
+  await page.waitForSelector(".qpcr-results .qpcr-target", { timeout: 120000 });
+  await page.getByRole("button", { name: "Open setup wizard…" }).click();
+  await wizard().waitFor();
+  await wizard().getByRole("button", { name: /QC and statistics/ }).click();
+  const ctl = "dialog.assay-wizard .qpcr-controls";
+  expect("P-30: the QC step shows the chip “NTC amplified for GAPDH (Cq 34)”",
+    await waitText(ctl, "NTC amplified for GAPDH (Cq 34)", 60000), await textOf(ctl).catch(() => ""));
+  const ntcRows = await page.locator(`${ctl} table`, { hasText: "GAPDH samples against NTC amplified" })
+    .locator("tbody tr").allInnerTexts();
+  expect("P-30: the QC step lists the four GAPDH samples with their cycles to the NTC",
+    ntcRows.length === 4 && /^CON-1\s+CON\s+18\s+16\s+clear/.test(ntcRows[0]) && /^LPS-2\s+LPS\s+17\.5\s+16\.5\s+clear/.test(ntcRows[3]),
+    ntcRows.join(" | ").replace(/\s+/g, " "));
+  expect("P-30: the no-RT well of CON-1 flags CON-1 (3 cycles, within 5) and the IL6 NTC is clean",
+    (await textOf(ctl)).includes("No-RT control “CON-1 no-RT” amplified for GAPDH (Cq 21)")
+    && (await textOf(ctl)).includes("CON-1 CON 18 3 within 5 cycles")
+    && (await textOf(ctl)).includes("NTC clean for IL6"));
+  expect("P-30: the rule cites MIQE (Bustin et al. 2009)",
+    (await textOf(ctl)).includes("MIQE (Bustin et al. 2009, Clin Chem 55:611)"));
+  // the thresholds are editable: counting only Cq below 33 clears the NTC
+  await wizard().getByLabel("Count control amplification below Cq").fill("33");
+  expect("P-30: a Cq limit of 33 no longer counts the NTC at 34",
+    await page.waitForFunction((sel) => {
+      const t = document.querySelector(sel)?.textContent ?? "";
+      return t.includes("NTC clean for GAPDH") && !t.includes("NTC amplified for GAPDH");
+    }, ctl, { timeout: 60000 }).then(() => true, () => false), await textOf(ctl).catch(() => ""));
+  await wizard().getByRole("button", { name: "Cancel" }).click();
+  await wizard().waitFor({ state: "detached", timeout: 10000 });
+  const res = await textOf(".qpcr-results .qpcr-controls");
+  expect("P-30: the results sheet shows the same checks before the fold changes",
+    res.includes("NTC amplified for GAPDH (Cq 34)")
+    && await page.locator(".qpcr-results .qpcr-controls ~ .qpcr-target").count() === 1, res.slice(0, 200));
+  const groupsShown = await page.locator(".qpcr-results .qpcr-target tbody th").allInnerTexts();
+  expect("P-30: the controls are not a group: IL6 rows are CON and LPS only",
+    groupsShown.slice(0, 2).join("|") === "CON (calibrator)|LPS" && !groupsShown.some((g) => /NTC|no-RT/.test(g)),
+    groupsShown.join(" | "));
+}
+
+// --- P-50: flow event counts, from the Cmd+K palette and the flow wizard.
+// Reference (engine/tests/reference/flow_events.py): Roederer 2008, CV
+// 1/sqrt(r): 10% CV needs 100 positive events, 100,000 in all at 0.1%;
+// 120 of 50,000 = 0.24%, Wilson 95% CI 0.2008% to 0.2869% (statsmodels
+// and scipy agree).
+{
+  const calc = page.getByRole("dialog", { name: "Flow cytometry event counts" });
+  await page.keyboard.press("Control+k");
+  await page.getByRole("combobox", { name: "Find a command or sheet" }).fill("flow event counts");
+  await page.keyboard.press("Enter");
+  await calc.waitFor({ timeout: 30000 });
+  const out = (i) => calc.locator(".flow-events-out").nth(i).innerText().then((t) => t.replace(/\s+/g, " "));
+  expect("P-50: the palette opens the calculator; 10% CV at 0.1% needs 100 positive events, 100,000 in all",
+    await page.waitForFunction(() => /Events to acquire in the parent gate\s*100,000/
+      .test(document.querySelector(".flow-events .flow-events-out")?.textContent ?? ""), null, { timeout: 60000 })
+      .then(() => true, () => false) && (await out(0)).includes("Positive events needed 100 "), await out(0));
+  await calc.getByLabel("Positive events", { exact: true }).fill("120");
+  await calc.getByLabel("Events in the parent gate").fill("50000");
+  expect("P-50: 120 of 50,000 is 0.24% with its Wilson 95% CI 0.2008% to 0.2869%",
+    await page.waitForFunction(() => /0\.24%[^]*95% CI \(Wilson\)\s*0\.2008% to 0\.2869%/
+      .test(document.querySelectorAll(".flow-events .flow-events-out")[1]?.textContent ?? ""), null, { timeout: 60000 })
+      .then(() => true, () => false), await out(1));
+  await calc.getByLabel("Events in the parent gate").fill("100");
+  expect("P-50: more positive events than in the parent gate says what to enter",
+    await page.waitForFunction(() => /Enter the positive events as a whole number from 0 to the parent/
+      .test(document.querySelectorAll(".flow-events .flow-events-out")[1]?.textContent ?? ""), null, { timeout: 60000 })
+      .then(() => true, () => false), await out(1));
+  await page.waitForTimeout(500);
+  const axeCalc = await axeViolations([".flow-events"]);
+  expect("axe-core: the calculator passes", axeCalc.length === 0, axeCalc.join(" | "));
+  await calc.getByRole("button", { name: "Close" }).click();
+  await calc.waitFor({ state: "detached", timeout: 10000 });
+  await page.waitForFunction(() => !document.querySelector("dialog[open]"), null, { timeout: 10000 });
+  // the flow wizard's Statistic step links to it
+  await startAssay("Flow cytometry");
+  await wizard().getByRole("button", { name: /Statistic/ }).click();
+  await wizard().getByRole("button", { name: "Flow cytometry event counts…" }).click();
+  await calc.waitFor({ timeout: 30000 });
+  expect("P-50: the flow wizard opens the calculator above it", await calc.isVisible() && await wizard().count() === 1);
+  await page.keyboard.press("Escape");
+  await calc.waitFor({ state: "detached", timeout: 10000 });
+  expect("P-50: closing the calculator returns to the wizard", await wizard().isVisible());
+  await wizard().getByRole("button", { name: "Cancel" }).click();
 }
 console.log(errors.length ? `errors:\n${errors.join("\n")}` : "errors: none");
 await browser.close();

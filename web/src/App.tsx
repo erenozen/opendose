@@ -45,6 +45,7 @@ import ReportHost from "./report/ReportHost";
 import ReproduceStrip from "./report/ReproduceStrip";
 import PowerHost from "./power/PowerHost";
 import RatesHost from "./rates/RatesHost";
+import FlowEventsHost from "./sheets/assays/flow/EventsHost";
 import { Banner, Button, lastInputWasKeyboard, notify, ToastProvider } from "./components/ui";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 
@@ -238,6 +239,7 @@ function Shell() {
       <TableFileImport />
       <PowerHost />
       <RatesHost />
+      <FlowEventsHost />
     </div>
   );
 }

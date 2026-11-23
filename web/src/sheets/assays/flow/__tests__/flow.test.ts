@@ -6,9 +6,9 @@ import assert from "node:assert/strict";
 import { makeDataSheet, makeGraphSheet, makeProject, makeResultsSheet } from "../../../../project/ops.ts";
 import { DEFAULT_PREFS, projectPrefs } from "../../../../project/prefs.ts";
 import {
-  conditionOrder, DEFAULT_FLOW_OPTIONS, flowPayload, flowStatsOptions, flowTable, guessBackground,
+  conditionOrder, DEFAULT_FLOW_OPTIONS, flowPayload, flowStatsOptions, flowTable, gatePath, guessBackground,
   guessPartRoles, normalizeFlowOptions, parseStatHeader, readFlow, runFlow, setupFlowOutput,
-  statTitle, tableFromFlowJo, unitSingular,
+  statTitle, statWithPath, tableFromFlowJo, unitSingular,
 } from "../model.ts";
 import { FLOW_EXAMPLE_CSV, flowSample } from "../sample.ts";
 import { legendFor } from "../../../../report/legendFor.ts";
@@ -25,6 +25,16 @@ test("FlowJo headers: gate path and statistic", () => {
   assert.equal(m.kind, "median");
   assert.equal(statTitle(m), "CD69+ Median (BV421-A)");
   assert.equal(parseStatHeader("Count").kind, "count");
+});
+
+test("the full gate path for the methods (P-31): the last gate of its parents", () => {
+  const c = parseStatHeader("Live/Singlets/CD4+/CD69+ | Freq. of Parent");
+  assert.equal(gatePath(c), "CD69+ of Live/Singlets/CD4+");
+  assert.equal(statWithPath(c), "CD69+ of Live/Singlets/CD4+, Freq. of Parent");
+  assert.equal(gatePath(parseStatHeader(" Lymphocytes / CD4+ | Count")), "CD4+ of Lymphocytes");
+  assert.equal(gatePath(parseStatHeader("Lymphocytes | Count")), "Lymphocytes");
+  assert.equal(gatePath(parseStatHeader("Count")), "");
+  assert.equal(statWithPath(parseStatHeader("Count")), "Count");
 });
 
 test("the example: 12 samples, 3 donors × 4 conditions, % CD69+ by default", () => {
