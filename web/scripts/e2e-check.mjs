@@ -3313,20 +3313,27 @@ const axeOn = async (pg, sel) => {
     .getByRole("radio", { name: "Yes, by design" }).check();
   const recTest = await hm.locator(".wt-test").innerText();
   const recReason = await hm.locator(".wt-test + p").innerText();
-  expect("Help me choose recommends the unpaired t test with a one-paragraph reason",
-    recTest === "Unpaired t test" && recReason.length > 80, `${recTest}: ${recReason.slice(0, 80)}`);
+  expect("Help me choose recommends the unpaired t test with a one-paragraph reason, to the user",
+    recTest === "Unpaired t test" && recReason.length > 80 && /\byou know\b/.test(recReason),
+    `${recTest}: ${recReason.slice(0, 80)}`);
+  // What is saved for the methods paragraph is the outcome's third-person
+  // wording (guide/methodsWording.ts), pinned here (ruling 10).
+  const savedWhy = "The unpaired t test with a pooled SD was chosen because the two groups were "
+    + "independent, roughly Gaussian and known from the design or earlier data to have equal SDs; "
+    + "it has slightly more power than Welch's t test when that holds.";
   await hm.getByRole("button", { name: "Open on “Pilot”" }).click();
   await openChecks();
   const why = page.getByRole("note", { name: "Why this test" });
   const whyShown = await why.waitFor({ timeout: 30000 }).then(() => true, () => false);
   expect("lands on the t test with the reason (Why Unpaired t test.)", whyShown &&
-    (await why.innerText()).startsWith(`Why Unpaired t test. ${recReason.slice(0, 40)}`));
+    (await why.innerText()).startsWith(`Why Unpaired t test. ${savedWhy}`),
+    await why.innerText().catch(() => ""));
   await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 60000 });
 
   // P-32, the acceptance test as written: choose a test in Help me choose,
   // save, reload the file: the methods text still includes the reason
   // (and the saved file holds it on the results sheet).
-  const methodsWhy = `Choice of test (OpenDose Help me choose): ${recReason}`;
+  const methodsWhy = `Choice of test (OpenDose Help me choose): ${savedWhy}`;
   const methodsHas = () => page.waitForFunction((t) => (document.querySelector(".stats-methods p")
     ?.textContent ?? "").includes(t), methodsWhy, { timeout: 30000 }).then(() => true, () => false);
   expect("P-32: the methods paragraph gives the chooser's reason", await methodsHas(),
@@ -3338,9 +3345,9 @@ const axeOn = async (pg, sel) => {
   const whySaved = JSON.parse(readFileSync(WHY, "utf8"));
   checkSchema("Save project (Help me choose)", whySaved);
   // (an earlier Help me choose in this suite left a one-way ANOVA with its own reason)
-  const whySheet = whySaved.sheets.find((s) => s.kind === "results" && s.chosen?.reason === recReason);
-  expect("P-32: the saved results sheet keeps the reason with the options the chooser set",
-    whySheet?.chosen?.test === "Unpaired t test" && whySheet.chosen.reason === recReason
+  const whySheet = whySaved.sheets.find((s) => s.kind === "results" && s.chosen?.reason === savedWhy);
+  expect("P-32: the saved results sheet keeps the reason, in the methods wording, with the options the chooser set",
+    whySheet?.chosen?.test === "Unpaired t test" && whySheet.chosen.reason === savedWhy
     && whySheet.chosen.options?.ttestKind === "unpaired", JSON.stringify(whySheet?.chosen ?? null).slice(0, 160));
   await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]', WHY);
   await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 60000 });
@@ -3358,6 +3365,20 @@ const axeOn = async (pg, sel) => {
   await page.getByRole("button", { name: "Undo", exact: true }).first().click();
   expect("P-32: Undo brings the reason back", await methodsHas()
     && await appears(page.getByRole("note", { name: "Why this test" })));
+  // A project saved before the methods wording (the chooser's words,
+  // "unless you know the SDs are equal") reads in the methods wording.
+  await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]',
+    join(here, "..", "e2e-fixtures", "stage", "why-history.json"));
+  const oldWhy = "Choice of test (OpenDose Help me choose): Welch's t test was chosen for the two "
+    + "independent groups because it does not assume equal SDs and loses little power when they are equal.";
+  const oldRead = await page.waitForFunction((t) => (document.querySelector(".stats-methods p")
+    ?.textContent ?? "").includes(t), oldWhy, { timeout: 60000 }).then(() => true, () => false);
+  expect("P-32: a project saved with the chooser's words gets the methods wording, without \"you\"",
+    oldRead && !/\byou\b/.test(await page.locator(".stats-methods p").first().innerText()),
+    await page.locator(".stats-methods p").first().innerText().catch(() => "no methods text"));
+  await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]', WHY);
+  await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 60000 });
+  await openChecks();
 
   // (b) Plan next experiment: the pilot SD (pooled, 0.825) filled in; the
   // effect to detect is chosen (1 unit): 12 per group for 80% power.

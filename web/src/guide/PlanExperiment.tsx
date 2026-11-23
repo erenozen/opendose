@@ -102,7 +102,7 @@ export default function PlanExperiment({ onClose }: { onClose: () => void }) {
       let out = r.resultsId ? renameForOptions(r.project, r.resultsId, {}, analysisDef) : r.project;
       // The reason travels with the sheet (saved, shared, in the methods).
       if (r.resultsId) {
-        out = withChoice(out, r.resultsId, { test: rec.test, reason: rec.reason,
+        out = withChoice(out, r.resultsId, { test: rec.test, reason: rec.methods,
           analysis: target.analysisId, options: target.options });
       }
       const res = findSheet(out, r.resultsId);

@@ -9,6 +9,7 @@
 // variation between subjects; question it when it does not help) and
 // Festing 2014 on randomised block designs. Pure; unit-tested.
 import type { Banner } from "./banners.ts";
+import { BLOCK_METHODS } from "./methodsWording.ts";
 import type { Recommendation } from "./recommend.ts";
 import { SRC } from "./sources.ts";
 
@@ -38,6 +39,7 @@ export function blockedRecommendation(matched: Recommendation): Recommendation {
     ...matched,
     rule: rm ? "block_rm_one_way" : paired ? "block_paired_t" : `block_${matched.rule}`,
     reason: `${why} ${matched.reason}`,
+    methods: `${BLOCK_METHODS} ${matched.methods}`,
     target,
     alternatives: [
       ...matched.alternatives,

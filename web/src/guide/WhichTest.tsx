@@ -20,6 +20,7 @@ import {
 } from "./recommend";
 import { designFromTable, tableWording } from "./tablePrefill";
 import { withChoice } from "./choice";
+import { alternativeMethods } from "./methodsWording";
 import { groupChecks } from "./stats";
 
 export function Choice<T extends string>({ legend, value, options, onChange, hint }: {
@@ -120,14 +121,15 @@ export default function WhichTest({ onClose }: { onClose: () => void }) {
     onClose();
     if (goTo) select(goTo);
   };
-  const open = () => openTarget(rec.target, rec.test, rec.reason);
+  // saved in the methods wording (third person), not the words above
+  const open = () => openTarget(rec.target, rec.test, rec.methods);
   /** An alternative OpenDose can open (e.g. Cox regression), as a button. */
   const altButton = (a: Alternative) => {
     if (!a.target) return null;
     const here = fitsTable(data, a.target) && data;
     return (
       <button type="button" data-still className="linkish wt-alt-open"
-        onClick={() => openTarget(a.target!, a.test, `${a.test}: ${a.when}.`)}>
+        onClick={() => openTarget(a.target!, a.test, alternativeMethods(a.test))}>
         {here ? `Open ${a.test} on “${data.name}”` : `Create a table for ${a.test}`}
       </button>
     );

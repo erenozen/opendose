@@ -20,9 +20,11 @@ const prefs = projectPrefs(DEFAULT_PREFS);
 const fixtures = JSON.parse(readFileSync(new URL("../../report/__tests__/fixtures.json",
   import.meta.url), "utf8")) as Record<string, { result: unknown }>;
 
+// as Help me choose saves it: the methods wording (guide/methodsWording.ts)
 const WELCH = {
   test: "Unpaired t test with Welch's correction",
-  reason: "Two independent groups. Welch's t test does not assume the two populations have equal SDs.",
+  reason: "Welch's t test was chosen for the two independent groups because it does not assume "
+    + "equal SDs and loses little power when they are equal.",
   analysis: "column",
   options: { analysis: "ttest", ttestKind: "welch" },
 };
@@ -52,7 +54,7 @@ test("the methods paragraph says why, after reopening", () => {
   const back = parseProjectFile(serializeProject(project()), { prefs, ids: sequentialIds("n") });
   const text = statsMethodsParagraph(fixtures.ttest_welch.result, DEFAULT_REPORT, undefined,
     { chosen: currentChoice(results(back)) });
-  assert.match(text, /^Data were analysed by [^.]+\. Choice of test \(OpenDose Help me choose\): Two independent groups\. Welch's t test does not assume the two populations have equal SDs\. /);
+  assert.match(text, /^Data were analysed by [^.]+\. Choice of test \(OpenDose Help me choose\): Welch's t test was chosen for the two independent groups because it does not assume equal SDs and loses little power when they are equal\. /);
   // without a reason the paragraph is as it was
   const plain = statsMethodsParagraph(fixtures.ttest_welch.result, DEFAULT_REPORT, undefined);
   assert.equal(text.replace(` Choice of test (OpenDose Help me choose): ${WELCH.reason}`, ""), plain);
