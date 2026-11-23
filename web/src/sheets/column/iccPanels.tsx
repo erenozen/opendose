@@ -53,10 +53,7 @@ export function IccResults({ result }: ResultsProps<IccOptions, IccResult>) {
   const chosen = chosenForm(result);
   const ms = result.mean_squares;
   const rows = result.forms.map((r) => [
-    <>
-      {formName(r.form, k)}{r.form === result.options.form ? " (chosen)" : ""}<br />
-      <span className="field-note">{ICC_INFO[r.form].model.replace("mean of k raters", `mean of ${k} raters`)}</span>
-    </>,
+    `${formName(r.form, k)}${r.form === result.options.form ? " (chosen)" : ""}`,
     f(r.value), ciTxt(r.ci),
   ]);
   // two F tests of ICC = 0: one for the one-way forms, one for the two-way forms
@@ -70,30 +67,32 @@ export function IccResults({ result }: ResultsProps<IccOptions, IccResult>) {
         Raters: {result.names.join(", ")}.
       </p>
       <Grid caption="Intraclass correlation coefficients"
-        head={["Form and model", "ICC", `${lvl} CI`]} rows={rows} />
+        head={["Form", "ICC", `${lvl} CI`]} rows={rows} />
+      <p className="hint-block">
+        ICC(1,·): one-way random effects. ICC(2,·): two-way random effects, absolute agreement.
+        ICC(3,·): two-way mixed effects, consistency. ICC(·,1) is the reliability of a single
+        rater&apos;s rating, ICC(·,{k}) of the mean of the {k} raters (Shrout &amp; Fleiss 1979).
+      </p>
       {(result.warnings ?? []).map((w) => <Note key={w} warn>{w}.</Note>)}
       {chosen && chosen.value < 0 && (
-        <Note warn>{formName(chosen.form, k)} is negative: the ratings vary more within a target than between
-          targets, so the raters show no reliability; report it as it is, not as 0.</Note>
+        <Note warn>{formName(chosen.form, k)} is negative: the ratings vary more within a target than
+          between targets.</Note>
       )}
-      <div className="stat-cols">
-        <KV title="Tests of ICC = 0" rows={[
-          ["One-way forms", ftest("ICC1")],
-          ["Two-way forms", ftest("ICC3")],
-        ]} />
-        <KV title="Two-way ANOVA (targets × raters)" rows={[
-          ["Mean square, targets", `${f(ms.between_targets)} (df ${result.df.targets})`],
-          ["Mean square, raters", `${f(ms.between_raters)} (df ${result.df.raters})`],
-          ["Mean square, residual", `${f(ms.residual)} (df ${result.df.residual})`],
-          ["Mean square, within targets", `${f(ms.within_targets)} (df ${result.df.within})`],
-          ...(result.raters_p != null ? [["Do the raters differ? (F test)",
-            `F = ${f(result.raters_F)}, ${pLabel(result.raters_p)}`] as [string, string]] : []),
-        ]} />
-      </div>
+      <KV className="kv-wide" title="Tests of ICC = 0" rows={[
+        ["One-way forms", ftest("ICC1")],
+        ["Two-way forms", ftest("ICC3")],
+      ]} />
+      <KV className="kv-wide" title="Two-way ANOVA (targets × raters)" rows={[
+        ["Mean square, targets", `${f(ms.between_targets)} (df ${result.df.targets})`],
+        ["Mean square, raters", `${f(ms.between_raters)} (df ${result.df.raters})`],
+        ["Mean square, residual", `${f(ms.residual)} (df ${result.df.residual})`],
+        ["Mean square, within targets", `${f(ms.within_targets)} (df ${result.df.within})`],
+        ...(result.raters_p != null ? [["Do the raters differ? (F test)",
+          `F = ${f(result.raters_F)}, ${pLabel(result.raters_p)}`] as [string, string]] : []),
+      ]} />
       <p className="hint-block">
         Absolute agreement counts a rater who reads consistently high as disagreement; consistency
-        ignores such an offset. The single-rater forms describe one rating; the k forms the mean of
-        all {k}. If the raters differ (F test above), the absolute and consistency forms part ways.
+        ignores such an offset. If the raters differ (F test above), the two part ways.
       </p>
     </Card>
   );
