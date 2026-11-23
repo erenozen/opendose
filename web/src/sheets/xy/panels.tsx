@@ -23,6 +23,7 @@ import { RangeFlagsBar } from "./rangeFlags";
 import { ZeroDoseBar } from "./ZeroDoseBar";
 import { ExperimentsResults } from "./ExperimentsCard";
 import { dropPoints, normalizeXYGraph } from "./fitGraph";
+import { fitCaption } from "./fitLegend";
 import { concentrationUnit, displayOf } from "./rangeReport";
 import { CompareFitsLinks } from "../../components/ResultsLinks";
 import "./xy.css";
@@ -180,7 +181,7 @@ export function NonlinMethods({ table, result, options }:
   );
 }
 
-export function XYPlot({ graph, table, result, titles, scheme, format, onFormatChange }:
+export function XYPlot({ graph, table, result, options, titles, scheme, format, onFormatChange }:
   PlotProps<OptionsState, AnalysisResult>) {
   // Dates / elapsed times: X ticks read as dates or h:mm:ss.
   const xTickFormat = useMemo(() => xTickFormatter(table) ?? undefined, [table]);
@@ -197,10 +198,14 @@ export function XYPlot({ graph, table, result, titles, scheme, format, onFormatC
   const drop = useMemo(() => (xs.dropLines
     ? { points: dropPoints(shown), label: xs.dropLabel, unit } : undefined),
   [xs.dropLines, xs.dropLabel, shown, unit]);
+  // "In the figure": the legend sentence drawn into the figure (exports
+  // carry it); "Under the graph" opens the legend card instead.
+  const caption = useMemo(() => (xs.caption === "figure"
+    ? fitCaption(table, shown, options, xs) || undefined : undefined), [xs, table, shown, options]);
   return (
     <PlotPanel result={shown} scheme={scheme} xTitle={titles.x} yTitle={titles.y}
       xTickFormat={xTickFormat} format={format} onFormatChange={onFormatChange}
-      rowTitles={table.rowTitles} drop={drop} />
+      rowTitles={table.rowTitles} drop={drop} caption={caption} />
   );
 }
 

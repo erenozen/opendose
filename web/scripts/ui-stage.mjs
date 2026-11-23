@@ -613,6 +613,12 @@ const scenes = [
     await into(s, ".plot-card", "center");
     await settle(s, 1200);
   } },
+  { name: "graphs-fit-legend", setup: async (s) => {
+    await fixture(s, "fit-legend.json", { live: true });
+    await s.page.locator(".js-plotly-plot").first().waitFor();
+    await into(s, ".plot-card", "center");
+    await settle(s, 1200);
+  } },
   { name: "graphs-fit-drop-lines", setup: async (s) => {
     await fixture(s, "fit-graph.json", { live: true });
     await s.page.locator(".js-plotly-plot").first().waitFor();

@@ -187,7 +187,8 @@ export default function PlotPanel({
         color: chrome.inkSecondary,
         size: 13,
       },
-      margin: { l: 60, r: 16, t: 8, b: 48 },
+      // a caption under the figure starts below the X axis title
+      margin: { l: 60, r: 16, t: 8, b: caption ? 64 : 48 },
       xaxis: {
         title: { text: xTitle, font: { color: chrome.inkSecondary } },
         gridcolor: chrome.grid,

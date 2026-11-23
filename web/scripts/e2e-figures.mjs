@@ -610,8 +610,8 @@ const FIT_Y = [["98.2", "101.5", "99.1"], ["97.0", "95.8", "99.9"], ["93.4", "90
 const fitTable = (rows) => ({ type: "xy", x: FIT_X, xTitle: "[Conc.]", xFormat: "numbers", xUnit: "M",
   yTitle: "Response", rowTitles: FIT_X.map(() => ""), subcolumnFormat: "replicates",
   replicateLayout: "side_by_side", datasets: [{ name: "Drug A", subTitles: ["", "", ""], rows }] });
-const fitFamily = (id, name, options, graph = {}) => [
-  { id: `${id}d`, kind: "data", name, table: fitTable(FIT_Y.map((r) => [...r])) },
+const fitFamily = (id, name, options, graph = {}, rows = FIT_Y) => [
+  { id: `${id}d`, kind: "data", name, table: fitTable(rows.map((r) => [...r])) },
   { id: `${id}r`, kind: "results", parentId: `${id}d`, name: `Nonlin fit of ${name}`,
     analysis: "nonlin", options: { model: "log_inhibitor_vs_response_4pl", errorBars: "sd",
       autoFit: "requested", ...options } },
@@ -649,6 +649,10 @@ const fitLegendText = () => page.locator(".plot-card .figure-legend-text").textC
       ...fitFamily("rel", "Relative IC50", {}),
       ...fitFamily("abs", "Absolute IC50", { model: "absolute_ic50_log", modelConstants: { Baseline: "0" } },
         { xy: { dropLines: true } }),
+      // P-24: 4PL, weighting 1/Y², confidence band, ROUT (Q = 1%) removes
+      // the 30.0 at 1e-7 M (engine/tests/reference/fit_graph.py legend_4pl)
+      ...fitFamily("leg", "ROUT fit", { weighting: "1/Y2", routEnabled: true, routQ: "1",
+        bands: "confidence" }, {}, FIT_Y.map((r, i) => (i === 4 ? ["30.0", "48.7", "50.9"] : r))),
     ],
   }));
   await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]', FIT);
@@ -708,6 +712,40 @@ const fitLegendText = () => page.locator(".plot-card .figure-legend-text").textC
   expect("the absolute IC50 legend names its level",
     (await fitLegendText()).includes("Dashed lines mark the absolute IC50 (where the curve crosses "
       + "(Top + Baseline) / 2)."), await fitLegendText());
+}
+
+
+// --- the curve-fit legend names the model, what was fitted and its
+// weighting, the band and the ROUT exclusions, in that order (P-24).
+// Before: "Points show the mean of the replicates with error bars showing
+// the standard deviation (SD); the curve is the fitted model."
+{
+  const LEGEND = "Points show the mean of the replicates with error bars showing the standard "
+    + "deviation (SD). The curve is the log(inhibitor) vs. response, variable slope (four "
+    + "parameters) model fitted to every replicate value, weighted by 1/Y²; the shaded band is its "
+    + "95% confidence band. ROUT (Q = 1%) removed 1 point from the fit, drawn as × "
+    + "(Drug A, X = -7, Y = 30).";
+  await page.getByRole("treeitem", { name: "ROUT fit", exact: true }).first()
+    .locator(":scope > .nav-row").click();
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+    .some((t) => t.meta?.odTag?.role === "outliers"), null, { timeout: 120000 }).catch(() => {});
+  await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 60000 });
+  await page.waitForFunction(() => document.querySelector(".plot-card .figure-legend-text")?.textContent
+    ?.includes("ROUT"), null, { timeout: 30000 }).catch(() => {});
+  const leg = await fitLegendText();
+  expect("fit legend: model, fitted to every replicate weighted by 1/Y², confidence band, ROUT point",
+    leg.startsWith(`${LEGEND} n = 3 replicates per X value.`), leg);
+  const pop = await graphSettings();
+  await pop.getByLabel("Legend sentence").selectOption("figure");
+  await closeSettings();
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.layout?.annotations ?? [])
+    .some((a) => a.name === "caption"), null, { timeout: 30000 }).catch(() => {});
+  const cap = await page.evaluate(() => (document.querySelector(".plot-card .plot")?.layout?.annotations ?? [])
+    .find((a) => a.name === "caption")?.text ?? "");
+  const capText = cap.split("<br>").join(" ").replace(/&amp;/g, "&");
+  expect("in-figure caption: the same sentence and n", capText === `${LEGEND} n = 3 replicates per X value.`,
+    capText);
+  await shot("fit-legend-caption");
 }
 
 console.log(errors.length ? errors.join("\n") : "no page errors");

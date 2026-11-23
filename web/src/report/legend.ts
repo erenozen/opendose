@@ -28,6 +28,14 @@ const BAR_WORDS: Record<ErrorBars, string> = {
   none: "",
 };
 
+/** "Points show the mean of the replicates with error bars showing the
+ *  standard deviation (SD)": the points of an XY graph. */
+export function xyPointsClause(errorBars: ErrorBars | null | undefined): string {
+  const bars = errorBars ?? "sd";
+  const err = bars === "none" ? "" : BAR_WORDS[bars];
+  return `Points show the mean of the replicates${err ? ` with error bars showing ${err}` : ""}`;
+}
+
 /** One sentence on what the graph shows (null for an unknown kind). */
 export function whatIsPlotted(graphType: string | null | undefined,
   opts: { errorBars?: ErrorBars | null; points?: boolean; estimation?: R | null } = {}): string | null {
@@ -58,8 +66,7 @@ export function whatIsPlotted(graphType: string | null | undefined,
         + `${cumming ? "" : ", on an axis whose zero is aligned with the control mean"}.`;
     }
     case "xy":
-      return `Points show the mean of the replicates${err ? ` with error bars showing ${err}` : ""}; `
-        + "the curve is the fitted model.";
+      return `${xyPointsClause(bars)}; the curve is the fitted model.`;
     case "survival":
       return "Kaplan-Meier survival curves; tick marks show censored subjects.";
     case "nested_scatter":

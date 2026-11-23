@@ -273,6 +273,14 @@ response, the absolute IC50 models (Top + Baseline) / 2; a fit the
 results flag (ambiguous, beyond the doses tested) gets a legend sentence
 instead (`dropLegend`).
 
+`caption` ("below" / "figure" / absent = folded) places the curve-fit
+legend, `sheets/xy/fitLegend.ts fitLegendClause`: the points and error
+bars, then in this order the model, what was fitted (every replicate
+value, or the means) and its weighting, the band (95% confidence or
+prediction), the points ROUT removed (named, drawn as ×), and the drop
+lines. `report/legendFor.ts` uses it as the "what is plotted" clause of
+every XY curve-fit graph, so the card and the in-figure caption agree.
+
 ### SuperPlots
 
 Trace role `replicate` (new): data marks coloured by replicate, which

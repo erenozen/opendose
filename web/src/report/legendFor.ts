@@ -22,6 +22,7 @@ import { compareParameterLegend } from "../sheets/xy/compareParameter.ts";
 import { logLegendClause } from "../sheets/column/logScale.ts";
 import { maxOf } from "../lib/extent.ts";
 import { dropLegend, normalizeXYGraph } from "../sheets/xy/fitGraph.ts";
+import { fitLegendClause } from "../sheets/xy/fitLegend.ts";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -147,7 +148,8 @@ export function legendFor(c: LegendContext): string {
     && facts.values.every((g) => g.n <= facts.experiments);
   // The graph's own P style / "hide ns" override the project's.
   const fmt = c.graph ? readFormat(c.graph.settings) : null;
-  const xyFit = c.graph?.graphType === "xy" ? xyFitPlotted(c.graph, c.result, f.errorBars) : undefined;
+  const xyFit = c.graph?.graphType === "xy"
+    ? xyFitPlotted(c.graph, c.table, c.result, c.options, f.errorBars) : undefined;
   return legendParagraph({
     graphType: c.graph?.graphType ?? null,
     plotted: xyFit ?? withCompareClause(c.graph ? (own ? ownPlotted(c.graph, c.result, c.options)
@@ -169,10 +171,15 @@ export function legendFor(c: LegendContext): string {
   });
 }
 
-/** The curve-fit graph: what is plotted, then the IC50 / EC50 drop lines
- *  (sheets/xy/fitGraph.ts) when they are on; undefined = the default. */
-function xyFitPlotted(g: GraphSheet, result: unknown, errorBars: ErrorBars | null): string | undefined {
-  const drop = dropLegend(result, normalizeXYGraph(g.settings.xy));
+/** The curve-fit graph: the points, the model and how it was fitted, the
+ *  band and ROUT (sheets/xy/fitLegend.ts), then the IC50 / EC50 drop
+ *  lines; without a fitted curve, the points and the drop lines alone. */
+function xyFitPlotted(g: GraphSheet, table: DataTableModel, result: unknown, options: unknown,
+  errorBars: ErrorBars | null): string | undefined {
+  const s = normalizeXYGraph(g.settings.xy);
+  const fit = fitLegendClause(table, result, options, s);
+  if (fit) return fit;
+  const drop = dropLegend(result, s);
   return drop ? `${whatIsPlotted("xy", { errorBars })} ${drop}` : undefined;
 }
 

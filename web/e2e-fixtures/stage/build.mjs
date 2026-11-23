@@ -18,6 +18,8 @@
 //   box-plot.json      a column box plot (rank (n + 1)p quartiles, an outlier)
 //   fit-graph.json     the example dose-response with IC50 drop lines and
 //                      their value label on its curve-fit graph
+//   fit-legend.json    a weighted 4PL with a confidence band and one ROUT
+//                      outlier, its legend sentence drawn in the figure
 //   many-sheets.json   74 sheets: 22 families, navigator groups (one
 //                      collapsed), highlights, info sheets and layouts
 import { writeFileSync } from "node:fs";
@@ -263,4 +265,19 @@ function write(name, p, compact = false) {
   const g = graph(t, r, "xy", "Graph of Dose response");
   g.settings.xy = { dropLines: true, dropLabel: true };
   write("fit-graph.json", project("Fit graph", [t, r, g], { selected: g.id }));
+}
+
+// fit-legend.json: the curve-fit legend in the figure (sheets/xy/fitLegend.ts)
+{
+  const reps = [["98.2", "101.5", "99.1"], ["97.0", "95.8", "99.9"], ["93.4", "90.1", "92.7"],
+    ["78.9", "82.3", "80.0"], ["30.0", "48.7", "50.9"], ["22.1", "25.6", "24.0"],
+    ["8.9", "10.2", "7.5"], ["3.1", "4.4", "2.2"], ["1.0", "0.5", "2.1"]];
+  const t = data("ROUT fit", table("xy", { x: doses, xTitle: "[Conc.]", xUnit: "M",
+    yTitle: "Response", datasets: [{ name: "Drug A", subTitles: ["", "", ""], rows: reps }] }));
+  const r = results(t, "nonlin", { model: "log_inhibitor_vs_response_4pl", errorBars: "sd",
+    autoFit: "requested", weighting: "1/Y2", routEnabled: true, routQ: "1", bands: "confidence" },
+  "Nonlin fit of ROUT fit");
+  const g = graph(t, r, "xy", "Graph of ROUT fit");
+  g.settings.xy = { caption: "figure" };
+  write("fit-legend.json", project("Fit legend", [t, r, g], { selected: g.id }));
 }
