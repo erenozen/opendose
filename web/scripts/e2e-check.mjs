@@ -609,6 +609,9 @@ const viewedBefore = await page.locator('[role=treeitem][aria-selected="true"]')
 await page.reload({ waitUntil: "domcontentloaded" });
 await page.waitForSelector(".restore-banner", { timeout: 30000 });
 await page.locator(".restore-banner").getByRole("button", { name: "Restore" }).click();
+// Restore takes the session's Web Lock and reads it first (P-01): wait for
+// the restored project rather than reading the tree in the same tick.
+await navRow("Two-factor data").waitFor({ timeout: 10000 }).catch(() => {});
 expect("restore from autosave", await navRow("Two-factor data").count() === 1);
 const viewedAfter = await page.locator('[role=treeitem][aria-selected="true"]').first().getAttribute("aria-label");
 expect("restore reopens the sheet last viewed", !!viewedBefore && viewedAfter === viewedBefore,
