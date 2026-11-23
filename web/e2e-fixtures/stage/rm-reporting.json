@@ -600,6 +600,183 @@
     "rankTrend": true
    },
    "name": "Friedman of Teaching methods"
+  },
+  {
+   "id": "d116",
+   "kind": "data",
+   "name": "Three stains",
+   "table": {
+    "type": "column",
+    "x": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "",
+    "rowTitles": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "datasets": [
+     {
+      "name": "Stain A",
+      "rows": [
+       [
+        "1"
+       ],
+       [
+        "1"
+       ],
+       [
+        "1"
+       ],
+       [
+        "0"
+       ],
+       [
+        "1"
+       ],
+       [
+        "1"
+       ],
+       [
+        "1"
+       ],
+       [
+        "1"
+       ],
+       [
+        "0"
+       ],
+       [
+        "1"
+       ],
+       [
+        "1"
+       ],
+       [
+        "1"
+       ]
+      ]
+     },
+     {
+      "name": "Stain B",
+      "rows": [
+       [
+        "1"
+       ],
+       [
+        "0"
+       ],
+       [
+        "1"
+       ],
+       [
+        "0"
+       ],
+       [
+        "1"
+       ],
+       [
+        "0"
+       ],
+       [
+        "1"
+       ],
+       [
+        "1"
+       ],
+       [
+        "1"
+       ],
+       [
+        "0"
+       ],
+       [
+        "1"
+       ],
+       [
+        "1"
+       ]
+      ]
+     },
+     {
+      "name": "Stain C",
+      "rows": [
+       [
+        "0"
+       ],
+       [
+        "0"
+       ],
+       [
+        "1"
+       ],
+       [
+        "0"
+       ],
+       [
+        "0"
+       ],
+       [
+        "0"
+       ],
+       [
+        "0"
+       ],
+       [
+        "1"
+       ],
+       [
+        "0"
+       ],
+       [
+        "0"
+       ],
+       [
+        "0"
+       ],
+       [
+        "0"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "r117",
+   "kind": "results",
+   "parentId": "d116",
+   "analysis": "column",
+   "options": {
+    "analysis": "cochran_q"
+   },
+   "name": "Cochran's Q of Three stains"
   }
  ]
 }

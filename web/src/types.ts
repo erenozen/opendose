@@ -275,7 +275,8 @@ export type ColumnAnalysisKind =
   | "bland_altman"
   | "outliers"
   | "p_stack"
-  | "frequency";
+  | "frequency"
+  | "cochran_q";
 
 export const COLUMN_ANALYSIS_LABELS: Record<ColumnAnalysisKind, string> = {
   column_statistics: "Column statistics (descriptive + normality)",
@@ -291,6 +292,7 @@ export const COLUMN_ANALYSIS_LABELS: Record<ColumnAnalysisKind, string> = {
   outliers: "Identify outliers (Grubbs / ROUT)",
   p_stack: "Analyze a stack of P values (multiple comparisons)",
   frequency: "Frequency distribution (histogram, cumulative, Gaussian fit)",
+  cochran_q: "Cochran's Q (matched yes/no: rows = subjects, 0 or 1)",
 };
 
 export type TwoWayComparisons = "none" | "tukey" | "sidak" | "bonferroni";

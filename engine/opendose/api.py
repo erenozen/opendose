@@ -2664,6 +2664,27 @@ def _mcnemar(data, options):
                             ci_level=options.get("ci_level", 0.95))}
 
 
+def _cochrans_q(data, options):
+    """Cochran's Q for a matched yes/no outcome (trend.cochrans_q). data:
+    a column table, datasets = conditions, rows = subjects, first
+    subcolumn, cells 0 or 1 (None = missing). Subjects missing a
+    condition are left out, listed in incomplete_subjects (0-based) with
+    a warning. Result: {"analysis", "Q", "df", "p", "n_subjects",
+    "n_informative", "successes", "proportions", "names", "comparisons":
+    {method, family, comparisons: [{pair, discordant, difference,
+    p_unadjusted, p_adjusted, ...}]}}."""
+    names = [ds.get("name", "") or f"Condition {j + 1}"
+             for j, ds in enumerate(data["datasets"])]
+    cols = [[row[0] if row else None for row in ds["ys"]]
+            for ds in data["datasets"]]
+    result = {"analysis": "cochrans_q", **trend.cochrans_q(cols, names)}
+    if result["incomplete_subjects"]:
+        result["warnings"] = [_incomplete_warning(
+            result["incomplete_subjects"], "subject row")
+            + " (Cochran's Q needs every condition per subject)"]
+    return result
+
+
 def _cmh(data, options):
     """Cochran-Mantel-Haenszel. data: {"tables": [[[a, b], [c, d]], ...],
     "strata_names"?}; options: correction (false), ci_level. Result:
@@ -2848,6 +2869,7 @@ _HANDLERS = {
     "median_test": _median_test,
     "trend_test": _trend_test,
     "mcnemar": _mcnemar,
+    "cochrans_q": _cochrans_q,
     "cmh": _cmh,
     "kappa": _kappa,
     "proportion_test": _proportion_test,

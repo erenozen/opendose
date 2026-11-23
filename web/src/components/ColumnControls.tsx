@@ -433,6 +433,18 @@ export default function ColumnControls({ options, datasetNames, onChange, summar
         </section>
       )}
 
+      {options.analysis === "cochran_q" && (
+        <section>
+          <h3>Layout</h3>
+          <p className="hint-block">
+            One subject per row and one condition per column (three or more), each cell 1 for
+            yes and 0 for no. Rows missing a condition are left out. After Cochran&apos;s Q, every
+            pair of conditions is compared with McNemar&apos;s test (exact binomial P), adjusted
+            by Holm&apos;s method.
+          </p>
+        </section>
+      )}
+
       {options.analysis === "correlation" && (
         <section>
           <h3>Options</h3>

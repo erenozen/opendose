@@ -79,7 +79,7 @@ export function analysisKind(ctx: ResultContext): string {
 const RANK = new Set(["ttest:mann_whitney", "ttest:wilcoxon", "ttest:kolmogorov_smirnov",
   "kruskal", "friedman", "median_test"]);
 const PAIRED = new Set(["ttest:paired", "ttest:ratio_paired", "ttest:wilcoxon", "rm_anova",
-  "friedman", "rm_two_way"]);
+  "friedman", "rm_two_way", "cochran_q"]);
 const GROUP_TESTS = new Set(["ttest:unpaired", "ttest:welch", "ttest:paired", "ttest:ratio_paired",
   "ttest:mann_whitney", "ttest:wilcoxon", "ttest:kolmogorov_smirnov", "anova", "welch_anova",
   "kruskal", "rm_anova", "friedman", "median_test", "column_statistics", "outliers",
@@ -633,6 +633,8 @@ export function resultChips(ctx: ResultContext): Chip[] {
     ctx.sensitivity ? sensitivityChip(ctx.sensitivity) : null,
   ].filter((c): c is Chip => !!c);
   if (withheldInfo(r)) return lead;
+  // yes/no counts: no normality or SD checks, only the dropped subjects
+  if (kind === "cochran_q") return [...lead, missingChip(ctx, kind)].filter((c): c is Chip => !!c);
   if (!GROUP_TESTS.has(kind) && !(ctx.tableType === "column")) return lead;
   const groups = usedGroups(ctx, kind);
   return [

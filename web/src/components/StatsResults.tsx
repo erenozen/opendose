@@ -13,6 +13,7 @@ import { MixedRmOneWay, RmComparisons } from "../sheets/column/rmPosthocResults"
 import { rmComparisonsOf } from "../sheets/column/rmPosthoc";
 import SphericityTable from "../sheets/common/SphericityTable";
 import { OrderedTrendResults } from "../sheets/column/OrderedTrend";
+import CochranQ from "../sheets/column/CochranQ";
 
 interface Props {
   result: Record<string, unknown> | null;
@@ -1068,6 +1069,7 @@ function mainResults(result: Record<string, unknown>, options: Props["options"])
       ? <><LogAnovaRatios result={result} /><Anova result={result} /></> : <Anova result={result} />;
     case "anova_unequal_var": return <AnovaUnequal result={result} />;
     case "median_test": return <MedianTest result={result} />;
+    case "cochrans_q": return <CochranQ result={result} />;
     case "fdr_adjust": return <PStack result={result} />;
     case "frequency_distribution": return <FrequencyResults result={result} />;
     case "ks_test": return <KSTest result={result} />;

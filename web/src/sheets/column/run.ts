@@ -206,6 +206,8 @@ export function columnPayload(table: DataTableModel, o: ColumnOptionsState):
       } };
   }
   if (o.analysis === "median_test") return { analysis: "median_test", ...base, options: {} };
+  // rows = subjects, data sets = conditions, cells 0 / 1 (engine trend.cochrans_q)
+  if (o.analysis === "cochran_q") return { analysis: "cochrans_q", ...base, options: {} };
   if (o.analysis === "correlation") {
     // One-sided P values come with every result; corrTails only picks
     // which one the results show.

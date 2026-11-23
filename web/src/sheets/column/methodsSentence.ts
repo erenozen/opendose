@@ -137,6 +137,13 @@ function testSentence(o: ColumnOptionsState, r: R): string {
       return "Group medians were compared with Mood's median test, counting the values above and not above the grand median"
         + (r.chi_square ? ` (chi-square = ${formatSig(r.chi_square.chi2)}, df = ${r.chi_square.df}, ${P(r.chi_square.p)})` : "")
         + (r.fisher_exact ? `; Fisher's exact test on the two-group table gave ${P(r.fisher_exact.p)}` : "") + ".";
+    case "cochran_q": {
+      const fam = r.comparisons?.family?.size;
+      return `A yes/no outcome measured on the same ${r.n_subjects} subjects under ${r.k} conditions `
+        + `was compared with Cochran's Q test (Q = ${formatSig(r.Q)}, df = ${r.df}, ${P(r.p)})`
+        + (fam ? `, followed by McNemar's test of each pair of conditions (exact binomial P), `
+          + `with Holm's correction for ${fam} comparisons` : "") + ".";
+    }
     case "rm_anova":
       return o.rmKind === "nonparametric"
         ? `Matched values were compared with the Friedman test${o.rmExact ? (r.p_method === "exact" ? " (exact P value)" : " (approximate P value; the design is too large for the exact one)") : ""} (${P(r.p)}), followed by Dunn's multiple comparisons test${r.dunns?.corrected === false ? "" : withFamily(r.dunns, "dunns")}.${trendSentence(r.page, P)}`

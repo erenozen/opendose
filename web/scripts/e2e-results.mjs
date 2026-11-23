@@ -667,6 +667,36 @@ await page.waitForSelector('.pane-results[data-live="true"] .results-table', { t
       && two === "P value, two-sided (exact, given the ties) 7.684e-4", [l, inc, two].join(" | "));
 }
 
+// --- P-45: Cochran's Q with pairwise McNemar tests ------------------------
+{
+  // engine/tests/reference/cochran_q.py (statsmodels cochrans_q and
+  // mcnemar(exact=True), Holm): Q = 11.56, df = 2, P = 0.0031; A vs C
+  // Holm P 0.0234
+  await pastedTable("column", "Three stains", "Stain A\tStain B\tStain C\n"
+    + "1\t1\t0\n1\t0\t0\n1\t1\t1\n0\t0\t0\n1\t1\t0\n1\t0\t0\n"
+    + "1\t1\t0\n1\t1\t1\n0\t1\t0\n1\t0\t0\n1\t1\t0\n1\t1\t0\n");
+  const controls = page.locator(".pane-controls");
+  await controls.locator("select.analysis-select").selectOption("cochran_q");
+  await liveResults(/Cochran's Q/);
+  const row = async (label) => (await page.locator(".pane-results tr", { hasText: label }).first()
+    .innerText().catch(() => "")).replace(/\s+/g, " ").trim();
+  const [q, df, p] = [await row("Cochran's Q"), await row("df"), await row("P value (chi-square)")];
+  expect("P-45 acceptance: Q = 11.56, df = 2, P = 0.003096 for 12 subjects under three stains",
+    q === "Cochran's Q 11.56" && df === "df 2" && p === "P value (chi-square) 0.003096 **",
+    [q, df, p].join(" | "));
+  const fam = await page.locator(".pane-results .family-line").first().innerText().catch(() => "");
+  const ac = await row("Stain A vs. Stain C");
+  expect("P-45 acceptance: three Holm-adjusted McNemar comparisons, A vs C 8/0 discordant, P 0.02344 (0.007813 unadjusted)",
+    /3 comparisons/.test(fam) && /Holm/.test(fam)
+      && ac === "Stain A vs. Stain C 8, 0 0.6667 0.02344 0.007813 *", `${fam} / ${ac}`);
+  // a 2 in the 0/1 layout is named, not analysed
+  await pastedTable("column", "Not binary", "Stain A\tStain B\tStain C\n1\t0\t2\n0\t1\t1\n1\t1\t0\n");
+  await controls.locator("select.analysis-select").selectOption("cochran_q");
+  const named = await page.waitForFunction(() => /row 1 of Stain C holds 2\. Enter one subject per row/
+    .test(document.body.innerText), null, { timeout: 60000 }).then(() => true, () => false);
+  expect("P-45 a value other than 0 or 1 is named with its row and column", named);
+}
+
 // ------------------------------------------------------------------------
 await browser.close();
 if (errors.length) console.log(errors.slice(0, 10).join("\n"));

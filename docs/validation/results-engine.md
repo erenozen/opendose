@@ -1582,3 +1582,33 @@ reversing the groups mirrors the one-sided P values, the exact and
 normal P agree for 4 x 30 values, Kruskal-Wallis itself unchanged by
 the option; two groups, an empty group, all values equal and two
 treatments each give a sentence instead of a result.
+
+### P-45 Cochran's Q for matched yes/no outcomes
+
+`trend.cochrans_q` (API `cochrans_q`; the column analysis "Cochran's Q"):
+rows are subjects, columns three or more conditions, cells 0 or 1.
+Q = (k - 1)(k sum C_j^2 - N^2) / (k N - sum R_i^2) on k - 1 df (Cochran
+1950). A cell other than 0 or 1 stops the analysis with a sentence that
+names its row and column and the layout to use; subjects missing a
+condition are left out and listed; a table where every subject gives the
+same answer under every condition says Q is undefined. Every pair of
+conditions is then compared with McNemar's test, always with the exact
+binomial P of its discordant subjects (the guide's recommendation for
+McNemar's test, valid at any count), adjusted by Holm's step-down method
+over the k(k - 1)/2 pairs; the results name the family (FamilyLine).
+
+Reference: `engine/tests/reference/cochran_q.py` (statsmodels 0.15
+`cochrans_q` and `mcnemar(exact=True)`, pingouin 0.7 `cochran`,
+statsmodels `multipletests(method="holm")`; R is not installed).
+`engine/tests/test_cochran_q.py`:
+
+| Input | Reference | Engine tolerance |
+|---|---|---|
+| 12 subjects x 3 stains (the plan's test) | Q = 11.5556, df = 2, P = 0.0030956; McNemar A vs B 3/1 discordant, P 0.625 (Holm 0.625); A vs C 8/0, P 0.0078125 (Holm 0.0234375); B vs C 6/0, P 0.03125 (Holm 0.0625) | 1e-10 (P), 1e-12 |
+| pingouin "cochran" (20 subjects, 3 days) | Q = 6.70588, P = 0.034981; Holm P 0.18457, 0.11572, 1 | 1e-10 |
+
+Also tested: the order of the conditions and subjects with the same
+answer everywhere do not change Q; a missing value drops its subject with
+a warning; a 2, a 0.5, all-equal answers, one subject and two conditions
+each give a specific sentence; a pair with no discordant subjects has
+P = 1; Q for 500 subjects x 4 equals the closed form.

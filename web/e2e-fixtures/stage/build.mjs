@@ -503,6 +503,13 @@ const longData = (name, names, rows, categorical) => data(name, {
     col(nm, hk.data.map((row) => row[j]))) }));
   const r4 = results(t4, "column", { analysis: "rm_anova", rmKind: "nonparametric",
     rankTrend: true }, "Friedman of Teaching methods");
-  write("rm-reporting.json", project("RM reporting", [t, r, t2, r2, t3, r3, t4, r4],
+  // P-45 (engine/tests/reference/cochran_q.py): 12 subjects scored 0/1
+  // under three stains, Cochran's Q with the pairwise McNemar tests
+  const cq = JSON.parse(readFileSync(join(here, "../../../engine/tests/reference",
+    "cochran_q.json"), "utf8")).stains;
+  const t5 = data("Three stains", table("column", { datasets: cq.names.map((nm, j) =>
+    col(nm, cq.data.map((row) => row[j]))) }));
+  const r5 = results(t5, "column", { analysis: "cochran_q" }, "Cochran's Q of Three stains");
+  write("rm-reporting.json", project("RM reporting", [t, r, t2, r2, t3, r3, t4, r4, t5, r5],
     { selected: r.id }));
 }

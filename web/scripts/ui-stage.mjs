@@ -1012,6 +1012,15 @@ const scenes = [
     await h.first().evaluate((el) => el.scrollIntoView({ block: "start" }));
     await settle(s, 800);
   } },
+  { name: "results-cochran-q", setup: async (s) => {
+    // P-45: Cochran's Q and the Holm-adjusted McNemar tests
+    await fixture(s, "rm-reporting.json", { live: true });
+    await selectSheet(s, "Cochran's Q of Three stains");
+    const h = s.page.locator(".pane-results h3", { hasText: "Cochran's Q test" });
+    await h.waitFor({ timeout: 240000 });
+    await h.first().evaluate((el) => el.scrollIntoView({ block: "start" }));
+    await settle(s, 800);
+  } },
   { name: "graphs-schild", setup: async (s) => {
     await fixture(s, "schild.json", { live: true });
     await selectSheet(s, /^Schild plot of EC50 shift/);
