@@ -438,6 +438,26 @@ const scenes = [
       rows[Math.floor(rows.length / 2)]?.scrollIntoView({ block: "center" });
     });
   } },
+  // a replicate map on an XY table (P-08): "Across experiments" above the
+  // fit of all the values; compound B's third experiment is flat and left out
+  { name: "results-potency", setup: async (s) => {
+    await fixture(s, "potency.json", { live: true });
+    await s.page.locator(".answer-group").first().waitFor({ timeout: 120000 });
+    await into(s, ".pane-answer");
+  } },
+  { name: "results-potency-table", setup: async (s) => {
+    await fixture(s, "potency.json", { live: true });
+    await s.page.locator(".experiments-card").first().waitFor({ timeout: 120000 });
+    await into(s, ".experiments-card");
+  } },
+  // the Checks row chip on a pooled fit (the example's triplicates)
+  { name: "results-pooled-chip", setup: async (s) => {
+    await example(s);
+    const d = s.page.locator(".pane-answer details.checks").first();
+    if (!(await d.evaluate((e) => e.open))) await d.locator("summary").click();
+    await s.page.locator(".guide-chip", { hasText: "CI counts wells, not experiments" }).click();
+    await into(s, ".guide-chip-detail", "center");
+  } },
   // the eLife checklist on the example: source data per figure is not met
   // and links to the export bundle (P-09)
   { name: "results-checklist-elife", setup: async (s) => {
