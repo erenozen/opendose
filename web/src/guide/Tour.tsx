@@ -127,6 +127,7 @@ export default function Tour({ onDone }: { onDone: () => void }) {
     let box = "";
     let frame = 0;
     let settle = 0;
+    let alive = true;
     const tourEl = tourRef.current;
     const measure = () => {
       const tour = tourRef.current, dim = dimRef.current, ring = ringRef.current;
@@ -153,7 +154,7 @@ export default function Tour({ onDone }: { onDone: () => void }) {
         cancelAnimationFrame(settle);
         settle = requestAnimationFrame(() => {
           const runs = ring.getAnimations();
-          const done = () => tour.removeAttribute("data-moving");
+          const done = () => { if (alive) tour.removeAttribute("data-moving"); };
           if (!runs.length) done();
           else Promise.all(runs.map((a) => a.finished)).then(done, done);
         });
@@ -168,8 +169,11 @@ export default function Tour({ onDone }: { onDone: () => void }) {
     window.addEventListener("scroll", schedule, { capture: true, passive: true });
     return () => {
       cancelAnimationFrame(frame);
+      alive = false;
       cancelAnimationFrame(settle);
-      tourEl?.removeAttribute("data-moving");
+      // A step change that glides again keeps it on, so a press during a
+      // glide turns it from where it is instead of jumping to its end.
+      if (!glideFrom.current) tourEl?.removeAttribute("data-moving");
       clearInterval(poll);
       window.removeEventListener("resize", schedule);
       window.removeEventListener("scroll", schedule, { capture: true });
