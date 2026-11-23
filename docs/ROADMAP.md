@@ -1072,6 +1072,74 @@ before fails or is missing now, 111 are newly read. The engine corpus
 web 747 unit tests; e2e-check 414, assays 69, share 85, export 39,
 figures 48, tiff 18 checks; a11y audit 0 violations.
 
+### Wave 1: quick wins (done 2026-11-24)
+
+- [x] P-11 residual plots for every curve fit and ANOVA
+- [x] P-12 equivalence and non-inferiority (TOST), with margin lines on
+  the estimation plot
+- [x] P-13 compare slopes and intercepts of regression lines
+- [x] P-14 pairwise comparisons of proportions, with brackets on the
+  contingency graphs (new contingency analyses now get a graph)
+- [x] P-15 the smallest P a rank test can reach
+- [x] P-16 an "Analysed" line for regression, Cox, contingency and nine
+  assay modules
+- [x] P-17 fit summary table and a linked table of parameters
+- [x] P-18 ratio to control with a Fieller CI (t test and Dunnett)
+- [x] P-19 Weibull and hormesis dose-response models
+- [x] P-20 range constraints with a stated reason
+- [x] P-21 initial values shown, typed and in a fit report
+- [x] P-22 interpolated unknowns with CIs, drawn on the graph
+- [x] P-23 IC50 and EC50 drop lines (also on a split Y axis)
+- [x] P-24 a curve-fit legend that names the model, band and exclusions
+- [x] P-25 geometric mean with geometric SD and the bar-axis note
+- [x] P-26 median with IQR under a rank test
+- [x] P-27 repeated-measures correlation
+- [x] P-28 difference in survival at a chosen time
+- [x] P-29 limits of blank, detection and quantification; qPCR LoD95
+- [x] P-30 qPCR no-template and no-RT control checks
+- [x] P-31 the full flow gate path in methods and legends
+- [x] P-32 "why this test" kept in the project, in third-person methods
+  wording
+- [x] P-33 drop or open a single CSV, TSV or workbook file
+- [x] P-34 .xls and .ods workbooks
+- [x] P-35 one-click fixes for percent and unit cells
+- [x] P-36 find and replace in a table
+- [x] P-37 spreadsheet keys in the grid
+- [x] P-38 pair values by subject ID from a long table
+- [ ] P-39 deferred (see Deferred)
+- [x] P-40 Mauchly, Huynh-Feldt and partial omega squared in RM ANOVA
+- [x] P-41 Jonckheere-Terpstra and Page trend tests
+- [x] P-42 Passing-Bablok and Theil-Sen regression
+- [x] P-43 Lin's concordance correlation coefficient
+- [x] P-44 reliability ICC (Shrout-Fleiss / McGraw-Wong)
+- [x] P-45 Cochran's Q with McNemar pairs
+- [x] P-46 quasi-Poisson for overdispersed counts
+- [x] P-47 compare two event rates
+- [x] P-48 partial correlation and comparing two correlations
+- [x] P-49 Schild plot
+- [x] P-50 flow event-count and gated-percentage calculator
+- [x] P-51 simulate from a user-defined equation
+- [x] P-52 the drawn curve's X range and resolution
+- [x] P-53 raincloud plots and a stated violin bandwidth
+- [x] P-54 text and line sizes in points
+- [x] P-55 normalised axes named from the settings
+- [x] P-56 pin a colour to a group name
+- [x] P-57 the references behind derived numbers
+- [x] P-58 reproduction records saved with the project
+- [x] P-59 Prism Info sheets round trip
+- [x] P-60 a published project-file schema
+- [x] P-61 study design record and ARRIVE items
+- [x] P-62 sex as a biological variable check
+- [x] P-63 export bundle with PDF graphs and layout pages
+
+Also fixed in Wave 1 (existing bugs found while building): linear
+regression's runs test now reads residuals in X order; "float division by
+zero" crashes in the t tests, one-way, two-way and RM ANOVA and qPCR
+statistics with no scatter now give a sentence; the Schild fit with one
+antagonist concentration gives a sentence instead of a raw error;
+densitometry lanes without a loading-control value are left out of the
+ratios instead of being mixed in on another scale.
+
 ### Skipped: breaks browser-only
 
 None: every item in the plan computes in the browser. Image processing
@@ -1254,7 +1322,7 @@ and an independent check of its numbers (validation notes in
 - P-05/P-06: the first-run paste path reads text only; the wizards,
   recipes and Apply to new data read the same xlsx flags but do not show
   them.
-- Help still says "Tested with 100,000 rows".
+- ~~Help still says "Tested with 100,000 rows"~~ (fixed: 500,000).
 
 ## Next up
 
