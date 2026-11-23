@@ -39,6 +39,7 @@ from scipy import stats
 
 from . import effectsize, studentized
 from .moretests import comparison_family
+from .ttests import _SCATTER_EPS, NO_SCATTER_CHECK
 
 
 def _design(cells):
@@ -135,6 +136,14 @@ def _type3_table(y, ri, ci, n, ss_total, ss_resid_fn, *,
             raise ValueError("not enough data for the two-way ANOVA "
                              "main-effects model")
     ss_resid = ss_resid_fn(X_full, y)
+    if not ss_resid > _SCATTER_EPS ** 2 * float(y @ y):
+        # a least-squares residual of ~1e-30 is rounding, not scatter: F
+        # would be 1e30 (or 0 / 0 when the residual is exactly 0)
+        raise ValueError(
+            "Two-way ANOVA is undefined: every value equals its fitted "
+            "value (with replicates, the replicates in each cell are all "
+            "the same), so the residual SD is 0 and the F ratios have no "
+            f"scatter to divide by. {NO_SCATTER_CHECK}")
     ms_resid = ss_resid / df_resid
 
     def term_ss(drop_cols):
