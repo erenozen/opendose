@@ -19,6 +19,9 @@ import {
   type BaResult,
 } from "./blandAltman";
 import { maxOf, minOf } from "../../lib/extent";
+import { useCommands } from "../../app/commands";
+import { useProject } from "../../app/context";
+import { ANALYSIS_METHOD_REGRESSION } from "./methodRegression";
 
 const f = (v: number | null | undefined, sig?: number) => formatSig(v ?? null, sig);
 const ciTxt = (c: [number, number] | undefined | null) => (c ? `${f(c[0])} to ${f(c[1])}` : "n/a");
@@ -91,7 +94,25 @@ function unitsOf(r: BaResult): { scale: (v: number) => number; label: string } {
   return { scale: (v) => v, label: r.options.variant === "percent" ? "%" : "" };
 }
 
-export function BaResults({ result }: ResultsProps<BaOptions, BaResult>) {
+/** The Bland-Altman results' link to a Passing-Bablok regression of the
+ *  same two columns (P-42), on column tables. */
+function RegressionLink({ sheet, options }: { sheet: ResultsProps["sheet"]; options: BaOptions }) {
+  const cmd = useCommands();
+  const { readOnly } = useProject();
+  if (readOnly) return null;
+  return (
+    <p className="hint-block">
+      To fit a line of one method on the other, add a{" "}
+      <button type="button" data-still className="linkish"
+        onClick={() => cmd.addAnalysis(sheet.parentId, ANALYSIS_METHOD_REGRESSION,
+          { datasetA: options.datasetA, datasetB: options.datasetB })}>
+        Passing-Bablok regression of these two columns
+      </button>.
+    </p>
+  );
+}
+
+export function BaResults({ sheet, table, result }: ResultsProps<BaOptions, BaResult>) {
   if (!result) return null;
   if (result.error) return <Problem error={result.error} />;
   const [a, b] = result.names;
@@ -166,6 +187,7 @@ export function BaResults({ result }: ResultsProps<BaOptions, BaResult>) {
           limits = bias ± {f(block.z * Math.sqrt(Math.PI / 2))} × ({f(pb.abs_residual_intercept)} + {f(pb.abs_residual_slope)} × average).
         </p>
       )}
+      {table.type === "column" && <RegressionLink sheet={sheet} options={result.options} />}
     </Card>
   );
 }

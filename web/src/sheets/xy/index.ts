@@ -3,7 +3,8 @@ import { emptyTable } from "../../project/table";
 import type { AnalysisResult, OptionsState } from "../../types";
 import { DEFAULT_XY_OPTIONS } from "../../types";
 import {
-  blandAltmanAnalysis, blandAltmanGraph, columnAnalysis, columnGraphs, rocAnalysis, rocGraph,
+  blandAltmanAnalysis, blandAltmanGraph, columnAnalysis, columnGraphs, methodRegressionAnalysis,
+  methodRegressionGraph, rocAnalysis, rocGraph,
 } from "../column";
 import { lazyPart } from "../lazy";
 import {
@@ -251,8 +252,8 @@ export const xyTable: TableTypeDef = {
   sampleName: "Dose response",
   Editor: DataGrid,
   EditorAside: PlateAside,
-  analyses: [nonlinAnalysis, linregAnalysis, compareAnalysis, demingAnalysis, quantalAnalysis,
-    columnAnalysis, rowMeansAnalysis, rocAnalysis, blandAltmanAnalysis],
-  graphs: [xyGraph, schildGraph, linregGraph, compareGraph, demingGraph, quantalGraph, ...xyGroupedGraphs,
-    ...columnGraphs, rocGraph, blandAltmanGraph],
+  analyses: [nonlinAnalysis, linregAnalysis, compareAnalysis, demingAnalysis, methodRegressionAnalysis,
+    quantalAnalysis, columnAnalysis, rowMeansAnalysis, rocAnalysis, blandAltmanAnalysis],
+  graphs: [xyGraph, schildGraph, linregGraph, compareGraph, demingGraph, methodRegressionGraph, quantalGraph,
+    ...xyGroupedGraphs, ...columnGraphs, rocGraph, blandAltmanGraph],
 };

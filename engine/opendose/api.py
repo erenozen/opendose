@@ -29,6 +29,7 @@ from . import summary
 from . import mixedmodel, nested
 from . import fdr, letters, rowtests, threeway
 from . import deming, moretests, proportions, trend
+from . import methodreg
 from . import equations, userequation
 from . import (assay_clustering, assay_densitometry, assay_growth,
                assay_kinetic, assay_luciferase, assay_mic, assay_plate,
@@ -3915,6 +3916,58 @@ def _bland_altman_extras(data, options):
     return res
 
 
+def _method_regression(data, options):
+    """Nonparametric method-comparison regression (methodreg): Passing-
+    Bablok and Theil-Sen, with Deming (equal error variances) on the same
+    pairs for comparison.
+
+    data: an XY table {"x", "datasets": [{"name", "ys"}]} (method 1 = X,
+    method 2 = each data set; replicates pair with their row's X), or two
+    row-paired columns {"a", "b", "names": [name_a, name_b]} (rows missing
+    either value are left out). options: ci_level (0.95). Result:
+    {"analysis": "method_regression", "ci_level", "comparisons": [{"name",
+    "x_name", "n", "points": {"x", "y"}, "passing_bablok": {slope:
+    {value, ci}, intercept: {value, ci}, kendall, cusum: {H, p, linear,
+    max_cusum, n_above, n_below}, ...} | {"error"}, "theil_sen", "deming":
+    {slope, intercept: {value, se, ci}} | {"error"}}]}."""
+    level = options.get("ci_level", 0.95)
+    if "a" in data:
+        names = data.get("names") or ["A", "B"]
+        pairs = [(a, b) for a, b in zip(data["a"], data["b"])
+                 if not _is_missing(a) and not _is_missing(b)]
+        sets = [(names[1], names[0], [p[0] for p in pairs],
+                 [p[1] for p in pairs])]
+    else:
+        sets = []
+        for ds in data["datasets"]:
+            xs, ys = _expand(data["x"], ds["ys"])
+            sets.append((ds.get("name", ""), data.get("x_name", "X"), xs, ys))
+
+    def attempt(fn):
+        try:
+            return fn()
+        except ValueError as exc:
+            return {"error": str(exc)}
+
+    out = []
+    for name, x_name, xs, ys in sets:
+        def dem():
+            f = deming.deming(xs, ys, ci_level=level)
+            return {"slope": f["slope"], "intercept": f["y_intercept"],
+                    "n": f["n"], "se_method": f["se_method"]}
+        out.append({
+            "name": name, "x_name": x_name, "n": len(xs),
+            "points": {"x": xs, "y": ys},
+            "passing_bablok": attempt(lambda: methodreg.passing_bablok(
+                xs, ys, ci_level=level)),
+            "theil_sen": attempt(lambda: methodreg.theil_sen(
+                xs, ys, ci_level=level)),
+            "deming": attempt(dem),
+        })
+    return {"analysis": "method_regression", "ci_level": level,
+            "comparisons": out}
+
+
 def _quantal(data, options):
     """Quantal (probit / logit / cloglog) dose-response. data: {"dose",
     "n", "responders"} for one line; {"groups": [{"name", "dose", "n",
@@ -4028,6 +4081,7 @@ _HANDLERS.update({
     "roc_compare": _roc_compare,
     "roc_cutoff": _roc_cutoff,
     "bland_altman_extras": _bland_altman_extras,
+    "method_regression": _method_regression,
     "quantal": _quantal,
     "auc": _auc,
     "pzfx_export": _pzfx_export,

@@ -862,6 +862,22 @@ function demingMeaning(r: R): Meaning | null {
   "Deming regression: fits a line when both methods measure with error.");
 }
 
+function methodRegMeaning(r: R): Meaning | null {
+  const c = (Array.isArray(r.comparisons) ? r.comparisons : []).find((d: R) => num(d?.passing_bablok?.slope?.value));
+  if (!c) return null;
+  const pb = c.passing_bablok;
+  const sc = ci2(pb.slope.ci), ic = ci2(pb.intercept?.ci);
+  const lvl = `${Number(((r.ci_level ?? 0.95) * 100).toPrecision(4))}%`;
+  const ok = sc && ic ? (sc[0] <= 1 && sc[1] >= 1 && ic[0] <= 0 && ic[1] >= 0) : null;
+  return meaning(`A slope of 1 and an intercept of 0 would mean ${c.name} and ${c.x_name} agree; the Passing-Bablok slope is `
+    + `${fmt(pb.slope.value)}${sc ? ` (${lvl} CI ${fmt(sc[0])} to ${fmt(sc[1])})` : ""} and the intercept ${fmt(pb.intercept.value)}`
+    + `${ic ? ` (${lvl} CI ${fmt(ic[0])} to ${fmt(ic[1])})` : ""}`
+    + `${ok === null ? "" : ok ? ", both compatible with agreement" : ", so the methods differ systematically"}.`,
+  [SRC.passingBablok1983, S.amrhein2019],
+  ok ? "CIs that include 1 and 0 as proof that the methods agree. They show the data are compatible with agreement; the CI widths say how large a disagreement is still possible." : undefined,
+  "Passing-Bablok regression: a line of one method on the other from the median of the pairwise slopes, with no assumption about the error distributions.");
+}
+
 function withheldMeaning(): Meaning {
   return meaning("With one independent value in a group there is no estimate of the variability within groups, so no "
     + "P value or CI can say whether the groups differ; more independent experiments are needed.",
@@ -911,6 +927,7 @@ export function meaningOf(input: MeaningInput): Meaning | null {
       case "multiple_row_tests": return multiRowMeaning(r);
       case "estimation": return estimationMeaning(r, t);
       case "deming": return demingMeaning(r);
+      case "method_regression": return methodRegMeaning(r);
       default: return null;
     }
   } catch {

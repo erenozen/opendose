@@ -585,6 +585,18 @@ function demingSentences(r: R, f: Fmt): string[] {
   }).filter(Boolean);
 }
 
+function methodRegSentences(r: R, f: Fmt): string[] {
+  return (Array.isArray(r.comparisons) ? r.comparisons : []).map((c: R) => {
+    const pb = c?.passing_bablok;
+    if (!pb?.slope || pb.error) return "";
+    const part = (name: string, e: R) => {
+      const ci = ci2(e?.ci);
+      return num(e?.value) ? `${name} ${f.style === "apa" ? "= " : ""}${f.n(e.value)}${ci ? `, ${f.ci(ci, r.ci_level ?? 0.95)}` : ""}` : null;
+    };
+    return `${c.name} vs. ${c.x_name}: Passing-Bablok regression (${c.n} pairs), ${join([part("slope", pb.slope), part("intercept", pb.intercept)], "; ")}.`;
+  }).filter(Boolean);
+}
+
 function proportionSentence(r: R, f: Fmt): string {
   const g: R[] = Array.isArray(r.groups) ? r.groups : [];
   const names: string[] = Array.isArray(r.names) ? r.names : [];
@@ -702,6 +714,7 @@ export function resultSentences(result: unknown, ctx: SentenceContext = {}): str
       case "nested_one_way_anova": return nestedSentences(r, f);
       case "dose_response": return doseResponseSentences(r, f);
       case "deming": return demingSentences(r, f);
+      case "method_regression": return methodRegSentences(r, f);
       case "column_statistics": return columnStatsSentences(r, f, prefs);
       case "estimation": return estimationSentences(r, f);
       case "compare_fits": return r.mode === "parameter" && r.compare

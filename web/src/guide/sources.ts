@@ -273,6 +273,12 @@ export const SRC = {
     url: "https://doi.org/10.3389/fpsyg.2017.00456" },
   blandAltman1995: { label: "Bland & Altman 1995, Calculating correlation coefficients with repeated observations: Part 1, correlation within subjects, BMJ 310:446",
     url: "https://doi.org/10.1136/bmj.310.6977.446" },
+  // Method comparison (P-42): a slope CI that includes 1 and an intercept
+  // CI that includes 0 show no proportional or constant difference; the
+  // method needs a positive correlation and a linear relation (CUSUM).
+  // DOI checked against Crossref on 2026-11-24.
+  passingBablok1983: { label: "Passing & Bablok 1983, A new biometrical procedure for testing the equality of measurements from two different analytical methods, J Clin Chem Clin Biochem 21:709",
+    url: "https://doi.org/10.1515/cclm.1983.21.11.709" },
 } satisfies Record<string, Source>;
 
 export type SourceKey = keyof typeof SRC;

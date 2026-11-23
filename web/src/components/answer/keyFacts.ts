@@ -214,12 +214,34 @@ function withheldFacts(r: R): KeyFacts {
   } }] };
 }
 
+/** Passing-Bablok regression (sheets/column/methodRegression.ts): the
+ *  slope with its CI per comparison, the intercept and n as facts. */
+function methodRegFacts(r: R): KeyFacts {
+  const comps = (r.comparisons ?? []) as R[];
+  if (!comps.length) return null;
+  const pct = `${Number(((r.ci_level ?? 0.95) * 100).toPrecision(4))}%`;
+  const ci = (c: unknown) => (Array.isArray(c) ? `${formatSig(c[0])} to ${formatSig(c[1])}` : null);
+  return { kind: "figures", items: comps.map((c): KeyItem => {
+    const title = `${c.name} vs ${c.x_name}`;
+    const pb = c.passing_bablok as R;
+    if (pb?.error) return { title, error: String(pb.error) };
+    const sci = ci(pb.slope?.ci);
+    const ici = ci(pb.intercept?.ci);
+    return { title, figure: {
+      name: "Passing-Bablok slope", value: formatSig(pb.slope.value),
+      ci: sci ? `${pct} CI ${sci}` : undefined,
+      facts: [`Intercept ${formatSig(pb.intercept.value)}${ici ? ` (${pct} CI ${ici})` : ""}`, `${c.n} pairs`],
+    } };
+  }) };
+}
+
 /** The headline facts of a result, or null for "show the table first". */
 export function keyFacts(result: unknown, opts: { xUnit?: string } = {}): KeyFacts {
   if (!result || typeof result !== "object") return null;
   const r = result as R;
   if (r.error) return { kind: "error", message: `Analysis failed: ${String(r.error)}` };
   if (withheldInfo(r)) return withheldFacts(r);
+  if (r.analysis === "method_regression") return methodRegFacts(r);
   if (Array.isArray(r.datasets)) return fitFacts(r, opts.xUnit || "M");
   if (r.analysis === "ttest" && !r.test?.toString().match(/kolmogorov|ratio_paired/)) return ttestFacts(r);
   if (r.analysis === "anova") return anovaFacts(r);
