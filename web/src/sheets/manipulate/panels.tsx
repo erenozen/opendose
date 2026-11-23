@@ -18,6 +18,7 @@ import {
 import "./manipulate.css";
 import { CopyButton } from "../../components/CiteBlock";
 import { Button } from "../../components/ui";
+import { maxOf } from "../../lib/extent";
 
 // ------------------------------------------------------------ helpers
 
@@ -520,7 +521,7 @@ function ResultPreview({ result, table }: { result: ManipResult; table: DataTabl
             {titles && <th scope="col"><span className="sr-only">Row</span></th>}
             {showX && <th scope="col">X</th>}
             {result.datasets.map((d, i) => {
-              const w = Math.max(1, ...d.ys.map((r) => r.length));
+              const w = Math.max(1, maxOf(d.ys.map((r) => r.length)));
               return <th key={i} scope="col" colSpan={w}>{d.name}</th>;
             })}
           </tr>
@@ -531,7 +532,7 @@ function ResultPreview({ result, table }: { result: ManipResult; table: DataTabl
               {titles && <th scope="row">{titles[r] ?? ""}</th>}
               {showX && <td>{show(result.x[r])}</td>}
               {result.datasets.map((d, i) => {
-                const w = Math.max(1, ...d.ys.map((rr) => rr.length));
+                const w = Math.max(1, maxOf(d.ys.map((rr) => rr.length)));
                 return Array.from({ length: w }, (_, s) => (
                   <td key={`${i}-${s}`}>{show(d.ys[r]?.[s])}</td>
                 ));

@@ -3,6 +3,7 @@
 // positions 0..n-1 in the clustered order, heights from the linkage). Used
 // by the Clustered heat map assay and by the grouped heat map's "Cluster
 // rows / columns" toggles, so both draw the same tree. Pure.
+import { maxOf } from "../../lib/extent.ts";
 
 export interface Dendrogram {
   /** Leaf-axis coordinates of each link (four points per link). */
@@ -40,7 +41,7 @@ export interface DendrogramPlacement {
 /** Add one dendrogram's line traces and its two hidden axes. */
 export function addDendrogram(traces: object[], layout: Record<string, unknown>,
   d: Dendrogram, p: DendrogramPlacement): void {
-  const top = Math.max(...d.y.flat()) * 1.03 || 1;
+  const top = maxOf(d.y.flat()) * 1.03 || 1;
   const xa = `x${p.axis}`, ya = `y${p.axis}`;
   const hidden = { showgrid: false, zeroline: false, showticklabels: false, ticks: "",
     showline: false, fixedrange: true } as const;

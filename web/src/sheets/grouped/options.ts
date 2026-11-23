@@ -5,6 +5,7 @@ import type { TwoWayComparisons, TwoWayDirection, TwoWayModel } from "../../type
 import type { ErrorKind, HeatPalette } from "./stats.ts";
 import { isPointSpread, type PointSpread } from "../../graph/swarm.ts";
 import { normalizeSuperPlot, type SuperPlotSettings } from "../common/superplot.ts";
+import { DEFAULT_WHISKERS, readWhiskers, type WhiskerRule } from "../../graph/boxStats.ts";
 
 // Analysis ids, stored in results sheets: never rename.
 export const A_TWO_WAY = "grouped_two_way";
@@ -371,13 +372,16 @@ export interface GroupedGraphSettings {
    *  figure, or off (sheets/column/graphSettings.ts CaptionMode). */
   caption: "off" | "below" | "figure";
   superplot: SuperPlotSettings;
+  /** Box plots: where the whiskers end (graph/boxStats.ts). Absent in
+   *  graphs saved before the setting: they draw Tukey whiskers too. */
+  whiskers: WhiskerRule;
 }
 
 export const DEFAULT_GRAPH: GroupedGraphSettings = {
   error: "sd", errorDir: "both", points: true, grand: "none", clusterBy: null,
   clusterGap: 0.3, barGap: 0.08, seriesReverse: false, clustersReverse: false,
   lineMode: "means", legend: true, spread: "jitter", caption: "off",
-  superplot: normalizeSuperPlot(undefined),
+  superplot: normalizeSuperPlot(undefined), whiskers: DEFAULT_WHISKERS,
 };
 
 /** What a grouped graph created from now on starts with; saved graphs
@@ -404,6 +408,7 @@ export function normalizeGraph(raw: unknown): GroupedGraphSettings {
     spread: isPointSpread(o.spread) ? o.spread : d.spread,
     caption: pick(o.caption, ["off", "below", "figure"] as const, d.caption),
     superplot: normalizeSuperPlot(o.superplot),
+    whiskers: readWhiskers(o.whiskers),
   };
 }
 

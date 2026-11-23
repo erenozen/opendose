@@ -1,12 +1,13 @@
 // Vector PDF from SVG (jsPDF + svg2pdf.js, loaded only when a PDF is
-// asked for). Paths stay paths and text stays selectable text, set in
-// the PDF's built-in Helvetica/Times: those fonts cover Western European
-// characters only, so a few symbols that graphs use are spelled with
-// their closest equivalents (the minus sign as a hyphen, Greek letters by
-// name) rather than coming out as wrong glyphs.
-
-/** Characters the PDF standard fonts can show (WinAnsi / cp1252). */
-const CP1252_EXTRA = "€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ";
+// asked for). Paths stay paths and text stays selectable text. Labels in
+// the app's fonts are set in embedded subsets of Inter and of an
+// Arial-compatible sans (export/pdfFonts.ts), so every character comes
+// out as typed; labels in other families use the PDF's built-in
+// Helvetica/Times/Courier, which cover Western European characters only,
+// so there a few symbols are spelled with their closest equivalents (the
+// minus sign as a hyphen, Greek letters by name) rather than coming out
+// as wrong glyphs.
+import { CP1252_EXTRA, faceKey, loadPdfFonts, pdfFace, type PdfFontHost } from "./pdfFonts.ts";
 const SUBSTITUTES: Record<string, string> = {
   "−": "-", "‐": "-", "‑": "-", " ": " ", " ": " ",
   " ": " ", " ": " ", " ": " ", " ": " ", " ": " ",
@@ -36,6 +37,24 @@ export interface PdfPage {
   height: number;
 }
 
+/** Choose each label's PDF font (pdfFonts.ts) from its computed style
+ *  (the SVG must be in the document); adds the embedded faces used. */
+function setFaces(svg: Element, used: Set<string>) {
+  svg.querySelectorAll<SVGElement>("text, tspan").forEach((t) => {
+    const own = [...t.childNodes].filter((n) => n.nodeType === Node.TEXT_NODE);
+    const text = own.map((n) => n.nodeValue ?? "").join("");
+    const cs = getComputedStyle(t);
+    const face = pdfFace(cs.fontFamily, cs.fontWeight, cs.fontStyle, text);
+    if (face.family) {
+      t.style.setProperty("font-family", face.family);
+      if (text.trim()) used.add(faceKey(face));
+    }
+    t.style.setProperty("font-weight", String(face.weight));
+    t.style.setProperty("font-style", face.italic ? "italic" : "normal");
+    if (!face.family) for (const n of own) n.nodeValue = toWinAnsi(n.nodeValue ?? "");
+  });
+}
+
 /** One PDF with a page per SVG, each page the SVG's own size. */
 export async function svgPagesToPdf(pages: PdfPage[]): Promise<Blob> {
   const [{ jsPDF }, { svg2pdf }] = await Promise.all([import("jspdf"), import("svg2pdf.js")]);
@@ -55,19 +74,23 @@ export async function svgPagesToPdf(pages: PdfPage[]): Promise<Blob> {
   host.style.cssText = "position:fixed;left:-100000px;top:0;visibility:hidden;";
   document.body.appendChild(host);
   try {
+    // first every page's faces, so only the fonts used are embedded
+    const used = new Set<string>();
+    const svgs = pages.map((pg) => {
+      const el = new DOMParser().parseFromString(pg.svg, "image/svg+xml").documentElement;
+      host.replaceChildren(el);
+      setFaces(el, used);
+      return el;
+    });
+    // jsPDF's typings leave out internal.getFont, which it has
+    await loadPdfFonts(doc as unknown as PdfFontHost, used);
     for (let i = 0; i < pages.length; i++) {
       const pg = pages[i];
       if (i > 0) {
         doc.addPage([pt(pg.width), pt(pg.height)], pg.width > pg.height ? "landscape" : "portrait");
       }
-      const el = new DOMParser().parseFromString(pg.svg, "image/svg+xml").documentElement;
-      el.querySelectorAll("text, tspan").forEach((t) => {
-        for (const n of t.childNodes) {
-          if (n.nodeType === Node.TEXT_NODE) n.nodeValue = toWinAnsi(n.nodeValue ?? "");
-        }
-      });
-      host.replaceChildren(el);
-      await svg2pdf(el, doc, { x: 0, y: 0, width: pt(pg.width), height: pt(pg.height) });
+      host.replaceChildren(svgs[i]);
+      await svg2pdf(svgs[i], doc, { x: 0, y: 0, width: pt(pg.width), height: pt(pg.height) });
     }
   } finally {
     host.remove();

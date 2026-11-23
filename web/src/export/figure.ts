@@ -14,6 +14,7 @@ import {
   type Chrome,
 } from "../lib/chrome";
 import { CSS_DPI } from "./settings";
+import { inlineWebFonts } from "./webFonts";
 
 export interface ExportLook {
   transparent: boolean;
@@ -156,17 +157,18 @@ export async function figureToSvg(fig: Figure, width: number, height: number): P
   return decodeDataUrl(url);
 }
 
-/** PNG/JPEG/WebP data URL of the figure; `scale` multiplies the pixels. */
+/** PNG/JPEG/WebP data URL of the figure; `scale` multiplies the pixels.
+ *  Drawn from the figure's SVG with the page's web fonts inlined
+ *  (inlineWebFonts), the way Plotly's own toImage draws it otherwise. */
 export async function figureToRaster(fig: Figure, format: "png" | "jpeg" | "webp",
   width: number, height: number, scale: number): Promise<string> {
-  // JPEG cannot hold transparency: Plotly would fill it with black.
+  // JPEG cannot hold transparency: it would come out black.
   const f = format === "jpeg" && fig.layout.paper_bgcolor === TRANSPARENT
     ? { ...fig, layout: { ...fig.layout, paper_bgcolor: "#ffffff", plot_bgcolor: "#ffffff" } }
     : fig;
-  const P = await loadPlotly();
-  return P.toImage(f as unknown as Plotly.RootOrData, {
-    format, width, height, scale,
-  } as Parameters<typeof Plotly.toImage>[1]);
+  const svg = await figureToSvg(f, width, height);
+  const canvas = await svgToCanvas(svg, width, height, scale, null);
+  return canvas.toDataURL(`image/${format}`);
 }
 
 export function decodeDataUrl(url: string): string {
@@ -182,11 +184,12 @@ export async function dataUrlToBytes(url: string): Promise<Uint8Array<ArrayBuffe
   return new Uint8Array(await (await fetch(url)).arrayBuffer());
 }
 
-/** Draw SVG markup onto a canvas at `scale` (device pixels per CSS px). */
+/** Draw SVG markup onto a canvas at `scale` (device pixels per CSS px),
+ *  its text in the page's web fonts. */
 export async function svgToCanvas(svg: string, width: number, height: number,
   scale: number, background: string | null): Promise<HTMLCanvasElement> {
   const img = new Image();
-  img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(await inlineWebFonts(svg))}`;
   await img.decode();
   const canvas = document.createElement("canvas");
   canvas.width = Math.floor(width * scale);

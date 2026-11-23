@@ -8,6 +8,7 @@ import {
 } from "../common/superplot.ts";
 import { tQuantile } from "../grouped/stats.ts";
 import { parseCell } from "../../project/table.ts";
+import { DEFAULT_WHISKERS, readWhiskers, type WhiskerRule } from "../../graph/boxStats.ts";
 import type { DataTableModel } from "../../project/types.ts";
 
 /** Centre and error bars of scatter and bar graphs. */
@@ -39,11 +40,13 @@ export interface ColumnGraphSettings {
   points: boolean;
   caption: CaptionMode;
   superplot: SuperPlotSettings;
+  /** Box plots: where the whiskers end (graph/boxStats.ts). */
+  whiskers: WhiskerRule;
 }
 
 export const DEFAULT_COLUMN_GRAPH: ColumnGraphSettings = {
   summary: "mean_sd", spread: "jitter", points: true, caption: "off",
-  superplot: normalizeSuperPlot(undefined),
+  superplot: normalizeSuperPlot(undefined), whiskers: DEFAULT_WHISKERS,
 };
 
 /** What a graph created from now on starts with (merged over the
@@ -63,6 +66,7 @@ export function normalizeColumnGraph(raw: unknown): ColumnGraphSettings {
     points: typeof o.points === "boolean" ? o.points : d.points,
     caption: o.caption === "below" || o.caption === "figure" ? o.caption : d.caption,
     superplot: normalizeSuperPlot(o.superplot),
+    whiskers: readWhiskers(o.whiskers),
   };
 }
 

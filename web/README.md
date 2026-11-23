@@ -52,15 +52,16 @@ one at a time: each boots its own engine.
 | --- | --- |
 | `e2e-check.mjs` | The main suite: default fit, plate import, every table type, Prism import, projects (save, open, undo, autosave), chains, editing, exports of data and results |
 | `e2e-tiff.mjs` | TIFF export, parsed back byte by byte (`--no-deflate` tests the uncompressed path) |
-| `e2e-export.mjs` | Page layouts, PDF, PNG and PowerPoint export, citation, Copy for Word |
+| `e2e-export.mjs` | Page layouts, PDF (embedded fonts, text read back as typed), PNG (in the plot font) and PowerPoint export, citation, Copy for Word |
 | `e2e-share.mjs` | Share links, the export bundle, import recipes, Apply to new data, the validation and privacy pages |
-| `e2e-figures.mjs` | SuperPlots, legends, P-value styles, the classic theme, the colour-vision check, volcano plots, censor marks |
+| `e2e-figures.mjs` | SuperPlots, legends, P-value styles, the classic theme, the colour-vision check, volcano plots, censor marks, box plots against the column statistics |
 | `e2e-assays.mjs` | Every assay wizard, against numbers the engine computes natively |
 | `e2e-feedback.mjs` | Toasts, banners, the announcer, the engine boot slot, a busy button and late validation |
 | `e2e-primitives.mjs` | Dialog, Popover, Menu and Tooltip from the keyboard: focus return, Tab staying inside, Home/End, type-ahead |
 | `e2e-motion.mjs` | What animates, for how long, on which curve; keyboard and reduced-motion paths; the theme switch (`--frames DIR` saves slowed screenshots) |
 | `e2e-privacy.mjs` | That no request carries the user's data; run against `npm run build` served by `scripts/serve-dist.mjs` (default `http://127.0.0.1:5300/`) |
 | `a11y-audit.mjs` | axe-core on the controls of every analysis |
+| `e2e-large.mjs` | 200,000 pasted rows (second argument: another count) into a column and an XY table: grid, WebGL graph, t test and linear regression, no RangeError; about 2.5 GB of browser memory at the paste |
 
 `../scripts/verify.sh` runs the engine tests, build, lint, unit tests and
 all of the suites above against main in a clean worktree.
@@ -88,6 +89,10 @@ all of the suites above against main in a clean worktree.
   corpus in `../docs/validation/` and writes `results-site.json` and
   `.md` there (`--no-data` runs only the performance probe).
 - `make-touch-icon.mjs` renders the PNG icons from `public/favicon.svg`.
+- `make-export-fonts.py` cuts the fonts PDF exports embed
+  (`src/export/fonts/`: Inter and an Arial-compatible Liberation Sans,
+  both OFL) and writes the characters each covers; the docstring names
+  the source files.
 
 ## Design
 

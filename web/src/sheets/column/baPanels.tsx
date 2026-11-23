@@ -18,6 +18,7 @@ import {
   baBlock, limitsCi, LIMITS_CI_LABELS, VARIANT_LABELS, type BaBlock, type BaOptions,
   type BaResult,
 } from "./blandAltman";
+import { maxOf, minOf } from "../../lib/extent";
 
 const f = (v: number | null | undefined, sig?: number) => formatSig(v ?? null, sig);
 const ciTxt = (c: [number, number] | undefined | null) => (c ? `${f(c[0])} to ${f(c[1])}` : "n/a");
@@ -229,8 +230,8 @@ export function BaPlot({ table, result, titles, scheme, format, onFormatChange }
     const tr = (v: number) => (ratio ? Math.exp(v) : v);
     const xs = points.map((p) => p.average);
     const ys = points.map((p) => tr(p.difference));
-    const lo = Math.min(...xs);
-    const hi = Math.max(...xs);
+    const lo = minOf(xs);
+    const hi = maxOf(xs);
     const pad = (hi - lo) * 0.04 || 1;
     const x0 = lo - pad;
     const x1 = hi + pad;

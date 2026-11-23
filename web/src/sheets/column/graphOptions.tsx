@@ -2,7 +2,7 @@
 // bars, how points spread, points on bars (with the small-n advice), the
 // legend sentence, and SuperPlot mode with its replicate assignment and
 // "Statistics on replicate means".
-import { OptCheck, OptSelect } from "../../components/GraphOptionControls";
+import { OptCheck, OptNote, OptSelect } from "../../components/GraphOptionControls";
 import { Button } from "../../components/ui";
 import { POINT_SPREADS } from "../../graph/swarm";
 import type { GraphOptionsProps } from "../types";
@@ -18,6 +18,7 @@ import "../../graph/figure.css";
 import { normalizeFormat } from "../../graph/format";
 import { hasLogY, LOG_AXIS_KINDS, withLogY } from "./logAxis";
 import { onLogScale } from "./logScale";
+import { WHISKER_NOTE, WHISKER_RULES } from "../../graph/boxStats";
 
 /** "Journals ask to show the points for n < 10", with a one-click fix. */
 export function SmallNAdvice({ n, onShow }: { n: number; onShow: () => void }) {
@@ -62,6 +63,13 @@ export function ColumnGraphOptions({ graph, table, result }: GraphOptionsProps) 
       )}
       {raw && kind === "bar" && !s.points && !superOn && n > 0 && n < 10 && (
         <SmallNAdvice n={n} onShow={() => up({ points: true })} />
+      )}
+      {raw && kind === "box" && !superOn && (
+        <>
+          <OptSelect label="Whiskers" value={s.whiskers} options={WHISKER_RULES}
+            onChange={(whiskers) => up({ whiskers })} />
+          <OptNote>{WHISKER_NOTE}</OptNote>
+        </>
       )}
       {raw && pointsDrawn && kind !== "box" && kind !== "violin" && (
         <OptSelect label="Point layout" value={s.spread} options={POINT_SPREADS}

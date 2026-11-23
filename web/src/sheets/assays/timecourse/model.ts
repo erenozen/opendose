@@ -22,6 +22,7 @@ import {
   columnFromValues, normalizeTumourAuc, subjectSeries, transformed, tumourRecords, type LongRecord, type TumourAucOptions,
   type TumourBase,
 } from "../tumourModel.ts";
+import { maxOf } from "../../../lib/extent.ts";
 
 // Stored in project files: never rename.
 export const A_TC_MIXED = "assay_timecourse_mixed";
@@ -208,7 +209,7 @@ export function subjectSummaries(records: LongRecord[], names: Map<string, strin
   kind: "mean" | "max"): SubjectValue[] {
   return subjectSeries(records).subjects.map((s) => ({
     subject: s.subject, name: names.get(s.subject) ?? s.label, group: s.group, n: s.y.length,
-    value: kind === "max" ? Math.max(...s.y) : s.y.reduce((a, b) => a + b, 0) / s.y.length,
+    value: kind === "max" ? maxOf(s.y) : s.y.reduce((a, b) => a + b, 0) / s.y.length,
   }));
 }
 

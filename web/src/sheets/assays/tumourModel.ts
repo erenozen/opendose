@@ -7,6 +7,7 @@
 import { normalizeTable, parseCell, withExclusionsBlanked } from "../../project/table.ts";
 import type { DataTableModel } from "../../project/types.ts";
 import { xNumbers } from "../../project/xformat.ts";
+import { maxOf } from "../../lib/extent.ts";
 
 export const A_TUMOUR_MIXED = "tumour_mixed";
 export const A_TUMOUR_AUC = "tumour_auc";
@@ -143,7 +144,7 @@ export function tumourRecords(table: DataTableModel, columns: TumourColumns): Re
   const records: LongRecord[] = [];
   t.datasets.forEach((d, di) => {
     const group = d.name.trim() || `Group ${di + 1}`;
-    const width = Math.max(1, ...d.rows.map((row) => row.length));
+    const width = Math.max(1, maxOf(d.rows.map((row) => row.length)));
     for (let k = 0; k < width; k++) {
       const label = d.subTitles?.[k]?.trim() || `${group} #${k + 1}`;
       d.rows.forEach((row, r) => {

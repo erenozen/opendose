@@ -45,6 +45,8 @@ import {
 import { baseLayout, useGraphSetting, valueAxis } from "./plotting";
 import { cellStats, ERROR_LABELS, type ErrorKind } from "./stats";
 import "./grouped.css";
+import { maxOf, minOf } from "../../lib/extent";
+import { WHISKER_NOTE, WHISKER_RULES } from "../../graph/boxStats";
 
 const chromeOf = (dark: boolean): Chrome => (dark ? CHROME_DARK : CHROME_LIGHT);
 
@@ -76,7 +78,7 @@ export function GroupedPlot({ graph, table, options, result, titles, scheme, for
     const all = table.datasets.flatMap((d) => d.rows.flatMap((r) => r.map(parseCell)))
       .filter((v): v is number => v !== null);
     const n = clusterByFor(kind, settings) === "rows" ? table.rowTitles.length : table.datasets.length;
-    return areaScale(area ?? estimateArea(null, Math.min(0, ...all), Math.max(...all),
+    return areaScale(area ?? estimateArea(null, Math.min(0, minOf(all)), maxOf(all),
       [-0.5, n - 0.5], { l: 64, r: 16, t: 36, b: 52 }), 7.5);
   }, [wantScale, area, table, kind, settings]);
   const built0 = useMemo(() => buildGrouped({
@@ -187,6 +189,13 @@ export function GroupedOptions({ graph, table, result }: GraphOptionsProps) {
         <OptSelect label="Error bars" value={s.error}
           options={(Object.keys(ERROR_LABELS) as ErrorKind[]).map((k) => [k, ERROR_LABELS[k]] as const)}
           onChange={(error) => up({ error })} />
+      )}
+      {kind === G_BOX && (
+        <>
+          <OptSelect label="Whiskers" value={s.whiskers} options={WHISKER_RULES}
+            onChange={(whiskers) => up({ whiskers })} />
+          <OptNote>{WHISKER_NOTE}</OptNote>
+        </>
       )}
       {kind !== G_BOX && kind !== G_STACKED && s.error !== "none" && (
         <OptSelect label="Direction" value={s.errorDir}
@@ -411,7 +420,7 @@ export function VolcanoPlot({ graph, result, titles, scheme, format, onFormatCha
     const annotations: Partial<Plotly.Annotations>[] = [];
     if (flagged.length) {
       // Threshold drawn at the largest P value that was still flagged.
-      const ymin = Math.min(...flagged.map((r) => r.neg_log10_p));
+      const ymin = minOf(flagged.map((r) => r.neg_log10_p));
       shapes.push({ type: "line", xref: "paper", x0: 0, x1: 1, yref: "y", y0: ymin, y1: ymin,
         line: { color: chrome.muted, width: 1, dash: "dot" } });
       annotations.push({ xref: "paper", x: 1, xanchor: "right", y: ymin, yanchor: "bottom",

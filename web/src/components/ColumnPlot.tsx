@@ -17,6 +17,8 @@ import { laneJitter, spreadOffsets, type PointSpread } from "../graph/swarm";
 import { densify } from "../graph/dense";
 import { areaScale, estimateArea, usePlotArea } from "../graph/usePlotArea";
 import { summaryOf, type ColumnSummary } from "../sheets/column/graphSettings";
+import { maxOf, minOf } from "../lib/extent";
+import { boxStats, DEFAULT_WHISKERS, type PercentileMethod, type WhiskerRule } from "../graph/boxStats";
 
 interface Props {
   datasets: DatasetState[];
@@ -39,6 +41,10 @@ interface Props {
   points?: boolean;
   /** Caption drawn inside the figure (legend sentence), if any. */
   caption?: string;
+  /** Box plots: quartile definition (the column statistics' method) and
+   *  whisker rule (graph/boxStats.ts); default linear and Tukey. */
+  percentile?: PercentileMethod;
+  whiskers?: WhiskerRule;
 }
 
 // Prism-style column graphs: scatter (points + mean ± SD), bar, box, violin.
@@ -46,6 +52,7 @@ export default function ColumnPlot({
   datasets, xTitle = "", yTitle = "Value", graphType = "scatter",
   scheme = DEFAULT_SCHEME, format = EMPTY_FORMAT, onFormatChange, rowTitles,
   comparisons, results, summary = "mean_sd", spread = "jitter", points = true, caption,
+  percentile = "linear", whiskers = DEFAULT_WHISKERS,
 }: Props) {
   const el = useRef<HTMLDivElement>(null);
   const [dark, setDark] = useState(isDarkMode());
@@ -89,7 +96,7 @@ export default function ColumnPlot({
     if (spread !== "jitter") {
       const all = datasets.flatMap((d) => d.rows.flatMap((r) => r.map(parseCell)))
         .filter((v): v is number => v !== null);
-      const est = area ?? estimateArea(el.current, Math.min(...all), Math.max(...all),
+      const est = area ?? estimateArea(el.current, minOf(all), maxOf(all),
         [-0.6, datasets.length - 0.4]);
       scale = areaScale(est, graphType === "bar" ? 8.5 : 9.5, 0.36);
     }
@@ -123,8 +130,14 @@ export default function ColumnPlot({
         : undefined;
 
       if (graphType === "box") {
+        // Plotly draws the box from these numbers, not its own quartiles,
+        // so it agrees with the column statistics (graph/boxStats.ts); the
+        // values ride along as the box's one sample, for the points.
+        const b = boxStats(values, percentile, whiskers)!;
         traces.push(tagTrace({
-          y: values, x: values.map(() => i),
+          y: [values], x: [i],
+          q1: [b.q1], median: [b.median], q3: [b.q3],
+          lowerfence: [b.lowerfence], upperfence: [b.upperfence],
           type: "box",
           name,
           marker: { color },
@@ -246,7 +259,7 @@ export default function ColumnPlot({
     });
   }, [datasets, dark, xTitle, yTitle, graphType, scheme, format, rev, rowTitles,
     comparisons, results, onFormatChange, attach, summary, spread, points, caption, area,
-    measure, draw, attempt]);
+    measure, draw, attempt, percentile, whiskers]);
 
   return (
     <div className="plot" ref={el}>

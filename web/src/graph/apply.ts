@@ -22,6 +22,7 @@ import {
   stackBrackets, starsFor, type Comparison,
 } from "./significance.ts";
 import { applyClassic } from "./theme.ts";
+import { maxOf } from "../lib/extent.ts";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export type Trace = Record<string, any>;
@@ -613,7 +614,18 @@ function connectColumns(traces: Trace[], mode: "mean" | "median" | "spaghetti",
 
 interface Extent { min: number; max: number; values: number[] }
 
+/** A box drawn from given quartiles (graph/boxStats.ts): y holds one
+ *  sample of values per box. */
+const statBox = (t: Trace) => t.type === "box" && Array.isArray(t.q1);
+const BOX_STATS = ["lowerfence", "upperfence", "q1", "median", "q3"] as const;
+
 function valuesOf(t: Trace, which: "x" | "y"): number[] {
+  if (which === "y" && statBox(t)) {
+    const out: number[] = [];
+    for (const k of BOX_STATS) for (const v of arr(t[k])) if (isNum(v)) out.push(v);
+    for (const s of arr(t.y)) for (const v of arr(s)) if (isNum(v)) out.push(v);
+    return out;
+  }
   const v = arr(t[which]);
   const e = which === "y" ? t.error_y : t.error_x;
   const out: number[] = [];
@@ -725,6 +737,14 @@ function topBetween(traces: Trace[], lo: number, hi: number,
 function transformTrace(t: Trace, which: "x" | "y", m: AxisMap) {
   const v = arr(t[which]);
   if (!v.length) return;
+  if (which === "y" && statBox(t)) {
+    // the box keeps the data's quartiles (as the statistics report them),
+    // placed on the transformed axis
+    const to = (x: unknown) => (isNum(x) ? m.to(x) : x);
+    for (const k of BOX_STATS) if (Array.isArray(t[k])) t[k] = t[k].map(to);
+    t.y = v.map((s) => (Array.isArray(s) ? s.map(to) : s));
+    return;
+  }
   const errKey = which === "y" ? "error_y" : "error_x";
   const e = t[errKey];
   if (e && Array.isArray(e.array)) {
@@ -972,7 +992,7 @@ function drawAtRisk(layout: Layout, format: GraphFormat, ctx: FormatContext, ex:
   const r = format.atRisk!;
   const sets = ctx.riskSets!;
   const xa = format.x ?? {};
-  const maxT = isNum(xa.max) ? xa.max : Math.max(...sets.flatMap((s) => s.times), ex.max);
+  const maxT = isNum(xa.max) ? xa.max : Math.max(maxOf(sets.flatMap((s) => s.times)), ex.max);
   const minT = isNum(xa.min) ? xa.min : 0;
   let step = isNum(xa.majorStep) && xa.majorStep > 0 ? xa.majorStep : niceTick(maxT - minT);
   if (!(step > 0)) step = 1;

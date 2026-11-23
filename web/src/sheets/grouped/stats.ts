@@ -4,6 +4,7 @@
 // (src/sheets/grouped/__tests__).
 import { parseCell, withExclusionsBlanked } from "../../project/table.ts";
 import type { DataTableModel, SubcolumnFormat } from "../../project/types.ts";
+import { pushAll } from "../../lib/extent.ts";
 
 // ------------------------------------------------------------ distributions
 
@@ -218,7 +219,7 @@ export function grandValue(cells: (CellStat | null)[][], kind: "mean" | "median"
   for (const row of cells) {
     for (const c of row) {
       if (!c) continue;
-      if (c.values.length) all.push(...c.values); else all.push(c.mean);
+      if (c.values.length) pushAll(all, c.values); else all.push(c.mean);
     }
   }
   if (!all.length) return null;

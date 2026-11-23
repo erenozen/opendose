@@ -18,6 +18,7 @@ import {
 } from "./table.ts";
 import type { DataColumn, DataTableModel } from "./types.ts";
 import { SUBCOLUMN_FORMAT_TITLES } from "./types.ts";
+import { maxOf } from "../lib/extent.ts";
 
 export type DelimiterChoice = "auto" | "tab" | "comma" | "semicolon" | "space";
 export type DelimiterChar = "\t" | "," | ";" | " ";
@@ -135,7 +136,7 @@ export function normalizeNumber(cell: string, decimal: "." | ","): string {
 }
 
 export function transpose(m: string[][]): string[][] {
-  const w = Math.max(0, ...m.map((r) => r.length));
+  const w = Math.max(0, maxOf(m.map((r) => r.length)));
   return Array.from({ length: w }, (_, c) => m.map((r) => r[c] ?? ""));
 }
 
@@ -205,7 +206,7 @@ export function prepareImport(source: string | string[][], s: SourceOptions,
   if (s.transpose) m = transpose(m);
   let titles: string[] | null = null;
   if (s.titlesRow && m.length) { titles = m[0].map((c) => c.trim()); m = m.slice(1); }
-  const width = Math.max(0, ...m.map((r) => r.length), titles?.length ?? 0);
+  const width = Math.max(0, maxOf(m.map((r) => r.length)), titles?.length ?? 0);
   const decimal = s.decimal === "auto"
     ? (delimiter === "," ? "." : detectDecimal(m)) : s.decimal;
 
@@ -250,7 +251,7 @@ export function prepareImport(source: string | string[][], s: SourceOptions,
     }
     const ids = [...by.keys()];
     if (ids.every((id) => Number.isFinite(Number(id)))) ids.sort((a, b) => Number(a) - Number(b));
-    const height = Math.max(0, ...ids.map((id) => by.get(id)!.length));
+    const height = Math.max(0, maxOf(ids.map((id) => by.get(id)!.length)));
     return {
       delimiter, decimal,
       titles: ids,

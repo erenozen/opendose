@@ -8,6 +8,7 @@ import type {
 import { SUBCOLUMN_FORMAT_TITLES } from "./types.ts";
 import { parseReasons, syncReasons } from "./exclusions.ts";
 import { xNumbers } from "./xformat.ts";
+import { maxOf } from "../lib/extent.ts";
 
 export function rowCount(t: DataTableModel): number {
   return t.x.length;
@@ -177,7 +178,7 @@ export function normalizeTable(raw: unknown, fallbackType: TableType = "xy"):
   const nRows = Math.max(1, x.length, ...datasets.map((d) => d.rows.length));
   while (x.length < nRows) x.push("");
   datasets = datasets.map((d) => {
-    const width = Math.max(1, ...d.rows.map((row) => row.length),
+    const width = Math.max(1, maxOf(d.rows.map((row) => row.length)),
       d.subTitles?.length ?? 0);
     const rows = Array.from({ length: nRows }, (_, i) => {
       const row = [...(d.rows[i] ?? [])];

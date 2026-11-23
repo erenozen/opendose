@@ -51,6 +51,13 @@ test("dense box and violin plots show outliers instead of every point", () => {
   assert.equal(out.webgl, false);
 });
 
+test("a box drawn from given quartiles counts the values of its sample (y = [[...]])", () => {
+  const box = { type: "box", x: [0], y: [pts(6000)], q1: [1], median: [2], q3: [3], boxpoints: "all" };
+  assert.equal(markerPoints(box), 6000);
+  assert.equal(markerPoints({ ...box, y: [pts(3), pts(4)] }), 7);
+  assert.equal((densify([box]).traces[0] as Record<string, unknown>).boxpoints, "outliers");
+});
+
 test("hasWebglTraces reads a drawn graph", () => {
   assert.equal(hasWebglTraces({ _fullData: [{ type: "scatter" }, { type: "scattergl" }] }), true);
   assert.equal(hasWebglTraces({ _fullData: [{ type: "scatter" }] }), false);

@@ -15,6 +15,7 @@ import type { VolcanoResult } from "./volcano";
 import { FDR_LABEL, hitsTable, type FdrMethod, type VolcanoOptions } from "./volcanoModel";
 import { Card, Check, Grid, KV, LinkedTable, Note, Problem, Row, Select, TextIn } from "./ui";
 import { axis, chromeOf, layoutBase, messageLayout, useDark, useGraphSettings } from "./plotkit";
+import { minOf } from "../../lib/extent";
 
 export function VolcanoControls({ table, options: o, onChange }: ControlsProps<VolcanoOptions>) {
   const set = (patch: Partial<VolcanoOptions>) => onChange({ ...o, ...patch });
@@ -160,7 +161,7 @@ export function VolcanoTablePlot({ graph, options, result, titles, scheme, forma
     let yThr: number | null = plottedIsTested ? -Math.log10(alpha) : null;
     if (!plottedIsTested) {
       const called = rows.filter((r) => r.sig < alpha);
-      if (called.length) yThr = Math.min(...called.map(yOf));
+      if (called.length) yThr = minOf(called.map(yOf));
     }
     if (yThr !== null) {
       shapes.push({ type: "line", xref: "paper", x0: 0, x1: 1, yref: "y", y0: yThr, y1: yThr,

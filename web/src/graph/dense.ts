@@ -27,7 +27,10 @@ export function markerPoints(t: Trace): number {
   const n = Math.max(lengthOf(t.y), lengthOf(t.x));
   if (t.type === "box" || t.type === "violin") {
     const all = t.type === "box" ? t.boxpoints === "all" : t.points === "all";
-    return all ? n : 0;
+    // a box drawn from given quartiles carries its values as one sample
+    // per box: y = [[...values], ...]
+    const nested = Array.isArray(t.y) && t.y.some((s) => Array.isArray(s) || ArrayBuffer.isView(s));
+    return all ? (nested ? (t.y as unknown[]).reduce((k: number, s) => k + lengthOf(s), 0) : n) : 0;
   }
   if (!isScatter(t)) return 0;
   const mode = typeof t.mode === "string" ? t.mode : "markers";

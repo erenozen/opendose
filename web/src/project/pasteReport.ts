@@ -17,6 +17,7 @@ import { dropUnfilledDatasets } from "./importText.ts";
 import type { DataTableModel } from "./types.ts";
 import type { FullValuesResult, SheetApp } from "./clipboardHtml.ts";
 import { xInvalid } from "./xformat.ts";
+import { maxOf } from "../lib/extent.ts";
 
 /** What a grid column holds: numbers (Y values, numeric X), identifiers
  *  kept as typed (row titles, categorical variables), or dates / times. */
@@ -357,7 +358,7 @@ export function pasteWithReport(t: DataTableModel, startRow: number, startFlat: 
 function textColumnsCategorical(before: DataTableModel, after: DataTableModel, startFlat: number,
   block: string[][]): DataTableModel {
   const cols = flatColumns(after);
-  const width = Math.max(0, ...block.map((l) => l.length));
+  const width = Math.max(0, maxOf(block.map((l) => l.length)));
   let next = after;
   for (let dc = 0; dc < width; dc++) {
     const c = cols[startFlat + dc];

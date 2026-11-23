@@ -19,6 +19,7 @@ import {
   LINK_LABELS, linkInverse, parseLevels, quantalGroups, transformDose, TRANSFORM_LABELS,
   untransform, wilson, type QuantalEc, type QuantalFit, type QuantalOptions, type QuantalResult,
 } from "./quantal";
+import { maxOf, minOf } from "../../lib/extent";
 
 const f = (v: number | null | undefined, sig?: number) => formatSig(v ?? null, sig);
 const ciTxt = (c: [number | null, number | null] | null | undefined) =>
@@ -323,8 +324,8 @@ export function QuantalPlot({ table, result, titles, scheme, format, onFormatCha
         const pg = result.parallel.groups.find((x) => x.name === g.name);
         if (pg) {
           const xs = g.dose.filter((d) => !logAxis || d > 0).map((d) => transformDose(o.doseTransform, d));
-          const lo = Math.min(...xs);
-          const hi = Math.max(...xs);
+          const lo = minOf(xs);
+          const hi = maxOf(xs);
           const pad = (hi - lo) * 0.15 || 0.5;
           const grid = Array.from({ length: 101 }, (_, k) => lo - pad + ((hi - lo + 2 * pad) * k) / 100);
           curve = { dose: grid.map((x) => untransform(o.doseTransform, x)),

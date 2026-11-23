@@ -13,6 +13,7 @@
 import type * as Plotly from "plotly.js";
 import { tagTrace } from "../../graph/apply.ts";
 import type { Chrome } from "../../lib/palette.ts";
+import { maxOf, minOf } from "../../lib/extent.ts";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type R = Record<string, any>;
@@ -66,7 +67,7 @@ export function estimationFigure(inp: FigureInput): Figure {
   const traces: Plotly.Data[] = [];
   const pos = new Map(order.map((n, i) => [n, i]));
   const all: number[] = order.flatMap((n) => (groups.get(n)?.values ?? []).filter(finite));
-  const lo0 = all.length ? Math.min(...all) : 0, hi0 = all.length ? Math.max(...all) : 1;
+  const lo0 = all.length ? minOf(all) : 0, hi0 = all.length ? maxOf(all) : 1;
   const span = hi0 - lo0 || Math.abs(hi0) || 1;
   const dy = span * 0.03;
   const effLabel = comps[0]?.effects?.[0]?.label ?? "Mean difference";

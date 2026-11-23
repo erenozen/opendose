@@ -9,6 +9,7 @@
 //   symmetric  points with (nearly) equal values sit side by side, spread
 //              symmetrically about the centre; every point keeps its exact
 //              Y (the layout of scatter dot plots in GraphPad Prism)
+import { maxOf } from "../lib/extent.ts";
 
 export type PointSpread = "jitter" | "swarm" | "symmetric";
 
@@ -57,8 +58,12 @@ export function beeswarm(values: number[], s: SpreadScale): number[] {
   let right = false;
   for (const i of order) {
     const y = values[i] * s.pxPerY;
-    // Only neighbours within one diameter vertically can collide.
-    const near = placed.filter((p) => Math.abs(p.y - y) < d);
+    // Only neighbours within one diameter vertically can collide. Points
+    // are placed lowest first, so they are the last few placed (a scan
+    // back, not a filter of all: 100,000 points would take minutes).
+    let from = placed.length;
+    while (from > 0 && Math.abs(placed[from - 1].y - y) < d) from--;
+    const near = placed.slice(from);
     const cands = [0];
     for (const p of near) {
       const dx = Math.sqrt(Math.max(0, d * d - (p.y - y) ** 2));
@@ -113,7 +118,7 @@ export function spreadOffsets(values: number[], how: PointSpread, s: SpreadScale
 
 /** Scale offsets down so none exceeds `half` (keeps their proportions). */
 function fit(xs: number[], half: number): number[] {
-  const m = Math.max(0, ...xs.map(Math.abs));
+  const m = Math.max(0, maxOf(xs.map(Math.abs)));
   if (!(half > 0) || m <= half) return xs;
   return xs.map((x) => (x * half) / m);
 }

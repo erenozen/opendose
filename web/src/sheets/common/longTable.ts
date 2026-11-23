@@ -21,6 +21,7 @@ import { parseSource } from "../../share/recipes/presets.ts";
 import { distinct, makeStaging, numText, pivot, type Role } from "../../share/recipes/staging.ts";
 import { cellNumber, isMissing, isNumericColumn } from "../../share/tidy.ts";
 import { nestedFromLong } from "../grouped/nestedTwoWay.ts";
+import { maxOf } from "../../lib/extent.ts";
 
 export type LongTarget = "cmh" | "roc" | "quantal" | "xy" | "nested2";
 
@@ -43,7 +44,7 @@ export function parseLongText(text: string): LongSource | { error: string } {
   if (!text.trim()) return { error: "Paste a table, or choose a file." };
   const m = parseSource(text);
   if (m.length < 2) return { error: "Need a header row and at least one record." };
-  const width = Math.max(...m.map((r) => r.length));
+  const width = maxOf(m.map((r) => r.length));
   if (width < 2) return { error: "Need at least two columns (check the separator)." };
   const headers = Array.from({ length: width }, (_, c) => (m[0][c] ?? "").trim() || `Column ${c + 1}`);
   const rows = m.slice(1).map((r) => Array.from({ length: width }, (_, c) => (r[c] ?? "").trim()))

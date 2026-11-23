@@ -590,6 +590,13 @@ const scenes = [
     await click(s, s.page.locator(".plot-card").getByRole("button", { name: "Settings", exact: true }));
     await dialog(s, "Graph settings").waitFor();
   } },
+  { name: "graphs-box-whiskers", setup: async (s) => {
+    await fixture(s, "box-plot.json", { live: true });
+    await s.page.locator(".js-plotly-plot").first().waitFor();
+    await into(s, ".plot-card", "center");
+    await click(s, s.page.locator(".plot-card").getByRole("button", { name: "Settings", exact: true }));
+    await dialog(s, "Graph settings").getByLabel("Whiskers").waitFor();
+  } },
   { name: "graphs-export-options", setup: async (s) => {
     await example(s);
     await into(s, ".plot-card", "center");

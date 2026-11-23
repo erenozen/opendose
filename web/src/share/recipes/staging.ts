@@ -5,6 +5,7 @@
 import { normalizeTable } from "../../project/table.ts";
 import type { DataColumn, DataTableModel } from "../../project/types.ts";
 import { cellNumber, isMissing, isNumericColumn } from "../tidy.ts";
+import { maxOf } from "../../lib/extent.ts";
 
 /** What a staging column means.
  *  group    the treatment / condition (several group columns are joined)
@@ -260,7 +261,7 @@ export function pivot(st: Staging, type: OutputType, opts: PivotOptions = {}): P
         const subs = distinct(mine.map((r) => r[subj]));
         const lists = subs.map((s) => mine.filter((r) => r[subj] === s)
           .map((r) => cell(r[v])).filter((x) => x !== ""));
-        const n = Math.max(1, ...lists.map((l) => l.length));
+        const n = Math.max(1, maxOf(lists.map((l) => l.length)));
         return {
           name: g,
           subTitles: subs.map((s) => s || "(blank)"),
@@ -291,7 +292,7 @@ export function pivot(st: Staging, type: OutputType, opts: PivotOptions = {}): P
     }
     const cells = keys.map((k) => byKey.get(k) ?? []);
     const width = subj >= 0 ? Math.max(1, subs.length)
-      : Math.max(1, ...cells.map((c) => c.filter((r) => cell(r[v]) !== "").length));
+      : Math.max(1, maxOf(cells.map((c) => c.filter((r) => cell(r[v]) !== "").length)));
     const grid = cells.map((c) => {
       const row = Array<string>(width).fill("");
       if (subj >= 0) {

@@ -16,6 +16,7 @@ import {
 } from "./clusterModel";
 import { Card, Check, Grid, KV, LinkedTable, Note, Problem, Select, TextIn, Warnings } from "./ui";
 import { chromeOf, divergingScale, layoutBase, messageLayout, useDark, useGraphSettings } from "./plotkit";
+import { maxOf } from "../../lib/extent";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type R = Record<string, any>;
@@ -250,7 +251,7 @@ export function ClusterPlot({ graph, result, scheme, format, onFormatChange }:
     const hy: [number, number] = [0, 1 - dt - sh - (dt || sh ? gap : 0)];
     const flat = z.flat();
     const diverging = (result.scale ?? "none") !== "none";
-    const maxAbs = Math.max(1e-12, ...flat.map((v) => Math.abs(v)));
+    const maxAbs = Math.max(1e-12, maxOf(flat.map((v) => Math.abs(v))));
     const traces: Plotly.Data[] = [];
     const cellText = z.map((r, i) => r.map((v, j) => `${rowNames[i]} · ${colNames[j]}: ${formatSig(v, 3)}`));
     traces.push({
@@ -297,7 +298,7 @@ export function ClusterPlot({ graph, result, scheme, format, onFormatChange }:
       seriesStyle(i, dark, scheme === "mono" || scheme === "sequential" ? "colorblind" : scheme).color);
     if (rowStrip) {
       const ordered = rowOrder.map((i) => rowLabels![i]);
-      const k = Math.max(...ordered) + 1;
+      const k = maxOf(ordered) + 1;
       traces.push({ type: "heatmap", z: ordered.map((l) => [l]), x: [0], y: ordered.map((_, i) => i),
         xaxis: "x4", yaxis: "y4", zmin: -0.5, zmax: k - 0.5, colorscale: discreteScale(palette(k)),
         showscale: false, ygap: 0, text: ordered.map((l, i) => [`${rowNames[i]}: cluster ${l + 1}`]),
@@ -307,7 +308,7 @@ export function ClusterPlot({ graph, result, scheme, format, onFormatChange }:
     }
     if (colStrip) {
       const ordered = colOrder.map((j) => colLabels![j]);
-      const k = Math.max(...ordered) + 1;
+      const k = maxOf(ordered) + 1;
       traces.push({ type: "heatmap", z: [ordered], x: ordered.map((_, j) => j), y: [0],
         xaxis: "x5", yaxis: "y5", zmin: -0.5, zmax: k - 0.5, colorscale: discreteScale(palette(k)),
         showscale: false, text: [ordered.map((l, j) => `${colNames[j]}: cluster ${l + 1}`)],

@@ -15,6 +15,7 @@
 //                      of a table that has no values
 //   row-ids.json       animal IDs as row titles (Find, Exclude by ID), an
 //                      Info constant used as "@Name", a contingency graph
+//   box-plot.json      a column box plot (rank (n + 1)p quartiles, an outlier)
 //   many-sheets.json   74 sheets: 22 families, navigator groups (one
 //                      collapsed), highlights, info sheets and layouts
 import { writeFileSync } from "node:fs";
@@ -231,4 +232,18 @@ function write(name, p, compact = false) {
   sheets.push(layout("Figure 1", graphIds.slice(0, 4)), layout("Figure 2", graphIds.slice(4, 8)),
     layout("Supplementary figure", graphIds.slice(8, 14), 3, 2));
   write("many-sheets.json", project("Sixty-plus sheets", sheets, { groups, selected: sheets[0].id }));
+}
+
+// box-plot.json: a column box plot whose column statistics use rank
+// (n + 1)p percentiles, with an outlier past the Tukey whisker
+{
+  const t = data("Box plot data", table("column", { yTitle: "Response (%)", datasets: [
+    col("Control", [1, 2, 3, 4, 5, 6, 7, 8, 9, 100]),
+    col("Treated", [12, 14, 15, 15, 16, 18, 19, 21, 22, 24]),
+  ] }));
+  const r = results(t, "column", { analysis: "column_statistics", percentileMethod: "prism" },
+    "Column statistics of Box plot data");
+  const g = graph(t, r, "box", "Box plot");
+  g.settings.column = { caption: "below" };
+  write("box-plot.json", project("Box plot", [t, r, g], { selected: g.id }));
 }

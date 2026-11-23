@@ -25,6 +25,7 @@
 import type { Recipe, Staged } from "./presets.ts";
 import { makeStaging } from "./staging.ts";
 import { cellNumber } from "../tidy.ts";
+import { maxOf, minOf } from "../../lib/extent.ts";
 
 const WELL_RE = /^([A-P])0?([1-9]|1\d|2[0-4])$/i;
 const WELL_PART_RE = /^([A-P])0?([1-9]|1\d|2[0-4])\b[\s,;:_-]*(.*)$/i;
@@ -187,8 +188,8 @@ export const incucyteRecipe: Recipe = {
       name: metric.replace(/\s*\([^)]*\)\s*$/, "") || "Incucyte",
       yTitle: metric,
       notes: [
-        `${x.rows.length} time points (${numText(Math.min(...x.hours as number[]))} to `
-        + `${numText(Math.max(...x.hours as number[]))} h), ${x.series.length} columns in ${groups} data set${groups === 1 ? "" : "s"}`
+        `${x.rows.length} time points (${numText(minOf(x.hours as number[]))} to `
+        + `${numText(maxOf(x.hours as number[]))} h), ${x.series.length} columns in ${groups} data set${groups === 1 ? "" : "s"}`
         + `${x.metric ? `; metric: ${x.metric}` : ""}.`,
         ...(x.skipped.length ? [`${x.skipped.length} standard-error column${x.skipped.length === 1 ? "" : "s"} `
           + "left out (they summarise images or wells; the wells are the replicates)."] : []),

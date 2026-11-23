@@ -20,6 +20,7 @@ import { detectDelimiter, splitDelimited } from "../../project/importText.ts";
 import { normalizeTable } from "../../project/table.ts";
 import type { DataTableModel, DateOrder } from "../../project/types.ts";
 import { parseDate } from "../../project/xformat.ts";
+import { maxOf } from "../../lib/extent.ts";
 
 /** Time unit of a survival table (stored as the table's `xUnit`). */
 export type TimeUnit = "" | "hours" | "days" | "weeks" | "months" | "years";
@@ -174,7 +175,7 @@ const isHeaderCell = (c: string) => c !== "" && cellNumber(c) === null;
  *  is the header (group names). */
 export function countsToSubjects(m: string[][], o: CountOptions): EntryResult {
   if (!m.length) return { error: "Paste a table: time in the first column, then one column of counts per group." };
-  const width = Math.max(...m.map((r) => r.length));
+  const width = maxOf(m.map((r) => r.length));
   if (width < 2) return { error: "Need at least two columns: the time, then the counts of a group (check the separator)." };
   const header = m[0].slice(1).some(isHeaderCell) || isHeaderCell(m[0][0] ?? "") ? m[0] : null;
   const body = header ? m.slice(1) : m;

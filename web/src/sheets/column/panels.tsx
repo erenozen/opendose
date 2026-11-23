@@ -11,6 +11,8 @@ import SummaryPlot from "./SummaryPlot";
 import SuperPlotView from "./SuperPlotView";
 import { normalizeColumnGraph } from "./graphSettings";
 import { legendSentence } from "../../graph/legend";
+import { boxPercentileMethod } from "../../graph/boxStats";
+import { useProject } from "../../app/context";
 
 import { superPlotOn } from "../common/superplot";
 import { incompleteSubjects } from "./rmPosthoc";
@@ -40,10 +42,13 @@ export function ColumnAnalysisResults({ sheet, result, options }:
   );
 }
 
-export function ColumnGraph({ graph, table, titles, scheme, result, format,
+export function ColumnGraph({ graph, table, titles, scheme, result, options, format,
   onFormatChange }: PlotProps) {
   const raw = graph.settings.column;
   const cs = useMemo(() => normalizeColumnGraph(raw), [raw]);
+  // Box quartiles follow the column statistics of this table (graph/boxStats.ts).
+  const { project } = useProject();
+  const percentile = boxPercentileMethod(graph, project.sheets, options);
   // Comparisons of the bound results (ANOVA post tests, t tests, ...) feed
   // the pairwise brackets and the compact letter display.
   const comparisons = useMemo(() => extractComparisons(result,
@@ -76,7 +81,8 @@ export function ColumnGraph({ graph, table, titles, scheme, result, format,
         graphType={graph.graphType as ColumnGraphType}
         scheme={scheme} yTitle={titles.y} format={format} onFormatChange={onFormatChange}
         rowTitles={table.rowTitles} comparisons={comparisons} results={results}
-        summary={cs.summary} spread={cs.spread} points={cs.points} caption={inFigure} />
+        summary={cs.summary} spread={cs.spread} points={cs.points} caption={inFigure}
+        percentile={percentile} whiskers={cs.whiskers} />
     );
   }
   return plot;

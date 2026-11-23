@@ -22,6 +22,7 @@
 import { analyzeAsync } from "../../lib/engine";
 import { DEFAULT_CLUSTER, LINKAGE_LABEL, METRIC_LABEL } from "../assays/clusterModel";
 import { parseDendrogram, type Dendrogram } from "../common/dendrogram";
+import { maxOf } from "../../lib/extent.ts";
 
 export const CLUSTER_HANDLER = "cluster_heatmap";
 
@@ -43,7 +44,7 @@ export const HEAT_CLUSTER_SETTINGS = `${LINKAGE_LABEL[HEAT_CLUSTER_METHOD].split
 /** Blank cells filled with their column's mean (0 when the column is
  *  empty): hierarchical clustering needs a complete matrix. */
 export function filledMatrix(z: (number | null)[][]): number[][] {
-  const nc = Math.max(0, ...z.map((r) => r.length));
+  const nc = Math.max(0, maxOf(z.map((r) => r.length)));
   const ok = (x: number | null | undefined): x is number =>
     x !== null && x !== undefined && Number.isFinite(x);
   const means = Array.from({ length: nc }, (_, j) => {

@@ -5,6 +5,7 @@
 import { numericData } from "../project/table.ts";
 import type { DataTableModel } from "../project/types.ts";
 import type { GroupCheck } from "./recommend.ts";
+import { minOf } from "../lib/extent.ts";
 
 export interface Summary { n: number; mean: number | null; sd: number | null; min: number | null }
 
@@ -14,7 +15,7 @@ export function summarize(vals: number[]): Summary {
   const mean = vals.reduce((a, b) => a + b, 0) / n;
   const sd = n > 1
     ? Math.sqrt(vals.reduce((a, v) => a + (v - mean) ** 2, 0) / (n - 1)) : null;
-  return { n, mean, sd, min: Math.min(...vals) };
+  return { n, mean, sd, min: minOf(vals) };
 }
 
 const finite = (v: number | null): v is number => v !== null && Number.isFinite(v);

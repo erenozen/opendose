@@ -15,6 +15,7 @@ import {
   applyFormat, EMPTY_FORMAT, plotConfig, resultBlocks, tagTrace, usePlotEdits,
   type GraphFormat,
 } from "../graph";
+import { maxOf, minOf } from "../lib/extent";
 
 /** An extra fitted curve drawn with a data set (`altCurves` on a data
  *  set of the result): dotted, in the data set's colour or in ink. */
@@ -214,7 +215,7 @@ export default function PlotPanel({
       const xs = traces.flatMap((tr) => ((tr as { x?: unknown[] }).x ?? []))
         .filter((v): v is number => typeof v === "number" && Number.isFinite(v));
       if (xs.length) {
-        const vals = niceTicks(Math.min(...xs), Math.max(...xs), 6);
+        const vals = niceTicks(minOf(xs), maxOf(xs), 6);
         layout.xaxis.tickvals = vals;
         layout.xaxis.ticktext = vals.map(xTickFormat);
       }

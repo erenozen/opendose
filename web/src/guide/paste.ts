@@ -9,6 +9,7 @@ import {
 import { isSpreadsheetError } from "../project/pasteReport.ts";
 import { normalizeTable } from "../project/table.ts";
 import type { DataTableModel, TableType } from "../project/types.ts";
+import { maxOf } from "../lib/extent.ts";
 
 export interface PastedBlock {
   /** Column titles (from a first row of text), or null. */
@@ -45,7 +46,7 @@ export function parsePasted(text: string): PastedBlock | null {
   }));
   const decimal = detectDecimal(m);
   m = m.map((r) => r.map((c) => normalizeNumber(c.trim(), decimal)));
-  const width = Math.max(...m.map((r) => r.length));
+  const width = maxOf(m.map((r) => r.length));
   m = m.map((r) => [...r, ...Array(width - r.length).fill("")]);
   // A first row of mostly text above rows that hold numbers = titles.
   const first = m[0];
