@@ -103,7 +103,10 @@ not. `aria-label` is required by the type. Wrap it in a
 [Tooltip](overlays.md#tooltip) to show its name and shortcut on hover.
 
 Variants: the Button set; the default is `ghost`. Sizes: `md` (32px
-square) and `sm` (26px square, 44px hit area on touch).
+square) and `sm` (26px square, 44px hit area on touch). An icon-only
+`Menu.Trigger` or `Popover.Trigger` is not an IconButton: give it
+`variant`, `size`, `aria-label` and `className="btn--icon"` (the only
+class a trigger may take) and wrap it in a Tooltip.
 
 ```tsx
 // Correct: components/ui/Banner.tsx:100
