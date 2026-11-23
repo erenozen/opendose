@@ -1,9 +1,11 @@
 // Contingency-table graphs (bars.ts): stacked to 100% of each group, stacked
 // counts, or grouped counts. Format graph treats each outcome (column) as
 // a data set: colour, legend text, show / hide and order per outcome.
+// Brackets join two rows' stacks with the adjusted P of the pairs of rows
+// (P-14, brackets.ts); grouped bars refuse them and say why.
 import { useMemo } from "react";
 import type Plotly from "plotly.js-dist-min";
-import { OptCheck, OptSelect } from "../../components/GraphOptionControls";
+import { OptCheck, OptNote, OptSelect } from "../../components/GraphOptionControls";
 import { datasetFmt, EMPTY_FORMAT, tagTrace } from "../../graph";
 import FormattedPlot from "../../graph/FormattedPlot";
 import { useDarkMode } from "../../graph/useDarkMode";
@@ -12,6 +14,7 @@ import { formatSig } from "../../types";
 import { asRecord, useGraphOptions } from "../common/graphOptions";
 import type { GraphOptionsProps, PlotProps } from "../types";
 import { contingencyBars, GRAPH_CT_GROUPED, GRAPH_CT_PERCENT, outcomeNames } from "./bars";
+import { ctBracketRefusal, ctComparisons } from "./brackets";
 
 type Labels = "percent" | "value" | "both" | "none";
 const LABELS: Record<Labels, string> = { percent: "Percent", value: "Count", both: "Count and percent", none: "None" };
@@ -26,12 +29,17 @@ function sanitize(raw: unknown): CtGraphOptions {
   };
 }
 
-export function CtPlot({ graph, table, titles, scheme, format, onFormatChange }: PlotProps) {
+/** Ticks of the percent axis when brackets lift its top above 100%. */
+const PERCENT_TICKS = [0, 20, 40, 60, 80, 100];
+
+export function CtPlot({ graph, table, result, titles, scheme, format, onFormatChange }: PlotProps) {
   const dark = useDarkMode();
   const opts = sanitize(graph.settings.ct);
   const kind = graph.graphType;
   const fmt = format ?? EMPTY_FORMAT;
   const legendOn = fmt.legend?.show === "hide" ? false : fmt.legend?.show === "show" ? true : opts.legend;
+  const cmp = useMemo(() => ctComparisons(result, table, kind), [result, table, kind]);
+  const brackets = !!fmt.comparisons?.show && !!cmp?.comparisons.length;
   const fig = useMemo(() => {
     const chrome = dark ? CHROME_DARK : CHROME_LIGHT;
     const data = contingencyBars(table);
@@ -70,28 +78,42 @@ export function CtPlot({ graph, table, titles, scheme, format, onFormatChange }:
       yaxis: { title: { text: titles.y, font: { color: chrome.inkSecondary } }, visible: !empty,
         gridcolor: chrome.grid, zeroline: false, rangemode: "tozero",
         linecolor: chrome.axis, tickcolor: chrome.axis, tickfont: { color: chrome.muted },
-        ...(percentY ? { range: [0, 100], ticksuffix: "%" } : {}) },
+        // brackets sit above 100%: the axis grows to hold them, its ticks stop at 100%
+        ...(percentY ? (brackets ? { tickvals: PERCENT_TICKS, ticksuffix: "%" }
+          : { range: [0, 100], ticksuffix: "%" }) : {}) },
       ...(empty ? { annotations: [{ text: "Enter counts in the data table to draw this graph", showarrow: false,
         font: { color: chrome.muted, size: 13 }, x: 0.5, y: 0.5, xref: "paper" as const, yref: "paper" as const }] } : {}),
     };
-    return { traces, layout, names: outcomeNames(table) };
-  }, [table, dark, scheme, titles.y, opts.labels, legendOn, kind, fmt]);
-  const ctx = useMemo(() => ({ dark, scheme, datasets: fig.names }), [dark, scheme, fig.names]);
+    return { traces, layout, names: outcomeNames(table), groups: data.groups };
+  }, [table, dark, scheme, titles.y, opts.labels, legendOn, kind, fmt, brackets]);
+  // Rows sit at their category index; the comparisons name rows, not outcomes.
+  const ctx = useMemo(() => ({
+    dark, scheme, datasets: fig.names, comparisons: cmp?.comparisons,
+    groupX: (name: string, family?: string) => {
+      const i = fig.groups.indexOf(name);
+      return family || i < 0 ? null : i;
+    },
+  }), [dark, scheme, fig.names, fig.groups, cmp]);
   return (
     <FormattedPlot traces={fig.traces} layout={fig.layout} format={format}
       onFormatChange={onFormatChange} ctx={ctx} filename="contingency" scrollZoom={false} />
   );
 }
 
-/** Graph options in the Settings panel: bar labels and legend. */
-export function CtOptions({ graph }: GraphOptionsProps) {
+/** Graph options in the Settings panel: bar labels and legend; on a graph
+ *  that cannot draw the results' pairs of rows, why. */
+export function CtOptions({ graph, table, result }: GraphOptionsProps) {
   const [opts, setOpts] = useGraphOptions(graph, "ct", sanitize);
+  const pairs = Array.isArray((result as { pairwise_rows?: { comparisons?: unknown } } | null)
+    ?.pairwise_rows?.comparisons);
+  const refusal = pairs ? ctBracketRefusal(graph.graphType, table) : null;
   return (
     <>
       <OptSelect label="Labels" value={opts.labels}
         options={(Object.keys(LABELS) as Labels[]).map((k) => [k, LABELS[k]] as const)}
         onChange={(labels) => setOpts({ labels })} />
       <OptCheck label="Legend" checked={opts.legend} onChange={(legend) => setOpts({ legend })} />
+      {refusal && <OptNote>No brackets for the pairs of rows: {refusal}.</OptNote>}
     </>
   );
 }

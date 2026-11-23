@@ -18,6 +18,11 @@
 //   box-plot.json      a column box plot (rank (n + 1)p quartiles, an outlier)
 //   fit-graph.json     the example dose-response with IC50 drop lines and
 //                      their value label on its curve-fit graph
+//   contingency-brackets.json  pairs of rows (Holm) as brackets on a
+//                      stacked percent contingency graph (P-14)
+//   estimation-margins.json  a t test with an equivalence margin of ±1 and
+//                      the estimation plot that draws it (P-12)
+//   fit-split-axis.json  IC50 drop lines on a Y axis with a break (P-23)
 //   fit-legend.json    a weighted 4PL with a confidence band and one ROUT
 //                      outlier, its legend sentence drawn in the figure
 //   bar-axis.json      fold changes as bars of geometric means ×/÷ geometric
@@ -469,6 +474,51 @@ const longData = (name, names, rows, categorical) => data(name, {
     ],
   }];
   write("why-history.json", project("Pilot study", [t, r, g], { selected: r.id, reproductions }));
+}
+
+// contingency-brackets.json: the P-14 acceptance table (WT 18/20, Het
+// 15/20, KO 5/20) with Holm pairs of rows drawn as brackets on its
+// stacked percent graph (sheets/contingency/brackets.ts). Last, so the
+// ids of the files above stay as they were.
+{
+  const t = data("Genotypes", table("contingency", { rowTitles: ["WT", "Het", "KO"],
+    datasets: [{ name: "Positive", rows: [["18"], ["15"], ["5"]] },
+      { name: "Negative", rows: [["2"], ["5"], ["15"]] }] }));
+  const r = results(t, "contingency", { pairwise: "holm" }, "Chi-square of Genotypes");
+  const g = graph(t, r, "contingency_stacked_percent", "Graph of Genotypes");
+  g.settings.format = { comparisons: { show: true } };
+  write("contingency-brackets.json", project("Pairs of rows", [t, r, g], { selected: g.id }));
+}
+
+// estimation-margins.json: the P-12 acceptance groups (B = A - 0.2) with a
+// t test whose equivalence margin is ±1 and an estimation plot that draws
+// it (report/estimation/margins.ts)
+{
+  const A = [10.8, 10.75, 10.55, 10.5, 9.6, 9.65, 9.85, 9.9];
+  const t = data("Equivalence", table("column", { yTitle: "Value", datasets: [
+    col("A", A), col("B", A.map((v) => +(v - 0.2).toFixed(2)))] }));
+  const tt = results(t, "column", { analysis: "ttest", ttestKind: "unpaired", equivalence: "equivalence",
+    equivalenceMargin: "1" }, "t test of Equivalence");
+  const e = results(t, "estimation", {}, "Estimation of Equivalence");
+  const g = graph(t, e, "estimation", "Estimation plot of Equivalence");
+  write("estimation-margins.json", project("Equivalence margin", [t, tt, e, g], { selected: g.id }));
+}
+
+// fit-split-axis.json: the example dose-response with IC50 drop lines on a
+// Y axis broken from 15 to 35: the response at the IC50 (50.42) is on the
+// upper segment (sheets/xy/fitGraph.ts gapSegment)
+{
+  const reps = [["98.2", "101.5", "99.1"], ["97.0", "95.8", "99.9"], ["93.4", "90.1", "92.7"],
+    ["78.9", "82.3", "80.0"], ["51.2", "48.7", "50.9"], ["22.1", "25.6", "24.0"],
+    ["8.9", "10.2", "7.5"], ["3.1", "4.4", "2.2"], ["1.0", "0.5", "2.1"]];
+  const t = data("Dose response", table("xy", { x: doses, xTitle: "[Conc.]", xUnit: "M",
+    yTitle: "Response", datasets: [{ name: "Drug A", subTitles: ["", "", ""], rows: reps }] }));
+  const r = results(t, "nonlin", { model: "log_inhibitor_vs_response_4pl", errorBars: "sd",
+    autoFit: "requested" }, "Nonlin fit of Dose response");
+  const g = graph(t, r, "xy", "Graph of Dose response");
+  g.settings.xy = { dropLines: true, dropLabel: true };
+  g.settings.format = { y: { gap: { from: 15, to: 35 } } };
+  write("fit-split-axis.json", project("Fit graph, broken axis", [t, r, g], { selected: g.id }));
 }
 
 // rm-reporting.json: the RM ANOVA reporting of P-40 (engine/tests/

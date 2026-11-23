@@ -9,10 +9,10 @@
   "scheme": "default",
   "digits": 4
  },
- "selected": "r109",
+ "selected": "r119",
  "sheets": [
   {
-   "id": "d108",
+   "id": "d118",
    "kind": "data",
    "name": "RM 10 x 4",
    "table": {
@@ -192,9 +192,9 @@
    }
   },
   {
-   "id": "r109",
+   "id": "r119",
    "kind": "results",
-   "parentId": "d108",
+   "parentId": "d118",
    "analysis": "column",
    "options": {
     "analysis": "rm_anova",
@@ -203,7 +203,7 @@
    "name": "RM ANOVA of RM 10 x 4"
   },
   {
-   "id": "d110",
+   "id": "d120",
    "kind": "data",
    "name": "Metric by time",
    "table": {
@@ -311,9 +311,9 @@
    }
   },
   {
-   "id": "r111",
+   "id": "r121",
    "kind": "results",
-   "parentId": "d110",
+   "parentId": "d120",
    "analysis": "grouped_two_way",
    "options": {
     "design": "rm_both",
@@ -323,7 +323,7 @@
    "name": "Two-way RM ANOVA of Metric by time"
   },
   {
-   "id": "d112",
+   "id": "d122",
    "kind": "data",
    "name": "Four doses",
    "table": {
@@ -433,9 +433,9 @@
    }
   },
   {
-   "id": "r113",
+   "id": "r123",
    "kind": "results",
-   "parentId": "d112",
+   "parentId": "d122",
    "analysis": "column",
    "options": {
     "analysis": "anova",
@@ -445,7 +445,7 @@
    "name": "Kruskal-Wallis of Four doses"
   },
   {
-   "id": "d114",
+   "id": "d124",
    "kind": "data",
    "name": "Teaching methods",
    "table": {
@@ -590,9 +590,9 @@
    }
   },
   {
-   "id": "r115",
+   "id": "r125",
    "kind": "results",
-   "parentId": "d114",
+   "parentId": "d124",
    "analysis": "column",
    "options": {
     "analysis": "rm_anova",
@@ -602,7 +602,7 @@
    "name": "Friedman of Teaching methods"
   },
   {
-   "id": "d116",
+   "id": "d126",
    "kind": "data",
    "name": "Three stains",
    "table": {
@@ -769,9 +769,9 @@
    }
   },
   {
-   "id": "r117",
+   "id": "r127",
    "kind": "results",
-   "parentId": "d116",
+   "parentId": "d126",
    "analysis": "column",
    "options": {
     "analysis": "cochran_q"
@@ -779,7 +779,7 @@
    "name": "Cochran's Q of Three stains"
   },
   {
-   "id": "d118",
+   "id": "d128",
    "kind": "data",
    "name": "pH and PaCO2",
    "table": {
@@ -1331,9 +1331,9 @@
    }
   },
   {
-   "id": "r119",
+   "id": "r129",
    "kind": "results",
-   "parentId": "d118",
+   "parentId": "d128",
    "analysis": "column",
    "options": {
     "analysis": "correlation",

@@ -915,6 +915,22 @@ const scenes = [
     await into(s, ".plot-card", "center");
     await settle(s, 1000);
   } },
+  // pairs of rows (Holm) as brackets on the stacked percent graph (P-14)
+  { name: "graphs-contingency-brackets", setup: async (s) => {
+    await fixture(s, "contingency-brackets.json", { live: true });
+    await s.page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.layout?.annotations ?? [])
+      .some((a) => a.name === "bracket-label"), null, { timeout: 120000 });
+    await into(s, ".plot-card", "center");
+    await settle(s, 1000);
+  } },
+  // the t test's equivalence margin and 90% CI on the estimation plot (P-12)
+  { name: "graphs-estimation-margins", setup: async (s) => {
+    await fixture(s, "estimation-margins.json", { live: true });
+    await s.page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.layout?.shapes ?? [])
+      .some((x) => x.name === "equivalence-margin:upper"), null, { timeout: 180000 });
+    await into(s, ".plot-card", "center");
+    await settle(s, 1000);
+  } },
   { name: "graphs-graph-sheet", setup: async (s) => {
     await example(s);
     await selectSheet(s, "Graph of Dose response");
@@ -1048,6 +1064,14 @@ const scenes = [
   { name: "graphs-fit-legend", setup: async (s) => {
     await fixture(s, "fit-legend.json", { live: true });
     await s.page.locator(".js-plotly-plot").first().waitFor();
+    await into(s, ".plot-card", "center");
+    await settle(s, 1200);
+  } },
+  // drop lines on the segment of a broken Y axis that holds the IC50 (P-23)
+  { name: "graphs-fit-split-axis", setup: async (s) => {
+    await fixture(s, "fit-split-axis.json", { live: true });
+    await s.page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.layout?.shapes ?? [])
+      .some((x) => x.name === "drop:0:v2"), null, { timeout: 120000 });
     await into(s, ".plot-card", "center");
     await settle(s, 1200);
   } },

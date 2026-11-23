@@ -25,13 +25,19 @@ export function pairTestText(c: any): string {
 const shortName = (m: unknown) =>
   PAIRWISE_LABELS[m as PairwiseCorrection]?.replace(/ \(.*$/, "") ?? String(m);
 
+/** How each pair was tested: "by Fisher's exact test when any expected
+ *  count was below 5 and otherwise by the chi-square test". */
+export function pairTestHow(pw: any): string {
+  return pw?.test === "auto"
+    ? "by Fisher's exact test when any expected count was below 5 and otherwise by the chi-square test"
+    : pw?.test === "fisher" ? "by Fisher's exact test" : "by the chi-square test";
+}
+
 /** The methods sentence of the pairs. */
 export function pairwiseMethods(pw: any): string {
   if (!pw || !Array.isArray(pw.comparisons)) return "";
   const n = pw.family?.size ?? pw.comparisons.length;
-  const how = pw.test === "auto"
-    ? "by Fisher's exact test when any expected count was below 5 and otherwise by the chi-square test"
-    : pw.test === "fisher" ? "by Fisher's exact test" : "by the chi-square test";
+  const how = pairTestHow(pw);
   return `Each pair of rows was compared ${how}, with P values adjusted over ${n} comparisons `
     + `(${shortName(pw.method)}${pw.method === "bh" ? ", false discovery rate" : ""}).`;
 }

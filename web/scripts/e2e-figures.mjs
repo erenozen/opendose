@@ -748,6 +748,58 @@ const fitLegendText = () => page.locator(".plot-card .figure-legend-text").textC
   await shot("fit-legend-caption");
 }
 
+// --- drop lines on a discontinuous Y axis (P-23 follow-up). Before: no
+// lines on a broken axis, while the legend still said they marked the
+// IC50. Reference as above (fit_graph.py): LogIC50 -6.98304 at response
+// 50.4181. A break from 15 to 35 puts it on the upper segment (yaxis3);
+// a break from 40 to 60 swallows it.
+{
+  const SPLIT = join(tmp, "fit-split.json");
+  writeFileSync(SPLIT, JSON.stringify({
+    version: 2, title: "Fit graph on a broken axis",
+    prefs: { defaultTableType: "xy", errorBars: "sd", ciMethod: "asymptotic", scheme: "default", digits: 4 },
+    sheets: [
+      ...fitFamily("up", "Break below the IC50", {},
+        { xy: { dropLines: true, caption: "below" }, format: { y: { gap: { from: 15, to: 35 } } } }),
+      ...fitFamily("in", "Break across the IC50", {},
+        { xy: { dropLines: true, caption: "below" }, format: { y: { gap: { from: 40, to: 60 } } } }),
+    ],
+  }));
+  const splitShapes = () => page.evaluate(() => {
+    const l = document.querySelector(".plot-card .plot")?.layout ?? {};
+    return { y3: l.yaxis3?.range ?? null, y: l.yaxis?.range ?? null,
+      shapes: (l.shapes ?? []).filter((s) => String(s.name ?? "").startsWith("drop:"))
+        .map((s) => ({ name: s.name, xref: s.xref, yref: s.yref, x0: s.x0, x1: s.x1, y0: s.y0, y1: s.y1 })) };
+  });
+  await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]', SPLIT);
+  await page.getByRole("treeitem", { name: "Break below the IC50", exact: true }).first()
+    .locator(":scope > .nav-row").click();
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.layout?.shapes ?? [])
+    .some((s) => s.name === "drop:0:v2"), null, { timeout: 120000 }).catch(() => {});
+  const s = await splitShapes();
+  const by = (n) => s.shapes.find((x) => x.name === n);
+  const v = by("drop:0:v"), h = by("drop:0:h"), v2 = by("drop:0:v2");
+  expect("broken axis: the lines go on the upper segment, which holds the response 50.4181 (LogIC50 -6.98304)",
+    !!s.y3 && s.y3[0] <= 50.4181 && 50.4181 <= s.y3[1] && v && Math.abs(v.x0 + 6.98304) < 5e-6
+      && Math.abs(v.y0 - 50.4181) < 5e-5 && JSON.stringify(v.yref) === '["y3","y3 domain"]' && v.y1 === 0
+      && h && h.yref === "y3" && h.x1 === 0 && Math.abs(h.y0 - 50.4181) < 5e-5, JSON.stringify(s));
+  expect("broken axis: the vertical line goes on down the lower segment to the X axis",
+    v2 && v2.yref === "y domain" && v2.y0 === 1 && v2.y1 === 0 && v2.x0 === v.x0, JSON.stringify(v2));
+  expect("broken axis: the legend says what the lines mark",
+    (await fitLegendText()).includes("Dashed lines mark the IC50 (the concentration giving a response "
+      + "half-way between the fitted Top and Bottom)."), await fitLegendText());
+  await shot("fit-split-axis");
+  await page.getByRole("treeitem", { name: "Break across the IC50", exact: true }).first()
+    .locator(":scope > .nav-row").click();
+  await page.waitForFunction(() => document.querySelector(".plot-card .figure-legend-text")?.textContent
+    ?.includes("break of the Y axis"), null, { timeout: 120000 }).catch(() => {});
+  const across = await splitShapes();
+  expect("a break across the response: no lines, and the legend says why",
+    !!across.y3 && across.shapes.length === 0 && (await fitLegendText()).includes(
+      "No IC50 lines for Drug A: the response at the IC50 (50.42) falls in the break of the Y axis."),
+    `${JSON.stringify(across.shapes)} / ${await fitLegendText()}`);
+}
+
 // --- geometric mean ×/÷ geometric SD on a log axis, and the Checks note
 // for bars on a log axis or an axis cut above zero (P-25). Reference:
 // src/sheets/column/__tests__/reference/geo_summary.py (numpy, scipy
@@ -800,6 +852,9 @@ const fitLegendText = () => page.locator(".plot-card .figure-legend-text").textC
   const legend = await page.locator(".plot-card .figure-legend-text").innerText().catch(() => "");
   expect("the legend names the geometric summary",
     legend.startsWith("Geometric mean ×/÷ geometric SD (bars), with individual values."), legend);
+  const barKind = await page.locator(".plot-card").getByLabel("Graph type").locator('option[value="bar"]').textContent();
+  expect("the graph type names the geometric summary: 'Bar (geometric mean ×/÷ geometric SD + points)'",
+    barKind === "Bar (geometric mean ×/÷ geometric SD + points)", barKind);
   await openChecks();
   const chip = page.getByRole("button", { name: /Bars on a log axis/ });
   expect("Checks: bars on a log axis are flagged", await chip.count() === 1);
@@ -879,9 +934,15 @@ const fitLegendText = () => page.locator(".plot-card .figure-legend-text").textC
   await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
     .some((t) => t.meta?.odTag?.role === "summary"), null, { timeout: 120000 });
   await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 120000 });
+  // the graph-type select says what the scatter draws (it used to read
+  // "Scatter (points + mean ± SD)" whatever the centre)
+  const kindText = (v) => page.locator(".plot-card").getByLabel("Graph type")
+    .locator(`option[value="${v}"]`).textContent();
   let sm = await summaries();
   expect("t test: the new graph shows mean ± SD (Control mean 23.967)",
     sm.length === 3 && Math.abs(sm[0][1] - 23.966666666666665) < 1e-9, JSON.stringify(sm[0]));
+  expect("t test: the graph type reads 'Scatter (points + mean ± SD)'",
+    await kindText("scatter") === "Scatter (points + mean ± SD)", await kindText("scatter"));
   expect("no rank line for a t test", await page.locator(".pane-answer .answer-rank").count() === 0);
   await chooseMannWhitney();
   await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
@@ -897,6 +958,11 @@ const fitLegendText = () => page.locator(".plot-card .figure-legend-text").textC
   expect("the legend says median with IQR",
     (await page.locator(".plot-card .figure-legend-text").innerText().catch(() => ""))
       .startsWith("Median with IQR, with individual values."));
+  expect("Mann-Whitney: the graph type reads 'Scatter (points + median with IQR)', and the bar option too",
+    await kindText("scatter") === "Scatter (points + median with IQR)"
+      && await kindText("bar") === "Bar (median with IQR + points)"
+      && await page.locator(".plot-card").getByLabel("Graph type").inputValue() === "scatter",
+    `${await kindText("scatter")} | ${await kindText("bar")}`);
   await shot("rank-median-iqr");
 
   // a graph saved before keeps what it draws
@@ -910,6 +976,8 @@ const fitLegendText = () => page.locator(".plot-card .figure-legend-text").textC
     sm.length === 3 && Math.abs(sm[0][1] - 23.966666666666665) < 1e-9
       && oldLine.includes("compares distributions (ranks); the graph shows mean ± SD."),
     `${JSON.stringify(sm[0])} / ${oldLine}`);
+  expect("a graph saved before: the graph type still reads mean ± SD under Mann-Whitney",
+    await kindText("scatter") === "Scatter (points + mean ± SD)", await kindText("scatter"));
 }
 
 // --- raincloud plots and violins with a stated bandwidth (P-53). The
@@ -1091,6 +1159,174 @@ const fitLegendText = () => page.locator(".plot-card .figure-legend-text").textC
   }
   await page.locator("header").getByRole("button", { name: "View", exact: true }).click();
   await page.getByRole("menuitemradio", { name: "Light" }).click();
+}
+
+// --- brackets for the pairs of rows on the contingency graphs (P-14).
+// The plan's acceptance data, WT 18/20, Het 15/20, KO 5/20 positive;
+// engine/tests/reference/pairwise_proportions.py (scipy per pair,
+// statsmodels multipletests "holm"): Holm-adjusted 0.4075 (WT vs. Het),
+// 3.719e-4 (WT vs. KO), 0.008853 (Het vs. KO). Before: the contingency
+// graphs drew no brackets (no comparisons reached them).
+{
+  const CT = join(tmp, "contingency.json");
+  const ctTable = { type: "contingency", x: ["", "", ""], xTitle: "", xFormat: "numbers", xUnit: "", yTitle: "",
+    rowTitles: ["WT", "Het", "KO"], subcolumnFormat: "replicates", replicateLayout: "side_by_side",
+    datasets: [{ name: "Positive", rows: [["18"], ["15"], ["5"]] }, { name: "Negative", rows: [["2"], ["5"], ["15"]] }] };
+  const ctGraph = (id, graphType, name, comparisons) => ({ id, kind: "graph", parentId: "c1", resultsId: "c2",
+    graphType, name, settings: { titles: { x: "", y: "" }, scheme: "default", format: { comparisons } } });
+  writeFileSync(CT, JSON.stringify({
+    version: 2, title: "Contingency brackets",
+    prefs: { defaultTableType: "contingency", errorBars: "sd", ciMethod: "asymptotic", scheme: "default", digits: 4 },
+    sheets: [
+      { id: "c1", kind: "data", name: "Genotypes", table: ctTable },
+      { id: "c2", kind: "results", parentId: "c1", name: "Chi-square of Genotypes", analysis: "contingency",
+        options: { pairwise: "holm" } },
+      ctGraph("c3", "contingency_stacked_percent", "Percent of each row", { show: true }),
+      ctGraph("c4", "contingency_stacked_counts", "Counts of each row", { show: true, display: "p" }),
+      ctGraph("c5", "contingency_grouped_counts", "Grouped counts", { show: true }),
+    ],
+  }));
+  const brackets = () => page.evaluate(() => {
+    const gd = document.querySelector(".plot-card .plot");
+    const shapes = (gd?.layout?.shapes ?? []).filter((s) => s.name === "bracket" && s.y0 === s.y1);
+    return { lines: shapes.map((s) => [s.x0, s.x1, Math.round(s.y0 * 1e9) / 1e9]),
+      labels: (gd?.layout?.annotations ?? []).filter((a) => a.name === "bracket-label").map((a) => a.text),
+      top: gd?._fullLayout?.yaxis?.range?.[1], ticks: gd?.layout?.yaxis?.tickvals ?? null };
+  });
+  const openGraph = async (name, labelled) => {
+    await page.getByRole("treeitem", { name, exact: true }).first().locator(":scope > .nav-row").click();
+    await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 120000 });
+    if (labelled) {
+      await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.layout?.annotations ?? [])
+        .some((a) => a.name === "bracket-label"), null, { timeout: 30000 }).catch(() => {});
+    } else await page.waitForTimeout(800);
+  };
+  await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]', CT);
+  await openGraph("Percent of each row", true);
+  const adj = (await page.locator(".pane-results .pairwise-table tbody tr").allInnerTexts())
+    .map((t) => t.split("\t").map((c) => c.trim())[4]);
+  expect("P-14: the results' Holm-adjusted P are 0.4075, 3.719e-4, 0.008853 (statsmodels reference)",
+    JSON.stringify(adj) === JSON.stringify(["0.4075", "3.719e-4", "0.008853"]), JSON.stringify(adj));
+  let b = await brackets();
+  expect("percent graph: a bracket per pair of rows, joining the rows' stacks (WT 0, Het 1, KO 2)",
+    JSON.stringify(b.lines.map((l) => [l[0], l[1]])) === "[[0,1],[1,2],[0,2]]", JSON.stringify(b.lines));
+  expect("percent graph: brackets clear the 100% stack tops (110, 120, 130) and the axis grows to hold them",
+    JSON.stringify(b.lines.map((l) => l[2])) === "[110,120,130]" && b.top > 130, `${JSON.stringify(b.lines)} top ${b.top}`);
+  expect("percent graph: its ticks still stop at 100%", JSON.stringify(b.ticks) === "[0,20,40,60,80,100]",
+    JSON.stringify(b.ticks));
+  expect("percent graph: asterisks from the Holm-adjusted P (ns, **, ***)",
+    JSON.stringify(b.labels) === '["ns","**","***"]', JSON.stringify(b.labels));
+  const legend = await page.locator(".plot-card .figure-legend-text").textContent().catch(() => "");
+  expect("the legend names the pairs, the test per pair, the family, where the exact P are, and the star scale",
+    legend.startsWith("Brackets compare pairs of rows, each tested by Fisher's exact test when any expected "
+      + "count was below 5 and otherwise by the chi-square test, with P values adjusted for 3 comparisons "
+      + "(Holm). The exact adjusted P values are in the results (Pairs of rows).")
+      && legend.includes("* P ≤ 0.05, ** P ≤ 0.01, *** P ≤ 0.001, **** P ≤ 0.0001; ns, not significant: P > 0.05."),
+    legend);
+  const pop = await graphSettings();
+  await pop.getByRole("button", { name: "Pairwise comparisons…" }).click();
+  const dlg = page.getByRole("dialog", { name: "Pairwise comparisons" });
+  const pairs = (await dlg.locator(".fmt-pair").allInnerTexts()).map((t) => t.replace(/\s+/g, " ").trim());
+  expect("the dialog lists the pairs of rows with their adjusted P, from the contingency results",
+    JSON.stringify(pairs) === JSON.stringify(["WT vs. Het P = 0.4075 ns", "WT vs. KO P = 0.00037 ***",
+      "Het vs. KO P = 0.0089 **"])
+      && (await dlg.locator(".modal-text").first().innerText()).startsWith("From: pairs of rows, adjusted P (Holm)."),
+    JSON.stringify(pairs));
+  expect("no compact letters for rows (they are not the graph's data sets)",
+    await dlg.getByRole("tab", { name: "Compact letters" }).count() === 0);
+  await dlg.getByRole("button", { name: "Cancel" }).click();
+  await shot("contingency-brackets");
+
+  await openGraph("Counts of each row", true);
+  b = await brackets();
+  expect("counts graph: exact adjusted P above the row totals (20): 22, 24, 26",
+    JSON.stringify(b.labels) === '["P = 0.4075","P = 0.0089","P = 0.00037"]'
+      && JSON.stringify(b.lines.map((l) => l[2])) === "[22,24,26]", JSON.stringify(b));
+  expect("counts graph: the legend says the P values shown are exact",
+    (await page.locator(".plot-card .figure-legend-text").textContent().catch(() => "")).includes("P values shown are exact."));
+
+  await openGraph("Grouped counts", false);
+  b = await brackets();
+  const gLegend = await page.locator(".plot-card .figure-legend-text").textContent().catch(() => "");
+  expect("grouped bars: no brackets, and the legend says why (no star scale)",
+    b.lines.length === 0 && gLegend.startsWith("No brackets between rows: grouped bars show each row as a "
+      + "cluster of bars, so a bracket between two rows has no single bar to join; the stacked bar graphs "
+      + "draw them.") && !gLegend.includes("* P ≤ 0.05"), gLegend);
+  const gPop = await graphSettings();
+  expect("grouped bars: the graph options say why, and offer no Pairwise comparisons dialog",
+    await gPop.getByText("No brackets for the pairs of rows: grouped bars show each row").count() === 1
+      && await gPop.getByRole("button", { name: "Pairwise comparisons…" }).count() === 0);
+  await closeSettings();
+}
+
+// --- the equivalence margin on the estimation plot (P-12). The P-12 e2e
+// data (A = 10.8 ... 9.9, B = A - 0.2); engine/tests/reference/
+// equivalence_tost.py (statsmodels ttost_ind), margin ±1: A − B = 0.2,
+// 90% CI -0.2403 to 0.6403. The plot's control is A, so it shows B − A:
+// the margin ±1 and the CI mirrored to -0.6403 to 0.2403. Before: the
+// estimation plot drew no margin; a family without a margin still draws
+// none (the e2e-check estimation pins).
+{
+  const EQ = join(tmp, "equivalence.json");
+  const A = ["10.8", "10.75", "10.55", "10.5", "9.6", "9.65", "9.85", "9.9"];
+  const eqTable = { type: "column", x: A.map(() => ""), xTitle: "", xFormat: "numbers", xUnit: "", yTitle: "Value",
+    rowTitles: A.map(() => ""), subcolumnFormat: "replicates", replicateLayout: "side_by_side",
+    datasets: [{ name: "A", rows: A.map((v) => [v]) },
+      { name: "B", rows: A.map((v) => [String(+(Number(v) - 0.2).toFixed(2))]) }] };
+  const fam = (p, name, ttestKind) => [
+    { id: `${p}d`, kind: "data", name, table: eqTable },
+    { id: `${p}t`, kind: "results", parentId: `${p}d`, name: `t test of ${name}`, analysis: "column",
+      options: { analysis: "ttest", ttestKind, equivalence: "equivalence", equivalenceMargin: "1" } },
+    { id: `${p}e`, kind: "results", parentId: `${p}d`, name: `Estimation of ${name}`, analysis: "estimation",
+      options: {} },
+    { id: `${p}g`, kind: "graph", parentId: `${p}d`, resultsId: `${p}e`, graphType: "estimation",
+      name: `Estimation plot of ${name}`, settings: { titles: { x: "", y: "" }, scheme: "default" } },
+  ];
+  writeFileSync(EQ, JSON.stringify({
+    version: 2, title: "Equivalence margin",
+    prefs: { defaultTableType: "column", errorBars: "sd", ciMethod: "asymptotic", scheme: "default", digits: 4 },
+    sheets: [...fam("u", "Equivalence", "unpaired"), ...fam("p", "Paired equivalence", "paired")],
+  }));
+  const margins = () => page.evaluate(() => {
+    const gd = document.querySelector(".plot-card .plot");
+    const lines = (gd?.layout?.shapes ?? []).filter((s) => String(s.name ?? "").startsWith("equivalence-margin"));
+    const ci = (gd?.data ?? []).find((t) => t.name === "equivalence-ci");
+    const r = gd?._fullLayout?.yaxis2?.range ?? [];
+    return { lines: lines.map((s) => [s.name, s.yref, s.y0]),
+      ci: ci ? [ci.y[0] - ci.error_y.arrayminus[0], ci.y[0], ci.y[0] + ci.error_y.array[0]] : null,
+      labels: (gd?.layout?.annotations ?? []).filter((a) => a.name === "equivalence-margin-label").map((a) => a.text),
+      range: r };
+  });
+  await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]', EQ);
+  await page.getByRole("treeitem", { name: "Estimation plot of Equivalence", exact: true }).first()
+    .locator(":scope > .nav-row").click();
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.layout?.shapes ?? [])
+    .some((s) => s.name === "equivalence-margin:upper"), null, { timeout: 180000 }).catch(() => {});
+  const m = await margins();
+  expect("estimation plot: dashed margin lines at -1 and +1 on the difference axis",
+    JSON.stringify(m.lines) === '[["equivalence-margin:lower","y2",-1],["equivalence-margin:upper","y2",1]]'
+      && JSON.stringify(m.labels) === '["margin −1","margin +1"]', JSON.stringify(m));
+  const near = (a, b) => Math.abs(a - b) < 5e-5;
+  expect("the t test's 90% CI, drawn as B − A: -0.6403 to 0.2403 around -0.2 (statsmodels: -0.2403 to 0.6403 for A − B)",
+    m.ci && near(m.ci[0], -0.6403275) && near(m.ci[1], -0.2) && near(m.ci[2], 0.2403275), JSON.stringify(m.ci));
+  expect("the difference axis holds both margin lines", m.range[0] < -1 && m.range[1] > 1, JSON.stringify(m.range));
+  const legend = await page.locator(".plot-card .figure-legend-text").textContent().catch(() => "");
+  expect("the legend says what the lines and the capped bar are",
+    legend.includes("Dashed lines mark the equivalence margin of the t test (A − B within ±1, drawn as B minus A); "
+      + "the capped bar left of the difference is that test's 90% CI (-0.6403 to 0.2403), which lies inside "
+      + "the margin exactly when the two one-sided tests show equivalence (Schuirmann 1987)."), legend);
+  await shot("estimation-margins");
+
+  // a paired t test against an unpaired estimation plot: no lines, the reason
+  await page.getByRole("treeitem", { name: "Estimation plot of Paired equivalence", exact: true }).first()
+    .locator(":scope > .nav-row").click();
+  await page.waitForFunction(() => document.querySelector(".plot-card .figure-legend-text")?.textContent
+    ?.includes("No equivalence margin"), null, { timeout: 180000 }).catch(() => {});
+  const p = await margins();
+  const pLegend = await page.locator(".plot-card .figure-legend-text").textContent().catch(() => "");
+  expect("paired t test, unpaired plot: no margin drawn, and the legend says why",
+    p.lines.length === 0 && !p.ci
+      && pLegend.includes("No equivalence margin on this plot: the t test is paired and the plot is not."), pLegend);
 }
 
 console.log(errors.length ? errors.join("\n") : "no page errors");

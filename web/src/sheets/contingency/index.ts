@@ -6,6 +6,7 @@ import DataGrid from "../common/DataGrid";
 import { defineAnalysis, defineGraph, type TableTypeDef } from "../types";
 import { CT_GRAPH_LABELS, ctAutoTitles, GRAPH_CT_GROUPED, GRAPH_CT_PERCENT, GRAPH_CT_STACKED, outcomeNames } from "./bars";
 import { CtOptions, CtPlot } from "./plot";
+import { ctComparisons } from "./brackets";
 import {
   CmhMethods, ContingencyMethods, KappaMethods, McNemarMethods, ProportionMethods,
 } from "./methods";
@@ -141,6 +142,8 @@ export const contingencyGraphs = [GRAPH_CT_PERCENT, GRAPH_CT_STACKED, GRAPH_CT_G
   OptionsPanel: CtOptions,
   formatDatasets: (table) => outcomeNames(table),
   formatFeatures: { bars: true, categoryX: true },
+  // brackets for the pairs of rows (P-14): the stacked graphs only
+  comparisons: (result, table) => ctComparisons(result, table, id),
 }));
 
 export const contingencyTable: TableTypeDef = {

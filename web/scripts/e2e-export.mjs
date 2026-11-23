@@ -8,7 +8,7 @@
 import { chromium } from "playwright";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { mkdtempSync, readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { createRequire } from "node:module";
 import { inflateSync } from "node:zlib";
@@ -672,6 +672,143 @@ expect("layout duplicated",
   await page.locator(".nav-item[data-key^='layout:']").count() === 2);
 
 await page.screenshot({ path: join(here, "layout.png") });
+
+// --- figure items the export carries: a project opened from a file, each
+// graph exported as SVG from its own export panel
+const openProject = async (name, sheets) => {
+  const file = join(tmp, name);
+  writeFileSync(file, JSON.stringify({ version: 2, title: name, prefs: { defaultTableType: "xy",
+    errorBars: "sd", ciMethod: "asymptotic", scheme: "default", digits: 4 }, sheets }));
+  await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]', file);
+};
+const openSheet = async (name) => {
+  await page.getByRole("treeitem", { name, exact: true }).first().locator(":scope > .nav-row").click();
+  await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 120000 });
+};
+const graphExport = async (format) => {
+  const p = page.locator(".plot-card .export-panel");
+  await p.getByLabel("Export format").selectOption(format);
+  return save(() => p.getByRole("button", { name: "Download" }).click());
+};
+const svgTexts = (buf) => page.evaluate((s) => [...new DOMParser().parseFromString(s, "image/svg+xml")
+  .querySelectorAll("text")].map((t) => t.textContent.trim()).filter(Boolean), buf.toString("utf8"));
+
+// brackets for the pairs of rows of a contingency table (P-14): the
+// Holm-adjusted P of engine/tests/reference/pairwise_proportions.py
+// (0.4075, 3.719e-4, 0.008853) as ns, ***, ** above the stacks
+{
+  const ctTable = { type: "contingency", x: ["", "", ""], xTitle: "", xFormat: "numbers", xUnit: "", yTitle: "",
+    rowTitles: ["WT", "Het", "KO"], subcolumnFormat: "replicates", replicateLayout: "side_by_side",
+    datasets: [{ name: "Positive", rows: [["18"], ["15"], ["5"]] }, { name: "Negative", rows: [["2"], ["5"], ["15"]] }] };
+  await openProject("contingency-brackets.json", [
+    { id: "c1", kind: "data", name: "Genotypes", table: ctTable },
+    { id: "c2", kind: "results", parentId: "c1", name: "Chi-square of Genotypes", analysis: "contingency",
+      options: { pairwise: "holm" } },
+    { id: "c3", kind: "graph", parentId: "c1", resultsId: "c2", graphType: "contingency_stacked_percent",
+      name: "Percent of each row", settings: { titles: { x: "", y: "" }, scheme: "default",
+        format: { comparisons: { show: true } } } },
+  ]);
+  await openSheet("Percent of each row");
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.layout?.annotations ?? [])
+    .filter((a) => a.name === "bracket-label").length === 3, null, { timeout: 30000 }).catch(() => {});
+  const texts = await svgTexts((await graphExport("svg")).buf);
+  expect("contingency SVG export carries the bracket labels ns, **, *** above the rows WT, Het, KO",
+    ["ns", "**", "***", "WT", "Het", "KO"].every((t) => texts.includes(t)), JSON.stringify(texts));
+}
+
+// the equivalence margin on the estimation plot (P-12): the t test of the
+// family (margin ±1, engine/tests/reference/equivalence_tost.py) gives the
+// dashed lines and their labels, carried by the export
+{
+  const A = ["10.8", "10.75", "10.55", "10.5", "9.6", "9.65", "9.85", "9.9"];
+  const eqTable = { type: "column", x: A.map(() => ""), xTitle: "", xFormat: "numbers", xUnit: "", yTitle: "Value",
+    rowTitles: A.map(() => ""), subcolumnFormat: "replicates", replicateLayout: "side_by_side",
+    datasets: [{ name: "A", rows: A.map((v) => [v]) },
+      { name: "B", rows: A.map((v) => [String(+(Number(v) - 0.2).toFixed(2))]) }] };
+  await openProject("estimation-margins.json", [
+    { id: "e1", kind: "data", name: "Equivalence", table: eqTable },
+    { id: "e2", kind: "results", parentId: "e1", name: "t test of Equivalence", analysis: "column",
+      options: { analysis: "ttest", ttestKind: "unpaired", equivalence: "equivalence", equivalenceMargin: "1" } },
+    { id: "e3", kind: "results", parentId: "e1", name: "Estimation of Equivalence", analysis: "estimation", options: {} },
+    { id: "e4", kind: "graph", parentId: "e1", resultsId: "e3", graphType: "estimation",
+      name: "Estimation plot of Equivalence", settings: { titles: { x: "", y: "" }, scheme: "default" } },
+  ]);
+  await page.getByRole("treeitem", { name: "Estimation plot of Equivalence", exact: true }).first()
+    .locator(":scope > .nav-row").click();
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.layout?.shapes ?? [])
+    .some((s) => s.name === "equivalence-margin:upper"), null, { timeout: 180000 }).catch(() => {});
+  const svg = (await graphExport("svg")).buf.toString("utf8");
+  const texts = await svgTexts(Buffer.from(svg));
+  const dashed = (svg.match(/stroke-dasharray/g) ?? []).length;
+  // two dotted reference lines of the Gardner-Altman plot and the two margin lines
+  expect("estimation SVG export carries the margin labels and the dashed margin lines",
+    texts.includes("margin −1") && texts.includes("margin +1") && dashed >= 4, `${JSON.stringify(texts)}; ${dashed} dashed`);
+}
+
+// IC50 drop lines and the in-figure legend (P-23, P-24) in the SVG and PDF
+// exports, on a plain Y axis and on a broken one (the lines on the upper
+// segment). engine/tests/reference/fit_graph.py: IC50 1.040e-7 M.
+{
+  const FIT_X = ["1e-9", "3.162e-9", "1e-8", "3.162e-8", "1e-7", "3.162e-7", "1e-6", "3.162e-6", "1e-5"];
+  const FIT_Y = [["98.2", "101.5", "99.1"], ["97.0", "95.8", "99.9"], ["93.4", "90.1", "92.7"],
+    ["78.9", "82.3", "80.0"], ["51.2", "48.7", "50.9"], ["22.1", "25.6", "24.0"],
+    ["8.9", "10.2", "7.5"], ["3.1", "4.4", "2.2"], ["1.0", "0.5", "2.1"]];
+  const fitTable = { type: "xy", x: FIT_X, xTitle: "[Conc.]", xFormat: "numbers", xUnit: "M", yTitle: "Response",
+    rowTitles: FIT_X.map(() => ""), subcolumnFormat: "replicates", replicateLayout: "side_by_side",
+    datasets: [{ name: "Drug A", subTitles: ["", "", ""], rows: FIT_Y }] };
+  const fam = (id, name, format) => [
+    { id: `${id}d`, kind: "data", name, table: fitTable },
+    { id: `${id}r`, kind: "results", parentId: `${id}d`, name: `Nonlin fit of ${name}`, analysis: "nonlin",
+      options: { model: "log_inhibitor_vs_response_4pl", errorBars: "sd", autoFit: "requested" } },
+    { id: `${id}g`, kind: "graph", parentId: `${id}d`, resultsId: `${id}r`, graphType: "xy", name: `Graph of ${name}`,
+      settings: { titles: { x: "", y: "" }, scheme: "default", xy: { dropLines: true, dropLabel: true, caption: "figure" },
+        ...(format ? { format } : {}) } },
+  ];
+  await openProject("fit-exports.json", [...fam("p", "Plain axis"), ...fam("b", "Broken axis",
+    { y: { gap: { from: 15, to: 35 } } })]);
+  // the PDF's content streams draw dashed strokes with "[on off] phase d"
+  const pdfDashes = (buf) => {
+    const src = buf.toString("latin1");
+    let n = 0;
+    for (const m of src.matchAll(/(\d+) 0 obj\s*([\s\S]*?)endobj/g)) {
+      const s = /stream\r?\n([\s\S]*?)\r?\nendstream/.exec(m[2]);
+      if (!s) continue;
+      let text;
+      try {
+        const raw = Buffer.from(s[1], "latin1");
+        text = /\/FlateDecode/.test(m[2].slice(0, s.index)) ? inflateSync(raw).toString("latin1") : s[1];
+      } catch { continue; }
+      n += (text.match(/\[\s*[\d.]+(?:\s+[\d.]+)+\s*\]\s+[\d.]+\s+d\b/g) ?? []).length;
+    }
+    return n;
+  };
+  for (const [name, split] of [["Graph of Plain axis", false], ["Graph of Broken axis", true]]) {
+    await page.getByRole("treeitem", { name, exact: true }).first().locator(":scope > .nav-row").click();
+    await page.waitForFunction((want) => {
+      const l = document.querySelector(".plot-card .plot")?.layout ?? {};
+      return (l.shapes ?? []).some((s) => s.name === (want ? "drop:0:v2" : "drop:0:v"))
+        && (l.annotations ?? []).some((a) => a.name === "caption");
+    }, split, { timeout: 120000 }).catch(() => {});
+    const svg = (await graphExport("svg")).buf.toString("utf8");
+    const texts = await svgTexts(Buffer.from(svg));
+    const dashed = (svg.match(/stroke-dasharray/g) ?? []).length;
+    // the caption wraps over lines: compare without white space
+    const squash = (t) => t.replace(/\s+/g, "");
+    const CAPTION = ["Points show the mean of the replicates", "Dashed lines mark the IC50 (the concentration "
+      + "giving a response half-way between the fitted Top and Bottom)."].map(squash);
+    const svgAll = squash(texts.join(""));
+    expect(`${name}: the SVG export carries the drop lines (${split ? 3 : 2} dashed), the IC50 label and the legend in the figure`,
+      dashed >= (split ? 3 : 2) && texts.includes("IC50 = 1.040e-7 M") && CAPTION.every((c) => svgAll.includes(c)),
+      `${dashed} dashed; ${JSON.stringify(texts.slice(-6))}`);
+    const pdf = (await graphExport("pdf")).buf;
+    const runs = readPdf(pdf).runs.map((r) => r.text);
+    const pdfAll = squash(runs.join(""));
+    expect(`${name}: the PDF export draws the dashed drop lines and holds the IC50 label and the legend text`,
+      pdfDashes(pdf) >= (split ? 3 : 2) && runs.includes("IC50 = 1.040e-7 M") && CAPTION.every((c) => pdfAll.includes(c)),
+      `${pdfDashes(pdf)} dashed strokes`);
+  }
+}
+
 console.log("files in", tmp);
 console.log("errors:", errors.length ? errors : "none");
 await browser.close();

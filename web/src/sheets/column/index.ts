@@ -19,6 +19,7 @@ import { rowMeansAnalysis } from "../grouped";
 import { ColumnAnalysisControls, ColumnAnalysisResults, ColumnGraph } from "./panels";
 import { runColumn } from "./run";
 import { ColumnGraphOptions } from "./graphOptions";
+import { columnKindLabel } from "./kindLabel";
 import {
   ReplicateMeansControls, ReplicateMeansMethods, ReplicateMeansResults,
 } from "./superplotPanels";
@@ -100,6 +101,8 @@ export const columnGraphs = (Object.keys(COLUMN_GRAPH_LABELS) as ColumnGraphType
   .map((id) => defineGraph({
     id,
     label: COLUMN_GRAPH_LABELS[id],
+    // what the centre is with this graph's settings and test (kindLabel.ts)
+    optionLabel: (graph, table, result, options) => columnKindLabel(id, graph, table, result, options),
     group: "column",
     analysis: null,
     autoTitles: (table) => ({ x: "", y: table.yTitle || "Value" }),

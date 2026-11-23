@@ -32,8 +32,10 @@ export default function ComparisonsDialog({
 }) {
   const [draft, setDraft] = useState(format);
   const [applied, setApplied] = useState(format);
+  // Compact letters need the compared groups to be the graph's data sets.
+  const lettersOk = set.letters !== false;
   const [tab, setTab] = useState<"brackets" | "letters">(
-    format.letters?.show && !format.comparisons?.show ? "letters" : "brackets");
+    lettersOk && format.letters?.show && !format.comparisons?.show ? "letters" : "brackets");
   const chrome = isDarkMode() ? CHROME_DARK : CHROME_LIGHT;
   const c: ComparisonsFormat = draft.comparisons ?? { show: false };
   const l: LettersFormat = draft.letters ?? { show: false };
@@ -53,7 +55,7 @@ export default function ComparisonsDialog({
   // when this build's engine has no compact_letters handler.
   const [engine, setEngine] = useState<EngineState>("idle");
   const key = lettersInputKey(groups, plain, alpha);
-  const wantLetters = l.show;
+  const wantLetters = l.show && lettersOk;
   const cached = draft.letters?.engine?.input;
   useEffect(() => {
     if (!wantLetters) return;
@@ -88,10 +90,12 @@ export default function ComparisonsDialog({
       <p className="modal-text">From: {set.label}{set.unmatched
         ? ` (${set.unmatched} comparison${set.unmatched === 1 ? "" : "s"} not between plotted groups left out)`
         : ""}.</p>
-      <Tabs label="Comparison display" value={tab} onChange={setTab}
-        tabs={[["brackets", "Brackets"], ["letters", "Compact letters"]]} />
+      {lettersOk && (
+        <Tabs label="Comparison display" value={tab} onChange={setTab}
+          tabs={[["brackets", "Brackets"], ["letters", "Compact letters"]]} />
+      )}
       {tab === "brackets" ? (
-        <div role="tabpanel" className="fmt-panel">
+        <div role={lettersOk ? "tabpanel" : undefined} className="fmt-panel">
           <CheckField label="Show comparison brackets on the graph" checked={c.show}
             onChange={(v) => setC({ show: v })} />
           <fieldset className="fmt-section wide">
