@@ -179,7 +179,7 @@ export default function PlanExperiment({ onClose }: { onClose: () => void }) {
             </div>
           )}
         </div>
-        {/* Spoken on each answer: the test and the suggested n only (GF-02). */}
+        {/* Spoken on each answer: the test and the suggested n only. */}
         <p className="sr-only" role="status">
           Planned analysis: {rec.test}.{suggested !== null ? ` Suggested n: ${suggested} per group.` : ""}
         </p>

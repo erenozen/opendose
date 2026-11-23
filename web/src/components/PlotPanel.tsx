@@ -70,7 +70,7 @@ export default function PlotPanel({
   }, []);
 
   // A failed analysis leaves nothing to draw: clear the previous curve
-  // rather than show it beside "Analysis failed" (BEF-25).
+  // rather than show it beside "Analysis failed".
   useEffect(() => {
     if (el.current && result?.error) purge(el.current);
   }, [result, purge]);

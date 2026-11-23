@@ -20,12 +20,10 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type Ref, type R
 let modality: "keyboard" | "pointer" = "pointer";
 let lastKey = "";
 const MODIFIERS = new Set(["Shift", "Control", "Alt", "Meta", "CapsLock"]);
-if (typeof window !== "undefined") {
-  window.addEventListener("keydown", (e) => {
-    if (!MODIFIERS.has(e.key)) { modality = "keyboard"; lastKey = e.key; }
-  }, true);
-  window.addEventListener("pointerdown", () => { modality = "pointer"; }, true);
-}
+window.addEventListener("keydown", (e) => {
+  if (!MODIFIERS.has(e.key)) { modality = "keyboard"; lastKey = e.key; }
+}, true);
+window.addEventListener("pointerdown", () => { modality = "pointer"; }, true);
 
 /** True when the most recent user input was a key press, not a pointer. */
 export const lastInputWasKeyboard = () => modality === "keyboard";
@@ -35,11 +33,10 @@ export const lastInputWasKeyboard = () => modality === "keyboard";
 export const lastKeyWasTab = () => modality === "keyboard" && lastKey === "Tab";
 
 /** Touch-first device: no autofocus into text fields, no tooltips. */
-export const coarsePointer = () =>
-  typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches;
+export const coarsePointer = () => window.matchMedia("(pointer: coarse)").matches;
 
 export const prefersReducedMotion = () =>
-  typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 // ------------------------------------------------------------ layer stack
 
@@ -65,7 +62,7 @@ function onEscape(e: KeyboardEvent) {
 
 /** Registers an open layer; returns its removal. */
 export function pushLayer(layer: Layer): () => void {
-  if (!listening && typeof window !== "undefined") {
+  if (!listening) {
     window.addEventListener("keydown", onEscape, true);
     listening = true;
   }
@@ -86,7 +83,7 @@ const above = (layer: Layer, n: Node) =>
    trigger when the control that opened it has gone. */
 const triggers = new WeakMap<Element, () => HTMLElement | null>();
 
-export function registerTrigger(layer: Element, trigger: () => HTMLElement | null) {
+function registerTrigger(layer: Element, trigger: () => HTMLElement | null) {
   triggers.set(layer, trigger);
   return () => { triggers.delete(layer); };
 }
@@ -128,7 +125,7 @@ const TABBABLE = [
 ].join(",");
 
 /** Elements Tab can reach inside `root`, in order (one radio per group). */
-export function tabbables(root: Element): HTMLElement[] {
+function tabbables(root: Element): HTMLElement[] {
   const seen = new Set<string>();
   return [...root.querySelectorAll<HTMLElement>(TABBABLE)].filter((el) => {
     if (el.tabIndex < 0 || !focusable(el)) return false;
@@ -207,24 +204,22 @@ export type DismissReason = "escape" | "outside";
  * press inside the layer, its trigger or a layer opened above it (a
  * dialog, a nested menu) does not count as outside.
  */
-export function useDismiss({ open, layer, trigger, onDismiss, kind = "custom" }: {
+export function useDismiss({ open, layer, trigger, onDismiss }: {
   open: boolean;
   layer: RefObject<HTMLElement | null>;
   trigger?: RefObject<HTMLElement | null>;
   onDismiss: (reason: DismissReason) => void;
-  kind?: Layer["kind"];
 }) {
   const latest = useRef(onDismiss);
   useLayoutEffect(() => { latest.current = onDismiss; });
   useEffect(() => {
     if (!open) return;
     const entry: Layer = {
-      kind,
+      kind: "custom",
       contains: (n) => !!layer.current?.contains(n),
       escape: () => latest.current("escape"),
     };
     const remove = pushLayer(entry);
-    if (kind === "native") return remove;
     const onDown = (e: PointerEvent) => {
       const t = e.target as Node;
       if (layer.current?.contains(t) || trigger?.current?.contains(t) || above(entry, t)) return;
@@ -235,7 +230,7 @@ export function useDismiss({ open, layer, trigger, onDismiss, kind = "custom" }:
       remove();
       document.removeEventListener("pointerdown", onDown, true);
     };
-  }, [open, kind, layer, trigger]);
+  }, [open, layer, trigger]);
 }
 
 // ------------------------------------------------------------ presence
@@ -320,7 +315,7 @@ export function lockScroll(): () => void {
 // ------------------------------------------------------------ refs
 
 /** One ref callback that feeds several refs (a primitive's own and the caller's). */
-export function mergeRefs<T>(...refs: (Ref<T> | undefined)[]): (node: T | null) => void {
+function mergeRefs<T>(...refs: (Ref<T> | undefined)[]): (node: T | null) => void {
   return (node) => {
     for (const r of refs) {
       if (typeof r === "function") r(node);

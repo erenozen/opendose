@@ -1,6 +1,6 @@
 /* "What this means" (MeaningLine.tsx), in the results headline: the
    sentence at the reading size and a 65ch measure, the misreading and
-   the test quieter below it. Plain text, no tint (RS-05). Tokens only. */
+   the test quieter below it. Plain text, no tint. Tokens only. */
 .meaning-line {
   display: flex; flex-direction: column; gap: var(--space-6);
   margin: 0; font-size: var(--text-body-s); line-height: var(--leading-body); color: var(--ink-2);

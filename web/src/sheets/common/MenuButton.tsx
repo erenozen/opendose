@@ -14,24 +14,20 @@ export interface MenuEntry {
 /**
  * A toolbar button that opens a small menu of actions, on the Menu
  * primitive (ui/Menu): arrows, Home/End and type-ahead move, Escape, Tab
- * or a click outside close it, and focus returns to the button.
- * `variant` gives the trigger the Button look (buttons.md): "ghost"
- * inside a toolbar; without it the trigger keeps its caller's class.
+ * or a click outside close it, and focus returns to the button. The
+ * trigger is a ghost Button, as commands inside a toolbar are (buttons.md).
  */
-export default function MenuButton({ label, items, align = "left", title, variant }: {
+export default function MenuButton({ label, items }: {
   label: ReactNode;
   items: (MenuEntry | "sep")[];
-  align?: "left" | "right";
-  title?: string;
-  variant?: "ghost" | "secondary";
 }) {
   return (
     <span className="menu-wrap">
       <Menu>
-        <Menu.Trigger title={title} className={variant ? `btn btn--${variant}` : undefined}>
+        <Menu.Trigger className="btn btn--ghost">
           {label}<span className="caret" aria-hidden="true">▾</span>
         </Menu.Trigger>
-        <Menu.Content className="grid-menu" align={align === "right" ? "end" : "start"}>
+        <Menu.Content>
           {items.map((it, i) => it === "sep" ? (
             <Menu.Separator key={`sep${i}`} />
           ) : (

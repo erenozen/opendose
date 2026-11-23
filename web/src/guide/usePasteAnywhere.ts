@@ -35,12 +35,12 @@ export function usePasteActions() {
   /** A new paste, or the same text read again as another type. */
   const paste = useCallback((text: string, as?: TableType, prev?: PasteNote) => {
     // A shared project is read-only until copied: nothing to paste into.
-    if (readOnly) return false;
+    if (readOnly) return;
     // Reading again: back to the project before the first reading.
     if (prev && store.project === prev.after) undo();
     const before = prev ? prev.before : store.project;
     const made = withPaste(before, text, as);
-    if (!made) return false;
+    if (!made) return;
     const after = apply(() => made.project);
     select(made.dataId);
     setPasteNote({
@@ -55,7 +55,6 @@ export function usePasteActions() {
       const header = document.querySelector("header")?.getBoundingClientRect().bottom ?? 0;
       if (answer && answer.getBoundingClientRect().top < header) answer.scrollIntoView({ block: "start" });
     }));
-    return true;
   }, [store, apply, undo, select, readOnly]);
 
   /** Back to the project before the paste (the example, when it was). */

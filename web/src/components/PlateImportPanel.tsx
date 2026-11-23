@@ -13,7 +13,7 @@ interface Props {
 }
 
 // "H3-H5" | "H3:H5" | "H3,H4,H5" -> ["H3","H4","H5"] (ranges within a row)
-export function expandWells(spec: string): string[] {
+function expandWells(spec: string): string[] {
   const out: string[] = [];
   for (const part of spec.split(/[,;\s]+/).filter(Boolean)) {
     const m = part.match(/^([A-Pa-p])(\d{1,2})[-:]([A-Pa-p])?(\d{1,2})$/);
@@ -32,7 +32,7 @@ export function expandWells(spec: string): string[] {
 }
 
 // "B-G" -> ["B","C","D","E","F","G"]
-export function expandRows(spec: string): string[] {
+function expandRows(spec: string): string[] {
   const m = spec.trim().match(/^([A-Pa-p])\s*[-:]\s*([A-Pa-p])$/);
   if (!m) return spec.split(/[,;\s]+/).filter(Boolean).map((s) => s.toUpperCase());
   const a = m[1].toUpperCase().charCodeAt(0);

@@ -23,7 +23,7 @@ import {
 import { announce } from "./Announcer.store";
 import { CloseIcon, ToneIcon } from "./feedbackIcons";
 import { IconButton } from "./IconButton";
-import { usePresence } from "./useDismiss";
+import { useMergedRefs, usePresence } from "./useDismiss";
 import "./Banner.css";
 
 export type BannerTone = "neutral" | "info" | "warn" | "error" | "success";
@@ -52,6 +52,7 @@ export function Banner({
   // The shared presence hook (useDismiss): the exit lasts as long as the
   // transitions it starts, and a keyboard dismiss removes it at once.
   const root = useRef<HTMLElement | null>(null);
+  const setRef = useMergedRefs(root, ref);
   const { mounted, state } = usePresence(open, root);
   const closing = state === "closed";
   // While leaving, show what was there (callers often clear the content
@@ -70,11 +71,7 @@ export function Banner({
   const labelled = props["aria-label"] || props["aria-labelledby"];
   return (
     <section
-      ref={(el) => {
-        root.current = el;
-        if (typeof ref === "function") ref(el);
-        else if (ref) ref.current = el;
-      }}
+      ref={setRef}
       className={`banner${className ? ` ${className}` : ""}`}
       data-tone={tone} data-closing={closing ? "" : undefined}
       aria-labelledby={labelled ? undefined : titleId} {...props}
@@ -96,7 +93,7 @@ export function Banner({
   );
 }
 
-export function BannerTitle({ children, className, ...props }: HTMLAttributes<HTMLParagraphElement>) {
+function BannerTitle({ children, className, ...props }: HTMLAttributes<HTMLParagraphElement>) {
   const ctx = useContext(Ctx);
   return (
     <p id={ctx?.titleId} className={`banner-title${className ? ` ${className}` : ""}`} {...props}>
@@ -105,13 +102,13 @@ export function BannerTitle({ children, className, ...props }: HTMLAttributes<HT
   );
 }
 
-export function BannerDetail({ children, className, ...props }: HTMLAttributes<HTMLDivElement>) {
+function BannerDetail({ children, className, ...props }: HTMLAttributes<HTMLDivElement>) {
   return <div className={`banner-detail${className ? ` ${className}` : ""}`} {...props}>{children}</div>;
 }
 
 /** Keycaps, at most one filled primary. Wraps under the text below
  *  620px of banner width. */
-export function BannerActions({ children, className, ...props }: HTMLAttributes<HTMLDivElement>) {
+function BannerActions({ children, className, ...props }: HTMLAttributes<HTMLDivElement>) {
   return <div className={`banner-actions${className ? ` ${className}` : ""}`} {...props}>{children}</div>;
 }
 

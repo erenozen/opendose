@@ -9,8 +9,8 @@
 
    Surface direction "Instrument" (docs/design/DECISIONS.md section 2):
    OKLCH neutrals on hue 255 with chroma <= 0.012, accent = plot series 1,
-   neutral ink focus ring. Contrast (WCAG 2 / APCA Lc) is measured in the
-   phase 2 report; ink >= 14:1 and muted >= 5.4:1 on every surface. */
+   neutral ink focus ring. Contrast (WCAG 2): ink >= 14:1 and muted
+   >= 5.4:1 on every surface (docs/design/tokens.md). */
 
 :root { color-scheme: light dark; }
 :root[data-theme="light"] { color-scheme: light; }

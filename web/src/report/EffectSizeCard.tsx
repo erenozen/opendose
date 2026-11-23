@@ -2,7 +2,7 @@
 // engine reports, the project's default measure (Preferences ->
 // Reporting) with its value, CI and interpretation, and the other
 // measures one click away. Interpretation labels carry their scale and
-// source: the notes under the table say both in visible text (RS-02), so
+// source: the notes under the table say both in visible text, so
 // they reach touch and keyboard users; the tooltip only repeats them.
 import { formatSig } from "../types";
 import { effectGroups, type EffectGroup, type EffectRow } from "./effects";
@@ -76,8 +76,8 @@ export default function EffectSizeCard({ result }: { result: unknown }) {
   const methods = [...new Set(rows.filter((r) => r.ci && r.ciMethod).map((r) => `${r.measure}: ${r.ciMethod}`))];
   // "Small on the Cohen's d scale (thresholds 0.2, 0.5, 0.8)": the scale
   // each label is read on, once per scale
-  const scales = [...new Set(rows.map((r) => r.interpretation).filter((it) => !!it)
-    .map((it) => `${it!.scale} scale${it!.thresholds ? ` (thresholds ${it!.thresholds.join(", ")})` : ""}`))];
+  const scales = [...new Set(rows.flatMap((r) => (r.interpretation ? [r.interpretation] : []))
+    .map((it) => `${it.scale} scale${it.thresholds ? ` (thresholds ${it.thresholds.join(", ")})` : ""}`))];
   return (
     <div className="result-card effect-card">
       <h3>Effect size</h3>

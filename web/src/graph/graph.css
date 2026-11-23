@@ -13,7 +13,7 @@
 }
 
 /* Tabs: the segmented control of the header switch, as real tabs. The
-   selected tab keeps the weight of the others (GL-10): the thumb and the
+   selected tab keeps the weight of the others: the thumb and the
    ink mark it, and the row never reflows. */
 .fmt-tabs {
   display: inline-flex; align-self: flex-start; flex-wrap: wrap; gap: var(--space-2);

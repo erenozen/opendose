@@ -409,7 +409,7 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
     opts: { excluded?: boolean; text?: boolean; label: string; isX?: boolean; invalid?: boolean;
       reason?: string; calc?: string }) => {
     // What the cell's state means, for the pointer (title) and for screen
-    // readers and touch (the accessible description: GR-09).
+    // readers and touch (the accessible description).
     const note = opts.calc !== undefined ? `Calculated: = ${opts.calc} (edit the formula in the column title)`
       : opts.excluded ? `Excluded from analyses and graphs${opts.reason ? `: ${opts.reason}` : ""} (${MOD}E to include)`
         : opts.invalid ? (t.xFormat === "dates"
@@ -422,7 +422,7 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
         data-r={r} data-c={c}
         inputMode={opts.text ? "text" : "decimal"}
         enterKeyHint="next"
-        // Labels and codes are data: no autocorrect or capitals on phones (C-19)
+        // Labels and codes are data: no autocorrect or capitals on phones
         autoCorrect="off" autoCapitalize="off" spellCheck={false} autoComplete="off"
         className={[opts.text && "text-cell", opts.calc !== undefined && "calc-cell"]
           .filter(Boolean).join(" ") || undefined}
@@ -495,7 +495,7 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
   // An empty table says how to fill it; once it holds a value the grid
   // speaks for itself (DECISIONS 1).
   const emptyHint = hasAnyValue(t) ? null : EMPTY_HINTS[t.type];
-  // The selected cell's exclusion, for the inspector (GR-09).
+  // The selected cell's exclusion, for the inspector.
   const selRef = sel && !multi ? refAt(sel.r0, sel.c0) : null;
   const cellNote = selRef && isExcluded(t, selRef)
     ? `This value is excluded${reasonAt(t, selRef) ? `: ${reasonAt(t, selRef)}` : ""}.`
@@ -586,7 +586,7 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
           title="Download as CSV or tab-separated text, or copy">Export…</Button>
         {!readOnly && (
           <>
-            <MenuButton label="Rows" variant="ghost" items={[
+            <MenuButton label="Rows" items={[
               { label: "Insert row above", onSelect: () => edit((x) => insertRows(x, curRect.r0, 1)) },
               { label: "Insert row below", hint: `${MOD}⇧↵`,
                 onSelect: () => edit((x) => insertRows(x, curRect.r1 + 1, 1)) },
@@ -596,7 +596,7 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
               onSelect: () => { edit((x) => deleteRows(x, curRect.r0, rowsSelected)); setSel(null); } },
             ]} />
             <MenuButton label={shape.datasetNoun === "Dataset" ? "Columns" : `${shape.datasetNoun}s`}
-              variant="ghost" items={[
+              items={[
               { label: `Insert ${noun} to the left`,
                 onSelect: () => edit((x) => insertDataset(x, Math.max(0, curDs))) },
               { label: `Insert ${noun} to the right`,
@@ -618,7 +618,7 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
                 danger: true, disabled: curDs < 0 || t.datasets.length <= 1,
                 onSelect: () => edit((x) => deleteDataset(x, curDs)) },
             ]} />
-            <MenuButton label="More" variant="ghost" items={[
+            <MenuButton label="More" items={[
               { label: "Sort…", onSelect: () => setDialog({ kind: "sort" }) },
               { label: "Insert series…", description: "Fill a column with an arithmetic or geometric series",
                 onSelect: () => setDialog({ kind: "series" }) },

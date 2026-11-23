@@ -1,5 +1,5 @@
 // Loading Plotly for one plot box, with what the box should say meanwhile
-// (graph/PlotStatus.tsx; BEF-24, BEF-25).
+// (graph/PlotStatus.tsx).
 import { useCallback, useState } from "react";
 import type { Plotly } from "../lib/plotly";
 import { loadPlotly, plotlyNow } from "../lib/plotly";

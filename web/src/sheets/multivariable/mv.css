@@ -50,7 +50,6 @@ button.mv-remove {
 .mv-grid tbody th { font-weight: var(--weight-medium); }
 .mv-equation { font-variant-numeric: tabular-nums; }
 .mv-actions { display: flex; flex-wrap: wrap; gap: var(--space-8); margin: 10px 0 var(--space-4); }
-.mv-actions .btn-primary:disabled { opacity: 0.5; cursor: default; }
 
 .mv-seg {
   display: inline-flex; flex-wrap: wrap; gap: 0; margin: var(--space-8) 0 10px;

@@ -24,10 +24,10 @@ import { PZFX_TYPES } from "../share/pzfx";
 
 // ------------------------------------------------------------ shell requests
 
-export const SHELL_EVENT = "opendose-shell";
+const SHELL_EVENT = "opendose-shell";
 export type ShellRequest =
   | "open" | "new-project" | "about" | "preferences" | "prism-csv" | "help" | "which-test"
-  // answered by the shell (App.tsx): the first-run catalogue moved here
+  // answered by the shell (App.tsx)
   | "example" | "describe" | "plan";
 
 export function requestShell(kind: ShellRequest): void {
@@ -42,7 +42,7 @@ export function onShellRequest(fn: (kind: ShellRequest) => void): () => void {
 
 // ------------------------------------------------------------ shortcuts
 
-export const isMac = typeof navigator !== "undefined" && /Mac|iP(hone|ad)/.test(navigator.platform);
+const isMac = typeof navigator !== "undefined" && /Mac|iP(hone|ad)/.test(navigator.platform);
 /** A shortcut as this OS writes it: "⌘S" on a Mac, "Ctrl+S" elsewhere. */
 export const modKey = (key: string) => (isMac ? `⌘${key}` : `Ctrl+${key}`);
 
@@ -73,11 +73,10 @@ export interface Command {
 }
 
 /** Labels of the File and View menu groups. */
-export const GROUP_LABELS: Partial<Record<CommandGroup, string>> = {
+export const GROUP_LABELS: Record<"new" | "share" | "tools", string> = {
   new: "New",
   share: "Share and export",
   tools: "Tools",
-  theme: "Theme",
 };
 
 export function useCommandRegistry(): Command[] {

@@ -91,7 +91,7 @@ function NoteCard({ sheetId, note, readOnly }: { sheetId: string; note: Floating
   const move = (x: number, y: number, key = `note:${note.id}:pos`) =>
     cmd.editNote(sheetId, note.id, { x: Math.max(0, x), y: Math.max(0, y) }, key);
   // Folding or deleting unmounts the card that has focus: hand focus to
-  // the note's chip, or to "+ Note" once the note is gone (SH-06).
+  // the note's chip, or to "New note" once the note is gone.
   const fold = () => {
     cmd.foldNote(sheetId, note.id, true);
     focusAfterRender(`.notes-bar [data-chip="${CSS.escape(note.id)}"]`);
@@ -101,7 +101,7 @@ function NoteCard({ sheetId, note, readOnly }: { sheetId: string; note: Floating
     focusAfterRender(".notes-bar .note-add");
   };
   // The card follows the pointer 1:1 by transform (no layout, no React
-  // render per frame); left/top are written once, on release (SH-17).
+  // render per frame); left/top are written once, on release.
   const endDrag = (commit: boolean) => {
     const d = drag.current;
     drag.current = null;

@@ -36,6 +36,9 @@ interface Job {
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const frames = () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
 
+/** The bundle's progress toast, resolved in place (DECISIONS 6). */
+const BUNDLE_TOAST = "bundle-export";
+
 /**
  * "Download export bundle": the project file, every data table as CSV
  * (wide and long), every results sheet as CSV, every graph as SVG and
@@ -43,8 +46,6 @@ const frames = () => new Promise((r) => requestAnimationFrame(() => requestAnima
  * graphs are drawn off screen one at a time (as "Export all graphs"
  * does) and read back exactly as the app shows them.
  */
-/** The bundle's progress toast, resolved in place (DECISIONS 6). */
-const BUNDLE_TOAST = "bundle-export";
 
 export function useBundleExport() {
   const api = useProject();
@@ -191,8 +192,6 @@ export function useBundleExport() {
   }
   return {
     run,
-    busy: !!job,
-    progress: job ? `${Math.min(index + 1, job.steps.length)} of ${job.steps.length}` : "",
     host: content ? createPortal(content, document.body) : null,
   };
 }

@@ -3,7 +3,7 @@
 // assumption chips.
 import { useMemo } from "react";
 import { useProject } from "../app/context";
-import type { DataSheet, DataTableModel, TableType } from "../project/types";
+import type { DataTableModel, TableType } from "../project/types";
 import { resultBanners, type Banner } from "./banners";
 import { resultChips, type Chip, type ResultContext } from "./checks";
 import { needsUnitQuestion } from "./declareUnit";
@@ -69,7 +69,7 @@ export function useResultsGuidance(p: Props): Guidance {
   // analyses that model the unit or the subject themselves do not ask
   const question = !!p.dataId && !p.readOnly && !shared
     && !UNIT_MODELLED.test(p.analysisId) && data?.kind === "data"
-    && needsUnitQuestion(data as DataSheet);
+    && needsUnitQuestion(data);
   return { banners, chips, multiplicity, question };
 }
 

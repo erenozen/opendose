@@ -1,4 +1,4 @@
-// What a plot box says while it has no graph to show (BEF-24, BEF-25):
+// What a plot box says while it has no graph to show:
 // the graph library is still downloading, it failed to download, or the
 // analysis behind the graph failed. The note is a React child of the
 // plot's own div, drawn before Plotly has drawn anything (or after the

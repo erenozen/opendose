@@ -1,4 +1,4 @@
-// End-to-end check of the feedback primitives (phase 3, DECISIONS 4 and
+// End-to-end check of the feedback primitives (DECISIONS 4 and
 // 6): Open as a real button, toasts and the one announcer, banners that
 // never take focus, the engine boot slot that moves nothing, and the
 // Simulate dialog's busy button and late validation.
@@ -379,7 +379,7 @@ await ctx.close();
   });
   const create = dlg.getByRole("button", { name: "Create table" });
   const w0 = await create.evaluate((b) => b.getBoundingClientRect().width);
-  await create.dblclick(); // a double click must make one table (AD-21)
+  await create.dblclick(); // a double click must make one table
   await p.waitForSelector(".origin-note", { timeout: 30000 });
   expect("Create table says 'Simulating…' and is disabled while the engine works",
     await p.evaluate(() => globalThis.__busySeen));

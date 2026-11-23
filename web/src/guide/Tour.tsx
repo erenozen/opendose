@@ -3,11 +3,11 @@
 // the tour as done (localStorage); Help › Take the tour replays it.
 //
 // The card is a Popover anchored to the step's target (top layer, Escape,
-// focus kept inside and handed back on close); presses outside do not
+// focus handed back on close); presses outside do not
 // close it, because step 1 asks the user to edit a cell. The dim and the
 // accent ring around the target are full-screen layers cut with
 // clip-path, so following the target while the page scrolls lays nothing
-// out (GF-04, MO-10). After a pointer press on Next or Back the ring and
+// out. After a pointer press on Next or Back the ring and
 // card glide to the new target (200 ms, --ease-in-out); a key press and
 // reduced motion jump (motion plan 010).
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
@@ -112,7 +112,7 @@ export default function Tour({ onDone }: { onDone: () => void }) {
   // Started from the keyboard: the dim appears at once, like the card.
   const [instant] = useState(lastInputWasKeyboard);
   const nextRef = useRef<HTMLButtonElement>(null);
-  // The control that opened the tour, to hand focus back to (GF-03).
+  // The control that opened the tour, to hand focus back to.
   const [opener] = useState(() => (document.activeElement instanceof HTMLElement
     ? document.activeElement : null));
   const titleId = useId();

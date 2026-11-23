@@ -12,7 +12,7 @@ function writeValue(sep: HTMLElement | null, h: number) {
 
 // The seam between two stacked panes (DECISIONS 2): a 1px line with a
 // ±4px hit area. Dragging resizes the pane above it 1:1 with the pointer,
-// written to its style once per frame (no React render per move, SH-16);
+// written to its style once per frame (no React render per move);
 // content below reflows. The sibling above may be a .pane wrapper
 // (workbench columns) or the block itself. Arrow keys nudge it.
 export default function HSplitter() {

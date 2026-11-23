@@ -64,8 +64,8 @@ function Diagnostics({ diag }: { diag: any }) {
 type Caveat = "ambiguous" | "extrapolated";
 
 /** The Ambiguous and Extrapolated badges in a card's title: each a
- *  disclosure whose note, word for word the old hover text, opens under
- *  the title (C-02), so touch and keyboard users can read it too. */
+ *  disclosure whose note opens under the title, so touch and keyboard
+ *  users can read it too. */
 function useCaveats(fit: FitResult) {
   const [open, setOpen] = useState<Caveat | null>(null);
   const id = useId();

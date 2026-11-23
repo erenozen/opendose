@@ -155,7 +155,6 @@ async function headerMenu(s, menu, item) {
   await s.page.getByRole("menu", { name: menu }).waitFor();
   if (item) await s.page.getByRole("menuitem", { name: item }).click();
 }
-const saveMenu = (s, item) => headerMenu(s, "File", item);
 const dialog = (s, name) => s.page.getByRole("dialog", { name });
 /** Brings an element into view inside whatever scrolls it. */
 const into = (s, selector, block = "start") => s.page.evaluate(([sel, b]) => {
@@ -174,7 +173,7 @@ async function pasteInto(s, cellLabel, text) {
   }, [cellLabel, text]);
 }
 async function newTableDialog(s) {
-  await saveMenu(s, "New data table…");
+  await headerMenu(s, "File", "New data table…");
   const dlg = s.page.locator("dialog.new-table-dialog");
   await dlg.waitFor({ timeout: 10000 });
   return dlg;
@@ -263,18 +262,18 @@ const scenes = [
   } },
   { name: "shell-file-menu", setup: async (s) => {
     await example(s);
-    await saveMenu(s);
+    await headerMenu(s, "File");
     await s.page.getByRole("menuitem", { name: "Copy share link…" }).waitFor();
   } },
   { name: "shell-share", setup: async (s) => {
     await example(s);
-    await saveMenu(s, "Copy share link…");
+    await headerMenu(s, "File", "Copy share link…");
     await s.page.locator("dialog[open]").first().waitFor();
     await settle(s, 1200);
   } },
   { name: "shell-export-pptx", setup: async (s) => {
     await example(s);
-    await saveMenu(s, "Export graphs to PowerPoint (.pptx)…");
+    await headerMenu(s, "File", "Export graphs to PowerPoint (.pptx)…");
     await dialog(s, "Export graphs to PowerPoint").waitFor();
   } },
   { name: "shell-export-table", setup: async (s) => {
@@ -308,7 +307,7 @@ const scenes = [
   } },
   { name: "shell-new-project-confirm", setup: async (s) => {
     await example(s);
-    await saveMenu(s, "New project…");
+    await headerMenu(s, "File", "New project…");
     await s.page.getByRole("alertdialog", { name: "Start a new project?" }).waitFor();
   } },
   { name: "shell-nav-drawer", setup: async (s) => {
@@ -498,7 +497,7 @@ const scenes = [
   } },
   { name: "guided-power", setup: async (s) => {
     await example(s);
-    await saveMenu(s, "Power and sample size…");
+    await headerMenu(s, "File", "Power and sample size…");
     await s.page.locator("dialog[open]").first().waitFor();
   } },
 ];

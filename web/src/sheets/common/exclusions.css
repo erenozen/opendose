@@ -1,6 +1,6 @@
 /* Reason prompt after Ctrl/Cmd+E (ExclusionReasonPrompt.tsx): a neutral
    tile on --inset with a solid line, like a Banner. Opened by a key, so it
-   appears at once (overlays.md: keyboard-opened means instant, MO-02). */
+   appears at once (overlays.md: keyboard-opened means instant). */
 .exclusion-reason {
   margin: 0; padding: var(--space-8) var(--space-12);
   border: 1px solid var(--line-solid); border-radius: var(--radius-pane);

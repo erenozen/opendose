@@ -1,10 +1,10 @@
-// The format dialogs' close guard (GL-06).
+// The format dialogs' close guard.
 import { useCallback, useRef } from "react";
 import { useUi } from "../app/ui";
 
 /**
  * Escape or a click outside a format dialog with unapplied edits asks
- * before it drops them (GL-06): a long dialog is easy to leave by
+ * before it drops them: a long dialog is easy to leave by
  * accident. Cancel stays a plain close, since pressing it is the choice.
  * Returns the onClose to give the Modal.
  */

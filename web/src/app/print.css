@@ -15,7 +15,7 @@
   header, .navigator, .nav-scrim, .restore-banner, .pzfx-chooser, .splitter,
   .h-splitter, .export-panel, .graph-select, .frozen-note, .layout-toolbar,
   .layout-notes, .layout-inspector, .layout-margin, .layout-handle, .copy-btn,
-  .cite-actions, .cite-bibtex, .table-actions, .welcome { display: none !important; }
+  .cite-actions, .cite-bibtex, .table-actions { display: none !important; }
   .shell, .shell.nav-hidden { display: block; }
   main, .shell > main { display: block; padding: 0; width: auto; }
   .left, .right { display: block; }

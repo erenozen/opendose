@@ -2,9 +2,7 @@
    (DECISIONS 2): solid 1px data lines, tabular numerals, sentence-case
    heads. */
 
-/* ============================ data table ============================ */
-
-/* The splitters resize the pane; no second, native corner handle (GR-12). */
+/* The splitters resize the pane; no second, native corner handle. */
 .data-table { padding: var(--space-8); resize: none; }
 .data-table table { border-collapse: collapse; width: 100%; }
 .data-table th, .data-table td { border: 1px solid var(--line-solid); padding: 0; }
@@ -44,7 +42,6 @@
 }
 .table-actions .hint { color: var(--muted); font-size: var(--text-caption); max-width: 65ch; }
 
-/* Data grid additions */
 .data-table .row-label-head { min-width: 13ch; }
 .data-table .xhead { white-space: nowrap; }
 .x-format-tag {
@@ -67,7 +64,7 @@
 
 /* Touch: every cell is a tap target, so rows are 44px; the row's delete
    button fills its own cell (44 wide, the row's height) and never
-   reaches into the last value or the next row (C-13). Header tools sit
+   reaches into the last value or the next row. Header tools sit
    far enough apart that their 44px hit areas do not overlap. */
 @media (pointer: coarse) {
   .data-table tbody input { min-height: 44px; }

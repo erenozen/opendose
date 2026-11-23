@@ -62,7 +62,7 @@ export interface FileButtonProps extends Omit<ButtonProps, "onClick" | "onChange
 }
 
 /** A real button that opens the file picker: keyboard reachable, unlike
- *  a label wrapped around a hidden input (K2). The input stays in the
+ *  a label wrapped around a hidden input. The input stays in the
  *  DOM, visually hidden and out of the tab order. */
 export function FileButton({
   accept, onFile, onFiles, multiple, inputLabel, children, ...props

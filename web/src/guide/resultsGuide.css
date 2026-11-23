@@ -1,6 +1,6 @@
 /* Results guidance inside the Checks row (ResultsGuide.tsx, UnitQuestion,
    PlanCheck): plain blocks on hairlines, never a tint. The pane's one
-   tinted callout is a Banner (DECISIONS 3, RS-05). Tokens only. */
+   tinted callout is a Banner (DECISIONS 3). Tokens only. */
 
 /* ---- assumption chips: disclosure toggles (Button sm) ---- */
 .guide-chips-wrap { display: flex; flex-direction: column; gap: var(--space-8); }

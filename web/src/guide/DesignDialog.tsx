@@ -62,7 +62,7 @@ export default function DesignDialog({ onPick, onClose, action = "Use this table
       {asksFactors(a.value) && radios("factors", "2. What did you vary?", FACTOR_CHOICES)}
       {asksRepeats(a.value) && radios("repeats", `${asksFactors(a.value) ? "3" : "2"}. Was each subject `
         + "measured more than once?", repeatChoices)}
-      {/* Spoken on each answer: the table it picks, not the whole panel (GF-02). */}
+      {/* Spoken on each answer: the table it picks, not the whole panel. */}
       <p className="sr-only" role="status">Recommended: {rec.title}</p>
       <div className="design-result">
         <p><strong>{rec.title}</strong></p>

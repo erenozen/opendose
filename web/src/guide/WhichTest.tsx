@@ -150,7 +150,7 @@ export default function WhichTest({ onClose }: { onClose: () => void }) {
       </p>
       <div className="wt-grid">
         <DesignQuestions d={d} set={set} words={words} hasChecks={!!k} />
-        {/* Spoken on each answer: the test only, not the whole panel (GF-02). */}
+        {/* Spoken on each answer: the test only, not the whole panel. */}
         <p className="sr-only" role="status">Recommended: {rec.test}</p>
         <section className="wt-result" aria-label="Recommendation">
           <p className="wt-eyebrow">Recommended</p>

@@ -2,8 +2,6 @@
    dialog form fields. Press feedback and the 16px touch inputs live in
    base.css. */
 
-/* ============================ buttons & inputs ============================ */
-
 button {
   font: inherit; font-size: var(--text-body); font-weight: var(--weight-medium); color: var(--ink);
   background: var(--inset);
@@ -56,7 +54,7 @@ select option {
   color: var(--ink-2); flex-wrap: wrap;
 }
 input[type="checkbox"] { accent-color: var(--accent); width: 15px; height: 15px; }
-/* Touch: a bigger box, and the whole label row is a 44px target (C-20). */
+/* Touch: a bigger box, and the whole label row is a 44px target. */
 @media (pointer: coarse) {
   input[type="checkbox"] { width: 20px; height: 20px; }
   .check-row { min-height: 44px; }

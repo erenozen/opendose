@@ -1,6 +1,6 @@
 import { lazy, Suspense, useId, useMemo, useState } from "react";
 import Modal from "../../components/Modal";
-import { Button, Field, FileButton, Input, NumberField } from "../../components/ui";
+import { Button, Field, FileButton, Input, NumberField, Tabs } from "../../components/ui";
 import { readXlsx, type XlsxSheet } from "../../lib/engine";
 import {
   applyImport, applyImportWithCells, DEFAULT_FILTER, DEFAULT_SOURCE, defaultRoles, DELIMITER_LABELS, detectTitlesRow,
@@ -203,26 +203,12 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
             disabled={!busy && empty}>Import</Button>
         </>
       }>
-      <div className="dialog-tabs" role="tablist" aria-label="Import steps" data-still>
-        {TABS.map(([id, label]) => (
-          <button key={id} type="button" role="tab" id={`imp-tab-${id}`}
-            aria-selected={tab === id} aria-controls={`imp-panel-${id}`}
-            tabIndex={tab === id ? 0 : -1}
-            onKeyDown={(e) => {
-              if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
-              e.preventDefault();
-              const i = TABS.findIndex(([t]) => t === tab);
-              const next = TABS[(i + (e.key === "ArrowRight" ? 1 : TABS.length - 1)) % TABS.length][0];
-              setTab(next);
-              requestAnimationFrame(() => document.getElementById(`imp-tab-${next}`)?.focus());
-            }}
-            onClick={() => setTab(id)}>{label}</button>
-        ))}
-      </div>
+      <Tabs value={tab} onValueChange={setTab}>
+        <Tabs.List aria-label="Import steps">
+          {TABS.map(([id, label]) => <Tabs.Tab key={id} value={id}>{label}</Tabs.Tab>)}
+        </Tabs.List>
 
-      {tab === "source" && (
-        <div className="dialog-panel" role="tabpanel" id="imp-panel-source"
-          aria-labelledby="imp-tab-source"
+        <Tabs.Panel value="source"
           onDragOver={(e) => { if ([...e.dataTransfer.types].includes("Files")) e.preventDefault(); }}
           onDrop={(e) => {
             if (!e.dataTransfer.files.length) return;
@@ -239,7 +225,7 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
           </fieldset>
           {srcKind === "file" ? (
             <div className="field-row">
-              <div className="field import-file">
+              <div className="field">
                 <span className="ui-field-label">File</span>
                 <span className="import-file-row">
                   <FileButton multiple inputLabel="File to import" onFiles={takeFiles}
@@ -337,22 +323,16 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
               }}
               onRecipe={(id) => { setSavedRecipe(id); setTab("recipes"); }} />
           </Suspense>
-        </div>
-      )}
+        </Tabs.Panel>
 
-      {tab === "view" && (
-        <div className="dialog-panel" role="tabpanel" id="imp-panel-view"
-          aria-labelledby="imp-tab-view">
+        <Tabs.Panel value="view">
           <p className="field-note">
             Choose what each column becomes. Y columns fill the table&apos;s Y
             subcolumns left to right.
           </p>
-        </div>
-      )}
+        </Tabs.Panel>
 
-      {tab === "filter" && (
-        <div className="dialog-panel" role="tabpanel" id="imp-panel-filter"
-          aria-labelledby="imp-tab-filter">
+        <Tabs.Panel value="filter">
           <div className="field-row">
             {num("First row", filter.rowFrom, (v) => setFilter({ ...filter, rowFrom: v ?? 1 }), { min: 1 })}
             {num("Last row", filter.rowTo, (v) => setFilter({ ...filter, rowTo: v }), { min: 1, blank: "last" })}
@@ -398,12 +378,9 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
                 (v) => setFilter({ ...filter, unstack: { ...filter.unstack!, groupCol: v ?? 1 } }), { min: 1 })}
             </div>
           )}
-        </div>
-      )}
+        </Tabs.Panel>
 
-      {tab === "placement" && (
-        <div className="dialog-panel" role="tabpanel" id="imp-panel-placement"
-          aria-labelledby="imp-tab-placement">
+        <Tabs.Panel value="placement">
           <fieldset className="field-radios">
             <legend>Put the values</legend>
             <label><input type="radio" name="imp-mode" checked={place.mode === "replace"}
@@ -439,8 +416,8 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
               <span>Name {shape.datasetNoun.toLowerCase()}s{shape.hasX ? " and X" : ""} from the titles row</span>
             </label>
           )}
-        </div>
-      )}
+        </Tabs.Panel>
+      </Tabs>
 
       <div className="import-preview" tabIndex={0} aria-label="Preview of the data to import">
         {empty ? (

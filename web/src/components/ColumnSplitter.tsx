@@ -21,8 +21,8 @@ function writeSplit(main: HTMLElement | null, sep: HTMLElement | null, pct: numb
 
 // The seam between the two workbench columns (DECISIONS 2): a 1px line
 // with a ±4px hit area. The drag tracks the pointer 1:1 by writing the
-// --split variable from a ref once per frame (no React render per move,
-// SH-16), and is saved on release; arrow keys nudge it.
+// --split variable from a ref once per frame (no React render per
+// move), and is saved on release; arrow keys nudge it.
 export default function ColumnSplitter({ mainRef }: { mainRef: RefObject<HTMLElement | null> }) {
   const self = useRef<HTMLDivElement>(null);
   const now = useRef(DEFAULT);
@@ -35,7 +35,7 @@ export default function ColumnSplitter({ mainRef }: { mainRef: RefObject<HTMLEle
   const persist = () => {
     try { localStorage.setItem(KEY, `${now.current.toFixed(2)}%`); } catch { /* ignore */ }
   };
-  // The saved width is on the grid before the first paint (BEF-07).
+  // The saved width is on the grid before the first paint.
   useLayoutEffect(() => {
     now.current = savedSplit();
     writeSplit(mainRef.current, self.current, now.current);

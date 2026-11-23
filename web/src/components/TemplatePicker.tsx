@@ -47,7 +47,7 @@ export default function TemplatePicker({ prefs, defaultName, onChange }: {
     setWithData(true);
   };
 
-  // Deleting is one click and undone from the toast (FR-09): the template
+  // Deleting is one click and undone from the toast: the template
   // goes back into this browser's list.
   const remove = (t: SheetTemplate) => {
     void deleteTemplate(t.id);

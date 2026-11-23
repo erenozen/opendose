@@ -10,6 +10,7 @@ import { prismTableToFamily, type PrismTable } from "./factory";
 
 /** Files Open takes: OpenDose projects and Prism files. */
 export const OPEN_ACCEPT = ".json,.pzfx,.prism,.zip";
+export const OPENABLE = /\.(json|pzfx|prism|zip)$/i;
 const PRISM = /\.(pzfx|prism|prism\.zip|zip)$/i;
 /** One toast follows an open from "Opening…" to its outcome. */
 const TOAST_ID = "open-file";
@@ -22,18 +23,14 @@ const TOAST_ID = "open-file";
  * Feedback (DECISIONS 6): a progress toast while the file is read (Prism
  * files wait for the engine), resolved in place; a failure is an error
  * toast with "Choose another file". Ctrl/Cmd+O opens the file picker.
- * `onOpen` runs as a file starts opening (the shell closes the start
- * screen).
+ * `into`: the project imported Prism tables go into (the open one when
+ * not given).
  */
-/** `into`: the project imported Prism tables go into (the open one when
- *  not given). */
-export function useFileOpen(onOpen?: () => void, into?: (p: Project) => Project) {
+export function useFileOpen(into?: (p: Project) => Project) {
   const { apply, replace, select, store, engineReady } = useProject();
   const [prismTables, setPrismTables] = useState<PrismTable[] | null>(null);
   const engineReadyRef = useRef(engineReady);
   engineReadyRef.current = engineReady;
-  const onOpenRef = useRef(onOpen);
-  onOpenRef.current = onOpen;
   const intoRef = useRef(into);
   intoRef.current = into;
 
@@ -82,7 +79,6 @@ export function useFileOpen(onOpen?: () => void, into?: (p: Project) => Project)
   const pickRef = useRef<() => void>(() => {});
 
   const open = useCallback(async (file: File) => {
-    onOpenRef.current?.();
     const prism = PRISM.test(file.name);
     notify(prism && !engineReadyRef.current
       ? `Opening “${file.name}” once the analysis engine has loaded…`
@@ -131,5 +127,5 @@ export function useFileOpen(onOpen?: () => void, into?: (p: Project) => Project)
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  return { open, pick, prismTables, importTables, dismissPrism: () => setPrismTables(null) };
+  return { open, prismTables, importTables, dismissPrism: () => setPrismTables(null) };
 }

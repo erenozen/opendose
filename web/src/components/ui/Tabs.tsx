@@ -13,7 +13,7 @@
 //   </Tabs>
 //
 // Panels mount only while selected. The selected tab keeps the weight of
-// the others, so the row never shifts (SH-08).
+// the others, so the row never shifts.
 import {
   createContext, useContext, useId, useRef, type ComponentProps, type KeyboardEvent, type ReactNode,
 } from "react";

@@ -65,7 +65,7 @@
 .level-3 > .nav-row { padding-left: var(--space-24); }
 .level-4 > .nav-row { padding-left: var(--space-40); }
 /* Selection is colour and fill, never weight: a bolder name would move
-   where a long name is cut off on every click (SH-08). */
+   where a long name is cut off on every click. */
 .nav-item.selected > .nav-row { background: var(--accent-soft); color: var(--accent); }
 .nav-item.in-family > .nav-row { color: var(--ink); }
 .nav-item.in-family > .nav-row::before {
@@ -103,7 +103,7 @@
 }
 .nav-frozen { flex: none; display: inline-flex; color: var(--muted); }
 /* The row's ⋯ menu: shown on hover, focus and the selected row, and
-   always where nothing hovers (touch screens of any width, SH-07). */
+   always where nothing hovers (touch screens of any width). */
 .nav-more {
   position: relative;
   flex: none; opacity: 0; min-height: 20px; padding: 0 var(--space-6);
@@ -172,7 +172,7 @@
       visibility 0s linear var(--dur-drawer-exit);
   }
   /* transform: none, not translateX(0): a transformed drawer would be the
-     containing block of the fixed menus inside it (SH-15). */
+     containing block of the fixed menus inside it. */
   .navigator.drawer-open {
     transform: none; visibility: visible;
     transition: transform var(--dur-drawer) var(--ease-drawer),
@@ -187,8 +187,7 @@
   .navigator, .navigator.nav-collapsed { transform: none; opacity: 0; }
   .navigator.drawer-open { opacity: 1; }
 }
-/* Touch: rows are 44px, the ⋯ menu and the twisty keep a 44px hit area
-   (SH-04). */
+/* Touch: rows are 44px, the ⋯ menu and the twisty keep a 44px hit area. */
 @media (pointer: coarse) {
   .nav-row { min-height: 44px; }
   .nav-search-row { gap: var(--space-20); }

@@ -168,7 +168,7 @@ async function finishWizard() {
     await next.click();
     await page.waitForTimeout(250);
   }
-  await wizard().locator(".modal-actions .btn-primary").click();
+  await wizard().locator(".modal-actions .btn--primary").click();
   await wizard().waitFor({ state: "detached", timeout: 10000 });
 }
 const PILOT = "Control,Treated\n10.2,13.4\n11.5,14.1\n9.8,12.8\n12.1,15.0\n10.9,13.9\n11.3,14.6";

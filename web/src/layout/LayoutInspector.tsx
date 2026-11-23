@@ -41,7 +41,7 @@ function NumField({ label, value, onCommit, min, max, step = 1, unit, disabled }
 }
 
 /** One choice of a few, as a segmented control built on real radios, so
- *  arrow keys move the choice and it is one Tab stop (GL-07). */
+ *  arrow keys move the choice and it is one Tab stop. */
 function Segmented<T extends string>({ label, value, options, onChange }: {
   label: string;
   value: T | null;

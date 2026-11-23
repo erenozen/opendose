@@ -15,8 +15,7 @@ import {
 import { useFirstRun, usePasteActions } from "./usePasteAnywhere";
 import "./firstRun.css";
 
-/** The instruction line of the example (DECISIONS 4): the one line that
- *  replaced the start screen's hero. */
+/** The instruction line of the example banner (DECISIONS 4). */
 const PASTE_LINE = "Paste a block from Excel anywhere on this page. Doses in the first "
   + "column, responses next to it; a header row is fine.";
 

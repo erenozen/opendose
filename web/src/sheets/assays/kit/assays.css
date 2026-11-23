@@ -7,7 +7,7 @@
 .assay-wizard .modal-body { gap: var(--space-12); }
 /* Stepper: numbered steps joined by a rule. The current step is marked by
    its filled number and its tint, done steps by a quiet tick colour; the
-   weight never changes, so the row does not reflow (GF-12). */
+   weight never changes, so the row does not reflow. */
 .wizard-steps {
   display: flex; flex-wrap: wrap; gap: var(--space-4); margin: 0; padding: 0;
   list-style: none; counter-reset: none;

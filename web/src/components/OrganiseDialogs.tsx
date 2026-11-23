@@ -5,6 +5,7 @@ import { familyChildren } from "../project/ops";
 import type { DataSheet, Project, SheetGroup } from "../project/types";
 import { REGISTRY } from "../sheets/registry";
 import Modal from "./Modal";
+import { Button } from "./ui";
 
 export function SaveTemplateDialog({ tableName, childCount, onCancel, onSave }: {
   tableName: string;
@@ -23,7 +24,7 @@ export function SaveTemplateDialog({ tableName, childCount, onCancel, onSave }: 
         <>
           <button type="button" onClick={onCancel}>Cancel</button>
           <button type="button" onClick={() => onSave(value(), true)}>Download file</button>
-          <button type="submit" className="btn-primary">Save template</button>
+          <Button type="submit" variant="primary">Save template</Button>
         </>
       }>
       <p className="modal-text">
@@ -77,9 +78,9 @@ export function WandDialog({ project, target, sources, onCancel, onApply }: {
       actions={
         <>
           <button type="button" onClick={onCancel}>Cancel</button>
-          <button type="submit" className="btn-primary" disabled={!example}>
+          <Button type="submit" variant="primary" disabled={!example}>
             Analyze and graph
-          </button>
+          </Button>
         </>
       }>
       <p className="modal-text">
@@ -133,7 +134,7 @@ export function GroupDialog({ sheetName, sectionLabel, groups, current, defaultN
       actions={
         <>
           <button type="button" onClick={onCancel}>Cancel</button>
-          <button type="submit" className="btn-primary">Move</button>
+          <Button type="submit" variant="primary">Move</Button>
         </>
       }>
       <p className="modal-text">

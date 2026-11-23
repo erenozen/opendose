@@ -11,7 +11,7 @@ import { primeSampleResults } from "./app/sampleResults";
 import { useUi } from "./app/ui";
 import { UiProvider } from "./app/UiProvider";
 import { useAutosave } from "./app/useAutosave";
-import { useFileOpen } from "./app/useFileOpen";
+import { OPENABLE, useFileOpen } from "./app/useFileOpen";
 import { useDerivedSync } from "./app/useDerivedSync";
 import { useCalculatedSync } from "./app/useCalculatedSync";
 import { useBackgroundRefresh } from "./app/useBackgroundRefresh";
@@ -47,9 +47,6 @@ import { lazy, Suspense, useEffect, useRef, useState } from "react";
 // The page-layout composer is loaded the first time a layout sheet opens.
 const LayoutSheetView = lazy(() => import("./components/LayoutSheetView"));
 
-/** Files Open takes, also by dropping them on the page. */
-const OPENABLE = /\.(json|pzfx|prism|zip)$/i;
-
 export default function App() {
   return (
     <ToastProvider>
@@ -75,7 +72,7 @@ function Shell() {
   const { project, selectedId, replace, store, apply, select, readOnly, results } = useProject();
   const ui = useUi();
   const guide = useGuide();
-  const files = useFileOpen(undefined, importInto);
+  const files = useFileOpen(importInto);
   const autosave = useAutosave();
   useShortcuts();
   useDerivedSync();
@@ -113,8 +110,8 @@ function Shell() {
     replace(p);
   };
 
-  // The start screen's catalogue lives in the File menu now: the example
-  // project, "Describe your experiment" and "Plan an experiment".
+  // The example project, "Describe your experiment" and "Plan an
+  // experiment": shell requests from the File menu and the palette.
   const [describing, setDescribing] = useState(false);
   const shell = useRef({ openExample: async () => {}, plan: () => {} });
   shell.current = {
@@ -142,7 +139,7 @@ function Shell() {
   }), []);
 
   // At 900px and below the open navigator drawer is a modal dialog:
-  // everything behind it is inert (DECISIONS 5, K4).
+  // everything behind it is inert (DECISIONS 5).
   const behindDrawer = useMedia(DRAWER_QUERY) && ui.drawerOpen;
   // Opened or closed from the keyboard (Enter on the toggle, Escape), the
   // drawer and its scrim move at once (motion.md: keyboard actions never
@@ -225,7 +222,7 @@ function Shell() {
       ) : (
       <div className={`shell${ui.navOpen ? "" : " nav-hidden"}`}
         data-drawer-instant={drawerInstant || undefined}>
-        {/* Always mounted, so it fades out with the drawer (BEF-15); a press
+        {/* Always mounted, so it fades out with the drawer; a press
             on it closes the drawer (Navigator's light dismiss). */}
         <div className="nav-scrim" aria-hidden="true" data-open={behindDrawer || undefined} />
         <Navigator />
@@ -299,21 +296,22 @@ function PrismChooser({ tables, onImport, onCancel }: {
 }
 
 /** A project or Prism file dropped anywhere on the page opens, as Open
- *  does (the start screen used to take drops); several CSV files, or a
- *  zip of them, go to the table import. Drops a pane handles itself (the
- *  navigator, the import dialog) are left to it. */
+ *  does; several CSV files, or a zip of them, go to the table import.
+ *  Drops a pane handles itself (the navigator, the import dialog) are
+ *  left to it. */
 function useDropOpen(open: (f: File) => void) {
   const openRef = useRef(open);
   openRef.current = open;
   useEffect(() => {
-    const hasFiles = (e: DragEvent) => !!e.dataTransfer && [...e.dataTransfer.types].includes("Files");
+    const hasFiles = (e: DragEvent): e is DragEvent & { dataTransfer: DataTransfer } =>
+      !!e.dataTransfer && [...e.dataTransfer.types].includes("Files");
     const onOver = (e: DragEvent) => {
       if (!e.defaultPrevented && hasFiles(e) && !document.querySelector("dialog[open]")) e.preventDefault();
     };
     const onDrop = (e: DragEvent) => {
       if (e.defaultPrevented || !hasFiles(e) || document.querySelector("dialog[open]")) return;
       e.preventDefault();
-      const list = [...(e.dataTransfer?.files ?? [])];
+      const list = [...e.dataTransfer.files];
       if (takeTableDrop(list, (f) => openRef.current(f), () => {})) return;
       const f = list.find((x) => OPENABLE.test(x.name));
       if (f) openRef.current(f);

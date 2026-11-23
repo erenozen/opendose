@@ -1,5 +1,5 @@
 // Help panel (Ctrl/Cmd+/): searchable explainers, the guided tour, the
-// "Which test?" wizard, the start screen and the keyboard shortcuts.
+// "Which test?" wizard, the example project and the keyboard shortcuts.
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type Ref } from "react";
 import { Button } from "../components/ui/Button";
 import { IconButton } from "../components/ui/IconButton";
@@ -62,7 +62,7 @@ export default function HelpPanel({
 
   // First focus: the topic's heading, or the search field, except on touch
   // screens, where the panel's own heading takes it so no keyboard covers
-  // the panel before anyone chose to search (GF-10).
+  // the panel before anyone chose to search.
   useEffect(() => {
     if (!open) return;
     if (e) heading.current?.focus();
@@ -80,7 +80,7 @@ export default function HelpPanel({
     });
   }, [open]);
   // Closed by any route: focus goes back to where it was when the panel
-  // opened (GF-03), as it closes, not after its exit.
+  // opened, as it closes, not after its exit.
   useLayoutEffect(() => {
     if (!open) return;
     const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;

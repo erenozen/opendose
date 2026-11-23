@@ -157,7 +157,7 @@ export function Tabs<T extends string>({ tabs, value, onChange, label }: {
   };
   return (
     // A segmented control: no press scale (data-still), and the selected
-    // tab keeps its weight so the row does not reflow (GL-10).
+    // tab keeps its weight so the row does not reflow.
     <div className="fmt-tabs" role="tablist" aria-label={label} data-still>
       {tabs.map(([v, l], i) => (
         <button key={v} type="button" role="tab" ref={(b) => { refs.current[i] = b; }}

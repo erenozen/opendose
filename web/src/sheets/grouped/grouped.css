@@ -15,13 +15,8 @@
   border: 1px solid var(--line-strong); border-radius: var(--radius-control);
   padding: 5px var(--space-8); min-width: 0; width: 100%;
 }
-.factor-names input:focus-visible, .text-option:focus-visible {
+.factor-names input:focus-visible {
   outline: 2px solid var(--focus-ring); outline-offset: 1px; border-color: transparent;
-}
-.text-option {
-  font: inherit; color: var(--ink); background: var(--inset);
-  border: 1px solid var(--line-strong); border-radius: var(--radius-control);
-  padding: 5px var(--space-8); min-width: 0; flex: 1 1 140px;
 }
 .grouped-btn {
   align-self: flex-start;
