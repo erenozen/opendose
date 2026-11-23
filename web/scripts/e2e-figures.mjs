@@ -748,6 +748,58 @@ const fitLegendText = () => page.locator(".plot-card .figure-legend-text").textC
   await shot("fit-legend-caption");
 }
 
+// --- drop lines on a discontinuous Y axis (P-23 follow-up). Before: no
+// lines on a broken axis, while the legend still said they marked the
+// IC50. Reference as above (fit_graph.py): LogIC50 -6.98304 at response
+// 50.4181. A break from 15 to 35 puts it on the upper segment (yaxis3);
+// a break from 40 to 60 swallows it.
+{
+  const SPLIT = join(tmp, "fit-split.json");
+  writeFileSync(SPLIT, JSON.stringify({
+    version: 2, title: "Fit graph on a broken axis",
+    prefs: { defaultTableType: "xy", errorBars: "sd", ciMethod: "asymptotic", scheme: "default", digits: 4 },
+    sheets: [
+      ...fitFamily("up", "Break below the IC50", {},
+        { xy: { dropLines: true, caption: "below" }, format: { y: { gap: { from: 15, to: 35 } } } }),
+      ...fitFamily("in", "Break across the IC50", {},
+        { xy: { dropLines: true, caption: "below" }, format: { y: { gap: { from: 40, to: 60 } } } }),
+    ],
+  }));
+  const splitShapes = () => page.evaluate(() => {
+    const l = document.querySelector(".plot-card .plot")?.layout ?? {};
+    return { y3: l.yaxis3?.range ?? null, y: l.yaxis?.range ?? null,
+      shapes: (l.shapes ?? []).filter((s) => String(s.name ?? "").startsWith("drop:"))
+        .map((s) => ({ name: s.name, xref: s.xref, yref: s.yref, x0: s.x0, x1: s.x1, y0: s.y0, y1: s.y1 })) };
+  });
+  await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]', SPLIT);
+  await page.getByRole("treeitem", { name: "Break below the IC50", exact: true }).first()
+    .locator(":scope > .nav-row").click();
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.layout?.shapes ?? [])
+    .some((s) => s.name === "drop:0:v2"), null, { timeout: 120000 }).catch(() => {});
+  const s = await splitShapes();
+  const by = (n) => s.shapes.find((x) => x.name === n);
+  const v = by("drop:0:v"), h = by("drop:0:h"), v2 = by("drop:0:v2");
+  expect("broken axis: the lines go on the upper segment, which holds the response 50.4181 (LogIC50 -6.98304)",
+    !!s.y3 && s.y3[0] <= 50.4181 && 50.4181 <= s.y3[1] && v && Math.abs(v.x0 + 6.98304) < 5e-6
+      && Math.abs(v.y0 - 50.4181) < 5e-5 && JSON.stringify(v.yref) === '["y3","y3 domain"]' && v.y1 === 0
+      && h && h.yref === "y3" && h.x1 === 0 && Math.abs(h.y0 - 50.4181) < 5e-5, JSON.stringify(s));
+  expect("broken axis: the vertical line goes on down the lower segment to the X axis",
+    v2 && v2.yref === "y domain" && v2.y0 === 1 && v2.y1 === 0 && v2.x0 === v.x0, JSON.stringify(v2));
+  expect("broken axis: the legend says what the lines mark",
+    (await fitLegendText()).includes("Dashed lines mark the IC50 (the concentration giving a response "
+      + "half-way between the fitted Top and Bottom)."), await fitLegendText());
+  await shot("fit-split-axis");
+  await page.getByRole("treeitem", { name: "Break across the IC50", exact: true }).first()
+    .locator(":scope > .nav-row").click();
+  await page.waitForFunction(() => document.querySelector(".plot-card .figure-legend-text")?.textContent
+    ?.includes("break of the Y axis"), null, { timeout: 120000 }).catch(() => {});
+  const across = await splitShapes();
+  expect("a break across the response: no lines, and the legend says why",
+    !!across.y3 && across.shapes.length === 0 && (await fitLegendText()).includes(
+      "No IC50 lines for Drug A: the response at the IC50 (50.42) falls in the break of the Y axis."),
+    `${JSON.stringify(across.shapes)} / ${await fitLegendText()}`);
+}
+
 // --- geometric mean ×/÷ geometric SD on a log axis, and the Checks note
 // for bars on a log axis or an axis cut above zero (P-25). Reference:
 // src/sheets/column/__tests__/reference/geo_summary.py (numpy, scipy

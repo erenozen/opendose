@@ -923,6 +923,14 @@ const scenes = [
     await into(s, ".plot-card", "center");
     await settle(s, 1200);
   } },
+  // drop lines on the segment of a broken Y axis that holds the IC50 (P-23)
+  { name: "graphs-fit-split-axis", setup: async (s) => {
+    await fixture(s, "fit-split-axis.json", { live: true });
+    await s.page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.layout?.shapes ?? [])
+      .some((x) => x.name === "drop:0:v2"), null, { timeout: 120000 });
+    await into(s, ".plot-card", "center");
+    await settle(s, 1200);
+  } },
   { name: "graphs-fit-drop-lines", setup: async (s) => {
     await fixture(s, "fit-graph.json", { live: true });
     await s.page.locator(".js-plotly-plot").first().waitFor();

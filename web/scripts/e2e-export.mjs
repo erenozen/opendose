@@ -745,6 +745,70 @@ const svgTexts = (buf) => page.evaluate((s) => [...new DOMParser().parseFromStri
     texts.includes("margin -1") && texts.includes("margin +1") && dashed >= 4, `${JSON.stringify(texts)}; ${dashed} dashed`);
 }
 
+// IC50 drop lines and the in-figure legend (P-23, P-24) in the SVG and PDF
+// exports, on a plain Y axis and on a broken one (the lines on the upper
+// segment). engine/tests/reference/fit_graph.py: IC50 1.040e-7 M.
+{
+  const FIT_X = ["1e-9", "3.162e-9", "1e-8", "3.162e-8", "1e-7", "3.162e-7", "1e-6", "3.162e-6", "1e-5"];
+  const FIT_Y = [["98.2", "101.5", "99.1"], ["97.0", "95.8", "99.9"], ["93.4", "90.1", "92.7"],
+    ["78.9", "82.3", "80.0"], ["51.2", "48.7", "50.9"], ["22.1", "25.6", "24.0"],
+    ["8.9", "10.2", "7.5"], ["3.1", "4.4", "2.2"], ["1.0", "0.5", "2.1"]];
+  const fitTable = { type: "xy", x: FIT_X, xTitle: "[Conc.]", xFormat: "numbers", xUnit: "M", yTitle: "Response",
+    rowTitles: FIT_X.map(() => ""), subcolumnFormat: "replicates", replicateLayout: "side_by_side",
+    datasets: [{ name: "Drug A", subTitles: ["", "", ""], rows: FIT_Y }] };
+  const fam = (id, name, format) => [
+    { id: `${id}d`, kind: "data", name, table: fitTable },
+    { id: `${id}r`, kind: "results", parentId: `${id}d`, name: `Nonlin fit of ${name}`, analysis: "nonlin",
+      options: { model: "log_inhibitor_vs_response_4pl", errorBars: "sd", autoFit: "requested" } },
+    { id: `${id}g`, kind: "graph", parentId: `${id}d`, resultsId: `${id}r`, graphType: "xy", name: `Graph of ${name}`,
+      settings: { titles: { x: "", y: "" }, scheme: "default", xy: { dropLines: true, dropLabel: true, caption: "figure" },
+        ...(format ? { format } : {}) } },
+  ];
+  await openProject("fit-exports.json", [...fam("p", "Plain axis"), ...fam("b", "Broken axis",
+    { y: { gap: { from: 15, to: 35 } } })]);
+  // the PDF's content streams draw dashed strokes with "[on off] phase d"
+  const pdfDashes = (buf) => {
+    const src = buf.toString("latin1");
+    let n = 0;
+    for (const m of src.matchAll(/(\d+) 0 obj\s*([\s\S]*?)endobj/g)) {
+      const s = /stream\r?\n([\s\S]*?)\r?\nendstream/.exec(m[2]);
+      if (!s) continue;
+      let text;
+      try {
+        const raw = Buffer.from(s[1], "latin1");
+        text = /\/FlateDecode/.test(m[2].slice(0, s.index)) ? inflateSync(raw).toString("latin1") : s[1];
+      } catch { continue; }
+      n += (text.match(/\[\s*[\d.]+(?:\s+[\d.]+)+\s*\]\s+[\d.]+\s+d\b/g) ?? []).length;
+    }
+    return n;
+  };
+  for (const [name, split] of [["Graph of Plain axis", false], ["Graph of Broken axis", true]]) {
+    await page.getByRole("treeitem", { name, exact: true }).first().locator(":scope > .nav-row").click();
+    await page.waitForFunction((want) => {
+      const l = document.querySelector(".plot-card .plot")?.layout ?? {};
+      return (l.shapes ?? []).some((s) => s.name === (want ? "drop:0:v2" : "drop:0:v"))
+        && (l.annotations ?? []).some((a) => a.name === "caption");
+    }, split, { timeout: 120000 }).catch(() => {});
+    const svg = (await graphExport("svg")).buf.toString("utf8");
+    const texts = await svgTexts(Buffer.from(svg));
+    const dashed = (svg.match(/stroke-dasharray/g) ?? []).length;
+    // the caption wraps over lines: compare without white space
+    const squash = (t) => t.replace(/\s+/g, "");
+    const CAPTION = ["Points show the mean of the replicates", "Dashed lines mark the IC50 (the concentration "
+      + "giving a response half-way between the fitted Top and Bottom)."].map(squash);
+    const svgAll = squash(texts.join(""));
+    expect(`${name}: the SVG export carries the drop lines (${split ? 3 : 2} dashed), the IC50 label and the legend in the figure`,
+      dashed >= (split ? 3 : 2) && texts.includes("IC50 = 1.040e-7 M") && CAPTION.every((c) => svgAll.includes(c)),
+      `${dashed} dashed; ${JSON.stringify(texts.slice(-6))}`);
+    const pdf = (await graphExport("pdf")).buf;
+    const runs = readPdf(pdf).runs.map((r) => r.text);
+    const pdfAll = squash(runs.join(""));
+    expect(`${name}: the PDF export draws the dashed drop lines and holds the IC50 label and the legend text`,
+      pdfDashes(pdf) >= (split ? 3 : 2) && runs.includes("IC50 = 1.040e-7 M") && CAPTION.every((c) => pdfAll.includes(c)),
+      `${pdfDashes(pdf)} dashed strokes`);
+  }
+}
+
 console.log("files in", tmp);
 console.log("errors:", errors.length ? errors : "none");
 await browser.close();

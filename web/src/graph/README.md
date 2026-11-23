@@ -276,7 +276,10 @@ axis at any zoom and takes no part in autorange; names `drop:<ds>:v` /
 `drop:<ds>:h`. Relative models use the range flags' midpoint and half
 response, the absolute IC50 models (Top + Baseline) / 2; a fit the
 results flag (ambiguous, beyond the doses tested) gets a legend sentence
-instead (`dropLegend`).
+instead (`dropLegend`). On a discontinuous Y axis the lines go on the
+segment holding the response (`gapSegment`; above the break the vertical
+line continues down the lower segment as `drop:<ds>:v2`); a response
+inside the break gets no lines and a legend sentence saying so.
 
 `caption` ("below" / "figure" / absent = folded) places the curve-fit
 legend, `sheets/xy/fitLegend.ts fitLegendClause`: the points and error

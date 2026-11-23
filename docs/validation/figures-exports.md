@@ -336,3 +336,32 @@ the option text in the P-25 and P-26 steps: "Scatter (points + mean ±
 SD)" under the t test, "Scatter (points + median with IQR)" and "Bar
 (median with IQR + points)" under Mann-Whitney (the selected kind still
 "scatter"), mean ± SD for the graph saved before, and the geometric bar.
+
+## IC50 drop lines on a broken Y axis, and in the exports (P-23, P-24)
+
+Drop lines were not drawn on a discontinuous Y axis (Format axes, a
+break from `from` to `to`), while the legend still said they marked the
+IC50. They now go on the segment that holds the response at the IC50
+(`sheets/xy/fitGraph.ts gapSegment`: up to the break, the lower segment
+"y"; from its end, the upper segment "y3"): the horizontal line on that
+segment's axis and, above the break, the vertical line to the upper
+segment's foot and on down the lower segment to the X axis (`drop:<ds>:v2`),
+broken at the break like the axis. A response inside the break gets no
+lines, and the legend and the in-figure caption say "No IC50 lines for
+Drug A: the response at the IC50 (50.42) falls in the break of the Y
+axis." On an axis without a break nothing changes (the
+same shapes as before).
+
+Reference: `engine/tests/reference/fit_graph.py`, the example fit:
+LogIC50 -6.98304, response 50.4181, IC50 1.040e-7 M.
+
+`fitGraph.test.ts` checks the three cases (above the break: y3 and the
+second vertical piece; below: as before; inside: none), the break's ends
+and the legend sentence. `scripts/e2e-figures.mjs` opens fits with a
+break from 15 to 35 (lines on yaxis3 at -6.98304, 50.4181, the second
+piece from the lower segment's top to the X axis) and from 40 to 60 (no
+lines, the reason in the legend). `scripts/e2e-export.mjs` exports a fit
+graph with drop lines, their label and the legend drawn in the figure,
+on a plain and on a broken axis, as SVG and as PDF: the dashed strokes
+(stroke-dasharray in the SVG, the PDF's "d" dash operator: 2 lines, 3 on
+the broken axis), "IC50 = 1.040e-7 M" and the caption's text are in both.
