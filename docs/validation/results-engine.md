@@ -1143,3 +1143,11 @@ regression to 1e-6 relative) and covers no or two control curves, a curve
 not shifted right, two and one antagonist points, a negative
 concentration, the same concentrations in nM (slope unchanged, intercept
 and pA2 move by 9 × slope and 9) and the curves in another order.
+
+Independent check (2026-11-23, by the lead): scipy.stats.linregress of
+log10(DR - 1) on log10[B] from the dose ratios as the card prints them
+(1.707, 3.796, 12.00, 30.87, 334.5 at 3e-8 to 1e-5 M) gives slope
+1.05030 (SE 0.03281), 95% CI 0.94589 to 1.15472 (t, 3 df), pA2 7.4252,
+R² 0.99708, P (slope = 1) 0.2228: the engine's values to the precision
+of the rounded ratios. Raincloud bandwidths by R's bw.nrd0 rule by hand
+(0.9 min(SD, IQR/1.34) n^-1/5): Control 1.06637, Treated A 0.657106.
