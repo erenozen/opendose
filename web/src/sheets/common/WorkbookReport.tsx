@@ -1,5 +1,5 @@
 import { Fragment } from "react";
-import { Banner, Button } from "../../components/ui";
+import { announce, Banner, Button } from "../../components/ui";
 import type { XlsxSheet } from "../../lib/engine";
 import "./dataNotes.css";
 
@@ -28,7 +28,7 @@ export default function WorkbookReport({ sheet, keepFiltered, skipHidden, onKeep
   const f = sheet?.flags;
   const parts: { key: string; text: string; warn?: boolean }[] = [];
   if (sheet && f === null) {
-    parts.push({ key: "unchecked", text: "hidden rows and formulas without saved values could not be checked in this workbook" });
+    parts.push({ key: "unchecked", warn: true, text: "hidden rows and formulas without saved values could not be checked in this workbook" });
   }
   if (f?.filterHidden.length) {
     const n = f.filterHidden.length;
@@ -70,11 +70,18 @@ export default function WorkbookReport({ sheet, keepFiltered, skipHidden, onKeep
           {(!!f?.filterHidden.length || !!f?.manualHidden.length) && (
             <Banner.Actions>
               {!!f?.filterHidden.length && (
-                <Button size="sm" onClick={() => onKeepFiltered(!keepFiltered)}>
+                <Button size="sm" onClick={() => {
+                  // the button's own label changes under focus: say what happened
+                  announce(keepFiltered ? "The filtered rows are left out." : "The filtered rows are imported.", "polite");
+                  onKeepFiltered(!keepFiltered);
+                }}>
                   {keepFiltered ? "Leave out the filtered rows" : "Keep the filtered rows"}</Button>
               )}
               {!!f?.manualHidden.length && (
-                <Button size="sm" onClick={() => onSkipHidden(!skipHidden)}>
+                <Button size="sm" onClick={() => {
+                  announce(skipHidden ? "The hidden rows are imported." : "The hidden rows are left out.", "polite");
+                  onSkipHidden(!skipHidden);
+                }}>
                   {skipHidden ? "Keep the hidden rows" : "Leave out the hidden rows"}</Button>
               )}
             </Banner.Actions>
