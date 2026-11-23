@@ -252,6 +252,12 @@ export const SRC = {
     url: "https://doi.org/10.3102/10769986016004371" },
   olejnikAlgina2003: { label: "Olejnik & Algina 2003, Generalized eta and omega squared statistics, Psychol Methods 8:434",
     url: "https://doi.org/10.1037/1082-989X.8.4.434" },
+  // Repeated-measures correlation (P-27): several pairs per subject are
+  // not independent; rm-corr gives the within-subject association.
+  bakdashMarusich2017: { label: "Bakdash & Marusich 2017, Repeated measures correlation, Front Psychol 8:456",
+    url: "https://doi.org/10.3389/fpsyg.2017.00456" },
+  blandAltman1995: { label: "Bland & Altman 1995, Calculating correlation coefficients with repeated observations: Part 1, correlation within subjects, BMJ 310:446",
+    url: "https://doi.org/10.1136/bmj.310.6977.446" },
 } satisfies Record<string, Source>;
 
 export type SourceKey = keyof typeof SRC;

@@ -19,6 +19,7 @@ import { pStackPayload } from "./pStack.ts";
 import { frequencyPayload } from "./frequency.ts";
 import { correlationXRequests } from "./correlationX.ts";
 import { mixedOptions, rmComparisonsSpec, fitsMixedModel } from "./rmPosthoc.ts";
+import { subjectLabels } from "./rmCorr.ts";
 
 export function runColumn(engine: EngineBridge, table: DataTableModel,
   o: ColumnOptionsState): Record<string, unknown> {
@@ -211,9 +212,12 @@ export function columnPayload(table: DataTableModel, o: ColumnOptionsState):
   if (o.analysis === "correlation") {
     // One-sided P values come with every result; corrTails only picks
     // which one the results show.
+    // a Subject role: repeated-measures correlation (rmCorr.ts)
+    const labels = subjectLabels(table, o.corrSubject, o.datasetA, o.datasetB);
     return { analysis: "correlation", ...base,
       options: { method: o.corrMethod,
-                 dataset_a: o.datasetA, dataset_b: o.datasetB } };
+                 dataset_a: o.datasetA, dataset_b: o.datasetB,
+                 ...(labels ? { subject_labels: labels } : {}) } };
   }
   if (o.analysis === "two_way_anova") {
     // "All cell means" are compared by runColumn (one-way on the cells).

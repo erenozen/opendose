@@ -5,6 +5,7 @@
 // df), a one-line caveat says so. Pure, unit-tested.
 import { numericData } from "../project/table.ts";
 import type { DataTableModel } from "../project/types.ts";
+import { subjectLabels } from "../sheets/column/rmCorr.ts";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type R = Record<string, any>;
@@ -205,6 +206,28 @@ function oneWaySnippet(r: R, d: Data): Snippet {
 
 function none(): Snippet { return { r: "", python: "", caveats: [] }; }
 
+/** Repeated-measures correlation: x, y and the subject of each row with a
+ *  value in both (sheets/column/rmCorr.ts names the subjects). */
+function rmCorrSnippet(d: Data, table: DataTableModel, o: R, a: number, b: number): Snippet {
+  const labels = subjectLabels(table, o.corrSubject, a, b) ?? [];
+  const xs: number[] = [], ys: number[] = [], ss: string[] = [];
+  (d.aligned[a] ?? []).forEach((x, i) => {
+    const y = d.aligned[b]?.[i];
+    if (x === null || y === null || y === undefined || !labels[i]) return;
+    xs.push(x); ys.push(y); ss.push(labels[i]);
+  });
+  return {
+    r: `d <- data.frame(x = c(${xs.join(", ")}), y = c(${ys.join(", ")}),\n`
+      + `                subject = factor(c(${ss.map(rStr).join(", ")})))\n`
+      + "rmcorr::rmcorr(participant = subject, measure1 = x, measure2 = y, dataset = d)",
+    python: `${PY_HEAD}\nimport pingouin as pg\n`
+      + `df = pd.DataFrame({"x": [${xs.join(", ")}], "y": [${ys.join(", ")}],\n`
+      + `                   "subject": [${ss.map(pyStr).join(", ")}]})\n`
+      + `print(pg.rm_corr(data=df, x="x", y="y", subject="subject"))`,
+    caveats: ["Pingouin and rmcorr give the CI to 2 decimals; subjects with one pair add nothing."],
+  };
+}
+
 /**
  * R and Python code reproducing a result. `analysis` is the results
  * sheet's analysis id (for analyses whose result does not say what it is).
@@ -280,6 +303,7 @@ export function snippetsFor(result: unknown, options: unknown, table: DataTableM
       }
       case "correlation": {
         const a = o.datasetA ?? 0, b = o.datasetB ?? 1;
+        if (r.method === "rm_corr") return rmCorrSnippet(d, table, o, a, b);
         const v = vectors(d.names, d.aligned, [a, b]);
         const sp = r.method === "spearman";
         return {

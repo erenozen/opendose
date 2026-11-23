@@ -16,6 +16,7 @@ import EquivalenceControls from "../sheets/common/EquivalenceControls";
 import { equivalenceApplies, equivalenceScale } from "../sheets/column/run";
 import RmPosthocControls from "../sheets/column/rmPosthocControls";
 import { OrderedTrendOption } from "../sheets/column/OrderedTrend";
+import { SubjectRoleSelect } from "../sheets/column/RmCorr";
 import { isFdrMethod, P_STACK_METHODS, type PStackMethod } from "../sheets/column/pStack";
 import "../sheets/column/logScale.css";
 
@@ -490,6 +491,9 @@ export default function ColumnControls({ options, datasetNames, onChange, summar
           )}
           {!(xyTable && options.corrWithX) && pickDataset("Dataset A", options.datasetA, "datasetA")}
           {!(xyTable && options.corrWithX) && pickDataset("Dataset B", options.datasetB, "datasetB")}
+          {!(xyTable && options.corrWithX) && (
+            <SubjectRoleSelect options={options} datasetNames={datasetNames} onChange={onChange} />
+          )}
         </section>
       )}
 

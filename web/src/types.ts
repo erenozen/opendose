@@ -426,6 +426,10 @@ export interface ColumnOptionsState {
   /** Correlation: also report a one-sided P (and bound) in the stated
    *  direction (R's cor.test alternative = "greater" / "less"). */
   corrTails?: "two" | "greater" | "less";
+  /** Correlation: the Subject role ("" none, "rows" the row titles, "d<i>"
+   *  data set i holds subject IDs): repeated-measures correlation
+   *  (sheets/column/rmCorr.ts). */
+  corrSubject?: string;
   /** Two-group tests: also show a one-tailed P in a stated direction
    *  ("greater": A larger than B; engine p_greater / p_less). */
   ttestTails?: "two" | "greater" | "less";

@@ -697,6 +697,37 @@ await page.waitForSelector('.pane-results[data-live="true"] .results-table', { t
   expect("P-45 a value other than 0 or 1 is named with its row and column", named);
 }
 
+// --- P-27: repeated-measures correlation ----------------------------------
+{
+  // engine/tests/reference/rm_corr.py: Bland & Altman 1995, 47 pH / PaCO2
+  // pairs of 8 subjects; pingouin rm_corr r = -0.5068, df = 38, P 8.471e-4,
+  // 95% CI -0.71 to -0.23 (engine -0.7067 to -0.2319)
+  const ref = JSON.parse(readFileSync(join(here, "../../engine/tests/reference/rm_corr.json"), "utf8"));
+  await pastedTable("column", "pH and PaCO2", "pH\tPaCO2\tSubject\n"
+    + ref.x.map((x, i) => `${x}\t${ref.y[i]}\t${ref.subject[i]}`).join("\n") + "\n");
+  const controls = page.locator(".pane-controls");
+  await controls.locator("select.analysis-select").selectOption("correlation");
+  await liveResults(/Correlation: pH vs\. PaCO2/);
+  await openChecks();
+  const chip = page.locator(".pane-answer").getByRole("button", { name: /Subjects ignored/ });
+  expect("P-27 a chip says the Subject column is ignored by the plain correlation", await appears(chip));
+  await controls.getByRole("combobox", { name: "Subject" }).selectOption("d2");
+  await liveResults(/Repeated-measures correlation: pH vs\. PaCO2/);
+  const row = async (label) => (await page.locator(".pane-results tr", { hasText: label }).first()
+    .innerText().catch(() => "")).replace(/\s+/g, " ").trim();
+  const [r, ci, df, p] = [await row("Repeated-measures r"), await row("CI of r_rm"),
+    await row("df"), await row("P value (two-tailed)")];
+  expect("P-27 acceptance: rm-corr r = -0.5068, its 95% CI -0.7067 to -0.2319 and df = 38",
+    r === "Repeated-measures r (r_rm) -0.5068" && ci === "95% CI of r_rm (Fisher z) -0.7067 to -0.2319"
+      && df === "df 38" && p === "P value (two-tailed) 8.471e-4 ***", [r, ci, df, p].join(" | "));
+  const scope = await page.locator(".pane-results .model-line", { hasText: "Within subjects only" })
+    .first().innerText().catch(() => "");
+  expect("P-27 the results say rm-corr measures the within-subject association only",
+    /does not say whether subjects with higher pH have higher PaCO2/.test(scope), scope);
+  expect("P-27 with the Subject role set, the chip is gone",
+    await page.locator(".pane-answer").getByRole("button", { name: /Subjects ignored/ }).count() === 0);
+}
+
 // ------------------------------------------------------------------------
 await browser.close();
 if (errors.length) console.log(errors.slice(0, 10).join("\n"));

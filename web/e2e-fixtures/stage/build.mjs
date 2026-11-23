@@ -510,6 +510,14 @@ const longData = (name, names, rows, categorical) => data(name, {
   const t5 = data("Three stains", table("column", { datasets: cq.names.map((nm, j) =>
     col(nm, cq.data.map((row) => row[j]))) }));
   const r5 = results(t5, "column", { analysis: "cochran_q" }, "Cochran's Q of Three stains");
-  write("rm-reporting.json", project("RM reporting", [t, r, t2, r2, t3, r3, t4, r4, t5, r5],
-    { selected: r.id }));
+  // P-27 (engine/tests/reference/rm_corr.py): Bland & Altman's pH and
+  // PaCO2 with a Subject column, under repeated-measures correlation
+  const rc = JSON.parse(readFileSync(join(here, "../../../engine/tests/reference",
+    "rm_corr.json"), "utf8"));
+  const t6 = data("pH and PaCO2", table("column", { datasets: [
+    col("pH", rc.x), col("PaCO2", rc.y), col("Subject", rc.subject)] }));
+  const r6 = results(t6, "column", { analysis: "correlation", corrSubject: "d2" },
+    "Correlation of pH and PaCO2");
+  write("rm-reporting.json", project("RM reporting",
+    [t, r, t2, r2, t3, r3, t4, r4, t5, r5, t6, r6], { selected: r.id }));
 }

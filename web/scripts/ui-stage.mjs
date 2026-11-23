@@ -1021,6 +1021,15 @@ const scenes = [
     await h.first().evaluate((el) => el.scrollIntoView({ block: "start" }));
     await settle(s, 800);
   } },
+  { name: "results-rm-corr", setup: async (s) => {
+    // P-27: repeated-measures correlation with its Subject role
+    await fixture(s, "rm-reporting.json", { live: true });
+    await selectSheet(s, "Correlation of pH and PaCO2");
+    const h = s.page.locator(".pane-results h3", { hasText: "Repeated-measures correlation" });
+    await h.waitFor({ timeout: 240000 });
+    await h.first().evaluate((el) => el.scrollIntoView({ block: "start" }));
+    await settle(s, 800);
+  } },
   { name: "graphs-schild", setup: async (s) => {
     await fixture(s, "schild.json", { live: true });
     await selectSheet(s, /^Schild plot of EC50 shift/);

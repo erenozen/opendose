@@ -168,6 +168,11 @@ function testSentence(o: ColumnOptionsState, r: R): string {
         return `X was correlated with each of ${n} Y data set${n === 1 ? "" : "s"} by the ${name} with a two-tailed P value${tails}`
           + `${r.replicates_averaged ? "; replicate Y values were averaged per row" : ""}.`;
       }
+      if (r.method === "rm_corr") {
+        return `X and Y were correlated within subjects by repeated-measures correlation `
+          + `(Bakdash & Marusich 2017; ${r.n} XY pairs from ${r.n_subjects} subjects, `
+          + `r_rm(${r.df}) = ${formatSig(r.r)}, ${P(r.p_two_tailed)}).`;
+      }
       return `Correlation was computed as the ${name} with a two-tailed P value${tails}.`;
     }
     case "roc": return "The area under the ROC curve was computed with its SE and confidence interval (DeLong).";

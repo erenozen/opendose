@@ -1099,6 +1099,39 @@ def _correlation(data, options):
     incomplete_pairs (0-based row indices) with a warning."""
     cols, names = _flatten_columns(data)
     ia, ib = options.get("dataset_a", 0), options.get("dataset_b", 1)
+    labels = options.get("subject_labels")
+    if labels is not None:
+        # options.subject_labels: one subject per row (row titles or a
+        # column of IDs): the repeated-measures correlation
+        # (correlation.rm_corr), every subcolumn of a row in its subject
+        xs, ys, ss = [], [], []
+        da, db = data["datasets"][ia]["ys"], data["datasets"][ib]["ys"]
+        for r in range(max(len(da), len(db))):
+            ra = da[r] if r < len(da) else []
+            rb = db[r] if r < len(db) else []
+            for c in range(max(len(ra or []), len(rb or []))):
+                x = ra[c] if c < len(ra or []) else None
+                y = rb[c] if c < len(rb or []) else None
+                if _is_missing(x) and _is_missing(y):
+                    continue
+                xs.append(None if _is_missing(x) else x)
+                ys.append(None if _is_missing(y) else y)
+                ss.append(labels[r] if r < len(labels) else None)
+        result = correlation.rm_corr(xs, ys, ss,
+                                     ci_level=options.get("ci_level", 0.95))
+        result["names"] = [names[ia], names[ib]]
+        notes = []
+        if result["pairs_left_out"]:
+            notes.append(f"{result['pairs_left_out']} XY pair"
+                         f"{'s' if result['pairs_left_out'] != 1 else ''} "
+                         "with a missing value or no subject left out")
+        if result["subjects_single_pair"]:
+            notes.append("subjects with a single XY pair left out (no "
+                         "within-subject information): "
+                         + ", ".join(result["subjects_single_pair"]))
+        if notes:
+            result["warnings"] = notes
+        return {"analysis": "correlation", **result}
     va, vb, incomplete = _pair_cells(data, ia, ib)
     result = correlation.correlate(va, vb,
                                    method=options.get("method", "pearson"))

@@ -14,6 +14,7 @@ import { separateTestsChip, type SeparateTests } from "./interaction.ts";
 import { sensitivityChip, type NeededN, type Sensitivity } from "./smallN.ts";
 import { SRC, type Source } from "./sources.ts";
 import { replicateInfo } from "../sheets/common/superplot.ts";
+import { ignoredSubjects } from "../sheets/column/rmCorr.ts";
 
 export type ChipState = "ok" | "warn" | "bad" | "info";
 
@@ -297,6 +298,21 @@ function sphericityChip(r: R | null): Chip | null {
     : { id: "sphericity", label: `Sphericity: ε = ${fmt(eps)}`, state: "ok",
       detail: `Geisser-Greenhouse ε = ${fmt(eps)}: close to sphericity. The corrected P is `
         + "reported either way." + tests, explainer: "sphericity", ...(sources ? { sources } : {}) };
+}
+
+/** A correlation that ignores subjects the table names (repeated row
+ *  titles or an ID column): rows of one subject are not independent. */
+function subjectsChip(ctx: ResultContext): Chip | null {
+  const o = ctx.options;
+  if (o.corrSubject || o.corrWithX) return null;
+  const hit = ignoredSubjects(ctx.table, Number(o.datasetA ?? 0), Number(o.datasetB ?? 1));
+  if (!hit) return null;
+  return { id: "subjects", label: "Subjects ignored", state: "warn",
+    detail: `Several rows seem to share a subject (${hit.where}), but this correlation treats `
+      + "every row as an independent subject, which overstates n "
+      + "and mixes within- and between-subject association. Set Subject in the options for a "
+      + "repeated-measures correlation (within subjects only).",
+    sources: [SRC.bakdashMarusich2017, SRC.blandAltman1995] };
 }
 
 function zeroVarianceChip(groups: GroupCheck[]): Chip | null {
@@ -644,6 +660,7 @@ export function resultChips(ctx: ResultContext): Chip[] {
       : normalityChip(groups, kind, !!r.residual_check && !(r.residual_check as R).unavailable),
     equalSdChip(ctx, groups, kind),
     kind === "rm_anova" || kind === "rm_two_way" ? sphericityChip(r) : null,
+    kind === "correlation" ? subjectsChip(ctx) : null,
     zeroVarianceChip(groups),
     missingChip(ctx, kind),
     outlierChip(ctx, kind),

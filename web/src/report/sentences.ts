@@ -411,11 +411,19 @@ function multiTSentences(r: R, f: Fmt, prefs: Pick<ReportPrefs, "smd" | "varianc
 
 function correlationSentence(r: R, f: Fmt): string {
   const [a, b] = Array.isArray(r.names) ? r.names : ["X", "Y"];
+  const rm = r.method === "rm_corr";
   const sym = r.method === "spearman" ? (f.style === "apa" ? "rs" : "Spearman r")
     : r.method === "kendall" ? (f.style === "apa" ? "τb" : "Kendall's tau-b")
-      : (f.style === "apa" ? "r" : "Pearson r");
+      : rm ? (f.style === "apa" ? "r_rm" : "repeated-measures r")
+        : (f.style === "apa" ? "r" : "Pearson r");
   const c = ci2(r.ci_r);
-  const df = num(r.n) && r.method !== "kendall" ? r.n - 2 : null;
+  // rm-corr: N - subjects - 1 df, within subjects only
+  const df = rm ? r.df : num(r.n) && r.method !== "kendall" ? r.n - 2 : null;
+  if (rm) {
+    return `${cap(a)} and ${b} within subjects: ${sym}${num(df) ? `(${df})` : ""} = ${f.n(r.r, f.style === "apa")}`
+      + `${c ? `, ${f.ci(c, 0.95, f.style === "apa")}` : ""}, ${f.p(r.p_two_tailed)} (two-tailed; `
+      + `${r.n} pairs from ${r.n_subjects} subjects; the association within subjects only).`;
+  }
   if (f.style === "nejm") {
     return `${cap(a)} and ${b} were correlated (${sym}, ${f.n(r.r, true)}${c ? `; ${f.ci(c, 0.95, true)}` : ""}; ${f.p(r.p_two_tailed)}, two-tailed; ${r.n} pairs).`;
   }

@@ -14,6 +14,7 @@ import { rmComparisonsOf } from "../sheets/column/rmPosthoc";
 import SphericityTable from "../sheets/common/SphericityTable";
 import { OrderedTrendResults } from "../sheets/column/OrderedTrend";
 import CochranQ from "../sheets/column/CochranQ";
+import { RmCorrResults } from "../sheets/column/RmCorr";
 
 interface Props {
   result: Record<string, unknown> | null;
@@ -570,6 +571,7 @@ function Outliers({ result }: { result: any }) {
 }
 
 function Correlation({ result, tails }: { result: any; tails?: "two" | "greater" | "less" }) {
+  if (result.method === "rm_corr") return <RmCorrResults result={result} />;
   const [a, b] = result.names ?? ["A", "B"];
   const kendall = result.method === "kendall";
   const name = result.method === "pearson" ? "Pearson r"

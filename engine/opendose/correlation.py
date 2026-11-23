@@ -244,6 +244,72 @@ def kendall(values_a, values_b, *, ci_level: float = 0.95) -> dict:
     return out
 
 
+# ------------------------------------------ repeated-measures correlation
+
+def rm_corr(values_x, values_y, subjects, *, ci_level: float = 0.95) -> dict:
+    """Repeated-measures correlation (Bakdash & Marusich 2017, Front
+    Psychol 8:456; Bland & Altman 1995, BMJ 310:446): the common
+    within-subject slope of an ANCOVA y ~ subject + x, as a correlation.
+    With x and y centred on each subject's own means,
+    r_rm = sum(x_w y_w) / sqrt(sum x_w^2 sum y_w^2), which equals
+    sign(slope) sqrt(SS_x / (SS_x + SS_residual)) of that ANCOVA, on
+    df = N - k - 1 (N pairs, k subjects); P from t = r sqrt(df / (1 -
+    r^2)); CI by Fisher's z with SE 1 / sqrt(df - 1) (pingouin rm_corr;
+    R rmcorr). It measures the association within subjects only, not
+    between them. Pairs missing a value or a subject are left out;
+    subjects with a single pair carry no within-subject information and
+    are left out too (and counted)."""
+    keep = [(float(x), float(y), str(s)) for x, y, s in
+            zip(values_x, values_y, subjects)
+            if x is not None and y is not None and s is not None
+            and str(s).strip() != ""
+            and math.isfinite(float(x)) and math.isfinite(float(y))]
+    groups: dict = {}
+    for x, y, s in keep:
+        groups.setdefault(s.strip(), []).append((x, y))
+    single = sorted(s for s, v in groups.items() if len(v) < 2)
+    used = {s: v for s, v in groups.items() if len(v) >= 2}
+    k = len(used)
+    N = sum(len(v) for v in used.values())
+    if k < 2:
+        raise ValueError("repeated-measures correlation needs at least 2 "
+                         "subjects with 2 or more XY pairs each")
+    df = N - k - 1  # >= 1: every subject kept has 2 or more pairs
+    xw, yw = [], []
+    for v in used.values():
+        a = np.array(v)
+        xw.append(a[:, 0] - a[:, 0].mean())
+        yw.append(a[:, 1] - a[:, 1].mean())
+    xw, yw = np.concatenate(xw), np.concatenate(yw)
+    sxx, syy = float(xw @ xw), float(yw @ yw)
+    if not (sxx > 0 and syy > 0):
+        raise ValueError("repeated-measures correlation is undefined: X or "
+                         "Y does not vary within any subject")
+    r = float(np.clip((xw @ yw) / math.sqrt(sxx * syy), -1.0, 1.0))
+    slope = float((xw @ yw) / sxx)
+    if abs(r) < 1:
+        t = r * math.sqrt(df / (1 - r * r))
+        p = float(2 * stats.t.sf(abs(t), df))
+    else:
+        t, p = math.copysign(math.inf, r), 0.0
+    ci = None
+    if df > 1 and abs(r) < 1:
+        zc = float(stats.norm.ppf(0.5 + ci_level / 2))
+        z, se = math.atanh(r), 1 / math.sqrt(df - 1)
+        ci = [math.tanh(z - zc * se), math.tanh(z + zc * se)]
+    return {"method": "rm_corr", "r": r, "df": int(df), "t": float(t),
+            "p_two_tailed": p, "ci_r": ci, "ci_level": ci_level,
+            "slope": slope, "n": int(N), "n_subjects": int(k),
+            "subjects_single_pair": single,
+            "pairs_left_out": len(values_x) - len(keep),
+            "r_squared": r * r,
+            "effect_size": _r_effect(r, ci),
+            "scope": ("the association within subjects (the common "
+                      "slope after removing each subject's mean); it says "
+                      "nothing about whether subjects with higher X have "
+                      "higher Y")}
+
+
 def _r_effect(r, ci) -> dict:
     return {"r_squared": r * r if math.isfinite(r) else None,
             "ci_r_squared": effectsize.r_squared_interval(ci),

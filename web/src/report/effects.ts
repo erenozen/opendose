@@ -314,7 +314,9 @@ export function effectGroups(result: unknown,
   if (r.analysis === "correlation" && num(r.r)) {
     const it = interp(es.interpretation);
     list.unshift(...rows({ ci_level: es.ci_level ?? 0.95 }, [{
-      id: "r", measure: r.method === "spearman" ? "Spearman r" : "Pearson r", symbol: "r",
+      id: "r", measure: r.method === "spearman" ? "Spearman r"
+        : r.method === "rm_corr" ? "Repeated-measures r" : "Pearson r",
+      symbol: r.method === "rm_corr" ? "r_rm" : "r",
       family: "correlation", value: r.r, ci: r.ci_r, ciMethod: "Fisher z",
       interpretation: it, bounded: true,
     }]));

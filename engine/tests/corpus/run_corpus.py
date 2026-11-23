@@ -3893,6 +3893,38 @@ answer everywhere do not change Q; a missing value drops its subject with
 a warning; a 2, a 0.5, all-equal answers, one subject and two conditions
 each give a specific sentence; a pair with no discordant subjects has
 P = 1; Q for 500 subjects x 4 equals the closed form.
+
+### P-27 Repeated-measures correlation
+
+`correlation.rm_corr`, reached through the `correlation` handler with
+`options.subject_labels` (one subject per row: the row titles or a column
+of IDs, set as the Subject role in the app): x and y centred on each
+subject's own means, r_rm = sum(x_w y_w) / sqrt(sum x_w^2 sum y_w^2),
+which is the common within-subject slope of the ANCOVA y ~ subject + x
+expressed as a correlation (Bakdash & Marusich 2017), on df = N - k - 1;
+P from t on those df; 95% CI by Fisher's z with SE 1 / sqrt(df - 1) (as
+pingouin and R rmcorr). It measures the association within subjects
+only, and the results say so. Pairs missing a value or a subject are
+left out and counted; subjects with a single pair carry no within-subject
+information and are left out by name. When the table names subjects (row
+titles that repeat, or a column whose name says it holds IDs) and a plain
+correlation ignores them, the Checks row says so.
+
+Reference: `engine/tests/reference/rm_corr.py` (pingouin 0.7 `rm_corr`;
+statsmodels OLS PaCO2 ~ C(Subject) + pH with type II anova_lm; R is not
+installed) on Bland & Altman's (1995) pH / PaCO2 data (47 observations,
+8 subjects; pingouin's "rm_corr" dataset). `engine/tests/test_rm_corr.py`:
+
+| Input | Reference | Engine tolerance |
+|---|---|---|
+| Bland & Altman 1995 (the plan's test) | r_rm = -0.506770 (ANCOVA: the same), df = 38, P = 8.4711e-4, slope -2.37083; 95% CI -0.71 to -0.23 (pingouin and the published values, 2 decimals; engine -0.70671 to -0.23186) | 1e-9 (P 1e-8; CI 0.005) |
+
+Also tested: text subject IDs and shuffled rows give the same r; r is
+unchanged by units and symmetric in X and Y; ignoring the subjects gives
+df = 45 and another r; missing values, blank subjects and single-pair
+subjects are left out with a warning; one subject, and X constant within
+every subject, each give a sentence; a perfect within-subject line gives
+r = 1, P = 0 and no CI.
 """
 
 
