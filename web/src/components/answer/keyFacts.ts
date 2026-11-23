@@ -14,6 +14,9 @@ import { pLabel, tableP } from "../../report/pformat.ts";
 import { fitAmbiguous } from "../../guide/checks.ts";
 import { withheldInfo, withheldPhrase } from "../../sheets/common/withheld.ts";
 import {
+  equivalenceCI, equivalenceEstimate, equivalenceVerdict, estimateLabel, hasEquivalence, marginText,
+} from "../../report/equivalence.ts";
+import {
   NOT_REACHED, displayOf, isLogMidpoint, isMidpoint, rangeHidesSpread,
 } from "../../sheets/xy/rangeReport.ts";
 
@@ -33,6 +36,9 @@ export interface KeyFigure {
   demoted?: string;
   /** A qualifier read with the figure ("not reached in the range tested"). */
   note?: string;
+  /** The value is words with numbers in them (an equivalence verdict):
+   *  it may wrap between words, never inside a number. */
+  words?: boolean;
 }
 
 export interface KeyItem {
@@ -134,10 +140,26 @@ function fitFacts(r: R, xUnit: string): KeyFacts {
 const ci = (c: unknown): string | undefined => (Array.isArray(c) && c.length === 2
   ? `${formatSig(c[0] as number)} to ${formatSig(c[1] as number)}` : undefined);
 
+/** An equivalence or non-inferiority test (report/equivalence.ts): the
+ *  verdict answers the question asked, with the 90% CI and P_TOST. */
+function equivalenceFigure(e: R, a: string, b: string): KeyFigure {
+  const ni = e.kind === "noninferiority";
+  return {
+    name: `${ni ? "Non-inferiority" : "Equivalence"} of ${estimateLabel(e, a, b)}, margin ${marginText(e)}`,
+    value: equivalenceVerdict(e, a, b), words: true,
+    ci: equivalenceCI(e),
+    facts: [`${e.scale === "ratio" ? "Ratio" : "Difference"} ${formatSig(equivalenceEstimate(e))}`,
+      `${pLabel(e.p)} (${ni ? "one-sided test" : "TOST"})`],
+  };
+}
+
 /** t tests: the difference with its CI, then P. */
 function ttestFacts(r: R): KeyFacts {
-  if (r.ratio != null && r.log_scale) return null;
   const [a, b] = (r.names ?? ["A", "B"]) as string[];
+  if (hasEquivalence(r.equivalence)) {
+    return { kind: "figures", items: [{ title: `${a} vs. ${b}`, figure: equivalenceFigure(r.equivalence, a, b) }] };
+  }
+  if (r.ratio != null && r.log_scale) return null;
   const p = `${pLabel(r.p_two_tailed)} (two-tailed)`;
   let fig: KeyFigure;
   if (typeof r.difference === "number") {

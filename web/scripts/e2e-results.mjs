@@ -2,8 +2,10 @@
 // residual plots for curve fits and ANOVA models in the Checks row (P-11),
 // the smallest P a rank test can reach (P-15), the "Analysed" line of
 // regression, Cox and contingency results (P-16) and the ratio to control
-// with its Fieller CI (P-18). Each number asserted here is pinned in the
-// engine tests from an independent reference (engine/tests/reference/).
+// with its Fieller CI (P-18); and the tests of wave 1: equivalence (P-12),
+// comparing regression lines (P-13), pairs of rows of a contingency table
+// (P-14) and two event rates (P-47). Each number asserted here is pinned in
+// the engine tests from an independent reference (engine/tests/reference/).
 // Usage: node scripts/e2e-results.mjs [http://localhost:5173/]
 import { chromium } from "playwright";
 import { readFileSync } from "node:fs";
@@ -234,6 +236,55 @@ await page.waitForSelector('.pane-results[data-live="true"] .results-table', { t
       && rows[0] === "Low vs. Control 0.924 92.4% 0.8491 to 1.005"
       && rows[1] === "Mid vs. Control 0.8067 80.67% 0.7396 to 0.8791"
       && rows[2] === "High vs. Control 0.65 65% 0.5839 to 0.7204", rows.join(" | "));
+}
+
+// --- P-12: equivalence and non-inferiority (two one-sided tests) ----------
+{
+  // engine/tests/reference/equivalence_tost.py (statsmodels ttost_ind):
+  // means 10.2 and 10.0, SD 0.5, n = 8 each; 90% CI -0.2403 to 0.6403;
+  // margin ±1: P_TOST 0.003210 (equivalent); ±0.5: 0.1250 (not shown)
+  await pastedTable("column", "Equivalence",
+    "A\tB\n10.8\t10.6\n10.75\t10.55\n10.55\t10.35\n10.5\t10.3\n9.6\t9.4\n9.65\t9.45\n9.85\t9.65\n9.9\t9.7\n");
+  const controls = page.locator(".pane-controls");
+  await controls.locator("select.analysis-select").selectOption("ttest");
+  await liveResults(/Difference between means/);
+  await controls.getByLabel("Equivalence test").selectOption("equivalence");
+  await controls.getByLabel(/^Margin/).fill("1");
+  const ok1 = await answerText(/Equivalent within ±1/);
+  const fig = (await page.locator(".pane-answer .answer-figure").first().innerText().catch(() => "")).trim();
+  const ciLine = (await page.locator(".pane-answer .answer-ci").first().innerText().catch(() => "")).trim();
+  expect("P-12 acceptance: the answer pane says 'Equivalent within ±1'",
+    ok1 && fig === "Equivalent within ±1", fig);
+  expect("P-12 the 90% CI in the headline is -0.2403 to 0.6403 (statsmodels reference)",
+    ciLine === "90% CI -0.2403 to 0.6403", ciLine);
+  const row = async (label) => (await page.locator(".pane-results .equivalence-table tr", { hasText: label }).first()
+    .innerText().catch(() => "")).replace(/\s+/g, " ").trim();
+  const ptost = await row("P (TOST");
+  expect("P-12 P (TOST) 0.003210 at ±1", /^P \(TOST, the larger one-sided P\) 0\.00321\d?$/.test(ptost), ptost);
+  const lowT = await row("Null hypothesis A − B ≤ -1");
+  expect("P-12 the lower one-sided test: t = 4.8, P = 1.413e-4",
+    lowT === "Null hypothesis A − B ≤ -1 t = 4.8, P = 1.413e-4", lowT);
+  // the CI drawn inside the margin lines
+  const geom = await page.locator(".pane-results .equivalence-strip").first().evaluate((svg) => {
+    const m = [...svg.querySelectorAll(".eq-margin")].map((l) => Number(l.getAttribute("x1")));
+    const c = svg.querySelector(".eq-ci");
+    return { m, lo: Number(c.getAttribute("x1")), hi: Number(c.getAttribute("x2")) };
+  }).catch(() => null);
+  expect("P-12 the 90% CI sits inside the margin lines",
+    !!geom && geom.m.length === 2 && geom.m[0] < geom.lo && geom.hi < geom.m[1], JSON.stringify(geom));
+  await openChecks();
+  expect("P-12 the Checks row names the margin and asks when it was set",
+    await appears(page.locator(".pane-answer").getByText("Equivalence margin ±1: set before looking at the data?")));
+
+  await controls.getByLabel(/^Margin/).fill("0.5");
+  const ok2 = await answerText(/Not shown to be equivalent/);
+  const p2 = await (async () => { await liveResults(/±0\.5/); return row("P (TOST"); })();
+  expect("P-12 acceptance: margin ±0.5 reads 'Not shown to be equivalent', P (TOST) 0.125",
+    ok2 && /0\.125\d*$/.test(p2), p2);
+  const reading = await page.locator(".pane-results .equivalence-results .model-line").first().innerText().catch(() => "");
+  expect("P-12 a failed TOST is not read as a difference",
+    /does not show that the groups differ/.test(reading) && !/significantly different/.test(reading), reading.slice(0, 120));
+  await controls.getByLabel("Equivalence test").selectOption("off");
 }
 
 // ------------------------------------------------------------------------

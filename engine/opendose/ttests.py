@@ -98,6 +98,83 @@ def one_sided_t(est: float, se: float, df: float, ci_level: float = 0.95
             "ci_greater": [est - q * se, None], "ci_less": [None, est + q * se]}
 
 
+#: log functions of the bases a log-scale or ratio test may use
+_LOG = {"log10": math.log10, "ln": math.log, "log2": math.log2}
+_EXP = {"log10": lambda v: 10.0 ** v, "ln": math.exp,
+        "log2": lambda v: 2.0 ** v}
+
+TOST_SOURCE = ("Schuirmann DJ (1987) J Pharmacokinet Biopharm 15:657; "
+               "as statsmodels ttost_ind / ttost_paired")
+
+
+def tost(estimate: float, se: float, df: float, lower=None, upper=None, *,
+         alpha: float = 0.05, scale: str = "difference",
+         log_base: str = "log10") -> dict:
+    """Two one-sided tests (Schuirmann 1987) of an estimate with standard
+    error se and df degrees of freedom against the equivalence margins
+    (lower, upper). The lower test rejects H0: estimate <= lower (t =
+    (estimate - lower) / se, P = P(T > t)), the upper test H0: estimate
+    >= upper (P = P(T < t)), each one-sided at alpha. Equivalence is
+    shown when both reject: P_TOST, the larger of the two P values, is
+    below alpha, which happens exactly when the 1 - 2 alpha confidence
+    interval lies inside (lower, upper). With only one margin the result
+    is a non-inferiority test (the one test, at one-sided alpha; its
+    decision is that of the same interval's limit on that side).
+
+    scale "ratio": the estimate, se and the interval are on the log scale
+    (log_base, as the analysis ran), the margins are ratios (> 0) and
+    are logged here; the interval and the margins are also reported back
+    as ratios ("ratio", "ci_ratio"). df may be math.inf (a z test)."""
+    if lower is None and upper is None:
+        raise ValueError("give an equivalence margin")
+    if not 0 < alpha < 0.5:
+        raise ValueError("alpha must be between 0 and 0.5")
+    margins = [lower, upper]
+    if scale == "ratio":
+        if any(m is not None and not m > 0 for m in margins):
+            raise ValueError("ratio margins must be positive")
+        log = _LOG[log_base]
+        margins = [None if m is None else log(m) for m in margins]
+    elif scale != "difference":
+        raise ValueError(f"unknown margin scale: {scale}")
+    lo, hi = margins
+    if lo is not None and hi is not None and not lo < hi:
+        raise ValueError("the lower margin must be below the upper margin")
+    tests = {}
+    for side, m in (("lower", lo), ("upper", hi)):
+        if m is None:
+            tests[side] = None
+            continue
+        one = one_sided_t(estimate - m, se, df, 1 - alpha)
+        t_stat = (estimate - m) / se if se > 0 else (
+            math.copysign(math.inf, estimate - m) if estimate != m else 0.0)
+        p = one["p_greater"] if side == "lower" else one["p_less"]
+        if p is None:   # estimate on the margin with no spread
+            p = 1.0
+        tests[side] = {"margin": m, "t": t_stat, "p": p}
+    q = float(stats.t.ppf(1 - alpha, df)) if math.isfinite(df) else \
+        float(stats.norm.ppf(1 - alpha))
+    ci = [estimate - q * se, estimate + q * se]
+    p_tost = max(t["p"] for t in tests.values() if t is not None)
+    out = {
+        "kind": ("equivalence" if lo is not None and hi is not None
+                 else "noninferiority"),
+        "scale": scale, "alpha": alpha, "ci_level": 1 - 2 * alpha,
+        "lower": lower, "upper": upper,
+        "estimate": estimate, "se": se,
+        "df": float(df) if math.isfinite(df) else None,
+        "ci": ci,
+        "test_lower": tests["lower"], "test_upper": tests["upper"],
+        "p": p_tost, "shown": bool(p_tost < alpha),
+        "source": TOST_SOURCE,
+    }
+    if scale == "ratio":
+        exp = _EXP[log_base]
+        out.update(log_base=log_base, ratio=exp(estimate),
+                   ci_ratio=[exp(ci[0]), exp(ci[1])])
+    return out
+
+
 def unpaired_t(values_a, values_b, *, welch: bool = False,
                ci_level: float = 0.95) -> dict:
     a, b = _clean(values_a), _clean(values_b)

@@ -3,6 +3,7 @@ import { pLabel, tableP, tableStars } from "../report/pformat";
 import { adjustedHeader, familyOf, hasUnadjusted } from "../report/family";
 import { FIELLER_SOURCE, ratioText } from "../report/ratioToControl";
 import FamilyLine from "../sheets/common/FamilyLine";
+import EquivalenceResults from "../sheets/common/EquivalenceResults";
 import ResidualsSection from "../sheets/column/residualsPanel";
 import { LogAnovaRatios, LogTTest } from "../sheets/column/logScaleResults";
 import { onLogScale } from "../sheets/column/logScale";
@@ -225,6 +226,10 @@ function ColumnStats({ result }: { result: any }) {
                 {more.length > 0 && <KV title={`More descriptive statistics${x?.percentile_method === "prism" ? " (percentiles: rank (n + 1)p)" : ""}`} rows={more} />}
               </div>
             </div>
+            {ds.equivalence && (
+              <EquivalenceResults block={ds.equivalence} a="mean"
+                b={formatSig(ds.one_sample_t?.hypothetical)} />
+            )}
           </div>
         );
       })}
@@ -1018,8 +1023,19 @@ export default function StatsResults({ result, options }: Props) {
 function mainResults(result: Record<string, unknown>, options: Props["options"]) {
   switch (result.analysis) {
     case "column_statistics": return <ColumnStats result={result} />;
-    case "ttest": return onLogScale(result) && result.ratio != null
-      ? <LogTTest result={result} /> : <TTest result={result} tails={options?.ttestTails} />;
+    case "ttest": return (
+      <>
+        {onLogScale(result) && result.ratio != null
+          ? <LogTTest result={result} /> : <TTest result={result} tails={options?.ttestTails} />}
+        {result.equivalence != null && (
+          <div className="result-card">
+            <EquivalenceResults block={result.equivalence}
+              a={String((result.names as string[] | undefined)?.[0] ?? "A")}
+              b={String((result.names as string[] | undefined)?.[1] ?? "B")} />
+          </div>
+        )}
+      </>
+    );
     case "anova": return onLogScale(result) && result.kind !== "nonparametric" && result.table
       ? <><LogAnovaRatios result={result} /><Anova result={result} /></> : <Anova result={result} />;
     case "anova_unequal_var": return <AnovaUnequal result={result} />;

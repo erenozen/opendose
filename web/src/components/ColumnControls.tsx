@@ -12,6 +12,8 @@ import type {
 import { TWO_WAY_ADDITIVE_NOTE as ADDITIVE_NOTE } from "../types";
 import ComparisonsPicker from "../sheets/column/comparisonsPicker";
 import LogScaleOption from "../sheets/column/logScaleControls";
+import EquivalenceControls from "../sheets/common/EquivalenceControls";
+import { equivalenceApplies, equivalenceScale } from "../sheets/column/run";
 import RmPosthocControls from "../sheets/column/rmPosthocControls";
 import { isFdrMethod, P_STACK_METHODS, type PStackMethod } from "../sheets/column/pStack";
 import "../sheets/column/logScale.css";
@@ -33,6 +35,7 @@ export default function ColumnControls({ options, datasetNames, onChange, summar
   const set = (patch: Partial<ColumnOptionsState>) =>
     onChange({ ...options, ...patch });
 
+  const nameOf = (i: number) => datasetNames[i] || `Dataset ${i + 1}`;
   const pickDataset = (
     label: string, value: number, key: "datasetA" | "datasetB" | "controlIndex",
   ) => (
@@ -89,6 +92,10 @@ export default function ColumnControls({ options, datasetNames, onChange, summar
                   onChange={(e) => set({ ratioT: e.target.checked })} />
                 <span>Also a one-sample ratio t test (lognormal data)</span>
               </label>
+              {!summaryData && (
+                <EquivalenceControls value={options} scale="difference"
+                  estimate="mean − hypothetical value" onChange={set} />
+              )}
             </>
           )}
         </section>
@@ -184,6 +191,11 @@ export default function ColumnControls({ options, datasetNames, onChange, summar
             </p>
           )}
           <LogScaleOption options={options} onChange={onChange} summaryData={summaryData} />
+          {!summaryData && equivalenceApplies(options) && (
+            <EquivalenceControls value={options} scale={equivalenceScale(options)}
+              estimate={`${nameOf(options.datasetA)}${equivalenceScale(options) === "ratio" ? "/" : " − "}${nameOf(options.datasetB)}`}
+              onChange={set} />
+          )}
           {options.ttestKind === "wilcoxon" && (
             <ZeroMethod value={options.zeroMethod ?? "wilcox"}
               onChange={(zeroMethod) => set({ zeroMethod })}

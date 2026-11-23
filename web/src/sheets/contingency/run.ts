@@ -13,6 +13,7 @@
 // (rows 1-2 are stratum 1, rows 3-4 stratum 2, ...), named "Stratum k".
 import { withExclusionsBlanked } from "../../project/table.ts";
 import type { DataTableModel } from "../../project/types.ts";
+import { equivalenceSpec, type EquivalenceMode } from "../../report/equivalence.ts";
 
 export type PropCI = "wilson_brown" | "wilson" | "clopper_pearson";
 export type DiffCI = "newcombe_cc" | "newcombe" | "asymptotic_cc";
@@ -253,6 +254,10 @@ export interface ProportionOptions {
   diffCi: DiffCI;
   rrCi: RRCI;
   orCi: ORCI;
+  /** Two proportions: equivalence or non-inferiority of p1 - p2 by two
+   *  one-sided score tests (report/equivalence.ts; absent = off). */
+  equivalence?: EquivalenceMode;
+  equivalenceMargin?: string;
 }
 
 export const DEFAULT_PROPORTIONS: ProportionOptions = {
@@ -284,5 +289,13 @@ export function proportionPayload(c: Counts, o: ProportionOptions): Payload | { 
   const b = group(o.rowB);
   if (!b || o.rowA === o.rowB) return { error: "Choose two different rows to compare" };
   return { analysis: "proportion_test", data: { groups: [a, b] },
-    options: { ...common, diff_ci: o.diffCi, rr_ci: o.rrCi, or_ci: o.orCi } };
+    options: { ...common, diff_ci: o.diffCi, rr_ci: o.rrCi, or_ci: o.orCi,
+      ...proportionEquivalence(o) } };
+}
+
+/** options.equivalence of two proportions: a margin on the difference
+ *  p1 - p2 (nothing when off or while the margin is not a number). */
+export function proportionEquivalence(o: ProportionOptions): Record<string, unknown> {
+  const spec = equivalenceSpec(o.equivalence, o.equivalenceMargin, "difference");
+  return spec && !("error" in spec) ? { equivalence: spec } : {};
 }

@@ -152,6 +152,110 @@ def difference_ci(k1, n1, k2, n2, *, method="newcombe_cc",
     raise ValueError(f"unknown CI method for a difference: {method}")
 
 
+# ------------------------------- equivalence of two proportions (score TOST)
+
+SCORE_TOST_SOURCE = (
+    "Miettinen O & Nurminen M (1985) Stat Med 4:213 (score statistic with "
+    "the restricted maximum-likelihood variance, closed form of Farrington "
+    "CP & Manning G (1990) Stat Med 9:1447); two one-sided tests, "
+    "Schuirmann DJ (1987) J Pharmacokinet Biopharm 15:657; as statsmodels "
+    "tost_proportions_2indep(method='score')")
+
+
+def _restricted_mle(k1, n1, k2, n2, delta):
+    """(p1, p2) maximising the binomial likelihood under p1 - p2 = delta:
+    the cubic of Farrington & Manning (1990), solved by its trigonometric
+    root (Miettinen & Nurminen 1985, appendix)."""
+    p1, p2 = k1 / n1, k2 / n2
+    theta = n2 / n1
+    a = 1 + theta
+    b = -(1 + theta + p1 + theta * p2 + delta * (theta + 2))
+    c = delta * delta + delta * (2 * p1 + theta + 1) + p1 + theta * p2
+    d = -p1 * delta * (1 + delta)
+    v = b ** 3 / (3 * a) ** 3 - b * c / (6 * a * a) + d / (2 * a)
+    u2 = b * b / (3 * a) ** 2 - c / (3 * a)
+    u = math.copysign(math.sqrt(max(u2, 0.0)), v) if v != 0 else \
+        math.sqrt(max(u2, 0.0))
+    if u == 0:
+        r1 = -b / (3 * a)
+    else:
+        w = (math.pi + math.acos(max(-1.0, min(1.0, v / u ** 3)))) / 3
+        r1 = 2 * u * math.cos(w) - b / (3 * a)
+    r1 = min(max(r1, max(0.0, delta)), min(1.0, 1 + delta))
+    return r1, r1 - delta
+
+
+def score_z_difference(k1, n1, k2, n2, delta) -> float:
+    """Miettinen-Nurminen score statistic of H0: p1 - p2 = delta, z =
+    (p1 - p2 - delta) / sqrt(V), V the variance at the restricted MLE
+    times N / (N - 1)."""
+    est = k1 / n1 - k2 / n2
+    r1, r2 = _restricted_mle(k1, n1, k2, n2, delta)
+    n = n1 + n2
+    var = (r1 * (1 - r1) / n1 + r2 * (1 - r2) / n2) * n / (n - 1)
+    if var <= 0:
+        return 0.0 if est == delta else math.copysign(math.inf, est - delta)
+    return (est - delta) / math.sqrt(var)
+
+
+def score_ci_difference(k1, n1, k2, n2, *, ci_level: float = 0.95) -> list:
+    """CI of p1 - p2 inverting the score statistic (Miettinen & Nurminen
+    1985): the deltas where z equals +/- the normal quantile."""
+    zc = float(stats.norm.ppf((1 + ci_level) / 2))
+    est = k1 / n1 - k2 / n2
+    f = lambda dl: score_z_difference(k1, n1, k2, n2, dl)  # noqa: E731
+    eps = 1e-12
+    lo = -1.0 if est <= -1 + eps or f(-1 + eps) <= zc else float(
+        optimize.brentq(lambda dl: f(dl) - zc, -1 + eps, est, xtol=1e-14))
+    hi = 1.0 if est >= 1 - eps or f(1 - eps) >= -zc else float(
+        optimize.brentq(lambda dl: f(dl) + zc, est, 1 - eps, xtol=1e-14))
+    return [lo, hi]
+
+
+def tost_two_proportions(k1, n1, k2, n2, lower=None, upper=None, *,
+                         alpha: float = 0.05) -> dict:
+    """Equivalence (both margins) or non-inferiority (one margin) of p1 -
+    p2 by two one-sided score tests: the lower test rejects H0: p1 - p2
+    <= lower (P = P(Z > z(lower))), the upper H0: p1 - p2 >= upper (P =
+    P(Z < z(upper))). P_TOST is the larger P; it is below alpha exactly
+    when the 1 - 2 alpha score interval (score_ci_difference) lies inside
+    the margins (both invert the same statistic)."""
+    k1, n1 = _count(k1, "successes"), _count(n1, "trials")
+    k2, n2 = _count(k2, "successes"), _count(n2, "trials")
+    if n1 < 1 or n2 < 1 or k1 > n1 or k2 > n2:
+        raise ValueError("need 0 <= successes <= trials and trials >= 1")
+    if lower is None and upper is None:
+        raise ValueError("give an equivalence margin")
+    if not 0 < alpha < 0.5:
+        raise ValueError("alpha must be between 0 and 0.5")
+    for m in (lower, upper):
+        if m is not None and not -1 < m < 1:
+            raise ValueError("a margin of a difference between proportions "
+                             "lies between -1 and 1")
+    if lower is not None and upper is not None and not lower < upper:
+        raise ValueError("the lower margin must be below the upper margin")
+    tests = {}
+    for side, m in (("lower", lower), ("upper", upper)):
+        if m is None:
+            tests[side] = None
+            continue
+        z = score_z_difference(k1, n1, k2, n2, m)
+        p = float(stats.norm.sf(z) if side == "lower" else stats.norm.cdf(z))
+        tests[side] = {"margin": m, "z": z, "p": p}
+    p_tost = max(t["p"] for t in tests.values() if t is not None)
+    return {
+        "kind": ("equivalence" if lower is not None and upper is not None
+                 else "noninferiority"),
+        "scale": "difference", "alpha": alpha, "ci_level": 1 - 2 * alpha,
+        "lower": lower, "upper": upper,
+        "estimate": k1 / n1 - k2 / n2, "se": None, "df": None,
+        "ci": score_ci_difference(k1, n1, k2, n2, ci_level=1 - 2 * alpha),
+        "test_lower": tests["lower"], "test_upper": tests["upper"],
+        "p": p_tost, "shown": bool(p_tost < alpha),
+        "method": "score", "source": SCORE_TOST_SOURCE,
+    }
+
+
 # ------------------------------------------------------ ratio of proportions
 
 def _pearson_term(x, n, p):

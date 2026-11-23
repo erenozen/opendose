@@ -12,6 +12,8 @@ import {
   type PropCI, type ProportionOptions, type RRCI,
 } from "./run";
 import { Button } from "../../components/ui";
+import EquivalenceControls from "../common/EquivalenceControls";
+import EquivalenceResults from "../common/EquivalenceResults";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -719,6 +721,14 @@ export function ProportionControls({ table, options, onChange }: ControlsProps<P
           </>
         )}
       </section>
+      {options.mode === "two" && (
+        <section>
+          <h3>Equivalence or non-inferiority</h3>
+          <EquivalenceControls value={options} scale="difference" max={0.999999}
+            estimate={`${titles[options.rowA] ?? "Group 1"} − ${titles[options.rowB] ?? "Group 2"} (proportions)`}
+            onChange={set} />
+        </section>
+      )}
     </div>
   );
 }
@@ -764,6 +774,8 @@ export function ProportionResults({ result }: ResultsProps<ProportionOptions, an
         ...(result.odds_ratio ? [[`Odds ratio (${OR_CI_LABELS[result.odds_ratio.ci_method as ORCI] ?? result.odds_ratio.ci_method} 95% CI)`,
           `${formatSig(result.odds_ratio.value)} (${fmtCI(result.odds_ratio.ci)})`] as [string, string]] : []),
       ]} />
+      <EquivalenceResults block={result.equivalence} a={a} b={b}
+        method="Two one-sided score tests (Miettinen-Nurminen) with the score CI" />
     </div>
   );
 }

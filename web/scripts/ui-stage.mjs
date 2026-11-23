@@ -194,12 +194,14 @@ async function seedSessions(s, sessions) {
   }, [sessions, json]);
 }
 /** A new table of `type` from pasted text (first line: column titles),
- *  through the Import dialog, as the e2e suites make one. */
-async function pastedTable(s, type, name, text) {
+ *  through the Import dialog, as the e2e suites make one. `subcolumns`:
+ *  replicate subcolumns per data set (XY starts with three). */
+async function pastedTable(s, type, name, text, subcolumns) {
   await example(s);
   const nd = await newTableDialog(s);
   await nd.locator(`input[name="table-type"][value="${type}"]`).check();
   await nd.getByLabel("Table name").fill(name);
+  if (subcolumns) await nd.locator(".field-num input").nth(1).fill(String(subcolumns));
   await nd.getByRole("button", { name: "Create table" }).click();
   await s.page.locator(".grid-toolbar").waitFor();
   await click(s, s.page.getByRole("button", { name: "Import…", exact: true }));
@@ -622,6 +624,31 @@ const scenes = [
       .locator("select").selectOption("dunnett");
     await s.page.locator(".pane-results .ratio-table").first().waitFor({ timeout: 120000 });
     await into(s, ".pane-results .ratio-table", "center");
+  } },
+  // tests (wave 1): equivalence (P-12), comparing regression lines
+  // (P-13), pairs of rows of a contingency table (P-14), two event rates
+  // (P-47)
+  { name: "results-equivalence", setup: async (s) => {
+    await pastedTable(s, "column", "Equivalence",
+      "A\tB\n10.8\t10.6\n10.75\t10.55\n10.55\t10.35\n10.5\t10.3\n9.6\t9.4\n9.65\t9.45\n9.85\t9.65\n9.9\t9.7\n");
+    const c = s.page.locator(".pane-controls");
+    await c.locator("select.analysis-select").selectOption("ttest");
+    await c.getByLabel("Equivalence test").selectOption("equivalence");
+    await c.getByLabel(/^Margin/).fill("1");
+    await s.page.locator(".pane-results .equivalence-strip").first().waitFor({ timeout: 120000 });
+    await settle(s, 800);
+    await into(s, ".pane-answer", "start");
+  } },
+  { name: "results-equivalence-table", setup: async (s) => {
+    await pastedTable(s, "column", "Equivalence",
+      "A\tB\n10.8\t10.6\n10.75\t10.55\n10.55\t10.35\n10.5\t10.3\n9.6\t9.4\n9.65\t9.45\n9.85\t9.65\n9.9\t9.7\n");
+    const c = s.page.locator(".pane-controls");
+    await c.locator("select.analysis-select").selectOption("ttest");
+    await c.getByLabel("Equivalence test").selectOption("equivalence");
+    await c.getByLabel(/^Margin/).fill("0.5");
+    await s.page.locator(".pane-results .equivalence-strip").first().waitFor({ timeout: 120000 });
+    await settle(s, 800);
+    await into(s, ".pane-results .equivalence-results", "start");
   } },
   // the eLife checklist on the example: source data per figure is not met
   // and links to the export bundle (P-09)

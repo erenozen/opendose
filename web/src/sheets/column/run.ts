@@ -14,6 +14,7 @@ import { allCellsComparisons, cellsFamily } from "../common/allCells.ts";
 import { familyOptions } from "./comparisonsFamily.ts";
 import { withWithheld } from "../common/withheld.ts";
 import { logScaleOptions } from "./logScale.ts";
+import { equivalenceSpec, type MarginScale } from "../../report/equivalence.ts";
 import { pStackPayload } from "./pStack.ts";
 import { frequencyPayload } from "./frequency.ts";
 import { correlationXRequests } from "./correlationX.ts";
@@ -119,6 +120,27 @@ function twoWayAllCells(engine: EngineBridge, table: DataTableModel,
   return mc.error ? null : mc;
 }
 
+/** Margins are on the ratio scale for tests on logarithms: the ratio
+ *  paired t test and the log-scale unpaired / Welch t test. */
+export function equivalenceScale(o: ColumnOptionsState): MarginScale {
+  return o.analysis === "ttest" && (o.ttestKind === "ratio_paired" || "log_scale" in logScaleOptions(o))
+    ? "ratio" : "difference";
+}
+
+/** The t tests that take an equivalence margin (an estimate with a SE). */
+export function equivalenceApplies(o: ColumnOptionsState): boolean {
+  if (o.analysis === "column_statistics") return true;
+  return o.analysis === "ttest" && ["unpaired", "welch", "paired", "ratio_paired"].includes(o.ttestKind);
+}
+
+/** options.equivalence for the engine (report/equivalence.ts); nothing
+ *  when off or while the margin is not a valid number (the field says so). */
+export function equivalenceOptions(o: ColumnOptionsState): Record<string, unknown> {
+  if (!equivalenceApplies(o)) return {};
+  const spec = equivalenceSpec(o.equivalence, o.equivalenceMargin, equivalenceScale(o));
+  return spec && !("error" in spec) ? { equivalence: spec } : {};
+}
+
 const sameList = (a: string[], b: string[]) =>
   a.length === b.length && a.every((v) => b.includes(v));
 
@@ -142,6 +164,7 @@ export function columnPayload(table: DataTableModel, o: ColumnOptionsState):
         ...(o.ratioT ? { ratio_t: true } : {}),
         ...(o.lognormality ? { lognormality: true } : {}),
         ...pratt,
+        ...(parseCell(o.hypothetical) !== null ? equivalenceOptions(o) : {}),
       } };
   }
   if (o.analysis === "ttest") {
@@ -153,6 +176,7 @@ export function columnPayload(table: DataTableModel, o: ColumnOptionsState):
         ...(o.ttestKind === "wilcoxon" ? pratt : {}),
         // geometric means and their ratio (logScale.ts)
         ...logScaleOptions(o),
+        ...equivalenceOptions(o),
       } };
   }
   if (o.analysis === "anova") {

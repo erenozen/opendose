@@ -906,3 +906,62 @@ the engine to four digits. (Dunnett's critical value for differences,
 2.573 from scipy.stats.dunnett, gives slightly narrower intervals; it is
 not the method used.) The rank-test floor for 3 vs 3 values is
 2 / C(6, 3) = 0.10 by hand.
+
+## Feature validation: tests, wave 1 (2026-11-23)
+
+FEATURE-PLAN P-12, P-13, P-14 and P-47. R is not installed here (TOSTER,
+`pairwise.prop.test`, `poisson.test` and `lm` could not be run), so each
+reference is a Python oracle that does not share code with the engine,
+or a published value, named per feature. Every existing result is
+unchanged: each feature is an option that is off by default (P-47 is a
+new handler), and the payloads of the analyses with the option off are
+byte for byte what they were.
+
+### P-12 equivalence and non-inferiority (two one-sided tests)
+
+`ttests.tost` runs Schuirmann's (1987) two one-sided tests on the test's
+own estimate, SE and df: unpaired and Welch (A − B), paired (mean of
+A − B), one sample (mean − hypothetical, `column_statistics`), and on
+the log scale (log-scale unpaired or paired t test, ratio paired t test)
+the ratio A / B with ratio margins. One margin gives a non-inferiority
+test. Two proportions (`proportions.tost_two_proportions`) use the
+Miettinen-Nurminen score statistic with the restricted maximum-likelihood
+proportions (Farrington-Manning closed form) and the matching score CI,
+so the decision and the interval always agree.
+
+Reference: `engine/tests/reference/equivalence_tost.py` (statsmodels
+0.15 `ttost_ind` pooled and unequal, `ttost_paired`,
+`DescrStatsW.ttost_mean`, the log forms with `transform=np.log`, and
+`ttest_ind(value = -m, alternative = "larger")` for non-inferiority;
+two proportions by direct numerical maximisation of the restricted
+likelihood), tested in `engine/tests/test_equivalence.py`:
+
+| Case | Estimate | 90% CI | P (TOST) | engine |
+| --- | --- | --- | --- | --- |
+| Plan's acceptance, n = 8 + 8, means 10.2 and 10.0, SD 0.5, margin ±1 | 0.2 | −0.24033 to 0.64033 | 0.0032103 (equivalent) | 1e-9 relative |
+| Same, margin ±0.5 | 0.2 | −0.24033 to 0.64033 | 0.12503 (not shown) | 1e-9 |
+| Welch, n = 6 + 9, margin ±1.5 | 0.19444 | −0.97243 to 1.36132 | 0.034738 | 1e-9 |
+| Paired, 10 pairs, margin ±0.25 | 0.04 | −0.047274 to 0.12727 | 0.00084671 | 1e-9 |
+| One sample (n = 9) vs 100, margin ±1 | 0.1 | −0.51048 to 0.71048 | 0.012696 | 1e-9 |
+| Log ratio, unpaired, margins 0.8 to 1.25 | ratio 1.00944 | 0.93370 to 1.09134 | 0.00013445 | 1e-9 |
+| Non-inferiority, margin −0.5 | 0.2 | | 0.0070902 | 1e-9 |
+| Two proportions 45/50 vs 43/50, ±0.1 | 0.04 | −0.071602 to 0.15398 | 0.18474 | 1e-7 |
+| Two proportions 7/34 vs 1/34, ±0.2 | 0.17647 | 0.054663 to 0.31601 | 0.38061 | 1e-7 |
+
+statsmodels' own `tost_proportions_2indep(method="score")` is not the
+reference for two proportions: in 0.15 its restricted estimate is not
+the maximum of the likelihood (45/50 vs 43/50 at δ = 0.1: p1 = 0.91538
+with log-likelihood −36.9292, while the maximum is at p1 = 0.91997,
+−36.9178), so its P (0.18833) differs from the score test's in the third
+digit.
+
+Properties: in 200 seeded pairs of samples (pooled and Welch) and 100
+seeded pairs of proportions, P_TOST is the larger one-sided P and is
+below α exactly when the 90% CI lies inside the margins (Schuirmann's
+identity). Units ×1e-12, ×1000 and ×1e12 with the margin scaled alike
+leave P unchanged; swapping the groups with mirrored margins swaps the
+two tests. Edge cases: a group of 1 withholds the t test and the TOST;
+SE 0 (every paired difference equal) gives P 0 inside the margin and 1
+outside or on it; a ratio margin on a difference test, a difference
+margin on a log test, a rank test, margins in the wrong order and a
+ratio margin of 0 each return "unavailable" with the reason.

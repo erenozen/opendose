@@ -7,6 +7,7 @@ import { useResultsGuidance } from "../guide/useResultsGuidance";
 import { planCheckState } from "./planState";
 import { legendGraph } from "../report/legendFor";
 import { barAxisChip } from "../sheets/column/barAxis";
+import { equivalenceChip } from "../report/equivalence";
 
 export interface Counts { ok: number; warn: number; info: number; questions: number }
 
@@ -22,7 +23,10 @@ export function useChecks({ sheet, data, result, options, readOnly }: {
     [project.sheets, sheet.id, data.id]);
   const g = useMemo(() => {
     const chip = graph && result ? barAxisChip(graph) : null;
-    return chip ? { ...base, chips: [...base.chips, chip] } : base;
+    // the equivalence margin, and when it was chosen (report/equivalence.ts)
+    const margin = equivalenceChip(result);
+    const extra = [chip, margin].filter((c) => c !== null);
+    return extra.length ? { ...base, chips: [...base.chips, ...extra] } : base;
   }, [base, graph, result]);
   const plan = useMemo(() => planCheckState(project, sheet, data), [project, sheet, data]);
   // The callout: the first warning note (resultBanners lists them by
