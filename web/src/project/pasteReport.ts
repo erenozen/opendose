@@ -18,6 +18,7 @@ import type { DataTableModel } from "./types.ts";
 import type { FullValuesResult, SheetApp } from "./clipboardHtml.ts";
 import { xInvalid } from "./xformat.ts";
 import { maxOf } from "../lib/extent.ts";
+import { percentDigits, unitOf } from "./unitCells.ts";
 
 /** What a grid column holds: numbers (Y values, numeric X), identifiers
  *  kept as typed (row titles, categorical variables), or dates / times. */
@@ -48,6 +49,8 @@ export interface CellNote {
   text: string;
   /** For converted cells: the number now stored. */
   to?: string;
+  /** For cells holding a unit: the unit ("µM"). */
+  unit?: string;
 }
 
 export interface PasteReport {
@@ -59,6 +62,11 @@ export interface PasteReport {
   missing: CellNote[];
   /** Other text in a numeric column: kept as typed, read as missing. */
   text: CellNote[];
+  /** Numbers with a percent sign ("12.5%"), kept as typed until the user
+   *  picks a reading (project/unitCells.ts). */
+  percents: CellNote[];
+  /** Numbers with a unit ("3.2 µM"), kept as typed until stripped. */
+  units: CellNote[];
   /** Number-like text with a decimal comma or thousands separators that
    *  the grid does not read (the Import dialog can). */
   localeNumbers: CellNote[];
@@ -176,7 +184,7 @@ const sansStar = (s: string) => s.trim().replace(/\*$/, "").trim();
 /** Count and name what happened to every written cell. */
 export function pasteReport(cells: PlacedCell[]): PasteReport {
   const r: PasteReport = {
-    cells: cells.length, numbers: 0, blanks: [], missing: [], text: [], localeNumbers: [],
+    cells: cells.length, numbers: 0, blanks: [], missing: [], text: [], percents: [], units: [], localeNumbers: [],
     converted: [], excluded: [], timesUnread: [], labels: 0, zeros: [], rounded: [],
   };
   for (const c of cells) {
@@ -210,7 +218,11 @@ export function pasteReport(cells: PlacedCell[]): PasteReport {
       if (raw !== "") r.missing.push(note()); else r.blanks.push(note());
     } else if (kind === "missing") r.missing.push(note());
     else if (kind === "localeNumber") r.localeNumbers.push(note());
-    else r.text.push(note());
+    else if (percentDigits(c.stored) !== null) r.percents.push(note());
+    else {
+      const u = unitOf(c.stored);
+      if (u) r.units.push(note({ unit: u.unit })); else r.text.push(note());
+    }
   }
   return r;
 }
@@ -218,7 +230,7 @@ export function pasteReport(cells: PlacedCell[]): PasteReport {
 // ------------------------------------------------------------ wording
 
 export interface ReportPart {
-  key: "numbers" | "blanks" | "missing" | "text" | "localeNumbers" | "converted" | "excluded"
+  key: "numbers" | "blanks" | "missing" | "text" | "percents" | "units" | "localeNumbers" | "converted" | "excluded"
     | "timesUnread" | "labels" | "zeros" | "rounded" | "fullValuesIgnored";
   /** Words before the cell list, e.g. "2 cells read as text, not 0". */
   label: string;
@@ -257,6 +269,19 @@ export function reportParts(r: PasteReport): ReportPart[] {
     parts.push({ key: "text", label: `${plural(r.text.length, "cell", "cells")} read as text, not 0`,
       cells: r.text, tone: "warn" });
   }
+  if (r.percents.length) {
+    const n = r.percents.length;
+    parts.push({ key: "percents", label: `${plural(n, "cell holds", "cells hold")} a percent sign`
+      + " (not read as numbers)", cells: r.percents, tone: "warn" });
+  }
+  if (r.units.length) {
+    const n = r.units.length;
+    const names = unitNames(r);
+    parts.push({ key: "units", label: names.length === 1
+      ? `${plural(n, "cell holds", "cells hold")} the unit “${names[0]}” (not read as numbers)`
+      : `${plural(n, "cell holds", "cells hold")} units (${names.join(", ")}): convert them to one unit, then strip it`,
+    cells: r.units, tone: "warn" });
+  }
   if (r.localeNumbers.length) {
     parts.push({ key: "localeNumbers", label: `${plural(r.localeNumbers.length, "number", "numbers")}`
       + " with a comma or thousands separator kept as text (not read)",
@@ -283,6 +308,16 @@ export function reportParts(r: PasteReport): ReportPart[] {
       cells: r.zeros, tone: "warn" }
     : { key: "zeros", label: "nothing was converted to 0", cells: [], tone: "ok" });
   return parts;
+}
+
+/** The distinct units the report's unit cells hold, in reading order. */
+export function unitNames(r: PasteReport): string[] {
+  return [...new Set(r.units.map((c) => c.unit ?? ""))];
+}
+
+/** The report once the percent or unit cells were read as numbers. */
+export function withFixed(r: PasteReport, key: "percents" | "units"): PasteReport {
+  return { ...r, numbers: r.numbers + r[key].length, [key]: [] };
 }
 
 /** Addresses of a part, the first `max` of them ("B7, C12 and 3 more"). */

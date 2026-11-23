@@ -490,6 +490,15 @@ const scenes = [
     await s.page.locator(".paste-report [data-part='rounded']").waitFor({ timeout: 15000 });
     await into(s, ".paste-report");
   } },
+  // percents and units in a paste (P-35): the report's two readings and
+  // the strip, offered and not applied
+  { name: "grid-paste-percent", setup: async (s) => {
+    await fixture(s, "empty-states.json");
+    await selectSheet(s, "Table with no analysis");
+    await pasteInto(s, "Control, row 1", "12.5%\t3.2 µM\n30%\t5 µM\n47.5%\t0.75 µM\n");
+    await s.page.locator(".paste-report [data-part='percents']").waitFor({ timeout: 15000 });
+    await into(s, ".paste-report");
+  } },
   // a paste too long for the Import dialog's text box (P-10): a line
   // count in its place, the preview below
   { name: "grid-paste-large", setup: async (s) => {

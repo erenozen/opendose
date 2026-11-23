@@ -9,6 +9,8 @@
 //   to the recipe dialog.
 // - P-34: one sheet saved by LibreOffice as .xls, .ods and .xlsx reads to
 //   the same cells (openpyxl's reading of the .xlsx) and the same table.
+// - P-35: pasted 12.5%, 30%, 47.5% and 3.2 µM get a one-click reading in
+//   the paste report, never applied by itself, undone in one step.
 //
 // Usage: node scripts/e2e-import.mjs http://localhost:5173/
 import { chromium } from "playwright";
@@ -226,6 +228,69 @@ const typeWhy = dlg.locator("[data-part='type-why']");
     /^Could not read the workbook: it is not a readable \.xls workbook \(.+\)$/.test(err) && !/Traceback/.test(err), err);
   await dlg.getByRole("button", { name: "Cancel" }).click();
   await dlg.waitFor({ state: "detached", timeout: 5000 }).catch(() => {});
+}
+
+// --- P-35: pasted percents and units get a one-click reading in the paste
+// report, never applied by itself; the fix writes exactly the typed digits
+// (12.5% as 12.5 or 0.125, by moving the point), and one undo restores the
+// text.
+{
+  await fileMenu("New data table…");
+  const nd = page.locator(".new-table-dialog");
+  await nd.locator('input[name="table-type"][value="column"]').check();
+  await nd.getByLabel("Table name").fill("Percents");
+  await nd.getByRole("button", { name: "Create table" }).click();
+  await page.waitForSelector(".grid-toolbar");
+  const paste = (label, text) => page.evaluate(([l, t]) => {
+    const el = document.querySelector(`.data-table input[aria-label='${l}']`);
+    const dt = new DataTransfer();
+    dt.setData("text/plain", t);
+    el.focus();
+    el.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }));
+  }, [label, text]);
+  const col = () => page.locator(".data-table input[aria-label^='Group A, row ']")
+    .evaluateAll((els) => els.slice(0, 3).map((e) => e.value));
+  const strip = page.locator(".paste-report");
+  const stripText = async () => ((await appears(strip, 5000)) ? (await strip.innerText()).replace(/\s+/g, " ") : "");
+
+  await paste("Group A, row 1", "12.5%\n30%\n47.5%\n");
+  const s1 = await stripText();
+  const before = await col();
+  const asIs = strip.getByRole("button", { name: "Read 12.5% as 12.5" });
+  const asFraction = strip.getByRole("button", { name: "Read 12.5% as 0.125" });
+  expect("P-35: the report says 3 cells hold a percent sign, with the two readings; nothing changed yet",
+    /3 cells hold a percent sign \(not read as numbers\): B1, B2, B3/.test(s1)
+    && await asIs.isVisible() && await asFraction.isVisible()
+    && before.join(",") === "12.5%,30%,47.5%", `${s1} | ${before.join(",")}`);
+  await asFraction.click();
+  const frac = await col();
+  const s2 = await stripText();
+  expect("P-35: Read 12.5% as 0.125 writes 0.125, 0.3, 0.475 (the typed digits, point moved) and the report counts 3 numbers",
+    frac.join(",") === "0.125,0.3,0.475" && /3 numbers/.test(s2) && !/percent sign/.test(s2), `${frac.join(",")} | ${s2}`);
+  await page.locator("header").getByRole("button", { name: "Undo" }).click();
+  const undone = await col();
+  expect("P-35: one undo restores the text (12.5%, 30%, 47.5%)", undone.join(",") === "12.5%,30%,47.5%", undone.join(","));
+
+  await paste("Group A, row 1", "12.5%\n30%\n47.5%\n");
+  await stripText();
+  await strip.getByRole("button", { name: "Read 12.5% as 12.5" }).click();
+  const digits = await col();
+  expect("P-35: Read 12.5% as 12.5 writes 12.5, 30, 47.5", digits.join(",") === "12.5,30,47.5", digits.join(","));
+
+  await paste("Group A, row 1", "3.2 µM\n5 µM\n0.75µM\n");
+  const s3 = await stripText();
+  const strip1 = strip.getByRole("button", { name: "Strip “µM”" });
+  expect("P-35: 3 cells with one unit: the report names it and offers to strip it",
+    /3 cells hold the unit “µM” \(not read as numbers\)/.test(s3) && await strip1.isVisible(), s3);
+  await strip1.click();
+  const stripped = await col();
+  expect("P-35: Strip “µM” writes 3.2, 5, 0.75", stripped.join(",") === "3.2,5,0.75", stripped.join(","));
+
+  await paste("Group A, row 1", "3.2 µM\n5 nM\n1\n");
+  const s4 = await stripText();
+  expect("P-35: cells in two units are named and not offered for stripping (it would mix scales)",
+    /2 cells hold units \(µM, nM\): convert them to one unit, then strip it/.test(s4)
+    && await strip.getByRole("button", { name: /^Strip/ }).count() === 0, s4);
 }
 
 // --- a file Open cannot read: the error names what it opens

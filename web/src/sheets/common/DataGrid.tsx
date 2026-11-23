@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Button, IconButton } from "../../components/ui";
+import { Button, IconButton, notify } from "../../components/ui";
 import { CloseIcon } from "../../components/ui/feedbackIcons";
 import { MinusIcon, PlusIcon } from "./gridIcons";
 import { useProject } from "../../app/context";
@@ -9,7 +9,8 @@ import { addFamily } from "../../app/factory";
 import { toDelimited } from "../../project/exportTable";
 import { newId } from "../../project/ids";
 import { pasteNeedsImport } from "../../project/importText";
-import { pasteWithReport, type PasteReport } from "../../project/pasteReport";
+import { pasteWithReport, withFixed, type PasteReport } from "../../project/pasteReport";
+import { fixCells, fixedText } from "../../project/unitCells";
 import {
   blockText, fullPrecision, parseClipboardHtml, type FullValuesResult,
 } from "../../project/clipboardHtml";
@@ -749,6 +750,20 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
         onReimport={shownReport?.paste ? () => {
           const p = shownReport.paste!;
           setDialog({ kind: "import", req: { text: p.text, mode: "insert", row: p.r, col: p.c } });
+        } : undefined}
+        onFix={shownReport && !readOnly ? (how) => {
+          // one edit (one undo step); the report forgets the cells it read
+          const key = how === "unit" ? "units" : "percents";
+          const cells = shownReport.report[key];
+          const first = cells[0];
+          const { changed } = fixCells(t, cells, how);
+          onChange((x) => fixCells(x, cells, how).table);
+          setPasteInfo({ ...shownReport, report: withFixed(shownReport.report, key) });
+          notify(`Read ${changed} ${changed === 1 ? "cell" : "cells"} as numbers: “${first?.text}” as `
+            + `${first ? fixedText(first.text, how) : ""}.`, {
+            tone: "success",
+            action: { label: "Undo", onAction: () => { api.undo(); setPasteInfo(shownReport); } },
+          });
         } : undefined} />
 
       <div data-still className={`data-table${readOnly ? " is-readonly" : ""}${selecting ? " selecting" : ""}${virtual ? " virtual" : ""}`}
