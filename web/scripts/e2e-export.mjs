@@ -809,6 +809,57 @@ const svgTexts = (buf) => page.evaluate((s) => [...new DOMParser().parseFromStri
   }
 }
 
+// interpolated unknowns (P-22) and a curve drawn beyond the data (P-52):
+// a BCA standard curve (quadratic) with three unknown rows, its curve
+// drawn from -500 to 2500 µg/mL. The SVG and PDF exports carry the two
+// dotted parts, the three hollow diamonds and the legend sentences.
+{
+  const bca = JSON.parse(readFileSync(join(here, "..", "e2e-fixtures", "stage", "interpolation.json"), "utf8"));
+  const res = bca.sheets.find((x) => x.kind === "results");
+  res.options = { ...res.options, curveFrom: "-500", curveTo: "2500" };
+  const g = bca.sheets.find((x) => x.kind === "graph");
+  g.settings = { ...g.settings, xy: { caption: "figure" } };
+  await openProject("fit-unknowns.json", bca.sheets);
+  await page.getByRole("treeitem", { name: g.name, exact: true }).first().locator(":scope > .nav-row").click();
+  await page.waitForFunction(() => {
+    const gd = document.querySelector(".plot-card .plot");
+    return (gd?.data ?? []).some((t) => String(t.name ?? "").endsWith("(beyond the data)"))
+      && (gd?.data ?? []).some((t) => String(t.name ?? "").endsWith("(unknowns)"))
+      && (gd?.layout?.annotations ?? []).some((a) => a.name === "caption");
+  }, null, { timeout: 120000 }).catch(() => {});
+  const squash = (t) => t.replace(/\s+/g, "");
+  const LEGEND = ["Beyond the X values tested the curve is dotted: there it is the model's extrapolation, not a measurement.",
+    "Open diamonds mark 3 unknowns read off the curve at their measured Y, with horizontal bars for the 95% CI of X."]
+    .map(squash);
+  const svg = (await graphExport("svg")).buf.toString("utf8");
+  const svgAll = squash((await svgTexts(Buffer.from(svg))).join(""));
+  const dotted = (svg.match(/stroke-dasharray/g) ?? []).length;
+  const diamonds = await page.evaluate((src) => {
+    const doc = new DOMParser().parseFromString(src, "image/svg+xml");
+    return [...doc.querySelectorAll(".scatterlayer .trace")].map((t) => t.querySelectorAll("path.point").length);
+  }, svg);
+  expect("P-22/P-52 the SVG export carries the two dotted parts, the 7 standards and 3 unknown markers, and the legend",
+    dotted >= 2 && diamonds.includes(3) && diamonds.includes(7) && LEGEND.every((l) => svgAll.includes(l)),
+    `${dotted} dashed; points per trace ${JSON.stringify(diamonds)}`);
+  const pdf = (await graphExport("pdf")).buf;
+  const pdfAll = squash(readPdf(pdf).runs.map((r) => r.text).join(""));
+  const pdfDots = (() => {
+    let n = 0;
+    for (const m of pdf.toString("latin1").matchAll(/(\d+) 0 obj\s*([\s\S]*?)endobj/g)) {
+      const st = /stream\r?\n([\s\S]*?)\r?\nendstream/.exec(m[2]);
+      if (!st) continue;
+      try {
+        const raw = Buffer.from(st[1], "latin1");
+        const text = /\/FlateDecode/.test(m[2].slice(0, st.index)) ? inflateSync(raw).toString("latin1") : st[1];
+        n += (text.match(/\[\s*[\d.]+(?:\s+[\d.]+)+\s*\]\s+[\d.]+\s+d\b/g) ?? []).length;
+      } catch { /* not a content stream */ }
+    }
+    return n;
+  })();
+  expect("P-22/P-52 the PDF export draws the dotted parts and holds the legend text",
+    pdfDots >= 2 && LEGEND.every((l) => pdfAll.includes(l)), `${pdfDots} dashed strokes`);
+}
+
 console.log("files in", tmp);
 console.log("errors:", errors.length ? errors : "none");
 await browser.close();
