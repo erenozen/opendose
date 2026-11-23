@@ -367,10 +367,13 @@ function factorialSentences(r: R, f: Fmt, prefs: Pick<ReportPrefs, "smd" | "vari
     const name = (Array.isArray(r.factor_names) && k === "row_factor" ? r.factor_names[0]
       : Array.isArray(r.factor_names) && k === "column_factor" ? r.factor_names[1] : null)
       ?? TERM_NAMES[k] ?? k;
-    const gg = num(src.p_geisser_greenhouse) && num(r.gg_epsilon);
-    const df2 = num(src.df_error) ? src.df_error : num(res?.df) ? res.df : null;
-    const stat = fStat(f, src.F, gg ? r.gg_epsilon * src.df : src.df,
-      gg && num(df2) ? r.gg_epsilon * df2 : df2);
+    // one epsilon for the design, or (both factors repeated) one per term
+    const eps = num(r.gg_epsilon) ? r.gg_epsilon : r.sphericity?.[k]?.gg_epsilon;
+    const gg = num(src.p_geisser_greenhouse) && num(eps);
+    const df2 = num(src.df_error) ? src.df_error : num(src.error_df) ? src.error_df
+      : num(res?.df) ? res.df : null;
+    const stat = fStat(f, src.F, gg ? eps * src.df : src.df,
+      gg && num(df2) ? eps * df2 : df2);
     const p = gg ? src.p_geisser_greenhouse : src.p;
     const label = TERM_NAMES[k] ? `${name}` : name;
     const g = groups.find((x) => x.title === label || x.title?.toLowerCase() === (TERM_NAMES[k] ?? k)
@@ -380,7 +383,9 @@ function factorialSentences(r: R, f: Fmt, prefs: Pick<ReportPrefs, "smd" | "vari
       ? `${label}: ${join([stat, eff ? effectText(eff, f) : null, f.p(p)], "; ")}`
       : `${label}, ${join([stat, f.p(p), eff ? effectText(eff, f) : null])}`;
   });
-  const gg = num(r.gg_epsilon) ? ` (repeated factors Geisser-Greenhouse corrected, ε = ${f.n(r.gg_epsilon)})` : "";
+  const gg = num(r.gg_epsilon) ? ` (repeated factors Geisser-Greenhouse corrected, ε = ${f.n(r.gg_epsilon)})`
+    : terms.some(([, s]) => num((s as R).p_geisser_greenhouse))
+      ? " (each term Geisser-Greenhouse corrected)" : "";
   const head = items.length ? `A ${title}${gg} gave: ${items.join("; ")}.` : "";
   const mc = r.multiple_comparisons;
   const post = posthocSentence(mc, f, undefined, true);
