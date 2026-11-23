@@ -1250,6 +1250,13 @@ defaults, a missing parameter value ("missing parameter value(s) for
 Carlo run of 40 repeats recovers k (mean within 0.01 of 0.3) with every
 repeat fitted.
 
+Independent check (2026-11-23, by the lead): an own scipy.optimize.curve_fit
+of drc's W1.4, c + (d - c) exp(-exp(b (ln x - ln e))), to the 24 ryegrass
+points (zero doses kept) gives b 2.39333 (SE 0.43961), c 0.66045,
+d 7.80588, e 3.60013, and the relative ED50 e exp(ln(ln 2)/b) = 3.08895
+with a delta-method 95% CI 2.72315 to 3.45475 (t, 20 df): the engine's
+values (J'J covariance, as here).
+
 ## Feature validation: Schild plot (2026-11-23)
 
 FEATURE-PLAN P-49. The EC50-shift (Gaddum/Schild) fit (`ec50_shift`)
