@@ -49,3 +49,37 @@ export default class ErrorBoundary extends Component<{ children: ReactNode }, { 
     );
   }
 }
+
+/**
+ * One pane's boundary: a render error in a results panel, or a panel
+ * chunk that fails to load, replaces that pane only, with what happened
+ * and Try again; the header, navigator and grid stay. A new `resetKey`
+ * (another result or sheet) clears the error.
+ */
+export class PaneBoundary extends Component<{ children: ReactNode; resetKey?: unknown },
+  { error: Error | null; key: unknown }> {
+  state = { error: null as Error | null, key: this.props.resetKey };
+
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+
+  static getDerivedStateFromProps(props: { resetKey?: unknown }, state: { key: unknown }) {
+    return props.resetKey === state.key ? null : { error: null, key: props.resetKey };
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error("OpenDose could not show a panel:", error, info.componentStack);
+  }
+
+  render() {
+    const { error } = this.state;
+    if (!error) return this.props.children;
+    return (
+      <div className="empty-hint result-card pane-error" role="alert">
+        <p>Could not show this panel: {error.message || String(error)}.</p>
+        <Button size="sm" onClick={() => this.setState({ error: null })}>Try again</Button>
+      </div>
+    );
+  }
+}

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type Plotly from "plotly.js-dist-min";
-import { loadPlotly, plotlyNow } from "../lib/plotly";
+import { plotlyNow } from "../lib/plotly";
+import { PlotStatus } from "../graph/PlotStatus";
+import { usePlotLoad } from "../graph/usePlotLoad";
 import { graphPStyle } from "../graph/significance";
 import { formatSig } from "../types";
 import { pLabel } from "../report/pformat";
@@ -58,8 +60,15 @@ export function SurvivalPlot({
   const el = useRef<HTMLDivElement>(null);
   const [dark, setDark] = useState(isDarkMode());
   const { rev, attach } = usePlotEdits(format, onFormatChange);
+  const { load, attempt, drawn, draw, purge, retry } = usePlotLoad();
 
   useEffect(() => onThemeChange(() => setDark(isDarkMode())), []);
+
+  // A failed analysis leaves nothing to draw: clear the previous curves
+  // rather than show them beside the failure.
+  useEffect(() => {
+    if (el.current && result?.error) purge(el.current);
+  }, [result, purge]);
 
   // Redraw when the island or column is resized (splitter drag, the
   // card's resize handle); Plotly's own listener only covers the window.
@@ -173,14 +182,23 @@ export function SurvivalPlot({
       results: resultBlocks(result, graphPStyle(format)), editRevision: rev,
     });
     const div = el.current;
-    void loadPlotly().then((P) => P.react(div, out.traces as Plotly.Data[], out.layout, plotConfig(
-      { responsive: true, scrollZoom: true, displaylogo: false,
-        toImageButtonOptions: { format: "svg", filename: "survival" } },
-      format, !!onFormatChange))).then(() => attach(div));
+    void draw(async (P) => {
+      await P.react(div, out.traces as Plotly.Data[], out.layout, plotConfig(
+        { responsive: true, scrollZoom: true, displaylogo: false,
+          toImageButtonOptions: { format: "svg", filename: "survival" } },
+        format, !!onFormatChange));
+      attach(div);
+    });
   }, [result, dark, scheme, xTitle, yTitle, format, rev, riskSets, onFormatChange, attach,
-    censorMarks, nudge, ci, show, scale]);
+    censorMarks, nudge, ci, show, scale, draw, attempt]);
 
-  return <div className="plot" ref={el} />;
+  return (
+    <div className="plot" ref={el}>
+      {!drawn && (
+        <PlotStatus load={load} failed={!!result?.error} pending={!result} onRetry={retry} />
+      )}
+    </div>
+  );
 }
 
 const fmt = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? formatSig(v) : "n/a");

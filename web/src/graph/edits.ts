@@ -5,13 +5,22 @@
 import { axisMaps, type Layout } from "./apply.ts";
 import type { Annotation, GraphFormat } from "./format.ts";
 
+/** Modebar tools a touch drag cannot use: touch drags on a plot scroll
+ *  the page (graph/plotInput.ts), so zoom, pan and the selections would
+ *  be dead buttons there (DECISIONS 7). Zoom in/out, Autoscale and
+ *  Download stay. */
+const DRAG_TOOLS = ["zoom2d", "pan2d", "select2d", "lasso2d"] as const;
+const coarse = () => typeof matchMedia === "function" && matchMedia("(pointer: coarse)").matches;
+
 /** Plotly config for a formatted graph: annotation dragging is switched on
- *  only when the graph has user annotations and can be edited. Otherwise
- *  the base config is returned unchanged. */
+ *  only when the graph has user annotations and can be edited, and the
+ *  drag tools leave the modebar on touch screens. Otherwise the base
+ *  config is returned unchanged. */
 export function plotConfig<const T extends object>(base: T, format: GraphFormat,
   editable: boolean): T {
-  if (!editable || !format.annotations?.length) return base;
-  return { ...base, edits: { annotationPosition: true, annotationTail: true } };
+  const touch = coarse() ? { modeBarButtonsToRemove: [...DRAG_TOOLS] } : null;
+  if (!editable || !format.annotations?.length) return touch ? { ...base, ...touch } : base;
+  return { ...base, ...touch, edits: { annotationPosition: true, annotationTail: true } };
 }
 
 const KEY = /^(annotations|shapes)\[(\d+)\]\.(x|y|ax|ay|x0|x1|y0|y1)$/;

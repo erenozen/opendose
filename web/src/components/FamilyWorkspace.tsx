@@ -29,6 +29,7 @@ import { GenericMethodsText } from "./MethodsText";
 import HSplitter from "./HSplitter";
 import { SnowflakeIcon } from "./SheetIcon";
 import { AnalysisBusy, EngineBootBanner } from "./EngineStatus";
+import { PaneBoundary } from "./ErrorBoundary";
 import { useGuideOptional } from "../guide/context";
 import { FirstRunBanner } from "../guide/FirstRun";
 import { Button } from "./ui";
@@ -153,18 +154,22 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
                     <FrozenNote what="results sheet"
                       onUnfreeze={() => cmd.toggleFreeze(resSheet.id)} />
                   )}
-                  <div className="controls-wrap" inert={!!resSheet.frozen || shared}>
-                    <Suspense fallback={<Pending />}>
-                      <Controls sheet={resSheet} table={data.table} options={options}
-                        readOnly={!!resSheet.frozen || shared}
-                        onChange={(o) => apply((p) => {
-                          const prev = findSheet(p, resSheet.id);
-                          const before = prev?.kind === "results" ? prev.options : undefined;
-                          return renameForOptions(updateResultsOptions(p, resSheet.id, () => o),
-                            resSheet.id, before, analysisDef);
-                        }, `options:${resSheet.id}`)} />
-                    </Suspense>
-                  </div>
+                  {/* Frozen or shared: the settings stay readable (and
+                      Advanced still opens), but nothing can be changed. */}
+                  <fieldset className="controls-wrap" disabled={!!resSheet.frozen || shared}>
+                    <PaneBoundary resetKey={resSheet.id}>
+                      <Suspense fallback={<Pending />}>
+                        <Controls sheet={resSheet} table={data.table} options={options}
+                          readOnly={!!resSheet.frozen || shared}
+                          onChange={(o) => apply((p) => {
+                            const prev = findSheet(p, resSheet.id);
+                            const before = prev?.kind === "results" ? prev.options : undefined;
+                            return renameForOptions(updateResultsOptions(p, resSheet.id, () => o),
+                              resSheet.id, before, analysisDef);
+                          }, `options:${resSheet.id}`)} />
+                      </Suspense>
+                    </PaneBoundary>
+                  </fieldset>
                 </>
               ) : (
                 <div className="controls">
@@ -224,9 +229,11 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
               {result == null ? (engineError
                 ? <p className="empty-hint result-card">No results: the analysis engine did not load.</p>
                 : <ResultsSkeleton />) : (
-                <Suspense fallback={<Pending />}>
-                  <Results sheet={resSheet} table={data.table} options={options} result={result} />
-                </Suspense>
+                <PaneBoundary resetKey={result}>
+                  <Suspense fallback={<Pending />}>
+                    <Results sheet={resSheet} table={data.table} options={options} result={result} />
+                  </Suspense>
+                </PaneBoundary>
               )}
               {/* Effect sizes of every comparison (src/report). */}
               <EffectSizeCard result={result} />
@@ -245,9 +252,11 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
           <>
             <HSplitter />
             <div className="pane pane-methods">
-              <Suspense fallback={null}>
-                <Methods sheet={resSheet} table={data.table} options={options} result={result} />
-              </Suspense>
+              <PaneBoundary resetKey={result}>
+                <Suspense fallback={null}>
+                  <Methods sheet={resSheet} table={data.table} options={options} result={result} />
+                </Suspense>
+              </PaneBoundary>
 
               <StatsMethodsCard sheet={resSheet} result={result} />
             </div>
@@ -394,9 +403,7 @@ function GraphCard({ graph, data, result, options }: {
       <div className="graph-head">
         <span className="graph-name">{graph.name}</span>
         {graph.frozen && (
-          <span className="frozen-chip" title="Frozen: this graph no longer follows the data">
-            <SnowflakeIcon /> Frozen
-          </span>
+          <span className="frozen-chip"><SnowflakeIcon /> Frozen: no longer follows the data</span>
         )}
         {siblings.length > 1 && !graph.frozen && !shared && (
           <select className="graph-select" aria-label="Graph type"
@@ -407,11 +414,13 @@ function GraphCard({ graph, data, result, options }: {
         )}
       </div>
       {Plot ? (
-        <Suspense fallback={<div className="plot-pending" aria-busy="true" />}>
-          <Plot graph={graph} table={table} options={opts} result={res}
-            titles={resolved} scheme={graph.settings.scheme} format={plotFormat}
-            onFormatChange={graph.frozen || shared ? undefined : plotDrag} />
-        </Suspense>
+        <PaneBoundary resetKey={res}>
+          <Suspense fallback={<div className="plot-pending" aria-busy="true" />}>
+            <Plot graph={graph} table={table} options={opts} result={res}
+              titles={resolved} scheme={graph.settings.scheme} format={plotFormat}
+              onFormatChange={graph.frozen || shared ? undefined : plotDrag} />
+          </Suspense>
+        </PaneBoundary>
       ) : <div className="plot empty-hint">No plot available for this graph type.</div>}
       <ExportPanel filename={fileStem(graph.name, kind?.exportName ?? "graph")} graphId={graph.id}
         scheme={graph.settings.scheme} leading={graph.frozen || shared ? undefined : (

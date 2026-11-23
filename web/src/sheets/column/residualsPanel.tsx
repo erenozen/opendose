@@ -8,7 +8,9 @@
 // the decision to use a nonparametric test").
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type Plotly from "plotly.js-dist-min";
-import { loadPlotly, plotlyNow } from "../../lib/plotly";
+import { plotlyNow } from "../../lib/plotly";
+import { PlotStatus } from "../../graph/PlotStatus";
+import { usePlotLoad } from "../../graph/usePlotLoad";
 import { useDarkMode } from "../../graph/useDarkMode";
 import { CHROME_DARK, CHROME_LIGHT, PLOT_FONT, seriesStyle } from "../../lib/palette";
 import { pLabel } from "../../report/pformat";
@@ -26,18 +28,24 @@ function DiagnosticPlot({ traces, layout, label, testId }: {
   traces: Plotly.Data[]; layout: Partial<Plotly.Layout>; label: string; testId: string;
 }) {
   const el = useRef<HTMLDivElement>(null);
+  const { load, attempt, drawn, draw, retry } = usePlotLoad();
   useEffect(() => {
     const div = el.current;
     if (!div) return;
-    void loadPlotly().then((P) => P.react(div, traces, layout, {
+    void draw((P) => P.react(div, traces, layout, {
       responsive: true, displaylogo: false, displayModeBar: false, staticPlot: false,
     }));
-  }, [traces, layout]);
+  }, [traces, layout, draw, attempt]);
   useEffect(() => {
     const div = el.current;
     return () => { if (div) plotlyNow()?.purge(div); };
   }, []);
-  return <div className="resid-plot" ref={el} role="img" aria-label={label} data-plot={testId} />;
+  return (
+    <div className="plot-holder">
+      <div className="resid-plot" ref={el} role="img" aria-label={label} data-plot={testId} />
+      {!drawn && <PlotStatus load={load} onRetry={retry} />}
+    </div>
+  );
 }
 
 function axis(chrome: typeof CHROME_LIGHT, title: string): Partial<Plotly.LayoutAxis> {

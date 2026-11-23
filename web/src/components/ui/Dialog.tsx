@@ -8,6 +8,7 @@ import {
   pushLayer, triggerOf,
 } from "./useDismiss.ts";
 import { Button, type ButtonProps } from "./Button";
+import { toastHost } from "./Toast.store";
 import "./Dialog.css";
 
 /*
@@ -102,7 +103,9 @@ function Dialog({
     if (!coarse) opts.current.initialFocus?.current?.focus();
     const unlock = lockScroll();
     const unstack = pushLayer({ kind: "native", contains: (n) => d.contains(n), escape: () => {} });
+    const unhost = toastHost.push(d);
     return () => {
+      unhost();
       unstack();
       unlock();
       const animate = !lastInputWasKeyboard() && !opts.current.instant;
@@ -172,6 +175,8 @@ function snapshot(d: HTMLDialogElement): Ghost | null {
   const box = document.createElement("div");
   box.className = `${d.className} dialog-ghost`;
   box.append(...[...d.cloneNode(true).childNodes]);
+  // The toast stack drawn inside the dialog moves back to the page.
+  box.querySelector(":scope > .toast-region")?.remove();
   Object.assign(box.style, {
     left: `${r.left}px`, top: `${r.top}px`, width: `${r.width}px`, height: `${r.height}px`,
   });
