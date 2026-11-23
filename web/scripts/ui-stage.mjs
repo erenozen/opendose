@@ -267,6 +267,15 @@ const scenes = [
     await headerMenu(s, "View", "Preferences…");
     await dialog(s, "Preferences").waitFor();
   } },
+  { name: "shell-preferences-pins", setup: async (s) => {
+    await fixture(s, "pins.json");
+    await s.page.locator(".js-plotly-plot").first().waitFor();
+    await headerMenu(s, "View", "Preferences…");
+    const pins = dialog(s, "Preferences").getByRole("region", { name: "Colours pinned to groups" });
+    await pins.locator(".pins-warnings p").first().waitFor();
+    await pins.evaluate((el) => el.scrollIntoView({ block: "center" }));
+    await settle(s, 400);
+  } },
   { name: "shell-about", setup: async (s) => {
     await example(s);
     await headerMenu(s, "View", "About OpenDose…");

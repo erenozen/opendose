@@ -186,3 +186,38 @@ from the drawn layout, exports a PDF 89 mm wide (page 252.28 pt) and
 reads it with a content-stream interpreter (Tf and w times the text and
 graphics matrices in force): every tick label at 7 pt, the axis lines
 and ticks stroked at 1 pt (10 strokes).
+
+## A colour pinned to a group name (P-56)
+
+Preferences, under "Same colour for a group on every graph", pins a
+colour to a group name ("KO" = #d55e00). The pins are project data
+(`Project.groupColors`, saved in the file and carried by share links, not
+kept per browser); every graph in the workbench and on layout pages
+draws a data set of that name (ignoring case and surrounding spaces) in
+it, the same colour in light and dark and in print-colour exports. A
+colour set on the graph still wins; a pin wins over "same colour for a
+group", which only picks a palette slot (`web/src/graph/nameColors.ts`).
+
+Approved data-model change. Migration: a file or share link without
+`groupColors` loads with no such key, so it opens, draws and saves
+exactly as before (`groupColors.test.ts` loads
+`e2e-fixtures/stage/rank-test.json`, saved before, and checks the
+round trip and the share-link JSON); bad entries (not #rrggbb, an empty
+or repeated name) are dropped on load. The .pzfx export selects the same
+tables with or without pins (pins are not table data).
+
+The palette check runs on the pins and warns, never refuses: a pin under
+3:1 contrast on white (the export paper) or on the dark export
+background (#1c1c1e), and pairs of pins closer than CIEDE2000 10 for
+normal vision, protanopia, deuteranopia, tritanopia (Machado et al. 2009),
+achromatopsia or grey print (`graph/cvd.ts`). Pinned values: Okabe-Ito
+orange #e69f00 is 2.3:1 on white (warned); #d55e00 passes alone and is
+flagged against #0072b2 in achromatopsia (ΔE 8.2); red #d62728 and green
+#2ca02c are flagged in deuteranopia. The graph's own colour-vision check
+(Figure style) reads the drawn colours, pins included.
+
+`scripts/e2e-figures.mjs` opens three tables with KO first, second and
+third, pins KO in Preferences (first #e69f00: the warning shows; then
+#d55e00: no warning), and checks each graph draws KO, and only KO, in
+#d55e00 on screen and in its SVG export (rgb(213, 94, 0)), then in the
+dark theme on screen, in the print-colour export and in the dark export.

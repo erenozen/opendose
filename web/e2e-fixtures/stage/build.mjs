@@ -26,6 +26,7 @@
 //                      graph following the test (median with IQR)
 //   raincloud.json     the example column table as a raincloud, plus a
 //                      one-value group (no density, named in the legend)
+//   pins.json          colours pinned to group names, one under 3:1 on white
 //   many-sheets.json   74 sheets: 22 families, navigator groups (one
 //                      collapsed), highlights, info sheets and layouts
 import { writeFileSync } from "node:fs";
@@ -329,4 +330,16 @@ function write(name, p, compact = false) {
   const g = graph(t, r, "raincloud", "Graph of Group comparison");
   g.settings.column = { spread: "symmetric", caption: "below", summary: "auto", violin: "quartiles" };
   write("raincloud.json", project("Raincloud", [t, r, g], { selected: g.id }));
+}
+
+// pins.json: colours pinned to group names (P-56); Okabe-Ito orange for
+// "KO" is under 3:1 on white, so Preferences shows the warning
+{
+  const t = data("Knockout study", table("column", { datasets: [
+    col("WT", [10.2, 11.5, 9.8, 10.9]), col("KO", [14.1, 15.3, 13.8, 14.9]), col("Het", [12.0, 12.8, 11.7, 12.4]),
+  ] }));
+  const g = graph(t, null, "scatter", "Graph of Knockout study");
+  g.settings.column = { spread: "symmetric", caption: "below", summary: "auto" };
+  write("pins.json", project("Pinned colours", [t, g], { selected: g.id,
+    groupColors: [{ name: "KO", color: "#e69f00" }, { name: "WT", color: "#0072b2" }] }));
 }

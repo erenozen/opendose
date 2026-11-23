@@ -12,6 +12,7 @@ import {
 } from "../report/prefs";
 import { Button, Popover } from "./ui";
 import StorageNote from "./StorageNote";
+import GroupColorPins from "./GroupColorPins";
 
 /** Every keyboard binding in the app, by where it works. Keep in sync
  *  with useShortcuts, the navigator, the data grid, the layout canvas,
@@ -141,6 +142,7 @@ export default function PreferencesPopover({ open, onOpenChange, anchor }: {
             <span>Same colour for a group on every graph, by its name (a colour set on a
               graph still wins)</span>
           </label>
+          <GroupColorPins />
           <h3 className="prefs-subtitle">Reporting</h3>
           <label className="field">
             <span>P-value style (tables, sentences, legends)</span>
