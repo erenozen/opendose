@@ -454,8 +454,10 @@ function ReplayLogView({ log, undoable }: { log: ReplayLog; undoable: boolean })
               <table className="replay-changes">
                 <thead><tr><th scope="col">Number</th><th scope="col">Before → after</th></tr></thead>
                 <tbody>
-                  {r.changes.map((c) => (
-                    <tr key={c.label + c.text}><th scope="row">{c.label}</th><td>{c.text}</td></tr>
+                  {r.changes.map((c, i) => (
+                    // two numbers of a result can share a label and a change
+                    // (diffResults: "Dataset A · N", 0 → not reported, twice)
+                    <tr key={`${i}-${c.label}`}><th scope="row">{c.label}</th><td>{c.text}</td></tr>
                   ))}
                 </tbody>
               </table>
