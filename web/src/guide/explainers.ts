@@ -403,10 +403,10 @@ export const EXPLAINERS: Explainer[] = [
   {
     id: "limits",
     title: "Limits: how much data OpenDose handles",
-    summary: "Tested with 100,000 rows in a table, 200,000 points in a graph and 50 data sets; beyond that it slows but keeps working.",
+    summary: "Tested with 500,000 rows in a table and in its graph, and 50 data sets; beyond that it slows but keeps working.",
     body: [
-      "Tested sizes: a table of 100,000 rows (pasted in about ten seconds), a graph of 200,000 "
-        + "points, 50 data sets in one table, and a t test on 2 × 100,000 values. A long table "
+      "Tested sizes: a table of 500,000 pasted rows with its graph, a t test on 2 × 500,000 "
+        + "values and a linear regression on 500,000 points, and 50 data sets in one table. A long table "
         + "scrolls inside its card and draws only the rows in view, so typing and scrolling stay "
         + "fast at any length. Above 5,000 points a graph draws its points with WebGL; an SVG or "
         + "PDF export then holds those points as one embedded image (axes and text stay vector), "
@@ -420,7 +420,7 @@ export const EXPLAINERS: Explainer[] = [
     ],
     // Read 2026-10-09: WebGL traces draw 100,000 to a million points.
     sources: [{ label: "Plotly: WebGL vs SVG in JavaScript", url: "https://plotly.com/javascript/webgl-vs-svg/" }],
-    keywords: "large data big table rows points limit slow performance webgl memory autosave size 100000",
+    keywords: "large data big table rows points limit slow performance webgl memory autosave size 100000 500000",
   },
 ];
 

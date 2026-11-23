@@ -4489,8 +4489,8 @@ const axeOn = async (pg, sel) => {
     await help.getByRole("searchbox", { name: "Search help" }).fill("limits");
     await help.getByRole("button", { name: /Limits: how much data/ }).click();
     const helpText = (await help.innerText()).replace(/\s+/g, " ");
-    expect("Help states the tested limits (100,000 rows, 200,000 points, WebGL above 5,000 points)",
-      /100,000 rows/.test(helpText) && /200,000/.test(helpText) && /5,000 points/.test(helpText), helpText.slice(0, 200));
+    expect("Help states the tested limits (500,000 rows with their graph, WebGL above 5,000 points)",
+      /500,000 rows/.test(helpText) && /5,000 points/.test(helpText) && !/100,000 rows/.test(helpText), helpText.slice(0, 200));
     await page.keyboard.press("Escape");
   } else {
     expect("Help opens with Ctrl+/", false);
