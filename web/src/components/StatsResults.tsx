@@ -719,7 +719,7 @@ function RMTwoWay({ result }: { result: any }) {
               <td>{formatSig(s.ss)}</td>
               <td>{s.df}</td>
               <td>{formatSig(s.ms)}</td>
-              <td>{s.F != null ? formatSig(s.F) : "n/a"}</td>
+              <td>{s.F != null ? formatSig(s.F) : s.note ? "undefined (no scatter)" : "n/a"}</td>
               <td>{s.p != null ? `${fmtP(s.p)} ${stars(s.p)}` : "n/a"}</td>
               <td>{s.p_geisser_greenhouse != null
                 ? fmtP(s.p_geisser_greenhouse) : "n/a"}</td>

@@ -3925,6 +3925,32 @@ df = 45 and another r; missing values, blank subjects and single-pair
 subjects are left out with a warning; one subject, and X constant within
 every subject, each give a sentence; a perfect within-subject line gives
 r = 1, P = 0 and no CI.
+
+### Fixes: matched designs without scatter, one Schild antagonist, qPCR
+
+- Paired and ratio paired t tests, RM one-way ANOVA and RM two-way
+  ANOVA with no scatter (every subject shifted by the same amounts) used
+  to report a limit (t or F infinite, P = 0), and identical decimals left
+  rounding noise that gave F near 1e15. A residual at rounding level, sum
+  of squares <= (64 eps)^2 sum(values^2) and summed directly (not as a
+  difference of sums), is now no scatter, as for the unpaired and
+  two-way cases (`ttests.no_residual`). The paired tests and RM one-way
+  ANOVA then say the statistic is undefined and what to check; in a
+  two-way RM design each term whose error has no scatter shows F and P
+  as undefined ("undefined: its error term has no scatter"), and the
+  analysis stops with a sentence only when no term can be tested.
+  `engine/tests/test_zero_scatter_matched.py`, with data that do scatter
+  still equal to scipy `ttest_rel` and pingouin `rm_anova` (1e-10).
+- qPCR statistics on identical dCq values (paired experiments): the
+  paired t test or RM ANOVA above now gives the statistics note instead
+  of t or F infinite; the fold changes and zero SDs are still reported
+  (a zero SD is a valid summary).
+- An EC50-shift (Gaddum/Schild) fit with one antagonist concentration
+  and the Schild slope free stopped with the raw "(34, 'Numerical result
+  out of range')": one dose ratio fits any slope with a matching pA2. It
+  now says so and to fix the slope at 1 or add concentrations; with the
+  slope fixed the same data fit (pA2 7.45 for a simulated 7.5).
+  `engine/tests/test_schild_single_antagonist.py`.
 """
 
 

@@ -57,7 +57,7 @@ function SourcesTable({ rows, gg }: {
               <td>{formatSig(s.ss)}</td>
               <td>{s.df}</td>
               <td>{formatSig(s.ms)}</td>
-              <td>{s.F != null ? formatSig(s.F) : ""}</td>
+              <td>{s.F != null ? formatSig(s.F) : s.note ? "undefined (no scatter)" : ""}</td>
               <td>{s.p != null ? `${fmtP(s.p)} ${stars(s.p)}` : ""}</td>
               {gg && <td>{s.p_geisser_greenhouse != null ? fmtP(s.p_geisser_greenhouse) : ""}</td>}
             </tr>

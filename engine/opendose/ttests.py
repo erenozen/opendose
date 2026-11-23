@@ -87,6 +87,15 @@ NO_SCATTER_CHECK = ("Check that each replicate was entered as measured, "
                     "not copied down the column or rounded to one value.")
 
 
+def no_residual(ss: float, values) -> bool:
+    """True when a residual sum of squares is zero up to rounding in the
+    values it comes from: ss <= (64 eps)^2 sum(v^2), the rule two-way
+    ANOVA uses (twoway.py). Differences of identical decimals such as
+    0.3 - 0.1 leave about 1e-33, not 0."""
+    v = np.asarray(values, dtype=float)
+    return not ss > _SCATTER_EPS ** 2 * float(np.sum(v * v))
+
+
 def _pair(values_a, values_b):
     pairs = [(a, b) for a, b in zip(values_a, values_b)
              if a is not None and b is not None]
@@ -275,8 +284,15 @@ def paired_t(values_a, values_b, *, ci_level: float = 0.95,
         raise ValueError("paired t test needs at least 2 complete pairs")
     d = a - b
     mean_d = float(d.mean())
+    if no_residual(float(((d - mean_d) ** 2).sum()), np.concatenate([a, b])):
+        # t = mean difference / SE with SE = 0: undefined, not infinite
+        raise ValueError(
+            "The paired t test is undefined: every pair has the same "
+            "difference (SD of the differences 0), so there is no scatter "
+            "to compare the mean difference with. Check that each pair "
+            "was entered as measured, not copied or rounded to one value.")
     se = float(d.std(ddof=1)) / math.sqrt(n)
-    t_stat = mean_d / se if se > 0 else math.inf
+    t_stat = mean_d / se
     df = n - 1
     p = 2 * float(stats.t.sf(abs(t_stat), df))
     tcrit = float(stats.t.ppf((1 + ci_level) / 2, df))
@@ -555,7 +571,16 @@ def ratio_paired_t(values_a, values_b, *, ci_level: float = 0.95) -> dict:
         raise ValueError("the ratio t test needs positive values "
                          "(logarithms of zero or negative values are "
                          "undefined)")
-    res = paired_t(np.log10(a), np.log10(b), ci_level=ci_level)
+    try:
+        res = paired_t(np.log10(a), np.log10(b), ci_level=ci_level)
+    except ValueError as exc:
+        if "undefined" not in str(exc):
+            raise
+        raise ValueError(
+            "The ratio paired t test is undefined: every pair has the same "
+            "ratio (SD of the log ratios 0), so there is no scatter to "
+            "compare the mean ratio with. Check that each pair was entered "
+            "as measured, not copied or rounded to one value.") from None
     mean_log = res["mean_difference"]
     lo, hi = res["ci_difference"]
     return {
