@@ -21,6 +21,7 @@ import {
 import { compareParameterLegend } from "../sheets/xy/compareParameter.ts";
 import { logLegendClause } from "../sheets/column/logScale.ts";
 import { maxOf } from "../lib/extent.ts";
+import { dropLegend, normalizeXYGraph } from "../sheets/xy/fitGraph.ts";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -146,9 +147,10 @@ export function legendFor(c: LegendContext): string {
     && facts.values.every((g) => g.n <= facts.experiments);
   // The graph's own P style / "hide ns" override the project's.
   const fmt = c.graph ? readFormat(c.graph.settings) : null;
+  const xyFit = c.graph?.graphType === "xy" ? xyFitPlotted(c.graph, c.result, f.errorBars) : undefined;
   return legendParagraph({
     graphType: c.graph?.graphType ?? null,
-    plotted: withCompareClause(c.graph ? (own ? ownPlotted(c.graph, c.result, c.options)
+    plotted: xyFit ?? withCompareClause(c.graph ? (own ? ownPlotted(c.graph, c.result, c.options)
       : plottedClause(c.graph, c.table, c.result)) : undefined, c.result),
     result: c.result,
     groups: xyGroups,
@@ -165,6 +167,13 @@ export function legendFor(c: LegendContext): string {
     style: fmt?.pStyle ?? c.prefs.pStyle,
     hideNs: fmt?.comparisons?.hideNs ?? c.prefs.hideNs, software: c.software,
   });
+}
+
+/** The curve-fit graph: what is plotted, then the IC50 / EC50 drop lines
+ *  (sheets/xy/fitGraph.ts) when they are on; undefined = the default. */
+function xyFitPlotted(g: GraphSheet, result: unknown, errorBars: ErrorBars | null): string | undefined {
+  const drop = dropLegend(result, normalizeXYGraph(g.settings.xy));
+  return drop ? `${whatIsPlotted("xy", { errorBars })} ${drop}` : undefined;
 }
 
 /** A "Compare a parameter" result adds what was compared and how to the

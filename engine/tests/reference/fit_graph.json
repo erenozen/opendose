@@ -1,0 +1,869 @@
+{
+ "cases": {
+  "absolute_log": {
+   "analysis": "dose_response",
+   "datasets": [
+    {
+     "fit": {
+      "ci_method": "asymptotic",
+      "curve": {
+       "x": [
+        -9.5,
+        -9.474874371859297,
+        -9.449748743718592
+       ],
+       "y": [
+        99.69134711265858,
+        99.68050184233992,
+        99.66894425652528
+       ]
+      },
+      "dependency": {
+       "Bottom": 0.40986574346251103,
+       "HillSlope": 0.5741788446500166,
+       "LogAbsoluteIC50": 0.399019374332356,
+       "Top": 0.5713904832762378
+      },
+      "equation": "Fifty=(Top+Baseline)/2; Y= Bottom + (Top-Bottom)/(1+10^((LogAbsoluteIC50-X)*HillSlope + log((Top-Bottom)/(Fifty-Bottom)-1)))",
+      "extrapolation": null,
+      "fitted_values": {
+       "Baseline": 0.0,
+       "Bottom": 0.9801337265301712,
+       "HillSlope": -1.1034677876835413,
+       "LogAbsoluteIC50": -6.97523852047833,
+       "Top": 99.856157248442
+      },
+      "goodness": {
+       "df": 23,
+       "n_points": 27,
+       "r_squared": 0.9986176661677088,
+       "r_squared_weighted": null,
+       "ss_res": 59.581610875066204,
+       "ss_res_weighted": null,
+       "sy_x": 1.609504526447519
+      },
+      "label": "Absolute IC50, X is log(concentration)",
+      "model": "absolute_ic50_log",
+      "param_order": [
+       "Bottom",
+       "Top",
+       "LogAbsoluteIC50",
+       "HillSlope",
+       "Baseline",
+       "AbsoluteIC50",
+       "Span"
+      ],
+      "params": {
+       "AbsoluteIC50": {
+        "ci95": [
+         9.942926704115472e-08,
+         1.1272200917093996e-07
+        ],
+        "constrained": false,
+        "derived": true,
+        "se": 3.210784041501652e-09,
+        "value": 1.0586721282471207e-07
+       },
+       "Baseline": {
+        "ci95": null,
+        "constrained": true,
+        "se": null,
+        "value": 0.0
+       },
+       "Bottom": {
+        "ci95": [
+         -0.5600850590612864,
+         2.5203525121216286
+        ],
+        "constrained": false,
+        "se": 0.7445498848306051,
+        "value": 0.9801337265301712
+       },
+       "HillSlope": {
+        "ci95": [
+         -1.18349467890853,
+         -1.0234408964585524
+        ],
+        "constrained": false,
+        "se": 0.03868542131956663,
+        "value": -1.1034677876835413
+       },
+       "LogAbsoluteIC50": {
+        "ci95": [
+         -7.002485762045149,
+         -6.947991278911511
+        ],
+        "constrained": false,
+        "se": 0.013171460288829115,
+        "value": -6.97523852047833
+       },
+       "Span": {
+        "ci95": [
+         96.44460432571881,
+         101.30744271810485
+        ],
+        "constrained": false,
+        "derived": true,
+        "se": 1.1753608639471707,
+        "value": 98.87602352191183
+       },
+       "Top": {
+        "ci95": [
+         98.34332215274836,
+         101.36899234413565
+        ],
+        "constrained": false,
+        "se": 0.7313124646988797,
+        "value": 99.856157248442
+       }
+      },
+      "status": "converged",
+      "weight_source": "predicted",
+      "weighting": "none",
+      "x_is_log": true
+     },
+     "name": "Drug A",
+     "points": {
+      "bars": [
+       {
+        "hi": 101.30587221092318,
+        "lo": 97.89412778907678,
+        "mean": 99.59999999999998,
+        "n": 3
+       },
+       {
+        "hi": 99.674588233835,
+        "lo": 95.45874509949836,
+        "mean": 97.56666666666668,
+        "n": 3
+       },
+       {
+        "hi": 93.805440180766,
+        "lo": 90.32789315256733,
+        "mean": 92.06666666666666,
+        "n": 3
+       },
+       {
+        "hi": 82.13493515728973,
+        "lo": 78.66506484271025,
+        "mean": 80.39999999999999,
+        "n": 3
+       },
+       {
+        "hi": 51.63170634862956,
+        "lo": 48.90162698470379,
+        "mean": 50.26666666666667,
+        "n": 3
+       },
+       {
+        "hi": 25.652141546793526,
+        "lo": 22.147858453206478,
+        "mean": 23.900000000000002,
+        "n": 3
+       },
+       {
+        "hi": 10.216975273368606,
+        "lo": 7.516358059964728,
+        "mean": 8.866666666666667,
+        "n": 3
+       },
+       {
+        "hi": 4.339377334869137,
+        "lo": 2.127289331797529,
+        "mean": 3.233333333333333,
+        "n": 3
+       },
+       {
+        "hi": 2.018535277187245,
+        "lo": 0.3814647228127549,
+        "mean": 1.2,
+        "n": 3
+       }
+      ],
+      "x": [
+       -9.0,
+       -8.500038134403809,
+       -8.0,
+       -7.50003813440381,
+       -7.0,
+       -6.50003813440381,
+       -6.0,
+       -5.50003813440381,
+       -5.0
+      ]
+     }
+    }
+   ],
+   "x_is_log_output": true
+  },
+  "extrapolated": {
+   "analysis": "dose_response",
+   "datasets": [
+    {
+     "fit": {
+      "ci_method": "asymptotic",
+      "curve": {
+       "x": [
+        -9.5,
+        -9.487437377559818,
+        -9.474874755119636
+       ],
+       "y": [
+        100.28258458562053,
+        100.27315303564941,
+        100.26345040437383
+       ]
+      },
+      "dependency": {
+       "Bottom": 0.9997941019315945,
+       "HillSlope": 0.9975535443019111,
+       "LogXmid": 0.9998520646894558,
+       "Top": 0.9681046540303324
+      },
+      "equation": "Y=Bottom + (Top-Bottom)/(1+10^((LogIC50-X)*HillSlope))",
+      "extrapolation": {
+       "direction": "above",
+       "distance": 0.2537998069791705,
+       "param": "LogIC50",
+       "value": -7.246238327424639,
+       "x_max": -7.50003813440381,
+       "x_min": -9.0
+      },
+      "fitted_values": {
+       "Bottom": 44.32852275522291,
+       "HillSlope": -0.9914327295492769,
+       "LogXmid": -7.246238327424639,
+       "Top": 100.60870541010726
+      },
+      "goodness": {
+       "df": 8,
+       "n_points": 12,
+       "r_squared": 0.9614610910320985,
+       "r_squared_weighted": null,
+       "ss_res": 26.77333333333338,
+       "ss_res_weighted": null,
+       "sy_x": 1.8293896978683006
+      },
+      "label": "log(inhibitor) vs. response -- Variable slope (four parameters)",
+      "model": "log_inhibitor_vs_response_4pl",
+      "param_order": [
+       "Top",
+       "Bottom",
+       "LogIC50",
+       "HillSlope",
+       "IC50",
+       "Span"
+      ],
+      "params": {
+       "Bottom": {
+        "ci95": [
+         -386.51145596674735,
+         475.1685014771932
+        ],
+        "constrained": false,
+        "se": 186.83400092160943,
+        "value": 44.32852275522291
+       },
+       "HillSlope": {
+        "ci95": [
+         -3.8322847217590814,
+         1.8494192626605275
+        ],
+        "constrained": false,
+        "se": 1.23193707627861,
+        "value": -0.9914327295492769
+       },
+       "IC50": {
+        "ci95": [
+         9.199454025106099e-14,
+         0.03497528739531049
+        ],
+        "constrained": false,
+        "derived": true,
+        "se": null,
+        "value": 5.672332398652531e-08
+       },
+       "LogIC50": {
+        "ci95": [
+         -13.036237946667459,
+         -1.4562387081818198
+        ],
+        "constrained": false,
+        "se": 2.510836615967383,
+        "value": -7.246238327424639
+       },
+       "Span": {
+        "ci95": [
+         -381.6231594830274,
+         494.1835247927961
+        ],
+        "constrained": false,
+        "derived": true,
+        "se": 189.89703246960624,
+        "value": 56.28018265488435
+       },
+       "Top": {
+        "ci95": [
+         92.72122720990139,
+         108.49618361031314
+        ],
+        "constrained": false,
+        "se": 3.4204093912032563,
+        "value": 100.60870541010726
+       }
+      },
+      "range_flags": {
+       "bottom_defined": false,
+       "bottom_reason": "confidence interval width 861.7 is at least 10 x the observed response range 22.6",
+       "crosses_half": false,
+       "ec50_above_range": true,
+       "ec50_below_range": false,
+       "ec50_in_range": false,
+       "half_response": 72.46861408266508,
+       "label": "IC50",
+       "midpoint": -7.246238327424639,
+       "midpoint_param": "LogIC50",
+       "notes": [
+        "The IC50 lies above the concentrations tested: report it as IC50 > 3.162e-8 (not reached in the range tested), not as the extrapolated number.",
+        "Bottom plateau not defined by the data (confidence interval width 861.7 is at least 10 x the observed response range 22.6).",
+        "The observed means never cross the half-way response between the fitted Top and Bottom."
+       ],
+       "plateau_rule": "defined = constrained, or CI finite and narrower than 10 x the observed response range",
+       "range_conc": [
+        1e-09,
+        3.162e-08
+       ],
+       "report_as": "> 3.162e-8",
+       "report_relation": ">",
+       "report_value": 3.162e-08,
+       "top_defined": true,
+       "top_reason": "confidence interval finite and narrow enough",
+       "x_max_tested": -7.50003813440381,
+       "x_min_tested": -9.0,
+       "x_units": "log10"
+      },
+      "status": "converged",
+      "weight_source": "predicted",
+      "weighting": "none",
+      "x_is_log": true
+     },
+     "name": "Drug A",
+     "points": {
+      "bars": [
+       {
+        "hi": 101.30587221092318,
+        "lo": 97.89412778907678,
+        "mean": 99.59999999999998,
+        "n": 3
+       },
+       {
+        "hi": 99.674588233835,
+        "lo": 95.45874509949836,
+        "mean": 97.56666666666668,
+        "n": 3
+       },
+       {
+        "hi": 93.805440180766,
+        "lo": 90.32789315256733,
+        "mean": 92.06666666666666,
+        "n": 3
+       },
+       {
+        "hi": 82.13493515728973,
+        "lo": 78.66506484271025,
+        "mean": 80.39999999999999,
+        "n": 3
+       }
+      ],
+      "x": [
+       -9.0,
+       -8.500038134403809,
+       -8.0,
+       -7.50003813440381
+      ]
+     }
+    }
+   ],
+   "x_is_log_output": true
+  },
+  "legend_4pl": {
+   "analysis": "dose_response",
+   "datasets": [
+    {
+     "bands": {
+      "lower": [
+       82.82015628564287,
+       82.82383215411458,
+       82.8275626418262
+      ],
+      "upper": [
+       119.38320380114487,
+       119.34510779582622,
+       119.30487382263013
+      ],
+      "x": [
+       -9.5,
+       -9.474874371859297,
+       -9.449748743718592
+      ],
+      "y": [
+       101.10168004339387,
+       101.0844699749704,
+       101.06621823222817
+      ]
+     },
+     "fit": {
+      "ci_method": "asymptotic",
+      "curve": {
+       "x": [
+        -9.5,
+        -9.474874371859297,
+        -9.449748743718592
+       ],
+       "y": [
+        101.10168004339387,
+        101.0844699749704,
+        101.06621823222817
+       ]
+      },
+      "dependency": {
+       "Bottom": 0.8516042626316963,
+       "HillSlope": 0.9475366654346898,
+       "LogXmid": 0.9234234196097614,
+       "Top": 0.7024137911952744
+      },
+      "equation": "Y=Bottom + (Top-Bottom)/(1+10^((LogIC50-X)*HillSlope))",
+      "extrapolation": null,
+      "fitted_values": {
+       "Bottom": 0.30873412507471304,
+       "HillSlope": -1.0218477173115366,
+       "LogXmid": -7.003568190540927,
+       "Top": 101.3851173371845
+      },
+      "goodness": {
+       "df": 22,
+       "n_points": 26,
+       "r_squared": 0.9982242185460697,
+       "r_squared_weighted": 0.9395257649887997,
+       "ss_res": 76.5397520340998,
+       "ss_res_weighted": 1.2315548391639488,
+       "sy_x": 0.23660043410049594
+      },
+      "label": "log(inhibitor) vs. response -- Variable slope (four parameters)",
+      "model": "log_inhibitor_vs_response_4pl",
+      "param_order": [
+       "Top",
+       "Bottom",
+       "LogIC50",
+       "HillSlope",
+       "IC50",
+       "Span"
+      ],
+      "params": {
+       "Bottom": {
+        "ci95": [
+         -0.5240411488495211,
+         1.141509398998947
+        ],
+        "constrained": false,
+        "se": 0.4015555661590631,
+        "value": 0.30873412507471304
+       },
+       "HillSlope": {
+        "ci95": [
+         -1.2651181775265363,
+         -0.7785772570965368
+        ],
+        "constrained": false,
+        "se": 0.11730248296288583,
+        "value": -1.0218477173115366
+       },
+       "IC50": {
+        "ci95": [
+         5.503762603016471e-08,
+         1.7873266293623047e-07
+        ],
+        "constrained": false,
+        "derived": true,
+        "se": null,
+        "value": 9.918175972455689e-08
+       },
+       "LogIC50": {
+        "ci95": [
+         -7.259340307044252,
+         -6.747796074037601
+        ],
+        "constrained": false,
+        "se": 0.12333065145680469,
+        "value": -7.003568190540927
+       },
+       "Span": {
+        "ci95": [
+         82.08636167918492,
+         120.06640474503466
+        ],
+        "constrained": false,
+        "derived": true,
+        "se": 9.156790657451985,
+        "value": 101.07638321210979
+       },
+       "Top": {
+        "ci95": [
+         82.71808253585027,
+         120.05215213851872
+        ],
+        "constrained": false,
+        "se": 9.00104981844438,
+        "value": 101.3851173371845
+       }
+      },
+      "range_flags": {
+       "bottom_defined": true,
+       "bottom_reason": "confidence interval finite and narrow enough",
+       "crosses_half": true,
+       "ec50_above_range": false,
+       "ec50_below_range": false,
+       "ec50_in_range": true,
+       "half_response": 50.8469257311296,
+       "label": "IC50",
+       "midpoint": -7.003568190540927,
+       "midpoint_param": "LogIC50",
+       "notes": [],
+       "plateau_rule": "defined = constrained, or CI finite and narrower than 10 x the observed response range",
+       "range_conc": [
+        1e-09,
+        1e-05
+       ],
+       "report_as": null,
+       "report_relation": null,
+       "report_value": null,
+       "top_defined": true,
+       "top_reason": "confidence interval finite and narrow enough",
+       "x_max_tested": -5.0,
+       "x_min_tested": -9.0,
+       "x_units": "log10"
+      },
+      "status": "converged",
+      "weight_source": "predicted",
+      "weighting": "1/Y2",
+      "x_is_log": true
+     },
+     "name": "Drug A",
+     "points": {
+      "bars": [
+       {
+        "hi": 101.30587221092318,
+        "lo": 97.89412778907678,
+        "mean": 99.59999999999998,
+        "n": 3
+       },
+       {
+        "hi": 99.674588233835,
+        "lo": 95.45874509949836,
+        "mean": 97.56666666666668,
+        "n": 3
+       },
+       {
+        "hi": 93.805440180766,
+        "lo": 90.32789315256733,
+        "mean": 92.06666666666666,
+        "n": 3
+       },
+       {
+        "hi": 82.13493515728973,
+        "lo": 78.66506484271025,
+        "mean": 80.39999999999999,
+        "n": 3
+       },
+       {
+        "hi": 54.6843371598016,
+        "lo": 31.71566284019839,
+        "mean": 43.199999999999996,
+        "n": 3
+       },
+       {
+        "hi": 25.652141546793526,
+        "lo": 22.147858453206478,
+        "mean": 23.900000000000002,
+        "n": 3
+       },
+       {
+        "hi": 10.216975273368606,
+        "lo": 7.516358059964728,
+        "mean": 8.866666666666667,
+        "n": 3
+       },
+       {
+        "hi": 4.339377334869137,
+        "lo": 2.127289331797529,
+        "mean": 3.233333333333333,
+        "n": 3
+       },
+       {
+        "hi": 2.018535277187245,
+        "lo": 0.3814647228127549,
+        "mean": 1.2,
+        "n": 3
+       }
+      ],
+      "x": [
+       -9.0,
+       -8.500038134403809,
+       -8.0,
+       -7.50003813440381,
+       -7.0,
+       -6.50003813440381,
+       -6.0,
+       -5.50003813440381,
+       -5.0
+      ]
+     },
+     "rout": {
+      "n_outliers": 1,
+      "outliers": [
+       {
+        "residual": -21.494266768154162,
+        "x": -7.0,
+        "y": 30.0
+       }
+      ],
+      "q": 0.01,
+      "rsdr": 1.9453131934033885
+     }
+    }
+   ],
+   "x_is_log_output": true
+  },
+  "relative_4pl": {
+   "analysis": "dose_response",
+   "datasets": [
+    {
+     "fit": {
+      "ci_method": "asymptotic",
+      "curve": {
+       "x": [
+        -9.5,
+        -9.474874371859297,
+        -9.449748743718592
+       ],
+       "y": [
+        99.69134711268109,
+        99.68050184236228,
+        99.66894425654745
+       ]
+      },
+      "dependency": {
+       "Bottom": 0.5771725408556736,
+       "HillSlope": 0.574046615678659,
+       "LogXmid": 0.5183108319664018,
+       "Top": 0.5696119025637585
+      },
+      "equation": "Y=Bottom + (Top-Bottom)/(1+10^((LogIC50-X)*HillSlope))",
+      "extrapolation": null,
+      "fitted_values": {
+       "Bottom": 0.980133726476317,
+       "HillSlope": -1.1034677876801073,
+       "LogXmid": -6.983041549355472,
+       "Top": 99.85615724846767
+      },
+      "goodness": {
+       "df": 23,
+       "n_points": 27,
+       "r_squared": 0.9986176661677088,
+       "r_squared_weighted": null,
+       "ss_res": 59.581610875066275,
+       "ss_res_weighted": null,
+       "sy_x": 1.60950452644752
+      },
+      "label": "log(inhibitor) vs. response -- Variable slope (four parameters)",
+      "model": "log_inhibitor_vs_response_4pl",
+      "param_order": [
+       "Top",
+       "Bottom",
+       "LogIC50",
+       "HillSlope",
+       "IC50",
+       "Span"
+      ],
+      "params": {
+       "Bottom": {
+        "ci95": [
+         -0.5600850591198638,
+         2.520352512072498
+        ],
+        "constrained": false,
+        "se": 0.7445498848328884,
+        "value": 0.980133726476317
+       },
+       "HillSlope": {
+        "ci95": [
+         -1.1834946789049217,
+         -1.023440896455293
+        ],
+        "constrained": false,
+        "se": 0.03868542131948228,
+        "value": -1.1034677876801073
+       },
+       "IC50": {
+        "ci95": [
+         9.694462359225172e-08,
+         1.1153037759625183e-07
+        ],
+        "constrained": false,
+        "derived": true,
+        "se": null,
+        "value": 1.0398206804622774e-07
+       },
+       "LogIC50": {
+        "ci95": [
+         -7.013476271257402,
+         -6.952606827453542
+        ],
+        "constrained": false,
+        "se": 0.014712305095169747,
+        "value": -6.983041549355472
+       },
+       "Span": {
+        "ci95": [
+         96.44460432578764,
+         101.30744271819508
+        ],
+        "constrained": false,
+        "derived": true,
+        "se": 1.175360863952339,
+        "value": 98.87602352199136
+       },
+       "Top": {
+        "ci95": [
+         98.34332215276832,
+         101.36899234416701
+        ],
+        "constrained": false,
+        "se": 0.7313124647016324,
+        "value": 99.85615724846767
+       }
+      },
+      "range_flags": {
+       "bottom_defined": true,
+       "bottom_reason": "confidence interval finite and narrow enough",
+       "crosses_half": true,
+       "ec50_above_range": false,
+       "ec50_below_range": false,
+       "ec50_in_range": true,
+       "half_response": 50.41814548747199,
+       "label": "IC50",
+       "midpoint": -6.983041549355472,
+       "midpoint_param": "LogIC50",
+       "notes": [],
+       "plateau_rule": "defined = constrained, or CI finite and narrower than 10 x the observed response range",
+       "range_conc": [
+        1e-09,
+        1e-05
+       ],
+       "report_as": null,
+       "report_relation": null,
+       "report_value": null,
+       "top_defined": true,
+       "top_reason": "confidence interval finite and narrow enough",
+       "x_max_tested": -5.0,
+       "x_min_tested": -9.0,
+       "x_units": "log10"
+      },
+      "status": "converged",
+      "weight_source": "predicted",
+      "weighting": "none",
+      "x_is_log": true
+     },
+     "name": "Drug A",
+     "points": {
+      "bars": [
+       {
+        "hi": 101.30587221092318,
+        "lo": 97.89412778907678,
+        "mean": 99.59999999999998,
+        "n": 3
+       },
+       {
+        "hi": 99.674588233835,
+        "lo": 95.45874509949836,
+        "mean": 97.56666666666668,
+        "n": 3
+       },
+       {
+        "hi": 93.805440180766,
+        "lo": 90.32789315256733,
+        "mean": 92.06666666666666,
+        "n": 3
+       },
+       {
+        "hi": 82.13493515728973,
+        "lo": 78.66506484271025,
+        "mean": 80.39999999999999,
+        "n": 3
+       },
+       {
+        "hi": 51.63170634862956,
+        "lo": 48.90162698470379,
+        "mean": 50.26666666666667,
+        "n": 3
+       },
+       {
+        "hi": 25.652141546793526,
+        "lo": 22.147858453206478,
+        "mean": 23.900000000000002,
+        "n": 3
+       },
+       {
+        "hi": 10.216975273368606,
+        "lo": 7.516358059964728,
+        "mean": 8.866666666666667,
+        "n": 3
+       },
+       {
+        "hi": 4.339377334869137,
+        "lo": 2.127289331797529,
+        "mean": 3.233333333333333,
+        "n": 3
+       },
+       {
+        "hi": 2.018535277187245,
+        "lo": 0.3814647228127549,
+        "mean": 1.2,
+        "n": 3
+       }
+      ],
+      "x": [
+       -9.0,
+       -8.500038134403809,
+       -8.0,
+       -7.50003813440381,
+       -7.0,
+       -6.50003813440381,
+       -6.0,
+       -5.50003813440381,
+       -5.0
+      ]
+     }
+    }
+   ],
+   "x_is_log_output": true
+  }
+ },
+ "checks": {
+  "absolute_log": {
+   "x": -6.97523852047833,
+   "y_curve": 49.928078624221,
+   "y_half": 49.928078624221
+  },
+  "legend_4pl": {
+   "x": -7.003568190540927,
+   "y_curve": 50.84692573112961,
+   "y_half": 50.8469257311296
+  },
+  "relative_4pl": {
+   "x": -6.983041549355472,
+   "y_curve": 50.418145487471996,
+   "y_half": 50.41814548747199
+  }
+ }
+}

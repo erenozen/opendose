@@ -260,6 +260,19 @@ below 5 (look the same) or 10 (similar) and marks below 3:1 contrast on
 the background. It warns when transparent fills meet the colour-blind
 scheme. The built-in schemes stay validated offline (lib/palette.ts).
 
+### Curve-fit graph options (sheets/xy/fitGraph.ts)
+
+`settings.xy` of a graph of kind `xy`: `dropLines` draws dashed lines
+from the curve at the IC50 / EC50 to both axes, `dropLabel` writes the
+value beside the point (absent = off, today's figure). Each line is a
+shape with one end in axis units and one at the plot edge (`yref:
+["y", "y domain"]`, Plotly 3 per-end references), so it reaches the
+axis at any zoom and takes no part in autorange; names `drop:<ds>:v` /
+`drop:<ds>:h`. Relative models use the range flags' midpoint and half
+response, the absolute IC50 models (Top + Baseline) / 2; a fit the
+results flag (ambiguous, beyond the doses tested) gets a legend sentence
+instead (`dropLegend`).
+
 ### SuperPlots
 
 Trace role `replicate` (new): data marks coloured by replicate, which

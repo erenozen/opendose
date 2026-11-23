@@ -1,0 +1,139 @@
+{
+ "opendose_project": 2,
+ "version": 2,
+ "title": "Fit graph",
+ "prefs": {
+  "defaultTableType": "xy",
+  "errorBars": "sd",
+  "ciMethod": "asymptotic",
+  "scheme": "default",
+  "digits": 4
+ },
+ "selected": "g080",
+ "sheets": [
+  {
+   "id": "d078",
+   "kind": "data",
+   "name": "Dose response",
+   "table": {
+    "type": "xy",
+    "x": [
+     "1e-9",
+     "3.162e-9",
+     "1e-8",
+     "3.162e-8",
+     "1e-7",
+     "3.162e-7",
+     "1e-6",
+     "3.162e-6",
+     "1e-5"
+    ],
+    "xTitle": "[Conc.]",
+    "xFormat": "numbers",
+    "xUnit": "M",
+    "yTitle": "Response",
+    "rowTitles": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "datasets": [
+     {
+      "name": "Drug A",
+      "subTitles": [
+       "",
+       "",
+       ""
+      ],
+      "rows": [
+       [
+        "98.2",
+        "101.5",
+        "99.1"
+       ],
+       [
+        "97.0",
+        "95.8",
+        "99.9"
+       ],
+       [
+        "93.4",
+        "90.1",
+        "92.7"
+       ],
+       [
+        "78.9",
+        "82.3",
+        "80.0"
+       ],
+       [
+        "51.2",
+        "48.7",
+        "50.9"
+       ],
+       [
+        "22.1",
+        "25.6",
+        "24.0"
+       ],
+       [
+        "8.9",
+        "10.2",
+        "7.5"
+       ],
+       [
+        "3.1",
+        "4.4",
+        "2.2"
+       ],
+       [
+        "1.0",
+        "0.5",
+        "2.1"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "r079",
+   "kind": "results",
+   "parentId": "d078",
+   "analysis": "nonlin",
+   "options": {
+    "model": "log_inhibitor_vs_response_4pl",
+    "errorBars": "sd",
+    "autoFit": "requested"
+   },
+   "name": "Nonlin fit of Dose response"
+  },
+  {
+   "id": "g080",
+   "kind": "graph",
+   "parentId": "d078",
+   "resultsId": "r079",
+   "graphType": "xy",
+   "settings": {
+    "titles": {
+     "x": "",
+     "y": ""
+    },
+    "scheme": "default",
+    "xy": {
+     "dropLines": true,
+     "dropLabel": true
+    }
+   },
+   "name": "Graph of Dose response"
+  }
+ ]
+}

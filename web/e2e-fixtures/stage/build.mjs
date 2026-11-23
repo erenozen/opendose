@@ -16,6 +16,8 @@
 //   row-ids.json       animal IDs as row titles (Find, Exclude by ID), an
 //                      Info constant used as "@Name", a contingency graph
 //   box-plot.json      a column box plot (rank (n + 1)p quartiles, an outlier)
+//   fit-graph.json     the example dose-response with IC50 drop lines and
+//                      their value label on its curve-fit graph
 //   many-sheets.json   74 sheets: 22 families, navigator groups (one
 //                      collapsed), highlights, info sheets and layouts
 import { writeFileSync } from "node:fs";
@@ -246,4 +248,19 @@ function write(name, p, compact = false) {
   const g = graph(t, r, "box", "Box plot");
   g.settings.column = { caption: "below" };
   write("box-plot.json", project("Box plot", [t, r, g], { selected: g.id }));
+}
+
+// fit-graph.json: the example dose-response with the IC50 drop lines and
+// their label on (sheets/xy/fitGraph.ts)
+{
+  const reps = [["98.2", "101.5", "99.1"], ["97.0", "95.8", "99.9"], ["93.4", "90.1", "92.7"],
+    ["78.9", "82.3", "80.0"], ["51.2", "48.7", "50.9"], ["22.1", "25.6", "24.0"],
+    ["8.9", "10.2", "7.5"], ["3.1", "4.4", "2.2"], ["1.0", "0.5", "2.1"]];
+  const t = data("Dose response", table("xy", { x: doses, xTitle: "[Conc.]", xUnit: "M",
+    yTitle: "Response", datasets: [{ name: "Drug A", subTitles: ["", "", ""], rows: reps }] }));
+  const r = results(t, "nonlin", { model: "log_inhibitor_vs_response_4pl", errorBars: "sd",
+    autoFit: "requested" }, "Nonlin fit of Dose response");
+  const g = graph(t, r, "xy", "Graph of Dose response");
+  g.settings.xy = { dropLines: true, dropLabel: true };
+  write("fit-graph.json", project("Fit graph", [t, r, g], { selected: g.id }));
 }

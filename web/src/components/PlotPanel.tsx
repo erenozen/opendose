@@ -16,6 +16,7 @@ import {
   type GraphFormat,
 } from "../graph";
 import { maxOf, minOf } from "../lib/extent";
+import { addDropLines, type DropPoint } from "../sheets/xy/fitGraph";
 
 /** An extra fitted curve drawn with a data set (`altCurves` on a data
  *  set of the result): dotted, in the data set's colour or in ink. */
@@ -37,11 +38,16 @@ interface Props {
   onFormatChange?: (f: GraphFormat) => void;
   /** Row titles of the table, for point labels. */
   rowTitles?: string[];
+  /** IC50 / EC50 drop lines (sheets/xy/fitGraph.ts), with the value
+   *  label and the concentration unit it is written in. */
+  drop?: { points: DropPoint[]; label: boolean; unit: string };
+  /** Caption drawn inside the figure (the legend sentence), if any. */
+  caption?: string;
 }
 
 export default function PlotPanel({
   result, xTitle, yTitle, scheme = DEFAULT_SCHEME, xTickFormat, format = EMPTY_FORMAT,
-  onFormatChange, rowTitles,
+  onFormatChange, rowTitles, drop, caption,
 }: Props) {
   const el = useRef<HTMLDivElement>(null);
   const [dark, setDark] = useState(isDarkMode());
@@ -223,11 +229,15 @@ export default function PlotPanel({
 
     const out = applyFormat(traces as never, layout, format, {
       dark, scheme, datasets: result.datasets.map((d) => d.name), rowTitles,
-      results: resultBlocks(result, graphPStyle(format)), editRevision: rev,
+      results: resultBlocks(result, graphPStyle(format)), editRevision: rev, caption,
     });
+    const shown = drop?.points.length
+      ? addDropLines(out.layout, drop.points, format, { dark, scheme, label: drop.label,
+        unit: drop.unit, ink: chrome.ink })
+      : out.layout;
     const div = el.current;
     void draw(async (P) => {
-      await P.react(div, densify(out.traces).traces as Plotly.Data[], out.layout, plotConfig({
+      await P.react(div, densify(out.traces).traces as Plotly.Data[], shown, plotConfig({
         responsive: true,
         scrollZoom: true,
         displaylogo: false,
@@ -236,7 +246,7 @@ export default function PlotPanel({
       attach(div);
     });
   }, [result, dark, xTitle, yTitle, scheme, xTickFormat, format, rev, rowTitles, onFormatChange,
-    attach, draw, attempt]);
+    attach, draw, attempt, drop, caption]);
 
   return (
     <div className="plot" ref={el}>

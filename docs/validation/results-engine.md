@@ -615,3 +615,30 @@ agrees with `runs_test` p_method "exact_float" to at most 7.2e-10
 relative, including P = 1.657e-178 at N = 20,000 and P = 0.94543216 at
 N = 500,000. The committed reference stays
 engine/tests/reference/large_tables.py.
+
+## Feature validation: curve-fit graph drop lines (2026-11-23)
+
+FEATURE-PLAN P-23. No engine change: the curve-fit graph's IC50 / EC50
+drop lines read their point from the fit the results report. For the 19
+relative dose-response models listed in `web/src/sheets/xy/fitGraph.ts`
+(`RELATIVE_MODELS`) the point is the range flags' `midpoint` and
+`half_response` ((Top + Bottom) / 2, or 50 for normalised models); for
+the two absolute IC50 models it is (LogAbsoluteIC50 or AbsoluteIC50,
+(Top + Baseline) / 2). `engine/tests/test_fit_graph.py` reads that list
+from the TypeScript file and checks, for each model, that its own
+equation (`equations.py`, `nlfit.py`) at the midpoint equals that
+response to 1e-12 relative over 20 random parameter sets (seed 23); the
+5PL qualifies because its equation places LogXb so that the EC50 is the
+half-way point. A fit the results flag (ambiguous, or a midpoint beyond
+the concentrations tested) gets no lines and a legend sentence instead.
+
+Reference: `engine/tests/reference/fit_graph.py` (engine fits of the
+example table, and each model's equation evaluated at the midpoint).
+Values pinned: relative 4PL LogIC50 -6.98304, response 50.4181 (the
+equation at that x: 50.418145487472, the range flags' half response
+50.418145487472); absolute IC50 with Baseline 0: LogAbsoluteIC50
+-6.97524, response 49.9281. e2e-figures turns the lines on, reads the
+shapes (x equals the LogIC50 the results table shows, y equals the drawn
+curve interpolated at x to 0.05 and the reference to 5e-5), changes a Y
+value (51.2 to 30 at 1e-7 M: LogIC50 -7.056, the line follows) and
+checks the absolute model.
