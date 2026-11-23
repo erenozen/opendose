@@ -39,6 +39,9 @@
 //   sex-factor.json    rows F and M of a grouped table under multiple t tests (P-62)
 //   normalize-title.json a new Normalize output and its graph, titled "% of vehicle (mean)" (P-55)
 //   assay-analysed.json a qPCR plate whose Notes strip names the wells left out (P-16)
+//   derived-numbers.json quasi-Poisson (P-46), partial and compared correlations
+//                      (P-48), survival difference at a time (P-28), the
+//                      references of a Normalize (P-57)
 //   many-sheets.json   74 sheets: 22 families, navigator groups (one
 //                      collapsed), highlights, info sheets and layouts
 import { readFileSync, writeFileSync } from "node:fs";
@@ -650,4 +653,52 @@ const longData = (name, names, rows, categorical) => data(name, {
   t.table.datasets[3].excluded = ["4:0"];
   const r = results(t, "assay_qpcr", { referenceGenes: ["GAPDH"], calibrator: "CON" }, "qPCR of qPCR plate 7");
   write("assay-analysed.json", project("qPCR plate 7", [t, r], { selected: r.id }));
+}
+
+// derived-numbers.json (wave 1 misc): the Ames TA98 counts under Poisson
+// regression (the overdispersion chip, P-46; engine/tests/reference/
+// quasi_poisson.py); four variables under a partial correlation matrix
+// controlling for Age and an XY table comparing X vs. SBP with X vs. BMI
+// (P-48; partial_compare_corr.py); survival::lung by sex at 365 days
+// (P-28; survival_difference.py); the P-55 normalize example and its
+// references (P-57)
+{
+  const ref = (f) => JSON.parse(readFileSync(join(here, "../../../engine/tests/reference", f), "utf8"));
+  const qp = ref("quasi_poisson.json").data;
+  const ames = longData("Ames TA98", ["Dose", "log(Dose + 10)", "Revertants"],
+    qp.dose.map((d, i) => [String(d), String(qp.log_dose_plus_10[i]), String(qp.revertants[i])]), []);
+  const rp = results(ames, "mv_poisson", { outcome: "Revertants", predictors: ["Dose", "log(Dose + 10)"],
+    interactions: [], referenceLevels: {}, ciLevel: "95", exposure: "", ciMethod: "profile", quasi: false },
+  "Poisson regression of Ames TA98");
+  const pc = ref("partial_compare_corr.json").table;
+  const vars = ["Age", "SBP", "BMI", "Cholesterol"];
+  const four = longData("Four variables", vars, pc.Age.map((_, i) => vars.map((v) => String(pc[v][i]))), []);
+  const rc = results(four, "mv_correlation", { variables: [], method: "pearson", missing: "pairwise", tails: 2,
+    ciLevel: "95", control: ["Age"] }, "Partial correlation of Four variables");
+  const xy = data("Same subjects", table("xy", { x: pc.Age.map(String), xTitle: "Age",
+    datasets: [col("SBP", pc.SBP), col("BMI", pc.BMI)] }));
+  const rx = results(xy, "column", { analysis: "correlation", corrWithX: true, corrCompare: "0,1",
+    corrCompareDesign: "auto" }, "Correlation of Same subjects");
+  const ind = ref("partial_compare_corr.json").independent_data;
+  const two = data("Two samples", table("xy", { xTitle: "Dose",
+    x: [...ind["Dose A"], ...ind["Dose B"]].map(String),
+    datasets: [col("Response A", [...ind["Response A"], ...ind["Dose B"].map(() => "")]),
+      col("Response B", [...ind["Dose A"].map(() => ""), ...ind["Response B"]])] }));
+  const rt = results(two, "column", { analysis: "correlation", corrWithX: true, corrCompare: "0,1",
+    corrCompareDesign: "auto" }, "Correlation of Two samples");
+  const lung = ref("survival_difference.json").groups;
+  const surv = data("Lung cancer by sex", { ...table("survival", { xUnit: "days", datasets:
+    ["Male", "Female"].map((g) => ({ name: g, subTitles: ["Time", "Event"],
+      rows: lung[g].times.map((t, i) => [String(t), String(lung[g].events[i])]) })) }), x: [], rowTitles: [] });
+  const rs = results(surv, "survival", { survivalAt: 365 }, "Survival of Lung cancer by sex");
+  const rows = ["10 nM", "1 µM", "vehicle"];
+  const src = table("grouped", { yTitle: "Luminescence (RLU)", rowTitles: rows, datasets: [
+    { name: "WT", rows: [["20", "22", "21"], ["55", "60", "58"], ["98", "101", "100"]] },
+    { name: "KO", rows: [["30", "33", "31"], ["70", "66", "68"], ["99", "97", "103"]] },
+  ] });
+  const nt = data("Viability", src);
+  const rn = results(nt, "normalize", { zeroMode: "smallest", zeroValue: "0", hundredMode: "last",
+    hundredValue: "100", asPercent: true, subcolumns: "mean", namedTitle: true }, "Normalize of Viability");
+  write("derived-numbers.json", project("Derived numbers", [ames, rp, four, rc, xy, rx, two, rt, surv, rs, nt, rn],
+    { selected: rp.id }));
 }

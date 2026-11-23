@@ -1066,6 +1066,52 @@ const scenes = [
     await fmt.getByLabel("Axis line width (pt)").fill("1");
     await settle(s, 500);
   } },
+  // P-46: overdispersed counts, the Checks chip with its one-click switch
+  { name: "results-quasi-poisson", setup: async (s) => {
+    await fixture(s, "derived-numbers.json", { live: true });
+    const checks = s.page.locator(".pane-answer details.checks").first();
+    await click(s, checks.locator("summary"));
+    await click(s, s.page.getByRole("button", { name: /Counts are overdispersed/ }));
+    await s.page.getByRole("region", { name: /Counts are overdispersed/ }).waitFor();
+    await into(s, ".pane-answer details.checks", "center");
+    await settle(s, 800);
+  } },
+  // P-48: a partial correlation matrix controlling for Age
+  { name: "results-partial-corr", setup: async (s) => {
+    await fixture(s, "derived-numbers.json", { live: true });
+    await selectSheet(s, "Partial correlation of Four variables");
+    await s.page.getByText(/Partial correlation matrix \(Pearson r, controlling for Age\)/).first()
+      .waitFor({ timeout: 240000 });
+    await into(s, ".pane-results .mv-results", "start");
+    await settle(s, 800);
+  } },
+  // P-48: X vs. two Y data sets compared (the same rows: Steiger's Z)
+  { name: "results-corr-compare", setup: async (s) => {
+    await fixture(s, "derived-numbers.json", { live: true });
+    await selectSheet(s, "Correlation of Same subjects");
+    const card = s.page.locator(".pane-results .compare-corr").first();
+    await card.waitFor({ timeout: 240000 });
+    await card.evaluate((el) => el.scrollIntoView({ block: "center" }));
+    await settle(s, 800);
+  } },
+  // P-28: survival at 365 days with the difference row, its CI and P
+  { name: "results-survival-difference", setup: async (s) => {
+    await fixture(s, "derived-numbers.json", { live: true });
+    await selectSheet(s, "Survival of Lung cancer by sex");
+    const block = s.page.locator('section[aria-label="Survival at a chosen time"]').first();
+    await block.waitFor({ timeout: 240000 });
+    await block.evaluate((el) => el.scrollIntoView({ block: "start" }));
+    await settle(s, 800);
+  } },
+  // P-57: the 0% and 100% a Normalize used, per data set
+  { name: "results-normalize-references", setup: async (s) => {
+    await fixture(s, "derived-numbers.json", { live: true });
+    await selectSheet(s, "Normalize of Viability");
+    const refs = s.page.getByRole("region", { name: "References used" }).first();
+    await refs.waitFor({ timeout: 240000 });
+    await refs.evaluate((el) => el.scrollIntoView({ block: "center" }));
+    await settle(s, 800);
+  } },
   { name: "results-schild", setup: async (s) => {
     await fixture(s, "schild.json", { live: true });
     const card = s.page.locator(".schild-card");
