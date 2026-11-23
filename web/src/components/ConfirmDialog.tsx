@@ -1,3 +1,4 @@
+import { useId } from "react";
 import Modal from "./Modal";
 import { Button } from "./ui/Button";
 
@@ -12,8 +13,9 @@ export default function ConfirmDialog({ opts, onDone }: {
   opts: ConfirmOptions;
   onDone: (ok: boolean) => void;
 }) {
+  const bodyId = useId();
   return (
-    <Modal title={opts.title} role="alertdialog" className="modal-narrow"
+    <Modal title={opts.title} role="alertdialog" className="modal-narrow" describedBy={bodyId}
       onClose={() => onDone(false)} onSubmit={() => onDone(true)}
       actions={
         <>
@@ -23,7 +25,7 @@ export default function ConfirmDialog({ opts, onDone }: {
           </Button>
         </>
       }>
-      <p className="modal-text">{opts.body}</p>
+      <p id={bodyId} className="modal-text">{opts.body}</p>
     </Modal>
   );
 }

@@ -214,7 +214,14 @@ function Body({ onSubmit, className = "", ...props }: Omit<ComponentProps<"form"
 }) {
   return (
     <form method="dialog" className={`modal-body ${className}`} {...props}
-      onSubmit={(e) => { e.preventDefault(); onSubmit?.(); }} />
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSubmit?.();
+        // A submit that left a field invalid (Field shows its error once
+        // submitted): focus moves to the first one, so it is heard.
+        const form = e.currentTarget;
+        requestAnimationFrame(() => form.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus());
+      }} />
   );
 }
 

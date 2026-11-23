@@ -21,8 +21,13 @@ import "./Toast.css";
 
 const GAP = 8;
 
-// Every toast shown or replaced is spoken once; errors interrupt.
-toasts.onMessage = (t) => announce(t.message, t.tone === "error" ? "assertive" : "polite");
+// Every toast shown or replaced is spoken once; errors interrupt. An
+// action (Undo) is spoken with how to reach it, since it leaves with the
+// toast and is often the only way back.
+toasts.onMessage = (t) => announce(
+  t.action ? `${t.message} ${t.action.label}: press F6.` : t.message,
+  t.tone === "error" ? "assertive" : "polite",
+);
 // For the e2e scripts (scripts/e2e-feedback.mjs), as __opendose is.
 (globalThis as { __opendoseToasts?: typeof toasts }).__opendoseToasts = toasts;
 
