@@ -60,6 +60,7 @@ import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { deflateSync, strFromU8, strToU8, unzipSync } from "fflate";
+import { projectSchemaErrors } from "./validate-project.mjs";
 
 // The header's File and View menus (DECISIONS 5): open one, pick an item.
 const fileMenu = async (p, item) => {
@@ -95,6 +96,13 @@ const fail = [];
 const expect = (label, ok, detail = "") => {
   console.log(`${ok ? "ok  " : "FAIL"} ${label}${detail ? `: ${detail}` : ""}`);
   if (!ok) fail.push(label);
+};
+// P-60: every project this suite saves validates against the published
+// schema (docs/project-file.schema.json, ajv).
+const checkSchema = (what, json) => {
+  const errs = projectSchemaErrors(json);
+  expect(`schema: ${what} validates against docs/project-file.schema.json`, errs.length === 0,
+    errs.slice(0, 5).join(" | "));
 };
 // A navigator row by sheet name (the treeitem's own row, not its children).
 const navRow = (name) => page
@@ -586,6 +594,7 @@ const [download] = await Promise.all([
 const SAVED = join(tmp, download.suggestedFilename());
 await download.saveAs(SAVED);
 const saved = JSON.parse(readFileSync(SAVED, "utf8"));
+checkSchema("Save project (grouped table)", saved);
 const grouped = saved.sheets.find((s) => s.name === "Two-factor data");
 expect("saved file is v2 with the grouped table",
   saved.version === 2 && grouped?.kind === "data" && grouped.table.type === "grouped"
@@ -683,6 +692,9 @@ await page.waitForTimeout(800);
   await tA.keyboard.press("Tab");
   const sA = await settled(tA);
   const sB = await settled(tB);
+  for (const [t, s] of [["A", sA], ["B", sB]]) {
+    if (s.stored) checkSchema(`the autosave session of tab ${t}`, JSON.parse(s.stored));
+  }
   expect("tabs: each tab writes its own session",
     !!sA.id && !!sB.id && sA.id !== sB.id, `${sA.id} / ${sB.id}`);
   expect("tabs: each stored session equals serializeProject of its tab, byte for byte",
@@ -1147,6 +1159,7 @@ const [fmtDownload] = await Promise.all([
 ]);
 const FMT_SAVED = join(tmp, `formatted-${fmtDownload.suggestedFilename()}`);
 await fmtDownload.saveAs(FMT_SAVED);
+checkSchema("Save project (formatted graph)", JSON.parse(readFileSync(FMT_SAVED, "utf8")));
 const fmtGraph = JSON.parse(readFileSync(FMT_SAVED, "utf8")).sheets
   .find((s) => s.kind === "graph" && s.settings?.format?.comparisons?.show);
 expect("graph format is saved with the project",
@@ -1173,7 +1186,9 @@ const orgSave = async (stem) => {
   ]);
   const path = join(tmp, `${stem}-${dl.suggestedFilename()}`);
   await dl.saveAs(path);
-  return { path, json: JSON.parse(readFileSync(path, "utf8")) };
+  const json = JSON.parse(readFileSync(path, "utf8"));
+  checkSchema(`Save project (${stem})`, json);
+  return { path, json };
 };
 const orgSheet = (json, name) => json.sheets.find((s) => s.name === name);
 
@@ -2824,6 +2839,7 @@ const axeOn = async (pg, sel) => {
     if (j.sheets.filter((s) => s.kind === "results").every((s) => s.cachedKey)) saved = j;
     else await p4.waitForTimeout(1500);
   }
+  checkSchema("Save project (example, every result live)", saved);
   expect("a saved project records the software that saved it",
     !!saved && typeof saved.savedWith?.app === "string" && !!saved.savedWith.engine,
     JSON.stringify(saved?.savedWith ?? null));
@@ -2858,6 +2874,7 @@ const axeOn = async (pg, sel) => {
     const WITH = join(tmp, "with-reproduction.json");
     await dlR.saveAs(WITH);
     const withRec = JSON.parse(readFileSync(WITH, "utf8"));
+    checkSchema("Save project (with a reproduction record)", withRec);
     const rec = withRec.reproductions?.[0];
     expect("P-58: the saved file keeps the reproduction record (file, versions, every sheet compared)",
       withRec.reproductions?.length === 1 && rec.file === "saved-with-0.2.0.json"
@@ -3319,6 +3336,7 @@ const axeOn = async (pg, sel) => {
   const WHY = join(tmp, "why-this-test.json");
   await dlWhy.saveAs(WHY);
   const whySaved = JSON.parse(readFileSync(WHY, "utf8"));
+  checkSchema("Save project (Help me choose)", whySaved);
   const whySheet = whySaved.sheets.find((s) => s.kind === "results" && s.chosen);
   expect("P-32: the saved results sheet keeps the reason with the options the chooser set",
     whySheet?.chosen?.test === "Unpaired t test" && whySheet.chosen.reason === recReason

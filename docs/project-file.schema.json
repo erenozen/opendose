@@ -1,0 +1,2659 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://opendose.erenozen.dev/project-file.schema.json",
+  "title": "OpenDose project file",
+  "description": "Generated from web/src/project/fileFormat.ts by web/scripts/project-schema.mjs; do not edit. The format is described in docs/project-file-format.md.",
+  "$ref": "#/definitions/ProjectFile",
+  "definitions": {
+    "ProjectFile": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "number",
+          "const": 2
+        },
+        "title": {
+          "type": "string"
+        },
+        "sheets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Sheet"
+          }
+        },
+        "prefs": {
+          "$ref": "#/definitions/ProjectPrefs"
+        },
+        "groups": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SheetGroup"
+          },
+          "description": "User-defined navigator groups, in display order (optional: absent in older files; repaired on load, see groups.ts)."
+        },
+        "recipes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ProjectRecipe"
+          },
+          "description": "Import recipes saved with the project (project/recipes.ts)."
+        },
+        "groupColors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/GroupColor"
+          },
+          "description": "Colours pinned to group names (\"KO\" = #e69f00): every graph draws a data set of that name in it unless the graph sets its own (graph/nameColors.ts). Absent in files from before (no pins)."
+        },
+        "reproductions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ReproductionReport"
+          },
+          "description": "Reproduction checks of this project, newest last: each time it was opened (file, autosave or share link) in a build other than the one that saved it, its results were recomputed and compared (project/reproduce.ts). Kept outside undo history. Absent in files from before they were saved, and when there has been no check."
+        },
+        "opendose_project": {
+          "type": "number",
+          "const": 2,
+          "description": "Marks the file as an OpenDose project and gives its format version."
+        },
+        "savedWith": {
+          "$ref": "#/definitions/SavedWith",
+          "description": "The software that saved the file; a later build that opens it recomputes the saved results and compares them (project/reproduce.ts)."
+        },
+        "selected": {
+          "type": "string",
+          "description": "The sheet on screen when the file was saved, reopened first."
+        }
+      },
+      "required": [
+        "opendose_project",
+        "prefs",
+        "sheets",
+        "title",
+        "version"
+      ],
+      "additionalProperties": false,
+      "description": "An OpenDose project file (format version 2). Share links carry the same JSON without `prefs`."
+    },
+    "Sheet": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/DataSheet"
+        },
+        {
+          "$ref": "#/definitions/InfoSheet"
+        },
+        {
+          "$ref": "#/definitions/ResultsSheet"
+        },
+        {
+          "$ref": "#/definitions/GraphSheet"
+        },
+        {
+          "$ref": "#/definitions/LayoutSheet"
+        }
+      ]
+    },
+    "DataSheet": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string",
+          "const": "data"
+        },
+        "name": {
+          "type": "string"
+        },
+        "frozen": {
+          "type": "boolean"
+        },
+        "highlight": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/HighlightColor"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "groupId": {
+          "type": "string",
+          "description": "User-defined navigator group (a SheetGroup of this sheet's section)."
+        },
+        "floatingNotes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FloatingNote"
+          },
+          "description": "Sticky notes shown over this sheet (never printed or exported)."
+        },
+        "table": {
+          "$ref": "#/definitions/DataTableModel"
+        },
+        "derived": {
+          "$ref": "#/definitions/DerivedLink",
+          "description": "Set when this table is the output of a table-producing analysis (a \"chain\"): it is recomputed from its source and read-only until unlinked. See derived.ts."
+        },
+        "simulation": {
+          "$ref": "#/definitions/SimulationSpec",
+          "description": "Set when this table was simulated: what to re-run for \"Simulate again\". The table itself is ordinary, editable data."
+        },
+        "report": {
+          "$ref": "#/definitions/ReportMeta",
+          "description": "Reporting details (unit of n, independent experiments, exclusions, sample-size reasoning) for legends, methods and journal checklists (src/report)."
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "name",
+        "table"
+      ],
+      "additionalProperties": false
+    },
+    "HighlightColor": {
+      "type": "string",
+      "enum": [
+        "red",
+        "orange",
+        "yellow",
+        "green",
+        "blue",
+        "purple"
+      ]
+    },
+    "FloatingNote": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "color": {
+          "$ref": "#/definitions/NoteColor"
+        },
+        "x": {
+          "type": "number",
+          "description": "Top-left corner inside the workbench, in CSS px."
+        },
+        "y": {
+          "type": "number"
+        },
+        "collapsed": {
+          "type": "boolean",
+          "description": "Folded into its chip above the sheet."
+        }
+      },
+      "required": [
+        "id",
+        "text",
+        "color",
+        "x",
+        "y"
+      ],
+      "additionalProperties": false,
+      "description": "A floating note on a sheet: on-screen annotation only."
+    },
+    "NoteColor": {
+      "type": "string",
+      "enum": [
+        "yellow",
+        "blue",
+        "green",
+        "pink",
+        "purple"
+      ]
+    },
+    "DataTableModel": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "$ref": "#/definitions/TableType"
+        },
+        "x": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Cell"
+          }
+        },
+        "xTitle": {
+          "type": "string"
+        },
+        "xFormat": {
+          "$ref": "#/definitions/XFormat"
+        },
+        "xExcluded": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "xUnit": {
+          "type": "string"
+        },
+        "yTitle": {
+          "type": "string"
+        },
+        "rowTitles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "datasets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DataColumn"
+          }
+        },
+        "subcolumnFormat": {
+          "$ref": "#/definitions/SubcolumnFormat"
+        },
+        "replicateLayout": {
+          "$ref": "#/definitions/ReplicateLayout"
+        },
+        "decimals": {
+          "type": "number",
+          "description": "Decimal places shown in the grid (undefined = as typed). Display only: analyses and exports use every stored digit."
+        },
+        "xTimeUnit": {
+          "$ref": "#/definitions/XTimeUnit",
+          "description": "Dates / elapsed X: unit of the numbers analyses and graphs see."
+        },
+        "xDateOrder": {
+          "$ref": "#/definitions/DateOrder",
+          "description": "Dates X: reading of ambiguous dates such as 1/2/2024."
+        },
+        "xElapsedTwoPart": {
+          "type": "string",
+          "enum": [
+            "hm",
+            "ms"
+          ],
+          "description": "Elapsed X: whether a two-part time such as 12:30 is h:mm or m:ss."
+        },
+        "replicates": {
+          "$ref": "#/definitions/ReplicateMap",
+          "description": "Biological replicates (independent experiments) of a column or grouped table, for SuperPlots and statistics on replicate means (sheets/common/superplot.ts). Absent = each Y subcolumn is one."
+        },
+        "factorNames": {
+          "type": "object",
+          "properties": {
+            "rows": {
+              "type": "string"
+            },
+            "datasets": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "description": "Names of the factors the rows and the data sets stand for, when the table came from a file that named them (the header above the row titles; a long file's factor columns). Two-way analyses use them until the user names the factors."
+        }
+      },
+      "required": [
+        "type",
+        "x",
+        "xTitle",
+        "xFormat",
+        "xUnit",
+        "yTitle",
+        "rowTitles",
+        "datasets",
+        "subcolumnFormat",
+        "replicateLayout"
+      ],
+      "additionalProperties": false,
+      "description": "The generic grid every table type is stored in."
+    },
+    "TableType": {
+      "type": "string",
+      "enum": [
+        "xy",
+        "column",
+        "grouped",
+        "contingency",
+        "survival",
+        "partsofwhole",
+        "multivariable",
+        "nested"
+      ],
+      "description": "The eight data-table formats."
+    },
+    "Cell": {
+      "type": "string"
+    },
+    "XFormat": {
+      "type": "string",
+      "enum": [
+        "numbers",
+        "dates",
+        "elapsed"
+      ],
+      "description": "What the X column holds. Dates / elapsed times are stored as typed and converted to numbers for analyses and graphs (project/xformat.ts)."
+    },
+    "DataColumn": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/definitions/Cell"
+            }
+          }
+        },
+        "subTitles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "excluded": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "exclusionReasons": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Why a cell was excluded, by the same \"row:sub\" key (optional; absent = no reason recorded). Kept in step with `excluded` by project/exclusions.ts and the row operations in project/table.ts."
+        },
+        "varType": {
+          "$ref": "#/definitions/VarType"
+        },
+        "formula": {
+          "type": "string",
+          "description": "A calculated column: its values come from this formula over the other columns (project/calculated.ts) and are rewritten whenever they change. Absent = typed values."
+        },
+        "formulaError": {
+          "type": "string",
+          "description": "Why the formula could not be calculated (set by the sync; cells then keep their last values)."
+        }
+      },
+      "required": [
+        "name",
+        "rows"
+      ],
+      "additionalProperties": false,
+      "description": "One Y column (a dataset / group / variable) with its subcolumns."
+    },
+    "VarType": {
+      "type": "string",
+      "enum": [
+        "continuous",
+        "categorical"
+      ],
+      "description": "Multiple-variables tables: each column is one variable."
+    },
+    "SubcolumnFormat": {
+      "type": "string",
+      "enum": [
+        "replicates",
+        "mean_sd_n",
+        "mean_sem_n",
+        "mean_cv_n",
+        "mean_ci_n",
+        "mean_sd",
+        "mean_sem",
+        "mean_cv",
+        "mean_pm",
+        "upper_lower"
+      ],
+      "description": "How Y subcolumns are entered: raw replicate values, or summary values computed elsewhere (mean with SD / SEM / %CV / CI limits / errors / limits, with or without N), analyzed through the engine's summary-data handlers."
+    },
+    "ReplicateLayout": {
+      "type": "string",
+      "enum": [
+        "side_by_side",
+        "stacked"
+      ],
+      "description": "Replicates entered side by side in subcolumns, or stacked down rows."
+    },
+    "XTimeUnit": {
+      "type": "string",
+      "enum": [
+        "seconds",
+        "minutes",
+        "hours",
+        "days",
+        "weeks",
+        "years"
+      ],
+      "description": "Unit dates / elapsed times are converted to for analyses and graphs."
+    },
+    "DateOrder": {
+      "type": "string",
+      "enum": [
+        "dmy",
+        "mdy"
+      ],
+      "description": "How an ambiguous date such as 1/2/2024 is read."
+    },
+    "ReplicateMap": {
+      "type": "object",
+      "properties": {
+        "by": {
+          "type": "string",
+          "enum": [
+            "subcolumns",
+            "column"
+          ]
+        },
+        "of": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "column": {
+          "type": "number"
+        },
+        "names": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "unit": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "by"
+      ],
+      "additionalProperties": false,
+      "description": "Which values belong to which biological replicate (experiment). \"subcolumns\": Y subcolumn k of every data set belongs to replicate `of[k]` (missing entries: replicate k), so technical repeats can share an experiment. \"column\": the data set at index `column` holds each row's experiment label (long format; column tables only) and is not a group. `names` label the replicates (default: subcolumn titles, the labels found in the column, or \"Experiment n\"). `unit` says what one value is (\"cells\", \"wells\", \"fields\"), so the figure legend can write \"n = 18 cells from 3 independent experiments\" (src/report)."
+    },
+    "DerivedLink": {
+      "type": "object",
+      "properties": {
+        "sourceId": {
+          "type": "string"
+        },
+        "resultsId": {
+          "type": "string"
+        },
+        "output": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "sourceId",
+        "resultsId"
+      ],
+      "additionalProperties": false,
+      "description": "A derived table's provenance: the data sheet it is computed from and the results sheet (on that data sheet) whose analysis produces it. `output` names which of the analysis' tables it is when one analysis makes several (AnalysisDef.derivedTable), e.g. \"potency\" for a curve fit's per-experiment logIC50 values; absent (every file saved before it existed) = the analysis' one table."
+    },
+    "SimulationSpec": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "xy",
+            "column",
+            "contingency"
+          ]
+        },
+        "seed": {
+          "type": "number"
+        },
+        "form": {}
+      },
+      "required": [
+        "kind",
+        "seed",
+        "form"
+      ],
+      "additionalProperties": false,
+      "description": "How a simulated table was made. `form` is the simulation dialog's state (owned by sheets/manipulate); `seed` the seed of the last run."
+    },
+    "ReportMeta": {
+      "type": "object",
+      "properties": {
+        "unit": {
+          "type": "string",
+          "description": "What one n counts, as a plural noun: \"mice\", \"wells\", \"patients\"."
+        },
+        "experiments": {
+          "type": "number",
+          "description": "Independent experiments (biological replicates) behind the data."
+        },
+        "exclusions": {
+          "type": "string",
+          "description": "Exclusions and their reasons (\"none\" is an answer)."
+        },
+        "sampleSize": {
+          "type": "string",
+          "description": "How the sample size was decided (when no power analysis is in the project): \"based on a pilot study\", \"resource equation\", ..."
+        },
+        "valueIs": {
+          "$ref": "#/definitions/ValueIs",
+          "description": "The answer to \"What does each value represent?\" (results guidance; sheets/common/declareUnit.ts), or \"dismissed\" when the user closed the question without answering."
+        }
+      },
+      "additionalProperties": false
+    },
+    "ValueIs": {
+      "type": "string",
+      "enum": [
+        "experiment",
+        "animal",
+        "technical",
+        "cell",
+        "dismissed"
+      ]
+    },
+    "InfoSheet": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string",
+          "const": "info"
+        },
+        "name": {
+          "type": "string"
+        },
+        "frozen": {
+          "type": "boolean"
+        },
+        "highlight": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/HighlightColor"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "groupId": {
+          "type": "string",
+          "description": "User-defined navigator group (a SheetGroup of this sheet's section)."
+        },
+        "floatingNotes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FloatingNote"
+          },
+          "description": "Sticky notes shown over this sheet (never printed or exported)."
+        },
+        "parentId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "notes": {
+          "type": "string"
+        },
+        "constants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/InfoConstant"
+          }
+        },
+        "plan": {
+          "$ref": "#/definitions/AnalysisPlan",
+          "description": "An analysis plan written before the data (project/plan.ts)."
+        }
+      },
+      "required": [
+        "constants",
+        "id",
+        "kind",
+        "name",
+        "notes",
+        "parentId"
+      ],
+      "additionalProperties": false
+    },
+    "InfoConstant": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "value"
+      ],
+      "additionalProperties": false
+    },
+    "AnalysisPlan": {
+      "type": "object",
+      "properties": {
+        "primaryOutcome": {
+          "type": "string"
+        },
+        "groups": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "The groups (data set names) of the experiment."
+        },
+        "comparison": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "a": {
+                  "type": "string"
+                },
+                "b": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "a",
+                "b"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The primary comparison (two groups), if there is one."
+        },
+        "test": {
+          "$ref": "#/definitions/PlannedTest"
+        },
+        "nPerGroup": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Independent units per group (null: not stated)."
+        },
+        "exclusionRule": {
+          "type": "string"
+        },
+        "alpha": {
+          "type": "number"
+        },
+        "writtenAt": {
+          "type": "string",
+          "description": "ISO time the plan was written."
+        },
+        "locked": {
+          "type": "boolean"
+        },
+        "lockedAt": {
+          "type": "string"
+        },
+        "changes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/PlanChange"
+          }
+        },
+        "resultsId": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The results sheet that runs the planned analysis."
+        },
+        "designNotes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "One-line design checks from \"Plan an experiment…\" (guide/designChecks)."
+        }
+      },
+      "required": [
+        "primaryOutcome",
+        "groups",
+        "comparison",
+        "test",
+        "nPerGroup",
+        "exclusionRule",
+        "alpha",
+        "writtenAt",
+        "locked",
+        "changes"
+      ],
+      "additionalProperties": false
+    },
+    "PlannedTest": {
+      "type": "object",
+      "properties": {
+        "analysisId": {
+          "type": "string",
+          "description": "Analysis id of the registry (\"column\", \"grouped_two_way\", …)."
+        },
+        "options": {
+          "type": "object",
+          "additionalProperties": {},
+          "description": "The analysis options as planned (the comparison's key options)."
+        },
+        "label": {
+          "type": "string",
+          "description": "\"Welch t test\", \"two-way ANOVA\", …"
+        },
+        "tails": {
+          "type": "string",
+          "enum": [
+            "two",
+            "one"
+          ]
+        }
+      },
+      "required": [
+        "analysisId",
+        "options",
+        "label",
+        "tails"
+      ],
+      "additionalProperties": false
+    },
+    "PlanChange": {
+      "type": "object",
+      "properties": {
+        "at": {
+          "type": "string",
+          "description": "ISO time of the change."
+        },
+        "what": {
+          "type": "string",
+          "description": "What changed, in words (\"Test: Welch t test → paired t test\")."
+        },
+        "reason": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string",
+          "description": "A deviation this change explains (Deviation.key)."
+        }
+      },
+      "required": [
+        "at",
+        "what",
+        "reason"
+      ],
+      "additionalProperties": false
+    },
+    "ResultsSheet": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string",
+          "const": "results"
+        },
+        "name": {
+          "type": "string"
+        },
+        "frozen": {
+          "type": "boolean"
+        },
+        "highlight": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/HighlightColor"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "groupId": {
+          "type": "string",
+          "description": "User-defined navigator group (a SheetGroup of this sheet's section)."
+        },
+        "floatingNotes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FloatingNote"
+          },
+          "description": "Sticky notes shown over this sheet (never printed or exported)."
+        },
+        "parentId": {
+          "type": "string"
+        },
+        "analysis": {
+          "type": "string"
+        },
+        "options": {},
+        "cached": {
+          "description": "Last computed result. Always present on frozen sheets (it is what they show); written for every results sheet when a project is saved."
+        },
+        "cachedKey": {
+          "type": "string",
+          "description": "Fingerprint of the input `cached` was computed from (app/analysis.ts resultKey); a reopened project reuses the result while it matches."
+        },
+        "chosen": {
+          "$ref": "#/definitions/ChosenTest",
+          "description": "Why \"Help me choose…\" or \"Plan an experiment…\" picked this analysis (guide/choice.ts). Absent in files from before it was saved, and on sheets the wizard did not open."
+        }
+      },
+      "required": [
+        "analysis",
+        "id",
+        "kind",
+        "name",
+        "options",
+        "parentId"
+      ],
+      "additionalProperties": false
+    },
+    "ChosenTest": {
+      "type": "object",
+      "properties": {
+        "test": {
+          "type": "string",
+          "description": "The test as the chooser named it (\"Unpaired t test\")."
+        },
+        "reason": {
+          "type": "string",
+          "description": "One paragraph: why this test fits the user's answers."
+        },
+        "analysis": {
+          "type": "string",
+          "description": "Analysis id the chooser opened."
+        },
+        "options": {
+          "type": "object",
+          "additionalProperties": {},
+          "description": "The options the chooser set over the analysis' defaults."
+        }
+      },
+      "required": [
+        "test",
+        "reason",
+        "analysis",
+        "options"
+      ],
+      "additionalProperties": false,
+      "description": "The test chooser's reason for an analysis, kept with the results sheet it opened. It applies while the sheet runs `analysis` with `options` (the options the chooser set) unchanged; after the user changes one of them the reason no longer describes the test and is not shown."
+    },
+    "GraphSheet": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string",
+          "const": "graph"
+        },
+        "name": {
+          "type": "string"
+        },
+        "frozen": {
+          "type": "boolean"
+        },
+        "highlight": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/HighlightColor"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "groupId": {
+          "type": "string",
+          "description": "User-defined navigator group (a SheetGroup of this sheet's section)."
+        },
+        "floatingNotes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FloatingNote"
+          },
+          "description": "Sticky notes shown over this sheet (never printed or exported)."
+        },
+        "parentId": {
+          "type": "string"
+        },
+        "resultsId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "graphType": {
+          "type": "string"
+        },
+        "settings": {
+          "$ref": "#/definitions/GraphSettings"
+        },
+        "snapshot": {
+          "type": "object",
+          "properties": {
+            "table": {
+              "$ref": "#/definitions/DataTableModel"
+            },
+            "result": {},
+            "options": {}
+          },
+          "required": [
+            "table",
+            "result",
+            "options"
+          ],
+          "additionalProperties": false,
+          "description": "Frozen graphs keep a copy of their inputs so later edits leave them."
+        }
+      },
+      "required": [
+        "graphType",
+        "id",
+        "kind",
+        "name",
+        "parentId",
+        "resultsId",
+        "settings"
+      ],
+      "additionalProperties": false
+    },
+    "GraphSettings": {
+      "type": "object",
+      "properties": {
+        "titles": {
+          "type": "object",
+          "properties": {
+            "x": {
+              "type": "string"
+            },
+            "y": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "x",
+            "y"
+          ],
+          "additionalProperties": false
+        },
+        "scheme": {
+          "$ref": "#/definitions/SchemeId"
+        },
+        "format": {
+          "$ref": "#/definitions/GraphFormat",
+          "description": "Format Graph / Format Axes / annotations (sparse; absent = as drawn). Validate with readFormat() from src/graph before use."
+        }
+      },
+      "required": [
+        "titles",
+        "scheme"
+      ],
+      "additionalProperties": {}
+    },
+    "SchemeId": {
+      "type": "string",
+      "enum": [
+        "default",
+        "colorblind",
+        "mono",
+        "sequential"
+      ]
+    },
+    "GraphFormat": {
+      "type": "object",
+      "properties": {
+        "theme": {
+          "$ref": "#/definitions/GraphTheme"
+        },
+        "pStyle": {
+          "type": "string",
+          "enum": [
+            "graphpad",
+            "apa",
+            "nejm"
+          ],
+          "description": "This graph's own P-value style, overriding the project's (Preferences → Reporting, report/prefs.ts); absent = follow the project."
+        },
+        "datasets": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/DatasetFormat"
+          },
+          "description": "Keyed by dataset index (\"0\", \"1\", ...)."
+        },
+        "order": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Plotting order of dataset indices: first = left / drawn first (back)."
+        },
+        "spacing": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Column graphs: gap between columns as a fraction of a slot (0..0.9)."
+        },
+        "connect": {
+          "type": "string",
+          "enum": [
+            "none",
+            "mean",
+            "median",
+            "spaghetti"
+          ],
+          "description": "Column graphs: join groups by their mean/median, or each subject."
+        },
+        "identityLine": {
+          "type": "boolean"
+        },
+        "centralLine": {
+          "type": "string",
+          "enum": [
+            "none",
+            "mean",
+            "median"
+          ]
+        },
+        "x": {
+          "$ref": "#/definitions/AxisFormat"
+        },
+        "y": {
+          "$ref": "#/definitions/AxisFormat"
+        },
+        "y2": {
+          "$ref": "#/definitions/AxisFormat"
+        },
+        "frame": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "axes",
+            "box",
+            "offset",
+            "none"
+          ]
+        },
+        "origin": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "zero"
+          ]
+        },
+        "legend": {
+          "$ref": "#/definitions/LegendFormat"
+        },
+        "font": {
+          "$ref": "#/definitions/FontFormat"
+        },
+        "title": {
+          "type": "string"
+        },
+        "annotations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Annotation"
+          }
+        },
+        "comparisons": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ComparisonsFormat"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "letters": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/LettersFormat"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "atRisk": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/AtRiskFormat"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "GraphTheme": {
+      "type": "string",
+      "enum": [
+        "default",
+        "classic"
+      ],
+      "description": "Whole-graph look. \"classic\": white background, black axes and bold sans-serif text, no grid, offset axes that end at the last tick, minor ticks, no legend title (theme.ts). Absent = the app's default look."
+    },
+    "DatasetFormat": {
+      "type": "object",
+      "properties": {
+        "show": {
+          "type": "boolean",
+          "description": "false hides the dataset on this graph (the analysis still uses it)."
+        },
+        "legend": {
+          "type": "string",
+          "description": "Legend text for the dataset."
+        },
+        "symbol": {
+          "type": "string"
+        },
+        "size": {
+          "type": "number",
+          "description": "Marker size in px."
+        },
+        "color": {
+          "type": "string",
+          "description": "Base colour (#rrggbb). Replaces the scheme colour wherever it is used."
+        },
+        "fillAlpha": {
+          "type": "number",
+          "description": "Opacity of marker / bar / box fills, 0..1 (semitransparent colours)."
+        },
+        "borderColor": {
+          "type": "string"
+        },
+        "borderWidth": {
+          "type": "number"
+        },
+        "lineDash": {
+          "$ref": "#/definitions/LineDash",
+          "description": "Fitted curve, connecting line, survival line."
+        },
+        "lineWidth": {
+          "type": "number"
+        },
+        "connect": {
+          "$ref": "#/definitions/ConnectLine",
+          "description": "Connecting line through the points (XY-type plots)."
+        },
+        "errorDir": {
+          "type": "string",
+          "enum": [
+            "both",
+            "up",
+            "down",
+            "none"
+          ]
+        },
+        "errorCap": {
+          "type": "number",
+          "description": "Cap width in px (0 = no caps)."
+        },
+        "errorWidth": {
+          "type": "number"
+        },
+        "errorStyle": {
+          "type": "string",
+          "enum": [
+            "bars",
+            "envelope"
+          ],
+          "description": "Shaded band instead of bars."
+        },
+        "xErrorFrom": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Index of another dataset whose values are this one's X error (SD); that dataset is then hidden."
+        },
+        "nudge": {
+          "type": "number",
+          "description": "Shift along X (data units; category units on column graphs)."
+        },
+        "pattern": {
+          "$ref": "#/definitions/BarPattern"
+        },
+        "rightAxis": {
+          "type": "boolean",
+          "description": "Plot on the right Y axis."
+        },
+        "labelPoints": {
+          "type": "boolean",
+          "description": "Label each point with its row title."
+        }
+      },
+      "additionalProperties": false,
+      "description": "Per-dataset appearance. Every field is optional: unset = automatic."
+    },
+    "LineDash": {
+      "type": "string",
+      "enum": [
+        "solid",
+        "dash",
+        "dot",
+        "dashdot",
+        "longdash"
+      ]
+    },
+    "ConnectLine": {
+      "type": "string",
+      "enum": [
+        "none",
+        "linear",
+        "spline",
+        "hv"
+      ],
+      "description": "How points of one dataset are joined (the fitted curve is separate)."
+    },
+    "BarPattern": {
+      "type": "string",
+      "enum": [
+        "",
+        "/",
+        "\\",
+        "x",
+        "-",
+        "|",
+        "+",
+        "."
+      ]
+    },
+    "AxisFormat": {
+      "type": "object",
+      "properties": {
+        "hide": {
+          "type": "boolean"
+        },
+        "min": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Manual range ends; null/absent = automatic."
+        },
+        "max": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "scale": {
+          "$ref": "#/definitions/ScaleKind"
+        },
+        "numbers": {
+          "$ref": "#/definitions/NumberFormat"
+        },
+        "decimals": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Digits after the decimal point (decimal / scientific)."
+        },
+        "majorStep": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Distance between major ticks (decades on a log axis)."
+        },
+        "minorCount": {
+          "type": "number",
+          "description": "Minor ticks per major interval (0 = none)."
+        },
+        "ticks": {
+          "type": "string",
+          "enum": [
+            "out",
+            "in",
+            "none"
+          ]
+        },
+        "tickLen": {
+          "type": "number"
+        },
+        "grid": {
+          "type": "boolean"
+        },
+        "minorGrid": {
+          "type": "boolean"
+        },
+        "extraTicks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ExtraTick"
+          }
+        },
+        "gap": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "from": {
+                  "type": "number"
+                },
+                "to": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "from",
+                "to"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Discontinuous axis: leave out the range between `from` and `to`."
+        },
+        "elapsedUnit": {
+          "type": "string",
+          "enum": [
+            "s",
+            "min",
+            "h"
+          ],
+          "description": "Elapsed-time numbering: the unit the values are in."
+        },
+        "dateFormat": {
+          "type": "string",
+          "description": "Date numbering (d3 time format, e.g. \"%b %d\")."
+        },
+        "title": {
+          "type": "string",
+          "description": "Title (right Y axis only; X and Y titles live in settings.titles)."
+        },
+        "titleSize": {
+          "type": "number"
+        },
+        "lineWidth": {
+          "type": "number",
+          "description": "Width of the axis line and its ticks in px (graph/sizeUnit.ts shows it in pt); setting it draws the line. Absent = as the plot draws it."
+        },
+        "scaleFactor": {
+          "type": "number",
+          "description": "Scale factor k (linear axes): tick labels show value / 10^k and the title gets \"(×10^k)\"; the data are unchanged."
+        }
+      },
+      "additionalProperties": false
+    },
+    "ScaleKind": {
+      "type": "string",
+      "enum": [
+        "linear",
+        "log10",
+        "log2",
+        "ln",
+        "probability"
+      ]
+    },
+    "NumberFormat": {
+      "type": "string",
+      "enum": [
+        "auto",
+        "decimal",
+        "scientific",
+        "power10",
+        "antilog",
+        "elapsed",
+        "date"
+      ]
+    },
+    "ExtraTick": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": "number"
+        },
+        "label": {
+          "type": "string"
+        },
+        "grid": {
+          "type": "boolean",
+          "description": "Also draw a grid line across the plot."
+        }
+      },
+      "required": [
+        "value",
+        "label"
+      ],
+      "additionalProperties": false
+    },
+    "LegendFormat": {
+      "type": "object",
+      "properties": {
+        "show": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "show",
+            "hide"
+          ]
+        },
+        "position": {
+          "$ref": "#/definitions/LegendPosition"
+        },
+        "orientation": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "h",
+            "v"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "LegendPosition": {
+      "type": "string",
+      "enum": [
+        "auto",
+        "top",
+        "top-left",
+        "top-right",
+        "bottom-left",
+        "bottom-right",
+        "right",
+        "bottom"
+      ]
+    },
+    "FontFormat": {
+      "type": "object",
+      "properties": {
+        "family": {
+          "$ref": "#/definitions/FontFamily"
+        },
+        "size": {
+          "type": "number",
+          "description": "Base size (everything not set below)."
+        },
+        "titleSize": {
+          "type": "number"
+        },
+        "axisTitleSize": {
+          "type": "number"
+        },
+        "tickSize": {
+          "type": "number"
+        },
+        "legendSize": {
+          "type": "number"
+        }
+      },
+      "additionalProperties": false
+    },
+    "FontFamily": {
+      "type": "string",
+      "enum": [
+        "inter",
+        "system",
+        "arial",
+        "serif",
+        "mono"
+      ]
+    },
+    "Annotation": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/TextAnnotation"
+        },
+        {
+          "$ref": "#/definitions/ShapeAnnotation"
+        },
+        {
+          "$ref": "#/definitions/ResultsAnnotation"
+        }
+      ]
+    },
+    "TextAnnotation": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "ref": {
+          "$ref": "#/definitions/CoordRef"
+        },
+        "color": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string",
+          "const": "text"
+        },
+        "text": {
+          "type": "string"
+        },
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        },
+        "size": {
+          "type": "number"
+        },
+        "background": {
+          "type": "string"
+        },
+        "border": {
+          "type": "boolean"
+        },
+        "arrow": {
+          "type": "boolean",
+          "description": "Draw an arrow from the text to (x, y); the text sits (ax, ay) px away."
+        },
+        "ax": {
+          "type": "number"
+        },
+        "ay": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "ref",
+        "text",
+        "x",
+        "y"
+      ],
+      "additionalProperties": false
+    },
+    "CoordRef": {
+      "type": "string",
+      "enum": [
+        "data",
+        "paper"
+      ],
+      "description": "Where an annotation's coordinates live: data units (they move with the axes) or the plot area as 0..1 fractions."
+    },
+    "ShapeAnnotation": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "ref": {
+          "$ref": "#/definitions/CoordRef"
+        },
+        "color": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "line",
+            "arrow",
+            "rect",
+            "ellipse"
+          ]
+        },
+        "x0": {
+          "type": "number"
+        },
+        "y0": {
+          "type": "number"
+        },
+        "x1": {
+          "type": "number"
+        },
+        "y1": {
+          "type": "number"
+        },
+        "width": {
+          "type": "number"
+        },
+        "dash": {
+          "$ref": "#/definitions/LineDash"
+        },
+        "fill": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "ref",
+        "x0",
+        "x1",
+        "y0",
+        "y1"
+      ],
+      "additionalProperties": false
+    },
+    "ResultsAnnotation": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "ref": {
+          "$ref": "#/definitions/CoordRef"
+        },
+        "color": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string",
+          "const": "results"
+        },
+        "what": {
+          "$ref": "#/definitions/ResultsBlock"
+        },
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        },
+        "size": {
+          "type": "number"
+        },
+        "background": {
+          "type": "string"
+        },
+        "border": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "ref",
+        "what",
+        "x",
+        "y"
+      ],
+      "additionalProperties": false,
+      "description": "A live text block filled from the current results."
+    },
+    "ResultsBlock": {
+      "type": "string",
+      "enum": [
+        "params",
+        "equation",
+        "pvalue"
+      ]
+    },
+    "ComparisonsFormat": {
+      "type": "object",
+      "properties": {
+        "show": {
+          "type": "boolean"
+        },
+        "hidden": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Pair keys (`pairKey`) the user unticked. New pairs show by default."
+        },
+        "display": {
+          "type": "string",
+          "enum": [
+            "stars",
+            "p",
+            "mixed"
+          ],
+          "description": "\"mixed\": asterisks when significant, the exact P when not."
+        },
+        "prefix": {
+          "type": "string",
+          "enum": [
+            "P = ",
+            "p = ",
+            ""
+          ]
+        },
+        "threshold": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Only draw pairs with P below this (null/absent = all, ns included)."
+        },
+        "style": {
+          "type": "string",
+          "enum": [
+            "bracket",
+            "line",
+            "tall"
+          ]
+        },
+        "hideNs": {
+          "type": "boolean",
+          "description": "Leave out pairs that are not significant (\"ns\"); absent = the project's \"hide ns\" (Preferences → Reporting)."
+        },
+        "lineWidth": {
+          "type": "number"
+        },
+        "color": {
+          "type": "string"
+        },
+        "textSize": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "show"
+      ],
+      "additionalProperties": false
+    },
+    "LettersFormat": {
+      "type": "object",
+      "properties": {
+        "show": {
+          "type": "boolean"
+        },
+        "alpha": {
+          "type": "number"
+        },
+        "style": {
+          "type": "string",
+          "enum": [
+            "lower",
+            "upper",
+            "numbers"
+          ]
+        },
+        "size": {
+          "type": "number"
+        },
+        "color": {
+          "type": "string"
+        },
+        "engine": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "input": {
+                  "type": "string"
+                },
+                "letters": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "input",
+                "letters"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Letters returned by the engine's `compact_letters` handler, used while `input` still matches the comparisons (see letters.ts)."
+        }
+      },
+      "required": [
+        "show"
+      ],
+      "additionalProperties": false
+    },
+    "AtRiskFormat": {
+      "type": "object",
+      "properties": {
+        "show": {
+          "type": "boolean"
+        },
+        "title": {
+          "type": "boolean"
+        },
+        "censored": {
+          "type": "boolean"
+        },
+        "byGroup": {
+          "type": "boolean",
+          "description": "Colour group rows with their curve colour (default true)."
+        },
+        "size": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "show"
+      ],
+      "additionalProperties": false
+    },
+    "LayoutSheet": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string",
+          "const": "layout"
+        },
+        "name": {
+          "type": "string"
+        },
+        "frozen": {
+          "type": "boolean"
+        },
+        "highlight": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/HighlightColor"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "groupId": {
+          "type": "string",
+          "description": "User-defined navigator group (a SheetGroup of this sheet's section)."
+        },
+        "floatingNotes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FloatingNote"
+          },
+          "description": "Sticky notes shown over this sheet (never printed or exported)."
+        },
+        "graphIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Graphs placed on the page (kept in sync with `items`)."
+        },
+        "grid": {
+          "type": "object",
+          "properties": {
+            "rows": {
+              "type": "number"
+            },
+            "cols": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "rows",
+            "cols"
+          ],
+          "additionalProperties": false
+        },
+        "page": {
+          "$ref": "#/definitions/LayoutPage",
+          "description": "Absent in files from before the page composer: defaults apply and the items are built from graphIds + grid."
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/LayoutItem"
+          }
+        },
+        "letters": {
+          "$ref": "#/definitions/PanelLetters"
+        }
+      },
+      "required": [
+        "graphIds",
+        "grid",
+        "id",
+        "kind",
+        "name"
+      ],
+      "additionalProperties": false
+    },
+    "LayoutPage": {
+      "type": "object",
+      "properties": {
+        "size": {
+          "$ref": "#/definitions/PageSize"
+        },
+        "orientation": {
+          "type": "string",
+          "enum": [
+            "portrait",
+            "landscape"
+          ]
+        },
+        "width": {
+          "type": "number"
+        },
+        "height": {
+          "type": "number"
+        },
+        "margin": {
+          "type": "number"
+        },
+        "background": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "size",
+        "orientation",
+        "width",
+        "height",
+        "margin",
+        "background"
+      ],
+      "additionalProperties": false
+    },
+    "PageSize": {
+      "type": "string",
+      "enum": [
+        "a4",
+        "letter",
+        "custom"
+      ],
+      "description": "Page size of a layout. All layout lengths are millimetres measured from the page's top-left corner (see project/layout.ts)."
+    },
+    "LayoutItem": {
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "graph"
+            },
+            "graphId": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "hideLegend": {
+              "type": "boolean"
+            },
+            "id": {
+              "type": "string"
+            },
+            "x": {
+              "type": "number"
+            },
+            "y": {
+              "type": "number"
+            },
+            "w": {
+              "type": "number"
+            },
+            "h": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "graphId",
+            "h",
+            "id",
+            "kind",
+            "w",
+            "x",
+            "y"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "picture"
+            },
+            "name": {
+              "type": "string"
+            },
+            "svg": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "x": {
+              "type": "number"
+            },
+            "y": {
+              "type": "number"
+            },
+            "w": {
+              "type": "number"
+            },
+            "h": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "h",
+            "id",
+            "kind",
+            "name",
+            "svg",
+            "w",
+            "x",
+            "y"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "text"
+            },
+            "text": {
+              "type": "string"
+            },
+            "fontSize": {
+              "type": "number"
+            },
+            "bold": {
+              "type": "boolean"
+            },
+            "align": {
+              "type": "string",
+              "enum": [
+                "left",
+                "center",
+                "right"
+              ]
+            },
+            "id": {
+              "type": "string"
+            },
+            "x": {
+              "type": "number"
+            },
+            "y": {
+              "type": "number"
+            },
+            "w": {
+              "type": "number"
+            },
+            "h": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "align",
+            "bold",
+            "fontSize",
+            "h",
+            "id",
+            "kind",
+            "text",
+            "w",
+            "x",
+            "y"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "legend"
+            },
+            "fontSize": {
+              "type": "number"
+            },
+            "columns": {
+              "type": "number"
+            },
+            "id": {
+              "type": "string"
+            },
+            "x": {
+              "type": "number"
+            },
+            "y": {
+              "type": "number"
+            },
+            "w": {
+              "type": "number"
+            },
+            "h": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "columns",
+            "fontSize",
+            "h",
+            "id",
+            "kind",
+            "w",
+            "x",
+            "y"
+          ]
+        }
+      ],
+      "description": "One thing placed on a layout page."
+    },
+    "PanelLetters": {
+      "type": "object",
+      "properties": {
+        "show": {
+          "type": "boolean"
+        },
+        "style": {
+          "type": "string",
+          "enum": [
+            "upper",
+            "lower"
+          ]
+        },
+        "format": {
+          "type": "string",
+          "enum": [
+            "plain",
+            "paren",
+            "period"
+          ]
+        },
+        "fontSize": {
+          "type": "number"
+        },
+        "bold": {
+          "type": "boolean"
+        },
+        "font": {
+          "type": "string",
+          "enum": [
+            "sans",
+            "serif"
+          ]
+        },
+        "position": {
+          "type": "string",
+          "enum": [
+            "inside",
+            "outside"
+          ]
+        }
+      },
+      "required": [
+        "show",
+        "style",
+        "format",
+        "fontSize",
+        "bold",
+        "font",
+        "position"
+      ],
+      "additionalProperties": false
+    },
+    "ProjectPrefs": {
+      "type": "object",
+      "properties": {
+        "defaultTableType": {
+          "$ref": "#/definitions/TableType"
+        },
+        "errorBars": {
+          "$ref": "#/definitions/ErrorBarKind"
+        },
+        "ciMethod": {
+          "$ref": "#/definitions/CIMethod"
+        },
+        "scheme": {
+          "$ref": "#/definitions/SchemeId"
+        },
+        "digits": {
+          "type": "number",
+          "description": "Significant digits shown in results tables."
+        },
+        "colorByName": {
+          "type": "boolean",
+          "description": "The same colour for a group on every graph, by its name (graph/nameColors.ts). Absent = colours follow the data set order."
+        },
+        "export": {
+          "$ref": "#/definitions/ExportPrefs",
+          "description": "Last image-export settings (see export/settings.ts); travel with the project, outside undo history."
+        },
+        "report": {
+          "$ref": "#/definitions/ReportPrefs",
+          "description": "P-value style, \"ns\" display and default effect-size family (src/report/prefs.ts); absent = defaults."
+        }
+      },
+      "required": [
+        "defaultTableType",
+        "errorBars",
+        "ciMethod",
+        "scheme",
+        "digits"
+      ],
+      "additionalProperties": false
+    },
+    "ErrorBarKind": {
+      "type": "string",
+      "enum": [
+        "sd",
+        "sem",
+        "ci95",
+        "range",
+        "none"
+      ]
+    },
+    "CIMethod": {
+      "type": "string",
+      "enum": [
+        "asymptotic",
+        "profile"
+      ]
+    },
+    "ExportPrefs": {
+      "type": "object",
+      "properties": {
+        "format": {
+          "$ref": "#/definitions/ExportFormat"
+        },
+        "width": {
+          "type": "number"
+        },
+        "height": {
+          "type": "number"
+        },
+        "dpi": {
+          "type": "number"
+        },
+        "unit": {
+          "type": "string",
+          "enum": [
+            "px",
+            "mm",
+            "in"
+          ]
+        },
+        "transparent": {
+          "type": "boolean"
+        },
+        "paper": {
+          "type": "boolean"
+        },
+        "scaleText": {
+          "type": "boolean",
+          "description": "Scale the graph as drawn on screen to the export size (text shrinks or grows with it) instead of laying it out again at that size."
+        }
+      },
+      "required": [
+        "format",
+        "width",
+        "height",
+        "dpi",
+        "unit",
+        "transparent",
+        "paper",
+        "scaleText"
+      ],
+      "additionalProperties": false
+    },
+    "ExportFormat": {
+      "type": "string",
+      "enum": [
+        "png",
+        "svg",
+        "pdf",
+        "tiff",
+        "jpeg",
+        "webp"
+      ]
+    },
+    "ReportPrefs": {
+      "type": "object",
+      "properties": {
+        "pStyle": {
+          "$ref": "#/definitions/PStyle"
+        },
+        "hideNs": {
+          "type": "boolean",
+          "description": "Leave the \"ns\" summary out (tables, brackets, legends)."
+        },
+        "smd": {
+          "$ref": "#/definitions/SmdPref"
+        },
+        "variance": {
+          "$ref": "#/definitions/VariancePref"
+        },
+        "pFloor": {
+          "$ref": "#/definitions/PFloor",
+          "description": "GraphPad style: the smallest P written exactly (default 0.0001)."
+        }
+      },
+      "required": [
+        "pStyle",
+        "hideNs",
+        "smd",
+        "variance",
+        "pFloor"
+      ],
+      "additionalProperties": false
+    },
+    "PStyle": {
+      "type": "string",
+      "enum": [
+        "graphpad",
+        "apa",
+        "nejm"
+      ],
+      "description": "P-value style presets (pformat.ts has the rules and their sources)."
+    },
+    "SmdPref": {
+      "type": "string",
+      "enum": [
+        "d",
+        "g"
+      ],
+      "description": "Standardized mean difference shown first: Cohen's d or Hedges' g."
+    },
+    "VariancePref": {
+      "type": "string",
+      "enum": [
+        "eta2",
+        "omega2"
+      ],
+      "description": "Variance explained shown first: eta squared (partial in factorial designs) or omega squared (partial in factorial designs)."
+    },
+    "PFloor": {
+      "type": "string",
+      "enum": [
+        "1e-4",
+        "1e-6",
+        "1e-10",
+        "exact"
+      ],
+      "description": "The smallest P written exactly in the GraphPad style; below it the results say \"P < floor\". \"exact\" writes every P to the results precision. APA and NEJM keep their journals' own floors."
+    },
+    "SheetGroup": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "section": {
+          "$ref": "#/definitions/GroupSection"
+        },
+        "name": {
+          "type": "string"
+        },
+        "collapsed": {
+          "type": "boolean",
+          "description": "Folded in the navigator (saved with the project, outside undo)."
+        }
+      },
+      "required": [
+        "id",
+        "section",
+        "name"
+      ],
+      "additionalProperties": false,
+      "description": "A user-defined group of sheets inside one navigator section. Sheets join it through their `groupId`; deleting a group keeps its sheets."
+    },
+    "GroupSection": {
+      "type": "string",
+      "enum": [
+        "data",
+        "results",
+        "graph"
+      ],
+      "description": "Navigator sections that can hold user-defined groups."
+    },
+    "ProjectRecipe": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "savedAt": {
+          "type": "string",
+          "description": "ISO date-time of the save."
+        },
+        "basis": {
+          "type": "string",
+          "description": "What it was built on (\"Incucyte time series\", \"Plain import\")."
+        },
+        "spec": {
+          "type": "object",
+          "additionalProperties": {},
+          "description": "The settings (share/recipes/saved.ts, normalizeSpec)."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "savedAt",
+        "basis",
+        "spec"
+      ],
+      "additionalProperties": false
+    },
+    "GroupColor": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The group (data set) name as typed; matched ignoring case and the spaces around it."
+        },
+        "color": {
+          "type": "string",
+          "description": "#rrggbb, the same in light and dark."
+        }
+      },
+      "required": [
+        "name",
+        "color"
+      ],
+      "additionalProperties": false
+    },
+    "ReproductionReport": {
+      "type": "object",
+      "properties": {
+        "file": {
+          "type": "string",
+          "description": "The file name, or the project's title for an autosave or a link."
+        },
+        "source": {
+          "$ref": "#/definitions/ReproductionSource"
+        },
+        "savedWith": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/SavedWith"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "current": {
+          "$ref": "#/definitions/SavedWith"
+        },
+        "checkedAt": {
+          "type": "string",
+          "description": "ISO time of the check."
+        },
+        "digits": {
+          "type": "number"
+        },
+        "sheets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SheetCheck"
+          }
+        }
+      },
+      "required": [
+        "file",
+        "savedWith",
+        "current",
+        "checkedAt",
+        "digits",
+        "sheets"
+      ],
+      "additionalProperties": false
+    },
+    "ReproductionSource": {
+      "type": "string",
+      "enum": [
+        "autosave",
+        "link"
+      ],
+      "description": "How the checked project was opened: a project file (absent, as in every record written before the other two were checked), a restored autosave session, or a share link."
+    },
+    "SavedWith": {
+      "type": "object",
+      "properties": {
+        "app": {
+          "type": "string",
+          "description": "App version, \"0.3.0\"."
+        },
+        "commit": {
+          "type": "string",
+          "description": "Build commit, when the build had one."
+        },
+        "engine": {
+          "type": "string",
+          "description": "Hash of the engine's Python files."
+        },
+        "libraries": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Python libraries of the engine that computed the results."
+        }
+      },
+      "required": [
+        "app"
+      ],
+      "additionalProperties": false,
+      "description": "The software a project file was saved with."
+    },
+    "SheetCheck": {
+      "type": "object",
+      "properties": {
+        "sheetId": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "analysis": {
+          "type": "string",
+          "description": "Result id (`result.analysis`), for the change log."
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "reproduced",
+            "changed",
+            "failed",
+            "skipped"
+          ]
+        },
+        "compared": {
+          "type": "number"
+        },
+        "changes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/NumberChange"
+          }
+        },
+        "note": {
+          "type": "string",
+          "description": "Why it failed or was skipped."
+        }
+      },
+      "required": [
+        "sheetId",
+        "name",
+        "analysis",
+        "status",
+        "compared",
+        "changes"
+      ],
+      "additionalProperties": false,
+      "description": "The comparison of one results sheet."
+    },
+    "NumberChange": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "\"comparisons[2].p_adjusted\""
+        },
+        "what": {
+          "type": "string",
+          "description": "\"adjusted P\""
+        },
+        "context": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Names of the items on the way (\"Treated vs Control\", \"Drug A\")."
+        },
+        "saved": {
+          "type": "number"
+        },
+        "now": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "null: no longer reported."
+        },
+        "p": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "path",
+        "what",
+        "context",
+        "saved",
+        "now",
+        "p"
+      ],
+      "additionalProperties": false
+    }
+  }
+}
