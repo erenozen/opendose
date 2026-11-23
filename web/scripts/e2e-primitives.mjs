@@ -302,6 +302,15 @@ const fileMenu = async (page, item) => {
   const [pb, vb] = [await pp.boundingBox(), await view.boundingBox()];
   expect("Preferences: placed under the View menu that opened it",
     !!pb && !!vb && pb.y >= vb.y + vb.height && pb.x + pb.width >= vb.x, JSON.stringify([pb, vb]));
+  // Taller than the window at 900px: it scrolls inside, and a scroll is
+  // kept (placing it again on that scroll once reset it to the top, so the
+  // privacy section and its storage line could not be reached).
+  const ppScroll = await pp.evaluate(async (el) => {
+    el.scrollTop = 400;
+    await new Promise((r) => setTimeout(r, 500));
+    return { top: el.scrollTop, room: el.scrollHeight - el.clientHeight };
+  });
+  expect("Preferences: a scroll inside it is kept", ppScroll.room <= 0 || ppScroll.top > 0, JSON.stringify(ppScroll));
   await page.keyboard.press("Escape");
   await settle(page);
   expect("Preferences: Escape returns focus to View", await focusIs(page, view), await focused(page));

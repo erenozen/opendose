@@ -2,20 +2,36 @@
 // fallback, and every call guarded (private windows, blocked storage and
 // full quotas must never break the app; they only disable autosave).
 //
-// Two slots. The running session writes "current". On boot, a leftover
-// "current" (the last session) is rotated into "previous" and offered
-// back with "Restore last session?"; dismissing deletes it.
-export interface AutosaveRecord {
+// One record per tab session ("session:<id>"), so two tabs never write
+// over each other; sessions.ts decides which tab owns which session and
+// what is offered back on the next start. Builds before 2026-11-23 kept
+// two shared slots, "current" and "previous": sessions.ts moves them into
+// session records once (migrateLegacy).
+export interface SessionRecord {
+  id: string;
   savedAt: number;   // epoch ms
   title: string;
   sheets: number;
+  /** The name of the sheet on screen, to tell sessions of one project apart. */
+  sheet?: string;
   json: string;      // serialized project (persist.serializeProject)
 }
 
-export type Slot = "current" | "previous";
+/** The two shared slots of earlier builds (read only by the migration). */
+export const LEGACY_SLOTS = ["current", "previous"] as const;
+const SESSION_PREFIX = "session:";
+export const sessionKey = (id: string) => `${SESSION_PREFIX}${id}`;
+export const isSessionKey = (key: string) => key.startsWith(SESSION_PREFIX);
+export const sessionIdOf = (key: string) => key.slice(SESSION_PREFIX.length);
+
+/** A stored autosave record (a session's, or an old slot's without id). */
+export function isAutosaveRecord(v: unknown): v is Omit<SessionRecord, "id"> {
+  return !!v && typeof v === "object" && typeof (v as SessionRecord).json === "string"
+    && typeof (v as SessionRecord).savedAt === "number";
+}
 
 // The "Autosave my work in this browser" switch (Preferences): on unless
-// set to "off". Off: nothing is written to the slots and both are deleted.
+// set to "off". Off: nothing is written and every kept session is deleted.
 const SWITCH_KEY = "opendose-autosave";
 export function autosaveEnabled(): boolean {
   try { return localStorage.getItem(SWITCH_KEY) !== "off"; } catch { return true; }
@@ -26,8 +42,10 @@ export async function setAutosaveEnabled(on: boolean): Promise<void> {
     else localStorage.setItem(SWITCH_KEY, "off");
   } catch { /* storage unavailable: autosave stays as it was */ }
   if (!on) {
-    await deleteSlot("current");
-    await deleteSlot("previous");
+    const legacy: readonly string[] = LEGACY_SLOTS;
+    for (const k of await autosaveKv.keys()) {
+      if (isSessionKey(k) || legacy.includes(k)) await autosaveKv.delete(k);
+    }
   }
 }
 
@@ -39,7 +57,10 @@ export function freezeStorage(): void { frozen = true; }
 
 export const DB_NAME = "opendose";
 const STORE = "autosave";
-const lsKey = (slot: Slot) => `opendose-autosave-${slot}`;
+// localStorage fallback keys: "opendose-autosave-<key>" (the dash keeps
+// them apart from the switch, "opendose-autosave").
+const LS_PREFIX = "opendose-autosave-";
+const lsKey = (key: string) => `${LS_PREFIX}${key}`;
 
 let dbPromise: Promise<IDBDatabase | null> | null = null;
 
@@ -87,57 +108,64 @@ function idb<T>(mode: IDBTransactionMode,
   }));
 }
 
-function isRecord(v: unknown): v is AutosaveRecord {
-  return !!v && typeof v === "object" && typeof (v as AutosaveRecord).json === "string"
-    && typeof (v as AutosaveRecord).savedAt === "number";
+/** The autosave records as a key-value store (sessions.ts works on this
+ *  shape, so its tests can hand it a Map). */
+export interface Kv {
+  get(key: string): Promise<unknown>;
+  /** False when nothing was written (autosave off, storage full). */
+  put(key: string, value: unknown): Promise<boolean>;
+  delete(key: string): Promise<void>;
+  keys(): Promise<string[]>;
 }
 
-export async function readSlot(slot: Slot): Promise<AutosaveRecord | null> {
-  try {
-    const v = await idb<unknown>("readonly", (s) => s.get(slot));
-    if (isRecord(v)) return v;
-  } catch { /* fall through to localStorage */ }
-  try {
-    const v = JSON.parse(localStorage.getItem(lsKey(slot)) ?? "null");
-    return isRecord(v) ? v : null;
-  } catch {
-    return null;
-  }
-}
-
-export async function writeSlot(slot: Slot, rec: AutosaveRecord): Promise<boolean> {
-  if (frozen || !autosaveEnabled()) return false;
-  try {
-    await idb("readwrite", (s) => s.put(rec, slot));
-    try { localStorage.removeItem(lsKey(slot)); } catch { /* ignore */ }
-    return true;
-  } catch { /* fall through */ }
-  try {
-    localStorage.setItem(lsKey(slot), JSON.stringify(rec));
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-export async function deleteSlot(slot: Slot): Promise<void> {
-  try { await idb("readwrite", (s) => s.delete(slot)); } catch { /* ignore */ }
-  try { localStorage.removeItem(lsKey(slot)); } catch { /* ignore */ }
-}
-
-/** Boot: the last session's "current" becomes "previous"; returns what can
- *  be offered for restore (or null). */
-export async function rotateOnBoot(): Promise<AutosaveRecord | null> {
-  const cur = await readSlot("current");
-  if (cur) {
-    await writeSlot("previous", cur);
-    await deleteSlot("current");
-  }
-  return readSlot("previous");
-}
+export const autosaveKv: Kv = {
+  async get(key) {
+    try {
+      const v = await idb<unknown>("readonly", (s) => s.get(key));
+      if (v !== undefined) return v;
+    } catch { /* fall through to localStorage */ }
+    try {
+      return JSON.parse(localStorage.getItem(lsKey(key)) ?? "null") ?? undefined;
+    } catch {
+      return undefined;
+    }
+  },
+  async put(key, value) {
+    if (frozen || !autosaveEnabled()) return false;
+    try {
+      await idb("readwrite", (s) => s.put(value, key));
+      try { localStorage.removeItem(lsKey(key)); } catch { /* ignore */ }
+      return true;
+    } catch { /* fall through */ }
+    try {
+      localStorage.setItem(lsKey(key), JSON.stringify(value));
+      return true;
+    } catch {
+      return false;
+    }
+  },
+  async delete(key) {
+    try { await idb("readwrite", (s) => s.delete(key)); } catch { /* ignore */ }
+    try { localStorage.removeItem(lsKey(key)); } catch { /* ignore */ }
+  },
+  async keys() {
+    const out = new Set<string>();
+    try {
+      const ks = await idb<IDBValidKey[]>("readonly", (s) => s.getAllKeys());
+      for (const k of ks ?? []) if (typeof k === "string") out.add(k);
+    } catch { /* no database: localStorage only */ }
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k?.startsWith(LS_PREFIX)) out.add(k.slice(LS_PREFIX.length));
+      }
+    } catch { /* no localStorage */ }
+    return [...out];
+  },
+};
 
 // ------------------------------------------------------------ other keys
-// Other per-browser data kept next to the autosave slots (saved
+// Other per-browser data kept next to the autosave records (saved
 // templates): same database and store, same localStorage fallback, every
 // call guarded.
 const lsOther = (key: string) => `opendose-${key}`;

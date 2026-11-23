@@ -341,8 +341,24 @@ test("the five checklists, combined items and summary", () => {
   const full = checklistSummary(evaluateChecklists(facts({
     meta: { unit: "mice", experiments: 3, exclusions: "none", sampleSize: "power analysis" },
   })));
-  assert.equal(full.unmet, 0);
+  // only the eLife source-data item stays unmet: no per-figure export yet (P-09)
+  assert.equal(full.unmet, 1);
   for (const l of lists) for (const it of l.items) assert.ok(it.reason.length > 0 && it.source.length > 0);
+});
+
+test("eLife source data is not met from the CSV bundle alone, and links to the bundle", () => {
+  const out = RULES.source_data(facts({ meta: { unit: "mice", experiments: 3, exclusions: "none", sampleSize: "power" } }));
+  assert.equal(out.status, "unmet");
+  assert.match(out.reason, /each data table as CSV/);
+  assert.match(out.reason, /Source data per figure .* cannot be exported yet/);
+  assert.deepEqual(out.fix, { kind: "bundle", label: "Download the export bundle" });
+  const elife = evaluateChecklists(facts()).find((l) => l.id === "elife")!;
+  const item = elife.items.find((i) => i.id === "source")!;
+  assert.equal(item.status, "unmet");
+  assert.equal(item.fix?.kind, "bundle");
+  // the rule is used by the eLife list only
+  const uses = evaluateChecklists(facts()).flatMap((l) => l.items.filter((i) => i.fix?.kind === "bundle").map((i) => `${l.id}.${i.id}`));
+  assert.deepEqual(uses, ["elife.source"]);
 });
 
 test("reporting details are validated", () => {
