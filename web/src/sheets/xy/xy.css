@@ -27,3 +27,5 @@
 
 /* Potency across experiments (ExperimentsCard.tsx): the cited sources. */
 .experiments-sources { display: flex; flex-wrap: wrap; gap: var(--space-4) var(--space-12); }
+/* "Experiment 1" stays on one line; a narrow pane scrolls the card instead */
+.experiments-card tbody th { white-space: nowrap; }
