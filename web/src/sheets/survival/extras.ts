@@ -164,6 +164,27 @@ export function atTimeLabel(t: number, unit: TimeUnit): string {
   return unit ? `${unit.replace(/s$/, "")} ${fmtTime(t)}` : `time ${fmtTime(t)}`;
 }
 
+/** P-28: the engine's differences S_group(t) − S_first(t) at time t, as
+ *  rows of the survival-at-a-time table (values in percentage points). */
+export interface DifferenceRow {
+  label: string; difference: number | null; se: number | null;
+  ci: [number, number] | null; p: number | null; note: string | null;
+}
+
+export function differenceRows(atTime: R | undefined | null, t: number): DifferenceRow[] {
+  const diffs = (Array.isArray(atTime?.differences) ? atTime.differences : []) as R[];
+  const num = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
+  return diffs.filter((d) => d.time === t).map((d) => ({
+    label: `${String(d.group)} minus ${String(d.reference)}`,
+    difference: num(d.difference) === null ? null : d.difference * 100,
+    se: num(d.se) === null ? null : d.se * 100,
+    ci: Array.isArray(d.ci) && num(d.ci[0]) !== null && num(d.ci[1]) !== null
+      ? [d.ci[0] * 100, d.ci[1] * 100] : null,
+    p: num(d.p),
+    note: typeof d.note === "string" ? d.note : null,
+  }));
+}
+
 /** Warnings of the survival result and its extras, once each. */
 export function survivalWarnings(result: R | null): string[] {
   if (!result) return [];

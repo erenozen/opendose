@@ -33,7 +33,12 @@ Methods and sources:
   after the last observation follow R's ``summary(survfit(...), times =
   ...)`` (Therneau, survival package documentation, ``summary.survfit``:
   n.risk = number with T >= t; times beyond the last observed time are
-  not reported unless extend = TRUE).
+  not reported unless extend = TRUE). With two or more groups, each
+  group's difference from the first, S_k(t) - S_1(t), with the Greenwood
+  SE of the difference and its linear CI, and the P value of the
+  complementary log-log test of Klein, Logan, Harhoff & Andersen (2007)
+  Stat Med 26:4505 ("Analyzing survival curves at a fixed point in
+  time"), valid only for a time chosen before looking at the curves.
 - Restricted mean survival time (RMST): the area under the Kaplan-Meier
   curve up to a truncation time tau (Royston, P. & Parmar, M. K. B.
   (2013) BMC Med Res Methodol 13:152; Uno, H. et al. (2014) J Clin Oncol
@@ -452,8 +457,11 @@ def survival_at_times(groups, names=None, times=(), *, ci_level=0.95):
         out.append({"name": name, "n": n, "events": n_events,
                     "at_times": at,
                     "explanation": _explanation(rows, n, n_events)})
+    differences = [_difference_at(out[0], g, i, z, ci_level)
+                   for g in out[1:] for i in range(len(tq))]
     return {
         "groups": out, "ci_level": float(ci_level), "warnings": warnings,
+        "differences": differences,
         "columns": {
             "survival": "Kaplan-Meier S(t), including events at t",
             "se": ("Greenwood standard error of S(t); null where S = 0 "
@@ -465,8 +473,55 @@ def survival_at_times(groups, names=None, times=(), *, ci_level=0.95):
             "events_so_far": "events at or before t",
             "beyond_last": ("t after the last observed time: survival not "
                             "estimated (R's default, extend = FALSE)"),
+            "differences": ("each group minus the first at each time: "
+                            "difference, Greenwood SE sqrt(se1^2 + se0^2), "
+                            "linear CI, and P of the complementary log-log "
+                            "test (Klein et al. 2007); the time must be "
+                            "chosen in advance"),
         },
     }
+
+
+def _difference_at(ref, grp, i, z, ci_level):
+    """S_group(t) - S_reference(t) at the i-th chosen time: the difference
+    with its Greenwood SE sqrt(se1^2 + se0^2) and the linear (Wald) CI,
+    and the P value of the complementary log-log test of Klein, Logan,
+    Harhoff & Andersen (2007, Stat Med 26:4505), which holds its size
+    better than the linear test in small samples:
+    X2 = [ln(-ln S1) - ln(-ln S0)]^2 / [s1^2 / (ln S1)^2 + s0^2 / (ln S0)^2]
+    with s^2 the Greenwood sum (the variance of ln S), chi-square on 1 df.
+    The time must be chosen before looking at the curves."""
+    a, b = grp["at_times"][i], ref["at_times"][i]
+    out = {"time": a["time"], "group": grp["name"], "reference": ref["name"],
+           "difference": None, "se": None, "ci": None, "chi2": None,
+           "p": None, "test": "cloglog (Klein et al. 2007)", "note": None}
+    s1, s0 = a.get("survival"), b.get("survival")
+    if s1 is None or s0 is None:
+        out["note"] = ("survival is not estimated at this time in every "
+                       "group (after its last observed time)")
+        return out
+    out["difference"] = float(s1 - s0)
+    se1, se0 = a.get("se"), b.get("se")
+    if se1 is None or se0 is None:
+        out["note"] = ("survival is 0 in a group, where the Greenwood SE is "
+                       "undefined: no CI or P")
+        return out
+    se = math.sqrt(se1 ** 2 + se0 ** 2)
+    out["se"] = float(se)
+    if se > 0:
+        out["ci"] = [float(out["difference"] - z * se),
+                     float(out["difference"] + z * se)]
+    if not (0 < s1 < 1 and 0 < s0 < 1):
+        out["note"] = ("survival is 100% in a group at this time (no events "
+                       "yet), so the complementary log-log test is "
+                       "undefined: no P")
+        return out
+    v1 = (se1 / s1) ** 2 / math.log(s1) ** 2
+    v0 = (se0 / s0) ** 2 / math.log(s0) ** 2
+    chi2 = (math.log(-math.log(s1)) - math.log(-math.log(s0))) ** 2 / (v1 + v0)
+    out["chi2"] = float(chi2)
+    out["p"] = float(stats.chi2.sf(chi2, 1))
+    return out
 
 
 # ---------------------------------------------------------------------------

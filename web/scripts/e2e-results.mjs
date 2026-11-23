@@ -7,7 +7,8 @@
 // (P-14) and two event rates (P-47); and the fit models of wave 1: Weibull
 // and hormesis models (P-19), range constraints (P-20), initial values and
 // the fit report (P-21) and simulating a user-defined equation (P-51);
-// quasi-Poisson (P-46) and partial and compared correlations (P-48).
+// quasi-Poisson (P-46), partial and compared correlations (P-48) and the
+// survival difference at a chosen time (P-28).
 // Each number asserted here is pinned in the engine tests from an
 // independent reference (engine/tests/reference/).
 // Usage: node scripts/e2e-results.mjs [http://localhost:5173/]
@@ -823,6 +824,27 @@ await page.waitForSelector('.pane-results[data-live="true"] .results-table', { t
   await controls.getByLabel("Measured on").selectOption("independent");
   expect("P-48 'Measured on: different subjects' switches the test to Fisher's z",
     await liveResults(/Fisher's z test, independent samples/));
+}
+
+// --- P-28: difference in survival at a chosen time ------------------------
+{
+  // engine/tests/reference/survival_difference.py: survival::lung by sex at
+  // 365 days, female minus male 19.04 points (4.563 to 33.51), Greenwood SE
+  // 7.385 points, cloglog test P = 0.01273 (Klein et al. 2007)
+  const ref = JSON.parse(readFileSync(join(here, "../../engine/tests/reference/survival_difference.json"), "utf8"));
+  await page.getByRole("treeitem", { name: "Survival of Lung cancer by sex", exact: true }).first()
+    .locator(":scope > .nav-row").click();
+  await liveResults(/Survival at day 365/, 180000);
+  const block = page.locator('section[aria-label="Survival at a chosen time"]');
+  const diff = (await block.locator(".surv-at-diff tbody tr").first().innerText().catch(() => ""))
+    .replace(/\s+/g, " ").trim();
+  const d = ref.difference;
+  const want = `Female minus Male ${Number((d.difference * 100).toPrecision(4))} points `
+    + `${Number((d.ci[0] * 100).toPrecision(4))} to ${Number((d.ci[1] * 100).toPrecision(4))} points `
+    + `${Number((d.se * 100).toPrecision(4))} points ${Number(d.p.toPrecision(4))}`;
+  expect(`P-28 acceptance: under the survival-at-365-days table, the difference row "${want}"`, diff === want, diff);
+  expect("P-28 the results say the time must be chosen before looking at the curves",
+    /Choose the time before looking at the curves/.test(await block.innerText()));
 }
 
 // ------------------------------------------------------------------------
