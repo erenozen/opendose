@@ -45,6 +45,8 @@ const SHORTCUTS: { area: string; keys: [string, string][] }[] = [
     ["Delete", "Clear the selected block"],
     ["Ctrl/⌘ E", "Exclude / include the value(s)"],
     ["Ctrl/⌘ Shift Enter", "Insert a row below"],
+    ["Ctrl/⌘ F", "Find in the table"],
+    ["Ctrl H, ⌘ Shift H", "Replace in the table (only while the table has focus: elsewhere Ctrl H is the browser's history)"],
   ] },
   { area: "Workbench", keys: [
     ["← / → on the analysis tabs", "Switch analysis"],

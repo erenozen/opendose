@@ -8,7 +8,7 @@
 // window event that the header answers (the pattern of share/events.ts),
 // so the palette, which renders outside the header, can run them too.
 import { useMemo } from "react";
-import { openGridFind } from "./gridFind";
+import { openGridFind, openGridReplace } from "./gridFind";
 import { focusNote } from "./noteFocus";
 import { printSheet } from "./usePrint";
 import { useCommands } from "./commands";
@@ -182,6 +182,11 @@ function contextCommands(project: Parameters<typeof findSheet>[0], selected: She
     out.push({ id: "ctx-find", label: "Find in this table…", group: "context", about: name,
       shortcut: modKey("F"), keywords: "search value cell row title column",
       run: () => openGridFind(data.id) });
+    if (!readOnly && !data.derived && !data.frozen) {
+      out.push({ id: "ctx-replace", label: "Replace in this table…", group: "context", about: name,
+        shortcut: isMac ? "⌘⇧H" : "Ctrl+H", keywords: "find replace substitute n.d. code value",
+        run: () => openGridReplace(data.id) });
+    }
     out.push({ id: "ctx-share", label: "Share this family…", group: "context", about: name,
       suggested: true, keywords: "link send", run: () => openShareLink(data.id) });
     if (PZFX_TYPES.has(data.table.type)) {

@@ -11,6 +11,8 @@
 //   the same cells (openpyxl's reading of the .xlsx) and the same table.
 // - P-35: pasted 12.5%, 30%, 47.5% and 3.2 µM get a one-click reading in
 //   the paste report, never applied by itself, undone in one step.
+// - P-36: find and replace (Ctrl+H) in a 96-row table: 7 n.d. cells, one
+//   undo step, exclusions kept.
 //
 // Usage: node scripts/e2e-import.mjs http://localhost:5173/
 import { chromium } from "playwright";
@@ -291,6 +293,95 @@ const typeWhy = dlg.locator("[data-part='type-why']");
   expect("P-35: cells in two units are named and not offered for stripping (it would mix scales)",
     /2 cells hold units \(µM, nM\): convert them to one unit, then strip it/.test(s4)
     && await strip.getByRole("button", { name: /^Strip/ }).count() === 0, s4);
+}
+
+// --- P-36: find and replace. A 96-row table with "n.d." in 7 cells (one
+// of them excluded, with a reason): Ctrl+H in the table, replace "n.d."
+// with an empty cell, Replace all: 7 cells change, the bar says 7, the
+// excluded cell keeps its exclusion and reason, one undo restores all 7.
+{
+  const ND = [3, 17, 18, 40, 41, 77, 95];
+  const lines = Array.from({ length: 96 }, (_, r) => (ND.includes(r) ? "n.d." : (20 + (r % 13) / 4).toFixed(2)));
+  await fileMenu("New data table…");
+  const nd = page.locator(".new-table-dialog");
+  await nd.locator('input[name="table-type"][value="column"]').check();
+  await nd.getByLabel("Table name").fill("Cq values");
+  await nd.getByRole("button", { name: "Create table" }).click();
+  await page.waitForSelector(".grid-toolbar");
+  // 96 lines go through the Import dialog (more than 60 lines)
+  await page.evaluate((t) => {
+    const el = document.querySelector(".data-table input[aria-label='Group A, row 1']");
+    const dt = new DataTransfer();
+    dt.setData("text/plain", t);
+    el.focus();
+    el.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }));
+  }, `${lines.join("\n")}\n`);
+  if (await appears(dlg, 3000)) {
+    await dlg.getByRole("button", { name: "Import", exact: true }).click();
+    await dlg.waitFor({ state: "detached", timeout: 10000 }).catch(() => {});
+  }
+  const cq = async () => (await tableOf("Cq values"))?.datasets[0].rows.map((r) => r[0]) ?? [];
+  const reasons = () => page.evaluate(() => {
+    const s = globalThis.__opendose.store.project.sheets.find((x) => x.kind === "data" && x.name === "Cq values");
+    return { excluded: s.table.datasets[0].excluded ?? [], reasons: s.table.datasets[0].exclusionReasons ?? {} };
+  });
+  const start = await cq();
+  // exclude row 18 (an "n.d.") with a reason
+  const cell18 = page.locator(".data-table input[aria-label='Group A, row 18']");
+  await cell18.click();
+  await page.keyboard.press("Control+e");
+  const prompt = page.getByRole("region", { name: "Exclusion reason" });
+  if (await appears(prompt, 5000)) await prompt.getByRole("button", { name: "technical failure" }).click();
+  const ex0 = await reasons();
+  expect("P-36: the 96-row table holds n.d. in 7 cells, row 18 excluded as a technical failure",
+    start.length === 96 && start.filter((v) => v === "n.d.").length === 7
+    && JSON.stringify(ex0) === JSON.stringify({ excluded: ["17:0"], reasons: { "17:0": "technical failure" } }),
+    JSON.stringify(ex0));
+
+  // Ctrl+H in the grid (handled there, so the browser's history stays shut)
+  await cell18.focus();
+  const prevented = await page.evaluate(() => {
+    const el = document.activeElement;
+    const ev = new KeyboardEvent("keydown", { key: "h", ctrlKey: true, bubbles: true, cancelable: true });
+    el.dispatchEvent(ev);
+    return ev.defaultPrevented;
+  });
+  const find = page.getByRole("searchbox", { name: "Find" });
+  const repl = page.getByRole("textbox", { name: "Replace with" });
+  const opened = await appears(repl, 3000);
+  expect("P-36: Ctrl+H in the table opens find with its replace row, and takes the key from the browser",
+    prevented && opened && await find.evaluate((el) => el === document.activeElement));
+  await find.fill("n.d.");
+  const count = await page.locator(".grid-find-count[role=status]").first().innerText();
+  await repl.fill("");
+  await page.getByRole("button", { name: "Replace all" }).click();
+  const status = await page.locator(".grid-replace-status").innerText();
+  const after = await cq();
+  const ex1 = await reasons();
+  expect("P-36: Replace all of n.d. with an empty cell: 7 cells change and the bar says “Replaced 7 cells.”",
+    /of 7$/.test(count) && status === "Replaced 7 cells."
+    && ND.every((r) => after[r] === "") && after.filter((v, r) => !ND.includes(r) && v === start[r]).length === 89,
+    `${count} | ${status}`);
+  expect("P-36: the excluded cell keeps its exclusion and its reason", JSON.stringify(ex1) === JSON.stringify(ex0),
+    JSON.stringify(ex1));
+  await page.locator("header").getByRole("button", { name: "Undo" }).click();
+  const undone = await cq();
+  expect("P-36: one undo restores all 7 n.d. cells", JSON.stringify(undone) === JSON.stringify(start),
+    String(undone.filter((v) => v === "n.d.").length));
+
+  // the whole cell only, and Replace (one match): "20" in a cell of "20.25" is not a whole cell
+  await find.fill("20.25");
+  await page.getByRole("checkbox", { name: "Whole cell only" }).check();
+  const wholeCount = await page.locator(".grid-find-count[role=status]").first().innerText();
+  await repl.fill("20.250");
+  await page.getByRole("button", { name: "Replace", exact: true }).click();
+  const one = await cq();
+  const s2 = await page.locator(".grid-replace-status").innerText();
+  expect("P-36: Replace changes the match shown only (whole cells of 20.25: one of them becomes 20.250)",
+    one.filter((v) => v === "20.250").length === 1 && s2 === "Replaced 1 cell." && /of \d+$/.test(wholeCount), `${wholeCount} | ${s2}`);
+  await repl.press("Escape");
+  const closed = !(await repl.isVisible().catch(() => false));
+  expect("P-36: Escape closes the bar", closed);
 }
 
 // --- a file Open cannot read: the error names what it opens

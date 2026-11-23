@@ -518,6 +518,18 @@ const scenes = [
     await s.page.keyboard.press("Enter");
     await into(s, ".grid-editor");
   } },
+  // Ctrl+H in the grid (P-36): the replace row under find, after a Replace all
+  { name: "grid-replace", setup: async (s) => {
+    await fixture(s, "row-ids.json");
+    await click(s, s.page.locator(".data-table input[aria-label='Vehicle, row 1']"));
+    await s.page.keyboard.press("Control+h");
+    await s.page.getByRole("searchbox", { name: "Find" }).fill("M1");
+    await s.page.getByRole("textbox", { name: "Replace with" }).fill("Mouse 1");
+    await s.page.getByRole("checkbox", { name: "Whole cell only" }).check();
+    await s.page.getByRole("button", { name: "Replace all" }).click();
+    await s.page.locator(".grid-replace-status").filter({ hasText: /Replaced/ }).waitFor();
+    await into(s, ".grid-editor");
+  } },
   { name: "grid-exclude-by-id", setup: async (s) => {
     await fixture(s, "row-ids.json");
     await click(s, s.page.locator(".grid-toolbar").getByRole("button", { name: "Rows" }));

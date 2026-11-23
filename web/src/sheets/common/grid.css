@@ -146,14 +146,25 @@
 
 /* ---- find bar (GridFindBar): one row under the toolbar; on a phone the
    query takes the free width */
-.grid-find {
-  display: flex; align-items: center; gap: var(--space-4);
+/* Find (and, opened, Replace with): the labels in one column, so the two
+   fields line up; each field's tools follow it and wrap in a narrow pane. */
+.grid-find-bar {
+  display: grid; grid-template-columns: max-content minmax(0, 1fr);
+  align-items: baseline; gap: var(--space-8);  /* each label on its field's line */
   font-size: var(--text-body-s);
 }
+/* The field shrinks before its tools wrap; in a phone's pane the tools
+   move under it as one group. */
+.grid-find-row, .grid-find-tools { display: flex; align-items: center; gap: var(--space-4); min-width: 0; }
+.grid-find-row { flex-wrap: wrap; }
+.grid-find-tools { flex: none; }
 /* touch: the icon buttons' 44px hit areas must not overlap */
-@media (pointer: coarse) { .grid-find { gap: var(--space-12); } }
-.grid-find-label { color: var(--muted); font-weight: var(--weight-medium); margin-right: var(--space-4); }
-.grid-find-input { flex: 0 1 16em; min-width: 0; }
+@media (pointer: coarse) { .grid-find-row, .grid-find-tools { gap: var(--space-12); } }
+.grid-find-label { color: var(--muted); font-weight: var(--weight-medium); }
+.grid-find-input { flex: 1 1 8em; min-width: 8em; max-width: 16em; }
+.grid-find-whole { flex: none; flex-wrap: nowrap; margin-inline: var(--space-4); }
+.grid-find-whole > input[type="checkbox"]:first-child + span { flex: none; }
+.grid-replace-status { color: var(--muted); }
 .grid-find-count {
   min-width: 5.5em; color: var(--muted); font-variant-numeric: tabular-nums;
   white-space: nowrap; margin-inline: var(--space-4);
