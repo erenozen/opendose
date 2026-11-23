@@ -57,7 +57,8 @@ export function usePrismBatch() {
         : `No data tables converted: ${out.failed.join("; ")}.`,
       { tone: out.tables ? "success" : "error", id: toast });
     } catch (e) {
-      ui.notify(`Could not convert the Prism files: ${e instanceof Error ? e.message : e}`,
+      ui.notify(`Could not convert the Prism files: ${String(e instanceof Error ? e.message : e).replace(/\.$/, "")}. `
+        + "Open them one at a time with Open… to find the file that fails.",
         { tone: "error", id: toast });
     } finally {
       setBusy(false);

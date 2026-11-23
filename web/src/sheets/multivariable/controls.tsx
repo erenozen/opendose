@@ -53,7 +53,7 @@ function VarChecklist({ legend, vars, chosen, onChange, emptyMeansAll, hint }: {
   return (
     <fieldset className="mv-varlist">
       <legend>{legend}</legend>
-      {vars.length === 0 && <p className="hint-block">No suitable variables in the table yet.</p>}
+      {vars.length === 0 && <p className="hint-block">No variables to choose from yet: add a column of values to the table.</p>}
       {vars.map((v) => (
         <label key={v.name} className="check-row">
           <input type="checkbox" checked={isOn(v.name)}

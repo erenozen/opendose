@@ -2,7 +2,6 @@
 
 Source: `web/src/components/ui/` Dialog, Popover, Menu, Tooltip, all on
 useDismiss.ts; `components/Modal.tsx` and `ConfirmDialog.tsx` wrap Dialog.
-
 These four are the only overlays. Each renders in the top layer (no
 z-index, no clipping by `overflow: hidden`), closes on Escape (topmost
 only) and returns focus to its opener. Never build another: a hand-rolled

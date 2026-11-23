@@ -31,7 +31,7 @@ for (const f of files) {
   }
 }
 
-// Manifest tells the browser bridge which files to load — never hardcode.
+// Manifest tells the browser bridge which files to load: never hardcode.
 const manifest = JSON.stringify(files);
 const manifestPath = join(dest, "manifest.json");
 if (!existsSync(manifestPath) ||

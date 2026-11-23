@@ -51,8 +51,8 @@ export const aucGraph = defineGraph<AucOptions, R>({
 export const aucAssay: AssayModule = {
   id: "auc",
   label: "Area under the curve",
-  description: "Curves on an XY table (a glucose tolerance test, a pharmacokinetic "
-    + "profile ...): trapezoid area of each data set above a baseline with its SE and CI, "
+  description: "Curves on an XY table, such as a glucose tolerance test or a "
+    + "pharmacokinetic profile: trapezoid area of each data set above a baseline with its SE and CI, "
     + "peaks, and a comparison of the data sets.",
   tableType: "xy",
   tableName: "Glucose tolerance test",

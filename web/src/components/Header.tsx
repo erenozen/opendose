@@ -220,7 +220,7 @@ export default function Header({ onOpenFile, onNewProject, inert }: {
                 )}
                 {guide && (
                   <Menu.Item className="menu-item-guide" onSelect={() => guide.openPlanner()}
-                    description="Before the data: the table, the analysis, n and a design check list, saved as an analysis plan.">
+                    description="Before the data: the table, the analysis, n and a design checklist, saved as an analysis plan.">
                     Plan an experiment…
                   </Menu.Item>
                 )}

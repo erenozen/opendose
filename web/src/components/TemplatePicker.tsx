@@ -64,7 +64,8 @@ export default function TemplatePicker({ prefs, defaultName, onChange }: {
       setChosenId(t.id);
       setImportMsg(`Imported “${t.name}”.`);
     } catch (e) {
-      setImportMsg(`Could not import: ${e instanceof Error ? e.message : String(e)}`);
+      setImportMsg(`Could not import “${f.name}”: ${e instanceof Error ? e.message : String(e)}. `
+        + "Choose a template file (.odtemplate.json).");
     }
   };
 

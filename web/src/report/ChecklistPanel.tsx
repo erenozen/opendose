@@ -43,7 +43,7 @@ export default function ChecklistPanel({ dataId, onClose }: { dataId?: string; o
           </select>
         </label>
       )}
-      {!data ? <p className="hint-block">No data table in this project.</p> : (
+      {!data ? <p className="hint-block">No data table to check yet. The checklists are ticked from a data table and its analyses: add one with New data table… in the File menu.</p> : (
         <>
           <p className="checklist-summary" role="status">
             “{data.name}”: {sum.met} met, {sum.unmet} not met, {sum.na} not applicable across

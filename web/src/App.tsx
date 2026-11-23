@@ -273,7 +273,7 @@ function PrismChooser({ tables, onImport, onCancel }: {
         The Prism file has {tables.length} data tables. Choose the ones to import.
       </Banner.Title>
       <Banner.Detail>
-        <p>Each becomes a data table of its own; data tables only, analyses are recomputed here.</p>
+        <p>Each one becomes its own data table. Only the data comes across; analyses are recomputed here.</p>
         <fieldset className="pzfx-list">
           <legend className="sr-only">Data tables to import</legend>
           {tables.map((t, i) => (

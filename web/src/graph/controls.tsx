@@ -169,7 +169,7 @@ export function Tabs<T extends string>({ tabs, value, onChange, label }: {
   );
 }
 
-/** Cancel / Apply / OK row for the format dialogs. */
+/** Cancel / Apply / Apply and close row for the format dialogs. */
 export function DialogActions({ onCancel, onApply, dirty }: {
   onCancel: () => void; onApply: () => void; dirty: boolean;
 }) {
@@ -177,7 +177,7 @@ export function DialogActions({ onCancel, onApply, dirty }: {
     <>
       <Button onClick={onCancel}>Cancel</Button>
       <Button onClick={onApply} disabled={!dirty}>Apply</Button>
-      <Button type="submit" variant="primary">OK</Button>
+      <Button type="submit" variant="primary">Apply and close</Button>
     </>
   );
 }

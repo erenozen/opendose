@@ -138,8 +138,8 @@ wire Enter by hand with `onKeyDown`. A long-running submit uses `busy`
 
 ## Leaving with unapplied edits
 
-A long dialog whose edits apply only on Apply or OK (the graph format
-dialogs) asks "Discard your changes?" before Escape or a press outside
-drops them: give its Modal `onClose={useDiscardGuard(dirty, onClose)}`
+A long dialog whose edits apply only on Apply or Apply and close (the
+graph format dialogs) asks "Discard your changes?" before Escape or a
+press outside drops them: give its Modal `onClose={useDiscardGuard(dirty, onClose)}`
 (`graph/useDiscardGuard.ts`). Cancel closes without asking, since
 pressing it is the choice.

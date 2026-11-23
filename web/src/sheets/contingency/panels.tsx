@@ -416,7 +416,7 @@ export function ContingencyResults({ sheet, table, options, result }: ResultsPro
               : "The quick budget keeps every edit fast; the extended budget usually finishes in a few seconds."}
           </p>
           {canAsk && options?.fisherRxc !== "large" && (
-            <Button onClick={askLarge}>Compute the exact P (may take ~10 s)</Button>
+            <Button onClick={askLarge}>Compute the exact P (may take about 10 s)</Button>
           )}
         </div>
       )}
