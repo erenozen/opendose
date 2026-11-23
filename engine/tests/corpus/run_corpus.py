@@ -2799,6 +2799,18 @@ unchanged (1e-5). Edge cases tested: n = 0, 1, 2; a failed, a flat
 unequal blocks with missing wells; all-equal logIC50 values; a model
 without a logIC50; a replicate map naming no experiment for a
 subcolumn.
+
+Independent check (2026-11-23, a second agent that did not write the
+code): its own unweighted 4PL fit per experiment with
+scipy.optimize.least_squares (method "lm", own residuals, 33 starts) and
+a hand t interval (t(0.975, 2) = 4.302653) reproduce the engine to about
+1e-8 in raw values: logIC50 -7.345225, -6.994097, -6.764362; mean pIC50
+7.034561, SD 0.292538, 95% CI 6.307856 to 7.761267; geometric-mean IC50
+9.235038e-8 M (1.732739e-8 to 4.922029e-7); after the edit, experiment 3
+logIC50 -7.020613 and mean pIC50 7.119979 (6.634281 to 7.605676). The
+strings asserted by the P-08 step in `web/scripts/e2e-check.mjs` equal
+these values at display precision. Averaging IC50 on the linear scale
+would give 1.062e-7 M; the engine averages on the log scale.
 """
 
 
