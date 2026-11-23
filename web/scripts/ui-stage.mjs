@@ -808,6 +808,13 @@ const scenes = [
     await wiz.locator(".assay-preview").waitFor({ timeout: 60000 });
     await settle(s, 1000);
   } },
+  // P-29, qPCR: the LoD95 of a hit-rate dilution series
+  { name: "guided-qpcr-lod", setup: async (s) => {
+    await fixture(s, "qpcr-lod.json", { live: true });
+    await s.page.locator(".qpcr-lod").first().waitFor({ timeout: 120000 });
+    await into(s, ".qpcr-lod");
+    await settle(s);
+  } },
   { name: "guided-tour", setup: async (s) => {
     await example(s);
     await headerMenu(s, "View", "Help and tour");

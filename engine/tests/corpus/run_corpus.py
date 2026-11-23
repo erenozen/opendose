@@ -3270,6 +3270,38 @@ limits and leave the concentrations; concentrations in other units
 scale the concentration limits; blank order does not matter. Without
 low-level samples the result has no detection limits and every earlier
 pin is unchanged.
+
+### P-29 qPCR LoD95 from a hit-rate dilution series
+
+`assay_qpcr.lod95_by_target`: rows of the qPCR table with a Quantity are
+a dilution series; a series with wells that gave no Cq is a hit-rate
+series. The hit rate per quantity is fitted by probit regression on
+log10 quantity (`quantal.quantal_fit`, expected information, Finney's
+heterogeneity factor only when the Pearson chi-square is significant)
+and the LoD95 is the quantity detected in 95% of wells, with Fieller's
+CI (Forootan et al. 2017, Biomol Detect Quantif 12:1; MIQE asks for the
+LoD). An efficiency series detected in every well gives no LoD95.
+
+Reference: `engine/tests/reference/lod95_probit.py`, statsmodels
+GLM(Binomial(link=probit)) as the oracle for R's
+glm(binomial(probit)), Fieller's interval solved by hand (np.roots) from
+the statsmodels covariance. Data: 8 quantities (1000 to 1 copies) of 12
+wells, 12, 12, 12, 11, 9, 6, 3 and 1 detected.
+`engine/tests/test_qpcr_lod95.py`:
+
+| Quantity | Reference | Engine tolerance |
+|---|---|---|
+| intercept / slope | -1.41777 / 2.16016 | 1e-6 relative |
+| LoD95 | 26.1682 copies | 1e-6 relative |
+| 95% CI, Fieller | 15.0042 to 76.5999 | 1e-5 relative |
+| 95% CI, delta method | 12.7670 to 53.6363 | 1e-5 relative |
+
+Edge cases: every well detected (LoD95 below the series), none detected
+(above it), perfect separation (no partial level: the LoD95 lies
+between two quantities, no fit), fewer than 3 quantities, an empty
+series, a hit rate that falls with the quantity, an LoD95 outside the
+quantities tested (flagged). Quantity units scale the LoD95 and its CI;
+well order does not matter.
 """
 
 

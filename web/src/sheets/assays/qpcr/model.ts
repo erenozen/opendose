@@ -188,7 +188,18 @@ export function qpcrPayload(d: QData, o: QpcrOptions): unknown {
     data.standard_curves = Object.fromEntries(Object.entries(d.curves)
       .filter(([, pts]) => pts.length >= 3));
   }
+  // A dilution series with wells that gave no Cq is a hit-rate series:
+  // the engine fits its LoD95 (assay_qpcr.lod95_by_target).
+  const hitRate = Object.entries(d.curves).filter(([, pts]) => pts.some((p) => !hasCq(p.cq)));
+  if (hitRate.length) data.dilution_series = Object.fromEntries(hitRate);
   return { analysis: "qpcr", data, options };
+}
+
+/** A well's Cq is a positive number (else undetermined, as the engine's
+ *  parse_cq reads it). */
+function hasCq(cq: string): boolean {
+  const v = Number(cq.trim().replace(",", "."));
+  return cq.trim() !== "" && Number.isFinite(v) && v > 0;
 }
 
 export function runQpcr(analyze: (p: unknown) => unknown, t: DataTableModel, o: QpcrOptions): QpcrResult {

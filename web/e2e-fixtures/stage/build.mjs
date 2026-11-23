@@ -349,3 +349,25 @@ const longData = (name, names, rows, categorical) => data(name, {
   write("detection-limits.json", project("Detection limits", [t, r], { selected: r.id }));
 }
 
+// qpcr-lod.json: a qPCR plate with an IL6 hit-rate dilution series, 8
+// quantities x 12 wells (engine/tests/reference/lod95_probit.py,
+// FEATURE-PLAN P-29): the LoD95 by probit, 26.17 copies (15 to 76.6)
+{
+  const rows = [];
+  [["CON-1", "CON", 18.0, 27.3], ["CON-2", "CON", 17.1, 27.0], ["LPS-1", "LPS", 18.1, 24.1], ["LPS-2", "LPS", 17.5, 24.4]]
+    .forEach(([s, g, gapdh, il6]) => {
+      for (let i = 0; i < 3; i++) {
+        rows.push([s, g, "GAPDH", (gapdh + 0.1 * (i - 1)).toFixed(2), ""], [s, g, "IL6", (il6 + 0.1 * (i - 1)).toFixed(2), ""]);
+      }
+    });
+  const quantity = [1000, 100, 50, 20, 10, 5, 2, 1];
+  const detected = [12, 12, 12, 11, 9, 6, 3, 1];
+  quantity.forEach((q, i) => {
+    for (let w = 0; w < 12; w++) {
+      rows.push(["", "", "IL6", w < detected[i] ? (38 - 3.32 * Math.log10(q) + 0.05 * (w % 3)).toFixed(2) : "Undetermined", String(q)]);
+    }
+  });
+  const t = longData("qPCR LoD", ["Sample", "Group", "Target", "Cq", "Quantity"], rows, ["Sample", "Group", "Target"]);
+  const r = results(t, "assay_qpcr", { referenceGenes: ["GAPDH"], calibrator: "CON" }, "qPCR of qPCR LoD");
+  write("qpcr-lod.json", project("qPCR LoD", [t, r], { selected: r.id }));
+}

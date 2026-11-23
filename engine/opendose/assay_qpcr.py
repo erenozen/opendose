@@ -26,6 +26,12 @@ Method sources:
   thresholds of bench protocols: replicates within about 0.5 cycle,
   Cq above 35 treated with caution; undetermined wells are not given
   an arbitrary Cq unless the user chooses one.
+- LoD95 from a dilution hit-rate series (lod95_from_series): the share
+  of wells with a Cq at each quantity, fitted by probit regression on
+  log10 quantity (quantal.quantal_fit; Finney 1971), and the quantity
+  detected in 95% of wells with Fieller's CI, as Forootan et al. (2017,
+  Biomol Detect Quantif 12:1) determine a qPCR LoD; MIQE (Bustin et al.
+  2009) asks for the LoD to be reported.
 - GraphPad FAQ "Graphing data expressed as fold changes": test the
   logs (here dCq) and show fold changes on a log2 axis with the control
   at 1.
@@ -102,6 +108,101 @@ def efficiency_from_dilution(quantities, cqs, ci_level=0.95) -> dict:
             "efficiency_ci": ci,
             "efficiency_pct_ci": ([100.0 * (c - 1.0) for c in ci]
                                   if ci else None)}
+
+
+def lod95_from_series(points, *, ci_level=0.95):
+    """LoD95 of one target from a dilution series [{"quantity", "cq"}]
+    with replicate wells: probit of the hit rate (a well with a Cq is a
+    hit) on log10 quantity. Returns the levels, the LoD95 with Fieller
+    and delta-method CIs, or a status saying why there is none."""
+    from . import quantal
+    levels = {}
+    for p in points:
+        qv = p.get("quantity")
+        try:
+            qv = float(qv)
+        except (TypeError, ValueError):
+            continue
+        if not (math.isfinite(qv) and qv > 0):
+            continue
+        hit = parse_cq(p.get("cq", p.get("ct"))) is not None
+        n, r = levels.get(qv, (0, 0))
+        levels[qv] = (n + 1, r + int(hit))
+    rows = [{"quantity": qv, "n": n, "detected": r, "rate": r / n}
+            for qv, (n, r) in sorted(levels.items())]
+    out = {"levels": rows, "lod95": None, "ci": None, "ci_delta": None,
+           "status": "ok", "note": None, "fit": None,
+           "method": "probit on log10 quantity, Fieller CI",
+           "source": ("Forootan et al. 2017, Biomol Detect Quantif 12:1; "
+                      "Finney 1971 (probit)")}
+    partial = [x for x in rows if 0 < x["detected"] < x["n"]]
+    if len(rows) < 3:
+        out["status"] = "too_few_levels"
+        out["note"] = (f"needs 3 or more quantities with replicate wells "
+                       f"({len(rows)} given)")
+        return out
+    if not partial:
+        full = [x["quantity"] for x in rows if x["detected"] == x["n"]]
+        none = [x["quantity"] for x in rows if x["detected"] == 0]
+        out["status"] = "no_partial_level"
+        if not none:
+            out["note"] = (f"every well was detected: the LoD95 lies below "
+                           f"the lowest quantity tested ({min(full):g})")
+        elif not full:
+            out["note"] = ("no well was detected: the LoD95 lies above the "
+                           f"highest quantity tested ({max(none):g})")
+        else:
+            out["note"] = ("no quantity was detected in some but not all "
+                           "wells, so the hit-rate curve cannot be fitted; "
+                           f"the LoD95 lies between {max(none):g} and "
+                           f"{min(q for q in full if q > max(none)):g}"
+                           if any(q > max(none) for q in full) else
+                           "the hit rates do not rise with the quantity")
+        return out
+    fit = quantal.quantal_fit([x["quantity"] for x in rows],
+                              [x["n"] for x in rows],
+                              [x["detected"] for x in rows], link="probit",
+                              dose_transform="log10", ec_levels=(95,),
+                              ci_level=ci_level)
+    ec = fit["ec"][0]
+    slope = fit["parameters"]["slope"]["value"]
+    out["fit"] = {"intercept": fit["parameters"]["intercept"]["value"],
+                  "slope": slope,
+                  "slope_se": fit["parameters"]["slope"]["se"],
+                  "pearson_chi2": fit["goodness_of_fit"]["pearson_chi2"],
+                  "df": fit["goodness_of_fit"]["df"],
+                  "p_pearson": fit["goodness_of_fit"]["p_pearson"],
+                  "heterogeneity_applied": fit["heterogeneity"]["applied"],
+                  "converged": fit["converged"]}
+    if slope <= 0:
+        out["status"] = "not_increasing"
+        out["note"] = "the hit rate does not rise with the quantity"
+        return out
+    out["lod95"] = ec["dose"]
+    out["ci"] = ec["dose_ci_fieller"]
+    out["ci_delta"] = ec["dose_ci_delta"]
+    if out["ci"] is None:
+        out["note"] = ("Fieller's interval is unbounded: the slope of the "
+                       "hit-rate curve is too uncertain for a CI")
+    hi = max(x["quantity"] for x in rows)
+    lo = min(x["quantity"] for x in rows)
+    if ec["dose"] > hi or ec["dose"] < lo:
+        out["status"] = "extrapolated"
+        out["note"] = (f"the LoD95 lies outside the quantities tested "
+                       f"({lo:g} to {hi:g})")
+    return out
+
+
+def lod95_by_target(series, *, ci_level=0.95):
+    """lod95_from_series for each target {target: [{quantity, cq}]}
+    whose series is a hit-rate series: at least one well without a Cq
+    (an efficiency series detected in every well is left out)."""
+    out = {}
+    for target, pts in (series or {}).items():
+        pts = [p for p in pts if p.get("quantity") is not None]
+        if any(parse_cq(p.get("cq", p.get("ct"))) is None for p in pts):
+            out[str(target)] = lod95_from_series(pts, ci_level=ci_level)
+    return out
 
 
 def _ordered(seq):

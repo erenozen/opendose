@@ -655,6 +655,20 @@ const OPEN_INPUT = 'input[aria-label="Open an OpenDose project or a Prism file"]
   await wizard().getByRole("button", { name: "Cancel" }).click();
   await wizard().waitFor({ state: "detached", timeout: 10000 });
 }
+// --- P-29, qPCR: a labelled LoD95 from a hit-rate dilution series
+// (e2e-fixtures/stage/qpcr-lod.json: IL6 at 8 quantities × 12 wells).
+// Reference (engine/tests/reference/lod95_probit.py, statsmodels GLM
+// probit and Fieller by hand): LoD95 26.17, 95% CI 15.00 to 76.60.
+{
+  await page.setInputFiles(OPEN_INPUT, `${STAGE}qpcr-lod.json`);
+  await page.waitForSelector(".qpcr-results .qpcr-lod", { timeout: 120000 });
+  const row = (await page.locator(".qpcr-lod-table tr", { hasText: /^IL6/ }).first().innerText()).replace(/\s+/g, " ");
+  expect("P-29 qPCR: LoD95 26.17 (95% CI 15 to 76.6, Fieller) from the IL6 hit rates",
+    row.includes("26.17 15 to 76.6") && row.includes("5: 6/12") && row.includes("within the series"), row);
+  expect("P-29 qPCR: the method and its source are stated",
+    (await textOf(".qpcr-lod")).includes("Forootan et al. (2017, Biomol Detect Quantif 12:1)")
+    && await waitText(".pane-methods", "IL6 26.17 (95% CI 15 to 76.6)"));
+}
 console.log(errors.length ? `errors:\n${errors.join("\n")}` : "errors: none");
 await browser.close();
 if (fail.length || errors.length) {

@@ -14,6 +14,8 @@ import { interval, num, pValue, testSummary } from "../kit/format";
 import { Chip, ColumnPicker, KV, LinkedOutputs, Note, Warnings } from "../kit/ui";
 import { useAssay, type SpecsFor } from "../kit/useAssay";
 import { RefCheck, WizardRefCheck } from "./refPanels";
+import { lodMethods } from "./lod";
+import { Lod95 } from "./lodPanels";
 import { referenceMethods } from "./refs";
 import Wizard from "../kit/Wizard";
 import { findCqHeader, guessCqMapping, isUndeterminedCq, resolveCqHeaders, type CqRole } from "./headers";
@@ -224,7 +226,7 @@ function QpcrWizard({ start, table, options, hasOutputs, onClose, onFinish }: {
                   {curveTargets.length
                     ? `Dilution series found for ${curveTargets.join(", ")}: E = 10^(−1/slope) of Cq on log10 quantity.`
                     : "No dilution series yet: add rows with the target, its Cq and a Quantity (at least three points), and choose the Quantity column in step 1."}
-                  {" "}Targets without a series keep E = 2.
+                  {" "}Targets without a series keep E = 2. A series with replicate wells that gave no Cq is a hit-rate series: the results add its LoD95.
                 </p>
               )}
               <p className="wizard-explain">{MIQE_NOTE}</p>
@@ -490,6 +492,7 @@ export function QpcrResults({ sheet, options: o, result: r }: ResultsProps<QpcrO
           ))}
         </tbody>
       </table>
+      <Lod95 lod={r.lod95} level={level} />
 
       <h4>Technical replicates ({r.n_flagged_replicate_sets ?? 0} of {reps.length} sets flagged)</h4>
       <label className="check-row">
@@ -557,7 +560,7 @@ export function QpcrMethods({ options: o, result: r }: ResultsProps<QpcrOptions,
       + `${st?.multiple_comparisons ? `, ${o.comparisons === "dunnett" ? "Dunnett's" : o.comparisons} post test` : ""})` : ""}; `
     + `fold changes are shown with ${Math.round(o.ciLevel * 100)}% confidence intervals back-transformed `
     + `from the ΔCq scale (asymmetric), following MIQE 2.0 (Bustin et al. 2025). `
-    + `${referenceMethods(r.reference_stability, r.reference_genes ?? [])} Analysed in OpenDose.`
+    + `${referenceMethods(r.reference_stability, r.reference_genes ?? [])} ${lodMethods(r.lod95, `${Math.round(o.ciLevel * 100)}%`)}Analysed in OpenDose.`
       .replace(/^ /, "");
   return <CopyableMethods text={text} />;
 }

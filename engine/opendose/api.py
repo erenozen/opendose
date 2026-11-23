@@ -2963,7 +2963,8 @@ def _stdcurve_qc(data, options):
 def _qpcr(data, options):
     """Relative qPCR quantification (assay_qpcr). data: {"records":
     [{sample, group, target, cq, well?, pair?}], "standard_curves"?:
-    {target: [{quantity, cq}]}}. options: reference_genes (required),
+    {target: [{quantity, cq}]}, "dilution_series"?: {target: [{quantity,
+    cq}]} (a hit-rate series gives "lod95")}. options: reference_genes (required),
     calibrator (group), efficiencies ({target: factor or %}), max_cq
     (35), max_spread (0.5), undetermined_value, exclude_high_cq, test
     ("auto" | "unpaired" | "welch" | "paired" | "anova" | "rm_anova" |
@@ -2984,6 +2985,10 @@ def _qpcr(data, options):
         data.get("records") or [],
         reference_genes=options.get("reference_genes",
                                     options.get("reference")), **kw)
+    if data.get("dilution_series"):
+        # LoD95 of every hit-rate dilution series (assay_qpcr.lod95_by_target)
+        result["lod95"] = assay_qpcr.lod95_by_target(
+            data["dilution_series"], ci_level=options.get("ci_level", 0.95))
     if options.get("reference_stability", True):
         # reference-gene validation before the fold changes
         # (opendose.qpcr_refs: geNorm M, dCq SD, shift with treatment)
