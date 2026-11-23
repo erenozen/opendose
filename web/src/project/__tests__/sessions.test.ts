@@ -299,8 +299,8 @@ test("persistence is asked for once there is work, and never promised", async ()
     + "Persistent storage: granted. The browser keeps it until you delete it.");
   assert.equal(describeStorage(await storageReport(sm(false))),
     "OpenDose uses 48\u00a0MB of this browser's storage (2.1\u00a0GB allowed), the offline copy of the app included. "
-    + "Persistent storage: not granted. The browser may clear it when space runs low or after weeks "
-    + "without a visit, so save projects you need as files.");
+    + "Persistent storage: not granted. The browser may clear it when space runs low "
+    + "(Safari also after 7 days without a visit), so save projects you need as files.");
   assert.equal(describeStorage(await storageReport({})),
     "This browser does not say whether it keeps this storage, so save projects you need as files.");
   const broken: StorageManagerLike = {

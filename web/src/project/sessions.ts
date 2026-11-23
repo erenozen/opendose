@@ -333,8 +333,10 @@ export function describeStorage(r: StorageReport): string {
   if (r.persisted === true) {
     parts.push("Persistent storage: granted. The browser keeps it until you delete it.");
   } else if (r.persisted === false) {
+    // Safari: WebKit's 7-day cap on script-writable storage for sites not
+    // used in that time (webkit.org/blog/10218, March 2020).
     parts.push("Persistent storage: not granted. The browser may clear it when space runs low "
-      + "or after weeks without a visit, so save projects you need as files.");
+      + "(Safari also after 7 days without a visit), so save projects you need as files.");
   } else {
     parts.push("This browser does not say whether it keeps this storage, so save projects you need as files.");
   }
