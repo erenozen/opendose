@@ -650,6 +650,16 @@ const scenes = [
     await settle(s, 800);
     await into(s, ".pane-results .equivalence-results", "start");
   } },
+  { name: "results-compare-lines", setup: async (s) => {
+    await pastedTable(s, "xy", "Two lines",
+      "X\tControl\tTreated\n1\t3.1\t6.0\n2\t5.2\t7.7\n3\t6.8\t10.1\n4\t9.1\t11.8\n5\t11.0\t14.2\n6\t12.7\t15.9\n7\t15.2\t17.8\n8\t16.9\t20.1\n", 1);
+    await click(s, button(s, "Analyze"));
+    await click(s, s.page.getByRole("menuitem", { name: /^Linear regression/ }));
+    await s.page.locator(".pane-controls").getByLabel("Compare slopes and intercepts (two or more data sets)").check();
+    await s.page.locator(".pane-results .compare-lines-table").first().waitFor({ timeout: 120000 });
+    await settle(s, 800);
+    await into(s, ".pane-results .compare-lines", "start");
+  } },
   // the eLife checklist on the example: source data per figure is not met
   // and links to the export bundle (P-09)
   { name: "results-checklist-elife", setup: async (s) => {

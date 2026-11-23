@@ -965,3 +965,36 @@ SE 0 (every paired difference equal) gives P 0 inside the margin and 1
 outside or on it; a ratio margin on a difference test, a difference
 margin on a log test, a rank test, margins in the wrong order and a
 ratio margin of 0 each return "unavailable" with the reason.
+
+### P-13 comparing slopes and intercepts of regression lines
+
+`linregress.compare_lines` (linear regression, `options.compare_lines`,
+two or more data sets): the F test of one common slope against a slope
+per line, then, with the lines parallel, the F test of one line against
+parallel lines (the intercepts), the common slope with its CI, each
+line's intercept at the common slope, the pooled line, and for two lines
+the slope difference with its CI (t² = F). The results say the
+intercept test is meaningful only when the slopes are not shown to
+differ, next to its P.
+
+Zar's worked example (Biostatistical Analysis, 5th ed. 2010, sec.
+18.1 to 18.2, pp. 363 to 371) could not be obtained (no copy of the
+book; no reproduction of its data was found), so it is not pinned. The
+reference is statsmodels 0.15 OLS: `anova_lm(ols("y ~ x + C(g)"),
+ols("y ~ x * C(g)"))` and `anova_lm(ols("y ~ x"), ols("y ~ x + C(g)"))`
+(R's `anova(lm(y ~ x + g), lm(y ~ x * g))`),
+`engine/tests/reference/compare_lines.py`, tested in
+`engine/tests/test_compare_lines.py` to 1e-9:
+
+| Case | Slopes F (df), P | Intercepts F (df), P | Common slope (95% CI) |
+| --- | --- | --- | --- |
+| Two parallel lines, 8 + 8 points | 0.64403 (1, 12), 0.43786 | 987.85 (1, 13), 1.19e-13 | 1.99524 (1.95099 to 2.03949) |
+| Two diverging lines, 6 + 6 points | 621.50 (1, 8), 7.17e-9 | 14.757 (1, 9), not meaningful | 1.45571 |
+| Three lines, one blank Y, 17 points | 0.12308 (2, 11), 0.88539 | 224.63 (2, 13), 8.30e-11 | 1.99317 (1.94643 to 2.03991) |
+
+Slope difference of the parallel lines: −0.033333 (95% CI −0.12383 to
+0.057166). Invariance: swapping the data sets negates the slope
+difference and leaves both F tests; Y ×1000 with X ×1e-6 (and ×1e-12,
+×1e12) leaves every F and P and scales the common slope. Edge cases: a
+line with fewer than 3 points or a single X, a line forced through a
+point, and perfectly straight lines (F undefined, said in words).

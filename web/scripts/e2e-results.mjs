@@ -287,6 +287,68 @@ await page.waitForSelector('.pane-results[data-live="true"] .results-table', { t
   await controls.getByLabel("Equivalence test").selectOption("off");
 }
 
+// --- P-13: compare slopes and intercepts of regression lines ------------
+{
+  // engine/tests/reference/compare_lines.py, "parallel" (statsmodels OLS:
+  // anova_lm of y ~ x + g vs y ~ x * g, then y ~ x vs y ~ x + g)
+  /** An XY table with one Y column per data set (the default has three
+   *  replicate subcolumns), from pasted text. */
+  const pastedXY = async (name, text) => {
+    await fileMenu("New data table…");
+    const nd = page.locator(".new-table-dialog");
+    await nd.locator('input[name="table-type"][value="xy"]').check();
+    await nd.getByLabel("Table name").fill(name);
+    await nd.locator(".field-num input").nth(1).fill("1");
+    await nd.getByRole("button", { name: "Create table" }).click();
+    await page.waitForSelector(".grid-toolbar");
+    await page.getByRole("button", { name: "Import…", exact: true }).click();
+    const imp = page.locator(".import-dialog");
+    await imp.getByLabel("Pasted text").check();
+    await imp.getByLabel("Text to import").fill(text);
+    const titles = imp.getByLabel(/holds column titles/);
+    if (!(await titles.isChecked())) await titles.check();
+    await imp.getByRole("tab", { name: "Placement" }).click();
+    await imp.getByLabel(/In place of the table/).check();
+    await imp.getByRole("button", { name: "Import", exact: true }).click();
+    await imp.waitFor({ state: "detached", timeout: 30000 });
+  };
+  await pastedXY("Two lines",
+    "X\tControl\tTreated\n1\t3.1\t6.0\n2\t5.2\t7.7\n3\t6.8\t10.1\n4\t9.1\t11.8\n5\t11.0\t14.2\n6\t12.7\t15.9\n7\t15.2\t17.8\n8\t16.9\t20.1\n");
+  await page.getByRole("button", { name: "Analyze", exact: true }).click();
+  await page.getByRole("menuitem", { name: /^Linear regression/ }).click();
+  await liveResults(/Slope/);
+  await page.locator(".pane-controls").getByLabel("Compare slopes and intercepts (two or more data sets)").check();
+  const block = page.locator(".pane-results .compare-lines-table");
+  const shown = await appears(block, 60000);
+  const cell = async (label) => (await block.locator(`tr[data-row="${label}"] td`).first()
+    .innerText().catch(() => "")).replace(/\s+/g, " ").trim();
+  const slopes = shown ? await cell("Are the slopes equal?") : "";
+  expect("P-13 slope F test: F (1, 12) = 0.644, P = 0.4379, not shown to differ",
+    slopes === "F (1, 12) = 0.644, P = 0.4379 The slopes are not shown to differ.", slopes);
+  const common = await cell("Common slope (parallel lines)");
+  expect("P-13 common slope 1.995 (95% CI 1.951 to 2.039)",
+    common === "1.995 95% CI 1.951 to 2.039", common);
+  const diff = await cell("Slope difference (Control − Treated)");
+  expect("P-13 slope difference -0.03333 (95% CI -0.1238 to 0.05717)",
+    diff === "-0.03333 95% CI -0.1238 to 0.05717", diff);
+  const elev = await cell("Are the intercepts equal?");
+  expect("P-13 intercept test F (1, 13) = 987.9, P < 0.0001, lines parallel at different heights",
+    elev === "F (1, 13) = 987.9, P < 0.0001 The lines are parallel but at different heights.", elev);
+  // diverging lines: the intercept test is said not to be meaningful
+  await pastedXY("Diverging lines",
+    "X\tA\tB\n0\t1.2\t0.8\n2\t2.9\t4.1\n4\t5.1\t8.2\n6\t7.2\t11.9\n8\t8.8\t16.2\n10\t11.1\t19.7\n");
+  await page.getByRole("button", { name: "Analyze", exact: true }).click();
+  await page.getByRole("menuitem", { name: /^Linear regression/ }).click();
+  await liveResults(/Slope/);
+  await page.locator(".pane-controls").getByLabel("Compare slopes and intercepts (two or more data sets)").check();
+  await appears(block, 60000);
+  const d1 = await cell("Are the slopes equal?");
+  const d2 = await cell("Are the intercepts equal?");
+  expect("P-13 diverging: slopes differ (F (1, 8) = 621.5) and the intercept test is flagged",
+    /^F \(1, 8\) = 621\.5, P < 0\.0001 The slopes differ\.$/.test(d1) && /Not meaningful: the slopes differ/.test(d2),
+    `${d1} | ${d2}`);
+}
+
 // ------------------------------------------------------------------------
 await browser.close();
 if (errors.length) console.log(errors.slice(0, 10).join("\n"));

@@ -1256,7 +1256,24 @@ def _linear_regression(data, options):
         except Exception as exc:
             entry["error"] = str(exc)
         results.append(entry)
-    return {"analysis": "linear_regression", "datasets": results}
+    out = {"analysis": "linear_regression", "datasets": results}
+    if options.get("compare_lines") and len(data["datasets"]) >= 2:
+        # options.compare_lines: are the slopes, then the intercepts, the
+        # same? (linregress.compare_lines; not for lines forced through a
+        # point, whose intercepts are fixed)
+        if options.get("through_point"):
+            out["compare_lines"] = {
+                "unavailable": "lines forced through a point share it, so "
+                               "their slopes and intercepts are not "
+                               "compared here"}
+        else:
+            try:
+                out["compare_lines"] = linregress.compare_lines(
+                    [(*_expand(x_col, ds["ys"]), ds.get("name", ""))
+                     for ds in data["datasets"]])
+            except ValueError as exc:
+                out["compare_lines"] = {"unavailable": str(exc)}
+    return out
 
 
 def _survival(data, options):

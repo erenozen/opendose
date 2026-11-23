@@ -27,3 +27,8 @@
 
 /* Potency across experiments (ExperimentsCard.tsx): the cited sources. */
 .experiments-sources { display: flex; flex-wrap: wrap; gap: var(--space-4) var(--space-12); }
+
+/* Compare slopes and intercepts (linregPanels.tsx): the reading under each test. */
+.compare-lines-table .compare-note {
+  display: block; color: var(--muted); font-size: var(--text-caption); white-space: normal;
+}
