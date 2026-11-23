@@ -1575,3 +1575,80 @@ Y title, then makes a new Normalize (0% = the smallest mean, 100% = the
 vehicle row's mean) and checks "% of vehicle (mean)" on the graph and in
 the legend. A graph title the user typed lives in the graph's own
 settings and is never rewritten.
+
+## Feature validation: assay Analysed lines, methods wording of the test chooser, flow legend (2026-11-24)
+
+These three changes compute no new numbers. The engine is not changed.
+
+### P-16 the Analysed line of the assay results
+
+Each assay kind has its own reader (`web/src/sheets/assays/kit/analysed.ts`,
+called by `web/src/project/dataNotes.ts` for the Notes strip): standard
+curve, qPCR, flow summary, densitometry, plate reader, kinetic rates,
+luciferase, wound healing and MIC. A reader re-reads the table the way the
+module's run does and lines it up with the result the engine returned; it
+counts from the engine result (standards' `n` and `excluded`, unknowns'
+`status`, qPCR `replicates[].n_used` and `cq_values`, `per_target[].groups[].n`,
+densitometry `lanes[].normalized` and `n_blots_used`, plate `wells[].raw`,
+kinetic and wound `wells[].rate`, MIC `series[].valid`, luciferase
+`wells[].ratio` and `n_units`) and names what was left out by table row
+or well id with the reason read from the cell (blank, excluded, or the
+text it holds).
+
+Oracle: the engine itself, run natively. `web/src/sheets/assays/__tests__/
+analysedFixtures.gen.ts` drives each module's run on its example (the
+table e2e-assays starts from) and on a copy with rows, wells and cells
+left out (`analysedCases.ts`), sending every payload through
+`opendose.api.analyze_json` in Python; `analysed.test.ts` replays the
+recorded results (each payload must equal the recorded one), checks the
+counts against the engine fields they come from and pins each line.
+Examples: plate "96 of 96 mapped wells read (72 sample, 24 control)", with
+A4 cleared "95 of 96 ... 1 well left out: A4 (blank)"; standard curve
+"16 replicates at 8 levels in the fit ... 10 of 12 dilutions reportable,
+1 below the LLOQ (S8 1:2, row 21), 1 above the ULOQ (S7 1:2, row 20)";
+qPCR "108 of 108 sample wells used", with an Undetermined, a blank and an
+excluded Cq and one Cq of 36.2 above the limit of 35 "104 of 108 ... CON-1
+IL6 A7 (“Undetermined”), CON-1 IL6 A8 (blank) and CON-1 TNF A10
+(excluded); 1 well above Cq 35 left out: CON-2 GAPDH A14 (Cq 36.2)"; after
+"Use GAPDH only" "81 of 81 sample wells used; ACTB (27 wells) set aside by
+the reference check, not used". e2e-assays asserts the plate, standard
+curve, qPCR, flow and densitometry lines on screen, and the plate and
+qPCR lines after a cleared well and an Undetermined Cq.
+
+What the engine does not return and the reader takes from the table: the
+row of each qPCR record and whether an undetermined Cq was blank, text or
+excluded (the engine reads all three as undetermined); rows a reader
+skips before the engine (no target, no sample name, no blot or group).
+A densitometry lane with no loading-control value is normalised by its
+target signal alone (`assay_densitometry`, flag `no_reference`) and mixed
+with ratios of other lanes; the Notes strip names such lanes as a
+warning. Not covered: growth, tumour, time course, synergy, AUC, volcano
+and clustering, whose panels already state their own drop counts.
+
+### P-32 follow-up: the chooser's reason in a methods wording
+
+Help me choose saved its second-person on-screen reason ("unless you know
+the SDs are equal"), which reached the methods paragraph. Each chooser
+outcome (`Recommendation.rule`) now has a third-person methods wording
+(`web/src/guide/methodsWording.ts`); that is what is saved and printed:
+"Choice of test (OpenDose Help me choose): Welch's t test was chosen for
+the two independent groups because it does not assume equal SDs and
+loses little power when they are equal." A project saved before holds the
+on-screen words; they are read as the same outcome's methods wording when
+the project opens (`guide/choice.ts` parseChosen). `methodsWording.test.ts`
+enumerates the chooser over every combination of answers that changes its
+outcome (45 or more rules), checks each wording is third person and that
+the outcome's on-screen reason maps to it, and opens the stage fixture
+`why-history.json` (saved before) to read the new wording. e2e-check pins
+the unpaired t test's methods sentence and the sentence of that older
+file.
+
+### P-31 follow-up: the flow legend names the statistic
+
+The figure legend of a flow summary's linked table (results and graph)
+adds "Values are the FlowJo gate statistic CD69+ of Lymphocytes/Single
+Cells/Live/CD4+, Freq. of Parent.", the statistic with its full gate path
+as the methods name it, and the background control when one was
+subtracted (`flowValuesPhrase`, `web/src/report/valuesAre.ts`, on screen,
+in PowerPoint and in the export bundle). Pinned in flow.test.ts and
+e2e-assays.

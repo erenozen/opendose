@@ -1151,6 +1151,15 @@ const scenes = [
     await into(s, ".qpcr-results .qpcr-controls");
     await settle(s);
   } },
+  // P-16: an assay's Notes strip counts the wells used and names the ones
+  // left out (an Undetermined, a blank and an excluded Cq, a row without
+  // a target, an NTC)
+  { name: "guided-assay-analysed", setup: async (s) => {
+    await fixture(s, "assay-analysed.json", { live: true });
+    await s.page.locator(".notes-strip .analysed-line").first().waitFor({ timeout: 120000 });
+    await settle(s, 1000);
+    await into(s, ".pane-results .notes-strip", "center");
+  } },
   // P-31 follow-up: the flow summary's linked graph, its legend naming the
   // statistic with the full gate path
   { name: "guided-flow-legend", setup: async (s) => {

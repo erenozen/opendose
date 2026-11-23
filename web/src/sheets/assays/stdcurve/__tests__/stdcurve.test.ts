@@ -27,7 +27,7 @@ test("the example layout reads as 8 levels, a blank and 12 unknown rows", () => 
   const unk = rows.filter((r) => r.kind === "unknown");
   assert.equal(unk.length, 12);
   assert.deepEqual(unk[0], { kind: "unknown", conc: null, plate: "", name: "S1", group: "Control",
-    dilution: 2, signals: [0.603, 0.581] });
+    dilution: 2, signals: [0.603, 0.581], row: 9 });
   assert.match(readRows(emptyStdcurve(), DEFAULT_STD_OPTIONS).problem!, /No standards/);
 });
 

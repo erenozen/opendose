@@ -10,6 +10,7 @@
 // by row and leave out incomplete pairs; repeated-measures one-way ANOVA
 // leaves out incomplete rows (subjects). Where the engine reports the
 // count itself (n_pairs, incomplete_pairs) its number is preferred.
+import { assayAnalysed } from "../sheets/assays/kit/analysed.ts";
 import { ANALYSIS_COLUMN, ANALYSIS_CONTINGENCY, ANALYSIS_NONLIN, ANALYSIS_SURVIVAL } from "./builtin.ts";
 import { classifyValue } from "./pasteReport.ts";
 import { parseCell } from "./table.ts";
@@ -27,8 +28,11 @@ export interface DataNote {
 export interface DataNotes {
   /** "n = 10 pairs analysed; 2 incomplete pairs (rows 4, 9) left out",
    *  "26 of 30 rows; 4 dropped for a blank in Age (rows 3, 9, 17, 22)"
-   *  (regression and Cox models, from the engine), or null when the
-   *  analysis has no simple n (assays, PCA, manipulations, summary data). */
+   *  (regression and Cox models, from the engine), "84 of 96 mapped wells
+   *  read (60 sample, 24 control); 2 wells left out: A4 (blank) and B5
+   *  (“OVRFLW”)" (assays, one reader per kind: sheets/assays/kit/analysed.ts),
+   *  or null when the analysis has no simple n (PCA, manipulations,
+   *  summary data). */
   analysed: string | null;
   notes: DataNote[];
 }
@@ -75,7 +79,8 @@ export function analysisPlan(analysisId: string, t: DataTableModel, options: unk
     return d.length === 2 ? { kind: "pairs", datasets: [d[0], d[1]] } : { kind: "none", datasets: d };
   };
   // assay modules read their tables their own way (sample names, gene
-  // names and well ids are text by design): nothing to count here
+  // names and well ids are text by design): their readers
+  // (sheets/assays/kit/analysed.ts) count n, not the table plan
   if (analysisId.startsWith("assay_")) return { kind: "none", datasets: [] };
   // each kind its own reader: regression models drop incomplete rows
   // (the engine names them), a contingency table is counted whole
@@ -484,7 +489,11 @@ export function engineMessages(result: unknown): EngineMessage[] {
 export function dataNotes(input: { analysisId: string; table: DataTableModel; options: unknown;
   result: unknown }): DataNotes {
   const plan = analysisPlan(input.analysisId, input.table, input.options);
-  const { analysed, notes } = tableNotes(input.table, plan, input.result);
+  // an assay: its own reader, lined up with the engine result
+  const assay = assayAnalysed(input.analysisId, input.table, input.options, input.result);
+  const { analysed, notes } = assay
+    ? { analysed: assay.analysed, notes: assay.notes.map((n): DataNote => ({ ...n, from: "data" })) }
+    : tableNotes(input.table, plan, input.result);
   const r = input.result as { error?: unknown } | null;
   const failed = !!(r && typeof r === "object" && r.error);
   const engine = engineMessages(input.result)
