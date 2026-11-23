@@ -3,7 +3,8 @@ import {
   type ComponentProps, type ReactNode, type RefObject,
 } from "react";
 import {
-  coarsePointer, containTab, lastInputWasKeyboard, lockScroll, prefersReducedMotion, useMergedRefs,
+  coarsePointer, containTab, durationToken, lastInputWasKeyboard, lockScroll, prefersReducedMotion,
+  useMergedRefs,
   pushLayer, triggerOf,
 } from "./useDismiss.ts";
 import { Button, type ButtonProps } from "./Button";
@@ -190,7 +191,7 @@ function fadeOut(g: Ghost) {
   box.scrollTop = scrolled;
   const root = getComputedStyle(document.documentElement);
   const timing: KeyframeAnimationOptions = {
-    duration: Number.parseFloat(root.getPropertyValue("--dur-exit")) || 150,
+    duration: durationToken("--dur-exit", 150),
     easing: root.getPropertyValue("--ease-out").trim() || "ease-out",
     fill: "forwards",
   };

@@ -45,6 +45,24 @@ export function visibleRange(m: ViewportMetrics, nRows: number,
   return { start, end };
 }
 
+/** Rows the rendered range must keep beyond the rows in view before it
+ *  moves: a scroll then re-renders the grid once per ten or so rows, not
+ *  at every row boundary. */
+export const KEEP_MARGIN_ROWS = 5;
+
+/** The range to render after a scroll: `cur` while the rows in view stay
+ *  KEEP_MARGIN_ROWS inside it (or it already reaches the table's edge on
+ *  that side), else the visible range with its full overscan. */
+export function nextRange(cur: RowRange, m: ViewportMetrics, nRows: number,
+  overscan = OVERSCAN_ROWS): RowRange {
+  const next = visibleRange(m, nRows, overscan);
+  if (cur.end > nRows || cur.start >= cur.end) return next;
+  const inView = visibleRange(m, nRows, 0);
+  const topOk = cur.start === 0 || inView.start >= cur.start + KEEP_MARGIN_ROWS;
+  const bottomOk = cur.end === nRows || inView.end <= cur.end - KEEP_MARGIN_ROWS;
+  return topOk && bottomOk ? cur : next;
+}
+
 /** What the table body draws: runs of real rows and spacer gaps. */
 export type Segment =
   | { kind: "rows"; start: number; end: number }

@@ -13,7 +13,7 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { announce, Button, lastInputWasKeyboard, Popover } from "../components/ui";
 import { belowStickyHeader } from "../components/ui/Popover.anchor";
-import { prefersReducedMotion } from "../components/ui/useDismiss";
+import { durationToken, prefersReducedMotion } from "../components/ui/useDismiss";
 
 const mac = typeof navigator !== "undefined" && /Mac|iP(hone|ad)/.test(navigator.platform);
 const MOD = mac ? "⌘" : "Ctrl+";
@@ -130,7 +130,9 @@ export default function Tour({ onDone }: { onDone: () => void }) {
     let settle = 0;
     let alive = true;
     const tourEl = tourRef.current;
-    const measure = () => {
+    // `polled`: the slow poll found the move, so no scroll or resize did
+    // and the card is placed again; scrolls are followed by the Popover.
+    const measure = (polled = false) => {
       const tour = tourRef.current, dim = dimRef.current, ring = ringRef.current;
       const el = findAnchor(step);
       const r = el?.getBoundingClientRect();
@@ -160,12 +162,12 @@ export default function Tour({ onDone }: { onDone: () => void }) {
           else Promise.all(runs.map((a) => a.finished)).then(done, done);
         });
       }
-      if (!first) setMoved((m) => m + 1);
+      if (!first && polled) setMoved((m) => m + 1);
     };
-    const schedule = () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(measure); };
+    const schedule = () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(() => measure()); };
     findAnchor(step)?.scrollIntoView?.({ block: "nearest", inline: "nearest" });
     measure();
-    const poll = setInterval(measure, 400);
+    const poll = setInterval(() => measure(true), 400);
     window.addEventListener("resize", schedule);
     window.addEventListener("scroll", schedule, { capture: true, passive: true });
     return () => {
@@ -191,7 +193,7 @@ export default function Tour({ onDone }: { onDone: () => void }) {
     const dx = Math.round(was.left - now.left), dy = Math.round(was.top - now.top);
     if (!dx && !dy) return;
     card.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "none" }], {
-      duration: Number.parseFloat(token("--dur-enter")) || 200,
+      duration: durationToken("--dur-enter", 200),
       easing: token("--ease-in-out") || "ease-in-out",
     });
   }, [i]);

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Verify the main branch HEAD in a detached worktree, isolated from
 # uncommitted work in the main checkout: engine tests, web build, lint,
-# unit tests, and every e2e suite against a dev server.
+# unit tests, and every e2e suite against a dev server (e2e-privacy and a
+# second e2e-motion run against the built site).
 #
 # Usage: scripts/verify.sh          (PORT=5190 by default; override with PORT=…)
 # Logs: .verify/ (gitignored). Exit status 0 only when everything passes.
@@ -48,6 +49,13 @@ for suite in e2e-check e2e-tiff e2e-export e2e-share e2e-figures e2e-assays e2e-
   node "scripts/$suite.mjs" "http://localhost:$PORT/" >"$S/$suite.log" 2>&1; rc=$?
   echo "$suite exit=$rc"; [ $rc -eq 0 ] || { fail=1; grep -E "^FAIL|FAILURES|Error" "$S/$suite.log" | head -5; }
 done
+# Motion again on the built site (still served after e2e-privacy): the CSS
+# minifier rewrites tokens (150ms becomes .15s), and code that reads them
+# at runtime only breaks there.
+if [ -f scripts/e2e-motion.mjs ] && [ -f scripts/e2e-privacy.mjs ]; then
+  node scripts/e2e-motion.mjs "http://localhost:$PORT/" >"$S/e2e-motion-dist.log" 2>&1; rc=$?
+  echo "e2e-motion (built site) exit=$rc"; [ $rc -eq 0 ] || { fail=1; grep -E "^FAIL|FAILURES|Error" "$S/e2e-motion-dist.log" | head -5; }
+fi
 kill $DEVPID 2>/dev/null; wait $DEVPID 2>/dev/null
 echo "== overall: $([ $fail -eq 0 ] && echo PASS || echo FAIL)"
 exit $fail

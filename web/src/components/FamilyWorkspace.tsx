@@ -197,7 +197,7 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
             reading and the Checks row, above the graph and the table. */}
         {resSheet && Results && (
           <>
-            <ResultsAnswer sheet={resSheet} data={data} result={result} options={options}
+            <ResultsAnswer sheet={resSheet} data={graphData} result={result} options={options}
               status={resStatus} readOnly={readOnly} />
             <HSplitter />
           </>
@@ -231,12 +231,14 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
               {/* Effect sizes of every comparison (src/report). */}
               <EffectSizeCard result={result} />
             </ResultsExport>
-            <NotesStrip analysisId={resSheet.analysis} table={data.table} options={options}
+            {/* The readers below pass over the whole table: they follow
+                edits once they pause, as the graph does. */}
+            <NotesStrip analysisId={resSheet.analysis} table={settledTable} options={options}
               result={result} />
             <DifferNote analysisId={resSheet.analysis} tableType={data.table.type}
-              table={data.table} options={options} result={result} />
+              table={settledTable} options={options} result={result} />
             <ExclusionsCard sheet={resSheet} table={data.table} options={options} result={result} />
-            <ReportCard sheet={resSheet} table={data.table} options={options} result={result} />
+            <ReportCard sheet={resSheet} table={settledTable} options={options} result={result} />
           </div>
         )}
         {resSheet && Methods && (

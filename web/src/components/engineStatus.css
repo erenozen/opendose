@@ -25,7 +25,7 @@
 }
 .engine-slot-bar {
   position: absolute; left: 0; right: 0; bottom: 0; height: 2px;
-  background: var(--line); overflow: hidden; border-radius: 1px;
+  background: var(--line); overflow: hidden; border-radius: var(--radius-round);
   transition: opacity var(--dur-enter) var(--ease-out);
 }
 .engine-slot-fill {
@@ -43,14 +43,18 @@
 .same-height-item[data-shown="false"] { visibility: hidden; }
 
 .engine-boot-slot { margin-top: var(--space-4); }
+/* Over the top of the results, out of their flow: the results being
+   read do not move when it comes and goes (feedback.md). */
+.pane-results { position: relative; }
 .analysis-busy {
+  position: absolute; top: var(--space-8); right: var(--space-16); z-index: var(--z-raised);
   display: flex; align-items: center; gap: var(--space-8); flex-wrap: wrap;
-  margin: 0 0 10px; padding: var(--space-6) 10px;
+  margin: 0; padding: var(--space-6) 10px;
   border: 1px solid var(--line); border-radius: var(--radius-control);
   background: var(--surface); color: var(--ink-2); font-size: var(--text-body-s);
 }
 /* It appears after a second of computing, over results the user is
-   reading: a fade, no movement (it sits in the column's flow). The
+   reading: a fade, no movement. The
    cancelled line replaces it in place, in the frame Cancel is pressed. */
 .analysis-busy:not(.cancelled) {
   opacity: 1;

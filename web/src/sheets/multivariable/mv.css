@@ -10,8 +10,8 @@
   display: flex; flex-direction: column; gap: 0;
 }
 .mv-varlist > legend {
-  padding: 0; margin-bottom: var(--space-8); font-size: var(--text-label); text-transform: uppercase;
-  letter-spacing: 0.07em; color: var(--muted); font-weight: var(--weight-semibold);
+  padding: 0; margin-bottom: var(--space-8); font-size: var(--text-label);
+  color: var(--muted); font-weight: var(--weight-semibold);
 }
 .mv-kind {
   font-size: var(--text-caption); color: var(--muted); border: 1px solid var(--line-strong);
@@ -61,7 +61,7 @@ button.mv-remove {
   transition: background-color var(--dur-base) var(--ease-out), color var(--dur-base) var(--ease-out);
 }
 .mv-seg button.active {
-  background: var(--seg-thumb); color: var(--ink); font-weight: var(--weight-semibold);
+  background: var(--seg-thumb); color: var(--ink);
   box-shadow: var(--elev-seg);
 }
 @media (hover: hover) and (pointer: fine) {

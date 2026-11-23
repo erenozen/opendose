@@ -38,7 +38,7 @@ import FormulaColumnDialog from "./FormulaColumnDialog";
 import { calcCell, evalCellExpression, isCalculated } from "../../project/calculated";
 import {
   DEFAULT_ROW_PX, INITIAL_ROWS, rowSegments, sameRange, scrollTopFor, shouldVirtualise,
-  visibleRange, type RowRange,
+  nextRange, type RowRange,
 } from "./virtualRows";
 import { lazy, Suspense } from "react";
 
@@ -189,8 +189,10 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
   const updateRange = () => {
     const m = metrics();
     if (!m) return;
-    const next = visibleRange(m, nRows);
-    setRange((cur) => (sameRange(cur, next) ? cur : next));
+    setRange((cur) => {
+      const next = nextRange(cur, m, nRows);
+      return sameRange(cur, next) ? cur : next;
+    });
   };
   const updateRef = useRef(updateRange);
   updateRef.current = updateRange;
