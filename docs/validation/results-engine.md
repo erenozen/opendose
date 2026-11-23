@@ -758,3 +758,62 @@ of 30 for every model with Age, 25 with "n/a" typed in Dose row 27 (named
 pandas' missing rows. Edge cases: trailing blank rows, a row with values
 only in unused columns, no complete row (an error, not 0), the table
 upside down (the same count, the rows renumbered).
+
+### P-18 ratio to control with a Fieller CI
+
+The unpaired t test (pooled SD) now returns `ratio_to_control`: the mean
+of the second data set over the mean of the first (the first is the
+control, as Dunnett's default) with Fieller's (1954) interval on the
+pooled SD and df = n1 + n2 − 2, which is what R's
+`mratios::ttestratio(var.equal = TRUE)` computes (`ttests.
+ratio_to_control`, through `compare_params.fieller_ratio`). Each
+Dunnett comparison carries `ratio` with simultaneous Fieller intervals:
+Dunnett's critical value of the ratio statistics, whose correlations
+λᵢλⱼ (λᵢ = ρᵢ / √(n₀/nᵢ + ρᵢ²)) are evaluated at the estimated ratios
+(the "plug-in" method of Dilba, Bretz & Guiard 2006, J Stat Plan
+Inference 136:2640; `mratios::sci.ratio(method = "Plug")`), in
+Fieller's formula. When the control mean is not clearly different from
+zero (g = c² SE₀² / mean₀² ≥ 1) the interval is unbounded and the
+results say so in words. Welch's t test and the paired tests get no
+ratio (the pooled-SD interval does not apply). Every existing number
+is unchanged; the typeset table adds "Ratio Treated/Control" and "95%
+CI of ratio (Fieller)", and "What this means" for the unpaired t test
+replaces the bare percentage with the ratio and its CI (ruling 10:
+pinned below and in `web/scripts/e2e-results.mjs`).
+
+Reference: `engine/tests/reference/fieller_ratio.py` (Fieller's
+quadratic solved by `np.roots`, not the engine's closed form; Dunnett's
+plug-in critical value by nested adaptive quadrature with
+`scipy.integrate.quad`, not `opendose.dunnett`'s trapezoidal rule),
+tested in `engine/tests/test_ratio_to_control.py`:
+
+| Case | Ratio | 95% CI (reference) | engine |
+| --- | --- | --- | --- |
+| Control 100, 95, 105, 98, 102; treated 60, 70, 65, 55, 75 | 0.65 | 0.57615 to 0.72919 | 1e-10 relative |
+| Control 3, −4, 6, −2, 1; treated 10, 14, 9, 12, 15 | 15 | unbounded | unbounded (g ≥ 1) |
+| Dunnett, Low / Control (c = 2.599035) | 0.924 | 0.84907 to 1.00498 | 1e-9 |
+| Dunnett, Mid / Control | 0.80667 | 0.73956 to 0.87905 | 1e-9 |
+| Dunnett, High / Control | 0.65 | 0.58386 to 0.72040 | 1e-9 |
+
+Coverage: 2,000 seeded data sets (n = 5 + 5, SD 5, true ratio 0.65):
+the hand interval and the engine's both cover 1,910 times (95.5%;
+binomial tolerance ±1.46 points). Dunnett, 1,000 seeded data sets of a
+control and three groups (true ratios 0.9, 0.8, 0.65): the three
+engine intervals cover together 946 times (94.6%; tolerance ±2.07 points).
+Units ×1e-9 leave the ratio and its CI unchanged; swapping the groups
+inverts the ratio and its limits.
+
+### Wave 0 follow-up: linear regression's runs test in order of X
+
+The runs test of linear regression (and of the line through a point)
+read the residual signs in the order the rows were entered, so a table
+typed unsorted got a different number of runs and a wrong P. It now
+orders the residuals by X first (a stable sort: residuals at the same X
+keep their entry order, stated in `runs_test.order`), as the curve-fit
+diagnostics already did. `engine/tests/test_linregress_runs_order.py`:
+shuffling the rows leaves the runs test unchanged; on an 8-point line
+whose residuals run −, −, +, +, +, +, −, − along X, 3 runs and P = 8/70
+by enumerating all 70 sign arrangements (entry order 1, 3, 2, 4, 7, 5,
+8, 6 gave 8 runs before the fix). No existing pin moved: every engine
+test passes, and the 500,000-row table of e2e-large is entered sorted
+by X.

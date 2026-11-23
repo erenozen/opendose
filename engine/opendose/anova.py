@@ -367,6 +367,40 @@ def multiple_comparisons(datasets, method: str, *, names=None,
                                    pairs=pairs)
 
 
+def _dunnett_ratios(means, ns, ms_res, df_res, c0, others, ci_level, names):
+    """Each group's mean over the control mean with simultaneous Fieller
+    intervals (Dilba G, Bretz F & Guiard V 2006, "Simultaneous confidence
+    sets and confidence intervals for multiple ratios", J Stat Plan
+    Inference 136:2640; the "plug-in" method of R's mratios::sci.ratio):
+    T_i = (mean_i - rho_i mean_0) / (s sqrt(1/n_i + rho_i^2/n_0)) are
+    jointly multivariate t with correlation lambda_i lambda_j,
+    lambda_i = rho_i / sqrt(n_0/n_i + rho_i^2), evaluated at the
+    estimated ratios; the critical value c of max |T_i| (opendose.dunnett)
+    replaces t in Fieller's formula. A ratio whose control mean is not
+    clearly different from zero at that level (g >= 1) has an unbounded
+    interval: "unbounded" true, "ci" null."""
+    from .compare_params import fieller_ratio_crit
+    m0, n0 = means[c0], ns[c0]
+    if m0 == 0 or not ms_res > 0:
+        return [{"value": None, "ci": None, "unbounded": False,
+                 "method": "fieller_plugin", "numerator": names[i],
+                 "denominator": names[c0]} for i in others]
+    rho = [means[i] / m0 for i in others]
+    lam = np.array([r / math.sqrt(n0 / ns[i] + r * r)
+                    for r, i in zip(rho, others)])
+    crit = dunnett.critical_value_one_factor(ci_level, lam, df_res)
+    se0 = math.sqrt(ms_res / n0)
+    out = []
+    for i in others:
+        r = fieller_ratio_crit(m0, se0, means[i], math.sqrt(ms_res / ns[i]),
+                               crit)
+        out.append({"value": r["value"], "ci": r["ci"], "g": r.get("g"),
+                    "unbounded": r["ci"] is None, "critical_value": crit,
+                    "ci_level": ci_level, "method": "fieller_plugin",
+                    "numerator": names[i], "denominator": names[c0]})
+    return out
+
+
 def _comparisons_from_stats(means, ns, ms_res, df_res, method: str, *,
                             names=None, control_index: int = 0,
                             ci_level: float = 0.95,
@@ -426,9 +460,14 @@ def _comparisons_from_stats(means, ns, ms_res, df_res, method: str, *,
                 "significant_05": bool(p_adj < 0.05),
                 "p_unadjusted": t_unadj(diff, i, c0),
             })
-        return _label_family(
+        out = _label_family(
             {"method": method, "df": df_res, "comparisons": comparisons},
             method, k, "control", names[c0])
+        ratios = _dunnett_ratios(means, ns, ms_res, df_res, c0, others,
+                                 ci_level, names)
+        for cmp, r in zip(comparisons, ratios):
+            cmp["ratio"] = r
+        return out
 
     if method == "tukey":
         # studentized range: opendose.studentized (deterministic and

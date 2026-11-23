@@ -198,6 +198,44 @@ await page.waitForSelector('.pane-results[data-live="true"] .results-table', { t
     ok, await line.first().innerText().catch(() => ""));
 }
 
+// --- P-18: ratio to control with a Fieller CI ------------------------------
+{
+  // engine/tests/reference/fieller_ratio.py: Fieller's quadratic by hand,
+  // 0.65 (95% CI 0.57615 to 0.72919); Dunnett plug-in intervals with
+  // the critical value by nested quadrature (c = 2.59904)
+  await pastedTable("column", "Control and treated",
+    "Control\tTreated\n100\t60\n95\t70\n105\t65\n98\t55\n102\t75\n");
+  await page.locator(".pane-controls select.analysis-select").selectOption("ttest");
+  await liveResults(/CI of ratio \(Fieller\)/);
+  const row = async (label) => (await page.locator(".pane-results tr", { hasText: label }).first()
+    .innerText().catch(() => "")).replace(/\s+/g, " ").trim();
+  const ratio = await row("Ratio Treated/Control");
+  const ci = await row("95% CI of ratio (Fieller)");
+  expect("P-18 typeset table: 'Ratio Treated/Control 0.65 (65% of Control)'",
+    ratio === "Ratio Treated/Control 0.65 (65% of Control)", ratio);
+  expect("P-18 typeset table: '95% CI of ratio (Fieller) 0.5762 to 0.7292'",
+    ci === "95% CI of ratio (Fieller) 0.5762 to 0.7292", ci);
+  // the sentence pinned (ruling 10): the ratio and its CI, not "35% lower"
+  const sentence = await page.locator(".pane-answer .meaning-sentence").first().innerText().catch(() => "");
+  expect("P-18 'What this means' uses the ratio and its Fieller CI",
+    sentence.includes("(mean 65 vs. 100; Treated/Control = 0.65, 95% CI 0.5762 to 0.7292 by Fieller's method)")
+      && !/35% lower/.test(sentence), sentence.slice(0, 220));
+
+  await pastedTable("column", "Dose groups",
+    "Control\tLow\tMid\tHigh\n100\t92\t80\t60\n95\t88\t76\t70\n105\t97\t85\t65\n98\t90\t79\t55\n102\t95\t83\t75\n\t\t81\t\n");
+  await page.locator(".pane-controls select.analysis-select").selectOption("anova");
+  await page.locator(".pane-controls label.check-row", { has: page.locator('span:text-is("Multiple comparisons")') })
+    .locator("select").selectOption("dunnett");
+  const table = page.locator(".pane-results .ratio-table");
+  const shown = await appears(table, 60000);
+  const rows = shown ? (await table.locator("tbody tr").allInnerTexts()).map((t) => t.replace(/\s+/g, " ").trim()) : [];
+  expect("P-18 Dunnett: a ratio and a simultaneous Fieller CI per comparison",
+    rows.length === 3
+      && rows[0] === "Low vs. Control 0.924 (92.4% of Control) 0.8491 to 1.005"
+      && rows[1] === "Mid vs. Control 0.8067 (80.67% of Control) 0.7396 to 0.8791"
+      && rows[2] === "High vs. Control 0.65 (65% of Control) 0.5839 to 0.7204", rows.join(" | "));
+}
+
 // ------------------------------------------------------------------------
 await browser.close();
 if (errors.length) console.log(errors.slice(0, 10).join("\n"));

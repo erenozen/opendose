@@ -200,6 +200,31 @@ def _hodges_lehmann(a: np.ndarray, b: np.ndarray) -> float:
     return float(np.median([x - y for x, y in product(a, b)]))
 
 
+def ratio_to_control(values_control, values_treated, *,
+                     ci_level: float = 0.95) -> dict:
+    """Treated mean / control mean with Fieller's (1954) confidence
+    interval, for the unpaired t test with a pooled SD: the means are
+    independent with SEs s_p sqrt(1/n), df = n_c + n_t - 2, so this is
+    R's mratios::ttestratio(var.equal = TRUE). When the control mean is
+    not clearly different from zero (g = t^2 SE_c^2 / mean_c^2 >= 1) the
+    interval is unbounded: "unbounded" is true and "ci" null. The
+    percentage of control is 100 x the ratio and its CI."""
+    from .compare_params import fieller_ratio
+    c, t = _clean(values_control), _clean(values_treated)
+    nc, nt = c.size, t.size
+    if nc < 2 or nt < 2:
+        raise ValueError("each group needs at least 2 values")
+    df = nc + nt - 2
+    sp = math.sqrt(((nc - 1) * c.var(ddof=1) + (nt - 1) * t.var(ddof=1)) / df)
+    r = fieller_ratio(float(c.mean()), sp / math.sqrt(nc),
+                      float(t.mean()), sp / math.sqrt(nt), df, ci_level)
+    return {"value": r["value"], "ci": r["ci"], "g": r.get("g"),
+            "unbounded": r["value"] is not None and r["ci"] is None,
+            "ci_level": ci_level, "df": df, "method": "fieller",
+            "source": "Fieller EC (1954) J R Stat Soc B 16:175; as R "
+                      "mratios::ttestratio(var.equal = TRUE)"}
+
+
 def _mann_whitney_p(a, b):
     """(statistic U1, two-sided P, P greater, P less, p_method).
     Guide rule: exact P (even with ties) when the smaller group has

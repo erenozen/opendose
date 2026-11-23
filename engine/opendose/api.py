@@ -701,6 +701,13 @@ def _ttest(data, options):
     elif kind == "unpaired":
         result["scale_check"] = logscale.scale_check(
             [va, vb], [names[ia], names[ib]])
+        if not options.get("welch", False):
+            # B / A, the first data set as the control (as Dunnett's
+            # default), with Fieller's CI (ttests.ratio_to_control)
+            result["ratio_to_control"] = {
+                **ttests.ratio_to_control(
+                    va, vb, ci_level=options.get("ci_level", 0.95)),
+                "numerator": names[ib], "denominator": names[ia]}
     if n_min <= 3:
         if kind == "unpaired":
             result["design_sensitivity"] = _design_sensitivity(
