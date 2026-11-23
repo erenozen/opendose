@@ -2,12 +2,13 @@
 // results (all six forms, the chosen one first in the headline) and the
 // methods text.
 import { formatSig } from "../../types";
-import { Card, Grid, KV, Note, Problem, Section, SOFTWARE, TextNum } from "../common/clinicalKit";
+import { Card, Field, Grid, KV, Note, Problem, Section, SOFTWARE, TextNum } from "../common/clinicalKit";
 import CopyableMethods from "../common/CopyableMethods";
 import { levelPct, pLabel } from "../common/statFormat";
 import type { ControlsProps, ResultsProps } from "../types";
 import {
-  chosenForm, formName, ICC_FORMS, ICC_INFO, type IccForm, type IccOptions, type IccResult,
+  chosenForm, DEFAULT_ICC_FORM, formName, ICC_FORMS, ICC_INFO, type IccForm, type IccOptions,
+  type IccResult,
 } from "./icc";
 
 const f = (v: number | null | undefined) => formatSig(v ?? null);
@@ -26,20 +27,16 @@ export function IccControls({ options, onChange }: ControlsProps<IccOptions>) {
         </p>
       </Section>
       <Section title="Form to report">
-        <fieldset className="field-radios">
-          <legend className="sr-only">ICC form</legend>
-          {ICC_FORMS.map((k) => (
-            <label key={k}>
-              <input type="radio" name="icc-form" value={k} checked={options.form === k}
-                onChange={() => set({ form: k as IccForm })} />
-              <span>
-                {ICC_INFO[k].name}: {ICC_INFO[k].model}
-                {k === "ICC2" ? " (default)" : ""}
-                <span className="field-note">{ICC_INFO[k].use}</span>
-              </span>
-            </label>
-          ))}
-        </fieldset>
+        <Field label="ICC form" note={ICC_INFO[options.form].use}>
+          <select aria-label="ICC form" value={options.form}
+            onChange={(e) => set({ form: e.target.value as IccForm })}>
+            {ICC_FORMS.map((k) => (
+              <option key={k} value={k}>
+                {ICC_INFO[k].name}: {ICC_INFO[k].model}{k === DEFAULT_ICC_FORM ? " (default)" : ""}
+              </option>
+            ))}
+          </select>
+        </Field>
       </Section>
       <Section title="Output">
         <TextNum label="Confidence level (%)" value={options.ciLevel} onChange={(ciLevel) => set({ ciLevel })} />
@@ -56,8 +53,10 @@ export function IccResults({ result }: ResultsProps<IccOptions, IccResult>) {
   const chosen = chosenForm(result);
   const ms = result.mean_squares;
   const rows = result.forms.map((r) => [
-    `${formName(r.form, k)}${r.form === result.options.form ? " (chosen)" : ""}`,
-    ICC_INFO[r.form].model.replace("mean of k raters", `mean of ${k} raters`),
+    <>
+      {formName(r.form, k)}{r.form === result.options.form ? " (chosen)" : ""}<br />
+      <span className="field-note">{ICC_INFO[r.form].model.replace("mean of k raters", `mean of ${k} raters`)}</span>
+    </>,
     f(r.value), ciTxt(r.ci), `${f(r.F)} (${r.df1}, ${r.df2})`, pLabel(r.p),
   ]);
   return (
@@ -66,7 +65,7 @@ export function IccResults({ result }: ResultsProps<IccOptions, IccResult>) {
         Raters: {result.names.join(", ")}. Each P value tests ICC = 0.
       </p>
       <Grid caption="Intraclass correlation coefficients"
-        head={["Form", "Model", "ICC", `${lvl} CI`, "F (df1, df2)", "P value"]} rows={rows} />
+        head={["Form and model", "ICC", `${lvl} CI`, "F (df1, df2)", "P value"]} rows={rows} />
       {(result.warnings ?? []).map((w) => <Note key={w} warn>{w}.</Note>)}
       {chosen && chosen.value < 0 && (
         <Note warn>{formName(chosen.form, k)} is negative: the ratings vary more within a target than between
