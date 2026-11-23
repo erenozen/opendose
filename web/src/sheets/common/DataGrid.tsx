@@ -395,8 +395,10 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
       else focusCell(h.r, h.c);
     });
   };
-  // The first Enter shows the match already outlined; later ones move on.
-  const stepFind = (dir: -1 | 1) => showHit(dir < 0 ? findAt - 1 : (sel ? findAt + 1 : findAt));
+  // The first Enter selects the match already outlined; later ones move on.
+  const onHit = !!curHit && !!sel && sel.r0 === curHit.r && sel.c0 === curHit.c
+    && sel.r1 === curHit.r && sel.c1 === curHit.c;
+  const stepFind = (dir: -1 | 1) => showHit(dir < 0 ? findAt - 1 : (onHit ? findAt + 1 : findAt));
   // Closing puts focus back in the table, on the match shown (or the
   // selected cell), so the input's unmounting does not drop it to the page.
   const closeFind = () => {

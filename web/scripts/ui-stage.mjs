@@ -452,6 +452,7 @@ const scenes = [
     await fixture(s, "row-ids.json");
     await selectSheet(s, "Graph of Response by treatment");
     await s.page.locator(".js-plotly-plot").first().waitFor();
+    await into(s, ".plot-card", "center");
     await settle(s, 1000);
   } },
   { name: "graphs-graph-sheet", setup: async (s) => {

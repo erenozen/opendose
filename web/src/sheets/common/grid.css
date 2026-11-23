@@ -150,6 +150,8 @@
   display: flex; align-items: center; gap: var(--space-4);
   font-size: var(--text-body-s);
 }
+/* touch: the icon buttons' 44px hit areas must not overlap */
+@media (pointer: coarse) { .grid-find { gap: var(--space-12); } }
 .grid-find-label { color: var(--muted); font-weight: var(--weight-medium); margin-right: var(--space-4); }
 .grid-find-input { flex: 0 1 16em; min-width: 0; }
 .grid-find-count {

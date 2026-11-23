@@ -13,6 +13,7 @@ Does the value hold one number (a dose, a seed, a count, a percentage)?
  ├── Yes → NumberField
  └── No
       ├── Free text on one line → Field + Input
+ ├── Free text on several lines (a pasted list) → Field + Textarea
       ├── One choice of 2 to 5, all worth seeing → <fieldset className="field-radios"> with radios
       ├── One choice of 6 or more → Field + <select>
       ├── On or off → <label className="check-row"><input type="checkbox"/> <span>…</span></label>
@@ -30,7 +31,7 @@ else the label is visible text.
 
 Props: `label`, `description` (one line under the control, `--muted`
 12px), `error` (the value's live problem, or null), `submitCount`, `id`,
-`className`. Inside it, `Input` picks up the id, description, error and
+`className`. Inside it, `Input` and `Textarea` pick up the id, description, error and
 blur timing. Any other control (a `<select>`) gets the same `id` as the
 Field's `id` prop, and loses the automatic error wiring.
 
@@ -63,6 +64,11 @@ Arrow Up and Down. Phones get the decimal pad only when `min` is 0 or
 more; otherwise the text keyboard, because the iOS decimal pad has no
 minus and no "e" (DECISIONS 7). Pass `min` whenever the value cannot be
 negative. Grid value cells use the text keyboard for the same reason.
+
+Inside an analysis's settings (FamilyWorkspace wraps them in the
+`NumberRefs` provider) a NumberField also accepts an Info constant,
+`@Dilution_factor`, and checks the constant's value; an unknown name
+gets "Enter a number, or @ and the name of an info constant".
 
 Props: `label`, `unit` (drawn inside the field's right edge: "µM", "%"),
 `min`, `max`, `integer`, `required`, `step`, and either `value` +
