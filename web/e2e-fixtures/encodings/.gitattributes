@@ -1,0 +1,2 @@
+# Encoding fixtures: the exact bytes (BOMs, UTF-16, CRLF) are the test.
+* -text

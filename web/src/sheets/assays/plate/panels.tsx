@@ -2,6 +2,7 @@
 // results sheet and the methods text.
 import { useEffect, useState } from "react";
 import { readXlsx, runEngine } from "../../../lib/engine";
+import { textOf, unreadableSheet } from "../../../lib/fileText";
 import { parseSource } from "../../../share/recipes/presets";
 import CopyableMethods from "../../common/CopyableMethods";
 import type { DataTableModel } from "../../../project/types";
@@ -351,6 +352,8 @@ function ImportStep({ table, format, onFormat, onTable }: {
           <span>Reader file (.csv, .txt or .xlsx)</span>
           <FileButton size="sm" accept=".csv,.tsv,.txt,.xlsx,text/csv,text/plain" inputLabel="Reader file"
             onFile={async (f) => {
+              const refused = unreadableSheet(f.name);
+              if (refused) { setMsg(refused); return; }
               setBusy(true);
               try {
                 const bytes = new Uint8Array(await f.arrayBuffer());
@@ -358,7 +361,7 @@ function ImportStep({ table, format, onFormat, onTable }: {
                   const sheets = await readXlsx(bytes);
                   take(sheets.map((s) => (s.rows as unknown[][]).map((r) => r.map((c) => (c == null ? "" : String(c))))));
                 } else {
-                  take([parseSource(new TextDecoder("utf-8").decode(bytes))]);
+                  take([parseSource(textOf(bytes))]);
                 }
               } catch (err) {
                 setMsg(`Could not read the file: ${err instanceof Error ? err.message : String(err)}`);

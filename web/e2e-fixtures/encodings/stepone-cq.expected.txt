@@ -1,0 +1,13 @@
+* Block Type = 96well
+* Experiment Name = encoding check
+
+[Results]
+Well	Sample Name	Target Name	Task	Cт
+A1	Контроль	GAPDH	UNKNOWN	18.21
+A2	Контроль	GAPDH	UNKNOWN	18.34
+A3	Контроль	IL6	UNKNOWN	27.02
+A4	Контроль	IL6	UNKNOWN	26.88
+B1	LPS	GAPDH	UNKNOWN	18.40
+B2	LPS	GAPDH	UNKNOWN	18.29
+B3	LPS	IL6	UNKNOWN	22.15
+B4	LPS	IL6	UNKNOWN	22.31

@@ -162,15 +162,16 @@ const into = (s, selector, block = "start") => s.page.evaluate(([sel, b]) => {
   // keep the top of the element clear of the sticky header
   if (b === "start") window.scrollBy(0, -((document.querySelector("header")?.offsetHeight ?? 0) + 8));
 }, [selector, block]);
-async function pasteInto(s, cellLabel, text) {
-  await s.page.evaluate(([l, t]) => {
+async function pasteInto(s, cellLabel, text, html = null) {
+  await s.page.evaluate(([l, t, h]) => {
     const el = document.querySelector(`.data-table input[aria-label='${l}']`);
     if (!el) throw new Error(`no cell ${l}`);
     const dt = new DataTransfer();
     dt.setData("text/plain", t);
+    if (h) dt.setData("text/html", h);
     el.focus();
     el.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }));
-  }, [cellLabel, text]);
+  }, [cellLabel, text, html]);
 }
 /** Writes autosave sessions (project/sessions.ts records) into this
  *  origin's IndexedDB, each holding a small real project. */
@@ -306,6 +307,19 @@ const scenes = [
     await click(s, button(s, "Import…"));
     await dialog(s, "Import data").waitFor();
   } },
+  // the workbook report (P-06): rows hidden by a filter, formulas saved
+  // without values (e2e-fixtures/xlsx/)
+  ...[["shell-import-filtered", "filter-hidden.xlsx", /hidden by a filter/],
+    ["shell-import-formulas", "formulas-uncached.xlsx", /no saved value/]].map(([name, file, re]) => ({
+    name, setup: async (s) => {
+      await example(s);
+      await click(s, button(s, "Import…"));
+      const d = dialog(s, "Import data");
+      await d.waitFor();
+      await d.locator('input[aria-label="File to import"]').setInputFiles(join(here, "..", "e2e-fixtures", "xlsx", file));
+      await d.locator(".workbook-report").filter({ hasText: re }).waitFor({ timeout: 120000 });
+    },
+  })),
   { name: "shell-goto", setup: async (s) => {
     await fixture(s, "many-sheets.json");
     await s.page.locator(".nav-tree").first().waitFor({ state: "attached" });
@@ -447,6 +461,16 @@ const scenes = [
       await imp.getByRole("button", { name: "Import", exact: true }).click();
     }
     await s.page.locator(".paste-report, [class*=paste-report]").first().waitFor({ timeout: 15000 });
+    await into(s, ".paste-report");
+  } },
+  // a copy from Excel whose cells were shown rounded (P-05): the full values
+  // and the sentence that says so
+  { name: "grid-paste-rounded", setup: async (s) => {
+    await fixture(s, "empty-states.json");
+    await selectSheet(s, "Table with no analysis");
+    const clip = (f) => readFileSync(join(here, "..", "e2e-fixtures", "clipboard", f), "utf8");
+    await pasteInto(s, "Control, row 1", clip("mixed.excel-windows.txt"), clip("mixed.excel-windows.html"));
+    await s.page.locator(".paste-report [data-part='rounded']").waitFor({ timeout: 15000 });
     await into(s, ".paste-report");
   } },
   // Ctrl+F in the grid: the find bar, "1 of n", the match outlined

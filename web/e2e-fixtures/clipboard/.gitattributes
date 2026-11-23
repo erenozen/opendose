@@ -1,0 +1,3 @@
+# Clipboard bytes as the apps write them (Excel on Windows: CRLF lines and
+# CF_HTML byte offsets): never normalise line endings.
+* -text

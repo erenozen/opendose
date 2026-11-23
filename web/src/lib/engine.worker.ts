@@ -12,6 +12,8 @@
 // import only) is installed the first time an xlsx file is read.
 import { loadPyodide, version as pyodideVersion } from "pyodide";
 import pyodideExtras from "./pyodideExtras.json";
+import { xlsxFlags, type SheetFlags } from "./xlsxFlags";
+import type { XlsxSheet } from "./engine";
 import type {
   BootConfig, BootPhase, RuntimeVersions, WorkerRequest, WorkerResponse,
 } from "./engineProtocol";
@@ -308,9 +310,28 @@ async function readXlsx(bytes: Uint8Array): Promise<string> {
   }
   const path = "/tmp/opendose-import.xlsx";
   py.FS.writeFile(path, bytes);
-  try { return xlsxReader(path); } finally {
+  let json: string;
+  try { json = xlsxReader(path); } finally {
     try { py.FS.unlink(path); } catch { /* already gone */ }
   }
+  return withFlags(json, bytes);
+}
+
+/** The reader reads cached values only: add what they hide (formulas
+ *  saved without a value, rows hidden in Excel) from the sheet XML. A
+ *  workbook whose XML cannot be scanned still imports, with flags null so
+ *  the dialog says it could not check. */
+function withFlags(json: string, bytes: Uint8Array): string {
+  const sheets = JSON.parse(json) as XlsxSheet[];
+  let flags: Map<string, SheetFlags> | null = null;
+  try { flags = xlsxFlags(bytes); } catch { /* reported per sheet as null */ }
+  for (const s of sheets) {
+    const f = flags?.get(s.name);
+    const index = (rows: number[]) => rows.map((r) => r - 1).filter((i) => i >= 0 && i < s.rows.length);
+    s.flags = f ? { filterHidden: index(f.filterHidden), manualHidden: index(f.manualHidden),
+      blankFormulas: f.blankFormulas } : null;
+  }
+  return JSON.stringify(sheets);
 }
 
 // --------------------------------------------------------------- messages

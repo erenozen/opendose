@@ -8,6 +8,7 @@ import { useDiscardGuard } from "../graph/useDiscardGuard";
 import { Button, FileButton, notify, Tabs } from "../components/ui";
 import { SRC } from "../guide/sources";
 import { readXlsx, type XlsxSheet } from "../lib/engine";
+import { textOf, unreadableSheet } from "../lib/fileText";
 import { DEFAULT_EXPORT, tableMatrix } from "../project/exportTable";
 import { newId } from "../project/ids";
 import { makeProject } from "../project/ops";
@@ -139,6 +140,8 @@ export default function RecipeDialog({ initialText, initialFiles, savedId, stage
     setFileText("");
     setMulti(null);
     if (!f) return;
+    const refused = unreadableSheet(f.name);
+    if (refused) { setError(refused); return; }
     const bytes = new Uint8Array(await f.arrayBuffer());
     if (/\.xlsx$/i.test(f.name)) {
       setBusy(true);
@@ -150,7 +153,7 @@ export default function RecipeDialog({ initialText, initialFiles, savedId, stage
         setError(`Could not read the workbook: ${e instanceof Error ? e.message : String(e)}`);
       } finally { setBusy(false); }
     } else {
-      setFileText(new TextDecoder("utf-8").decode(bytes));
+      setFileText(textOf(bytes));
     }
   };
 

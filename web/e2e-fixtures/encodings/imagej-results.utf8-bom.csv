@@ -1,0 +1,7 @@
+﻿ ,Label,Area (µm²),Mean,IntDen,Group
+1,Lane 1 37 °C,1523.4,87.2,132840,Control
+2,Lane 2 37 °C,1498.1,85.9,128687,Control
+3,Lane 3 37 °C,1510.7,86.4,130524,Control
+4,Lane 4 42 °C,1532.9,52.3,80171,Heat
+5,Lane 5 42 °C,1505.2,49.8,74959,Heat
+6,Lane 6 42 °C,1519.6,51.1,77652,Heat

@@ -15,6 +15,7 @@ import {
 } from "./table.ts";
 import { dropUnfilledDatasets } from "./importText.ts";
 import type { DataTableModel } from "./types.ts";
+import type { FullValuesResult, SheetApp } from "./clipboardHtml.ts";
 import { xInvalid } from "./xformat.ts";
 
 /** What a grid column holds: numbers (Y values, numeric X), identifiers
@@ -33,6 +34,9 @@ export interface PlacedCell {
   starred?: boolean;
   /** Dates / times: the stored text reads as one. */
   timeOk?: boolean;
+  /** The source app showed this number rounded; its stored value was
+   *  written (clipboardHtml.ts). */
+  rounded?: boolean;
 }
 
 export interface CellNote {
@@ -69,6 +73,14 @@ export interface PasteReport {
   /** Cells that read as 0 although their source was not a number. The
    *  grid guarantees this stays empty; the strip says so loudly if not. */
   zeros: CellNote[];
+  /** Cells the source app showed rounded: the full stored value was
+   *  written (`to`), not the shown text. */
+  rounded: CellNote[];
+  /** The app those full values came from. */
+  roundedIn?: SheetApp;
+  /** The app's full values could not be matched to the pasted text, so
+   *  the values as shown were used. */
+  fullValuesIgnored?: SheetApp;
 }
 
 // ------------------------------------------------------------ classifying
@@ -142,7 +154,7 @@ function storedAt(t: DataTableModel, row: number, col: number): string | null {
 
 /** The cells written, read back from the table they were written into. */
 export function placedCells(after: DataTableModel,
-  cells: { row: number; col: number; raw: string; starred?: boolean }[]): PlacedCell[] {
+  cells: { row: number; col: number; raw: string; starred?: boolean; rounded?: boolean }[]): PlacedCell[] {
   const roles = columnRoles(after);
   const out: PlacedCell[] = [];
   for (const c of cells) {
@@ -151,6 +163,7 @@ export function placedCells(after: DataTableModel,
     const role = roles[c.col];
     const p: PlacedCell = { row: c.row, col: c.col, raw: c.raw, stored, role };
     if (c.starred) p.starred = true;
+    if (c.rounded && role === "number") p.rounded = true;
     if (role === "time") p.timeOk = stored.trim() === "" || !xInvalid(after, stored);
     out.push(p);
   }
@@ -163,7 +176,7 @@ const sansStar = (s: string) => s.trim().replace(/\*$/, "").trim();
 export function pasteReport(cells: PlacedCell[]): PasteReport {
   const r: PasteReport = {
     cells: cells.length, numbers: 0, blanks: [], missing: [], text: [], localeNumbers: [],
-    converted: [], excluded: [], timesUnread: [], labels: 0, zeros: [],
+    converted: [], excluded: [], timesUnread: [], labels: 0, zeros: [], rounded: [],
   };
   for (const c of cells) {
     const note = (extra: Partial<CellNote> = {}): CellNote => ({
@@ -186,6 +199,7 @@ export function pasteReport(cells: PlacedCell[]): PasteReport {
       const value = parseCell(c.stored);
       // a value of 0 must come from a 0 in the source
       if (value === 0 && !NUMBER_RE.test(raw) && !looksLikeLocaleNumber(raw)) r.zeros.push(note());
+      else if (c.rounded) r.rounded.push(note({ to: sansStar(c.stored) }));
       else if (raw !== sansStar(c.stored) && looksLikeLocaleNumber(raw)) {
         r.converted.push(note({ to: sansStar(c.stored) }));
       }
@@ -204,7 +218,7 @@ export function pasteReport(cells: PlacedCell[]): PasteReport {
 
 export interface ReportPart {
   key: "numbers" | "blanks" | "missing" | "text" | "localeNumbers" | "converted" | "excluded"
-    | "timesUnread" | "labels" | "zeros";
+    | "timesUnread" | "labels" | "zeros" | "rounded" | "fullValuesIgnored";
   /** Words before the cell list, e.g. "2 cells read as text, not 0". */
   label: string;
   cells: CellNote[];
@@ -217,6 +231,16 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
 export function reportParts(r: PasteReport): ReportPart[] {
   const parts: ReportPart[] = [];
   parts.push({ key: "numbers", label: plural(r.numbers, "number", "numbers"), cells: [], tone: "ok" });
+  if (r.rounded.length) {
+    const n = r.rounded.length;
+    parts.push({ key: "rounded", label: `${n} ${n === 1 ? "cell was" : "cells were"} shown rounded in `
+      + `${r.roundedIn ?? "the spreadsheet"}; the full ${n === 1 ? "value was" : "values were"} used`,
+    cells: r.rounded, tone: "info" });
+  }
+  if (r.fullValuesIgnored) {
+    parts.push({ key: "fullValuesIgnored", label: `the full values from ${r.fullValuesIgnored} did not`
+      + " line up with the pasted text, so the values as shown were used", cells: [], tone: "warn" });
+  }
   if (r.blanks.length) {
     parts.push({ key: "blanks", label: `${plural(r.blanks.length, "blank", "blanks")} kept as missing`,
       cells: r.blanks, tone: "info" });
@@ -281,11 +305,16 @@ export function reportLine(r: PasteReport, max = 6): string {
  *  multiple-variables table that was empty and receives only text
  *  becomes categorical (text columns stay text). */
 export function pasteWithReport(t: DataTableModel, startRow: number, startFlat: number,
-  block: string[][]): { table: DataTableModel; report: PasteReport } {
+  block: string[][], source?: FullValuesResult): { table: DataTableModel; report: PasteReport } {
   const rolesBefore = columnRoles(t);
   const starred: { row: number; col: number }[] = [];
-  const cleaned = block.map((line, dr) => line.map((raw, dc) => {
-    const v = raw.trim();
+  // A copy from a spreadsheet: its stored numbers in place of the shown
+  // ones, in numeric columns only (labels and dates are kept as typed).
+  const full = source?.kind === "full" ? source.full : null;
+  const stored = (dr: number, dc: number, shown: string) =>
+    (full && rolesBefore[startFlat + dc] === "number" ? full.block[dr]?.[dc] ?? shown : shown);
+  const cleaned = block.map((line, dr) => line.map((shown, dc) => {
+    const v = stored(dr, dc, shown).trim();
     const col = startFlat + dc;
     if (rolesBefore[col] === "number" && /\*$/.test(v) && NUMBER_RE.test(sansStar(v))) {
       starred.push({ row: startRow + dr, col });
@@ -305,15 +334,22 @@ export function pasteWithReport(t: DataTableModel, startRow: number, startFlat: 
   if (t.type === "multivariable") next = textColumnsCategorical(t, next, startFlat, cleaned);
   next = dropUnfilledDatasets(t, next);
   const starKeys = new Set(starred.map((s) => `${s.row}:${s.col}`));
-  const written: { row: number; col: number; raw: string; starred?: boolean }[] = [];
+  const roundedKeys = new Set(full?.rounded.filter((s) => rolesBefore[startFlat + s.col] === "number")
+    .map((s) => `${startRow + s.row}:${startFlat + s.col}`));
+  const written: { row: number; col: number; raw: string; starred?: boolean; rounded?: boolean }[] = [];
   const width = cols.length;
   block.forEach((line, dr) => line.forEach((raw, dc) => {
     const col = startFlat + dc;
     if (col >= width) return;
     const row = startRow + dr;
-    written.push({ row, col, raw, ...(starKeys.has(`${row}:${col}`) ? { starred: true } : {}) });
+    const key = `${row}:${col}`;
+    written.push({ row, col, raw, ...(starKeys.has(key) ? { starred: true } : {}),
+      ...(roundedKeys.has(key) ? { rounded: true } : {}) });
   }));
-  return { table: next, report: pasteReport(placedCells(next, written)) };
+  const report = pasteReport(placedCells(next, written));
+  if (report.rounded.length && full) report.roundedIn = full.app;
+  if (source?.kind === "mismatch") report.fullValuesIgnored = source.app;
+  return { table: next, report };
 }
 
 /** Multiple-variables paste: a variable that held nothing and now holds

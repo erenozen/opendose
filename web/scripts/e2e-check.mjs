@@ -3563,6 +3563,178 @@ const axeOn = async (pg, sel) => {
     axeFound.length === 0, axeFound.join(" | "));
 }
 
+// --- full-precision paste (P-05). Clipboards in e2e-fixtures/clipboard/
+// (constructed from each app's documented HTML, see make_fixtures.py)
+// pasted with text/plain and text/html: the acceptance column (Excel shows
+// 0.12, 0.23, 0.35 for 0.123456, 0.234567, 0.345678) and a mixed block
+// from Excel (Windows, Mac), Google Sheets and LibreOffice Calc, checked
+// cell by cell against openpyxl's reading of the same workbook
+// (expected.json): plain numbers hold openpyxl's exact float, percents,
+// dates and text keep their shown text. A text-only paste is today's
+// paste; an HTML table that does not line up falls back to the text, and
+// says so; a block with a titles row opens Import with the full values.
+{
+  const CLIP = join(here, "..", "e2e-fixtures", "clipboard");
+  const clip = (f) => readFileSync(join(CLIP, f), "utf8");
+  const ref = JSON.parse(clip("expected.json"));
+  const pasteClip = (label, text, html) => page.evaluate(([l, t, h]) => {
+    const el = document.querySelector(`.data-table input[aria-label='${l}']`);
+    const dt = new DataTransfer();
+    dt.setData("text/plain", t);
+    if (h) dt.setData("text/html", h);
+    el.focus();
+    el.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }));
+  }, [label, text, html]);
+  const cellVal = (label) => page.locator(`.data-table input[aria-label='${label}']`).inputValue();
+  const strip = page.locator(".paste-report");
+  const stripText = async () => (await appears(strip, 5000)) ? (await strip.innerText()).replace(/\s+/g, " ") : "";
+  await fileMenu(page, "New data table…");
+  const nd = page.locator(".new-table-dialog");
+  await nd.locator('input[name="table-type"][value="column"]').check();
+  await nd.getByLabel("Table name").fill("Full values");
+  await nd.getByRole("button", { name: "Create table" }).click();
+  await page.waitForSelector(".grid-toolbar");
+  await page.waitForTimeout(400);
+
+  // the acceptance test, as written (Excel 365 on Windows)
+  await pasteClip("Group A, row 1", clip("column.excel-windows.txt"), clip("column.excel-windows.html"));
+  const acc = [await cellVal("Group A, row 1"), await cellVal("Group A, row 2"), await cellVal("Group A, row 3")];
+  const accText = await stripText();
+  expect("Excel shows 0.12, 0.23, 0.35: the pasted cells hold 0.123456, 0.234567, 0.345678",
+    acc.join(",") === "0.123456,0.234567,0.345678", acc.join(","));
+  expect("the paste report says 3 cells were shown rounded in Excel; the full values were used",
+    /3 cells were shown rounded in Excel; the full values were used: B1, B2, B3/.test(accText)
+    && /nothing was converted to 0/.test(accText), accText);
+
+  // a text editor's paste (text/plain only) behaves as today
+  await pasteClip("Group A, row 1", "0.12\n0.23\n0.35\n", null);
+  const plain = [await cellVal("Group A, row 1"), await cellVal("Group A, row 2"), await cellVal("Group A, row 3")];
+  const plainText = await stripText();
+  expect("a text-only paste keeps the text as typed (0.12, 0.23, 0.35) and says nothing about rounding",
+    plain.join(",") === "0.12,0.23,0.35" && /^Pasted: 3 numbers[ ·;]+nothing was converted to 0$/.test(plainText)
+    && !/rounded/.test(plainText), `${plain.join(",")} | ${plainText}`);
+
+  // HTML that does not line up with the text: the text, and the report says so
+  await pasteClip("Group A, row 1", clip("column.excel-windows.txt"), clip("column.mismatch.html"));
+  const mis = [await cellVal("Group A, row 1"), await cellVal("Group A, row 2"), await cellVal("Group A, row 3")];
+  const misText = await stripText();
+  expect("an HTML table with a row the text lacks: the values as shown, and the report says why",
+    mis.join(",") === "0.12,0.23,0.35"
+    && /the full values from Excel did not line up with the pasted text, so the values as shown were used/.test(misText),
+    `${mis.join(",")} | ${misText}`);
+
+  // every app, the column and the mixed block, cell by cell against openpyxl
+  const labels = ["Group A", "Group B"];
+  for (const app of [["excel-windows", "Excel"], ["excel-mac", "Excel"], ["sheets", "Google Sheets"],
+    ["calc", "LibreOffice Calc"]]) {
+    for (const sheet of ["column", "mixed"]) {
+      await page.locator(".data-table input[aria-label='Group A, row 1']").focus();
+      await pasteClip("Group A, row 1", clip(`${sheet}.${app[0]}.txt`), clip(`${sheet}.${app[0]}.html`));
+      const text = await stripText();
+      const bad = [];
+      for (const [r, row] of ref[sheet].entries()) {
+        for (const [k, c] of row.entries()) {
+          const v = await cellVal(`${labels[k]}, row ${r + 1}`);
+          const ok = c.kind === "number" ? v.trim() !== "" && Number(v) === c.value : v === c.shown;
+          if (!ok) bad.push(`${c.addr} ${c.kind} ${JSON.stringify(c.value)} → “${v}”`);
+        }
+      }
+      const rounded = ref[sheet].flat().filter((c) => c.kind === "number" && Number(c.shown) !== c.value).length;
+      expect(`${app[0]} ${sheet}: every cell matches openpyxl (numbers exact, percent/date/text as shown), ${rounded} reported rounded in ${app[1]}`,
+        bad.length === 0 && new RegExp(`${rounded} cells were shown rounded in ${app[1]}; the full values were used`).test(text),
+        `${bad.join("; ")} | ${text}`);
+    }
+  }
+
+  // a block with a titles row opens Import, already holding the full values
+  await pasteClip("Group A, row 1", "Dose\tResp\r\n0.12\t1\r\n0.23\t2\r\n",
+    "<table><tr><td x:str>Dose</td><td x:str>Resp</td></tr><tr><td x:num=\"0.123456\">0.12</td>"
+    + "<td x:num>1</td></tr><tr><td x:num=\"0.234567\">0.23</td><td x:num>2</td></tr></table>");
+  const imp = page.getByRole("dialog", { name: "Import data" });
+  const impOpen = await appears(imp, 5000);
+  const impNote = impOpen ? await imp.locator("[data-part='rounded']").innerText().catch(() => "") : "";
+  const impText = impOpen ? await imp.getByLabel("Text to import").inputValue() : "";
+  expect("a titled block from Excel opens Import with the full values and says 2 cells were shown rounded",
+    /2 cells were shown rounded in Excel; the full values are used\./.test(impNote)
+    && /0\.123456\t1\n0\.234567\t2/.test(impText), `${impNote} | ${JSON.stringify(impText)}`);
+  if (impOpen) await imp.getByRole("button", { name: "Cancel" }).click();
+}
+
+// --- the xlsx import report (P-06). Workbooks from
+// e2e-fixtures/xlsx/make_fixtures.py, reference in its expected.json
+// (openpyxl, normal mode and data_only=True). A: five =A2*2 formulas saved
+// without values are named as reading blank. B: an AutoFilter hides rows 4
+// to 6: "3 rows are hidden by a filter in Excel", left out by default as
+// copying the filtered range in Excel does, kept in one click; a sheet with
+// a row hidden by hand keeps it by default.
+{
+  const XL = join(here, "..", "e2e-fixtures", "xlsx");
+  const ref = JSON.parse(readFileSync(join(XL, "expected.json"), "utf8"));
+  await fileMenu(page, "New data table…");
+  const nd = page.locator(".new-table-dialog");
+  await nd.locator('input[name="table-type"][value="xy"]').check();
+  await nd.getByLabel("Table name").fill("Workbook report");
+  await nd.getByRole("button", { name: "Create table" }).click();
+  await page.waitForSelector(".grid-toolbar");
+  await page.getByRole("button", { name: "Import…", exact: true }).click();
+  const imp = page.locator(".import-dialog");
+  const report = imp.locator(".workbook-report");
+  const reportText = async () => ((await appears(report, 60000)) ? (await report.innerText()).replace(/\s+/g, " ") : "");
+  const firstCol = () => imp.locator(".import-preview tbody tr td:nth-child(2)").allInnerTexts();
+  const summary = () => imp.locator(".import-summary").innerText();
+
+  await imp.locator('input[aria-label="File to import"]').setInputFiles(join(XL, "formulas-uncached.xlsx"));
+  const a = await reportText();
+  const blank = ref["formulas-uncached.xlsx"].doubled.blankFormulas;
+  expect("workbook A: the report names the 5 formula cells that read as blank (openpyxl: B2 to B6)",
+    new RegExp(`5 formula cells have no saved value and read as blank: ${blank.join(", ")}\\. Open the workbook in Excel, save it, then import it again`).test(a)
+    && await report.getAttribute("data-tone") === "warn", a);
+
+  await imp.locator('input[aria-label="File to import"]').setInputFiles(join(XL, "filter-hidden.xlsx"));
+  await page.waitForFunction(() => /hidden by a filter/.test(document.querySelector(".workbook-report")?.textContent ?? ""),
+    null, { timeout: 60000 }).catch(() => {});
+  const b = await reportText();
+  const visible = ref["filter-hidden.xlsx"].filtered.rows.slice(1)
+    .filter((_, i) => !ref["filter-hidden.xlsx"].filtered.hiddenRows.includes(i + 2)).map((r) => String(r[0]));
+  const shownB = await firstCol();
+  const sumB = await summary();
+  expect("workbook B: \"3 rows are hidden by a filter in Excel\", left out by default (the visible rows, as Excel copies them)",
+    /3 rows are hidden by a filter in Excel \(rows 4, 5, 6\): left out, as copying the filtered range in Excel leaves them out/.test(b)
+    && shownB.join(",") === visible.join(",") && /^6 of 6 rows/.test(sumB), `${b} | ${shownB.join(",")} | ${sumB}`);
+  await report.getByRole("button", { name: "Keep the filtered rows" }).click();
+  const all = ref["filter-hidden.xlsx"].filtered.rows.slice(1).map((r) => String(r[0]));
+  const kept = await reportText();
+  const sumKept = await summary();
+  expect("one click keeps the 3 filtered rows: 9 of 9 rows, and the report says they are imported",
+    /3 rows are hidden by a filter in Excel \(rows 4, 5, 6\): imported/.test(kept) && /^9 of 9 rows/.test(sumKept)
+    && (await firstCol()).join(",") === all.slice(0, 8).join(","), `${kept} | ${sumKept}`);
+
+  // the sheet with a row hidden by hand: kept by default, one click leaves it out
+  await imp.getByLabel("Worksheet").selectOption({ label: "by hand" });
+  const h = await reportText();
+  const sumH = await summary();
+  await report.getByRole("button", { name: "Leave out the hidden rows" }).click();
+  const sumH2 = await summary();
+  expect("a row hidden by hand is imported by default (as Excel copies it) and left out in one click",
+    /1 row is hidden in Excel \(row 3\): imported, as copying the range in Excel copies it/.test(h)
+    && /^4 of 4 rows/.test(sumH) && /^3 of 3 rows/.test(sumH2), `${h} | ${sumH} | ${sumH2}`);
+  await page.evaluate(readFileSync(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8")).catch(() => {});
+  const axeFound = await page.evaluate(async () => {
+    // eslint-disable-next-line no-undef
+    const r = await axe.run(document.querySelector(".import-dialog"), { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa"] } });
+    return r.violations.flatMap((x) => x.nodes.map((n) => `${x.id}: ${n.html.slice(0, 70)}`));
+  });
+  expect("axe-core: the Import dialog with its workbook report passes WCAG 2 AA", axeFound.length === 0, axeFound.join(" | "));
+
+  // back to the filtered sheet with the rows kept, and import
+  await imp.getByLabel("Worksheet").selectOption({ label: "filtered" });
+  await imp.getByRole("button", { name: "Import", exact: true }).click();
+  await imp.waitFor({ state: "detached", timeout: 10000 }).catch(() => {});
+  const xs = await page.locator(".data-table input[aria-label^='X, row ']").evaluateAll((els) => els.map((e) => e.value).filter(Boolean));
+  expect("the kept rows are imported: X = every dose of the filtered sheet",
+    xs.join(",") === all.join(","), xs.join(","));
+}
+
 // --- log-scale analysis and comparisons after repeated-measures ANOVA
 // (needs log-scale-analysis, rm-posthoc). (a) Cytokine concentrations
 // whose SD grows with the mean: the chip "SD grows with the mean (SD

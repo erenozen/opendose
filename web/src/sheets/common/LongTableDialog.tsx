@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useProject } from "../../app/context";
 import Modal from "../../components/Modal";
 import { Button, FileButton } from "../../components/ui";
+import { textOf } from "../../lib/fileText";
 import { findSheet, sheetsOfKind, updateResultsOptions, updateTable } from "../../project/ops";
 import type { ResultsSheet } from "../../project/types";
 import {
@@ -75,7 +76,7 @@ export default function LongTableDialog({ target, sheet, onClose }: {
   const pickFile = async (f: File | undefined) => {
     if (!f) return;
     setFileName(f.name);
-    setFileText(await f.text());
+    setFileText(textOf(new Uint8Array(await f.arrayBuffer())));
     reset();
   };
   const readClipboard = async () => {

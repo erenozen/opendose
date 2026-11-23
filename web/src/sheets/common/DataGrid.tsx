@@ -11,6 +11,9 @@ import { newId } from "../../project/ids";
 import { pasteNeedsImport } from "../../project/importText";
 import { pasteWithReport, type PasteReport } from "../../project/pasteReport";
 import {
+  blockText, fullPrecision, parseClipboardHtml, type FullValuesResult,
+} from "../../project/clipboardHtml";
+import {
   addDataset, addRow, allowsSummaryFormat, blockValues, clearBlock, deleteDataset,
   deleteRow, deleteRows, flatColumns, insertDataset, insertRows, insertSeries,
   hasAnyValue, isExcluded, moveDataset, normRect, parseCell, parseClipboardGrid,
@@ -72,8 +75,12 @@ const EMPTY_HINTS: Partial<Record<TableType, string>> = {
   nested: "Paste a block from Excel or type: one subcolumn per subgroup (such as one animal) under its group, values down the rows.",
 };
 
+/** A block pasted at (r, c): its text and, from a spreadsheet copy, the
+ *  stored full values (clipboardHtml.ts). */
+type Pasted = { text: string; r: number; c: number; source?: FullValuesResult };
+
 type Dialog =
-  | { kind: "import"; req?: ImportRequest; paste?: { text: string; r: number; c: number } }
+  | { kind: "import"; req?: ImportRequest; paste?: Pasted }
   | { kind: "export" } | { kind: "sort" } | { kind: "series" } | { kind: "format" }
   | { kind: "convert" } | { kind: "reshape" } | { kind: "convertType" }
   | { kind: "formula"; dataset: number; isNew: boolean }
@@ -153,7 +160,7 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
   // What the last paste / import did to each cell (kept per sheet).
   const [pasteInfo, setPasteInfo] = useState<{
     id: string; verb: "Pasted" | "Imported"; report: PasteReport;
-    paste?: { text: string; r: number; c: number };
+    paste?: Pasted;
   } | null>(null);
   const shownReport = pasteInfo?.id === sheet.id ? pasteInfo : null;
   const [selecting, setSelecting] = useState(false);
@@ -338,20 +345,28 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
     if (!text.includes("\t") && !text.includes("\n")) return; // single value
     e.preventDefault();
     const [pr, pc] = multi && rect ? [rect.r0, rect.c0] : [r, c];
-    if (pasteNeedsImport(text)) {
-      setDialog({ kind: "import", req: { text, mode: "insert", row: pr, col: pc },
-        paste: { text, r: pr, c: pc } });
+    // A copy from Excel, Google Sheets or Calc also carries the numbers
+    // it stores: a cell shown rounded gets its full value.
+    const source = fullPrecision(parseClipboardGrid(text),
+      parseClipboardHtml(e.clipboardData.getData("text/html")));
+    const full = source.kind === "full" ? source.full : null;
+    const routed = full ? blockText(full.block) : text;
+    if (pasteNeedsImport(routed)) {
+      setDialog({ kind: "import", req: { text: routed, mode: "insert", row: pr, col: pc,
+        ...(full?.rounded.length ? { fullValues: { app: full.app, rounded: full.rounded.length } } : {}) },
+      paste: { text, r: pr, c: pc, source } });
       return;
     }
-    pasteAt(text, pr, pc);
+    pasteAt({ text, r: pr, c: pc, source });
   };
 
-  // A direct paste: the block as typed, with its report above the grid.
-  const pasteAt = (text: string, pr: number, pc: number) => {
-    const block = parseClipboardGrid(text);
-    const { report } = pasteWithReport(t, pr, pc, block);
-    onChange((x) => pasteWithReport(x, pr, pc, block).table);
-    setPasteInfo({ id: sheet.id, verb: "Pasted", report, paste: { text, r: pr, c: pc } });
+  // A direct paste: the block as typed (with a spreadsheet's full values),
+  // with its report above the grid.
+  const pasteAt = (p: Pasted) => {
+    const block = parseClipboardGrid(p.text);
+    const { report } = pasteWithReport(t, p.r, p.c, block, p.source);
+    onChange((x) => pasteWithReport(x, p.r, p.c, block, p.source).table);
+    setPasteInfo({ id: sheet.id, verb: "Pasted", report, paste: p });
   };
 
   const jumpTo = (r: number, c: number) => {
@@ -881,8 +896,7 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
         <ImportDialog table={t} initial={dialog.req}
           onClose={() => setDialog(null)}
           onPasteAsIs={dialog.paste ? () => {
-            const p = dialog.paste!;
-            pasteAt(p.text, p.r, p.c);
+            pasteAt(dialog.paste!);
             setDialog(null);
           } : undefined}
           onImport={(fn, report) => {
