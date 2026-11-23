@@ -31,11 +31,16 @@
   max-height: 15rem; overflow-y: auto; overscroll-behavior: contain;
 }
 .session-row {
-  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
-  gap: var(--space-4) var(--space-12); padding: var(--space-4) 0;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center;
+  gap: var(--space-4) var(--space-12); padding: var(--space-6) 0;
   border-top: 1px solid var(--line);
 }
 .session-row:first-child { border-top: 0; }
 .session-row-actions { display: flex; gap: var(--space-8); }
+/* The banner is a size container (ui/Banner.css): on a narrow banner the
+   buttons go under the words, as Banner.Actions do. */
+@container (max-width: 620px) {
+  .session-row { grid-template-columns: minmax(0, 1fr); }
+}
 
 @media print { .banner-region { display: none; } }
