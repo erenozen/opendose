@@ -221,7 +221,9 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
                 answer pane above the graph); what was analysed under
                 them; then the exclusions and the sentence. */}
             <ResultsExport name={resSheet.name}>
-              {result == null ? <ResultsSkeleton /> : (
+              {result == null ? (engineError
+                ? <p className="empty-hint result-card">No results: the analysis engine did not load.</p>
+                : <ResultsSkeleton />) : (
                 <Suspense fallback={<Pending />}>
                   <Results sheet={resSheet} table={data.table} options={options} result={result} />
                 </Suspense>
