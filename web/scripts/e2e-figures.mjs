@@ -6,9 +6,12 @@
 // of a multiple-variables table, and censor marks on a new survival graph.
 //   node scripts/e2e-figures.mjs http://localhost:5194/
 import { chromium } from "playwright";
-import { join } from "node:path";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
+import { fileURLToPath } from "node:url";
+
+const here = dirname(fileURLToPath(import.meta.url));
 
 // The header's File and View menus (DECISIONS 5): open one, pick an item.
 const fileMenu = async (p, item) => {
@@ -746,6 +749,39 @@ const fitLegendText = () => page.locator(".plot-card .figure-legend-text").textC
   expect("in-figure caption: the same sentence and n", capText === `${LEGEND} n = 3 replicates per X value.`,
     capText);
   await shot("fit-legend-caption");
+}
+
+// --- interpolated unknowns drawn on the curve (P-22). Reference:
+// engine/tests/reference/interpolate_unknowns.py (BCA quadratic, statsmodels
+// OLS; X of each unknown and its 95% CI from investr's inversion interval).
+{
+  const REF = JSON.parse(readFileSync(join(here, "../../engine/tests/reference/interpolate_unknowns.json"), "utf8"));
+  await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]',
+    join(here, "..", "e2e-fixtures", "stage", "interpolation.json"));
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+    .some((t) => String(t.name ?? "").endsWith("(unknowns)")), null, { timeout: 120000 }).catch(() => {});
+  const m = await page.evaluate(() => {
+    const gd = document.querySelector(".plot-card .plot");
+    const t = (gd?.data ?? []).find((d) => String(d.name ?? "").endsWith("(unknowns)"));
+    const fit = (gd?.data ?? []).find((d) => d.meta?.odTag?.role === "fit");
+    return t ? { x: [...t.x], y: [...t.y], plus: [...(t.error_x?.array ?? [])],
+      minus: [...(t.error_x?.arrayminus ?? [])], symbol: t.marker?.symbol, fill: t.marker?.color,
+      edge: t.marker?.line?.color, fitColor: fit?.line?.color,
+      curve: fit ? { x: [...fit.x], y: [...fit.y] } : null } : null;
+  });
+  const R = REF.bca.results.slice(0, 3);
+  expect("P-22 three unknown markers at each interpolated X (reference to 1e-6) and its Y",
+    m?.x.length === 3 && m.x.every((x, i) => Math.abs(x / R[i].x - 1) < 1e-6) && m.y.every((y, i) => y === R[i].y),
+    JSON.stringify(m && { x: m.x, y: m.y }));
+  expect("P-22 each marker lies on the drawn curve",
+    m?.curve && m.x.every((x, i) => Math.abs(curveAt(m.curve, x) - m.y[i]) < 2e-3),
+    m?.curve && m.x.map((x) => curveAt(m.curve, x)).join(","));
+  expect("P-22 horizontal bars span each unknown's 95% CI",
+    m && m.x.every((x, i) => Math.abs(x - m.minus[i] - R[i].ci[0]) < 1e-3 * R[i].x
+      && Math.abs(x + m.plus[i] - R[i].ci[1]) < 1e-3 * R[i].x), JSON.stringify(m && [m.minus, m.plus]));
+  expect("P-22 hollow diamonds in the data set's colour",
+    m?.symbol === "diamond" && m.edge === m.fitColor && m.fill !== m.fitColor, JSON.stringify(m && [m.symbol, m.fill, m.edge]));
+  await shot("fit-unknowns");
 }
 
 // --- drop lines on a discontinuous Y axis (P-23 follow-up). Before: no

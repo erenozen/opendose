@@ -250,6 +250,8 @@ export function runNonlin(engine: EngineBridge, table: DataTableModel,
       bands: options.bands === "none" ? null : options.bands,
       diagnostics: options.diagnostics,
       interpolate_y: interpY.length ? interpY : null,
+      // Y values in rows with no X read as unknowns (P-22)
+      ...(options.interpolateUnknowns ? { interpolate_unknowns: true } : {}),
       ...(options.fitMethod === "robust" ? { fit_method: "robust" } : {}),
       ...summaryOptions,
       // a replicate map: also one fit per experiment and their summary
@@ -307,6 +309,7 @@ function runUserEquation(engine: EngineBridge, _table: DataTableModel,
       bands: options.bands === "none" ? null : options.bands,
       diagnostics: options.diagnostics,
       interpolate_y: interpY.length ? interpY : null,
+      ...(options.interpolateUnknowns ? { interpolate_unknowns: true } : {}),
     },
   }) as AnalysisResult;
 }

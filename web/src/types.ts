@@ -83,6 +83,10 @@ export interface OptionsState {
   bands: "none" | "confidence" | "prediction";
   diagnostics: boolean;
   interpolateY: string;      // comma/newline-separated Y values, "" = off
+  /** Read every Y value in a row with no X as an unknown and interpolate
+   *  it from the curve with its CI (P-22); absent (files saved before) =
+   *  off, those values left out of the fit as before. */
+  interpolateUnknowns?: boolean;
   sharedParams: string[];    // non-empty -> global fit
   modelConstants: Record<string, string>; // e.g. HotNM for "Fit Ki"
   antagonist: string;        // ec50_shift: comma-separated [B] per dataset
@@ -243,6 +247,9 @@ export interface DatasetResult {
   robust_skipped?: string[];
   bands?: BandData;
   interpolated_x?: (number | null)[];
+  /** Unknowns read off the curve with their CI and prediction interval
+   *  (engine interpolate.interpolate_unknown; sheets/xy/interpolation.ts). */
+  interpolation?: Record<string, unknown>;
   diagnostics?: Record<string, unknown>;
   error?: string;
   points: { x: (number | null)[]; bars: ErrorBar[] };

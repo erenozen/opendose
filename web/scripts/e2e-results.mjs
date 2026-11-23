@@ -7,12 +7,14 @@
 // (P-14) and two event rates (P-47); and the fit models of wave 1: Weibull
 // and hormesis models (P-19), range constraints (P-20), initial values and
 // the fit report (P-21) and simulating a user-defined equation (P-51); the
-// fit summary and its table of parameters (P-17).
+// fit summary and its table of parameters (P-17); interpolated unknowns
+// with their CIs (P-22).
 // Each number asserted here is pinned in the engine tests from an
 // independent reference (engine/tests/reference/).
 // Usage: node scripts/e2e-results.mjs [http://localhost:5173/]
 import { chromium } from "playwright";
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -800,6 +802,64 @@ await page.waitForSelector('.pane-results[data-live="true"] .results-table', { t
     ic.slice(0, 11).every((v, i) => Math.abs(Number(v) / FX.result.datasets[i].fit.params.IC50.value - 1) < 1e-9)
     && ic[11] === "",
     ic.join(","));
+  await pg.close();
+}
+
+
+// --- P-22: interpolated unknowns with their CIs ---------------------------
+{
+  // engine/tests/reference/interpolate_unknowns.py: a BCA standard curve
+  // (7 standards, quadratic, statsmodels OLS) and investr's inversion
+  // intervals computed independently; X, CI and prediction interval
+  const REF = JSON.parse(readFileSync(join(here, "../../engine/tests/reference/interpolate_unknowns.json"), "utf8"));
+  const sig4 = (v) => (Math.abs(v) < 1e-3 ? v.toExponential(3) : String(Number(v.toPrecision(4))));
+  const proj = JSON.parse(readFileSync(join(here, "..", "e2e-fixtures", "stage", "interpolation.json"), "utf8"));
+  proj.sheets.find((s) => s.kind === "results").options.interpolateUnknowns = false;
+  const file = join(mkdtempSync(join(tmpdir(), "opendose-interp-")), "bca.json");
+  writeFileSync(file, JSON.stringify(proj));
+  const pg = await browser.newPage({ viewport: { width: 1400, height: 1000 } });
+  pg.on("pageerror", (e) => errors.push(`pageerror: ${e.message}`));
+  await pg.goto(url, { waitUntil: "domcontentloaded" });
+  await pg.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 180000 });
+  await pg.keyboard.press("Escape");
+  await pg.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]', file);
+  await pg.waitForFunction(() => /Second order polynomial/.test(
+    document.querySelector('.pane-results[data-live="true"]')?.textContent ?? ""), null, { timeout: 120000 });
+  expect("P-22 off by default: no unknowns table",
+    await pg.locator(".interpolation-table").count() === 0);
+  const adv = pg.locator(".pane-controls details.advanced").first();
+  if (!(await adv.evaluate((e) => e.open))) await adv.locator("summary").click();
+  await pg.getByRole("checkbox", { name: "Y values in rows with no X are unknowns" }).check();
+  const table = pg.locator('.pane-results[data-live="true"] .interpolation-table');
+  expect("P-22 ticking the option shows the interpolated unknowns", await appears(table, 120000));
+  const rowText = async (i) => (await table.locator("tbody tr").nth(i).innerText()).replace(/\s+/g, " ").trim();
+  const want = REF.bca.results.slice(0, 3).map((u, i) => `Lysate ${i + 1} ${u.y} ${sig4(u.x)} `
+    + `${sig4(u.ci[0])} to ${sig4(u.ci[1])} ${sig4(u.pi[0])} to ${sig4(u.pi[1])} None`);
+  const got = [await rowText(0), await rowText(1), await rowText(2)];
+  expect(`P-22 acceptance: each unknown's X with its 95% CI (${want.join(" | ")})`,
+    got.every((g, i) => g === want[i]), got.join(" | "));
+  const plotted = await pg.evaluate(() => {
+    const t = (document.querySelector(".plot-card .plot")?.data ?? [])
+      .find((d) => String(d.name ?? "").endsWith("(unknowns)"));
+    return t ? { x: [...t.x], y: [...t.y] } : null;
+  });
+  expect("P-22 acceptance: three markers on the curve, at each unknown's X and Y",
+    plotted?.x.length === 3 && plotted.x.every((x, i) => Math.abs(x / REF.bca.results[i].x - 1) < 1e-6)
+    && plotted.y.every((y, i) => y === REF.bca.results[i].y), JSON.stringify(plotted));
+  // typed Y values beyond the standards: flagged, never a plain number
+  const typed = pg.getByRole("textbox", { name: "Interpolate unknowns from the curve" });
+  await typed.fill(REF.bca.edges.join(", "));
+  await pg.waitForFunction(() => document.querySelectorAll(
+    '.pane-results[data-live="true"] .interpolation-table tbody tr').length === 6, null, { timeout: 60000 }).catch(() => {});
+  const [up, down, none] = [await rowText(3), await rowText(4), await rowText(5)];
+  const [ru, rd] = REF.bca.results.slice(3);
+  expect(`P-22 Y above the top standard: X ${sig4(ru.x)} flagged extrapolated`,
+    up.startsWith(`Typed Y 1 1.55 ${sig4(ru.x)} ${sig4(ru.ci[0])} to ${sig4(ru.ci[1])}`)
+    && up.includes("Extrapolated: X lies outside the standards (0 to 2000)"), up);
+  expect(`P-22 Y below the blank: X ${sig4(rd.x)} flagged extrapolated`,
+    down.startsWith(`Typed Y 2 0.05 ${sig4(rd.x)}`) && down.includes("Extrapolated:"), down);
+  expect("P-22 a Y the curve never reaches has no X",
+    none === "Typed Y 3 3 — — — Not reached: Y is above every value the curve takes, so it has no X.", none);
   await pg.close();
 }
 

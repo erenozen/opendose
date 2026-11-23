@@ -14,8 +14,8 @@ import {
   type UserEquationDef,
 } from "../lib/userEquation";
 import {
-  constraintKind, constraintState, numberInTitle, rangeProblems, startParams, withConstraint,
-  type ConstraintKind,
+  constraintKind, constraintState, numberInTitle, rangeProblems, routeFor, startParams,
+  withConstraint, type ConstraintKind,
 } from "../sheets/xy/fitOptions";
 import EquationEditor from "./EquationEditor";
 import ModelPicker from "./ModelPicker";
@@ -156,6 +156,9 @@ export default function ControlsPanel({
   const classic = meta.special === "gaddum_schild_classic" && !isUser;
   const starts = isUser ? [] : startParams(meta, options);
   const ids = useId();
+  // global fits and the Gaddum/Schild model fit all data sets at once:
+  // interpolation and the curve's range apply to curves fitted one at a time
+  const globalRoute = routeFor(options) !== "dose_response";
 
   return (
     <div className="controls">
@@ -433,11 +436,22 @@ export default function ControlsPanel({
 
       <section>
         <h3 id={`${ids}-interp`}>Interpolate unknowns from the curve</h3>
+        <label className="check-row">
+          <input type="checkbox" checked={!!options.interpolateUnknowns}
+            onChange={(e) => set({ interpolateUnknowns: e.target.checked })} />
+          <span>Y values in rows with no X are unknowns</span>
+        </label>
+        {globalRoute && (options.interpolateUnknowns || options.interpolateY.trim() !== "") && (
+          <p className="hint-block">
+            Interpolation applies to curves fitted one at a time, not to global fits with
+            shared parameters or the Gaddum/Schild model.
+          </p>
+        )}
         <textarea
           className="interp-input"
           aria-labelledby={`${ids}-interp`}
           rows={2}
-          placeholder="Y values, comma or newline separated"
+          placeholder="Or type Y values, comma or newline separated"
           value={options.interpolateY}
           onChange={(e) => set({ interpolateY: e.target.value })}
         />

@@ -717,6 +717,20 @@ const scenes = [
     await s.page.locator(".fit-summary-table").first().waitFor({ timeout: 120000 });
     await into(s, ".fit-summary");
   } },
+  // a BCA standard curve (quadratic) with three unknown rows (P-22): the
+  // interpolated X with its CI and prediction interval, and the markers
+  { name: "results-interpolation", setup: async (s) => {
+    await fixture(s, "interpolation.json", { live: true });
+    await s.page.locator(".interpolation-table").first().waitFor({ timeout: 120000 });
+    await into(s, ".interpolation-card");
+  } },
+  { name: "graphs-interpolation", setup: async (s) => {
+    await fixture(s, "interpolation.json", { live: true });
+    await s.page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+      .some((t) => String(t.name ?? "").endsWith("(unknowns)")), null, { timeout: 120000 });
+    await into(s, ".plot-card", "center");
+    await settle(s, 1200);
+  } },
   // the Checks row chip on a pooled fit (the example's triplicates)
   { name: "results-pooled-chip", setup: async (s) => {
     await example(s);

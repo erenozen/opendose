@@ -1,0 +1,117 @@
+{
+ "opendose_project": 2,
+ "version": 2,
+ "title": "BCA standard curve",
+ "prefs": {
+  "defaultTableType": "xy",
+  "errorBars": "sd",
+  "ciMethod": "asymptotic",
+  "scheme": "default",
+  "digits": 4
+ },
+ "selected": "r1",
+ "sheets": [
+  {
+   "id": "d1",
+   "kind": "data",
+   "name": "BCA plate",
+   "table": {
+    "type": "xy",
+    "x": [
+     "0",
+     "125",
+     "250",
+     "500",
+     "1000",
+     "1500",
+     "2000",
+     "",
+     "",
+     ""
+    ],
+    "xTitle": "Protein (µg/mL)",
+    "xFormat": "numbers",
+    "xUnit": "µg/mL",
+    "yTitle": "A562",
+    "rowTitles": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "Lysate 1",
+     "Lysate 2",
+     "Lysate 3"
+    ],
+    "datasets": [
+     {
+      "name": "BCA",
+      "rows": [
+       [
+        "0.098"
+       ],
+       [
+        "0.214"
+       ],
+       [
+        "0.321"
+       ],
+       [
+        "0.522"
+       ],
+       [
+        "0.876"
+       ],
+       [
+        "1.17"
+       ],
+       [
+        "1.405"
+       ],
+       [
+        "0.42"
+       ],
+       [
+        "0.75"
+       ],
+       [
+        "1.21"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "r1",
+   "kind": "results",
+   "parentId": "d1",
+   "analysis": "nonlin",
+   "name": "Nonlin fit of BCA plate",
+   "options": {
+    "model": "polynomial_second",
+    "autoFit": "requested",
+    "interpolateUnknowns": true
+   }
+  },
+  {
+   "id": "g1",
+   "kind": "graph",
+   "parentId": "d1",
+   "resultsId": "r1",
+   "graphType": "xy",
+   "name": "Graph of BCA plate",
+   "settings": {
+    "titles": {
+     "x": "",
+     "y": ""
+    },
+    "scheme": "default"
+   }
+  }
+ ]
+}

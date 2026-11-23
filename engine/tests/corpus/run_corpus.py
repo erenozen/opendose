@@ -4054,6 +4054,64 @@ null mean 75, SD 14.860. Cochran's Q from its formula: 11.556 on 2 df,
 P = 0.0030956. Repeated-measures correlation as a common-slope ANCOVA on
 subject-centred pH and PaCO2: r_rm = -0.50677 on 38 df, Fisher-z 95% CI
 -0.70672 to -0.23186, P = 0.00084711. All equal the engine.
+
+## Feature validation: curve fit output (2026-11-24)
+
+### P-22 interpolated unknowns with inverse-prediction intervals
+
+`interpolate.interpolate_unknown` reads an unknown's X off a fitted
+curve (the first crossing inside the standards, else the one nearest
+them, searched over the standards' X range extended by half of it each
+way) with two intervals, each by inverting a band around the curve
+(Greenwell & Schubert Kabban 2014, The R Journal 6(1):90-100, eqs. 2, 6
+and 7; Graybill 1976, section 6.9; Seber & Wild 1989, section 5.12):
+
+- the 95% CI, where the curve's confidence band reaches the unknown's Y:
+  (y0 - f(x))^2 <= t^2(n - p) Var f(x), the uncertainty of the curve
+  alone (investr `mean.response = TRUE`; the band crossing of the
+  GraphPad guide and of the standard-curve assay);
+- the 95% prediction interval, with the scatter of the reading added:
+  (ybar0 - f(x))^2 <= t^2(n + m - p - 1) (Sy.x^2 / m + Var f(x)) for the
+  mean of m readings (investr's default inversion interval; invest.nls
+  uses sigma^2 and that t). Not reported for weighted or summary-data
+  fits, where Sy.x is not the scatter of one reading.
+
+Var f(x) is the delta method of the confidence bands (exact for lines
+and polynomials). A limit that does not close within the range searched
+is open (None, shown as "(very wide)"); an unknown outside the standards
+is flagged "extrapolated"; a Y the curve never reaches has no X.
+
+`dose_response` takes `interpolate_unknowns` (each Y value in a row with
+no X is an unknown, no longer silently left out) and gives typed
+`interpolate_y` values the same block; `interpolated_x` is unchanged.
+
+Reference: `engine/tests/reference/interpolate_unknowns.py`, an own
+implementation of investr's inversion intervals sharing no code with the
+engine (statsmodels OLS and its `se_mean` for the line and the
+quadratic, scipy `curve_fit` with an analytic gradient for the
+nonlinear model, brentq from the estimate outward), plus Graybill's
+closed form (eq. 2) for the line. R is not installed.
+`engine/tests/test_interpolate_unknowns.py`:
+
+| Input | Reference | Engine tolerance |
+|---|---|---|
+| BCA, 7 standards (0 to 2000 µg/mL), quadratic; unknowns A562 0.42, 0.75, 1.21 | X 372.963, 811.428, 1574.087; 95% CI 368.638 to 377.313, 804.526 to 818.390, 1565.304 to 1582.913; prediction 362.811 to 383.166, 798.776 to 824.181, 1557.092 to 1591.230 | 1e-6 relative |
+| same curve, Y 1.55 and 0.05 | X 2417.03 and -56.93, both "extrapolated"; Y 3.0 not reached (above) | 1e-6 relative |
+| straight line, 8 points; Y 6.0 and 12.5 | Graybill eq. 2: CI 2.37532 to 2.59399, prediction 2.22794 to 2.74137; CI 5.63600 to 5.82235, prediction 5.47891 to 5.97944 | 1e-6 relative |
+| nasturtium (drc data, 42 points), [Inhibitor] vs. response with Bottom = 0 (= theta1/(1 + exp(theta2 + theta3 log x))), y0 = 309, 296, 419 | published (Greenwell & Schubert Kabban 2014, Section 3.1, and the investr README): estimate 2.263854, inversion interval 1.772244 to 2.969355 | 5e-6 (upper 2e-5: the paper's own fit stops at 2.969355, the reference script reaches 2.969362) |
+
+Also tested: a log-X 4PL (X and limits as 10^X, the curve at the
+interpolated X equal to the Y), X in other units (X and limits scale by
+1/1000) and Y times 10 (same X), replicates and blanks in unknown rows,
+off by default (the old "left out of the fit" warning), a weighted fit
+(no prediction interval), a robust fit (skipped, said so), two
+crossings (the first reported, both counted), an open limit on a flat
+line and a zero-width band on an exact line.
+
+The web reads the block in `sheets/xy/interpolation.ts` (typeset table,
+markers with the CI as horizontal bars; unit-tested) and e2e-results /
+e2e-figures assert the table and the marker positions against the same
+reference.
 """
 
 

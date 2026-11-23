@@ -125,7 +125,8 @@ function FitCard({ ds, xUnit, options }: { ds: DatasetResult; xUnit: string; opt
                     .join(", ")}`}
               </p>
             )}
-            {ds.interpolated_x && (
+            {/* the unknowns' table (InterpolationCard) replaces this line */}
+            {ds.interpolated_x && !ds.interpolation && (
               <p className="model-line">
                 Interpolated X: {ds.interpolated_x
                   .map((v) => (v === null ? "out of range" : formatSig(v)))
