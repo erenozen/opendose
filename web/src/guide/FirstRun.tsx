@@ -85,6 +85,7 @@ function PasteBanner({ note }: { note: PasteNote }) {
           : `You chose ${label}. The guess was ${tableDef(note.read.suggestion.type).label}: `
             + note.read.suggestion.reason}</p>
         {note.read.errorNote && <p className="paste-error-note">{note.read.errorNote}</p>}
+        {note.read.sexNote && <p className="paste-sex-note">{note.read.sexNote}</p>}
         {/* A choice, applied by the verb button: a select that rebuilt the
             table on change would do it on every arrow key. */}
         <span className="paste-read-as">

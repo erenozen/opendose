@@ -31,6 +31,7 @@
 //   why-history.json   a t test with Help me choose's saved reason (P-32)
 //                      and a saved reproduction record (P-58)
 //   study-design.json  a study design record on the info sheet of a t test (P-61)
+//   sex-factor.json    rows F and M of a grouped table under multiple t tests (P-62)
 //   many-sheets.json   74 sheets: 22 families, navigator groups (one
 //                      collapsed), highlights, info sheets and layouts
 import { readFileSync, writeFileSync } from "node:fs";
@@ -492,4 +493,16 @@ const longData = (name, names, rows, categorical) => data(name, {
     sex: "both", strain: "BALB/c nude mice (CAnN.Cg-Foxn1nu/Crl)", age: "6 to 8 weeks at implantation",
   } };
   write("study-design.json", project("Xenograft study", [t, r, i], { selected: i.id }));
+}
+
+// sex-factor.json: a grouped table whose rows are F and M under multiple
+// t tests (P-62): the Checks row asks whether the rows are sex.
+{
+  const t = data("Body weight by sex", table("grouped", { yTitle: "Body weight (g)", rowTitles: ["F", "M"],
+    datasets: [
+      { name: "Vehicle", rows: [["20.1", "21.4", "19.8"], ["26.2", "27.5", "25.9"]] },
+      { name: "Drug", rows: [["22.9", "23.6", "24.1"], ["30.4", "31.2", "29.8"]] },
+    ] }));
+  const r = results(t, "grouped_multiple_t", {}, "Multiple t tests of Body weight by sex");
+  write("sex-factor.json", project("Sex as a variable", [t, r], { selected: r.id }));
 }

@@ -239,6 +239,14 @@ const scenes = [
     await pasteOnPage(s);
     await into(s, ".paste-banner", "center");
   } },
+  // a pasted block with a Sex column: the banner asks about it (P-62)
+  { name: "first-paste-sex", setup: async (s) => {
+    await start(s);
+    await pasteOnPage(s, "Sex\tWeight (g)\tDose (mg/kg)\nF\t20.1\t0\nM\t26.4\t0\nF\t21.9\t10\nM\t27.0\t10\n"
+      + "F\t19.7\t30\nM\t25.8\t30\n");
+    await s.page.locator(".paste-sex-note").waitFor({ timeout: 10000 });
+    await into(s, ".paste-banner", "center");
+  } },
   { name: "first-paste-result", setup: async (s) => {
     await start(s);
     await pasteOnPage(s);
@@ -877,6 +885,16 @@ const scenes = [
     await click(s, checks.locator("summary"));
     await click(s, s.page.getByRole("button", { name: /Bars without zero/ }));
     await s.page.getByRole("region", { name: "Bars without zero" }).waitFor();
+    await into(s, ".pane-answer details.checks", "center");
+    await settle(s, 800);
+  } },
+  // rows F and M: the Checks row asks whether they are sex (P-62)
+  { name: "results-sex-question", setup: async (s) => {
+    await fixture(s, "sex-factor.json", { live: true });
+    const checks = s.page.locator(".pane-answer details.checks").first();
+    await click(s, checks.locator("summary"));
+    await click(s, s.page.getByRole("button", { name: /Are rows F and M sex\?/ }));
+    await s.page.getByRole("region", { name: /Are rows F and M sex\?/ }).waitFor();
     await into(s, ".pane-answer details.checks", "center");
     await settle(s, 800);
   } },

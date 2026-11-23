@@ -329,7 +329,7 @@ test("the five checklists, combined items and summary", () => {
   const lists = evaluateChecklists(facts());
   assert.deepEqual(lists.map((l) => l.id), ["nature", "elife", "star", "sampl", "arrive"]);
   const arrive = lists.find((l) => l.id === "arrive")!;
-  assert.deepEqual(arrive.items.map((i) => i.id), ["e1", "e2", "e3", "e4", "e5", "e7", "e8", "e10", "r19"]);
+  assert.deepEqual(arrive.items.map((i) => i.id), ["e1", "e2", "e3", "e4", "e5", "e7", "e8", "sabv", "e10", "r19"]);
   // ARRIVE 2.0 item 19 from the analysis plan (project/plan.ts)
   assert.equal(arrive.items.find((i) => i.id === "r19")!.status, "na");
   const plan = { written: "2026-10-09", locked: true, deviations: 1, unexplained: 1, sheetId: "i1",

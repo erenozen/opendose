@@ -14,10 +14,14 @@
 // - ARRIVE 2.0 Essential 10 (Percie du Sert et al. 2020, PLoS Biol
 //   18:e3000410), items 1-5, 7, 8 and 10 (4, 5 and 8 from the study
 //   design record, project/studyDesign.ts).
+// - Sex as a biological variable: SAGER guidelines (Heidari et al. 2016,
+//   Res Integr Peer Rev 1:2) and NIH SABV (Clayton & Collins 2014, Nature
+//   509:282): report sex, and results by sex or why not (guide/sex.ts).
 import type { TestInfo } from "./describe.ts";
 import type { ErrorBars } from "./legend.ts";
 import type { ReportMeta } from "./meta.ts";
 import type { PlanFacts } from "../project/plan.ts";
+import type { SexFacts } from "../guide/sex.ts";
 import {
   animalsOutcome, blindingOutcome, randomisationOutcome, type DesignOutcome, type StudyDesign,
 } from "../project/studyDesign.ts";
@@ -64,6 +68,9 @@ export interface FamilyFacts {
   /** The study design record for this table and the info sheet holding
    *  it (project/studyDesign.ts), if any. */
   design?: { design: StudyDesign; sheetId: string } | null;
+  /** Rows, data sets or a column that look like sex, and the analysis
+   *  with sex as a factor (guide/sex.ts). */
+  sex?: SexFacts | null;
 }
 
 export type Status = "met" | "unmet" | "na";
@@ -244,6 +251,23 @@ export const RULES: Record<string, Rule> = {
     "No study design recorded: say who knew the group allocation during allocation, the experiment, outcome assessment and data analysis."),
   animals: (f) => designRule(f, animalsOutcome,
     "No study design recorded: state the animals' species and strain, sex and age."),
+  sex: (f) => {
+    const sf = f.sex?.factor;
+    const cap = (t: string) => t.replace(/^./, (c) => c.toUpperCase());
+    if (sf && f.sex?.analysedIn) {
+      return { status: "met", reason: `${cap(sf.phrase)} look like sex, and “${f.sex.analysedIn.name}” has it as a factor: report the results for each sex.` };
+    }
+    if (sf) {
+      return { status: "unmet", reason: `${cap(sf.phrase)} look like sex. If they are, analyse with sex as a factor and its interaction, and report the results for each sex (or say why not).`,
+        fix: { kind: "analyze", label: "Add an analysis with sex as a factor" } };
+    }
+    const sex = f.design?.design.sex;
+    if (sex === "both") {
+      return { status: "unmet", reason: "Both sexes were used (study design record), but the table has no rows, data sets or column for sex: report the results for each sex, or say why not." };
+    }
+    if (sex) return { status: "met", reason: `One sex only (${sex}, study design record): say why in the methods.` };
+    return { status: "na", reason: "No sex column in this table and no sex in the study design record." };
+  },
   mean_sd_format: () => ({ status: "met", reason: "Sentences write mean (SD) / M and SD, never mean ± SEM." }),
   // eLife asks for source data behind every graph. The bundle has each
   // data table as CSV, not the values each figure panel plots (X-01), so
@@ -320,7 +344,7 @@ const DEFS: { id: string; title: string; source: string; items: ItemDef[] }[] = 
     { id: "ci", text: "Report effect sizes with confidence intervals", rules: ["effect_ci"], source: SAMPL },
     { id: "software", text: "Name the statistical software", rules: ["software"], source: SAMPL },
   ] },
-  { id: "arrive", title: "ARRIVE 2.0 Essential 10 and protocol registration (items a statistics tool can check)", source: ARRIVE, items: [
+  { id: "arrive", title: "ARRIVE 2.0 Essential 10, protocol registration and sex as a biological variable (items a statistics tool can check)", source: ARRIVE, items: [
     { id: "e1", text: "1. Study design: the groups compared and the experimental unit", rules: ["test_named", "n_unit"], source: `${ARRIVE}, item 1` },
     { id: "e2", text: "2. Sample size: exact n per group and how it was decided", rules: ["n_exact", "sample_size"], source: `${ARRIVE}, item 2` },
     { id: "e3", text: "3. Inclusion and exclusion criteria, with exclusions and exact n per analysis", rules: ["exclusions", "n_exact"], source: `${ARRIVE}, item 3` },
@@ -328,6 +352,7 @@ const DEFS: { id: string; title: string; source: string; items: ItemDef[] }[] = 
     { id: "e5", text: "5. Blinding: who knew the group allocation during allocation, the experiment, outcome assessment and data analysis", rules: ["blinding"], source: `${ARRIVE}, item 5` },
     { id: "e7", text: "7. Statistical methods for each analysis, with software and assumption checks", rules: ["test_named", "software", "assumptions"], source: `${ARRIVE}, item 7` },
     { id: "e8", text: "8. Experimental animals: species and strain, sex and age", rules: ["animals"], source: `${ARRIVE}, item 8` },
+    { id: "sabv", text: "Sex as a biological variable: the sex of the subjects, and the results reported for each sex (or why not)", rules: ["sex"], source: "SAGER guidelines (Heidari et al. 2016); NIH SABV (Clayton & Collins 2014)" },
     { id: "e10", text: "10. Results: summary statistics with variability and the effect size with a confidence interval", rules: ["centre_dispersion", "effect_ci"], source: `${ARRIVE}, item 10` },
     { id: "r19", text: "19. Protocol registration (Recommended Set): whether a protocol with the analysis plan was prepared before the study", rules: ["plan"], source: "ARRIVE 2.0 Recommended Set, item 19" },
   ] },

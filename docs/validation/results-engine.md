@@ -1367,3 +1367,34 @@ unchanged and validates against `docs/project-file.schema.json`; a record
 survives save and open; the schema refuses an unknown `randomised` value.
 .pzfx export writes the record into the Info sheet's notes as text (Prism
 has no such record), so the .pzfx round trip of P-59 is unchanged.
+
+### P-62 sex as a biological variable
+
+Detection (`web/src/guide/sex.ts`, unit-tested in
+`web/src/guide/__tests__/sex.test.ts`) asks, never assumes, and is tight:
+a column or data set is taken to look like sex only when its header is
+"sex" or "gender" (a multiple-variables column, "Sex (F/M)" allowed), or
+when every non-blank label is exactly F, M, female or male (any case,
+plurals allowed) and both sexes occur. Rows, data sets of column and
+grouped tables and multiple-variables columns are checked; XY,
+contingency and survival tables are not. False positives tested and not
+fired: "M" next to "Control", "1 M" and "10 M" (molar), "M1, M2, F1",
+"M" alone or "M, M", letters "M, N, O", combined "WT F, WT M", a column
+"M, F, X".
+
+When it fires, the Checks row of every result on the table carries a
+chip that starts with the question ("Are rows F and M the sex of the
+animals or subjects? If so, ..."): on a grouped table, two-way ANOVA
+with sex and the interaction, one click away (Sex as the row or column
+factor, the interaction shown first, Šídák comparisons of the treatment
+within each sex); on a two-way analysis the chip says sex is a factor
+(and warns when the main-effects-only model leaves out the interaction);
+on a multiple-variables table, Sex as a predictor with its interaction.
+The paste guide asks the same question about a pasted Sex column. The
+ARRIVE tab of the journal checklists gains "Sex as a biological
+variable": not met while the table looks like it has sex and no analysis
+has it as a factor, met once one does; without sex in the table the
+study design record decides (both sexes: not met; one sex: met, with
+"say why in the methods"); otherwise not applicable. Sources cited in the
+UI: SAGER (Heidari et al. 2016, Res Integr Peer Rev 1:2) and NIH SABV
+(Clayton & Collins 2014, Nature 509:282). No numbers are computed.
