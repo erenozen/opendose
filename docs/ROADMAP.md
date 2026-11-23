@@ -1203,6 +1203,58 @@ What the packages left undone, with the reason:
     and replace with loops where a column of values is spread.
   - Scroll frame times were measured on the dev build.
 
+## Feature plan (2026-11-23)
+
+Work list: `docs/research/features/FEATURE-PLAN.md` (P-ids), run wave by
+wave through worktree agents; each feature lands with engine tests
+against an independent reference, unit and e2e tests, ui-stage scenes
+and an independent check of its numbers (validation notes in
+`docs/validation/`).
+
+### Wave 0: correctness and data safety (done 2026-11-23)
+
+- [x] P-01 autosave that is safe with several tabs (per-tab sessions with
+  Web Locks, restore banner, storage line in Preferences)
+- [x] P-02 PDF export with embedded Unicode fonts (Inter 4.1 and an
+  Arial-compatible Liberation Sans build, both OFL)
+- [x] P-03 raster exports in the plot font (Inter inlined before
+  rasterising)
+- [x] P-04 one box-plot definition (the project's percentile method;
+  Tukey whiskers by default, the rule named in the legend)
+- [x] P-05 full-precision paste from Excel, Google Sheets and LibreOffice
+- [x] P-06 xlsx import report: formulas without a saved value, filtered
+  and hidden rows
+- [x] P-07 one file decoder for every picker (BOM, UTF-8, Windows-1252)
+- [x] P-08 potency across experiments (per-experiment fits, mean pIC50
+  with a t interval on n = experiments, linked table of logIC50s)
+- [x] P-09 the eLife source-data item no longer ticks itself
+- [x] P-10 500,000 rows paste, graph and analyse (no RangeError; exact
+  runs test in floating point above 2,000 residuals; import memory)
+
+### Skipped: breaks browser-only
+
+(none so far)
+
+### Deferred
+
+- P-39 (SoftMax side-by-side layout, Incucyte without Elapsed): the plan
+  requires real vendor exports in both layouts and none are available;
+  building the split from a guessed layout could misassign reads. Would
+  change with two real SoftMax exports of one run (stacked and side by
+  side) and one Incucyte export without the Elapsed column.
+
+### Follow-ups found in Wave 0
+
+- Linear regression's runs test reads the residuals in entry order, not
+  X order (curve-fit diagnostics sort; this one does not).
+- P-08: the methods paragraph does not yet describe the per-experiment
+  summary; per-experiment fits are skipped for user equations, global
+  fits, Schild and mean/SD tables.
+- P-05/P-06: the first-run paste path reads text only; the wizards,
+  recipes and Apply to new data read the same xlsx flags but do not show
+  them.
+- Help still says "Tested with 100,000 rows".
+
 ## Next up
 
 1. ~~Publish the site~~ LIVE (2026-08-11): https://erenozen.dev/opendose/
