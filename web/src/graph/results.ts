@@ -16,6 +16,9 @@ export interface ComparisonSet {
   comparisons: Comparison[];
   /** Comparisons that could not be matched to plotted groups. */
   unmatched: number;
+  /** false: the compared groups are not the graph's data sets (the rows
+   *  of a contingency table), so no compact letters are offered. */
+  letters?: boolean;
 }
 
 const METHOD_LABELS: Record<string, string> = {

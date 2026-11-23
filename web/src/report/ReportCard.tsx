@@ -9,6 +9,7 @@ import { Tabs } from "../components/ui";
 import type { DataSheet, DataTableModel, ResultsSheet } from "../project/types";
 import { legendFor, legendGraph } from "./legendFor";
 import { normalizedPhrase } from "../sheets/manipulate/normalizeTitle";
+import { useFamilyEquivalence } from "./estimation/useFamilyEquivalence";
 import { P_STYLES } from "./pformat";
 import { resultSentence } from "./sentences";
 import { snippetsFor } from "./snippets";
@@ -26,9 +27,10 @@ export default function ReportCard({ sheet, table, options, result }: {
   const sentence = useMemo(() => resultSentence(result, { style: prefs.pStyle, prefs }),
     [result, prefs]);
   const valuesAre = data ? normalizedPhrase(project, data) : null;
+  const equivalence = useFamilyEquivalence(graph);
   const legend = useMemo(() => (data ? legendFor({
-    data, table, graph, result, options, prefs, software: softwareLabel(), valuesAre,
-  }) : ""), [data, table, graph, result, options, prefs, valuesAre]);
+    data, table, graph, result, options, prefs, software: softwareLabel(), valuesAre, equivalence,
+  }) : ""), [data, table, graph, result, options, prefs, valuesAre, equivalence]);
   if (!result || (typeof result === "object" && (result as { error?: unknown }).error)) return null;
   if (!sentence && !legend) return null;
   return (

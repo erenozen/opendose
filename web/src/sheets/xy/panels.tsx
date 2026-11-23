@@ -202,8 +202,9 @@ export function XYPlot({ graph, table, result, options, titles, scheme, format, 
   [xs.dropLines, xs.dropLabel, shown, unit]);
   // "In the figure": the legend sentence drawn into the figure (exports
   // carry it); "Under the graph" opens the legend card instead.
+  const yGap = format?.y?.gap ?? null;
   const caption = useMemo(() => (xs.caption === "figure"
-    ? fitCaption(table, shown, options, xs) || undefined : undefined), [xs, table, shown, options]);
+    ? fitCaption(table, shown, options, xs, yGap) || undefined : undefined), [xs, table, shown, options, yGap]);
   return (
     <PlotPanel result={shown} scheme={scheme} xTitle={titles.x} yTitle={titles.y}
       xTickFormat={xTickFormat} format={format} onFormatChange={onFormatChange}

@@ -25,6 +25,7 @@ import { analysisDef } from "../sheets/registry";
 import { bundleFiles, stem, zipBundle, type BundleInput } from "./bundle";
 import { legendFor } from "../report/legendFor";
 import { normalizedPhrase } from "../sheets/manipulate/normalizeTitle";
+import { familyEquivalence } from "../report/estimation/margins";
 import { reportPrefsOf } from "../report/prefs";
 import { projectProvenance } from "../report/provenance";
 import { provenanceDeps, provenanceEnv } from "../report/provenanceDeps";
@@ -146,6 +147,8 @@ export function useBundleExport() {
             options: bound?.kind === "results" ? bound.options : null,
             prefs: reportPrefsOf(api.project.prefs), software: softwareLabel(),
             valuesAre: normalizedPhrase(api.project, data),
+            equivalence: familyEquivalence(api.project.sheets, sheet as GraphSheet,
+              (s) => api.results.get(s.id)?.result),
           }) });
         }
       } else if (sheet?.kind === "layout" && host) {

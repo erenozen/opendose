@@ -1,0 +1,145 @@
+{
+ "opendose_project": 2,
+ "version": 2,
+ "title": "Equivalence margin",
+ "prefs": {
+  "defaultTableType": "xy",
+  "errorBars": "sd",
+  "ciMethod": "asymptotic",
+  "scheme": "default",
+  "digits": 4
+ },
+ "selected": "g114",
+ "sheets": [
+  {
+   "id": "d111",
+   "kind": "data",
+   "name": "Equivalence",
+   "table": {
+    "type": "column",
+    "x": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "Value",
+    "rowTitles": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "datasets": [
+     {
+      "name": "A",
+      "rows": [
+       [
+        "10.8"
+       ],
+       [
+        "10.75"
+       ],
+       [
+        "10.55"
+       ],
+       [
+        "10.5"
+       ],
+       [
+        "9.6"
+       ],
+       [
+        "9.65"
+       ],
+       [
+        "9.85"
+       ],
+       [
+        "9.9"
+       ]
+      ]
+     },
+     {
+      "name": "B",
+      "rows": [
+       [
+        "10.6"
+       ],
+       [
+        "10.55"
+       ],
+       [
+        "10.35"
+       ],
+       [
+        "10.3"
+       ],
+       [
+        "9.4"
+       ],
+       [
+        "9.45"
+       ],
+       [
+        "9.65"
+       ],
+       [
+        "9.7"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "r112",
+   "kind": "results",
+   "parentId": "d111",
+   "analysis": "column",
+   "options": {
+    "analysis": "ttest",
+    "ttestKind": "unpaired",
+    "equivalence": "equivalence",
+    "equivalenceMargin": "1"
+   },
+   "name": "t test of Equivalence"
+  },
+  {
+   "id": "r113",
+   "kind": "results",
+   "parentId": "d111",
+   "analysis": "estimation",
+   "options": {},
+   "name": "Estimation of Equivalence"
+  },
+  {
+   "id": "g114",
+   "kind": "graph",
+   "parentId": "d111",
+   "resultsId": "r113",
+   "graphType": "estimation",
+   "settings": {
+    "titles": {
+     "x": "",
+     "y": ""
+    },
+    "scheme": "default"
+   },
+   "name": "Estimation plot of Equivalence"
+  }
+ ]
+}

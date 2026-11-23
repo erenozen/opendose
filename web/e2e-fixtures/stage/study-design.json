@@ -9,10 +9,10 @@
   "scheme": "default",
   "digits": 4
  },
- "selected": "i110",
+ "selected": "i120",
  "sheets": [
   {
-   "id": "d108",
+   "id": "d118",
    "kind": "data",
    "name": "Tumour volume",
    "table": {
@@ -106,9 +106,9 @@
    }
   },
   {
-   "id": "r109",
+   "id": "r119",
    "kind": "results",
-   "parentId": "d108",
+   "parentId": "d118",
    "analysis": "column",
    "options": {
     "analysis": "ttest",
@@ -117,10 +117,10 @@
    "name": "t test of Tumour volume"
   },
   {
-   "id": "i110",
+   "id": "i120",
    "kind": "info",
    "name": "Study design: Tumour volume",
-   "parentId": "d108",
+   "parentId": "d118",
    "notes": "Pilot cohort 2.",
    "constants": [],
    "design": {

@@ -9,10 +9,10 @@
   "scheme": "default",
   "digits": 4
  },
- "selected": "g116",
+ "selected": "g126",
  "sheets": [
   {
-   "id": "d113",
+   "id": "d123",
    "kind": "data",
    "name": "Viability",
    "table": {
@@ -78,9 +78,9 @@
    }
   },
   {
-   "id": "r114",
+   "id": "r124",
    "kind": "results",
-   "parentId": "d113",
+   "parentId": "d123",
    "analysis": "normalize",
    "options": {
     "zeroMode": "smallest",
@@ -94,7 +94,7 @@
    "name": "Normalize of Viability"
   },
   {
-   "id": "d115",
+   "id": "d125",
    "kind": "data",
    "name": "Normalized Viability",
    "table": {
@@ -159,14 +159,14 @@
     "replicateLayout": "side_by_side"
    },
    "derived": {
-    "sourceId": "d113",
-    "resultsId": "r114"
+    "sourceId": "d123",
+    "resultsId": "r124"
    }
   },
   {
-   "id": "g116",
+   "id": "g126",
    "kind": "graph",
-   "parentId": "d115",
+   "parentId": "d125",
    "resultsId": null,
    "graphType": "grouped_interleaved",
    "settings": {

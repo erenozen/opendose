@@ -9,10 +9,10 @@
   "scheme": "default",
   "digits": 4
  },
- "selected": "r112",
+ "selected": "r122",
  "sheets": [
   {
-   "id": "d111",
+   "id": "d121",
    "kind": "data",
    "name": "Body weight by sex",
    "table": {
@@ -66,9 +66,9 @@
    }
   },
   {
-   "id": "r112",
+   "id": "r122",
    "kind": "results",
-   "parentId": "d111",
+   "parentId": "d121",
    "analysis": "grouped_multiple_t",
    "options": {},
    "name": "Multiple t tests of Body weight by sex"

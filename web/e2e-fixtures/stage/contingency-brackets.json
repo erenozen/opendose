@@ -1,0 +1,99 @@
+{
+ "opendose_project": 2,
+ "version": 2,
+ "title": "Pairs of rows",
+ "prefs": {
+  "defaultTableType": "xy",
+  "errorBars": "sd",
+  "ciMethod": "asymptotic",
+  "scheme": "default",
+  "digits": 4
+ },
+ "selected": "g110",
+ "sheets": [
+  {
+   "id": "d108",
+   "kind": "data",
+   "name": "Genotypes",
+   "table": {
+    "type": "contingency",
+    "x": [
+     "",
+     "",
+     ""
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "",
+    "rowTitles": [
+     "WT",
+     "Het",
+     "KO"
+    ],
+    "datasets": [
+     {
+      "name": "Positive",
+      "rows": [
+       [
+        "18"
+       ],
+       [
+        "15"
+       ],
+       [
+        "5"
+       ]
+      ]
+     },
+     {
+      "name": "Negative",
+      "rows": [
+       [
+        "2"
+       ],
+       [
+        "5"
+       ],
+       [
+        "15"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "r109",
+   "kind": "results",
+   "parentId": "d108",
+   "analysis": "contingency",
+   "options": {
+    "pairwise": "holm"
+   },
+   "name": "Chi-square of Genotypes"
+  },
+  {
+   "id": "g110",
+   "kind": "graph",
+   "parentId": "d108",
+   "resultsId": "r109",
+   "graphType": "contingency_stacked_percent",
+   "settings": {
+    "titles": {
+     "x": "",
+     "y": ""
+    },
+    "scheme": "default",
+    "format": {
+     "comparisons": {
+      "show": true
+     }
+    }
+   },
+   "name": "Graph of Genotypes"
+  }
+ ]
+}
