@@ -7,11 +7,12 @@ import { lazyPart } from "../../lazy";
 import { defineAnalysis } from "../../types";
 import type { AssayModule } from "../index";
 import {
-  DEFAULT_FLOW_OPTIONS, flowTable, normalizeFlowOptions, runFlow, type FlowOptions, type FlowResult,
+  ANALYSIS_ASSAY_FLOW, DEFAULT_FLOW_OPTIONS, flowTable, normalizeFlowOptions, runFlow,
+  type FlowOptions, type FlowResult,
 } from "./model";
 import { emptyFlow, flowSample } from "./sample";
 
-export const ANALYSIS_ASSAY_FLOW = "assay_flow";
+export { ANALYSIS_ASSAY_FLOW };
 
 const panels = () => import("./panels");
 

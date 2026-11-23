@@ -9,7 +9,7 @@ import { pageDims, panelLetters, resolveLayout, type ResolvedLayout } from "../p
 import { findSheet } from "../project/ops";
 import type { DataSheet, ExportPrefs, GraphSheet, LayoutSheet, Project } from "../project/types";
 import { legendFor } from "../report/legendFor";
-import { normalizedPhrase } from "../sheets/manipulate/normalizeTitle";
+import { valuesPhrase } from "../report/valuesAre";
 import { familyEquivalence } from "../report/estimation/margins";
 import { reportPrefsOf } from "../report/prefs";
 import { softwareLabel } from "../report/useReport";
@@ -46,7 +46,7 @@ function graphLegend(p: Project, g: GraphSheet, resultOf: (id: string) => unknow
     return legendFor({
       data, table: data.table, graph: g, result,
       options: bound?.kind === "results" ? bound.options : null,
-      prefs: reportPrefsOf(p.prefs), software: softwareLabel(), valuesAre: normalizedPhrase(p, data),
+      prefs: reportPrefsOf(p.prefs), software: softwareLabel(), valuesAre: valuesPhrase(p, data),
       equivalence: familyEquivalence(p.sheets, g, (s) => resultOf(s.id)),
     });
   } catch { return ""; }

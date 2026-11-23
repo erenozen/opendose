@@ -8,7 +8,7 @@ import { useMemo } from "react";
 import { useProject } from "../app/context";
 import { CopyButton } from "../components/CiteBlock";
 import type { DataSheet, DataTableModel, GraphSheet } from "../project/types";
-import { normalizedPhrase } from "../sheets/manipulate/normalizeTitle";
+import { valuesPhrase } from "./valuesAre";
 import { legendFor } from "./legendFor";
 import { useFamilyEquivalence } from "./estimation/useFamilyEquivalence";
 import { softwareLabel, useReportPrefs } from "./useReport";
@@ -19,7 +19,7 @@ export default function GraphLegend({ graph, data, table, result, options }: {
 }) {
   const prefs = useReportPrefs();
   const { project } = useProject();
-  const valuesAre = normalizedPhrase(project, data);
+  const valuesAre = valuesPhrase(project, data);
   // estimation plots: the family's equivalence margin (P-12)
   const equivalence = useFamilyEquivalence(graph);
   const text = useMemo(() => legendFor({

@@ -1151,6 +1151,34 @@ const scenes = [
     await into(s, ".qpcr-results .qpcr-controls");
     await settle(s);
   } },
+  // P-31 follow-up: the flow summary's linked graph, its legend naming the
+  // statistic with the full gate path
+  { name: "guided-flow-legend", setup: async (s) => {
+    await example(s);
+    const dlg = await newTableDialog(s);
+    await dlg.getByRole("radio", { name: "Start from an assay" }).check();
+    await dlg.getByRole("radio", { name: /^Flow cytometry/ }).check();
+    await dlg.getByRole("button", { name: "Start assay" }).click();
+    const wiz = s.page.locator("dialog.assay-wizard");
+    await wiz.waitFor({ timeout: 30000 });
+    for (let i = 0; i < 8; i++) {
+      const next = wiz.getByRole("button", { name: "Next", exact: true });
+      if (!(await next.count()) || await next.isDisabled()) break;
+      await next.click();
+      await s.page.waitForTimeout(300);
+    }
+    await wiz.locator(".modal-actions .wizard-next").click();
+    await wiz.waitFor({ state: "detached", timeout: 30000 });
+    await s.page.locator(".flow-results").getByRole("button", { name: /^Open “Per donor of/ }).click({ timeout: 120000 });
+    await selectSheet(s, /^Graph of Per donor of/);
+    const legend = s.page.locator(".figure-legend");
+    await legend.waitFor({ timeout: 120000 });
+    if (!(await legend.evaluate((e) => e.open))) await click(s, legend.locator("summary"));
+    await s.page.locator(".figure-legend-text").filter({ hasText: "FlowJo gate statistic" })
+      .waitFor({ timeout: 120000 });
+    await settle(s, 1000);
+    await into(s, ".figure-legend", "center");
+  } },
   { name: "guided-qpcr-controls-step", setup: async (s) => {
     await fixture(s, "qpcr-controls.json", { live: true });
     await s.page.locator(".qpcr-controls").first().waitFor({ timeout: 120000 });

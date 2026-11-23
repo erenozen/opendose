@@ -14,7 +14,7 @@
 // Roederer 2001 (FMO controls); Maecker & Trotter 2006 (controls). Pure,
 // unit-tested.
 import { normalizeTable } from "../../../project/table.ts";
-import type { DataTableModel, Project, ReplicateMap, Sheet } from "../../../project/types.ts";
+import type { DataSheet, DataTableModel, Project, ReplicateMap, Sheet } from "../../../project/types.ts";
 import { findSheet, updateSheet } from "../../../project/ops.ts";
 import { readFormat, withField } from "../../../graph/format.ts";
 import { parseSource, recipeById } from "../../../share/recipes/presets.ts";
@@ -29,6 +29,9 @@ export const FLOW_SOURCE = "Cossarizza et al. 2019, Eur J Immunol 49:1457 (guide
   + "cytometry in immunological studies: data analysis and statistics); Roederer 2001, Cytometry "
   + "45:194 (FMO controls); Maecker & Trotter 2006, Cytometry A 69:1037; Lord et al. 2020, J Cell "
   + "Biol 219:e202001064 (SuperPlots)";
+
+/** The flow summary's analysis id (stored in project files: never rename). */
+export const ANALYSIS_ASSAY_FLOW = "assay_flow";
 
 export type PartRole = "experiment" | "condition" | "skip";
 export type BackgroundKind = "none" | "fmo" | "isotype";
@@ -347,6 +350,26 @@ export function setupFlowOutput(p: Project, linkedId: string, unit: string): Pro
     }
   }
   return next;
+}
+
+/** What the values of a flow summary's linked table are, for its figure
+ *  legend: the statistic with its full gate path as the methods name it
+ *  (P-31), "the FlowJo gate statistic CD69+ of Lymphocytes/Single
+ *  Cells/Live/CD4+, Freq. of Parent", with the background subtracted when
+ *  it was. Null for any other table. */
+export function flowValuesPhrase(p: Project, data: DataSheet): string | null {
+  if (!data.derived) return null;
+  const prod = findSheet(p, data.derived.resultsId);
+  if (prod?.kind !== "results" || prod.analysis !== ANALYSIS_ASSAY_FLOW) return null;
+  const src = findSheet(p, prod.parentId);
+  if (src?.kind !== "data") return null;
+  const o = normalizeFlowOptions(prod.options);
+  const stat = readFlow(src.table, o).stat;
+  if (!stat) return null;
+  const bg = o.background.kind === "none" || !o.background.condition ? ""
+    : `, with the ${o.background.kind === "fmo" ? "FMO" : "isotype"} control (${o.background.condition}) `
+      + `of each ${unitSingular(o.unit).toLowerCase()} subtracted`;
+  return `the FlowJo gate statistic ${statWithPath(stat)}${bg}`;
 }
 
 // ------------------------------------------------------------ import

@@ -8,7 +8,7 @@ import { CopyButton } from "../components/CiteBlock";
 import { Tabs } from "../components/ui";
 import type { DataSheet, DataTableModel, ResultsSheet } from "../project/types";
 import { legendFor, legendGraph } from "./legendFor";
-import { normalizedPhrase } from "../sheets/manipulate/normalizeTitle";
+import { valuesPhrase } from "./valuesAre";
 import { useFamilyEquivalence } from "./estimation/useFamilyEquivalence";
 import { P_STYLES } from "./pformat";
 import { resultSentence } from "./sentences";
@@ -26,7 +26,7 @@ export default function ReportCard({ sheet, table, options, result }: {
   const graph = legendGraph(project.sheets, sheet.id, sheet.parentId);
   const sentence = useMemo(() => resultSentence(result, { style: prefs.pStyle, prefs }),
     [result, prefs]);
-  const valuesAre = data ? normalizedPhrase(project, data) : null;
+  const valuesAre = data ? valuesPhrase(project, data) : null;
   const equivalence = useFamilyEquivalence(graph);
   const legend = useMemo(() => (data ? legendFor({
     data, table, graph, result, options, prefs, software: softwareLabel(), valuesAre, equivalence,

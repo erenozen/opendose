@@ -378,7 +378,21 @@ expect("mapped columns give the same kidney ΔCq 4.365", kid2.includes("4.365"),
     (await textOf(".pane-results")).slice(0, 300));
   const legend = await page.locator(".report-legend p").innerText().catch(() => "");
   expect("flow: the legend counts n = 3 donors", legend.includes("n = 3 donors per group."), legend);
+  // P-31 follow-up (ruling 10, legend wording pinned): the legend names the
+  // statistic with its full gate path, as the methods do; before, it named
+  // no statistic ("… large symbols the mean of each experiment. n = 3
+  // donors per group. …")
+  const valuesAre = "Values are the FlowJo gate statistic CD69+ of Lymphocytes/Single Cells/Live/CD4+, "
+    + "Freq. of Parent. n = 3 donors per group.";
+  expect("P-31: the linked results' legend names the statistic and the full gate path",
+    legend.includes(valuesAre), legend);
   await navRow("Graph of Per donor of CD69 flow").click();
+  const figLegend = page.locator(".figure-legend");
+  await figLegend.waitFor({ timeout: 30000 });
+  if (!(await figLegend.evaluate((e) => e.open))) await figLegend.locator("summary").click();
+  const figText = await page.locator(".figure-legend-text").innerText().catch(() => "");
+  expect("P-31: the linked graph's figure legend names the statistic and the full gate path",
+    figText.includes(valuesAre), figText);
   await page.locator(".plot-card").getByRole("button", { name: "Settings" }).click();
   const settings = page.getByRole("dialog", { name: "Graph settings" });
   expect("flow: the graph is a SuperPlot (donor-coloured points, donor means joined)",
