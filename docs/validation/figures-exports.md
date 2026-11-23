@@ -221,3 +221,23 @@ third, pins KO in Preferences (first #e69f00: the warning shows; then
 #d55e00: no warning), and checks each graph draws KO, and only KO, in
 #d55e00 on screen and in its SVG export (rgb(213, 94, 0)), then in the
 dark theme on screen, in the print-colour export and in the dark export.
+
+## Export bundle with PDF graphs and layout pages (P-63)
+
+The export bundle (File, Download export bundle) adds each graph as a
+PDF (`graphs/<name>.pdf`, from the same SVG and through the same
+`svgPagesToPdf` path as the graph's own PDF export, so its text is set in
+the embedded fonts of P-02) and each page layout as a one-page PDF and an
+SVG (`layouts/<name>.pdf`, `.svg`, composed by `layout/pageExport.ts` as
+the layout sheet exports them, print colours, the master legend read from
+the drawn graphs). The README lists every file with what it is. PDFs are
+stored in the zip as they are (already compressed).
+
+`bundle.test.ts` checks the names, that every file is listed in the
+README on a line of its own, and the zip round trip. `scripts/e2e-share.mjs`
+adds a layout of the example's two graphs, downloads the bundle and
+checks `graphs/*.pdf` (2, each with /FontFile2), `layouts/layout-1.pdf`
+and `.svg`, the README lines, and opens the three PDFs with two readers:
+pypdf (one page each with text; the layout page 595.28 pt wide, A4) and
+pdf.js 5.3.31 (`PDFJS` names a pdfjs-dist folder; it is not a dependency
+of the app, so the step says "skip" without it).
