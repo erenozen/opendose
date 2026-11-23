@@ -115,6 +115,8 @@ def _dose_response(data, options):
     if spec is None:
         raise ValueError(f"unknown model: {model}")
     constraints = options.get("constraints") or {}
+    # options.bounds {name: [lo, hi]}: range constraints (nlfit.fit_model)
+    bounds = options.get("bounds") or None
     weighting = options.get("weighting", "none")
     ci_method = options.get("ci_method", "asymptotic")
     rout_q = options.get("rout_q")  # e.g. 0.01 turns on ROUT
@@ -161,13 +163,14 @@ def _dose_response(data, options):
                 xs, ys = _expand(x_col, ds["ys"])
             if robust:
                 fit = nlfit.robust_model_fit(xs, ys, model,
-                                             constraints=constraints)
+                                             constraints=constraints,
+                                             bounds=bounds)
             elif rout_q:
                 rout = nlfit.rout_outliers(
                     xs, ys, model, q=float(rout_q), constraints=constraints,
                     weighting=weighting, ci_method=ci_method,
                     weight_source=options.get("weight_source", "predicted"),
-                    **s_kw)
+                    bounds=bounds, **s_kw)
                 fit = rout["fit"]
                 entry["rout"] = {k: rout[k] for k in
                                  ("q", "rsdr", "outliers", "n_outliers")}
@@ -176,7 +179,7 @@ def _dose_response(data, options):
                                       weighting=weighting, ci_method=ci_method,
                                       weight_source=options.get(
                                           "weight_source", "predicted"),
-                                      **s_kw)
+                                      bounds=bounds, **s_kw)
             fit["curve"] = doseresponse.curve_points(
                 fit, min(finite_x), max(finite_x))
             x_lo, x_hi = min(fit["curve"]["x"]), max(fit["curve"]["x"])
@@ -236,7 +239,7 @@ def _dose_response(data, options):
             entry["experiments"] = _experiments(
                 x_col, ds, exp_opt, model, spec, constraints=constraints,
                 weighting=weighting, ci_method=ci_method, robust=robust,
-                rout_q=rout_q,
+                rout_q=rout_q, bounds=bounds,
                 weight_source=options.get("weight_source", "predicted"))
         results.append(entry)
 
@@ -289,7 +292,7 @@ def _dose_response(data, options):
 
 
 def _experiments(x_col, ds, exp_opt, model, spec, *, constraints, weighting,
-                 ci_method, robust, rout_q, weight_source):
+                 ci_method, robust, rout_q, weight_source, bounds=None):
     """One fit per independent experiment of a data set and the summary of
     their potencies (potency.across_experiments), fitted exactly as the
     data set's own fit (model, constraints, weighting, robust or ROUT)."""
@@ -304,16 +307,17 @@ def _experiments(x_col, ds, exp_opt, model, spec, *, constraints, weighting,
         xs, ys = _expand(x_col, rows)
         if robust:
             fit = nlfit.robust_model_fit(xs, ys, model,
-                                         constraints=constraints)
+                                         constraints=constraints,
+                                         bounds=bounds)
         elif rout_q:
             fit = nlfit.rout_outliers(
                 xs, ys, model, q=float(rout_q), constraints=constraints,
                 weighting=weighting, ci_method=ci_method,
-                weight_source=weight_source)["fit"]
+                weight_source=weight_source, bounds=bounds)["fit"]
         else:
             fit = nlfit.fit_model(xs, ys, model, constraints=constraints,
                                   weighting=weighting, ci_method=ci_method,
-                                  weight_source=weight_source)
+                                  weight_source=weight_source, bounds=bounds)
         fit.pop("_cov", None)
         fit.pop("_residuals", None)
         return fit, xs, ys

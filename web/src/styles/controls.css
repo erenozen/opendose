@@ -49,6 +49,14 @@ select option {
 .constraint-value:disabled { opacity: 0.4; }
 .interp-input, .antagonist-input { width: 100%; }
 
+/* A constraint's kind and range sit under its row, in line with its text */
+.constraint-kind, .constraint-range { padding-left: var(--space-24); }
+.constraint-kind { flex-direction: row; flex-wrap: wrap; gap: var(--space-4) var(--space-16); }
+.constraint-range {
+  display: flex; flex-direction: column; gap: var(--space-8);
+  padding-block: var(--space-4) var(--space-8);
+}
+
 .check-row, .constraint-row {
   display: flex; align-items: center; gap: 8px; padding: 3px 0;
   color: var(--ink-2); flex-wrap: wrap;

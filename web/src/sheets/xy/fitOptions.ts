@@ -10,6 +10,7 @@ import {
   type UserEquationDef,
 } from "../../lib/userEquation.ts";
 import type { AnalysisResult, ConstraintState, OptionsState } from "../../types.ts";
+import { parseNumber } from "../../components/ui/Field.validation.ts";
 
 function parseNum(v: string | undefined | null): number | null {
   const t = (v ?? "").trim();
@@ -35,13 +36,73 @@ export function withConstraint(o: OptionsState, p: string, c: ConstraintState): 
   return { ...o, paramConstraints: { ...(o.paramConstraints ?? {}), [p]: c } };
 }
 
+export type ConstraintKind = NonNullable<ConstraintState["kind"]>;
+
+/** A constraint's kind; files saved before ranges existed hold constants. */
+export function constraintKind(st: ConstraintState): ConstraintKind {
+  return st.kind ?? "constant";
+}
+
+const isRange = (st: ConstraintState) => st.enabled && constraintKind(st) !== "constant";
+
+/** What is wrong with a range constraint's fields, each null when fine:
+ *  the limits it needs as numbers, lower below upper, and a reason. */
+export function rangeProblems(st: ConstraintState):
+  { lo: string | null; hi: string | null; reason: string | null } {
+  const kind = constraintKind(st);
+  const needLo = kind === "greater" || kind === "between";
+  const needHi = kind === "less" || kind === "between";
+  const lo = parseNumber(st.lo ?? "");
+  const hi = parseNumber(st.hi ?? "");
+  const loProblem = !needLo ? null : lo === null ? "Enter a number" : null;
+  let hiProblem = !needHi ? null : hi === null ? "Enter a number" : null;
+  if (!hiProblem && kind === "between" && lo !== null && hi !== null && !(lo < hi)) {
+    hiProblem = `Enter a number above ${st.lo?.trim()}`;
+  }
+  const reason = (st.reason ?? "").trim() ? null
+    : "Enter why the value cannot go past this limit";
+  return { lo: loProblem, hi: hiProblem, reason };
+}
+
+/** Range constraints of a built-in model, as the engine reads them
+ *  (options.bounds {name: [lo, hi]}, null for an open side). A range is
+ *  sent only when its limits are numbers and its reason is given. */
+export function builtinBounds(meta: ModelMeta, o: OptionsState):
+  Record<string, [number | null, number | null]> {
+  const out: Record<string, [number | null, number | null]> = {};
+  for (const p of meta.constrainable) {
+    const st = constraintState(o, p);
+    if (!isRange(st)) continue;
+    const pr = rangeProblems(st);
+    if (pr.lo || pr.hi || pr.reason) continue;
+    const kind = constraintKind(st);
+    out[p] = [kind === "less" ? null : parseNumber(st.lo ?? ""),
+      kind === "greater" ? null : parseNumber(st.hi ?? "")];
+  }
+  return out;
+}
+
+/** "Bottom > 0, stated reason: signal cannot be negative": a range in
+ *  the methods. */
+export function rangeText(p: string, st: ConstraintState): string | null {
+  if (!isRange(st)) return null;
+  const pr = rangeProblems(st);
+  if (pr.lo || pr.hi || pr.reason) return null;
+  const lo = st.lo?.trim();
+  const hi = st.hi?.trim();
+  const kind = constraintKind(st);
+  const range = kind === "greater" ? `${p} > ${lo}` : kind === "less" ? `${p} < ${hi}`
+    : `${lo} < ${p} < ${hi}`;
+  return `${range}, stated reason: ${(st.reason ?? "").trim().replace(/\.$/, "")}`;
+}
+
 /** Held-constant parameters and experimental constants for a built-in
  *  model. Top / Bottom / HillSlope read as before (blank: 0, 0, -1). */
 export function builtinConstraints(meta: ModelMeta, o: OptionsState): Record<string, number> {
   const out: Record<string, number> = {};
   for (const p of meta.constrainable) {
     const st = constraintState(o, p);
-    if (!st.enabled) continue;
+    if (!st.enabled || isRange(st)) continue;
     const v = parseNum(st.value);
     if (v !== null) out[p] = v;
     else if (p === "Top" || p === "Bottom") out[p] = 0;
@@ -101,7 +162,7 @@ export function userFitConstraints(def: UserEquationDef, o: OptionsState):
   for (const p of freeParameters(def, params)) {
     if (shared.has(p) || p in constraints) continue;
     const st = constraintState(o, p);
-    if (!st.enabled) continue;
+    if (!st.enabled || isRange(st)) continue;
     const v = parseNum(st.value);
     if (v !== null) constraints[p] = v;
   }

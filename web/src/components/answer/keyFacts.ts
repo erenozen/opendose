@@ -117,6 +117,11 @@ function fitFigure(fit: FitResult, xUnit: string): KeyFigure | null {
     fig.demoted = `Extrapolated: the fitted ${name.replace("Log", "")} falls ${fit.extrapolation.direction} `
       + "every dose tested, so it is read off the model's tail rather than measured.";
   }
+  if (e.at_bound) {
+    fig.ci = undefined;
+    fig.demoted = `At its constraint: the ${name} sits on the limit set for it, so its SE and CI `
+      + "are not reliable.";
+  }
   if (fitAmbiguous(fit)) {
     fig.demoted = `Ambiguous fit: the parameters, including the ${name}, should not be reported.`;
   }

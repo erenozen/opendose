@@ -44,6 +44,15 @@ export const ERROR_BAR_LABELS: Record<ErrorBarKind, string> = {
 export interface ConstraintState {
   enabled: boolean;
   value: string;
+  /** Range constraints (P-20): absent (files saved before) = "constant",
+   *  holding the parameter at `value`. */
+  kind?: "constant" | "greater" | "less" | "between";
+  /** "greater" / "between": the lower limit; "less" / "between": the
+   *  upper limit (typed text, as `value`). */
+  lo?: string;
+  hi?: string;
+  /** Why the range holds: required for a range, stated in the methods. */
+  reason?: string;
 }
 
 export interface NormalizeState {
@@ -146,6 +155,9 @@ export interface ParamEntry {
   constrained: boolean;
   derived?: boolean;
   shared?: boolean; // global fit: one value across datasets
+  /** The fit ended on this parameter's range limit (P-20): its SE and
+   *  CI are not reliable. */
+  at_bound?: "lower" | "upper";
 }
 
 export interface FitResult {

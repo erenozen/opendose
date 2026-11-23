@@ -1162,3 +1162,36 @@ recovered to 1e-5 and noisy ones match scipy curve_fit
 data give an ambiguous fit or a sentence, never a traceback; CRS without
 alpha asks for it. The BC.4 lettuce ED90 (10096) lies 100-fold past the
 highest concentration and is reported as read off the model's tail.
+
+### P-20 range constraints on built-in models
+
+`nlfit.fit_model(bounds={name: [lo, hi]})` (options `bounds` of
+`dose_response`, also through robust regression, ROUT and the
+per-experiment fits): greater than, less than or between, on top of the
+model's own range (never wider). The fit switches to the bounded
+trust-region solver; a parameter that ends on its limit is reported at
+the limit itself and marked `at_bound`, and its row says "at its
+constraint: SE not reliable" (curve-fitting guide, "Constraining
+parameters"). In the controls a range needs a stated reason, which the
+methods sentence carries; ranges apply to curves fitted one at a time
+(a global fit says to hold the parameter constant instead).
+Relational constraints (Kfast > Kslow) stay out.
+
+Reference: `engine/tests/reference/range_constraints.py` (scipy
+least_squares with bounds, trust-region reflective, on the 4PL written
+out there; R's nls(port) is not installed), tested in
+`engine/tests/test_range_constraints.py` (estimates to 1e-6, SEs to
+2e-3). Data: one inhibition curve, 9 log doses in triplicate.
+
+| Case | Bottom | Top | LogIC50 | HillSlope | Sy.x |
+| --- | --- | --- | --- | --- | --- |
+| Free fit | -4.4024 | 100.149 | -6.86818 | -1.12122 | 2.65765 |
+| Bottom > 0 (at its limit) | 0 | 99.2961 | -6.90593 | -1.25189 | 3.31644 |
+| HillSlope between -1 and -0.3 (at -1) | -6.2368 | 101.603 | -6.86352 | -1 | 2.89885 |
+| Bottom > -10 (inactive) | -4.4024 | 100.149 | -6.86818 | -1.12122 | 2.65765 |
+
+An inactive limit gives the free fit to 1e-7; Y ×1000 with Bottom > 0
+keeps Bottom at 0 and scales Top by 1000; LogIC50 names the midpoint as
+in constants. A lower limit above the upper one, a range on a parameter
+held constant, an unknown parameter or a missing limit each give a
+sentence saying what to fix.

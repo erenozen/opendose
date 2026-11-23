@@ -11,6 +11,10 @@ interface Props {
   xUnit?: string;
 }
 
+// A parameter on its range limit: the SE and CI assume it could move
+// both ways (curve-fitting guide, "Constraining parameters").
+const AT_BOUND_SE = "at its constraint: SE not reliable";
+
 const AMBIGUOUS_NOTE = "Some parameters are not defined by the data (dependency > 0.9999), so the "
   + "fit is ambiguous. Consider constraining parameters.";
 
@@ -173,9 +177,10 @@ function FitCard({ ds, xUnit }: { ds: DatasetResult; xUnit: string }) {
                       <th scope="row">{label}</th>
                       <RangeValueCell name={name} e={e} fit={fit} fallback={<td>{e.constrained
                         ? `= ${formatSig(e.value)}` : formatSig(e.value)}</td>} />
-                      <td>{e.constrained || e.derived || hide
+                      <td>{e.at_bound ? AT_BOUND_SE : e.constrained || e.derived || hide
                         ? "n/a" : formatSig(e.se)}</td>
-                      <td>{e.constrained ? "(constrained)" : hide ? "not reported (extrapolated)" : paramCI(e)}</td>
+                      <td>{e.constrained ? "(constrained)" : e.at_bound ? "not reported (at its constraint)"
+                        : hide ? "not reported (extrapolated)" : paramCI(e)}</td>
                     </tr>
                   );
                 })}
