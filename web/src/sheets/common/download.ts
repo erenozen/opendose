@@ -43,6 +43,7 @@ export function resultsMatrix(root: HTMLElement | null): string[][] {
   for (const el of root.querySelectorAll<HTMLElement>(
     "h3, h4, table, .results-error, p.model-line")) {
     if (el.tagName !== "TABLE" && el.closest("table")) continue;
+    if (el.closest("[data-no-export]")) continue; // has its own export (fit report)
     if (el.tagName === "TABLE") {
       for (const row of (el as HTMLTableElement).rows) {
         const cells: string[] = [];

@@ -8,7 +8,7 @@ import type { AnalysisResult, OptionsState } from "../types";
 import { engineWeighting, formatSig } from "../types";
 import { modelMeta, USER_MODEL_ID } from "../lib/modelLibrary";
 import { sharedParameters } from "../lib/userEquation";
-import { constraintState } from "../sheets/xy/fitOptions";
+import { constraintKind, constraintState, rangeText } from "../sheets/xy/fitOptions";
 import { zeroDosePlan } from "../sheets/xy/zeroDose";
 import CiteBlock, { CopyButton } from "./CiteBlock";
 
@@ -26,10 +26,18 @@ export default function MethodsText({ result, options, xUnit }: Props) {
   const isUser = options.model === USER_MODEL_ID;
   const meta = modelMeta(options.model);
   const constraints: string[] = [];
+  let hasRange = false;
   const params = isUser ? Object.keys(options.userEquation?.rules ?? {}) : meta.constrainable;
   for (const p of params) {
     const st = constraintState(options, p);
-    if (st.enabled && st.value.trim() !== "") constraints.push(`${p} = ${st.value}`);
+    const range = isUser ? null : rangeText(p, st);
+    if (range) {
+      constraints.push(range);
+      hasRange = true;
+    }
+    else if (st.enabled && constraintKind(st) === "constant" && st.value.trim() !== "") {
+      constraints.push(`${p} = ${st.value}`);
+    }
   }
 
   const parts: string[] = [];
@@ -48,7 +56,7 @@ export default function MethodsText({ result, options, xUnit }: Props) {
   } else {
     parts.push(
       `Data were fitted by nonlinear regression to the "${meta.label}" model` +
-      (constraints.length ? ` (constraining ${constraints.join(", ")})` : ""));
+      (constraints.length ? ` (constraining ${constraints.join(hasRange ? "; " : ", ")})` : ""));
     const shared = meta.globalOnly && !options.sharedParams.length
       ? meta.shared ?? [] : options.sharedParams;
     if (shared.length) {

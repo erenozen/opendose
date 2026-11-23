@@ -1,7 +1,8 @@
 import { useId, useState } from "react";
-import type { AnalysisResult, DatasetResult, FitResult } from "../types";
+import type { AnalysisResult, DatasetResult, FitResult, OptionsState } from "../types";
 import { MODELS_META, formatSig, weightingLabel } from "../types";
 import { RangeNote, RangeValueCell } from "../sheets/xy/rangeFlags";
+import { FitStarts } from "../sheets/xy/FitStarts";
 import { rangeHidesSpread } from "../sheets/xy/rangeReport";
 import { paramCI, paramLabel } from "./answer/keyFacts";
 import { Button, NumText } from "./ui";
@@ -9,7 +10,13 @@ import { Button, NumText } from "./ui";
 interface Props {
   result: AnalysisResult | null;
   xUnit?: string;
+  /** The fit's options: the fit report states range reasons from them. */
+  options?: OptionsState;
 }
+
+// A parameter on its range limit: the SE and CI assume it could move
+// both ways (curve-fitting guide, "Constraining parameters").
+const AT_BOUND_SE = "at its constraint: SE not reliable";
 
 const AMBIGUOUS_NOTE = "Some parameters are not defined by the data (dependency > 0.9999), so the "
   + "fit is ambiguous. Consider constraining parameters.";
@@ -102,7 +109,7 @@ function useCaveats(fit: FitResult) {
   return { badges, detail };
 }
 
-function FitCard({ ds, xUnit }: { ds: DatasetResult; xUnit: string }) {
+function FitCard({ ds, xUnit, options }: { ds: DatasetResult; xUnit: string; options?: OptionsState }) {
   const fit = ds.fit!;
   const caveats = useCaveats(fit);
   const order = fit.param_order ?? Object.keys(fit.params);
@@ -173,15 +180,20 @@ function FitCard({ ds, xUnit }: { ds: DatasetResult; xUnit: string }) {
                       <th scope="row">{label}</th>
                       <RangeValueCell name={name} e={e} fit={fit} fallback={<td>{e.constrained
                         ? `= ${formatSig(e.value)}` : formatSig(e.value)}</td>} />
-                      <td>{e.constrained || e.derived || hide
+                      <td>{e.at_bound ? AT_BOUND_SE : e.constrained || e.derived || hide
                         ? "n/a" : formatSig(e.se)}</td>
-                      <td>{e.constrained ? "(constrained)" : hide ? "not reported (extrapolated)" : paramCI(e)}</td>
+                      <td>{e.constrained ? "(constrained)" : e.at_bound ? "not reported (at its constraint)"
+                        : hide ? "not reported (extrapolated)" : paramCI(e)}</td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
             <RangeNote fit={fit} />
+            {fit.notes?.map((n) => (
+              <p key={n} className="model-line fit-note"><NumText text={n} /></p>
+            ))}
+            <FitStarts name={ds.name} fit={fit} options={options} />
             <table className="results-table goodness">
               <tbody>
                 <tr><th>Degrees of freedom</th><td>{fit.goodness.df}</td></tr>
@@ -199,7 +211,7 @@ function FitCard({ ds, xUnit }: { ds: DatasetResult; xUnit: string }) {
   );
 }
 
-export default function ResultsPanel({ result, xUnit = "M" }: Props) {
+export default function ResultsPanel({ result, xUnit = "M", options }: Props) {
   if (!result) return null;
   if (result.error) {
     return <div className="results-error">Analysis failed: {result.error}</div>;
@@ -212,7 +224,7 @@ export default function ResultsPanel({ result, xUnit = "M" }: Props) {
           <h3>{ds.name}</h3>
           <div className="results-error">Could not fit: {ds.error}</div>
         </div>
-      ) : <FitCard key={i} ds={ds} xUnit={xUnit} />))}
+      ) : <FitCard key={i} ds={ds} xUnit={xUnit} options={options} />))}
     </div>
   );
 }

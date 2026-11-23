@@ -65,6 +65,7 @@ import numpy as np
 from scipy import stats
 
 from . import dunnett, effectsize, studentized
+from .ttests import NO_SCATTER_CHECK, no_scatter
 
 
 def _groups(datasets) -> list[np.ndarray]:
@@ -94,6 +95,8 @@ def one_way_anova(datasets, names=None) -> dict:
     # first keeps the group means accurate when the data sit far from zero
     # (x - x0 is exact for nearby x by Sterbenz's lemma): without it the
     # between-group SS lost ~1.5 digits on NIST StRD SmLs04 / AtmWtAg.
+    if all(no_scatter(float(g.var(ddof=1)), float(g.mean())) for g in groups):
+        raise ValueError(no_scatter_message("One-way ANOVA"))
     shift = groups[0][0]
     shifted = [g - shift for g in groups]
     grand_mean = float(np.concatenate(shifted).mean())
@@ -199,6 +202,13 @@ def fligner_killeen(groups) -> dict:
             "p": float(stats.chi2.sf(stat, k - 1))}
 
 
+def no_scatter_message(test: str) -> str:
+    """The sentence for an F test whose groups have no scatter."""
+    return (f"{test} is undefined: the values within each group are all "
+            "the same (SD 0), so the F ratio has no scatter to divide by. "
+            f"{NO_SCATTER_CHECK}")
+
+
 def _anova_table(ss_between, ss_within, k, n_total) -> dict:
     """ANOVA table from the between/within sums of squares. Shared by
     one_way_anova (raw values) and opendose.summary, which computes the
@@ -208,6 +218,8 @@ def _anova_table(ss_between, ss_within, k, n_total) -> dict:
     df_between, df_within = k - 1, n_total - k
     ms_between = ss_between / df_between
     ms_within = ss_within / df_within
+    if not ms_within > 0:
+        raise ValueError(no_scatter_message("One-way ANOVA"))
     f = ms_between / ms_within
     p = float(stats.f.sf(f, df_between, df_within))
     return {

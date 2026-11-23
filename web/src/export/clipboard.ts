@@ -15,6 +15,7 @@ export function readSections(root: HTMLElement | null): WordSection[] {
   const clean = (s: string) => s.replace(/\s+/g, " ").trim();
   for (const el of root.querySelectorAll<HTMLElement>("h3, h4, table, .results-error, p.model-line")) {
     if (el.tagName !== "TABLE" && el.closest("table")) continue;
+    if (el.closest("[data-no-export]")) continue; // has its own export (fit report)
     if (el.tagName !== "TABLE") {
       const text = clean(el.innerText);
       if (text) out.push({ heading: text, rows: [], headRows: 0 });

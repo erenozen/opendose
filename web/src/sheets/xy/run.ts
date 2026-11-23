@@ -8,7 +8,7 @@ import { engineWeighting, type AnalysisResult, type OptionsState } from "../../t
 import { modelMeta, USER_MODEL_ID } from "../../lib/modelLibrary";
 import { userEquationPayload } from "../../lib/userEquation";
 import {
-  builtinConstraints, datasetConstantValues, effectiveShared, globalModelToResult,
+  builtinBounds, builtinConstraints, builtinStarts, datasetConstantValues, effectiveShared, globalModelToResult,
   routeFor, userColumnConstants, userFitConstraints,
 } from "./fitOptions";
 import { autoFitGate, type ChooseReason } from "./autofit";
@@ -85,6 +85,21 @@ export function runNonlin(engine: EngineBridge, table: DataTableModel,
       error: `Enter ${missing.join(", ")} under Experimental constants` };
   }
   const route = routeFor(options);
+  // range constraints (P-20): the engine bounds curves fitted one at a time
+  const bounds = builtinBounds(meta, options);
+  if (Object.keys(bounds).length && route !== "dose_response") {
+    return { analysis: "dose_response", datasets: [],
+      error: "Range constraints (greater than, less than, between) apply to curves fitted one at a "
+        + "time, not to global fits with shared parameters or the Gaddum/Schild model; hold the "
+        + "parameter constant instead" };
+  }
+  // typed initial values (P-21): starts for curves fitted one at a time
+  const starts = builtinStarts(meta, options);
+  if (Object.keys(starts).length && route !== "dose_response") {
+    return { analysis: "dose_response", datasets: [],
+      error: "Typed initial values apply to curves fitted one at a time, not to global fits with "
+        + "shared parameters or the Gaddum/Schild model; clear them under Initial values" };
+  }
   // the shared-parameter fits (engine globalfit / fit_global_model) weight
   // only by 1/Y, 1/Y² or 1/X: say so rather than pass an unknown weighting
   if (options.weighting === "1/SD2" && route !== "dose_response") {
@@ -225,6 +240,8 @@ export function runNonlin(engine: EngineBridge, table: DataTableModel,
       x_is_log: options.xIsLog,
       error_bars: options.errorBars,
       constraints,
+      ...(Object.keys(bounds).length ? { bounds } : {}),
+      ...(Object.keys(starts).length ? { initial_values: starts } : {}),
       weighting: engineWeighting(options),
       ...weightSourceOption(options, summary),
       ci_method: options.ciMethod,

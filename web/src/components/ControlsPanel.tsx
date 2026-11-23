@@ -13,10 +13,13 @@ import {
   columnConstants, freeParameters, newEquation, requiredConstants, sharedParameters,
   type UserEquationDef,
 } from "../lib/userEquation";
-import { constraintState, numberInTitle, withConstraint } from "../sheets/xy/fitOptions";
+import {
+  constraintKind, constraintState, numberInTitle, rangeProblems, startParams, withConstraint,
+  type ConstraintKind,
+} from "../sheets/xy/fitOptions";
 import EquationEditor from "./EquationEditor";
 import ModelPicker from "./ModelPicker";
-import { NumberField } from "./ui";
+import { Field, Input, NumberField } from "./ui";
 
 interface Props {
   options: OptionsState;
@@ -30,28 +33,79 @@ interface Props {
   notice?: ReactNode;
 }
 
-function ConstraintRow({ label, state, onChange }: {
+const KIND_LABELS: [ConstraintKind, string][] = [
+  ["constant", "Constant"], ["greater", "Greater than"], ["less", "Less than"], ["between", "Between"],
+];
+
+/** One parameter's constraint: held constant (the row as it always was)
+ *  or, for built-in models, kept in a range with the reason stated (the
+ *  curve-fitting guide's "Constraining parameters"; a range can hide a
+ *  poor design, so the reason goes into the methods). */
+function ConstraintRow({ label, state, onChange, ranges }: {
   label: string;
   state: ConstraintState;
   onChange: (c: ConstraintState) => void;
+  /** Offer greater than / less than / between (built-in models). */
+  ranges?: boolean;
 }) {
+  const radioName = useId();
+  const kind = constraintKind(state);
+  const range = state.enabled && kind !== "constant";
+  const problems = rangeProblems(state);
+  const set = (patch: Partial<ConstraintState>) => onChange({ ...state, ...patch });
   return (
-    <label className="constraint-row">
-      <input
-        type="checkbox"
-        checked={state.enabled}
-        onChange={(e) => onChange({ ...state, enabled: e.target.checked })}
-      />
-      <span>{label} = constant</span>
-      <input
-        className="constraint-value"
-        inputMode="text"
-        aria-label={`${label} constant value`}
-        disabled={!state.enabled}
-        value={state.value}
-        onChange={(e) => onChange({ ...state, value: e.target.value })}
-      />
-    </label>
+    <div className="constraint">
+      <label className="constraint-row">
+        <input
+          type="checkbox"
+          checked={state.enabled}
+          onChange={(e) => set({ enabled: e.target.checked })}
+        />
+        <span>{range ? `${label} in a range` : `${label} = constant`}</span>
+        {!range && (
+          <input
+            className="constraint-value"
+            inputMode="text"
+            aria-label={`${label} constant value`}
+            disabled={!state.enabled}
+            value={state.value}
+            onChange={(e) => set({ value: e.target.value })}
+          />
+        )}
+      </label>
+      {ranges && state.enabled && (
+        <fieldset className="field-radios constraint-kind" data-still>
+          <legend className="sr-only">Constrain {label} to</legend>
+          {KIND_LABELS.map(([k, text]) => (
+            <label key={k}>
+              <input type="radio" name={`${radioName}-kind`} checked={kind === k}
+                onChange={() => set({ kind: k })} />
+              <span>{text}</span>
+            </label>
+          ))}
+        </fieldset>
+      )}
+      {range && (
+        <div className="constraint-range">
+          {(kind === "greater" || kind === "between") && (
+            <NumberField label={`${label} greater than`} fieldClassName="field-num"
+              value={state.lo ?? ""} onValueChange={(v) => set({ lo: v })}
+              error={problems.lo} />
+          )}
+          {(kind === "less" || kind === "between") && (
+            <NumberField label={`${label} less than`} fieldClassName="field-num"
+              value={state.hi ?? ""} onValueChange={(v) => set({ hi: v })}
+              error={problems.hi} />
+          )}
+          <Field label={`Why ${label} cannot go past this`} error={problems.reason}
+            description="Stated in the methods. A range can hide a poor design, so say what makes it true.">
+            <Input value={state.reason ?? ""} autoComplete="off"
+              placeholder="e.g. signal cannot be negative"
+              onChange={(e) => set({ reason: e.target.value })} />
+          </Field>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -100,6 +154,7 @@ export default function ControlsPanel({
   const perDataset = isUser && ueq ? columnConstants(ueq, ps) : meta.datasetConstants ?? [];
   const shareable = isUser ? [] : shareableParams(meta);
   const classic = meta.special === "gaddum_schild_classic" && !isUser;
+  const starts = isUser ? [] : startParams(meta, options);
   const ids = useId();
 
   return (
@@ -137,9 +192,9 @@ export default function ControlsPanel({
 
       {constrainable.length > 0 && !classic && (
         <section>
-          <h3>Constrain (hold constant) <LearnMore id="relative-absolute-ic50" label="When?" /></h3>
+          <h3>Constrain <LearnMore id="relative-absolute-ic50" label="When?" /></h3>
           {constrainable.map((p) => (
-            <ConstraintRow key={p} label={p} state={constraintState(options, p)}
+            <ConstraintRow key={p} label={p} state={constraintState(options, p)} ranges={!isUser}
               onChange={(c) => onChange(withConstraint(options, p, c))} />
           ))}
           {Object.entries(fixedDefaults).map(([p, v]) => (
@@ -449,6 +504,24 @@ export default function ControlsPanel({
         )}
       </section>
       </details>
+
+      {!isUser && !classic && starts.length > 0 && (
+        <details className="advanced initial-values">
+          <summary>Initial values</summary>
+          <section>
+            <p className="hint-block">
+              Blank fields start from the model&apos;s rules; the results list the values used under
+              Initial values. A typed start replaces the rule and the fit runs from it alone.
+            </p>
+            {starts.map((p) => (
+              <NumberField key={p} label={`${p} start`} fieldClassName="field-num"
+                placeholder="auto" readOnly={readOnly}
+                value={options.initialValues?.[p] ?? ""}
+                onValueChange={(v) => set({ initialValues: { ...(options.initialValues ?? {}), [p]: v } })} />
+            ))}
+          </section>
+        </details>
+      )}
     </div>
   );
 }

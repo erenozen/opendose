@@ -4,8 +4,11 @@
 // regression, Cox and contingency results (P-16) and the ratio to control
 // with its Fieller CI (P-18); and the tests of wave 1: equivalence (P-12),
 // comparing regression lines (P-13), pairs of rows of a contingency table
-// (P-14) and two event rates (P-47). Each number asserted here is pinned in
-// the engine tests from an independent reference (engine/tests/reference/).
+// (P-14) and two event rates (P-47); and the fit models of wave 1: Weibull
+// and hormesis models (P-19), range constraints (P-20), initial values and
+// the fit report (P-21) and simulating a user-defined equation (P-51).
+// Each number asserted here is pinned in the engine tests from an
+// independent reference (engine/tests/reference/).
 // Usage: node scripts/e2e-results.mjs [http://localhost:5173/]
 import { chromium } from "playwright";
 import { readFileSync } from "node:fs";
@@ -74,6 +77,49 @@ const points = (plot) => page.locator(`.pane-answer .resid-plot[data-plot="${plo
 
 await page.goto(url, { waitUntil: "domcontentloaded" });
 await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 180000 });
+
+// --- P-21: initial values of the example 4PL, typed and reported ---------
+{
+  // engine/tests/reference/initial_values.py: the rules give Top 101.5,
+  // Bottom 0.5, LogIC50 -7, HillSlope -1; from those and from a typed
+  // LogIC50 = -5 the fit reaches LogIC50 -6.983 (SE 0.01471)
+  await page.context().grantPermissions(["clipboard-read", "clipboard-write"],
+    { origin: new URL(baseUrl).origin });
+  const fold = page.locator(".pane-results details.fit-starts").first();
+  await fold.locator("summary").click();
+  const startRows = async () => (await fold.locator("tbody tr").allInnerTexts())
+    .map((t) => t.replace(/\s+/g, " ").trim());
+  const rules = await startRows();
+  expect("P-21 acceptance: four initial values from the model's rules",
+    rules.join(" | ") === "Top 101.5 the model's rules | Bottom 0.5 the model's rules"
+      + " | LogIC50 -7 the model's rules | HillSlope -1 the model's rules", rules.join(" | "));
+  const note = await fold.locator(".hint-block").innerText().catch(() => "");
+  expect("P-21 the fold says the other starts tried", /also tried 9 more starts with LogIC50/.test(note), note);
+  const controls = page.locator(".pane-controls");
+  await controls.locator("details.initial-values > summary").click();
+  await controls.getByLabel("LogIC50 start").fill("-5");
+  const typed = await appears(fold.locator("tbody tr", { hasText: "typed" }), 60000);
+  const logRow = (await page.locator(".pane-results .results-table tr", { hasText: "LogIC50" }).first()
+    .innerText().catch(() => "")).replace(/\s+/g, " ").trim();
+  expect("P-21 acceptance: a typed LogIC50 start converges to the same LogIC50 -6.983 (SE 0.01471)",
+    typed && (await startRows()).includes("LogIC50 -5 typed") && logRow.startsWith("LogIC50 -6.983 0.01471"),
+    `${(await startRows()).join(" | ")} / ${logRow}`);
+  await fold.getByRole("button", { name: /Copy fit report/ }).click();
+  const report = await page.waitForFunction(() => navigator.clipboard.readText()
+    .then((t) => (t.startsWith("Fit report") ? t : false)), null, { timeout: 10000 })
+    .then((h) => h.jsonValue(), () => "");
+  expect("P-21 Copy fit report: equation, initial values, constraints, weighting, CI method, every parameter",
+    report.startsWith("Fit report: Drug A")
+      && report.includes("Equation: Y=Bottom + (Top-Bottom)/(1+10^((LogIC50-X)*HillSlope))")
+      && report.includes("  LogIC50 = -5 (typed)") && report.includes("  Top = 101.5 (from the model's rules)")
+      && report.includes("Constraints\n  None") && report.includes("  Weighting: No weighting")
+      && report.includes("  Confidence intervals: asymptotic (symmetrical), 95%")
+      && report.includes("  LogIC50 = -6.983, SE 0.01471, 95% CI -7.013 to -6.953"),
+    report.slice(0, 400).replace(/\n/g, " / "));
+  await controls.getByLabel("LogIC50 start").fill("");
+  await appears(fold.locator("tbody tr", { hasText: "LogIC50 -7" }), 60000);
+  await controls.locator("details.initial-values > summary").click();
+}
 
 // --- P-11: residuals of the example's 4PL fit, in the Checks row ---------
 {
@@ -404,6 +450,144 @@ await page.waitForSelector('.pane-results[data-live="true"] .results-table', { t
   const opt = page.getByRole("option", { name: /Compare two event rates/ });
   expect("P-47 Ctrl+K finds 'Compare two event rates…'", await appears(opt, 10000));
   await page.keyboard.press("Escape");
+}
+
+// --- P-19, P-20, P-51: fit models ----------------------------------------
+{
+  /** An XY table with one Y column from pasted text (X in column 1). */
+  const xyFromText = async (name, text) => {
+    await fileMenu("New data table…");
+    const nd = page.locator(".new-table-dialog");
+    await nd.locator('input[name="table-type"][value="xy"]').check();
+    await nd.getByLabel("Table name").fill(name);
+    await nd.locator(".field-num input").nth(1).fill("1");
+    await nd.getByRole("button", { name: "Create table" }).click();
+    await page.waitForSelector(".grid-toolbar");
+    await page.getByRole("button", { name: "Import…", exact: true }).click();
+    const imp = page.locator(".import-dialog");
+    await imp.getByLabel("Pasted text").check();
+    await imp.getByLabel("Text to import").fill(text);
+    const titles = imp.getByLabel(/holds column titles/);
+    if (!(await titles.isChecked())) await titles.check();
+    await imp.getByRole("tab", { name: "Placement" }).click();
+    await imp.getByLabel(/In place of the table/).check();
+    await imp.getByRole("button", { name: "Import", exact: true }).click();
+    await imp.waitFor({ state: "detached", timeout: 30000 });
+  };
+  const pickModel = async (search, option) => {
+    await page.getByRole("button", { name: /^Model:/ }).click();
+    await page.getByRole("combobox", { name: "Search models" }).fill(search);
+    await page.getByRole("option", { name: option }).click();
+  };
+  const paramRow = async (label) => (await page.locator(".pane-results .results-table tbody tr")
+    .filter({ has: page.locator("th", { hasText: new RegExp(`^${label.replace(/[()]/g, "\\$&")}$`) }) })
+    .first().innerText().catch(() => "")).replace(/\s+/g, " ").trim();
+
+  // P-19 acceptance: drc's ryegrass (engine/tests/fixtures/drc_datasets.json)
+  // fitted with Weibull type 1; scipy reference engine/tests/reference/
+  // weibull_hormesis.py: b 2.3933 (SE 0.4396), c 0.66045, d 7.8059,
+  // e 3.6001, ED50 3.0889 (2.7232 to 3.4547), 24 points
+  const rye = JSON.parse(readFileSync(join(here, "..", "..", "engine", "tests", "fixtures",
+    "drc_datasets.json"), "utf8")).ryegrass;
+  await xyFromText("Ryegrass", "conc\trootl\n"
+    + rye.conc.map((c, i) => `${c}\t${rye.rootl[i]}`).join("\n") + "\n");
+  await pickModel("weibull type 1", /Weibull type 1 \(W1\.4\), X is concentration/);
+  const shown = await liveResults(/ED50/, 90000);
+  const b = await paramRow("b");
+  const ed50 = await paramRow("ED50 (M)");
+  expect("P-19 acceptance: W1.4 on ryegrass, b = 2.393 (SE 0.4396)", shown && b.startsWith("b 2.393 0.4396"), b);
+  expect("P-19 c, d and e: 0.6605, 7.806, 3.6",
+    (await paramRow("c")).startsWith("c 0.6605 ") && (await paramRow("d")).startsWith("d 7.806 ")
+      && (await paramRow("e")).startsWith("e 3.6 "),
+    [await paramRow("c"), await paramRow("d"), await paramRow("e")].join(" | "));
+  expect("P-19 ED50 3.089 with its CI 2.723 to 3.455", ed50 === "ED50 (M) 3.089 n/a 2.723 to 3.455", ed50);
+  const n = await paramRow("# of points analyzed");
+  const nPoints = (await page.locator(".pane-results tr", { hasText: "# of points analyzed" }).first()
+    .innerText().catch(() => "")).replace(/\s+/g, " ").trim();
+  expect("P-19 the zero-dose wells stay in: 24 points", nPoints === "# of points analyzed 24", nPoints || n);
+  const fitNote = await page.locator(".pane-results .fit-note").first().innerText().catch(() => "");
+  expect("P-19 the ED label: e is the inflection point, not the ED50",
+    /e is the inflection point, not the ED50/.test(fitNote), fitNote.slice(0, 160));
+  expect("P-19 the headline is the ED50", await answerText(/ED50/));
+
+  // P-20 acceptance: a free fit with Bottom below 0, then Bottom > 0 with
+  // its reason (engine/tests/reference/range_constraints.py: Bottom 0,
+  // Top 99.2961, LogIC50 -6.90593, HillSlope -1.25189)
+  const X = [-9, -8.5, -8, -7.5, -7, -6.5, -6, -5.5, -5];
+  const ROWS = [[101.2, 98.4, 99.6], [97.9, 100.8, 96.5], [95.1, 92.3, 96.8], [84.0, 80.2, 86.9],
+    [55.3, 60.8, 52.1], [24.7, 28.9, 21.6], [7.9, 3.1, 5.6], [-1.2, 2.4, -3.9], [-4.8, -1.1, -6.3]];
+  await xyFromText("Negative bottom", "logX\tSignal\n"
+    + X.flatMap((x, i) => ROWS[i].map((y) => `${x}\t${y}`)).join("\n") + "\n");
+  await pickModel("inhibitor variable four", /log\(inhibitor\) vs\. response -- Variable slope \(four/);
+  const controls = page.locator(".pane-controls");
+  const logX = controls.getByLabel("X values are already log10(concentration)");
+  if (!(await logX.isChecked())) await logX.check();
+  await liveResults(/LogIC50/);
+  await page.waitForFunction(() => /Bottom\s+-4\.402/.test(document.querySelector(
+    '.pane-results[data-live="true"] .results-table')?.textContent ?? ""), null, { timeout: 60000 }).catch(() => {});
+  expect("P-20 the free fit puts Bottom below 0: -4.402", (await paramRow("Bottom")).startsWith("Bottom -4.402"),
+    await paramRow("Bottom"));
+  await controls.locator(".constraint-row", { hasText: "Bottom = constant" }).locator('input[type="checkbox"]').check();
+  await controls.getByRole("radio", { name: "Greater than" }).check();
+  await controls.getByLabel("Bottom greater than").fill("0");
+  await controls.getByLabel("Why Bottom cannot go past this").fill("signal cannot be negative");
+  const bounded = await page.waitForFunction(() => /at its constraint: SE not reliable/.test(document.querySelector(
+    '.pane-results[data-live="true"] .results-table')?.textContent ?? ""), null, { timeout: 60000 })
+    .then(() => true, () => false);
+  const bottom = await paramRow("Bottom");
+  expect("P-20 acceptance: Bottom sits at 0 and its row says 'at its constraint: SE not reliable'",
+    bounded && bottom === "Bottom 0 at its constraint: SE not reliable not reported (at its constraint)", bottom);
+  expect("P-20 the other parameters: Top 99.3, LogIC50 -6.906, HillSlope -1.252",
+    (await paramRow("Top")).startsWith("Top 99.3 ") && (await paramRow("LogIC50")).startsWith("LogIC50 -6.906 ")
+      && (await paramRow("HillSlope")).startsWith("HillSlope -1.252 "),
+    [await paramRow("Top"), await paramRow("LogIC50"), await paramRow("HillSlope")].join(" | "));
+  const methods = await page.locator(".methods-text p").first().innerText().catch(() => "");
+  expect("P-20 acceptance: the methods sentence states the constraint and its reason",
+    methods.includes("(constraining Bottom > 0, stated reason: signal cannot be negative)"), methods.slice(0, 200));
+
+  // P-51: simulate from a user-defined equation saved in the library; the
+  // ideal column equals 100·exp(-0.3·X) (engine/tests/
+  // test_simulate_user_equation.py checks it against the compiled equation)
+  await pickModel("own equation", /Enter your own equation/);
+  const eqDlg = page.getByRole("dialog", { name: "User-defined equation" });
+  await eqDlg.getByLabel("Name").fill("Decay");
+  await eqDlg.getByLabel("Equation", { exact: true }).fill("Y = A*exp(-k*X)");
+  await eqDlg.getByText("Equation is valid").waitFor({ timeout: 30000 });
+  await eqDlg.getByRole("button", { name: /Save to my equations/ }).click();
+  await eqDlg.getByRole("button", { name: "Cancel" }).click();
+  await fileMenu("New data table…");
+  await page.getByRole("button", { name: "Simulate data…" }).click();
+  const sim = page.locator(".simulate-dialog");
+  // the label wraps the select, so its name includes the options: find it by its caption
+  const simSelect = (caption) => sim.locator("label.field")
+    .filter({ has: page.locator("span", { hasText: new RegExp(`^${caption}$`) }) }).locator("select");
+  await simSelect("Model").selectOption({ label: "Decay" });
+  await sim.getByLabel("A", { exact: true }).fill("100");
+  await sim.getByLabel("k", { exact: true }).fill("0.3");
+  await sim.getByLabel("First X", { exact: true }).fill("0");
+  await sim.getByLabel("Step", { exact: true }).fill("0.5");
+  await sim.getByLabel("Last X", { exact: true }).fill("5");
+  await sim.getByLabel("Replicates", { exact: true }).fill("1");
+  await simSelect("Kind").selectOption("none");
+  await sim.getByLabel(/ideal values/).check();
+  await sim.getByLabel("Table name", { exact: true }).fill("Simulated decay");
+  await sim.getByLabel("Random seed").fill("7");
+  await sim.getByRole("button", { name: "Create table" }).click();
+  await page.waitForSelector(".origin-note", { timeout: 30000 });
+  const cells = await page.evaluate(() => [...document.querySelectorAll(".data-table input")]
+    .filter((i) => /\(ideal\)(, Y1)?, row \d+$/.test(i.getAttribute("aria-label") ?? ""))
+    .map((i) => Number(i.value)));
+  const want = Array.from({ length: 11 }, (_, i) => 100 * Math.exp(-0.3 * i * 0.5));
+  expect("P-51 acceptance: the ideal column equals A·exp(-k·X) at all 11 X values",
+    cells.length === 11 && cells.every((v, i) => Math.abs(v - want[i]) <= 1e-9 * want[i]), cells.join(", "));
+  await page.locator(".origin-note").getByRole("button", { name: "Methods" }).click();
+  const origin = await page.locator(".origin-note").first().innerText().catch(() => "");
+  expect("P-51 the table's note names the equation",
+    origin.includes("the user-defined equation “Decay” (Y = A*exp(-k*X))"), origin.slice(0, 200));
+  const refit = await liveResults(/\bk\b/, 90000);
+  const kRow = await paramRow("k");
+  expect("P-51 its curve fit uses the same equation and recovers k = 0.3",
+    refit && kRow.startsWith("k 0.3 "), kRow);
 }
 
 // ------------------------------------------------------------------------

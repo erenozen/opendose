@@ -3385,6 +3385,158 @@ to 1.14851), rate 1 = 2.3 (1.4580 to 3.4511); numpy least squares for
 the P-13 lines gives slopes F(1, 12) = 0.64403, P = 0.43786 and the
 common slope 1.99524. All equal the engine at the precision shown.
 
+## Feature validation: fit models, wave 1 (2026-11-23)
+
+R and drc are not installed here. Each oracle below is a Python script
+committed next to its test; where a published table exists it anchors
+the script first.
+
+### P-19 Weibull and hormesis dose-response models
+
+Six models in a new family, "Dose-response - Weibull and hormesis, X is
+concentration", with drc's parameter letters: Weibull type 1 and 2
+(drc W1.4, W2.4; Ritz 2010, Environ Toxicol Chem 29:220), Brain-Cousens
+(BC.5 and BC.4 with c = 0; Brain & Cousens 1989, Weed Res 29:93) and
+Cedergreen-Ritz-Streibig (CRS.5 and CRS.4 with c = 0, alpha an entered
+constant; Cedergreen et al. 2005, Environ Toxicol Chem 24:3166). All are
+written on the concentration scale, so the zero dose stays in the fit.
+b is held positive for W1.4 and the hormesis models and negative for
+W2.4: with b free to change sign the two Weibull models are one family
+(W1.4 with b < 0 is W2.4 with c and d swapped), so these are the signs
+drc's self-starters use on a falling curve. ED10, ED50 and ED90 are
+drc's relative EDs (p% of the way from d, the zero-dose response, to c),
+with a delta-method SE and estimate ± t × SE interval; e is the
+inflection point (Weibull) or a location parameter (hormesis), not the
+ED50, and the results say so under the table. EDs beyond the doses
+tested are named there too.
+
+Reference: `engine/tests/reference/weibull_hormesis.py` (scipy
+least_squares on the published formulas, grid of starts, J'J
+covariance, EDs solved numerically from the curve), on drc's
+`ryegrass` and `lettuce` data (`engine/tests/fixtures/drc_datasets.json`,
+copied from the Rdatasets export of drc). Anchor: the same script fits
+drc's LL.3 to ryegrass and reproduces Ritz et al. (2015) PLOS ONE
+10:e0146021, S1 File, Example 2, to every digit printed: b 2.47033,
+d 7.85543, e 3.26336, residual SE 0.5615802 (21 df), ED10 1.34086
+(0.94773 to 1.7340). drc's standard errors come from the Hessian of the
+residual SS (0.34168, 0.20438, 0.19641, reproduced by the script); the
+engine, like Prism and R's nls, uses the Gauss-Newton covariance
+s² (J'J)⁻¹ (0.31874, 0.20798, 0.20220), so SEs differ from drc's in the
+second or third digit while estimates and EDs agree. OpenDose's
+[Inhibitor] vs. response (variable slope) with Bottom = 0 is LL.3 and
+gives the published estimates (`test_weibull_hormesis.py`).
+
+| Data, model | Parameters (SE, J'J) | ED50 (95% CI) | Sy.x |
+| --- | --- | --- | --- |
+| ryegrass, W1.4 | b 2.3933 (0.4396), c 0.66045 (0.1864), d 7.8059 (0.2076), e 3.6001 (0.1942) | 3.0889 (2.7232 to 3.4547) | 0.548824 |
+| ryegrass, W2.4 | b -1.9678 (0.2885), c 0.32457 (0.2488), d 7.7263 (0.1731), e 2.4876 (0.1476) | 2.9969 (2.5857 to 3.4082) | 0.514420 |
+| lettuce, BC.5 | b 1.5030, c 0.28081, d 0.96306, e 1.1218, f 0.98631 (0.9421) | 12.298 (-13.833 to 38.430) | 0.114912 |
+| lettuce, BC.4 | b 1.2827 (0.0522), d 0.96718, e 0.84593, f 1.6245 (1.2067) | 35.052 (-0.473 to 70.577) | 0.111792 |
+| lettuce, CRS.5 (alpha 1) | b 1.3280, c 0.44841, d 1.0352, e 1.2782, f 2.1018 | 5.5189 (1.8075 to 9.2304) | 0.130488 |
+
+Engine and reference agree to 2e-5 (estimates, EDs) and 2e-3 (SEs, CI
+limits) for all seven model and data pairs tested, including CRS.4 and
+W1.4 on lettuce. Noiseless curves with two zero-dose points are
+recovered to 1e-5 and noisy ones match scipy curve_fit
+(`test_equations.py`). Concentration ×1000 scales e and every ED by
+1000 and leaves b, c and d; response ×10 scales c, d and f only. Flat
+data give an ambiguous fit or a sentence, never a traceback; CRS without
+alpha asks for it. The BC.4 lettuce ED90 (10096) lies 100-fold past the
+highest concentration and is reported as read off the model's tail.
+
+### P-20 range constraints on built-in models
+
+`nlfit.fit_model(bounds={name: [lo, hi]})` (options `bounds` of
+`dose_response`, also through robust regression, ROUT and the
+per-experiment fits): greater than, less than or between, on top of the
+model's own range (never wider). The fit switches to the bounded
+trust-region solver; a parameter that ends on its limit is reported at
+the limit itself and marked `at_bound`, and its row says "at its
+constraint: SE not reliable" (curve-fitting guide, "Constraining
+parameters"). In the controls a range needs a stated reason, which the
+methods sentence carries; ranges apply to curves fitted one at a time
+(a global fit says to hold the parameter constant instead).
+Relational constraints (Kfast > Kslow) stay out.
+
+Reference: `engine/tests/reference/range_constraints.py` (scipy
+least_squares with bounds, trust-region reflective, on the 4PL written
+out there; R's nls(port) is not installed), tested in
+`engine/tests/test_range_constraints.py` (estimates to 1e-6, SEs to
+2e-3). Data: one inhibition curve, 9 log doses in triplicate.
+
+| Case | Bottom | Top | LogIC50 | HillSlope | Sy.x |
+| --- | --- | --- | --- | --- | --- |
+| Free fit | -4.4024 | 100.149 | -6.86818 | -1.12122 | 2.65765 |
+| Bottom > 0 (at its limit) | 0 | 99.2961 | -6.90593 | -1.25189 | 3.31644 |
+| HillSlope between -1 and -0.3 (at -1) | -6.2368 | 101.603 | -6.86352 | -1 | 2.89885 |
+| Bottom > -10 (inactive) | -4.4024 | 100.149 | -6.86818 | -1.12122 | 2.65765 |
+
+An inactive limit gives the free fit to 1e-7; Y ×1000 with Bottom > 0
+keeps Bottom at 0 and scales Top by 1000; LogIC50 names the midpoint as
+in constants. A lower limit above the upper one, a range on a parameter
+held constant, an unknown parameter or a missing limit each give a
+sentence saying what to fix.
+
+### P-21 initial values shown, typed and exported
+
+Every curve fit now returns `initial_values` {name: {value, source}}:
+the start of each free parameter, from the model's rules ("rule") or
+typed by the user ("typed", options `initial_values`), and `starts`
+(how many starts were tried, the parameter they seed, whether a
+degenerate point forced a restart). With a typed start the fit runs
+from that start alone. The results show the starts in an "Initial
+values" fold under each fit, with "Copy fit report" (text) and a CSV
+download: model, equation, initial values, constraints with their
+reasons, weighting, CI method, every parameter with SE and CI, and the
+goodness of fit. Projects saved before open with automatic starts
+(`fitReport.test.ts` loads two committed fixtures).
+
+Reference: `engine/tests/reference/initial_values.py` (the
+log(inhibitor) vs. response rules computed by hand, and scipy
+least_squares from two starts; R's nls is not installed), tested in
+`engine/tests/test_initial_values.py`. On the app's example (9
+concentrations in triplicate) the rules give Top 101.5 (YMAX), Bottom
+0.5 (YMIN), LogIC50 -7 (the X of the value nearest the mid response),
+HillSlope -1. From those starts and from a typed LogIC50 = -5 the fit
+reaches the same point as scipy from either start: Top 99.85616,
+Bottom 0.98013, LogIC50 -6.983042, HillSlope -1.103468, SS 59.58161
+(estimates to 1e-7, SEs to 1e-4). The reported starts of Weibull,
+[Agonist] vs. response, one-site total binding and exponential plateau
+equal their registered rules exactly. A start for a parameter held
+constant, an unknown parameter or a non-finite value gives a sentence
+saying what to fix; a start outside a range is moved inside it.
+
+### P-51 simulating from a user-defined equation
+
+`simulate.simulate_xy(user_equation=...)` (options `user_equation` of
+`simulate_xy`, and of a Monte Carlo analysis's simulation): the equation
+is compiled and registered exactly as a fit of it registers it (one
+model per data set, since <A> and <~A> lines can differ), its constant
+defaults fill parameters not given, and the ideal Y is that model's
+function at every X. The Simulate dialog and the Monte Carlo analysis
+list the saved equations under "User-defined equations"; a table
+simulated from one gets a curve fit of the same equation, and a Monte
+Carlo run fits the equation itself.
+
+Validation is identity (`engine/tests/test_simulate_user_equation.py`):
+for Y = A·exp(-k·X) with A = 100, k = 0.3 at X = 0 to 5 in steps of 0.5,
+the simulated ideal Y equals the compiled equation evaluated by nlfit
+bit for bit and 100·exp(-0.3·X) to 1e-15; with no error every replicate
+is the ideal value, and fitting that table with the same equation gives
+A = 100 and k = 0.3 to 1e-8. Gaussian scatter (SD 2, 200 replicates) is
+reproduced by the same seed and centred on the curve (residual mean
+within 0.1, SD 1.9 to 2.1). Per-data-set lines and values, constant
+defaults, a missing parameter value ("missing parameter value(s) for
+“Decay”: k") and an equation that does not parse are covered; a Monte
+Carlo run of 40 repeats recovers k (mean within 0.01 of 0.3) with every
+repeat fitted.
+
+Independent check (2026-11-23, by the lead): an own scipy.optimize.curve_fit
+of drc's W1.4, c + (d - c) exp(-exp(b (ln x - ln e))), to the 24 ryegrass
+points (zero doses kept) gives b 2.39333 (SE 0.43961), c 0.66045,
+d 7.80588, e 3.60013, and the relative ED50 e exp(ln(ln 2)/b) = 3.08895
+with a delta-method 95% CI 2.72315 to 3.45475 (t, 20 df): the engine's
+values (J'J covariance, as here).
 
 ## Feature validation: Schild plot (2026-11-23)
 

@@ -115,6 +115,10 @@ def _dose_response(data, options):
     if spec is None:
         raise ValueError(f"unknown model: {model}")
     constraints = options.get("constraints") or {}
+    # options.bounds {name: [lo, hi]}: range constraints (nlfit.fit_model)
+    bounds = options.get("bounds") or None
+    # options.initial_values {name: number}: typed starts (nlfit.fit_model)
+    starts = options.get("initial_values") or None
     weighting = options.get("weighting", "none")
     ci_method = options.get("ci_method", "asymptotic")
     rout_q = options.get("rout_q")  # e.g. 0.01 turns on ROUT
@@ -161,13 +165,15 @@ def _dose_response(data, options):
                 xs, ys = _expand(x_col, ds["ys"])
             if robust:
                 fit = nlfit.robust_model_fit(xs, ys, model,
-                                             constraints=constraints)
+                                             constraints=constraints,
+                                             bounds=bounds,
+                                             initial_values=starts)
             elif rout_q:
                 rout = nlfit.rout_outliers(
                     xs, ys, model, q=float(rout_q), constraints=constraints,
                     weighting=weighting, ci_method=ci_method,
                     weight_source=options.get("weight_source", "predicted"),
-                    **s_kw)
+                    bounds=bounds, initial_values=starts, **s_kw)
                 fit = rout["fit"]
                 entry["rout"] = {k: rout[k] for k in
                                  ("q", "rsdr", "outliers", "n_outliers")}
@@ -176,6 +182,7 @@ def _dose_response(data, options):
                                       weighting=weighting, ci_method=ci_method,
                                       weight_source=options.get(
                                           "weight_source", "predicted"),
+                                      bounds=bounds, initial_values=starts,
                                       **s_kw)
             fit["curve"] = doseresponse.curve_points(
                 fit, min(finite_x), max(finite_x))
@@ -226,6 +233,9 @@ def _dose_response(data, options):
                 flags = {"error": str(exc)}
             if flags is not None:
                 fit["range_flags"] = flags
+            if equations.model_family(spec) == equations.FAM_HORMESIS:
+                # what ED p means; EDs beyond the doses tested
+                fit["notes"] = equations.ed_notes(fit, xs)
             entry["fit"] = fit
         except Exception as exc:  # per-dataset failure must not kill others
             entry["error"] = str(exc)
@@ -233,7 +243,7 @@ def _dose_response(data, options):
             entry["experiments"] = _experiments(
                 x_col, ds, exp_opt, model, spec, constraints=constraints,
                 weighting=weighting, ci_method=ci_method, robust=robust,
-                rout_q=rout_q,
+                rout_q=rout_q, bounds=bounds, initial_values=starts,
                 weight_source=options.get("weight_source", "predicted"))
         results.append(entry)
 
@@ -286,7 +296,8 @@ def _dose_response(data, options):
 
 
 def _experiments(x_col, ds, exp_opt, model, spec, *, constraints, weighting,
-                 ci_method, robust, rout_q, weight_source):
+                 ci_method, robust, rout_q, weight_source, bounds=None,
+                 initial_values=None):
     """One fit per independent experiment of a data set and the summary of
     their potencies (potency.across_experiments), fitted exactly as the
     data set's own fit (model, constraints, weighting, robust or ROUT)."""
@@ -301,16 +312,20 @@ def _experiments(x_col, ds, exp_opt, model, spec, *, constraints, weighting,
         xs, ys = _expand(x_col, rows)
         if robust:
             fit = nlfit.robust_model_fit(xs, ys, model,
-                                         constraints=constraints)
+                                         constraints=constraints,
+                                         bounds=bounds,
+                                         initial_values=initial_values)
         elif rout_q:
             fit = nlfit.rout_outliers(
                 xs, ys, model, q=float(rout_q), constraints=constraints,
                 weighting=weighting, ci_method=ci_method,
-                weight_source=weight_source)["fit"]
+                weight_source=weight_source, bounds=bounds,
+                initial_values=initial_values)["fit"]
         else:
             fit = nlfit.fit_model(xs, ys, model, constraints=constraints,
                                   weighting=weighting, ci_method=ci_method,
-                                  weight_source=weight_source)
+                                  weight_source=weight_source, bounds=bounds,
+                                  initial_values=initial_values)
         fit.pop("_cov", None)
         fit.pop("_residuals", None)
         return fit, xs, ys
@@ -1931,7 +1946,8 @@ def _simulate_xy(data, options):
     "start", "increment"|"factor", "stop"|"count"}, "n_datasets",
     "replicates", "error": {"kind": "none"|"gaussian"|"relative"|"t"|
     "poisson"|"binomial", "sd"|"percent"|"df"|"n", "outliers"?}, "seed",
-    "source": "model"|"table"}. source "table" uses the row means of
+    "source": "model"|"table", "user_equation"?: a user-defined equation
+    to simulate from instead of "model" (simulate.simulate_xy)}. source "table" uses the row means of
     data.datasets (at data.x) as ideal Y. Returns an API table {"x",
     "datasets": [{"name", "ys", "ideal"}], "seed", ...}."""
     ideal, x = None, options.get("x")
@@ -1945,7 +1961,9 @@ def _simulate_xy(data, options):
         options.get("model"), options.get("params"), x=x,
         n_datasets=options.get("n_datasets", 1),
         replicates=options.get("replicates", 1), error=options.get("error"),
-        ideal=ideal, names=options.get("names"), seed=options.get("seed"))}
+        ideal=ideal, names=options.get("names"), seed=options.get("seed"),
+        user_equation=(options.get("user_equation")
+                       if options.get("source") != "table" else None))}
 
 
 def _simulate_column(data, options):

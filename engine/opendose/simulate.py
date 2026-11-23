@@ -35,7 +35,12 @@ GraphPad Prism guide references (publicly documented behaviour):
   CI brackets the true value) and report the fraction of hits.
 
 Equations come from the nlfit model registry (MODELS[...].func), so the
-simulated curves are exactly the curves the fitter fits.
+simulated curves are exactly the curves the fitter fits. A user-defined
+equation (opendose.userequation; curve-fitting guide, "Entering a
+user-defined model into Prism") is compiled and registered the same way
+before it is simulated, one model per data set since <A> / <~A> lines
+can differ by data set: the ideal curve is the very function a fit of
+that equation evaluates.
 """
 
 from __future__ import annotations
@@ -224,7 +229,8 @@ def add_error(ideal, error, rng) -> np.ndarray:
 
 def simulate_xy(model: str | None = None, params=None, *, x=None,
                 n_datasets: int = 1, replicates: int = 1, error=None,
-                ideal=None, names=None, seed=None, rng=None) -> dict:
+                ideal=None, names=None, seed=None, rng=None,
+                user_equation=None) -> dict:
     """Simulate an XY table.
 
     model: a key of nlfit.MODELS (X in the model's own units -- log10
@@ -234,8 +240,12 @@ def simulate_xy(model: str | None = None, params=None, *, x=None,
     ideal: instead of a model, a list (one per data set) of ideal Y per
     row -- Prism's "use Y values from the data table, then add scatter".
     x: list or x_series spec. replicates: subcolumns per data set.
-    Returns the API table {"x", "datasets": [{"name", "ys", "ideal"}],
-    "seed", "model", "params"}.
+    user_equation: instead of a model, a user-defined equation in the
+    payload shape of userequation.from_options ({"text", "rules",
+    "constraints", "x_is_log", "name", ...}); its constant defaults fill
+    parameters not given. Returns the API table {"x", "datasets":
+    [{"name", "ys", "ideal"}], "seed", "model", "params"} ("model" is
+    "user" and "user_equation" names the equation for a user equation).
     """
     if rng is None:
         seed = _resolve_seed(seed)
@@ -255,9 +265,23 @@ def simulate_xy(model: str | None = None, params=None, *, x=None,
                   for col in ideal]
         param_list = [None] * len(ideals)
     else:
-        spec = nlfit.MODELS.get(model)
-        if spec is None:
-            raise ValueError(f"unknown model: {model}")
+        eq = None
+        if user_equation is not None:
+            from . import userequation  # lazy: it imports nlfit as we do
+            eq = userequation.from_options(user_equation)
+            model = "user"
+            defaults = dict(eq.fixed_defaults)
+            if isinstance(params, list):
+                params = [{**defaults, **(p or {})} for p in params]
+            else:
+                params = {**defaults, **(params or {})}
+            specs = [nlfit.MODELS[eq.register(i)]
+                     for i in range(max(1, int(n_datasets)))]
+        else:
+            spec = nlfit.MODELS.get(model)
+            if spec is None:
+                raise ValueError(f"unknown model: {model}")
+            specs = [spec] * max(1, int(n_datasets))
         if isinstance(params, list):
             base = dict(params[0] if params else {})
             param_list = [{**base, **(p or {})} for p in params]
@@ -266,10 +290,12 @@ def simulate_xy(model: str | None = None, params=None, *, x=None,
         else:
             param_list = [dict(params or {})] * int(n_datasets)
         ideals = []
-        for p in param_list:
+        what = f"“{eq.name}”" if eq is not None else model
+        for i, p in enumerate(param_list):
+            spec = specs[min(i, len(specs) - 1)]
             missing = [k for k in spec.params if k not in p]
             if missing:
-                raise ValueError(f"missing parameter value(s) for {model}: "
+                raise ValueError(f"missing parameter value(s) for {what}: "
                                  f"{', '.join(missing)}")
             with np.errstate(all="ignore"):
                 y = np.asarray(spec.func(x_arr, {k: float(p[k])
@@ -288,6 +314,8 @@ def simulate_xy(model: str | None = None, params=None, *, x=None,
                          "ideal": [_out(v) for v in yi]})
     result = {"x": [_out(v) for v in x_arr], "datasets": datasets,
               "seed": seed, "model": model}
+    if ideal is None and model == "user":
+        result["user_equation"] = eq.name
     if param_list and param_list[0] is not None:
         result["params"] = param_list
     return result
