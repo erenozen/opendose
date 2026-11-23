@@ -3765,6 +3765,52 @@ written nor added on import.
 Manual check left for Eren (docs/prism-validation.md): open the exported
 file in Prism and confirm the Info sheet shows "Cell line = HeLa" and the
 notes.
+
+## Feature validation: repeated measures and matched tests (2026-11-24)
+
+### P-40 RM ANOVA reporting: Mauchly, Huynh-Feldt, partial omega squared
+
+`repeated.sphericity` reports, for each repeated term, the
+Geisser-Greenhouse epsilon (unchanged: the value and P computed before),
+the Huynh-Feldt epsilon, the lower bound and Mauchly's test. RM one-way
+ANOVA (`table.hf_epsilon`, `table.p_huynh_feldt`, `sphericity`), the
+mixed design (row factor and interaction share one block; the
+between-subjects column factor has none) and the fully repeated design
+(one block per term, which now also carries the GG and HF corrected P)
+all get it; the mixed model reports it only when no value is missing.
+Mauchly's test is reported, never used to choose the correction: P stays
+Geisser-Greenhouse corrected (the chip and the tables say so).
+
+- Mauchly (1940): W = det(T) / (tr(T)/d)^d for T = C'SC (orthonormal
+  contrasts), chi-square with R's mauchly.test second-order P.
+- Huynh-Feldt epsilon: Lecoutre's (1991) correction,
+  ((N - g + 1) d GG - 2) / (d (N - g - d GG)), capped at 1, as R car and
+  afex; with one group it equals the 1976 formula and pingouin.epsilon.
+  Undefined (and said so) when N - g < d.
+- Partial omega squared for designs with subjects:
+  (SS_eff - df_eff MS_err) / (SS_eff + [within] SS_err + SS_subj +
+  MS_subj), floored at 0, the formula of R effectsize's
+  omega_squared(partial = TRUE) for Error() designs (Olejnik & Algina
+  2003). It has no CI: partial eta squared's noncentral-F interval does
+  not cover it.
+
+Reference: `engine/tests/reference/rm_sphericity.py` (pingouin 0.7
+`sphericity`, `epsilon`, `rm_anova`, `mixed_anova`; statsmodels anova_lm
+for the one-way sums of squares; R is not installed).
+`engine/tests/test_rm_sphericity.py`:
+
+| Input | Reference | Engine tolerance |
+|---|---|---|
+| 10 subjects x 4 conditions (the plan's test) | GG 0.389690, HF 0.412497, Mauchly W 0.0125317, chi2 33.8194 on 5 df, P 3.3243e-6; F 28.0859, GG P 2.0564e-4, HF P 1.4442e-4; partial omega2 0.525730 | 1e-9 (W, P 1e-7) |
+| pingouin rm_anova2 (Metric 3 x Time 2, both repeated) | Metric GG 0.969103, W 0.968118, P 0.878442; Time 2 levels (no W); interaction GG 0.727166, HF 0.831161, W 0.624799, P 0.152392; partial omega2 0.365505 / 0.284738 / 0.095680 | 1e-9 (W, P 1e-7) |
+| pingouin mixed_anova (2 groups, 60 subjects, 3 times) | GG 0.998120, HF 1, W 0.998117, P 0.947694; partial omega2 Time 0.031636, Group 0.063257, interaction 0.018306 | 1e-9 |
+| the 10 x 4 table as 2 groups of 5 | GG 0.387834, HF (Lecoutre) 0.413053 (1976 formula: 0.469783), W 0.0112768, P 1.7950e-5; partial omega2 interaction 0 (floored) | 1e-9 |
+
+Also tested: two levels (epsilon 1, no W, "always holds"), 3 subjects
+for 5 conditions (no W, HF undefined, GG P still given), the mixed model
+with complete data (same values) and with a missing value (no
+Mauchly), invariance of the epsilons, W and partial omega2 to units and
+to the order of the conditions, and the GG epsilon unchanged.
 """
 
 

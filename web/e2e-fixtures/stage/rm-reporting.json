@@ -1,0 +1,326 @@
+{
+ "opendose_project": 2,
+ "version": 2,
+ "title": "RM reporting",
+ "prefs": {
+  "defaultTableType": "xy",
+  "errorBars": "sd",
+  "ciMethod": "asymptotic",
+  "scheme": "default",
+  "digits": 4
+ },
+ "selected": "r109",
+ "sheets": [
+  {
+   "id": "d108",
+   "kind": "data",
+   "name": "RM 10 x 4",
+   "table": {
+    "type": "column",
+    "x": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "",
+    "rowTitles": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "datasets": [
+     {
+      "name": "Vehicle",
+      "rows": [
+       [
+        "12.1"
+       ],
+       [
+        "10.4"
+       ],
+       [
+        "13.8"
+       ],
+       [
+        "9.7"
+       ],
+       [
+        "11.2"
+       ],
+       [
+        "12.9"
+       ],
+       [
+        "10.8"
+       ],
+       [
+        "14.2"
+       ],
+       [
+        "11.5"
+       ],
+       [
+        "13.1"
+       ]
+      ]
+     },
+     {
+      "name": "Low",
+      "rows": [
+       [
+        "14.3"
+       ],
+       [
+        "11.9"
+       ],
+       [
+        "15.1"
+       ],
+       [
+        "10.2"
+       ],
+       [
+        "13.8"
+       ],
+       [
+        "13.5"
+       ],
+       [
+        "12.7"
+       ],
+       [
+        "15.9"
+       ],
+       [
+        "12"
+       ],
+       [
+        "14.6"
+       ]
+      ]
+     },
+     {
+      "name": "Mid",
+      "rows": [
+       [
+        "15"
+       ],
+       [
+        "13.7"
+       ],
+       [
+        "18.2"
+       ],
+       [
+        "12.5"
+       ],
+       [
+        "14.1"
+       ],
+       [
+        "16.8"
+       ],
+       [
+        "13.2"
+       ],
+       [
+        "17.4"
+       ],
+       [
+        "15.3"
+       ],
+       [
+        "16"
+       ]
+      ]
+     },
+     {
+      "name": "High",
+      "rows": [
+       [
+        "19.8"
+       ],
+       [
+        "14.2"
+       ],
+       [
+        "24.9"
+       ],
+       [
+        "13.1"
+       ],
+       [
+        "20.3"
+       ],
+       [
+        "17"
+       ],
+       [
+        "21.6"
+       ],
+       [
+        "18.1"
+       ],
+       [
+        "22.7"
+       ],
+       [
+        "16.4"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "r109",
+   "kind": "results",
+   "parentId": "d108",
+   "analysis": "column",
+   "options": {
+    "analysis": "rm_anova",
+    "rmKind": "parametric"
+   },
+   "name": "RM ANOVA of RM 10 x 4"
+  },
+  {
+   "id": "d110",
+   "kind": "data",
+   "name": "Metric by time",
+   "table": {
+    "type": "grouped",
+    "x": [
+     "",
+     "",
+     ""
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "",
+    "rowTitles": [
+     "Product",
+     "Client",
+     "Action"
+    ],
+    "datasets": [
+     {
+      "name": "Pre",
+      "rows": [
+       [
+        "13",
+        "12",
+        "17",
+        "12",
+        "19",
+        "6",
+        "17",
+        "18",
+        "23",
+        "18"
+       ],
+       [
+        "12",
+        "19",
+        "19",
+        "25",
+        "27",
+        "12",
+        "18",
+        "29",
+        "30",
+        "12"
+       ],
+       [
+        "17",
+        "18",
+        "24",
+        "25",
+        "19",
+        "6",
+        "30",
+        "36",
+        "24",
+        "24"
+       ]
+      ]
+     },
+     {
+      "name": "Post",
+      "rows": [
+       [
+        "18",
+        "6",
+        "21",
+        "18",
+        "18",
+        "6",
+        "24",
+        "22",
+        "18",
+        "24"
+       ],
+       [
+        "30",
+        "18",
+        "31",
+        "39",
+        "28",
+        "18",
+        "36",
+        "36",
+        "38",
+        "25"
+       ],
+       [
+        "34",
+        "30",
+        "32",
+        "40",
+        "27",
+        "23",
+        "38",
+        "40",
+        "32",
+        "34"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "r111",
+   "kind": "results",
+   "parentId": "d110",
+   "analysis": "grouped_two_way",
+   "options": {
+    "design": "rm_both",
+    "rowFactor": "Metric",
+    "colFactor": "Time"
+   },
+   "name": "Two-way RM ANOVA of Metric by time"
+  }
+ ]
+}

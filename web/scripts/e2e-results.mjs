@@ -590,6 +590,40 @@ await page.waitForSelector('.pane-results[data-live="true"] .results-table', { t
     refit && kRow.startsWith("k 0.3 "), kRow);
 }
 
+// --- P-40: Mauchly, Huynh-Feldt and partial omega squared in RM ANOVA ----
+{
+  // engine/tests/reference/rm_sphericity.py (pingouin 0.7): GG 0.3897,
+  // HF 0.4125, Mauchly W = 0.01253, P = 3.3e-6, HF P = 1.444e-4,
+  // partial omega squared 0.5257
+  await pastedTable("column", "RM 10 x 4", "Vehicle\tLow\tMid\tHigh\n"
+    + "12.1\t14.3\t15.0\t19.8\n10.4\t11.9\t13.7\t14.2\n13.8\t15.1\t18.2\t24.9\n"
+    + "9.7\t10.2\t12.5\t13.1\n11.2\t13.8\t14.1\t20.3\n12.9\t13.5\t16.8\t17.0\n"
+    + "10.8\t12.7\t13.2\t21.6\n14.2\t15.9\t17.4\t18.1\n11.5\t12.0\t15.3\t22.7\n"
+    + "13.1\t14.6\t16.0\t16.4\n");
+  await page.locator(".pane-controls select.analysis-select").selectOption("rm_anova");
+  await liveResults(/Mauchly's test of sphericity/);
+  const row = async (label) => (await page.locator(".pane-results tr", { hasText: label }).first()
+    .innerText().catch(() => "")).replace(/\s+/g, " ").trim();
+  const [gg, hf, phf, mau] = [await row("Geisser-Greenhouse epsilon"),
+    await row("Huynh-Feldt epsilon"), await row("P (Huynh-Feldt corrected)"),
+    await row("Mauchly's test of sphericity")];
+  expect("P-40 typeset table: GG ε 0.3897, HF ε 0.4125 (Lecoutre), HF P 1.444e-4, Mauchly W 0.01253 (P < 0.0001)",
+    gg === "Geisser-Greenhouse epsilon 0.3897" && hf === "Huynh-Feldt epsilon (Lecoutre) 0.4125"
+      && phf === "P (Huynh-Feldt corrected) 1.444e-4"
+      && mau === "Mauchly's test of sphericity W = 0.01253, P < 0.0001", [gg, hf, phf, mau].join(" | "));
+  await openChecks();
+  await page.locator(".pane-answer").getByRole("button", { name: /Sphericity: ε = 0\.39/ }).click();
+  const chip = await page.getByRole("region", { name: "Sphericity: ε = 0.39" }).innerText().catch(() => "");
+  expect("P-40 acceptance: the sphericity chip lists GG ε, HF ε and Mauchly's W with P",
+    chip.includes("GG ε = 0.39, HF ε = 0.412, Mauchly's W = 0.0125, P < 0.0001")
+      && chip.includes("Mauchly's test is reported, not used to choose the correction")
+      && chip.includes("Lecoutre 1991"), chip.slice(0, 300));
+  const omega = await page.locator(".pane-results tr", { hasText: "Partial ω²" }).first()
+    .evaluate((el) => el.textContent.replace(/\s+/g, " ").trim()).catch(() => "");
+  expect("P-40 acceptance: the effect-size block adds partial ω² = 0.5257, without a CI",
+    /^Partial ω²\s*0\.5257\s*(n\/a|—)?/.test(omega) && !/to/.test(omega), omega);
+}
+
 // ------------------------------------------------------------------------
 await browser.close();
 if (errors.length) console.log(errors.slice(0, 10).join("\n"));

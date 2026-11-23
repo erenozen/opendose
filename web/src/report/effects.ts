@@ -191,8 +191,12 @@ export function blockRows(block: unknown): EffectRow[] {
     return rows(b, partial ? [
       { id: "partial_eta2", measure: "Partial η²", symbol: "ηp²", family: "variance",
         value: b.partial_eta_squared, ci: ciP, interpretation: it, bounded: true },
+      // Repeated-measures terms carry ci_partial_omega_squared: null (the
+      // subject variance in its denominator is outside partial η²'s CI).
       { id: "partial_omega2", measure: "Partial ω²", symbol: "ωp²", family: "variance",
-        value: b.partial_omega_squared, ci: ciP, interpretation: it, bounded: true },
+        value: b.partial_omega_squared,
+        ci: "ci_partial_omega_squared" in b ? b.ci_partial_omega_squared : ciP,
+        interpretation: it, bounded: true },
       { id: "generalized_eta2", measure: "Generalized η²", symbol: "ηG²", family: "variance",
         value: b.generalized_eta_squared,
         interpretation: interp(b.interpretation_generalized) ?? it, bounded: true },

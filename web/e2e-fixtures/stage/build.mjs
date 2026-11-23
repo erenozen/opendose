@@ -470,3 +470,24 @@ const longData = (name, names, rows, categorical) => data(name, {
   }];
   write("why-history.json", project("Pilot study", [t, r, g], { selected: r.id, reproductions }));
 }
+
+// rm-reporting.json: the RM ANOVA reporting of P-40 (engine/tests/
+// reference/rm_sphericity.py): a 10-subject, 4-condition table under RM
+// one-way ANOVA, and pingouin's rm_anova2 data (Metric x Time, both
+// repeated, 10 subjects) under two-way RM ANOVA
+{
+  const ref = JSON.parse(readFileSync(join(here, "../../../engine/tests/reference",
+    "rm_sphericity.json"), "utf8"));
+  const one = ref.one_way;
+  const t = data("RM 10 x 4", table("column", { datasets: one.names.map((nm, j) =>
+    col(nm, one.data.map((r) => r[j]))) }));
+  const r = results(t, "column", { analysis: "rm_anova", rmKind: "parametric" },
+    "RM ANOVA of RM 10 x 4");
+  const both = ref.both;
+  const t2 = data("Metric by time", table("grouped", { rowTitles: both.row_names,
+    datasets: both.col_names.map((nm, j) => ({ name: nm,
+      rows: both.cells.map((row) => row[j].map(String)) })) }));
+  const r2 = results(t2, "grouped_two_way", { design: "rm_both", rowFactor: "Metric",
+    colFactor: "Time" }, "Two-way RM ANOVA of Metric by time");
+  write("rm-reporting.json", project("RM reporting", [t, r, t2, r2], { selected: r.id }));
+}

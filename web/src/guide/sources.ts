@@ -241,6 +241,17 @@ export const SRC = {
   // compares whole distributions (ranks), not medians.
   hart2001: { label: "Hart 2001, Mann-Whitney test is not just a test of medians: differences in spread can be important, BMJ 323:391",
     url: "https://pmc.ncbi.nlm.nih.gov/articles/PMC1120984/" },
+
+  // RM ANOVA reporting (P-40). Mauchly's test of sphericity; the
+  // Huynh-Feldt epsilon with Lecoutre's correction for designs with
+  // groups (R car and afex); partial omega squared for designs with
+  // subjects (as R effectsize computes it).
+  mauchly1940: { label: "Mauchly 1940, Significance test for sphericity of a normal n-variate distribution, Ann Math Stat 11:204",
+    url: "https://doi.org/10.1214/aoms/1177731915" },
+  lecoutre1991: { label: "Lecoutre 1991, A correction for the ε̃ approximate test in repeated measures designs with two or more independent groups, J Educ Stat 16:371",
+    url: "https://doi.org/10.3102/10769986016004371" },
+  olejnikAlgina2003: { label: "Olejnik & Algina 2003, Generalized eta and omega squared statistics, Psychol Methods 8:434",
+    url: "https://doi.org/10.1037/1082-989X.8.4.434" },
 } satisfies Record<string, Source>;
 
 export type SourceKey = keyof typeof SRC;

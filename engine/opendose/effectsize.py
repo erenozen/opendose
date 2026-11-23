@@ -582,21 +582,65 @@ def generalized_eta_squared(ss_effect, ss_subject_terms) -> float | None:
     return ss_effect / den if den > 0 else None
 
 
+def repeated_partial_omega_squared(ss_effect, df_effect, ss_error, df_error,
+                                   ss_subjects, df_subjects, *,
+                                   within: bool = True) -> float | None:
+    """Partial omega^2 of a term in a repeated-measures or mixed
+    (between + within) design, from the mean squares:
+
+        (SS_eff - df_eff MS_err) / (SS_eff + [within] SS_err + SS_subj
+                                    + MS_subj)
+
+    with MS_err the term's own error mean square and SS_subj, MS_subj the
+    subjects (within groups) stratum; a between-subjects term of a mixed
+    design is tested against that stratum and leaves out SS_err. Olejnik
+    & Algina (2003, Psychol Methods 8:434) for the components, as R's
+    effectsize::omega_squared(partial = TRUE) computes it for designs
+    with an Error() term (its .es_aov_strata, after J. R. Finley's
+    omega-squared quick reference). Negative estimates are set to 0, as
+    there."""
+    if not (df_effect > 0 and df_error > 0 and df_subjects > 0):
+        return None
+    ms_err = ss_error / df_error
+    ms_subj = ss_subjects / df_subjects
+    den = ss_effect + (ss_error if within else 0.0) + ss_subjects + ms_subj
+    if not den > 0:
+        return None
+    return max(0.0, (ss_effect - df_effect * ms_err) / den)
+
+
 def repeated_term(ss_effect, df_effect, ss_error, df_error,
-                  ss_subject_terms, *, ci_level: float = 0.95) -> dict:
+                  ss_subject_terms, *, ss_subjects=None, df_subjects=None,
+                  within: bool = True, ci_level: float = 0.95) -> dict:
     """Effect sizes of a term in a repeated-measures or mixed design:
     partial eta^2 against the term's own error (CI from the noncentral F
-    on the uncorrected df, i.e. assuming sphericity), Cohen's f, and
+    on the uncorrected df, i.e. assuming sphericity), Cohen's f,
     generalized eta^2 (Olejnik & Algina 2003; Bakeman 2005) with
-    ss_subject_terms = every SS involving subjects."""
+    ss_subject_terms = every SS involving subjects, and with the
+    subjects stratum (ss_subjects, df_subjects) partial omega^2
+    (repeated_partial_omega_squared; within=False for a between-subjects
+    term). Partial omega^2 has no interval here: its denominator holds
+    the subject variance, so the noncentral-F interval of partial eta^2
+    does not cover it."""
     t = anova_term(ss_effect, df_effect, ss_error, df_error,
                    ci_level=ci_level)
     g = generalized_eta_squared(ss_effect, ss_subject_terms)
+    omega = None
+    if ss_subjects is not None and df_subjects is not None:
+        omega = repeated_partial_omega_squared(
+            ss_effect, df_effect, ss_error, df_error, ss_subjects,
+            df_subjects, within=within)
     return {
         "partial_eta_squared": t["partial_eta_squared"],
         "ci_partial_eta_squared": t["ci_partial_eta_squared"],
         "cohens_f": t["cohens_f"], "ci_cohens_f": t["ci_cohens_f"],
         "generalized_eta_squared": g,
+        **({"partial_omega_squared": omega,
+            "ci_partial_omega_squared": None,
+            "partial_omega_squared_method": (
+                "Olejnik & Algina (2003), as R effectsize::omega_squared"
+                "(partial = TRUE) for designs with subjects")}
+           if ss_subjects is not None else {}),
         "ci_level": ci_level,
         "ci_method": t["ci_method"] + "; uncorrected df (assumes "
                      "sphericity)",
