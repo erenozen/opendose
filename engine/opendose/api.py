@@ -347,6 +347,9 @@ def _experiments(x_col, ds, exp_opt, model, spec, *, constraints, weighting,
 
 
 def _normalize(data, options):
+    """Normalize every data set (normalize.normalize_dataset). Each output
+    data set also carries "references": the 0% and 100% values it used,
+    their rule and row (normalize.normalize_references)."""
     out = []
     for ds in data["datasets"]:
         out.append({
@@ -358,6 +361,14 @@ def _normalize(data, options):
                 hundred_mode=options.get("hundred_mode", "largest"),
                 hundred_value=options.get("hundred_value"),
                 as_percent=options.get("as_percent", True),
+                subcolumns=options.get("subcolumns", "mean"),
+            ),
+            "references": normalize.normalize_references(
+                ds["ys"],
+                zero_mode=options.get("zero_mode", "smallest"),
+                zero_value=options.get("zero_value"),
+                hundred_mode=options.get("hundred_mode", "largest"),
+                hundred_value=options.get("hundred_value"),
                 subcolumns=options.get("subcolumns", "mean"),
             ),
         })

@@ -6,6 +6,7 @@ import { normalizeTable, numericData, parseCell } from "../../project/table";
 import type { DataTableModel, TableType } from "../../project/types";
 import { maxOf } from "../../lib/extent.ts";
 import { outputTitle } from "./normalizeTitle.ts";
+import { baselineText, normalizeReferenceRows } from "./references.ts";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -375,8 +376,12 @@ export function runBaseline(engine: EngineBridge, table: DataTableModel,
     if (o.baseline === "column" || o.baseline === "alternate") {
       notes.push("Baseline data sets are left out of the output table.");
     }
-    return { x: r.x, datasets: r.datasets, notes,
-      extra: r.baseline_lines ? { baselineLines: r.baseline_lines } : undefined };
+    // what was removed from each data set (P-57), shown with the results
+    const baselines = (r.datasets as (ApiDataset & { baseline?: unknown })[]).map((d) => ({
+      name: d.name, baseline: d.baseline ?? null }));
+    return { x: r.x, datasets: r.datasets.map((d: ApiDataset) => ({ name: d.name, ys: d.ys })), notes,
+      extra: { ...(r.baseline_lines ? { baselineLines: r.baseline_lines } : {}),
+        baselines: baselines.map((b) => ({ dataset: b.name, text: baselineText(b.baseline as never, table) })) } };
   });
 }
 
@@ -416,8 +421,12 @@ export function runNormalize(engine: EngineBridge, table: DataTableModel,
         subcolumns: o.subcolumns,
       },
     });
-    return { x: data.x, datasets: r.datasets, notes: [],
-      yTitle: outputTitle(o, table) };
+    // the 0% and 100% each data set used (P-57), shown with the results
+    const refs = (r.datasets as (ApiDataset & { references?: unknown })[]).map((d) => ({
+      name: d.name, references: d.references ?? null }));
+    return { x: data.x, datasets: r.datasets.map((d: ApiDataset) => ({ name: d.name, ys: d.ys })), notes: [],
+      yTitle: outputTitle(o, table),
+      extra: { references: normalizeReferenceRows(refs as { name: string; references: never }[], table) } };
   });
 }
 

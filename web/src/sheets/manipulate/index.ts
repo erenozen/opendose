@@ -28,6 +28,8 @@ const BaselineControls = lazyPart(panelsModule, "BaselineControls");
 const ConcControls = lazyPart(panelsModule, "ConcControls");
 const FractionControls = lazyPart(panelsModule, "FractionControls");
 const FractionExtra = lazyPart(panelsModule, "FractionExtra");
+const NormalizeExtra = lazyPart(panelsModule, "NormalizeExtra");
+const BaselineExtra = lazyPart(panelsModule, "BaselineExtra");
 const NormalizeControls = lazyPart(panelsModule, "NormalizeControls");
 const PruneControls = lazyPart(panelsModule, "PruneControls");
 const TransformControls = lazyPart(panelsModule, "TransformControls");
@@ -110,7 +112,7 @@ export const baselineAnalysis = manipulation({
   description: "Subtract or divide by a baseline row, column or constant.",
   verb: "Remove baseline", output: (t) => `Baseline-corrected ${t}`,
   defaults: DEFAULT_BASELINE, run: runBaseline, Controls: BaselineControls,
-  methods: baselineMethods,
+  methods: baselineMethods, extra: BaselineExtra,
 });
 
 export const normalizeAnalysis = manipulation({
@@ -121,7 +123,7 @@ export const normalizeAnalysis = manipulation({
   verb: "Normalize", output: (t) => `Normalized ${t}`,
   // new outputs are titled from the settings (P-55; normalizeTitle.ts)
   defaults: DEFAULT_NORMALIZE, fresh: { namedTitle: true }, run: runNormalize, Controls: NormalizeControls,
-  methods: (o) => normalizeMethods(o),
+  methods: (o) => normalizeMethods(o), extra: NormalizeExtra,
 });
 
 export const transposeAnalysis = manipulation({

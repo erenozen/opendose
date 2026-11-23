@@ -157,22 +157,25 @@ _OPERATIONS = {
 OPERATIONS = sorted(_OPERATIONS)
 
 
-def _row_baseline(g, mode, k, replicates):
-    """Baseline from rows of the same column -> broadcastable array."""
-    n = g.shape[0]
+def _baseline_rows(n, mode, k):
+    """The rows (0-based) a same-column baseline is taken from."""
     k = max(1, int(k))
     if mode == "first_row":
-        idx = [0]
-    elif mode == "last_row":
-        idx = [n - 1]
-    elif mode == "first_rows":
-        idx = list(range(min(k, n)))
-    elif mode == "last_rows":
-        idx = list(range(max(0, n - k), n))
-    elif mode == "first_last_rows":
-        idx = sorted(set(range(min(k, n))) | set(range(max(0, n - k), n)))
-    else:
-        raise ValueError(f"unknown baseline: {mode}")
+        return [0]
+    if mode == "last_row":
+        return [n - 1]
+    if mode == "first_rows":
+        return list(range(min(k, n)))
+    if mode == "last_rows":
+        return list(range(max(0, n - k), n))
+    if mode == "first_last_rows":
+        return sorted(set(range(min(k, n))) | set(range(max(0, n - k), n)))
+    raise ValueError(f"unknown baseline: {mode}")
+
+
+def _row_baseline(g, mode, k, replicates):
+    """Baseline from rows of the same column -> broadcastable array."""
+    idx = _baseline_rows(g.shape[0], mode, k)
     sub = g[idx, :]
     if replicates == "each":
         return np.array([_nanmean(sub[:, j]) for j in range(g.shape[1])])[None, :]
@@ -214,6 +217,11 @@ def remove_baseline(x, datasets, *, baseline: str = "column",
     operation: subtract | divide | fraction_difference |
       percent_difference | percent_of_baseline | add | multiply.
     Baseline data sets are dropped from the output.
+    Each output data set carries "baseline": what was removed from it
+    (P-57): {"kind": "dataset", "dataset": name, "linear": bool} for a
+    baseline data set (row by row), {"kind": "rows", "rows": [0-based],
+    "value": the mean used, or "values": one per subcolumn} for rows of the
+    same column, {"kind": "value", "value": v} for a typed constant.
     """
     if operation not in _OPERATIONS:
         raise ValueError(f"unknown operation: {operation} "
@@ -243,6 +251,13 @@ def remove_baseline(x, datasets, *, baseline: str = "column",
     else:
         raise ValueError(f"unknown baseline: {baseline}")
 
+    base_names = {}
+    if baseline == "column":
+        base_names = {i: names[baseline_dataset] for i, _, _ in jobs}
+    elif baseline == "alternate":
+        for i in range(0, len(grids), 2):
+            t, b = (i, i + 1) if pairs == "total_first" else (i + 1, i)
+            base_names[t] = names[b]
     out, fits = [], []
     with np.errstate(all="ignore"):
         for idx, g, base in jobs:
@@ -264,7 +279,21 @@ def remove_baseline(x, datasets, *, baseline: str = "column",
                 b = _row_baseline(g, baseline, k, replicates)
             res = op(g, b)
             res = np.where(np.isfinite(res), res, np.nan)
-            out.append({"name": names[idx], "ys": _rows_out(res)})
+            if base is not None:
+                ref = {"kind": "dataset", "dataset": base_names.get(idx),
+                       "linear": bool(linear_baseline)}
+            elif baseline == "value":
+                ref = {"kind": "value", "value": float(value)}
+            else:
+                ref = {"kind": "rows",
+                       "rows": _baseline_rows(g.shape[0], baseline, k)}
+                bb = np.asarray(b, dtype=float)
+                if bb.ndim == 2:
+                    ref["values"] = [_out(v) for v in bb[0]]
+                else:
+                    ref["value"] = _out(float(bb))
+            out.append({"name": names[idx], "ys": _rows_out(res),
+                        "baseline": ref})
             fits.append(fit)
     result = {"x": [_out(v) for v in x_arr], "datasets": out}
     if linear_baseline and baseline in ("column", "alternate"):

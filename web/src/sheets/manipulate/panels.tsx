@@ -19,6 +19,7 @@ import "./manipulate.css";
 import { CopyButton } from "../../components/CiteBlock";
 import { Button } from "../../components/ui";
 import { maxOf } from "../../lib/extent";
+import type { ReferenceRow } from "./references";
 
 // ------------------------------------------------------------ helpers
 
@@ -542,6 +543,42 @@ function ResultPreview({ result, table }: { result: ManipResult; table: DataTabl
         </tbody>
       </table>
       {n > rows && <p className="hint-block">First {rows} of {n} rows.</p>}
+    </div>
+  );
+}
+
+/** P-57: the 0% and 100% each data set was normalized to. */
+export function NormalizeExtra({ result: r }: { result: ManipResult }) {
+  const rows = (r.extra as { references?: ReferenceRow[] } | undefined)?.references;
+  if (!rows?.length) return null;
+  return (
+    <div className="manip-preview" role="region" aria-label="References used" tabIndex={0}>
+      <h4>References used</h4>
+      <table className="results-table manip-refs">
+        <thead><tr><th scope="col">Data set</th><th scope="col">0% is</th><th scope="col">100% is</th></tr></thead>
+        <tbody>
+          {rows.map((x, i) => (
+            <tr key={i}><th scope="row">{x.dataset}</th><td>{x.zero}</td><td>{x.hundred}</td></tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/** P-57: the baseline taken from each data set. */
+export function BaselineExtra({ result: r }: { result: ManipResult }) {
+  const rows = (r.extra as { baselines?: { dataset: string; text: string }[] } | undefined)?.baselines;
+  if (!rows?.length) return null;
+  return (
+    <div className="manip-preview" role="region" aria-label="Baseline used" tabIndex={0}>
+      <h4>Baseline used</h4>
+      <table className="results-table manip-refs">
+        <thead><tr><th scope="col">Data set</th><th scope="col">Baseline</th></tr></thead>
+        <tbody>
+          {rows.map((x, i) => <tr key={i}><th scope="row">{x.dataset}</th><td>{x.text}</td></tr>)}
+        </tbody>
+      </table>
     </div>
   );
 }

@@ -7,8 +7,9 @@
 // (P-14) and two event rates (P-47); and the fit models of wave 1: Weibull
 // and hormesis models (P-19), range constraints (P-20), initial values and
 // the fit report (P-21) and simulating a user-defined equation (P-51);
-// quasi-Poisson (P-46), partial and compared correlations (P-48) and the
-// survival difference at a chosen time (P-28).
+// quasi-Poisson (P-46), partial and compared correlations (P-48), the
+// survival difference at a chosen time (P-28) and the references behind
+// a Normalize (P-57).
 // Each number asserted here is pinned in the engine tests from an
 // independent reference (engine/tests/reference/).
 // Usage: node scripts/e2e-results.mjs [http://localhost:5173/]
@@ -845,6 +846,22 @@ await page.waitForSelector('.pane-results[data-live="true"] .results-table', { t
   expect(`P-28 acceptance: under the survival-at-365-days table, the difference row "${want}"`, diff === want, diff);
   expect("P-28 the results say the time must be chosen before looking at the curves",
     /Choose the time before looking at the curves/.test(await block.innerText()));
+}
+
+// --- P-57: the references behind a Normalize -------------------------------
+{
+  // hand derivation (engine/tests/test_normalize_references.py): WT row
+  // means 21, 57.67, 99.67; KO 31.33, 68, 99.67: 0% the smallest mean (row
+  // "10 nM"), 100% the vehicle row's mean
+  await page.getByRole("treeitem", { name: "Normalize of Viability", exact: true }).first()
+    .locator(":scope > .nav-row").click();
+  const refs = page.getByRole("region", { name: "References used" });
+  await refs.waitFor({ timeout: 180000 }).catch(() => {});
+  const rows = (await refs.locator("tbody tr").allInnerTexts().catch(() => [])).map((x) => x.replace(/\s+/g, " ").trim());
+  expect("P-57 acceptance: per data set, 0% = the smallest mean and 100% = the vehicle mean",
+    rows[0] === "WT 21, the smallest mean (“10 nM”) 99.67, the mean of the last row (“vehicle”)"
+      && rows[1] === "KO 31.33, the smallest mean (“10 nM”) 99.67, the mean of the last row (“vehicle”)",
+    rows.join(" | "));
 }
 
 // ------------------------------------------------------------------------

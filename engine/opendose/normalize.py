@@ -11,6 +11,10 @@ Prism reference: User Guide, "Normalize"
 - With replicate subcolumns you can either normalize each subcolumn
   separately, or define 0%/100% from the row MEANS and apply that scale
   to every replicate. Each value is normalized as (Y - Z) / (H - Z).
+
+normalize_references reports the 0% and 100% references (Z and H) each
+data set used, with the rule and the row they came from, so the results
+can state them next to the output (P-57).
 """
 
 from __future__ import annotations
@@ -82,3 +86,59 @@ def normalize_dataset(replicate_rows, *, zero_mode="smallest", zero_value=None,
         out = (grid - z) / (h - z) * scale
 
     return [[None if math.isnan(v) else float(v) for v in row] for row in out]
+
+
+def _ref_row(values: np.ndarray, mode: str):
+    """Row index the reference came from (None for a typed value or a sum)."""
+    ok = np.flatnonzero(~np.isnan(values))
+    if not ok.size:
+        return None
+    if mode == "smallest":
+        return int(ok[np.argmin(values[ok])])
+    if mode == "largest":
+        return int(ok[np.argmax(values[ok])])
+    if mode == "first":
+        return int(ok[0])
+    if mode == "last":
+        return int(ok[-1])
+    return None
+
+
+def _refs(values, zero_mode, zero_value, hundred_mode, hundred_value):
+    return {
+        "zero": {"value": _zero_value(values, zero_mode, zero_value),
+                 "rule": zero_mode, "row": _ref_row(values, zero_mode)},
+        "hundred": {"value": _hundred_value(values, hundred_mode,
+                                            hundred_value),
+                    "rule": hundred_mode,
+                    "row": _ref_row(values, hundred_mode),
+                    "n_summed": int(np.sum(~np.isnan(values)))
+                    if hundred_mode == "sum" else None},
+    }
+
+
+def normalize_references(replicate_rows, *, zero_mode="smallest",
+                         zero_value=None, hundred_mode="largest",
+                         hundred_value=None, subcolumns="mean") -> dict | None:
+    """The 0% and 100% references normalize_dataset uses for one data set:
+    {"basis": "row means" | "each subcolumn", "zero": {value, rule, row},
+    "hundred": {value, rule, row, n_summed}} for the row means, or with
+    'separate' a list of those per subcolumn under "subcolumns". row is the
+    0-based row the value came from (None for a typed value or a sum).
+    None for a data set with no values."""
+    grid = np.array([_col_to_array(r) for r in replicate_rows], dtype=float)
+    if grid.size == 0 or np.all(np.isnan(grid)):
+        return None
+    if subcolumns == "separate":
+        subs = []
+        for j in range(grid.shape[1]):
+            col = grid[:, j]
+            subs.append(None if np.all(np.isnan(col)) else
+                        _refs(col, zero_mode, zero_value, hundred_mode,
+                              hundred_value))
+        return {"basis": "each subcolumn", "subcolumns": subs}
+    means = np.array([np.nan if np.all(np.isnan(r)) else np.nanmean(r)
+                      for r in grid])
+    return {"basis": "row means",
+            **_refs(means, zero_mode, zero_value, hundred_mode,
+                    hundred_value)}

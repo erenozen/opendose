@@ -16,7 +16,7 @@ import {
 import { laneJitter, spreadOffsets, type PointSpread } from "../graph/swarm";
 import { densify } from "../graph/dense";
 import { areaScale, estimateArea, usePlotArea } from "../graph/usePlotArea";
-import { summaryOf, type ColumnSummary, type ViolinLook } from "../sheets/column/graphSettings";
+import { barHover, summaryOf, type ColumnSummary, type ViolinLook } from "../sheets/column/graphSettings";
 import { groupDensity } from "../graph/kde";
 import { RAIN, raincloudTraces, violinTraces } from "../graph/violinTraces";
 import { maxOf, minOf } from "../lib/extent";
@@ -197,7 +197,8 @@ export default function ColumnPlot({
           error_y: errorY,
           name,
           showlegend: false,
-          hovertemplate: `${name}: ${st.label}<extra></extra>`,
+          // the mean, SD and n behind the bar (P-57)
+          hovertemplate: `${barHover(name, values, st.label)}<extra></extra>`,
         }, { ds: i, role: "bar" }) as Plotly.Data);
         if (!points && st) return;
         const off = offsets(values);
