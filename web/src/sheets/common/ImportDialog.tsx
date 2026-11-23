@@ -13,6 +13,8 @@ import { isTableDrop } from "../../share/recipes/dropKind";
 import type { PlainSpec } from "../../share/recipes/saved";
 import { pasteReport, placedCells, type PasteReport } from "../../project/pasteReport";
 import type { SheetApp } from "../../project/clipboardHtml";
+import { visibleRows } from "../../lib/xlsxFlags";
+import WorkbookReport from "./WorkbookReport";
 
 export interface ImportRequest {
   text?: string;                        // clipboard text to start from
@@ -101,8 +103,13 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
     try { return new TextDecoder(encoding).decode(file.bytes); } catch { return ""; }
   }, [srcKind, pasted, file, encoding, isXlsx]);
 
-  const source: string | string[][] = useMemo(() => (srcKind === "file" && sheets
-    ? sheets[sheetIx]?.rows ?? [] : text), [srcKind, sheets, sheetIx, text]);
+  // Rows hidden in Excel: by a filter, left out unless kept; by hand, kept
+  // unless left out (as copying the range in Excel does).
+  const [keepFiltered, setKeepFiltered] = useState(false);
+  const [skipHidden, setSkipHidden] = useState(false);
+  const sheet = srcKind === "file" && sheets ? sheets[sheetIx] ?? null : null;
+  const source: string | string[][] = useMemo(() => (sheet
+    ? visibleRows(sheet, keepFiltered, skipHidden) : text), [sheet, keepFiltered, skipHidden, text]);
   // "First row holds column titles" follows the data until the user
   // ticks or unticks it: text above columns of numbers is a titles row.
   const [titlesTouched, setTitlesTouched] = useState(false);
@@ -121,6 +128,8 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
     setSheets(null);
     setSheetIx(0);
     setRoleOverride({});
+    setKeepFiltered(false);
+    setSkipHidden(false);
     if (!f) { setFile(null); return; }
     const bytes = new Uint8Array(await f.arrayBuffer());
     setFile({ name: f.name, bytes });
@@ -430,6 +439,8 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
         </Tabs.Panel>
       </Tabs>
 
+      <WorkbookReport sheet={sheet} keepFiltered={keepFiltered} skipHidden={skipHidden}
+        onKeepFiltered={setKeepFiltered} onSkipHidden={setSkipHidden} />
       <div className="import-preview" role="region" tabIndex={0} aria-label="Preview of the data to import">
         {empty ? (
           <p className="import-summary import-empty">

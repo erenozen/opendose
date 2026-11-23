@@ -287,6 +287,19 @@ const scenes = [
     await click(s, button(s, "Import…"));
     await dialog(s, "Import data").waitFor();
   } },
+  // the workbook report (P-06): rows hidden by a filter, formulas saved
+  // without values (e2e-fixtures/xlsx/)
+  ...[["shell-import-filtered", "filter-hidden.xlsx", /hidden by a filter/],
+    ["shell-import-formulas", "formulas-uncached.xlsx", /no saved value/]].map(([name, file, re]) => ({
+    name, setup: async (s) => {
+      await example(s);
+      await click(s, button(s, "Import…"));
+      const d = dialog(s, "Import data");
+      await d.waitFor();
+      await d.locator('input[aria-label="File to import"]').setInputFiles(join(here, "..", "e2e-fixtures", "xlsx", file));
+      await d.locator(".workbook-report").filter({ hasText: re }).waitFor({ timeout: 120000 });
+    },
+  })),
   { name: "shell-goto", setup: async (s) => {
     await fixture(s, "many-sheets.json");
     await s.page.locator(".nav-tree").first().waitFor({ state: "attached" });

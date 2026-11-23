@@ -27,6 +27,7 @@ import {
   AnswerCache, replay, type EngineBridge, type Outcome,
 } from "./engineReplay";
 import { applyModelList } from "./modelLibrary";
+import type { SheetFlags } from "./xlsxFlags";
 
 export type { EngineBridge } from "./engineReplay";
 export type { RuntimeVersions } from "./engineProtocol";
@@ -156,8 +157,15 @@ export function getEngine(onStatus: (msg: string) => void = () => {}): Promise<E
 // ------------------------------------------------------------ xlsx reading
 
 /** One worksheet as rows of cell text (numbers in full precision, dates
- *  as ISO text, blanks as ""). */
-export interface XlsxSheet { name: string; rows: string[][] }
+ *  as ISO text, blanks as ""). Row i of `rows` is the sheet's row i + 1. */
+export interface XlsxSheet {
+  name: string;
+  rows: string[][];
+  /** What the cached values do not show (lib/xlsxFlags.ts): rows hidden
+   *  by a filter or by hand, here as indices into `rows`, and formula
+   *  cells saved without a value. Null when the XML could not be checked. */
+  flags?: SheetFlags | null;
+}
 
 /** Read every worksheet of an .xlsx file (in the engine worker; waits for
  *  it to load, and installs the xlsx reader on first use). */

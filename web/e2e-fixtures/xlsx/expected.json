@@ -1,0 +1,123 @@
+{
+ "formulas-uncached.xlsx": {
+  "doubled": {
+   "blankFormulas": [
+    "B2",
+    "B3",
+    "B4",
+    "B5",
+    "B6"
+   ],
+   "hiddenRows": [],
+   "autoFilter": null,
+   "rows": [
+    [
+     "x",
+     "y"
+    ],
+    [
+     1,
+     ""
+    ],
+    [
+     2,
+     ""
+    ],
+    [
+     3,
+     ""
+    ],
+    [
+     4,
+     ""
+    ],
+    [
+     5,
+     ""
+    ]
+   ]
+  }
+ },
+ "filter-hidden.xlsx": {
+  "filtered": {
+   "blankFormulas": [],
+   "hiddenRows": [
+    4,
+    5,
+    6
+   ],
+   "autoFilter": "A1:B10",
+   "rows": [
+    [
+     "Dose",
+     "Response"
+    ],
+    [
+     0.1,
+     98.5
+    ],
+    [
+     0.3,
+     95.1
+    ],
+    [
+     1,
+     80.2
+    ],
+    [
+     3,
+     51.7
+    ],
+    [
+     10,
+     22.4
+    ],
+    [
+     30,
+     9.8
+    ],
+    [
+     100,
+     4.1
+    ],
+    [
+     300,
+     2.2
+    ],
+    [
+     1000,
+     1.5
+    ]
+   ]
+  },
+  "by hand": {
+   "blankFormulas": [],
+   "hiddenRows": [
+    3
+   ],
+   "autoFilter": null,
+   "rows": [
+    [
+     "Dose",
+     "Response"
+    ],
+    [
+     1,
+     90
+    ],
+    [
+     2,
+     70
+    ],
+    [
+     3,
+     50
+    ],
+    [
+     4,
+     30
+    ]
+   ]
+  }
+ }
+}
