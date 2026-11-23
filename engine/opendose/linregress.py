@@ -45,7 +45,7 @@ def _runs_p_float(n1: int, n2: int, runs: int) -> float:
     denominator as the log-sum of every term (the probabilities sum to
     1), so no factorial of N is formed. O(N) work; agrees with exact
     rational arithmetic to about 1e-12 relative (see
-    engine/tests/reference/runs_test_large_n.py)."""
+    engine/tests/reference/large_tables.py)."""
     centre = n1 * n2 // (n1 + n2)
 
     def log_comb_row(n):  # log C(n - 1, k) - log C(n - 1, c), k = 0 .. n - 1

@@ -3,7 +3,7 @@
 - linregress.runs_test: up to RUNS_EXACT_INT_MAX_N nonzero residuals the
   exact P is summed in big integers, unchanged (bit-identical); above it
   the same exact distribution is summed in floating point. Reference
-  values from engine/tests/reference/runs_test_large_n.py (brute force,
+  values from engine/tests/reference/large_tables.py (brute force,
   fractions and 60-digit decimals; nothing from opendose).
 - diagnostics.replicates_test groups equal X by sorting instead of one
   pass over X per distinct value: the result is identical to the old loop.
@@ -30,7 +30,7 @@ from opendose.linregress import runs_test
 from opendose.nlfit import fit_model
 
 REF = json.loads((Path(__file__).parent / "reference"
-                  / "runs_test_large_n.json").read_text())
+                  / "large_tables.json").read_text())
 
 
 def _reference_signs():
@@ -215,6 +215,26 @@ def test_e2e_xy_linear_regression():
         (ref["n_runs"], ref["n_positive"], ref["n_negative"])
     assert rt["p"] == pytest.approx(ref["p"], rel=1e-10)
     assert f"{rt['p']:.4g}" == "0.3926"
+
+
+def test_e2e_column_t_test():
+    """The column table e2e-large.mjs pastes first (500,000 rows, two
+    groups): the unpaired t test against scipy's ttest_ind."""
+    ref = REF["e2e_column"]
+    seed, a, b = 11, [], []
+    for _ in range(ref["rows"]):
+        seed = (seed * 16807) % 2147483647
+        a.append(float(_to_fixed3(10 + 3 * seed / 2147483647)))
+        seed = (seed * 16807) % 2147483647
+        b.append(float(_to_fixed3(10.4 + 3 * seed / 2147483647)))
+    r = api.analyze({"analysis": "ttest", "options": {"kind": "unpaired"},
+                     "data": {"datasets": [{"name": "A", "ys": [[v] for v in a]},
+                                           {"name": "B", "ys": [[v] for v in b]}]}})
+    assert r["difference"] == pytest.approx(ref["difference"], rel=1e-9)
+    assert r["se_difference"] == pytest.approx(ref["se_difference"], rel=1e-9)
+    assert r["t"] == pytest.approx(abs(ref["t"]), rel=1e-9)   # the engine reports |t|
+    assert r["df"] == ref["df"]
+    assert r["p_two_tailed"] == ref["p_two_tailed"] == 0.0   # below the smallest double
 
 
 class TestReplicatesTest:

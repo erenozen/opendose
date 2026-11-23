@@ -1,17 +1,19 @@
 // End-to-end check of large pasted tables (P-10): ROWS rows (default
-// 200,000, above the ~126,000 values a Math.min(...values) spread can
-// take before V8 throws "RangeError: Maximum call stack size exceeded")
-// pasted into a new column table and into a new XY table, then the graph
-// drawn on the WebGL path and the analysis run, with no page error. Each
-// phase prints its time and the page's JavaScript heap.
+// 500,000, the plan's acceptance size; anything above the ~126,000 values
+// a Math.min(...values) spread can take tests the loop helpers) pasted
+// into a new column table and into a new XY table, then the graph drawn
+// on the WebGL path and the analysis run, with no page error. At 500,000
+// rows the numbers shown (t test, slope, runs test) are checked against
+// engine/tests/reference/large_tables.json. Each phase prints its time,
+// the page's JavaScript heap and the run's peak memory.
 //   node scripts/e2e-large.mjs http://localhost:5173/ [ROWS]
-// Run it alone, through the memory-capped slot where one exists: the
-// paste of 200,000 rows takes about 2.5 GB at its peak.
+// Run it alone, through the memory-capped slot where one exists: 500,000
+// rows peak at about 3.7 GB (browser and this script) in the analysis.
 import { readFileSync } from "node:fs";
 import { chromium } from "playwright";
 
 const baseUrl = process.argv[2] ?? "http://localhost:5173/";
-const N = Number(process.argv[3] ?? 200000);
+const N = Number(process.argv[3] ?? 500000);
 const url = (() => {
   const u = new URL(baseUrl);
   u.searchParams.set("example", "1");
@@ -61,6 +63,16 @@ const peak = () => {
   return `peak ${mb(p)}${by ? ` (now: ${by})` : ""}`;
 };
 
+const REF = JSON.parse(readFileSync(new URL("../../engine/tests/reference/large_tables.json",
+  import.meta.url), "utf8"));
+/** formatSig (src/types.ts) at the default four digits. */
+const sig = (v) => {
+  if (v === 0) return "0";
+  const abs = Math.abs(v);
+  if (abs >= 1e5 || abs < 1e-3) return v.toExponential(3);
+  return Number(v.toPrecision(4)).toString();
+};
+
 let seed = 11;
 const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
 // each table type in a fresh browser, so one run's memory does not carry over
@@ -90,7 +102,9 @@ for (const type of ["column", "xy"]) {
       return was;
     }).catch(() => null);
     const workers = w ? `, web workers ${w.now} (at most ${w.most} in the phase)` : "";
-    return `${(metrics.find((m) => m.name === "JSHeapUsedSize").value / 2 ** 20).toFixed(0)} MB heap${workers}, ${peak()}`;
+    const m = (name) => metrics.find((x) => x.name === name)?.value ?? NaN;
+    return `${(m("JSHeapUsedSize") / 2 ** 20).toFixed(0)} MB heap (of ${(m("JSHeapTotalSize") / 2 ** 20).toFixed(0)} MB), `
+      + `${m("Nodes")} DOM nodes${workers}, ${peak()}`;
   };
   await page.goto(url, { waitUntil: "domcontentloaded" });
   await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 180000 });
@@ -142,6 +156,37 @@ for (const type of ["column", "xy"]) {
   { timeout: 900000, polling: 1000 }).then(() => true, () => false);
   expect(`${type}: the analysis (${type === "column" ? "unpaired t test" : "linear regression"}) returns live results`,
     live, `${Date.now() - a0} ms, ${await heap()}`);
+  // The numbers shown, against engine/tests/reference/large_tables.py
+  // (statsmodels OLS, scipy's t test, 60-digit sums of the exact runs
+  // distribution), for the 500,000 rows that script rebuilds.
+  if (live && N === REF.e2e_xy.rows) {
+    const cell = (label) => page.evaluate((l) => [...document.querySelectorAll(".pane-results tr")]
+      .find((tr) => tr.querySelector("th")?.textContent?.trim().startsWith(l))
+      ?.querySelector("td")?.textContent?.trim() ?? "", label);
+    if (type === "xy") {
+      const r = REF.e2e_xy;
+      const runs = await cell("Runs test");
+      expect("xy: runs test, exact P summed in floating point (reference 249903 runs, P = 0.3926)",
+        runs.startsWith(`${r.n_runs} runs, P = ${sig(r.p)}`), runs);
+      const slope = await cell("Slope");
+      expect(`xy: slope ${sig(r.slope)} (statsmodels OLS ${r.slope})`, slope === sig(r.slope), slope);
+      const n = await cell("Number of points");
+      expect("xy: n = 500000", n === String(r.rows), n);
+    } else {
+      const r = REF.e2e_column;
+      const t = await cell("t, df");
+      expect(`column: t = ${sig(r.t)}, df = ${sig(r.df)} (scipy ttest_ind)`,
+        t.startsWith(`t=${sig(r.t)}, df=${sig(r.df)}`), t);
+      const d = await cell("Difference between means");
+      expect(`column: difference ${sig(r.difference)} ± ${sig(r.se_difference)}`,
+        d === `${sig(r.difference)} ± ${sig(r.se_difference)}`, d);
+      // the residual plots are withheld above 50,000 values, with the limit named
+      await page.getByRole("button", { name: /Residuals: QQ plot/ }).click();
+      const why = await page.locator(".residuals-card .hint-block").first().textContent();
+      expect("column: the residual plots say why they are not drawn (limit and count)",
+        /up to 50,000 values; these residuals number 1,000,000/.test(why ?? ""), why);
+    }
+  }
   const range = errors.filter((e) => /RangeError|call stack/i.test(e));
   expect(`${type}: no RangeError (call stack) anywhere on the way`, range.length === 0, range.join(" | "));
   await browser.close();

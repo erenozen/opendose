@@ -1,12 +1,13 @@
-"""Independent reference for the runs test at large n (FEATURE-PLAN P-10).
+"""Independent reference for large tables (FEATURE-PLAN P-10): the runs
+test at large n, and the two tables web/scripts/e2e-large.mjs pastes.
 
 Run from the repository root:
 
-    /home/eren/opendose/.venv/bin/python engine/tests/reference/runs_test_large_n.py
+    /home/eren/opendose/.venv/bin/python engine/tests/reference/large_tables.py
 
-It writes engine/tests/reference/runs_test_large_n.json, which
+It writes engine/tests/reference/large_tables.json, which
 engine/tests/test_large_n.py reads (web/scripts/e2e-large.mjs asserts
-the "e2e_xy" numbers in the linear regression results at display
+the "e2e_xy" and "e2e_column" numbers in the results at display
 precision). Nothing here imports opendose.
 
 The null distribution of the number of runs R among n1 positive and n2
@@ -33,7 +34,8 @@ significant digits the results show.
 "e2e_xy" rebuilds the XY table that web/scripts/e2e-large.mjs pastes
 (500,000 rows, its seeded Lehmer generator and toFixed(3) text, after the
 column table's 1,000,000 draws), fits the line with statsmodels OLS and
-runs the test on the residual signs in row order.
+runs the test on the residual signs in row order; "e2e_column" rebuilds the
+column table pasted before it and runs the unpaired t test (scipy).
 """
 
 from __future__ import annotations
@@ -180,6 +182,26 @@ def e2e_xy(n=500_000):
     return out
 
 
+def e2e_column(n=500_000):
+    """The column table e2e-large.mjs pastes first: per row a = 10 + 3 u,
+    b = 10.4 + 3 u' as 3-decimal text; the unpaired t test (Student,
+    equal variances) by scipy.stats.ttest_ind and by hand."""
+    g = lehmer(11)
+    a, b = [], []
+    for _ in range(n):
+        a.append(float(to_fixed3(10 + 3 * next(g))))
+        b.append(float(to_fixed3(10.4 + 3 * next(g))))
+    a, b = np.array(a), np.array(b)
+    t, p = stats.ttest_ind(a, b)
+    sp2 = ((n - 1) * a.var(ddof=1) + (n - 1) * b.var(ddof=1)) / (2 * n - 2)
+    se = math.sqrt(sp2 * 2 / n)
+    diff = float(a.mean() - b.mean())
+    assert abs(diff / se - t) < 1e-9 * abs(t)
+    return {"rows": n, "mean_a": float(a.mean()), "mean_b": float(b.mean()),
+            "difference": diff, "se_difference": se, "t": float(t),
+            "df": 2 * n - 2, "p_two_tailed": float(p)}
+
+
 def main():
     rng = np.random.default_rng(20261123)
     brute = []
@@ -209,7 +231,7 @@ def main():
         "generator": "numpy default_rng(20261123): moderate cases in order, "
                      "then large; signs = where(rng.random(n) < share, 1, -1)",
         "brute": brute, "moderate": moderate, "large": large,
-        "e2e_xy": e2e_xy()}, indent=1) + "\n")
+        "e2e_xy": e2e_xy(), "e2e_column": e2e_column()}, indent=1) + "\n")
     print(f"wrote {OUT}")
 
 
