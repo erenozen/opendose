@@ -351,6 +351,14 @@ expect("mapped columns give the same kidney ΔCq 4.365", kid2.includes("4.365"),
   await page.waitForTimeout(800);
   const axeFlow = await axeViolations([".flow-results"]);
   expect("axe-core: the flow results pass", axeFlow.length === 0, axeFlow.join(" | "));
+  // P-31 (ruling 10, methods wording pinned): the full FlowJo gate path,
+  // not the last gate; before: "Gate statistics (CD69+ · Freq. of Parent)"
+  expect("P-31: the methods name the full gate path, CD69+ of Lymphocytes/Single Cells/Live/CD4+",
+    await waitText(".pane-methods", "Gate statistics (CD69+ of Lymphocytes/Single Cells/Live/CD4+, Freq. of Parent) "
+      + "were exported from FlowJo and summarised to one value per donor and condition"),
+    await textOf(".pane-methods").catch(() => ""));
+  expect("P-31: the results line names the full gate path too",
+    (await textOf(".flow-results .model-line")).startsWith("CD69+ of Lymphocytes/Single Cells/Live/CD4+, Freq. of Parent: one value per donor"));
   const linkedBtn = page.locator(".flow-results").getByRole("button", { name: "Open “Per donor of CD69 flow”" });
   await linkedBtn.waitFor({ timeout: 60000 });
   await linkedBtn.click();

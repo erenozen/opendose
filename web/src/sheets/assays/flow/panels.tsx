@@ -430,7 +430,7 @@ export function FlowResults({ sheet, options: o, result: r }: ResultsProps<FlowO
     <div className="result-card assay-results flow-results">
       <h3>Flow cytometry summary</h3>
       <p className="model-line">
-        {r.stat_label}: one value per {unitSingular(r.unit).toLowerCase()} and condition
+        {r.stat_path ?? r.stat_label}: one value per {unitSingular(r.unit).toLowerCase()} and condition
         ({(r.experiments ?? []).length} {r.unit} × {k} conditions); next: {plannedTest(k)}.
       </p>
       <ValuesTable r={r} />
@@ -451,7 +451,7 @@ export function FlowMethods({ result: r }: ResultsProps<FlowOptions, FlowResult>
   if (!r || r.error) return null;
   const k = (r.conditions ?? []).length;
   const tech = (r.n_technical ?? []).some((row: number[]) => row.some((n) => n > 1));
-  const text = `Gate statistics (${r.stat_label}) were exported from FlowJo and summarised to one value `
+  const text = `Gate statistics (${r.stat_path ?? r.stat_label}) were exported from FlowJo and summarised to one value `
     + `per ${unitSingular(r.unit).toLowerCase()} and condition${tech ? " (technical tubes averaged)" : ""}`
     + (r.subtracted ? `, with the ${r.background?.kind === "fmo" ? "FMO" : "isotype"} control `
       + `(${r.background?.condition}) of each ${unitSingular(r.unit).toLowerCase()} subtracted` : "")
