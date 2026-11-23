@@ -4,13 +4,14 @@
 // it replaced.
 import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
 import { useProject } from "../app/context";
+import { parseClipboardHtml } from "../project/clipboardHtml";
 import { newId } from "../project/ids";
 import type { Project, TableType } from "../project/types";
 import { projectWithTable } from "./actions";
 import {
   firstRunStore, isExampleProject, setPasteNote, usablePaste, type PasteNote,
 } from "./firstRun";
-import { readPaste } from "./paste";
+import { readPaste, withFullValues, type PasteFullValues } from "./paste";
 
 export function useFirstRun() {
   return useSyncExternalStore(firstRunStore.subscribe, firstRunStore.get);
@@ -32,8 +33,9 @@ export function usePasteActions() {
   const selRef = useRef(selectedId);
   selRef.current = selectedId;
 
-  /** A new paste, or the same text read again as another type. */
-  const paste = useCallback((text: string, as?: TableType, prev?: PasteNote) => {
+  /** A new paste, or the same text read again as another type. `full`:
+   *  what a spreadsheet's full values did to `text` (withFullValues). */
+  const paste = useCallback((text: string, as?: TableType, prev?: PasteNote, full?: PasteFullValues | null) => {
     // A shared project is read-only until copied: nothing to paste into.
     if (readOnly) return;
     // Reading again: back to the project before the first reading.
@@ -44,7 +46,7 @@ export function usePasteActions() {
     const after = apply(() => made.project);
     select(made.dataId);
     setPasteNote({
-      dataId: made.dataId, text, read: made.read, before, after,
+      dataId: made.dataId, text, read: made.read, fullValues: prev ? prev.fullValues : full ?? null, before, after,
       beforeSelected: prev ? prev.beforeSelected : selRef.current,
       replacedExample: made.replacedExample, refocus: !!prev,
     });
@@ -87,12 +89,16 @@ export function usePasteAnywhere() {
       const exampleGrid = field && !!t?.closest(".pane-table .data-table")
         && isExampleProject(store.project);
       if (field && !exampleGrid) return;
-      const text = e.clipboardData?.getData("text/plain") ?? "";
+      // A copy from Excel, Google Sheets or Calc also carries the numbers it
+      // stores: a cell shown rounded gets its full value, as in the grid.
+      const plain = e.clipboardData?.getData("text/plain") ?? "";
+      const { text, fullValues } = withFullValues(plain,
+        parseClipboardHtml(e.clipboardData?.getData("text/html") ?? ""));
       if (!usablePaste(readPaste(text), exampleGrid ? "grid" : "page")) return;
       // Ahead of the grid's own paste (this listener captures at the window).
       e.preventDefault();
       e.stopPropagation();
-      live.current.paste(text);
+      live.current.paste(text, undefined, undefined, fullValues);
     };
     window.addEventListener("paste", onPaste, true);
     return () => window.removeEventListener("paste", onPaste, true);

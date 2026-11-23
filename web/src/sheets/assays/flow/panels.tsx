@@ -13,6 +13,8 @@ import { findSheet, updateTable } from "../../../project/ops";
 import type { DataSheet, DataTableModel, ResultsSheet } from "../../../project/types";
 import { DELIMITERS } from "../../../share/recipes/pattern";
 import CopyableMethods from "../../common/CopyableMethods";
+import { useWorkbookRows } from "../../common/useWorkbookRows";
+import WorkbookReport from "../../common/WorkbookReport";
 import type { ControlsProps, ResultsProps } from "../../types";
 import { assaySheets, ensureOutputs, familyOutputs, setFamilySettings, takeWizardRequest } from "../kit/create";
 import { num } from "../kit/format";
@@ -383,6 +385,9 @@ function FlowJoImport({ onTable }: { onTable: (t: DataTableModel) => void }) {
     onTable(r.table);
     setMsg(`Read ${r.samples} samples and ${r.table.datasets.length - 1} statistic columns (FlowJo's Mean / SD rows dropped).`);
   };
+  // the first sheet of a workbook, as tab-separated text
+  const workbook = useWorkbookRows((sheets) => take((sheets[0] ?? [])
+    .map((r) => r.map((c) => c.replace(/[\t\n]/g, " ")).join("\t")).join("\n")));
   return (
     <>
       <p className="hint-block">
@@ -395,28 +400,27 @@ function FlowJoImport({ onTable }: { onTable: (t: DataTableModel) => void }) {
         <FileButton size="sm" accept={ACCEPT} inputLabel="FlowJo table file"
           onFile={async (f) => {
             const refused = unreadableSheet(f.name);
+            workbook.clear();
             if (refused) { setMsg(refused); return; }
             try {
               const bytes = new Uint8Array(await f.arrayBuffer());
               const fmt = workbookFormat(f.name);
-              if (fmt) {
-                const sheets = await readWorkbook(bytes, fmt);
-                const rows = (sheets[0]?.rows as unknown[][] ?? []).map((r) => r.map((c) => (c == null ? "" : String(c))));
-                take(rows.map((r) => r.map((c) => c.replace(/[\t\n]/g, " ")).join("\t")).join("\n"));
-              } else take(textOf(bytes));
+              if (fmt) workbook.read((await readWorkbook(bytes, fmt)).slice(0, 1), fmt);
+              else take(textOf(bytes));
             } catch (err) {
               setMsg(`Could not read the file: ${err instanceof Error ? err.message : String(err)}`);
             }
           }}>
             Choose the FlowJo table…</FileButton>
       </div>
+      <WorkbookReport {...workbook.report} />
       <label className="field">
         <span>…or paste it</span>
         <textarea className="wizard-paste" value={text} aria-label="Paste FlowJo table"
           placeholder={",CD4+/CD69+ | Freq. of Parent\nD1_Unstim_001.fcs,2.1\n…"} onChange={(e) => setText(e.target.value)} />
       </label>
       <div className="assay-setup">
-        <Button disabled={!text.trim()} onClick={() => take(text)}>Read pasted table</Button>
+        <Button disabled={!text.trim()} onClick={() => { workbook.clear(); take(text); }}>Read pasted table</Button>
         <span className="hint-block" role="status">{msg}</span>
       </div>
     </>

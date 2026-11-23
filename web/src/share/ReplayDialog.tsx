@@ -6,7 +6,7 @@ import { useUi } from "../app/ui";
 import Modal from "../components/Modal";
 import { Button, FileButton, notify, SwapLabel, useLabelSwap } from "../components/ui";
 import { copyText } from "../export/download";
-import { analyzeAsync, readWorkbook } from "../lib/engine";
+import { analyzeAsync, readWorkbook, type XlsxSheet } from "../lib/engine";
 import { textOf, WORKBOOK_ACCEPT, workbookFormat } from "../lib/fileText";
 import { newId } from "../project/ids";
 import { addSheets, findSheet, makeInfoSheet, makeProject, uniqueName } from "../project/ops";
@@ -17,6 +17,8 @@ import {
 } from "../project/replay";
 import type { DataSheet, Project, TableType } from "../project/types";
 import { analysisDef } from "../sheets/registry";
+import WorkbookReport from "../sheets/common/WorkbookReport";
+import { sheetCells, type ReportedSheet } from "../sheets/common/workbookReportText";
 import "./replay.css";
 
 const TYPE_NAMES: Record<TableType, string> = {
@@ -78,18 +80,22 @@ async function settle(get: () => Project, results: ResultsCache, timeoutMs = 120
   return out;
 }
 
+/** A table of the new data; a worksheet keeps its rows and flags, and
+ *  its source is taken with the workbook report's choices (sheetCells). */
+type Incoming = IncomingTable & { sheet?: XlsxSheet & ReportedSheet };
+
 /** Tables in a file of new data. */
-async function readIncoming(file: File, prefs: Project["prefs"]): Promise<IncomingTable[]> {
+async function readIncoming(file: File, prefs: Project["prefs"]): Promise<Incoming[]> {
   const name = file.name;
   const format = workbookFormat(name);
   if (format) {
     const sheets = (await readWorkbook(new Uint8Array(await file.arrayBuffer()), format))
       .filter((s) => s.rows.some((r) => r.some((c) => c.trim())));
-    return sheets.map((s) => ({
-      name: sheets.length === 1 ? stemOf(name) : s.name,
-      origin: sheets.length === 1 ? name : `${name} › ${s.name}`,
-      source: s.rows,
-    }));
+    return sheets.map((s) => {
+      const origin = sheets.length === 1 ? name : `${name} › ${s.name}`;
+      return { name: sheets.length === 1 ? stemOf(name) : s.name, origin,
+        sheet: { ...s, name: origin, format } };
+    });
   }
   if (/\.(pzfx|prism)$/i.test(name)) {
     const bytes = new Uint8Array(await file.arrayBuffer());
@@ -125,7 +131,11 @@ export default function ReplayDialog({ dataId, onClose }: { dataId?: string; onC
   const ui = useUi();
   const [planSrc, setPlanSrc] = useState<"current" | "file">("current");
   const [planFile, setPlanFile] = useState<{ name: string; plan: LoadedPlan } | null>(null);
-  const [incoming, setIncoming] = useState<IncomingTable[]>([]);
+  const [incoming, setIncoming] = useState<Incoming[]>([]);
+  // Rows hidden in a workbook, as in the Import dialog: by a filter, left
+  // out unless kept; by hand, kept unless left out.
+  const [keepFiltered, setKeepFiltered] = useState(false);
+  const [skipHidden, setSkipHidden] = useState(false);
   const [pasted, setPasted] = useState("");
   const [choice, setChoice] = useState<Record<number, string>>({});
   const [err, setErr] = useState("");
@@ -148,9 +158,11 @@ export default function ReplayDialog({ dataId, onClose }: { dataId?: string; onC
     const all = planTables(planProject);
     return planSrc === "current" && dataId ? all.filter((t) => t.id === dataId) : all;
   }, [planProject, planSrc, dataId]);
-  const sources = useMemo(() => [...incoming,
+  const sources: IncomingTable[] = useMemo(() => [
+    ...incoming.map(({ sheet, ...t }) => (sheet ? { ...t, source: sheetCells(sheet, keepFiltered, skipHidden) } : t)),
     ...(pasted.trim() ? [{ name: "Pasted data", origin: "pasted data", source: pasted }] : [])],
-  [incoming, pasted]);
+  [incoming, pasted, keepFiltered, skipHidden]);
+  const readSheets = useMemo(() => incoming.flatMap((t) => (t.sheet ? [t.sheet] : [])), [incoming]);
   const matching = useMemo(() => matchTables(tables, sources), [tables, sources]);
 
   // the automatic pairing, until the user picks otherwise
@@ -186,9 +198,11 @@ export default function ReplayDialog({ dataId, onClose }: { dataId?: string; onC
     if (!files.length) { setIncoming([]); return; }
     setBusy(true);
     try {
-      const all: IncomingTable[] = [];
+      const all: Incoming[] = [];
       for (const f of files) all.push(...await readIncoming(f, api.project.prefs));
       setIncoming(all);
+      setKeepFiltered(false);
+      setSkipHidden(false);
       setChoice({});
     } catch (e) {
       setErr(`Could not read the data: ${e instanceof Error ? e.message : String(e)}`);
@@ -351,6 +365,8 @@ export default function ReplayDialog({ dataId, onClose }: { dataId?: string; onC
             placeholder="Copy the block from a spreadsheet, in the same layout as the table" />
         </label>
       </div>
+      <WorkbookReport sheets={readSheets} keepFiltered={keepFiltered} skipHidden={skipHidden}
+        onKeepFiltered={setKeepFiltered} onSkipHidden={setSkipHidden} />
       {sources.length > 0 && (
         <table className="replay-map">
           <caption>Which table each part of the new data goes into</caption>
@@ -438,8 +454,10 @@ function ReplayLogView({ log, undoable }: { log: ReplayLog; undoable: boolean })
               <table className="replay-changes">
                 <thead><tr><th scope="col">Number</th><th scope="col">Before → after</th></tr></thead>
                 <tbody>
-                  {r.changes.map((c) => (
-                    <tr key={c.label + c.text}><th scope="row">{c.label}</th><td>{c.text}</td></tr>
+                  {r.changes.map((c, i) => (
+                    // two numbers of a result can share a label and a change
+                    // (diffResults: "Dataset A · N", 0 → not reported, twice)
+                    <tr key={`${i}-${c.label}`}><th scope="row">{c.label}</th><td>{c.text}</td></tr>
                   ))}
                 </tbody>
               </table>

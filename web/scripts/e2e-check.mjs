@@ -1661,6 +1661,49 @@ expect("ambiguous fit banner with concrete fixes for a flat dataset",
     await exampleBanner.waitFor({ timeout: 10000 }).then(() => true, () => false)
     && await p2.getByRole("treeitem", { name: "Pasted data", exact: true }).count() === 0
     && await p2.getByRole("treeitem", { name: "Survival example", exact: true }).count() === 1);
+  // P-05 on the first-run path: paste anywhere reads the clipboard's HTML
+  // as the grid does. The acceptance column (e2e-fixtures/clipboard, shown
+  // 0.12, 0.23, 0.35 for openpyxl's 0.123456, 0.234567, 0.345678) from
+  // every app: the table holds the stored values, the banner says how many
+  // cells were shown rounded; text alone is today's paste; HTML that does
+  // not line up falls back to the text and says so.
+  {
+    expect("a text-only paste anywhere says nothing about rounding", !/shown rounded|full values/.test(pasteText), pasteText);
+    const CLIP = join(here, "..", "e2e-fixtures", "clipboard");
+    const clip = (f) => readFileSync(join(CLIP, f), "utf8");
+    const want = JSON.parse(clip("expected.json")).column.map((r) => r[0].value);
+    const pasteClipOnPage = (text, html) => p2.evaluate(([t, h]) => {
+      if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+      const dt = new DataTransfer();
+      dt.setData("text/plain", t);
+      if (h) dt.setData("text/html", h);
+      document.body.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }));
+    }, [text, html]);
+    const cells = () => Promise.all([1, 2, 3].map((r) =>
+      p2.locator(`.data-table input[aria-label="Group A, row ${r}"]`).inputValue()));
+    const undo = async () => {
+      await pasteBanner.getByRole("button", { name: "Undo, restore the example" }).click();
+      await exampleBanner.waitFor({ timeout: 10000 });
+    };
+    for (const [file, app] of [["excel-windows", "Excel"], ["excel-mac", "Excel"], ["sheets", "Google Sheets"],
+      ["calc", "LibreOffice Calc"]]) {
+      await pasteClipOnPage(clip(`column.${file}.txt`), clip(`column.${file}.html`));
+      const note = await pasteBanner.locator("[data-part='rounded']").innerText({ timeout: 10000 }).catch(() => "");
+      const got = await cells();
+      expect(`P-05 first run: ${file}'s column pasted anywhere holds ${want.join(", ")} and the banner says 3 cells were shown rounded in ${app}`,
+        got.map(Number).join(",") === want.join(",")
+        && note === `3 cells were shown rounded in ${app}; the full values were used.`, `${got.join(",")} | ${note}`);
+      await undo();
+    }
+    await pasteClipOnPage(clip("column.excel-windows.txt"), clip("column.mismatch.html"));
+    const misNote = await pasteBanner.locator("[data-part='fullValuesIgnored']").innerText({ timeout: 10000 }).catch(() => "");
+    const misCells = await cells();
+    expect("P-05 first run: HTML that does not line up with the text: the values as shown, and the banner says why",
+      misCells.join(",") === "0.12,0.23,0.35"
+      && misNote === "The full values from Excel did not line up with the pasted text, so the values as shown were used.",
+      `${misCells.join(",")} | ${misNote}`);
+    await undo();
+  }
   // The same dose series pasted into the example's grid, read as Column,
   // then back as XY and confirmed.
   await p2.evaluate((text) => {
@@ -3823,9 +3866,9 @@ const axeOn = async (pg, sel) => {
 // e2e-fixtures/xlsx/make_fixtures.py, reference in its expected.json
 // (openpyxl, normal mode and data_only=True). A: five =A2*2 formulas saved
 // without values are named as reading blank. B: an AutoFilter hides rows 4
-// to 6: "3 rows are hidden by a filter in Excel", left out by default as
-// copying the filtered range in Excel does, kept in one click; a sheet with
-// a row hidden by hand keeps it by default.
+// to 6: "3 rows are hidden by a filter in the workbook", left out by
+// default as copying the filtered range in Excel or LibreOffice Calc does,
+// kept in one click; a sheet with a row hidden by hand keeps it by default.
 {
   const XL = join(here, "..", "e2e-fixtures", "xlsx");
   const ref = JSON.parse(readFileSync(join(XL, "expected.json"), "utf8"));
@@ -3857,15 +3900,15 @@ const axeOn = async (pg, sel) => {
     .filter((_, i) => !ref["filter-hidden.xlsx"].filtered.hiddenRows.includes(i + 2)).map((r) => String(r[0]));
   const shownB = await firstCol();
   const sumB = await summary();
-  expect("workbook B: \"3 rows are hidden by a filter in Excel\", left out by default (the visible rows, as Excel copies them)",
-    /3 rows are hidden by a filter in Excel \(rows 4, 5, 6\): left out, as copying the filtered range in Excel leaves them out/.test(b)
+  expect("workbook B: \"3 rows are hidden by a filter in the workbook\", left out by default (the visible rows, as Excel copies them)",
+    /3 rows are hidden by a filter in the workbook \(rows 4, 5, 6\): left out, as copying the filtered range in Excel or LibreOffice Calc leaves them out/.test(b)
     && shownB.join(",") === visible.join(",") && /^6 of 6 rows/.test(sumB), `${b} | ${shownB.join(",")} | ${sumB}`);
   await report.getByRole("button", { name: "Keep the filtered rows" }).click();
   const all = ref["filter-hidden.xlsx"].filtered.rows.slice(1).map((r) => String(r[0]));
   const kept = await reportText();
   const sumKept = await summary();
   expect("one click keeps the 3 filtered rows: 9 of 9 rows, and the report says they are imported",
-    /3 rows are hidden by a filter in Excel \(rows 4, 5, 6\): imported/.test(kept) && /^9 of 9 rows/.test(sumKept)
+    /3 rows are hidden by a filter in the workbook \(rows 4, 5, 6\): imported/.test(kept) && /^9 of 9 rows/.test(sumKept)
     && (await firstCol()).join(",") === all.slice(0, 8).join(","), `${kept} | ${sumKept}`);
 
   // the sheet with a row hidden by hand: kept by default, one click leaves it out
@@ -3875,7 +3918,7 @@ const axeOn = async (pg, sel) => {
   await report.getByRole("button", { name: "Leave out the hidden rows" }).click();
   const sumH2 = await summary();
   expect("a row hidden by hand is imported by default (as Excel copies it) and left out in one click",
-    /1 row is hidden in Excel \(row 3\): imported, as copying the range in Excel copies it/.test(h)
+    /1 row is hidden in the workbook \(row 3\): imported, as copying the range in Excel or LibreOffice Calc copies it/.test(h)
     && /^4 of 4 rows/.test(sumH) && /^3 of 3 rows/.test(sumH2), `${h} | ${sumH} | ${sumH2}`);
   await page.evaluate(readFileSync(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8")).catch(() => {});
   const axeFound = await page.evaluate(async () => {

@@ -4,7 +4,7 @@
 .pane-table > .first-banner { margin: 0 0 var(--space-12); }
 .example-banner .banner-detail { max-width: 65ch; }
 .paste-banner .banner-detail { display: flex; flex-direction: column; gap: var(--space-4); }
-.paste-banner .paste-error-note { color: var(--ink-2); }
+.paste-banner .paste-error-note, .paste-banner .paste-full-note { color: var(--ink-2); }
 
 /* The example chips: keycaps; the shown example is the selected one. */
 .example-chips .btn[aria-pressed="true"] {

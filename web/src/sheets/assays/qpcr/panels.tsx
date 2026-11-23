@@ -2,12 +2,14 @@
 // calibrator, efficiencies, QC limits and the test), the results sheet
 // (replicate QC, ΔCq / ΔΔCq per sample, fold changes with asymmetric CIs
 // and the statistics on ΔCq) and the methods text.
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { readWorkbook } from "../../../lib/engine";
 import { textOf, unreadableSheet, workbookFormat } from "../../../lib/fileText";
 import type { DataTableModel } from "../../../project/types";
 import { parseSource } from "../../../share/recipes/presets";
 import CopyableMethods from "../../common/CopyableMethods";
+import { useWorkbookRows } from "../../common/useWorkbookRows";
+import WorkbookReport from "../../common/WorkbookReport";
 import type { ControlsProps, ResultsProps } from "../../types";
 import { takeWizardRequest } from "../kit/create";
 import { interval, num, pValue, testSummary } from "../kit/format";
@@ -304,8 +306,12 @@ function CqImport({ onTable }: { onTable: (t: DataTableModel) => void }) {
     setMsg(`Read ${used.length} wells.${undetermined === 1 ? " 1 well without a Cq (undetermined) is kept as missing."
       : undetermined ? ` ${undetermined} wells without a Cq (undetermined) are kept as missing.` : ""}`);
   };
-  const take = (m: string[][]) => {
+  // The columns chosen for the last export used: the same export read
+  // again (its workbook report's buttons) goes into the table with them.
+  const usedMap = useRef<{ headers: string; map: CqMap } | null>(null);
+  const take = (m: string[][], again = false) => {
     const found = findCqHeader(m);
+    if (!again) usedMap.current = null;
     if (found?.complete) {
       setSrc(null); setMap(null);
       build(found.headers, bodyRows(m, found.row));
@@ -316,14 +322,19 @@ function CqImport({ onTable }: { onTable: (t: DataTableModel) => void }) {
     const headers = m[at].map((h, i) => String(h ?? "").trim() || `Column ${i + 1}`);
     const rows = bodyRows(m, at);
     if (!rows.length) { setMsg("Need a header row and at least one well below it."); return; }
+    const key = headers.join("\t");
+    if (again && usedMap.current?.headers === key) { build(headers, rows, usedMap.current.map); return; }
+    const keepMap = again && map && src?.headers.join("\t") === key;
     setSrc({ headers, rows });
-    setMap(guessCqMapping(headers, rows));
+    if (!keepMap) setMap(guessCqMapping(headers, rows));
     const missing = MAP_ROLES.filter((r) => r.required && (found?.idx[r.key] ?? -1) < 0)
       .map((r) => (r.key === "cq" ? "Cq" : r.key));
     const list = missing.length > 1 ? `${missing.slice(0, -1).join(", ")} and ${missing[missing.length - 1]}` : missing[0];
     setMsg(`${rows.length} rows read; the headers do not say which column holds the ${list}: `
       + "check the columns below, then use them.");
   };
+  // the first sheet of a workbook
+  const workbook = useWorkbookRows((sheets, again) => take(sheets[0] ?? [], again));
   const ready = map && MAP_ROLES.every((r) => !r.required || map[r.key] >= 0);
   return (
     <>
@@ -339,14 +350,13 @@ function CqImport({ onTable }: { onTable: (t: DataTableModel) => void }) {
           <FileButton size="sm" accept=".csv,.tsv,.txt,.xlsx,.xls,.ods,text/csv,text/plain" inputLabel="Cq export file"
             onFile={async (f) => {
               const refused = unreadableSheet(f.name);
+              workbook.clear();
               if (refused) { setMsg(refused); return; }
               try {
                 const bytes = new Uint8Array(await f.arrayBuffer());
                 const fmt = workbookFormat(f.name);
-                if (fmt) {
-                  const sheets = await readWorkbook(bytes, fmt);
-                  take((sheets[0]?.rows as unknown[][] ?? []).map((r) => r.map((c) => (c == null ? "" : String(c)))));
-                } else take(parseSource(textOf(bytes)));
+                if (fmt) workbook.read((await readWorkbook(bytes, fmt)).slice(0, 1), fmt);
+                else take(parseSource(textOf(bytes)));
               } catch (err) {
                 setMsg(`Could not read the file: ${err instanceof Error ? err.message : String(err)}`);
               }
@@ -358,13 +368,14 @@ function CqImport({ onTable }: { onTable: (t: DataTableModel) => void }) {
           Group = sample name without its trailing number (when the export has no group column)
         </label>
       </div>
+      <WorkbookReport {...workbook.report} />
       <label className="field">
         <span>…or paste it</span>
         <textarea className="wizard-paste" value={text} aria-label="Paste Cq export"
           placeholder={"Well,Sample,Target,Cq\nA1,Ctrl 1,GAPDH,18.2\n…"} onChange={(e) => setText(e.target.value)} />
       </label>
       <div className="assay-setup">
-        <Button disabled={!text.trim()} onClick={() => take(parseSource(text))}>Read pasted export</Button>
+        <Button disabled={!text.trim()} onClick={() => { workbook.clear(); take(parseSource(text)); }}>Read pasted export</Button>
         <span className="hint-block" role="status">{msg}</span>
       </div>
       {src && map && (
@@ -387,6 +398,7 @@ function CqImport({ onTable }: { onTable: (t: DataTableModel) => void }) {
               onClick={() => {
                 if (!map) return;
                 build(src.headers, src.rows, map);
+                usedMap.current = { headers: src.headers.join("\t"), map };
                 setSrc(null); setMap(null);
               }}>Use these columns</Button>
             {!ready && <span className="hint-block">Choose the sample, target and Cq columns.</span>}

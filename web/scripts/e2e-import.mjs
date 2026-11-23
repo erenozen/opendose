@@ -219,7 +219,7 @@ const typeWhy = dlg.locator("[data-part='type-why']");
     expect(`P-34: workbook.${fmt}: the preview holds openpyxl's cells of the .xlsx, every one (${want.length} rows × ${want[0].length})`,
       filled && bad.length === 0 && heads.join("|") === assay.rows[0].join("|"), bad.slice(0, 4).join("; ") || heads.join("|"));
     expect(`P-34: workbook.${fmt}: both sheets are offered, and the row hidden by hand is reported (row 7, imported)`,
-      sheets.join("|") === "Assay|Plate 2" && /1 row is hidden in Excel \(row 7\): imported/.test(rep), `${sheets.join("|")} | ${rep}`);
+      sheets.join("|") === "Assay|Plate 2" && /1 row is hidden in the workbook \(row 7\): imported/.test(rep) && !/in Excel \(/.test(rep), `${sheets.join("|")} | ${rep}`);
     await dlg.getByLabel("New table").selectOption("multivariable");
     await dlg.getByRole("button", { name: "Import", exact: true }).click();
     await dlg.waitFor({ state: "detached", timeout: 10000 }).catch(() => {});
@@ -241,6 +241,104 @@ const typeWhy = dlg.locator("[data-part='type-why']");
     /^Could not read the workbook: it is not a readable \.xls workbook \(.+\)$/.test(err) && !/Traceback/.test(err), err);
   await dlg.getByRole("button", { name: "Cancel" }).click();
   await dlg.waitFor({ state: "detached", timeout: 5000 }).catch(() => {});
+}
+
+// --- Apply to new data reads workbooks as the Import dialog does. An empty
+// XY table gets its new data from a workbook by "Apply new data to this
+// table…" (Ctrl+K), and the log and the table say what went in.
+const palette = async (command) => {
+  await page.keyboard.press("Control+k");
+  await page.getByRole("combobox", { name: "Find a command or sheet" }).fill(command);
+  await page.getByRole("option", { name: new RegExp(`^${command}`) }).first().click();
+};
+const newXy = async (name) => {
+  await fileMenu("New data table…");
+  const nd = page.locator(".new-table-dialog");
+  await nd.locator('input[name="table-type"][value="xy"]').check();
+  await nd.getByLabel("Table name").fill(name);
+  await nd.getByRole("button", { name: "Create table" }).click();
+  await page.waitForSelector(".grid-toolbar");
+};
+const replayDlg = page.getByRole("dialog", { name: "Apply to new data" });
+const replayLog = page.getByRole("dialog", { name: "Replay log" });
+/** Apply new data from `file` to the open table; `prepare` runs on the
+ *  dialog before Apply. Returns the log's text. */
+const applyNewData = async (file, prepare) => {
+  await palette("Apply new data to this table…");
+  await replayDlg.waitFor({ timeout: 10000 });
+  await replayDlg.getByLabel("New data file").setInputFiles(file);
+  await replayDlg.locator(".replay-map").waitFor({ timeout: 120000 });
+  const report = replayDlg.locator(".workbook-report");
+  const rep = (await appears(report, 5000)) ? (await report.innerText()).replace(/\s+/g, " ") : "";
+  await prepare?.(report);
+  await replayDlg.getByRole("button", { name: "Apply and re-run" }).click();
+  await replayLog.waitFor({ timeout: 180000 });
+  const log = (await replayLog.innerText()).replace(/\s+/g, " ");
+  await replayLog.getByRole("button", { name: "Done" }).click();
+  await replayLog.waitFor({ state: "detached", timeout: 10000 }).catch(() => {});
+  return { rep, log };
+};
+/** Sends a part of the new data into the table named `table` (its option
+ *  reads "name (XY)", with ", other layout" when the shape differs). */
+const sendInto = async (source, table) => {
+  const select = replayDlg.getByLabel(`Table for ${source}`);
+  const value = await select.locator("option").evaluateAll((opts, name) =>
+    opts.find((o) => o.textContent.startsWith(`${name} (`))?.value ?? "", table);
+  await select.selectOption(value);
+};
+
+// --- P-06 in Apply to new data: filter-hidden.xlsx (e2e-fixtures/xlsx,
+// expected.json) has an AutoFilter hiding rows 4 to 6 and a second sheet
+// with row 3 hidden by hand. Both sheets are reported in one banner; the
+// table gets the 6 visible doses by default, and all 9 after one click.
+{
+  const XL = join(FIX, "xlsx");
+  const xl = JSON.parse(readFileSync(join(XL, "expected.json"), "utf8"))["filter-hidden.xlsx"].filtered;
+  const all = xl.rows.slice(1).map((r) => String(r[0]));
+  const visible = all.filter((_, i) => !xl.hiddenRows.includes(i + 2));
+  await newXy("Filtered doses");
+  const into = () => sendInto("filter-hidden.xlsx › filtered", "Filtered doses");
+  const first = await applyNewData(join(XL, "filter-hidden.xlsx"), into);
+  const xsFirst = (await tableOf("Filtered doses"))?.x.filter(Boolean) ?? [];
+  expect("P-06 Apply to new data: both sheets of filter-hidden.xlsx are reported (3 filtered rows left out, 1 hidden row kept)",
+    /“filter-hidden\.xlsx › filtered”: 3 rows are hidden by a filter in the workbook \(rows 4, 5, 6\): left out/.test(first.rep)
+    && /“filter-hidden\.xlsx › by hand”: 1 row is hidden in the workbook \(row 3\): imported/.test(first.rep), first.rep);
+  expect(`P-06 Apply to new data: the table gets the ${visible.length} visible doses (${visible.join(", ")}) by default`,
+    xsFirst.join(",") === visible.join(",")
+    && first.log.includes(`Filtered doses: new data from filter-hidden.xlsx › filtered (${visible.length} rows`),
+    `${xsFirst.join(",")} | ${first.log.slice(0, 200)}`);
+  const second = await applyNewData(join(XL, "filter-hidden.xlsx"), async (report) => {
+    await report.getByRole("button", { name: "Keep the filtered rows" }).click();
+    await into();
+  });
+  const xsAll = (await tableOf("Filtered doses"))?.x.filter(Boolean) ?? [];
+  expect(`P-06 Apply to new data: one click on the report keeps the filtered rows: all ${all.length} doses`,
+    xsAll.join(",") === all.join(",") && second.log.includes(`filter-hidden.xlsx › filtered (${all.length} rows`),
+    `${xsAll.join(",")} | ${second.log.slice(0, 200)}`);
+}
+
+// --- P-34 in Apply to new data: the .xls and .ods of one sheet
+// (make_workbooks.py) refill a table named after their sheet "Plate 2",
+// matched by name, with openpyxl's cells of the .xlsx
+// (workbook.expected.json); the hidden row of the other sheet is reported.
+{
+  const wb = JSON.parse(readFileSync(join(IMP, "workbook.expected.json"), "utf8"));
+  const plate = wb.find((s) => s.name === "Plate 2");
+  const wantX = plate.rows.slice(1).map((r) => r[0]);
+  const wantY = plate.rows.slice(1).map((r) => r[1]);
+  for (const fmt of ["xls", "ods"]) {
+    await newXy(`Plate 2 ${fmt}`);
+    const { rep, log } = await applyNewData(join(IMP, `workbook.${fmt}`),
+      () => sendInto(`workbook.${fmt} › Plate 2`, `Plate 2 ${fmt}`));
+    const t = await tableOf(`Plate 2 ${fmt}`);
+    expect(`P-34 Apply to new data: workbook.${fmt}'s sheet “Plate 2” refills the table with openpyxl's cells (x ${wantX.join(", ")}; y ${wantY.join(", ")})`,
+      !!t && t.x.filter(Boolean).join("|") === wantX.join("|")
+      && JSON.stringify(t.datasets[0].rows.slice(0, wantY.length).map((r) => r[0])) === JSON.stringify(wantY)
+      && log.includes(`Plate 2 ${fmt}: new data from workbook.${fmt} › Plate 2 (2 rows`),
+      `${JSON.stringify(t?.x)} ${JSON.stringify(t?.datasets[0]?.rows)} | ${log.slice(0, 160)}`);
+    expect(`P-34 Apply to new data: workbook.${fmt}'s row hidden by hand is reported (row 7, imported)`,
+      /“workbook\.\w+ › Assay”: 1 row is hidden in the workbook \(row 7\): imported/.test(rep), rep);
+  }
 }
 
 // --- P-35: pasted percents and units get a one-click reading in the paste

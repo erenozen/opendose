@@ -570,6 +570,40 @@ await page.keyboard.press("Escape");
   }
   expect("densitometry picker: a .xls and a .ods workbook are read (8 rows each), not refused or read as text",
     wbRead.every((s) => s === "8 rows read: check the columns, then use them."), wbRead.join(" | "));
+  // P-06 in the pickers: the .ods above has row 7 hidden by hand, kept and
+  // reported; the AutoFilter workbook (e2e-fixtures/xlsx/filter-hidden.xlsx,
+  // rows 4 to 6 hidden, expected.json) reads its 6 visible rows by default,
+  // as the Import dialog does, and 9 after one click on the report; with
+  // the columns in use, the click changes the table too.
+  const pickerReport = wizard().locator(".workbook-report");
+  const reportNow = async () => ((await pickerReport.waitFor({ timeout: 5000 }).then(() => true, () => false))
+    ? (await pickerReport.innerText()).replace(/\s+/g, " ") : "");
+  const odsReport = await reportNow();
+  expect("P-06 picker: the .ods's row hidden by hand is reported and kept (8 rows read)",
+    /“Assay”: 1 row is hidden in the workbook \(row 7\): imported/.test(odsReport) && wbRead[1].startsWith("8 rows"), odsReport);
+  const XLF = new URL("../e2e-fixtures/xlsx/", import.meta.url).pathname;
+  const xlRef = JSON.parse(readFileSync(`${XLF}expected.json`, "utf8"))["filter-hidden.xlsx"].filtered;
+  const nVisible = xlRef.rows.length - 1 - xlRef.hiddenRows.length;
+  await wizard().locator('input[aria-label="Densitometry export"]').setInputFiles(`${XLF}filter-hidden.xlsx`);
+  await page.waitForFunction(() => /hidden by a filter/.test(document.querySelector("dialog.assay-wizard .workbook-report")?.textContent ?? ""),
+    null, { timeout: 120000 }).catch(() => {});
+  const filtRep = await reportNow();
+  const filtSt = await status();
+  expect(`P-06 picker: filter-hidden.xlsx reads its ${nVisible} visible rows and says 3 rows are hidden by a filter (rows 4, 5, 6), left out`,
+    filtSt === `${nVisible} rows read: check the columns, then use them.`
+    && /“filtered”: 3 rows are hidden by a filter in the workbook \(rows 4, 5, 6\): left out, as copying the filtered range in Excel or LibreOffice Calc leaves them out/.test(filtRep),
+    `${filtSt} | ${filtRep}`);
+  await pickerReport.getByRole("button", { name: "Keep the filtered rows" }).click();
+  await statusIs(/^9 rows read/);
+  const keptSt = await status();
+  expect("P-06 picker: one click keeps the 3 filtered rows (9 rows read) and the report says they are imported",
+    keptSt === "9 rows read: check the columns, then use them." && /rows 4, 5, 6\): imported/.test(await reportNow()), keptSt);
+  await wizard().getByRole("button", { name: "Use these columns" }).click();
+  await statusIs(/^Using 9 lanes/);
+  await pickerReport.getByRole("button", { name: "Leave out the filtered rows" }).click();
+  await statusIs(/^Using 6 lanes/);
+  expect("P-06 picker: with the columns in use, leaving the filtered rows out again puts 6 lanes in the table",
+    await status() === "Using 6 lanes.", await status());
   const accept = await wizard().locator('input[aria-label="Densitometry export"]').getAttribute("accept");
   expect("densitometry picker offers .xls and .ods", /\.xls(,|$)/.test(accept ?? "") && /\.ods(,|$)/.test(accept ?? ""), accept);
   await wizard().getByRole("button", { name: "Cancel" }).click();
