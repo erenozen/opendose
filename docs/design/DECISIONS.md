@@ -456,3 +456,27 @@ Rejected:
   shift the pane, and a bell-style count reads as notifications.
 - **Message history and a navigator Undo note:** left out; Undo lives in the
   toast and the undo button.
+
+## 7. Ship-bar decisions (phase 7)
+
+Small calls the final prep-for-prod sweep raised, decided by the lead so
+nothing ships half-handled.
+
+- **Browser floor for `light-dark()`** (audit G7-01): every colour token is
+  written once with `light-dark()` (Safari 17.5, Chrome 123, Firefox 120).
+  Older browsers get the light palette through one `@supports not (color:
+  light-dark(white, black))` block in tokens.css, so menus, dialogs and
+  toasts never render without a background. Dark mode needs the floor.
+- **Number keyboards** (C7-01): grid value cells use the text keyboard
+  (`inputMode="text"`); NumberField uses the decimal pad only when its
+  `min` is 0 or more, else the text keyboard. The iOS decimal pad has no
+  minus and no "e", and a scientist must be able to type -9 and 1e-9.
+  Rejected: keeping the decimal pad everywhere (faster for positive
+  values, impossible for log doses and negative responses).
+- **Plot toolbar on touch** (C7-14): on coarse pointers the plots drop the
+  Zoom, Pan, Box select and Lasso tools; touch drags scroll the page
+  (graph/plotInput.ts), so those tools could not work there. Zoom in/out,
+  Autoscale and Download stay.
+- **Social card without an image** (G7 / FR-06): `twitter:card` is
+  `summary` until a real 1200 x 630 og:image exists; the image is on
+  Eren's list, never invented.
