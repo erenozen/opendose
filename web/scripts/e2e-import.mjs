@@ -16,6 +16,10 @@
 // - P-37: spreadsheet keys in a 50-row column: Ctrl+Down to row 50,
 //   Ctrl+Shift+Up to row 1, Ctrl+D fills with row 1's exact text (an
 //   excluded cell stays excluded), Home / End, Ctrl+Home / End, Ctrl+A.
+// - P-38: a shuffled long table of mice before and after, paired by ID by
+//   "From long table…" and by the recipes' column output: the
+//   hand-aligned table, the pairs listed, a duplicate ID stopped, and the
+//   paired t test against scipy (engine/tests/reference/paired_by_id.json).
 //
 // Usage: node scripts/e2e-import.mjs http://localhost:5173/
 import { chromium } from "playwright";
@@ -488,6 +492,91 @@ const typeWhy = dlg.locator("[data-part='type-why']");
     /Ctrl\+D\s+Fill down/.test(helpText) && /Ctrl\+A\s+Select the whole table/.test(helpText)
     && /Ctrl\+arrow/.test(helpText) && /Home, End/.test(helpText), helpText.length);
   await page.keyboard.press("Control+/");
+}
+
+// --- P-38: pair values by subject ID. Mice M1 to M6, before and after,
+// in a shuffled long table (e2e-fixtures/import/paired_long.csv): "From
+// long table…" on a paired t test and the import recipes' column output
+// both make the hand-aligned table, the report lists the pairs and any
+// unmatched ID, a duplicate ID stops with a message naming it and its
+// rows, and the paired t test reads scipy's ttest_rel on the aligned
+// columns (engine/tests/reference/paired_by_id.json).
+{
+  const REF = JSON.parse(readFileSync(join(here, "..", "..", "engine", "tests", "reference", "paired_by_id.json"), "utf8"));
+  const LONG = readFileSync(join(IMP, "paired_long.csv"), "utf8");
+  const HAND = {
+    rowTitles: ["M4", "M1", "M6", "M3", "M2", "M5"],
+    after: ["12.6", "14.3", "15.0", "13.1", "11.9", "13.4"],
+    before: ["9.7", "12.1", "12.9", "13.8", "10.4", "11.2"],
+  };
+  const aligned = (t) => !!t && JSON.stringify(t.rowTitles) === JSON.stringify(HAND.rowTitles)
+    && JSON.stringify(t.datasets.map((d) => d.rows.map((r) => r[0]))) === JSON.stringify([HAND.after, HAND.before]);
+  await fileMenu("New data table…");
+  const nd = page.locator(".new-table-dialog");
+  await nd.locator('input[name="table-type"][value="column"]').check();
+  await nd.getByLabel("Table name").fill("Paired mice");
+  await nd.getByRole("button", { name: "Create table" }).click();
+  await page.waitForSelector(".grid-toolbar");
+  await page.locator(".pane-controls select.analysis-select").selectOption("ttest");
+  await page.locator(".pane-controls").getByLabel("Test", { exact: true }).selectOption("paired");
+  await page.getByRole("button", { name: "From long table…" }).click();
+  const lt = page.getByRole("dialog", { name: "Paired values from a long table" });
+  const ltText = lt.getByLabel("Long table text");
+  const fillBtn = lt.getByRole("button", { name: "Fill the table" });
+  // a duplicate: M3 twice "before"
+  await ltText.fill(`${LONG}M3,before,14.0\n`);
+  const dup = await lt.locator(".long-table-error").innerText().catch(() => "");
+  expect("P-38: a duplicate ID stops the import with a message naming the ID and its rows",
+    dup === "Subject “M3” has 2 records for “before” (rows 5 and 14). Pairing needs one value per subject and "
+      + "condition: remove the extra records, or average them first." && await fillBtn.isDisabled(), dup);
+  // an unmatched ID: listed, kept as a row
+  await ltText.fill(`${LONG}M7,before,10.0\n`);
+  const unmatched = await lt.innerText();
+  expect("P-38: an unmatched ID is listed in the report, not dropped",
+    unmatched.includes("Unmatched, kept as rows with a blank that paired analyses leave out: M7 (no “after”)."));
+  await ltText.fill(LONG);
+  const summary = await lt.locator(".import-summary").innerText().catch(() => "");
+  const report = await lt.innerText();
+  expect("P-38: the report lists the six pairs, matched by mouse",
+    summary === "6 subjects paired by mouse across “after”, “before”"
+    && report.includes("Paired (one row each, titled with the ID): M4, M1, M6, M3, M2, M5."), summary);
+  await fillBtn.click();
+  await lt.waitFor({ state: "detached", timeout: 10000 }).catch(() => {});
+  expect("P-38: the filled table pairs M1 with M1 and so on (identical to the hand-aligned wide table)",
+    aligned(await tableOf("Paired mice")), JSON.stringify((await tableOf("Paired mice"))?.rowTitles));
+  const tWant = `t=${REF.by_id.t.toFixed(3)}`;
+  const tRow = await page.waitForFunction((w) => [...document.querySelectorAll(".pane-results .results-table tr")]
+    .find((tr) => /^t, df/.test(tr.innerText) && tr.innerText.includes(w))?.innerText ?? false,
+  tWant, { timeout: 60000 }).then((h) => h.jsonValue(), () => "");
+  const pRow = await page.locator(".pane-results .results-table tr", { hasText: /^P value/ }).first().innerText()
+    .catch(() => "");
+  const pWant = REF.by_id.p.toPrecision(4);
+  expect(`P-38: the paired t test on the paired table reads scipy's ttest_rel (${tWant}, df=${REF.by_id.df}, P=${pWant})`,
+    String(tRow).includes(`df=${REF.by_id.df}`) && pRow.includes(pWant),
+    `${String(tRow).replace(/\s+/g, " ")} | ${pRow.replace(/\s+/g, " ")}`);
+
+  // the import recipes, column output: the same pairing from the same file
+  await page.getByRole("button", { name: "Import…" }).click();
+  await page.getByRole("tab", { name: "Recipes" }).click();
+  const rd = page.getByRole("dialog", { name: "Import with a recipe" });
+  await rd.waitFor({ timeout: 10000 });
+  await rd.getByLabel("Export file to import").setInputFiles(join(IMP, "paired_long.csv"));
+  await rd.locator(".recipe-option.checked", { hasText: "Recognise the file" }).waitFor();
+  await rd.getByRole("tab", { name: "Columns" }).click();
+  await rd.getByLabel("Column mouse holds").selectOption("subject");
+  await rd.getByLabel("Column time holds").selectOption("group");
+  await rd.getByLabel("Column value holds").selectOption("value");
+  await rd.getByRole("tab", { name: "Table" }).click();
+  await rd.getByRole("radio", { name: /^Column/ }).check();
+  await rd.getByLabel("Table name").fill("Paired by recipe");
+  const rcpReport = await rd.locator(".recipe-pairing").innerText().catch(() => "");
+  expect("P-38: the recipe's column output pairs by the subject ID and lists the pairs",
+    rcpReport.includes("6 subjects paired by mouse across “after”, “before”.")
+    && rcpReport.includes("Paired (one row each, titled with the ID): M4, M1, M6, M3, M2, M5."), rcpReport);
+  await rd.getByRole("button", { name: "Create table" }).click();
+  await page.getByRole("treeitem", { name: "Paired by recipe", exact: true }).first().waitFor({ timeout: 10000 });
+  expect("P-38: the recipe's table equals the hand-aligned wide table", aligned(await tableOf("Paired by recipe")),
+    JSON.stringify((await tableOf("Paired by recipe"))?.datasets.map((d) => d.rows.map((r) => r[0]))));
 }
 
 // --- a file Open cannot read: the error names what it opens

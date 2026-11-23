@@ -6,6 +6,7 @@ import { normalizeTable } from "../../project/table.ts";
 import type { DataColumn, DataTableModel } from "../../project/types.ts";
 import { cellNumber, isMissing, isNumericColumn } from "../tidy.ts";
 import { maxOf } from "../../lib/extent.ts";
+import { pairBySubject, sharesSubjects, type Pairing } from "./pairing.ts";
 
 /** What a staging column means.
  *  group    the treatment / condition (several group columns are joined)
@@ -161,12 +162,17 @@ export interface PivotOptions {
   /** Column whose values identify replicates (aligns subcolumns across
    *  rows); defaults to the subject column. -1 = none. */
   subject?: number;
+  /** Messages may name a record by its row (titles = row 1); false when
+   *  the records were made by aggregation. */
+  recordRows?: boolean;
 }
 
 export interface PivotResult {
   table: DataTableModel;
   /** Datasets with the number of values each holds. */
   counts: { name: string; n: number }[];
+  /** A column table paired by subject ID: what was paired (pairing.ts). */
+  pairing?: Pairing;
 }
 
 export function requirements(type: OutputType): string {
@@ -240,6 +246,24 @@ export function pivot(st: Staging, type: OutputType, opts: PivotOptions = {}): P
   }
 
   need(v >= 0);
+
+  if (type === "column" && subj >= 0) {
+    // Subject IDs that repeat across groups are paired measures: one row
+    // per subject, matched by the ID, not by the order of the records.
+    const recs = rows.map((r, i) => ({ id: r[subj] ?? "", group: groupLabel(r), value: r[v] ?? "",
+      row: opts.recordRows === false ? 0 : i + 2 }));
+    if (sharesSubjects(recs)) {
+      const p = pairBySubject(recs);
+      if ("error" in p) throw new Error(p.error);
+      return { ...finish({
+        type: "column",
+        x: p.subjects.map(() => ""),
+        rowTitles: p.subjects,
+        datasets: p.groups.map((g, j) => ({ name: g, rows: p.subjects.map((_, i) => [p.cells[i][j]]) })),
+        factorNames: { rows: st.columns[subj].name },
+      }), pairing: p };
+    }
+  }
 
   if (type === "column") {
     const cols = groups.map((g) => rows.filter((r) => groupLabel(r) === g)

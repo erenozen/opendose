@@ -17,6 +17,7 @@ const TITLES: Record<LongTarget, string> = {
   quantal: "Quantal dose-response data from a long table",
   xy: "Curves from a long table",
   nested2: "Nested two-factor data from a long table",
+  paired: "Paired values from a long table",
 };
 
 const INTROS: Record<LongTarget, string> = {
@@ -33,6 +34,9 @@ const INTROS: Record<LongTarget, string> = {
   nested2: "One record per value (a cell, a well, a read): the value, its level of the row factor and "
     + "of the data-set factor, and the unit it comes from (animal, litter, culture). Each level of "
     + "the row factor becomes a block of rows and each unit a subcolumn, its values down the block.",
+  paired: "One record per measurement: the subject (animal, patient), the condition or time point and "
+    + "the value. Each subject becomes one row, titled with its ID, and each condition a column, so the "
+    + "values are paired by ID whatever the order of the records.",
 };
 
 type SrcKind = "paste" | "file" | "table";
@@ -145,7 +149,8 @@ export default function LongTableDialog({ target, sheet, onClose }: {
         <label className="field">
           <span>Long table (first row: column titles)</span>
           <textarea rows={6} value={text} spellCheck={false} aria-label="Long table text"
-            placeholder={"stratum,exposure,outcome,count\nA,yes,case,12\n…"}
+            placeholder={target === "paired" ? "mouse,time,value\nM1,before,4.2\n…"
+              : "stratum,exposure,outcome,count\nA,yes,case,12\n…"}
             onChange={(e) => { setText(e.target.value); reset(); }} />
           <span className="field-note">
             Paste here, or <button type="button" data-still className="linkish"

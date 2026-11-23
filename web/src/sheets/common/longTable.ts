@@ -11,7 +11,10 @@
 //            set per group with Y1 = responders and Y2 = N (xy/quantal.ts);
 //   xy       data set, X, Y -> an XY table with one data set per data-set
 //            value and replicates side by side when an X repeats (the
-//            import recipes' pivot, share/recipes/staging.ts).
+//            import recipes' pivot, share/recipes/staging.ts);
+//   paired   subject ID, condition (time point), value -> a column table
+//            of one row per subject, matched by the ID, never by the
+//            order of the records (share/recipes/pairing.ts).
 //
 // Pure and unit-tested (__tests__/longTable.test.ts). Every builder takes
 // the table being replaced and keeps its type and display settings.
@@ -22,11 +25,13 @@ import { distinct, makeStaging, numText, pivot, type Role } from "../../share/re
 import { cellNumber, isMissing, isNumericColumn } from "../../share/tidy.ts";
 import { nestedFromLong } from "../grouped/nestedTwoWay.ts";
 import { maxOf } from "../../lib/extent.ts";
+import { pairBySubject, pairingReport } from "../../share/recipes/pairing.ts";
 
-export type LongTarget = "cmh" | "roc" | "quantal" | "xy" | "nested2";
+export type LongTarget = "cmh" | "roc" | "quantal" | "xy" | "nested2" | "paired";
 
-/** A long table: a header row and records. */
-export interface LongSource { headers: string[]; rows: string[][] }
+/** A long table: a header row and records. `lines`: each record's row in
+ *  the source, the titles being row 1 (for messages that name rows). */
+export interface LongSource { headers: string[]; rows: string[][]; lines?: number[] }
 
 /** What a fill produces: the new table, a one-line summary, notes and an
  *  options patch for the analysis that asked (merged over its options). */
@@ -47,9 +52,9 @@ export function parseLongText(text: string): LongSource | { error: string } {
   const width = maxOf(m.map((r) => r.length));
   if (width < 2) return { error: "Need at least two columns (check the separator)." };
   const headers = Array.from({ length: width }, (_, c) => (m[0][c] ?? "").trim() || `Column ${c + 1}`);
-  const rows = m.slice(1).map((r) => Array.from({ length: width }, (_, c) => (r[c] ?? "").trim()))
-    .filter((r) => r.some((v) => v !== ""));
-  return { headers, rows };
+  const all = m.slice(1).map((r) => Array.from({ length: width }, (_, c) => (r[c] ?? "").trim()));
+  const keep = all.map((r, i) => (r.some((v) => v !== "") ? i : -1)).filter((i) => i >= 0);
+  return { headers, rows: keep.map((i) => all[i]), lines: keep.map((i) => i + 2) };
 }
 
 /** A multiple-variables table as a long table (one variable per column). */
@@ -91,6 +96,11 @@ export const TARGET_ROLES: Record<LongTarget, { key: string; label: string; opti
     { key: "b", label: "Data-set factor (e.g. treatment)", optional: true },
     { key: "unit", label: "Unit (animal, litter, culture)" },
   ],
+  paired: [
+    { key: "subject", label: "Subject ID (animal, patient)" },
+    { key: "condition", label: "Condition or time point" },
+    { key: "value", label: "Value" },
+  ],
 };
 
 export type Roles = Record<string, number>;
@@ -110,6 +120,8 @@ const RE: Record<string, RegExp> = {
   a: /genotype|strain|line|sex|diet|group/,
   b: /treatment|drug|condition|dose|stim|compound/,
   unit: /mouse|mice|animal|rat|litter|culture|subject|donor|cage|dish|patient|^id$/,
+  subject: /mouse|mice|animal|rat|subject|donor|patient|participant|^id$|\bid\b/,
+  condition: /time|condition|visit|phase|period|treatment|day|week|session|group|before|after/,
 };
 
 const ID_RE = /^(id|#|no\.?|row|subject|subject ?id|patient|patient ?id|record|obs|observation|index|sample ?id)$/;
@@ -153,6 +165,14 @@ export function guessRoles(src: LongSource, target: LongTarget): Roles {
     pick("b", "any", true);
     out.unit = u >= 0 ? u : norm.findIndex((_, i) => !used.has(i));
     if (out.unit >= 0) used.add(out.unit);
+  } else if (target === "paired") {
+    // the subject is an identifier column: guessed by name first
+    const u = norm.findIndex((h) => RE.subject.test(h) || ID_RE.test(h));
+    if (u >= 0) used.add(u);
+    pick("value", "num");
+    pick("condition", "any");
+    out.subject = u >= 0 ? u : norm.findIndex((_, i) => !used.has(i));
+    if (out.subject >= 0) used.add(out.subject);
   } else {
     pick("x", "num");
     pick("y", "num");
@@ -393,6 +413,30 @@ export function xyFromLong(src: LongSource, roles: Roles, base: DataTableModel):
   };
 }
 
+// ------------------------------------------------------------ paired
+
+/** Subject, condition and value records as a paired column table: one row
+ *  per subject (titled with its ID), one column per condition. */
+export function pairedFromLong(src: LongSource, roles: Roles, base: DataTableModel): LongResult {
+  const missing = need(roles, ["subject", "condition", "value"]);
+  if (missing) return { error: `Choose the ${missing === "subject" ? "subject ID" : missing} column.` };
+  if (!distinctRoles(roles, ["subject", "condition", "value"])) return { error: "Choose a different column for each role." };
+  const p = pairBySubject(src.rows.map((x, i) => ({ id: x[roles.subject] ?? "", group: x[roles.condition] ?? "",
+    value: x[roles.value] ?? "", row: src.lines?.[i] ?? 0 })));
+  if ("error" in p) return p;
+  const table = replace(base, {
+    x: p.subjects.map(() => ""),
+    rowTitles: p.subjects,
+    datasets: p.groups.map((g, j) => ({ name: g, rows: p.subjects.map((_, i) => [p.cells[i][j]]) })),
+  });
+  const { summary, notes } = pairingReport(p, src.headers[roles.subject] ?? "");
+  const text = p.cells.flat().filter((v) => v !== "" && cellNumber(v) === null).length;
+  if (text) {
+    notes.push(`${plural(text, "value")} not a number, kept as typed: analyses read ${text === 1 ? "it" : "them"} as blank.`);
+  }
+  return { table, summary, notes };
+}
+
 /** Build the fill of a target. */
 export function fillFromLong(target: LongTarget, src: LongSource, roles: Roles, positive: string,
   base: DataTableModel): LongResult {
@@ -401,6 +445,7 @@ export function fillFromLong(target: LongTarget, src: LongSource, roles: Roles, 
     case "cmh": return cmhFromLong(src, roles, base);
     case "roc": return rocFromLong(src, roles, positive, base);
     case "quantal": return quantalFromLong(src, roles, base);
+    case "paired": return pairedFromLong(src, roles, base);
     case "nested2": {
       const r = nestedFromLong(src.headers, src.rows, { value: roles.value ?? -1, a: roles.a ?? -1,
         b: roles.b ?? -1, unit: roles.unit ?? -1 }, base);

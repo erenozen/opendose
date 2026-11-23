@@ -18,16 +18,32 @@ import { useProject } from "../../app/context";
 import { superPlotOn } from "../common/superplot";
 import { incompleteSubjects } from "./rmPosthoc";
 import LogScaleChips from "./logScaleChips";
+import LongTableButton from "../common/LongTableButton";
 
-export function ColumnAnalysisControls({ table, options, onChange }:
+/** Paired analyses read rows as subjects: their tables can be filled from
+ *  a long table, paired by subject ID (P-38, "From long table…"). */
+const PAIRED_TTESTS = new Set(["paired", "ratio_paired", "wilcoxon"]);
+const pairsRows = (o: ColumnOptionsState) => o.analysis === "rm_anova"
+  || (o.analysis === "ttest" && PAIRED_TTESTS.has(o.ttestKind));
+
+export function ColumnAnalysisControls({ sheet, table, options, onChange, readOnly }:
   ControlsProps<ColumnOptionsState>) {
   return (
-    <ColumnControls options={options}
-      datasetNames={table.datasets.map((d) => d.name)}
-      summaryData={table.subcolumnFormat !== "replicates"}
-      xyTable={table.type === "xy"}
-      incompleteSubjects={options.analysis === "rm_anova" ? incompleteSubjects(table) : 0}
-      onChange={onChange} />
+    <>
+      {!readOnly && table.type === "column" && table.subcolumnFormat === "replicates" && pairsRows(options) && (
+        <div className="controls long-table-controls">
+          <section>
+            <LongTableButton target="paired" sheet={sheet} />
+          </section>
+        </div>
+      )}
+      <ColumnControls options={options}
+        datasetNames={table.datasets.map((d) => d.name)}
+        summaryData={table.subcolumnFormat !== "replicates"}
+        xyTable={table.type === "xy"}
+        incompleteSubjects={options.analysis === "rm_anova" ? incompleteSubjects(table) : 0}
+        onChange={onChange} />
+    </>
   );
 }
 

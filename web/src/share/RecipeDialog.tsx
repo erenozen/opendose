@@ -33,6 +33,7 @@ import {
   type AggFn, type OutputType, type Role, type Staging,
 } from "./recipes/staging";
 import { superplotFamily } from "./recipes/superplotGraphs";
+import { pairingReport } from "./recipes/pairing";
 import "./share.css";
 
 type Tab = "source" | "columns" | "aggregate" | "output";
@@ -491,6 +492,16 @@ export default function RecipeDialog({ initialText, initialFiles, savedId, stage
           {out.result.counts.length > 24 && <li>… {out.result.counts.length - 24} more</li>}
         </ul>
       )}
+      {out?.result?.pairing && (() => {
+        const rep = pairingReport(out.result.pairing,
+          out.subject >= 0 ? out.aggregated.columns[out.subject]?.name ?? "" : "");
+        return (
+          <div className="recipe-pairing">
+            <p className="field-note">{rep.summary}.</p>
+            {rep.notes.map((n) => <p key={n} className="field-note">{n}</p>)}
+          </div>
+        );
+      })()}
       {(out?.error || stagedResult.error || error) && (
         <p className="import-error" role="alert">{out?.error || stagedResult.error || error}</p>
       )}
