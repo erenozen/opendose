@@ -59,10 +59,11 @@ def test_paired_ratio_and_one_sample_t_match_scipy():
 
 
 def test_zero_variance_paired_differences():
-    r = ttests.paired_t([2, 3, 4], [1, 2, 3])          # every difference 1
-    assert (r["p_greater"], r["p_less"]) == (0.0, 1.0)
-    r = ttests.paired_t([1, 2, 3], [2, 3, 4])
-    assert (r["p_greater"], r["p_less"]) == (1.0, 0.0)
+    # every difference 1 (or -1): t is undefined, not infinite, so no
+    # one-tailed P either (test_zero_scatter_matched.py)
+    for a, b in (([2, 3, 4], [1, 2, 3]), ([1, 2, 3], [2, 3, 4])):
+        with pytest.raises(ValueError, match="paired t test is undefined"):
+            ttests.paired_t(a, b)
 
 
 def test_mann_whitney_with_ties_is_the_permutation_tail():

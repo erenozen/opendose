@@ -590,6 +590,144 @@ await page.waitForSelector('.pane-results[data-live="true"] .results-table', { t
     refit && kRow.startsWith("k 0.3 "), kRow);
 }
 
+// --- P-40: Mauchly, Huynh-Feldt and partial omega squared in RM ANOVA ----
+{
+  // engine/tests/reference/rm_sphericity.py (pingouin 0.7): GG 0.3897,
+  // HF 0.4125, Mauchly W = 0.01253, P = 3.3e-6, HF P = 1.444e-4,
+  // partial omega squared 0.5257
+  await pastedTable("column", "RM 10 x 4", "Vehicle\tLow\tMid\tHigh\n"
+    + "12.1\t14.3\t15.0\t19.8\n10.4\t11.9\t13.7\t14.2\n13.8\t15.1\t18.2\t24.9\n"
+    + "9.7\t10.2\t12.5\t13.1\n11.2\t13.8\t14.1\t20.3\n12.9\t13.5\t16.8\t17.0\n"
+    + "10.8\t12.7\t13.2\t21.6\n14.2\t15.9\t17.4\t18.1\n11.5\t12.0\t15.3\t22.7\n"
+    + "13.1\t14.6\t16.0\t16.4\n");
+  await page.locator(".pane-controls select.analysis-select").selectOption("rm_anova");
+  await liveResults(/Mauchly's test of sphericity/);
+  const row = async (label) => (await page.locator(".pane-results tr", { hasText: label }).first()
+    .innerText().catch(() => "")).replace(/\s+/g, " ").trim();
+  const [gg, hf, phf, mau] = [await row("Geisser-Greenhouse epsilon"),
+    await row("Huynh-Feldt epsilon"), await row("P (Huynh-Feldt corrected)"),
+    await row("Mauchly's test of sphericity")];
+  expect("P-40 typeset table: GG ε 0.3897, HF ε 0.4125 (Lecoutre), HF P 1.444e-4, Mauchly W 0.01253 (P < 0.0001)",
+    gg === "Geisser-Greenhouse epsilon 0.3897" && hf === "Huynh-Feldt epsilon (Lecoutre) 0.4125"
+      && phf === "P (Huynh-Feldt corrected) 1.444e-4"
+      && mau === "Mauchly's test of sphericity W = 0.01253, P < 0.0001", [gg, hf, phf, mau].join(" | "));
+  await openChecks();
+  await page.locator(".pane-answer").getByRole("button", { name: /Sphericity: ε = 0\.39/ }).click();
+  const chip = await page.getByRole("region", { name: "Sphericity: ε = 0.39" }).innerText().catch(() => "");
+  expect("P-40 acceptance: the sphericity chip lists GG ε, HF ε and Mauchly's W with P",
+    chip.includes("GG ε = 0.39, HF ε = 0.412, Mauchly's W = 0.0125, P < 0.0001")
+      && chip.includes("Mauchly's test is reported, not used to choose the correction")
+      && chip.includes("Lecoutre 1991"), chip.slice(0, 300));
+  const omega = await page.locator(".pane-results tr", { hasText: "Partial ω²" }).first()
+    .evaluate((el) => el.textContent.replace(/\s+/g, " ").trim()).catch(() => "");
+  expect("P-40 acceptance: the effect-size block adds partial ω² = 0.5257, without a CI",
+    /^Partial ω²\s*0\.5257\s*(n\/a|—)?/.test(omega) && !/to/.test(omega), omega);
+}
+
+// --- P-41: trend across ordered columns (Jonckheere-Terpstra, Page) -------
+{
+  // engine/tests/reference/ordered_trend.py: 4 doses x 5, no ties: J = 140
+  // of a possible 150, E = 75, SD 14.86, exact two-sided P 8.9e-7
+  await pastedTable("column", "Four doses", "0 mg/kg\t1 mg/kg\t3 mg/kg\t10 mg/kg\n"
+    + "41.2\t43.1\t47.3\t50.2\n38.5\t45.6\t44.4\t47.7\n44.0\t40.8\t49.8\t52.6\n"
+    + "39.7\t46.2\t46.9\t49.1\n42.3\t44.9\t48.1\t53.4\n");
+  const controls = page.locator(".pane-controls");
+  // the "Type" select sits in a label whose text includes its options
+  const typeSelect = () => controls.locator("label.check-row", {
+    has: page.locator("span", { hasText: /^Type$/ }) }).locator("select");
+  await controls.locator("select.analysis-select").selectOption("anova");
+  await typeSelect().selectOption("nonparametric");
+  await controls.getByLabel("Jonckheere-Terpstra test for trend across ordered columns").check();
+  const hint = await controls.locator(".hint-block", { hasText: "Tested in the order of the columns" })
+    .innerText().catch(() => "");
+  expect("P-41 the controls name the order tested (the dose order is the hypothesis)",
+    hint.includes("first to last: 0 mg/kg, then 1 mg/kg, then 3 mg/kg, then 10 mg/kg"), hint);
+  await liveResults(/Jonckheere-Terpstra J/);
+  const row = async (label) => (await page.locator(".pane-results tr", { hasText: label }).first()
+    .innerText().catch(() => "")).replace(/\s+/g, " ").trim();
+  const head = await page.locator(".pane-results h4", { hasText: "Trend across ordered columns" })
+    .count();
+  const [j, e, p2] = [await row("Jonckheere-Terpstra J"), await row("Expected under no trend"),
+    await row("P value, two-sided")];
+  expect("P-41 acceptance: “Trend across ordered columns” with J = 140 (E 75, SD 14.86) and exact P < 0.0001",
+    head === 1 && j === "Jonckheere-Terpstra J 140" && e === "Expected under no trend (SD) 75 (14.86)"
+      && p2 === "P value, two-sided (exact) < 0.0001", [j, e, p2].join(" | "));
+  // Hicks (2009) teaching methods, published L = 133.5; exact P given the
+  // ties 3.842e-4 one-sided (full enumeration of 1.9 million tables)
+  await pastedTable("column", "Teaching methods", "Tutorial\tLecture\tSeminar\n"
+    + "3\t4\t3\n2\t2\t4\n3\t3\t5\n1\t3\t2\n2\t3\t2\n2\t4\t5\n1\t2\t4\n3\t4\t4\n2\t4\t5\n1\t3\t4\n");
+  await controls.locator("select.analysis-select").selectOption("rm_anova");
+  await typeSelect().selectOption("nonparametric");
+  await controls.getByLabel("Page's test for trend across ordered treatments").check();
+  await liveResults(/Page's L/);
+  const [l, inc, two] = [await row("Page's L"), await row("P value, one-sided: increasing"),
+    await row("P value, two-sided")];
+  expect("P-41 acceptance: the Friedman results gain a Page line, L = 133.5 (published), P 3.842e-4 one-sided",
+    l === "Page's L 133.5" && inc === "P value, one-sided: increasing 3.842e-4"
+      && two === "P value, two-sided (exact, given the ties) 7.684e-4", [l, inc, two].join(" | "));
+}
+
+// --- P-45: Cochran's Q with pairwise McNemar tests ------------------------
+{
+  // engine/tests/reference/cochran_q.py (statsmodels cochrans_q and
+  // mcnemar(exact=True), Holm): Q = 11.56, df = 2, P = 0.0031; A vs C
+  // Holm P 0.0234
+  await pastedTable("column", "Three stains", "Stain A\tStain B\tStain C\n"
+    + "1\t1\t0\n1\t0\t0\n1\t1\t1\n0\t0\t0\n1\t1\t0\n1\t0\t0\n"
+    + "1\t1\t0\n1\t1\t1\n0\t1\t0\n1\t0\t0\n1\t1\t0\n1\t1\t0\n");
+  const controls = page.locator(".pane-controls");
+  await controls.locator("select.analysis-select").selectOption("cochran_q");
+  await liveResults(/Cochran's Q/);
+  const row = async (label) => (await page.locator(".pane-results tr", { hasText: label }).first()
+    .innerText().catch(() => "")).replace(/\s+/g, " ").trim();
+  const [q, df, p] = [await row("Cochran's Q"), await row("df"), await row("P value (chi-square)")];
+  expect("P-45 acceptance: Q = 11.56, df = 2, P = 0.003096 for 12 subjects under three stains",
+    q === "Cochran's Q 11.56" && df === "df 2" && p === "P value (chi-square) 0.003096 **",
+    [q, df, p].join(" | "));
+  const fam = await page.locator(".pane-results .family-line").first().innerText().catch(() => "");
+  const ac = await row("Stain A vs. Stain C");
+  expect("P-45 acceptance: three Holm-adjusted McNemar comparisons, A vs C 8/0 discordant, P 0.02344 (0.007813 unadjusted)",
+    /3 comparisons/.test(fam) && /Holm/.test(fam)
+      && ac === "Stain A vs. Stain C 8, 0 0.6667 0.02344 0.007813 *", `${fam} / ${ac}`);
+  // a 2 in the 0/1 layout is named, not analysed
+  await pastedTable("column", "Not binary", "Stain A\tStain B\tStain C\n1\t0\t2\n0\t1\t1\n1\t1\t0\n");
+  await controls.locator("select.analysis-select").selectOption("cochran_q");
+  const named = await page.waitForFunction(() => /row 1 of Stain C holds 2\. Enter one subject per row/
+    .test(document.body.innerText), null, { timeout: 60000 }).then(() => true, () => false);
+  expect("P-45 a value other than 0 or 1 is named with its row and column", named);
+}
+
+// --- P-27: repeated-measures correlation ----------------------------------
+{
+  // engine/tests/reference/rm_corr.py: Bland & Altman 1995, 47 pH / PaCO2
+  // pairs of 8 subjects; pingouin rm_corr r = -0.5068, df = 38, P 8.471e-4,
+  // 95% CI -0.71 to -0.23 (engine -0.7067 to -0.2319)
+  const ref = JSON.parse(readFileSync(join(here, "../../engine/tests/reference/rm_corr.json"), "utf8"));
+  await pastedTable("column", "pH and PaCO2", "pH\tPaCO2\tSubject\n"
+    + ref.x.map((x, i) => `${x}\t${ref.y[i]}\t${ref.subject[i]}`).join("\n") + "\n");
+  const controls = page.locator(".pane-controls");
+  await controls.locator("select.analysis-select").selectOption("correlation");
+  await liveResults(/Correlation: pH vs\. PaCO2/);
+  await openChecks();
+  const chip = page.locator(".pane-answer").getByRole("button", { name: /Subjects ignored/ });
+  expect("P-27 a chip says the Subject column is ignored by the plain correlation", await appears(chip));
+  await controls.getByRole("combobox", { name: "Subject" }).selectOption("d2");
+  await liveResults(/Repeated-measures correlation: pH vs\. PaCO2/);
+  const row = async (label) => (await page.locator(".pane-results tr", { hasText: label }).first()
+    .innerText().catch(() => "")).replace(/\s+/g, " ").trim();
+  const [r, ci, df, p] = [await row("Repeated-measures r"), await row("CI of r_rm"),
+    await row("df"), await row("P value (two-tailed)")];
+  expect("P-27 acceptance: rm-corr r = -0.5068, its 95% CI -0.7067 to -0.2319 and df = 38",
+    r === "Repeated-measures r (r_rm) -0.5068" && ci === "95% CI of r_rm (Fisher z) -0.7067 to -0.2319"
+      && df === "df 38" && p === "P value (two-tailed) 8.471e-4 ***", [r, ci, df, p].join(" | "));
+  const scope = await page.locator(".pane-results .model-line", { hasText: "Within subjects only" })
+    .first().innerText().catch(() => "");
+  expect("P-27 the results say rm-corr measures the within-subject association only",
+    /does not say whether subjects with higher pH have higher PaCO2/.test(scope), scope);
+  expect("P-27 with the Subject role set, the chip is gone",
+    await page.locator(".pane-answer").getByRole("button", { name: /Subjects ignored/ }).count() === 0);
+}
+
 // ------------------------------------------------------------------------
 await browser.close();
 if (errors.length) console.log(errors.slice(0, 10).join("\n"));

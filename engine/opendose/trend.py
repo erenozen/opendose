@@ -184,6 +184,108 @@ def bowker(table) -> dict:
             "p": float(stats.chi2.sf(stat, df)), "n_pairs": float(grid.sum())}
 
 
+# ------------------------------------------------------------ Cochran's Q
+
+def _binary_matrix(columns, names):
+    """Subjects x conditions 0/1 matrix from one value list per condition
+    (index = subject). A value other than 0 or 1 is an error naming its
+    cell; subjects missing any condition are left out and listed."""
+    k = len(columns)
+    n_rows = max((len(c) for c in columns), default=0)
+    rows, dropped = [], []
+    for r in range(n_rows):
+        vals = [columns[j][r] if r < len(columns[j]) else None
+                for j in range(k)]
+        missing = [v is None or (isinstance(v, float) and math.isnan(v))
+                   for v in vals]
+        if all(missing):
+            continue
+        for j, v in enumerate(vals):
+            if not missing[j] and float(v) not in (0.0, 1.0):
+                raise ValueError(
+                    f"Cochran's Q needs 0 (no) or 1 (yes) in every cell: row "
+                    f"{r + 1} of {names[j]} holds {v:g}. Enter one subject "
+                    "per row and one condition per column, 1 for yes and 0 "
+                    "for no.")
+        if any(missing):
+            dropped.append(r)
+            continue
+        rows.append([int(float(v)) for v in vals])
+    return np.array(rows, dtype=int).reshape(-1, k), dropped
+
+
+def cochrans_q(columns, names=None) -> dict:
+    """Cochran's Q test (Cochran 1950, Biometrika 37:256) for a yes/no
+    outcome measured on the same subjects under k >= 3 conditions: rows
+    are subjects, columns conditions, cells 0 or 1. Q = (k - 1) (k sum_j
+    C_j^2 - N^2) / (k N - sum_i R_i^2) with column totals C_j, row totals
+    R_i and N the number of 1s; chi-square on k - 1 df. Subjects with the
+    same answer under every condition add nothing to Q (they are counted
+    and reported). Subjects missing a condition are left out.
+
+    Pairwise post tests: McNemar's test of each pair of conditions with
+    the exact binomial P of the discordant pairs (always exact: the
+    GraphPad guide's recommendation for McNemar's test, valid at any
+    count), adjusted by Holm's (1979) step-down method over the k(k - 1)/2
+    pairs (R p.adjust "holm")."""
+    k = len(columns)
+    names = list(names or [f"Condition {j + 1}" for j in range(k)])
+    if k < 3:
+        raise ValueError("Cochran's Q needs at least 3 conditions (columns); "
+                         "for 2, use McNemar's test")
+    M, dropped = _binary_matrix(columns, names)
+    n = M.shape[0]
+    if n < 2:
+        raise ValueError("Cochran's Q needs at least 2 subjects (rows) with "
+                         "a value under every condition")
+    C = M.sum(axis=0).astype(float)
+    R = M.sum(axis=1).astype(float)
+    N = float(C.sum())
+    den = k * N - float((R * R).sum())
+    informative = int(((R > 0) & (R < k)).sum())
+    out = {"test": "cochrans_q", "n_subjects": int(n),
+           "n_informative": informative, "k": k, "names": names,
+           "successes": [int(c) for c in C],
+           "proportions": [float(c / n) for c in C],
+           "incomplete_subjects": dropped}
+    if den <= 0:
+        raise ValueError("Cochran's Q is undefined: every subject gave the "
+                         "same answer under every condition, so no subject "
+                         "shows a difference between conditions")
+    Q = (k - 1) * (k * float((C * C).sum()) - N * N) / den
+    df = k - 1
+    out.update({"Q": float(Q), "df": int(df),
+                "p": float(stats.chi2.sf(Q, df))})
+    pairs, p_raw = [], []
+    for i in range(k):
+        for j in range(i + 1, k):
+            b = int(((M[:, i] == 1) & (M[:, j] == 0)).sum())
+            c = int(((M[:, i] == 0) & (M[:, j] == 1)).sum())
+            p = (partsofwhole.binomial_test(b, b + c, 0.5)["p_two_tailed"]
+                 if b + c > 0 else 1.0)
+            pairs.append((i, j, b, c))
+            p_raw.append(float(p))
+    from . import fdr
+    from .moretests import comparison_family
+    p_adj = fdr.holm(np.array(p_raw))
+    m = len(pairs)
+    out["comparisons"] = {
+        "method": "mcnemar_holm",
+        "family": comparison_family(m, "holm",
+                                    f"all pairs of {k} conditions"),
+        "comparisons": [{
+            "pair": f"{names[i]} vs. {names[j]}",
+            "a_index": i, "b_index": j,
+            "discordant": [b, c],
+            "difference": float((C[i] - C[j]) / n),
+            "p_unadjusted": pr, "p_adjusted": float(pa),
+            "significant_05": bool(pa < 0.05),
+            "family_size": m, "method": "holm",
+            "p_method": "exact binomial (McNemar)"}
+            for (i, j, b, c), pr, pa in zip(pairs, p_raw, p_adj)]}
+    return out
+
+
 # -------------------------------------------------- Cochran-Mantel-Haenszel
 
 def cmh(tables, *, ci_level: float = 0.95, correction: bool = False,

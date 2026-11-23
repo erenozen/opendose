@@ -930,7 +930,10 @@ def _anova(data, options):
     options.log_scale (parametric): the ANOVA and post tests on the logs;
     adds "log_scale", "geometric_means" and, per comparison, "ratio",
     "ratio_ci", "ratio_label" (geometric-mean ratio of the pair). Without
-    it the parametric result adds "scale_check"."""
+    it the parametric result adds "scale_check". options.trend: the
+    linear trend (parametric, "trend") or the Jonckheere-Terpstra test
+    across the columns in the order entered (Kruskal-Wallis,
+    "jonckheere"; moretests.jonckheere_terpstra)."""
     cols, names = _flatten_columns(data)
     warnings = _nan_warnings(data)
     kind = options.get("kind", "parametric")
@@ -973,6 +976,13 @@ def _anova(data, options):
                       pairs=options.get("pairs"),
                       dunn_correction=options.get("dunn_correction"),
                       exact=options.get("exact", False))}
+        if options.get("trend"):
+            # Jonckheere-Terpstra, the groups in the order entered
+            try:
+                result["jonckheere"] = moretests.jonckheere_terpstra(
+                    cols, names)
+            except ValueError as exc:
+                result["jonckheere"] = {"error": str(exc)}
         if warnings:
             result["warnings"] = warnings
         return result
@@ -1089,6 +1099,39 @@ def _correlation(data, options):
     incomplete_pairs (0-based row indices) with a warning."""
     cols, names = _flatten_columns(data)
     ia, ib = options.get("dataset_a", 0), options.get("dataset_b", 1)
+    labels = options.get("subject_labels")
+    if labels is not None:
+        # options.subject_labels: one subject per row (row titles or a
+        # column of IDs): the repeated-measures correlation
+        # (correlation.rm_corr), every subcolumn of a row in its subject
+        xs, ys, ss = [], [], []
+        da, db = data["datasets"][ia]["ys"], data["datasets"][ib]["ys"]
+        for r in range(max(len(da), len(db))):
+            ra = da[r] if r < len(da) else []
+            rb = db[r] if r < len(db) else []
+            for c in range(max(len(ra or []), len(rb or []))):
+                x = ra[c] if c < len(ra or []) else None
+                y = rb[c] if c < len(rb or []) else None
+                if _is_missing(x) and _is_missing(y):
+                    continue
+                xs.append(None if _is_missing(x) else x)
+                ys.append(None if _is_missing(y) else y)
+                ss.append(labels[r] if r < len(labels) else None)
+        result = correlation.rm_corr(xs, ys, ss,
+                                     ci_level=options.get("ci_level", 0.95))
+        result["names"] = [names[ia], names[ib]]
+        notes = []
+        if result["pairs_left_out"]:
+            notes.append(f"{result['pairs_left_out']} XY pair"
+                         f"{'s' if result['pairs_left_out'] != 1 else ''} "
+                         "with a missing value or no subject left out")
+        if result["subjects_single_pair"]:
+            notes.append("subjects with a single XY pair left out (no "
+                         "within-subject information): "
+                         + ", ".join(result["subjects_single_pair"]))
+        if notes:
+            result["warnings"] = notes
+        return {"analysis": "correlation", **result}
     va, vb, incomplete = _pair_cells(data, ia, ib)
     result = correlation.correlate(va, vb,
                                    method=options.get("method", "pearson"))
@@ -1480,7 +1523,9 @@ def _rm_anova(data, options):
     The parametric analysis takes options.comparisons (a method or
     {method, control, family, pairs, error, pooled_df}, see
     _rm_comparison_options) and then adds "comparisons"
-    (opendose.rm_posthoc.rm_comparisons)."""
+    (opendose.rm_posthoc.rm_comparisons). options.trend: the linear
+    trend (parametric, "trend") or Page's test across the treatments in
+    the order entered (Friedman, "page"; repeated.page_trend)."""
     cols, names = _flatten_columns(data)
     # RM analyses need row alignment -> use first subcolumn per dataset
     aligned = [[row[0] if row else None for row in ds["ys"]]
@@ -1511,6 +1556,12 @@ def _rm_anova(data, options):
                       pairs=options.get("pairs"),
                       dunn_correction=options.get("dunn_correction",
                                                   "bonferroni"))}
+        if options.get("trend"):
+            # Page's test, the treatments in the order entered
+            try:
+                result["page"] = repeated.page_trend(aligned, names)
+            except ValueError as exc:
+                result["page"] = {"error": str(exc)}
     else:
         result = {"analysis": "rm_one_way_anova",
                   **repeated.rm_one_way_anova(aligned, names)}
@@ -2646,6 +2697,27 @@ def _mcnemar(data, options):
                             ci_level=options.get("ci_level", 0.95))}
 
 
+def _cochrans_q(data, options):
+    """Cochran's Q for a matched yes/no outcome (trend.cochrans_q). data:
+    a column table, datasets = conditions, rows = subjects, first
+    subcolumn, cells 0 or 1 (None = missing). Subjects missing a
+    condition are left out, listed in incomplete_subjects (0-based) with
+    a warning. Result: {"analysis", "Q", "df", "p", "n_subjects",
+    "n_informative", "successes", "proportions", "names", "comparisons":
+    {method, family, comparisons: [{pair, discordant, difference,
+    p_unadjusted, p_adjusted, ...}]}}."""
+    names = [ds.get("name", "") or f"Condition {j + 1}"
+             for j, ds in enumerate(data["datasets"])]
+    cols = [[row[0] if row else None for row in ds["ys"]]
+            for ds in data["datasets"]]
+    result = {"analysis": "cochrans_q", **trend.cochrans_q(cols, names)}
+    if result["incomplete_subjects"]:
+        result["warnings"] = [_incomplete_warning(
+            result["incomplete_subjects"], "subject row")
+            + " (Cochran's Q needs every condition per subject)"]
+    return result
+
+
 def _cmh(data, options):
     """Cochran-Mantel-Haenszel. data: {"tables": [[[a, b], [c, d]], ...],
     "strata_names"?}; options: correction (false), ci_level. Result:
@@ -2830,6 +2902,7 @@ _HANDLERS = {
     "median_test": _median_test,
     "trend_test": _trend_test,
     "mcnemar": _mcnemar,
+    "cochrans_q": _cochrans_q,
     "cmh": _cmh,
     "kappa": _kappa,
     "proportion_test": _proportion_test,

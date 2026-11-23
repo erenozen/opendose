@@ -275,7 +275,8 @@ export type ColumnAnalysisKind =
   | "bland_altman"
   | "outliers"
   | "p_stack"
-  | "frequency";
+  | "frequency"
+  | "cochran_q";
 
 export const COLUMN_ANALYSIS_LABELS: Record<ColumnAnalysisKind, string> = {
   column_statistics: "Column statistics (descriptive + normality)",
@@ -291,6 +292,7 @@ export const COLUMN_ANALYSIS_LABELS: Record<ColumnAnalysisKind, string> = {
   outliers: "Identify outliers (Grubbs / ROUT)",
   p_stack: "Analyze a stack of P values (multiple comparisons)",
   frequency: "Frequency distribution (histogram, cumulative, Gaussian fit)",
+  cochran_q: "Cochran's Q (matched yes/no: rows = subjects, 0 or 1)",
 };
 
 export type TwoWayComparisons = "none" | "tukey" | "sidak" | "bonferroni";
@@ -426,6 +428,10 @@ export interface ColumnOptionsState {
   /** Correlation: also report a one-sided P (and bound) in the stated
    *  direction (R's cor.test alternative = "greater" / "less"). */
   corrTails?: "two" | "greater" | "less";
+  /** Correlation: the Subject role ("" none, "rows" the row titles, "d<i>"
+   *  data set i holds subject IDs): repeated-measures correlation
+   *  (sheets/column/rmCorr.ts). */
+  corrSubject?: string;
   /** Two-group tests: also show a one-tailed P in a stated direction
    *  ("greater": A larger than B; engine p_greater / p_less). */
   ttestTails?: "two" | "greater" | "less";
@@ -443,6 +449,10 @@ export interface ColumnOptionsState {
   /** Ordinary one-way ANOVA: also the test for linear trend (columns in
    *  order, coded 1, 2, ...). */
   anovaTrend?: boolean;
+  /** Kruskal-Wallis and Friedman: also the rank test for a monotone trend
+   *  across the columns in the order entered (Jonckheere-Terpstra, Page;
+   *  sheets/column/orderedTrend.ts). */
+  rankTrend?: boolean;
   /** Frequency distribution: bin width ("" = automatic), center of the
    *  first bin, upper limit (values above are left out), what to tabulate,
    *  cumulative (binned / exact), a fit, and replicates (each / row mean). */
@@ -522,6 +532,7 @@ export const DEFAULT_COLUMN_OPTIONS: ColumnOptionsState = {
   pStackQ: "5",
   corrWithX: false,
   anovaTrend: false,
+  rankTrend: false,
   freqBinWidth: "",
   freqFirstCenter: "",
   freqUpper: "",

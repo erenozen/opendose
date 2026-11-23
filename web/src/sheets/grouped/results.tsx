@@ -16,6 +16,7 @@ import InteractionBlock from "./interaction";
 import { isAdditiveTwoWay } from "./interactionSummary";
 import { adjustedHeader, familyOf, hasUnadjusted } from "../../report/family";
 import FamilyLine from "../common/FamilyLine";
+import SphericityTable from "../common/SphericityTable";
 import { ddfName, ddfOf } from "../common/ddf";
 import "./grouped.css";
 import { Button } from "../../components/ui";
@@ -56,7 +57,7 @@ function SourcesTable({ rows, gg }: {
               <td>{formatSig(s.ss)}</td>
               <td>{s.df}</td>
               <td>{formatSig(s.ms)}</td>
-              <td>{s.F != null ? formatSig(s.F) : ""}</td>
+              <td>{s.F != null ? formatSig(s.F) : s.note ? "undefined (no scatter)" : ""}</td>
               <td>{s.p != null ? `${fmtP(s.p)} ${stars(s.p)}` : ""}</td>
               {gg && <td>{s.p_geisser_greenhouse != null ? fmtP(s.p_geisser_greenhouse) : ""}</td>}
             </tr>
@@ -248,6 +249,7 @@ export function TwoWayResults({ result, options, table }: ResultsProps<TwoWayOpt
             ? `; Geisser-Greenhouse ε = ${formatSig(result.gg_epsilon)}` : ""}
         </p>
         <SourcesTable rows={rows} gg={gg} />
+        <SphericityTable result={result} labels={label} />
         {result.cell_means && <CellMeans means={result.cell_means} rows={rowNames} cols={colNames} />}
         {result.multiple_comparisons && (
           <TwoWayComparisons mc={result.multiple_comparisons}

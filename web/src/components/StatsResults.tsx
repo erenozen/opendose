@@ -11,6 +11,10 @@ import { oneTailedAlternative } from "../sheets/column/tails";
 import { FrequencyResults } from "../sheets/column/frequencyPanel";
 import { MixedRmOneWay, RmComparisons } from "../sheets/column/rmPosthocResults";
 import { rmComparisonsOf } from "../sheets/column/rmPosthoc";
+import SphericityTable from "../sheets/common/SphericityTable";
+import { OrderedTrendResults } from "../sheets/column/OrderedTrend";
+import CochranQ from "../sheets/column/CochranQ";
+import { RmCorrResults } from "../sheets/column/RmCorr";
 
 interface Props {
   result: Record<string, unknown> | null;
@@ -432,6 +436,7 @@ function Anova({ result }: { result: any }) {
             <ComparisonsTable mc={result.dunns} fallbackMethod="dunns" />
           </>
         )}
+        <OrderedTrendResults block={result.jonckheere} />
       </div>
     );
   }
@@ -566,6 +571,7 @@ function Outliers({ result }: { result: any }) {
 }
 
 function Correlation({ result, tails }: { result: any; tails?: "two" | "greater" | "less" }) {
+  if (result.method === "rm_corr") return <RmCorrResults result={result} />;
   const [a, b] = result.names ?? ["A", "B"];
   const kendall = result.method === "kendall";
   const name = result.method === "pearson" ? "Pearson r"
@@ -713,7 +719,7 @@ function RMTwoWay({ result }: { result: any }) {
               <td>{formatSig(s.ss)}</td>
               <td>{s.df}</td>
               <td>{formatSig(s.ms)}</td>
-              <td>{s.F != null ? formatSig(s.F) : "n/a"}</td>
+              <td>{s.F != null ? formatSig(s.F) : s.note ? "undefined (no scatter)" : "n/a"}</td>
               <td>{s.p != null ? `${fmtP(s.p)} ${stars(s.p)}` : "n/a"}</td>
               <td>{s.p_geisser_greenhouse != null
                 ? fmtP(s.p_geisser_greenhouse) : "n/a"}</td>
@@ -721,12 +727,29 @@ function RMTwoWay({ result }: { result: any }) {
           ))}
         </tbody>
       </table>
+      <SphericityTable result={result} labels={{ row_factor: "Row factor (repeated)" }} />
     </div>
   );
 }
 
+/** Huynh-Feldt epsilon, its corrected P and Mauchly's test of an RM
+ *  one-way ANOVA (engine repeated.sphericity); none without them. */
+function sphericityRows(result: any): Row[] {
+  const s = result.sphericity, t = result.table;
+  if (!s || typeof s.gg_epsilon !== "number") return [];
+  const hf = typeof s.hf_epsilon === "number";
+  return [
+    ["Huynh-Feldt epsilon (Lecoutre)", hf ? formatSig(s.hf_epsilon) : "undefined (too few subjects)"],
+    ...(hf ? [["P (Huynh-Feldt corrected)", fmtP(t.p_huynh_feldt)] as Row] : []),
+    ["Mauchly's test of sphericity", s.mauchly && typeof s.mauchly.W === "number"
+      ? `W = ${formatSig(s.mauchly.W)}, ${pLabel(s.mauchly.p)}`
+      : (s.contrasts ?? 2) <= 1 ? "not needed (2 levels)" : "undefined (too few subjects)"],
+  ];
+}
+
 function RMAnova({ result }: { result: any }) {
   const t = result.table;
+  const spher = sphericityRows(result);
   return (
     <div className="result-card">
       <h3>Repeated-measures one-way ANOVA</h3>
@@ -736,11 +759,18 @@ function RMAnova({ result }: { result: any }) {
          `${fmtP(t.p_geisser_greenhouse)} ${stars(t.p_geisser_greenhouse)}`],
         ["P (assuming sphericity)", fmtP(t.p_assuming_sphericity)],
         ["Geisser-Greenhouse epsilon", formatSig(t.gg_epsilon)],
+        ...spher,
         ["SS treatment / subject / error",
          `${formatSig(t.ss_treatment)} / ${formatSig(t.ss_subject)} / ${formatSig(t.ss_error)}`],
         ["n subjects (complete rows)", String(result.n_subjects)],
         ["R squared", formatSig(result.r_squared)],
       ]} />
+      {spher.length > 0 && (
+        <p className="model-line">
+          Mauchly&apos;s test is reported, not used to choose the correction: P is
+          Geisser-Greenhouse corrected either way.
+        </p>
+      )}
       {rmComparisonsOf(result) && <RmComparisons mc={rmComparisonsOf(result)} names={result.names} />}
       {result.trend && <TrendBlock trend={result.trend} />}
     </div>
@@ -765,6 +795,7 @@ function Friedman({ result }: { result: any }) {
           <ComparisonsTable mc={result.dunns} fallbackMethod="dunns" />
         </>
       )}
+      <OrderedTrendResults block={result.page} />
     </div>
   );
 }
@@ -1040,6 +1071,7 @@ function mainResults(result: Record<string, unknown>, options: Props["options"])
       ? <><LogAnovaRatios result={result} /><Anova result={result} /></> : <Anova result={result} />;
     case "anova_unequal_var": return <AnovaUnequal result={result} />;
     case "median_test": return <MedianTest result={result} />;
+    case "cochrans_q": return <CochranQ result={result} />;
     case "fdr_adjust": return <PStack result={result} />;
     case "frequency_distribution": return <FrequencyResults result={result} />;
     case "ks_test": return <KSTest result={result} />;

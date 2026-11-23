@@ -576,3 +576,54 @@ const longData = (name, names, rows, categorical) => data(name, {
   const g = graph(out, null, "grouped_interleaved", "Graph of Normalized Viability");
   write("normalize-title.json", project("Normalize titles", [t, r, out, g], { selected: g.id }));
 }
+
+// rm-reporting.json: the RM ANOVA reporting of P-40 (engine/tests/
+// reference/rm_sphericity.py): a 10-subject, 4-condition table under RM
+// one-way ANOVA, and pingouin's rm_anova2 data (Metric x Time, both
+// repeated, 10 subjects) under two-way RM ANOVA
+{
+  const ref = JSON.parse(readFileSync(join(here, "../../../engine/tests/reference",
+    "rm_sphericity.json"), "utf8"));
+  const one = ref.one_way;
+  const t = data("RM 10 x 4", table("column", { datasets: one.names.map((nm, j) =>
+    col(nm, one.data.map((r) => r[j]))) }));
+  const r = results(t, "column", { analysis: "rm_anova", rmKind: "parametric" },
+    "RM ANOVA of RM 10 x 4");
+  const both = ref.both;
+  const t2 = data("Metric by time", table("grouped", { rowTitles: both.row_names,
+    datasets: both.col_names.map((nm, j) => ({ name: nm,
+      rows: both.cells.map((row) => row[j].map(String)) })) }));
+  const r2 = results(t2, "grouped_two_way", { design: "rm_both", rowFactor: "Metric",
+    colFactor: "Time" }, "Two-way RM ANOVA of Metric by time");
+  // P-41 (engine/tests/reference/ordered_trend.py): four doses under
+  // Kruskal-Wallis with the Jonckheere-Terpstra test, the Hicks teaching
+  // methods under Friedman with Page's test
+  const tr = JSON.parse(readFileSync(join(here, "../../../engine/tests/reference",
+    "ordered_trend.json"), "utf8"));
+  const t3 = data("Four doses", table("column", { datasets: tr.jt_untied.names.map((nm, j) =>
+    col(nm, tr.jt_untied.data[j])) }));
+  const r3 = results(t3, "column", { analysis: "anova", anovaKind: "nonparametric",
+    rankTrend: true }, "Kruskal-Wallis of Four doses");
+  const hk = tr.page_hicks;
+  const t4 = data("Teaching methods", table("column", { datasets: hk.names.map((nm, j) =>
+    col(nm, hk.data.map((row) => row[j]))) }));
+  const r4 = results(t4, "column", { analysis: "rm_anova", rmKind: "nonparametric",
+    rankTrend: true }, "Friedman of Teaching methods");
+  // P-45 (engine/tests/reference/cochran_q.py): 12 subjects scored 0/1
+  // under three stains, Cochran's Q with the pairwise McNemar tests
+  const cq = JSON.parse(readFileSync(join(here, "../../../engine/tests/reference",
+    "cochran_q.json"), "utf8")).stains;
+  const t5 = data("Three stains", table("column", { datasets: cq.names.map((nm, j) =>
+    col(nm, cq.data.map((row) => row[j]))) }));
+  const r5 = results(t5, "column", { analysis: "cochran_q" }, "Cochran's Q of Three stains");
+  // P-27 (engine/tests/reference/rm_corr.py): Bland & Altman's pH and
+  // PaCO2 with a Subject column, under repeated-measures correlation
+  const rc = JSON.parse(readFileSync(join(here, "../../../engine/tests/reference",
+    "rm_corr.json"), "utf8"));
+  const t6 = data("pH and PaCO2", table("column", { datasets: [
+    col("pH", rc.x), col("PaCO2", rc.y), col("Subject", rc.subject)] }));
+  const r6 = results(t6, "column", { analysis: "correlation", corrSubject: "d2" },
+    "Correlation of pH and PaCO2");
+  write("rm-reporting.json", project("RM reporting",
+    [t, r, t2, r2, t3, r3, t4, r4, t5, r5, t6, r6], { selected: r.id }));
+}

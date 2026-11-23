@@ -205,11 +205,16 @@ export const EXPLAINERS: Explainer[] = [
         + "(epsilon, from 1/(k−1) to 1.0, where 1 means sphericity holds) and multiplies "
         + "both degrees of freedom by epsilon before computing P. If you aren't sure, don't "
         + "assume sphericity: OpenDose reports the corrected P and epsilon.",
+      "The Huynh-Feldt epsilon (with Lecoutre's 1991 correction, as R car and afex) is "
+        + "less conservative than Geisser-Greenhouse and is shown beside it, with Mauchly's "
+        + "test of sphericity. Mauchly's test is reported, not used to choose the correction: "
+        + "it misses departures in small samples and flags trivial ones in large samples, so "
+        + "P stays Geisser-Greenhouse corrected either way.",
       "A mixed-effects model fits the same design without dropping subjects that miss a "
         + "measurement.",
     ],
-    sources: [SRC.gpSphericity, SRC.gpEpsilon, SRC.gpChooseAnova],
-    keywords: "repeated measures epsilon greenhouse geisser compound symmetry",
+    sources: [SRC.gpSphericity, SRC.gpEpsilon, SRC.gpChooseAnova, SRC.mauchly1940, SRC.lecoutre1991],
+    keywords: "repeated measures epsilon greenhouse geisser compound symmetry huynh feldt mauchly",
   },
   {
     id: "normalised-control",

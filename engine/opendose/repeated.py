@@ -39,6 +39,16 @@ from scipy import stats
 
 from . import effectsize, fdr
 from .moretests import comparison_family
+from .ttests import no_residual
+
+
+def no_rm_scatter_message(test: str, error: str) -> str:
+    """The sentence for a repeated-measures F test with no residual
+    scatter (the treatments shift every subject by the same amounts)."""
+    return (f"{test} is undefined: every subject's values differ by the "
+            f"same amounts between conditions, so the {error} residual is 0 "
+            "and the F ratio has no scatter to divide by. Check that each "
+            "value was entered as measured, not copied or rounded.")
 
 DUNN_FAMILIES = ("all", "control", "pairs")
 DUNN_CORRECTIONS = ("bonferroni", "holm", "none")
@@ -138,6 +148,104 @@ def _gg_epsilon(M):
     return float(min(max(num / den, 1.0 / (k - 1)), 1.0))
 
 
+#: Mauchly's test and the Huynh-Feldt epsilon are reported beside the
+#: Geisser-Greenhouse epsilon; P stays Geisser-Greenhouse corrected
+#: whatever Mauchly's test says (GraphPad statistics guide, "Sphericity
+#: and compound symmetry": the test has little power with small samples
+#: and too much with large ones, so it should not choose the analysis).
+SPHERICITY_NOTE = ("Mauchly's test is reported, not used to choose the "
+                   "correction: P is Geisser-Greenhouse corrected either "
+                   "way.")
+HF_FORMULA = ("Huynh-Feldt epsilon with Lecoutre's (1991) correction, "
+              "((N - g + 1) d GG - 2) / (d (N - g - d GG)), capped at 1 "
+              "(as R car and afex)")
+
+
+def _contrasts(k: int) -> np.ndarray:
+    from .mixedmodel import orthonormal_contrasts
+    return orthonormal_contrasts(k)
+
+
+def sphericity(S, C, n_subjects: int, *, n_groups: int = 1,
+               gg=None) -> dict:
+    """Sphericity of one repeated-measures term: the Geisser-Greenhouse,
+    Huynh-Feldt and lower-bound epsilons and Mauchly's test.
+
+    S: covariance matrix of the subjects' repeated measurements (the
+    pooled within-group covariance in a design with g groups, on N - g
+    df); C: orthonormal contrasts of the term (k x d). gg: the
+    Geisser-Greenhouse epsilon the analysis already uses (kept so its P
+    values stay as they were); computed from C'SC otherwise.
+
+    Mauchly (1940, Ann Math Stat 11:204): W = det(T) / (tr(T) / d)^d for
+    T = C'SC; chi^2 = -(N - g) (1 - (2d^2 + d + 2) / (6 d (N - g))) ln W
+    on d(d + 1)/2 - 1 df, with the second-order term of Anderson (2003,
+    sec. 10.7) exactly as R's mauchly.test (k = number of measurements).
+    Huynh-Feldt (1976, J Educ Stat 1:69) with Lecoutre's (1991, J Educ
+    Stat 16:371) correction of the numerator: ((N - g + 1) d GG - 2) /
+    (d (N - g - d GG)), capped at 1 (R car::Anova, afex; equal to the
+    1976 formula and to pingouin.epsilon when g = 1). Lower bound 1/d
+    (Greenhouse & Geisser 1959). Mauchly's test is reported only; it
+    never chooses the correction (SPHERICITY_NOTE)."""
+    S = np.asarray(S, dtype=float)
+    d = int(C.shape[1])
+    k = int(C.shape[0])  # measurements per subject (R's p)
+    df_res = int(n_subjects) - int(n_groups)
+    out = {"measurements": k, "contrasts": d, "n_subjects": int(n_subjects),
+           "hf_formula": HF_FORMULA, "note": SPHERICITY_NOTE}
+    if d <= 1:
+        return {**out, "gg_epsilon": 1.0, "hf_epsilon": 1.0,
+                "lb_epsilon": 1.0, "mauchly": None,
+                "mauchly_note": ("With 2 levels there is one contrast, so "
+                                 "sphericity always holds (epsilon = 1).")}
+    T = C.T @ S @ C
+    tr = float(np.trace(T))
+    if gg is None:
+        tt = float(np.trace(T @ T))
+        gg = min(max(tr * tr / (d * tt), 1.0 / d), 1.0) if tt > 0 else 1.0
+    gg = float(gg)
+    out.update(gg_epsilon=gg, lb_epsilon=1.0 / d)
+    num = (df_res + 1) * d * gg - 2
+    den = d * (df_res - d * gg)
+    # with fewer residual df than contrasts the covariance is singular
+    out["hf_epsilon"] = (float(min(num / den, 1.0))
+                         if df_res >= d and den > 0 and num > 0 else None)
+    if out["hf_epsilon"] is None:
+        out["hf_note"] = ("The Huynh-Feldt epsilon is undefined with this "
+                          "few subjects.")
+    if not np.all(np.isfinite(T)) or not tr > 0:
+        out["mauchly"] = None
+        out["mauchly_note"] = ("Mauchly's test is undefined: the repeated "
+                               "measurements have no scatter.")
+        return out
+    sign, log_w = np.linalg.slogdet(T / (tr / d))
+    if df_res < d or sign <= 0:
+        out["mauchly"] = None
+        out["mauchly_note"] = (
+            f"Mauchly's test needs more subjects: {df_res} residual df for "
+            f"{d} contrasts leave their covariance singular (W = 0), so "
+            "the test is undefined.")
+        return out
+    rho = 1 - (2 * d * d + d + 2) / (6 * d * df_res)
+    chi2 = -df_res * rho * float(log_w)
+    ddof = d * (d + 1) // 2 - 1
+    w2 = ((d + 2) * (d - 1) * (d - 2) * (2 * d ** 3 + 6 * d * d + 3 * k + 2)
+          / (288 * (df_res * d * rho) ** 2))
+    p1 = float(stats.chi2.sf(chi2, ddof))
+    p2 = float(stats.chi2.sf(chi2, ddof + 4))
+    out["mauchly"] = {"W": float(math.exp(log_w)), "chi_square": float(chi2),
+                      "df": int(ddof),
+                      "p": float(min(max(p1 + w2 * (p2 - p1), 0.0), 1.0))}
+    return out
+
+
+def _corrected_p(f, df1, df2, eps):
+    """P of F on both df multiplied by epsilon (None without epsilon)."""
+    if eps is None or not math.isfinite(f):
+        return None
+    return float(stats.f.sf(f, df1 * eps, df2 * eps))
+
+
 def rm_linear_trend(datasets, names=None) -> dict:
     """Test for linear trend after repeated-measures one-way ANOVA: the
     treatments are coded 1, 2, ..., k in the order entered and the
@@ -213,14 +321,19 @@ def rm_one_way_anova(datasets, names=None) -> dict:
     df_error = df_treat * df_subj
     ms_treat = ss_treat / df_treat
     ms_error = ss_error / df_error
-    if ms_error > 0:
-        f = ms_treat / ms_error
-        p_sphericity = float(stats.f.sf(f, df_treat, df_error))
-        eps = _gg_epsilon(M)
-        p_gg = float(stats.f.sf(f, df_treat * eps, df_error * eps))
-    else:  # perfectly additive data: no within-subject error at all
-        f, eps = math.inf, 1.0
-        p_sphericity = p_gg = 0.0
+    # the residual summed directly (ss_error above is a difference of
+    # sums and keeps their rounding)
+    resid = (M - M.mean(axis=1, keepdims=True) - M.mean(axis=0) + grand)
+    if no_residual(float((resid * resid).sum()), M):
+        # perfectly additive data (every subject's values differ by the
+        # same amounts): F = MS / 0 is undefined, not infinite
+        raise ValueError(no_rm_scatter_message(
+            "Repeated-measures ANOVA", "subject x treatment"))
+    f = ms_treat / ms_error
+    p_sphericity = float(stats.f.sf(f, df_treat, df_error))
+    eps = _gg_epsilon(M)
+    p_gg = float(stats.f.sf(f, df_treat * eps, df_error * eps))
+    spher = sphericity(np.cov(M.T, ddof=1), _contrasts(k), n, gg=eps)
 
     return {
         "analysis": "rm_one_way_anova",
@@ -235,14 +348,20 @@ def rm_one_way_anova(datasets, names=None) -> dict:
             "p_assuming_sphericity": p_sphericity,
             "gg_epsilon": eps,
             "p_geisser_greenhouse": p_gg,
+            "hf_epsilon": spher["hf_epsilon"],
+            "p_huynh_feldt": (_corrected_p(f, df_treat, df_error,
+                                           spher["hf_epsilon"])
+                              if ms_error > 0 else None),
         },
+        "sphericity": spher,
         "r_squared": ss_treat / (ss_treat + ss_error)
         if ss_treat + ss_error > 0 else None,
         "treatment_means": [float(v) for v in M.mean(axis=0)],
         "names": names or [f"Treatment {i}" for i in range(k)],
         "effect_size": effectsize.safe(
             effectsize.repeated_term, ss_treat, df_treat, ss_error,
-            df_error, [ss_subject, ss_error]),
+            df_error, [ss_subject, ss_error], ss_subjects=ss_subject,
+            df_subjects=df_subj),
     }
 
 
@@ -307,14 +426,25 @@ def rm_two_way_mixed(cells, *, row_names=None, col_names=None) -> dict:
     ms = {"group": ss_group / df_group, "subj": ss_subj_within / df_subj,
           "row": ss_row / df_row, "inter": ss_inter / df_inter,
           "error": ss_error / df_error if df_error else math.nan}
+    # the two error terms summed directly, to tell rounding from scatter
+    # (ss_error and ss_subj_within are differences of sums)
+    direct = {
+        "error": sum(float(((m - m.mean(axis=0) - m.mean(axis=1,
+                                                         keepdims=True)
+                             + m.mean()) ** 2).sum()) for m in subjects),
+        "subj": a * sum(float(((m.mean(axis=0) - m.mean()) ** 2).sum())
+                        for m in subjects)}
 
-    def source(ss, df, msq, err_ms, err_df):
-        f = msq / err_ms if err_ms > 0 else math.inf
-        return {"ss": float(ss), "df": int(df), "ms": float(msq),
-                "F": float(f),
-                "p": float(stats.f.sf(f, df, err_df)) if err_ms > 0 else 0.0,
-                "percent_of_total": float(100 * ss / ss_total)
-                if ss_total else None}
+    def source(ss, df, msq, err_ms, err_df, err="error"):
+        out = {"ss": float(ss), "df": int(df), "ms": float(msq),
+               "percent_of_total": float(100 * ss / ss_total)
+               if ss_total else None}
+        if not err_df or no_residual(direct[err], all_vals):
+            # F = MS / 0 is undefined (not infinite): say so per term
+            return {**out, "F": None, "p": None,
+                    "note": "undefined: its error term has no scatter"}
+        f = msq / err_ms
+        return {**out, "F": float(f), "p": float(stats.f.sf(f, df, err_df))}
 
     # GG epsilon from the pooled within-group covariance of the subjects'
     # row-vectors: each subject centred on its own group's mean profile,
@@ -327,26 +457,44 @@ def rm_two_way_mixed(cells, *, row_names=None, col_names=None) -> dict:
             [(m - m.mean(axis=1, keepdims=True)).T for m in subjects], axis=0)
         s_pooled = centred.T @ centred / (n_subj - b)
         eps = _gg_epsilon_from_cov(s_pooled)
+        spher = sphericity(s_pooled, _contrasts(a), n_subj, n_groups=b,
+                           gg=eps)
     else:
         eps = 1.0
+        spher = None
 
     row_src = source(ss_row, df_row, ms["row"], ms["error"], df_error)
     inter_src = source(ss_inter, df_inter, ms["inter"], ms["error"], df_error)
-    if ms["error"] > 0:
+    col_src = source(ss_group, df_group, ms["group"], ms["subj"], df_subj,
+                     "subj")
+    if all(s["F"] is None for s in (row_src, inter_src, col_src)):
+        raise ValueError(no_rm_scatter_message(
+            "Two-way repeated-measures ANOVA",
+            "subjects-within-groups and the within-subject"))
+    if row_src["F"] is not None:
         row_src["p_geisser_greenhouse"] = float(
             stats.f.sf(row_src["F"], df_row * eps, df_error * eps))
         inter_src["p_geisser_greenhouse"] = float(
             stats.f.sf(inter_src["F"], df_inter * eps, df_error * eps))
+        if spher is not None:
+            hf = spher["hf_epsilon"]
+            row_src["p_huynh_feldt"] = _corrected_p(
+                row_src["F"], df_row, df_error, hf)
+            inter_src["p_huynh_feldt"] = _corrected_p(
+                inter_src["F"], df_inter, df_error, hf)
 
     resall = [ss_subj_within, ss_error]
+    subj = {"ss_subjects": ss_subj_within, "df_subjects": df_subj}
     effect_size = {
         "interaction": effectsize.safe(effectsize.repeated_term, ss_inter,
-                                       df_inter, ss_error, df_error, resall),
+                                       df_inter, ss_error, df_error, resall,
+                                       **subj),
         "row_factor": effectsize.safe(effectsize.repeated_term, ss_row,
-                                      df_row, ss_error, df_error, resall),
+                                      df_row, ss_error, df_error, resall,
+                                      **subj),
         "column_factor": effectsize.safe(effectsize.repeated_term, ss_group,
                                          df_group, ss_subj_within, df_subj,
-                                         resall),
+                                         resall, within=False, **subj),
     }
     return {
         "analysis": "rm_two_way_mixed",
@@ -354,11 +502,13 @@ def rm_two_way_mixed(cells, *, row_names=None, col_names=None) -> dict:
         "n_subjects": int(n_subj), "rows": a, "cols": b,
         "group_sizes": ns,
         "gg_epsilon": float(eps),
+        # the repeated (row) factor; the interaction uses the same epsilon
+        "sphericity": ({"row_factor": spher, "interaction": spher}
+                       if spher is not None else None),
         "sources": {
             "interaction": inter_src,
             "row_factor": row_src,
-            "column_factor": source(ss_group, df_group, ms["group"],
-                                    ms["subj"], df_subj),
+            "column_factor": col_src,
             "subjects": {"ss": float(ss_subj_within), "df": int(df_subj),
                          "ms": float(ms["subj"]), "F": None, "p": None,
                          "percent_of_total": float(
@@ -427,33 +577,65 @@ def rm_two_way_both(cells, *, row_names=None, col_names=None) -> dict:
     df_ab = df_a * df_b
     df_as, df_bs, df_abs = df_a * df_s, df_b * df_s, df_a * df_b * df_s
 
-    def test(ss, df, ss_err, df_err):
+    # the three-way residual summed directly (ss_abs is a difference)
+    resid = (Y - m_ij[:, :, None] - m_is[:, None, :] - m_js[None, :, :]
+             + m_i[:, None, None] + m_j[None, :, None] + m_s[None, None, :]
+             - gm)
+    ss_abs_direct = float((resid * resid).sum())
+
+    def test(ss, df, ss_err, df_err, check=None):
         msq, mse = ss / df, ss_err / df_err
-        f = msq / mse if mse > 0 else math.inf
-        return {"ss": float(ss), "df": int(df), "ms": float(msq),
-                "error_ss": float(ss_err), "error_df": int(df_err),
-                "F": float(f),
-                "p": float(stats.f.sf(f, df, df_err)) if mse > 0 else 0.0,
-                "percent_of_total": float(100 * ss / ss_total)
-                if ss_total else None}
+        out = {"ss": float(ss), "df": int(df), "ms": float(msq),
+               "error_ss": float(ss_err), "error_df": int(df_err),
+               "percent_of_total": float(100 * ss / ss_total)
+               if ss_total else None}
+        if no_residual(ss_err if check is None else check, Y):
+            # F = MS / 0 is undefined (not infinite): say so per term
+            return {**out, "F": None, "p": None,
+                    "note": "undefined: its error term has no scatter"}
+        f = msq / mse
+        return {**out, "F": float(f), "p": float(stats.f.sf(f, df, df_err))}
 
     resall = [ss_subj, ss_as, ss_bs, ss_abs]
+    subj = {"ss_subjects": ss_subj, "df_subjects": df_s}
     effect_size = {
         "interaction": effectsize.safe(effectsize.repeated_term, ss_ab,
-                                       df_ab, ss_abs, df_abs, resall),
+                                       df_ab, ss_abs, df_abs, resall, **subj),
         "row_factor": effectsize.safe(effectsize.repeated_term, ss_a, df_a,
-                                      ss_as, df_as, resall),
+                                      ss_as, df_as, resall, **subj),
         "column_factor": effectsize.safe(effectsize.repeated_term, ss_b,
-                                         df_b, ss_bs, df_bs, resall),
+                                         df_b, ss_bs, df_bs, resall, **subj),
     }
+    # sphericity of each term from the covariance of the subjects' a x b
+    # measurements (column i * b + j), with the term's contrasts
+    S = np.cov(Y.reshape(a * b, n), ddof=1)
+    Ca, Cb = _contrasts(a), _contrasts(b)
+    ua, ub = np.ones((a, 1)) / math.sqrt(a), np.ones((b, 1)) / math.sqrt(b)
+    spher = {"row_factor": sphericity(S, np.kron(Ca, ub), n),
+             "column_factor": sphericity(S, np.kron(ua, Cb), n),
+             "interaction": sphericity(S, np.kron(Ca, Cb), n)}
+    sources = {"interaction": test(ss_ab, df_ab, ss_abs, df_abs,
+                                   ss_abs_direct),
+               "row_factor": test(ss_a, df_a, ss_as, df_as),
+               "column_factor": test(ss_b, df_b, ss_bs, df_bs)}
+    if all(s["F"] is None for s in sources.values()):
+        raise ValueError(no_rm_scatter_message(
+            "Two-way repeated-measures ANOVA", "subject x factor"))
+    for key, src in sources.items():
+        if src["F"] is not None:
+            src["p_geisser_greenhouse"] = _corrected_p(
+                src["F"], src["df"], src["error_df"],
+                spher[key]["gg_epsilon"])
+            src["p_huynh_feldt"] = _corrected_p(
+                src["F"], src["df"], src["error_df"],
+                spher[key]["hf_epsilon"])
     return {
         "analysis": "rm_two_way_both",
         "design": "both factors repeated (every subject in every cell)",
         "n_subjects": int(n), "rows": a, "cols": b,
+        "sphericity": spher,
         "sources": {
-            "interaction": test(ss_ab, df_ab, ss_abs, df_abs),
-            "row_factor": test(ss_a, df_a, ss_as, df_as),
-            "column_factor": test(ss_b, df_b, ss_bs, df_bs),
+            **sources,
             "subjects": {"ss": float(ss_subj), "df": int(df_s),
                          "ms": float(ss_subj / df_s), "F": None, "p": None,
                          "percent_of_total": float(100 * ss_subj / ss_total)
@@ -463,6 +645,64 @@ def rm_two_way_both(cells, *, row_names=None, col_names=None) -> dict:
         "row_names": row_names or [f"Row {i + 1}" for i in range(a)],
         "col_names": col_names or [f"Column {j + 1}" for j in range(b)],
         "effect_size": effect_size,
+    }
+
+
+def page_trend(datasets, names=None) -> dict:
+    """Page's test for a monotone trend across matched treatments in the
+    order entered (Page 1963, JASA 58:216): values ranked within each
+    subject (midranks for ties), L = sum_j j R_j with R_j the rank sum of
+    column j. Large L: values increase from the first column to the last.
+
+    P: exact when Page's tables cover the design (exactdist.
+    page_exact_feasible: k <= 8 and n <= 12, or n <= 20 with k = 3),
+    from the permutation distribution of the ranks within each row
+    (exactdist.page_null; conditional on ties, like the Friedman test's
+    exact P); otherwise normal with E(L) = n k (k + 1)^2 / 4 and the
+    permutation variance sum_rows k (k^2 - 1) / 12 * sum_j (r_ij -
+    rbar)^2 / (k - 1), which is n k^2 (k + 1) (k^2 - 1) / 144 without
+    ties (Neuhauser 2012, Nonparametric Statistical Tests, p. 151). Both
+    one-sided P values and the two-sided P (twice the smaller, capped at
+    1) are reported. Only complete subjects are used, as in friedman."""
+    M = _complete_matrix(datasets)
+    n, k = M.shape
+    if k < 3:
+        raise ValueError("Page's test for trend needs at least 3 treatments")
+    ranks = np.apply_along_axis(stats.rankdata, 1, M)
+    w = np.arange(1, k + 1, dtype=float)
+    L = float((ranks.sum(axis=0) * w).sum())
+    mean = n * k * (k + 1) ** 2 / 4.0
+    row_ss = ((ranks - (k + 1) / 2.0) ** 2).sum(axis=1)
+    var = float((k * (k * k - 1) / 12.0 * row_ss / (k - 1)).sum())
+    if not var > 0:
+        raise ValueError("Page's test is undefined: every subject has the "
+                         "same value at every treatment")
+    sd = math.sqrt(var)
+    z = (L - mean) / sd
+    from . import exactdist
+    if exactdist.page_exact_feasible(n, k):
+        dist, offset = exactdist.page_null(np.rint(2 * ranks).astype(int))
+        idx = int(round(2 * L)) - offset
+        p_inc = float(min(dist[idx:].sum(), 1.0))
+        p_dec = float(min(dist[:idx + 1].sum(), 1.0))
+        p_method = "exact"
+    else:
+        p_inc, p_dec = float(stats.norm.sf(z)), float(stats.norm.cdf(z))
+        p_method = "normal approximation"
+    ties = bool(np.any(ranks != np.round(ranks)) or any(
+        len(np.unique(r)) < k for r in M))
+    return {
+        "test": "page", "L": L, "mean": mean, "sd": sd, "z": float(z),
+        "p": float(min(1.0, 2 * min(p_inc, p_dec))),
+        "p_increasing": p_inc, "p_decreasing": p_dec, "p_method": p_method,
+        "ties": ties, "n_subjects": int(n), "k": int(k),
+        "rank_sums": [float(v) for v in ranks.sum(axis=0)],
+        "direction": ("increasing" if L > mean else
+                      "decreasing" if L < mean else "none"),
+        "order": list(names) if names else [f"Treatment {i}"
+                                            for i in range(k)],
+        "note": ("The treatments are tested in the order of the columns, "
+                 "first to last; that order is the hypothesis."),
     }
 
 

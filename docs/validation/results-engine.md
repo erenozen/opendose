@@ -1575,3 +1575,189 @@ Y title, then makes a new Normalize (0% = the smallest mean, 100% = the
 vehicle row's mean) and checks "% of vehicle (mean)" on the graph and in
 the legend. A graph title the user typed lives in the graph's own
 settings and is never rewritten.
+
+## Feature validation: repeated measures and matched tests (2026-11-24)
+
+### P-40 RM ANOVA reporting: Mauchly, Huynh-Feldt, partial omega squared
+
+`repeated.sphericity` reports, for each repeated term, the
+Geisser-Greenhouse epsilon (unchanged: the value and P computed before),
+the Huynh-Feldt epsilon, the lower bound and Mauchly's test. RM one-way
+ANOVA (`table.hf_epsilon`, `table.p_huynh_feldt`, `sphericity`), the
+mixed design (row factor and interaction share one block; the
+between-subjects column factor has none) and the fully repeated design
+(one block per term, which now also carries the GG and HF corrected P)
+all get it; the mixed model reports it only when no value is missing.
+Mauchly's test is reported, never used to choose the correction: P stays
+Geisser-Greenhouse corrected (the chip and the tables say so).
+
+- Mauchly (1940): W = det(T) / (tr(T)/d)^d for T = C'SC (orthonormal
+  contrasts), chi-square with R's mauchly.test second-order P.
+- Huynh-Feldt epsilon: Lecoutre's (1991) correction,
+  ((N - g + 1) d GG - 2) / (d (N - g - d GG)), capped at 1, as R car and
+  afex; with one group it equals the 1976 formula and pingouin.epsilon.
+  Undefined (and said so) when N - g < d.
+- Partial omega squared for designs with subjects:
+  (SS_eff - df_eff MS_err) / (SS_eff + [within] SS_err + SS_subj +
+  MS_subj), floored at 0, the formula of R effectsize's
+  omega_squared(partial = TRUE) for Error() designs (Olejnik & Algina
+  2003). It has no CI: partial eta squared's noncentral-F interval does
+  not cover it.
+
+Reference: `engine/tests/reference/rm_sphericity.py` (pingouin 0.7
+`sphericity`, `epsilon`, `rm_anova`, `mixed_anova`; statsmodels anova_lm
+for the one-way sums of squares; R is not installed).
+`engine/tests/test_rm_sphericity.py`:
+
+| Input | Reference | Engine tolerance |
+|---|---|---|
+| 10 subjects x 4 conditions (the plan's test) | GG 0.389690, HF 0.412497, Mauchly W 0.0125317, chi2 33.8194 on 5 df, P 3.3243e-6; F 28.0859, GG P 2.0564e-4, HF P 1.4442e-4; partial omega2 0.525730 | 1e-9 (W, P 1e-7) |
+| pingouin rm_anova2 (Metric 3 x Time 2, both repeated) | Metric GG 0.969103, W 0.968118, P 0.878442; Time 2 levels (no W); interaction GG 0.727166, HF 0.831161, W 0.624799, P 0.152392; partial omega2 0.365505 / 0.284738 / 0.095680 | 1e-9 (W, P 1e-7) |
+| pingouin mixed_anova (2 groups, 60 subjects, 3 times) | GG 0.998120, HF 1, W 0.998117, P 0.947694; partial omega2 Time 0.031636, Group 0.063257, interaction 0.018306 | 1e-9 |
+| the 10 x 4 table as 2 groups of 5 | GG 0.387834, HF (Lecoutre) 0.413053 (1976 formula: 0.469783), W 0.0112768, P 1.7950e-5; partial omega2 interaction 0 (floored) | 1e-9 |
+
+Also tested: two levels (epsilon 1, no W, "always holds"), 3 subjects
+for 5 conditions (no W, HF undefined, GG P still given), the mixed model
+with complete data (same values) and with a missing value (no
+Mauchly), invariance of the epsilons, W and partial omega2 to units and
+to the order of the conditions, and the GG epsilon unchanged.
+
+### P-41 Trend across ordered groups: Jonckheere-Terpstra and Page
+
+Kruskal-Wallis and Friedman take `options.trend` (the app's "test for
+trend across ordered columns / treatments" option) and add
+`jonckheere` (`moretests.jonckheere_terpstra`) or `page`
+(`repeated.page_trend`): the statistic, its null mean and SD, z, the
+two-sided P (twice the smaller one-sided P, capped at 1), both one-sided
+P values, the direction and the order tested (the columns as entered:
+the hypothesis, named in the controls and the results).
+
+- Jonckheere-Terpstra (Jonckheere 1954; Terpstra 1952): J counts the
+  pairs from an earlier and a later group in increasing order (ties
+  1/2). Exact P without ties and with at most 100 values (R clinfun's
+  rule): `exactdist.jt_null`, the convolution of the Mann-Whitney
+  distributions of each group against the groups before it. Otherwise
+  the normal approximation with Hollander & Wolfe's (1999, eq. 6.19)
+  tie-corrected variance, no continuity correction.
+- Page (1963): L = sum of j times the rank sum of column j, ranks within
+  each subject. Exact P when Page's tables cover the design (k <= 8 and
+  n <= 12, or n <= 20 with k = 3; scipy's rule), from the permutations of
+  each subject's ranks (with ties: conditional on them, as the Friedman
+  test's exact P); otherwise normal with the permutation variance, which
+  is n k^2 (k + 1)(k^2 - 1) / 144 without ties.
+
+Reference: `engine/tests/reference/ordered_trend.py` (R is not
+installed): exact JT P from arrangement counts in Python integers (a
+dynamic programme independent of the engine's convolution, checked
+against full enumeration of 4,200 arrangements); the permutation mean
+and variance of a tied 3 x 3 design by enumeration (1,680 assignments);
+scipy.stats.page_trend_test; the Hicks (2009) example's published
+L = 133.5 (as quoted by scipy and Statext); Page's (1963) table value for
+k = 3, n = 10 (critical L = 128 at 0.05, as quoted by Wikipedia). Page's
+own 1963 example could not be obtained and is not pinned.
+`engine/tests/test_ordered_trend.py`:
+
+| Input | Reference | Engine tolerance |
+|---|---|---|
+| 4 doses x 5, no ties (the plan's test) | J = 140 (E 75), exact P increasing 4.4465e-7, two-sided 8.8931e-7 (of 11,732,745,024 arrangements) | 1e-9 |
+| 3, 3, 4 values | J = 29, P increasing 0.0085714, two-sided 0.017143 (enumerated) | 1e-12 |
+| tied 3 x 3 x 3 | permutation mean 13.5, variance 18.803571 = Hollander & Wolfe's | 1e-12 |
+| the 4 doses rounded (ties) | J = 140, SD 14.8139, z 4.38777, two-sided P 1.1452e-5 | 1e-9 |
+| Hicks (2009) teaching methods, 10 x 3 with ties | L = 133.5 (published); exact P given the ties: increasing 3.8421e-4, decreasing 0.99978 (equal to full enumeration of 1.9 million tables; scipy's untied-null exact P is 0.001819) | 1e-9 |
+| 8 x 4 untied | L = 234, exact P 1.1204e-6 (scipy exact), reversed columns 0.99999965 | 1e-9 |
+| the 8 x 4 rows to 21 subjects | normal P equal to scipy's asymptotic | 1e-9 |
+| Page's table, k = 3, n = 10 | P(L >= 128) = 0.046639 <= 0.05 < P(L >= 127) = 0.073805 | 1e-9 |
+
+Also tested: J and P unchanged by units and shifts (1e-9, 1e9),
+reversing the groups mirrors the one-sided P values, the exact and
+normal P agree for 4 x 30 values, Kruskal-Wallis itself unchanged by
+the option; two groups, an empty group, all values equal and two
+treatments each give a sentence instead of a result.
+
+### P-45 Cochran's Q for matched yes/no outcomes
+
+`trend.cochrans_q` (API `cochrans_q`; the column analysis "Cochran's Q"):
+rows are subjects, columns three or more conditions, cells 0 or 1.
+Q = (k - 1)(k sum C_j^2 - N^2) / (k N - sum R_i^2) on k - 1 df (Cochran
+1950). A cell other than 0 or 1 stops the analysis with a sentence that
+names its row and column and the layout to use; subjects missing a
+condition are left out and listed; a table where every subject gives the
+same answer under every condition says Q is undefined. Every pair of
+conditions is then compared with McNemar's test, always with the exact
+binomial P of its discordant subjects (the guide's recommendation for
+McNemar's test, valid at any count), adjusted by Holm's step-down method
+over the k(k - 1)/2 pairs; the results name the family (FamilyLine).
+
+Reference: `engine/tests/reference/cochran_q.py` (statsmodels 0.15
+`cochrans_q` and `mcnemar(exact=True)`, pingouin 0.7 `cochran`,
+statsmodels `multipletests(method="holm")`; R is not installed).
+`engine/tests/test_cochran_q.py`:
+
+| Input | Reference | Engine tolerance |
+|---|---|---|
+| 12 subjects x 3 stains (the plan's test) | Q = 11.5556, df = 2, P = 0.0030956; McNemar A vs B 3/1 discordant, P 0.625 (Holm 0.625); A vs C 8/0, P 0.0078125 (Holm 0.0234375); B vs C 6/0, P 0.03125 (Holm 0.0625) | 1e-10 (P), 1e-12 |
+| pingouin "cochran" (20 subjects, 3 days) | Q = 6.70588, P = 0.034981; Holm P 0.18457, 0.11572, 1 | 1e-10 |
+
+Also tested: the order of the conditions and subjects with the same
+answer everywhere do not change Q; a missing value drops its subject with
+a warning; a 2, a 0.5, all-equal answers, one subject and two conditions
+each give a specific sentence; a pair with no discordant subjects has
+P = 1; Q for 500 subjects x 4 equals the closed form.
+
+### P-27 Repeated-measures correlation
+
+`correlation.rm_corr`, reached through the `correlation` handler with
+`options.subject_labels` (one subject per row: the row titles or a column
+of IDs, set as the Subject role in the app): x and y centred on each
+subject's own means, r_rm = sum(x_w y_w) / sqrt(sum x_w^2 sum y_w^2),
+which is the common within-subject slope of the ANCOVA y ~ subject + x
+expressed as a correlation (Bakdash & Marusich 2017), on df = N - k - 1;
+P from t on those df; 95% CI by Fisher's z with SE 1 / sqrt(df - 1) (as
+pingouin and R rmcorr). It measures the association within subjects
+only, and the results say so. Pairs missing a value or a subject are
+left out and counted; subjects with a single pair carry no within-subject
+information and are left out by name. When the table names subjects (row
+titles that repeat, or a column whose name says it holds IDs) and a plain
+correlation ignores them, the Checks row says so.
+
+Reference: `engine/tests/reference/rm_corr.py` (pingouin 0.7 `rm_corr`;
+statsmodels OLS PaCO2 ~ C(Subject) + pH with type II anova_lm; R is not
+installed) on Bland & Altman's (1995) pH / PaCO2 data (47 observations,
+8 subjects; pingouin's "rm_corr" dataset). `engine/tests/test_rm_corr.py`:
+
+| Input | Reference | Engine tolerance |
+|---|---|---|
+| Bland & Altman 1995 (the plan's test) | r_rm = -0.506770 (ANCOVA: the same), df = 38, P = 8.4711e-4, slope -2.37083; 95% CI -0.71 to -0.23 (pingouin and the published values, 2 decimals; engine -0.70671 to -0.23186) | 1e-9 (P 1e-8; CI 0.005) |
+
+Also tested: text subject IDs and shuffled rows give the same r; r is
+unchanged by units and symmetric in X and Y; ignoring the subjects gives
+df = 45 and another r; missing values, blank subjects and single-pair
+subjects are left out with a warning; one subject, and X constant within
+every subject, each give a sentence; a perfect within-subject line gives
+r = 1, P = 0 and no CI.
+
+### Fixes: matched designs without scatter, one Schild antagonist, qPCR
+
+- Paired and ratio paired t tests, RM one-way ANOVA and RM two-way
+  ANOVA with no scatter (every subject shifted by the same amounts) used
+  to report a limit (t or F infinite, P = 0), and identical decimals left
+  rounding noise that gave F near 1e15. A residual at rounding level, sum
+  of squares <= (64 eps)^2 sum(values^2) and summed directly (not as a
+  difference of sums), is now no scatter, as for the unpaired and
+  two-way cases (`ttests.no_residual`). The paired tests and RM one-way
+  ANOVA then say the statistic is undefined and what to check; in a
+  two-way RM design each term whose error has no scatter shows F and P
+  as undefined ("undefined: its error term has no scatter"), and the
+  analysis stops with a sentence only when no term can be tested.
+  `engine/tests/test_zero_scatter_matched.py`, with data that do scatter
+  still equal to scipy `ttest_rel` and pingouin `rm_anova` (1e-10).
+- qPCR statistics on identical dCq values (paired experiments): the
+  paired t test or RM ANOVA above now gives the statistics note instead
+  of t or F infinite; the fold changes and zero SDs are still reported
+  (a zero SD is a valid summary).
+- An EC50-shift (Gaddum/Schild) fit with one antagonist concentration
+  and the Schild slope free stopped with the raw "(34, 'Numerical result
+  out of range')": one dose ratio fits any slope with a matching pA2. It
+  now says so and to fix the slope at 1 or add concentrations; with the
+  slope fixed the same data fit (pA2 7.45 for a simulated 7.5).
+  `engine/tests/test_schild_single_antagonist.py`.

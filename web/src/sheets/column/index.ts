@@ -51,6 +51,7 @@ export function columnTestLabel(raw: unknown): string {
     case "outliers": return "Outliers";
     case "p_stack": return "P value stack";
     case "frequency": return "Frequency distribution";
+    case "cochran_q": return "Cochran's Q";
     default: return "Column stats";
   }
 }

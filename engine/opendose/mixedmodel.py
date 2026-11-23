@@ -810,6 +810,11 @@ def mixed_rm_one_way(datasets, names=None, *, comparisons=None,
 
     S = pairwise_cov(M)
     eps = gg_epsilon(S, orthonormal_contrasts(k))
+    spher = None
+    if n_missing == 0:  # Mauchly and Huynh-Feldt need complete subjects
+        from .repeated import sphericity
+        spher = sphericity(S, orthonormal_contrasts(k), n_subjects,
+                           gg=eps if math.isfinite(eps) else None)
     L = np.array([np.concatenate([[1.0], effect_row(t, k)])
                   for t in range(k)])
     names = names or [f"Treatment {i}" for i in range(k)]
@@ -846,6 +851,7 @@ def mixed_rm_one_way(datasets, names=None, *, comparisons=None,
         "matching": likelihood_ratio_random(fit) if used else None,
         "goodness_of_fit": _goodness(fit),
         "gg_epsilon": eps if math.isfinite(eps) else None,
+        "sphericity": spher,
         "sphericity_note": (
             "The mixed model assumes compound symmetry. The Geisser-"
             "Greenhouse correction multiplies both df by epsilon (computed "
@@ -1008,6 +1014,23 @@ def mixed_rm_two_way(cells, *, design: str = "mixed", row_names=None,
                "interaction": gg_epsilon(S, np.kron(Ca, Cb))}
     eps = {key: (val if val is not None and math.isfinite(val) else None)
            for key, val in eps.items()}
+    # Huynh-Feldt epsilon and Mauchly's test (repeated.sphericity) need
+    # every subject complete; reported, never used to pick the correction
+    spher = None
+    if not np.isnan(M).any():
+        from .repeated import sphericity
+        if design == "mixed":
+            s_row = sphericity(S, orthonormal_contrasts(a), n_subj,
+                               n_groups=len(np.unique(subj_group)),
+                               gg=eps["row_factor"])
+            spher = {"row_factor": s_row, "interaction": s_row}
+        else:
+            spher = {"row_factor": sphericity(S, np.kron(Ca, ub), n_subj,
+                                              gg=eps["row_factor"]),
+                     "column_factor": sphericity(S, np.kron(ua, Cb), n_subj,
+                                                 gg=eps["column_factor"]),
+                     "interaction": sphericity(S, np.kron(Ca, Cb), n_subj,
+                                               gg=eps["interaction"])}
 
     D = ddfm.Ddf(fit) if ddf != "containment" else None
 
@@ -1043,6 +1066,7 @@ def mixed_rm_two_way(cells, *, design: str = "mixed", row_names=None,
         "matching": likelihood_ratio_random(fit) if used else None,
         "goodness_of_fit": _goodness(fit),
         "gg_epsilon": eps,
+        "sphericity": spher,
         "sphericity_note": (
             "The mixed model assumes compound symmetry. Geisser-Greenhouse "
             "epsilon (pairwise-complete covariance of the repeated "

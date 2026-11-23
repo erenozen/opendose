@@ -1073,6 +1073,59 @@ const scenes = [
     await card.evaluate((el) => el.scrollIntoView({ block: "start" }));
     await settle(s, 600);
   } },
+  { name: "results-rm-sphericity", setup: async (s) => {
+    // P-40: Huynh-Feldt epsilon and Mauchly's test in the table and the chip
+    await fixture(s, "rm-reporting.json", { live: true });
+    const checks = s.page.locator(".pane-answer details.checks").first();
+    await click(s, checks.locator("summary"));
+    await click(s, s.page.getByRole("button", { name: /Sphericity: ε =/ }));
+    await s.page.getByRole("region", { name: /Sphericity: ε =/ }).waitFor();
+    await into(s, ".pane-answer details.checks", "center");
+    await settle(s, 800);
+  } },
+  { name: "results-rm-two-way-sphericity", setup: async (s) => {
+    await fixture(s, "rm-reporting.json", { live: true });
+    await selectSheet(s, "Two-way RM ANOVA of Metric by time");
+    await s.page.locator(".pane-results h4", { hasText: "Sphericity" }).waitFor({ timeout: 240000 });
+    await s.page.locator(".pane-results h4", { hasText: "Sphericity" }).first()
+      .evaluate((el) => el.scrollIntoView({ block: "start" }));
+    await settle(s, 800);
+  } },
+  { name: "results-ordered-trend", setup: async (s) => {
+    // P-41: Jonckheere-Terpstra after Kruskal-Wallis, its order in the controls
+    await fixture(s, "rm-reporting.json", { live: true });
+    await selectSheet(s, "Kruskal-Wallis of Four doses");
+    const h = s.page.locator(".pane-results h4", { hasText: "Trend across ordered columns" });
+    await h.waitFor({ timeout: 240000 });
+    await h.first().evaluate((el) => el.scrollIntoView({ block: "start" }));
+    await settle(s, 800);
+  } },
+  { name: "results-page-trend", setup: async (s) => {
+    await fixture(s, "rm-reporting.json", { live: true });
+    await selectSheet(s, "Friedman of Teaching methods");
+    const h = s.page.locator(".pane-results h4", { hasText: "Page's test" });
+    await h.waitFor({ timeout: 240000 });
+    await h.first().evaluate((el) => el.scrollIntoView({ block: "start" }));
+    await settle(s, 800);
+  } },
+  { name: "results-cochran-q", setup: async (s) => {
+    // P-45: Cochran's Q and the Holm-adjusted McNemar tests
+    await fixture(s, "rm-reporting.json", { live: true });
+    await selectSheet(s, "Cochran's Q of Three stains");
+    const h = s.page.locator(".pane-results h3", { hasText: "Cochran's Q test" });
+    await h.waitFor({ timeout: 240000 });
+    await h.first().evaluate((el) => el.scrollIntoView({ block: "start" }));
+    await settle(s, 800);
+  } },
+  { name: "results-rm-corr", setup: async (s) => {
+    // P-27: repeated-measures correlation with its Subject role
+    await fixture(s, "rm-reporting.json", { live: true });
+    await selectSheet(s, "Correlation of pH and PaCO2");
+    const h = s.page.locator(".pane-results h3", { hasText: "Repeated-measures correlation" });
+    await h.waitFor({ timeout: 240000 });
+    await h.first().evaluate((el) => el.scrollIntoView({ block: "start" }));
+    await settle(s, 800);
+  } },
   { name: "graphs-schild", setup: async (s) => {
     await fixture(s, "schild.json", { live: true });
     await selectSheet(s, /^Schild plot of EC50 shift/);

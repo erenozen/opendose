@@ -437,9 +437,10 @@ class TestExistingAnalyses:
             a, b, equal_var=False).statistic))
 
     def test_degenerate_effect_is_none(self):
-        r = ttests.paired_t([1, 2, 3], [0, 1, 2])
-        assert r["effect_size"] is None or not math.isfinite(
-            r["effect_size"]["d_z"]) or r["effect_size"]["ci_d_z"] is None
+        # every difference 1: the paired t test (and its d_z) is undefined
+        # and says so (test_zero_scatter_matched.py), no infinite effect
+        with pytest.raises(ValueError, match="paired t test is undefined"):
+            ttests.paired_t([1, 2, 3], [0, 1, 2])
 
     def test_one_sample(self):
         x = [4.1, 5.3, 6.0, 5.5, 4.8, 6.4]

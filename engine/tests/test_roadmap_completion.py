@@ -370,7 +370,9 @@ class TestNewAPIsEndToEnd:
         data = {"x": [], "datasets": [
             {"name": "A", "ys": [[10.0], [11], [9], [12]]},
             {"name": "B", "ys": [[13.0], [14], [12], [15]]},
-            {"name": "C", "ys": [[16.0], [17], [15], [18]]},
+            # (not exactly A + 6: perfectly additive data have no
+            # residual, and RM ANOVA is then undefined)
+            {"name": "C", "ys": [[16.0], [17.5], [15], [18.2]]},
         ]}
         rm = analyze({"analysis": "rm_anova", "data": data, "options": {}})
         assert rm["table"]["p_geisser_greenhouse"] < 0.01

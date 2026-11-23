@@ -14,6 +14,7 @@ import { separateTestsChip, type SeparateTests } from "./interaction.ts";
 import { sensitivityChip, type NeededN, type Sensitivity } from "./smallN.ts";
 import { SRC, type Source } from "./sources.ts";
 import { replicateInfo } from "../sheets/common/superplot.ts";
+import { ignoredSubjects, subjectLabels } from "../sheets/column/rmCorr.ts";
 
 export type ChipState = "ok" | "warn" | "bad" | "info";
 
@@ -80,7 +81,7 @@ export function analysisKind(ctx: ResultContext): string {
 const RANK = new Set(["ttest:mann_whitney", "ttest:wilcoxon", "ttest:kolmogorov_smirnov",
   "kruskal", "friedman", "median_test"]);
 const PAIRED = new Set(["ttest:paired", "ttest:ratio_paired", "ttest:wilcoxon", "rm_anova",
-  "friedman", "rm_two_way"]);
+  "friedman", "rm_two_way", "cochran_q"]);
 const GROUP_TESTS = new Set(["ttest:unpaired", "ttest:welch", "ttest:paired", "ttest:ratio_paired",
   "ttest:mann_whitney", "ttest:wilcoxon", "ttest:kolmogorov_smirnov", "anova", "welch_anova",
   "kruskal", "rm_anova", "friedman", "median_test", "column_statistics", "outliers",
@@ -227,21 +228,94 @@ function equalSdChip(ctx: ResultContext, groups: GroupCheck[], kind: string): Ch
   return null;
 }
 
+const TERM_NAMES: Record<string, string> = {
+  row_factor: "Row factor", column_factor: "Column factor", interaction: "Interaction",
+};
+
+/** "GG ε = 0.39, HF ε = 0.41, Mauchly's W = 0.013, P < 0.0001" for one
+ *  term's engine sphericity block (repeated.sphericity); null without it. */
+export function sphericityLine(s: R | null | undefined): string | null {
+  if (!s || typeof s.gg_epsilon !== "number") return null;
+  const parts = [`GG ε = ${fmt(s.gg_epsilon)}`,
+    typeof s.hf_epsilon === "number" ? `HF ε = ${fmt(s.hf_epsilon)}` : "HF ε undefined"];
+  if (s.mauchly && typeof s.mauchly.W === "number") {
+    parts.push(`Mauchly's W = ${fmt(s.mauchly.W)}, ${pText(s.mauchly.p)}`);
+  } else if ((s.contrasts ?? 2) <= 1) {
+    parts.push("2 levels, so sphericity holds");
+  } else {
+    parts.push("Mauchly's test needs more subjects");
+  }
+  return parts.join(", ");
+}
+
+/** The sphericity block of each repeated term: one-way results carry one
+ *  block, two-way results one per repeated term. In a mixed design the
+ *  interaction shares the row factor's block, so they get one line. */
+export function sphericityTerms(r: R): { name: string | null; s: R }[] {
+  const sp = r.sphericity;
+  if (!sp || typeof sp !== "object") return [];
+  if (typeof sp.gg_epsilon === "number") return [{ name: null, s: sp }];
+  const out: { name: string; s: R; key: string }[] = [];
+  for (const k of ["row_factor", "column_factor", "interaction"]) {
+    const s = sp[k];
+    if (!s || typeof s.gg_epsilon !== "number") continue;
+    const key = JSON.stringify(s);
+    const same = out.find((t) => t.key === key);
+    if (same) same.name = `${same.name} and ${TERM_NAMES[k].toLowerCase()}`;
+    else out.push({ name: TERM_NAMES[k], s, key });
+  }
+  return out.map(({ name, s }) => ({ name, s }));
+}
+
 function sphericityChip(r: R | null): Chip | null {
   if (!r) return null;
   const eps = typeof r.table?.gg_epsilon === "number" ? r.table.gg_epsilon
     : typeof r.gg_epsilon === "number" ? r.gg_epsilon
       : Object.values(r.fixed_effects ?? {}).map((f: any) => f?.epsilon)
-        .find((e) => typeof e === "number");
+        .find((e) => typeof e === "number")
+        // both factors repeated: the smallest epsilon of the terms
+        ?? (sphericityTerms(r).length
+          ? Math.min(...sphericityTerms(r).map(({ s }) => s.gg_epsilon as number)) : undefined);
   if (typeof eps !== "number") return null;
+  const terms = sphericityTerms(r);
+  const lines = terms.map(({ name, s }) => {
+    const line = sphericityLine(s);
+    return line && (name ? `${name}: ${line}` : line);
+  }).filter((l): l is string => !!l);
+  // Mauchly's test is reported, never used to pick the correction
+  // (engine repeated.SPHERICITY_NOTE).
+  const tests = lines.length
+    ? ` ${lines.join("; ")}. Mauchly's test is reported, not used to choose the `
+      + "correction: P is Geisser-Greenhouse corrected either way. Huynh-Feldt ε with "
+      + "Lecoutre's correction, as R car and afex."
+    : "";
+  const sources = lines.length ? [SRC.gpSphericity, SRC.mauchly1940, SRC.lecoutre1991] : undefined;
   return eps < 0.75
     ? { id: "sphericity", label: `Sphericity: ε = ${fmt(eps)}`, state: "warn",
       detail: `Geisser-Greenhouse ε = ${fmt(eps)} (1.0 = sphericity holds): the data depart `
-        + "from sphericity, so read the Geisser-Greenhouse corrected P, which accounts for it.",
-      explainer: "sphericity" }
+        + "from sphericity, so read the Geisser-Greenhouse corrected P, which accounts for it."
+        + tests,
+      explainer: "sphericity", ...(sources ? { sources } : {}) }
     : { id: "sphericity", label: `Sphericity: ε = ${fmt(eps)}`, state: "ok",
       detail: `Geisser-Greenhouse ε = ${fmt(eps)}: close to sphericity. The corrected P is `
-        + "reported either way.", explainer: "sphericity" };
+        + "reported either way." + tests, explainer: "sphericity", ...(sources ? { sources } : {}) };
+}
+
+/** A correlation that ignores subjects the table names (repeated row
+ *  titles or an ID column): rows of one subject are not independent. */
+function subjectsChip(ctx: ResultContext): Chip | null {
+  const o = ctx.options;
+  const a = Number(o.datasetA ?? 0), b = Number(o.datasetB ?? 1);
+  // a Subject role that still names usable labels: rm-corr ran
+  if (o.corrWithX || subjectLabels(ctx.table, String(o.corrSubject ?? ""), a, b)) return null;
+  const hit = ignoredSubjects(ctx.table, a, b);
+  if (!hit) return null;
+  return { id: "subjects", label: "Subjects ignored", state: "warn",
+    detail: `Several rows seem to share a subject (${hit.where}), but this correlation treats `
+      + "every row as an independent subject, which overstates n "
+      + "and mixes within- and between-subject association. Set Subject in the options for a "
+      + "repeated-measures correlation (within subjects only).",
+    sources: [SRC.bakdashMarusich2017, SRC.blandAltman1995] };
 }
 
 function zeroVarianceChip(groups: GroupCheck[]): Chip | null {
@@ -578,6 +652,8 @@ export function resultChips(ctx: ResultContext): Chip[] {
     ctx.sensitivity ? sensitivityChip(ctx.sensitivity) : null,
   ].filter((c): c is Chip => !!c);
   if (withheldInfo(r)) return lead;
+  // yes/no counts: no normality or SD checks, only the dropped subjects
+  if (kind === "cochran_q") return [...lead, missingChip(ctx, kind)].filter((c): c is Chip => !!c);
   if (!GROUP_TESTS.has(kind) && !(ctx.tableType === "column")) return lead;
   const groups = usedGroups(ctx, kind);
   return [
@@ -586,7 +662,8 @@ export function resultChips(ctx: ResultContext): Chip[] {
     kind === "outliers" || kind === "rout_column" ? null
       : normalityChip(groups, kind, !!r.residual_check && !(r.residual_check as R).unavailable),
     equalSdChip(ctx, groups, kind),
-    kind === "rm_anova" ? sphericityChip(r) : null,
+    kind === "rm_anova" || kind === "rm_two_way" ? sphericityChip(r) : null,
+    kind === "correlation" ? subjectsChip(ctx) : null,
     zeroVarianceChip(groups),
     missingChip(ctx, kind),
     outlierChip(ctx, kind),

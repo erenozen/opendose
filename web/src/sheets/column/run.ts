@@ -19,6 +19,7 @@ import { pStackPayload } from "./pStack.ts";
 import { frequencyPayload } from "./frequency.ts";
 import { correlationXRequests } from "./correlationX.ts";
 import { mixedOptions, rmComparisonsSpec, fitsMixedModel } from "./rmPosthoc.ts";
+import { subjectLabels } from "./rmCorr.ts";
 
 export function runColumn(engine: EngineBridge, table: DataTableModel,
   o: ColumnOptionsState): Record<string, unknown> {
@@ -201,15 +202,22 @@ export function columnPayload(table: DataTableModel, o: ColumnOptionsState):
         ...familyOptions(o, base.data.datasets.length),
         ...logScaleOptions(o),
         ...(o.anovaKind === "parametric" && o.anovaTrend ? { trend: true } : {}),
+        // Jonckheere-Terpstra after Kruskal-Wallis (orderedTrend.ts)
+        ...(o.anovaKind === "nonparametric" && o.rankTrend ? { trend: true } : {}),
       } };
   }
   if (o.analysis === "median_test") return { analysis: "median_test", ...base, options: {} };
+  // rows = subjects, data sets = conditions, cells 0 / 1 (engine trend.cochrans_q)
+  if (o.analysis === "cochran_q") return { analysis: "cochrans_q", ...base, options: {} };
   if (o.analysis === "correlation") {
     // One-sided P values come with every result; corrTails only picks
     // which one the results show.
+    // a Subject role: repeated-measures correlation (rmCorr.ts)
+    const labels = subjectLabels(table, o.corrSubject, o.datasetA, o.datasetB);
     return { analysis: "correlation", ...base,
       options: { method: o.corrMethod,
-                 dataset_a: o.datasetA, dataset_b: o.datasetB } };
+                 dataset_a: o.datasetA, dataset_b: o.datasetB,
+                 ...(labels ? { subject_labels: labels } : {}) } };
   }
   if (o.analysis === "two_way_anova") {
     // "All cell means" are compared by runColumn (one-way on the cells).
@@ -236,7 +244,9 @@ export function columnPayload(table: DataTableModel, o: ColumnOptionsState):
         ...(o.rmKind === "nonparametric" ? familyOptions(o, base.data.datasets.length) : {}),
         ...(rmCmp ? { comparisons: rmCmp } : {}),
         // test for linear trend (treatments in the order entered)
-        ...(o.rmKind === "parametric" && o.anovaTrend ? { trend: true } : {}) } };
+        ...(o.rmKind === "parametric" && o.anovaTrend ? { trend: true } : {}),
+        // Page's test after Friedman (orderedTrend.ts)
+        ...(o.rmKind === "nonparametric" && o.rankTrend ? { trend: true } : {}) } };
   }
   if (o.analysis === "roc") {
     return { analysis: "roc", ...base,

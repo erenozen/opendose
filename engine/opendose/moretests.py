@@ -403,3 +403,91 @@ def median_test(datasets, names=None) -> dict:
         out["fisher_exact"] = {
             "p": float(stats.fisher_exact(table.astype(int))[1])}
     return out
+
+
+def _tie_sizes(values) -> np.ndarray:
+    _, counts = np.unique(values, return_counts=True)
+    return counts[counts > 1].astype(float)
+
+
+def jonckheere_terpstra(datasets, names=None, *, method: str = "auto"
+                        ) -> dict:
+    """Jonckheere-Terpstra test for a monotone trend across groups in the
+    order given (Jonckheere 1954, Biometrika 41:133; Terpstra 1952, Indag
+    Math 14:327): J = sum over pairs of groups i < j of the number of
+    (x_i, x_j) pairs with x_i < x_j, ties counting 1/2. Large J: values
+    increase with the group order.
+
+    P: exact (jt_null, the permutation distribution) without ties and
+    with at most JT_EXACT_MAX_N values (R clinfun::jonckheere.test's
+    rule); otherwise the normal approximation with mean (N^2 - sum
+    n_i^2) / 4 and the tie-corrected variance of Hollander & Wolfe (1999,
+    Nonparametric Statistical Methods, eq. 6.19), without a continuity
+    correction. method "exact" or "normal" forces one (exact still needs
+    no ties). Two-sided P = 2 min(P increasing, P decreasing), capped at
+    1; both one-sided P values are reported. The order of the groups is
+    the hypothesis: it must be fixed before looking at the data."""
+    groups = [_clean(g) for g in datasets]
+    k = len(groups)
+    if k < 3:
+        raise ValueError("a test for trend across ordered groups needs at "
+                         "least 3 groups (with 2, use the Mann-Whitney test)")
+    if any(g.size == 0 for g in groups):
+        raise ValueError("every group needs at least one value")
+    names = list(names or [f"Group {i}" for i in range(k)])
+    ns = np.array([g.size for g in groups], dtype=float)
+    N = float(ns.sum())
+    J = 0.0
+    for i in range(k):
+        for j in range(i + 1, k):
+            d = groups[j][None, :] - groups[i][:, None]
+            J += float(np.sum(d > 0) + 0.5 * np.sum(d == 0))
+    pooled = np.concatenate(groups)
+    t = _tie_sizes(pooled)
+    mean = (N * N - float((ns * ns).sum())) / 4.0
+    var = ((N * (N - 1) * (2 * N + 5)
+            - float((ns * (ns - 1) * (2 * ns + 5)).sum())
+            - float((t * (t - 1) * (2 * t + 5)).sum())) / 72.0
+           + float((ns * (ns - 1) * (ns - 2)).sum())
+           * float((t * (t - 1) * (t - 2)).sum())
+           / (36.0 * N * (N - 1) * (N - 2))
+           + float((ns * (ns - 1)).sum()) * float((t * (t - 1)).sum())
+           / (8.0 * N * (N - 1)))
+    if not var > 0:
+        raise ValueError("the trend test is undefined: every value is the "
+                         "same, so the values have no order")
+    ties = bool(t.size)
+    exact = (method == "exact" or (method == "auto" and N <= exactdist
+                                   .JT_EXACT_MAX_N)) and not ties
+    if method not in ("auto", "exact", "normal"):
+        raise ValueError(f"unknown method {method!r} (use 'auto', 'exact' "
+                         "or 'normal')")
+    sd = math.sqrt(var)
+    z = (J - mean) / sd
+    if exact:
+        dist = exactdist.jt_null(ns.astype(int))
+        j_int = int(round(J))
+        p_inc = float(min(dist[j_int:].sum(), 1.0))
+        p_dec = float(min(dist[:j_int + 1].sum(), 1.0))
+        p_method = "exact"
+    else:
+        p_inc = float(stats.norm.sf(z))
+        p_dec = float(stats.norm.cdf(z))
+        p_method = "normal approximation" + (", ties corrected"
+                                             if ties else "")
+    return {
+        "test": "jonckheere_terpstra",
+        "statistic": J, "mean": mean, "sd": sd, "z": float(z),
+        "p": float(min(1.0, 2 * min(p_inc, p_dec))),
+        "p_increasing": p_inc, "p_decreasing": p_dec,
+        "p_method": p_method, "ties": ties,
+        "direction": ("increasing" if J > mean else
+                      "decreasing" if J < mean else "none"),
+        "order": names,
+        "group_summaries": [{"name": nm, "n": int(g.size),
+                             "median": float(np.median(g))}
+                            for nm, g in zip(names, groups)],
+        "n_total": int(N),
+        "note": ("The groups are tested in the order of the columns, "
+                 "first to last; that order is the hypothesis."),
+    }

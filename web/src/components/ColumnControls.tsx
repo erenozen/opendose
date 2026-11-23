@@ -15,6 +15,8 @@ import LogScaleOption from "../sheets/column/logScaleControls";
 import EquivalenceControls from "../sheets/common/EquivalenceControls";
 import { equivalenceApplies, equivalenceScale } from "../sheets/column/run";
 import RmPosthocControls from "../sheets/column/rmPosthocControls";
+import { OrderedTrendOption } from "../sheets/column/OrderedTrend";
+import { SubjectRoleSelect } from "../sheets/column/RmCorr";
 import { isFdrMethod, P_STACK_METHODS, type PStackMethod } from "../sheets/column/pStack";
 import "../sheets/column/logScale.css";
 
@@ -287,6 +289,10 @@ export default function ColumnControls({ options, datasetNames, onChange, summar
             <ComparisonsPicker options={options} datasetNames={datasetNames}
               onChange={onChange} summaryData={summaryData} />
           )}
+          {options.anovaKind === "nonparametric" && !summaryData && (
+            <OrderedTrendOption options={options} datasetNames={datasetNames}
+              onChange={onChange} repeated={false} />
+          )}
           {options.anovaKind === "parametric" && options.anovaSd !== "unequal" && (
             <>
               <label className="check-row">
@@ -428,6 +434,18 @@ export default function ColumnControls({ options, datasetNames, onChange, summar
         </section>
       )}
 
+      {options.analysis === "cochran_q" && (
+        <section>
+          <h3>Layout</h3>
+          <p className="hint-block">
+            One subject per row and one condition per column (three or more), each cell 1 for
+            yes and 0 for no. Rows missing a condition are left out. After Cochran&apos;s Q, every
+            pair of conditions is compared with McNemar&apos;s test (exact binomial P), adjusted
+            by Holm&apos;s method.
+          </p>
+        </section>
+      )}
+
       {options.analysis === "correlation" && (
         <section>
           <h3>Options</h3>
@@ -473,6 +491,9 @@ export default function ColumnControls({ options, datasetNames, onChange, summar
           )}
           {!(xyTable && options.corrWithX) && pickDataset("Dataset A", options.datasetA, "datasetA")}
           {!(xyTable && options.corrWithX) && pickDataset("Dataset B", options.datasetB, "datasetB")}
+          {!(xyTable && options.corrWithX) && (
+            <SubjectRoleSelect options={options} datasetNames={datasetNames} onChange={onChange} />
+          )}
         </section>
       )}
 
@@ -573,6 +594,10 @@ export default function ColumnControls({ options, datasetNames, onChange, summar
           {options.rmKind === "nonparametric" && (
             <ComparisonsPicker options={options} datasetNames={datasetNames}
               onChange={onChange} summaryData={summaryData} />
+          )}
+          {options.rmKind === "nonparametric" && !summaryData && (
+            <OrderedTrendOption options={options} datasetNames={datasetNames}
+              onChange={onChange} repeated />
           )}
           {options.rmKind === "parametric" && !summaryData && (
             <RmPosthocControls options={options} datasetNames={datasetNames}

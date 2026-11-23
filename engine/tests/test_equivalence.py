@@ -194,17 +194,17 @@ def test_edge_cases():
     # n = 2 per group works
     r = run([1.0, 1.2], [1.1, 1.3], {"lower": -1, "upper": 1})
     assert r["equivalence"]["df"] == 2
-    # every difference equal (paired): SE 0, a difference of 0 is inside
-    # the margin, one of 2 outside it (the unpaired t test itself stops
-    # on SD 0 in both groups, before any TOST)
+    # every difference equal (paired): SE 0, so the paired t test stops
+    # with its sentence before any TOST, as the unpaired t test does on
+    # SD 0 in both groups (test_zero_scatter_matched.py)
     def paired(a, b):
         return api.analyze({"analysis": "ttest", "data": cols(a, b),
                             "options": {"kind": "paired", "equivalence":
                                         {"lower": -1, "upper": 1}}})
-    e = paired([5.0] * 4, [5.0] * 4)["equivalence"]
-    assert e["p"] == 0.0 and e["shown"] and e["ci"] == [0.0, 0.0]
-    e = paired([7.0] * 4, [5.0] * 4)["equivalence"]
-    assert e["p"] == 1.0 and not e["shown"]
+    for a in ([5.0] * 4, [7.0] * 4):
+        r = paired(a, [5.0] * 4)
+        assert r["error"].startswith("The paired t test is undefined")
+        assert "equivalence" not in r
     assert ttests.tost(1.0, 0.0, 5, -1, 1)["p"] == 1.0   # on the margin
     # missing values are left out as in the t test
     r = run([10.8, None, 10.55, 10.5], [10.6, 10.55, None, 10.3],
