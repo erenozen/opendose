@@ -40,6 +40,17 @@ drew minimum-to-maximum whiskers and now draws Tukey whiskers (Graph
 settings, Whiskers, brings min-max back). The legend sentence names the
 rule ("1.5 × IQR (Tukey)", "minimum to maximum", ...).
 
+## PDF text in embedded fonts (P-02)
+
+PDF exports embed subsets of Inter 4.1 (the plot font) and of Liberation
+Sans 2.1.5, renamed OpenDose Sans Classic (metric-compatible with Arial,
+the classic theme's font), as CIDFontType2 fonts with Identity-H encoding,
+a ToUnicode map and /FontFile2 (`web/src/export/pdfFonts.ts`; fonts made
+by `web/scripts/make-export-fonts.py`, OFL 1.1). Checked by
+`scripts/e2e-export.mjs` with its own ToUnicode reader and with pypdf as
+a second reader: the titles "ΔF/F₀ ≤ 1" and "Ca²⁺ (10⁻⁶ M)" read back
+exactly (before: "Delta F/F0 <= 1" and "Ca²? (10-6 M)").
+
 ## Large pasted tables (P-10)
 
 `scripts/e2e-large.mjs`, 200,000 rows each (above the ~126,000 values a

@@ -12,6 +12,7 @@ import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { createRequire } from "node:module";
 import { inflateSync } from "node:zlib";
+import { spawnSync } from "node:child_process";
 import { strFromU8, unzipSync } from "fflate";
 
 // The header's File and View menus (DECISIONS 5): open one, pick an item.
@@ -86,19 +87,157 @@ function parsePng(buf) {
   return out;
 }
 
+// --- PDF reading: the text each Tj shows, through the fonts' ToUnicode
+// maps (Identity-H fonts) or as Latin-1 (standard fonts), with the font's
+// /W advance widths. Enough for jsPDF's output; pypdf reads the same file
+// as a second, independent reader.
+function readPdf(buf) {
+  const src = buf.toString("latin1");
+  const objs = new Map();
+  for (const m of src.matchAll(/(\d+) 0 obj\s*([\s\S]*?)endobj/g)) {
+    let body = m[2];
+    const s = /stream\r?\n([\s\S]*?)\r?\nendstream/.exec(body);
+    let stream = null;
+    if (s) {
+      const raw = Buffer.from(s[1], "latin1");
+      stream = /\/FlateDecode/.test(body) ? inflateSync(raw).toString("latin1") : s[1];
+      body = body.slice(0, s.index);
+    }
+    objs.set(Number(m[1]), { body, stream });
+  }
+  const ref = (body, key) => Number(new RegExp(`/${key}\\s+(\\d+) 0 R`).exec(body)?.[1]);
+  const fonts = new Map();
+  for (const [, o] of objs) {
+    for (const f of o.body.matchAll(/\/(F\d+)\s+(\d+) 0 R/g)) {
+      const font = objs.get(Number(f[2]));
+      if (!font || !/\/Type\s*\/Font/.test(font.body)) continue;
+      const entry = { base: /\/BaseFont\s*\/([^\s/>]+)/.exec(font.body)?.[1] ?? "", map: null, widths: new Map() };
+      const tu = objs.get(ref(font.body, "ToUnicode"));
+      if (tu?.stream) {
+        entry.map = new Map();
+        const hex = (h) => String.fromCodePoint(...(h.match(/.{4}/g) ?? []).map((x) => parseInt(x, 16)));
+        for (const blk of tu.stream.matchAll(/beginbfchar([\s\S]*?)endbfchar/g)) {
+          for (const p of blk[1].matchAll(/<([0-9a-fA-F]+)>\s*<([0-9a-fA-F]+)>/g)) entry.map.set(parseInt(p[1], 16), hex(p[2]));
+        }
+        for (const blk of tu.stream.matchAll(/beginbfrange([\s\S]*?)endbfrange/g)) {
+          for (const p of blk[1].matchAll(/<([0-9a-fA-F]+)>\s*<([0-9a-fA-F]+)>\s*<([0-9a-fA-F]+)>/g)) {
+            const a = parseInt(p[1], 16), b = parseInt(p[2], 16), c = parseInt(p[3], 16);
+            for (let k = a; k <= b; k++) entry.map.set(k, String.fromCodePoint(c + k - a));
+          }
+        }
+        const desc = objs.get(Number(/\/DescendantFonts\s*\[\s*(\d+) 0 R/.exec(font.body)?.[1]));
+        const w = /\/W\s*\[([\s\S]*?)\]\s*(\/|>>)/.exec(desc?.body ?? "")?.[1] ?? "";
+        for (const g of w.matchAll(/(\d+)\s*\[([^\]]*)\]/g)) {
+          g[2].trim().split(/\s+/).forEach((v, i) => entry.widths.set(Number(g[1]) + i, Number(v)));
+        }
+        entry.fontFile2 = /\/FontFile2/.test(objs.get(ref(desc?.body ?? "", "FontDescriptor"))?.body ?? "");
+      }
+      fonts.set(f[1], entry);
+    }
+  }
+  const runs = [];
+  for (const [, o] of objs) {
+    if (!o.stream || !/Tf/.test(o.stream)) continue;
+    let font = null, size = 0;
+    for (const t of o.stream.matchAll(/\/(F\d+)\s+([\d.]+)\s+Tf|<([0-9a-fA-F]*)>\s*Tj|\(((?:\\.|[^\\)])*)\)\s*Tj/g)) {
+      if (t[1]) { font = fonts.get(t[1]); size = Number(t[2]); continue; }
+      if (t[3] !== undefined && font?.map) {
+        const codes = (t[3].match(/.{4}/g) ?? []).map((x) => parseInt(x, 16));
+        runs.push({ text: codes.map((c) => font.map.get(c) ?? "�").join(""), font: font.base, size,
+          em: codes.reduce((a, c) => a + (font.widths.get(c) ?? 0), 0) / 1000 });
+      } else if (t[4] !== undefined) {
+        runs.push({ text: t[4].replace(/\\(.)/g, "$1"), font: font?.base ?? "", size, em: NaN });
+      }
+    }
+  }
+  return { runs, fonts: [...fonts.values()] };
+}
+
 await page.goto(url, { waitUntil: "domcontentloaded" });
 await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 180000 });
 await page.waitForSelector(".plot-card .plot.js-plotly-plot", { timeout: 30000 });
 const panel = page.locator(".plot-card .export-panel");
 
-// --- graph as vector PDF ---
+// --- graph as vector PDF, with axis titles the standard fonts cannot
+// spell (P-02): embedded Inter, ToUnicode, the text exactly as typed ---
+const Y_TITLE = "ΔF/F₀ ≤ 1", X_TITLE = "Ca²⁺ (10⁻⁶ M)";
+await page.locator(".plot-card").getByRole("button", { name: "Settings" }).click();
+const gset = page.getByRole("dialog", { name: "Graph settings" });
+await gset.getByLabel("X axis title").fill(X_TITLE);
+await gset.getByLabel("Y axis title").fill(Y_TITLE);
+await page.keyboard.press("Escape");
+await page.waitForFunction(([x, y]) => {
+  const t = [...document.querySelectorAll(".plot-card .plot .xtitle, .plot-card .plot .ytitle")].map((e) => e.textContent);
+  return t.includes(x) && t.includes(y);
+}, [X_TITLE, Y_TITLE], { timeout: 15000 });
+// SVG widths in em of labels the page's Inter web font fully covers (its
+// subsets lack ⁺, ₀ and ≤, which the screen takes from a fallback), set
+// at 1000 px so pixel rounding of each advance does not count
+const WIDTH_LABELS = ["Drug A", "100", "−9"];
+const screenEm = await page.evaluate((labels) => {
+  const ns = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(ns, "svg");
+  svg.style.cssText = "position:absolute;visibility:hidden";
+  document.body.append(svg);
+  const out = Object.fromEntries(labels.map((l) => {
+    const el = [...document.querySelectorAll(".plot-card .plot text")].find((t) => t.textContent === l);
+    if (!el) return [l, NaN];
+    const t = document.createElementNS(ns, "text");
+    t.setAttribute("style", `font-family: ${getComputedStyle(el).fontFamily}; font-size: 1000px; font-kerning: none`);
+    t.textContent = l;
+    svg.append(t);
+    return [l, t.getComputedTextLength() / 1000];
+  }));
+  svg.remove();
+  return out;
+}, WIDTH_LABELS);
 await panel.getByLabel("Export format").selectOption("pdf");
 const pdf = await save(() => panel.getByRole("button", { name: "Download" }).click());
+const pdfText = pdf.buf.toString("latin1");
 expect("graph PDF starts with %PDF", pdf.buf.subarray(0, 5).toString("latin1") === "%PDF-",
   `${pdf.name}, ${(pdf.buf.length / 1024).toFixed(0)} KB`);
 expect("graph PDF file named after the sheet", pdf.name === "graph-of-dose-response.pdf", pdf.name);
-expect("graph PDF keeps text as text (standard font embedded by name)",
-  /\/BaseFont\s*\/Helvetica/.test(pdf.buf.toString("latin1")));
+const rd = readPdf(pdf.buf);
+const usedFonts = new Set(rd.runs.map((r) => r.font));
+const inter = rd.fonts.filter((f) => usedFonts.has(f.base));
+expect("graph PDF sets its text in embedded Inter (/FontFile2) with a ToUnicode map",
+  inter.length > 0 && inter.every((f) => /^Inter-/.test(f.base) && f.fontFile2 && f.map?.size > 0)
+  && /\/FontFile2/.test(pdfText) && /\/ToUnicode/.test(pdfText) && /\/CIDFontType2/.test(pdfText),
+  rd.fonts.map((f) => f.base).join(", "));
+expect("graph PDF no longer sets the default theme's text in Helvetica (was /BaseFont /Helvetica)",
+  !rd.runs.some((r) => /Helvetica/.test(r.font)), [...new Set(rd.runs.map((r) => r.font))].join(", "));
+const runText = rd.runs.map((r) => r.text);
+expect("graph PDF text reads back exactly as typed: ΔF/F₀ ≤ 1 and Ca²⁺ (10⁻⁶ M)",
+  runText.includes(Y_TITLE) && runText.includes(X_TITLE), JSON.stringify(runText.slice(0, 30)));
+// every label of the SVG export is in the PDF, character for character
+await panel.getByLabel("Export format").selectOption("svg");
+const gsvg = await save(() => panel.getByRole("button", { name: "Download" }).click());
+const svgLabels = await page.evaluate((s) => [...new DOMParser().parseFromString(s, "image/svg+xml")
+  .querySelectorAll("text")].map((t) => t.textContent.trim()).filter(Boolean), gsvg.buf.toString("utf8"));
+const joined = runText.join("\n");
+const missing = svgLabels.filter((l) => !joined.includes(l) && !runText.join("").includes(l));
+expect(`graph PDF holds every label of the SVG export (${svgLabels.length} labels)`,
+  svgLabels.length > 10 && missing.length === 0, missing.slice(0, 5).join(" | "));
+// advance widths: the PDF's /W widths against the screen's own measure
+for (const label of WIDTH_LABELS) {
+  const run = rd.runs.find((r) => r.text === label);
+  const ratio = run ? run.em / screenEm[label] : NaN;
+  expect(`"${label}": PDF advance widths match the SVG text in the page's Inter within 0.5% (no kerning)`,
+    Math.abs(ratio - 1) < 0.005, `PDF ${run?.em.toFixed(4)} em, screen ${screenEm[label]?.toFixed(4)} em`);
+}
+// a second reader: pypdf (PYTHON names an interpreter that has it)
+{
+  const py = process.env.PYTHON ?? "python3";
+  const r = spawnSync(py, ["-c", "import sys, pypdf; print(pypdf.PdfReader(sys.argv[1]).pages[0].extract_text())",
+    pdf.file], { encoding: "utf8" });
+  if (r.status !== 0 && /No module named .pypdf/.test(r.stderr)) {
+    console.log(`skip pypdf is not installed for ${py}: set PYTHON to an interpreter that has it`);
+  } else {
+    expect("pypdf extracts both titles from the graph PDF", r.stdout.includes(Y_TITLE) && r.stdout.includes(X_TITLE),
+      (r.stdout || r.stderr).replace(/\s+/g, " ").slice(0, 200));
+  }
+}
+console.log(`graph PDF size ${(pdf.buf.length / 1024).toFixed(1)} KB`);
 
 // --- graph as transparent PNG at a stated resolution ---
 await panel.getByLabel("Export format").selectOption("png");
