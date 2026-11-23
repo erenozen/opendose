@@ -51,6 +51,27 @@ by `web/scripts/make-export-fonts.py`, OFL 1.1). Checked by
 a second reader: the titles "ΔF/F₀ ≤ 1" and "Ca²⁺ (10⁻⁶ M)" read back
 exactly (before: "Delta F/F0 <= 1" and "Ca²? (10-6 M)").
 
+## Raster exports in the plot font (P-03)
+
+An SVG drawn as an image cannot load the page's web font, so PNG, TIFF,
+JPEG and WebP exports set Inter text in a system font wherever Inter is
+not installed. Raster exports now inline the page's Inter woff2 subsets
+the figure's characters need (`web/src/export/webFonts.ts`).
+
+`scripts/e2e-export.mjs` exports the example graph as PNG at 300 dpi at
+its on-screen size on a machine without Inter (fallback: Noto Sans) and
+compares the X title with two references drawn the same way from the SVG
+export's title element, with and without the page's Inter:
+
+| | title ink width | Inter reference | pixel overlap with Inter | with the fallback |
+|---|---|---|---|---|
+| before | 374 px | 371 px | 0.273 | 0.876 |
+| after | 371 px | 371 px | 1.000 | 0.278 |
+
+A width check alone is weak on this machine (Noto Sans comes within
+3 px of Inter), so the suite pins both the width (within 1 px) and the
+pixel overlap (at least 0.98).
+
 ## Large pasted tables (P-10)
 
 `scripts/e2e-large.mjs`, 200,000 rows each (above the ~126,000 values a

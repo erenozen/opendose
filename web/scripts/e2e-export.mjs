@@ -158,6 +158,102 @@ await page.waitForSelector('.pane-results[data-live="true"] .results-table', { t
 await page.waitForSelector(".plot-card .plot.js-plotly-plot", { timeout: 30000 });
 const panel = page.locator(".plot-card .export-panel");
 
+// --- PNG at 300 dpi in the plot font (P-03): an SVG drawn as an image
+// cannot use the page's web fonts, so on a machine without Inter (this
+// one: the fallback is Noto Sans) the raster used a system font. The X
+// title in the PNG is compared, pixel for pixel, with two references
+// drawn the same way (the title element of the SVG export at the same
+// size, in an SVG image at the same scale): one with the page's Inter
+// woff2 inlined, one without (the fallback). Its ink width must equal the
+// Inter reference's within 1 px, and its pixels the reference's.
+{
+  const size = await page.evaluate(() => {
+    const full = document.querySelector(".plot-card .plot.js-plotly-plot")._fullLayout;
+    return { w: Math.round(full.width), hh: Math.round(full.height) };
+  });
+  await panel.getByLabel("Export format").selectOption("svg");
+  await panel.getByLabel(/^Width/).fill(String(size.w));
+  await panel.getByLabel(/^Height/).fill(String(size.hh));
+  const vec = await save(() => panel.getByRole("button", { name: "Download" }).click());
+  const ref = await page.evaluate(({ svg, size }) => {
+    const host = document.createElement("div");
+    host.innerHTML = svg;
+    document.body.append(host);
+    const t = host.querySelector(".xtitle");
+    const box = t.getBoundingClientRect(), root = host.querySelector("svg").getBoundingClientRect();
+    const m = t.getCTM();
+    const out = { ...size, text: t.textContent, top: box.top - root.top, h: box.height,
+      el: `<g transform="matrix(${m.a} ${m.b} ${m.c} ${m.d} ${m.e} ${m.f})">${t.outerHTML}</g>`,
+      font: getComputedStyle(t).fontFamily };
+    host.remove();
+    return out;
+  }, { svg: vec.buf.toString("utf8"), size });
+  await panel.getByLabel("Export format").selectOption("png");
+  await panel.getByLabel(/^Resolution/).fill("300");
+  const png = await save(() => panel.getByRole("button", { name: "Download" }).click());
+  const s = 300 / 96;
+  const m = await page.evaluate(async ({ b64, r, s }) => {
+    const y0 = Math.max(0, Math.floor((r.top - 2) * s));
+    const y1 = Math.min(Math.floor(r.hh * s), Math.ceil((r.top + r.h + 2) * s));
+    const band = async (src) => {
+      const img = new Image();
+      img.src = src;
+      await img.decode();
+      const c = document.createElement("canvas");
+      c.width = Math.floor(r.w * s); c.height = Math.floor(r.hh * s);
+      const ctx = c.getContext("2d");
+      ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);
+      ctx.drawImage(img, 0, 0, c.width, c.height);
+      const d = ctx.getImageData(0, y0, c.width, y1 - y0).data;
+      const ink = new Uint8Array(d.length / 4);
+      let lo = Infinity, hi = -Infinity;
+      for (let i = 0; i < ink.length; i++) {
+        ink[i] = d[4 * i + 3] > 128 && 0.299 * d[4 * i] + 0.587 * d[4 * i + 1] + 0.114 * d[4 * i + 2] < 160 ? 1 : 0;
+        if (ink[i]) { const x = i % c.width; lo = Math.min(lo, x); hi = Math.max(hi, x); }
+      }
+      return { ink, width: hi - lo + 1 };
+    };
+    // the page's @font-face files for the title's font, inlined (the reference with the font present)
+    const fam = r.font.split(",")[0].trim().replace(/^["']|["']$/g, "");
+    const faces = [];
+    for (const sheet of document.styleSheets) {
+      for (const rule of sheet.cssRules) {
+        if (!(rule instanceof CSSFontFaceRule) || rule.style.getPropertyValue("font-family").replace(/["']/g, "") !== fam
+          || rule.style.getPropertyValue("font-style") === "italic") continue;
+        const u = /url\(\s*["']?([^"')]+)/.exec(rule.style.getPropertyValue("src"))[1];
+        const b = new Uint8Array(await (await fetch(new URL(u, sheet.href ?? document.baseURI))).arrayBuffer());
+        let bin = "";
+        for (let k = 0; k < b.length; k += 0x8000) bin += String.fromCharCode(...b.subarray(k, k + 0x8000));
+        faces.push(`@font-face{font-family:"${fam}";font-weight:${rule.style.getPropertyValue("font-weight")};`
+          + `src:url(data:font/woff2;base64,${btoa(bin)});unicode-range:${rule.style.getPropertyValue("unicode-range")}}`);
+      }
+    }
+    const svgOf = (css) => `data:image/svg+xml;charset=utf-8,${encodeURIComponent(
+      `<svg xmlns="http://www.w3.org/2000/svg" width="${r.w}" height="${r.hh}"><style>${css}</style>${r.el}</svg>`)}`;
+    const got = await band(URL.createObjectURL(new Blob([Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))],
+      { type: "image/png" })));
+    const inter = await band(svgOf(faces.join("")));
+    const fallback = await band(svgOf(""));
+    // share of ink pixels in common (intersection over union), in place
+    const iou = (a, b) => {
+      let both = 0, either = 0;
+      for (let i = 0; i < a.ink.length; i++) { both += a.ink[i] & b.ink[i]; either += a.ink[i] | b.ink[i]; }
+      return either ? both / either : 0;
+    };
+    return { got: got.width, inter: inter.width, fallback: fallback.width, faces: faces.length,
+      iouInter: iou(got, inter), iouFallback: iou(got, fallback) };
+  }, { b64: png.buf.toString("base64"), r: ref, s });
+  console.log(`PNG 300 dpi: "${ref.text}": title ink ${m.got} px wide; reference in Inter ${m.inter} px `
+    + `(${m.faces} font files), in the fallback ${m.fallback} px; pixel overlap with Inter ${m.iouInter.toFixed(3)}, `
+    + `with the fallback ${m.iouFallback.toFixed(3)}`);
+  expect(`PNG at 300 dpi: X title ink width ${m.got} px equals the Inter reference ${m.inter} px within 1 px`,
+    m.faces > 0 && Math.abs(m.got - m.inter) <= 1);
+  expect(`PNG at 300 dpi sets the X title in Inter, not the fallback: pixel overlap ${m.iouInter.toFixed(3)} >= 0.98`,
+    m.iouInter >= 0.98, `overlap with the fallback ${m.iouFallback.toFixed(3)}`);
+  await panel.getByLabel(/^Resolution/).fill("96");
+}
+
+
 // --- graph as vector PDF, with axis titles the standard fonts cannot
 // spell (P-02): embedded Inter, ToUnicode, the text exactly as typed ---
 const Y_TITLE = "ΔF/F₀ ≤ 1", X_TITLE = "Ca²⁺ (10⁻⁶ M)";
