@@ -710,6 +710,13 @@ const scenes = [
     await s.page.locator(".experiments-card").first().waitFor({ timeout: 120000 });
     await into(s, ".experiments-card");
   } },
+  // twelve compounds (P-17): the fit summary above the cards, Compound L
+  // flagged Extrapolated with its reason
+  { name: "results-fit-summary", setup: async (s) => {
+    await fixture(s, "fit-summary.json", { live: true });
+    await s.page.locator(".fit-summary-table").first().waitFor({ timeout: 120000 });
+    await into(s, ".fit-summary");
+  } },
   // the Checks row chip on a pooled fit (the example's triplicates)
   { name: "results-pooled-chip", setup: async (s) => {
     await example(s);

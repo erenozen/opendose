@@ -6,7 +6,8 @@
 // comparing regression lines (P-13), pairs of rows of a contingency table
 // (P-14) and two event rates (P-47); and the fit models of wave 1: Weibull
 // and hormesis models (P-19), range constraints (P-20), initial values and
-// the fit report (P-21) and simulating a user-defined equation (P-51).
+// the fit report (P-21) and simulating a user-defined equation (P-51); the
+// fit summary and its table of parameters (P-17).
 // Each number asserted here is pinned in the engine tests from an
 // independent reference (engine/tests/reference/).
 // Usage: node scripts/e2e-results.mjs [http://localhost:5173/]
@@ -726,6 +727,80 @@ await page.waitForSelector('.pane-results[data-live="true"] .results-table', { t
     /does not say whether subjects with higher pH have higher PaCO2/.test(scope), scope);
   expect("P-27 with the Subject role set, the chip is gone",
     await page.locator(".pane-answer").getByRole("button", { name: /Subjects ignored/ }).count() === 0);
+}
+
+
+// --- P-17: the fit summary above the cards and the table of parameters ----
+{
+  // engine/tests/reference/fit_summary_12.py: twelve compounds, one 4PL each;
+  // Compound L never reaches its bottom plateau (IC50 > 30 µM)
+  const FX = JSON.parse(readFileSync(join(here, "../src/sheets/xy/__tests__/fitSummary.fixture.json"), "utf8"));
+  const sig4 = (v) => (Math.abs(v) < 1e-3 ? v.toExponential(3) : String(Number(v.toPrecision(4))));
+  const pg = await browser.newPage({ viewport: { width: 1400, height: 1000 } });
+  pg.on("pageerror", (e) => errors.push(`pageerror: ${e.message}`));
+  await pg.goto(url, { waitUntil: "domcontentloaded" });
+  await pg.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 180000 });
+  await pg.keyboard.press("Escape");
+  await pg.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]',
+    join(here, "..", "e2e-fixtures", "fit-summary-12.json"));
+  const summary = pg.locator('.pane-results[data-live="true"] .fit-summary-table');
+  expect("P-17 a typeset summary table sits above the per-curve cards", await appears(summary, 120000));
+  const rows = summary.locator("tbody tr");
+  const n = await rows.count();
+  expect("P-17 acceptance: the summary lists 12 rows, one per compound", n === 12, String(n));
+  const cell = async (loc) => (await loc.innerText()).replace(/\s+/g, " ").trim();
+  const mismatched = [];
+  for (let i = 0; i < n; i++) {
+    const name = await cell(rows.nth(i).locator("th"));
+    const tds = rows.nth(i).locator("td");
+    const card = pg.locator(".pane-results .result-card").filter({ has: pg.locator("h3", { hasText: new RegExp(`^${name}`) }) })
+      .filter({ hasNot: pg.locator(".fit-summary-table") }).first();
+    const cardRow = async (label) => cell(card.locator("tbody tr").filter({ has: pg.locator(`th:text-is("${label}")`) }).first());
+    const want = [`IC50 (µM) ${await cell(tds.nth(0))} n/a ${await cell(tds.nth(1))}`,
+      `HillSlope ${await cell(tds.nth(2))}`, `Top ${await cell(tds.nth(3))}`, `Bottom ${await cell(tds.nth(4))}`];
+    const got = [await cardRow("IC50 (µM)"), await cardRow("HillSlope"), await cardRow("Top"), await cardRow("Bottom")];
+    if (!want.every((w, k) => got[k].startsWith(w))) mismatched.push(`${name}: ${want.join(" | ")} vs ${got.join(" | ")}`);
+    if (await cell(tds.nth(5)) !== await cardRow("R squared").then((t) => t.replace("R squared ", ""))) mismatched.push(`${name} R²`);
+  }
+  expect("P-17 each summary row equals its data set's card (IC50, CI, HillSlope, Top, Bottom, R²)",
+    mismatched.length === 0, mismatched.slice(0, 2).join("; "));
+  const a = FX.result.datasets[0].fit.params.IC50.value;
+  expect(`P-17 Compound A's IC50 reads ${sig4(a)} µM (the engine's value)`,
+    await cell(rows.nth(0).locator("td").nth(0)) === sig4(a), await cell(rows.nth(0).locator("td").nth(0)));
+  const lRow = await cell(rows.nth(11));
+  const reasons = await cell(pg.locator(".fit-summary-reasons"));
+  expect("P-17 acceptance: the incomplete compound is flagged Extrapolated with its reason",
+    lRow.startsWith("Compound L > 30 (not reached in the range tested)") && lRow.endsWith(" Extrapolated")
+    && reasons.startsWith("Compound L, extrapolated: IC50 > 30 µM (not reached in the range tested): ")
+    && reasons.includes("the bottom plateau is not defined by the data"), `${lRow} | ${reasons.slice(0, 300)}`);
+  const others = [];
+  for (let i = 0; i < 11; i++) others.push((await cell(rows.nth(i).locator("td").last())));
+  expect("P-17 the eleven complete curves carry no flag", others.every((t) => t === "None"), others.join(","));
+  await pg.locator(".fit-summary").getByLabel("Sort rows by").selectOption({ label: "IC50 (µM), highest first" });
+  const order = await summary.locator("tbody th").allInnerTexts();
+  const byIc = FX.result.datasets.map((d) => d.name)
+    .sort((x, y) => FX.result.datasets.find((d) => d.name === y).fit.params.IC50.value
+      - FX.result.datasets.find((d) => d.name === x).fit.params.IC50.value);
+  expect("P-17 sorting by IC50, highest first, orders the rows by the fitted IC50",
+    order.join(",") === byIc.join(",")
+    && await summary.locator('th[aria-sort="descending"]').innerText() === "IC50 (µM)", order.join(","));
+  await pg.getByRole("button", { name: "Make a table of parameters" }).click();
+  await pg.waitForSelector(".grid-toolbar", { timeout: 30000 });
+  const sel = await pg.locator('[role=treeitem][aria-selected="true"]').first().getAttribute("aria-label");
+  expect("P-17 acceptance: \"Make a table of parameters\" makes the linked table and selects it",
+    (sel ?? "").startsWith("Parameters of Twelve compounds"), sel);
+  const titles = [];
+  for (let r = 1; r <= 12; r++) titles.push(await pg.locator(`.data-table input[aria-label="Row ${r} title"]`).inputValue());
+  const ic = [];
+  for (let r = 1; r <= 12; r++) ic.push(await pg.locator(`.data-table input[aria-label="IC50 (µM), row ${r}"]`).inputValue());
+  expect("P-17 the linked table has the same 12 rows",
+    titles.join(",") === FX.result.datasets.map((d) => d.name).join(","), titles.join(","));
+  expect("P-17 its IC50 column holds each fitted IC50, empty for Compound L (reported as > 30 µM)",
+    // the browser engine's BLAS differs from the fixture's in the last bits
+    ic.slice(0, 11).every((v, i) => Math.abs(Number(v) / FX.result.datasets[i].fit.params.IC50.value - 1) < 1e-9)
+    && ic[11] === "",
+    ic.join(","));
+  await pg.close();
 }
 
 // ------------------------------------------------------------------------
