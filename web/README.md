@@ -56,7 +56,7 @@ one at a time: each boots its own engine.
 | `e2e-share.mjs` | Share links, the export bundle, import recipes, Apply to new data, the validation and privacy pages |
 | `e2e-figures.mjs` | SuperPlots, legends, P-value styles, the classic theme, the colour-vision check, volcano plots, censor marks, box plots against the column statistics |
 | `e2e-assays.mjs` | Every assay wizard, against numbers the engine computes natively |
-| `e2e-import.mjs` | Getting a table in: one CSV or .xlsx dropped on the page or opened lands in the Import dialog for a new table, equal to the toolbar Import's table from the same file |
+| `e2e-import.mjs` | Getting a table in: one CSV or .xlsx dropped on the page or opened lands in the Import dialog for a new table, equal to the toolbar Import's table from the same file; .xls and .ods; find and replace; the grid's spreadsheet keys (Ctrl+arrows, Ctrl+D fill down, Home / End, Ctrl+A); pairing a long table by subject ID; .pzfx Info sheets in and out |
 | `e2e-results.mjs` | The results honesty checks: residual plots of fits and ANOVA models in the Checks row, the smallest P a rank test can reach, the Analysed line of regression, Cox and contingency results, the ratio to control with its Fieller CI; equivalence tests, comparing regression lines, pairs of rows of a contingency table and two event rates |
 | `e2e-feedback.mjs` | Toasts, banners, the announcer, the engine boot slot, a busy button and late validation |
 | `e2e-primitives.mjs` | Dialog, Popover, Menu and Tooltip from the keyboard: focus return, Tab staying inside, Home/End, type-ahead |
@@ -90,6 +90,12 @@ all of the suites above against main in a clean worktree.
 - `validate-site.mjs <url>` drives a deployed site through the reference
   corpus in `../docs/validation/` and writes `results-site.json` and
   `.md` there (`--no-data` runs only the performance probe).
+- `project-schema.mjs [--check]` generates `../docs/project-file.schema.json`
+  from the project model (`src/project/fileFormat.ts`), or checks the
+  committed one; run it after changing `src/project/types.ts`. The unit
+  suite fails while the two differ. `validate-project.mjs` validates a
+  project file against it (ajv); the e2e suites run every project they
+  save through it. The format page is `../docs/project-file-format.md`.
 - `make-touch-icon.mjs` renders the PNG icons from `public/favicon.svg`.
 - `make-export-fonts.py` cuts the fonts PDF exports embed
   (`src/export/fonts/`: Inter and an Arial-compatible Liberation Sans,

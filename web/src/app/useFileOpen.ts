@@ -9,6 +9,7 @@ import { useProject } from "./context";
 import { prepareReproduceCheck } from "./reproduceCheck";
 import { prismTableToFamily, type PrismTable } from "./factory";
 import { openTableFile, TABLE_OPEN, TABLE_OPEN_ACCEPT } from "./tableFile";
+import { infoSheetsFromPrism, type PzfxInfo } from "../share/pzfx";
 
 /** Files Open takes: OpenDose projects, Prism files and one table file
  *  (CSV, TSV, text, .xlsx, .xls, .ods), which goes to the Import dialog. */
@@ -38,8 +39,11 @@ export function useFileOpen(into?: (p: Project) => Project) {
   const intoRef = useRef(into);
   intoRef.current = into;
 
+  // The opened file's Info sheets (constants and notes), added with its tables.
+  const prismInfo = useRef<PzfxInfo[]>([]);
   const importTables = useCallback((tables: PrismTable[]) => {
     let first = "";
+    let infoAdded = 0;
     apply((p) => {
       let next = intoRef.current ? intoRef.current(p) : p;
       for (const t of tables) {
@@ -47,12 +51,17 @@ export function useFileOpen(into?: (p: Project) => Project) {
         next = r.project;
         if (!first) first = r.dataId;
       }
+      const before = next.sheets.length;
+      next = infoSheetsFromPrism(next, prismInfo.current, newId);
+      infoAdded = next.sheets.length - before;
       return next;
     });
+    prismInfo.current = [];
     setPrismTables(null);
     if (first) select(first);
-    notify(`Imported ${tables.length} data table${tables.length === 1 ? "" : "s"} from the `
-      + "Prism file; analyses are recomputed here.", { tone: "success", id: TOAST_ID });
+    notify(`Imported ${tables.length} data table${tables.length === 1 ? "" : "s"}`
+      + (infoAdded ? ` and ${infoAdded} info sheet${infoAdded === 1 ? "" : "s"}` : "")
+      + " from the Prism file; analyses are recomputed here.", { tone: "success", id: TOAST_ID });
   }, [apply, select]);
 
   const openPrism = useCallback(async (file: File) => {
@@ -67,10 +76,11 @@ export function useFileOpen(into?: (p: Project) => Project) {
       analysis: "pzfx_import",
       data: { pzfx_b64: btoa(binary) },
       options: {},
-    }, { priority: "user" }) as { error?: string; tables?: PrismTable[] };
+    }, { priority: "user" }) as { error?: string; tables?: PrismTable[]; info?: PzfxInfo[] };
     if (res.error || !res.tables?.length) {
       throw new Error(res.error ?? "no tables found");
     }
+    prismInfo.current = res.info ?? [];
     if (res.tables.length === 1) importTables(res.tables);
     else {
       // The chooser banner is the next step; it says what to do.

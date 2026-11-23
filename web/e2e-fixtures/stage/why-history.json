@@ -1,0 +1,162 @@
+{
+ "opendose_project": 2,
+ "version": 2,
+ "title": "Pilot study",
+ "prefs": {
+  "defaultTableType": "xy",
+  "errorBars": "sd",
+  "ciMethod": "asymptotic",
+  "scheme": "default",
+  "digits": 4
+ },
+ "selected": "r106",
+ "reproductions": [
+  {
+   "file": "pilot-2026-10.json",
+   "savedWith": {
+    "app": "0.3.0",
+    "engine": "0123456789abcdef"
+   },
+   "current": {
+    "app": "0.4.0",
+    "engine": "fedcba9876543210"
+   },
+   "checkedAt": "2026-11-20T09:30:00.000Z",
+   "digits": 4,
+   "sheets": [
+    {
+     "sheetId": "r106",
+     "name": "t test of Pilot",
+     "analysis": "column",
+     "status": "reproduced",
+     "compared": 14,
+     "changes": []
+    },
+    {
+     "sheetId": "r999",
+     "name": "Old fit",
+     "analysis": "nonlin",
+     "status": "skipped",
+     "compared": 0,
+     "changes": [],
+     "note": "the sheet was removed"
+    }
+   ]
+  }
+ ],
+ "sheets": [
+  {
+   "id": "d105",
+   "kind": "data",
+   "name": "Pilot",
+   "table": {
+    "type": "column",
+    "x": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "",
+    "rowTitles": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "datasets": [
+     {
+      "name": "Control",
+      "rows": [
+       [
+        "10.2"
+       ],
+       [
+        "11.5"
+       ],
+       [
+        "9.8"
+       ],
+       [
+        "12.1"
+       ],
+       [
+        "10.9"
+       ],
+       [
+        "11.3"
+       ]
+      ]
+     },
+     {
+      "name": "Treated",
+      "rows": [
+       [
+        "13.4"
+       ],
+       [
+        "14.1"
+       ],
+       [
+        "12.8"
+       ],
+       [
+        "15"
+       ],
+       [
+        "13.9"
+       ],
+       [
+        "14.6"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "r106",
+   "kind": "results",
+   "parentId": "d105",
+   "analysis": "column",
+   "options": {
+    "analysis": "ttest",
+    "ttestKind": "welch"
+   },
+   "name": "t test of Pilot",
+   "chosen": {
+    "test": "Unpaired t test with Welch's correction",
+    "reason": "Two independent groups. Welch's t test does not assume the two populations have equal SDs, loses very little power when they do, and keeps the P value honest when they do not (especially with unequal n), so it is the safer default unless you know the SDs are equal.",
+    "analysis": "column",
+    "options": {
+     "analysis": "ttest",
+     "ttestKind": "welch"
+    }
+   }
+  },
+  {
+   "id": "g107",
+   "kind": "graph",
+   "parentId": "d105",
+   "resultsId": "r106",
+   "graphType": "scatter",
+   "settings": {
+    "titles": {
+     "x": "",
+     "y": ""
+    },
+    "scheme": "default"
+   },
+   "name": "Graph of Pilot"
+  }
+ ]
+}

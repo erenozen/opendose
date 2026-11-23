@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Button, IconButton, notify } from "../../components/ui";
+import { announce, Button, IconButton, notify } from "../../components/ui";
 import { CloseIcon } from "../../components/ui/feedbackIcons";
 import { MinusIcon, PlusIcon } from "./gridIcons";
 import { useProject } from "../../app/context";
@@ -45,6 +45,8 @@ import { onGridFind, onGridReplace } from "../../app/gridFind";
 import { takeReport } from "../../app/tableFile";
 import { findInTable, replaceInTable } from "../../project/findInTable";
 import { calcCell, evalCellExpression, isCalculated } from "../../project/calculated";
+import { fillDown, fillDownSummary } from "../../project/fillDown";
+import { cellReady, edgeJump, lastUsedCell, movesCell } from "./gridNav";
 import {
   DEFAULT_ROW_PX, INITIAL_ROWS, rowSegments, sameRange, scrollTopFor, shouldVirtualise,
   nextRange, type RowRange,
@@ -116,6 +118,10 @@ const REPLACE_KEY = mac ? "⌘⇧H" : "Ctrl+H";
  * block; on a block Delete clears, Ctrl/Cmd+C / X copy / cut it as
  * tab-separated text and Ctrl/Cmd+E excludes or includes it. Ctrl/Cmd+V
  * pastes at the cursor. Ctrl/Cmd+Shift+Enter inserts a row below.
+ * Spreadsheet keys (gridNav.ts): Ctrl/Cmd+arrows jump to the edge of the
+ * data (with Shift, select up to it), Ctrl/Cmd+A selects the table,
+ * Ctrl/Cmd+D fills down (fillDown.ts), Home / End go to the row's first /
+ * last cell and Ctrl/Cmd+Home / End to the table's first / last used one.
  * The toolbar imports, exports, sorts, inserts series and rows /
  * columns, and formats the table; the Data Inspector under the grid
  * summarizes the selection.
@@ -285,6 +291,19 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
 
   const key = (what: string) => `${sheet.id}:${what}`;
 
+  const filledAt = (r: number, c: number) => {
+    const col = cols[c];
+    const v = !col ? "" : col.kind === "x" ? t.x[r] : col.kind === "rowTitle" ? t.rowTitles[r]
+      : t.datasets[col.dataset]?.rows[r]?.[col.sub];
+    return !!v && v.trim() !== "";
+  };
+  // Ctrl/Cmd+D or More › Fill down: one edit, so one undo (fillDown.ts)
+  const fillDownNow = (block: CellRect) => {
+    const res = fillDown(t, block);
+    if (res.changed) onChange((x) => fillDown(x, block).table);
+    announce(fillDownSummary(res), "polite");
+  };
+
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     const el = e.currentTarget;
     const r = Number(el.dataset.r);
@@ -312,6 +331,52 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
         onChange((x) => insertRows(x, r + 1, 1));
         requestAnimationFrame(() => focusCell(r + 1, c));
       }
+      return;
+    }
+    // Spreadsheet keys (gridNav.ts): Ctrl/Cmd+Arrow to the edge of the
+    // data, with Shift to select up to it, Ctrl/Cmd+A, Ctrl/Cmd+D, Home,
+    // End. A cell being edited keeps the caret keys that move in its text.
+    const caret = { start: el.selectionStart ?? 0, end: el.selectionEnd ?? 0,
+      length: el.value.length, readOnly: el.readOnly };
+    const k = e.key.toLowerCase();
+    if (mod && !e.altKey && !e.shiftKey && k === "d") {
+      e.preventDefault();
+      if (!readOnly) fillDownNow(multi && rect ? rect : { r0: r, c0: c, r1: r, c1: c });
+      return;
+    }
+    if (mod && !e.altKey && !e.shiftKey && k === "a" && (multi || cellReady(caret))) {
+      e.preventDefault();
+      focusCell(0, 0);
+      setSel({ r0: 0, c0: 0, r1: nRows - 1, c1: flat - 1 });
+      revealRow(0);
+      return;
+    }
+    const steps: Record<string, [number, number]> = {
+      ArrowDown: [1, 0], ArrowUp: [-1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1],
+    };
+    const step = steps[e.key];
+    if (mod && !e.altKey && step
+      && (step[1] === 0 || multi || movesCell(caret, step[1] < 0 ? "start" : "end"))) {
+      e.preventDefault();
+      const from = e.shiftKey && sel ? [sel.r1, sel.c1] : [r, c];
+      const [tr, tc] = edgeJump(filledAt, from[0], from[1], step[0], step[1], nRows, flat);
+      if (e.shiftKey) {
+        const base = sel ?? { r0: r, c0: c, r1: r, c1: c };
+        setSel({ ...base, r1: tr, c1: tc });
+        revealRow(tr);
+      } else {
+        setSel({ r0: tr, c0: tc, r1: tr, c1: tc });
+        focusCell(tr, tc);
+      }
+      return;
+    }
+    if ((e.key === "Home" || e.key === "End") && !e.shiftKey && !e.altKey
+      && (mod || multi || movesCell(caret, e.key === "Home" ? "start" : "end"))) {
+      e.preventDefault();
+      const [tr, tc] = e.key === "Home" ? (mod ? [0, 0] : [r, 0])
+        : mod ? lastUsedCell(filledAt, nRows, flat) : [r, flat - 1];
+      setSel({ r0: tr, c0: tc, r1: tr, c1: tc });
+      focusCell(tr, tc);
       return;
     }
     if (multi && rect && (e.key === "Delete" || e.key === "Backspace")) {
@@ -755,6 +820,7 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
               { label: "Find…", hint: `${MOD}F`, onSelect: openFind },
               { label: "Replace…", hint: REPLACE_KEY, onSelect: openReplace },
               "sep",
+              { label: "Fill down", hint: `${MOD}D`, onSelect: () => fillDownNow(curRect) },
               { label: "Sort…", onSelect: () => setDialog({ kind: "sort" }) },
               { label: "Insert series…", description: "Fill a column with an arithmetic or geometric series",
                 onSelect: () => setDialog({ kind: "series" }) },

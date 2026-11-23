@@ -2,13 +2,17 @@
 // opened: "Checking 3 saved results…" while the engine recomputes them,
 // then "All 48 results reproduced with OpenDose 0.4.0 (saved with
 // 0.3.0)" or the numbers that changed, each with both values, and the
-// engine change log as the why. Dismissable; the History panel keeps it.
+// engine change log as the why. The same after restoring an autosave or
+// opening a share link saved by another build. Dismissable; the project
+// keeps the report (History panel, saved with the file).
 import { useEffect } from "react";
 import { useProject } from "../app/context";
 import {
   dismissReproduceReport, settleReproduceCheck, useReproduceState,
 } from "../app/reproduceCheck";
-import { changedLines, headline, savedLabel, totals } from "../project/reproduce";
+import {
+  changedLines, headline, savedLabel, totals, withReproduction,
+} from "../project/reproduce";
 import { whyLines } from "../share/engineChanges";
 import { openHistory } from "./useReport";
 import { announce, Banner, Button } from "../components/ui";
@@ -18,16 +22,22 @@ import "./integrity.css";
 const SHOWN = 6;
 
 export default function ReproduceStrip() {
-  const { project, results } = useProject();
+  const { project, results, store } = useProject();
   const st = useReproduceState();
   const checking = !!st.progress;
   // Compare as recomputed results arrive (the cache notifies every change).
+  // The finished report joins the project, outside undo history (also on
+  // a read-only shared project, which it describes): saved with it, and
+  // listed in History after reopening.
   useEffect(() => {
     if (!checking) return;
-    const run = () => settleReproduceCheck(project, results);
+    const run = () => {
+      const report = settleReproduceCheck(project, results);
+      if (report) store.patchAll((p) => withReproduction(p, report));
+    };
     run();
     return results.subscribeAll(run);
-  }, [checking, project, results]);
+  }, [checking, project, results, store]);
 
   const r = st.latest;
   // Spoken once each: the check starting and its outcome; the running
@@ -46,7 +56,9 @@ export default function ReproduceStrip() {
       {p ? (
         <>
           <Banner.Title>
-            Checking {p.total} saved result{p.total === 1 ? "" : "s"} of “{p.file}” (saved with{" "}
+            Checking {p.total} saved result{p.total === 1 ? "" : "s"} of{" "}
+            {p.source === "autosave" ? "your last session " : p.source === "link" ? "the shared project " : ""}
+            “{p.file}” (saved with{" "}
             {p.savedWith ? `OpenDose ${p.savedWith.app}` : "an earlier version"}) against this version:
             {" "}{p.done} of {p.total} recomputed…
           </Banner.Title>

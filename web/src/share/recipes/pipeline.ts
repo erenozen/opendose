@@ -97,7 +97,7 @@ export function runPipeline(base: Staging, cfg: RecipeConfig,
         column: records.columns[exp].name, unit,
       };
     } else {
-      result = pivot(aggregated, cfg.output, { subject });
+      result = pivot(aggregated, cfg.output, { subject, recordRows: !steps.length });
     }
     if (result && extra.yTitle && !result.table.yTitle) {
       result = { ...result, table: { ...result.table, yTitle: extra.yTitle } };

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GraphPadPrismFile xmlns="http://graphpad.com/prism/Prism.htm"
+                   PrismXMLVersion="5.00">
+<Created><OriginalVersion CreatedByProgram="GraphPad Prism" CreatedByVersion="6.0f.254"/></Created>
+<InfoSequence>
+<Ref ID="Info0" Selected="1"></Ref>
+</InfoSequence>
+<Info ID="Info0">
+<Title>Project info 1</Title>
+<Notes>
+<Font Size="10" Face="Arial">
+Viability after 48 h, three plates.<BR></BR>
+Plate 2 edge wells <B>left out</B> (evaporation).<BR></BR>
+</Font>
+</Notes>
+<Constant><Name>Experiment Date</Name><Value>2026-11-02</Value></Constant>
+<Constant><Name>Experiment ID</Name><Value></Value></Constant>
+<Constant><Name>Notebook ID</Name><Value>NB-14 p. 32</Value></Constant>
+<Constant><Name>Project</Name><Value></Value></Constant>
+<Constant><Name>Experimenter</Name><Value>A. Müller</Value></Constant>
+<Constant><Name>Protocol</Name><Value></Value></Constant>
+<Constant><Name>Cell line</Name><Value>HeLa</Value></Constant>
+<Constant><Name>Dilution factor</Name><Value>2.5</Value></Constant>
+</Info>
+<TableSequence><Ref ID="Table0" Selected="1"/></TableSequence>
+<Table ID="Table0" XFormat="none" YFormat="replicates" Replicates="1"
+       TableType="OneWay" EVFormat="AsteriskAfterNumber">
+<Title>Viability</Title>
+<YColumn Width="81" Subcolumns="1">
+<Title>Control</Title>
+<Subcolumn><d>98.2</d><d>101.4</d><d>99.0</d></Subcolumn>
+</YColumn>
+<YColumn Width="81" Subcolumns="1">
+<Title>Drug</Title>
+<Subcolumn><d>61.7</d><d>58.3</d><d>64.9</d></Subcolumn>
+</YColumn>
+</Table>
+</GraphPadPrismFile>

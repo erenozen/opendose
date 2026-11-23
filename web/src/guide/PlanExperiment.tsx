@@ -22,7 +22,7 @@ import { planFromResults, setPlan } from "../project/plan";
 import type { DataTableModel, TableType } from "../project/types";
 import { analysisDef, tableDef } from "../sheets/registry";
 import { addConfiguredAnalysis } from "./actions";
-import { rememberChoice } from "./choice";
+import { withChoice } from "./choice";
 import {
   checkLines, DEFAULT_PLAN_ANSWERS, defaultGroupNames, designChecks, plannedLayout, plannedPowerForm,
   tableAnswers, type PlanAnswers,
@@ -94,14 +94,17 @@ export default function PlanExperiment({ onClose }: { onClose: () => void }) {
     };
     const name = outcome.trim() ? `${outcome.trim()} (planned)` : "Planned experiment";
     let goTo: string | null = null;
-    let resultsId: string | null = null;
     apply((p) => {
       const fam = addFamily(p, table, uniqueName(p, name), newId, { analysis: null });
       const r = addConfiguredAnalysis(fam.project, fam.dataId, target, newId);
-      resultsId = r.resultsId;
       goTo = r.resultsId ?? fam.dataId;
       // Named after the test it runs ("t test of …").
       let out = r.resultsId ? renameForOptions(r.project, r.resultsId, {}, analysisDef) : r.project;
+      // The reason travels with the sheet (saved, shared, in the methods).
+      if (r.resultsId) {
+        out = withChoice(out, r.resultsId, { test: rec.test, reason: rec.reason,
+          analysis: target.analysisId, options: target.options });
+      }
       const res = findSheet(out, r.resultsId);
       if (withPlan && res?.kind === "results") {
         const at = new Date().toISOString();
@@ -117,7 +120,6 @@ export default function PlanExperiment({ onClose }: { onClose: () => void }) {
       }
       return out;
     });
-    if (resultsId) rememberChoice(resultsId, { test: rec.test, reason: rec.reason });
     onClose();
     if (goTo) select(goTo);
   };

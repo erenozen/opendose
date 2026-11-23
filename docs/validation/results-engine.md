@@ -1443,3 +1443,37 @@ Independent check (2026-11-23, by the lead): LoB = 0.06115 + 1.645 x
 qPCR LoD95 from an own probit maximum-likelihood fit on log10 copies
 (scipy.optimize Nelder-Mead on the binomial log-likelihood, not the
 statsmodels GLM above) is 26.168 copies. All equal the engine.
+
+
+## Feature validation: Prism Info sheets round trip (2026-11-23)
+
+### P-59 .pzfx Info sheets: constants, notes and the analysis plan
+
+`pzfx.parse_pzfx` now returns the file's Info sheets next to its data
+tables, `{"title", "notes", "constants": [{"name", "value"}]}`, and
+`pzfx.write_pzfx(tables, info)` writes the project's info sheets as Prism
+Info sheets. Layout (no numbers are computed): `<InfoSequence>` with one
+`<Ref>` per sheet (the first `Selected="1"`), then each `<Info>` with
+`<Title>`, `<Notes>` (line breaks as `<BR/>`) and one
+`<Constant><Name>…</Name><Value>…</Value></Constant>` per constant, all
+before `<TableSequence>`: the layout Prism 6 writes, checked against the
+Prism-written sample `exponential_decay.pzfx` of the open-source pzfx R
+package (inst/extdata) and its `write_pzfx.R`. Notes keep the text of
+`<Font>`, `<B>` and other runs; `<BR>` is a line break. An export without
+info sheets is byte for byte the earlier output (one empty "Project info
+1").
+
+Fixture: `web/e2e-fixtures/info.pzfx`, written by hand in that layout,
+holds "Cell line = HeLa", Prism's six default constants (three empty) and
+two lines of formatted notes. `engine/tests/test_pzfx_info.py`: the
+import reads all eight constants and the two lines exactly; export, then
+import, returns the same sheets (also through the API handlers
+`pzfx_import` and `pzfx_export`); titles and values with `&` and `<` are
+escaped; a constant without a name is dropped; old exports read as one
+empty sheet. In the app, an analysis plan is written into its sheet's
+notes as text (Prism has no plan), and empty info sheets are neither
+written nor added on import.
+
+Manual check left for Eren (docs/prism-validation.md): open the exported
+file in Prism and confirm the Info sheet shows "Cell line = HeLa" and the
+notes.

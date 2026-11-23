@@ -569,6 +569,55 @@ const scenes = [
     await d.getByRole("textbox", { name: "IDs" }).fill("M2\nM5\nM99");
     await d.getByRole("textbox", { name: /^Reason/ }).fill("Died before day 7");
   } },
+  // P-37: a block selected with Shift+Down and the More menu's Fill down (Ctrl+D)
+  { name: "grid-fill-down", setup: async (s) => {
+    await fixture(s, "row-ids.json");
+    await click(s, s.page.locator(".data-table input[aria-label='Vehicle, row 2']"));
+    await s.page.keyboard.press("ArrowUp");
+    for (let i = 0; i < 3; i++) await s.page.keyboard.press("Shift+ArrowDown");
+    await click(s, s.page.locator(".grid-toolbar").getByRole("button", { name: "More", exact: true }));
+    await s.page.getByRole("menuitem", { name: /^Fill down/ }).waitFor();
+  } },
+  // P-38: "From long table…" on a paired t test, a shuffled long table of
+  // mice before and after with one unmatched mouse: the pairing report
+  { name: "grid-long-table-paired", setup: async (s) => {
+    await example(s);
+    const nd = await newTableDialog(s);
+    await nd.locator('input[name="table-type"][value="column"]').check();
+    await nd.getByLabel("Table name").fill("Paired mice");
+    await nd.getByRole("button", { name: "Create table" }).click();
+    await s.page.locator(".grid-toolbar").waitFor();
+    const controls = s.page.locator(".pane-controls").first();
+    await (await reveal(s, controls.locator("select.analysis-select"))).selectOption("ttest");
+    await controls.getByLabel("Test", { exact: true }).selectOption("paired");
+    await click(s, s.page.getByRole("button", { name: "From long table…" }));
+    const d = dialog(s, "Paired values from a long table");
+    await d.getByLabel("Long table text").fill(`${readFileSync(join(FIXTURES, "import", "paired_long.csv"), "utf8")}M7,before,10.0\n`);
+    await d.locator(".import-summary").waitFor();
+  } },
+  // P-38: the import recipes' column output paired by subject ID
+  { name: "shell-import-recipe-pairing", setup: async (s) => {
+    await example(s);
+    await click(s, s.page.getByRole("button", { name: "Import…", exact: true }));
+    await s.page.getByRole("tab", { name: "Recipes" }).click();
+    const d = dialog(s, "Import with a recipe");
+    await d.getByLabel("Export file to import").setInputFiles(join(FIXTURES, "import", "paired_long.csv"));
+    await d.locator(".recipe-option.checked", { hasText: "Recognise the file" }).waitFor();
+    await d.getByRole("tab", { name: "Columns" }).click();
+    await d.getByLabel("Column mouse holds").selectOption("subject");
+    await d.getByLabel("Column time holds").selectOption("group");
+    await d.getByLabel("Column value holds").selectOption("value");
+    await d.getByRole("tab", { name: "Table" }).click();
+    await d.getByRole("radio", { name: /^Column/ }).check();
+    await d.locator(".recipe-pairing").waitFor();
+    await d.locator(".recipe-pairing").scrollIntoViewIfNeeded();
+  } },
+  // P-59: a Prism file's Info sheet ("Cell line = HeLa", notes) opened
+  { name: "shell-info-from-prism", setup: async (s) => {
+    await fixture(s, join(FIXTURES, "info.pzfx"));
+    await selectSheet(s, "Project info 1");
+    await s.page.getByLabel("Cell line value", { exact: true }).waitFor();
+  } },
 
   // ---- results (the headline pane first: DECISIONS 3)
   { name: "results-example", setup: async (s) => {
@@ -835,6 +884,27 @@ const scenes = [
     await waitLive(s);
     await click(s, s.page.locator(".constants-list > summary"));
     await into(s, ".constants-list", "center");
+  } },
+  // a project reopened with Help me choose's saved reason (P-32): the
+  // Why this test note in the Checks row, and the methods paragraph
+  { name: "results-why-saved", setup: async (s) => {
+    await fixture(s, "why-history.json", { live: true });
+    const d = s.page.locator(".pane-answer details.checks").first();
+    if (!(await d.evaluate((e) => e.open))) await d.locator("summary").click();
+    await s.page.getByRole("note", { name: "Why this test" }).waitFor();
+    await into(s, ".results-why", "center");
+  } },
+  { name: "results-methods-why", setup: async (s) => {
+    await fixture(s, "why-history.json", { live: true });
+    await s.page.locator(".stats-methods p").filter({ hasText: "Choice of test" }).waitFor({ timeout: 60000 });
+    await into(s, ".stats-methods", "center");
+  } },
+  // the project's saved reproduction record in History (P-58)
+  { name: "results-history-saved", setup: async (s) => {
+    await fixture(s, "why-history.json", { live: true });
+    await click(s, button(s, "History").first());
+    const d = dialog(s, "History");
+    await d.locator(".history-reproduction").scrollIntoViewIfNeeded();
   } },
 
   // ---- graphs
