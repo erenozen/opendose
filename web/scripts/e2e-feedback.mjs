@@ -88,9 +88,13 @@ await page.waitForTimeout(500);
   for (let i = 0; i < 10 && !(await open.evaluate((el) => el === document.activeElement)); i++) {
     const was = await page.evaluate(() => document.activeElement?.textContent ?? "");
     await page.keyboard.press("ArrowDown");
+    // Wait for the step to land (it can take over a second under load);
+    // a short wait here let the next ArrowDown skip past Open….
     await page.waitForFunction((w) => (document.activeElement?.textContent ?? "") !== w, was,
-      { timeout: 1000 }).catch(() => {});
+      { timeout: 5000 }).catch(() => {});
   }
+  await page.waitForFunction((el) => el === document.activeElement, await open.elementHandle(),
+    { timeout: 5000 }).catch(() => {});
   const chooser = page.waitForEvent("filechooser", { timeout: 5000 }).then(() => true, () => false);
   await page.keyboard.press("Enter");
   expect("Enter on File › Open… opens the file picker", await chooser);
