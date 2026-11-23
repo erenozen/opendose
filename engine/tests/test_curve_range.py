@@ -109,27 +109,23 @@ def test_polynomial_in_raw_units():
 
 
 @pytest.mark.parametrize("opt, message", [
-    ({"curve_range": [-5, -9]}, "start (X = -5) must be below its end"),
+    ({"curve_range": [-5, -9]}, "the curve's start (X = -5) must be below its end (X = -9)"),
     ({"curve_range": [-6, -6]}, "must be below its end"),
-    ({"curve_points": 5}, "whole number of points from 10 to 5000"),
-    ({"curve_points": 10001}, "whole number of points from 10 to 5000"),
-    ({"curve_points": 25.5}, "whole number of points"),
-    ({"curve_range": [-3]}, "curve_range must be [start, end]"),
+    ({"curve_points": 5}, "enter a whole number of points from 10 to 5000"),
+    ({"curve_points": 10001}, "enter a whole number of points from 10 to 5000"),
+    ({"curve_points": 25.5}, "enter a whole number of points"),
+    ({"curve_range": [-3]}, "enter a start and an end X"),
+    ({"curve_range": [0, None]}, "the curve's start (X = 0) must be below its end (X = -4.5)"),
 ])
-def test_bad_options_say_what_to_enter(opt, message):
-    r = api.analyze({"analysis": "dose_response",
-                     "data": {"x": X, "datasets": [{"name": "A", "ys": Y}]},
-                     "options": {"x_is_log": False, **opt}})
-    assert message in r["error"]
-
-
-def test_one_sided_start_beyond_the_default_end():
-    """Start above the padded end with no end typed: said per data set."""
-    ds = api.analyze({"analysis": "dose_response",
-                      "data": {"x": X, "datasets": [{"name": "A", "ys": Y}]},
-                      "options": {"x_is_log": False,
-                                  "curve_range": [0, None]}})["datasets"][0]
-    assert "must be below its end (X = -4.5)" in ds["error"]
+def test_bad_settings_keep_the_fit_and_say_what_to_enter(opt, message):
+    """A drawing option never costs the fit: the default curve, and a
+    warning that says what to enter."""
+    ds = _fit(**opt)
+    base = _fit()
+    assert ds["fit"]["params"] == base["fit"]["params"]
+    assert ds["fit"]["curve"] == base["fit"]["curve"]
+    assert any(w.startswith("Curve range not used: ") and message in w
+               for w in ds["warnings"]), ds.get("warnings")
 
 
 def test_far_extension_keeps_finite_values():

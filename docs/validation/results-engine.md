@@ -1853,9 +1853,10 @@ and every drawn y equals Bottom + (Top - Bottom) / (1 + 10^((LogIC50 -
 X) HillSlope)) written out in the test, to 1e-12 relative); the BCA
 quadratic drawn from -500 to 2500 µg/mL against B0 + B1 X + B2 X^2;
 1000 points; a range inside the data (no extension); a far range
-(finite plateaus); a user-defined equation; and the errors (start not
-below end, a start beyond the default end, points outside 10 to 5000 or
-not whole, a malformed range). e2e-figures drives the "Start at X" and
+(finite plateaus); a user-defined equation; and settings that cannot
+be drawn (start not below end, a start beyond the default end, points
+outside 10 to 5000 or not whole, a malformed range), which keep the fit
+and the default curve with a warning saying what to enter. e2e-figures drives the "Start at X" and
 "Points on the curve" fields and checks the drawn points against the
 same equation in JavaScript (1e-9 relative), the dotted parts and the
 legend.
