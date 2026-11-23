@@ -4,6 +4,7 @@
 import type { ColumnOptionsState } from "../../types";
 import { formatSig } from "../../types";
 import { pLabel, tableP, tableStars } from "../../report/pformat";
+import { subjectDataset } from "./rmCorr";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -11,7 +12,9 @@ export function SubjectRoleSelect({ options, datasetNames, onChange }: {
   options: ColumnOptionsState; datasetNames: string[];
   onChange: (o: ColumnOptionsState) => void;
 }) {
-  const role = options.corrSubject ?? "";
+  // a subject column that has since become X or Y is no role
+  const d = subjectDataset(options.corrSubject);
+  const role = d === options.datasetA || d === options.datasetB ? "" : options.corrSubject ?? "";
   return (
     <>
       <div className="check-row">

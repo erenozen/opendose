@@ -70,4 +70,6 @@ test("the Checks row warns when a correlation ignores named subjects", () => {
   assert.ok(chip.sources?.some((s) => s.label.startsWith("Bakdash & Marusich 2017")));
   // with the Subject role set, no chip
   assert.equal(resultChips(ctx({ corrSubject: "rows" })).find((c) => c.id === "subjects"), undefined);
+  // a subject column that has since become X or Y no longer counts
+  assert.ok(resultChips(ctx({ corrSubject: "d0" })).find((c) => c.id === "subjects"));
 });

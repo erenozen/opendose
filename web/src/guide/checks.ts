@@ -14,7 +14,7 @@ import { separateTestsChip, type SeparateTests } from "./interaction.ts";
 import { sensitivityChip, type NeededN, type Sensitivity } from "./smallN.ts";
 import { SRC, type Source } from "./sources.ts";
 import { replicateInfo } from "../sheets/common/superplot.ts";
-import { ignoredSubjects } from "../sheets/column/rmCorr.ts";
+import { ignoredSubjects, subjectLabels } from "../sheets/column/rmCorr.ts";
 
 export type ChipState = "ok" | "warn" | "bad" | "info";
 
@@ -304,8 +304,10 @@ function sphericityChip(r: R | null): Chip | null {
  *  titles or an ID column): rows of one subject are not independent. */
 function subjectsChip(ctx: ResultContext): Chip | null {
   const o = ctx.options;
-  if (o.corrSubject || o.corrWithX) return null;
-  const hit = ignoredSubjects(ctx.table, Number(o.datasetA ?? 0), Number(o.datasetB ?? 1));
+  const a = Number(o.datasetA ?? 0), b = Number(o.datasetB ?? 1);
+  // a Subject role that still names usable labels: rm-corr ran
+  if (o.corrWithX || subjectLabels(ctx.table, String(o.corrSubject ?? ""), a, b)) return null;
+  const hit = ignoredSubjects(ctx.table, a, b);
   if (!hit) return null;
   return { id: "subjects", label: "Subjects ignored", state: "warn",
     detail: `Several rows seem to share a subject (${hit.where}), but this correlation treats `
