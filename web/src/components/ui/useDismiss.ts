@@ -20,12 +20,10 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type Ref, type R
 let modality: "keyboard" | "pointer" = "pointer";
 let lastKey = "";
 const MODIFIERS = new Set(["Shift", "Control", "Alt", "Meta", "CapsLock"]);
-if (typeof window !== "undefined") {
-  window.addEventListener("keydown", (e) => {
-    if (!MODIFIERS.has(e.key)) { modality = "keyboard"; lastKey = e.key; }
-  }, true);
-  window.addEventListener("pointerdown", () => { modality = "pointer"; }, true);
-}
+window.addEventListener("keydown", (e) => {
+  if (!MODIFIERS.has(e.key)) { modality = "keyboard"; lastKey = e.key; }
+}, true);
+window.addEventListener("pointerdown", () => { modality = "pointer"; }, true);
 
 /** True when the most recent user input was a key press, not a pointer. */
 export const lastInputWasKeyboard = () => modality === "keyboard";
@@ -35,11 +33,10 @@ export const lastInputWasKeyboard = () => modality === "keyboard";
 export const lastKeyWasTab = () => modality === "keyboard" && lastKey === "Tab";
 
 /** Touch-first device: no autofocus into text fields, no tooltips. */
-export const coarsePointer = () =>
-  typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches;
+export const coarsePointer = () => window.matchMedia("(pointer: coarse)").matches;
 
 export const prefersReducedMotion = () =>
-  typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 // ------------------------------------------------------------ layer stack
 
@@ -65,7 +62,7 @@ function onEscape(e: KeyboardEvent) {
 
 /** Registers an open layer; returns its removal. */
 export function pushLayer(layer: Layer): () => void {
-  if (!listening && typeof window !== "undefined") {
+  if (!listening) {
     window.addEventListener("keydown", onEscape, true);
     listening = true;
   }
