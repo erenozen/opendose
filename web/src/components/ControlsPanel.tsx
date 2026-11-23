@@ -515,7 +515,7 @@ export default function ControlsPanel({
             </p>
             {starts.map((p) => (
               <NumberField key={p} label={`${p} start`} fieldClassName="field-num"
-                placeholder="automatic" readOnly={readOnly}
+                placeholder="auto" readOnly={readOnly}
                 value={options.initialValues?.[p] ?? ""}
                 onValueChange={(v) => set({ initialValues: { ...(options.initialValues ?? {}), [p]: v } })} />
             ))}

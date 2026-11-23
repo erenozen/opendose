@@ -49,9 +49,10 @@ select option {
 .constraint-value:disabled { opacity: 0.4; }
 .interp-input, .antagonist-input { width: 100%; }
 
-/* A constraint's kind and range sit under its row, in line with its text */
-.constraint-kind, .constraint-range { padding-left: var(--space-24); }
-.constraint-kind { flex-direction: row; flex-wrap: wrap; gap: var(--space-4) var(--space-16); }
+/* A constraint's kind and range sit under its row, in line with its text
+   (.field-radios, later in this file, would reset the padding and direction) */
+.field-radios.constraint-kind, .constraint-range { padding-left: var(--space-24); }
+.field-radios.constraint-kind { flex-direction: row; flex-wrap: wrap; gap: var(--space-4) var(--space-16); }
 .constraint-range {
   display: flex; flex-direction: column; gap: var(--space-8);
   padding-block: var(--space-4) var(--space-8);
