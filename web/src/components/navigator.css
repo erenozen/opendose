@@ -1,0 +1,199 @@
+/* Navigator: the sheet tree, its highlight colours, and the drawer it
+   becomes on narrow screens. */
+
+/* A ruled sidebar pinned under the header (DECISIONS 2): the full height
+   of the viewport below the bar, closed by a 1px seam on its right. */
+.navigator {
+  position: sticky; top: var(--header-h, 0px);
+  height: calc(100dvh - var(--header-h, 0px));
+  display: flex; flex-direction: column; gap: var(--space-8);
+  padding: var(--space-12) var(--space-8) var(--space-8) max(var(--space-8), var(--safe-left));
+  background: var(--surface);
+  border-right: 1px solid var(--line-solid);
+  min-width: 0;
+}
+.navigator.nav-collapsed { display: none; }
+/* The head (project title and close button) is the drawer's own. */
+.nav-head { display: none; align-items: center; gap: var(--space-4); }
+.nav-title {
+  flex: 1 1 auto; min-width: 0; min-height: 32px;
+  font: inherit; font-size: var(--text-body); font-weight: var(--weight-semibold); letter-spacing: -0.01em;
+  color: var(--ink); background: transparent;
+  border: none; border-radius: var(--radius-control); padding: 0 var(--space-6);
+  box-shadow: inset 0 0 0 1px transparent;
+}
+@media (hover: hover) and (pointer: fine) {
+  .nav-title:hover:not(:read-only) { box-shadow: inset 0 0 0 1px var(--line-strong); }
+}
+.nav-title:focus-visible { outline-offset: 0; }
+.nav-close { display: none; }
+.nav-search-row { display: flex; gap: var(--space-2); align-items: center; }
+.nav-search {
+  flex: 1 1 auto; min-width: 0; min-height: 32px;
+  font: inherit; font-size: var(--text-body-s); color: var(--ink);
+  background: var(--inset); border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control); padding: 0 var(--space-8);
+}
+.nav-tree {
+  list-style: none; margin: 0 calc(-1 * var(--space-8)); padding: 0 var(--space-4) var(--space-4);
+  overflow-y: auto; overscroll-behavior: contain; flex: 1 1 auto; min-height: 0;
+}
+.nav-tree ul { list-style: none; margin: 0; padding: 0; }
+.nav-item { outline: none; }
+.nav-item:focus-visible > .nav-row {
+  outline: 2px solid var(--focus-ring); outline-offset: -2px;
+}
+.nav-row {
+  position: relative;
+  display: flex; align-items: center; gap: var(--space-6);
+  min-height: 28px; padding: var(--space-2) var(--space-6); border-radius: var(--radius-control);
+  cursor: default; user-select: none;
+  color: var(--ink-2); font-size: var(--text-body-s);
+}
+@media (hover: hover) and (pointer: fine) {
+  .nav-row:hover { background: var(--inset); }
+  .nav-item.selected > .nav-row:hover { background: var(--accent-soft); }
+  .nav-row:hover .nav-more { opacity: 1; }
+}
+/* Section rows: sentence-case labels, 12px/600, muted (DECISIONS 2). */
+.level-1 > .nav-row {
+  margin-top: var(--space-8);
+  font-size: var(--text-label); color: var(--muted); font-weight: var(--weight-semibold);
+}
+.level-1:first-child > .nav-row { margin-top: 0; }
+.level-2 > .nav-row { padding-left: var(--space-8); }
+.level-3 > .nav-row { padding-left: var(--space-24); }
+.level-4 > .nav-row { padding-left: var(--space-40); }
+/* Selection is colour and fill, never weight: a bolder name would move
+   where a long name is cut off on every click. */
+.nav-item.selected > .nav-row { background: var(--accent-soft); color: var(--accent); }
+.nav-item.in-family > .nav-row { color: var(--ink); }
+.nav-item.in-family > .nav-row::before {
+  content: ""; position: absolute; left: 1px; top: var(--space-8); bottom: var(--space-8);
+  width: 2px; background: var(--accent-border);
+}
+.twisty, .twisty-space { flex: none; width: 12px; height: 12px; }
+.twisty {
+  position: relative;
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer;
+}
+.twisty::before {
+  content: ""; border-left: 5px solid currentColor;
+  border-top: 4px solid transparent; border-bottom: 4px solid transparent;
+}
+/* No rotation tween: folding is a many-times-a-minute action, often by
+   arrow key, and the rows change in one frame (motion.md). */
+.twisty.open::before { transform: rotate(90deg); }
+.sheet-icon { flex: none; color: var(--muted); }
+.nav-item.selected > .nav-row .sheet-icon { color: var(--accent); }
+.nav-name, .nav-section {
+  flex: 1 1 auto; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.nav-sub { color: var(--muted); font-weight: var(--weight-regular); }
+.nav-count {
+  color: var(--muted); font-size: var(--text-caption); font-weight: var(--weight-medium);
+  font-variant-numeric: tabular-nums; letter-spacing: 0;
+}
+.nav-tag {
+  flex: none; font-size: var(--text-caption); font-weight: var(--weight-semibold); color: var(--muted);
+  border: 1px solid var(--line-strong); border-radius: var(--radius-control); padding: 0 var(--space-4);
+  line-height: var(--leading-tight);
+}
+.nav-frozen { flex: none; display: inline-flex; color: var(--muted); }
+/* The row's ⋯ menu: shown on hover, focus and the selected row, and
+   always where nothing hovers (touch screens of any width). */
+.nav-more {
+  position: relative;
+  flex: none; opacity: 0; min-height: 20px; padding: 0 var(--space-6);
+  background: transparent; color: var(--muted); font-size: var(--text-body); line-height: 1;
+  border: none; border-radius: var(--radius-control);
+}
+.nav-item.selected > .nav-row .nav-more,
+.nav-item:focus-visible > .nav-row .nav-more { opacity: 1; }
+@media (hover: none) { .nav-more { opacity: 1; } }
+.nav-rename {
+  flex: 1 1 auto; min-width: 0;
+  font: inherit; color: var(--ink); background: var(--surface);
+  border: 1px solid var(--line-strong); border-radius: var(--radius-control); padding: var(--space-2) var(--space-4);
+}
+.nav-empty {
+  color: var(--muted); font-size: var(--text-caption); padding: var(--space-2) var(--space-8) var(--space-4) var(--space-24);
+  margin: 0;
+}
+/* Highlight colours: a bar on the left edge and a faint tint */
+.hl-row { box-shadow: inset 3px 0 0 var(--hl); }
+.hl-row:not(:where(.nav-item.selected > .nav-row)) {
+  background: color-mix(in srgb, var(--hl) 10%, transparent);
+}
+.hl-red { --hl: var(--hl-red); }
+.hl-orange { --hl: var(--hl-orange); }
+.hl-yellow { --hl: var(--hl-yellow); }
+.hl-green { --hl: var(--hl-green); }
+.hl-blue { --hl: var(--hl-blue); }
+.hl-purple { --hl: var(--hl-purple); }
+
+/* ============================ drawer ============================ */
+
+/* At 900px and below the navigator is a drawer and a modal dialog
+   (Navigator.tsx): the page behind is inert, the scrim takes a press,
+   Escape returns focus to the toggle. Drawer and scrim share one curve
+   and duration: in 260 ms, out 200 ms (exits 20-30% faster, ruling 3).
+   Opened or closed from the keyboard, both move at once (App.tsx sets
+   data-drawer-instant). Reduced motion: the drawer fades in place. */
+.nav-scrim { display: none; }
+@media (max-width: 900px) {
+  .nav-scrim {
+    display: block;
+    position: fixed; inset: 0; z-index: calc(var(--z-drawer) - 1); background: var(--scrim);
+    opacity: 0; pointer-events: none;
+    transition: opacity var(--dur-drawer-exit) var(--ease-drawer);
+  }
+  .nav-scrim[data-open] {
+    opacity: 1; pointer-events: auto;
+    transition-duration: var(--dur-drawer);
+  }
+  .navigator, .navigator.nav-collapsed {
+    display: flex;
+    position: fixed; top: 0; left: 0; bottom: 0; z-index: var(--z-drawer);
+    height: auto;
+    width: min(320px, 86vw);
+    /* full height: keep the first and last rows off the notch and the
+       home indicator */
+    padding: calc(var(--space-12) + var(--safe-top)) var(--space-8) calc(var(--space-12) + var(--safe-bottom))
+      max(var(--space-8), var(--safe-left));
+    background: var(--float);
+    border: none;
+    box-shadow: var(--elev-dialog);
+    transform: translateX(-105%); visibility: hidden;
+    transition: transform var(--dur-drawer-exit) var(--ease-drawer),
+      opacity var(--dur-drawer-exit) var(--ease-drawer),
+      visibility 0s linear var(--dur-drawer-exit);
+  }
+  /* transform: none, not translateX(0): a transformed drawer would be the
+     containing block of the fixed menus inside it. */
+  .navigator.drawer-open {
+    transform: none; visibility: visible;
+    transition: transform var(--dur-drawer) var(--ease-drawer),
+      opacity var(--dur-drawer) var(--ease-drawer), visibility 0s;
+  }
+  .shell[data-drawer-instant] :is(.navigator, .nav-scrim) { transition: none; }
+  .nav-head, .nav-close { display: flex; }
+}
+/* base.css drops the slide; the drawer stays in place and fades with
+   its scrim instead of popping. */
+@media (max-width: 900px) and (prefers-reduced-motion: reduce) {
+  .navigator, .navigator.nav-collapsed { transform: none; opacity: 0; }
+  .navigator.drawer-open { opacity: 1; }
+}
+/* Touch: rows are 44px, the ⋯ menu and the twisty keep a 44px hit area. */
+@media (pointer: coarse) {
+  .nav-row { min-height: 44px; }
+  .nav-search-row { gap: var(--space-20); }
+  .nav-more::before, .twisty::after {
+    content: ""; position: absolute;
+    inset: min(0px, calc((100% - 44px) / 2));
+  }
+  .nav-row:active { background: var(--inset); }
+}

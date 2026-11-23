@@ -1,4 +1,6 @@
+import { useId } from "react";
 import Modal from "./Modal";
+import { Button } from "./ui/Button";
 
 export interface ConfirmOptions {
   title: string;
@@ -11,19 +13,19 @@ export default function ConfirmDialog({ opts, onDone }: {
   opts: ConfirmOptions;
   onDone: (ok: boolean) => void;
 }) {
+  const bodyId = useId();
   return (
-    <Modal title={opts.title} role="alertdialog" className="modal-narrow"
+    <Modal title={opts.title} role="alertdialog" className="modal-narrow" describedBy={bodyId}
       onClose={() => onDone(false)} onSubmit={() => onDone(true)}
       actions={
         <>
-          <button type="button" onClick={() => onDone(false)}>Cancel</button>
-          <button type="submit" autoFocus
-            className={opts.danger ? "btn-danger" : "btn-primary"}>
+          <Button onClick={() => onDone(false)}>Cancel</Button>
+          <Button type="submit" autoFocus variant={opts.danger ? "danger" : "primary"}>
             {opts.confirmLabel}
-          </button>
+          </Button>
         </>
       }>
-      <p className="modal-text">{opts.body}</p>
+      <p id={bodyId} className="modal-text">{opts.body}</p>
     </Modal>
   );
 }

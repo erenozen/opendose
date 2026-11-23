@@ -5,6 +5,8 @@ import {
 import { newId } from "../project/ids";
 import { parseProjectFile, savedSelection, serializeProject } from "../project/persist";
 import type { Project } from "../project/types";
+import { notify } from "../components/ui/Toast.store";
+import { requestShell } from "./commandRegistry";
 import { useProject } from "./context";
 
 const DELAY_MS = 800;
@@ -14,7 +16,7 @@ const DELAY_MS = 800;
  * and offer the previous session back on startup.
  */
 export function useAutosave() {
-  const { store, history, replace, setStatus, readOnly, results, selectedId } = useProject();
+  const { store, history, replace, readOnly, results, selectedId } = useProject();
   const [offer, setOffer] = useState<AutosaveRecord | null>(null);
   // The last session has been looked for (whether or not one exists).
   const [checked, setChecked] = useState(readOnly);
@@ -62,15 +64,22 @@ export function useAutosave() {
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
 
   /** Reopen the last session. `auto`: opened directly at startup (the
-   *  default start mode), said in the status line. */
+   *  default start mode), said in a toast. */
   const restore = (opts: { auto?: boolean } = {}) => {
     if (!offer) return;
     try {
       const p = parseProjectFile(offer.json, { prefs: store.project.prefs, ids: newId });
       replace(p, savedSelection(offer.json));
-      if (opts.auto) setStatus(`Reopened your last session, “${offer.title}”.`);
+      if (opts.auto) notify(`Reopened your last session, “${offer.title}”.`, { tone: "info" });
     } catch (e) {
-      setStatus(`Could not restore: ${e instanceof Error ? e.message : e}`);
+      // Object, reason, next step (content.md): the saved copy is unreadable,
+      // so the way back is the project file, if one was saved.
+      notify(`Could not restore your last session, “${offer.title}”: `
+        + `${String(e instanceof Error ? e.message : e).replace(/\.$/, "")}. `
+        + "Open its project file if you saved one.", {
+        tone: "error",
+        action: { label: "Open a project file", onAction: () => requestShell("open") },
+      });
     }
     setOffer(null);
     void deleteSlot("previous");

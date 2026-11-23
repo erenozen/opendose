@@ -1,6 +1,7 @@
 // The "separate tests per group" chip (guide/interaction.ts): the
 // one-click two-way ANOVA with the interaction first on a grouped table.
 import { useProject } from "../app/context";
+import { Button } from "../components/ui";
 import { newId } from "../project/ids";
 import type { ResultsSheet } from "../project/types";
 import { addConfiguredAnalysis } from "./actions";
@@ -26,8 +27,8 @@ export function InteractionAction({ dataId }: { dataId: string }) {
   };
   return (
     <p className="guide-chip-action">
-      <button type="button" onClick={open}>
-        {have ? `Open “${have.name}”` : "Two-way ANOVA with the interaction first"}</button>
+      <Button size="sm" onClick={open}>
+        {have ? `Open “${have.name}”` : "Two-way ANOVA with the interaction first"}</Button>
     </p>
   );
 }

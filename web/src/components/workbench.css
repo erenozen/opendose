@@ -1,0 +1,38 @@
+/* Workbench details. The frozen note is a condition, drawn like a
+   neutral Banner (inset tile, solid line); the accent is kept for state,
+   so the snowflake and the chip are ink, not blue. */
+.frozen-note {
+  display: flex; align-items: center; gap: var(--space-8); flex-wrap: wrap;
+  margin-bottom: var(--space-8); padding: var(--space-6) var(--space-12);
+  border: 1px solid var(--line-solid); border-radius: var(--radius-pane);
+  background: var(--inset); color: var(--ink-2); font-size: var(--text-body-s);
+}
+.frozen-note svg { color: var(--muted); }
+.frozen-note button { padding: var(--space-2) var(--space-8); font-size: var(--text-body-s); margin-left: auto; }
+.frozen-chip {
+  display: inline-flex; align-items: center; gap: var(--space-4);
+  font-size: var(--text-caption); font-weight: var(--weight-semibold); color: var(--ink-2);
+}
+/* A fieldset (disabled when frozen or shared), without its frame. */
+.controls-wrap {
+  display: flex; flex-direction: column;
+  min-inline-size: 0; margin: 0; padding: 0; border: 0;
+}
+.controls-wrap:disabled { opacity: 0.6; }
+.pane-controls { display: flex; flex-direction: column; gap: var(--space-12); }
+.constants-list { padding: var(--space-4) 18px 10px; border-top: none; }
+.constants-list.advanced {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius-pane);
+}
+.graph-head {
+  flex: none; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: var(--space-8) 14px 0; font-size: var(--text-body-s); color: var(--muted);
+}
+.graph-name { font-weight: var(--weight-semibold); color: var(--ink-2); margin-right: auto; }
+.graph-select { padding: var(--space-4) var(--space-8); font-size: var(--text-body-s); }
+.placeholder-panel .placeholder-lead { margin: 0 0 var(--space-6); }
+
+@media (max-width: 760px) {
+  .pane-controls:empty { display: none; }
+}

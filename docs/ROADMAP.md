@@ -158,6 +158,40 @@ note in the README): [user guide](https://www.graphpad.com/guides/prism/latest/u
       detection + retry), idempotent sync-py so live dev servers stay
       coherent
 
+### UI/UX overhaul (2026-11-22 to 2026-11-23)
+Plan `docs/design/UI-UX-PLAN.md`, audit `docs/design/AUDIT.md`,
+directions `docs/design/DECISIONS.md`, rules `docs/design/` and
+`CLAUDE.md`. Driven by the installed emil design skills, phase by phase.
+- [x] Audit and harness: seven read-only audits (209 findings, 21 root
+      causes, prep-for-prod verdict "Not yet"), `web/scripts/ui-stage.mjs`
+      (55 scenes, worst-content fixtures in `web/e2e-fixtures/stage/`)
+- [x] Direction from five prototype runs: Instrument surface (tiled panes
+      on seams, OKLCH palette with the plot hue as the one accent, ink
+      focus ring, lifted dark page), answer-first results, landing on a
+      live example with paste anywhere, one header bar with File and View
+      menus and a Cmd+K palette, toasts for events and one Banner for
+      conditions
+- [x] Foundations: token layer in `web/src/styles/` (light-dark(), scales
+      for type, space, radius, elevation, z-index, motion), pre-paint
+      theme script, mobile and reduced-motion baseline, Plotly chrome from
+      one source with a drift test, `web/scripts/design-counts.mjs`
+- [x] Primitives in `web/src/components/ui/`: Button, IconButton,
+      FileButton, Field, NumberField, Toast with one announcer, Banner,
+      Dialog, Popover, Menu, Tooltip, Tabs, LabelSwap, Num
+- [x] Six surfaces redesigned (shell, grid and import, results and
+      report, graphs and layouts chrome, first run, guided flows); the
+      start screen is gone; "Rep 1, Rep 2, Rep 3" pastes as replicates
+- [x] Motion pass (review-animations: Approve), words and code hygiene,
+      ship-bar sweep in fix mode (prep-for-prod verdict "Ship")
+- [x] New e2e suites: e2e-feedback, e2e-primitives, e2e-motion (also run
+      against the production build by `scripts/verify.sh`)
+- [ ] Device checks on a real iPhone and Android phone (list in
+      `docs/design/AUDIT.md`, phase 7 section)
+- [ ] og:image (1200 x 630) for link previews
+- [ ] Follow-ups left as product decisions: the remaining raw decimal
+      fields, a cap on very long comparison lists, typographic
+      apostrophes, the Analyze/analysed spelling, typed engine payloads
+
 ## User-guide review (2026-10-03)
 
 A topic-by-topic pass over the 448 pages of the Prism 11 user guide

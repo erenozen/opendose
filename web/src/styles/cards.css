@@ -1,0 +1,49 @@
+/* The content of the panes: the table, controls, results and plot
+   blocks. */
+
+/* Outside the workbench (info sheets, empty states) a block is a flat
+   tile: one depth cue, the hairline (ruling 6). */
+.data-table, .controls, .result-card, .plot-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pane);
+}
+/* In the workbench the pane is the tile: its blocks sit flush on the
+   pane, and the seams (splitters) are the only lines between panes
+   (DECISIONS 2). Two blocks stacked in one pane share a soft divider. */
+main.workspace .pane { padding: var(--space-12) var(--space-16); }
+main.workspace .pane-plot { padding: 0; }
+main.workspace :is(.data-table, .controls, .result-card, .plot-card) {
+  border: none; border-radius: 0;
+}
+main.workspace :is(.controls, .result-card) { padding: 0; }
+main.workspace .result-card + .result-card {
+  margin-top: var(--space-16); padding-top: var(--space-16); border-top: 1px solid var(--line);
+}
+
+.controls, .result-card { padding: var(--space-16); }
+.controls { display: flex; flex-direction: column; gap: var(--space-16); }
+
+/* Section labels: sentence case, 12px/600, muted (DECISIONS 2). */
+.controls h3, .result-card h4 {
+  margin: 0; font-size: var(--text-label); color: var(--muted); font-weight: var(--weight-semibold);
+}
+.controls h3 { margin-bottom: var(--space-8); }
+.result-card h4 { margin: var(--space-16) 0 var(--space-6); }
+
+.result-card h3 {
+  margin: 0 0 var(--space-4); font-size: var(--text-lead); font-weight: var(--weight-semibold);
+  letter-spacing: -0.01em;
+}
+
+/* Contents scroll inside a block; the splitters set its height (no
+   corner handle: the seams already resize). */
+.data-table, .controls, .result-card {
+  overflow: auto; min-height: 40px; min-width: 0; max-width: 100%;
+}
+
+.plot-card {
+  overflow: hidden; min-height: 200px;
+  min-width: 0; max-width: 100%;
+  display: flex; flex-direction: column;
+}

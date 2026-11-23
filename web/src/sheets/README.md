@@ -40,7 +40,7 @@ src/
   guide/            guidance: "Which test?" recommender and wizard, results
                     chips / banners / "why your number may differ" (fed by
                     the analysis id, options and result: no plugin work
-                    needed), explainers + Help panel, start screen, tour.
+                    needed), explainers + Help panel, first run, tour.
                     Pure rules (recommend, paste, checks, banners, differ,
                     entry) are unit-tested in guide/__tests__
   share/            share links, export bundle, .pzfx, import recipes

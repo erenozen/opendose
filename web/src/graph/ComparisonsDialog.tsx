@@ -2,6 +2,7 @@
 // values taken from the bound results, or a compact letter display.
 import { useEffect, useState } from "react";
 import Modal from "../components/Modal";
+import { Button } from "../components/ui";
 import { analyzeAsync } from "../lib/engine";
 import { CHROME_DARK, CHROME_LIGHT, isDarkMode } from "../lib/palette";
 import { withField, type ComparisonsFormat, type GraphFormat, type LettersFormat } from "./format";
@@ -14,6 +15,7 @@ import { lettersFor } from "./apply";
 import {
   CheckField, ColorField, DialogActions, NumField, SelectField, Tabs,
 } from "./controls";
+import { useDiscardGuard } from "./useDiscardGuard";
 
 type EngineState = "idle" | "asking" | "engine" | "client";
 
@@ -76,9 +78,10 @@ export default function ComparisonsDialog({
 
   const preview = lettersFor(groups, plain, alpha, l.style ?? "lower", draft.letters?.engine);
   const dirty = JSON.stringify(draft) !== JSON.stringify(applied);
+  const requestClose = useDiscardGuard(dirty, onClose);
 
   return (
-    <Modal title="Pairwise comparisons" className="modal-wide fmt-dialog" onClose={onClose}
+    <Modal title="Pairwise comparisons" className="modal-wide fmt-dialog" onClose={requestClose}
       onSubmit={() => { if (dirty) onApply(draft); onClose(); }}
       actions={<DialogActions onCancel={onClose}
         onApply={() => { onApply(draft); setApplied(draft); }} dirty={dirty} />}>
@@ -111,11 +114,11 @@ export default function ComparisonsDialog({
               })}
             </div>
             <span className="fmt-pair-tools">
-              <button type="button" className="fmt-mini" onClick={() => setC({ hidden: undefined })}>
-                Tick all</button>
-              <button type="button" className="fmt-mini" onClick={() =>
+              <Button size="sm" onClick={() => setC({ hidden: undefined })}>
+                Tick all</Button>
+              <Button size="sm" onClick={() =>
                 setC({ hidden: set.comparisons.filter((x) => x.p > 0.05).map(pairKey) })}>
-                Only significant</button>
+                Only significant</Button>
             </span>
             {set.comparisons.some((x) => x.family) && (
               <p className="field-note">Comparisons within one row of a two-way design are

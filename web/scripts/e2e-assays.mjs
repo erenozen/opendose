@@ -29,6 +29,12 @@ import { chromium } from "playwright";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 
+// The header's File menu (DECISIONS 5): open it, pick an item.
+const fileMenu = async (p, item) => {
+  await p.locator("header").getByRole("button", { name: "File", exact: true }).click();
+  await p.getByRole("menuitem", { name: item }).click();
+};
+
 // ?example=1 opens the example project directly (no start screen, no tour).
 const url = (() => {
   const u = new URL(process.argv[2] ?? "http://localhost:5173/");
@@ -74,7 +80,7 @@ const axeViolations = async (selectors) => {
 
 const wizard = () => page.locator("dialog.assay-wizard");
 async function startAssay(label, { sample = true, name } = {}) {
-  await page.getByRole("button", { name: "New data table" }).click();
+  await fileMenu(page, "New data table…");
   const dlg = page.locator(".new-table-dialog");
   await dlg.getByRole("radio", { name: "Start from an assay" }).check();
   const re = new RegExp(`^${label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`);
@@ -98,7 +104,7 @@ async function finishWizard() {
     await next.click();
     await page.waitForTimeout(250);
   }
-  await wizard().locator(".modal-actions .btn-primary").click();
+  await wizard().locator(".modal-actions .wizard-next").click();
   await wizard().waitFor({ state: "detached", timeout: 10000 });
 }
 
@@ -405,11 +411,24 @@ expect("the linked matched table opens with the column ratio paired t test (Trea
 // GTT example, one subcolumn per mouse: trapezoid areas (numpy) chow
 // 20602.5, 19290, 21952.5, 20092.5 (mean 20484.375), high-fat diet mean
 // 33110.625; unpaired t test t(6) = 10.15, P = 5.31e-5 (scipy).
-await page.getByRole("button", { name: "New data table" }).click();
+await fileMenu(page, "New data table…");
 const pick = page.locator(".new-table-dialog");
 await pick.getByRole("radio", { name: "Start from an assay" }).check();
-const nModules = await pick.locator('input[name="assay-module"]').count();
-expect("Start from an assay lists all twelve modules", nModules === 12, String(nModules));
+// The sixteen modules of the registry (sheets/assays/index.ts ASSAYS), in
+// display order: the first twelve plus luciferase, wound healing, MIC and
+// kinetic reads.
+const moduleNames = await pick.locator('label:has(input[name="assay-module"]) .type-option-name').allInnerTexts();
+const expectedModules = [
+  "Plate reader → dose-response", "Standard curve / ELISA", "qPCR (ΔCq / ΔΔCq)",
+  "Western blot densitometry", "Dual-luciferase reporter",
+  "Flow cytometry (FlowJo statistics → per-donor tests)", "Growth curves (OD600, counts)",
+  "Wound healing (scratch assay)", "MIC (broth microdilution)", "Kinetic plate reads (initial rates)",
+  "Tumour growth and longitudinal studies", "Time course (the same subjects measured over time)",
+  "Drug combination synergy", "Area under the curve", "Volcano plot from a table", "Clustered heat map",
+];
+expect("Start from an assay lists all sixteen modules, in registry order",
+  await pick.locator('input[name="assay-module"]').count() === 16
+  && JSON.stringify(moduleNames) === JSON.stringify(expectedModules), moduleNames.join(" | "));
 await pick.getByRole("radio", { name: /^Area under the curve/ }).check();
 expect("a module without a wizard says so", !(await pick.locator(".field-note").innerText()).includes("wizard"));
 await pick.getByRole("button", { name: "Start assay" }).click();
@@ -423,12 +442,14 @@ expect("AUC example: one area per mouse, chow 20480 (SD 1118), high-fat diet 331
 expect("AUC example: areas compared by the unpaired t test, t(6) = -10.15",
   (await textOf(".pane-results")).includes("t(6) = -10.15"));
 await page.getByRole("button", { name: "Analyze", exact: true }).click();
-expect("the Analyze menu has one Assays divider",
-  await page.locator('.analyze-menu [role=separator][aria-label="Assays"]').count() === 1);
+const assayGroup = page.getByRole("menu", { name: "Add an analysis" })
+  .getByRole("group", { name: "Assays" });
+expect("the Analyze menu has one Assays group",
+  await assayGroup.count() === 1);
 expect("both halves' assays are listed under it on an XY table",
-  await page.getByRole("menuitem", { name: /^Assay: Standard curve/ }).count() === 1
-  && await page.getByRole("menuitem", { name: /^Assay: Growth curves/ }).count() === 1
-  && await page.getByRole("menuitem", { name: /^Assay: Area under the curve/ }).count() === 1);
+  await assayGroup.getByRole("menuitem", { name: /^Assay: Standard curve/ }).count() === 1
+  && await assayGroup.getByRole("menuitem", { name: /^Assay: Growth curves/ }).count() === 1
+  && await assayGroup.getByRole("menuitem", { name: /^Assay: Area under the curve/ }).count() === 1);
 await page.keyboard.press("Escape");
 
 // --- time course (need time-course-models): the GTT example with six mice
@@ -439,7 +460,7 @@ await page.keyboard.press("Escape");
 // high-fat diet 32915, unpaired t(10) = -15.60 (scipy); mean of 60-120 min
 // per mouse: t(10) = -16.65 (scipy).
 {
-  await page.getByRole("button", { name: "New data table" }).click();
+  await fileMenu(page, "New data table…");
   const nd = page.locator(".new-table-dialog");
   await nd.getByRole("radio", { name: "Start from an assay" }).check();
   await nd.getByRole("radio", { name: /^Time course/ }).check();
@@ -451,8 +472,19 @@ await page.keyboard.press("Escape");
     rows.length === 3 && /^Group\s+F\(1, 10\) = 223\.5\s+< 0\.0001/.test(rows[0])
     && /^Time\s+F\(5, 50\) = 1950\s/.test(rows[1]) && /^Group × Time\s+F\(5, 50\) = 99\.85\s+< 0\.0001/.test(rows[2]),
     rows.join(" | ").replace(/\s+/g, " "));
-  expect("time course: the df note names the between-within method",
-    (await textOf(".pane-results")).includes("Denominator df by the between-within method: Group is tested on 10 df between subjects (12 subjects − 2 groups)"));
+  // New sheets default to Kenward-Roger df (Prism 11.2's default for mixed
+  // models); between-within stays available in the controls and is what
+  // sheets saved before the setting existed keep.
+  expect("time course: the df note names the Kenward-Roger method (the default)",
+    (await textOf(".pane-results")).includes("Denominator df by the Kenward-Roger method, computed from the "
+      + "fitted covariance: each test and comparison has its own df, and the standard errors are adjusted for small samples."));
+  await page.getByLabel("Degrees of freedom", { exact: true }).selectOption("between_within");
+  expect("time course: the df note names the between-within method when it is chosen",
+    await waitText('.pane-results[data-live="true"]', "Denominator df by the between-within method: Group is tested "
+      + "on 10 df between subjects (12 subjects − 2 groups), Time and Group × Time on 50 df within subjects", 90000));
+  await page.getByLabel("Degrees of freedom", { exact: true }).selectOption("kenward_roger");
+  expect("time course: back to Kenward-Roger",
+    await waitText('.pane-results[data-live="true"]', "Denominator df by the Kenward-Roger method", 90000));
   await page.getByRole("button", { name: "Compare covariance structures (AIC)" }).click();
   expect("covariance comparison: four structures listed",
     await page.waitForFunction(() => document.querySelectorAll(".mixed-aic tbody tr").length === 4, null,

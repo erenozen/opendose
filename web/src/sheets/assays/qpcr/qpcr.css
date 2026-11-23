@@ -1,14 +1,14 @@
 /* qPCR reference-gene check (refPanels.tsx). Tokens only. */
 .qpcr-refs {
-  display: flex; flex-direction: column; gap: 8px;
-  margin: 4px 0 12px; padding: 10px 12px;
-  border: 1px solid var(--border); border-radius: var(--radius-s);
+  display: flex; flex-direction: column; gap: var(--space-8);
+  margin: var(--space-4) 0 var(--space-12); padding: 10px var(--space-12);
+  border: 1px solid var(--line-strong); border-radius: var(--radius-control);
   background: var(--surface);
 }
 .qpcr-refs h4 { margin: 0; }
 .qpcr-refs p { margin: 0; }
-.qpcr-ref-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.qpcr-ref-chips .qc-chip { white-space: normal; line-height: 1.4; padding: 2px 9px; }
-.qpcr-ref-n { color: var(--muted); font-size: 11.5px; white-space: nowrap; }
-.qpcr-ref-actions { display: flex; flex-wrap: wrap; gap: 8px; }
-.qpcr-ref-source { font-size: 12.5px; }
+.qpcr-ref-chips { display: flex; flex-wrap: wrap; gap: var(--space-6); }
+.qpcr-ref-chips .qc-chip { white-space: normal; line-height: 1.4; padding: var(--space-2) 9px; }
+.qpcr-ref-n { color: var(--muted); font-size: var(--text-caption); white-space: nowrap; }
+.qpcr-ref-actions { display: flex; flex-wrap: wrap; gap: var(--space-8); }
+.qpcr-ref-source { font-size: var(--text-body-s); }

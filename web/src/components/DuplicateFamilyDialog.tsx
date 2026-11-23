@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Modal from "./Modal";
+import { Button, Field, Input } from "./ui";
 
 export default function DuplicateFamilyDialog({ tableName, childCount, onCancel, onDuplicate }: {
   tableName: string;
@@ -14,8 +15,8 @@ export default function DuplicateFamilyDialog({ tableName, childCount, onCancel,
       onSubmit={() => onDuplicate({ name, withData })}
       actions={
         <>
-          <button type="button" onClick={onCancel}>Cancel</button>
-          <button type="submit" className="btn-primary">Duplicate</button>
+          <Button onClick={onCancel}>Cancel</Button>
+          <Button type="submit" variant="primary">Duplicate</Button>
         </>
       }>
       <p className="modal-text">
@@ -23,11 +24,12 @@ export default function DuplicateFamilyDialog({ tableName, childCount, onCancel,
         and graph sheet{childCount === 1 ? "" : "s"}. Sheet names that contain
         the table name get the new name instead.
       </p>
-      <label className="field">
-        <span>Name of the new data table</span>
-        <input autoFocus value={name} onChange={(e) => setName(e.target.value)}
+      {/* The first control: Dialog focuses it on fine pointers (no autoFocus,
+          which would open the keyboard on a phone). */}
+      <Field label="Name of the new data table">
+        <Input value={name} autoComplete="off" onChange={(e) => setName(e.target.value)}
           onFocus={(e) => e.currentTarget.select()} />
-      </label>
+      </Field>
       <fieldset className="field-radios">
         <legend>Values</legend>
         <label><input type="radio" name="dup-data" checked={withData}

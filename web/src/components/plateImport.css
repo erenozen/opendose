@@ -1,0 +1,33 @@
+/* ============================ plate import ============================ */
+
+/* The disclosure: a sentence-case section label with a chevron that
+   turns when open (aria-expanded carries the state). */
+.plate-toggle {
+  display: inline-flex; align-items: center; gap: var(--space-6); align-self: flex-start;
+  min-height: 28px; padding: 0; border: none; background: transparent;
+  font-size: var(--text-label); font-weight: var(--weight-semibold); color: var(--muted);
+  cursor: pointer; text-align: left;
+}
+.plate-chevron { flex: none; }
+.plate-toggle[aria-expanded="true"] .plate-chevron { transform: rotate(90deg); }
+@media (hover: hover) and (pointer: fine) {
+  .plate-toggle:hover { background: transparent; color: var(--ink); }
+}
+@media (pointer: coarse) {
+  .plate-toggle { min-height: 44px; }
+}
+.plate-form {
+  display: flex; flex-direction: column; gap: var(--space-12); margin-top: var(--space-8);
+  transition: opacity var(--dur-enter) var(--ease-out), transform var(--dur-enter) var(--ease-out);
+  opacity: 1; transform: translateY(0);
+  @starting-style { opacity: 0; transform: translateY(-4px); }
+}
+.plate-form .field { margin: 0; }
+.plate-file { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8); }
+.plate-file-name {
+  min-width: 0; font-size: var(--text-body-s); color: var(--muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.plate-grid-opts { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-8) var(--space-12); }
+.plate-actions { display: flex; flex-direction: column; align-items: flex-start; }
+.plate-actions .import-error:not(:empty) { margin-top: var(--space-8); }

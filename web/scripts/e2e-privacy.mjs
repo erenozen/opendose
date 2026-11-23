@@ -31,6 +31,16 @@ import { connect } from "node:net";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+// The header's File and View menus (DECISIONS 5): open one, pick an item.
+const fileMenu = async (p, item) => {
+  await p.locator("header").getByRole("button", { name: "File", exact: true }).click();
+  await p.getByRole("menuitem", { name: item }).click();
+};
+const viewMenu = async (p, item) => {
+  await p.locator("header").getByRole("button", { name: "View", exact: true }).click();
+  await p.getByRole("menuitem", { name: item }).click();
+};
+
 const baseUrl = process.argv[2] ?? "http://127.0.0.1:5300/";
 const site = new URL(baseUrl);
 const CANARY_DIGITS = "649182";
@@ -133,23 +143,26 @@ const pasteInto = (selector, text) => page.evaluate(([sel, t]) => {
   el.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }));
 }, [selector, text]);
 
-// --- 1. start screen: paste an XY table, the fit runs --------------------
+// --- 1. first visit: paste an XY table over the example, the fit runs ----
 phase = "boot + XY fit";
 await page.goto(baseUrl, { waitUntil: "domcontentloaded" });
-await page.locator(".start-screen").waitFor({ timeout: 60000 });
-await page.getByRole("textbox", { name: "Paste data and get a table type" }).fill(
-  `Conc\t${CANARY_LABEL} rep 1\t${CANARY_LABEL} rep 2\n`
+await page.locator(".example-banner").waitFor({ timeout: 60000 });
+await page.evaluate((t) => {
+  const dt = new DataTransfer();
+  dt.setData("text/plain", t);
+  document.body.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }));
+}, `Conc\t${CANARY_LABEL} rep 1\t${CANARY_LABEL} rep 2\n`
   + "0.001\t98.649182\t101.2\n0.01\t95.1\t97.649182\n0.1\t70.649182\t66.3\n"
   + "1\t30.2\t35.649182\n10\t5.649182\t8.1\n");
-await page.getByRole("button", { name: "Create XY table" }).click();
+await page.locator(".paste-banner").waitFor({ timeout: 10000 });
 await page.locator(".data-table").waitFor({ timeout: 60000 });
-expect("XY table pasted from the start screen is fitted",
+expect("XY table pasted on the first visit's page is fitted",
   await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 180000 })
     .then(() => true, () => false));
 
 // --- 2. a column table and a t test --------------------------------------
 phase = "column t test";
-await page.getByRole("button", { name: "New data table" }).first().click();
+await fileMenu(page, "New data table…");
 const nd = page.locator(".new-table-dialog");
 await nd.locator('input[name="table-type"][value="column"]').check();
 await nd.getByRole("button", { name: "Create table" }).click();
@@ -165,7 +178,7 @@ expect("column t test on the canary data returns a P value", await resultsMatch(
 
 // --- 3. a grouped table and a two-way ANOVA ------------------------------
 phase = "grouped ANOVA";
-await page.getByRole("button", { name: "New data table" }).first().click();
+await fileMenu(page, "New data table…");
 const gd = page.locator(".new-table-dialog");
 await gd.locator('input[name="table-type"][value="grouped"]').check();
 await gd.getByText("Example data").click();
@@ -191,10 +204,10 @@ for (const fmt of ["svg", "png", "pdf"]) {
 
 // --- 5. save the project, make a share link ------------------------------
 phase = "save + share";
-const saved = await download(() => page.getByRole("button", { name: "Save project" }).click())
+const saved = await download(() => fileMenu(page, "Save project"))
   .catch(() => "");
 expect("project saved as a file", saved.length > 0, saved);
-await page.getByRole("button", { name: "More ways to save and share" }).click();
+await page.locator("header").getByRole("button", { name: "File", exact: true }).click();
 await page.getByRole("menuitem", { name: "Copy share link…" }).click();
 const shareDlg = page.getByRole("dialog", { name: "Share this project" });
 await shareDlg.waitFor({ timeout: 10000 });
@@ -222,13 +235,13 @@ await page.waitForTimeout(5000); // let anything late show itself
 
 // --- 7. an .xlsx import: the reader installs from the site, on first use --
 phase = "xlsx import";
-await page.getByRole("button", { name: "New data table" }).first().click();
+await fileMenu(page, "New data table…");
 const xd = page.locator(".new-table-dialog");
 await xd.locator('input[name="table-type"][value="xy"]').check();
 await xd.getByRole("button", { name: "Create table" }).click();
 await page.waitForSelector(".grid-toolbar");
 await page.getByRole("button", { name: "Import…", exact: true }).click();
-await page.locator(".import-dialog").getByLabel("File to import").setInputFiles(XLSX);
+await page.locator(".import-dialog").locator('input[aria-label="File to import"]').setInputFiles(XLSX);
 expect("an .xlsx file is read (the reader installs on first use)",
   await page.waitForFunction(() =>
     /^9 of 9 rows/.test(document.querySelector(".import-dialog .import-summary")?.textContent ?? ""),
@@ -237,7 +250,7 @@ await page.keyboard.press("Escape");
 
 // --- 8a. the privacy page itself contacts nothing --------------------------
 phase = "privacy page";
-await page.getByRole("button", { name: /About OpenDose/ }).click();
+await viewMenu(page, "About OpenDose…");
 await page.locator(".info-pop").getByRole("button", { name: "How your data stays private" }).click();
 expect("the privacy page opens", await page.getByRole("dialog", { name: "Your data and privacy" })
   .waitFor({ timeout: 10000 }).then(() => true, () => false));
@@ -270,7 +283,7 @@ const editFirstCell = async (v) => {
   await page.waitForTimeout(2000); // autosave debounce
 };
 const openPrefs = async () => {
-  await page.getByRole("button", { name: "Preferences" }).click();
+  await viewMenu(page, "Preferences…");
   return page.getByRole("dialog", { name: "Preferences" });
 };
 
@@ -301,7 +314,7 @@ await Promise.all([
   page.waitForNavigation({ timeout: 30000 }),
   prefsPop.getByRole("button", { name: "Forget and close the project" }).click(),
 ]);
-await page.locator(".start-screen").waitFor({ timeout: 60000 });
+await page.locator(".example-banner").waitFor({ timeout: 60000 });
 const after = await stored();
 const dataKeys = after.keys.filter((k) => /^opendose[-.](autosave|import-recipes|plate-layouts|userEquations|templates|start-screen|tour-done)/.test(k));
 expect("after Forget no session, recipe, layout, equation or setting is left, and OpenDose opens as on a first visit",

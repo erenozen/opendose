@@ -2,12 +2,65 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fcfdff" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#13161b" />
+    <!-- Pre-paint theme: the stored light or dark choice is set before any
+         CSS loads, so a reload never flashes the other theme. public/_headers
+         allows this script by its sha256 (checked by lib/__tests__/chrome.test.ts). -->
+    <script>
+      (function () {
+        try {
+          var t = null;
+          try { t = JSON.parse(localStorage.getItem("opendose-prefs") || "null"); t = t && t.theme; } catch (e) { t = null; }
+          if (t !== "light" && t !== "dark" && t !== "auto") t = localStorage.getItem("opendose-theme");
+          if (t !== "light" && t !== "dark") return;
+          var root = document.documentElement;
+          root.setAttribute("data-theme", t);
+          root.style.colorScheme = t;
+          var metas = document.querySelectorAll('meta[name="theme-color"]');
+          for (var i = 0; i < metas.length; i++) metas[i].setAttribute("content", t === "dark" ? "#13161b" : "#fcfdff");
+        } catch (e) {}
+      })();
+    </script>
+    <!-- PNG first, SVG last: browsers that read SVG icons take the SVG. -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="canonical" href="https://opendose.erenozen.dev/" />
     <title>OpenDose: curve fitting &amp; biostatistics in your browser</title>
+    <meta name="description" content="Fit dose-response curves, run the standard statistics toolbox, and analyze survival data, powered by real SciPy running entirely on your device. Nothing is uploaded, ever." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://opendose.erenozen.dev/" />
+    <meta property="og:title" content="OpenDose: curve fitting &amp; biostatistics in your browser" />
+    <meta property="og:description" content="Fit dose-response curves, run the standard statistics toolbox, and analyze survival data, powered by real SciPy running entirely on your device. Nothing is uploaded, ever." />
+    <meta name="twitter:card" content="summary" />
+    <!-- The static shell's look: the app bar as React draws it (header.css),
+         on the page colour, so the mount swaps it without a jump. Values
+         copied from styles/tokens.css. -->
+    <style>
+      body { margin: 0; background: light-dark(oklch(0.935 0.006 255), oklch(0.15 0.008 255)); }
+      .boot-shell { font: 400 14px/1.45 "Inter Variable", Inter, system-ui, -apple-system, "Segoe UI", sans-serif; color: light-dark(oklch(0.48 0.012 255), oklch(0.74 0.01 255)); }
+      .boot-bar { display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 0 0 calc(max(12px, env(safe-area-inset-left)) + 40px); box-sizing: border-box; background: light-dark(oklch(0.995 0.002 255), oklch(0.2 0.01 255)); border-bottom: 1px solid light-dark(oklch(0.86 0.008 255), oklch(0.29 0.01 255)); }
+      .boot-bar svg { display: block; flex: none; }
+      .boot-bar rect { fill: light-dark(oklch(0.5 0.18 258), oklch(0.52 0.18 258)); }
+      .boot-bar span { font-size: 16px; font-weight: 600; letter-spacing: -0.015em; color: light-dark(oklch(0.2 0.012 255), oklch(0.96 0.004 255)); }
+      .boot-shell p { margin: 0; padding: 16px 24px; }
+      @media (max-width: 1100px) { .boot-bar span { display: none; } }
+      @media (max-width: 760px) { .boot-bar { padding-left: calc(max(12px, env(safe-area-inset-left)) + 36px); } }
+      @media (pointer: coarse) { .boot-bar { height: 52px; } }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root"><div class="boot-shell">
+      <div class="boot-bar">
+        <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><rect x="1" y="1" width="26" height="26" rx="7" fill="#085dc7"/><path d="M5 8.5 C 12 8.5 10.5 19.5 17.5 19.5 L 23 19.5" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" transform="rotate(180 14 14)"/><circle cx="14" cy="14" r="1.9" fill="#fff"/></svg>
+        <span>OpenDose</span>
+      </div>
+      <p>Curve fitting and biostatistics in your browser. Loading the workspace…</p>
+    </div></div>
+    <noscript>OpenDose runs in your browser and needs JavaScript.</noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

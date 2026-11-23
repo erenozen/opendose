@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useState, type RefObject } from "react";
 import { useProject } from "../app/context";
 import { SCHEME_LIST, type SchemeId } from "../lib/palette";
 import { autosaveEnabled, setAutosaveEnabled } from "../project/autosave";
@@ -10,6 +10,7 @@ import {
   P_FLOOR_LABELS, P_STYLE_LABELS, SMD_LABELS, VARIANCE_LABELS, reportPrefsOf,
   type PFloor, type PStyle, type ReportPrefs, type SmdPref, type VariancePref,
 } from "../report/prefs";
+import { Button, Popover } from "./ui";
 
 /** Every keyboard binding in the app, by where it works. Keep in sync
  *  with useShortcuts, the navigator, the data grid, the layout canvas,
@@ -18,7 +19,10 @@ const SHORTCUTS: { area: string; keys: [string, string][] }[] = [
   { area: "Anywhere", keys: [
     ["Ctrl/⌘ Z", "Undo"],
     ["Ctrl/⌘ Shift Z, Ctrl Y", "Redo"],
-    ["Ctrl/⌘ K", "Go to sheet: type part of a name or note, ↑ ↓, Enter"],
+    ["Ctrl/⌘ K", "Find a command or sheet: type part of its name, ↑ ↓, Enter"],
+    ["Ctrl/⌘ S", "Save the project file"],
+    ["Ctrl/⌘ O", "Open a project or a Prism file"],
+    ["Ctrl/⌘ /", "Open or close Help"],
     ["Ctrl/⌘ P", "Print the selected sheet"],
     ["Esc", "Close a dialog, menu, popover or the navigator drawer"],
   ] },
@@ -55,10 +59,15 @@ const SHORTCUTS: { area: string; keys: [string, string][] }[] = [
   ] },
 ];
 
-/** Preferences: kept in this browser and copied into the open project. */
-export default function PreferencesPopover() {
+/** Preferences: kept in this browser and copied into the open project.
+ *  Opened from View › Preferences… (or the palette) and placed under the
+ *  View menu's trigger, which gets focus back when it closes. */
+export default function PreferencesPopover({ open, onOpenChange, anchor }: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  anchor: RefObject<HTMLElement | null>;
+}) {
   const { prefs, setPrefs } = useProject();
-  const [open, setOpen] = useState(false);
   // Privacy on this computer: the autosave switch and "Forget".
   const [autosaveOn, setAutosaveOn] = useState(autosaveEnabled);
   const [forget, setForget] = useState<"" | "confirm" | "busy" | "blocked">("");
@@ -69,46 +78,14 @@ export default function PreferencesPopover() {
     // Start again as on a first visit: no share link, no example.
     location.replace(location.pathname);
   };
-  const wrap = useRef<HTMLSpanElement>(null);
-  const btn = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const onDown = (e: PointerEvent) => {
-      if (!wrap.current?.contains(e.target as Node)) setOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
-      setOpen(false);
-      btn.current?.focus();
-    };
-    document.addEventListener("pointerdown", onDown);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("pointerdown", onDown);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [open]);
-
   const set = <K extends keyof Prefs>(k: K, v: Prefs[K]) => setPrefs({ ...prefs, [k]: v });
   // Reporting (src/report): P-value style, "ns", default effect sizes.
   const report = reportPrefsOf(prefs);
   const setReport = (patch: Partial<ReportPrefs>) => set("report", { ...report, ...patch });
 
   return (
-    <span className="info-wrap" ref={wrap}>
-      <button ref={btn} className="theme-btn" aria-label="Preferences"
-        title="Preferences" aria-expanded={open} aria-haspopup="dialog"
-        onClick={() => setOpen((o) => !o)}>
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"
-          stroke="currentColor" strokeWidth="1.4" aria-hidden="true">
-          <circle cx="8" cy="8" r="2.2" />
-          <path d="M8 1.6v1.8M8 12.6v1.8M1.6 8h1.8M12.6 8h1.8M3.5 3.5l1.3 1.3M11.2 11.2l1.3 1.3M12.5 3.5l-1.3 1.3M4.8 11.2l-1.3 1.3"
-            strokeLinecap="round" />
-        </svg>
-      </button>
-      {open && (
-        <div className="info-pop prefs-pop" role="dialog" aria-label="Preferences">
+    <Popover open={open} onOpenChange={onOpenChange} anchor={anchor}>
+        <Popover.Content className="prefs-pop" aria-label="Preferences" align="end">
           <h2 className="prefs-title">Preferences</h2>
           <label className="field">
             <span>New data tables start as</span>
@@ -239,13 +216,13 @@ export default function PreferencesPopover() {
                 and the offline copy of the app, which holds no data.
               </p>
               <div className="prefs-confirm-actions">
-                <button type="button" onClick={() => setForget("")} disabled={forget === "busy"}>
+                <Button onClick={() => setForget("")} disabled={forget === "busy"}>
                   Cancel
-                </button>
-                <button type="button" className="btn-danger" onClick={() => { void forgetNow(); }}
-                  disabled={forget === "busy"}>
-                  {forget === "busy" ? "Forgetting…" : "Forget and close the project"}
-                </button>
+                </Button>
+                <Button variant="danger" onClick={() => { void forgetNow(); }}
+                  busy={forget === "busy"} busyLabel="Forgetting…">
+                  Forget and close the project
+                </Button>
               </div>
             </div>
           )}
@@ -256,8 +233,8 @@ export default function PreferencesPopover() {
                 soon as every other OpenDose tab is closed: close them, then reload.
               </p>
               <div className="prefs-confirm-actions">
-                <button type="button" className="btn-primary"
-                  onClick={() => location.replace(location.pathname)}>Reload</button>
+                <Button variant="primary"
+                  onClick={() => location.replace(location.pathname)}>Reload</Button>
               </div>
             </div>
           )}
@@ -276,8 +253,7 @@ export default function PreferencesPopover() {
               ))}
             </section>
           </details>
-        </div>
-      )}
-    </span>
+        </Popover.Content>
+    </Popover>
   );
 }

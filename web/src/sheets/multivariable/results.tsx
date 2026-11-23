@@ -14,6 +14,8 @@ import type {
   RearrangeResult, RegressionResult,
 } from "./run";
 import { pLabel, tableP, tableStars } from "../../report/pformat";
+import { CopyButton } from "../../components/CiteBlock";
+import { Button, Tabs } from "../../components/ui";
 
 /* ------------------------------------------------------------ formatting */
 
@@ -76,20 +78,11 @@ function Problem({ result }: { result: { error?: string } | null }) {
 }
 
 function Methods({ text }: { text: string }) {
-  const [copied, setCopied] = useState(false);
   return (
     <div className="result-card methods-text">
       <h3>Methods text</h3>
       <p>{text}</p>
-      <button className="copy-btn" onClick={() => {
-        void navigator.clipboard?.writeText(text);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1500);
-      }}>
-        <span className="swap-label" key={copied ? "copied" : "copy"}>
-          {copied ? "Copied ✓" : "Copy"}
-        </span>
-      </button>
+      <CopyButton text={text} what="the methods text" />
     </div>
   );
 }
@@ -185,17 +178,16 @@ export function CorrelationResults({ result }: ResultsProps<CorrelationOptions, 
   const exact = result.p_type?.some((row) => row.some((t) => t === "exact"));
   return (
     <Card title={`Correlation matrix (${sym})`}>
-      <div className="mv-seg" role="tablist" aria-label="Matrix shown">
-        {views.map(([id, label]) => (
-          <button key={id} type="button" role="tab" aria-selected={view === id}
-            className={view === id ? "active" : undefined} onClick={() => setView(id)}>
-            {label}
-          </button>
-        ))}
-      </div>
-      <Grid caption={`${views.find((v) => v[0] === view)![1]} matrix`}
-        head={["", ...result.names]}
-        rows={result.names.map((n, i) => [n, ...result.names.map((_, j) => cell(i, j))])} />
+      <Tabs value={view} onValueChange={setView}>
+        <Tabs.List className="mv-seg" aria-label="Matrix shown">
+          {views.map(([id, label]) => <Tabs.Tab key={id} value={id}>{label}</Tabs.Tab>)}
+        </Tabs.List>
+        <Tabs.Panel value={view}>
+          <Grid caption={`${views.find((v) => v[0] === view)![1]} matrix`}
+            head={["", ...result.names]}
+            rows={result.names.map((n, i) => [n, ...result.names.map((_, j) => cell(i, j))])} />
+        </Tabs.Panel>
+      </Tabs>
       <p className="hint-block">
         {result.missing === "pairwise"
           ? "Each pair uses every row with values for both variables."
@@ -567,14 +559,14 @@ export function RearrangeResults({ sheet, table, options, result }:
       </p>
       <div className="mv-actions">
         {linked.outputs.map((d) => (
-          <button key={d.id} type="button" onClick={() => select(d.id)}>
+          <Button key={d.id} onClick={() => select(d.id)}>
             Open “{d.name}”
-          </button>
+          </Button>
         ))}
-        <button type="button" className={linked.outputs.length ? undefined : "btn-primary"}
+        <Button variant={linked.outputs.length ? "secondary" : "primary"}
           disabled={!nOut || !result.variables.length} onClick={make}>
           Create data table “{name}”
-        </button>
+        </Button>
       </div>
       <p className="hint-block">
         The new table is linked: it follows edits to this table and to these

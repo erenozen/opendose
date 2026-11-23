@@ -1,0 +1,149 @@
+/* The results headline (ResultsAnswer.tsx), DECISIONS 3. One pane: the
+   sheet's name and provenance, the key figures, the plain reading, the
+   Checks row and at most one tinted callout. Figures: 30/600, tracking
+   -0.02em, proportional digits (tabular ones widen the e-notation
+   hyphen; so do the CI and fact lines, which never align in a column);
+   CI line 13px; sentence 14/1.55 at 65ch. Tokens only. */
+
+.answer {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pane);
+  padding: var(--space-16);
+  display: flex; flex-direction: column; gap: var(--space-16);
+  min-width: 0;
+}
+
+.answer-head { display: flex; flex-direction: column; gap: var(--space-2); }
+.answer-title {
+  margin: 0; font-size: var(--text-lead); font-weight: var(--weight-semibold);
+  line-height: var(--leading-tight); color: var(--ink);
+  text-wrap: balance; overflow-wrap: break-word;
+}
+/* Fixed at two lines (DECISIONS 4): its wording changes as the engine
+   boots; the figures below do not move. */
+.answer-provenance {
+  margin: 0; font-size: var(--text-caption); line-height: var(--leading-body);
+  color: var(--muted); min-height: 2lh; max-width: 65ch;
+}
+
+/* ---- key figures: up to three side by side, then "Show all" ---- */
+.answer-items {
+  margin: 0;
+  display: grid; gap: var(--space-16) var(--space-24);
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 13rem), 1fr));
+}
+.answer-items[data-count="1"] { grid-template-columns: minmax(0, 1fr); }
+.answer-item { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
+.answer-item dd { margin: 0; }
+.answer-name {
+  display: flex; flex-wrap: wrap; gap: 0 var(--space-8);
+  font-size: var(--text-label); font-weight: var(--weight-semibold); line-height: var(--leading-body);
+  color: var(--muted); overflow-wrap: anywhere;
+}
+.answer-set { color: var(--ink-2); }
+.answer-figure {
+  font-size: var(--text-figure); font-weight: var(--weight-semibold);
+  letter-spacing: -0.02em; line-height: var(--leading-tight); color: var(--ink);
+  font-variant-numeric: proportional-nums;
+  overflow-wrap: anywhere;
+}
+.answer-note {
+  font-size: var(--text-body-s); font-weight: var(--weight-regular); letter-spacing: 0;
+  color: var(--ink-2);
+}
+.answer-ci {
+  font-size: var(--text-body-s); line-height: var(--leading-body); color: var(--ink-2);
+}
+.answer-facts { font-size: var(--text-body-s); line-height: var(--leading-body); color: var(--muted); }
+/* A figure the app says should not be reported: the reason first, the
+   number small and quiet, never the loudest thing on the screen. */
+.is-demoted .answer-figure { font-size: var(--text-figure-quiet); color: var(--ink-2); }
+.answer-reason {
+  font-size: var(--text-body-s); line-height: var(--leading-body);
+  font-weight: var(--weight-medium); color: var(--warn-ink); max-width: 65ch;
+}
+.answer-error-text { margin: 0; font-size: var(--text-body-s); line-height: var(--leading-body); color: var(--danger); overflow-wrap: anywhere; }
+.answer-more { align-self: flex-start; }
+
+/* A whole analysis that failed: the error, the next step, Run again. */
+.answer-failed {
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-6);
+  border-inline-start: 2px solid var(--danger); padding-inline-start: var(--space-12);
+}
+.answer-next { margin: 0; font-size: var(--text-body-s); color: var(--ink-2); max-width: 65ch; }
+
+/* Before the first result: the shape of the headline and of "What this
+   means", still (no shimmer). The figure block matches .answer-item; the
+   reading uses MeaningLine's own classes, so its bars wrap and space like
+   the text they stand for (ResultsAnswer.tsx expectedShape). */
+.answer-skeleton { display: flex; flex-direction: column; gap: var(--space-16); }
+.answer-sk-figure { display: flex; flex-direction: column; gap: var(--space-2); }
+.answer-sk-figure span {
+  display: block; height: 19px; width: 9rem;
+  border-radius: var(--radius-control); background: var(--inset);
+}
+.answer-sk-figure span:nth-child(1) { height: 17px; }
+.answer-sk-figure span:nth-child(2) { height: 36px; width: 12rem; max-width: 100%; }
+.answer-sk-figure .answer-sk-ci { width: 16rem; max-width: 100%; }
+.answer-sk-label {
+  display: block; width: 8rem; height: 1lh; margin-bottom: var(--space-2);
+  font-size: var(--text-label);
+  background: linear-gradient(var(--inset), var(--inset)) no-repeat 0 50% / 100% 0.75em;
+}
+.answer-sk-text::before {
+  content: attr(data-fill); color: transparent; background: var(--inset);
+  user-select: none;
+}
+
+/* ---- the Checks row ---- */
+.checks { border-top: 1px solid var(--line); padding-top: var(--space-12); }
+.checks > summary {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-4) var(--space-16);
+  min-height: 32px; cursor: pointer; list-style: none;
+  font-size: var(--text-body-s); color: var(--ink-2); border-radius: var(--radius-control);
+}
+.checks > summary::-webkit-details-marker { display: none; }
+.checks-label { font-weight: var(--weight-semibold); color: var(--ink); }
+.checks-count {
+  display: inline-flex; align-items: center; gap: var(--space-4);
+  font-variant-numeric: tabular-nums; color: var(--ink-2);
+}
+.checks-count svg { flex: none; }
+.checks-count[data-tone="success"] svg { color: var(--success); }
+.checks-count[data-tone="warn"] svg { color: var(--warn-ink); }
+.checks-count[data-tone="info"] svg { color: var(--info); }
+.checks-count[data-tone="question"] { color: var(--ink); font-weight: var(--weight-medium); }
+.checks-none { color: var(--muted); }
+/* the disclosure's chevron, at the row's end */
+.checks > summary::after {
+  content: ""; margin-inline-start: auto; width: 6px; height: 6px; margin-inline-end: var(--space-4);
+  border-right: 1.5px solid var(--muted); border-bottom: 1.5px solid var(--muted);
+  transform: translateY(-2px) rotate(45deg);
+}
+.checks[open] > summary::after { transform: translateY(1px) rotate(-135deg); }
+@media (hover: hover) and (pointer: fine) {
+  .checks > summary:hover .checks-label { text-decoration: underline; text-underline-offset: 2px; }
+}
+@media (pointer: coarse) { .checks > summary { min-height: 44px; } }
+.checks-body {
+  display: flex; flex-direction: column; gap: var(--space-16);
+  padding-top: var(--space-12);
+}
+/* blocks inside Checks sit on hairlines, never on tints */
+.checks-body > * + * { border-top: 1px solid var(--line); padding-top: var(--space-16); }
+.checks-body > :empty { display: none; }
+.pane-answer .guide-callout { margin-top: var(--space-12); }
+
+/* Phones: the answer comes first in the column (DECISIONS 3), and its
+   card reaches past the bottom of the screen even while it holds the
+   skeleton, so the result's arrival moves nothing in view (DECISIONS 4). */
+@media (max-width: 760px) {
+  .pane-answer { order: 0; }
+  .pane-answer .answer { min-height: 75svh; }
+}
+
+/* Printing keeps its pinned look (ruling 10): the sheet prints its tables. */
+@media print {
+  .pane-answer { display: none !important; }
+}

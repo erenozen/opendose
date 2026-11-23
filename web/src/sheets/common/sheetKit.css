@@ -1,45 +1,45 @@
 /* Shared by the parts-of-whole and nested sheets: notes in results
-   sheets and the small editable column used for expected values. Tokens only (index.css / App.css). */
+   sheets and the small editable column used for expected values. Tokens only (styles/tokens.css). */
 
 .result-note {
-  margin: 8px 0 10px; padding: 8px 12px; font-size: 13px;
+  margin: var(--space-8) 0 10px; padding: var(--space-8) var(--space-12); font-size: var(--text-body-s);
   color: var(--ink-2); background: var(--inset);
-  border-radius: var(--radius-s);
+  border-radius: var(--radius-control);
 }
 .result-note-warn {
   color: var(--warn-ink);
-  background: color-mix(in srgb, var(--warn-hue) 12%, var(--surface));
-  border: 1px solid color-mix(in srgb, var(--warn-hue) 40%, transparent);
+  background: color-mix(in srgb, var(--warn) 12%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent);
 }
 .results-table.kv-wide { max-width: 560px; }
-.results-table.kv-wide th { font-weight: 400; color: var(--ink-2); }
+.results-table.kv-wide th { font-weight: var(--weight-regular); color: var(--ink-2); }
 .results-table tr.total-row th, .results-table tr.total-row td {
-  border-top: 2px solid var(--axis); font-weight: 600;
+  border-top: 2px solid var(--axis); font-weight: var(--weight-semibold);
 }
 .results-table tr.recommended th, .results-table tr.recommended td {
   background: var(--accent-soft);
 }
 .rec-chip {
-  margin-left: 6px; font-size: 11px; font-weight: 600; color: var(--accent);
+  margin-left: var(--space-6); font-size: var(--text-caption); font-weight: var(--weight-semibold); color: var(--accent);
   white-space: nowrap;
 }
 
 /* Small editable column (expected values) inside the controls card */
-.mini-grid { border-collapse: collapse; width: 100%; font-size: 13px; }
+.mini-grid { border-collapse: collapse; width: 100%; font-size: var(--text-body-s); }
 .mini-grid th, .mini-grid td {
-  text-align: left; padding: 3px 8px 3px 0; border-bottom: 1px solid var(--grid);
-  font-weight: 400; color: var(--ink-2);
+  text-align: left; padding: 3px var(--space-8) 3px 0; border-bottom: 1px solid var(--line-solid);
+  font-weight: var(--weight-regular); color: var(--ink-2);
 }
-.mini-grid thead th { color: var(--muted); font-size: 12px; }
+.mini-grid thead th { color: var(--muted); font-size: var(--text-caption); }
 .mini-grid td.num { font-variant-numeric: tabular-nums; }
 .mini-grid input {
   width: 92px; font: inherit; color: var(--ink); background: var(--inset);
-  border: 1px solid var(--border); border-radius: var(--radius-s);
-  padding: 4px 7px; font-variant-numeric: tabular-nums;
+  border: 1px solid var(--line-strong); border-radius: var(--radius-control);
+  padding: var(--space-4) 7px; font-variant-numeric: tabular-nums;
 }
 .mini-grid input[aria-invalid="true"] { border-color: var(--danger); }
-.inline-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 8px; }
-.inline-actions button { font-size: 12.5px; padding: 5px 12px; }
+.inline-actions { display: flex; gap: var(--space-8); flex-wrap: wrap; align-items: center; margin-top: var(--space-8); }
+.inline-actions button { font-size: var(--text-body-s); padding: 5px var(--space-12); }
 .inline-actions .field-note { flex-basis: 100%; }
 
 /* "Assign replicates…" dialog (ReplicateAssign.tsx). */

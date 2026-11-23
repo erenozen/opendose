@@ -1,0 +1,19 @@
+/* Modal dialogs: the surface. Motion, backdrop, scroll lock and focus
+   live in the Dialog primitive (ui/Dialog.tsx, ui/Dialog.css). */
+.modal {
+  border: none; border-radius: var(--radius-dialog); padding: 0;
+  background: var(--float); color: var(--ink);
+  box-shadow: var(--elev-dialog);
+  width: min(460px, calc(100vw - 32px));
+  max-height: calc(100dvh - 48px);
+  /* every width below keeps a 16px gutter; in landscape on a phone the
+     notch takes more than that, so the cap clears the safe areas too */
+  max-width: calc(100vw - 32px - var(--safe-left) - var(--safe-right));
+  overscroll-behavior: contain;
+}
+.modal-wide { width: min(880px, calc(100vw - 32px)); }
+.modal-narrow { width: min(400px, calc(100vw - 32px)); }
+.modal-body { display: flex; flex-direction: column; gap: 14px; padding: var(--space-20) 22px 18px; }
+.modal-title { margin: 0; font-size: var(--text-title); font-weight: var(--weight-semibold); letter-spacing: -0.015em; }
+.modal-text { margin: 0; color: var(--ink-2); font-size: var(--text-body); }
+.modal-actions { display: flex; justify-content: flex-end; gap: var(--space-8); margin-top: var(--space-4); }

@@ -1,5 +1,6 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { HIGHLIGHT_COLORS, type HighlightColor, type Sheet } from "../project/types";
+import Menu, { type MenuCloseReason } from "./ui/Menu";
 
 export interface MenuAction {
   label: string;
@@ -11,9 +12,12 @@ export interface MenuAction {
 
 /**
  * Popup menu for one sheet: actions plus a highlight-color row. Opens at a
- * point (right click) or under its anchor; arrow keys move, Escape closes
- * and gives focus back to whatever opened it. Without a sheet (section,
- * group and note rows) it is a plain action menu named by `label`.
+ * point (right click, or under the row's ⋯ button), on the Menu primitive
+ * (ui/Menu): arrows, Home/End and type-ahead move, left and right step
+ * along the colour row. It plays its exit, then calls onClose; `refocus`
+ * asks the navigator to focus the sheet's row again (after Escape or Tab,
+ * a colour, or an action that left focus nowhere). Without a sheet
+ * (section, group and note rows) it is a plain action menu named by `label`.
  */
 export default function SheetMenu({ sheet, label, at, actions, onHighlight, onClose }: {
   sheet?: Sheet;
@@ -23,88 +27,50 @@ export default function SheetMenu({ sheet, label, at, actions, onHighlight, onCl
   onHighlight?: (c: HighlightColor | null) => void;
   onClose: (refocus: boolean) => void;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [pos, setPos] = useState(at);
+  const [open, setOpen] = useState(true);
+  // A right click on another row while this menu fades out opens it again there.
+  const [shownAt, setShownAt] = useState(at);
+  if (shownAt !== at) {
+    setShownAt(at);
+    setOpen(true);
+  }
+  const reason = useRef<MenuCloseReason>("outside");
 
-  // Keep the menu inside the viewport.
-  useLayoutEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const r = el.getBoundingClientRect();
-    setPos({
-      x: Math.max(8, Math.min(at.x, window.innerWidth - r.width - 8)),
-      y: Math.max(8, Math.min(at.y, window.innerHeight - r.height - 8)),
-    });
-    el.querySelector<HTMLElement>("[role=menuitem]:not([aria-disabled=true])")?.focus();
-  }, [at]);
-
-  useEffect(() => {
-    const onDown = (e: PointerEvent) => {
-      if (!ref.current?.contains(e.target as Node)) onClose(false);
-    };
-    document.addEventListener("pointerdown", onDown);
-    return () => document.removeEventListener("pointerdown", onDown);
-  }, [onClose]);
-
-  const items = () => [...(ref.current?.querySelectorAll<HTMLElement>(
-    "[role=menuitem]:not([aria-disabled=true]), [role=menuitemradio]") ?? [])];
-
-  const onKeyDown = (e: React.KeyboardEvent) => {
-    const list = items();
-    const i = list.indexOf(document.activeElement as HTMLElement);
-    if (e.key === "Escape" || e.key === "Tab") {
-      e.preventDefault();
-      onClose(true);
-    } else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-      e.preventDefault();
-      const d = e.key === "ArrowDown" ? 1 : -1;
-      list[(i + d + list.length) % list.length]?.focus();
-    } else if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
-      // Within the color row, left/right move between swatches.
-      if ((document.activeElement as HTMLElement)?.getAttribute("role") !== "menuitemradio") return;
-      e.preventDefault();
-      const d = e.key === "ArrowRight" ? 1 : -1;
-      list[(i + d + list.length) % list.length]?.focus();
-    } else if (e.key === "Home" || e.key === "End") {
-      e.preventDefault();
-      (e.key === "Home" ? list[0] : list[list.length - 1])?.focus();
-    }
+  // Once the menu is gone: the row takes focus back unless the user
+  // clicked elsewhere or the action put focus somewhere (a rename field).
+  const closed = () => {
+    const a = document.activeElement;
+    const lost = !a || a === document.body || !a.isConnected;
+    onClose(reason.current !== "outside" && lost);
   };
 
   return (
-    <div ref={ref} className="sheet-menu" role="menu"
-      aria-label={`Actions for ${sheet?.name ?? label ?? "item"}`}
-      style={{ left: pos.x, top: pos.y }} onKeyDown={onKeyDown}>
-      {actions.map((a, i) => a === "sep" ? (
-        <div key={`sep${i}`} className="menu-sep" role="separator" />
-      ) : (
-        <button key={a.label} type="button" role="menuitem" tabIndex={-1}
-          aria-disabled={a.disabled || undefined}
-          className={`menu-item${a.danger ? " danger" : ""}`}
-          onClick={() => {
-            if (a.disabled) return;
-            onClose(false);
-            a.run();
-          }}>
-          <span>{a.label}</span>
-          {a.shortcut && <kbd>{a.shortcut}</kbd>}
-        </button>
-      ))}
-      {sheet && onHighlight && <>
-      <div className="menu-sep" role="separator" />
-      <div className="menu-colors" role="group" aria-label="Highlight color">
-        <button type="button" role="menuitemradio" tabIndex={-1}
-          aria-checked={!sheet.highlight} aria-label="No highlight"
-          className="swatch swatch-none"
-          onClick={() => { onHighlight(null); onClose(true); }} />
-        {HIGHLIGHT_COLORS.map((c) => (
-          <button key={c} type="button" role="menuitemradio" tabIndex={-1}
-            aria-checked={sheet.highlight === c} aria-label={`Highlight ${c}`}
-            className={`swatch hl-${c}`}
-            onClick={() => { onHighlight(c); onClose(true); }} />
+    <Menu open={open} anchorPoint={at} returnFocus={false} onExitComplete={closed}
+      onOpenChange={(o, why) => { if (!o) { reason.current = why; setOpen(false); } }}>
+      <Menu.Content aria-label={`Actions for ${sheet?.name ?? label ?? "item"}`}
+        sideOffset={0}>
+        {actions.map((a, i) => a === "sep" ? (
+          <Menu.Separator key={`sep${i}`} />
+        ) : (
+          <Menu.Item key={a.label} onSelect={a.run} disabled={a.disabled} danger={a.danger}
+            shortcut={a.shortcut}>
+            {a.label}
+          </Menu.Item>
         ))}
-      </div>
-      </>}
-    </div>
+        {sheet && onHighlight && <>
+          <Menu.Separator />
+          <Menu.RadioGroup label="Highlight color" orientation="horizontal" className="menu-colors"
+            value={sheet.highlight ?? "none"}
+            onValueChange={(v) => onHighlight(v === "none" ? null : v as HighlightColor)}>
+            <Menu.RadioItem value="none" variant="swatch" aria-label="No highlight"
+              className="swatch-none" />
+            {HIGHLIGHT_COLORS.map((c) => (
+              <Menu.RadioItem key={c} value={c} variant="swatch" aria-label={`Highlight ${c}`}
+                className={`hl-${c}`} />
+            ))}
+          </Menu.RadioGroup>
+        </>}
+      </Menu.Content>
+    </Menu>
   );
 }

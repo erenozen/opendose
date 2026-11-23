@@ -42,10 +42,10 @@ function fmtAchievedCI(ci: unknown, level: unknown): string {
 function KV({ title, rows }: { title?: string; rows: Row[] }) {
   return (
     <table className="results-table goodness">
-      {title && <thead><tr><th colSpan={2}>{title}</th></tr></thead>}
+      {title && <thead><tr><th colSpan={2} scope="colgroup">{title}</th></tr></thead>}
       <tbody>
         {rows.map(([k, v]) => (
-          <tr key={k}><th>{k}</th><td>{v}</td></tr>
+          <tr key={k}><th scope="row">{k}</th><td>{v}</td></tr>
         ))}
       </tbody>
     </table>
@@ -308,7 +308,7 @@ function ComparisonsTable({ mc, fallbackMethod }: { mc: any; fallbackMethod?: st
           <tbody>
             {mc.comparisons.map((c: any, i: number) => (
               <tr key={i}>
-                <th>{c.pair}</th>
+                <th scope="row">{c.pair}</th>
                 <td>{formatSig(c.difference)}</td>
                 <td>{formatSig(c.statistic)}</td>
                 <td>{c.steps}</td>
@@ -335,7 +335,7 @@ function ComparisonsTable({ mc, fallbackMethod }: { mc: any; fallbackMethod?: st
         <tbody>
           {mc.comparisons.map((c: any, i: number) => (
             <tr key={i}>
-              <th>{c.pair}</th>
+              <th scope="row">{c.pair}</th>
               <td>{formatSig(c.difference ?? c.mean_rank_difference)}</td>
               <td>{fmtCI(c.ci)}</td>
               <td data-p={c.p_adjusted ?? undefined}>
@@ -600,7 +600,7 @@ function TwoWayAnova({ result }: { result: any }) {
               {result.multiple_comparisons.comparisons.map((c: any, i: number) => (
                 <tr key={i}>
                   <th>{c.family}</th>
-                  <th>{c.pair}</th>
+                  <th scope="row">{c.pair}</th>
                   <td>{formatSig(c.difference)}</td>
                   <td>{fmtCI(c.ci95)}</td>
                   <td>{fmtP(c.p_adjusted)}</td>
@@ -845,7 +845,7 @@ function AnovaUnequal({ result }: { result: any }) {
             <tbody>
               {mc.comparisons.map((c: any, i: number) => (
                 <tr key={i}>
-                  <th>{c.pair}</th>
+                  <th scope="row">{c.pair}</th>
                   <td>{formatSig(c.difference)}</td>
                   <td>{formatSig(c.se)}</td>
                   <td>{formatSig(c.statistic)}</td>

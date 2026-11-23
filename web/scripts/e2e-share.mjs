@@ -20,6 +20,12 @@ import { tmpdir } from "node:os";
 import { createRequire } from "node:module";
 import { unzipSync, strFromU8, strToU8, zipSync } from "fflate";
 
+// The header's View menu (DECISIONS 5): open it, pick an item.
+const viewMenu = async (p, item) => {
+  await p.locator("header").getByRole("button", { name: "View", exact: true }).click();
+  await p.getByRole("menuitem", { name: item }).click();
+};
+
 const here = dirname(fileURLToPath(import.meta.url));
 const FLOWJO = join(here, "..", "e2e-fixtures", "flowjo-table.csv");
 const url = process.argv[2] ?? "http://localhost:5173/";
@@ -53,8 +59,8 @@ const original = await logIC50(page);
 console.log("example LogIC50 row:", original);
 
 // --- share link of the whole project
-const saveMenu = page.getByRole("button", { name: "More ways to save and share" });
-await saveMenu.click();
+const fileMenu = page.locator("header").getByRole("button", { name: "File", exact: true });
+await fileMenu.click();
 await page.getByRole("menuitem", { name: "Copy share link…" }).click();
 const shareDlg = page.getByRole("dialog", { name: "Share this project" });
 await shareDlg.waitFor({ timeout: 10000 });
@@ -149,7 +155,7 @@ expect("an edit sticks in the copy", await editable.inputValue() === "12345");
 await ctx2.close();
 
 // --- export bundle
-await saveMenu.click();
+await fileMenu.click();
 const [download] = await Promise.all([
   page.waitForEvent("download", { timeout: 120000 }),
   page.getByRole("menuitem", { name: "Download export bundle (.zip)" }).click(),
@@ -214,6 +220,10 @@ const rcp = page.getByRole("dialog", { name: "Import with a recipe" });
 await rcp.waitFor({ timeout: 10000 });
 await rcp.getByLabel("Export file to import").setInputFiles(FLOWJO);
 await rcp.locator(".recipe-option.checked", { hasText: "Recognise the file" }).waitFor();
+// "Recognise the file" is checked before the file is read: wait until it
+// says what the file looks like, then check which recipe it picked.
+await rcp.locator(".recipe-option.checked", { hasText: "Looks like:" }).waitFor({ timeout: 10000 })
+  .catch(() => {});
 expect("FlowJo export recognised", await rcp.locator(".recipe-option", { hasText: "FlowJo table" })
   .locator(".recipe-detected").count() === 1);
 await rcp.getByRole("tab", { name: "Columns" }).click();
@@ -238,7 +248,8 @@ const nKO = await filled("KO");
 expect("column table has n = 4 (WT) and n = 3 (KO)", nWT === 4 && nKO === 3, `WT ${nWT}, KO ${nKO}`);
 
 // --- Reshape: the new column table to long
-await page.getByRole("button", { name: "Reshape…" }).click();
+await page.locator(".grid-toolbar").getByRole("button", { name: "More", exact: true }).click();
+await page.getByRole("menuitem", { name: "Reshape…" }).click();
 const rs = page.getByRole("dialog", { name: /Reshape .* to a long table/ });
 await rs.waitFor({ timeout: 10000 });
 expect("reshape previews 7 observations", (await rs.getByRole("status").innerText()).startsWith("7 observations"));
@@ -249,7 +260,8 @@ expect("long table created as multiple variables",
 
 // --- Apply to new data: the example project replayed onto a copy of its
 // contingency table with one count changed (15 -> 25 exposed events)
-const navCount = (kind) => page.locator(`.nav-item[data-key^='${kind}:']`).count();
+// Sheets of a kind listed in the navigator (each once, under its table).
+const navCount = (kind) => page.locator(`.nav-item[data-kind='${kind}']`).count();
 // axe-core (WCAG 2 A and AA rules) on the open dialog
 const axePath = createRequire(import.meta.url).resolve("axe-core/axe.min.js");
 const axeDialog = async () => {
@@ -273,7 +285,7 @@ await page.getByRole("treeitem", { name: "Contingency example", exact: true }).f
 await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 60000 });
 const pBefore = await fisherP();
 const contingencyCsv = Buffer.from(",Event,No event\nExposed,25,85\nNot exposed,5,95\n");
-await saveMenu.click();
+await fileMenu.click();
 await page.getByRole("menuitem", { name: "Apply to new data…" }).click();
 const rp = page.getByRole("dialog", { name: "Apply to new data" });
 await rp.waitFor({ timeout: 10000 });
@@ -321,7 +333,7 @@ writeFileSync(provFile, entries["provenance.json"]);
 expect("provenance.json carries a replay plan with every sheet",
   (prov.replay_plan?.sheets ?? []).filter((s) => s.kind === "graph").length === 2
   && (prov.replay_plan?.sheets ?? []).filter((s) => s.kind === "results").length === 3);
-await saveMenu.click();
+await fileMenu.click();
 await page.getByRole("menuitem", { name: "Apply to new data…" }).click();
 await rp.waitFor({ timeout: 10000 });
 await rp.getByRole("radio", { name: /A project file or provenance\.json/ }).check();
@@ -348,7 +360,7 @@ expect("the plan from provenance.json gives the same P on the same new data", pF
   `${pFromPlan} vs ${pAfter}`);
 
 // --- info popover: privacy, file format, validation page
-await page.getByRole("button", { name: /About OpenDose/ }).click();
+await viewMenu(page, "About OpenDose…");
 const pop = page.locator(".info-pop");
 expect("privacy statement in the info popover",
   (await pop.innerText()).includes("no data is sent anywhere"));
@@ -366,7 +378,7 @@ expect("validation page filters by reference", await val.locator(".validation-ta
 await val.getByRole("button", { name: "Close" }).last().click();
 
 // --- "Your data and privacy": from the info popover, and at #privacy
-await page.getByRole("button", { name: /About OpenDose/ }).click();
+await viewMenu(page, "About OpenDose…");
 await page.locator(".info-pop").getByRole("button", { name: "How your data stays private" }).click();
 const priv = page.getByRole("dialog", { name: "Your data and privacy" });
 await priv.waitFor({ timeout: 10000 });
@@ -507,7 +519,7 @@ await priv.getByRole("button", { name: "Close" }).last().click();
   await page.getByRole("button", { name: "Import…" }).click();
   const imp = page.getByRole("dialog", { name: "Import data" });
   await imp.waitFor({ timeout: 10000 });
-  await imp.getByLabel("File to import").setInputFiles(ZIP);
+  await imp.locator('input[aria-label="File to import"]').setInputFiles(ZIP);
   d = page.getByRole("dialog", { name: "Import with a recipe" });
   await d.waitFor({ timeout: 10000 });
   await d.getByLabel("Files stacked").waitFor({ timeout: 10000 });

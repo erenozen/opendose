@@ -16,6 +16,7 @@ import {
   columnSettings, concentrationTable, MODEL_LABELS, readRows, runStdCurve, signalColumns,
   STD_ROLES, type StdModel, type StdOptions, type StdRun, type Weighting,
 } from "./model";
+import { Button } from "../../../components/ui";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -41,8 +42,8 @@ export function StdControls({ sheet, table, options: o, readOnly }: ControlsProp
       <section>
         <h3>Standard curve / ELISA</h3>
         <div className="assay-setup">
-          <button type="button" className="btn-primary" disabled={readOnly}
-            onClick={() => setWizardAt(0)}>Open setup wizard…</button>
+          <Button variant="primary" disabled={readOnly}
+            onClick={() => setWizardAt(0)}>Open setup wizard…</Button>
         </div>
         <p className="hint-block">
           {levels} standard level{levels === 1 ? "" : "s"}, {rows.filter((r) => r.kind === "blank").length} blank
@@ -59,10 +60,10 @@ export function StdControls({ sheet, table, options: o, readOnly }: ControlsProp
           <h3>Standards left out of the fit</h3>
           <div className="assay-chips">
             {o.excludeLevels.map((c) => (
-              <button key={c} type="button" disabled={readOnly}
+              <Button key={c} disabled={readOnly}
                 onClick={() => set({ excludeLevels: o.excludeLevels.filter((x) => x !== c) })}>
                 {c} {o.unit}: put back
-              </button>
+              </Button>
             ))}
           </div>
         </section>

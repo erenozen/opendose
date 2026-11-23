@@ -1,0 +1,13 @@
+/* Menu primitive additions; the menu surface and item look live in
+   components/menu.css (.sheet-menu, .menu-item). */
+
+/* Group headings: sentence case, 12px/600, muted (DECISIONS 5). */
+.menu-group { display: flex; flex-direction: column; }
+.menu-group-label {
+  padding: var(--space-6) 9px var(--space-2);
+  font-size: var(--text-label); font-weight: var(--weight-semibold); color: var(--muted);
+}
+
+/* Radio rows carry a check column so labels line up. */
+.menu-radio { justify-content: flex-start; gap: var(--space-6); }
+.menu-check { width: 1em; flex: none; text-align: center; }

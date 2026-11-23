@@ -1,46 +1,79 @@
-/* Engine status: boot progress and the per-sheet busy line
-   (EngineStatus.tsx). Non-blocking by design. */
-.engine-progress { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-.engine-progress-text {
-  display: flex; gap: 10px; justify-content: space-between; flex-wrap: wrap;
-  font-size: 13px; font-weight: 500; color: var(--accent);
+/* Engine status (EngineStatus.tsx): the boot slot, the boot banner's
+   additions and the per-sheet busy line. Non-blocking by design. */
+
+/* The boot slot (DECISIONS 4): fixed 340 x 34 wherever it renders, so a
+   phase change, a byte count or the end of the boot moves nothing. */
+.engine-slot {
+  position: relative;
+  display: flex; align-items: center; gap: var(--space-8);
+  width: min(340px, 100%); height: 34px; padding-bottom: 2px;
+  font-size: var(--text-body-s); color: var(--ink-2);
 }
-.engine-progress-bytes {
-  color: var(--muted); font-weight: 400; font-variant-numeric: tabular-nums;
+.engine-slot-dot {
+  flex: none; width: 8px; height: 8px; border-radius: var(--radius-round);
+  background: var(--accent);
 }
-.engine-progress progress {
-  width: 100%; height: 6px; accent-color: var(--accent);
+.engine-slot[data-engine-phase="ready"] .engine-slot-dot { background: var(--success); }
+.engine-slot[data-engine-phase="failed"] .engine-slot-dot { background: var(--danger); }
+.engine-slot-words {
+  flex: 1 1 auto; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-weight: var(--weight-medium); color: var(--ink);
 }
-.engine-progress.compact .engine-progress-text { font-size: 12.5px; }
-.welcome .engine-progress { margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border-soft); }
-.engine-boot-note {
-  display: flex; flex-direction: column; gap: 8px;
-  margin: 0 0 10px; padding: 9px 12px;
-  border: 1px solid var(--accent-border); border-radius: var(--radius-s);
-  background: var(--accent-soft); color: var(--ink-2); font-size: 12.5px;
+.engine-slot-bytes {
+  flex: none; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap;
 }
-.engine-boot-note p { margin: 0; }
+.engine-slot-bar {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 2px;
+  background: var(--line); overflow: hidden; border-radius: var(--radius-round);
+  transition: opacity var(--dur-enter) var(--ease-out);
+}
+.engine-slot-fill {
+  display: block; height: 100%; background: var(--accent);
+  transform-origin: left center;
+  transition: transform var(--dur-enter) var(--ease-out);
+}
+/* Done or stopped: the bar has nothing more to say. */
+.engine-slot[data-engine-phase="ready"] .engine-slot-bar,
+.engine-slot[data-engine-phase="failed"] .engine-slot-bar { opacity: 0; }
+
+/* Several texts in one cell, the tallest setting the height. */
+.same-height { display: inline-grid; }
+.same-height-item { grid-area: 1 / 1; }
+.same-height-item[data-shown="false"] { visibility: hidden; }
+
+.engine-boot-slot { margin-top: var(--space-4); }
+/* Over the top of the results, out of their flow: the results being
+   read do not move when it comes and goes (feedback.md). */
+.pane-results { position: relative; }
 .analysis-busy {
-  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-  margin: 0 0 10px; padding: 6px 10px;
-  border: 1px solid var(--border-soft); border-radius: var(--radius-s);
-  background: var(--surface); color: var(--ink-2); font-size: 12.5px;
+  position: absolute; top: var(--space-8); right: var(--space-16); z-index: var(--z-raised);
+  display: flex; align-items: center; gap: var(--space-8); flex-wrap: wrap;
+  margin: 0; padding: var(--space-6) 10px;
+  border: 1px solid var(--line); border-radius: var(--radius-control);
+  background: var(--surface); color: var(--ink-2); font-size: var(--text-body-s);
+}
+/* It appears after a second of computing, over results the user is
+   reading: a fade, no movement. The
+   cancelled line replaces it in place, in the frame Cancel is pressed. */
+.analysis-busy:not(.cancelled) {
+  opacity: 1;
+  transition: opacity var(--dur-enter) var(--ease-out);
+  @starting-style { opacity: 0; }
 }
 .analysis-busy .spinner { width: 14px; height: 14px; border-width: 2px; }
 .analysis-busy-time { font-variant-numeric: tabular-nums; color: var(--muted); }
-.analysis-busy button { margin-left: auto; padding: 3px 10px; font-size: 12.5px; }
+.analysis-busy button { margin-left: auto; padding: 3px 10px; font-size: var(--text-body-s); }
 .analysis-busy.long { border-color: var(--warn-ink); }
-.analysis-busy.long [role="status"] { color: var(--warn-ink); font-weight: 600; }
+.analysis-busy.long [role="status"] { color: var(--warn-ink); font-weight: var(--weight-semibold); }
 .analysis-busy.cancelled { border-style: dashed; }
 /* Results that are not the live engine's for the current input: kept
-   readable, set back a little until the new ones arrive. */
-.pane-results[data-live="false"] .result-card { opacity: 0.78; transition: opacity 160ms var(--ease-out); }
-@media (prefers-reduced-motion: reduce) {
-  .pane-results[data-live="false"] .result-card { transition: none; }
-}
+   readable, set back a little until the new ones arrive. 0.88 is the
+   lowest opacity at which --muted table heads still pass 4.5:1. */
+.pane-results[data-live="false"] .result-card { opacity: 0.88; transition: opacity var(--dur-base) var(--ease-out); }
 
 /* Large tables scroll inside their card (FamilyWorkspace): with
    thousands of inputs, a card as tall as its table made every keystroke
    re-composite all of them (tens of seconds); scrolling inside keeps
    the work to the rows in view. */
-.pane-table.large-table .data-table { max-height: max(420px, 85vh); }
+.pane-table.large-table .data-table { max-height: max(420px, 85svh); }

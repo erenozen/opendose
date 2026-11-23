@@ -1,4 +1,4 @@
-// "Convert Prism files to CSV…" (Save menu, start screen): pick several
+// "Convert Prism files to CSV…" (File menu, Tools): pick several
 // .prism / .pzfx files; each is read by the engine (pzfx_import, as Open
 // does) and every data table is saved as CSV in one zip (./prismBatch.ts).
 import { useRef, useState } from "react";
@@ -21,7 +21,8 @@ export function usePrismBatch() {
   const convert = async (list: File[]) => {
     if (!list.length) return;
     setBusy(true);
-    ui.notify(`Converting ${list.length} Prism file${list.length === 1 ? "" : "s"} to CSV…`);
+    const toast = ui.notify(`Converting ${list.length} Prism file${list.length === 1 ? "" : "s"} to CSV…`,
+      { tone: "progress" });
     try {
       // The zip code loads on first use.
       const { base64Of, prismCsvZip } = await import("./prismBatch");
@@ -53,7 +54,12 @@ export function usePrismBatch() {
         ? `Saved ${out.tables} table${out.tables === 1 ? "" : "s"} from ${out.files} file`
           + `${out.files === 1 ? "" : "s"} as CSV (prism-tables-csv.zip)`
           + (out.failed.length ? `; not converted: ${out.failed.join("; ")}.` : ".")
-        : `No data tables converted: ${out.failed.join("; ")}.`);
+        : `No data tables converted: ${out.failed.join("; ")}.`,
+      { tone: out.tables ? "success" : "error", id: toast });
+    } catch (e) {
+      ui.notify(`Could not convert the Prism files: ${String(e instanceof Error ? e.message : e).replace(/\.$/, "")}. `
+        + "Open them one at a time with Open… to find the file that fails.",
+        { tone: "error", id: toast });
     } finally {
       setBusy(false);
     }

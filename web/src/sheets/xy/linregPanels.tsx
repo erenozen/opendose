@@ -2,6 +2,7 @@ import { softwareSentence } from "../../export/cite";
 import { getRuntimeVersions } from "../../lib/engine";
 import { formatPValue, pLabel, tableP } from "../../report/pformat";
 import { formatSig } from "../../types";
+import { NumberField } from "../../components/ui";
 import CopyableMethods from "../common/CopyableMethods";
 import type { ControlsProps, ResultsProps } from "../types";
 import type { LinregBlock, LinregOptions } from "./linreg";
@@ -42,18 +43,12 @@ export function LinregControls({ options, onChange, readOnly }: ControlsProps<Li
         {options.throughPoint && !options.throughOrigin && (
           <>
             <div className="field-row">
-              <label className="field field-num">
-                <span>X</span>
-                <input inputMode="decimal" aria-label="X of the point the line goes through"
-                  disabled={readOnly} value={options.throughPoint.x}
-                  onChange={(e) => set({ throughPoint: { ...options.throughPoint!, x: e.target.value } })} />
-              </label>
-              <label className="field field-num">
-                <span>Y</span>
-                <input inputMode="decimal" aria-label="Y of the point the line goes through"
-                  disabled={readOnly} value={options.throughPoint.y}
-                  onChange={(e) => set({ throughPoint: { ...options.throughPoint!, y: e.target.value } })} />
-              </label>
+              <NumberField label="X of the point" fieldClassName="field-num" readOnly={readOnly}
+                value={options.throughPoint.x}
+                onValueChange={(x) => set({ throughPoint: { ...options.throughPoint!, x } })} />
+              <NumberField label="Y of the point" fieldClassName="field-num" readOnly={readOnly}
+                value={options.throughPoint.y}
+                onValueChange={(y) => set({ throughPoint: { ...options.throughPoint!, y } })} />
             </div>
             <p className="hint-block">
               Only the slope is fitted (Y − Y₀ = Slope·(X − X₀)), on n − 1 df; the confidence

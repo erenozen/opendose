@@ -18,6 +18,7 @@ import {
   controlOf, D_TEST_LABELS, DENS_ROLES, guessImport, matchedSettings, matchedTable, readLanes,
   runDens, tableFromExport, type DensOptions, type DensResult, type DRole, type DTest, type ImportMap,
 } from "./model";
+import { Button, FileButton } from "../../../components/ui";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -52,8 +53,8 @@ export function DensControls({ sheet, table, options: o, readOnly }: ControlsPro
       <section>
         <h3>Western blot densitometry</h3>
         <div className="assay-setup">
-          <button type="button" className="btn-primary" disabled={readOnly}
-            onClick={() => setWizardAt(0)}>Open setup wizard…</button>
+          <Button variant="primary" disabled={readOnly}
+            onClick={() => setWizardAt(0)}>Open setup wizard…</Button>
         </div>
         <p className="hint-block">
           {d.records.length} lanes on {d.blots.length} blot{d.blots.length === 1 ? "" : "s"};
@@ -240,12 +241,10 @@ function ExportImport({ onTable }: { onTable: (t: DataTableModel) => void }) {
         export, then say which column is which; or type the lanes into the table.
       </p>
       <div className="wizard-row">
-        <label className="field">
+        <div className="field">
           <span>Export (.csv, .txt or .xlsx)</span>
-          <input type="file" accept=".csv,.tsv,.txt,.xls,.xlsx,text/csv,text/plain" aria-label="Densitometry export"
-            onChange={async (e) => {
-              const f = e.target.files?.[0];
-              if (!f) return;
+          <FileButton size="sm" accept=".csv,.tsv,.txt,.xls,.xlsx,text/csv,text/plain" inputLabel="Densitometry export"
+            onFile={async (f) => {
               try {
                 const bytes = new Uint8Array(await f.arrayBuffer());
                 if (/\.xlsx$/i.test(f.name)) {
@@ -253,8 +252,9 @@ function ExportImport({ onTable }: { onTable: (t: DataTableModel) => void }) {
                   load((sheets[0]?.rows as unknown[][] ?? []).map((r) => r.map((c) => (c == null ? "" : String(c)))));
                 } else load(parseSource(new TextDecoder("utf-8").decode(bytes)));
               } catch (err) { setMsg(`Could not read the file: ${err instanceof Error ? err.message : String(err)}`); }
-            }} />
-        </label>
+            }}>
+            Choose the densitometry export…</FileButton>
+        </div>
       </div>
       <label className="field">
         <span>…or paste it</span>
@@ -262,8 +262,8 @@ function ExportImport({ onTable }: { onTable: (t: DataTableModel) => void }) {
           placeholder={"Blot,Lane,Group,Target,Actin\n1,1,Control,10234,20110\n…"} onChange={(e) => setText(e.target.value)} />
       </label>
       <div className="assay-setup">
-        <button type="button" disabled={!text.trim()} onClick={() => load(parseSource(text))}>Read pasted export</button>
-        {msg && <span className="hint-block" role="status">{msg}</span>}
+        <Button disabled={!text.trim()} onClick={() => load(parseSource(text))}>Read pasted export</Button>
+        <span className="hint-block" role="status">{msg}</span>
       </div>
       {src && map && (
         <>
@@ -299,11 +299,11 @@ function ExportImport({ onTable }: { onTable: (t: DataTableModel) => void }) {
             )}
           </div>
           <div className="assay-setup">
-            <button type="button" className="btn-primary" onClick={() => {
+            <Button variant="primary" onClick={() => {
               const t = tableFromExport(src.rows, map);
               onTable(t);
               setMsg(`Using ${t.x.length} lanes.`);
-            }}>Use these columns</button>
+            }}>Use these columns</Button>
           </div>
         </>
       )}

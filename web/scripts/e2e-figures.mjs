@@ -10,6 +10,16 @@ import { join } from "node:path";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 
+// The header's File and View menus (DECISIONS 5): open one, pick an item.
+const fileMenu = async (p, item) => {
+  await p.locator("header").getByRole("button", { name: "File", exact: true }).click();
+  await p.getByRole("menuitem", { name: item }).click();
+};
+const viewMenu = async (p, item) => {
+  await p.locator("header").getByRole("button", { name: "View", exact: true }).click();
+  await p.getByRole("menuitem", { name: item }).click();
+};
+
 const baseUrl = process.argv[2] ?? "http://localhost:5173/";
 // ?example=1 opens the example project directly (no start screen, no tour).
 const url = (() => {
@@ -28,6 +38,15 @@ const expect = (label, ok, detail = "") => {
   if (!ok) fail.push(label);
 };
 page.on("pageerror", (e) => errors.push(`pageerror: ${e.message}`));
+// The results guidance (chips, notes, the unit question, the links, the
+// plan check) sits in the Checks row of the results headline, a <details>
+// (DECISIONS 3): open it before using what is inside.
+const openChecks = async (p = page) => {
+  const d = p.locator(".pane-answer details.checks").first();
+  await d.waitFor({ state: "attached", timeout: 60000 }).catch(() => {});
+  if (await d.count() && !(await d.evaluate((e) => e.open))) await d.locator("summary").click();
+};
+
 page.on("console", (m) => { if (m.type() === "error") errors.push(`console: ${m.text()}`); });
 const tmp = mkdtempSync(join(tmpdir(), "opendose-fig-"));
 const graphSettings = async () => {
@@ -91,7 +110,7 @@ writeFileSync(SUPER, JSON.stringify({
         column: { spread: "swarm", caption: "below" } } },
   ],
 }));
-await page.setInputFiles('.load-btn input[type="file"]', SUPER);
+await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]', SUPER);
 await page.waitForFunction(() => document.querySelector(".plot-card .plot")?.data?.length > 0,
   { timeout: 60000 });
 await page.waitForTimeout(600);
@@ -164,7 +183,7 @@ await page.waitForTimeout(600);
   const rowsShown = await page.locator(".replicate-means-head tbody tr").count();
   expect("replicate-means table: one row per experiment", rowsShown === 3, String(rowsShown));
   expect("results sheet named for replicate means",
-    await page.locator(".nav-name", { hasText: "Stats on replicate means of Cell speed" }).count() === 1);
+    await page.locator(".nav-item[aria-label='Stats on replicate means of Cell speed']").count() === 1);
   // ordinary one-way ANOVA with Tukey: its brackets land on the SuperPlot
   await page.locator(".controls").getByRole("combobox", { name: "Test on the replicate means" })
     .selectOption("anova");
@@ -193,7 +212,7 @@ await shot("superplot");
   const cd = page.locator("dialog.fmt-dialog");
   await cd.getByLabel("P value style").selectOption("apa");
   await cd.getByLabel("Label", { exact: true }).selectOption("p");
-  await cd.getByRole("button", { name: "OK" }).click();
+  await cd.getByRole("button", { name: "Apply and close" }).click();
   await page.waitForTimeout(500);
   const p = await plot();
   expect("APA style P values on the brackets (no leading zero)",
@@ -201,7 +220,7 @@ await shot("superplot");
   const pop2 = await graphSettings();
   await pop2.getByRole("button", { name: "Pairwise comparisons…" }).click();
   await cd.getByLabel("Hide non-significant (ns) pairs").check();
-  await cd.getByRole("button", { name: "OK" }).click();
+  await cd.getByRole("button", { name: "Apply and close" }).click();
   await page.waitForTimeout(500);
   const q = await plot();
   const ns = p.brackets.filter((b) => Number(b.replace(/^p [=<] /, "")) >= 0.05).length;
@@ -216,14 +235,14 @@ await shot("superplot");
   await pop.getByRole("button", { name: "Pairwise comparisons…" }).click();
   const cd = page.locator("dialog.fmt-dialog");
   await cd.getByLabel("P value style").selectOption("");
-  await cd.getByRole("button", { name: "OK" }).click();
+  await cd.getByRole("button", { name: "Apply and close" }).click();
   await page.waitForTimeout(400);
   const before = await plot();
   expect("without its own style the graph draws GraphPad P values (project default)",
     before.brackets.length > 0 && before.brackets.every((b) => /^P [=<] 0\.\d+$/.test(b)),
     before.brackets.join(" | "));
   await closeSettings();
-  await page.getByRole("button", { name: "Preferences" }).click();
+  await viewMenu(page, "Preferences…");
   await page.getByLabel("P-value style (tables, sentences, legends)").selectOption("apa");
   await page.keyboard.press("Escape");
   await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.layout?.annotations ?? [])
@@ -236,7 +255,7 @@ await shot("superplot");
   const table = await page.locator(".pane-results .results-table tbody tr", { hasText: /P value/ }).first()
     .innerText().catch(() => "");
   expect("results table follows the same project style", /(< \.001|\s\.\d{3})/.test(table) && !/0\.\d{4}/.test(table), table.replace(/\s+/g, " ").slice(0, 400));
-  await page.getByRole("button", { name: "Preferences" }).click();
+  await viewMenu(page, "Preferences…");
   await page.getByLabel("P-value style (tables, sentences, legends)").selectOption("graphpad");
   await page.keyboard.press("Escape");
 }
@@ -307,7 +326,7 @@ await shot("classic");
           grouped: { superplot: { on: true }, caption: "below" } } },
     ],
   }));
-  await page.setInputFiles('.load-btn input[type="file"]', GROUPED);
+  await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]', GROUPED);
   await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
     .some((t) => t.meta?.superplotMeans), { timeout: 60000 });
   await page.waitForTimeout(500);
@@ -330,7 +349,7 @@ await shot("classic");
 
 // --- volcano plot on the multiple-variables example ---
 {
-  await page.getByRole("button", { name: "New data table" }).click();
+  await fileMenu(page, "New data table…");
   const dlg = page.locator(".new-table-dialog");
   await dlg.locator('input[name="table-type"][value="multivariable"]').check();
   await dlg.getByText("Example data").click();
@@ -354,7 +373,7 @@ await shot("classic");
 
 // --- heat map: z-scores and clustering through the engine ---
 {
-  await page.getByRole("button", { name: "New data table" }).click();
+  await fileMenu(page, "New data table…");
   const dlg = page.locator(".new-table-dialog");
   await dlg.locator('input[name="table-type"][value="grouped"]').check();
   await dlg.getByText("Example data").click();
@@ -399,7 +418,7 @@ await shot("classic");
 
 // --- a new survival graph marks censored subjects ---
 {
-  await page.getByRole("button", { name: "New data table" }).click();
+  await fileMenu(page, "New data table…");
   const dlg = page.locator(".new-table-dialog");
   await dlg.locator('input[name="table-type"][value="survival"]').check();
   await dlg.getByText("Example data").click();
@@ -446,7 +465,8 @@ await shot("classic");
         settings: { titles: { x: "", y: "" }, scheme: "colorblind", column: { caption: "below" } } },
     ],
   }));
-  await page.setInputFiles('.load-btn input[type="file"]', CELLS);
+  await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]', CELLS);
+  await openChecks();
   await page.waitForSelector(".guide-chip", { timeout: 60000 });
   const chip = page.locator(".guide-chip", { hasText: "n might be cells" });
   expect("the n-might-be-cells chip fires on 60 values per group", await chip.count() === 1);

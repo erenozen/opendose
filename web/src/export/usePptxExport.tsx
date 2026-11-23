@@ -205,7 +205,6 @@ export function usePptxExport() {
   return {
     run,
     busy: !!job,
-    progress: job ? `${Math.min(index + 1, job.sheets.length)} of ${job.sheets.length}` : "",
     host: content ? createPortal(content, document.body) : null,
   };
 }

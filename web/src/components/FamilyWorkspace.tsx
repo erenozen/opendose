@@ -28,20 +28,22 @@ import GraphSettings from "./GraphSettings";
 import { GenericMethodsText } from "./MethodsText";
 import HSplitter from "./HSplitter";
 import { SnowflakeIcon } from "./SheetIcon";
-import WelcomePanel from "./WelcomePanel";
-import { AnalysisBusy, EngineBootNote } from "./EngineStatus";
+import { AnalysisBusy, EngineBootBanner } from "./EngineStatus";
+import { PaneBoundary } from "./ErrorBoundary";
 import { useGuideOptional } from "../guide/context";
+import { FirstRunBanner } from "../guide/FirstRun";
+import { Button, NumberRefs } from "./ui";
+import { resolveInfoRefs } from "../project/infoRefs";
 import EntryGuide from "../guide/EntryGuide";
-import { DifferNote, ResultsGuide } from "../guide/ResultsGuide";
+import { DifferNote } from "../guide/ResultsGuide";
 import EffectSizeCard from "../report/EffectSizeCard";
 import GraphLegend from "../report/GraphLegend";
 import ReportCard from "../report/ReportCard";
 import StatsMethodsCard from "../report/StatsMethodsCard";
 import ExclusionsCard from "../report/ExclusionsCard";
-import MeaningLine from "../report/MeaningLine";
 import NotesStrip from "./NotesStrip";
-import ResultsLinks, { ResultsEmptyLinks } from "./ResultsLinks";
-import PlanCheck from "./PlanCheck";
+import { ResultsEmptyLinks } from "./ResultsLinks";
+import ResultsAnswer from "./ResultsAnswer";
 import { nameColorIndex, stripNameColors, withNameColors } from "../graph/nameColors";
 import { useDarkMode } from "../graph/useDarkMode";
 
@@ -53,7 +55,7 @@ import { useDarkMode } from "../graph/useDarkMode";
  */
 export default function FamilyWorkspace({ data }: { data: DataSheet }) {
   const api = useProject();
-  const { project, apply, engineReady, status, engineError, bootEngine, engine } = api;
+  const { project, apply, engineReady, engineError, bootEngine, engine } = api;
   const cmd = useCommands();
   const guide = useGuideOptional();
   const mainRef = useRef<HTMLElement>(null);
@@ -119,7 +121,7 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
     : { ...data, table: settledTable }), [data, settledTable]);
 
   return (
-    <main ref={mainRef}>
+    <main ref={mainRef} className="workspace">
       {/* The engine runs in a worker: the editor works while it loads and
           while it computes; analyses queue until it is ready. */}
       <div className="left">
@@ -133,6 +135,9 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
           </>
         )}
         <div className={`pane pane-table${largeTable ? " large-table" : ""}`}>
+          {/* First run: "Example data" with the paste line, or what a
+              paste was read as (DECISIONS 4). */}
+          <FirstRunBanner data={data} />
           {data.frozen && (
             <FrozenNote what="data table" onUnfreeze={() => cmd.toggleFreeze(data.id)} />
           )}
@@ -150,18 +155,24 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
                     <FrozenNote what="results sheet"
                       onUnfreeze={() => cmd.toggleFreeze(resSheet.id)} />
                   )}
-                  <div className="controls-wrap" inert={!!resSheet.frozen || shared}>
-                    <Suspense fallback={<Pending />}>
-                      <Controls sheet={resSheet} table={data.table} options={formOptions}
-                        readOnly={!!resSheet.frozen || shared}
-                        onChange={(o) => apply((p) => {
-                          const prev = findSheet(p, resSheet.id);
-                          const before = prev?.kind === "results" ? prev.options : undefined;
-                          return renameForOptions(updateResultsOptions(p, resSheet.id, () => o),
-                            resSheet.id, before, analysisDef);
-                        }, `options:${resSheet.id}`)} />
-                    </Suspense>
-                  </div>
+                  {/* Frozen or shared: the settings stay readable (and
+                      Advanced still opens), but nothing can be changed. */}
+                  <fieldset className="controls-wrap" disabled={!!resSheet.frozen || shared}>
+                    <PaneBoundary resetKey={resSheet.id}>
+                      <Suspense fallback={<Pending />}>
+                        <NumberRefs value={infoRef}>
+                          <Controls sheet={resSheet} table={data.table} options={formOptions}
+                            readOnly={!!resSheet.frozen || shared}
+                            onChange={(o) => apply((p) => {
+                              const prev = findSheet(p, resSheet.id);
+                              const before = prev?.kind === "results" ? prev.options : undefined;
+                              return renameForOptions(updateResultsOptions(p, resSheet.id, () => o),
+                                resSheet.id, before, analysisDef);
+                            }, `options:${resSheet.id}`)} />
+                        </NumberRefs>
+                      </Suspense>
+                    </PaneBoundary>
+                  </fieldset>
                 </>
               ) : (
                 <div className="controls">
@@ -171,9 +182,7 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
                       Use Analyze in the toolbar to add one; its results and graph
                       appear next to this table.
                     </p>
-                    {guide && (
-                      <button type="button" onClick={guide.openWizard}>Help me choose…</button>
-                    )}
+                    {guide && <Button onClick={guide.openWizard}>Help me choose…</Button>}
                   </section>
                 </div>
               )}
@@ -184,87 +193,89 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
       </div>
       <ColumnSplitter mainRef={mainRef} />
       <div className="right">
-        {!engineReady && (engineError || result == null) ? (
-          <div className="pane pane-plot">
-            <WelcomePanel status={status} error={engineError} onRetry={bootEngine}
-              engine={engine} />
-          </div>
-        ) : (
+        {/* Saved (or bundled example) results show at once; the live
+            engine replaces them when it is up. Without any, the panes keep
+            the shape of a result (skeletons) while the boot banner says
+            what is happening, so its arrival moves nothing (DECISIONS 4);
+            saved results stay visible, relabelled, if the engine fails. */}
+        <EngineBootBanner engine={engine} ready={engineReady} live={resStatus.live}
+          hasResult={result != null && !(engineError && (result as { error?: unknown }).error)}
+          fitted={data.table.type === "xy"} onRetry={bootEngine} />
+        {/* The answer first (DECISIONS 3): the key figures, the plain
+            reading and the Checks row, above the graph and the table. */}
+        {resSheet && Results && (
           <>
-            {/* Saved (or bundled example) results show at once; the live
-                engine replaces them when it is up. */}
-            {!engineReady && (
-              <div className="pane pane-boot">
-                <EngineBootNote engine={engine} live={resStatus.live} />
-              </div>
-            )}
-            {graph && (
-              <>
-                <div className={`pane pane-plot${reveal}`}>
-                  <GraphCard graph={graph} data={graphData}
-                    result={graph.resultsId === resSheet?.id ? result : other.result}
-                    options={graph.resultsId === resSheet?.id ? options : other.options} />
-                </div>
-                <HSplitter />
-              </>
-            )}
-            {resSheet && Results && (
-              <div className={`pane pane-results${reveal}`}
-                data-live={resStatus.live ? "true" : "false"}
-                aria-busy={resStatus.pending ? true : undefined}>
-                {engineReady && <AnalysisBusy status={resStatus} engine={engine} />}
-                {/* Order (0.4.0): links, questions and chips first; the key
-                    result; what was analysed under it; then the plain
-                    reading, the exclusions and the sentence together. */}
-                <ResultsLinks key={resSheet.id} sheet={resSheet} tableName={data.name}
-                  options={options} result={result} />
-                <ResultsGuide analysisId={resSheet.analysis} tableType={data.table.type}
-                  table={data.table} options={options} result={result}
-                  dataId={data.id} resultsId={resSheet.id} readOnly={readOnly} />
-                <PlanCheck key={`plan-${resSheet.id}`} sheet={resSheet} data={data} readOnly={readOnly} />
-
-                <ResultsExport name={resSheet.name}>
+            <ResultsAnswer sheet={resSheet} data={graphData} result={result} options={options}
+              status={resStatus} readOnly={readOnly} />
+            <HSplitter />
+          </>
+        )}
+        {graph && (
+          <>
+            <div className={`pane pane-plot${reveal}`}>
+              <GraphCard graph={graph} data={graphData}
+                result={graph.resultsId === resSheet?.id ? result : other.result}
+                options={graph.resultsId === resSheet?.id ? options : other.options} />
+            </div>
+            <HSplitter />
+          </>
+        )}
+        {resSheet && Results && (
+          <div className={`pane pane-results${reveal}`}
+            data-live={resStatus.live ? "true" : "false"}
+            aria-busy={resStatus.pending ? true : undefined}>
+            {engineReady && <AnalysisBusy status={resStatus} engine={engine} />}
+            {/* The full results (the headline and the guidance are in the
+                answer pane above the graph); what was analysed under
+                them; then the exclusions and the sentence. */}
+            <ResultsExport name={resSheet.name}>
+              {result == null ? (engineError
+                ? <p className="empty-hint result-card">No results: the analysis engine did not load.</p>
+                : <ResultsSkeleton />) : (
+                <PaneBoundary resetKey={result}>
                   <Suspense fallback={<Pending />}>
                     <Results sheet={resSheet} table={data.table} options={options} result={result} />
                   </Suspense>
-                  {/* Effect sizes of every comparison (src/report). */}
-                  <EffectSizeCard result={result} />
-                </ResultsExport>
-                <NotesStrip analysisId={resSheet.analysis} table={data.table} options={options}
-                  result={result} />
-                <DifferNote analysisId={resSheet.analysis} tableType={data.table.type}
-                  table={data.table} options={options} result={result} />
-                <MeaningLine analysisId={resSheet.analysis} resultsId={resSheet.id} table={data.table}
-                  options={options} result={result} />
-                <ExclusionsCard sheet={resSheet} table={data.table} options={options} result={result} />
-                <ReportCard sheet={resSheet} table={data.table} options={options} result={result} />
-              </div>
-            )}
-            {resSheet && Methods && (
-              <>
-                <HSplitter />
-                <div className="pane pane-methods">
-                  <Suspense fallback={null}>
-                    <Methods sheet={resSheet} table={data.table} options={options} result={result} />
-                  </Suspense>
+                </PaneBoundary>
+              )}
+              {/* Effect sizes of every comparison (src/report). */}
+              <EffectSizeCard result={result} />
+            </ResultsExport>
+            {/* The readers below pass over the whole table: they follow
+                edits once they pause, as the graph does. */}
+            <NotesStrip analysisId={resSheet.analysis} table={settledTable} options={options}
+              result={result} />
+            <DifferNote analysisId={resSheet.analysis} tableType={data.table.type}
+              table={settledTable} options={options} result={result} />
+            <ExclusionsCard sheet={resSheet} table={data.table} options={options} result={result} />
+            <ReportCard sheet={resSheet} table={settledTable} options={options} result={result} />
+          </div>
+        )}
+        {resSheet && Methods && (
+          <>
+            <HSplitter />
+            <div className="pane pane-methods">
+              <PaneBoundary resetKey={result}>
+                <Suspense fallback={null}>
+                  <Methods sheet={resSheet} table={data.table} options={options} result={result} />
+                </Suspense>
+              </PaneBoundary>
 
-                  <StatsMethodsCard sheet={resSheet} result={result} />
-                </div>
-              </>
-            )}
-            {entryOnly ? (
-              <div className={`pane pane-results${reveal}`}>
-                <PlaceholderPanel label={def.label} hint={def.entryHint} />
-              </div>
-            ) : !graph && !resSheet && (
-              <div className="pane pane-results">
-                <div className="empty-hint result-card">
-                  No results or graphs for this table yet. Use Analyze in the toolbar, or:
-                  <ResultsEmptyLinks />
-                </div>
-              </div>
-            )}
+              <StatsMethodsCard sheet={resSheet} result={result} />
+            </div>
           </>
+        )}
+        {entryOnly ? (
+          <div className={`pane pane-results${reveal}`}>
+            <PlaceholderPanel label={def.label} hint={def.entryHint} />
+          </div>
+        ) : !graph && !resSheet && (
+          <div className="pane pane-results">
+            <div className="empty-hint result-card">
+              No results or graphs for this table yet. Use Analyze in the toolbar, or:
+              <ResultsEmptyLinks />
+            </div>
+          </div>
         )}
       </div>
     </main>
@@ -294,6 +305,17 @@ function useSettledTable(table: DataTableModel): DataTableModel {
   return settled;
 }
 
+/** The shape of a results card (a title and a six-row table) while the
+ *  first result is computed, so its arrival moves nothing. */
+function ResultsSkeleton() {
+  return (
+    <div className="result-card result-skeleton" aria-hidden="true">
+      <span className="result-skeleton-title" />
+      {Array.from({ length: 6 }, (_, i) => <span key={i} className="result-skeleton-row" />)}
+    </div>
+  );
+}
+
 /** Shown while a panel's code loads (sheets/lazy.ts): usually a moment. */
 function Pending() {
   return <p className="empty-hint pane-pending" aria-busy="true">Loading…</p>;
@@ -304,7 +326,7 @@ function FrozenNote({ what, onUnfreeze }: { what: string; onUnfreeze: () => void
     <div className="frozen-note" role="note">
       <SnowflakeIcon />
       <span>This {what} is frozen and does not change.</span>
-      <button type="button" onClick={onUnfreeze}>Unfreeze</button>
+      <Button size="sm" onClick={onUnfreeze}>Unfreeze</Button>
     </div>
   );
 }
@@ -384,9 +406,7 @@ function GraphCard({ graph, data, result, options }: {
       <div className="graph-head">
         <span className="graph-name">{graph.name}</span>
         {graph.frozen && (
-          <span className="frozen-chip" title="Frozen: this graph no longer follows the data">
-            <SnowflakeIcon /> Frozen
-          </span>
+          <span className="frozen-chip"><SnowflakeIcon /> Frozen: no longer follows the data</span>
         )}
         {siblings.length > 1 && !graph.frozen && !shared && (
           <select className="graph-select" aria-label="Graph type"
@@ -397,11 +417,13 @@ function GraphCard({ graph, data, result, options }: {
         )}
       </div>
       {Plot ? (
-        <Suspense fallback={<div className="plot-pending" aria-busy="true" />}>
-          <Plot graph={graph} table={table} options={opts} result={res}
-            titles={resolved} scheme={graph.settings.scheme} format={plotFormat}
-            onFormatChange={graph.frozen || shared ? undefined : plotDrag} />
-        </Suspense>
+        <PaneBoundary resetKey={res}>
+          <Suspense fallback={<div className="plot-pending" aria-busy="true" />}>
+            <Plot graph={graph} table={table} options={opts} result={res}
+              titles={resolved} scheme={graph.settings.scheme} format={plotFormat}
+              onFormatChange={graph.frozen || shared ? undefined : plotDrag} />
+          </Suspense>
+        </PaneBoundary>
       ) : <div className="plot empty-hint">No plot available for this graph type.</div>}
       <ExportPanel filename={fileStem(graph.name, kind?.exportName ?? "graph")} graphId={graph.id}
         scheme={graph.settings.scheme} leading={graph.frozen || shared ? undefined : (
@@ -438,6 +460,13 @@ function projectConstants(p: Project) {
     }
   }
   return out;
+}
+
+/** "@Name" typed in a number box of the settings: the Info constant's
+ *  value, or null when no constant has that name (project/infoRefs.ts). */
+function infoRef(raw: string): string | null {
+  const v = resolveInfoRefs(raw);
+  return v === raw ? null : v;
 }
 
 function ConstantsList({ constants }: { constants: { sheet: string; name: string; value: string }[] }) {

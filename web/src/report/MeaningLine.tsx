@@ -1,9 +1,11 @@
 // "What this means" under the results of every analysis: the key result
 // in one plain sentence about the user's own groups, how that kind of
 // result is often misread, the test that was run and why it fits, and
-// the sources (report/meaning.ts). Mounted once by the shell's results
-// pane, so no table type or analysis needs code of its own.
+// the sources (report/meaning.ts). Mounted once, in the results headline
+// (components/ResultsAnswer.tsx), so no table type or analysis needs code
+// of its own. Numbers in it never break across lines (NumText).
 import { useMemo, useSyncExternalStore } from "react";
+import { NumText } from "../components/ui";
 import { choiceFor, subscribeChoice } from "../guide/choice";
 import type { DataTableModel } from "../project/types";
 import { meaningOf } from "./meaning";
@@ -28,12 +30,12 @@ export default function MeaningLine({ analysisId, resultsId, table, options, res
     <section className="meaning-line" aria-label="What this means">
       <p className="meaning-sentence">
         <span className="meaning-label">What this means</span>{" "}
-        {m.sentence}
+        <NumText text={m.sentence} />
       </p>
       {m.misreading && (
         <p className="meaning-misread">
           <span className="meaning-label">Often misread as</span>{" "}
-          {m.misreading}
+          <NumText text={m.misreading} />
         </p>
       )}
       {m.test && !chosen && (

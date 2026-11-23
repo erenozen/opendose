@@ -58,7 +58,8 @@ export function CtPlot({ graph, table, titles, scheme, format, onFormatChange }:
       paper_bgcolor: chrome.surface, plot_bgcolor: chrome.surface,
       font: { family: PLOT_FONT, color: chrome.inkSecondary, size: 13 },
       showlegend: legendOn,
-      legend: { font: { color: chrome.ink }, bgcolor: "rgba(0,0,0,0)",
+      // no bgcolor: the legend takes the paper colour (transparent in exports)
+      legend: { font: { color: chrome.ink },
         ...(kind === GRAPH_CT_GROUPED ? {} : { traceorder: "reversed" as const }) },
       barmode: kind === GRAPH_CT_GROUPED ? "group" : "stack",
       bargap: kind === GRAPH_CT_GROUPED ? 0.25 : 0.45,

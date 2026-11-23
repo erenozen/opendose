@@ -1,0 +1,75 @@
+/* Results guidance inside the Checks row (ResultsGuide.tsx, UnitQuestion,
+   PlanCheck): plain blocks on hairlines, never a tint. The pane's one
+   tinted callout is a Banner (DECISIONS 3). Tokens only. */
+
+/* ---- assumption chips: disclosure toggles (Button sm) ---- */
+.guide-chips-wrap { display: flex; flex-direction: column; gap: var(--space-8); }
+.guide-chips { display: flex; flex-wrap: wrap; gap: var(--space-6); list-style: none; margin: 0; padding: 0; }
+/* A long label wraps inside the chip instead of widening the pane. */
+.guide-chip.btn { max-width: 100%; white-space: normal; text-align: start; padding-block: var(--space-2); }
+.guide-chip[aria-expanded="true"] { background: var(--accent-soft); }
+.chip-icon {
+  display: inline-grid; place-items: center; flex: none; width: 16px; height: 16px;
+  border-radius: var(--radius-round); font-size: var(--text-caption);
+  font-weight: var(--weight-bold); line-height: 1; color: var(--surface);
+}
+.chip-ok .chip-icon { background: var(--success); }
+.chip-warn .chip-icon { background: var(--warn-ink); }
+.chip-bad .chip-icon { background: var(--danger); }
+.chip-info .chip-icon { background: var(--info); }
+.guide-chip-detail {
+  font-size: var(--text-body-s); line-height: var(--leading-body); color: var(--ink-2);
+  border-inline-start: 2px solid var(--line-solid); padding: var(--space-2) 0 var(--space-2) var(--space-12);
+  max-width: 72ch;
+}
+.guide-chip-detail p { margin: 0 0 var(--space-4); }
+.guide-chip-detail .guide-chip-action { margin: var(--space-8) 0; }
+
+/* ---- notes: one per condition, plain text on a hairline ---- */
+.guide-note {
+  font-size: var(--text-body-s); line-height: var(--leading-body); color: var(--ink-2);
+  max-width: 72ch;
+}
+.guide-note p { margin: 0 0 var(--space-4); }
+.guide-note ul { margin: 0 0 var(--space-6); padding-inline-start: var(--space-20); }
+.guide-note li { margin: var(--space-2) 0; }
+.guide-note-title { color: var(--ink); font-weight: var(--weight-semibold); }
+.guide-note[data-tone="warn"] .guide-note-title::before {
+  content: "!"; display: inline-grid; place-items: center; width: 16px; height: 16px;
+  margin-inline-end: var(--space-6); vertical-align: -2px;
+  border-radius: var(--radius-round); background: var(--warn-ink); color: var(--surface);
+  font-size: var(--text-caption); font-weight: var(--weight-bold); line-height: 1;
+}
+.guide-note-sub { font-weight: var(--weight-semibold); color: var(--ink); }
+.guide-note-foot {
+  display: flex; flex-wrap: wrap; gap: var(--space-6) var(--space-16); align-items: center;
+  margin: 0 !important;
+}
+/* The callout (a Banner): its list and links read at the detail's size. */
+.guide-callout .banner-detail { max-width: 80ch; }
+.guide-callout .guide-note-sub { margin-top: var(--space-6); color: var(--ink); font-weight: var(--weight-semibold); }
+.guide-callout .guide-note-foot { margin-top: var(--space-6) !important; }
+
+/* ---- "What does each value represent?" ---- */
+.unit-question { font-size: var(--text-body-s); color: var(--ink-2); }
+.unit-q-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-12); }
+.unit-q-title { margin: 0 0 var(--space-8); color: var(--ink); font-weight: var(--weight-semibold); }
+.unit-q-options, .unit-q-actions { display: flex; flex-wrap: wrap; gap: var(--space-6); }
+.unit-q-step { display: flex; flex-direction: column; gap: var(--space-8); }
+.unit-q-fields { display: flex; flex-wrap: wrap; gap: var(--space-8) var(--space-16); }
+.unit-q-hint { margin: var(--space-6) 0 0; font-size: var(--text-caption); color: var(--muted); max-width: 72ch; }
+.unit-q-preview { margin: 0; color: var(--ink); }
+
+/* ---- "Why your number may differ", under the results ---- */
+.guide-differ {
+  margin-top: var(--space-12); font-size: var(--text-body-s); color: var(--ink-2);
+  border-top: 1px solid var(--line); padding-top: var(--space-8);
+}
+.guide-differ > summary { cursor: pointer; color: var(--muted); font-weight: var(--weight-medium); }
+.guide-differ dl { margin: var(--space-8) 0; display: grid; gap: var(--space-6); }
+.guide-differ-row { display: grid; grid-template-columns: minmax(110px, 0.32fr) 1fr; gap: var(--space-12); }
+.guide-differ dt { font-weight: var(--weight-semibold); color: var(--ink); }
+.guide-differ dd { margin: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.guide-differ-else { color: var(--muted); }
+
+.withheld-results .withheld-p td { color: var(--ink); }

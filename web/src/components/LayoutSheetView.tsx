@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { BREAKPOINTS } from "../app/breakpoints";
 import { useCommands } from "../app/commands";
 import { useProject } from "../app/context";
 import { saveBlob } from "../export/download";
@@ -22,6 +23,9 @@ import type {
   ExportFormat, GraphSheet, LayoutItem, LayoutRect, LayoutSheet, Sheet,
 } from "../project/types";
 import { SnowflakeIcon } from "./SheetIcon";
+import {
+  Button, IconButton, Menu, notify, NumberField, SwapLabel, useLabelSwap,
+} from "./ui";
 
 type Zoom = "fit" | number;
 
@@ -41,7 +45,7 @@ export default function LayoutSheetView({ sheet }: { sheet: LayoutSheet }) {
   const [rows, setRows] = useState(String(layout.grid.rows));
   const [cols, setCols] = useState(String(layout.grid.cols));
   const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState<{ text: string; error?: boolean } | null>(null);
+  const downloaded = useLabelSwap();
   const [minPt, setMinPt] = useState<number | null>(null);
   const [dark, setDark] = useState(isDarkMode());
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -66,7 +70,8 @@ export default function LayoutSheetView({ sheet }: { sheet: LayoutSheet }) {
     const measure = () => {
       const byW = (el.clientWidth - 32) / pageW;
       const room = window.innerHeight - el.getBoundingClientRect().top + window.scrollY - 56;
-      const byH = window.matchMedia("(max-width: 1100px)").matches ? byW : room / pageH;
+      const byH = window.matchMedia(`(max-width: ${BREAKPOINTS.columns}px)`).matches
+        ? byW : room / pageH;
       setFitZoom(Math.min(1.5, Math.max(0.2, Math.min(byW, byH))));
     };
     measure();
@@ -130,11 +135,11 @@ export default function LayoutSheetView({ sheet }: { sheet: LayoutSheet }) {
     const before = layout;
     const after = fillPlaceholders(before, projectGraphIds(project), start);
     if (after === before) {
-      setMsg({ text: before.items.some((i) => i.kind === "graph" && !i.graphId)
-        ? "Every graph is already on this page." : "No empty placeholders: add one or pick an arrangement." });
+      notify(before.items.some((i) => i.kind === "graph" && !i.graphId)
+        ? "Every graph is already on this page."
+        : "No empty placeholders to fill: add one, or pick an arrangement.", { tone: "info" });
       return;
     }
-    setMsg(null);
     edit(() => after);
   };
 
@@ -145,7 +150,11 @@ export default function LayoutSheetView({ sheet }: { sheet: LayoutSheet }) {
     const graph = project.sheets.find((s): s is GraphSheet => s.id === it.graphId && s.kind === "graph");
     const host = pageRef.current?.querySelector<HTMLElement>(`[data-item-id="${CSS.escape(id)}"]`);
     const gd = host ? await waitForPlot(host, 5000) : null;
-    if (!gd || !graph) { setMsg({ text: "The graph has not been drawn yet.", error: true }); return; }
+    if (!gd || !graph) {
+      notify(`Could not make “${graph?.name ?? "the graph"}” a picture: it has not been drawn yet. `
+        + "Try again once it shows on the page.", { tone: "error" });
+      return;
+    }
     const fig = exportFigure(gd, { transparent: true, paper: true, scheme: graph.settings.scheme });
     if (it.hideLegend) fig.layout = { ...fig.layout, showlegend: false };
     const svg = await figureToSvg(fig, it.w * PX_PER_MM, it.h * PX_PER_MM);
@@ -169,22 +178,27 @@ export default function LayoutSheetView({ sheet }: { sheet: LayoutSheet }) {
   const doExport = async () => {
     const el = pageRef.current;
     if (!el) return;
-    setMsg(null);
     if (pageTooLarge(layout, opts)) {
-      setMsg({ text: `${px.w} × ${px.h} px is too large to render. Lower the DPI.`, error: true });
+      notify(`Could not export “${sheet.name}”: ${px.w} × ${px.h} px is too large to render. `
+        + "Lower the DPI.", { tone: "error" });
       return;
     }
     setSettings({ ...settings, dpi: effDpi });
     setBusy(true);
     try {
       const blob = await exportPage(el, layout, project, legend, opts);
-      saveBlob(blob, `${fileStem(sheet.name, "layout")}.${EXTENSIONS[format]}`);
+      const name = `${fileStem(sheet.name, "layout")}.${EXTENSIONS[format]}`;
+      saveBlob(blob, name);
+      downloaded.flash(`Downloaded “${name}”.`);
     } catch {
-      setMsg({ text: "Could not export the page. Try another format or a lower DPI.", error: true });
+      notify(`Could not export “${sheet.name}”: the page did not render. `
+        + "Try another format or a lower DPI.", { tone: "error" });
     } finally {
       setBusy(false);
     }
   };
+  const rowsN = Number(rows);
+  const colsN = Number(cols);
 
   const print = () => { setSelected(null); requestAnimationFrame(() => window.print()); };
 
@@ -193,56 +207,60 @@ export default function LayoutSheetView({ sheet }: { sheet: LayoutSheet }) {
 
   return (
     <main className="layout-main">
-      <div className="layout-toolbar" role="toolbar" aria-label="Layout tools">
-        <h2 className="layout-title">{sheet.name}</h2>
-        {readOnly && (
-          <span className="frozen-chip"><SnowflakeIcon /> Frozen</span>
-        )}
+      <div className="layout-toolbar">
+        <div className="layout-head">
+          <h2 className="layout-title">{sheet.name}</h2>
+          {readOnly && (
+            <span className="frozen-chip"><SnowflakeIcon /> Frozen</span>
+          )}
+        </div>
         <div className="layout-group" role="group" aria-label="Arrangement">
-          {GRID_PRESETS.map((g) => (
-            <button key={`${g.rows}x${g.cols}`} type="button" className="grid-preset"
-              disabled={readOnly}
-              aria-label={`Arrange as ${g.rows} row${g.rows > 1 ? "s" : ""} by ${g.cols} column${g.cols > 1 ? "s" : ""}`}
-              aria-pressed={layout.grid.rows === g.rows && layout.grid.cols === g.cols}
-              title={`${g.rows} × ${g.cols}`}
-              onClick={() => arrange(g.rows, g.cols)}>
-              <GridIcon rows={g.rows} cols={g.cols} />
-            </button>
-          ))}
-          <label className="mini-field">
-            <span className="sr-only">Rows</span>
-            <input inputMode="numeric" value={rows} aria-label="Rows" disabled={readOnly}
-              onChange={(e) => setRows(e.target.value)} />
-          </label>
-          <span aria-hidden="true">×</span>
-          <label className="mini-field">
-            <span className="sr-only">Columns</span>
-            <input inputMode="numeric" value={cols} aria-label="Columns" disabled={readOnly}
-              onChange={(e) => setCols(e.target.value)} />
-          </label>
-          <button type="button" disabled={readOnly} onClick={() => {
-            const r = Math.round(Number(rows));
-            const c = Math.round(Number(cols));
-            if (r >= 1 && r <= 8 && c >= 1 && c <= 8) arrange(r, c);
-            else setMsg({ text: "Rows and columns: 1 to 8.", error: true });
-          }}>Arrange</button>
+          <div className="layout-presets" data-still>
+            {GRID_PRESETS.map((g) => (
+              <IconButton key={`${g.rows}x${g.cols}`} disabled={readOnly}
+                aria-label={`Arrange as ${g.rows} row${g.rows > 1 ? "s" : ""} by ${g.cols} column${g.cols > 1 ? "s" : ""}`}
+                aria-pressed={layout.grid.rows === g.rows && layout.grid.cols === g.cols}
+                title={`${g.rows} × ${g.cols}`}
+                onClick={() => arrange(g.rows, g.cols)}>
+                <GridIcon rows={g.rows} cols={g.cols} />
+              </IconButton>
+            ))}
+          </div>
+          <NumberField fieldClassName="mini-field" label={<span className="sr-only">Rows</span>}
+            aria-label="Rows" integer min={1} max={8} value={rows} disabled={readOnly}
+            onValueChange={setRows} />
+          <span className="layout-times" aria-hidden="true">×</span>
+          <NumberField fieldClassName="mini-field" label={<span className="sr-only">Columns</span>}
+            aria-label="Columns" integer min={1} max={8} value={cols} disabled={readOnly}
+            onValueChange={setCols} />
+          <Button variant="ghost" disabled={readOnly} onClick={() => {
+            // out of range: the fields already say what to enter
+            if (Number.isInteger(rowsN) && Number.isInteger(colsN)
+              && rowsN >= 1 && rowsN <= 8 && colsN >= 1 && colsN <= 8) arrange(rowsN, colsN);
+          }}>Arrange</Button>
         </div>
         <div className="layout-group" role="group" aria-label="Add to page">
-          <button type="button" disabled={readOnly} onClick={() => add("graph")}>+ Placeholder</button>
-          <button type="button" disabled={readOnly} onClick={() => add("text")}>+ Text</button>
-          <button type="button" disabled={readOnly || hasLegend} onClick={() => add("legend")}>
-            + Master legend
-          </button>
-          <button type="button" disabled={readOnly || !graphCount} onClick={() => fill(null)}>
+          <Menu>
+            <Menu.Trigger variant="ghost" disabled={readOnly}>Add…</Menu.Trigger>
+            <Menu.Content className="sheet-menu" aria-label="Add to the page">
+              <Menu.Item onSelect={() => add("graph")}
+                description="An empty frame to bind a graph to">Graph placeholder</Menu.Item>
+              <Menu.Item onSelect={() => add("text")}>Text</Menu.Item>
+              <Menu.Item disabled={hasLegend} onSelect={() => add("legend")}
+                description={hasLegend ? "This page has one" : "Every data set of the page, once"}>
+                Master legend</Menu.Item>
+            </Menu.Content>
+          </Menu>
+          <Button variant="ghost" disabled={readOnly || !graphCount} onClick={() => fill(null)}>
             Fill with graphs
-          </button>
+          </Button>
         </div>
         <div className="layout-group" role="group" aria-label="Sheet">
-          <button type="button" onClick={() => cmd.duplicate(sheet.id)}>Duplicate layout</button>
-          <button type="button" onClick={print}>Print</button>
-          <label className="mini-field">
+          <Button variant="ghost" onClick={() => cmd.duplicate(sheet.id)}>Duplicate layout</Button>
+          <Button variant="ghost" onClick={print}>Print</Button>
+          <label className="layout-zoom">
             <span>Zoom</span>
-            <select value={String(zoomPref)} aria-label="Zoom"
+            <select value={String(zoomPref)}
               onChange={(e) => setZoomPref(e.target.value === "fit" ? "fit" : Number(e.target.value))}>
               <option value="fit">Fit</option>
               <option value="0.5">50%</option>
@@ -258,36 +276,41 @@ export default function LayoutSheetView({ sheet }: { sheet: LayoutSheet }) {
             {FORMATS.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
           </select>
           {!vector && (
-            <label className="mini-field">
-              <span>DPI</span>
-              <input inputMode="numeric" value={dpi} list="layout-dpi"
-                aria-label="Page export resolution (DPI)" onChange={(e) => setDpi(e.target.value)} />
+            <>
+              <NumberField fieldClassName="mini-field layout-dpi" label="DPI" list="layout-dpi"
+                aria-label="Page export resolution (DPI)" integer min={36} max={2400} step={50}
+                value={dpi} onValueChange={setDpi} />
               <datalist id="layout-dpi">
                 {DPI_CHOICES.map((d) => <option key={d} value={d} />)}
               </datalist>
-            </label>
+            </>
           )}
-          <button type="button" className="btn-primary" onClick={doExport}
-            disabled={busy || !engineReady}>
-            {busy ? "Exporting…" : "Export page"}
-          </button>
+          {/* The view's one primary action. Without the engine the graphs
+              cannot be drawn, and the reason shows beside it. */}
+          <Button variant="primary" onClick={doExport} disabled={!engineReady}
+            busy={busy} busyLabel="Exporting…">
+            <SwapLabel swapped={downloaded.swapped} done="Downloaded">Export page</SwapLabel>
+          </Button>
           <span className="export-hint">
             {vector ? `${Math.round(dims.w)} × ${Math.round(dims.h)} mm`
               : `${px.w} × ${px.h} px`}
           </span>
         </div>
       </div>
-      {(msg || belowFontFloor(minPt) || dark) && (
+      {(!engineReady || belowFontFloor(minPt) || (dark && settings.paper)) && (
         <div className="layout-notes">
-          {msg && (
-            <span className={msg.error ? "export-err" : "export-note"}
-              role={msg.error ? "alert" : "status"}>{msg.text}</span>
-          )}
-          {belowFontFloor(minPt) && (
-            <span className="export-warn" role="status">
-              Smallest text on the page is {minPt} pt; journals usually want at least {FONT_FLOOR_PT} pt.
+          {!engineReady && (
+            <span className="export-note">
+              Export page waits for the analysis engine, which is still loading.
             </span>
           )}
+          <span className="status-slot" role="status">
+            {belowFontFloor(minPt) && (
+              <span className="export-warn">
+                Smallest text on the page is {minPt} pt; journals usually want at least {FONT_FLOOR_PT} pt.
+              </span>
+            )}
+          </span>
           {dark && settings.paper && (
             <span className="export-note">Shown in dark-theme colours; exports and prints use print colours.</span>
           )}

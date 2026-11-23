@@ -5,6 +5,9 @@ import { resolveOptions } from "../app/analysis";
 import { useProject } from "../app/context";
 import { useUi } from "../app/ui";
 import Modal from "../components/Modal";
+import {
+  Banner, Button, Field, Input, notify, SwapLabel, useLabelSwap,
+} from "../components/ui";
 import { copyText, saveBlob } from "../export/download";
 import { findSheet } from "../project/ops";
 import { serializeProject } from "../project/persist";
@@ -25,6 +28,8 @@ const ValidationPage = lazy(() => import("./ValidationPage"));
 const PrivacyPage = lazy(() => import("./PrivacyPage"));
 const ReplayDialog = lazy(() => import("./ReplayDialog"));
 const PptxDialog = lazy(() => import("../export/PptxDialog"));
+/** The PowerPoint export's progress toast, resolved in place. */
+const PPTX_TOAST = "pptx-export";
 const RecipeDialog = lazy(() => import("./RecipeDialog"));
 
 /** Results-sheet options written out in full, with the sender's
@@ -71,17 +76,17 @@ export default function ShareHost() {
   // Data tables as a .pzfx file (all of them, or one table's).
   const savePzfx = useCallback(async (dataId?: string) => {
     if (!api.engineReady) {
-      ui.notify("The analysis engine is still starting; try again in a moment.");
+      ui.notify("The analysis engine is still starting; try again in a moment.", { tone: "info" });
       return;
     }
     const p = api.store.project;
     const sel = pzfxSelection(p, dataId);
     const r = await runEngine((engine) => exportPzfx(engine, sel), { priority: "user" });
-    if ("error" in r) { ui.notify(r.error); return; }
+    if ("error" in r) { ui.notify(r.error, { tone: "error" }); return; }
     const one = dataId ? findSheet(p, dataId)?.name : undefined;
     saveBlob(new Blob([r.xml], { type: "application/xml" }), pzfxFileName(one ?? p.title));
     ui.notify(`Saved ${sel.tables.length} table${sel.tables.length === 1 ? "" : "s"} as .pzfx`
-      + (r.messages.length ? `. ${r.messages.join(". ")}.` : "."));
+      + (r.messages.length ? `. ${r.messages.join(". ")}.` : "."), { tone: "success" });
   }, [api, ui]);
 
   useEffect(() => {
@@ -119,31 +124,33 @@ export default function ShareHost() {
     // A new object, so the copy counts as a change and autosaves at once.
     const p = { ...api.store.project };
     api.replace(p, api.selectedId);
-    ui.notify("Copied into this browser: edits now autosave here. The link stays as it was.");
+    ui.notify("Copied into this browser: edits now autosave here. The link stays as it was.",
+      { tone: "success" });
   };
 
   return (
     <>
-      {api.readOnly && (
-        <div className="share-banner" role="region" aria-label="Shared project">
+      <Banner tone="info" className="share-banner" open={api.readOnly}
+        icon={(
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor"
             strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M6.5 9.5a3 3 0 0 0 4.24 0l2.12-2.12a3 3 0 0 0-4.24-4.24l-.7.7" />
             <path d="M9.5 6.5a3 3 0 0 0-4.24 0L3.14 8.62a3 3 0 0 0 4.24 4.24l.7-.7" />
           </svg>
-          <span>
-            <strong>Shared project. Make a copy to edit.</strong>{" "}
-            “{api.project.title}” opened from a link and is read-only; nothing
-            from it is stored in this browser until you copy it.
-          </span>
-          <button type="button" className="btn-primary" onClick={makeCopy}>Make a copy</button>
-          <button type="button" className="dismiss"
-            title="Leave the shared project and return to your own work"
+        )}>
+        <Banner.Title>Shared project. Make a copy to edit.</Banner.Title>
+        <Banner.Detail>
+          “{api.project.title}” opened from a link and is read-only; nothing
+          from it is stored in this browser until you copy it.
+        </Banner.Detail>
+        <Banner.Actions>
+          <Button variant="primary" onClick={makeCopy}>Make a copy</Button>
+          <Button title="Leave the shared project and return to your own work"
             onClick={() => window.location.assign(`${location.pathname}${location.search}`)}>
             Close
-          </button>
-        </div>
-      )}
+          </Button>
+        </Banner.Actions>
+      </Banner>
       {dialog?.kind === "link" && (
         <ShareDialog dataId={dialog.dataId} onClose={() => setDialog(null)} />
       )}
@@ -162,7 +169,16 @@ export default function ShareHost() {
           <PptxDialog from={dialog.from} initial={dialog.scope} onClose={() => setDialog(null)}
             onExport={(scope, o) => {
               setDialog(null);
-              void pptx.run(scope, o).then((msg) => { if (msg) ui.notify(msg); });
+              // A progress toast that resolves in place (DECISIONS 6). An
+              // export already running answers "" and keeps its own toast.
+              if (!pptx.busy) {
+                ui.notify("Preparing the PowerPoint file…", { tone: "progress", id: PPTX_TOAST });
+              }
+              void pptx.run(scope, o).then((msg) => {
+                if (msg) {
+                  ui.notify(msg, { tone: msg.startsWith("Saved") ? "success" : "error", id: PPTX_TOAST });
+                }
+              });
             }} />
         </Suspense>
       )}
@@ -172,22 +188,12 @@ export default function ShareHost() {
         </Suspense>
       )}
       {pptx.host}
-      {pptx.busy && (
-        <div className="share-progress" role="status" aria-live="polite">
-          Preparing the PowerPoint file… {pptx.progress}
-        </div>
-      )}
       {dialog?.kind === "recipe" && (
         <Suspense fallback={null}>
           <RecipeDialog initialFiles={dialog.files} fresh={dialog.fresh} onClose={() => setDialog(null)} />
         </Suspense>
       )}
       {bundle.host}
-      {bundle.busy && (
-        <div className="share-progress" role="status" aria-live="polite">
-          Preparing the export bundle… {bundle.progress}
-        </div>
-      )}
     </>
   );
 }
@@ -199,7 +205,9 @@ function ShareDialog({ dataId, onClose }: { dataId?: string; onClose: () => void
   const family = useMemo(() => (dataId ? familyProject(project, dataId) : null), [project, dataId]);
   const target = family ?? project;
   const [withResults, setWithResults] = useState(true);
-  const [copied, setCopied] = useState<"" | "done" | "failed">("");
+  const copied = useLabelSwap();
+  // Submit attempts, so a too-short password shows its problem (forms.md).
+  const [attempts, setAttempts] = useState(0);
   // Password protection is on by default: a link travels through e-mail,
   // chat and link scanners, and the data is inside it.
   const [protect, setProtect] = useState(true);
@@ -220,10 +228,11 @@ function ShareDialog({ dataId, onClose }: { dataId?: string; onClose: () => void
   const what = family ? `“${family.title}”` : "this project";
   const tooShort = protect && password.length < MIN_PASSWORD;
   // Any change makes a new link: the old one no longer matches the dialog.
-  const reset = () => { setSealed(null); setCopied(""); setSealError(""); };
+  const reset = () => { setSealed(null); setSealError(""); };
 
   const seal = async () => {
-    if (tooShort || busy) return;
+    if (tooShort) { setAttempts((n) => n + 1); return; }
+    if (busy) return;
     setBusy(true);
     try {
       setSealed(await makeProtectedFragment(withResolvedOptions(target), password,
@@ -234,7 +243,13 @@ function ShareDialog({ dataId, onClose }: { dataId?: string; onClose: () => void
       setBusy(false);
     }
   };
-  const copy = async () => setCopied((await copyText(url)) ? "done" : "failed");
+  const copy = async () => {
+    if (await copyText(url)) copied.flash("Link copied");
+    else {
+      notify("Could not copy the link: the browser refused the clipboard. Select the link and copy it.",
+        { tone: "error" });
+    }
+  };
   const download = () => {
     const blob = new Blob([serializeProject(target, results.snapshot(),
       { keys: results.fingerprints(), selected: selectedId })], { type: "application/json" });
@@ -253,22 +268,22 @@ function ShareDialog({ dataId, onClose }: { dataId?: string; onClose: () => void
       className="share-dialog" onClose={onClose} onSubmit={submit}
       actions={!tooLarge ? (
         <>
-          <button type="button" className="spacer" onClick={download}>Download file instead</button>
-          <button type="button" onClick={onClose}>Done</button>
+          <Button className="spacer" onClick={download}>Download file instead</Button>
+          <Button onClick={onClose}>Done</Button>
           {needsSeal ? (
-            <button type="submit" className="btn-primary" disabled={tooShort || busy}>
-              {busy ? "Locking…" : "Create protected link"}
-            </button>
+            <Button type="submit" variant="primary" busy={busy} busyLabel="Locking…">
+              Create protected link
+            </Button>
           ) : (
-            <button type="submit" className="btn-primary">
-              {copied === "done" ? "Copied" : "Copy link"}
-            </button>
+            <Button type="submit" variant="primary">
+              <SwapLabel swapped={copied.swapped} done="Copied">Copy link</SwapLabel>
+            </Button>
           )}
         </>
       ) : (
         <>
-          <button type="button" onClick={onClose}>Cancel</button>
-          <button type="submit" className="btn-primary">Download project file</button>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button type="submit" variant="primary">Download project file</Button>
         </>
       )}>
       {!tooLarge ? (
@@ -293,15 +308,16 @@ function ShareDialog({ dataId, onClose }: { dataId?: string; onClose: () => void
           </label>
           {protect && (
             <div className="share-password-row">
-              <label className="field">
-                <span>Password (at least {MIN_PASSWORD} characters)</span>
-                <input type={showPassword ? "text" : "password"} value={password}
-                  autoComplete="new-password" spellCheck={false} aria-label="Link password"
+              <Field label="Link password" description={`At least ${MIN_PASSWORD} characters.`}
+                error={tooShort ? `Enter at least ${MIN_PASSWORD} characters` : null}
+                submitCount={attempts}>
+                <Input type={showPassword ? "text" : "password"} value={password}
+                  autoComplete="new-password" spellCheck={false}
                   onChange={(e) => { setPassword(e.target.value); reset(); }} />
-              </label>
-              <button type="button" onClick={() => {
+              </Field>
+              <Button onClick={() => {
                 setPassword(suggestPassword()); setShowPassword(true); reset();
-              }}>Suggest one</button>
+              }}>Suggest one</Button>
             </div>
           )}
           {protect && (
@@ -312,11 +328,11 @@ function ShareDialog({ dataId, onClose }: { dataId?: string; onClose: () => void
             </label>
           )}
           {url && (
-            <label className="field">
-              <span>{protect ? "Protected link" : "Link"}</span>
-              <input className="share-url" readOnly value={url} aria-label="Share link"
+            <Field label="Share link"
+              description={protect ? "Locked with the password above." : undefined}>
+              <Input className="share-url" readOnly value={url}
                 onFocus={(e) => e.currentTarget.select()} />
-            </label>
+            </Field>
           )}
           <label className="field-check">
             <input type="checkbox" checked={withResults}
@@ -329,8 +345,7 @@ function ShareDialog({ dataId, onClose }: { dataId?: string; onClose: () => void
               ? ", without the computed results (they would not fit; they are recomputed on opening)"
               : ""}. Links stay under {kb(SHARE_LIMIT)} so they paste into e-mail and chat intact.
             {needsSeal && !tooShort && " Press Create protected link to lock it with this password."}
-            {sealError && ` The link could not be locked: ${sealError}.`}
-            {copied === "failed" && " The browser did not allow copying: select the link and copy it."}
+            {sealError && ` Could not lock the link: ${sealError}. Try again, or download the file instead.`}
           </p>
         </>
       ) : (

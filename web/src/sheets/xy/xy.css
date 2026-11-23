@@ -2,25 +2,25 @@
 .choose-model-options {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 12px 20px;
+  gap: var(--space-12) var(--space-20);
   margin-top: 10px;
 }
-.choose-model-options > div { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
-.fit-waiting { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+.choose-model-options > div { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-4); }
+.fit-waiting { display: flex; align-items: center; gap: 10px; margin-top: var(--space-8); }
 .fit-waiting .hint-block { flex: 1; }
-.preferred-model { font-weight: 600; margin: 10px 0 4px; }
+.preferred-model { font-weight: var(--weight-semibold); margin: 10px 0 var(--space-4); }
 .results-table td.num, .results-table th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .compare-table-wrap, .anova-table-wrap { overflow-x: auto; }
 .model-select { max-width: 100%; }
 
 /* Incomplete curves: IC50 reported as "> highest dose" (rangeFlags.tsx). */
-.range-flags { border-color: color-mix(in srgb, var(--warn-hue) 45%, transparent); }
-.zero-dose { border-color: color-mix(in srgb, var(--warn-hue) 45%, transparent); }
-.zero-dose-actions { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
-.range-chip { margin: 0 0 6px; color: var(--ink); font-size: 13px; }
+.range-flags { border-color: color-mix(in srgb, var(--warn) 45%, transparent); }
+.zero-dose { border-color: color-mix(in srgb, var(--warn) 45%, transparent); }
+.zero-dose-actions { display: flex; flex-direction: column; gap: var(--space-6); align-items: flex-start; }
+.range-chip { margin: 0 0 var(--space-6); color: var(--ink); font-size: var(--text-body-s); }
 .range-chip strong { color: var(--warn-ink); }
 .range-mode select { max-width: 100%; }
-.range-bound { font-weight: 600; }
-.range-note { font-weight: 400; color: var(--muted); font-size: 12px; }
-.range-flag { color: var(--warn-ink); font-size: 12px; font-weight: 600; white-space: nowrap; }
+.range-bound { font-weight: var(--weight-semibold); }
+.range-note { font-weight: var(--weight-regular); color: var(--muted); font-size: var(--text-caption); }
+.range-flag { color: var(--warn-ink); font-size: var(--text-caption); font-weight: var(--weight-semibold); white-space: nowrap; }
 .range-line { color: var(--ink-2); }

@@ -3,6 +3,7 @@
 // it to the app (boot.ts setUnlockedShare). Shown by main.tsx before the
 // app mounts, so the app opens the project exactly as a "#p=" link.
 import { useState, type FormEvent } from "react";
+import { Button, coarsePointer, Field, Input } from "../components/ui";
 import { clearShareLink, locationHash, setUnlockedShare } from "./boot";
 import { protectedPayload, unprotectJson } from "./protect";
 import "./share.css";
@@ -11,10 +12,13 @@ export default function UnlockScreen({ onDone }: { onDone: () => void }) {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [tries, setTries] = useState(0);
+  const problem = error ? `Could not open the shared project: ${error}.` : "";
 
   const open = async (e: FormEvent) => {
     e.preventDefault();
     if (!password || busy) return;
+    setTries((n) => n + 1);
     setBusy(true);
     setError("");
     try {
@@ -43,18 +47,22 @@ export default function UnlockScreen({ onDone }: { onDone: () => void }) {
           Enter the password the sender gave you. The project is unlocked here,
           in your browser: neither the password nor the data is sent anywhere.
         </p>
-        <label className="field">
-          <span>Password</span>
-          <input type="password" autoFocus autoComplete="off" spellCheck={false}
-            value={password} aria-invalid={error ? true : undefined}
+        {/* The page exists to take this password: focus it, but not on touch,
+            where the keyboard would cover the explanation (forms.md). */}
+        {/* The reason sits under the field, in its description; the app's
+            announcer is not mounted yet, so this page speaks it itself. */}
+        <Field label="Password" error={problem || null} submitCount={tries}>
+          <Input type="password" autoFocus={!coarsePointer()} autoComplete="off" spellCheck={false}
+            value={password}
             onChange={(e) => { setPassword(e.target.value); setError(""); }} />
-        </label>
-        {error && <p className="unlock-error" role="alert">Could not open it: {error}.</p>}
+        </Field>
+        <p className="sr-only" role="alert">{problem}</p>
         <div className="unlock-actions">
-          <button type="button" onClick={skip}>Open OpenDose without it</button>
-          <button type="submit" className="btn-primary" disabled={busy || !password}>
-            {busy ? "Unlocking…" : "Open project"}
-          </button>
+          <Button onClick={skip}>Open OpenDose without it</Button>
+          <Button type="submit" variant="primary" disabled={!password} busy={busy}
+            busyLabel="Unlocking…">
+            Open project
+          </Button>
         </div>
       </form>
     </main>

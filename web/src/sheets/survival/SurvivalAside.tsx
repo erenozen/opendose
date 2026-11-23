@@ -7,6 +7,7 @@
 import { lazy, Suspense, useMemo, useState } from "react";
 import type { AsideProps } from "../types";
 import CovariateAside from "./CovariateAside";
+import { Button } from "../../components/ui";
 import { readTable, timeUnitOf, TIME_UNITS, type TimeUnit } from "./entry";
 import "./survival.css";
 
@@ -22,10 +23,10 @@ export default function SurvivalAside(props: AsideProps) {
   return (
     <div className="surv-aside">
       <div className="surv-aside-row" role="group" aria-label="Survival data entry">
-        <button type="button" className="surv-entry-btn" disabled={readOnly} onClick={() => setOpen(true)}
+        <Button size="sm" disabled={readOnly} onClick={() => setOpen(true)}
           title="Fill the table from alive (or dead) counts per day, or from start and end dates">
           Survival data from…
-        </button>
+        </Button>
         <label className="surv-aside-row">
           <span className="surv-aside-label">Time unit</span>
           <select aria-label="Time unit of the table" value={unit} disabled={readOnly}
@@ -51,19 +52,19 @@ export default function SurvivalAside(props: AsideProps) {
                 {g.name}: {g.events} event{g.events === 1 ? "" : "s"}, {g.censored} censored
               </span>
               {g.events === 0 && g.censored > 0 && (
-                <span className="surv-chip-warn" title="With no events the curve stays at 100%: no median, and the log-rank test has little to compare.">
+                <span className="surv-chip-warn">
                   no events in {g.name}
                 </span>
               )}
               {g.otherCodes.length > 0 && (
-                <span className="surv-chip-warn" title="Event codes must be 1 (event) or 0 (censored); these rows are left out of the analysis.">
+                <span className="surv-chip-warn">
                   event code{g.otherCodes.length === 1 ? "" : "s"}{" "}
                   {[...new Set(g.otherCodes.map((c) => `“${c.code}”`))].join(", ")} (row
                   {g.otherCodes.length === 1 ? "" : "s"} {g.otherCodes.map((c) => c.row).join(", ")}): use 1 = event, 0 = censored
                 </span>
               )}
               {g.incomplete > 0 && (
-                <span className="surv-chip-warn" title="Each subject needs a time and an event code.">
+                <span className="surv-chip-warn">
                   {g.incomplete} incomplete row{g.incomplete === 1 ? "" : "s"} left out
                 </span>
               )}
@@ -71,8 +72,15 @@ export default function SurvivalAside(props: AsideProps) {
           ))}
         </div>
       )}
+      {/* What the chips above mean, in text every reader sees (a hover
+          title reaches neither touch nor keyboard). */}
+      {used.some((g) => g.events === 0 && g.censored > 0) && (
+        <p className="hint-block">With no events the curve stays at 100%: no median, and the log-rank test has little to compare.</p>
+      )}
+      {used.some((g) => g.otherCodes.length > 0) && <p className="hint-block">Event codes must be 1 (event) or 0 (censored); these rows are left out of the analysis.</p>}
+      {used.some((g) => g.incomplete > 0) && <p className="hint-block">Each subject needs a time and an event code.</p>}
       {showRows && used.length > 0 && (
-        <div className="surv-readas" tabIndex={0} aria-label="Read as: every row">
+        <div className="surv-readas" role="region" tabIndex={0} aria-label="Read as: every row">
           {used.map((g) => (
             <div key={g.name}>
               <h5>{g.name}</h5>

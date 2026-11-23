@@ -4,6 +4,7 @@ import { useProject } from "../app/context";
 import { prismTableToFamily, type PrismTable } from "../app/factory";
 import { useUi } from "../app/ui";
 import Modal from "../components/Modal";
+import { Button, FileButton, notify, SwapLabel, useLabelSwap } from "../components/ui";
 import { copyText } from "../export/download";
 import { analyzeAsync, readXlsx } from "../lib/engine";
 import { newId } from "../project/ids";
@@ -128,7 +129,9 @@ export default function ReplayDialog({ dataId, onClose }: { dataId?: string; onC
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
   const [stage, setStage] = useState<Stage>("setup");
-  const [progress, setProgress] = useState("");
+  // A phase is spoken; the count beside it is only shown (feedback.md).
+  const [progress, setProgress] = useState<{ phase: string; count?: string }>({ phase: "" });
+  const copied = useLabelSwap();
   const [log, setLog] = useState<ReplayLog | null>(null);
   const [kept, setKept] = useState(false);
   const live = useRef(true);
@@ -176,9 +179,9 @@ export default function ReplayDialog({ dataId, onClose }: { dataId?: string; onC
     }
   };
 
-  const loadData = async (files: FileList | null) => {
+  const loadData = async (files: File[]) => {
     setErr("");
-    if (!files?.length) { setIncoming([]); return; }
+    if (!files.length) { setIncoming([]); return; }
     setBusy(true);
     try {
       const all: IncomingTable[] = [];
@@ -199,7 +202,7 @@ export default function ReplayDialog({ dataId, onClose }: { dataId?: string; onC
       // numbers before: this project's current results, or those saved in the plan file
       let before: Map<string, unknown>;
       if (!fromFile) {
-        setProgress("Bringing the current results up to date…");
+        setProgress({ phase: "Bringing the current results up to date" });
         before = await settle(() => api.store.project, api.results);
       } else {
         before = new Map(planProject.sheets.flatMap((s) => (s.kind === "results"
@@ -218,7 +221,10 @@ export default function ReplayDialog({ dataId, onClose }: { dataId?: string; onC
       else api.replace(replaceTables(planProject, newTables), replaced[0]?.planId ?? null);
       const total = api.store.project.sheets.filter((s) => s.kind === "results" && !s.frozen).length;
       const after = await settle(() => api.store.project, api.results, 120000, (left) => {
-        if (live.current) setProgress(left ? `Re-running analyses: ${total - left} of ${total} done…` : "Finishing…");
+        if (live.current) {
+          setProgress(left ? { phase: "Re-running analyses", count: `${total - left} of ${total} done` }
+            : { phase: "Finishing" });
+        }
       });
       if (!live.current) return;
       const used = new Set(chosen.map((c, i) => (c && fitOf(c, i) ? i : -1)));
@@ -242,7 +248,7 @@ export default function ReplayDialog({ dataId, onClose }: { dataId?: string; onC
     api.apply((p) => addSheets(p, [{ ...makeInfoSheet(newId(), uniqueName(p, "Replay log")),
       notes: text, constants: [] }]), null);
     setKept(true);
-    ui.notify("The replay log is now an info sheet in the project.");
+    ui.notify("The replay log is now an info sheet in the project.", { tone: "success" });
   };
 
   if (stage === "log" && log) {
@@ -250,14 +256,20 @@ export default function ReplayDialog({ dataId, onClose }: { dataId?: string; onC
       <Modal title="Replay log" className="replay-dialog" onClose={onClose} onSubmit={onClose}
         actions={(
           <>
-            <button type="button" className="spacer"
-              onClick={async () => ui.notify(await copyText(replayLogText(log)) ? "Replay log copied." : "Copy failed.")}>
-              Copy log
-            </button>
-            <button type="button" onClick={keepLog} disabled={kept}>
+            <Button className="spacer"
+              onClick={async () => {
+                if (await copyText(replayLogText(log))) copied.flash("Replay log copied");
+                else {
+                  notify("Could not copy the replay log: the browser refused the clipboard. "
+                    + "Select the log and copy it.", { tone: "error" });
+                }
+              }}>
+              <SwapLabel swapped={copied.swapped} done="Copied">Copy log</SwapLabel>
+            </Button>
+            <Button onClick={keepLog} disabled={kept}>
               {kept ? "Kept in the project" : "Keep as an info sheet"}
-            </button>
-            <button type="submit" className="btn-primary">Done</button>
+            </Button>
+            <Button type="submit" variant="primary">Done</Button>
           </>
         )}>
         <ReplayLogView log={log} undoable={log.plan === "this project"} />
@@ -270,10 +282,11 @@ export default function ReplayDialog({ dataId, onClose }: { dataId?: string; onC
       onSubmit={() => { void run(); }}
       actions={(
         <>
-          <button type="button" onClick={onClose}>Cancel</button>
-          <button type="submit" className="btn-primary" disabled={!ready || stage === "running"}>
-            {stage === "running" ? "Re-running…" : "Apply and re-run"}
-          </button>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button type="submit" variant="primary" disabled={!ready} busy={stage === "running"}
+            busyLabel="Re-running…">
+            Apply and re-run
+          </Button>
         </>
       )}>
       <p className="modal-text">
@@ -294,26 +307,41 @@ export default function ReplayDialog({ dataId, onClose }: { dataId?: string; onC
           A project file or provenance.json from an export bundle
         </label>
         {planSrc === "file" && (
-          <input type="file" accept=".json,application/json" aria-label="Plan file"
-            onChange={(e) => void loadPlan(e.target.files?.[0])} />
+          <div className="replay-file">
+            <FileButton size="sm" accept=".json,application/json" inputLabel="Plan file"
+              onFile={(f) => void loadPlan(f)}>
+              {planFile ? "Choose another plan file…" : "Choose the plan file…"}
+            </FileButton>
+          </div>
         )}
       </fieldset>
-      {planSrc === "file" && planFile && (
-        <p className="field-note" role="status">
-          {planFile.name}: {tables.length} table{tables.length === 1 ? "" : "s"},{" "}
-          {planFile.plan.project.sheets.filter((s) => s.kind === "results").length} analyses,{" "}
-          {planFile.plan.project.sheets.filter((s) => s.kind === "graph").length} graphs.
-          {planFile.plan.partial && " An older provenance file: graphs get their default format."}
-          {" "}Applying opens it in place of the open project; save that first if you need it.
-        </p>
-      )}
+      {/* Mounted before it has anything to say, so each change is announced. */}
+      <p className="field-note" role="status">
+        {planSrc === "file" && planFile ? (
+          <>
+            {planFile.name}: {tables.length} table{tables.length === 1 ? "" : "s"},{" "}
+            {planFile.plan.project.sheets.filter((s) => s.kind === "results").length} analyses,{" "}
+            {planFile.plan.project.sheets.filter((s) => s.kind === "graph").length} graphs.
+            {planFile.plan.partial && " An older provenance file: graphs get their default format."}
+            {" "}Applying opens it in place of the open project; save that first if you need it.
+          </>
+        ) : ""}
+      </p>
       <div className="replay-data">
-        <label className="field">
-          <span>New data file (CSV, TSV, text, .xlsx or .pzfx)</span>
-          <input type="file" multiple
-            accept=".csv,.tsv,.txt,.tab,.dat,.prn,.xlsx,.pzfx,.prism,text/csv,text/plain"
-            aria-label="New data file" onChange={(e) => void loadData(e.target.files)} />
-        </label>
+        <div className="field">
+          <span>New data (CSV, TSV, text, .xlsx or .pzfx)</span>
+          <div className="replay-file">
+            <FileButton size="sm" multiple inputLabel="New data file"
+              accept=".csv,.tsv,.txt,.tab,.dat,.prn,.xlsx,.pzfx,.prism,text/csv,text/plain"
+              onFiles={(files) => void loadData(files)}>
+              {incoming.length ? "Choose other files…" : "Choose data files…"}
+            </FileButton>
+            <span className="field-note" role="status">
+              {busy ? "Reading the file…" : incoming.length
+                ? `${incoming.length} table${incoming.length === 1 ? "" : "s"} read` : ""}
+            </span>
+          </div>
+        </div>
         <label className="field">
           <span>Or paste a table</span>
           <textarea rows={3} value={pasted} aria-label="Pasted data" spellCheck={false}
@@ -321,7 +349,6 @@ export default function ReplayDialog({ dataId, onClose }: { dataId?: string; onC
             placeholder="Copy the block from a spreadsheet, in the same layout as the table" />
         </label>
       </div>
-      {busy && <p className="field-note" role="status">Reading the file…</p>}
       {sources.length > 0 && (
         <table className="replay-map">
           <caption>Which table each part of the new data goes into</caption>
@@ -360,18 +387,24 @@ export default function ReplayDialog({ dataId, onClose }: { dataId?: string; onC
           </tbody>
         </table>
       )}
-      {sources.length > 0 && matching.ambiguous && !Object.keys(choice).length && (
-        <p className="field-note" role="status">
-          Some data could go into more than one table: choose where each goes.
-        </p>
-      )}
+      <div className="status-slot" role="status">
+        {sources.length > 0 && matching.ambiguous && !Object.keys(choice).length && (
+          <p className="field-note">
+            Some data could go into more than one table: choose where each goes.
+          </p>
+        )}
+      </div>
       {dup && <p className="field-note replay-err" role="alert">
         Two parts of the new data go into “{dup.name}”: choose one.
       </p>}
       {api.readOnly && <p className="field-note replay-err" role="alert">
         This shared project is read-only: make a copy first.
       </p>}
-      {stage === "running" && <p className="field-note" role="status" aria-live="polite">{progress}</p>}
+      <p className="field-note replay-progress">
+        <span role="status">{stage === "running" ? progress.phase : ""}</span>
+        {stage === "running" && progress.count && <span aria-hidden="true">: {progress.count}</span>}
+        {stage === "running" && progress.phase && "…"}
+      </p>
       {err && <p className="field-note replay-err" role="alert">{err}</p>}
     </Modal>
   );

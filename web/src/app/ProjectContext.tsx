@@ -18,7 +18,9 @@ import { setDisplayDigits } from "../types";
 import { setReportPrefs } from "../report/pformat";
 import { reportPrefsOf } from "../report/prefs";
 import { clearShareLink, readShareBoot } from "../share/boot";
+import { notify } from "../components/ui/Toast.store";
 import { ResultsCache } from "./analysis";
+import { applyTheme, watchSystemScheme } from "./theme";
 import { sampleProject } from "./factory";
 import { primeSampleResults } from "./sampleResults";
 import { Ctx, type ProjectApi } from "./context";
@@ -38,7 +40,6 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   const [isSample] = useState(() => !shareBoot.project);
   const [readOnly, setReadOnly] = useState(!!shareBoot.project);
   const readOnlyRef = useRef(readOnly);
-  const [status, setStatus] = useState("Starting Python runtime…");
   const history = useSyncExternalStore(store.subscribe, store.getSnapshot);
   const project = history.present;
   const [results] = useState(() => {
@@ -121,7 +122,9 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   // A shared project is read-only until copied: edits are refused.
   const apply = useCallback((fn: (p: Project) => Project, key: string | null = null) => {
     if (readOnlyRef.current) {
-      setStatus("This shared project is read-only. Make a copy to edit it.");
+      // One toast however many edits are refused (same id).
+      notify("This shared project is read-only. Make a copy to edit it.",
+        { tone: "info", id: "read-only" });
       return store.project;
     }
     return store.apply((p) => syncInfoLinks(fn(p)), key);
@@ -157,33 +160,30 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   setReportPrefs(reportPrefsOf(project.prefs));
 
   // Theme: "auto" follows the OS; light/dark force it. The data-theme
-  // attribute drives the CSS tokens, and the event tells the Plotly
-  // components to re-read their chrome colors.
+  // attribute picks the CSS color-scheme (index.html already set it before
+  // the first paint), the swap never animates (app/theme.ts), and the
+  // event tells the Plotly components to re-read their chrome colors.
   useEffect(() => {
-    if (prefs.theme === "auto") delete document.documentElement.dataset.theme;
-    else document.documentElement.dataset.theme = prefs.theme;
+    applyTheme(prefs.theme);
     window.dispatchEvent(new Event("opendose-theme"));
   }, [prefs.theme]);
+  useEffect(() => watchSystemScheme(), []);
 
   // ---- engine (a worker started by boot.ts before React rendered)
   const [shareError] = useState(shareBoot.error);
   const engine: EngineState = useSyncExternalStore(subscribeEngine, engineState);
   const [engineReady, setEngineReady] = useState(engine.phase === "ready");
   const engineError = engine.phase === "failed" ? engine.error : null;
+  // Boot progress and failure show in the engine slot (EngineStatus.tsx),
+  // never as messages.
   const bootEngine = useCallback(() => {
-    startEngine()
-      .then(() => {
-        setEngineReady(true);
-        setStatus(shareError ? `Could not open the share link: ${shareError}` : "");
-      })
-      .catch(() => { setStatus(""); });
-  }, [shareError]);
+    startEngine().then(() => setEngineReady(true)).catch(() => {});
+  }, []);
   useEffect(() => { bootEngine(); }, [bootEngine]);
-  // Loading messages while the engine boots.
-  const bootMessage = engine.progress?.message;
   useEffect(() => {
-    if (!engineReady && bootMessage) setStatus(bootMessage);
-  }, [engineReady, bootMessage]);
+    if (shareError) notify(`Could not open the share link: ${shareError}. Ask the sender to copy the link again.`,
+      { tone: "error", id: "share-link" });
+  }, [shareError]);
   // For the e2e and performance scripts.
   useEffect(() => {
     (globalThis as { __opendose?: unknown }).__opendose = { store, results };
@@ -194,10 +194,10 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     apply, undo: store.undo, redo: store.redo, replace,
     selectedId, select, activeResults, activeGraph, switchedRef,
     prefs, setPrefs,
-    engineReady, engineError, status, setStatus, bootEngine, engine,
+    engineReady, engineError, bootEngine, engine,
     results, readOnly,
   }), [store, history, project, apply, replace, selectedId, select, activeResults,
-    activeGraph, prefs, setPrefs, engineReady, engineError, status, bootEngine, engine,
+    activeGraph, prefs, setPrefs, engineReady, engineError, bootEngine, engine,
     results, readOnly]);
 
   return <Ctx.Provider value={api}>{children}</Ctx.Provider>;

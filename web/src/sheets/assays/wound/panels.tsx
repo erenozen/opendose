@@ -13,6 +13,7 @@ import type { ControlsProps, PlotProps, ResultsProps } from "../../types";
 import { interval, num, pValue, testSummary } from "../kit/format";
 import { Chip, KV, Note, Warnings } from "../kit/ui";
 import { areaUnit, timeUnit, type WoundOptions, type WoundResult } from "./model";
+import { NumberField } from "../../../components/ui";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -49,14 +50,10 @@ export function WoundControls({ table, options: o, onChange, readOnly }: Control
             <input defaultValue={o.windowEnd} disabled={readOnly} inputMode="decimal" aria-label="Rate window end"
               placeholder="last time" onBlur={(e) => set({ windowEnd: e.target.value.trim() })} />
           </label>
-          <label className="field field-num">
-            <span>Report the time to (% closure)</span>
-            <input type="number" min={1} max={100} step={1} defaultValue={o.target} disabled={readOnly}
-              aria-label="Target closure" onBlur={(e) => {
-                const v = Number(e.target.value);
+          <NumberField label="Report the time to (% closure)" fieldClassName="field-num" min={1} max={100} step={1} defaultValue={String(o.target)} disabled={readOnly} onBlur={(e) => {
+                const v = Number(e.currentTarget.value);
                 if (Number.isFinite(v) && v > 0 && v <= 100) set({ target: v });
               }} />
-          </label>
         </div>
         <p className="hint-block">
           The rate is the slope of a straight line through each well's wound size over the window

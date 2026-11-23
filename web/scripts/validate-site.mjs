@@ -21,6 +21,16 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { DRIVERS, EXPLAIN } from "./validate-site-drivers.mjs";
 import { runPerf } from "./validate-site-perf.mjs";
 
+// The header's File and View menus (DECISIONS 5): open one, pick an item.
+const fileMenu = async (p, item) => {
+  await p.locator("header").getByRole("button", { name: "File", exact: true }).click();
+  await p.getByRole("menuitem", { name: item }).click();
+};
+const viewMenu = async (p, item) => {
+  await p.locator("header").getByRole("button", { name: "View", exact: true }).click();
+  await p.getByRole("menuitem", { name: item }).click();
+};
+
 const here = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(here, "..", "..");
 const VAL = join(REPO, "docs", "validation");
@@ -197,7 +207,7 @@ function helpers(page, log, dsId) {
 
     /** New data table dialog; shape keys are the dialog's field labels. */
     async newTable(type, name, shape = {}) {
-      await page.getByRole("button", { name: "New data table" }).first().click();
+      await fileMenu(page, "New data table…");
       const dlg = page.locator(".new-table-dialog");
       await dlg.locator(`input[name="table-type"][value="${type}"]`).check();
       await dlg.getByLabel("Table name").fill(name);
@@ -471,7 +481,7 @@ if (doData) {
   // protocol); the largest offered value when the site offers fewer.
   {
     const { page } = sess;
-    await page.getByRole("button", { name: "Preferences" }).click();
+    await viewMenu(page, "Preferences…");
     const sel = page.getByRole("dialog", { name: "Preferences" }).getByLabel("Significant digits in results");
     const offered = (await sel.locator("option").allInnerTexts()).map((t) => t.trim());
     sessionInfo.digitsOffered = offered;
@@ -494,7 +504,7 @@ if (doData) {
       await sess.ctx.close();
       sess = await newSession();
       const { page } = sess;
-      await page.getByRole("button", { name: "Preferences" }).click();
+      await viewMenu(page, "Preferences…");
       await page.getByRole("dialog", { name: "Preferences" }).getByLabel("Significant digits in results")
         .selectOption(String(sessionInfo.digitsUsed));
       await page.keyboard.press("Escape");

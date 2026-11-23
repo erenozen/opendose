@@ -2,7 +2,7 @@
 // computed results that lives outside undo history.
 import { APP_VERSION, BUILD_COMMIT } from "../export/cite";
 import { ENGINE_HASH } from "../lib/buildInfo";
-import { isCancelled, runEngine, type EngineBridge, type Priority } from "../lib/engine";
+import { engineState, isCancelled, runEngine, type EngineBridge, type Priority } from "../lib/engine";
 import type { ResultsSheet, DataTableModel, ProjectPrefs } from "../project/types";
 import type { AnalysisDef } from "../sheets/types";
 import { resolveInfoRefs } from "../project/infoRefs";
@@ -148,6 +148,15 @@ export class ResultsCache {
     this.notify(id);
   }
 
+  /** Drop the result of `id` so it is computed again ("Run again" after
+   *  a failed run: a failure is cached like any result). */
+  forget(id: string) {
+    if (this.pend.has(id)) return;
+    this.map.delete(id);
+    this.cancelled.delete(id);
+    this.notify(id);
+  }
+
   /**
    * Compute a results sheet's result in the engine. A newer run for the
    * same sheet cancels this one (typing on: only the latest input
@@ -172,7 +181,10 @@ export class ResultsCache {
     this.notify(id);
     runEngine(fn, { signal: ctl.signal, priority }).then(
       (result): CacheEntry | null => ({ key, result, live: true }),
-      (e): CacheEntry | null => (isCancelled(e) ? null
+      // The engine did not load: not a result of this input. Whatever was
+      // shown (saved or shipped results) stays, and the run is asked for
+      // again once the engine is up (DECISIONS 4).
+      (e): CacheEntry | null => (isCancelled(e) || engineState().phase === "failed" ? null
         : { key, result: { error: e instanceof Error ? e.message : String(e) }, live: true }),
     ).then((entry) => {
       if (this.pend.get(id) !== run) return;

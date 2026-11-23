@@ -5,6 +5,7 @@
 import { useState } from "react";
 import { resolveOptions } from "../app/analysis";
 import { useProject } from "../app/context";
+import { Button } from "../components/ui";
 import { renameForOptions } from "../app/resultsName";
 import { runEngine } from "../lib/engine";
 import { newId } from "../project/ids";
@@ -82,14 +83,15 @@ export default function MultiplicityActions({ facts }: { facts: MultiplicityFact
   return (
     <div className="guide-chip-action multiplicity-actions">
       <p>
-        <button type="button" disabled={readOnly && !have} onClick={addAnova}>
+        <Button size="sm" disabled={readOnly && !have} onClick={addAnova}>
           {have ? `Open “${have.name}”`
             : ctl ? `One-way ANOVA with Dunnett vs ${ctl}` : "One-way ANOVA with Tukey's test"}
-        </button>{" "}
-        <button type="button" disabled={busy} onClick={() => void adjust()}>
-          {busy ? "Adjusting…" : `Adjust these ${facts.k} P values (Holm-Šídák)`}</button>
+        </Button>{" "}
+        <Button size="sm" busy={busy} busyLabel="Adjusting…" onClick={() => void adjust()}>
+          {`Adjust these ${facts.k} P values (Holm-Šídák)`}</Button>
       </p>
-      {err && <p className="multiplicity-error" role="alert">Could not adjust: {err}</p>}
+      {err && <p className="multiplicity-error" role="alert">
+        Could not adjust the P values: {err}. Try again once the analyses have finished.</p>}
       {holm && (
         <table className="guide-holm" aria-label="P values adjusted by Holm-Šídák">
           <thead><tr><th scope="col">Comparison</th><th scope="col">P (t test)</th>

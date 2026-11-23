@@ -1,122 +1,86 @@
 /* Project organisation: navigator groups and note rows, floating notes,
-   templates, "analyze like", go to sheet. Colours come from the tokens in
-   App.css; note colours have their own light / dark pairs below. */
+   templates, "analyze like", the command palette. Colours come from the tokens in
+   styles/tokens.css. */
 
-:root {
-  --note-ink: #1d1d1f;
-  --note-yellow: #fff4c2; --note-yellow-edge: #e0b400;
-  --note-blue: #dcecff;   --note-blue-edge: #3b82f6;
-  --note-green: #dcf5e2;  --note-green-edge: #2fa84f;
-  --note-pink: #ffe0ea;   --note-pink-edge: #e0457b;
-  --note-purple: #ece2ff; --note-purple-edge: #8b5cf6;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --note-ink: #f5f5f7;
-    --note-yellow: #3d3519; --note-yellow-edge: #e6c34a;
-    --note-blue: #1c2c44;   --note-blue-edge: #6aa5ff;
-    --note-green: #1b3424;  --note-green-edge: #5fd17f;
-    --note-pink: #42202c;   --note-pink-edge: #ff7aa6;
-    --note-purple: #2e2446; --note-purple-edge: #b597ff;
-  }
-}
-:root[data-theme="dark"] {
-  --note-ink: #f5f5f7;
-  --note-yellow: #3d3519; --note-yellow-edge: #e6c34a;
-  --note-blue: #1c2c44;   --note-blue-edge: #6aa5ff;
-  --note-green: #1b3424;  --note-green-edge: #5fd17f;
-  --note-pink: #42202c;   --note-pink-edge: #ff7aa6;
-  --note-purple: #2e2446; --note-purple-edge: #b597ff;
-}
+/* Note colours (--note-*) live in styles/tokens.css. They are user
+   data: the same hue in both themes, never chrome. */
 .note-yellow { --note-bg: var(--note-yellow); --note-edge: var(--note-yellow-edge); }
 .note-blue   { --note-bg: var(--note-blue);   --note-edge: var(--note-blue-edge); }
 .note-green  { --note-bg: var(--note-green);  --note-edge: var(--note-green-edge); }
 .note-pink   { --note-bg: var(--note-pink);   --note-edge: var(--note-pink-edge); }
 .note-purple { --note-bg: var(--note-purple); --note-edge: var(--note-purple-edge); }
-
-/* ---------------------------------------------------------------- workbench */
-
-.workbench { position: relative; min-width: 0; }
-.workbench > main { min-width: 0; }
-
-.notes-layer { display: contents; }
-.notes-bar {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
-  padding: 16px 24px 0;
-}
-.note-chip {
-  display: inline-flex; align-items: center; gap: 6px; max-width: 240px;
-  padding: 4px 11px 4px 9px; font-size: 12.5px; font-weight: 500;
-  background: var(--note-bg); color: var(--note-ink);
-  border: 1px solid color-mix(in srgb, var(--note-edge) 45%, transparent);
-}
-.note-chip[aria-expanded="false"] { opacity: 0.85; }
-.note-chip-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .note-dot {
-  flex: none; width: 8px; height: 8px; border-radius: 50%;
+  flex: none; width: 8px; height: 8px; border-radius: var(--radius-round);
   background: var(--note-edge);
 }
-.note-add { padding: 4px 11px; font-size: 12.5px; color: var(--muted); background: transparent; }
+/* The chips of the sheet's notes (ghost Buttons) and "New note". */
+.notes-bar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-4);
+  padding: var(--space-6) var(--space-12);
+  background: var(--surface); border-bottom: 1px solid var(--line-solid);
+}
+.note-chip { max-width: 240px; }
+.note-chip-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.note-chip[aria-expanded="true"] { color: var(--ink); background: var(--inset); }
 
+/* A floating note: one depth cue, the float shadow (ruling 6); its
+   colour is its fill. */
 .floating-note {
-  position: absolute; z-index: 30;
+  position: absolute; z-index: var(--z-raised);
   width: 230px;
   display: flex; flex-direction: column;
   background: var(--note-bg); color: var(--note-ink);
-  border: 1px solid color-mix(in srgb, var(--note-edge) 55%, transparent);
-  border-top: 3px solid var(--note-edge);
-  border-radius: 10px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.14);
-  transition: opacity 140ms var(--ease-out), transform 140ms var(--ease-out);
-  opacity: 1; transform: none;
+  border-radius: var(--radius-menu);
+  box-shadow: var(--elev-float);
+  transition: opacity var(--dur-enter) var(--ease-out), transform var(--dur-enter) var(--ease-out);
+  opacity: 1;
   @starting-style { opacity: 0; transform: translateY(-4px) scale(0.98); }
 }
-.note-head { display: flex; align-items: center; gap: 4px; padding: 4px 4px 0; }
-.note-grip, .note-btn {
-  flex: none; display: inline-flex; align-items: center; justify-content: center;
-  width: 26px; height: 24px; padding: 0; border-radius: 6px;
-  background: transparent; color: var(--note-ink);
-}
+/* While its grip is dragged the card follows by transform, at once. */
+.floating-note[data-dragging] { transition: none; will-change: transform; }
+.note-head { display: flex; align-items: center; gap: var(--space-4); padding: var(--space-4) var(--space-4) 0; }
+.floating-note .note-grip, .floating-note .note-btn { color: var(--note-ink); }
 .note-grip { cursor: grab; touch-action: none; }
-.note-grip:active { cursor: grabbing; transform: none; }
-.note-colors { display: flex; gap: 4px; margin-right: auto; padding-left: 2px; }
+.note-grip:active { cursor: grabbing; }
+.note-colors { display: flex; gap: var(--space-4); margin-right: auto; padding-left: var(--space-2); }
 .note-swatch {
-  width: 16px; height: 16px; min-height: 0; padding: 0; border-radius: 50%;
+  position: relative;
+  width: 16px; height: 16px; min-height: 0; padding: 0; border-radius: var(--radius-round);
   background: var(--note-bg); border: 2px solid var(--note-edge);
 }
-.note-swatch[aria-checked="true"] { box-shadow: 0 0 0 2px var(--surface), 0 0 0 3.5px var(--note-edge); }
+.note-swatch[aria-checked="true"] { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--note-edge); }
 .floating-note textarea {
-  font: inherit; font-size: 13px; line-height: 1.45; color: var(--note-ink);
+  font: inherit; font-size: var(--text-body-s); line-height: var(--leading-body); color: var(--note-ink);
   background: transparent; border: none; resize: vertical;
-  min-height: 72px; padding: 6px 10px 10px; border-radius: 0 0 10px 10px;
+  min-height: 72px; padding: var(--space-6) var(--space-8) var(--space-8);
+  border-end-start-radius: var(--radius-menu); border-end-end-radius: var(--radius-menu);
 }
 .floating-note textarea::placeholder { color: color-mix(in srgb, var(--note-ink) 55%, transparent); }
-.floating-note textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.floating-note textarea:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
 @media (hover: hover) and (pointer: fine) {
-  .note-grip:hover, .note-btn:hover { background: color-mix(in srgb, var(--note-ink) 10%, transparent); color: var(--note-ink); }
-  .note-chip:hover { background: color-mix(in srgb, var(--note-bg) 80%, var(--note-edge)); color: var(--note-ink); }
+  .floating-note .note-grip:hover, .floating-note .note-btn:hover {
+    background: color-mix(in srgb, var(--note-ink) 10%, transparent); color: var(--note-ink);
+  }
+}
+/* Touch: the swatches keep apart and get a taller hit area that does not
+   overlap its neighbours; fold and delete grow to 44px. */
+@media (pointer: coarse) {
+  .note-colors { gap: var(--space-12); }
+  .note-swatch::before { content: ""; position: absolute; inset: -14px -6px; }
+  .note-head { gap: var(--space-20); }
 }
 
 /* --------------------------------------------------------------- navigator */
 
 /* The navigator's menus open over the workbench (and its notes). */
 @media (min-width: 901px) {
-  .navigator { z-index: 40; }
+  .navigator { z-index: var(--z-sticky); }
 }
-.nav-search-row { display: flex; gap: 4px; align-items: center; }
-.nav-search-row .nav-search { flex: 1 1 auto; min-width: 0; }
-.nav-icon-btn {
-  flex: none; display: inline-flex; align-items: center; justify-content: center;
-  width: 30px; height: 30px; padding: 0; border-radius: var(--radius-s);
-  background: transparent; color: var(--muted);
-}
-.nav-tools button:disabled { opacity: 0.45; cursor: default; }
-.level-4 > .nav-row { padding-left: 50px; font-size: 12.5px; }
 /* Sheets inside a group keep sheet-row type size; family members shrink. */
-.nav-item.level-3:not(.nav-child):not(.nk-note) > .nav-row { font-size: 13px; }
-.nk-group > .nav-row .nav-name { font-weight: 600; color: var(--ink); }
-.nk-group > .nav-row .sheet-icon, .nk-notes > .nav-row .sheet-icon { color: var(--accent); }
-.nav-empty-group { padding-left: 48px; }
+.nav-item.level-3:not(.nav-child):not(.nk-note) > .nav-row { font-size: var(--text-body-s); }
+.nk-group > .nav-row .nav-name { font-weight: var(--weight-semibold); color: var(--ink); }
+.nk-group > .nav-row .sheet-icon, .nk-notes > .nav-row .sheet-icon { color: var(--muted); }
+.nav-empty-group { padding-left: var(--space-48); }
 .nav-notes { flex: none; display: inline-flex; color: var(--muted); }
 .nav-notes .sheet-icon { width: 12px; height: 12px; }
 .nav-row[draggable="true"] { cursor: grab; }
@@ -129,99 +93,117 @@
 /* --------------------------------------------------------------- dialogs */
 
 .new-mode {
-  display: inline-flex; align-self: flex-start; gap: 2px; padding: 2px;
-  background: var(--seg-track); border-radius: var(--radius-pill);
+  display: inline-flex; align-self: flex-start; gap: var(--space-2); padding: var(--space-2);
+  background: var(--seg-track); border-radius: var(--radius-round);
 }
 .new-mode label {
   position: relative;
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 5px 14px; border-radius: var(--radius-pill);
-  font-size: 13px; font-weight: 500; color: var(--ink-2); cursor: pointer;
+  display: inline-flex; align-items: center; gap: var(--space-6);
+  padding: 5px 14px; border-radius: var(--radius-round);
+  font-size: var(--text-body-s); font-weight: var(--weight-medium); color: var(--ink-2); cursor: pointer;
 }
-.new-mode label.checked { background: var(--seg-thumb); color: var(--ink); box-shadow: var(--seg-shadow); }
+.new-mode label.checked { background: var(--seg-thumb); color: var(--ink); box-shadow: var(--elev-seg); }
 .new-mode input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
-.new-mode label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 1px; }
+.new-mode label:has(input:focus-visible) { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
 .template-heading {
-  margin: 6px 0 0; font-size: 11.5px; font-weight: 600; color: var(--muted);
+  margin: var(--space-6) 0 0; font-size: var(--text-caption); font-weight: var(--weight-semibold); color: var(--muted);
 }
 .template-heading:first-of-type { margin-top: 0; }
-.type-option-name .nav-tag { margin-left: 6px; vertical-align: 1px; }
+.type-option-name .nav-tag { margin-left: var(--space-6); vertical-align: 1px; }
 .template-about {
-  display: flex; flex-direction: column; gap: 6px;
-  padding: 10px 12px; border-radius: 10px; background: var(--inset);
+  display: flex; flex-direction: column; gap: var(--space-6);
+  padding: 10px var(--space-12); border-radius: var(--radius-pane); background: var(--inset);
 }
 .template-about p { margin: 0; }
-.template-about-title { font-weight: 600; color: var(--ink); }
-.template-desc { color: var(--ink-2); font-size: 13px; white-space: pre-wrap; }
+.template-about-title { font-weight: var(--weight-semibold); color: var(--ink); }
+.template-desc { color: var(--ink-2); font-size: var(--text-body-s); white-space: pre-wrap; }
 .template-tools { justify-content: flex-start; }
-.template-import { align-self: flex-start; font-size: 13px; }
-.danger-text { color: var(--danger); }
+.template-import { align-self: flex-start; font-size: var(--text-body-s); }
 .template-check { flex-wrap: nowrap; align-items: flex-start; }
-.template-check input { flex: none; margin-top: 2px; }
+.template-check input { flex: none; margin-top: var(--space-2); }
 .field textarea, .field-textarea {
   font: inherit; color: var(--ink); background: var(--inset);
-  border: 1px solid var(--border); border-radius: var(--radius-s);
-  padding: 6px 9px; resize: vertical;
+  border: 1px solid var(--line-strong); border-radius: var(--radius-control);
+  padding: var(--space-6) 9px; resize: vertical;
 }
-.wand-list { max-height: 40vh; overflow-y: auto; }
-.group-new { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.wand-list { max-height: 40svh; overflow-y: auto; }
+.group-new { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8); }
 .group-new input:not([type="radio"]) {
   font: inherit; color: var(--ink); background: var(--inset);
-  border: 1px solid var(--border); border-radius: var(--radius-s);
-  padding: 3px 8px; min-width: 0; flex: 1 1 140px;
+  border: 1px solid var(--line-strong); border-radius: var(--radius-control);
+  padding: 3px var(--space-8); min-width: 0; flex: 1 1 140px;
 }
 
-.goto-input {
-  font: inherit; font-size: 15px; color: var(--ink); background: var(--inset);
-  border: 1px solid var(--border); border-radius: var(--radius-s);
-  padding: 9px 11px; width: 100%;
+/* The command palette (GoToSheet.tsx): a field and one listbox. */
+.palette { width: min(560px, calc(100vw - var(--space-32))); align-self: start; margin-top: var(--palette-top); }
+.palette-body { gap: var(--space-8); padding: var(--space-12); }
+.palette-field {
+  display: flex; align-items: center; gap: var(--space-8);
+  padding: 0 var(--space-12); min-height: 40px;
+  background: var(--inset); border-radius: var(--radius-control);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+  color: var(--muted);
 }
-.goto-list {
-  list-style: none; margin: 0; padding: 0;
-  max-height: min(50vh, 380px); overflow-y: auto;
-  display: flex; flex-direction: column; gap: 1px;
+.palette-field:focus-within { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.palette-search-icon { flex: none; }
+.palette-input {
+  flex: 1 1 auto; min-width: 0;
+  font: inherit; font-size: var(--text-lead); color: var(--ink);
+  background: transparent; border: none; padding: var(--space-8) 0;
 }
-.goto-option {
-  display: flex; align-items: center; gap: 8px;
-  padding: 6px 9px; border-radius: 7px; cursor: pointer; font-size: 13.5px;
+.palette-input:focus-visible { outline: none; }
+.palette-list {
+  max-height: min(50svh, 400px); overflow-y: auto; overscroll-behavior: contain;
+  display: flex; flex-direction: column; gap: var(--space-8);
 }
-.goto-option.active { background: var(--accent-fill); color: var(--accent-ink); }
-.goto-option.active .sheet-icon, .goto-option.active .goto-owner,
-.goto-option.active .goto-kind { color: inherit; }
-.goto-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.goto-owner { color: var(--muted); font-size: 12px; max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.goto-kind { flex: none; color: var(--muted); font-size: 11.5px; }
-.goto-hint kbd, .goto-dialog kbd {
-  font: inherit; font-size: 11px; padding: 0 4px;
-  border: 1px solid var(--border); border-radius: 4px;
+.palette-group { display: flex; flex-direction: column; gap: 1px; }
+.palette-group-label {
+  padding: var(--space-4) var(--space-8) var(--space-2);
+  font-size: var(--text-label); font-weight: var(--weight-semibold); color: var(--muted);
+}
+.palette-option {
+  display: flex; align-items: center; gap: var(--space-8);
+  min-height: 32px; padding: var(--space-4) var(--space-8);
+  border-radius: var(--radius-control); cursor: pointer; font-size: var(--text-body-s);
+}
+.palette-option.active { background: var(--accent-soft); color: var(--ink); }
+.palette-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.palette-hint {
+  color: var(--muted); font-size: var(--text-caption); max-width: 40%;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.palette-kind { flex: none; color: var(--muted); font-size: var(--text-caption); }
+.palette kbd {
+  font: inherit; font-size: var(--text-caption); color: var(--muted); padding: 0 var(--space-4);
+  border-radius: var(--radius-control); box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+.palette-empty { margin: 0; padding: var(--space-8); }
+.palette-hint-line { margin: 0; padding: 0 var(--space-4); }
+@media (pointer: coarse) {
+  .palette-option { min-height: 44px; }
+  .palette-hint-line { display: none; }
 }
 
-.const-hook { margin-left: 4px; padding: 2px 8px; font-size: 11.5px; color: var(--accent); }
-.const-info-pick { margin-left: 6px; font-size: 12.5px; }
+.const-hook { margin-left: var(--space-4); padding: var(--space-2) var(--space-8); font-size: var(--text-caption); color: var(--accent); }
+.const-info-pick { margin-left: var(--space-6); font-size: var(--text-body-s); }
 
-.shortcuts-table { margin-bottom: 8px; }
+.shortcuts-table { margin-bottom: var(--space-8); }
 .shortcuts-table caption {
-  text-align: left; font-size: 11.5px; font-weight: 600; color: var(--muted);
-  padding: 4px 0 2px;
+  text-align: left; font-size: var(--text-caption); font-weight: var(--weight-semibold); color: var(--muted);
+  padding: var(--space-4) 0 var(--space-2);
 }
 .shortcuts-table th { white-space: nowrap; vertical-align: top; }
 
 /* --------------------------------------------------------------- narrow */
 
 @media (max-width: 760px) {
-  .notes-bar { padding: 12px 14px 0; }
-  .notes-layer { display: flex; flex-direction: column; gap: 8px; }
+  .notes-layer { display: flex; flex-direction: column; gap: var(--space-8); }
   /* No free placement on small screens: notes stack under their chips. */
-  .floating-note { position: static; width: auto; margin: 0 14px; }
+  .floating-note { position: static; width: auto; margin: 0 var(--space-12); }
   .workbench > main { align-items: stretch; }
   .note-grip { display: none; }
-  .nav-icon-btn { width: 40px; height: 40px; }
-  .goto-option { min-height: 40px; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .floating-note { transition: none; }
-}
 
 @media print {
   .notes-layer, .notes-bar, .floating-note { display: none !important; }

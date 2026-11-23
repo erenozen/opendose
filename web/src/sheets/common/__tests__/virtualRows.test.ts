@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   OVERSCAN_ROWS, VIRTUAL_MIN_ROWS, rowSegments, sameRange, scrollTopFor, shouldVirtualise,
-  visibleRange,
+  KEEP_MARGIN_ROWS, nextRange, visibleRange,
 } from "../virtualRows.ts";
 
 const M = { scrollTop: 0, viewport: 600, bodyTop: 60, rowPx: 30 };
@@ -60,6 +60,22 @@ test("scrolling a row into view below the sticky header", () => {
   assert.equal(scrollTopFor(999, m, 50), 60 + 999 * 30 - 50); // above: under the header
   assert.equal(scrollTopFor(1030, m, 50), 60 + 1031 * 30 - 600); // below
   assert.equal(scrollTopFor(0, { ...M, scrollTop: 500 }, 60), 0);
+});
+
+test("a scroll keeps the rendered range until the view nears its edge", () => {
+  const at = (row: number) => ({ ...M, scrollTop: 60 + row * 30 });
+  const cur = visibleRange(at(1000), 100000);
+  // a few rows either way: the same range, so the grid does not re-render
+  assert.equal(nextRange(cur, at(1003), 100000), cur);
+  assert.equal(nextRange(cur, at(997), 100000), cur);
+  // within KEEP_MARGIN_ROWS of the end of the range: a fresh range
+  const far = 1000 + OVERSCAN_ROWS - KEEP_MARGIN_ROWS + 1;
+  assert.deepEqual(nextRange(cur, at(far), 100000), visibleRange(at(far), 100000));
+  // at the top of the table the range reaches row 0 and stays put
+  const top = visibleRange(M, 100000);
+  assert.equal(nextRange(top, at(2), 100000), top);
+  // rows deleted under the range: recomputed
+  assert.deepEqual(nextRange({ start: 0, end: 500 }, M, 200), visibleRange(M, 200));
 });
 
 test("sameRange", () => {

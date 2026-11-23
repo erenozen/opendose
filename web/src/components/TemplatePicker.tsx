@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  builtinTemplates, deleteTemplate, downloadTemplate, importTemplateFile,
+  builtinTemplates, deleteTemplate, downloadTemplate, importTemplateFile, saveTemplate,
   templateShape, useSavedTemplates,
 } from "../app/templates";
 import { newId } from "../project/ids";
+import { Button, FileButton, Field, Input, notify } from "./ui";
 import { TABLE_TOKEN, type SheetTemplate } from "../project/templates";
 import type { ProjectPrefs } from "../project/types";
 import { REGISTRY } from "../sheets/registry";
@@ -46,13 +47,25 @@ export default function TemplatePicker({ prefs, defaultName, onChange }: {
     setWithData(true);
   };
 
+  // Deleting is one click and undone from the toast: the template
+  // goes back into this browser's list.
+  const remove = (t: SheetTemplate) => {
+    void deleteTemplate(t.id);
+    setChosenId(null);
+    notify(`Deleted the template “${t.name}”.`, {
+      tone: "success", id: `template-delete-${t.id}`,
+      action: { label: "Undo", onAction: () => { void saveTemplate(t).then(() => setChosenId(t.id)); } },
+    });
+  };
+
   const onImport = async (f: File) => {
     try {
       const t = await importTemplateFile(f, newId, prefs.scheme);
       setChosenId(t.id);
       setImportMsg(`Imported “${t.name}”.`);
     } catch (e) {
-      setImportMsg(`Could not import: ${e instanceof Error ? e.message : String(e)}`);
+      setImportMsg(`Could not import “${f.name}”: ${e instanceof Error ? e.message : String(e)}. `
+        + "Choose a template file (.odtemplate.json).");
     }
   };
 
@@ -85,11 +98,10 @@ export default function TemplatePicker({ prefs, defaultName, onChange }: {
         {builtin.map(option)}
       </fieldset>
       <div className="new-table-options">
-        <label className="field">
-          <span>Name</span>
-          <input value={shownName} aria-label="Table name"
+        <Field label="Table name">
+          <Input value={shownName} autoComplete="off"
             onChange={(e) => { setName(e.target.value); setNameTouched(true); }} />
-        </label>
+        </Field>
         {chosen && (
           <>
             <div className="template-about">
@@ -117,26 +129,16 @@ export default function TemplatePicker({ prefs, defaultName, onChange }: {
             )}
             {!chosen.builtin && (
               <div className="table-actions template-tools">
-                <button type="button" onClick={() => downloadTemplate(chosen)}>Download</button>
-                <button type="button" className="danger-text"
-                  onClick={() => { void deleteTemplate(chosen.id); setChosenId(null); }}>
-                  Delete template
-                </button>
+                <Button size="sm" onClick={() => downloadTemplate(chosen)}>Download</Button>
+                <Button size="sm" onClick={() => remove(chosen)}>Delete template</Button>
               </div>
             )}
           </>
         )}
-        <label className="load-btn template-import">
-          Import template file…
-          <input type="file" accept=".json,application/json" hidden
-            aria-label="Import a template file"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) void onImport(f);
-              e.target.value = "";
-            }} />
-        </label>
-        {importMsg && <p className="field-note" role="status">{importMsg}</p>}
+        <FileButton className="template-import" accept=".json,application/json"
+          inputLabel="Import a template file" onFile={(f) => void onImport(f)}>
+          Import template file…</FileButton>
+        <div className="status-slot" role="status">{importMsg && <p className="field-note">{importMsg}</p>}</div>
         {error && <p className="field-note" role="alert">{error}</p>}
       </div>
     </div>

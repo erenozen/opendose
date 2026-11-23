@@ -6,7 +6,7 @@ export const TABLE_FILE = /\.(csv|tsv|txt|tab|dat)$/i;
 export const ZIP_FILE = /\.zip$/i;
 
 /** Whether these files are tables to stack (several table files, or a
- *  zip): what the start screen and the Import dialog hand to the recipe
+ *  zip): what a drop on the page and the Import dialog hand to the recipe
  *  dialog instead of opening one file. A lone zip may still be a project
  *  bundle or a Prism archive (readFiles.ts zipHoldsTables says). */
 export function isTableDrop(files: { name: string }[]): boolean {

@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useProject } from "../../app/context";
 import Modal from "../../components/Modal";
+import { Button, FileButton } from "../../components/ui";
 import { findSheet, sheetsOfKind, updateResultsOptions, updateTable } from "../../project/ops";
 import type { ResultsSheet } from "../../project/types";
 import {
@@ -121,10 +122,10 @@ export default function LongTableDialog({ target, sheet, onClose }: {
       onSubmit={submit}
       actions={
         <>
-          <button type="button" onClick={onClose}>Cancel</button>
-          <button type="submit" className="btn-primary" disabled={!fill || !("table" in fill)}>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button type="submit" variant="primary" disabled={!fill || !("table" in fill)}>
             Fill the table
-          </button>
+          </Button>
         </>
       }>
       <p className="modal-text">{INTROS[target]}</p>
@@ -146,18 +147,21 @@ export default function LongTableDialog({ target, sheet, onClose }: {
             placeholder={"stratum,exposure,outcome,count\nA,yes,case,12\n…"}
             onChange={(e) => { setText(e.target.value); reset(); }} />
           <span className="field-note">
-            Paste here, or <button type="button" className="linkish"
+            Paste here, or <button type="button" data-still className="linkish"
               onClick={() => { void readClipboard(); }}>read the clipboard</button>.
           </span>
         </label>
       )}
       {kind === "file" && (
-        <label className="field">
-          <span>File{fileName ? `: ${fileName}` : ""}</span>
-          <input type="file" aria-label="Long table file"
-            accept=".csv,.tsv,.txt,.tab,.dat,text/csv,text/plain"
-            onChange={(e) => { void pickFile(e.target.files?.[0]); }} />
-        </label>
+        <div className="field">
+          <span className="ui-field-label">File</span>
+          <span className="import-file-row">
+            <FileButton inputLabel="Long table file" onFile={(f) => { void pickFile(f); }}
+              accept=".csv,.tsv,.txt,.tab,.dat,text/csv,text/plain">Choose a file…</FileButton>
+            <span className="import-file-name" title={fileName || undefined}>
+              {fileName || "CSV, TSV or text"}</span>
+          </span>
+        </div>
       )}
       {kind === "table" && (
         <label className="field">
@@ -186,7 +190,7 @@ export default function LongTableDialog({ target, sheet, onClose }: {
         ? <p className="field-note">{src.error}</p> : null}
       {fill && "error" in fill && <p className="field-note long-table-error" role="alert">{fill.error}</p>}
       {preview.length > 1 && (
-        <div className="import-preview" tabIndex={0} aria-label="Preview of the filled table">
+        <div className="import-preview" role="region" tabIndex={0} aria-label="Preview of the filled table">
           <table>
             <thead><tr>{preview[0].map((h, i) => <th key={i}>{h}</th>)}</tr></thead>
             <tbody>
@@ -197,9 +201,11 @@ export default function LongTableDialog({ target, sheet, onClose }: {
           </table>
         </div>
       )}
+      <div className="status-slot" role="status">
+        {fill && "table" in fill && <p className="import-summary">{fill.summary}</p>}
+      </div>
       {fill && "table" in fill && (
         <>
-          <p className="import-summary" role="status">{fill.summary}</p>
           {fill.notes.map((n) => <p key={n} className="field-note">{n}</p>)}
           <p className="field-note">
             This replaces the values in “{parent?.name}”; Undo restores them.

@@ -17,6 +17,7 @@ import {
   type TumourColumns, type TumourEndpointOptions, type TumourMixedOptions,
 } from "./tumourModel";
 import { Card, Check, Grid, KV, LinkedTable, Note, Problem, Row, Select, TextIn, Warnings } from "./ui";
+import { Button } from "../../components/ui";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type R = Record<string, any>;
@@ -77,9 +78,9 @@ function TumourGuide({ sheetId, parentId, current, readOnly }: {
               {g.text}
               {!on && !readOnly && (
                 <div>
-                  <button type="button" onClick={() => add(g.id)}>
+                  <Button onClick={() => add(g.id)}>
                     {has ? "Open this analysis" : "Add this analysis"}
-                  </button>
+                  </Button>
                 </div>
               )}
             </li>

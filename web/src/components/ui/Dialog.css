@@ -1,0 +1,30 @@
+/* Dialog primitive (ui/Dialog): motion, backdrop and the exit snapshot.
+   The dialog surface lives in components/modal.css (.modal). */
+
+/* Enter: fade + scale from 0.97 over 200 ms, the backdrop fading on the
+   same curve and duration (emil-animations: paired elements share
+   timing). Keyboard-opened dialogs (data-instant) appear at once.
+   Reduced motion keeps the fade (base.css drops the scale). */
+dialog.modal {
+  transition: opacity var(--dur-enter) var(--ease-out), transform var(--dur-enter) var(--ease-out);
+}
+dialog.modal::backdrop {
+  background: var(--scrim);
+  transition: opacity var(--dur-enter) var(--ease-out);
+}
+@starting-style {
+  dialog.modal[open]:not([data-instant]) { opacity: 0; transform: scale(0.97); }
+  dialog.modal[open]:not([data-instant])::backdrop { opacity: 0; }
+}
+
+/* Exit: a static copy fades out in the top layer (Dialog.tsx fadeOut). */
+.modal.dialog-ghost {
+  position: fixed; inset: auto; margin: 0;
+  max-width: none; max-height: none; overflow: hidden;
+  transition: none; pointer-events: none;
+}
+.dialog-ghost-backdrop {
+  position: fixed; inset: 0; width: auto; height: auto; max-width: none; max-height: none;
+  margin: 0; padding: 0; border: 0;
+  background: var(--scrim); pointer-events: none;
+}

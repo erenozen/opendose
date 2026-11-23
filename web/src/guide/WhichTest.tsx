@@ -6,6 +6,7 @@
 import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
 import { useProject } from "../app/context";
 import Modal from "../components/Modal";
+import { Button, NumberField } from "../components/ui";
 import { newId } from "../project/ids";
 import { missingInRows, cellChecks } from "./stats";
 import type { TableType } from "../project/types";
@@ -123,7 +124,7 @@ export default function WhichTest({ onClose }: { onClose: () => void }) {
     if (!a.target) return null;
     const here = fitsTable(data, a.target) && data;
     return (
-      <button type="button" className="linkish wt-alt-open"
+      <button type="button" data-still className="linkish wt-alt-open"
         onClick={() => openTarget(a.target!, a.test, `${a.test}: ${a.when}.`)}>
         {here ? `Open ${a.test} on “${data.name}”` : `Create a table for ${a.test}`}
       </button>
@@ -132,13 +133,14 @@ export default function WhichTest({ onClose }: { onClose: () => void }) {
 
   return (
     <Modal title="Help me choose a test" className="modal-wide which-test" onClose={onClose}
+      onSubmit={open}
       actions={
         <>
-          <button type="button" onClick={onClose}>Cancel</button>
-          <button type="button" className="btn-primary" disabled={!rec.target} onClick={open}>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button type="submit" variant="primary" disabled={!rec.target}>
             {fits && data ? `Open on “${data.name}”`
               : targetType ? `Create a ${targetType.label} table` : "Open"}
-          </button>
+          </Button>
         </>
       }>
       <p className="modal-text">
@@ -148,7 +150,9 @@ export default function WhichTest({ onClose }: { onClose: () => void }) {
       </p>
       <div className="wt-grid">
         <DesignQuestions d={d} set={set} words={words} hasChecks={!!k} />
-        <section className="wt-result" aria-live="polite" aria-label="Recommendation">
+        {/* Spoken on each answer: the test only, not the whole panel. */}
+        <p className="sr-only" role="status">Recommended: {rec.test}</p>
+        <section className="wt-result" aria-label="Recommendation">
           <p className="wt-eyebrow">Recommended</p>
           <h3 className="wt-test">{rec.test}</h3>
           <p>{rec.reason}</p>
@@ -306,11 +310,8 @@ export function DesignQuestions({ d, set, words, hasChecks }: {
         </label>
       )}
       {c && d.groups === "one" && !d.normalised && (
-        <label className="wt-field">
-          <span>Compare with the value</span>
-          <input inputMode="decimal" value={d.hypothetical}
-            onChange={(e) => set({ hypothetical: e.target.value })} />
-        </label>
+        <NumberField label="Compare with the value" value={d.hypothetical}
+          fieldClassName="wt-field" onValueChange={(v) => set({ hypothetical: v })} />
       )}
       {c && !d.differential && (d.groups === "three_plus" || d.factors !== "one") && (
         <Choice legend="Which comparisons do you need?" value={d.question}

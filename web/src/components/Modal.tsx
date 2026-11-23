@@ -1,13 +1,16 @@
-import { useEffect, useId, useRef, type ReactNode } from "react";
+import type { ReactNode } from "react";
+import Dialog from "./ui/Dialog";
 
 /**
- * Modal dialog on the native <dialog> element: focus is trapped and
- * restored by the browser, Escape cancels, a click on the backdrop closes.
- * Submitting the form (Enter in a field, or the primary button) calls
- * onSubmit.
+ * A modal dialog that is open while mounted: callers render it when they
+ * want it and unmount it to close. Built on the Dialog primitive
+ * (ui/Dialog), which brings focus back to the opener, fades out on close,
+ * locks the page scroll and keeps Tab inside. Escape and a backdrop click
+ * call onClose; submitting the form (Enter in a field, or a submit
+ * button) calls onSubmit.
  */
 export default function Modal({
-  title, onClose, onSubmit, children, actions, className = "", role,
+  title, onClose, onSubmit, children, actions, className = "", role, instant, describedBy,
 }: {
   title: string;
   onClose: () => void;
@@ -16,25 +19,19 @@ export default function Modal({
   actions: ReactNode;
   className?: string;
   role?: "dialog" | "alertdialog";
+  /** Open without motion (a dialog summoned by a keyboard shortcut). */
+  instant?: boolean;
+  /** The id of the text that describes the dialog (an alertdialog's body). */
+  describedBy?: string;
 }) {
-  const ref = useRef<HTMLDialogElement>(null);
-  const titleId = useId();
-  useEffect(() => {
-    const d = ref.current;
-    if (d && !d.open) d.showModal();
-    return () => { if (d?.open) d.close(); };
-  }, []);
   return (
-    <dialog ref={ref} className={`modal ${className}`} aria-labelledby={titleId}
-      role={role}
-      onCancel={(e) => { e.preventDefault(); onClose(); }}
-      onPointerDown={(e) => { if (e.target === ref.current) onClose(); }}>
-      <form className="modal-body" method="dialog"
-        onSubmit={(e) => { e.preventDefault(); onSubmit?.(); }}>
-        <h2 id={titleId} className="modal-title">{title}</h2>
+    <Dialog open onOpenChange={(open) => { if (!open) onClose(); }} role={role}
+      className={className} instant={instant} aria-describedby={describedBy}>
+      <Dialog.Body onSubmit={onSubmit}>
+        <Dialog.Title>{title}</Dialog.Title>
         {children}
-        <div className="modal-actions">{actions}</div>
-      </form>
-    </dialog>
+        <Dialog.Actions>{actions}</Dialog.Actions>
+      </Dialog.Body>
+    </Dialog>
   );
 }

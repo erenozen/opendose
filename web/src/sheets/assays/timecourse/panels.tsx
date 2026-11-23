@@ -23,6 +23,7 @@ import {
   type TcWindowOptions, type WindowSummary,
 } from "./model";
 import "../../common/mixed.css";
+import { Button } from "../../../components/ui";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type R = Record<string, any>;
@@ -83,10 +84,10 @@ function TcGuide({ sheetId, parentId, current, readOnly }: {
               {g.text}
               {!on && !readOnly && (
                 <div>
-                  <button type="button" onClick={() => add(g.id)}
+                  <Button onClick={() => add(g.id)}
                     aria-label={`${has ? "Open" : "Add"}: ${g.title}`}>
                     {has ? "Open this analysis" : "Add this analysis"}
-                  </button>
+                  </Button>
                 </div>
               )}
             </li>
@@ -262,14 +263,14 @@ function ModelComparison({ result, set, options }: { result: R; set: ((p: R) => 
       {set && (
         <div className="mixed-actions">
           {!options.compareCovariances && (
-            <button type="button" onClick={() => set({ compareCovariances: true })}>
+            <Button onClick={() => set({ compareCovariances: true })}>
               Compare covariance structures (AIC)
-            </button>
+            </Button>
           )}
           {mc?.best && mc.best !== options.covariance && (
-            <button type="button" onClick={() => set({ covariance: mc.best })}>
+            <Button onClick={() => set({ covariance: mc.best })}>
               Use the best structure ({String(rows.find((r) => r.kind === mc.best)?.label ?? mc.best)})
-            </button>
+            </Button>
           )}
         </div>
       )}
@@ -296,7 +297,7 @@ function ModelComparison({ result, set, options }: { result: R; set: ((p: R) => 
             </table>
           </div>
           {mc!.note && <p className="hint-block">{String(mc!.note)}</p>}
-          {set && <button type="button" onClick={() => set({ compareCovariances: false })}>Hide the comparison</button>}
+          {set && <Button onClick={() => set({ compareCovariances: false })}>Hide the comparison</Button>}
         </>
       )}
     </section>

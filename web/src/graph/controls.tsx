@@ -3,6 +3,7 @@
 // clicking the text focuses it. "Automatic" is always an explicit choice
 // (an empty number field, an "Auto" colour), never a hidden default.
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { Button } from "../components/ui";
 import { contrastWarning } from "./color";
 
 export function NumField({ label, value, onChange, placeholder = "Auto", note, width }: {
@@ -117,16 +118,16 @@ export function ColorField({ label, value, auto, surface, onChange, mark = true 
         <input id={id} type="color" value={value ?? auto}
           onChange={(e) => onChange(e.target.value.toLowerCase())} />
         {value ? (
-          <button type="button" className="fmt-mini" onClick={() => onChange(undefined)}
-            aria-label={`${label}: back to automatic`}>Auto</button>
+          <Button size="sm" onClick={() => onChange(undefined)}
+            aria-label={`${label}: back to automatic`}>Auto</Button>
         ) : <span className="fmt-auto">Automatic</span>}
       </span>
-      {warn && <span className="fmt-warn" role="status">{warn}</span>}
+      <span className="status-slot" role="status">{warn && <span className="fmt-warn">{warn}</span>}</span>
     </div>
   );
 }
 
-/** Section with a small uppercase heading. */
+/** Section with a sentence-case label above a rule. */
 export function Section({ title, children, wide }: {
   title: string; children: ReactNode; wide?: boolean;
 }) {
@@ -155,7 +156,9 @@ export function Tabs<T extends string>({ tabs, value, onChange, label }: {
     refs.current[j]?.focus();
   };
   return (
-    <div className="fmt-tabs" role="tablist" aria-label={label}>
+    // A segmented control: no press scale (data-still), and the selected
+    // tab keeps its weight so the row does not reflow.
+    <div className="fmt-tabs" role="tablist" aria-label={label} data-still>
       {tabs.map(([v, l], i) => (
         <button key={v} type="button" role="tab" ref={(b) => { refs.current[i] = b; }}
           aria-selected={v === value} tabIndex={v === value ? 0 : -1}
@@ -166,15 +169,15 @@ export function Tabs<T extends string>({ tabs, value, onChange, label }: {
   );
 }
 
-/** Cancel / Apply / OK row for the format dialogs. */
+/** Cancel / Apply / Apply and close row for the format dialogs. */
 export function DialogActions({ onCancel, onApply, dirty }: {
   onCancel: () => void; onApply: () => void; dirty: boolean;
 }) {
   return (
     <>
-      <button type="button" onClick={onCancel}>Cancel</button>
-      <button type="button" onClick={onApply} disabled={!dirty}>Apply</button>
-      <button type="submit" className="btn-primary">OK</button>
+      <Button onClick={onCancel}>Cancel</Button>
+      <Button onClick={onApply} disabled={!dirty}>Apply</Button>
+      <Button type="submit" variant="primary">Apply and close</Button>
     </>
   );
 }

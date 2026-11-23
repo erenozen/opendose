@@ -1,5 +1,6 @@
-import { lazy, Suspense, useMemo, useState } from "react";
+import { lazy, Suspense, useId, useMemo, useState } from "react";
 import Modal from "../../components/Modal";
+import { Button, Field, FileButton, Input, NumberField, Tabs } from "../../components/ui";
 import { readXlsx, type XlsxSheet } from "../../lib/engine";
 import {
   applyImport, applyImportWithCells, DEFAULT_FILTER, DEFAULT_SOURCE, defaultRoles, DELIMITER_LABELS, detectTitlesRow,
@@ -62,6 +63,7 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
 }) {
   const shape = tableShape(table.type);
   const [tab, setTab] = useState<Tab>("source");
+  const uid = useId();
   const [srcKind, setSrcKind] = useState<"file" | "paste">(initial?.text ? "paste" : "file");
   const [pasted, setPasted] = useState(initial?.text ?? "");
   const [file, setFile] = useState<{ name: string; bytes: Uint8Array } | null>(null);
@@ -159,7 +161,7 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
   }
 
   const submit = () => {
-    if (empty) { setError("Nothing to import with these settings."); return; }
+    if (empty) { setError("Nothing to import: these settings leave no rows or columns. Check the Source and Filter tabs."); return; }
     const f = { skipBlankX: filter.skipBlankX, asteriskExcluded: filter.asteriskExcluded };
     const res = applyImportWithCells(table, preview, roles, place, f);
     onImport((t) => applyImport(t, preview, roles, place, f),
@@ -168,13 +170,10 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
 
   const num = (label: string, value: number | null, set: (v: number | null) => void,
     opts: { min?: number; blank?: string } = {}) => (
-      <label className="field field-num">
-        <span>{label}</span>
-        <input inputMode="numeric" value={value === null ? "" : String(value)}
-          placeholder={opts.blank}
-          onChange={(e) => set(e.target.value.trim() === "" ? null
-            : Math.max(opts.min ?? 0, intOr(e.target.value, opts.min ?? 0)))} />
-      </label>
+      <NumberField label={label} fieldClassName="field-num" integer min={opts.min ?? 0}
+        value={value === null ? "" : String(value)} placeholder={opts.blank}
+        onValueChange={(v) => set(v.trim() === ""
+          ? null : Math.max(opts.min ?? 0, intOr(v, opts.min ?? 0)))} />
   );
 
   const roleLabel = (r: ColumnRole) => r === "x" ? "X" : r === "y" ? "Y"
@@ -197,32 +196,19 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
       actions={
         <>
           {onPasteAsIs && (
-            <button type="button" className="spacer" onClick={onPasteAsIs}>Paste as is</button>
+            <Button className="spacer" onClick={onPasteAsIs}>Paste as is</Button>
           )}
-          <button type="button" onClick={onClose}>Cancel</button>
-          <button type="submit" className="btn-primary" disabled={busy || empty}>Import</button>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button type="submit" variant="primary" busy={busy} busyLabel="Reading…"
+            disabled={!busy && empty}>Import</Button>
         </>
       }>
-      <div className="dialog-tabs" role="tablist" aria-label="Import steps">
-        {TABS.map(([id, label]) => (
-          <button key={id} type="button" role="tab" id={`imp-tab-${id}`}
-            aria-selected={tab === id} aria-controls={`imp-panel-${id}`}
-            tabIndex={tab === id ? 0 : -1}
-            onKeyDown={(e) => {
-              if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
-              e.preventDefault();
-              const i = TABS.findIndex(([t]) => t === tab);
-              const next = TABS[(i + (e.key === "ArrowRight" ? 1 : TABS.length - 1)) % TABS.length][0];
-              setTab(next);
-              requestAnimationFrame(() => document.getElementById(`imp-tab-${next}`)?.focus());
-            }}
-            onClick={() => setTab(id)}>{label}</button>
-        ))}
-      </div>
+      <Tabs value={tab} onValueChange={setTab}>
+        <Tabs.List aria-label="Import steps">
+          {TABS.map(([id, label]) => <Tabs.Tab key={id} value={id}>{label}</Tabs.Tab>)}
+        </Tabs.List>
 
-      {tab === "source" && (
-        <div className="dialog-panel" role="tabpanel" id="imp-panel-source"
-          aria-labelledby="imp-tab-source"
+        <Tabs.Panel value="source"
           onDragOver={(e) => { if ([...e.dataTransfer.types].includes("Files")) e.preventDefault(); }}
           onDrop={(e) => {
             if (!e.dataTransfer.files.length) return;
@@ -239,47 +225,48 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
           </fieldset>
           {srcKind === "file" ? (
             <div className="field-row">
-              <label className="field">
-                <span>File</span>
-                <input type="file" aria-label="File to import" multiple
-                  accept=".csv,.tsv,.txt,.tab,.dat,.prn,.xlsx,.zip,text/csv,text/plain,application/zip"
-                  onChange={(e) => { takeFiles([...(e.target.files ?? [])]); }} />
-              </label>
+              <div className="field">
+                <span className="ui-field-label">File</span>
+                <span className="import-file-row">
+                  <FileButton multiple inputLabel="File to import" onFiles={takeFiles}
+                    accept=".csv,.tsv,.txt,.tab,.dat,.prn,.xlsx,.zip,text/csv,text/plain,application/zip">
+                    Choose a file…</FileButton>
+                  <span className="import-file-name" title={file?.name}>
+                    {file ? file.name : "CSV, TSV, text, .xlsx or .zip"}</span>
+                </span>
+              </div>
               {sheets && sheets.length > 1 && (
-                <label className="field">
-                  <span>Worksheet</span>
-                  <select value={sheetIx} onChange={(e) => { setSheetIx(Number(e.target.value)); setRoleOverride({}); }}>
+                <Field label="Worksheet" id={`${uid}-sheet`}>
+                  <select id={`${uid}-sheet`} value={sheetIx} onChange={(e) => { setSheetIx(Number(e.target.value)); setRoleOverride({}); }}>
                     {sheets.map((s, i) => <option key={i} value={i}>{s.name}</option>)}
                   </select>
-                </label>
+                </Field>
               )}
               {!isXlsx && (
-                <label className="field">
-                  <span>Text encoding</span>
-                  <select value={encoding} onChange={(e) => setEncoding(e.target.value)}>
+                <Field label="Text encoding" id={`${uid}-enc`}>
+                  <select id={`${uid}-enc`} value={encoding} onChange={(e) => setEncoding(e.target.value)}>
                     {ENCODINGS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                   </select>
-                </label>
+                </Field>
               )}
             </div>
           ) : (
-            <label className="field">
-              <span>Text to import</span>
-              <textarea rows={6} value={pasted} spellCheck={false}
-                aria-label="Text to import"
+            <div className="field">
+              <label className="ui-field-label" htmlFor={`${uid}-text`}>Text to import</label>
+              <textarea id={`${uid}-text`} rows={6} value={pasted} spellCheck={false}
+                autoCorrect="off" autoCapitalize="off"
                 placeholder={"Dose;Response\n0,1;98,5\n1;50,2"}
                 onChange={(e) => { setPasted(e.target.value); setRoleOverride({}); }} />
               <span className="field-note">
-                Paste here, or <button type="button" className="linkish"
+                Paste here, or <button type="button" data-still className="linkish"
                   onClick={() => { void readClipboard(); }}>read the clipboard</button>.
               </span>
-            </label>
+            </div>
           )}
           {!isXlsx && (
             <div className="field-row">
-              <label className="field">
-                <span>Columns separated by</span>
-                <select value={src.delimiter}
+              <Field label="Columns separated by" id={`${uid}-delim`}>
+                <select id={`${uid}-delim`} value={src.delimiter}
                   onChange={(e) => { setSrc({ ...src, delimiter: e.target.value as DelimiterChoice }); setRoleOverride({}); }}>
                   <option value="auto">Detect{preview.delimiter && src.delimiter === "auto"
                     ? ` (${DELIMITER_LABELS[preview.delimiter]})` : ""}</option>
@@ -288,28 +275,27 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
                   <option value="semicolon">Semicolon</option>
                   <option value="space">Spaces</option>
                 </select>
-              </label>
-              <label className="field">
-                <span>Decimal separator</span>
-                <select value={src.decimal}
+              </Field>
+              <Field label="Decimal separator" id={`${uid}-decimal`}>
+                <select id={`${uid}-decimal`} value={src.decimal}
                   onChange={(e) => setSrc({ ...src, decimal: e.target.value as DecimalChoice })}>
                   <option value="auto">Detect ({preview.decimal === "," ? "comma" : "point"})</option>
                   <option value=".">Point (1.5)</option>
                   <option value=",">Comma (1,5)</option>
                 </select>
-              </label>
+              </Field>
             </div>
           )}
           <div className="field-row">
             {num("Lines to skip at the top", src.skipLines,
               (v) => { setSrc({ ...src, skipLines: v ?? 0 }); setRoleOverride({}); })}
-            <label className="field-check">
+            <label className="check-row">
               <input type="checkbox" checked={effSrc.titlesRow}
                 onChange={(e) => { setTitlesTouched(true); setSrc({ ...src, titlesRow: e.target.checked }); }} />
-              First row (after skipped lines) holds column titles
-              {!titlesTouched && detectedTitles && (
-                <span className="field-note titles-detected"> (detected: text above numbers)</span>
-              )}
+              <span>First row (after skipped lines) holds column titles
+                {!titlesTouched && detectedTitles && (
+                  <span className="field-note titles-detected"> (detected: text above numbers)</span>
+                )}</span>
             </label>
           </div>
           {!isXlsx && srcKind === "file" && (
@@ -337,22 +323,16 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
               }}
               onRecipe={(id) => { setSavedRecipe(id); setTab("recipes"); }} />
           </Suspense>
-        </div>
-      )}
+        </Tabs.Panel>
 
-      {tab === "view" && (
-        <div className="dialog-panel" role="tabpanel" id="imp-panel-view"
-          aria-labelledby="imp-tab-view">
+        <Tabs.Panel value="view">
           <p className="field-note">
             Choose what each column becomes. Y columns fill the table&apos;s Y
             subcolumns left to right.
           </p>
-        </div>
-      )}
+        </Tabs.Panel>
 
-      {tab === "filter" && (
-        <div className="dialog-panel" role="tabpanel" id="imp-panel-filter"
-          aria-labelledby="imp-tab-filter">
+        <Tabs.Panel value="filter">
           <div className="field-row">
             {num("First row", filter.rowFrom, (v) => setFilter({ ...filter, rowFrom: v ?? 1 }), { min: 1 })}
             {num("Last row", filter.rowTo, (v) => setFilter({ ...filter, rowTo: v }), { min: 1, blank: "last" })}
@@ -361,35 +341,34 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
           <div className="field-row">
             {num("First column", filter.colFrom, (v) => { setFilter({ ...filter, colFrom: v ?? 1 }); setRoleOverride({}); }, { min: 1 })}
             {num("Last column", filter.colTo, (v) => { setFilter({ ...filter, colTo: v }); setRoleOverride({}); }, { min: 1, blank: "last" })}
-            <label className="field field-num">
-              <span>Missing-value code</span>
-              <input value={filter.missingCode} placeholder="e.g. NA"
-                onChange={(e) => setFilter({ ...filter, missingCode: e.target.value })} />
-            </label>
+            <Field label="Missing-value code" className="field-num">
+              <Input value={filter.missingCode} placeholder="e.g. NA" autoComplete="off"
+                spellCheck={false} onChange={(e) => setFilter({ ...filter, missingCode: e.target.value })} />
+            </Field>
           </div>
           <p className="field-note">
             Rows count from the first row of data (after the titles row).
             &ldquo;Every k-th row&rdquo; imports one row, then skips k − 1.
           </p>
           {shape.hasX && (
-            <label className="field-check">
+            <label className="check-row">
               <input type="checkbox" checked={filter.skipBlankX}
                 onChange={(e) => setFilter({ ...filter, skipBlankX: e.target.checked })} />
-              Skip rows whose X value is blank
+              <span>Skip rows whose X value is blank</span>
             </label>
           )}
-          <label className="field-check">
+          <label className="check-row">
             <input type="checkbox" checked={filter.asteriskExcluded}
               onChange={(e) => setFilter({ ...filter, asteriskExcluded: e.target.checked })} />
-            A value followed by * (12.5*) is imported as excluded
+            <span>A value followed by * (12.5*) is imported as excluded</span>
           </label>
-          <label className="field-check">
+          <label className="check-row">
             <input type="checkbox" checked={!!filter.unstack}
               onChange={(e) => {
                 setFilter({ ...filter, unstack: e.target.checked ? { dataCol: 2, groupCol: 1 } : null });
                 setRoleOverride({});
               }} />
-            Unstack indexed data (one row per value, with a column of group ids)
+            <span>Unstack indexed data (one row per value, with a column of group ids)</span>
           </label>
           {filter.unstack && (
             <div className="field-row">
@@ -399,12 +378,9 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
                 (v) => setFilter({ ...filter, unstack: { ...filter.unstack!, groupCol: v ?? 1 } }), { min: 1 })}
             </div>
           )}
-        </div>
-      )}
+        </Tabs.Panel>
 
-      {tab === "placement" && (
-        <div className="dialog-panel" role="tabpanel" id="imp-panel-placement"
-          aria-labelledby="imp-tab-placement">
+        <Tabs.Panel value="placement">
           <fieldset className="field-radios">
             <legend>Put the values</legend>
             <label><input type="radio" name="imp-mode" checked={place.mode === "replace"}
@@ -428,31 +404,32 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
             num("Y columns per dataset (replicates)", place.perDataset,
               (v) => setPlace({ ...place, perDataset: Math.max(1, Math.min(24, v ?? 1)) }), { min: 1 })
           )}
-          <label className="field-check">
+          <label className="check-row">
             <input type="checkbox" checked={src.transpose}
               onChange={(e) => { setSrc({ ...src, transpose: e.target.checked }); setRoleOverride({}); }} />
-            Transpose (rows of the source become columns)
+            <span>Transpose (rows of the source become columns)</span>
           </label>
           {effSrc.titlesRow && (
-            <label className="field-check">
+            <label className="check-row">
               <input type="checkbox" checked={place.useTitles}
                 onChange={(e) => setPlace({ ...place, useTitles: e.target.checked })} />
-              Name {shape.datasetNoun.toLowerCase()}s{shape.hasX ? " and X" : ""} from the titles row
+              <span>Name {shape.datasetNoun.toLowerCase()}s{shape.hasX ? " and X" : ""} from the titles row</span>
             </label>
           )}
-        </div>
-      )}
+        </Tabs.Panel>
+      </Tabs>
 
-      <div className="import-preview" tabIndex={0} aria-label="Preview of the data to import">
+      <div className="import-preview" role="region" tabIndex={0} aria-label="Preview of the data to import">
         {empty ? (
-          <p className="import-summary" style={{ padding: "10px 12px" }}>
-            {busy ? "Reading the workbook…" : "Nothing to preview yet."}
+          <p className="import-summary import-empty">
+            {busy ? "Reading the workbook…" : srcKind === "file"
+              ? "Choose a file to see its columns here." : "Paste text above to see its columns here."}
           </p>
         ) : (
           <table>
             <thead>
               <tr>
-                <th className="rn" />
+                <th className="rn"><span className="sr-only">Row</span></th>
                 {preview.columns.map((c, i) => (
                   <th key={c}>
                     <select aria-label={`Column ${c} becomes`} value={roles[i]}
@@ -463,7 +440,7 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
                 ))}
               </tr>
               <tr>
-                <th className="rn" />
+                <td className="rn" />
                 {preview.columns.map((c, i) => (
                   <th key={c} title={preview.titles?.[i] || `Column ${c}`}>
                     {preview.titles?.[i] || `Column ${c}`}

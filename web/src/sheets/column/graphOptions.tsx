@@ -3,6 +3,7 @@
 // legend sentence, and SuperPlot mode with its replicate assignment and
 // "Statistics on replicate means".
 import { OptCheck, OptSelect } from "../../components/GraphOptionControls";
+import { Button } from "../../components/ui";
 import { POINT_SPREADS } from "../../graph/swarm";
 import type { GraphOptionsProps } from "../types";
 import { superPlotOn } from "../common/superplot";
@@ -29,7 +30,7 @@ export function SmallNAdvice({ n, onShow }: { n: number; onShow: () => void }) {
         <a href="https://doi.org/10.1038/s41551-017-0079" target="_blank" rel="noreferrer">
           “Show the dots in plots”</a>).
       </span>
-      <button type="button" onClick={onShow}>Show points</button>
+      <Button size="sm" onClick={onShow}>Show points</Button>
     </p>
   );
 }

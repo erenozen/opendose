@@ -24,6 +24,7 @@ import { ZeroDoseBar } from "./ZeroDoseBar";
 import { concentrationUnit, displayOf } from "./rangeReport";
 import { CompareFitsLinks } from "../../components/ResultsLinks";
 import "./xy.css";
+import { Button } from "../../components/ui";
 
 /** Open the model picker of the controls pane (after "Fit a curve"). */
 function openModelPicker() {
@@ -86,10 +87,10 @@ export function NonlinControls({ sheet, table, options, onChange, readOnly }: Co
               These data do not look like a dose-response, so the fit waits until you
               choose a model or click Fit.
             </p>
-            <button type="button" className="chip-btn" disabled={readOnly}
+            <Button size="sm" disabled={readOnly}
               onClick={() => onChange({ ...options, autoFit: "requested" })}>
               Fit
-            </button>
+            </Button>
           </div>
         )} />
     </>
@@ -121,16 +122,16 @@ function ChooseModel({ sheet, reason }: { sheet: ResultsProps["sheet"]; reason: 
         <p className="hint-block">{reason} How should these data be analysed?</p>
         <div className="choose-model-options">
           <div>
-            <button type="button" className="btn-primary" disabled={locked} onClick={toLinreg}>
+            <Button variant="primary" disabled={locked} onClick={toLinreg}>
               Linear regression
-            </button>
+            </Button>
             <p className="hint-block">
               A straight line: slope and intercept with CIs, R², the regression ANOVA
               and a runs test.
             </p>
           </div>
           <div>
-            <button type="button" disabled={locked} onClick={fitCurve}>Fit a curve</button>
+            <Button disabled={locked} onClick={fitCurve}>Fit a curve</Button>
             <p className="hint-block">
               Choose a model from the library (dose-response, kinetics, binding,
               exponential, polynomial, …) and fit it by nonlinear regression.
@@ -164,7 +165,7 @@ export function NonlinMethods({ table, result, options }:
   const flagged = (result?.datasets ?? []).some((ds) => displayOf(ds.fit));
   return (
     <>
-      <MethodsText result={result} options={options} xUnit={table.xUnit || "M"} />
+      <MethodsText result={result} options={options} xUnit={concentrationUnit(table) || "M"} />
       {flagged && (
         <p className="hint-block range-methods">
           {options.extrapolatedReport === "fitted"

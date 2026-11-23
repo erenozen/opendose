@@ -1,4 +1,4 @@
-import { useState, useSyncExternalStore, type ReactNode } from "react";
+import { useId, useState, useSyncExternalStore, type ReactNode } from "react";
 import LearnMore from "../guide/LearnMore";
 import type {
   CIMethod, ConstraintState, ErrorBarKind, OptionsState,
@@ -16,6 +16,7 @@ import {
 import { constraintState, numberInTitle, withConstraint } from "../sheets/xy/fitOptions";
 import EquationEditor from "./EquationEditor";
 import ModelPicker from "./ModelPicker";
+import { NumberField } from "./ui";
 
 interface Props {
   options: OptionsState;
@@ -44,7 +45,7 @@ function ConstraintRow({ label, state, onChange }: {
       <span>{label} = constant</span>
       <input
         className="constraint-value"
-        inputMode="decimal"
+        inputMode="text"
         aria-label={`${label} constant value`}
         disabled={!state.enabled}
         value={state.value}
@@ -99,6 +100,7 @@ export default function ControlsPanel({
   const perDataset = isUser && ueq ? columnConstants(ueq, ps) : meta.datasetConstants ?? [];
   const shareable = isUser ? [] : shareableParams(meta);
   const classic = meta.special === "gaddum_schild_classic" && !isUser;
+  const ids = useId();
 
   return (
     <div className="controls">
@@ -161,7 +163,7 @@ export default function ControlsPanel({
           {constants.map((c) => (
             <label key={c} className="check-row">
               <span>{CONSTANT_LABELS[c] ?? c}</span>
-              <input className="constraint-value" inputMode="decimal"
+              <input className="constraint-value" inputMode="text"
                 value={options.modelConstants[c] ?? ""}
                 placeholder="required"
                 aria-label={CONSTANT_LABELS[c] ?? c}
@@ -187,7 +189,7 @@ export default function ControlsPanel({
             return (
               <label key={`${p}-${i}`} className="check-row">
                 <span>{p} for {name || `data set ${i + 1}`}</span>
-                <input className="constraint-value" inputMode="decimal" value={typed}
+                <input className="constraint-value" inputMode="text" value={typed}
                   aria-label={`${p} for ${name || `data set ${i + 1}`}`}
                   placeholder={fromTitle !== null ? String(fromTitle) : "required"}
                   onChange={(e) => {
@@ -203,12 +205,13 @@ export default function ControlsPanel({
 
       {classic && (
         <section>
-          <h3>Antagonist concentrations</h3>
-          <p className="hint-block">
+          <h3 id={`${ids}-antagonist`}>Antagonist concentrations</h3>
+          <p className="hint-block" id={`${ids}-antagonist-hint`}>
             One per dataset (linear units, 0 for the control curve),
             comma-separated. All curve parameters are shared globally.
           </p>
           <input className="antagonist-input" inputMode="decimal"
+            aria-labelledby={`${ids}-antagonist`} aria-describedby={`${ids}-antagonist-hint`}
             placeholder="e.g. 0, 1e-7, 1e-6, 1e-5"
             value={options.antagonist}
             onChange={(e) => set({ antagonist: e.target.value })} />
@@ -270,15 +273,13 @@ export default function ControlsPanel({
         </label>
         {options.weighting === "1/YK" && (
           <>
-            <label className="check-row">
-              <span>K</span>
-              <input type="number" min={0.1} max={10} step={0.1} aria-label="Weighting exponent K"
-                key={weightK(options)} defaultValue={weightK(options)}
-                onBlur={(e) => {
-                  const k = Number(e.target.value);
-                  set({ weightK: Number.isFinite(k) && k > 0 && k <= 10 ? k : DEFAULT_WEIGHT_K });
-                }} />
-            </label>
+            <NumberField label="Weighting exponent K" fieldClassName="field-num"
+              key={weightK(options)} defaultValue={String(weightK(options))}
+              min={0.1} max={10} step={0.1}
+              onBlur={(e) => {
+                const k = Number(e.currentTarget.value.replace(",", "."));
+                set({ weightK: Number.isFinite(k) && k > 0 && k <= 10 ? k : DEFAULT_WEIGHT_K });
+              }} />
             <p className="hint-block">
               Weights are 1/|Y|ᴷ of the fitted curve. K = 1 is 1/Y (scatter like counts), K = 2 is
               1/Y² (scatter proportional to Y); a K in between suits scatter that grows with Y but
@@ -332,7 +333,7 @@ export default function ControlsPanel({
           <input type="checkbox" checked={options.routEnabled}
             onChange={(e) => set({ routEnabled: e.target.checked })} />
           <span>Detect and eliminate outliers (ROUT), Q =</span>
-          <input className="constraint-value" inputMode="decimal"
+          <input className="constraint-value" inputMode="decimal" aria-label="ROUT Q (%)"
             disabled={!options.routEnabled}
             value={options.routQ}
             onChange={(e) => set({ routQ: e.target.value })} />
@@ -376,9 +377,10 @@ export default function ControlsPanel({
       )}
 
       <section>
-        <h3>Interpolate unknowns from the curve</h3>
+        <h3 id={`${ids}-interp`}>Interpolate unknowns from the curve</h3>
         <textarea
           className="interp-input"
+          aria-labelledby={`${ids}-interp`}
           rows={2}
           placeholder="Y values, comma or newline separated"
           value={options.interpolateY}
@@ -407,7 +409,7 @@ export default function ControlsPanel({
                 <option value="value">this value:</option>
               </select>
               {norm.zeroMode === "value" && (
-                <input className="constraint-value" inputMode="decimal"
+                <input className="constraint-value" inputMode="text" aria-label="Value for 0%"
                   value={norm.zeroValue}
                   onChange={(e) => setNorm({ zeroValue: e.target.value })} />
               )}
@@ -422,7 +424,7 @@ export default function ControlsPanel({
                 <option value="value">this value:</option>
               </select>
               {norm.hundredMode === "value" && (
-                <input className="constraint-value" inputMode="decimal"
+                <input className="constraint-value" inputMode="text" aria-label="Value for 100%"
                   value={norm.hundredValue}
                   onChange={(e) => setNorm({ hundredValue: e.target.value })} />
               )}

@@ -1,6 +1,7 @@
 import { useState, type SyntheticEvent } from "react";
 import { createPortal } from "react-dom";
 import Modal from "../components/Modal";
+import { Button } from "../components/ui";
 import {
   asksFactors, asksRepeats, DESIGN_EXAMPLES, FACTOR_CHOICES, recommendTable, REPEAT_CHOICES,
   VALUE_CHOICES, type DesignAnswers, type TableRecommendation,
@@ -46,22 +47,24 @@ export default function DesignDialog({ onPick, onClose, action = "Use this table
       onSubmit={() => onPick(rec)}
       actions={
         <>
-          <button type="button" onClick={onClose}>Cancel</button>
-          <button type="submit" className="btn-primary">{action}</button>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button type="submit" variant="primary">{action}</Button>
         </>
       }>
       <p className="modal-text">Three questions about the design pick the table and how to lay the
         data out. Or start from an example:</p>
       <div className="design-examples" role="group" aria-label="Examples">
         {DESIGN_EXAMPLES.map((e) => (
-          <button key={e.label} type="button" onClick={() => setA(e.answers)}>{e.label}</button>
+          <Button key={e.label} size="sm" onClick={() => setA(e.answers)}>{e.label}</Button>
         ))}
       </div>
       {radios("value", "1. What is each value?", VALUE_CHOICES)}
       {asksFactors(a.value) && radios("factors", "2. What did you vary?", FACTOR_CHOICES)}
       {asksRepeats(a.value) && radios("repeats", `${asksFactors(a.value) ? "3" : "2"}. Was each subject `
         + "measured more than once?", repeatChoices)}
-      <div className="design-result" role="status" aria-live="polite">
+      {/* Spoken on each answer: the table it picks, not the whole panel. */}
+      <p className="sr-only" role="status">Recommended: {rec.title}</p>
+      <div className="design-result">
         <p><strong>{rec.title}</strong></p>
         <p>{rec.layout}</p>
         <p>Analyses: {rec.analyses}</p>

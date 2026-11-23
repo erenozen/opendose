@@ -1,0 +1,135 @@
+/* Reset, root and body, the global baseline (emil-prep-for-prod
+   baseline.md, merged), focus, and the two gates every other sheet
+   writes into: hover only where a fine pointer can hover, and reduced
+   motion that removes movement but keeps feedback. */
+
+* { box-sizing: border-box; }
+
+html {
+  -webkit-text-size-adjust: 100%;
+  /* the app draws its own :active states; no grey flash on every tap */
+  -webkit-tap-highlight-color: transparent;
+  /* a missing weight or italic fails visibly instead of being faked */
+  font-synthesis: none;
+  /* pulling down at the top must not reload the page (and the engine);
+     y only, so Android's horizontal back gesture still works */
+  overscroll-behavior-y: none;
+}
+
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  /* rem so the browser's text-size setting scales the app */
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+  font-optical-sizing: auto;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3 { text-wrap: balance; }
+p { text-wrap: pretty; }
+
+/* A theme switch swaps every colour at once (ruling 4): app/theme.ts
+   sets this class for the swap and removes it after the next paint. */
+.no-transitions, .no-transitions *,
+.no-transitions *::before, .no-transitions *::after {
+  transition: none !important;
+}
+
+/* Focus: one neutral ink ring everywhere (DECISIONS 2, ruling 5), so
+   "focused" never reads as "selected" (accent). */
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+/* Square elements get a softened ring; any radius a component sets wins
+   (zero specificity), so a round control keeps a round ring. */
+:where(:focus-visible) { border-radius: var(--radius-control); }
+.data-table input:focus-visible {
+  outline-offset: -2px; border-radius: 0;
+}
+
+/* ---- controls */
+
+/* No double-tap-to-zoom wait on anything tappable */
+button, a, input, select, textarea, label, summary,
+[role="button"], [role="tab"], [role="menuitem"], [role="treeitem"] {
+  touch-action: manipulation;
+}
+/* A long press on a control must not select its label. Content stays
+   selectable: never on body. */
+button, [role="button"] {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Press feedback (ruling 2): every enabled button scales to 0.97 on
+   press, 160 ms --ease-out (the transition lives on `button` in
+   controls.css). One opt-out: a data-still attribute on the button or
+   any ancestor (menus, grid cells, segmented controls, link buttons).
+   Reduced motion drops the scale. */
+@media (prefers-reduced-motion: no-preference) {
+  button:where(:not(:disabled, [data-still], [data-still] *)):active {
+    transform: scale(0.97);
+  }
+}
+/* With reduced motion on a touch screen the scale is gone and there is
+   no tap highlight: the press dims instead (opacity is kept, ruling 1). */
+@media (prefers-reduced-motion: reduce) and (hover: none) {
+  button:where(:not(:disabled, [data-still], [data-still] *)):active { opacity: 0.7; }
+}
+/* Touch has no hover and no tap highlight: rows inside a still container
+   (menu items, help topics) darken while pressed instead. */
+@media (hover: none) {
+  [data-still] button:not(:disabled):active {
+    background-color: color-mix(in srgb, var(--ink) 10%, transparent);
+  }
+}
+
+/* iOS zooms into any focused field under 16px and never zooms back.
+   On touch screens every text field, select and textarea is at
+   least 16px; fine pointers keep the dense desktop sizes. The rule sits
+   in a cascade layer because important declarations in a layer outrank
+   unlayered ones, so no component rule (or inline style) can undercut
+   it without opting in. */
+@layer touch-inputs {
+  @media (pointer: coarse) {
+    input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"],
+      [type="file"], [type="button"], [type="submit"], [type="reset"], [type="image"]),
+    select, textarea {
+      font-size: max(var(--text-input-min), 1em) !important;
+    }
+  }
+}
+
+/* ---- motion */
+
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+/* Reduced motion is "gentler, not zero" (ruling 1). Movement and scale
+   are dropped: only colour and opacity are allowed to transition, so a
+   transform change (slide, scale, drawer) applies at once while its fade
+   still plays. The duration tokens shorten to 150 ms or less
+   (tokens.css). Keyframe entrances switch to `fade-in` and loops stop
+   where they are defined. The list replaces each element's own, and its
+   durations repeat over it, so every property named here gains a fade
+   on any element that transitions anything: outline-color is left out,
+   so a focus ring moved by the keyboard still lands at once. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition-property: opacity, color, background-color, border-color,
+      box-shadow, fill, stroke, visibility !important;
+  }
+}
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+/* A live region mounted before its message (feedback.md): it wraps a line
+   that comes and goes, and draws no box of its own, so an empty one takes
+   no room and adds no gap. */
+.status-slot { display: contents; }

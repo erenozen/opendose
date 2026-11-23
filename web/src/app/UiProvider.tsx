@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import ConfirmDialog, { type ConfirmOptions } from "../components/ConfirmDialog";
 import DuplicateFamilyDialog from "../components/DuplicateFamilyDialog";
 import GoToSheet from "../components/GoToSheet";
 import NewTableDialog, { type NewTableRequest } from "../components/NewTableDialog";
+import { notify } from "../components/ui/Toast.store";
 import {
   GroupDialog, SaveTemplateDialog, WandDialog, type GroupChoice,
 } from "../components/OrganiseDialogs";
@@ -17,6 +18,7 @@ import {
 } from "../project/types";
 import { wandCopy, wandSources } from "../project/wand";
 import { tableDef } from "../sheets/registry";
+import { DRAWER_QUERY } from "./breakpoints";
 import { useProject } from "./context";
 import { addDerivedOutputs, addFamily, defaultTableName } from "./factory";
 import { addTemplateFamily, downloadTemplate, makeTemplate, saveTemplate } from "./templates";
@@ -34,7 +36,7 @@ type Dialog =
 const RECENT_MAX = 12;
 
 export function UiProvider({ children }: { children: ReactNode }) {
-  const { project, apply, select, store, selectedId, setStatus } = useProject();
+  const { project, apply, select, store, selectedId } = useProject();
   const [dialog, setDialog] = useState<Dialog | null>(null);
   const [navOpen, setNavOpenState] = useState(() => {
     try { return localStorage.getItem("opendose-nav") !== "closed"; } catch { return true; }
@@ -47,7 +49,7 @@ export function UiProvider({ children }: { children: ReactNode }) {
   }, []);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const toggleNav = useCallback(() => {
-    const narrow = window.matchMedia("(max-width: 900px)").matches;
+    const narrow = window.matchMedia(DRAWER_QUERY).matches;
     if (narrow) setDrawerOpen((o) => !o);
     else setNavOpen(!navOpen);
   }, [navOpen, setNavOpen]);
@@ -68,13 +70,6 @@ export function UiProvider({ children }: { children: ReactNode }) {
   const confirm = useCallback((opts: ConfirmOptions) => new Promise<boolean>((resolve) => {
     setDialog({ kind: "confirm", opts, resolve });
   }), []);
-
-  const notifyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const notify = useCallback((message: string) => {
-    setStatus(message);
-    if (notifyTimer.current) clearTimeout(notifyTimer.current);
-    notifyTimer.current = setTimeout(() => setStatus(""), 5000);
-  }, [setStatus]);
 
   const openNewTable = useCallback(() => setDialog({ kind: "newTable" }), []);
   const openDuplicateFamily = useCallback((id: string) => {
@@ -101,7 +96,7 @@ export function UiProvider({ children }: { children: ReactNode }) {
     openMoveToGroup, openGoTo, notify, navOpen, setNavOpen,
     drawerOpen, setDrawerOpen, toggleNav,
   }), [confirm, openNewTable, openDuplicateFamily, openSaveTemplate, openWand,
-    openMoveToGroup, openGoTo, notify, navOpen, setNavOpen, drawerOpen, toggleNav]);
+    openMoveToGroup, openGoTo, navOpen, setNavOpen, drawerOpen, toggleNav]);
 
   const createTable = (r: NewTableRequest) => {
     const def = tableDef(r.type);
@@ -167,11 +162,13 @@ export function UiProvider({ children }: { children: ReactNode }) {
             if (!t) return;
             if (download) {
               downloadTemplate(t);
-              notify(`Template “${t.name}” downloaded.`);
+              notify(`Template “${t.name}” downloaded.`, { tone: "success" });
             } else {
-              void saveTemplate(t).then((ok) => notify(ok
-                ? `Template “${t.name}” saved. Use it from New data table › From a template.`
-                : "This browser would not store the template; use Download file instead."));
+              void saveTemplate(t).then((ok) => (ok
+                ? notify(`Template “${t.name}” saved. Use it from New data table › From a template.`,
+                  { tone: "success" })
+                : notify("This browser would not store the template; use Download file instead.",
+                  { tone: "error" })));
             }
           }} />
       );

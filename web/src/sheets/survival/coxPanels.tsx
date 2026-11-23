@@ -76,7 +76,7 @@ export function CoxControls({ table, options, onChange }: ControlsProps<CoxOptio
       <fieldset className="clin-varlist">
         <legend>Covariates</legend>
         {model.candidates.length === 0 && (
-          <p className="hint-block">No covariates yet.</p>
+          <p className="hint-block">No covariates yet: add a covariate column to the table.</p>
         )}
         {model.candidates.map((c) => {
           const included = !options.dropped.includes(c.name) && c.name !== model.strata;

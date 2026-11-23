@@ -4,6 +4,8 @@ import { useProject } from "../app/context";
 // is only called from an event handler, never while modules evaluate.
 import { addFamily } from "../app/factory";
 import Modal from "../components/Modal";
+import { useDiscardGuard } from "../graph/useDiscardGuard";
+import { Button, FileButton, notify, Tabs } from "../components/ui";
 import { SRC } from "../guide/sources";
 import { readXlsx, type XlsxSheet } from "../lib/engine";
 import { DEFAULT_EXPORT, tableMatrix } from "../project/exportTable";
@@ -52,7 +54,7 @@ interface MultiSource { files: NamedText[]; stack: StackResult; skipped: string[
  * files at once (or a zip) are stacked with the file name as a column
  * (recipes/multiFile.ts). A mapping can be saved as a recipe and applied
  * to the next file (recipes/saved.ts). `fresh`: the table starts a new
- * project (from the start screen) instead of joining the open one.
+ * project (several files dropped on the page) instead of joining the open one.
  */
 export default function RecipeDialog({ initialText, initialFiles, savedId, staged: given, title, fresh,
   onBack, onClose }: {
@@ -216,47 +218,38 @@ export default function RecipeDialog({ initialText, initialFiles, savedId, stage
     : `${n} record${n === 1 ? "" : "s"}${out && cfg?.aggregate && out.steps.length
       ? ` → ${out.aggregated.rows.length} after aggregation` : ""}`;
   const recipeSaved = saved.list.filter((e) => e.spec.kind === "recipe");
+  // Data read in, or a paste edited: Escape or the backdrop asks before
+  // dropping it (forms.md). Cancel stays a close.
+  const guardedClose = useDiscardGuard(!!staged || pasted !== (initialText ?? ""), onClose,
+    "The data read into this dialog and the recipe settings are not kept.");
 
   return (
     <Modal title={title ?? "Import with a recipe"} className="modal-wide recipe-dialog"
-      onClose={onClose} onSubmit={create}
+      onClose={guardedClose} onSubmit={create}
       actions={
         <>
-          {onBack && <button type="button" className="spacer" onClick={onBack}>Back to plain import</button>}
+          {onBack && <Button className="spacer" onClick={onBack}>Back to plain import</Button>}
           {!given && (
-            <button type="button" className={onBack ? undefined : "spacer"} disabled={!staged}
-              aria-expanded={saving} onClick={() => setSaving(!saving)}>Save as recipe…</button>
+            <Button className={onBack ? undefined : "spacer"} disabled={!staged}
+              aria-expanded={saving} onClick={() => setSaving(!saving)}>Save as recipe…</Button>
           )}
-          <button type="button" onClick={onClose}>Cancel</button>
-          <button type="submit" className="btn-primary" disabled={!out?.result || busy}>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button type="submit" variant="primary" disabled={!out?.result || busy}>
             Create table
-          </button>
+          </Button>
         </>
       }>
-      <div className="dialog-tabs" role="tablist" aria-label="Recipe steps">
-        {tabs.map((id) => (
-          <button key={id} type="button" role="tab" id={`rcp-tab-${id}`}
-            aria-selected={tab === id} aria-controls={`rcp-panel-${id}`}
-            tabIndex={tab === id ? 0 : -1}
-            onKeyDown={(e) => {
-              if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
-              e.preventDefault();
-              const i = tabs.indexOf(tab);
-              const next = tabs[(i + (e.key === "ArrowRight" ? 1 : tabs.length - 1)) % tabs.length];
-              setTab(next);
-              requestAnimationFrame(() => document.getElementById(`rcp-tab-${next}`)?.focus());
-            }}
-            onClick={() => setTab(id)}>{TAB_LABELS[id]}</button>
-        ))}
-      </div>
+      <Tabs value={tab} onValueChange={setTab}>
+        <Tabs.List aria-label="Recipe steps">
+          {tabs.map((id) => <Tabs.Tab key={id} value={id}>{TAB_LABELS[id]}</Tabs.Tab>)}
+        </Tabs.List>
 
-      {saving && staged && (
-        <SaveRecipeForm defaultName={savedEntry?.recipe.name ?? staged.name}
-          onSave={saveRecipe} onCancel={() => setSaving(false)} />
-      )}
+        {saving && staged && (
+          <SaveRecipeForm defaultName={savedEntry?.recipe.name ?? staged.name}
+            onSave={saveRecipe} onCancel={() => setSaving(false)} />
+        )}
 
-      {tab === "source" && !given && (
-        <div className="dialog-panel" role="tabpanel" id="rcp-panel-source" aria-labelledby="rcp-tab-source">
+        <Tabs.Panel value="source">
           <fieldset className="field-radios">
             <legend>Read from</legend>
             <label><input type="radio" name="rcp-src" checked={srcKind === "file"}
@@ -266,12 +259,15 @@ export default function RecipeDialog({ initialText, initialFiles, savedId, stage
           </fieldset>
           {srcKind === "file" ? (
             <div className="field-row">
-              <label className="field">
+              <div className="field">
                 <span>File (or several)</span>
-                <input type="file" aria-label="Export file to import" multiple
+                <FileButton size="sm" multiple inputLabel="Export file to import" busy={busy}
+                  busyLabel="Reading…"
                   accept=".csv,.tsv,.txt,.tab,.dat,.xlsx,.zip,text/csv,text/plain,application/zip"
-                  onChange={(e) => { void pickFiles([...(e.target.files ?? [])]); }} />
-              </label>
+                  onFiles={(files) => { void pickFiles(files); }}>
+                  {matrix.length ? "Choose other files…" : "Choose files…"}
+                </FileButton>
+              </div>
               {sheets && sheets.length > 1 && (
                 <label className="field">
                   <span>Worksheet</span>
@@ -288,8 +284,9 @@ export default function RecipeDialog({ initialText, initialFiles, savedId, stage
                 onChange={(e) => setPasted(e.target.value)} />
             </label>
           )}
+          <div className="status-slot" role="status" aria-label="Files stacked">
           {isMulti && multi && (
-            <p className="field-note" role="status" aria-label="Files stacked">
+            <p className="field-note">
               {multi.stack.files} files stacked into one table of {multi.stack.matrix.length - 1} rows,
               with the file name in a “File” column.
               {multi.stack.empty.length > 0 && ` ${multi.stack.empty.length} file(s) had no rows: `
@@ -299,6 +296,7 @@ export default function RecipeDialog({ initialText, initialFiles, savedId, stage
               {multi.skipped.length > 0 && ` Not read (not a table file): ${multi.skipped.slice(0, 4).join(", ")}.`}
             </p>
           )}
+          </div>
           <fieldset className="recipe-list">
             <legend>Recipe</legend>
             <RecipeOption checked={choice === "auto"} onChange={() => setChoice("auto")}
@@ -319,10 +317,15 @@ export default function RecipeDialog({ initialText, initialFiles, savedId, stage
                     onChange={() => setChoice(`saved:${e.recipe.id}`)}
                     label={e.recipe.name} desc={e.description}
                     badge={e.inProject ? "in project" : "this browser"} />
-                  <button type="button" className="linkish" aria-label={`Delete saved recipe ${e.recipe.name}`}
+                  <button type="button" data-still className="linkish" aria-label={`Delete saved recipe ${e.recipe.name}`}
                     onClick={() => {
+                      // Undo instead of a question: the recipe comes back as it was.
                       if (choice === `saved:${e.recipe.id}`) setChoice("auto");
                       saved.remove(e.recipe.id);
+                      notify(`Deleted the recipe “${e.recipe.name}”.`, {
+                        tone: "success",
+                        action: { label: "Undo", onAction: () => saved.restore(e) },
+                      });
                     }}>Delete</button>
                 </div>
               ))}
@@ -355,107 +358,109 @@ export default function RecipeDialog({ initialText, initialFiles, savedId, stage
             <p className="field-note">{recipe.params.filter((p) => p.note).map((p) => p.note).join(" ")}</p>
           )}
           {staged?.notes.map((t, i) => <p key={i} className="field-note">{t}</p>)}
-        </div>
-      )}
+        </Tabs.Panel>
 
-      {tab === "columns" && staged && cfg && (
-        <div className="dialog-panel" role="tabpanel" id="rcp-panel-columns" aria-labelledby="rcp-tab-columns">
-          <p className="field-note">
-            Say what each column holds. Group and Value are needed for most
-            tables; Subject marks the experimental unit (animal, donor,
-            biological replicate); hierarchy levels are the units in between
-            (cell, image, well) that aggregation averages over.
-          </p>
-          <div className="recipe-roles">
-            {staged.staging.columns.map((c, i) => (
-              <label key={i} className="field">
-                <span title={c.name}>{c.name} <small className="role-chip">{c.numeric ? "numbers" : "text"}</small></span>
-                <select value={cfg.roles[i]} aria-label={`Column ${c.name} holds`}
-                  onChange={(e) => {
-                    const roles = [...cfg.roles];
-                    roles[i] = e.target.value as Role;
-                    setCfg({ roles });
-                  }}>
-                  {ROLES.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
-                </select>
-              </label>
-            ))}
-          </div>
-          <PatternBuilder staging={staged.staging} pattern={cfg.pattern}
-            onChange={(pattern) => {
-              // Aggregation steps name their level: follow a renamed part.
-              const steps = cfg.steps.map((s) => {
-                const i = cfg.pattern?.parts.findIndex((p) => p.role !== "skip" && p.name === s.level) ?? -1;
-                const now = i >= 0 ? pattern?.parts[i] : undefined;
-                return now && now.role !== "skip" ? { ...s, level: now.name } : s;
-              });
-              setCfg({ pattern, steps });
-            }} />
-          {staged.wells && (
-            <section className="dialog-panel recipe-platemap" aria-label="Plate map">
-              <label className="field-check">
-                <input type="checkbox" checked={!!cfg.plateMap}
-                  onChange={(e) => setCfg({ plateMap: e.target.checked ? {} : null })} />
-                Group the wells with a plate map (wells of a group become its replicates; wells
-                left empty are not imported)
-              </label>
-              {cfg.plateMap && (
-                <PlateMapEditor format={staged.wells.format} wells={cfg.plateMap} unit="units"
-                  onChange={(plateMap) => setCfg({ plateMap })} />
-              )}
-            </section>
-          )}
-        </div>
-      )}
-
-      {tab === "aggregate" && staged && cfg && out && (
-        <AggregatePanel cfg={cfg} records={out.records} onChange={setCfg}
-          units={unitsPerGroup(out.aggregated, out.subject)}
-          subjectName={out.subject >= 0 ? out.records.columns[out.subject].name : ""} />
-      )}
-
-      {tab === "output" && staged && cfg && (
-        <div className="dialog-panel" role="tabpanel" id="rcp-panel-output" aria-labelledby="rcp-tab-output">
-          <fieldset className="field-radios">
-            <legend>Make a table of type</legend>
-            {OUTPUTS.map((o) => (
-              <label key={o}>
-                <input type="radio" name="rcp-out" checked={cfg.output === o}
-                  onChange={() => setCfg({ output: o })} />
-                {OUTPUT_LABELS[o]}
-              </label>
-            ))}
-          </fieldset>
-          {requirements(cfg.output) && (
-            <p className="field-note">This table type uses {requirements(cfg.output)}.</p>
-          )}
-          {(cfg.output === "column" || cfg.output === "grouped") && (
-            <div className="recipe-replicates">
-              <label className="field-check">
-                <input type="checkbox" checked={!!cfg.replicateMap}
-                  onChange={(e) => setCfg({ replicateMap: e.target.checked })} />
-                Keep every value and mark which experiment it comes from (replicate map for
-                SuperPlots and statistics on replicate means)
-              </label>
-              {cfg.replicateMap && (
-                <p className="field-note" role="status" aria-label="Replicate map">
-                  {out?.replicates
-                    ? <>Replicate map: {out.replicates.experiments} independent experiments
-                      (from {out.replicates.column}); each value is one {singular(out.replicates.unit)}.
-                      The graph opens as a SuperPlot and the legend reports n with the experiments.{" "}</>
-                    : <>Mark a Subject / replicate column (or read one from the names) that is not the
-                      last level aggregated into.{" "}</>}
-                  <a href={SRC.lord2020.url} target="_blank" rel="noreferrer">{SRC.lord2020.label}</a>
-                </p>
-              )}
+        {staged && cfg && (
+          <Tabs.Panel value="columns">
+            <p className="field-note">
+              Say what each column holds. Group and Value are needed for most
+              tables; Subject marks the experimental unit (animal, donor,
+              biological replicate); hierarchy levels are the units in between
+              (cell, image, well) that aggregation averages over.
+            </p>
+            <div className="recipe-roles">
+              {staged.staging.columns.map((c, i) => (
+                <label key={i} className="field">
+                  <span title={c.name}>{c.name} <small className="role-chip">{c.numeric ? "numbers" : "text"}</small></span>
+                  <select value={cfg.roles[i]} aria-label={`Column ${c.name} holds`}
+                    onChange={(e) => {
+                      const roles = [...cfg.roles];
+                      roles[i] = e.target.value as Role;
+                      setCfg({ roles });
+                    }}>
+                    {ROLES.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
+                  </select>
+                </label>
+              ))}
             </div>
-          )}
-          <label className="field">
-            <span>Table name</span>
-            <input value={cfg.name} onChange={(e) => setCfg({ name: e.target.value })} />
-          </label>
-        </div>
-      )}
+            <PatternBuilder staging={staged.staging} pattern={cfg.pattern}
+              onChange={(pattern) => {
+                // Aggregation steps name their level: follow a renamed part.
+                const steps = cfg.steps.map((s) => {
+                  const i = cfg.pattern?.parts.findIndex((p) => p.role !== "skip" && p.name === s.level) ?? -1;
+                  const now = i >= 0 ? pattern?.parts[i] : undefined;
+                  return now && now.role !== "skip" ? { ...s, level: now.name } : s;
+                });
+                setCfg({ pattern, steps });
+              }} />
+            {staged.wells && (
+              <section className="dialog-panel recipe-platemap" aria-label="Plate map">
+                <label className="field-check">
+                  <input type="checkbox" checked={!!cfg.plateMap}
+                    onChange={(e) => setCfg({ plateMap: e.target.checked ? {} : null })} />
+                  Group the wells with a plate map (wells of a group become its replicates; wells
+                  left empty are not imported)
+                </label>
+                {cfg.plateMap && (
+                  <PlateMapEditor format={staged.wells.format} wells={cfg.plateMap} unit="units"
+                    onChange={(plateMap) => setCfg({ plateMap })} />
+                )}
+              </section>
+            )}
+          </Tabs.Panel>
+        )}
+
+        {tab === "aggregate" && staged && cfg && out && (
+          <AggregatePanel cfg={cfg} records={out.records} onChange={setCfg}
+            units={unitsPerGroup(out.aggregated, out.subject)}
+            subjectName={out.subject >= 0 ? out.records.columns[out.subject].name : ""} />
+        )}
+
+        {staged && cfg && (
+          <Tabs.Panel value="output">
+            <fieldset className="field-radios">
+              <legend>Make a table of type</legend>
+              {OUTPUTS.map((o) => (
+                <label key={o}>
+                  <input type="radio" name="rcp-out" checked={cfg.output === o}
+                    onChange={() => setCfg({ output: o })} />
+                  {OUTPUT_LABELS[o]}
+                </label>
+              ))}
+            </fieldset>
+            {requirements(cfg.output) && (
+              <p className="field-note">This table type uses {requirements(cfg.output)}.</p>
+            )}
+            {(cfg.output === "column" || cfg.output === "grouped") && (
+              <div className="recipe-replicates">
+                <label className="field-check">
+                  <input type="checkbox" checked={!!cfg.replicateMap}
+                    onChange={(e) => setCfg({ replicateMap: e.target.checked })} />
+                  Keep every value and mark which experiment it comes from (replicate map for
+                  SuperPlots and statistics on replicate means)
+                </label>
+                <div className="status-slot" role="status" aria-label="Replicate map">
+                {cfg.replicateMap && (
+                  <p className="field-note">
+                    {out?.replicates
+                      ? <>Replicate map: {out.replicates.experiments} independent experiments
+                        (from {out.replicates.column}); each value is one {singular(out.replicates.unit)}.
+                        The graph opens as a SuperPlot and the legend reports n with the experiments.{" "}</>
+                      : <>Mark a Subject / replicate column (or read one from the names) that is not the
+                        last level aggregated into.{" "}</>}
+                    <a href={SRC.lord2020.url} target="_blank" rel="noreferrer">{SRC.lord2020.label}</a>
+                  </p>
+                )}
+                </div>
+              </div>
+            )}
+            <label className="field">
+              <span>Table name</span>
+              <input value={cfg.name} onChange={(e) => setCfg({ name: e.target.value })} />
+            </label>
+          </Tabs.Panel>
+        )}
+      </Tabs>
 
       {!staged && tab !== "source" && (
         <p className="field-note">Choose a file or paste an export on the Source step first.</p>
@@ -640,7 +645,7 @@ function PatternBuilder({ staging, pattern, onChange }: {
               </div>
             ))}
           </div>
-          <div className="import-preview" aria-label="How the names split">
+          <div className="import-preview" role="region" aria-label="How the names split">
             <table>
               <thead>
                 <tr>
@@ -710,7 +715,7 @@ function AggregatePanel({ cfg, records, units, subjectName, onChange }: {
     steps: candidates.filter((c) => next.has(c)).map((c) => ({ level: c, fn: next.get(c)! })),
   });
   return (
-    <div className="dialog-panel" role="tabpanel" id="rcp-panel-aggregate" aria-labelledby="rcp-tab-aggregate">
+    <Tabs.Panel value="aggregate">
       <label className="field-check">
         <input type="checkbox" checked={cfg.aggregate}
           onChange={(e) => onChange({ aggregate: e.target.checked })} />
@@ -766,14 +771,14 @@ function AggregatePanel({ cfg, records, units, subjectName, onChange }: {
           <li key={i}>{u.name} <b>n = {u.n}</b>{subjectName ? ` · one per ${subjectName}` : " values"}</li>
         ))}
       </ul>
-    </div>
+    </Tabs.Panel>
   );
 }
 
 function StagingPreview({ staging }: { staging: Staging }) {
   if (!staging.rows.length) return null;
   return (
-    <div className="import-preview" tabIndex={0} aria-label="Staged records">
+    <div className="import-preview" role="region" tabIndex={0} aria-label="Staged records">
       <table>
         <thead>
           <tr>
@@ -805,7 +810,7 @@ function TablePreview({ table }: { table: DataTableModel }) {
   if (!m.length) return null;
   const heads = m[0];
   return (
-    <div className="import-preview" tabIndex={0} aria-label="The table to be created">
+    <div className="import-preview" role="region" tabIndex={0} aria-label="The table to be created">
       <table>
         <thead>
           <tr>{heads.map((h, i) => <th key={i}>{h}</th>)}</tr>

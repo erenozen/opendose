@@ -1,39 +1,51 @@
 /* Tools → Power and sample size / Randomisation list. Tokens only. */
 .power-dialog { width: min(1080px, calc(100vw - 32px)); }
-.power-dialog .modal-body { max-height: calc(100vh - 48px); overflow: auto; }
-.power-tabs { margin: 0; align-self: flex-start; }
+.power-dialog .modal-body { max-height: calc(100dvh - 48px); overflow: auto; }
+.power-tabs { margin: 0; }
 .power-grid {
-  display: grid; grid-template-columns: minmax(0, 340px) minmax(0, 1fr); gap: 18px;
+  display: grid; grid-template-columns: minmax(0, 340px) minmax(0, 1fr); gap: var(--space-20);
   align-items: start;
 }
 @media (max-width: 760px) { .power-grid { grid-template-columns: minmax(0, 1fr); } }
-.power-inputs { display: flex; flex-direction: column; gap: 10px; }
-.power-inputs section h3 { margin-top: 0; }
-.power-inputs input:not([type="checkbox"]), .power-inputs select, .power-inputs textarea {
-  max-width: 100%;
+.power-inputs { display: flex; flex-direction: column; gap: var(--space-12); }
+.power-inputs section { display: flex; flex-direction: column; gap: var(--space-8); }
+.power-inputs section h3 { margin: 0; }
+/* Fields: label left, control right, note and error under both. A wide
+   field (a list, a sentence) puts its control under its label. */
+.power-inputs .ui-field {
+  display: grid; grid-template-columns: minmax(0, 1fr) 168px;
+  align-items: center; column-gap: var(--space-8); row-gap: var(--space-4);
 }
-.power-inputs textarea { font: inherit; width: 100%; }
-.power-output { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.power-inputs .ui-field > :not(.ui-field-label):not(input):not(select) { grid-column: 1 / -1; }
+.power-inputs .ui-field input, .power-inputs .ui-field select { width: 100%; min-width: 0; }
+.power-inputs .ui-field.power-wide { grid-template-columns: minmax(0, 1fr); }
+.power-inputs .ui-field.power-wide input, .power-inputs .ui-field.power-wide select,
+.power-inputs .ui-field.power-wide textarea { width: 100%; }
+.power-inputs textarea {
+  font: inherit; color: var(--ink); background: var(--inset);
+  border: 1px solid var(--line-strong); border-radius: var(--radius-control);
+  padding: var(--space-6) var(--space-8);
+}
+.power-output { display: flex; flex-direction: column; gap: var(--space-12); min-width: 0; }
 .power-output .result-card { margin: 0; }
 .power-kv .results-table.goodness { max-width: 520px; }
-.power-sentence { margin: 0 0 6px; font-size: 14px; line-height: 1.5; color: var(--ink); max-width: 72ch; }
-.power-helper { margin: 2px 0 6px; font-size: 13px; }
-.power-helper summary { cursor: pointer; color: var(--accent); margin-bottom: 6px; }
-.power-curves { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
-.power-curve { height: 280px; border: 1px solid var(--border-soft); border-radius: var(--radius-s); overflow: hidden; }
+.power-sentence { margin: 0 0 var(--space-6); font-size: var(--text-body); line-height: var(--leading-prose); color: var(--ink); max-width: 72ch; }
+.power-helper { margin: var(--space-2) 0 var(--space-6); font-size: var(--text-body-s); }
+.power-helper summary { cursor: pointer; color: var(--accent); margin-bottom: var(--space-6); }
+.power-curves { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: var(--space-12); }
+.power-curve { height: 280px; border: 1px solid var(--line); border-radius: var(--radius-pane); overflow: hidden; }
 .power-curve .plot { width: 100%; height: 100%; }
-.power-list { max-height: 360px; overflow: auto; margin-top: 8px; }
+.power-list { max-height: 360px; overflow: auto; margin-top: var(--space-8); }
 /* "Plan next experiment": the pilot's SD and the effect to detect. */
 .power-pilot h3 { margin-top: 0; }
-.power-pilot p { margin: 0 0 8px; font-size: 13.5px; line-height: 1.5; max-width: 72ch; }
+.power-pilot p { margin: 0 0 var(--space-8); font-size: var(--text-body); line-height: 1.5; max-width: 72ch; }
 .power-pilot-sd strong { font-variant-numeric: tabular-nums; }
-.power-pilot-choice { border: none; margin: 0 0 8px; padding: 0; display: flex; flex-direction: column; gap: 6px; }
-.power-pilot-choice legend { font-weight: 600; font-size: 13.5px; margin-bottom: 4px; padding: 0; }
-.power-pilot-choice label { display: flex; gap: 8px; align-items: flex-start; font-size: 13.5px; line-height: 1.45; }
+.power-pilot-choice { border: none; margin: 0 0 var(--space-8); padding: 0; display: flex; flex-direction: column; gap: var(--space-6); }
+.power-pilot-choice legend { font-weight: var(--weight-semibold); font-size: var(--text-body); margin-bottom: var(--space-4); padding: 0; }
+.power-pilot-choice label { display: flex; gap: var(--space-8); align-items: flex-start; font-size: var(--text-body); line-height: 1.45; }
 .power-pilot-choice label input { margin: 3px 0 0; flex: none; }
 .power-pilot-choice label > span { flex: 1; min-width: 0; }
 .power-dialog .power-pilot { margin: 0; flex: none; resize: none; overflow: visible; max-height: none; height: auto; min-height: 0; }
 .power-pilot-choice .constraint-value { margin-left: 26px; width: 140px; max-width: calc(100% - 26px); }
-.power-pilot .field-note { color: var(--muted); font-size: 12.5px; }
-.power-inputs .power-wide { width: 100%; min-width: 0; box-sizing: border-box; }
-.power-inputs .clin-field:has(.power-wide) { flex-wrap: wrap; }
+.power-pilot .field-note { color: var(--muted); font-size: var(--text-body-s); }
+

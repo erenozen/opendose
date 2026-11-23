@@ -1,9 +1,10 @@
-// "What does each value represent?": the non-blocking question strip above
-// the results of a table that looks like it holds replicates (rules and
-// project edits in guide/declareUnit.ts). Answered or dismissed once per
-// table (DataSheet.report.valueIs).
-import { useId, useMemo, useState } from "react";
+// "What does each value represent?": the non-blocking question in the
+// Checks row of a results sheet whose table looks like it holds
+// replicates (rules and project edits in guide/declareUnit.ts). Answered
+// or dismissed once per table (DataSheet.report.valueIs).
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useProject } from "../app/context";
+import { Button, Field, Input, NumberField } from "../components/ui";
 import { newId } from "../project/ids";
 import type { DataSheet } from "../project/types";
 import { openAssignReplicates } from "../report/useReport";
@@ -36,6 +37,16 @@ export default function UnitQuestion({ dataId }: { dataId: string }) {
   const [size, setSize] = useState<string>("");
   const [unit, setUnit] = useState("");
   const titleId = useId();
+  const root = useRef<HTMLElement>(null);
+  // A step change moves focus to the first control of the new step,
+  // only when the user moved it with a press.
+  const moved = useRef(false);
+  useEffect(() => {
+    if (!moved.current) return;
+    moved.current = false;
+    root.current?.querySelector<HTMLElement>(
+      kind ? ".unit-q-step input, .unit-q-step button" : ".unit-q-options button")?.focus();
+  }, [kind]);
   if (readOnly || !data || !needsUnitQuestion(data)) return null;
   const lay = layout ?? layouts[0] ?? "subcolumns";
   const block = Number(size) >= 1 ? Math.floor(Number(size)) : defaultBlock(data.table, lay);
@@ -55,24 +66,23 @@ export default function UnitQuestion({ dataId }: { dataId: string }) {
   };
   const pick = (k: ValueKind) => {
     if (k === "experiment" || k === "animal") commit({ kind: k });
-    else setKind(k);
+    else { moved.current = true; setKind(k); }
   };
   const same = preview && preview.values.length && preview.values.every((n) => n === preview.values[0])
     ? preview.values[0] : null;
 
   return (
-    <section className="unit-question" aria-labelledby={titleId}>
+    <section className="unit-question" aria-labelledby={titleId} ref={root}>
       <div className="unit-q-head">
         <p id={titleId} className="unit-q-title">What does each value represent?</p>
-        <button type="button" className="unit-q-close"
-          onClick={() => commit("dismissed")}>Not now</button>
+        <Button size="sm" variant="ghost" onClick={() => commit("dismissed")}>Not now</Button>
       </div>
       {!repeats ? (
         <>
           <div className="unit-q-options">
             {VALUE_KINDS.map((v) => (
-              <button key={v.id} type="button" onClick={() => pick(v.id)}>
-                <span className="sr-only">Each value is: </span>{v.label}</button>
+              <Button key={v.id} size="sm" onClick={() => pick(v.id)}>
+                <span><span className="sr-only">Each value is: </span>{v.label}</span></Button>
             ))}
           </div>
           <p className="unit-q-hint">
@@ -103,33 +113,33 @@ export default function UnitQuestion({ dataId }: { dataId: string }) {
           )}
           <div className="unit-q-fields">
             {lay !== "subcolumns" && layouts.length > 0 && (
-              <label className="wt-field">
-                <span>{lay === "row-blocks" ? "Rows" : "Subcolumns"} per experiment</span>
-                <input inputMode="numeric" value={size || String(block)}
-                  onChange={(e) => setSize(e.target.value.replace(/[^0-9]/g, ""))} />
-              </label>
+              <NumberField label={`${lay === "row-blocks" ? "Rows" : "Subcolumns"} per experiment`}
+                integer min={1} value={size || String(block)} fieldClassName="field-num"
+                onValueChange={(v) => setSize(v.replace(/[^0-9]/g, ""))} />
             )}
-            <label className="wt-field">
-              <span>Each value is one</span>
-              <input value={unit} placeholder={kind === "cell" ? "cells" : "wells"}
+            <Field label="Each value is one" className="field-num">
+              <Input value={unit} placeholder={kind === "cell" ? "cells" : "wells"}
                 onChange={(e) => setUnit(e.target.value.slice(0, 60))} />
-            </label>
+            </Field>
           </div>
-          {preview && (
-            <p className="unit-q-preview" role="status">
-              {preview.experiments} independent experiment{preview.experiments === 1 ? "" : "s"}
-              {same ? `, ${same} ${answer!.unit} per ${data.table.type === "column" ? "group"
-                : data.table.type === "xy" ? "X value" : "cell"}` : ""}
-              {data.table.type === "xy"
-                ? `: the legend counts experiments (n = ${preview.experiments}).`
-                : `: the test then runs on one value per experiment (n = ${preview.experiments}).`}
-            </p>
-          )}
+          {/* Always mounted, so a change of the preview is announced. */}
+          <p className="unit-q-preview" role="status">
+            {preview && (
+              <>
+                {preview.experiments} independent experiment{preview.experiments === 1 ? "" : "s"}
+                {same ? `, ${same} ${answer!.unit} per ${data.table.type === "column" ? "group"
+                  : data.table.type === "xy" ? "X value" : "cell"}` : ""}
+                {data.table.type === "xy"
+                  ? `: the legend counts experiments (n = ${preview.experiments}).`
+                  : `: the test then runs on one value per experiment (n = ${preview.experiments}).`}
+              </>
+            )}
+          </p>
           <div className="unit-q-actions">
-            <button type="button" className="btn-primary" disabled={!layouts.length || !answer}
-              onClick={() => answer && commit(answer)}>Use these experiments</button>
-            <button type="button" onClick={() => openAssignReplicates(dataId)}>Assign replicates…</button>
-            <button type="button" onClick={() => setKind(null)}>Back</button>
+            <Button size="sm" variant="primary" disabled={!layouts.length || !answer}
+              onClick={() => answer && commit(answer)}>Use these experiments</Button>
+            <Button size="sm" onClick={() => openAssignReplicates(dataId)}>Assign replicates…</Button>
+            <Button size="sm" onClick={() => { moved.current = true; setKind(null); }}>Back</Button>
           </div>
           <p className="unit-q-hint">
             <a href={SRC.lazic2010.url} target="_blank" rel="noreferrer" className="guide-source">

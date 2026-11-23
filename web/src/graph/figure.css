@@ -2,72 +2,63 @@
    and the legend sentence under graphs. Built on the app tokens. */
 
 .figure-section {
-  display: flex; flex-direction: column; gap: 8px;
-  border-top: 1px solid var(--border-soft); padding-top: 12px;
-  font-size: 12.5px; color: var(--ink-2);
+  display: flex; flex-direction: column; gap: var(--space-8);
+  border-top: 1px solid var(--line); padding-top: var(--space-12);
+  font-size: var(--text-body-s); color: var(--ink-2);
 }
-.figure-row { display: flex; align-items: center; gap: 8px; }
+.figure-row { display: flex; align-items: center; gap: var(--space-8); }
 .figure-row select {
-  flex: 1 1 auto; min-width: 0; padding: 4px 8px;
-  border: 1px solid var(--border); border-radius: 6px;
-  background: var(--surface); color: inherit; font: inherit; font-size: 12.5px;
+  flex: 1 1 auto; min-width: 0; padding: var(--space-4) var(--space-8);
+  font-size: var(--text-body-s);
 }
-.figure-row select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+@media (pointer: coarse) {
+  .figure-row select { min-height: 44px; }
+}
 
 .cvd-check > summary {
   cursor: pointer;
-  color: var(--ink-2); font-weight: 500; list-style-position: inside;
+  color: var(--ink-2); font-weight: var(--weight-medium); list-style-position: inside;
 }
 .cvd-chip {
-  margin-left: 8px; font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 999px;
+  margin-left: var(--space-8); padding: 1px var(--space-6); border-radius: var(--radius-control);
+  font-size: var(--text-caption); font-weight: var(--weight-semibold);
   background: var(--seg-track); color: var(--ink-2);
 }
 .cvd-chip.warn { background: color-mix(in srgb, var(--warn-ink) 14%, transparent); color: var(--warn-ink); }
-.cvd-body { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.cvd-body { display: flex; flex-direction: column; gap: var(--space-8); margin-top: var(--space-8); }
 .cvd-table { width: 100%; border-collapse: collapse; }
 .cvd-table th {
-  text-align: left; font-weight: 500; color: var(--ink-2); vertical-align: top;
-  padding: 4px 8px 4px 0; width: 38%; font-size: 12px;
+  text-align: left; font-weight: var(--weight-medium); color: var(--ink-2); vertical-align: top;
+  padding: var(--space-4) var(--space-8) var(--space-4) 0; width: 38%; font-size: var(--text-caption);
 }
-.cvd-table td { padding: 4px 0; display: flex; flex-direction: column; gap: 3px; }
-.cvd-table tr + tr th, .cvd-table tr + tr td { border-top: 1px solid var(--border-soft); }
+.cvd-table td { padding: var(--space-4) 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.cvd-table tr + tr th, .cvd-table tr + tr td { border-top: 1px solid var(--line-solid); }
 .cvd-swatches {
-  display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 3px; border-radius: 6px;
-  align-self: flex-start;
+  display: inline-flex; flex-wrap: wrap; gap: var(--space-4); padding: var(--space-2);
+  border-radius: var(--radius-control); align-self: flex-start;
 }
+/* The inset ring edges each colour chip against any background. */
 .cvd-swatch {
-  width: 16px; height: 16px; border-radius: 50%;
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+  width: 16px; height: 16px; border-radius: var(--radius-round);
+  box-shadow: inset 0 0 0 1px var(--line);
 }
-.cvd-flag { color: var(--warn-ink); font-size: 11.5px; }
-.cvd-similar { color: var(--muted); font-size: 11.5px; }
+.cvd-flag { color: var(--warn-ink); font-size: var(--text-caption); }
+.cvd-similar { color: var(--muted); font-size: var(--text-caption); }
 .cvd-warn {
-  margin: 0; color: var(--warn-ink); font-size: 11.5px;
-  border-left: 3px solid var(--warn-ink); padding-left: 8px;
+  margin: 0; color: var(--warn-ink); font-size: var(--text-caption);
+  box-shadow: inset 2px 0 0 var(--warn-ink); padding-left: var(--space-8);
 }
-.cvd-note { margin: 0; color: var(--muted); font-size: 11.5px; }
-.link-btn {
-  border: none; background: none; padding: 0; color: var(--accent); cursor: pointer;
-  font: inherit; text-decoration: underline;
-}
+.cvd-note { margin: 0; color: var(--muted); font-size: var(--text-caption); }
 
 /* One-line advice in a graph's options (small n on bars). */
 .gopt-advice {
-  grid-column: 1 / -1; margin: 0; font-size: 11.5px; color: var(--warn-ink);
-  display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline;
+  grid-column: 1 / -1; margin: 0; font-size: var(--text-caption); color: var(--warn-ink);
+  display: flex; flex-wrap: wrap; gap: var(--space-6); align-items: baseline;
 }
 .gopt-advice a { color: var(--accent); }
-.gopt-advice button {
-  border: 1px solid var(--border); background: var(--surface); color: var(--ink);
-  border-radius: 6px; font-size: 11.5px; padding: 1px 8px; cursor: pointer;
-}
 .gopt-sub {
-  grid-column: 1 / -1; margin: 6px 0 0; font-weight: 600; color: var(--ink-2);
-  border-top: 1px solid var(--border-soft); padding-top: 8px;
+  grid-column: 1 / -1; margin: var(--space-6) 0 0;
+  font-weight: var(--weight-semibold); color: var(--ink-2);
+  border-top: 1px solid var(--line); padding-top: var(--space-8);
 }
-.gopt-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; }
-.gopt-actions button {
-  border: 1px solid var(--border); background: var(--surface); color: var(--ink);
-  border-radius: 6px; font-size: 12px; padding: 3px 10px; cursor: pointer;
-}
-.gopt-actions button:disabled { opacity: 0.5; cursor: default; }
+.gopt-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: var(--space-6); }

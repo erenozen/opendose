@@ -20,6 +20,7 @@ import {
   calibratorOf, dcqSettings, dcqTable, QPCR_ROLES, readQpcr, referenceGenes, runQpcr,
   tableFromStaging, TEST_LABELS, type PostTest, type QpcrOptions, type QpcrResult, type QTest,
 } from "./model";
+import { Button, FileButton } from "../../../components/ui";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -51,8 +52,8 @@ export function QpcrControls({ sheet, table, options: o, readOnly }: ControlsPro
       <section>
         <h3>qPCR relative quantification</h3>
         <div className="assay-setup">
-          <button type="button" className="btn-primary" disabled={readOnly}
-            onClick={() => setWizardAt(0)}>Open setup wizard…</button>
+          <Button variant="primary" disabled={readOnly}
+            onClick={() => setWizardAt(0)}>Open setup wizard…</Button>
         </div>
         <p className="hint-block">
           {d.records.length} wells, {new Set(d.records.map((r) => r.sample)).size} samples,
@@ -326,12 +327,10 @@ function CqImport({ onTable }: { onTable: (t: DataTableModel) => void }) {
         are recognised; otherwise you choose the columns. Undetermined wells are kept as missing.
       </p>
       <div className="wizard-row">
-        <label className="field">
+        <div className="field">
           <span>Cq export (.csv, .txt or .xlsx)</span>
-          <input type="file" accept=".csv,.tsv,.txt,.xlsx,text/csv,text/plain" aria-label="Cq export file"
-            onChange={async (e) => {
-              const f = e.target.files?.[0];
-              if (!f) return;
+          <FileButton size="sm" accept=".csv,.tsv,.txt,.xlsx,text/csv,text/plain" inputLabel="Cq export file"
+            onFile={async (f) => {
               try {
                 const bytes = new Uint8Array(await f.arrayBuffer());
                 if (/\.xlsx$/i.test(f.name)) {
@@ -341,8 +340,9 @@ function CqImport({ onTable }: { onTable: (t: DataTableModel) => void }) {
               } catch (err) {
                 setMsg(`Could not read the file: ${err instanceof Error ? err.message : String(err)}`);
               }
-            }} />
-        </label>
+            }}>
+            Choose the Cq export file…</FileButton>
+        </div>
         <label className="check-row">
           <input type="checkbox" checked={fromName} onChange={(e) => setFromName(e.target.checked)} />
           Group = sample name without its trailing number (when the export has no group column)
@@ -354,8 +354,8 @@ function CqImport({ onTable }: { onTable: (t: DataTableModel) => void }) {
           placeholder={"Well,Sample,Target,Cq\nA1,Ctrl 1,GAPDH,18.2\n…"} onChange={(e) => setText(e.target.value)} />
       </label>
       <div className="assay-setup">
-        <button type="button" disabled={!text.trim()} onClick={() => take(parseSource(text))}>Read pasted export</button>
-        {msg && <span className="hint-block" role="status">{msg}</span>}
+        <Button disabled={!text.trim()} onClick={() => take(parseSource(text))}>Read pasted export</Button>
+        <span className="hint-block" role="status">{msg}</span>
       </div>
       {src && map && (
         <div className="cq-mapping">
@@ -373,12 +373,12 @@ function CqImport({ onTable }: { onTable: (t: DataTableModel) => void }) {
             ))}
           </div>
           <div className="assay-setup">
-            <button type="button" className="btn-primary" disabled={!ready}
+            <Button variant="primary" disabled={!ready}
               onClick={() => {
                 if (!map) return;
                 build(src.headers, src.rows, map);
                 setSrc(null); setMap(null);
-              }}>Use these columns</button>
+              }}>Use these columns</Button>
             {!ready && <span className="hint-block">Choose the sample, target and Cq columns.</span>}
           </div>
         </div>

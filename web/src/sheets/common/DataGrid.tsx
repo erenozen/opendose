@@ -1,4 +1,7 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Button, IconButton } from "../../components/ui";
+import { CloseIcon } from "../../components/ui/feedbackIcons";
+import { MinusIcon, PlusIcon } from "./gridIcons";
 import { useProject } from "../../app/context";
 // factory -> registry -> this grid is a module cycle; addFamily is only
 // called from an event handler, never while modules evaluate.
@@ -10,7 +13,7 @@ import { pasteWithReport, type PasteReport } from "../../project/pasteReport";
 import {
   addDataset, addRow, allowsSummaryFormat, blockValues, clearBlock, deleteDataset,
   deleteRow, deleteRows, flatColumns, insertDataset, insertRows, insertSeries,
-  isExcluded, moveDataset, normRect, parseCell, parseClipboardGrid,
+  hasAnyValue, isExcluded, moveDataset, normRect, parseCell, parseClipboardGrid,
   renameDataset, reverseRows, setCell, setRowTitle, setSubTitle, setSubcolumnCount,
   setVarType, setX, sortRows, tableShape, toggleBlockExcluded, toggleExcluded,
   type CellRect, type CellRef, type SortKey,
@@ -33,11 +36,13 @@ import { newlyExcluded, reasonAt } from "../../project/exclusions";
 import PasteReportStrip from "./PasteReportStrip";
 import FormulaColumnDialog from "./FormulaColumnDialog";
 import ExcludeByIdDialog from "./ExcludeByIdDialog";
+import GridFindBar from "./GridFindBar";
+import { onGridFind } from "../../app/gridFind";
 import { findInTable } from "../../project/findInTable";
 import { calcCell, evalCellExpression, isCalculated } from "../../project/calculated";
 import {
   DEFAULT_ROW_PX, INITIAL_ROWS, rowSegments, sameRange, scrollTopFor, shouldVirtualise,
-  visibleRange, type RowRange,
+  nextRange, type RowRange,
 } from "./virtualRows";
 import { lazy, Suspense } from "react";
 
@@ -55,15 +60,16 @@ function subLabel(type: TableType, di: number, s: number): string {
   return `Y${s + 1}`;
 }
 
-const HINTS: Partial<Record<TableType, string>> = {
-  xy: "Paste directly from Excel; tab-separated blocks expand automatically.",
-  column: "Each column is one group; enter values down the rows (row titles optional). Paste from Excel works.",
-  grouped: "Rows are levels of one factor (title them on the left); columns are levels of the other, with replicates side by side.",
-  contingency: "Enter counts (not percentages).",
-  survival: "One row per subject: Time, then Event (1 = event, 0 = censored).",
-  partsofwhole: "Each row is one part of the whole; title it on the left.",
-  multivariable: "One row per observation, one column per variable. Mark each variable continuous or categorical.",
-  nested: "Each column is a group; its subcolumns are subgroups (e.g. one per animal), with replicate values down the rows.",
+// The empty state under a table with no values: how this type is filled.
+const EMPTY_HINTS: Partial<Record<TableType, string>> = {
+  xy: "Paste a block from Excel or type: X (dose, concentration or time) in the first column, Y values next to it.",
+  column: "Paste a block from Excel or type: one column per group, values down the rows.",
+  grouped: "Paste a block from Excel or type: rows are levels of one factor, columns levels of the other, replicates side by side.",
+  contingency: "Type or paste counts, not percentages: one row per group, one column per outcome.",
+  survival: "Paste or type one row per subject: the time, then the event (1 = event, 0 = censored).",
+  partsofwhole: "Type or paste one row per part of the whole, titled on the left.",
+  multivariable: "Paste a block from Excel or type: one row per observation, one column per variable.",
+  nested: "Paste a block from Excel or type: one subcolumn per subgroup (such as one animal) under its group, values down the rows.",
 };
 
 type Dialog =
@@ -113,6 +119,7 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
   const showSubhead = shape.hasSubcolumns || t.type === "survival"
     || t.type === "multivariable";
   const api = useProject();
+  const gridId = useId();
 
   const cols = useMemo(() => flatColumns(t), [t]);
   const flat = cols.length;
@@ -187,8 +194,10 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
   const updateRange = () => {
     const m = metrics();
     if (!m) return;
-    const next = visibleRange(m, nRows);
-    setRange((cur) => (sameRange(cur, next) ? cur : next));
+    setRange((cur) => {
+      const next = nextRange(cur, m, nRows);
+      return sameRange(cur, next) ? cur : next;
+    });
   };
   const updateRef = useRef(updateRange);
   updateRef.current = updateRange;
@@ -350,14 +359,29 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
     requestAnimationFrame(() => focusCell(r, c));
   };
 
-  // ---- find (Ctrl/Cmd+F while in the table)
+  // ---- find (Ctrl/Cmd+F in the table, More › Find…, or the palette)
+  const [findOpen, setFindOpen] = useState(false);
+  const [findAsk, setFindAsk] = useState(0);
   const [findText, setFindText] = useState("");
   const [findAt, setFindAt] = useState(0);
   const findRef = useRef<HTMLInputElement>(null);
   const hits = useMemo(() => findInTable(t, findText), [t, findText]);
   // the match shown (outlined while the find box has text)
-  const curHit = findText.trim() && hits.length ? hits[Math.min(findAt, hits.length - 1)] : null;
+  const curHit = findOpen && findText.trim() && hits.length ? hits[Math.min(findAt, hits.length - 1)] : null;
   const isHit = (r: number, c: number) => !!curHit && curHit.r === r && curHit.c === c;
+  // Asked for by a key or a command: the bar appears in the same frame
+  // with the query selected, ready to type over (forms.md, Autofocus).
+  const openFind = () => { setFindOpen(true); setFindAsk((n) => n + 1); };
+  useLayoutEffect(() => {
+    if (!findAsk) return;
+    findRef.current?.focus();
+    findRef.current?.select();
+  }, [findAsk]);
+  useEffect(() => onGridFind((id) => {
+    if (id !== sheet.id) return;
+    setFindOpen(true);
+    setFindAsk((n) => n + 1);
+  }), [sheet.id]);
   const showHit = (i: number) => {
     if (!hits.length) return;
     const k = ((i % hits.length) + hits.length) % hits.length;
@@ -371,11 +395,21 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
       else focusCell(h.r, h.c);
     });
   };
+  // The first Enter shows the match already outlined; later ones move on.
+  const stepFind = (dir: -1 | 1) => showHit(dir < 0 ? findAt - 1 : (sel ? findAt + 1 : findAt));
+  // Closing puts focus back in the table, on the match shown (or the
+  // selected cell), so the input's unmounting does not drop it to the page.
+  const closeFind = () => {
+    const h = curHit ?? (sel ? { r: sel.r0, c: sel.c0 } : { r: 0, c: 0 });
+    setFindOpen(false);
+    setFindText("");
+    setFindAt(0);
+    jumpTo(h.r, h.c);
+  };
   const onGridKeyDown = (e: React.KeyboardEvent) => {
-    if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === "f") {
+    if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === "f") {
       e.preventDefault();
-      findRef.current?.focus();
-      findRef.current?.select();
+      openFind();
     }
   };
 
@@ -434,21 +468,33 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
   const cellInput = (r: number, c: number, value: string,
     set: (v: string) => void,
     opts: { excluded?: boolean; text?: boolean; label: string; isX?: boolean; invalid?: boolean;
-      reason?: string; calc?: string }) => (
+      reason?: string; calc?: string }) => {
+    // What the cell's state means, for the pointer (title) and for screen
+    // readers and touch (the accessible description).
+    const note = opts.calc !== undefined ? `Calculated: = ${opts.calc} (edit the formula in the column title)`
+      : opts.excluded ? `Excluded from analyses and graphs${opts.reason ? `: ${opts.reason}` : ""} (${MOD}E to include)`
+        : opts.invalid ? (t.xFormat === "dates"
+          ? "Not read as a date; treated as blank" : "Not read as a time; treated as blank")
+          : undefined;
+    const noteId = note ? `${gridId}-n${r}-${c}` : undefined;
+    return (
+      <>
       <input
         data-r={r} data-c={c}
-        inputMode={opts.text ? "text" : "decimal"}
+        // The text keyboard for values too: the iOS decimal pad has no
+        // minus and no "e", so -9 and 1e-9 could not be typed (DECISIONS 7).
+        inputMode="text"
+        enterKeyHint="next"
+        // Labels and codes are data: no autocorrect or capitals on phones
+        autoCorrect="off" autoCapitalize="off" spellCheck={false} autoComplete="off"
         className={[opts.text && "text-cell", opts.calc !== undefined && "calc-cell"]
           .filter(Boolean).join(" ") || undefined}
         value={shown(r, c, value, !!opts.isX, !opts.text)}
         readOnly={readOnly || opts.calc !== undefined}
         aria-label={opts.label}
         aria-invalid={opts.invalid || undefined}
-        title={opts.calc !== undefined ? `Calculated: = ${opts.calc} (edit the formula in the column title)`
-          : opts.excluded ? `Excluded from analyses and graphs${opts.reason ? `: ${opts.reason}` : ""} (${MOD}E to include)`
-          : opts.invalid ? (t.xFormat === "dates"
-            ? "Not read as a date; treated as blank" : "Not read as a time; treated as blank")
-            : undefined}
+        aria-describedby={noteId}
+        title={note}
         onChange={(e) => set(e.target.value)}
         onKeyDown={onKeyDown}
         onFocus={() => onCellFocus(r, c)}
@@ -463,7 +509,10 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
         onPointerDown={(e) => onCellPointerDown(e, r, c)}
         onPaste={(e) => onPaste(e, r, c)}
       />
-  );
+      {note && <span id={noteId} hidden>{note}</span>}
+      </>
+    );
+  };
 
   // ---- toolbar targets
   const cur = sel ?? { r0: 0, c0: Math.max(0, xCol), r1: 0, c1: Math.max(0, xCol) };
@@ -506,7 +555,14 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
     ? `${rect.r1 - rect.r0 + 1} × ${rect.c1 - rect.c0 + 1} cells (rows ${rect.r0 + 1}–${rect.r1 + 1})`
     : cols[sel.c0] ? `${columnLabel(t, cols[sel.c0])}, all rows` : "";
 
-  const datasetHint = HINTS[t.type];
+  // An empty table says how to fill it; once it holds a value the grid
+  // speaks for itself (DECISIONS 1).
+  const emptyHint = hasAnyValue(t) ? null : EMPTY_HINTS[t.type];
+  // The selected cell's exclusion, for the inspector.
+  const selRef = sel && !multi ? refAt(sel.r0, sel.c0) : null;
+  const cellNote = selRef && isExcluded(t, selRef)
+    ? `This value is excluded${reasonAt(t, selRef) ? `: ${reasonAt(t, selRef)}` : ""}.`
+    : undefined;
 
   // One body row (virtualised tables render only some of them).
   const headRows = showSubhead ? 2 : 1;
@@ -520,6 +576,8 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
         <th className={`row-label${inSel(r, rowTitleCol) ? " sel" : ""}${isHit(r, rowTitleCol) ? " find-hit" : ""}`}>
           <input className="ds-name" value={t.rowTitles[r] ?? ""}
             data-r={r} data-c={rowTitleCol}
+            enterKeyHint="next" autoCorrect="off" autoCapitalize="off" spellCheck={false}
+            autoComplete="off"
             readOnly={readOnly}
             aria-label={`Row ${r + 1} title`}
             onChange={(e) => onChange((x) => setRowTitle(x, r, e.target.value),
@@ -569,9 +627,11 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
         }),
       )}
       <td className="rowtools">
+        {/* Out of the tab order: Tab walks values, not a destructive
+            button per row (the Rows menu deletes from the keyboard). */}
         {!readOnly && nRows > 1 && (
-          <button title="Delete row" aria-label={`Delete row ${r + 1}`}
-            onClick={() => onChange((x) => deleteRow(x, r))}>✕</button>
+          <IconButton size="sm" tabIndex={-1} title="Delete row" aria-label={`Delete row ${r + 1}`}
+            onClick={() => onChange((x) => deleteRow(x, r))}><CloseIcon /></IconButton>
         )}
       </td>
     </tr>
@@ -580,56 +640,30 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
 
   return (
     <div className="grid-editor" onKeyDown={onGridKeyDown}>
-      <div className="grid-toolbar" role="group" aria-label="Data table tools">
+      <div className="grid-toolbar" role="group" aria-label="Data table tools" data-still>
         {!readOnly && (
-          <button type="button" onClick={() => setDialog({ kind: "import" })}
-            title="Import a CSV, text or .xlsx file, or pasted text">Import…</button>
+          <Button variant="ghost" onClick={() => setDialog({ kind: "import" })}
+            title="Import a CSV, text or .xlsx file, or pasted text">Import…</Button>
         )}
-        <button type="button" onClick={() => setDialog({ kind: "export" })}
-          title="Download as CSV or tab-separated text, or copy">Export…</button>
-        <span className="grid-find">
-          <input ref={findRef} type="search" className="grid-find-input" placeholder={`Find (${MOD}F)`}
-            aria-label="Find in this table" value={findText}
-            onChange={(e) => { setFindText(e.target.value); setFindAt(0); }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") { e.preventDefault(); showHit(e.shiftKey ? findAt - 1 : (sel ? findAt + 1 : findAt)); }
-              if (e.key === "Escape") {
-                e.preventDefault();
-                setFindText("");
-                const h = hits[findAt];
-                if (h) jumpTo(h.r, h.c);
-              }
-            }} />
-          {findText.trim() && (
-            <>
-              <span className="grid-find-count" role="status">
-                {hits.length ? `${Math.min(findAt, hits.length - 1) + 1} of ${hits.length}` : "no match"}</span>
-              <button type="button" aria-label="Previous match" disabled={!hits.length}
-                onClick={() => showHit(findAt - 1)}>▲</button>
-              <button type="button" aria-label="Next match" disabled={!hits.length}
-                onClick={() => showHit(findAt + 1)}>▼</button>
-            </>
-          )}
-        </span>
+        <Button variant="ghost" onClick={() => setDialog({ kind: "export" })}
+          title="Download as CSV or tab-separated text, or copy">Export…</Button>
         {!readOnly && (
           <>
-            <span className="tb-sep" aria-hidden="true" />
-            <button type="button" onClick={() => setDialog({ kind: "sort" })}>Sort…</button>
-            <button type="button" onClick={() => setDialog({ kind: "series" })}
-              title="Fill a column with an arithmetic or geometric series">Insert series…</button>
-            <button type="button" onClick={() => setDialog({ kind: "excludeIds" })}
-              title="Exclude every value of the rows whose IDs you paste (row titles or an ID column)">
-              Exclude by ID…</button>
             <MenuButton label="Rows" items={[
               { label: "Insert row above", onSelect: () => edit((x) => insertRows(x, curRect.r0, 1)) },
               { label: "Insert row below", hint: `${MOD}⇧↵`,
                 onSelect: () => edit((x) => insertRows(x, curRect.r1 + 1, 1)) },
               "sep",
+              { label: "Exclude by ID…",
+                description: "Leave out every value of the rows whose IDs you paste",
+                onSelect: () => setDialog({ kind: "excludeIds" }) },
+              "sep",
               { label: rowsSelected > 1 ? `Delete rows ${curRect.r0 + 1}–${curRect.r1 + 1}`
                 : `Delete row ${curRect.r0 + 1}`, danger: true, disabled: nRows <= 1,
               onSelect: () => { edit((x) => deleteRows(x, curRect.r0, rowsSelected)); setSel(null); } },
             ]} />
-            <MenuButton label={shape.datasetNoun === "Dataset" ? "Columns" : `${shape.datasetNoun}s`} items={[
+            <MenuButton label={shape.datasetNoun === "Dataset" ? "Columns" : `${shape.datasetNoun}s`}
+              items={[
               { label: `Insert ${noun} to the left`,
                 onSelect: () => edit((x) => insertDataset(x, Math.max(0, curDs))) },
               { label: `Insert ${noun} to the right`,
@@ -651,53 +685,64 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
                 danger: true, disabled: curDs < 0 || t.datasets.length <= 1,
                 onSelect: () => edit((x) => deleteDataset(x, curDs)) },
             ]} />
-            <span className="tb-sep" aria-hidden="true" />
-            <button type="button" onClick={() => setDialog({ kind: "format" })}
-              title="Y value format, X dates or times, decimal places">Format…</button>
-            {allowsSummaryFormat(t.type) && (
-              <button type="button" onClick={() => setDialog({ kind: "convert" })}
-                title="Create a new table of means and errors from this one">Convert…</button>
-            )}
-            {CONVERTIBLE.includes(t.type) && (
-              <button type="button" onClick={() => setDialog({ kind: "convertType" })}
-                title="Make a new table of another type or layout with every value, exclusion and pairing kept">
-                Convert table to…</button>
-            )}
-            <button type="button" onClick={() => setDialog({ kind: "reshape" })}
-              title={t.type === "multivariable" ? "Make a wide table (groups as columns) from this long table"
-                : "Make a long table (one observation per row) from this one"}>Reshape…</button>
+            <MenuButton label="More" items={[
+              { label: "Find…", hint: `${MOD}F`, onSelect: openFind },
+              "sep",
+              { label: "Sort…", onSelect: () => setDialog({ kind: "sort" }) },
+              { label: "Insert series…", description: "Fill a column with an arithmetic or geometric series",
+                onSelect: () => setDialog({ kind: "series" }) },
+              "sep",
+              { label: "Format…", description: "Y value format, X dates or times, decimal places",
+                onSelect: () => setDialog({ kind: "format" }) },
+              ...(allowsSummaryFormat(t.type) ? [{ label: "Convert…",
+                description: "A new table of means and errors from this one",
+                onSelect: () => setDialog({ kind: "convert" }) }] : []),
+              ...(CONVERTIBLE.includes(t.type) ? [{ label: "Convert table to…",
+                description: "A new table of another type or layout, every value, exclusion and pairing kept",
+                onSelect: () => setDialog({ kind: "convertType" }) }] : []),
+              { label: "Reshape…", description: t.type === "multivariable"
+                ? "A wide table (groups as columns) from this long table"
+                : "A long table (one observation per row) from this one",
+              onSelect: () => setDialog({ kind: "reshape" }) },
+            ]} />
           </>
         )}
       </div>
 
+      {findOpen && (
+        <GridFindBar inputRef={findRef} value={findText} at={findAt} count={hits.length}
+          onValueChange={(v) => { setFindText(v); setFindAt(0); }}
+          onStep={stepFind} onClose={closeFind} />
+      )}
       {reasonAsk?.sheetId === sheet.id && !readOnly && (
         <ExclusionReasonPrompt key={reasonAsk.refs.map((x) => JSON.stringify(x)).join()} table={t}
           refs={reasonAsk.refs} onSave={(fn) => onChange(fn)} onClose={closeReason} />
       )}
-      {shownReport && !readOnly && (
-        <PasteReportStrip verb={shownReport.verb} report={shownReport.report} onJump={jumpTo}
-          onDismiss={() => setPasteInfo(null)}
-          onReimport={shownReport.paste ? () => {
-            const p = shownReport.paste!;
-            setDialog({ kind: "import", req: { text: p.text, mode: "insert", row: p.r, col: p.c } });
-          } : undefined} />
-      )}
+      <PasteReportStrip key={sheet.id} open={!!shownReport && !readOnly} verb={shownReport?.verb ?? "Pasted"}
+        report={shownReport?.report ?? null} onJump={jumpTo}
+        onDismiss={() => setPasteInfo(null)}
+        onReimport={shownReport?.paste ? () => {
+          const p = shownReport.paste!;
+          setDialog({ kind: "import", req: { text: p.text, mode: "insert", row: p.r, col: p.c } });
+        } : undefined} />
 
-      <div className={`data-table${readOnly ? " is-readonly" : ""}${selecting ? " selecting" : ""}${virtual ? " virtual" : ""}`}
+      <div data-still className={`data-table${readOnly ? " is-readonly" : ""}${selecting ? " selecting" : ""}${virtual ? " virtual" : ""}`}
         ref={wrap} onPointerMove={onPointerMove}
         onCopy={(e) => onCopy(e, false)} onCut={(e) => onCopy(e, true)}>
-        <table data-rows={nRows} aria-rowcount={virtual ? nRows + headRows : undefined}>
+        <table data-rows={nRows} aria-rowcount={virtual ? nRows + headRows : undefined}
+          aria-label={sheet.name}>
           <thead ref={headRef}>
             <tr>
-              <th className="rownum" />
+              <th className="rownum" scope="col"><span className="sr-only">Row</span></th>
               {shape.hasRowTitles && (
-                <th className="row-label-head" rowSpan={showSubhead ? 2 : 1}>
-                  {t.type === "contingency" ? "" : "Row title"}
+                <th className="row-label-head" rowSpan={showSubhead ? 2 : 1} scope="col">
+                  {t.type === "contingency" ? <span className="sr-only">Row title</span> : "Row title"}
                 </th>
               )}
               {shape.hasX && (
                 <th className="xhead" rowSpan={showSubhead ? 2 : 1}>
                   <input className="ds-name" value={t.xTitle} readOnly={readOnly}
+                    autoCorrect="off" autoCapitalize="off" spellCheck={false} autoComplete="off"
                     aria-label="X column title" placeholder="X"
                     onChange={(e) => onChange((x) => ({ ...x, xTitle: e.target.value }),
                       key("xtitle"))} />
@@ -710,11 +755,15 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
               )}
               {t.datasets.map((d, di) => (
                 <th key={di} colSpan={subCount(d)} className="group-head">
+                  <div className="group-title">
                   <input
                     className="ds-name"
                     value={d.name}
                     readOnly={readOnly}
+                    autoCorrect="off" autoCapitalize="off" spellCheck={false} autoComplete="off"
                     aria-label={`${shape.datasetNoun} ${di + 1} title`}
+                    // a long name is cut at the column's edge: the full name on hover
+                    title={d.name || undefined}
                     onChange={(e) => onChange((x) => renameDataset(x, di, e.target.value),
                       key(`ds:${di}`))}
                   />
@@ -723,26 +772,29 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
                       {shape.hasSubcolumns && t.subcolumnFormat === "replicates"
                         && t.type !== "column" && (
                         <>
-                          <button title="Remove a subcolumn"
-                            aria-label={`Remove a subcolumn from ${d.name}`}
-                            onClick={() => onChange((x) => setSubcolumnCount(x, di, subCount(d) - 1))}>−</button>
-                          <button title="Add a subcolumn"
-                            aria-label={`Add a subcolumn to ${d.name}`}
-                            onClick={() => onChange((x) => setSubcolumnCount(x, di, subCount(d) + 1))}>+</button>
+                          <IconButton size="sm" title="Remove a subcolumn"
+                            aria-label={`Remove a subcolumn from ${d.name || `${noun} ${di + 1}`}`}
+                            onClick={() => onChange((x) => setSubcolumnCount(x, di, subCount(d) - 1))}>
+                            <MinusIcon /></IconButton>
+                          <IconButton size="sm" title="Add a subcolumn"
+                            aria-label={`Add a subcolumn to ${d.name || `${noun} ${di + 1}`}`}
+                            onClick={() => onChange((x) => setSubcolumnCount(x, di, subCount(d) + 1))}>
+                            <PlusIcon /></IconButton>
                         </>
                       )}
                       {t.datasets.length > 1 && (
-                        <button title={`Delete ${noun}`}
-                          aria-label={`Delete ${d.name}`}
-                          onClick={() => onChange((x) => deleteDataset(x, di))}>✕</button>
+                        <IconButton size="sm" title={`Delete ${noun}`}
+                          aria-label={`Delete ${d.name || `${noun} ${di + 1}`}`}
+                          onClick={() => onChange((x) => deleteDataset(x, di))}><CloseIcon /></IconButton>
                       )}
                     </span>
                   )}
+                  </div>
                   {summary && di === 0 && (
                     <span className="format-tag">{SUBCOLUMN_FORMAT_LABELS[t.subcolumnFormat]}</span>
                   )}
                   {isCalculated(d) && (
-                    <button type="button" className={`formula-chip${d.formulaError ? " has-error" : ""}`}
+                    <button type="button" data-still className={`formula-chip${d.formulaError ? " has-error" : ""}`}
                       disabled={readOnly}
                       title={d.formulaError ? `Not calculated: ${d.formulaError}` : "Calculated column: edit the formula"}
                       aria-label={`Formula of ${d.name}: ${d.formula}${d.formulaError ? ` (error: ${d.formulaError})` : ""}`}
@@ -752,11 +804,11 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
                   )}
                 </th>
               ))}
-              <th className="rowtools" />
+              <td className="rowtools" />
             </tr>
             {showSubhead && (
               <tr className="subhead">
-                <th className="rownum" />
+                <td className="rownum" />
                 {t.datasets.map((d, di) => t.type === "multivariable" ? (
                   <th key={di}>
                     <select className="var-type" value={d.varType ?? "continuous"}
@@ -772,6 +824,7 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
                     <th key={`${di}-${s}`}>
                       <input className="sub-title" value={d.subTitles?.[s] ?? ""}
                         placeholder={subLabel(t.type, di, s)}
+                        autoCorrect="off" autoCapitalize="off" spellCheck={false} autoComplete="off"
                         readOnly={readOnly || (t.type === "survival" && s < 2)
                           || t.subcolumnFormat !== "replicates"}
                         aria-label={`${d.name} subcolumn ${s + 1} title`}
@@ -780,7 +833,7 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
                     </th>
                   ))
                 ))}
-                <th className="rowtools" />
+                <td className="rowtools" />
               </tr>
             )}
           </thead>
@@ -795,13 +848,13 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
               : Array.from({ length: nRows }, (_, r) => renderRow(r))}
           </tbody>
         </table>
-        <div className="table-actions">
+        <div className="table-actions" data-still>
           {!readOnly && (
             <>
-              <button onClick={() => onChange(addRow)}>+ Row</button>
-              <button onClick={() => onChange((x) => addDataset(x))}>
-                + {shape.datasetNoun}
-              </button>
+              <Button variant="ghost" size="sm" onClick={() => onChange(addRow)}>
+                <PlusIcon />Add row</Button>
+              <Button variant="ghost" size="sm" onClick={() => onChange((x) => addDataset(x))}>
+                <PlusIcon />Add {noun}</Button>
             </>
           )}
           {readOnly ? (
@@ -813,20 +866,13 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
                 : sheet.frozen ? "Read-only: this table is frozen."
                   : api.readOnly ? "Read-only: a shared project. Make a copy to edit it." : "Read-only."}
             </span>
-          ) : datasetHint && <span className="hint">{datasetHint}</span>}
+          ) : emptyHint && <span className="hint">{emptyHint}</span>}
         </div>
       </div>
 
-      {inspectRect ? (
-        <DataInspector table={t} rect={inspectRect} scope={scope} />
-      ) : (
-        <section className="data-inspector" aria-label="Data inspector">
-          <h3>Data inspector</h3>
-          <p className="hint-block">
-            Click a cell to summarize its column, or drag / Shift+arrow to
-            select a block.
-          </p>
-        </section>
+      {/* Only with a selection: at rest the inspector has nothing to say. */}
+      {inspectRect && (
+        <DataInspector table={t} rect={inspectRect} scope={scope} cellNote={cellNote} />
       )}
 
       {dialog?.kind === "import" && (

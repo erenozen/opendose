@@ -20,6 +20,8 @@ import {
   defaultForm, randomSeed, simulationSentence, type SimForm,
 } from "./simulate";
 import "./manipulate.css";
+import { Button, IconButton, NumberField } from "../../components/ui";
+import { CloseIcon } from "../../components/ui/feedbackIcons";
 
 /** The simulation a Monte Carlo sheet uses: its own, or its table's. */
 function useSimulation(sheet: ResultsSheet, table: DataTableModel, o: MonteCarloOptions) {
@@ -83,6 +85,8 @@ export function MonteCarloControls({ sheet, table, options: o, onChange, readOnl
   // ---- run
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [runError, setRunError] = useState<string | null>(null);
+  // How the last run ended, spoken once it ends.
+  const [ended, setEnded] = useState("");
   const stop = useRef(false);
   useEffect(() => () => { stop.current = true; }, []);
   const n = Math.round(Number(o.nRepeats));
@@ -90,6 +94,7 @@ export function MonteCarloControls({ sheet, table, options: o, onChange, readOnl
   const run = async () => {
     if (!nOk || !o.tabulate.length) return;
     setRunError(null);
+    setEnded("");
     stop.current = false;
     const seed = /^\d+$/.test(o.seed.trim()) ? Number(o.seed.trim()) : randomSeed();
     const label = MC_ANALYSES[sim.kind].find((a) => a.id === o.analysis)?.label ?? o.analysis;
@@ -101,6 +106,7 @@ export function MonteCarloControls({ sheet, table, options: o, onChange, readOnl
         n, seed, analysisLabel: label,
       }, (done) => setProgress({ done, total: n }), () => stop.current);
       set({ output });
+      setEnded(stop.current ? "Stopped." : `Finished ${n.toLocaleString()} simulations.`);
     } catch (e) {
       setRunError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -124,6 +130,17 @@ export function MonteCarloControls({ sheet, table, options: o, onChange, readOnl
       hit: { ...o.hit, lower: fix(o.hit.lower), upper: fix(o.hit.upper), label: fix(o.hit.label) } });
   };
   const busy = !!progress;
+  // Run and Stop take turns in one place: when the one with focus goes,
+  // focus moves to the one that replaces it instead of the page body.
+  const runBtn = useRef<HTMLButtonElement>(null);
+  const stopBtn = useRef<HTMLButtonElement>(null);
+  const wasBusy = useRef(false);
+  useEffect(() => {
+    if (busy === wasBusy.current) return;
+    wasBusy.current = busy;
+    const a = document.activeElement;
+    if (!a || a === document.body) (busy ? stopBtn : runBtn).current?.focus();
+  }, [busy]);
 
   return (
     <div className="controls manip-controls mc-controls">
@@ -189,9 +206,9 @@ export function MonteCarloControls({ sheet, table, options: o, onChange, readOnl
               <input value={t.label} aria-label={`Name for ${t.path}`} readOnly={readOnly || busy}
                 onChange={(e) => e.target.value.trim() && renameTab(i, e.target.value)} />
               <code className="mc-path" title={t.path}>{t.path}</code>
-              <button type="button" className="icon-btn" disabled={readOnly || busy}
+              <IconButton size="sm" disabled={readOnly || busy}
                 aria-label={`Stop tabulating ${t.label}`}
-                onClick={() => set({ tabulate: o.tabulate.filter((_, j) => j !== i) })}>✕</button>
+                onClick={() => set({ tabulate: o.tabulate.filter((_, j) => j !== i) })}><CloseIcon /></IconButton>
             </li>
           ))}
         </ul>
@@ -259,11 +276,9 @@ export function MonteCarloControls({ sheet, table, options: o, onChange, readOnl
       <section>
         <h3>Run</h3>
         <div className="field-row">
-          <label className="field field-num">
-            <span>Repeats (up to {MAX_REPEATS.toLocaleString()})</span>
-            <input inputMode="numeric" value={o.nRepeats} readOnly={readOnly || busy}
-              aria-invalid={!nOk} onChange={(e) => set({ nRepeats: e.target.value })} />
-          </label>
+          <NumberField label={`Repeats (up to ${MAX_REPEATS.toLocaleString()})`} fieldClassName="field-num"
+            integer required min={1} max={MAX_REPEATS} value={o.nRepeats} readOnly={readOnly || busy}
+            onValueChange={(nRepeats) => set({ nRepeats })} />
           <label className="field field-num">
             <span>Random seed</span>
             <input inputMode="numeric" value={o.seed} placeholder="new" readOnly={readOnly || busy}
@@ -274,19 +289,20 @@ export function MonteCarloControls({ sheet, table, options: o, onChange, readOnl
               disabled={readOnly} onChange={(histogram) => set({ histogram })} />
           )}
         </div>
-        {!nOk && <p className="field-note">Enter a whole number from 1 to {MAX_REPEATS}.</p>}
         <div className="mc-run">
+          <span className="sr-only" role="status">{busy ? "Running the simulations…" : ended}</span>
           {busy ? (
             <>
               <progress max={progress.total} value={progress.done}
                 aria-label="Monte Carlo progress" />
-              <span className="mc-count" aria-live="polite">{progress.done} of {progress.total}</span>
-              <button type="button" onClick={() => { stop.current = true; }}>Stop</button>
+              {/* the count is seen, not spoken: the status below says the phase */}
+              <span className="mc-count" aria-hidden="true">{progress.done} of {progress.total}</span>
+              <Button ref={stopBtn} onClick={() => { stop.current = true; }}>Stop</Button>
             </>
           ) : (
-            <button type="button" className="btn-primary mc-run-btn"
+            <Button ref={runBtn} variant="primary" className="mc-run-btn"
               disabled={readOnly || !engineReady || !nOk || !o.tabulate.length}
-              onClick={run}>{o.output ? "Run again" : "Run simulations"}</button>
+              onClick={run}>{o.output ? "Run again" : "Run simulations"}</Button>
           )}
         </div>
         <p className="hint-block">Each repeat simulates a fresh data set and analyzes it. Leave the seed blank for a new sequence every run.</p>

@@ -1,0 +1,58 @@
+/* Menus (ui/Menu): the surface and the item look. Placement, motion and
+   the top layer come from ui/Popover.css. Menus opt out of the press
+   scale with data-still on the container (base.css). */
+.sheet-menu {
+  min-width: 210px; max-width: min(360px, calc(100vw - 16px));
+  /* long menus scroll; the placement caps max-height to the room left */
+  max-height: calc(100dvh - 16px); overflow-y: auto; overscroll-behavior: contain;
+  padding: 5px;
+  background: var(--float);
+  border-radius: var(--radius-menu);
+  box-shadow: var(--elev-float);
+  display: flex; flex-direction: column;
+}
+.menu-item {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-16);
+  width: 100%; min-height: 28px; text-align: left; border-radius: var(--radius-control); padding: 5px 9px;
+  background: transparent; font-size: var(--text-body-s); font-weight: var(--weight-regular);
+  /* never squeezed by a scrolling menu (min-height on phones would let it) */
+  flex-shrink: 0;
+}
+@media (hover: hover) and (pointer: fine) {
+  .menu-item:hover { background: var(--accent-fill); color: var(--accent-ink); }
+  .menu-item:hover .menu-desc, .menu-item:hover kbd { color: inherit; }
+}
+.menu-item:focus-visible { outline: none; background: var(--accent-fill); color: var(--accent-ink); }
+.menu-item:focus-visible .menu-desc, .menu-item:focus-visible kbd { color: inherit; }
+.menu-item[aria-disabled="true"] { opacity: 0.45; }
+.menu-item.danger { color: var(--danger); }
+.menu-item-2line { flex-direction: column; align-items: flex-start; gap: 1px; }
+.menu-desc { color: var(--muted); font-size: var(--text-caption); line-height: 1.35; }
+.menu-item kbd, .shortcuts kbd {
+  font: inherit; font-size: var(--text-caption); color: var(--muted);
+}
+.menu-sep { height: 1px; margin: var(--space-4) var(--space-6); background: var(--line); }
+.menu-colors { display: flex; gap: var(--space-6); padding: 5px var(--space-8) var(--space-4); }
+.swatch {
+  width: 18px; height: 18px; min-height: 0; padding: 0; border-radius: 50%;
+  background: var(--hl); border: 2px solid transparent;
+}
+.swatch[aria-checked="true"] { box-shadow: 0 0 0 2px var(--float), 0 0 0 4px var(--hl, var(--axis)); }
+.swatch-none {
+  background: transparent; border: 1.5px solid var(--axis);
+  background-image: linear-gradient(135deg, transparent 45%, var(--axis) 45%, var(--axis) 55%, transparent 55%);
+}
+.swatch:focus-visible { outline-offset: 2px; border-radius: 50%; }
+
+/* Touch: 44px rows (DECISIONS 5), larger swatches whose hit areas meet
+   at 44px without overlapping (26 + 18), and no shortcut column on a
+   phone with no keyboard. */
+@media (pointer: coarse) {
+  .menu-item { min-height: 44px; }
+  .menu-colors { gap: 18px; }
+  .swatch { min-height: 0; width: 26px; height: 26px; position: relative; }
+  .swatch::before { content: ""; position: absolute; inset: -9px; }
+}
+@media (hover: none) and (pointer: coarse) {
+  .menu-item kbd { display: none; }
+}

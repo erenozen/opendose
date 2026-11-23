@@ -13,7 +13,7 @@ import {
 } from "./fitOptions";
 import { autoFitGate, type ChooseReason } from "./autofit";
 import { rowPoints } from "./deming";
-import { withRangeReport } from "./rangeReport";
+import { concentrationUnit, withRangeReport } from "./rangeReport";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -339,7 +339,8 @@ export function xyAutoTitles(table: DataTableModel, options: OptionsState | null
   const x = table.xFormat !== "numbers"
     ? (table.xTitle && table.xTitle !== "X" ? table.xTitle
       : table.xFormat === "dates" ? "Date" : "Elapsed time")
-    : logX ? `${stem}, ${table.xUnit || "M"}` : stem;
+    // the unit the results state (IC50 (µM)): from the X header, then the table
+    : logX ? `${stem}, ${concentrationUnit(table) || "M"}` : stem;
   const y = table.yTitle || (options?.normalize.enabled
     ? (options.normalize.asPercent ? "Normalized response (%)" : "Normalized response")
     : "Response");

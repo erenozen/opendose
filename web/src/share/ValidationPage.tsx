@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import Modal from "../components/Modal";
+import { Button, Field, Input } from "../components/ui";
 import manifest from "./validation.json";
 import type { ValidationFor } from "./events";
 import { checksIn, validationScope, validationSentence } from "./validationIndex";
@@ -63,7 +64,7 @@ export default function ValidationPage({ onClose, scope }: {
 
   return (
     <Modal title="How OpenDose is validated" className="validation-page" onClose={onClose}
-      actions={<button type="button" className="btn-primary" onClick={onClose}>Close</button>}>
+      actions={<Button onClick={onClose}>Close</Button>}>
       {forAnalysis && (
         <div className="validation-scope" role="note" aria-label="Checks for this analysis">
           <h3>Checks for {forAnalysis.title}</h3>
@@ -71,7 +72,7 @@ export default function ValidationPage({ onClose, scope }: {
             <p>
               {validationSentence(mine)}{" "}
               {filtering ? "Only these are listed below. " : "All checks are listed below. "}
-              <button type="button" className="linkish" onClick={() => setScoped(!filtering)}>
+              <button type="button" data-still className="linkish" onClick={() => setScoped(!filtering)}>
                 {filtering ? `Show all ${data.checks.length} checks` : "Show only these checks"}
               </button>
             </p>
@@ -102,11 +103,10 @@ export default function ValidationPage({ onClose, scope }: {
         are computed on every run and must agree within the tolerance.
       </p>
       <div className="field-row">
-        <label className="field">
-          <span>Find an analysis</span>
-          <input type="search" value={query} placeholder="e.g. nested, Dunnett, LogIC50"
+        <Field label="Find an analysis" description="For example nested, Dunnett or LogIC50.">
+          <Input type="search" value={query} autoComplete="off" spellCheck={false}
             onChange={(e) => setQuery(e.target.value)} />
-        </label>
+        </Field>
       </div>
       <ul className="validation-summary" aria-label="Filter by kind of reference">
         <li>

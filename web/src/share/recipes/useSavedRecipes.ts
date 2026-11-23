@@ -40,6 +40,12 @@ export function useSavedRecipes() {
     setBrowser(browserRecipes());
     if (!readOnly && project.recipes?.some((r) => r.id === id)) apply((p) => withoutRecipe(p, id));
   };
-  return { list, save, remove, readOnly };
+  /** Puts back a recipe removed a moment ago (the Undo of a delete). */
+  const restore = (e: SavedEntry) => {
+    if (e.inBrowser) saveBrowserRecipe(e.recipe);
+    setBrowser(browserRecipes());
+    if (e.inProject && !readOnly) apply((p) => withRecipe(p, e.recipe));
+  };
+  return { list, save, remove, restore, readOnly };
 }
 

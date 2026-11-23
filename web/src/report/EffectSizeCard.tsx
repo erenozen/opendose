@@ -2,7 +2,8 @@
 // engine reports, the project's default measure (Preferences ->
 // Reporting) with its value, CI and interpretation, and the other
 // measures one click away. Interpretation labels carry their scale and
-// source (tooltip and the notes under the table).
+// source: the notes under the table say both in visible text, so
+// they reach touch and keyboard users; the tooltip only repeats them.
 import { formatSig } from "../types";
 import { effectGroups, type EffectGroup, type EffectRow } from "./effects";
 import { useReportPrefs } from "./useReport";
@@ -28,7 +29,7 @@ function Rows({ rows }: { rows: EffectRow[] }) {
         <tr key={r.id} className={r.preferred ? "es-preferred" : undefined}>
           <th scope="row">
             {r.measure}
-            {r.preferred && <span className="es-default" title="Default measure (Preferences, Reporting)">default</span>}
+            {r.preferred && <span className="es-default">default</span>}
           </th>
           <td>{formatSig(r.value)}</td>
           <td>{ciText(r)}</td>
@@ -73,13 +74,19 @@ export default function EffectSizeCard({ result }: { result: unknown }) {
   const rows = groups.flatMap((g) => g.rows);
   const sources = [...new Set(rows.map((r) => r.interpretation?.source).filter(Boolean))] as string[];
   const methods = [...new Set(rows.filter((r) => r.ci && r.ciMethod).map((r) => `${r.measure}: ${r.ciMethod}`))];
+  // "Small on the Cohen's d scale (thresholds 0.2, 0.5, 0.8)": the scale
+  // each label is read on, once per scale
+  const scales = [...new Set(rows.flatMap((r) => (r.interpretation ? [r.interpretation] : []))
+    .map((it) => `${it.scale} scale${it.thresholds ? ` (thresholds ${it.thresholds.join(", ")})` : ""}`))];
   return (
     <div className="result-card effect-card">
       <h3>Effect size</h3>
       {groups.map((g, i) => <Group key={`${g.title ?? ""}${i}`} g={g} />)}
       <ul className="es-notes">
         {methods.slice(0, 4).map((m) => <li key={m}>CI: {m}.</li>)}
+        {scales.map((s) => <li key={s}>Labels read on the {s}.</li>)}
         {sources.map((s) => <li key={s}>Interpretation: {s}. Labels describe size only, not importance.</li>)}
+        {rows.some((r) => r.preferred) && <li>“default”: the measure chosen in Preferences, Reporting.</li>}
       </ul>
     </div>
   );

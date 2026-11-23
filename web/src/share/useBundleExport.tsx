@@ -36,6 +36,9 @@ interface Job {
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const frames = () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
 
+/** The bundle's progress toast, resolved in place (DECISIONS 6). */
+const BUNDLE_TOAST = "bundle-export";
+
 /**
  * "Download export bundle": the project file, every data table as CSV
  * (wide and long), every results sheet as CSV, every graph as SVG and
@@ -43,6 +46,7 @@ const frames = () => new Promise((r) => requestAnimationFrame(() => requestAnima
  * graphs are drawn off screen one at a time (as "Export all graphs"
  * does) and read back exactly as the app shows them.
  */
+
 export function useBundleExport() {
   const api = useProject();
   const ui = useUi();
@@ -53,7 +57,7 @@ export function useBundleExport() {
   const run = useCallback(async () => {
     if (job) return;
     if (!api.engineReady) {
-      ui.notify("The analysis engine is still starting; try again in a moment.");
+      ui.notify("The analysis engine is still starting; try again in a moment.", { tone: "info" });
       return;
     }
     const p = api.store.project;
@@ -91,6 +95,7 @@ export function useBundleExport() {
     };
     setIndex(0);
     setJob({ steps, input, settings });
+    ui.notify("Preparing the export bundle…", { tone: "progress", id: BUNDLE_TOAST });
   }, [job, api, ui]);
 
   const step = job?.steps[index];
@@ -105,7 +110,8 @@ export function useBundleExport() {
       saveBlob(new Blob([zip as Uint8Array<ArrayBuffer>], { type: "application/zip" }),
         `${stem(job.input.title, "opendose-project")}-bundle.zip`);
       ui.notify(`Export bundle saved: ${files.length} files`
-        + (job.input.skipped.length ? `; not included: ${job.input.skipped.join(", ")}` : "") + ".");
+        + (job.input.skipped.length ? `; not included: ${job.input.skipped.join(", ")}` : "") + ".",
+      { tone: "success", id: BUNDLE_TOAST });
       setJob(null);
     };
     const go = async () => {
@@ -160,8 +166,10 @@ export function useBundleExport() {
       if (index + 1 < job.steps.length) setIndex(index + 1);
       else finish();
     };
-    go().catch(() => {
-      ui.notify("The export bundle could not be made. Try again, or export the parts one by one.");
+    go().catch((e: unknown) => {
+      const why = String(e instanceof Error ? e.message : e).replace(/\.$/, "");
+      ui.notify(`Could not make the export bundle: ${why}. Try again, or export the parts one by one.`,
+        { tone: "error", id: BUNDLE_TOAST });
       setJob(null);
     });
     return () => { live = false; };
@@ -185,8 +193,6 @@ export function useBundleExport() {
   }
   return {
     run,
-    busy: !!job,
-    progress: job ? `${Math.min(index + 1, job.steps.length)} of ${job.steps.length}` : "",
     host: content ? createPortal(content, document.body) : null,
   };
 }

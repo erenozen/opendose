@@ -41,10 +41,10 @@ export default function ImportRecipesBar({ current, onPlain, onRecipe }: {
             </select>
           </label>
         )}
-        <button type="button" className="linkish" aria-expanded={saving}
+        <button type="button" data-still className="linkish" aria-expanded={saving}
           onClick={() => setSaving(!saving)}>Save these settings as a recipe…</button>
       </div>
-      {applied && <p className="field-note" role="status">{applied}</p>}
+      <p className="field-note" role="status">{applied}</p>
       {saving && (
         <SaveRecipeForm defaultName="My import settings"
           onSave={(name, inProject) => saved.save(name, current(), "Plain import", inProject)}

@@ -4,6 +4,7 @@ import { useProject } from "../app/context";
 // is only called from an event handler, never while modules evaluate.
 import { addFamily } from "../app/factory";
 import Modal from "../components/Modal";
+import { Button, Field, Input } from "../components/ui";
 import { newId } from "../project/ids";
 import type { DataSheet } from "../project/types";
 import { recipeById, type Staged } from "./recipes/presets";
@@ -62,10 +63,10 @@ export default function ReshapeDialog({ sheet, onClose }: { sheet: DataSheet; on
       onSubmit={create}
       actions={
         <>
-          <button type="button" onClick={onClose}>Cancel</button>
-          <button type="submit" className="btn-primary" disabled={!long?.rows.length}>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button type="submit" variant="primary" disabled={!long?.rows.length}>
             Create long table
-          </button>
+          </Button>
         </>
       }>
       <p className="modal-text">
@@ -74,12 +75,11 @@ export default function ReshapeDialog({ sheet, onClose }: { sheet: DataSheet; on
         export to R or Python; reshape it again to make any wide table.
         This table stays as it is.
       </p>
-      <label className="field">
-        <span>New table name</span>
-        <input value={name} onChange={(e) => setName(e.target.value)} />
-      </label>
+      <Field label="New table name">
+        <Input value={name} autoComplete="off" onChange={(e) => setName(e.target.value)} />
+      </Field>
       {m.length > 1 ? (
-        <div className="import-preview" tabIndex={0} aria-label="The long table to be created">
+        <div className="import-preview" role="region" tabIndex={0} aria-label="The long table to be created">
           <table>
             <thead><tr>{m[0].map((h, i) => <th key={i}>{h}</th>)}</tr></thead>
             <tbody>

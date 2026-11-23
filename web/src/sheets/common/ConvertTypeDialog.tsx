@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import Modal from "../../components/Modal";
+import { Button } from "../../components/ui";
 import {
   checkConversion, columnToGrouped, groupedToColumn, hasStackedRows, longToColumn, longToGrouped,
   stackReplicates, toLong, unstackReplicates, type ConversionCheck,
@@ -137,7 +138,7 @@ export default function ConvertTypeDialog({ table, name, onCreate, onClose }: {
   if (!current) {
     return (
       <Modal title="Convert table to…" onClose={onClose}
-        actions={<button type="button" onClick={onClose}>Close</button>}>
+        actions={<Button onClick={onClose}>Close</Button>}>
         <p className="modal-text">This table type has no other layout to convert to.</p>
       </Modal>
     );
@@ -169,8 +170,8 @@ export default function ConvertTypeDialog({ table, name, onCreate, onClose }: {
       onSubmit={() => { if (target) onCreate(target, newName.trim() || defaultName); }}
       actions={
         <>
-          <button type="button" onClick={onClose}>Cancel</button>
-          <button type="submit" className="btn-primary" disabled={!target}>Create new table</button>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button type="submit" variant="primary" disabled={!target}>Create new table</Button>
         </>
       }>
       <p className="modal-text">
@@ -203,8 +204,9 @@ export default function ConvertTypeDialog({ table, name, onCreate, onClose }: {
         <input value={newName} placeholder={defaultName} aria-label="New table name"
           onChange={(e) => setNewName(e.target.value)} />
       </label>
+      <div className="status-slot" role="status">
       {check && (
-        <p className={`convert-check${check.ok ? "" : " bad"}`} role="status">
+        <p className={`convert-check${check.ok ? "" : " bad"}`}>
           {check.ok
             ? `All ${check.values} value${check.values === 1 ? "" : "s"}${check.excluded
               ? ` and ${check.excluded} exclusion${check.excluded === 1 ? "" : "s"}` : ""} carried over.`
@@ -214,8 +216,9 @@ export default function ConvertTypeDialog({ table, name, onCreate, onClose }: {
           {pairing && ` ${pairing}`}
         </p>
       )}
+      </div>
       {preview && (
-        <div className="convert-preview" tabIndex={0} aria-label="Preview of the new table">
+        <div className="convert-preview" role="region" tabIndex={0} aria-label="Preview of the new table">
           <table>
             <thead>
               <tr>{preview.head.map((h, i) => <th key={i} scope="col">{h}</th>)}</tr>

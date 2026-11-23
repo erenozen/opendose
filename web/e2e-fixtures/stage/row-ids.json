@@ -1,0 +1,287 @@
+{
+ "opendose_project": 2,
+ "version": 2,
+ "title": "Row IDs and constants",
+ "prefs": {
+  "defaultTableType": "xy",
+  "errorBars": "sd",
+  "ciMethod": "asymptotic",
+  "scheme": "default",
+  "digits": 4
+ },
+ "selected": "d001",
+ "sheets": [
+  {
+   "id": "d001",
+   "kind": "data",
+   "name": "Body weight by animal",
+   "table": {
+    "type": "column",
+    "x": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "Weight (g)",
+    "rowTitles": [
+     "M1",
+     "M2",
+     "M3",
+     "M4",
+     "M5",
+     "M6",
+     "M7",
+     "M8",
+     "M9",
+     "M10",
+     "M11",
+     "M12"
+    ],
+    "datasets": [
+     {
+      "name": "Vehicle",
+      "rows": [
+       [
+        "23.0"
+       ],
+       [
+        "24.4"
+       ],
+       [
+        "23.6"
+       ],
+       [
+        "25.0"
+       ],
+       [
+        "24.2"
+       ],
+       [
+        "23.4"
+       ],
+       [
+        "24.8"
+       ],
+       [
+        "24.0"
+       ],
+       [
+        "23.2"
+       ],
+       [
+        "24.6"
+       ],
+       [
+        "23.8"
+       ],
+       [
+        "23.0"
+       ]
+      ]
+     },
+     {
+      "name": "Low dose",
+      "rows": [
+       [
+        "22.1"
+       ],
+       [
+        "23.5"
+       ],
+       [
+        "22.7"
+       ],
+       [
+        "21.9"
+       ],
+       [
+        "23.3"
+       ],
+       [
+        "22.5"
+       ],
+       [
+        "21.7"
+       ],
+       [
+        "23.1"
+       ],
+       [
+        "22.3"
+       ],
+       [
+        "21.5"
+       ],
+       [
+        "22.9"
+       ],
+       [
+        "22.1"
+       ]
+      ]
+     },
+     {
+      "name": "High dose",
+      "rows": [
+       [
+        "21.2"
+       ],
+       [
+        "20.4"
+       ],
+       [
+        "21.8"
+       ],
+       [
+        "21.0"
+       ],
+       [
+        "20.2"
+       ],
+       [
+        "21.6"
+       ],
+       [
+        "20.8"
+       ],
+       [
+        "20.0"
+       ],
+       [
+        "21.4"
+       ],
+       [
+        "20.6"
+       ],
+       [
+        "22.0"
+       ],
+       [
+        "21.2"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "r002",
+   "kind": "results",
+   "parentId": "d001",
+   "analysis": "column",
+   "options": {
+    "analysis": "column_statistics",
+    "hypothetical": "@Expected_weight"
+   },
+   "name": "Descriptive statistics of Body weight by animal"
+  },
+  {
+   "id": "i003",
+   "kind": "info",
+   "name": "Study constants",
+   "parentId": null,
+   "notes": "Values the analyses read.",
+   "constants": [
+    {
+     "name": "Expected weight",
+     "value": "24"
+    },
+    {
+     "name": "Dilution factor",
+     "value": "10"
+    }
+   ]
+  },
+  {
+   "id": "d004",
+   "kind": "data",
+   "name": "Response by treatment",
+   "table": {
+    "type": "contingency",
+    "x": [
+     "",
+     "",
+     ""
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "",
+    "rowTitles": [
+     "Vehicle",
+     "Low dose",
+     "High dose"
+    ],
+    "datasets": [
+     {
+      "name": "Responded",
+      "rows": [
+       [
+        "4"
+       ],
+       [
+        "9"
+       ],
+       [
+        "15"
+       ]
+      ]
+     },
+     {
+      "name": "No response",
+      "rows": [
+       [
+        "16"
+       ],
+       [
+        "11"
+       ],
+       [
+        "5"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "r005",
+   "kind": "results",
+   "parentId": "d004",
+   "analysis": "contingency",
+   "options": {},
+   "name": "Chi-square of Response by treatment"
+  },
+  {
+   "id": "g006",
+   "kind": "graph",
+   "parentId": "d004",
+   "resultsId": null,
+   "graphType": "contingency_stacked_percent",
+   "settings": {
+    "titles": {
+     "x": "",
+     "y": ""
+    },
+    "scheme": "default"
+   },
+   "name": "Graph of Response by treatment"
+  }
+ ]
+}

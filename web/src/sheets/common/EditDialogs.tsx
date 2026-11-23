@@ -1,8 +1,9 @@
 // Small dialogs of the data grid: sort rows, insert a series, table
 // format (summary format, X dates / times, decimal places), export, and
 // convert replicates to summary values.
-import { useState } from "react";
+import { useId, useState } from "react";
 import Modal from "../../components/Modal";
+import { Button, Field, NumberField, notify, SwapLabel, useLabelSwap } from "../../components/ui";
 import { runEngine } from "../../lib/engine";
 import {
   DEFAULT_EXPORT, fileSlug, tableMatrix, toDelimited, type ExportOptions,
@@ -58,26 +59,26 @@ export function SortDialog({ table, initialKey, onSort, onReverse, onClose }: {
   const [id, setId] = useState(() => keys.find((k) => k.id === idOf(initialKey))?.id ?? keys[0]?.id);
   const [dir, setDir] = useState<"asc" | "desc">("asc");
   const chosen = keys.find((k) => k.id === id);
+  const uid = useId();
   return (
     <Modal title="Sort rows" onClose={onClose}
       onSubmit={() => { if (chosen) onSort(chosen.key, dir); }}
       actions={
         <>
-          <button type="button" className="spacer" onClick={onReverse}>Reverse row order</button>
-          <button type="button" onClick={onClose}>Cancel</button>
-          <button type="submit" className="btn-primary">Sort</button>
+          <Button className="spacer" onClick={onReverse}>Reverse row order</Button>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button type="submit" variant="primary">Sort</Button>
         </>
       }>
       <p className="modal-text">
         Whole rows move together, so every value stays with its X, row
         title and exclusion mark. Blank values go last.
       </p>
-      <label className="field">
-        <span>Sort by</span>
-        <select value={id} onChange={(e) => setId(e.target.value)}>
+      <Field label="Sort by" id={`${uid}-by`}>
+        <select id={`${uid}-by`} value={id} onChange={(e) => setId(e.target.value)}>
           {keys.map((k) => <option key={k.id} value={k.id}>{k.label}</option>)}
         </select>
-      </label>
+      </Field>
       <fieldset className="field-radios">
         <legend>Order</legend>
         <label><input type="radio" name="sort-dir" checked={dir === "asc"}
@@ -112,26 +113,24 @@ export function SeriesDialog({ table, row, col, count, onInsert, onClose }: {
     count: Math.max(1, Math.min(100000, Math.round(numOr(n, 1)))),
   };
   const sample = seriesValues({ ...spec, count: Math.min(spec.count, 5) });
+  const uid = useId();
   return (
     <Modal title="Insert series" onClose={onClose}
       onSubmit={() => onInsert(Math.max(0, Math.round(numOr(first, 1)) - 1), Number(column), spec)}
       actions={
         <>
-          <button type="button" onClick={onClose}>Cancel</button>
-          <button type="submit" className="btn-primary">Insert series</button>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button type="submit" variant="primary">Insert series</Button>
         </>
       }>
       <div className="field-row">
-        <label className="field">
-          <span>Column</span>
-          <select value={column} onChange={(e) => setColumn(e.target.value)}>
+        <Field label="Column" id={`${uid}-col`}>
+          <select id={`${uid}-col`} value={column} onChange={(e) => setColumn(e.target.value)}>
             {cols.map((c, i) => <option key={i} value={i}>{columnLabel(table, c)}</option>)}
           </select>
-        </label>
-        <label className="field field-num">
-          <span>Starting at row</span>
-          <input inputMode="numeric" value={first} onChange={(e) => setFirst(e.target.value)} />
-        </label>
+        </Field>
+        <NumberField label="Starting at row" fieldClassName="field-num" integer min={1}
+          value={first} onValueChange={setFirst} />
       </div>
       <fieldset className="field-radios">
         <legend>Each value is the previous one</legend>
@@ -141,22 +140,12 @@ export function SeriesDialog({ table, row, col, count, onInsert, onClose }: {
           onChange={() => setKind("geometric")} /> times a factor (geometric)</label>
       </fieldset>
       <div className="field-row">
-        <label className="field field-num">
-          <span>First value</span>
-          <input inputMode="decimal" value={start} aria-label="First value"
-            onChange={(e) => setStart(e.target.value)} />
-        </label>
-        <label className="field field-num">
-          <span>{kind === "geometric" ? "Factor" : "Increment"}</span>
-          <input inputMode="decimal" value={step}
-            aria-label={kind === "geometric" ? "Factor" : "Increment"}
-            onChange={(e) => setStep(e.target.value)} />
-        </label>
-        <label className="field field-num">
-          <span>Number of values</span>
-          <input inputMode="numeric" value={n} aria-label="Number of values"
-            onChange={(e) => setN(e.target.value)} />
-        </label>
+        <NumberField label="First value" fieldClassName="field-num" value={start}
+          onValueChange={setStart} />
+        <NumberField label={kind === "geometric" ? "Factor" : "Increment"} fieldClassName="field-num"
+          value={step} onValueChange={setStep} />
+        <NumberField label="Number of values" fieldClassName="field-num" integer min={1}
+          max={100000} value={n} onValueChange={setN} />
       </div>
       <p className="field-note">
         {sample.join(", ")}{spec.count > 5 ? ", …" : ""}. Rows are added if needed.
@@ -185,6 +174,7 @@ export function TableFormatDialog({ table, onApply, onConvert, onClose }: {
   const [dec, setDec] = useState(table.decimals === undefined ? "auto" : String(table.decimals));
   const changingFmt = fmt !== table.subcolumnFormat;
   const hasData = hasAnyValue(table);
+  const uid = useId();
 
   const apply = () => {
     onApply((t) => {
@@ -219,32 +209,29 @@ export function TableFormatDialog({ table, onApply, onConvert, onClose }: {
       className="table-format-dialog"
       actions={
         <>
-          <button type="button" onClick={onClose}>Cancel</button>
-          <button type="submit" className="btn-primary">Apply</button>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button type="submit" variant="primary">Apply</Button>
         </>
       }>
       {summaryOk && (
         <>
-          <label className="field">
-            <span>Y values entered as</span>
-            <select value={fmt} aria-label="Y values entered as"
+          <Field label="Y values entered as" id={`${uid}-fmt`}>
+            <select id={`${uid}-fmt`} value={fmt}
               onChange={(e) => setFmt(e.target.value as SubcolumnFormat)}>
               {SUBCOLUMN_FORMATS.map((f) => (
                 <option key={f} value={f}>{SUBCOLUMN_FORMAT_LABELS[f]}</option>
               ))}
             </select>
-          </label>
+          </Field>
           {fmt === "replicates" && table.type !== "column" && (
-            <label className="field field-num">
-              <span>Replicates (subcolumns)</span>
-              <input inputMode="numeric" value={reps} onChange={(e) => setReps(e.target.value)} />
-            </label>
+            <NumberField label="Replicates (subcolumns)" fieldClassName="field-num" integer
+              min={1} max={24} value={reps} onValueChange={setReps} />
           )}
           {changingFmt && hasData && (
             <p className="field-note">
               Values stay where they are; only the subcolumn headings change.
               To compute means and SDs from replicates instead,{" "}
-              <button type="button" className="linkish" onClick={onConvert}>
+              <button type="button" data-still className="linkish" onClick={onConvert}>
                 convert into a new table
               </button>.
             </p>
@@ -253,9 +240,8 @@ export function TableFormatDialog({ table, onApply, onConvert, onClose }: {
       )}
       {shape.hasX && (
         <>
-          <label className="field">
-            <span>X values are</span>
-            <select value={xFormat} aria-label="X values are"
+          <Field label="X values are" id={`${uid}-x`}>
+            <select id={`${uid}-x`} value={xFormat}
               onChange={(e) => {
                 const v = e.target.value as XFormat;
                 setXFormat(v);
@@ -265,32 +251,29 @@ export function TableFormatDialog({ table, onApply, onConvert, onClose }: {
               <option value="dates">Dates</option>
               <option value="elapsed">Elapsed times</option>
             </select>
-          </label>
+          </Field>
           {xFormat !== "numbers" && (
             <div className="field-row">
-              <label className="field">
-                <span>{xFormat === "dates" ? "Analyze as time since the earliest date, in"
-                  : "Analyze in"}</span>
-                <select value={unit} onChange={(e) => setUnit(e.target.value as XTimeUnit)}>
+              <Field label={xFormat === "dates" ? "Analyze as time since the earliest date, in"
+                : "Analyze in"} id={`${uid}-unit`}>
+                <select id={`${uid}-unit`} value={unit} onChange={(e) => setUnit(e.target.value as XTimeUnit)}>
                   {units.map((u) => <option key={u} value={u}>{TIME_UNIT_LABELS[u]}</option>)}
                 </select>
-              </label>
+              </Field>
               {xFormat === "dates" ? (
-                <label className="field">
-                  <span>Read 1/2/2024 as</span>
-                  <select value={order} onChange={(e) => setOrder(e.target.value as DateOrder)}>
+                <Field label="Read 1/2/2024 as" id={`${uid}-order`}>
+                  <select id={`${uid}-order`} value={order} onChange={(e) => setOrder(e.target.value as DateOrder)}>
                     <option value="dmy">1 February (day first)</option>
                     <option value="mdy">January 2 (month first)</option>
                   </select>
-                </label>
+                </Field>
               ) : (
-                <label className="field">
-                  <span>Read 12:30 as</span>
-                  <select value={twoPart} onChange={(e) => setTwoPart(e.target.value as "hm" | "ms")}>
+                <Field label="Read 12:30 as" id={`${uid}-two`}>
+                  <select id={`${uid}-two`} value={twoPart} onChange={(e) => setTwoPart(e.target.value as "hm" | "ms")}>
                     <option value="hm">12 h 30 min (h:mm)</option>
                     <option value="ms">12 min 30 s (m:ss)</option>
                   </select>
-                </label>
+                </Field>
               )}
             </div>
           )}
@@ -303,17 +286,13 @@ export function TableFormatDialog({ table, onApply, onConvert, onClose }: {
           )}
         </>
       )}
-      <label className="field">
-        <span>Decimal places shown</span>
-        <select value={dec} aria-label="Decimal places shown" onChange={(e) => setDec(e.target.value)}>
+      <Field label="Decimal places shown" id={`${uid}-dec`}
+        description="Display only: analyses and exports always use every digit stored. A cell shows all its digits while you edit it.">
+        <select id={`${uid}-dec`} value={dec} onChange={(e) => setDec(e.target.value)}>
           <option value="auto">As typed</option>
           {Array.from({ length: 11 }, (_, i) => <option key={i} value={i}>{i}</option>)}
         </select>
-        <span className="field-note">
-          Display only: analyses and exports always use every digit stored.
-          A cell shows all its digits while you edit it.
-        </span>
-      </label>
+      </Field>
     </Modal>
   );
 }
@@ -326,7 +305,9 @@ export function ExportDialog({ table, name, onClose }: {
   onClose: () => void;
 }) {
   const [o, setO] = useState<ExportOptions>(DEFAULT_EXPORT);
-  const [note, setNote] = useState("");
+  // Copy says "Copied" itself (DECISIONS 6); a failure is a toast.
+  const copied = useLabelSwap();
+  const uid = useId();
   const matrix = () => tableMatrix(table, o);
   const slug = fileSlug(name, "data");
   return (
@@ -334,15 +315,22 @@ export function ExportDialog({ table, name, onClose }: {
       onSubmit={() => { downloadText(`${slug}.csv`, toDelimited(matrix(), "csv", o.decimal), "text/csv;charset=utf-8"); onClose(); }}
       actions={
         <>
-          <button type="button" className="spacer" onClick={async () => {
+          <Button className="spacer" onClick={async () => {
             const ok = await copyText(toDelimited(matrix(), "tsv"));
-            setNote(ok ? "Copied as tab-separated text." : "Copy failed: the browser blocked the clipboard.");
-          }}>Copy</button>
-          <button type="button" onClick={() => {
+            if (ok) {
+              copied.flash("Copied as tab-separated text.");
+            } else {
+              notify(`Could not copy “${name}”: the browser refused the clipboard. Use Download TSV instead.`,
+                { tone: "error" });
+            }
+          }}>
+            <SwapLabel swapped={copied.swapped} done="Copied">Copy</SwapLabel>
+          </Button>
+          <Button onClick={() => {
             downloadText(`${slug}.txt`, toDelimited(matrix(), "tsv"), "text/tab-separated-values;charset=utf-8");
             onClose();
-          }}>Download TSV</button>
-          <button type="submit" className="btn-primary">Download CSV</button>
+          }}>Download TSV</Button>
+          <Button type="submit" variant="primary">Download CSV</Button>
         </>
       }>
       <p className="modal-text">
@@ -358,19 +346,17 @@ export function ExportDialog({ table, name, onClose }: {
         <label><input type="radio" name="exp-ex" checked={o.excluded === "blank"}
           onChange={() => setO({ ...o, excluded: "blank" })} /> Left blank</label>
       </fieldset>
-      <label className="field">
-        <span>Decimal separator</span>
-        <select value={o.decimal} onChange={(e) => setO({ ...o, decimal: e.target.value as "." | "," })}>
+      <Field label="Decimal separator" id={`${uid}-sep`}>
+        <select id={`${uid}-sep`} value={o.decimal} onChange={(e) => setO({ ...o, decimal: e.target.value as "." | "," })}>
           <option value=".">Point (1.5); CSV columns separated by commas</option>
           <option value=",">Comma (1,5); CSV columns separated by semicolons</option>
         </select>
-      </label>
-      <label className="field-check">
+      </Field>
+      <label className="check-row">
         <input type="checkbox" checked={o.titles}
           onChange={(e) => setO({ ...o, titles: e.target.checked })} />
-        Include column titles
+        <span>Include column titles</span>
       </label>
-      {note && <p className="field-note" role="status">{note}</p>}
     </Modal>
   );
 }
@@ -395,15 +381,17 @@ export function ConvertDialog({ table, name, onCreate, onClose }: {
       const t = await runEngine((engine) => convertTable(engine, table, target), { priority: "user" });
       onCreate(t, `${name} (${SUBCOLUMN_FORMAT_LABELS[target]})`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      const why = (e instanceof Error ? e.message : String(e)).replace(/\.$/, "");
+      setError(`Could not convert “${name}”: ${why}. Check the table's values, then try again.`);
     } finally { setBusy(false); }
   };
+  const uid = useId();
   return (
     <Modal title="Convert to summary values" onClose={onClose} onSubmit={() => { void run(); }}
       actions={
         <>
-          <button type="button" onClick={onClose}>Cancel</button>
-          <button type="submit" className="btn-primary" disabled={busy}>Create table</button>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button type="submit" variant="primary" busy={busy} busyLabel="Creating…">Create table</Button>
         </>
       }>
       <p className="modal-text">
@@ -411,16 +399,13 @@ export function ConvertDialog({ table, name, onCreate, onClose }: {
           ? "Each row's replicates become their mean and error in a new data table; this table stays as it is. Excluded values are left out."
           : `The ${SUBCOLUMN_FORMAT_LABELS[table.subcolumnFormat]} values become another summary format in a new data table. Replicate values cannot be recovered from summaries.`}
       </p>
-      <label className="field">
-        <span>New table holds</span>
-        <select value={target} aria-label="New table holds"
+      <Field label="New table holds" id={`${uid}-target`}
+        description={target === "mean_pm" || target === "upper_lower" ? "The error is the SD." : undefined}>
+        <select id={`${uid}-target`} value={target}
           onChange={(e) => setTarget(e.target.value as SubcolumnFormat)}>
           {targets.map((f) => <option key={f} value={f}>{SUBCOLUMN_FORMAT_LABELS[f]}</option>)}
         </select>
-        {(target === "mean_pm" || target === "upper_lower") && (
-          <span className="field-note">The error is the SD.</span>
-        )}
-      </label>
+      </Field>
       {error && <p className="import-error" role="alert">{error}</p>}
     </Modal>
   );

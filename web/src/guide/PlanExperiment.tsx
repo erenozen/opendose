@@ -6,11 +6,12 @@
 // a suggested n from the power engine (a priori, from the smallest
 // difference that matters; never post hoc), a sourced design check list
 // (guide/designChecks.ts) and "Save as analysis plan" (project/plan.ts).
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useProject } from "../app/context";
 import { addFamily } from "../app/factory";
 import { renameForOptions } from "../app/resultsName";
 import Modal from "../components/Modal";
+import { Button, Field, Input, NumberField } from "../components/ui";
 import "../components/planCheck.css";
 import { analyzeAsync, isCancelled } from "../lib/engine";
 import { openPowerTool } from "../power/events";
@@ -49,7 +50,6 @@ export default function PlanExperiment({ onClose }: { onClose: () => void }) {
   const [sd, setSd] = useState("");
   const [power, setPower] = useState<PowerResult | null>(null);
   const [powerError, setPowerError] = useState<string | null>(null);
-  const ids = { out: useId(), groups: useId(), rows: useId(), units: useId(), delta: useId(), sd: useId() };
 
   const rec = useMemo(() => recommend(d, null), [d]);
   const checks = useMemo(() => designChecks(d, { ...a, unitsPerGroup: num(units) }), [d, a, units]);
@@ -124,13 +124,14 @@ export default function PlanExperiment({ onClose }: { onClose: () => void }) {
 
   return (
     <Modal title="Plan an experiment" className="modal-wide which-test plan-exp" onClose={onClose}
+      onSubmit={() => { if (rec.target && !readOnly) create(true); }}
       actions={
         <>
-          <button type="button" onClick={onClose}>Cancel</button>
-          <button type="button" disabled={!rec.target || readOnly} onClick={() => create(false)}>
-            Create the table</button>
-          <button type="button" className="btn-primary" disabled={!rec.target || readOnly}
-            onClick={() => create(true)}>Save as analysis plan</button>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button disabled={!rec.target || readOnly} onClick={() => create(false)}>
+            Create the table</Button>
+          <Button type="submit" variant="primary" disabled={!rec.target || readOnly}>
+            Save as analysis plan</Button>
         </>
       }>
       <p className="modal-text">
@@ -140,23 +141,21 @@ export default function PlanExperiment({ onClose }: { onClose: () => void }) {
       </p>
       <div className="wt-grid">
         <div className="wt-questions">
-          <label className="wt-field" htmlFor={ids.out}><span>Primary outcome</span>
-            <input id={ids.out} value={outcome}
-              placeholder="what you will measure, with its unit" onChange={(e) => setOutcome(e.target.value)} /></label>
+          <Field label="Primary outcome" description="What you will measure, with its unit.">
+            <Input value={outcome} autoComplete="off" onChange={(e) => setOutcome(e.target.value)} />
+          </Field>
           <DesignQuestions d={d} set={set} words={NO_WORDS} hasChecks={false} />
           {twoFactor && (
-            <label className="wt-field" htmlFor={ids.rows}><span>Treatments (rows)</span>
-              <input id={ids.rows} value={rowText}
-                onChange={(e) => setRowLevels(e.target.value)} /></label>
+            <Field label="Treatments (rows)">
+              <Input value={rowText} autoComplete="off" onChange={(e) => setRowLevels(e.target.value)} />
+            </Field>
           )}
-          <label className="wt-field" htmlFor={ids.groups}>
-            <span>{twoFactor ? "Groups compared (data sets)" : "Groups"}</span>
-            <input id={ids.groups} value={groupText}
-              onChange={(e) => setGroups(e.target.value)} /></label>
-          <label className="wt-field" htmlFor={ids.units}>
-            <span>Independent units per group (animals, cultures, experiments)</span>
-            <input id={ids.units} inputMode="numeric" value={units} placeholder={suggested ? String(suggested) : ""}
-              onChange={(e) => setUnits(e.target.value)} /></label>
+          <Field label={twoFactor ? "Groups compared (data sets)" : "Groups"}>
+            <Input value={groupText} autoComplete="off" onChange={(e) => setGroups(e.target.value)} />
+          </Field>
+          <NumberField label="Independent units per group (animals, cultures, experiments)"
+            inputMode="numeric" integer min={1} value={units}
+            placeholder={suggested ? String(suggested) : ""} onValueChange={setUnits} />
           <Choice legend="Are the samples of a group pooled before measuring?" value={a.pooled ? "yes" : "no"}
             options={[["no", "No, each unit is measured separately"], ["yes", "Yes, one pooled sample per group"]]}
             onChange={(v) => setAns({ pooled: v === "yes" })} />
@@ -174,14 +173,17 @@ export default function PlanExperiment({ onClose }: { onClose: () => void }) {
             onChange={(v) => setAns({ blinded: v })} />
           {d.outcome === "continuous" && d.groups !== "one" && !twoFactor && (
             <div className="plan-numbers">
-              <label className="wt-field" htmlFor={ids.delta}><span>Smallest difference that matters</span>
-                <input id={ids.delta} inputMode="decimal" value={delta} onChange={(e) => setDelta(e.target.value)} /></label>
-              <label className="wt-field" htmlFor={ids.sd}><span>Expected SD (earlier work, literature)</span>
-                <input id={ids.sd} inputMode="decimal" value={sd} onChange={(e) => setSd(e.target.value)} /></label>
+              <NumberField label="Smallest difference that matters" value={delta} onValueChange={setDelta} />
+              <NumberField label="Expected SD (earlier work, literature)" min={0} value={sd}
+                onValueChange={setSd} />
             </div>
           )}
         </div>
-        <section className="wt-result" aria-live="polite" aria-label="Planned experiment">
+        {/* Spoken on each answer: the test and the suggested n only. */}
+        <p className="sr-only" role="status">
+          Planned analysis: {rec.test}.{suggested !== null ? ` Suggested n: ${suggested} per group.` : ""}
+        </p>
+        <section className="wt-result" aria-label="Planned experiment">
           <p className="wt-eyebrow">Planned analysis</p>
           <h3 className="wt-test">{rec.test}</h3>
           <p>{rec.reason}</p>
@@ -196,11 +198,11 @@ export default function PlanExperiment({ onClose }: { onClose: () => void }) {
                   ? "Enter the smallest difference that matters and the expected SD for a suggested n."
                   : "Use the power tool for this design."}
           </p>
-          <p className="guide-chip-action">
-            <button type="button" className="linkish" onClick={() => openPowerTool("power")}>
+          <p className="wt-hint">
+            <button type="button" data-still className="linkish" onClick={() => openPowerTool("power")}>
               Open the power tool…</button>{" "}
-            <span className="wt-hint">planned from a difference that matters, never from the
-              effect a finished experiment observed.</span>
+            Planned from a difference that matters, never from the effect a finished experiment
+            observed.
           </p>
           <h4>Design checks</h4>
           <ul className="plan-checks" aria-label="Design checks">
@@ -209,11 +211,11 @@ export default function PlanExperiment({ onClose }: { onClose: () => void }) {
                 <p className="plan-check-title">{c.title}</p>
                 <p>{c.detail}</p>
                 {c.action === "random" && (
-                  <button type="button" className="linkish" onClick={() => openPowerTool("random")}>
+                  <button type="button" data-still className="linkish" onClick={() => openPowerTool("random")}>
                     Make a randomisation list…</button>
                 )}
                 {c.action === "power" && (
-                  <button type="button" className="linkish" onClick={() => openPowerTool("power")}>
+                  <button type="button" data-still className="linkish" onClick={() => openPowerTool("power")}>
                     Open the power tool…</button>
                 )}
                 <p className="wt-sources">

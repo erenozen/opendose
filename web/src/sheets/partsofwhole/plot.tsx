@@ -234,7 +234,7 @@ export function PowOptions({ graph, table }: GraphOptionsProps) {
         options={(Object.keys(LABELS) as SliceLabels[]).map((k) => [k, LABELS[k]] as const)}
         onChange={(labels) => setOpts({ labels })} />
       {isPie && (
-        <OptInput label="Start angle" type="number" min={0} max={345} step={15}
+        <OptInput label="Start angle" inputMode="numeric"
           value={opts.rotation} suffix="°"
           ariaLabel="Start angle in degrees, clockwise from 12 o'clock"
           onChange={(raw) => {

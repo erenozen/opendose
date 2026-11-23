@@ -11,6 +11,7 @@ import {
   blankOf, controlOf, L_TEST_LABELS, LUC_ROLES, ratioSettings, ratioTable, readWells, runLuc,
   sampleGroups, type LTest, type LucOptions, type LucResult,
 } from "./model";
+import { NumberField } from "../../../components/ui";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -67,16 +68,12 @@ export function LucControls({ sheet, table, options: o, readOnly }: ControlsProp
               {d.groups.map((g) => <option key={g} value={g}>{g}</option>)}
             </select>
           </label>
-          <label className="field field-num">
-            <span>Flag Renilla below (% of the median well)</span>
-            <input type="number" min={0} max={99} step={1} disabled={readOnly} aria-label="Low Renilla flag"
-              defaultValue={Math.round(o.lowRenilla * 100)}
+          <NumberField label="Flag Renilla below (% of the median well)" description="0 turns the flag off" fieldClassName="field-num" min={0} max={99} step={1} disabled={readOnly}
+              defaultValue={String(Math.round(o.lowRenilla * 100))}
               onBlur={(e) => {
-                const v = Number(e.target.value);
+                const v = Number(e.currentTarget.value);
                 if (Number.isFinite(v) && v >= 0 && v < 100) set({ lowRenilla: v / 100 });
               }} />
-            <span className="field-note">0 turns the flag off</span>
-          </label>
         </div>
         <p className="hint-block">
           Per well: (Firefly − blank Firefly) / (Renilla − blank Renilla), the blank being the mean of

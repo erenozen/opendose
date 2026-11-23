@@ -1,0 +1,65 @@
+/* Banner (Banner.tsx), DECISIONS 6: a tile on --inset, grid of 16px
+   icon / body / actions / dismiss; title 13/1.45, detail 12/18 muted
+   (the decision's 12.5 px rounds to the closed type scale); actions as
+   keycaps with one filled primary, wrapping under the text when the
+   banner is narrower than 620px (container query). Error: the soft
+   danger tint and a 2px danger inset rule. Enter: opacity + 6px drop,
+   200 ms --ease-out; exit 150 ms; reduced motion keeps the fade only. */
+
+.banner {
+  container-type: inline-size;
+  background: var(--inset); color: var(--ink);
+  border: 1px solid var(--line-solid); border-radius: var(--radius-pane);
+  opacity: 1; transform: translateY(0);
+  transition: opacity var(--dur-enter) var(--ease-out), transform var(--dur-enter) var(--ease-out);
+  @starting-style { opacity: 0; transform: translateY(-6px); }
+}
+.banner[data-closing] {
+  opacity: 0; transform: translateY(-6px);
+  transition-duration: var(--dur-exit);
+}
+
+.banner-grid {
+  display: grid; grid-template-columns: 16px minmax(0, 1fr) auto auto;
+  column-gap: var(--space-12); row-gap: var(--space-2);
+  align-items: start;
+  padding: 10px var(--space-8) 10px 14px;
+}
+/* Title, detail and actions are cells of the banner's grid. */
+.banner-body { display: contents; }
+.banner-icon { grid-column: 1; grid-row: 1; display: flex; padding-top: 1px; color: var(--muted); }
+.banner-body > * { grid-column: 2; min-width: 0; }
+.banner-actions {
+  grid-column: 3; grid-row: 1;
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8);
+  margin: -4px 0;
+}
+.banner-dismiss { grid-column: 4; grid-row: 1; margin: -4px 0; color: var(--muted); }
+/* No dismiss button: keep the actions off the right edge. */
+.banner-grid:not(:has(> .banner-dismiss)) { padding-right: 14px; }
+
+.banner-title {
+  margin: 0; font-size: var(--text-body-s); line-height: var(--leading-body);
+  font-weight: var(--weight-semibold); overflow-wrap: anywhere;
+}
+.banner-detail {
+  margin: 0; font-size: var(--text-caption); line-height: 18px; color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.banner-detail p { margin: 0; }
+.banner-detail ul { margin: var(--space-4) 0 0; padding-left: var(--space-20); }
+
+@container (max-width: 620px) {
+  .banner-actions { grid-column: 2 / 4; grid-row: auto; margin: var(--space-6) 0 0; }
+}
+
+/* Tones: the icon carries the hue; warn and error add an inset rule. */
+.banner[data-tone="info"] .banner-icon { color: var(--info); }
+.banner[data-tone="success"] .banner-icon { color: var(--success); }
+.banner[data-tone="warn"] { box-shadow: inset 2px 0 0 var(--warn-ink); }
+.banner[data-tone="warn"] .banner-icon { color: var(--warn-ink); }
+.banner[data-tone="error"] {
+  background: var(--danger-soft);
+  box-shadow: inset 2px 0 0 var(--danger);
+}
+.banner[data-tone="error"] .banner-icon { color: var(--danger); }

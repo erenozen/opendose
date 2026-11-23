@@ -1,7 +1,8 @@
 // Export a whole layout page: graphs from the live placeholders, pictures
 // as stored, and the composer's own text, legend and letters.
 import { encodeTiff } from "../lib/tiff";
-import { CHROME_DARK, CHROME_LIGHT, isDarkMode } from "../lib/palette";
+import { isDarkMode } from "../lib/palette";
+import { EXPORT_CHROME_DARK, EXPORT_CHROME_LIGHT } from "../lib/chrome";
 import type { LegendEntry, ResolvedLayout } from "../project/layout";
 import { pageDims, panelLetters, PX_PER_MM, readingOrder } from "../project/layout";
 import type { ExportFormat, GraphSheet, Project } from "../project/types";
@@ -57,7 +58,7 @@ export async function exportPage(pageEl: HTMLElement, layout: ResolvedLayout, pr
   legend: LegendEntry[], o: PageExportOptions): Promise<Blob> {
   const dark = isDarkMode();
   const paper = !dark || o.paper;
-  const chrome = paper ? CHROME_LIGHT : CHROME_DARK;
+  const chrome = paper ? EXPORT_CHROME_LIGHT : EXPORT_CHROME_DARK;
   const flat = o.format === "jpeg" || o.format === "tiff";
   const bgSetting = layout.page.background;
   const background = bgSetting === "transparent"

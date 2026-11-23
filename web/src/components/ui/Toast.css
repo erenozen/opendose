@@ -1,0 +1,74 @@
+/* Toast stack (Toast.tsx), DECISIONS 6: 380px, --float, radius 6, the
+   elevation stack (dark: the 1px white ring at 0.09 is in --elev-float),
+   gap 8, newest at the bottom. Each toast sits at the bottom of the list
+   and is lifted by --toast-y (the measured heights of newer toasts).
+   Enter: opacity + 16px rise, 200 ms --ease-out; exit 150 ms; reduced
+   motion keeps the fades only (base.css drops transforms) at 150/120 ms
+   (tokens.css). */
+
+.toast-region {
+  position: fixed; z-index: var(--z-toast);
+  right: calc(var(--space-16) + var(--safe-right));
+  bottom: calc(var(--space-16) + var(--safe-bottom));
+  width: min(380px, calc(100vw - 2 * var(--space-16)));
+  /* The region itself takes no clicks; only toasts do. */
+  pointer-events: none;
+}
+.toast-list { position: relative; margin: 0; padding: 0; list-style: none; }
+
+.toast {
+  position: absolute; right: 0; bottom: 0; width: 100%;
+  display: grid; grid-template-columns: 16px minmax(0, 1fr) auto;
+  align-items: start; gap: var(--space-6) var(--space-12);
+  padding: 10px var(--space-8) 10px var(--space-12);
+  background: var(--float); color: var(--ink);
+  border-radius: var(--radius-menu); box-shadow: var(--elev-float);
+  pointer-events: auto;
+  transform: translateY(calc(var(--toast-y, 0px) * -1));
+  opacity: 1;
+  transition: transform var(--dur-enter) var(--ease-out), opacity var(--dur-enter) var(--ease-out);
+  @starting-style { opacity: 0; transform: translateY(16px); }
+}
+.toast[data-closing] {
+  opacity: 0; pointer-events: none;
+  transform: translateY(calc(var(--toast-y, 0px) * -1 + 16px));
+  transition-duration: var(--dur-exit);
+}
+
+.toast-icon { display: flex; padding-top: 6px; color: var(--info); }
+.toast[data-tone="success"] .toast-icon { color: var(--success); }
+.toast[data-tone="progress"] .toast-icon { color: var(--muted); }
+.toast[data-tone="error"] {
+  box-shadow: inset 2px 0 0 var(--danger), var(--elev-float);
+}
+.toast[data-tone="error"] .toast-icon { color: var(--danger); }
+
+.toast-message {
+  margin: 0; padding: 5px 0;
+  font-size: var(--text-body-s); line-height: var(--leading-body);
+  overflow-wrap: anywhere; text-wrap: pretty;
+}
+/* The one next step sits under the message, so the message keeps the
+   width to read in one or two lines. */
+.toast-icon { grid-column: 1; grid-row: 1; }
+.toast-message { grid-column: 2; grid-row: 1; }
+.toast-action { grid-column: 2; grid-row: 2; justify-self: start; margin-bottom: 2px; }
+.toast-dismiss { grid-column: 3; grid-row: 1; color: var(--muted); margin-top: 1px; }
+
+/* Phones: bottom centre, the full width less the gutters. */
+@media (max-width: 600px) {
+  .toast-region {
+    right: calc(var(--space-16) + var(--safe-right));
+    left: calc(var(--space-16) + var(--safe-left));
+    width: auto;
+  }
+}
+
+/* The progress spinner turns; reduced motion stops the loop. */
+.tone-spinner { animation: tone-spin 900ms linear infinite; transform-origin: center; }
+@keyframes tone-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .tone-spinner { animation: none; }
+}
+
+@media print { .toast-region { display: none; } }

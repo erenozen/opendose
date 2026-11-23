@@ -3,6 +3,7 @@
 // itself; the new position is saved with the graph.
 import { useState } from "react";
 import Modal from "../components/Modal";
+import { Button, Menu } from "../components/ui";
 import { CHROME_DARK, CHROME_LIGHT, isDarkMode } from "../lib/palette";
 import {
   LINE_DASHES, newAnnotationId, withField, type Annotation, type GraphFormat,
@@ -11,6 +12,7 @@ import {
 import {
   CheckField, ColorField, DialogActions, NumField, SelectField, TextField,
 } from "./controls";
+import { useDiscardGuard } from "./useDiscardGuard";
 
 type DistOmit<T> = T extends unknown ? Omit<T, "id"> : never;
 
@@ -41,31 +43,43 @@ export default function AnnotationsDialog({ format, results, paperOnly, onApply,
     setList((l) => [...l, { ...a, id: newAnnotationId(l) } as Annotation]);
   const commit = (l: Annotation[]) => withField(format, "annotations", l.length ? l : undefined);
   const dirty = JSON.stringify(list) !== JSON.stringify(applied);
+  const requestClose = useDiscardGuard(dirty, onClose);
   const available = (Object.keys(BLOCK_LABELS) as ResultsBlock[]).filter((b) => results[b]);
 
   return (
-    <Modal title="Annotations" className="modal-wide fmt-dialog" onClose={onClose}
+    <Modal title="Annotations" className="modal-wide fmt-dialog" onClose={requestClose}
       onSubmit={() => { if (dirty) onApply(commit(list)); onClose(); }}
       actions={<DialogActions onCancel={onClose}
         onApply={() => { onApply(commit(list)); setApplied(list); }} dirty={dirty} />}>
-      <div className="fmt-add-row" role="group" aria-label="Add an annotation">
-        <button type="button" className="fmt-add"
-          onClick={() => add({ kind: "text", text: "Text", x: 0.5, y: 0.92, ref: "paper" })}>
-          Add text</button>
-        <button type="button" className="fmt-add" onClick={() => add({ kind: "line", ref: "paper",
-          x0: 0.25, y0: 0.85, x1: 0.55, y1: 0.85 })}>Add line</button>
-        <button type="button" className="fmt-add" onClick={() => add({ kind: "arrow", ref: "paper",
-          x0: 0.3, y0: 0.9, x1: 0.45, y1: 0.7 })}>Add arrow</button>
-        <button type="button" className="fmt-add" onClick={() => add({ kind: "rect", ref: "paper",
-          x0: 0.3, y0: 0.5, x1: 0.6, y1: 0.8 })}>Add rectangle</button>
-        <button type="button" className="fmt-add" onClick={() => add({ kind: "ellipse", ref: "paper",
-          x0: 0.3, y0: 0.5, x1: 0.6, y1: 0.8 })}>Add ellipse</button>
-        {available.map((b) => (
-          <button key={b} type="button" className="fmt-add" onClick={() => add({ kind: "results",
-            what: b, x: 0.02, y: 0.98, ref: "paper", border: true,
-            background: chrome.surface })}>Add {BLOCK_LABELS[b].toLowerCase()}</button>
-        ))}
-      </div>
+      {/* Five shapes and the results blocks: one menu, not a row of
+          buttons that wraps on a phone (buttons.md: four at most). */}
+      <Menu>
+        <Menu.Trigger variant="secondary" className="fmt-add">Add an annotation…</Menu.Trigger>
+        <Menu.Content className="sheet-menu" aria-label="Add an annotation">
+          <Menu.Item onSelect={() => add({ kind: "text", text: "Text", x: 0.5, y: 0.92, ref: "paper" })}>
+            Text</Menu.Item>
+          <Menu.Item onSelect={() => add({ kind: "line", ref: "paper",
+            x0: 0.25, y0: 0.85, x1: 0.55, y1: 0.85 })}>Line</Menu.Item>
+          <Menu.Item onSelect={() => add({ kind: "arrow", ref: "paper",
+            x0: 0.3, y0: 0.9, x1: 0.45, y1: 0.7 })}>Arrow</Menu.Item>
+          <Menu.Item onSelect={() => add({ kind: "rect", ref: "paper",
+            x0: 0.3, y0: 0.5, x1: 0.6, y1: 0.8 })}>Rectangle</Menu.Item>
+          <Menu.Item onSelect={() => add({ kind: "ellipse", ref: "paper",
+            x0: 0.3, y0: 0.5, x1: 0.6, y1: 0.8 })}>Ellipse</Menu.Item>
+          {available.length > 0 && (
+            <>
+              <Menu.Separator />
+              <Menu.Group label="Results">
+                {available.map((b) => (
+                  <Menu.Item key={b} onSelect={() => add({ kind: "results",
+                    what: b, x: 0.02, y: 0.98, ref: "paper", border: true,
+                    background: chrome.surface })}>{BLOCK_LABELS[b]}</Menu.Item>
+                ))}
+              </Menu.Group>
+            </>
+          )}
+        </Menu.Content>
+      </Menu>
       <p className="field-note">
         Drag text and arrows on the graph to move them; positions are saved
         with the graph. “Plot area” coordinates run from 0 to 1 across the
@@ -78,9 +92,9 @@ export default function AnnotationsDialog({ format, results, paperOnly, onApply,
           <li key={a.id} className="fmt-section wide">
             <div className="fmt-ann-head">
               <strong>{KIND_LABELS[a.kind]}{a.kind === "results" ? `: ${BLOCK_LABELS[a.what]}` : ""}</strong>
-              <button type="button" className="fmt-mini" onClick={() =>
+              <Button size="sm" onClick={() =>
                 setList((l) => l.filter((_, j) => j !== i))}
-                aria-label={`Remove ${KIND_LABELS[a.kind].toLowerCase()} ${i + 1}`}>Remove</button>
+                aria-label={`Remove ${KIND_LABELS[a.kind].toLowerCase()} ${i + 1}`}>Remove</Button>
             </div>
             <div className="fmt-grid">
               {a.kind === "text" && (

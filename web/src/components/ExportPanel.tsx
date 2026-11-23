@@ -1,6 +1,5 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import type { CSSProperties, ReactNode } from "react";
-import { createPortal } from "react-dom";
+import { useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { useProject } from "../app/context";
 import { useBatchExport } from "../export/BatchExport";
 import { canCopySvg, copyGraphImage } from "../export/clipboard";
@@ -17,12 +16,19 @@ import { useExportSettings } from "../export/useExportSettings";
 import { DENSE_POINTS, hasWebglTraces } from "../graph/dense";
 import type { SchemeId } from "../lib/palette";
 import type { ExportFormat, ExportPrefs } from "../project/types";
+import { Button, notify, NumberField, SwapLabel, useLabelSwap } from "./ui";
+import Popover from "./ui/Popover";
+import { belowStickyHeader } from "./ui/Popover.anchor";
 
 /**
  * Export strip under a graph: format, size, resolution, Download and
  * Copy, plus an Options popover (units, journal sizes, background, colour
- * handling, export of every graph at once). The last settings are kept
- * with the project.
+ * handling, export of every graph at once, PowerPoint). The last settings
+ * are kept with the project.
+ *
+ * Feedback (DECISIONS 6): Download and Copy say they worked by swapping
+ * their own label; a failure is an error toast with the next step; the
+ * export of every graph is a progress toast that resolves in place.
  */
 export default function ExportPanel({
   filename = "opendose-graph", leading, scheme, graphId,
@@ -43,19 +49,17 @@ export default function ExportPanel({
   const [height, setHeight] = useState(() => String(toUnit(s.height, s.unit)));
   const [dpi, setDpi] = useState(() => String(s.dpi));
   const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState("");
   const [note, setNote] = useState("");
   const [open, setOpen] = useState(false);
   const [onePdf, setOnePdf] = useState(true);
   const [minPt, setMinPt] = useState<number | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
-  const optsRef = useRef<HTMLSpanElement>(null);
-  const optsBtn = useRef<HTMLButtonElement>(null);
-  const popRef = useRef<HTMLDivElement>(null);
   const batch = useBatchExport();
+  const downloaded = useLabelSwap();
+  const copied = useLabelSwap();
 
   // Effective settings: what is typed now, falling back to the stored values.
-  const num = (v: string) => (v.trim() === "" ? NaN : Number(v));
+  const num = (v: string) => (v.trim() === "" ? NaN : Number(v.trim().replace(",", ".")));
   const typedW = num(width);
   const typedH = num(height);
   const eff: ExportPrefs = {
@@ -85,67 +89,27 @@ export default function ExportPanel({
     setMinPt(gd ? graphSmallestPt(gd, { ...s, width: ew, height: eh, scaleText }) : null);
   }, [ew, eh, scaleText, open, busy]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Options popover: drawn in a portal with fixed positioning (the graph
-  // card clips its overflow), opening down or up, whichever has room.
-  const [pos, setPos] = useState<CSSProperties>({});
-  useLayoutEffect(() => {
-    if (!open) return;
-    const place = () => {
-      const r = optsBtn.current?.getBoundingClientRect();
-      if (!r) return;
-      const top = 72; // keep clear of the sticky header
-      const below = window.innerHeight - r.bottom - 16;
-      const above = r.top - top - 8;
-      const right = Math.max(8, window.innerWidth - r.right);
-      setPos(below >= 360 || below >= above
-        ? { top: r.bottom + 8, right, maxHeight: below }
-        : { bottom: window.innerHeight - r.top + 8, right, maxHeight: above });
-    };
-    place();
-    requestAnimationFrame(() => popRef.current
-      ?.querySelector<HTMLElement>("input:not(:disabled), button")?.focus());
-    window.addEventListener("resize", place);
-    window.addEventListener("scroll", place, true);
-    return () => {
-      window.removeEventListener("resize", place);
-      window.removeEventListener("scroll", place, true);
-    };
-  }, [open]);
-
-  // Escape / outside click close it.
-  useEffect(() => {
-    if (!open) return;
-    const onDown = (e: PointerEvent) => {
-      const t = e.target as Node;
-      if (!optsRef.current?.contains(t) && !popRef.current?.contains(t)) setOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
-      setOpen(false);
-      optsBtn.current?.focus();
-    };
-    document.addEventListener("pointerdown", onDown);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("pointerdown", onDown);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [open]);
+  const file = (ext: string) => `${filename}.${ext}`;
+  // Failures name the graph as the user named it (the sheet), not its file.
+  const graphName = project.sheets.find((x) => x.id === graphId)?.name ?? filename;
+  const failed = (verb: string, why: string) =>
+    notify(`Could not ${verb} “${graphName}”: ${why}`, { tone: "error" });
 
   const download = async () => {
     const gd = target();
     if (!gd) return;
-    setErr("");
     setNote("");
     if (!vector && tooLarge(px.w, px.h)) {
-      setErr(`${px.w} × ${px.h} px is too large to render. Lower the DPI or the size.`);
+      failed("export", `${px.w} × ${px.h} px is too large to render. Lower the DPI or the size.`);
       return;
     }
     setSettings(eff);
     setBusy(true);
     try {
       const blob = await graphBlob(gd, eff, scheme);
-      saveBlob(blob, `${filename}.${EXTENSIONS[eff.format]}`);
+      const name = file(EXTENSIONS[eff.format]);
+      saveBlob(blob, name);
+      downloaded.flash(`Downloaded “${name}”.`);
       // Dense graphs draw their points with WebGL (graph/dense.ts): a
       // vector file then holds those points as an embedded image.
       if (vector && hasWebglTraces(gd)) {
@@ -153,7 +117,7 @@ export default function ExportPanel({
           + `in the ${eff.format.toUpperCase()} file they are one embedded image; axes, text and lines stay vector.`);
       }
     } catch {
-      setErr("Could not export the graph at that size. Try a smaller one.");
+      failed("export", "it did not render at that size. Try a smaller size or a lower DPI.");
     } finally {
       setBusy(false);
     }
@@ -162,28 +126,29 @@ export default function ExportPanel({
   const copy = async () => {
     const gd = target();
     if (!gd) return;
-    setErr("");
     setNote("");
     const png = { ...eff, format: "png" as const };
     const size = rasterSize(png.width, png.height, png.dpi);
     if (tooLarge(size.w, size.h)) {
-      setErr("Too large to copy. Lower the DPI or the size.");
+      failed("copy", `${size.w} × ${size.h} px is too large to copy. Lower the DPI or the size.`);
       return;
     }
     const svg = canCopySvg();
     const outcome = await copyGraphImage(() => graphPngBlob(gd, png, scheme),
       () => graphSvg(gd, { ...eff, format: "svg" }, scheme));
     if (outcome === "copied") {
-      setNote(svg ? "Copied as PNG and SVG: paste into Word or PowerPoint."
+      copied.flash(svg ? "Copied as PNG and SVG: paste into Word or PowerPoint."
         : "Copied as PNG: paste into Word or PowerPoint.");
     }
     else {
       // No image clipboard here (or permission refused): download instead.
       try {
-        saveBlob(await graphPngBlob(gd, png, scheme), `${filename}.png`);
-        setNote("This browser cannot copy images, so the PNG was downloaded instead.");
+        const name = file("png");
+        saveBlob(await graphPngBlob(gd, png, scheme), name);
+        notify(`This browser cannot copy pictures, so “${name}” was downloaded instead.`,
+          { tone: "info" });
       } catch {
-        setErr("Could not copy the graph.");
+        failed("copy", "the browser refused the picture. Use Download instead.");
       }
     }
   };
@@ -191,71 +156,42 @@ export default function ExportPanel({
   const exportAll = async () => {
     const ids = project.sheets.filter((x) => x.kind === "graph").map((x) => x.id);
     if (!ids.length) return;
-    setErr("");
     setNote("");
     setSettings(eff);
+    // A long operation: one progress toast, resolved in place.
+    const id = "export-all-graphs";
+    notify(`Exporting ${ids.length} graph${ids.length === 1 ? "" : "s"}…`, { tone: "progress", id });
     const msg = await batch.run(ids, eff, `${fileStem(project.title, "opendose")}-graphs`,
       eff.format === "pdf" && onePdf);
-    setNote(msg);
+    notify(msg, { tone: /^Could not/.test(msg) ? "error" : "success", id });
   };
 
-  const setFormat = (f: ExportFormat) => { setErr(""); commit({ format: f }); };
-  const unitLabel = s.unit;
+  const setFormat = (f: ExportFormat) => commit({ format: f });
   const graphCount = project.sheets.filter((x) => x.kind === "graph").length;
+  const working = busy || batch.busy;
 
   return (
     <div className="export-panel" ref={panelRef}>
       {leading}
-      <span className="export-title">Export graph</span>
-      <label>
-        <select value={s.format} aria-label="Export format"
-          onChange={(e) => setFormat(e.target.value as ExportFormat)}>
-          {FORMATS.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
-        </select>
-      </label>
-      <label>W
-        <input inputMode="decimal" value={width} aria-label={`Width (${unitLabel})`}
-          onChange={(e) => setWidth(e.target.value)} />
-      </label>
-      <label>H
-        <input inputMode="decimal" value={height} aria-label={`Height (${unitLabel})`}
-          onChange={(e) => setHeight(e.target.value)} />
-      </label>
-      {unitLabel !== "px" && <span className="export-unit">{unitLabel}</span>}
-      {!vector && (
-        <label>DPI
-          <input inputMode="numeric" value={dpi} aria-label="Resolution (dots per inch)"
-            onChange={(e) => setDpi(e.target.value)} />
-        </label>
-      )}
-      <button className="export-btn" onClick={download} disabled={busy || batch.busy}>
-        <span className="swap-label" key={busy ? "busy" : "idle"}>
-          {busy ? "Exporting…" : "Download"}
-        </span>
-      </button>
-      <button type="button" onClick={copy} disabled={busy || batch.busy}
-        aria-label="Copy graph for Word or PowerPoint"
-        title="Copy the graph as a picture (PNG, and SVG where the browser allows) to paste into Word or PowerPoint">
-        Copy
-      </button>
-      <button type="button" disabled={busy || batch.busy}
-        onClick={() => openPptxExport(graphId ?? null,
-          graphId ? { kind: "graph", graphId } : { kind: "all" })}
-        aria-label="Export to PowerPoint (.pptx)…" title={`One slide per graph. ${PPTX_EDIT_HINT}`}>
-        PowerPoint
-      </button>
-      <span className="export-opts" ref={optsRef}>
-        <button type="button" ref={optsBtn} className="settings-btn" aria-haspopup="dialog"
-          aria-expanded={open} onClick={() => setOpen((v) => !v)}>
-          Options
-        </button>
-        {open && createPortal(
-          <div className="export-pop" role="dialog" aria-label="Export options" ref={popRef}
-            style={pos}>
-            <fieldset className="export-fieldset">
+      <div className="export-actions">
+        <Button onClick={download} disabled={batch.busy} busy={busy} busyLabel="Exporting…">
+          <SwapLabel swapped={downloaded.swapped} done="Downloaded">Download</SwapLabel>
+        </Button>
+        <Button variant="ghost" onClick={copy} disabled={working}
+          aria-label="Copy graph for Word or PowerPoint"
+          title="Copy the graph as a picture (PNG, and SVG where the browser allows) to paste into Word or PowerPoint">
+          <SwapLabel swapped={copied.swapped} done="Copied">Copy</SwapLabel>
+        </Button>
+        {/* Options: a popover in the top layer (the graph card clips its
+            overflow), below the button or above it, whichever has room. */}
+        <Popover open={open} onOpenChange={setOpen}>
+          <Popover.Trigger variant="ghost">Options</Popover.Trigger>
+          <Popover.Content className="export-pop" aria-label="Export options"
+            side="bottom" align="end" collisionPadding={belowStickyHeader}>
+            <fieldset className="field-radios export-fieldset">
               <legend>Size unit</legend>
               {(["px", "mm", "in"] as const).map((u) => (
-                <label key={u} className="check-row">
+                <label key={u}>
                   <input type="radio" name="export-unit" checked={s.unit === u}
                     onChange={() => { const n = { ...eff, unit: u }; setSettings(n); resync(n); }} />
                   {u === "px" ? "Pixels (96 per inch)" : u === "mm" ? "Millimetres" : "Inches"}
@@ -266,19 +202,19 @@ export default function ExportPanel({
               <legend>Journal figure width</legend>
               <div className="export-presets">
                 {JOURNAL_PRESETS.map((p) => (
-                  <button key={p.id} type="button" title={`Typical: ${p.note}`}
+                  <Button key={p.id} size="sm" title={`Typical: ${p.note}`}
                     onClick={() => { const n = applyPreset(eff, p, eff.dpi >= 600 ? 600 : 300);
                       setSettings(n); resync(n); }}>
                     {p.label} <span className="export-sub">{p.widthMm} mm</span>
-                  </button>
+                  </Button>
                 ))}
               </div>
               <div className="export-presets" role="group" aria-label="Resolution">
                 {DPI_CHOICES.map((d) => (
-                  <button key={d} type="button" aria-pressed={eff.dpi === d}
+                  <Button key={d} size="sm" aria-pressed={eff.dpi === d}
                     onClick={() => { setDpi(String(d)); commit({ dpi: d }); }}>
                     {d} dpi
-                  </button>
+                  </Button>
                 ))}
               </div>
               <p className="hint-block">
@@ -286,46 +222,50 @@ export default function ExportPanel({
                 (line art) at the printed width. Check your journal&apos;s guide.
               </p>
             </fieldset>
-            <label className="check-row">
-              <input type="checkbox" checked={s.scaleText}
-                onChange={(e) => commit({ scaleText: e.target.checked })} />
-              Scale the graph as shown (text grows or shrinks with it)
-            </label>
-            <label className="check-row">
-              <input type="checkbox" checked={s.transparent && supportsTransparency(s.format)}
-                disabled={!supportsTransparency(s.format)}
-                onChange={(e) => commit({ transparent: e.target.checked })} />
-              Transparent background
-              {!supportsTransparency(s.format) && (
-                <span className="export-sub">(not in {s.format.toUpperCase()})</span>
-              )}
-            </label>
-            <label className="check-row">
-              <input type="checkbox" checked={s.paper}
-                onChange={(e) => commit({ paper: e.target.checked })} />
-              Print colours in dark theme
-            </label>
+            <div className="export-checks">
+              <label className="check-row">
+                <input type="checkbox" checked={s.scaleText}
+                  onChange={(e) => commit({ scaleText: e.target.checked })} />
+                <span>Scale the graph as shown (text grows or shrinks with it)</span>
+              </label>
+              <label className="check-row">
+                <input type="checkbox" checked={s.transparent && supportsTransparency(s.format)}
+                  disabled={!supportsTransparency(s.format)}
+                  onChange={(e) => commit({ transparent: e.target.checked })} />
+                <span>
+                  Transparent background
+                  {!supportsTransparency(s.format) && (
+                    <span className="export-sub"> (not in {s.format.toUpperCase()})</span>
+                  )}
+                </span>
+              </label>
+              <label className="check-row">
+                <input type="checkbox" checked={s.paper}
+                  onChange={(e) => commit({ paper: e.target.checked })} />
+                <span>Print colours in dark theme</span>
+              </label>
+            </div>
             <div className="export-all">
               {eff.format === "pdf" && (
                 <label className="check-row">
                   <input type="checkbox" checked={onePdf}
                     onChange={(e) => setOnePdf(e.target.checked)} />
-                  One PDF, a page per graph
+                  <span>One PDF, a page per graph</span>
                 </label>
               )}
-              <button type="button" onClick={exportAll}
-                disabled={batch.busy || busy || !graphCount}>
-                {batch.busy ? `Exporting ${batch.progress}…`
-                  : `Export all ${graphCount} graph${graphCount === 1 ? "" : "s"} as `
-                    + (eff.format === "pdf" && onePdf ? "one PDF" : `${s.format.toUpperCase()} (zip)`)}
-              </button>
+              <Button onClick={exportAll} disabled={busy || !graphCount} busy={batch.busy}
+                busyLabel={`Exporting ${batch.progress}…`}>
+                {`Export all ${graphCount} graph${graphCount === 1 ? "" : "s"} as `
+                  + (eff.format === "pdf" && onePdf ? "one PDF" : `${s.format.toUpperCase()} (zip)`)}
+              </Button>
             </div>
             <div className="export-all">
-              <button type="button" disabled={busy || batch.busy || !graphCount}
-                onClick={() => { setOpen(false); openPptxExport(graphId ?? null, { kind: "all" }); }}>
-                Export graphs to PowerPoint (.pptx)…
-              </button>
-              <p className="hint-block">{PPTX_EDIT_HINT}</p>
+              <Button disabled={working || !graphCount}
+                onClick={() => { setOpen(false); openPptxExport(graphId ?? null,
+                  graphId ? { kind: "graph", graphId } : { kind: "all" }); }}>
+                Export to PowerPoint (.pptx)…
+              </Button>
+              <p className="hint-block">One slide per graph. {PPTX_EDIT_HINT}</p>
             </div>
             <details className="export-help">
               <summary>About the formats</summary>
@@ -344,21 +284,38 @@ export default function ExportPanel({
                 equivalent; use SVG when that matters.
               </p>
             </details>
-          </div>, document.body)}
-      </span>
-      {!err && (
+          </Popover.Content>
+        </Popover>
+      </div>
+      <div className="export-fields" role="group" aria-label="Export graph">
+        <span className="export-title" aria-hidden="true">Export</span>
+        <select value={s.format} aria-label="Export format"
+          onChange={(e) => setFormat(e.target.value as ExportFormat)}>
+          {FORMATS.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
+        </select>
+        <NumberField label="Width" unit={s.unit} value={width} onValueChange={setWidth}
+          fieldClassName="export-num" />
+        <NumberField label="Height" unit={s.unit} value={height} onValueChange={setHeight}
+          fieldClassName="export-num" />
+        {!vector && (
+          <NumberField label="DPI" aria-label="Resolution (DPI)" integer value={dpi}
+            onValueChange={setDpi} fieldClassName="export-num" />
+        )}
+      </div>
+      <div className="export-notes">
         <span className="export-hint">
           {vector ? physicalLabel(eff.width, eff.height)
             : `${px.w} × ${px.h} px, ${(px.w / eff.dpi).toFixed(1)} × ${(px.h / eff.dpi).toFixed(1)} in`}
         </span>
-      )}
-      {belowFontFloor(minPt) && (
-        <span className="export-warn" role="status">
-          Smallest text prints at {minPt} pt; journals usually want at least {FONT_FLOOR_PT} pt.
+        <span className="status-slot" role="status">
+          {belowFontFloor(minPt) && (
+            <span className="export-warn">
+              Smallest text prints at {minPt} pt; journals usually want at least {FONT_FLOOR_PT} pt.
+            </span>
+          )}
         </span>
-      )}
-      {note && <span className="export-note" role="status">{note}</span>}
-      {err && <span className="export-err" role="alert">{err}</span>}
+        <span className="status-slot" role="status">{note && <span className="export-note">{note}</span>}</span>
+      </div>
       {batch.host}
     </div>
   );

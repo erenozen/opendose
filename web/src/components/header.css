@@ -1,0 +1,202 @@
+/* Header: the one bar (DECISIONS 5). Navigator toggle, logo, project
+   title, analysis tabs and Analyze, then the find field, undo, redo and
+   the File and View menus. Its menus and popovers are the ui/ primitives. */
+
+/* ============================ header ============================ */
+
+/* An opaque bar on a fixed 1px seam (Instrument, DECISIONS 2): 44px, 52px
+   on touch. With viewport-fit=cover it pads itself clear of the notch and
+   the rounded corners. Its height is published as --header-h (App.tsx)
+   for the pinned navigator and scroll-padding. */
+header {
+  position: sticky; top: 0; z-index: var(--z-header);
+  display: flex; align-items: center; gap: var(--space-8); flex-wrap: wrap;
+  min-height: calc(44px + var(--safe-top));
+  padding: var(--safe-top) max(var(--space-12), var(--safe-right)) 0 max(var(--space-12), var(--safe-left));
+  background: var(--surface);
+  border-bottom: 1px solid var(--line-solid);
+}
+@media (pointer: coarse) { header { min-height: calc(52px + var(--safe-top)); } }
+@media (prefers-contrast: more) {
+  header { border-bottom-color: var(--ink); }
+}
+.brand { display: flex; align-items: center; gap: var(--space-8); flex: none; }
+.brand svg { display: block; }
+.brand h1 {
+  margin: 0; font-size: var(--text-lead); font-weight: var(--weight-semibold); letter-spacing: -0.015em;
+}
+
+/* The project title: an input that reads as text until hovered or focused. */
+.hdr-title {
+  field-sizing: content; min-width: 8ch; max-width: 300px; flex: 0 1 auto;
+  font: inherit; font-size: var(--text-body-s); font-weight: var(--weight-semibold); color: var(--ink);
+  background: transparent; text-overflow: ellipsis;
+  border: none; border-radius: var(--radius-control);
+  box-shadow: inset 0 0 0 1px transparent;
+  min-height: 32px; padding: 0 var(--space-8);
+  transition: box-shadow var(--dur-base) var(--ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  .hdr-title:hover:not(:read-only) { box-shadow: inset 0 0 0 1px var(--line-strong); }
+}
+.hdr-title:focus-visible { outline-offset: 0; }
+
+/* Segmented control: the one rounded track. The thumb is a full-width
+   layer cut to the active tab with clip-path (Header.tsx sets --thumb-x
+   and --thumb-w), so a switch moves no layout. The clip would cut a
+   box-shadow, so the wrapper draws the thumb's depth as a drop-shadow of
+   the clipped shape. The glide follows a pointer press on a tab only
+   (data-instant otherwise); reduced motion drops it (base.css). */
+.mode-switch {
+  position: relative;
+  display: flex; gap: 0; align-self: center; min-width: 0;
+  background: var(--seg-track); border-radius: var(--radius-round); padding: var(--space-2);
+}
+.seg-thumb {
+  position: absolute; top: var(--space-2); bottom: var(--space-2); left: 0;
+  filter: drop-shadow(var(--elev-seg));
+  pointer-events: none;
+}
+.seg-thumb-fill {
+  position: absolute; inset: 0;
+  background: var(--seg-thumb);
+  clip-path: inset(0 calc(100% - var(--thumb-x, 0px) - var(--thumb-w, 0px)) 0 var(--thumb-x, 0px)
+    round var(--radius-round));
+  transition: clip-path var(--dur-enter) var(--ease-in-out);
+}
+.seg-thumb-fill[data-instant] { transition: none; }
+.mode-switch button {
+  position: relative;
+  border: none; background: transparent; cursor: pointer;
+  min-height: 28px; padding: 0 var(--space-12); margin: 0;
+  color: var(--ink-2); font-size: var(--text-body-s); font-weight: var(--weight-medium);
+  border-radius: var(--radius-round); white-space: nowrap;
+  display: inline-flex; flex-direction: column; align-items: center; justify-content: center;
+}
+/* Invisible bold ghost reserves the active width, so the layout
+   never shifts when the selected tab gains weight. */
+.tab-label {
+  display: inline-flex; flex-direction: column; align-items: center;
+}
+.tab-label::after {
+  content: attr(data-label);
+  font-weight: var(--weight-semibold); height: 0; visibility: hidden; overflow: hidden;
+}
+.tab-label-short { display: none; }
+.mode-switch button.active { color: var(--ink); font-weight: var(--weight-semibold); }
+
+@media (hover: hover) and (pointer: fine) {
+  .mode-switch button:hover { color: var(--ink); }
+}
+
+.analysis-bar { display: flex; align-items: center; gap: var(--space-8); min-width: 0; flex: 0 1 auto; }
+.analyze-btn { flex: none; }
+
+/* Right of the bar: find, undo, redo, File, View. */
+.project-actions { display: flex; gap: var(--space-4); align-items: center; margin-left: auto; flex: 0 1 auto; min-width: 0; }
+
+/* The find field: a button dressed as a field (inset fill, the ⌘K keycap)
+   that opens the command palette. A search icon alone on phones. */
+.hdr-find {
+  position: relative;
+  display: inline-flex; align-items: center; gap: var(--space-8);
+  flex: 0 1 280px; min-width: 0; min-height: 32px; padding: 0 var(--space-6) 0 var(--space-8);
+  margin-right: var(--space-8);
+  font: inherit; font-size: var(--text-body-s); color: var(--muted); text-align: left;
+  background: var(--inset); border: none; border-radius: var(--radius-control);
+  box-shadow: inset 0 0 0 1px var(--line); cursor: text;
+  transition: box-shadow var(--dur-base) var(--ease-out);
+}
+.hdr-find svg { flex: none; display: block; }
+.hdr-find-label { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hdr-find kbd {
+  flex: none; font: inherit; font-size: var(--text-caption); color: var(--muted);
+  padding: 0 var(--space-4); border-radius: var(--radius-control);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+@media (hover: hover) and (pointer: fine) {
+  .hdr-find:hover { box-shadow: inset 0 0 0 1px var(--line-strong); }
+}
+
+/* ============================ narrow ============================ */
+
+/* The word mark gives its room to the bar (the logo stays; the name is
+   still read out). */
+@media (max-width: 1100px) {
+  .brand h1 {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+  .hdr-find { flex-basis: 200px; }
+}
+
+@media (max-width: 760px) {
+  header { gap: var(--space-4); }
+  /* The title moves into the navigator drawer (Navigator.tsx). */
+  .hdr-title { display: none; }
+  /* The analysis tabs take a row of their own under the bar. */
+  .analysis-bar { order: 10; flex-basis: 100%; padding-bottom: var(--space-6); }
+  .mode-switch {
+    flex: 1 1 auto;
+    overflow-x: auto; scrollbar-width: none;
+  }
+  .mode-switch::-webkit-scrollbar { display: none; }
+  .mode-switch button { flex: 1 1 auto; padding: 0 var(--space-8); }
+  /* Compact-width text variants keep all four tabs visible */
+  .tab-label-full { display: none; }
+  .tab-label-short { display: inline-flex; }
+  .hdr-find {
+    flex: none; width: 32px; padding: 0; margin-right: 0; justify-content: center;
+    background: transparent; box-shadow: none; color: var(--ink-2);
+  }
+  .hdr-find-label, .hdr-find kbd { display: none; }
+  .project-actions { gap: 0; }
+  .hdr-menu { padding: 0 var(--space-8); }
+}
+/* Touch: the find button and the analysis tabs are 44px to hit. */
+@media (pointer: coarse) {
+  .hdr-find, .hdr-title { min-height: 44px; }
+  .mode-switch button { min-height: 40px; }
+  .mode-switch button::before {
+    content: ""; position: absolute; inset: min(0px, calc((100% - 44px) / 2)) 0;
+  }
+}
+@media (pointer: coarse) and (max-width: 760px) {
+  .hdr-find { width: 44px; }
+}
+/* Touch: neighbouring icon buttons keep their 44px hit areas apart. */
+@media (pointer: coarse) {
+  .project-actions { gap: var(--space-12); }
+}
+
+/* ============================ about, preferences ============================ */
+
+.about-dialog .info-pop { color: var(--ink-2); font-size: var(--text-body-s); line-height: var(--leading-prose); }
+.info-pop p { margin: 0 0 var(--space-8); }
+.info-pop p:last-child { margin-bottom: 0; }
+.info-pop .info-privacy { color: var(--ink); }
+
+/* The Preferences popover (ui/Popover places and animates it) */
+.prefs-pop {
+  width: min(360px, calc(100vw - var(--space-24)));
+  background: var(--float);
+  border-radius: var(--radius-menu);
+  box-shadow: var(--elev-float);
+  padding: var(--space-12) var(--space-16);
+  display: flex; flex-direction: column; gap: var(--space-12);
+  color: var(--ink-2); font-size: var(--text-body-s); line-height: var(--leading-body);
+  text-align: left; cursor: default;
+}
+.prefs-title { margin: 0; font-size: var(--text-body); font-weight: var(--weight-semibold); color: var(--ink); }
+.prefs-note { margin: calc(-1 * var(--space-4)) 0 0; font-size: var(--text-caption); color: var(--muted); }
+.prefs-forget { align-self: flex-start; }
+.prefs-confirm {
+  display: flex; flex-direction: column; gap: var(--space-8); padding: var(--space-8) var(--space-12);
+  border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--page);
+  font-size: var(--text-body-s);
+}
+.prefs-confirm p { margin: 0; }
+.prefs-confirm strong { color: var(--ink); }
+.prefs-confirm-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: var(--space-8); }
+.shortcuts .results-table th { white-space: nowrap; }
+

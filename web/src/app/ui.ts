@@ -1,6 +1,7 @@
-// Shell UI services: dialogs and the navigator drawer.
+// Shell UI services: dialogs, the navigator drawer and notifications.
 import { createContext, useContext } from "react";
 import type { ConfirmOptions } from "../components/ConfirmDialog";
+import type { ToastOptions } from "../components/ui/Toast.store";
 
 export interface UiApi {
   confirm: (o: ConfirmOptions) => Promise<boolean>;
@@ -14,8 +15,12 @@ export interface UiApi {
   openMoveToGroup: (sheetId: string) => void;
   /** "Go to sheet" quick search (Ctrl/Cmd+K). */
   openGoTo: () => void;
-  /** Short status message (saved, copied, ...). */
-  notify: (message: string) => void;
+  /** Reports an event as a toast (DECISIONS 6). `tone`: success, info,
+   *  error (stays until dismissed) or progress (resolve it in place by
+   *  showing the same `id` again); without a tone, a message starting
+   *  "Could not" or "Failed" is an error, anything else info. `action`
+   *  is one next step (Undo, Choose another file). Returns the id. */
+  notify: (message: string, opts?: ToastOptions) => string;
   /** Wide screens: navigator pane shown (remembered). */
   navOpen: boolean;
   setNavOpen: (open: boolean) => void;

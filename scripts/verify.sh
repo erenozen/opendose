@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 # Verify the main branch HEAD in a detached worktree, isolated from
 # uncommitted work in the main checkout: engine tests, web build, lint,
-# unit tests, and every e2e suite against a dev server.
+# unit tests, and every e2e suite against a dev server (e2e-privacy and a
+# second e2e-motion run against the built site).
 #
 # Usage: scripts/verify.sh          (PORT=5190 by default; override with PORT=…)
 # Logs: .verify/ (gitignored). Exit status 0 only when everything passes.
 set -u
-ROOT=/home/eren/OpenDose
+ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 S=$ROOT/.verify; mkdir -p "$S"
 VT=$ROOT/.claude/worktrees/verify
 PORT=${PORT:-5190}
@@ -34,11 +35,27 @@ for i in $(seq 1 60); do curl -s -o /dev/null "http://localhost:$PORT/" && break
 # reloads the page, which interrupts the engine worker's boot in the first
 # suite. Load the app once and wait for live results before any suite runs.
 node -e "import('playwright').then(async ({chromium})=>{const b=await chromium.launch();const p=await b.newPage();await p.goto('http://localhost:$PORT/?example=1',{waitUntil:'domcontentloaded'});await p.waitForSelector('.pane-results[data-live=\"true\"] .results-table',{timeout:300000}).then(()=>console.log('warm-up: live results'),()=>console.log('warm-up: no live results within 300 s'));await b.close();})" 2>&1 | tail -1
-for suite in e2e-check e2e-tiff e2e-export e2e-share e2e-figures e2e-assays; do
+# e2e-privacy runs last: it checks the security headers (public/_headers)
+# that only the production build is served with, so the dev server is
+# swapped for scripts/serve-dist.mjs on the same port first.
+for suite in e2e-check e2e-tiff e2e-export e2e-share e2e-figures e2e-assays e2e-feedback e2e-primitives e2e-motion e2e-privacy; do
   [ -f "scripts/$suite.mjs" ] || continue
+  if [ "$suite" = e2e-privacy ]; then
+    kill $DEVPID 2>/dev/null; wait $DEVPID 2>/dev/null
+    node scripts/serve-dist.mjs "$PORT" >"$S/dist-$PORT.log" 2>&1 &
+    DEVPID=$!
+    for i in $(seq 1 30); do curl -s -o /dev/null "http://localhost:$PORT/" && break; sleep 1; done
+  fi
   node "scripts/$suite.mjs" "http://localhost:$PORT/" >"$S/$suite.log" 2>&1; rc=$?
   echo "$suite exit=$rc"; [ $rc -eq 0 ] || { fail=1; grep -E "^FAIL|FAILURES|Error" "$S/$suite.log" | head -5; }
 done
+# Motion again on the built site (still served after e2e-privacy): the CSS
+# minifier rewrites tokens (150ms becomes .15s), and code that reads them
+# at runtime only breaks there.
+if [ -f scripts/e2e-motion.mjs ] && [ -f scripts/e2e-privacy.mjs ]; then
+  node scripts/e2e-motion.mjs "http://localhost:$PORT/" >"$S/e2e-motion-dist.log" 2>&1; rc=$?
+  echo "e2e-motion (built site) exit=$rc"; [ $rc -eq 0 ] || { fail=1; grep -E "^FAIL|FAILURES|Error" "$S/e2e-motion-dist.log" | head -5; }
+fi
 kill $DEVPID 2>/dev/null; wait $DEVPID 2>/dev/null
 echo "== overall: $([ $fail -eq 0 ] && echo PASS || echo FAIL)"
 exit $fail

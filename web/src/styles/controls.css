@@ -1,0 +1,143 @@
+/* Buttons, selects, text fields, checkboxes, disclosures and the shared
+   dialog form fields. Press feedback and the 16px touch inputs live in
+   base.css. */
+
+button {
+  font: inherit; font-size: var(--text-body); font-weight: var(--weight-medium); color: var(--ink);
+  background: var(--inset);
+  border: none; border-radius: var(--radius-control);
+  padding: 7px 14px; cursor: pointer;
+  transition: transform var(--dur-base) var(--ease-out),
+    background-color var(--dur-base) var(--ease-out);
+}
+
+/* Hover styles only where a real pointer exists (touch taps must not stick) */
+@media (hover: hover) and (pointer: fine) {
+  button:hover {
+    background: color-mix(in srgb, var(--ink) 12%, transparent);
+    color: var(--ink);
+  }
+  .plate-form .primary:hover {
+    background: var(--accent-fill-hover); color: var(--accent-ink);
+  }
+  .advanced > summary:hover { color: var(--ink); }
+}
+.plate-form .primary {
+  background: var(--accent-fill); color: var(--accent-ink);
+  font-weight: var(--weight-semibold);
+}
+.plate-form .primary { align-self: flex-start; }
+.plate-form .primary:disabled { opacity: 0.5; cursor: default; }
+
+select, .constraint-value, .interp-input, .antagonist-input,
+.plate-form input:not([type="file"]), .plate-form textarea {
+  font: inherit; color: var(--ink); background: var(--inset);
+  border: 1px solid var(--line-control); border-radius: var(--radius-control);
+  padding: 6px 9px; max-width: 100%;
+}
+/* The browser paints the select's popup from the OS color scheme, while
+   the option text inherits the app theme's ink; when the two disagree
+   (in-app theme toggle) that pairing is unreadable. Opaque explicit
+   colors keep the popup legible in every OS/app combination. */
+select option {
+  background-color: var(--surface);
+  color: var(--ink);
+}
+.constraint-value {
+  width: 84px; font-variant-numeric: tabular-nums;
+}
+.constraint-value:disabled { opacity: 0.4; }
+.interp-input, .antagonist-input { width: 100%; }
+
+.check-row, .constraint-row {
+  display: flex; align-items: center; gap: 8px; padding: 3px 0;
+  color: var(--ink-2); flex-wrap: wrap;
+}
+input[type="checkbox"] { accent-color: var(--accent); width: 15px; height: 15px; }
+/* Touch: a bigger box, and the whole label row is a 44px target. */
+@media (pointer: coarse) {
+  input[type="checkbox"] { width: 20px; height: 20px; }
+  .check-row { min-height: 44px; }
+}
+/* A long label after a checkbox wraps beside it, not onto a line of its
+   own (which left the box alone above its text). */
+.check-row:has(> input[type="checkbox"]:first-child + span) { align-items: flex-start; }
+.check-row > input[type="checkbox"]:first-child { flex: none; margin-top: 2px; }
+.check-row > input[type="checkbox"]:first-child + span { flex: 1 1 12ch; min-width: 0; }
+.normalize-options {
+  display: flex; flex-direction: column; gap: 6px;
+  transition: opacity var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out);
+  opacity: 1; transform: translateY(0);
+  @starting-style { opacity: 0; transform: translateY(-3px); }
+}
+.normalize-options label {
+  display: flex; align-items: center; gap: 8px; color: var(--ink-2);
+  flex-wrap: wrap;
+}
+.shared-params { display: flex; gap: 14px; flex-wrap: wrap; }
+
+/* Advanced options disclosure */
+.advanced { border-top: 1px solid var(--line); padding-top: 4px; }
+.advanced > summary {
+  cursor: pointer; list-style: none;
+  font-size: var(--text-label);
+  color: var(--muted); font-weight: var(--weight-semibold);
+  padding: 6px 0; user-select: none;
+  display: flex; align-items: center; gap: 6px;
+}
+.advanced > summary::-webkit-details-marker { display: none; }
+.advanced > summary::before {
+  content: ""; width: 0; height: 0;
+  border-left: 5px solid currentColor;
+  border-top: 4px solid transparent; border-bottom: 4px solid transparent;
+  transition: transform var(--dur-enter) var(--ease-out);
+}
+.advanced[open] > summary::before { transform: rotate(90deg); }
+/* <details> toggles visibility rather than mounting, so @starting-style
+   can't fire; a keyframe on open is correct here (not rapidly triggered) */
+.advanced[open] > section {
+  animation: disclose var(--dur-enter) var(--ease-out);
+}
+@keyframes disclose {
+  from { opacity: 0; transform: translateY(-4px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .advanced[open] > section { animation-name: fade-in; }
+}
+.advanced > section { margin-top: 14px; }
+.advanced > section h3 { margin-bottom: 8px; }
+
+/* Form fields shared by dialogs, prefs, info and layout sheets */
+.field { display: flex; flex-direction: column; gap: 4px; font-size: var(--text-body-s); color: var(--ink-2); }
+.field > span:first-child { font-weight: var(--weight-medium); }
+.field input, .field select {
+  font: inherit; color: var(--ink); background: var(--inset);
+  border: 1px solid var(--line-control); border-radius: var(--radius-control);
+  padding: 6px 9px; max-width: 100%;
+}
+.field-num input { width: 90px; font-variant-numeric: tabular-nums; }
+.field-note { color: var(--muted); font-size: var(--text-caption); }
+.field-radios {
+  border: none; margin: 0; padding: 0;
+  display: flex; flex-direction: column; gap: 6px; font-size: var(--text-body-s); color: var(--ink-2);
+}
+.field-radios legend { font-weight: var(--weight-medium); margin-bottom: 4px; padding: 0; }
+.field-radios label { display: flex; gap: 8px; align-items: baseline; }
+input[type="radio"] { accent-color: var(--accent); }
+
+/* Touch: every raw button, select and text field is at least 44px tall,
+   at any width (a tablet is as coarse as a phone). Button does its own.
+   So are disclosure rows and radio and check rows, which sit between
+   other targets. */
+@media (pointer: coarse) {
+  button:where(:not(.linkish)), select,
+  input:where(:not([type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="color"], [type="hidden"])) {
+    min-height: 44px;
+  }
+  summary { min-height: 44px; }
+  summary:where(:not(.advanced > summary, .checks > summary)) { padding-block: var(--space-12); }
+  .advanced > summary { align-items: center; }
+  .field-radios label, .field-check, .pptx-check, .constraint-row {
+    min-height: 44px; align-items: center;
+  }
+}

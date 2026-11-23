@@ -1,0 +1,25 @@
+/* Where app-level banners sit (App.tsx): conditions about the whole
+   project (restore the last session, the Prism table chooser, a shared
+   read-only project, a reproduce check) stack under the header as
+   full-width tiles on a 1px seam. The Banner itself is
+   components/ui/Banner.css. */
+
+.banner-region { display: flex; flex-direction: column; }
+.banner-region > .banner { border-width: 0 0 1px; border-radius: 0; }
+.banner-region > .banner .banner-grid { padding-left: var(--space-24); }
+@media (max-width: 760px) {
+  .banner-region > .banner .banner-grid { padding-left: var(--space-12); }
+}
+
+/* The Prism chooser's tables: a checklist that scrolls after about six
+   rows, so a file with 74 tables keeps the banner short. */
+.pzfx-list {
+  margin: var(--space-6) 0 0; padding: var(--space-4) var(--space-8); max-width: 40rem;
+  border: 1px solid var(--line-solid); border-radius: var(--radius-control);
+  background: var(--surface); color: var(--ink);
+  display: flex; flex-direction: column;
+  max-height: 12.5rem; overflow-y: auto; overscroll-behavior: contain;
+}
+.pzfx-list .check-row { padding: var(--space-4) 0; font-size: var(--text-body-s); }
+
+@media print { .banner-region { display: none; } }
