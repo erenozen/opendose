@@ -57,7 +57,7 @@ export type KeyFacts =
 // Concentration-like parameters carry the X unit in the table's labels.
 const UNIT_PARAMS = new Set(["IC50", "EC50", "Km", "Kd", "AbsoluteIC50"]);
 // ... and the library's other concentrations (ECanything, Ki, KA, KB, A2).
-const UNIT_PATTERN = /^(IC|EC)\d+(_\w+)?$|^EC50(Control|_\w+)$|^IC50_\w+$|^(Ki|KA|KB|Kb|A2)$/;
+const UNIT_PATTERN = /^(IC|EC|ED)\d+(_\w+)?$|^EC50(Control|_\w+)$|^IC50_\w+$|^(Ki|KA|KB|Kb|A2)$/;
 const hasUnit = (name: string) => UNIT_PARAMS.has(name) || UNIT_PATTERN.test(name);
 
 /** A parameter's row label in the fit table: "IC50 (M)", "Top (shared)". */
@@ -76,7 +76,7 @@ export function paramCI(entry: ParamEntry | undefined): string {
 }
 
 // The parameter a reader of each model looks for first, in this order.
-const KEY_PARAM = /^(IC50|EC50|AbsoluteIC50|Ki|Km|Kd|HalfLife|DoublingTime|IC50_\w+|EC50\w*)$/;
+const KEY_PARAM = /^(IC50|EC50|ED50|AbsoluteIC50|Ki|Km|Kd|HalfLife|DoublingTime|IC50_\w+|EC50\w*)$/;
 
 function keyParam(fit: FitResult): string | null {
   const order = (fit.param_order ?? Object.keys(fit.params)).filter((n) => fit.params[n]);

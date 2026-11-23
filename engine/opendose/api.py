@@ -226,6 +226,9 @@ def _dose_response(data, options):
                 flags = {"error": str(exc)}
             if flags is not None:
                 fit["range_flags"] = flags
+            if equations.model_family(spec) == equations.FAM_HORMESIS:
+                # what ED p means; EDs beyond the doses tested
+                fit["notes"] = equations.ed_notes(fit, xs)
             entry["fit"] = fit
         except Exception as exc:  # per-dataset failure must not kill others
             entry["error"] = str(exc)

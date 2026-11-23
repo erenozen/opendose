@@ -1103,3 +1103,62 @@ P = 0.13351 and, through Clopper-Pearson limits, ratio 0.67317 (0.38560
 to 1.14851), rate 1 = 2.3 (1.4580 to 3.4511); numpy least squares for
 the P-13 lines gives slopes F(1, 12) = 0.64403, P = 0.43786 and the
 common slope 1.99524. All equal the engine at the precision shown.
+
+## Feature validation: fit models, wave 1 (2026-11-23)
+
+R and drc are not installed here. Each oracle below is a Python script
+committed next to its test; where a published table exists it anchors
+the script first.
+
+### P-19 Weibull and hormesis dose-response models
+
+Six models in a new family, "Dose-response - Weibull and hormesis, X is
+concentration", with drc's parameter letters: Weibull type 1 and 2
+(drc W1.4, W2.4; Ritz 2010, Environ Toxicol Chem 29:220), Brain-Cousens
+(BC.5 and BC.4 with c = 0; Brain & Cousens 1989, Weed Res 29:93) and
+Cedergreen-Ritz-Streibig (CRS.5 and CRS.4 with c = 0, alpha an entered
+constant; Cedergreen et al. 2005, Environ Toxicol Chem 24:3166). All are
+written on the concentration scale, so the zero dose stays in the fit.
+b is held positive for W1.4 and the hormesis models and negative for
+W2.4: with b free to change sign the two Weibull models are one family
+(W1.4 with b < 0 is W2.4 with c and d swapped), so these are the signs
+drc's self-starters use on a falling curve. ED10, ED50 and ED90 are
+drc's relative EDs (p% of the way from d, the zero-dose response, to c),
+with a delta-method SE and estimate ± t × SE interval; e is the
+inflection point (Weibull) or a location parameter (hormesis), not the
+ED50, and the results say so under the table. EDs beyond the doses
+tested are named there too.
+
+Reference: `engine/tests/reference/weibull_hormesis.py` (scipy
+least_squares on the published formulas, grid of starts, J'J
+covariance, EDs solved numerically from the curve), on drc's
+`ryegrass` and `lettuce` data (`engine/tests/fixtures/drc_datasets.json`,
+copied from the Rdatasets export of drc). Anchor: the same script fits
+drc's LL.3 to ryegrass and reproduces Ritz et al. (2015) PLOS ONE
+10:e0146021, S1 File, Example 2, to every digit printed: b 2.47033,
+d 7.85543, e 3.26336, residual SE 0.5615802 (21 df), ED10 1.34086
+(0.94773 to 1.7340). drc's standard errors come from the Hessian of the
+residual SS (0.34168, 0.20438, 0.19641, reproduced by the script); the
+engine, like Prism and R's nls, uses the Gauss-Newton covariance
+s² (J'J)⁻¹ (0.31874, 0.20798, 0.20220), so SEs differ from drc's in the
+second or third digit while estimates and EDs agree. OpenDose's
+[Inhibitor] vs. response (variable slope) with Bottom = 0 is LL.3 and
+gives the published estimates (`test_weibull_hormesis.py`).
+
+| Data, model | Parameters (SE, J'J) | ED50 (95% CI) | Sy.x |
+| --- | --- | --- | --- |
+| ryegrass, W1.4 | b 2.3933 (0.4396), c 0.66045 (0.1864), d 7.8059 (0.2076), e 3.6001 (0.1942) | 3.0889 (2.7232 to 3.4547) | 0.548824 |
+| ryegrass, W2.4 | b -1.9678 (0.2885), c 0.32457 (0.2488), d 7.7263 (0.1731), e 2.4876 (0.1476) | 2.9969 (2.5857 to 3.4082) | 0.514420 |
+| lettuce, BC.5 | b 1.5030, c 0.28081, d 0.96306, e 1.1218, f 0.98631 (0.9421) | 12.298 (-13.833 to 38.430) | 0.114912 |
+| lettuce, BC.4 | b 1.2827 (0.0522), d 0.96718, e 0.84593, f 1.6245 (1.2067) | 35.052 (-0.473 to 70.577) | 0.111792 |
+| lettuce, CRS.5 (alpha 1) | b 1.3280, c 0.44841, d 1.0352, e 1.2782, f 2.1018 | 5.5189 (1.8075 to 9.2304) | 0.130488 |
+
+Engine and reference agree to 2e-5 (estimates, EDs) and 2e-3 (SEs, CI
+limits) for all seven model and data pairs tested, including CRS.4 and
+W1.4 on lettuce. Noiseless curves with two zero-dose points are
+recovered to 1e-5 and noisy ones match scipy curve_fit
+(`test_equations.py`). Concentration ×1000 scales e and every ED by
+1000 and leaves b, c and d; response ×10 scales c, d and f only. Flat
+data give an ambiguous fit or a sentence, never a traceback; CRS without
+alpha asks for it. The BC.4 lettuce ED90 (10096) lies 100-fold past the
+highest concentration and is reported as read off the model's tail.

@@ -24,6 +24,7 @@ from opendose.nlfit import MODELS, fit_model
 LOGX = np.linspace(-10, -4, 13)
 CONC = np.geomspace(0.1, 1000, 13)
 T60 = np.linspace(0, 60, 13)
+DRC_X = np.concatenate([[0.0, 0.0], CONC])
 
 
 def _poly(order, centered=False):
@@ -84,6 +85,17 @@ SINGLE = [
     ("absolute_ic50", CONC,
      {"Bottom": 10, "Top": 100, "AbsoluteIC50": 50, "HillSlope": -1.0,
       "Baseline": 0}, {"Baseline": 0}),
+    # Weibull and hormesis (drc letters), the zero dose kept in
+    ("weibull1", DRC_X, {"b": 1.5, "c": 5, "d": 95, "e": 20}, {}),
+    ("weibull2", DRC_X, {"b": -1.5, "c": 5, "d": 95, "e": 20}, {}),
+    ("brain_cousens", DRC_X, {"b": 2, "c": 5, "d": 100, "e": 20, "f": 4},
+     {}),
+    ("brain_cousens_4", DRC_X, {"b": 2, "d": 100, "e": 20, "f": 4}, {}),
+    ("cedergreen", DRC_X,
+     {"b": 2, "c": 5, "d": 100, "e": 20, "f": 30, "alpha": 1.0},
+     {"alpha": 1.0}),
+    ("cedergreen_4", DRC_X,
+     {"b": 2, "d": 100, "e": 20, "f": 30, "alpha": 0.5}, {"alpha": 0.5}),
     ("one_site_total", np.linspace(0, 20, 12),
      {"Bmax": 1000, "Kd": 2.5, "NS": 20, "Background": 50}, {}),
     ("one_site_total_ligand_depletion", np.geomspace(100, 2e5, 12),

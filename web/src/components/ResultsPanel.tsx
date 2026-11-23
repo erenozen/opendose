@@ -182,6 +182,9 @@ function FitCard({ ds, xUnit }: { ds: DatasetResult; xUnit: string }) {
               </tbody>
             </table>
             <RangeNote fit={fit} />
+            {fit.notes?.map((n) => (
+              <p key={n} className="model-line fit-note"><NumText text={n} /></p>
+            ))}
             <table className="results-table goodness">
               <tbody>
                 <tr><th>Degrees of freedom</th><td>{fit.goodness.df}</td></tr>

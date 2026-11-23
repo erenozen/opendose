@@ -1,0 +1,26 @@
+{
+  "source": "R package drc (Ritz C, Baty F, Streibig JC, Gerhard D (2015) Dose-Response Analysis Using R. PLOS ONE 10(12): e0146021), datasets 'ryegrass' and 'lettuce', copied from the Rdatasets CSV export of drc (https://vincentarelbundock.github.io/Rdatasets/csv/drc/ryegrass.csv and .../lettuce.csv, retrieved 2026-11-23).",
+  "ryegrass": {
+    "about": "Root length (cm) of perennial ryegrass against ferulic acid concentration (mM); Inderjit, Streibig JC, Olofsdotter M (2002) Weed Biol Manag 2:28-36.",
+    "conc": [0, 0, 0, 0, 0, 0, 0.94, 0.94, 0.94, 1.88, 1.88, 1.88, 3.75, 3.75, 3.75, 7.5, 7.5, 7.5, 15, 15, 15, 30, 30, 30],
+    "rootl": [7.58, 8, 8.328571429, 7.25, 7.375, 7.9625, 8.355555556, 6.914285714, 7.75, 6.871428571, 6.45, 5.922222222, 1.925, 2.885714286, 4.233333333, 1.1875, 0.857142857, 1.057142857, 0.6875, 0.525, 0.825, 0.25, 0.22, 0.44]
+  },
+  "lettuce": {
+    "about": "Shoot biomass (g) of lettuce against isobutylalcohol concentration (mg/l); van Ewijk PH, Hoekstra JA (1993) Ecotoxicol Environ Saf 25:25-32.",
+    "conc": [0, 0, 0.32, 0.32, 1, 1, 3.2, 3.2, 10, 10, 32, 32, 100, 100],
+    "weight": [1.126, 0.833, 1.096, 1.106, 1.163, 1.336, 0.985, 0.754, 0.716, 0.683, 0.56, 0.488, 0.375, 0.344]
+  },
+  "published": {
+    "ryegrass_LL3": {
+      "citation": "Ritz et al. (2015) PLOS ONE 10:e0146021, S1 File 'Five illustrative examples', Example 2, summary(drm(rootl ~ conc, data = ryegrass, fct = LL.3())) and ED(..., c(5, 10, 50), interval = 'delta'), pages 2-3.",
+      "b": [2.47033, 0.34168],
+      "d": [7.85543, 0.20438],
+      "e": [3.26336, 0.19641],
+      "residual_se": 0.5615802,
+      "df": 21,
+      "ED5": [0.99088, 0.17808, 0.62053, 1.3612],
+      "ED10": [1.34086, 0.18904, 0.94773, 1.7340],
+      "ED50": [3.26336, 0.19641, 2.85491, 3.6718]
+    }
+  }
+}

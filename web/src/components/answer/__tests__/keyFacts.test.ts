@@ -34,6 +34,26 @@ test("a curve fit's headline is its IC50, as the table prints it", () => {
   assert.equal(f.demoted, undefined);
 });
 
+test("a Weibull fit's headline is its ED50, not the e parameter", () => {
+  // drc W1.4 on ryegrass (engine/tests/reference/weibull_hormesis.json)
+  const p = (value: number, ci95: [number, number] | null = null, derived = false) =>
+    ({ value, se: 0.1, ci95, constrained: false, ...(derived ? { derived } : {}) });
+  const w = fit({
+    model: "weibull1", param_order: ["b", "c", "d", "e", "ED10", "ED50", "ED90"],
+    params: { b: p(2.3933), c: p(0.66045), d: p(7.8059), e: p(3.6001),
+      ED10: p(1.4059, [0.8996, 1.912], true), ED50: p(3.0889, [2.7232, 3.4547], true),
+      ED90: p(5.1011, [4.144, 6.058], true) },
+  });
+  const k = keyFacts({ analysis: "dose_response", datasets: [{ name: "ryegrass", fit: w }] }, { xUnit: "mM" });
+  assert.equal(k?.kind, "figures");
+  if (k?.kind !== "figures") return;
+  assert.equal(k.items[0].figure!.name, "ED50 (mM)");
+  assert.equal(k.items[0].figure!.value, formatSig(3.0889));
+  assert.equal(k.items[0].figure!.ci, `95% CI ${formatSig(2.7232)} to ${formatSig(3.4547)}`);
+  assert.equal(paramLabel("ED90", w.params.ED90 as never, "mM"), "ED90 (mM)");
+  assert.equal(paramLabel("e", w.params.e as never, "mM"), "e");
+});
+
 test("an ambiguous fit's figure is demoted, the reason first", () => {
   const k = keyFacts({ analysis: "dose_response",
     datasets: [{ name: "B", fit: fit({ status: "ambiguous" }) }] });

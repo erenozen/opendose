@@ -170,6 +170,9 @@ export interface FitResult {
   /** "robust": best-fit values only (engine nlfit.robust_model_fit). */
   fit_method?: "least_squares" | "robust";
   note?: string;
+  /** Sentences the engine attaches to the fit (Weibull and hormesis
+   *  models: what ED p means, EDs beyond the doses tested). */
+  notes?: string[];
   param_order?: string[];
   params: Record<string, ParamEntry>;
   goodness: {
