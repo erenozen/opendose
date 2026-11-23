@@ -13,6 +13,9 @@
 //   the paste report, never applied by itself, undone in one step.
 // - P-36: find and replace (Ctrl+H) in a 96-row table: 7 n.d. cells, one
 //   undo step, exclusions kept.
+// - P-37: spreadsheet keys in a 50-row column: Ctrl+Down to row 50,
+//   Ctrl+Shift+Up to row 1, Ctrl+D fills with row 1's exact text (an
+//   excluded cell stays excluded), Home / End, Ctrl+Home / End, Ctrl+A.
 //
 // Usage: node scripts/e2e-import.mjs http://localhost:5173/
 import { chromium } from "playwright";
@@ -382,6 +385,109 @@ const typeWhy = dlg.locator("[data-part='type-why']");
   await repl.press("Escape");
   const closed = !(await repl.isVisible().catch(() => false));
   expect("P-36: Escape closes the bar", closed);
+}
+
+// --- P-37: spreadsheet keys. A 50-row column: Ctrl+Down from row 1 lands
+// on row 50, Ctrl+Shift+Up selects rows 50 to 1, Ctrl+D fills them with
+// row 1's text exactly (an excluded cell stays excluded), one undo puts
+// every value back; Home / End, Ctrl+Home / End and Ctrl+A.
+{
+  const vals = Array.from({ length: 50 }, (_, r) => (r === 0 ? "12.50" : String(r + 1)));
+  await fileMenu("New data table…");
+  const nd = page.locator(".new-table-dialog");
+  await nd.locator('input[name="table-type"][value="column"]').check();
+  await nd.getByLabel("Table name").fill("Fifty rows");
+  await nd.getByRole("button", { name: "Create table" }).click();
+  await page.waitForSelector(".grid-toolbar");
+  await page.evaluate((t) => {
+    const el = document.querySelector(".data-table input[aria-label='Group A, row 1']");
+    const dt = new DataTransfer();
+    dt.setData("text/plain", t);
+    el.focus();
+    el.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }));
+  }, `${vals.join("\n")}\n`);
+  if (await appears(dlg, 3000)) {
+    await dlg.getByRole("button", { name: "Import", exact: true }).click();
+    await dlg.waitFor({ state: "detached", timeout: 10000 }).catch(() => {});
+  }
+  const colA = async () => {
+    const t = await tableOf("Fifty rows");
+    return t ? { rows: t.datasets[0].rows, excluded: t.excluded[0] } : null;
+  };
+  const start = await colA();
+  const focused = () => page.evaluate(() => document.activeElement?.getAttribute("aria-label") ?? "");
+  const scope = () => page.locator(".data-inspector .inspector-scope").innerText().catch(() => "");
+  // exclude row 10 first: it must stay excluded through the fill
+  await page.locator(".data-table input[aria-label='Group A, row 10']").click();
+  await page.keyboard.press("Control+e");
+  const prompt = page.getByRole("region", { name: "Exclusion reason" });
+  if (await appears(prompt, 3000)) await prompt.getByRole("button", { name: /^(Skip|Not now|Close)/ }).first().click().catch(() => {});
+  // reach row 1 by the keyboard (its text selected, as a cell not being edited)
+  await page.locator(".data-table input[aria-label='Group A, row 2']").click();
+  await page.keyboard.press("ArrowUp");
+  await page.keyboard.press("Control+ArrowDown");
+  const atEnd = await focused();
+  expect("P-37: Ctrl+Down in a 50-row column jumps from row 1 to row 50",
+    start?.rows.length === 50 && atEnd === "Group A, row 50", atEnd);
+  await page.keyboard.press("Control+Shift+ArrowUp");
+  const sel = await scope();
+  expect("P-37: Ctrl+Shift+Up selects up to row 1 (the Data Inspector reads 50 × 1 cells, rows 1–50)",
+    sel.startsWith("50 × 1 cells (rows 1–50)"), sel);
+  // Ctrl+D, dispatched so the browser's own Ctrl+D (bookmark) is seen to be taken
+  const prevented = await page.evaluate(() => {
+    const ev = new KeyboardEvent("keydown", { key: "d", ctrlKey: true, bubbles: true, cancelable: true });
+    document.activeElement.dispatchEvent(ev);
+    return ev.defaultPrevented;
+  });
+  const filled = await colA();
+  expect("P-37: Ctrl+D fills rows 2 to 50 with row 1's text exactly (12.50), and takes the key from the browser",
+    prevented && filled.rows.every((r) => r[0] === "12.50"), `${prevented} ${filled.rows.slice(0, 3).map((r) => r[0])}`);
+  expect("P-37: the excluded cell in row 10 stays excluded after the fill",
+    JSON.stringify(filled.excluded) === JSON.stringify(["9:0"]), JSON.stringify(filled.excluded));
+  await page.locator("header").getByRole("button", { name: "Undo" }).click();
+  const undone = await colA();
+  expect("P-37: one undo puts all 49 values back", JSON.stringify(undone.rows) === JSON.stringify(start.rows));
+
+  // Home / End along a row, Ctrl+Home / End over the table, Ctrl+A
+  await page.locator(".data-table input[aria-label='Group A, row 4']").click();
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("Home");
+  const home = await focused();
+  await page.keyboard.press("End");
+  const end = await focused();
+  await page.keyboard.press("Control+End");
+  const cEnd = await focused();
+  await page.keyboard.press("Control+Home");
+  const cHome = await focused();
+  expect("P-37: Home and End go to the row's title and its last cell; Ctrl+End and Ctrl+Home to the last value and the first cell",
+    home === "Row 5 title" && end === "Group C, row 5" && cEnd === "Group A, row 50" && cHome === "Row 1 title",
+    [home, end, cEnd, cHome].join(" | "));
+  await page.keyboard.press("Control+a");
+  const all = await scope();
+  expect("P-37: Ctrl+A selects the whole table (50 rows × the title and three group columns)",
+    all.startsWith("50 × 4 cells"), all);
+  await page.keyboard.press("Escape");
+  // a cell being edited keeps Home and Ctrl+A for its text
+  const c7 = page.locator(".data-table input[aria-label='Group A, row 7']");
+  await c7.click();
+  await page.keyboard.press("End");
+  await page.keyboard.press("Home");
+  const stays = await focused();
+  await page.keyboard.press("Control+a");
+  const textSel = await c7.evaluate((el) => el.selectionStart === 0 && el.selectionEnd === el.value.length);
+  const notTable = !(await scope()).startsWith("50 × 4");
+  expect("P-37: in a cell being edited, Home and End move the caret and Ctrl+A selects its text",
+    stays === "Group A, row 7" && textSel && notTable, stays);
+  // the keys are listed in Help
+  await page.keyboard.press("Escape");
+  await page.locator("body").click({ position: { x: 5, y: 5 } }).catch(() => {});
+  await page.keyboard.press("Control+/");
+  const help = page.locator(".help-panel");
+  const helpText = (await appears(help, 5000)) ? await help.innerText() : "";
+  expect("P-37: the Help keyboard table lists Ctrl+D, Ctrl+A, Ctrl+arrow, Home and End",
+    /Ctrl\+D\s+Fill down/.test(helpText) && /Ctrl\+A\s+Select the whole table/.test(helpText)
+    && /Ctrl\+arrow/.test(helpText) && /Home, End/.test(helpText), helpText.length);
+  await page.keyboard.press("Control+/");
 }
 
 // --- a file Open cannot read: the error names what it opens

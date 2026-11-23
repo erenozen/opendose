@@ -42,6 +42,11 @@ const SHORTCUTS: { area: string; keys: [string, string][] }[] = [
   { area: "Data table", keys: [
     ["Arrows, Enter, Shift Enter", "Move between cells"],
     ["Shift arrows", "Select a block of cells"],
+    ["Ctrl/⌘ arrows", "Jump to the edge of the data (with Shift: select up to it)"],
+    ["Home, End", "First or last cell of the row (while editing a cell: start or end of its text)"],
+    ["Ctrl/⌘ Home, End", "First cell of the table, or its last row and column with a value"],
+    ["Ctrl/⌘ A", "Select the whole table (while editing a cell: its text first)"],
+    ["Ctrl/⌘ D", "Fill down from the top row of the selection (one row: from the row above)"],
     ["Ctrl/⌘ C, X, V", "Copy, cut, paste (tab-separated)"],
     ["Delete", "Clear the selected block"],
     ["Ctrl/⌘ E", "Exclude / include the value(s)"],
