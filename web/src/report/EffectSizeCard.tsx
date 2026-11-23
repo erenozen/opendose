@@ -76,8 +76,8 @@ export default function EffectSizeCard({ result }: { result: unknown }) {
   const methods = [...new Set(rows.filter((r) => r.ci && r.ciMethod).map((r) => `${r.measure}: ${r.ciMethod}`))];
   // "Small on the Cohen's d scale (thresholds 0.2, 0.5, 0.8)": the scale
   // each label is read on, once per scale
-  const scales = [...new Set(rows.map((r) => r.interpretation).filter((it) => !!it)
-    .map((it) => `${it!.scale} scale${it!.thresholds ? ` (thresholds ${it!.thresholds.join(", ")})` : ""}`))];
+  const scales = [...new Set(rows.flatMap((r) => (r.interpretation ? [r.interpretation] : []))
+    .map((it) => `${it.scale} scale${it.thresholds ? ` (thresholds ${it.thresholds.join(", ")})` : ""}`))];
   return (
     <div className="result-card effect-card">
       <h3>Effect size</h3>

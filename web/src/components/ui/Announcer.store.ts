@@ -50,7 +50,7 @@ export function registerRegions(polite: HTMLElement | null, assertive: HTMLEleme
       if (queues[p].length && frames[p] == null) frames[p] = requestAnimationFrame(() => flush(p));
     } else {
       delete regions[p];
-      if (frames[p] != null) cancelAnimationFrame(frames[p]!);
+      if (frames[p] != null) cancelAnimationFrame(frames[p]);
       frames[p] = undefined;
     }
   }

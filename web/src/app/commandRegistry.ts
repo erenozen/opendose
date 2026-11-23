@@ -73,11 +73,10 @@ export interface Command {
 }
 
 /** Labels of the File and View menu groups. */
-export const GROUP_LABELS: Partial<Record<CommandGroup, string>> = {
+export const GROUP_LABELS: Record<"new" | "share" | "tools", string> = {
   new: "New",
   share: "Share and export",
   tools: "Tools",
-  theme: "Theme",
 };
 
 export function useCommandRegistry(): Command[] {

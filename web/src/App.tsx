@@ -306,14 +306,15 @@ function useDropOpen(open: (f: File) => void) {
   const openRef = useRef(open);
   openRef.current = open;
   useEffect(() => {
-    const hasFiles = (e: DragEvent) => !!e.dataTransfer && [...e.dataTransfer.types].includes("Files");
+    const hasFiles = (e: DragEvent): e is DragEvent & { dataTransfer: DataTransfer } =>
+      !!e.dataTransfer && [...e.dataTransfer.types].includes("Files");
     const onOver = (e: DragEvent) => {
       if (!e.defaultPrevented && hasFiles(e) && !document.querySelector("dialog[open]")) e.preventDefault();
     };
     const onDrop = (e: DragEvent) => {
       if (e.defaultPrevented || !hasFiles(e) || document.querySelector("dialog[open]")) return;
       e.preventDefault();
-      const list = [...(e.dataTransfer?.files ?? [])];
+      const list = [...e.dataTransfer.files];
       if (takeTableDrop(list, (f) => openRef.current(f), () => {})) return;
       const f = list.find((x) => OPENABLE.test(x.name));
       if (f) openRef.current(f);

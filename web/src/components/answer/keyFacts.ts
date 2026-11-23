@@ -111,7 +111,7 @@ function fitFigure(fit: FitResult, xUnit: string): KeyFigure | null {
     fig.demoted = `Extrapolated: the fitted ${name.replace("Log", "")} falls ${fit.extrapolation.direction} `
       + "every dose tested, so it is read off the model's tail rather than measured.";
   }
-  if (fitAmbiguous(fit as unknown as R)) {
+  if (fitAmbiguous(fit)) {
     fig.demoted = `Ambiguous fit: the parameters, including the ${name}, should not be reported.`;
   }
   return fig;

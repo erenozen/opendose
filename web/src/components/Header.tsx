@@ -108,7 +108,7 @@ export default function Header({ onOpenFile, onNewProject, inert }: {
       t.style.opacity = el ? "1" : "0";
     };
     measure();
-    document.fonts?.ready.then(measure);
+    document.fonts.ready.then(measure);
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
   }, [active?.id, tabs.length, project]);
@@ -279,7 +279,7 @@ export default function Header({ onOpenFile, onNewProject, inert }: {
             {(["new", "share", "tools"] as const).map((g) => (
               <Fragment key={g}>
                 <Menu.Separator />
-                <Menu.Group label={GROUP_LABELS[g]!}>{group(g).map(item)}</Menu.Group>
+                <Menu.Group label={GROUP_LABELS[g]}>{group(g).map(item)}</Menu.Group>
               </Fragment>
             ))}
           </Menu.Content>

@@ -696,7 +696,7 @@ export default function Navigator() {
       className={`navigator${ui.navOpen ? "" : " nav-collapsed"}${ui.drawerOpen ? " drawer-open" : ""}`}
       aria-label="Project navigator" role={modal ? "dialog" : undefined}
       aria-modal={modal || undefined}
-      onKeyDown={modal ? (e) => { if (self.current) containTab(e, self.current); } : undefined}>
+      onKeyDown={modal ? (e) => containTab(e, e.currentTarget) : undefined}>
       {/* The drawer's head: the project title (the header shows it on wide
           screens) and the close button. */}
       <div className="nav-head">

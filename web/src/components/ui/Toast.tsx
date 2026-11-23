@@ -148,18 +148,19 @@ function ToastItem({ toast: t, offset, onMeasure, onDismiss }: {
   }, [t.id, t.version, onMeasure]);
 
   const focusInside = () => !!ref.current?.contains(document.activeElement);
+  const { action } = t;
   return (
     <li ref={ref} className="toast" data-tone={t.tone} data-id={t.id}
       data-closing={t.closing ? "" : undefined}
       style={{ "--toast-y": `${offset}px` } as CSSProperties}>
       <span className="toast-icon"><ToneIcon tone={t.tone} /></span>
       <p className="toast-message">{t.message}</p>
-      {t.action && (
+      {action && (
         <Button size="sm" className="toast-action" onClick={() => {
           const kb = focusInside();
-          t.action!.onAction();
+          action.onAction();
           onDismiss(kb);
-        }}>{t.action.label}</Button>
+        }}>{action.label}</Button>
       )}
       <IconButton size="sm" className="toast-dismiss" aria-label="Dismiss notification"
         onClick={() => onDismiss(focusInside())}>

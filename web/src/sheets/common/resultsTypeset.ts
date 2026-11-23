@@ -31,7 +31,7 @@ function typeset(root: HTMLElement) {
       for (const row of body.rows) {
         let col = 0;
         for (const cell of row.cells) {
-          const span = Math.max(1, cell.colSpan);
+          const span = cell.colSpan;
           if (cell.tagName === "TD") {
             const text = (cell.textContent ?? "").trim();
             const n = numericCell(text);
@@ -54,7 +54,7 @@ function typeset(root: HTMLElement) {
     for (const row of table.tHead.rows) {
       let col = 0;
       for (const cell of row.cells) {
-        const span = Math.max(1, cell.colSpan);
+        const span = cell.colSpan;
         const v = votes[col];
         cell.toggleAttribute("data-num", span === 1 && !!v && v.num > v.text);
         col += span;
