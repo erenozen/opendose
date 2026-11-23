@@ -12,6 +12,8 @@ export interface SessionRecord {
   savedAt: number;   // epoch ms
   title: string;
   sheets: number;
+  /** The name of the sheet on screen, to tell sessions of one project apart. */
+  sheet?: string;
   json: string;      // serialized project (persist.serializeProject)
 }
 

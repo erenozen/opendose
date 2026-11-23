@@ -8,6 +8,10 @@ import { Banner, Button } from "./ui";
 
 const savedAt = (r: SessionRecord) => new Date(r.savedAt).toLocaleString();
 const sheetCount = (r: SessionRecord) => `${r.sheets} sheet${r.sheets === 1 ? "" : "s"}`;
+/** One kept session in words; two tabs on one project differ by the sheet
+ *  each had on screen. */
+const describe = (r: SessionRecord) => `“${r.title}”, ${sheetCount(r)}`
+  + `${r.sheet ? `, last on “${r.sheet}”` : ""}, saved ${savedAt(r)}`;
 
 export default function SessionBanners({ autosave, pending }: {
   autosave: AutosaveApi;
@@ -42,7 +46,7 @@ export default function SessionBanners({ autosave, pending }: {
           <>
             <Banner.Title>Restore your last session?</Banner.Title>
             <Banner.Detail>
-              “{single.title}”, {sheetCount(single)}, saved {savedAt(single)}.
+              {describe(single)}.
             </Banner.Detail>
             <Banner.Actions>
               <Button variant="primary" onClick={() => { void autosave.restore(single.id); }}>Restore</Button>
@@ -55,10 +59,10 @@ export default function SessionBanners({ autosave, pending }: {
             <Banner.Detail>
               <ul className="session-list" aria-label="Saved sessions">
                 {offers.map((r) => {
-                  const which = ` “${r.title}”, saved ${savedAt(r)}`;
+                  const which = ` ${describe(r)}`;
                   return (
                     <li key={r.id} className="session-row">
-                      <span>“{r.title}”, {sheetCount(r)}, saved {savedAt(r)}.</span>
+                      <span>{describe(r)}.</span>
                       <span className="session-row-actions">
                         <Button size="sm" onClick={() => { void autosave.restore(r.id); }}>
                           Restore<span className="sr-only">{which}</span>

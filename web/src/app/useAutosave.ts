@@ -112,8 +112,10 @@ export function useAutosave({ autoOpen }: { autoOpen: boolean }) {
     if (!booting) return;
     await booting.catch(() => null);
     const p = store.project;
+    const sheet = p.sheets.find((s) => s.id === selectedRef.current)?.name;
     const ok = await sessions().write({
-      savedAt: Date.now(), title: p.title, sheets: p.sheets.length, json: serialize.current(),
+      savedAt: Date.now(), title: p.title, sheets: p.sheets.length,
+      ...(sheet ? { sheet } : {}), json: serialize.current(),
     });
     if (ok && !askedPersistence) {
       askedPersistence = true;
