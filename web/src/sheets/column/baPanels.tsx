@@ -19,6 +19,10 @@ import {
   type BaResult,
 } from "./blandAltman";
 import { maxOf, minOf } from "../../lib/extent";
+import { useCommands } from "../../app/commands";
+import { useProject } from "../../app/context";
+import { ANALYSIS_METHOD_REGRESSION } from "./methodRegression";
+import { cccCaveat, cccRows, cccText } from "../common/ccc";
 
 const f = (v: number | null | undefined, sig?: number) => formatSig(v ?? null, sig);
 const ciTxt = (c: [number, number] | undefined | null) => (c ? `${f(c[0])} to ${f(c[1])}` : "n/a");
@@ -91,7 +95,25 @@ function unitsOf(r: BaResult): { scale: (v: number) => number; label: string } {
   return { scale: (v) => v, label: r.options.variant === "percent" ? "%" : "" };
 }
 
-export function BaResults({ result }: ResultsProps<BaOptions, BaResult>) {
+/** The Bland-Altman results' link to a Passing-Bablok regression of the
+ *  same two columns (P-42), on column tables. */
+function RegressionLink({ sheet, options }: { sheet: ResultsProps["sheet"]; options: BaOptions }) {
+  const cmd = useCommands();
+  const { readOnly } = useProject();
+  if (readOnly) return null;
+  return (
+    <p className="hint-block">
+      To fit a line of one method on the other, add a{" "}
+      <button type="button" data-still className="linkish"
+        onClick={() => cmd.addAnalysis(sheet.parentId, ANALYSIS_METHOD_REGRESSION,
+          { datasetA: options.datasetA, datasetB: options.datasetB })}>
+        Passing-Bablok regression of these two columns
+      </button>.
+    </p>
+  );
+}
+
+export function BaResults({ sheet, table, result }: ResultsProps<BaOptions, BaResult>) {
   if (!result) return null;
   if (result.error) return <Problem error={result.error} />;
   const [a, b] = result.names;
@@ -143,6 +165,12 @@ export function BaResults({ result }: ResultsProps<BaOptions, BaResult>) {
         [`${agr} limits of agreement`, `${f(block.loa_lower)} to ${f(block.loa_upper)}`],
         ...(lci ? [[`${lvl} CI of the lower limit`, ciTxt(lci.lower)], [`${lvl} CI of the upper limit`, ciTxt(lci.upper)]] as [string, string][] : []),
       ]} />
+      {result.ccc && (
+        <>
+          <KV className="kv-wide" rows={cccRows(result.ccc)} />
+          {cccCaveat(result.ccc) && <p className="hint-block">{cccCaveat(result.ccc)}</p>}
+        </>
+      )}
       <p className="hint-block">Limit CIs: {methodLabel}. A bias CI that excludes 0 means a systematic difference between the methods.</p>
       <div className="stat-cols">
         {pb && (
@@ -166,6 +194,7 @@ export function BaResults({ result }: ResultsProps<BaOptions, BaResult>) {
           limits = bias ± {f(block.z * Math.sqrt(Math.PI / 2))} × ({f(pb.abs_residual_intercept)} + {f(pb.abs_residual_slope)} × average).
         </p>
       )}
+      {table.type === "column" && <RegressionLink sheet={sheet} options={result.options} />}
     </Card>
   );
 }
@@ -203,6 +232,9 @@ export function BaMethods({ result }: ResultsProps<BaOptions, BaResult>) {
       + ".";
     const sw = result.normality?.shapiro_wilk;
     if (sw) text += ` Normality of the differences: Shapiro-Wilk ${pLabel(sw.p)}.`;
+    if (result.ccc && !result.ccc.error) {
+      text += ` Lin's concordance correlation coefficient (Lin 1989) was ${cccText(result.ccc)}.`;
+    }
     if (pb) {
       text += ` Proportional bias was examined by regressing the differences on the averages (slope ${f(pb.slope)}, ${pLabel(pb.slope_p)})`
         + (result.options.regression ? "; regression-based limits of agreement were derived from the absolute residuals (Bland & Altman 1999)." : ".");

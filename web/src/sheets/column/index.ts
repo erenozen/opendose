@@ -14,6 +14,13 @@ import {
   ANALYSIS_ROC, defaultRocOptions, normalizeRocOptions, rocCurveNames, runRoc, type RocOptions,
   type RocResult,
 } from "./roc";
+import {
+  ANALYSIS_METHOD_REGRESSION, defaultMethodRegOptions, GRAPH_METHOD_REGRESSION,
+  normalizeMethodRegOptions, runMethodReg, type MethodRegOptions, type MethodRegResult,
+} from "./methodRegression";
+import {
+  ANALYSIS_ICC, defaultIccOptions, normalizeIccOptions, runIcc, type IccOptions, type IccResult,
+} from "./icc";
 import { ColumnMethods } from "./methods";
 import { rowMeansAnalysis } from "../grouped";
 import { ColumnAnalysisControls, ColumnAnalysisResults, ColumnGraph } from "./panels";
@@ -178,6 +185,56 @@ export const blandAltmanGraph = defineGraph<BaOptions, BaResult>({
   formatFeatures: { points: true, lines: true },
 });
 
+// Passing-Bablok / Theil-Sen method comparison (P-42): XY tables (method 1
+// in X) and column tables (two columns paired by row).
+const methodRegModule = () => import("./methodRegressionPanels");
+
+export const methodRegressionAnalysis = defineAnalysis<MethodRegOptions, MethodRegResult>({
+  id: ANALYSIS_METHOD_REGRESSION,
+  label: "Passing-Bablok regression (method comparison)",
+  short: "Passing-Bablok",
+  description: "Nonparametric line of one method on another with CIs of the slope and "
+    + "intercept and the CUSUM test of linearity; Theil-Sen and Deming beside it.",
+  sheetName: (t) => `Passing-Bablok of ${t}`,
+  defaultOptions: () => defaultMethodRegOptions(),
+  normalizeOptions: (raw) => normalizeMethodRegOptions(raw),
+  run: runMethodReg,
+  defaultGraph: GRAPH_METHOD_REGRESSION,
+  ControlsPanel: lazyPart(methodRegModule, "MethodRegControls"),
+  ResultsPanel: lazyPart(methodRegModule, "MethodRegResults"),
+  MethodsPanel: lazyPart(methodRegModule, "MethodRegMethods"),
+});
+
+export const methodRegressionGraph = defineGraph<MethodRegOptions, MethodRegResult>({
+  id: GRAPH_METHOD_REGRESSION,
+  label: "Method comparison: Passing-Bablok line and the line of identity",
+  group: "method_regression",
+  analysis: ANALYSIS_METHOD_REGRESSION,
+  autoTitles: () => ({ x: "", y: "" }),
+  exportName: "passing-bablok",
+  PlotPanel: lazyPart(methodRegModule, "MethodRegPlot"),
+  formatFeatures: { points: true, lines: true },
+});
+
+// Reliability ICC (P-44): one column per rater, one row per target.
+const iccModule = () => import("./iccPanels");
+
+export const iccAnalysis = defineAnalysis<IccOptions, IccResult>({
+  id: ANALYSIS_ICC,
+  label: "Agreement (ICC): intraclass correlation between raters",
+  short: "ICC",
+  description: "Reliability of raters or instruments: the six Shrout-Fleiss intraclass "
+    + "correlations with F-based confidence intervals (columns = raters, rows = targets).",
+  sheetName: (t) => `ICC of ${t}`,
+  defaultOptions: () => defaultIccOptions(),
+  normalizeOptions: (raw) => normalizeIccOptions(raw),
+  run: runIcc,
+  defaultGraph: null,
+  ControlsPanel: lazyPart(iccModule, "IccControls"),
+  ResultsPanel: lazyPart(iccModule, "IccResults"),
+  MethodsPanel: lazyPart(iccModule, "IccMethods"),
+});
+
 function columnSample() {
   return normalizeTable({
     type: "column",
@@ -201,6 +258,6 @@ export const columnTable: TableTypeDef = {
   sampleName: "Group comparison",
   Editor: DataGrid,
   analyses: [columnAnalysis, replicateMeansAnalysis, estimationAnalysis, rowMeansAnalysis, rocAnalysis,
-    blandAltmanAnalysis],
-  graphs: [...columnGraphs, estimationGraph, rocGraph, blandAltmanGraph],
+    blandAltmanAnalysis, methodRegressionAnalysis, iccAnalysis],
+  graphs: [...columnGraphs, estimationGraph, rocGraph, blandAltmanGraph, methodRegressionGraph],
 };

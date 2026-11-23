@@ -35,14 +35,16 @@ export function familySheets(p: Project, table: DataTableModel, name: string,
 /** A results sheet for `analysisId` on data sheet `dataId`, plus the
  *  analysis' default graph bound to it. */
 export function analysisSheets(p: Project, dataId: string, analysisId: string,
-  ids: IdFactory): Sheet[] {
+  ids: IdFactory, options?: Record<string, unknown>): Sheet[] {
   const data = findSheet(p, dataId) as DataSheet | undefined;
   if (!data || data.kind !== "data") return [];
   const a = analysisDef(data.table.type, analysisId);
   if (!a) return [];
   const rid = ids();
+  const defaults = a.defaultOptions({ table: data.table, prefs: p.prefs });
   const results = makeResultsSheet(rid, dataId, a.id,
-    a.defaultOptions({ table: data.table, prefs: p.prefs }),
+    // options: set up from another sheet (a results link), over the defaults
+    options ? { ...defaults as object, ...options } : defaults,
     uniqueName(p, a.sheetName(data.name)));
   const out: Sheet[] = [results];
   if (a.derivedTable && !a.derivedOnDemand) {

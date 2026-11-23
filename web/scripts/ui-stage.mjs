@@ -1126,6 +1126,35 @@ const scenes = [
     await h.first().evaluate((el) => el.scrollIntoView({ block: "start" }));
     await settle(s, 800);
   } },
+  { name: "results-passing-bablok", setup: async (s) => {
+    // P-42: Passing-Bablok beside Theil-Sen and Deming, the CUSUM test, the graph
+    await fixture(s, "method-comparison.json", { live: true });
+    const h = s.page.locator(".pane-results h3", { hasText: "Passing-Bablok regression" });
+    await h.waitFor({ timeout: 240000 });
+    await s.page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+      .some((t) => t.meta?.odTag?.role === "fit"), null, { timeout: 240000 });
+    await h.first().evaluate((el) => el.scrollIntoView({ block: "start" }));
+    await settle(s, 800);
+  } },
+  { name: "results-ba-ccc", setup: async (s) => {
+    // P-43: Lin's CCC with its caveat in the Bland-Altman results, and the
+    // link to Passing-Bablok of the same columns (P-42)
+    await fixture(s, "method-comparison.json", { live: true });
+    await selectSheet(s, "Bland-Altman of Ejection");
+    const row = s.page.locator(".pane-results th", { hasText: "Lin's concordance correlation" });
+    await row.waitFor({ timeout: 240000 });
+    await row.first().evaluate((el) => el.scrollIntoView({ block: "center" }));
+    await settle(s, 800);
+  } },
+  { name: "results-icc", setup: async (s) => {
+    // P-44: the six ICCs, the chosen form in the headline, the form select
+    await fixture(s, "method-comparison.json", { live: true });
+    await selectSheet(s, "ICC of Shrout-Fleiss");
+    const h = s.page.locator(".pane-results h3", { hasText: "Intraclass correlation" });
+    await h.waitFor({ timeout: 240000 });
+    await h.first().evaluate((el) => el.scrollIntoView({ block: "start" }));
+    await settle(s, 800);
+  } },
   { name: "graphs-schild", setup: async (s) => {
     await fixture(s, "schild.json", { live: true });
     await selectSheet(s, /^Schild plot of EC50 shift/);

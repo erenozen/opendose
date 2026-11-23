@@ -862,6 +862,38 @@ function demingMeaning(r: R): Meaning | null {
   "Deming regression: fits a line when both methods measure with error.");
 }
 
+function methodRegMeaning(r: R): Meaning | null {
+  const c = (Array.isArray(r.comparisons) ? r.comparisons : []).find((d: R) => num(d?.passing_bablok?.slope?.value));
+  if (!c) return null;
+  const pb = c.passing_bablok;
+  const sc = ci2(pb.slope.ci), ic = ci2(pb.intercept?.ci);
+  const lvl = `${Number(((r.ci_level ?? 0.95) * 100).toPrecision(4))}%`;
+  const ok = sc && ic ? (sc[0] <= 1 && sc[1] >= 1 && ic[0] <= 0 && ic[1] >= 0) : null;
+  return meaning(`A slope of 1 and an intercept of 0 would mean ${c.name} and ${c.x_name} agree; the Passing-Bablok slope is `
+    + `${fmt(pb.slope.value)}${sc ? ` (${lvl} CI ${fmt(sc[0])} to ${fmt(sc[1])})` : ""} and the intercept ${fmt(pb.intercept.value)}`
+    + `${ic ? ` (${lvl} CI ${fmt(ic[0])} to ${fmt(ic[1])})` : ""}`
+    + `${ok === null ? "" : ok ? ", both compatible with agreement" : ", so the methods differ systematically"}.`,
+  [SRC.passingBablok1983, S.amrhein2019],
+  ok ? "CIs that include 1 and 0 as proof that the methods agree. They show the data are compatible with agreement; the CI widths say how large a disagreement is still possible." : undefined,
+  "Passing-Bablok regression: a line of one method on the other from the median of the pairwise slopes, with no assumption about the error distributions.");
+}
+
+function iccMeaning(r: R): Meaning | null {
+  const want = r.options?.form ?? "ICC2";
+  const c = (Array.isArray(r.forms) ? r.forms : []).find((x: R) => x.form === want);
+  if (!c || !num(c.value)) return null;
+  const ci = ci2(c.ci);
+  const one = c.unit === "single" ? "a single rater's rating" : `the mean of the ${r.k_raters} raters' ratings`;
+  const agree = c.type === "absolute" ? "with the raters' systematic differences counted as disagreement"
+    : "ignoring constant differences between the raters";
+  return meaning(`An ICC of ${fmt(c.value)}${ci ? ` (95% CI ${fmt(ci[0])} to ${fmt(ci[1])})`.replace("95%",
+    `${Number(((r.ci_level ?? 0.95) * 100).toPrecision(4))}%`) : ""} means that about ${pct(100 * Math.max(0, c.value))} of the `
+    + `variation in ${one} is true variation between the ${r.n_targets} targets, ${agree}.`,
+  [SRC.shroutFleiss1979],
+  "an ICC as a correlation between two raters. It is the share of the rating variance that comes from the targets; the form chosen decides whether a rater who reads consistently high lowers it.",
+  "Intraclass correlation: reliability of raters or instruments rating the same targets.");
+}
+
 function withheldMeaning(): Meaning {
   return meaning("With one independent value in a group there is no estimate of the variability within groups, so no "
     + "P value or CI can say whether the groups differ; more independent experiments are needed.",
@@ -911,6 +943,8 @@ export function meaningOf(input: MeaningInput): Meaning | null {
       case "multiple_row_tests": return multiRowMeaning(r);
       case "estimation": return estimationMeaning(r, t);
       case "deming": return demingMeaning(r);
+      case "method_regression": return methodRegMeaning(r);
+      case "icc": return iccMeaning(r);
       default: return null;
     }
   } catch {

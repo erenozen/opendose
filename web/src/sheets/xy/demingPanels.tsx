@@ -5,6 +5,7 @@ import { pLabel } from "../../report/pformat";
 import CopyableMethods from "../common/CopyableMethods";
 import type { ControlsProps, ResultsProps } from "../types";
 import type { DemingOptions } from "./deming";
+import { cccCaveat, cccRows } from "../common/ccc";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -148,10 +149,12 @@ function Card({ ds }: { ds: any }) {
                 <td>t = {formatSig(f.identity_test.intercept_vs_0?.t)}, {Pv(f.identity_test.intercept_vs_0?.p)}</td></tr>
             </>
           )}
+          {cccRows(ds.ccc).map(([k, v]) => <tr key={k}><th>{k}</th><td>{v}</td></tr>)}
           <tr><th>Degrees of freedom</th><td>{f.df}</td></tr>
           <tr><th># of points analyzed</th><td>{f.n}</td></tr>
         </tbody>
       </table>
+      {cccCaveat(ds.ccc) && <p className="hint-block">{cccCaveat(ds.ccc)}</p>}
     </div>
   );
 }

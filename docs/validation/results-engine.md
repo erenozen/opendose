@@ -1850,3 +1850,103 @@ as the methods name it, and the background control when one was
 subtracted (`flowValuesPhrase`, `web/src/report/valuesAre.ts`, on screen,
 in PowerPoint and in the export bundle). Pinned in flow.test.ts and
 e2e-assays.
+
+## Feature validation: method comparison and reliability (2026-11-24)
+
+### P-42 Passing-Bablok and Theil-Sen regression
+
+`methodreg.passing_bablok` and `methodreg.theil_sen` (API
+`method_regression`; the analysis "Passing-Bablok regression (method
+comparison)" on XY tables, method 1 in X and each data set compared with
+it, and on column tables, two columns paired by row, linked from the
+Bland-Altman results). Passing & Bablok (1983): every pairwise slope,
+identical points left out, equal X with different Y as +inf, a slope of
+-1 (within 1e-9, so decimals typed by hand count) left out, the median
+shifted by K = the number of slopes below -1; CI ranks M1 = round((N -
+C) / 2), M2 = N - M1 + 1 with C = z sqrt(n (n - 1)(2n + 5) / 18); the
+intercept median(y - b x) with the CI from the slope's limits. Kendall's
+tau is reported and a tau that is not positive refuses the fit (the
+method assumes a positive correlation). CUSUM test of linearity as in
+the NCSS restatement of the paper and mcr's `calcCUSUM`: H = max
+|cusum| / sqrt(n_below + 1), P from the Kolmogorov distribution (5%
+critical value 1.36). Theil-Sen (Sen 1968): median of the slopes over
+pairs with different X, Sen's CI with ties in X and Y, intercept
+median(Y) - b median(X) (no CI). Deming with equal error variances is
+fitted to the same pairs for comparison. Above 3,000 pairs (4.5 million
+slopes) the analysis refuses rather than exhaust memory.
+
+Reference: `engine/tests/reference/method_regression.py`, an independent
+direct implementation in exact fractions of the decimals as typed (with
+NCSS's +/-inf convention for equal X, so its K differs from the engine's
+and the line must still agree), `scipy.stats.theilslopes` and
+`kendalltau`, and the line printed by Giavarina (2015, Biochem Med
+25:141, Table 1 data). R's `mcr` is not installed and its creatinine
+data are only in a binary .rda, so the plan's creatinine values are not
+pinned. `engine/tests/test_method_regression.py`:
+
+| Input | Reference | Engine tolerance |
+|---|---|---|
+| Giavarina 2015 Table 1 (30 pairs) | published y = 7.08 (-0.30 to 19.84) + 1.06 (1.02 to 1.09) x; direct: slope 1.0553122 (1.0204819 to 1.0914634), intercept 7.0818558 (-0.3048780 to 19.837349), CUSUM H = 1.25, P = 0.087866; Theil-Sen 1.0518888 (1.0166667 to 1.090625) | printed digits; 1e-12 |
+| Bland & Altman 2007 ejection fractions (60 pairs, ties) | slope 0.9941003 (0.7682927 to 1.2093023), intercept -0.5500295 (-1.5634884 to 0.5810366), N = 1769 | 1e-12 |
+| 13 points with equal X, a slope of exactly -1 and slopes below -1 | slope 1.025 (0.9 to 1.1142857), intercept -0.0625 | 1e-12 |
+
+Also tested: 90% CIs; swapping the methods inverts the slope's CI limits
+exactly; a unit change (x 1e-12, 1e12, 1000) leaves the slope unchanged;
+row order does not matter; n = 0, 1, 2, a constant method, a negative
+correlation and more than 3,000 pairs each give a sentence; three pairs
+give the line without CIs and say why; points all on the line make the
+CUSUM test undefined and say so; replicates in an XY table pair with
+their row's X; missing values drop the pair.
+
+### P-43 Lin's concordance correlation coefficient
+
+`methodcomp.lin_ccc`, added to the Bland-Altman (paired), Deming and
+Passing-Bablok results: rho_c = 2 s_xy / (s_x^2 + s_y^2 + (mean_x -
+mean_y)^2) with moments of divisor n (Lin 1989), CI on Fisher's z with
+Lin's variance as corrected in Lin (2000). The results print it with its
+CI and, beside it, that rho_c = r x C_b mixes precision and accuracy.
+
+Reference: `engine/tests/reference/lin_ccc.py`, a transcription of
+DescTools::CCC (z-transform CI; the formulas of epiR::epi.ccc). R is not
+installed and pingouin 0.7 has no CCC. `engine/tests/test_lin_ccc.py`:
+
+| Input | Reference | Engine tolerance |
+|---|---|---|
+| Ejection fractions, RV vs IC (the Bland-Altman template) | CCC 0.66141500, 95% CI 0.50895239 to 0.77364143, r 0.73249736, C_b 0.90295889 | 1e-12 |
+| Giavarina 2015 Table 1 | CCC 0.99154293, 95% CI 0.98364289 to 0.99563586 | 1e-12 |
+| X 1..8, Y 2.1 to 15.8 (slope 2) | CCC 0.44882821 with r 0.99919 | 1e-12 |
+
+Also tested: 90% CIs; symmetric in the two methods; a common unit change
+of both methods leaves it unchanged, rescaling one lowers it; n = 0, 1,
+2 and a constant method give a sentence (in the results, "not computed:"
+and the reason, the other numbers unchanged); identical methods give 1
+and say there is no CI; r = 0 gives no CI with the reason.
+
+### P-44 Reliability ICC (Shrout-Fleiss / McGraw-Wong)
+
+`icc.icc` (API `icc`; the column analysis "Agreement (ICC)": one column
+per rater, one row per target): the six forms of Shrout & Fleiss (1979),
+each with its F test of ICC = 0 and the F-based CI of McGraw & Wong
+(1996, Table 7; case 2A with its Satterthwaite df). The default and the
+headline form is ICC(2,1), two-way random effects, absolute agreement,
+single rater; the controls explain each form in one line. Balanced mean
+squares (equal to `twoway.two_way_anova(additive=True)`, which refuses
+exact-fit data). Rows missing a rating are left out and named.
+
+Reference: `engine/tests/reference/icc_reliability.py`: the values
+printed by Shrout & Fleiss (1979) for their 6 targets x 4 judges,
+pingouin 0.7 `intraclass_corr` (CIs to 2 decimals), and McGraw & Wong's
+Table 7 transcribed with a statsmodels ANOVA (full precision). R (psych,
+irr) is not installed. `engine/tests/test_icc.py`:
+
+| Input | Reference | Engine tolerance |
+|---|---|---|
+| Shrout & Fleiss 1979 (6 x 4) | published .17, .29, .71, .44, .62, .91; BMS 11.24, WMS 6.26, JMS 32.49, EMS 1.02; ICC(2,1) 0.28976378 (95% CI 0.01878651 to 0.76108437), ICC(3,1) 0.71484071 (0.34246477 to 0.94585826), ICC(1,1) 0.16574177 (-0.13293232 to 0.72256006) | printed digits; 1e-10 (CI 1e-9) |
+| pingouin "icc" (8 wines x 4 judges) | ICC(2,1) 0.72768879 (0.43448966 to 0.92670861), ICC(3,k) 0.91515856 | 1e-10 (CI 1e-9) |
+
+Also tested: 90% CIs; a unit change and the order of targets and raters
+leave every form unchanged; fewer than 2 targets or raters, all-equal
+ratings, no variation between targets and two ratings in one cell give a
+sentence; perfect agreement gives 1, a constant offset between raters
+gives consistency 1 and absolute agreement below 1; a negative ICC is
+reported as it is.

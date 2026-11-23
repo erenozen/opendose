@@ -7,6 +7,7 @@
 // blank (or excluded) is not a pair.
 import { numericData } from "../../project/table.ts";
 import type { DataTableModel } from "../../project/types.ts";
+import type { CccResult } from "../common/ccc.ts";
 
 export const ANALYSIS_BLAND_ALTMAN = "bland_altman";
 
@@ -166,6 +167,8 @@ export interface BaResult {
     curve: { average: number[]; bias: number[]; lower: number[]; upper: number[] };
   };
   normality?: Record<string, { p: number; passed_alpha_05: boolean; W?: number; K2?: number }>;
+  /** Lin's CCC of the pairs (P-43; paired analysis only) */
+  ccc?: CccResult;
   /** repeated measures */
   true_value?: "varies" | "constant";
   n_subjects?: number;

@@ -87,8 +87,8 @@ export function useCommands() {
       }
     };
 
-    const addAnalysis = (dataId: string, analysisId: string) => {
-      const sheets = analysisSheets(store.project, dataId, analysisId, newId);
+    const addAnalysis = (dataId: string, analysisId: string, options?: Record<string, unknown>) => {
+      const sheets = analysisSheets(store.project, dataId, analysisId, newId, options);
       if (!sheets.length) return;
       apply((p) => addSheets(p, sheets, lastOfFamily(p, dataId)));
       select(sheets[0].id);

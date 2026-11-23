@@ -29,6 +29,7 @@ from . import summary
 from . import mixedmodel, nested
 from . import fdr, letters, rowtests, threeway
 from . import deming, moretests, proportions, trend
+from . import icc, methodreg
 from . import equations, userequation
 from . import (assay_clustering, assay_densitometry, assay_growth,
                assay_kinetic, assay_luciferase, assay_mic, assay_plate,
@@ -2835,6 +2836,8 @@ def _deming(data, options):
                                   + fit["y_intercept"]["value"]
                                   for v in grid]}
             entry["fit"] = fit
+            entry["ccc"] = _ccc_or_error(xs, ys,
+                                         options.get("ci_level", 0.95))
         except Exception as exc:
             entry["error"] = str(exc)
         results.append(entry)
@@ -3912,6 +3915,98 @@ def _bland_altman_extras(data, options):
         regression=options.get("regression", True), z=options.get("z"),
         mover_mean=options.get("mover_mean", "t"))
     res["names"] = [ds[ia].get("name", ""), ds[ib].get("name", "")]
+    res["ccc"] = _ccc_or_error(_aligned_first(ds[ia]), _aligned_first(ds[ib]),
+                               options.get("ci_level", 0.95))
+    return res
+
+
+def _ccc_or_error(a, b, ci_level):
+    """Lin's CCC (methodcomp.lin_ccc) of row-paired values, or {"error"}."""
+    try:
+        return methodcomp.lin_ccc(a, b, ci_level=ci_level)
+    except ValueError as exc:
+        return {"error": str(exc)}
+
+
+def _method_regression(data, options):
+    """Nonparametric method-comparison regression (methodreg): Passing-
+    Bablok and Theil-Sen, with Deming (equal error variances) and Lin's
+    CCC on the same pairs for comparison.
+
+    data: an XY table {"x", "datasets": [{"name", "ys"}]} (method 1 = X,
+    method 2 = each data set; replicates pair with their row's X), or two
+    row-paired columns {"a", "b", "names": [name_a, name_b]} (rows missing
+    either value are left out). options: ci_level (0.95). Result:
+    {"analysis": "method_regression", "ci_level", "comparisons": [{"name",
+    "x_name", "n", "points": {"x", "y"}, "passing_bablok": {slope:
+    {value, ci}, intercept: {value, ci}, kendall, cusum: {H, p, linear,
+    max_cusum, n_above, n_below}, ...} | {"error"}, "theil_sen", "deming":
+    {slope, intercept: {value, se, ci}} | {"error"}, "ccc" | {"error"}}]}."""
+    level = options.get("ci_level", 0.95)
+    if "a" in data:
+        names = data.get("names") or ["A", "B"]
+        pairs = [(a, b) for a, b in zip(data["a"], data["b"])
+                 if not _is_missing(a) and not _is_missing(b)]
+        sets = [(names[1], names[0], [p[0] for p in pairs],
+                 [p[1] for p in pairs])]
+    else:
+        sets = []
+        for ds in data["datasets"]:
+            xs, ys = _expand(data["x"], ds["ys"])
+            sets.append((ds.get("name", ""), data.get("x_name", "X"), xs, ys))
+
+    def attempt(fn):
+        try:
+            return fn()
+        except ValueError as exc:
+            return {"error": str(exc)}
+
+    out = []
+    for name, x_name, xs, ys in sets:
+        def dem():
+            f = deming.deming(xs, ys, ci_level=level)
+            return {"slope": f["slope"], "intercept": f["y_intercept"],
+                    "n": f["n"], "se_method": f["se_method"]}
+        out.append({
+            "name": name, "x_name": x_name, "n": len(xs),
+            "points": {"x": xs, "y": ys},
+            "passing_bablok": attempt(lambda: methodreg.passing_bablok(
+                xs, ys, ci_level=level)),
+            "theil_sen": attempt(lambda: methodreg.theil_sen(
+                xs, ys, ci_level=level)),
+            "deming": attempt(dem),
+            "ccc": _ccc_or_error(xs, ys, level),
+        })
+    return {"analysis": "method_regression", "ci_level": level,
+            "comparisons": out}
+
+
+def _icc(data, options):
+    """Intraclass correlation (icc.icc), the six Shrout-Fleiss forms with
+    McGraw-Wong F-based CIs. data: a column table, datasets = raters (or
+    instruments), rows = targets, one value per cell (first subcolumn; a
+    second value in a cell is refused). Rows missing a rating are left
+    out with a warning. options: ci_level (0.95). Result: {"analysis":
+    "icc", "n_targets", "k_raters", "forms": [{form, value, ci, model,
+    type, unit, F, df1, df2, p}], "default": "ICC2", "mean_squares",
+    "names", "incomplete_rows", "warnings"?}."""
+    dss = data["datasets"]
+    for ds in dss:
+        for row in ds.get("ys", []):
+            if row and any(not _is_missing(v) for v in row[1:]):
+                raise ValueError("the ICC takes one rating per cell: enter "
+                                 "each rater's rating in one subcolumn")
+    cols = [_aligned_first(ds) for ds in dss]
+    n_rows = max((len(c) for c in cols), default=0)
+    matrix = [[(c[i] if i < len(c) and not _is_missing(c[i]) else None)
+               for c in cols] for i in range(n_rows)]
+    res = icc.icc(matrix, ci_level=options.get("ci_level", 0.95))
+    res["names"] = [ds.get("name", "") or f"Rater {j + 1}"
+                    for j, ds in enumerate(dss)]
+    if res["incomplete_rows"]:
+        res["warnings"] = [_incomplete_warning(res["incomplete_rows"],
+                                               "target row")
+                           + " (the ICC needs every rater's rating)"]
     return res
 
 
@@ -4028,6 +4123,8 @@ _HANDLERS.update({
     "roc_compare": _roc_compare,
     "roc_cutoff": _roc_cutoff,
     "bland_altman_extras": _bland_altman_extras,
+    "method_regression": _method_regression,
+    "icc": _icc,
     "quantal": _quantal,
     "auc": _auc,
     "pzfx_export": _pzfx_export,

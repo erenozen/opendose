@@ -6,7 +6,9 @@
 // comparing regression lines (P-13), pairs of rows of a contingency table
 // (P-14) and two event rates (P-47); and the fit models of wave 1: Weibull
 // and hormesis models (P-19), range constraints (P-20), initial values and
-// the fit report (P-21) and simulating a user-defined equation (P-51).
+// the fit report (P-21) and simulating a user-defined equation (P-51);
+// and method comparison and reliability: Passing-Bablok (P-42), Lin's
+// CCC (P-43) and the reliability ICC (P-44).
 // Each number asserted here is pinned in the engine tests from an
 // independent reference (engine/tests/reference/).
 // Usage: node scripts/e2e-results.mjs [http://localhost:5173/]
@@ -726,6 +728,89 @@ await page.waitForSelector('.pane-results[data-live="true"] .results-table', { t
     /does not say whether subjects with higher pH have higher PaCO2/.test(scope), scope);
   expect("P-27 with the Subject role set, the chip is gone",
     await page.locator(".pane-answer").getByRole("button", { name: /Subjects ignored/ }).count() === 0);
+}
+
+// --- P-42, P-43, P-44: method comparison and reliability ---------------
+const methodRow = async (label) => (await page.locator(".pane-results tr", { hasText: label }).first()
+  .innerText().catch(() => "")).replace(/\s+/g, " ").trim();
+const analyzeWith = async (re) => {
+  await page.getByRole("button", { name: "Analyze", exact: true }).click();
+  await page.getByRole("menuitem", { name: re }).click();
+};
+{
+  // engine/tests/reference/method_regression.py: Giavarina (2015) Table 1;
+  // the article prints y = 7.08 (-0.30 to 19.84) + 1.06 (1.02 to 1.09) x
+  const ref = JSON.parse(readFileSync(join(here, "../../engine/tests/reference/method_regression.json"), "utf8"));
+  const g = ref.giavarina;
+  await pastedTable("xy", "Giavarina", "Method A\tMethod B\n"
+    + g.x.map((x, i) => `${x}\t${g.y[i]}`).join("\n") + "\n");
+  await analyzeWith(/^Passing-Bablok regression/);
+  await liveResults(/Passing-Bablok regression: Method B vs Method A/);
+  const [pb, ts, dm, cusum] = [await methodRow("Passing-Bablok"), await methodRow("Theil-Sen"),
+    await methodRow("Deming"), await methodRow("CUSUM")];
+  expect("P-42 acceptance: Passing-Bablok slope 1.055 (1.02 to 1.091), intercept 7.082 (-0.3049 to 19.84)",
+    pb === "Passing-Bablok 1.055 1.02 to 1.091 7.082 -0.3049 to 19.84", pb);
+  expect("P-42 Theil-Sen beside it: slope 1.052 (1.017 to 1.091), intercept 8.231 without a CI",
+    ts === "Theil-Sen 1.052 1.017 to 1.091 8.231 not defined", ts);
+  expect("P-42 Deming beside it", /^Deming \(equal error variances\) 1\.046 /.test(dm), dm);
+  expect("P-42 the CUSUM test: H = 1.25, P = 0.08787, linear",
+    cusum === "Linearity (CUSUM test) H = 1.25, P = 0.08787: no significant deviation from linearity", cusum);
+  expect("P-42 headline: the Passing-Bablok slope with its CI",
+    await answerText(/Passing-Bablok slope\s*1\.055\s*95% CI 1\.02 to 1\.091/));
+  expect("P-42 the graph draws the line of identity, the pairs and the Passing-Bablok line",
+    await page.locator(".plot .scatterlayer .trace").count() === 3);
+  // P-43 in Deming: CCC 0.9915 (0.9836 to 0.9956), engine/tests/reference/lin_ccc.py
+  await analyzeWith(/^Deming regression/);
+  await liveResults(/concordance correlation/);
+  const dccc = `${await methodRow("concordance correlation")} | ${await methodRow("CI of the CCC")}`;
+  expect("P-43 Deming results carry Lin's CCC 0.9915 (95% CI 0.9836 to 0.9956)",
+    dccc === "Lin's concordance correlation (CCC) 0.9915 | 95% CI of the CCC 0.9836 to 0.9956", dccc);
+
+  // Bland-Altman on the ejection fractions (the template's data), its CCC
+  // (P-43 acceptance) and the link to Passing-Bablok of the same columns
+  const e = ref.ejection;
+  await pastedTable("column", "Ejection", "RV\tIC\n" + e.x.map((x, i) => `${x}\t${e.y[i]}`).join("\n") + "\n");
+  await analyzeWith(/^Bland-Altman/);
+  await liveResults(/concordance correlation/);
+  const bccc = `${await methodRow("concordance correlation")} | ${await methodRow("CI of the CCC")}`;
+  expect("P-43 acceptance: Bland-Altman results carry Lin's CCC 0.6614 (95% CI 0.509 to 0.7736)",
+    bccc === "Lin's concordance correlation (CCC) 0.6614 | 95% CI of the CCC 0.509 to 0.7736", bccc);
+  expect("P-43 the CCC caveat sits beside it",
+    await liveResults(/The CCC mixes precision and accuracy: Pearson's r 0\.7325 \(precision\)/));
+  await page.getByRole("button", { name: "Passing-Bablok regression of these two columns" }).click();
+  await liveResults(/Passing-Bablok regression: IC vs RV/);
+  const epb = await methodRow("Passing-Bablok");
+  expect("P-42 the Bland-Altman link fits Passing-Bablok of IC on RV: 0.9941 (0.7683 to 1.209)",
+    epb === "Passing-Bablok 0.9941 0.7683 to 1.209 -0.55 -1.563 to 0.581", epb);
+}
+{
+  // P-44: Shrout & Fleiss (1979), 6 targets x 4 judges; printed .17, .29,
+  // .71, .44, .62, .91; CIs McGraw & Wong (engine/tests/reference/icc_reliability.py)
+  const ref = JSON.parse(readFileSync(join(here, "../../engine/tests/reference/icc_reliability.json"), "utf8"));
+  await pastedTable("column", "Shrout-Fleiss", "Judge 1\tJudge 2\tJudge 3\tJudge 4\n"
+    + ref.shrout_fleiss.matrix.map((r) => r.join("\t")).join("\n") + "\n");
+  await analyzeWith(/^Agreement \(ICC\)/);
+  await liveResults(/Intraclass correlation: 6 targets, 4 raters/);
+  const want = {
+    "ICC(1,1)": "0.1657 -0.1329 to 0.7226", "ICC(2,1)": "0.2898 0.01879 to 0.7611",
+    "ICC(3,1)": "0.7148 0.3425 to 0.9459", "ICC(1,4)": "0.4428 -0.8844 to 0.9124",
+    "ICC(2,4)": "0.6201 0.07114 to 0.9272", "ICC(3,4)": "0.9093 0.6757 to 0.9859",
+  };
+  const got = {};
+  for (const k of Object.keys(want)) got[k] = await methodRow(k);
+  expect("P-44 acceptance: all six ICCs with McGraw-Wong CIs (Shrout & Fleiss: .17 .29 .71 .44 .62 .91)",
+    Object.entries(want).every(([k, v]) => got[k].startsWith(k) && got[k].endsWith(v)),
+    Object.values(got).join(" | "));
+  const [f1, f2] = [await methodRow("One-way forms"), await methodRow("Two-way forms")];
+  expect("P-44 the F tests of ICC = 0: F(5, 18) = 1.795 and F(5, 15) = 11.03",
+    f1 === "One-way forms F(5, 18) = 1.795, P = 0.1648"
+      && f2 === "Two-way forms F(5, 15) = 11.03, P = 1.346e-4", `${f1} | ${f2}`);
+  expect("P-44 the default form ICC(2,1) leads", /^ICC\(2,1\) \(chosen\)/.test(got["ICC(2,1)"])
+    && await answerText(/ICC\(2,1\)\s*0\.2898\s*95% CI 0\.01879 to 0\.7611/), got["ICC(2,1)"]);
+  await page.locator(".pane-controls").getByLabel("ICC form").selectOption("ICC3");
+  expect("P-44 choosing ICC(3,1) moves the headline and its explainer",
+    await answerText(/ICC\(3,1\)\s*0\.7148\s*95% CI 0\.3425 to 0\.9459/)
+      && /constant offset between them does not matter/.test(await page.locator(".pane-controls").innerText()));
 }
 
 // ------------------------------------------------------------------------
