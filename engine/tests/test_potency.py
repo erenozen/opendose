@@ -258,3 +258,18 @@ def test_scaling_concentrations_shifts_the_mean_only():
     ref = REF["invariance"]["x_times_1e3"]
     assert ref["mean_log"] == pytest.approx(REF["summary"]["mean_log"] + 3, abs=1e-12)
     assert ref["sd_log"] == pytest.approx(REF["summary"]["sd_log"], abs=1e-12)
+
+
+def test_editing_one_well_changes_that_experiment_only():
+    ed = REF["edited"]
+    rows = [list(r) for r in REF["rows"]]
+    rows[ed["row"]][ed["sub"]] = ed["value"]
+    e = run(rows=rows)["experiments"]
+    assert e["fits"][0]["log_value"] == pytest.approx(REF["experiments"][0]["log_ic50"], abs=1e-6)
+    # the 5.0 well flattens the optimum: the two optimizers agree to 1e-5
+    assert e["fits"][2]["log_value"] == pytest.approx(ed["experiment_3"]["log_ic50"], abs=2e-5)
+    assert sig(e["fits"][2]["value"]) == sig(ed["experiment_3"]["ic50"]) == 9.536e-8
+    s = e["summary"]
+    assert s["p_mean"] == pytest.approx(ed["summary"]["p_mean"], abs=1e-5)
+    assert s["p_ci95"] == pytest.approx(ed["summary"]["p_ci95"], abs=1e-5)
+    assert [sig(s["p_mean"])] + [sig(v) for v in s["p_ci95"]] == [7.12, 6.634, 7.606]

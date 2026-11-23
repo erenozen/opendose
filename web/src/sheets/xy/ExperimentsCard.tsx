@@ -30,7 +30,7 @@ function SummaryCard({ s, xUnit }: { s: PotencySummary; xUnit: string }) {
       <p className="model-line">
         Each experiment fitted on its own with the same model and options. The {log} of each
         experiment is one value: mean, SD and a t-based 95% CI on n − 1 df, n = experiments;
-        the geometric-mean {s.label} and its CI are the antilogs.
+        the geometric mean {s.label} and its CI are the antilogs.
       </p>
       <table className="results-table">
         <caption className="sr-only">Fit of each experiment of {s.name}</caption>
@@ -50,7 +50,7 @@ function SummaryCard({ s, xUnit }: { s: PotencySummary; xUnit: string }) {
               <td>{r.logValue}</td>
               <td>{r.value}</td>
               <td>{r.logCI}</td>
-              <td>{r.included ? "Yes" : `No: ${r.reason}`}</td>
+              <td>{r.included ? "Yes" : "Left out"}</td>
             </tr>
           ))}
         </tbody>
@@ -67,10 +67,10 @@ function SummaryCard({ s, xUnit }: { s: PotencySummary; xUnit: string }) {
           {s.pMean && <tr><th scope="row">Mean p{s.label}</th><td>{s.pMean}</td></tr>}
           {s.pCI && <tr><th scope="row">95% CI of mean p{s.label}</th><td>{s.pCI}</td></tr>}
           {s.geomean && (
-            <tr><th scope="row">Geometric-mean {s.label} ({xUnit})</th><td>{s.geomean}</td></tr>
+            <tr><th scope="row">Geometric mean {s.label} ({xUnit})</th><td>{s.geomean}</td></tr>
           )}
           {s.geomeanCI && (
-            <tr><th scope="row">95% CI of geometric-mean {s.label}</th><td>{s.geomeanCI}</td></tr>
+            <tr><th scope="row">95% CI of geometric mean {s.label}</th><td>{s.geomeanCI}</td></tr>
           )}
         </tbody>
       </table>

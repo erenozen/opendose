@@ -11,6 +11,8 @@ import { exclusionText, type PotencySummary } from "../../sheets/xy/experiments.
 export interface PotencyItem {
   title: string;
   figure: KeyFigure;
+  /** "Geometric mean IC50 9.235e-8 M, 95% CI 1.733e-8 to 4.922e-7". */
+  geomean?: string;
   /** "IC50 per experiment: 4.516e-8, 1.014e-7, 1.72e-7 M". */
   perExperiment?: string;
   /** "Experiment 3 left out: ambiguous fit: …". */
@@ -21,7 +23,8 @@ export interface PotencyItem {
 const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? "" : "s"}`;
 
 export function potencyItem(s: PotencySummary, xUnit: string): PotencyItem {
-  const u = xUnit ? ` ${xUnit}` : "";
+  // a unit never wraps away from its number (content.md)
+  const u = xUnit ? `\u00a0${xUnit}` : "";
   const molar = !!s.pMean;
   const name = molar ? `Mean p${s.label}` : `Mean log${s.label}`;
   const value = (molar ? s.pMean : s.meanLog) ?? "n/a";
@@ -33,9 +36,6 @@ export function potencyItem(s: PotencySummary, xUnit: string): PotencyItem {
   if (!molar && !s.error) facts.push(`log10 of the concentration${xUnit ? ` in ${xUnit}` : ""}`);
   const figure: KeyFigure = { name, value, facts,
     ...(ci ? { ci: `95% CI ${ci} (t, ${s.df} df)` } : {}) };
-  if (s.geomean && s.geomeanCI) {
-    figure.facts.push(`Geometric-mean ${s.label} ${s.geomean}${u}, 95% CI ${s.geomeanCI}`);
-  }
   if (s.withheld) figure.demoted = `No SD or CI across experiments: ${s.withheld}.`;
   if (s.error) {
     figure.value = "n/a";
@@ -45,6 +45,8 @@ export function potencyItem(s: PotencySummary, xUnit: string): PotencyItem {
   return {
     title: s.name,
     figure,
+    geomean: s.geomean && s.geomeanCI
+      ? `Geometric mean ${s.label} ${s.geomean}${u}, 95% CI ${s.geomeanCI}` : undefined,
     perExperiment: used.length
       ? `${s.label} per experiment: ${used.map((r) => r.value).join(", ")}${u}` : undefined,
     excluded: s.withheld ? [] : s.rows.filter((r) => !r.included).map(exclusionText),

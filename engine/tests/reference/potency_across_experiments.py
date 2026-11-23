@@ -113,6 +113,15 @@ def main():
                        "x_times_1e3": summary([v + 3 for v in logs])},
         "two_experiments": summary(logs[:2]),
     }
+    # the e2e's live edit: the first well of experiment 3 at 100 nM
+    # (row 5, subcolumn 7) typed as 5.0 instead of its value
+    edited_rows = [list(r) for r in rows]
+    edited_rows[4][6] = 5.0
+    e3 = fit_experiment(logx, edited_rows, 2)
+    elogs = logs[:2] + [e3["log_ic50"]]
+    out["edited"] = {"row": 4, "sub": 6, "value": 5.0,
+                     "experiment_3": {"ic50": 10 ** e3["log_ic50"], **e3},
+                     "summary": summary(elogs)}
     OUT.write_text(json.dumps(out, indent=1) + "\n")
     s = out["summary"]
     for e in out["experiments"]:

@@ -26,7 +26,14 @@ export default function AcrossExperiments({ result, xUnit }: { result: unknown; 
               {f.demoted && <dd className="answer-reason"><NumText text={f.demoted} /></dd>}
               <dd className="answer-figure"><Num>{f.value}</Num></dd>
               {f.ci && <dd className="answer-ci"><NumText text={f.ci} /></dd>}
-              {f.facts.map((x) => <dd key={x} className="answer-facts"><NumText text={x} /></dd>)}
+              {f.facts.length > 0 && (
+                <dd className="answer-facts">
+                  {f.facts.map((x, i) => (
+                    <span key={x}>{i > 0 && <span aria-hidden="true"> · </span>}<NumText text={x} /></span>
+                  ))}
+                </dd>
+              )}
+              {it.geomean && <dd className="answer-facts"><NumText text={it.geomean} /></dd>}
               {it.perExperiment && (
                 <dd className="answer-facts"><NumText text={it.perExperiment} /></dd>
               )}

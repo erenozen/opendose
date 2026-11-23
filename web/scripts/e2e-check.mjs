@@ -4087,6 +4087,87 @@ const axeOn = async (pg, sel) => {
   }
 }
 
+// --- potency across experiments (P-08): 8 concentrations, 3 experiments of
+// 3 wells (engine/tests/reference/potency_across_experiments.py: scipy
+// curve_fit per experiment, then the t interval on the logIC50 values).
+// The pooled fit's chip, the replicate map assigned through the dialog,
+// the Across experiments headline and table, the linked logIC50 table,
+// and a live edit of one well.
+{
+  const REFP = JSON.parse(readFileSync(join(here, "..", "..", "engine", "tests", "reference",
+    "potency_across_experiments.json"), "utf8"));
+  const sig4 = (v) => (Math.abs(v) < 1e-3 ? v.toExponential(3) : String(Number(v.toPrecision(4))));
+  const S = REFP.summary;
+  await page.keyboard.press("Escape");
+  await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]',
+    join(here, "..", "e2e-fixtures", "potency-experiments.json"));
+  await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 120000 });
+  await openChecks();
+  const pooled = page.locator(".guide-chip", { hasText: "CI counts wells, not experiments" });
+  expect("pooled fit: the Checks row says its CI counts wells, not experiments", await pooled.count() === 1);
+  await pooled.click();
+  const chipText = await page.locator(".guide-chip-detail").innerText();
+  expect("the chip counts the 72 values and cites Lazic 2010",
+    chipText.includes("every one of the 72 values") && chipText.includes("Lazic 2010"), chipText.slice(0, 160));
+  await page.locator(".guide-chip-detail").getByRole("button", { name: "Assign replicates…" }).click();
+  const rep = page.getByRole("dialog", { name: /Assign replicates/ });
+  await rep.waitFor({ timeout: 10000 });
+  for (let k = 0; k < 9; k++) {
+    await rep.getByLabel(`Subcolumn ${"ABCDEFGHI"[k]} is`).selectOption(String(Math.floor(k / 3)));
+  }
+  await rep.getByLabel("Each value is one").fill("wells");
+  expect("the dialog reads 3 experiments", (await rep.innerText()).includes("3 experiments: Experiment 1, Experiment 2, Experiment 3"));
+  await rep.getByRole("button", { name: "Save" }).click();
+  const across = page.locator(".pane-answer .answer-group");
+  await across.waitFor({ timeout: 120000 });
+  const acrossText = (await across.innerText()).replace(/\s+/g, " ");
+  expect(`Across experiments: mean pIC50 ${sig4(S.p_mean)}, 95% CI ${sig4(S.p_ci95[0])} to ${sig4(S.p_ci95[1])} on 2 df, SD ${sig4(S.sd_log)}, n = 3 experiments (scipy reference)`,
+    acrossText.includes("Across experiments") && acrossText.includes(`Mean pIC50 ${sig4(S.p_mean)}`)
+    && acrossText.includes(`95% CI ${sig4(S.p_ci95[0])} to ${sig4(S.p_ci95[1])} (t, 2 df)`)
+    && acrossText.includes(`SD ${sig4(S.sd_log)} · n = 3 experiments`), acrossText);
+  expect(`geometric mean IC50 ${sig4(S.geomean)} M, 95% CI ${sig4(S.geomean_ci95[0])} to ${sig4(S.geomean_ci95[1])}`,
+    acrossText.includes(`Geometric mean IC50 ${sig4(S.geomean)} M, 95% CI ${sig4(S.geomean_ci95[0])} to ${sig4(S.geomean_ci95[1])}`));
+  const perExp = REFP.experiments.map((e) => sig4(e.ic50));
+  expect(`three per-experiment IC50 values ${perExp.join(", ")}`,
+    acrossText.includes(`IC50 per experiment: ${perExp.join(", ")} M`));
+  const card = (await page.locator(".experiments-card").first().innerText()).replace(/\s+/g, " ");
+  expect("the typeset table: each experiment's LogIC50 and the t interval on 2 df",
+    REFP.experiments.every((e) => card.includes(`${e.name} ${sig4(e.log_ic50)} ${sig4(e.ic50)}`))
+    && card.includes(`95% CI of mean LogIC50 (t, 2 df) ${sig4(S.ci95_log[0])} to ${sig4(S.ci95_log[1])}`), card.slice(0, 400));
+  await openChecks();
+  await pooled.click().catch(() => {});
+  expect("with the map, the chip points to the summary on 3 experiments",
+    (await page.locator(".guide-chip-detail").innerText().catch(() => "")).includes("n = 3 experiments"));
+  // the linked column table of logIC50 values
+  await page.getByRole("button", { name: "Make a linked table of LogIC50 values" }).click();
+  const linkedName = "LogIC50 per experiment of Three experiments";
+  await page.waitForSelector(".grid-toolbar", { timeout: 30000 });
+  expect("the linked table is made and selected", await navRow(linkedName).count() === 1);
+  const linkedCell = (r) => page.locator(`.data-table input[aria-label^="Compound A"][aria-label$="row ${r}"]`).first();
+  const linkedVals = [];
+  for (let r = 1; r <= 3; r++) linkedVals.push(Number(await linkedCell(r).inputValue()));
+  expect("the linked table holds the three logIC50 values",
+    linkedVals.every((v, i) => Math.abs(v - REFP.experiments[i].log_ic50) < 1e-4), linkedVals.join(", "));
+  // a live edit: experiment 3's first well at 100 nM typed as 5.0
+  const ED = REFP.edited;
+  await page.getByRole("treeitem", { name: /^Nonlin fit/ }).first().locator(":scope > .nav-row").click();
+  await page.locator(`.data-table input[aria-label="Compound A, Y${ED.sub + 1}, row ${ED.row + 1}"]`).fill(String(ED.value));
+  await page.keyboard.press("Enter");
+  const EP = ED.summary;
+  const updated = await page.waitForFunction((want) => (document.querySelector(".pane-answer .answer-group")
+    ?.textContent ?? "").replace(/\s+/g, " ").includes(want), `Mean pIC50${sig4(EP.p_mean)}`, { timeout: 120000 })
+    .then(() => true, () => false);
+  const acrossNow = (await across.innerText().catch(() => "")).replace(/\s+/g, " ");
+  expect(`one Y value edited: the summary updates to pIC50 ${sig4(EP.p_mean)}, 95% CI ${sig4(EP.p_ci95[0])} to ${sig4(EP.p_ci95[1])}`,
+    updated && acrossNow.includes(`95% CI ${sig4(EP.p_ci95[0])} to ${sig4(EP.p_ci95[1])} (t, 2 df)`), acrossNow);
+  await navRow(linkedName).click();
+  await page.waitForFunction(([l, want]) => {
+    const el = document.querySelector(`.data-table input[aria-label^="Compound A"][aria-label$="row 3"]`);
+    return !!el && Math.abs(Number(el.value) - want) < 1e-4;
+  }, [linkedName, ED.experiment_3.log_ic50], { timeout: 60000 }).then(() => true, () => false)
+    .then((ok) => expect(`the linked table follows: experiment 3 logIC50 ${sig4(ED.experiment_3.log_ic50)}`, ok));
+}
+
 await page.screenshot({
   path: join(here, "app.png"),
   fullPage: true,

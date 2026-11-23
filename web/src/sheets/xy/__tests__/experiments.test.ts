@@ -89,9 +89,9 @@ test("the summary reads the engine's numbers at display precision", () => {
   assert.equal(item.figure.name, "Mean pIC50");
   assert.equal(item.figure.value, "7.035");
   assert.equal(item.figure.ci, "95% CI 6.308 to 7.761 (t, 2 df)");
-  assert.deepEqual(item.figure.facts, ["SD 0.2925", "n = 3 experiments",
-    "Geometric-mean IC50 9.235e-8 M, 95% CI 1.733e-8 to 4.922e-7"]);
-  assert.equal(item.perExperiment, "IC50 per experiment: 4.516e-8, 1.014e-7, 1.720e-7 M");
+  assert.deepEqual(item.figure.facts, ["SD 0.2925", "n = 3 experiments"]);
+  assert.equal(item.geomean, "Geometric mean IC50 9.235e-8\u00a0M, 95% CI 1.733e-8 to 4.922e-7");
+  assert.equal(item.perExperiment, "IC50 per experiment: 4.516e-8, 1.014e-7, 1.720e-7\u00a0M");
   assert.equal(item.figure.demoted, undefined);
 });
 
@@ -116,7 +116,7 @@ test("exclusions, two experiments and a withheld summary are said next to the nu
     ["Experiment 3 left out: ambiguous fit: the data do not define the parameters."]);
   assert.ok(item.figure.facts.includes("n = 2 experiments of 3"));
   assert.match(item.notes[0], /^Two experiments: the CI rests on 1 degree of freedom \(t = 12\.71\)/);
-  assert.equal(item.perExperiment, "IC50 per experiment: 4.516e-8, 1.014e-7 M");
+  assert.equal(item.perExperiment, "IC50 per experiment: 4.516e-8, 1.014e-7\u00a0M");
   // fewer than two left: no SD or CI, the reason first
   Object.assign(e.summary, { n: 1, df: 0, sd_log: null, ci95_log: null, geomean_ci95: null, p_ci95: null,
     withheld: "fewer than two experiments can be summarised (1 of 3): Experiment 2: the fit failed" });
