@@ -4304,7 +4304,29 @@ const axeOn = async (pg, sel) => {
   await pasteAt("Row 1 title", "F\t20\t21\t22\t23\t24\t25\nM\t26\t27\t28\t30\t31\t32\n");
   await page.locator('input[aria-label="Dataset 1 title"]').fill("Vehicle");
   await page.locator('input[aria-label="Dataset 2 title"]').fill("Drug");
-  await page.waitForTimeout(400);
+  await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 60000 });
+  const sexItem = async () => {
+    await page.getByRole("button", { name: "Journal checklists" }).click();
+    const dlg = page.getByRole("dialog", { name: "Journal checklists" });
+    await dlg.getByRole("tab", { name: /ARRIVE/ }).click();
+    const li = dlg.locator(".checklist li").filter({ has: page.locator(".ck-text", { hasText: /^Sex as a biological variable/ }) });
+    const out = { status: await li.getAttribute("data-status"), text: (await li.innerText()).replace(/\s+/g, " ") };
+    await dlg.getByRole("button", { name: "Close" }).last().click();
+    return out;
+  };
+  // the table's own two-way ANOVA has the rows as a factor
+  await openChecks();
+  expect("on the two-way ANOVA the chip says sex is a factor",
+    await appears(page.getByRole("button", { name: /Sex is a factor of this analysis/ }), 60000));
+  const withTwoWay = await sexItem();
+  expect("the checklist gains a sex item, met while a two-way ANOVA has sex as a factor",
+    withTwoWay.status === "met" && /Rows F and M look like sex, and “Two-way ANOVA/.test(withTwoWay.text),
+    withTwoWay.text.slice(0, 200));
+  // without it, the item is not met and other analyses ask the question
+  const twoWayName = withTwoWay.text.match(/“(Two-way ANOVA[^”]*)”/)?.[1] ?? "";
+  await navRow(twoWayName).click({ button: "right" });
+  await page.getByRole("menuitem", { name: /Delete/ }).click();
+  await page.getByRole("alertdialog").getByRole("button", { name: "Delete" }).click();
   await page.getByRole("button", { name: "Analyze", exact: true }).click();
   await page.getByRole("menuitem", { name: /Multiple t tests/ }).click();
   await page.waitForSelector(".result-card h3:has-text('Multiple t tests')", { timeout: 30000 });
@@ -4320,36 +4342,27 @@ const axeOn = async (pg, sel) => {
     && await sexDetail.getByRole("link", { name: /Clayton & Collins 2014/ }).count() === 1
     && await sexDetail.getByRole("button", { name: "Two-way ANOVA with sex and the interaction" }).count() === 1,
     sexText.slice(0, 200));
-  const sexItem = async () => {
-    await page.getByRole("button", { name: "Journal checklists" }).click();
-    const dlg = page.getByRole("dialog", { name: "Journal checklists" });
-    await dlg.getByRole("tab", { name: /ARRIVE/ }).click();
-    const li = dlg.locator(".checklist li").filter({ has: page.locator(".ck-text", { hasText: /^Sex as a biological variable/ }) });
-    const out = { status: await li.getAttribute("data-status"), text: (await li.innerText()).replace(/\s+/g, " ") };
-    await dlg.getByRole("button", { name: "Close" }).last().click();
-    return out;
-  };
+  axeHits.push(...await axeAt(".pane-answer .checks"));
   const before = await sexItem();
-  expect("the checklist gains a sex item: not met until sex is a factor of an analysis",
-    before.status === "unmet" && /Rows F and M look like sex/.test(before.text), before.text.slice(0, 200));
+  expect("the sex item is not met while no analysis has sex as a factor",
+    before.status === "unmet" && /Rows F and M look like sex\. If they are, analyse with sex as a factor/.test(before.text),
+    before.text.slice(0, 200));
   await openChecks();
   if (!(await sexDetail.count())) await sexChipBtn.click();
   await sexDetail.getByRole("button", { name: "Two-way ANOVA with sex and the interaction" }).click();
   await page.waitForSelector('.pane-results[data-live="true"] .interaction-test', { timeout: 60000 });
   expect("one click: two-way ANOVA, interaction first, with Sex as the row factor",
-    /Sex/.test(await page.locator(".pane-results .interaction-block").innerText()));
-  await openChecks();
-  expect("on the two-way ANOVA the chip says sex is a factor",
-    await appears(page.getByRole("button", { name: /Sex is a factor of this analysis/ }), 30000));
+    /Sex/.test(await page.locator(".pane-results .interaction-block").innerText()),
+    (await page.locator(".pane-results .interaction-test").innerText()).slice(0, 120));
   const after = await sexItem();
-  expect("the sex item is met once sex is a factor", after.status === "met", after.text.slice(0, 200));
-  axeHits.push(...await axeAt(".pane-answer .checks"));
+  expect("the sex item is met again", after.status === "met", after.text.slice(0, 200));
   // an unrelated grouped table (rows Vehicle and Drug) is never asked
   await navRow("Drug by genotype").click();
   await page.waitForSelector('.pane-results[data-live="true"]', { timeout: 60000 });
   await openChecks();
   expect("rows Vehicle and Drug: no sex question",
-    await page.getByRole("button", { name: /sex/i }).count() === 0);
+    await page.locator(".pane-answer details.checks").getByRole("button", { name: /\bsex\b/i }).count() === 0
+    && await page.locator(".pane-answer details.checks").count() > 0);
 
   expect("axe-core: the plan chip, the plan sheet, Plan an experiment and the Interaction block pass WCAG 2 AA",
     axeHits.length === 0, axeHits.join(" | "));
