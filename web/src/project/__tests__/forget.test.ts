@@ -17,6 +17,7 @@ function fakeStorage(entries: Record<string, string>) {
 test("every key OpenDose writes is recognised as its own", () => {
   for (const k of [
     "opendose-autosave-current", "opendose-autosave-previous", "opendose-autosave",
+    "opendose-autosave-session:3f2a", "opendose-session",
     "opendose-templates", "opendose-prefs", "opendose-theme", "opendose-scheme",
     "opendose-import-recipes", "opendose-plate-layouts", "opendose-export",
     "opendose-tour-done", "opendose-start-screen", "opendose-nav", "opendose-nav-sections",
