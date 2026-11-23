@@ -124,8 +124,8 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
   const [titlesTouched, setTitlesTouched] = useState(false);
   // The source is split into fields once per text, delimiter and lines to
   // skip; the titles check and the preview both read that one parse.
-  const matrix = useMemo(() => sourceMatrix(source, src),
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only these two settings change the parse
+  const matrix = useMemo(
+    () => sourceMatrix(source, { delimiter: src.delimiter, skipLines: src.skipLines }),
     [source, src.delimiter, src.skipLines]);
   const detectedTitles = useMemo(() => detectTitlesRowIn(matrix, src), [matrix, src]);
   const effSrc = useMemo(() => (titlesTouched ? src : { ...src, titlesRow: detectedTitles }),

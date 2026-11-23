@@ -2811,6 +2811,81 @@ logIC50 -7.020613 and mean pIC50 7.119979 (6.634281 to 7.605676). The
 strings asserted by the P-08 step in `web/scripts/e2e-check.mjs` equal
 these values at display precision. Averaging IC50 on the linear scale
 would give 1.062e-7 M; the engine averages on the log scale.
+
+## Feature validation: large tables, engine side (2026-11-23)
+
+FEATURE-PLAN P-10 (the web side is in `figures-exports.md`, "Large pasted
+tables"). Every analysis that runs by default on an XY table (linear
+regression with its runs test, bands, a line through a point or the
+origin with the replicates test) and on a column table (column
+statistics with the normality tests, the t tests, the residual
+diagnostics) was timed natively at 200,000 and 500,000 values per column.
+Four paths grew faster than n or failed; each was fixed so that results
+for the sizes the existing tests cover do not change (the full engine
+suite and `test_prism_parity.py` pass unchanged):
+
+| path | before | after |
+|---|---|---|
+| `linregress.runs_test` (exact P, big integers) | about n^2.8: 0.55 s at 5,000 residuals, 24.5 s at 20,000, no result at 200,000 | unchanged up to 2,000 residuals; above, the same exact distribution summed in floating point: 0.13 s at 500,000 |
+| `diagnostics.replicates_test` (one mask over X per distinct X) | quadratic: 11.8 s at 200,000 distinct X | sorted groups, bit-identical: 0.006 s |
+| Anderson-Darling P (`columnstats._anderson_darling_p`) | `OverflowError: math range error` once A2* passes about 400, so column statistics failed on 200,000 uniform values | P held at the formula's minimum (A2* = 153.47, P = 1.3e-190) beyond it, with a note |
+| `residuals.column_residuals` (one dictionary per value) | 1.1 GB and a 204 MB answer at 1,000,000 values | above 50,000 values the points are withheld with a sentence naming the limit; every other number identical |
+
+Runs test above 2,000 residuals (`RUNS_EXACT_INT_MAX_N`): the null
+distribution of the number of runs (Wald & Wolfowitz 1940; Bradley 1968,
+ch. 11) evaluated in logarithms, binomials as running sums of log((n - k)
+/ k) outward from k = n1 n2 / N, normalised by the log-sum of all terms;
+the result says `p_method` "exact" (big integers) or "exact_float". The
+Wald-Wolfowitz normal approximation (mean 2 n1 n2 / N + 1) was the planned
+large-n method; it was measured and not used, because it does not agree
+with the exact P at the four significant digits the results show when the
+signs are unbalanced (below).
+
+Reference: `engine/tests/reference/large_tables.py` (no opendose
+import): brute force over every arrangement for N <= 14 (46 cases),
+exact fractions (`fractions.Fraction`, `math.comb`) up to N = 3,000, and
+60-digit `decimal` sums normalised by the exact integer C(N, n1) up to
+N = 500,000; the normal approximation by hand and by statsmodels'
+`Runs.runs_test` (z agrees to 1e-12). Tests: `engine/tests/test_large_n.py`.
+
+| signs (numpy default_rng(20261123)) | runs (n+, n-) | exact P (reference) | engine | normal approx. (continuity) |
+|---|---|---|---|---|
+| N = 2,000, half positive | 996 (987, 1013) | 0.423183 | 0.423183, big integers, equal to the fraction bit for bit | 0.423178 |
+| N = 2,001, 10% positive | 367 (204, 1797) | 0.509715 | 0.509715 (rel. 4e-16) | 0.504642 |
+| N = 500,000, half positive | 250,049 (249,888, 250,112) | 0.554611 | 0.554611 (rel. 2e-16) | 0.554611 |
+| N = 500,000, 10% positive | 90,389 (50,291, 449,709) | 0.274730 | 0.274730 (rel. 2e-14) | 0.274255 |
+| N = 200,000, a sign repeats with probability 0.503 | 99,286 (99,894, 100,106) | 0.000699487 | 0.000699487 (rel. 1e-15) | 0.000699517 |
+
+The largest relative difference between the floating-point path and the
+reference over all cases is 2.1e-14. Edge cases tested: no residuals,
+one, two (one of each sign: R = 2, P = 1), all of one sign (P withheld),
+zeros dropped, the most runs possible (P = 1), two runs among 2,001 (P
+below the smallest double, 0), one sign alone among 2,501 (P = 2/2501);
+swapping every sign and reversing the order leave P unchanged.
+
+The XY table that `web/scripts/e2e-large.mjs` pastes (500,000 rows of
+x = i/1000 and y = 2 + 0.5 x + U(0, 1) from its seeded generator, as
+3-decimal text) gives, against statsmodels OLS on the same values:
+slope 0.4999973620849253, intercept 2.5006526994496916 (engine equal to
+1e-9 relative), and on the residual signs in row order 249,903 runs
+(249,475 positive, 250,525 negative), exact P = 0.392559 (engine 0.3926
+at display precision, the number the e2e test reads in the results).
+The column table it pastes first (500,000 rows, a = 10 + 3u and
+b = 10.4 + 3u') gives, against scipy's `ttest_ind` and a hand pooled SE:
+difference -0.4005011 (SE 0.001730665), t = -231.4146 on 999,998 df,
+P below the smallest double (engine: the same to 1e-9 relative, P
+shown as "< 0.0001"). Shapiro-Wilk above 5,000 values keeps its
+existing note (Royston's approximation is validated up to 5,000).
+
+Times natively (Python 3.12, numpy, scipy; one process per analysis),
+200,000 / 500,000 values per column: linear regression 0.17 / 0.45 s
+(with confidence bands 0.33 / 1.02 s); line through the origin with the
+replicates and runs tests 1.5 / 4.1 s (14.3 s at 200,000 before);
+column statistics 0.43 / 1.12 s (all options: 2.6 / 7.0 s); unpaired t
+test 0.16 / 0.41 s; Mann-Whitney 1.1 / 3.4 s; paired t 0.8 / 2.0 s;
+Wilcoxon 1.1 / 3.1 s; Kolmogorov-Smirnov 0.2 / 0.8 s; residual
+diagnostics (two columns) 4.2 / 10.8 s with 82 / 204 MB answers before,
+0.4 / 1.5 s with a 2.4 KB answer after.
 """
 
 

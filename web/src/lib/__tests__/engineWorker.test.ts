@@ -5,7 +5,9 @@
 // Run: npm run test:unit
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { EngineCancelled, EngineHost, isCancelled, type WorkerLike } from "../engineClient.ts";
+import {
+  EngineCancelled, EngineHost, isCancelled, SPARE_MAX_PAYLOAD, type WorkerLike,
+} from "../engineClient.ts";
 import type { WorkerRequest, WorkerResponse } from "../engineProtocol.ts";
 import { AnswerCache, EnginePending, replay, type Outcome } from "../engineReplay.ts";
 
@@ -150,6 +152,39 @@ test("a cancelled job that ends before the spare is up costs no restart", async 
   FakeWorker.all[1].ready();
   await tick();
   assert.equal(primary.terminated, false);
+});
+
+test("a job on a very large table warms no spare; cancelled, it finishes on its worker", async () => {
+  const { h, advance } = host();
+  void h.boot();
+  const primary = FakeWorker.all[0];
+  primary.ready();
+  const big = "x".repeat(SPARE_MAX_PAYLOAD + 1);
+  const ctl = new AbortController();
+  const job = h.submit({ type: "analyze", payload: big }, { signal: ctl.signal });
+  const after = h.submit({ type: "analyze", payload: "next" });
+  await tick();
+  advance(5000);
+  await new Promise((r) => setTimeout(r, 1600));
+  assert.equal(FakeWorker.all.length, 1, "no spare while it runs");
+  ctl.abort();
+  await assert.rejects(job, (e) => isCancelled(e));
+  assert.equal(FakeWorker.all.length, 1, "no spare at the cancel either");
+  assert.equal(h.draining, true);
+  primary.answer("ignored");
+  await tick();
+  assert.equal(primary.terminated, false);
+  assert.equal(primary.jobs[0].payload, "next", "the queue carries on on the same worker");
+  primary.answer("n");
+  assert.equal(await after, "n");
+  assert.equal(h.stats.restarts, 0);
+  // a request at the limit still warms one
+  const ctl2 = new AbortController();
+  const atLimit = h.submit({ type: "analyze", payload: "x".repeat(SPARE_MAX_PAYLOAD) }, { signal: ctl2.signal });
+  await tick();
+  ctl2.abort();
+  await assert.rejects(atLimit, (e) => isCancelled(e));
+  assert.equal(FakeWorker.all.length, 2, "a spare starts at the cancel");
 });
 
 test("a visible job preempts a long background job when a spare is ready", async () => {

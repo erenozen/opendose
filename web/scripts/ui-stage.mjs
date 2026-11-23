@@ -473,6 +473,16 @@ const scenes = [
     await s.page.locator(".paste-report [data-part='rounded']").waitFor({ timeout: 15000 });
     await into(s, ".paste-report");
   } },
+  // a paste too long for the Import dialog's text box (P-10): a line
+  // count in its place, the preview below
+  { name: "grid-paste-large", setup: async (s) => {
+    await fixture(s, "empty-states.json");
+    await selectSheet(s, "Table with no analysis");
+    const rows = Array.from({ length: 20000 }, (_, i) =>
+      `${(10 + (i % 97) / 7).toFixed(3)}\t${(12 + (i % 89) / 9).toFixed(3)}`);
+    await pasteInto(s, "Control, row 1", rows.join("\n"));
+    await s.page.locator("dialog.import-dialog [data-part='large-paste']").waitFor({ timeout: 30000 });
+  } },
   // Ctrl+F in the grid: the find bar, "1 of n", the match outlined
   { name: "grid-find", setup: async (s) => {
     await fixture(s, "row-ids.json");
