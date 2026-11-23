@@ -56,22 +56,6 @@
 .inspector-note { margin: var(--space-8) 0 0; font-size: var(--text-caption); color: var(--ink-2); }
 
 /* ---- dialogs */
-/* Step tabs: a segmented control. The selected step keeps the weight of
-   the others, so the labels never shift. */
-.dialog-tabs {
-  display: inline-flex; gap: var(--space-2); padding: var(--space-2); align-self: flex-start;
-  background: var(--seg-track); border-radius: var(--radius-dialog); flex-wrap: wrap;
-}
-.dialog-tabs button {
-  background: transparent; border-radius: var(--radius-menu); padding: var(--space-4) var(--space-12);
-  min-height: 28px; font-size: var(--text-body-s); font-weight: var(--weight-medium); color: var(--ink-2);
-}
-.dialog-tabs button[aria-selected="true"] {
-  background: var(--seg-thumb); color: var(--ink); box-shadow: var(--elev-seg);
-}
-@media (pointer: coarse) {
-  .dialog-tabs button { min-height: 44px; }
-}
 .dialog-panel { display: flex; flex-direction: column; gap: var(--space-12); }
 .field-row { display: flex; flex-wrap: wrap; gap: var(--space-8) var(--space-16); align-items: flex-end; }
 .field-check {
