@@ -6,7 +6,7 @@
 // nothing blocks. (A P value withheld at one value per group is the
 // analysis' own result: sheets/common/withheld.ts.)
 import { useId, useMemo, useState } from "react";
-import { Banner as BannerBox, Button } from "../components/ui";
+import { Banner as BannerBox, Button, NumText } from "../components/ui";
 import { openPowerTool } from "../power/events";
 import type { Banner } from "./banners";
 import type { Chip } from "./checks";
@@ -89,11 +89,11 @@ export function Chips({ chips, dataId, multiplicity, readOnly }: {
 function NoteBody({ b }: { b: Banner }) {
   return (
     <>
-      <p>{b.body}</p>
+      <p><NumText text={b.body} /></p>
       {b.fixes.length > 0 && (
         <>
           <p className="guide-note-sub">What to try</p>
-          <ul>{b.fixes.map((f, i) => <li key={i}>{f}</li>)}</ul>
+          <ul>{b.fixes.map((f, i) => <li key={i}><NumText text={f} /></li>)}</ul>
         </>
       )}
     </>

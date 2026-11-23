@@ -825,6 +825,7 @@ def cox_regression(time, event, covariates: dict, *, categorical=None,
         "ties": ties,
         "hazard_method": hazard_method,
         "n": int(n), "n_events": n_events, "n_excluded": n_in - n,
+        "rows_used": keep,
         "strata": slabels if strata_vals is not None else None,
         "terms": [{k: v for k, v in term.items() if k != "values"}
                   for term in terms],

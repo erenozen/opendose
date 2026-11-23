@@ -251,6 +251,24 @@ export const EXPLAINERS: Explainer[] = [
     keywords: "gaussian shapiro wilk dagostino nonparametric mann whitney lognormal",
   },
   {
+    id: "rank-floor",
+    title: "Rank tests with few values, and the t test on log values",
+    summary: "With few values a rank test has a smallest possible P; 3 vs 3 Mann-Whitney can never give P < 0.05.",
+    body: [
+      "A rank test's P value counts how the ranks could fall between the groups. With 3 and 3 "
+        + "values there are 20 ways to split the six ranks, so even two groups that do not overlap "
+        + "give P = 2/20 = 0.10. The smallest possible P is fixed by the design (2 / C(n1 + n2, n1) "
+        + "for Mann-Whitney, 2 / 2^n for the Wilcoxon test on n pairs), before any data exist.",
+      "If the values are concentrations, titres, ratios or other positive values that vary by a "
+        + "factor, a t test (or ANOVA) on their logarithms compares the same groups, reports a "
+        + "ratio of geometric means with its CI, and can reach P < 0.05 at this n. Choose it from "
+        + "what you know about the measurement when you plan the experiment: switching test after "
+        + "seeing a result distorts its P value.",
+    ],
+    sources: [SRC.gpNonparametric, SRC.gpRatioT, SRC.gpNormalityChoice],
+    keywords: "mann whitney wilcoxon kruskal friedman small sample smallest p minimum attainable log t test lognormal power",
+  },
+  {
     id: "equal-sds",
     title: "Equal SDs: Welch's t test and Welch's ANOVA",
     summary: "Welch's methods do not assume equal SDs and lose little when the SDs are equal.",

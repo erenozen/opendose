@@ -127,6 +127,44 @@ def parse_table(variables) -> list:
     return out
 
 
+def analysed_rows(variables, used, rows_used) -> dict:
+    """Which rows of the table a complete-case (listwise) analysis used,
+    and why each other row was dropped, for the "Analysed" line.
+
+    variables: the table as sent (raw values); used: the names of the
+    variables the analysis needs in every row; rows_used: 0-based
+    indices of the rows it analysed. A row counts when any variable of
+    the table holds a value in it (trailing blank rows are not data).
+    Each dropped row lists the used variables that are blank in it and
+    those holding something that is not a usable number (text in a
+    numeric column, infinity). Rows are numbered from 1, as the grid
+    numbers them. statsmodels' OLS / GLM(missing = "drop") and R's
+    na.omit drop the same rows (complete cases of the variables used)."""
+    table = parse_table(variables)
+    raw = {}
+    for i, var in enumerate(variables):
+        raw[str(var.get("name") or f"Var{i + 1}")] = list(var.get("values") or [])
+    parsed = _by_name(table)
+    n_rows = len(table[0]["values"]) if table else 0
+    present = [i for i in range(n_rows)
+               if any(i < len(v) and not _missing(v[i]) for v in raw.values())]
+    used_set = set(int(i) for i in rows_used)
+    dropped = []
+    for i in present:
+        if i in used_set:
+            continue
+        blank, invalid = [], []
+        for name in used:
+            v = raw[name][i] if i < len(raw[name]) else None
+            if _missing(v):
+                blank.append(name)
+            elif parsed[name]["values"][i] is None:
+                invalid.append(name)
+        dropped.append({"row": i + 1, "blank": blank, "not_number": invalid})
+    return {"n_used": len(used_set), "n_rows": len(present),
+            "variables": list(used), "dropped": dropped}
+
+
 def _by_name(table) -> dict:
     return {v["name"]: v for v in table}
 
@@ -423,6 +461,7 @@ def multiple_regression(variables, outcome: str, predictors, *,
         "outcome": outcome,
         "n_rows_analyzed": n,
         "n_rows_skipped": d["n_rows"] - n,
+        "rows_used": d["rows"],
         "n_parameters": k,
         "reference_levels": d["reference"],
         "coefficients": coefs,
@@ -693,6 +732,7 @@ def logistic_regression(variables, outcome: str, predictors, *,
         "outcome_coding": labels,
         "n_rows_analyzed": n,
         "n_rows_skipped": d["n_rows"] - n,
+        "rows_used": d["rows"],
         "n_ones": int(y.sum()), "n_zeros": int(n - y.sum()),
         "n_parameters": k,
         "reference_levels": d["reference"],
@@ -914,6 +954,7 @@ def poisson_regression(variables, outcome: str, predictors, *,
         "exposure": exposure,
         "n_rows_analyzed": n,
         "n_rows_skipped": d["n_rows"] - n,
+        "rows_used": d["rows"],
         "total_count": float(y.sum()),
         "n_parameters": k,
         "reference_levels": d["reference"],

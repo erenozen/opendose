@@ -379,3 +379,355 @@ def column_residuals(groups, names=None, *, paired: bool = False) -> dict:
         "note": note,
         "advice": _advice(n_qq),
     }
+
+
+# ------------------------------------------------- regression and curve fits
+
+FIT_ADVICE_SOURCE = (
+    "GraphPad curve fitting guide, 'Residual plot' and 'Normality of "
+    "residuals'; Motulsky H & Christopoulos A (2004) Fitting Models to "
+    "Biological Data using Linear and Nonlinear Regression, ch. 9 'How to "
+    "evaluate a fit' (Oxford University Press).")
+
+
+def _fit_advice(n: int, weighted: bool) -> dict:
+    spread = ("a funnel left after weighting means the weighting does not "
+              "match how the scatter grows with Y"
+              if weighted else
+              "a funnel (scatter growing with Y) suggests the fit needs "
+              "weighting")
+    if n < 3:
+        text = (f"Only {n} residual{'s' if n != 1 else ''}: too few to see a "
+                "pattern.")
+    else:
+        text = (f"Look at the {n} residuals for a pattern, not at a P "
+                "value: a curve or a long run of one sign against X means "
+                "the model misses the shape of the data (the runs test), "
+                f"{spread}, and a few points far from zero are possible "
+                "outliers. The QQ plot shows whether the scatter around "
+                "the curve is roughly Gaussian, which the confidence "
+                "intervals assume.")
+    return {"n_total": int(n), "text": text, "source": FIT_ADVICE_SOURCE}
+
+
+def _qq_positions(r: np.ndarray) -> np.ndarray:
+    """Filliben normal quantile of each residual's rank (stable ties)."""
+    theo = np.empty(r.size)
+    theo[np.argsort(r, kind="stable")] = stats.norm.ppf(_filliben_medians(r.size))
+    return theo
+
+
+def _shapiro(r: np.ndarray):
+    """(result or None, note or None) on the residuals r."""
+    n = int(r.size)
+    if n < 3:
+        return None, f"Shapiro-Wilk needs at least 3 residuals; {n} available."
+    if float(np.ptp(r)) <= 1e-12 * max(1.0, float(np.max(np.abs(r)))):
+        return None, "All residuals are equal; Shapiro-Wilk is undefined."
+    w_, pv = stats.shapiro(r)
+    note = (f"With N > {SHAPIRO_MAX_N} the Shapiro-Wilk P value may not be "
+            "accurate (Royston's approximation is validated up to 5000)."
+            if n > SHAPIRO_MAX_N else None)
+    return {"W": float(w_), "p": float(pv), "n": n}, note
+
+
+def _withheld(n: int) -> dict:
+    return {"points_withheld": True, "unavailable": (
+        f"The residual plots draw one point per value, up to "
+        f"{POINTS_MAX_N:,} values; these residuals number {n:,}, too many "
+        "to plot here. To look at them, plot a subset: the Import dialog's "
+        "Filter step keeps every k-th row.")}
+
+
+def fit_residuals(x, y, fitted, *, n_params: int, weights=None,
+                  name: str = "", index=None) -> dict:
+    """Residual diagnostics of a regression or curve fit, in the shape
+    column_residuals() returns (one group: the data set), plus X.
+
+    raw residual = Y - Yhat (R's residuals(nls), type "response").
+    With weights w the plotted residual is the weighted residual
+    sqrt(w) (Y - Yhat), whose sum of squares the fit minimised; without
+    weights it is the raw residual. standardized = plotted residual / s,
+    s = sqrt(sum(plotted^2) / (n - n_params)) = Sy.x: R's
+    residuals(nls, type = "pearson") (and statsmodels' WLS
+    resid_pearson), so the QQ plot is on the same scale whatever the
+    weighting. Theoretical quantiles as column_residuals (Filliben 1975).
+    x, y, fitted, weights: arrays of the n points the fit used, in its
+    order; index: the 0-based position of each point among the values
+    entered (default 0 .. n - 1)."""
+    x = np.asarray(x, dtype=float)
+    y = np.asarray(y, dtype=float)
+    f = np.asarray(fitted, dtype=float)
+    n = int(y.size)
+    raw = y - f
+    weighted = weights is not None
+    plotted = raw * np.sqrt(np.asarray(weights, dtype=float)) if weighted else raw
+    df = n - int(n_params)
+    warnings: list[str] = []
+    s = math.sqrt(float(np.sum(plotted ** 2)) / df) if df > 0 else None
+    if s is None:
+        warnings.append("No residual degrees of freedom (as many parameters "
+                        "as points): the standardized residuals are "
+                        "undefined.")
+    elif s == 0:
+        warnings.append("Every residual is 0 (the curve passes through every "
+                        "point): the standardized residuals are undefined.")
+    usable = s is not None and s > 0
+    idx = list(range(n)) if index is None else [int(i) for i in index]
+    withhold = n > POINTS_MAX_N
+    points = []
+    if not withhold and n:
+        theo = _qq_positions(plotted)
+        for i in range(n):
+            points.append({
+                "group": name, "group_index": 0, "index": idx[i],
+                "x": float(x[i]), "value": float(y[i]), "fitted": float(f[i]),
+                "residual": float(plotted[i]), "raw_residual": float(raw[i]),
+                "standardized": float(plotted[i] / s) if usable else None,
+                "theoretical": float(theo[i]),
+            })
+    shapiro, shapiro_note = _shapiro(plotted)
+    if shapiro_note:
+        warnings.append(shapiro_note)
+    if weighted:
+        note = ("Weighted residuals: the square root of each point's weight "
+                "times (Y minus the curve), the quantity the weighted fit "
+                "makes small; the QQ plot divides them by Sy.x (R's "
+                "residuals(nls, type = \"pearson\")).")
+    else:
+        note = ("Residuals: Y minus the curve at each X; the QQ plot divides "
+                "them by Sy.x, the SD of the residuals.")
+    out = {
+        "kind": "fit",
+        "points": points,
+        "groups": [{"group": name, "group_index": 0, "n": n,
+                    "fitted": None, "in_qq": True}],
+        "theoretical_method": THEORETICAL_METHOD,
+        "shapiro": shapiro,
+        "shapiro_note": shapiro_note,
+        "pooled_sd": s,
+        "df": int(df),
+        "n_total": n,
+        "n_qq": n,
+        "paired": False,
+        "weighted": weighted,
+        "residual_label": "Weighted residual" if weighted else "Residual",
+        "dropped": [],
+        "warnings": warnings,
+        "note": note,
+        "advice": _fit_advice(n, weighted),
+    }
+    if withhold:
+        out.update(_withheld(n))
+    return out
+
+
+# ------------------------------------- two-way, three-way, RM, nested, mixed
+
+def linear_model_fitted(y, codes, *, interaction: bool = True) -> np.ndarray:
+    """Least-squares fitted values of a model of categorical factors.
+
+    codes: one integer array per factor (level of each value).
+    interaction=True: the full factorial model, whose fitted value is the
+    mean of the value's cell (every combination of levels), the residuals
+    of R's aov(y ~ A * B * ...). interaction=False: main effects only
+    (R's aov(y ~ A + B + ...)), solved by least squares on treatment-coded
+    dummies; with factors (subject, treatment) this is the subject +
+    treatment model of repeated-measures ANOVA."""
+    y = np.asarray(y, dtype=float)
+    codes = [np.asarray(c, dtype=int) for c in codes]
+    if interaction:
+        keys = np.stack(codes, axis=1)
+        _, inv = np.unique(keys, axis=0, return_inverse=True)
+        inv = inv.ravel()
+        sums = np.bincount(inv, weights=y)
+        counts = np.bincount(inv)
+        return (sums / counts)[inv]
+    cols = [np.ones(y.size)]
+    for c in codes:
+        for level in np.unique(c)[1:]:
+            cols.append((c == level).astype(float))
+    X = np.column_stack(cols)
+    beta, *_ = np.linalg.lstsq(X, y, rcond=None)
+    return X @ beta
+
+
+def model_residuals(values, fitted, *, df: int, group_index, group_names,
+                    labels=None, fitted_label: str, note: str,
+                    scale: float | None = None, single=None) -> dict:
+    """Residual diagnostics of an ANOVA or mixed model, in the shape
+    column_residuals() returns, with "kind": "model".
+
+    residual = value - fitted. standardized = residual / s with
+    s = sqrt(sum(residual^2) / df), the square root of the residual mean
+    square of the ANOVA table, unless scale (the residual SD of a mixed
+    model) is given. single: True for values that are alone in their
+    cell, whose residual is 0 by construction; they are shown but left
+    out of the QQ plot and Shapiro-Wilk, as column_residuals does.
+    group_index / group_names colour the points (the data set);
+    labels name each point for its tooltip. QQ positions as
+    column_residuals (Filliben 1975)."""
+    y = np.asarray(values, dtype=float)
+    f = np.asarray(fitted, dtype=float)
+    r = y - f
+    n = int(y.size)
+    gi = [int(g) for g in group_index]
+    single = np.zeros(n, bool) if single is None else np.asarray(single, bool)
+    keep = ~single
+    warnings: list[str] = []
+    if single.any():
+        k = int(single.sum())
+        warnings.append(f"{k} value{'s are' if k != 1 else ' is'} alone in "
+                        f"{'their cells' if k != 1 else 'its cell'}, so "
+                        f"{'their residuals are' if k != 1 else 'its residual is'} 0 "
+                        "by construction: shown, but left out of the QQ plot "
+                        "and the Shapiro-Wilk test.")
+    if scale is None:
+        scale = math.sqrt(float(r @ r) / df) if df > 0 else None
+    if scale is None:
+        warnings.append("No residual degrees of freedom: the standardized "
+                        "residuals are undefined.")
+    elif scale == 0:
+        warnings.append("Every residual is 0: the standardized residuals are "
+                        "undefined.")
+    usable = scale is not None and scale > 0
+    rq = r[keep]
+    withhold = n > POINTS_MAX_N
+    points = []
+    if not withhold and n:
+        theo = np.full(n, np.nan)
+        if rq.size:
+            theo[np.flatnonzero(keep)] = _qq_positions(rq)
+        for i in range(n):
+            p = {"group": group_names[gi[i]], "group_index": gi[i], "index": i,
+                 "value": float(y[i]), "fitted": float(f[i]),
+                 "residual": 0.0 if single[i] else float(r[i]),
+                 "standardized": (float(r[i] / scale)
+                                  if usable and keep[i] else None),
+                 "theoretical": float(theo[i]) if keep[i] else None}
+            if labels is not None:
+                p["label"] = str(labels[i])
+            points.append(p)
+    shapiro, shapiro_note = _shapiro(rq)
+    if shapiro_note:
+        warnings.append(shapiro_note)
+    present = sorted(set(gi))
+    groups = [{"group": group_names[g], "group_index": g,
+               "n": int(sum(1 for v in gi if v == g)), "fitted": None,
+               "in_qq": True} for g in present]
+    out = {
+        "kind": "model",
+        "points": points,
+        "groups": groups,
+        "theoretical_method": THEORETICAL_METHOD,
+        "shapiro": shapiro,
+        "shapiro_note": shapiro_note,
+        "pooled_sd": scale,
+        "df": int(df),
+        "n_total": n,
+        "n_qq": int(rq.size),
+        "paired": False,
+        "fitted_label": fitted_label,
+        "residual_label": "Residual",
+        "dropped": [],
+        "warnings": warnings,
+        "note": note,
+        "advice": _advice(int(rq.size)),
+    }
+    if withhold:
+        out.update(_withheld(n))
+    return out
+
+
+def two_way_residuals(cells, *, additive: bool, df: int, row_names,
+                      col_names) -> dict:
+    """Residuals of two-way ANOVA: cells[i][j] = values of row i, data
+    set j. Full model: value minus its cell mean (R's
+    residuals(aov(y ~ A * B))); additive model: minus the fitted row +
+    column effects (aov(y ~ A + B)). Coloured by data set."""
+    y, ri, ci, labels = [], [], [], []
+    for i, row in enumerate(cells):
+        for j, cell in enumerate(row):
+            k = 0
+            for v in cell:
+                if v is None or (isinstance(v, float) and math.isnan(v)):
+                    continue
+                k += 1
+                y.append(float(v))
+                ri.append(i)
+                ci.append(j)
+                labels.append(f"{row_names[i]}, {col_names[j]}, value {k}")
+    y, ri, ci = np.array(y), np.array(ri), np.array(ci)
+    fitted = linear_model_fitted(y, [ri, ci], interaction=not additive)
+    single = None
+    if not additive:
+        _, inv, counts = np.unique(np.stack([ri, ci], 1), axis=0,
+                                   return_inverse=True, return_counts=True)
+        single = counts[inv.ravel()] == 1
+    note = ("Residuals of the two-way ANOVA with interaction: each value minus "
+            "its cell mean; standardized by the square root of the residual "
+            "mean square." if not additive else
+            "Residuals of the main-effects (additive) two-way ANOVA: each "
+            "value minus its fitted row + column effects; standardized by "
+            "the square root of the residual mean square.")
+    return model_residuals(
+        y, fitted, df=df, group_index=ci, group_names=list(col_names),
+        labels=labels, single=single, note=note,
+        fitted_label=("Fitted value (cell mean)" if not additive
+                      else "Fitted value (row + column effects)"))
+
+
+def rm_residuals(aligned, names) -> dict:
+    """Residuals of repeated-measures one-way ANOVA: aligned[t][s] = value
+    of subject s under treatment t. Subjects with a missing value are
+    left out, as RM ANOVA does. Fitted = subject mean + treatment mean -
+    grand mean, the subject + treatment model (R's
+    residuals(aov(y ~ subject + treatment)); statsmodels' ols with
+    C(subject) + C(treatment)); df = (subjects - 1)(treatments - 1)."""
+    k = len(aligned)
+    n_rows = max((len(a) for a in aligned), default=0)
+    rows, left = [], []
+    for s in range(n_rows):
+        vals = [aligned[t][s] if s < len(aligned[t]) else None for t in range(k)]
+        nums = [_number(v) for v in vals]
+        if all(isinstance(v, float) for v in nums):
+            rows.append((s, nums))
+        elif any(isinstance(v, float) for v in nums):
+            left.append(s)
+    if len(rows) < 2:
+        raise ValueError("need at least 2 subjects with every treatment")
+    M = np.array([r[1] for r in rows])
+    fitted = M.mean(axis=1, keepdims=True) + M.mean(axis=0, keepdims=True) - M.mean()
+    n_s = M.shape[0]
+    labels = [f"Subject {rows[s][0] + 1}, {names[t]}" for s in range(n_s) for t in range(k)]
+    out = model_residuals(
+        M.ravel(), fitted.ravel(), df=(n_s - 1) * (k - 1),
+        group_index=[t for _ in range(n_s) for t in range(k)],
+        group_names=list(names), labels=labels,
+        fitted_label="Fitted value (subject + treatment)",
+        note=("Residuals of repeated-measures ANOVA: each value minus its "
+              "subject mean and treatment mean, plus the grand mean (the "
+              "subject + treatment model); standardized by the square root "
+              "of the residual mean square."))
+    if left:
+        rows_ = ", ".join(str(s) for s in left)
+        out["warnings"].insert(0, (
+            f"{len(left)} subject{'s' if len(left) != 1 else ''} with a missing "
+            f"value left out (row{'s' if len(left) != 1 else ''} {rows_}, "
+            "counting from 0), as repeated-measures ANOVA does."))
+    return out
+
+
+def mixed_residuals(res: dict, *, scale: float, group_names, labels,
+                    fitted_label: str, what: str) -> dict:
+    """Conditional residuals of a mixed model fitted by REML: value minus
+    the fixed effects and the predicted random effects (BLUPs), what
+    statsmodels' MixedLM .resid and R's residuals(lmer) give;
+    standardized by the residual SD of the model. res: {"value",
+    "fitted", "group"} lists from the model."""
+    return model_residuals(
+        res["value"], res["fitted"], df=0, scale=scale,
+        group_index=res["group"], group_names=list(group_names),
+        labels=labels, fitted_label=fitted_label,
+        note=(f"Conditional residuals of the mixed model: each value minus "
+              f"{what}; standardized by the residual SD of the model."))

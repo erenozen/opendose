@@ -112,6 +112,21 @@ def runs_test(signs) -> dict:
             "p": min(float(p), 1.0), "p_method": "exact"}
 
 
+RUNS_ORDER_NOTE = ("Residuals taken in order of X; residuals at the same X "
+                   "keep the order they were entered in.")
+
+
+def runs_test_by_x(x, resid) -> dict:
+    """The runs test on the residuals ordered by X (stable sort: tied X
+    values keep their entry order), as the curve-fit diagnostics do
+    (diagnostics.py). Runs are a property of the residuals along the
+    line, so a table entered in any row order gives the same answer."""
+    order = np.argsort(np.asarray(x, dtype=float), kind="stable")
+    out = runs_test(np.sign(np.asarray(resid, dtype=float)[order]).tolist())
+    out["order"] = RUNS_ORDER_NOTE
+    return out
+
+
 def x_intercept_ci(a, b, var_a, var_b, cov_ab, tcrit):
     """Fieller confidence interval of X0 = -a / b, where the line a + b X
     crosses Y = 0: the X values at which the confidence band of the line
@@ -175,7 +190,7 @@ def linear_regression_through_point(x_values, y_values, x0: float, y0: float, *,
         "r_squared": 1 - ss_res / ss_tot if ss_tot > 0 else None,
         "sy_x": sy_x,
         "f_nonzero_slope": {"F": float(t * t), "dfn": 1, "dfd": df, "p": p},
-        "runs_test": runs_test(np.sign(resid).tolist()),
+        "runs_test": runs_test_by_x(x, resid),
         "df": df,
         "ss_res": ss_res,
     }
@@ -221,7 +236,7 @@ def linear_regression(x_values, y_values, *, ci_level: float = 0.95) -> dict:
         "r_squared": 1 - ss_res / ss_tot if ss_tot > 0 else None,
         "sy_x": sy_x,
         "f_nonzero_slope": {"F": float(f), "dfn": 1, "dfd": df, "p": p},
-        "runs_test": runs_test(np.sign(resid).tolist()),
+        "runs_test": runs_test_by_x(x, resid),
         "df": df,
         "ss_res": ss_res,
     }

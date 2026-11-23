@@ -72,6 +72,38 @@ def _abs_ic50_entry(fit, level, x_lo, x_hi):
     return entry
 
 
+def _fit_residual_check(res, name, *, robust=False, rout=False, x_is_log=False):
+    """residuals.fit_residuals of a fit's "_residuals" (nlfit.fit_model),
+    or {"unavailable": why} when the fit has none."""
+    if robust:
+        return {"unavailable": (
+            "Residual plots are not drawn for a robust fit: it assumes the "
+            "scatter follows a Lorentzian distribution, so a normal QQ plot "
+            "does not describe it.")}
+    if res is None:
+        return {"unavailable": (
+            "Residual plots need the individual values; this fit used means "
+            "with an error and n, so its residuals are those of the means.")}
+    out = residuals.fit_residuals(res["x"], res["y"], res["fitted"],
+                                  n_params=res["n_params"],
+                                  weights=res.get("weights"), name=name)
+    if rout:
+        out["note"] += (" Points ROUT removed as outliers are not among "
+                        "them.")
+    # the model's X: log10 of the concentration for log-dose models
+    out["x_label"] = "log10(X)" if x_is_log else "X"
+    return out
+
+
+def _model_residuals(build):
+    """residual diagnostics of an ANOVA model, or {"unavailable": why}:
+    they must never cost the analysis."""
+    try:
+        return build()
+    except Exception as exc:
+        return {"unavailable": f"Residuals could not be computed: {exc}."}
+
+
 def _dose_response(data, options):
     """Nonlinear regression for any registered model. For models whose X
     is log10(concentration), x_is_log=False means the engine applies
@@ -184,6 +216,9 @@ def _dose_response(data, options):
                 fit["params"]["AbsoluteIC50"] = _abs_ic50_entry(
                     fit, float(abs_level), x_lo, x_hi)
             fit.pop("_cov", None)  # internal; keep the JSON payload lean
+            entry["residual_check"] = _fit_residual_check(
+                fit.pop("_residuals", None), entry["name"], robust=robust,
+                rout=bool(rout_q), x_is_log=spec.x_is_log)
             try:
                 flags = rangeflags.range_flags(fit["params"], xs, ys,
                                                x_is_log=spec.x_is_log)
@@ -277,6 +312,7 @@ def _experiments(x_col, ds, exp_opt, model, spec, *, constraints, weighting,
                                   weighting=weighting, ci_method=ci_method,
                                   weight_source=weight_source)
         fit.pop("_cov", None)
+        fit.pop("_residuals", None)
         return fit, xs, ys
 
     def flags_of(fit, xs, ys):
@@ -667,6 +703,13 @@ def _ttest(data, options):
     elif kind == "unpaired":
         result["scale_check"] = logscale.scale_check(
             [va, vb], [names[ia], names[ib]])
+        if not options.get("welch", False):
+            # B / A, the first data set as the control (as Dunnett's
+            # default), with Fieller's CI (ttests.ratio_to_control)
+            result["ratio_to_control"] = {
+                **ttests.ratio_to_control(
+                    va, vb, ci_level=options.get("ci_level", 0.95)),
+                "numerator": names[ib], "denominator": names[ia]}
     if n_min <= 3:
         if kind == "unpaired":
             result["design_sensitivity"] = _design_sensitivity(
@@ -1056,6 +1099,14 @@ def _two_way_anova(data, options):
             direction=options.get("direction", "columns_within_rows"),
             row_names=row_names, col_names=names,
             additive=options.get("model") == "additive")
+    # residual plots in the Checks row (residuals.two_way_residuals)
+    result["residual_diagnostics"] = _model_residuals(
+        lambda: residuals.two_way_residuals(
+            cells, additive=result["model"].startswith("main effects"),
+            df=result["sources"]["residual"]["df"],
+            row_names=options.get("row_names") or [
+                f"Row {i + 1}" for i in range(len(cells))],
+            col_names=[nm or f"Column {j + 1}" for j, nm in enumerate(names)]))
     if warnings:
         result["warnings"] = warnings
     return result
@@ -1134,6 +1185,10 @@ def _linear_regression(data, options):
                 fit["bands"] = linregress.linear_bands(
                     xs, ys, grid, kind=options["bands"], through=through)
             entry["fit"] = fit
+            b, a = fit["slope"]["value"], fit["y_intercept"]["value"]
+            entry["residual_check"] = residuals.fit_residuals(
+                xs, ys, [b * v + a for v in xs],
+                n_params=1 if through else 2, name=entry["name"])
         except Exception as exc:
             entry["error"] = str(exc)
         results.append(entry)
@@ -1290,6 +1345,13 @@ def _residuals_column(data, options):
     names = [ds.get("name", "") for ds in data["datasets"]]
     cols = [[v for row in ds["ys"] for v in (row or [])]
             for ds in data["datasets"]]
+    if options.get("rm"):
+        # repeated measures: the subject + treatment model on the first
+        # subcolumn of each data set (rows = subjects), as rm_anova
+        aligned = [[row[0] if row else None for row in ds["ys"]]
+                   for ds in data["datasets"]]
+        return {"analysis": "residuals_column",
+                **residuals.rm_residuals(aligned, names)}
     if options.get("paired"):
         ia, ib = options.get("dataset_a", 0), options.get("dataset_b", 1)
         res = residuals.column_residuals([cols[ia], cols[ib]],
@@ -1868,16 +1930,30 @@ def _correlation_matrix(data, options):
                 tails=int(options.get("tails", 2)))}
 
 
+def _with_analysed_rows(result, variables, used):
+    """The result with "analysed_rows" (multivar.analysed_rows: n used of
+    the table's rows, and each dropped row with the variables blank or
+    not a number in it) in place of the internal rows_used."""
+    rows = result.pop("rows_used", None)
+    if rows is not None:
+        result["analysed_rows"] = multivar.analysed_rows(variables, used, rows)
+    return result
+
+
 def _multiple_regression(data, options):
     """data: multiple-variables table. options: {outcome: name,
     predictors: [names], interactions?: [[a, b]], reference_levels?:
-    {variable: level}, ci_level?}."""
-    return {"analysis": "multiple_regression",
-            **multivar.multiple_regression(
-                _mv_variables(data), options["outcome"], options["predictors"],
-                interactions=options.get("interactions") or (),
-                reference_levels=options.get("reference_levels"),
-                ci_level=options.get("ci_level", 0.95))}
+    {variable: level}, ci_level?}. The result's analysed_rows says which
+    rows were used and why the others were dropped."""
+    variables = _mv_variables(data)
+    return _with_analysed_rows(
+        {"analysis": "multiple_regression",
+         **multivar.multiple_regression(
+             variables, options["outcome"], options["predictors"],
+             interactions=options.get("interactions") or (),
+             reference_levels=options.get("reference_levels"),
+             ci_level=options.get("ci_level", 0.95))},
+        variables, [options["outcome"], *options["predictors"]])
 
 
 def _logistic_regression(data, options):
@@ -1892,31 +1968,36 @@ def _logistic_regression(data, options):
         variables = [{"name": "X", "values": data["x"]},
                      {"name": "Y", "values": data["y"]}]
         outcome, predictors = "Y", ["X"]
-    return {"analysis": "logistic_regression",
-            **multivar.logistic_regression(
-                variables, outcome, predictors,
-                interactions=options.get("interactions") or (),
-                reference_levels=options.get("reference_levels"),
-                outcome_positive=options.get("outcome_positive"),
-                ci_level=options.get("ci_level", 0.95),
-                ci_method=options.get("ci_method", "profile"),
-                cutoff=options.get("cutoff", 0.5),
-                hl_groups=int(options.get("hl_groups", 10)))}
+    return _with_analysed_rows(
+        {"analysis": "logistic_regression",
+         **multivar.logistic_regression(
+             variables, outcome, predictors,
+             interactions=options.get("interactions") or (),
+             reference_levels=options.get("reference_levels"),
+             outcome_positive=options.get("outcome_positive"),
+             ci_level=options.get("ci_level", 0.95),
+             ci_method=options.get("ci_method", "profile"),
+             cutoff=options.get("cutoff", 0.5),
+             hl_groups=int(options.get("hl_groups", 10)))},
+        variables, [outcome, *predictors])
 
 
 def _poisson_regression(data, options):
     """data: multiple-variables table. options: {outcome, predictors,
     interactions?, reference_levels?, exposure? (variable name: its log is
     an offset), ci_level?, ci_method?: profile|wald}."""
-    return {"analysis": "poisson_regression",
-            **multivar.poisson_regression(
-                _mv_variables(data), options["outcome"],
-                options["predictors"],
-                interactions=options.get("interactions") or (),
-                reference_levels=options.get("reference_levels"),
-                exposure=options.get("exposure") or None,
-                ci_level=options.get("ci_level", 0.95),
-                ci_method=options.get("ci_method", "profile"))}
+    variables = _mv_variables(data)
+    return _with_analysed_rows(
+        {"analysis": "poisson_regression",
+         **multivar.poisson_regression(
+             variables, options["outcome"],
+             options["predictors"],
+             interactions=options.get("interactions") or (),
+             reference_levels=options.get("reference_levels"),
+             exposure=options.get("exposure") or None,
+             ci_level=options.get("ci_level", 0.95),
+             ci_method=options.get("ci_method", "profile"))},
+        variables, [options["outcome"], *options["predictors"]])
 
 
 def _pca(data, options):
@@ -2002,6 +2083,26 @@ def _nested_groups(data):
             [g.get("subgroup_names") for g in groups])
 
 
+def _nested_residuals(result):
+    """The nested result with its conditional residuals as residual plots
+    for the Checks row (residuals.mixed_residuals)."""
+    res = result.get("residuals")
+    if not res:
+        return result
+    names = result.get("names") or []
+    sd = (result.get("random_effects") or {}).get("within_subcolumns", {}).get("sd")
+    result["residual_diagnostics"] = _model_residuals(
+        lambda: residuals.mixed_residuals(
+            {"value": res["value"], "fitted": res["fitted"],
+             "group": res["group"]},
+            scale=sd, group_names=names,
+            labels=[f"{names[g]}, subcolumn {s + 1}"
+                    for g, s in zip(res["group"], res["subcolumn"])],
+            fitted_label="Fitted value (group mean + subcolumn effect)",
+            what="its group mean and its subcolumn's predicted effect"))
+    return result
+
+
 def _nested_ttest(data, options):
     """Nested t test (mixed model, random subcolumn effect).
     data = {"groups": [{"name": str, "subgroups": [[values...], ...],
@@ -2009,12 +2110,12 @@ def _nested_ttest(data, options):
     options: ci_level (0.95), swap (False -> difference is B - A),
     negative_variance ("allow" | "zero")."""
     groups, names, sub_names = _nested_groups(data)
-    return nested.nested_t_test(
+    return _nested_residuals(nested.nested_t_test(
         groups, names=names, subgroup_names=sub_names,
         ci_level=options.get("ci_level", 0.95),
         swap=options.get("swap", False),
         negative_variance=options.get("negative_variance", "allow"),
-        ddf=options.get("ddf", "containment"))
+        ddf=options.get("ddf", "containment")))
 
 
 def _nested_anova(data, options):
@@ -2023,13 +2124,13 @@ def _nested_anova(data, options):
     holm_sidak | fisher), control_index (Dunnett), ci_level,
     negative_variance."""
     groups, names, sub_names = _nested_groups(data)
-    return nested.nested_one_way_anova(
+    return _nested_residuals(nested.nested_one_way_anova(
         groups, names=names, subgroup_names=sub_names,
         comparisons=options.get("comparisons"),
         control_index=options.get("control_index", 0),
         ci_level=options.get("ci_level", 0.95),
         negative_variance=options.get("negative_variance", "allow"),
-        ddf=options.get("ddf", "containment"))
+        ddf=options.get("ddf", "containment")))
 
 
 def _mixed_rm_oneway(data, options):
@@ -2053,7 +2154,21 @@ def _mixed_rm_oneway(data, options):
                                                    "allow"),
                   "ddf": options.get("ddf", "containment")}
     result = mixedmodel.rm_one_way(aligned, names, method=method, **kwargs)
-    return {"analysis": result.get("analysis", "rm_one_way_anova"), **result}
+    out = {"analysis": result.get("analysis", "rm_one_way_anova"), **result}
+    res = out.pop("residuals", None)
+    # residual plots under the results, as the other column tests
+    # (residuals.mixed_residuals; RM ANOVA: residuals.rm_residuals)
+    out["residual_check"] = _model_residuals(
+        lambda: residuals.mixed_residuals(
+            {"value": res["value"], "fitted": res["fitted"],
+             "group": res["treatment"]},
+            scale=res["residual_sd"], group_names=out["names"],
+            labels=[f"Subject {s + 1}, {out['names'][t]}"
+                    for s, t in zip(res["subject"], res["treatment"])],
+            fitted_label="Fitted value (treatment mean + subject effect)",
+            what="its treatment mean and its subject's predicted effect")
+        if res is not None else residuals.rm_residuals(aligned, names))
+    return out
 
 
 def _mixed_rm_twoway(data, options):
@@ -2239,6 +2354,9 @@ def _three_way_anova(data, options):
     out = {"analysis": "three_way_anova", **result, "row_titles": titles,
            "b_level_names": b_names, "c_level_names": c_names,
            "cell_labels": labels}
+    out["residual_diagnostics"] = _model_residuals(
+        lambda: _three_way_residuals(cells, labels, b_names, c_names,
+                                     result["sources"]["residual"]["df"]))
     method = options.get("comparisons")
     if method:
         out["multiple_comparisons"] = threeway.three_way_comparisons(
@@ -2250,6 +2368,40 @@ def _three_way_anova(data, options):
             b_names=b_names, c_names=c_names, cell_labels=labels,
             anova=result)
     return out
+
+
+def _three_way_residuals(cells, labels, b_names, c_names, df):
+    """Residuals of the full three-way model: each value minus its cell
+    mean (R's residuals(aov(y ~ A * B * C))), coloured by the B x C
+    combination (the data set)."""
+    y, codes, lab, grp = [], [], [], []
+    nb, nc = len(cells[0]), len(cells[0][0])
+    for i, row in enumerate(cells):
+        for j in range(nb):
+            for k in range(nc):
+                m = 0
+                for v in row[j][k]:
+                    if _is_missing(v):
+                        continue
+                    m += 1
+                    y.append(float(v))
+                    codes.append((i, j, k))
+                    lab.append(f"{labels[i][j][k]}, value {m}")
+                    grp.append(j * nc + k)
+    ci = [[c[d] for c in codes] for d in range(3)]
+    fitted = residuals.linear_model_fitted(y, ci, interaction=True)
+    count = {}
+    for c in codes:
+        count[c] = count.get(c, 0) + 1
+    return residuals.model_residuals(
+        y, fitted, df=df, group_index=grp,
+        group_names=[f"{b_names[j]}, {c_names[k]}" for j in range(nb)
+                     for k in range(nc)],
+        labels=lab, single=[count[c] == 1 for c in codes],
+        fitted_label="Fitted value (cell mean)",
+        note=("Residuals of the three-way ANOVA: each value minus its cell "
+              "mean; standardized by the square root of the residual mean "
+              "square."))
 
 
 def _compact_letters(data, options):
@@ -3401,11 +3553,21 @@ def _cox(data, options):
         categorical += [n for n in names
                         if cols[n].get("kind") == "categorical"]
         strata = cols[sname]["values"] if sname else None
+        table = data["variables"]
+        used = [tname, ename, *names, *([sname] if sname else [])]
     else:
         time, event = data["time"], data["event"]
         covariates = data["covariates"]
         strata = data.get("strata")
-    return cox.cox_regression(
+        tname, ename = "Time", "Event"
+        table = [{"name": tname, "values": time, "kind": "continuous"},
+                 {"name": ename, "values": event, "kind": "continuous"},
+                 *({"name": n, "values": v} for n, v in covariates.items()),
+                 *([{"name": "Stratum", "values": strata, "kind": "categorical"}]
+                   if strata is not None else [])]
+        used = [tname, ename, *covariates, *(["Stratum"] if strata is not None else [])]
+    # the rows used and why the others were dropped (multivar.analysed_rows)
+    return _with_analysed_rows(cox.cox_regression(
         time, event, covariates, categorical=categorical,
         reference=options.get("reference"), levels=options.get("levels"),
         strata=strata, ties=options.get("ties", "efron"),
@@ -3413,7 +3575,7 @@ def _cox(data, options):
         ph_transform=options.get("ph_transform", "km"),
         curves_at=options.get("curves_at"),
         hazard_method=options.get("hazard_method"),
-        ci_method=options.get("ci_method", "wald"))
+        ci_method=options.get("ci_method", "wald")), table, used)
 
 
 def _roc_compare(data, options):

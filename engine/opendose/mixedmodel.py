@@ -855,6 +855,13 @@ def mixed_rm_one_way(datasets, names=None, *, comparisons=None,
         "estimated_means": means,
         "n_treatments": k, "n_subjects": n_subjects,
         "n_missing": n_missing, "n_values": int(y.size),
+        # conditional residuals (value - fixed effects - subject BLUP),
+        # for the residual plots (api: residuals.mixed_residuals)
+        "residuals": {"subject": [int(v) for v in subj],
+                      "treatment": [int(v) for v in treat],
+                      "value": [float(v) for v in y],
+                      "fitted": [float(v) for v in fit["fitted"]],
+                      "residual_sd": float(fit["residual_sd"])},
         "ddf": ddf,
         "df_method": ("containment (residual df N - rank[X Z])"
                       if ddf == "containment" else ddfm.LABELS[ddf]),

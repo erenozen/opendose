@@ -99,10 +99,17 @@ def fieller_ratio(a, se_a, b, se_b, df, ci_level=0.95):
     """Ratio b / a of two independent estimates with Fieller's CI:
     g = t^2 se_a^2 / a^2; limits [q +/- (t/|a|) sqrt(se_b^2 (1 - g) +
     q^2 se_a^2)] / (1 - g); None when g >= 1 (unbounded)."""
+    return fieller_ratio_crit(a, se_a, b, se_b,
+                              float(stats.t.ppf((1 + ci_level) / 2, df)))
+
+
+def fieller_ratio_crit(a, se_a, b, se_b, t):
+    """fieller_ratio with the critical value t given (Fieller 1954,
+    J R Stat Soc B 16:175): a Student t quantile for one interval, or a
+    simultaneous (Dunnett) critical value for a family of ratios."""
     if a == 0:
         return {"value": None, "ci": None, "method": "fieller"}
     q = b / a
-    t = float(stats.t.ppf((1 + ci_level) / 2, df))
     g = (t * se_a / a) ** 2
     ci = None
     if g < 1:
