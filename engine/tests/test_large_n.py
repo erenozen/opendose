@@ -9,6 +9,9 @@
   pass over X per distinct value: the result is identical to the old loop.
 - columnstats Anderson-Darling P: the D'Agostino-Stephens formula turns
   upward (and overflows) at large A2*; the P is bounded there.
+- residuals.column_residuals withholds its per-value points above
+  POINTS_MAX_N (a 204 MB answer at 1,000,000 values) and says so; every
+  other number is the one computed with the points.
 """
 
 import json
@@ -21,7 +24,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from opendose import api, columnstats, linregress
+from opendose import api, columnstats, linregress, residuals
 from opendose.diagnostics import replicates_test
 from opendose.linregress import runs_test
 from opendose.nlfit import fit_model
@@ -293,3 +296,58 @@ class TestAndersonDarlingLargeA:
         assert d["descriptive"]["mean"] == pytest.approx(np.mean(vals), rel=1e-12)
         assert d["normality"]["dagostino_pearson"]["p"] < 1e-10
         assert "note" in d["normality"]["shapiro_wilk"]   # n above 5,000
+
+
+class TestResidualPointsWithheld:
+    @staticmethod
+    def _groups(n, seed=4):
+        rng = np.random.default_rng(seed)
+        return [(10 + rng.normal(size=n)).tolist(), (11 + 2 * rng.normal(size=n)).tolist()]
+
+    def test_same_numbers_without_the_points(self, monkeypatch):
+        g = self._groups(30_000)                       # 60,000 values
+        monkeypatch.setattr(residuals, "POINTS_MAX_N", 10 ** 9)
+        full = residuals.column_residuals(g, ["A", "B"])
+        monkeypatch.setattr(residuals, "POINTS_MAX_N", 50_000)
+        lean = residuals.column_residuals(g, ["A", "B"])
+        assert len(full["points"]) == 60_000 and "unavailable" not in full
+        assert lean["points"] == [] and lean["points_withheld"] is True
+        assert "up to 50,000 values" in lean["unavailable"]
+        assert "number 60,000" in lean["unavailable"]
+        for k in ("groups", "shapiro", "shapiro_note", "pooled_sd", "df", "n_total",
+                  "n_qq", "dropped", "warnings", "note", "advice"):
+            assert lean[k] == full[k], k                # bit-identical
+
+    def test_paired_and_single_value_groups(self, monkeypatch):
+        g = self._groups(60_000)
+        monkeypatch.setattr(residuals, "POINTS_MAX_N", 10 ** 9)
+        full = residuals.column_residuals(g, ["A", "B"], paired=True)
+        g3 = g + [[5.0]]
+        full3 = residuals.column_residuals(g3, ["A", "B", "C"])
+        monkeypatch.setattr(residuals, "POINTS_MAX_N", 50_000)
+        lean = residuals.column_residuals(g, ["A", "B"], paired=True)
+        lean3 = residuals.column_residuals(g3, ["A", "B", "C"])
+        for a, b in ((lean, full), (lean3, full3)):
+            assert a["points"] == [] and a["points_withheld"]
+            for k in ("shapiro", "pooled_sd", "df", "n_qq", "warnings"):
+                assert a[k] == b[k], k
+        assert lean3["n_qq"] == 120_000                 # the single value is left out
+
+    def test_at_the_limit_points_are_kept(self):
+        g = self._groups(25_000)                        # exactly 50,000
+        r = residuals.column_residuals(g, ["A", "B"])
+        assert len(r["points"]) == 50_000 and "points_withheld" not in r
+
+    def test_api_answer_stays_small_at_1m_values(self):
+        g = self._groups(500_000)
+        t0 = time.perf_counter()
+        out = api.analyze_json(json.dumps({
+            "analysis": "residuals_column",
+            "data": {"datasets": [{"name": "A", "ys": [[v] for v in g[0]]},
+                                  {"name": "B", "ys": [[v] for v in g[1]]}]},
+            "options": {}}))
+        assert len(out) < 20_000                        # was 204 MB
+        assert time.perf_counter() - t0 < 30
+        r = json.loads(out)
+        assert r["n_total"] == 1_000_000 and r["shapiro"]["n"] == 1_000_000
+        assert "number 1,000,000" in r["unavailable"]

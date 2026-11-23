@@ -76,6 +76,16 @@ not cut-offs), counted on the residuals that enter the test:
 N < 3: no test possible; 3 <= N < 20: small (little power);
 20 <= N < 100: intermediate (plot first, test second); N >= 100: large
 (trivial deviations flagged; central limit theorem protects the mean).
+
+Large tables
+------------
+Above POINTS_MAX_N values no points are returned: one point per value
+(a dictionary each) took 1.1 GB natively and a 204 MB answer at 1,000,000
+values, more than a browser tab holds, and the web cannot draw that many
+points either. The result then has "points": [], "points_withheld": true
+and "unavailable", a sentence naming the limit; the residual SD, the
+Shapiro-Wilk test on the same pooled residuals, the warnings and the
+advice are computed as below.
 """
 
 from __future__ import annotations
@@ -88,6 +98,7 @@ from scipy import stats
 SMALL_N = 20     # below this the normality test has little power
 LARGE_N = 100    # at or above this it flags trivial deviations
 SHAPIRO_MAX_N = 5000   # scipy warns the P value may be inaccurate above this
+POINTS_MAX_N = 50_000  # above this the points are withheld (Large tables)
 
 THEORETICAL_METHOD = (
     "Standard normal quantile of Filliben's (1975) estimate of the uniform "
@@ -250,6 +261,8 @@ def column_residuals(groups, names=None, *, paired: bool = False) -> dict:
     group_info = []
     n_total = 0
     ss = 0.0
+    withhold = sum(int(s[3].size) for s in series) > POINTS_MAX_N
+    qq_res = []   # the residuals that enter the QQ plot and Shapiro-Wilk
     for gname, gi, idx, vals in series:
         n_g = vals.size
         fitted = float(vals.mean())
@@ -266,6 +279,10 @@ def column_residuals(groups, names=None, *, paired: bool = False) -> dict:
                 "construction (the fitted value is the value itself); it is "
                 "shown but left out of the QQ plot, the standardized "
                 "residuals and the Shapiro-Wilk test.")
+        else:
+            qq_res.append(res)
+        if withhold:
+            continue
         for i, v, r in zip(idx, vals, res):
             points.append({"group": gname, "group_index": gi, "index": int(i),
                            "value": float(v), "fitted": fitted,
@@ -285,7 +302,7 @@ def column_residuals(groups, names=None, *, paired: bool = False) -> dict:
     usable_sd = pooled_sd is not None and pooled_sd > 0
 
     qq = [p for p in points if p["_in_qq"]]
-    n_qq = len(qq)
+    n_qq = int(sum(r.size for r in qq_res)) if withhold else len(qq)
     if qq:
         r = np.array([p["residual"] for p in qq], dtype=float)
         order = np.argsort(r, kind="stable")
@@ -304,7 +321,8 @@ def column_residuals(groups, names=None, *, paired: bool = False) -> dict:
         shapiro_note = (f"Shapiro-Wilk needs at least 3 residuals; "
                         f"{n_qq} available.")
     else:
-        r = np.array([p["residual"] for p in qq], dtype=float)
+        r = (np.concatenate(qq_res) if withhold
+             else np.array([p["residual"] for p in qq], dtype=float))
         if float(np.ptp(r)) <= 1e-12 * max(1.0, float(np.max(np.abs(r)))):
             shapiro_note = ("All residuals are equal; Shapiro-Wilk is "
                             "undefined.")
@@ -331,7 +349,19 @@ def column_residuals(groups, names=None, *, paired: bool = False) -> dict:
                 "Shapiro-Wilk tests all residuals pooled, which is what "
                 "ANOVA and the t test assume are Gaussian (with equal SDs).")
 
+    withheld = {}
+    if withhold:
+        withheld = {
+            "points_withheld": True,
+            "unavailable": (
+                f"The QQ plot and the residual plot draw one point per value, "
+                f"up to {POINTS_MAX_N:,} values; these residuals number "
+                f"{n_total:,}, too many to plot here. To look at them, plot "
+                "a subset: the Import dialog's Filter step keeps every k-th "
+                "row."),
+        }
     return {
+        **withheld,
         "points": points,
         "groups": group_info,
         "theoretical_method": THEORETICAL_METHOD,

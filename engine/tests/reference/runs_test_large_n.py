@@ -5,7 +5,7 @@ Run from the repository root:
     /home/eren/opendose/.venv/bin/python engine/tests/reference/runs_test_large_n.py
 
 It writes engine/tests/reference/runs_test_large_n.json, which
-engine/tests/test_runs_large_n.py reads (web/scripts/e2e-large.mjs asserts
+engine/tests/test_large_n.py reads (web/scripts/e2e-large.mjs asserts
 the "e2e_xy" numbers in the linear regression results at display
 precision). Nothing here imports opendose.
 

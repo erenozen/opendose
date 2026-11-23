@@ -71,9 +71,26 @@ for (const type of ["column", "xy"]) {
   await cdp.send("Performance.enable");
   page.on("pageerror", (e) => errors.push(`pageerror: ${e.message}`));
   page.on("console", (m) => { if (m.type() === "error") errors.push(`console: ${m.text().slice(0, 300)}`); });
+  // engine workers (one Python runtime each) alive, and the most at once
+  await page.addInitScript(() => {
+    const W = window.Worker;
+    const live = { now: 0, most: 0 };
+    window.__workers = live;
+    window.Worker = class extends W {
+      constructor(...a) { super(...a); live.now++; live.most = Math.max(live.most, live.now); }
+      terminate() { live.now--; super.terminate(); }
+    };
+  });
   const heap = async () => {
     const { metrics } = await cdp.send("Performance.getMetrics");
-    return `${(metrics.find((m) => m.name === "JSHeapUsedSize").value / 2 ** 20).toFixed(0)} MB heap, ${peak()}`;
+    const w = await page.evaluate(() => {
+      const live = window.__workers;
+      const was = { ...live };
+      live.most = live.now;
+      return was;
+    }).catch(() => null);
+    const workers = w ? `, web workers ${w.now} (at most ${w.most} in the phase)` : "";
+    return `${(metrics.find((m) => m.name === "JSHeapUsedSize").value / 2 ** 20).toFixed(0)} MB heap${workers}, ${peak()}`;
   };
   await page.goto(url, { waitUntil: "domcontentloaded" });
   await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 180000 });
