@@ -61,7 +61,7 @@ one at a time: each boots its own engine.
 | `e2e-motion.mjs` | What animates, for how long, on which curve; keyboard and reduced-motion paths; the theme switch (`--frames DIR` saves slowed screenshots) |
 | `e2e-privacy.mjs` | That no request carries the user's data; run against `npm run build` served by `scripts/serve-dist.mjs` (default `http://127.0.0.1:5300/`) |
 | `a11y-audit.mjs` | axe-core on the controls of every analysis |
-| `e2e-large.mjs` | 200,000 pasted rows (second argument: another count) into a column and an XY table: grid, WebGL graph, t test and linear regression, no RangeError; about 2.5 GB of browser memory at the paste |
+| `e2e-large.mjs` | 500,000 pasted rows (second argument: another count) into a column and an XY table: grid, WebGL graph, t test and linear regression with their numbers against `engine/tests/reference/large_tables.json`, the residual plots' size limit, no RangeError; about 2 minutes and 3.7 GB at its peak (run it alone, not in verify.sh) |
 
 `../scripts/verify.sh` runs the engine tests, build, lint, unit tests and
 all of the suites above against main in a clean worktree.

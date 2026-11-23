@@ -74,20 +74,53 @@ pixel overlap (at least 0.98).
 
 ## Large pasted tables (P-10)
 
-`scripts/e2e-large.mjs`, 200,000 rows each (above the ~126,000 values a
-`Math.max(...values)` spread can take), in a fresh browser per table:
+`scripts/e2e-large.mjs` pastes 500,000 rows (the plan's acceptance size)
+into a new column table (two groups) and a new XY table (X and one Y), in
+a fresh browser each, under the shared machine's 4 GB cap for the whole
+run (browser and the test script, `browser-slot.sh`), and checks the
+numbers shown against `engine/tests/reference/large_tables.py`: t =
+-231.4 on 1.000e+6 df and a difference of -0.4005 +/- 0.001731 (scipy);
+slope 0.5 (statsmodels OLS 0.49999736); 249903 runs, P = 0.3926 (exact
+distribution, 60-digit sums); the residual plots name their 50,000-value
+limit. Times and the run's peak memory per phase (dev server, 2026-11-23):
 
-| | grid | WebGL graph | analysis |
-|---|---|---|---|
-| column, 2 groups | 10.2 s | 7.7 s | unpaired t test 18.9 s |
-| XY, 1 data set | 10.7 s | 4.0 s | linear regression: no result in 15 min |
+| 500,000 rows | Import dialog | grid | WebGL graph | analysis |
+|---|---|---|---|---|
+| column, 2 groups | 1.3 s, 1.17 GB | 9.8 s, 2.30 GB | 18 s, 3.09 GB | t test 15 s, 3.72 GB |
+| XY, 1 data set | 1.2 s, 1.32 GB | 11.4 s, 2.42 GB | 3.4 s, 2.64 GB | linear regression 15 s, 3.61 GB |
 
-Two limits remain, neither in the graphs:
-- The linear regression's exact runs test (`engine/opendose/linregress.py`
-  `runs_test`, big-integer binomial sums) grows about as n^2.8: 0.55 s at
-  5,000 residuals, 3.4 s at 10,000, 24.5 s at 20,000 (native Python), so
-  200,000 points do not finish. A large-n approximation is engine work.
-- 500,000 rows (the plan's acceptance size) does not fit in the shared
-  test machine's browser cap, 3 GB or 4 GB: the browser is killed while
-  the paste is parsed for the Import dialog (200,000 rows peak at 2.8 to
-  3.0 GB whole browser there, then drop to about 1 GB).
+Before (main on 2026-11-23): at 500,000 rows the browser was killed while
+the Import dialog parsed the paste. At 200,000 rows the dialog phase
+peaked at 2.62 GB (now 0.96 GB) and the browser was killed on Import
+under this 4 GB cap; the linear regression gave no result in 15 min (now
+7 s; its exact runs test grew as n^2.8); column statistics failed with an
+overflow in the Anderson-Darling P. With the paste fixed and before the
+analysis-side fixes, the t test phase at 200,000 rows still peaked at
+3.24 GB, with two engine workers.
+
+What changed: the pasted text is no longer put in the dialog's text box
+above 200,000 characters (a text box of 200,000 lines alone took 1 GB in
+Chromium; the dialog says how many lines it holds instead); the paste is
+split once (fields sliced from the text, `sourceMatrix`) and shared by the
+titles check and the preview; the first lines are read without splitting
+the whole text; the table built for the paste report is the import; the
+residual diagnostics withhold their per-value points above 50,000 values
+(204 MB per answer at 1,000,000); no second engine runtime is warmed
+beside a job on more than 4 MB of data; the figure legend, the unit
+question and the exclusion counts no longer copy every row on each render
+(2.1 GB allocated by the legend alone during one t test at 200,000 rows).
+Engine side: `results-engine.md`, "large tables".
+
+Limits that remain:
+- The margin under the 4 GB cap is about 300 to 400 MB at the analysis
+  (the test script itself holds 0.23 to 0.33 GB of it); one run before the
+  last render fixes reached 4.02 GB. The largest remaining consumers are
+  the engine worker (Python's memory only grows: about 1 GB after the
+  first analysis of 1,000,000 values), the column graph's point layout
+  (`ColumnPlot.tsx`) and `numericData`, rebuilt for each engine request.
+- The suite is not in `scripts/verify.sh`: it runs in about 2 minutes,
+  but verify.sh runs its own Vite dev server (0.5 to 1.3 GB) inside the
+  same 4 GB scope, which leaves no room for 3.7 GB.
+- A copy from Excel of this size also carries HTML, which the paste
+  parses for full-precision values (`parseClipboardHtml`, a DOM of every
+  cell); not measured here (the e2e pastes plain text).
