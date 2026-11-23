@@ -4,6 +4,11 @@
 
 /* Note colours (--note-*) live in styles/tokens.css. They are user
    data: the same hue in both themes, never chrome. */
+.note-yellow { --note-bg: var(--note-yellow); --note-edge: var(--note-yellow-edge); }
+.note-blue   { --note-bg: var(--note-blue);   --note-edge: var(--note-blue-edge); }
+.note-green  { --note-bg: var(--note-green);  --note-edge: var(--note-green-edge); }
+.note-pink   { --note-bg: var(--note-pink);   --note-edge: var(--note-pink-edge); }
+.note-purple { --note-bg: var(--note-purple); --note-edge: var(--note-purple-edge); }
 .note-dot {
   flex: none; width: 8px; height: 8px; border-radius: var(--radius-round);
   background: var(--note-edge);
