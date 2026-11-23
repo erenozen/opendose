@@ -7,6 +7,7 @@ import type { DataSheet } from "../project/types";
 import { checklistSummary, evaluateChecklists, type ChecklistItem, type FixTarget } from "./checklists";
 import { familyFacts } from "./facts";
 import { openReportingDetails } from "./useReport";
+import { exportBundle } from "../share/events";
 import "./report.css";
 import { Button, Tabs } from "../components/ui";
 
@@ -29,6 +30,7 @@ export default function ChecklistPanel({ dataId, onClose }: { dataId?: string; o
     if (!data) return;
     if (f.kind === "details") { onClose(); openReportingDetails(data.id); return; }
     if (f.kind === "analyze") { onClose(); api.select(data.id); return; }
+    if (f.kind === "bundle") { onClose(); exportBundle(); return; }
     if (f.sheetId) { onClose(); api.select(f.sheetId); }
   };
 

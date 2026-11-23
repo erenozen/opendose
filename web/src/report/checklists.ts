@@ -62,9 +62,9 @@ export interface FamilyFacts {
 export type Status = "met" | "unmet" | "na";
 
 /** Where to fix an item: the reporting details form, a results sheet, a
- *  graph sheet, or the Analyze menu (add an analysis). */
+ *  graph sheet, the Analyze menu (add an analysis), or the export bundle. */
 export interface FixTarget {
-  kind: "details" | "results" | "graph" | "analyze";
+  kind: "details" | "results" | "graph" | "analyze" | "bundle";
   sheetId?: string;
   label: string;
 }
@@ -230,7 +230,12 @@ export const RULES: Record<string, Rule> = {
       ? `${pl.deviations} deviation${pl.deviations === 1 ? "" : "s"}, each with its reason, in the methods text` : "no deviations"}.` };
   },
   mean_sd_format: () => ({ status: "met", reason: "Sentences write mean (SD) / M and SD, never mean ± SEM." }),
-  source_data: () => ({ status: "met", reason: "The export bundle (Save menu) holds every table as CSV with the results and provenance." }),
+  // eLife asks for source data behind every graph. The bundle has each
+  // data table as CSV, not the values each figure panel plots (X-01), so
+  // this stays unmet until a per-figure source data export exists (P-65).
+  source_data: () => ({ status: "unmet",
+    reason: "The export bundle holds each data table as CSV with the results and provenance. Source data per figure (the values each graph plots, one file per panel) cannot be exported yet.",
+    fix: { kind: "bundle", label: "Download the export bundle" } }),
 };
 
 /** An item made of several rules: unmet if any is unmet, else met if any

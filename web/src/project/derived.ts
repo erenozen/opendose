@@ -146,11 +146,14 @@ export function pruneDerivedLinks(p: Project): Project {
   return changed ? { ...p, sheets } : p;
 }
 
-/** Sanitize a `derived` value read from a file. */
+/** Sanitize a `derived` value read from a file. A link saved before
+ *  `output` existed has none and reads back exactly as it was saved. */
 export function parseDerivedLink(v: unknown): DerivedLink | undefined {
   if (!v || typeof v !== "object") return undefined;
   const o = v as Record<string, unknown>;
-  return typeof o.sourceId === "string" && o.sourceId
-    && typeof o.resultsId === "string" && o.resultsId
-    ? { sourceId: o.sourceId, resultsId: o.resultsId } : undefined;
+  if (!(typeof o.sourceId === "string" && o.sourceId
+    && typeof o.resultsId === "string" && o.resultsId)) return undefined;
+  const link: DerivedLink = { sourceId: o.sourceId, resultsId: o.resultsId };
+  if (typeof o.output === "string" && o.output) link.output = o.output;
+  return link;
 }

@@ -151,6 +151,11 @@ export const SRC = {
   // Pseudoreplication: wells, cells or repeated reads counted as n.
   lazic2010: { label: "Lazic 2010, The problem of pseudoreplication in neuroscientific studies, BMC Neurosci 11:5",
     url: "https://pmc.ncbi.nlm.nih.gov/articles/PMC2817684/" },
+  // Potencies are averaged and compared as logs (logEC50 / pEC50), whose
+  // distribution is close to Gaussian; the EC50 itself is not. Checked on
+  // PubMed (PMID 9786022) 2026-11-23.
+  christopoulos1998: { label: "Christopoulos 1998, Assessing the distribution of parameters in models of ligand-receptor interaction: to log or not to log, Trends Pharmacol Sci 19:351",
+    url: "https://pubmed.ncbi.nlm.nih.gov/9786022/" },
   // Holm's step-down procedure (Holm-Šídák: its Šídák form).
   holm1979: { label: "Holm 1979, A simple sequentially rejective multiple test procedure, Scand J Stat 6:65",
     url: "https://www.jstor.org/stable/4615733" },

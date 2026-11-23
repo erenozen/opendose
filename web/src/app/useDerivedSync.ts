@@ -53,15 +53,21 @@ export function syncDerived(p: Project, engine: EngineBridge, results: ResultsCa
       entry = { key, result, live: true };
       fresh.set(prod.id, entry);
     }
-    let table = null;
-    try {
-      table = def.derivedTable(entry.result, source.table, options);
-    } catch {
-      table = null;
-    }
-    if (!table) continue;
+    // one table per output the producer feeds (most analyses: one)
+    const made = new Map<string | undefined, ReturnType<NonNullable<typeof def.derivedTable>>>();
     for (const out of derivedOutputs(next, prod.id)) {
-      next = writeDerivedTable(next, out.id, table);
+      const name = out.derived?.output;
+      if (!made.has(name)) {
+        let table = null;
+        try {
+          table = def.derivedTable(entry.result, source.table, options, name);
+        } catch {
+          table = null;
+        }
+        made.set(name, table);
+      }
+      const table = made.get(name);
+      if (table) next = writeDerivedTable(next, out.id, table);
     }
   }
   return next;

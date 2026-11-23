@@ -12,7 +12,8 @@ import { withheldInfo } from "../sheets/common/withheld.ts";
 import { multiplicityChip, type MultiplicityFacts } from "./multiplicity.ts";
 import { separateTestsChip, type SeparateTests } from "./interaction.ts";
 import { sensitivityChip, type NeededN, type Sensitivity } from "./smallN.ts";
-import type { Source } from "./sources.ts";
+import { SRC, type Source } from "./sources.ts";
+import { replicateInfo } from "../sheets/common/superplot.ts";
 
 export type ChipState = "ok" | "warn" | "bad" | "info";
 
@@ -383,6 +384,44 @@ function fitChips(r: R): Chip[] {
   return out;
 }
 
+/** A curve fitted to replicate values pooled across wells: its standard
+ *  errors and CIs use every value as an independent observation (df =
+ *  values - parameters), so they count wells, not experiments, and leave
+ *  out the variation of the potency between experiments (Lazic 2010,
+ *  pseudoreplication). With a replicate map the results also fit each
+ *  experiment and summarise them on n = experiments (sheets/xy/
+ *  experiments.ts); without one the chip offers to assign it. */
+export function pooledFitChip(ctx: ResultContext): Chip | null {
+  const t = ctx.table;
+  if (ctx.tableType !== "xy" || t.subcolumnFormat !== "replicates") return null;
+  const r = ctx.result as R | null;
+  const fits = ((r?.datasets ?? []) as R[]).filter((d) => d.fit);
+  if (!fits.length) return null;
+  const repeats = t.datasets.some((d) => d.rows.some((row) =>
+    row.filter((c) => (c ?? "").trim() !== "").length >= 2));
+  if (!repeats) return null;
+  const points = fits.map((d) => d.fit.goodness?.n_points).filter((n): n is number => typeof n === "number");
+  const most = points.length ? Math.max(...points) : null;
+  const unit = t.replicates?.unit?.trim() || "values";
+  const experiments = t.replicates ? replicateInfo(t).names.length : 0;
+  const summarised = experiments >= 2 && fits.some((d) => d.experiments && !d.experiments.error);
+  const counted = `The confidence intervals of this fit treat every one of the ${most ?? "fitted"} `
+    + `${unit} as an independent observation, so they count wells, not experiments, and leave `
+    + "out how much the potency varies from one experiment to the next. ";
+  return {
+    id: "pooled-ci", label: "CI counts wells, not experiments", state: "info",
+    detail: summarised
+      ? `${counted}The values come from ${experiments} independent experiments: report the `
+        + `across-experiments summary (n = ${experiments} experiments), whose CI reflects that variation.`
+      : `${counted}If the replicates were measured in separate experiments, say which values share `
+        + "an experiment: each experiment is then fitted on its own and the potencies are "
+        + "summarised with n = the number of experiments.",
+    explainer: "replicates",
+    sources: [SRC.lazic2010],
+    ...(summarised ? {} : { action: "assign-replicates" as const }),
+  };
+}
+
 /** Is the fit ambiguous? The engine flags dependency > 0.9999; a fit whose
  *  dependencies or standard errors could not be computed at all (e.g. a
  *  flat response, where the covariance matrix is singular) is treated the
@@ -494,7 +533,9 @@ export function resultChips(ctx: ResultContext): Chip[] {
   const r = ctx.result as R | null;
   if (!r || r.error) return [];
   const kind = analysisKind(ctx);
-  if (kind === "nonlin") return [...fitChips(r), outlierChip(ctx, kind)].filter((c): c is Chip => !!c);
+  if (kind === "nonlin") {
+    return [...fitChips(r), pooledFitChip(ctx), outlierChip(ctx, kind)].filter((c): c is Chip => !!c);
+  }
   if (["contingency", "mcnemar", "cmh", "proportions", "kappa"].includes(kind)) {
     return contingencyChips(ctx);
   }

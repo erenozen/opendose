@@ -15,6 +15,8 @@ import MeaningLine from "../report/MeaningLine";
 import { ANALYSIS_COLUMN, ANALYSIS_NONLIN } from "../project/builtin";
 import { concentrationUnit } from "../sheets/xy/rangeReport";
 import { keyFacts, type KeyItem } from "./answer/keyFacts";
+import AcrossExperiments from "./answer/AcrossExperiments";
+import { potencySummaries } from "../sheets/xy/experiments";
 import ResultsChecks from "./ResultsChecks";
 import { useChecks } from "./useChecks";
 import { Button, Num, NumText } from "./ui";
@@ -118,6 +120,9 @@ export default function ResultsAnswer({ sheet, data, result, options, status, re
   const checks = useChecks({ sheet, data, result, options, readOnly });
   const hasResult = result != null;
   const items = facts?.kind === "figures" ? facts.items.filter((i) => i.figure || i.error) : [];
+  // a replicate map: one fit per experiment, summarised above the fit of
+  // all the values (sheets/xy/experiments.ts)
+  const across = useMemo(() => potencySummaries(result).length > 0, [result]);
   const shown = all ? items : items.slice(0, SHOWN);
   const shape = expectedShape(sheet.analysis, options, data.table);
   const pane = useRef<HTMLElement>(null);
@@ -168,6 +173,10 @@ export default function ResultsAnswer({ sheet, data, result, options, status, re
           </div>
         ) : items.length > 0 && (
           <>
+            {across && <AcrossExperiments result={result} xUnit={xUnit} />}
+            {across && (
+              <h3 className="answer-group-label">All values in one fit: its CI counts wells, not experiments</h3>
+            )}
             <dl className="answer-items" data-count={Math.min(items.length, SHOWN)}>
               {shown.map((it, i) => <Item key={`${it.title}-${i}`} item={it} />)}
             </dl>

@@ -14,6 +14,7 @@ import {
 import { autoFitGate, type ChooseReason } from "./autofit";
 import { rowPoints } from "./deming";
 import { concentrationUnit, withRangeReport } from "./rangeReport";
+import { experimentsOption } from "./experiments";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -213,6 +214,7 @@ export function runNonlin(engine: EngineBridge, table: DataTableModel,
     };
   }
 
+  const experiments = summary ? null : experimentsOption(table);
   return engine.analyze({
     analysis: "dose_response",
     data,
@@ -231,6 +233,8 @@ export function runNonlin(engine: EngineBridge, table: DataTableModel,
       interpolate_y: interpY.length ? interpY : null,
       ...(options.fitMethod === "robust" ? { fit_method: "robust" } : {}),
       ...summaryOptions,
+      // a replicate map: also one fit per experiment and their summary
+      ...(experiments ? { experiments } : {}),
     },
   }) as AnalysisResult;
 }
