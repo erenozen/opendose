@@ -20,6 +20,8 @@
 //                      their value label on its curve-fit graph
 //   contingency-brackets.json  pairs of rows (Holm) as brackets on a
 //                      stacked percent contingency graph (P-14)
+//   estimation-margins.json  a t test with an equivalence margin of ±1 and
+//                      the estimation plot that draws it (P-12)
 //   fit-legend.json    a weighted 4PL with a confidence band and one ROUT
 //                      outlier, its legend sentence drawn in the figure
 //   bar-axis.json      fold changes as bars of geometric means ×/÷ geometric
@@ -485,4 +487,18 @@ const longData = (name, names, rows, categorical) => data(name, {
   const g = graph(t, r, "contingency_stacked_percent", "Graph of Genotypes");
   g.settings.format = { comparisons: { show: true } };
   write("contingency-brackets.json", project("Pairs of rows", [t, r, g], { selected: g.id }));
+}
+
+// estimation-margins.json: the P-12 acceptance groups (B = A - 0.2) with a
+// t test whose equivalence margin is ±1 and an estimation plot that draws
+// it (report/estimation/margins.ts)
+{
+  const A = [10.8, 10.75, 10.55, 10.5, 9.6, 9.65, 9.85, 9.9];
+  const t = data("Equivalence", table("column", { yTitle: "Value", datasets: [
+    col("A", A), col("B", A.map((v) => +(v - 0.2).toFixed(2)))] }));
+  const tt = results(t, "column", { analysis: "ttest", ttestKind: "unpaired", equivalence: "equivalence",
+    equivalenceMargin: "1" }, "t test of Equivalence");
+  const e = results(t, "estimation", {}, "Estimation of Equivalence");
+  const g = graph(t, e, "estimation", "Estimation plot of Equivalence");
+  write("estimation-margins.json", project("Equivalence margin", [t, tt, e, g], { selected: g.id }));
 }

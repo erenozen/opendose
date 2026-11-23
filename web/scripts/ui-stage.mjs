@@ -832,6 +832,14 @@ const scenes = [
     await into(s, ".plot-card", "center");
     await settle(s, 1000);
   } },
+  // the t test's equivalence margin and 90% CI on the estimation plot (P-12)
+  { name: "graphs-estimation-margins", setup: async (s) => {
+    await fixture(s, "estimation-margins.json", { live: true });
+    await s.page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.layout?.shapes ?? [])
+      .some((x) => x.name === "equivalence-margin:upper"), null, { timeout: 180000 });
+    await into(s, ".plot-card", "center");
+    await settle(s, 1000);
+  } },
   { name: "graphs-graph-sheet", setup: async (s) => {
     await example(s);
     await selectSheet(s, "Graph of Dose response");

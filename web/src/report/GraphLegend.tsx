@@ -8,6 +8,7 @@ import { useMemo } from "react";
 import { CopyButton } from "../components/CiteBlock";
 import type { DataSheet, DataTableModel, GraphSheet } from "../project/types";
 import { legendFor } from "./legendFor";
+import { useFamilyEquivalence } from "./estimation/useFamilyEquivalence";
 import { softwareLabel, useReportPrefs } from "./useReport";
 import "./report.css";
 
@@ -15,10 +16,12 @@ export default function GraphLegend({ graph, data, table, result, options }: {
   graph: GraphSheet; data: DataSheet; table: DataTableModel; result: unknown; options: unknown;
 }) {
   const prefs = useReportPrefs();
+  // estimation plots: the family's equivalence margin (P-12)
+  const equivalence = useFamilyEquivalence(graph);
   const text = useMemo(() => legendFor({
     data, table, graph, result: graph.resultsId ? result : null, options, prefs,
-    software: softwareLabel(),
-  }), [data, table, graph, result, options, prefs]);
+    software: softwareLabel(), equivalence,
+  }), [data, table, graph, result, options, prefs, equivalence]);
   const open = captionBelow(graph);
   if (!text) return null;
   return (

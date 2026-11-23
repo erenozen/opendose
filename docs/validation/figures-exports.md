@@ -278,3 +278,39 @@ adjusted P (0.4075, 3.719e-4, 0.008853), the brackets and their labels
 100%, the dialog's list and its missing letters tab, the legend, and the
 grouped graph's refusal. `scripts/e2e-export.mjs` finds the three labels
 in the SVG export.
+
+## The equivalence margin on the estimation plot (P-12)
+
+When the family holds a t test (unpaired, Welch or paired) with an
+equivalence or non-inferiority margin, its estimation plot of the same
+two groups draws the margin as dashed lines across the difference's
+column (labelled "margin -1", "margin +1"; one line for non-inferiority)
+and the t test's 90% CI (the 1 - 2 alpha interval of the two one-sided
+tests, Schuirmann 1987) as a capped bar beside the bootstrap CI, on the
+difference axis, which grows to hold them (`report/estimation/margins.ts`,
+`figure.ts`). The t test states A - B and the plot shows test - control:
+with A as the plot's control the margin and the interval are mirrored
+(-0.6403 to 0.2403 for B - A), and the legend says "drawn as B minus A".
+Nothing is drawn, and the legend says why, for a ratio margin, an effect
+size other than the mean difference, a paired test against an unpaired
+plot (or the reverse) and a plot without that pair. Without such a t test
+the figure is the same object as before (checked in `margins.test.ts`);
+frozen estimation graphs draw no margin (their snapshot holds their own
+result only). The legend under the graph, the report card, the
+PowerPoint notes and the export bundle read the same t test.
+
+Reference: the P-12 e2e data (A = 10.8, 10.75, 10.55, 10.5, 9.6, 9.65,
+9.85, 9.9; B = A - 0.2), `engine/tests/reference/equivalence_tost.py`
+(statsmodels `ttost_ind`): A - B = 0.2, 90% CI -0.24032753 to 0.64032753,
+margin ±1, P (TOST) 0.00321.
+
+`margins.test.ts` checks the sheet lookup, both orientations, the
+non-inferiority bound on either side, the five reasons for leaving the
+margin off, the Gardner-Altman figure (lines at y2 = -1 and 1 from x =
+1.78 to 2.7, the CI marker at x = 2.06 with ends -0.6403275 and
+0.2403275, the axis range) and the legend sentences.
+`scripts/e2e-figures.mjs` opens a family with the t test (margin 1) and
+the estimation plot and reads the two lines, the CI ends (to 5e-5) and
+the legend; a paired t test against the unpaired plot draws nothing and
+says why. `scripts/e2e-export.mjs` finds the margin labels and the dashed
+lines in the SVG export.

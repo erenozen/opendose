@@ -1191,6 +1191,76 @@ const fitLegendText = () => page.locator(".plot-card .figure-legend-text").textC
   await closeSettings();
 }
 
+// --- the equivalence margin on the estimation plot (P-12). The P-12 e2e
+// data (A = 10.8 ... 9.9, B = A - 0.2); engine/tests/reference/
+// equivalence_tost.py (statsmodels ttost_ind), margin ±1: A − B = 0.2,
+// 90% CI -0.2403 to 0.6403. The plot's control is A, so it shows B − A:
+// the margin ±1 and the CI mirrored to -0.6403 to 0.2403. Before: the
+// estimation plot drew no margin; a family without a margin still draws
+// none (the e2e-check estimation pins).
+{
+  const EQ = join(tmp, "equivalence.json");
+  const A = ["10.8", "10.75", "10.55", "10.5", "9.6", "9.65", "9.85", "9.9"];
+  const eqTable = { type: "column", x: A.map(() => ""), xTitle: "", xFormat: "numbers", xUnit: "", yTitle: "Value",
+    rowTitles: A.map(() => ""), subcolumnFormat: "replicates", replicateLayout: "side_by_side",
+    datasets: [{ name: "A", rows: A.map((v) => [v]) },
+      { name: "B", rows: A.map((v) => [String(+(Number(v) - 0.2).toFixed(2))]) }] };
+  const fam = (p, name, ttestKind) => [
+    { id: `${p}d`, kind: "data", name, table: eqTable },
+    { id: `${p}t`, kind: "results", parentId: `${p}d`, name: `t test of ${name}`, analysis: "column",
+      options: { analysis: "ttest", ttestKind, equivalence: "equivalence", equivalenceMargin: "1" } },
+    { id: `${p}e`, kind: "results", parentId: `${p}d`, name: `Estimation of ${name}`, analysis: "estimation",
+      options: {} },
+    { id: `${p}g`, kind: "graph", parentId: `${p}d`, resultsId: `${p}e`, graphType: "estimation",
+      name: `Estimation plot of ${name}`, settings: { titles: { x: "", y: "" }, scheme: "default" } },
+  ];
+  writeFileSync(EQ, JSON.stringify({
+    version: 2, title: "Equivalence margin",
+    prefs: { defaultTableType: "column", errorBars: "sd", ciMethod: "asymptotic", scheme: "default", digits: 4 },
+    sheets: [...fam("u", "Equivalence", "unpaired"), ...fam("p", "Paired equivalence", "paired")],
+  }));
+  const margins = () => page.evaluate(() => {
+    const gd = document.querySelector(".plot-card .plot");
+    const lines = (gd?.layout?.shapes ?? []).filter((s) => String(s.name ?? "").startsWith("equivalence-margin"));
+    const ci = (gd?.data ?? []).find((t) => t.name === "equivalence-ci");
+    const r = gd?._fullLayout?.yaxis2?.range ?? [];
+    return { lines: lines.map((s) => [s.name, s.yref, s.y0]),
+      ci: ci ? [ci.y[0] - ci.error_y.arrayminus[0], ci.y[0], ci.y[0] + ci.error_y.array[0]] : null,
+      labels: (gd?.layout?.annotations ?? []).filter((a) => a.name === "equivalence-margin-label").map((a) => a.text),
+      range: r };
+  });
+  await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]', EQ);
+  await page.getByRole("treeitem", { name: "Estimation plot of Equivalence", exact: true }).first()
+    .locator(":scope > .nav-row").click();
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.layout?.shapes ?? [])
+    .some((s) => s.name === "equivalence-margin:upper"), null, { timeout: 180000 }).catch(() => {});
+  const m = await margins();
+  expect("estimation plot: dashed margin lines at -1 and +1 on the difference axis",
+    JSON.stringify(m.lines) === '[["equivalence-margin:lower","y2",-1],["equivalence-margin:upper","y2",1]]'
+      && JSON.stringify(m.labels) === '["margin -1","margin +1"]', JSON.stringify(m));
+  const near = (a, b) => Math.abs(a - b) < 5e-5;
+  expect("the t test's 90% CI, drawn as B − A: -0.6403 to 0.2403 around -0.2 (statsmodels: -0.2403 to 0.6403 for A − B)",
+    m.ci && near(m.ci[0], -0.6403275) && near(m.ci[1], -0.2) && near(m.ci[2], 0.2403275), JSON.stringify(m.ci));
+  expect("the difference axis holds both margin lines", m.range[0] < -1 && m.range[1] > 1, JSON.stringify(m.range));
+  const legend = await page.locator(".plot-card .figure-legend-text").textContent().catch(() => "");
+  expect("the legend says what the lines and the capped bar are",
+    legend.includes("Dashed lines mark the equivalence margin of the t test (A − B within ±1, drawn as B minus A); "
+      + "the capped bar left of the difference is that test's 90% CI (-0.6403 to 0.2403), which lies inside "
+      + "the margin exactly when the two one-sided tests show equivalence (Schuirmann 1987)."), legend);
+  await shot("estimation-margins");
+
+  // a paired t test against an unpaired estimation plot: no lines, the reason
+  await page.getByRole("treeitem", { name: "Estimation plot of Paired equivalence", exact: true }).first()
+    .locator(":scope > .nav-row").click();
+  await page.waitForFunction(() => document.querySelector(".plot-card .figure-legend-text")?.textContent
+    ?.includes("No equivalence margin"), null, { timeout: 180000 }).catch(() => {});
+  const p = await margins();
+  const pLegend = await page.locator(".plot-card .figure-legend-text").textContent().catch(() => "");
+  expect("paired t test, unpaired plot: no margin drawn, and the legend says why",
+    p.lines.length === 0 && !p.ci
+      && pLegend.includes("No equivalence margin on this plot: the t test is paired and the plot is not."), pLegend);
+}
+
 console.log(errors.length ? errors.join("\n") : "no page errors");
 await browser.close();
 if (fail.length || errors.length) {

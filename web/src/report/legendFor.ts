@@ -24,6 +24,8 @@ import { maxOf } from "../lib/extent.ts";
 import { dropLegend, normalizeXYGraph } from "../sheets/xy/fitGraph.ts";
 import { fitLegendClause } from "../sheets/xy/fitLegend.ts";
 import { ctBracketLegend, ctBracketsDrawn } from "../sheets/contingency/brackets.ts";
+import { estimationMargins, marginsLegend, type EquivalenceLink } from "./estimation/margins.ts";
+import { GRAPH_ESTIMATION } from "./estimation/run.ts";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -115,6 +117,9 @@ export interface LegendContext {
   options: unknown;
   prefs: ReportPrefs;
   software: string;
+  /** The family's t test with an equivalence margin (estimation graphs:
+   *  report/estimation/margins.ts), if any. */
+  equivalence?: EquivalenceLink | null;
 }
 
 /** The figure legend of a graph (or of the results alone, without one). */
@@ -155,9 +160,14 @@ export function legendFor(c: LegendContext): string {
   const ct = !!c.graph && c.table.type === "contingency";
   const ctDrawn = ct && ctBracketsDrawn(c.graph!, c.table, c.result);
   const ctPlotted = ct ? ctBracketLegend(c.graph!, c.table, c.result) ?? undefined : undefined;
+  // estimation plots: the family's equivalence margin, or why it is not drawn
+  const eqClause = c.graph?.graphType === GRAPH_ESTIMATION && c.equivalence
+    ? marginsLegend(estimationMargins(c.result, c.equivalence.result, c.equivalence.options)) : "";
+  const estPlotted = eqClause ? `${whatIsPlotted(GRAPH_ESTIMATION, {
+    estimation: ra === "estimation" ? c.result as any : null })} ${eqClause}` : undefined;
   return legendParagraph({
     graphType: c.graph?.graphType ?? null,
-    plotted: xyFit ?? ctPlotted ?? withCompareClause(c.graph ? (own ? ownPlotted(c.graph, c.result, c.options)
+    plotted: xyFit ?? ctPlotted ?? estPlotted ?? withCompareClause(c.graph ? (own ? ownPlotted(c.graph, c.result, c.options)
       : plottedClause(c.graph, c.table, c.result, c.options)) : undefined, c.result),
     result: c.result,
     groups: xyGroups,

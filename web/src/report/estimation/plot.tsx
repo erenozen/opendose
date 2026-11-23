@@ -1,5 +1,6 @@
 // The estimation plot panel (figure.ts builds it), drawn through the
-// graph-format layer.
+// graph-format layer, with the margin of the family's equivalence test
+// when it compares the same two groups (margins.ts, P-12).
 import { useMemo } from "react";
 import FormattedPlot from "../../graph/FormattedPlot";
 import { useDarkMode } from "../../graph/useDarkMode";
@@ -7,14 +8,21 @@ import { CHROME_DARK, CHROME_LIGHT, PLOT_FONT, seriesStyle } from "../../lib/pal
 import { numericData } from "../../project/table";
 import type { PlotProps } from "../../sheets/types";
 import { estimationFigure } from "./figure";
+import { estimationMargins } from "./margins";
 import type { EstimationOptions } from "./run";
+import { useFamilyEquivalence } from "./useFamilyEquivalence";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-export function EstimationPlot({ table, result, titles, scheme, format, onFormatChange }:
+export function EstimationPlot({ graph, table, result, titles, scheme, format, onFormatChange }:
   PlotProps<EstimationOptions, Record<string, any>>) {
   const dark = useDarkMode();
   const ok = !!result && !result.error && Array.isArray(result.comparisons);
+  const eq = useFamilyEquivalence(graph);
+  const margins = useMemo(() => {
+    const m = eq && ok ? estimationMargins(result, eq.result, eq.options) : null;
+    return m?.drawn ? m.m : null;
+  }, [eq, ok, result]);
   const aligned = useMemo(() => {
     if (!ok || !result!.paired) return undefined;
     const out: Record<string, (number | null)[]> = {};
@@ -46,9 +54,9 @@ export function EstimationPlot({ table, result, titles, scheme, format, onFormat
     return estimationFigure({
       result: result!, chrome, font: PLOT_FONT, yTitle: titles.y, aligned, dsOf,
       color: (i) => seriesStyle(i, dark, scheme).color,
-      symbol: (i) => seriesStyle(i, dark, scheme).symbol,
+      symbol: (i) => seriesStyle(i, dark, scheme).symbol, margins,
     });
-  }, [ok, result, dark, scheme, titles.y, aligned, table]);
+  }, [ok, result, dark, scheme, titles.y, aligned, table, margins]);
   const datasets = useMemo(() => table.datasets.map((d, i) => d.name || `Group ${i + 1}`), [table]);
   const ctx = useMemo(() => ({ dark, scheme, datasets }), [dark, scheme, datasets]);
   const kind = result?.plot?.kind === "cumming" ? "Cumming" : "Gardner-Altman";

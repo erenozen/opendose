@@ -716,6 +716,35 @@ const svgTexts = (buf) => page.evaluate((s) => [...new DOMParser().parseFromStri
     ["ns", "**", "***", "WT", "Het", "KO"].every((t) => texts.includes(t)), JSON.stringify(texts));
 }
 
+// the equivalence margin on the estimation plot (P-12): the t test of the
+// family (margin ±1, engine/tests/reference/equivalence_tost.py) gives the
+// dashed lines and their labels, carried by the export
+{
+  const A = ["10.8", "10.75", "10.55", "10.5", "9.6", "9.65", "9.85", "9.9"];
+  const eqTable = { type: "column", x: A.map(() => ""), xTitle: "", xFormat: "numbers", xUnit: "", yTitle: "Value",
+    rowTitles: A.map(() => ""), subcolumnFormat: "replicates", replicateLayout: "side_by_side",
+    datasets: [{ name: "A", rows: A.map((v) => [v]) },
+      { name: "B", rows: A.map((v) => [String(+(Number(v) - 0.2).toFixed(2))]) }] };
+  await openProject("estimation-margins.json", [
+    { id: "e1", kind: "data", name: "Equivalence", table: eqTable },
+    { id: "e2", kind: "results", parentId: "e1", name: "t test of Equivalence", analysis: "column",
+      options: { analysis: "ttest", ttestKind: "unpaired", equivalence: "equivalence", equivalenceMargin: "1" } },
+    { id: "e3", kind: "results", parentId: "e1", name: "Estimation of Equivalence", analysis: "estimation", options: {} },
+    { id: "e4", kind: "graph", parentId: "e1", resultsId: "e3", graphType: "estimation",
+      name: "Estimation plot of Equivalence", settings: { titles: { x: "", y: "" }, scheme: "default" } },
+  ]);
+  await page.getByRole("treeitem", { name: "Estimation plot of Equivalence", exact: true }).first()
+    .locator(":scope > .nav-row").click();
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.layout?.shapes ?? [])
+    .some((s) => s.name === "equivalence-margin:upper"), null, { timeout: 180000 }).catch(() => {});
+  const svg = (await graphExport("svg")).buf.toString("utf8");
+  const texts = await svgTexts(Buffer.from(svg));
+  const dashed = (svg.match(/stroke-dasharray/g) ?? []).length;
+  // two dotted reference lines of the Gardner-Altman plot and the two margin lines
+  expect("estimation SVG export carries the margin labels and the dashed margin lines",
+    texts.includes("margin -1") && texts.includes("margin +1") && dashed >= 4, `${JSON.stringify(texts)}; ${dashed} dashed`);
+}
+
 console.log("files in", tmp);
 console.log("errors:", errors.length ? errors : "none");
 await browser.close();
