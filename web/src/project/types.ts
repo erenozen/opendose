@@ -405,6 +405,18 @@ export interface Project {
   groups?: SheetGroup[];
   /** Import recipes saved with the project (project/recipes.ts). */
   recipes?: ProjectRecipe[];
+  /** Colours pinned to group names ("KO" = #e69f00): every graph draws a
+   *  data set of that name in it unless the graph sets its own
+   *  (graph/nameColors.ts). Absent in files from before (no pins). */
+  groupColors?: GroupColor[];
+}
+
+export interface GroupColor {
+  /** The group (data set) name as typed; matched ignoring case and the
+   *  spaces around it. */
+  name: string;
+  /** #rrggbb, the same in light and dark. */
+  color: string;
 }
 
 export const SECTION_ORDER: SheetKind[] =

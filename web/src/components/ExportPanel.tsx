@@ -228,6 +228,12 @@ export default function ExportPanel({
                   onChange={(e) => commit({ scaleText: e.target.checked })} />
                 <span>Scale the graph as shown (text grows or shrinks with it)</span>
               </label>
+              {s.scaleText && (
+                <p className="hint-block">
+                  Text and line sizes set in points (Format graph, Format axes) print at
+                  that size only with this off.
+                </p>
+              )}
               <label className="check-row">
                 <input type="checkbox" checked={s.transparent && supportsTransparency(s.format)}
                   disabled={!supportsTransparency(s.format)}

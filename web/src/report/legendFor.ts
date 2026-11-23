@@ -26,7 +26,7 @@ import { fitLegendClause } from "../sheets/xy/fitLegend.ts";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-const COLUMN_KINDS = new Set(["scatter", "bar", "box", "violin"]);
+const COLUMN_KINDS = new Set(["scatter", "bar", "box", "violin", "raincloud"]);
 
 /** n per data set counted from the table (values entered, exclusions out). */
 export function tableGroups(t: DataTableModel): GroupN[] {

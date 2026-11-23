@@ -18,6 +18,7 @@ import { dirname, join } from "node:path";
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { createRequire } from "node:module";
+import { spawnSync } from "node:child_process";
 import { unzipSync, strFromU8, strToU8, zipSync } from "fflate";
 
 // The header's View menu (DECISIONS 5): open it, pick an item.
@@ -154,7 +155,13 @@ await shared.waitForTimeout(300);
 expect("an edit sticks in the copy", await editable.inputValue() === "12345");
 await ctx2.close();
 
-// --- export bundle
+// --- export bundle (with one page layout of the example's two graphs: P-63)
+await fileMenu.click();
+await page.getByRole("menuitem", { name: "New layout" }).click();
+await page.waitForSelector(".layout-page", { timeout: 10000 });
+await page.getByRole("button", { name: "Fill with graphs" }).click();
+await page.waitForFunction(() => document.querySelectorAll(".layout-graph .plot.js-plotly-plot").length >= 2,
+  null, { timeout: 60000 });
 await fileMenu.click();
 const [download] = await Promise.all([
   page.waitForEvent("download", { timeout: 120000 }),
@@ -196,6 +203,63 @@ expect("bundle PNGs are PNGs", pngs.every((n) => entries[n][0] === 0x89 && entri
 const readme = strFromU8(entries["README.txt"]);
 expect("README names the software versions", /OpenDose \S+/.test(readme) && /SciPy \d/.test(readme));
 expect("README lists every file", names.filter((n) => n !== "README.txt").every((n) => readme.includes(n)));
+// P-63: each graph as PDF, the layout page as PDF and SVG, read back by
+// pypdf (PYTHON names an interpreter that has it) and by pdf.js (PDFJS
+// names a pdfjs-dist folder; both are skipped, saying so, when absent)
+{
+  const pdfs = names.filter((n) => /^graphs\/.+\.pdf$/.test(n));
+  const lay = names.filter((n) => n.startsWith("layouts/"));
+  expect("bundle has every graph as PDF (fonts embedded, as the graph's own PDF export)",
+    pdfs.length === 2 && pdfs.every((n) => strFromU8(entries[n].subarray(0, 5)) === "%PDF-")
+    && pdfs.every((n) => /\/FontFile2/.test(Buffer.from(entries[n]).toString("latin1"))), pdfs.join(", "));
+  expect("bundle has the layout page as PDF and SVG", lay.length === 2 && has("layouts/layout-1.pdf")
+    && has("layouts/layout-1.svg") && strFromU8(entries["layouts/layout-1.svg"]).includes("<svg"), lay.join(", "));
+  for (const n of [...pdfs, ...lay]) {
+    expect(`README lists ${n} on a line of its own with what it is`, new RegExp(`\\n${n.replace(/\./g, "\\.")}\\n {4}\\S`).test(readme));
+  }
+  const files = [...pdfs, "layouts/layout-1.pdf"].map((n) => {
+    const f = join(tmp, n.replace("/", "-"));
+    writeFileSync(f, entries[n]);
+    return f;
+  });
+  const py = process.env.PYTHON ?? "python3";
+  const r = spawnSync(py, ["-c", "import sys, pypdf\nfor f in sys.argv[1:]:\n r = pypdf.PdfReader(f)\n"
+    + " print(len(r.pages), round(float(r.pages[0].mediabox.width), 2), len(r.pages[0].extract_text()) > 0)",
+  ...files], { encoding: "utf8" });
+  if (r.status !== 0 && /No module named .pypdf/.test(r.stderr)) {
+    console.log(`skip pypdf is not installed for ${py}: set PYTHON to an interpreter that has it`);
+  } else {
+    const rows = r.stdout.trim().split("\n").map((l) => l.split(" "));
+    expect("pypdf opens every bundle PDF: one page each, with text; the layout page is A4 (595.28 pt)",
+      r.status === 0 && rows.length === 3 && rows.every((x) => x[0] === "1" && x[2] === "True")
+      && rows[2][1] === "595.28", (r.stdout || r.stderr).replace(/\s+/g, " ").slice(0, 300));
+  }
+  if (process.env.PDFJS) {
+    // pdf.js runs in a blank page (it needs the DOM; the app's CSP would
+    // refuse its scripts), loaded from blob URLs
+    const blank = await ctx1.newPage();
+    const out = await blank.evaluate(async ({ lib, worker, pdfs }) => {
+      const url = (src) => URL.createObjectURL(new Blob([src], { type: "text/javascript" }));
+      const pdfjs = await import(url(lib));
+      pdfjs.GlobalWorkerOptions.workerSrc = url(worker);
+      const res = [];
+      for (const b64 of pdfs) {
+        const doc = await pdfjs.getDocument({ data: Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)) }).promise;
+        const pg = await doc.getPage(1);
+        const text = (await pg.getTextContent()).items.map((i) => i.str).join(" ");
+        res.push({ pages: doc.numPages, w: Math.round(pg.view[2] * 100) / 100, text: text.length });
+      }
+      return res;
+    }, { lib: readFileSync(join(process.env.PDFJS, "build/pdf.min.mjs"), "utf8"),
+      worker: readFileSync(join(process.env.PDFJS, "build/pdf.worker.min.mjs"), "utf8"),
+      pdfs: files.map((f) => readFileSync(f).toString("base64")) });
+    await blank.close();
+    expect("pdf.js opens every bundle PDF: one page each, with text", out.length === 3
+      && out.every((o) => o.pages === 1 && o.text > 0) && out[2].w === 595.28, JSON.stringify(out));
+  } else {
+    console.log("skip pdf.js: set PDFJS to a pdfjs-dist folder to read the PDFs with it too");
+  }
+}
 expect("project.json in the bundle reopens", JSON.parse(strFromU8(entries["project.json"])).opendose_project === 2);
 const prov = JSON.parse(strFromU8(entries["provenance.json"] ?? new Uint8Array()) || "{}");
 const steps = (prov.families ?? []).flatMap((f) => f.steps);

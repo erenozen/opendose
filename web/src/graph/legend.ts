@@ -25,6 +25,7 @@ import { cellStats, type ErrorKind } from "../sheets/grouped/stats.ts";
 import { readFormat } from "./format.ts";
 import { resolveSummary } from "../sheets/column/rankSummary.ts";
 import type { WhiskerRule } from "./boxStats.ts";
+import { bandwidthText, groupDensity, type NoDensity } from "./kde.ts";
 import { graphHideNs, graphPStyle, starScale, type PStyle } from "./significance.ts";
 
 /** Centre and error of the summary marks. */
@@ -34,7 +35,10 @@ export interface LegendGroup { name: string; n: number }
 
 export interface LegendSpec {
   /** What summarises each group. */
-  display: "scatter" | "bar" | "box" | "violin" | "lines" | "superplot";
+  display: "scatter" | "bar" | "box" | "violin" | "raincloud" | "lines" | "superplot";
+  /** Violins drawn from graph/kde.ts and rainclouds: each group's
+   *  bandwidth (null: no density, and why), so the legend states it. */
+  density?: { groups: { name: string; h: number | null; why?: NoDensity }[]; log: boolean };
   summary: LegendSummary;
   /** Individual values are drawn. */
   points: boolean;
@@ -91,6 +95,30 @@ export function nPhrase(groups: LegendGroup[], unit = ""): string {
   return `n${unit ? ` (${unit})` : ""} = ${g.map((x) => `${x.n} (${x.name})`).join(", ")}`;
 }
 
+const NO_DENSITY: Record<NoDensity, string> = {
+  few: "fewer than 2 values",
+  equal: "all values equal",
+  nonpositive: "a value of 0 or less has no logarithm",
+};
+
+/** "Gaussian kernel, bandwidth by Silverman's rule of thumb (R bw.nrd0):
+ *  1.07 (Control), 0.657 (Treated); each scaled to the same width". */
+export function densityClause(d: NonNullable<LegendSpec["density"]>): string {
+  const drawn = d.groups.filter((g) => g.h !== null);
+  const texts = drawn.map((g) => bandwidthText(g.h!));
+  const unit = d.log ? " (log10 units)" : "";
+  let out = "Gaussian kernel, bandwidth by Silverman's rule of thumb (R bw.nrd0)";
+  if (drawn.length && texts.every((t) => t === texts[0])) out += ` ${texts[0]}${unit}`;
+  else if (drawn.length) out += `${unit}: ${drawn.map((g, i) => `${texts[i]} (${g.name})`).join(", ")}`;
+  if (d.log) out += ", on log10 of the values";
+  if (drawn.length > 1) out += "; each scaled to the same width";
+  const none = d.groups.filter((g) => g.h === null);
+  if (none.length) {
+    out += `; no density for ${none.map((g) => `${g.name} (${NO_DENSITY[g.why ?? "few"]})`).join(", ")}`;
+  }
+  return out;
+}
+
 /** The legend sentence of a described graph. */
 export function composeLegend(spec: LegendSpec): string {
   const parts: string[] = [];
@@ -111,7 +139,15 @@ export function composeLegend(spec: LegendSpec): string {
       parts.push(`Median with IQR (box) and ${WHISKER_WORDS[spec.whiskers ?? "tukey"]} (whiskers)${pts}`);
       break;
     case "violin":
-      parts.push(`Kernel density (violin) with the mean (line)${pts}`);
+      parts.push(spec.density
+        ? `Kernel density (violin) with the median (solid line) and quartiles (dashed lines)${pts}`
+        : `Kernel density (violin) with the mean (line)${pts}`);
+      if (spec.density) parts.push(densityClause(spec.density));
+      break;
+    case "raincloud":
+      parts.push(`Raincloud: kernel density (half violin), median with IQR (box) and `
+        + `${WHISKER_WORDS[spec.whiskers ?? "tukey"]} (whiskers)${pts}`);
+      if (spec.density) parts.push(densityClause(spec.density));
       break;
     case "lines":
       parts.push(`${PHRASE[spec.summary]}${pts}`);
@@ -176,11 +212,12 @@ function columnSpec(graph: Pick<GraphSheet, "graphType" | "settings">, table: Da
   const summary = resolveSummary(s.summary, options);
   const kind = graph.graphType;
   const display = kind === "bar" ? "bar" : kind === "box" ? "box"
-    : kind === "violin" ? "violin" : "scatter";
+    : kind === "violin" ? "violin" : kind === "raincloud" ? "raincloud" : "scatter";
   const stars = starsOf(graph);
   if (table.subcolumnFormat !== "replicates") {
     return {
-      display: display === "box" || display === "violin" ? "scatter" : display,
+      display: display === "box" || display === "violin" || display === "raincloud"
+        ? "scatter" : display,
       summary: enteredSummary(table.subcolumnFormat), points: false, stars,
       groups: table.datasets.map((d) => ({ name: d.name, n: enteredN(d.rows, table.subcolumnFormat) })),
     };
@@ -203,6 +240,27 @@ function columnSpec(graph: Pick<GraphSheet, "graphType" | "settings">, table: Da
       ? { refused: geoRefused(table, summary) } : {}),
     whiskers: s.whiskers,
     groups: table.datasets.map((d) => ({ name: d.name, n: countValues(d.rows) })),
+    ...(display === "raincloud" || (display === "violin" && s.violin === "quartiles")
+      ? { density: densityOf(graph, table) } : {}),
+  };
+}
+
+/** Each group's bandwidth, as ColumnPlot draws it (graph/kde.ts). */
+function densityOf(graph: Pick<GraphSheet, "settings">, table: DataTableModel):
+  NonNullable<LegendSpec["density"]> {
+  const log = readFormat(graph.settings).y?.scale === "log10";
+  return {
+    log,
+    groups: table.datasets.map((d, i) => {
+      const values: number[] = [];
+      for (const row of d.rows) for (const c of row) {
+        const v = parseCell(c);
+        if (v !== null) values.push(v);
+      }
+      const g = groupDensity(values, log);
+      return { name: d.name.trim() || `Data set ${i + 1}`, h: g.kde?.h ?? null,
+        ...(g.why ? { why: g.why } : {}) };
+    }).filter((_, i) => table.datasets[i].rows.some((r) => r.some((c) => parseCell(c) !== null))),
   };
 }
 
@@ -273,7 +331,7 @@ export function legendSentence(graph: Pick<GraphSheet, "graphType" | "settings">
  *  legend sentence does not describe). */
 export function legendSpec(graph: Pick<GraphSheet, "graphType" | "settings">,
   table: DataTableModel, result?: unknown, options?: unknown): LegendSpec | null {
-  const columnKind = ["scatter", "bar", "box", "violin"].includes(graph.graphType);
+  const columnKind = ["scatter", "bar", "box", "violin", "raincloud"].includes(graph.graphType);
   const spec = table.type === "column" || (table.type === "xy" && columnKind)
     ? columnSpec(graph, table, result, options)
     : table.type === "grouped" ? groupedSpec(graph, table, result) : null;

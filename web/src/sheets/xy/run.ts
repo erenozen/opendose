@@ -115,6 +115,8 @@ export function runNonlin(engine: EngineBridge, table: DataTableModel,
     if (g.error) return { analysis: "dose_response", datasets: [], error: g.error };
     return {
       analysis: "dose_response",
+      // the Schild plot (P-49, sheets/xy/schild.ts); a display beside the fit
+      ...(g.schild_plot ? { schild_plot: g.schild_plot } : {}),
       datasets: g.datasets.map((ds: any) => ({
         name: ds.name,
         points: ds.points,

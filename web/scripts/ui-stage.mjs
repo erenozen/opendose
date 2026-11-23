@@ -289,6 +289,15 @@ const scenes = [
     await headerMenu(s, "View", "Preferences…");
     await dialog(s, "Preferences").waitFor();
   } },
+  { name: "shell-preferences-pins", setup: async (s) => {
+    await fixture(s, "pins.json");
+    await s.page.locator(".js-plotly-plot").first().waitFor();
+    await headerMenu(s, "View", "Preferences…");
+    const pins = dialog(s, "Preferences").getByRole("region", { name: "Colours pinned to groups" });
+    await pins.locator(".pins-warnings p").first().waitFor();
+    await pins.evaluate((el) => el.scrollIntoView({ block: "center" }));
+    await settle(s, 400);
+  } },
   { name: "shell-about", setup: async (s) => {
     await example(s);
     await headerMenu(s, "View", "About OpenDose…");
@@ -789,6 +798,38 @@ const scenes = [
     await s.page.locator(".pane-answer .answer-rank").waitFor();
     await s.page.locator(".js-plotly-plot").first().waitFor();
     await settle(s, 1200);
+  } },
+  { name: "graphs-format-axes-pt", setup: async (s) => {
+    await example(s);
+    await into(s, ".plot-card", "center");
+    await click(s, s.page.locator(".plot-card").getByRole("button", { name: "Settings", exact: true }));
+    await click(s, dialog(s, "Graph settings").getByRole("button", { name: "Format axes…" }));
+    const fmt = s.page.locator("dialog.fmt-dialog");
+    await click(s, fmt.getByLabel("Points (pt, 1/72 inch"));
+    await fmt.getByLabel("Axis line width (pt)").fill("1");
+    await settle(s, 500);
+  } },
+  { name: "results-schild", setup: async (s) => {
+    await fixture(s, "schild.json", { live: true });
+    const card = s.page.locator(".schild-card");
+    await card.waitFor({ timeout: 240000 });
+    await card.evaluate((el) => el.scrollIntoView({ block: "start" }));
+    await settle(s, 600);
+  } },
+  { name: "graphs-schild", setup: async (s) => {
+    await fixture(s, "schild.json", { live: true });
+    await selectSheet(s, /^Schild plot of EC50 shift/);
+    await s.page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+      .some((t) => t.meta?.odTag?.role === "fit"), null, { timeout: 240000 });
+    await into(s, ".plot-card", "center");
+    await settle(s, 800);
+  } },
+  { name: "graphs-raincloud", setup: async (s) => {
+    await fixture(s, "raincloud.json", { live: true });
+    await s.page.locator(".js-plotly-plot").first().waitFor();
+    await into(s, ".plot-card", "center");
+    await click(s, s.page.locator(".plot-card").getByRole("button", { name: "Settings", exact: true }));
+    await dialog(s, "Graph settings").getByLabel("Whiskers").waitFor();
   } },
   { name: "graphs-fit-legend", setup: async (s) => {
     await fixture(s, "fit-legend.json", { live: true });

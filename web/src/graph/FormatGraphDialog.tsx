@@ -13,9 +13,11 @@ import {
   type FontFormat, type AtRiskFormat,
 } from "./format";
 import {
-  CheckField, ColorField, DialogActions, NumField, Section, SelectField, Tabs, TextField,
+  CheckField, ColorField, DialogActions, NumField, Section, SelectField, SizeField, SizeUnitChoice,
+  Tabs, TextField,
 } from "./controls";
 import { useDiscardGuard } from "./useDiscardGuard";
+import { useSizeUnit } from "./useSizeUnit";
 
 type Target = "this" | "all" | "selected";
 
@@ -48,6 +50,7 @@ export default function FormatGraphDialog({
   const [sel, setSel] = useState(0);
   const [target, setTarget] = useState<Target>("this");
   const [selected, setSelected] = useState<Set<number>>(() => new Set([0]));
+  const [unit, setUnit] = useSizeUnit();
   const dark = isDarkMode();
   const chrome = dark ? CHROME_DARK : CHROME_LIGHT;
   const names = datasets.map((n, i) => n || `Data set ${i + 1}`);
@@ -84,6 +87,7 @@ export default function FormatGraphDialog({
     <Modal title="Format graph" className="modal-wide fmt-dialog" onClose={requestClose}
       onSubmit={() => { if (dirty) onApply(draft); onClose(); }}
       actions={<DialogActions onCancel={onClose} onApply={apply} dirty={dirty} />}>
+      <SizeUnitChoice unit={unit} onChange={setUnit} />
       {!features.noDatasets && (
         <Tabs label="Format graph sections" value={tab} onChange={setTab}
           tabs={[["datasets", "Data sets"], ["graph", "Whole graph"]]} />
@@ -141,7 +145,7 @@ export default function FormatGraphDialog({
                   onChange={(v) => set({ symbol: v || undefined })} />
               )}
               {features.points && (
-                <NumField label="Size (px)" value={cur.size} onChange={(v) => set({ size: v })} />
+                <SizeField label="Size" unit={unit} value={cur.size} onChange={(v) => set({ size: v })} />
               )}
               <ColorField label="Colour" value={cur.color} auto={auto.color}
                 surface={chrome.surface} onChange={(v) => set({ color: v })} />
@@ -153,7 +157,7 @@ export default function FormatGraphDialog({
               <ColorField label="Border colour" value={cur.borderColor} auto={features.points
                 && !features.bars ? chrome.surface : auto.color}
                 surface={chrome.surface} onChange={(v) => set({ borderColor: v })} />
-              <NumField label="Border width (px)" value={cur.borderWidth}
+              <SizeField label="Border width" unit={unit} value={cur.borderWidth}
                 onChange={(v) => set({ borderWidth: v })} />
               {features.bars && (
                 <SelectField label="Bar pattern" value={cur.pattern ?? ""}
@@ -187,7 +191,7 @@ export default function FormatGraphDialog({
                 options={[["", "Automatic"] as const,
                   ...LINE_DASHES.map((d) => [d, DASH_LABELS[d]] as const)]}
                 onChange={(v) => set({ lineDash: (v || undefined) as DatasetFormat["lineDash"] })} />
-              <NumField label="Line width (px)" value={cur.lineWidth}
+              <SizeField label="Line width" unit={unit} value={cur.lineWidth}
                 onChange={(v) => set({ lineWidth: v })} />
             </Section>
           )}
@@ -201,9 +205,9 @@ export default function FormatGraphDialog({
               <SelectField label="Draw as" value={cur.errorStyle ?? "bars"}
                 options={[["bars", "Bars"], ["envelope", "Shaded envelope"]]}
                 onChange={(v) => set({ errorStyle: v === "bars" ? undefined : v })} />
-              <NumField label="Cap width (px)" value={cur.errorCap} note="0 = no caps"
+              <SizeField label="Cap width" unit={unit} value={cur.errorCap} note="0 = no caps"
                 onChange={(v) => set({ errorCap: v })} />
-              <NumField label="Thickness (px)" value={cur.errorWidth}
+              <SizeField label="Thickness" unit={unit} value={cur.errorWidth}
                 onChange={(v) => set({ errorWidth: v })} />
               {features.xError && datasets.length > 1 && (
                 <SelectField label="Horizontal (X) error"
@@ -302,14 +306,14 @@ export default function FormatGraphDialog({
               options={[["inter", "Inter (default)"], ["system", "System sans-serif"],
                 ["arial", "Arial / Helvetica"], ["serif", "Times (serif)"], ["mono", "Monospace"]]}
               onChange={(v) => setFont({ family: v === "inter" ? undefined : v })} />
-            <NumField label="Base text size" value={fontF.size} onChange={(v) => setFont({ size: v })} />
-            <NumField label="Graph title size" value={fontF.titleSize}
+            <SizeField label="Base text size" unit={unit} value={fontF.size} onChange={(v) => setFont({ size: v })} />
+            <SizeField label="Graph title size" unit={unit} value={fontF.titleSize}
               onChange={(v) => setFont({ titleSize: v })} />
-            <NumField label="Axis title size" value={fontF.axisTitleSize}
+            <SizeField label="Axis title size" unit={unit} value={fontF.axisTitleSize}
               onChange={(v) => setFont({ axisTitleSize: v })} />
-            <NumField label="Axis number size" value={fontF.tickSize}
+            <SizeField label="Axis number size" unit={unit} value={fontF.tickSize}
               onChange={(v) => setFont({ tickSize: v })} />
-            <NumField label="Legend text size" value={fontF.legendSize}
+            <SizeField label="Legend text size" unit={unit} value={fontF.legendSize}
               onChange={(v) => setFont({ legendSize: v })} />
           </Section>
           {features.survival && (
@@ -324,7 +328,7 @@ export default function FormatGraphDialog({
                     onChange={(v) => setRisk({ censored: v || undefined })} />
                   <CheckField label="Colour rows like their curves" checked={risk.byGroup !== false}
                     onChange={(v) => setRisk({ byGroup: v ? undefined : false })} />
-                  <NumField label="Text size" value={risk.size} onChange={(v) => setRisk({ size: v })} />
+                  <SizeField label="Text size" unit={unit} value={risk.size} onChange={(v) => setRisk({ size: v })} />
                 </>
               )}
             </Section>

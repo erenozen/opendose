@@ -3384,6 +3384,46 @@ P = 0.13351 and, through Clopper-Pearson limits, ratio 0.67317 (0.38560
 to 1.14851), rate 1 = 2.3 (1.4580 to 3.4511); numpy least squares for
 the P-13 lines gives slopes F(1, 12) = 0.64403, P = 0.43786 and the
 common slope 1.99524. All equal the engine at the precision shown.
+
+
+## Feature validation: Schild plot (2026-11-23)
+
+FEATURE-PLAN P-49. The EC50-shift (Gaddum/Schild) fit (`ec50_shift`)
+also returns `schild_plot` (`engine/opendose/schild.py`, Arunlakshana &
+Schild 1959, Br J Pharmacol 14:48): each curve's LogEC50 from a fit with
+Top, Bottom and HillSlope shared (parallel curves; user constraints on
+those three carry over), the dose ratio DR = EC50(B) / EC50(control),
+and the ordinary least-squares line of log10(DR - 1) on log10[B] with
+the slope's SE, t-based 95% CI on n - 2 df, the t test of slope = 1, R²
+and the X intercept (pA2 read off the plot = intercept / slope). It is a
+display: pA2 and KB stay those of the global fit, unchanged (the test
+compares them with `fit_ec50_shift` called alone). The global fit's own
+dose ratios are implied by its pA2 and slope and fall on its line
+exactly, so the plot uses the curve-by-curve EC50s instead. Needs exactly
+one control curve (B = 0); a curve with DR <= 1 is listed with the
+reason and left out; two points give the line without a CI; one point
+gives no line, with the reason.
+
+Reference: `engine/tests/reference/schild_plot.py` (R is not installed):
+the EC50-shift example, simulated from the model (pA2 7.5, slope 1,
+numpy seed 2026, rounded to 2 decimals; data in `schild_example.json`),
+parallel-curve EC50s by scipy.optimize.least_squares on a model written
+out there (not the engine's lsq module), the regression by statsmodels
+OLS (what R's lm prints) and its t_test of slope = 1.
+
+| Example | Value |
+|---|---|
+| LogEC50 per curve (0, 3e-8, 1e-7, 3e-7, 1e-6, 1e-5 M) | -7.9966, -7.7644, -7.4173, -6.9174, -6.5071, -5.4722 |
+| Dose ratios | 1.707, 3.796, 12.002, 30.871, 334.53 |
+| Schild slope (SE) | 1.050300 (0.032819), 95% CI 0.945854 to 1.154747 |
+| Intercept; pA2 from the plot | 7.798709; 7.425217 |
+| R²; t (slope = 1), P | 0.997079; 1.532640, 0.222894 |
+
+`engine/tests/test_schild_plot.py` pins these (LogEC50 to 1e-7, the
+regression to 1e-6 relative) and covers no or two control curves, a curve
+not shifted right, two and one antagonist points, a negative
+concentration, the same concentrations in nM (slope unchanged, intercept
+and pA2 move by 9 × slope and 9) and the curves in another order.
 """
 
 

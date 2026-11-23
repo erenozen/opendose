@@ -2,15 +2,12 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { createPortal } from "react-dom";
 import { useProject } from "../app/context";
 import LiveGraph from "../layout/LiveGraph";
+import { OffscreenLayout } from "../layout/OffscreenLayout";
+import { drawnLayoutLegend, placedGraphs } from "../layout/offscreenLegend";
 import { exportPage } from "../layout/pageExport";
-import {
-  masterLegend, pageDims, panelLetters, readingOrder, resolveLayout, seriesFromTraces,
-  type ResolvedLayout, type TraceLike,
-} from "../project/layout";
+import { pageDims, panelLetters, resolveLayout, type ResolvedLayout } from "../project/layout";
 import { findSheet } from "../project/ops";
-import type {
-  DataSheet, ExportPrefs, GraphSheet, LayoutItem, LayoutSheet, Project,
-} from "../project/types";
+import type { DataSheet, ExportPrefs, GraphSheet, LayoutSheet, Project } from "../project/types";
 import { legendFor } from "../report/legendFor";
 import { reportPrefsOf } from "../report/prefs";
 import { softwareLabel } from "../report/useReport";
@@ -35,7 +32,6 @@ interface Job {
   resolve: (msg: string) => void;
 }
 
-const frames = () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
 
 /** The figure legend of a graph sheet (as under the graph). */
 function graphLegend(p: Project, g: GraphSheet, resultOf: (id: string) => unknown): string {
@@ -125,19 +121,9 @@ export function usePptxExport() {
           });
         } else job.skipped.push(sheet.name);
       } else if (sheet?.kind === "layout" && layout && host) {
-        const placed = readingOrder(layout.items.filter(
-          (i): i is Extract<LayoutItem, { kind: "graph" }> => i.kind === "graph" && !!i.graphId));
-        for (const it of placed) {
-          const el = host.querySelector<HTMLElement>(`[data-item-id="${CSS.escape(it.id)}"]`);
-          if (el) await waitForPlot(el, 30000);
-          if (!live) return;
-        }
-        await frames();
-        const entries = masterLegend(placed.map((it) => {
-          const gd = host.querySelector(`[data-item-id="${CSS.escape(it.id)}"] .plot`) as
-            (HTMLElement & { data?: TraceLike[] }) | null;
-          return gd?.data ? seriesFromTraces(gd.data) : [];
-        }));
+        const placed = placedGraphs(layout);
+        const entries = await drawnLayoutLegend(host, layout, () => live);
+        if (!entries) return;
         const opts = { dpi: 150, paper: true };
         const svg = await (await exportPage(host, layout, api.project, entries,
           { ...opts, format: "svg" })).text();
@@ -180,27 +166,7 @@ export function usePptxExport() {
       </div>
     );
   } else if (job && sheet?.kind === "layout" && layout) {
-    const { w, h } = pageDims(layout.page);
-    const mm = 96 / 25.4;
-    content = (
-      <div ref={hostRef} className="export-host" aria-hidden="true"
-        style={{ width: w * mm, height: h * mm, display: "block" }}>
-        {layout.items.map((it) => {
-          if (it.kind !== "graph" || !it.graphId) return null;
-          const g = findSheet(api.project, it.graphId);
-          if (g?.kind !== "graph") return null;
-          return (
-            <div key={it.id} data-item-id={it.id} style={{ position: "absolute",
-              left: it.x * mm, top: it.y * mm, width: it.w * mm, height: it.h * mm }}>
-              <div className="layout-graph" style={{ position: "absolute", inset: 0,
-                display: "flex", flexDirection: "column" }}>
-                <LiveGraph graph={g} />
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    );
+    content = <OffscreenLayout key={sheet.id} layout={layout} project={api.project} hostRef={hostRef} />;
   }
   return {
     run,

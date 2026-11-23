@@ -185,7 +185,9 @@ export function applyFormat(tracesIn: Trace[], layoutIn: Layout, format: GraphFo
       const w = Math.max(0.05, 1 - format.spacing);
       for (const t of traces) {
         const tag = traceTag(t);
-        if (tag && (tag.role === "bar" || tag.role === "box" || tag.role === "violin")) {
+        // drawn outlines (violinTraces.ts) and a raincloud's narrow box keep their width
+        if (tag && (tag.role === "bar" || tag.role === "box" || tag.role === "violin")
+          && t.type !== "scatter" && !t.meta?.fixedWidth) {
           t.width = w;
         }
       }
@@ -328,6 +330,7 @@ export function applyFormat(tracesIn: Trace[], layoutIn: Layout, format: GraphFo
 
   // ---- theme (after everything placed in data units, before fonts)
   if (format.theme === "classic") applyClassic(layout, traces, format, ctx.dark);
+  axisLineWidths(layout, format, chrome);
 
   // ---- fonts, legend, title
   fonts(layout, format);
@@ -1156,6 +1159,23 @@ function frame(layout: Layout, style: "axes" | "box" | "offset" | "none", chrome
     layout.xaxis = { ...layout.xaxis, domain: [0.035, 1], anchor: "free", position: 0 };
     if (!layout.yaxis3) {
       layout.yaxis = { ...layout.yaxis, domain: [0.045, 1], anchor: "free", position: 0 };
+    }
+  }
+}
+
+/** Format axes › Axis line width: the line (drawn) and its ticks, after the
+ *  theme so the user's width wins. yaxis3 is the lower half of a split Y. */
+function axisLineWidths(layout: Layout, format: GraphFormat, chrome: Chrome) {
+  const pairs: [keyof GraphFormat, string[]][] = [["x", ["xaxis"]], ["y", ["yaxis", "yaxis3"]],
+    ["y2", ["yaxis2"]]];
+  for (const [key, axes] of pairs) {
+    const w = (format[key] as AxisFormat | undefined)?.lineWidth;
+    if (!isNum(w)) continue;
+    for (const k of axes) {
+      const ax = layout[k];
+      if (!ax || ax.visible === false) continue;
+      layout[k] = { ...ax, showline: true, linewidth: w, tickwidth: w,
+        linecolor: ax.linecolor ?? chrome.axis };
     }
   }
 }

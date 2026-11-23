@@ -6,6 +6,7 @@ import { withExclusionsBlanked } from "../project/table";
 import type { DataSheet, DataTableModel, GraphSheet, ResultsSheet } from "../project/types";
 import { graphDef, tableDef } from "../sheets/registry";
 import { readFormat } from "../graph";
+import { pinIndex, withPinnedColors } from "../graph/nameColors";
 
 /**
  * A graph sheet drawn by its own plot panel (looked up in the sheets
@@ -24,17 +25,25 @@ function LiveGraph({ graph }: { graph: GraphSheet }) {
     !graph.frozen && res?.kind === "results" ? res : null,
     data?.kind === "data" ? data.table : null);
   const snap = graph.frozen ? graph.snapshot : undefined;
-  // Layouts and batch export draw the graph as formatted (read-only).
-  const format = useMemo(() => readFormat(graph.settings), [graph.settings]);
   const table: DataTableModel | null = useMemo(() => (snap?.table
     ?? (data?.kind === "data" ? withExclusionsBlanked(data.table) : null)), [snap, data]);
+  const kind = data?.kind === "data" ? graphDef(data.table.type, graph.graphType) : undefined;
+  const result = snap ? snap.result : live.result;
+  const options = snap ? snap.options : live.options;
+  // Layouts and batch export draw the graph as formatted (read-only), with
+  // the colours pinned to group names (graph/nameColors.ts, P-56).
+  const pins = useMemo(() => pinIndex(project.groupColors), [project.groupColors]);
+  const ownDatasets = kind?.formatDatasets;
+  const base = useMemo(() => readFormat(graph.settings), [graph.settings]);
+  const format = useMemo(() => {
+    if (!pins.size || !table) return base;
+    const names = ownDatasets ? ownDatasets(table, graph, options) : table.datasets.map((d) => d.name);
+    return withPinnedColors(base, names, pins);
+  }, [base, graph, pins, table, ownDatasets, options]);
   if (!data || data.kind !== "data" || !table) {
     return <div className="plot empty-hint">This graph&apos;s data table is missing.</div>;
   }
-  const kind = graphDef(data.table.type, graph.graphType);
   const Plot = kind?.PlotPanel ?? tableDef(data.table.type).PlotPanel;
-  const result = snap ? snap.result : live.result;
-  const options = snap ? snap.options : live.options;
   const auto = kind ? kind.autoTitles(table, options) : { x: "", y: "" };
   const titles = {
     x: graph.settings.titles.x.trim() || auto.x,

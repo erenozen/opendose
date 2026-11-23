@@ -912,6 +912,187 @@ const fitLegendText = () => page.locator(".plot-card .figure-legend-text").textC
     `${JSON.stringify(sm[0])} / ${oldLine}`);
 }
 
+// --- raincloud plots and violins with a stated bandwidth (P-53). The
+// example column table drawn as a raincloud: the legend states each
+// group's bandwidth (Silverman's rule as R bw.nrd0) and the cloud's width
+// follows scipy gaussian_kde with that bandwidth. Reference:
+// src/graph/__tests__/reference/kde.py (numpy, scipy): h = 1.06637
+// (Control), 0.657106 (Treated A), 0.867852 (Treated B). A new violin
+// draws the same density with quartile lines at the column statistics'
+// quartiles (numpy linear: Control 22.725, 24.0, 25.275).
+{
+  const KDE = JSON.parse((await import("node:fs")).readFileSync(
+    new URL("../src/graph/__tests__/reference/kde.json", import.meta.url), "utf8"));
+  const RAIN_FILE = join(tmp, "rain.json");
+  const names = ["Control", "Treated A", "Treated B"];
+  writeFileSync(RAIN_FILE, JSON.stringify({
+    version: 2, title: "Raincloud check",
+    prefs: { defaultTableType: "column", errorBars: "sd", ciMethod: "asymptotic", scheme: "default", digits: 4 },
+    sheets: [
+      { id: "rd", kind: "data", name: "Group comparison", table: {
+        type: "column", x: Array(6).fill(""), xTitle: "", xFormat: "numbers", xUnit: "",
+        yTitle: "", rowTitles: Array(6).fill(""), subcolumnFormat: "replicates", replicateLayout: "side_by_side",
+        datasets: names.map((n) => ({ name: n, rows: KDE[`example ${n}`].values.map((v) => [String(v)]) })) } },
+      { id: "rr", kind: "results", parentId: "rd", name: "Column stats of Group comparison",
+        analysis: "column", options: { analysis: "column_statistics" } },
+      { id: "rg", kind: "graph", parentId: "rd", resultsId: "rr", graphType: "scatter",
+        name: "Graph of Group comparison", settings: { titles: { x: "", y: "" }, scheme: "default",
+          column: { spread: "symmetric", caption: "below", summary: "auto", violin: "quartiles" } } },
+    ],
+  }));
+  await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]', RAIN_FILE);
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+    .some((t) => t.meta?.odTag?.role === "summary"), null, { timeout: 120000 });
+  await page.locator(".plot-card").getByLabel("Graph type").selectOption("raincloud");
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+    .filter((t) => t.meta?.odTag?.role === "violin").length === 3, null, { timeout: 30000 }).catch(() => {});
+  const legend = await page.locator(".plot-card .figure-legend-text").innerText().catch(() => "");
+  expect("raincloud legend states the bandwidths: 1.07 (Control), 0.657 (Treated A), 0.868 (Treated B)",
+    legend.includes("Gaussian kernel, bandwidth by Silverman's rule of thumb (R bw.nrd0): "
+      + "1.07 (Control), 0.657 (Treated A), 0.868 (Treated B)") && legend.startsWith("Raincloud:"), legend);
+  const drawn = await page.evaluate(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+    .filter((t) => ["violin", "box", "points"].includes(t.meta?.odTag?.role))
+    .map((t) => ({ role: t.meta.odTag.role, ds: t.meta.odTag.ds, x: [...(t.x ?? [])], y: [...(t.y ?? [])],
+      q1: t.q1?.[0], median: t.median?.[0], q3: t.q3?.[0] })));
+  // the cloud: x = i + base + width, width = density / peak × half-width
+  let worst = 0;
+  names.forEach((n, i) => {
+    const r = KDE[`example ${n}`];
+    const cloud = drawn.find((t) => t.role === "violin" && t.ds === i);
+    if (!cloud) { worst = Infinity; return; }
+    const base = Math.min(...cloud.x);
+    const half = Math.max(...cloud.x) - base;
+    r.idx.forEach((k, j) => {
+      worst = Math.max(worst, Math.abs((cloud.x[1 + k] - base) / half - r.density[j] / r.max));
+      worst = Math.max(worst, Math.abs(cloud.y[1 + k] - r.y[j]));
+    });
+  });
+  expect("the cloud's outline is scipy's gaussian_kde with that bandwidth (512-point grid, 10 points × 3 groups)",
+    worst < 1e-9, `largest difference ${worst}`);
+  const box = drawn.find((t) => t.role === "box" && t.ds === 0);
+  expect("the raincloud's box is the column statistics' quartiles (Control 22.725, 24, 25.275)",
+    box && Math.abs(box.q1 - 22.725) < 1e-9 && box.median === 24 && Math.abs(box.q3 - 25.275) < 1e-9,
+    JSON.stringify(box && [box.q1, box.median, box.q3]));
+  expect("every value is drawn as rain (18 points)",
+    drawn.filter((t) => t.role === "points").reduce((s, t) => s + t.y.length, 0) === 18);
+  await shot("raincloud");
+
+  // a violin from the same new graph: the stated density with quartile lines
+  await page.locator(".plot-card").getByLabel("Graph type").selectOption("violin");
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+    .filter((t) => t.meta?.odTag?.role === "decor" && t.line?.dash === "dash").length === 6, null,
+  { timeout: 30000 }).catch(() => {});
+  const lines = await page.evaluate(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+    .filter((t) => t.meta?.odTag?.role === "decor" && t.meta.odTag.ds === 0).map((t) => t.y[0]));
+  expect("violin quartile lines at 22.725, 24, 25.275 (numpy linear, the column statistics' default)",
+    lines.length === 3 && Math.abs(lines[0] - 22.725) < 1e-9 && lines[1] === 24 && Math.abs(lines[2] - 25.275) < 1e-9,
+    JSON.stringify(lines));
+  const vLegend = await page.locator(".plot-card .figure-legend-text").innerText().catch(() => "");
+  expect("violin legend: median and quartile lines, bandwidth 1.07 (Control)",
+    vLegend.startsWith("Kernel density (violin) with the median (solid line) and quartiles (dashed lines)")
+      && vLegend.includes("1.07 (Control)"), vLegend);
+  await shot("violin-quartiles");
+}
+
+// --- a colour pinned to a group name (P-56): "KO" pinned to vermillion
+// orange (#d55e00) in Preferences; three graphs with a KO data set (first,
+// second and third of their tables) all draw it in that colour, on screen
+// and in SVG exports in the light theme and the dark one (print colours
+// and dark colours); the other groups keep their scheme colours; Okabe-Ito
+// orange (#e69f00) is warned about (2.3:1 on white), not refused.
+{
+  const PIN = "#d55e00", RGB = "rgb(213, 94, 0)";
+  const PINS = join(tmp, "pins.json");
+  const tbl = (names) => ({ type: "column", x: Array(4).fill(""), xTitle: "", xFormat: "numbers", xUnit: "",
+    yTitle: "", rowTitles: Array(4).fill(""), subcolumnFormat: "replicates", replicateLayout: "side_by_side",
+    datasets: names.map((n, k) => ({ name: n, rows: [[`${10 + k}`], [`${12 + k}`], [`${11 + k}`], [`${13 + k}`]] })) });
+  const fam = (id, name, names) => [
+    { id: `${id}d`, kind: "data", name, table: tbl(names) },
+    { id: `${id}g`, kind: "graph", parentId: `${id}d`, resultsId: null, graphType: "scatter",
+      name: `Graph of ${name}`, settings: { titles: { x: "", y: "" }, scheme: "default",
+        column: { spread: "symmetric", caption: "below", summary: "auto" } } },
+  ];
+  writeFileSync(PINS, JSON.stringify({ version: 2, title: "Pins",
+    prefs: { defaultTableType: "column", errorBars: "sd", ciMethod: "asymptotic", scheme: "default", digits: 4 },
+    sheets: [...fam("a", "Mice A", ["KO", "WT"]), ...fam("b", "Mice B", ["WT", "KO"]),
+      ...fam("c", "Mice C", ["Het", "WT", " ko "])] }));
+  await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]', PINS);
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? []).length > 0, null,
+    { timeout: 60000 });
+  const colours = () => page.evaluate(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+    .filter((t) => t.meta?.odTag?.role === "points").map((t) => t.marker.color));
+  const open = async (name) => {
+    await page.getByRole("treeitem", { name: `Graph of ${name}`, exact: true }).first()
+      .locator(":scope > .nav-row").click();
+    await page.waitForFunction((n) => document.querySelector(".plot-card .graph-name")?.textContent === `Graph of ${n}`
+      && (document.querySelector(".plot-card .plot")?.data ?? []).length > 0, name, { timeout: 30000 });
+    await page.waitForTimeout(300);
+  };
+  await open("Mice B");
+  const before = await colours();
+  await viewMenu(page, "Preferences…");
+  const prefs = page.getByRole("dialog", { name: "Preferences" });
+  const pins = prefs.getByRole("region", { name: "Colours pinned to groups" });
+  await pins.getByLabel("Group", { exact: true }).selectOption("KO");
+  await pins.getByLabel("Colour", { exact: true }).fill("#e69f00");
+  await pins.getByRole("button", { name: "Pin colour" }).click();
+  const warn = await pins.locator(".pins-warnings").innerText();
+  expect("Okabe-Ito orange is pinned with a contrast warning (2.3:1 on white), not refused",
+    warn.includes("“KO” has low contrast on a white background (2.3:1; marks need 3:1).")
+    && await pins.getByLabel("Colour of “KO”").inputValue() === "#e69f00", warn);
+  await pins.getByLabel("Colour of “KO”").fill(PIN);
+  await page.waitForFunction(() => !document.querySelector(".pins-warnings")?.textContent?.trim(), null,
+    { timeout: 5000 }).catch(() => {});
+  expect("vermillion (#d55e00) passes the palette check", (await pins.locator(".pins-warnings").innerText()) === "");
+  await page.keyboard.press("Escape");
+  await page.waitForFunction((c) => (document.querySelector(".plot-card .plot")?.data ?? [])
+    .some((t) => t.marker?.color === c), PIN, { timeout: 15000 }).catch(() => {});
+  const after = await colours();
+  expect("Mice B: KO (second) drawn in the pinned colour, WT unchanged",
+    after[1] === PIN && after[0] === before[0] && before[1] !== PIN, `${JSON.stringify(before)} -> ${JSON.stringify(after)}`);
+  const svgOf = async () => {
+    const panel = page.locator(".plot-card .export-panel");
+    await panel.getByLabel("Export format").selectOption("svg");
+    const [d] = await Promise.all([page.waitForEvent("download", { timeout: 60000 }),
+      panel.getByRole("button", { name: "Download" }).click()]);
+    const f = join(tmp, `pin-${Date.now()}.svg`);
+    await d.saveAs(f);
+    return (await import("node:fs")).readFileSync(f, "utf8");
+  };
+  for (const [name, i] of [["Mice A", 0], ["Mice B", 1], ["Mice C", 2]]) {
+    await open(name);
+    const c = await colours();
+    const svg = await svgOf();
+    expect(`${name}: KO (data set ${i + 1}) is ${PIN} on screen and in the light SVG export, the others are not`,
+      c[i] === PIN && c.filter((x) => x === PIN).length === 1 && svg.includes(RGB), JSON.stringify(c));
+  }
+  // dark theme: print colours (the default) and dark colours
+  await page.locator("header").getByRole("button", { name: "View", exact: true }).click();
+  await page.getByRole("menuitemradio", { name: "Dark" }).click();
+  await page.waitForFunction(() => document.documentElement.dataset.theme === "dark", null, { timeout: 5000 })
+    .catch(() => {});
+  await page.waitForTimeout(500);
+  const darkScreen = await colours();
+  const printSvg = await svgOf();
+  const panel = page.locator(".plot-card .export-panel");
+  await panel.getByRole("button", { name: "Options" }).click();
+  const paper = page.getByRole("dialog", { name: "Export options" }).getByRole("checkbox", { name: /print colours/i });
+  const hadPaper = await paper.count() ? await paper.isChecked() : null;
+  if (hadPaper) await paper.uncheck();
+  await page.keyboard.press("Escape");
+  const darkSvg = await svgOf();
+  expect(`dark theme: KO stays ${PIN} on screen, in the print-colour export and in the dark export`,
+    darkScreen[2] === PIN && printSvg.includes(RGB) && darkSvg.includes(RGB) && hadPaper !== null,
+    `${JSON.stringify(darkScreen)}; paper option ${hadPaper}`);
+  if (hadPaper) {
+    await panel.getByRole("button", { name: "Options" }).click();
+    await paper.check();
+    await page.keyboard.press("Escape");
+  }
+  await page.locator("header").getByRole("button", { name: "View", exact: true }).click();
+  await page.getByRole("menuitemradio", { name: "Light" }).click();
+}
+
 console.log(errors.length ? errors.join("\n") : "no page errors");
 await browser.close();
 if (fail.length || errors.length) {

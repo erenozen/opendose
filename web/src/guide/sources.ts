@@ -156,6 +156,11 @@ export const SRC = {
   // PubMed (PMID 9786022) 2026-11-23.
   christopoulos1998: { label: "Christopoulos 1998, Assessing the distribution of parameters in models of ligand-receptor interaction: to log or not to log, Trends Pharmacol Sci 19:351",
     url: "https://pubmed.ncbi.nlm.nih.gov/9786022/" },
+  // The Schild plot: log(DR − 1) against log[antagonist], slope 1 for
+  // simple competitive antagonism, pA2 at its X intercept (P-49). Loaded
+  // 2026-11-23 (PMC record; the full text is page images).
+  arunlakshana1959: { label: "Arunlakshana & Schild 1959, Some quantitative uses of drug antagonists, Br J Pharmacol Chemother 14:48",
+    url: "https://pmc.ncbi.nlm.nih.gov/articles/PMC1481829/" },
   // Holm's step-down procedure (Holm-Šídák: its Šídák form).
   holm1979: { label: "Holm 1979, A simple sequentially rejective multiple test procedure, Scand J Stat 6:65",
     url: "https://www.jstor.org/stable/4615733" },

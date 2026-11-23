@@ -9,6 +9,11 @@ import { waitForPlot } from "../export/figure";
 import { graphPngBlob, graphSvg } from "../export/graph";
 import { DEFAULT_EXPORT } from "../export/settings";
 import LiveGraph from "../layout/LiveGraph";
+import { OffscreenLayout } from "../layout/OffscreenLayout";
+import { drawnLayoutLegend } from "../layout/offscreenLegend";
+import { exportPage } from "../layout/pageExport";
+import { svgPagesToPdf } from "../export/pdf";
+import { resolveLayout } from "../project/layout";
 import { getRuntimeVersions, runEngine } from "../lib/engine";
 import { exportPzfx, pzfxSelection } from "./pzfx";
 import { findSheet } from "../project/ops";
@@ -25,7 +30,7 @@ import { provenanceDeps, provenanceEnv } from "../report/provenanceDeps";
 import { softwareLabel } from "../report/useReport";
 import OffscreenResults from "./OffscreenResults";
 
-type Step = { kind: "results"; id: string } | { kind: "graph"; id: string };
+type Step = { kind: "results" | "graph" | "layout"; id: string };
 
 interface Job {
   steps: Step[];
@@ -41,10 +46,11 @@ const BUNDLE_TOAST = "bundle-export";
 
 /**
  * "Download export bundle": the project file, every data table as CSV
- * (wide and long), every results sheet as CSV, every graph as SVG and
- * PNG, methods text, citation and a README, in one zip. Results panels and
- * graphs are drawn off screen one at a time (as "Export all graphs"
- * does) and read back exactly as the app shows them.
+ * (wide and long), every results sheet as CSV, every graph as SVG, PNG
+ * and PDF, every page layout as PDF and SVG, methods text, citation and a
+ * README, in one zip. Results panels, graphs and layout pages are drawn
+ * off screen one at a time (as "Export all graphs" does) and read back
+ * exactly as the app shows and exports them.
  */
 
 export function useBundleExport() {
@@ -68,7 +74,7 @@ export function useBundleExport() {
         { keys: api.results.fingerprints(), selected: api.selectedId, savedWith: currentSavedWith() }),
       tables: p.sheets.filter((s): s is DataSheet => s.kind === "data")
         .map((s) => ({ name: s.name, table: s.table })),
-      results: [], graphs: [], methods: [],
+      results: [], graphs: [], layouts: [], methods: [],
       citation: citation(v),
       app: `OpenDose ${versionLabel()}`,
       libraries: librariesPhrase(v),
@@ -89,6 +95,7 @@ export function useBundleExport() {
     const steps: Step[] = [
       ...p.sheets.filter((s) => s.kind === "results").map((s) => ({ kind: "results" as const, id: s.id })),
       ...p.sheets.filter((s) => s.kind === "graph").map((s) => ({ kind: "graph" as const, id: s.id })),
+      ...p.sheets.filter((s) => s.kind === "layout").map((s) => ({ kind: "layout" as const, id: s.id })),
     ];
     const settings: ExportPrefs = {
       ...DEFAULT_EXPORT, ...(p.prefs.export ?? {}), transparent: false, scaleText: false,
@@ -123,7 +130,10 @@ export function useBundleExport() {
         if (gd) {
           const svg = await graphSvg(gd, { ...job.settings, format: "svg" }, sheet.settings.scheme);
           const png = await graphPngBlob(gd, { ...job.settings, format: "png" }, sheet.settings.scheme);
-          job.input.graphs.push({ name: sheet.name, svg, png: new Uint8Array(await png.arrayBuffer()) });
+          // the graph's own PDF export path: the same SVG, embedded fonts (export/pdf.ts)
+          const pdf = await svgPagesToPdf([{ svg, width: job.settings.width, height: job.settings.height }]);
+          job.input.graphs.push({ name: sheet.name, svg, png: new Uint8Array(await png.arrayBuffer()),
+            pdf: new Uint8Array(await pdf.arrayBuffer()) });
         } else job.input.skipped.push(sheet.name);
         const data = findSheet(api.project, sheet.parentId) as DataSheet | undefined;
         const bound = sheet.resultsId ? findSheet(api.project, sheet.resultsId) : undefined;
@@ -136,6 +146,16 @@ export function useBundleExport() {
             prefs: reportPrefsOf(api.project.prefs), software: softwareLabel(),
           }) });
         }
+      } else if (sheet?.kind === "layout" && host) {
+        // the page as the layout sheet exports it (layout/pageExport.ts)
+        const layout = resolveLayout(sheet);
+        const legend = await drawnLayoutLegend(host, layout, () => live);
+        if (!legend) return;
+        const opts = { dpi: 150, paper: true };
+        const svg = await (await exportPage(host, layout, api.project, legend, { ...opts, format: "svg" })).text();
+        const pdf = await exportPage(host, layout, api.project, legend, { ...opts, format: "pdf" });
+        if (!live) return;
+        job.input.layouts!.push({ name: sheet.name, svg, pdf: new Uint8Array(await pdf.arrayBuffer()) });
       } else if (sheet?.kind === "results" && host) {
         // Wait for the result, then for the panel's code and paint.
         const t0 = Date.now();
@@ -184,6 +204,8 @@ export function useBundleExport() {
         <LiveGraph key={sheet.id} graph={sheet as GraphSheet} />
       </div>
     );
+  } else if (job && sheet?.kind === "layout") {
+    content = <OffscreenLayout key={sheet.id} layout={resolveLayout(sheet)} project={api.project} hostRef={hostRef} />;
   } else if (job && sheet?.kind === "results") {
     content = (
       <div ref={hostRef} className="export-host bundle-host" aria-hidden="true">

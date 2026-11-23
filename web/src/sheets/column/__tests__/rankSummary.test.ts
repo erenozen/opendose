@@ -31,7 +31,7 @@ test("rank tests, and the analyses that are not", () => {
 
 test("Follow the test: new column graphs only; a chosen centre is kept", () => {
   assert.deepEqual(newGraphSettings("column"),
-    { column: { spread: "symmetric", caption: "below", summary: "auto" } });
+    { column: { spread: "symmetric", caption: "below", summary: "auto", violin: "quartiles" } });
   assert.equal(normalizeColumnGraph({ summary: "auto" }).summary, "auto");
   // saved before the option existed: no "auto", the figure stays mean ± SD
   assert.equal(resolveSummary(normalizeColumnGraph({}).summary, MW), "mean_sd");

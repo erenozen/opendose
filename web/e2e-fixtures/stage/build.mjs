@@ -24,9 +24,13 @@
 //                      SD on an axis starting at 1 (the Checks note)
 //   rank-test.json     the example column table under Mann-Whitney, its new
 //                      graph following the test (median with IQR)
+//   raincloud.json     the example column table as a raincloud, plus a
+//                      one-value group (no density, named in the legend)
+//   pins.json          colours pinned to group names, one under 3:1 on white
+//   schild.json        the EC50-shift example with its Schild plot (P-49)
 //   many-sheets.json   74 sheets: 22 families, navigator groups (one
 //                      collapsed), highlights, info sheets and layouts
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -312,4 +316,46 @@ function write(name, p, compact = false) {
   const g = graph(t, r, "scatter", "Graph of Group comparison");
   g.settings.column = { spread: "symmetric", caption: "below", summary: "auto" };
   write("rank-test.json", project("Rank test", [t, r, g], { selected: r.id }));
+}
+
+// raincloud.json: the example column table as a raincloud (P-53), plus a
+// group with one value (no density: the legend says so)
+{
+  const t = data("Group comparison", table("column", { datasets: [
+    col("Control", [23.1, 25.4, 21.8, 24.9, 22.6, 26.0]),
+    col("Treated A", [28.4, 30.2, 27.1, 31.5, 29.0, 28.8]),
+    col("Treated B", [35.2, 33.9, 37.4, 34.1, 36.6, 35.8]),
+    col("Pilot", [30.5]),
+  ] }));
+  const r = results(t, "column", { analysis: "column_statistics" }, "Column stats of Group comparison");
+  const g = graph(t, r, "raincloud", "Graph of Group comparison");
+  g.settings.column = { spread: "symmetric", caption: "below", summary: "auto", violin: "quartiles" };
+  write("raincloud.json", project("Raincloud", [t, r, g], { selected: g.id }));
+}
+
+// pins.json: colours pinned to group names (P-56); Okabe-Ito orange for
+// "KO" is under 3:1 on white, so Preferences shows the warning
+{
+  const t = data("Knockout study", table("column", { datasets: [
+    col("WT", [10.2, 11.5, 9.8, 10.9]), col("KO", [14.1, 15.3, 13.8, 14.9]), col("Het", [12.0, 12.8, 11.7, 12.4]),
+  ] }));
+  const g = graph(t, null, "scatter", "Graph of Knockout study");
+  g.settings.column = { spread: "symmetric", caption: "below", summary: "auto" };
+  write("pins.json", project("Pinned colours", [t, g], { selected: g.id,
+    groupColors: [{ name: "KO", color: "#e69f00" }, { name: "WT", color: "#0072b2" }] }));
+}
+
+// schild.json: the EC50-shift example (engine/tests/reference/
+// schild_plot.py) with its Schild plot (P-49)
+{
+  const ref = JSON.parse(readFileSync(join(here, "..", "..", "..", "engine", "tests", "reference",
+    "schild_example.json"), "utf8")).data;
+  const t = data("EC50 shift", table("xy", { x: ref.x.map(String), xTitle: "log[Agonist]",
+    yTitle: "Response", xUnit: "M",
+    datasets: ref.names.map((n, i) => ({ name: n, subTitles: ["", ""], rows: ref.ys[i].map((r) => r.map(String)) })) }));
+  const r = results(t, "nonlin", { model: "ec50_shift", xIsLog: true, autoFit: "requested",
+    schildSlopeUnity: false, antagonist: ref.antagonist.join(", ") }, "Nonlin fit of EC50 shift");
+  const g = graph(t, r, "xy", "Graph of EC50 shift");
+  const s = graph(t, r, "schild_plot", "Schild plot of EC50 shift");
+  write("schild.json", project("EC50 shift", [t, r, g, s], { selected: r.id }));
 }
