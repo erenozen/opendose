@@ -5,6 +5,7 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { Button } from "../components/ui";
 import { contrastWarning } from "./color";
+import { shownSize, storedSize, type SizeUnit } from "./sizeUnit";
 
 export function NumField({ label, value, onChange, placeholder = "Auto", note, width }: {
   label: string;
@@ -124,6 +125,35 @@ export function ColorField({ label, value, auto, surface, onChange, mark = true 
       </span>
       <span className="status-slot" role="status">{warn && <span className="fmt-warn">{warn}</span>}</span>
     </div>
+  );
+}
+
+/** A text or line size, stored in px and shown in the dialogs' unit
+ *  (sizeUnit.ts); the label names the unit: "Line width (pt)". */
+export function SizeField({ label, unit, value, onChange, note }: {
+  label: string;
+  unit: SizeUnit;
+  value: number | null | undefined;
+  onChange: (px: number | undefined) => void;
+  note?: string;
+}) {
+  return (
+    <NumField label={`${label} (${unit})`} value={shownSize(value, unit)} note={note}
+      onChange={(v) => onChange(storedSize(v, unit))} />
+  );
+}
+
+/** "Sizes in: px / pt" for a format dialog (state: useSizeUnit.ts). */
+export function SizeUnitChoice({ unit, onChange }: { unit: SizeUnit; onChange: (u: SizeUnit) => void }) {
+  const name = useId();
+  return (
+    <fieldset className="field-radios fmt-units">
+      <legend>Sizes in</legend>
+      <label><input type="radio" name={name} checked={unit === "px"}
+        onChange={() => onChange("px")} /> Pixels (px, as laid out on screen)</label>
+      <label><input type="radio" name={name} checked={unit === "pt"}
+        onChange={() => onChange("pt")} /> Points (pt, 1/72 inch at the exported size)</label>
+    </fieldset>
   );
 }
 

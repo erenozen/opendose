@@ -8,9 +8,12 @@ import {
   withField, type AxisFormat, type GraphFormat, type NumberFormat, type ScaleKind,
 } from "./format";
 import {
-  CheckField, DialogActions, NumField, Section, SelectField, Tabs, TextField,
+  CheckField, DialogActions, NumField, Section, SelectField, SizeField, SizeUnitChoice, Tabs,
+  TextField,
 } from "./controls";
+import type { SizeUnit } from "./sizeUnit";
 import { useDiscardGuard } from "./useDiscardGuard";
+import { useSizeUnit } from "./useSizeUnit";
 
 type AxisKey = "x" | "y" | "y2";
 type Titles = { x: string; y: string };
@@ -38,6 +41,7 @@ export default function FormatAxesDialog({
   const [tTitles, setTTitles] = useState(titles);
   const [applied, setApplied] = useState({ f: format, t: titles });
   const [tab, setTab] = useState<AxisKey | "frame">("y");
+  const [unit, setUnit] = useSizeUnit();
   const setAxis = (k: AxisKey, a: AxisFormat) => setDraft((d) => withField(d, k, clean(a)));
 
   const dirty = JSON.stringify([draft, tTitles]) !== JSON.stringify([applied.f, applied.t]);
@@ -51,6 +55,7 @@ export default function FormatAxesDialog({
     <Modal title="Format axes" className="modal-wide fmt-dialog" onClose={requestClose}
       onSubmit={() => { if (dirty) onApply(draft, tTitles); onClose(); }}
       actions={<DialogActions onCancel={onClose} onApply={apply} dirty={dirty} />}>
+      <SizeUnitChoice unit={unit} onChange={setUnit} />
       <Tabs label="Axes" value={tab} onChange={setTab} tabs={tabs} />
       <div role="tabpanel" className="fmt-panel">
         {tab === "frame" ? (
@@ -65,7 +70,7 @@ export default function FormatAxesDialog({
               onChange={(v) => setDraft((d) => withField(d, "origin", v === "auto" ? undefined : v))} />
           </Section>
         ) : (
-          <AxisEditor key={tab} which={tab} value={draft[tab] ?? {}}
+          <AxisEditor key={tab} which={tab} value={draft[tab] ?? {}} unit={unit}
             categorical={tab === "x" && categoricalX}
             title={tab === "y2" ? draft.y2?.title ?? "" : tTitles[tab]}
             titlePlaceholder={tab === "y2" ? "None" : autoTitles[tab] || "None"}
@@ -80,9 +85,10 @@ export default function FormatAxesDialog({
   );
 }
 
-function AxisEditor({ which, value: a, onChange, categorical, title, titlePlaceholder, onTitle }: {
+function AxisEditor({ which, value: a, unit, onChange, categorical, title, titlePlaceholder, onTitle }: {
   which: AxisKey;
   value: AxisFormat;
+  unit: SizeUnit;
   onChange: (a: AxisFormat) => void;
   categorical: boolean;
   title: string;
@@ -98,7 +104,11 @@ function AxisEditor({ which, value: a, onChange, categorical, title, titlePlaceh
       <Section title="Title and visibility">
         <TextField label="Axis title" value={title} placeholder={titlePlaceholder}
           onChange={(v) => onTitle(v ?? "")} />
-        <NumField label="Title size" value={a.titleSize} onChange={(v) => set({ titleSize: v })} />
+        <SizeField label="Title size" unit={unit} value={a.titleSize}
+          onChange={(v) => set({ titleSize: v })} />
+        <SizeField label="Axis line width" unit={unit} value={a.lineWidth}
+          note="The axis line and its ticks; setting it draws the line"
+          onChange={(v) => set({ lineWidth: v })} />
         <CheckField label="Hide this axis" checked={!!a.hide}
           onChange={(v) => set({ hide: v || undefined })} />
       </Section>
@@ -159,7 +169,7 @@ function AxisEditor({ which, value: a, onChange, categorical, title, titlePlaceh
         <SelectField label="Tick direction" value={a.ticks ?? "auto"}
           options={[["auto", "As drawn"], ["out", "Outward"], ["in", "Inward"], ["none", "No ticks"]]}
           onChange={(v) => set({ ticks: v === "auto" ? undefined : v })} />
-        <NumField label="Tick length (px)" value={a.tickLen} onChange={(v) => set({ tickLen: v })} />
+        <SizeField label="Tick length" unit={unit} value={a.tickLen} onChange={(v) => set({ tickLen: v })} />
         <SelectField label="Major grid lines" value={a.grid === undefined ? "auto" : a.grid ? "on" : "off"}
           options={[["auto", "As drawn"], ["on", "Show"], ["off", "Hide"]]}
           onChange={(v) => set({ grid: v === "auto" ? undefined : v === "on" })} />

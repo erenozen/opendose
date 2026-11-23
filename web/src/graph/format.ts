@@ -110,6 +110,9 @@ export interface AxisFormat {
   /** Title (right Y axis only; X and Y titles live in settings.titles). */
   title?: string;
   titleSize?: number;
+  /** Width of the axis line and its ticks in px (graph/sizeUnit.ts shows
+   *  it in pt); setting it draws the line. Absent = as the plot draws it. */
+  lineWidth?: number;
   /** Scale factor k (linear axes): tick labels show value / 10^k and the
    *  title gets "(×10^k)"; the data are unchanged. */
   scaleFactor?: number;
@@ -336,6 +339,7 @@ function axisFormat(r: Raw): AxisFormat {
     dateFormat: str(r.dateFormat, 40),
     title: str(r.title, 300),
     titleSize: num(r.titleSize, 4, 72),
+    lineWidth: num(r.lineWidth, 0.1, 10),
     scaleFactor: (() => {
       const k = num(r.scaleFactor, -15, 15);
       return k === undefined || Math.round(k) === 0 ? undefined : Math.round(k);

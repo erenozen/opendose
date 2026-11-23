@@ -124,3 +124,65 @@ Limits that remain:
 - A copy from Excel of this size also carries HTML, which the paste
   parses for full-precision values (`parseClipboardHtml`, a DOM of every
   cell); not measured here (the e2e pastes plain text).
+
+## Raincloud plots and violins with a stated bandwidth (P-53)
+
+A new column graph kind, Raincloud (half violin, box and points; Allen
+et al. 2019, Wellcome Open Res 4:63), and violins whose outline is the
+density OpenDose computes itself (`web/src/graph/kde.ts`,
+`violinTraces.ts`) instead of the one Plotly picks:
+
+- Kernel: Gaussian; bandwidth: Silverman's rule of thumb as R's
+  `bw.nrd0`, h = 0.9 min(SD, IQR / 1.34) n^(-1/5), IQR by R type 7, the
+  SD when the IQR is 0. A group with fewer than 2 values, all values
+  equal, or a value of 0 or less on a log10 axis gets no density, and the
+  legend names it with the reason. On a log10 Y axis the density is of
+  log10(values) and the legend says so.
+- Grid: R `density()`'s 512 points from min - 3h to max + 3h; each
+  group's outline is scaled to the same width (the legend says so).
+- Quartile lines (violin) and the box (raincloud): the column
+  statistics' quartiles and whisker rule (`boxStats.ts`, P-04).
+- Oracle: `web/src/graph/__tests__/reference/kde.py`: numpy for bw.nrd0,
+  scipy.stats.gaussian_kde with bw_method = h / SD (its kernel SD is then
+  h; checked to 1e-12), itself checked against the kernel sum written
+  out. R is not installed. `kde.test.ts` asserts the bandwidth to 1e-12
+  and the density at 10 grid points of 8 data sets to 1e-10 relative.
+
+| Example column table | n | h (bw.nrd0) | legend | peak density |
+|---|---|---|---|---|
+| Control | 6 | 1.06637 | 1.07 | 0.180862 |
+| Treated A | 6 | 0.657106 | 0.657 | 0.29611 |
+| Treated B | 6 | 0.867852 | 0.868 | 0.220509 |
+
+`scripts/e2e-figures.mjs` opens the example column table, switches its
+graph to Raincloud, reads the legend ("Gaussian kernel, bandwidth by
+Silverman's rule of thumb (R bw.nrd0): 1.07 (Control), 0.657 (Treated
+A), 0.868 (Treated B)"), compares the drawn cloud's width at 30 grid
+points with scipy's density (largest difference 7e-15), the box with the
+column statistics' quartiles (Control 22.725, 24, 25.275) and the 18
+points; then a violin's quartile lines (22.725, 24, 25.275).
+
+Existing kinds are unchanged: a violin saved before keeps Plotly's
+violin, its mean line and its legend ("Kernel density (violin) with the
+mean (line)"); violins created from now on start with the stated density
+and quartile lines (Graph settings, Violin, switches between them).
+
+## Text and line sizes in points (P-54)
+
+Format graph and Format axes take sizes in pixels (as before) or in
+points ("Sizes in", kept per browser). The format still stores CSS px,
+so every saved graph draws exactly as before: a value typed in pt is
+stored as pt × 96 / 72 (7 pt = 28/3 px, 1 pt = 4/3 px; `graph/sizeUnit.ts`)
+and shown back as px × 72 / 96 (13 px = 9.75 pt). Format axes gains
+"Axis line width" (the line and its ticks; setting it draws the line).
+An export laid out at its own size (Scale the graph as shown off) prints
+a size of p pt at p pt; the export panel says so when scaling is on.
+
+`sizeUnit.test.ts` checks the conversion both ways for 13 values (each
+reads back as typed; × 0.75 equals the pt value to 1e-12) and that px
+values a saved graph holds show unchanged. `scripts/e2e-export.mjs` sets
+the axis lines to 1 pt and the tick labels to 7 pt, reads 4/3 and 28/3 px
+from the drawn layout, exports a PDF 89 mm wide (page 252.28 pt) and
+reads it with a content-stream interpreter (Tf and w times the text and
+graphics matrices in force): every tick label at 7 pt, the axis lines
+and ticks stroked at 1 pt (10 strokes).

@@ -628,6 +628,16 @@ const scenes = [
     await s.page.locator(".js-plotly-plot").first().waitFor();
     await settle(s, 1200);
   } },
+  { name: "graphs-format-axes-pt", setup: async (s) => {
+    await example(s);
+    await into(s, ".plot-card", "center");
+    await click(s, s.page.locator(".plot-card").getByRole("button", { name: "Settings", exact: true }));
+    await click(s, dialog(s, "Graph settings").getByRole("button", { name: "Format axes…" }));
+    const fmt = s.page.locator("dialog.fmt-dialog");
+    await click(s, fmt.getByLabel("Points (pt, 1/72 inch"));
+    await fmt.getByLabel("Axis line width (pt)").fill("1");
+    await settle(s, 500);
+  } },
   { name: "graphs-raincloud", setup: async (s) => {
     await fixture(s, "raincloud.json", { live: true });
     await s.page.locator(".js-plotly-plot").first().waitFor();
