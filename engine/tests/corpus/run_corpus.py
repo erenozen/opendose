@@ -3571,6 +3571,14 @@ Invalid inputs (CV 0 or 100%, a missing or zero frequency, a parent
 count of 0 or not whole, more positives than the parent, text) each
 say what to enter. Halving the frequency doubles the events; 1e6 of
 1e12 events keeps a tight interval around 1e-4%.
+
+Independent check (2026-11-23, by the lead): LoB = 0.06115 + 1.645 x
+0.0057425 = 0.070596 by hand; events for a 10% CV at 0.1% frequency
+1/0.10^2 = 100 positive and 100,000 in all; the Wilson 95% CI of 120 of
+50,000 from the closed-form score interval, 0.20077% to 0.28688%; the
+qPCR LoD95 from an own probit maximum-likelihood fit on log10 copies
+(scipy.optimize Nelder-Mead on the binomial log-likelihood, not the
+statsmodels GLM above) is 26.168 copies. All equal the engine.
 """
 
 
