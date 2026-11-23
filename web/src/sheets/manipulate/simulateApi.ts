@@ -34,7 +34,7 @@ export function withSimulation(p: Project, dataId: string, kind: SimKind, form: 
     // a user-defined equation (P-51): the fit uses the same equation; its
     // X was simulated in the equation's own units
     const user = f.model === USER_MODEL_ID && f.userEquation
-      ? { userEquation: f.userEquation, xIsLog: true } : null;
+      ? { userEquation: f.userEquation, xIsLog: true, autoFit: "requested" as const } : null;
     next = {
       ...next,
       sheets: next.sheets.map((s) => (s.kind === "results" && s.parentId === dataId
