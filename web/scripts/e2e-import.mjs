@@ -20,12 +20,16 @@
 //   "From long table…" and by the recipes' column output: the
 //   hand-aligned table, the pairs listed, a duplicate ID stopped, and the
 //   paired t test against scipy (engine/tests/reference/paired_by_id.json).
+// - P-59: a .pzfx Info sheet ("Cell line = HeLa", notes) opens as an info
+//   sheet, is written back by Export tables as .pzfx, and that file opens
+//   with the same constants and notes.
 //
 // Usage: node scripts/e2e-import.mjs http://localhost:5173/
 import { chromium } from "playwright";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { readFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const FIX = join(here, "..", "e2e-fixtures");
@@ -577,6 +581,48 @@ const typeWhy = dlg.locator("[data-part='type-why']");
   await page.getByRole("treeitem", { name: "Paired by recipe", exact: true }).first().waitFor({ timeout: 10000 });
   expect("P-38: the recipe's table equals the hand-aligned wide table", aligned(await tableOf("Paired by recipe")),
     JSON.stringify((await tableOf("Paired by recipe"))?.datasets.map((d) => d.rows.map((r) => r[0]))));
+}
+
+// --- P-59: Prism Info sheets round trip. e2e-fixtures/info.pzfx holds an
+// Info sheet with "Cell line = HeLa" (and notes): opened, the constant is
+// on an info sheet; exported as .pzfx, it is written back as a Prism
+// Constant; that file opened again brings it back once more.
+{
+  const navInfo = (name) => page.getByRole("treeitem", { name, exact: true }).first();
+  await page.setInputFiles(OPEN_INPUT, join(FIX, "info.pzfx"));
+  await appears(navInfo("Project info 1"), 30000);
+  const toastText = (await toasts()).join(" | ");
+  const infoOf = (name) => page.evaluate((n) => {
+    const s = globalThis.__opendose.store.project.sheets.find((x) => x.kind === "info" && x.name === n);
+    return s ? { notes: s.notes, constants: s.constants, parentId: s.parentId } : null;
+  }, name);
+  const sheet = await infoOf("Project info 1");
+  expect("P-59: opening a .pzfx with an Info sheet adds it, with its constants and notes",
+    /Imported 1 data table and 1 info sheet from the Prism file/.test(toastText)
+    && sheet?.constants.some((c) => c.name === "Cell line" && c.value === "HeLa")
+    && sheet?.notes === "Viability after 48 h, three plates.\nPlate 2 edge wells left out (evaporation).",
+    `${toastText} | ${JSON.stringify(sheet?.constants?.slice(6))}`);
+  await navInfo("Project info 1").locator(":scope > .nav-row").click();
+  const hela = await page.getByLabel("Cell line value", { exact: true }).inputValue().catch(() => "");
+  expect("P-59: the info sheet shows Cell line = HeLa", hela === "HeLa", hela);
+  // export the project's tables as .pzfx: the Info sheet goes with them
+  const [dl] = await Promise.all([page.waitForEvent("download", { timeout: 30000 }),
+    fileMenu("Export tables as .pzfx")]);
+  const out = join(tmpdir(), `opendose-e2e-info-${Date.now()}.pzfx`);
+  await dl.saveAs(out);
+  const xml = readFileSync(out, "utf8");
+  expect("P-59: the export writes the constant back as a Prism Info constant",
+    xml.includes("<Constant><Name>Cell line</Name><Value>HeLa</Value></Constant>")
+    && /<InfoSequence><Ref ID="Info0" Selected="1"\/>/.test(xml)
+    && xml.indexOf("<Info ID=") < xml.indexOf("<TableSequence>"), xml.slice(0, 300));
+  await page.setInputFiles(OPEN_INPUT, out);
+  const chooser = page.locator(".pzfx-chooser");
+  if (await appears(chooser, 15000)) await chooser.getByRole("button", { name: /^Import/ }).first().click();
+  await appears(navInfo("Project info 1 (2)"), 30000);
+  const again = await infoOf("Project info 1 (2)");
+  expect("P-59: the exported file opens with the same constants and notes",
+    JSON.stringify(again?.constants) === JSON.stringify(sheet?.constants) && again?.notes === sheet?.notes,
+    JSON.stringify(again));
 }
 
 // --- a file Open cannot read: the error names what it opens

@@ -3924,9 +3924,12 @@ def _auc(data, options):
 def _pzfx_export(data, options):
     """Write data tables as a .pzfx file. data: {"tables": [{"title",
     "table": DataTableModel}]} (XY, column, grouped, contingency,
-    survival). Result: {"analysis": "pzfx_export", "xml", "n_tables",
+    survival), optionally "info": [{"title", "notes", "constants":
+    [{"name", "value"}]}] (the project's info sheets, written as Prism
+    Info sheets). Result: {"analysis": "pzfx_export", "xml", "n_tables",
     "warnings"}."""
-    return {"analysis": "pzfx_export", **pzfx.write_pzfx(data["tables"])}
+    return {"analysis": "pzfx_export",
+            **pzfx.write_pzfx(data["tables"], data.get("info"))}
 
 
 _HANDLERS.update({

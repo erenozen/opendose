@@ -142,6 +142,24 @@ Sy.x 0.2314.
 All matched values pinned in `engine/tests/test_prism_parity.py`
 (31 real-Prism assertions).
 
+## Pending check: .pzfx Info sheets (P-59, 2026-11-23)
+
+Not yet done in Prism. The automated round trip
+(`engine/tests/test_pzfx_info.py`, `e2e-import.mjs`) cannot show that
+Prism itself reads what OpenDose writes.
+
+1. In OpenDose, open `web/e2e-fixtures/info.pzfx` (File, Open), then
+   File, Export tables as .pzfx.
+2. Open the exported file in Prism. Expected: the Info sheet "Project
+   info 1" lists the constant "Cell line" with the value "HeLa", the
+   other seven constants (three of them empty), and the notes as two
+   lines ("Viability after 48 h, three plates." and "Plate 2 edge wells
+   left out (evaporation).").
+3. In Prism, add a constant to that Info sheet, save as .pzfx, and open
+   the file in OpenDose: the new constant appears on the info sheet.
+
+Record the outcome (and a screenshot of Prism's Info sheet) here.
+
 ## Known parity gaps (roadmap)
 
 - Profile-likelihood ("asymmetrical") CIs, the Prism 8+ default.
