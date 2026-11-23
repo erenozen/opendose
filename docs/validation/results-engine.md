@@ -1091,3 +1091,15 @@ leaves the ratio, its CI and P unchanged; swapping the groups inverts
 the ratio and swaps the one-sided P values. No events at all gives the
 rates and their CIs and says there is no test; no events in group 2
 gives an unbounded ratio, said in words.
+
+Independent check (2026-11-23, by the lead, with scipy and numpy only,
+not the statsmodels oracles above): TOST by hand from the t
+distribution (pooled SD, 14 df) gives 90% CI -0.24033 to 0.64033,
+P_TOST 0.0032103 at ±1 and 0.12503 at ±0.5; per-pair Fisher (any
+expected count < 5) or Yates chi-square with a hand Holm step-down
+gives 0.40748, 0.00037188 and 0.0088531 for WT/Het, WT/KO and Het/KO;
+the conditional binomial for 23 events in 10 h vs 41 in 12 h gives
+P = 0.13351 and, through Clopper-Pearson limits, ratio 0.67317 (0.38560
+to 1.14851), rate 1 = 2.3 (1.4580 to 3.4511); numpy least squares for
+the P-13 lines gives slopes F(1, 12) = 0.64403, P = 0.43786 and the
+common slope 1.99524. All equal the engine at the precision shown.
