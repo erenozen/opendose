@@ -47,9 +47,10 @@ function fittedWhat(table: DataTableModel, options: R): string {
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
 /** The legend's description of a curve-fit graph ("" when the result
- *  has no fitted curve). */
+ *  has no fitted curve). `yGap`: the graph's Y axis break, if any (the
+ *  drop lines skip a response inside it, fitGraph.ts dropLegend). */
 export function fitLegendClause(table: DataTableModel, result: unknown, options: unknown,
-  settings: XYGraphSettings): string {
+  settings: XYGraphSettings, yGap?: { from: number; to: number } | null): string {
   const r = result as R | null;
   if (!r || r.error || !Array.isArray(r.datasets)) return "";
   const sets = (r.datasets as R[]).filter((d) => d?.fit && !d.error);
@@ -79,7 +80,7 @@ export function fitLegendClause(table: DataTableModel, result: unknown, options:
         + `drawn as × (${out.join("; ")}).`
       : `ROUT (Q = ${formatSig(q)}%) found no outliers.`);
   }
-  const drop = dropLegend(result, settings);
+  const drop = dropLegend(result, settings, yGap);
   if (drop) parts.push(drop);
   return parts.join(" ");
 }
@@ -97,8 +98,8 @@ export function xyN(table: DataTableModel): string | null {
 
 /** The legend sentence drawn inside the figure ("In the figure"). */
 export function fitCaption(table: DataTableModel, result: unknown, options: unknown,
-  settings: XYGraphSettings): string {
-  const clause = fitLegendClause(table, result, options, settings);
+  settings: XYGraphSettings, yGap?: { from: number; to: number } | null): string {
+  const clause = fitLegendClause(table, result, options, settings, yGap);
   if (!clause) return "";
   const n = xyN(table);
   return n ? `${clause} ${n}.` : clause;

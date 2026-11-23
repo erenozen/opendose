@@ -6,7 +6,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
-  addDropLines, DEFAULT_XY_GRAPH, dropLabelText, dropLegend, dropPoints, normalizeXYGraph,
+  addDropLines, DEFAULT_XY_GRAPH, dropLabelText, dropLegend, dropPoints, gapSegment, normalizeXYGraph,
 } from "../fitGraph.ts";
 import type { Layout } from "../../../graph/apply.ts";
 
@@ -101,9 +101,35 @@ test("shapes follow the axis scale, hidden data sets and the format colour", () 
   // log of a value at or below 0 cannot be shown
   const neg = addDropLines({} as Layout, [{ ...points[0], x: -7 }], { x: { scale: "log10" } }, OPTS);
   assert.equal((neg.shapes ?? []).length, 0);
-  // a discontinuous Y axis: nothing
-  const split = { yaxis3: {} } as unknown as Layout;
-  assert.equal(addDropLines(split, points, {}, OPTS), split);
+});
+
+test("a discontinuous Y axis: the lines go on the segment holding the response", () => {
+  // graph/apply.ts splitAxis: yaxis up to the break, yaxis3 from its end
+  const split = { yaxis: { range: [0, 20] }, yaxis3: { range: [40, 110] } } as unknown as Layout;
+  const at = (y: number) => [{ ds: 0, name: "A", label: "IC50", kind: "relative" as const,
+    drawn: true as const, x: -7, y, value: 1e-7 }];
+  const gap = { y: { gap: { from: 20, to: 40 } } };
+  // above the break: on yaxis3, down to its foot, then on down the lower segment
+  const hi = addDropLines(split, at(50.4181), gap, { ...OPTS, label: true }) as Record<string, any>;
+  const [v, h, v2] = hi.shapes;
+  assert.deepEqual([v.name, v.yref, v.y0, v.y1], ["drop:0:v", ["y3", "y3 domain"], 50.4181, 0]);
+  assert.deepEqual([h.name, h.yref, h.xref, h.y0, h.x1], ["drop:0:h", "y3", ["x", "x domain"], 50.4181, 0]);
+  assert.deepEqual([v2.name, v2.yref, v2.x0, v2.y0, v2.y1], ["drop:0:v2", "y domain", -7, 1, 0]);
+  assert.equal(hi.annotations[0].yref, "y3");
+  // below the break: the lower segment, as on an axis without one
+  const lo = addDropLines(split, at(10), gap, OPTS) as Record<string, any>;
+  assert.deepEqual(lo.shapes.map((s: Record<string, any>) => [s.name, s.yref]),
+    [["drop:0:v", ["y", "y domain"]], ["drop:0:h", "y"]]);
+  // inside the break: no lines (the legend says why)
+  const mid = addDropLines(split, at(30), gap, OPTS);
+  assert.equal((mid.shapes ?? []).length, 0);
+  // the break's ends belong to the segments they bound
+  assert.equal(gapSegment(20, gap.y.gap), "y");
+  assert.equal(gapSegment(40, gap.y.gap), "y3");
+  assert.equal(gapSegment(30, gap.y.gap), null);
+  assert.equal(gapSegment(30, null), "y");
+  // without a split (no yaxis3) the break is not drawn and neither is it consulted
+  assert.equal(addDropLines({} as Layout, at(30), gap, OPTS).shapes.length, 2);
 });
 
 test("legend: what the drop lines mark, and why a curve has none", () => {
@@ -115,4 +141,9 @@ test("legend: what the drop lines mark, and why a curve has none", () => {
     "Dashed lines mark the absolute IC50 (where the curve crosses (Top + Baseline) / 2).");
   assert.equal(dropLegend(ref.cases.extrapolated, { dropLines: true }),
     "No IC50 lines for Drug A: the IC50 lies above the highest concentration tested.");
+  // a Y axis break: the response 50.4181 inside it gets the reason; outside it, the lines
+  assert.equal(dropLegend(ref.cases.relative_4pl, { dropLines: true }, { from: 40, to: 60 }),
+    "No IC50 lines for Drug A: the response at the IC50 (50.42) falls in the break of the Y axis.");
+  assert.equal(dropLegend(ref.cases.relative_4pl, { dropLines: true }, { from: 10, to: 20 }),
+    dropLegend(ref.cases.relative_4pl, { dropLines: true }));
 });

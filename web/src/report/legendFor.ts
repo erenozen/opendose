@@ -23,6 +23,9 @@ import { logLegendClause } from "../sheets/column/logScale.ts";
 import { maxOf } from "../lib/extent.ts";
 import { dropLegend, normalizeXYGraph } from "../sheets/xy/fitGraph.ts";
 import { fitLegendClause } from "../sheets/xy/fitLegend.ts";
+import { ctBracketLegend, ctBracketsDrawn } from "../sheets/contingency/brackets.ts";
+import { estimationMargins, marginsLegend, type EquivalenceLink } from "./estimation/margins.ts";
+import { GRAPH_ESTIMATION } from "./estimation/run.ts";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -114,6 +117,9 @@ export interface LegendContext {
   options: unknown;
   prefs: ReportPrefs;
   software: string;
+  /** The family's t test with an equivalence margin (estimation graphs:
+   *  report/estimation/margins.ts), if any. */
+  equivalence?: EquivalenceLink | null;
 }
 
 /** The figure legend of a graph (or of the results alone, without one). */
@@ -150,9 +156,18 @@ export function legendFor(c: LegendContext): string {
   const fmt = c.graph ? readFormat(c.graph.settings) : null;
   const xyFit = c.graph?.graphType === "xy"
     ? xyFitPlotted(c.graph, c.table, c.result, c.options, f.errorBars) : undefined;
+  // contingency graphs: the brackets for pairs of rows, or why there are none
+  const ct = !!c.graph && c.table.type === "contingency";
+  const ctDrawn = ct && ctBracketsDrawn(c.graph!, c.table, c.result);
+  const ctPlotted = ct ? ctBracketLegend(c.graph!, c.table, c.result) ?? undefined : undefined;
+  // estimation plots: the family's equivalence margin, or why it is not drawn
+  const eqClause = c.graph?.graphType === GRAPH_ESTIMATION && c.equivalence
+    ? marginsLegend(estimationMargins(c.result, c.equivalence.result, c.equivalence.options)) : "";
+  const estPlotted = eqClause ? `${whatIsPlotted(GRAPH_ESTIMATION, {
+    estimation: ra === "estimation" ? c.result as any : null })} ${eqClause}` : undefined;
   return legendParagraph({
     graphType: c.graph?.graphType ?? null,
-    plotted: xyFit ?? withCompareClause(c.graph ? (own ? ownPlotted(c.graph, c.result, c.options)
+    plotted: xyFit ?? ctPlotted ?? estPlotted ?? withCompareClause(c.graph ? (own ? ownPlotted(c.graph, c.result, c.options)
       : plottedClause(c.graph, c.table, c.result, c.options)) : undefined, c.result),
     result: c.result,
     groups: xyGroups,
@@ -162,10 +177,10 @@ export function legendFor(c: LegendContext): string {
     exclusions: exclusionSentence(c.table) ?? undefined,
     errorBars: f.errorBars, points: f.points ?? undefined,
     // the nested scatter draws its brackets until its format says otherwise
-    starsShown: f.starsShown || (c.graph?.graphType === G_MIXED_NESTED && !fmt?.comparisons
-      && (c.graph.settings.mixedNested as any)?.brackets !== false
+    starsShown: ct ? f.starsShown && ctDrawn : f.starsShown || (c.graph?.graphType === G_MIXED_NESTED
+      && !fmt?.comparisons && (c.graph.settings.mixedNested as any)?.brackets !== false
       && !!nestedBrackets(c.result)?.set.comparisons.length),
-    pShown: f.pShown,
+    pShown: ct ? f.pShown && ctDrawn : f.pShown,
     style: fmt?.pStyle ?? c.prefs.pStyle,
     hideNs: fmt?.comparisons?.hideNs ?? c.prefs.hideNs, software: c.software,
   });
@@ -177,9 +192,10 @@ export function legendFor(c: LegendContext): string {
 function xyFitPlotted(g: GraphSheet, table: DataTableModel, result: unknown, options: unknown,
   errorBars: ErrorBars | null): string | undefined {
   const s = normalizeXYGraph(g.settings.xy);
-  const fit = fitLegendClause(table, result, options, s);
+  const yGap = readFormat(g.settings).y?.gap ?? null;
+  const fit = fitLegendClause(table, result, options, s, yGap);
   if (fit) return fit;
-  const drop = dropLegend(result, s);
+  const drop = dropLegend(result, s, yGap);
   return drop ? `${whatIsPlotted("xy", { errorBars })} ${drop}` : undefined;
 }
 

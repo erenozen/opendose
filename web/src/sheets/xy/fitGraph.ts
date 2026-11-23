@@ -138,16 +138,33 @@ export function dropLabelText(p: Extract<DropPoint, { drawn: true }>, unit: stri
   return `${p.label} = ${v === null ? "n/a" : formatSig(v)}${unit && v !== null ? ` ${unit}` : ""}`;
 }
 
+type Gap = { from: number; to: number } | null | undefined;
+
+/** The part of a discontinuous Y axis (Format axes: a break from `from`
+ *  to `to`, data units) that shows a response: "y" up to the break,
+ *  "y3" from its end (graph/apply.ts splitAxis), null inside it. Without
+ *  a break, "y". */
+export function gapSegment(y: number, gap: Gap): "y" | "y3" | null {
+  if (!gap || !(gap.to > gap.from)) return "y";
+  if (y <= gap.from) return "y";
+  return y >= gap.to ? "y3" : null;
+}
+
 /** The drop lines (and labels) as Plotly shapes and annotations, added to
  *  a formatted layout. Each line has one end on the curve (axis units)
  *  and one on the plot's edge (axis domain 0), so it reaches the axis at
- *  any zoom without taking part in autorange. Nothing is drawn on a
- *  discontinuous Y axis, for hidden data sets, or for a point an axis
- *  scale cannot show (log of a value at or below 0). */
+ *  any zoom without taking part in autorange. On a discontinuous Y axis
+ *  the lines go on the segment that holds the response: above the break,
+ *  the vertical line runs to that segment's foot and on down the lower
+ *  segment (`drop:<ds>:v2`), broken at the break like the axis; a
+ *  response inside the break gets no lines (the legend says so, see
+ *  dropLegend). Nothing is drawn for hidden data sets or for a point an
+ *  axis scale cannot show (log of a value at or below 0). */
 export function addDropLines(layout: Layout, points: DropPoint[], format: GraphFormat,
   opts: { dark: boolean; scheme: SchemeId; label: boolean; unit: string; ink: string }): Layout {
   const drawn = points.filter((p): p is Extract<DropPoint, { drawn: true }> => p.drawn);
-  if (!drawn.length || (layout as R).yaxis3) return layout;
+  if (!drawn.length) return layout;
+  const gap = (layout as R).yaxis3 ? format.y?.gap : null;
   const mx = axisMap(format.x), my = axisMap(format.y);
   const shapes = [...((layout.shapes as R[] | undefined) ?? [])];
   const annotations = [...((layout.annotations as R[] | undefined) ?? [])];
@@ -156,16 +173,22 @@ export function addDropLines(layout: Layout, points: DropPoint[], format: GraphF
     if (f.show === false) continue;
     const x = mx.to(p.x), y = my.to(p.y);
     if (x === null || y === null || !num(x) || !num(y)) continue;
+    const seg = gapSegment(p.y, gap);
+    if (!seg) continue;
     const color = f.color ?? seriesStyle(p.ds, opts.dark, opts.scheme).color;
     const line = { color, width: 1.25, dash: "dash" };
     shapes.push(
-      { type: "line", name: `drop:${p.ds}:v`, xref: "x", yref: ["y", "y domain"],
+      { type: "line", name: `drop:${p.ds}:v`, xref: "x", yref: [seg, `${seg} domain`],
         x0: x, x1: x, y0: y, y1: 0, line, layer: "below" },
-      { type: "line", name: `drop:${p.ds}:h`, xref: ["x", "x domain"], yref: "y",
+      { type: "line", name: `drop:${p.ds}:h`, xref: ["x", "x domain"], yref: seg,
         x0: x, x1: 0, y0: y, y1: y, line, layer: "below" },
     );
+    if (seg === "y3") {
+      shapes.push({ type: "line", name: `drop:${p.ds}:v2`, xref: "x", yref: "y domain",
+        x0: x, x1: x, y0: 1, y1: 0, line, layer: "below" });
+    }
     if (opts.label) {
-      annotations.push({ name: `drop:${p.ds}:label`, xref: "x", yref: "y", x, y,
+      annotations.push({ name: `drop:${p.ds}:label`, xref: "x", yref: seg, x, y,
         text: dropLabelText(p, opts.unit), showarrow: false, xanchor: "left", yanchor: "bottom",
         xshift: 6, yshift: 4, font: { color: opts.ink, size: 12 } });
     }
@@ -174,10 +197,16 @@ export function addDropLines(layout: Layout, points: DropPoint[], format: GraphF
 }
 
 /** What the legend says about the drop lines: what they mark, and the
- *  data sets left without them and why ("" when they are off). */
-export function dropLegend(result: unknown, settings: Pick<XYGraphSettings, "dropLines">): string {
+ *  data sets left without them and why ("" when they are off). `yGap`
+ *  is the graph's Y axis break (Format axes), if any: a response inside
+ *  it has no lines. */
+export function dropLegend(result: unknown, settings: Pick<XYGraphSettings, "dropLines">,
+  yGap?: Gap): string {
   if (!settings.dropLines) return "";
-  const pts = dropPoints(result);
+  const pts = dropPoints(result).map((p): DropPoint => (p.drawn && !gapSegment(p.y, yGap)
+    ? { ds: p.ds, name: p.name, label: p.label, kind: p.kind, drawn: false,
+      reason: `the response at the ${p.label} (${formatSig(p.y)}) falls in the break of the Y axis` }
+    : p));
   const parts: string[] = [];
   const drawn = pts.filter((p) => p.drawn);
   if (drawn.length) {

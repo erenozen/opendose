@@ -293,10 +293,12 @@ export function applyFormat(tracesIn: Trace[], layoutIn: Layout, format: GraphFo
     } : undefined);
   if (groupX && ctx.comparisons?.length) {
     const yr = axisRanges.y;
-    const span = (yr ? yr[1] - yr[0] : 0) || spanOf(traces, maps.y) || 1;
+    // category axes and stacked bars, as the brackets must clear them
+    const measured = measureTraces(traces, layout);
+    const span = (yr ? yr[1] - yr[0] : 0) || spanOf(measured, maps.y) || 1;
     const half = ctx.groupHalf ?? 0.45;
     const top = (lo: number, hi: number, xref = "x") =>
-      topBetween(traces, lo - half, hi + half, yr, maps.y, xref);
+      topBetween(measured, lo - half, hi + half, yr, maps.y, xref);
     if (format.comparisons?.show) {
       drawBrackets(layout, format, ctx.comparisons, groupX, top, span, chrome);
     }
@@ -709,6 +711,64 @@ function needsRange(a: AxisFormat | undefined): boolean {
   return s === "log2" || s === "ln" || s === "probability"
     || a.numbers === "antilog" || a.numbers === "elapsed" || !!a.gap
     || (s === "linear" && !!a.scaleFactor);
+}
+
+/** The traces as the bracket layer measures them. On a category X axis
+ *  (`type: "category"`) a category sits at its index, in the order Plotly
+ *  gives categories (`categoryarray` under `categoryorder: "array"`, else
+ *  first appearance); bars stacked by `barmode` "stack" or "relative"
+ *  count as one bar per position reaching the sum of their positive
+ *  segments (what is drawn: on a transformed axis Plotly stacks the
+ *  transformed values too). Returns `traces` itself when neither applies,
+ *  so every other graph measures exactly as before. */
+export function measureTraces(traces: Trace[], layout: Layout): Trace[] {
+  const axisKey = (ref: string) => (ref === "x" ? "xaxis" : `xaxis${ref.slice(1)}`);
+  const cats = new Map<string, Map<string, number>>();
+  for (const t of traces) {
+    const ref = t.xaxis ?? "x";
+    if (cats.has(ref) || layout[axisKey(ref)]?.type !== "category") continue;
+    const ax = layout[axisKey(ref)];
+    const order = new Map<string, number>();
+    if (ax.categoryorder === "array") {
+      arr(ax.categoryarray).forEach((c) => { if (!order.has(String(c))) order.set(String(c), order.size); });
+    } else {
+      for (const u of traces) {
+        if ((u.xaxis ?? "x") !== ref) continue;
+        for (const x of arr(u.x)) {
+          if (x !== null && x !== undefined && !order.has(String(x))) order.set(String(x), order.size);
+        }
+      }
+    }
+    cats.set(ref, order);
+  }
+  const stacked = layout.barmode === "stack" || layout.barmode === "relative";
+  if (!cats.size && !stacked) return traces;
+  const at = (ref: string, x: unknown): number | null => {
+    const c = cats.get(ref);
+    if (c) return x === null || x === undefined ? null : c.get(String(x)) ?? null;
+    return isNum(x) ? x : null;
+  };
+  const out: Trace[] = [];
+  const stacks = new Map<string, Map<number, number>>();
+  for (const t of traces) {
+    const ref = t.xaxis ?? "x";
+    const onStack = stacked && t.type === "bar" && t.orientation !== "h" && yOf(t) === "y"
+      && t.visible !== false && t.visible !== "legendonly";
+    if (!onStack && !cats.has(ref)) { out.push(t); continue; }
+    const xs = arr(t.x).map((x) => at(ref, x));
+    if (!onStack) { out.push({ ...t, x: xs }); continue; }
+    const s = stacks.get(ref) ?? new Map<number, number>();
+    stacks.set(ref, s);
+    arr(t.y).forEach((y, i) => {
+      const x = xs[i];
+      if (x === null || !isNum(y)) return;
+      s.set(x, (s.get(x) ?? 0) + Math.max(0, y));
+    });
+  }
+  for (const [ref, s] of stacks) {
+    out.push({ type: "bar", xaxis: ref, x: [...s.keys()], y: [...s.values()] });
+  }
+  return out;
 }
 
 /** Highest point (axis units, primary Y) between two X positions. */

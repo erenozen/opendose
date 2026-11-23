@@ -241,3 +241,127 @@ and `.svg`, the README lines, and opens the three PDFs with two readers:
 pypdf (one page each with text; the layout page 595.28 pt wide, A4) and
 pdf.js 5.3.31 (`PDFJS` names a pdfjs-dist folder; it is not a dependency
 of the app, so the step says "skip" without it).
+
+## Brackets for pairs of rows on the contingency graphs (P-14)
+
+The pairs of rows of an r x c table (`contingency.pairwise_rows`, its
+engine validation is in `results-engine.md`) are drawn as brackets on the
+stacked contingency graphs (% of each row, counts), one bracket per pair
+joining the two rows' stacks, labelled with the adjusted P (a q value
+under Benjamini-Hochberg) the results table shows, in the analysis's P
+style; asterisks or the exact P are chosen in Pairwise comparisons, and
+the legend states the test per pair, the family ("with P values
+adjusted for 3 comparisons (Holm)"), the star scale and where the exact
+values are (`sheets/contingency/brackets.ts`). The bracket layer
+measures a category X axis by category index and stacked bars by the sum
+of their segments (`graph/apply.ts measureTraces`); other graphs measure
+exactly as before (the same traces). The percent axis grows above 100%
+to hold the brackets and keeps its ticks at 0 to 100%. Grouped bars draw
+a cluster per row, where a bracket between rows has no single bar to
+join: they draw none, and the graph options and the legend say why; so
+do rows that share a name. Compact letters are not offered for rows.
+
+Reference: the plan's acceptance data, WT 18/20, Het 15/20, KO 5/20
+positive (`engine/tests/reference/pairwise_proportions.py`: scipy per
+pair, statsmodels `multipletests("holm")`): Holm-adjusted P 0.4075 (WT
+vs. Het), 3.719e-4 (WT vs. KO), 0.008853 (Het vs. KO).
+
+`brackets.test.ts` checks the comparisons (adjusted P, the q-value
+label, a pair without a test counted as unmatched), the refusals, the
+measured stack tops (row totals 20), the bracket positions on the
+percent graph (WT 0, Het 1, KO 2; heights 110, 120, 130; labels P =
+0.4075, P = 0.0089, P = 0.00037) and on the counts graph (22, 24, 26),
+and the legend in its four forms. `scripts/e2e-figures.mjs` opens the
+three graphs bound to a Holm contingency analysis and checks the results'
+adjusted P (0.4075, 3.719e-4, 0.008853), the brackets and their labels
+(ns, **, ***; and the exact P), the axis top above 130 with ticks to
+100%, the dialog's list and its missing letters tab, the legend, and the
+grouped graph's refusal. `scripts/e2e-export.mjs` finds the three labels
+in the SVG export.
+
+## The equivalence margin on the estimation plot (P-12)
+
+When the family holds a t test (unpaired, Welch or paired) with an
+equivalence or non-inferiority margin, its estimation plot of the same
+two groups draws the margin as dashed lines across the difference's
+column (labelled "margin −1", "margin +1"; one line for non-inferiority)
+and the t test's 90% CI (the 1 - 2 alpha interval of the two one-sided
+tests, Schuirmann 1987) as a capped bar beside the bootstrap CI, on the
+difference axis, which grows to hold them (`report/estimation/margins.ts`,
+`figure.ts`). The t test states A - B and the plot shows test - control:
+with A as the plot's control the margin and the interval are mirrored
+(-0.6403 to 0.2403 for B - A), and the legend says "drawn as B minus A".
+Nothing is drawn, and the legend says why, for a ratio margin, an effect
+size other than the mean difference, a paired test against an unpaired
+plot (or the reverse) and a plot without that pair. Without such a t test
+the figure is the same object as before (checked in `margins.test.ts`);
+frozen estimation graphs draw no margin (their snapshot holds their own
+result only). The legend under the graph, the report card, the
+PowerPoint notes and the export bundle read the same t test.
+
+Reference: the P-12 e2e data (A = 10.8, 10.75, 10.55, 10.5, 9.6, 9.65,
+9.85, 9.9; B = A - 0.2), `engine/tests/reference/equivalence_tost.py`
+(statsmodels `ttost_ind`): A - B = 0.2, 90% CI -0.24032753 to 0.64032753,
+margin ±1, P (TOST) 0.00321.
+
+`margins.test.ts` checks the sheet lookup, both orientations, the
+non-inferiority bound on either side, the five reasons for leaving the
+margin off, the Gardner-Altman figure (lines at y2 = -1 and 1 from x =
+1.78 to 2.7, the CI marker at x = 2.06 with ends -0.6403275 and
+0.2403275, the axis range) and the legend sentences.
+`scripts/e2e-figures.mjs` opens a family with the t test (margin 1) and
+the estimation plot and reads the two lines, the CI ends (to 5e-5) and
+the legend; a paired t test against the unpaired plot draws nothing and
+says why. `scripts/e2e-export.mjs` finds the margin labels and the dashed
+lines in the SVG export.
+
+## The graph-type select says what a column graph draws (P-25, P-26)
+
+The graph-type select read "Scatter (points + mean ± SD)" and "Bar (mean
+± SD + points)" whatever the centre drawn. It now names the centre the
+graph's own setting and the bound test give
+(`sheets/column/kindLabel.ts`, through the graph kind's `optionLabel`):
+"Scatter (points + median with IQR)" under a rank test with "Follow the
+test", "Bar (geometric mean ×/÷ geometric SD + points)", "Bar (mean with
+95% CI)" when bars hide the points. Summary data (entered means) and
+SuperPlots keep the neutral labels "Scatter (points + summary)" and "Bar
+(summary + points)", as do the other places that list the kinds. Only
+words change: no setting is written. No e2e step selected these options
+by their text (all select by value), so no selector changed.
+
+`kindLabel.test.ts` covers a graph saved before (mean ± SD), "Follow the
+test" under a t test and under Mann-Whitney, each chosen centre, bars
+without points, and the neutral cases. `scripts/e2e-figures.mjs` reads
+the option text in the P-25 and P-26 steps: "Scatter (points + mean ±
+SD)" under the t test, "Scatter (points + median with IQR)" and "Bar
+(median with IQR + points)" under Mann-Whitney (the selected kind still
+"scatter"), mean ± SD for the graph saved before, and the geometric bar.
+
+## IC50 drop lines on a broken Y axis, and in the exports (P-23, P-24)
+
+Drop lines were not drawn on a discontinuous Y axis (Format axes, a
+break from `from` to `to`), while the legend still said they marked the
+IC50. They now go on the segment that holds the response at the IC50
+(`sheets/xy/fitGraph.ts gapSegment`: up to the break, the lower segment
+"y"; from its end, the upper segment "y3"): the horizontal line on that
+segment's axis and, above the break, the vertical line to the upper
+segment's foot and on down the lower segment to the X axis (`drop:<ds>:v2`),
+broken at the break like the axis. A response inside the break gets no
+lines, and the legend and the in-figure caption say "No IC50 lines for
+Drug A: the response at the IC50 (50.42) falls in the break of the Y
+axis." On an axis without a break nothing changes (the
+same shapes as before).
+
+Reference: `engine/tests/reference/fit_graph.py`, the example fit:
+LogIC50 -6.98304, response 50.4181, IC50 1.040e-7 M.
+
+`fitGraph.test.ts` checks the three cases (above the break: y3 and the
+second vertical piece; below: as before; inside: none), the break's ends
+and the legend sentence. `scripts/e2e-figures.mjs` opens fits with a
+break from 15 to 35 (lines on yaxis3 at -6.98304, 50.4181, the second
+piece from the lower segment's top to the X axis) and from 40 to 60 (no
+lines, the reason in the legend). `scripts/e2e-export.mjs` exports a fit
+graph with drop lines, their label and the legend drawn in the figure,
+on a plain and on a broken axis, as SVG and as PDF: the dashed strokes
+(stroke-dasharray in the SVG, the PDF's "d" dash operator: 2 lines, 3 on
+the broken axis), "IC50 = 1.040e-7 M" and the caption's text are in both.

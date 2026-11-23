@@ -14,6 +14,7 @@ import type * as Plotly from "plotly.js";
 import { tagTrace } from "../../graph/apply.ts";
 import type { Chrome } from "../../lib/palette.ts";
 import { maxOf, minOf } from "../../lib/extent.ts";
+import { marginLabel, type EstimationMargins } from "./margins.ts";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type R = Record<string, any>;
@@ -30,6 +31,9 @@ export interface FigureInput {
   yTitle: string;
   /** Paired designs: each group's values by subject (row), nulls kept. */
   aligned?: Record<string, (number | null)[]>;
+  /** The family's equivalence margin and the t test's 90% CI on this
+   *  plot's difference (margins.ts); absent = drawn as before. */
+  margins?: EstimationMargins | null;
 }
 
 export interface Figure { traces: Plotly.Data[]; layout: Partial<Plotly.Layout>; names: string[] }
@@ -123,6 +127,7 @@ export function estimationFigure(inp: FigureInput): Figure {
   const effX = (c: R) => (ga ? order.length - 1 + 1.2 : pos.get(c.test) ?? 0);
   const effY = ga ? "y2" : "y2";
   let eLo = Infinity, eHi = -Infinity;
+  const eqShapes: { side: "lower" | "upper"; v: number; x0: number; x1: number }[] = [];
   comps.forEach((c) => {
     const e = c.effects?.[0];
     if (!e || !finite(e.difference)) return;
@@ -156,6 +161,26 @@ export function estimationFigure(inp: FigureInput): Figure {
         + "<extra></extra>",
       xaxis: "x", yaxis: effY,
     }, { ds: ti, role: "decor" }) as Plotly.Data);
+    const m = inp.margins;
+    if (m && m.control === c.control && m.test === c.test) {
+      // the t test's 90% CI, capped, left of the difference; the margin
+      // as dashed lines across the difference's column (margins.ts)
+      const lvl = `${Math.round(m.level * 100)}%`;
+      traces.push(tagTrace({
+        type: "scatter", mode: "markers", x: [x0 - 0.14], y: [m.estimate],
+        marker: { color: chrome.ink, size: 7, symbol: "diamond" },
+        error_y: { type: "data", symmetric: false, array: [m.ci[1] - m.estimate],
+          arrayminus: [m.estimate - m.ci[0]], color: chrome.ink, thickness: 1.5, width: 5, visible: true },
+        showlegend: false, name: "equivalence-ci",
+        hovertemplate: `${lvl} CI of the t test (two one-sided tests): ${fmt(m.ci[0])} to ${fmt(m.ci[1])}<extra></extra>`,
+        xaxis: "x", yaxis: effY,
+      }, { ds: ti, role: "decor" }) as Plotly.Data);
+      eqShapes.push(...([["lower", m.lower], ["upper", m.upper]] as const)
+        .filter((e): e is ["lower" | "upper", number] => finite(e[1]))
+        .map(([side, v]) => ({ side, v, x0: x0 - 0.42, x1: x0 + 0.5 })));
+      eLo = Math.min(eLo, m.ci[0], ...[m.lower, m.upper].filter(finite));
+      eHi = Math.max(eHi, m.ci[1], ...[m.lower, m.upper].filter(finite));
+    }
   });
   if (!Number.isFinite(eLo)) { eLo = -1; eHi = 1; }
 
@@ -217,6 +242,18 @@ export function estimationFigure(inp: FigureInput): Figure {
       margin: { l: 70, r: 16, t: 14, b: 86 },
     };
   }
+  const eqLine = { color: chrome.inkSecondary, width: 1.25, dash: "dash" };
+  for (const e of eqShapes) {
+    shapes.push({ type: "line", xref: "x", yref: "y2", x0: e.x0, x1: e.x1, y0: e.v, y1: e.v,
+      line: eqLine, name: `equivalence-margin:${e.side}` } as Partial<Plotly.Shape>);
+  }
+  const eqLabels = eqShapes.map((e) => ({
+    xref: "x" as const, yref: "y2" as const, x: e.x1, y: e.v, xanchor: "right" as const,
+    yanchor: e.side === "upper" ? "bottom" as const : "top" as const, showarrow: false,
+    // signed as the axis ticks beside it are: "+1", "−1" (a true minus)
+    text: `margin ${e.v > 0 ? "+" : "−"}${marginLabel(Math.abs(e.v))}`, name: "equivalence-margin-label",
+    font: { color: chrome.inkSecondary, size: 11 },
+  }));
   return {
     traces,
     layout: {
@@ -224,6 +261,7 @@ export function estimationFigure(inp: FigureInput): Figure {
       paper_bgcolor: chrome.surface, plot_bgcolor: chrome.surface,
       font: { family: inp.font, color: chrome.inkSecondary, size: 13 },
       showlegend: false, shapes, dragmode: "pan", uirevision: "keep",
+      ...(eqLabels.length ? { annotations: eqLabels } : {}),
     },
     names: order,
   };

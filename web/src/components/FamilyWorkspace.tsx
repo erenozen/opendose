@@ -417,7 +417,9 @@ function GraphCard({ graph, data, result, options }: {
           <select className="graph-select" aria-label="Graph type"
             value={graph.graphType}
             onChange={(e) => edit((g) => ({ ...g, graphType: e.target.value }), "type")}>
-            {siblings.map((g) => <option key={g.id} value={g.id}>{g.label}</option>)}
+            {siblings.map((g) => (
+              <option key={g.id} value={g.id}>{g.optionLabel?.(graph, table, res, opts) ?? g.label}</option>
+            ))}
           </select>
         )}
       </div>
