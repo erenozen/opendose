@@ -3,7 +3,7 @@
 // Run: npm run test:unit
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { cccCaveat, cccText, type CccResult } from "../ccc.ts";
+import { cccCaveat, cccRows, cccText, type CccResult } from "../ccc.ts";
 import { formatSig } from "../../../types.ts";
 
 // engine/tests/reference/lin_ccc.json, the ejection fractions
@@ -30,4 +30,12 @@ test("the caveat names precision and accuracy with their values", () => {
   assert.ok(c.includes(formatSig(0.7324973553920947)) && c.includes(formatSig(0.9029588911914169)));
   assert.match(c, /\(Lin 1989\)\.$/);
   assert.equal(cccCaveat({ error: "x" } as CccResult), null);
+});
+
+test("in a results table: the value and its CI on two short rows", () => {
+  assert.deepEqual(cccRows(ej), [["Lin's concordance correlation (CCC)", formatSig(0.6614149998254911)],
+    ["95% CI of the CCC", `${formatSig(0.5089523924152481)} to ${formatSig(0.7736414318453412)}`]]);
+  assert.deepEqual(cccRows({ ...ej, ci: null, ci_note: "the two methods agree exactly", ccc: 1 }),
+    [["Lin's concordance correlation (CCC)", "1 (no CI: the two methods agree exactly)"]]);
+  assert.deepEqual(cccRows(undefined), []);
 });

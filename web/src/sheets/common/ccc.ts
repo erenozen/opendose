@@ -29,6 +29,15 @@ export function cccText(c: CccResult | undefined | null): string | null {
   return `${formatSig(c.ccc)}${ci}`;
 }
 
+/** Two short rows for a results table (the value, then its CI), so
+ *  neither cell is wider than a phone's pane. */
+export function cccRows(c: CccResult | undefined | null): [string, string][] {
+  if (!c) return [];
+  if (c.error || !c.ci) return [[CCC_LABEL, cccText(c)!]];
+  return [[CCC_LABEL, formatSig(c.ccc)],
+    [`${pct(c.ci_level)} CI of the CCC`, `${formatSig(c.ci[0])} to ${formatSig(c.ci[1])}`]];
+}
+
 /** The caveat read with the number: the CCC is precision times accuracy. */
 export function cccCaveat(c: CccResult | undefined | null): string | null {
   if (!c || c.error) return null;

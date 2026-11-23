@@ -762,9 +762,9 @@ const analyzeWith = async (re) => {
   // P-43 in Deming: CCC 0.9915 (0.9836 to 0.9956), engine/tests/reference/lin_ccc.py
   await analyzeWith(/^Deming regression/);
   await liveResults(/concordance correlation/);
-  const dccc = await methodRow("concordance correlation");
+  const dccc = `${await methodRow("concordance correlation")} | ${await methodRow("CI of the CCC")}`;
   expect("P-43 Deming results carry Lin's CCC 0.9915 (95% CI 0.9836 to 0.9956)",
-    dccc === "Lin's concordance correlation (CCC) 0.9915 (95% CI 0.9836 to 0.9956)", dccc);
+    dccc === "Lin's concordance correlation (CCC) 0.9915 | 95% CI of the CCC 0.9836 to 0.9956", dccc);
 
   // Bland-Altman on the ejection fractions (the template's data), its CCC
   // (P-43 acceptance) and the link to Passing-Bablok of the same columns
@@ -772,9 +772,9 @@ const analyzeWith = async (re) => {
   await pastedTable("column", "Ejection", "RV\tIC\n" + e.x.map((x, i) => `${x}\t${e.y[i]}`).join("\n") + "\n");
   await analyzeWith(/^Bland-Altman/);
   await liveResults(/concordance correlation/);
-  const bccc = await methodRow("concordance correlation");
+  const bccc = `${await methodRow("concordance correlation")} | ${await methodRow("CI of the CCC")}`;
   expect("P-43 acceptance: Bland-Altman results carry Lin's CCC 0.6614 (95% CI 0.509 to 0.7736)",
-    bccc === "Lin's concordance correlation (CCC) 0.6614 (95% CI 0.509 to 0.7736)", bccc);
+    bccc === "Lin's concordance correlation (CCC) 0.6614 | 95% CI of the CCC 0.509 to 0.7736", bccc);
   expect("P-43 the CCC caveat sits beside it",
     await liveResults(/The CCC mixes precision and accuracy: Pearson's r 0\.7325 \(precision\)/));
   await page.getByRole("button", { name: "Passing-Bablok regression of these two columns" }).click();
@@ -792,18 +792,19 @@ const analyzeWith = async (re) => {
   await analyzeWith(/^Agreement \(ICC\)/);
   await liveResults(/Intraclass correlation: 6 targets, 4 raters/);
   const want = {
-    "ICC(1,1)": "0.1657 -0.1329 to 0.7226 1.795 (5, 18) P = 0.1648",
-    "ICC(2,1)": "0.2898 0.01879 to 0.7611 11.03 (5, 15) P = 1.346e-4",
-    "ICC(3,1)": "0.7148 0.3425 to 0.9459 11.03 (5, 15) P = 1.346e-4",
-    "ICC(1,4)": "0.4428 -0.8844 to 0.9124 1.795 (5, 18) P = 0.1648",
-    "ICC(2,4)": "0.6201 0.07114 to 0.9272 11.03 (5, 15) P = 1.346e-4",
-    "ICC(3,4)": "0.9093 0.6757 to 0.9859 11.03 (5, 15) P = 1.346e-4",
+    "ICC(1,1)": "0.1657 -0.1329 to 0.7226", "ICC(2,1)": "0.2898 0.01879 to 0.7611",
+    "ICC(3,1)": "0.7148 0.3425 to 0.9459", "ICC(1,4)": "0.4428 -0.8844 to 0.9124",
+    "ICC(2,4)": "0.6201 0.07114 to 0.9272", "ICC(3,4)": "0.9093 0.6757 to 0.9859",
   };
   const got = {};
   for (const k of Object.keys(want)) got[k] = await methodRow(k);
   expect("P-44 acceptance: all six ICCs with McGraw-Wong CIs (Shrout & Fleiss: .17 .29 .71 .44 .62 .91)",
     Object.entries(want).every(([k, v]) => got[k].startsWith(k) && got[k].endsWith(v)),
     Object.values(got).join(" | "));
+  const [f1, f2] = [await methodRow("One-way forms"), await methodRow("Two-way forms")];
+  expect("P-44 the F tests of ICC = 0: F(5, 18) = 1.795 and F(5, 15) = 11.03",
+    f1 === "One-way forms F(5, 18) = 1.795, P = 0.1648"
+      && f2 === "Two-way forms F(5, 15) = 11.03, P = 1.346e-4", `${f1} | ${f2}`);
   expect("P-44 the default form ICC(2,1) leads", /^ICC\(2,1\) \(chosen\)/.test(got["ICC(2,1)"])
     && await answerText(/ICC\(2,1\)\s*0\.2898\s*95% CI 0\.01879 to 0\.7611/), got["ICC(2,1)"]);
   await page.locator(".pane-controls").getByLabel("ICC form").selectOption("ICC3");

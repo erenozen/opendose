@@ -57,21 +57,30 @@ export function IccResults({ result }: ResultsProps<IccOptions, IccResult>) {
       {formName(r.form, k)}{r.form === result.options.form ? " (chosen)" : ""}<br />
       <span className="field-note">{ICC_INFO[r.form].model.replace("mean of k raters", `mean of ${k} raters`)}</span>
     </>,
-    f(r.value), ciTxt(r.ci), `${f(r.F)} (${r.df1}, ${r.df2})`, pLabel(r.p),
+    f(r.value), ciTxt(r.ci),
   ]);
+  // two F tests of ICC = 0: one for the one-way forms, one for the two-way forms
+  const ftest = (form: IccForm) => {
+    const r = result.forms.find((x) => x.form === form);
+    return r ? `F(${r.df1}, ${r.df2}) = ${f(r.F)}, ${pLabel(r.p)}` : "n/a";
+  };
   return (
     <Card title={`Intraclass correlation: ${result.n_targets} targets, ${k} raters`}>
       <p className="hint-block">
-        Raters: {result.names.join(", ")}. Each P value tests ICC = 0.
+        Raters: {result.names.join(", ")}.
       </p>
       <Grid caption="Intraclass correlation coefficients"
-        head={["Form and model", "ICC", `${lvl} CI`, "F (df1, df2)", "P value"]} rows={rows} />
+        head={["Form and model", "ICC", `${lvl} CI`]} rows={rows} />
       {(result.warnings ?? []).map((w) => <Note key={w} warn>{w}.</Note>)}
       {chosen && chosen.value < 0 && (
         <Note warn>{formName(chosen.form, k)} is negative: the ratings vary more within a target than between
           targets, so the raters show no reliability; report it as it is, not as 0.</Note>
       )}
       <div className="stat-cols">
+        <KV title="Tests of ICC = 0" rows={[
+          ["One-way forms", ftest("ICC1")],
+          ["Two-way forms", ftest("ICC3")],
+        ]} />
         <KV title="Two-way ANOVA (targets × raters)" rows={[
           ["Mean square, targets", `${f(ms.between_targets)} (df ${result.df.targets})`],
           ["Mean square, raters", `${f(ms.between_raters)} (df ${result.df.raters})`],

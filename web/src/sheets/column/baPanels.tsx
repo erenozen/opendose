@@ -22,7 +22,7 @@ import { maxOf, minOf } from "../../lib/extent";
 import { useCommands } from "../../app/commands";
 import { useProject } from "../../app/context";
 import { ANALYSIS_METHOD_REGRESSION } from "./methodRegression";
-import { CCC_LABEL, cccCaveat, cccText } from "../common/ccc";
+import { cccCaveat, cccRows, cccText } from "../common/ccc";
 
 const f = (v: number | null | undefined, sig?: number) => formatSig(v ?? null, sig);
 const ciTxt = (c: [number, number] | undefined | null) => (c ? `${f(c[0])} to ${f(c[1])}` : "n/a");
@@ -167,7 +167,7 @@ export function BaResults({ sheet, table, result }: ResultsProps<BaOptions, BaRe
       ]} />
       {result.ccc && (
         <>
-          <KV className="kv-wide" rows={[[CCC_LABEL, cccText(result.ccc)!]]} />
+          <KV className="kv-wide" rows={cccRows(result.ccc)} />
           {cccCaveat(result.ccc) && <p className="hint-block">{cccCaveat(result.ccc)}</p>}
         </>
       )}

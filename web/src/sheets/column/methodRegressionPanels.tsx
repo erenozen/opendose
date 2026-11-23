@@ -12,7 +12,7 @@ import { baseLayout, chromeFor, useDark } from "../multivariable/chart";
 import { PlotMessage, PlotlyChart } from "../multivariable/plotkit";
 import type { ControlsProps, PlotProps, ResultsProps } from "../types";
 import { maxOf, minOf } from "../../lib/extent";
-import { CCC_LABEL, cccCaveat, cccText } from "../common/ccc";
+import { cccCaveat, cccRows } from "../common/ccc";
 import {
   identityReading, lineOver, type Estimate, type MethodComparison, type MethodRegOptions,
   type MethodRegResult, type PbFit,
@@ -102,7 +102,7 @@ function Comparison({ c, lvl }: { c: MethodComparison; lvl: string }) {
       {errors.map(([m, e]) => <Problem key={m} error={`${m}: ${e}.`} />)}
       {c.ccc && (
         <>
-          <KV className="kv-wide" rows={[[CCC_LABEL, cccText(c.ccc)!]]} />
+          <KV className="kv-wide" rows={cccRows(c.ccc)} />
           {cccCaveat(c.ccc) && <p className="hint-block">{cccCaveat(c.ccc)}</p>}
         </>
       )}
