@@ -27,7 +27,7 @@ main.workspace .result-card + .result-card {
 .controls { display: flex; flex-direction: column; gap: var(--space-16); }
 
 /* Section labels: sentence case, 12px/600, muted (DECISIONS 2). */
-.controls h3, .plate-import > .section-toggle, .result-card h4 {
+.controls h3, .result-card h4 {
   margin: 0; font-size: var(--text-label); color: var(--muted); font-weight: var(--weight-semibold);
 }
 .controls h3 { margin-bottom: var(--space-8); }

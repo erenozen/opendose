@@ -38,7 +38,6 @@
   color: var(--ink-2); font-size: var(--text-body-s); line-height: var(--leading-prose);
   margin: var(--space-4) 0 var(--space-6);
 }
-.report-card .report-row { display: flex; gap: var(--space-8); align-items: center; flex-wrap: wrap; }
 .report-card .report-actions { display: flex; gap: var(--space-8); flex-wrap: wrap; margin-top: 10px; }
 .report-style-note { color: var(--muted); font-size: var(--text-caption); }
 

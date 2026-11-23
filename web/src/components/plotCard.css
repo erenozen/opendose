@@ -54,7 +54,6 @@
 }
 .export-notes:empty { display: none; }
 .export-hint { color: var(--muted); font-variant-numeric: tabular-nums; }
-.export-err { color: var(--danger); font-size: var(--text-caption); }
 
 /* A popover trigger in the strip stays marked while its panel is open. */
 .export-panel .btn--ghost[aria-expanded="true"] {

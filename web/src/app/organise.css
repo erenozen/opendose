@@ -114,7 +114,6 @@
 .template-desc { color: var(--ink-2); font-size: var(--text-body-s); white-space: pre-wrap; }
 .template-tools { justify-content: flex-start; }
 .template-import { align-self: flex-start; font-size: var(--text-body-s); }
-.danger-text { color: var(--danger); }
 .template-check { flex-wrap: nowrap; align-items: flex-start; }
 .template-check input { flex: none; margin-top: var(--space-2); }
 .field textarea, .field-textarea {

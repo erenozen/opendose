@@ -11,7 +11,6 @@
 }
 .field-pair > .field:first-child { flex: 1 1 200px; min-width: 0; }
 .field-row > .field { min-width: 0; }
-.field-wide input { width: 140px; }
 .k-grid { display: flex; flex-wrap: wrap; gap: var(--space-8) 14px; }
 .formula-preview { font-size: var(--text-body-s); line-height: 1.6; }
 
