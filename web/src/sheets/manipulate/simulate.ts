@@ -6,7 +6,10 @@ import type { EngineBridge } from "../../lib/engine";
 import { normalizeTable, parseCell } from "../../project/table";
 import type { DataTableModel, SimulationSpec } from "../../project/types";
 import { MODELS_META } from "../../types";
+import { USER_MODEL_ID } from "../../lib/modelLibrary";
+import { userEquationPayload, type UserEquationDef } from "../../lib/userEquation";
 import { fmtCell } from "./run";
+import { userEquationPhrase, userSimParams } from "./simulateUser";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -68,6 +71,23 @@ export function simModel(id: string): SimModel {
   return SIM_MODELS.find((m) => m.id === id) ?? SIM_MODELS[0];
 }
 
+/** A user-defined equation as a simulation model (P-51): every parameter
+ *  of its rules, starting at the rule's number when the rule is a plain
+ *  value (else 1), X from 0 to 10. */
+export function userSimModel(def: UserEquationDef): SimModel {
+  return {
+    id: USER_MODEL_ID,
+    params: userSimParams(def),
+    x: { kind: "arithmetic", start: 0, step: 1, stop: 10 },
+    sd: 1,
+  };
+}
+
+/** The model of an XY simulation form: built-in, or its user equation. */
+export function xyModel(f: XYSimForm): SimModel {
+  return f.model === USER_MODEL_ID && f.userEquation ? userSimModel(f.userEquation) : simModel(f.model);
+}
+
 export function modelLabel(id: string): string {
   return MODELS_META[id]?.label ?? id;
 }
@@ -99,6 +119,9 @@ export interface XYSimForm {
   replicates: string;
   error: ErrorForm;
   ideal: boolean;
+  /** model "user": the user-defined equation simulated from (P-51), kept
+   *  with the form so "Simulate again" reopens it. Absent before. */
+  userEquation?: UserEquationDef | null;
 }
 
 export interface ColumnSimForm {
@@ -129,9 +152,10 @@ export const defaultError = (sd: number): ErrorForm => ({
   outliers: false, outlierProbability: "5", outlierMultiple: "5",
 });
 
-export function defaultXYForm(modelId = SIM_MODELS[0].id): XYSimForm {
-  const m = simModel(modelId);
+export function defaultXYForm(modelId = SIM_MODELS[0].id, def?: UserEquationDef): XYSimForm {
+  const m = def ? userSimModel(def) : simModel(modelId);
   return {
+    ...(def ? { userEquation: def } : {}),
     model: m.id,
     params: Object.fromEntries(m.params.map((p) => [p.name, String(p.value)])),
     nDatasets: "1",
@@ -206,7 +230,8 @@ function errorOptions(e: ErrorForm): Record<string, unknown> {
 export function simOptions(kind: SimKind, form: SimForm): Record<string, unknown> {
   if (kind === "xy") {
     const f = form as XYSimForm;
-    const m = simModel(f.model);
+    const m = xyModel(f);
+    const user = m.id === USER_MODEL_ID && f.userEquation;
     const base = Object.fromEntries(m.params.map((p) => [p.name, num(f.params[p.name] ?? String(p.value), p.label)]));
     const n = int(f.nDatasets, "The number of data sets", 1, 26);
     const params = n > 1 && f.perDataset.some((d) => d && Object.values(d).some((v) => v.trim()))
@@ -226,7 +251,8 @@ export function simOptions(kind: SimKind, form: SimForm): Record<string, unknown
       x.count = int(f.xCount, "The number of X values", 1, 10000);
     }
     return {
-      model: m.id, params, x, n_datasets: n,
+      ...(user ? { user_equation: userEquationPayload(user) } : { model: m.id }),
+      params, x, n_datasets: n,
       replicates: int(f.replicates, "Replicates", 1, 100),
       error: errorOptions(f.error),
     };
@@ -287,7 +313,7 @@ export function simulateTable(engine: EngineBridge, kind: SimKind, form: SimForm
   if (r?.error) throw new Error(String(r.error));
   if (kind === "xy") {
     const f = form as XYSimForm;
-    const m = simModel(f.model);
+    const m = xyModel(f);
     const meta = MODELS_META[m.id];
     const datasets = r.datasets.map((d: any) => ({
       name: d.name, rows: d.ys.map((row: (number | null)[]) => row.map(fmtCell)),
@@ -341,13 +367,15 @@ export function simulationSentence(spec: { kind: SimKind; form: unknown; seed: n
   try {
     if (spec.kind === "xy") {
       const f = spec.form as XYSimForm;
-      const m = simModel(f.model);
+      const m = xyModel(f);
       const ps = m.params.map((p) => `${p.label} = ${f.params[p.name] ?? p.value}`).join(", ");
       const x = f.xKind === "arithmetic" || f.xKind === "geometric"
         ? `X from ${f.xStart} ${f.xKind === "geometric" ? "times" : "in steps of"} ${f.xStep}`
           + (f.xBy === "stop" ? ` to ${f.xStop}` : `, ${f.xCount} values`)
         : `${f.xCount} X values ${f.xKind === "log" ? "spaced evenly on a log scale" : "evenly spaced"} from ${f.xStart} to ${f.xStop}`;
-      return `Data were simulated from the ${modelLabel(m.id)} model (${ps}) at ${x}, `
+      const from = m.id === USER_MODEL_ID && f.userEquation
+        ? userEquationPhrase(f.userEquation) : `the ${modelLabel(m.id)} model`;
+      return `Data were simulated from ${from} (${ps}) at ${x}, `
         + `${f.nDatasets} data set${f.nDatasets === "1" ? "" : "s"} with ${f.replicates} `
         + `replicate${f.replicates === "1" ? "" : "s"} each, adding ${ERROR_TEXT(f.error)} `
         + `(random seed ${spec.seed}).`;

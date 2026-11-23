@@ -326,5 +326,6 @@ export const CONSTANT_LABELS: Record<string, string> = {
   Time0: "Time when dissociation starts",
   N: "Total number of values (N)",
   Km: "Km (known)",
+  alpha: "alpha, the hormesis shape (1, 0.5 or 0.25: drc's CRS a, b, c)",
   S: "Substrate concentration S",
 };

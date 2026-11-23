@@ -256,7 +256,8 @@ def _reg(name, label, family, equation, params, func, initials, *,
          multistart=None, multistart_mode=None, required=(),
          dataset_constants=(), shared=(), param_scope=None,
          global_only=False, global_initials=None, bounds=None,
-         data_constants=None, initials_fixed=False, jac=None):
+         data_constants=None, initials_fixed=False, jac=None,
+         param_roles=None):
     register(ModelSpec(
         name=name, label=label, equation=equation, params=list(params),
         func=func, initials=initials, multistart=multistart,
@@ -268,7 +269,7 @@ def _reg(name, label, family, equation, params, func, initials, *,
         shared=tuple(p for p in shared if p in params),
         param_scope=param_scope,
         global_only=global_only, global_initials=global_initials,
-        initials_fixed=initials_fixed, jac=jac))
+        initials_fixed=initials_fixed, jac=jac, param_roles=param_roles))
 
 
 def _p10(v):
@@ -1087,6 +1088,221 @@ _reg("absolute_ic50", "Absolute IC50, X is concentration", FAM_SPEC_CONC,
      transforms=[_log10_of("AbsoluteIC50", "LogAbsoluteIC50")],
      x_label="[Inhibitor]", y_label="Response", required=("Baseline",),
      multistart="AbsoluteIC50", multistart_mode="x", initials_fixed=True)
+
+
+# ============================================ Weibull and hormesis
+# The dose-response models of the R package drc that Prism does not list
+# (Ritz C, Baty F, Streibig JC, Gerhard D (2015) PLOS ONE 10:e0146021),
+# with drc's parameter letters so results compare with drm() output.
+# All are written on the concentration scale, so the zero dose stays in
+# the fit: (X/e)^b = exp(b(ln X - ln e)) is 0 or infinite at X = 0, never
+# a logarithm of 0.
+#
+# - Weibull type 1 and 2, drc W1.4 / W2.4 (Ritz C (2010) Environ Toxicol
+#   Chem 29:220-229): Y = c + (d-c) exp(-(X/e)^b) and Y = c + (d-c) (1 -
+#   exp(-(X/e)^b)). The two are one family once b may change sign (W1.4
+#   with b < 0 is W2.4 with c and d swapped), so a free fit lands on
+#   whichever shape fits better. Here b is held positive for W1.4 and
+#   negative for W2.4, the signs drc's self-starters use on a decreasing
+#   curve: each model keeps its own shape (type 1 meets the high-dose
+#   limit c abruptly, type 2 leaves the zero-dose response d abruptly),
+#   and in both d is the response at zero concentration and c the limit
+#   at high concentration.
+# - Brain-Cousens hormesis, drc BC.5 and BC.4 (c = 0) (Brain P, Cousens R
+#   (1989) Weed Res 29:93-96): Y = c + (d - c + f X) / (1 + (X/e)^b).
+# - Cedergreen-Ritz-Streibig hormesis, drc CRS.5 and CRS.4 (c = 0)
+#   (Cedergreen N, Ritz C, Streibig JC (2005) Environ Toxicol Chem
+#   24:3166-3172): Y = c + (d - c + f exp(-1/X^alpha)) / (1 + (X/e)^b),
+#   alpha an experimental constant (drc's a, b, c variants: 1, 0.5, 0.25).
+#   Both hormesis models describe a falling curve with a stimulation at
+#   low doses (f > 0): b is held positive.
+#
+# e is the inflection point (Weibull) or a location parameter (hormesis),
+# not the ED50. ED10, ED50 and ED90 are reported: ED p is the
+# concentration at which the curve has moved p% of the way from its
+# response at zero concentration (d) to its high-concentration limit (c),
+# drc's "relative" ED (ED(..., type = "relative")). Weibull EDs are in
+# closed form; hormesis EDs are solved from the curve, past the
+# stimulation peak. Their SE is the delta method over every free
+# parameter and the CI value +/- t(0.975, df) SE, as drc's ED(interval =
+# "delta"). drc reports standard errors from the Hessian of the residual
+# sum of squares; these, like Prism and R's nls, use the Gauss-Newton
+# covariance s^2 (J'J)^-1, so SEs differ from drc's in the third digit
+# while the estimates agree (engine/tests/reference/weibull_hormesis.py).
+FAM_HORMESIS = "Dose-response - Weibull and hormesis, X is concentration"
+ED_LEVELS = (10, 50, 90)
+_DRC_ROLES = {"b": "slope", "c": "y", "d": "y", "e": "x", "f": "yx"}
+
+
+def _u(x, p):
+    """(X/e)^b, the limit 0 or infinity at X = 0."""
+    with np.errstate(all="ignore"):
+        return np.power(_arr(x) / p["e"], p["b"])
+
+
+def _weibull1(x, p):
+    with np.errstate(all="ignore"):
+        return p["c"] + (p["d"] - p["c"]) * np.exp(-_u(x, p))
+
+
+def _weibull2(x, p):
+    with np.errstate(all="ignore"):
+        return p["c"] + (p["d"] - p["c"]) * -np.expm1(-_u(x, p))
+
+
+def _brain_cousens(x, p):
+    c = p.get("c", 0.0)
+    with np.errstate(all="ignore"):
+        return c + (p["d"] - c + p["f"] * _arr(x)) / (1.0 + _u(x, p))
+
+
+def _cedergreen(x, p):
+    c = p.get("c", 0.0)
+    x = _arr(x)
+    with np.errstate(all="ignore"):
+        pos = np.where(x > 0, x, 1.0)
+        h = np.where(x > 0, np.exp(-1.0 / np.power(pos, p["alpha"])), 0.0)
+        return c + (p["d"] - c + p["f"] * h) / (1.0 + _u(x, p))
+
+
+def _ed_weibull(kind, pct):
+    """Closed-form ED pct of W1.4 (b > 0) / W2.4 (b < 0)."""
+    q = pct / 100.0
+    k = -math.log(1.0 - q) if kind == 1 else -math.log(q)
+
+    def ed(p):
+        if p["e"] <= 0 or p["b"] == 0:
+            return math.nan
+        return p["e"] * k ** (1.0 / p["b"])
+    return ed
+
+
+def _ed_solved(func, pct):
+    """ED pct of a hormesis curve: the first X past the zero-dose
+    response where Y = d + pct% (c - d), found on a log grid of X around
+    e (12 decades each way) and refined by bisection; NaN when the curve
+    never gets there (b <= 0, or c = d)."""
+    def ed(p):
+        c, d = p.get("c", 0.0), p["d"]
+        if not (p["e"] > 0 and p["b"] > 0 and c != d):
+            return math.nan
+        level = d + pct / 100.0 * (c - d)
+        side = math.copysign(1.0, d - level)
+        t = np.linspace(math.log10(p["e"]) - 12, math.log10(p["e"]) + 12,
+                        1201)
+        g = (func(10.0 ** t, p) - level) * side
+        below = np.flatnonzero(np.isfinite(g) & (g <= 0))
+        if not below.size or below[0] == 0:
+            return math.nan
+        lo, hi = t[below[0] - 1], t[below[0]]
+        for _ in range(80):
+            mid = 0.5 * (lo + hi)
+            gm = (float(func(np.array([10.0 ** mid]), p)[0]) - level) * side
+            lo, hi = (mid, hi) if gm > 0 else (lo, mid)
+        return 10.0 ** (0.5 * (lo + hi))
+    return ed
+
+
+ED_DEFINITION = (
+    "ED10, ED50 and ED90: the concentration at which the curve has moved "
+    "10%, 50% or 90% of the way from d (the response at zero "
+    "concentration) to c (its limit at high concentration), as drc's "
+    "relative ED; e is {what}, not the ED50. Their CI is the estimate "
+    "± t × SE (delta method), as drc's ED(interval = \"delta\"), so it "
+    "can reach below 0.")
+
+
+def ed_notes(fit, x) -> list[str]:
+    """Sentences for a Weibull or hormesis fit: what ED p means, and any
+    ED beyond the concentrations tested (read off the model's tail)."""
+    what = ("the inflection point" if fit["model"].startswith("weibull")
+            else "a location parameter")
+    notes = [ED_DEFINITION.format(what=what)]
+    xs = _arr(x)
+    pos = xs[xs > 0]
+    if not pos.size:
+        return notes
+    lo, hi = float(pos.min()), float(xs.max())
+    for pct in ED_LEVELS:
+        v = (fit["params"].get(f"ED{pct}") or {}).get("value")
+        if v is None or not math.isfinite(v) or lo <= v <= hi:
+            continue
+        side, edge = (("above the highest", hi) if v > hi
+                      else ("below the lowest nonzero", lo))
+        notes.append(f"ED{pct} ({v:.4g}) lies {side} concentration tested "
+                     f"({edge:.4g}): it is read off the model's tail, not "
+                     "measured.")
+    return notes
+
+
+def _ed_transforms(make, params):
+    return [Transform(f"ED{pct}", make(pct), tuple(params), ci="symmetrical")
+            for pct in ED_LEVELS]
+
+
+def _init_weibull(sign):
+    def initials(x, y):
+        s = DataStats(x, y)
+        return {"b": float(sign), "c": s.ymin, "d": s.ymax,
+                "e": _x_at_ymid_pos(s)}
+    return initials
+
+
+def _init_hormesis(lower):
+    """Hormesis starts: b = 1, c = YMIN (when c is fitted), d = Y at XMIN
+    (the control), e = X at YMID, f = 0 (no stimulation)."""
+    def initials(x, y):
+        s = DataStats(x, y)
+        out = {"b": 1.0, "d": s.y_at_xmin, "e": _x_at_ymid_pos(s),
+               "f": 0.0}
+        if lower:
+            out["c"] = s.ymin
+        return out
+    return initials
+
+
+_WEIBULL_EQ = ("Y=c+(d-c)*exp(-exp(b*(ln(X)-ln(e))))", "Y=c+(d-c)*(1-exp("
+                 "-exp(b*(ln(X)-ln(e)))))")
+for _kind, _sign, _func in ((1, 1.0, _weibull1), (2, -1.0, _weibull2)):
+    _reg(f"weibull{_kind}", f"Weibull type {_kind} (W{_kind}.4), X is concentration",
+         FAM_HORMESIS, _WEIBULL_EQ[_kind - 1], ["b", "c", "d", "e"], _func,
+         _init_weibull(_sign),
+         transforms=_ed_transforms(lambda pct, k=_kind: _ed_weibull(k, pct),
+                                   ["b", "e"]),
+         x_label="Concentration", y_label="Response",
+         bounds={"b": (0.0, None) if _sign > 0 else (None, 0.0)},
+         multistart="e", multistart_mode="x", param_roles=_DRC_ROLES)
+
+for _id, _lbl, _params in (
+        ("brain_cousens", "Brain-Cousens hormesis (BC.5), X is concentration",
+         ["b", "c", "d", "e", "f"]),
+        ("brain_cousens_4", "Brain-Cousens hormesis, c = 0 (BC.4), X is "
+         "concentration", ["b", "d", "e", "f"])):
+    _reg(_id, _lbl, FAM_HORMESIS,
+         ("Y=c+(d-c+f*X)/(1+exp(b*(ln(X)-ln(e))))" if "c" in _params
+          else "Y=(d+f*X)/(1+exp(b*(ln(X)-ln(e))))"),
+         _params, _brain_cousens, _init_hormesis("c" in _params),
+         transforms=_ed_transforms(
+             lambda pct: _ed_solved(_brain_cousens, pct), _params),
+         x_label="Concentration", y_label="Response",
+         bounds={"b": (0.0, None)}, multistart="e", multistart_mode="x",
+         param_roles=_DRC_ROLES)
+
+for _id, _lbl, _params in (
+        ("cedergreen", "Cedergreen-Ritz-Streibig hormesis (CRS.5), X is "
+         "concentration", ["b", "c", "d", "e", "f", "alpha"]),
+        ("cedergreen_4", "Cedergreen-Ritz-Streibig hormesis, c = 0 (CRS.4), "
+         "X is concentration", ["b", "d", "e", "f", "alpha"])):
+    _reg(_id, _lbl, FAM_HORMESIS,
+         ("Y=c+(d-c+f*exp(-1/X^alpha))/(1+exp(b*(ln(X)-ln(e))))"
+          if "c" in _params else
+          "Y=(d+f*exp(-1/X^alpha))/(1+exp(b*(ln(X)-ln(e))))"),
+         _params, _cedergreen, _init_hormesis("c" in _params),
+         transforms=_ed_transforms(
+             lambda pct: _ed_solved(_cedergreen, pct), _params),
+         x_label="Concentration", y_label="Response", required=("alpha",),
+         bounds={"b": (0.0, None)}, multistart="e", multistart_mode="x",
+         param_roles=_DRC_ROLES)
 
 
 # ============================================ Receptor binding: saturation

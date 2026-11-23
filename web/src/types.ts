@@ -44,6 +44,15 @@ export const ERROR_BAR_LABELS: Record<ErrorBarKind, string> = {
 export interface ConstraintState {
   enabled: boolean;
   value: string;
+  /** Range constraints (P-20): absent (files saved before) = "constant",
+   *  holding the parameter at `value`. */
+  kind?: "constant" | "greater" | "less" | "between";
+  /** "greater" / "between": the lower limit; "less" / "between": the
+   *  upper limit (typed text, as `value`). */
+  lo?: string;
+  hi?: string;
+  /** Why the range holds: required for a range, stated in the methods. */
+  reason?: string;
 }
 
 export interface NormalizeState {
@@ -107,6 +116,10 @@ export interface OptionsState {
    *  "> highest dose" (absent = "bound") or as the fitted number, flagged
    *  (sheets/xy/rangeReport.ts). */
   extrapolatedReport?: "bound" | "fitted";
+  /** Typed initial values of a built-in model (P-21), parameter -> typed
+   *  text; absent or blank (files saved before) = automatic, the
+   *  model's rules. */
+  initialValues?: Record<string, string>;
 }
 
 export const DEFAULT_XY_OPTIONS: OptionsState = {
@@ -146,6 +159,9 @@ export interface ParamEntry {
   constrained: boolean;
   derived?: boolean;
   shared?: boolean; // global fit: one value across datasets
+  /** The fit ended on this parameter's range limit (P-20): its SE and
+   *  CI are not reliable. */
+  at_bound?: "lower" | "upper";
 }
 
 export interface FitResult {
@@ -170,6 +186,17 @@ export interface FitResult {
   /** "robust": best-fit values only (engine nlfit.robust_model_fit). */
   fit_method?: "least_squares" | "robust";
   note?: string;
+  /** Sentences the engine attaches to the fit (Weibull and hormesis
+   *  models: what ED p means, EDs beyond the doses tested). */
+  notes?: string[];
+  /** The start of every free parameter (P-21): the model's rules or a
+   *  typed value. */
+  initial_values?: Record<string, { value: number; source: "rule" | "typed" }>;
+  /** How many starts the fit tried, the parameter they seeded, and
+   *  whether a degenerate point made it restart. */
+  starts?: { n: number; seeded: string | null; restarted: boolean };
+  /** The range constraints the fit used (P-20), null for an open side. */
+  bounds?: Record<string, [number | null, number | null]>;
   param_order?: string[];
   params: Record<string, ParamEntry>;
   goodness: {

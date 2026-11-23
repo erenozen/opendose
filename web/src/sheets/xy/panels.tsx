@@ -155,7 +155,7 @@ export function NonlinResults({ sheet, table, result, options }:
     <>
       <RangeFlagsBar sheet={sheet} result={result} options={options} />
       <ZeroDoseBar sheet={sheet} result={result} options={options} />
-      <ResultsPanel result={result} xUnit={concentrationUnit(table) || "M"} />
+      <ResultsPanel result={result} xUnit={concentrationUnit(table) || "M"} options={options} />
       <ExperimentsResults sheet={sheet} result={result} xUnit={concentrationUnit(table) || "M"} />
       <SchildResults sheet={sheet} result={result} />
       {result && !(result as { error?: unknown }).error && (
