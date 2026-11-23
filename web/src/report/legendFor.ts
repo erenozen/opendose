@@ -153,7 +153,7 @@ export function legendFor(c: LegendContext): string {
   return legendParagraph({
     graphType: c.graph?.graphType ?? null,
     plotted: xyFit ?? withCompareClause(c.graph ? (own ? ownPlotted(c.graph, c.result, c.options)
-      : plottedClause(c.graph, c.table, c.result)) : undefined, c.result),
+      : plottedClause(c.graph, c.table, c.result, c.options)) : undefined, c.result),
     result: c.result,
     groups: xyGroups,
     unit: { unit, experiments: onePer ? null : meta.experiments ?? null,

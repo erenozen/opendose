@@ -665,3 +665,25 @@ e2e-figures reads the bar ends from the drawn trace on a log axis (to
 on an axis starting at 1 (source: Healy, Data Visualization, ch. 1, "bar
 charts should generally include a zero baseline ... given that bars
 encode their variables as lengths").
+
+## Feature validation: median with IQR under a rank test (2026-11-23)
+
+FEATURE-PLAN P-26. No engine change. Column graphs created from now on
+start with the centre "Follow the test": mean ± SD, or median with IQR
+while the bound analysis is Mann-Whitney, Wilcoxon, Kolmogorov-Smirnov,
+Kruskal-Wallis, Friedman or the median test
+(`web/src/sheets/column/rankSummary.ts`). A graph whose centre the user
+chose, and every graph saved before (no "auto"), keeps what it draws. The
+median and IQR now come from `graph/boxStats.ts percentileOf` with the
+column statistics' percentile method, as the box plots do (before: an
+own linear interpolation, equal to it except in the last bit). The
+results headline adds one line on what the test compares (Hart 2001, BMJ
+323:391: the Mann-Whitney test "is a test of both location and shape").
+
+Reference: `web/src/sheets/column/__tests__/reference/geo_summary.py`,
+numpy.percentile with method "linear" (H&F 7) and "weibull" (H&F 6, the
+"prism" method) on the example column table: Control 22.725 / 24.0 /
+25.275 (type 7) and 22.4 / 24.0 / 25.55 (type 6); Treated A 28.5 / 28.9 /
+29.9; Treated B 34.375 / 35.5 / 36.4. e2e-figures chooses Mann-Whitney
+and reads the drawn medians and IQR ends (to 1e-9), the results line and
+the legend, and checks that a graph saved before keeps mean ± SD.

@@ -10,6 +10,7 @@ import type { ControlsProps, PlotProps, ResultsProps } from "../types";
 import SummaryPlot from "./SummaryPlot";
 import SuperPlotView from "./SuperPlotView";
 import { normalizeColumnGraph } from "./graphSettings";
+import { resolveSummary } from "./rankSummary";
 import { legendSentence } from "../../graph/legend";
 import { boxPercentileMethod } from "../../graph/boxStats";
 import { useProject } from "../../app/context";
@@ -59,8 +60,8 @@ export function ColumnGraph({ graph, table, titles, scheme, result, options, for
   // (report/GraphLegend.tsx, open in that mode); "In the figure" draws the
   // short legend sentence into the figure itself.
   const inFigure = useMemo(() => (cs.caption === "figure"
-    ? legendSentence(graph, table, result) || undefined : undefined),
-  [cs.caption, graph, table, result]);
+    ? legendSentence(graph, table, result, options) || undefined : undefined),
+  [cs.caption, graph, table, result, options]);
   const superOn = table.subcolumnFormat === "replicates" && superPlotOn(cs.superplot, result);
   let plot;
   if (superOn) {
@@ -81,7 +82,7 @@ export function ColumnGraph({ graph, table, titles, scheme, result, options, for
         graphType={graph.graphType as ColumnGraphType}
         scheme={scheme} yTitle={titles.y} format={format} onFormatChange={onFormatChange}
         rowTitles={table.rowTitles} comparisons={comparisons} results={results}
-        summary={cs.summary} spread={cs.spread} points={cs.points} caption={inFigure}
+        summary={resolveSummary(cs.summary, options)} spread={cs.spread} points={cs.points} caption={inFigure}
         percentile={percentile} whiskers={cs.whiskers} />
     );
   }

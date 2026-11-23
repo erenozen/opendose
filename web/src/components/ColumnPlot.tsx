@@ -121,7 +121,7 @@ export default function ColumnPlot({
       // null: a geometric summary of a group with a value of 0 or less
       // (no logarithm); the values are drawn without it and the graph's
       // options and legend say why.
-      const st = summaryOf(values, summary);
+      const st = summaryOf(values, summary, percentile);
       // Same object as before for symmetric bars (mean ± SD/SEM/CI).
       const errorY = st && (st.hi > 0 || st.lo > 0)
         ? (st.lo === st.hi

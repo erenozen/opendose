@@ -8,7 +8,9 @@ import {
 } from "../common/superplot.ts";
 import { tQuantile } from "../grouped/stats.ts";
 import { parseCell } from "../../project/table.ts";
-import { DEFAULT_WHISKERS, readWhiskers, type WhiskerRule } from "../../graph/boxStats.ts";
+import {
+  DEFAULT_WHISKERS, percentileOf, readWhiskers, type PercentileMethod, type WhiskerRule,
+} from "../../graph/boxStats.ts";
 import type { DataTableModel } from "../../project/types.ts";
 
 /** Centre and error bars of scatter and bar graphs. */
@@ -25,6 +27,10 @@ export const COLUMN_SUMMARY_LABELS: Record<ColumnSummary, string> = {
   none: "Mean only (no error bars)",
 };
 
+/** "Follow the test" (sheets/column/rankSummary.ts): mean ± SD, or median
+ *  with IQR while the bound analysis is a rank test. */
+export const AUTO_SUMMARY_LABEL = "Follow the test (mean ± SD; median with IQR for a rank test)";
+
 /** Summaries computed on the logarithms (values must be above 0). */
 export const isGeometric = (k: ColumnSummary): boolean => k === "geo_sd" || k === "geo_ci";
 
@@ -40,7 +46,8 @@ export const CAPTION_LABELS: readonly (readonly [CaptionMode, string])[] = [
 ];
 
 export interface ColumnGraphSettings {
-  summary: ColumnSummary;
+  /** "auto": follow the test (new graphs; rankSummary.ts resolveSummary). */
+  summary: ColumnSummary | "auto";
   spread: PointSpread;
   /** Bar graphs: individual values over the bars. */
   points: boolean;
@@ -58,7 +65,7 @@ export const DEFAULT_COLUMN_GRAPH: ColumnGraphSettings = {
 /** What a graph created from now on starts with (merged over the
  *  defaults); saved graphs without these keys keep the old look. */
 export const NEW_COLUMN_GRAPH: Partial<ColumnGraphSettings> = {
-  spread: "symmetric", caption: "below",
+  spread: "symmetric", caption: "below", summary: "auto",
 };
 
 const SUMMARIES = Object.keys(COLUMN_SUMMARY_LABELS) as ColumnSummary[];
@@ -67,7 +74,8 @@ export function normalizeColumnGraph(raw: unknown): ColumnGraphSettings {
   const o = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
   const d = DEFAULT_COLUMN_GRAPH;
   return {
-    summary: SUMMARIES.includes(o.summary as ColumnSummary) ? o.summary as ColumnSummary : d.summary,
+    summary: o.summary === "auto" || SUMMARIES.includes(o.summary as ColumnSummary)
+      ? o.summary as ColumnSummary | "auto" : d.summary,
     spread: isPointSpread(o.spread) ? o.spread : d.spread,
     points: typeof o.points === "boolean" ? o.points : d.points,
     caption: o.caption === "below" || o.caption === "figure" ? o.caption : d.caption,
@@ -87,7 +95,8 @@ export function normalizeColumnGraph(raw: unknown): ColumnGraphSettings {
  *  95% CI is exp(mean(l) ± t(0.975, n - 1) SD(l) / √n), the t interval
  *  of the logs back-transformed. Reference values: __tests__/reference/
  *  geo_summary.py (numpy, scipy). */
-export function summaryOf(values: number[], kind: ColumnSummary):
+export function summaryOf(values: number[], kind: ColumnSummary,
+  percentile: PercentileMethod = "linear"):
   { center: number; lo: number; hi: number; label: string } | null {
   const v = values.filter((x) => Number.isFinite(x));
   const n = v.length;
@@ -111,11 +120,9 @@ export function summaryOf(values: number[], kind: ColumnSummary):
   const mean = v.reduce((a, b) => a + b, 0) / n;
   const sd = n > 1 ? Math.sqrt(v.reduce((a, b) => a + (b - mean) ** 2, 0) / (n - 1)) : 0;
   if (kind === "median_iqr") {
+    // the quartiles of the column statistics (graph/boxStats.ts)
     const s = [...v].sort((a, b) => a - b);
-    const q = (p: number) => {
-      const h = (n - 1) * p, k = Math.floor(h);
-      return k >= n - 1 ? s[n - 1] : s[k] + (h - k) * (s[k + 1] - s[k]);
-    };
+    const q = (p: number) => percentileOf(s, p * 100, percentile)!;
     const med = q(0.5);
     return { center: med, lo: med - q(0.25), hi: q(0.75) - med,
       label: `median ${fmt(med)}, IQR ${fmt(q(0.25))} to ${fmt(q(0.75))}` };

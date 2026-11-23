@@ -834,6 +834,84 @@ const fitLegendText = () => page.locator(".plot-card .figure-legend-text").textC
   await shot("geo-axis-break");
 }
 
+// --- a rank test: the graph follows the test (P-26). The example column
+// table; a new graph's centre is "Follow the test" (summary "auto").
+// Reference: src/sheets/column/__tests__/reference/geo_summary.py (numpy
+// percentile, method "linear" = the column statistics' default):
+// Control median 24.0, IQR 22.725 to 25.275; Treated A 28.9, 28.5 to 29.9.
+// A graph saved before (no "auto") keeps mean ± SD.
+{
+  const RANK = join(tmp, "rank.json");
+  const exampleTable = { type: "column", x: Array(6).fill(""), xTitle: "", xFormat: "numbers", xUnit: "",
+    yTitle: "", rowTitles: Array(6).fill(""), subcolumnFormat: "replicates", replicateLayout: "side_by_side",
+    datasets: [
+      { name: "Control", rows: [["23.1"], ["25.4"], ["21.8"], ["24.9"], ["22.6"], ["26.0"]] },
+      { name: "Treated A", rows: [["28.4"], ["30.2"], ["27.1"], ["31.5"], ["29.0"], ["28.8"]] },
+      { name: "Treated B", rows: [["35.2"], ["33.9"], ["37.4"], ["34.1"], ["36.6"], ["35.8"]] }] };
+  const fam = (id, name, column) => [
+    { id: `${id}d`, kind: "data", name, table: exampleTable },
+    { id: `${id}r`, kind: "results", parentId: `${id}d`, name: `t test of ${name}`,
+      analysis: "column", options: { analysis: "ttest", ttestKind: "unpaired" } },
+    { id: `${id}g`, kind: "graph", parentId: `${id}d`, resultsId: `${id}r`, graphType: "scatter",
+      name: `Graph of ${name}`, settings: { titles: { x: "", y: "" }, scheme: "default", column } },
+  ];
+  writeFileSync(RANK, JSON.stringify({
+    version: 2, title: "Rank check",
+    prefs: { defaultTableType: "column", errorBars: "sd", ciMethod: "asymptotic", scheme: "default", digits: 4 },
+    sheets: [
+      ...fam("new", "Group comparison", { spread: "symmetric", caption: "below", summary: "auto" }),
+      ...fam("old", "Saved before", { spread: "symmetric", caption: "below" }),
+    ],
+  }));
+  const summaries = () => page.evaluate(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+    .filter((t) => t.meta?.odTag?.role === "summary")
+    .map((t) => { const c = t.y[0], e = t.error_y ?? {};
+      return [c - (e.arrayminus?.[0] ?? e.array?.[0] ?? 0), c, c + (e.array?.[0] ?? 0)]; }));
+  const close = (a, b) => Math.abs(a - b) < 1e-9;
+  const chooseMannWhitney = async () => {
+    await page.locator(".pane-controls").getByLabel("Analysis", { exact: true }).selectOption("ttest");
+    await page.locator(".pane-controls").getByLabel("Test", { exact: true }).selectOption("mann_whitney");
+    await page.waitForFunction(() => document.querySelector(".pane-answer .answer-rank")?.textContent
+      ?.includes("Mann-Whitney"), null, { timeout: 60000 }).catch(() => {});
+    await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 60000 });
+  };
+  await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]', RANK);
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+    .some((t) => t.meta?.odTag?.role === "summary"), null, { timeout: 120000 });
+  await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 120000 });
+  let sm = await summaries();
+  expect("t test: the new graph shows mean ± SD (Control mean 23.967)",
+    sm.length === 3 && Math.abs(sm[0][1] - 23.966666666666665) < 1e-9, JSON.stringify(sm[0]));
+  expect("no rank line for a t test", await page.locator(".pane-answer .answer-rank").count() === 0);
+  await chooseMannWhitney();
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+    .some((t) => t.meta?.odTag?.role === "summary" && Math.abs(t.y[0] - 24) < 1e-9), null, { timeout: 30000 })
+    .catch(() => {});
+  sm = await summaries();
+  expect("Mann-Whitney: the graph switches to median with IQR (numpy: 22.725, 24.0, 25.275; 28.5, 28.9, 29.9)",
+    sm.length === 3 && close(sm[0][0], 22.725) && close(sm[0][1], 24) && close(sm[0][2], 25.275)
+      && close(sm[1][0], 28.5) && close(sm[1][1], 28.9) && close(sm[1][2], 29.9), JSON.stringify(sm));
+  const line = await page.locator(".pane-answer .answer-rank").innerText().catch(() => "");
+  expect("the results say what the test compares",
+    line.includes("compares distributions (ranks), shown as median and IQR"), line);
+  expect("the legend says median with IQR",
+    (await page.locator(".plot-card .figure-legend-text").innerText().catch(() => ""))
+      .startsWith("Median with IQR, with individual values."));
+  await shot("rank-median-iqr");
+
+  // a graph saved before keeps what it draws
+  await page.getByRole("treeitem", { name: "Saved before", exact: true }).first()
+    .locator(":scope > .nav-row").click();
+  await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 120000 });
+  await chooseMannWhitney();
+  sm = await summaries();
+  const oldLine = await page.locator(".pane-answer .answer-rank").innerText().catch(() => "");
+  expect("a graph saved before keeps mean ± SD under Mann-Whitney, and the line says so",
+    sm.length === 3 && Math.abs(sm[0][1] - 23.966666666666665) < 1e-9
+      && oldLine.includes("compares distributions (ranks); the graph shows mean ± SD."),
+    `${JSON.stringify(sm[0])} / ${oldLine}`);
+}
+
 console.log(errors.length ? errors.join("\n") : "no page errors");
 await browser.close();
 if (fail.length || errors.length) {

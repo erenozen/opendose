@@ -23,6 +23,7 @@ import {
 } from "../sheets/grouped/options.ts";
 import { cellStats, type ErrorKind } from "../sheets/grouped/stats.ts";
 import { readFormat } from "./format.ts";
+import { resolveSummary } from "../sheets/column/rankSummary.ts";
 import type { WhiskerRule } from "./boxStats.ts";
 import { graphHideNs, graphPStyle, starScale, type PStyle } from "./significance.ts";
 
@@ -169,8 +170,10 @@ function enteredN(rows: string[][], fmt: DataTableModel["subcolumnFormat"]): num
 }
 
 function columnSpec(graph: Pick<GraphSheet, "graphType" | "settings">, table: DataTableModel,
-  result: unknown): LegendSpec | null {
+  result: unknown, options: unknown): LegendSpec | null {
   const s = normalizeColumnGraph(graph.settings.column);
+  // "Follow the test": median with IQR under a rank test (rankSummary.ts)
+  const summary = resolveSummary(s.summary, options);
   const kind = graph.graphType;
   const display = kind === "bar" ? "bar" : kind === "box" ? "box"
     : kind === "violin" ? "violin" : "scatter";
@@ -194,10 +197,10 @@ function columnSpec(graph: Pick<GraphSheet, "graphType" | "settings">, table: Da
   }
   return {
     display, stars,
-    summary: s.summary,
+    summary,
     points: display === "bar" ? s.points : true,
-    ...(geoRefused(table, s.summary).length && (display === "bar" || display === "scatter")
-      ? { refused: geoRefused(table, s.summary) } : {}),
+    ...(geoRefused(table, summary).length && (display === "bar" || display === "scatter")
+      ? { refused: geoRefused(table, summary) } : {}),
     whiskers: s.whiskers,
     groups: table.datasets.map((d) => ({ name: d.name, n: countValues(d.rows) })),
   };
@@ -261,18 +264,18 @@ function groupedSpec(graph: Pick<GraphSheet, "graphType" | "settings">, table: D
  * unless the graph turned it off).
  */
 export function legendSentence(graph: Pick<GraphSheet, "graphType" | "settings">,
-  table: DataTableModel, result?: unknown): string {
-  const spec = legendSpec(graph, table, result);
+  table: DataTableModel, result?: unknown, options?: unknown): string {
+  const spec = legendSpec(graph, table, result, options);
   return spec && spec.groups.length ? composeLegend(spec) : "";
 }
 
 /** The plain description of what a graph draws (null for kinds the
  *  legend sentence does not describe). */
 export function legendSpec(graph: Pick<GraphSheet, "graphType" | "settings">,
-  table: DataTableModel, result?: unknown): LegendSpec | null {
+  table: DataTableModel, result?: unknown, options?: unknown): LegendSpec | null {
   const columnKind = ["scatter", "bar", "box", "violin"].includes(graph.graphType);
   const spec = table.type === "column" || (table.type === "xy" && columnKind)
-    ? columnSpec(graph, table, result)
+    ? columnSpec(graph, table, result, options)
     : table.type === "grouped" ? groupedSpec(graph, table, result) : null;
   return spec ? { ...spec, hideNs: hideNsOf(graph) } : null;
 }
@@ -281,8 +284,8 @@ export function legendSpec(graph: Pick<GraphSheet, "graphType" | "settings">,
  *  error bars and the points are ("Mean ± SD (bars), with individual
  *  values."). The reporting legend (report/legend.ts) opens with it. */
 export function plottedClause(graph: Pick<GraphSheet, "graphType" | "settings">,
-  table: DataTableModel, result?: unknown): string {
-  const spec = legendSpec(graph, table, result);
+  table: DataTableModel, result?: unknown, options?: unknown): string {
+  const spec = legendSpec(graph, table, result, options);
   if (!spec) return "";
   return composeLegend({ ...spec, groups: [], stars: null });
 }

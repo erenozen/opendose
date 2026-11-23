@@ -10,7 +10,8 @@ import { superPlotOn } from "../common/superplot";
 import SuperPlotOptions from "../common/SuperPlotOptions";
 import { useGraphSetting } from "../grouped/plotting";
 import {
-  CAPTION_LABELS, COLUMN_SUMMARY_LABELS, geoRefused, normalizeColumnGraph, smallestN,
+  AUTO_SUMMARY_LABEL, CAPTION_LABELS, COLUMN_SUMMARY_LABELS, geoRefused, normalizeColumnGraph,
+  smallestN,
   type ColumnGraphSettings, type ColumnSummary,
 } from "./graphSettings";
 import { ANALYSIS_REPLICATE_MEANS } from "./superplotStats";
@@ -19,6 +20,7 @@ import { normalizeFormat } from "../../graph/format";
 import { hasLogY, LOG_AXIS_KINDS, withLogY } from "./logAxis";
 import { onLogScale } from "./logScale";
 import { WHISKER_NOTE, WHISKER_RULES } from "../../graph/boxStats";
+import { resolveSummary } from "./rankSummary";
 
 /** "Journals ask to show the points for n < 10", with a one-click fix. */
 export function SmallNAdvice({ n, onShow }: { n: number; onShow: () => void }) {
@@ -36,7 +38,7 @@ export function SmallNAdvice({ n, onShow }: { n: number; onShow: () => void }) {
   );
 }
 
-export function ColumnGraphOptions({ graph, table, result }: GraphOptionsProps) {
+export function ColumnGraphOptions({ graph, table, result, options }: GraphOptionsProps) {
   const [s, set] = useGraphSetting(graph, "column", normalizeColumnGraph);
   // the analysis runs on log10(values): offer the matching axis (logAxis.ts)
   const [fmt, setFmt] = useGraphSetting(graph, "format", normalizeFormat);
@@ -48,14 +50,15 @@ export function ColumnGraphOptions({ graph, table, result }: GraphOptionsProps) 
   const summaryKinds = kind === "scatter" || kind === "bar";
   const pointsDrawn = kind === "scatter" || (kind === "bar" && s.points) || superOn;
   const n = smallestN(table);
-  const refused = geoRefused(table, s.summary);
+  const refused = geoRefused(table, resolveSummary(s.summary, options));
   return (
     <>
       {raw && summaryKinds && !superOn && (
         <OptSelect label={kind === "bar" ? "Bars and error bars" : "Centre and error bars"}
           value={s.summary}
-          options={(Object.keys(COLUMN_SUMMARY_LABELS) as ColumnSummary[])
-            .map((k) => [k, COLUMN_SUMMARY_LABELS[k]] as const)}
+          options={[["auto", AUTO_SUMMARY_LABEL] as const,
+            ...(Object.keys(COLUMN_SUMMARY_LABELS) as ColumnSummary[])
+              .map((k) => [k, COLUMN_SUMMARY_LABELS[k]] as const)]}
           onChange={(summary) => up({ summary })} />
       )}
       {raw && summaryKinds && !superOn && refused.length > 0 && (

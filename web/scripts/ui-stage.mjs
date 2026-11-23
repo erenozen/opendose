@@ -622,6 +622,12 @@ const scenes = [
     await into(s, ".pane-answer details.checks", "center");
     await settle(s, 800);
   } },
+  { name: "results-rank-line", setup: async (s) => {
+    await fixture(s, "rank-test.json", { live: true });
+    await s.page.locator(".pane-answer .answer-rank").waitFor();
+    await s.page.locator(".js-plotly-plot").first().waitFor();
+    await settle(s, 1200);
+  } },
   { name: "graphs-fit-legend", setup: async (s) => {
     await fixture(s, "fit-legend.json", { live: true });
     await s.page.locator(".js-plotly-plot").first().waitFor();

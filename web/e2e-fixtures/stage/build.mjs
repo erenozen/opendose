@@ -22,6 +22,8 @@
 //                      outlier, its legend sentence drawn in the figure
 //   bar-axis.json      fold changes as bars of geometric means ×/÷ geometric
 //                      SD on an axis starting at 1 (the Checks note)
+//   rank-test.json     the example column table under Mann-Whitney, its new
+//                      graph following the test (median with IQR)
 //   many-sheets.json   74 sheets: 22 families, navigator groups (one
 //                      collapsed), highlights, info sheets and layouts
 import { writeFileSync } from "node:fs";
@@ -295,4 +297,19 @@ function write(name, p, compact = false) {
   g.settings.column = { caption: "below", summary: "geo_sd" };
   g.settings.format = { y: { min: 0.4 } };
   write("bar-axis.json", project("Bar axis", [t, r, g], { selected: r.id }));
+}
+
+// rank-test.json: Mann-Whitney on the example column table; the graph's
+// centre follows the test (sheets/column/rankSummary.ts)
+{
+  const t = data("Group comparison", table("column", { datasets: [
+    col("Control", [23.1, 25.4, 21.8, 24.9, 22.6, 26.0]),
+    col("Treated A", [28.4, 30.2, 27.1, 31.5, 29.0, 28.8]),
+    col("Treated B", [35.2, 33.9, 37.4, 34.1, 36.6, 35.8]),
+  ] }));
+  const r = results(t, "column", { analysis: "ttest", ttestKind: "mann_whitney" },
+    "Mann-Whitney of Group comparison");
+  const g = graph(t, r, "scatter", "Graph of Group comparison");
+  g.settings.column = { spread: "symmetric", caption: "below", summary: "auto" };
+  write("rank-test.json", project("Rank test", [t, r, g], { selected: r.id }));
 }
