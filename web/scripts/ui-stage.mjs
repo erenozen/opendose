@@ -731,6 +731,22 @@ const scenes = [
     await into(s, ".plot-card", "center");
     await settle(s, 1200);
   } },
+  // the curve drawn from log dose -11 (P-52): dotted beyond the data, with
+  // its confidence band; and the Curve fold of the fit controls
+  { name: "graphs-curve-range", setup: async (s) => {
+    await fixture(s, "curve-range.json", { live: true });
+    await s.page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+      .some((t) => String(t.name ?? "").endsWith("(beyond the data)")), null, { timeout: 120000 });
+    await into(s, ".plot-card", "center");
+    await settle(s, 1200);
+  } },
+  { name: "controls-curve-range", setup: async (s) => {
+    await fixture(s, "curve-range.json", { live: true });
+    const fold = s.page.locator(".pane-controls details.curve-range");
+    await fold.waitFor({ timeout: 120000 });
+    await click(s, fold.locator("summary"));
+    await into(s, ".pane-controls details.curve-range", "center");
+  } },
   // the Checks row chip on a pooled fit (the example's triplicates)
   { name: "results-pooled-chip", setup: async (s) => {
     await example(s);

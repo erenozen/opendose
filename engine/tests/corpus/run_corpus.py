@@ -4112,6 +4112,34 @@ The web reads the block in `sheets/xy/interpolation.ts` (typeset table,
 markers with the CI as horizontal bars; unit-tested) and e2e-results /
 e2e-figures assert the table and the marker positions against the same
 reference.
+
+### P-52 the drawn curve's X range and resolution
+
+`dose_response` takes `curve_range` ([start, end] in the fit's X units:
+log10 of the concentration for log-X models; either side blank for the
+default) and `curve_points` (10 to 5000, default 200).
+`doseresponse.curve_points` then draws the curve from start to end in n
+evenly spaced points plus the two ends of the fitted X range when they
+fall inside it, returns that range as `data_range`, and the web draws
+the parts beyond it dotted (the model's extrapolation, not a
+measurement; the figure legend says so). Bands follow the drawn curve;
+the fit, its parameters, the interpolation and the absolute IC50 keep
+the default range and do not move. Without the options the curve is
+unchanged (same 200 points, no new keys).
+
+Validation by hand evaluation (`engine/tests/test_curve_range.py`): the
+plan's acceptance test (the example 4PL, start at log dose -11: the
+curve starts at -11, ends at the padded default -4.5, holds -9 and -5,
+and every drawn y equals Bottom + (Top - Bottom) / (1 + 10^((LogIC50 -
+X) HillSlope)) written out in the test, to 1e-12 relative); the BCA
+quadratic drawn from -500 to 2500 µg/mL against B0 + B1 X + B2 X^2;
+1000 points; a range inside the data (no extension); a far range
+(finite plateaus); a user-defined equation; and the errors (start not
+below end, a start beyond the default end, points outside 10 to 5000 or
+not whole, a malformed range). e2e-figures drives the "Start at X" and
+"Points on the curve" fields and checks the drawn points against the
+same equation in JavaScript (1e-9 relative), the dotted parts and the
+legend.
 """
 
 

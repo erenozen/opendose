@@ -18,6 +18,7 @@ import {
 import { maxOf, minOf } from "../lib/extent";
 import { addDropLines, type DropPoint } from "../sheets/xy/fitGraph";
 import { unknownMarkers } from "../sheets/xy/interpolation";
+import { splitCurve } from "../sheets/xy/curveRange";
 
 /** An extra fitted curve drawn with a data set (`altCurves` on a data
  *  set of the result): dotted, in the data set's colour or in ink. */
@@ -123,15 +124,33 @@ export default function PlotPanel({
         }, { ds: i, role: "band" }) as Plotly.Data);
       }
       if (ds.fit) {
+        // a curve range set (P-52): the part beyond the data, dotted (drop
+        // lines are dashed)
+        const parts = splitCurve(ds.fit.curve);
         traces.push(tagTrace({
-          x: ds.fit.curve.x,
-          y: ds.fit.curve.y,
+          x: parts.within.x,
+          y: parts.within.y,
           mode: "lines",
           line: { color, width: 2, dash },
           name: ds.name,
           legendgroup: ds.name,
           hoverinfo: "skip",
         }, { ds: i, role: "fit" }) as Plotly.Data);
+        for (const part of parts.beyond) {
+          const t = tagTrace({
+            x: part.x,
+            y: part.y,
+            mode: "lines",
+            line: { color, width: 2, dash: dash === "dot" ? "dash" : "dot" },
+            name: `${ds.name} (beyond the data)`,
+            legendgroup: ds.name,
+            showlegend: false,
+            hoverinfo: "skip",
+          }, { ds: i, role: "fit" }) as Plotly.Data & { meta: Record<string, unknown> };
+          // keeps its dots when Format graph sets the curve's dash (graph/apply.ts)
+          t.meta.beyondData = true;
+          traces.push(t);
+        }
       }
       // Other curves drawn with this data set (comparison of fits: model 2,
       // or one curve for all data sets), dotted.

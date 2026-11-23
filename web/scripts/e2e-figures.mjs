@@ -784,6 +784,59 @@ const fitLegendText = () => page.locator(".plot-card .figure-legend-text").textC
   await shot("fit-unknowns");
 }
 
+// --- the drawn curve's X range (P-52). Reference: the model's equation
+// written out here (Y = Bottom + (Top - Bottom) / (1 + 10^((LogIC50 - X)
+// HillSlope))) at each drawn X, with the fitted values the engine
+// returned; engine/tests/test_curve_range.py does the same in Python.
+{
+  const CRV = join(tmp, "curve-range.json");
+  writeFileSync(CRV, JSON.stringify({
+    version: 2, title: "Curve range check",
+    prefs: { defaultTableType: "xy", errorBars: "sd", ciMethod: "asymptotic", scheme: "default", digits: 4 },
+    sheets: fitFamily("crv", "Curve range", {}, { format: { datasets: { 0: { lineDash: "dash" } } } }),
+  }));
+  await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]', CRV);
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+    .some((t) => t.meta?.odTag?.role === "fit"), null, { timeout: 120000 });
+  const fits = () => page.evaluate(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+    .filter((t) => t.meta?.odTag?.role === "fit")
+    .map((t) => ({ name: t.name, x: [...t.x], y: [...t.y], dash: t.line?.dash })));
+  const before = await fits();
+  expect("P-52 by default one curve, as before (no part beyond the data)",
+    before.length === 1 && Math.abs(before[0].x[0] - -9.5) < 1e-9 && before[0].x.length === 200,
+    JSON.stringify(before.map((f) => [f.name, f.x[0], f.x.length])));
+  const fold = page.locator(".pane-controls details.curve-range");
+  await fold.locator("summary").click();
+  await page.getByRole("textbox", { name: "Start at X" }).fill("-11");
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+    .some((t) => t.meta?.odTag?.role === "fit" && t.x[0] === -11), null, { timeout: 60000 }).catch(() => {});
+  const after = await fits();
+  const main = after.find((f) => f.name === "Drug A");
+  const ext = after.filter((f) => f.name.endsWith("(beyond the data)"));
+  expect("P-52 acceptance: the curve draws from -11",
+    ext[0]?.x[0] === -11 && Math.min(...after.flatMap((f) => f.x)) === -11, JSON.stringify(ext.map((f) => f.x.slice(0, 2))));
+  expect("P-52 within the data (-9 to -5) the curve keeps its own style; beyond it, dotted",
+    main && Math.abs(main.x[0] - -9) < 1e-9 && Math.abs(main.x.at(-1) - -5) < 1e-9 && main.dash === "dash"
+    && ext.length === 2 && ext.every((f) => f.dash === "dot"),
+    JSON.stringify(after.map((f) => [f.name, f.x[0], f.x.at(-1), f.dash])));
+  const fv = await page.evaluate(() => globalThis.__opendose.results.snapshot().get("crvr")?.datasets?.[0]?.fit?.fitted_values);
+  const model = (x) => fv.Bottom + (fv.Top - fv.Bottom) / (1 + 10 ** ((fv.LogXmid - x) * fv.HillSlope));
+  const worst = fv ? Math.max(...after.flatMap((f) => f.x.map((x, i) => Math.abs(f.y[i] - model(x)) / Math.abs(model(x))))) : NaN;
+  expect("P-52 acceptance: each drawn y equals the model at its x (hand evaluation, 1e-9)",
+    worst < 1e-9, `worst relative difference ${worst}`);
+  expect("P-52 the figure legend says what the dots are",
+    (await fitLegendText()).includes("Beyond the X values tested the curve is dotted: there it is the "
+      + "model's extrapolation, not a measurement."), await fitLegendText());
+  await page.getByRole("textbox", { name: "Points on the curve" }).fill("1000");
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+    .filter((t) => t.meta?.odTag?.role === "fit").reduce((n, t) => n + t.x.length, 0) > 1000, null,
+  { timeout: 60000 }).catch(() => {});
+  const fine = await fits();
+  expect("P-52 resolution: 1000 points (plus the data's two ends, each shared by two parts)",
+    fine.reduce((n, f) => n + f.x.length, 0) === 1002 + 2, String(fine.reduce((n, f) => n + f.x.length, 0)));
+  await shot("fit-curve-range");
+}
+
 // --- drop lines on a discontinuous Y axis (P-23 follow-up). Before: no
 // lines on a broken axis, while the legend still said they marked the
 // IC50. Reference as above (fit_graph.py): LogIC50 -6.98304 at response

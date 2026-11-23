@@ -118,7 +118,15 @@ def _dose_response(data, options):
     "crossings", "ci", "pi", and "x_conc" / "ci_conc" / "pi_conc" for
     log-X models}]} (interpolate.interpolate_unknown). The prediction
     interval is left out (pi None, "prediction": false) for weighted and
-    summary-data fits."""
+    summary-data fits.
+
+    options.curve_range [start, end] (the fit's X units: log10 of the
+    concentration for log-X models; either None for the default) and
+    options.curve_points (10 to 5000, default 200): the drawn curve
+    ("curve") spans that range with that many points plus the ends of the
+    data, and carries "data_range" and "x_range" so the part beyond the
+    data can be drawn apart (doseresponse.curve_points). Bands follow the
+    drawn curve; interpolation and the absolute IC50 keep their range."""
     if options.get("user_equation"):
         return _user_equation_dose_response(data, options)
     model = options.get("model", "log_inhibitor_vs_response_4pl")
@@ -158,6 +166,7 @@ def _dose_response(data, options):
                          "not mean / SD / n")
 
     finite_x = [v for v in x_col if v is not None]
+    curve_opt = _curve_option(options)
     # options.experiments: {"of": [experiment of each subcolumn], "names":
     # [...], "log10_molar": exponent of the unit in mol/L or None}: each
     # experiment is also fitted on its own and its potencies summarised
@@ -198,6 +207,12 @@ def _dose_response(data, options):
             fit["curve"] = doseresponse.curve_points(
                 fit, min(finite_x), max(finite_x))
             x_lo, x_hi = min(fit["curve"]["x"]), max(fit["curve"]["x"])
+            if curve_opt:
+                # P-52: the drawn curve's range and resolution; x_lo / x_hi
+                # above (interpolation, absolute IC50) stay as they were
+                fit["curve"] = doseresponse.curve_points(
+                    fit, min(finite_x), max(finite_x), n=curve_opt["n"],
+                    x_range=curve_opt["range"], data_range=(min(xs), max(xs)))
             if robust:
                 # no covariance: no bands, interpolation CIs, absolute IC50
                 # or least-squares diagnostics (the guide: none for robust)
@@ -322,6 +337,35 @@ def _dose_response(data, options):
         }
     return {"analysis": "dose_response", "x_is_log_output": True,
             "datasets": results}
+
+
+CURVE_POINTS = (10, 5000)
+
+
+def _curve_option(options):
+    """options.curve_range [start, end] (the fit's X units, either None
+    for the default) and options.curve_points (n): the drawn curve
+    (doseresponse.curve_points), or None when neither is set."""
+    rng = options.get("curve_range")
+    n = options.get("curve_points")
+    if rng is None and n is None:
+        return None
+    if rng is not None:
+        if not isinstance(rng, (list, tuple)) or len(rng) != 2:
+            raise ValueError("curve_range must be [start, end]")
+        rng = [None if v is None else float(v) for v in rng]
+        if rng[0] is None and rng[1] is None:
+            rng = None
+    if n is None:
+        n = 200
+    if (not isinstance(n, (int, float)) or n != int(n)
+            or not CURVE_POINTS[0] <= n <= CURVE_POINTS[1]):
+        raise ValueError(f"the curve needs a whole number of points from "
+                         f"{CURVE_POINTS[0]} to {CURVE_POINTS[1]}")
+    if rng is not None and None not in rng and rng[0] >= rng[1]:
+        raise ValueError(f"the curve's start (X = {rng[0]:g}) must be below "
+                         f"its end (X = {rng[1]:g})")
+    return {"range": rng or (None, None), "n": int(n)}
 
 
 def _unknown_readings(raw_x, ds, summary_fmt):

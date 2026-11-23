@@ -536,6 +536,35 @@ export default function ControlsPanel({
           </section>
         </details>
       )}
+
+      {!classic && (
+        <details className="advanced curve-range">
+          <summary>Curve</summary>
+          <section>
+            <p className="hint-block">
+              Where the fitted curve is drawn and how many points draw it, in the graph&apos;s X
+              units{needsLogX ? " (log10 of the concentration)" : ""}. Blank: the range of the
+              data{needsLogX ? " and half a log unit each side" : ""}, 200 points. Beyond the data
+              the curve is dotted: there it is the model, not a measurement.
+            </p>
+            <NumberField label="Start at X" fieldClassName="field-num" placeholder="auto"
+              readOnly={readOnly} value={options.curveFrom ?? ""}
+              onValueChange={(v) => set({ curveFrom: v })} />
+            <NumberField label="End at X" fieldClassName="field-num" placeholder="auto"
+              readOnly={readOnly} value={options.curveTo ?? ""}
+              onValueChange={(v) => set({ curveTo: v })} />
+            <NumberField label="Points on the curve" fieldClassName="field-num" placeholder="200"
+              integer min={10} max={5000} readOnly={readOnly} value={options.curvePoints ?? ""}
+              onValueChange={(v) => set({ curvePoints: v })} />
+            {globalRoute && (
+              <p className="hint-block">
+                The curve&apos;s range applies to curves fitted one at a time, not to global fits
+                with shared parameters.
+              </p>
+            )}
+          </section>
+        </details>
+      )}
     </div>
   );
 }

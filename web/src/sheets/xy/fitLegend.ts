@@ -14,6 +14,7 @@ import { formatSig } from "../../types.ts";
 import { maxOf } from "../../lib/extent.ts";
 import { dropLegend, type XYGraphSettings } from "./fitGraph.ts";
 import { unknownMarkers } from "./interpolation.ts";
+import { beyondData } from "./curveRange.ts";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type R = Record<string, any>;
@@ -71,6 +72,11 @@ export function fitLegendClause(table: DataTableModel, result: unknown, options:
     curve += "; the shaded band is its 95% confidence band";
   }
   parts.push(`${curve}.`);
+  // a curve range beyond the data (P-52)
+  if (sets.some((d) => beyondData(d.fit?.curve))) {
+    parts.push("Beyond the X values tested the curve is dotted: there it is the model's "
+      + "extrapolation, not a measurement.");
+  }
   const routs = sets.filter((d) => d.rout);
   if (routs.length) {
     const q = Number(routs[0].rout.q) * 100;

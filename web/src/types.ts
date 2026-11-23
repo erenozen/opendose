@@ -87,6 +87,12 @@ export interface OptionsState {
    *  it from the curve with its CI (P-22); absent (files saved before) =
    *  off, those values left out of the fit as before. */
   interpolateUnknowns?: boolean;
+  /** The drawn curve's X range and resolution (P-52), typed text in the
+   *  graph's X units (log10 of the concentration for log-X models); blank
+   *  or absent (files saved before) = the default curve. */
+  curveFrom?: string;
+  curveTo?: string;
+  curvePoints?: string;
   sharedParams: string[];    // non-empty -> global fit
   modelConstants: Record<string, string>; // e.g. HotNM for "Fit Ki"
   antagonist: string;        // ec50_shift: comma-separated [B] per dataset
@@ -215,7 +221,9 @@ export interface FitResult {
     /** Robust fits: robust SD of the residuals. */
     rsdr?: number;
   };
-  curve: { x: number[]; y: number[] };
+  /** With a curve range set (P-52): the X range of the points fitted
+   *  (beyond it the curve is drawn dashed) and the range drawn. */
+  curve: { x: number[]; y: (number | null)[]; data_range?: [number, number]; x_range?: [number, number] };
 }
 
 export interface ErrorBar {
