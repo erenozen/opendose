@@ -59,8 +59,8 @@ const original = await logIC50(page);
 console.log("example LogIC50 row:", original);
 
 // --- share link of the whole project
-const saveMenu = page.locator("header").getByRole("button", { name: "File", exact: true });
-await saveMenu.click();
+const fileMenu = page.locator("header").getByRole("button", { name: "File", exact: true });
+await fileMenu.click();
 await page.getByRole("menuitem", { name: "Copy share link…" }).click();
 const shareDlg = page.getByRole("dialog", { name: "Share this project" });
 await shareDlg.waitFor({ timeout: 10000 });
@@ -155,7 +155,7 @@ expect("an edit sticks in the copy", await editable.inputValue() === "12345");
 await ctx2.close();
 
 // --- export bundle
-await saveMenu.click();
+await fileMenu.click();
 const [download] = await Promise.all([
   page.waitForEvent("download", { timeout: 120000 }),
   page.getByRole("menuitem", { name: "Download export bundle (.zip)" }).click(),
@@ -281,7 +281,7 @@ await page.getByRole("treeitem", { name: "Contingency example", exact: true }).f
 await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 60000 });
 const pBefore = await fisherP();
 const contingencyCsv = Buffer.from(",Event,No event\nExposed,25,85\nNot exposed,5,95\n");
-await saveMenu.click();
+await fileMenu.click();
 await page.getByRole("menuitem", { name: "Apply to new data…" }).click();
 const rp = page.getByRole("dialog", { name: "Apply to new data" });
 await rp.waitFor({ timeout: 10000 });
@@ -329,7 +329,7 @@ writeFileSync(provFile, entries["provenance.json"]);
 expect("provenance.json carries a replay plan with every sheet",
   (prov.replay_plan?.sheets ?? []).filter((s) => s.kind === "graph").length === 2
   && (prov.replay_plan?.sheets ?? []).filter((s) => s.kind === "results").length === 3);
-await saveMenu.click();
+await fileMenu.click();
 await page.getByRole("menuitem", { name: "Apply to new data…" }).click();
 await rp.waitFor({ timeout: 10000 });
 await rp.getByRole("radio", { name: /A project file or provenance\.json/ }).check();

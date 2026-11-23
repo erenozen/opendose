@@ -11,7 +11,7 @@ import { primeSampleResults } from "./app/sampleResults";
 import { useUi } from "./app/ui";
 import { UiProvider } from "./app/UiProvider";
 import { useAutosave } from "./app/useAutosave";
-import { useFileOpen } from "./app/useFileOpen";
+import { OPENABLE, useFileOpen } from "./app/useFileOpen";
 import { useDerivedSync } from "./app/useDerivedSync";
 import { useCalculatedSync } from "./app/useCalculatedSync";
 import { useBackgroundRefresh } from "./app/useBackgroundRefresh";
@@ -46,9 +46,6 @@ import { lazy, Suspense, useEffect, useRef, useState } from "react";
 
 // The page-layout composer is loaded the first time a layout sheet opens.
 const LayoutSheetView = lazy(() => import("./components/LayoutSheetView"));
-
-/** Files Open takes, also by dropping them on the page. */
-const OPENABLE = /\.(json|pzfx|prism|zip)$/i;
 
 export default function App() {
   return (

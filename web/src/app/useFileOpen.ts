@@ -10,6 +10,7 @@ import { prismTableToFamily, type PrismTable } from "./factory";
 
 /** Files Open takes: OpenDose projects and Prism files. */
 export const OPEN_ACCEPT = ".json,.pzfx,.prism,.zip";
+export const OPENABLE = /\.(json|pzfx|prism|zip)$/i;
 const PRISM = /\.(pzfx|prism|prism\.zip|zip)$/i;
 /** One toast follows an open from "Opening…" to its outcome. */
 const TOAST_ID = "open-file";

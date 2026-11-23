@@ -1,9 +1,9 @@
 // Small dialogs of the data grid: sort rows, insert a series, table
 // format (summary format, X dates / times, decimal places), export, and
 // convert replicates to summary values.
-import { useEffect, useId, useState } from "react";
+import { useId, useState } from "react";
 import Modal from "../../components/Modal";
-import { announce, Button, Field, NumberField, notify } from "../../components/ui";
+import { Button, Field, NumberField, notify, SwapLabel, useLabelSwap } from "../../components/ui";
 import { runEngine } from "../../lib/engine";
 import {
   DEFAULT_EXPORT, fileSlug, tableMatrix, toDelimited, type ExportOptions,
@@ -305,13 +305,8 @@ export function ExportDialog({ table, name, onClose }: {
   onClose: () => void;
 }) {
   const [o, setO] = useState<ExportOptions>(DEFAULT_EXPORT);
-  // Copy says "Copied" itself for 2 s (DECISIONS 6); a failure is a toast.
-  const [copied, setCopied] = useState(false);
-  useEffect(() => {
-    if (!copied) return;
-    const t = setTimeout(() => setCopied(false), 2000);
-    return () => clearTimeout(t);
-  }, [copied]);
+  // Copy says "Copied" itself (DECISIONS 6); a failure is a toast.
+  const copied = useLabelSwap();
   const uid = useId();
   const matrix = () => tableMatrix(table, o);
   const slug = fileSlug(name, "data");
@@ -323,17 +318,13 @@ export function ExportDialog({ table, name, onClose }: {
           <Button className="spacer" onClick={async () => {
             const ok = await copyText(toDelimited(matrix(), "tsv"));
             if (ok) {
-              setCopied(true);
-              announce("Copied as tab-separated text.", "polite");
+              copied.flash("Copied as tab-separated text.");
             } else {
               notify(`Could not copy “${name}”: the browser blocked the clipboard. Use Download TSV instead.`,
                 { tone: "error" });
             }
           }}>
-            <span className="btn-swap">
-              <span className="btn-swap-label" data-shown={!copied}>Copy</span>
-              <span className="btn-swap-label" data-shown={copied}>Copied</span>
-            </span>
+            <SwapLabel swapped={copied.swapped} done="Copied">Copy</SwapLabel>
           </Button>
           <Button onClick={() => {
             downloadText(`${slug}.txt`, toDelimited(matrix(), "tsv"), "text/tab-separated-values;charset=utf-8");
