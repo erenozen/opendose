@@ -135,7 +135,7 @@
 }
 
 /* The command palette (GoToSheet.tsx): a field and one listbox. */
-.palette { width: min(560px, calc(100vw - var(--space-32))); align-self: start; margin-top: 12dvh; }
+.palette { width: min(560px, calc(100vw - var(--space-32))); align-self: start; margin-top: var(--palette-top); }
 .palette-body { gap: var(--space-8); padding: var(--space-12); }
 .palette-field {
   display: flex; align-items: center; gap: var(--space-8);

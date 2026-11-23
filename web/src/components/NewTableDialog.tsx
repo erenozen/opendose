@@ -205,7 +205,7 @@ export default function NewTableDialog({ defaultType, defaultName, onCancel, onC
         </fieldset>
         <div className="new-table-options">
           {/* The chosen format's shape and the graph it makes, with what it
-              analyses (the start screen's catalogue card, DECISIONS 4). */}
+              analyses (the catalogue moved here from the start screen, DECISIONS 4). */}
           <figure className="type-preview">
             <div className="type-preview-sketch">{SKETCHES[type].table}{SKETCHES[type].graph}</div>
             <figcaption>{CARD_TEXT[type].analyses}</figcaption>

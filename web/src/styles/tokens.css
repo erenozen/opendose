@@ -165,6 +165,7 @@
 
   /* ---- layout */
   --nav-w: 280px;
+  --palette-top: 12dvh;   /* the command palette sits a little above centre */
 }
 
 /* Reduced motion (ruling 1): entrances and exits shorten to fades of

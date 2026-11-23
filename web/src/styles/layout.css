@@ -110,7 +110,9 @@ main.workspace {
   align-items: start; width: 100%;
 }
 .shell.nav-hidden { grid-template-columns: minmax(0, 1fr); }
-.workbench { min-width: 0; }
+/* Floating notes are placed from the workbench's corner, so a new one
+   lands beside the navigator, not under it. */
+.workbench { min-width: 0; position: relative; }
 
 @media (max-width: 900px) {
   .shell, .shell.nav-hidden { grid-template-columns: minmax(0, 1fr); }

@@ -28,7 +28,7 @@ runs `web/scripts/e2e-privacy.mjs` on every push, failing if marked data
 leaves the page or another server is contacted. Share links are
 password-protected by default, and Preferences can switch autosave off or
 forget everything kept in the browser. The app explains this to users at
-`#privacy` ("Your data and privacy" in the info popover).
+`#privacy` ("Your data and privacy", linked from View → About OpenDose…).
 
 To run your own copy (on your institution's servers, or on a computer that
 is never online), see [`docs/self-hosting.md`](docs/self-hosting.md).

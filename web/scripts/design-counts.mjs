@@ -42,7 +42,9 @@ function walk(dir, out = []) {
   return out;
 }
 
-const COLOUR = /#[0-9a-fA-F]{8}\b|#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3,4}\b(?![0-9a-zA-Z-])|\b(?:rgba?|hsla?|oklch|oklab|lab|lch|color)\(/g;
+// A colour function only when no identifier or index runs into it (a JS
+// call such as `[lab(x)]` to a function named lab is not a colour).
+const COLOUR = /#[0-9a-fA-F]{8}\b|#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3,4}\b(?![0-9a-zA-Z-])|(?<![\w.$[])(?:rgba?|hsla?|oklch|oklab|lab|lch|color)\(/g;
 
 /** Strip comments, keeping line numbers. */
 function stripComments(text, css) {
@@ -123,7 +125,12 @@ function scanTs(rel, text) {
     (output ? hits.colourOutput : hits.colourTs).push(where);
   }
   if (rel.endsWith(".tsx")) {
-    for (const m of t.matchAll(/fontSize\s*:\s*["'`]?([\d.]+(?:px|rem|em)?)\b/g)) addSize(/\d$/.test(m[1]) ? `${m[1]}px` : m[1], `${rel}:${lineOf(t, m.index)}`);
+    // Inline styles only: a `fontSize` in document data (a layout text
+    // item's size in points) is content, not a CSS size.
+    for (const m of t.matchAll(/fontSize\s*:\s*["'`]?([\d.]+(?:px|rem|em)?)\b/g)) {
+      if (t.lastIndexOf("style={{", m.index) <= t.lastIndexOf("}}", m.index)) continue;
+      addSize(/\d$/.test(m[1]) ? `${m[1]}px` : m[1], `${rel}:${lineOf(t, m.index)}`);
+    }
     for (const m of t.matchAll(/zIndex\s*:\s*([^,}\n]+)/g)) hits.zIndex.push(`${rel}:${lineOf(t, m.index)}  ${m[1].trim()}`);
     for (const m of t.matchAll(/100vh/g)) hits.vh100.push(`${rel}:${lineOf(t, m.index)}`);
   }

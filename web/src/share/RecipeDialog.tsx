@@ -54,7 +54,7 @@ interface MultiSource { files: NamedText[]; stack: StackResult; skipped: string[
  * files at once (or a zip) are stacked with the file name as a column
  * (recipes/multiFile.ts). A mapping can be saved as a recipe and applied
  * to the next file (recipes/saved.ts). `fresh`: the table starts a new
- * project (from the start screen) instead of joining the open one.
+ * project (several files dropped on the page) instead of joining the open one.
  */
 export default function RecipeDialog({ initialText, initialFiles, savedId, staged: given, title, fresh,
   onBack, onClose }: {

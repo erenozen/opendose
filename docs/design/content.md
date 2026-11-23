@@ -16,7 +16,7 @@ uppercase with CSS: `text-transform: uppercase` turns a label into a
 shout and is no longer used for labels (DECISIONS section 1).
 
 ```css
-/* Incorrect: styles/cards.css:15, still in the code */
+/* Incorrect (the last one, sheets/multivariable/mv.css, removed in phase 7) */
 .controls h3, .plate-import > .section-toggle, .result-card h4 {
   margin: 0; font-size: var(--text-label); text-transform: uppercase;
   letter-spacing: 0.07em; color: var(--muted); font-weight: var(--weight-semibold);
