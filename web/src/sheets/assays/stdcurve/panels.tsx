@@ -345,9 +345,9 @@ function LimitsStep({ table, o, set, rows }: {
             + `${samples ? ` (${samples} sample${samples === 1 ? "" : "s"})` : ""}.`}
       </p>
       <div className="wizard-row">
-        <NumberField label="LoQ goal: CV at most" unit="%" min={0} fieldClassName="field-num"
+        <NumberField label="LoQ goal: CV at most" unit="%" min={0}
           defaultValue={String(o.loqCv)}
-          onValueChange={(v) => { const x = Number(v.replace(",", ".")); if (v.trim() && Number.isFinite(x) && x > 0) set({ loqCv: x }); }} />
+          onValueChange={(v) => { const x = Number(v.replace(",", ".")); if (v.trim() && Number.isFinite(x) && x >= 0) set({ loqCv: x }); }} />
         <label className="check-row">
           <input type="checkbox" checked={o.lodCBeta} onChange={(e) => set({ lodCBeta: e.target.checked })} />
           <span>LoD multiplier c<sub>β</sub> = 1.645 / (1 − 1/(4(N − K))) for small runs (CLSI EP17-A2), not 1.645</span>
@@ -636,7 +636,7 @@ function limitStat(l: any): string {
 
 /** The concentration cell of a limit: the number, or why there is none,
  *  with a flag when it lies below the lowest standard. */
-function LimitCell({ l, unit }: { l: any; unit: string }) {
+function LimitCell({ l }: { l: any }) {
   if (l?.concentration == null) {
     return <>{l?.status === "below_curve" ? "below the fitted curve (no crossing)"
       : l?.status === "above_curve" ? "above the fitted curve (no crossing)" : "undefined"}</>;
@@ -644,7 +644,7 @@ function LimitCell({ l, unit }: { l: any; unit: string }) {
   return (
     <>
       {num(l.concentration)}{" "}
-      {l.status === "extrapolated" && <Chip tone="warn" title={`Below the lowest standard: read off the extrapolated curve (${unit})`}>
+      {l.status === "extrapolated" && <Chip tone="warn">
         below the lowest standard</Chip>}
     </>
   );
@@ -661,13 +661,13 @@ function DetectionLimits({ dl, unit }: { dl: any; unit: string }) {
           <thead><tr><th scope="col">Limit</th><th scope="col">Signal</th><th scope="col">Concentration ({unit})</th>
             <th scope="col">From</th></tr></thead>
           <tbody>
-            <tr><th scope="row">LoB</th><td>{num(dl.lob_signal) || "undefined"}</td><td><LimitCell l={dl.lob} unit={unit} /></td>
+            <tr><th scope="row">LoB</th><td>{num(dl.lob_signal) || "undefined"}</td><td><LimitCell l={dl.lob} /></td>
               <td>{dl.n_blank} blank replicates: mean {num(dl.mean_blank)} {pm} 1.645 × SD {num(dl.sd_blank)}</td></tr>
-            <tr><th scope="row">LoD</th><td>{num(dl.lod_signal) || "undefined"}</td><td><LimitCell l={dl.lod} unit={unit} /></td>
+            <tr><th scope="row">LoD</th><td>{num(dl.lod_signal) || "undefined"}</td><td><LimitCell l={dl.lod} /></td>
               <td>{dl.sd_low != null
                 ? `LoB ${pm} ${num(dl.multiplier_low, 4)} × pooled SD ${num(dl.sd_low)} of ${dl.n_low} low-sample replicates (${dl.k_low} sample${dl.k_low === 1 ? "" : "s"})${dl.c_beta_correction ? ", cβ" : ""}`
                 : "needs a low-level sample with 2 or more replicates"}</td></tr>
-            <tr><th scope="row">LoQ</th><td>—</td><td>{dl.loq ? <LimitCell l={dl.loq} unit={unit} /> : "not reached"}</td>
+            <tr><th scope="row">LoQ</th><td>—</td><td>{dl.loq ? <LimitCell l={dl.loq} /> : "not reached"}</td>
               <td>{dl.loq ? `${dl.loq.sample}: lowest low sample with CV ≤ ${dl.loq_cv_limit_pct}% at or above the LoD`
                 : `no low sample has CV ≤ ${dl.loq_cv_limit_pct}% at or above the LoD`}</td></tr>
           </tbody>
@@ -693,7 +693,7 @@ function DetectionLimits({ dl, unit }: { dl: any; unit: string }) {
         Method: parametric, {dl.source}. LoB = mean of the blanks {pm} 1.645 SD; LoD = LoB {pm} 1.645 SD of the
         low-level samples{dl.c_beta_correction ? " (here the small-sample cβ)" : ""}; normally distributed signals
         assumed. The concentrations are read off the fitted standard curve after the same blank correction as the
-        unknowns.
+        unknowns; one below the lowest standard is read off the extrapolated curve and less certain.
       </p>
     </div>
   );

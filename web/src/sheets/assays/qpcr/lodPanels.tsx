@@ -14,16 +14,17 @@ export function Lod95({ lod, level }: { lod: Record<string, any> | undefined; le
       <h4>Limit of detection (LoD95) from the hit-rate series</h4>
       <div className="results-scroll">
         <table className="results-table qpcr-lod-table">
-          <thead><tr><th scope="col">Target</th><th scope="col">Wells with a Cq, by quantity</th>
-            <th scope="col">LoD95 (quantity)</th><th scope="col">{level} CI (Fieller)</th><th scope="col">Note</th></tr></thead>
+          <thead><tr><th scope="col">Target</th><th scope="col">LoD95 (quantity)</th>
+            <th scope="col">{level} CI (Fieller)</th><th scope="col">Note</th>
+            <th scope="col">Wells with a Cq, by quantity</th></tr></thead>
           <tbody>
             {rows.map(([t, r]) => (
               <tr key={t}>
                 <th scope="row">{t}</th>
-                <td>{(r.levels ?? []).map((x: any) => `${num(x.quantity)}: ${x.detected}/${x.n}`).join(", ")}</td>
                 <td>{r.lod95 != null ? <strong>{num(r.lod95)}</strong> : "not estimated"}</td>
                 <td>{r.ci ? interval(r.ci) : r.lod95 != null ? "unbounded" : ""}</td>
                 <td>{r.note ? <Chip tone="warn">{r.note}</Chip> : <Chip tone="pass">within the series</Chip>}</td>
+                <td>{(r.levels ?? []).map((x: any) => `${num(x.quantity)}: ${x.detected}/${x.n}`).join(", ")}</td>
               </tr>
             ))}
           </tbody>

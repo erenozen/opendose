@@ -756,6 +756,7 @@ const OPEN_INPUT = 'input[aria-label="Open an OpenDose project or a Prism file"]
   expect("axe-core: the calculator passes", axeCalc.length === 0, axeCalc.join(" | "));
   await calc.getByRole("button", { name: "Close" }).click();
   await calc.waitFor({ state: "detached", timeout: 10000 });
+  await page.waitForFunction(() => !document.querySelector("dialog[open]"), null, { timeout: 10000 });
   // the flow wizard's Statistic step links to it
   await startAssay("Flow cytometry");
   await wizard().getByRole("button", { name: /Statistic/ }).click();

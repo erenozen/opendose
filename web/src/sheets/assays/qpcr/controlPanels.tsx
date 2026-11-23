@@ -67,7 +67,7 @@ export function ControlStep({ table, o, set, controls }: {
         <NumberField label="Count control amplification below Cq" min={0} fieldClassName="field-num"
           description="Blank: any Cq counts." defaultValue={o.controlMaxCq}
           onValueChange={(v) => set({ controlMaxCq: v.trim() })} />
-        <NumberField label="Sample affected within" unit="cycles" min={0} fieldClassName="field-num"
+        <NumberField label="Sample affected within" unit="cycles" min={0}
           defaultValue={String(o.controlMinDelta)}
           onValueChange={(v) => {
             const x = Number(v.replace(",", "."));
