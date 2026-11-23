@@ -72,6 +72,21 @@ def _clean(values) -> np.ndarray:
     return np.array([float(v) for v in values if v is not None], dtype=float)
 
 
+#: an SD at or below this multiple of machine epsilon times |mean| is
+#: rounding in the mean, not scatter (identical decimal values such as
+#: 0.1, 0.1, 0.1 give a variance of about 1e-34, not 0)
+_SCATTER_EPS = 64 * float(np.finfo(float).eps)
+
+
+def no_scatter(var: float, mean: float) -> bool:
+    """True when a group's variance is zero up to rounding in its mean."""
+    return not var > (_SCATTER_EPS * abs(mean)) ** 2
+
+
+NO_SCATTER_CHECK = ("Check that each replicate was entered as measured, "
+                    "not copied down the column or rounded to one value.")
+
+
 def _pair(values_a, values_b):
     pairs = [(a, b) for a, b in zip(values_a, values_b)
              if a is not None and b is not None]
@@ -197,6 +212,13 @@ def _unpaired_from_stats(mean_a, var_a, na, mean_b, var_b, nb, *,
     unpaired_t (raw values) and opendose.summary (entered summaries).
     """
     diff = mean_a - mean_b
+    flat_a, flat_b = no_scatter(var_a, mean_a), no_scatter(var_b, mean_b)
+    if flat_a and flat_b:
+        # t = difference / SE with SE = 0: undefined, not infinite
+        raise ValueError(
+            "The t test is undefined: the values within each group are all "
+            "the same (SD 0), so there is no scatter to compare the "
+            f"difference with. {NO_SCATTER_CHECK}")
 
     if welch:
         se = math.sqrt(var_a / na + var_b / nb)
@@ -211,9 +233,15 @@ def _unpaired_from_stats(mean_a, var_a, na, mean_b, var_b, nb, *,
     tcrit = float(stats.t.ppf((1 + ci_level) / 2, df))
 
     # F test to compare variances (Prism includes it with unpaired t).
-    f = max(var_a, var_b) / min(var_a, var_b)
     dfn, dfd = ((na - 1, nb - 1) if var_a >= var_b else (nb - 1, na - 1))
-    p_f = 2 * float(stats.f.sf(f, dfn, dfd))
+    if flat_a or flat_b:
+        # one SD is 0: the variance ratio has no finite value
+        f_test = {"F": None, "dfn": dfn, "dfd": dfd, "p": None,
+                  "note": "undefined: one group has SD 0"}
+    else:
+        f = max(var_a, var_b) / min(var_a, var_b)
+        p_f = 2 * float(stats.f.sf(f, dfn, dfd))
+        f_test = {"F": f, "dfn": dfn, "dfd": dfd, "p": min(p_f, 1.0)}
 
     out = {
         "test": "welch_t" if welch else "unpaired_t",
@@ -224,8 +252,7 @@ def _unpaired_from_stats(mean_a, var_a, na, mean_b, var_b, nb, *,
         "ci_difference": [diff - tcrit * se, diff + tcrit * se],
         "t": abs(t_stat), "df": float(df), "p_two_tailed": p,
         "r_squared": t_stat ** 2 / (t_stat ** 2 + df),
-        "f_test_variances": {"F": f, "dfn": dfn, "dfd": dfd,
-                             "p": min(p_f, 1.0)},
+        "f_test_variances": f_test,
     }
     one = one_sided_t(diff, se, df, ci_level)
     out.update(p_greater=one["p_greater"], p_less=one["p_less"],
