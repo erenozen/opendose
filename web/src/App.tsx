@@ -113,8 +113,8 @@ function Shell() {
     replace(p);
   };
 
-  // The start screen's catalogue lives in the File menu now: the example
-  // project, "Describe your experiment" and "Plan an experiment".
+  // The example project, "Describe your experiment" and "Plan an
+  // experiment": shell requests from the File menu and the palette.
   const [describing, setDescribing] = useState(false);
   const shell = useRef({ openExample: async () => {}, plan: () => {} });
   shell.current = {
@@ -299,9 +299,9 @@ function PrismChooser({ tables, onImport, onCancel }: {
 }
 
 /** A project or Prism file dropped anywhere on the page opens, as Open
- *  does (the start screen used to take drops); several CSV files, or a
- *  zip of them, go to the table import. Drops a pane handles itself (the
- *  navigator, the import dialog) are left to it. */
+ *  does; several CSV files, or a zip of them, go to the table import.
+ *  Drops a pane handles itself (the navigator, the import dialog) are
+ *  left to it. */
 function useDropOpen(open: (f: File) => void) {
   const openRef = useRef(open);
   openRef.current = open;

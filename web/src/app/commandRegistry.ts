@@ -27,7 +27,7 @@ import { PZFX_TYPES } from "../share/pzfx";
 const SHELL_EVENT = "opendose-shell";
 export type ShellRequest =
   | "open" | "new-project" | "about" | "preferences" | "prism-csv" | "help" | "which-test"
-  // answered by the shell (App.tsx): the first-run catalogue moved here
+  // answered by the shell (App.tsx)
   | "example" | "describe" | "plan";
 
 export function requestShell(kind: ShellRequest): void {

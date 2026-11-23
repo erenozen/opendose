@@ -3,7 +3,7 @@
 // the tour as done (localStorage); Help › Take the tour replays it.
 //
 // The card is a Popover anchored to the step's target (top layer, Escape,
-// focus kept inside and handed back on close); presses outside do not
+// focus handed back on close); presses outside do not
 // close it, because step 1 asks the user to edit a cell. The dim and the
 // accent ring around the target are full-screen layers cut with
 // clip-path, so following the target while the page scrolls lays nothing

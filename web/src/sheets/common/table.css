@@ -2,8 +2,6 @@
    (DECISIONS 2): solid 1px data lines, tabular numerals, sentence-case
    heads. */
 
-/* ============================ data table ============================ */
-
 /* The splitters resize the pane; no second, native corner handle. */
 .data-table { padding: var(--space-8); resize: none; }
 .data-table table { border-collapse: collapse; width: 100%; }
@@ -44,7 +42,6 @@
 }
 .table-actions .hint { color: var(--muted); font-size: var(--text-caption); max-width: 65ch; }
 
-/* Data grid additions */
 .data-table .row-label-head { min-width: 13ch; }
 .data-table .xhead { white-space: nowrap; }
 .x-format-tag {

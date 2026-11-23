@@ -156,8 +156,6 @@ export class ToastStore {
     }
   }
 
-  // ------------------------------------------------------------ private
-
   private evictOverflow() {
     let live = this.toasts.filter((t) => !t.closing);
     while (live.length > MAX_VISIBLE) {

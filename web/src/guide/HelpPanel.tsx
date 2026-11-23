@@ -1,5 +1,5 @@
 // Help panel (Ctrl/Cmd+/): searchable explainers, the guided tour, the
-// "Which test?" wizard, the start screen and the keyboard shortcuts.
+// "Which test?" wizard, the example project and the keyboard shortcuts.
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type Ref } from "react";
 import { Button } from "../components/ui/Button";
 import { IconButton } from "../components/ui/IconButton";

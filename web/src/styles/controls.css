@@ -2,8 +2,6 @@
    dialog form fields. Press feedback and the 16px touch inputs live in
    base.css. */
 
-/* ============================ buttons & inputs ============================ */
-
 button {
   font: inherit; font-size: var(--text-body); font-weight: var(--weight-medium); color: var(--ink);
   background: var(--inset);

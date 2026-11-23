@@ -1,8 +1,6 @@
 /* The content of the panes: the table, controls, results and plot
    blocks. */
 
-/* ============================ cards ============================ */
-
 /* Outside the workbench (info sheets, empty states) a block is a flat
    tile: one depth cue, the hairline (ruling 6). */
 .data-table, .controls, .result-card, .plot-card {
