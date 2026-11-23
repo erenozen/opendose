@@ -34,6 +34,5 @@
 .placeholder-panel .placeholder-lead { margin: 0 0 var(--space-6); }
 
 @media (max-width: 760px) {
-  .graph-select { min-height: 34px; }
   .pane-controls:empty { display: none; }
 }

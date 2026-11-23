@@ -112,6 +112,11 @@
 /* ---- long tables (virtualRows.ts): the table scrolls inside its card,
    only the rows in view are rendered, and the header stays in view. */
 .data-table.virtual { max-height: max(420px, 85svh); overscroll-behavior: contain; }
+/* Touch: a strip of page stays beside the grid's own scroll, so a swipe
+   can still move the page past it under the sticky header. */
+@media (pointer: coarse) {
+  .data-table.virtual { max-height: max(420px, 70svh); }
+}
 .data-table.virtual thead {
   position: sticky; top: calc(-1 * var(--space-8)); z-index: calc(var(--z-base) + 1);
   background: var(--surface);

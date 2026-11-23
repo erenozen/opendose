@@ -15,6 +15,27 @@ export interface AnchorOptions {
 
 const EDGE = 8;
 
+type Insets = { top: number; right: number; bottom: number; left: number };
+let safe: { key: string; insets: Insets } | null = null;
+/** The safe-area insets (notch, home indicator) from the --safe-* tokens,
+ *  read from a hidden probe once per viewport size (they change with the
+ *  orientation); all 0 where the device has none. */
+function safeAreas(): Insets {
+  const key = `${window.innerWidth}x${window.innerHeight}`;
+  if (safe?.key === key) return safe.insets;
+  const probe = document.createElement("div");
+  probe.style.cssText = "position:fixed;visibility:hidden;pointer-events:none;"
+    + "padding:var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left)";
+  document.body.append(probe);
+  const cs = getComputedStyle(probe);
+  const px = (v: string) => Number.parseFloat(v) || 0;
+  const insets = { top: px(cs.paddingTop), right: px(cs.paddingRight),
+    bottom: px(cs.paddingBottom), left: px(cs.paddingLeft) };
+  probe.remove();
+  safe = { key, insets };
+  return insets;
+}
+
 /**
  * Places a top-layer element next to its anchor (an element's box or a
  * point) and keeps it there on scroll, resize and content changes. Writes
@@ -39,8 +60,11 @@ export function useAnchoredPosition(ref: RefObject<HTMLElement | null>, mounted:
       const pad = typeof collisionPadding === "function" ? collisionPadding() : collisionPadding;
       const sides = typeof pad === "number" ? { top: pad, right: pad, bottom: pad, left: pad } : pad ?? {};
       const viewport = { left: 0, top: 0, right: document.documentElement.clientWidth, bottom: window.innerHeight };
+      // Clear of the notch and the home indicator as well as the edge.
+      const s = safeAreas();
       let bounds = inset(viewport, {
-        top: sides.top ?? EDGE, right: sides.right ?? EDGE, bottom: sides.bottom ?? EDGE, left: sides.left ?? EDGE,
+        top: Math.max(sides.top ?? EDGE, s.top + EDGE), right: Math.max(sides.right ?? EDGE, s.right + EDGE),
+        bottom: Math.max(sides.bottom ?? EDGE, s.bottom + EDGE), left: Math.max(sides.left ?? EDGE, s.left + EDGE),
       });
       if (collisionBoundary) bounds = intersect(bounds, collisionBoundary.getBoundingClientRect());
       // Layout size, not the transformed box (the entrance starts at scale 0.97).
