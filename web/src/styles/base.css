@@ -76,6 +76,11 @@ button, [role="button"] {
     transform: scale(0.97);
   }
 }
+/* With reduced motion on a touch screen the scale is gone and there is
+   no tap highlight: the press dims instead (opacity is kept, ruling 1). */
+@media (prefers-reduced-motion: reduce) and (hover: none) {
+  button:where(:not(:disabled, [data-still], [data-still] *)):active { opacity: 0.7; }
+}
 /* Touch has no hover and no tap highlight: rows inside a still container
    (menu items, help topics) darken while pressed instead. */
 @media (hover: none) {
