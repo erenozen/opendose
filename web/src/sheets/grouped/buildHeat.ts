@@ -10,6 +10,7 @@ import { DEFAULT_HEAT, HEAT_VALUE_LABEL, type HeatSettings } from "./options";
 import { baseLayout } from "./plotting";
 import { colorAt, heatStops, inkOn, zscoreMatrix, type CellStat } from "./stats";
 import { addDendrogram, type Dendrogram } from "../common/dendrogram";
+import { maxOf, minOf } from "../../lib/extent.ts";
 
 export function heatValue(c: CellStat | null, v: HeatSettings["value"]): number | null {
   if (!c) return null;
@@ -63,9 +64,9 @@ export function buildHeat(table: DataTableModel, cells: (CellStat | null)[][],
   }
   const zs = h.zscore !== "none";
   const finite = z.flat().filter((v): v is number => v !== null && Number.isFinite(v));
-  const big = finite.length ? Math.max(...finite.map(Math.abs)) || 1 : 1;
-  const autoMin = zs ? -big : finite.length ? Math.min(...finite) : 0;
-  const autoMax = zs ? big : finite.length ? Math.max(...finite) : 1;
+  const big = finite.length ? maxOf(finite.map(Math.abs)) || 1 : 1;
+  const autoMin = zs ? -big : finite.length ? minOf(finite) : 0;
+  const autoMax = zs ? big : finite.length ? maxOf(finite) : 1;
   let zmin = parseCell(h.min) ?? autoMin;
   let zmax = parseCell(h.max) ?? autoMax;
   if (zmax <= zmin) zmax = zmin + (Math.abs(zmin) || 1);

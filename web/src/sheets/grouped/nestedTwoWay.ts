@@ -18,6 +18,7 @@ import {
   DEFAULT_MIXED_UNIT, engineUnitOptions, normalizeMixedUnit, unitWords,
   type MixedUnitOptions,
 } from "../common/mixedModel.ts";
+import { maxOf } from "../../lib/extent.ts";
 
 export const A_NESTED_TWO_WAY = "grouped_nested_two_way";
 
@@ -79,7 +80,7 @@ export function nestedRecords(table: DataTableModel, o: NestedTwoWayOptions): Ne
   const raw: NestedRecord[] = [];
   t.datasets.forEach((ds, d) => {
     const b = ds.name.trim() || `Data set ${letter(d)}`;
-    const width = Math.max(1, ...ds.rows.map((row) => row.length));
+    const width = Math.max(1, maxOf(ds.rows.map((row) => row.length)));
     for (let s = 0; s < width; s++) {
       const title = ds.subTitles?.[s]?.trim() ?? "";
       const label = title || `${letter(d)}${s + 1}`;
@@ -111,7 +112,7 @@ export function countUnits(recs: NestedRecord[]): UnitCount {
     per.set(k, (per.get(k) ?? 0) + 1);
   }
   return {
-    units: per.size, values: recs.length, maxPerUnit: Math.max(0, ...per.values()),
+    units: per.size, values: recs.length, maxPerUnit: Math.max(0, maxOf(per.values())),
     levelsA: [...new Set(recs.map((x) => x.factor_a))],
   };
 }

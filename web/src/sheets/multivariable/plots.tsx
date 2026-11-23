@@ -30,6 +30,7 @@ import { PlotMessage, PlotlyChart } from "./plotkit";
 import type {
   CorrelationResult, LogisticResult, PoissonResult, PcaResult, RegressionResult,
 } from "./run";
+import { maxOf, minOf } from "../../lib/extent";
 
 /* ------------------------------------------------------------ helpers */
 
@@ -94,8 +95,8 @@ export function MvXYPlot({ graph, table, titles, scheme, format, onFormatChange 
     // size by: area proportional to the value
     const sizeVals = sizeVar ? col(sizeVar.name) : [];
     const sv = rows.map((r) => sizeVals[r]).filter(isNum);
-    const smin = sv.length ? Math.min(...sv) : 0;
-    const smax = sv.length ? Math.max(...sv) : 1;
+    const smin = sv.length ? minOf(sv) : 0;
+    const smax = sv.length ? maxOf(sv) : 1;
     const sizeOf = (v: MvValue | undefined) => (sizeVar && isNum(v) && smax > smin
       ? 7 + 23 * Math.sqrt((v - smin) / (smax - smin)) : sizeVar ? 7 : 9);
 
@@ -410,8 +411,8 @@ export function RegActualPlot({ table, result, titles, scheme, format, onFormatC
       .filter((i) => result.predicted[i] !== null && result.residuals[i] !== null);
     const px = rows.map((i) => result.predicted[i] as number);
     const ay = rows.map((i) => (result.predicted[i] as number) + (result.residuals[i] as number));
-    const lo = Math.min(...px, ...ay);
-    const hi = Math.max(...px, ...ay);
+    const lo = Math.min(minOf(px), minOf(ay));
+    const hi = Math.max(maxOf(px), maxOf(ay));
     const traces: Plotly.Data[] = [
       { x: [lo, hi], y: [lo, hi], mode: "lines", name: "Line of identity",
         line: { color: chrome.muted, width: 1.5, dash: "dash" }, hoverinfo: "skip" } as Plotly.Data,
@@ -571,8 +572,8 @@ export function LogitCurvePlot({ table, result, titles, scheme, format, onFormat
     const rows = result.observed.map((_, i) => i)
       .filter((i) => result.observed[i] !== null && isNum(xs[i]));
     const px = rows.map((i) => xs[i] as number);
-    const lo = Math.min(...px);
-    const hi = Math.max(...px);
+    const lo = minOf(px);
+    const hi = maxOf(px);
     const pad = (hi - lo) * 0.05 || 1;
     const [b0, b1] = result.coefficients.map((c) => c.estimate);
     const grid = Array.from({ length: 121 }, (_, k) => lo - pad + ((hi - lo + 2 * pad) * k) / 120);

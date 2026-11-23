@@ -10,6 +10,7 @@ import { usePlotLoad } from "../../graph/usePlotLoad";
 import { useDarkMode } from "../../graph/useDarkMode";
 import { CHROME_DARK, CHROME_LIGHT, PLOT_FONT, seriesStyle } from "../../lib/palette";
 import { formatSig } from "../../types";
+import { maxOf, minOf, pushAll } from "../../lib/extent";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type R = Record<string, any>;
@@ -61,7 +62,7 @@ export function FrequencyResults({ result }: { result: R }) {
         const y = result.relative === "fraction" ? s.cumulative_percent.map((p: number) => p / 100)
           : result.relative === "percent" ? s.cumulative_percent : s.cumulative;
         traces.push({ type: "scatter", mode: "lines", x: s.x, y, name: s.name, line: { color, shape: "hv", width: 2 } });
-        xs.push(...s.x);
+        pushAll(xs, s.x);
       } else if (result.cumulative) {
         traces.push({ type: "scatter", mode: "lines+markers", x: result.upper_edges, y: s.y, name: s.name,
           line: { color, shape: "hv", width: 2 } });
@@ -73,7 +74,7 @@ export function FrequencyResults({ result }: { result: R }) {
       }
       const f = fits[i];
       if (f?.params && xs.length) {
-        const lo = Math.min(...xs), hi = Math.max(...xs);
+        const lo = minOf(xs), hi = maxOf(xs);
         const grid = Array.from({ length: 200 }, (_, k) => lo + (hi - lo) * k / 199);
         const m = f.params.Mean?.value, sd = f.params.SD?.value;
         const y = f.model === "gaussian"

@@ -17,6 +17,7 @@ import { laneJitter, spreadOffsets, type PointSpread } from "../graph/swarm";
 import { densify } from "../graph/dense";
 import { areaScale, estimateArea, usePlotArea } from "../graph/usePlotArea";
 import { summaryOf, type ColumnSummary } from "../sheets/column/graphSettings";
+import { maxOf, minOf } from "../lib/extent";
 
 interface Props {
   datasets: DatasetState[];
@@ -89,7 +90,7 @@ export default function ColumnPlot({
     if (spread !== "jitter") {
       const all = datasets.flatMap((d) => d.rows.flatMap((r) => r.map(parseCell)))
         .filter((v): v is number => v !== null);
-      const est = area ?? estimateArea(el.current, Math.min(...all), Math.max(...all),
+      const est = area ?? estimateArea(el.current, minOf(all), maxOf(all),
         [-0.6, datasets.length - 0.4]);
       scale = areaScale(est, graphType === "bar" ? 8.5 : 9.5, 0.36);
     }

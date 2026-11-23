@@ -16,6 +16,7 @@ import {
   type SynergyOptions,
 } from "./synergyModel";
 import { axis, chromeOf, divergingScale, layoutBase, messageLayout, useDark, useGraphSettings } from "./plotkit";
+import { maxOf, minOf } from "../../lib/extent";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type R = Record<string, any>;
@@ -93,7 +94,7 @@ export function LandscapePlot({ graph, options, result, titles, scheme, format, 
     }
     const all = models.flatMap((m) => (res.models[m].synergy as (number | null)[][]).flat())
       .filter((v): v is number => typeof v === "number");
-    const auto = Math.max(1, ...all.map((v) => Math.abs(v)));
+    const auto = Math.max(1, maxOf(all.map((v) => Math.abs(v))));
     const M = (parseCell(s.max) ?? 0) > 0 ? parseCell(s.max)! : Math.ceil(auto / 5) * 5;
     const cols = models.length > 1 ? 2 : 1;
     const rows = Math.ceil(models.length / cols);
@@ -186,11 +187,11 @@ function singleMap(result: R, s: LandscapeSettings, c1: number[], c2: number[],
   let lo: number;
   let hi: number;
   if (def.kind === "synergy") {
-    hi = userMax ?? Math.ceil(Math.max(1, ...vals.map((v) => Math.abs(v))) / 5) * 5;
+    hi = userMax ?? Math.ceil(Math.max(1, maxOf(vals.map((v) => Math.abs(v)))) / 5) * 5;
     lo = -hi;
   } else {
-    lo = Math.min(0, Math.floor(Math.min(...vals)));
-    hi = userMax ?? Math.max(100, Math.ceil(Math.max(...vals)));
+    lo = Math.min(0, Math.floor(minOf(vals)));
+    hi = userMax ?? Math.max(100, Math.ceil(maxOf(vals)));
   }
   const scale = def.kind === "synergy" ? divergingScale(dark) : sequentialScale(dark);
   const ink = (v: number) => {

@@ -20,6 +20,7 @@ import {
 } from "./replicates.ts";
 import { compareParameterLegend } from "../sheets/xy/compareParameter.ts";
 import { logLegendClause } from "../sheets/column/logScale.ts";
+import { maxOf } from "../lib/extent.ts";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -123,7 +124,7 @@ export function legendFor(c: LegendContext): string {
   // XY tables: n is the replicates at each X, not every value of a curve.
   const xy = c.table.type === "xy" && !longitudinal;
   const groups = xy ? numericData(c.table).datasets.map((d) => ({
-    name: d.name, n: Math.max(0, ...d.ys.map((r) => r.filter((v) => v !== null).length)),
+    name: d.name, n: Math.max(0, maxOf(d.ys.map((r) => r.filter((v) => v !== null).length))),
   })).filter((g) => g.n > 0) : tableGroups(c.table);
   // Unit and experiments: typed in Reporting details, else from the
   // table's replicate map (report/replicates.ts).

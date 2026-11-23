@@ -22,6 +22,7 @@ import {
   stackBrackets, starsFor, type Comparison,
 } from "./significance.ts";
 import { applyClassic } from "./theme.ts";
+import { maxOf } from "../lib/extent.ts";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export type Trace = Record<string, any>;
@@ -972,7 +973,7 @@ function drawAtRisk(layout: Layout, format: GraphFormat, ctx: FormatContext, ex:
   const r = format.atRisk!;
   const sets = ctx.riskSets!;
   const xa = format.x ?? {};
-  const maxT = isNum(xa.max) ? xa.max : Math.max(...sets.flatMap((s) => s.times), ex.max);
+  const maxT = isNum(xa.max) ? xa.max : Math.max(maxOf(sets.flatMap((s) => s.times)), ex.max);
   const minT = isNum(xa.min) ? xa.min : 0;
   let step = isNum(xa.majorStep) && xa.majorStep > 0 ? xa.majorStep : niceTick(maxT - minT);
   if (!(step > 0)) step = 1;

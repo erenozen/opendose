@@ -10,6 +10,7 @@ import { numericData } from "../../project/table.ts";
 import type { DataTableModel } from "../../project/types.ts";
 import { fmtTime, timeUnitOf, type TimeUnit } from "./entry.ts";
 import { survivalGroups } from "./kmTable.ts";
+import { maxOf } from "../../lib/extent.ts";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type R = Record<string, any>;
@@ -79,7 +80,7 @@ export function adjustedHeader(k: number, correction: string): string {
 export function lastCommonTime(table: DataTableModel): number | null {
   const gs = survivalGroups(table).filter((g) => g.times.length);
   if (!gs.length) return null;
-  return Math.min(...gs.map((g) => Math.max(...g.times)));
+  return Math.min(...gs.map((g) => maxOf(g.times)));
 }
 
 /** Index of the control group among the analysed groups. */

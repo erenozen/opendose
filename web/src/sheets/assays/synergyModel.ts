@@ -5,6 +5,7 @@
 // payload; pasting a matrix. Pure (no React).
 import { normalizeTable, parseCell, withExclusionsBlanked } from "../../project/table.ts";
 import type { DataTableModel } from "../../project/types.ts";
+import { maxOf } from "../../lib/extent.ts";
 
 export const A_SYNERGY = "synergy_matrix";
 export const G_SYN_LANDSCAPE = "synergy_landscape";
@@ -200,7 +201,7 @@ export function synergyData(table: DataTableModel, o: SynergyOptions): SynergyPa
       + `concentration (0 for the drug alone). Not a number: ${[...badRows.map((r) => `row “${r}”`),
         ...badCols.map((c) => `column “${c}”`)].slice(0, 6).join(", ")}` };
   }
-  const width = Math.max(1, ...t.datasets.flatMap((d) => d.rows.map((r) => r.length)));
+  const width = Math.max(1, maxOf(t.datasets.flatMap((d) => d.rows.map((r) => r.length))));
   const mats: (number | null)[][][] = [];
   for (let k = 0; k < width; k++) {
     const m = t.rowTitles.map((_, i) => t.datasets.map((d) => parseCell(d.rows[i]?.[k] ?? "")));

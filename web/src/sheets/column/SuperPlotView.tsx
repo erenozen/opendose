@@ -14,6 +14,7 @@ import { parseCell } from "../../project/table";
 import type { DataTableModel } from "../../project/types";
 import type { SuperPlotSettings } from "../common/superplot";
 import { buildColumnSuperPlot } from "../common/superplotTraces";
+import { maxOf, minOf } from "../../lib/extent";
 
 export default function SuperPlotView({ table, settings, spread, scheme, yTitle, format,
   onFormatChange, comparisons, results, caption }: {
@@ -36,7 +37,7 @@ export default function SuperPlotView({ table, settings, spread, scheme, yTitle,
     if (spread !== "jitter") {
       const all = table.datasets.flatMap((d) => d.rows.flatMap((r) => r.map(parseCell)))
         .filter((v): v is number => v !== null);
-      const est = area ?? estimateArea(null, Math.min(...all), Math.max(...all),
+      const est = area ?? estimateArea(null, minOf(all), maxOf(all),
         [-0.6, table.datasets.length - 0.4], { l: 60, r: 16, t: 36, b: 48 });
       scale = areaScale(est, 7.5);
     }

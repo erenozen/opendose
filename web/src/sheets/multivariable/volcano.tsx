@@ -17,6 +17,7 @@ import {
   ROW_TITLE_KEY, topPoints, VOLCANO_GROUPS, volcanoDefaults, volcanoPoints,
   type VolcanoSettings,
 } from "./volcanoModel";
+import { maxOf } from "../../lib/extent";
 
 function useVolcano(graph: GraphSheet, table: DataTableModel) {
   const info = useMemo(() => variableInfo(table), [table]);
@@ -53,7 +54,7 @@ export function MvVolcanoPlot({ graph, table, titles, scheme, format, onFormatCh
         hovertemplate: "%{text}<br>log2 fold change %{x:.3g}<br>P = %{customdata:.3g}<extra></extra>",
       }, { ds, role: "points" }) as Plotly.Data;
     });
-    const yTop = Math.max(1, ...points.map((p) => p.y));
+    const yTop = Math.max(1, maxOf(points.map((p) => p.y)));
     const thr = { color: chrome.inkSecondary, width: 1, dash: "dash" as const };
     const shapes: Partial<Plotly.Shape>[] = [
       { type: "line", xref: "x", yref: "paper", x0: -fcT, x1: -fcT, y0: 0, y1: 1, line: thr,
@@ -74,7 +75,7 @@ export function MvVolcanoPlot({ graph, table, titles, scheme, format, onFormatCh
           + "<br>choose the columns in Settings → Graph options",
         font: { size: 12, color: chrome.muted } });
     }
-    const xMax = Math.max(fcT * 1.5, ...points.map((p) => Math.abs(p.x))) * 1.08;
+    const xMax = Math.max(fcT * 1.5, maxOf(points.map((p) => Math.abs(p.x)))) * 1.08;
     return {
       traces, dropped, n: points.length,
       layout: baseLayout(chrome, titles.x || "log2 fold change",

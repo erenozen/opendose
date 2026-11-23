@@ -4,6 +4,7 @@
 import type { EngineBridge } from "../../lib/engine";
 import { normalizeTable, numericData, parseCell } from "../../project/table";
 import type { DataTableModel, TableType } from "../../project/types";
+import { maxOf } from "../../lib/extent.ts";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -63,7 +64,7 @@ export function resultToTable(r: ManipResult, source: DataTableModel): DataTable
   const sameRows = nRows === source.x.length;
   const datasets = r.datasets.map((d, i) => {
     const src = source.datasets[i];
-    const width = Math.max(1, ...d.ys.map((row) => row.length));
+    const width = Math.max(1, maxOf(d.ys.map((row) => row.length)));
     const rows = Array.from({ length: nRows }, (_, ri) => {
       const row = d.ys[ri] ?? [];
       return Array.from({ length: width }, (_, s) => fmtCell(row[s]));
