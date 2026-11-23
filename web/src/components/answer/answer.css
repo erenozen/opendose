@@ -143,6 +143,14 @@
   .pane-answer .answer { min-height: 75svh; }
 }
 
+/* ---- a replicate map (P-08): "Across experiments" above the fit of all
+   the values, each group under a sentence-case label ---- */
+.answer-group { display: flex; flex-direction: column; gap: var(--space-8); min-width: 0; }
+.answer-group-label {
+  margin: 0; font-size: var(--text-label); font-weight: var(--weight-semibold);
+  line-height: var(--leading-body); color: var(--muted);
+}
+
 /* Printing keeps its pinned look (ruling 10): the sheet prints its tables. */
 @media print {
   .pane-answer { display: none !important; }
