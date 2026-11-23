@@ -60,9 +60,8 @@ Does it navigate to a URL?
 <button type="submit" className="btn-primary">Create table</button>
 ```
 
-The `.btn-primary` and `.btn-danger` classes are aliases kept for call
-sites not yet migrated. Never write them in new code; never add a new
-button class (`.foo-btn`) to restyle a Button.
+The old `.btn-primary` and `.btn-danger` classes no longer exist. Never
+add a button class (`.foo-btn`) to restyle a Button.
 
 ### Busy and disabled
 
