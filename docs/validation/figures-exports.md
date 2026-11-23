@@ -87,6 +87,7 @@ Two limits remain, neither in the graphs:
   `runs_test`, big-integer binomial sums) grows about as n^2.8: 0.55 s at
   5,000 residuals, 3.4 s at 10,000, 24.5 s at 20,000 (native Python), so
   200,000 points do not finish. A large-n approximation is engine work.
-- 500,000 rows (the plan's acceptance size) does not fit in the 3 GB
-  browser cap of the shared test machine: the Import dialog's parse of
-  the paste peaks above it (200,000 rows: 2.8 to 3.0 GB whole browser).
+- 500,000 rows (the plan's acceptance size) does not fit in the shared
+  test machine's browser cap, 3 GB or 4 GB: the browser is killed while
+  the paste is parsed for the Import dialog (200,000 rows peak at 2.8 to
+  3.0 GB whole browser there, then drop to about 1 GB).
