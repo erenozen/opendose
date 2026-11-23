@@ -116,6 +116,10 @@ export interface OptionsState {
    *  "> highest dose" (absent = "bound") or as the fitted number, flagged
    *  (sheets/xy/rangeReport.ts). */
   extrapolatedReport?: "bound" | "fitted";
+  /** Typed initial values of a built-in model (P-21), parameter -> typed
+   *  text; absent or blank (files saved before) = automatic, the
+   *  model's rules. */
+  initialValues?: Record<string, string>;
 }
 
 export const DEFAULT_XY_OPTIONS: OptionsState = {
@@ -185,6 +189,14 @@ export interface FitResult {
   /** Sentences the engine attaches to the fit (Weibull and hormesis
    *  models: what ED p means, EDs beyond the doses tested). */
   notes?: string[];
+  /** The start of every free parameter (P-21): the model's rules or a
+   *  typed value. */
+  initial_values?: Record<string, { value: number; source: "rule" | "typed" }>;
+  /** How many starts the fit tried, the parameter they seeded, and
+   *  whether a degenerate point made it restart. */
+  starts?: { n: number; seeded: string | null; restarted: boolean };
+  /** The range constraints the fit used (P-20), null for an open side. */
+  bounds?: Record<string, [number | null, number | null]>;
   param_order?: string[];
   params: Record<string, ParamEntry>;
   goodness: {

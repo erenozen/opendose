@@ -96,6 +96,27 @@ export function rangeText(p: string, st: ConstraintState): string | null {
   return `${range}, stated reason: ${(st.reason ?? "").trim().replace(/\.$/, "")}`;
 }
 
+/** Parameters of a built-in model that take a typed start: the free ones
+ *  (not held constant). */
+export function startParams(meta: ModelMeta, o: OptionsState): string[] {
+  return meta.constrainable.filter((p) => {
+    const st = constraintState(o, p);
+    return !(st.enabled && constraintKind(st) === "constant");
+  });
+}
+
+/** Typed initial values of a built-in model, as the engine reads them
+ *  (options.initial_values {name: number}); blank or unreadable fields
+ *  are automatic (the model's rules). */
+export function builtinStarts(meta: ModelMeta, o: OptionsState): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const p of startParams(meta, o)) {
+    const v = parseNumber(o.initialValues?.[p] ?? "");
+    if (v !== null) out[p] = v;
+  }
+  return out;
+}
+
 /** Held-constant parameters and experimental constants for a built-in
  *  model. Top / Bottom / HillSlope read as before (blank: 0, 0, -1). */
 export function builtinConstraints(meta: ModelMeta, o: OptionsState): Record<string, number> {

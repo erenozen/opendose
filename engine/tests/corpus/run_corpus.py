@@ -3477,6 +3477,35 @@ in constants. A lower limit above the upper one, a range on a parameter
 held constant, an unknown parameter or a missing limit each give a
 sentence saying what to fix.
 
+### P-21 initial values shown, typed and exported
+
+Every curve fit now returns `initial_values` {name: {value, source}}:
+the start of each free parameter, from the model's rules ("rule") or
+typed by the user ("typed", options `initial_values`), and `starts`
+(how many starts were tried, the parameter they seed, whether a
+degenerate point forced a restart). With a typed start the fit runs
+from that start alone. The results show the starts in an "Initial
+values" fold under each fit, with "Copy fit report" (text) and a CSV
+download: model, equation, initial values, constraints with their
+reasons, weighting, CI method, every parameter with SE and CI, and the
+goodness of fit. Projects saved before open with automatic starts
+(`fitReport.test.ts` loads two committed fixtures).
+
+Reference: `engine/tests/reference/initial_values.py` (the
+log(inhibitor) vs. response rules computed by hand, and scipy
+least_squares from two starts; R's nls is not installed), tested in
+`engine/tests/test_initial_values.py`. On the app's example (9
+concentrations in triplicate) the rules give Top 101.5 (YMAX), Bottom
+0.5 (YMIN), LogIC50 -7 (the X of the value nearest the mid response),
+HillSlope -1. From those starts and from a typed LogIC50 = -5 the fit
+reaches the same point as scipy from either start: Top 99.85616,
+Bottom 0.98013, LogIC50 -6.983042, HillSlope -1.103468, SS 59.58161
+(estimates to 1e-7, SEs to 1e-4). The reported starts of Weibull,
+[Agonist] vs. response, one-site total binding and exponential plateau
+equal their registered rules exactly. A start for a parameter held
+constant, an unknown parameter or a non-finite value gives a sentence
+saying what to fix; a start outside a range is moved inside it.
+
 """
 
 

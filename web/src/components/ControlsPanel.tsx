@@ -14,7 +14,7 @@ import {
   type UserEquationDef,
 } from "../lib/userEquation";
 import {
-  constraintKind, constraintState, numberInTitle, rangeProblems, withConstraint,
+  constraintKind, constraintState, numberInTitle, rangeProblems, startParams, withConstraint,
   type ConstraintKind,
 } from "../sheets/xy/fitOptions";
 import EquationEditor from "./EquationEditor";
@@ -154,6 +154,7 @@ export default function ControlsPanel({
   const perDataset = isUser && ueq ? columnConstants(ueq, ps) : meta.datasetConstants ?? [];
   const shareable = isUser ? [] : shareableParams(meta);
   const classic = meta.special === "gaddum_schild_classic" && !isUser;
+  const starts = isUser ? [] : startParams(meta, options);
   const ids = useId();
 
   return (
@@ -503,6 +504,24 @@ export default function ControlsPanel({
         )}
       </section>
       </details>
+
+      {!isUser && !classic && starts.length > 0 && (
+        <details className="advanced initial-values">
+          <summary>Initial values</summary>
+          <section>
+            <p className="hint-block">
+              Blank fields start from the model&apos;s rules; the results list the values used under
+              Initial values. A typed start replaces the rule and the fit runs from it alone.
+            </p>
+            {starts.map((p) => (
+              <NumberField key={p} label={`${p} start`} fieldClassName="field-num"
+                placeholder="automatic" readOnly={readOnly}
+                value={options.initialValues?.[p] ?? ""}
+                onValueChange={(v) => set({ initialValues: { ...(options.initialValues ?? {}), [p]: v } })} />
+            ))}
+          </section>
+        </details>
+      )}
     </div>
   );
 }

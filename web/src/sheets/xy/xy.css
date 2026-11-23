@@ -32,3 +32,8 @@
 .compare-lines-table .compare-note {
   display: block; color: var(--muted); font-size: var(--text-caption); white-space: normal;
 }
+
+/* Initial values and the fit report under a fit (FitStarts.tsx). */
+.fit-starts { margin-top: var(--space-12); }
+.fit-starts > table, .fit-starts > p { margin-top: var(--space-8); }
+.fit-report-actions { display: flex; flex-wrap: wrap; gap: var(--space-8); margin-top: var(--space-8); }

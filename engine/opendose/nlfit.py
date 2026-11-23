@@ -904,6 +904,27 @@ def _range_constraints(spec, model, bounds, fixed):
     return out
 
 
+def _typed_starts(spec, model, initial_values, fixed):
+    """options.initial_values {name: number} -> {key: float} (LogIC50 /
+    LogEC50 name LogXmid). A held-constant parameter has no start."""
+    out = {}
+    for name, v in (initial_values or {}).items():
+        if v is None:
+            continue
+        key = _param_key(spec, name)
+        if key not in spec.params:
+            raise ValueError(f"unknown parameter for {model}: {name}")
+        if key in fixed:
+            raise ValueError(f"{name} is held constant, so it has no "
+                             "initial value: clear one of the two")
+        v = float(v)
+        if not math.isfinite(v):
+            raise ValueError(f"the initial value of {name} must be a "
+                             "finite number")
+        out[key] = v
+    return out
+
+
 def _at_bound(value, lo, hi):
     """"lower" / "upper" when a fitted value sits on its range limit (to
     1e-6 of the limit's size), else None."""
@@ -920,8 +941,18 @@ def fit_model(x_values, y_values, model: str, *,
               weight_source: str = "predicted",
               ci_method: str = "asymptotic",
               sd=None, n=None, replicates: str = "account",
-              bounds: dict | None = None) -> dict:
+              bounds: dict | None = None,
+              initial_values: dict | None = None) -> dict:
     """Fit a registered model. Returns Prism-style results dict.
+
+    The result's "initial_values" {name: {"value", "source"}} gives the
+    start of every free parameter: "rule" (the model's initial-value
+    rules: the module docstring of equations.py and, for the four
+    logistic models here, _dr_initials) or "typed" (initial_values
+    {name: number}, the user's own start). With any typed start the fit
+    runs from that one start (no multistart); otherwise "starts" says
+    how many starts were tried and which parameter they seed, since the
+    best of them is reported (curve-fitting guide, "Initial values").
 
     bounds {name: [lo, hi]} (either None): range constraints ("greater
     than", "less than", "between") on top of the model's own; the fit
@@ -991,10 +1022,16 @@ def fit_model(x_values, y_values, model: str, *,
     init = (spec.initials(x, y, fixed) if spec.initials_fixed
             else spec.initials(x, y))
     init.update(fixed)
+    typed = _typed_starts(spec, model, initial_values, fixed)
+    init.update(typed)
+    start_report = {_display_name(spec, n): {
+        "value": float(init[n]), "source": "typed" if n in typed else "rule"}
+        for n in free_names}
 
-    # multi-start on the designated parameter across the x range
+    # multi-start on the designated parameter across the x range (not
+    # when the user typed a start: the fit starts where they asked)
     starts = [init]
-    if spec.multistart and spec.multistart in free_names:
+    if spec.multistart and spec.multistart in free_names and not typed:
         for v in np.unique(x):
             if spec.multistart_mode == "x":
                 seed = v
@@ -1065,6 +1102,7 @@ def fit_model(x_values, y_values, model: str, *,
         return False
 
     degenerate_fit = degenerate(wss, jac)
+    restarted = False
     if degenerate_fit:
         alt = None
         if not budget.soft_exceeded():
@@ -1075,6 +1113,7 @@ def fit_model(x_values, y_values, model: str, *,
             p2, c2, w2, j2 = alt[1]()
             if w2 < wss * (1.0 - 1e-9):
                 popt, pcov, wss, jac = p2, c2, w2, j2
+                restarted = True
                 degenerate_fit = degenerate(wss, jac)
 
     fitted = dict(fixed)
@@ -1274,6 +1313,11 @@ def fit_model(x_values, y_values, model: str, *,
         },
         "fitted_values": fitted,
         "x_is_log": spec.x_is_log,
+        "initial_values": start_report,
+        "starts": {"n": len(starts),
+                   "seeded": (_display_name(spec, spec.multistart)
+                              if len(starts) > 1 else None),
+                   "restarted": restarted},
         "_cov": {"free_names": free_names, "matrix": pcov.tolist()},
     }
     if ranges:
@@ -1536,14 +1580,15 @@ def _fixed_params(model: str, constraints: dict | None) -> dict:
 
 def robust_fit(x_values, y_values, model: str, *,
                constraints: dict | None = None,
-               bounds: dict | None = None) -> dict:
+               bounds: dict | None = None,
+               initial_values: dict | None = None) -> dict:
     """Robust nonlinear regression (Motulsky & Brown 2006): Cauchy
     (Lorentzian) loss scaled by the RSDR, iterated to convergence.
     bounds: range constraints as in fit_model."""
     spec = MODELS[model]
     x, y = _clean_xy(x_values, y_values)
     base = fit_model(x_values, y_values, model, constraints=constraints,
-                     bounds=bounds)
+                     bounds=bounds, initial_values=initial_values)
     fitted = dict(base["fitted_values"])
     # the constraints fit_model applied (renamed LogXmid, 3PL slopes); the
     # raw names left those parameters free in the robust iterations
@@ -1586,12 +1631,14 @@ def robust_fit(x_values, y_values, model: str, *,
 
     resid = y - spec.func(x, fitted)
     return {"model": model, "fitted_values": fitted, "rsdr": float(rsdr),
+            "initial_values": base.get("initial_values"),
             "residuals": resid.tolist(), "n_points": int(n), "k_params": int(k)}
 
 
 def robust_model_fit(x_values, y_values, model: str, *,
                      constraints: dict | None = None,
-                     bounds: dict | None = None) -> dict:
+                     bounds: dict | None = None,
+                     initial_values: dict | None = None) -> dict:
     """Robust nonlinear regression as the fitting method (curve-fitting
     guide, "Robust nonlinear regression"): the robust_fit best-fit values
     in fit_model's result layout, with every SE and CI None: robust
@@ -1601,7 +1648,7 @@ def robust_model_fit(x_values, y_values, model: str, *,
     R^2. fit_method = "robust"."""
     spec = MODELS[model]
     rob = robust_fit(x_values, y_values, model, constraints=constraints,
-                     bounds=bounds)
+                     bounds=bounds, initial_values=initial_values)
     fitted = dict(rob["fitted_values"])
     x, y = _clean_xy(x_values, y_values)
     fixed = _fixed_params(model, constraints)
@@ -1651,6 +1698,7 @@ def robust_model_fit(x_values, y_values, model: str, *,
                      "r_squared": None, "ss_res": float(np.sum(resid ** 2)),
                      "sy_x": None, "rsdr": float(rob["rsdr"])},
         "fitted_values": fitted, "x_is_log": spec.x_is_log,
+        "initial_values": rob.get("initial_values"),
         "note": ("Robust regression: best-fit values only. It cannot give "
                  "standard errors, confidence intervals or bands (curve-"
                  "fitting guide, \"Robust nonlinear regression\")."),
@@ -1662,7 +1710,8 @@ def rout_outliers(x_values, y_values, model: str, *, q: float = 0.01,
                   sd=None, n=None, replicates: str = "account",
                   weighting: str = "none", ci_method: str = "asymptotic",
                   weight_source: str = "predicted",
-                  bounds: dict | None = None) -> dict:
+                  bounds: dict | None = None,
+                  initial_values: dict | None = None) -> dict:
     """ROUT: robust fit, then FDR-based outlier detection at rate Q,
     then a least-squares fit of the cleaned data (Motulsky & Brown 2006).
     The detection uses the unweighted robust fit; the final fit uses the
@@ -1678,7 +1727,8 @@ def rout_outliers(x_values, y_values, model: str, *, q: float = 0.01,
         xs, ys, summ = _summary_inputs(x_values, y_values, sd, n,
                                        replicates, "none")
         out = rout_outliers(xs.tolist(), ys.tolist(), model, q=q,
-                            constraints=constraints, bounds=bounds)
+                            constraints=constraints, bounds=bounds,
+                            initial_values=initial_values)
         flagged = {(o["x"], o["y"]) for o in out["outliers"]}
         keep = [i for i in range(xs.size)
                 if (float(xs[i]), float(ys[i])) not in flagged]
@@ -1688,11 +1738,11 @@ def rout_outliers(x_values, y_values, model: str, *, q: float = 0.01,
             sd=[summ["sd"][i] for i in keep] if sd is not None else None,
             n=[summ["n"][i] for i in keep] if n is not None else None,
             replicates=replicates, weighting=weighting, ci_method=ci_method,
-            bounds=bounds)
+            bounds=bounds, initial_values=initial_values)
         return out
     x, y = _clean_xy(x_values, y_values)
     rob = robust_fit(x_values, y_values, model, constraints=constraints,
-                     bounds=bounds)
+                     bounds=bounds, initial_values=initial_values)
     resid = np.array(rob["residuals"])
     n, k = rob["n_points"], rob["k_params"]
     df = max(n - k, 1)
@@ -1713,7 +1763,7 @@ def rout_outliers(x_values, y_values, model: str, *, q: float = 0.01,
     cleaned_fit = fit_model(x[keep].tolist(), y[keep].tolist(), model,
                             constraints=constraints, weighting=weighting,
                             ci_method=ci_method, weight_source=weight_source,
-                            bounds=bounds)
+                            bounds=bounds, initial_values=initial_values)
     return {
         "method": "rout", "q": q, "rsdr": rob["rsdr"],
         "outliers": [{"x": float(x[i]), "y": float(y[i]),
