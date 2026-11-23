@@ -406,9 +406,10 @@ export function engineMessages(result: unknown): EngineMessage[] {
     const o = v as Record<string, unknown>;
     const ctx = depth > 0 && typeof o.name === "string" && o.name.trim() ? o.name.trim() : context;
     for (const [k, val] of Object.entries(o)) {
-      // the Residuals section states its own note and warnings
-      // (sheets/column/residualsPanel.tsx): not repeated here
-      if (depth === 0 && k === "residual_check") continue;
+      // the Residuals sections state their own note and warnings
+      // (sheets/column/residualsPanel.tsx; a fit's per data set, a
+      // model's in the Checks row): not repeated here
+      if (k === "residual_check" || (depth === 0 && k === "residual_diagnostics")) continue;
       // an IC50 reported as "> top dose": the fit's panel states every
       // reason under its table (sheets/xy/rangeReport.ts)
       if (k === "range_flags" && val && typeof val === "object" && (val as Record<string, unknown>).report_as

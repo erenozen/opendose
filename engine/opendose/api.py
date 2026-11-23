@@ -72,6 +72,27 @@ def _abs_ic50_entry(fit, level, x_lo, x_hi):
     return entry
 
 
+def _fit_residual_check(res, name, *, robust=False, rout=False):
+    """residuals.fit_residuals of a fit's "_residuals" (nlfit.fit_model),
+    or {"unavailable": why} when the fit has none."""
+    if robust:
+        return {"unavailable": (
+            "Residual plots are not drawn for a robust fit: it assumes the "
+            "scatter follows a Lorentzian distribution, so a normal QQ plot "
+            "does not describe it.")}
+    if res is None:
+        return {"unavailable": (
+            "Residual plots need the individual values; this fit used means "
+            "with an error and n, so its residuals are those of the means.")}
+    out = residuals.fit_residuals(res["x"], res["y"], res["fitted"],
+                                  n_params=res["n_params"],
+                                  weights=res.get("weights"), name=name)
+    if rout:
+        out["note"] += (" Points ROUT removed as outliers are not among "
+                        "them.")
+    return out
+
+
 def _dose_response(data, options):
     """Nonlinear regression for any registered model. For models whose X
     is log10(concentration), x_is_log=False means the engine applies
@@ -184,6 +205,9 @@ def _dose_response(data, options):
                 fit["params"]["AbsoluteIC50"] = _abs_ic50_entry(
                     fit, float(abs_level), x_lo, x_hi)
             fit.pop("_cov", None)  # internal; keep the JSON payload lean
+            entry["residual_check"] = _fit_residual_check(
+                fit.pop("_residuals", None), entry["name"], robust=robust,
+                rout=bool(rout_q))
             try:
                 flags = rangeflags.range_flags(fit["params"], xs, ys,
                                                x_is_log=spec.x_is_log)
@@ -277,6 +301,7 @@ def _experiments(x_col, ds, exp_opt, model, spec, *, constraints, weighting,
                                   weighting=weighting, ci_method=ci_method,
                                   weight_source=weight_source)
         fit.pop("_cov", None)
+        fit.pop("_residuals", None)
         return fit, xs, ys
 
     def flags_of(fit, xs, ys):
@@ -1134,6 +1159,10 @@ def _linear_regression(data, options):
                 fit["bands"] = linregress.linear_bands(
                     xs, ys, grid, kind=options["bands"], through=through)
             entry["fit"] = fit
+            b, a = fit["slope"]["value"], fit["y_intercept"]["value"]
+            entry["residual_check"] = residuals.fit_residuals(
+                xs, ys, [b * v + a for v in xs],
+                n_params=1 if through else 2, name=entry["name"])
         except Exception as exc:
             entry["error"] = str(exc)
         results.append(entry)

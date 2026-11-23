@@ -217,6 +217,8 @@ export function linregResult(raw: any, table: DataTableModel, o: LinregOptions):
         ...out,
         linreg: b,
         ...(bands ? { bands } : {}),
+        // residual plots in the Checks row (components/residualSets.ts)
+        ...(ds.residual_check ? { residual_check: ds.residual_check } : {}),
         fit: {
           model: o.throughOrigin ? "line_through_origin" : "linear_regression",
           label: o.throughOrigin ? "Linear regression through the origin"

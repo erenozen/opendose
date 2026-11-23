@@ -615,3 +615,50 @@ agrees with `runs_test` p_method "exact_float" to at most 7.2e-10
 relative, including P = 1.657e-178 at N = 20,000 and P = 0.94543216 at
 N = 500,000. The committed reference stays
 engine/tests/reference/large_tables.py.
+
+## Feature validation: results honesty, wave 1 (2026-11-23)
+
+R is not installed on the build machine; every reference below is a
+Python oracle (scipy, statsmodels in `/home/eren/opendose/.venv`), a
+hand derivation, or a brute-force enumeration, and the script that
+produced each pinned value is committed next to its test.
+
+### P-11 residual plots of curve fits and linear regression
+
+`nlfit.fit_model` now keeps the points it fitted with their fitted
+values and final weights (internal `_residuals`, dropped from the
+answer); `residuals.fit_residuals` turns them into the residual block
+each fitted data set carries (`residual_check`): the raw residual
+Y − Ŷ (R's `residuals(nls)`), the plotted residual (the weighted
+residual √w (Y − Ŷ) when the fit is weighted, else the raw one), the
+standardized residual = plotted / Sy.x (R's `residuals(nls, type =
+"pearson")`, statsmodels' `resid_pearson`), the Filliben normal
+quantile of each residual's rank (as `scipy.stats.probplot`) and
+Shapiro-Wilk on the plotted residuals. Robust fits (Lorentzian scatter)
+and fits of means with SD and n say why they have none.
+
+Reference: `engine/tests/reference/fit_residuals.py` (scipy
+`curve_fit` from NIST Start 2, statsmodels WLS and OLS), tested in
+`engine/tests/test_fit_residuals.py`:
+
+| Problem | n | Sy.x (reference) | first raw residual | first standardized | engine |
+| --- | --- | --- | --- | --- | --- |
+| NIST Misra1a | 14 | 0.101879 | 0.0837336 | 0.821895 | equal to 1e-5 relative |
+| NIST MGH09 | 11 | 0.00662792 | 0.00130638 | 0.197102 | equal to 1e-5 relative |
+| Dose-response example, 4PL | 27 | 1.6095 | −1.07155 | −0.665762 | equal to 1e-5; W = 0.97639 |
+| Line, 1/X² weights (WLS) | 10 | 0.0920879 | 0.0286853 | 0.311499 | equal to 1e-6 |
+| Line (OLS) | 10 | 0.736135 | −0.00764331 | −0.010383 | equal to 1e-9 |
+
+The weighted SS of the plotted residuals equals the fit's weighted SS
+(1/X²: 1e-9; 1/Y² from the predicted Y, iterated: 1e-6). Edge cases: a
+curve through every point (standardized residuals undefined, said so),
+no residual df, more than 50,000 points (points withheld, Shapiro-Wilk
+kept), ROUT (the removed outliers are not among the residuals), units
+×1e-12 and ×1e12 (residuals scale, standardized residuals and QQ
+positions unchanged), permuting the points (residuals permute, W
+unchanged).
+
+The plan's acceptance test speaks of 24 points; the shipped
+dose-response example has 9 doses × 3 replicates = 27, and the e2e
+test (`web/scripts/e2e-results.mjs`) asserts 27 points in each of the
+three plots and W = 0.9764 in the Checks row.

@@ -1198,6 +1198,20 @@ def fit_model(x_values, y_values, model: str, *,
             "n_rows": int(x.size),            # X rows (means) fit
             "n_points": n_points,             # points df is counted from
         }
+    else:
+        # The points fitted and their residuals (internal, like _cov: the
+        # API turns them into residual plots, residuals.fit_residuals).
+        # The weights are those of the final curve (Prism's "weight by the
+        # predicted Y"), of the replicate means (observed_mean) or of X.
+        w_final = None
+        if weighting != "none":
+            ybase = (_replicate_mean_y(x, y)
+                     if weight_source == "observed_mean" else yhat)
+            w_final = _weights(x, ybase, weighting).tolist()
+        out["_residuals"] = {"x": x.tolist(), "y": y.tolist(),
+                             "fitted": np.asarray(yhat, float).tolist(),
+                             "weights": w_final,
+                             "n_params": len(free_names)}
     return out
 
 

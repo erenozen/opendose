@@ -379,3 +379,145 @@ def column_residuals(groups, names=None, *, paired: bool = False) -> dict:
         "note": note,
         "advice": _advice(n_qq),
     }
+
+
+# ------------------------------------------------- regression and curve fits
+
+FIT_ADVICE_SOURCE = (
+    "GraphPad curve fitting guide, 'Residual plot' and 'Normality of "
+    "residuals'; Motulsky H & Christopoulos A (2004) Fitting Models to "
+    "Biological Data using Linear and Nonlinear Regression, ch. 9 'How to "
+    "evaluate a fit' (Oxford University Press).")
+
+
+def _fit_advice(n: int, weighted: bool) -> dict:
+    spread = ("a funnel left after weighting means the weighting does not "
+              "match how the scatter grows with Y"
+              if weighted else
+              "a funnel (scatter growing with Y) suggests the fit needs "
+              "weighting")
+    if n < 3:
+        text = (f"Only {n} residual{'s' if n != 1 else ''}: too few to see a "
+                "pattern.")
+    else:
+        text = (f"Look at the {n} residuals for a pattern, not at a P "
+                "value: a curve or a long run of one sign against X means "
+                "the model misses the shape of the data (the runs test), "
+                f"{spread}, and a few points far from zero are possible "
+                "outliers. The QQ plot shows whether the scatter around "
+                "the curve is roughly Gaussian, which the confidence "
+                "intervals assume.")
+    return {"n_total": int(n), "text": text, "source": FIT_ADVICE_SOURCE}
+
+
+def _qq_positions(r: np.ndarray) -> np.ndarray:
+    """Filliben normal quantile of each residual's rank (stable ties)."""
+    theo = np.empty(r.size)
+    theo[np.argsort(r, kind="stable")] = stats.norm.ppf(_filliben_medians(r.size))
+    return theo
+
+
+def _shapiro(r: np.ndarray):
+    """(result or None, note or None) on the residuals r."""
+    n = int(r.size)
+    if n < 3:
+        return None, f"Shapiro-Wilk needs at least 3 residuals; {n} available."
+    if float(np.ptp(r)) <= 1e-12 * max(1.0, float(np.max(np.abs(r)))):
+        return None, "All residuals are equal; Shapiro-Wilk is undefined."
+    w_, pv = stats.shapiro(r)
+    note = (f"With N > {SHAPIRO_MAX_N} the Shapiro-Wilk P value may not be "
+            "accurate (Royston's approximation is validated up to 5000)."
+            if n > SHAPIRO_MAX_N else None)
+    return {"W": float(w_), "p": float(pv), "n": n}, note
+
+
+def _withheld(n: int) -> dict:
+    return {"points_withheld": True, "unavailable": (
+        f"The residual plots draw one point per value, up to "
+        f"{POINTS_MAX_N:,} values; these residuals number {n:,}, too many "
+        "to plot here. To look at them, plot a subset: the Import dialog's "
+        "Filter step keeps every k-th row.")}
+
+
+def fit_residuals(x, y, fitted, *, n_params: int, weights=None,
+                  name: str = "", index=None) -> dict:
+    """Residual diagnostics of a regression or curve fit, in the shape
+    column_residuals() returns (one group: the data set), plus X.
+
+    raw residual = Y - Yhat (R's residuals(nls), type "response").
+    With weights w the plotted residual is the weighted residual
+    sqrt(w) (Y - Yhat), whose sum of squares the fit minimised; without
+    weights it is the raw residual. standardized = plotted residual / s,
+    s = sqrt(sum(plotted^2) / (n - n_params)) = Sy.x: R's
+    residuals(nls, type = "pearson") (and statsmodels' WLS
+    resid_pearson), so the QQ plot is on the same scale whatever the
+    weighting. Theoretical quantiles as column_residuals (Filliben 1975).
+    x, y, fitted, weights: arrays of the n points the fit used, in its
+    order; index: the 0-based position of each point among the values
+    entered (default 0 .. n - 1)."""
+    x = np.asarray(x, dtype=float)
+    y = np.asarray(y, dtype=float)
+    f = np.asarray(fitted, dtype=float)
+    n = int(y.size)
+    raw = y - f
+    weighted = weights is not None
+    plotted = raw * np.sqrt(np.asarray(weights, dtype=float)) if weighted else raw
+    df = n - int(n_params)
+    warnings: list[str] = []
+    s = math.sqrt(float(np.sum(plotted ** 2)) / df) if df > 0 else None
+    if s is None:
+        warnings.append("No residual degrees of freedom (as many parameters "
+                        "as points): the standardized residuals are "
+                        "undefined.")
+    elif s == 0:
+        warnings.append("Every residual is 0 (the curve passes through every "
+                        "point): the standardized residuals are undefined.")
+    usable = s is not None and s > 0
+    idx = list(range(n)) if index is None else [int(i) for i in index]
+    withhold = n > POINTS_MAX_N
+    points = []
+    if not withhold and n:
+        theo = _qq_positions(plotted)
+        for i in range(n):
+            points.append({
+                "group": name, "group_index": 0, "index": idx[i],
+                "x": float(x[i]), "value": float(y[i]), "fitted": float(f[i]),
+                "residual": float(plotted[i]), "raw_residual": float(raw[i]),
+                "standardized": float(plotted[i] / s) if usable else None,
+                "theoretical": float(theo[i]),
+            })
+    shapiro, shapiro_note = _shapiro(plotted)
+    if shapiro_note:
+        warnings.append(shapiro_note)
+    if weighted:
+        note = ("Weighted residuals: the square root of each point's weight "
+                "times (Y minus the curve), the quantity the weighted fit "
+                "makes small; the QQ plot divides them by Sy.x (R's "
+                "residuals(nls, type = \"pearson\")).")
+    else:
+        note = ("Residuals: Y minus the curve at each X; the QQ plot divides "
+                "them by Sy.x, the SD of the residuals.")
+    out = {
+        "kind": "fit",
+        "points": points,
+        "groups": [{"group": name, "group_index": 0, "n": n,
+                    "fitted": None, "in_qq": True}],
+        "theoretical_method": THEORETICAL_METHOD,
+        "shapiro": shapiro,
+        "shapiro_note": shapiro_note,
+        "pooled_sd": s,
+        "df": int(df),
+        "n_total": n,
+        "n_qq": n,
+        "paired": False,
+        "weighted": weighted,
+        "residual_label": "Weighted residual" if weighted else "Residual",
+        "dropped": [],
+        "warnings": warnings,
+        "note": note,
+        "advice": _fit_advice(n, weighted),
+    }
+    if withhold:
+        out.update(_withheld(n))
+    return out
+

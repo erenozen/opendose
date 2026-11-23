@@ -40,7 +40,7 @@ node -e "import('playwright').then(async ({chromium})=>{const b=await chromium.l
 # e2e-privacy runs last: it checks the security headers (public/_headers)
 # that only the production build is served with, so the dev server is
 # swapped for scripts/serve-dist.mjs on the same port first.
-for suite in e2e-check e2e-tiff e2e-export e2e-share e2e-figures e2e-assays e2e-feedback e2e-primitives e2e-motion e2e-privacy; do
+for suite in e2e-check e2e-tiff e2e-export e2e-share e2e-figures e2e-assays e2e-results e2e-feedback e2e-primitives e2e-motion e2e-privacy; do
   [ -f "scripts/$suite.mjs" ] || continue
   if [ "$suite" = e2e-privacy ]; then
     kill $DEVPID 2>/dev/null; wait $DEVPID 2>/dev/null
