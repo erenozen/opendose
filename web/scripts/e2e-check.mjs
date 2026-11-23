@@ -3337,7 +3337,8 @@ const axeOn = async (pg, sel) => {
   await dlWhy.saveAs(WHY);
   const whySaved = JSON.parse(readFileSync(WHY, "utf8"));
   checkSchema("Save project (Help me choose)", whySaved);
-  const whySheet = whySaved.sheets.find((s) => s.kind === "results" && s.chosen);
+  // (an earlier Help me choose in this suite left a one-way ANOVA with its own reason)
+  const whySheet = whySaved.sheets.find((s) => s.kind === "results" && s.chosen?.reason === recReason);
   expect("P-32: the saved results sheet keeps the reason with the options the chooser set",
     whySheet?.chosen?.test === "Unpaired t test" && whySheet.chosen.reason === recReason
     && whySheet.chosen.options?.ttestKind === "unpaired", JSON.stringify(whySheet?.chosen ?? null).slice(0, 160));
