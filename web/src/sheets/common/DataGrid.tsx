@@ -347,8 +347,9 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
     const [pr, pc] = multi && rect ? [rect.r0, rect.c0] : [r, c];
     // A copy from Excel, Google Sheets or Calc also carries the numbers
     // it stores: a cell shown rounded gets its full value.
-    const source = fullPrecision(parseClipboardGrid(text),
-      parseClipboardHtml(e.clipboardData.getData("text/html")));
+    // (The text is split into cells only when such values came with it.)
+    const html = parseClipboardHtml(e.clipboardData.getData("text/html"));
+    const source = fullPrecision(html?.app ? parseClipboardGrid(text) : [], html);
     const full = source.kind === "full" ? source.full : null;
     const routed = full ? blockText(full.block) : text;
     if (pasteNeedsImport(routed)) {

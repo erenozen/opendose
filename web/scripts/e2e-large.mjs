@@ -7,6 +7,7 @@
 //   node scripts/e2e-large.mjs http://localhost:5173/ [ROWS]
 // Run it alone, through the memory-capped slot where one exists: the
 // paste of 200,000 rows takes about 2.5 GB at its peak.
+import { readFileSync } from "node:fs";
 import { chromium } from "playwright";
 
 const baseUrl = process.argv[2] ?? "http://localhost:5173/";
@@ -23,6 +24,43 @@ const expect = (label, ok, detail = "") => {
   if (!ok) fail.push(label);
 };
 
+// Memory of the whole run (this node process and the browser) as the
+// memory-capped scope sees it: the cgroup's memory.current, sampled every
+// 200 ms, its maximum kept per phase. n/a outside a cgroup v2 scope.
+const cgroup = (() => {
+  try {
+    const rel = readFileSync("/proc/self/cgroup", "utf8").trim().split("\n")
+      .find((l) => l.startsWith("0::"))?.slice(3);
+    const dir = `/sys/fs/cgroup${rel}`;
+    readFileSync(`${dir}/memory.current`, "utf8");
+    return dir;
+  } catch { return null; }
+})();
+const memNow = () => (cgroup ? Number(readFileSync(`${cgroup}/memory.current`, "utf8")) : NaN);
+let phasePeak = 0;
+setInterval(() => { phasePeak = Math.max(phasePeak, memNow()); }, 200).unref();
+const mb = (b) => (Number.isFinite(b) ? `${(b / 2 ** 20).toFixed(0)} MB` : "n/a");
+/** The highest memory since the last call (the phase that just ended),
+ *  and the resident memory now of each kind of process in the scope. */
+const peak = () => {
+  const p = Math.max(phasePeak, memNow());
+  phasePeak = memNow();
+  const kinds = {};
+  try {
+    for (const pid of readFileSync(`${cgroup}/cgroup.procs`, "utf8").trim().split("\n")) {
+      try {
+        const cmd = readFileSync(`/proc/${pid}/cmdline`, "utf8");
+        const kind = /--type=([\w-]+)/.exec(cmd)?.[1] ?? (/node/.test(cmd) ? "node" : "browser");
+        const kb = Number(/VmRSS:\s+(\d+)/.exec(readFileSync(`/proc/${pid}/status`, "utf8"))?.[1] ?? 0);
+        kinds[kind] = (kinds[kind] ?? 0) + kb * 1024;
+      } catch { /* exited */ }
+    }
+  } catch { /* no cgroup */ }
+  const by = Object.entries(kinds).filter(([, b]) => b > 50 * 2 ** 20)
+    .map(([k, b]) => `${k} ${mb(b)}`).join(", ");
+  return `peak ${mb(p)}${by ? ` (now: ${by})` : ""}`;
+};
+
 let seed = 11;
 const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
 // each table type in a fresh browser, so one run's memory does not carry over
@@ -35,7 +73,7 @@ for (const type of ["column", "xy"]) {
   page.on("console", (m) => { if (m.type() === "error") errors.push(`console: ${m.text().slice(0, 300)}`); });
   const heap = async () => {
     const { metrics } = await cdp.send("Performance.getMetrics");
-    return `${(metrics.find((m) => m.name === "JSHeapUsedSize").value / 2 ** 20).toFixed(0)} MB heap`;
+    return `${(metrics.find((m) => m.name === "JSHeapUsedSize").value / 2 ** 20).toFixed(0)} MB heap, ${peak()}`;
   };
   await page.goto(url, { waitUntil: "domcontentloaded" });
   await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 180000 });
@@ -51,6 +89,7 @@ for (const type of ["column", "xy"]) {
   const text = Array.from({ length: N }, (_, i) => (type === "xy"
     ? `${(i / 1000).toFixed(3)}\t${(2 + 0.5 * i / 1000 + rnd()).toFixed(3)}`
     : `${(10 + 3 * rnd()).toFixed(3)}\t${(10.4 + 3 * rnd()).toFixed(3)}`)).join("\n");
+  console.log(`     ${type}: app ready, ${await heap()}`);
   const t0 = Date.now();
   await page.evaluate((txt) => {
     const el = document.querySelector('.data-table tbody input[aria-label$=", row 1"]');
@@ -61,6 +100,7 @@ for (const type of ["column", "xy"]) {
   }, text);
   const imp = page.locator(".import-dialog");
   await imp.waitFor({ timeout: 300000 });
+  console.log(`     ${type}: Import dialog open after ${Date.now() - t0} ms, ${await heap()}`);
   await imp.getByRole("tab", { name: "Placement" }).click({ timeout: 300000 });
   await imp.getByLabel(/In place of the table/).check({ timeout: 300000 });
   await imp.getByRole("button", { name: "Import", exact: true }).click({ timeout: 300000, noWaitAfter: true });

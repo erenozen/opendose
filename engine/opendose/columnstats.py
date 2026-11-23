@@ -139,11 +139,22 @@ def describe(values, ci_level: float = 0.95, *,
     return out
 
 
+# The upper-tail formula of D'Agostino & Stephens, exp(1.2937 - 5.709 a +
+# 0.0186 a^2), reaches its minimum at a = 5.709 / (2 * 0.0186) and rises
+# after it (overflowing near a = 400, which large non-normal samples reach).
+# Beyond that point P is reported at the minimum, about 1.3e-190.
+AD_P_TURN = 5.709 / (2 * 0.0186)
+
+
 def _anderson_darling_p(a2: float, n: int) -> float:
     """A2* correction and P value per D'Agostino & Stephens (1986), the
-    approach Prism cites for its Anderson-Darling normality test."""
+    approach Prism cites for its Anderson-Darling normality test. Above
+    A2* = AD_P_TURN the P value is that of AD_P_TURN (a bound: the
+    formula turns upward there; statsmodels' normal_ad reports 0 above
+    A2* = 13)."""
     a = a2 * (1.0 + 0.75 / n + 2.25 / (n * n))
     if a >= 0.6:
+        a = min(a, AD_P_TURN)
         p = math.exp(1.2937 - 5.709 * a + 0.0186 * a * a)
     elif a > 0.34:
         p = math.exp(0.9177 - 4.279 * a - 1.38 * a * a)
@@ -208,6 +219,12 @@ def normality_tests(values, tests=None) -> dict:
         p = _anderson_darling_p(a2, n)
         out["anderson_darling"] = {"A2": a2, "p": p,
                                    "passed_alpha_05": bool(p > 0.05)}
+        a_star = a2 * (1.0 + 0.75 / n + 2.25 / (n * n))
+        if a_star > AD_P_TURN:
+            out["anderson_darling"]["note"] = (
+                f"A2* = {a_star:.4g} is beyond the range of the D'Agostino & "
+                "Stephens (1986) P approximation: P is smaller than the "
+                "value shown")
     return out
 
 
