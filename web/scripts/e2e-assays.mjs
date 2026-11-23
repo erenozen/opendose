@@ -608,6 +608,53 @@ await page.keyboard.press("Escape");
     !forced.includes("µm²") && forced.includes("�"), forced);
   await imp.getByRole("button", { name: "Cancel" }).click();
 }
+
+// --- P-29: limits of blank, detection and quantification. The plan's
+// acceptance data (e2e-fixtures/stage/detection-limits.json): an ELISA
+// curve, 20 blank wells and 20 low-sample wells. Reference
+// (engine/tests/reference/detection_limits.py, statistics module and an
+// independent scipy 4PL): LoB = 0.06115 + 1.645 × 0.005743 = 0.07060
+// (2.005 pg/mL), LoD = LoB + 1.645 × 0.005899 = 0.08030 (2.972 pg/mL),
+// LoQ 6.674 pg/mL (CV 8.26%).
+const STAGE = new URL("../e2e-fixtures/stage/", import.meta.url).pathname;
+const OPEN_INPUT = 'input[aria-label="Open an OpenDose project or a Prism file"]';
+{
+  await page.setInputFiles(OPEN_INPUT, `${STAGE}detection-limits.json`);
+  await page.waitForSelector(".std-results .std-limits", { timeout: 120000 });
+  const lim = (name) => page.locator(".std-limits-table tr", { hasText: new RegExp(`^${name}`) }).first()
+    .innerText().then((t) => t.replace(/\s+/g, " "));
+  const lob = await lim("LoB");
+  const lod = await lim("LoD");
+  const loq = await lim("LoQ");
+  expect("P-29: LoB = mean_blank + 1.645 SD_blank in signal (0.0706) and concentration (2.005 pg/mL)",
+    lob.includes("0.0706 2.005") && lob.includes("20 blank replicates: mean 0.06115 + 1.645 × SD 0.005743"), lob);
+  expect("P-29: LoD = LoB + 1.645 SD_low in signal (0.0803) and concentration (2.972 pg/mL)",
+    lod.includes("0.0803 2.972") && lod.includes("LoB + 1.645 × pooled SD 0.005899 of 20 low-sample replicates"), lod);
+  expect("P-29: LoQ 6.674 pg/mL, below the lowest standard and said so", loq.includes("6.674")
+    && loq.includes("below the lowest standard"), loq);
+  const tiles = await textOf(".std-results .plate-qc-grid");
+  expect("P-29: LoB, LoD and LoQ next to the LLOQ and ULOQ",
+    tiles.includes("LLOQ (pg/mL) 7.81") && tiles.includes("LoB (pg/mL) 2.005") && tiles.includes("LoD (pg/mL) 2.972")
+    && tiles.includes("LoQ (pg/mL) 6.674"), tiles);
+  expect("P-29: the method (parametric) and the replicates CLSI asks for sit next to the result",
+    (await textOf(".std-limits")).includes("Method: parametric, CLSI EP17-A2")
+    && (await textOf(".std-limits")).includes("at least 60 blank and 60 low-sample replicates"));
+  expect("P-29: the methods text states LoB and LoD with their source",
+    await waitText(".pane-methods", "LoB = mean + 1.645 SD of 20 blank replicates (signal 0.0706, 2.005 pg/mL)"));
+  await page.getByRole("button", { name: "Open setup wizard…" }).click();
+  await wizard().waitFor();
+  await wizard().getByRole("button", { name: /Blanks and low samples/ }).click();
+  expect("P-29 wizard: the Blanks and low samples step counts 20 + 20 replicates and previews the limits",
+    (await wizard().innerText()).includes("Read 20 blank and 20 low-level replicates (1 sample).")
+    && await waitText("dialog.assay-wizard .assay-preview", "LoB 2.005 pg/mL, LoD 2.972 pg/mL", 60000));
+  await wizard().getByLabel(/LoD multiplier/).check();
+  // reference: c_beta = 1.645 / (1 - 1/76) = 1.6669, LoD 0.08043 (2.985 pg/mL)
+  expect("P-29 wizard: the c_beta multiplier (EP17-A2) moves the LoD to 2.985 pg/mL",
+    await waitText("dialog.assay-wizard .assay-preview", "LoD 2.985 pg/mL", 60000),
+    await textOf("dialog.assay-wizard .assay-preview").catch(() => ""));
+  await wizard().getByRole("button", { name: "Cancel" }).click();
+  await wizard().waitFor({ state: "detached", timeout: 10000 });
+}
 console.log(errors.length ? `errors:\n${errors.join("\n")}` : "errors: none");
 await browser.close();
 if (fail.length || errors.length) {

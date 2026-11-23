@@ -3221,6 +3221,55 @@ the engine to four digits. (Dunnett's critical value for differences,
 2.573 from scipy.stats.dunnett, gives slightly narrower intervals; it is
 not the method used.) The rank-test floor for 3 vs 3 values is
 2 / C(6, 3) = 0.10 by hand.
+
+## Feature validation: assay wizards, wave 1 (2026-11-23)
+
+### P-29 limits of blank, detection and quantification
+
+`assay_stdcurve.detection_limits`: CLSI EP17-A2, parametric, as
+Armbruster & Pry (2008, Clin Biochem Rev 29 Suppl 1:S49) write it:
+LoB = mean of the blanks + 1.645 SD, LoD = LoB + 1.645 SD of the
+low-level samples (pooled over the samples); on request EP17-A2's
+small-sample multiplier c_beta = 1.645 / (1 - 1/(4(N - K))) instead of
+1.645 (off by default; the plan's acceptance test uses 1.645). LoQ: the
+lowest low-level sample whose back-calculated concentrations have a CV
+of at most 20% (editable) at or above the LoD. The signal limits are
+read off the fitted standard curve through the same interpolation and
+blank correction as the unknowns; a limit below the lowest standard is
+flagged as read off the extrapolated curve, one below the curve's floor
+has no concentration ("below the fitted curve"). Fewer than 60 blank or
+low-sample replicates get EP17-A2's note (60 per lot to establish, 20
+to verify). Only parametric limits are computed (stated next to them).
+
+Reference: `engine/tests/reference/detection_limits.py` (Python's
+statistics module for the formulas, an independent scipy curve_fit 4PL
+and its closed-form inverse for the concentrations; R chemCal is not
+installed, and its DIN 32645 calibration-based method is a different
+estimator, so it is not compared). Data: the plan's acceptance test, an
+ELISA curve (8 levels in duplicate), 20 blank wells, 20 low-sample
+wells (`web/e2e-fixtures/stage/detection-limits.json`).
+`engine/tests/test_detection_limits.py`:
+
+| Quantity | Reference | Engine tolerance |
+|---|---|---|
+| mean / SD of the blanks | 0.06115 / 0.0057425 | 1e-12 relative |
+| SD of the low sample | 0.0058992 | 1e-12 relative |
+| LoB signal | 0.070596 | 1e-12 relative |
+| LoD signal | 0.080301 | 1e-12 relative |
+| LoB concentration | 2.0046 pg/mL | 1e-4 relative |
+| LoD concentration | 2.9718 pg/mL | 1e-4 relative |
+| LoD with c_beta (1.66693) | 0.080430, 2.9845 pg/mL | 1e-12 / 1e-4 relative |
+| LoQ (CV 8.26%) | 6.6739 pg/mL | 1e-4 relative |
+
+Edge cases: 0 and 1 blank replicates (no LoB, said so), blanks all equal
+(SD 0, said so), one low replicate (no LoD, no CV), no low samples, a
+LoB under the curve's floor, a CV goal no sample meets, a decreasing
+(competitive) curve (limits mean - 1.645 SD), two low samples (pooled
+SD by hand). Invariance: signals x1e-12 and x1e12 scale the signal
+limits and leave the concentrations; concentrations in other units
+scale the concentration limits; blank order does not matter. Without
+low-level samples the result has no detection limits and every earlier
+pin is unchanged.
 """
 
 

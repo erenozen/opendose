@@ -313,3 +313,39 @@ function write(name, p, compact = false) {
   g.settings.column = { spread: "symmetric", caption: "below", summary: "auto" };
   write("rank-test.json", project("Rank test", [t, r, g], { selected: r.id }));
 }
+
+/** A multiple-variables (long) table, one string array per row. */
+const longData = (name, names, rows, categorical) => data(name, {
+  type: "multivariable", x: rows.map(() => ""), xTitle: "", xFormat: "numbers", xUnit: "", yTitle: "",
+  rowTitles: rows.map((_, i) => String(i + 1)),
+  datasets: names.map((n, c) => ({ name: n, varType: categorical.includes(n) ? "categorical" : "continuous",
+    rows: rows.map((r) => [r[c] ?? ""]) })),
+  subcolumnFormat: "replicates", replicateLayout: "side_by_side",
+});
+
+// detection-limits.json: an ELISA standard curve with 20 blank wells and
+// 20 wells of one low-level sample (engine/tests/reference/
+// detection_limits.py, the FEATURE-PLAN P-29 acceptance data): LoB, LoD
+// and LoQ (CLSI EP17-A2) next to the LLOQ and ULOQ
+{
+  const concs = ["1000", "500", "250", "125", "62.5", "31.25", "15.63", "7.81"];
+  const std = [[2.243, 2.268], [1.969, 1.969], [1.559, 1.548], [1.087, 1.077],
+    [0.674, 0.654], [0.38, 0.375], [0.212, 0.209], [0.138, 0.135]];
+  const blanks = [0.057, 0.058, 0.062, 0.062, 0.063, 0.064, 0.072, 0.061, 0.061, 0.051,
+    0.053, 0.069, 0.071, 0.062, 0.06, 0.062, 0.052, 0.058, 0.058, 0.067];
+  const low = [0.113, 0.121, 0.123, 0.125, 0.116, 0.115, 0.106, 0.126, 0.126, 0.116,
+    0.12, 0.11, 0.118, 0.123, 0.116, 0.119, 0.125, 0.122, 0.115, 0.129];
+  const pair = (v, i) => [String(v[2 * i]), String(v[2 * i + 1])];
+  const rows = [
+    ...concs.map((c, i) => ["Standard", `Std ${i + 1}`, "", c, "", ...std[i].map(String)]),
+    ...Array.from({ length: 10 }, (_, i) => ["Blank", "Blank", "", "0", "", ...pair(blanks, i)]),
+    ...Array.from({ length: 10 }, (_, i) => ["Low", "Low", "", "", "", ...pair(low, i)]),
+    ["Unknown", "S1", "Control", "", "2", "0.603", "0.581"],
+    ["Unknown", "S2", "Control", "", "2", "0.721", "0.703"],
+  ];
+  const t = longData("ELISA limits", ["Type", "Name", "Group", "Concentration", "Dilution", "Signal 1", "Signal 2"],
+    rows, ["Type", "Name", "Group"]);
+  const r = results(t, "assay_stdcurve", { unit: "pg/mL" }, "Standard curve of ELISA limits");
+  write("detection-limits.json", project("Detection limits", [t, r], { selected: r.id }));
+}
+

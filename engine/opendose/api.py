@@ -2945,14 +2945,19 @@ def _stdcurve_qc(data, options):
     "quantification_range": {lloq, uloq, dynamic_range_fold},
     "unknowns": [{name, dilution, concentration, concentration_ci,
     corrected, corrected_ci, status, flags, reportable}], "samples",
-    "parallelism", "warnings"}."""
+    "parallelism", "warnings"}. With data "lod_blanks" (blank signals as
+    read) or "lod_samples" ([{"name", "signals"}] low-level samples as
+    read) it adds "detection_limits" (LoB, LoD and LoQ, CLSI EP17-A2;
+    options lod_c_beta, loq_cv_limit)."""
     return assay_stdcurve.standard_curve_qc(
         data.get("standards") or [], data.get("unknowns") or [],
+        lod_blanks=data.get("lod_blanks"), lod_samples=data.get("lod_samples"),
         **_assay_kw(options, (
             "model", "weighting", "log_x", "blank", "accuracy_limit",
             "accuracy_limit_ends", "precision_limit", "precision_limit_ends",
             "min_fraction", "min_levels", "cv_limit", "cv_basis",
-            "parallelism_cv_limit", "ci_level", "constraints")))
+            "parallelism_cv_limit", "ci_level", "constraints",
+            "lod_c_beta", "loq_cv_limit")))
 
 
 def _qpcr(data, options):

@@ -92,3 +92,33 @@ test("concentrations table: reportable sample means per group", () => {
   assert.equal(t.yTitle, "Concentration (pg/mL)");
   assert.equal((columnSettings({}, t) as any).analysis, "ttest");
 });
+
+test("Low rows: detection limits sent with the blanks as read (CLSI EP17-A2), else nothing", () => {
+  assert.equal(kindOf("Low", null), "low");
+  assert.equal(kindOf("LoD sample", 6), "low");
+  assert.equal(kindOf("Lower plate", 6), "standard");
+  const t = stdcurveSample();
+  const add = (cells: string[]) => t.datasets.forEach((d, i) => { d.rows.push([cells[i] ?? ""]); });
+  add(["Low", "L1", "", "", "", "0.113", "0.121"]);
+  add(["Low", "L1", "", "", "", "0.123", ""]);
+  add(["Low", "L2", "", "", "", "0.15", "0.16"]);
+  t.x.push("", "", "");
+  t.rowTitles.push("", "", "");
+  const o = normalizeStdOptions({ loqCv: 15, lodCBeta: true });
+  const { rows } = readRows(t, o);
+  assert.equal(rows.filter((r) => r.kind === "low").length, 3);
+  const [{ payload }] = stdPayloads(rows, o) as { payload: any }[];
+  assert.deepEqual(payload.data.lod_blanks, [0.063, 0.058]);
+  assert.deepEqual(payload.data.lod_samples, [
+    { name: "L1", signals: [0.113, 0.121, 0.123] }, { name: "L2", signals: [0.15, 0.16] }]);
+  assert.equal(payload.options.lod_c_beta, true);
+  assert.equal(payload.options.loq_cv_limit, 15);
+  // Low rows are neither standards nor unknowns
+  assert.equal(payload.data.unknowns.some((u: any) => u.name === "L1"), false);
+  // without Low rows the payload is unchanged
+  const [{ payload: plain }] = stdPayloads(readRows(stdcurveSample(), o).rows, o) as { payload: any }[];
+  assert.equal("lod_blanks" in plain.data, false);
+  assert.equal("lod_c_beta" in plain.options, false);
+  assert.equal(normalizeStdOptions({}).loqCv, 20);
+  assert.equal(normalizeStdOptions({}).lodCBeta, false);
+});

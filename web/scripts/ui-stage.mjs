@@ -790,6 +790,24 @@ const scenes = [
     }
     await settle(s, 1500);
   } },
+  // P-29: an ELISA with 20 blank and 20 low-sample wells: LoB, LoD, LoQ
+  // on the results sheet, and the wizard's Blanks and low samples step
+  { name: "guided-std-limits", setup: async (s) => {
+    await fixture(s, "detection-limits.json", { live: true });
+    await s.page.locator(".std-limits").first().waitFor({ timeout: 120000 });
+    await into(s, ".std-results .plate-qc-grid");
+    await settle(s);
+  } },
+  { name: "guided-std-limits-step", setup: async (s) => {
+    await fixture(s, "detection-limits.json", { live: true });
+    await s.page.locator(".std-limits").first().waitFor({ timeout: 120000 });
+    await click(s, button(s, "Open setup wizard…"));
+    const wiz = s.page.locator("dialog.assay-wizard");
+    await wiz.waitFor();
+    await wiz.getByRole("button", { name: /Blanks and low samples/ }).click();
+    await wiz.locator(".assay-preview").waitFor({ timeout: 60000 });
+    await settle(s, 1000);
+  } },
   { name: "guided-tour", setup: async (s) => {
     await example(s);
     await headerMenu(s, "View", "Help and tour");

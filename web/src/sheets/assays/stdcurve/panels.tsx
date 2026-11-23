@@ -14,9 +14,9 @@ import { useAssay, type SpecsFor } from "../kit/useAssay";
 import Wizard from "../kit/Wizard";
 import {
   columnSettings, concentrationTable, MODEL_LABELS, readRows, runStdCurve, signalColumns,
-  STD_ROLES, type StdModel, type StdOptions, type StdRun, type Weighting,
+  STD_ROLES, type StdModel, type StdOptions, type StdRow, type StdRun, type Weighting,
 } from "./model";
-import { Button } from "../../../components/ui";
+import { Button, NumberField } from "../../../components/ui";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -47,7 +47,7 @@ export function StdControls({ sheet, table, options: o, readOnly }: ControlsProp
         </div>
         <p className="hint-block">
           {levels} standard level{levels === 1 ? "" : "s"}, {rows.filter((r) => r.kind === "blank").length} blank
-          {" "}row(s), {rows.filter((r) => r.kind === "unknown").length} unknown row(s).
+          {" "}row(s), {lowCount(rows)}{rows.filter((r) => r.kind === "unknown").length} unknown row(s).
         </p>
         {problem && <p className="wizard-blocker">{problem}</p>}
       </section>
@@ -83,6 +83,12 @@ export function StdControls({ sheet, table, options: o, readOnly }: ControlsProp
       )}
     </div>
   );
+}
+
+/** "3 low-level row(s), " when the table has Low rows, else "". */
+function lowCount(rows: StdRow[]): string {
+  const n = rows.filter((r) => r.kind === "low").length;
+  return n ? `${n} low-level row(s), ` : "";
 }
 
 function ModelFields({ o, set, readOnly }: {
@@ -214,7 +220,7 @@ function StdWizard({ start, table, options, tableName, hasOutputs, onClose, onFi
               )}
               <p className="hint-block">
                 Read {new Set(rows.filter((r) => r.kind === "standard").map((r) => r.conc)).size} standard
-                levels, {rows.filter((r) => r.kind === "blank").length} blank row(s) and
+                levels, {rows.filter((r) => r.kind === "blank").length} blank row(s), {lowCount(rows)}and
                 {" "}{rows.filter((r) => r.kind === "unknown").length} unknown row(s)
                 {new Set(rows.map((r) => r.plate).filter(Boolean)).size > 1
                   ? ` on ${new Set(rows.map((r) => r.plate).filter(Boolean)).size} plates` : ""}.
@@ -275,6 +281,10 @@ function StdWizard({ start, table, options, tableName, hasOutputs, onClose, onFi
           ),
         },
         {
+          id: "limits", title: "Blanks and low samples",
+          render: () => <LimitsStep table={table} o={o} set={set} rows={rows} />,
+        },
+        {
           id: "out", title: "Outputs",
           render: () => (
             <p className="wizard-explain">
@@ -291,7 +301,8 @@ function StdWizard({ start, table, options, tableName, hasOutputs, onClose, onFi
   );
 }
 
-function AcceptancePreview({ table, options }: { table: DataTableModel; options: StdOptions }) {
+/** The engine run of the wizard's draft settings, 150 ms after they settle. */
+function usePreviewRun(table: DataTableModel, options: StdOptions): StdRun | null {
   const [run, setRun] = useState<StdRun | null>(null);
   useEffect(() => {
     let live = true;
@@ -302,6 +313,91 @@ function AcceptancePreview({ table, options }: { table: DataTableModel; options:
     }, 150);
     return () => { live = false; clearTimeout(timer); };
   }, [table, options]);
+  return run;
+}
+
+const EP17_NOTE = "CLSI EP17-A2 (2012), parametric, as Armbruster & Pry (2008) write it: "
+  + "LoB = mean of the blanks + 1.645 SD of the blanks; LoD = LoB + 1.645 SD of the low-level samples "
+  + "(pooled over the samples); both assume normally distributed signals. LoQ is the lowest low-level "
+  + "sample whose back-calculated concentrations meet the CV goal at or above the LoD (functional "
+  + "sensitivity). EP17-A2 asks for at least 60 blank and 60 low-sample replicates per reagent lot to "
+  + "establish the LoB and LoD, and 20 of each to verify a stated value.";
+
+function LimitsStep({ table, o, set, rows }: {
+  table: DataTableModel; o: StdOptions; set: (p: Partial<StdOptions>) => void; rows: StdRow[];
+}) {
+  const blanks = rows.filter((r) => r.kind === "blank").flatMap((r) => r.signals).filter((v) => v !== null).length;
+  const lowRows = rows.filter((r) => r.kind === "low");
+  const lows = lowRows.flatMap((r) => r.signals).filter((v) => v !== null).length;
+  const samples = new Set(lowRows.map((r) => r.name)).size;
+  return (
+    <>
+      <p className="wizard-explain">
+        Rows typed <strong>Blank</strong> give the limit of blank (LoB), rows typed <strong>Low</strong> (a
+        sample near the detection limit, its replicates as signals or as rows of one name) the limit of
+        detection (LoD) and of quantification (LoQ), each in signal and read off the curve as a
+        concentration. Without Low rows the results show LLOQ and ULOQ only.
+      </p>
+      <p className="hint-block">
+        {table.type === "xy"
+          ? "An XY table has no Low rows: use the module's own layout for detection limits."
+          : `Read ${blanks} blank and ${lows} low-level replicate${lows === 1 ? "" : "s"}`
+            + `${samples ? ` (${samples} sample${samples === 1 ? "" : "s"})` : ""}.`}
+      </p>
+      <div className="wizard-row">
+        <NumberField label="LoQ goal: CV at most" unit="%" min={0} fieldClassName="field-num"
+          defaultValue={String(o.loqCv)}
+          onValueChange={(v) => { const x = Number(v.replace(",", ".")); if (v.trim() && Number.isFinite(x) && x > 0) set({ loqCv: x }); }} />
+        <label className="check-row">
+          <input type="checkbox" checked={o.lodCBeta} onChange={(e) => set({ lodCBeta: e.target.checked })} />
+          <span>LoD multiplier c<sub>β</sub> = 1.645 / (1 − 1/(4(N − K))) for small runs (CLSI EP17-A2), not 1.645</span>
+        </label>
+      </div>
+      <p className="wizard-explain">{EP17_NOTE}</p>
+      {lows > 0 && (
+        <>
+          <h4>With these settings</h4>
+          <LimitsPreview table={table} options={o} />
+        </>
+      )}
+    </>
+  );
+}
+
+function LimitsPreview({ table, options }: { table: DataTableModel; options: StdOptions }) {
+  const run = usePreviewRun(table, options);
+  if (!run) return <p className="hint-block">Computing…</p>;
+  if (run.error) return <div className="results-error">{run.error}</div>;
+  return (
+    <ul className="assay-preview">
+      {(run.plates ?? []).map(({ plate, res }) => {
+        const dl = res?.detection_limits;
+        return (
+          <li key={plate}>
+            {plate ? `Plate ${plate}: ` : ""}
+            {res.error ? String(res.error) : !dl ? "no low-level samples on this plate." : (
+              <>
+                LoB {limitConc(dl.lob, options.unit)}, LoD {limitConc(dl.lod, options.unit)},
+                LoQ {dl.loq ? `${num(dl.loq.concentration)} ${options.unit}` : "not reached"}.
+              </>
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+/** A limit on the concentration scale, or why it has none. */
+function limitConc(l: any, unit: string): string {
+  if (l?.concentration != null) return `${num(l.concentration)} ${unit}`;
+  if (l?.status === "below_curve") return "below the curve";
+  if (l?.status === "above_curve") return "above the curve";
+  return "undefined";
+}
+
+function AcceptancePreview({ table, options }: { table: DataTableModel; options: StdOptions }) {
+  const run = usePreviewRun(table, options);
   if (!run) return <p className="hint-block">Computing…</p>;
   if (run.error) return <div className="results-error">{run.error}</div>;
   return (
@@ -396,7 +492,15 @@ function StdPlate({ res, o, onExclude }: {
         <Stat label="Dynamic range" value={q.dynamic_range_fold ? `${num(q.dynamic_range_fold, 3)}-fold` : "n/a"} />
         <Stat label="Standards passing" value={`${acc.n_pass ?? 0} / ${acc.n_standards ?? 0}`} />
         <Stat label="Levels passing" value={`${acc.n_levels_pass ?? 0} / ${acc.n_levels ?? 0}`} />
+        {res.detection_limits && (
+          <>
+            <Stat label={`LoB (${u})`} value={limitStat(res.detection_limits.lob)} />
+            <Stat label={`LoD (${u})`} value={limitStat(res.detection_limits.lod)} />
+            <Stat label={`LoQ (${u})`} value={res.detection_limits.loq ? num(res.detection_limits.loq.concentration) : "not reached"} />
+          </>
+        )}
       </div>
+      {res.detection_limits && <DetectionLimits dl={res.detection_limits} unit={u} />}
       <p className="model-line">
         {fit.label ?? res.model_id}{res.log_x ? ", X = log10(concentration)" : ""}; weighting {res.weighting};
         {" "}{res.blank !== null && res.blank !== undefined ? `blank ${num(res.blank)} subtracted` : "no blank subtracted"};
@@ -524,11 +628,95 @@ function StdPlate({ res, o, onExclude }: {
   );
 }
 
+/** A limit's concentration for a summary tile. */
+function limitStat(l: any): string {
+  if (l?.concentration != null) return num(l.concentration);
+  return l?.status === "below_curve" ? "below curve" : l?.status === "above_curve" ? "above curve" : "undefined";
+}
+
+/** The concentration cell of a limit: the number, or why there is none,
+ *  with a flag when it lies below the lowest standard. */
+function LimitCell({ l, unit }: { l: any; unit: string }) {
+  if (l?.concentration == null) {
+    return <>{l?.status === "below_curve" ? "below the fitted curve (no crossing)"
+      : l?.status === "above_curve" ? "above the fitted curve (no crossing)" : "undefined"}</>;
+  }
+  return (
+    <>
+      {num(l.concentration)}{" "}
+      {l.status === "extrapolated" && <Chip tone="warn" title={`Below the lowest standard: read off the extrapolated curve (${unit})`}>
+        below the lowest standard</Chip>}
+    </>
+  );
+}
+
+function DetectionLimits({ dl, unit }: { dl: any; unit: string }) {
+  const pm = dl.direction === "decreasing" ? "−" : "+";
+  const lows: any[] = dl.low_samples ?? [];
+  return (
+    <div className="std-limits">
+      <h4>Limits of blank, detection and quantification</h4>
+      <div className="results-scroll">
+        <table className="results-table std-limits-table">
+          <thead><tr><th scope="col">Limit</th><th scope="col">Signal</th><th scope="col">Concentration ({unit})</th>
+            <th scope="col">From</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">LoB</th><td>{num(dl.lob_signal) || "undefined"}</td><td><LimitCell l={dl.lob} unit={unit} /></td>
+              <td>{dl.n_blank} blank replicates: mean {num(dl.mean_blank)} {pm} 1.645 × SD {num(dl.sd_blank)}</td></tr>
+            <tr><th scope="row">LoD</th><td>{num(dl.lod_signal) || "undefined"}</td><td><LimitCell l={dl.lod} unit={unit} /></td>
+              <td>{dl.sd_low != null
+                ? `LoB ${pm} ${num(dl.multiplier_low, 4)} × pooled SD ${num(dl.sd_low)} of ${dl.n_low} low-sample replicates (${dl.k_low} sample${dl.k_low === 1 ? "" : "s"})${dl.c_beta_correction ? ", cβ" : ""}`
+                : "needs a low-level sample with 2 or more replicates"}</td></tr>
+            <tr><th scope="row">LoQ</th><td>—</td><td>{dl.loq ? <LimitCell l={dl.loq} unit={unit} /> : "not reached"}</td>
+              <td>{dl.loq ? `${dl.loq.sample}: lowest low sample with CV ≤ ${dl.loq_cv_limit_pct}% at or above the LoD`
+                : `no low sample has CV ≤ ${dl.loq_cv_limit_pct}% at or above the LoD`}</td></tr>
+          </tbody>
+        </table>
+      </div>
+      {lows.length > 0 && (
+        <div className="results-scroll">
+          <table className="results-table">
+            <thead><tr><th scope="col">Low sample</th><th scope="col">n</th><th scope="col">Mean signal</th>
+              <th scope="col">SD</th><th scope="col">Mean ({unit})</th><th scope="col">CV</th><th scope="col">LoQ goal</th></tr></thead>
+            <tbody>
+              {lows.map((s) => (
+                <tr key={s.name}><th scope="row">{s.name}</th><td>{s.n}</td><td>{num(s.mean_signal)}</td>
+                  <td>{num(s.sd_signal)}</td><td>{num(s.mean_concentration)}</td><td>{pct(s.cv_concentration_pct)}</td>
+                  <td>{s.meets_goal ? <Chip tone="pass">met</Chip> : <Chip tone="warn">{s.reason}</Chip>}</td></tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {(dl.notes ?? []).map((n: string) => <Note key={n} warn>{n}</Note>)}
+      <p className="assay-cite">
+        Method: parametric, {dl.source}. LoB = mean of the blanks {pm} 1.645 SD; LoD = LoB {pm} 1.645 SD of the
+        low-level samples{dl.c_beta_correction ? " (here the small-sample cβ)" : ""}; normally distributed signals
+        assumed. The concentrations are read off the fitted standard curve after the same blank correction as the
+        unknowns.
+      </p>
+    </div>
+  );
+}
+
 function Stat({ label, value }: { label: string; value: string }) {
   return <div className="assay-stat"><span>{label}</span><strong>{value}</strong></div>;
 }
 
 // ------------------------------------------------------------ methods
+
+/** The detection-limit sentence of the methods ("" without low samples). */
+function limitsMethods(dl: any, unit: string): string {
+  if (!dl) return "";
+  const pm = dl.direction === "decreasing" ? "−" : "+";
+  const c = (l: any) => (l?.concentration != null ? `${num(l.concentration)} ${unit}` : "not defined on the curve");
+  return `The limit of blank (LoB) and limit of detection (LoD) followed CLSI EP17-A2 (parametric; Armbruster & Pry `
+    + `2008): LoB = mean ${pm} 1.645 SD of ${dl.n_blank} blank replicates (signal ${num(dl.lob_signal) || "undefined"}, `
+    + `${c(dl.lob)}), LoD = LoB ${pm} ${dl.c_beta_correction ? `${num(dl.multiplier_low, 4)} (cβ)` : "1.645"} pooled SD `
+    + `of ${dl.n_low} low-level replicates (signal ${num(dl.lod_signal) || "undefined"}, ${c(dl.lod)}), read off the `
+    + `standard curve; the limit of quantification (LoQ) was the lowest low-level sample with a CV of at most `
+    + `${dl.loq_cv_limit_pct}% at or above the LoD (${dl.loq ? `${num(dl.loq.concentration)} ${unit}` : "not reached"}). `;
+}
 
 export function StdMethods({ options: o, result }: ResultsProps<StdOptions, StdRun>) {
   if (!result || result.error) return null;
@@ -553,6 +741,6 @@ export function StdMethods({ options: o, result }: ResultsProps<StdOptions, StdR
     + `interpolated from the curve, multiplied by their dilution factor and averaged per sample over the `
     + `dilutions within the range; values outside it are reported as below the LLOQ or above the ULOQ and `
     + `were not extrapolated. Confidence intervals of interpolated concentrations are where the curve's `
-    + `confidence band crosses the signal. Analysed in OpenDose.`;
+    + `confidence band crosses the signal. ${limitsMethods(res.detection_limits, o.unit)}Analysed in OpenDose.`;
   return <CopyableMethods text={text} />;
 }
