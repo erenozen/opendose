@@ -16,6 +16,17 @@ type R = Record<string, any>;
 /** "P = 0.0123" in the project's P-value style (report/pformat.ts). */
 const P = (p: unknown) => (typeof p !== "number" ? "n/a" : formatPValue(p));
 
+/** P-48: " The two correlations (…) were compared by …" or "". */
+function compareSentence(c: R | undefined): string {
+  if (!c || c.error) return "";
+  const [l1, l2] = c.labels ?? ["the first", "the second"];
+  const how = c.test === "fisher_z_independent"
+    ? "Fisher's z test for correlations from independent samples"
+    : `Steiger's (1980) Z test for dependent correlations on the same ${c.n} subjects`
+      + (c.test === "steiger_overlapping" ? ", one variable in common" : ", no variable in common");
+  return ` The correlations ${l1} and ${l2} were compared by ${how} (z = ${formatSig(c.z)}, ${P(c.p_two_tailed)}).`;
+}
+
 const POST: Record<string, string> = {
   tukey: "Tukey's multiple comparisons test",
   dunnett: "Dunnett's multiple comparisons test against the control group",
@@ -166,14 +177,14 @@ function testSentence(o: ColumnOptionsState, r: R): string {
       if (r.analysis === "correlation_x") {
         const n = (r.items ?? []).length;
         return `X was correlated with each of ${n} Y data set${n === 1 ? "" : "s"} by the ${name} with a two-tailed P value${tails}`
-          + `${r.replicates_averaged ? "; replicate Y values were averaged per row" : ""}.`;
+          + `${r.replicates_averaged ? "; replicate Y values were averaged per row" : ""}.${compareSentence(r.comparison)}`;
       }
       if (r.method === "rm_corr") {
         return `X and Y were correlated within subjects by repeated-measures correlation `
           + `(Bakdash & Marusich 2017; ${r.n} XY pairs from ${r.n_subjects} subjects, `
           + `r_rm(${r.df}) = ${formatSig(r.r)}, ${P(r.p_two_tailed)}).`;
       }
-      return `Correlation was computed as the ${name} with a two-tailed P value${tails}.`;
+      return `Correlation was computed as the ${name} with a two-tailed P value${tails}.${compareSentence(r.comparison)}`;
     }
     case "roc": return "The area under the ROC curve was computed with its SE and confidence interval (DeLong).";
     case "bland_altman": return "Agreement between the two methods was assessed by the Bland-Altman method (bias and 95% limits of agreement).";

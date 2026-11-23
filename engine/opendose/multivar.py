@@ -216,13 +216,26 @@ def describe_variables(variables, ci_level: float = 0.95) -> dict:
 
 def correlation_matrix(variables, *, method: str = "pearson",
                        missing: str = "pairwise", ci_level: float = 0.95,
-                       tails: int = 2) -> dict:
+                       tails: int = 2, control=()) -> dict:
     """r, P, n and CI matrices for every pair of continuous variables.
 
     missing: 'pairwise' (default) or 'listwise' (drop rows with any
     blank among the analysed variables).
+
+    control: names of continuous variables to control for. Each cell is
+    then the partial correlation of its pair given those variables
+    (correlation.partial_correlation: residuals on the control variables,
+    df = n - 2 - k, Fisher z CI with SE 1 / sqrt(n - 3 - k)), on the rows
+    where the pair and every control variable are present (pairwise) or
+    where every analysed and control variable is (listwise). The control
+    variables are left out of the matrix.
     """
     table = [v for v in parse_table(variables) if v["kind"] == "continuous"]
+    control = [str(c) for c in (control or ())]
+    if control:
+        return _partial_matrix(table, control, method=method,
+                               missing=missing, ci_level=ci_level,
+                               tails=tails)
     if len(table) < 2:
         raise ValueError("correlation matrix needs at least 2 continuous variables")
     cols = [v["values"] for v in table]
@@ -286,6 +299,72 @@ def correlation_matrix(variables, *, method: str = "pearson",
            "p": p, "n": n, "ci_lo": lo, "ci_hi": hi}
     if method == "spearman":
         out["p_type"] = p_type
+    return out
+
+
+def _partial_matrix(table, control, *, method, missing, ci_level, tails):
+    by = {v["name"]: v for v in table}
+    unknown = [c for c in control if c not in by]
+    if unknown:
+        raise ValueError(f"control variable {unknown[0]} is not a numeric "
+                         "variable of the table")
+    if method not in ("pearson", "spearman"):
+        raise ValueError("partial correlation is computed for Pearson or "
+                         "Spearman r")
+    names = [v["name"] for v in table if v["name"] not in control]
+    if len(names) < 2:
+        raise ValueError("partial correlation needs at least 2 variables "
+                         "besides the ones controlled for")
+    cols = [by[nm]["values"] for nm in names]
+    ctrl = [by[c]["values"] for c in control]
+    if missing == "listwise":
+        keep = [i for i in range(len(cols[0]))
+                if all(c[i] is not None for c in cols + ctrl)]
+        cols = [[c[i] for i in keep] for c in cols]
+        ctrl = [[c[i] for i in keep] for c in ctrl]
+    elif missing != "pairwise":
+        raise ValueError(f"unknown missing-value handling: {missing}")
+    k = len(names)
+    r = [[None] * k for _ in range(k)]
+    p = [[None] * k for _ in range(k)]
+    n = [[0] * k for _ in range(k)]
+    lo = [[None] * k for _ in range(k)]
+    hi = [[None] * k for _ in range(k)]
+    df = [[None] * k for _ in range(k)]
+    problems = []
+    for i in range(k):
+        n[i][i] = sum(v is not None and all(c[t] is not None for c in ctrl)
+                      for t, v in enumerate(cols[i]))
+        r[i][i] = 1.0
+        for j in range(i + 1, k):
+            try:
+                res = correlation.partial_correlation(
+                    cols[i], cols[j], ctrl, method=method, ci_level=ci_level)
+            except ValueError as e:
+                problems.append(f"{names[i]} vs. {names[j]}: {e}")
+                continue
+            n[i][j] = n[j][i] = res["n"]
+            pv = res["p_two_tailed"]
+            if tails == 1:
+                pv = res["p_greater"] if res["r"] >= 0 else res["p_less"]
+            r[i][j] = r[j][i] = res["r"]
+            p[i][j] = p[j][i] = float(min(pv, 1.0))
+            df[i][j] = df[j][i] = res["df"]
+            if res["ci_r"]:
+                lo[i][j] = lo[j][i] = float(res["ci_r"][0])
+                hi[i][j] = hi[j][i] = float(res["ci_r"][1])
+    out = {"method": method, "missing": missing, "tails": tails,
+           "ci_level": ci_level, "names": names, "control": control,
+           "partial": True, "r": r,
+           "r_squared": [[None if v is None else v * v for v in row]
+                         for row in r],
+           "p": p, "n": n, "df": df, "ci_lo": lo, "ci_hi": hi}
+    if method == "spearman":
+        out["p_type"] = [["approximate" if v is not None and a != b
+                          else None for b, v in enumerate(row)]
+                         for a, row in enumerate(p)]
+    if problems:
+        out["warnings"] = problems
     return out
 
 

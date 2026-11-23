@@ -7,7 +7,7 @@
 // (P-14) and two event rates (P-47); and the fit models of wave 1: Weibull
 // and hormesis models (P-19), range constraints (P-20), initial values and
 // the fit report (P-21) and simulating a user-defined equation (P-51);
-// quasi-Poisson (P-46).
+// quasi-Poisson (P-46) and partial and compared correlations (P-48).
 // Each number asserted here is pinned in the engine tests from an
 // independent reference (engine/tests/reference/).
 // Usage: node scripts/e2e-results.mjs [http://localhost:5173/]
@@ -768,6 +768,61 @@ await page.waitForSelector('.pane-results[data-live="true"] .results-table', { t
       && /F\(2, 15\) = 5\.615/.test(methods), methods.slice(0, 200));
   const okChip = page.locator(".pane-answer").getByRole("button", { name: "OK: Quasi-Poisson SEs (φ = 3.085)" });
   expect("P-46 the chip now says quasi-Poisson is in use and offers the way back", await appears(okChip));
+}
+
+// --- P-48: partial correlation and comparing two correlations -------------
+{
+  // engine/tests/reference/partial_compare_corr.py: pingouin.partial_corr
+  // (controlling for Age), Fisher z by hand, Steiger (1980) Z by hand
+  const ref = JSON.parse(readFileSync(join(here, "../../engine/tests/reference/partial_compare_corr.json"), "utf8"));
+  const sig = (v) => String(Number(v.toPrecision(4)));
+  const t = ref.table;
+  const vars = ["Age", "SBP", "BMI", "Cholesterol"];
+  await pastedTable("multivariable", "Four variables", `${vars.join("\t")}\n`
+    + t.Age.map((_, i) => vars.map((v) => t[v][i]).join("\t")).join("\n") + "\n");
+  const controls = page.locator(".pane-controls");
+  await page.getByRole("button", { name: "Analyze", exact: true }).click();
+  await page.getByRole("menuitem", { name: /^Correlation matrix/ }).click();
+  await liveResults(/Correlation matrix \(Pearson r\)/);
+  await controls.getByRole("group", { name: "Partial correlation: control for" }).getByLabel("Age").check();
+  await liveResults(/Partial correlation matrix \(Pearson r, controlling for Age\)/);
+  const row = async (label) => (await page.locator(".pane-results .mv-grid tbody tr", { hasText: label }).first()
+    .innerText().catch(() => "")).replace(/\s+/g, " ").trim();
+  const pc = ref.partial_control_age;
+  const want = `SBP 1 ${sig(pc["SBP|BMI"].pearson.r)} ${sig(pc["SBP|Cholesterol"].pearson.r)}`;
+  const sbp = await row("SBP");
+  const head = (await page.locator(".pane-results .mv-grid thead").first().innerText()).replace(/\s+/g, " ").trim();
+  expect(`P-48 acceptance: "Partial (control for Age)" gives the matrix of partial r (${want}), Age left out`,
+    sbp === want && head === "SBP BMI Cholesterol", `${head} | ${sbp}`);
+  const methods = await page.locator(".methods-text p").first().innerText().catch(() => "");
+  expect("P-48 the methods name partial Pearson correlation controlling for Age",
+    /^Partial Pearson correlation coefficients controlling for Age/.test(methods), methods.slice(0, 120));
+
+  // comparing two correlations: the XY tables of the stage fixture
+  // (e2e-fixtures/stage/derived-numbers.json), X against two Y data sets
+  await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]',
+    join(here, "../e2e-fixtures/stage/derived-numbers.json"));
+  const cmpRow = async (label) => (await page.locator(".pane-results .compare-corr tr").allInnerTexts())
+    .map((x) => x.replace(/\s+/g, " ").trim()).find((x) => x.startsWith(`${label} `)) ?? "";
+  const openSheet = (name) => page.getByRole("treeitem", { name, exact: true }).first()
+    .locator(":scope > .nav-row").click();
+  await openSheet("Correlation of Two samples");
+  await liveResults(/Comparing the two correlations/, 180000);
+  const fz = [await cmpRow("Test"), await cmpRow("z"), await cmpRow("P value (two-tailed)")];
+  expect(`P-48 acceptance: two XY data sets in different rows: Fisher z = ${sig(ref.independent.z)}, P ${sig(ref.independent.p)}`,
+    fz[0] === "Test Fisher's z test, independent samples" && fz[1] === `z ${sig(ref.independent.z)}`
+      && fz[2] === `P value (two-tailed) ${sig(ref.independent.p)} ns`, fz.join(" | "));
+  await openSheet("Correlation of Same subjects");
+  await liveResults(/Steiger's Z test/);
+  const st = ref.dependent.overlapping_age;
+  const sz = [await cmpRow("Test"), await cmpRow("z"), await cmpRow("P value (two-tailed)")];
+  expect(`P-48 the same rows: Steiger's Z = ${sig(st.z)}, P ${sig(st.p)}`,
+    sz[0] === "Test Steiger's Z test, the same subjects, one variable in common" && sz[1] === `z ${sig(st.z)}`
+      && sz[2] === `P value (two-tailed) ${sig(st.p)} **`, sz.join(" | "));
+  // stated as different subjects instead: Fisher's z on the same numbers
+  await controls.getByLabel("Measured on").selectOption("independent");
+  expect("P-48 'Measured on: different subjects' switches the test to Fisher's z",
+    await liveResults(/Fisher's z test, independent samples/));
 }
 
 // ------------------------------------------------------------------------

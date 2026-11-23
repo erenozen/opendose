@@ -107,6 +107,8 @@ export interface CorrelationOptions {
   missing: "pairwise" | "listwise";
   tails: 1 | 2;
   ciLevel: string;
+  /** Variables to control for: partial correlations (P-48); empty = none. */
+  control: string[];
 }
 
 export interface RegressionOptions {
@@ -206,7 +208,7 @@ export function defaultDescriptive(): DescriptiveOptions {
 }
 
 export function defaultCorrelation(): CorrelationOptions {
-  return { variables: [], method: "pearson", missing: "pairwise", tails: 2, ciLevel: "95" };
+  return { variables: [], method: "pearson", missing: "pairwise", tails: 2, ciLevel: "95", control: [] };
 }
 
 export function defaultRegression(t: DataTableModel): RegressionOptions {

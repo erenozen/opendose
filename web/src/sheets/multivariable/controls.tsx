@@ -134,6 +134,9 @@ export function CorrelationControls({ table, options, onChange }: ControlsProps<
         </Field>
         <CiField value={options.ciLevel} onChange={(ciLevel) => set({ ciLevel })} />
       </Section>
+      <VarChecklist legend="Partial correlation: control for" vars={continuous(table)}
+        chosen={options.control ?? []} onChange={(control) => set({ control })}
+        hint="Each r is then the correlation left after removing the linear effect of these variables from both variables of the pair. They leave the matrix." />
     </div>
   );
 }

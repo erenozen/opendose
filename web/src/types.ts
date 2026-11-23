@@ -446,6 +446,13 @@ export interface ColumnOptionsState {
   /** Correlation on an XY table: X against each Y data set (row means of
    *  replicates), Prism's XY correlation. Off: two Y data sets. */
   corrWithX?: boolean;
+  /** Correlation: compare with a second correlation (P-48), "i,j" = the
+   *  pair of data sets (on an XY table with corrWithX, X vs. Y_i against
+   *  X vs. Y_j; else A vs. B against data sets i and j); "" none. */
+  corrCompare?: string;
+  /** How the two correlations were measured: "auto" reads it from the
+   *  layout (values in the same rows = the same subjects). */
+  corrCompareDesign?: "auto" | "independent" | "dependent";
   /** Ordinary one-way ANOVA: also the test for linear trend (columns in
    *  order, coded 1, 2, ...). */
   anovaTrend?: boolean;
@@ -531,6 +538,8 @@ export const DEFAULT_COLUMN_OPTIONS: ColumnOptionsState = {
   pStackAlpha: "0.05",
   pStackQ: "5",
   corrWithX: false,
+  corrCompare: "",
+  corrCompareDesign: "auto",
   anovaTrend: false,
   rankTrend: false,
   freqBinWidth: "",

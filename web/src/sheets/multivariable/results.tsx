@@ -158,9 +158,10 @@ export function CorrelationResults({ result }: ResultsProps<CorrelationOptions, 
   if (!result) return null;
   if (result.error) return <Problem result={result} />;
   const sym = result.method === "spearman" ? "Spearman r" : "Pearson r";
+  const partial = result.partial === true && !!result.control?.length;
   const views: [MatrixView, string][] = [
-    ["r", sym], ["p", "P value"], ["n", "Sample size"], ["ci", `${lvl(result.ci_level)} CI`],
-    ["r2", "R squared"],
+    ["r", partial ? `Partial ${sym}` : sym], ["p", "P value"], ["n", "Sample size"],
+    ["ci", `${lvl(result.ci_level)} CI`], ["r2", "R squared"],
   ];
   const cell = (i: number, j: number): string => {
     if (view === "n") return String(result.n[i][j]);
@@ -177,7 +178,9 @@ export function CorrelationResults({ result }: ResultsProps<CorrelationOptions, 
   };
   const exact = result.p_type?.some((row) => row.some((t) => t === "exact"));
   return (
-    <Card title={`Correlation matrix (${sym})`}>
+    <Card title={partial ? `Partial correlation matrix (${sym}, controlling for ${list(result.control!)})`
+      : `Correlation matrix (${sym})`}>
+      {(result.warnings ?? []).map((w) => <p key={w} className="result-note">{w}.</p>)}
       <Tabs value={view} onValueChange={setView}>
         <Tabs.List className="mv-seg" aria-label="Matrix shown">
           {views.map(([id, label]) => <Tabs.Tab key={id} value={id}>{label}</Tabs.Tab>)}
@@ -190,10 +193,14 @@ export function CorrelationResults({ result }: ResultsProps<CorrelationOptions, 
       </Tabs>
       <p className="hint-block">
         {result.missing === "pairwise"
-          ? "Each pair uses every row with values for both variables."
+          ? `Each pair uses every row with values for both variables${partial
+            ? ` and for ${list(result.control!)}` : ""}.`
           : "Rows with a blank in any variable were left out."}
         {" "}{result.tails === 1 ? "One-tailed" : "Two-tailed"} P values
         {exact ? "; Spearman P is exact for 9 or fewer pairs" : ""}.
+        {partial && ` Partial r: the correlation of the residuals of both variables after linear regression of `
+          + `each on ${list(result.control!)}${result.method === "spearman" ? " (all ranked first)" : ""}. P from t `
+          + `with n − ${2 + result.control!.length} df; CI by Fisher z with SE 1/√(n − ${3 + result.control!.length}).`}
       </p>
     </Card>
   );
@@ -202,6 +209,16 @@ export function CorrelationResults({ result }: ResultsProps<CorrelationOptions, 
 export function CorrelationMethods({ result }: ResultsProps<CorrelationOptions, CorrelationResult>) {
   if (!result || result.error) return null;
   const m = result.method === "spearman" ? "Spearman rank" : "Pearson";
+  if (result.partial && result.control?.length) {
+    const k = result.control.length;
+    return <Methods text={`Partial ${m} correlation coefficients controlling for ${list(result.control)} `
+      + `(the correlation of the residuals after linear regression of each variable on `
+      + `${k === 1 ? "it" : "them"}${result.method === "spearman" ? ", all variables ranked first" : ""}) `
+      + `were computed for every pair of ${list(result.names)}, with ${result.tails === 1 ? "one" : "two"}-tailed `
+      + `P values from t with n − ${2 + k} df and ${lvl(result.ci_level)} Fisher z confidence intervals `
+      + `(SE 1/√(n − ${3 + k})); missing values were excluded `
+      + `${result.missing === "pairwise" ? "pairwise" : "listwise"}. Analysis used ${TOOL}.`} />;
+  }
   return <Methods text={`${m} correlation coefficients were computed for every pair of `
     + `${list(result.names)}, with ${result.tails === 1 ? "one" : "two"}-tailed P values and `
     + `${lvl(result.ci_level)} confidence intervals; missing values were excluded `

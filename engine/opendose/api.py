@@ -1142,7 +1142,94 @@ def _correlation(data, options):
         warnings.append(_incomplete_warning(incomplete, "XY pair"))
     if warnings:
         result["warnings"] = warnings
+    if options.get("compare"):
+        result["comparison"] = _compare_correlations(
+            data, names, ia, ib, result, options["compare"])
     return {"analysis": "correlation", **result}
+
+
+def _compare_correlations(data, names, ia, ib, first, opts):
+    """The r of data sets A and B against the r of data sets C and D
+    (opts: {dataset_c, dataset_d, design: independent|dependent}).
+    Independent samples: Fisher's z (correlation.compare_independent).
+    The same subjects (row by row): Steiger's (1980) Z on the rows where
+    every data set involved has a value, overlapping (one data set in
+    common) or not (correlation.compare_dependent_*). Pearson r only."""
+    ic, id_ = int(opts.get("dataset_c", -1)), int(opts.get("dataset_d", -1))
+    design = opts.get("design", "independent")
+    nds = len(data["datasets"])
+    if not (0 <= ic < nds and 0 <= id_ < nds) or ic == id_:
+        return {"error": "choose two different data sets for the second "
+                         "correlation"}
+    if first.get("method") != "pearson":
+        return {"error": "two correlations are compared as Pearson r "
+                         "(Fisher z); choose Pearson"}
+    if {ic, id_} == {ia, ib}:
+        return {"error": "the second correlation is the same pair of data "
+                         "sets as the first"}
+    shared = {ia, ib} & {ic, id_}
+    labels = [f"{names[ia]} vs. {names[ib]}", f"{names[ic]} vs. {names[id_]}"]
+    try:
+        if design == "independent":
+            if shared:
+                return {"error": "the two correlations share a data set, so "
+                                 "they come from the same subjects: choose "
+                                 "“the same subjects”"}
+            vc, vd, _ = _pair_cells(data, ic, id_)
+            second = correlation.correlate(vc, vd, method="pearson")
+            out = correlation.compare_independent(first["r"], first["n"],
+                                                  second["r"], second["n"])
+        elif design == "dependent":
+            idx = [ia, ib] + [i for i in (ic, id_) if i not in (ia, ib)]
+
+            def cells(ds):
+                return {(r, c): v for r, row in enumerate(ds.get("ys") or [])
+                        for c, v in enumerate(row or [])}
+            cs = [cells(data["datasets"][i]) for i in idx]
+            keys = sorted(set().union(*cs))
+            full = [k for k in keys
+                    if all(not _is_missing(c.get(k)) for c in cs)]
+            cols = {i: [float(c[k]) for k in full] for i, c in zip(idx, cs)}
+            n = len(full)
+            if n < 4:
+                return {"error": "comparing two correlations on the same "
+                                 "subjects needs at least 4 rows with a "
+                                 f"value in every data set involved; {n} "
+                                 "found"}
+
+            def rr(a, b):
+                x, y = cols[a], cols[b]
+                if min(x) == max(x) or min(y) == max(y):
+                    raise ValueError("a data set is constant on the rows "
+                                     "used, so it has no correlation")
+                return correlation.correlate(x, y, method="pearson")["r"]
+            if shared:
+                j = shared.pop()
+                k = ib if j == ia else ia
+                h = id_ if j == ic else ic
+                # orient as r(j, k) for A-B and r(j, h) for C-D
+                out = correlation.compare_dependent_overlapping(
+                    rr(j, k), rr(j, h), rr(k, h), n)
+            else:
+                j, k, h, m = ia, ib, ic, id_
+                out = correlation.compare_dependent_nonoverlapping(
+                    rr(j, k), rr(h, m), rr(j, h), rr(j, m), rr(k, h),
+                    rr(k, m), n)
+            second = None
+            n_left = sum(any(not _is_missing(c.get(k)) for c in cs)
+                         for k in keys) - n
+            if n_left:
+                out["rows_left_out"] = n_left
+        else:
+            return {"error": f"unknown design: {design}"}
+    except ValueError as e:
+        return {"error": str(e)}
+    out["labels"] = labels
+    out["design"] = design
+    if second is not None:
+        out["second"] = {"r": second["r"], "n": second["n"],
+                         "ci_r": second["ci_r"]}
+    return out
 
 
 def _contingency(data, options):
@@ -2078,7 +2165,8 @@ def _correlation_matrix(data, options):
     """data: multiple-variables table (continuous columns are used), or a
     column table (data.datasets, one variable per dataset, rows aligned).
     options: {method: pearson|spearman, missing: pairwise|listwise,
-    tails: 1|2, ci_level, variables?: [names]}."""
+    tails: 1|2, ci_level, variables?: [names], control?: [names] (partial
+    correlations controlling for these, which leave the matrix)}."""
     if "variables" in data:
         variables = data["variables"]
     else:
@@ -2086,14 +2174,16 @@ def _correlation_matrix(data, options):
                       "values": [row[0] if row else None for row in ds["ys"]]}
                      for ds in data["datasets"]]
     names = options.get("variables")
+    control = [str(c) for c in (options.get("control") or [])]
     if names:
-        variables = [v for v in variables if v.get("name") in names]
+        variables = [v for v in variables
+                     if v.get("name") in names or v.get("name") in control]
     return {"analysis": "correlation_matrix",
             **multivar.correlation_matrix(
                 variables, method=options.get("method", "pearson"),
                 missing=options.get("missing", "pairwise"),
                 ci_level=options.get("ci_level", 0.95),
-                tails=int(options.get("tails", 2)))}
+                tails=int(options.get("tails", 2)), control=control)}
 
 
 def _with_analysed_rows(result, variables, used):
