@@ -2,6 +2,7 @@
 // single-table app) is migrated on open into one data sheet + its results
 // sheet + its graph.
 import { parsePlan } from "./plan.ts";
+import { parseChosen } from "../guide/choice.ts";
 import { isSchemeId } from "../lib/palette.ts";
 import { DEFAULT_COLUMN_OPTIONS, DEFAULT_XY_OPTIONS } from "../types.ts";
 import {
@@ -207,15 +208,19 @@ function normalizeV2(r: Record<string, unknown>, ctx: LoadContext): Project {
         });
         break;
       }
-      case "results":
+      case "results": {
         if (!str(s.parentId) || !str(s.analysis)) break;
+        // Files from before the chooser's reason was saved have none.
+        const chosen = parseChosen(s.chosen);
         sheets.push({
           ...common, kind: "results", parentId: str(s.parentId),
           analysis: str(s.analysis), options: s.options ?? {},
           ...(s.cached !== undefined ? { cached: s.cached } : {}),
           ...(s.cached !== undefined && str(s.cachedKey) ? { cachedKey: str(s.cachedKey) } : {}),
+          ...(chosen ? { chosen } : {}),
         });
         break;
+      }
       case "graph": {
         if (!str(s.parentId) || !str(s.graphType)) break;
         const snap = obj(s.snapshot);

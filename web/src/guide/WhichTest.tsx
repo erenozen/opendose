@@ -9,7 +9,7 @@ import Modal from "../components/Modal";
 import { Button, NumberField } from "../components/ui";
 import { newId } from "../project/ids";
 import { missingInRows, cellChecks } from "./stats";
-import type { TableType } from "../project/types";
+import type { Project, TableType } from "../project/types";
 import { findSheet } from "../project/ops";
 import { tableDef } from "../sheets/registry";
 import { addConfiguredAnalysis, addTargetTable, dataSheetOf, fitsTable } from "./actions";
@@ -19,7 +19,7 @@ import {
   deriveChecks, recommend, type Alternative, type DataChecks, type Design, type Target,
 } from "./recommend";
 import { designFromTable, tableWording } from "./tablePrefill";
-import { rememberChoice } from "./choice";
+import { withChoice } from "./choice";
 import { groupChecks } from "./stats";
 
 export function Choice<T extends string>({ legend, value, options, onChange, hint }: {
@@ -98,23 +98,25 @@ export default function WhichTest({ onClose }: { onClose: () => void }) {
   const openTarget = (target: Target | null, test: string, reason: string) => {
     if (!target) return;
     let goTo: string | null = null;
-    let resultsId: string | null = null;
+    // The reason travels with the sheet it opened (saved, shared, in the
+    // methods paragraph), in the same undo step.
+    const chosen = (r: { project: Project; resultsId: string | null }) => (r.resultsId
+      ? withChoice(r.project, r.resultsId, { test, reason, analysis: target.analysisId,
+        options: target.options })
+      : r.project);
     if (fitsTable(data, target) && data) {
       apply((p) => {
         const r = addConfiguredAnalysis(p, data.id, target, newId);
         goTo = r.resultsId;
-        resultsId = r.resultsId;
-        return r.project;
+        return chosen(r);
       });
     } else {
       apply((p) => {
         const r = addTargetTable(p, target, `${test.replace(/ \(.*\)$/, "")} data`, newId);
         goTo = r.resultsId ?? r.dataId;
-        resultsId = r.resultsId;
-        return r.project;
+        return chosen(r);
       });
     }
-    if (resultsId) rememberChoice(resultsId, { test, reason });
     onClose();
     if (goTo) select(goTo);
   };

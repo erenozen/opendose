@@ -9,7 +9,7 @@ import { newId } from "../project/ids";
 import { familyChildren, findSheet } from "../project/ops";
 import type { DataTableModel, ResultsSheet } from "../project/types";
 import { addConfiguredAnalysis } from "../guide/actions";
-import { choiceFor, forgetChoice } from "../guide/choice";
+import { currentChoice, withoutChoice } from "../guide/choice";
 import { useGuideOptional } from "../guide/context";
 import { comparable } from "../sheets/xy/compareFits";
 import { MODELS_META } from "../lib/modelLibrary";
@@ -53,14 +53,18 @@ export default function ResultsLinks({ sheet, tableName, options, result }: {
   const plan = offersPlanning(sheet.analysis, options);
   const pilot = useMemo(() => (plan ? pilotFromResult(sheet.analysis, options, result, tableName)
     : null), [plan, sheet.analysis, options, result, tableName]);
-  const [chosen, setChosen] = useState(() => choiceFor(sheet.id));
+  // Saved with the sheet; gone once an option the chooser set is changed.
+  const chosen = currentChoice(sheet);
+  const { apply, readOnly } = useProject();
   return (
     <>
       {chosen && (
         <div className="results-why" role="note" aria-label="Why this test">
           <p><strong>Why {chosen.test}.</strong> {chosen.reason}</p>
-          <IconButton size="sm" aria-label="Dismiss why this test"
-            onClick={() => { forgetChoice(sheet.id); setChosen(null); }}><CloseIcon /></IconButton>
+          {!readOnly && (
+            <IconButton size="sm" aria-label="Remove why this test"
+              onClick={() => apply((p) => withoutChoice(p, sheet.id))}><CloseIcon /></IconButton>
+          )}
         </div>
       )}
       <nav className="results-links" aria-label="About these results">

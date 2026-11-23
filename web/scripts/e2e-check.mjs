@@ -3200,6 +3200,29 @@ const axeOn = async (pg, sel) => {
     (await why.innerText()).startsWith(`Why Unpaired t test. ${recReason.slice(0, 40)}`));
   await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 60000 });
 
+  // P-32, the acceptance test as written: choose a test in Help me choose,
+  // save, reload the file: the methods text still includes the reason
+  // (and the saved file holds it on the results sheet).
+  const methodsWhy = `Choice of test (OpenDose Help me choose): ${recReason}`;
+  const methodsHas = () => page.waitForFunction((t) => (document.querySelector(".stats-methods p")
+    ?.textContent ?? "").includes(t), methodsWhy, { timeout: 30000 }).then(() => true, () => false);
+  expect("P-32: the methods paragraph gives the chooser's reason", await methodsHas(),
+    await page.locator(".stats-methods p").first().innerText().catch(() => "no methods text"));
+  const [dlWhy] = await Promise.all([page.waitForEvent("download", { timeout: 30000 }),
+    fileMenu(page, "Save project")]);
+  const WHY = join(tmp, "why-this-test.json");
+  await dlWhy.saveAs(WHY);
+  const whySaved = JSON.parse(readFileSync(WHY, "utf8"));
+  const whySheet = whySaved.sheets.find((s) => s.kind === "results" && s.chosen);
+  expect("P-32: the saved results sheet keeps the reason with the options the chooser set",
+    whySheet?.chosen?.test === "Unpaired t test" && whySheet.chosen.reason === recReason
+    && whySheet.chosen.options?.ttestKind === "unpaired", JSON.stringify(whySheet?.chosen ?? null).slice(0, 160));
+  await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]', WHY);
+  await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 60000 });
+  await openChecks();
+  expect("P-32: after reopening the file the methods text still includes the reason, and the note is back",
+    await methodsHas() && await appears(page.getByRole("note", { name: "Why this test" })));
+
   // (b) Plan next experiment: the pilot SD (pooled, 0.825) filled in; the
   // effect to detect is chosen (1 unit): 12 per group for 80% power.
   await page.getByRole("button", { name: "Sample size for the next experiment…" }).click();

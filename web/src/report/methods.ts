@@ -22,7 +22,10 @@ export function statsMethodsParagraph(result: unknown, prefs: ReportPrefs,
   opts: { powerJustification?: string | null; exclusions?: string | null;
     /** The analysis plan with its deviations (project/plan.ts
      *  planMethodsSentence), ARRIVE 2.0 item 19. */
-    plan?: string | null; } = {}): string {
+    plan?: string | null;
+    /** The test chooser's reason for this analysis, while it applies
+     *  (guide/choice.ts currentChoice). */
+    chosen?: { test: string; reason: string } | null; } = {}): string {
   const cmp = result as { analysis?: string; mode?: string; compare?: Record<string, unknown>; labels?: string[] } | null;
   if (cmp?.analysis === "compare_fits" && cmp.mode === "parameter" && cmp.compare) {
     return compareParameterMethods(cmp.compare, cmp.labels?.[0] ?? "nonlinear regression");
@@ -39,6 +42,10 @@ export function statsMethodsParagraph(result: unknown, prefs: ReportPrefs,
   else if (info.posthoc && info.multiplicity === "corrected") t += `, followed by ${info.posthoc} (${info.correction} adjustment of P values)`;
   else if (info.posthoc && info.multiplicity === "uncorrected") t += `, followed by ${info.posthoc} without correction for multiple comparisons`;
   parts.push(`${t}.`);
+  // Why this test, in the chooser's words (Help me choose, saved with the
+  // results sheet), so a reopened or shared project still says why.
+  const why = opts.chosen?.reason.trim();
+  if (why) parts.push(`Choice of test (OpenDose Help me choose): ${/[.!?]$/.test(why) ? why : `${why}.`}`);
   // analysed on the log scale (sheets/column/logScale.ts)
   if ((result as { log_scale?: unknown } | null)?.log_scale) {
     parts.push("Back-transformed geometric means and ratios of geometric means are reported with 95% confidence intervals.");

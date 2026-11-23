@@ -4,19 +4,18 @@
 // the sources (report/meaning.ts). Mounted once, in the results headline
 // (components/ResultsAnswer.tsx), so no table type or analysis needs code
 // of its own. Numbers in it never break across lines (NumText).
-import { useMemo, useSyncExternalStore } from "react";
+import { useMemo } from "react";
 import { NumText } from "../components/ui";
-import { choiceFor, subscribeChoice } from "../guide/choice";
 import type { DataTableModel } from "../project/types";
 import { meaningOf } from "./meaning";
 import { currentReportPrefs } from "./pformat";
 import "./meaning.css";
 
-export default function MeaningLine({ analysisId, resultsId, table, options, result }: {
+export default function MeaningLine({ analysisId, chosen = false, table, options, result }: {
   analysisId: string;
-  /** The results sheet: when Help me choose opened it, its "Why this
-   *  test" note above already names the test and why, so no Test line. */
-  resultsId?: string;
+  /** Help me choose opened this sheet and its reason still applies: the
+   *  "Why this test" note already names the test and why, so no Test line. */
+  chosen?: boolean;
   table: DataTableModel;
   options: unknown;
   result: unknown;
@@ -24,7 +23,6 @@ export default function MeaningLine({ analysisId, resultsId, table, options, res
   const style = currentReportPrefs().pStyle;
   const m = useMemo(() => meaningOf({ analysisId, table, options, result, style }),
     [analysisId, table, options, result, style]);
-  const chosen = useSyncExternalStore(subscribeChoice, () => (resultsId ? choiceFor(resultsId) : null));
   if (!m) return null;
   return (
     <section className="meaning-line" aria-label="What this means">

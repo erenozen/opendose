@@ -285,6 +285,25 @@ export interface ResultsSheet extends SheetBase {
   /** Fingerprint of the input `cached` was computed from (app/analysis.ts
    *  resultKey); a reopened project reuses the result while it matches. */
   cachedKey?: string;
+  /** Why "Help me choose…" or "Plan an experiment…" picked this analysis
+   *  (guide/choice.ts). Absent in files from before it was saved, and on
+   *  sheets the wizard did not open. */
+  chosen?: ChosenTest;
+}
+
+/** The test chooser's reason for an analysis, kept with the results sheet
+ *  it opened. It applies while the sheet runs `analysis` with `options`
+ *  (the options the chooser set) unchanged; after the user changes one of
+ *  them the reason no longer describes the test and is not shown. */
+export interface ChosenTest {
+  /** The test as the chooser named it ("Unpaired t test"). */
+  test: string;
+  /** One paragraph: why this test fits the user's answers. */
+  reason: string;
+  /** Analysis id the chooser opened. */
+  analysis: string;
+  /** The options the chooser set over the analysis' defaults. */
+  options: Record<string, unknown>;
 }
 
 export interface GraphSettings {
