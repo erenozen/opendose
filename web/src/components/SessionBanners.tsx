@@ -1,6 +1,7 @@
 // The autosave's conditions at the top of the app (DECISIONS 6, one Banner
 // each): sessions of closed tabs to restore, and the session this tab had
 // being open in another tab (a duplicated tab). Logic: app/useAutosave.ts.
+import { useEffect, useRef } from "react";
 import type { AutosaveApi } from "../app/useAutosave";
 import { useUi } from "../app/ui";
 import type { SessionRecord } from "../project/autosave";
@@ -22,6 +23,27 @@ export default function SessionBanners({ autosave, pending }: {
   const { offers, heldElsewhere } = autosave;
   const single = offers.length === 1 ? offers[0] : null;
 
+  // A row's buttons leave with their row. Focus goes on rather than to the
+  // page: after a restore to the sheet (the work), after a discard to the
+  // next kept session, or to the sheet when none is left.
+  const banner = useRef<HTMLElement>(null);
+  const after = useRef<{ kind: "restore" | "discard"; index: number } | null>(null);
+  useEffect(() => {
+    const a = after.current;
+    const active = document.activeElement;
+    if (!a || (active && active !== document.body && active.isConnected)) return;
+    after.current = null;
+    const next = a.kind === "discard"
+      ? banner.current?.querySelectorAll<HTMLButtonElement>(".session-row-actions button, .banner-actions button")
+      : null;
+    const target = next?.length ? next[Math.min(a.index * 2, next.length - 2)] : document.getElementById("sheet");
+    target?.focus();
+  }, [offers]);
+  const restore = (r: SessionRecord, index: number) => {
+    after.current = { kind: "restore", index };
+    void autosave.restore(r.id);
+  };
+
   // Discard deletes the saved session for good: say so, and ask.
   const discard = async (r: SessionRecord) => {
     const ok = await ui.confirm(single ? {
@@ -35,12 +57,14 @@ export default function SessionBanners({ autosave, pending }: {
       confirmLabel: "Discard",
       danger: true,
     });
-    if (ok) await autosave.discard(r.id);
+    if (!ok) return;
+    after.current = { kind: "discard", index: offers.indexOf(r) };
+    await autosave.discard(r.id);
   };
 
   return (
     <>
-      <Banner tone="info" className="restore-banner" open={offers.length > 0 && !pending}
+      <Banner ref={banner} tone="info" className="restore-banner" open={offers.length > 0 && !pending}
         onDismiss={autosave.hide} dismissLabel="Hide for now (the sessions stay in this browser)">
         {single ? (
           <>
@@ -49,7 +73,7 @@ export default function SessionBanners({ autosave, pending }: {
               {describe(single)}.
             </Banner.Detail>
             <Banner.Actions>
-              <Button variant="primary" onClick={() => { void autosave.restore(single.id); }}>Restore</Button>
+              <Button variant="primary" onClick={() => restore(single, 0)}>Restore</Button>
               <Button onClick={() => { void discard(single); }}>Discard last session</Button>
             </Banner.Actions>
           </>
@@ -58,13 +82,13 @@ export default function SessionBanners({ autosave, pending }: {
             <Banner.Title>Restore one of your last {offers.length} sessions?</Banner.Title>
             <Banner.Detail>
               <ul className="session-list" aria-label="Saved sessions">
-                {offers.map((r) => {
+                {offers.map((r, i) => {
                   const which = ` ${describe(r)}`;
                   return (
                     <li key={r.id} className="session-row">
                       <span>{describe(r)}.</span>
                       <span className="session-row-actions">
-                        <Button size="sm" onClick={() => { void autosave.restore(r.id); }}>
+                        <Button size="sm" onClick={() => restore(r, i)}>
                           Restore<span className="sr-only">{which}</span>
                         </Button>
                         <Button size="sm" onClick={() => { void discard(r); }}>

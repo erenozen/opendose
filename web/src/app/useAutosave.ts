@@ -156,11 +156,14 @@ export function useAutosave({ autoOpen }: { autoOpen: boolean }) {
   }, [store]);
 
   /** Move this tab onto a session of a closed tab and open it. */
+  const restoring = useRef(false);
   const restore = async (id: string) => {
     const rec = offers.find((o) => o.id === id);
-    if (!rec) return;
+    // One at a time: a double click restores once.
+    if (!rec || restoring.current) return;
+    restoring.current = true;
     await flush();
-    const r = await sessions().adopt(id);
+    const r = await sessions().adopt(id).finally(() => { restoring.current = false; });
     const others = (o: SessionRecord[]) => o.filter((x) => x.id !== id);
     if (r.status === "held") {
       setOffers(others);
