@@ -1114,6 +1114,15 @@ def _contingency(data, options):
                                               "rows_condition"))
         else:
             result["cramers_v"] = proportions.cramers_v(data["table"])
+    if options.get("pairwise") and result["rows"] >= 3:
+        # options.pairwise {"method": "holm" | "bh" | "bonferroni", "test":
+        # "auto" | "fisher" | "chi_square"}: each pair of rows on its own
+        # (contingency.pairwise_rows), named by options.row_names
+        pw = options["pairwise"] if isinstance(options["pairwise"], dict) \
+            else {}
+        result["pairwise_rows"] = contingency.pairwise_rows(
+            data["table"], method=pw.get("method", "holm"),
+            test=pw.get("test", "auto"), row_names=options.get("row_names"))
     if options.get("trend"):
         result["trend"] = trend.chi_square_trend(
             data["table"], scores=options.get("scores"))

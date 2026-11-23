@@ -4,6 +4,7 @@ import { getRuntimeVersions } from "../../lib/engine";
 import { formatSig } from "../../types";
 import { formatPValue } from "../../report/pformat";
 import CopyableMethods from "../common/CopyableMethods";
+import { pairwiseMethods } from "./pairwiseText";
 import type { ResultsProps } from "../types";
 import {
   DIFF_CI_LABELS, OR_CI_LABELS, PROP_CI_LABELS, RR_CI_LABELS,
@@ -46,7 +47,8 @@ export function ContingencyMethods({ options, result }: ResultsProps<Contingency
       s += `. A chi-square test for trend (Cochran-Armitage, scores ${(r.trend.scores ?? []).map((v: number) => formatSig(v)).join(", ")}) `
         + `gave chi-square = ${formatSig(r.trend.chi2)}, df = 1, ${P(r.trend.p)}`;
     }
-    return `${s}.`;
+    // pairs of rows (P-14): its own sentence after the main test
+    return `${s}.${r.pairwise_rows ? ` ${pairwiseMethods(r.pairwise_rows)}` : ""}`;
   }} />;
 }
 

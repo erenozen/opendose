@@ -3279,6 +3279,38 @@ difference and leaves both F tests; Y ×1000 with X ×1e-6 (and ×1e-12,
 ×1e12) leaves every F and P and scales the common slope. Edge cases: a
 line with fewer than 3 points or a single X, a line forced through a
 point, and perfectly straight lines (F undefined, said in words).
+
+### P-14 pairwise comparisons of rows after an r x c test
+
+`contingency.pairwise_rows` (`options.pairwise`, three or more rows):
+each pair of rows on its own 2 x c table, by Fisher's exact test when
+any expected count is below 5 (Cochran 1954) and otherwise by the
+chi-square test (2 x 2 with Yates' correction, as R's `prop.test`), or
+by the test chosen; P values adjusted over the family with Holm,
+Benjamini-Hochberg or Bonferroni (`fdr.adjust`). Each pair names its
+test and why; the family line says "adjusted for 3 comparisons (Holm)".
+
+Reference: `engine/tests/reference/pairwise_proportions.py` (scipy 1.18
+`fisher_exact` and `chi2_contingency` per pair; 2 x 3 Fisher by brute-
+force enumeration of every table with the observed margins; statsmodels
+`multipletests` holm, fdr_bh, bonferroni), tested in
+`engine/tests/test_pairwise_proportions.py` to 1e-9:
+
+| Plan's acceptance: WT 18/20, Het 15/20, KO 5/20 | Test | Raw P | Holm P |
+| --- | --- | --- | --- |
+| WT vs Het | Fisher (expected 3.5) | 0.40748 | 0.40748 |
+| WT vs KO | chi-square, Yates | 0.00012396 | 0.00037188 |
+| Het vs KO | chi-square, Yates | 0.0044265 | 0.0088531 |
+
+Also four groups (six chi-square pairs) and a 3 x 3 table (three 2 x 3
+Fisher pairs), each with all three corrections. Swapping the outcome
+columns or reversing the rows changes no P. A row of zeros or a pair
+with every count in one outcome is not tested and leaves the family.
+
+Not done: the brackets on the contingency graphs. The graph draws its
+bars on a category axis with stacked segments, where the bracket layer
+(graph/apply.ts) can find neither the bar positions nor the stack tops;
+drawing them needs graph-layer work outside this task.
 """
 
 

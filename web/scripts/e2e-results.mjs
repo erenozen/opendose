@@ -349,6 +349,28 @@ await page.waitForSelector('.pane-results[data-live="true"] .results-table', { t
     `${d1} | ${d2}`);
 }
 
+// --- P-14: pairwise comparisons of rows after an r x c test -------------
+{
+  // engine/tests/reference/pairwise_proportions.py: scipy per pair,
+  // statsmodels multipletests("holm"); the plan's acceptance data
+  await pastedTable("contingency", "Genotypes",
+    "Genotype\tPositive\tNegative\nWT\t18\t2\nHet\t15\t5\nKO\t5\t15\n");
+  await liveResults(/Chi-square/);
+  await page.locator(".pane-controls").getByLabel("Correction").selectOption("holm");
+  const table = page.locator(".pane-results .pairwise-table");
+  const shown = await appears(table, 60000);
+  const rows = shown ? (await table.locator("tbody tr").allInnerTexts()).map((t) => t.replace(/\s+/g, " ").trim()) : [];
+  expect("P-14 three comparisons with the test each used, raw and Holm-adjusted P",
+    rows.length === 3
+      && rows[0] === "WT vs. Het 0.9 vs. 0.75 Fisher's exact (an expected count below 5) 0.4075 0.4075 No"
+      && rows[1] === "WT vs. KO 0.9 vs. 0.25 Chi-square with Yates' correction (every expected count 5 or more) 1.240e-4 3.719e-4 Yes"
+      && rows[2] === "Het vs. KO 0.75 vs. 0.25 Chi-square with Yates' correction (every expected count 5 or more) 0.004427 0.008853 Yes",
+    rows.join(" | "));
+  const fam = await page.locator(".pane-results .pairwise-rows .family-line").first().innerText().catch(() => "");
+  expect("P-14 the family line: 3 comparisons, Holm",
+    fam.startsWith("P values adjusted for 3 comparisons (Holm): all pairs of 3 rows."), fam);
+}
+
 // ------------------------------------------------------------------------
 await browser.close();
 if (errors.length) console.log(errors.slice(0, 10).join("\n"));

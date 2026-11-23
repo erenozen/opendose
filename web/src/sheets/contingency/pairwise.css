@@ -1,0 +1,4 @@
+/* Pairs of rows (pairwise.tsx): six columns scroll sideways on a phone
+   rather than breaking the test names a word per line. */
+.pairwise-scroll { overflow-x: auto; max-width: 100%; }
+.pairwise-table { min-width: 560px; }

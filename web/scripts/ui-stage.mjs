@@ -660,6 +660,14 @@ const scenes = [
     await settle(s, 800);
     await into(s, ".pane-results .compare-lines", "start");
   } },
+  { name: "results-pairwise-rows", setup: async (s) => {
+    await pastedTable(s, "contingency", "Genotypes",
+      "Genotype\tPositive\tNegative\nWT\t18\t2\nHet\t15\t5\nKO\t5\t15\n");
+    await s.page.locator(".pane-controls").getByLabel("Correction").selectOption("holm");
+    await s.page.locator(".pane-results .pairwise-table").first().waitFor({ timeout: 120000 });
+    await settle(s, 800);
+    await into(s, ".pane-results .pairwise-rows", "start");
+  } },
   // the eLife checklist on the example: source data per figure is not met
   // and links to the export bundle (P-09)
   { name: "results-checklist-elife", setup: async (s) => {

@@ -386,3 +386,109 @@ def fisher_exact_rxc(table, *, max_work: int = FISHER_RXC_MAX_WORK) -> float:
                 tick(len(mv))
         stage = nxt
     return float(min(p, 1.0))
+
+
+PAIRWISE_METHODS = ("holm", "bh", "bonferroni")
+PAIRWISE_RULE = (
+    "Fisher's exact test when any expected count of the pair's table is "
+    "below 5, else the chi-square test (Cochran WG 1954, Biometrics 10:417; "
+    "McDonald JH 2014, Handbook of Biological Statistics, 'Small numbers in "
+    "chi-square and G-tests')")
+
+
+def pairwise_rows(table, *, method: str = "holm", test: str = "auto",
+                  row_names=None, alpha: float = 0.05) -> dict:
+    """Every pair of rows of an r x c table (r >= 3) compared on its own
+    2 x c table, with the P values adjusted over the family of r(r - 1)/2
+    comparisons (opendose.fdr: Holm, Benjamini-Hochberg or Bonferroni), as
+    R's pairwise.prop.test / rcompanion::pairwiseNominalIndependence.
+
+    test: "auto" uses Fisher's exact test (2 x 2: scipy; 2 x c: the
+    Freeman-Halton extension, fisher_exact_rxc) when any expected count of
+    the pair's table is below 5, else the chi-square test (2 x 2 with
+    Yates' continuity correction, as R's prop.test; 2 x c without);
+    "fisher" or "chi_square" use that test for every pair. Each pair says
+    which test it used and why. A pair with an empty column (no counts in
+    an outcome) is tested on the outcomes it has."""
+    grid = np.asarray(table, dtype=float)
+    if grid.ndim != 2 or grid.shape[0] < 3 or grid.shape[1] < 2:
+        raise ValueError("pairwise comparisons need three or more rows")
+    if np.any(grid < 0) or np.any(grid != np.round(grid)):
+        raise ValueError("counts must be whole numbers >= 0")
+    if method not in PAIRWISE_METHODS:
+        raise ValueError(f"unknown correction: {method}")
+    if test not in ("auto", "fisher", "chi_square"):
+        raise ValueError(f"unknown test: {test}")
+    from . import fdr
+    r = grid.shape[0]
+    names = list(row_names) if row_names else [f"Row {i + 1}" for i in range(r)]
+    comps = []
+    for i in range(r):
+        for j in range(i + 1, r):
+            sub = grid[[i, j]]
+            sub = sub[:, sub.sum(axis=0) > 0]
+            entry = {"pair": f"{names[i]} vs. {names[j]}", "rows": [i, j],
+                     "proportions": [
+                         (float(grid[i, 0] / grid[i].sum())
+                          if grid[i].sum() > 0 else None),
+                         (float(grid[j, 0] / grid[j].sum())
+                          if grid[j].sum() > 0 else None)]}
+            if sub.shape[1] < 2 or np.any(sub.sum(axis=1) == 0):
+                entry.update(test=None, p_unadjusted=None,
+                             note="no test: a row has no counts, or every "
+                                  "count falls in one outcome")
+                comps.append(entry)
+                continue
+            expected = (np.outer(sub.sum(axis=1), sub.sum(axis=0))
+                        / sub.sum())
+            small = bool(np.any(expected < 5))
+            kind = test if test != "auto" else (
+                "fisher" if small else "chi_square")
+            if kind == "fisher":
+                if sub.shape == (2, 2):
+                    p = float(stats.fisher_exact(sub.astype(int))[1])
+                else:
+                    try:
+                        p = fisher_exact_rxc(sub.astype(int),
+                                             max_work=FISHER_RXC_AUTO_WORK)
+                    except ValueError:
+                        if test == "fisher":
+                            raise ValueError(
+                                f"{entry['pair']}: the exact test is too "
+                                "large to compute here; use the chi-square "
+                                "test (or Automatic)") from None
+                        kind = "chi_square"
+                        entry["reason_override"] = (
+                            "the exact test was too large to compute here")
+            if kind == "chi_square":
+                chi2, p, _, _ = stats.chi2_contingency(
+                    sub, correction=sub.shape == (2, 2))
+                entry["chi2"] = float(chi2)
+                p = float(p)
+            entry.update(test=kind, p_unadjusted=p,
+                         expected_min=float(expected.min()),
+                         yates=kind == "chi_square" and sub.shape == (2, 2),
+                         reason=entry.pop("reason_override", None) or (
+                             "chosen" if test != "auto" else
+                             "an expected count below 5" if small else
+                             "every expected count 5 or more"))
+            comps.append(entry)
+    raw = [c["p_unadjusted"] for c in comps]
+    adj = fdr.adjust(raw, method, alpha=alpha, q=alpha)
+    m = adj["n"]
+    for c, a, s in zip(comps, adj["adjusted"], adj["significant"]):
+        c.update(p_adjusted=a, significant=s, family_size=m, method=method)
+    label = {"holm": "Holm", "bh": "Benjamini-Hochberg",
+             "bonferroni": "Bonferroni"}[method]
+    return {
+        "comparisons": comps, "method": method,
+        "approach": adj["approach"], "alpha": alpha, "test": test,
+        "rule": PAIRWISE_RULE if test == "auto" else None,
+        "family": {"size": m, "method": method,
+                   "label": f"{label}, {m} comparison{'s' if m != 1 else ''} "
+                            f"(all pairs of {r} rows)"},
+        "source": "R pairwise.prop.test / rcompanion::"
+                  "pairwiseNominalIndependence; Holm S (1979) Scand J Stat "
+                  "6:65; Benjamini Y & Hochberg Y (1995) J R Stat Soc B "
+                  "57:289",
+    }

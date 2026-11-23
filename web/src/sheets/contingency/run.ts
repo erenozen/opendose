@@ -59,6 +59,30 @@ export interface ContingencyOptions {
    *  "auto" within the engine's quick work budget, "large" with the
    *  larger budget (up to ~10 s). */
   fisherRxc: "auto" | "large";
+  /** Three or more rows: compare each pair of rows (engine
+   *  contingency.pairwise_rows) with this correction ("none" / absent =
+   *  off), by Fisher's test, chi-square, or the expected-count rule. */
+  pairwise?: PairwiseCorrection;
+  pairwiseTest?: "auto" | "fisher" | "chi_square";
+}
+
+export type PairwiseCorrection = "none" | "holm" | "bh" | "bonferroni";
+export const PAIRWISE_LABELS: Record<PairwiseCorrection, string> = {
+  none: "Off",
+  holm: "Holm (family-wise error)",
+  bh: "Benjamini-Hochberg (false discovery rate)",
+  bonferroni: "Bonferroni (family-wise error)",
+};
+export const PAIRWISE_TEST_LABELS: Record<"auto" | "fisher" | "chi_square", string> = {
+  auto: "Fisher when an expected count is below 5, else chi-square",
+  fisher: "Fisher's exact test for every pair",
+  chi_square: "Chi-square for every pair",
+};
+
+/** options.pairwise for the engine: rows named, three or more rows. */
+export function pairwiseOptions(c: Counts, o: ContingencyOptions): Record<string, unknown> {
+  if (!o.pairwise || o.pairwise === "none" || c.counts.length < 3) return {};
+  return { pairwise: { method: o.pairwise, test: o.pairwiseTest ?? "auto" }, row_names: c.rowTitles };
 }
 
 export const DEFAULT_CONTINGENCY: ContingencyOptions = {
@@ -123,6 +147,7 @@ export function contingencyPayload(c: Counts, o: ContingencyOptions): Payload | 
   }
   const r = c.counts.length, k = c.counts[0]?.length ?? 0;
   if (o.fisherRxc === "large" && (r > 2 || k > 2)) options.fisher_rxc = true;
+  Object.assign(options, pairwiseOptions(c, o));
   return { analysis: "contingency", data: { table: c.counts }, options };
 }
 
