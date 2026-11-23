@@ -96,7 +96,7 @@ export function Banner({
   );
 }
 
-export function BannerTitle({ children, className, ...props }: HTMLAttributes<HTMLParagraphElement>) {
+function BannerTitle({ children, className, ...props }: HTMLAttributes<HTMLParagraphElement>) {
   const ctx = useContext(Ctx);
   return (
     <p id={ctx?.titleId} className={`banner-title${className ? ` ${className}` : ""}`} {...props}>
@@ -105,13 +105,13 @@ export function BannerTitle({ children, className, ...props }: HTMLAttributes<HT
   );
 }
 
-export function BannerDetail({ children, className, ...props }: HTMLAttributes<HTMLDivElement>) {
+function BannerDetail({ children, className, ...props }: HTMLAttributes<HTMLDivElement>) {
   return <div className={`banner-detail${className ? ` ${className}` : ""}`} {...props}>{children}</div>;
 }
 
 /** Keycaps, at most one filled primary. Wraps under the text below
  *  620px of banner width. */
-export function BannerActions({ children, className, ...props }: HTMLAttributes<HTMLDivElement>) {
+function BannerActions({ children, className, ...props }: HTMLAttributes<HTMLDivElement>) {
   return <div className={`banner-actions${className ? ` ${className}` : ""}`} {...props}>{children}</div>;
 }
 

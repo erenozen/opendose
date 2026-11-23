@@ -52,7 +52,7 @@ export type KeyFacts =
 const UNIT_PARAMS = new Set(["IC50", "EC50", "Km", "Kd", "AbsoluteIC50"]);
 // ... and the library's other concentrations (ECanything, Ki, KA, KB, A2).
 const UNIT_PATTERN = /^(IC|EC)\d+(_\w+)?$|^EC50(Control|_\w+)$|^IC50_\w+$|^(Ki|KA|KB|Kb|A2)$/;
-export const hasUnit = (name: string) => UNIT_PARAMS.has(name) || UNIT_PATTERN.test(name);
+const hasUnit = (name: string) => UNIT_PARAMS.has(name) || UNIT_PATTERN.test(name);
 
 /** A parameter's row label in the fit table: "IC50 (M)", "Top (shared)". */
 export function paramLabel(name: string, e: ParamEntry, xUnit: string): string {

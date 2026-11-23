@@ -1,8 +1,7 @@
-// UI primitives (phase 3). One import path for every surface:
+// UI primitives. One import path for every surface:
 //   import { Button, Banner, notify } from "../components/ui";
 // One file per primitive, CSS next to it.
 
-// ---- feedback and controls (p3-feedback)
 export { Button, FileButton } from "./Button";
 export type { ButtonProps, ButtonVariant, ButtonSize, FileButtonProps } from "./Button";
 export { IconButton } from "./IconButton";
@@ -15,22 +14,19 @@ export type { NumberFieldProps } from "./NumberField";
 export { ToastProvider } from "./Toast";
 export { notify, dismissToast } from "./Toast.store";
 export type { ToastOptions, ToastTone, ToastAction } from "./Toast.store";
-export { Announcer } from "./Announcer";
 export { announce } from "./Announcer.store";
 export type { Politeness } from "./Announcer.store";
 export { Banner } from "./Banner";
 export type { BannerProps, BannerTone } from "./Banner";
 
-// ---- results (p4-results): copy feedback and numbers in prose
+// Copy feedback and numbers in prose
 export { SwapLabel } from "./LabelSwap";
-export { useLabelSwap, SWAP_MS } from "./useLabelSwap";
+export { useLabelSwap } from "./useLabelSwap";
 export { Num, NumText } from "./Num";
 
-// ---- guided flows (p4-guided): roving tabs
 export { default as Tabs } from "./Tabs";
 
-// ---- overlays (p3-overlays): Dialog, Popover, Menu, Tooltip on one
-// dismiss/focus layer (useDismiss)
+// Overlays: Dialog, Popover, Menu, Tooltip on one dismiss/focus layer
 export { default as Dialog } from "./Dialog";
 export { default as Popover } from "./Popover";
 export { default as Menu, type MenuCloseReason } from "./Menu";

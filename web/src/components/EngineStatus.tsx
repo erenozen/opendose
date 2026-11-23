@@ -46,7 +46,7 @@ function engineBytes(engine: EngineState): string | null {
  *  words (the only live region), the bytes in tabular figures (hidden
  *  from screen readers), Try again after a failure, and a 2px bar drawn
  *  with transform: scaleX. */
-export function EngineSlot({ engine, onRetry }: { engine: EngineState; onRetry?: () => void }) {
+function EngineSlot({ engine, onRetry }: { engine: EngineState; onRetry?: () => void }) {
   const { key, words } = enginePhase(engine);
   const p = engine.progress;
   const frac = key === "ready" ? 1 : p && p.total > 0 ? Math.min(1, p.loaded / p.total) : 0;

@@ -86,7 +86,7 @@ const above = (layer: Layer, n: Node) =>
    trigger when the control that opened it has gone. */
 const triggers = new WeakMap<Element, () => HTMLElement | null>();
 
-export function registerTrigger(layer: Element, trigger: () => HTMLElement | null) {
+function registerTrigger(layer: Element, trigger: () => HTMLElement | null) {
   triggers.set(layer, trigger);
   return () => { triggers.delete(layer); };
 }
@@ -128,7 +128,7 @@ const TABBABLE = [
 ].join(",");
 
 /** Elements Tab can reach inside `root`, in order (one radio per group). */
-export function tabbables(root: Element): HTMLElement[] {
+function tabbables(root: Element): HTMLElement[] {
   const seen = new Set<string>();
   return [...root.querySelectorAll<HTMLElement>(TABBABLE)].filter((el) => {
     if (el.tabIndex < 0 || !focusable(el)) return false;
@@ -320,7 +320,7 @@ export function lockScroll(): () => void {
 // ------------------------------------------------------------ refs
 
 /** One ref callback that feeds several refs (a primitive's own and the caller's). */
-export function mergeRefs<T>(...refs: (Ref<T> | undefined)[]): (node: T | null) => void {
+function mergeRefs<T>(...refs: (Ref<T> | undefined)[]): (node: T | null) => void {
   return (node) => {
     for (const r of refs) {
       if (typeof r === "function") r(node);

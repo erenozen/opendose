@@ -57,7 +57,7 @@ export function inferTone(message: string): ToastTone {
   return /^(could not|failed|cannot|can't)\b/i.test(message.trim()) ? "error" : "info";
 }
 
-export function autoDismisses(tone: ToastTone): boolean {
+function autoDismisses(tone: ToastTone): boolean {
   return tone === "success" || tone === "info";
 }
 
