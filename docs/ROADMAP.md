@@ -479,9 +479,10 @@ READMEs:
   coloured by group).
 - Heat maps: only the grouped heat map clusters (with dendrograms); the
   multiple-variables correlation-matrix heat map keeps the variable order.
-- Contingency tables have no graphs of their own (only the Monte Carlo
-  histogram).
-- Simulations and Monte Carlo draw from the built-in equation library;
+- ~~Contingency tables have no graphs of their own~~ (2026-11-24: a new
+  contingency analysis gets the "% of each row" stacked graph, with the
+  pairwise brackets of P-14).
+- ~~Simulations and Monte Carlo draw from the built-in equation library~~ (2026-11-23: P-51 adds user-defined equations);
   user-defined equations cannot be simulated yet.
 - Text import: by-rows / by-columns reflow, filter criteria on a column,
   Info & Notes import. Info-sheet constants as analysis inputs beyond user

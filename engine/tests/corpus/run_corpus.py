@@ -4326,6 +4326,13 @@ and the default curve with a warning saying what to enter. e2e-figures drives th
 "Points on the curve" fields and checks the drawn points against the
 same equation in JavaScript (1e-9 relative), the dotted parts and the
 legend.
+
+Independent check (2026-11-24, by the lead): a quadratic by numpy least
+squares on the BCA standards and brentq inversion of the fitted curve,
+of the 95% confidence band (t(0.975, 4) x SE of the mean) and of the
+prediction band (adding s^2) gives, for A562 = 0.42, X = 372.9628, CI
+368.6376 to 377.3131, prediction interval 362.8113 to 383.1656: the
+engine's values.
 """
 
 
