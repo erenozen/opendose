@@ -90,14 +90,14 @@ export function addDerivedOutputs(p: Project, created: Sheet[], ids: IdFactory):
  *  placed after its source's family and starting with its own type's
  *  default analysis. */
 export function addLinkedTable(p: Project, resultsId: string, table: DataTableModel,
-  name: string, ids: IdFactory): { project: Project; dataId: string } | null {
+  name: string, ids: IdFactory, output?: string): { project: Project; dataId: string } | null {
   const res = findSheet(p, resultsId);
   if (!res || res.kind !== "results") return null;
   const kids = familyChildren(p, res.parentId);
   const after = kids.length ? kids[kids.length - 1].id : res.parentId;
   const dataId = ids();
   let acc = addSheets(p, [makeDerivedSheet(dataId, uniqueName(p, name), table,
-    { sourceId: res.parentId, resultsId })], after);
+    { sourceId: res.parentId, resultsId, ...(output ? { output } : {}) })], after);
   const first = tableDef(table.type).analyses[0];
   if (first) acc = addSheets(acc, analysisSheets(acc, dataId, first.id, ids), dataId);
   return { project: acc, dataId };

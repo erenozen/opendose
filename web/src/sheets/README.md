@@ -271,6 +271,15 @@ results panel creates the linked table on request (`useLinkedTable` in
 sync keeps it equal to the output in the same way. Extract & rearrange
 (multiple variables) and Row means (grouped) work like this.
 
+One results sheet can feed several different tables: the link carries
+`derived.output` (a name, absent on every file saved before it existed),
+`derivedTable(result, source, options, output)` returns the table for
+that name (null for any other), and `useLinkedTable(resultsId, output)`
+lists and creates that output's tables. The curve fit is the first user:
+with a replicate map its output `"potency"` is a column table of each
+experiment's logIC50 (`xy/experiments.ts`, P-08); a table of fitted
+parameters per data set can be another output of the same sheet.
+
 `manipulate/` is the reference user (Transform, Normalize, …). Data
 sheets can also carry `simulation: { kind, seed, form }`, written by the
 Simulate data dialog so a table can be re-simulated. Brand-new table types need a `TableType` member in

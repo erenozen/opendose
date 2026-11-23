@@ -65,6 +65,34 @@ test("chips: fits", () => {
   assert.ok(ids.includes("ambiguous") && ids.includes("wide-ci") && ids.includes("df") && ids.includes("r2"));
 });
 
+test("chips: a pooled fit's CI counts wells, not experiments (Lazic 2010)", () => {
+  const fit = { status: "converged", goodness: { df: 23, r_squared: 0.99, n_points: 27 },
+    params: { LogIC50: { value: -7, se: 0.02, ci95: [-7.04, -6.96], constrained: false } } };
+  const rows = [["98", "101", "99"], ["50", "52", "49"], ["2", "1", "3"]];
+  const t = normalizeTable({ type: "xy", x: ["1e-9", "1e-7", "1e-5"], datasets: [{ name: "A", rows }] });
+  const res = { analysis: "dose_response", datasets: [{ name: "A", fit }] };
+  const chip = resultChips(ctx(t, "nonlin", {}, res)).find((c) => c.id === "pooled-ci")!;
+  assert.equal(chip.label, "CI counts wells, not experiments");
+  assert.equal(chip.state, "info");
+  assert.match(chip.detail, /every one of the 27 values as an independent observation/);
+  assert.equal(chip.action, "assign-replicates");
+  assert.match(chip.sources![0].label, /^Lazic 2010, The problem of pseudoreplication/);
+  // with a replicate map and the per-experiment summary: points to it
+  const mapped = { ...t, replicates: { by: "subcolumns" as const, of: [0, 1, 2], unit: "wells" } };
+  const summarised = { analysis: "dose_response",
+    datasets: [{ name: "A", fit, experiments: { fits: [], summary: { n: 3 } } }] };
+  const m = resultChips(ctx(mapped, "nonlin", {}, summarised)).find((c) => c.id === "pooled-ci")!;
+  assert.match(m.detail, /27 wells .* 3 independent experiments: report the across-experiments summary \(n = 3 experiments\)/);
+  assert.equal(m.action, undefined);
+  // one value per X (nothing pooled), a table of means, or no fit: no chip
+  const single = normalizeTable({ type: "xy", x: ["1", "2"], datasets: [{ name: "A", rows: [["1"], ["2"]] }] });
+  assert.ok(!resultChips(ctx(single, "nonlin", {}, res)).some((c) => c.id === "pooled-ci"));
+  assert.ok(!resultChips(ctx({ ...t, subcolumnFormat: "mean_sd_n" }, "nonlin", {}, res))
+    .some((c) => c.id === "pooled-ci"));
+  assert.ok(!resultChips(ctx(t, "nonlin", {}, { analysis: "dose_response",
+    datasets: [{ name: "A", error: "no fit" }] })).some((c) => c.id === "pooled-ci"));
+});
+
 test("banners: ambiguous fit, did not converge, extrapolated", () => {
   const t = normalizeTable({ type: "xy", x: ["1"], datasets: [{ name: "A", rows: [["1"]] }] });
   const b = resultBanners(ctx(t, "nonlin", { top: { enabled: false }, bottom: { enabled: false } }, {

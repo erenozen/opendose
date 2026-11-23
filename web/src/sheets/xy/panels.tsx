@@ -21,6 +21,7 @@ import { chooseModelOf } from "./run";
 import { switchResultsAnalysis } from "./switchAnalysis";
 import { RangeFlagsBar } from "./rangeFlags";
 import { ZeroDoseBar } from "./ZeroDoseBar";
+import { ExperimentsResults } from "./ExperimentsCard";
 import { concentrationUnit, displayOf } from "./rangeReport";
 import { CompareFitsLinks } from "../../components/ResultsLinks";
 import "./xy.css";
@@ -152,6 +153,7 @@ export function NonlinResults({ sheet, table, result, options }:
       <RangeFlagsBar sheet={sheet} result={result} options={options} />
       <ZeroDoseBar sheet={sheet} result={result} options={options} />
       <ResultsPanel result={result} xUnit={concentrationUnit(table) || "M"} />
+      <ExperimentsResults sheet={sheet} result={result} xUnit={concentrationUnit(table) || "M"} />
       {result && !(result as { error?: unknown }).error && (
         <CompareFitsLinks sheet={sheet} table={table} model={options.model}
           xIsLog={!!options.xIsLog} weighting={options.weighting} weightK={options.weightK} />

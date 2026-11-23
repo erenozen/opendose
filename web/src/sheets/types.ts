@@ -112,8 +112,12 @@ export interface AnalysisDef<O = unknown, R = unknown> {
    *  the data table this result stands for. When set, adding the
    *  analysis also creates a derived data sheet linked to the source,
    *  which the shell keeps equal to this output (null = leave it as is,
-   *  e.g. while the result is an error). See project/derived.ts. */
-  derivedTable?: (result: R, source: DataTableModel, options: O) => DataTableModel | null;
+   *  e.g. while the result is an error). See project/derived.ts.
+   *  `output` is the linked table's DerivedLink.output: an analysis that
+   *  makes more than one table (a curve fit's per-experiment potencies,
+   *  its parameters) returns the one named, and null for any other. */
+  derivedTable?: (result: R, source: DataTableModel, options: O,
+    output?: string) => DataTableModel | null;
   /** Name of that derived table for a source called `tableName`. */
   derivedName?: (tableName: string) => string;
   /** The derived table is made on request (a button in the results, e.g.

@@ -41,6 +41,7 @@ from . import auc, cox, quantal
 from . import rangeflags, residuals, survival_extras
 from . import logscale, rm_posthoc, twoway_contrasts
 from . import compare_params, flow, qpcr_refs
+from . import potency
 
 
 def _expand(x_col, replicate_rows):
@@ -110,6 +111,11 @@ def _dose_response(data, options):
                          "not mean / SD / n")
 
     finite_x = [v for v in x_col if v is not None]
+    # options.experiments: {"of": [experiment of each subcolumn], "names":
+    # [...], "log10_molar": exponent of the unit in mol/L or None}: each
+    # experiment is also fitted on its own and its potencies summarised
+    # (potency.py), next to the fit of all the values.
+    exp_opt = options.get("experiments")
     results = []
     for ds in data["datasets"]:
         entry = {"name": ds.get("name", "")}
@@ -188,6 +194,12 @@ def _dose_response(data, options):
             entry["fit"] = fit
         except Exception as exc:  # per-dataset failure must not kill others
             entry["error"] = str(exc)
+        if exp_opt and not summary_fmt:
+            entry["experiments"] = _experiments(
+                x_col, ds, exp_opt, model, spec, constraints=constraints,
+                weighting=weighting, ci_method=ci_method, robust=robust,
+                rout_q=rout_q,
+                weight_source=options.get("weight_source", "predicted"))
         results.append(entry)
 
     raw_x = data["x"]
@@ -236,6 +248,51 @@ def _dose_response(data, options):
         }
     return {"analysis": "dose_response", "x_is_log_output": True,
             "datasets": results}
+
+
+def _experiments(x_col, ds, exp_opt, model, spec, *, constraints, weighting,
+                 ci_method, robust, rout_q, weight_source):
+    """One fit per independent experiment of a data set and the summary of
+    their potencies (potency.across_experiments), fitted exactly as the
+    data set's own fit (model, constraints, weighting, robust or ROUT)."""
+    of = [int(v) for v in exp_opt.get("of") or []]
+    names = [str(n) for n in exp_opt.get("names") or []]
+    if not of or not names or any(v < 0 or v >= len(names) for v in of):
+        return {"error": "the replicate map does not name an experiment "
+                         "for every subcolumn"}
+    log10_molar = exp_opt.get("log10_molar")
+
+    def fit_one(rows):
+        xs, ys = _expand(x_col, rows)
+        if robust:
+            fit = nlfit.robust_model_fit(xs, ys, model,
+                                         constraints=constraints)
+        elif rout_q:
+            fit = nlfit.rout_outliers(
+                xs, ys, model, q=float(rout_q), constraints=constraints,
+                weighting=weighting, ci_method=ci_method,
+                weight_source=weight_source)["fit"]
+        else:
+            fit = nlfit.fit_model(xs, ys, model, constraints=constraints,
+                                  weighting=weighting, ci_method=ci_method,
+                                  weight_source=weight_source)
+        fit.pop("_cov", None)
+        return fit, xs, ys
+
+    def flags_of(fit, xs, ys):
+        try:
+            return rangeflags.range_flags(fit["params"], xs, ys,
+                                          x_is_log=spec.x_is_log)
+        except Exception:  # flags must never cost the summary
+            return None
+
+    try:
+        return potency.across_experiments(
+            x_col, ds.get("ys") or [], of, names, fit_one,
+            log10_molar=(None if log10_molar is None else float(log10_molar)),
+            flags_of=flags_of)
+    except Exception as exc:
+        return {"error": str(exc)}
 
 
 def _normalize(data, options):
