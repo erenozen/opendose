@@ -12,12 +12,16 @@ import type { DataTableModel } from "../../project/types";
 import { isTableDrop } from "../../share/recipes/dropKind";
 import type { PlainSpec } from "../../share/recipes/saved";
 import { pasteReport, placedCells, type PasteReport } from "../../project/pasteReport";
+import type { SheetApp } from "../../project/clipboardHtml";
 
 export interface ImportRequest {
   text?: string;                        // clipboard text to start from
   mode?: PlacementOptions["mode"];
   row?: number;                         // insert position (0-based)
   col?: number;                         // flat grid column
+  /** The text holds a spreadsheet's stored values in place of `rounded`
+   *  cells it showed rounded (clipboardHtml.ts). */
+  fullValues?: { app: SheetApp; rounded: number };
 }
 
 type Tab = "source" | "view" | "filter" | "placement" | "recipes";
@@ -261,6 +265,13 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
                 Paste here, or <button type="button" data-still className="linkish"
                   onClick={() => { void readClipboard(); }}>read the clipboard</button>.
               </span>
+              {initial?.fullValues && pasted === initial.text && (
+                <p className="field-note" role="status" data-part="rounded">
+                  {initial.fullValues.rounded === 1 ? "1 cell was" : `${initial.fullValues.rounded} cells were`}
+                  {" "}shown rounded in {initial.fullValues.app}; the full
+                  {initial.fullValues.rounded === 1 ? " value is" : " values are"} used.
+                </p>
+              )}
             </div>
           )}
           {!isXlsx && (
