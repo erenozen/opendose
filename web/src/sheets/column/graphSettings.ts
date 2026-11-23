@@ -154,6 +154,21 @@ export function summaryOf(values: number[], kind: ColumnSummary,
 
 const fmt = (v: number) => v.toPrecision(4);
 
+/** P-57: a bar's hover text says the numbers behind it, whatever the bar
+ *  draws: the drawn summary, then mean, SD and n of the values (the SD
+ *  line is left out when the bar already is mean ± SD). Screen only:
+ *  exports carry no hover text. */
+export function barHover(name: string, values: number[], label: string): string {
+  const v = values.filter((x) => Number.isFinite(x));
+  const n = v.length;
+  if (!n) return `${name}: ${label}`;
+  const mean = v.reduce((a, b) => a + b, 0) / n;
+  const sd = n > 1 ? Math.sqrt(v.reduce((a, b) => a + (b - mean) ** 2, 0) / (n - 1)) : null;
+  const facts = `mean ${fmt(mean)}, SD ${sd === null ? "n/a (n = 1)" : fmt(sd)}, n = ${n}`;
+  return label.startsWith("mean ") && label.includes("± SD")
+    ? `${name}: ${label}, n = ${n}` : `${name}: ${label}<br>${facts}`;
+}
+
 /** Two-sided 95% critical t value. */
 const tCrit = (df: number) => tQuantile(0.975, df);
 

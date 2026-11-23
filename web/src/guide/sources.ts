@@ -288,6 +288,12 @@ export const SRC = {
   // DOI checked against Crossref on 2026-11-24.
   shroutFleiss1979: { label: "Shrout & Fleiss 1979, Intraclass correlations: uses in assessing rater reliability, Psychol Bull 86:420",
     url: "https://doi.org/10.1037/0033-2909.86.2.420" },
+
+  // Quasi-Poisson (P-46): the variance is phi times the mean, phi
+  // estimated from the data; the estimates stay, every SE grows by
+  // sqrt(phi). DOI resolved to Biometrika 61(3):439-447, read 2026-11-24.
+  wedderburn1974: { label: "Wedderburn 1974, Quasi-likelihood functions, generalized linear models, and the Gauss-Newton method, Biometrika 61:439",
+    url: "https://doi.org/10.1093/biomet/61.3.439" },
 } satisfies Record<string, Source>;
 
 export type SourceKey = keyof typeof SRC;

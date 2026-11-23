@@ -9,6 +9,7 @@ import { legendGraph } from "../report/legendFor";
 import { barAxisChip } from "../sheets/column/barAxis";
 import { equivalenceChip } from "../report/equivalence";
 import { findSexFactor, sexChip } from "../guide/sex";
+import { dispersionChip } from "../sheets/multivariable/dispersion";
 
 export interface Counts { ok: number; warn: number; info: number; questions: number }
 
@@ -29,9 +30,11 @@ export function useChecks({ sheet, data, result, options, readOnly }: {
     // rows, data sets or a column that look like sex: asked, not assumed (guide/sex.ts)
     const sf = result ? findSexFactor(data.table) : null;
     const sex = sf ? sexChip(sf, data.table, sheet.analysis, options) : null;
-    const extra = [chip, margin, sex].filter((c) => c !== null);
+    // overdispersed counts: quasi-Poisson in one click (sheets/multivariable/dispersion.ts)
+    const dispersion = dispersionChip(sheet.analysis, result, sheet.id);
+    const extra = [chip, margin, sex, dispersion].filter((c) => c !== null);
     return extra.length ? { ...base, chips: [...base.chips, ...extra] } : base;
-  }, [base, graph, result, data.table, sheet.analysis, options]);
+  }, [base, graph, result, data.table, sheet.analysis, sheet.id, options]);
   const plan = useMemo(() => planCheckState(project, sheet, data), [project, sheet, data]);
   // The callout: the first warning note (resultBanners lists them by
   // severity within each kind of result).

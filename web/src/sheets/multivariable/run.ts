@@ -33,6 +33,9 @@ export interface CorrelationResult extends Failure {
   method: string; missing: string; tails: number; ci_level: number;
   names: string[]; r: Mat; r_squared: Mat; p: Mat; n: number[][];
   ci_lo: Mat; ci_hi: Mat; p_type?: (string | null)[][];
+  /** Partial correlations (P-48): the variables controlled for, the df
+   *  (n − 2 − k) per pair, and pairs that could not be computed. */
+  partial?: boolean; control?: string[]; df?: (number | null)[][]; warnings?: string[];
 }
 
 export interface Coefficient {
@@ -68,9 +71,14 @@ export interface PoissonResult extends Failure {
   log_likelihood: number; null_log_likelihood: number; max_log_likelihood: number;
   deviance: number; deviance_df: number; deviance_p: number; null_deviance: number;
   pseudo_r_squared: number | null;
-  dispersion: { pearson_chi2: number; df: number; phi: number; phi_deviance: number };
+  dispersion: { pearson_chi2: number; df: number; phi: number; phi_deviance: number; se_factor?: number };
   likelihood_ratio_test: { G: number; df: number; p: number | null };
-  model_comparison: Record<"intercept_only" | "selected",
+  /** "quasipoisson": SEs × √φ, t tests on n − k df, Wald t CIs (P-46). */
+  family?: "poisson" | "quasipoisson";
+  /** Quasi-Poisson only: the overall F test (G / (k − 1) / φ). */
+  f_test?: { F: number | null; df1: number; df2: number; p: number | null };
+  /** Absent under quasi-Poisson (no likelihood, no AIC). */
+  model_comparison?: Record<"intercept_only" | "selected",
     { df: number; aic: number; aicc: number | null; log_likelihood: number }>;
   predicted: (number | null)[]; observed: (number | null)[];
   warnings: string[];
@@ -155,13 +163,19 @@ export function runCorrelation(engine: EngineBridge, table: DataTableModel,
   if (err) return { error: err } as CorrelationResult;
   const continuous = variableInfo(table).filter((v) => v.kind === "continuous").map((v) => v.name);
   const chosen = o.variables.filter((v) => continuous.includes(v));
+  const control = (o.control ?? []).filter((v) => continuous.includes(v));
   if ((chosen.length || continuous.length) < 2) {
     return { error: "A correlation matrix needs at least two continuous variables" } as CorrelationResult;
+  }
+  if (control.length && (chosen.length ? chosen : continuous).filter((v) => !control.includes(v)).length < 2) {
+    return { error: "A partial correlation matrix needs at least two variables besides the ones controlled for: "
+      + "tick fewer under “Partial correlation: control for”" } as CorrelationResult;
   }
   return call(engine, "correlation_matrix", table, {
     method: o.method, missing: o.missing, tails: o.tails,
     ci_level: ciFraction(o.ciLevel),
     variables: chosen.length ? chosen : null,
+    ...(control.length ? { control } : {}),
   });
 }
 

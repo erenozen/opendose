@@ -158,9 +158,10 @@ export function CorrelationResults({ result }: ResultsProps<CorrelationOptions, 
   if (!result) return null;
   if (result.error) return <Problem result={result} />;
   const sym = result.method === "spearman" ? "Spearman r" : "Pearson r";
+  const partial = result.partial === true && !!result.control?.length;
   const views: [MatrixView, string][] = [
-    ["r", sym], ["p", "P value"], ["n", "Sample size"], ["ci", `${lvl(result.ci_level)} CI`],
-    ["r2", "R squared"],
+    ["r", partial ? `Partial ${sym}` : sym], ["p", "P value"], ["n", "Sample size"],
+    ["ci", `${lvl(result.ci_level)} CI`], ["r2", "R squared"],
   ];
   const cell = (i: number, j: number): string => {
     if (view === "n") return String(result.n[i][j]);
@@ -177,7 +178,9 @@ export function CorrelationResults({ result }: ResultsProps<CorrelationOptions, 
   };
   const exact = result.p_type?.some((row) => row.some((t) => t === "exact"));
   return (
-    <Card title={`Correlation matrix (${sym})`}>
+    <Card title={partial ? `Partial correlation matrix (${sym}, controlling for ${list(result.control!)})`
+      : `Correlation matrix (${sym})`}>
+      {(result.warnings ?? []).map((w) => <p key={w} className="result-note">{w}.</p>)}
       <Tabs value={view} onValueChange={setView}>
         <Tabs.List className="mv-seg" aria-label="Matrix shown">
           {views.map(([id, label]) => <Tabs.Tab key={id} value={id}>{label}</Tabs.Tab>)}
@@ -190,10 +193,14 @@ export function CorrelationResults({ result }: ResultsProps<CorrelationOptions, 
       </Tabs>
       <p className="hint-block">
         {result.missing === "pairwise"
-          ? "Each pair uses every row with values for both variables."
+          ? `Each pair uses every row with values for both variables${partial
+            ? ` and for ${list(result.control!)}` : ""}.`
           : "Rows with a blank in any variable were left out."}
         {" "}{result.tails === 1 ? "One-tailed" : "Two-tailed"} P values
         {exact ? "; Spearman P is exact for 9 or fewer pairs" : ""}.
+        {partial && ` Partial r: the correlation of the residuals of both variables after linear regression of `
+          + `each on ${list(result.control!)}${result.method === "spearman" ? " (all ranked first)" : ""}. P from t `
+          + `with n − ${2 + result.control!.length} df; CI by Fisher z with SE 1/√(n − ${3 + result.control!.length}).`}
       </p>
     </Card>
   );
@@ -202,6 +209,16 @@ export function CorrelationResults({ result }: ResultsProps<CorrelationOptions, 
 export function CorrelationMethods({ result }: ResultsProps<CorrelationOptions, CorrelationResult>) {
   if (!result || result.error) return null;
   const m = result.method === "spearman" ? "Spearman rank" : "Pearson";
+  if (result.partial && result.control?.length) {
+    const k = result.control.length;
+    return <Methods text={`Partial ${m} correlation coefficients controlling for ${list(result.control)} `
+      + `(the correlation of the residuals after linear regression of each variable on `
+      + `${k === 1 ? "it" : "them"}${result.method === "spearman" ? ", all variables ranked first" : ""}) `
+      + `were computed for every pair of ${list(result.names)}, with ${result.tails === 1 ? "one" : "two"}-tailed `
+      + `P values from t with n − ${2 + k} df and ${lvl(result.ci_level)} Fisher z confidence intervals `
+      + `(SE 1/√(n − ${3 + k})); missing values were excluded `
+      + `${result.missing === "pairwise" ? "pairwise" : "listwise"}. Analysis used ${TOOL}.`} />;
+  }
   return <Methods text={`${m} correlation coefficients were computed for every pair of `
     + `${list(result.names)}, with ${result.tails === 1 ? "one" : "two"}-tailed P values and `
     + `${lvl(result.ci_level)} confidence intervals; missing values were excluded `
@@ -400,9 +417,11 @@ export function PoissonResults({ result }: ResultsProps<PoissonOptions, PoissonR
   const lr = result.likelihood_ratio_test;
   const d = result.dispersion;
   const mc = result.model_comparison;
+  const quasi = result.family === "quasipoisson";
+  const ft = result.f_test;
   const unit = result.exposure ? `per unit of ${result.exposure}` : "";
   return (
-    <Card title={`Poisson regression of ${result.outcome}`}>
+    <Card title={`${quasi ? "Quasi-Poisson" : "Poisson"} regression of ${result.outcome}`}>
       {result.warnings.map((w) => <p key={w} className="result-note">{w}</p>)}
       <p className="hint-block">
         log(mean count{result.exposure ? ` / ${result.exposure}` : ""}) = β0 + β1·X1 + …
@@ -412,17 +431,20 @@ export function PoissonResults({ result }: ResultsProps<PoissonOptions, PoissonR
       </p>
       <h4>Parameter estimates</h4>
       <Grid caption="Parameter estimates"
-        head={["Parameter", "Estimate", "SE", `${lvl(result.ci_level)} CI`, "|z|", "P value", "",
+        head={["Parameter", "Estimate", "SE", `${lvl(result.ci_level)} CI`, quasi ? "|t|" : "|z|", "P value", "",
           "Rate ratio", `${lvl(result.ci_level)} CI of rate ratio`]}
         rows={result.coefficients.map((k, i) => [
-          i === 0 ? "β0 (Intercept)" : `β${i}: ${k.name}`, f(k.estimate), f(k.se), ci(k.ci), f(k.z),
+          i === 0 ? "β0 (Intercept)" : `β${i}: ${k.name}`, f(k.estimate), f(k.se), ci(k.ci), f(quasi ? k.t : k.z),
           fmtP(k.p), summaryStars(k.p), f(k.rate_ratio), ci(k.rate_ratio_ci ?? null),
         ])} />
       <p className="hint-block">
         A rate ratio is the factor by which the mean count{unit ? ` ${unit}` : ""} changes per unit of a continuous
         predictor, or relative to the reference level of a categorical one; exp(β0) is the mean count
         {unit ? ` ${unit}` : ""} when every predictor is 0 (or at its reference level).
-        {" "}{result.ci_method === "profile" ? "Profile-likelihood" : "Wald"} confidence intervals; P values from Wald z.
+        {" "}{quasi
+          ? `Quasi-Poisson: the estimates are the Poisson ones and every SE is the Poisson SE multiplied by √φ = ${
+            f(d.se_factor)}; P values from t and Wald confidence intervals from t, with ${d.df} df (Wedderburn 1974).`
+          : `${result.ci_method === "profile" ? "Profile-likelihood" : "Wald"} confidence intervals; P values from Wald z.`}
         {Object.keys(result.reference_levels).length > 0 && ` Reference levels: ${
           Object.entries(result.reference_levels).map(([k, v]) => `${k} = ${v}`).join("; ")}.`}
       </p>
@@ -435,18 +457,29 @@ export function PoissonResults({ result }: ResultsProps<PoissonOptions, PoissonR
           ["Deviance / df", f(d.phi_deviance)],
           ["Log likelihood", f(result.log_likelihood)],
         ]} />
-        <KV title="Likelihood ratio test (vs intercept only)" rows={[
-          ["G (likelihood ratio)", f(lr.G)],
-          ["Degrees of freedom", String(lr.df)],
-          ["P value", lr.p === null ? "n/a" : `${fmtP(lr.p)} ${summaryStars(lr.p)}`],
-          ["AICc, intercept only", f(mc.intercept_only.aicc)],
-          ["AICc, this model", f(mc.selected.aicc)],
-        ]} />
+        {quasi && ft ? (
+          <KV title="F test (vs intercept only)" rows={[
+            ["F", f(ft.F)],
+            ["Degrees of freedom", `${ft.df1}, ${ft.df2}`],
+            ["P value", ft.p === null ? "n/a" : `${fmtP(ft.p)} ${summaryStars(ft.p)}`],
+          ]} />
+        ) : (
+          <KV title="Likelihood ratio test (vs intercept only)" rows={[
+            ["G (likelihood ratio)", f(lr.G)],
+            ["Degrees of freedom", String(lr.df)],
+            ["P value", lr.p === null ? "n/a" : `${fmtP(lr.p)} ${summaryStars(lr.p)}`],
+            ...(mc ? [["AICc, intercept only", f(mc.intercept_only.aicc)] as [string, string],
+              ["AICc, this model", f(mc.selected.aicc)] as [string, string]] : []),
+          ]} />
+        )}
       </div>
       <p className="hint-block">
         Pseudo R² = (LLfit − LL0) / (LLmax − LL0), deviance = 2(LLmax − LLfit) (GraphPad curve-fitting guide).
-        φ well above 1 means the counts vary more than a Poisson distribution allows (overdispersion): the SEs,
-        CIs and P values are then too small.
+        {quasi
+          ? " F = G / (number of predictors) / φ, the quasi-likelihood test against the intercept-only model; "
+            + "quasi-Poisson has no likelihood, so no AICc."
+          : " φ well above 1 means the counts vary more than a Poisson distribution allows (overdispersion): the SEs, "
+            + "CIs and P values are then too small."}
       </p>
     </Card>
   );
@@ -456,9 +489,19 @@ export function PoissonMethods({ result }: ResultsProps<PoissonOptions, PoissonR
   if (!result || result.error) return null;
   const rrs = result.coefficients.slice(1).map((k) =>
     `${k.name}: rate ratio ${f(k.rate_ratio)} (${lvl(result.ci_level)} CI ${ci(k.rate_ratio_ci ?? null)})`);
+  const offset = result.exposure ? `, with log(${result.exposure}) as an offset` : "";
+  if (result.family === "quasipoisson" && result.f_test) {
+    const ft = result.f_test;
+    return <Methods text={`${result.outcome} (counts) was modeled by quasi-Poisson regression with a log link `
+      + `on ${list(result.predictors ?? [])}${offset}: Poisson maximum-likelihood estimates, with every standard `
+      + `error multiplied by √φ, where φ = Pearson χ² / df = ${f(result.dispersion.phi)} is the dispersion estimated `
+      + `from the data (Wedderburn 1974); P values from t and Wald confidence intervals from t with `
+      + `${result.dispersion.df} df, using ${TOOL} (${result.n_rows_analyzed} rows). F test against the `
+      + `intercept-only model: F(${ft.df1}, ${ft.df2}) = ${f(ft.F)}, ${pLabel(ft.p)}; `
+      + `pseudo R² = ${f(result.pseudo_r_squared)}. ${rrs.join("; ")}.`} />;
+  }
   return <Methods text={`${result.outcome} (counts) was modeled by Poisson regression with a log link `
-    + `(maximum likelihood) on ${list(result.predictors ?? [])}`
-    + (result.exposure ? `, with log(${result.exposure}) as an offset` : "")
+    + `(maximum likelihood) on ${list(result.predictors ?? [])}${offset}`
     + `, with ${result.ci_method === "profile" ? "profile-likelihood" : "Wald"} confidence intervals, using ${TOOL} `
     + `(${result.n_rows_analyzed} rows). Likelihood ratio test against the intercept-only model: `
     + `G = ${f(result.likelihood_ratio_test.G)}, df = ${result.likelihood_ratio_test.df}, `

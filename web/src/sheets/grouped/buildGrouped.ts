@@ -119,8 +119,11 @@ function panelTraces(inp: BuildInput, clusters: Cluster[], series: string[],
       minus.push(stacked || s.errorDir === "above" ? 0 : lo);
       fills.push(withAlpha(color, "55"));
       lines.push(color);
+      // the mean, SD and n behind the bar, whatever its error bar (P-57)
       hover.push(`${clusters[ci].label} · ${series[si]}: ${errorText(st, s)}`
-        + (st.n ? ` (n = ${st.n})` : ""));
+        + (st.n ? ` (n = ${st.n})` : "")
+        + (s.error !== "sd" && st.n ? `<br>mean ${formatSig(st.mean)}, SD ${st.sd === null ? "n/a" : formatSig(st.sd)}, `
+          + `n = ${st.n}` : ""));
       if (st.values.length && !stacked) {
         const half = Math.min(width * 0.28, 0.12);
         const jit = s.spread === "jitter" || !inp.scale ? jitter(st.values.length, half)

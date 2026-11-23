@@ -2052,3 +2052,132 @@ of the 95% confidence band (t(0.975, 4) x SE of the mean) and of the
 prediction band (adding s^2) gives, for A562 = 0.42, X = 372.9628, CI
 368.6376 to 377.3131, prediction interval 362.8113 to 383.1656: the
 engine's values.
+
+## Feature validation: quasi-Poisson, partial and compared correlations, survival difference, normalize references (2026-11-24)
+
+### Fix: densitometry lanes without a loading control
+
+`assay_densitometry.densitometry`: when some lanes have a loading-control
+(reference) value and a lane has none, that lane was normalised by its
+target alone and averaged with the target / loading-control ratios of
+the other lanes (two scales in one result). It is now left out of the
+ratios and the statistics (flag `no_reference`, a warning, and the
+Analysed line names it: "no loading-control value"). With no
+loading-control value in any lane, every lane is still normalised by
+its target alone (one scale), unchanged. `engine/tests/test_assay_densitometry.py`
+checks that a lane missing its loading control changes nothing but its
+own exclusion (every per-blot value, the matched tables, the summaries,
+the graph and the P equal the run without that lane). No e2e-assays pin
+moved: the example and the GraphPad ratio example have a loading control
+in every lane.
+
+### P-46 Quasi-Poisson for overdispersed counts
+
+`multivar.poisson_regression(quasi=True)` (API option `quasi`): the
+Poisson estimates, the dispersion phi = Pearson chi2 / (n - k), every SE
+multiplied by sqrt(phi), t statistics and P values on n - k df, Wald CIs
+from t, and the overall F test F = (null deviance - deviance) / (k - 1)
+/ phi on (k - 1, n - k) df; no AICc (no likelihood). Wedderburn (1974)
+Biometrika 61:439; McCullagh & Nelder (1989) sections 4.5 and 9.2. The
+Checks row chip "Counts are overdispersed (phi = ...)" (phi > 1.5 with at
+least 5 df, the engine's rule) switches to it in one click; with it on,
+the chip says so and switches back.
+
+Reference: `engine/tests/reference/quasi_poisson.py` (statsmodels 0.15
+`GLM(Poisson, scale="X2")` fitted with `use_t=True`; the F test by hand
+from its deviances; R is not installed) on the Ames TA98 revertant
+counts (Margolin et al. 1981; Breslow 1984, whose Pearson chi2 46.3 on
+15 df it reproduces). `engine/tests/test_poisson_regression.py`:
+
+| Input | Reference | Engine tolerance |
+|---|---|---|
+| Ames TA98, log mu = b0 + b1 log(dose + 10) + b2 dose | phi = 3.08471 (Pearson chi2 46.2707, 15 df); SE 0.383631, 0.100114, 0.000430687 (Poisson SE x sqrt(phi)); P 4.5004e-5, 0.0060299, 0.032742; CI of b1 0.106438 to 0.533212; F(2, 15) = 5.61508, P = 0.0151243 | 1e-7 (P 1e-6) |
+
+Also tested: the estimates equal the Poisson ones and each SE is the
+Poisson SE times sqrt(phi) to 1e-12; permuting rows changes nothing; dose
+in mg scales the slope's SE by 1000 and leaves P; an exact fit (phi = 0)
+is refused with a sentence; underdispersed counts shrink the SEs (as R's
+quasipoisson) and the chip says so.
+
+### P-48 Partial correlation and comparing two correlations
+
+`correlation.partial_correlation` (the correlation matrix's "Partial
+correlation: control for", `multivar.correlation_matrix(control=...)`):
+the Pearson r of the residuals of x and y after least squares on the
+control variables, on the rows where all are present; P from t on
+n - 2 - k df; Fisher z CI with SE 1 / sqrt(n - 3 - k); Spearman ranks
+everything first. `correlation.compare_independent`: Fisher's z for two
+correlations from independent samples. `compare_dependent_overlapping` /
+`compare_dependent_nonoverlapping`: Steiger (1980) Psychol Bull 87:245
+Z1* and Z2* (Fisher z, the Pearson-Filon covariance with the two compared
+r replaced by their mean). In the app: the column correlation and the XY
+"X against each Y" correlation compare two correlations; the design is
+read from the rows (values in the same rows: the same subjects) unless
+chosen, and the results say which.
+
+Reference: `engine/tests/reference/partial_compare_corr.py` (pingouin 0.7
+`partial_corr` and a hand residual-on-residual computation; Fisher z and
+Steiger's Z by hand; a Monte Carlo check of the Pearson-Filon covariance,
+200,000 samples of n = 200; R ppcor and cocor are not installed) on a
+24-subject table (Age, SBP, BMI, cholesterol; numpy seed 48).
+`engine/tests/test_partial_compare_corr.py`:
+
+| Input | Reference | Engine tolerance |
+|---|---|---|
+| SBP, BMI, cholesterol controlling for Age (Pearson and Spearman) | pingouin r and P for each pair, df = 21; CI to pingouin's 2 decimals | 1e-12 (P 1e-9) |
+| SBP vs cholesterol controlling for Age and BMI | pingouin r, P, df = 20 | 1e-12 |
+| Dose A / Response A (n = 15) against Dose B / Response B (n = 12) | r1 = 0.708754, r2 = 0.525026, z = 0.683563, P = 0.494251 | 1e-12 |
+| r(SBP, Age) against r(SBP, BMI), same 24 subjects | Z1* = 2.52613, P = 0.0115326 | 1e-10 |
+| r(Age, SBP) against r(Age, BMI) (the XY layout) | Z1* = 2.65924, P = 0.00783174 | 1e-9 |
+| r(SBP, Age) against r(BMI, cholesterol) | Z2* = 2.20759, P = 0.0272728 | 1e-10 |
+| Pearson-Filon covariance, known rho | simulated 0.0870 vs formula 0.0855 (overlapping); 0.0460 vs 0.0464 | 0.003 |
+
+Also tested: symmetry in x and y, units, row order; a missing value drops
+its row for that pair only; too few rows, a constant or collinear control
+variable and a variable the controls explain exactly each give a
+sentence; independent comparisons of a shared data set, Spearman and the
+same pair twice are refused with a reason; a row missing one of the four
+values is left out of the dependent test and counted.
+
+### P-28 Difference in survival at a chosen time
+
+`survival_extras.survival_at_times` now returns "differences": each
+group minus the first at each chosen time, with the Greenwood SE of the
+difference sqrt(se1^2 + se0^2), a linear CI, and the P value of the
+complementary log-log test of Klein, Logan, Harhoff & Andersen (2007)
+Stat Med 26:4505: X2 = [ln(-ln S1) - ln(-ln S0)]^2 / [v1 / (ln S1)^2 +
+v0 / (ln S0)^2], v the Greenwood sum, chi-square on 1 df. The results say
+the time must be chosen before looking at the curves.
+
+Reference: `engine/tests/reference/survival_difference.py` (a Kaplan-Meier
+with Greenwood SEs written in numpy, statsmodels 0.15 `SurvfuncRight` as
+a second oracle, the cloglog test by hand; R and lifelines are not
+installed) on R's survival::lung by sex (docs/validation/datasets/surv-lung.csv).
+`engine/tests/test_survival_difference.py`:
+
+| Input | Reference | Engine tolerance |
+|---|---|---|
+| lung, 365 days | S male 0.336088 (SE 0.0434236), female 0.526463 (SE 0.0597369); difference 0.190375 (SE 0.0738519), 95% CI 0.0456282 to 0.335122; cloglog chi2 6.20657, P = 0.0127277 | 1e-10 (P 1e-9) |
+
+Also tested: swapping the groups flips the sign and keeps P; days to
+weeks leaves P; several times and three groups; S = 1 (no events yet),
+S = 0 and a time after the last observation each give a reason instead
+of a number.
+
+### P-57 The references behind derived numbers
+
+`normalize.normalize_references` (API `normalize`, each data set's
+"references"): the 0% and 100% values a Normalize used, their rule and
+the row they came from; `manipulate.remove_baseline` adds each data
+set's "baseline" (the data set, the rows and the mean taken, or the
+typed value). The results sheet lists them per data set ("21, the
+smallest mean ("10 nM")", "99.67, the mean of the last row ("vehicle")"),
+and hovering a column or grouped bar shows the mean, SD and n behind it.
+
+Reference: hand derivation, `engine/tests/test_normalize_references.py`:
+the P-55 example (WT 20/22/21, 55/60/58, 98/101/100; KO 30/33/31,
+70/66/68, 99/97/103): 0% = 21 (WT) and 31.333 (KO), the smallest row
+means (row "10 nM"); 100% = 99.667 for both, the vehicle row's mean; the
+output's row means are then exactly 0 and 100. Also tested: first,
+largest, sum and typed rules, separate subcolumns, ties (the first row),
+empty data sets, and every Remove baseline mode.

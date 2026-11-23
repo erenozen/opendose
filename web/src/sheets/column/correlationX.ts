@@ -13,6 +13,18 @@ export interface CorrelationXRequests {
   replicatesAveraged: boolean;
 }
 
+/** One Y per row: the mean of the row's replicate values (null when the
+ *  row has none), and whether any row held more than one. */
+export function yRowMeans(ys: (number | null)[][]): { means: (number | null)[]; averaged: boolean } {
+  let averaged = false;
+  const means = ys.map((row) => {
+    const v = row.filter((y): y is number => y !== null);
+    if (v.length > 1) averaged = true;
+    return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
+  });
+  return { means, averaged };
+}
+
 export function correlationXRequests(table: DataTableModel, o: ColumnOptionsState):
   CorrelationXRequests | { error: string } {
   if (table.type !== "xy") return { error: "X against each Y needs an XY table" };
@@ -23,11 +35,9 @@ export function correlationXRequests(table: DataTableModel, o: ColumnOptionsStat
   const xName = table.xTitle.trim() || "X";
   let averaged = false;
   const requests = d.datasets.map((ds, k) => {
-    const means = ds.ys.map((row) => {
-      const v = row.filter((y): y is number => y !== null);
-      if (v.length > 1) averaged = true;
-      return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
-    });
+    const m = yRowMeans(ds.ys);
+    if (m.averaged) averaged = true;
+    const means = m.means;
     const name = ds.name.trim() || `Data set ${k + 1}`;
     return {
       name,

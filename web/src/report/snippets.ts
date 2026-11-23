@@ -309,7 +309,12 @@ export function snippetsFor(result: unknown, options: unknown, table: DataTableM
         return {
           r: `${v.r.join("\n")}\ncor.test(${v.ids[0]}, ${v.ids[1]}, method = "${sp ? "spearman" : "pearson"}")`,
           python: `${PY_HEAD}\n${v.py.join("\n")}\nok = ~(np.isnan(${v.ids[0]}) | np.isnan(${v.ids[1]}))\nprint(stats.${sp ? "spearmanr" : "pearsonr"}(${v.ids[0]}[ok], ${v.ids[1]}[ok]))`,
-          caveats: sp ? ["cor.test and SciPy give no CI for Spearman's r; compare r and P only."] : [],
+          caveats: [
+            ...(sp ? ["cor.test and SciPy give no CI for Spearman's r; compare r and P only."] : []),
+            // P-48: the comparison of two correlations is not in this code
+            ...(r.comparison && !r.comparison.error ? ["This code reproduces the first correlation only; "
+              + "the comparison of the two (Fisher's z or Steiger's Z) is R's cocor package."] : []),
+          ],
         };
       }
       case "contingency":

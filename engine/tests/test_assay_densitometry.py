@@ -141,3 +141,35 @@ def test_api_densitometry():
     assert summ["control"]["geometric_mean"] == pytest.approx(1.0)
     assert summ["treated"]["geometric_mean"] == pytest.approx(
         res["statistics"]["geometric_mean_ratio"])
+
+
+def test_lane_without_loading_control_is_left_out_not_mixed():
+    """A lane with no loading-control value, while other lanes have one,
+    was normalised by its target alone and mixed into the ratios (two
+    scales in one result). It is now left out with the no_reference flag;
+    every other number equals the run without that lane."""
+    base = [dict(r, reference=1000.0 + 50 * i) for i, r in
+            enumerate(_recs() + [{"blot": "B1", "lane": 3,
+                                  "group": "treated", "target": 5.1}])]
+    missing = [dict(r) for r in base]
+    missing[2] = dict(missing[2], reference=None)   # B1 lane 1, control
+    dropped = base[:2] + base[3:]
+    res, ref = dn.densitometry(missing), dn.densitometry(dropped)
+    lane = res["lanes"][2]
+    assert lane["normalized"] is None and lane["fold_change"] is None
+    assert lane["flags"] == ["no_reference"]
+    assert any("without a loading-control value were left out" in w
+               for w in res["warnings"])
+    for key in ("per_blot", "matched_normalized", "matched_fold_change",
+                "group_summaries", "graph", "n_blots_used"):
+        assert res[key] == ref[key], key
+    assert res["statistics"]["p_two_tailed"] == \
+        ref["statistics"]["p_two_tailed"]
+    assert [l for i, l in enumerate(res["lanes"]) if i != 2] == ref["lanes"]
+    # with no loading control in any lane, the target alone is used (one
+    # scale) as before
+    none = dn.densitometry([dict(r, reference=None) for r in base])
+    assert all(l["normalized"] == l["target_corrected"]
+               for l in none["lanes"])
+    assert all(l["flags"] == ["no_reference"] for l in none["lanes"])
+    assert not any("loading-control value" in w for w in none["warnings"])

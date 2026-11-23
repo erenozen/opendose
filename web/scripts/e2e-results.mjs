@@ -8,8 +8,11 @@
 // and hormesis models (P-19), range constraints (P-20), initial values and
 // the fit report (P-21) and simulating a user-defined equation (P-51); the
 // fit summary and its table of parameters (P-17); interpolated unknowns
-// with their CIs (P-22); and method comparison and reliability:
-// Passing-Bablok (P-42), Lin's CCC (P-43) and the reliability ICC (P-44).
+// with their CIs (P-22); method comparison and reliability:
+// Passing-Bablok (P-42), Lin's CCC (P-43) and the reliability ICC (P-44);
+// quasi-Poisson (P-46), partial and compared correlations (P-48), the
+// survival difference at a chosen time (P-28) and the references behind
+// a Normalize (P-57).
 // Each number asserted here is pinned in the engine tests from an
 // independent reference (engine/tests/reference/).
 // Usage: node scripts/e2e-results.mjs [http://localhost:5173/]
@@ -944,6 +947,139 @@ const analyzeWith = async (re) => {
   expect("P-22 a Y the curve never reaches has no X",
     none === "Typed Y 3 3 — — — Not reached: Y is above every value the curve takes, so it has no X.", none);
   await pg.close();
+}
+
+// --- P-46: quasi-Poisson for overdispersed counts --------------------------
+{
+  // engine/tests/reference/quasi_poisson.py (statsmodels GLM Poisson,
+  // scale="X2", use_t=True): Ames TA98 revertants (Margolin et al. 1981),
+  // phi = 3.085 on 15 df; SE of log(Dose + 10) 0.05700 (Poisson) grows to
+  // 0.1001, P 0.006030; F(2, 15) = 5.615, P 0.01512
+  const ref = JSON.parse(readFileSync(join(here, "../../engine/tests/reference/quasi_poisson.json"), "utf8"));
+  await pastedTable("multivariable", "Ames TA98", "Dose\tlog(Dose + 10)\tRevertants\n"
+    + ref.data.dose.map((d, i) => `${d}\t${ref.data.log_dose_plus_10[i]}\t${ref.data.revertants[i]}`).join("\n")
+    + "\n");
+  await page.getByRole("button", { name: "Analyze", exact: true }).click();
+  await page.getByRole("menuitem", { name: /^Poisson regression/ }).click();
+  await liveResults(/Poisson regression of Revertants/);
+  const row = async (label) => (await page.locator(".pane-results tr", { hasText: label }).first()
+    .innerText().catch(() => "")).replace(/\s+/g, " ").trim();
+  const before = await row("log(Dose + 10)");
+  await openChecks();
+  const chip = page.locator(".pane-answer").getByRole("button", { name: "Check: Counts are overdispersed (φ = 3.085)" });
+  expect("P-46 acceptance: the Checks chip says the counts are overdispersed (φ = 3.085)", await appears(chip));
+  await chip.click();
+  await page.locator(".pane-answer").getByRole("button", { name: "Use quasi-Poisson standard errors" }).click();
+  await liveResults(/Quasi-Poisson regression of Revertants/);
+  const after = await row("log(Dose + 10)");
+  const seOf = (text) => Number(text.split(" ")[5]);
+  expect("P-46 acceptance: the SE of log(Dose + 10) grows by √φ = 1.756 (0.057 to 0.1001), |t| 3.195, P 0.00603",
+    /^β2: log\(Dose \+ 10\) 0\.3198 0\.057 /.test(before)
+      && after === "β2: log(Dose + 10) 0.3198 0.1001 0.1064 to 0.5332 3.195 0.00603 ** 1.377 1.112 to 1.704",
+    `${before} → ${after} (ratio ${(seOf(after) / seOf(before)).toFixed(3)})`);
+  const fTest = (await page.locator(".pane-results .mv-kv", { hasText: "F test (vs intercept only)" }).first()
+    .innerText().catch(() => "")).replace(/\s+/g, " ").trim();
+  expect("P-46 the overall test is F(2, 15) = 5.615, P 0.01512 (no AICc under quasi-Poisson)",
+    fTest === "F test (vs intercept only) F 5.615 Degrees of freedom 2, 15 P value 0.01512 *"
+      && !(await page.locator(".pane-results").innerText()).includes("AICc, this model"), fTest);
+  const methods = await page.locator(".methods-text p").first().innerText().catch(() => "");
+  expect("P-46 acceptance: the methods name quasi-Poisson and φ = 3.085",
+    /modeled by quasi-Poisson regression/.test(methods) && /φ = Pearson χ² \/ df = 3\.085/.test(methods)
+      && /F\(2, 15\) = 5\.615/.test(methods), methods.slice(0, 200));
+  const okChip = page.locator(".pane-answer").getByRole("button", { name: "OK: Quasi-Poisson SEs (φ = 3.085)" });
+  expect("P-46 the chip now says quasi-Poisson is in use and offers the way back", await appears(okChip));
+}
+
+// --- P-48: partial correlation and comparing two correlations -------------
+{
+  // engine/tests/reference/partial_compare_corr.py: pingouin.partial_corr
+  // (controlling for Age), Fisher z by hand, Steiger (1980) Z by hand
+  const ref = JSON.parse(readFileSync(join(here, "../../engine/tests/reference/partial_compare_corr.json"), "utf8"));
+  const sig = (v) => String(Number(v.toPrecision(4)));
+  const t = ref.table;
+  const vars = ["Age", "SBP", "BMI", "Cholesterol"];
+  await pastedTable("multivariable", "Four variables", `${vars.join("\t")}\n`
+    + t.Age.map((_, i) => vars.map((v) => t[v][i]).join("\t")).join("\n") + "\n");
+  const controls = page.locator(".pane-controls");
+  await page.getByRole("button", { name: "Analyze", exact: true }).click();
+  await page.getByRole("menuitem", { name: /^Correlation matrix/ }).click();
+  await liveResults(/Correlation matrix \(Pearson r\)/);
+  await controls.getByRole("group", { name: "Partial correlation: control for" }).getByLabel("Age").check();
+  await liveResults(/Partial correlation matrix \(Pearson r, controlling for Age\)/);
+  const row = async (label) => (await page.locator(".pane-results .mv-grid tbody tr", { hasText: label }).first()
+    .innerText().catch(() => "")).replace(/\s+/g, " ").trim();
+  const pc = ref.partial_control_age;
+  const want = `SBP 1 ${sig(pc["SBP|BMI"].pearson.r)} ${sig(pc["SBP|Cholesterol"].pearson.r)}`;
+  const sbp = await row("SBP");
+  const head = (await page.locator(".pane-results .mv-grid thead").first().innerText()).replace(/\s+/g, " ").trim();
+  expect(`P-48 acceptance: "Partial (control for Age)" gives the matrix of partial r (${want}), Age left out`,
+    sbp === want && head === "SBP BMI Cholesterol", `${head} | ${sbp}`);
+  const methods = await page.locator(".methods-text p").first().innerText().catch(() => "");
+  expect("P-48 the methods name partial Pearson correlation controlling for Age",
+    /^Partial Pearson correlation coefficients controlling for Age/.test(methods), methods.slice(0, 120));
+
+  // comparing two correlations: the XY tables of the stage fixture
+  // (e2e-fixtures/stage/derived-numbers.json), X against two Y data sets
+  await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]',
+    join(here, "../e2e-fixtures/stage/derived-numbers.json"));
+  const cmpRow = async (label) => (await page.locator(".pane-results .compare-corr tr").allInnerTexts())
+    .map((x) => x.replace(/\s+/g, " ").trim()).find((x) => x.startsWith(`${label} `)) ?? "";
+  const openSheet = (name) => page.getByRole("treeitem", { name, exact: true }).first()
+    .locator(":scope > .nav-row").click();
+  await openSheet("Correlation of Two samples");
+  await liveResults(/Comparing the two correlations/, 180000);
+  const fz = [await cmpRow("Test"), await cmpRow("z"), await cmpRow("P value (two-tailed)")];
+  expect(`P-48 acceptance: two XY data sets in different rows: Fisher z = ${sig(ref.independent.z)}, P ${sig(ref.independent.p)}`,
+    fz[0] === "Test Fisher's z test, independent samples" && fz[1] === `z ${sig(ref.independent.z)}`
+      && fz[2] === `P value (two-tailed) ${sig(ref.independent.p)} ns`, fz.join(" | "));
+  await openSheet("Correlation of Same subjects");
+  await liveResults(/Steiger's Z test/);
+  const st = ref.dependent.overlapping_age;
+  const sz = [await cmpRow("Test"), await cmpRow("z"), await cmpRow("P value (two-tailed)")];
+  expect(`P-48 the same rows: Steiger's Z = ${sig(st.z)}, P ${sig(st.p)}`,
+    sz[0] === "Test Steiger's Z test, the same subjects, one variable in common" && sz[1] === `z ${sig(st.z)}`
+      && sz[2] === `P value (two-tailed) ${sig(st.p)} **`, sz.join(" | "));
+  // stated as different subjects instead: Fisher's z on the same numbers
+  await controls.getByLabel("Measured on").selectOption("independent");
+  expect("P-48 'Measured on: different subjects' switches the test to Fisher's z",
+    await liveResults(/Fisher's z test, independent samples/));
+}
+
+// --- P-28: difference in survival at a chosen time ------------------------
+{
+  // engine/tests/reference/survival_difference.py: survival::lung by sex at
+  // 365 days, female minus male 19.04 points (4.563 to 33.51), Greenwood SE
+  // 7.385 points, cloglog test P = 0.01273 (Klein et al. 2007)
+  const ref = JSON.parse(readFileSync(join(here, "../../engine/tests/reference/survival_difference.json"), "utf8"));
+  await page.getByRole("treeitem", { name: "Survival of Lung cancer by sex", exact: true }).first()
+    .locator(":scope > .nav-row").click();
+  await liveResults(/Survival at day 365/, 180000);
+  const block = page.locator('section[aria-label="Survival at a chosen time"]');
+  const diff = (await block.locator(".surv-at-diff tbody tr").first().innerText().catch(() => ""))
+    .replace(/\s+/g, " ").trim();
+  const d = ref.difference;
+  const want = `Female minus Male ${Number((d.difference * 100).toPrecision(4))} points `
+    + `${Number((d.ci[0] * 100).toPrecision(4))} to ${Number((d.ci[1] * 100).toPrecision(4))} points `
+    + `${Number((d.se * 100).toPrecision(4))} points ${Number(d.p.toPrecision(4))}`;
+  expect(`P-28 acceptance: under the survival-at-365-days table, the difference row "${want}"`, diff === want, diff);
+  expect("P-28 the results say the time must be chosen before looking at the curves",
+    /Choose the time before looking at the curves/.test(await block.innerText()));
+}
+
+// --- P-57: the references behind a Normalize -------------------------------
+{
+  // hand derivation (engine/tests/test_normalize_references.py): WT row
+  // means 21, 57.67, 99.67; KO 31.33, 68, 99.67: 0% the smallest mean (row
+  // "10 nM"), 100% the vehicle row's mean
+  await page.getByRole("treeitem", { name: "Normalize of Viability", exact: true }).first()
+    .locator(":scope > .nav-row").click();
+  const refs = page.getByRole("region", { name: "References used" });
+  await refs.waitFor({ timeout: 180000 }).catch(() => {});
+  const rows = (await refs.locator("tbody tr").allInnerTexts().catch(() => [])).map((x) => x.replace(/\s+/g, " ").trim());
+  expect("P-57 acceptance: per data set, 0% = the smallest mean and 100% = the vehicle mean",
+    rows[0] === "WT 21, the smallest mean (“10 nM”) 99.67, the mean of the last row (“vehicle”)"
+      && rows[1] === "KO 31.33, the smallest mean (“10 nM”) 99.67, the mean of the last row (“vehicle”)",
+    rows.join(" | "));
 }
 
 // ------------------------------------------------------------------------

@@ -134,6 +134,9 @@ export function CorrelationControls({ table, options, onChange }: ControlsProps<
         </Field>
         <CiField value={options.ciLevel} onChange={(ciLevel) => set({ ciLevel })} />
       </Section>
+      <VarChecklist legend="Partial correlation: control for" vars={continuous(table)}
+        chosen={options.control ?? []} onChange={(control) => set({ control })}
+        hint="Each r is then the correlation left after removing the linear effect of these variables from both variables of the pair. They leave the matrix." />
     </div>
   );
 }
@@ -327,9 +330,19 @@ export function PoissonControls({ table, options, onChange }: ControlsProps<Pois
           </select>
         </Field>
       </Section>
+      <Section title="Overdispersion">
+        <label className="check-row">
+          <input type="checkbox" checked={options.quasi === true}
+            onChange={(e) => set({ quasi: e.target.checked })} />
+          <span>Quasi-Poisson standard errors (multiplied by √φ)</span>
+        </label>
+        <p className="field-note">For counts that vary more than a Poisson distribution allows (dispersion ratio
+          φ well above 1): same estimates, wider intervals.</p>
+      </Section>
       <Section title="Confidence intervals">
-        <Field label="Method">
-          <select aria-label="Confidence interval method" value={options.ciMethod}
+        <Field label="Method" note={options.quasi
+          ? "Quasi-Poisson intervals are Wald intervals from t with n − k df." : undefined}>
+          <select aria-label="Confidence interval method" value={options.ciMethod} disabled={options.quasi === true}
             onChange={(e) => set({ ciMethod: e.target.value as PoissonOptions["ciMethod"] })}>
             <option value="profile">Profile likelihood (asymmetrical)</option>
             <option value="wald">Wald (symmetrical)</option>

@@ -17,6 +17,7 @@ import type { MultiplicityFacts } from "./multiplicity";
 import { InteractionAction } from "./InteractionAction";
 import { BarAxisAction } from "./BarAxisAction";
 import { SexFactorAction } from "./SexFactorAction";
+import { QuasiPoissonAction } from "./QuasiPoissonAction";
 import { openAssignReplicates } from "../report/useReport";
 import type { Source } from "./sources";
 import { useContextFor, type ResultsGuideProps } from "./useResultsGuidance";
@@ -80,6 +81,7 @@ export function Chips({ chips, dataId, multiplicity, readOnly }: {
           {cur.action === "interaction" && dataId && !readOnly && <InteractionAction dataId={dataId} />}
           {cur.action === "bar-axis" && cur.target && !readOnly && <BarAxisAction graphId={cur.target} />}
           {cur.action === "sex-two-way" && dataId && !readOnly && <SexFactorAction dataId={dataId} />}
+          {cur.action === "quasi-poisson" && cur.target && !readOnly && <QuasiPoissonAction resultsId={cur.target} />}
           <Sources sources={cur.sources} />
           {cur.explainer && <LearnMore id={cur.explainer} />}
         </div>

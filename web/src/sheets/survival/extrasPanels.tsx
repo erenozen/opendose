@@ -20,7 +20,7 @@ import TableCopy from "../common/TableCopy";
 import type { ResultsProps } from "../types";
 import { fmtTime, timeUnitOf } from "./entry";
 import {
-  adjustedHeader, atTimeLabel, CORRECTION_LABEL, lastCommonTime, normalizeSurvivalOptions,
+  adjustedHeader, atTimeLabel, CORRECTION_LABEL, differenceRows, lastCommonTime, normalizeSurvivalOptions,
   survivalMethodsText, survivalWarnings, type PairwiseCorrection,
   type SurvivalExtras, type SurvivalOptions,
 } from "./extras";
@@ -241,11 +241,20 @@ function AtTimeBlock({ result, table, options, set }: {
   const groups = (Array.isArray(at.groups) ? at.groups : []) as R[];
   const level = `${Math.round(100 * (num(at.ci_level) ? at.ci_level : 0.95))}%`;
   const rowsAt = groups.map((g) => ({ g, a: (g.at_times ?? [])[0] as R | undefined }));
-  const twoDiff = rowsAt.length === 2 && rowsAt.every((r) => num(r.a?.survival));
+  // P-28: each group minus the first, with its CI and the cloglog P
+  const diffs = differenceRows(at, t);
+  const pts = (v: number | null) => (v === null ? "n/a" : `${formatSig(v)} points`);
+  const pCol = diffs.length ? ["P value"] : [];
   const matrix = () => [
-    ["Group", "n", "Time", "Survival", "SE", `Lower ${level} CI`, `Upper ${level} CI`, "At risk", "Events so far"],
+    ["Group", "n", "Time", "Survival", "SE", `Lower ${level} CI`, `Upper ${level} CI`, "At risk", "Events so far",
+      ...pCol],
     ...rowsAt.map(({ g, a }) => [String(g.name), String(g.n), raw(a?.time), raw(a?.survival), raw(a?.se),
-      raw(a?.ci_loglog?.[0]), raw(a?.ci_loglog?.[1]), raw(a?.at_risk), raw(a?.events_so_far)]),
+      raw(a?.ci_loglog?.[0]), raw(a?.ci_loglog?.[1]), raw(a?.at_risk), raw(a?.events_so_far),
+      ...pCol.map(() => "")]),
+    // P-28: the difference rows (fractions, as the survival column)
+    ...diffs.map((d) => [d.label, "", raw(t), raw(d.difference === null ? null : d.difference / 100),
+      raw(d.se === null ? null : d.se / 100), raw(d.ci ? d.ci[0] / 100 : null), raw(d.ci ? d.ci[1] / 100 : null),
+      "", "", raw(d.p)]),
   ];
   return (
     <section className="surv-block" aria-label="Survival at a chosen time">
@@ -270,14 +279,25 @@ function AtTimeBlock({ result, table, options, set }: {
               num(a?.se) ? `${formatSig(a.se * 100)} points` : "n/a",
               raw(a?.at_risk), raw(a?.events_so_far),
             ])} />
+          {diffs.length > 0 && (
+            // P-28: each group minus the first, with its CI and the cloglog P
+            <Grid caption={`Difference in survival at ${atTimeLabel(t, unit)}`} className="surv-at-diff"
+              head={["Difference", "Estimate", `${level} CI`, "SE", "P (cloglog test)"]}
+              rows={diffs.map((d) => [d.label, pts(d.difference),
+                d.ci ? `${formatSig(d.ci[0])} to ${formatSig(d.ci[1])} points` : "n/a",
+                pts(d.se), d.p === null ? "n/a" : tableP(d.p)])} />
+          )}
           {rowsAt.filter(({ a }) => a?.beyond_last).map(({ g, a }) => (
             <p key={g.name} className="hint-block">{g.name}: {String(a?.note ?? "after the last observed time")}.</p>
           ))}
-          {twoDiff && (
-            <p className="surv-diff">
-              Difference ({rowsAt[1].g.name} minus {rowsAt[0].g.name}):{" "}
-              {formatSig((rowsAt[1].a!.survival - rowsAt[0].a!.survival) * 100)} percentage points
-              (no CI: compare the curves with the log-rank test or the RMST below).
+          {diffs.filter((d) => d.note).map((d) => (
+            <p key={d.label} className="hint-block">{d.label}: {d.note}.</p>
+          ))}
+          {diffs.length > 0 && (
+            <p className="hint-block surv-diff">
+              Choose the time before looking at the curves: a difference at a time picked because the curves look
+              far apart there is not tested by this P value. To compare whole curves, use the log-rank test or the
+              RMST below.
             </p>
           )}
           <Method>
@@ -285,6 +305,10 @@ function AtTimeBlock({ result, table, options, set }: {
             standard error and {level} confidence interval on the log-log scale, as R&apos;s
             summary.survfit; not estimated after a group&apos;s last observed time.{" "}
             <Cite href={SRC.gpMedianSurvival.url}>{SRC.gpMedianSurvival.label}</Cite>.
+            {diffs.length > 0 && <>{" "}Difference: each group minus {rowsAt[0]?.g.name}, in percentage points, with
+              the Greenwood SE of the difference and a {level} linear confidence interval; P from the complementary
+              log-log test of <Cite>Klein, Logan, Harhoff &amp; Andersen 2007, Analyzing survival curves at a fixed
+              point in time, Stat Med 26:4505</Cite>.</>}
           </Method>
         </>
       )}

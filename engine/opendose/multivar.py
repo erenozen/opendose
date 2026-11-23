@@ -216,13 +216,26 @@ def describe_variables(variables, ci_level: float = 0.95) -> dict:
 
 def correlation_matrix(variables, *, method: str = "pearson",
                        missing: str = "pairwise", ci_level: float = 0.95,
-                       tails: int = 2) -> dict:
+                       tails: int = 2, control=()) -> dict:
     """r, P, n and CI matrices for every pair of continuous variables.
 
     missing: 'pairwise' (default) or 'listwise' (drop rows with any
     blank among the analysed variables).
+
+    control: names of continuous variables to control for. Each cell is
+    then the partial correlation of its pair given those variables
+    (correlation.partial_correlation: residuals on the control variables,
+    df = n - 2 - k, Fisher z CI with SE 1 / sqrt(n - 3 - k)), on the rows
+    where the pair and every control variable are present (pairwise) or
+    where every analysed and control variable is (listwise). The control
+    variables are left out of the matrix.
     """
     table = [v for v in parse_table(variables) if v["kind"] == "continuous"]
+    control = [str(c) for c in (control or ())]
+    if control:
+        return _partial_matrix(table, control, method=method,
+                               missing=missing, ci_level=ci_level,
+                               tails=tails)
     if len(table) < 2:
         raise ValueError("correlation matrix needs at least 2 continuous variables")
     cols = [v["values"] for v in table]
@@ -286,6 +299,72 @@ def correlation_matrix(variables, *, method: str = "pearson",
            "p": p, "n": n, "ci_lo": lo, "ci_hi": hi}
     if method == "spearman":
         out["p_type"] = p_type
+    return out
+
+
+def _partial_matrix(table, control, *, method, missing, ci_level, tails):
+    by = {v["name"]: v for v in table}
+    unknown = [c for c in control if c not in by]
+    if unknown:
+        raise ValueError(f"control variable {unknown[0]} is not a numeric "
+                         "variable of the table")
+    if method not in ("pearson", "spearman"):
+        raise ValueError("partial correlation is computed for Pearson or "
+                         "Spearman r")
+    names = [v["name"] for v in table if v["name"] not in control]
+    if len(names) < 2:
+        raise ValueError("partial correlation needs at least 2 variables "
+                         "besides the ones controlled for")
+    cols = [by[nm]["values"] for nm in names]
+    ctrl = [by[c]["values"] for c in control]
+    if missing == "listwise":
+        keep = [i for i in range(len(cols[0]))
+                if all(c[i] is not None for c in cols + ctrl)]
+        cols = [[c[i] for i in keep] for c in cols]
+        ctrl = [[c[i] for i in keep] for c in ctrl]
+    elif missing != "pairwise":
+        raise ValueError(f"unknown missing-value handling: {missing}")
+    k = len(names)
+    r = [[None] * k for _ in range(k)]
+    p = [[None] * k for _ in range(k)]
+    n = [[0] * k for _ in range(k)]
+    lo = [[None] * k for _ in range(k)]
+    hi = [[None] * k for _ in range(k)]
+    df = [[None] * k for _ in range(k)]
+    problems = []
+    for i in range(k):
+        n[i][i] = sum(v is not None and all(c[t] is not None for c in ctrl)
+                      for t, v in enumerate(cols[i]))
+        r[i][i] = 1.0
+        for j in range(i + 1, k):
+            try:
+                res = correlation.partial_correlation(
+                    cols[i], cols[j], ctrl, method=method, ci_level=ci_level)
+            except ValueError as e:
+                problems.append(f"{names[i]} vs. {names[j]}: {e}")
+                continue
+            n[i][j] = n[j][i] = res["n"]
+            pv = res["p_two_tailed"]
+            if tails == 1:
+                pv = res["p_greater"] if res["r"] >= 0 else res["p_less"]
+            r[i][j] = r[j][i] = res["r"]
+            p[i][j] = p[j][i] = float(min(pv, 1.0))
+            df[i][j] = df[j][i] = res["df"]
+            if res["ci_r"]:
+                lo[i][j] = lo[j][i] = float(res["ci_r"][0])
+                hi[i][j] = hi[j][i] = float(res["ci_r"][1])
+    out = {"method": method, "missing": missing, "tails": tails,
+           "ci_level": ci_level, "names": names, "control": control,
+           "partial": True, "r": r,
+           "r_squared": [[None if v is None else v * v for v in row]
+                         for row in r],
+           "p": p, "n": n, "df": df, "ci_lo": lo, "ci_hi": hi}
+    if method == "spearman":
+        out["p_type"] = [["approximate" if v is not None and a != b
+                          else None for b, v in enumerate(row)]
+                         for a, row in enumerate(p)]
+    if problems:
+        out["warnings"] = problems
     return out
 
 
@@ -831,7 +910,8 @@ def _poisson_fit(X, y, *, offset=None, beta0=None, max_iter: int = 200,
 def poisson_regression(variables, outcome: str, predictors, *,
                        interactions=(), reference_levels=None,
                        exposure: str | None = None, ci_level: float = 0.95,
-                       ci_method: str = "profile") -> dict:
+                       ci_method: str = "profile",
+                       quasi: bool = False) -> dict:
     """Multiple Poisson regression: log(mean count) = b0 + b1 X1 + ...
     (+ log(exposure) as an offset when an exposure variable is named).
 
@@ -846,7 +926,18 @@ def poisson_regression(variables, outcome: str, predictors, *,
     guide's Poisson CIs are "usually asymmetrical"; ci_method='wald' for
     symmetric ones), the likelihood-ratio test against the intercept-only
     model, and the exposure offset (Prism has none: there the counts per
-    unit time must be converted back to counts)."""
+    unit time must be converted back to counts).
+
+    quasi=True gives quasi-Poisson standard errors for overdispersed
+    counts (Wedderburn 1974, Biometrika 61:439; McCullagh & Nelder 1989,
+    Generalized Linear Models, 2nd ed., sections 4.5 and 9.2): the same
+    estimates, the dispersion phi = Pearson chi2 / (n - k) estimated, every
+    SE multiplied by sqrt(phi), t statistics with n - k df and Wald CIs
+    from t (statsmodels GLM(scale="X2", use_t=True); R's summary.glm for
+    family = quasipoisson reports the same SEs, t and P), and the overall
+    test an F test, F = (null deviance - deviance) / (k - 1) / phi on
+    (k - 1, n - k) df (R's anova(..., test = "F")). There is no likelihood,
+    so the AIC is not given."""
     table = parse_table(variables)
     d = _design(table, outcome, predictors, interactions, reference_levels)
     X = d["X"]
@@ -905,6 +996,17 @@ def poisson_regression(variables, outcome: str, predictors, *,
     zcrit = float(stats.norm.ppf((1 + ci_level) / 2))
     q = float(stats.chi2.ppf(ci_level, 1))
     vifs = _vifs(X) if k > 2 else [None] + [{"r2_with_others": 0.0, "vif": 1.0}]
+    df_res = n - k
+    pearson = float(np.sum((y - mu) ** 2 / mu))
+    phi = pearson / df_res
+    if quasi:
+        # an exact fit leaves only rounding in the Pearson residuals
+        if not phi > 1e-10:
+            raise ValueError("every count equals its fitted value (dispersion "
+                             "phi = 0), so quasi-Poisson standard errors "
+                             "would be 0: use Poisson regression")
+        se = se * math.sqrt(phi)
+        tcrit = float(stats.t.ppf((1 + ci_level) / 2, df_res))
 
     base_offset = offset
 
@@ -919,6 +1021,17 @@ def poisson_regression(variables, outcome: str, predictors, *,
         # exact 0 (Dobson's treatment effects come out as -2.6e-18): 0
         b = 0.0 if abs(beta[j]) <= 1e-9 * se[j] else float(beta[j])
         z = b / se[j]
+        if quasi:
+            ci = [float(b - tcrit * se[j]), float(b + tcrit * se[j])]
+            coefs.append({
+                "name": name, "estimate": b, "se": float(se[j]),
+                "ci": ci, "t": float(abs(z)), "df": df_res,
+                "p": float(2 * stats.t.sf(abs(z), df_res)),
+                "rate_ratio": float(math.exp(b)),
+                "rate_ratio_ci": [float(math.exp(c)) for c in ci],
+                "vif": None if vifs[j] is None else vifs[j]["vif"],
+            })
+            continue
         if ci_method == "profile":
             ci = _profile_ci(X, y, j, fit, se[j], q, fitter=fitter)
         elif ci_method == "wald":
@@ -943,12 +1056,9 @@ def poisson_regression(variables, outcome: str, predictors, *,
                                   0.0) - y - gammaln(y + 1)))
     deviance = 2 * (llmax - ll)
     null_deviance = 2 * (llmax - ll0)
-    df_res = n - k
-    pearson = float(np.sum((y - mu) ** 2 / mu))
     g = 2 * (ll - ll0)
     aic, aicc = _aicc(ll, k, n)
     aic0, aicc0 = _aicc(ll0, 1, n)
-    phi = pearson / df_res
     out = {
         "outcome": outcome,
         "exposure": exposure,
@@ -982,9 +1092,19 @@ def poisson_regression(variables, outcome: str, predictors, *,
         },
         "predicted": _aligned(d["rows"], d["n_rows"], mu),
         "observed": _aligned(d["rows"], d["n_rows"], y),
+        "family": "quasipoisson" if quasi else "poisson",
         "warnings": [],
     }
-    if phi > 1.5 and df_res >= 5:
+    if quasi:
+        out["ci_method"] = "wald_t"
+        out["dispersion"]["se_factor"] = math.sqrt(phi)
+        f_stat = (g / (k - 1)) / phi if k > 1 else None
+        out["f_test"] = {"F": f_stat, "df1": k - 1, "df2": df_res,
+                         "p": float(stats.f.sf(f_stat, k - 1, df_res))
+                         if f_stat is not None else None}
+        # no likelihood under quasi-likelihood: no AIC (R gives NA)
+        del out["model_comparison"]
+    elif phi > 1.5 and df_res >= 5:
         out["warnings"].append(
             f"Dispersion ratio phi = {phi:.3g}: the counts vary more than a "
             "Poisson distribution allows (overdispersion), so the standard "

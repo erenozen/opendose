@@ -120,6 +120,11 @@ export function analysedCases(): AnalysedCase[] {
     v = put(v, col(v, "Target background"), 4, "99999");
     v = put(v, col(v, "Loading control"), 6, "");
     out.push({ key: "dens_drops", analysisId: "assay_densitometry", table: v, options: o, run: (a) => runDens(a, v, o) });
+    // the loading-control column chosen, no value in any lane
+    let n = t;
+    for (let row = 0; row < 16; row++) n = put(n, col(n, "Loading control"), row, "");
+    out.push({ key: "dens_no_reference", analysisId: "assay_densitometry", table: n, options: o,
+      run: (a) => runDens(a, n, o) });
   }
 
   // plate: a blank sample well, a text reading, an excluded control well,

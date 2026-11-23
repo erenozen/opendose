@@ -15,6 +15,7 @@ import SphericityTable from "../sheets/common/SphericityTable";
 import { OrderedTrendResults } from "../sheets/column/OrderedTrend";
 import CochranQ from "../sheets/column/CochranQ";
 import { RmCorrResults } from "../sheets/column/RmCorr";
+import { CorrelationComparison } from "../sheets/column/CompareCorr";
 
 interface Props {
   result: Record<string, unknown> | null;
@@ -1081,7 +1082,12 @@ function mainResults(result: Record<string, unknown>, options: Props["options"])
     case "two_way_anova": return <TwoWayAnova result={result} />;
     case "rm_two_way_mixed":
     case "rm_two_way_both": return <RMTwoWay result={result} />;
-    case "correlation": return <Correlation result={result} tails={options?.corrTails} />;
+    case "correlation": return (
+      <>
+        <Correlation result={result} tails={options?.corrTails} />
+        {result.comparison && <CorrelationComparison c={result.comparison} />}
+      </>
+    );
     case "correlation_x": return (
       <>
         {((result.items ?? []) as any[]).map((it, k) => (it?.error
@@ -1091,6 +1097,7 @@ function mainResults(result: Record<string, unknown>, options: Props["options"])
           <p className="hint-block">Replicate Y values were averaged per row: each correlation uses one point per
             row (X, mean Y), as Prism does with subcolumns.</p>
         )}
+        {result.comparison && <CorrelationComparison c={result.comparison} />}
       </>
     );
     case "roc": return <Roc result={result} />;

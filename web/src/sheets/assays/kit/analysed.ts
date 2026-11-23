@@ -277,6 +277,8 @@ function flow(t: DataTableModel, options: unknown, result: unknown): AssayAnalys
 const LANE_WHY: Record<string, string> = {
   target_not_above_background: "target not above background",
   reference_not_above_background: "loading control not above background",
+  // left out when other lanes have a loading control (assay_densitometry)
+  no_reference: "no loading-control value",
 };
 
 function densitometry(t: DataTableModel, options: unknown, result: unknown): AssayAnalysed | null {
@@ -297,8 +299,9 @@ function densitometry(t: DataTableModel, options: unknown, result: unknown): Ass
     ? `${name(l, i)} (${(l.flags ?? []).map((f: string) => LANE_WHY[f]).filter(Boolean).join(", ") || "no ratio"})`
     : "")).filter(Boolean);
   const used = lanes.length - out.length;
-  // a lane with no loading-control value is normalised by its target alone
-  // (assay_densitometry), not as a ratio: name it next to the n
+  // with a loading-control column but no value in any lane, every lane is
+  // normalised by its target alone (assay_densitometry): say so. When some
+  // lanes have a value, the engine leaves the others out (named above).
   if (d.idx.reference >= 0) {
     const alone = lanes.map((l, i) => (l.normalized !== null && l.flags?.includes("no_reference") ? name(l, i) : ""))
       .filter(Boolean);

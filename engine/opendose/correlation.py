@@ -244,6 +244,153 @@ def kendall(values_a, values_b, *, ci_level: float = 0.95) -> dict:
     return out
 
 
+# ------------------------------------------------- partial correlation
+
+def partial_correlation(values_x, values_y, covariates, *,
+                        method: str = "pearson",
+                        ci_level: float = 0.95) -> dict:
+    """Partial correlation of x and y controlling for the covariates:
+    the Pearson r of the residuals of x and of y after least-squares
+    regression on the covariates (with an intercept), on the rows where
+    x, y and every covariate are present (Fisher 1924, Metron 3:329;
+    the residual definition of pingouin.partial_corr and R ppcor::pcor).
+    method='spearman' ranks x, y and the covariates first. With k
+    covariates: t = r sqrt(df / (1 - r^2)) on df = n - 2 - k, two-tailed
+    P from t; CI by Fisher z with SE 1 / sqrt(n - 3 - k)."""
+    if method not in ("pearson", "spearman"):
+        raise ValueError("partial correlation is computed for Pearson or "
+                         "Spearman r")
+    covs = [list(c) for c in covariates]
+    k = len(covs)
+
+    def present(col, i):
+        return i < len(col) and col[i] is not None \
+            and not (isinstance(col[i], float) and math.isnan(col[i]))
+
+    rows = [i for i in range(len(values_x))
+            if present(values_x, i) and present(values_y, i)
+            and all(present(c, i) for c in covs)]
+    n = len(rows)
+    if n < k + 3:
+        raise ValueError(f"partial correlation controlling for {k} "
+                         f"variable{'s' if k != 1 else ''} needs at least "
+                         f"{k + 3} complete rows; {n} found")
+    x = np.array([float(values_x[i]) for i in rows])
+    y = np.array([float(values_y[i]) for i in rows])
+    Z = np.array([[float(c[i]) for c in covs] for i in rows]).reshape(n, k)
+    if method == "spearman":
+        x, y = stats.rankdata(x), stats.rankdata(y)
+        Z = np.column_stack([stats.rankdata(Z[:, j]) for j in range(k)]) \
+            if k else Z
+    for j in range(k):
+        if np.ptp(Z[:, j]) == 0:
+            raise ValueError("a control variable is constant on the rows "
+                             "used, so it cannot be controlled for")
+    D = np.column_stack([np.ones(n), Z])
+    if np.linalg.matrix_rank(D) < k + 1:
+        raise ValueError("the control variables are collinear (one is a "
+                         "linear combination of the others)")
+    rx = x - D @ np.linalg.lstsq(D, x, rcond=None)[0]
+    ry = y - D @ np.linalg.lstsq(D, y, rcond=None)[0]
+    sx, sy = float(np.sqrt(rx @ rx)), float(np.sqrt(ry @ ry))
+    scale_x = float(np.sqrt(np.sum((x - x.mean()) ** 2)))
+    scale_y = float(np.sqrt(np.sum((y - y.mean()) ** 2)))
+    if sx <= 1e-12 * max(scale_x, 1e-300) or sy <= 1e-12 * max(scale_y,
+                                                                 1e-300):
+        raise ValueError("the control variables explain x or y exactly, so "
+                         "the partial correlation is undefined")
+    r = float(np.clip((rx @ ry) / (sx * sy), -1.0, 1.0))
+    df = n - 2 - k
+    t = r * math.sqrt(df / (1 - r * r)) if abs(r) < 1 else \
+        math.copysign(math.inf, r)
+    sd_z = 1 / math.sqrt(n - 3 - k) if n - 3 - k > 0 else math.inf
+    ci = None
+    if n - 3 - k > 0 and abs(r) < 1:
+        zc = stats.norm.ppf((1 + ci_level) / 2)
+        z = math.atanh(r)
+        ci = [math.tanh(z - zc * sd_z), math.tanh(z + zc * sd_z)]
+    return {"method": method, "n": n, "k": k, "r": r, "df": df, "t": t,
+            "p_two_tailed": float(2 * stats.t.sf(abs(t), df)),
+            "p_greater": float(stats.t.sf(t, df)),
+            "p_less": float(stats.t.cdf(t, df)),
+            "ci_r": ci}
+
+
+# ------------------------------------------- comparing two correlations
+
+def compare_independent(r1: float, n1: int, r2: float, n2: int) -> dict:
+    """Two correlations from independent samples: Fisher's z test,
+    z = (atanh r1 - atanh r2) / sqrt(1/(n1 - 3) + 1/(n2 - 3)), two-tailed
+    P from the normal distribution (Fisher 1921, Metron 1:3; cocor's
+    "fisher1925")."""
+    if n1 < 4 or n2 < 4:
+        raise ValueError("comparing two correlations needs at least 4 pairs "
+                         "in each")
+    if abs(r1) >= 1 or abs(r2) >= 1:
+        raise ValueError("a correlation of exactly 1 or -1 has no Fisher z, "
+                         "so it cannot be compared")
+    z = (math.atanh(r1) - math.atanh(r2)) / math.sqrt(1 / (n1 - 3)
+                                                      + 1 / (n2 - 3))
+    return {"test": "fisher_z_independent", "r1": r1, "n1": n1, "r2": r2,
+            "n2": n2, "difference": r1 - r2, "z": z,
+            "p_two_tailed": float(2 * stats.norm.sf(abs(z)))}
+
+
+def _steiger_z(r_a, r_b, psi, n):
+    rbar = (r_a + r_b) / 2
+    c = psi / (1 - rbar ** 2) ** 2
+    return (math.atanh(r_a) - math.atanh(r_b)) * math.sqrt(n - 3) \
+        / math.sqrt(2 - 2 * c), c
+
+
+def compare_dependent_overlapping(r_jk: float, r_jh: float, r_kh: float,
+                                  n: int) -> dict:
+    """Two correlations on the same n subjects that share variable j
+    (r_jk against r_jh): Steiger (1980, Psychol Bull 87:245, eq. 15) Z1*,
+    Fisher z of each r, their asymptotic covariance from the Pearson-
+    Filon formula with both r replaced by their mean r̄:
+    c = [r_kh (1 - 2 r̄²) - r̄² (1 - 2 r̄² - r_kh²) / 2] / (1 - r̄²)²,
+    Z = (z_jk - z_jh) sqrt(n - 3) / sqrt(2 - 2c), two-tailed normal P."""
+    if n < 4:
+        raise ValueError("comparing two correlations needs at least 4 "
+                         "subjects with every value")
+    if max(abs(r_jk), abs(r_jh)) >= 1:
+        raise ValueError("a correlation of exactly 1 or -1 has no Fisher z, "
+                         "so it cannot be compared")
+    rbar = (r_jk + r_jh) / 2
+    psi = r_kh * (1 - 2 * rbar ** 2) \
+        - 0.5 * rbar ** 2 * (1 - 2 * rbar ** 2 - r_kh ** 2)
+    z, c = _steiger_z(r_jk, r_jh, psi, n)
+    return {"test": "steiger_overlapping", "r1": r_jk, "r2": r_jh,
+            "r_other": r_kh, "n": n, "difference": r_jk - r_jh,
+            "covariance": c, "z": z,
+            "p_two_tailed": float(2 * stats.norm.sf(abs(z)))}
+
+
+def compare_dependent_nonoverlapping(r_jk: float, r_hm: float, r_jh: float,
+                                     r_jm: float, r_kh: float, r_km: float,
+                                     n: int) -> dict:
+    """Two correlations on the same n subjects with no variable in common
+    (r_jk against r_hm): Steiger (1980, eq. 14) Z2*, the Pearson-Filon
+    covariance (Steiger eq. 3) with r_jk and r_hm replaced by their mean
+    r̄, c = psi / (1 - r̄²)², Z = (z_jk - z_hm) sqrt(n - 3) / sqrt(2 - 2c)."""
+    if n < 4:
+        raise ValueError("comparing two correlations needs at least 4 "
+                         "subjects with every value")
+    if max(abs(r_jk), abs(r_hm)) >= 1:
+        raise ValueError("a correlation of exactly 1 or -1 has no Fisher z, "
+                         "so it cannot be compared")
+    rb = (r_jk + r_hm) / 2
+    psi = 0.5 * ((r_jh - rb * r_kh) * (r_km - r_kh * rb)
+                 + (r_jm - r_jh * rb) * (r_kh - rb * r_jh)
+                 + (r_jh - r_jm * rb) * (r_km - rb * r_jm)
+                 + (r_jm - rb * r_km) * (r_kh - r_km * rb))
+    z, c = _steiger_z(r_jk, r_hm, psi, n)
+    return {"test": "steiger_nonoverlapping", "r1": r_jk, "r2": r_hm,
+            "n": n, "difference": r_jk - r_hm, "covariance": c, "z": z,
+            "p_two_tailed": float(2 * stats.norm.sf(abs(z)))}
+
+
 # ------------------------------------------ repeated-measures correlation
 
 def rm_corr(values_x, values_y, subjects, *, ci_level: float = 0.95) -> dict:

@@ -107,6 +107,8 @@ export interface CorrelationOptions {
   missing: "pairwise" | "listwise";
   tails: 1 | 2;
   ciLevel: string;
+  /** Variables to control for: partial correlations (P-48); empty = none. */
+  control: string[];
 }
 
 export interface RegressionOptions {
@@ -131,6 +133,8 @@ export interface PoissonOptions extends RegressionOptions {
    *  model is then for the count per unit of it. "" = none. */
   exposure: string;
   ciMethod: "profile" | "wald";
+  /** Quasi-Poisson: SEs scaled by √φ for overdispersed counts (P-46). */
+  quasi: boolean;
 }
 
 export type PcaSelection =
@@ -204,7 +208,7 @@ export function defaultDescriptive(): DescriptiveOptions {
 }
 
 export function defaultCorrelation(): CorrelationOptions {
-  return { variables: [], method: "pearson", missing: "pairwise", tails: 2, ciLevel: "95" };
+  return { variables: [], method: "pearson", missing: "pairwise", tails: 2, ciLevel: "95", control: [] };
 }
 
 export function defaultRegression(t: DataTableModel): RegressionOptions {
@@ -251,12 +255,12 @@ export function defaultPoisson(t: DataTableModel): PoissonOptions {
     return nums.length > 0 && nums.every((x) => x >= 0 && Number.isInteger(x)) && new Set(nums).size > 2;
   });
   const outcome = counts[counts.length - 1]?.name;
-  if (!outcome || outcome === base.outcome) return { ...base, exposure: "", ciMethod: "profile" };
+  if (!outcome || outcome === base.outcome) return { ...base, exposure: "", ciMethod: "profile", quasi: false };
   const info = variableInfo(t);
   return {
     ...base, outcome,
     predictors: info.filter((v) => v.name !== outcome && !(v.kind === "continuous" && v.binary)).map((v) => v.name),
-    exposure: "", ciMethod: "profile",
+    exposure: "", ciMethod: "profile", quasi: false,
   };
 }
 
@@ -335,7 +339,7 @@ export function poissonPayload(t: DataTableModel, o: PoissonOptions):
   const exp = info.find((v) => v.name === o.exposure);
   const exposure = exp?.kind === "continuous" && exp.name !== o.outcome && !preds.includes(exp.name)
     ? exp.name : null;
-  return { options: { ...p.options, exposure, ci_method: o.ciMethod } };
+  return { options: { ...p.options, exposure, ci_method: o.ciMethod, ...(o.quasi ? { quasi: true } : {}) } };
 }
 
 export function rearrangePayload(t: DataTableModel, o: RearrangeOptions):

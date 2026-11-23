@@ -124,12 +124,21 @@ test("densitometry: lanes in the ratios, blots, lanes and rows left out, a lane 
   assert.equal(ex.notes.analysed, "16 of 16 lanes on 4 blots in the ratios; n = 4 blots");
   const dr = run("dens_drops");
   const lanes = dr.result.lanes;
-  assert.equal(lanes.filter((l: any) => l.normalized === null).length, 1);
+  assert.equal(lanes.filter((l: any) => l.normalized === null).length, 2);
   assert.deepEqual(lanes.find((l: any) => l.flags.includes("no_reference")).lane, "3");
-  assert.equal(dr.notes.analysed, "14 of 15 lanes on 4 blots in the ratios; n = 4 blots; 1 lane left out: "
-    + "Blot 2 lane 1, row 5 (target not above background); 1 row left out: row 2 (target “n/a”)");
-  assert.deepEqual(dataTexts(dr.notes), ["1 lane has no loading-control value, so its target signal alone stands "
-    + "in for the ratio: Blot 2 lane 3, row 7. Enter the loading control, or exclude the lane."]);
+  // the lane without a loading control is left out of the ratios (not
+  // normalised by its target alone and mixed with the ratios)
+  assert.equal(dr.notes.analysed, "13 of 15 lanes on 4 blots in the ratios; n = 4 blots; 2 lanes left out: "
+    + "Blot 2 lane 1, row 5 (target not above background) and Blot 2 lane 3, row 7 (no loading-control value); "
+    + "1 row left out: row 2 (target “n/a”)");
+  assert.deepEqual(dataTexts(dr.notes), []);
+  // with the column chosen and no value in any lane, the target alone is
+  // used for every lane and the note says so
+  const none = run("dens_no_reference");
+  assert.ok(none.result.lanes.every((l: any) => l.normalized !== null && l.flags.includes("no_reference")));
+  assert.equal(none.notes.analysed, "16 of 16 lanes on 4 blots in the ratios; n = 4 blots");
+  assert.equal(dataTexts(none.notes).length, 1);
+  assert.ok(dataTexts(none.notes)[0].startsWith("16 lanes have no loading-control value, so their target signal alone"));
 });
 
 test("plate reader: mapped wells read, wells left out by id and why, readings outside the map", () => {

@@ -18,6 +18,7 @@ import { equivalenceSpec, type MarginScale } from "../../report/equivalence.ts";
 import { pStackPayload } from "./pStack.ts";
 import { frequencyPayload } from "./frequency.ts";
 import { correlationXRequests } from "./correlationX.ts";
+import { columnCompareOption, xyComparePayload } from "./compareCorr.ts";
 import { mixedOptions, rmComparisonsSpec, fitsMixedModel } from "./rmPosthoc.ts";
 import { subjectLabels } from "./rmCorr.ts";
 
@@ -34,8 +35,16 @@ export function runColumn(engine: EngineBridge, table: DataTableModel,
   if (o.analysis === "correlation" && o.corrWithX && table.type === "xy") {
     const cx = correlationXRequests(table, o);
     if ("error" in cx) return { error: cx.error };
+    // compare two of the correlations (P-48, compareCorr.ts)
+    const cmp = xyComparePayload(table, o);
+    const comparison = !cmp ? undefined : "error" in cmp ? { error: cmp.error } : (() => {
+      const r = engine.analyze(cmp.payload) as Record<string, unknown>;
+      const c = (r?.error ? { error: r.error } : r?.comparison) as Record<string, unknown> | undefined;
+      return c && !c.error ? { ...c, design_reason: cmp.design.reason } : c;
+    })();
     return { analysis: "correlation_x", replicates_averaged: cx.replicatesAveraged,
-      items: cx.requests.map((q) => engine.analyze(q.payload)) };
+      items: cx.requests.map((q) => engine.analyze(q.payload)),
+      ...(comparison ? { comparison } : {}) };
   }
   if (table.subcolumnFormat !== "replicates") return runColumnSummary(engine, table, o);
   // RM one-way ANOVA with missing values, mixed model chosen: keep the
@@ -45,7 +54,11 @@ export function runColumn(engine: EngineBridge, table: DataTableModel,
     return engine.analyze({ analysis: "mixed_rm_oneway", data,
       options: mixedOptions(o, data.datasets.length) }) as Record<string, unknown>;
   }
-  const r = engine.analyze(columnPayload(table, o)) as Record<string, unknown>;
+  let r = engine.analyze(columnPayload(table, o)) as Record<string, unknown>;
+  const cmp = r && o.analysis === "correlation" ? r.comparison as Record<string, unknown> | undefined : undefined;
+  if (cmp && !cmp.error) {
+    r = { ...r, comparison: { ...cmp, design_reason: columnCompareOption(table, o)?.design.reason } };
+  }
   if (o.analysis === "two_way_anova" && o.twoWayDirection === "all_cells"
     && o.twoWayComparisons !== "none" && r && !r.error) {
     return { ...r, multiple_comparisons: twoWayAllCells(engine, table, o) };
@@ -214,10 +227,13 @@ export function columnPayload(table: DataTableModel, o: ColumnOptionsState):
     // which one the results show.
     // a Subject role: repeated-measures correlation (rmCorr.ts)
     const labels = subjectLabels(table, o.corrSubject, o.datasetA, o.datasetB);
+    // a second pair of data sets to compare with (P-48, compareCorr.ts)
+    const cmp = labels ? null : columnCompareOption(table, o);
     return { analysis: "correlation", ...base,
       options: { method: o.corrMethod,
                  dataset_a: o.datasetA, dataset_b: o.datasetB,
-                 ...(labels ? { subject_labels: labels } : {}) } };
+                 ...(labels ? { subject_labels: labels } : {}),
+                 ...(cmp ? { compare: cmp.compare } : {}) } };
   }
   if (o.analysis === "two_way_anova") {
     // "All cell means" are compared by runColumn (one-way on the cells).
