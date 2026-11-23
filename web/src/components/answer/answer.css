@@ -75,15 +75,14 @@
 
 /* Before the first result: the shape of the headline and of "What this
    means", still (no shimmer). The figure block matches .answer-item; the
-   reading uses MeaningLine's own classes, one 1lh bar per line, with as
-   many lines as a curve fit's reading takes at the pane's width. */
-.answer-skeleton {
-  display: flex; flex-direction: column; gap: var(--space-16);
-  container-type: inline-size;
-}
+   reading uses MeaningLine's own classes, so its bars wrap and space like
+   the text they stand for (ResultsAnswer.tsx expectedShape). */
+.answer-skeleton { display: flex; flex-direction: column; gap: var(--space-16); }
 .answer-sk-figure { display: flex; flex-direction: column; gap: var(--space-2); }
-.answer-sk-figure span { display: block; border-radius: var(--radius-control); background: var(--inset); }
-.answer-sk-figure span { height: 19px; width: 9rem; }
+.answer-sk-figure span {
+  display: block; height: 19px; width: 9rem;
+  border-radius: var(--radius-control); background: var(--inset);
+}
 .answer-sk-figure span:nth-child(1) { height: 17px; }
 .answer-sk-figure span:nth-child(2) { height: 36px; width: 12rem; max-width: 100%; }
 .answer-sk-figure .answer-sk-ci { width: 16rem; max-width: 100%; }

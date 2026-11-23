@@ -93,7 +93,7 @@ export default function Wizard({ title, steps, start = 0, finishLabel = "Finish"
         ))}
       </ol>
       <div className="wizard-body" key={step.id} data-instant={instant || undefined}
-        onInputCapture={touched} onChangeCapture={touched} onPasteCapture={touched}
+        onKeyDownCapture={touched} onPasteCapture={touched}
         onDropCapture={touched} onPointerUpCapture={touched}>
         <h3 ref={heading} tabIndex={-1} className="wizard-step-title">
           <span className="wizard-step-count">Step {at + 1} of {steps.length}<span className="sr-only">: </span></span>
