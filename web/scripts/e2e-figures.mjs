@@ -748,6 +748,92 @@ const fitLegendText = () => page.locator(".plot-card .figure-legend-text").textC
   await shot("fit-legend-caption");
 }
 
+// --- geometric mean ×/÷ geometric SD on a log axis, and the Checks note
+// for bars on a log axis or an axis cut above zero (P-25). Reference:
+// src/sheets/column/__tests__/reference/geo_summary.py (numpy, scipy
+// gmean / gstd): 0.5, 1, 2, 4 -> g = 1.41421, s* = 2.44697, ends 3.46053
+// and 0.577946; 1, 2, 4, 8 -> g = 2.82843, the same s*.
+{
+  const GEO = join(tmp, "geo.json");
+  const folds = (vals) => vals.map((v) => [String(v)]);
+  const colTable = { type: "column", x: Array(4).fill(""), xTitle: "", xFormat: "numbers", xUnit: "",
+    yTitle: "Fold change", rowTitles: Array(4).fill(""), subcolumnFormat: "replicates",
+    replicateLayout: "side_by_side",
+    datasets: [{ name: "Fold A", rows: folds([0.5, 1, 2, 4]) }, { name: "Fold B", rows: folds([1, 2, 4, 8]) }] };
+  writeFileSync(GEO, JSON.stringify({
+    version: 2, title: "Geometric check",
+    prefs: { defaultTableType: "column", errorBars: "sd", ciMethod: "asymptotic", scheme: "default", digits: 4 },
+    sheets: [
+      { id: "q1", kind: "data", name: "Folds", table: colTable },
+      { id: "q2", kind: "results", parentId: "q1", name: "Column stats of Folds",
+        analysis: "column", options: { analysis: "column_statistics" } },
+      { id: "q3", kind: "graph", parentId: "q1", resultsId: "q2", graphType: "bar", name: "Graph of Folds",
+        settings: { titles: { x: "", y: "" }, scheme: "default", column: { caption: "below" },
+          format: { y: { scale: "log10" } } } },
+      { id: "q4", kind: "data", name: "Folds cut", table: colTable },
+      { id: "q5", kind: "results", parentId: "q4", name: "Column stats of Folds cut",
+        analysis: "column", options: { analysis: "column_statistics" } },
+      { id: "q6", kind: "graph", parentId: "q4", resultsId: "q5", graphType: "scatter",
+        name: "Graph of Folds cut", settings: { titles: { x: "", y: "" }, scheme: "default",
+          column: { caption: "below" }, format: { y: { min: 1 } } } },
+    ],
+  }));
+  await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]', GEO);
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+    .some((t) => t.type === "bar"), null, { timeout: 120000 });
+  await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 120000 });
+  const pop = await graphSettings();
+  await pop.getByLabel("Bars and error bars").selectOption("geo_sd");
+  await closeSettings();
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+    .some((t) => t.type === "bar" && Math.abs(t.y[0] - Math.SQRT2) < 1e-9), null, { timeout: 30000 })
+    .catch(() => {});
+  const bars = await page.evaluate(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+    .filter((t) => t.type === "bar").map((t) => ({ y: t.y[0], hi: t.error_y?.array?.[0],
+      lo: t.error_y?.arrayminus?.[0] })));
+  const ends = bars.map((b) => [b.y - b.lo, b.y, b.y + b.hi]);
+  const near = (a, b) => Math.abs(a - b) <= 1e-12 * Math.abs(b);
+  expect("geometric mean ×/÷ geometric SD: bar ends g / s* and g × s* (numpy: 0.577946, 1.41421, 3.46053)",
+    ends.length === 2 && near(ends[0][0], 0.5779455771170363) && near(ends[0][1], 1.414213562373095)
+      && near(ends[0][2], 3.4605334467245026) && near(ends[1][1], 2 * 1.414213562373095)
+      && near(ends[1][2], 2 * 3.4605334467245026), JSON.stringify(ends));
+  const legend = await page.locator(".plot-card .figure-legend-text").innerText().catch(() => "");
+  expect("the legend names the geometric summary",
+    legend.startsWith("Geometric mean ×/÷ geometric SD (bars), with individual values."), legend);
+  await openChecks();
+  const chip = page.getByRole("button", { name: /Bars on a log axis/ });
+  expect("Checks: bars on a log axis are flagged", await chip.count() === 1);
+  await shot("geo-log-bars");
+
+  // the same groups with Y starting at 1: switch the scatter graph to bars
+  await page.getByRole("treeitem", { name: "Folds cut", exact: true }).first()
+    .locator(":scope > .nav-row").click();
+  await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 120000 });
+  await page.locator(".plot-card").getByLabel("Graph type").selectOption("bar");
+  await openChecks();
+  const cut = page.getByRole("button", { name: /Bars without zero/ });
+  await cut.waitFor({ timeout: 30000 }).catch(() => {});
+  expect("bars with Y starting at 1: the Checks note appears", await cut.count() === 1);
+  await cut.click();
+  const detail = page.getByRole("region", { name: "Bars without zero" });
+  const text = await detail.innerText().catch(() => "");
+  expect("the note offers points or an axis break and cites its source",
+    await detail.getByRole("button", { name: "Show points instead" }).count() === 1
+      && await detail.getByRole("button", { name: "Start at 0 with a break" }).count() === 1
+      && text.includes("starts at 1, not at 0") && text.includes("Healy, Data Visualization"), text);
+  await detail.getByRole("button", { name: "Start at 0 with a break" }).click();
+  await page.waitForFunction(() => !!document.querySelector(".plot-card .plot")?.layout?.yaxis3,
+    null, { timeout: 30000 }).catch(() => {});
+  const split = await page.evaluate(() => {
+    const l = document.querySelector(".plot-card .plot")?.layout ?? {};
+    return { lo: l.yaxis?.range, hi: l.yaxis3?.range };
+  });
+  expect("Start at 0 with a break: the axis shows 0 to 0.2, then from 1; the note goes",
+    split.lo?.[0] === 0 && split.lo?.[1] === 0.2 && split.hi?.[0] === 1
+      && await page.getByRole("button", { name: /Bars without zero/ }).count() === 0, JSON.stringify(split));
+  await shot("geo-axis-break");
+}
+
 console.log(errors.length ? errors.join("\n") : "no page errors");
 await browser.close();
 if (fail.length || errors.length) {

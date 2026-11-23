@@ -26,7 +26,9 @@ export interface Chip {
   explainer?: string;
   /** A one-click fix offered under the detail: Assign replicates…, the
    *  power tool, or the multiplicity alternatives (ANOVA / Holm-Šídák). */
-  action?: "assign-replicates" | "open-power" | "multiplicity" | "interaction";
+  action?: "assign-replicates" | "open-power" | "multiplicity" | "interaction" | "bar-axis";
+  /** The sheet a one-click fix changes (the bar graph of "bar-axis"). */
+  target?: string;
   /** Where the rule comes from, linked under the detail. */
   sources?: Source[];
 }

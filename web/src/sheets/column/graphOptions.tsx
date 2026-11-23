@@ -10,7 +10,7 @@ import { superPlotOn } from "../common/superplot";
 import SuperPlotOptions from "../common/SuperPlotOptions";
 import { useGraphSetting } from "../grouped/plotting";
 import {
-  CAPTION_LABELS, COLUMN_SUMMARY_LABELS, normalizeColumnGraph, smallestN,
+  CAPTION_LABELS, COLUMN_SUMMARY_LABELS, geoRefused, normalizeColumnGraph, smallestN,
   type ColumnGraphSettings, type ColumnSummary,
 } from "./graphSettings";
 import { ANALYSIS_REPLICATE_MEANS } from "./superplotStats";
@@ -48,6 +48,7 @@ export function ColumnGraphOptions({ graph, table, result }: GraphOptionsProps) 
   const summaryKinds = kind === "scatter" || kind === "bar";
   const pointsDrawn = kind === "scatter" || (kind === "bar" && s.points) || superOn;
   const n = smallestN(table);
+  const refused = geoRefused(table, s.summary);
   return (
     <>
       {raw && summaryKinds && !superOn && (
@@ -56,6 +57,12 @@ export function ColumnGraphOptions({ graph, table, result }: GraphOptionsProps) 
           options={(Object.keys(COLUMN_SUMMARY_LABELS) as ColumnSummary[])
             .map((k) => [k, COLUMN_SUMMARY_LABELS[k]] as const)}
           onChange={(summary) => up({ summary })} />
+      )}
+      {raw && summaryKinds && !superOn && refused.length > 0 && (
+        <OptNote>
+          The geometric mean needs values above 0 (a value of 0 or less has no logarithm), so none
+          is drawn for {refused.join(", ")}. Choose another centre, or check those values.
+        </OptNote>
       )}
       {raw && kind === "bar" && !superOn && (
         <OptCheck label="Show individual values on the bars" checked={s.points}

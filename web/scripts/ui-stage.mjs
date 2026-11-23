@@ -613,6 +613,15 @@ const scenes = [
     await into(s, ".plot-card", "center");
     await settle(s, 1200);
   } },
+  { name: "graphs-bar-axis-note", setup: async (s) => {
+    await fixture(s, "bar-axis.json", { live: true });
+    const checks = s.page.locator(".pane-answer details.checks").first();
+    await click(s, checks.locator("summary"));
+    await click(s, s.page.getByRole("button", { name: /Bars without zero/ }));
+    await s.page.getByRole("region", { name: "Bars without zero" }).waitFor();
+    await into(s, ".pane-answer details.checks", "center");
+    await settle(s, 800);
+  } },
   { name: "graphs-fit-legend", setup: async (s) => {
     await fixture(s, "fit-legend.json", { live: true });
     await s.page.locator(".js-plotly-plot").first().waitFor();

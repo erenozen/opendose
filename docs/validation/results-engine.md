@@ -642,3 +642,26 @@ shapes (x equals the LogIC50 the results table shows, y equals the drawn
 curve interpolated at x to 0.05 and the reference to 5e-5), changes a Y
 value (51.2 to 30 at 1e-7 M: LogIC50 -7.056, the line follows) and
 checks the absolute model.
+
+## Feature validation: geometric summaries on column graphs (2026-11-23)
+
+FEATURE-PLAN P-25. No engine change: the column scatter and bar graphs
+gain "Geometric mean ×/÷ geometric SD" and "Geometric mean with 95% CI"
+(`web/src/sheets/column/graphSettings.ts summaryOf`). On l = ln(x):
+g = exp(mean(l)), s* = exp(SD(l)) with n - 1, bar ends g / s* and g × s*
+(Limpert & Stahel 2011, PLoS ONE 6:e21403, the "×/" notation); the CI is
+exp(mean(l) ± t(0.975, n - 1) SD(l) / √n). A group with a value of 0 or
+less gets no geometric summary (no logarithm): the points stay, and the
+graph options and the legend name the group.
+
+Reference: `web/src/sheets/column/__tests__/reference/geo_summary.py`
+(numpy, scipy.stats.gmean and gstd, scipy.stats.t; R is not installed).
+Fold changes 0.5, 1, 2, 4: g = 1.414213562373095, s* = 2.4469666667017522,
+ends 0.5779455771170363 and 3.4605334467245026, 95% CI 0.34050 to 5.87366.
+Unit tests also cover n = 1, all values equal (s* = 1), 1e-12 and 1e12
+magnitudes, a ×10 unit change (g scales, s* does not) and group order.
+e2e-figures reads the bar ends from the drawn trace on a log axis (to
+1e-12 relative) and checks the Checks row note for bars on a log axis or
+on an axis starting at 1 (source: Healy, Data Visualization, ch. 1, "bar
+charts should generally include a zero baseline ... given that bars
+encode their variables as lengths").

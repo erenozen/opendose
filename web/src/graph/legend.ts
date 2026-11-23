@@ -12,7 +12,7 @@
 import type { DataTableModel, GraphSheet } from "../project/types.ts";
 import { parseCell } from "../project/table.ts";
 import {
-  normalizeColumnGraph, type ColumnSummary,
+  geoRefused, normalizeColumnGraph, type ColumnSummary,
 } from "../sheets/column/graphSettings.ts";
 import {
   replicateCounts, replicateInfo, replicateSummary, superPlotOn, type SuperCenter, type SuperError,
@@ -50,6 +50,8 @@ export interface LegendSpec {
   stars?: PStyle | null;
   /** Non-significant pairs are left out (the scale says so). */
   hideNs?: boolean;
+  /** Groups whose geometric summary is not drawn (a value of 0 or less). */
+  refused?: string[];
 }
 
 const PHRASE: Record<LegendSummary, string> = {
@@ -57,6 +59,8 @@ const PHRASE: Record<LegendSummary, string> = {
   mean_sem: "Mean ± SEM",
   mean_ci: "Mean with 95% CI",
   median_iqr: "Median with IQR",
+  geo_sd: "Geometric mean ×/÷ geometric SD",
+  geo_ci: "Geometric mean with 95% CI (from the logarithms)",
   mean_range: "Mean with range",
   mean: "Mean",
   none: "Mean",
@@ -113,6 +117,9 @@ export function composeLegend(spec: LegendSpec): string {
       break;
     default:
       parts.push(`${PHRASE[spec.summary]}${pts}`);
+  }
+  if (spec.refused?.length) {
+    parts.push(`No geometric mean for ${spec.refused.join(", ")}: a value of 0 or less has no logarithm`);
   }
   const n = nPhrase(spec.groups, spec.display === "superplot" ? "experiments" : spec.unit ?? "");
   if (n) {
@@ -189,6 +196,8 @@ function columnSpec(graph: Pick<GraphSheet, "graphType" | "settings">, table: Da
     display, stars,
     summary: s.summary,
     points: display === "bar" ? s.points : true,
+    ...(geoRefused(table, s.summary).length && (display === "bar" || display === "scatter")
+      ? { refused: geoRefused(table, s.summary) } : {}),
     whiskers: s.whiskers,
     groups: table.datasets.map((d) => ({ name: d.name, n: countValues(d.rows) })),
   };

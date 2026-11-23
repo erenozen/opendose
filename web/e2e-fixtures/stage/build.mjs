@@ -20,6 +20,8 @@
 //                      their value label on its curve-fit graph
 //   fit-legend.json    a weighted 4PL with a confidence band and one ROUT
 //                      outlier, its legend sentence drawn in the figure
+//   bar-axis.json      fold changes as bars of geometric means ×/÷ geometric
+//                      SD on an axis starting at 1 (the Checks note)
 //   many-sheets.json   74 sheets: 22 families, navigator groups (one
 //                      collapsed), highlights, info sheets and layouts
 import { writeFileSync } from "node:fs";
@@ -280,4 +282,17 @@ function write(name, p, compact = false) {
   const g = graph(t, r, "xy", "Graph of ROUT fit");
   g.settings.xy = { caption: "figure" };
   write("fit-legend.json", project("Fit legend", [t, r, g], { selected: g.id }));
+}
+
+// bar-axis.json: geometric means of fold changes as bars on an axis that
+// starts at 1 (sheets/column/barAxis.ts, the Checks row note)
+{
+  const t = data("Fold changes", table("column", { yTitle: "Fold change", datasets: [
+    col("Vehicle", [0.8, 1.1, 0.9, 1.2]), col("Drug", [0.5, 1, 2, 4]), col("Drug + inhibitor", [1, 2, 4, 8]),
+  ] }));
+  const r = results(t, "column", { analysis: "column_statistics" }, "Column stats of Fold changes");
+  const g = graph(t, r, "bar", "Graph of Fold changes");
+  g.settings.column = { caption: "below", summary: "geo_sd" };
+  g.settings.format = { y: { min: 0.4 } };
+  write("bar-axis.json", project("Bar axis", [t, r, g], { selected: r.id }));
 }

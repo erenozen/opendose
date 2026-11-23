@@ -118,10 +118,12 @@ export default function ColumnPlot({
       const pts = { ds: i, role: "points" as const, rows, keys };
       const { color, symbol } = seriesStyle(i, dark, scheme);
       const name = ds.name || `Dataset ${i + 1}`;
-      const st = summaryOf(values, summary)!;
-      const mean = st.center;
+      // null: a geometric summary of a group with a value of 0 or less
+      // (no logarithm); the values are drawn without it and the graph's
+      // options and legend say why.
+      const st = summaryOf(values, summary);
       // Same object as before for symmetric bars (mean ± SD/SEM/CI).
-      const errorY = st.hi > 0 || st.lo > 0
+      const errorY = st && (st.hi > 0 || st.lo > 0)
         ? (st.lo === st.hi
           ? { type: "data" as const, array: [st.hi], color: chrome.ink,
               thickness: 1.5, width: 8, visible: true }
@@ -165,8 +167,8 @@ export default function ColumnPlot({
         return;
       }
       if (graphType === "bar") {
-        traces.push(tagTrace({
-          x: [i], y: [mean],
+        if (st) traces.push(tagTrace({
+          x: [i], y: [st.center],
           type: "bar",
           width: 0.6,
           marker: { color: color + "55",
@@ -176,7 +178,7 @@ export default function ColumnPlot({
           showlegend: false,
           hovertemplate: `${name}: ${st.label}<extra></extra>`,
         }, { ds: i, role: "bar" }) as Plotly.Data);
-        if (!points) return;
+        if (!points && st) return;
         const off = offsets(values);
         const xs = values.map((_, j) => i + off[j]);
         traces.push(tagTrace({
@@ -204,8 +206,8 @@ export default function ColumnPlot({
         hovertemplate: `${name}: %{y:.4g}<extra></extra>`,
         showlegend: false,
       }, pts) as Plotly.Data);
-      traces.push(tagTrace({
-        x: [i], y: [mean],
+      if (st) traces.push(tagTrace({
+        x: [i], y: [st.center],
         mode: "markers",
         marker: { color: chrome.ink, symbol: "line-ew", size: 26,
                   line: { color: chrome.ink, width: 2.5 } },
