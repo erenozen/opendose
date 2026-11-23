@@ -3311,6 +3311,33 @@ Not done: the brackets on the contingency graphs. The graph draws its
 bars on a category axis with stacked segments, where the bracket layer
 (graph/apply.ts) can find neither the bar positions nor the stack tops;
 drawing them needs graph-layer work outside this task.
+
+### P-47 comparing two event rates
+
+`rates.compare_rates` (handler `rate_compare`; "Compare two event
+rates…" in the Analyze menu, File > Tools and the command palette): the
+exact conditional test of the rate ratio (binomial, given the total;
+Przyborowski & Wilenski 1940), the rate ratio with the exact conditional
+CI (Clopper-Pearson mapped by p / (1 − p) × T2 / T1) and each rate's
+exact Poisson CI (Garwood 1936), as R's `poisson.test`.
+
+Reference: `engine/tests/reference/event_rates.py` (statsmodels 0.15
+`test_poisson_2indep(method="exact-cond")`, `proportion_confint(method=
+"beta")`, `confint_poisson(method="exact-c")`), tested in
+`engine/tests/test_event_rates.py` to 1e-8:
+
+| Case | Rate ratio (95% CI) | P (two-sided) |
+| --- | --- | --- |
+| Plan's acceptance: 23 events in 10 h vs 41 in 12 h | 0.67317 (0.38560 to 1.14851) | 0.13351 |
+| R's `?poisson.test` example: 11 in 800 vs 21 in 3011 | 1.971488 (0.8584264 to 4.2772659) | 0.07967 |
+| 2 in 0.5 mm² vs 9 in 1.25 mm² | 0.55556 (0.058412 to 2.68410) | 0.73923 |
+
+The R help-page example matches the output printed there to every
+digit shown. Exposure in other units (hours to minutes, ×1e-12, ×1e12)
+leaves the ratio, its CI and P unchanged; swapping the groups inverts
+the ratio and swaps the one-sided P values. No events at all gives the
+rates and their CIs and says there is no test; no events in group 2
+gives an unbounded ratio, said in words.
 """
 
 

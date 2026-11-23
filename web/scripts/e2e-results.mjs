@@ -371,6 +371,41 @@ await page.waitForSelector('.pane-results[data-live="true"] .results-table', { t
     fam.startsWith("P values adjusted for 3 comparisons (Holm): all pairs of 3 rows."), fam);
 }
 
+// --- P-47: compare two event rates ----------------------------------------
+{
+  // engine/tests/reference/event_rates.py: statsmodels test_poisson_2indep
+  // (exact-cond) and the Clopper-Pearson interval of 23 / 64
+  await page.getByRole("button", { name: "Analyze", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Compare two event rates…" }).click();
+  const dlg = page.getByRole("dialog", { name: "Compare two event rates" });
+  expect("P-47 the Analyze menu opens the rates calculator", await appears(dlg));
+  await dlg.getByLabel("Exposure unit").fill("hours");
+  await dlg.getByLabel("Events in group 1").fill("23");
+  await dlg.getByLabel("Exposure of group 1").fill("10");
+  await dlg.getByLabel("Events in group 2").fill("41");
+  await dlg.getByLabel("Exposure of group 2").fill("12");
+  const table = dlg.locator(".rates-table");
+  await appears(table, 60000);
+  const row = async (label) => (await table.locator("tr", { hasText: label }).first().innerText().catch(() => ""))
+    .replace(/\s+/g, " ").trim();
+  const ratio = await row("Rate ratio");
+  expect("P-47 acceptance: rate ratio 0.6732 (0.3856 to 1.149)",
+    ratio === "Rate ratio Group 1/Group 2 (exact conditional 95% CI) 0.6732 (0.3856 to 1.149)", ratio);
+  const p = await row("P value, exact conditional test");
+  expect("P-47 acceptance: exact P = 0.1335", p === "P value, exact conditional test (two-tailed) P = 0.1335", p);
+  const r1 = await row("Rate of Group 1");
+  expect("P-47 the exact CI of one rate: 2.3 per hour (1.458 to 3.451)",
+    r1 === "Rate of Group 1 (per hour, exact 95% CI) 2.3 (1.458 to 3.451); 23 events in 10", r1);
+  await dlg.getByRole("button", { name: "Done" }).click();
+  // the palette finds it too
+  await page.keyboard.press("Control+k");
+  const palette = page.getByRole("combobox", { name: "Find a command or sheet" });
+  await palette.fill("event rates");
+  const opt = page.getByRole("option", { name: /Compare two event rates/ });
+  expect("P-47 Ctrl+K finds 'Compare two event rates…'", await appears(opt, 10000));
+  await page.keyboard.press("Escape");
+}
+
 // ------------------------------------------------------------------------
 await browser.close();
 if (errors.length) console.log(errors.slice(0, 10).join("\n"));

@@ -42,6 +42,7 @@ import { usePasteAnywhere } from "./guide/usePasteAnywhere";
 import ReportHost from "./report/ReportHost";
 import ReproduceStrip from "./report/ReproduceStrip";
 import PowerHost from "./power/PowerHost";
+import RatesHost from "./rates/RatesHost";
 import { Banner, Button, lastInputWasKeyboard, notify, ToastProvider } from "./components/ui";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 
@@ -233,6 +234,7 @@ function Shell() {
       )}
       <SimulateHost />
       <PowerHost />
+      <RatesHost />
     </div>
   );
 }

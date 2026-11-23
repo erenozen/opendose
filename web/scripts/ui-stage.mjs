@@ -668,6 +668,19 @@ const scenes = [
     await settle(s, 800);
     await into(s, ".pane-results .pairwise-rows", "start");
   } },
+  { name: "dialog-event-rates", setup: async (s) => {
+    await example(s);
+    await click(s, button(s, "Analyze"));
+    await click(s, s.page.getByRole("menuitem", { name: "Compare two event rates…" }));
+    const dlg = s.page.getByRole("dialog", { name: "Compare two event rates" });
+    await dlg.getByLabel("Exposure unit").fill("hours");
+    await dlg.getByLabel("Events in group 1").fill("23");
+    await dlg.getByLabel("Exposure of group 1").fill("10");
+    await dlg.getByLabel("Events in group 2").fill("41");
+    await dlg.getByLabel("Exposure of group 2").fill("12");
+    await dlg.locator(".rates-table").waitFor({ timeout: 120000 });
+    await settle(s, 600);
+  } },
   // the eLife checklist on the example: source data per figure is not met
   // and links to the export bundle (P-09)
   { name: "results-checklist-elife", setup: async (s) => {

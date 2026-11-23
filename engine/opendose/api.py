@@ -2812,6 +2812,30 @@ _HANDLERS = {
 }
 
 
+def _rate_compare(data, options):
+    """Two event rates (rates.compare_rates; R's poisson.test). data:
+    {"groups": [{"name"?, "events", "exposure"}, {...}]}. options:
+    ci_level (0.95). Result: {"analysis": "rate_compare", "names",
+    "groups": [{events, exposure, rate, ci}], "rate_ratio", "ratio_ci"
+    (an entry null when unbounded), "p_two_tailed", "p_greater",
+    "p_less", "test", "source"}."""
+    from . import rates
+    groups = list(data.get("groups") or [])
+    if len(groups) != 2:
+        raise ValueError("enter two groups, each with its events and "
+                         "exposure")
+    names = [g.get("name") or f"Group {i + 1}" for i, g in enumerate(groups)]
+    return {"analysis": "rate_compare", "names": names,
+            **rates.compare_rates(groups[0].get("events"),
+                                  groups[0].get("exposure"),
+                                  groups[1].get("events"),
+                                  groups[1].get("exposure"),
+                                  ci_level=options.get("ci_level", 0.95))}
+
+
+_HANDLERS["rate_compare"] = _rate_compare
+
+
 # ------------------------------------------- equation library / user equations
 # Curve-fitting guide: "Models (equations) built-in to Prism" (opendose.
 # equations) and "Entering a user-defined model into Prism" (opendose.
