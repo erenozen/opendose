@@ -22,8 +22,8 @@ interface TourStep { anchor: string[]; title: string; body: string }
 
 const TOUR_STEPS: TourStep[] = [
   { anchor: [".pane-table .data-table", ".pane-table"], title: "Change a value",
-    body: "This is the data: three groups of six measurements. Type a new number into any "
-      + "cell and watch the graph and the ANOVA P value update as you type. "
+    body: "This is the data. Type a new number into any cell and watch the results and the "
+      + "graph update as you type. "
       + `${MOD}Z undoes it.` },
   { anchor: [".analyze-wrap", ".analyze-btn"], title: "Analyze, or ask which test",
     body: "Analyze adds another analysis of this table. Not sure which one? “Help me choose…” at "
@@ -35,8 +35,9 @@ const TOUR_STEPS: TourStep[] = [
       + "SDs and more. Open it for advice and a Learn more link. The checks advise; they never "
       + "block." },
   { anchor: [".plot-card .graph-settings .settings-btn", ".plot-card"], title: "Add significance brackets",
-    body: "Graph Settings › Pairwise comparisons… draws brackets with stars or exact P values "
-      + "from the multiple comparisons, and keeps them linked to the analysis." },
+    body: "On a graph that compares groups, Settings › Pairwise comparisons… draws brackets "
+      + "with stars or exact P values from the multiple comparisons and keeps them linked to "
+      + "the analysis." },
   { anchor: [".plot-card .export-panel", "[aria-label='Save project']"], title: "Export or save",
     body: "Export the graph as SVG, PDF, PNG or TIFF at journal sizes, or Save project to keep "
       + "data, results and graphs together in one file. Projects also autosave in this browser." },

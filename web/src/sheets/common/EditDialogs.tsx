@@ -326,7 +326,7 @@ export function ExportDialog({ table, name, onClose }: {
               setCopied(true);
               announce("Copied as tab-separated text.", "polite");
             } else {
-              notify(`Could not copy “${name}”: the browser blocked the clipboard. Use Download TSV instead.`,
+              notify(`Could not copy “${name}”: the browser refused the clipboard. Use Download TSV instead.`,
                 { tone: "error" });
             }
           }}>

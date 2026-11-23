@@ -2,22 +2,22 @@
 
 A free, open-source tool for the everyday analyses of a wet lab:
 dose-response curve fitting (IC50/EC50), enzyme kinetics, binding,
-survival analysis, and the standard biostatistics toolbox, built on
-battle-tested open-source numerics (NumPy/SciPy). All computation runs
-client-side via Pyodide, in a Web Worker: the page stays responsive while
-an analysis runs, a long one shows its progress ("Computing… 3.2 s") and
-can be cancelled, and the first start shows a real download progress
-bar. Data never leaves the browser, and hosting is a static site; after
-the first visit an offline cache (a service worker that only keeps the
-files the app already downloads) makes later starts read from disk and
-lets the app work without a network.
+survival analysis and the standard biostatistics toolbox. The numbers
+come from NumPy and SciPy, which Pyodide runs in the browser inside a Web
+Worker, so the page stays responsive while an analysis runs. A long
+analysis shows its progress ("Computing… 3.2 s") and can be cancelled,
+and the first start shows a real download progress bar.
 
-Scientists moving from commercial packages should feel at home: the
-implemented methods follow the published, well-documented algorithms of
-the field, and every analysis ships with tests cross-checking the
-numbers against independent implementations (statsmodels, pingouin,
-hand-derived formulas) and, where we have access, against results
-produced by commercial software (see `docs/prism-validation.md`).
+Data never leaves the browser. The site is static: after the first
+visit, an offline cache (a service worker that keeps only the files the
+app already downloads) makes later starts read from disk and lets the
+app work without a network.
+
+Each method follows its published algorithm, and every analysis ships
+with tests that check its numbers against independent implementations
+(statsmodels, pingouin, hand-derived formulas) and, where we have
+access, against results from commercial software (see
+`docs/prism-validation.md`).
 
 ## Privacy and self-hosting
 
@@ -46,6 +46,9 @@ is never online), see [`docs/self-hosting.md`](docs/self-hosting.md).
   publication-style results sheets. `web/src/sheets/README.md` describes
   how table types plug in.
 - `docs/prism-validation.md`: the numeric validation protocol and records.
+- `docs/design/`: the design system (tokens, buttons, forms, overlays,
+  feedback, motion, layout, copy). Read `docs/design/README.md` before
+  changing anything a user can see.
 
 ## Develop
 
@@ -63,11 +66,18 @@ cd web && node scripts/e2e-export.mjs   # page layouts, PDF/PNG/zip export
 cd web && node scripts/e2e-share.mjs    # share links, export bundle, import recipes
 cd web && node scripts/e2e-figures.mjs  # SuperPlots, legends, P styles, classic theme, CVD check, volcano, heat-map dendrograms
 cd web && node scripts/e2e-assays.mjs   # assay wizards (plate, ELISA, qPCR, flow, blots)
+cd web && node scripts/e2e-feedback.mjs     # toasts, banners, the announcer, the engine boot slot
+cd web && node scripts/e2e-primitives.mjs   # dialogs, popovers, menus, tooltips: focus return, Tab trap, keyboard
 cd web && node scripts/e2e-motion.mjs http://localhost:5173/ [--frames OUT]   # motion: what runs, for how long, on which curve; keyboard and reduced-motion paths; theme switch
 cd web && node scripts/a11y-audit.mjs   # axe-core on every analysis' controls
 cd web && node scripts/smoke-0.4.0.mjs http://localhost:5173/ OUT   # screenshots of every 0.4.0 entry point, 1400/390 px, light/dark, with axe-core
-cd web && node scripts/ui-stage.mjs http://localhost:5173/ OUT ["grid-*,first-start"]   # stage: every surface and hard state (engine booting/failed, failed fit, 40x1200 grid, long names) from e2e-fixtures/stage/, 1400/390 px, light/dark, axe-core, contact sheet OUT/index.html
+cd web && node scripts/ui-stage.mjs http://localhost:5173/ OUT ["grid-*,first-landing"]   # stage: every surface and hard state (engine booting/failed, failed fit, 40x1200 grid, long names) from e2e-fixtures/stage/, 1400/390 px, light/dark, axe-core, contact sheet OUT/index.html
+cd web && node scripts/design-counts.mjs   # design-token drift: raw colours, z-indexes, radii, font sizes
 ```
+
+`web/README.md` says what each script in `web/scripts/` checks, and
+`scripts/verify.sh` runs the engine tests, build, lint, unit tests and
+every e2e suite against main in a clean worktree.
 
 The site serves the Python runtime itself: `npm run dev` and `npm run build`
 first run `scripts/sync-pyodide.mjs`, which copies Pyodide from npm and
@@ -483,7 +493,7 @@ sheets that follow the data.
 - Planning before the data: "Plan an experiment…" asks the wizard's
   design questions plus how many independent units per group and whether
   samples are pooled, then creates the planned table and analysis, gives
-  an a priori n from the power engine and a sourced design check list
+  an a priori n from the power engine and a sourced design checklist
   (one pooled sample per group is n = 1, cage as the unit, technical
   repeats, controls, randomisation, blinding). An analysis plan on an
   info sheet (test, sidedness, n, exclusion rule, α) can be locked; later

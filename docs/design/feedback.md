@@ -54,11 +54,11 @@ and back. Never set a duration, never focus a toast, never raise a toast
 for every keystroke or cell edit.
 
 ```tsx
-// Correct: app/useFileOpen.ts:82
+// Correct: app/useFileOpen.ts:89
 notify(`Opening “${file.name}”…`, { tone: "progress", id: TOAST_ID });
 // … then, in place:
 notify(`Opened “${file.name}”.`, { tone: "success", id: TOAST_ID });
-notify(`Could not open “${file.name}”: ${e instanceof Error ? e.message : e}`, {
+notify(`Could not open “${file.name}”: ${String(e instanceof Error ? e.message : e).replace(/\.$/, "")}.`, {
   tone: "error", id: TOAST_ID,
   action: { label: "Choose another file", onAction: () => pickRef.current() },
 });
@@ -129,10 +129,9 @@ and never unmount the slot when the engine is ready.
 (inside `ToastProvider`). Toasts and banners speak through it; you only
 call `announce(message, "polite" | "assertive")` for a change with no
 visible message (a keyboard action whose result is only visual).
-Assertive is for errors only.
-
-- Speak phases, never counters; never `aria-live` on a whole section,
-  only `role="status"` on the one line that changes, mounted before it does.
+Assertive is for errors only. Speak phases, never counters. Never put
+`aria-live` on a whole section: put `role="status"` on the one line that
+changes, mounted before it does.
 
 ```tsx
 // Correct: components/EngineStatus.tsx:176. Words spoken, seconds hidden.
