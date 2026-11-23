@@ -1415,7 +1415,10 @@ def _rm_two_way(data, options):
 
 def _ec50_shift(data, options):
     """Gaddum/Schild EC50 shift: one curve per dataset, each with its
-    antagonist concentration from options.antagonist (linear units)."""
+    antagonist concentration from options.antagonist (linear units).
+    `schild_plot` adds the Schild plot (schild.schild_plot: each curve's
+    EC50, dose ratios, log(DR - 1) on log[B] with the slope's CI), or an
+    `error` inside it when it cannot be drawn; the fit is unaffected."""
     x_col = data["x"]
     if not options.get("x_is_log", True):
         x_col = transform.transform_list(x_col, "log10")
@@ -1430,6 +1433,10 @@ def _ec50_shift(data, options):
     result = schild.fit_ec50_shift(
         gdatasets, [float(b) for b in antagonist],
         constraints=options.get("constraints") or {})
+    # the Schild plot (a display; pA2 and KB stay the global fit's)
+    result["schild_plot"] = schild.schild_plot(
+        gdatasets, [float(b) for b in antagonist], result["fitted_values"],
+        options.get("constraints") or {})
     finite_x = [v for v in x_col if v is not None]
     lo, hi = min(finite_x) - 0.5, max(finite_x) + 0.5
     grid = [lo + i * (hi - lo) / 199 for i in range(200)]

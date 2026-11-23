@@ -27,9 +27,10 @@
 //   raincloud.json     the example column table as a raincloud, plus a
 //                      one-value group (no density, named in the legend)
 //   pins.json          colours pinned to group names, one under 3:1 on white
+//   schild.json        the EC50-shift example with its Schild plot (P-49)
 //   many-sheets.json   74 sheets: 22 families, navigator groups (one
 //                      collapsed), highlights, info sheets and layouts
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -342,4 +343,19 @@ function write(name, p, compact = false) {
   g.settings.column = { spread: "symmetric", caption: "below", summary: "auto" };
   write("pins.json", project("Pinned colours", [t, g], { selected: g.id,
     groupColors: [{ name: "KO", color: "#e69f00" }, { name: "WT", color: "#0072b2" }] }));
+}
+
+// schild.json: the EC50-shift example (engine/tests/reference/
+// schild_plot.py) with its Schild plot (P-49)
+{
+  const ref = JSON.parse(readFileSync(join(here, "..", "..", "..", "engine", "tests", "reference",
+    "schild_example.json"), "utf8")).data;
+  const t = data("EC50 shift", table("xy", { x: ref.x.map(String), xTitle: "log[Agonist]",
+    yTitle: "Response", xUnit: "M",
+    datasets: ref.names.map((n, i) => ({ name: n, subTitles: ["", ""], rows: ref.ys[i].map((r) => r.map(String)) })) }));
+  const r = results(t, "nonlin", { model: "ec50_shift", xIsLog: true, autoFit: "requested",
+    schildSlopeUnity: false, antagonist: ref.antagonist.join(", ") }, "Nonlin fit of EC50 shift");
+  const g = graph(t, r, "xy", "Graph of EC50 shift");
+  const s = graph(t, r, "schild_plot", "Schild plot of EC50 shift");
+  write("schild.json", project("EC50 shift", [t, r, g, s], { selected: r.id }));
 }

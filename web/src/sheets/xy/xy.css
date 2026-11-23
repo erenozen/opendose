@@ -27,3 +27,8 @@
 
 /* Potency across experiments (ExperimentsCard.tsx): the cited sources. */
 .experiments-sources { display: flex; flex-wrap: wrap; gap: var(--space-4) var(--space-12); }
+
+/* Schild plot results (SchildCard.tsx): the linked table and graph actions. */
+.schild-actions { display: flex; flex-wrap: wrap; gap: var(--space-8); align-items: center; margin-top: var(--space-8); }
+.schild-scroll { overflow-x: auto; max-width: 100%; }
+.schild-scroll th[scope="row"] { white-space: nowrap; }

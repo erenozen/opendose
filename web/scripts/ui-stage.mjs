@@ -647,6 +647,21 @@ const scenes = [
     await fmt.getByLabel("Axis line width (pt)").fill("1");
     await settle(s, 500);
   } },
+  { name: "results-schild", setup: async (s) => {
+    await fixture(s, "schild.json", { live: true });
+    const card = s.page.locator(".schild-card");
+    await card.waitFor({ timeout: 240000 });
+    await card.evaluate((el) => el.scrollIntoView({ block: "start" }));
+    await settle(s, 600);
+  } },
+  { name: "graphs-schild", setup: async (s) => {
+    await fixture(s, "schild.json", { live: true });
+    await selectSheet(s, /^Schild plot of EC50 shift/);
+    await s.page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+      .some((t) => t.meta?.odTag?.role === "fit"), null, { timeout: 240000 });
+    await into(s, ".plot-card", "center");
+    await settle(s, 800);
+  } },
   { name: "graphs-raincloud", setup: async (s) => {
     await fixture(s, "raincloud.json", { live: true });
     await s.page.locator(".js-plotly-plot").first().waitFor();

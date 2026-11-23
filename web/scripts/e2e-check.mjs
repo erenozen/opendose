@@ -4497,6 +4497,95 @@ const axeOn = async (pg, sel) => {
   }
 }
 
+// --- the Schild plot of the EC50-shift example (P-49): control and five
+// antagonist curves (engine/tests/reference/schild_plot.py: scipy
+// least_squares for each curve's EC50, statsmodels OLS for the line).
+// The results card shows the dose ratios and the slope with its CI, a
+// linked XY table holds log[B] and log(DR - 1), and the Schild plot draws
+// them with the line; pA2 and KB stay the global fit's.
+{
+  const pg = await browser.newPage({ viewport: { width: 1500, height: 1100 } });
+  pg.on("pageerror", (e) => errors.push(`pageerror: ${e.message}`));
+  await pg.goto(url, { waitUntil: "domcontentloaded" });
+  await pg.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 180000 });
+  const REF = JSON.parse(readFileSync(join(here, "..", "..", "engine", "tests", "reference",
+    "schild_example.json"), "utf8"));
+  const D = REF.data, O = REF.ols;
+  const sig4 = (v) => (Math.abs(v) < 1e-3 ? v.toExponential(3) : String(Number(v.toPrecision(4))));
+  const file = join(mkdtempSync(join(tmpdir(), "opendose-schild-")), "schild.json");
+  writeFileSync(file, JSON.stringify({ version: 2, title: "EC50 shift",
+    prefs: { defaultTableType: "xy", errorBars: "sd", ciMethod: "asymptotic", scheme: "default", digits: 4 },
+    sheets: [
+      { id: "sd", kind: "data", name: "EC50 shift", table: {
+        type: "xy", x: D.x.map(String), xTitle: "log[Agonist]", xFormat: "numbers", xUnit: "M", yTitle: "Response",
+        rowTitles: D.x.map(() => ""), subcolumnFormat: "replicates", replicateLayout: "side_by_side",
+        datasets: D.names.map((n, i) => ({ name: n, subTitles: ["", ""],
+          rows: D.ys[i].map((r) => r.map(String)) })) } },
+      { id: "sr", kind: "results", parentId: "sd", name: "Nonlin fit of EC50 shift", analysis: "nonlin",
+        options: { model: "ec50_shift", xIsLog: true, autoFit: "requested", schildSlopeUnity: false,
+          antagonist: D.antagonist.join(", ") } },
+      { id: "sg", kind: "graph", parentId: "sd", resultsId: "sr", graphType: "xy", name: "Graph of EC50 shift",
+        settings: { titles: { x: "", y: "" }, scheme: "default" } },
+    ] }));
+  await pg.keyboard.press("Escape");
+  await pg.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]', file);
+  await pg.getByRole("treeitem", { name: /^Nonlin fit of EC50 shift/ }).first().locator(":scope > .nav-row").click();
+  const card = pg.locator(".schild-card");
+  await card.waitFor({ timeout: 180000 });
+  const text = (await card.innerText()).replace(/\s+/g, " ");
+  expect(`Schild card: slope ${sig4(O.slope)}, 95% CI ${sig4(O.slope_ci95[0])} to ${sig4(O.slope_ci95[1])} (statsmodels OLS)`,
+    text.includes(`Schild slope ${sig4(O.slope)}`)
+    && text.includes(`95% CI of the slope (t, 3 df) ${sig4(O.slope_ci95[0])} to ${sig4(O.slope_ci95[1])}`), text.slice(0, 600));
+  expect(`Schild card: pA2 from the plot ${sig4(O.pA2_from_plot)}, R squared ${sig4(O.r_squared)}, P (slope = 1) ${sig4(O.p_slope_1)}`,
+    text.includes(`pA2 from the plot (X intercept) ${sig4(O.pA2_from_plot)}`) && text.includes(`R squared ${sig4(O.r_squared)}`)
+    && text.includes(`P (slope = 1) ${sig4(O.p_slope_1)}`));
+  expect(`Schild card: dose ratios ${REF.dose_ratio.map(sig4).join(", ")} (scipy, parallel curves)`,
+    REF.dose_ratio.every((dr, i) => text.includes(`${D.names[i + 1]} ${sig4(D.antagonist[i + 1])}`) && text.includes(sig4(dr))));
+  expect("Schild card: the CI includes 1, said next to the number",
+    text.includes("the interval includes 1, as simple competitive antagonism predicts"));
+  const fitRows = await pg.evaluate(() => [...document.querySelectorAll(".pane-results tr")]
+    .filter((r) => !r.closest(".schild-card"))
+    .map((r) => [...r.cells].map((c) => c.textContent.trim())));
+  const pa2 = fitRows.find((r) => /^pA2\b/.test(r[0] ?? ""));
+  const kb = fitRows.find((r) => /^KB\b/.test(r[0] ?? ""));
+  expect("pA2 and KB are still the global fit's (pA2 about 7.5, KB about 10^-7.5)",
+    !!pa2 && Math.abs(parseFloat(pa2[1]) - 7.5) < 0.15 && !!kb && Math.abs(Math.log10(parseFloat(kb[1])) + 7.5) < 0.15,
+    JSON.stringify([pa2, kb, fitRows.slice(0, 12)]));
+  // the linked XY table
+  await card.getByRole("button", { name: "Make a linked table of log(DR − 1)" }).click();
+  await pg.waitForSelector(".grid-toolbar", { timeout: 30000 });
+  const cell = async (label) => Number(await pg.locator(`.data-table input[aria-label="${label}"]`).first()
+    .inputValue().catch(() => "NaN"));
+  const xs = [], ys = [];
+  for (let r = 1; r <= 5; r++) {
+    xs.push(await cell(`X, row ${r}`));
+    ys.push(await cell(`log(DR − 1), row ${r}`));
+  }
+  expect("linked XY table: log[B] and log(DR − 1) of the five antagonist curves (to 1e-6)",
+    xs.every((v, i) => Math.abs(v - REF.log_antagonist[i]) < 1e-9)
+    && ys.every((v, i) => Math.abs(v - REF.log_dr_minus_1[i]) < 1e-6), JSON.stringify([xs, ys]));
+  // the Schild plot
+  await pg.getByRole("treeitem", { name: /^Nonlin fit of EC50 shift/ }).first().locator(":scope > .nav-row").click();
+  await card.getByRole("button", { name: "Make a Schild plot" }).click();
+  await pg.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+    .some((t) => t.meta?.odTag?.role === "fit"), null, { timeout: 60000 });
+  const fig = await pg.evaluate(() => {
+    const gd = document.querySelector(".plot-card .plot");
+    const pts = gd.data.find((t) => t.meta?.odTag?.role === "points");
+    const fit = gd.data.find((t) => t.meta?.odTag?.role === "fit");
+    return { x: [...pts.x], y: [...pts.y], fx: [...fit.x], fy: [...fit.y],
+      notes: (gd.layout.annotations ?? []).map((a) => a.text) };
+  });
+  const slope = (fig.fy[1] - fig.fy[0]) / (fig.fx[1] - fig.fx[0]);
+  expect(`Schild plot: five points at (log[B], log(DR − 1)), the line of slope ${O.slope.toFixed(4)}`,
+    fig.x.length === 5 && fig.y.every((v, i) => Math.abs(v - REF.log_dr_minus_1[i]) < 1e-6)
+    && Math.abs(slope - O.slope) < 1e-6, `slope ${slope}`);
+  expect("Schild plot states the slope's CI and the plot's pA2",
+    fig.notes.some((t) => t.includes(`Slope ${sig4(O.slope)} (95% CI ${sig4(O.slope_ci95[0])} to ${sig4(O.slope_ci95[1])})`)
+      && t.includes(`pA2 from the plot ${sig4(O.pA2_from_plot)}`)), fig.notes.join(" | "));
+  await pg.close();
+}
+
 await page.screenshot({
   path: join(here, "app.png"),
   fullPage: true,

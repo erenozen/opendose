@@ -7,5 +7,7 @@ export const ANALYSIS_CONTINGENCY = "contingency";
 export const ANALYSIS_SURVIVAL = "survival";
 
 export const GRAPH_XY = "xy";
+/** The Schild plot of an EC50-shift fit (sheets/xy/SchildPlot.tsx). */
+export const GRAPH_SCHILD = "schild_plot";
 export const GRAPH_SURVIVAL = "survival";
 export const COLUMN_GRAPHS = ["scatter", "bar", "box", "violin", "raincloud"] as const;

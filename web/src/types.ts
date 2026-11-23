@@ -229,6 +229,8 @@ export interface AnalysisResult {
   error?: string;
   /** User-defined equation fits: the engine's reading of the equation. */
   user_equation?: Record<string, unknown>;
+  /** EC50-shift (Gaddum/Schild) fits: the Schild plot (sheets/xy/schild.ts). */
+  schild_plot?: Record<string, unknown>;
 }
 
 // --- column-table statistics ---
