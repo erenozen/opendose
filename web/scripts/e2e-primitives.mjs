@@ -378,6 +378,9 @@ const fileMenu = async (page, item) => {
   await fileMenu(page, "New project…");
   const d = page.getByRole("alertdialog", { name: "Start a new project?" });
   await d.waitFor({ state: "attached" });
+  // Wait for the entrance to start instead of a fixed delay: under load
+  // the first transitionrun can arrive after 50 ms.
+  await page.waitForFunction(() => window.__runs.length > 0, null, { timeout: 5000 }).catch(() => {});
   await page.waitForTimeout(50);
   const props = await page.evaluate(() => window.__runs);
   expect("reduced motion: the dialog and its backdrop fade in (opacity) and do not scale",
