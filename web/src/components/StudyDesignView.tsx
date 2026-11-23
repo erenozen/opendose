@@ -59,7 +59,7 @@ export default function StudyDesignView({ sheet }: { sheet: InfoSheet & { design
         <p className="plan-strip">
           <button type="button" data-still className="linkish" onClick={() => openPowerTool("random")}>
             Make a randomisation list…</button>{" "}
-          <span>its method and seed go here.</span>
+          <span>then copy its method and seed here.</span>
         </p>
       )}
       <h4>Blinding: who knew the group allocation</h4>
@@ -91,7 +91,7 @@ export default function StudyDesignView({ sheet }: { sheet: InfoSheet & { design
           ))}
         </fieldset>
         <Field label="Species and strain">
-          <Input value={d.strain} readOnly={ro} placeholder="e.g. C57BL/6J mice"
+          <Input value={d.strain} readOnly={ro} spellCheck={false} placeholder="e.g. C57BL/6J mice"
             onChange={(e) => change({ strain: e.target.value }, "strain")} /></Field>
         <Field label="Age">
           <Input value={d.age} readOnly={ro} placeholder="e.g. 8 to 10 weeks"

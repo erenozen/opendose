@@ -4268,16 +4268,16 @@ const axeOn = async (pg, sel) => {
   const design = page.locator(".design-sheet");
   expect("Record the study design: the record opens on the table's analysis plan sheet",
     await appears(design) && await page.locator(".plan-sheet").count() === 1);
-  await design.getByRole("radio", { name: "At random" }).check();
+  await design.getByRole("radio", { name: "At random", exact: true }).check();
   await design.getByLabel("Randomisation method").fill("block randomisation (blocks of 4)");
-  await design.getByLabel("Seed").fill("20261123");
+  await design.getByLabel("Seed", { exact: true }).fill("20261123");
   for (const [stage, v] of [["Allocation to groups", "Blinded"], ["Conduct of the experiment", "Not blinded"],
     ["Outcome assessment", "Blinded"], ["Data analysis", "Blinded"]]) {
-    await design.getByRole("group", { name: stage }).getByRole("radio", { name: v }).check();
+    await design.getByRole("group", { name: stage, exact: true }).getByRole("radio", { name: v, exact: true }).check();
   }
-  await design.getByRole("group", { name: "Sex" }).getByRole("radio", { name: "Female and male" }).check();
+  await design.getByRole("group", { name: "Sex", exact: true }).getByRole("radio", { name: "Female and male", exact: true }).check();
   await design.getByLabel("Species and strain").fill("C57BL/6J mice");
-  await design.getByLabel("Age").fill("8 to 10 weeks");
+  await design.getByLabel("Age", { exact: true }).fill("8 to 10 weeks");
   const randomSentence = "Experimental units were allocated to groups at random (block randomisation (blocks of 4); seed 20261123).";
   expect("the record's methods preview names the method and the seed",
     (await design.locator(".plan-methods").innerText()).startsWith(randomSentence),
