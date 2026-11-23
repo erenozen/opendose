@@ -2181,3 +2181,12 @@ means (row "10 nM"); 100% = 99.667 for both, the vehicle row's mean; the
 output's row means are then exactly 0 and 100. Also tested: first,
 largest, sum and typed rules, separate subcolumns, ties (the first row),
 empty data sets, and every Remove baseline mode.
+
+Independent check (2026-11-24, by the lead): an own Poisson IRLS in
+numpy on the Ames TA98 counts gives the SE of log(Dose + 10) 0.057001,
+phi = Pearson chi-square / 15 = 3.0847, quasi-Poisson SE 0.10011, 95% CI
+0.10644 to 0.53321 (t, 15 df), |t| 3.1946; an own Kaplan-Meier with
+Greenwood variances on survival::lung at 365 days gives male 0.33609,
+female 0.52646, difference 0.19038 (95% CI 0.04563 to 0.33512, SE
+0.073852) and the Klein et al. 2007 cloglog statistic 6.2066, P =
+0.012728. All equal the engine.
