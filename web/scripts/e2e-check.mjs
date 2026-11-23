@@ -609,12 +609,158 @@ const viewedBefore = await page.locator('[role=treeitem][aria-selected="true"]')
 await page.reload({ waitUntil: "domcontentloaded" });
 await page.waitForSelector(".restore-banner", { timeout: 30000 });
 await page.locator(".restore-banner").getByRole("button", { name: "Restore" }).click();
+// Restore takes the session's Web Lock and reads it first (P-01): wait for
+// the restored project rather than reading the tree in the same tick.
+await navRow("Two-factor data").waitFor({ timeout: 10000 }).catch(() => {});
 expect("restore from autosave", await navRow("Two-factor data").count() === 1);
 const viewedAfter = await page.locator('[role=treeitem][aria-selected="true"]').first().getAttribute("aria-label");
 expect("restore reopens the sheet last viewed", !!viewedBefore && viewedAfter === viewedBefore,
   `${viewedBefore} → ${viewedAfter}`);
 await page.waitForFunction(() => globalThis.__opendoseEngine?.state.phase === "ready", null, { timeout: 180000 });
 await page.waitForTimeout(800);
+
+// --- autosave with several tabs (FEATURE-PLAN P-01), the acceptance test
+// as written: tab A on the dose-response example, tab B on a new column
+// table; type 1, 2, 3 into B and change one Y value in A; close both; open
+// a new tab. The restore banner lists both sessions by title and time, and
+// each restores its own edits. Each stored session is the tab's
+// serializeProject output byte for byte, and the project restored from it
+// matches the tab's value for value. Then a duplicated tab (the session id copied while its tab is
+// open) gets the "open in another tab" banner, and Preferences shows the
+// storage line.
+{
+  const ctxT = await browser.newContext({ viewport: { width: 1400, height: 1000 } });
+  // This tab's session as stored in IndexedDB, next to what its autosave
+  // writes now (__opendoseAutosave.json) and its project alone.
+  const sessionOf = (p) => p.evaluate(async () => {
+    const hook = globalThis.__opendoseAutosave;
+    const id = hook?.session();
+    const db = await new Promise((res, rej) => {
+      const r = indexedDB.open("opendose");
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error);
+    });
+    const v = await new Promise((res) => {
+      const g = db.transaction("autosave").objectStore("autosave").get(`session:${id}`);
+      g.onsuccess = () => res(g.result ?? null);
+      g.onerror = () => res(null);
+    });
+    db.close();
+    return { id, stored: v?.json ?? null, title: v?.title, savedAt: v?.savedAt, sheets: v?.sheets, sheet: v?.sheet,
+      now: hook?.json(), project: hook?.project() };
+  });
+  // Autosave has caught up: the stored record is what the tab would write
+  // now, twice in a row 1 s apart (results arriving rewrite it).
+  const settled = async (p) => {
+    let last = null;
+    for (let i = 0; i < 60; i++) {
+      const s = await sessionOf(p);
+      if (s.stored && s.stored === s.now && last?.stored === s.stored) return s;
+      last = s;
+      await p.waitForTimeout(1000);
+    }
+    return last;
+  };
+  const tA = await ctxT.newPage();
+  tA.on("pageerror", (e) => errors.push(`pageerror (tab A): ${e.message}`));
+  await tA.goto(baseUrl, { waitUntil: "domcontentloaded" });
+  await tA.locator(".data-table").waitFor({ timeout: 60000 });
+  const tB = await ctxT.newPage();
+  tB.on("pageerror", (e) => errors.push(`pageerror (tab B): ${e.message}`));
+  await tB.goto(baseUrl, { waitUntil: "domcontentloaded" });
+  await tB.locator(".data-table").waitFor({ timeout: 60000 });
+  expect("tabs: a second tab is not offered the first tab's live session",
+    await tB.locator(".restore-banner").count() === 0);
+  await fileMenu(tB, "New data table…");
+  const tbDlg = tB.locator(".new-table-dialog");
+  await tbDlg.locator('input[name="table-type"][value="column"]').check();
+  await tbDlg.getByRole("button", { name: "Create table" }).click();
+  for (const [r, v] of [[1, "1"], [2, "2"], [3, "3"]]) {
+    await tB.locator(`.data-table input[aria-label='Group A, row ${r}']`).fill(v);
+  }
+  await tB.keyboard.press("Tab");
+  await tA.locator(".data-table input[aria-label='Drug A, Y1, row 1']").fill("123.4");
+  await tA.keyboard.press("Tab");
+  const sA = await settled(tA);
+  const sB = await settled(tB);
+  expect("tabs: each tab writes its own session",
+    !!sA.id && !!sB.id && sA.id !== sB.id, `${sA.id} / ${sB.id}`);
+  expect("tabs: each stored session equals serializeProject of its tab, byte for byte",
+    sA.stored === sA.now && sB.stored === sB.now && sA.stored.includes("123.4"),
+    `A ${sA.stored?.length} / ${sA.now?.length}, B ${sB.stored?.length} / ${sB.now?.length}`);
+  await tA.close();
+  await tB.close();
+
+  const tC = await ctxT.newPage();
+  tC.on("pageerror", (e) => errors.push(`pageerror (tab C): ${e.message}`));
+  await tC.goto(baseUrl, { waitUntil: "domcontentloaded" });
+  const restoreBanner = tC.locator(".restore-banner").first();
+  await restoreBanner.waitFor({ timeout: 60000 });
+  const timeOf = (t) => tC.evaluate((ms) => new Date(ms).toLocaleString(), t);
+  const [timeA, timeB] = [await timeOf(sA.savedAt), await timeOf(sB.savedAt)];
+  const bannerText = await restoreBanner.innerText();
+  expect("tabs: a new tab's restore banner lists both sessions by title and time",
+    bannerText.includes("Restore one of your last 2 sessions?")
+    && bannerText.includes(`“${sA.title}”`) && bannerText.includes(`saved ${timeA}.`)
+    && bannerText.includes(`“${sB.title}”`) && bannerText.includes(`saved ${timeB}.`),
+    bannerText.replace(/\s+/g, " "));
+  // Two tabs on one project: the rows differ by the sheet each had on screen.
+  const rowName = (s, t) => `“${s.title}”, ${s.sheets} sheets, last on “${s.sheet}”, saved ${t}`;
+  expect("tabs: the two rows can be told apart",
+    rowName(sA, timeA) !== rowName(sB, timeB) && bannerText.includes(rowName(sA, timeA))
+    && bannerText.includes(rowName(sB, timeB)), `${rowName(sA, timeA)} / ${rowName(sB, timeB)}`);
+  await restoreBanner.getByRole("button", { name: `Restore ${rowName(sA, timeA)}`, exact: true }).click();
+  // The example sits under the banner: wait for A's edit, not just the cell.
+  const editBack = await tC.waitForFunction(() => document.querySelector(
+    ".data-table input[aria-label='Drug A, Y1, row 1']")?.value === "123.4", null, { timeout: 30000 })
+    .then(() => true, () => false);
+  // Restored sheets carry their saved results as `cached` (the tab that
+  // wrote them held them in its results store), and the file reader
+  // rebuilds each sheet with its keys in its own order: compare the
+  // projects without the cache, keys sorted; every value byte for byte.
+  const noCache = (j) => JSON.stringify(JSON.parse(j), (k, v) => {
+    if (k === "cached" || k === "cachedKey") return undefined;
+    return v && typeof v === "object" && !Array.isArray(v)
+      ? Object.fromEntries(Object.keys(v).sort().map((key) => [key, v[key]])) : v;
+  });
+  const rA = await tC.evaluate(() => globalThis.__opendoseAutosave.project());
+  expect("tabs: restoring A brings back A's edit and A's project, value for value",
+    editBack && noCache(rA) === noCache(sA.project), `${rA.length} / ${sA.project.length}`);
+  await tC.locator(".restore-banner").first().getByRole("button", { name: "Restore", exact: true }).click();
+  await tC.getByRole("treeitem", { name: "Data 1", exact: true }).first().waitFor({ timeout: 30000 });
+  await tC.getByRole("treeitem", { name: "Data 1", exact: true }).first().locator(":scope > .nav-row").click();
+  const bCells = [];
+  for (const r of [1, 2, 3]) bCells.push(await tC.locator(`.data-table input[aria-label='Group A, row ${r}']`).inputValue());
+  const rB = await tC.evaluate(() => globalThis.__opendoseAutosave.project());
+  expect("tabs: restoring B brings back B's 1, 2, 3 and B's project, value for value",
+    bCells.join(",") === "1,2,3" && noCache(rB) === noCache(sB.project), `${bCells} ${rB.length} / ${sB.project.length}`);
+  expect("tabs: the session this tab left (A) is offered again, not lost",
+    (await tC.locator(".restore-banner").first().innerText())
+      .includes(`“${sA.title}”, ${sA.sheets} sheets, last on “${sA.sheet}”`));
+
+  // A duplicated tab copies sessionStorage: its session is held by tab C.
+  const cId = await tC.evaluate(() => globalThis.__opendoseAutosave.session());
+  const tD = await ctxT.newPage();
+  await tD.addInitScript((id) => { sessionStorage.setItem("opendose-session", id); }, cId);
+  await tD.goto(baseUrl, { waitUntil: "domcontentloaded" });
+  const held = tD.locator(".restore-banner", { hasText: "is open in another tab." });
+  expect("tabs: a duplicated tab says the session is open in another tab, and writes elsewhere",
+    await held.waitFor({ timeout: 60000 }).then(() => true, () => false)
+    && await tD.evaluate(() => globalThis.__opendoseAutosave.session()) !== cId);
+  await held.getByRole("button", { name: "Open a copy here" }).click();
+  expect("tabs: Open a copy here opens tab C's project in the duplicate",
+    await tD.evaluate(() => globalThis.__opendoseAutosave.project()) === rB);
+
+  await viewMenu(tD, "Preferences…");
+  const storageLine = tD.getByRole("dialog", { name: "Preferences" }).locator(".storage-note");
+  await tD.waitForFunction(() => !/^Checking/.test(document.querySelector(".storage-note")?.textContent ?? "Checking"),
+    null, { timeout: 10000 }).catch(() => {});
+  const storageText = await storageLine.innerText();
+  expect("tabs: Preferences shows storage use and whether persistence was granted",
+    /^OpenDose uses [\d.]+\s(B|kB|MB|GB) of this browser's storage \([\d.]+\s(kB|MB|GB|TB) allowed\), the offline copy of the app included\. Persistent storage: (granted\.|not granted\.)/
+      .test(storageText), storageText);
+  await ctxT.close();
+}
 
 // --- multiple-variables table: example data, regression, PCA, logistic,
 // correlation, extract & rearrange. Expected numbers come from the engine

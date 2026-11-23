@@ -294,8 +294,11 @@ await prefsPop.getByLabel("Autosave my work in this browser").uncheck();
 await page.keyboard.press("Escape");
 await editFirstCell("7.649182");
 const off = await stored();
+// Sessions are "session:<id>" records, one per tab (project/sessions.ts);
+// "current" and "previous" are the shared slots of builds before 2026-11-23.
+const isSession = (k) => k.startsWith("session:") || k === "current" || k === "previous";
 expect("with autosave off no session is kept in the browser",
-  !(off.db ?? []).some((k) => k === "current" || k === "previous")
+  !(off.db ?? []).some(isSession)
   && !off.keys.some((k) => k.startsWith("opendose-autosave-")), JSON.stringify(off));
 
 prefsPop = await openPrefs();
@@ -305,7 +308,7 @@ await editFirstCell("8.649182");
 await page.evaluate(() => localStorage.setItem("other-app-setting", "kept"));
 const before = await stored();
 expect("with autosave on the session is kept (so there is something to forget)",
-  (before.db ?? []).includes("current") || before.keys.includes("opendose-autosave-current"),
+  (before.db ?? []).some(isSession) || before.keys.some((k) => k.startsWith("opendose-autosave-session:")),
   JSON.stringify(before));
 
 prefsPop = await openPrefs();

@@ -172,6 +172,26 @@ async function pasteInto(s, cellLabel, text) {
     el.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }));
   }, [cellLabel, text]);
 }
+/** Writes autosave sessions (project/sessions.ts records) into this
+ *  origin's IndexedDB, each holding a small real project. */
+async function seedSessions(s, sessions) {
+  const json = readFileSync(join(STAGE, "empty-states.json"), "utf8");
+  await s.page.evaluate(async ([list, j]) => {
+    const db = await new Promise((res, rej) => {
+      const r = indexedDB.open("opendose", 1);
+      r.onupgradeneeded = () => { r.result.createObjectStore("autosave"); };
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error);
+    });
+    await new Promise((res, rej) => {
+      const tx = db.transaction("autosave", "readwrite");
+      for (const x of list) tx.objectStore("autosave").put({ ...x, json: j }, `session:${x.id}`);
+      tx.oncomplete = res;
+      tx.onerror = () => rej(tx.error);
+    });
+    db.close();
+  }, [sessions, json]);
+}
 async function newTableDialog(s) {
   await headerMenu(s, "File", "New data table…");
   const dlg = s.page.locator("dialog.new-table-dialog");
@@ -332,6 +352,51 @@ const scenes = [
   { name: "shell-pzfx-chooser", setup: async (s) => {
     await fixture(s, join(FIXTURES, "sample.pzfx"));
     await s.page.locator(".pzfx-chooser").waitFor({ timeout: 240000 });
+  } },
+  // Autosave sessions (FEATURE-PLAN P-01): two kept sessions of closed
+  // tabs offered at once (one with a worst-case title), and a duplicated
+  // tab whose session is open in another tab.
+  { name: "shell-restore-sessions", setup: async (s) => {
+    await example(s, { live: false });
+    await seedSessions(s, [
+      { id: "stage-a", title: "Dose-response of compound XR-2231 in HepG2, MCF-7 and A549 cells, 72 h, replicate set 3",
+        sheets: 12, sheet: "HepG2 viability (normalised to vehicle)", savedAt: Date.UTC(2026, 10, 23, 9, 41, 7) },
+      { id: "stage-b", title: "Untitled project", sheets: 3, sheet: "Data 1", savedAt: Date.UTC(2026, 10, 22, 16, 5, 52) },
+    ]);
+    await example(s, { live: false });
+    await s.page.locator(".restore-banner").waitFor({ timeout: 30000 });
+  } },
+  { name: "shell-session-held", setup: async (s) => {
+    await example(s, { live: false });
+    await seedSessions(s, [{ id: "stage-held", title: "Assay 3", sheets: 4, sheet: "Data 1", savedAt: Date.now() }]);
+    // Another tab holds the session's lock; this tab carries its id, as a
+    // duplicated tab does.
+    const other = await s.context.newPage();
+    await other.goto(url({ example: "1" }), { waitUntil: "domcontentloaded" });
+    await other.evaluate(() => new Promise((held) => {
+      navigator.locks.request("opendose-session:stage-held", () => { held(); return new Promise(() => {}); });
+    }));
+    await s.page.evaluate(() => sessionStorage.setItem("opendose-session", "stage-held"));
+    await s.page.goto(url(), { waitUntil: "domcontentloaded" });
+    await s.page.locator(".restore-banner", { hasText: "is open in another tab." }).waitFor({ timeout: 30000 });
+  } },
+  { name: "shell-preferences-storage", setup: async (s) => {
+    await example(s, { live: false });
+    await headerMenu(s, "View", "Preferences…");
+    const prefs = dialog(s, "Preferences");
+    await prefs.waitFor();
+    await s.page.waitForFunction(() => !/^Checking/.test(document.querySelector(".storage-note")?.textContent ?? "Checking"),
+      null, { timeout: 10000 });
+    // The popover scrolls: bring the privacy section (the storage line) up.
+    await s.page.evaluate(() => {
+      const note = document.querySelector(".storage-note");
+      let box = note?.parentElement;
+      while (box && box.scrollHeight <= box.clientHeight) box = box.parentElement;
+      if (note && box) {
+        box.scrollTop += note.getBoundingClientRect().top - box.getBoundingClientRect().top - box.clientHeight / 3;
+      }
+    });
+    await settle(s, 300);
   } },
   { name: "shell-status-import", setup: async (s) => {
     await fixture(s, join(FIXTURES, "sample.pzfx"));
