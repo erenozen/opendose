@@ -48,8 +48,7 @@
   white-space: pre;
 }
 .snippets details > summary { cursor: pointer; color: var(--ink-2); font-size: var(--text-body-s); }
-.snippets .snippet-tabs { display: flex; gap: var(--space-6); margin-top: var(--space-6); }
-.snippets .snippet-tabs button[aria-selected="true"] { color: var(--accent); background: var(--accent-soft); }
+.snippets .snippet-tabs { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-6); margin-top: var(--space-6); }
 .snippets ul { margin: var(--space-4) 0 0; padding-left: 18px; color: var(--muted); font-size: var(--text-caption); }
 
 .figure-legend { padding: var(--space-6) 14px 10px; }
@@ -62,8 +61,7 @@
 .checklist-modal { width: min(860px, 96vw); }
 .checklist-modal .modal-body { max-height: 82svh; overflow-y: auto; }
 .checklist-summary { color: var(--muted); font-size: var(--text-body-s); margin: 0 0 var(--space-8); }
-.checklist-tabs { display: flex; gap: var(--space-6); flex-wrap: wrap; margin: var(--space-6) 0 10px; }
-.checklist-tabs button[aria-selected="true"] { color: var(--accent); background: var(--accent-soft); }
+.checklist-tabs { margin: var(--space-6) 0 10px; }
 .checklist {
   list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-8);
 }

@@ -100,13 +100,18 @@ function NoteCard({ sheetId, note, readOnly }: { sheetId: string; note: Floating
     cmd.removeNote(sheetId, note.id);
     focusAfterRender(".notes-bar .note-add");
   };
+  // The card is clamped to the layer's width at render (a note placed on
+  // a wide screen must not widen the page on a tablet; the saved x is
+  // kept): moves start from where it is drawn.
+  const left = `min(${note.x}px, max(0px, calc(100% - 230px)))`;
+  const x0 = () => Math.min(note.x, card.current?.offsetLeft ?? note.x);
   // The card follows the pointer 1:1 by transform (no layout, no React
   // render per frame); left/top are written once, on release.
   const endDrag = (commit: boolean) => {
     const d = drag.current;
     drag.current = null;
     const el = card.current;
-    if (commit && d && (d.dx || d.dy)) move(note.x + d.dx, note.y + d.dy, `note:${note.id}:drag`);
+    if (commit && d && (d.dx || d.dy)) move(x0() + d.dx, note.y + d.dy, `note:${note.id}:drag`);
     // The new left/top and the cleared transform land in the same frame;
     // transitions come back only after it, so nothing slides twice.
     if (el) el.style.transform = "";
@@ -115,7 +120,7 @@ function NoteCard({ sheetId, note, readOnly }: { sheetId: string; note: Floating
 
   return (
     <section ref={card} className={`floating-note note-${note.color}`} data-note={note.id}
-      style={{ left: note.x, top: note.y }} aria-label={`Note: ${title}`}>
+      style={{ left, top: note.y }} aria-label={`Note: ${title}`}>
       <div className="note-head">
         <IconButton size="sm" className="note-grip" data-still
           aria-label="Move note (drag, or arrow keys)"
@@ -129,7 +134,7 @@ function NoteCard({ sheetId, note, readOnly }: { sheetId: string; note: Floating
             const d = drag.current;
             if (!d || !card.current) return;
             // Clamped at the workbench's top-left corner, as the saved position is.
-            d.dx = Math.max(-note.x, e.clientX - d.px);
+            d.dx = Math.max(-x0(), e.clientX - d.px);
             d.dy = Math.max(-note.y, e.clientY - d.py);
             card.current.style.transform = `translate(${d.dx}px, ${d.dy}px)`;
           }}
@@ -142,7 +147,7 @@ function NoteCard({ sheetId, note, readOnly }: { sheetId: string; note: Floating
               ArrowDown: [0, step] }[e.key];
             if (!d) return;
             e.preventDefault();
-            move(note.x + d[0], note.y + d[1]);
+            move(x0() + d[0], note.y + d[1]);
           }}>
           <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" fill="currentColor">
             <circle cx="4" cy="3" r="1" /><circle cx="8" cy="3" r="1" />
@@ -150,9 +155,21 @@ function NoteCard({ sheetId, note, readOnly }: { sheetId: string; note: Floating
             <circle cx="4" cy="9" r="1" /><circle cx="8" cy="9" r="1" />
           </svg>
         </IconButton>
-        <div className="note-colors" role="radiogroup" aria-label="Note colour">
+        {/* A radio group: one Tab stop (the chosen colour), arrow keys
+            move and choose. */}
+        <div className="note-colors" role="radiogroup" aria-label="Note colour"
+          onKeyDown={(e) => {
+            const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
+            if (!step || readOnly) return;
+            e.preventDefault();
+            const at = NOTE_COLORS.indexOf(note.color);
+            const to = NOTE_COLORS[(at + step + NOTE_COLORS.length) % NOTE_COLORS.length];
+            cmd.editNote(sheetId, note.id, { color: to });
+            e.currentTarget.querySelector<HTMLElement>(`.note-${to}`)?.focus();
+          }}>
           {NOTE_COLORS.map((c) => (
             <button key={c} type="button" role="radio" aria-checked={note.color === c}
+              tabIndex={note.color === c ? 0 : -1}
               aria-label={c} className={`note-swatch note-${c}`} disabled={readOnly}
               onClick={() => cmd.editNote(sheetId, note.id, { color: c })} />
           ))}

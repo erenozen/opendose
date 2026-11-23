@@ -4,7 +4,9 @@
 // frequency table and the fit's parameters.
 import { useEffect, useMemo, useRef } from "react";
 import type Plotly from "plotly.js-dist-min";
-import { loadPlotly, plotlyNow } from "../../lib/plotly";
+import { plotlyNow } from "../../lib/plotly";
+import { PlotStatus } from "../../graph/PlotStatus";
+import { usePlotLoad } from "../../graph/usePlotLoad";
 import { useDarkMode } from "../../graph/useDarkMode";
 import { CHROME_DARK, CHROME_LIGHT, PLOT_FONT, seriesStyle } from "../../lib/palette";
 import { formatSig } from "../../types";
@@ -22,17 +24,23 @@ function phi(z: number): number {
 
 function Chart({ traces, layout }: { traces: Plotly.Data[]; layout: Partial<Plotly.Layout> }) {
   const el = useRef<HTMLDivElement>(null);
+  const { load, attempt, drawn, draw, retry } = usePlotLoad();
   useEffect(() => {
     const div = el.current;
     if (!div) return;
-    void loadPlotly().then((P) => P.react(div, traces, layout,
+    void draw((P) => P.react(div, traces, layout,
       { responsive: true, displaylogo: false, displayModeBar: false }));
-  }, [traces, layout]);
+  }, [traces, layout, draw, attempt]);
   useEffect(() => {
     const div = el.current;
     return () => { if (div) plotlyNow()?.purge(div); };
   }, []);
-  return <div className="freq-plot" ref={el} role="img" aria-label="Frequency distribution" />;
+  return (
+    <div className="plot-holder">
+      <div className="freq-plot" ref={el} role="img" aria-label="Frequency distribution" />
+      {!drawn && <PlotStatus load={load} onRetry={retry} />}
+    </div>
+  );
 }
 
 const v = (x: unknown, sig?: number) => (typeof x === "number" && Number.isFinite(x) ? formatSig(x, sig) : "n/a");

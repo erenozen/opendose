@@ -107,11 +107,11 @@
 .help-head h2 { margin: 0; font-size: var(--text-lead); }
 .help-head h2:focus { outline: none; }
 .help-head h2:focus-visible { outline: 2px solid var(--focus-ring); }
-.help-body { overflow: auto; padding: var(--space-4) 14px 14px; font-size: var(--text-body-s); }
+.help-body { overflow: auto; overscroll-behavior: contain; padding: var(--space-4) 14px 14px; font-size: var(--text-body-s); }
 .help-body p { color: var(--ink-2); margin: 0 0 var(--space-8); }
 .help-search input {
   width: 100%; font: inherit; padding: 7px 10px; color: var(--ink);
-  background: var(--inset); border: 1px solid var(--line-strong); border-radius: var(--radius-control);
+  background: var(--inset); border: 1px solid var(--line-control); border-radius: var(--radius-control);
 }
 .help-actions { display: flex; flex-wrap: wrap; gap: var(--space-6); margin: 10px 0 var(--space-4); }
 .help-section { font-size: var(--text-label); font-weight: var(--weight-semibold);

@@ -13,8 +13,12 @@
   display: inline-flex; align-items: center; gap: var(--space-4);
   font-size: var(--text-caption); font-weight: var(--weight-semibold); color: var(--ink-2);
 }
-.controls-wrap { display: flex; flex-direction: column; }
-.controls-wrap[inert] { opacity: 0.6; }
+/* A fieldset (disabled when frozen or shared), without its frame. */
+.controls-wrap {
+  display: flex; flex-direction: column;
+  min-inline-size: 0; margin: 0; padding: 0; border: 0;
+}
+.controls-wrap:disabled { opacity: 0.6; }
 .pane-controls { display: flex; flex-direction: column; gap: var(--space-12); }
 .constants-list { padding: var(--space-4) 18px 10px; border-top: none; }
 .constants-list.advanced {
@@ -30,6 +34,5 @@
 .placeholder-panel .placeholder-lead { margin: 0 0 var(--space-6); }
 
 @media (max-width: 760px) {
-  .graph-select { min-height: 34px; }
   .pane-controls:empty { display: none; }
 }

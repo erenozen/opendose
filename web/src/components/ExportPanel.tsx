@@ -307,12 +307,14 @@ export default function ExportPanel({
           {vector ? physicalLabel(eff.width, eff.height)
             : `${px.w} × ${px.h} px, ${(px.w / eff.dpi).toFixed(1)} × ${(px.h / eff.dpi).toFixed(1)} in`}
         </span>
-        {belowFontFloor(minPt) && (
-          <span className="export-warn" role="status">
-            Smallest text prints at {minPt} pt; journals usually want at least {FONT_FLOOR_PT} pt.
-          </span>
-        )}
-        {note && <span className="export-note" role="status">{note}</span>}
+        <span className="status-slot" role="status">
+          {belowFontFloor(minPt) && (
+            <span className="export-warn">
+              Smallest text prints at {minPt} pt; journals usually want at least {FONT_FLOOR_PT} pt.
+            </span>
+          )}
+        </span>
+        <span className="status-slot" role="status">{note && <span className="export-note">{note}</span>}</span>
       </div>
       {batch.host}
     </div>

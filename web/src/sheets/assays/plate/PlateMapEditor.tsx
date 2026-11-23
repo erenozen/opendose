@@ -2,7 +2,7 @@
 // header) to select, then give the selection a role or a compound
 // concentration series. Templates fill the common layouts; a layout can
 // be saved as a template in this browser.
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { useDarkMode } from "../../../graph/useDarkMode";
 import { seriesColor } from "../../../lib/palette";
 import {
@@ -12,7 +12,7 @@ import {
 } from "./model";
 import { allTemplates, deleteTemplate, saveTemplate } from "./templates";
 import "./plate.css";
-import { Button } from "../../../components/ui";
+import { announce, Button, notify } from "../../../components/ui";
 
 const ROLE_TEXT: Record<WellRole, string> = {
   blank: "Blank", negative: "Vehicle", positive: "Kill / positive", sample: "Compound", empty: "Empty",
@@ -40,6 +40,12 @@ export default function PlateMapEditor({ format, wells, unit, values, onChange }
   const [tplName, setTplName] = useState("");
   const [tplMsg, setTplMsg] = useState("");
   const [templates, setTemplates] = useState<PlateTemplate[]>(() => allTemplates());
+  // The plate is one Tab stop: the well with keyboard focus is the only
+  // well in the tab order; arrow keys move it, Shift+arrows extend the
+  // selection from the anchor, Enter or Space selects.
+  const [focus, setFocus] = useState<[number, number]>([0, 0]);
+  const grid = useRef<HTMLDivElement>(null);
+  const tplSelect = useRef<HTMLSelectElement>(null);
 
   useEffect(() => {
     const up = () => setDragging(false);
@@ -72,6 +78,7 @@ export default function PlateMapEditor({ format, wells, unit, values, onChange }
     : "Drag across wells, or click a row letter or column number";
 
   const start = (r: number, c: number, shift: boolean, drag: boolean) => {
+    setFocus([r, c]);
     if (shift && anchor) {
       setSel({ r0: anchor[0], c0: anchor[1], r1: r, c1: c });
     } else {
@@ -82,6 +89,42 @@ export default function PlateMapEditor({ format, wells, unit, values, onChange }
   };
   const extend = (r: number, c: number) => {
     if (dragging && anchor) setSel({ r0: anchor[0], c0: anchor[1], r1: r, c1: c });
+  };
+  const move = (e: KeyboardEvent, r: number, c: number) => {
+    const d = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] }[e.key];
+    if (!d) return;
+    e.preventDefault();
+    const to: [number, number] = [Math.min(nr - 1, Math.max(0, r + d[0])), Math.min(nc - 1, Math.max(0, c + d[1]))];
+    setFocus(to);
+    grid.current?.querySelector<HTMLElement>(`[data-well="${wellName(to[0], to[1])}"]`)?.focus();
+    if (e.shiftKey) {
+      const a = anchor ?? [r, c];
+      if (!anchor) setAnchor(a);
+      setSel({ r0: a[0], c0: a[1], r1: to[0], c1: to[1] });
+    }
+  };
+  // The selection is spoken once it is made (a drag ends, a key sets
+  // it), never at each well a drag crosses.
+  useEffect(() => {
+    if (sel && !dragging) announce(selText);
+  }, [selText, dragging, sel]);
+  const deleteTpl = () => {
+    const t = templates.find((x) => x.id === tplId);
+    if (!t) return;
+    deleteTemplate(t.name);
+    setTemplates(allTemplates());
+    setTplId("");
+    tplSelect.current?.focus();
+    notify(`Deleted the layout “${t.name}”.`, { tone: "success", action: { label: "Undo", onAction: () => {
+      saveTemplate(t.name, t.format, t.wells);
+      setTemplates(allTemplates());
+    } } });
+  };
+  const clearMap = () => {
+    if (!Object.keys(wells).length) return;
+    const before = wells;
+    onChange({});
+    notify("Cleared the plate map.", { tone: "success", action: { label: "Undo", onAction: () => onChange(before) } });
   };
 
   const applyRole = (role: WellRole) => {
@@ -133,7 +176,8 @@ export default function PlateMapEditor({ format, wells, unit, values, onChange }
       <div className="plate-templates wizard-row">
         <label className="field">
           <span>Template</span>
-          <select value={tplId} onChange={(e) => setTplId(e.target.value)} aria-label="Plate layout template">
+          <select ref={tplSelect} value={tplId} onChange={(e) => setTplId(e.target.value)}
+            aria-label="Plate layout template">
             <option value="">Choose a layout…</option>
             {templates.filter((t) => t.format === format).map((t) => (
               <option key={t.id} value={t.id}>{t.saved ? `${t.name} (saved)` : t.name}</option>
@@ -142,25 +186,22 @@ export default function PlateMapEditor({ format, wells, unit, values, onChange }
         </label>
         <button type="button" disabled={!tplId} onClick={applyTemplate}>Apply template</button>
         {templates.find((t) => t.id === tplId)?.saved && (
-          <button type="button" onClick={() => {
-            const t = templates.find((x) => x.id === tplId);
-            if (t) { deleteTemplate(t.name); setTemplates(allTemplates()); setTplId(""); }
-          }}>Delete template</button>
+          <button type="button" onClick={deleteTpl}>Delete template</button>
         )}
-        <button type="button" onClick={() => onChange({})}>Clear map</button>
+        <button type="button" onClick={clearMap}>Clear map</button>
       </div>
       {tplId && (
         <p className="hint-block">{templates.find((t) => t.id === tplId)?.description}</p>
       )}
 
       <div className="plate-editor-main">
-        <div className={`plate-grid${small ? " plate-grid-384" : ""}`} role="group"
+        <div ref={grid} className={`plate-grid${small ? " plate-grid-384" : ""}`} role="group"
           aria-label={`Plate map, ${format} wells`}
           style={{ gridTemplateColumns: `auto repeat(${nc}, minmax(0, 1fr))` }}>
           <button type="button" className="plate-corner" aria-label="Select all wells"
             onClick={() => { setAnchor([0, 0]); setSel({ r0: 0, c0: 0, r1: nr - 1, c1: nc - 1 }); }} />
           {Array.from({ length: nc }, (_, c) => (
-            <button key={`c${c}`} type="button" className="plate-head"
+            <button key={`c${c}`} type="button" className="plate-head plate-col-head"
               aria-label={`Select column ${c + 1}`}
               onClick={(e) => {
                 if (e.shiftKey && anchor) setSel({ r0: 0, c0: anchor[1], r1: nr - 1, c1: c });
@@ -169,7 +210,7 @@ export default function PlateMapEditor({ format, wells, unit, values, onChange }
           ))}
           {Array.from({ length: nr }, (_, r) => (
             <RowCells key={r} r={r} nc={nc} small={small} fill={fill} selected={selected}
-              wells={wells}
+              wells={wells} focusCol={focus[0] === r ? focus[1] : -1} onMove={move}
               onHead={(shift) => {
                 if (shift && anchor) setSel({ r0: anchor[0], c0: 0, r1: r, c1: nc - 1 });
                 else { setAnchor([r, 0]); setSel({ r0: r, c0: 0, r1: r, c1: nc - 1 }); }
@@ -179,7 +220,7 @@ export default function PlateMapEditor({ format, wells, unit, values, onChange }
         </div>
 
         <div className="plate-actions">
-          <p className="plate-sel" aria-live="polite">{selText}</p>
+          <p className="plate-sel">{selText}</p>
           <h4>Controls</h4>
           <div className="plate-role-btns">
             <button type="button" disabled={!sel} onClick={() => applyRole("blank")}>
@@ -260,7 +301,7 @@ export default function PlateMapEditor({ format, wells, unit, values, onChange }
         </div>
       </div>
 
-      <div className="plate-legend" aria-label="Plate map summary">
+      <div className="plate-legend" role="group" aria-label="Plate map summary">
         <span>{counts.blank} blank</span>
         <span>{counts.negative} vehicle</span>
         <span>{counts.positive} kill / positive</span>
@@ -284,14 +325,17 @@ export default function PlateMapEditor({ format, wells, unit, values, onChange }
             setTemplates(allTemplates());
             setTplMsg(ok ? `Saved “${tplName.trim()}” in this browser.` : "This browser would not store the template.");
           }}>Save template</button>
-        {tplMsg && <span className="hint-block" role="status">{tplMsg}</span>}
+        <span className="status-slot" role="status">{tplMsg && <span className="hint-block">{tplMsg}</span>}</span>
       </div>
     </div>
   );
 }
 
-function RowCells({ r, nc, small, fill, selected, wells, onHead, onStart, onEnter }: {
+function RowCells({ r, nc, small, fill, selected, wells, focusCol, onMove, onHead, onStart, onEnter }: {
   r: number;
+  /** The column of the well in the tab order, when it is in this row. */
+  focusCol: number;
+  onMove: (e: KeyboardEvent, r: number, c: number) => void;
   nc: number;
   small: boolean;
   fill: (r: number, c: number) => { bg: string; fg: string; label: string; text: string };
@@ -310,7 +354,7 @@ function RowCells({ r, nc, small, fill, selected, wells, onHead, onStart, onEnte
         const f = fill(r, c);
         const role = wells[name]?.role ?? "empty";
         return (
-          <button key={name} type="button" data-well={name}
+          <button key={name} type="button" data-well={name} tabIndex={c === focusCol ? 0 : -1}
             className={`plate-well well-${role}${selected.has(name) ? " selected" : ""}`}
             aria-pressed={selected.has(name)}
             aria-label={`${name}: ${f.text}`} title={`${name}: ${f.text}`}
@@ -325,6 +369,7 @@ function RowCells({ r, nc, small, fill, selected, wells, onHead, onStart, onEnte
             onPointerEnter={() => onEnter(r, c)}
             onKeyDown={(e) => {
               if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onStart(r, c, e.shiftKey, false); }
+              else onMove(e, r, c);
             }}>
             {!small && f.label}
           </button>

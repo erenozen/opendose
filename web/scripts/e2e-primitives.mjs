@@ -156,7 +156,21 @@ const fileMenu = async (page, item) => {
     await focusIs(page, items.nth(target)), await focused(page));
   await page.keyboard.press("Home");
   await page.waitForTimeout(600); // the buffer resets after 500 ms
+  // Type only once Home has landed on the first item (the same race as
+  // a menu just opened), then give the last key its frame.
+  await items.first().evaluate((el) => new Promise((done) => {
+    const t0 = performance.now();
+    const tick = () => (el === document.activeElement || performance.now() - t0 > 1000
+      ? done() : requestAnimationFrame(tick));
+    tick();
+  }));
   await page.keyboard.type(labels[target].slice(0, 4), { delay: 30 });
+  await items.nth(target).evaluate((el) => new Promise((done) => {
+    const t0 = performance.now();
+    const tick = () => (el === document.activeElement || performance.now() - t0 > 1000
+      ? done() : requestAnimationFrame(tick));
+    tick();
+  }));
   expect("type-ahead matches a typed prefix",
     await focusIs(page, items.nth(target)), await focused(page));
   const tabbable = await menu.evaluate((m) => m.querySelectorAll("[tabindex='0']").length);

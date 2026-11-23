@@ -24,7 +24,7 @@ export function requestShare(req: ShareRequest): void {
 }
 
 /** Files dropped (several CSVs, a zip) to import with a recipe; `fresh`
- *  starts a new project with the table (the start screen). */
+ *  starts a new project with the table (several files dropped on the page). */
 export interface RecipeImportRequest { kind: "recipe"; files: File[]; fresh?: boolean }
 
 export const openRecipeImport = (files: File[], opts: { fresh?: boolean } = {}) =>

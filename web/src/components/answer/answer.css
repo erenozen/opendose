@@ -73,13 +73,28 @@
 }
 .answer-next { margin: 0; font-size: var(--text-body-s); color: var(--ink-2); max-width: 65ch; }
 
-/* Before the first result: the headline's shape, still (no shimmer). */
-.answer-skeleton { display: flex; flex-direction: column; gap: var(--space-6); }
-.answer-skeleton span { display: block; border-radius: var(--radius-control); background: var(--inset); }
-.answer-skeleton span:nth-child(1) { height: 12px; width: 9rem; }
-.answer-skeleton span:nth-child(2) { height: 36px; width: 12rem; max-width: 100%; }
-.answer-skeleton span:nth-child(3) { height: 14px; width: 16rem; max-width: 100%; }
-.answer-skeleton span:nth-child(4) { height: 14px; width: 9rem; }
+/* Before the first result: the shape of the headline and of "What this
+   means", still (no shimmer). The figure block matches .answer-item; the
+   reading uses MeaningLine's own classes, so its bars wrap and space like
+   the text they stand for (ResultsAnswer.tsx expectedShape). */
+.answer-skeleton { display: flex; flex-direction: column; gap: var(--space-16); }
+.answer-sk-figure { display: flex; flex-direction: column; gap: var(--space-2); }
+.answer-sk-figure span {
+  display: block; height: 19px; width: 9rem;
+  border-radius: var(--radius-control); background: var(--inset);
+}
+.answer-sk-figure span:nth-child(1) { height: 17px; }
+.answer-sk-figure span:nth-child(2) { height: 36px; width: 12rem; max-width: 100%; }
+.answer-sk-figure .answer-sk-ci { width: 16rem; max-width: 100%; }
+.answer-sk-label {
+  display: block; width: 8rem; height: 1lh; margin-bottom: var(--space-2);
+  font-size: var(--text-label);
+  background: linear-gradient(var(--inset), var(--inset)) no-repeat 0 50% / 100% 0.75em;
+}
+.answer-sk-text::before {
+  content: attr(data-fill); color: transparent; background: var(--inset);
+  user-select: none;
+}
 
 /* ---- the Checks row ---- */
 .checks { border-top: 1px solid var(--line); padding-top: var(--space-12); }

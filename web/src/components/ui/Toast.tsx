@@ -10,18 +10,24 @@ import {
   useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore,
   type CSSProperties, type ReactNode,
 } from "react";
+import { createPortal } from "react-dom";
 import { Announcer } from "./Announcer";
 import { announce } from "./Announcer.store";
 import { Button } from "./Button";
 import { CloseIcon, ToneIcon } from "./feedbackIcons";
 import { IconButton } from "./IconButton";
-import { toasts, type Toast } from "./Toast.store";
+import { toastHost, toasts, type Toast } from "./Toast.store";
 import "./Toast.css";
 
 const GAP = 8;
 
-// Every toast shown or replaced is spoken once; errors interrupt.
-toasts.onMessage = (t) => announce(t.message, t.tone === "error" ? "assertive" : "polite");
+// Every toast shown or replaced is spoken once; errors interrupt. An
+// action (Undo) is spoken with how to reach it, since it leaves with the
+// toast and is often the only way back.
+toasts.onMessage = (t) => announce(
+  t.action ? `${t.message} ${t.action.label}: press F6.` : t.message,
+  t.tone === "error" ? "assertive" : "polite",
+);
 // For the e2e scripts (scripts/e2e-feedback.mjs), as __opendose is.
 (globalThis as { __opendoseToasts?: typeof toasts }).__opendoseToasts = toasts;
 
@@ -38,6 +44,7 @@ export function ToastProvider({ children }: { children?: ReactNode }) {
 
 function Toaster() {
   const list = useSyncExternalStore(toasts.subscribe, toasts.getSnapshot);
+  const host = useSyncExternalStore(toastHost.subscribe, toastHost.current);
   const [heights, setHeights] = useState<Record<string, number>>({});
   const region = useRef<HTMLElement>(null);
   const returnTo = useRef<HTMLElement | null>(null);
@@ -113,7 +120,7 @@ function Toaster() {
     acc += (heights[list[i].id] ?? 0) + GAP;
   }
 
-  return (
+  const stack = (
     <section ref={region} className="toast-region" aria-label="Notifications (F6)"
       onPointerEnter={() => toasts.setPaused("hover", true)}
       onPointerLeave={() => toasts.setPaused("hover", false)}
@@ -129,6 +136,8 @@ function Toaster() {
       </ol>
     </section>
   );
+  // Inside the topmost open modal (Toast.store toastHost), else in place.
+  return host ? createPortal(stack, host) : stack;
 }
 
 function ToastItem({ toast: t, offset, onMeasure, onDismiss }: {

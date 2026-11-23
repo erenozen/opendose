@@ -38,7 +38,7 @@ import FormulaColumnDialog from "./FormulaColumnDialog";
 import { calcCell, evalCellExpression, isCalculated } from "../../project/calculated";
 import {
   DEFAULT_ROW_PX, INITIAL_ROWS, rowSegments, sameRange, scrollTopFor, shouldVirtualise,
-  visibleRange, type RowRange,
+  nextRange, type RowRange,
 } from "./virtualRows";
 import { lazy, Suspense } from "react";
 
@@ -189,8 +189,10 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
   const updateRange = () => {
     const m = metrics();
     if (!m) return;
-    const next = visibleRange(m, nRows);
-    setRange((cur) => (sameRange(cur, next) ? cur : next));
+    setRange((cur) => {
+      const next = nextRange(cur, m, nRows);
+      return sameRange(cur, next) ? cur : next;
+    });
   };
   const updateRef = useRef(updateRange);
   updateRef.current = updateRange;
@@ -420,7 +422,9 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
       <>
       <input
         data-r={r} data-c={c}
-        inputMode={opts.text ? "text" : "decimal"}
+        // The text keyboard for values too: the iOS decimal pad has no
+        // minus and no "e", so -9 and 1e-9 could not be typed (DECISIONS 7).
+        inputMode="text"
         enterKeyHint="next"
         // Labels and codes are data: no autocorrect or capitals on phones
         autoCorrect="off" autoCapitalize="off" spellCheck={false} autoComplete="off"

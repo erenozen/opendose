@@ -32,7 +32,7 @@ button {
 select, .constraint-value, .interp-input, .antagonist-input,
 .plate-form input:not([type="file"]), .plate-form textarea {
   font: inherit; color: var(--ink); background: var(--inset);
-  border: 1px solid var(--line-strong); border-radius: var(--radius-control);
+  border: 1px solid var(--line-control); border-radius: var(--radius-control);
   padding: 6px 9px; max-width: 100%;
 }
 /* The browser paints the select's popup from the OS color scheme, while
@@ -112,7 +112,7 @@ input[type="checkbox"] { accent-color: var(--accent); width: 15px; height: 15px;
 .field > span:first-child { font-weight: var(--weight-medium); }
 .field input, .field select {
   font: inherit; color: var(--ink); background: var(--inset);
-  border: 1px solid var(--line-strong); border-radius: var(--radius-control);
+  border: 1px solid var(--line-control); border-radius: var(--radius-control);
   padding: 6px 9px; max-width: 100%;
 }
 .field-num input { width: 90px; font-variant-numeric: tabular-nums; }
@@ -125,10 +125,19 @@ input[type="checkbox"] { accent-color: var(--accent); width: 15px; height: 15px;
 .field-radios label { display: flex; gap: 8px; align-items: baseline; }
 input[type="radio"] { accent-color: var(--accent); }
 
-/* Touch: every raw button and select is at least 44px tall, at any
-   width (a tablet is as coarse as a phone). Button does its own. */
+/* Touch: every raw button, select and text field is at least 44px tall,
+   at any width (a tablet is as coarse as a phone). Button does its own.
+   So are disclosure rows and radio and check rows, which sit between
+   other targets. */
 @media (pointer: coarse) {
-  button:where(:not(.linkish)), select {
+  button:where(:not(.linkish)), select,
+  input:where(:not([type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="color"], [type="hidden"])) {
     min-height: 44px;
+  }
+  summary { min-height: 44px; }
+  summary:where(:not(.advanced > summary, .checks > summary)) { padding-block: var(--space-12); }
+  .advanced > summary { align-items: center; }
+  .field-radios label, .field-check, .pptx-check, .constraint-row {
+    min-height: 44px; align-items: center;
   }
 }

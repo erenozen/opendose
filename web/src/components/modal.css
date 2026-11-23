@@ -6,6 +6,9 @@
   box-shadow: var(--elev-dialog);
   width: min(460px, calc(100vw - 32px));
   max-height: calc(100dvh - 48px);
+  /* every width below keeps a 16px gutter; in landscape on a phone the
+     notch takes more than that, so the cap clears the safe areas too */
+  max-width: calc(100vw - 32px - var(--safe-left) - var(--safe-right));
   overscroll-behavior: contain;
 }
 .modal-wide { width: min(880px, calc(100vw - 32px)); }

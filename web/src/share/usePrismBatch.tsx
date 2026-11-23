@@ -1,4 +1,4 @@
-// "Convert Prism files to CSV…" (Save menu, start screen): pick several
+// "Convert Prism files to CSV…" (File menu, Tools): pick several
 // .prism / .pzfx files; each is read by the engine (pzfx_import, as Open
 // does) and every data table is saved as CSV in one zip (./prismBatch.ts).
 import { useRef, useState } from "react";

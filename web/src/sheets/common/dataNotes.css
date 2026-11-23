@@ -54,7 +54,11 @@
 .design-result p { margin: var(--space-4) 0; }
 .design-result .note-source { color: var(--ink-2); font-size: var(--text-caption); }
 .design-examples { display: flex; flex-wrap: wrap; gap: var(--space-6); margin: var(--space-4) 0 var(--space-8); }
-.design-examples button { padding: var(--space-4) 10px; font-size: var(--text-body-s); }
+/* Example sentences are long: they wrap inside a narrow dialog. */
+.design-examples button {
+  padding: var(--space-4) 10px; font-size: var(--text-body-s);
+  white-space: normal; text-align: left; max-width: 100%;
+}
 
 .type-list .design-entry { display: block; align-self: flex-start; text-align: start; margin: 0 0 var(--space-8); font-size: var(--text-body-s); }
 .design-chosen strong { color: var(--ink); }

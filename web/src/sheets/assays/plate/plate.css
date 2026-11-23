@@ -20,6 +20,11 @@
 @media (hover: hover) and (pointer: fine) {
   .plate-head:hover, .plate-corner:hover { background: var(--inset); color: var(--ink); }
 }
+/* Touch: the column numbers' row is 44px tall (only that row grows; the
+   row letters stay as tall as their wells). */
+@media (pointer: coarse) {
+  .plate-col-head, .plate-corner { min-height: 44px; }
+}
 .plate-well {
   aspect-ratio: 1; min-width: 0; padding: 0; border-radius: 50%;
   border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink);

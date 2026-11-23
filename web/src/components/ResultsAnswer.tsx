@@ -7,11 +7,12 @@
 // measure, and the Checks row that discloses the guidance. Results no
 // mapper knows show only the reading and the Checks row: the table below
 // is their answer.
-import { useId, useMemo, useState } from "react";
+import { useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useProject } from "../app/context";
 import type { AnalysisStatus } from "../app/useAnalysisResult";
 import type { DataSheet, ResultsSheet } from "../project/types";
 import MeaningLine from "../report/MeaningLine";
+import { ANALYSIS_COLUMN, ANALYSIS_NONLIN } from "../project/builtin";
 import { concentrationUnit } from "../sheets/xy/rangeReport";
 import { keyFacts, type KeyItem } from "./answer/keyFacts";
 import ResultsChecks from "./ResultsChecks";
@@ -20,6 +21,41 @@ import { Button, Num, NumText } from "./ui";
 import "./answer/answer.css";
 
 const SHOWN = 3;
+
+/** The last height of each results sheet's answer pane with a result, so
+ *  a result computed again (Run again, reopening the sheet) arrives into
+ *  the same space. */
+const heldHeight = new Map<string, number>();
+
+/** The answer's shape, guessed before the result exists: the key figure
+ *  (curve fits and t tests have a CI line, ANOVA does not; keyFacts.ts)
+ *  and roughly how many characters each paragraph of "What this means"
+ *  will have, [sentence, misreading, test, sources], or null for none.
+ *  t test and ANOVA sentences name the groups (report/meaning.ts), so the
+ *  guess counts the group names. Measured against the dose-response
+ *  example and e2e-fixtures/stage/big-table.json. */
+interface Shape { figure: "ci" | "plain" | null; reading: [number, number, number, number] | null }
+function expectedShape(analysisId: string, options: unknown, table: DataSheet["table"]): Shape {
+  if (analysisId === ANALYSIS_NONLIN) return { figure: "ci", reading: [285, 140, 70, 155] };
+  if (analysisId === ANALYSIS_COLUMN) {
+    const kind = (options as { analysis?: string } | null)?.analysis;
+    if (kind !== "ttest" && kind !== "anova") return { figure: null, reading: null };
+    const named = kind === "ttest" ? table.datasets.slice(0, 2) : table.datasets;
+    const names = named.reduce((n, d) => n + d.name.length + 2, 0);
+    return { figure: kind === "ttest" ? "ci" : "plain", reading: [200 + names, 165, 100, 280] };
+  }
+  return { figure: null, reading: [250, 160, 80, 160] };
+}
+
+/** Text-shaped still bars: an inline run of `chars` invisible characters
+ *  drawn as a filled box per line, so it wraps like the text it stands
+ *  for at any width. The characters live in a pseudo-element, out of
+ *  find-in-page and selection. */
+const FILL = "xxxxxxxx xxxx xxxxxxx xxxxx xxxxxxxxx xx ";
+const Bar = ({ chars }: { chars: number }) => (
+  <span className="answer-sk-text"
+    data-fill={FILL.repeat(Math.ceil(chars / FILL.length)).slice(0, chars).trimEnd()} />
+);
 
 /** Where the numbers on screen come from (DECISIONS 4), always two lines
  *  of room so a change of wording moves nothing. */
@@ -83,9 +119,16 @@ export default function ResultsAnswer({ sheet, data, result, options, status, re
   const hasResult = result != null;
   const items = facts?.kind === "figures" ? facts.items.filter((i) => i.figure || i.error) : [];
   const shown = all ? items : items.slice(0, SHOWN);
+  const shape = expectedShape(sheet.analysis, options, data.table);
+  const pane = useRef<HTMLElement>(null);
+  useLayoutEffect(() => {
+    if (hasResult && pane.current) heldHeight.set(sheet.id, pane.current.offsetHeight);
+  }, [hasResult, result, sheet.id, all]);
+  const hold = hasResult ? undefined : heldHeight.get(sheet.id);
 
   return (
-    <section className="pane pane-answer" aria-labelledby={titleId}>
+    <section ref={pane} className="pane pane-answer" aria-labelledby={titleId}
+      style={hold ? { minHeight: hold } : undefined}>
       <div className="answer">
         <div className="answer-head">
           <h2 id={titleId} className="answer-title">{sheet.name}</h2>
@@ -93,10 +136,26 @@ export default function ResultsAnswer({ sheet, data, result, options, status, re
             hasResult, live: status.live })}</p>
         </div>
         {!hasResult ? (
-          // The shape of a headline, so its arrival moves nothing.
-          <div className="answer-skeleton" aria-hidden="true">
-            <span /><span /><span /><span />
-          </div>
+          // The shape of the headline and its reading, so their arrival
+          // moves nothing below them. Never while the engine failed to
+          // load: the provenance line says so, and no result is coming.
+          !engineError && (shape.figure || shape.reading) && (
+            <div className="answer-skeleton" aria-hidden="true">
+              {shape.figure && (
+                <div className="answer-sk-figure">
+                  <span /><span />{shape.figure === "ci" && <span className="answer-sk-ci" />}<span />
+                </div>
+              )}
+              {shape.reading && (
+                <div className="meaning-line">
+                  <p className="meaning-sentence"><span className="answer-sk-label" /><Bar chars={shape.reading[0]} /></p>
+                  <p className="meaning-misread"><Bar chars={shape.reading[1]} /></p>
+                  <p className="meaning-test"><Bar chars={shape.reading[2]} /></p>
+                  <p className="meaning-sources"><Bar chars={shape.reading[3]} /></p>
+                </div>
+              )}
+            </div>
+          )
         ) : facts?.kind === "error" ? (
           <div className="answer-failed" role="alert">
             <p className="answer-error-text">{facts.message}</p>

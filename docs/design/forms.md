@@ -57,9 +57,12 @@ The `.field` label-wrapping pattern and the `Field` in
 
 Use for every single-number entry. Never `<input type="number">`: it
 reports an empty value for anything it cannot parse (a decimal comma, a
-half-typed "1e-"), and the scroll wheel changes it while focused. NumberField types as text with
-`inputMode="decimal"` (a number pad on phones), keeps the typed string,
-accepts a decimal comma, and steps by `step` on Arrow Up and Down.
+half-typed "1e-"), and the scroll wheel changes it while focused. NumberField types as text,
+keeps the typed string, accepts a decimal comma, and steps by `step` on
+Arrow Up and Down. Phones get the decimal pad only when `min` is 0 or
+more; otherwise the text keyboard, because the iOS decimal pad has no
+minus and no "e" (DECISIONS 7). Pass `min` whenever the value cannot be
+negative. Grid value cells use the text keyboard for the same reason.
 
 Props: `label`, `unit` (drawn inside the field's right edge: "µM", "%"),
 `min`, `max`, `integer`, `required`, `step`, and either `value` +

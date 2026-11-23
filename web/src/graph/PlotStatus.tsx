@@ -4,6 +4,8 @@
 // plot's own div, drawn before Plotly has drawn anything (or after the
 // plot was purged), so the box keeps its size and nothing moves when
 // the graph arrives.
+import { useContext } from "react";
+import { Ctx } from "../app/context";
 import { Button } from "../components/ui";
 import type { PlotLoad } from "./usePlotLoad";
 
@@ -16,6 +18,10 @@ export function PlotStatus({ load, failed, pending, onRetry }: {
   pending?: boolean;
   onRetry: () => void;
 }) {
+  // No result is coming when the engine failed to load (the boot banner
+  // above says so and offers Retry). Outside a project (share previews)
+  // there is no engine to ask about.
+  const engineFailed = !!useContext(Ctx)?.engineError;
   if (load === "failed") {
     return (
       <div className="plot-status">
@@ -29,6 +35,13 @@ export function PlotStatus({ load, failed, pending, onRetry }: {
     return (
       <div className="plot-status">
         <p>No graph: the analysis failed. The results say why.</p>
+      </div>
+    );
+  }
+  if (pending && engineFailed) {
+    return (
+      <div className="plot-status">
+        <p>No graph: the analysis engine did not load.</p>
       </div>
     );
   }

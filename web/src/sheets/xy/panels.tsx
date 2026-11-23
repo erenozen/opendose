@@ -165,7 +165,7 @@ export function NonlinMethods({ table, result, options }:
   const flagged = (result?.datasets ?? []).some((ds) => displayOf(ds.fit));
   return (
     <>
-      <MethodsText result={result} options={options} xUnit={table.xUnit || "M"} />
+      <MethodsText result={result} options={options} xUnit={concentrationUnit(table) || "M"} />
       {flagged && (
         <p className="hint-block range-methods">
           {options.extrapolatedReport === "fitted"

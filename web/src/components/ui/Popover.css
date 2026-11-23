@@ -12,6 +12,7 @@
 /* Zero specificity: the caller's class sets these when it wants to. */
 :where(.ui-layer[popover]) {
   color: inherit; background: var(--float); padding: 0; overflow: auto;
+  overscroll-behavior: contain;
 }
 :where(.ui-layer[popover]):focus { outline: none; }
 

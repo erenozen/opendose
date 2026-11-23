@@ -77,6 +77,21 @@ export default function AnalysisPlanView({ sheet }: { sheet: InfoSheet & { plan:
   };
   const groups = v.groups;
   const num = (s: string) => { const x = Number(s); return s.trim() && Number.isFinite(x) ? x : null; };
+  // The Groups and α fields keep what is typed (forms.md: never block
+  // typing): a space after a word, an empty α, "0." on the way to 0.01.
+  // The plan takes the parsed value; a change from elsewhere (undo, the
+  // locked draft) resets the text.
+  const parseGroups = (t: string) => t.split(",").map((g) => g.trim());
+  const [groupsText, setGroupsText] = useState(() => groups.join(", "));
+  if (parseGroups(groupsText).join("\n") !== groups.join("\n")) setGroupsText(groups.join(", "));
+  const [alphaText, setAlphaText] = useState(() => String(v.alpha));
+  const [alphaSeen, setAlphaSeen] = useState(v.alpha);
+  if (alphaSeen !== v.alpha) {
+    setAlphaSeen(v.alpha);
+    if (num(alphaText) !== v.alpha) setAlphaText(String(v.alpha));
+  }
+  const alphaNum = num(alphaText);
+  const alphaBad = !(alphaNum !== null && alphaNum > 0 && alphaNum < 1);
 
   return (
     <section className="result-card plan-sheet" aria-labelledby="plan-h">
@@ -100,8 +115,11 @@ export default function AnalysisPlanView({ sheet }: { sheet: InfoSheet & { plan:
           <Input value={v.primaryOutcome} readOnly={ro} placeholder="e.g. tumour volume at day 21 (mm³)"
             onChange={(e) => change({ primaryOutcome: e.target.value }, "out")} /></Field>
         <Field label="Groups">
-          <Input value={groups.join(", ")} readOnly={ro} placeholder="Control, Treated"
-            onChange={(e) => change({ groups: e.target.value.split(",").map((g) => g.trim()) }, "groups")} /></Field>
+          <Input value={groupsText} readOnly={ro} placeholder="Control, Treated"
+            onChange={(e) => {
+              setGroupsText(e.target.value);
+              change({ groups: parseGroups(e.target.value) }, "groups");
+            }} /></Field>
         <Field label="Primary comparison: reference group" id={ids.a}>
           <select id={ids.a} value={v.comparison?.a ?? ""} disabled={ro}
             onChange={(e) => change({ comparison: e.target.value
@@ -129,9 +147,13 @@ export default function AnalysisPlanView({ sheet }: { sheet: InfoSheet & { plan:
         <Field label="n per group (independent units)">
           <Input inputMode="numeric" value={v.nPerGroup ?? ""} readOnly={ro}
             onChange={(e) => { const x = num(e.target.value); change({ nPerGroup: x !== null && x > 0 ? Math.round(x) : null }, "n"); }} /></Field>
-        <Field label="α (significance level)">
-          <Input inputMode="decimal" value={v.alpha} readOnly={ro}
-            onChange={(e) => { const x = num(e.target.value); if (x !== null && x > 0 && x < 1) change({ alpha: x }, "alpha"); }} /></Field>
+        <Field label="α (significance level)" error={alphaBad ? "Enter a number between 0 and 1." : null}>
+          <Input inputMode="decimal" value={alphaText} readOnly={ro}
+            onChange={(e) => {
+              setAlphaText(e.target.value);
+              const x = num(e.target.value);
+              if (x !== null && x > 0 && x < 1) change({ alpha: x }, "alpha");
+            }} /></Field>
         <Field label="Exclusion rule (blank: no exclusions)" id={ids.excl} className="plan-wide">
           <textarea id={ids.excl} rows={2} value={v.exclusionRule} readOnly={ro}
             placeholder="e.g. animals reaching the humane endpoint before day 21; wells flagged by the plate reader"

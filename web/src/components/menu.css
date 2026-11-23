@@ -44,8 +44,15 @@
 }
 .swatch:focus-visible { outline-offset: 2px; border-radius: 50%; }
 
-/* Touch: 44px rows (DECISIONS 5) and larger swatches. */
+/* Touch: 44px rows (DECISIONS 5), larger swatches whose hit areas meet
+   at 44px without overlapping (26 + 18), and no shortcut column on a
+   phone with no keyboard. */
 @media (pointer: coarse) {
   .menu-item { min-height: 44px; }
-  .swatch { min-height: 0; width: 26px; height: 26px; }
+  .menu-colors { gap: 18px; }
+  .swatch { min-height: 0; width: 26px; height: 26px; position: relative; }
+  .swatch::before { content: ""; position: absolute; inset: -9px; }
+}
+@media (hover: none) and (pointer: coarse) {
+  .menu-item kbd { display: none; }
 }

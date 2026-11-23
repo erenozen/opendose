@@ -65,7 +65,7 @@ floats. `--elev-seg` is for the segmented control's thumb only.
   box-shadow: var(--elev-float);
 }
 
-/* Incorrect: app/organise.css:12. Border, a 3px top rule and a shadow: three cues. */
+/* Incorrect (historical: the floating note before phase 4). Border, a 3px top rule and a shadow: three cues. */
 .floating-note {
   border: 1px solid color-mix(in srgb, var(--note-edge) 55%, transparent);
   border-top: 3px solid var(--note-edge);

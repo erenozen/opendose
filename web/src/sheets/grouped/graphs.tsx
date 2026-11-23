@@ -325,7 +325,7 @@ export function HeatOptions({ graph }: GraphOptionsProps) {
       <OptCheck label="Show values in cells" checked={h.labels}
         onChange={(labels) => up({ labels })} />
       {h.labels && (
-        <OptInput label="Significant digits" type="number" min={1} max={8} value={h.digits}
+        <OptInput label="Significant digits" inputMode="numeric" value={h.digits}
           onChange={(v) => up({ digits: Number(v) || 3 })} />
       )}
       <OptSlider label="Gap between cells" value={h.gap} min={0} max={12} step={1}

@@ -80,8 +80,16 @@ await page.waitForTimeout(500);
   await page.keyboard.press("Enter");
   const open = page.getByRole("menuitem", { name: /^Open…/ });
   await open.waitFor();
+  // Focus moves into the menu after it opens: step only once an item has
+  // it, and each step only after the last one landed, so no ArrowDown
+  // reaches the File button or skips past Open….
+  await page.waitForFunction(() => document.activeElement?.getAttribute("role") === "menuitem"
+    && !!document.activeElement.closest('[role="menu"]'), null, { timeout: 5000 });
   for (let i = 0; i < 10 && !(await open.evaluate((el) => el === document.activeElement)); i++) {
+    const was = await page.evaluate(() => document.activeElement?.textContent ?? "");
     await page.keyboard.press("ArrowDown");
+    await page.waitForFunction((w) => (document.activeElement?.textContent ?? "") !== w, was,
+      { timeout: 1000 }).catch(() => {});
   }
   const chooser = page.waitForEvent("filechooser", { timeout: 5000 }).then(() => true, () => false);
   await page.keyboard.press("Enter");
@@ -378,6 +386,9 @@ await ctx.close();
     }).observe(b, { attributes: true, subtree: true });
   });
   const create = dlg.getByRole("button", { name: "Create table" });
+  // Measure at rest: the dialog's entrance scale (0.97 to 1) may still be
+  // running after the quick steps above, and it narrows the box.
+  await dlg.evaluate((d) => Promise.all(d.getAnimations().map((a) => a.finished.catch(() => {}))));
   const w0 = await create.evaluate((b) => b.getBoundingClientRect().width);
   await create.dblclick(); // a double click must make one table
   await p.waitForSelector(".origin-note", { timeout: 30000 });

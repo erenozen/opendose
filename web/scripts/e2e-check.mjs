@@ -2916,7 +2916,7 @@ const axeOn = async (pg, sel) => {
   // (d) control, A and B once on each of four days: matched by day
   await newColumnPaste("Control\tA\tB\n10\t12\t15\n14\t17\t19\n8\t9\t12\n12\t15\t18\n");
   await page.getByRole("button", { name: "Analyze", exact: true }).click();
-  await page.getByRole("menuitem", { name: /Which test/ }).click();
+  await page.getByRole("menuitem", { name: /^Help me choose/ }).click();
   const wtb = page.locator("dialog.which-test");
   await wtb.waitFor({ timeout: 10000 });
   await wtb.getByRole("group", { name: /run once per experiment, on different days/ })

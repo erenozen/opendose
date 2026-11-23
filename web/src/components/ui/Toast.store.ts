@@ -207,3 +207,26 @@ export function notify(message: string, opts?: ToastOptions): string {
 export function dismissToast(id: string): void {
   toasts.dismiss(id);
 }
+
+/** Open modal dialogs, newest last (ui/Dialog registers each one). A
+ *  modal makes everything outside it inert, so the toast stack is drawn
+ *  inside the topmost one: a toast raised from a dialog (Undo after a
+ *  delete) stays above its backdrop and can be pressed. */
+const hosts: HTMLElement[] = [];
+const hostListeners = new Set<() => void>();
+export const toastHost = {
+  push(el: HTMLElement): () => void {
+    hosts.push(el);
+    hostListeners.forEach((fn) => fn());
+    return () => {
+      const i = hosts.lastIndexOf(el);
+      if (i >= 0) hosts.splice(i, 1);
+      hostListeners.forEach((fn) => fn());
+    };
+  },
+  current: (): HTMLElement | null => hosts.at(-1) ?? null,
+  subscribe(fn: () => void): () => void {
+    hostListeners.add(fn);
+    return () => { hostListeners.delete(fn); };
+  },
+};

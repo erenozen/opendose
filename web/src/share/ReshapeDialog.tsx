@@ -79,7 +79,7 @@ export default function ReshapeDialog({ sheet, onClose }: { sheet: DataSheet; on
         <Input value={name} autoComplete="off" onChange={(e) => setName(e.target.value)} />
       </Field>
       {m.length > 1 ? (
-        <div className="import-preview" tabIndex={0} aria-label="The long table to be created">
+        <div className="import-preview" role="region" tabIndex={0} aria-label="The long table to be created">
           <table>
             <thead><tr>{m[0].map((h, i) => <th key={i}>{h}</th>)}</tr></thead>
             <tbody>

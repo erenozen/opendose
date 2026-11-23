@@ -239,8 +239,14 @@ function Item({
   onSelect, description, shortcut, danger, textValue, disabled, className = "", children, ...props
 }: ItemProps) {
   const select = useSelect();
+  // With a description, the label alone names the item and the
+  // description describes it: each arrow press reads a short name.
+  const id = useId();
+  const split = !!description && !props["aria-label"];
   return (
-    <button type="button" role="menuitem" tabIndex={-1} {...props}
+    <button type="button" role="menuitem" tabIndex={-1}
+      aria-labelledby={split ? `${id}-l` : undefined} aria-describedby={split ? `${id}-d` : undefined}
+      {...props}
       aria-disabled={disabled || undefined}
       data-text={textValue ?? (typeof children === "string" ? children : undefined)}
       className={`menu-item${description ? " menu-item-2line" : ""}${danger ? " danger" : ""} ${className}`}
@@ -249,8 +255,8 @@ function Item({
         onSelect?.(e);
         if (!e.defaultPrevented) select();
       }}>
-      <span>{children}</span>
-      {description && <span className="menu-desc">{description}</span>}
+      <span id={`${id}-l`}>{children}</span>
+      {description && <span id={`${id}-d`} className="menu-desc">{description}</span>}
       {shortcut && <kbd>{shortcut}</kbd>}
     </button>
   );

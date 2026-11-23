@@ -122,7 +122,7 @@ export function ColorField({ label, value, auto, surface, onChange, mark = true 
             aria-label={`${label}: back to automatic`}>Auto</Button>
         ) : <span className="fmt-auto">Automatic</span>}
       </span>
-      {warn && <span className="fmt-warn" role="status">{warn}</span>}
+      <span className="status-slot" role="status">{warn && <span className="fmt-warn">{warn}</span>}</span>
     </div>
   );
 }

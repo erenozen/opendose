@@ -24,7 +24,9 @@
   --inset: light-dark(oklch(0.955 0.005 255), oklch(0.245 0.01 255));
   --line: light-dark(oklch(0.2 0.012 255 / 0.1), oklch(1 0 0 / 0.09));     /* soft divider, any surface */
   --line-solid: light-dark(oklch(0.86 0.008 255), oklch(0.29 0.01 255));    /* seams, data separators */
-  --line-strong: light-dark(oklch(0.82 0.008 255), oklch(0.43 0.01 255));   /* control edges */
+  --line-strong: light-dark(oklch(0.82 0.008 255), oklch(0.43 0.01 255));   /* keycap and chip edges */
+  /* text field and select edges: 3:1 on --surface and --float (WCAG 1.4.11) */
+  --line-control: light-dark(oklch(0.6 0.01 255), oklch(0.56 0.01 255));
   --grid: light-dark(oklch(0.9 0.006 255), oklch(0.29 0.01 255));
   --axis: light-dark(oklch(0.8 0.008 255), oklch(0.43 0.01 255));
   --ink: light-dark(oklch(0.2 0.012 255), oklch(0.96 0.004 255));
@@ -163,6 +165,7 @@
 
   /* ---- layout */
   --nav-w: 280px;
+  --palette-top: 12dvh;   /* the command palette sits a little above centre */
 }
 
 /* Reduced motion (ruling 1): entrances and exits shorten to fades of
@@ -178,3 +181,55 @@
   }
 }
 
+/* Browser floor (DECISIONS 7): light-dark() needs Safari 17.5, Chrome 123,
+   Firefox 120. Without it every colour token above is invalid, and menus,
+   dialogs and toasts lose their backgrounds; those browsers get the light
+   palette instead. Dark mode needs the floor. Generated from the light
+   halves above: keep the two in step. */
+@supports not (color: light-dark(white, black)) {
+  :root, :root[data-theme] { color-scheme: light; }
+  :root {
+    --page: oklch(0.935 0.006 255);
+    --surface: oklch(0.995 0.002 255);
+    --float: oklch(1 0 0);
+    --inset: oklch(0.955 0.005 255);
+    --line: oklch(0.2 0.012 255 / 0.1);
+    --line-solid: oklch(0.86 0.008 255);
+    --line-strong: oklch(0.82 0.008 255);
+    --line-control: oklch(0.6 0.01 255);
+    --grid: oklch(0.9 0.006 255);
+    --axis: oklch(0.8 0.008 255);
+    --ink: oklch(0.2 0.012 255);
+    --ink-2: oklch(0.36 0.012 255);
+    --muted: oklch(0.48 0.012 255);
+    --faint: oklch(0.6 0.01 255);
+    --accent: oklch(0.5 0.18 258);
+    --accent-fill: oklch(0.5 0.18 258);
+    --accent-fill-hover: oklch(0.45 0.17 258);
+    --accent-soft: oklch(0.5 0.18 258 / 0.08);
+    --accent-border: oklch(0.5 0.18 258 / 0.35);
+    --danger: oklch(0.52 0.2 27);
+    --danger-soft: oklch(0.52 0.2 27 / 0.07);
+    --warn-ink: oklch(0.488 0.11 64.2);
+    --success: oklch(0.5 0.13 150);
+    --info: oklch(0.5 0.18 258);
+    --role-time: oklch(0.497 0.174 304.9);
+    --scrim: oklch(0.2 0.012 255 / 0.32);
+    --seg-track: oklch(0.2 0.012 255 / 0.07);
+    --seg-thumb: oklch(1 0 0);
+    --note-ink: oklch(0.232 0.004 286.1);
+    --note-yellow: oklch(0.964 0.065 97.1);
+    --note-yellow-edge: oklch(0.787 0.161 91);
+    --note-blue: oklch(0.937 0.031 252.7);
+    --note-blue-edge: oklch(0.623 0.188 259.8);
+    --note-green: oklch(0.947 0.036 152.8);
+    --note-green-edge: oklch(0.646 0.166 148.1);
+    --note-pink: oklch(0.935 0.036 356.3);
+    --note-pink-edge: oklch(0.625 0.195 3.5);
+    --note-purple: oklch(0.929 0.04 301.3);
+    --note-purple-edge: oklch(0.606 0.219 292.7);
+    --elev-float: 0 0 0 1px oklch(0.2 0.012 255 / 0.08), 0 2px 4px oklch(0.2 0.012 255 / 0.05), 0 8px 24px -4px oklch(0.2 0.012 255 / 0.14);
+    --elev-dialog: 0 0 0 1px oklch(0.2 0.012 255 / 0.08), 0 4px 8px oklch(0.2 0.012 255 / 0.06), 0 20px 48px -8px oklch(0.2 0.012 255 / 0.22);
+    --elev-seg: 0 1px 2.5px oklch(0 0 0 / 0.16);
+  }
+}

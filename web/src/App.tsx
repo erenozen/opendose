@@ -97,6 +97,17 @@ function Shell() {
     resolveStart();
   }, [startPending, autosaveChecked, offer, restore, resolveStart]);
 
+  // Dismiss deletes the saved session for good: say so, and ask.
+  const discardLastSession = async () => {
+    const ok = await ui.confirm({
+      title: "Discard your last session?",
+      body: "The autosaved project is deleted from this browser and cannot be restored.",
+      confirmLabel: "Discard",
+      danger: true,
+    });
+    if (ok) autosave.dismiss();
+  };
+
   const newProject = async () => {
     const ok = await ui.confirm({
       title: "Start a new project?",
@@ -204,7 +215,7 @@ function Shell() {
               </Banner.Detail>
               <Banner.Actions>
                 <Button variant="primary" onClick={() => autosave.restore()}>Restore</Button>
-                <Button onClick={autosave.dismiss}>Dismiss</Button>
+                <Button onClick={discardLastSession}>Discard last session</Button>
               </Banner.Actions>
             </>
           )}

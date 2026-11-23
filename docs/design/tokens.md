@@ -52,8 +52,11 @@ Is the text on a filled button?
       └── A success icon → --success
 ```
 
-- `--faint` measures 3.3:1 on `--surface` (light) and 3.4:1 (dark), below
-  the 4.5:1 text floor. Never put words a user must read in it.
+- `--faint` measures 3.9:1 on `--surface` in both themes (3.3:1 on
+  `--page` light), below the 4.5:1 text floor. Never put words a user
+  must read in it.
+- `--line-control` measures 3.9:1 on `--surface` in both themes and
+  3.4:1 on dark `--float`: an empty field is found by its edge alone.
 - `--muted` is the lowest colour for readable text: 5.4:1 light, 6.9:1
   dark on every surface.
 - `--warn` is a tint for badge backgrounds (`color-mix(in srgb, var(--warn) 18%, var(--surface))`).
@@ -70,7 +73,8 @@ Is it the edge of a floating layer?
  ├── Yes → no border: --elev-float / --elev-dialog include a 1px ring
  └── No
       ├── A data separator: table rule, grid cell line, pane seam → --line-solid
-      ├── The edge of a control: input, select, keycap button → --line-strong
+      ├── The edge of a text field or select → --line-control (3:1, WCAG 1.4.11)
+      ├── The edge of a keycap button, chip or toggle → --line-strong
       ├── A soft divider between sections inside one pane → --line
       ├── A plot gridline or axis → --grid / --axis (Plotly reads them via lib/chrome.ts)
       └── An invalid input's edge → --danger (Field sets it)

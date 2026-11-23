@@ -190,7 +190,7 @@ export default function LongTableDialog({ target, sheet, onClose }: {
         ? <p className="field-note">{src.error}</p> : null}
       {fill && "error" in fill && <p className="field-note long-table-error" role="alert">{fill.error}</p>}
       {preview.length > 1 && (
-        <div className="import-preview" tabIndex={0} aria-label="Preview of the filled table">
+        <div className="import-preview" role="region" tabIndex={0} aria-label="Preview of the filled table">
           <table>
             <thead><tr>{preview[0].map((h, i) => <th key={i}>{h}</th>)}</tr></thead>
             <tbody>
@@ -201,9 +201,11 @@ export default function LongTableDialog({ target, sheet, onClose }: {
           </table>
         </div>
       )}
+      <div className="status-slot" role="status">
+        {fill && "table" in fill && <p className="import-summary">{fill.summary}</p>}
+      </div>
       {fill && "table" in fill && (
         <>
-          <p className="import-summary" role="status">{fill.summary}</p>
           {fill.notes.map((n) => <p key={n} className="field-note">{n}</p>)}
           <p className="field-note">
             This replaces the values in “{parent?.name}”; Undo restores them.

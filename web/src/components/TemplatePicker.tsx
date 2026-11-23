@@ -138,7 +138,7 @@ export default function TemplatePicker({ prefs, defaultName, onChange }: {
         <FileButton className="template-import" accept=".json,application/json"
           inputLabel="Import a template file" onFile={(f) => void onImport(f)}>
           Import template file…</FileButton>
-        {importMsg && <p className="field-note" role="status">{importMsg}</p>}
+        <div className="status-slot" role="status">{importMsg && <p className="field-note">{importMsg}</p>}</div>
         {error && <p className="field-note" role="alert">{error}</p>}
       </div>
     </div>

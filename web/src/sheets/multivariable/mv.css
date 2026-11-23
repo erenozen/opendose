@@ -10,8 +10,8 @@
   display: flex; flex-direction: column; gap: 0;
 }
 .mv-varlist > legend {
-  padding: 0; margin-bottom: var(--space-8); font-size: var(--text-label); text-transform: uppercase;
-  letter-spacing: 0.07em; color: var(--muted); font-weight: var(--weight-semibold);
+  padding: 0; margin-bottom: var(--space-8); font-size: var(--text-label);
+  color: var(--muted); font-weight: var(--weight-semibold);
 }
 .mv-kind {
   font-size: var(--text-caption); color: var(--muted); border: 1px solid var(--line-strong);
@@ -51,21 +51,6 @@ button.mv-remove {
 .mv-equation { font-variant-numeric: tabular-nums; }
 .mv-actions { display: flex; flex-wrap: wrap; gap: var(--space-8); margin: 10px 0 var(--space-4); }
 
-.mv-seg {
-  display: inline-flex; flex-wrap: wrap; gap: 0; margin: var(--space-8) 0 10px;
-  background: var(--seg-track); border-radius: var(--radius-dialog); padding: var(--space-2);
-}
-.mv-seg button {
-  border: none; background: transparent; border-radius: var(--radius-menu);
-  padding: 5px var(--space-12); font-size: var(--text-body-s); color: var(--ink-2);
-  transition: background-color var(--dur-base) var(--ease-out), color var(--dur-base) var(--ease-out);
-}
-.mv-seg button.active {
-  background: var(--seg-thumb); color: var(--ink); font-weight: var(--weight-semibold);
-  box-shadow: var(--elev-seg);
-}
-@media (hover: hover) and (pointer: fine) {
-  .mv-seg button:hover { background: transparent; color: var(--ink); }
-  .mv-seg button.active:hover { background: var(--seg-thumb); }
-}
+/* The matrix switch is the Tabs primitive; only its margin is local. */
+.mv-seg { margin: var(--space-8) 0 10px; }
 

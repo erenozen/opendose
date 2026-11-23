@@ -15,7 +15,7 @@ import type {
 } from "./run";
 import { pLabel, tableP, tableStars } from "../../report/pformat";
 import { CopyButton } from "../../components/CiteBlock";
-import { Button } from "../../components/ui";
+import { Button, Tabs } from "../../components/ui";
 
 /* ------------------------------------------------------------ formatting */
 
@@ -178,17 +178,16 @@ export function CorrelationResults({ result }: ResultsProps<CorrelationOptions, 
   const exact = result.p_type?.some((row) => row.some((t) => t === "exact"));
   return (
     <Card title={`Correlation matrix (${sym})`}>
-      <div className="mv-seg" role="tablist" aria-label="Matrix shown">
-        {views.map(([id, label]) => (
-          <button key={id} type="button" role="tab" aria-selected={view === id}
-            className={view === id ? "active" : undefined} onClick={() => setView(id)}>
-            {label}
-          </button>
-        ))}
-      </div>
-      <Grid caption={`${views.find((v) => v[0] === view)![1]} matrix`}
-        head={["", ...result.names]}
-        rows={result.names.map((n, i) => [n, ...result.names.map((_, j) => cell(i, j))])} />
+      <Tabs value={view} onValueChange={setView}>
+        <Tabs.List className="mv-seg" aria-label="Matrix shown">
+          {views.map(([id, label]) => <Tabs.Tab key={id} value={id}>{label}</Tabs.Tab>)}
+        </Tabs.List>
+        <Tabs.Panel value={view}>
+          <Grid caption={`${views.find((v) => v[0] === view)![1]} matrix`}
+            head={["", ...result.names]}
+            rows={result.names.map((n, i) => [n, ...result.names.map((_, j) => cell(i, j))])} />
+        </Tabs.Panel>
+      </Tabs>
       <p className="hint-block">
         {result.missing === "pairwise"
           ? "Each pair uses every row with values for both variables."

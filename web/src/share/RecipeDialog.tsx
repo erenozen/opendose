@@ -4,6 +4,7 @@ import { useProject } from "../app/context";
 // is only called from an event handler, never while modules evaluate.
 import { addFamily } from "../app/factory";
 import Modal from "../components/Modal";
+import { useDiscardGuard } from "../graph/useDiscardGuard";
 import { Button, FileButton, notify, Tabs } from "../components/ui";
 import { SRC } from "../guide/sources";
 import { readXlsx, type XlsxSheet } from "../lib/engine";
@@ -53,7 +54,7 @@ interface MultiSource { files: NamedText[]; stack: StackResult; skipped: string[
  * files at once (or a zip) are stacked with the file name as a column
  * (recipes/multiFile.ts). A mapping can be saved as a recipe and applied
  * to the next file (recipes/saved.ts). `fresh`: the table starts a new
- * project (from the start screen) instead of joining the open one.
+ * project (several files dropped on the page) instead of joining the open one.
  */
 export default function RecipeDialog({ initialText, initialFiles, savedId, staged: given, title, fresh,
   onBack, onClose }: {
@@ -217,10 +218,14 @@ export default function RecipeDialog({ initialText, initialFiles, savedId, stage
     : `${n} record${n === 1 ? "" : "s"}${out && cfg?.aggregate && out.steps.length
       ? ` → ${out.aggregated.rows.length} after aggregation` : ""}`;
   const recipeSaved = saved.list.filter((e) => e.spec.kind === "recipe");
+  // Data read in, or a paste edited: Escape or the backdrop asks before
+  // dropping it (forms.md). Cancel stays a close.
+  const guardedClose = useDiscardGuard(!!staged || pasted !== (initialText ?? ""), onClose,
+    "The data read into this dialog and the recipe settings are not kept.");
 
   return (
     <Modal title={title ?? "Import with a recipe"} className="modal-wide recipe-dialog"
-      onClose={onClose} onSubmit={create}
+      onClose={guardedClose} onSubmit={create}
       actions={
         <>
           {onBack && <Button className="spacer" onClick={onBack}>Back to plain import</Button>}
@@ -279,8 +284,9 @@ export default function RecipeDialog({ initialText, initialFiles, savedId, stage
                 onChange={(e) => setPasted(e.target.value)} />
             </label>
           )}
+          <div className="status-slot" role="status" aria-label="Files stacked">
           {isMulti && multi && (
-            <p className="field-note" role="status" aria-label="Files stacked">
+            <p className="field-note">
               {multi.stack.files} files stacked into one table of {multi.stack.matrix.length - 1} rows,
               with the file name in a “File” column.
               {multi.stack.empty.length > 0 && ` ${multi.stack.empty.length} file(s) had no rows: `
@@ -290,6 +296,7 @@ export default function RecipeDialog({ initialText, initialFiles, savedId, stage
               {multi.skipped.length > 0 && ` Not read (not a table file): ${multi.skipped.slice(0, 4).join(", ")}.`}
             </p>
           )}
+          </div>
           <fieldset className="recipe-list">
             <legend>Recipe</legend>
             <RecipeOption checked={choice === "auto"} onChange={() => setChoice("auto")}
@@ -432,8 +439,9 @@ export default function RecipeDialog({ initialText, initialFiles, savedId, stage
                   Keep every value and mark which experiment it comes from (replicate map for
                   SuperPlots and statistics on replicate means)
                 </label>
+                <div className="status-slot" role="status" aria-label="Replicate map">
                 {cfg.replicateMap && (
-                  <p className="field-note" role="status" aria-label="Replicate map">
+                  <p className="field-note">
                     {out?.replicates
                       ? <>Replicate map: {out.replicates.experiments} independent experiments
                         (from {out.replicates.column}); each value is one {singular(out.replicates.unit)}.
@@ -443,6 +451,7 @@ export default function RecipeDialog({ initialText, initialFiles, savedId, stage
                     <a href={SRC.lord2020.url} target="_blank" rel="noreferrer">{SRC.lord2020.label}</a>
                   </p>
                 )}
+                </div>
               </div>
             )}
             <label className="field">
@@ -636,7 +645,7 @@ function PatternBuilder({ staging, pattern, onChange }: {
               </div>
             ))}
           </div>
-          <div className="import-preview" aria-label="How the names split">
+          <div className="import-preview" role="region" aria-label="How the names split">
             <table>
               <thead>
                 <tr>
@@ -769,7 +778,7 @@ function AggregatePanel({ cfg, records, units, subjectName, onChange }: {
 function StagingPreview({ staging }: { staging: Staging }) {
   if (!staging.rows.length) return null;
   return (
-    <div className="import-preview" tabIndex={0} aria-label="Staged records">
+    <div className="import-preview" role="region" tabIndex={0} aria-label="Staged records">
       <table>
         <thead>
           <tr>
@@ -801,7 +810,7 @@ function TablePreview({ table }: { table: DataTableModel }) {
   if (!m.length) return null;
   const heads = m[0];
   return (
-    <div className="import-preview" tabIndex={0} aria-label="The table to be created">
+    <div className="import-preview" role="region" tabIndex={0} aria-label="The table to be created">
       <table>
         <thead>
           <tr>{heads.map((h, i) => <th key={i}>{h}</th>)}</tr>

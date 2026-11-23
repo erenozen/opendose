@@ -11,7 +11,7 @@
 
 /* What an empty plot box says (graph/PlotStatus.tsx): over the box,
    which keeps its size, so nothing moves when the graph arrives. */
-.plot:has(> .plot-status) { position: relative; }
+.plot:has(> .plot-status), .plot-holder { position: relative; }
 .plot-status {
   position: absolute; inset: 0;
   display: flex; flex-direction: column; align-items: center; justify-content: center;

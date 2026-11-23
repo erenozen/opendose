@@ -35,19 +35,20 @@
     <meta property="og:url" content="https://opendose.erenozen.dev/" />
     <meta property="og:title" content="OpenDose: curve fitting &amp; biostatistics in your browser" />
     <meta property="og:description" content="Fit dose-response curves, run the standard statistics toolbox, and analyze survival data, powered by real SciPy running entirely on your device. Nothing is uploaded, ever." />
-    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:card" content="summary" />
     <!-- The static shell's look: the app bar as React draws it (header.css),
          on the page colour, so the mount swaps it without a jump. Values
          copied from styles/tokens.css. -->
     <style>
       body { margin: 0; background: light-dark(oklch(0.935 0.006 255), oklch(0.15 0.008 255)); }
       .boot-shell { font: 400 14px/1.45 "Inter Variable", Inter, system-ui, -apple-system, "Segoe UI", sans-serif; color: light-dark(oklch(0.48 0.012 255), oklch(0.74 0.01 255)); }
-      .boot-bar { display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 0 0 52px; box-sizing: border-box; background: light-dark(oklch(0.995 0.002 255), oklch(0.2 0.01 255)); border-bottom: 1px solid light-dark(oklch(0.86 0.008 255), oklch(0.29 0.01 255)); }
+      .boot-bar { display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 0 0 calc(max(12px, env(safe-area-inset-left)) + 40px); box-sizing: border-box; background: light-dark(oklch(0.995 0.002 255), oklch(0.2 0.01 255)); border-bottom: 1px solid light-dark(oklch(0.86 0.008 255), oklch(0.29 0.01 255)); }
       .boot-bar svg { display: block; flex: none; }
       .boot-bar rect { fill: light-dark(oklch(0.5 0.18 258), oklch(0.52 0.18 258)); }
       .boot-bar span { font-size: 16px; font-weight: 600; letter-spacing: -0.015em; color: light-dark(oklch(0.2 0.012 255), oklch(0.96 0.004 255)); }
       .boot-shell p { margin: 0; padding: 16px 24px; }
-      @media (max-width: 1100px) { .boot-bar { padding-left: 48px; } .boot-bar span { display: none; } }
+      @media (max-width: 1100px) { .boot-bar span { display: none; } }
+      @media (max-width: 760px) { .boot-bar { padding-left: calc(max(12px, env(safe-area-inset-left)) + 36px); } }
       @media (pointer: coarse) { .boot-bar { height: 52px; } }
     </style>
   </head>

@@ -387,11 +387,13 @@ export default function ReplayDialog({ dataId, onClose }: { dataId?: string; onC
           </tbody>
         </table>
       )}
-      {sources.length > 0 && matching.ambiguous && !Object.keys(choice).length && (
-        <p className="field-note" role="status">
-          Some data could go into more than one table: choose where each goes.
-        </p>
-      )}
+      <div className="status-slot" role="status">
+        {sources.length > 0 && matching.ambiguous && !Object.keys(choice).length && (
+          <p className="field-note">
+            Some data could go into more than one table: choose where each goes.
+          </p>
+        )}
+      </div>
       {dup && <p className="field-note replay-err" role="alert">
         Two parts of the new data go into “{dup.name}”: choose one.
       </p>}

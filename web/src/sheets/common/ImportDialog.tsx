@@ -419,7 +419,7 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
         </Tabs.Panel>
       </Tabs>
 
-      <div className="import-preview" tabIndex={0} aria-label="Preview of the data to import">
+      <div className="import-preview" role="region" tabIndex={0} aria-label="Preview of the data to import">
         {empty ? (
           <p className="import-summary import-empty">
             {busy ? "Reading the workbook…" : srcKind === "file"

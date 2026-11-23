@@ -166,8 +166,9 @@ export function useBundleExport() {
       if (index + 1 < job.steps.length) setIndex(index + 1);
       else finish();
     };
-    go().catch(() => {
-      ui.notify("Could not make the export bundle. Try again, or export the parts one by one.",
+    go().catch((e: unknown) => {
+      const why = String(e instanceof Error ? e.message : e).replace(/\.$/, "");
+      ui.notify(`Could not make the export bundle: ${why}. Try again, or export the parts one by one.`,
         { tone: "error", id: BUNDLE_TOAST });
       setJob(null);
     });

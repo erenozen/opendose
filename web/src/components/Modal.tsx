@@ -10,7 +10,7 @@ import Dialog from "./ui/Dialog";
  * button) calls onSubmit.
  */
 export default function Modal({
-  title, onClose, onSubmit, children, actions, className = "", role, instant,
+  title, onClose, onSubmit, children, actions, className = "", role, instant, describedBy,
 }: {
   title: string;
   onClose: () => void;
@@ -21,10 +21,12 @@ export default function Modal({
   role?: "dialog" | "alertdialog";
   /** Open without motion (a dialog summoned by a keyboard shortcut). */
   instant?: boolean;
+  /** The id of the text that describes the dialog (an alertdialog's body). */
+  describedBy?: string;
 }) {
   return (
     <Dialog open onOpenChange={(open) => { if (!open) onClose(); }} role={role}
-      className={className} instant={instant}>
+      className={className} instant={instant} aria-describedby={describedBy}>
       <Dialog.Body onSubmit={onSubmit}>
         <Dialog.Title>{title}</Dialog.Title>
         {children}

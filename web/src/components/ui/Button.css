@@ -28,18 +28,23 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .btn--secondary:hover:not(:disabled), .btn--ghost:hover:not(:disabled) {
+  .btn--secondary:hover:not(:disabled, [aria-disabled="true"]),
+  .btn--ghost:hover:not(:disabled, [aria-disabled="true"]) {
     background: color-mix(in srgb, var(--ink) 7%, transparent); color: var(--ink);
   }
-  .btn--primary:hover:not(:disabled) {
+  .btn--primary:hover:not(:disabled, [aria-disabled="true"]) {
     background: var(--accent-fill-hover); color: var(--accent-ink);
   }
-  .btn--danger:hover:not(:disabled) {
+  .btn--danger:hover:not(:disabled, [aria-disabled="true"]) {
     background: var(--danger-fill-hover); color: var(--danger-ink-on-fill);
   }
 }
 
 .btn:disabled { opacity: 0.45; cursor: default; }
+/* Refused but focusable (aria-disabled): it keeps the focus it has, and
+   looks like a disabled button. */
+.btn[aria-disabled="true"]:not([data-busy]) { opacity: 0.45; cursor: default; }
+.btn[aria-disabled="true"]:active { transform: none; }
 /* Busy says what is happening: keep the words readable. */
 .btn[data-busy] { opacity: 0.75; cursor: progress; }
 /* No press feedback while it refuses the press. */

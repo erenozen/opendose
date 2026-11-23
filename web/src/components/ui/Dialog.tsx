@@ -3,10 +3,12 @@ import {
   type ComponentProps, type ReactNode, type RefObject,
 } from "react";
 import {
-  coarsePointer, containTab, lastInputWasKeyboard, lockScroll, prefersReducedMotion, useMergedRefs,
+  coarsePointer, containTab, durationToken, lastInputWasKeyboard, lockScroll, prefersReducedMotion,
+  useMergedRefs,
   pushLayer, triggerOf,
 } from "./useDismiss.ts";
 import { Button, type ButtonProps } from "./Button";
+import { toastHost } from "./Toast.store";
 import "./Dialog.css";
 
 /*
@@ -101,7 +103,9 @@ function Dialog({
     if (!coarse) opts.current.initialFocus?.current?.focus();
     const unlock = lockScroll();
     const unstack = pushLayer({ kind: "native", contains: (n) => d.contains(n), escape: () => {} });
+    const unhost = toastHost.push(d);
     return () => {
+      unhost();
       unstack();
       unlock();
       const animate = !lastInputWasKeyboard() && !opts.current.instant;
@@ -171,6 +175,8 @@ function snapshot(d: HTMLDialogElement): Ghost | null {
   const box = document.createElement("div");
   box.className = `${d.className} dialog-ghost`;
   box.append(...[...d.cloneNode(true).childNodes]);
+  // The toast stack drawn inside the dialog moves back to the page.
+  box.querySelector(":scope > .toast-region")?.remove();
   Object.assign(box.style, {
     left: `${r.left}px`, top: `${r.top}px`, width: `${r.width}px`, height: `${r.height}px`,
   });
@@ -190,7 +196,7 @@ function fadeOut(g: Ghost) {
   box.scrollTop = scrolled;
   const root = getComputedStyle(document.documentElement);
   const timing: KeyframeAnimationOptions = {
-    duration: Number.parseFloat(root.getPropertyValue("--dur-exit")) || 150,
+    duration: durationToken("--dur-exit", 150),
     easing: root.getPropertyValue("--ease-out").trim() || "ease-out",
     fill: "forwards",
   };
@@ -208,7 +214,14 @@ function Body({ onSubmit, className = "", ...props }: Omit<ComponentProps<"form"
 }) {
   return (
     <form method="dialog" className={`modal-body ${className}`} {...props}
-      onSubmit={(e) => { e.preventDefault(); onSubmit?.(); }} />
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSubmit?.();
+        // A submit that left a field invalid (Field shows its error once
+        // submitted): focus moves to the first one, so it is heard.
+        const form = e.currentTarget;
+        requestAnimationFrame(() => form.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus());
+      }} />
   );
 }
 

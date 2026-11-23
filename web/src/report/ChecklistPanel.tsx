@@ -8,7 +8,7 @@ import { checklistSummary, evaluateChecklists, type ChecklistItem, type FixTarge
 import { familyFacts } from "./facts";
 import { openReportingDetails } from "./useReport";
 import "./report.css";
-import { Button } from "../components/ui";
+import { Button, Tabs } from "../components/ui";
 
 const MARK: Record<ChecklistItem["status"], string> = { met: "✓", unmet: "✗", na: "–" };
 const WORD: Record<ChecklistItem["status"], string> = { met: "Met", unmet: "Not met", na: "Not applicable" };
@@ -50,22 +50,23 @@ export default function ChecklistPanel({ dataId, onClose }: { dataId?: string; o
             the five checklists. Items are ticked from the analyses, graphs and reporting
             details of this table; only items a statistics tool can check are listed.
           </p>
-          <div className="checklist-tabs" role="tablist" aria-label="Checklist">
+          <Tabs value={list?.id ?? ""} onValueChange={setTab}>
+          <Tabs.List className="checklist-tabs" aria-label="Checklist">
             {lists.map((l) => (
-              <button key={l.id} type="button" role="tab" aria-selected={l.id === list?.id}
-                onClick={() => setTab(l.id)}>
+              <Tabs.Tab key={l.id} value={l.id}>
                 {l.title.split(":")[0]} ({l.items.filter((i) => i.status === "met").length}/{l.items.filter((i) => i.status !== "na").length})
-              </button>
+              </Tabs.Tab>
             ))}
-          </div>
+          </Tabs.List>
           {list && (
-            <section role="tabpanel" aria-label={list.title}>
+            <Tabs.Panel value={list.id}>
               <h3>{list.title}</h3>
               <p className="hint-block">Source: {list.source}.</p>
               <ul className="checklist">
                 {list.items.map((it) => (
                   <li key={it.id} className={it.status} data-status={it.status}>
-                    <span className="ck-mark" aria-label={WORD[it.status]} title={WORD[it.status]}>{MARK[it.status]}</span>
+                    <span className="ck-mark" aria-hidden="true">{MARK[it.status]}</span>
+                    <span className="sr-only">{WORD[it.status]}: </span>
                     <span className="ck-text">{it.text}</span>
                     <span className="ck-reason">{it.reason}</span>
                     <span className="ck-source">{it.source}</span>
@@ -77,8 +78,9 @@ export default function ChecklistPanel({ dataId, onClose }: { dataId?: string; o
                   </li>
                 ))}
               </ul>
-            </section>
+            </Tabs.Panel>
           )}
+          </Tabs>
         </>
       )}
     </Modal>

@@ -562,6 +562,8 @@ export default function Navigator() {
       const shown = s ? (ownerName && s.name.endsWith(` of ${ownerName}`)
         ? s.name.slice(0, -(` of ${ownerName}`).length) : s.name) : "";
       const typeTag = s?.kind === "data" ? REGISTRY[s.table.type].short : undefined;
+      // The tag says "XY"; the row's description says "XY table" in full.
+      const typeId = typeTag ? `nav-type-${n.key}` : undefined;
       const noteCount = s ? notesOf(s).length : 0;
       const memberCount = g ? counts.get(`grp:${g.id}`) ?? 0 : 0;
       const label = s ? `${s.name}${s.frozen ? " (frozen)" : ""}${
@@ -578,7 +580,7 @@ export default function Navigator() {
           aria-level={n.level}
           aria-expanded={n.expandable ? n.expanded : undefined}
           aria-selected={s ? selected : undefined}
-          aria-label={label}
+          aria-label={label} aria-describedby={typeId}
           tabIndex={n.key === tabKey ? 0 : -1}
           className={`nav-item level-${n.level} nk-${n.kind}${n.child ? " nav-child" : ""}${
             selected ? " selected" : ""}${
@@ -662,7 +664,12 @@ export default function Navigator() {
                 <NoteIcon /><span className="sr-only">{noteCount} notes</span>
               </span>
             )}
-            {typeTag && <span className="nav-tag" title={`${REGISTRY[(s as Extract<Sheet, { kind: "data" }>).table.type].label} table`}>{typeTag}</span>}
+            {typeTag && (
+              <span className="nav-tag">
+                <span aria-hidden="true">{typeTag}</span>
+                <span id={typeId} hidden>{REGISTRY[(s as Extract<Sheet, { kind: "data" }>).table.type].label} table</span>
+              </span>
+            )}
             {s?.frozen && (
               <span className="nav-frozen" title="Frozen (read-only)">
                 <SnowflakeIcon /><span className="sr-only">frozen</span>

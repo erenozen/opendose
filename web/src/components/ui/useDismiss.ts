@@ -38,6 +38,16 @@ export const coarsePointer = () => window.matchMedia("(pointer: coarse)").matche
 export const prefersReducedMotion = () =>
   window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+/** A duration token from tokens.css in milliseconds, for WAAPI and timers.
+ *  The build's CSS minifier writes `150ms` as `.15s`, so both units are
+ *  read; `fallback` when the token is missing. */
+export function durationToken(name: string, fallback: number): number {
+  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const n = Number.parseFloat(v);
+  if (!Number.isFinite(n)) return fallback;
+  return /ms$/.test(v) ? n : /s$/.test(v) ? n * 1000 : n;
+}
+
 // ------------------------------------------------------------ layer stack
 
 interface Layer {

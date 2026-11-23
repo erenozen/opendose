@@ -1,6 +1,7 @@
-// NumberField: a Field for one number. Typed as text with
-// inputMode="decimal" (the phone shows a number pad and the value keeps
-// what was typed: "1e-7", a trailing zero, a blank), a unit suffix drawn
+// NumberField: a Field for one number. Typed as text (the value keeps
+// what was typed: "1e-7", a trailing zero, a blank); the phone shows the
+// decimal pad only when `min` is 0 or more, since the iOS pad has no minus
+// and no "e" (DECISIONS 7), else the text keyboard. A unit suffix drawn
 // inside the field, min / max / whole-number checks shown late, and
 // Arrow Up / Down stepping by `step`.
 //
@@ -71,7 +72,8 @@ export function NumberField({
       className={`ui-number-field${fieldClassName ? ` ${fieldClassName}` : ""}`}>
       <span className="ui-number" data-unit={unit ? "" : undefined}
         style={unit ? { "--unit-ch": `${unit.length + 1}ch` } as CSSProperties : undefined}>
-        <Input inputMode="decimal" autoComplete="off" spellCheck={false} {...props}
+        <Input inputMode={min !== undefined && min >= 0 ? "decimal" : "text"} autoComplete="off"
+          spellCheck={false} {...props}
           aria-describedby={[unit ? unitId : "", props["aria-describedby"] ?? ""].filter(Boolean).join(" ")
             || undefined}
           required={required} value={value} onKeyDown={onKey}

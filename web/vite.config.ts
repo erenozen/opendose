@@ -70,7 +70,8 @@ function serviceWorker(hash: string): Plugin {
     apply: 'build',
     generateBundle(_options, bundle) {
       const app = [
-        './', 'index.html', 'favicon.svg', `py/opendose/bundle.json?v=${hash}`,
+        './', 'index.html', 'favicon.svg', 'favicon-32.png', 'apple-touch-icon.png',
+        `py/opendose/bundle.json?v=${hash}`,
         ...Object.keys(bundle).filter((f) => !f.endsWith('.map') && f !== 'index.html'),
       ]
       const build = createHash('sha256').update(JSON.stringify(app)).digest('hex').slice(0, 12)
