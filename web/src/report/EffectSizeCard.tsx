@@ -2,7 +2,7 @@
 // engine reports, the project's default measure (Preferences ->
 // Reporting) with its value, CI and interpretation, and the other
 // measures one click away. Interpretation labels carry their scale and
-// source: the notes under the table say both in visible text (RS-02), so
+// source: the notes under the table say both in visible text, so
 // they reach touch and keyboard users; the tooltip only repeats them.
 import { formatSig } from "../types";
 import { effectGroups, type EffectGroup, type EffectRow } from "./effects";

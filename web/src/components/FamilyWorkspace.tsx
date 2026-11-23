@@ -290,7 +290,7 @@ function useSettledTable(table: DataTableModel): DataTableModel {
 }
 
 /** The shape of a results card (a title and a six-row table) while the
- *  first result is computed, so its arrival moves nothing (BEF-23). */
+ *  first result is computed, so its arrival moves nothing. */
 function ResultsSkeleton() {
   return (
     <div className="result-card result-skeleton" aria-hidden="true">

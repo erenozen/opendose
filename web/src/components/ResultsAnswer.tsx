@@ -93,7 +93,7 @@ export default function ResultsAnswer({ sheet, data, result, options, status, re
             hasResult, live: status.live })}</p>
         </div>
         {!hasResult ? (
-          // The shape of a headline, so its arrival moves nothing (BEF-23).
+          // The shape of a headline, so its arrival moves nothing.
           <div className="answer-skeleton" aria-hidden="true">
             <span /><span /><span /><span />
           </div>

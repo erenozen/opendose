@@ -154,8 +154,8 @@
 /* The dim (the same scrim as a dialog) and the 2px accent ring are
    full-screen layers cut by clip-path paths that Tour.tsx writes: a hole
    6px outside the step's target, its corner the target's 4px plus that
-   gap, rounded to the 8px step. No layout while they follow the target
-   (GF-04). They fade in with the card (unless the tour was started from
+   gap, rounded to the 8px step. No layout while they follow the
+   target. They fade in with the card (unless the tour was started from
    the keyboard) and glide between targets only while data-moving is set,
    after a pointer press on Next or Back; reduced motion drops the glide
    (base.css). The card is a Popover (top layer); its surface is set here. */

@@ -27,16 +27,16 @@ import "./Dialog.css";
  * Dialog.Trigger). Also works mounted-while-open (the Modal wrapper):
  * closing on unmount happens in a layout-effect cleanup, while the
  * element is still connected, so the browser and this code can put focus
- * back on the control that opened it (AD-01). Then:
+ * back on the control that opened it. Then:
  * - exit: a snapshot of the closing dialog and its backdrop fades out
  *   (opacity + scale 0.97, 150 ms; opacity only with reduced motion), so
- *   the dialog can leave the DOM at once (MO-08, BEF-14);
- * - keyboard opens and closes skip the motion (data-instant, MO-02);
- * - the page behind does not scroll (C-15);
+ *   the dialog can leave the DOM at once;
+ * - keyboard opens and closes skip the motion (data-instant);
+ * - the page behind does not scroll;
  * - a backdrop press closes only when it starts and ends outside the box,
- *   so dragging the dialog's own scrollbar never closes it (AD-20);
+ *   so dragging the dialog's own scrollbar never closes it;
  * - first focus is the first control, or `initialFocus`; on touch
- *   devices the dialog itself, so no keyboard pops up (AD-23, C-18);
+ *   devices the dialog itself, so no keyboard pops up;
  * - Tab and Shift+Tab wrap inside instead of leaving for the browser UI.
  */
 

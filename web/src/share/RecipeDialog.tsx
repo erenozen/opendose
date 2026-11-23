@@ -325,7 +325,7 @@ export default function RecipeDialog({ initialText, initialFiles, savedId, stage
                     badge={e.inProject ? "in project" : "this browser"} />
                   <button type="button" data-still className="linkish" aria-label={`Delete saved recipe ${e.recipe.name}`}
                     onClick={() => {
-                      // Undo instead of a question (GF-08): the recipe comes back as it was.
+                      // Undo instead of a question: the recipe comes back as it was.
                       if (choice === `saved:${e.recipe.id}`) setChoice("auto");
                       saved.remove(e.recipe.id);
                       notify(`Deleted the recipe “${e.recipe.name}”.`, {

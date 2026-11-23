@@ -45,7 +45,7 @@ export default function Header({ onOpenFile, onNewProject, inert }: {
   const narrow = useMedia(DRAWER_QUERY);
 
   // The bar's height, published as --header-h for the pinned navigator
-  // and scroll-padding (C-24): measured, since phones wrap the tabs to a
+  // and scroll-padding: measured, since phones wrap the tabs to a
   // second row.
   const bar = useRef<HTMLElement>(null);
   useLayoutEffect(() => {

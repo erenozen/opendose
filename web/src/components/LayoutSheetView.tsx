@@ -286,7 +286,7 @@ export default function LayoutSheetView({ sheet }: { sheet: LayoutSheet }) {
             </>
           )}
           {/* The view's one primary action. Without the engine the graphs
-              cannot be drawn, and the reason shows beside it (GL-12). */}
+              cannot be drawn, and the reason shows beside it. */}
           <Button variant="primary" onClick={doExport} disabled={!engineReady}
             busy={busy} busyLabel="Exporting…">
             <SwapLabel swapped={downloaded.swapped} done="Downloaded">Export page</SwapLabel>

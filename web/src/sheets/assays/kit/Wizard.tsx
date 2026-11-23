@@ -3,7 +3,7 @@
 // heading and form, and Back / Next / Finish with one primary. The
 // module owns the draft state; this is presentational.
 //
-// A step change says where the user is (GF-09): picking a step in the
+// A step change says where the user is: picking a step in the
 // stepper moves focus to that step's heading; Next keeps focus on the
 // Next button and the new step is announced ("Step 2 of 4: …").
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
@@ -88,7 +88,7 @@ export default function Wizard({ title, steps, start = 0, finishLabel = "Finish"
         </h3>
         {step.render()}
       </div>
-      {/* Mounted with the dialog, so a new reason is announced (AD-16). */}
+      {/* Mounted with the dialog, so a new reason is announced. */}
       <p className="wizard-blocker" role="status">{step.blocker ?? ""}</p>
     </Modal>
   );

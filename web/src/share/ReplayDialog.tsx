@@ -315,7 +315,7 @@ export default function ReplayDialog({ dataId, onClose }: { dataId?: string; onC
           </div>
         )}
       </fieldset>
-      {/* Mounted before it has anything to say, so each change is announced (AD-16). */}
+      {/* Mounted before it has anything to say, so each change is announced. */}
       <p className="field-note" role="status">
         {planSrc === "file" && planFile ? (
           <>

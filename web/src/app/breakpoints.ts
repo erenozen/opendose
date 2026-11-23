@@ -1,4 +1,4 @@
-// The shell's widths, in one place for scripts (C-23). CSS media queries
+// The shell's widths, in one place for scripts. CSS media queries
 // cannot read custom properties, so the stylesheets repeat these three
 // numbers as literals; docs/design/layout-and-surfaces.md lists what each
 // one changes. Never add a fourth for the shell: a component whose own

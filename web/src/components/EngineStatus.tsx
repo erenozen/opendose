@@ -78,7 +78,7 @@ function SameHeight({ shown, items }: { shown: number; items: ReactNode[] }) {
   );
 }
 
-/** Above the results while the engine loads (BEF-02): saved results that
+/** Above the results while the engine loads: saved results that
  *  are not (yet) the live engine's, or none yet for a new or pasted table.
  *  It stays mounted once the engine is up and swaps to "Results are live"
  *  at the same height, so the plot and the results below do not jump

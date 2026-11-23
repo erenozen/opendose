@@ -38,8 +38,8 @@ export default function UnitQuestion({ dataId }: { dataId: string }) {
   const [unit, setUnit] = useState("");
   const titleId = useId();
   const root = useRef<HTMLElement>(null);
-  // A step change moves focus to the first control of the new step
-  // (GF-03), only when the user moved it with a press.
+  // A step change moves focus to the first control of the new step,
+  // only when the user moved it with a press.
   const moved = useRef(false);
   useEffect(() => {
     if (!moved.current) return;

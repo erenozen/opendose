@@ -1,4 +1,4 @@
-// Typesetting of the results tables (DECISIONS 3, RS-03): numeric and
+// Typesetting of the results tables (DECISIONS 3): numeric and
 // range cells align right, and each header aligns with its column. The
 // ~45 results panels render plain <td>s, so the alignment is read from
 // the cells' own text once they are on screen: a cell is numeric when it

@@ -52,7 +52,7 @@ main.layout-main {
 /* The sheet floats over the inset canvas. On-screen chrome only: page
    exports are composed from the layout data (pageExport.ts), not this box.
    It takes no touch-action of its own, so a swipe on empty page scrolls
-   the canvas (GL-08, C-17); only a selected item and its handle claim
+   the canvas; only a selected item and its handle claim
    the finger. --zoom (set inline) keeps chrome lines and the handle at
    their screen size whatever the page scale. */
 .layout-page {
@@ -110,7 +110,7 @@ main.layout-main {
 }
 .layout-svg, .layout-letters { position: absolute; left: 0; top: 0; pointer-events: none; }
 /* Resize handle: 14px on screen at any zoom, with a 44px hit area
-   (GL-09) from ::before. */
+   from ::before. */
 .layout-handle {
   --handle: calc(14px / var(--zoom, 1));
   position: absolute; right: calc(var(--handle) / -2); bottom: calc(var(--handle) / -2);
@@ -155,7 +155,7 @@ main.layout-main {
   border-radius: var(--radius-control); background: var(--surface);
 }
 
-/* One choice of a few: a segmented control on real radios (GL-07). The
+/* One choice of a few: a segmented control on real radios. The
    selected option keeps the weight of the others (no reflow). */
 .layout-seg-field { border: none; margin: 0; padding: 0; min-width: 0; }
 .layout-seg-field > legend {

@@ -178,7 +178,7 @@ function PowerTool({ pilot }: { pilot?: PilotData }) {
   const solvingEffect = form.solve === "effect";
   const two = k === "t_two_sample" || k === "two_proportions" || k === "logrank";
   const testId = useId();
-  // The one spoken line (GF-02): the answer the calculation solved for,
+  // The one spoken line: the answer the calculation solved for,
   // not the whole output with its tables on every keystroke.
   const spoken = error && effectChosen ? ""
     : !result ? ""
@@ -246,7 +246,7 @@ function PowerTool({ pilot }: { pilot?: PilotData }) {
             <p className="power-sentence">{result.justification.text}</p>
             <div className="inline-actions">
               <Button onClick={async () => {
-                // copyText says whether the clipboard took it (GF-07); the
+                // copyText says whether the clipboard took it; the
                 // button says it worked, a failure is an error toast.
                 if (await copyText(result.justification!.text)) copied.flash("Justification copied");
                 else {

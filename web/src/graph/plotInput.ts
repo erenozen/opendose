@@ -1,4 +1,4 @@
-// Graphs must not trap the page's scrolling (GL-03). Plotly zooms on
+// Graphs must not trap the page's scrolling. Plotly zooms on
 // every wheel turn over a plot and starts a pan on every touch, so a
 // pointer or a finger that happens to cross a graph stops the page. Two
 // listeners on the document, in the capture phase, run before Plotly's

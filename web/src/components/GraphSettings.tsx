@@ -35,7 +35,7 @@ interface Props {
 // two permanent rows under every graph. They live behind one button whose
 // panel opens upward over the plot (or down when there is more room). It
 // sits in the top layer, so the card's overflow no longer clips its first
-// rows (GL-02), and it stays below the sticky header.
+// rows, and it stays below the sticky header.
 export default function GraphSettings({
   scheme, onSchemeChange, titles, onTitlesChange, autoX, autoY, showX = true,
   actions, formatted, options, figure,

@@ -409,7 +409,7 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
     opts: { excluded?: boolean; text?: boolean; label: string; isX?: boolean; invalid?: boolean;
       reason?: string; calc?: string }) => {
     // What the cell's state means, for the pointer (title) and for screen
-    // readers and touch (the accessible description: GR-09).
+    // readers and touch (the accessible description).
     const note = opts.calc !== undefined ? `Calculated: = ${opts.calc} (edit the formula in the column title)`
       : opts.excluded ? `Excluded from analyses and graphs${opts.reason ? `: ${opts.reason}` : ""} (${MOD}E to include)`
         : opts.invalid ? (t.xFormat === "dates"
@@ -422,7 +422,7 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
         data-r={r} data-c={c}
         inputMode={opts.text ? "text" : "decimal"}
         enterKeyHint="next"
-        // Labels and codes are data: no autocorrect or capitals on phones (C-19)
+        // Labels and codes are data: no autocorrect or capitals on phones
         autoCorrect="off" autoCapitalize="off" spellCheck={false} autoComplete="off"
         className={[opts.text && "text-cell", opts.calc !== undefined && "calc-cell"]
           .filter(Boolean).join(" ") || undefined}
@@ -495,7 +495,7 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
   // An empty table says how to fill it; once it holds a value the grid
   // speaks for itself (DECISIONS 1).
   const emptyHint = hasAnyValue(t) ? null : EMPTY_HINTS[t.type];
-  // The selected cell's exclusion, for the inspector (GR-09).
+  // The selected cell's exclusion, for the inspector.
   const selRef = sel && !multi ? refAt(sel.r0, sel.c0) : null;
   const cellNote = selRef && isExcluded(t, selRef)
     ? `This value is excluded${reasonAt(t, selRef) ? `: ${reasonAt(t, selRef)}` : ""}.`

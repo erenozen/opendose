@@ -142,7 +142,7 @@ function Shell() {
   }), []);
 
   // At 900px and below the open navigator drawer is a modal dialog:
-  // everything behind it is inert (DECISIONS 5, K4).
+  // everything behind it is inert (DECISIONS 5).
   const behindDrawer = useMedia(DRAWER_QUERY) && ui.drawerOpen;
   // Opened or closed from the keyboard (Enter on the toggle, Escape), the
   // drawer and its scrim move at once (motion.md: keyboard actions never
@@ -225,7 +225,7 @@ function Shell() {
       ) : (
       <div className={`shell${ui.navOpen ? "" : " nav-hidden"}`}
         data-drawer-instant={drawerInstant || undefined}>
-        {/* Always mounted, so it fades out with the drawer (BEF-15); a press
+        {/* Always mounted, so it fades out with the drawer; a press
             on it closes the drawer (Navigator's light dismiss). */}
         <div className="nav-scrim" aria-hidden="true" data-open={behindDrawer || undefined} />
         <Navigator />

@@ -84,8 +84,8 @@ button, [role="button"] {
   }
 }
 
-/* iOS zooms into any focused field under 16px and never zooms back
-   (K1). On touch screens every text field, select and textarea is at
+/* iOS zooms into any focused field under 16px and never zooms back.
+   On touch screens every text field, select and textarea is at
    least 16px; fine pointers keep the dense desktop sizes. The rule sits
    in a cascade layer because important declarations in a layer outrank
    unlayered ones, so no component rule (or inline style) can undercut

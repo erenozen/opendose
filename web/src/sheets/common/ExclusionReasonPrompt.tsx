@@ -47,7 +47,7 @@ export default function ExclusionReasonPrompt({ table, refs, onSave, onClose }: 
   const gone = live.length === 0;
   useEffect(() => { if (gone) onClose(); }, [gone, onClose]);
   // The prompt appears with its words: speak them once (a status region
-  // mounted with its text is often not announced, AD-16).
+  // mounted with its text is often not announced).
   const count = live.length;
   useEffect(() => {
     if (count) announce(`Excluded ${count === 1 ? "1 value" : `${count} values`}. Reason for excluding?`, "polite");

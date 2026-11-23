@@ -70,7 +70,7 @@ function FormulaField({ label, target, value, onChange, known, readOnly, onFocus
 }) {
   const id = useId();
   const problems = useValidation(value, target, known);
-  // Reward early, punish late (AD-24): a problem waits until the field is
+  // Reward early, punish late: a problem waits until the field is
   // left, then follows every keystroke and clears once the formula parses.
   // The engine answers after the blur, so leaving arms the field until the
   // formula is checked valid (Field.timing's rule, for an async check).

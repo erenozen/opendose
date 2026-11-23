@@ -75,11 +75,11 @@ function release(d: Drag, at: LayoutRect | undefined) {
  * with Alt+arrows; edges snap to margins, the page centre and other
  * items (hold Alt while dragging to place freely).
  *
- * A drag follows the pointer 1:1 without re-rendering the page (BEF-13):
+ * A drag follows the pointer 1:1 without re-rendering the page:
  * the item moves by transform (or is sized in place for a resize) and
  * the snapped rectangle is committed once, on release, as one undo step.
  * On touch an item must be selected (tapped) before it drags, so a swipe
- * over the page still scrolls it (GL-08).
+ * over the page still scrolls it.
  */
 export default function LayoutCanvas(props: CanvasProps) {
   const { layout, project, readOnly, zoom, ink, surface, selected, legend, pageRef } = props;

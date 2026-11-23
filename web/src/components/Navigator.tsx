@@ -98,7 +98,7 @@ export default function Navigator() {
     [project, selectedId]);
 
   // Each data table's info sheets, results and graphs, read once per
-  // project change (not per row and per keystroke, BEF-28).
+  // project change (not per row and per keystroke).
   const family = useMemo(() => {
     const infoOf = new Map<string, Sheet[]>();
     const ids = new Set(project.sheets.map((s) => s.id));
@@ -535,7 +535,7 @@ export default function Navigator() {
   }, [selectedId, store]);
 
   // Rows by parent, and the counts the section and group rows show,
-  // computed once per render (BEF-28).
+  // computed once per render.
   const byParent = new Map<string | undefined, Node[]>();
   for (const n of nodes) {
     const list = byParent.get(n.parentKey);

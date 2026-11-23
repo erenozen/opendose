@@ -39,7 +39,7 @@ main.workspace .result-card + .result-card {
 }
 
 /* Contents scroll inside a block; the splitters set its height (no
-   corner handle, GR-12: the seams already resize). */
+   corner handle: the seams already resize). */
 .data-table, .controls, .result-card {
   overflow: auto; min-height: 40px; min-width: 0; max-width: 100%;
 }

@@ -5,7 +5,7 @@ import { serializeProject } from "../project/persist";
 import { Button } from "./ui/Button";
 
 /**
- * The app's last line (BEF-27): a render error or a code chunk that fails
+ * The app's last line: a render error or a code chunk that fails
  * to load shows what happened and two ways on, Reload and Download project
  * file, instead of a blank page. The autosave keeps the work either way.
  */

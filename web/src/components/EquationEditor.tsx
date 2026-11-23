@@ -112,7 +112,7 @@ export default function EquationEditor({ initial, onApply, onClose }: {
   const errorFor = (where: string, item: string) => itemErrors.find((e) => e.where === where
     && e.item != null && sameName(String(e.item), item));
   const valid = !!validation?.ok && !!def.text.trim();
-  // Reward early, punish late (AD-24): the engine checks as you type, but
+  // Reward early, punish late: the engine checks as you type, but
   // a problem shows only once the field is left or "Use this equation" is
   // pressed; from then on it follows each change and clears once fixed.
   // The engine answers after the blur, so leaving a part (or a submit

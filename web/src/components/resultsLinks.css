@@ -1,6 +1,6 @@
 /* Results-sheet links (ResultsLinks.tsx), shown inside the Checks row,
    and the validation page's per-analysis note. Plain text: the pane's
-   one tinted callout is reserved for the most severe note (RS-05). */
+   one tinted callout is reserved for the most severe note. */
 .results-links {
   display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-4) var(--space-20);
   margin: 0; font-size: var(--text-body-s); color: var(--muted);
