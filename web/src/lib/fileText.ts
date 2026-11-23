@@ -37,12 +37,24 @@ export function textOf(bytes: Uint8Array): string {
   return decodeAs(bytes, detectEncoding(bytes));
 }
 
+/** Workbooks the engine reads (engine/opendose/workbooks.py): never
+ *  decoded as text. */
+export const WORKBOOK_FILE = /\.(xlsx|xls|ods)$/i;
+/** The `accept` list of a picker that takes workbooks. */
+export const WORKBOOK_ACCEPT = ".xlsx,.xls,.ods";
+
+/** The workbook format of a file name, or null for anything else. */
+export function workbookFormat(name: string): "xlsx" | "xls" | "ods" | null {
+  const m = WORKBOOK_FILE.exec(name);
+  return m ? (m[1].toLowerCase() as "xlsx" | "xls" | "ods") : null;
+}
+
 /** Why a spreadsheet file cannot be read, with the next step, or null.
- *  Only .xlsx workbooks are read; .xls, .ods and .numbers are binary or
- *  other formats that would decode to garbage as text. */
+ *  .xlsx, .xls and .ods workbooks are read; .numbers and .xlsb are
+ *  formats that would decode to garbage as text. */
 export function unreadableSheet(name: string): string | null {
-  const m = /\.(xls|ods|numbers)$/i.exec(name);
+  const m = /\.(numbers|xlsb)$/i.exec(name);
   if (!m) return null;
-  return `Could not read “${name}”: OpenDose reads .xlsx workbooks, not .${m[1].toLowerCase()} files. `
+  return `Could not read “${name}”: OpenDose reads .xlsx, .xls and .ods workbooks, not .${m[1].toLowerCase()} files. `
     + "Save it as .xlsx or .csv, then choose it again.";
 }

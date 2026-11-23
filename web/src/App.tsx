@@ -284,7 +284,7 @@ function PrismChooser({ tables, onImport, onCancel }: {
 }
 
 /** A project or Prism file dropped anywhere on the page opens, as Open
- *  does; one table file (CSV, TSV, text, .xlsx) opens the Import dialog
+ *  does; one table file (CSV, TSV, text, a workbook) opens the Import dialog
  *  for a new table; several CSV files, or a zip of them, go to the
  *  recipe import.
  *  Drops a pane handles itself (the navigator, the import dialog) are
@@ -308,7 +308,7 @@ function useDropOpen(open: (f: File) => void) {
       if (f) openRef.current(f);
       else if (list[0]) {
         notify(`Could not open “${list[0].name}”: OpenDose opens its own project files (.json), `
-          + "Prism files (.prism, .pzfx) and tables (.csv, .tsv, .txt, .xlsx). Save the sheet as "
+          + "Prism files (.prism, .pzfx) and tables (.csv, .tsv, .txt, .xlsx, .xls, .ods). Save the sheet as "
           + "one of these, or copy its cells and paste them on this page.", { tone: "error" });
       }
     };

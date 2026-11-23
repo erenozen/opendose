@@ -615,3 +615,37 @@ agrees with `runs_test` p_method "exact_float" to at most 7.2e-10
 relative, including P = 1.657e-178 at N = 20,000 and P = 0.94543216 at
 N = 500,000. The committed reference stays
 engine/tests/reference/large_tables.py.
+
+## Feature validation: .xls and .ods workbooks (2026-11-23)
+
+P-34 reads legacy .xls (BIFF8, through xlrd 2.0.2, a 96,555-byte
+pure-Python wheel vendored next to openpyxl and installed only when an
+.xls is first read) and OpenDocument .ods (content.xml parsed with the
+standard library, no added bytes) in `engine/opendose/workbooks.py`,
+with the cell-text rule the .xlsx reader has always followed. No number
+is computed; the check is that a cell reaches the table as stored.
+python-calamine (the other reader in Pyodide's lock file) was measured
+and not used: a 496,746-byte compiled wasm wheel plus its `packaging`
+dependency, for what the standard library reads.
+
+Reference: one sheet saved by LibreOffice (soffice --headless) as .ods,
+then from that .ods as .xls and .xlsx
+(`web/e2e-fixtures/import/make_workbooks.py`), read back with openpyxl
+3.1.5 (`data_only=True`) into `workbook.expected.json`. It holds text
+with µ and °, a "007" code, 0.1, 1/3 (stored by LibreOffice as
+0.333333333333333, 15 significant digits), -2.5e-09, 6.02214076e+23,
+123456789012, a percent-formatted 0.125, dates (2024-03-15, 2024-02-29,
+1999-12-31), a date with a time (2024-03-15 10:30), times of day (10:30:00,
+23:59:59), TRUE and FALSE, a formula's saved result (=B2*2 → 0.2), a
+#DIV/0! error, a blank inside the block, a two-line text, and row 7
+hidden by hand. `engine/tests/test_workbooks.py`: the .xls and the .ods
+read to exactly openpyxl's cells of the .xlsx on both sheets, with row 7
+reported as hidden by hand in each; edge cases on hand-made content.xml
+(LibreOffice's million padded rows and 16,384 padded columns not
+expanded, repeated cells and rows inside the data expanded, text:s
+spaces, tabs, annotations left out, a formula error, a formula saved
+without a value named as C1, filter-hidden and hand-hidden rows, 1e-12
+and 1e12, an empty sheet, a file that is not a spreadsheet).
+`web/scripts/e2e-import.mjs`: the three files through File › Open give
+the same preview cells as the reference and identical tables; xlrd is
+fetched only once an .xls is read.

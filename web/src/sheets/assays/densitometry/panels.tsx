@@ -3,8 +3,8 @@
 // results sheet (per-lane normalisation, per-blot fold changes, the ratio
 // test with blot as the pairing unit, geometric means) and methods text.
 import { useState } from "react";
-import { readXlsx } from "../../../lib/engine";
-import { textOf, unreadableSheet } from "../../../lib/fileText";
+import { readWorkbook } from "../../../lib/engine";
+import { textOf, unreadableSheet, workbookFormat } from "../../../lib/fileText";
 import type { DataTableModel } from "../../../project/types";
 import { parseSource } from "../../../share/recipes/presets";
 import CopyableMethods from "../../common/CopyableMethods";
@@ -243,15 +243,16 @@ function ExportImport({ onTable }: { onTable: (t: DataTableModel) => void }) {
       </p>
       <div className="wizard-row">
         <div className="field">
-          <span>Export (.csv, .txt or .xlsx)</span>
-          <FileButton size="sm" accept=".csv,.tsv,.txt,.xlsx,text/csv,text/plain" inputLabel="Densitometry export"
+          <span>Export (.csv, .txt, .xlsx, .xls or .ods)</span>
+          <FileButton size="sm" accept=".csv,.tsv,.txt,.xlsx,.xls,.ods,text/csv,text/plain" inputLabel="Densitometry export"
             onFile={async (f) => {
               const refused = unreadableSheet(f.name);
               if (refused) { setMsg(refused); return; }
               try {
                 const bytes = new Uint8Array(await f.arrayBuffer());
-                if (/\.xlsx$/i.test(f.name)) {
-                  const sheets = await readXlsx(bytes);
+                const fmt = workbookFormat(f.name);
+                if (fmt) {
+                  const sheets = await readWorkbook(bytes, fmt);
                   load((sheets[0]?.rows as unknown[][] ?? []).map((r) => r.map((c) => (c == null ? "" : String(c)))));
                 } else load(parseSource(textOf(bytes)));
               } catch (err) { setMsg(`Could not read the file: ${err instanceof Error ? err.message : String(err)}`); }

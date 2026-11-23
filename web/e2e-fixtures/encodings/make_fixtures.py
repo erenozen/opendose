@@ -68,8 +68,8 @@ def main():
         raise AssertionError("cp1252 should not carry Cyrillic")
     (HERE / "imagej-results.expected.txt").write_bytes(IMAGEJ.encode("utf-8"))
     (HERE / "stepone-cq.expected.txt").write_bytes(STEPONE.encode("utf-8"))
-    # A legacy binary workbook name for the .xls refusal (content irrelevant:
-    # the picker refuses by name before reading).
+    # A broken .xls: an OLE2 header and nothing else. Since P-34 reads .xls,
+    # e2e-import checks that it fails with a reason, not a traceback.
     (HERE / "densitometry.xls").write_bytes(b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1" + bytes(504))
     print(sorted(p.name for p in HERE.iterdir()))
 

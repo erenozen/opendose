@@ -7,8 +7,8 @@ import Modal from "../components/Modal";
 import { useDiscardGuard } from "../graph/useDiscardGuard";
 import { Button, FileButton, notify, Tabs } from "../components/ui";
 import { SRC } from "../guide/sources";
-import { readXlsx, type XlsxSheet } from "../lib/engine";
-import { textOf, unreadableSheet } from "../lib/fileText";
+import { readWorkbook, type XlsxSheet } from "../lib/engine";
+import { textOf, unreadableSheet, WORKBOOK_ACCEPT, workbookFormat } from "../lib/fileText";
 import { DEFAULT_EXPORT, tableMatrix } from "../project/exportTable";
 import { newId } from "../project/ids";
 import { makeProject } from "../project/ops";
@@ -143,10 +143,11 @@ export default function RecipeDialog({ initialText, initialFiles, savedId, stage
     const refused = unreadableSheet(f.name);
     if (refused) { setError(refused); return; }
     const bytes = new Uint8Array(await f.arrayBuffer());
-    if (/\.xlsx$/i.test(f.name)) {
+    const format = workbookFormat(f.name);
+    if (format) {
       setBusy(true);
       try {
-        const s = await readXlsx(bytes);
+        const s = await readWorkbook(bytes, format);
         if (!s.length) throw new Error("the workbook has no worksheets");
         setSheets(s);
       } catch (e) {
@@ -256,7 +257,7 @@ export default function RecipeDialog({ initialText, initialFiles, savedId, stage
           <fieldset className="field-radios">
             <legend>Read from</legend>
             <label><input type="radio" name="rcp-src" checked={srcKind === "file"}
-              onChange={() => setSrcKind("file")} /> A file (CSV, TSV, text or .xlsx), several files or a .zip</label>
+              onChange={() => setSrcKind("file")} /> A file (CSV, TSV, text, .xlsx, .xls or .ods), several files or a .zip</label>
             <label><input type="radio" name="rcp-src" checked={srcKind === "paste"}
               onChange={() => setSrcKind("paste")} /> Pasted text</label>
           </fieldset>
@@ -266,7 +267,7 @@ export default function RecipeDialog({ initialText, initialFiles, savedId, stage
                 <span>File (or several)</span>
                 <FileButton size="sm" multiple inputLabel="Export file to import" busy={busy}
                   busyLabel="Reading…"
-                  accept=".csv,.tsv,.txt,.tab,.dat,.xlsx,.zip,text/csv,text/plain,application/zip"
+                  accept={`.csv,.tsv,.txt,.tab,.dat,${WORKBOOK_ACCEPT},.zip,text/csv,text/plain,application/zip`}
                   onFiles={(files) => { void pickFiles(files); }}>
                   {matrix.length ? "Choose other files…" : "Choose files…"}
                 </FileButton>

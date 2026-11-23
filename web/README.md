@@ -30,7 +30,7 @@ can catch Vite reloading the page mid-boot.
   script skips unchanged files so a running dev server does not miss a
   change.
 - `scripts/sync-pyodide.mjs` puts the Pyodide runtime, NumPy, SciPy and
-  the .xlsx reader into `public/pyodide/` (about 31 MB), each checked
+  the .xlsx and .xls readers into `public/pyodide/` (about 31 MB), each checked
   against its SHA-256. The site serves them itself, so the page contacts
   no other server. Downloads are cached in `node_modules/.cache`; only
   the first run needs the network.

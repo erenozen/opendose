@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useId, useMemo, useRef, useState } from "react";
 import Modal from "../../components/Modal";
 import { Button, Field, FileButton, Input, NumberField, Tabs } from "../../components/ui";
-import { readXlsx, type XlsxSheet } from "../../lib/engine";
+import { readWorkbook, type XlsxSheet } from "../../lib/engine";
 import {
   applyImport, applyImportWithCells, DEFAULT_FILTER, DEFAULT_SOURCE, defaultRoles, DELIMITER_LABELS, detectTitlesRowIn,
   importWidth, largePasteLines, prepareFromMatrix, sourceMatrix, type ColumnRole, type DecimalChoice,
@@ -14,7 +14,9 @@ import type { PlainSpec } from "../../share/recipes/saved";
 import { pasteReport, placedCells, type PasteReport } from "../../project/pasteReport";
 import type { SheetApp } from "../../project/clipboardHtml";
 import { visibleRows } from "../../lib/xlsxFlags";
-import { decodeAs, detectEncoding, type FileEncoding } from "../../lib/fileText";
+import {
+  decodeAs, detectEncoding, unreadableSheet, WORKBOOK_ACCEPT, WORKBOOK_FILE, workbookFormat, type FileEncoding,
+} from "../../lib/fileText";
 import WorkbookReport from "./WorkbookReport";
 import { replicatesPerSet, suggestTableType } from "../../guide/paste";
 // sheets -> registry -> this dialog is a module cycle; tableDef is only
@@ -145,7 +147,7 @@ export default function ImportDialog({ table: given, file: givenFile, initial, o
   });
 
   // a workbook is never read as text, not even while the engine reads it
-  const isXlsx = srcKind === "file" && (!!sheets || (!!file && /\.xlsx$/i.test(file.name)));
+  const isXlsx = srcKind === "file" && (!!sheets || (!!file && WORKBOOK_FILE.test(file.name)));
   const detected = useMemo(() => (file && !isXlsx ? detectEncoding(file.bytes) : null), [file, isXlsx]);
   const text = useMemo(() => {
     if (srcKind === "paste") return pasted;
@@ -211,20 +213,20 @@ export default function ImportDialog({ table: given, file: givenFile, initial, o
     setRoleOverride({});
     setKeepFiltered(false);
     setSkipHidden(false);
-    if (!f) { setFile(null); return; }
+    const refused = f ? unreadableSheet(f.name) : null;
+    if (!f || refused) { setFile(null); if (refused) setError(refused); return; }
     const bytes = new Uint8Array(await f.arrayBuffer());
     setFile({ name: f.name, bytes, source: f });
-    if (/\.xlsx$/i.test(f.name)) {
+    const format = workbookFormat(f.name);
+    if (format) {
       setBusy(true);
       try {
-        const s = await readXlsx(bytes);
+        const s = await readWorkbook(bytes, format);
         if (!s.length) throw new Error("the workbook has no worksheets");
         setSheets(s);
       } catch (e) {
         setError(`Could not read the workbook: ${e instanceof Error ? e.message : String(e)}`);
       } finally { setBusy(false); }
-    } else if (/\.(xls|ods|numbers)$/i.test(f.name)) {
-      setError("Only .xlsx workbooks can be read. Save the sheet as .xlsx or CSV, or copy and paste it.");
     }
   };
 
@@ -325,7 +327,7 @@ export default function ImportDialog({ table: given, file: givenFile, initial, o
           <fieldset className="field-radios">
             <legend>Read from</legend>
             <label><input type="radio" name="imp-src" checked={srcKind === "file"}
-              onChange={() => setSrcKind("file")} /> A file (CSV, TSV, text or .xlsx)</label>
+              onChange={() => setSrcKind("file")} /> A file (CSV, TSV, text, .xlsx, .xls or .ods)</label>
             <label><input type="radio" name="imp-src" checked={srcKind === "paste"}
               onChange={() => setSrcKind("paste")} /> Pasted text</label>
           </fieldset>
@@ -335,10 +337,10 @@ export default function ImportDialog({ table: given, file: givenFile, initial, o
                 <span className="ui-field-label">File</span>
                 <span className="import-file-row">
                   <FileButton multiple inputLabel="File to import" onFiles={takeFiles}
-                    accept=".csv,.tsv,.txt,.tab,.dat,.prn,.xlsx,.zip,text/csv,text/plain,application/zip">
+                    accept={`.csv,.tsv,.txt,.tab,.dat,.prn,${WORKBOOK_ACCEPT},.zip,text/csv,text/plain,application/zip`}>
                     Choose a file…</FileButton>
                   <span className="import-file-name" title={file?.name}>
-                    {file ? file.name : "CSV, TSV, text, .xlsx or .zip"}</span>
+                    {file ? file.name : "CSV, TSV, text, a workbook or .zip"}</span>
                 </span>
               </div>
               {sheets && sheets.length > 1 && (

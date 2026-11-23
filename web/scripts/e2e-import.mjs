@@ -7,6 +7,8 @@
 //   same file (e2e-fixtures/import/, reference in expected.json); an
 //   instrument export gets the recipe hint; two files or a zip still go
 //   to the recipe dialog.
+// - P-34: one sheet saved by LibreOffice as .xls, .ods and .xlsx reads to
+//   the same cells (openpyxl's reading of the .xlsx) and the same table.
 //
 // Usage: node scripts/e2e-import.mjs http://localhost:5173/
 import { chromium } from "playwright";
@@ -35,6 +37,9 @@ const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } })
 const page = await ctx.newPage();
 page.on("pageerror", (e) => errors.push(`pageerror: ${e.message}`));
 page.on("console", (m) => { if (m.type() === "error") errors.push(`console: ${m.text()}`); });
+// the on-demand reader wheels (P-34: xlrd only once an .xls is read)
+const wheels = { list: [], xlrdBefore: -1 };
+page.on("request", (r) => { if (/\.whl(\?|$)/.test(r.url())) wheels.list.push(r.url().split("/").pop()); });
 await page.goto(EXAMPLE, { waitUntil: "domcontentloaded" });
 await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 300000 });
 
@@ -142,8 +147,8 @@ const typeWhy = dlg.locator("[data-part='type-why']");
 // --- P-33: File › Open takes table files
 {
   const accept = await page.locator(OPEN_INPUT).getAttribute("accept");
-  expect("P-33: File › Open accepts .csv, .tsv, .txt and .xlsx (and still projects and Prism files)",
-    [".csv", ".tsv", ".txt", ".xlsx", ".json", ".pzfx", ".prism"].every((x) => accept?.split(",").includes(x)), accept);
+  expect("P-33: File › Open accepts .csv, .tsv, .txt, .xlsx (P-34: .xls, .ods) and still projects and Prism files",
+    [".csv", ".tsv", ".txt", ".xlsx", ".xls", ".ods", ".json", ".pzfx", ".prism"].every((x) => accept?.split(",").includes(x)), accept);
   await page.setInputFiles(OPEN_INPUT, join(FIX, "plate-reader.csv"));
   const open = await appears(dlg, 10000);
   const rows = open ? await dlg.locator(".import-preview tbody tr").count() : 0;
@@ -171,6 +176,56 @@ const typeWhy = dlg.locator("[data-part='type-why']");
     await recipe.getByRole("button", { name: "Cancel" }).click();
     await recipe.waitFor({ state: "detached", timeout: 5000 }).catch(() => {});
   }
+}
+
+// --- P-34: one sheet saved by LibreOffice as .xls, .ods and .xlsx
+// (e2e-fixtures/import/make_workbooks.py) imports to identical cells in all
+// three, equal to openpyxl's reading of the .xlsx (workbook.expected.json);
+// the row hidden by hand (row 7) is reported in each; both sheets listed.
+{
+  const wb = JSON.parse(readFileSync(join(IMP, "workbook.expected.json"), "utf8"));
+  const assay = wb[0];
+  const want = assay.rows.slice(1).map((r) => assay.rows[0].map((_, c) => r[c] ?? ""));
+  wheels.xlrdBefore = wheels.list.filter((u) => /xlrd-/.test(u)).length;
+  const made = {};
+  for (const fmt of ["xlsx", "xls", "ods"]) {
+    await page.setInputFiles(OPEN_INPUT, join(IMP, `workbook.${fmt}`));
+    const open = await appears(dlg, 10000);
+    const filled = open && await dlg.locator(".import-preview tbody tr").first().waitFor({ timeout: 120000 })
+      .then(() => true, () => false);
+    const cells = filled ? await dlg.locator(".import-preview tbody tr").evaluateAll((trs) =>
+      trs.map((tr) => [...tr.querySelectorAll("td")].slice(1).map((td) => td.textContent))) : [];
+    const heads = filled ? await dlg.locator(".import-preview thead tr:nth-child(2) th").allInnerTexts() : [];
+    const sheets = filled ? await dlg.getByLabel("Worksheet").locator("option").allInnerTexts() : [];
+    const report = dlg.locator(".workbook-report");
+    const rep = (await appears(report, 5000)) ? (await report.innerText()).replace(/\s+/g, " ") : "";
+    const bad = [];
+    want.forEach((r, i) => r.forEach((v, c) => { if ((cells[i]?.[c] ?? "") !== v) bad.push(`R${i + 2}C${c + 1} “${cells[i]?.[c]}” ≠ “${v}”`); }));
+    expect(`P-34: workbook.${fmt}: the preview holds openpyxl's cells of the .xlsx, every one (${want.length} rows × ${want[0].length})`,
+      filled && bad.length === 0 && heads.join("|") === assay.rows[0].join("|"), bad.slice(0, 4).join("; ") || heads.join("|"));
+    expect(`P-34: workbook.${fmt}: both sheets are offered, and the row hidden by hand is reported (row 7, imported)`,
+      sheets.join("|") === "Assay|Plate 2" && /1 row is hidden in Excel \(row 7\): imported/.test(rep), `${sheets.join("|")} | ${rep}`);
+    await dlg.getByLabel("New table").selectOption("multivariable");
+    await dlg.getByRole("button", { name: "Import", exact: true }).click();
+    await dlg.waitFor({ state: "detached", timeout: 10000 }).catch(() => {});
+    const names = await page.evaluate(() => globalThis.__opendose.store.project.sheets
+      .filter((s) => s.kind === "data").map((s) => s.name));
+    made[fmt] = await tableOf(names.filter((n) => n.startsWith("workbook")).at(-1));
+  }
+  expect("P-34: the .xls reader (xlrd) was fetched only once an .xls was read, never on the visit itself",
+    wheels.xlrdBefore === 0 && wheels.list.filter((u) => /xlrd-/.test(u)).length === 1, wheels.list.join(", "));
+  expect("P-34: the .xls, .ods and .xlsx of one sheet import to identical tables",
+    !!made.xlsx && JSON.stringify(made.xls) === JSON.stringify(made.xlsx) && JSON.stringify(made.ods) === JSON.stringify(made.xlsx),
+    JSON.stringify(made.xls)?.slice(0, 160));
+
+  // a file that is not the workbook its name says: a reason, not a crash
+  await page.setInputFiles(OPEN_INPUT, join(FIX, "encodings", "densitometry.xls"));
+  const err = (await appears(dlg, 10000)) && await appears(dlg.locator(".import-error"), 120000)
+    ? await dlg.locator(".import-error").innerText() : "";
+  expect("P-34: a broken .xls says it could not be read and why, with no traceback",
+    /^Could not read the workbook: it is not a readable \.xls workbook \(.+\)$/.test(err) && !/Traceback/.test(err), err);
+  await dlg.getByRole("button", { name: "Cancel" }).click();
+  await dlg.waitFor({ state: "detached", timeout: 5000 }).catch(() => {});
 }
 
 // --- a file Open cannot read: the error names what it opens

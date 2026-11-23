@@ -668,7 +668,7 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
       <div className="grid-toolbar" role="group" aria-label="Data table tools" data-still>
         {!readOnly && (
           <Button variant="ghost" onClick={() => setDialog({ kind: "import" })}
-            title="Import a CSV, text or .xlsx file, or pasted text">Import…</Button>
+            title="Import a CSV, text or workbook file (.xlsx, .xls, .ods), or pasted text">Import…</Button>
         )}
         <Button variant="ghost" onClick={() => setDialog({ kind: "export" })}
           title="Download as CSV or tab-separated text, or copy">Export…</Button>

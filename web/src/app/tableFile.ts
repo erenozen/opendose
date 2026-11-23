@@ -8,8 +8,8 @@ import type { PasteReport } from "../project/pasteReport";
 export const TABLE_FILE_EVENT = "opendose-table-file";
 
 /** Files Open and a page drop read as one table. */
-export const TABLE_OPEN = /\.(csv|tsv|txt|tab|dat|prn|xlsx)$/i;
-export const TABLE_OPEN_ACCEPT = ".csv,.tsv,.txt,.tab,.dat,.prn,.xlsx";
+export const TABLE_OPEN = /\.(csv|tsv|txt|tab|dat|prn|xlsx|xls|ods)$/i;
+export const TABLE_OPEN_ACCEPT = ".csv,.tsv,.txt,.tab,.dat,.prn,.xlsx,.xls,.ods";
 
 export function openTableFile(file: File): void {
   window.dispatchEvent(new CustomEvent<File>(TABLE_FILE_EVENT, { detail: file }));

@@ -11,7 +11,7 @@ import { prismTableToFamily, type PrismTable } from "./factory";
 import { openTableFile, TABLE_OPEN, TABLE_OPEN_ACCEPT } from "./tableFile";
 
 /** Files Open takes: OpenDose projects, Prism files and one table file
- *  (CSV, TSV, text, .xlsx), which goes to the Import dialog. */
+ *  (CSV, TSV, text, .xlsx, .xls, .ods), which goes to the Import dialog. */
 export const OPEN_ACCEPT = `.json,.pzfx,.prism,.zip,${TABLE_OPEN_ACCEPT}`;
 export const OPENABLE = /\.(json|pzfx|prism|zip)$/i;
 const PRISM = /\.(pzfx|prism|prism\.zip|zip)$/i;
@@ -22,7 +22,7 @@ const TOAST_ID = "open-file";
  * Open button: an OpenDose project (.json, v1 or v2) replaces the project;
  * a Prism file (.pzfx / .prism) adds its data tables to the project as new
  * families (one picked from a chooser, or all of them); a table file
- * (CSV, TSV, text, .xlsx) opens the Import dialog for a new table.
+ * (CSV, TSV, text, a workbook) opens the Import dialog for a new table.
  *
  * Feedback (DECISIONS 6): a progress toast while the file is read (Prism
  * files wait for the engine), resolved in place; a failure is an error
