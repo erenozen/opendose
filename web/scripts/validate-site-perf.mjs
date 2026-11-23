@@ -480,7 +480,7 @@ export async function runPerf({ newSession, appUrl, browser, friction }) {
     add("384-well plate: QC preview in the wizard", Date.now() - t0, "");
     await wz.getByRole("button", { name: "Next", exact: true }).click();
     t0 = Date.now();
-    await wz.locator(".modal-actions .btn-primary").click();
+    await wz.locator(".modal-actions .btn--primary").click();
     await wz.waitFor({ state: "detached", timeout: 60000 });
     await until(page, async () => /384 wells/.test(await page.locator(".plate-results").first().innerText().catch(() => "")), 240000);
     const qc = (await page.locator(".plate-results").first().innerText()).split("\n").slice(0, 6).join(" ").slice(0, 140);

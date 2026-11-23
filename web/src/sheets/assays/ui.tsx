@@ -3,6 +3,7 @@
 // row. Plot plumbing is in ./plotkit.ts. Styles in ./assays.css (tokens only).
 import { useCallback, type ReactNode } from "react";
 import { useProject } from "../../app/context";
+import { Button } from "../../components/ui";
 import { addLinkedTable } from "../../app/factory";
 import { derivedOutputs } from "../../project/derived";
 import { newId } from "../../project/ids";
@@ -154,10 +155,9 @@ export function LinkedTable({ resultsId, make, name, label, note, options }: {
         {outputs.map((d) => (
           <button key={d.id} type="button" onClick={() => select(d.id)}>Open “{d.name}”</button>
         ))}
-        {!readOnly && (
-          <button type="button" className={outputs.length ? undefined : "btn-primary"}
-            onClick={create}>{label}</button>
-        )}
+        {!readOnly && (outputs.length
+          ? <button type="button" onClick={create}>{label}</button>
+          : <Button variant="primary" onClick={create}>{label}</Button>)}
       </div>
       <p className="hint-block">
         {note ?? "The new table is linked: it follows edits to this table and to these "

@@ -10,7 +10,7 @@ import {
   P_FLOOR_LABELS, P_STYLE_LABELS, SMD_LABELS, VARIANCE_LABELS, reportPrefsOf,
   type PFloor, type PStyle, type ReportPrefs, type SmdPref, type VariancePref,
 } from "../report/prefs";
-import Popover from "./ui/Popover";
+import { Button, Popover } from "./ui";
 
 /** Every keyboard binding in the app, by where it works. Keep in sync
  *  with useShortcuts, the navigator, the data grid, the layout canvas,
@@ -219,10 +219,10 @@ export default function PreferencesPopover({ open, onOpenChange, anchor }: {
                 <button type="button" onClick={() => setForget("")} disabled={forget === "busy"}>
                   Cancel
                 </button>
-                <button type="button" className="btn-danger" onClick={() => { void forgetNow(); }}
+                <Button variant="danger" onClick={() => { void forgetNow(); }}
                   disabled={forget === "busy"}>
                   {forget === "busy" ? "Forgetting…" : "Forget and close the project"}
-                </button>
+                </Button>
               </div>
             </div>
           )}
@@ -233,8 +233,8 @@ export default function PreferencesPopover({ open, onOpenChange, anchor }: {
                 soon as every other OpenDose tab is closed: close them, then reload.
               </p>
               <div className="prefs-confirm-actions">
-                <button type="button" className="btn-primary"
-                  onClick={() => location.replace(location.pathname)}>Reload</button>
+                <Button variant="primary"
+                  onClick={() => location.replace(location.pathname)}>Reload</Button>
               </div>
             </div>
           )}

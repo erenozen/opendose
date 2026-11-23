@@ -6,6 +6,7 @@ import { runEngine } from "../../lib/engine";
 import { chainOf, unlinkDerived } from "../../project/derived";
 import { updateSheet } from "../../project/ops";
 import type { DataSheet, Sheet } from "../../project/types";
+import { Button } from "../../components/ui";
 import { analysisDef } from "../registry";
 import { DiceIcon, LinkIcon } from "./LinkIcon";
 import { openSimulate, withSimulation } from "./simulateApi";
@@ -84,8 +85,8 @@ function SimulatedNote({ data }: { data: DataSheet }) {
         {error && <p className="results-error" role="alert">{error}</p>}
       </div>
       <div className="origin-actions">
-        <button type="button" className="btn-primary" disabled={!engineReady || !!data.frozen}
-          onClick={again}>Simulate again</button>
+        <Button variant="primary" disabled={!engineReady || !!data.frozen}
+          onClick={again}>Simulate again</Button>
         <button type="button" disabled={!!data.frozen}
           onClick={() => openSimulate({ editId: data.id })}>Settings…</button>
         <button type="button" aria-expanded={showMethods}
