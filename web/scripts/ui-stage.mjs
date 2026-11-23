@@ -239,6 +239,21 @@ const scenes = [
     await pasteOnPage(s);
     await into(s, ".paste-banner", "center");
   } },
+  // P-05: a column Excel showed rounded, pasted anywhere with its HTML
+  // (e2e-fixtures/clipboard): the full values, and the banner says so
+  { name: "first-paste-full-values", setup: async (s) => {
+    await start(s);
+    const clip = (f) => readFileSync(join(FIXTURES, "clipboard", f), "utf8");
+    await s.page.evaluate(([t, h]) => {
+      if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+      const dt = new DataTransfer();
+      dt.setData("text/plain", t);
+      dt.setData("text/html", h);
+      document.body.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }));
+    }, [clip("column.excel-windows.txt"), clip("column.excel-windows.html")]);
+    await s.page.locator(".paste-banner [data-part='rounded']").waitFor({ timeout: 10000 });
+    await into(s, ".paste-banner", "center");
+  } },
   { name: "first-paste-result", setup: async (s) => {
     await start(s);
     await pasteOnPage(s);
@@ -594,6 +609,26 @@ const scenes = [
     const d = dialog(s, "Paired values from a long table");
     await d.getByLabel("Long table text").fill(`${readFileSync(join(FIXTURES, "import", "paired_long.csv"), "utf8")}M7,before,10.0\n`);
     await d.locator(".import-summary").waitFor();
+  } },
+  // P-06 wherever a workbook is read: the recipe dialog and Apply to new
+  // data with the AutoFilter workbook (e2e-fixtures/xlsx/filter-hidden.xlsx;
+  // Apply to new data reads both of its sheets, one report line each)
+  { name: "shell-import-recipe-workbook", setup: async (s) => {
+    await example(s);
+    await click(s, s.page.getByRole("button", { name: "Import…", exact: true }));
+    await s.page.getByRole("tab", { name: "Recipes" }).click();
+    const d = dialog(s, "Import with a recipe");
+    await d.getByLabel("Export file to import").setInputFiles(join(FIXTURES, "xlsx", "filter-hidden.xlsx"));
+    await d.locator(".workbook-report").filter({ hasText: /hidden by a filter/ }).waitFor({ timeout: 120000 });
+  } },
+  { name: "shell-replay-workbook", setup: async (s) => {
+    await example(s);
+    await headerMenu(s, "File", "Apply to new data…");
+    const d = dialog(s, "Apply to new data");
+    await d.waitFor();
+    await d.getByLabel("New data file").setInputFiles(join(FIXTURES, "xlsx", "filter-hidden.xlsx"));
+    await d.locator(".workbook-report").filter({ hasText: /hidden in the workbook/ }).waitFor({ timeout: 120000 });
+    await d.locator(".workbook-report").scrollIntoViewIfNeeded();
   } },
   // P-38: the import recipes' column output paired by subject ID
   { name: "shell-import-recipe-pairing", setup: async (s) => {
@@ -1073,6 +1108,21 @@ const scenes = [
       await s.page.waitForTimeout(400);
     }
     await settle(s, 1500);
+  } },
+  // P-06 in an assay picker: the densitometry export as the AutoFilter
+  // workbook, its filtered rows left out and reported
+  { name: "guided-assay-workbook-report", setup: async (s) => {
+    await example(s);
+    const dlg = await newTableDialog(s);
+    await dlg.getByRole("radio", { name: "Start from an assay" }).check();
+    await dlg.getByRole("radio", { name: /^Western blot densitometry/ }).check();
+    await dlg.getByText("An empty layout").click();
+    await dlg.getByRole("button", { name: "Start assay" }).click();
+    const wiz = s.page.locator("dialog.assay-wizard");
+    await wiz.waitFor({ timeout: 30000 });
+    await wiz.locator('input[aria-label="Densitometry export"]').setInputFiles(join(FIXTURES, "xlsx", "filter-hidden.xlsx"));
+    await wiz.locator(".workbook-report").filter({ hasText: /hidden by a filter/ }).waitFor({ timeout: 120000 });
+    await settle(s, 500);
   } },
   // P-29: an ELISA with 20 blank and 20 low-sample wells: LoB, LoD, LoQ
   // on the results sheet, and the wizard's Blanks and low samples step
