@@ -27,6 +27,9 @@ export interface LinregOptions {
   /** Force the line through this point (X, Y as typed); absent = free
    *  intercept. Ignored when throughOrigin is set. */
   throughPoint?: { x: string; y: string };
+  /** Two or more data sets: test whether the slopes, then the intercepts,
+   *  are the same (engine linregress.compare_lines; absent = off). */
+  compareLines?: boolean;
 }
 
 export const DEFAULT_LINREG: LinregOptions = {
@@ -43,6 +46,7 @@ export function normalizeLinreg(raw: unknown): LinregOptions {
     ...(r.throughPoint && typeof r.throughPoint === "object"
       ? { throughPoint: { x: String((r.throughPoint as { x?: unknown }).x ?? ""),
         y: String((r.throughPoint as { y?: unknown }).y ?? "") } } : {}),
+    ...(r.compareLines === true ? { compareLines: true } : {}),
   };
 }
 
@@ -73,7 +77,8 @@ export function linregPayload(table: DataTableModel, o: LinregOptions): Payload 
   }
   const pt = forcedPoint(o);
   return { analysis: "linear_regression", data, options: {
-    ...(bands ? { bands } : {}), ...(pt ? { through_point: pt } : {}) } };
+    ...(bands ? { bands } : {}), ...(pt ? { through_point: pt } : {}),
+    ...(o.compareLines && data.datasets.length >= 2 ? { compare_lines: true } : {}) } };
 }
 
 export interface Estimate { value: number; se: number | null; ci95: [number, number] | null }
@@ -194,6 +199,7 @@ export function linregResult(raw: any, table: DataTableModel, o: LinregOptions):
   return {
     analysis: ANALYSIS_LINREG,
     throughOrigin: o.throughOrigin,
+    ...(raw.compare_lines ? { compare_lines: raw.compare_lines } : {}),
     datasets: (raw.datasets ?? []).map((ds: any, i: number) => {
       const out: any = { name: ds.name, points: pts[i] ?? { x: [], bars: [] } };
       if (ds.error) return { ...out, error: ds.error };

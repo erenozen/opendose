@@ -57,7 +57,7 @@ one at a time: each boots its own engine.
 | `e2e-figures.mjs` | SuperPlots, legends, P-value styles, the classic theme, the colour-vision check, volcano plots, censor marks, box plots against the column statistics |
 | `e2e-assays.mjs` | Every assay wizard, against numbers the engine computes natively |
 | `e2e-import.mjs` | Getting a table in: one CSV or .xlsx dropped on the page or opened lands in the Import dialog for a new table, equal to the toolbar Import's table from the same file |
-| `e2e-results.mjs` | The results honesty checks: residual plots of fits and ANOVA models in the Checks row, the smallest P a rank test can reach, the Analysed line of regression, Cox and contingency results, the ratio to control with its Fieller CI |
+| `e2e-results.mjs` | The results honesty checks: residual plots of fits and ANOVA models in the Checks row, the smallest P a rank test can reach, the Analysed line of regression, Cox and contingency results, the ratio to control with its Fieller CI; equivalence tests, comparing regression lines, pairs of rows of a contingency table and two event rates |
 | `e2e-feedback.mjs` | Toasts, banners, the announcer, the engine boot slot, a busy button and late validation |
 | `e2e-primitives.mjs` | Dialog, Popover, Menu and Tooltip from the keyboard: focus return, Tab staying inside, Home/End, type-ahead |
 | `e2e-motion.mjs` | What animates, for how long, on which curve; keyboard and reduced-motion paths; the theme switch (`--frames DIR` saves slowed screenshots) |

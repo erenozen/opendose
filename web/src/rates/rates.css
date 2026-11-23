@@ -1,0 +1,12 @@
+/* Compare two event rates (RatesDialog.tsx): two groups side by side,
+   stacked below 560px; the result typeset as the results tables. */
+.rates-dialog { width: min(640px, calc(100vw - 32px)); }
+.rates-dialog .modal-body { max-height: calc(100dvh - 48px); overflow: auto; }
+.rates-groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--space-16); }
+.rates-group {
+  border: none; margin: 0; padding: 0;
+  display: flex; flex-direction: column; gap: var(--space-8);
+}
+.rates-group legend { font-weight: var(--weight-semibold); font-size: var(--text-body-s); margin-bottom: var(--space-4); padding: 0; }
+.rates-result .results-table { max-width: none; margin-bottom: var(--space-8); }
+.rates-result .model-line { margin-bottom: var(--space-6); }

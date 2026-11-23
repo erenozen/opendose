@@ -194,12 +194,14 @@ async function seedSessions(s, sessions) {
   }, [sessions, json]);
 }
 /** A new table of `type` from pasted text (first line: column titles),
- *  through the Import dialog, as the e2e suites make one. */
-async function pastedTable(s, type, name, text) {
+ *  through the Import dialog, as the e2e suites make one. `subcolumns`:
+ *  replicate subcolumns per data set (XY starts with three). */
+async function pastedTable(s, type, name, text, subcolumns) {
   await example(s);
   const nd = await newTableDialog(s);
   await nd.locator(`input[name="table-type"][value="${type}"]`).check();
   await nd.getByLabel("Table name").fill(name);
+  if (subcolumns) await nd.locator(".field-num input").nth(1).fill(String(subcolumns));
   await nd.getByRole("button", { name: "Create table" }).click();
   await s.page.locator(".grid-toolbar").waitFor();
   await click(s, s.page.getByRole("button", { name: "Import…", exact: true }));
@@ -660,6 +662,62 @@ const scenes = [
       .locator("select").selectOption("dunnett");
     await s.page.locator(".pane-results .ratio-table").first().waitFor({ timeout: 120000 });
     await into(s, ".pane-results .ratio-table", "center");
+  } },
+  // tests (wave 1): equivalence (P-12), comparing regression lines
+  // (P-13), pairs of rows of a contingency table (P-14), two event rates
+  // (P-47)
+  { name: "results-equivalence", setup: async (s) => {
+    await pastedTable(s, "column", "Equivalence",
+      "A\tB\n10.8\t10.6\n10.75\t10.55\n10.55\t10.35\n10.5\t10.3\n9.6\t9.4\n9.65\t9.45\n9.85\t9.65\n9.9\t9.7\n");
+    const c = s.page.locator(".pane-controls");
+    await c.locator("select.analysis-select").selectOption("ttest");
+    await c.getByLabel("Equivalence test").selectOption("equivalence");
+    await c.getByLabel(/^Margin/).fill("1");
+    await s.page.locator(".pane-results .equivalence-strip").first().waitFor({ timeout: 120000 });
+    await settle(s, 800);
+    await into(s, ".pane-answer", "start");
+  } },
+  { name: "results-equivalence-table", setup: async (s) => {
+    await pastedTable(s, "column", "Equivalence",
+      "A\tB\n10.8\t10.6\n10.75\t10.55\n10.55\t10.35\n10.5\t10.3\n9.6\t9.4\n9.65\t9.45\n9.85\t9.65\n9.9\t9.7\n");
+    const c = s.page.locator(".pane-controls");
+    await c.locator("select.analysis-select").selectOption("ttest");
+    await c.getByLabel("Equivalence test").selectOption("equivalence");
+    await c.getByLabel(/^Margin/).fill("0.5");
+    await s.page.locator(".pane-results .equivalence-strip").first().waitFor({ timeout: 120000 });
+    await settle(s, 800);
+    await into(s, ".pane-results .equivalence-results", "start");
+  } },
+  { name: "results-compare-lines", setup: async (s) => {
+    await pastedTable(s, "xy", "Two lines",
+      "X\tControl\tTreated\n1\t3.1\t6.0\n2\t5.2\t7.7\n3\t6.8\t10.1\n4\t9.1\t11.8\n5\t11.0\t14.2\n6\t12.7\t15.9\n7\t15.2\t17.8\n8\t16.9\t20.1\n", 1);
+    await click(s, button(s, "Analyze"));
+    await click(s, s.page.getByRole("menuitem", { name: /^Linear regression/ }));
+    await s.page.locator(".pane-controls").getByLabel("Compare slopes and intercepts (two or more data sets)").check();
+    await s.page.locator(".pane-results .compare-lines-table").first().waitFor({ timeout: 120000 });
+    await settle(s, 800);
+    await into(s, ".pane-results .compare-lines", "start");
+  } },
+  { name: "results-pairwise-rows", setup: async (s) => {
+    await pastedTable(s, "contingency", "Genotypes",
+      "Genotype\tPositive\tNegative\nWT\t18\t2\nHet\t15\t5\nKO\t5\t15\n");
+    await s.page.locator(".pane-controls").getByLabel("Correction").selectOption("holm");
+    await s.page.locator(".pane-results .pairwise-table").first().waitFor({ timeout: 120000 });
+    await settle(s, 800);
+    await into(s, ".pane-results .pairwise-rows", "start");
+  } },
+  { name: "dialog-event-rates", setup: async (s) => {
+    await example(s);
+    await click(s, button(s, "Analyze"));
+    await click(s, s.page.getByRole("menuitem", { name: "Compare two event rates…" }));
+    const dlg = s.page.getByRole("dialog", { name: "Compare two event rates" });
+    await dlg.getByLabel("Exposure unit").fill("hours");
+    await dlg.getByLabel("Events in group 1").fill("23");
+    await dlg.getByLabel("Exposure of group 1").fill("10");
+    await dlg.getByLabel("Events in group 2").fill("41");
+    await dlg.getByLabel("Exposure of group 2").fill("12");
+    await dlg.locator(".rates-table").waitFor({ timeout: 120000 });
+    await settle(s, 600);
   } },
   // the eLife checklist on the example: source data per figure is not met
   // and links to the export bundle (P-09)

@@ -275,3 +275,117 @@ def linear_bands(x_values, y_values, xs, *, kind: str = "confidence",
     half = tcrit * sy_x * np.sqrt(core)
     return {"x": xs.tolist(), "y": yc.tolist(),
             "lower": (yc - half).tolist(), "upper": (yc + half).tolist()}
+
+
+COMPARE_LINES_SOURCE = (
+    "Zar JH, Biostatistical Analysis, ch. 18 (Comparing simple linear "
+    "regression equations: two and more slopes, elevations); the analysis "
+    "of covariance of the lines, as R anova(lm(y ~ x + g), lm(y ~ x * g))")
+
+
+def compare_lines(lines, *, ci_level: float = 0.95, alpha: float = 0.05
+                  ) -> dict:
+    """Compare the slopes and then the intercepts (elevations) of two or
+    more straight lines fitted to separate data sets (Zar, ch. 18; the
+    analysis of covariance of the lines).
+
+    lines: [(x_values, y_values, name), ...]; each needs 3 or more XY pairs
+    with at least two different X values.
+
+    1. Slopes: the extra sum-of-squares F test of one common slope (lines
+       parallel, own intercepts; SS_c on N - k - 1 df) against a slope per
+       line (SS_p, the sum of the residual SS of the separate fits, on
+       N - 2k df): F = ((SS_c - SS_p) / (k - 1)) / (SS_p / (N - 2k)).
+       With two lines, the slope difference b1 - b2 has SE sqrt(s_p^2
+       (1/Sxx_1 + 1/Sxx_2)) and t^2 = F (Zar 18.1).
+    2. Intercepts, given parallel lines: one line through all the data
+       (SS_t on N - 2 df) against the common-slope lines: F = ((SS_t -
+       SS_c) / (k - 1)) / (SS_c / (N - k - 1)) (Zar 18.2, 18.4). This
+       comparison is meaningful only when the slopes are not shown to
+       differ ("intercepts_meaningful").
+
+    Also: the common slope b_c = sum Sxy / sum Sxx with its SE (s_c^2 /
+    sum Sxx) and CI on N - k - 1 df, each line's intercept at the common
+    slope, and the pooled line (one fit of all the points)."""
+    if len(lines) < 2:
+        raise ValueError("comparing lines needs two or more data sets")
+    names, fits = [], []
+    for xv, yv, name in lines:
+        x, y = _pairs(xv, yv)
+        label = name or f"Data set {len(names) + 1}"
+        if x.size < 3:
+            raise ValueError(f"{label}: comparing lines needs at least 3 XY "
+                             "pairs in each data set")
+        sxx = float(np.sum((x - x.mean()) ** 2))
+        if sxx == 0:
+            raise ValueError(f"{label}: all X values are identical")
+        sxy = float(np.sum((x - x.mean()) * (y - y.mean())))
+        syy = float(np.sum((y - y.mean()) ** 2))
+        names.append(label)
+        fits.append({"x": x, "y": y, "n": int(x.size), "sxx": sxx,
+                     "sxy": sxy, "syy": syy, "slope": sxy / sxx,
+                     "ss": max(syy - sxy * sxy / sxx, 0.0)})
+    k = len(fits)
+    n_tot = sum(f["n"] for f in fits)
+    ss_p = sum(f["ss"] for f in fits)
+    df_p = n_tot - 2 * k
+    sum_sxx = sum(f["sxx"] for f in fits)
+    sum_sxy = sum(f["sxy"] for f in fits)
+    b_c = sum_sxy / sum_sxx
+    ss_c = max(sum(f["syy"] for f in fits) - sum_sxy ** 2 / sum_sxx, 0.0)
+    df_c = n_tot - k - 1
+    x_all = np.concatenate([f["x"] for f in fits])
+    y_all = np.concatenate([f["y"] for f in fits])
+    sxx_t = float(np.sum((x_all - x_all.mean()) ** 2))
+    sxy_t = float(np.sum((x_all - x_all.mean()) * (y_all - y_all.mean())))
+    b_t = sxy_t / sxx_t
+    a_t = float(y_all.mean() - b_t * x_all.mean())
+    ss_t = max(float(np.sum((y_all - y_all.mean()) ** 2))
+               - sxy_t ** 2 / sxx_t, 0.0)
+    df_t = n_tot - 2
+
+    def f_test(ss_small, ss_big, dfn, df_big):
+        """F of the extra SS (ss_small - ss_big) / dfn over ss_big /
+        df_big; F is None when the larger model fits every point."""
+        extra = max(ss_small - ss_big, 0.0) / dfn
+        if ss_big <= 0:
+            return {"F": None, "dfn": dfn, "dfd": df_big,
+                    "p": None if extra == 0 else 0.0}
+        f = extra / (ss_big / df_big)
+        return {"F": f, "dfn": dfn, "dfd": df_big,
+                "p": float(stats.f.sf(f, dfn, df_big))}
+
+    slopes = f_test(ss_c, ss_p, k - 1, df_p)
+    elevations = f_test(ss_t, ss_c, k - 1, df_c)
+    s2_c = ss_c / df_c
+    se_bc = math.sqrt(s2_c / sum_sxx)
+    t_c = float(stats.t.ppf((1 + ci_level) / 2, df_c))
+    slopes_differ = slopes["p"] is not None and slopes["p"] < alpha
+    out = {
+        "k": k, "n": n_tot, "names": names,
+        "slopes": [f["slope"] for f in fits],
+        "slopes_test": slopes, "slopes_differ": slopes_differ,
+        "intercepts_test": elevations,
+        "intercepts_meaningful": not slopes_differ,
+        "intercepts_differ": (elevations["p"] is not None
+                              and elevations["p"] < alpha),
+        "common_slope": {"value": b_c, "se": se_bc, "df": df_c,
+                         "ci": [b_c - t_c * se_bc, b_c + t_c * se_bc]},
+        "intercepts_at_common_slope": [
+            float(f["y"].mean() - b_c * f["x"].mean()) for f in fits],
+        "pooled_line": {"slope": b_t, "y_intercept": a_t, "n": n_tot,
+                        "df": df_t, "sy_x": math.sqrt(ss_t / df_t)},
+        "ss": {"separate": ss_p, "common_slope": ss_c, "single_line": ss_t},
+        "alpha": alpha, "ci_level": ci_level,
+        "source": COMPARE_LINES_SOURCE,
+    }
+    if k == 2:
+        f1, f2 = fits
+        diff = f1["slope"] - f2["slope"]
+        se = math.sqrt(ss_p / df_p * (1 / f1["sxx"] + 1 / f2["sxx"]))
+        t_p = float(stats.t.ppf((1 + ci_level) / 2, df_p))
+        out["slope_difference"] = {
+            "value": diff, "se": se, "df": df_p,
+            "t": diff / se if se > 0 else None,
+            "ci": [diff - t_p * se, diff + t_p * se]}
+    return out

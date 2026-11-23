@@ -598,8 +598,18 @@ def _design_sensitivity(n1, n2=None, *, df=None, paired=False):
 
 
 def _column_statistics(data, options):
+    """options.equivalence {"lower", "upper", "alpha"} (with a
+    hypothetical value): the two one-sided tests of mean - hypothetical
+    against the margins, per data set (columnstats.column_statistics)."""
     cols, names = _flatten_columns(data)
     warnings = _nan_warnings(data)
+    eq = options.get("equivalence")
+    if eq:
+        lo, hi, scale, alpha = _equivalence_margins(eq)
+        if scale != "difference":
+            raise ValueError("a one-sample equivalence margin is in data "
+                             "units, not a ratio")
+        eq = (lo, hi, alpha)
     out = {
         "analysis": "column_statistics",
         "datasets": [
@@ -614,7 +624,8 @@ def _column_statistics(data, options):
                  percentile_method=options.get("percentile_method",
                                                "linear"),
                  trim_k=options.get("trim_k"),
-                 lognormality_tests=options.get("lognormality", False))}
+                 lognormality_tests=options.get("lognormality", False),
+                 equivalence=eq or None)}
             for name, col in zip(names, cols)
         ],
     }
@@ -643,7 +654,11 @@ def _ttest(data, options):
     source}, "geometric_means" [{name, n, mean_log, sd_log,
     geometric_mean, ci, geometric_sd_factor}], "ratio", "ratio_ci",
     "ratio_label" (paired: also geometric_mean_ratio / ci_ratio). The
-    plain unpaired test adds "scale_check" (opendose.logscale)."""
+    plain unpaired test adds "scale_check" (opendose.logscale).
+
+    options.equivalence {"lower", "upper", "scale", "alpha"} adds
+    "equivalence": the two one-sided tests against the margins
+    (_ttest_equivalence, ttests.tost)."""
     cols, names = _flatten_columns(data)
     ia, ib = options.get("dataset_a", 0), options.get("dataset_b", 1)
     kind = options.get("kind", "unpaired")
@@ -710,6 +725,10 @@ def _ttest(data, options):
                 **ttests.ratio_to_control(
                     va, vb, ci_level=options.get("ci_level", 0.95)),
                 "numerator": names[ib], "denominator": names[ia]}
+    if options.get("equivalence"):
+        result["equivalence"] = _ttest_equivalence(
+            result, kind, options["equivalence"],
+            log_info["base"] if log_info is not None else None)
     if n_min <= 3:
         if kind == "unpaired":
             result["design_sensitivity"] = _design_sensitivity(
@@ -720,6 +739,51 @@ def _ttest(data, options):
     if warnings:
         result["warnings"] = warnings
     return {"analysis": "ttest", **result}
+
+
+def _equivalence_margins(spec):
+    """(lower, upper, scale, alpha) of options.equivalence {"lower",
+    "upper" (either may be null: non-inferiority), "scale" ("difference" |
+    "ratio"), "alpha" (0.05)}."""
+    if not isinstance(spec, dict):
+        raise ValueError("equivalence must be {lower, upper, scale}")
+    num = lambda v: None if v is None else float(v)  # noqa: E731
+    return (num(spec.get("lower")), num(spec.get("upper")),
+            spec.get("scale", "difference"), float(spec.get("alpha", 0.05)))
+
+
+def _ttest_equivalence(result, kind, spec, log_base):
+    """options.equivalence of a two-group t test: the two one-sided tests
+    (ttests.tost) on the test's own estimate, SE and df. Unpaired and
+    Welch (difference A - B), paired (mean of A - B), and on the log
+    scale (log_scale, ratio paired t) the ratio A / B with ratio margins.
+    Returns the block, or {"unavailable": why} when the test has no such
+    estimate or the margin is on the other scale."""
+    lower, upper, scale, alpha = _equivalence_margins(spec)
+    if kind == "ratio_paired":
+        est, se, log_base = (result["mean_log10_ratio"],
+                             result["se_log10_ratio"], "log10")
+    elif kind in ("unpaired", "paired"):
+        est = result["difference" if kind == "unpaired"
+                     else "mean_difference"]
+        se = result["se_difference"]
+    else:
+        return {"unavailable": "equivalence margins need a t test "
+                               "(unpaired, Welch, paired or ratio paired): "
+                               "a rank test has no estimate with a "
+                               "standard error to compare with them"}
+    on_logs = log_base is not None
+    if scale == "ratio" and not on_logs:
+        return {"unavailable": "a margin given as a ratio needs the log "
+                               "scale or the ratio paired t test"}
+    if scale != "ratio" and on_logs:
+        return {"unavailable": "this test compares logarithms: give the "
+                               "margin as a ratio"}
+    try:
+        return ttests.tost(est, se, result["df"], lower, upper, alpha=alpha,
+                           scale=scale, log_base=log_base or "log10")
+    except ValueError as exc:
+        return {"unavailable": str(exc)}
 
 
 def _log_scale_inputs(kind, va, vb, names, options, warnings):
@@ -1050,6 +1114,15 @@ def _contingency(data, options):
                                               "rows_condition"))
         else:
             result["cramers_v"] = proportions.cramers_v(data["table"])
+    if options.get("pairwise") and result["rows"] >= 3:
+        # options.pairwise {"method": "holm" | "bh" | "bonferroni", "test":
+        # "auto" | "fisher" | "chi_square"}: each pair of rows on its own
+        # (contingency.pairwise_rows), named by options.row_names
+        pw = options["pairwise"] if isinstance(options["pairwise"], dict) \
+            else {}
+        result["pairwise_rows"] = contingency.pairwise_rows(
+            data["table"], method=pw.get("method", "holm"),
+            test=pw.get("test", "auto"), row_names=options.get("row_names"))
     if options.get("trend"):
         result["trend"] = trend.chi_square_trend(
             data["table"], scores=options.get("scores"))
@@ -1192,7 +1265,24 @@ def _linear_regression(data, options):
         except Exception as exc:
             entry["error"] = str(exc)
         results.append(entry)
-    return {"analysis": "linear_regression", "datasets": results}
+    out = {"analysis": "linear_regression", "datasets": results}
+    if options.get("compare_lines") and len(data["datasets"]) >= 2:
+        # options.compare_lines: are the slopes, then the intercepts, the
+        # same? (linregress.compare_lines; not for lines forced through a
+        # point, whose intercepts are fixed)
+        if options.get("through_point"):
+            out["compare_lines"] = {
+                "unavailable": "lines forced through a point share it, so "
+                               "their slopes and intercepts are not "
+                               "compared here"}
+        else:
+            try:
+                out["compare_lines"] = linregress.compare_lines(
+                    [(*_expand(x_col, ds["ys"]), ds.get("name", ""))
+                     for ds in data["datasets"]])
+            except ValueError as exc:
+                out["compare_lines"] = {"unavailable": str(exc)}
+    return out
 
 
 def _survival(data, options):
@@ -2569,7 +2659,11 @@ def _proportion_test(data, options):
     options: p0, ci_method ("wilson_brown" | "wilson" |
     "clopper_pearson"), diff_ci ("newcombe_cc" | "newcombe" |
     "asymptotic_cc"), rr_ci ("koopman" | "katz"), or_ci ("baptista_pike"
-    | "baptista_pike_midp" | "woolf"), ci_level."""
+    | "baptista_pike_midp" | "woolf"), ci_level. Two proportions with
+    options.equivalence {"lower", "upper" (either may be null:
+    non-inferiority), "alpha"} add "equivalence": two one-sided score
+    tests of p1 - p2 against the margins with the 1 - 2 alpha score CI
+    (proportions.tost_two_proportions), or {"unavailable": why}."""
     ci_level = options.get("ci_level", 0.95)
     ci_method = options.get("ci_method", "wilson_brown")
     if "table" in data:
@@ -2588,14 +2682,30 @@ def _proportion_test(data, options):
                     ci_level=ci_level)}
     if len(groups) != 2:
         raise ValueError("enter one or two proportions")
-    return {"analysis": "proportion_test", "names": names,
-            **proportions.compare_two_proportions(
-                groups[0]["successes"], groups[0]["trials"],
-                groups[1]["successes"], groups[1]["trials"],
-                ci_level=ci_level, ci_method=ci_method,
-                diff_method=options.get("diff_ci", "newcombe_cc"),
-                rr_method=options.get("rr_ci", "koopman"),
-                or_method=options.get("or_ci", "baptista_pike"))}
+    out = {"analysis": "proportion_test", "names": names,
+           **proportions.compare_two_proportions(
+               groups[0]["successes"], groups[0]["trials"],
+               groups[1]["successes"], groups[1]["trials"],
+               ci_level=ci_level, ci_method=ci_method,
+               diff_method=options.get("diff_ci", "newcombe_cc"),
+               rr_method=options.get("rr_ci", "koopman"),
+               or_method=options.get("or_ci", "baptista_pike"))}
+    if options.get("equivalence"):
+        lower, upper, scale, alpha = _equivalence_margins(
+            options["equivalence"])
+        if scale != "difference":
+            out["equivalence"] = {
+                "unavailable": "give the margin as a difference between "
+                               "proportions (for example 0.1)"}
+        else:
+            try:
+                out["equivalence"] = proportions.tost_two_proportions(
+                    groups[0]["successes"], groups[0]["trials"],
+                    groups[1]["successes"], groups[1]["trials"],
+                    lower, upper, alpha=alpha)
+            except ValueError as exc:
+                out["equivalence"] = {"unavailable": str(exc)}
+    return out
 
 
 def _deming(data, options):
@@ -2700,6 +2810,30 @@ _HANDLERS = {
     "proportion_test": _proportion_test,
     "deming": _deming,
 }
+
+
+def _rate_compare(data, options):
+    """Two event rates (rates.compare_rates; R's poisson.test). data:
+    {"groups": [{"name"?, "events", "exposure"}, {...}]}. options:
+    ci_level (0.95). Result: {"analysis": "rate_compare", "names",
+    "groups": [{events, exposure, rate, ci}], "rate_ratio", "ratio_ci"
+    (an entry null when unbounded), "p_two_tailed", "p_greater",
+    "p_less", "test", "source"}."""
+    from . import rates
+    groups = list(data.get("groups") or [])
+    if len(groups) != 2:
+        raise ValueError("enter two groups, each with its events and "
+                         "exposure")
+    names = [g.get("name") or f"Group {i + 1}" for i, g in enumerate(groups)]
+    return {"analysis": "rate_compare", "names": names,
+            **rates.compare_rates(groups[0].get("events"),
+                                  groups[0].get("exposure"),
+                                  groups[1].get("events"),
+                                  groups[1].get("exposure"),
+                                  ci_level=options.get("ci_level", 0.95))}
+
+
+_HANDLERS["rate_compare"] = _rate_compare
 
 
 # ------------------------------------------- equation library / user equations

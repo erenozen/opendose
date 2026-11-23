@@ -940,3 +940,154 @@ the engine to four digits. (Dunnett's critical value for differences,
 2.573 from scipy.stats.dunnett, gives slightly narrower intervals; it is
 not the method used.) The rank-test floor for 3 vs 3 values is
 2 / C(6, 3) = 0.10 by hand.
+
+## Feature validation: tests, wave 1 (2026-11-23)
+
+FEATURE-PLAN P-12, P-13, P-14 and P-47. R is not installed here (TOSTER,
+`pairwise.prop.test`, `poisson.test` and `lm` could not be run), so each
+reference is a Python oracle that does not share code with the engine,
+or a published value, named per feature. Every existing result is
+unchanged: each feature is an option that is off by default (P-47 is a
+new handler), and the payloads of the analyses with the option off are
+byte for byte what they were.
+
+### P-12 equivalence and non-inferiority (two one-sided tests)
+
+`ttests.tost` runs Schuirmann's (1987) two one-sided tests on the test's
+own estimate, SE and df: unpaired and Welch (A − B), paired (mean of
+A − B), one sample (mean − hypothetical, `column_statistics`), and on
+the log scale (log-scale unpaired or paired t test, ratio paired t test)
+the ratio A / B with ratio margins. One margin gives a non-inferiority
+test. Two proportions (`proportions.tost_two_proportions`) use the
+Miettinen-Nurminen score statistic with the restricted maximum-likelihood
+proportions (Farrington-Manning closed form) and the matching score CI,
+so the decision and the interval always agree.
+
+Reference: `engine/tests/reference/equivalence_tost.py` (statsmodels
+0.15 `ttost_ind` pooled and unequal, `ttost_paired`,
+`DescrStatsW.ttost_mean`, the log forms with `transform=np.log`, and
+`ttest_ind(value = -m, alternative = "larger")` for non-inferiority;
+two proportions by direct numerical maximisation of the restricted
+likelihood), tested in `engine/tests/test_equivalence.py`:
+
+| Case | Estimate | 90% CI | P (TOST) | engine |
+| --- | --- | --- | --- | --- |
+| Plan's acceptance, n = 8 + 8, means 10.2 and 10.0, SD 0.5, margin ±1 | 0.2 | −0.24033 to 0.64033 | 0.0032103 (equivalent) | 1e-9 relative |
+| Same, margin ±0.5 | 0.2 | −0.24033 to 0.64033 | 0.12503 (not shown) | 1e-9 |
+| Welch, n = 6 + 9, margin ±1.5 | 0.19444 | −0.97243 to 1.36132 | 0.034738 | 1e-9 |
+| Paired, 10 pairs, margin ±0.25 | 0.04 | −0.047274 to 0.12727 | 0.00084671 | 1e-9 |
+| One sample (n = 9) vs 100, margin ±1 | 0.1 | −0.51048 to 0.71048 | 0.012696 | 1e-9 |
+| Log ratio, unpaired, margins 0.8 to 1.25 | ratio 1.00944 | 0.93370 to 1.09134 | 0.00013445 | 1e-9 |
+| Non-inferiority, margin −0.5 | 0.2 | | 0.0070902 | 1e-9 |
+| Two proportions 45/50 vs 43/50, ±0.1 | 0.04 | −0.071602 to 0.15398 | 0.18474 | 1e-7 |
+| Two proportions 7/34 vs 1/34, ±0.2 | 0.17647 | 0.054663 to 0.31601 | 0.38061 | 1e-7 |
+
+statsmodels' own `tost_proportions_2indep(method="score")` is not the
+reference for two proportions: in 0.15 its restricted estimate is not
+the maximum of the likelihood (45/50 vs 43/50 at δ = 0.1: p1 = 0.91538
+with log-likelihood −36.9292, while the maximum is at p1 = 0.91997,
+−36.9178), so its P (0.18833) differs from the score test's in the third
+digit.
+
+Properties: in 200 seeded pairs of samples (pooled and Welch) and 100
+seeded pairs of proportions, P_TOST is the larger one-sided P and is
+below α exactly when the 90% CI lies inside the margins (Schuirmann's
+identity). Units ×1e-12, ×1000 and ×1e12 with the margin scaled alike
+leave P unchanged; swapping the groups with mirrored margins swaps the
+two tests. Edge cases: a group of 1 withholds the t test and the TOST;
+SE 0 (every paired difference equal) gives P 0 inside the margin and 1
+outside or on it; a ratio margin on a difference test, a difference
+margin on a log test, a rank test, margins in the wrong order and a
+ratio margin of 0 each return "unavailable" with the reason.
+
+### P-13 comparing slopes and intercepts of regression lines
+
+`linregress.compare_lines` (linear regression, `options.compare_lines`,
+two or more data sets): the F test of one common slope against a slope
+per line, then, with the lines parallel, the F test of one line against
+parallel lines (the intercepts), the common slope with its CI, each
+line's intercept at the common slope, the pooled line, and for two lines
+the slope difference with its CI (t² = F). The results say the
+intercept test is meaningful only when the slopes are not shown to
+differ, next to its P.
+
+Zar's worked example (Biostatistical Analysis, 5th ed. 2010, sec.
+18.1 to 18.2, pp. 363 to 371) could not be obtained (no copy of the
+book; no reproduction of its data was found), so it is not pinned. The
+reference is statsmodels 0.15 OLS: `anova_lm(ols("y ~ x + C(g)"),
+ols("y ~ x * C(g)"))` and `anova_lm(ols("y ~ x"), ols("y ~ x + C(g)"))`
+(R's `anova(lm(y ~ x + g), lm(y ~ x * g))`),
+`engine/tests/reference/compare_lines.py`, tested in
+`engine/tests/test_compare_lines.py` to 1e-9:
+
+| Case | Slopes F (df), P | Intercepts F (df), P | Common slope (95% CI) |
+| --- | --- | --- | --- |
+| Two parallel lines, 8 + 8 points | 0.64403 (1, 12), 0.43786 | 987.85 (1, 13), 1.19e-13 | 1.99524 (1.95099 to 2.03949) |
+| Two diverging lines, 6 + 6 points | 621.50 (1, 8), 7.17e-9 | 14.757 (1, 9), not meaningful | 1.45571 |
+| Three lines, one blank Y, 17 points | 0.12308 (2, 11), 0.88539 | 224.63 (2, 13), 8.30e-11 | 1.99317 (1.94643 to 2.03991) |
+
+Slope difference of the parallel lines: −0.033333 (95% CI −0.12383 to
+0.057166). Invariance: swapping the data sets negates the slope
+difference and leaves both F tests; Y ×1000 with X ×1e-6 (and ×1e-12,
+×1e12) leaves every F and P and scales the common slope. Edge cases: a
+line with fewer than 3 points or a single X, a line forced through a
+point, and perfectly straight lines (F undefined, said in words).
+
+### P-14 pairwise comparisons of rows after an r x c test
+
+`contingency.pairwise_rows` (`options.pairwise`, three or more rows):
+each pair of rows on its own 2 x c table, by Fisher's exact test when
+any expected count is below 5 (Cochran 1954) and otherwise by the
+chi-square test (2 x 2 with Yates' correction, as R's `prop.test`), or
+by the test chosen; P values adjusted over the family with Holm,
+Benjamini-Hochberg or Bonferroni (`fdr.adjust`). Each pair names its
+test and why; the family line says "adjusted for 3 comparisons (Holm)".
+
+Reference: `engine/tests/reference/pairwise_proportions.py` (scipy 1.18
+`fisher_exact` and `chi2_contingency` per pair; 2 x 3 Fisher by brute-
+force enumeration of every table with the observed margins; statsmodels
+`multipletests` holm, fdr_bh, bonferroni), tested in
+`engine/tests/test_pairwise_proportions.py` to 1e-9:
+
+| Plan's acceptance: WT 18/20, Het 15/20, KO 5/20 | Test | Raw P | Holm P |
+| --- | --- | --- | --- |
+| WT vs Het | Fisher (expected 3.5) | 0.40748 | 0.40748 |
+| WT vs KO | chi-square, Yates | 0.00012396 | 0.00037188 |
+| Het vs KO | chi-square, Yates | 0.0044265 | 0.0088531 |
+
+Also four groups (six chi-square pairs) and a 3 x 3 table (three 2 x 3
+Fisher pairs), each with all three corrections. Swapping the outcome
+columns or reversing the rows changes no P. A row of zeros or a pair
+with every count in one outcome is not tested and leaves the family.
+
+Not done: the brackets on the contingency graphs. The graph draws its
+bars on a category axis with stacked segments, where the bracket layer
+(graph/apply.ts) can find neither the bar positions nor the stack tops;
+drawing them needs graph-layer work outside this task.
+
+### P-47 comparing two event rates
+
+`rates.compare_rates` (handler `rate_compare`; "Compare two event
+rates…" in the Analyze menu, File > Tools and the command palette): the
+exact conditional test of the rate ratio (binomial, given the total;
+Przyborowski & Wilenski 1940), the rate ratio with the exact conditional
+CI (Clopper-Pearson mapped by p / (1 − p) × T2 / T1) and each rate's
+exact Poisson CI (Garwood 1936), as R's `poisson.test`.
+
+Reference: `engine/tests/reference/event_rates.py` (statsmodels 0.15
+`test_poisson_2indep(method="exact-cond")`, `proportion_confint(method=
+"beta")`, `confint_poisson(method="exact-c")`), tested in
+`engine/tests/test_event_rates.py` to 1e-8:
+
+| Case | Rate ratio (95% CI) | P (two-sided) |
+| --- | --- | --- |
+| Plan's acceptance: 23 events in 10 h vs 41 in 12 h | 0.67317 (0.38560 to 1.14851) | 0.13351 |
+| R's `?poisson.test` example: 11 in 800 vs 21 in 3011 | 1.971488 (0.8584264 to 4.2772659) | 0.07967 |
+| 2 in 0.5 mm² vs 9 in 1.25 mm² | 0.55556 (0.058412 to 2.68410) | 0.73923 |
+
+The R help-page example matches the output printed there to every
+digit shown. Exposure in other units (hours to minutes, ×1e-12, ×1e12)
+leaves the ratio, its CI and P unchanged; swapping the groups inverts
+the ratio and swaps the one-sided P values. No events at all gives the
+rates and their CIs and says there is no test; no events in group 2
+gives an unbounded ratio, said in words.

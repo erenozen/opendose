@@ -1,0 +1,16 @@
+/* The equivalence block (EquivalenceResults.tsx): the verdict in the
+   results' semibold body, and the 90% CI drawn against the margin lines in
+   ink, the margins dashed, the line of no difference dotted. */
+.equivalence-results h4 { margin: var(--space-8) 0 var(--space-4); }
+.equivalence-verdict {
+  margin: 0 0 var(--space-6); font-size: var(--text-body);
+  font-weight: var(--weight-semibold); color: var(--ink);
+}
+.equivalence-figure { margin: 0 0 var(--space-8); }
+.equivalence-strip { display: block; width: 100%; max-width: 400px; height: auto; }
+.equivalence-key { color: var(--muted); font-size: var(--text-caption); max-width: 400px; }
+.equivalence-strip .eq-margin { stroke: var(--ink-2); stroke-width: 1.5; stroke-dasharray: 4 3; }
+.equivalence-strip .eq-zero { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 1 3; }
+.equivalence-strip .eq-ci { stroke: var(--ink); stroke-width: 2; }
+.equivalence-strip .eq-est { fill: var(--ink); }
+.equivalence-controls .source-line { display: block; margin-top: var(--space-4); }

@@ -13,6 +13,7 @@
 // (rows 1-2 are stratum 1, rows 3-4 stratum 2, ...), named "Stratum k".
 import { withExclusionsBlanked } from "../../project/table.ts";
 import type { DataTableModel } from "../../project/types.ts";
+import { equivalenceSpec, type EquivalenceMode } from "../../report/equivalence.ts";
 
 export type PropCI = "wilson_brown" | "wilson" | "clopper_pearson";
 export type DiffCI = "newcombe_cc" | "newcombe" | "asymptotic_cc";
@@ -58,6 +59,30 @@ export interface ContingencyOptions {
    *  "auto" within the engine's quick work budget, "large" with the
    *  larger budget (up to ~10 s). */
   fisherRxc: "auto" | "large";
+  /** Three or more rows: compare each pair of rows (engine
+   *  contingency.pairwise_rows) with this correction ("none" / absent =
+   *  off), by Fisher's test, chi-square, or the expected-count rule. */
+  pairwise?: PairwiseCorrection;
+  pairwiseTest?: "auto" | "fisher" | "chi_square";
+}
+
+export type PairwiseCorrection = "none" | "holm" | "bh" | "bonferroni";
+export const PAIRWISE_LABELS: Record<PairwiseCorrection, string> = {
+  none: "Off",
+  holm: "Holm (family-wise error)",
+  bh: "Benjamini-Hochberg (false discovery rate)",
+  bonferroni: "Bonferroni (family-wise error)",
+};
+export const PAIRWISE_TEST_LABELS: Record<"auto" | "fisher" | "chi_square", string> = {
+  auto: "Fisher when an expected count is below 5, else chi-square",
+  fisher: "Fisher's exact test for every pair",
+  chi_square: "Chi-square for every pair",
+};
+
+/** options.pairwise for the engine: rows named, three or more rows. */
+export function pairwiseOptions(c: Counts, o: ContingencyOptions): Record<string, unknown> {
+  if (!o.pairwise || o.pairwise === "none" || c.counts.length < 3) return {};
+  return { pairwise: { method: o.pairwise, test: o.pairwiseTest ?? "auto" }, row_names: c.rowTitles };
 }
 
 export const DEFAULT_CONTINGENCY: ContingencyOptions = {
@@ -122,6 +147,7 @@ export function contingencyPayload(c: Counts, o: ContingencyOptions): Payload | 
   }
   const r = c.counts.length, k = c.counts[0]?.length ?? 0;
   if (o.fisherRxc === "large" && (r > 2 || k > 2)) options.fisher_rxc = true;
+  Object.assign(options, pairwiseOptions(c, o));
   return { analysis: "contingency", data: { table: c.counts }, options };
 }
 
@@ -253,6 +279,10 @@ export interface ProportionOptions {
   diffCi: DiffCI;
   rrCi: RRCI;
   orCi: ORCI;
+  /** Two proportions: equivalence or non-inferiority of p1 - p2 by two
+   *  one-sided score tests (report/equivalence.ts; absent = off). */
+  equivalence?: EquivalenceMode;
+  equivalenceMargin?: string;
 }
 
 export const DEFAULT_PROPORTIONS: ProportionOptions = {
@@ -284,5 +314,13 @@ export function proportionPayload(c: Counts, o: ProportionOptions): Payload | { 
   const b = group(o.rowB);
   if (!b || o.rowA === o.rowB) return { error: "Choose two different rows to compare" };
   return { analysis: "proportion_test", data: { groups: [a, b] },
-    options: { ...common, diff_ci: o.diffCi, rr_ci: o.rrCi, or_ci: o.orCi } };
+    options: { ...common, diff_ci: o.diffCi, rr_ci: o.rrCi, or_ci: o.orCi,
+      ...proportionEquivalence(o) } };
+}
+
+/** options.equivalence of two proportions: a margin on the difference
+ *  p1 - p2 (nothing when off or while the margin is not a number). */
+export function proportionEquivalence(o: ProportionOptions): Record<string, unknown> {
+  const spec = equivalenceSpec(o.equivalence, o.equivalenceMargin, "difference");
+  return spec && !("error" in spec) ? { equivalence: spec } : {};
 }

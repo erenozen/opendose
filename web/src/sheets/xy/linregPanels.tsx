@@ -6,6 +6,9 @@ import { NumberField } from "../../components/ui";
 import CopyableMethods from "../common/CopyableMethods";
 import type { ControlsProps, ResultsProps } from "../types";
 import type { LinregBlock, LinregOptions } from "./linreg";
+import {
+  COMPARE_LINES_SOURCES, compareLinesMethods, compareLinesRows, usableCompare,
+} from "./compareLines";
 import "./xy.css";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -73,6 +76,12 @@ export function LinregControls({ options, onChange, readOnly }: ControlsProps<Li
           <input type="checkbox" checked={options.runsTest} disabled={readOnly}
             onChange={(e) => set({ runsTest: e.target.checked })} />
           <span>Runs test (departure from linearity)</span>
+        </label>
+        <label className="check-row">
+          <input type="checkbox" checked={!!options.compareLines && !options.throughOrigin}
+            disabled={readOnly || options.throughOrigin}
+            onChange={(e) => set({ compareLines: e.target.checked })} />
+          <span>Compare slopes and intercepts (two or more data sets)</span>
         </label>
         <label className="check-row">
           <span>X at these Y values</span>
@@ -216,10 +225,50 @@ function Card({ ds }: { ds: any }) {
   );
 }
 
+/** Are the slopes, then the intercepts, the same? (compareLines.ts) */
+function CompareLinesBlock({ c }: { c: any }) {
+  if (!c) return null;
+  if (!usableCompare(c)) {
+    return c.unavailable
+      ? <p className="model-line">Slopes and intercepts not compared: {String(c.unavailable)}.</p> : null;
+  }
+  return (
+    <div className="result-card compare-lines">
+      <h3>Compare slopes and intercepts</h3>
+      <div className="compare-table-wrap" role="region" aria-label="Compare slopes and intercepts" tabIndex={0}>
+      <table className="results-table goodness compare-lines-table">
+        <tbody>
+          {compareLinesRows(c).map((r) => (
+            <tr key={r.label} data-row={r.label}>
+              <th scope="row">{r.label}</th>
+              <td>{r.value}{r.note && <span className="compare-note"> {r.note}</span>}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      </div>
+      <p className="model-line">
+        First an F test of one common slope against a slope for each data set; only if the slopes
+        are not shown to differ does the second test, of the intercepts at the common slope, ask
+        whether one line could describe all the data (the analysis of covariance of the lines; Zar,
+        Biostatistical Analysis, ch. 18).{" "}
+        <span className="source-line">Source: {COMPARE_LINES_SOURCES.map((s) => (
+          <a key={s.url} href={s.url} target="_blank" rel="noreferrer">{s.label}</a>
+        ))}.</span>
+      </p>
+    </div>
+  );
+}
+
 export function LinregResults({ result }: ResultsProps<LinregOptions, any>) {
   if (!result) return null;
   if (result.error) return <div className="results-error">Analysis failed: {String(result.error)}</div>;
-  return <div className="results">{result.datasets.map((ds: any, i: number) => <Card key={i} ds={ds} />)}</div>;
+  return (
+    <div className="results">
+      {result.datasets.map((ds: any, i: number) => <Card key={i} ds={ds} />)}
+      <CompareLinesBlock c={result.compare_lines} />
+    </div>
+  );
 }
 
 export function LinregMethods({ options, result }: ResultsProps<LinregOptions, any>) {
@@ -247,6 +296,7 @@ export function LinregMethods({ options, result }: ResultsProps<LinregOptions, a
       : "simple linear regression (least squares)"}, each data set fitted separately with `
     + `replicates as individual points; the slope was tested against zero by the regression F test`
     + `${options.runsTest ? ", and departure from linearity by the runs test" : ""}. ${each}.${ciNote} `
+    + (usableCompare(result.compare_lines) ? `${compareLinesMethods(result.compare_lines)} ` : "")
     + softwareSentence(getRuntimeVersions());
   return <CopyableMethods text={text} />;
 }

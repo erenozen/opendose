@@ -90,7 +90,7 @@ function Item({ item }: { item: KeyItem }) {
       </dt>
       {f.demoted && <dd className="answer-reason"><NumText text={f.demoted} /></dd>}
       <dd className="answer-figure">
-        <Num>{f.value}</Num>
+        {f.words ? <NumText text={f.value} /> : <Num>{f.value}</Num>}
         {f.note && <span className="answer-note"> ({f.note})</span>}
       </dd>
       {f.ci && <dd className="answer-ci"><NumText text={f.ci} /></dd>}

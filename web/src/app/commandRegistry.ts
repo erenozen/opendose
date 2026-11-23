@@ -18,6 +18,7 @@ import { familyChildren, familyRootId, findSheet } from "../project/ops";
 import type { Sheet } from "../project/types";
 import { analysisDef, tableDef } from "../sheets/registry";
 import { openPowerTool } from "../power/events";
+import { openRatesTool } from "../rates/events";
 import {
   exportBundle, exportPzfxFile, openPptxExport, openReplay, openShareLink,
 } from "../share/events";
@@ -139,6 +140,8 @@ export function useCommandRegistry(): Command[] {
         keywords: "n sample size calculator", run: () => openPowerTool("power") },
       { id: "random", label: "Randomisation list…", group: "tools",
         keywords: "randomization allocation blinding", run: () => openPowerTool("random") },
+      { id: "rates", label: "Compare two event rates…", group: "tools",
+        keywords: "poisson rate ratio counts exposure incidence events per hour", run: () => openRatesTool() },
       // ---- view
       ...(["auto", "light", "dark"] as const).map((t): Command => ({
         id: `theme-${t}`, group: "theme", checked: prefs.theme === t,

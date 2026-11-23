@@ -4,6 +4,7 @@ import { useCommands } from "../app/commands";
 import {
   GROUP_LABELS, modKey, onShellRequest, useCommandRegistry, type Command, type CommandGroup,
 } from "../app/commandRegistry";
+import { openRatesTool } from "../rates/events";
 import { useProject } from "../app/context";
 import { useUi } from "../app/ui";
 import { familyChildren, familyRootId, findSheet, setTitle } from "../project/ops";
@@ -230,6 +231,11 @@ export default function Header({ onOpenFile, onNewProject, inert }: {
                     {a.label}
                   </Menu.Item>
                 ))}
+                <Menu.Separator />
+                <Menu.Item onSelect={() => openRatesTool()}
+                  description="Counts over different exposures (per hour, per mm², per 10⁶ cells): each rate, the rate ratio and the exact test.">
+                  Compare two event rates…
+                </Menu.Item>
                 {assays.length > 0 && <>
                   <Menu.Separator />
                   <Menu.Group label="Assays">

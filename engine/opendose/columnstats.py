@@ -549,19 +549,34 @@ def column_statistics(values, *, hypothetical=None, ci_level=0.95,
                       normality=None, zero_method: str = "wilcox",
                       ratio_t: bool = False, extras: bool = False,
                       percentile_method: str = "linear",
-                      trim_k=None, lognormality_tests: bool = False) -> dict:
+                      trim_k=None, lognormality_tests: bool = False,
+                      equivalence=None) -> dict:
     """Full Prism Column Statistics for one dataset column. Optional
     (default off, so the original output is unchanged): normality = list
     of normality tests (adds "kolmogorov_smirnov"), zero_method for the
     Wilcoxon signed rank test, ratio_t (one-sample ratio t test),
     extras (descriptive_extras), percentile_method for the quartiles,
     lognormality_tests (lognormality(): the same tests on the logarithms
-    and the normal vs lognormal comparison)."""
+    and the normal vs lognormal comparison). equivalence = (lower, upper,
+    alpha) margins of the discrepancy mean - hypothetical (either margin
+    may be None: non-inferiority): adds "equivalence", the two one-sided
+    tests (ttests.tost; statsmodels DescrStatsW.ttost_mean)."""
     out = {"descriptive": describe(values, ci_level,
                                    percentile_method=percentile_method),
            "normality": normality_tests(values, normality)}
     if hypothetical is not None and out["descriptive"].get("n", 0) >= 2:
         out["one_sample_t"] = one_sample_t(values, hypothetical, ci_level)
+        if equivalence is not None:
+            from .ttests import tost
+            arr = _clean(values)
+            lo, hi, alpha = equivalence
+            try:
+                out["equivalence"] = tost(
+                    out["one_sample_t"]["discrepancy"],
+                    float(arr.std(ddof=1)) / math.sqrt(arr.size),
+                    arr.size - 1, lo, hi, alpha=alpha)
+            except ValueError as exc:
+                out["equivalence"] = {"unavailable": str(exc)}
         try:
             out["wilcoxon"] = wilcoxon_signed_rank(
                 values, hypothetical, zero_method=zero_method,

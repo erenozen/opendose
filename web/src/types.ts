@@ -430,6 +430,12 @@ export interface ColumnOptionsState {
   comparisonsFamily?: "all" | "control" | "pairs";
   /** The planned pairs [i, j] of data set indices (comparisonsFamily "pairs"). */
   plannedPairs?: [number, number][];
+  /** t tests and the one-sample t test: two one-sided tests against an
+   *  equivalence margin, or one for non-inferiority (report/equivalence.ts;
+   *  absent = off). The margin is typed: data units, or a ratio for tests
+   *  on the log scale. */
+  equivalence?: "off" | "equivalence" | "noninferior_higher" | "noninferior_lower";
+  equivalenceMargin?: string;
   /** Unpaired / Welch t test and ordinary one-way ANOVA on log10(values):
    *  geometric means and ratios of geometric means (sheets/column/logScale.ts). */
   logScale?: boolean;

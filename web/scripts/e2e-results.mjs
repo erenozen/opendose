@@ -2,8 +2,10 @@
 // residual plots for curve fits and ANOVA models in the Checks row (P-11),
 // the smallest P a rank test can reach (P-15), the "Analysed" line of
 // regression, Cox and contingency results (P-16) and the ratio to control
-// with its Fieller CI (P-18). Each number asserted here is pinned in the
-// engine tests from an independent reference (engine/tests/reference/).
+// with its Fieller CI (P-18); and the tests of wave 1: equivalence (P-12),
+// comparing regression lines (P-13), pairs of rows of a contingency table
+// (P-14) and two event rates (P-47). Each number asserted here is pinned in
+// the engine tests from an independent reference (engine/tests/reference/).
 // Usage: node scripts/e2e-results.mjs [http://localhost:5173/]
 import { chromium } from "playwright";
 import { readFileSync } from "node:fs";
@@ -234,6 +236,174 @@ await page.waitForSelector('.pane-results[data-live="true"] .results-table', { t
       && rows[0] === "Low vs. Control 0.924 92.4% 0.8491 to 1.005"
       && rows[1] === "Mid vs. Control 0.8067 80.67% 0.7396 to 0.8791"
       && rows[2] === "High vs. Control 0.65 65% 0.5839 to 0.7204", rows.join(" | "));
+}
+
+// --- P-12: equivalence and non-inferiority (two one-sided tests) ----------
+{
+  // engine/tests/reference/equivalence_tost.py (statsmodels ttost_ind):
+  // means 10.2 and 10.0, SD 0.5, n = 8 each; 90% CI -0.2403 to 0.6403;
+  // margin ±1: P_TOST 0.003210 (equivalent); ±0.5: 0.1250 (not shown)
+  await pastedTable("column", "Equivalence",
+    "A\tB\n10.8\t10.6\n10.75\t10.55\n10.55\t10.35\n10.5\t10.3\n9.6\t9.4\n9.65\t9.45\n9.85\t9.65\n9.9\t9.7\n");
+  const controls = page.locator(".pane-controls");
+  await controls.locator("select.analysis-select").selectOption("ttest");
+  await liveResults(/Difference between means/);
+  await controls.getByLabel("Equivalence test").selectOption("equivalence");
+  await controls.getByLabel(/^Margin/).fill("1");
+  const ok1 = await answerText(/Equivalent within ±1/);
+  const fig = (await page.locator(".pane-answer .answer-figure").first().innerText().catch(() => "")).trim();
+  const ciLine = (await page.locator(".pane-answer .answer-ci").first().innerText().catch(() => "")).trim();
+  expect("P-12 acceptance: the answer pane says 'Equivalent within ±1'",
+    ok1 && fig === "Equivalent within ±1", fig);
+  expect("P-12 the 90% CI in the headline is -0.2403 to 0.6403 (statsmodels reference)",
+    ciLine === "90% CI -0.2403 to 0.6403", ciLine);
+  const row = async (label) => (await page.locator(".pane-results .equivalence-table tr", { hasText: label }).first()
+    .innerText().catch(() => "")).replace(/\s+/g, " ").trim();
+  const ptost = await row("P (TOST");
+  expect("P-12 P (TOST) 0.003210 at ±1", /^P \(TOST, the larger one-sided P\) 0\.00321\d?$/.test(ptost), ptost);
+  const lowT = await row("Null hypothesis A − B ≤ -1");
+  expect("P-12 the lower one-sided test: t = 4.8, P = 1.413e-4",
+    lowT === "Null hypothesis A − B ≤ -1 t = 4.8, P = 1.413e-4", lowT);
+  // the CI drawn inside the margin lines
+  const geom = await page.locator(".pane-results .equivalence-strip").first().evaluate((svg) => {
+    const m = [...svg.querySelectorAll(".eq-margin")].map((l) => Number(l.getAttribute("x1")));
+    const c = svg.querySelector(".eq-ci");
+    return { m, lo: Number(c.getAttribute("x1")), hi: Number(c.getAttribute("x2")) };
+  }).catch(() => null);
+  expect("P-12 the 90% CI sits inside the margin lines",
+    !!geom && geom.m.length === 2 && geom.m[0] < geom.lo && geom.hi < geom.m[1], JSON.stringify(geom));
+  await openChecks();
+  expect("P-12 the Checks row names the margin and asks when it was set",
+    await appears(page.locator(".pane-answer").getByText("Equivalence margin ±1: set before looking at the data?")));
+
+  await controls.getByLabel(/^Margin/).fill("0.5");
+  const ok2 = await answerText(/Not shown to be equivalent/);
+  const p2 = await (async () => { await liveResults(/±0\.5/); return row("P (TOST"); })();
+  expect("P-12 acceptance: margin ±0.5 reads 'Not shown to be equivalent', P (TOST) 0.125",
+    ok2 && /0\.125\d*$/.test(p2), p2);
+  const reading = await page.locator(".pane-results .equivalence-results .model-line").first().innerText().catch(() => "");
+  expect("P-12 a failed TOST is not read as a difference",
+    /does not show that the groups differ/.test(reading) && !/significantly different/.test(reading), reading.slice(0, 120));
+  await controls.getByLabel("Equivalence test").selectOption("off");
+}
+
+// --- P-13: compare slopes and intercepts of regression lines ------------
+{
+  // engine/tests/reference/compare_lines.py, "parallel" (statsmodels OLS:
+  // anova_lm of y ~ x + g vs y ~ x * g, then y ~ x vs y ~ x + g)
+  /** An XY table with one Y column per data set (the default has three
+   *  replicate subcolumns), from pasted text. */
+  const pastedXY = async (name, text) => {
+    await fileMenu("New data table…");
+    const nd = page.locator(".new-table-dialog");
+    await nd.locator('input[name="table-type"][value="xy"]').check();
+    await nd.getByLabel("Table name").fill(name);
+    await nd.locator(".field-num input").nth(1).fill("1");
+    await nd.getByRole("button", { name: "Create table" }).click();
+    await page.waitForSelector(".grid-toolbar");
+    await page.getByRole("button", { name: "Import…", exact: true }).click();
+    const imp = page.locator(".import-dialog");
+    await imp.getByLabel("Pasted text").check();
+    await imp.getByLabel("Text to import").fill(text);
+    const titles = imp.getByLabel(/holds column titles/);
+    if (!(await titles.isChecked())) await titles.check();
+    await imp.getByRole("tab", { name: "Placement" }).click();
+    await imp.getByLabel(/In place of the table/).check();
+    await imp.getByRole("button", { name: "Import", exact: true }).click();
+    await imp.waitFor({ state: "detached", timeout: 30000 });
+  };
+  await pastedXY("Two lines",
+    "X\tControl\tTreated\n1\t3.1\t6.0\n2\t5.2\t7.7\n3\t6.8\t10.1\n4\t9.1\t11.8\n5\t11.0\t14.2\n6\t12.7\t15.9\n7\t15.2\t17.8\n8\t16.9\t20.1\n");
+  await page.getByRole("button", { name: "Analyze", exact: true }).click();
+  await page.getByRole("menuitem", { name: /^Linear regression/ }).click();
+  await liveResults(/Slope/);
+  await page.locator(".pane-controls").getByLabel("Compare slopes and intercepts (two or more data sets)").check();
+  const block = page.locator(".pane-results .compare-lines-table");
+  const shown = await appears(block, 60000);
+  const cell = async (label) => (await block.locator(`tr[data-row="${label}"] td`).first()
+    .innerText().catch(() => "")).replace(/\s+/g, " ").trim();
+  const slopes = shown ? await cell("Are the slopes equal?") : "";
+  expect("P-13 slope F test: F (1, 12) = 0.644, P = 0.4379, not shown to differ",
+    slopes === "F (1, 12) = 0.644, P = 0.4379 The slopes are not shown to differ.", slopes);
+  const common = await cell("Common slope (parallel lines)");
+  expect("P-13 common slope 1.995 (95% CI 1.951 to 2.039)",
+    common === "1.995 95% CI 1.951 to 2.039", common);
+  const diff = await cell("Slope difference (Control − Treated)");
+  expect("P-13 slope difference -0.03333 (95% CI -0.1238 to 0.05717)",
+    diff === "-0.03333 95% CI -0.1238 to 0.05717", diff);
+  const elev = await cell("Are the intercepts equal?");
+  expect("P-13 intercept test F (1, 13) = 987.9, P < 0.0001, lines parallel at different heights",
+    elev === "F (1, 13) = 987.9, P < 0.0001 The lines are parallel but at different heights.", elev);
+  // diverging lines: the intercept test is said not to be meaningful
+  await pastedXY("Diverging lines",
+    "X\tA\tB\n0\t1.2\t0.8\n2\t2.9\t4.1\n4\t5.1\t8.2\n6\t7.2\t11.9\n8\t8.8\t16.2\n10\t11.1\t19.7\n");
+  await page.getByRole("button", { name: "Analyze", exact: true }).click();
+  await page.getByRole("menuitem", { name: /^Linear regression/ }).click();
+  await liveResults(/Slope/);
+  await page.locator(".pane-controls").getByLabel("Compare slopes and intercepts (two or more data sets)").check();
+  await appears(block, 60000);
+  const d1 = await cell("Are the slopes equal?");
+  const d2 = await cell("Are the intercepts equal?");
+  expect("P-13 diverging: slopes differ (F (1, 8) = 621.5) and the intercept test is flagged",
+    /^F \(1, 8\) = 621\.5, P < 0\.0001 The slopes differ\.$/.test(d1) && /Not meaningful: the slopes differ/.test(d2),
+    `${d1} | ${d2}`);
+}
+
+// --- P-14: pairwise comparisons of rows after an r x c test -------------
+{
+  // engine/tests/reference/pairwise_proportions.py: scipy per pair,
+  // statsmodels multipletests("holm"); the plan's acceptance data
+  await pastedTable("contingency", "Genotypes",
+    "Genotype\tPositive\tNegative\nWT\t18\t2\nHet\t15\t5\nKO\t5\t15\n");
+  await liveResults(/Chi-square/);
+  await page.locator(".pane-controls").getByLabel("Correction").selectOption("holm");
+  const table = page.locator(".pane-results .pairwise-table");
+  const shown = await appears(table, 60000);
+  const rows = shown ? (await table.locator("tbody tr").allInnerTexts()).map((t) => t.replace(/\s+/g, " ").trim()) : [];
+  expect("P-14 three comparisons with the test each used, raw and Holm-adjusted P",
+    rows.length === 3
+      && rows[0] === "WT vs. Het 0.9 vs. 0.75 Fisher's exact (an expected count below 5) 0.4075 0.4075 No"
+      && rows[1] === "WT vs. KO 0.9 vs. 0.25 Chi-square with Yates' correction (every expected count 5 or more) 1.240e-4 3.719e-4 Yes"
+      && rows[2] === "Het vs. KO 0.75 vs. 0.25 Chi-square with Yates' correction (every expected count 5 or more) 0.004427 0.008853 Yes",
+    rows.join(" | "));
+  const fam = await page.locator(".pane-results .pairwise-rows .family-line").first().innerText().catch(() => "");
+  expect("P-14 the family line: 3 comparisons, Holm",
+    fam.startsWith("P values adjusted for 3 comparisons (Holm): all pairs of 3 rows."), fam);
+}
+
+// --- P-47: compare two event rates ----------------------------------------
+{
+  // engine/tests/reference/event_rates.py: statsmodels test_poisson_2indep
+  // (exact-cond) and the Clopper-Pearson interval of 23 / 64
+  await page.getByRole("button", { name: "Analyze", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Compare two event rates…" }).click();
+  const dlg = page.getByRole("dialog", { name: "Compare two event rates" });
+  expect("P-47 the Analyze menu opens the rates calculator", await appears(dlg));
+  await dlg.getByLabel("Exposure unit").fill("hours");
+  await dlg.getByLabel("Events in group 1").fill("23");
+  await dlg.getByLabel("Exposure of group 1").fill("10");
+  await dlg.getByLabel("Events in group 2").fill("41");
+  await dlg.getByLabel("Exposure of group 2").fill("12");
+  const table = dlg.locator(".rates-table");
+  await appears(table, 60000);
+  const row = async (label) => (await table.locator("tr", { hasText: label }).first().innerText().catch(() => ""))
+    .replace(/\s+/g, " ").trim();
+  const ratio = await row("Rate ratio");
+  expect("P-47 acceptance: rate ratio 0.6732 (0.3856 to 1.149)",
+    ratio === "Rate ratio Group 1/Group 2 (exact conditional 95% CI) 0.6732 (0.3856 to 1.149)", ratio);
+  const p = await row("P value, exact conditional test");
+  expect("P-47 acceptance: exact P = 0.1335", p === "P value, exact conditional test (two-tailed) P = 0.1335", p);
+  const r1 = await row("Rate of Group 1");
+  expect("P-47 the exact CI of one rate: 2.3 per hour (1.458 to 3.451)",
+    r1 === "Rate of Group 1 (per hour, exact 95% CI) 2.3 (1.458 to 3.451); 23 events in 10", r1);
+  await dlg.getByRole("button", { name: "Done" }).click();
+  // the palette finds it too
+  await page.keyboard.press("Control+k");
+  const palette = page.getByRole("combobox", { name: "Find a command or sheet" });
+  await palette.fill("event rates");
+  const opt = page.getByRole("option", { name: /Compare two event rates/ });
+  expect("P-47 Ctrl+K finds 'Compare two event rates…'", await appears(opt, 10000));
+  await page.keyboard.press("Escape");
 }
 
 // ------------------------------------------------------------------------
