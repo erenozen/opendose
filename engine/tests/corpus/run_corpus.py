@@ -3580,6 +3580,7 @@ qPCR LoD95 from an own probit maximum-likelihood fit on log10 copies
 (scipy.optimize Nelder-Mead on the binomial log-likelihood, not the
 statsmodels GLM above) is 26.168 copies. All equal the engine.
 
+
 ## Feature validation: Prism Info sheets round trip (2026-11-23)
 
 ### P-59 .pzfx Info sheets: constants, notes and the analysis plan
