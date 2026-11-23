@@ -80,7 +80,7 @@ export default function SurvivalAside(props: AsideProps) {
       {used.some((g) => g.otherCodes.length > 0) && <p className="hint-block">Event codes must be 1 (event) or 0 (censored); these rows are left out of the analysis.</p>}
       {used.some((g) => g.incomplete > 0) && <p className="hint-block">Each subject needs a time and an event code.</p>}
       {showRows && used.length > 0 && (
-        <div className="surv-readas" tabIndex={0} aria-label="Read as: every row">
+        <div className="surv-readas" role="region" tabIndex={0} aria-label="Read as: every row">
           {used.map((g) => (
             <div key={g.name}>
               <h5>{g.name}</h5>

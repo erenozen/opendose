@@ -4,6 +4,7 @@ import { analyzeAsync } from "../lib/engine";
 import { newId } from "../project/ids";
 import { parseProjectFile, savedSelection } from "../project/persist";
 import type { Project } from "../project/types";
+import { isExampleProject } from "../guide/firstRun";
 import { useProject } from "./context";
 import { prepareReproduceCheck } from "./reproduceCheck";
 import { prismTableToFamily, type PrismTable } from "./factory";
@@ -90,9 +91,17 @@ export function useFileOpen(into?: (p: Project) => Project) {
       }
       const text = await file.text();
       const project = parseProjectFile(text, { prefs: store.project.prefs, ids: newId });
+      // Opening replaces the project and its undo history (and the
+      // autosave soon after): the project it closes comes back with Undo,
+      // unless nothing would be lost (no data tables, or the example).
+      const before = store.project;
+      const worth = before.sheets.some((s) => s.kind === "data") && !isExampleProject(before);
       // Saved by another build: recompute and compare (stable-results-versions).
       replace(prepareReproduceCheck(text, project, file.name), savedSelection(text));
-      notify(`Opened “${file.name}”.`, { tone: "success", id: TOAST_ID });
+      notify(`Opened “${file.name}”.`, {
+        tone: "success", id: TOAST_ID,
+        action: worth ? { label: "Undo", onAction: () => replace(before) } : undefined,
+      });
     } catch (e) {
       notify(`Could not open “${file.name}”: ${String(e instanceof Error ? e.message : e).replace(/\.$/, "")}.`, {
         tone: "error", id: TOAST_ID,

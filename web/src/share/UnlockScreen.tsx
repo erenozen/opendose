@@ -12,10 +12,13 @@ export default function UnlockScreen({ onDone }: { onDone: () => void }) {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [tries, setTries] = useState(0);
+  const problem = error ? `Could not open the shared project: ${error}.` : "";
 
   const open = async (e: FormEvent) => {
     e.preventDefault();
     if (!password || busy) return;
+    setTries((n) => n + 1);
     setBusy(true);
     setError("");
     try {
@@ -46,12 +49,14 @@ export default function UnlockScreen({ onDone }: { onDone: () => void }) {
         </p>
         {/* The page exists to take this password: focus it, but not on touch,
             where the keyboard would cover the explanation (forms.md). */}
-        <Field label="Password">
+        {/* The reason sits under the field, in its description; the app's
+            announcer is not mounted yet, so this page speaks it itself. */}
+        <Field label="Password" error={problem || null} submitCount={tries}>
           <Input type="password" autoFocus={!coarsePointer()} autoComplete="off" spellCheck={false}
-            value={password} aria-invalid={error ? true : undefined}
+            value={password}
             onChange={(e) => { setPassword(e.target.value); setError(""); }} />
         </Field>
-        {error && <p className="unlock-error" role="alert">Could not open the shared project: {error}.</p>}
+        <p className="sr-only" role="alert">{problem}</p>
         <div className="unlock-actions">
           <Button onClick={skip}>Open OpenDose without it</Button>
           <Button type="submit" variant="primary" disabled={!password} busy={busy}

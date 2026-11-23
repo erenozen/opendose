@@ -4,6 +4,7 @@ import { useProject } from "../app/context";
 // is only called from an event handler, never while modules evaluate.
 import { addFamily } from "../app/factory";
 import Modal from "../components/Modal";
+import { useDiscardGuard } from "../graph/useDiscardGuard";
 import { Button, FileButton, notify, Tabs } from "../components/ui";
 import { SRC } from "../guide/sources";
 import { readXlsx, type XlsxSheet } from "../lib/engine";
@@ -217,10 +218,14 @@ export default function RecipeDialog({ initialText, initialFiles, savedId, stage
     : `${n} record${n === 1 ? "" : "s"}${out && cfg?.aggregate && out.steps.length
       ? ` → ${out.aggregated.rows.length} after aggregation` : ""}`;
   const recipeSaved = saved.list.filter((e) => e.spec.kind === "recipe");
+  // Data read in, or a paste edited: Escape or the backdrop asks before
+  // dropping it (forms.md). Cancel stays a close.
+  const guardedClose = useDiscardGuard(!!staged || pasted !== (initialText ?? ""), onClose,
+    "The data read into this dialog and the recipe settings are not kept.");
 
   return (
     <Modal title={title ?? "Import with a recipe"} className="modal-wide recipe-dialog"
-      onClose={onClose} onSubmit={create}
+      onClose={guardedClose} onSubmit={create}
       actions={
         <>
           {onBack && <Button className="spacer" onClick={onBack}>Back to plain import</Button>}
@@ -640,7 +645,7 @@ function PatternBuilder({ staging, pattern, onChange }: {
               </div>
             ))}
           </div>
-          <div className="import-preview" aria-label="How the names split">
+          <div className="import-preview" role="region" aria-label="How the names split">
             <table>
               <thead>
                 <tr>
@@ -773,7 +778,7 @@ function AggregatePanel({ cfg, records, units, subjectName, onChange }: {
 function StagingPreview({ staging }: { staging: Staging }) {
   if (!staging.rows.length) return null;
   return (
-    <div className="import-preview" tabIndex={0} aria-label="Staged records">
+    <div className="import-preview" role="region" tabIndex={0} aria-label="Staged records">
       <table>
         <thead>
           <tr>
@@ -805,7 +810,7 @@ function TablePreview({ table }: { table: DataTableModel }) {
   if (!m.length) return null;
   const heads = m[0];
   return (
-    <div className="import-preview" tabIndex={0} aria-label="The table to be created">
+    <div className="import-preview" role="region" tabIndex={0} aria-label="The table to be created">
       <table>
         <thead>
           <tr>{heads.map((h, i) => <th key={i}>{h}</th>)}</tr>

@@ -218,7 +218,7 @@ export default function ConvertTypeDialog({ table, name, onCreate, onClose }: {
       )}
       </div>
       {preview && (
-        <div className="convert-preview" tabIndex={0} aria-label="Preview of the new table">
+        <div className="convert-preview" role="region" tabIndex={0} aria-label="Preview of the new table">
           <table>
             <thead>
               <tr>{preview.head.map((h, i) => <th key={i} scope="col">{h}</th>)}</tr>

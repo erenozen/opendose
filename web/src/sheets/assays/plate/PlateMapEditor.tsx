@@ -301,7 +301,7 @@ export default function PlateMapEditor({ format, wells, unit, values, onChange }
         </div>
       </div>
 
-      <div className="plate-legend" aria-label="Plate map summary">
+      <div className="plate-legend" role="group" aria-label="Plate map summary">
         <span>{counts.blank} blank</span>
         <span>{counts.negative} vehicle</span>
         <span>{counts.positive} kill / positive</span>

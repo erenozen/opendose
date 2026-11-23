@@ -191,7 +191,7 @@ export default function SurvivalEntryDialog({ table, onApply, onClose, initialMo
       {ok && (
         <>
           {ok.notes.map((n) => <p key={n} className="field-note">{n}</p>)}
-          <div className="surv-entry-preview" tabIndex={0} aria-label="Preview: how each subject is read">
+          <div className="surv-entry-preview" role="region" tabIndex={0} aria-label="Preview: how each subject is read">
             <table>
               <thead><tr><th>Group</th><th>Time</th><th>Event</th><th>Read as</th></tr></thead>
               <tbody>

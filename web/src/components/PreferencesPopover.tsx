@@ -216,12 +216,12 @@ export default function PreferencesPopover({ open, onOpenChange, anchor }: {
                 and the offline copy of the app, which holds no data.
               </p>
               <div className="prefs-confirm-actions">
-                <button type="button" onClick={() => setForget("")} disabled={forget === "busy"}>
+                <Button onClick={() => setForget("")} disabled={forget === "busy"}>
                   Cancel
-                </button>
+                </Button>
                 <Button variant="danger" onClick={() => { void forgetNow(); }}
-                  disabled={forget === "busy"}>
-                  {forget === "busy" ? "Forgetting…" : "Forget and close the project"}
+                  busy={forget === "busy"} busyLabel="Forgetting…">
+                  Forget and close the project
                 </Button>
               </div>
             </div>
