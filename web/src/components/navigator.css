@@ -81,8 +81,9 @@
 .twisty::before {
   content: ""; border-left: 5px solid currentColor;
   border-top: 4px solid transparent; border-bottom: 4px solid transparent;
-  transition: transform var(--dur-base) var(--ease-out);
 }
+/* No rotation tween: folding is a many-times-a-minute action, often by
+   arrow key, and the rows change in one frame (motion.md). */
 .twisty.open::before { transform: rotate(90deg); }
 .sheet-icon { flex: none; color: var(--muted); }
 .nav-item.selected > .nav-row .sheet-icon { color: var(--accent); }
@@ -137,16 +138,22 @@
 
 /* At 900px and below the navigator is a drawer and a modal dialog
    (Navigator.tsx): the page behind is inert, the scrim takes a press,
-   Escape returns focus to the toggle. Drawer and scrim share one timing. */
+   Escape returns focus to the toggle. Drawer and scrim share one curve
+   and duration: in 260 ms, out 200 ms (exits 20-30% faster, ruling 3).
+   Opened or closed from the keyboard, both move at once (App.tsx sets
+   data-drawer-instant). Reduced motion: the drawer fades in place. */
 .nav-scrim { display: none; }
 @media (max-width: 900px) {
   .nav-scrim {
     display: block;
     position: fixed; inset: 0; z-index: calc(var(--z-drawer) - 1); background: var(--scrim);
     opacity: 0; pointer-events: none;
-    transition: opacity var(--dur-drawer) var(--ease-drawer);
+    transition: opacity var(--dur-drawer-exit) var(--ease-drawer);
   }
-  .nav-scrim[data-open] { opacity: 1; pointer-events: auto; }
+  .nav-scrim[data-open] {
+    opacity: 1; pointer-events: auto;
+    transition-duration: var(--dur-drawer);
+  }
   .navigator, .navigator.nav-collapsed {
     display: flex;
     position: fixed; top: 0; left: 0; bottom: 0; z-index: var(--z-drawer);
@@ -160,15 +167,25 @@
     border: none;
     box-shadow: var(--elev-dialog);
     transform: translateX(-105%); visibility: hidden;
-    transition: transform var(--dur-drawer) var(--ease-drawer), visibility 0s linear var(--dur-drawer);
+    transition: transform var(--dur-drawer-exit) var(--ease-drawer),
+      opacity var(--dur-drawer-exit) var(--ease-drawer),
+      visibility 0s linear var(--dur-drawer-exit);
   }
   /* transform: none, not translateX(0): a transformed drawer would be the
      containing block of the fixed menus inside it (SH-15). */
   .navigator.drawer-open {
     transform: none; visibility: visible;
-    transition: transform var(--dur-drawer) var(--ease-drawer), visibility 0s;
+    transition: transform var(--dur-drawer) var(--ease-drawer),
+      opacity var(--dur-drawer) var(--ease-drawer), visibility 0s;
   }
+  .shell[data-drawer-instant] :is(.navigator, .nav-scrim) { transition: none; }
   .nav-head, .nav-close { display: flex; }
+}
+/* base.css drops the slide; the drawer stays in place and fades with
+   its scrim instead of popping. */
+@media (max-width: 900px) and (prefers-reduced-motion: reduce) {
+  .navigator, .navigator.nav-collapsed { transform: none; opacity: 0; }
+  .navigator.drawer-open { opacity: 1; }
 }
 /* Touch: rows are 44px, the ⋯ menu and the twisty keep a 44px hit area
    (SH-04). */

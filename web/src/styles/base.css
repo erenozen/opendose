@@ -109,11 +109,14 @@ button, [role="button"] {
    transform change (slide, scale, drawer) applies at once while its fade
    still plays. The duration tokens shorten to 150 ms or less
    (tokens.css). Keyframe entrances switch to `fade-in` and loops stop
-   where they are defined. */
+   where they are defined. The list replaces each element's own, and its
+   durations repeat over it, so every property named here gains a fade
+   on any element that transitions anything: outline-color is left out,
+   so a focus ring moved by the keyboard still lands at once. */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     transition-property: opacity, color, background-color, border-color,
-      outline-color, box-shadow, fill, stroke, visibility !important;
+      box-shadow, fill, stroke, visibility !important;
   }
 }
 

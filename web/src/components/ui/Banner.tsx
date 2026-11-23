@@ -13,20 +13,21 @@
 //
 // The root is a region named by its title (or by aria-label). A banner
 // never takes focus; `announce` speaks its title once when it appears.
-// Closing (open=false) plays a 150 ms exit before unmounting; the content
-// below then closes the gap at once (no height animation).
+// Closing (open=false) plays a 150 ms exit before unmounting (at once when
+// dismissed from the keyboard); the content below then closes the gap at
+// once (no height animation).
 import {
-  createContext, useContext, useEffect, useId, useRef, useState,
+  createContext, useContext, useEffect, useId, useRef,
   type HTMLAttributes, type ReactNode, type Ref,
 } from "react";
 import { announce } from "./Announcer.store";
 import { CloseIcon, ToneIcon } from "./feedbackIcons";
 import { IconButton } from "./IconButton";
+import { usePresence } from "./useDismiss";
 import "./Banner.css";
 
 export type BannerTone = "neutral" | "info" | "warn" | "error" | "success";
 
-const EXIT_MS = 150;
 const Ctx = createContext<{ titleId: string } | null>(null);
 
 export interface BannerProps extends Omit<HTMLAttributes<HTMLElement>, "title"> {
@@ -43,32 +44,20 @@ export interface BannerProps extends Omit<HTMLAttributes<HTMLElement>, "title"> 
   ref?: Ref<HTMLElement>;
 }
 
-function usePresence(open: boolean): { mounted: boolean; closing: boolean } {
-  const [mounted, setMounted] = useState(open);
-  const [closing, setClosing] = useState(false);
-  // Derived during render: opening mounts at once.
-  if (open && !mounted) setMounted(true);
-  if (open && closing) setClosing(false);
-  if (!open && mounted && !closing) setClosing(true);
-  useEffect(() => {
-    if (!closing) return;
-    const t = setTimeout(() => { setMounted(false); setClosing(false); }, EXIT_MS);
-    return () => clearTimeout(t);
-  }, [closing]);
-  return { mounted, closing };
-}
-
 export function Banner({
   tone = "neutral", open = true, icon, onDismiss, dismissLabel = "Dismiss",
   announce: speak = false, className, children, ref, ...props
 }: BannerProps) {
   const titleId = useId();
-  const { mounted, closing } = usePresence(open);
+  // The shared presence hook (useDismiss): the exit lasts as long as the
+  // transitions it starts, and a keyboard dismiss removes it at once.
+  const root = useRef<HTMLElement | null>(null);
+  const { mounted, state } = usePresence(open, root);
+  const closing = state === "closed";
   // While leaving, show what was there (callers often clear the content
   // together with `open`).
   const last = useRef(children);
   if (open) last.current = children;
-  const root = useRef<HTMLElement | null>(null);
   const spoken = useRef(false);
   useEffect(() => {
     if (!mounted) { spoken.current = false; return; }

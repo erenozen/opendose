@@ -135,4 +135,4 @@
   opacity: 1; transform: translateY(0);
   @starting-style { opacity: 0; transform: translateY(8px); }
 }
-.pane-results.reveal { transition-delay: 80ms; }
+.pane-results.reveal { transition-delay: var(--dur-stagger); }

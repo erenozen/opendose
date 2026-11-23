@@ -1,10 +1,10 @@
 // Help panel (Ctrl/Cmd+/): searchable explainers, the guided tour, the
 // "Which test?" wizard, the start screen and the keyboard shortcuts.
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type Ref } from "react";
 import { Button } from "../components/ui/Button";
 import { IconButton } from "../components/ui/IconButton";
 import {
-  coarsePointer, lastInputWasKeyboard, pushLayer, restoreFocus,
+  coarsePointer, pushLayer, restoreFocus, useMergedRefs,
 } from "../components/ui/useDismiss";
 import { explainer, searchExplainers } from "./explainers";
 import { ExplainerBody } from "./LearnMore";
@@ -30,13 +30,20 @@ const SHORTCUTS: [string, string][] = [
   ["F2", "Rename the selected sheet"],
 ];
 
-export default function HelpPanel({ initial, onClose, onWizard, onTour, onExample }: {
+export default function HelpPanel({
+  open, instant, initial, onClose, onWizard, onTour, onExample, ref,
+}: {
+  /** False while the panel plays its exit (GuideProvider keeps it mounted). */
+  open: boolean;
+  /** Opened from the keyboard (Ctrl/Cmd+/): no entrance. */
+  instant: boolean;
   initial: string | null;
   onClose: () => void;
   onWizard: () => void;
   onTour: () => void;
   /** Open the example project (the shell asks first). */
   onExample: () => void;
+  ref?: Ref<HTMLElement>;
 }) {
   const [query, setQuery] = useState("");
   const [current, setCurrent] = useState<string | null>(initial);
@@ -45,6 +52,7 @@ export default function HelpPanel({ initial, onClose, onWizard, onTour, onExampl
   const heading = useRef<HTMLHeadingElement>(null);
   const title = useRef<HTMLHeadingElement>(null);
   const panel = useRef<HTMLElement>(null);
+  const setPanel = useMergedRefs(panel, ref);
   const list = useMemo(() => searchExplainers(query), [query]);
   const shortcuts = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -56,29 +64,35 @@ export default function HelpPanel({ initial, onClose, onWizard, onTour, onExampl
   // screens, where the panel's own heading takes it so no keyboard covers
   // the panel before anyone chose to search (GF-10).
   useEffect(() => {
+    if (!open) return;
     if (e) heading.current?.focus();
     else if (coarsePointer()) title.current?.focus();
     else search.current?.focus();
-  }, [e]);
+  }, [e, open]);
   // Escape closes the panel when it is the topmost layer (a menu or dialog
   // above it closes first), through the shared layer stack.
   const close = useRef(onClose);
   useLayoutEffect(() => { close.current = onClose; });
-  useEffect(() => pushLayer({
-    kind: "custom", contains: (n) => !!panel.current?.contains(n), escape: () => close.current(),
-  }), []);
-  // Opened from the keyboard (Ctrl/Cmd+/): no entrance. Closed by any
-  // route: focus goes back to where it was when the panel opened (GF-03).
-  const [instant] = useState(lastInputWasKeyboard);
+  useEffect(() => {
+    if (!open) return;
+    return pushLayer({
+      kind: "custom", contains: (n) => !!panel.current?.contains(n), escape: () => close.current(),
+    });
+  }, [open]);
+  // Closed by any route: focus goes back to where it was when the panel
+  // opened (GF-03), as it closes, not after its exit.
   useLayoutEffect(() => {
+    if (!open) return;
     const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const node = panel.current;
     return () => restoreFocus(opener, node);
-  }, []);
+  }, [open]);
 
   return (
-    <aside className="help-panel" ref={panel} role="complementary" aria-label="Help"
-      data-instant={instant || undefined}>
+    <aside className="help-panel" ref={setPanel} role="complementary" aria-label="Help"
+      data-state={open ? "open" : "closed"} data-instant={instant || undefined}
+      // Leaving: inert and out of the accessibility tree while it fades.
+      inert={!open || undefined}>
       <div className="help-head">
         <h2 ref={title} tabIndex={-1}>Help</h2>
         <IconButton aria-label="Close help" onClick={onClose}>

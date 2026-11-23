@@ -41,7 +41,7 @@ import { usePasteAnywhere } from "./guide/usePasteAnywhere";
 import ReportHost from "./report/ReportHost";
 import ReproduceStrip from "./report/ReproduceStrip";
 import PowerHost from "./power/PowerHost";
-import { Banner, Button, notify, ToastProvider } from "./components/ui";
+import { Banner, Button, lastInputWasKeyboard, notify, ToastProvider } from "./components/ui";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 
 // The page-layout composer is loaded the first time a layout sheet opens.
@@ -144,6 +144,15 @@ function Shell() {
   // At 900px and below the open navigator drawer is a modal dialog:
   // everything behind it is inert (DECISIONS 5, K4).
   const behindDrawer = useMedia(DRAWER_QUERY) && ui.drawerOpen;
+  // Opened or closed from the keyboard (Enter on the toggle, Escape), the
+  // drawer and its scrim move at once (motion.md: keyboard actions never
+  // animate). Read when the state flips, before the commit.
+  const [drawerWas, setDrawerWas] = useState(behindDrawer);
+  const [drawerInstant, setDrawerInstant] = useState(false);
+  if (drawerWas !== behindDrawer) {
+    setDrawerWas(behindDrawer);
+    setDrawerInstant(lastInputWasKeyboard());
+  }
 
   const sheet = findSheet(project, selectedId);
   const root = sheet ? findSheet(project, familyRootId(project, sheet.id)) : undefined;
@@ -214,7 +223,8 @@ function Shell() {
       {guide.startPending ? (
         <main className="info-main" aria-busy="true" aria-label="Opening OpenDose" />
       ) : (
-      <div className={`shell${ui.navOpen ? "" : " nav-hidden"}`}>
+      <div className={`shell${ui.navOpen ? "" : " nav-hidden"}`}
+        data-drawer-instant={drawerInstant || undefined}>
         {/* Always mounted, so it fades out with the drawer (BEF-15); a press
             on it closes the drawer (Navigator's light dismiss). */}
         <div className="nav-scrim" aria-hidden="true" data-open={behindDrawer || undefined} />
