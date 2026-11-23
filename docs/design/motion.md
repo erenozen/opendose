@@ -7,8 +7,7 @@ Rulings 1 to 4 of [UI-UX-PLAN.md section 2](UI-UX-PLAN.md#2-decisions-that-settl
 are binding; this file turns them into steps.
 
 OpenDose is used for hours at a time. Motion says where something came
-from and that a press landed; it never decorates, and it never makes the
-user wait to keep working.
+from and that a press landed. It never decorates and never makes anyone wait.
 
 ## Should it animate at all
 
@@ -142,11 +141,9 @@ is how a reduced-motion user sees that something changed.
 
 ## Checking motion
 
-`web/scripts/e2e-motion.mjs` reads `document.getAnimations()` on the
-surfaces above (what runs, on which property, for how long, on which
-curve), checks that keyboard opens and switches start nothing, that
-reduced motion keeps the fades and drops every transform, and that the
-theme toggle starts no transition. Add a check there when you add
-motion. To look at a transition frame by frame, slow the page with CDP
-`Animation.setPlaybackRate` (0.1) and screenshot it mid-flight; exits
-held by `usePresence` are cut at its 400ms cap in slow motion.
+`web/scripts/e2e-motion.mjs` reads `document.getAnimations()` on these
+surfaces (what runs, on which property, for how long, on which curve) and
+checks keyboard opens, reduced motion and the theme toggle. Add a check
+there when you add motion. To see a transition frame by frame, slow the
+page with CDP `Animation.setPlaybackRate` (0.1) and screenshot it
+mid-flight; in slow motion `usePresence` cuts held exits at its 400ms cap.

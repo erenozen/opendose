@@ -28,5 +28,6 @@ scenes you touched (look at the PNGs), and zero axe violations in
 ## Develop
 
 Commands for engine tests, the dev server, lint, unit and e2e suites are
-in `README.md`, section "Develop". `scripts/verify.sh` runs all of them
-against main in a clean worktree.
+in `README.md`, section "Develop"; `web/README.md` says what each script
+in `web/scripts/` checks. `scripts/verify.sh` runs all of them against
+main in a clean worktree.
