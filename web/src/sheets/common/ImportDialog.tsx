@@ -155,8 +155,8 @@ export default function ImportDialog({ table: given, file: givenFile, initial, o
     try { return decodeAs(file.bytes, encoding === "auto" ? detected ?? "utf-8" : encoding); } catch { return ""; }
   }, [srcKind, pasted, file, encoding, isXlsx, detected]);
 
-  // Rows hidden in Excel: by a filter, left out unless kept; by hand, kept
-  // unless left out (as copying the range in Excel does).
+  // Rows hidden in the workbook: by a filter, left out unless kept; by
+  // hand, kept unless left out (as copying the range does).
   const [keepFiltered, setKeepFiltered] = useState(false);
   const [skipHidden, setSkipHidden] = useState(false);
   const sheet = srcKind === "file" && sheets ? sheets[sheetIx] ?? null : null;
@@ -586,7 +586,8 @@ export default function ImportDialog({ table: given, file: givenFile, initial, o
         </Tabs.Panel>
       </Tabs>
 
-      <WorkbookReport sheet={sheet} keepFiltered={keepFiltered} skipHidden={skipHidden}
+      <WorkbookReport sheet={sheet} format={workbookFormat(file?.name ?? "") ?? "xlsx"}
+        keepFiltered={keepFiltered} skipHidden={skipHidden}
         onKeepFiltered={setKeepFiltered} onSkipHidden={setSkipHidden} />
       <div className="import-preview" role="region" tabIndex={0} aria-label="Preview of the data to import">
         {empty ? (

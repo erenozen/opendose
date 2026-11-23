@@ -219,7 +219,7 @@ const typeWhy = dlg.locator("[data-part='type-why']");
     expect(`P-34: workbook.${fmt}: the preview holds openpyxl's cells of the .xlsx, every one (${want.length} rows × ${want[0].length})`,
       filled && bad.length === 0 && heads.join("|") === assay.rows[0].join("|"), bad.slice(0, 4).join("; ") || heads.join("|"));
     expect(`P-34: workbook.${fmt}: both sheets are offered, and the row hidden by hand is reported (row 7, imported)`,
-      sheets.join("|") === "Assay|Plate 2" && /1 row is hidden in Excel \(row 7\): imported/.test(rep), `${sheets.join("|")} | ${rep}`);
+      sheets.join("|") === "Assay|Plate 2" && /1 row is hidden in the workbook \(row 7\): imported/.test(rep) && !/in Excel \(/.test(rep), `${sheets.join("|")} | ${rep}`);
     await dlg.getByLabel("New table").selectOption("multivariable");
     await dlg.getByRole("button", { name: "Import", exact: true }).click();
     await dlg.waitFor({ state: "detached", timeout: 10000 }).catch(() => {});

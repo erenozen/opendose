@@ -3823,9 +3823,9 @@ const axeOn = async (pg, sel) => {
 // e2e-fixtures/xlsx/make_fixtures.py, reference in its expected.json
 // (openpyxl, normal mode and data_only=True). A: five =A2*2 formulas saved
 // without values are named as reading blank. B: an AutoFilter hides rows 4
-// to 6: "3 rows are hidden by a filter in Excel", left out by default as
-// copying the filtered range in Excel does, kept in one click; a sheet with
-// a row hidden by hand keeps it by default.
+// to 6: "3 rows are hidden by a filter in the workbook", left out by
+// default as copying the filtered range in Excel or LibreOffice Calc does,
+// kept in one click; a sheet with a row hidden by hand keeps it by default.
 {
   const XL = join(here, "..", "e2e-fixtures", "xlsx");
   const ref = JSON.parse(readFileSync(join(XL, "expected.json"), "utf8"));
@@ -3857,15 +3857,15 @@ const axeOn = async (pg, sel) => {
     .filter((_, i) => !ref["filter-hidden.xlsx"].filtered.hiddenRows.includes(i + 2)).map((r) => String(r[0]));
   const shownB = await firstCol();
   const sumB = await summary();
-  expect("workbook B: \"3 rows are hidden by a filter in Excel\", left out by default (the visible rows, as Excel copies them)",
-    /3 rows are hidden by a filter in Excel \(rows 4, 5, 6\): left out, as copying the filtered range in Excel leaves them out/.test(b)
+  expect("workbook B: \"3 rows are hidden by a filter in the workbook\", left out by default (the visible rows, as Excel copies them)",
+    /3 rows are hidden by a filter in the workbook \(rows 4, 5, 6\): left out, as copying the filtered range in Excel or LibreOffice Calc leaves them out/.test(b)
     && shownB.join(",") === visible.join(",") && /^6 of 6 rows/.test(sumB), `${b} | ${shownB.join(",")} | ${sumB}`);
   await report.getByRole("button", { name: "Keep the filtered rows" }).click();
   const all = ref["filter-hidden.xlsx"].filtered.rows.slice(1).map((r) => String(r[0]));
   const kept = await reportText();
   const sumKept = await summary();
   expect("one click keeps the 3 filtered rows: 9 of 9 rows, and the report says they are imported",
-    /3 rows are hidden by a filter in Excel \(rows 4, 5, 6\): imported/.test(kept) && /^9 of 9 rows/.test(sumKept)
+    /3 rows are hidden by a filter in the workbook \(rows 4, 5, 6\): imported/.test(kept) && /^9 of 9 rows/.test(sumKept)
     && (await firstCol()).join(",") === all.slice(0, 8).join(","), `${kept} | ${sumKept}`);
 
   // the sheet with a row hidden by hand: kept by default, one click leaves it out
@@ -3875,7 +3875,7 @@ const axeOn = async (pg, sel) => {
   await report.getByRole("button", { name: "Leave out the hidden rows" }).click();
   const sumH2 = await summary();
   expect("a row hidden by hand is imported by default (as Excel copies it) and left out in one click",
-    /1 row is hidden in Excel \(row 3\): imported, as copying the range in Excel copies it/.test(h)
+    /1 row is hidden in the workbook \(row 3\): imported, as copying the range in Excel or LibreOffice Calc copies it/.test(h)
     && /^4 of 4 rows/.test(sumH) && /^3 of 3 rows/.test(sumH2), `${h} | ${sumH} | ${sumH2}`);
   await page.evaluate(readFileSync(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8")).catch(() => {});
   const axeFound = await page.evaluate(async () => {
