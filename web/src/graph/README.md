@@ -281,6 +281,19 @@ prediction), the points ROUT removed (named, drawn as ×), and the drop
 lines. `report/legendFor.ts` uses it as the "what is plotted" clause of
 every XY curve-fit graph, so the card and the in-figure caption agree.
 
+### Column centres: geometric, and following the test
+
+`settings.column.summary` also takes `geo_sd` (geometric mean ×/÷
+geometric SD) and `geo_ci` (the back-transformed CI of the logs); a group
+with a value of 0 or less gets no geometric summary and the legend names
+it (`geoRefused`). New column graphs store `"auto"` ("Follow the test",
+`sheets/column/rankSummary.ts resolveSummary`): median with IQR, from
+`boxStats.percentileOf` with the column statistics' method, while the
+bound analysis is a rank test, else mean ± SD. `legendSpec` /
+`plottedClause` / `legendSentence` take the bound options for it. Bars
+on a log axis or an axis cut above zero add a Checks chip
+(`sheets/column/barAxis.ts`).
+
 ### SuperPlots
 
 Trace role `replicate` (new): data marks coloured by replicate, which
