@@ -4,6 +4,42 @@
 the figure and export features that have no engine computation are
 recorded here.
 
+## Box plots: one definition (P-04)
+
+Column and grouped box plots draw the quartiles the column statistics
+report and whiskers from a stated rule (`web/src/graph/boxStats.ts`);
+Plotly no longer computes its own quartiles.
+
+- Quartiles: the column statistics' percentile method. "linear" is
+  Hyndman and Fan (1996) definition 7 (R `quantile(type = 7)`, numpy
+  `percentile(method="linear")`), the column statistics' default and the
+  only method of grouped column statistics. "prism" (rank (n + 1)p) is
+  definition 6 (R `quantile(type = 6)`, numpy `method="weibull"`); the
+  reference script checks that the engine's
+  `columnstats.percentile(method="prism")` equals it at nine percentiles
+  on four data sets.
+- Whiskers: Tukey (most extreme values within 1.5 × IQR of the box,
+  Tukey 1977) by default; minimum to maximum, 10th to 90th, 5th to 95th
+  and 2.5th to 97.5th percentiles (same percentile method) on offer.
+- Oracle: numpy 2.x in `/home/eren/opendose/.venv` (R is not installed).
+  Script: `web/src/graph/__tests__/reference/box_stats.py`, output
+  `box_stats.json`, asserted by `boxStats.test.ts` to 1e-12 relative.
+
+| Data 1, 2, ..., 9, 100 | Q1 | Median | Q3 | Tukey whiskers | 10th to 90th |
+|---|---|---|---|---|---|
+| type 7 ("linear") | 3.25 | 5.5 | 7.75 | 1 to 9 | 1.9 to 18.1 |
+| type 6 ("prism") | 2.75 | 5.5 | 8.25 | 1 to 9 | 1.1 to 90.9 |
+
+`scripts/e2e-figures.mjs` reads q1, median, q3 and the whisker ends from
+the drawn trace and compares them with the column statistics table
+(prism: 2.75 / 5.5 / 8.25; linear: 3.25 / 5.5 / 7.75).
+
+What changes for a reopened project: a column box plot used Plotly's own
+quartiles and now uses the column statistics' method; a grouped box plot
+drew minimum-to-maximum whiskers and now draws Tukey whiskers (Graph
+settings, Whiskers, brings min-max back). The legend sentence names the
+rule ("1.5 × IQR (Tukey)", "minimum to maximum", ...).
+
 ## Large pasted tables (P-10)
 
 `scripts/e2e-large.mjs`, 200,000 rows each (above the ~126,000 values a

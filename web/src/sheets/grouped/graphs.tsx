@@ -46,6 +46,7 @@ import { baseLayout, useGraphSetting, valueAxis } from "./plotting";
 import { cellStats, ERROR_LABELS, type ErrorKind } from "./stats";
 import "./grouped.css";
 import { maxOf, minOf } from "../../lib/extent";
+import { WHISKER_NOTE, WHISKER_RULES } from "../../graph/boxStats";
 
 const chromeOf = (dark: boolean): Chrome => (dark ? CHROME_DARK : CHROME_LIGHT);
 
@@ -188,6 +189,13 @@ export function GroupedOptions({ graph, table, result }: GraphOptionsProps) {
         <OptSelect label="Error bars" value={s.error}
           options={(Object.keys(ERROR_LABELS) as ErrorKind[]).map((k) => [k, ERROR_LABELS[k]] as const)}
           onChange={(error) => up({ error })} />
+      )}
+      {kind === G_BOX && (
+        <>
+          <OptSelect label="Whiskers" value={s.whiskers} options={WHISKER_RULES}
+            onChange={(whiskers) => up({ whiskers })} />
+          <OptNote>{WHISKER_NOTE}</OptNote>
+        </>
       )}
       {kind !== G_BOX && kind !== G_STACKED && s.error !== "none" && (
         <OptSelect label="Direction" value={s.errorDir}

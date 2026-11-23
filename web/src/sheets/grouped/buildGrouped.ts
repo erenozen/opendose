@@ -3,6 +3,7 @@
 // connected lines across rows, and the two-panel three-way graph.
 import type Plotly from "plotly.js-dist-min";
 import { tagTrace, type TraceRole } from "../../graph/apply";
+import { boxStats } from "../../graph/boxStats";
 import { spreadOffsets, type SpreadScale } from "../../graph/swarm";
 import { seriesStyle, type Chrome, type SchemeId } from "../../lib/palette";
 import type { DataTableModel } from "../../project/types";
@@ -127,9 +128,10 @@ function panelTraces(inp: BuildInput, clusters: Cluster[], series: string[],
             marker: kind === G_SCATTER ? 9.5 : 7.5, maxHalf: width * 0.42 });
         st.values.forEach((v, j) => { ptX.push(xpos + jit[j]); ptY.push(v); ptC.push(color); });
       }
-      if (kind === G_BOX && st.values.length && st.q1 !== null) {
-        box.x.push(xpos); box.q1.push(st.q1); box.med.push(st.median!);
-        box.q3.push(st.q3!); box.lo.push(st.min!); box.hi.push(st.max!);
+      const b = kind === G_BOX ? boxStats(st.values, "linear", s.whiskers) : null;
+      if (b) {
+        box.x.push(xpos); box.q1.push(b.q1); box.med.push(b.median);
+        box.q3.push(b.q3); box.lo.push(b.lowerfence); box.hi.push(b.upperfence);
         box.fill.push(color);
       }
       if (kind === G_SCATTER) {

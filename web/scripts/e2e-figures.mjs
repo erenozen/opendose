@@ -494,6 +494,109 @@ await shot("classic");
   await det.getByRole("button", { name: "Cancel" }).click();
 }
 
+// --- one box-plot definition (P-04): the box takes its quartiles from the
+// column statistics' percentile method and its whiskers from a stated rule.
+// Reference values: src/graph/__tests__/reference/box_stats.py (numpy;
+// definition 6 = R quantile type 6 = the "prism" method, definition 7 =
+// type 7 = "linear"). Before this change the column box used Plotly's own
+// quartiles (3, 8 on this data) and the grouped box min-max whiskers.
+{
+  const ACCEPT = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "100"];
+  const BOX = join(tmp, "box.json");
+  writeFileSync(BOX, JSON.stringify({
+    version: 2, title: "Box check",
+    prefs: { defaultTableType: "column", errorBars: "sd", ciMethod: "asymptotic",
+      scheme: "colorblind", digits: 4 },
+    sheets: [
+      { id: "b1", kind: "data", name: "Box data", table: {
+        type: "column", x: Array(10).fill(""), xTitle: "", xFormat: "numbers", xUnit: "",
+        yTitle: "Value", rowTitles: Array(10).fill(""), subcolumnFormat: "replicates",
+        replicateLayout: "side_by_side",
+        datasets: [{ name: "A", rows: ACCEPT.map((v) => [v]) }] } },
+      { id: "b2", kind: "results", parentId: "b1", name: "Column stats of Box data",
+        analysis: "column", options: { analysis: "column_statistics", percentileMethod: "prism" } },
+      { id: "b3", kind: "graph", parentId: "b1", resultsId: "b2", graphType: "box",
+        name: "Box graph", settings: { titles: { x: "", y: "" }, scheme: "colorblind",
+          column: { caption: "below" } } },
+      { id: "b4", kind: "data", name: "Grouped box data", table: {
+        type: "grouped", x: [""], xTitle: "", xFormat: "numbers", xUnit: "",
+        yTitle: "Value", rowTitles: ["Day 1"], subcolumnFormat: "replicates",
+        replicateLayout: "side_by_side",
+        datasets: [{ name: "A", subTitles: ACCEPT.map(() => ""), rows: [ACCEPT] }] } },
+      { id: "b5", kind: "graph", parentId: "b4", resultsId: null, graphType: "grouped_box",
+        name: "Grouped box graph", settings: { titles: { x: "", y: "" }, scheme: "colorblind",
+          grouped: { caption: "below" } } },
+    ],
+  }));
+  await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]', BOX);
+  const boxTrace = () => page.evaluate(() => {
+    const t = (document.querySelector(".plot-card .plot")?.data ?? []).find((d) => d.type === "box");
+    return t ? { q1: t.q1?.[0], median: t.median?.[0], q3: t.q3?.[0], lo: t.lowerfence?.[0],
+      hi: t.upperfence?.[0], n: Array.isArray(t.y?.[0]) ? t.y[0].length : -1 } : null;
+  });
+  const statRow = (label) => page.evaluate((l) => {
+    const tr = [...document.querySelectorAll(".pane-results tr")]
+      .find((r) => r.cells[0]?.textContent?.trim().startsWith(l));
+    return tr ? Number(tr.cells[1]?.textContent?.trim()) : NaN;
+  }, label);
+  const legendText = () => page.locator(".plot-card .figure-legend-text").innerText().catch(() => "");
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+    .some((d) => d.type === "box"), null, { timeout: 60000 });
+  await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 120000 });
+  let b = await boxTrace();
+  const q1 = await statRow("25% percentile"), med = await statRow("Median"), q3 = await statRow("75% percentile");
+  expect("box (rank (n + 1)p, R type 6): q1 2.75, median 5.5, q3 8.25, Tukey whiskers 1 to 9, all 10 points",
+    b && b.q1 === 2.75 && b.median === 5.5 && b.q3 === 8.25 && b.lo === 1 && b.hi === 9 && b.n === 10,
+    JSON.stringify(b));
+  expect("the drawn quartiles equal the column statistics table (25%, median, 75%)",
+    b && q1 === b.q1 && med === b.median && q3 === b.q3, `table ${q1} / ${med} / ${q3}`);
+  expect("the legend names the whisker rule (Tukey 1.5 × IQR)",
+    (await legendText()).includes("Median with IQR (box) and 1.5 × IQR (Tukey) (whiskers)"), await legendText());
+
+  // Whiskers: Minimum to maximum, then 10th to 90th percentile
+  const pop = await graphSettings();
+  await pop.getByLabel("Whiskers").selectOption("minmax");
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+    .find((d) => d.type === "box")?.upperfence?.[0] === 100, null, { timeout: 15000 }).catch(() => {});
+  b = await boxTrace();
+  expect("Whiskers: Minimum to maximum moves the upper whisker to 100", b?.lo === 1 && b?.hi === 100,
+    JSON.stringify(b));
+  await pop.getByLabel("Whiskers").selectOption("p10_90");
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+    .find((d) => d.type === "box")?.lowerfence?.[0] === 1.1, null, { timeout: 15000 }).catch(() => {});
+  b = await boxTrace();
+  expect("Whiskers: 10th to 90th percentile (type 6) end at 1.1 and 90.9",
+    b?.lo === 1.1 && Math.abs(b?.hi - 90.9) < 1e-9, JSON.stringify(b));
+  await closeSettings();
+  expect("the legend follows the rule (10th to 90th percentile)",
+    (await legendText()).includes("and 10th to 90th percentile (whiskers)"), await legendText());
+
+  // The column statistics back to (n − 1)p interpolation: the box follows
+  await page.getByLabel("Percentile method").selectOption("linear");
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+    .find((d) => d.type === "box")?.q1?.[0] === 3.25, null, { timeout: 30000 }).catch(() => {});
+  await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 60000 });
+  await page.waitForFunction(() => [...document.querySelectorAll(".pane-results tr")]
+    .some((r) => r.cells[0]?.textContent?.trim() === "25% percentile"), null, { timeout: 30000 }).catch(() => {});
+  b = await boxTrace();
+  const lq1 = await statRow("25% percentile"), lq3 = await statRow("75% percentile");
+  expect("percentile method (n − 1)p (R type 7): box q1 3.25, q3 7.75, equal to the table",
+    b?.q1 === 3.25 && b?.median === 5.5 && b?.q3 === 7.75 && lq1 === 3.25 && lq3 === 7.75,
+    `${JSON.stringify(b)}; table ${lq1} / ${lq3}`);
+
+  // The grouped box: same definition (type 7, the grouped column
+  // statistics' method), Tukey whiskers by default (it was min-max)
+  await page.getByRole("treeitem", { name: "Grouped box data", exact: true }).first()
+    .locator(":scope > .nav-row").click();
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+    .some((d) => d.type === "box"), null, { timeout: 60000 });
+  b = await boxTrace();
+  expect("grouped box: q1 3.25, median 5.5, q3 7.75, Tukey whiskers 1 to 9 (min-max before)",
+    b?.q1 === 3.25 && b?.median === 5.5 && b?.q3 === 7.75 && b?.lo === 1 && b?.hi === 9, JSON.stringify(b));
+  expect("grouped box legend names Tukey whiskers",
+    (await legendText()).includes("1.5 × IQR (Tukey) (whiskers)"), await legendText());
+}
+
 console.log(errors.length ? errors.join("\n") : "no page errors");
 await browser.close();
 if (fail.length || errors.length) {

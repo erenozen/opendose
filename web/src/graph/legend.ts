@@ -23,6 +23,7 @@ import {
 } from "../sheets/grouped/options.ts";
 import { cellStats, type ErrorKind } from "../sheets/grouped/stats.ts";
 import { readFormat } from "./format.ts";
+import type { WhiskerRule } from "./boxStats.ts";
 import { graphHideNs, graphPStyle, starScale, type PStyle } from "./significance.ts";
 
 /** Centre and error of the summary marks. */
@@ -40,8 +41,8 @@ export interface LegendSpec {
   groups: LegendGroup[];
   /** What n counts ("values" unless said otherwise). */
   unit?: string;
-  /** Box plots: whiskers to the extremes, or Tukey's 1.5 × IQR fences. */
-  whiskers?: "minmax" | "tukey";
+  /** Box plots: where the whiskers end (graph/boxStats.ts). */
+  whiskers?: WhiskerRule;
   superplot?: { center: SuperCenter; error: SuperError; values: number;
     /** The summary is drawn as bars (grouped bar graphs), not a line. */
     bars?: boolean };
@@ -60,6 +61,14 @@ const PHRASE: Record<LegendSummary, string> = {
   mean: "Mean",
   none: "Mean",
   as_entered: "Mean with error bars as entered",
+};
+
+const WHISKER_WORDS: Record<WhiskerRule, string> = {
+  tukey: "1.5 × IQR (Tukey)",
+  minmax: "minimum to maximum",
+  p10_90: "10th to 90th percentile",
+  p5_95: "5th to 95th percentile",
+  p2_5_97_5: "2.5th to 97.5th percentile",
 };
 
 const SUPER_PHRASE: Record<SuperError, string> = {
@@ -94,8 +103,7 @@ export function composeLegend(spec: LegendSpec): string {
       parts.push(`${PHRASE[spec.summary]} (bars)${pts}`);
       break;
     case "box":
-      parts.push(`Median with IQR (box) and ${spec.whiskers === "minmax"
-        ? "minimum to maximum" : "1.5 × IQR (Tukey)"} (whiskers)${pts}`);
+      parts.push(`Median with IQR (box) and ${WHISKER_WORDS[spec.whiskers ?? "tukey"]} (whiskers)${pts}`);
       break;
     case "violin":
       parts.push(`Kernel density (violin) with the mean (line)${pts}`);
@@ -176,7 +184,7 @@ function columnSpec(graph: Pick<GraphSheet, "graphType" | "settings">, table: Da
     display, stars,
     summary: s.summary,
     points: display === "bar" ? s.points : true,
-    whiskers: "tukey",
+    whiskers: s.whiskers,
     groups: table.datasets.map((d) => ({ name: d.name, n: countValues(d.rows) })),
   };
 }
@@ -226,7 +234,7 @@ function groupedSpec(graph: Pick<GraphSheet, "graphType" | "settings">, table: D
     ? enteredSummary(table.subcolumnFormat) : GROUPED_SUMMARY[s.error];
   const points = table.subcolumnFormat === "replicates"
     && (kind === G_SCATTER || (s.points && kind !== G_STACKED && kind !== G_LINES));
-  return { display, summary, points, groups, stars, whiskers: "minmax" };
+  return { display, summary, points, groups, stars, whiskers: s.whiskers };
 }
 
 /**
