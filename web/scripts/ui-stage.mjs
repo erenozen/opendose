@@ -688,6 +688,96 @@ const scenes = [
     await settle(s, 800);
     await into(s, ".pane-results .equivalence-results", "start");
   } },
+  // fit models (wave 1): Weibull and hormesis models (P-19), range
+  // constraints (P-20), initial values and the fit report (P-21),
+  // simulating a user-defined equation (P-51)
+  { name: "results-weibull", setup: async (s) => {
+    const rye = JSON.parse(readFileSync(join(FIXTURES, "..", "..", "engine", "tests", "fixtures",
+      "drc_datasets.json"), "utf8")).ryegrass;
+    await pastedTable(s, "xy", "Ryegrass", "conc\trootl\n"
+      + rye.conc.map((c, i) => `${c}\t${rye.rootl[i]}`).join("\n") + "\n", 1);
+    await click(s, s.page.getByRole("button", { name: /^Model:/ }));
+    await s.page.getByRole("combobox", { name: "Search models" }).fill("weibull type 1");
+    await s.page.getByRole("option", { name: /Weibull type 1 \(W1\.4\)/ }).click();
+    await s.page.locator('.pane-results[data-live="true"] .fit-note').first().waitFor({ timeout: 120000 });
+    await settle(s, 800);
+    await into(s, ".pane-results .result-card .results-table", "start");
+  } },
+  { name: "results-fit-starts", setup: async (s) => {
+    await example(s);
+    const fold = s.page.locator(".pane-results details.fit-starts").first();
+    await click(s, fold.locator("summary"));
+    await into(s, ".pane-results details.fit-starts", "start");
+  } },
+  { name: "controls-range-constraint", setup: async (s) => {
+    await example(s);
+    const c = s.page.locator(".pane-controls");
+    await click(s, c.locator(".constraint-row", { hasText: "Bottom = constant" }).locator('input[type="checkbox"]'));
+    await c.getByRole("radio", { name: "Greater than" }).check();
+    await c.getByLabel("Bottom greater than").fill("0");
+    await c.getByLabel("Why Bottom cannot go past this").fill("signal cannot be negative");
+    await waitLive(s);
+    await into(s, ".pane-controls .constraint-range", "center");
+  } },
+  { name: "controls-range-reason-missing", setup: async (s) => {
+    await example(s);
+    const c = s.page.locator(".pane-controls");
+    await click(s, c.locator(".constraint-row", { hasText: "HillSlope = constant" }).locator('input[type="checkbox"]'));
+    await c.getByRole("radio", { name: "Between" }).check();
+    await c.getByLabel("HillSlope greater than").fill("-3");
+    await c.getByLabel("HillSlope less than").fill("-0.3");
+    await c.getByLabel("Why HillSlope cannot go past this").focus();
+    await c.getByLabel("HillSlope less than").focus();
+    await into(s, ".pane-controls .constraint-range", "center");
+  } },
+  { name: "results-at-constraint", setup: async (s) => {
+    const X = [-9, -8.5, -8, -7.5, -7, -6.5, -6, -5.5, -5];
+    const R = [[101.2, 98.4, 99.6], [97.9, 100.8, 96.5], [95.1, 92.3, 96.8], [84.0, 80.2, 86.9],
+      [55.3, 60.8, 52.1], [24.7, 28.9, 21.6], [7.9, 3.1, 5.6], [-1.2, 2.4, -3.9], [-4.8, -1.1, -6.3]];
+    await pastedTable(s, "xy", "Negative bottom", "logX\tSignal\n"
+      + X.flatMap((x, i) => R[i].map((y) => `${x}\t${y}`)).join("\n") + "\n", 1);
+    await click(s, s.page.getByRole("button", { name: /^Model:/ }));
+    await s.page.getByRole("combobox", { name: "Search models" }).fill("inhibitor variable four");
+    await s.page.getByRole("option", { name: /log\(inhibitor\) vs\. response -- Variable slope \(four/ }).click();
+    const c = s.page.locator(".pane-controls");
+    const logX = c.getByLabel("X values are already log10(concentration)");
+    if (!(await logX.isChecked())) await logX.check();
+    await c.locator(".constraint-row", { hasText: "Bottom = constant" }).locator('input[type="checkbox"]').check();
+    await c.getByRole("radio", { name: "Greater than" }).check();
+    await c.getByLabel("Bottom greater than").fill("0");
+    await c.getByLabel("Why Bottom cannot go past this").fill("signal cannot be negative");
+    await s.page.locator(".pane-results .results-table", { hasText: "at its constraint" }).first()
+      .waitFor({ timeout: 120000 });
+    await settle(s, 800);
+    await into(s, ".pane-results .result-card .results-table", "start");
+  } },
+  { name: "controls-initial-values", setup: async (s) => {
+    await example(s);
+    const c = s.page.locator(".pane-controls");
+    await click(s, c.locator("details.initial-values > summary"));
+    await c.getByLabel("LogIC50 start").fill("-5");
+    await waitLive(s);
+    await into(s, ".pane-controls details.initial-values", "start");
+  } },
+  { name: "sim-user-equation", setup: async (s) => {
+    await example(s);
+    await click(s, s.page.getByRole("button", { name: /^Model:/ }));
+    await s.page.getByRole("combobox", { name: "Search models" }).fill("own equation");
+    await s.page.getByRole("option", { name: /Enter your own equation/ }).click();
+    const eq = dialog(s, "User-defined equation");
+    await eq.getByLabel("Name").fill("Decay");
+    await eq.getByLabel("Equation", { exact: true }).fill("Y = A*exp(-k*X)");
+    await eq.getByText("Equation is valid").waitFor({ timeout: 30000 });
+    await eq.getByRole("button", { name: /Save to my equations/ }).click();
+    await eq.getByRole("button", { name: "Cancel" }).click();
+    const nd = await newTableDialog(s);
+    await nd.getByRole("button", { name: "Simulate data…" }).click();
+    const sim = s.page.locator(".simulate-dialog");
+    await sim.getByLabel("Model", { exact: true }).selectOption({ label: "Decay" });
+    await sim.getByLabel("A", { exact: true }).fill("100");
+    await sim.getByLabel("k", { exact: true }).fill("0.3");
+    await settle(s, 500);
+  } },
   { name: "results-compare-lines", setup: async (s) => {
     await pastedTable(s, "xy", "Two lines",
       "X\tControl\tTreated\n1\t3.1\t6.0\n2\t5.2\t7.7\n3\t6.8\t10.1\n4\t9.1\t11.8\n5\t11.0\t14.2\n6\t12.7\t15.9\n7\t15.2\t17.8\n8\t16.9\t20.1\n", 1);
