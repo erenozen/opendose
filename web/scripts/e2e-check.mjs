@@ -1661,6 +1661,16 @@ expect("checklist shows ticked and unticked items with reasons", met >= 1 && unm
 await ck.getByRole("tab", { name: /ARRIVE/ }).click();
 expect("ARRIVE Essential 10 items and protocol registration (item 19) listed",
   (await ck.locator(".checklist li").count()) === 6);
+// P-09: the bundle has each table as CSV, not source data per figure, so
+// eLife "Source data available" is not met and links to the bundle
+await ck.getByRole("tab", { name: /eLife/ }).click();
+const srcItem = ck.locator(".checklist li").filter({ hasText: "Source data available" });
+const srcText = (await srcItem.innerText()).replace(/\s+/g, " ");
+expect("eLife source data: not met, says what the bundle has and what is missing",
+  (await srcItem.getAttribute("data-status")) === "unmet" && srcText.includes("each data table as CSV")
+  && srcText.includes("Source data per figure"), srcText);
+expect("eLife source data links to the export bundle",
+  await srcItem.getByRole("button", { name: "Download the export bundle" }).isVisible());
 await ck.getByRole("button", { name: "Close" }).click();
 await page.getByRole("button", { name: "History" }).click();
 const hist = page.getByRole("dialog", { name: "History" });

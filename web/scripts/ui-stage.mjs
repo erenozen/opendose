@@ -438,6 +438,15 @@ const scenes = [
       rows[Math.floor(rows.length / 2)]?.scrollIntoView({ block: "center" });
     });
   } },
+  // the eLife checklist on the example: source data per figure is not met
+  // and links to the export bundle (P-09)
+  { name: "results-checklist-elife", setup: async (s) => {
+    await example(s);
+    await click(s, button(s, "Journal checklists"));
+    const d = dialog(s, "Journal checklists");
+    await d.getByRole("tab", { name: /eLife/ }).click();
+    await d.locator(".checklist li").filter({ hasText: "Source data available" }).scrollIntoViewIfNeeded();
+  } },
   // an Info constant used as "@Expected_weight" in the one-sample value
   { name: "results-info-constant", setup: async (s) => {
     await fixture(s, "row-ids.json");
