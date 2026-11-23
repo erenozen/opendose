@@ -2886,6 +2886,17 @@ test 0.16 / 0.41 s; Mann-Whitney 1.1 / 3.4 s; paired t 0.8 / 2.0 s;
 Wilcoxon 1.1 / 3.1 s; Kolmogorov-Smirnov 0.2 / 0.8 s; residual
 diagnostics (two columns) 4.2 / 10.8 s with 82 / 204 MB answers before,
 0.4 / 1.5 s with a 2.4 KB answer after.
+
+Independent check (2026-11-23, by the lead, who did not write the code):
+an own implementation of the same exact runs distribution in log space
+(scipy.special.gammaln terms summed with logsumexp, a different method
+from the engine's floating-point recurrence) on seeded sign sequences
+of 2,500 to 500,000 (balanced, 10% positive, and with added persistence)
+agrees with `runs_test` p_method "exact_float" to at most 7.2e-10
+relative, including P = 1.657e-178 at N = 20,000 and P = 0.94543216 at
+N = 500,000. The committed reference stays
+engine/tests/reference/large_tables.py.
+
 """
 
 
