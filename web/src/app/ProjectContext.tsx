@@ -23,6 +23,7 @@ import { ResultsCache } from "./analysis";
 import { applyTheme, watchSystemScheme } from "./theme";
 import { sampleProject } from "./factory";
 import { primeSampleResults } from "./sampleResults";
+import { prepareReproduceCheckFor } from "./reproduceCheck";
 import { Ctx, type ProjectApi } from "./context";
 
 function firstSheetId(p: Project): string | null {
@@ -32,7 +33,13 @@ function firstSheetId(p: Project): string | null {
 export function ProjectProvider({ children }: { children: ReactNode }) {
   const [prefs, setPrefsState] = useState<Prefs>(loadPrefs);
   // A share link in the address ("#p=…") opens that project, read-only.
-  const [shareBoot] = useState(() => readShareBoot(projectPrefs(loadPrefs()), newId));
+  // A link made by another build: its saved results are recomputed and
+  // compared, as for a project file (P-58; the strip shows the outcome).
+  const [shareBoot] = useState(() => {
+    const b = readShareBoot(projectPrefs(loadPrefs()), newId);
+    return b.project ? { ...b, project: prepareReproduceCheckFor(b.savedWith ?? null, b.project,
+      b.project.title, "link") } : b;
+  });
   const [store] = useState(() => new ProjectStore(
     shareBoot.project ?? sampleProject(projectPrefs(loadPrefs()), newId)));
   // The example's results as computed when this build was made: shown at

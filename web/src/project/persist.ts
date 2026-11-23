@@ -3,6 +3,7 @@
 // sheet + its graph.
 import { parsePlan } from "./plan.ts";
 import { parseChosen } from "../guide/choice.ts";
+import { parseReproductions } from "./reproduce.ts";
 import { isSchemeId } from "../lib/palette.ts";
 import { DEFAULT_COLUMN_OPTIONS, DEFAULT_XY_OPTIONS } from "../types.ts";
 import {
@@ -69,6 +70,7 @@ export function serializeProject(p: Project,
     ...(p.groups?.length ? { groups: p.groups } : {}),
     ...(p.recipes?.length ? { recipes: p.recipes } : {}),
     ...(p.groupColors?.length ? { groupColors: p.groupColors } : {}),
+    ...(p.reproductions?.length ? { reproductions: p.reproductions } : {}),
     ...(selected ? { selected } : {}),
     sheets,
   }, null, opts.compact ? undefined : 2);
@@ -274,7 +276,10 @@ function normalizeV2(r: Record<string, unknown>, ctx: LoadContext): Project {
   // Colours pinned to group names (P-56); files from before have none and
   // load without the key, exactly as they did.
   const pins = parseGroupColors(r.groupColors);
-  return pins?.length ? { ...p, groupColors: pins } : p;
+  const pinned = pins?.length ? { ...p, groupColors: pins } : p;
+  // Reproduction records (P-58); likewise absent in older files.
+  const checks = parseReproductions(r.reproductions);
+  return checks.length ? { ...pinned, reproductions: checks } : pinned;
 }
 
 /**

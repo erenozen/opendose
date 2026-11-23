@@ -745,6 +745,27 @@ const scenes = [
     await click(s, s.page.locator(".constants-list > summary"));
     await into(s, ".constants-list", "center");
   } },
+  // a project reopened with Help me choose's saved reason (P-32): the
+  // Why this test note in the Checks row, and the methods paragraph
+  { name: "results-why-saved", setup: async (s) => {
+    await fixture(s, "why-history.json", { live: true });
+    const d = s.page.locator(".pane-answer details.checks").first();
+    if (!(await d.evaluate((e) => e.open))) await d.locator("summary").click();
+    await s.page.getByRole("note", { name: "Why this test" }).waitFor();
+    await into(s, ".results-why", "center");
+  } },
+  { name: "results-methods-why", setup: async (s) => {
+    await fixture(s, "why-history.json", { live: true });
+    await s.page.locator(".stats-methods p").filter({ hasText: "Choice of test" }).waitFor({ timeout: 60000 });
+    await into(s, ".stats-methods", "center");
+  } },
+  // the project's saved reproduction record in History (P-58)
+  { name: "results-history-saved", setup: async (s) => {
+    await fixture(s, "why-history.json", { live: true });
+    await click(s, button(s, "History").first());
+    const d = dialog(s, "History");
+    await d.locator(".history-reproduction").scrollIntoViewIfNeeded();
+  } },
 
   // ---- graphs
   { name: "graphs-contingency", setup: async (s) => {

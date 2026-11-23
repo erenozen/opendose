@@ -28,6 +28,8 @@
 //                      one-value group (no density, named in the legend)
 //   pins.json          colours pinned to group names, one under 3:1 on white
 //   schild.json        the EC50-shift example with its Schild plot (P-49)
+//   why-history.json   a t test with Help me choose's saved reason (P-32)
+//                      and a saved reproduction record (P-58)
 //   many-sheets.json   74 sheets: 22 families, navigator groups (one
 //                      collapsed), highlights, info sheets and layouts
 import { readFileSync, writeFileSync } from "node:fs";
@@ -358,4 +360,34 @@ function write(name, p, compact = false) {
   const g = graph(t, r, "xy", "Graph of EC50 shift");
   const s = graph(t, r, "schild_plot", "Schild plot of EC50 shift");
   write("schild.json", project("EC50 shift", [t, r, g, s], { selected: r.id }));
+}
+
+// why-history.json: a Welch t test opened by Help me choose, with the
+// reason saved on its results sheet (P-32), and the project's record of
+// a reproduction check (P-58): every compared number came back, one sheet
+// was not compared. The record holds counts only, no numbers.
+{
+  const t = data("Pilot", table("column", { datasets: [
+    col("Control", [10.2, 11.5, 9.8, 12.1, 10.9, 11.3]),
+    col("Treated", [13.4, 14.1, 12.8, 15.0, 13.9, 14.6]),
+  ] }));
+  const options = { analysis: "ttest", ttestKind: "welch" };
+  const r = results(t, "column", options, "t test of Pilot", { chosen: {
+    test: "Unpaired t test with Welch's correction",
+    reason: "Two independent groups. Welch's t test does not assume the two populations "
+      + "have equal SDs, loses very little power when they do, and keeps the P value "
+      + "honest when they do not (especially with unequal n), so it is the safer default "
+      + "unless you know the SDs are equal.",
+    analysis: "column", options } });
+  const g = graph(t, r, "scatter", "Graph of Pilot");
+  const reproductions = [{
+    file: "pilot-2026-10.json", savedWith: { app: "0.3.0", engine: "0123456789abcdef" },
+    current: { app: "0.4.0", engine: "fedcba9876543210" }, checkedAt: "2026-11-20T09:30:00.000Z",
+    digits: 4, sheets: [
+      { sheetId: r.id, name: r.name, analysis: "column", status: "reproduced", compared: 14, changes: [] },
+      { sheetId: "r999", name: "Old fit", analysis: "nonlin", status: "skipped", compared: 0, changes: [],
+        note: "the sheet was removed" },
+    ],
+  }];
+  write("why-history.json", project("Pilot study", [t, r, g], { selected: r.id, reproductions }));
 }

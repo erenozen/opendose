@@ -1,22 +1,25 @@
 // Reopening a project saved by another build: recompute its results and
 // say whether every saved number came back (stable-results-versions).
 //
-// On opening a project file (not the autosave, not a share link) saved by
-// a different app version, build or engine, `prepareReproduceCheck`
-// remembers each results sheet's saved result and the fingerprint of its
-// input, and drops the saved fingerprints so every analysis is recomputed
-// (the saved numbers still show meanwhile). `settleReproduceCheck`, called
-// on every change of the results cache (ReproduceStrip), compares each
-// recomputed result with the saved one (project/reproduce.ts) once it
-// arrives for exactly the input that was saved; a sheet edited before
-// then is skipped. When every sheet is settled the report goes to the
-// strip and to the History panel (kept for the session).
+// On opening a project file, restoring an autosave session or opening a
+// share link saved by a different app version, build or engine,
+// `prepareReproduceCheck` remembers each results sheet's saved result and
+// the fingerprint of its input, and drops the saved fingerprints so every
+// analysis is recomputed (the saved numbers still show meanwhile).
+// `settleReproduceCheck`, called on every change of the results cache
+// (ReproduceStrip), compares each recomputed result with the saved one
+// (project/reproduce.ts) once it arrives for exactly the input that was
+// saved; a sheet edited before then is skipped. When every sheet is
+// settled the report goes to the strip, which adds it to the project
+// (Project.reproductions, outside undo): saved with it, listed in the
+// History panel after reopening.
 import { useSyncExternalStore } from "react";
 import { APP_VERSION, BUILD_COMMIT } from "../export/cite";
 import { ENGINE_HASH } from "../lib/buildInfo";
 import { getRuntimeVersions } from "../lib/engine";
 import {
-  compareResults, sameBuild, savedWithOf, type ReproductionReport, type SavedWith, type SheetCheck,
+  compareResults, sameBuild, savedWithOf, type ReproductionReport, type ReproductionSource,
+  type SavedWith, type SheetCheck,
 } from "../project/reproduce";
 import type { DataSheet, Project, ResultsSheet } from "../project/types";
 import { analysisDef } from "../sheets/registry";
@@ -43,6 +46,7 @@ interface PendingSheet {
 
 interface Pending {
   file: string;
+  source?: ReproductionSource;
   savedWith: SavedWith | null;
   current: SavedWith;
   sheets: Map<string, PendingSheet>;
@@ -51,15 +55,15 @@ interface Pending {
 
 export interface ReproduceState {
   /** A check in progress: sheets settled so far and in all. */
-  progress: { file: string; done: number; total: number; savedWith: SavedWith | null } | null;
-  /** The latest finished check (until dismissed). */
+  progress: { file: string; source?: ReproductionSource; done: number; total: number;
+    savedWith: SavedWith | null } | null;
+  /** The latest finished check (until dismissed). The project keeps
+   *  every finished one (Project.reproductions). */
   latest: ReproductionReport | null;
-  /** Every check of this session, newest last (History panel). */
-  history: ReproductionReport[];
 }
 
 let pending: Pending | null = null;
-let state: ReproduceState = { progress: null, latest: null, history: [] };
+let state: ReproduceState = { progress: null, latest: null };
 const listeners = new Set<() => void>();
 
 function emit(next: Partial<ReproduceState>) {
@@ -68,7 +72,8 @@ function emit(next: Partial<ReproduceState>) {
 }
 
 function progressOf(p: Pending): ReproduceState["progress"] {
-  return { file: p.file, done: p.done.size, total: p.sheets.size, savedWith: p.savedWith };
+  return { file: p.file, ...(p.source ? { source: p.source } : {}), done: p.done.size,
+    total: p.sheets.size, savedWith: p.savedWith };
 }
 
 const isError = (r: unknown) => !r || typeof r !== "object" || "error" in (r as object);
@@ -111,13 +116,22 @@ function checkable(project: Project): Map<string, PendingSheet> {
  * a check starts.
  */
 export function prepareReproduceCheck(text: string, project: Project, file: string): Project {
-  const savedWith = savedWithOf(text);
+  return prepareReproduceCheckFor(savedWithOf(text), project, file);
+}
+
+/**
+ * The same for a project read another way: `savedWith` as the autosave
+ * record or the share link recorded it (null: not recorded), `name` the
+ * project's title, `source` how it was opened.
+ */
+export function prepareReproduceCheckFor(savedWith: SavedWith | null, project: Project,
+  name: string, source?: ReproductionSource): Project {
   const current = currentSavedWith();
   pending = null;
   if (sameBuild(savedWith, current)) { emit({ progress: null, latest: null }); return project; }
   const sheets = checkable(project);
   if (!sheets.size) { emit({ progress: null, latest: null }); return project; }
-  pending = { file, savedWith, current, sheets, done: new Map() };
+  pending = { file: name, ...(source ? { source } : {}), savedWith, current, sheets, done: new Map() };
   // A result saved for another input (the file was saved while a newer
   // computation was pending or cancelled) is not a reproduction test.
   // Fingerprints are "<input>.<build>"; files without one are compared.
@@ -144,10 +158,11 @@ export function prepareReproduceCheck(text: string, project: Project, file: stri
 }
 
 /** Compare whatever has been recomputed since the last call; finish the
- *  check when every sheet is settled. */
-export function settleReproduceCheck(project: Project, results: ResultsCache): void {
+ *  check when every sheet is settled, and return its report then (the
+ *  caller adds it to the project). */
+export function settleReproduceCheck(project: Project, results: ResultsCache): ReproductionReport | null {
   const p = pending;
-  if (!p) return;
+  if (!p) return null;
   const digits = project.prefs.digits;
   const live = inputKeys(project);
   let changed = false;
@@ -173,17 +188,18 @@ export function settleReproduceCheck(project: Project, results: ResultsCache): v
     p.done.set(id, { ...base, compared: c.compared, changes: c.changes,
       status: c.changes.length ? "changed" : "reproduced" });
   }
-  if (!changed) return;
-  if (p.done.size < p.sheets.size) { emit({ progress: progressOf(p) }); return; }
+  if (!changed) return null;
+  if (p.done.size < p.sheets.size) { emit({ progress: progressOf(p) }); return null; }
   const report: ReproductionReport = {
-    file: p.file, savedWith: p.savedWith,
+    file: p.file, ...(p.source ? { source: p.source } : {}), savedWith: p.savedWith,
     // the libraries are known once the engine has run
     current: { ...currentSavedWith(), app: p.current.app },
     checkedAt: new Date().toISOString(), digits,
     sheets: [...p.sheets.keys()].map((id) => p.done.get(id)!),
   };
   pending = null;
-  emit({ progress: null, latest: report, history: [...state.history, report] });
+  emit({ progress: null, latest: report });
+  return report;
 }
 
 /** Hide the strip (a check still running is abandoned). */

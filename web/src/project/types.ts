@@ -11,6 +11,7 @@ import type { ReportMeta } from "../report/meta.ts";
 import type { ReportPrefs } from "../report/prefs.ts";
 import type { AnalysisPlan } from "./plan.ts";
 import type { ProjectRecipe } from "./recipes.ts";
+import type { ReproductionReport } from "./reproduce.ts";
 
 export type Cell = string; // raw user input; "" = blank
 
@@ -428,6 +429,12 @@ export interface Project {
    *  data set of that name in it unless the graph sets its own
    *  (graph/nameColors.ts). Absent in files from before (no pins). */
   groupColors?: GroupColor[];
+  /** Reproduction checks of this project, newest last: each time it was
+   *  opened (file, autosave or share link) in a build other than the one
+   *  that saved it, its results were recomputed and compared
+   *  (project/reproduce.ts). Kept outside undo history. Absent in files
+   *  from before they were saved, and when there has been no check. */
+  reproductions?: ReproductionReport[];
 }
 
 export interface GroupColor {

@@ -59,7 +59,7 @@ import { dirname, join } from "node:path";
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
-import { strFromU8, unzipSync } from "fflate";
+import { deflateSync, strFromU8, strToU8, unzipSync } from "fflate";
 
 // The header's File and View menus (DECISIONS 5): open one, pick an item.
 const fileMenu = async (p, item) => {
@@ -2848,6 +2848,39 @@ const axeOn = async (pg, sel) => {
     await appears(hist.locator(".history-reproduction"))
     && (await hist.locator(".history-reproduction").first().innerText()).includes(`All ${N} results reproduced`));
   await hist.getByRole("button", { name: "Close" }).click();
+  // P-58, the acceptance test as written: open a project, let
+  // reproduce-on-open run, save, reopen: the History panel shows the
+  // earlier record (saved in the file; this build reopening its own file
+  // runs no new check).
+  {
+    const [dlR] = await Promise.all([p4.waitForEvent("download", { timeout: 30000 }),
+      fileMenu(p4, "Save project")]);
+    const WITH = join(tmp, "with-reproduction.json");
+    await dlR.saveAs(WITH);
+    const withRec = JSON.parse(readFileSync(WITH, "utf8"));
+    const rec = withRec.reproductions?.[0];
+    expect("P-58: the saved file keeps the reproduction record (file, versions, every sheet compared)",
+      withRec.reproductions?.length === 1 && rec.file === "saved-with-0.2.0.json"
+      && rec.savedWith?.app === "0.2.0" && rec.current?.app === m?.[2] && rec.source === undefined
+      && rec.sheets.length === nResults && rec.sheets.reduce((a, s) => a + s.compared, 0) === N,
+      JSON.stringify(rec ?? null).slice(0, 200));
+    await p4.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]', WITH);
+    await p4.waitForFunction(() => /Opened “with-reproduction\.json”/.test(document.body.innerText), null,
+      { timeout: 30000 }).catch(() => {});
+    expect("P-58: reopening the file in the build that saved it runs no new check",
+      await strip.waitFor({ state: "detached", timeout: 10000 }).then(() => true, () => false));
+    await p4.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 60000 });
+    await p4.getByRole("button", { name: "History", exact: true }).first().click();
+    const hist2 = p4.getByRole("dialog", { name: "History" });
+    const recText = await appears(hist2.locator(".history-reproduction"))
+      ? await hist2.locator(".history-reproduction").first().innerText() : "";
+    expect("P-58: after save and reopen, History shows the earlier record",
+      await hist2.locator(".history-reproduction").count() === 1
+      && recText.includes("Reproduced on reopening “saved-with-0.2.0.json”")
+      && recText.includes(`All ${N} results reproduced with OpenDose ${m?.[2]} (saved with 0.2.0)`),
+      recText.slice(0, 200));
+    await hist2.getByRole("button", { name: "Close" }).click();
+  }
   // one stored number off: the strip lists it with both values
   const ct = older.sheets.find((s) => s.kind === "results" && s.cached?.analysis === "contingency");
   const truth = ct.cached.chi_square.p;
@@ -2869,6 +2902,79 @@ const axeOn = async (pg, sel) => {
   await strip.getByRole("button", { name: "Dismiss" }).click();
   expect("the strip is dismissable", await strip.count() === 0);
   await p4.close();
+
+  // P-58: an autosave session and a share link written by another build
+  // (the same project, savedWith 0.2.0) are checked the same way, and the
+  // record says how the project was opened.
+  const oldText = readFileSync(OLD, "utf8");
+  const oldJson = JSON.parse(oldText);
+  const checkedOn = async (pg, label, how) => {
+    const st = pg.getByRole("region", { name: "Reproducing saved results" });
+    const ok = await pg.waitForFunction(() => /reproduced with|changed with/.test(
+      document.querySelector(".reproduce-strip .rs-headline")?.textContent ?? ""), null, { timeout: 180000 })
+      .then(() => true, () => false);
+    const h = ok ? await st.locator(".rs-headline").innerText() : "";
+    expect(`P-58: ${label} saved with 0.2.0 is recomputed and all ${N} results reproduced`,
+      h === `All ${N} results reproduced with OpenDose ${m?.[2]} (saved with 0.2.0).`, h);
+    await st.getByRole("button", { name: "History" }).click();
+    const hd = pg.getByRole("dialog", { name: "History" });
+    const t = await appears(hd.locator(".history-reproduction"))
+      ? await hd.locator(".history-reproduction").first().innerText() : "";
+    expect(`P-58: History records the check of the ${label}`, t.includes(`Reproduced on ${how}`), t.slice(0, 160));
+    await hd.getByRole("button", { name: "Close" }).click();
+  };
+  {
+    const ctxA = await browser.newContext({ viewport: { width: 1500, height: 1100 } });
+    const pa = await ctxA.newPage();
+    pa.on("pageerror", (e) => errors.push(`pageerror (reproduce autosave): ${e.message}`));
+    await pa.goto(baseUrl, { waitUntil: "domcontentloaded" });
+    await pa.waitForFunction(() => !!globalThis.__opendoseAutosave, null, { timeout: 60000 });
+    // A closed tab's session, written by 0.2.0 (the record shape of project/autosave.ts).
+    await pa.evaluate(async (json) => {
+      const db = await new Promise((res, rej) => {
+        // as project/autosave.ts opens it (version 1, one store)
+        const r = indexedDB.open("opendose", 1);
+        r.onupgradeneeded = () => { try { r.result.createObjectStore("autosave"); } catch { /* exists */ } };
+        r.onsuccess = () => res(r.result);
+        r.onerror = () => rej(r.error);
+      });
+      await new Promise((res, rej) => {
+        const tx = db.transaction("autosave", "readwrite");
+        tx.objectStore("autosave").put({ id: "old-build", savedAt: Date.now() - 60000,
+          title: "Example from 0.2.0", sheets: JSON.parse(json).sheets.length, json }, "session:old-build");
+        tx.oncomplete = res;
+        tx.onerror = () => rej(tx.error);
+      });
+      db.close();
+    }, JSON.stringify({ ...oldJson, title: "Example from 0.2.0" }));
+    await pa.reload({ waitUntil: "domcontentloaded" });
+    const banner = pa.locator(".restore-banner").first();
+    const stA = pa.getByRole("region", { name: "Reproducing saved results" });
+    await Promise.race([banner.waitFor({ timeout: 60000 }), stA.waitFor({ timeout: 60000 })]).catch(() => {});
+    if (await banner.count()) await banner.getByRole("button", { name: /^Restore/ }).first().click();
+    const progress = await stA.waitFor({ timeout: 30000 }).then(() => true, () => false);
+    expect("P-58: restoring an autosave written by another build starts the check",
+      progress && /of your last session “Example from 0\.2\.0”|reproduced with/.test(await stA.innerText()),
+      progress ? (await stA.innerText()).slice(0, 160) : "no strip");
+    await checkedOn(pa, "restored autosave", "restoring the autosave of “Example from 0.2.0”");
+    await ctxA.close();
+  }
+  {
+    const linkJson = { ...oldJson, title: "Shared from 0.2.0" };
+    delete linkJson.prefs;
+    const payload = Buffer.from(deflateSync(strToU8(JSON.stringify(linkJson)), { level: 9 }))
+      .toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    const pl = await browser.newPage({ viewport: { width: 1500, height: 1100 } });
+    pl.on("pageerror", (e) => errors.push(`pageerror (reproduce link): ${e.message}`));
+    await pl.goto(`${baseUrl.replace(/#.*$/, "")}#p=${payload}`, { waitUntil: "domcontentloaded" });
+    const stL = pl.getByRole("region", { name: "Reproducing saved results" });
+    const shown = await stL.waitFor({ timeout: 60000 }).then(() => true, () => false);
+    expect("P-58: a share link made by another build is checked too (read-only, nothing to copy first)",
+      shown && /of the shared project “Shared from 0\.2\.0”|reproduced with/.test(await stL.innerText()),
+      shown ? (await stL.innerText()).slice(0, 160) : "no strip");
+    await checkedOn(pl, "share link", "opening the share link of “Shared from 0.2.0”");
+    await pl.close();
+  }
 }
 
 // --- Survival entry and extras (needs survival-data-entry,
