@@ -61,7 +61,7 @@ function DunnettRatios({ mc }: { mc: any }) {
       <h4>Ratio to control</h4>
       <table className="results-table ratio-table">
         <thead>
-          <tr><th>Comparison</th><th>Ratio</th><th>95% CI (Fieller, simultaneous)</th></tr>
+          <tr><th>Comparison</th><th>Ratio</th><th>% of {control}</th><th>95% CI (Fieller, simultaneous)</th></tr>
         </thead>
         <tbody>
           {rows.map((c, i) => {
@@ -69,7 +69,8 @@ function DunnettRatios({ mc }: { mc: any }) {
             return (
               <tr key={i}>
                 <th scope="row">{c.pair}</th>
-                <td>{t?.value}</td>
+                <td>{t?.ratio}</td>
+                <td>{t?.percent}</td>
                 <td>{t?.ci}</td>
               </tr>
             );

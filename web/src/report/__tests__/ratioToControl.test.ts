@@ -12,7 +12,8 @@ const RATIO = { value: 0.65, ci: [0.5761502119401463, 0.7291946458111488], unbou
 
 test("ratio and its Fieller CI at display precision", () => {
   const t = ratioText(RATIO, "Control");
-  assert.deepEqual(t, { value: "0.65 (65% of Control)", ci: "0.5762 to 0.7292", unbounded: false });
+  assert.deepEqual(t, { value: "0.65 (65% of Control)", ratio: "0.65", percent: "65%",
+    ci: "0.5762 to 0.7292", unbounded: false });
 });
 
 test("an unbounded interval is said, not printed", () => {

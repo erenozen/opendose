@@ -72,7 +72,7 @@ def _abs_ic50_entry(fit, level, x_lo, x_hi):
     return entry
 
 
-def _fit_residual_check(res, name, *, robust=False, rout=False):
+def _fit_residual_check(res, name, *, robust=False, rout=False, x_is_log=False):
     """residuals.fit_residuals of a fit's "_residuals" (nlfit.fit_model),
     or {"unavailable": why} when the fit has none."""
     if robust:
@@ -90,6 +90,8 @@ def _fit_residual_check(res, name, *, robust=False, rout=False):
     if rout:
         out["note"] += (" Points ROUT removed as outliers are not among "
                         "them.")
+    # the model's X: log10 of the concentration for log-dose models
+    out["x_label"] = "log10(X)" if x_is_log else "X"
     return out
 
 
@@ -216,7 +218,7 @@ def _dose_response(data, options):
             fit.pop("_cov", None)  # internal; keep the JSON payload lean
             entry["residual_check"] = _fit_residual_check(
                 fit.pop("_residuals", None), entry["name"], robust=robust,
-                rout=bool(rout_q))
+                rout=bool(rout_q), x_is_log=spec.x_is_log)
             try:
                 flags = rangeflags.range_flags(fit["params"], xs, ys,
                                                x_is_log=spec.x_is_log)

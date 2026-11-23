@@ -11,9 +11,12 @@ import { formatSig } from "../types.ts";
 type R = Record<string, any>;
 
 export interface RatioText {
-  /** "0.6500 (65.00% of Control)" */
+  /** "0.65 (65% of Control)" */
   value: string;
-  /** "0.5915 to 0.7088", or the unbounded sentence */
+  /** "0.65" and "65%", for tables with a column each */
+  ratio: string;
+  percent: string;
+  /** "0.5762 to 0.7292", or the unbounded sentence */
   ci: string;
   unbounded: boolean;
 }
@@ -23,16 +26,18 @@ export const FIELLER_SOURCE = "Fieller EC (1954) J R Stat Soc B 16:175";
 export function ratioText(r: unknown, control: string): RatioText | null {
   const x = r as R | null;
   if (!x || typeof x.value !== "number" || !Number.isFinite(x.value)) return null;
-  const value = `${formatSig(x.value)} (${formatSig(100 * x.value)}% of ${control})`;
+  const ratio = formatSig(x.value);
+  const percent = `${formatSig(100 * x.value)}%`;
+  const value = `${ratio} (${percent} of ${control})`;
   if (x.unbounded || !Array.isArray(x.ci)) {
-    return { value, unbounded: true,
+    return { value, ratio, percent, unbounded: true,
       ci: `unbounded: the mean of ${control} is not clearly different from zero` };
   }
-  return { value, unbounded: false, ci: `${formatSig(x.ci[0])} to ${formatSig(x.ci[1])}` };
+  return { value, ratio, percent, unbounded: false, ci: `${formatSig(x.ci[0])} to ${formatSig(x.ci[1])}` };
 }
 
 /** The clause of "What this means" for an unpaired t test with a ratio
- *  to control: "Treated/Control = 0.6500, 95% CI 0.5915 to 0.7088 by
+ *  to control: "Treated/Control = 0.65, 95% CI 0.5762 to 0.7292 by
  *  Fieller's method", or the unbounded reading. */
 export function ratioClause(r: unknown, treated: string, control: string): string | null {
   const x = r as R | null;

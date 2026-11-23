@@ -231,9 +231,9 @@ await page.waitForSelector('.pane-results[data-live="true"] .results-table', { t
   const rows = shown ? (await table.locator("tbody tr").allInnerTexts()).map((t) => t.replace(/\s+/g, " ").trim()) : [];
   expect("P-18 Dunnett: a ratio and a simultaneous Fieller CI per comparison",
     rows.length === 3
-      && rows[0] === "Low vs. Control 0.924 (92.4% of Control) 0.8491 to 1.005"
-      && rows[1] === "Mid vs. Control 0.8067 (80.67% of Control) 0.7396 to 0.8791"
-      && rows[2] === "High vs. Control 0.65 (65% of Control) 0.5839 to 0.7204", rows.join(" | "));
+      && rows[0] === "Low vs. Control 0.924 92.4% 0.8491 to 1.005"
+      && rows[1] === "Mid vs. Control 0.8067 80.67% 0.7396 to 0.8791"
+      && rows[2] === "High vs. Control 0.65 65% 0.5839 to 0.7204", rows.join(" | "));
 }
 
 // ------------------------------------------------------------------------

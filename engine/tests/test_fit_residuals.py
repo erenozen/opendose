@@ -87,6 +87,7 @@ def test_dose_response_example_4pl():
     rc = ds["residual_check"]
     ref = REF["example_4pl"]
     assert rc["n_qq"] == 27 and len(rc["points"]) == 27
+    assert rc["x_label"] == "log10(X)"
     _check(rc, ref, rel=1e-5, abs_=1e-7)
     assert ds["fit"]["params"]["LogIC50"]["value"] == pytest.approx(
         ref["params"]["LogIC50"], rel=1e-7)

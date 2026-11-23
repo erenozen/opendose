@@ -125,7 +125,8 @@ export default function ResidualsSection({ data, title }: { data: R | null | und
     // a fit's residuals against X as well: a curve along X is a wrong model
     const rxTraces = fit ? byGroup(all, (p) => p.x, (p) => p.residual) : null;
     const rxLayout: Partial<Plotly.Layout> = { ...base(300),
-      xaxis: axis(chrome, "X"), yaxis: axis(chrome, text.residualAxis), shapes: zero };
+      xaxis: axis(chrome, typeof data!.x_label === "string" ? data!.x_label : "X"),
+      yaxis: axis(chrome, text.residualAxis), shapes: zero };
     return { qqTraces, qqLayout, rvTraces, rvLayout, rxTraces, rxLayout };
   }, [ok, data, dark, paired, fit, text.fittedAxis, text.residualAxis]);
 
