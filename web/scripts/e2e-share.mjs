@@ -220,6 +220,10 @@ const rcp = page.getByRole("dialog", { name: "Import with a recipe" });
 await rcp.waitFor({ timeout: 10000 });
 await rcp.getByLabel("Export file to import").setInputFiles(FLOWJO);
 await rcp.locator(".recipe-option.checked", { hasText: "Recognise the file" }).waitFor();
+// "Recognise the file" is checked before the file is read: wait until it
+// says what the file looks like, then check which recipe it picked.
+await rcp.locator(".recipe-option.checked", { hasText: "Looks like:" }).waitFor({ timeout: 10000 })
+  .catch(() => {});
 expect("FlowJo export recognised", await rcp.locator(".recipe-option", { hasText: "FlowJo table" })
   .locator(".recipe-detected").count() === 1);
 await rcp.getByRole("tab", { name: "Columns" }).click();

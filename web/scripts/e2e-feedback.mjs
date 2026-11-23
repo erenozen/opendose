@@ -386,6 +386,9 @@ await ctx.close();
     }).observe(b, { attributes: true, subtree: true });
   });
   const create = dlg.getByRole("button", { name: "Create table" });
+  // Measure at rest: the dialog's entrance scale (0.97 to 1) may still be
+  // running after the quick steps above, and it narrows the box.
+  await dlg.evaluate((d) => Promise.all(d.getAnimations().map((a) => a.finished.catch(() => {}))));
   const w0 = await create.evaluate((b) => b.getBoundingClientRect().width);
   await create.dblclick(); // a double click must make one table
   await p.waitForSelector(".origin-note", { timeout: 30000 });
