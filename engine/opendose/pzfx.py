@@ -14,13 +14,26 @@ A .pzfx file is Prism's XML project format (the sibling of the binary
     </Table>
 
 Values may be empty (<d/>) or flagged Excluded="1" (Prism shows them
-struck through and ignores them); both import as None. Only the data
-tables are read; graphs/layouts/info sheets are ignored.
+struck through and ignores them); both import as None. The data tables
+and the Info sheets are read; graphs and layouts are ignored.
+
+Info sheets (the project's notes and constants) sit before the tables:
+
+    <InfoSequence><Ref ID="Info0" Selected="1"/></InfoSequence>
+    <Info ID="Info0"><Title>Project info 1</Title>
+      <Notes>text, <Font>, <B> ... runs, <BR/> line breaks</Notes>
+      <Constant><Name>Experiment Date</Name><Value>2018-09-02</Value></Constant>
+      ...
+    </Info>
+
+(the layout Prism 6 writes; cf. the exponential_decay.pzfx sample of the
+open-source pzfx R package, inst/extdata, and its write_pzfx.R).
 """
 
 from __future__ import annotations
 
 import base64
+import re
 from xml.etree import ElementTree
 
 
@@ -165,7 +178,57 @@ def parse_pzfx(content: str | bytes, *, keep_excluded: bool = False,
         })
     if not tables:
         raise ValueError("no data tables found in the .pzfx file")
-    return {"tables": tables}
+    return {"tables": tables, "info": [_parse_info(el) for el in root.iter()
+                                       if _local(el.tag) == "Info"]}
+
+
+def _notes_text(notes) -> str:
+    """<Notes> mixed content -> plain text: <BR/> is a line break, the
+    formatting runs (<Font>, <B>, ...) keep their text. When the notes use
+    <BR/>, newlines in the XML are layout and read as spaces."""
+    if notes is None:
+        return ""
+    has_br = any(_local(e.tag) == "BR" for e in notes.iter())
+    parts: list[str] = []
+
+    def walk(el):
+        if el.text:
+            parts.append(el.text)
+        for child in el:
+            if _local(child.tag) == "BR":
+                parts.append("\n")
+            else:
+                walk(child)
+            if child.tail:
+                parts.append(child.tail)
+
+    walk(notes)
+    text = "".join(p if p == "\n" or not has_br else re.sub(r"\s+", " ", p)
+                   for p in parts)
+    lines = [ln.strip() for ln in text.split("\n")]
+    while lines and not lines[-1]:
+        lines.pop()
+    while lines and not lines[0]:
+        lines.pop(0)
+    return "\n".join(lines)
+
+
+def _parse_info(info) -> dict:
+    """One <Info> sheet -> {"title", "notes", "constants": [{"name",
+    "value"}]} (constants without a name are skipped)."""
+    title_el = _first(info, "Title")
+    constants = []
+    for c in _children(info, "Constant"):
+        name_el, value_el = _first(c, "Name"), _first(c, "Value")
+        name = "".join(name_el.itertext()).strip() if name_el is not None else ""
+        if not name:
+            continue
+        value = "".join(value_el.itertext()).strip() if value_el is not None else ""
+        constants.append({"name": name, "value": value})
+    return {"title": ("".join(title_el.itertext()).strip()
+                      if title_el is not None else info.get("ID", "")),
+            "notes": _notes_text(_first(info, "Notes")),
+            "constants": constants}
 
 
 def parse_pzfx_b64(b64: str) -> dict:
@@ -346,10 +409,39 @@ def _table_xml(idx, t, warnings):
             + "\n".join(parts) + "\n</Table>")
 
 
-def write_pzfx(tables) -> dict:
+_EMPTY_INFO = ('<InfoSequence><Ref ID="Info0" Selected="1"/></InfoSequence>\n'
+               '<Info ID="Info0"><Title>Project info 1</Title><Notes/></Info>\n')
+
+
+def _info_xml(info) -> str:
+    """Info sheets -> <InfoSequence> and one <Info> each, as Prism writes
+    them: Title, Notes (line breaks as <BR/>), then one Constant (Name,
+    Value) per constant. None or [] -> the one empty "Project info 1"."""
+    if not info:
+        return _EMPTY_INFO
+    refs, sheets = [], []
+    selected = ' Selected="1"'
+    for i, s in enumerate(info):
+        refs.append(f'<Ref ID="Info{i}"{selected if i == 0 else ""}/>')
+        title = str(s.get("title") or f"Project info {i + 1}")
+        notes = str(s.get("notes") or "").replace("\r\n", "\n")
+        body = "<BR/>".join(_esc(line) for line in notes.split("\n")) if notes.strip() else ""
+        consts = "".join(
+            f"<Constant><Name>{_esc(str(c.get('name', '')))}</Name>"
+            f"<Value>{_esc(str(c.get('value') or ''))}</Value></Constant>"
+            for c in (s.get("constants") or []) if str(c.get("name", "")).strip())
+        sheets.append(f'<Info ID="Info{i}"><Title>{_esc(title)}</Title>'
+                      f"<Notes>{body}</Notes>{consts}</Info>")
+    return (f"<InfoSequence>{''.join(refs)}</InfoSequence>\n"
+            + "\n".join(sheets) + "\n")
+
+
+def write_pzfx(tables, info=None) -> dict:
     """Data tables -> .pzfx XML text. tables: list of {"title", "table":
-    DataTableModel} (or the table fields at the top level). Returns
-    {"xml", "n_tables", "warnings"}."""
+    DataTableModel} (or the table fields at the top level). info: the
+    project's info sheets, [{"title", "notes", "constants": [{"name",
+    "value"}]}], written as Prism Info sheets (none: one empty sheet, as
+    before). Returns {"xml", "n_tables", "warnings"}."""
     if not tables:
         raise ValueError("nothing to export: no data tables")
     warnings: list[str] = []
@@ -363,8 +455,7 @@ def write_pzfx(tables) -> dict:
            '<GraphPadPrismFile xmlns="http://graphpad.com/prism/Prism.htm" '
            'PrismXMLVersion="5.00">\n'
            '<Created><OriginalVersion CreatedByProgram="OpenDose"/></Created>\n'
-           '<InfoSequence><Ref ID="Info0" Selected="1"/></InfoSequence>\n'
-           '<Info ID="Info0"><Title>Project info 1</Title><Notes/></Info>\n'
-           f"<TableSequence>{refs}</TableSequence>\n"
+           + _info_xml(info)
+           + f"<TableSequence>{refs}</TableSequence>\n"
            + "\n".join(bodies) + "\n</GraphPadPrismFile>\n")
     return {"xml": xml, "n_tables": len(bodies), "warnings": warnings}

@@ -13,12 +13,23 @@
 //   the paste report, never applied by itself, undone in one step.
 // - P-36: find and replace (Ctrl+H) in a 96-row table: 7 n.d. cells, one
 //   undo step, exclusions kept.
+// - P-37: spreadsheet keys in a 50-row column: Ctrl+Down to row 50,
+//   Ctrl+Shift+Up to row 1, Ctrl+D fills with row 1's exact text (an
+//   excluded cell stays excluded), Home / End, Ctrl+Home / End, Ctrl+A.
+// - P-38: a shuffled long table of mice before and after, paired by ID by
+//   "From long table…" and by the recipes' column output: the
+//   hand-aligned table, the pairs listed, a duplicate ID stopped, and the
+//   paired t test against scipy (engine/tests/reference/paired_by_id.json).
+// - P-59: a .pzfx Info sheet ("Cell line = HeLa", notes) opens as an info
+//   sheet, is written back by Export tables as .pzfx, and that file opens
+//   with the same constants and notes.
 //
 // Usage: node scripts/e2e-import.mjs http://localhost:5173/
 import { chromium } from "playwright";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { readFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const FIX = join(here, "..", "e2e-fixtures");
@@ -382,6 +393,236 @@ const typeWhy = dlg.locator("[data-part='type-why']");
   await repl.press("Escape");
   const closed = !(await repl.isVisible().catch(() => false));
   expect("P-36: Escape closes the bar", closed);
+}
+
+// --- P-37: spreadsheet keys. A 50-row column: Ctrl+Down from row 1 lands
+// on row 50, Ctrl+Shift+Up selects rows 50 to 1, Ctrl+D fills them with
+// row 1's text exactly (an excluded cell stays excluded), one undo puts
+// every value back; Home / End, Ctrl+Home / End and Ctrl+A.
+{
+  const vals = Array.from({ length: 50 }, (_, r) => (r === 0 ? "12.50" : String(r + 1)));
+  await fileMenu("New data table…");
+  const nd = page.locator(".new-table-dialog");
+  await nd.locator('input[name="table-type"][value="column"]').check();
+  await nd.getByLabel("Table name").fill("Fifty rows");
+  await nd.getByRole("button", { name: "Create table" }).click();
+  await page.waitForSelector(".grid-toolbar");
+  await page.evaluate((t) => {
+    const el = document.querySelector(".data-table input[aria-label='Group A, row 1']");
+    const dt = new DataTransfer();
+    dt.setData("text/plain", t);
+    el.focus();
+    el.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }));
+  }, `${vals.join("\n")}\n`);
+  if (await appears(dlg, 3000)) {
+    await dlg.getByRole("button", { name: "Import", exact: true }).click();
+    await dlg.waitFor({ state: "detached", timeout: 10000 }).catch(() => {});
+  }
+  const colA = async () => {
+    const t = await tableOf("Fifty rows");
+    return t ? { rows: t.datasets[0].rows, excluded: t.excluded[0] } : null;
+  };
+  const start = await colA();
+  const focused = () => page.evaluate(() => document.activeElement?.getAttribute("aria-label") ?? "");
+  const scope = () => page.locator(".data-inspector .inspector-scope").innerText().catch(() => "");
+  // exclude row 10 first: it must stay excluded through the fill
+  await page.locator(".data-table input[aria-label='Group A, row 10']").click();
+  await page.keyboard.press("Control+e");
+  const prompt = page.getByRole("region", { name: "Exclusion reason" });
+  if (await appears(prompt, 3000)) await prompt.getByRole("button", { name: /^(Skip|Not now|Close)/ }).first().click().catch(() => {});
+  // reach row 1 by the keyboard (its text selected, as a cell not being edited)
+  await page.locator(".data-table input[aria-label='Group A, row 2']").click();
+  await page.keyboard.press("ArrowUp");
+  await page.keyboard.press("Control+ArrowDown");
+  const atEnd = await focused();
+  expect("P-37: Ctrl+Down in a 50-row column jumps from row 1 to row 50",
+    start?.rows.length === 50 && atEnd === "Group A, row 50", atEnd);
+  await page.keyboard.press("Control+Shift+ArrowUp");
+  const sel = await scope();
+  expect("P-37: Ctrl+Shift+Up selects up to row 1 (the Data Inspector reads 50 × 1 cells, rows 1–50)",
+    sel.startsWith("50 × 1 cells (rows 1–50)"), sel);
+  // Ctrl+D, dispatched so the browser's own Ctrl+D (bookmark) is seen to be taken
+  const prevented = await page.evaluate(() => {
+    const ev = new KeyboardEvent("keydown", { key: "d", ctrlKey: true, bubbles: true, cancelable: true });
+    document.activeElement.dispatchEvent(ev);
+    return ev.defaultPrevented;
+  });
+  const filled = await colA();
+  expect("P-37: Ctrl+D fills rows 2 to 50 with row 1's text exactly (12.50), and takes the key from the browser",
+    prevented && filled.rows.every((r) => r[0] === "12.50"), `${prevented} ${filled.rows.slice(0, 3).map((r) => r[0])}`);
+  expect("P-37: the excluded cell in row 10 stays excluded after the fill",
+    JSON.stringify(filled.excluded) === JSON.stringify(["9:0"]), JSON.stringify(filled.excluded));
+  await page.locator("header").getByRole("button", { name: "Undo" }).click();
+  const undone = await colA();
+  expect("P-37: one undo puts all 49 values back", JSON.stringify(undone.rows) === JSON.stringify(start.rows));
+
+  // Home / End along a row, Ctrl+Home / End over the table, Ctrl+A
+  await page.locator(".data-table input[aria-label='Group A, row 4']").click();
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("Home");
+  const home = await focused();
+  await page.keyboard.press("End");
+  const end = await focused();
+  await page.keyboard.press("Control+End");
+  const cEnd = await focused();
+  await page.keyboard.press("Control+Home");
+  const cHome = await focused();
+  expect("P-37: Home and End go to the row's title and its last cell; Ctrl+End and Ctrl+Home to the last value and the first cell",
+    home === "Row 5 title" && end === "Group C, row 5" && cEnd === "Group A, row 50" && cHome === "Row 1 title",
+    [home, end, cEnd, cHome].join(" | "));
+  await page.keyboard.press("Control+a");
+  const all = await scope();
+  expect("P-37: Ctrl+A selects the whole table (50 rows × the title and three group columns)",
+    all.startsWith("50 × 4 cells"), all);
+  await page.keyboard.press("Escape");
+  // a cell being edited keeps Home and Ctrl+A for its text
+  const c7 = page.locator(".data-table input[aria-label='Group A, row 7']");
+  await c7.click();
+  await page.keyboard.press("End");
+  await page.keyboard.press("Home");
+  const stays = await focused();
+  await page.keyboard.press("Control+a");
+  const textSel = await c7.evaluate((el) => el.selectionStart === 0 && el.selectionEnd === el.value.length);
+  const notTable = !(await scope()).startsWith("50 × 4");
+  expect("P-37: in a cell being edited, Home and End move the caret and Ctrl+A selects its text",
+    stays === "Group A, row 7" && textSel && notTable, stays);
+  // the keys are listed in Help
+  await page.keyboard.press("Escape");
+  await page.locator("body").click({ position: { x: 5, y: 5 } }).catch(() => {});
+  await page.keyboard.press("Control+/");
+  const help = page.locator(".help-panel");
+  const helpText = (await appears(help, 5000)) ? await help.innerText() : "";
+  expect("P-37: the Help keyboard table lists Ctrl+D, Ctrl+A, Ctrl+arrow, Home and End",
+    /Ctrl\+D\s+Fill down/.test(helpText) && /Ctrl\+A\s+Select the whole table/.test(helpText)
+    && /Ctrl\+arrow/.test(helpText) && /Home, End/.test(helpText), helpText.length);
+  await page.keyboard.press("Control+/");
+}
+
+// --- P-38: pair values by subject ID. Mice M1 to M6, before and after,
+// in a shuffled long table (e2e-fixtures/import/paired_long.csv): "From
+// long table…" on a paired t test and the import recipes' column output
+// both make the hand-aligned table, the report lists the pairs and any
+// unmatched ID, a duplicate ID stops with a message naming it and its
+// rows, and the paired t test reads scipy's ttest_rel on the aligned
+// columns (engine/tests/reference/paired_by_id.json).
+{
+  const REF = JSON.parse(readFileSync(join(here, "..", "..", "engine", "tests", "reference", "paired_by_id.json"), "utf8"));
+  const LONG = readFileSync(join(IMP, "paired_long.csv"), "utf8");
+  const HAND = {
+    rowTitles: ["M4", "M1", "M6", "M3", "M2", "M5"],
+    after: ["12.6", "14.3", "15.0", "13.1", "11.9", "13.4"],
+    before: ["9.7", "12.1", "12.9", "13.8", "10.4", "11.2"],
+  };
+  const aligned = (t) => !!t && JSON.stringify(t.rowTitles) === JSON.stringify(HAND.rowTitles)
+    && JSON.stringify(t.datasets.map((d) => d.rows.map((r) => r[0]))) === JSON.stringify([HAND.after, HAND.before]);
+  await fileMenu("New data table…");
+  const nd = page.locator(".new-table-dialog");
+  await nd.locator('input[name="table-type"][value="column"]').check();
+  await nd.getByLabel("Table name").fill("Paired mice");
+  await nd.getByRole("button", { name: "Create table" }).click();
+  await page.waitForSelector(".grid-toolbar");
+  await page.locator(".pane-controls select.analysis-select").selectOption("ttest");
+  await page.locator(".pane-controls").getByLabel("Test", { exact: true }).selectOption("paired");
+  await page.getByRole("button", { name: "From long table…" }).click();
+  const lt = page.getByRole("dialog", { name: "Paired values from a long table" });
+  const ltText = lt.getByLabel("Long table text");
+  const fillBtn = lt.getByRole("button", { name: "Fill the table" });
+  // a duplicate: M3 twice "before"
+  await ltText.fill(`${LONG}M3,before,14.0\n`);
+  const dup = await lt.locator(".long-table-error").innerText().catch(() => "");
+  expect("P-38: a duplicate ID stops the import with a message naming the ID and its rows",
+    dup === "Subject “M3” has 2 records for “before” (rows 5 and 14). Pairing needs one value per subject and "
+      + "condition: remove the extra records, or average them first." && await fillBtn.isDisabled(), dup);
+  // an unmatched ID: listed, kept as a row
+  await ltText.fill(`${LONG}M7,before,10.0\n`);
+  const unmatched = await lt.innerText();
+  expect("P-38: an unmatched ID is listed in the report, not dropped",
+    unmatched.includes("Unmatched, kept as rows with a blank that paired analyses leave out: M7 (no “after”)."));
+  await ltText.fill(LONG);
+  const summary = await lt.locator(".import-summary").innerText().catch(() => "");
+  const report = await lt.innerText();
+  expect("P-38: the report lists the six pairs, matched by mouse",
+    summary === "6 subjects paired by mouse across “after”, “before”"
+    && report.includes("Paired (one row each, titled with the ID): M4, M1, M6, M3, M2, M5."), summary);
+  await fillBtn.click();
+  await lt.waitFor({ state: "detached", timeout: 10000 }).catch(() => {});
+  expect("P-38: the filled table pairs M1 with M1 and so on (identical to the hand-aligned wide table)",
+    aligned(await tableOf("Paired mice")), JSON.stringify((await tableOf("Paired mice"))?.rowTitles));
+  const tWant = `t=${REF.by_id.t.toFixed(3)}`;
+  const tRow = await page.waitForFunction((w) => [...document.querySelectorAll(".pane-results .results-table tr")]
+    .find((tr) => /^t, df/.test(tr.innerText) && tr.innerText.includes(w))?.innerText ?? false,
+  tWant, { timeout: 60000 }).then((h) => h.jsonValue(), () => "");
+  const pRow = await page.locator(".pane-results .results-table tr", { hasText: /^P value/ }).first().innerText()
+    .catch(() => "");
+  const pWant = REF.by_id.p.toPrecision(4);
+  expect(`P-38: the paired t test on the paired table reads scipy's ttest_rel (${tWant}, df=${REF.by_id.df}, P=${pWant})`,
+    String(tRow).includes(`df=${REF.by_id.df}`) && pRow.includes(pWant),
+    `${String(tRow).replace(/\s+/g, " ")} | ${pRow.replace(/\s+/g, " ")}`);
+
+  // the import recipes, column output: the same pairing from the same file
+  await page.getByRole("button", { name: "Import…" }).click();
+  await page.getByRole("tab", { name: "Recipes" }).click();
+  const rd = page.getByRole("dialog", { name: "Import with a recipe" });
+  await rd.waitFor({ timeout: 10000 });
+  await rd.getByLabel("Export file to import").setInputFiles(join(IMP, "paired_long.csv"));
+  await rd.locator(".recipe-option.checked", { hasText: "Recognise the file" }).waitFor();
+  await rd.getByRole("tab", { name: "Columns" }).click();
+  await rd.getByLabel("Column mouse holds").selectOption("subject");
+  await rd.getByLabel("Column time holds").selectOption("group");
+  await rd.getByLabel("Column value holds").selectOption("value");
+  await rd.getByRole("tab", { name: "Table" }).click();
+  await rd.getByRole("radio", { name: /^Column/ }).check();
+  await rd.getByLabel("Table name").fill("Paired by recipe");
+  const rcpReport = await rd.locator(".recipe-pairing").innerText().catch(() => "");
+  expect("P-38: the recipe's column output pairs by the subject ID and lists the pairs",
+    rcpReport.includes("6 subjects paired by mouse across “after”, “before”.")
+    && rcpReport.includes("Paired (one row each, titled with the ID): M4, M1, M6, M3, M2, M5."), rcpReport);
+  await rd.getByRole("button", { name: "Create table" }).click();
+  await page.getByRole("treeitem", { name: "Paired by recipe", exact: true }).first().waitFor({ timeout: 10000 });
+  expect("P-38: the recipe's table equals the hand-aligned wide table", aligned(await tableOf("Paired by recipe")),
+    JSON.stringify((await tableOf("Paired by recipe"))?.datasets.map((d) => d.rows.map((r) => r[0]))));
+}
+
+// --- P-59: Prism Info sheets round trip. e2e-fixtures/info.pzfx holds an
+// Info sheet with "Cell line = HeLa" (and notes): opened, the constant is
+// on an info sheet; exported as .pzfx, it is written back as a Prism
+// Constant; that file opened again brings it back once more.
+{
+  const navInfo = (name) => page.getByRole("treeitem", { name, exact: true }).first();
+  await page.setInputFiles(OPEN_INPUT, join(FIX, "info.pzfx"));
+  await appears(navInfo("Project info 1"), 30000);
+  const toastText = (await toasts()).join(" | ");
+  const infoOf = (name) => page.evaluate((n) => {
+    const s = globalThis.__opendose.store.project.sheets.find((x) => x.kind === "info" && x.name === n);
+    return s ? { notes: s.notes, constants: s.constants, parentId: s.parentId } : null;
+  }, name);
+  const sheet = await infoOf("Project info 1");
+  expect("P-59: opening a .pzfx with an Info sheet adds it, with its constants and notes",
+    /Imported 1 data table and 1 info sheet from the Prism file/.test(toastText)
+    && sheet?.constants.some((c) => c.name === "Cell line" && c.value === "HeLa")
+    && sheet?.notes === "Viability after 48 h, three plates.\nPlate 2 edge wells left out (evaporation).",
+    `${toastText} | ${JSON.stringify(sheet?.constants?.slice(6))}`);
+  await navInfo("Project info 1").locator(":scope > .nav-row").click();
+  const hela = await page.getByLabel("Cell line value", { exact: true }).inputValue().catch(() => "");
+  expect("P-59: the info sheet shows Cell line = HeLa", hela === "HeLa", hela);
+  // export the project's tables as .pzfx: the Info sheet goes with them
+  const [dl] = await Promise.all([page.waitForEvent("download", { timeout: 30000 }),
+    fileMenu("Export tables as .pzfx")]);
+  const out = join(tmpdir(), `opendose-e2e-info-${Date.now()}.pzfx`);
+  await dl.saveAs(out);
+  const xml = readFileSync(out, "utf8");
+  expect("P-59: the export writes the constant back as a Prism Info constant",
+    xml.includes("<Constant><Name>Cell line</Name><Value>HeLa</Value></Constant>")
+    && /<InfoSequence><Ref ID="Info0" Selected="1"\/>/.test(xml)
+    && xml.indexOf("<Info ID=") < xml.indexOf("<TableSequence>"), xml.slice(0, 300));
+  await page.setInputFiles(OPEN_INPUT, out);
+  const chooser = page.locator(".pzfx-chooser");
+  if (await appears(chooser, 15000)) await chooser.getByRole("button", { name: /^Import/ }).first().click();
+  await appears(navInfo("Project info 1 (2)"), 30000);
+  const again = await infoOf("Project info 1 (2)");
+  expect("P-59: the exported file opens with the same constants and notes",
+    JSON.stringify(again?.constants) === JSON.stringify(sheet?.constants) && again?.notes === sheet?.notes,
+    JSON.stringify(again));
 }
 
 // --- a file Open cannot read: the error names what it opens
