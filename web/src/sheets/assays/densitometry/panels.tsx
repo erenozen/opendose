@@ -8,6 +8,8 @@ import { textOf, unreadableSheet, workbookFormat } from "../../../lib/fileText";
 import type { DataTableModel } from "../../../project/types";
 import { parseSource } from "../../../share/recipes/presets";
 import CopyableMethods from "../../common/CopyableMethods";
+import { useWorkbookRows } from "../../common/useWorkbookRows";
+import WorkbookReport from "../../common/WorkbookReport";
 import { DDF_LABELS, DDF_METHODS, ddfMethodsSentence, ddfOf } from "../../common/ddf";
 import type { ControlsProps, ResultsProps } from "../../types";
 import { takeWizardRequest } from "../kit/create";
@@ -218,13 +220,29 @@ function ExportImport({ onTable }: { onTable: (t: DataTableModel) => void }) {
   const [map, setMap] = useState<ImportMap | null>(null);
   const [text, setText] = useState("");
   const [msg, setMsg] = useState("");
-  const load = (m: string[][]) => {
+  // The columns were used for the table: a change of the rows read from a
+  // workbook (its report's buttons) goes into the table too.
+  const [used, setUsed] = useState(false);
+  const load = (m: string[][], again = false) => {
     const rows = m.filter((r) => r.some((c) => c.trim()));
     if (rows.length < 2) { setMsg("Need a header row and at least one lane."); return; }
-    setSrc({ headers: rows[0], rows: rows.slice(1) });
-    setMap(guessImport(rows[0]));
+    const next = { headers: rows[0], rows: rows.slice(1) };
+    setSrc(next);
+    // the same export read again keeps the columns the user chose
+    const keepMap = again && map && src?.headers.join("\t") === next.headers.join("\t");
+    const columns = keepMap ? map : guessImport(rows[0]);
+    if (!keepMap) setMap(columns);
+    if (keepMap && used) {
+      const t = tableFromExport(next.rows, columns);
+      onTable(t);
+      setMsg(`Using ${t.x.length} lanes.`);
+      return;
+    }
+    setUsed(false);
     setMsg(`${rows.length - 1} rows read: check the columns, then use them.`);
   };
+  // the first sheet of a workbook
+  const workbook = useWorkbookRows((sheets, again) => load(sheets[0] ?? [], again));
   const roleSel = (k: DRole, label: string) => map && src && (
     <label key={k} className="field">
       <span>{label}</span>
@@ -247,26 +265,26 @@ function ExportImport({ onTable }: { onTable: (t: DataTableModel) => void }) {
           <FileButton size="sm" accept=".csv,.tsv,.txt,.xlsx,.xls,.ods,text/csv,text/plain" inputLabel="Densitometry export"
             onFile={async (f) => {
               const refused = unreadableSheet(f.name);
+              workbook.clear();
               if (refused) { setMsg(refused); return; }
               try {
                 const bytes = new Uint8Array(await f.arrayBuffer());
                 const fmt = workbookFormat(f.name);
-                if (fmt) {
-                  const sheets = await readWorkbook(bytes, fmt);
-                  load((sheets[0]?.rows as unknown[][] ?? []).map((r) => r.map((c) => (c == null ? "" : String(c)))));
-                } else load(parseSource(textOf(bytes)));
+                if (fmt) workbook.read((await readWorkbook(bytes, fmt)).slice(0, 1), fmt);
+                else load(parseSource(textOf(bytes)));
               } catch (err) { setMsg(`Could not read the file: ${err instanceof Error ? err.message : String(err)}`); }
             }}>
             Choose the densitometry export…</FileButton>
         </div>
       </div>
+      <WorkbookReport {...workbook.report} />
       <label className="field">
         <span>…or paste it</span>
         <textarea className="wizard-paste" value={text} aria-label="Paste densitometry export"
           placeholder={"Blot,Lane,Group,Target,Actin\n1,1,Control,10234,20110\n…"} onChange={(e) => setText(e.target.value)} />
       </label>
       <div className="assay-setup">
-        <Button disabled={!text.trim()} onClick={() => load(parseSource(text))}>Read pasted export</Button>
+        <Button disabled={!text.trim()} onClick={() => { workbook.clear(); load(parseSource(text)); }}>Read pasted export</Button>
         <span className="hint-block" role="status">{msg}</span>
       </div>
       {src && map && (
@@ -306,6 +324,7 @@ function ExportImport({ onTable }: { onTable: (t: DataTableModel) => void }) {
             <Button variant="primary" onClick={() => {
               const t = tableFromExport(src.rows, map);
               onTable(t);
+              setUsed(true);
               setMsg(`Using ${t.x.length} lanes.`);
             }}>Use these columns</Button>
           </div>

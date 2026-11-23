@@ -1,10 +1,12 @@
 // Plate reader → dose-response: controls (with the setup wizard), the QC
 // results sheet and the methods text.
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { readWorkbook, runEngine } from "../../../lib/engine";
 import { textOf, unreadableSheet, workbookFormat } from "../../../lib/fileText";
 import { parseSource } from "../../../share/recipes/presets";
 import CopyableMethods from "../../common/CopyableMethods";
+import { useWorkbookRows } from "../../common/useWorkbookRows";
+import WorkbookReport from "../../common/WorkbookReport";
 import type { DataTableModel } from "../../../project/types";
 import type { ControlsProps, ResultsProps } from "../../types";
 import { takeWizardRequest } from "../kit/create";
@@ -316,20 +318,29 @@ function ImportStep({ table, format, onFormat, onTable }: {
   const current = platesOf(table, format);
   const filled = current.filter((g) => g.some((r) => r.some((v) => v !== null))).length;
 
-  const take = (matrices: string[][][]) => {
+  // The plates a file was added after: when the workbook report's buttons
+  // change which rows are read, the new reading replaces the file's
+  // plates instead of going after them a second time.
+  const keptRef = useRef<{ format: PlateFormat; plates: typeof current }>({ format, plates: [] });
+  const take = (matrices: string[][][], again = false) => {
     const found = findPlates(matrices, format);
     if (!found.plates.length) {
       setMsg("No plate block was found: the export needs rows labelled A, B, C … with the "
         + "readings beside them, or a bare 8 × 12 (16 × 24) grid of numbers.");
       return;
     }
-    const keep = append && found.format === format ? current.slice(0, filled) : [];
+    const kept = keptRef.current;
+    const keep = again ? (kept.format === found.format ? kept.plates : [])
+      : append && found.format === format ? current.slice(0, filled) : [];
+    keptRef.current = { format: found.format, plates: keep };
     const plates = [...keep, ...found.plates];
     onTable(plateTable(plates, found.format), found.format, found.warnings);
     setMsg(`Read ${found.plates.length} plate${found.plates.length === 1 ? "" : "s"} of `
       + `${found.format} wells${keep.length ? `, after the ${keep.length} already in the table` : ""}.`
       + (found.warnings.length ? ` ${found.warnings.join(" ")}` : ""));
   };
+  // every sheet of a workbook is searched for plates
+  const workbook = useWorkbookRows(take);
 
   return (
     <>
@@ -353,17 +364,14 @@ function ImportStep({ table, format, onFormat, onTable }: {
           <FileButton size="sm" accept=".csv,.tsv,.txt,.xlsx,.xls,.ods,text/csv,text/plain" inputLabel="Reader file"
             onFile={async (f) => {
               const refused = unreadableSheet(f.name);
+              workbook.clear();
               if (refused) { setMsg(refused); return; }
               setBusy(true);
               try {
                 const bytes = new Uint8Array(await f.arrayBuffer());
                 const fmt = workbookFormat(f.name);
-                if (fmt) {
-                  const sheets = await readWorkbook(bytes, fmt);
-                  take(sheets.map((s) => (s.rows as unknown[][]).map((r) => r.map((c) => (c == null ? "" : String(c))))));
-                } else {
-                  take([parseSource(textOf(bytes))]);
-                }
+                if (fmt) workbook.read(await readWorkbook(bytes, fmt), fmt);
+                else take([parseSource(textOf(bytes))]);
               } catch (err) {
                 setMsg(`Could not read the file: ${err instanceof Error ? err.message : String(err)}`);
               } finally { setBusy(false); }
@@ -375,6 +383,7 @@ function ImportStep({ table, format, onFormat, onTable }: {
           Add to the plates already in the table
         </label>
       </div>
+      <WorkbookReport {...workbook.report} />
       <label className="field">
         <span>…or paste the plate grid(s)</span>
         <textarea className="wizard-paste" value={text} aria-label="Paste plate grid"
@@ -382,7 +391,7 @@ function ImportStep({ table, format, onFormat, onTable }: {
           onChange={(e) => setText(e.target.value)} />
       </label>
       <div className="assay-setup">
-        <Button disabled={!text.trim() || busy} onClick={() => take([parseSource(text)])}>
+        <Button disabled={!text.trim() || busy} onClick={() => { workbook.clear(); take([parseSource(text)]); }}>
           Read pasted plates
         </Button>
         <span className="hint-block" role="status">{msg}</span>

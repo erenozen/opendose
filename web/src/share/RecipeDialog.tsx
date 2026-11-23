@@ -8,12 +8,15 @@ import { useDiscardGuard } from "../graph/useDiscardGuard";
 import { Button, FileButton, notify, Tabs } from "../components/ui";
 import { SRC } from "../guide/sources";
 import { readWorkbook, type XlsxSheet } from "../lib/engine";
+import type { WorkbookFormat } from "../lib/engineProtocol";
 import { textOf, unreadableSheet, WORKBOOK_ACCEPT, workbookFormat } from "../lib/fileText";
 import { DEFAULT_EXPORT, tableMatrix } from "../project/exportTable";
 import { newId } from "../project/ids";
 import { makeProject } from "../project/ops";
 import type { DataTableModel, Project } from "../project/types";
 import PlateMapEditor from "../sheets/assays/plate/PlateMapEditor";
+import WorkbookReport from "../sheets/common/WorkbookReport";
+import { sheetCells } from "../sheets/common/workbookReportText";
 import { stackTables, type NamedText, type StackResult } from "./recipes/multiFile";
 import {
   compileTemplate, DELIMITERS, guessDelimiter, guessParts, nameParts, splittableColumns,
@@ -75,7 +78,7 @@ export default function RecipeDialog({ initialText, initialFiles, savedId, stage
   const [srcKind, setSrcKind] = useState<"file" | "paste">(initialText ? "paste" : "file");
   const [pasted, setPasted] = useState(initialText ?? "");
   const [fileText, setFileText] = useState("");
-  const [sheets, setSheets] = useState<XlsxSheet[] | null>(null);
+  const [sheets, setSheets] = useState<(XlsxSheet & { format: WorkbookFormat })[] | null>(null);
   const [sheetIx, setSheetIx] = useState(0);
   const [multi, setMulti] = useState<MultiSource | null>(null);
   const [busy, setBusy] = useState(false);
@@ -88,13 +91,18 @@ export default function RecipeDialog({ initialText, initialFiles, savedId, stage
     ? saved.list.find((e) => e.recipe.id === choice.slice(6)) : undefined;
   const savedSpec = savedEntry?.spec.kind === "recipe" ? savedEntry.spec : undefined;
 
+  // Rows hidden in the workbook, as in the Import dialog: by a filter,
+  // left out unless kept; by hand, kept unless left out.
+  const [keepFiltered, setKeepFiltered] = useState(false);
+  const [skipHidden, setSkipHidden] = useState(false);
+  const sheet = srcKind === "file" && sheets ? sheets[sheetIx] ?? null : null;
   const matrix = useMemo<string[][]>(() => {
     if (given) return [];
     if (srcKind === "file" && multi) return multi.stack.matrix;
-    if (srcKind === "file" && sheets) return (sheets[sheetIx]?.rows ?? []).map((r) => r.map((c) => c.trim()));
+    if (srcKind === "file" && sheet) return sheetCells(sheet, keepFiltered, skipHidden).map((r) => r.map((c) => c.trim()));
     const text = srcKind === "paste" ? pasted : fileText;
     return text.trim() ? parseSource(text) : [];
-  }, [given, srcKind, multi, sheets, sheetIx, pasted, fileText]);
+  }, [given, srcKind, multi, sheet, keepFiltered, skipHidden, pasted, fileText]);
 
   const isMulti = srcKind === "file" && !!multi;
   const detected = useMemo(() => (matrix.length
@@ -150,7 +158,9 @@ export default function RecipeDialog({ initialText, initialFiles, savedId, stage
       try {
         const s = await readWorkbook(bytes, format);
         if (!s.length) throw new Error("the workbook has no worksheets");
-        setSheets(s);
+        setSheets(s.map((x) => ({ ...x, format })));
+        setKeepFiltered(false);
+        setSkipHidden(false);
       } catch (e) {
         setError(`Could not read the workbook: ${e instanceof Error ? e.message : String(e)}`);
       } finally { setBusy(false); }
@@ -289,6 +299,8 @@ export default function RecipeDialog({ initialText, initialFiles, savedId, stage
                 onChange={(e) => setPasted(e.target.value)} />
             </label>
           )}
+          <WorkbookReport sheets={sheet ? [sheet] : []} keepFiltered={keepFiltered} skipHidden={skipHidden}
+            onKeepFiltered={setKeepFiltered} onSkipHidden={setSkipHidden} />
           <div className="status-slot" role="status" aria-label="Files stacked">
           {isMulti && multi && (
             <p className="field-note">

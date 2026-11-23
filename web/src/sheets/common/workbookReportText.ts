@@ -1,6 +1,6 @@
 // The words of the workbook report (P-06): what a sheet of an .xlsx, .xls
 // or .ods file holds that its saved values do not show. Pure; the banner
-// is WorkbookReport.tsx. Unit-tested in __tests__/workbookReport.test.ts.
+// is WorkbookReport.tsx. Unit-tested in __tests__/workbookReportText.test.ts.
 //
 // The defaults follow what copying the range does in the two spreadsheet
 // apps that write these files, which agree: rows a filter hides are left
@@ -9,7 +9,15 @@
 // "in the workbook", not "in Excel": an .ods or a LibreOffice .xls was
 // never in Excel.
 import type { WorkbookFormat } from "../../lib/engineProtocol.ts";
-import type { SheetFlags } from "../../lib/xlsxFlags.ts";
+import { visibleRows, type SheetFlags } from "../../lib/xlsxFlags.ts";
+
+/** A sheet as the report names it: its name (or where it came from, in
+ *  a list of several files), its flags and its file's format. */
+export interface ReportedSheet {
+  name: string;
+  flags?: SheetFlags | null;
+  format: WorkbookFormat;
+}
 
 export interface ReportPart {
   key: "unchecked" | "filterHidden" | "manualHidden" | "blankFormulas";
@@ -67,5 +75,14 @@ export function reportParts(flags: SheetFlags | null | undefined, format: Workbo
         + `${n === 1 ? "reads" : "read"} as blank: ${list(flags.blankFormulas)}. ${recalcStep(format)}` });
   }
   return parts;
+}
+
+/** A sheet's cells as text, without the hidden rows the import leaves
+ *  out (visibleRows): by default the rows a filter hides, none of the
+ *  rows hidden by hand. What every reader of a workbook takes. */
+export function sheetCells(sheet: { rows: readonly (readonly unknown[])[]; flags?: SheetFlags | null },
+  keepFiltered: boolean, skipHidden: boolean): string[][] {
+  const rows = sheet.rows.map((r) => r.map((c) => (c == null ? "" : String(c))));
+  return visibleRows({ rows, flags: sheet.flags }, keepFiltered, skipHidden);
 }
 

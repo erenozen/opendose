@@ -4,7 +4,7 @@
 // the app that writes the format. Run: npm run test:unit
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { reportParts } from "../workbookReport.ts";
+import { reportParts, sheetCells } from "../workbookReportText.ts";
 
 const flags = { filterHidden: [3, 4, 5], manualHidden: [2], blankFormulas: ["B2", "B3"] };
 
@@ -47,4 +47,19 @@ test("long lists name six rows and count the rest", () => {
   const parts = reportParts({ filterHidden: [1, 2, 3, 4, 5, 6, 7, 8], manualHidden: [], blankFormulas: [] },
     "xlsx", false, false);
   assert.match(parts[0].text, /^8 rows are hidden by a filter in the workbook \(rows 2, 3, 4, 5, 6, 7 and 2 more\)/);
+});
+
+test("sheetCells: what a picker takes, with the Import dialog's defaults", () => {
+  // as the filtered sheet of e2e-fixtures/xlsx/filter-hidden.xlsx: rows 4
+  // to 6 (indices 3 to 5) hidden by the filter; a row hidden by hand at 1
+  const rows = [["Dose", "Response"], [0.1, 98.5], [0.3, 95.1], [1, 80.2], [3, 51.7], [10, 22.4], [30, null]];
+  const sheet = { rows, flags: { filterHidden: [3, 4, 5], manualHidden: [1], blankFormulas: [] } };
+  const first = (k: boolean, s: boolean) => sheetCells(sheet, k, s).map((r) => r[0]);
+  assert.deepEqual(first(false, false), ["Dose", "0.1", "0.3", "30"]);
+  assert.deepEqual(first(true, false), ["Dose", "0.1", "0.3", "1", "3", "10", "30"]);
+  assert.deepEqual(first(false, true), ["Dose", "0.3", "30"]);
+  assert.deepEqual(sheetCells(sheet, false, false).at(-1), ["30", ""]);
+  // no flags (not checked, or nothing hidden): every row, whatever the choices
+  assert.equal(sheetCells({ rows }, false, true).length, rows.length);
+  assert.equal(sheetCells({ rows, flags: null }, false, true).length, rows.length);
 });

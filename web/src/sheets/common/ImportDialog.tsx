@@ -586,7 +586,7 @@ export default function ImportDialog({ table: given, file: givenFile, initial, o
         </Tabs.Panel>
       </Tabs>
 
-      <WorkbookReport sheet={sheet} format={workbookFormat(file?.name ?? "") ?? "xlsx"}
+      <WorkbookReport sheets={sheet ? [{ ...sheet, format: workbookFormat(file?.name ?? "") ?? "xlsx" }] : []}
         keepFiltered={keepFiltered} skipHidden={skipHidden}
         onKeepFiltered={setKeepFiltered} onSkipHidden={setSkipHidden} />
       <div className="import-preview" role="region" tabIndex={0} aria-label="Preview of the data to import">
