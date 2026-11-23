@@ -5,6 +5,8 @@
 # second e2e-motion run against the built site).
 #
 # Usage: scripts/verify.sh          (PORT=5190 by default; override with PORT=…)
+#        RUN_LARGE=1 scripts/verify.sh   also runs e2e-large (500,000 rows; the
+#        browser peaks near 3.7 GB, so give the run about 6 GB of memory)
 # Logs: .verify/ (gitignored). Exit status 0 only when everything passes.
 set -u
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
@@ -55,6 +57,12 @@ done
 if [ -f scripts/e2e-motion.mjs ] && [ -f scripts/e2e-privacy.mjs ]; then
   node scripts/e2e-motion.mjs "http://localhost:$PORT/" >"$S/e2e-motion-dist.log" 2>&1; rc=$?
   echo "e2e-motion (built site) exit=$rc"; [ $rc -eq 0 ] || { fail=1; grep -E "^FAIL|FAILURES|Error" "$S/e2e-motion-dist.log" | head -5; }
+fi
+# 500,000 rows pasted, graphed and analysed (P-10), on the built site; opt-in
+# because of its memory peak.
+if [ "${RUN_LARGE:-0}" = 1 ] && [ -f scripts/e2e-large.mjs ]; then
+  node scripts/e2e-large.mjs "http://localhost:$PORT/" >"$S/e2e-large.log" 2>&1; rc=$?
+  echo "e2e-large (built site) exit=$rc"; [ $rc -eq 0 ] || { fail=1; grep -E "^FAIL|FAILURES|Error" "$S/e2e-large.log" | head -5; }
 fi
 kill $DEVPID 2>/dev/null; wait $DEVPID 2>/dev/null
 echo "== overall: $([ $fail -eq 0 ] && echo PASS || echo FAIL)"
