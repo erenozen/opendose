@@ -7,6 +7,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useProject } from "../../../app/context";
 import { readXlsx, runEngine } from "../../../lib/engine";
+import { textOf, unreadableSheet } from "../../../lib/fileText";
 import { newId } from "../../../project/ids";
 import { findSheet, updateTable } from "../../../project/ops";
 import type { DataSheet, DataTableModel, ResultsSheet } from "../../../project/types";
@@ -387,13 +388,15 @@ function FlowJoImport({ onTable }: { onTable: (t: DataTableModel) => void }) {
         <span>FlowJo table (.csv, .txt or .xlsx)</span>
         <FileButton size="sm" accept={ACCEPT} inputLabel="FlowJo table file"
           onFile={async (f) => {
+            const refused = unreadableSheet(f.name);
+            if (refused) { setMsg(refused); return; }
             try {
               const bytes = new Uint8Array(await f.arrayBuffer());
               if (/\.xlsx$/i.test(f.name)) {
                 const sheets = await readXlsx(bytes);
                 const rows = (sheets[0]?.rows as unknown[][] ?? []).map((r) => r.map((c) => (c == null ? "" : String(c))));
                 take(rows.map((r) => r.map((c) => c.replace(/[\t\n]/g, " ")).join("\t")).join("\n"));
-              } else take(new TextDecoder("utf-8").decode(bytes));
+              } else take(textOf(bytes));
             } catch (err) {
               setMsg(`Could not read the file: ${err instanceof Error ? err.message : String(err)}`);
             }

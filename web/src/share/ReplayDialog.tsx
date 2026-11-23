@@ -7,6 +7,7 @@ import Modal from "../components/Modal";
 import { Button, FileButton, notify, SwapLabel, useLabelSwap } from "../components/ui";
 import { copyText } from "../export/download";
 import { analyzeAsync, readXlsx } from "../lib/engine";
+import { textOf } from "../lib/fileText";
 import { newId } from "../project/ids";
 import { addSheets, findSheet, makeInfoSheet, makeProject, uniqueName } from "../project/ops";
 import {
@@ -107,7 +108,7 @@ async function readIncoming(file: File, prefs: Project["prefs"]): Promise<Incomi
   if (/\.(xls|ods|numbers)$/i.test(name)) {
     throw new Error("only .xlsx workbooks can be read; save the sheet as .xlsx or CSV");
   }
-  return [{ name: stemOf(name), origin: name, source: await file.text() }];
+  return [{ name: stemOf(name), origin: name, source: textOf(new Uint8Array(await file.arrayBuffer())) }];
 }
 
 type Stage = "setup" | "running" | "log";

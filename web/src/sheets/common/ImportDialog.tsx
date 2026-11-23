@@ -14,6 +14,7 @@ import type { PlainSpec } from "../../share/recipes/saved";
 import { pasteReport, placedCells, type PasteReport } from "../../project/pasteReport";
 import type { SheetApp } from "../../project/clipboardHtml";
 import { visibleRows } from "../../lib/xlsxFlags";
+import { decodeAs, detectEncoding, type FileEncoding } from "../../lib/fileText";
 import WorkbookReport from "./WorkbookReport";
 
 export interface ImportRequest {
@@ -38,12 +39,18 @@ const RecipeDialog = lazy(() => import("../../share/RecipeDialog"));
 // Saved recipes: apply one, or save this dialog's settings as one.
 const ImportRecipesBar = lazy(() => import("../../share/recipes/ImportRecipesBar"));
 
+// "auto" reads the file as every picker does (lib/fileText.ts); the
+// others override it.
 const ENCODINGS: [string, string][] = [
-  ["utf-8", "UTF-8 (most files)"],
+  ["utf-8", "UTF-8"],
   ["windows-1252", "Windows-1252 / Latin-1"],
   ["utf-16le", "UTF-16"],
+  ["utf-16be", "UTF-16 big-endian"],
   ["macintosh", "Mac Roman"],
 ];
+const ENCODING_NAMES: Record<FileEncoding, string> = {
+  "utf-8": "UTF-8", "windows-1252": "Windows-1252", "utf-16le": "UTF-16", "utf-16be": "UTF-16 big-endian",
+};
 
 const intOr = (v: string, d: number) => {
   const n = Math.round(Number(v));
@@ -73,7 +80,7 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
   const [srcKind, setSrcKind] = useState<"file" | "paste">(initial?.text ? "paste" : "file");
   const [pasted, setPasted] = useState(initial?.text ?? "");
   const [file, setFile] = useState<{ name: string; bytes: Uint8Array } | null>(null);
-  const [encoding, setEncoding] = useState("utf-8");
+  const [encoding, setEncoding] = useState("auto");
   const [sheets, setSheets] = useState<XlsxSheet[] | null>(null);
   const [sheetIx, setSheetIx] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -97,11 +104,12 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
   });
 
   const isXlsx = !!sheets;
+  const detected = useMemo(() => (file && !isXlsx ? detectEncoding(file.bytes) : null), [file, isXlsx]);
   const text = useMemo(() => {
     if (srcKind === "paste") return pasted;
     if (!file || isXlsx) return "";
-    try { return new TextDecoder(encoding).decode(file.bytes); } catch { return ""; }
-  }, [srcKind, pasted, file, encoding, isXlsx]);
+    try { return decodeAs(file.bytes, encoding === "auto" ? detected ?? "utf-8" : encoding); } catch { return ""; }
+  }, [srcKind, pasted, file, encoding, isXlsx, detected]);
 
   // Rows hidden in Excel: by a filter, left out unless kept; by hand, kept
   // unless left out (as copying the range in Excel does).
@@ -258,6 +266,7 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
               {!isXlsx && (
                 <Field label="Text encoding" id={`${uid}-enc`}>
                   <select id={`${uid}-enc`} value={encoding} onChange={(e) => setEncoding(e.target.value)}>
+                    <option value="auto">Detect{detected ? ` (${ENCODING_NAMES[detected]})` : ""}</option>
                     {ENCODINGS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                   </select>
                 </Field>
@@ -321,7 +330,7 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
           {!isXlsx && srcKind === "file" && (
             <p className="field-note">
               If accented letters or µ look wrong in the preview, the file was
-              saved in another encoding: try Windows-1252.
+              saved in another encoding: choose it under Text encoding.
             </p>
           )}
           <p className="field-note">
