@@ -124,7 +124,7 @@ export function MvVolcanoOptions({ graph, table }: GraphOptionsProps) {
         onChange={(fcThreshold) => set({ fcThreshold })} />
       <OptInput label="P below" inputMode="decimal" value={s.pThreshold}
         onChange={(pThreshold) => set({ pThreshold })} />
-      <OptInput label="Label the top" type="number" min={0} max={100} value={s.topN} suffix="rows"
+      <OptInput label="Label the top" inputMode="numeric" value={s.topN} suffix="rows"
         onChange={(topN) => set({ topN })} />
       <OptNote>Up and down are coloured from the scheme and also differ by symbol
         (triangle up, triangle down), so the plot reads in grayscale.</OptNote>

@@ -1,5 +1,6 @@
 // Controls, results sheets and methods text for the parts-of-whole
 // analyses (fraction of total, chi-square goodness of fit).
+import { useId, useState } from "react";
 import "../common/sheetKit.css";
 import CopyableMethods from "../common/CopyableMethods";
 import { fmtP, formatSig, levelPct, stars } from "../common/statFormat";
@@ -173,6 +174,12 @@ export function GofControls({ table, options: o, onChange }: ControlsProps<GofOp
   const names = partNames(table);
   const d = Math.min(o.dataset, Math.max(0, table.datasets.length - 1));
   const obs = columnValues(table, d);
+  // An expected value is judged once its field is left (forms.md: never
+  // on the first keystroke), and the reason is tied to the field.
+  const [left, setLeft] = useState<ReadonlySet<number>>(new Set());
+  const badId = useId();
+  const shownBad = table.x.some((_, r) => left.has(r) && (o.expected[r] ?? "").trim() !== ""
+    && !(Number(o.expected[r]) > 0));
   const setExpected = (r: number, v: string) => {
     const next = Array.from({ length: Math.max(table.x.length, o.expected.length) },
       (_, i) => o.expected[i] ?? "");
@@ -239,7 +246,7 @@ export function GofControls({ table, options: o, onChange }: ControlsProps<GofOp
             <tbody>
               {table.x.map((_, r) => {
                 const raw = o.expected[r] ?? "";
-                const bad = raw.trim() !== "" && !(Number(raw) > 0);
+                const bad = left.has(r) && raw.trim() !== "" && !(Number(raw) > 0);
                 return (
                   <tr key={r}>
                     <th scope="row">{names[r]}</th>
@@ -247,7 +254,8 @@ export function GofControls({ table, options: o, onChange }: ControlsProps<GofOp
                     <td>
                       <input inputMode="decimal" value={raw}
                         aria-label={`Expected value for ${names[r]}`}
-                        aria-invalid={bad || undefined}
+                        aria-invalid={bad || undefined} aria-describedby={bad ? badId : undefined}
+                        onBlur={() => setLeft((s) => (s.has(r) ? s : new Set(s).add(r)))}
                         onChange={(e) => setExpected(r, e.target.value)} />
                     </td>
                   </tr>
@@ -255,6 +263,9 @@ export function GofControls({ table, options: o, onChange }: ControlsProps<GofOp
               })}
             </tbody>
           </table>
+          <p id={badId} className="ui-field-error" hidden={!shownBad}>
+            Enter expected values above 0.
+          </p>
           <div className="inline-actions">
             <Button onClick={() => set({ expected: equalExpected(table, o) })}>
               Fill equal
