@@ -200,16 +200,13 @@ def _hodges_lehmann(a: np.ndarray, b: np.ndarray) -> float:
     return float(np.median([x - y for x, y in product(a, b)]))
 
 
-def mann_whitney(values_a, values_b, *, ci_level: float = 0.95) -> dict:
-    a, b = _clean(values_a), _clean(values_b)
-    if a.size < 1 or b.size < 1:
-        raise ValueError("each group needs at least 1 value")
-    # Guide rule: exact P (even with ties) when the smaller group has
-    # <= 100 values, else the normal approximation. Without ties scipy's
-    # exact distribution is used (identical to the shuffle distribution).
+def _mann_whitney_p(a, b):
+    """(statistic U1, two-sided P, P greater, P less, p_method).
+    Guide rule: exact P (even with ties) when the smaller group has
+    <= 100 values, else the normal approximation. Without ties scipy's
+    exact distribution is used (identical to the shuffle distribution)."""
     n_small, n_large = min(a.size, b.size), max(a.size, b.size)
-    pooled = np.concatenate([a, b])
-    ties = exactdist.has_ties(pooled)
+    ties = exactdist.has_ties(np.concatenate([a, b]))
     p_method = "exact"
     if n_small <= 100 and not ties:
         res = stats.mannwhitneyu(a, b, alternative="two-sided",
@@ -232,7 +229,34 @@ def mann_whitney(values_a, values_b, *, ci_level: float = 0.95) -> dict:
                                              method="asymptotic").pvalue)
                     for alt in ("greater", "less"))
         p_method = "approximate"
-    u1 = float(res.statistic)
+    return float(res.statistic), p, p_g, p_l, p_method
+
+
+def _rank_test_floor(p_min, p_method, ns, one_sided=None):
+    """exactdist.min_p_block, naming the method the test used."""
+    method = "exact" if p_method == "exact" else "normal approximation"
+    return exactdist.min_p_block(p_min, method, ns, one_sided=one_sided)
+
+
+def mann_whitney(values_a, values_b, *, ci_level: float = 0.95) -> dict:
+    a, b = _clean(values_a), _clean(values_b)
+    if a.size < 1 or b.size < 1:
+        raise ValueError("each group needs at least 1 value")
+    pooled = np.concatenate([a, b])
+    u1, p, p_g, p_l, p_method = _mann_whitney_p(a, b)
+    # the smallest P this design can give, by the same method
+    # (exactdist.min_p_rank_sum)
+    if p_method != "exact":   # the approximation at the extreme data
+        def p_two_one(x, y):
+            r = _mann_whitney_p(x, y)
+            return r[1], min(r[2], r[3])
+        two, one = exactdist.min_p_rank_sum(a, b, p_two_one)
+    elif exactdist.has_ties(pooled):
+        two, one = exactdist.rank_sum_min_p_exact(a, b)
+    else:
+        two = exactdist.untied_min_p_rank_sum(int(a.size), int(b.size))
+        one = min(1.0, two / 2)
+    floor = _rank_test_floor(two, p_method, [a.size, b.size], one_sided=one)
     ranks = stats.rankdata(pooled)
     k, level = exactdist.rank_sum_ci_index(int(a.size), int(b.size),
                                            ci_level)
@@ -265,6 +289,7 @@ def mann_whitney(values_a, values_b, *, ci_level: float = 0.95) -> dict:
         "ci_actual_level": level,
         "effect_size": effectsize.safe(effectsize.cliffs_delta, a, b,
                                        ci_level=ci_level),
+        "min_attainable_p": floor,
     }
 
 
@@ -295,6 +320,15 @@ def wilcoxon_matched_pairs(values_a, values_b, *,
     out["effect_size"] = effectsize.safe(
         effectsize.rank_biserial_paired, d, zero_method=zero_method,
         ci_level=ci_level)
+
+    # the smallest P this design can give: every nonzero difference of
+    # the same sign (exactdist.min_p_signed_rank), by the same method
+    def p_two_one(dd):
+        r = signed_rank_test(dd, zero_method=zero_method)
+        return r["p"], min(r["p_greater"], r["p_less"])
+    two, one = exactdist.min_p_signed_rank(d, p_two_one)
+    out["min_attainable_p"] = _rank_test_floor(
+        two, res["p_method"], [int(a.size)], one_sided=one)
     return out
 
 

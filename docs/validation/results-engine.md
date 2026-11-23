@@ -708,3 +708,34 @@ acceptance test (2 × 3, 4 replicates: 24 cell-mean residuals) runs in
 the statsmodels residuals). Found on the way, not changed: two-way
 ANOVA on a table whose cells have no scatter at all (every residual 0)
 stops with "float division by zero" instead of a sentence.
+
+### P-15 the smallest P a rank test can reach
+
+Mann-Whitney, the Wilcoxon matched-pairs test, Kruskal-Wallis and
+Friedman now carry `min_attainable_p` (exactdist.min_p_*): the P value
+the test itself gives for the most extreme arrangement of the values
+entered (one group entirely below the other; every difference of the
+same sign; groups as contiguous blocks of ranks in the order of sizes
+that maximises H; every subject ranking the treatments the same way),
+by the method the test used (exact, exact with ties, or its chi-square /
+normal approximation), two-sided and, for the two-group tests,
+one-sided. The exact rank-sum case with ties reads the mass at the
+extreme rank sums from the null distribution the P value was computed
+from (cached, so the main P value now builds it once instead of twice:
+100 vs 100 values with ties, 1.6 s natively before, 0.9 s with the
+floor). Every existing P value is unchanged.
+
+References (`engine/tests/test_rank_floor.py`, computed inside the
+test): the hand derivations without ties, 2 / C(n1 + n2, n1)
+(Mann-Whitney; 3 vs 3: 0.10, the plan's acceptance test), 2 / 2^n
+(Wilcoxon), (k!)^(1 − n) (Friedman), and 6 / 90 for Kruskal-Wallis
+with 2, 2 and 2 values; scipy `mannwhitneyu(method = "exact")` and
+`wilcoxon(method = "exact")` on the extreme data; brute-force
+enumeration (itertools) of every relabelling with ties for
+Mann-Whitney, Kruskal-Wallis and Friedman; the chi-square
+approximation at the largest H. The Checks row note ("With 3 and 3
+values the smallest possible two-sided P is 0.10, so this design cannot
+reach P < 0.05") cites the GraphPad statistics guide page "Nonparametric
+tests with small and large samples" and FAQ 1721 "Analyzing ratios with
+logs", and links the "Rank tests with few values" explainer.
+

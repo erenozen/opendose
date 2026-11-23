@@ -559,6 +559,21 @@ def _comparisons_from_stats(means, ns, ms_res, df_res, method: str, *,
     raise ValueError(f"unknown multiple-comparisons method: {method}")
 
 
+def _kruskal_p(groups, exact):
+    """(H, P, p_method): the chi-square P, or with exact=True the exact
+    permutation P when it fits the computation budget."""
+    h, p = stats.kruskal(*groups)
+    p_method = None
+    if exact:
+        from . import exactdist
+        p_exact = exactdist.kruskal_wallis_exact_p(groups)
+        if p_exact is None:
+            p_method = "approximate"
+        else:
+            p, p_method = p_exact, "exact"
+    return h, p, p_method
+
+
 def kruskal_wallis(datasets, names=None, *, dunns: bool = True,
                    dunn_corrected: bool = True, dunn_family: str = "all",
                    control: int = 0, pairs=None,
@@ -577,15 +592,7 @@ def kruskal_wallis(datasets, names=None, *, dunns: bool = True,
     groups = _groups(datasets)
     if len(groups) < 2:
         raise ValueError("Kruskal-Wallis needs at least 2 groups")
-    h, p = stats.kruskal(*groups)
-    p_method = None
-    if exact:
-        from . import exactdist
-        p_exact = exactdist.kruskal_wallis_exact_p(groups)
-        if p_exact is None:
-            p_method = "approximate"
-        else:
-            p, p_method = p_exact, "exact"
+    h, p, p_method = _kruskal_p(groups, exact)
     names = names or [f"Group {i}" for i in range(len(groups))]
     out = {
         "H": float(h), "p": float(p),
@@ -596,6 +603,17 @@ def kruskal_wallis(datasets, names=None, *, dunns: bool = True,
     }
     if p_method is not None:
         out["p_method"] = p_method
+    # the smallest P this design can give, by the same method
+    # (exactdist.min_p_kruskal)
+    from . import exactdist
+    try:
+        floor = exactdist.min_p_kruskal(
+            groups, lambda gs: _kruskal_p(gs, exact)[1])
+    except ValueError:
+        floor = None
+    out["min_attainable_p"] = exactdist.min_p_block(
+        floor, "exact" if p_method == "exact" else "chi-square approximation",
+        [g.size for g in groups])
     if dunns:
         out["dunns"] = _dunns(groups, names, corrected=dunn_corrected,
                               family=dunn_family, control=control,

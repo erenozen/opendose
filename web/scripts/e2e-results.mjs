@@ -142,6 +142,38 @@ await page.waitForSelector('.pane-results[data-live="true"] .results-table', { t
     /Shapiro-Wilk on the 24 pooled residuals: W = 0\.9744/.test(sw), sw);
 }
 
+// --- P-15: a rank test that cannot reach P < 0.05 ------------------------
+{
+  await pastedTable("column", "Three and three", "A\tB\n1\t4\n2\t5\n3\t6\n");
+  await page.locator(".pane-controls select.analysis-select").selectOption("ttest");
+  await page.locator(".pane-controls").getByRole("combobox", { name: "Test", exact: true }).selectOption("mann_whitney");
+  // the plan's acceptance wording; 2 / C(6, 3) = 0.10 (hand derivation,
+  // scipy mannwhitneyu exact; engine/tests/test_rank_floor.py)
+  const title = "With 3 and 3 values the smallest possible two-sided P is 0.10, so this design cannot reach P < 0.05";
+  const note = page.locator('.pane-answer [data-banner="rank-floor"]');
+  const shown = await answerText(new RegExp(title.replace(/[.()]/g, "\\$&")));
+  expect("P-15 Mann-Whitney 1, 2, 3 vs 4, 5, 6: the Checks row says the design cannot reach P < 0.05",
+    shown && (await note.first().innerText().catch(() => "")).includes(title));
+  const text = await note.first().innerText().catch(() => "");
+  expect("P-15: worded as a design fact, with the t test on log values and its sources",
+    /property of the design, fixed before any data were collected/.test(text)
+      && /t test on the log of the values/.test(text) && /not from this result/.test(text)
+      && /Nonparametric tests with small and large samples/.test(text)
+      && /Analyzing ratios with logs/.test(text), text.slice(0, 160));
+  await liveResults(/Mann-Whitney U/);
+  const pRow = await page.locator(".pane-results tr", { hasText: "P value (two-tailed" }).first()
+    .innerText().catch(() => "");
+  expect("P-15: the Mann-Whitney P itself is the floor, 0.1",
+    /^P value \(two-tailed[^)]*\)\s+0\.10*(\s|$)/.test(pRow.trim()), pRow.replace(/\s+/g, " "));
+  // four and four: 2 / 70 = 0.029 can reach it, no note
+  await pastedTable("column", "Four and four", "A\tB\n1\t5\n2\t6\n3\t7\n4\t8\n");
+  await page.locator(".pane-controls select.analysis-select").selectOption("ttest");
+  await page.locator(".pane-controls").getByRole("combobox", { name: "Test", exact: true }).selectOption("mann_whitney");
+  await liveResults(/Mann-Whitney/);
+  expect("P-15: 4 vs 4 can reach P < 0.05, so no note",
+    await page.locator('[data-banner="rank-floor"]').count() === 0);
+}
+
 // ------------------------------------------------------------------------
 await browser.close();
 if (errors.length) console.log(errors.slice(0, 10).join("\n"));

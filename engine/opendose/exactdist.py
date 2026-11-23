@@ -97,9 +97,26 @@ def has_ties(values) -> bool:
 RANK_SUM_BUDGET = 2e9
 
 
+# The last distribution computed: the two-sided and one-sided P values
+# and the smallest attainable P of one test share it (the same ranks in
+# the same order), so it is built once. Read-only for every caller.
+_NULL_CACHE: dict = {}
+
+
 def rank_sum_null(ranks2, n_pick: int) -> np.ndarray:
     """P(sum of n_pick of the doubled ranks = s), s = 0..sum(ranks2)."""
     ranks2 = np.asarray(ranks2, dtype=np.int64)
+    key = (ranks2.tobytes(), int(n_pick))
+    hit = _NULL_CACHE.get(key)
+    if hit is not None:
+        return hit
+    out = _rank_sum_null(ranks2, n_pick)
+    _NULL_CACHE.clear()
+    _NULL_CACHE[key] = out
+    return out
+
+
+def _rank_sum_null(ranks2, n_pick: int) -> np.ndarray:
     top = int(np.sort(ranks2)[::-1][:n_pick].sum())
     dist = np.zeros((n_pick + 1, top + 1))
     dist[0, 0] = 1.0
@@ -418,6 +435,136 @@ def kruskal_wallis_exact_p(groups, *, state_budget: int = KW_EXACT_STATE_BUDGET
     total = sum(states.values())
     hits = sum(w for st, w in states.items() if score(st) >= obs)
     return float(min(hits / total, 1.0))
+
+
+# ------------------------------------------- smallest attainable P value
+
+# A rank test's P value comes from where the ranks fall, so a design
+# with few values has a smallest P it can ever give, whatever the data
+# (with no ties: Mann-Whitney 2 / C(n1 + n2, n1), Wilcoxon signed rank
+# 2 / 2^n, Friedman (k!)^(1 - n)). The functions below find it by asking
+# the test itself (p_fn, the same P computation the analysis used:
+# exact, exact with ties, or its approximation) for the most extreme
+# arrangement of the values actually entered, so ties, zero differences
+# and the approximations are accounted for. It is a property of the
+# design, fixed before the data are seen (GraphPad statistics guide,
+# "Nonparametric tests with small and large samples": with tiny samples
+# a nonparametric test has little or no power).
+
+def untied_min_p_rank_sum(n1: int, n2: int) -> float:
+    """2 / C(n1 + n2, n1): every arrangement equally likely, and only the
+    two with one group entirely below the other reach the extreme."""
+    return min(1.0, 2.0 / math.comb(n1 + n2, n1))
+
+
+def untied_min_p_signed_rank(n: int) -> float:
+    """2 / 2^n: all differences positive, or all negative."""
+    return min(1.0, 2.0 / 2.0 ** n)
+
+
+def untied_min_p_friedman(n_subjects: int, k: int) -> float:
+    """(k!)^(1 - n): every subject ranks the treatments the same way,
+    k! of the (k!)^n equally likely within-row orderings."""
+    return min(1.0, math.factorial(k) ** (1 - n_subjects))
+
+
+def min_p_rank_sum(values_a, values_b, p_fn):
+    """Smallest P of a two-group rank-sum test: the smaller of p_fn on
+    the two extreme arrangements of the pooled values (group a holding
+    the n_a smallest, or the n_a largest). The rank sum's distance from
+    its mean is largest there, and every P is monotone in it. p_fn may
+    return a tuple of P values (two-sided, one-sided): each is
+    minimised."""
+    a = np.asarray(values_a, dtype=float)
+    pooled = np.sort(np.concatenate([a, np.asarray(values_b, dtype=float)]))
+    na = a.size
+    low = p_fn(pooled[:na], pooled[na:])
+    high = p_fn(pooled[pooled.size - na:], pooled[:pooled.size - na])
+    if isinstance(low, tuple):
+        return tuple(float(min(u, v)) for u, v in zip(low, high))
+    return float(min(low, high))
+
+
+def rank_sum_min_p_exact(values_a, values_b) -> tuple[float, float]:
+    """(two-sided, one-sided) smallest exact P of the rank-sum test with
+    the pooled values' ties: the null distribution's mass at the most
+    extreme rank sums (the smaller group holding the smallest, or the
+    largest, doubled midranks). The same distribution as
+    rank_sum_two_sided_p, so it is not computed again."""
+    a = np.asarray(values_a, dtype=float)
+    b = np.asarray(values_b, dtype=float)
+    if a.size > b.size:
+        a, b = b, a
+    r2 = doubled_midranks(np.concatenate([a, b]))
+    n_s, n = a.size, r2.size
+    dist = rank_sum_null(r2, n_s)
+    srt = np.sort(r2)
+    lo, hi = int(srt[:n_s].sum()), int(srt[n - n_s:].sum())
+    e2 = n_s * (n + 1)
+    s2 = np.arange(dist.size)
+    dev = max(abs(lo - e2), abs(hi - e2))
+    two = float(min(dist[np.abs(s2 - e2) >= dev].sum(), 1.0))
+    one = float(min(dist[:lo + 1].sum(), dist[hi:].sum(), 1.0))
+    return two, one
+
+
+def min_p_signed_rank(diffs, p_fn):
+    """Smallest P of the signed-rank test: p_fn on |differences| (every
+    nonzero difference positive, the same magnitudes and zeros)."""
+    return p_fn(np.abs(np.asarray(diffs, dtype=float)))
+
+
+MIN_P_MAX_GROUPS = 8   # k! orders of the blocks are compared below
+
+
+def min_p_kruskal(groups, p_fn) -> float | None:
+    """Smallest P of the Kruskal-Wallis test: p_fn on the groups that
+    hold contiguous blocks of the sorted pooled values, in the order of
+    group sizes that maximises sum(R_j^2 / n_j) (the statistic H orders
+    arrangements by it; for fixed sizes it is largest when each group is
+    a block of consecutive ranks). None above MIN_P_MAX_GROUPS groups."""
+    sizes = [int(np.asarray(g).size) for g in groups]
+    if len(sizes) > MIN_P_MAX_GROUPS:
+        return None
+    pooled = np.sort(np.concatenate([np.asarray(g, dtype=float) for g in groups]))
+    ranks = stats.rankdata(pooled)
+    best, best_order = -1.0, None
+    seen = set()
+    for order in permutations(range(len(sizes))):
+        key = tuple(sizes[i] for i in order)
+        if key in seen:
+            continue
+        seen.add(key)
+        start, score = 0, 0.0
+        for n in key:
+            score += ranks[start:start + n].sum() ** 2 / n
+            start += n
+        if score > best + 1e-9:
+            best, best_order = score, order
+    out, start = [None] * len(sizes), 0
+    for i in best_order:
+        out[i] = pooled[start:start + sizes[i]]
+        start += sizes[i]
+    return float(p_fn(out))
+
+
+def min_p_friedman(M, p_fn) -> float:
+    """Smallest P of the Friedman test: p_fn on the matrix whose every
+    row holds its own values sorted, so every subject ranks the
+    treatments the same way (the column rank sums are then as unequal
+    as they can be)."""
+    return float(p_fn(np.sort(np.asarray(M, dtype=float), axis=1)))
+
+
+def min_p_block(p_min: float | None, method: str, ns, *, alpha: float = 0.05,
+                one_sided: float | None = None) -> dict:
+    """The result block the web reads (guide/rankFloor.ts)."""
+    return {"p": None if p_min is None else float(p_min),
+            "p_one_sided": None if one_sided is None else float(one_sided),
+            "alpha": alpha, "method": method, "n": [int(n) for n in ns],
+            "reachable": None if p_min is None else bool(p_min < alpha),
+            "source": ("GraphPad statistics guide, 'Nonparametric tests "
+                       "with small and large samples'")}
 
 
 # ------------------------------------- studentized maximum modulus (T3)
