@@ -4135,14 +4135,19 @@ const axeOn = async (pg, sel) => {
     REFP.experiments.every((e) => card.includes(`${e.name} ${sig4(e.log_ic50)} ${sig4(e.ic50)}`))
     && card.includes(`95% CI of mean LogIC50 (t, 2 df) ${sig4(S.ci95_log[0])} to ${sig4(S.ci95_log[1])}`), card.slice(0, 400));
   await openChecks();
-  await pooled.click().catch(() => {});
+  if (await pooled.getAttribute("aria-expanded") !== "true") await pooled.click();
   expect("with the map, the chip points to the summary on 3 experiments",
     (await page.locator(".guide-chip-detail").innerText().catch(() => "")).includes("n = 3 experiments"));
   // the linked column table of logIC50 values
   await page.getByRole("button", { name: "Make a linked table of LogIC50 values" }).click();
   const linkedName = "LogIC50 per experiment of Three experiments";
   await page.waitForSelector(".grid-toolbar", { timeout: 30000 });
-  expect("the linked table is made and selected", await navRow(linkedName).count() === 1);
+  const linkedRow = page.getByRole("treeitem", { name: new RegExp(`^${linkedName}`) }).first()
+    .locator(":scope > .nav-row");
+  expect("the linked table is made and selected", await linkedRow.count() === 1
+    && (await page.locator('[role=treeitem][aria-selected="true"]').first().getAttribute("aria-label") ?? "")
+      .startsWith(linkedName),
+    await page.locator('[role=treeitem][aria-selected="true"]').first().getAttribute("aria-label"));
   const linkedCell = (r) => page.locator(`.data-table input[aria-label^="Compound A"][aria-label$="row ${r}"]`).first();
   const linkedVals = [];
   for (let r = 1; r <= 3; r++) linkedVals.push(Number(await linkedCell(r).inputValue()));
@@ -4160,7 +4165,7 @@ const axeOn = async (pg, sel) => {
   const acrossNow = (await across.innerText().catch(() => "")).replace(/\s+/g, " ");
   expect(`one Y value edited: the summary updates to pIC50 ${sig4(EP.p_mean)}, 95% CI ${sig4(EP.p_ci95[0])} to ${sig4(EP.p_ci95[1])}`,
     updated && acrossNow.includes(`95% CI ${sig4(EP.p_ci95[0])} to ${sig4(EP.p_ci95[1])} (t, 2 df)`), acrossNow);
-  await navRow(linkedName).click();
+  await linkedRow.click();
   await page.waitForFunction(([l, want]) => {
     const el = document.querySelector(`.data-table input[aria-label^="Compound A"][aria-label$="row 3"]`);
     return !!el && Math.abs(Number(el.value) - want) < 1e-4;
