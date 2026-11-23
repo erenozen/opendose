@@ -1,8 +1,9 @@
 import { Fragment, useEffect } from "react";
 import { announce, Banner, Button } from "../../components/ui";
 import {
-  reportLine, reportParts, type CellNote, type PasteReport,
+  reportLine, reportParts, unitNames, type CellNote, type PasteReport,
 } from "../../project/pasteReport";
+import { fixedText, type UnitFix } from "../../project/unitCells";
 import "./dataNotes.css";
 
 const MAX_CELLS = 6;
@@ -14,7 +15,7 @@ const MAX_CELLS = 6;
  * nothing was converted to 0. Dismissable; the next paste replaces it.
  * Keep it mounted and pass `open` so it leaves with the Banner's exit.
  */
-export default function PasteReportStrip({ open, verb, report, onJump, onDismiss, onReimport }: {
+export default function PasteReportStrip({ open, verb, report, onJump, onDismiss, onReimport, onFix }: {
   open: boolean;
   verb: "Pasted" | "Imported";
   report: PasteReport | null;
@@ -22,6 +23,9 @@ export default function PasteReportStrip({ open, verb, report, onJump, onDismiss
   onDismiss: () => void;
   /** Number-like text with commas: read the same block with Import. */
   onReimport?: () => void;
+  /** Read the percent cells as their digits or as fractions, or strip the
+   *  unit (project/unitCells.ts); offered, never applied by itself. */
+  onFix?: (how: UnitFix) => void;
 }) {
   // The note appears with its words, so a live region would often stay
   // silent: speak the line once per report instead.
@@ -30,6 +34,11 @@ export default function PasteReportStrip({ open, verb, report, onJump, onDismiss
   }, [open, verb, report]);
   const parts = report ? reportParts(report) : [];
   const warn = parts.some((p) => p.tone === "warn");
+  // the first percent cell names the two readings ("Read 12.5% as 0.125");
+  // a unit is offered for stripping only when every cell holds the same one
+  const pct = report?.percents[0];
+  const units = report ? unitNames(report) : [];
+  const unit = units.length === 1 ? units[0] : null;
   const cellButton = (c: CellNote) => (
     <button key={c.addr} type="button" data-still className="linkish cell-ref"
       title={c.text ? `“${c.text}”${c.to ? ` read as ${c.to}` : ""}` : "blank"}
@@ -63,11 +72,24 @@ export default function PasteReportStrip({ open, verb, report, onJump, onDismiss
               </Fragment>
             ))}
           </p>
-          {onReimport && report.localeNumbers.length > 0 && (
+          {((onReimport && report.localeNumbers.length > 0) || (onFix && (pct || unit))) && (
             <Banner.Actions>
-              <Button size="sm" onClick={onReimport}
-                title="Open the Import dialog with the same block, where the decimal separator can be chosen">
-                Read with Import…</Button>
+              {onReimport && report.localeNumbers.length > 0 && (
+                <Button size="sm" onClick={onReimport}
+                  title="Open the Import dialog with the same block, where the decimal separator can be chosen">
+                  Read with Import…</Button>
+              )}
+              {onFix && pct && (
+                <>
+                  <Button size="sm" onClick={() => onFix("percent")}>
+                    Read {pct.text} as {fixedText(pct.text, "percent")}</Button>
+                  <Button size="sm" onClick={() => onFix("fraction")}>
+                    Read {pct.text} as {fixedText(pct.text, "fraction")}</Button>
+                </>
+              )}
+              {onFix && unit && (
+                <Button size="sm" onClick={() => onFix("unit")}>Strip “{unit}”</Button>
+              )}
             </Banner.Actions>
           )}
         </>

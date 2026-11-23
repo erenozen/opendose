@@ -6,8 +6,8 @@ import { useUi } from "../app/ui";
 import Modal from "../components/Modal";
 import { Button, FileButton, notify, SwapLabel, useLabelSwap } from "../components/ui";
 import { copyText } from "../export/download";
-import { analyzeAsync, readXlsx } from "../lib/engine";
-import { textOf } from "../lib/fileText";
+import { analyzeAsync, readWorkbook } from "../lib/engine";
+import { textOf, WORKBOOK_ACCEPT, workbookFormat } from "../lib/fileText";
 import { newId } from "../project/ids";
 import { addSheets, findSheet, makeInfoSheet, makeProject, uniqueName } from "../project/ops";
 import {
@@ -81,8 +81,9 @@ async function settle(get: () => Project, results: ResultsCache, timeoutMs = 120
 /** Tables in a file of new data. */
 async function readIncoming(file: File, prefs: Project["prefs"]): Promise<IncomingTable[]> {
   const name = file.name;
-  if (/\.xlsx$/i.test(name)) {
-    const sheets = (await readXlsx(new Uint8Array(await file.arrayBuffer())))
+  const format = workbookFormat(name);
+  if (format) {
+    const sheets = (await readWorkbook(new Uint8Array(await file.arrayBuffer()), format))
       .filter((s) => s.rows.some((r) => r.some((c) => c.trim())));
     return sheets.map((s) => ({
       name: sheets.length === 1 ? stemOf(name) : s.name,
@@ -105,8 +106,8 @@ async function readIncoming(file: File, prefs: Project["prefs"]): Promise<Incomi
       return { name: t.title || stemOf(name), origin: `${name} › ${t.title || "table"}`, table: data.table };
     });
   }
-  if (/\.(xls|ods|numbers)$/i.test(name)) {
-    throw new Error("only .xlsx workbooks can be read; save the sheet as .xlsx or CSV");
+  if (/\.(numbers|xlsb)$/i.test(name)) {
+    throw new Error("only .xlsx, .xls and .ods workbooks can be read; save the sheet as .xlsx or CSV");
   }
   return [{ name: stemOf(name), origin: name, source: textOf(new Uint8Array(await file.arrayBuffer())) }];
 }
@@ -330,10 +331,10 @@ export default function ReplayDialog({ dataId, onClose }: { dataId?: string; onC
       </p>
       <div className="replay-data">
         <div className="field">
-          <span>New data (CSV, TSV, text, .xlsx or .pzfx)</span>
+          <span>New data (CSV, TSV, text, .xlsx, .xls, .ods or .pzfx)</span>
           <div className="replay-file">
             <FileButton size="sm" multiple inputLabel="New data file"
-              accept=".csv,.tsv,.txt,.tab,.dat,.prn,.xlsx,.pzfx,.prism,text/csv,text/plain"
+              accept={`.csv,.tsv,.txt,.tab,.dat,.prn,${WORKBOOK_ACCEPT},.pzfx,.prism,text/csv,text/plain`}
               onFiles={(files) => void loadData(files)}>
               {incoming.length ? "Choose other files…" : "Choose data files…"}
             </FileButton>

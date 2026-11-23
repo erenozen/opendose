@@ -31,9 +31,12 @@ export type WorkerRequest =
   | { type: "boot"; config: BootConfig }
   /** payload: JSON text of { analysis, data, options } */
   | { type: "analyze"; id: number; payload: string }
-  | { type: "readXlsx"; id: number; bytes: Uint8Array }
-  /** Install what a later request will need (the xlsx reader), when idle. */
-  | { type: "prepare"; id: number; what: "xlsx" };
+  | { type: "readWorkbook"; id: number; bytes: Uint8Array; format: WorkbookFormat }
+  /** Install what a later request will need (a workbook reader), when idle. */
+  | { type: "prepare"; id: number; what: WorkbookFormat };
+
+/** The spreadsheet files the engine reads (engine/opendose/workbooks.py). */
+export type WorkbookFormat = "xlsx" | "xls" | "ods";
 
 export type BootPhase = "download" | "packages" | "engine";
 

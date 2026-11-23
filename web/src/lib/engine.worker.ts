@@ -8,8 +8,9 @@
 // Boot is arranged for the shortest critical path: the package wheels
 // (NumPy, SciPy) and the engine's Python files start downloading at once,
 // in parallel with the Python runtime itself, instead of after it; the
-// byte counts drive the loading screen's progress bar. openpyxl (xlsx
-// import only) is installed the first time an xlsx file is read.
+// byte counts drive the loading screen's progress bar. The workbook
+// readers (openpyxl for .xlsx, xlrd for .xls) are installed the first time
+// a file of their format is read.
 import { loadPyodide, version as pyodideVersion } from "pyodide";
 import pyodideExtras from "./pyodideExtras.json";
 import { xlsxFlags, type SheetFlags } from "./xlsxFlags";
@@ -244,77 +245,59 @@ async function boot(cfg: BootConfig) {
   post({ type: "ready", versions, models, bootMs: Math.round(performance.now() - t0), marks });
 }
 
-let openpyxl: Promise<void> | null = null;
-/** openpyxl is pure Python and not part of the Pyodide distribution;
- *  only xlsx reading needs it, so it is installed on first use, from the
- *  wheels this site serves next to Pyodide (pyodideExtras.json). */
-function ensureOpenpyxl(runtime: Py): Promise<void> {
-  openpyxl ??= (async () => {
-    await runtime.loadPackage(pyodideExtras.wheels.map((w) => indexURL + w.file),
-      { messageCallback: () => {} });
-  })().catch((e) => {
-    openpyxl = null;
-    throw new Error(`could not install the xlsx reader (${e instanceof Error ? e.message : e})`);
-  });
-  return openpyxl;
+type WorkbookFormat = "xlsx" | "xls" | "ods";
+
+const extras = new Map<string, Promise<void>>();
+/** The workbook readers' wheels (openpyxl for .xlsx, xlrd for .xls) are
+ *  pure Python and not part of the Pyodide distribution; each is
+ *  installed the first time a file of its format is read, from the wheels
+ *  this site serves next to Pyodide (pyodideExtras.json). .ods needs none. */
+function ensureReader(runtime: Py, format: WorkbookFormat): Promise<void> {
+  const wheels = pyodideExtras.wheels.filter((w) => w.for === format);
+  if (!wheels.length) return Promise.resolve();
+  let p = extras.get(format);
+  if (!p) {
+    p = (async () => {
+      await runtime.loadPackage(wheels.map((w) => indexURL + w.file), { messageCallback: () => {} });
+    })().catch((e) => {
+      extras.delete(format);
+      throw new Error(`could not install the .${format} reader (${e instanceof Error ? e.message : e})`);
+    });
+    extras.set(format, p);
+  }
+  return p;
 }
 
-const READ_XLSX_PY = `
-import datetime, json
-def _opendose_read_xlsx(path):
-    import openpyxl
-    wb = openpyxl.load_workbook(path, data_only=True, read_only=True)
-    out = []
-    for ws in wb.worksheets:
-        rows = []
-        for row in ws.iter_rows(values_only=True):
-            cells = []
-            for v in row:
-                if v is None:
-                    cells.append("")
-                elif isinstance(v, bool):
-                    cells.append("TRUE" if v else "FALSE")
-                elif isinstance(v, datetime.datetime):
-                    cells.append(v.date().isoformat() if v.time() == datetime.time(0)
-                                 else v.isoformat(sep=" ", timespec="minutes"))
-                elif isinstance(v, (datetime.date, datetime.time)):
-                    cells.append(v.isoformat())
-                elif isinstance(v, float):
-                    cells.append(str(int(v)) if v.is_integer() and abs(v) < 1e15
-                                 else repr(v))
-                else:
-                    cells.append(str(v))
-            while cells and cells[-1] == "":
-                cells.pop()
-            rows.append(cells)
-        while rows and not rows[-1]:
-            rows.pop()
-        out.append({"name": ws.title, "rows": rows})
-    wb.close()
-    return json.dumps(out)
-`;
-let xlsxReader: ((path: string) => string) | null = null;
+let workbookReader: ((path: string, format: string) => string) | null = null;
 
 async function analyze(payload: string): Promise<string> {
   if (!py || !analyzeJson) throw new Error("the analysis engine is not ready");
-  if (payload.includes('"xlsx_b64"')) await ensureOpenpyxl(py);
+  if (payload.includes('"xlsx_b64"')) await ensureReader(py, "xlsx");
   return analyzeJson(payload);
 }
 
-async function readXlsx(bytes: Uint8Array): Promise<string> {
+/** Every sheet of a workbook, read by engine/opendose/workbooks.py. */
+async function readWorkbook(bytes: Uint8Array, format: WorkbookFormat): Promise<string> {
   if (!py) throw new Error("the analysis engine is not ready");
-  await ensureOpenpyxl(py);
-  if (!xlsxReader) {
-    py.runPython(READ_XLSX_PY);
-    xlsxReader = py.globals.get("_opendose_read_xlsx") as (path: string) => string;
+  await ensureReader(py, format);
+  if (!workbookReader) {
+    py.runPython("from opendose.workbooks import read_workbook as _opendose_read_workbook");
+    workbookReader = py.globals.get("_opendose_read_workbook") as (path: string, format: string) => string;
   }
-  const path = "/tmp/opendose-import.xlsx";
+  const path = `/tmp/opendose-import.${format}`;
   py.FS.writeFile(path, bytes);
   let json: string;
-  try { json = xlsxReader(path); } finally {
+  try {
+    json = workbookReader(path, format);
+  } catch (e) {
+    // a Python traceback: its last line says what went wrong
+    const last = String(e instanceof Error ? e.message : e).trim().split("\n").pop() ?? "";
+    throw new Error(`it is not a readable .${format} workbook (${last.replace(/^[\w.]*(Error|Exception): /, "")})`);
+  } finally {
     try { py.FS.unlink(path); } catch { /* already gone */ }
   }
-  return withFlags(json, bytes);
+  // .xls and .ods carry their own hidden-row flags; .xlsx gets them here
+  return format === "xlsx" ? withFlags(json, bytes) : json;
 }
 
 /** The reader reads cached values only: add what they hide (formulas
@@ -353,10 +336,10 @@ scope.onmessage = (e: MessageEvent<WorkerRequest>) => {
     try {
       let json: string;
       if (msg.type === "analyze") json = await analyze(msg.payload);
-      else if (msg.type === "readXlsx") json = await readXlsx(msg.bytes);
+      else if (msg.type === "readWorkbook") json = await readWorkbook(msg.bytes, msg.format);
       else {
         if (!py) throw new Error("the analysis engine is not ready");
-        await ensureOpenpyxl(py);
+        await ensureReader(py, msg.what);
         json = "{}";
       }
       post({ type: "result", id: msg.id, ok: true, json, ms: Math.round(performance.now() - t0) });

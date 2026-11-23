@@ -340,6 +340,23 @@ const scenes = [
       await d.locator(".workbook-report").filter({ hasText: re }).waitFor({ timeout: 120000 });
     },
   })),
+  // one table file dropped on the page (P-33): the Import dialog for a new
+  // table, its guessed type and why; plate-reader.csv adds the recipe hint
+  ...[["shell-import-drop", ["import", "dose-response.csv"], null],
+    ["shell-import-drop-recipe", ["plate-reader.csv"], "[data-part='recipe-hint']"]].map(([name, file, wait]) => ({
+    name, setup: async (s) => {
+      await example(s);
+      const b64 = readFileSync(join(here, "..", "e2e-fixtures", ...file)).toString("base64");
+      await s.page.evaluate(([n, data]) => {
+        const dt = new DataTransfer();
+        dt.items.add(new File([Uint8Array.from(atob(data), (c) => c.charCodeAt(0))], n));
+        document.body.dispatchEvent(new DragEvent("drop", { dataTransfer: dt, bubbles: true, cancelable: true }));
+      }, [file.at(-1), b64]);
+      const d = dialog(s, "Import data");
+      await d.locator(".import-preview tbody tr").first().waitFor({ timeout: 30000 });
+      if (wait) await d.locator(wait).waitFor({ timeout: 10000 });
+    },
+  })),
   { name: "shell-goto", setup: async (s) => {
     await fixture(s, "many-sheets.json");
     await s.page.locator(".nav-tree").first().waitFor({ state: "attached" });
@@ -493,6 +510,15 @@ const scenes = [
     await s.page.locator(".paste-report [data-part='rounded']").waitFor({ timeout: 15000 });
     await into(s, ".paste-report");
   } },
+  // percents and units in a paste (P-35): the report's two readings and
+  // the strip, offered and not applied
+  { name: "grid-paste-percent", setup: async (s) => {
+    await fixture(s, "empty-states.json");
+    await selectSheet(s, "Table with no analysis");
+    await pasteInto(s, "Control, row 1", "12.5%\t3.2 µM\n30%\t5 µM\n47.5%\t0.75 µM\n");
+    await s.page.locator(".paste-report [data-part='percents']").waitFor({ timeout: 15000 });
+    await into(s, ".paste-report");
+  } },
   // a paste too long for the Import dialog's text box (P-10): a line
   // count in its place, the preview below
   { name: "grid-paste-large", setup: async (s) => {
@@ -510,6 +536,18 @@ const scenes = [
     await s.page.keyboard.press("Control+f");
     await s.page.getByRole("searchbox", { name: "Find" }).fill("M1");
     await s.page.keyboard.press("Enter");
+    await into(s, ".grid-editor");
+  } },
+  // Ctrl+H in the grid (P-36): the replace row under find, after a Replace all
+  { name: "grid-replace", setup: async (s) => {
+    await fixture(s, "row-ids.json");
+    await click(s, s.page.locator(".data-table input[aria-label='Vehicle, row 1']"));
+    await s.page.keyboard.press("Control+h");
+    await s.page.getByRole("searchbox", { name: "Find" }).fill("M1");
+    await s.page.getByRole("textbox", { name: "Replace with" }).fill("Mouse 1");
+    await s.page.getByRole("checkbox", { name: "Whole cell only" }).check();
+    await s.page.getByRole("button", { name: "Replace all" }).click();
+    await s.page.locator(".grid-replace-status").filter({ hasText: /Replaced/ }).waitFor();
     await into(s, ".grid-editor");
   } },
   { name: "grid-exclude-by-id", setup: async (s) => {

@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  buildTable, errorValueNote, parsePasted, readPaste, replicateGroups, suggestTableType,
+  buildTable, errorValueNote, parsePasted, readPaste, replicateGroups, replicatesPerSet, suggestTableType,
 } from "../paste.ts";
 
 const tsv = (rows: (string | number)[][]) => rows.map((r) => r.join("\t")).join("\n");
@@ -160,4 +160,17 @@ test("empty paste explains itself", () => {
   const s = suggestTableType(parsePasted("  \n "));
   assert.equal(s.type, "column");
   assert.match(s.reason, /paste/i);
+});
+
+// The Import dialog's "Y columns per dataset" for a new table (P-33):
+// the size of the replicate runs the guess reads, 1 otherwise.
+test("replicatesPerSet: the replicates per data set the guess reads", () => {
+  const b = (head: string[]) => parsePasted(tsv([head, ...[1, 2, 3].map((r) => head.map((_, c) => r + c))]))!;
+  assert.equal(replicatesPerSet(b(["Dose", "Rep 1", "Rep 2", "Rep 3"]), "xy"), 3);
+  assert.equal(replicatesPerSet(b(["Dose", "WT 1", "WT 2", "KO 1", "KO 2"]), "xy"), 2);
+  // runs of different sizes, or no runs: one column per data set
+  assert.equal(replicatesPerSet(b(["Dose", "WT 1", "WT 2", "KO 1"]), "xy"), 1);
+  assert.equal(replicatesPerSet(b(["Dose", "A", "B"]), "xy"), 1);
+  // table types without replicate subcolumns
+  assert.equal(replicatesPerSet(b(["Rep 1", "Rep 2", "Rep 3"]), "column"), 1);
 });

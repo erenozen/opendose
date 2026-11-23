@@ -9,7 +9,7 @@
 //   versioned by a hash of its content): cache first, one cache per build;
 //   older builds' caches are deleted when this one activates.
 // - The Python runtime and its packages (pyodide/v<version>/ on this
-//   site, versioned URLs, with the .xlsx reader's wheels): cache first,
+//   site, versioned URLs, with the workbook readers' wheels): cache first,
 //   kept across builds.
 // - The page itself: network first (a new release shows up at once),
 //   the cached copy when offline.

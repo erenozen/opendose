@@ -10,7 +10,7 @@
 //   analyzeAsync(p, opts) one request, as a promise.
 //   getEngine()           resolves when the engine is ready, with a bridge
 //                         for code that hands it to runEngine-style calls.
-//   readXlsx(bytes)       every worksheet of an .xlsx file.
+//   readWorkbook(bytes, format)  every worksheet of an .xlsx, .xls or .ods file.
 //   getRuntimeVersions()  numpy/scipy/python versions (citations).
 //   engineState()/subscribeEngine()  boot progress and busy state.
 //
@@ -22,7 +22,7 @@ import {
   EngineHost, isCancelled, type EngineState, type Priority,
   type WorkerLike,
 } from "./engineClient";
-import type { RuntimeVersions } from "./engineProtocol";
+import type { RuntimeVersions, WorkbookFormat } from "./engineProtocol";
 import {
   AnswerCache, replay, type EngineBridge, type Outcome,
 } from "./engineReplay";
@@ -154,7 +154,7 @@ export function getEngine(onStatus: (msg: string) => void = () => {}): Promise<E
   );
 }
 
-// ------------------------------------------------------------ xlsx reading
+// ------------------------------------------------------------ workbook reading
 
 /** One worksheet as rows of cell text (numbers in full precision, dates
  *  as ISO text, blanks as ""). Row i of `rows` is the sheet's row i + 1. */
@@ -167,11 +167,12 @@ export interface XlsxSheet {
   flags?: SheetFlags | null;
 }
 
-/** Read every worksheet of an .xlsx file (in the engine worker; waits for
- *  it to load, and installs the xlsx reader on first use). */
-export async function readXlsx(bytes: Uint8Array): Promise<XlsxSheet[]> {
+/** Read every worksheet of an .xlsx, .xls or .ods file (in the engine
+ *  worker, engine/opendose/workbooks.py; waits for it to load, and
+ *  installs the format's reader on first use). */
+export async function readWorkbook(bytes: Uint8Array, format: WorkbookFormat): Promise<XlsxSheet[]> {
   await startEngine();
-  const text = await host.submit({ type: "readXlsx", bytes: bytes.slice() }, { priority: "user" });
+  const text = await host.submit({ type: "readWorkbook", bytes: bytes.slice(), format }, { priority: "user" });
   return JSON.parse(text) as XlsxSheet[];
 }
 

@@ -527,8 +527,8 @@ await page.keyboard.press("Escape");
 // Windows-1252, and a StepOne export headed "Cт" (Cyrillic te) as UTF-16LE
 // and UTF-8 (e2e-fixtures/encodings/make_fixtures.py): the densitometry
 // picker, the qPCR picker and the Import dialog read identical tables with
-// the symbols intact; a .xls in the densitometry picker is refused with
-// "Save it as .xlsx or .csv".
+// the symbols intact; a .xls and a .ods workbook are read by the
+// densitometry picker (P-34; before, a .xls was refused).
 {
   const ENC = new URL("../e2e-fixtures/encodings/", import.meta.url).pathname;
   // the picker's own status line (the step's blocker is another status)
@@ -545,13 +545,25 @@ await page.keyboard.press("Escape");
   expect("densitometry picker: the ImageJ file reads the same in UTF-16LE, cp1252, UTF-8 with and without BOM, µm² intact",
     densRead.every((r) => r.st === "6 rows read: check the columns, then use them." && r.opts === densRead[0].opts)
     && densRead[0].opts.includes("Area (µm²)"), JSON.stringify(densRead));
-  await wizard().locator('input[aria-label="Densitometry export"]').setInputFiles(`${ENC}densitometry.xls`);
-  const xls = await status();
-  expect("densitometry picker: a .xls is refused with the next step, not read as garbage",
-    xls === "Could not read “densitometry.xls”: OpenDose reads .xlsx workbooks, not .xls files. Save it as .xlsx or .csv, then choose it again.",
-    xls);
+  // P-34: .xls and .ods workbooks are read (one sheet saved by LibreOffice
+  // in both, e2e-fixtures/import/make_workbooks.py: 8 rows under a header)
+  const IMPF = new URL("../e2e-fixtures/import/", import.meta.url).pathname;
+  const wbRead = [];
+  const statusIs = (re) => page.waitForFunction((src) => new RegExp(src).test(
+    document.querySelector("dialog.assay-wizard .assay-setup [role=status]")?.textContent ?? ""), re.source,
+  { timeout: 120000 }).catch(() => {});
+  for (const fmt of ["xls", "ods"]) {
+    // from a known status (the 6-row CSV), so the workbook's own is the one read
+    await wizard().locator('input[aria-label="Densitometry export"]').setInputFiles(`${ENC}imagej-results.utf8.csv`);
+    await statusIs(/^6 rows read/);
+    await wizard().locator('input[aria-label="Densitometry export"]').setInputFiles(`${IMPF}workbook.${fmt}`);
+    await statusIs(/^8 rows read|Could not/);
+    wbRead.push(await status());
+  }
+  expect("densitometry picker: a .xls and a .ods workbook are read (8 rows each), not refused or read as text",
+    wbRead.every((s) => s === "8 rows read: check the columns, then use them."), wbRead.join(" | "));
   const accept = await wizard().locator('input[aria-label="Densitometry export"]').getAttribute("accept");
-  expect("densitometry picker no longer offers .xls", !/\.xls(,|$)/.test(accept ?? ""), accept);
+  expect("densitometry picker offers .xls and .ods", /\.xls(,|$)/.test(accept ?? "") && /\.ods(,|$)/.test(accept ?? ""), accept);
   await wizard().getByRole("button", { name: "Cancel" }).click();
   await wizard().waitFor({ state: "detached", timeout: 10000 });
 

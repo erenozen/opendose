@@ -40,7 +40,7 @@ const pyodidePrefix = `pyodide/v${pyodideVersion}/`
 
 /** Pyodide files the offline cache keeps: the runtime, the wheels of NumPy
  *  and SciPy (with their dependencies) named by the lock file, and the
- *  on-demand .xlsx reader's wheels. */
+ *  on-demand .xlsx and .xls readers' wheels. */
 function pyodideFiles(): string[] {
   const lock = JSON.parse(readFileSync(
     new URL('./node_modules/pyodide/pyodide-lock.json', import.meta.url), 'utf8')) as {

@@ -6,7 +6,7 @@
 // - The wheels the engine loads (NumPy, SciPy and their dependencies, as
 //   named by the lock file) are downloaded from the jsDelivr copy of the
 //   same Pyodide release and checked against the lock file's SHA-256.
-// - The on-demand .xlsx reader (src/lib/pyodideExtras.json) is downloaded
+// - The on-demand .xlsx and .xls readers (src/lib/pyodideExtras.json) is downloaded
 //   from PyPI and checked against the SHA-256 pinned there.
 //
 // Downloads are kept in node_modules/.cache/opendose-pyodide, so only the

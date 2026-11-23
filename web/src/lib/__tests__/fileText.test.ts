@@ -4,7 +4,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { decodeAs, detectEncoding, textOf, unreadableSheet } from "../fileText.ts";
+import { decodeAs, detectEncoding, textOf, unreadableSheet, workbookFormat } from "../fileText.ts";
 
 const bytes = (name: string) => new Uint8Array(readFileSync(new URL(`../../../e2e-fixtures/encodings/${name}`, import.meta.url)));
 const utf8 = (name: string) => readFileSync(new URL(`../../../e2e-fixtures/encodings/${name}`, import.meta.url), "utf8");
@@ -48,10 +48,17 @@ test("empty files, a lone byte-order mark, and an explicit encoding", () => {
   assert.equal(decodeAs(Uint8Array.of(0xef, 0xbb, 0xbf, 0x41), "utf-8"), "A");
 });
 
-test("legacy workbooks are refused with the next step, by name", () => {
-  assert.equal(unreadableSheet("blot.xls"),
-    "Could not read “blot.xls”: OpenDose reads .xlsx workbooks, not .xls files. Save it as .xlsx or .csv, then choose it again.");
-  assert.match(unreadableSheet("a.ODS") ?? "", /not \.ods files/);
-  assert.equal(unreadableSheet("blot.xlsx"), null);
-  assert.equal(unreadableSheet("blot.csv"), null);
+test("workbooks the engine cannot read are refused with the next step, by name (P-34)", () => {
+  assert.equal(unreadableSheet("blot.numbers"),
+    "Could not read “blot.numbers”: OpenDose reads .xlsx, .xls and .ods workbooks, not .numbers files. Save it as .xlsx or .csv, then choose it again.");
+  assert.match(unreadableSheet("a.XLSB") ?? "", /not \.xlsb files/);
+  for (const ok of ["blot.xlsx", "blot.xls", "blot.ods", "blot.csv"]) assert.equal(unreadableSheet(ok), null);
+});
+
+test("workbookFormat: .xlsx, .xls and .ods by name, anything else null", () => {
+  assert.equal(workbookFormat("Run 3.XLS"), "xls");
+  assert.equal(workbookFormat("plate.ods"), "ods");
+  assert.equal(workbookFormat("plate.xlsx"), "xlsx");
+  assert.equal(workbookFormat("plate.xlsb"), null);
+  assert.equal(workbookFormat("plate.xls.csv"), null);
 });

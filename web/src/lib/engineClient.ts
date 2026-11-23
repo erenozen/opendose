@@ -21,7 +21,7 @@
 // No React and no DOM here, apart from the Worker constructor, which is
 // injected so the queue logic can be unit-tested with a fake worker.
 import type {
-  BootConfig, BootProgress, RuntimeVersions, WorkerRequest, WorkerResponse,
+  BootConfig, BootProgress, RuntimeVersions, WorkbookFormat, WorkerRequest, WorkerResponse,
 } from "./engineProtocol.ts";
 
 export interface WorkerLike {
@@ -83,8 +83,8 @@ interface Slot {
 
 interface Job {
   id: number;
-  request: { type: "analyze"; payload: string } | { type: "readXlsx"; bytes: Uint8Array }
-    | { type: "prepare"; what: "xlsx" };
+  request: { type: "analyze"; payload: string } | { type: "readWorkbook"; bytes: Uint8Array; format: WorkbookFormat }
+    | { type: "prepare"; what: WorkbookFormat };
   priority: Priority;
   seq: number;
   resolve: (json: string) => void;
@@ -375,7 +375,9 @@ export class EngineHost {
     job.startedAt = this.now();
     const r = job.request;
     if (r.type === "analyze") slot.worker.postMessage({ type: "analyze", id: job.id, payload: r.payload });
-    else if (r.type === "readXlsx") slot.worker.postMessage({ type: "readXlsx", id: job.id, bytes: r.bytes });
+    else if (r.type === "readWorkbook") {
+      slot.worker.postMessage({ type: "readWorkbook", id: job.id, bytes: r.bytes, format: r.format });
+    }
     else slot.worker.postMessage({ type: "prepare", id: job.id, what: r.what });
     if (this.spareTimer) clearTimeout(this.spareTimer);
     this.spareTimer = setTimeout(() => {

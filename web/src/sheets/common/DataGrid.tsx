@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Button, IconButton } from "../../components/ui";
+import { Button, IconButton, notify } from "../../components/ui";
 import { CloseIcon } from "../../components/ui/feedbackIcons";
 import { MinusIcon, PlusIcon } from "./gridIcons";
 import { useProject } from "../../app/context";
@@ -9,7 +9,8 @@ import { addFamily } from "../../app/factory";
 import { toDelimited } from "../../project/exportTable";
 import { newId } from "../../project/ids";
 import { pasteNeedsImport } from "../../project/importText";
-import { pasteWithReport, type PasteReport } from "../../project/pasteReport";
+import { pasteWithReport, withFixed, type PasteReport } from "../../project/pasteReport";
+import { fixCells, fixedText } from "../../project/unitCells";
 import {
   blockText, fullPrecision, parseClipboardHtml, type FullValuesResult,
 } from "../../project/clipboardHtml";
@@ -39,9 +40,10 @@ import { newlyExcluded, reasonAt } from "../../project/exclusions";
 import PasteReportStrip from "./PasteReportStrip";
 import FormulaColumnDialog from "./FormulaColumnDialog";
 import ExcludeByIdDialog from "./ExcludeByIdDialog";
-import GridFindBar from "./GridFindBar";
-import { onGridFind } from "../../app/gridFind";
-import { findInTable } from "../../project/findInTable";
+import GridFindBar, { GridReplaceRow } from "./GridFindBar";
+import { onGridFind, onGridReplace } from "../../app/gridFind";
+import { takeReport } from "../../app/tableFile";
+import { findInTable, replaceInTable } from "../../project/findInTable";
 import { calcCell, evalCellExpression, isCalculated } from "../../project/calculated";
 import {
   DEFAULT_ROW_PX, INITIAL_ROWS, rowSegments, sameRange, scrollTopFor, shouldVirtualise,
@@ -102,6 +104,8 @@ function withFormula(t: DataTableModel, di: number, formula: string | null, name
 
 const mac = typeof navigator !== "undefined" && /Mac|iP(hone|ad)/.test(navigator.platform);
 const MOD = mac ? "⌘" : "Ctrl+";
+/** Find and replace: Ctrl+H, or ⌘⇧H on a Mac, where ⌘H hides the browser. */
+const REPLACE_KEY = mac ? "⌘⇧H" : "Ctrl+H";
 
 /**
  * Generic editor for every table type. Layout, left to right: row number,
@@ -163,6 +167,12 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
     paste?: Pasted;
   } | null>(null);
   const shownReport = pasteInfo?.id === sheet.id ? pasteInfo : null;
+  // A table just made from a file dropped on the page or opened
+  // (app/tableFile.ts) shows its import report as the toolbar's Import does.
+  useEffect(() => {
+    const handed = takeReport(sheet.id);
+    if (handed) setPasteInfo({ id: sheet.id, verb: "Imported", report: handed });
+  }, [sheet.id]);
   const [selecting, setSelecting] = useState(false);
   const dragging = useRef(false);
 
@@ -381,7 +391,13 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
   const [findText, setFindText] = useState("");
   const [findAt, setFindAt] = useState(0);
   const findRef = useRef<HTMLInputElement>(null);
-  const hits = useMemo(() => findInTable(t, findText), [t, findText]);
+  // Replace (Ctrl+H, ⌘⇧H, More › Replace…): its row of the find bar
+  const [replaceOpen, setReplaceOpen] = useState(false);
+  const [replaceText, setReplaceText] = useState("");
+  const [wholeCell, setWholeCell] = useState(false);
+  const [replaceStatus, setReplaceStatus] = useState("");
+  const findOpts = useMemo(() => ({ whole: replaceOpen && wholeCell }), [replaceOpen, wholeCell]);
+  const hits = useMemo(() => findInTable(t, findText, findOpts), [t, findText, findOpts]);
   // the match shown (outlined while the find box has text)
   const curHit = findOpen && findText.trim() && hits.length ? hits[Math.min(findAt, hits.length - 1)] : null;
   const isHit = (r: number, c: number) => !!curHit && curHit.r === r && curHit.c === c;
@@ -398,6 +414,13 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
     setFindOpen(true);
     setFindAsk((n) => n + 1);
   }), [sheet.id]);
+  useEffect(() => onGridReplace((id) => {
+    if (id !== sheet.id || readOnly) return;
+    setReplaceOpen(true);
+    setReplaceStatus("");
+    setFindOpen(true);
+    setFindAsk((n) => n + 1);
+  }), [sheet.id, readOnly]);
   const showHit = (i: number) => {
     if (!hits.length) return;
     const k = ((i % hits.length) + hits.length) % hits.length;
@@ -422,12 +445,37 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
     setFindOpen(false);
     setFindText("");
     setFindAt(0);
+    setReplaceOpen(false);
+    setReplaceStatus("");
     jumpTo(h.r, h.c);
   };
+  const openReplace = () => {
+    if (readOnly) { openFind(); return; }
+    setReplaceOpen(true);
+    setReplaceStatus("");
+    openFind();
+  };
+  // Each replace is one edit, so one undo puts every replaced cell back;
+  // exclusions and their reasons stay (project/findInTable.ts).
+  const replaceHits = (which: typeof hits) => {
+    const query = findText;
+    const r = replaceInTable(t, which, query, replaceText, findOpts);
+    if (r.changed) onChange((x) => replaceInTable(x, which, query, replaceText, findOpts).table);
+    const n = r.changed;
+    setReplaceStatus(`Replaced ${n} ${n === 1 ? "cell" : "cells"}.`
+      + (r.skipped ? ` ${r.skipped} in calculated columns left to their formula.` : ""));
+  };
   const onGridKeyDown = (e: React.KeyboardEvent) => {
-    if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === "f") {
+    const k = e.key.toLowerCase();
+    if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && k === "f") {
       e.preventDefault();
       openFind();
+    }
+    // Ctrl+H (the browser's history outside the table), ⌘⇧H on a Mac
+    // (⌘H hides the browser there)
+    if (!e.altKey && k === "h" && (mac ? e.metaKey && e.shiftKey : e.ctrlKey && !e.metaKey && !e.shiftKey)) {
+      e.preventDefault();
+      openReplace();
     }
   };
 
@@ -661,7 +709,7 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
       <div className="grid-toolbar" role="group" aria-label="Data table tools" data-still>
         {!readOnly && (
           <Button variant="ghost" onClick={() => setDialog({ kind: "import" })}
-            title="Import a CSV, text or .xlsx file, or pasted text">Import…</Button>
+            title="Import a CSV, text or workbook file (.xlsx, .xls, .ods), or pasted text">Import…</Button>
         )}
         <Button variant="ghost" onClick={() => setDialog({ kind: "export" })}
           title="Download as CSV or tab-separated text, or copy">Export…</Button>
@@ -705,6 +753,7 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
             ]} />
             <MenuButton label="More" items={[
               { label: "Find…", hint: `${MOD}F`, onSelect: openFind },
+              { label: "Replace…", hint: REPLACE_KEY, onSelect: openReplace },
               "sep",
               { label: "Sort…", onSelect: () => setDialog({ kind: "sort" }) },
               { label: "Insert series…", description: "Fill a column with an arithmetic or geometric series",
@@ -729,8 +778,17 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
 
       {findOpen && (
         <GridFindBar inputRef={findRef} value={findText} at={findAt} count={hits.length}
-          onValueChange={(v) => { setFindText(v); setFindAt(0); }}
-          onStep={stepFind} onClose={closeFind} />
+          replaceOpen={replaceOpen}
+          onValueChange={(v) => { setFindText(v); setFindAt(0); setReplaceStatus(""); }}
+          onStep={stepFind} onClose={closeFind}
+          onToggleReplace={readOnly ? undefined : () => { setReplaceOpen(!replaceOpen); setReplaceStatus(""); }}>
+          <GridReplaceRow value={replaceText} whole={wholeCell} count={hits.length} status={replaceStatus}
+            onValueChange={(v) => { setReplaceText(v); setReplaceStatus(""); }}
+            onWholeChange={(w) => { setWholeCell(w); setFindAt(0); }}
+            onReplace={() => { if (curHit) replaceHits([curHit]); }}
+            onReplaceAll={() => replaceHits(hits)}
+            onClose={closeFind} />
+        </GridFindBar>
       )}
       {reasonAsk?.sheetId === sheet.id && !readOnly && (
         <ExclusionReasonPrompt key={reasonAsk.refs.map((x) => JSON.stringify(x)).join()} table={t}
@@ -742,6 +800,20 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
         onReimport={shownReport?.paste ? () => {
           const p = shownReport.paste!;
           setDialog({ kind: "import", req: { text: p.text, mode: "insert", row: p.r, col: p.c } });
+        } : undefined}
+        onFix={shownReport && !readOnly ? (how) => {
+          // one edit (one undo step); the report forgets the cells it read
+          const key = how === "unit" ? "units" : "percents";
+          const cells = shownReport.report[key];
+          const first = cells[0];
+          const { changed } = fixCells(t, cells, how);
+          onChange((x) => fixCells(x, cells, how).table);
+          setPasteInfo({ ...shownReport, report: withFixed(shownReport.report, key) });
+          notify(`Read ${changed} ${changed === 1 ? "cell" : "cells"} as numbers: “${first?.text}” as `
+            + `${first ? fixedText(first.text, how) : ""}.`, {
+            tone: "success",
+            action: { label: "Undo", onAction: () => { api.undo(); setPasteInfo(shownReport); } },
+          });
         } : undefined} />
 
       <div data-still className={`data-table${readOnly ? " is-readonly" : ""}${selecting ? " selecting" : ""}${virtual ? " virtual" : ""}`}

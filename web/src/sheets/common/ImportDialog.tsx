@@ -1,21 +1,27 @@
 import { lazy, Suspense, useEffect, useId, useMemo, useRef, useState } from "react";
 import Modal from "../../components/Modal";
-import { Button, Field, FileButton, Input, NumberField, Tabs } from "../../components/ui";
-import { readXlsx, type XlsxSheet } from "../../lib/engine";
+import { announce, Button, Field, FileButton, Input, NumberField, Tabs } from "../../components/ui";
+import { readWorkbook, type XlsxSheet } from "../../lib/engine";
 import {
   applyImport, applyImportWithCells, DEFAULT_FILTER, DEFAULT_SOURCE, defaultRoles, DELIMITER_LABELS, detectTitlesRowIn,
   importWidth, largePasteLines, prepareFromMatrix, sourceMatrix, type ColumnRole, type DecimalChoice,
   type DelimiterChoice, type FilterOptions, type PlacementOptions, type SourceOptions,
 } from "../../project/importText";
-import { flatColumns, hasAnyValue, tableShape } from "../../project/table";
-import type { DataTableModel } from "../../project/types";
+import { emptyTable, flatColumns, hasAnyValue, tableShape } from "../../project/table";
+import type { DataTableModel, TableType } from "../../project/types";
 import { isTableDrop } from "../../share/recipes/dropKind";
 import type { PlainSpec } from "../../share/recipes/saved";
 import { pasteReport, placedCells, type PasteReport } from "../../project/pasteReport";
 import type { SheetApp } from "../../project/clipboardHtml";
 import { visibleRows } from "../../lib/xlsxFlags";
-import { decodeAs, detectEncoding, type FileEncoding } from "../../lib/fileText";
+import {
+  decodeAs, detectEncoding, unreadableSheet, WORKBOOK_ACCEPT, WORKBOOK_FILE, workbookFormat, type FileEncoding,
+} from "../../lib/fileText";
 import WorkbookReport from "./WorkbookReport";
+import { replicatesPerSet, suggestTableType } from "../../guide/paste";
+// sheets -> registry -> this dialog is a module cycle; tableDef is only
+// read while rendering, never while modules evaluate.
+import { TABLE_ORDER, tableDef } from "../registry";
 
 export interface ImportRequest {
   text?: string;                        // clipboard text to start from
@@ -57,6 +63,26 @@ const intOr = (v: string, d: number) => {
   return v.trim() !== "" && Number.isFinite(n) ? n : d;
 };
 
+/** An instrument format the recipes read better than a plain import. */
+interface RecipeHint { label: string }
+
+/** The recipe that recognises these cells (src/share/recipes/presets.ts)
+ *  with some confidence; the generic long-table and several-files
+ *  recipes are not worth a hint. Loaded on demand, as the recipe dialog
+ *  is. */
+async function recipeHint(m: string[][]): Promise<RecipeHint | null> {
+  if (!m.length) return null;
+  const { RECIPES } = await import("../../share/recipes/presets");
+  let best: RecipeHint | null = null;
+  let score = 0.5;
+  for (const r of RECIPES) {
+    if (r.id === "tidy" || r.id === "images") continue;
+    const sc = r.detect(m);
+    if (sc > score) { best = { label: r.label }; score = sc; }
+  }
+  return best;
+}
+
 /**
  * Import delimited text or a spreadsheet into the current table, in four
  * steps: Source (file or pasted text, delimiter, decimal separator,
@@ -64,17 +90,27 @@ const intOr = (v: string, d: number) => {
  * (rows / columns to keep, every k-th row, missing-value code, rows with
  * a blank X, trailing * = excluded) and Placement (replace, append or
  * write at a cell; transpose; values per dataset).
+ *
+ * Without `table` it makes a new table (a file dropped on the page or
+ * chosen with Open, app/tableFile.ts): the type is guessed from the
+ * preview as a paste's is (guide/paste.ts) and can be changed, and
+ * `onCreate` receives the table.
  */
-export default function ImportDialog({ table, initial, onImport, onPasteAsIs, onClose }: {
-  table: DataTableModel;
+export default function ImportDialog({ table: given, file: givenFile, initial, onImport, onCreate,
+  onPasteAsIs, onClose }: {
+  table?: DataTableModel;
+  /** A file to start from, read as if picked with Choose a file…. */
+  file?: File;
   initial?: ImportRequest;
   /** The edit, and what it does to every cell it writes (the report the
    *  grid shows above the table). */
-  onImport: (fn: (t: DataTableModel) => DataTableModel, report?: PasteReport) => void;
+  onImport?: (fn: (t: DataTableModel) => DataTableModel, report?: PasteReport) => void;
+  /** No `table` given: the new table, with its report. */
+  onCreate?: (table: DataTableModel, report: PasteReport) => void;
   onPasteAsIs?: () => void;
   onClose: () => void;
 }) {
-  const shape = tableShape(table.type);
+  const isNew = !given;
   const [tab, setTab] = useState<Tab>("source");
   const uid = useId();
   const [srcKind, setSrcKind] = useState<"file" | "paste">(initial?.text ? "paste" : "file");
@@ -86,7 +122,7 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
   useEffect(() => {
     if (typeNext && largeLines === null) { textBox.current?.focus(); setTypeNext(false); }
   }, [typeNext, largeLines]);
-  const [file, setFile] = useState<{ name: string; bytes: Uint8Array } | null>(null);
+  const [file, setFile] = useState<{ name: string; bytes: Uint8Array; source: File } | null>(null);
   const [encoding, setEncoding] = useState("auto");
   const [sheets, setSheets] = useState<XlsxSheet[] | null>(null);
   const [sheetIx, setSheetIx] = useState(0);
@@ -99,18 +135,19 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
   // recipe chosen from the list.
   const [recipeFiles, setRecipeFiles] = useState<File[] | undefined>(undefined);
   const [savedRecipe, setSavedRecipe] = useState<string | undefined>(undefined);
-  const firstY = flatColumns(table).findIndex((c) => c.kind === "y");
-  const defaultMode: PlacementOptions["mode"] = initial?.mode
-    ?? (hasAnyValue(table) ? "append" : "replace");
-  const [place, setPlace] = useState<PlacementOptions>({
-    mode: defaultMode,
-    row: initial?.row ?? 0,
-    col: Math.max(firstY, initial?.col ?? firstY),
-    perDataset: Math.max(1, table.datasets[0]?.rows[0]?.length ?? 1),
-    useTitles: true,
+  const [place, setPlace] = useState<PlacementOptions>(() => {
+    const y0 = given ? flatColumns(given).findIndex((c) => c.kind === "y") : 0;
+    return {
+      mode: initial?.mode ?? (given && hasAnyValue(given) ? "append" : "replace"),
+      row: initial?.row ?? 0,
+      col: Math.max(y0, initial?.col ?? y0),
+      perDataset: Math.max(1, given?.datasets[0]?.rows[0]?.length ?? 1),
+      useTitles: true,
+    };
   });
 
-  const isXlsx = !!sheets;
+  // a workbook is never read as text, not even while the engine reads it
+  const isXlsx = srcKind === "file" && (!!sheets || (!!file && WORKBOOK_FILE.test(file.name)));
   const detected = useMemo(() => (file && !isXlsx ? detectEncoding(file.bytes) : null), [file, isXlsx]);
   const text = useMemo(() => {
     if (srcKind === "paste") return pasted;
@@ -137,11 +174,42 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
   const effSrc = useMemo(() => (titlesTouched ? src : { ...src, titlesRow: detectedTitles }),
     [src, titlesTouched, detectedTitles]);
   const preview = useMemo(() => prepareFromMatrix(matrix, effSrc, filter), [matrix, effSrc, filter]);
+  // A new table: its type is guessed from the preview (the first rows
+  // tell), until the user picks one.
+  const [typeChoice, setTypeChoice] = useState<TableType | null>(null);
+  const block = useMemo(() => (isNew ? {
+    titles: preview.titles, rows: preview.rows.slice(0, 2000), width: preview.columns.length,
+    errors: { count: 0, codes: [] },
+  } : null), [isNew, preview]);
+  const guess = useMemo(() => (block ? suggestTableType(block) : null), [block]);
+  const newType = typeChoice ?? guess?.type ?? "column";
+  const blank = useMemo(() => emptyTable(newType), [newType]);
+  const table = given ?? blank;
+  // ... and "Rep 1, Rep 2, Rep 3" are the replicates of one data set, as
+  // the guess says, until the user sets the number per data set.
+  const [perTouched, setPerTouched] = useState(false);
+  const repGuess = useMemo(() => (block ? replicatesPerSet(block, newType) : 1), [block, newType]);
+  const effPlace = isNew && !perTouched ? { ...place, perDataset: repGuess } : place;
+  const shape = tableShape(table.type);
+  const firstY = flatColumns(table).findIndex((c) => c.kind === "y");
+  // An instrument export that a recipe reads: say so, one click away.
+  const [hint, setHint] = useState<RecipeHint | null>(null);
+  useEffect(() => {
+    let live = true;
+    void recipeHint(srcKind === "file" ? matrix.m.slice(0, 400) : [])
+      .then((h) => {
+        if (!live) return;
+        setHint(h);
+        // it arrives after the file is read, with no action of the user's
+        if (h) announce(`The import recipe “${h.label}” recognises this file.`, "polite");
+      }, () => { if (live) setHint(null); });
+    return () => { live = false; };
+  }, [matrix, srcKind]);
   const defaults = useMemo(() => defaultRoles(table, preview), [table, preview]);
   const roles: ColumnRole[] = preview.columns.map((c, i) => roleOverride[c] ?? defaults[i]);
   const empty = preview.rows.length === 0 || preview.columns.length === 0;
   const yCount = roles.filter((r) => r === "y").length;
-  const width = importWidth(table, place.perDataset);
+  const width = importWidth(table, effPlace.perDataset);
 
   const pickFile = async (f: File | undefined) => {
     setError("");
@@ -150,20 +218,20 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
     setRoleOverride({});
     setKeepFiltered(false);
     setSkipHidden(false);
-    if (!f) { setFile(null); return; }
+    const refused = f ? unreadableSheet(f.name) : null;
+    if (!f || refused) { setFile(null); if (refused) setError(refused); return; }
     const bytes = new Uint8Array(await f.arrayBuffer());
-    setFile({ name: f.name, bytes });
-    if (/\.xlsx$/i.test(f.name)) {
+    setFile({ name: f.name, bytes, source: f });
+    const format = workbookFormat(f.name);
+    if (format) {
       setBusy(true);
       try {
-        const s = await readXlsx(bytes);
+        const s = await readWorkbook(bytes, format);
         if (!s.length) throw new Error("the workbook has no worksheets");
         setSheets(s);
       } catch (e) {
         setError(`Could not read the workbook: ${e instanceof Error ? e.message : String(e)}`);
       } finally { setBusy(false); }
-    } else if (/\.(xls|ods|numbers)$/i.test(f.name)) {
-      setError("Only .xlsx workbooks can be read. Save the sheet as .xlsx or CSV, or copy and paste it.");
     }
   };
 
@@ -171,6 +239,14 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
     if (list.length > 1 || isTableDrop(list)) { setRecipeFiles(list); setTab("recipes"); return; }
     void pickFile(list[0]);
   };
+  // A file handed over (a drop on the page, Open): read once, on open.
+  const started = useRef(false);
+  useEffect(() => {
+    if (!givenFile || started.current) return;
+    started.current = true;
+    void pickFile(givenFile);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [givenFile]);
 
   const readClipboard = async () => {
     try {
@@ -196,11 +272,12 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
   const submit = () => {
     if (empty) { setError("Nothing to import: these settings leave no rows or columns. Check the Source and Filter tabs."); return; }
     const f = { skipBlankX: filter.skipBlankX, asteriskExcluded: filter.asteriskExcluded };
-    const res = applyImportWithCells(table, preview, roles, place, f);
+    const res = applyImportWithCells(table, preview, roles, isNew ? { ...effPlace, mode: "replace" } : place, f);
+    const report = pasteReport(placedCells(res.table, res.written));
+    if (isNew) { onCreate?.(res.table, report); return; }
     // the table built for the report is the edit's result whenever the
     // table has not changed since (a large import is built once, not twice)
-    onImport((t) => (t === table ? res.table : applyImport(t, preview, roles, place, f)),
-      pasteReport(placedCells(res.table, res.written)));
+    onImport?.((t) => (t === table ? res.table : applyImport(t, preview, roles, place, f)), report);
   };
 
   const num = (label: string, value: number | null, set: (v: number | null) => void,
@@ -220,7 +297,8 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
     "ignore",
   ];
 
-  const where = place.mode === "replace" ? "replacing the table's values"
+  const where = isNew ? `as a new ${tableDef(newType).label} table`
+    : place.mode === "replace" ? "replacing the table's values"
     : place.mode === "append" ? "below the last row"
       : `from row ${place.row + 1}, Y column ${place.col - firstY + 1}`;
   const datasetsNeeded = Math.ceil(yCount / Math.max(1, width));
@@ -254,7 +332,7 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
           <fieldset className="field-radios">
             <legend>Read from</legend>
             <label><input type="radio" name="imp-src" checked={srcKind === "file"}
-              onChange={() => setSrcKind("file")} /> A file (CSV, TSV, text or .xlsx)</label>
+              onChange={() => setSrcKind("file")} /> A file (CSV, TSV, text, .xlsx, .xls or .ods)</label>
             <label><input type="radio" name="imp-src" checked={srcKind === "paste"}
               onChange={() => setSrcKind("paste")} /> Pasted text</label>
           </fieldset>
@@ -264,10 +342,10 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
                 <span className="ui-field-label">File</span>
                 <span className="import-file-row">
                   <FileButton multiple inputLabel="File to import" onFiles={takeFiles}
-                    accept=".csv,.tsv,.txt,.tab,.dat,.prn,.xlsx,.zip,text/csv,text/plain,application/zip">
+                    accept={`.csv,.tsv,.txt,.tab,.dat,.prn,${WORKBOOK_ACCEPT},.zip,text/csv,text/plain,application/zip`}>
                     Choose a file…</FileButton>
                   <span className="import-file-name" title={file?.name}>
-                    {file ? file.name : "CSV, TSV, text, .xlsx or .zip"}</span>
+                    {file ? file.name : "CSV, TSV, text, a workbook or .zip"}</span>
                 </span>
               </div>
               {sheets && sheets.length > 1 && (
@@ -323,6 +401,34 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
               )}
             </div>
           )}
+          {isNew && (
+            <>
+              <div className="field-row">
+                <Field label="New table" id={`${uid}-type`}>
+                  <select id={`${uid}-type`} value={newType} aria-describedby={`${uid}-type-why`}
+                    onChange={(e) => { setTypeChoice(e.target.value as TableType); setRoleOverride({}); }}>
+                    {TABLE_ORDER.map((t) => <option key={t} value={t}>{tableDef(t).label}</option>)}
+                  </select>
+                </Field>
+              </div>
+              <p className="field-note" id={`${uid}-type-why`} data-part="type-why">
+                {!guess || empty ? "The table type is guessed from the data once it is read."
+                  : typeChoice && typeChoice !== guess.type
+                    ? `You chose ${tableDef(typeChoice).label}. The guess was ${tableDef(guess.type).label}: ${guess.reason}`
+                    : `Guessed: ${guess.reason}`}
+              </p>
+            </>
+          )}
+          {hint && (
+            <p className="field-note" data-part="recipe-hint">
+              The import recipe “{hint.label}” recognises this file and reads it into a table
+              of the right shape.{" "}
+              <button type="button" data-still className="linkish" onClick={() => {
+                if (file) setRecipeFiles([file.source]);
+                setTab("recipes");
+              }}>Read it with a recipe…</button>
+            </p>
+          )}
           {!isXlsx && (
             <div className="field-row">
               <Field label="Columns separated by" id={`${uid}-delim`}>
@@ -372,12 +478,13 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
             <ImportRecipesBar
               current={(): PlainSpec => ({ kind: "plain", source: effSrc, filter,
                 roles: Object.fromEntries(Object.entries(roleOverride).map(([k, v]) => [String(k), v])),
-                place: { mode: place.mode, perDataset: place.perDataset, useTitles: place.useTitles } })}
+                place: { mode: place.mode, perDataset: effPlace.perDataset, useTitles: place.useTitles } })}
               onPlain={(spec) => {
                 setSrc(spec.source);
                 setTitlesTouched(true);
                 setFilter(spec.filter);
                 setRoleOverride(Object.fromEntries(Object.entries(spec.roles).map(([k, v]) => [Number(k), v])));
+                setPerTouched(true);
                 setPlace({ ...place, mode: spec.place.mode, perDataset: spec.place.perDataset,
                   useTitles: spec.place.useTitles });
               }}
@@ -441,7 +548,7 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
         </Tabs.Panel>
 
         <Tabs.Panel value="placement">
-          <fieldset className="field-radios">
+          {!isNew && <fieldset className="field-radios">
             <legend>Put the values</legend>
             <label><input type="radio" name="imp-mode" checked={place.mode === "replace"}
               onChange={() => setPlace({ ...place, mode: "replace" })} />
@@ -452,8 +559,8 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
             <label><input type="radio" name="imp-mode" checked={place.mode === "insert"}
               onChange={() => setPlace({ ...place, mode: "insert" })} />
               Starting at a cell</label>
-          </fieldset>
-          {place.mode === "insert" && (
+          </fieldset>}
+          {!isNew && place.mode === "insert" && (
             <div className="field-row">
               {num("Row", place.row + 1, (v) => setPlace({ ...place, row: Math.max(0, (v ?? 1) - 1) }), { min: 1 })}
               {num("Y column", place.col - firstY + 1,
@@ -461,8 +568,8 @@ export default function ImportDialog({ table, initial, onImport, onPasteAsIs, on
             </div>
           )}
           {shape.hasSubcolumns && table.subcolumnFormat === "replicates" && table.type !== "nested" && (
-            num("Y columns per dataset (replicates)", place.perDataset,
-              (v) => setPlace({ ...place, perDataset: Math.max(1, Math.min(24, v ?? 1)) }), { min: 1 })
+            num("Y columns per dataset (replicates)", effPlace.perDataset,
+              (v) => { setPerTouched(true); setPlace({ ...place, perDataset: Math.max(1, Math.min(24, v ?? 1)) }); }, { min: 1 })
           )}
           <label className="check-row">
             <input type="checkbox" checked={src.transpose}

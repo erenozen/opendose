@@ -30,7 +30,7 @@ can catch Vite reloading the page mid-boot.
   script skips unchanged files so a running dev server does not miss a
   change.
 - `scripts/sync-pyodide.mjs` puts the Pyodide runtime, NumPy, SciPy and
-  the .xlsx reader into `public/pyodide/` (about 31 MB), each checked
+  the .xlsx and .xls readers into `public/pyodide/` (about 31 MB), each checked
   against its SHA-256. The site serves them itself, so the page contacts
   no other server. Downloads are cached in `node_modules/.cache`; only
   the first run needs the network.
@@ -56,6 +56,7 @@ one at a time: each boots its own engine.
 | `e2e-share.mjs` | Share links, the export bundle, import recipes, Apply to new data, the validation and privacy pages |
 | `e2e-figures.mjs` | SuperPlots, legends, P-value styles, the classic theme, the colour-vision check, volcano plots, censor marks, box plots against the column statistics |
 | `e2e-assays.mjs` | Every assay wizard, against numbers the engine computes natively |
+| `e2e-import.mjs` | Getting a table in: one CSV or .xlsx dropped on the page or opened lands in the Import dialog for a new table, equal to the toolbar Import's table from the same file |
 | `e2e-results.mjs` | The results honesty checks: residual plots of fits and ANOVA models in the Checks row, the smallest P a rank test can reach, the Analysed line of regression, Cox and contingency results, the ratio to control with its Fieller CI |
 | `e2e-feedback.mjs` | Toasts, banners, the announcer, the engine boot slot, a busy button and late validation |
 | `e2e-primitives.mjs` | Dialog, Popover, Menu and Tooltip from the keyboard: focus return, Tab staying inside, Home/End, type-ahead |

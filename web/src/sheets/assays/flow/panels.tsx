@@ -6,8 +6,8 @@
 // donor means and a SuperPlot (model.ts setupFlowOutput).
 import { useCallback, useEffect, useState } from "react";
 import { useProject } from "../../../app/context";
-import { readXlsx, runEngine } from "../../../lib/engine";
-import { textOf, unreadableSheet } from "../../../lib/fileText";
+import { readWorkbook, runEngine } from "../../../lib/engine";
+import { textOf, unreadableSheet, workbookFormat } from "../../../lib/fileText";
 import { newId } from "../../../project/ids";
 import { findSheet, updateTable } from "../../../project/ops";
 import type { DataSheet, DataTableModel, ResultsSheet } from "../../../project/types";
@@ -366,7 +366,7 @@ function ValuesTable({ r }: { r: FlowResult }) {
   );
 }
 
-const ACCEPT = ".csv,.tsv,.txt,.xlsx,text/csv,text/plain";
+const ACCEPT = ".csv,.tsv,.txt,.xlsx,.xls,.ods,text/csv,text/plain";
 
 function FlowJoImport({ onTable }: { onTable: (t: DataTableModel) => void }) {
   const [text, setText] = useState("");
@@ -385,15 +385,16 @@ function FlowJoImport({ onTable }: { onTable: (t: DataTableModel) => void }) {
         into the table.
       </p>
       <div className="field">
-        <span>FlowJo table (.csv, .txt or .xlsx)</span>
+        <span>FlowJo table (.csv, .txt, .xlsx, .xls or .ods)</span>
         <FileButton size="sm" accept={ACCEPT} inputLabel="FlowJo table file"
           onFile={async (f) => {
             const refused = unreadableSheet(f.name);
             if (refused) { setMsg(refused); return; }
             try {
               const bytes = new Uint8Array(await f.arrayBuffer());
-              if (/\.xlsx$/i.test(f.name)) {
-                const sheets = await readXlsx(bytes);
+              const fmt = workbookFormat(f.name);
+              if (fmt) {
+                const sheets = await readWorkbook(bytes, fmt);
                 const rows = (sheets[0]?.rows as unknown[][] ?? []).map((r) => r.map((c) => (c == null ? "" : String(c))));
                 take(rows.map((r) => r.map((c) => c.replace(/[\t\n]/g, " ")).join("\t")).join("\n"));
               } else take(textOf(bytes));

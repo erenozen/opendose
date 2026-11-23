@@ -25,6 +25,8 @@ const SHORTCUTS: [string, string][] = [
   [`${MOD}C / ${MOD}X / ${MOD}V`, "Copy, cut, paste a block (tab-separated)"],
   [`${MOD}E`, "Exclude or include the selected values"],
   [`${MOD}Shift+Enter`, "Insert a row below"],
+  [`${MOD}F`, "Find in a data table"],
+  [mac ? "⌘Shift+H" : "Ctrl+H", "Replace in a data table (with the table focused; elsewhere the browser keeps the key)"],
   ["Delete", "Clear the selected block"],
   ["Alt+↑ / Alt+↓", "Move a sheet in the navigator"],
   ["F2", "Rename the selected sheet"],
