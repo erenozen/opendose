@@ -1950,3 +1950,11 @@ ratings, no variation between targets and two ratings in one cell give a
 sentence; perfect agreement gives 1, a constant offset between raters
 gives consistency 1 and absolute agreement below 1; a negative ICC is
 reported as it is.
+
+Independent check (2026-11-24, by the lead): ICCs by hand from the
+two-way mean squares of the Shrout & Fleiss 6 x 4 data give ICC(1,1)
+0.16574, ICC(2,1) 0.28976, ICC(3,1) 0.71484; a plain Passing-Bablok
+(pairwise slopes without -1, shifted median with offset K, rank CI from
+the normal quantile) on Giavarina's 30 pairs gives slope 1.05531 (1.02048
+to 1.09146) and intercept 7.08186 (median of y - b x). Both equal the
+engine.
