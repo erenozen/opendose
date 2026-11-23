@@ -362,6 +362,85 @@ function write(name, p, compact = false) {
   write("schild.json", project("EC50 shift", [t, r, g, s], { selected: r.id }));
 }
 
+/** A multiple-variables (long) table, one string array per row. */
+const longData = (name, names, rows, categorical) => data(name, {
+  type: "multivariable", x: rows.map(() => ""), xTitle: "", xFormat: "numbers", xUnit: "", yTitle: "",
+  rowTitles: rows.map((_, i) => String(i + 1)),
+  datasets: names.map((n, c) => ({ name: n, varType: categorical.includes(n) ? "categorical" : "continuous",
+    rows: rows.map((r) => [r[c] ?? ""]) })),
+  subcolumnFormat: "replicates", replicateLayout: "side_by_side",
+});
+
+// detection-limits.json: an ELISA standard curve with 20 blank wells and
+// 20 wells of one low-level sample (engine/tests/reference/
+// detection_limits.py, the FEATURE-PLAN P-29 acceptance data): LoB, LoD
+// and LoQ (CLSI EP17-A2) next to the LLOQ and ULOQ
+{
+  const concs = ["1000", "500", "250", "125", "62.5", "31.25", "15.63", "7.81"];
+  const std = [[2.243, 2.268], [1.969, 1.969], [1.559, 1.548], [1.087, 1.077],
+    [0.674, 0.654], [0.38, 0.375], [0.212, 0.209], [0.138, 0.135]];
+  const blanks = [0.057, 0.058, 0.062, 0.062, 0.063, 0.064, 0.072, 0.061, 0.061, 0.051,
+    0.053, 0.069, 0.071, 0.062, 0.06, 0.062, 0.052, 0.058, 0.058, 0.067];
+  const low = [0.113, 0.121, 0.123, 0.125, 0.116, 0.115, 0.106, 0.126, 0.126, 0.116,
+    0.12, 0.11, 0.118, 0.123, 0.116, 0.119, 0.125, 0.122, 0.115, 0.129];
+  const pair = (v, i) => [String(v[2 * i]), String(v[2 * i + 1])];
+  const rows = [
+    ...concs.map((c, i) => ["Standard", `Std ${i + 1}`, "", c, "", ...std[i].map(String)]),
+    ...Array.from({ length: 10 }, (_, i) => ["Blank", "Blank", "", "0", "", ...pair(blanks, i)]),
+    ...Array.from({ length: 10 }, (_, i) => ["Low", "Low", "", "", "", ...pair(low, i)]),
+    ["Unknown", "S1", "Control", "", "2", "0.603", "0.581"],
+    ["Unknown", "S2", "Control", "", "2", "0.721", "0.703"],
+  ];
+  const t = longData("ELISA limits", ["Type", "Name", "Group", "Concentration", "Dilution", "Signal 1", "Signal 2"],
+    rows, ["Type", "Name", "Group"]);
+  const r = results(t, "assay_stdcurve", { unit: "pg/mL" }, "Standard curve of ELISA limits");
+  write("detection-limits.json", project("Detection limits", [t, r], { selected: r.id }));
+}
+
+// qpcr-controls.json: a hand-built qPCR plate (engine/tests/
+// test_qpcr_controls.py) with an NTC well for GAPDH at Cq 34, a clean
+// NTC for IL6 and a no-RT well of CON-1 at Cq 21 (FEATURE-PLAN P-30)
+{
+  const block = {
+    GAPDH: { "CON-1": [17.9, 18.0, 18.1], "CON-2": [17.0, 17.1, 17.2], "LPS-1": [18.0, 18.1, 18.2], "LPS-2": [17.4, 17.5, 17.6] },
+    IL6: { "CON-1": [27.3, 27.3, 27.3], "CON-2": [27.0, 27.0, 27.0], "LPS-1": [24.1, 24.1, 24.1], "LPS-2": [24.3, 24.3, 24.3] },
+  };
+  const rows = [];
+  for (const [target, samples] of Object.entries(block)) {
+    for (const [s, cqs] of Object.entries(samples)) for (const c of cqs) rows.push([s, s.split("-")[0], target, String(c)]);
+  }
+  rows.push(["NTC", "", "GAPDH", "34"], ["NTC", "", "GAPDH", "Undetermined"], ["NTC", "", "IL6", "Undetermined"],
+    ["CON-1 no-RT", "CON", "GAPDH", "21"]);
+  rows.forEach((r, i) => r.push(`${"ABCDEFGH"[Math.floor(i / 12)]}${(i % 12) + 1}`));
+  const t = longData("qPCR controls", ["Sample", "Group", "Target", "Cq", "Well"], rows,
+    ["Sample", "Group", "Target", "Well"]);
+  const r = results(t, "assay_qpcr", { referenceGenes: ["GAPDH"], calibrator: "CON" }, "qPCR of qPCR controls");
+  write("qpcr-controls.json", project("qPCR controls", [t, r], { selected: r.id }));
+}
+
+// qpcr-lod.json: a qPCR plate with an IL6 hit-rate dilution series, 8
+// quantities x 12 wells (engine/tests/reference/lod95_probit.py,
+// FEATURE-PLAN P-29): the LoD95 by probit, 26.17 copies (15 to 76.6)
+{
+  const rows = [];
+  [["CON-1", "CON", 18.0, 27.3], ["CON-2", "CON", 17.1, 27.0], ["LPS-1", "LPS", 18.1, 24.1], ["LPS-2", "LPS", 17.5, 24.4]]
+    .forEach(([s, g, gapdh, il6]) => {
+      for (let i = 0; i < 3; i++) {
+        rows.push([s, g, "GAPDH", (gapdh + 0.1 * (i - 1)).toFixed(2), ""], [s, g, "IL6", (il6 + 0.1 * (i - 1)).toFixed(2), ""]);
+      }
+    });
+  const quantity = [1000, 100, 50, 20, 10, 5, 2, 1];
+  const detected = [12, 12, 12, 11, 9, 6, 3, 1];
+  quantity.forEach((q, i) => {
+    for (let w = 0; w < 12; w++) {
+      rows.push(["", "", "IL6", w < detected[i] ? (38 - 3.32 * Math.log10(q) + 0.05 * (w % 3)).toFixed(2) : "Undetermined", String(q)]);
+    }
+  });
+  const t = longData("qPCR LoD", ["Sample", "Group", "Target", "Cq", "Quantity"], rows, ["Sample", "Group", "Target"]);
+  const r = results(t, "assay_qpcr", { referenceGenes: ["GAPDH"], calibrator: "CON" }, "qPCR of qPCR LoD");
+  write("qpcr-lod.json", project("qPCR LoD", [t, r], { selected: r.id }));
+}
+
 // why-history.json: a Welch t test opened by Help me choose, with the
 // reason saved on its results sheet (P-32), and the project's record of
 // a reproduction check (P-58): every compared number came back, one sheet

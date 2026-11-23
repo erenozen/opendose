@@ -3432,6 +3432,153 @@ log10(DR - 1) on log10[B] from the dose ratios as the card prints them
 R² 0.99708, P (slope = 1) 0.2228: the engine's values to the precision
 of the rounded ratios. Raincloud bandwidths by R's bw.nrd0 rule by hand
 (0.9 min(SD, IQR/1.34) n^-1/5): Control 1.06637, Treated A 0.657106.
+
+## Feature validation: assay wizards, wave 1 (2026-11-23)
+
+### P-29 limits of blank, detection and quantification
+
+`assay_stdcurve.detection_limits`: CLSI EP17-A2, parametric, as
+Armbruster & Pry (2008, Clin Biochem Rev 29 Suppl 1:S49) write it:
+LoB = mean of the blanks + 1.645 SD, LoD = LoB + 1.645 SD of the
+low-level samples (pooled over the samples); on request EP17-A2's
+small-sample multiplier c_beta = 1.645 / (1 - 1/(4(N - K))) instead of
+1.645 (off by default; the plan's acceptance test uses 1.645). LoQ: the
+lowest low-level sample whose back-calculated concentrations have a CV
+of at most 20% (editable) at or above the LoD. The signal limits are
+read off the fitted standard curve through the same interpolation and
+blank correction as the unknowns; a limit below the lowest standard is
+flagged as read off the extrapolated curve, one below the curve's floor
+has no concentration ("below the fitted curve"). Fewer than 60 blank or
+low-sample replicates get EP17-A2's note (60 per lot to establish, 20
+to verify). Only parametric limits are computed (stated next to them).
+
+Reference: `engine/tests/reference/detection_limits.py` (Python's
+statistics module for the formulas, an independent scipy curve_fit 4PL
+and its closed-form inverse for the concentrations; R chemCal is not
+installed, and its DIN 32645 calibration-based method is a different
+estimator, so it is not compared). Data: the plan's acceptance test, an
+ELISA curve (8 levels in duplicate), 20 blank wells, 20 low-sample
+wells (`web/e2e-fixtures/stage/detection-limits.json`).
+`engine/tests/test_detection_limits.py`:
+
+| Quantity | Reference | Engine tolerance |
+|---|---|---|
+| mean / SD of the blanks | 0.06115 / 0.0057425 | 1e-12 relative |
+| SD of the low sample | 0.0058992 | 1e-12 relative |
+| LoB signal | 0.070596 | 1e-12 relative |
+| LoD signal | 0.080301 | 1e-12 relative |
+| LoB concentration | 2.0046 pg/mL | 1e-4 relative |
+| LoD concentration | 2.9718 pg/mL | 1e-4 relative |
+| LoD with c_beta (1.66693) | 0.080430, 2.9845 pg/mL | 1e-12 / 1e-4 relative |
+| LoQ (CV 8.26%) | 6.6739 pg/mL | 1e-4 relative |
+
+Edge cases: 0 and 1 blank replicates (no LoB, said so), blanks all equal
+(SD 0, said so), one low replicate (no LoD, no CV), no low samples, a
+LoB under the curve's floor, a CV goal no sample meets, a decreasing
+(competitive) curve (limits mean - 1.645 SD), two low samples (pooled
+SD by hand). Invariance: signals x1e-12 and x1e12 scale the signal
+limits and leave the concentrations; concentrations in other units
+scale the concentration limits; blank order does not matter. Without
+low-level samples the result has no detection limits and every earlier
+pin is unchanged.
+
+### P-29 qPCR LoD95 from a hit-rate dilution series
+
+`assay_qpcr.lod95_by_target`: rows of the qPCR table with a Quantity are
+a dilution series; a series with wells that gave no Cq is a hit-rate
+series. The hit rate per quantity is fitted by probit regression on
+log10 quantity (`quantal.quantal_fit`, expected information, Finney's
+heterogeneity factor only when the Pearson chi-square is significant)
+and the LoD95 is the quantity detected in 95% of wells, with Fieller's
+CI (Forootan et al. 2017, Biomol Detect Quantif 12:1; MIQE asks for the
+LoD). An efficiency series detected in every well gives no LoD95.
+
+Reference: `engine/tests/reference/lod95_probit.py`, statsmodels
+GLM(Binomial(link=probit)) as the oracle for R's
+glm(binomial(probit)), Fieller's interval solved by hand (np.roots) from
+the statsmodels covariance. Data: 8 quantities (1000 to 1 copies) of 12
+wells, 12, 12, 12, 11, 9, 6, 3 and 1 detected.
+`engine/tests/test_qpcr_lod95.py`:
+
+| Quantity | Reference | Engine tolerance |
+|---|---|---|
+| intercept / slope | -1.41777 / 2.16016 | 1e-6 relative |
+| LoD95 | 26.1682 copies | 1e-6 relative |
+| 95% CI, Fieller | 15.0042 to 76.5999 | 1e-5 relative |
+| 95% CI, delta method | 12.7670 to 53.6363 | 1e-5 relative |
+
+Edge cases: every well detected (LoD95 below the series), none detected
+(above it), perfect separation (no partial level: the LoD95 lies
+between two quantities, no fit), fewer than 3 quantities, an empty
+series, a hit rate that falls with the quantity, an LoD95 outside the
+quantities tested (flagged). Quantity units scale the LoD95 and its CI;
+well order does not matter.
+
+### P-30 qPCR no-template and no-RT control checks
+
+`assay_qpcr.control_checks`: wells whose sample (or group) is named
+NTC / "no template (control)" (with an optional number) are no-template
+controls, names with no-RT, NRT, -RT, RT- or "minus RT" are no-RT
+controls (water is not read as an NTC: a water-treated group is
+common), or a record says `"control": "ntc" | "no_rt"`. They are taken
+out of the quantification, the reference-gene check and the group list,
+and checked as MIQE asks (Bustin et al. 2009, Clin Chem 55:611): a
+control well with a Cq (below an editable limit; blank = any Cq) has
+amplified; each sample of that target is listed with its Cq difference
+to the control and is affected when the difference is under an editable
+number of cycles (default 5: the contamination is then more than 2^-5,
+about 3%, of the sample's template at 100% efficiency). A no-RT control
+is compared with the sample its name points to ("CON-1 no-RT" with
+"CON-1"), else with every sample of its target.
+
+Validation: hand-built plates, every expected number a hand subtraction
+(`engine/tests/test_qpcr_controls.py`). The plan's acceptance plate:
+GAPDH sample means 18.0, 17.1, 18.1, 17.5 and one NTC well at Cq 34 (the
+other undetermined) give the chip "NTC amplified for GAPDH (Cq 34)" with
+the four samples 16.0, 16.9, 15.9 and 16.5 cycles before it (none
+affected); "CON-1 no-RT" at Cq 21 is 3 cycles after CON-1 (affected);
+"LPS-2-RT" at 33 is 8.7 cycles after LPS-2. The fold changes with and
+without control wells are identical (2^3.2 for LPS vs CON, by hand). A
+Cq limit of 33 stops counting the NTC at 34; a margin of 16.6 cycles
+makes CON-1, LPS-1 and LPS-2 affected. Name rules are pinned on the
+same 19 names in the engine and web unit tests (the web reads the
+controls only to keep them out of the group and target lists).
+
+### P-50 flow event counts and the CI of a gated percentage
+
+`api.py flow_events`: counting events is a Poisson process, so r
+positive events have a CV of 1/sqrt(r) (Roederer 2008, Cytometry A
+73:384): a target CV needs ceil(1/CV^2) positive events and, at an
+expected frequency f, ceil(r / f) events in the parent gate (rounded to
+six decimals before the ceiling, since 1/0.1^2 is 99.99999999999998 in
+floating point). An observed k of n gets the Wilson score interval
+(`partsofwhole.proportion_ci`, method "wilson"; exactly 0 at k = 0 and
+100% at k = n) and the Poisson CV of k.
+
+Reference: `engine/tests/reference/flow_events.py` (the counts in exact
+fractions; the Wilson interval from statsmodels proportion_confint and
+scipy binomtest().proportion_ci, which agree to 1e-12).
+`engine/tests/test_flow_events.py`:
+
+| Input | Reference | Engine tolerance |
+|---|---|---|
+| CV 10% at 0.1% (the plan's test) | 100 positive, 100,000 in all | exact |
+| CV 5% at 1%; 1% at 0.01%; 3% at 2.5% | 400 / 40,000; 10,000 / 100,000,000; 1,112 / 44,480 | exact |
+| 120 of 50,000 (the plan's test) | 0.24%, 95% CI 0.200765% to 0.286880% | 1e-10 relative |
+| 0 of 1,000; 50 of 50; 7 of 20 at 99% | 0 to 0.38268%; 92.865% to 100%; 14.639% to 62.834% | 1e-10 absolute |
+
+Invalid inputs (CV 0 or 100%, a missing or zero frequency, a parent
+count of 0 or not whole, more positives than the parent, text) each
+say what to enter. Halving the frequency doubles the events; 1e6 of
+1e12 events keeps a tight interval around 1e-4%.
+
+Independent check (2026-11-23, by the lead): LoB = 0.06115 + 1.645 x
+0.0057425 = 0.070596 by hand; events for a 10% CV at 0.1% frequency
+1/0.10^2 = 100 positive and 100,000 in all; the Wilson 95% CI of 120 of
+50,000 from the closed-form score interval, 0.20077% to 0.28688%; the
+qPCR LoD95 from an own probit maximum-likelihood fit on log10 copies
+(scipy.optimize Nelder-Mead on the binomial log-likelihood, not the
+statsmodels GLM above) is 26.168 copies. All equal the engine.
 """
 
 

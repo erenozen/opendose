@@ -48,6 +48,23 @@ Method sources:
   regression"). The sample's X is its relative concentration
   1/dilution (log10 of it for log-X models).
 
+- Limits of blank, detection and quantification (detection_limits):
+  CLSI EP17-A2 (2012) "Evaluation of detection capability for clinical
+  laboratory measurement procedures", parametric approach, as written
+  out by Armbruster & Pry (2008) Clin Biochem Rev 29 Suppl 1:S49:
+  LoB = mean_blank + 1.645 SD_blank, LoD = LoB + 1.645 SD_low (SD_low
+  pooled over the low-level samples); with c_beta_correction the
+  multiplier of SD_low is EP17-A2's c_beta = 1.645 / (1 - 1/(4(N - K)))
+  for N low-sample replicates over K samples. On a decreasing (com-
+  petitive) curve the signal limits are mean - 1.645 SD. LoQ is the
+  lowest low-level sample whose back-calculated concentrations meet a
+  precision goal (CV, default 20%: "functional sensitivity", Armbruster
+  & Pry 2008) and are at or above the LoD (EP17-A2: LoQ >= LoD). The
+  signal limits are read off the fitted standard curve with the same
+  interpolation as the unknowns. EP17-A2 asks for at least 60 blank and
+  60 low-sample replicates per reagent lot to establish LoB and LoD (20
+  each to verify a stated claim); fewer give a note.
+
 Models: "4pl" (log(agonist) or log(inhibitor) vs. response, chosen by
 the direction of the standards, or the X-is-concentration variable-
 slope form when log_x is False), "5pl" (asymmetrical five parameter),
@@ -298,7 +315,9 @@ def standard_curve_qc(standards, unknowns=None, *, model="4pl",
                       min_fraction=0.75, min_levels=6,
                       cv_limit=20.0, cv_basis="concentration",
                       parallelism_cv_limit=30.0, ci_level=0.95,
-                      constraints=None, curve_points=200) -> dict:
+                      constraints=None, curve_points=200,
+                      lod_blanks=None, lod_samples=None,
+                      lod_c_beta=False, loq_cv_limit=20.0) -> dict:
     """Standard-curve fit, back-calculation QC (ICH M10), LLOQ/ULOQ by
     the accuracy/precision profile, and dilution-corrected unknowns.
 
@@ -308,6 +327,9 @@ def standard_curve_qc(standards, unknowns=None, *, model="4pl",
     {"Bottom": 0}).
     blank: a number subtracted from every signal, "zero_standard" (mean
     of the zero-concentration standards) or None.
+    lod_blanks: blank replicate signals as read, and lod_samples:
+    [{"name", "signals"}] low-level samples as read; when either is
+    given the result carries "detection_limits" (detection_limits()).
     """
     unknowns = unknowns or []
     if cv_basis not in ("concentration", "signal"):
@@ -551,7 +573,13 @@ def standard_curve_qc(standards, unknowns=None, *, model="4pl",
             "x_is_log": curve.log_x}
     fit_out = dict(fit)
     fit_out.pop("_cov", None)
-    return {
+    limits = None
+    if lod_blanks is not None or lod_samples is not None:
+        limits = detection_limits(
+            lod_blanks or [], lod_samples or [], curve, blank_value,
+            c_beta_correction=bool(lod_c_beta), loq_cv_limit=loq_cv_limit,
+            standards_min=std_min)
+    out = {
         "analysis": "stdcurve_qc",
         "model": model, "model_id": fit["model"], "log_x": curve.log_x,
         "log_y": curve.log_y, "weighting": fit["weighting"],
@@ -564,6 +592,140 @@ def standard_curve_qc(standards, unknowns=None, *, model="4pl",
         "cv_limit_pct": cv_limit, "cv_basis": cv_basis,
         "warnings": warnings,
     }
+    if limits is not None:
+        out["detection_limits"] = limits
+    return out
+
+
+EP17_Z = 1.645          # CLSI EP17-A2: one-sided 95% (alpha = beta = 5%)
+EP17_ESTABLISH_N = 60   # replicates per reagent lot to establish LoB / LoD
+EP17_VERIFY_N = 20      # replicates to verify a stated LoB / LoD
+
+
+def _signal_to_conc(curve, signal, blank_value, standards_min):
+    """A signal limit (as read) on the concentration scale: the curve's
+    interpolation of the blank-corrected signal, with why it has none."""
+    if signal is None:
+        return {"concentration": None, "status": "undefined"}
+    y = signal - blank_value
+    conc = curve.interpolate([y])[0]
+    if conc is None:
+        side = curve.side(y)
+        return {"concentration": None,
+                "status": ("below_curve" if side == "below"
+                           else "above_curve")}
+    status = "ok"
+    if standards_min is not None and conc < standards_min * (1 - 1e-12):
+        status = "extrapolated"
+    return {"concentration": conc, "status": status}
+
+
+def detection_limits(blanks, low_samples, curve, blank_value=0.0, *,
+                     c_beta_correction=False, loq_cv_limit=20.0,
+                     standards_min=None) -> dict:
+    """LoB, LoD (CLSI EP17-A2 parametric; Armbruster & Pry 2008) and LoQ
+    (lowest low-level sample meeting the CV goal, at or above the LoD),
+    in signal as read and on the concentration scale of the fitted
+    curve. blanks: replicate signals of blank samples as read.
+    low_samples: [{"name", "signals"}] as read."""
+    sign = 1.0 if curve.increasing else -1.0
+    b = [v for v in (_num(x) for x in blanks or []) if v is not None]
+    notes = []
+    out = {
+        "method": "parametric",
+        "source": ("CLSI EP17-A2 (2012); Armbruster & Pry 2008, Clin "
+                   "Biochem Rev 29 Suppl 1:S49"),
+        "z": EP17_Z, "direction": "increasing" if sign > 0 else "decreasing",
+        "c_beta_correction": bool(c_beta_correction),
+        "n_blank": len(b), "mean_blank": _mean(b), "sd_blank": _sd(b),
+        "lob_signal": None, "lob": {"concentration": None,
+                                    "status": "undefined"},
+        "lod_signal": None, "lod": {"concentration": None,
+                                    "status": "undefined"},
+        "loq": None, "loq_cv_limit_pct": float(loq_cv_limit),
+        "n_low": 0, "k_low": 0, "sd_low": None, "multiplier_low": None,
+        "low_samples": [], "notes": notes,
+    }
+    if len(b) < 2:
+        notes.append(f"The LoB needs at least 2 blank replicates "
+                     f"({len(b)} given).")
+    else:
+        out["lob_signal"] = out["mean_blank"] + sign * EP17_Z * out["sd_blank"]
+        if out["sd_blank"] == 0:
+            notes.append("Every blank replicate reads the same signal (SD "
+                         "0): the LoB equals the blank mean.")
+    # low-level samples: pooled SD over the samples with 2+ replicates
+    lows = []
+    for i, s in enumerate(low_samples or []):
+        sig = [v for v in (_num(x) for x in s.get("signals", []))
+               if v is not None]
+        lows.append({"name": str(s.get("name") or f"Low {i + 1}"),
+                     "signals": sig})
+    lows = [s for s in lows if s["signals"]]
+    usable = [s for s in lows if len(s["signals"]) >= 2]
+    n_low = sum(len(s["signals"]) for s in usable)
+    k_low = len(usable)
+    out["n_low"], out["k_low"] = n_low, k_low
+    if not usable:
+        notes.append("The LoD needs a low-level sample with at least 2 "
+                     "replicates.")
+    else:
+        ss = sum((len(s["signals"]) - 1) * _sd(s["signals"]) ** 2
+                 for s in usable)
+        sd_low = math.sqrt(ss / (n_low - k_low))
+        mult = EP17_Z
+        if c_beta_correction:
+            mult = EP17_Z / (1.0 - 1.0 / (4.0 * (n_low - k_low)))
+        out["sd_low"], out["multiplier_low"] = sd_low, mult
+        if out["lob_signal"] is not None:
+            out["lod_signal"] = out["lob_signal"] + sign * mult * sd_low
+    out["lob"] = _signal_to_conc(curve, out["lob_signal"], blank_value,
+                                 standards_min)
+    out["lod"] = _signal_to_conc(curve, out["lod_signal"], blank_value,
+                                 standards_min)
+    lod_c = out["lod"]["concentration"]
+    for s in lows:
+        sig = s["signals"]
+        back = curve.interpolate([v - blank_value for v in sig])
+        complete = all(c is not None for c in back)
+        mean_c = _mean(back) if complete else None
+        cv_c = _cv(back) if complete else None
+        reason = None
+        if len(sig) < 2:
+            reason = "one replicate: no CV"
+        elif not complete:
+            reason = "a replicate is off the curve"
+        elif cv_c is None or cv_c > loq_cv_limit + 1e-9:
+            reason = f"CV over {loq_cv_limit:g}%"
+        elif lod_c is None:
+            reason = "no LoD on the concentration scale"
+        elif mean_c < lod_c * (1 - 1e-12):
+            reason = "below the LoD"
+        out["low_samples"].append({
+            "name": s["name"], "n": len(sig), "mean_signal": _mean(sig),
+            "sd_signal": _sd(sig), "concentrations": back,
+            "mean_concentration": mean_c, "cv_concentration_pct": cv_c,
+            "meets_goal": reason is None, "reason": reason})
+    meeting = [s for s in out["low_samples"] if s["meets_goal"]]
+    if meeting:
+        best = min(meeting, key=lambda s: s["mean_concentration"])
+        out["loq"] = {"concentration": best["mean_concentration"],
+                      "sample": best["name"],
+                      "status": ("extrapolated" if standards_min is not None
+                                 and best["mean_concentration"]
+                                 < standards_min * (1 - 1e-12) else "ok")}
+    elif lows:
+        notes.append(f"No low-level sample meets the LoQ goal (CV at most "
+                     f"{loq_cv_limit:g}%, at or above the LoD): the LoQ "
+                     "lies above the samples tested.")
+    if len(b) < EP17_ESTABLISH_N or n_low < EP17_ESTABLISH_N:
+        notes.append(
+            f"CLSI EP17-A2 asks for at least {EP17_ESTABLISH_N} blank and "
+            f"{EP17_ESTABLISH_N} low-sample replicates per reagent lot to "
+            f"establish the LoB and LoD ({EP17_VERIFY_N} each to verify a "
+            f"stated value); this run has {len(b)} blank and {n_low} "
+            "low-sample replicates.")
+    return out
 
 
 def _parallelism(curve, prepared, name, entries, ok, weighting, cv_limit,

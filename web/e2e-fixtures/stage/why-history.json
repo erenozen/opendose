@@ -9,7 +9,7 @@
   "scheme": "default",
   "digits": 4
  },
- "selected": "r100",
+ "selected": "r106",
  "reproductions": [
   {
    "file": "pilot-2026-10.json",
@@ -25,7 +25,7 @@
    "digits": 4,
    "sheets": [
     {
-     "sheetId": "r100",
+     "sheetId": "r106",
      "name": "t test of Pilot",
      "analysis": "column",
      "status": "reproduced",
@@ -46,7 +46,7 @@
  ],
  "sheets": [
   {
-   "id": "d099",
+   "id": "d105",
    "kind": "data",
    "name": "Pilot",
    "table": {
@@ -124,9 +124,9 @@
    }
   },
   {
-   "id": "r100",
+   "id": "r106",
    "kind": "results",
-   "parentId": "d099",
+   "parentId": "d105",
    "analysis": "column",
    "options": {
     "analysis": "ttest",
@@ -144,10 +144,10 @@
    }
   },
   {
-   "id": "g101",
+   "id": "g107",
    "kind": "graph",
-   "parentId": "d099",
-   "resultsId": "r100",
+   "parentId": "d105",
+   "resultsId": "r106",
    "graphType": "scatter",
    "settings": {
     "titles": {

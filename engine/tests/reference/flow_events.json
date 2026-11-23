@@ -1,0 +1,70 @@
+{
+  "plans": [
+    {
+      "target_cv_pct": 10,
+      "frequency_pct": 0.1,
+      "positive_events": 100,
+      "total_events": 100000
+    },
+    {
+      "target_cv_pct": 5,
+      "frequency_pct": 1,
+      "positive_events": 400,
+      "total_events": 40000
+    },
+    {
+      "target_cv_pct": 1,
+      "frequency_pct": 0.01,
+      "positive_events": 10000,
+      "total_events": 100000000
+    },
+    {
+      "target_cv_pct": 3,
+      "frequency_pct": 2.5,
+      "positive_events": 1112,
+      "total_events": 44480
+    }
+  ],
+  "observed": [
+    {
+      "positive": 120,
+      "total": 50000,
+      "percent": 0.24,
+      "ci_pct": [
+        0.20076524368356852,
+        0.2868802085593418
+      ],
+      "count_cv_pct": 9.128709291752768
+    },
+    {
+      "positive": 0,
+      "total": 1000,
+      "percent": 0.0,
+      "ci_pct": [
+        2.168404344971009e-17,
+        0.38267584855551234
+      ],
+      "count_cv_pct": null
+    },
+    {
+      "positive": 50,
+      "total": 50,
+      "percent": 100.0,
+      "ci_pct": [
+        92.86524008666413,
+        100.0
+      ],
+      "count_cv_pct": 14.14213562373095
+    },
+    {
+      "positive": 7,
+      "total": 20,
+      "percent": 35.0,
+      "ci_pct": [
+        14.63934413769388,
+        62.83381789526871
+      ],
+      "count_cv_pct": 37.79644730092272
+    }
+  ]
+}
