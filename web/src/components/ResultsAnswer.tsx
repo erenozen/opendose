@@ -12,6 +12,7 @@ import { useProject } from "../app/context";
 import type { AnalysisStatus } from "../app/useAnalysisResult";
 import type { DataSheet, ResultsSheet } from "../project/types";
 import MeaningLine from "../report/MeaningLine";
+import { currentChoice } from "../guide/choice";
 import { ANALYSIS_COLUMN, ANALYSIS_NONLIN } from "../project/builtin";
 import { concentrationUnit } from "../sheets/xy/rangeReport";
 import { keyFacts, type KeyItem } from "./answer/keyFacts";
@@ -190,7 +191,7 @@ export default function ResultsAnswer({ sheet, data, result, options, status, re
           </>
         )}
         <RankLine sheet={sheet} data={data} options={options} result={result} />
-        <MeaningLine analysisId={sheet.analysis} resultsId={sheet.id} table={data.table}
+        <MeaningLine analysisId={sheet.analysis} chosen={!!currentChoice(sheet)} table={data.table}
           options={options} result={result} />
         <ResultsChecks sheet={sheet} data={data} result={result} options={options}
           readOnly={readOnly} checks={checks} />

@@ -59,7 +59,8 @@ import { dirname, join } from "node:path";
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
-import { strFromU8, unzipSync } from "fflate";
+import { deflateSync, strFromU8, strToU8, unzipSync } from "fflate";
+import { projectSchemaErrors } from "./validate-project.mjs";
 
 // The header's File and View menus (DECISIONS 5): open one, pick an item.
 const fileMenu = async (p, item) => {
@@ -95,6 +96,13 @@ const fail = [];
 const expect = (label, ok, detail = "") => {
   console.log(`${ok ? "ok  " : "FAIL"} ${label}${detail ? `: ${detail}` : ""}`);
   if (!ok) fail.push(label);
+};
+// P-60: every project this suite saves validates against the published
+// schema (docs/project-file.schema.json, ajv).
+const checkSchema = (what, json) => {
+  const errs = projectSchemaErrors(json);
+  expect(`schema: ${what} validates against docs/project-file.schema.json`, errs.length === 0,
+    errs.slice(0, 5).join(" | "));
 };
 // A navigator row by sheet name (the treeitem's own row, not its children).
 const navRow = (name) => page
@@ -586,6 +594,7 @@ const [download] = await Promise.all([
 const SAVED = join(tmp, download.suggestedFilename());
 await download.saveAs(SAVED);
 const saved = JSON.parse(readFileSync(SAVED, "utf8"));
+checkSchema("Save project (grouped table)", saved);
 const grouped = saved.sheets.find((s) => s.name === "Two-factor data");
 expect("saved file is v2 with the grouped table",
   saved.version === 2 && grouped?.kind === "data" && grouped.table.type === "grouped"
@@ -683,6 +692,9 @@ await page.waitForTimeout(800);
   await tA.keyboard.press("Tab");
   const sA = await settled(tA);
   const sB = await settled(tB);
+  for (const [t, s] of [["A", sA], ["B", sB]]) {
+    if (s.stored) checkSchema(`the autosave session of tab ${t}`, JSON.parse(s.stored));
+  }
   expect("tabs: each tab writes its own session",
     !!sA.id && !!sB.id && sA.id !== sB.id, `${sA.id} / ${sB.id}`);
   expect("tabs: each stored session equals serializeProject of its tab, byte for byte",
@@ -1147,6 +1159,7 @@ const [fmtDownload] = await Promise.all([
 ]);
 const FMT_SAVED = join(tmp, `formatted-${fmtDownload.suggestedFilename()}`);
 await fmtDownload.saveAs(FMT_SAVED);
+checkSchema("Save project (formatted graph)", JSON.parse(readFileSync(FMT_SAVED, "utf8")));
 const fmtGraph = JSON.parse(readFileSync(FMT_SAVED, "utf8")).sheets
   .find((s) => s.kind === "graph" && s.settings?.format?.comparisons?.show);
 expect("graph format is saved with the project",
@@ -1173,7 +1186,9 @@ const orgSave = async (stem) => {
   ]);
   const path = join(tmp, `${stem}-${dl.suggestedFilename()}`);
   await dl.saveAs(path);
-  return { path, json: JSON.parse(readFileSync(path, "utf8")) };
+  const json = JSON.parse(readFileSync(path, "utf8"));
+  checkSchema(`Save project (${stem})`, json);
+  return { path, json };
 };
 const orgSheet = (json, name) => json.sheets.find((s) => s.name === name);
 
@@ -2824,6 +2839,7 @@ const axeOn = async (pg, sel) => {
     if (j.sheets.filter((s) => s.kind === "results").every((s) => s.cachedKey)) saved = j;
     else await p4.waitForTimeout(1500);
   }
+  checkSchema("Save project (example, every result live)", saved);
   expect("a saved project records the software that saved it",
     !!saved && typeof saved.savedWith?.app === "string" && !!saved.savedWith.engine,
     JSON.stringify(saved?.savedWith ?? null));
@@ -2848,6 +2864,40 @@ const axeOn = async (pg, sel) => {
     await appears(hist.locator(".history-reproduction"))
     && (await hist.locator(".history-reproduction").first().innerText()).includes(`All ${N} results reproduced`));
   await hist.getByRole("button", { name: "Close" }).click();
+  // P-58, the acceptance test as written: open a project, let
+  // reproduce-on-open run, save, reopen: the History panel shows the
+  // earlier record (saved in the file; this build reopening its own file
+  // runs no new check).
+  {
+    const [dlR] = await Promise.all([p4.waitForEvent("download", { timeout: 30000 }),
+      fileMenu(p4, "Save project")]);
+    const WITH = join(tmp, "with-reproduction.json");
+    await dlR.saveAs(WITH);
+    const withRec = JSON.parse(readFileSync(WITH, "utf8"));
+    checkSchema("Save project (with a reproduction record)", withRec);
+    const rec = withRec.reproductions?.[0];
+    expect("P-58: the saved file keeps the reproduction record (file, versions, every sheet compared)",
+      withRec.reproductions?.length === 1 && rec.file === "saved-with-0.2.0.json"
+      && rec.savedWith?.app === "0.2.0" && rec.current?.app === m?.[2] && rec.source === undefined
+      && rec.sheets.length === nResults && rec.sheets.reduce((a, s) => a + s.compared, 0) === N,
+      JSON.stringify(rec ?? null).slice(0, 200));
+    await p4.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]', WITH);
+    await p4.waitForFunction(() => /Opened “with-reproduction\.json”/.test(document.body.innerText), null,
+      { timeout: 30000 }).catch(() => {});
+    expect("P-58: reopening the file in the build that saved it runs no new check",
+      await strip.waitFor({ state: "detached", timeout: 10000 }).then(() => true, () => false));
+    await p4.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 60000 });
+    await p4.getByRole("button", { name: "History", exact: true }).first().click();
+    const hist2 = p4.getByRole("dialog", { name: "History" });
+    const recText = await appears(hist2.locator(".history-reproduction"))
+      ? await hist2.locator(".history-reproduction").first().innerText() : "";
+    expect("P-58: after save and reopen, History shows the earlier record",
+      await hist2.locator(".history-reproduction").count() === 1
+      && recText.includes("Reproduced on reopening “saved-with-0.2.0.json”")
+      && recText.includes(`All ${N} results reproduced with OpenDose ${m?.[2]} (saved with 0.2.0)`),
+      recText.slice(0, 200));
+    await hist2.getByRole("button", { name: "Close" }).click();
+  }
   // one stored number off: the strip lists it with both values
   const ct = older.sheets.find((s) => s.kind === "results" && s.cached?.analysis === "contingency");
   const truth = ct.cached.chi_square.p;
@@ -2869,6 +2919,79 @@ const axeOn = async (pg, sel) => {
   await strip.getByRole("button", { name: "Dismiss" }).click();
   expect("the strip is dismissable", await strip.count() === 0);
   await p4.close();
+
+  // P-58: an autosave session and a share link written by another build
+  // (the same project, savedWith 0.2.0) are checked the same way, and the
+  // record says how the project was opened.
+  const oldText = readFileSync(OLD, "utf8");
+  const oldJson = JSON.parse(oldText);
+  const checkedOn = async (pg, label, how) => {
+    const st = pg.getByRole("region", { name: "Reproducing saved results" });
+    const ok = await pg.waitForFunction(() => /reproduced with|changed with/.test(
+      document.querySelector(".reproduce-strip .rs-headline")?.textContent ?? ""), null, { timeout: 180000 })
+      .then(() => true, () => false);
+    const h = ok ? await st.locator(".rs-headline").innerText() : "";
+    expect(`P-58: ${label} saved with 0.2.0 is recomputed and all ${N} results reproduced`,
+      h === `All ${N} results reproduced with OpenDose ${m?.[2]} (saved with 0.2.0).`, h);
+    await st.getByRole("button", { name: "History" }).click();
+    const hd = pg.getByRole("dialog", { name: "History" });
+    const t = await appears(hd.locator(".history-reproduction"))
+      ? await hd.locator(".history-reproduction").first().innerText() : "";
+    expect(`P-58: History records the check of the ${label}`, t.includes(`Reproduced on ${how}`), t.slice(0, 160));
+    await hd.getByRole("button", { name: "Close" }).click();
+  };
+  {
+    const ctxA = await browser.newContext({ viewport: { width: 1500, height: 1100 } });
+    const pa = await ctxA.newPage();
+    pa.on("pageerror", (e) => errors.push(`pageerror (reproduce autosave): ${e.message}`));
+    await pa.goto(baseUrl, { waitUntil: "domcontentloaded" });
+    await pa.waitForFunction(() => !!globalThis.__opendoseAutosave, null, { timeout: 60000 });
+    // A closed tab's session, written by 0.2.0 (the record shape of project/autosave.ts).
+    await pa.evaluate(async (json) => {
+      const db = await new Promise((res, rej) => {
+        // as project/autosave.ts opens it (version 1, one store)
+        const r = indexedDB.open("opendose", 1);
+        r.onupgradeneeded = () => { try { r.result.createObjectStore("autosave"); } catch { /* exists */ } };
+        r.onsuccess = () => res(r.result);
+        r.onerror = () => rej(r.error);
+      });
+      await new Promise((res, rej) => {
+        const tx = db.transaction("autosave", "readwrite");
+        tx.objectStore("autosave").put({ id: "old-build", savedAt: Date.now() - 60000,
+          title: "Example from 0.2.0", sheets: JSON.parse(json).sheets.length, json }, "session:old-build");
+        tx.oncomplete = res;
+        tx.onerror = () => rej(tx.error);
+      });
+      db.close();
+    }, JSON.stringify({ ...oldJson, title: "Example from 0.2.0" }));
+    await pa.reload({ waitUntil: "domcontentloaded" });
+    const banner = pa.locator(".restore-banner").first();
+    const stA = pa.getByRole("region", { name: "Reproducing saved results" });
+    await Promise.race([banner.waitFor({ timeout: 60000 }), stA.waitFor({ timeout: 60000 })]).catch(() => {});
+    if (await banner.count()) await banner.getByRole("button", { name: /^Restore/ }).first().click();
+    const progress = await stA.waitFor({ timeout: 30000 }).then(() => true, () => false);
+    expect("P-58: restoring an autosave written by another build starts the check",
+      progress && /of your last session “Example from 0\.2\.0”|reproduced with/.test(await stA.innerText()),
+      progress ? (await stA.innerText()).slice(0, 160) : "no strip");
+    await checkedOn(pa, "restored autosave", "restoring the autosave of “Example from 0.2.0”");
+    await ctxA.close();
+  }
+  {
+    const linkJson = { ...oldJson, title: "Shared from 0.2.0" };
+    delete linkJson.prefs;
+    const payload = Buffer.from(deflateSync(strToU8(JSON.stringify(linkJson)), { level: 9 }))
+      .toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    const pl = await browser.newPage({ viewport: { width: 1500, height: 1100 } });
+    pl.on("pageerror", (e) => errors.push(`pageerror (reproduce link): ${e.message}`));
+    await pl.goto(`${baseUrl.replace(/#.*$/, "")}#p=${payload}`, { waitUntil: "domcontentloaded" });
+    const stL = pl.getByRole("region", { name: "Reproducing saved results" });
+    const shown = await stL.waitFor({ timeout: 60000 }).then(() => true, () => false);
+    expect("P-58: a share link made by another build is checked too (read-only, nothing to copy first)",
+      shown && /of the shared project “Shared from 0\.2\.0”|reproduced with/.test(await stL.innerText()),
+      shown ? (await stL.innerText()).slice(0, 160) : "no strip");
+    await checkedOn(pl, "share link", "opening the share link of “Shared from 0.2.0”");
+    await pl.close();
+  }
 }
 
 // --- Survival entry and extras (needs survival-data-entry,
@@ -3199,6 +3322,42 @@ const axeOn = async (pg, sel) => {
   expect("lands on the t test with the reason (Why Unpaired t test.)", whyShown &&
     (await why.innerText()).startsWith(`Why Unpaired t test. ${recReason.slice(0, 40)}`));
   await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 60000 });
+
+  // P-32, the acceptance test as written: choose a test in Help me choose,
+  // save, reload the file: the methods text still includes the reason
+  // (and the saved file holds it on the results sheet).
+  const methodsWhy = `Choice of test (OpenDose Help me choose): ${recReason}`;
+  const methodsHas = () => page.waitForFunction((t) => (document.querySelector(".stats-methods p")
+    ?.textContent ?? "").includes(t), methodsWhy, { timeout: 30000 }).then(() => true, () => false);
+  expect("P-32: the methods paragraph gives the chooser's reason", await methodsHas(),
+    await page.locator(".stats-methods p").first().innerText().catch(() => "no methods text"));
+  const [dlWhy] = await Promise.all([page.waitForEvent("download", { timeout: 30000 }),
+    fileMenu(page, "Save project")]);
+  const WHY = join(tmp, "why-this-test.json");
+  await dlWhy.saveAs(WHY);
+  const whySaved = JSON.parse(readFileSync(WHY, "utf8"));
+  checkSchema("Save project (Help me choose)", whySaved);
+  // (an earlier Help me choose in this suite left a one-way ANOVA with its own reason)
+  const whySheet = whySaved.sheets.find((s) => s.kind === "results" && s.chosen?.reason === recReason);
+  expect("P-32: the saved results sheet keeps the reason with the options the chooser set",
+    whySheet?.chosen?.test === "Unpaired t test" && whySheet.chosen.reason === recReason
+    && whySheet.chosen.options?.ttestKind === "unpaired", JSON.stringify(whySheet?.chosen ?? null).slice(0, 160));
+  await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]', WHY);
+  await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 60000 });
+  await openChecks();
+  expect("P-32: after reopening the file the methods text still includes the reason, and the note is back",
+    await methodsHas() && await appears(page.getByRole("note", { name: "Why this test" })));
+  // Removing the reason takes it out of the methods too, says so, and
+  // Undo brings it back.
+  await page.getByRole("button", { name: "Remove why this test" }).click();
+  const whyGone = await page.getByRole("note", { name: "Why this test" })
+    .waitFor({ state: "detached", timeout: 10000 }).then(() => true, () => false);
+  expect("P-32: Remove why this test drops the note and the methods sentence, with a toast",
+    whyGone && !(await page.locator(".stats-methods p").first().innerText()).includes("Choice of test")
+    && await appears(page.getByText("Removed why this test from this sheet and its methods paragraph.")));
+  await page.getByRole("button", { name: "Undo", exact: true }).first().click();
+  expect("P-32: Undo brings the reason back", await methodsHas()
+    && await appears(page.getByRole("note", { name: "Why this test" })));
 
   // (b) Plan next experiment: the pilot SD (pooled, 0.825) filled in; the
   // effect to detect is chosen (1 unit): 12 per group for 80% power.

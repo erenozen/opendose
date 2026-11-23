@@ -12,8 +12,7 @@ import { projectProvenance, type ProvenanceStep } from "./provenance";
 import { provenanceDeps, provenanceEnv } from "./provenanceDeps";
 import "./report.css";
 import "./integrity.css";
-import { useReproduceState } from "../app/reproduceCheck";
-import { changedLines, headline, type ReproductionReport } from "../project/reproduce";
+import { changedLines, headline, openedHow, type ReproductionReport } from "../project/reproduce";
 import { whyLines } from "../share/engineChanges";
 
 const show = (v: unknown) => (typeof v === "string" ? v : JSON.stringify(v));
@@ -70,7 +69,7 @@ function Reproduction({ r }: { r: ReproductionReport }) {
   const why = whyLines(r);
   return (
     <div className="history-step history-reproduction">
-      <h3>Reproduced on reopening “{r.file}”</h3>
+      <h3>Reproduced on {openedHow(r)}</h3>
       <p className="hs-meta">{new Date(r.checkedAt).toLocaleString()} · {headline(r)} · compared at
         {" "}{r.digits} significant digits (P values at 4)</p>
       {lines.length > 0 && (
@@ -98,9 +97,10 @@ export default function HistoryPanel({ dataId, onClose }: { dataId?: string; onC
     id ? [id] : undefined), [project, results, id]);
   const copied = useLabelSwap();
   const fam = doc.families[0];
-  // Projects reopened in this session from a file saved by another build:
-  // every saved result recomputed and compared (app/reproduceCheck.ts).
-  const checks = useReproduceState().history;
+  // Each time this project was opened (file, autosave or share link) in a
+  // build other than the one that saved it: every saved result recomputed
+  // and compared (app/reproduceCheck.ts), kept with the project.
+  const checks = project.reproductions ?? [];
   const json = JSON.stringify(checks.length ? { ...doc, reproduction: checks } : doc, null, 2);
   return (
     <Modal title="History" onClose={onClose} className="history-modal"
@@ -151,7 +151,7 @@ export default function HistoryPanel({ dataId, onClose }: { dataId?: string; onC
           {fam.steps.map((s) => <Step key={s.sheet_id} s={s} />)}
         </>
       )}
-      {checks.map((r) => <Reproduction key={r.checkedAt} r={r} />)}
+      {checks.map((r) => <Reproduction key={`${r.checkedAt}-${r.file}`} r={r} />)}
     </Modal>
   );
 }

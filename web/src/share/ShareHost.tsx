@@ -2,6 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react
 import { runEngine } from "../lib/engine";
 import { exportPzfx, pzfxFileName, pzfxSelection } from "./pzfx";
 import { resolveOptions } from "../app/analysis";
+import { currentSavedWith } from "../app/reproduceCheck";
 import { useProject } from "../app/context";
 import { useUi } from "../app/ui";
 import Modal from "../components/Modal";
@@ -216,8 +217,10 @@ function ShareDialog({ dataId, onClose }: { dataId?: string; onClose: () => void
   const [sealed, setSealed] = useState<ProtectedOutcome | null>(null);
   const [busy, setBusy] = useState(false);
   const [sealError, setSealError] = useState("");
-  const shareOpts = useMemo(() => ({ keys: results.fingerprints(), selected: selectedId }),
-    [results, selectedId]);
+  // With the results goes the software that computed them, so a build
+  // that opens the link later recomputes and compares them (P-58).
+  const shareOpts = useMemo(() => ({ keys: results.fingerprints(), selected: selectedId,
+    savedWith: currentSavedWith() }), [results, selectedId]);
   const current = useMemo(() => makeFragment(withResolvedOptions(target),
     withResults ? results.snapshot() : undefined, undefined, shareOpts),
   [target, withResults, results, shareOpts]);

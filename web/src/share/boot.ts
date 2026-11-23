@@ -5,6 +5,7 @@
 // never written back into the address.
 import type { IdFactory } from "../project/ids.ts";
 import { projectFromJson } from "../project/persist.ts";
+import { parseSavedWith, type SavedWith } from "../project/reproduce.ts";
 import type { Project, ProjectPrefs } from "../project/types.ts";
 import { readFragment, sharePayload } from "./link.ts";
 import { protectedPayload } from "./protect.ts";
@@ -17,6 +18,8 @@ export interface ShareBoot {
   project: Project | null;
   /** The sheet the sender had on screen, if the link says. */
   selected?: string | null;
+  /** The software that made the link (absent in older links). */
+  savedWith?: SavedWith | null;
   /** Why a share link in the address could not be opened ("" = fine). */
   error: string;
 }
@@ -45,10 +48,12 @@ export function readShareBoot(prefs: ProjectPrefs, ids: IdFactory, hash = locati
     } else {
       raw = readFragment(hash);
     }
-    const sel = (raw as { selected?: unknown } | null)?.selected;
+    const r = raw as { selected?: unknown; savedWith?: unknown } | null;
+    const sel = r?.selected;
     return {
       project: projectFromJson(raw, { prefs, ids }), error: "",
       selected: typeof sel === "string" ? sel : null,
+      savedWith: parseSavedWith(r?.savedWith),
     };
   } catch (e) {
     return { project: null, error: e instanceof Error ? e.message : String(e) };

@@ -5,9 +5,12 @@ import CiteBlock from "./CiteBlock";
 import Modal from "./Modal";
 import { Button } from "./ui/Button";
 
+/** The format page (docs/project-file-format.md), with the schema beside it. */
+const FORMAT_DOC = "https://github.com/erenozen/opendose/blob/main/docs/project-file-format.md";
+
 /**
  * About OpenDose (View › About OpenDose…): privacy, the file-format
- * promise, non-affiliation, the version and how to cite. A link that opens
+ * promise with a link to the format page, non-affiliation, the version and how to cite. A link that opens
  * another dialog closes this one first, so the two never stack.
  */
 export default function AboutDialog({ dataId, onClose }: {
@@ -34,7 +37,10 @@ export default function AboutDialog({ dataId, onClose }: {
         <p className="info-format">
           File format: project files carry a version number, and every
           release opens every earlier version, so an old file never
-          needs the newest build.
+          needs the newest build.{" "}
+          <a href={FORMAT_DOC} target="_blank" rel="noopener noreferrer">
+            The project file format and its JSON Schema
+          </a>
         </p>
         <p>
           OpenDose is a free, independent open-source project built

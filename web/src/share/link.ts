@@ -116,7 +116,8 @@ export function familyProject(p: Project, dataId: string): Project | null {
     void _g;
     return rest as Sheet;
   });
-  return { ...p, title: data.name, sheets, groups: undefined };
+  // Reproduction records name sheets of the whole project: not shared.
+  return { ...p, title: data.name, sheets, groups: undefined, reproductions: undefined };
 }
 
 /** Rough size in kB, for messages. */

@@ -20,6 +20,7 @@ import { tmpdir } from "node:os";
 import { createRequire } from "node:module";
 import { spawnSync } from "node:child_process";
 import { unzipSync, strFromU8, strToU8, zipSync } from "fflate";
+import { projectSchemaErrors } from "./validate-project.mjs";
 
 // The header's View menu (DECISIONS 5): open it, pick an item.
 const viewMenu = async (p, item) => {
@@ -188,6 +189,10 @@ expect("bundle has the dose-response table", has("data/dose-response.csv") && ha
   const pj = JSON.parse(strFromU8(entries["project.json"]));
   expect("the bundle's project file records the software that saved it",
     typeof pj.savedWith?.app === "string", JSON.stringify(pj.savedWith ?? null));
+  // P-60: the published schema (docs/project-file.schema.json, ajv)
+  const errs = projectSchemaErrors(pj);
+  expect("schema: the bundle's project.json validates against docs/project-file.schema.json",
+    errs.length === 0, errs.slice(0, 5).join(" | "));
 }
 expect("bundle has the data tables as .pzfx", has("data.pzfx")
   && (strFromU8(entries["data.pzfx"]).match(/<Table /g) ?? []).length === 3);
@@ -430,6 +435,12 @@ expect("privacy statement in the info popover",
   (await pop.innerText()).includes("no data is sent anywhere"));
 expect("file-format promise in the info popover",
   (await pop.innerText()).includes("every release opens every earlier version"));
+// P-60: the format page (docs/project-file-format.md, beside the schema)
+const fmtLink = pop.getByRole("link", { name: "The project file format and its JSON Schema" });
+expect("About links the project file format page, in a new tab",
+  await fmtLink.count() === 1
+  && (await fmtLink.getAttribute("href")) === "https://github.com/erenozen/opendose/blob/main/docs/project-file-format.md"
+  && (await fmtLink.getAttribute("target")) === "_blank");
 await pop.getByRole("button", { name: "How OpenDose is validated" }).click();
 const val = page.getByRole("dialog", { name: "How OpenDose is validated" });
 await val.waitFor({ timeout: 10000 });

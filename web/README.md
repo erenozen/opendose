@@ -90,6 +90,12 @@ all of the suites above against main in a clean worktree.
 - `validate-site.mjs <url>` drives a deployed site through the reference
   corpus in `../docs/validation/` and writes `results-site.json` and
   `.md` there (`--no-data` runs only the performance probe).
+- `project-schema.mjs [--check]` generates `../docs/project-file.schema.json`
+  from the project model (`src/project/fileFormat.ts`), or checks the
+  committed one; run it after changing `src/project/types.ts`. The unit
+  suite fails while the two differ. `validate-project.mjs` validates a
+  project file against it (ajv); the e2e suites run every project they
+  save through it. The format page is `../docs/project-file-format.md`.
 - `make-touch-icon.mjs` renders the PNG icons from `public/favicon.svg`.
 - `make-export-fonts.py` cuts the fonts PDF exports embed
   (`src/export/fonts/`: Inter and an Arial-compatible Liberation Sans,

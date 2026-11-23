@@ -9,6 +9,8 @@ import type { Project } from "../project/types";
 import { notify } from "../components/ui/Toast.store";
 import { requestShell } from "./commandRegistry";
 import { useProject } from "./context";
+import { currentSavedWith, prepareReproduceCheckFor } from "./reproduceCheck";
+import { savedWithOf } from "../project/reproduce";
 
 const DELAY_MS = 800;
 
@@ -61,7 +63,10 @@ export function useAutosave({ autoOpen }: { autoOpen: boolean }) {
   show.current = (rec, how) => {
     try {
       const p = parseProjectFile(rec.json, { prefs: store.project.prefs, ids: newId });
-      replace(p, savedSelection(rec.json));
+      // Written by another build (an update since): recompute and compare,
+      // as for a project file (P-58).
+      replace(prepareReproduceCheckFor(savedWithOf(rec.json), p, rec.title, "autosave"),
+        savedSelection(rec.json));
       if (how === "auto") notify(`Reopened your last session, “${rec.title}”.`, { tone: "info" });
       if (how === "copy") {
         notify(`Opened a copy of “${rec.title}”. Edits here are kept as this tab's own session.`,
@@ -107,7 +112,8 @@ export function useAutosave({ autoOpen }: { autoOpen: boolean }) {
   selectedRef.current = selectedId;
   const serialize = useRef<() => string>(() => "");
   serialize.current = () => serializeProject(store.project, results.snapshot(),
-    { keys: results.fingerprints(), selected: selectedRef.current, compact: true });
+    { keys: results.fingerprints(), selected: selectedRef.current, compact: true,
+      savedWith: currentSavedWith() });
   const writeNow = async () => {
     if (!booting) return;
     await booting.catch(() => null);

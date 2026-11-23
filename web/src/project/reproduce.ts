@@ -9,6 +9,7 @@
 // compared). Pure; the app side is app/reproduceCheck.ts and the strip.
 import { pNumber } from "../report/pformat.ts";
 import { formatSig } from "../types.ts";
+import type { Project } from "./types.ts";
 
 /** The software a project file was saved with. */
 export interface SavedWith {
@@ -249,8 +250,15 @@ export interface SheetCheck {
   note?: string;
 }
 
+/** How the checked project was opened: a project file (absent, as in
+ *  every record written before the other two were checked), a restored
+ *  autosave session, or a share link. */
+export type ReproductionSource = "autosave" | "link";
+
 export interface ReproductionReport {
+  /** The file name, or the project's title for an autosave or a link. */
   file: string;
+  source?: ReproductionSource;
   savedWith: SavedWith | null;
   current: SavedWith;
   /** ISO time of the check. */
@@ -301,4 +309,86 @@ export function headline(r: ReproductionReport): string {
     t.skipped && `${t.skipped} not compared (see History)`].filter(Boolean);
   if (extra.length) s += `; ${extra.join("; ")}`;
   return s;
+}
+
+/** "reopening “assay.json”", "restoring the autosave of “Assay”",
+ *  "opening the share link of “Assay”". */
+export function openedHow(r: Pick<ReproductionReport, "file" | "source">): string {
+  return r.source === "autosave" ? `restoring the autosave of “${r.file}”`
+    : r.source === "link" ? `opening the share link of “${r.file}”`
+      : `reopening “${r.file}”`;
+}
+
+// ------------------------------------------------------------ saved records
+// Finished checks are kept in the project (Project.reproductions), newest
+// last, so the History panel still lists them after saving and reopening.
+
+/** Records a project keeps; the oldest go first. */
+export const MAX_REPRODUCTIONS = 20;
+
+const STATUSES: SheetCheck["status"][] = ["reproduced", "changed", "failed", "skipped"];
+const isObj = (v: unknown): v is Record<string, unknown> =>
+  !!v && typeof v === "object" && !Array.isArray(v);
+const isStr = (v: unknown): v is string => typeof v === "string";
+const isCount = (v: unknown): v is number => typeof v === "number" && Number.isInteger(v) && v >= 0;
+const isNum = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
+
+function parseChange(v: unknown): NumberChange | null {
+  if (!isObj(v) || !isStr(v.path) || !isStr(v.what) || !isNum(v.saved)
+    || !(v.now === null || isNum(v.now)) || typeof v.p !== "boolean"
+    || !Array.isArray(v.context) || !v.context.every(isStr)) return null;
+  return { path: v.path, what: v.what, context: [...v.context], saved: v.saved, now: v.now, p: v.p };
+}
+
+function parseSheetCheck(v: unknown): SheetCheck | null {
+  if (!isObj(v) || !isStr(v.sheetId) || !isStr(v.name) || !isStr(v.analysis)
+    || !STATUSES.includes(v.status as SheetCheck["status"]) || !isCount(v.compared)
+    || !Array.isArray(v.changes) || (v.note !== undefined && !isStr(v.note))) return null;
+  const changes = v.changes.map(parseChange);
+  if (changes.some((c) => !c)) return null;
+  return {
+    sheetId: v.sheetId, name: v.name, analysis: v.analysis,
+    status: v.status as SheetCheck["status"], compared: v.compared,
+    changes: changes as NumberChange[], ...(isStr(v.note) ? { note: v.note } : {}),
+  };
+}
+
+/**
+ * One saved record, checked. A record that is malformed anywhere is
+ * dropped whole (null) rather than shown with parts missing: a list of
+ * changed numbers with one left out would read as fewer changes.
+ */
+export function parseReproduction(v: unknown): ReproductionReport | null {
+  if (!isObj(v) || !isStr(v.file) || !v.file || !isStr(v.checkedAt)
+    || Number.isNaN(Date.parse(v.checkedAt)) || typeof v.digits !== "number"
+    || !Number.isInteger(v.digits) || v.digits < 1 || v.digits > 17
+    || !Array.isArray(v.sheets)) return null;
+  const current = parseSavedWith(v.current);
+  if (!current) return null;
+  const savedWith = parseSavedWith(v.savedWith);
+  if (v.savedWith !== null && v.savedWith !== undefined && !savedWith) return null;
+  if (v.source !== undefined && v.source !== "autosave" && v.source !== "link") return null;
+  const sheets = v.sheets.map(parseSheetCheck);
+  if (sheets.some((s) => !s)) return null;
+  return {
+    file: v.file,
+    ...(v.source ? { source: v.source as ReproductionSource } : {}),
+    savedWith, current, checkedAt: v.checkedAt, digits: v.digits,
+    sheets: sheets as SheetCheck[],
+  };
+}
+
+/** The records saved in a project file (absent or not a list: none). */
+export function parseReproductions(v: unknown): ReproductionReport[] {
+  if (!Array.isArray(v)) return [];
+  return v.map(parseReproduction).filter((r): r is ReproductionReport => !!r)
+    .slice(-MAX_REPRODUCTIONS);
+}
+
+/** `p` with a finished check added (newest last; at most
+ *  MAX_REPRODUCTIONS kept). */
+export function withReproduction(p: Project, r: ReproductionReport): Project {
+  const kept = (p.reproductions ?? [])
+    .filter((x) => x.checkedAt !== r.checkedAt || x.file !== r.file);
+  return { ...p, reproductions: [...kept, r].slice(-MAX_REPRODUCTIONS) };
 }
