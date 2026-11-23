@@ -23,6 +23,9 @@ export function statsMethodsParagraph(result: unknown, prefs: ReportPrefs,
     /** The analysis plan with its deviations (project/plan.ts
      *  planMethodsSentence), ARRIVE 2.0 item 19. */
     plan?: string | null;
+    /** The study design record (project/studyDesign.ts
+     *  designMethodsSentence), ARRIVE 2.0 items 3, 4, 5 and 8. */
+    design?: string | null;
     /** The test chooser's reason for this analysis, while it applies
      *  (guide/choice.ts currentChoice). */
     chosen?: { test: string; reason: string } | null; } = {}): string {
@@ -77,6 +80,7 @@ export function statsMethodsParagraph(result: unknown, prefs: ReportPrefs,
   }
   const ss = opts.powerJustification ?? meta?.sampleSize;
   if (ss) parts.push(`Sample size: ${ss.replace(/\.$/, "")}.`);
+  if (opts.design?.trim()) parts.push(opts.design.trim());
   if (opts.plan?.trim()) parts.push(opts.plan.trim());
   return parts.join(" ");
 }

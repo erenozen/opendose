@@ -786,6 +786,23 @@ const scenes = [
     await d.getByRole("tab", { name: /eLife/ }).click();
     await d.locator(".checklist li").filter({ hasText: "Source data available" }).scrollIntoViewIfNeeded();
   } },
+  // the study design record on an info sheet (P-61): blinding of data
+  // analysis not stated, a long criteria text
+  { name: "info-study-design", setup: async (s) => {
+    await fixture(s, "study-design.json");
+    await s.page.locator(".design-sheet").waitFor({ timeout: 30000 });
+    await into(s, ".design-sheet", "start");
+  } },
+  // ARRIVE items 4 and 8 met from the record, item 5 not (one stage open)
+  { name: "results-checklist-arrive", setup: async (s) => {
+    await fixture(s, "study-design.json");
+    await selectSheet(s, "t test of Tumour volume");
+    await waitLive(s);
+    await click(s, button(s, "Journal checklists"));
+    const d = dialog(s, "Journal checklists");
+    await d.getByRole("tab", { name: /ARRIVE/ }).click();
+    await d.locator(".checklist li").filter({ hasText: "4. Randomisation" }).scrollIntoViewIfNeeded();
+  } },
   // an Info constant used as "@Expected_weight" in the one-sample value
   { name: "results-info-constant", setup: async (s) => {
     await fixture(s, "row-ids.json");

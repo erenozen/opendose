@@ -6,6 +6,7 @@ import { librariesPhrase, APP_VERSION } from "../export/cite";
 import { getRuntimeVersions } from "../lib/engine";
 import { allReasoned, exclusionSentence } from "../project/exclusions";
 import { planFacts } from "../project/plan";
+import { designSheetFor } from "../project/studyDesign";
 import type { DataSheet, GraphSheet, Project, ResultsSheet } from "../project/types";
 import type { FamilyFacts, GraphFacts, ResultFacts } from "./checklists";
 import { describeResult } from "./describe";
@@ -83,6 +84,7 @@ export function familyFacts(p: Project, data: DataSheet, cache: ResultsCache): F
   if (!meta.exclusions && allReasoned(data.table)) {
     meta.exclusions = exclusionSentence(data.table) ?? undefined;
   }
+  const design = designSheetFor(p, data.id);
   return {
     dataId: data.id, dataName: data.name, results, graphs,
     meta,
@@ -90,5 +92,6 @@ export function familyFacts(p: Project, data: DataSheet, cache: ResultsCache): F
     software: `OpenDose ${APP_VERSION} with ${librariesPhrase(getRuntimeVersions())}`,
     normalityChecked,
     plan: planFacts(p, data.id),
+    design: design ? { design: design.design, sheetId: design.id } : null,
   };
 }

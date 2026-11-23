@@ -52,3 +52,11 @@
 .plan-fields textarea { font: inherit; }
 .plan-methods { font-size: var(--text-body-s); color: var(--ink); margin: 0; }
 .plan-exp .modal-actions { flex-wrap: wrap; }
+
+/* Study design record (StudyDesignView) */
+.design-blinding {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-12) var(--space-16);
+}
+.design-sheet { display: grid; gap: var(--space-12); }
+.design-sheet h4 { margin: 0; }

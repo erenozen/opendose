@@ -3,6 +3,7 @@
 // and what is lost on the way. Pure.
 import { addSheets, makeInfoSheet, uniqueName } from "../project/ops.ts";
 import { changeLog, plannedSummary, type AnalysisPlan } from "../project/plan.ts";
+import { designText } from "../project/studyDesign.ts";
 import type {
   DataSheet, DataTableModel, InfoConstant, InfoSheet, Project, SubcolumnFormat,
 } from "../project/types.ts";
@@ -58,10 +59,12 @@ export function planText(plan: AnalysisPlan): string {
 export function pzfxInfo(p: Project, dataId?: string): PzfxInfo[] {
   return p.sheets
     .filter((s): s is InfoSheet => s.kind === "info" && (!dataId || !s.parentId || s.parentId === dataId))
-    .filter((s) => s.notes.trim() || s.plan || s.constants.some((c) => c.value.trim()))
+    .filter((s) => s.notes.trim() || s.plan || (s.design && designText(s.design))
+      || s.constants.some((c) => c.value.trim()))
     .map((s) => ({
       title: s.name,
-      notes: [s.notes.trim(), s.plan ? planText(s.plan) : ""].filter(Boolean).join("\n\n"),
+      notes: [s.notes.trim(), s.plan ? planText(s.plan) : "", s.design ? designText(s.design) : ""]
+        .filter(Boolean).join("\n\n"),
       constants: s.constants.filter((c) => c.name.trim()).map((c) => ({ name: c.name, value: c.value })),
     }));
 }

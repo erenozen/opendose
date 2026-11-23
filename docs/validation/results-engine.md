@@ -1332,3 +1332,38 @@ written nor added on import.
 Manual check left for Eren (docs/prism-validation.md): open the exported
 file in Prism and confirm the Info sheet shows "Cell line = HeLa" and the
 notes.
+
+## Feature validation: study design, sex as a variable, normalised titles (2026-11-23)
+
+These three features compute no numbers; they record what the user
+states, read it into the methods text and the journal checklists, and
+name outputs. The engine is not changed.
+
+### P-61 the study design record and ARRIVE 2.0 items 4, 5 and 8
+
+An info sheet can hold a study design record (`InfoSheet.design`,
+`web/src/project/studyDesign.ts`): whether units were allocated to groups
+at random, the method and the seed; for each of the four stages ARRIVE
+2.0 item 5 names (allocation, the conduct of the experiment, outcome
+assessment, data analysis) whether the people were blinded; the
+inclusion and exclusion criteria (item 3a); the animals' species and
+strain, sex and age (item 8a). Source: Percie du Sert et al. 2020, PLoS
+Biol 18:e3000410, and the item pages on arriveguidelines.org (items 3, 4,
+5 and 8, read 2026-11-23).
+
+Checklist rules (`web/src/report/checklists.ts`, unit-tested in
+`web/src/project/__tests__/studyDesign.test.ts`): item 4 is met when
+randomisation is stated as used with a method (the seed is named in the
+reason, or "no seed recorded"), or stated as not used; item 5 when every
+one of the four stages is answered; item 8 when strain, sex and age are
+all given. Without a record each of the three is not met and offers to
+start one on the table's info sheet. The methods paragraph adds, for
+example, "Experimental units were allocated to groups at random (block
+randomisation (blocks of 4); seed 20261123)." (asserted in e2e-check).
+
+Data model: the key is optional. A project saved before it existed
+(`web/e2e-fixtures/stage/row-ids.json`) opens, saves and reopens
+unchanged and validates against `docs/project-file.schema.json`; a record
+survives save and open; the schema refuses an unknown `randomised` value.
+.pzfx export writes the record into the Info sheet's notes as text (Prism
+has no such record), so the .pzfx round trip of P-59 is unchanged.

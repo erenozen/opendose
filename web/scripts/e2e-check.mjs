@@ -1820,8 +1820,8 @@ const unmetReason = await ck.locator(".checklist li.unmet .ck-reason").first().i
 expect("checklist shows ticked and unticked items with reasons", met >= 1 && unmet >= 1 && unmetReason.length > 10,
   `${met} met, ${unmet} not met; "${unmetReason}"`);
 await ck.getByRole("tab", { name: /ARRIVE/ }).click();
-expect("ARRIVE Essential 10 items and protocol registration (item 19) listed",
-  (await ck.locator(".checklist li").count()) === 6);
+expect("ARRIVE Essential 10 items (1 to 5, 7, 8, 10) and protocol registration (item 19) listed",
+  (await ck.locator(".checklist li").count()) === 9);
 // P-09: the bundle has each table as CSV, not source data per figure, so
 // eLife "Source data available" is not met and links to the bundle
 await ck.getByRole("tab", { name: /eLife/ }).click();
@@ -4246,6 +4246,58 @@ const axeOn = async (pg, sel) => {
     && await sepDetail.getByRole("button", { name: /^Open “/ }).count() === 1);
   await sepDetail.getByRole("button", { name: /^Open “/ }).click();
   expect("one click back to the Interaction block", await appears(page.locator(".pane-results .interaction-test"), 30000));
+
+  // (d) P-61: the study design record (ARRIVE 2.0 items 4, 5 and 8)
+  const arriveItem = (dlg, n) => dlg.locator(".checklist li")
+    .filter({ has: page.locator(".ck-text", { hasText: new RegExp(`^${n}\\. `) }) });
+  const openArrive = async () => {
+    await navRow("Planned mice").click();
+    await page.getByRole("button", { name: "Journal checklists" }).click();
+    const dlg = page.getByRole("dialog", { name: "Journal checklists" });
+    await dlg.waitFor({ timeout: 15000 });
+    await dlg.getByRole("tab", { name: /ARRIVE/ }).click();
+    return dlg;
+  };
+  let ck2 = await openArrive();
+  expect("ARRIVE items 4, 5 and 8 are not met without a study design record, and say so",
+    await arriveItem(ck2, 4).getAttribute("data-status") === "unmet"
+    && await arriveItem(ck2, 5).getAttribute("data-status") === "unmet"
+    && await arriveItem(ck2, 8).getAttribute("data-status") === "unmet"
+    && /No study design recorded/.test(await arriveItem(ck2, 4).innerText()));
+  await arriveItem(ck2, 4).getByRole("button", { name: "Record the study design" }).click();
+  const design = page.locator(".design-sheet");
+  expect("Record the study design: the record opens on the table's analysis plan sheet",
+    await appears(design) && await page.locator(".plan-sheet").count() === 1);
+  await design.getByRole("radio", { name: "At random" }).check();
+  await design.getByLabel("Randomisation method").fill("block randomisation (blocks of 4)");
+  await design.getByLabel("Seed").fill("20261123");
+  for (const [stage, v] of [["Allocation to groups", "Blinded"], ["Conduct of the experiment", "Not blinded"],
+    ["Outcome assessment", "Blinded"], ["Data analysis", "Blinded"]]) {
+    await design.getByRole("group", { name: stage }).getByRole("radio", { name: v }).check();
+  }
+  await design.getByRole("group", { name: "Sex" }).getByRole("radio", { name: "Female and male" }).check();
+  await design.getByLabel("Species and strain").fill("C57BL/6J mice");
+  await design.getByLabel("Age").fill("8 to 10 weeks");
+  const randomSentence = "Experimental units were allocated to groups at random (block randomisation (blocks of 4); seed 20261123).";
+  expect("the record's methods preview names the method and the seed",
+    (await design.locator(".plan-methods").innerText()).startsWith(randomSentence),
+    await design.locator(".plan-methods").innerText());
+  axeHits.push(...await axeAt(".design-sheet"));
+  ck2 = await openArrive();
+  expect("ARRIVE items 4, 5 and 8 are met from the record",
+    await arriveItem(ck2, 4).getAttribute("data-status") === "met"
+    && await arriveItem(ck2, 5).getAttribute("data-status") === "met"
+    && await arriveItem(ck2, 8).getAttribute("data-status") === "met"
+    && /block randomisation \(blocks of 4\), seed 20261123/.test(await arriveItem(ck2, 4).innerText()),
+    (await arriveItem(ck2, 4).innerText()).replace(/\s+/g, " "));
+  await ck2.getByRole("button", { name: "Close" }).last().click();
+  const designMethods = await page.waitForFunction((want) => {
+    const t = document.querySelector(".stats-methods p")?.textContent ?? "";
+    return t.includes(want) ? t : null;
+  }, randomSentence, { timeout: 30000 }).then((h) => h.jsonValue(), () => "");
+  expect("the methods paragraph names the randomisation method and seed, and the animals", !!designMethods
+    && designMethods.includes("Animals: C57BL/6J mice; sex female and male; age 8 to 10 weeks."),
+    String(designMethods || await page.locator(".stats-methods p").innerText().catch(() => "")).slice(0, 300));
   expect("axe-core: the plan chip, the plan sheet, Plan an experiment and the Interaction block pass WCAG 2 AA",
     axeHits.length === 0, axeHits.join(" | "));
 }

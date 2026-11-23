@@ -275,6 +275,11 @@ test("statistical-analysis paragraph", () => {
   const withPlan = statsMethodsParagraph(R("anova_tukey"), DEFAULT_REPORT, undefined,
     { plan: "Pre-specified analysis plan (written 2026-10-09): … No deviations from the plan." });
   assert.match(withPlan, / Pre-specified analysis plan \(written 2026-10-09\): … No deviations from the plan\.$/);
+  // the study design record (P-61) comes before the plan
+  const withDesign = statsMethodsParagraph(R("anova_tukey"), DEFAULT_REPORT, undefined,
+    { plan: "Analysis plan (written 2026-10-09, not locked): ….",
+      design: "Experimental units were allocated to groups at random (block randomisation; seed 20261123)." });
+  assert.match(withDesign, / Experimental units were allocated to groups at random \(block randomisation; seed 20261123\)\. Analysis plan/);
 });
 
 // ------------------------------------------------------------ checklists
@@ -324,7 +329,7 @@ test("the five checklists, combined items and summary", () => {
   const lists = evaluateChecklists(facts());
   assert.deepEqual(lists.map((l) => l.id), ["nature", "elife", "star", "sampl", "arrive"]);
   const arrive = lists.find((l) => l.id === "arrive")!;
-  assert.deepEqual(arrive.items.map((i) => i.id), ["e1", "e2", "e3", "e7", "e10", "r19"]);
+  assert.deepEqual(arrive.items.map((i) => i.id), ["e1", "e2", "e3", "e4", "e5", "e7", "e8", "e10", "r19"]);
   // ARRIVE 2.0 item 19 from the analysis plan (project/plan.ts)
   assert.equal(arrive.items.find((i) => i.id === "r19")!.status, "na");
   const plan = { written: "2026-10-09", locked: true, deviations: 1, unexplained: 1, sheetId: "i1",
@@ -340,6 +345,10 @@ test("the five checklists, combined items and summary", () => {
   assert.ok(s.met > 0 && s.unmet > 0);
   const full = checklistSummary(evaluateChecklists(facts({
     meta: { unit: "mice", experiments: 3, exclusions: "none", sampleSize: "power analysis" },
+    // ARRIVE 2.0 items 4, 5 and 8 (P-61)
+    design: { sheetId: "i1", design: { randomised: "yes", randomisationMethod: "block randomisation",
+      seed: "1", blinding: { allocation: "blinded", conduct: "blinded", outcome: "blinded", analysis: "aware" },
+      exclusionCriteria: "", sex: "male", strain: "Wistar rats", age: "10 weeks" } },
   })));
   // only the eLife source-data item stays unmet: no per-figure export yet (P-09)
   assert.equal(full.unmet, 1);

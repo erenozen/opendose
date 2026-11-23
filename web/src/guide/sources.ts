@@ -222,6 +222,21 @@ export const SRC = {
     url: "https://arriveguidelines.org/arrive-guidelines/protocol-registration" },
   arriveDesign: { label: "ARRIVE 2.0 item 1: Study design",
     url: "https://arriveguidelines.org/arrive-guidelines/study-design" },
+  // Item 3a: criteria for including and excluding animals and data
+  // points, and whether they were set a priori (read 2026-11-23).
+  arriveCriteria: { label: "ARRIVE 2.0 item 3: Inclusion and exclusion criteria",
+    url: "https://arriveguidelines.org/arrive-guidelines/inclusion-and-exclusion-criteria" },
+  // Item 8a: species, strain and substrain, sex, age or developmental
+  // stage; a reason when sex is not reported (read 2026-11-23).
+  arriveAnimals: { label: "ARRIVE 2.0 item 8: Experimental animals",
+    url: "https://arriveguidelines.org/arrive-guidelines/experimental-animals" },
+  // SAGER: report the sex of subjects and analyse results by sex, or say
+  // why not. NIH SABV: consider sex as a biological variable in cell and
+  // animal studies. (DOIs resolve to the articles; 2026-11-23.)
+  heidari2016: { label: "Heidari et al. 2016, Sex and Gender Equity in Research: the SAGER guidelines, Res Integr Peer Rev 1:2",
+    url: "https://doi.org/10.1186/s41073-016-0007-6" },
+  claytonCollins2014: { label: "Clayton & Collins 2014, NIH to balance sex in cell and animal studies, Nature 509:282",
+    url: "https://doi.org/10.1038/509282a" },
   // Technical repeats / nested observations treated as independent
   // inflate false positives; use the unit or a multilevel model.
   aarts2014: { label: "Aarts et al. 2014, A solution to dependency: using multilevel analysis to accommodate nested data, Nat Neurosci 17:491",

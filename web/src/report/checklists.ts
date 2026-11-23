@@ -12,11 +12,15 @@
 // - SAMPL: Lang & Altman, Basic statistical reporting for articles
 //   published in biomedical journals (2013).
 // - ARRIVE 2.0 Essential 10 (Percie du Sert et al. 2020, PLoS Biol
-//   18:e3000410), items 1-3, 7 and 10.
+//   18:e3000410), items 1-5, 7, 8 and 10 (4, 5 and 8 from the study
+//   design record, project/studyDesign.ts).
 import type { TestInfo } from "./describe.ts";
 import type { ErrorBars } from "./legend.ts";
 import type { ReportMeta } from "./meta.ts";
 import type { PlanFacts } from "../project/plan.ts";
+import {
+  animalsOutcome, blindingOutcome, randomisationOutcome, type DesignOutcome, type StudyDesign,
+} from "../project/studyDesign.ts";
 
 export interface ResultFacts {
   sheetId: string;
@@ -57,6 +61,9 @@ export interface FamilyFacts {
   normalityChecked: boolean;
   /** The analysis plan written for this table (project/plan.ts), if any. */
   plan?: PlanFacts | null;
+  /** The study design record for this table and the info sheet holding
+   *  it (project/studyDesign.ts), if any. */
+  design?: { design: StudyDesign; sheetId: string } | null;
 }
 
 export type Status = "met" | "unmet" | "na";
@@ -64,7 +71,9 @@ export type Status = "met" | "unmet" | "na";
 /** Where to fix an item: the reporting details form, a results sheet, a
  *  graph sheet, the Analyze menu (add an analysis), or the export bundle. */
 export interface FixTarget {
-  kind: "details" | "results" | "graph" | "analyze" | "bundle";
+  /** "design": the study design record (`sheetId` when one exists; else
+   *  one is started on an info sheet linked to the table). */
+  kind: "details" | "results" | "graph" | "analyze" | "bundle" | "design";
   sheetId?: string;
   label: string;
 }
@@ -229,6 +238,12 @@ export const RULES: Record<string, Rule> = {
     return { status: "met", reason: `Analysis plan written ${pl.written} and locked; ${pl.deviations
       ? `${pl.deviations} deviation${pl.deviations === 1 ? "" : "s"}, each with its reason, in the methods text` : "no deviations"}.` };
   },
+  randomisation: (f) => designRule(f, randomisationOutcome,
+    "No study design recorded: state whether units were allocated to groups at random, and the method and seed."),
+  blinding: (f) => designRule(f, blindingOutcome,
+    "No study design recorded: say who knew the group allocation during allocation, the experiment, outcome assessment and data analysis."),
+  animals: (f) => designRule(f, animalsOutcome,
+    "No study design recorded: state the animals' species and strain, sex and age."),
   mean_sd_format: () => ({ status: "met", reason: "Sentences write mean (SD) / M and SD, never mean ± SEM." }),
   // eLife asks for source data behind every graph. The bundle has each
   // data table as CSV, not the values each figure panel plots (X-01), so
@@ -237,6 +252,14 @@ export const RULES: Record<string, Rule> = {
     reason: "The export bundle holds each data table as CSV with the results and provenance. Source data per figure (the values each graph plots, one file per panel) cannot be exported yet.",
     fix: { kind: "bundle", label: "Download the export bundle" } }),
 };
+
+/** An ARRIVE item read from the study design record. */
+function designRule(f: FamilyFacts, rule: (d: StudyDesign) => DesignOutcome, none: string): RuleOutcome {
+  if (!f.design) return { status: "unmet", reason: none, fix: { kind: "design", label: "Record the study design" } };
+  const o = rule(f.design.design);
+  return o.met ? { status: "met", reason: o.reason }
+    : { status: "unmet", reason: o.reason, fix: { kind: "design", sheetId: f.design.sheetId, label: "Open the study design" } };
+}
 
 /** An item made of several rules: unmet if any is unmet, else met if any
  *  is met, else not applicable. Reasons of the decisive rules are kept. */
@@ -301,7 +324,10 @@ const DEFS: { id: string; title: string; source: string; items: ItemDef[] }[] = 
     { id: "e1", text: "1. Study design: the groups compared and the experimental unit", rules: ["test_named", "n_unit"], source: `${ARRIVE}, item 1` },
     { id: "e2", text: "2. Sample size: exact n per group and how it was decided", rules: ["n_exact", "sample_size"], source: `${ARRIVE}, item 2` },
     { id: "e3", text: "3. Inclusion and exclusion criteria, with exclusions and exact n per analysis", rules: ["exclusions", "n_exact"], source: `${ARRIVE}, item 3` },
+    { id: "e4", text: "4. Randomisation: whether units were allocated to groups at random, the method and the seed", rules: ["randomisation"], source: `${ARRIVE}, item 4` },
+    { id: "e5", text: "5. Blinding: who knew the group allocation during allocation, the experiment, outcome assessment and data analysis", rules: ["blinding"], source: `${ARRIVE}, item 5` },
     { id: "e7", text: "7. Statistical methods for each analysis, with software and assumption checks", rules: ["test_named", "software", "assumptions"], source: `${ARRIVE}, item 7` },
+    { id: "e8", text: "8. Experimental animals: species and strain, sex and age", rules: ["animals"], source: `${ARRIVE}, item 8` },
     { id: "e10", text: "10. Results: summary statistics with variability and the effect size with a confidence interval", rules: ["centre_dispersion", "effect_ci"], source: `${ARRIVE}, item 10` },
     { id: "r19", text: "19. Protocol registration (Recommended Set): whether a protocol with the analysis plan was prepared before the study", rules: ["plan"], source: "ARRIVE 2.0 Recommended Set, item 19" },
   ] },

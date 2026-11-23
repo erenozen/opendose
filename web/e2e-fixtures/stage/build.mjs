@@ -30,6 +30,7 @@
 //   schild.json        the EC50-shift example with its Schild plot (P-49)
 //   why-history.json   a t test with Help me choose's saved reason (P-32)
 //                      and a saved reproduction record (P-58)
+//   study-design.json  a study design record on the info sheet of a t test (P-61)
 //   many-sheets.json   74 sheets: 22 families, navigator groups (one
 //                      collapsed), highlights, info sheets and layouts
 import { readFileSync, writeFileSync } from "node:fs";
@@ -469,4 +470,26 @@ const longData = (name, names, rows, categorical) => data(name, {
     ],
   }];
   write("why-history.json", project("Pilot study", [t, r, g], { selected: r.id, reproductions }));
+}
+
+// study-design.json: a t test whose table has a study design record on
+// its info sheet (P-61): randomised with a method and seed, blinding
+// stated for three of the four stages (item 5 still open), the animals.
+{
+  const t = data("Tumour volume", table("column", { yTitle: "Tumour volume (mm³)", datasets: [
+    col("Vehicle", [412, 388, 455, 430, 401, 397, 446, 420]),
+    col("Drug", [318, 352, 301, 340, 365, 322, 310, 337]),
+  ] }));
+  const r = results(t, "column", { analysis: "ttest", ttestKind: "welch" }, "t test of Tumour volume");
+  const i = { ...info("Study design: Tumour volume", "Pilot cohort 2.", [], t.id), design: {
+    randomised: "yes",
+    randomisationMethod: "block randomisation (blocks of 4), stratified by sex, from OpenDose's randomisation list",
+    seed: "20261123",
+    blinding: { allocation: "blinded", conduct: "aware", outcome: "blinded" },
+    exclusionCriteria: "Set before the study: animals reaching the humane endpoint (tumour volume over "
+      + "1500 mm³ or 20 % weight loss) before day 21 are excluded, and tumours that ulcerate are "
+      + "measured but not analysed.",
+    sex: "both", strain: "BALB/c nude mice (CAnN.Cg-Foxn1nu/Crl)", age: "6 to 8 weeks at implantation",
+  } };
+  write("study-design.json", project("Xenograft study", [t, r, i], { selected: i.id }));
 }

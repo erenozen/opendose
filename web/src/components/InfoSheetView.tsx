@@ -3,6 +3,8 @@ import { updateSheet } from "../project/ops";
 import type { InfoConstant, InfoSheet, Sheet } from "../project/types";
 import { emptyPlan, planFromResults, resultsOf } from "../project/plan";
 import AnalysisPlanView from "./AnalysisPlanView";
+import StudyDesignView from "./StudyDesignView";
+import { emptyDesign } from "../project/studyDesign";
 import { Button, IconButton } from "./ui";
 import { CloseIcon } from "./ui/feedbackIcons";
 import { ArrowDownIcon, ArrowUpIcon, PlusIcon } from "../sheets/common/gridIcons";
@@ -42,6 +44,15 @@ export default function InfoSheetView({ sheet }: { sheet: InfoSheet }) {
           <button type="button" data-still className="linkish" onClick={writePlan}>Write an analysis plan on this sheet</button>{" "}
           <span>primary comparison, test, n per group, exclusion rule and α, written before the
             data; results of the linked table are checked against it.</span>
+        </p>
+      )}
+      {sheet.design ? <StudyDesignView sheet={{ ...sheet, design: sheet.design }} /> : !ro && (
+        <p className="plan-strip">
+          <button type="button" data-still className="linkish"
+            onClick={() => edit((s) => ({ ...s, design: emptyDesign() }))}>
+            Record the study design on this sheet</button>{" "}
+          <span>randomisation and seed, blinding, inclusion and exclusion criteria, and the
+            animals&apos; sex, strain and age, for the methods text and the ARRIVE checklist.</span>
         </p>
       )}
       <div className="info-grid">

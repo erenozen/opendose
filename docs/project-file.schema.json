@@ -613,6 +613,10 @@
         "plan": {
           "$ref": "#/definitions/AnalysisPlan",
           "description": "An analysis plan written before the data (project/plan.ts)."
+        },
+        "design": {
+          "$ref": "#/definitions/StudyDesign",
+          "description": "The study design record: randomisation, blinding, criteria, animals (project/studyDesign.ts). Absent in files saved before it existed."
         }
       },
       "required": [
@@ -796,6 +800,86 @@
         "reason"
       ],
       "additionalProperties": false
+    },
+    "StudyDesign": {
+      "type": "object",
+      "properties": {
+        "randomised": {
+          "type": "string",
+          "enum": [
+            "yes",
+            "no"
+          ],
+          "description": "Units allocated to groups at random, or not; absent: not stated."
+        },
+        "randomisationMethod": {
+          "type": "string",
+          "description": "Randomised: how the sequence was generated. Not randomised: how units were allocated instead."
+        },
+        "seed": {
+          "type": "string",
+          "description": "The seed of the randomisation sequence, as typed."
+        },
+        "blinding": {
+          "type": "object",
+          "properties": {
+            "allocation": {
+              "$ref": "#/definitions/Blinded"
+            },
+            "conduct": {
+              "$ref": "#/definitions/Blinded"
+            },
+            "outcome": {
+              "$ref": "#/definitions/Blinded"
+            },
+            "analysis": {
+              "$ref": "#/definitions/Blinded"
+            }
+          },
+          "additionalProperties": false,
+          "description": "Who knew the allocation at each stage; a stage absent is not stated."
+        },
+        "exclusionCriteria": {
+          "type": "string",
+          "description": "Inclusion and exclusion criteria for animals and data points."
+        },
+        "sex": {
+          "$ref": "#/definitions/Sex"
+        },
+        "strain": {
+          "type": "string",
+          "description": "Species and strain (\"C57BL/6J mice\")."
+        },
+        "age": {
+          "type": "string",
+          "description": "Age or developmental stage (\"8 to 10 weeks\")."
+        }
+      },
+      "required": [
+        "randomisationMethod",
+        "seed",
+        "blinding",
+        "exclusionCriteria",
+        "strain",
+        "age"
+      ],
+      "additionalProperties": false
+    },
+    "Blinded": {
+      "type": "string",
+      "enum": [
+        "blinded",
+        "aware"
+      ],
+      "description": "\"blinded\": the people at that stage did not know the allocation."
+    },
+    "Sex": {
+      "type": "string",
+      "enum": [
+        "female",
+        "male",
+        "both"
+      ]
     },
     "ResultsSheet": {
       "type": "object",

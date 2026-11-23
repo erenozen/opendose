@@ -1,0 +1,142 @@
+{
+ "opendose_project": 2,
+ "version": 2,
+ "title": "Xenograft study",
+ "prefs": {
+  "defaultTableType": "xy",
+  "errorBars": "sd",
+  "ciMethod": "asymptotic",
+  "scheme": "default",
+  "digits": 4
+ },
+ "selected": "i110",
+ "sheets": [
+  {
+   "id": "d108",
+   "kind": "data",
+   "name": "Tumour volume",
+   "table": {
+    "type": "column",
+    "x": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "Tumour volume (mm³)",
+    "rowTitles": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "datasets": [
+     {
+      "name": "Vehicle",
+      "rows": [
+       [
+        "412"
+       ],
+       [
+        "388"
+       ],
+       [
+        "455"
+       ],
+       [
+        "430"
+       ],
+       [
+        "401"
+       ],
+       [
+        "397"
+       ],
+       [
+        "446"
+       ],
+       [
+        "420"
+       ]
+      ]
+     },
+     {
+      "name": "Drug",
+      "rows": [
+       [
+        "318"
+       ],
+       [
+        "352"
+       ],
+       [
+        "301"
+       ],
+       [
+        "340"
+       ],
+       [
+        "365"
+       ],
+       [
+        "322"
+       ],
+       [
+        "310"
+       ],
+       [
+        "337"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "r109",
+   "kind": "results",
+   "parentId": "d108",
+   "analysis": "column",
+   "options": {
+    "analysis": "ttest",
+    "ttestKind": "welch"
+   },
+   "name": "t test of Tumour volume"
+  },
+  {
+   "id": "i110",
+   "kind": "info",
+   "name": "Study design: Tumour volume",
+   "parentId": "d108",
+   "notes": "Pilot cohort 2.",
+   "constants": [],
+   "design": {
+    "randomised": "yes",
+    "randomisationMethod": "block randomisation (blocks of 4), stratified by sex, from OpenDose's randomisation list",
+    "seed": "20261123",
+    "blinding": {
+     "allocation": "blinded",
+     "conduct": "aware",
+     "outcome": "blinded"
+    },
+    "exclusionCriteria": "Set before the study: animals reaching the humane endpoint (tumour volume over 1500 mm³ or 20 % weight loss) before day 21 are excluded, and tumours that ulcerate are measured but not analysed.",
+    "sex": "both",
+    "strain": "BALB/c nude mice (CAnN.Cg-Foxn1nu/Crl)",
+    "age": "6 to 8 weeks at implantation"
+   }
+  }
+ ]
+}
