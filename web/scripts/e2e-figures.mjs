@@ -1305,7 +1305,7 @@ const fitLegendText = () => page.locator(".plot-card .figure-legend-text").textC
   const m = await margins();
   expect("estimation plot: dashed margin lines at -1 and +1 on the difference axis",
     JSON.stringify(m.lines) === '[["equivalence-margin:lower","y2",-1],["equivalence-margin:upper","y2",1]]'
-      && JSON.stringify(m.labels) === '["margin -1","margin +1"]', JSON.stringify(m));
+      && JSON.stringify(m.labels) === '["margin −1","margin +1"]', JSON.stringify(m));
   const near = (a, b) => Math.abs(a - b) < 5e-5;
   expect("the t test's 90% CI, drawn as B − A: -0.6403 to 0.2403 around -0.2 (statsmodels: -0.2403 to 0.6403 for A − B)",
     m.ci && near(m.ci[0], -0.6403275) && near(m.ci[1], -0.2) && near(m.ci[2], 0.2403275), JSON.stringify(m.ci));

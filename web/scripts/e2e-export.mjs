@@ -742,7 +742,7 @@ const svgTexts = (buf) => page.evaluate((s) => [...new DOMParser().parseFromStri
   const dashed = (svg.match(/stroke-dasharray/g) ?? []).length;
   // two dotted reference lines of the Gardner-Altman plot and the two margin lines
   expect("estimation SVG export carries the margin labels and the dashed margin lines",
-    texts.includes("margin -1") && texts.includes("margin +1") && dashed >= 4, `${JSON.stringify(texts)}; ${dashed} dashed`);
+    texts.includes("margin −1") && texts.includes("margin +1") && dashed >= 4, `${JSON.stringify(texts)}; ${dashed} dashed`);
 }
 
 // IC50 drop lines and the in-figure legend (P-23, P-24) in the SVG and PDF

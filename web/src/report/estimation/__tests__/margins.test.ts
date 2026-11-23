@@ -106,7 +106,7 @@ test("the Gardner-Altman figure: dashed margin lines and the capped 90% CI on th
   assert.equal(ci.y[0], -0.2);
   assert.ok(Math.abs(ci.y[0] + ci.error_y.array[0] - 0.24032753394372358) < 1e-12);
   assert.ok(Math.abs(ci.y[0] - ci.error_y.arrayminus[0] + 0.6403275339437222) < 1e-12);
-  assert.deepEqual((after.layout.annotations ?? []).map((n) => n.text), ["margin -1", "margin +1"]);
+  assert.deepEqual((after.layout.annotations ?? []).map((n) => n.text), ["margin −1", "margin +1"]);
   // the difference axis holds both margins (0 at the control mean 10.2)
   const r = after.layout.yaxis2!.range as number[];
   assert.ok(r[0] < -1 && r[1] > 1, JSON.stringify(r));

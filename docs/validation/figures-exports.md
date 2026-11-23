@@ -284,7 +284,7 @@ in the SVG export.
 When the family holds a t test (unpaired, Welch or paired) with an
 equivalence or non-inferiority margin, its estimation plot of the same
 two groups draws the margin as dashed lines across the difference's
-column (labelled "margin -1", "margin +1"; one line for non-inferiority)
+column (labelled "margin −1", "margin +1"; one line for non-inferiority)
 and the t test's 90% CI (the 1 - 2 alpha interval of the two one-sided
 tests, Schuirmann 1987) as a capped bar beside the bootstrap CI, on the
 difference axis, which grows to hold them (`report/estimation/margins.ts`,

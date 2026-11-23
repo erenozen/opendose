@@ -250,7 +250,8 @@ export function estimationFigure(inp: FigureInput): Figure {
   const eqLabels = eqShapes.map((e) => ({
     xref: "x" as const, yref: "y2" as const, x: e.x1, y: e.v, xanchor: "right" as const,
     yanchor: e.side === "upper" ? "bottom" as const : "top" as const, showarrow: false,
-    text: `margin ${e.v > 0 ? "+" : ""}${marginLabel(e.v)}`, name: "equivalence-margin-label",
+    // signed as the axis ticks beside it are: "+1", "−1" (a true minus)
+    text: `margin ${e.v > 0 ? "+" : "−"}${marginLabel(Math.abs(e.v))}`, name: "equivalence-margin-label",
     font: { color: chrome.inkSecondary, size: 11 },
   }));
   return {
