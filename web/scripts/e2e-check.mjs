@@ -4249,6 +4249,9 @@ const axeOn = async (pg, sel) => {
   await pg.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 120000 });
   await openChecks(pg);
   const pooled = pg.locator(".guide-chip", { hasText: "CI counts wells, not experiments" });
+  // The live-results wait above can still match the previous project's
+  // results; wait for the opened project's Checks row to show its chips.
+  await pooled.first().waitFor({ timeout: 60000 }).catch(() => {});
   expect("pooled fit: the Checks row says its CI counts wells, not experiments", await pooled.count() === 1);
   await pooled.click();
   const chipText = await pg.locator(".guide-chip-detail").innerText();
